@@ -11,6 +11,7 @@ Frontend of the leading political information chatbot for the German federal ele
 #### Links
 Application URL: https://wahl.chat/ </br>
 About page: https://wahl.chat/about-us </br>
+Press: https://wahlchat.notion.site </br>
 
 #### Our goal in a nutshell
 The aim of wahl.chat is to enable users to engage in a contemporary way with the positions of political parties and to receive answers to individual questions that can be substantiated with sources.
