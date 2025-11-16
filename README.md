@@ -17,7 +17,8 @@ The aim of wahl.chat is to enable users to engage in a contemporary way with the
 
 #### Contributions welcome
 We appreciate contributions from our community. Please take a look at the open issues, if you are interested.  
-If you are unsure where to start, please contact robin@wahl.chat
+If you are unsure where to start, please contact robin@wahl.chat. 
+Further specifications coming soon.
 
 ## License
 This project is **source-available** under the **PolyForm Noncommercial 1.0.0** license.
