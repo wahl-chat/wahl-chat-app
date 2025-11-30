@@ -14,15 +14,17 @@ function InstagramIcon({ className }: Props) {
     >
       <defs>
         <linearGradient id="b">
-          <stop offset="0" stopColor="#3771c8" />
-          <stop stopColor="#3771c8" offset=".128" />
-          <stop offset="1" stopColor="#60f" stopOpacity="0" />
+          <stop offset="0" stopColor="#405de6" />
+          <stop stopColor="#5851db" offset=".25" />
+          <stop offset=".5" stopColor="#833ab4" />
+          <stop offset=".75" stopColor="#c13584" />
+          <stop offset="1" stopColor="#e1306c" />
         </linearGradient>
         <linearGradient id="a">
-          <stop offset="0" stopColor="#fd5" />
-          <stop offset=".1" stopColor="#fd5" />
-          <stop offset=".5" stopColor="#ff543e" />
-          <stop offset="1" stopColor="#c837ab" />
+          <stop offset="0" stopColor="#fdf497" />
+          <stop offset=".33" stopColor="#fd5949" />
+          <stop offset=".66" stopColor="#f77737" />
+          <stop offset="1" stopColor="#d6249f" />
         </linearGradient>
         <radialGradient
           id="c"
