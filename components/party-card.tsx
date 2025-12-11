@@ -41,7 +41,7 @@ function PartyCard({
     <Button
       className={cn(
         'flex aspect-square items-center justify-center transition-all relative',
-        'bg-slate-300 w-full h-fit hover:bg-slate-300 border border-muted-foreground/20 overflow-hidden'
+        'bg-slate-300 w-full h-fit hover:bg-slate-300 border border-muted-foreground/20 overflow-hidden',
       )}
       style={{
         backgroundColor: isHovered
@@ -63,7 +63,7 @@ function PartyCard({
           <div
             className={cn(
               'absolute top-2 right-2 bg-zinc-800 border border-zinc-700 rounded-full p-[2px] transition-all duration-100 ease-in-out',
-              isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-75'
+              isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-75',
             )}
           >
             <CheckIcon className="size-2 text-white" />

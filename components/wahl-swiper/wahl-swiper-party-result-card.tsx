@@ -170,7 +170,7 @@ const ThesisRow = ({ thesis }: { thesis: ThesesScoreResult[number] }) => {
           className={cn(
             'flex flex-row items-center justify-center rounded-full p-2 w-fit aspect-square',
             agree && 'text-green-500 bg-green-500/10',
-            !agree && 'text-red-500 bg-red-500/10'
+            !agree && 'text-red-500 bg-red-500/10',
           )}
         >
           {agree ? (

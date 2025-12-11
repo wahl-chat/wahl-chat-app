@@ -20,7 +20,7 @@ import {
 
 function ChatShareButton() {
   const sharePrivateSession = useChatStore(
-    (state) => state.messages.length > 0
+    (state) => state.messages.length > 0,
   );
 
   return (

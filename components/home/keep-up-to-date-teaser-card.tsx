@@ -1,10 +1,10 @@
 'use client';
 
 import { MailCheckIcon } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import Logo from '@/components/chat/logo';
-import { Input } from '../ui/input';
-import { type FullUser, useAnonymousAuth } from '../anonymous-auth';
+import { Input } from '@/components/ui/input';
+import { type FullUser, useAnonymousAuth } from '@/components/anonymous-auth';
 import { toast } from 'sonner';
 import { useMemo } from 'react';
 

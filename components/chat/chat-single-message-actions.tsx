@@ -6,7 +6,7 @@ import CopyButton from './copy-button';
 import ChatMessageLikeDislikeButtons from './chat-message-like-dislike-buttons';
 import SourcesButton from './sources-button';
 import ChatVotingBehaviorSummaryButton from './chat-voting-behavior-summary-button';
-import { useChatStore } from '../providers/chat-store-provider';
+import { useChatStore } from '@/components/providers/chat-store-provider';
 import { WAHL_CHAT_PARTY_ID } from '@/lib/constants';
 
 type Props = {
@@ -24,10 +24,10 @@ function ChatSingleMessageActions({
   partyId,
 }: Props) {
   const isLoadingProConPerspective = useChatStore(
-    (state) => state.loading.proConPerspective === message.id
+    (state) => state.loading.proConPerspective === message.id,
   );
   const isLoadingVotingBehaviorSummary = useChatStore(
-    (state) => state.loading.votingBehaviorSummary === message.id
+    (state) => state.loading.votingBehaviorSummary === message.id,
   );
 
   if (!showMessageActions) return null;

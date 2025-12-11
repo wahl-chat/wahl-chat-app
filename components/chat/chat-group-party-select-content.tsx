@@ -21,7 +21,7 @@ function ChatGroupPartySelectContent({
   addPartiesToChat,
 }: Props) {
   const [selectedPartyIds, setSelectedPartyIds] = useState<string[]>(
-    selectedPartyIdsInStore ?? []
+    selectedPartyIdsInStore ?? [],
   );
 
   const handlePartyClicked = (partyId: string) => {
@@ -32,7 +32,7 @@ function ChatGroupPartySelectContent({
 
     if (selectedPartyIds.length >= MAX_SELECTABLE_PARTIES) {
       toast.error(
-        `Du kannst nur maximal ${MAX_SELECTABLE_PARTIES} Parteien auswählen`
+        `Du kannst nur maximal ${MAX_SELECTABLE_PARTIES} Parteien auswählen`,
       );
       return;
     }

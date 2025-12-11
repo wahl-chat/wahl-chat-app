@@ -41,7 +41,7 @@ function MobileNavbarItems({ userDetails, mobileClose }: Props) {
   return (
     <nav
       className={cn(
-        'flex flex-col md:flex-row items-center justify-center gap-2'
+        'flex flex-col md:flex-row items-center justify-center gap-2',
       )}
     >
       {tabs.map((tab) => (

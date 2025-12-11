@@ -67,7 +67,7 @@ async function SharePage({ searchParams }: Props) {
       <div
         className={cn(
           'flex grow flex-col gap-6 overflow-y-auto',
-          !isFromTopics && 'mt-4'
+          !isFromTopics && 'mt-4',
         )}
       >
         {snapshot.messages.map((message) => (
@@ -75,7 +75,7 @@ async function SharePage({ searchParams }: Props) {
             key={message.id}
             message={message}
             parties={parties.filter((p) =>
-              snapshot.party_ids.includes(p.party_id)
+              snapshot.party_ids.includes(p.party_id),
             )}
           />
         ))}

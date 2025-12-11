@@ -23,7 +23,7 @@ export function ChatMessageIcon({ partyId, party }: Props) {
       style={{ backgroundColor: normalizedParty?.background_color }}
       className={cn(
         'relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-border',
-        party && 'dark:bg-slate-200'
+        party && 'dark:bg-slate-200',
       )}
     >
       {normalizedParty ? (

@@ -35,7 +35,7 @@ type Props = {
 function ChatProConExpandable({ message, isGroupChat }: Props) {
   const [isExpanded, setIsExpanded] = useState(false);
   const isLoadingProConPerspective = useChatStore(
-    (state) => state.loading.proConPerspective === message.id
+    (state) => state.loading.proConPerspective === message.id,
   );
   const [prevIsLoadingProConPerspective, setPrevIsLoadingProConPerspective] =
     useState(isLoadingProConPerspective);
@@ -154,7 +154,7 @@ function ChatProConExpandable({ message, isGroupChat }: Props) {
         <div
           className={cn(
             'flex flex-row items-center justify-between mt-0',
-            isExpanded && 'mt-4'
+            isExpanded && 'mt-4',
           )}
         >
           {!isExpanded ? (

@@ -76,7 +76,7 @@ function LoginForm({ onSuccess }: Props) {
 
   const handleCredentialAlreadyInUse = async (
     error: FirebaseError,
-    provider: AuthProvider
+    provider: AuthProvider,
   ) => {
     const auth = getAuth();
 
@@ -140,7 +140,7 @@ function LoginForm({ onSuccess }: Props) {
   };
 
   const handleOAuthLogin = async (
-    provider: GoogleAuthProvider | GithubAuthProvider
+    provider: GoogleAuthProvider | GithubAuthProvider,
   ) => {
     const auth = getAuth();
 
@@ -166,7 +166,7 @@ function LoginForm({ onSuccess }: Props) {
     } catch (error) {
       handleAuthError(
         error,
-        provider instanceof GoogleAuthProvider ? 'google' : 'github'
+        provider instanceof GoogleAuthProvider ? 'google' : 'github',
       );
     }
   };
@@ -194,7 +194,7 @@ function LoginForm({ onSuccess }: Props) {
 
   const showErrorReloadToast = () => {
     toast.error(
-      'Es ist ein Fehler aufgetreten. Bitte lade die Seite neu und versuche es erneut.'
+      'Es ist ein Fehler aufgetreten. Bitte lade die Seite neu und versuche es erneut.',
     );
   };
 

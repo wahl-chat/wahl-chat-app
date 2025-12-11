@@ -28,7 +28,7 @@ function ChatShareLinkInputForm({ sharePrivateSession }: Props) {
   const sessionTitle = useChatStore((state) => state.currentChatTitle);
   const sharingSnapshot = useChatStore((state) => state.sharingSnapshot);
   const generateSharingSnapshotLink = useChatStore(
-    (state) => state.generateSharingSnapshotLink
+    (state) => state.generateSharingSnapshotLink,
   );
   const params = useSearchParams();
 
@@ -37,7 +37,7 @@ function ChatShareLinkInputForm({ sharePrivateSession }: Props) {
       const url = new URL(window.location.href);
       const partyIds = params.getAll('partyId');
       partyIds.forEach((partyId) =>
-        url.searchParams.append('partyId', partyId)
+        url.searchParams.append('partyId', partyId),
       );
       return url.toString();
     }

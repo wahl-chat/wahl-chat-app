@@ -33,7 +33,7 @@ function ChatSingleMessage({
   const isLoadingAnyAction = useChatStore(
     (state) =>
       state.loading.proConPerspective === message.id ||
-      state.loading.votingBehaviorSummary === message.id
+      state.loading.votingBehaviorSummary === message.id,
   );
 
   const shouldHaveBackground =
@@ -65,7 +65,7 @@ function ChatSingleMessage({
           shouldHaveBackground && 'bg-zinc-100 dark:bg-zinc-900 group',
           !isGroupChat &&
             shouldHaveBackground &&
-            'border border-muted p-3 md:p-4 rounded-lg'
+            'border border-muted p-3 md:p-4 rounded-lg',
         )}
         data-has-message-background={Boolean(shouldHaveBackground)}
       >

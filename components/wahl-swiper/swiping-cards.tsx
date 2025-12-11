@@ -10,7 +10,7 @@ function SwipingCards() {
     (state) =>
       ((state.allTheses.length - state.thesesStack.length) /
         state.allTheses.length) *
-      100
+      100,
   );
   const removeCard = useWahlSwiperStore((state) => state.removeCard);
   const handleBack = useWahlSwiperStore((state) => state.back);

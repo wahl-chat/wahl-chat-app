@@ -12,10 +12,10 @@ function WahlSwiperTeaserTag() {
   return (
     <Link
       href="/swiper"
-      className="absolute inset-0 flex items-center justify-center gap-1 md:hidden text-xs rounded-full bg-indigo-600/20 hover:bg-indigo-600/30 transition-colors px-2 py-1.5 w-fit h-fit m-auto border border-indigo-600 dark:text-indigo-100 text-indigo-900"
+      className="absolute inset-0 m-auto flex size-fit items-center justify-center gap-1 rounded-full border border-indigo-600 bg-indigo-600/20 px-2 py-1.5 text-xs text-indigo-900 transition-colors hover:bg-indigo-600/30 dark:text-indigo-100 md:hidden"
     >
-      <span className="relative flex size-2 mr-1">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-600 opacity-75" />
+      <span className="relative mr-1 flex size-2">
+        <span className="absolute inline-flex size-full animate-ping rounded-full bg-indigo-600 opacity-75" />
         <span className="relative inline-flex size-2 rounded-full bg-indigo-600" />
       </span>
       Wahl Swiper

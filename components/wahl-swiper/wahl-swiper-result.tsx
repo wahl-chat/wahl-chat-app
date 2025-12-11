@@ -19,7 +19,7 @@ type Props = {
 
 function WahlSwiperResult({ resultId, scores, parties, userDetails }: Props) {
   const sortedScores = Object.entries(scores).sort(
-    ([, score], [, otherScore]) => otherScore.score - score.score
+    ([, score], [, otherScore]) => otherScore.score - score.score,
   );
 
   return (

@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useState } from 'react';
 import CreateNewChatDropdownButtonTrigger from './create-new-chat-dropdown-button-trigger';
-import PartyCards from '../party-cards';
+import PartyCards from '@/components/party-cards';
 
 function CreateNewChatDropdownButton() {
   const [open, setOpen] = useState(false);
@@ -16,7 +16,7 @@ function CreateNewChatDropdownButton() {
       <CreateNewChatDropdownButtonTrigger
         onTriggerClick={() => setOpen(true)}
       />
-      <DropdownMenuContent align="end" className="p-3 w-[80vw] max-w-[300px]">
+      <DropdownMenuContent align="end" className="w-[80vw] max-w-[300px] p-3">
         <div className="mb-2 flex flex-col">
           <h2 className="text-lg font-bold">Neuer Chat</h2>
           <p className="text-sm text-muted-foreground">

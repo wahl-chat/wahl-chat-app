@@ -37,7 +37,7 @@ function LoginReminderToast() {
     }
 
     const clickedAway = firestoreTimestampToDate(
-      user.clicked_away_login_reminder
+      user.clicked_away_login_reminder,
     );
 
     if (clickedAway) {
@@ -126,7 +126,7 @@ function LoginReminderToast() {
           position: 'bottom-right',
           id: LOGIN_REMINDER_TOAST_ID,
           onDismiss: handleClickedAway,
-        }
+        },
       );
     }, timeout);
 

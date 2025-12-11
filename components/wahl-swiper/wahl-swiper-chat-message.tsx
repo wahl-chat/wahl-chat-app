@@ -50,7 +50,7 @@ function WahlSwiperChatMessage({ message }: Props) {
       <article
         className={cn(
           'flex w-fit max-w-[95%] rounded-[20px] text-foreground gap-3 md:gap-4',
-          'self-start'
+          'self-start',
         )}
       >
         <ChatMessageIcon />

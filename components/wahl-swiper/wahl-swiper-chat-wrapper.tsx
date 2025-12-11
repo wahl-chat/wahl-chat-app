@@ -17,12 +17,12 @@ import { Separator } from '@/components/ui/separator';
 
 function WahlSwiperChatWrapper() {
   const shouldShowChat = useWahlSwiperStore(
-    (state) => state.thesesStack.length > 0
+    (state) => state.thesesStack.length > 0,
   );
   const [isSticky, setIsSticky] = useState(true);
   const chatIsExpanded = useWahlSwiperStore((state) => state.chatIsExpanded);
   const setChatIsExpanded = useWahlSwiperStore(
-    (state) => state.setChatIsExpanded
+    (state) => state.setChatIsExpanded,
   );
   const currentThesis = useWahlSwiperStore((state) => state.getCurrentThesis());
   const ref = useRef<HTMLDivElement>(null);
@@ -34,7 +34,7 @@ function WahlSwiperChatWrapper() {
 
     const observer = new IntersectionObserver(
       ([e]) => setIsSticky(e.intersectionRatio < 1),
-      { threshold: 1 }
+      { threshold: 1 },
     );
 
     observer.observe(cachedRef);
@@ -56,7 +56,7 @@ function WahlSwiperChatWrapper() {
         ref={ref}
         className={cn(
           'sticky bottom-[-1px] -mx-2 mt-6 md:pb-2 pb-4 z-40 transition-all duration-300 ease-out',
-          !isSticky && 'mx-0'
+          !isSticky && 'mx-0',
         )}
       >
         <WahlSwiperInput

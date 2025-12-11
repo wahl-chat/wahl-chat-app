@@ -41,7 +41,7 @@ function ChatScrollDownIndicator() {
   return (
     <div
       className={cn(
-        'absolute inset-x-4 -top-10 flex justify-end pointer-events-none'
+        'absolute inset-x-4 -top-10 flex justify-end pointer-events-none',
       )}
     >
       <Button
@@ -52,7 +52,7 @@ function ChatScrollDownIndicator() {
           'md:hover:scale-110 md:hover:-translate-y-1',
           isVisible
             ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
-            : 'opacity-0 translate-y-2 scale-0 pointer-events-none'
+            : 'opacity-0 translate-y-2 scale-0 pointer-events-none',
         )}
         onClick={handleClick}
         size="icon"

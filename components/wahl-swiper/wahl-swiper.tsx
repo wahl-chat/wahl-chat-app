@@ -11,10 +11,10 @@ import { toast } from 'sonner';
 function WahlSwiper() {
   const [isLoading, setIsLoading] = useState(false);
   const finished = useWahlSwiperStore(
-    (state) => state.thesesStack.length === 0
+    (state) => state.thesesStack.length === 0,
   );
   const saveSwiperHistory = useWahlSwiperStore(
-    (state) => state.saveSwiperHistory
+    (state) => state.saveSwiperHistory,
   );
   const { user } = useAnonymousAuth();
   const router = useRouter();
@@ -22,7 +22,7 @@ function WahlSwiper() {
   const handleFinished = useCallback(async () => {
     const errorToast = () =>
       toast.error(
-        'Fehler beim Berechnen deiner Ergebnisse. Bitte lade die Seite neu.'
+        'Fehler beim Berechnen deiner Ergebnisse. Bitte lade die Seite neu.',
       );
 
     if (!user) {

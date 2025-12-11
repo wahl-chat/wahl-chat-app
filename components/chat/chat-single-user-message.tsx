@@ -26,7 +26,7 @@ function ChatSingleUserMessage({ message, isLastMessage }: Props) {
   const handleResendMessage = () => {
     if (!user) {
       toast.error(
-        'Bitte lade die Seite neu, um eine Nachricht erneut zu senden.'
+        'Bitte lade die Seite neu, um eine Nachricht erneut zu senden.',
       );
       return;
     }

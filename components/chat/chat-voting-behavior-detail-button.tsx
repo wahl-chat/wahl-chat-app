@@ -12,8 +12,8 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer';
 import { forwardRef, useImperativeHandle, useMemo, useState } from 'react';
-import VisuallyHidden from '../visually-hidden';
-import { DialogDescription, DialogTitle } from '../ui/dialog';
+import VisuallyHidden from '@/components/visually-hidden';
+import { DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { track } from '@vercel/analytics/react';
 
 type Props = {
@@ -58,13 +58,13 @@ const ChatVotingBehaviorDetailButton = forwardRef<
     const uniqueNumbers = [...new Set(numbers)];
 
     return uniqueNumbers.filter((number) =>
-      votingBehavior.votes.some((vote) => vote.id === number.toString())
+      votingBehavior.votes.some((vote) => vote.id === number.toString()),
     );
   }, [votingBehavior.summary, votingBehavior.votes]);
 
   const votes = useMemo(() => {
     return votingBehavior.votes.filter((vote) =>
-      voteIdsReferenced.includes(Number(vote.id))
+      voteIdsReferenced.includes(Number(vote.id)),
     );
   }, [voteIdsReferenced, votingBehavior.votes]);
 

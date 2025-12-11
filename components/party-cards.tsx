@@ -37,7 +37,7 @@ function PartyCards({
   const largeParties = context?.parties?.filter((p) => !p.is_small_party);
 
   const defaultShowMore = !!smallParties?.find((p) =>
-    selectedPartyIds?.includes(p.party_id)
+    selectedPartyIds?.includes(p.party_id),
   );
 
   const [showMore, setShowMore] = useState(defaultShowMore);
@@ -65,7 +65,7 @@ function PartyCards({
           <Button
             className={cn(
               'flex aspect-square size-full items-center justify-center rounded-md',
-              'border border-muted-foreground/20 bg-background dark:bg-zinc-900 hover:bg-muted p-0'
+              'border border-muted-foreground/20 bg-background dark:bg-zinc-900 hover:bg-muted p-0',
             )}
             type="button"
             tooltip="wahl.chat"
@@ -93,7 +93,7 @@ function PartyCards({
               'flex aspect-square items-center justify-center',
               'w-full h-fit border border-muted-foreground/20 overflow-hidden md:hover:bg-zinc-200 dark:md:hover:bg-zinc-700',
               'text-center whitespace-normal text-muted-foreground flex flex-col items-center justify-center',
-              'text-xs md:text-sm gap-1 md:gap-2'
+              'text-xs md:text-sm gap-1 md:gap-2',
             )}
           >
             {showMore ? (
@@ -107,7 +107,7 @@ function PartyCards({
 
         <CollapsibleContent asChild>
           <div
-            className="grid gap-2 col-span-4"
+            className="col-span-4 grid gap-2"
             style={{
               gridColumn: `span ${gridColumns} / span ${gridColumns}`,
               gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,

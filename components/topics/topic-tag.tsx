@@ -20,7 +20,7 @@ function TopicTag({ topic, active = false, onClick }: Props) {
           'border rounded-md px-2 py-0 w-fit whitespace-nowrap h-7 text-xs',
           normal,
           hover,
-          active && activeStyle
+          active && activeStyle,
         )}
         onClick={onClick}
       >
@@ -34,7 +34,7 @@ function TopicTag({ topic, active = false, onClick }: Props) {
       className={cn(
         'border rounded-md px-2 py-0 w-fit whitespace-nowrap h-7 text-xs flex items-center justify-center',
         normal,
-        active && activeStyle
+        active && activeStyle,
       )}
     >
       {title}
