@@ -1,39 +1,37 @@
-import { createStore } from 'zustand/vanilla';
-import type { ChatStore, ChatStoreState } from './chat-store.types';
-import { chatAddUserMessage } from './actions/chat-add-user-message';
-import { loadChatSession } from './actions/load-chat-session';
-import { hydrateChatSession } from './actions/hydrate-chat-session';
-import { generateProConPerspective } from './actions/generate-pro-con-perspective';
-import { immer } from 'zustand/middleware/immer';
+import { DEFAULT_LLM_SIZE } from '@/lib/firebase/firebase.types';
 import { devtools } from 'zustand/middleware';
-import { setMessageFeedback } from './actions/set-message-feedback';
-import { setChatSessionIsPublic } from './actions/set-chat-session-is-public';
-import { initializeChatSession } from './actions/initialize-chat-session';
-import { setInput } from './actions/set-input';
-import { setChatSessionId } from './actions/set-chat-session-id';
-import { newChat } from './actions/new-chat';
-import { setPreSelectedParties } from './actions/set-pre-selected-parties';
-import { setSocket } from './actions/set-socket';
-import { setSocketConnecting } from './actions/set-socket-connecting';
-import { setSocketConnected } from './actions/set-socket-connected';
-import { setSocketError } from './actions/set-socket-error';
-import { streamingMessageSourcesReady } from './actions/streaming-message-sources-ready';
-import { mergeStreamingChunkPayloadForMessage } from './actions/merge-streaming-chunk-payload-for-message';
-import { updateQuickRepliesAndTitleForCurrentStreamingMessage } from './actions/update-quick-replies-and-title-for-current-streaming-message';
-import { completeStreamingMessage } from './actions/complete-streaming-message';
-import { completeProConPerspective } from './actions/complete-pro-con-perspective';
-import { initializedChatSession } from './actions/initialized-chat-session';
-import { selectRespondingParties } from './actions/select-responding-parties';
-import { generateSharingSnapshotLink } from './actions/generate-sharing-snapshot-link';
+import { immer } from 'zustand/middleware/immer';
+import { createStore } from 'zustand/vanilla';
 import { addVotingBehaviorResult } from './actions/add-voting-behavior-result';
 import { addVotingBehaviorSummaryChunk } from './actions/add-voting-behavior-summary-chunk';
-import { completeVotingBehavior } from './actions/complete-voting-behavior';
-import { generateVotingBehaviorSummary } from './actions/generate-voting-behavior-summary';
-import { setPartyIds } from './actions/set-party-ids';
-import { DEFAULT_LLM_SIZE } from '@/lib/firebase/firebase.types';
 import { cancelStreamingMessages } from './actions/cancel-streaming-messages';
-import { startTimeoutForStreamingMessages } from './actions/start-timeout-for-streaming-messages';
+import { chatAddUserMessage } from './actions/chat-add-user-message';
+import { completeProConPerspective } from './actions/complete-pro-con-perspective';
+import { completeStreamingMessage } from './actions/complete-streaming-message';
+import { completeVotingBehavior } from './actions/complete-voting-behavior';
+import { generateProConPerspective } from './actions/generate-pro-con-perspective';
+import { generateSharingSnapshotLink } from './actions/generate-sharing-snapshot-link';
+import { generateVotingBehaviorSummary } from './actions/generate-voting-behavior-summary';
+import { hydrateChatSession } from './actions/hydrate-chat-session';
+import { initializeChatSession } from './actions/initialize-chat-session';
+import { initializedChatSession } from './actions/initialized-chat-session';
+import { loadChatSession } from './actions/load-chat-session';
+import { mergeStreamingChunkPayloadForMessage } from './actions/merge-streaming-chunk-payload-for-message';
+import { newChat } from './actions/new-chat';
+import { selectRespondingParties } from './actions/select-responding-parties';
 import { sendVoiceMessage } from './actions/send-voice-message';
+import { setChatSessionId } from './actions/set-chat-session-id';
+import { setChatSessionIsPublic } from './actions/set-chat-session-is-public';
+import { setInput } from './actions/set-input';
+import { setMessageFeedback } from './actions/set-message-feedback';
+import { setPartyIds } from './actions/set-party-ids';
+import { setPreSelectedParties } from './actions/set-pre-selected-parties';
+import { setSocket } from './actions/set-socket';
+import { setSocketConnected } from './actions/set-socket-connected';
+import { setSocketConnecting } from './actions/set-socket-connecting';
+import { setSocketError } from './actions/set-socket-error';
+import { startTimeoutForStreamingMessages } from './actions/start-timeout-for-streaming-messages';
+import { streamingMessageSourcesReady } from './actions/streaming-message-sources-ready';
 import {
   requestTextToSpeech,
   setTtsError,
@@ -41,11 +39,13 @@ import {
   setTtsPlaying,
   setTtsReady,
 } from './actions/tts-actions';
+import { updateQuickRepliesAndTitleForCurrentStreamingMessage } from './actions/update-quick-replies-and-title-for-current-streaming-message';
 import {
   setVoiceTranscribed,
   setVoiceTranscriptionError,
   setVoiceTranscriptionPending,
 } from './actions/voice-transcription-actions';
+import type { ChatStore, ChatStoreState } from './chat-store.types';
 
 export const SURVEY_BANNER_MIN_MESSAGE_COUNT = 8;
 

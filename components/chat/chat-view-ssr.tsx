@@ -6,8 +6,8 @@ import {
   getPartiesById,
   getProposedQuestions,
 } from '@/lib/firebase/firebase-server';
-import ChatMessagesView from './chat-messages-view';
 import { redirect } from 'next/navigation';
+import ChatMessagesView from './chat-messages-view';
 
 type Props = {
   chatSessionId?: string;

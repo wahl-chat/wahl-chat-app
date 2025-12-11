@@ -1,8 +1,8 @@
+import { Separator } from '@/components/ui/separator';
+import useCarouselCurrentIndex from '@/lib/hooks/use-carousel-current-index';
 import type { Vote } from '@/lib/socket.types';
 import OverallVoteChart from './overall-vote-chart';
-import { Separator } from '@/components/ui/separator';
 import PartiesVoteChart from './parties-vote-chart';
-import useCarouselCurrentIndex from '@/lib/hooks/use-carousel-current-index';
 
 type Props = {
   votes: Vote[];

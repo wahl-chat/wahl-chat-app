@@ -1,11 +1,11 @@
-import { cn, type UserDetails } from '@/lib/utils';
+import LoginButton from '@/components/auth/login-button';
+import UserAvatar from '@/components/auth/user-avatar';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { type UserDetails, cn } from '@/lib/utils';
+import { SparklesIcon } from 'lucide-react';
 import type { NavbarItemDetails } from './navbar-item';
 import NavbarItem from './navbar-item';
-import { Separator } from '@/components/ui/separator';
-import LoginButton from '@/components/auth/login-button';
-import { Button } from '@/components/ui/button';
-import UserAvatar from '@/components/auth/user-avatar';
-import { SparklesIcon } from 'lucide-react';
 
 type Props = {
   userDetails?: UserDetails;

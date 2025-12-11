@@ -1,8 +1,8 @@
 'use client';
 
-import { Volume2, Loader2, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTTSAudio } from '@/lib/hooks/use-tts-audio';
+import { Loader2, Square, Volume2 } from 'lucide-react';
 
 type Props = {
   partyId: string;

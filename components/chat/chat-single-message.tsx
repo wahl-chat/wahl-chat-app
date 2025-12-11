@@ -1,18 +1,18 @@
 import { useChatStore } from '@/components/providers/chat-store-provider';
-import { ChatMessageIcon } from './chat-message-icon';
-import ChatProConExpandable from './chat-pro-con-expandable';
+import type { PartyDetails } from '@/lib/party-details';
 import type {
   MessageItem,
   VoiceTranscriptionStatus,
 } from '@/lib/stores/chat-store.types';
-import ChatMarkdown from './chat-markdown';
-import ChatSingleMessageActions from './chat-single-message-actions';
 import { cn } from '@/lib/utils';
+import ChatMarkdown from './chat-markdown';
+import { ChatMessageIcon } from './chat-message-icon';
+import ChatProConExpandable from './chat-pro-con-expandable';
+import ChatSingleMessageActions from './chat-single-message-actions';
+import ChatSingleUserMessage from './chat-single-user-message';
 import ChatVotingBehaviorExpandable from './chat-voting-behavior-expandable';
 import MessageLoadingBorderTrail from './message-loading-border-trail';
-import ChatSingleUserMessage from './chat-single-user-message';
 import SurveyBanner from './survey-banner';
-import type { PartyDetails } from '@/lib/party-details';
 
 type Props = {
   message: MessageItem;

@@ -1,11 +1,11 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
+import { SCROLL_CONTAINER_ID } from '@/lib/scroll-constants';
 import { chatViewScrollToBottom } from '@/lib/scroll-utils';
 import { cn } from '@/lib/utils';
 import { ArrowDownIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { SCROLL_CONTAINER_ID } from '@/lib/scroll-constants';
 
 function ChatScrollDownIndicator() {
   const [isVisible, setIsVisible] = useState(false);

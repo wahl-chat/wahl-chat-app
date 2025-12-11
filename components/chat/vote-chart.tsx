@@ -1,4 +1,3 @@
-import { Pie, PieChart } from 'recharts';
 import {
   type ChartConfig,
   ChartContainer,
@@ -6,6 +5,7 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart';
 import NumberFlow from '@number-flow/react';
+import { Pie, PieChart } from 'recharts';
 
 type Props = {
   voteResults: {

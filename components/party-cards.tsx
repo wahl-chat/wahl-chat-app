@@ -2,18 +2,18 @@
 
 import PartyCard from '@/components/party-card';
 import { PartiesContext } from '@/components/providers/parties-provider';
+import { cn } from '@/lib/utils';
+import { CircleXIcon, EllipsisIcon } from 'lucide-react';
+import Link from 'next/link';
 import { use, useState } from 'react';
+import Logo from './chat/logo';
 import LoadingPartyCards from './home/loading-party-cards';
+import { Button } from './ui/button';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from './ui/collapsible';
-import { Button } from './ui/button';
-import { cn } from '@/lib/utils';
-import { CircleXIcon, EllipsisIcon } from 'lucide-react';
-import Link from 'next/link';
-import Logo from './chat/logo';
 
 type Props = {
   className?: string;

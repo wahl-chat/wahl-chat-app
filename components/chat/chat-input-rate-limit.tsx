@@ -1,12 +1,12 @@
 'use client';
 
 import { useAnonymousAuth } from '@/components/anonymous-auth';
+import LoginButton from '@/components/auth/login-button';
 import { useChatStore } from '@/components/providers/chat-store-provider';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCallback } from 'react';
 import MessageLoadingBorderTrail from './message-loading-border-trail';
-import { Button } from '@/components/ui/button';
-import LoginButton from '@/components/auth/login-button';
 
 function ChatInputRateLimit() {
   const { user } = useAnonymousAuth();

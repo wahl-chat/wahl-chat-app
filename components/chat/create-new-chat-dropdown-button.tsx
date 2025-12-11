@@ -1,12 +1,12 @@
 'use client';
 
+import PartyCards from '@/components/party-cards';
 import {
   DropdownMenu,
   DropdownMenuContent,
 } from '@/components/ui/dropdown-menu';
 import { useState } from 'react';
 import CreateNewChatDropdownButtonTrigger from './create-new-chat-dropdown-button-trigger';
-import PartyCards from '@/components/party-cards';
 
 function CreateNewChatDropdownButton() {
   const [open, setOpen] = useState(false);

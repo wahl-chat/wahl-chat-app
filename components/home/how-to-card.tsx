@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
-import { BookMarkedIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { BookMarkedIcon } from 'lucide-react';
 
 function HowToCard() {
   return (

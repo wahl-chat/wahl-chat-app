@@ -1,13 +1,13 @@
-import type { NavbarItemDetails } from './navbar-item';
-import NavbarItem from './navbar-item';
 import LoginButton from '@/components/auth/login-button';
+import UserAvatar from '@/components/auth/user-avatar';
+import EmbedOpenWebsiteButton from '@/components/embed-open-website-button';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { getCurrentUser } from '@/lib/firebase/firebase-server';
-import { cn, getUserDetailsFromUser, IS_EMBEDDED } from '@/lib/utils';
-import UserAvatar from '@/components/auth/user-avatar';
-import EmbedOpenWebsiteButton from '@/components/embed-open-website-button';
+import { IS_EMBEDDED, cn, getUserDetailsFromUser } from '@/lib/utils';
 import { SparklesIcon } from 'lucide-react';
+import type { NavbarItemDetails } from './navbar-item';
+import NavbarItem from './navbar-item';
 
 type Props = {
   className?: string;

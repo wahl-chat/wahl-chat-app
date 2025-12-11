@@ -1,18 +1,10 @@
-import Image from 'next/image';
-import { buildPartyImageUrl, cn } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
-import { CheckIcon, MessageSquareIcon, XIcon } from 'lucide-react';
-import Link from 'next/link';
 import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import type {
-  PartiesScoreResult,
-  ThesesScoreResult,
-} from '@/lib/wahl-swiper/wahl-swiper.types';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import {
   Table,
   TableBody,
@@ -22,6 +14,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { PartyDetails } from '@/lib/party-details';
+import { buildPartyImageUrl, cn } from '@/lib/utils';
+import type {
+  PartiesScoreResult,
+  ThesesScoreResult,
+} from '@/lib/wahl-swiper/wahl-swiper.types';
+import { CheckIcon, MessageSquareIcon, XIcon } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
 
 const WAHL_SWIPER_PARTY_IDS = [
   'afd',

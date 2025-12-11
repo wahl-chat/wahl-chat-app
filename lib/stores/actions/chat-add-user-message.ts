@@ -4,10 +4,10 @@ import {
   generateMessageId,
 } from '@/lib/firebase/firebase';
 import { chatViewScrollToBottom } from '@/lib/scroll-utils';
-import { generateUuid } from '@/lib/utils';
-import { toast } from 'sonner';
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
+import { generateUuid } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
+import { toast } from 'sonner';
 
 export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
   (get, set) =>

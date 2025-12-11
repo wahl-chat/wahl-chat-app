@@ -1,16 +1,16 @@
-import { cn } from '@/lib/utils';
-import MessageLoadingBorderTrail from '@/components/chat/message-loading-border-trail';
 import Logo from '@/components/chat/logo';
+import MessageLoadingBorderTrail from '@/components/chat/message-loading-border-trail';
+import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
 import { Button } from '@/components/ui/button';
+import { useIsDesktop } from '@/lib/hooks/use-is-desktop';
+import { cn } from '@/lib/utils';
+import { SWIPER_DEFAULT_QUICK_REPLIES } from '@/lib/wahl-swiper/wahl-swiper-store';
 import {
   ArrowUp,
   ChevronDown,
   MessageCircleMoreIcon,
   XIcon,
 } from 'lucide-react';
-import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
-import { useIsDesktop } from '@/lib/hooks/use-is-desktop';
-import { SWIPER_DEFAULT_QUICK_REPLIES } from '@/lib/wahl-swiper/wahl-swiper-store';
 
 type Props = {
   isSticky: boolean;

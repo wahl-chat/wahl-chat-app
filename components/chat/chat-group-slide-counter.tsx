@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useCarousel } from '@/components/ui/carousel';
-import Image from 'next/image';
-import type { PartyDetails } from '@/lib/party-details';
 import { Button } from '@/components/ui/button';
+import { useCarousel } from '@/components/ui/carousel';
+import type { PartyDetails } from '@/lib/party-details';
 import { scrollToCarouselContainerBottom } from '@/lib/scroll-utils';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
+import Image from 'next/image';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Props = {
   parties: PartyDetails[];

@@ -1,6 +1,8 @@
-import { ThumbsDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { ThumbsDown } from 'lucide-react';
+import { useState } from 'react';
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -9,8 +11,6 @@ import {
   ResponsiveDialogTitle,
   ResponsiveDialogTrigger,
 } from './responsive-drawer-dialog';
-import { useState } from 'react';
-import { Textarea } from '@/components/ui/textarea';
 
 type Props = {
   isDisliked: boolean;

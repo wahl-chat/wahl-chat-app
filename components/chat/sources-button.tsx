@@ -1,5 +1,14 @@
-import { BookMarkedIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import type { Source } from '@/lib/stores/chat-store.types';
+import { buildPdfUrl, cn, prettyDate } from '@/lib/utils';
+import { BookMarkedIcon } from 'lucide-react';
+import { useMemo } from 'react';
+import { ChatMessageIcon } from './chat-message-icon';
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -8,15 +17,6 @@ import {
   ResponsiveDialogTitle,
   ResponsiveDialogTrigger,
 } from './responsive-drawer-dialog';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import type { Source } from '@/lib/stores/chat-store.types';
-import { useMemo } from 'react';
-import { buildPdfUrl, cn, prettyDate } from '@/lib/utils';
-import { ChatMessageIcon } from './chat-message-icon';
 
 type Props = {
   sources: Source[];

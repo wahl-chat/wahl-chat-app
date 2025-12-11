@@ -1,11 +1,11 @@
 'use client';
 
-import { cn } from '@/lib/utils';
-import { ArrowUp } from 'lucide-react';
-import { useCallback } from 'react';
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { ArrowUp } from 'lucide-react';
+import { useCallback } from 'react';
 import ChatInputAddPartiesButton from './chat-input-add-parties-button';
 import MessageLoadingBorderTrail from './message-loading-border-trail';
 import {

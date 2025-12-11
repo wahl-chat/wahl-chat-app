@@ -1,11 +1,11 @@
 'use client';
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Button } from '@/components/ui/button';
-import ProConIcon from './pro-con-icon';
-import type { MessageItem } from '@/lib/stores/chat-store.types';
 import type { StreamingMessage } from '@/lib/socket.types';
-import ChatActionButtonHighlight from './chat-action-button-highlight';
+import type { MessageItem } from '@/lib/stores/chat-store.types';
 import { track } from '@vercel/analytics/react';
+import ChatActionButtonHighlight from './chat-action-button-highlight';
+import ProConIcon from './pro-con-icon';
 
 type Props = {
   partyId: string;

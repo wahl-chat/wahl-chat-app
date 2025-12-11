@@ -1,9 +1,5 @@
-import type { VotingBehavior } from '@/lib/stores/chat-store.types';
 import { Button } from '@/components/ui/button';
-import { ScrollTextIcon } from 'lucide-react';
-import { useIsDesktop } from '@/lib/hooks/use-is-desktop';
-import ChatVotingBehaviorDetailView from './chat-voting-behavior-detail-view';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import {
   Drawer,
   DrawerContent,
@@ -11,10 +7,14 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer';
-import { forwardRef, useImperativeHandle, useMemo, useState } from 'react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import VisuallyHidden from '@/components/visually-hidden';
-import { DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { useIsDesktop } from '@/lib/hooks/use-is-desktop';
+import type { VotingBehavior } from '@/lib/stores/chat-store.types';
 import { track } from '@vercel/analytics/react';
+import { ScrollTextIcon } from 'lucide-react';
+import { forwardRef, useImperativeHandle, useMemo, useState } from 'react';
+import ChatVotingBehaviorDetailView from './chat-voting-behavior-detail-view';
 
 type Props = {
   votingBehavior: VotingBehavior;

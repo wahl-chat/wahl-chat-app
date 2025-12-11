@@ -1,8 +1,8 @@
-import { toast } from 'sonner';
 import {
   type ChatStoreActionHandlerFor,
   getTtsKey,
 } from '@/lib/stores/chat-store.types';
+import { toast } from 'sonner';
 
 export const requestTextToSpeech: ChatStoreActionHandlerFor<
   'requestTextToSpeech'

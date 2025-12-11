@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import {
-  createElement,
   type DetailedHTMLProps,
   type HTMLAttributes,
   type JSX,
+  createElement,
   memo,
 } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';

@@ -1,7 +1,7 @@
-import { cn, prettifiedUrlName } from '@/lib/utils';
-import type { SwiperMessage } from '@/lib/wahl-swiper/wahl-swiper-store.types';
 import { ChatMessageIcon } from '@/components/chat/chat-message-icon';
 import { Markdown } from '@/components/markdown';
+import { cn, prettifiedUrlName } from '@/lib/utils';
+import type { SwiperMessage } from '@/lib/wahl-swiper/wahl-swiper-store.types';
 
 type Props = {
   message: SwiperMessage;

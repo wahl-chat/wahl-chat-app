@@ -16,9 +16,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import VisuallyHidden from '@/components/visually-hidden';
 import { useIsMobile } from '@/lib/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import VisuallyHidden from '@/components/visually-hidden';
 import { DialogDescription, DialogTitle } from './dialog';
 
 const SIDEBAR_WIDTH = '16rem';

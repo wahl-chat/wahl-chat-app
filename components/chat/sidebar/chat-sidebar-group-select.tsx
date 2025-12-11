@@ -1,9 +1,9 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import ChatGroupPartySelect from '@/components/chat/chat-group-party-select';
-import { GitCompareIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
+import { GitCompareIcon } from 'lucide-react';
 
 function ChatSidebarGroupSelect() {
   const { setOpenMobile, isMobile } = useSidebar();

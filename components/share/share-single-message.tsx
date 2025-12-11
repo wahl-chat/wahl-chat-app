@@ -1,9 +1,9 @@
-import type { MessageItem } from '@/lib/stores/chat-store.types';
-import { ChatMessageIcon } from '@/components/chat/chat-message-icon';
-import { cn } from '@/lib/utils';
 import ChatMarkdown from '@/components/chat/chat-markdown';
+import { ChatMessageIcon } from '@/components/chat/chat-message-icon';
 import SourcesButton from '@/components/chat/sources-button';
 import type { PartyDetails } from '@/lib/party-details';
+import type { MessageItem } from '@/lib/stores/chat-store.types';
+import { cn } from '@/lib/utils';
 
 type Props = {
   message: MessageItem;

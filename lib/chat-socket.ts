@@ -1,9 +1,10 @@
 'use client';
 
+import { socket } from '@/components/providers/socket-provider';
 import type {
   AddUserMessagePayload,
-  ChatSessionInitializedPayload,
   ChatSessionInitPayload,
+  ChatSessionInitializedPayload,
   GenerateVotingBehaviorSummaryPayload,
   PartyResponseChunkReadyPayload,
   PartyResponseCompletePayload,
@@ -20,7 +21,6 @@ import type {
   VotingBehaviorResultPayload,
   VotingBehaviorSummaryChunkPayload,
 } from './socket.types';
-import { socket } from '@/components/providers/socket-provider';
 
 type ChatSocketListenerEvent = {
   connect: () => void;

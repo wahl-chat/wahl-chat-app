@@ -1,8 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
 import ChatSocket from '@/lib/chat-socket';
-import { useChatStore } from './chat-store-provider';
 import type {
   ChatSessionInitializedPayload,
   PartyResponseChunkReadyPayload,
@@ -17,7 +15,9 @@ import type {
   VotingBehaviorResultPayload,
   VotingBehaviorSummaryChunkPayload,
 } from '@/lib/socket.types';
+import { useEffect } from 'react';
 import { io } from 'socket.io-client';
+import { useChatStore } from './chat-store-provider';
 
 type Props = {
   children: React.ReactNode;

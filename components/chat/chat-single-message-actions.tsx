@@ -1,14 +1,14 @@
+import { useChatStore } from '@/components/providers/chat-store-provider';
+import { Separator } from '@/components/ui/separator';
+import { WAHL_CHAT_PARTY_ID } from '@/lib/constants';
 import type { StreamingMessage } from '@/lib/socket.types';
 import type { MessageItem } from '@/lib/stores/chat-store.types';
-import { Separator } from '@/components/ui/separator';
-import ChatProConButton from './chat-pro-con-button';
-import CopyButton from './copy-button';
 import ChatMessageLikeDislikeButtons from './chat-message-like-dislike-buttons';
-import SourcesButton from './sources-button';
-import ChatVotingBehaviorSummaryButton from './chat-voting-behavior-summary-button';
+import ChatProConButton from './chat-pro-con-button';
 import ChatTtsButton from './chat-tts-button';
-import { useChatStore } from '@/components/providers/chat-store-provider';
-import { WAHL_CHAT_PARTY_ID } from '@/lib/constants';
+import ChatVotingBehaviorSummaryButton from './chat-voting-behavior-summary-button';
+import CopyButton from './copy-button';
+import SourcesButton from './sources-button';
 
 type Props = {
   message: MessageItem | StreamingMessage;
