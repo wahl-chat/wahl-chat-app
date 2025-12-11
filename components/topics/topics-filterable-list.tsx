@@ -35,7 +35,7 @@ function TopicsFilterableList({
 
   const topics = useMemo(() => {
     return (Object.keys(TOPIC_TITLES) as Topic[]).sort((a, b) =>
-      a.localeCompare(b)
+      a.localeCompare(b),
     );
   }, []);
 

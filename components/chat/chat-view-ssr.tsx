@@ -17,7 +17,7 @@ type Props = {
 
 async function getChatSessionServer(
   chatSessionId: string,
-  partyIds?: string[]
+  partyIds?: string[],
 ) {
   const user = await getCurrentUser();
 

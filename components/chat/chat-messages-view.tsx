@@ -42,7 +42,7 @@ function ChatMessagesView({
   const tenant = useTenant();
 
   const hasCurrentStreamingMessages = useChatStore(
-    (state) => state.currentStreamingMessages !== undefined
+    (state) => state.currentStreamingMessages !== undefined,
   );
 
   useEffect(() => {
@@ -113,7 +113,7 @@ function ChatMessagesView({
             message={m}
             isLastMessage={index === normalizedMessages.length - 1}
             parties={allParties?.filter((p) =>
-              m.messages.some((m) => m.party_id === p.party_id)
+              m.messages.some((m) => m.party_id === p.party_id),
             )}
           />
         ))}

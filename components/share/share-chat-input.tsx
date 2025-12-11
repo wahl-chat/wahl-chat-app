@@ -26,7 +26,7 @@ function ShareChatInput({
 
   const errorToast = () => {
     toast.error(
-      'Es ist ein Fehler aufgetreten. Bitte versuche es erneut oder lade die Seite neu.'
+      'Es ist ein Fehler aufgetreten. Bitte versuche es erneut oder lade die Seite neu.',
     );
   };
 

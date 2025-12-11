@@ -116,7 +116,7 @@ function DonationForm() {
               type="button"
               className={cn(
                 amount === currAmount &&
-                  'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground/90'
+                  'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground/90',
               )}
               onClick={() => handleSetAmount(currAmount)}
             >
@@ -128,7 +128,7 @@ function DonationForm() {
             variant="outline"
             className={cn(
               customAmount &&
-                'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground/90'
+                'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground/90',
             )}
             onClick={() => setCustomAmount(true)}
           >

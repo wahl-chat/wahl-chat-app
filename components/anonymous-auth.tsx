@@ -108,7 +108,7 @@ export function AnonymousAuthProvider({
             ...currUser,
             ...user,
           }
-        : null
+        : null,
     );
 
     if (user) await fetchUser(user.uid);
@@ -121,7 +121,7 @@ export function AnonymousAuthProvider({
       console.error(error);
 
       toast.error(
-        'Es ist ein Fehler aufgetreten. Bitte lade die Seite erneut.'
+        'Es ist ein Fehler aufgetreten. Bitte lade die Seite erneut.',
       );
     }
   }

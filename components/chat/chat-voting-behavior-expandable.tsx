@@ -22,7 +22,7 @@ import {
   chatViewScrollToVotingBehaviorContainer,
   scrollMessageIntoView,
 } from '@/lib/scroll-utils';
-import { Markdown } from '../markdown';
+import { Markdown } from '@/components/markdown';
 import ChatGroupVotingBehaviorEmblaReinit from './chat-group-voting-behavior-embla-reinit';
 import type { ChatVotingBehaviorDetailButtonRef } from './chat-voting-behavior-detail-button';
 import ChatVotingBehaviorDetailButton from './chat-voting-behavior-detail-button';
@@ -35,17 +35,17 @@ type Props = {
 function ChatVotingBehaviorExpandable({ message, isGroupChat }: Props) {
   const [isExpanded, setIsExpanded] = useState(!message.voting_behavior);
   const isLoadingVotingBehaviorSummary = useChatStore(
-    (state) => state.loading.votingBehaviorSummary === message.id
+    (state) => state.loading.votingBehaviorSummary === message.id,
   );
   const shouldShowVotingBehaviorSummary = useChatStore(
     (state) =>
       state.currentStreamedVotingBehavior?.requestId === message.id ||
-      message.voting_behavior?.summary
+      message.voting_behavior?.summary,
   );
   const votingBehavior = useChatStore((state) =>
     state.currentStreamedVotingBehavior?.requestId === message.id
       ? state.currentStreamedVotingBehavior
-      : message.voting_behavior
+      : message.voting_behavior,
   );
   const [
     prevIsLoadingVotingBehaviorSummary,
@@ -148,7 +148,7 @@ function ChatVotingBehaviorExpandable({ message, isGroupChat }: Props) {
         <div
           className={cn(
             'flex flex-row items-center justify-between mt-0',
-            isExpanded && 'mt-4'
+            isExpanded && 'mt-4',
           )}
         >
           {!isExpanded ? (

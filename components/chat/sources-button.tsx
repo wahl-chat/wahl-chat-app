@@ -102,7 +102,7 @@ function SourcesButton({ sources, messageContent }: Props) {
             <p
               className={cn(
                 'text-sm font-bold',
-                sourcesReferenced.length > 0 && 'mt-4'
+                sourcesReferenced.length > 0 && 'mt-4',
               )}
             >
               Zusätzlich analysiert:

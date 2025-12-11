@@ -32,13 +32,13 @@ function NavbarItem({ details, mobileClose }: Props) {
           ? 'text-primary font-medium'
           : 'text-primary/50 hover:text-primary/70',
         highlight &&
-          'dark:text-indigo-100 dark:hover:text-indigo-50 border-none text-indigo-900 hover:text-indigo-900'
+          'dark:text-indigo-100 dark:hover:text-indigo-50 border-none text-indigo-900 hover:text-indigo-900',
       )}
       onClick={mobileClose}
     >
       {highlight && (
-        <span className="relative flex size-2 mr-1">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-600 opacity-75" />
+        <span className="relative mr-1 flex size-2">
+          <span className="absolute inline-flex size-full animate-ping rounded-full bg-indigo-600 opacity-75" />
           <span className="relative inline-flex size-2 rounded-full bg-indigo-600" />
         </span>
       )}
@@ -48,7 +48,7 @@ function NavbarItem({ details, mobileClose }: Props) {
       )}
 
       {highlight && (
-        <span className="absolute inset-0 rounded-md bg-indigo-600/20 hover:bg-indigo-600/30 transition-colors border border-indigo-600" />
+        <span className="absolute inset-0 rounded-md border border-indigo-600 bg-indigo-600/20 transition-colors hover:bg-indigo-600/30" />
       )}
     </Link>
   );

@@ -22,7 +22,7 @@ function PartyDetailPopover({ parties }: Props) {
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-72 text-xs text-muted-foreground md:w-80 max-h-[70vh] overflow-y-auto"
+        className="max-h-[70vh] w-72 overflow-y-auto text-xs text-muted-foreground md:w-80"
         collisionPadding={{ right: 12 }}
       >
         {parties.map((party, index) => (

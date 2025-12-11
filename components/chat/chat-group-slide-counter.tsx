@@ -45,7 +45,7 @@ function ChatGroupSlideCounter({ parties, containerId }: Props) {
 
       api.scrollTo(index);
     },
-    [api]
+    [api],
   );
 
   return (
@@ -56,7 +56,7 @@ function ChatGroupSlideCounter({ parties, containerId }: Props) {
           className={cn(
             'size-5 rounded-full bg-zinc-300 overflow-hidden flex items-center justify-center hover:bg-zinc-300 transition-all duration-300 relative',
             selectedIndex === index &&
-              'ring-2 ring-zinc-900 dark:ring-zinc-100 ring-offset-2'
+              'ring-2 ring-zinc-900 dark:ring-zinc-100 ring-offset-2',
           )}
           style={{
             background: party.background_color,

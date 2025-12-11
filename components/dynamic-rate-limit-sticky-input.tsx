@@ -26,7 +26,7 @@ function DynamicRateLimitStickyInput({
 }: Props) {
   const { user } = useAnonymousAuth();
   const [isAtRateLimit, setIsAtRateLimit] = useState(
-    initialSystemStatus.is_at_rate_limit
+    initialSystemStatus.is_at_rate_limit,
   );
 
   useEffect(() => {

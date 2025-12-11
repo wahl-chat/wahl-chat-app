@@ -38,7 +38,7 @@ export default async function NavBar({ className }: Props) {
     <nav
       className={cn(
         'flex flex-col md:flex-row items-center justify-center gap-2',
-        className
+        className,
       )}
     >
       {!IS_EMBEDDED ? (

@@ -36,7 +36,7 @@ function ChatMessageReference({
               <span
                 className={cn(
                   'inline-flex cursor-pointer items-center justify-center rounded-full bg-muted px-2 py-1 text-xs transition-colors hover:bg-muted/80',
-                  'group-data-[has-message-background=true]:bg-zinc-200 dark:group-data-[has-message-background=true]:bg-zinc-800'
+                  'group-data-[has-message-background=true]:bg-zinc-200 dark:group-data-[has-message-background=true]:bg-zinc-800',
                 )}
                 onClick={() => onReferenceClick(Number.parseInt(number))}
               >

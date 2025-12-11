@@ -21,9 +21,9 @@ function ChatVoteDetailsHeader({ votes }: Props) {
   }, [vote.date]);
 
   return (
-    <div className="pt-6 text-center md:text-left border-b border-border pb-4">
+    <div className="border-b border-border pb-4 pt-6 text-center md:text-left">
       <AnimateTextOverflow>{vote.title}</AnimateTextOverflow>
-      <p className="text-xs text-muted-foreground text-center">
+      <p className="text-center text-xs text-muted-foreground">
         {formattedDate}
       </p>
     </div>

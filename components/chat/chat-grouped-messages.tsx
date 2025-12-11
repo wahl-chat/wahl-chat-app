@@ -29,7 +29,7 @@ function ChatGroupedMessages({ message, isLastMessage, parties }: Props) {
   const isLoadingAnyAction = useChatStore(
     (state) =>
       state.loading.proConPerspective === message.id ||
-      state.loading.votingBehaviorSummary === message.id
+      state.loading.votingBehaviorSummary === message.id,
   );
 
   if (message.messages.length === 1) {
@@ -38,7 +38,7 @@ function ChatGroupedMessages({ message, isLastMessage, parties }: Props) {
         message={message.messages[0]}
         partyId={message.messages[0].party_id}
         party={parties?.find(
-          (p) => p.party_id === message.messages[0].party_id
+          (p) => p.party_id === message.messages[0].party_id,
         )}
         isLastMessage={isLastMessage}
       />

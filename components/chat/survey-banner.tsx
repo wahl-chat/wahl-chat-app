@@ -19,7 +19,7 @@ function SurveyBanner() {
     (state) =>
       state.messages.length >= SURVEY_BANNER_MIN_MESSAGE_COUNT &&
       !loading &&
-      !user?.survey_status?.state
+      !user?.survey_status?.state,
   );
   const [optimisticShowSurveyBanner, setOptimisticShowSurveyBanner] =
     useState(showSurveyBanner);

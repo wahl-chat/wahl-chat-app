@@ -10,26 +10,26 @@ import { useParties } from '@/components/providers/parties-provider';
 
 function CurrentStreamingMessages() {
   const respondingPartyIds = useChatStore(
-    (state) => state.currentStreamingMessages?.responding_party_ids
+    (state) => state.currentStreamingMessages?.responding_party_ids,
   );
   const shouldShowThinkingMessage = useChatStore(
     (state) =>
       Object.keys(state.currentStreamingMessages?.messages ?? {}).every(
         (key) =>
-          state.currentStreamingMessages?.messages[key].content?.length === 0
-      ) && state.loading.newMessage
+          state.currentStreamingMessages?.messages[key].content?.length === 0,
+      ) && state.loading.newMessage,
   );
 
   const id = useChatStore((state) =>
     buildCarouselContainerId(
       Object.values(state.currentStreamingMessages?.messages ?? {}).map(
-        (m) => m.id
-      )
-    )
+        (m) => m.id,
+      ),
+    ),
   );
 
   const isComplete = useChatStore(
-    (state) => state.currentStreamingMessages?.streaming_complete
+    (state) => state.currentStreamingMessages?.streaming_complete,
   );
 
   const messageParties = useParties(respondingPartyIds)?.sort((a, b) => {
@@ -72,7 +72,7 @@ function CurrentStreamingMessages() {
               className={cn(
                 'size-5 rounded-full bg-zinc-300 overflow-hidden flex items-center justify-center hover:bg-zinc-300 transition-all duration-300 relative',
                 index === 0 &&
-                  'ring-2 ring-zinc-900 dark:ring-zinc-100 ring-offset-2'
+                  'ring-2 ring-zinc-900 dark:ring-zinc-100 ring-offset-2',
               )}
               style={{
                 background: party.background_color,

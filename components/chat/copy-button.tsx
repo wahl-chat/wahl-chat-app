@@ -47,7 +47,7 @@ function CopyButton({
       size={size}
       className={cn(
         'group-data-[has-message-background]:hover:bg-zinc-200 group-data-[has-message-background]:dark:hover:bg-zinc-800',
-        className
+        className,
       )}
       tooltip={tooltip}
       onClick={handleCopyMessage}

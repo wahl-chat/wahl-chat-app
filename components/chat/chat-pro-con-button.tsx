@@ -15,10 +15,10 @@ type Props = {
 
 function ChatProConButton({ partyId, message, isLastMessage }: Props) {
   const generateProConPerspective = useChatStore(
-    (state) => state.generateProConPerspective
+    (state) => state.generateProConPerspective,
   );
   const clickedProConButton = useChatStore(
-    (state) => state.clickedProConButton
+    (state) => state.clickedProConButton,
   );
 
   const handleGenerateProConPerspective = async () => {
