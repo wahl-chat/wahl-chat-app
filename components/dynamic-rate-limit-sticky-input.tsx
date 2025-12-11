@@ -10,6 +10,7 @@ import StickyInputRateLimit from './sticky-input-rate-limit';
 type Props = {
   isLoading: boolean;
   onSubmit: (message: string) => void;
+  onVoiceMessage?: (audioBase64: string) => void;
   quickReplies?: string[];
   className?: string;
   initialSystemStatus: LlmSystemStatus;
@@ -19,6 +20,7 @@ type Props = {
 function DynamicRateLimitStickyInput({
   isLoading,
   onSubmit,
+  onVoiceMessage,
   quickReplies,
   className,
   initialSystemStatus,
@@ -56,6 +58,7 @@ function DynamicRateLimitStickyInput({
     <StickyInput
       isLoading={isLoading}
       onSubmit={onSubmit}
+      onVoiceMessage={onVoiceMessage}
       quickReplies={quickReplies}
       className={className}
     />

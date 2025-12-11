@@ -1,7 +1,4 @@
-import type {
-  GroupedMessage,
-  MessageItem,
-} from '@/lib/stores/chat-store.types';
+import { useChatStore } from '@/components/providers/chat-store-provider';
 import {
   Carousel,
   CarouselContent,
@@ -9,14 +6,17 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import type { PartyDetails } from '@/lib/party-details';
+import { buildCarouselContainerId } from '@/lib/scroll-constants';
+import type {
+  GroupedMessage,
+  MessageItem,
+} from '@/lib/stores/chat-store.types';
 import AutoHeight from 'embla-carousel-auto-height';
 import ChatGroupSlideCounter from './chat-group-slide-counter';
-import { buildCarouselContainerId } from '@/lib/scroll-constants';
 import ChatSingleMessage from './chat-single-message';
 import MessageLoadingBorderTrail from './message-loading-border-trail';
-import { useChatStore } from '@/components/providers/chat-store-provider';
 import SurveyBanner from './survey-banner';
-import type { PartyDetails } from '@/lib/party-details';
 
 type Props = {
   message: GroupedMessage;
@@ -41,6 +41,7 @@ function ChatGroupedMessages({ message, isLastMessage, parties }: Props) {
           (p) => p.party_id === message.messages[0].party_id,
         )}
         isLastMessage={isLastMessage}
+        voiceTranscriptionStatus={message.voice_transcription}
       />
     );
   }
@@ -66,14 +67,14 @@ function ChatGroupedMessages({ message, isLastMessage, parties }: Props) {
       plugins={[AutoHeight()]}
     >
       <CarouselContent>
-        {messagePartiesDict?.map(({ message, party }) => {
+        {messagePartiesDict?.map(({ message: innerMessage, party }) => {
           return (
-            <CarouselItem key={message.id}>
+            <CarouselItem key={innerMessage.id}>
               <div className="p-4">
                 <ChatSingleMessage
-                  message={message}
+                  message={innerMessage}
                   party={party}
-                  partyId={message.party_id}
+                  partyId={innerMessage.party_id}
                   showAssistantIcon={true}
                   isGroupChat
                 />

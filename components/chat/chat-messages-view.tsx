@@ -15,6 +15,7 @@ import type {
 } from '@/lib/firebase/firebase.types';
 import { INITIAL_MESSAGE_ID } from './chat-single-user-message';
 import { useTenant } from '@/components/providers/tenant-provider';
+import { PENDING_VOICE_MESSAGE_KEY } from '@/components/home/home-input';
 
 type Props = {
   sessionId?: string;
@@ -24,6 +25,7 @@ type Props = {
   allParties?: PartyDetails[];
   proposedQuestions?: ProposedQuestion[];
   initialQuestion?: string;
+  hasPendingVoiceMessage?: boolean;
 };
 
 function ChatMessagesView({
@@ -34,16 +36,20 @@ function ChatMessagesView({
   allParties,
   proposedQuestions,
   initialQuestion,
+  hasPendingVoiceMessage,
 }: Props) {
   const hasFetched = useRef(false);
+  const hasProcessedVoiceMessage = useRef(false);
   const storeMessages = useChatStore((state) => state.messages);
   const hydrateChatSession = useChatStore((state) => state.hydrateChatSession);
+  const sendVoiceMessage = useChatStore((state) => state.sendVoiceMessage);
   const { user } = useAnonymousAuth();
   const tenant = useTenant();
 
   const hasCurrentStreamingMessages = useChatStore(
     (state) => state.currentStreamingMessages !== undefined,
   );
+  const isSocketConnected = useChatStore((state) => state.socket.connected);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -69,6 +75,23 @@ function ChatMessagesView({
     initialQuestion,
     tenant,
   ]);
+
+  // Handle pending voice message from home page
+  useEffect(() => {
+    if (
+      !hasPendingVoiceMessage ||
+      hasProcessedVoiceMessage.current ||
+      !isSocketConnected
+    )
+      return;
+
+    const pendingAudio = sessionStorage.getItem(PENDING_VOICE_MESSAGE_KEY);
+    if (pendingAudio) {
+      sessionStorage.removeItem(PENDING_VOICE_MESSAGE_KEY);
+      hasProcessedVoiceMessage.current = true;
+      sendVoiceMessage(pendingAudio);
+    }
+  }, [hasPendingVoiceMessage, sendVoiceMessage, isSocketConnected]);
 
   const normalizedMessages = useMemo(() => {
     if (messages && !storeMessages.length) {

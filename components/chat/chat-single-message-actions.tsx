@@ -6,6 +6,7 @@ import CopyButton from './copy-button';
 import ChatMessageLikeDislikeButtons from './chat-message-like-dislike-buttons';
 import SourcesButton from './sources-button';
 import ChatVotingBehaviorSummaryButton from './chat-voting-behavior-summary-button';
+import ChatTtsButton from './chat-tts-button';
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { WAHL_CHAT_PARTY_ID } from '@/lib/constants';
 
@@ -84,6 +85,7 @@ function ChatSingleMessageActions({
           size="icon"
           className="size-8"
         />
+        {partyId && <ChatTtsButton partyId={partyId} messageId={message.id} />}
         <ChatMessageLikeDislikeButtons message={message} />
       </div>
     </div>

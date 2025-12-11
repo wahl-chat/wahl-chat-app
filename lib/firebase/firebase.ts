@@ -1,22 +1,22 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import {
-  getFirestore,
-  getDocs,
-  collection,
-  query,
-  limit,
-  where,
-  getDoc,
-  doc,
-  onSnapshot,
-  updateDoc,
-  orderBy,
-  Timestamp,
-  setDoc,
-  arrayUnion,
   addDoc,
+  arrayUnion,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  getFirestore,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
   serverTimestamp,
+  setDoc,
+  Timestamp,
+  updateDoc,
+  where,
 } from 'firebase/firestore';
 import { firebaseConfig } from './firebase-config';
 import type {
@@ -25,7 +25,7 @@ import type {
   MessageItem,
   VotingBehavior,
 } from '@/lib/stores/chat-store.types';
-import { firestoreTimestampToDate, generateUuid } from '@/lib/utils';
+import { firestoreTimestampToDate } from '@/lib/utils';
 import type { ChatSession, LlmSystemStatus } from './firebase.types';
 import type { WahlChatUser } from '@/components/anonymous-auth';
 import type { WahlSwiperResultHistory } from '@/lib/wahl-swiper/wahl-swiper.types';
@@ -229,17 +229,33 @@ export async function addVotingBehaviorToMessage(
   });
 }
 
+/**
+ * Generates a Firebase document ID for a message in a chat session.
+ * Use this to get an ID before saving to ensure consistency between client store and Firebase.
+ */
+export function generateMessageId(sessionId: string): string {
+  return doc(collection(db, 'chat_sessions', sessionId, 'messages')).id;
+}
+
 export async function addUserMessageToChatSession(
   sessionId: string,
   message: string,
+  options?: {
+    groupedMessageId?: string;
+    messageId?: string;
+    voiceTranscription?: {
+      status: 'pending' | 'transcribed' | 'error';
+      error?: string;
+    };
+  },
 ) {
-  const messageId = generateUuid();
+  const id = options?.groupedMessageId ?? generateMessageId(sessionId);
 
-  await setDoc(doc(db, 'chat_sessions', sessionId, 'messages', messageId), {
-    id: messageId,
+  await setDoc(doc(db, 'chat_sessions', sessionId, 'messages', id), {
+    id,
     messages: [
       {
-        id: generateUuid(),
+        id: options?.messageId ?? generateMessageId(sessionId),
         content: message,
         sources: [],
         created_at: Timestamp.now(),
@@ -249,7 +265,12 @@ export async function addUserMessageToChatSession(
     quick_replies: [],
     role: 'user',
     created_at: Timestamp.now(),
+    ...(options?.voiceTranscription && {
+      voice_transcription: options.voiceTranscription,
+    }),
   } satisfies GroupedMessage);
+
+  return id;
 }
 
 export async function updateQuickRepliesOfMessage(

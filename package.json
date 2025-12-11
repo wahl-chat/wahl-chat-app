@@ -90,9 +90,6 @@
     "@types/react-dom": "19.0.1"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx}": [
-      "next lint --file",
-      "biome check"
-    ]
+    "*.{js,jsx,ts,tsx}": ["next lint --file", "biome check"]
   }
 }

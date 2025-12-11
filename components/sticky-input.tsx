@@ -6,18 +6,40 @@ import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
 import Logo from './chat/logo';
 import { Button } from './ui/button';
 import { ArrowUp } from 'lucide-react';
+import {
+  VoiceRecordButton,
+  VoiceRecordingIndicator,
+  useVoiceRecordButton,
+} from './chat/voice-record-button';
 
 type Props = {
   isLoading: boolean;
   onSubmit: (message: string) => void;
+  onVoiceMessage?: (audioBase64: string) => void;
   quickReplies?: string[];
   className?: string;
 };
 
-function StickyInput({ isLoading, onSubmit, quickReplies, className }: Props) {
+function StickyInput({
+  isLoading,
+  onSubmit,
+  onVoiceMessage,
+  quickReplies,
+  className,
+}: Props) {
   const [input, setInput] = useState('');
   const [isSticky, setIsSticky] = useState(true);
   const ref = useRef<HTMLDivElement>(null);
+
+  const handleVoiceMessage = (audioBase64: string) => {
+    onVoiceMessage?.(audioBase64);
+  };
+
+  const { isRecording, handleStartRecording, handleStopRecording } =
+    useVoiceRecordButton(handleVoiceMessage);
+
+  const showMicButton = input.length === 0 && !isRecording && !!onVoiceMessage;
+  const showSendButton = input.length > 0 && !isRecording;
 
   useEffect(() => {
     const cachedRef = ref.current;
@@ -80,28 +102,43 @@ function StickyInput({ isLoading, onSubmit, quickReplies, className }: Props) {
           })}
         </div>
 
-        <Logo
-          variant="small"
-          className="absolute bottom-2 left-2 size-8 translate-y-0 rounded-full border border-border p-1"
-        />
-        <input
-          className="w-full bg-chat-input px-12 py-3 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed"
-          name="question"
-          placeholder="Frage die Parteien..."
-          value={input}
-          type="text"
-          onChange={(e) => setInput(e.target.value)}
-          maxLength={500}
-        />
-        <Button
-          type="submit"
-          className={cn(
-            'absolute right-2 bottom-2 translate-y-0 flex size-8 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/80 disabled:bg-foreground/20 disabled:text-muted',
-          )}
-          disabled={!input.length || isLoading}
-        >
-          <ArrowUp className="size-4 font-bold" />
-        </Button>
+        {isRecording ? (
+          <VoiceRecordingIndicator onStop={handleStopRecording} />
+        ) : (
+          <>
+            <Logo
+              variant="small"
+              className="absolute bottom-2 left-2 size-8 translate-y-0 rounded-full border border-border p-1"
+            />
+            <input
+              className="w-full bg-chat-input px-12 py-3 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed"
+              name="question"
+              placeholder="Frage die Parteien..."
+              value={input}
+              type="text"
+              onChange={(e) => setInput(e.target.value)}
+              maxLength={500}
+            />
+            {showSendButton && (
+              <Button
+                type="submit"
+                className={cn(
+                  'absolute right-2 bottom-2 translate-y-0 flex size-8 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/80 disabled:bg-foreground/20 disabled:text-muted',
+                )}
+                disabled={!input.length || isLoading}
+              >
+                <ArrowUp className="size-4 font-bold" />
+              </Button>
+            )}
+            {showMicButton && (
+              <VoiceRecordButton
+                onClick={handleStartRecording}
+                disabled={isLoading}
+                className="absolute bottom-2 right-2 translate-y-0"
+              />
+            )}
+          </>
+        )}
       </form>
     </div>
   );

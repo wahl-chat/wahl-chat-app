@@ -33,6 +33,19 @@ import { setPartyIds } from './actions/set-party-ids';
 import { DEFAULT_LLM_SIZE } from '@/lib/firebase/firebase.types';
 import { cancelStreamingMessages } from './actions/cancel-streaming-messages';
 import { startTimeoutForStreamingMessages } from './actions/start-timeout-for-streaming-messages';
+import { sendVoiceMessage } from './actions/send-voice-message';
+import {
+  requestTextToSpeech,
+  setTtsError,
+  setTtsIdle,
+  setTtsPlaying,
+  setTtsReady,
+} from './actions/tts-actions';
+import {
+  setVoiceTranscribed,
+  setVoiceTranscriptionError,
+  setVoiceTranscriptionPending,
+} from './actions/voice-transcription-actions';
 
 export const SURVEY_BANNER_MIN_MESSAGE_COUNT = 8;
 
@@ -62,6 +75,7 @@ const defaultState: ChatStoreState = {
   socket: {},
   currentStreamingMessages: undefined,
   tenant: undefined,
+  ttsState: {},
 };
 
 export function createChatStore(initialState?: Partial<ChatStore>) {
@@ -107,6 +121,15 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
         completeVotingBehavior: completeVotingBehavior(get, set),
         setPartyIds: setPartyIds(get, set),
         getLLMSize: () => get().tenant?.llm_size ?? DEFAULT_LLM_SIZE,
+        sendVoiceMessage: sendVoiceMessage(get, set),
+        requestTextToSpeech: requestTextToSpeech(get, set),
+        setTtsReady: setTtsReady(get, set),
+        setTtsError: setTtsError(get, set),
+        setTtsPlaying: setTtsPlaying(get, set),
+        setTtsIdle: setTtsIdle(get, set),
+        setVoiceTranscriptionPending: setVoiceTranscriptionPending(get, set),
+        setVoiceTranscribed: setVoiceTranscribed(get, set),
+        setVoiceTranscriptionError: setVoiceTranscriptionError(get, set),
       })),
     ),
   );

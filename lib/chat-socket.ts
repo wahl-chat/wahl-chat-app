@@ -12,6 +12,10 @@ import type {
   QuickRepliesAndTitleReadyPayload,
   RespondingPartiesSelectedPayload,
   SourcesReadyPayload,
+  TextToSpeechCompletePayload,
+  TextToSpeechRequestPayload,
+  VoiceMessageRequestPayload,
+  VoiceTranscribedPayload,
   VotingBehaviorCompletePayload,
   VotingBehaviorResultPayload,
   VotingBehaviorSummaryChunkPayload,
@@ -35,6 +39,8 @@ type ChatSocketListenerEvent = {
     data: VotingBehaviorSummaryChunkPayload,
   ) => void;
   voting_behavior_complete: (data: VotingBehaviorCompletePayload) => void;
+  text_to_speech_complete: (data: TextToSpeechCompletePayload) => void;
+  voice_transcribed: (data: VoiceTranscribedPayload) => void;
 };
 
 type ChatSocketSenderEvent = {
@@ -42,6 +48,8 @@ type ChatSocketSenderEvent = {
   chat_answer_request: AddUserMessagePayload;
   pro_con_perspective_request: ProConPerspectiveRequestPayload;
   voting_behavior_request: GenerateVotingBehaviorSummaryPayload;
+  voice_message_request: VoiceMessageRequestPayload;
+  text_to_speech_request: TextToSpeechRequestPayload;
 };
 
 class ChatSocket {
@@ -88,6 +96,14 @@ class ChatSocket {
     data: GenerateVotingBehaviorSummaryPayload,
   ) {
     this.emit('voting_behavior_request', data);
+  }
+
+  public sendVoiceMessage(data: VoiceMessageRequestPayload) {
+    this.emit('voice_message_request', data);
+  }
+
+  public requestTextToSpeech(data: TextToSpeechRequestPayload) {
+    this.emit('text_to_speech_request', data);
   }
 }
 
