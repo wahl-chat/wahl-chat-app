@@ -43,3 +43,5 @@ next-env.d.ts
 .wrangler
 
 package-lock.json
+
+.idea
