@@ -6,9 +6,9 @@ import {
   updateUser as updateUserFirebase,
 } from '@/lib/firebase/firebase';
 import {
-  signInAnonymously,
-  type UserMetadata,
   type UserInfo,
+  type UserMetadata,
+  signInAnonymously,
 } from 'firebase/auth';
 import type { Timestamp } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useState } from 'react';

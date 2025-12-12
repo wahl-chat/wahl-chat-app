@@ -1,7 +1,4 @@
-import type {
-  GroupedMessage,
-  MessageItem,
-} from '@/lib/stores/chat-store.types';
+import { useChatStore } from '@/components/providers/chat-store-provider';
 import {
   Carousel,
   CarouselContent,
@@ -9,14 +6,17 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import type { PartyDetails } from '@/lib/party-details';
+import { buildCarouselContainerId } from '@/lib/scroll-constants';
+import type {
+  GroupedMessage,
+  MessageItem,
+} from '@/lib/stores/chat-store.types';
 import AutoHeight from 'embla-carousel-auto-height';
 import ChatGroupSlideCounter from './chat-group-slide-counter';
-import { buildCarouselContainerId } from '@/lib/scroll-constants';
 import ChatSingleMessage from './chat-single-message';
 import MessageLoadingBorderTrail from './message-loading-border-trail';
-import { useChatStore } from '@/components/providers/chat-store-provider';
 import SurveyBanner from './survey-banner';
-import type { PartyDetails } from '@/lib/party-details';
 
 type Props = {
   message: GroupedMessage;

@@ -1,11 +1,11 @@
-import { clsx, type ClassValue } from 'clsx';
+import type { SerializableFirebaseUser } from '@/components/anonymous-auth';
+import type { PartyDetails } from '@/lib/party-details';
+import type { Source } from '@/lib/stores/chat-store.types';
+import { type ClassValue, clsx } from 'clsx';
+import type { User } from 'firebase/auth';
 import type { Timestamp } from 'firebase/firestore';
 import { twMerge } from 'tailwind-merge';
-import type { Source } from '@/lib/stores/chat-store.types';
-import type { PartyDetails } from '@/lib/party-details';
 import { GROUP_PARTY_ID } from './constants';
-import type { SerializableFirebaseUser } from '@/components/anonymous-auth';
-import type { User } from 'firebase/auth';
 
 export const IS_EMBEDDED = process.env.IS_EMBEDDED === 'true';
 

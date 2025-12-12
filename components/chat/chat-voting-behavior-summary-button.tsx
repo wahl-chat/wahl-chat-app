@@ -1,11 +1,11 @@
-import { Button } from '@/components/ui/button';
-import { VoteIcon } from 'lucide-react';
 import { useChatStore } from '@/components/providers/chat-store-provider';
-import type { MessageItem } from '@/lib/stores/chat-store.types';
-import type { StreamingMessage } from '@/lib/socket.types';
 import { useParty } from '@/components/providers/parties-provider';
-import ChatActionButtonHighlight from './chat-action-button-highlight';
+import { Button } from '@/components/ui/button';
+import type { StreamingMessage } from '@/lib/socket.types';
+import type { MessageItem } from '@/lib/stores/chat-store.types';
 import { track } from '@vercel/analytics/react';
+import { VoteIcon } from 'lucide-react';
+import ChatActionButtonHighlight from './chat-action-button-highlight';
 
 type Props = {
   partyId: string;

@@ -1,22 +1,22 @@
 'use server';
 
-import {
-  initializeApp,
-  getApp,
-  type App as FirebaseApp,
-} from 'firebase-admin/app';
-import { credential } from 'firebase-admin';
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
-import type { ShareableChatSessionSnapshot, Tenant } from './firebase.types';
-import { GROUP_PARTY_ID } from '@/lib/constants';
-import { unstable_cache as cache } from 'next/cache';
 import { CacheTags } from '@/lib/cache-tags';
-import { firestoreTimestampToDate } from '@/lib/utils';
+import { GROUP_PARTY_ID } from '@/lib/constants';
 import type {
   GroupedMessage,
   MessageItem,
 } from '@/lib/stores/chat-store.types';
+import { firestoreTimestampToDate } from '@/lib/utils';
+import { credential } from 'firebase-admin';
+import {
+  type App as FirebaseApp,
+  getApp,
+  initializeApp,
+} from 'firebase-admin/app';
+import { Timestamp, getFirestore } from 'firebase-admin/firestore';
+import { unstable_cache as cache } from 'next/cache';
 import { getCurrentUser } from './firebase-server';
+import type { ShareableChatSessionSnapshot, Tenant } from './firebase.types';
 
 let app: FirebaseApp;
 

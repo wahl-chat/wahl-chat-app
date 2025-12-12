@@ -1,6 +1,6 @@
+import { useChatStore } from '@/components/providers/chat-store-provider';
 import { PlusIcon } from 'lucide-react';
 import ChatGroupPartySelect from './chat-group-party-select';
-import { useChatStore } from '@/components/providers/chat-store-provider';
 
 type Props = {
   disabled: boolean;

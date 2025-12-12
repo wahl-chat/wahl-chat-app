@@ -1,16 +1,16 @@
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import type { Thesis } from '@/lib/wahl-swiper/wahl-swiper-store.types';
+import type { SwipeType } from '@/lib/wahl-swiper/wahl-swiper.types';
+import { ArrowLeftIcon } from 'lucide-react';
 import {
+  type PanInfo,
   motion,
   useAnimate,
   useMotionValue,
   useTransform,
-  type PanInfo,
 } from 'motion/react';
 import { useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { ArrowLeftIcon } from 'lucide-react';
-import type { Thesis } from '@/lib/wahl-swiper/wahl-swiper-store.types';
-import type { SwipeType } from '@/lib/wahl-swiper/wahl-swiper.types';
 
 export type Props = {
   card: Thesis;

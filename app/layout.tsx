@@ -4,17 +4,17 @@ import { Toaster } from '@/components/ui/sonner';
 import AuthServiceWorkerProvider from '@/components/providers/auth-service-worker-provider';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import type { Metadata, Viewport } from 'next';
 import { Analytics } from '@vercel/analytics/react';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { PartiesProvider } from '@/components/providers/parties-provider';
-import { getParties, getUser } from '@/lib/firebase/firebase-server';
-import { headers } from 'next/headers';
-import { TENANT_ID_HEADER } from '@/lib/constants';
 import TenantProvider from '@/components/providers/tenant-provider';
+import { TENANT_ID_HEADER } from '@/lib/constants';
 import { getTenant } from '@/lib/firebase/firebase-admin';
-import { domAnimation, LazyMotion } from 'motion/react';
+import { getParties, getUser } from '@/lib/firebase/firebase-server';
 import { IS_EMBEDDED } from '@/lib/utils';
+import { LazyMotion, domAnimation } from 'motion/react';
+import { headers } from 'next/headers';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://wahl.chat'),

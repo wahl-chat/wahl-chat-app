@@ -1,9 +1,9 @@
 'use client';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import LoginButton from '@/components/auth/login-button';
-import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useEffect, useRef, useState } from 'react';
+import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
 
 type Props = {
   isLoading: boolean;

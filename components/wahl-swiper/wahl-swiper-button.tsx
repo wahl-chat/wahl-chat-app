@@ -1,8 +1,8 @@
-import { ChevronsRightIcon, HeartIcon, XIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
 import type { SwipeType } from '@/lib/wahl-swiper/wahl-swiper.types';
+import { ChevronsRightIcon, HeartIcon, XIcon } from 'lucide-react';
+import { useState } from 'react';
 import WahlSwiperSkipButton from './wahl-swiper-skip-button';
 
 type Props = {

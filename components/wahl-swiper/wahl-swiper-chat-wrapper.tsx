@@ -1,8 +1,5 @@
 'use client';
 
-import { cn } from '@/lib/utils';
-import { useEffect, useRef, useState } from 'react';
-import WahlSwiperInput from './wahl-swiper-input';
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -10,10 +7,13 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from '@/components/chat/responsive-drawer-dialog';
-import WahlSwiperChat from './wahl-swiper-chat';
-import VisuallyHidden from '@/components/visually-hidden';
 import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
 import { Separator } from '@/components/ui/separator';
+import VisuallyHidden from '@/components/visually-hidden';
+import { cn } from '@/lib/utils';
+import { useEffect, useRef, useState } from 'react';
+import WahlSwiperChat from './wahl-swiper-chat';
+import WahlSwiperInput from './wahl-swiper-input';
 
 function WahlSwiperChatWrapper() {
   const shouldShowChat = useWahlSwiperStore(

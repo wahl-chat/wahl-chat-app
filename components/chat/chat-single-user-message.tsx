@@ -1,9 +1,9 @@
-import type { MessageItem } from '@/lib/stores/chat-store.types';
-import { useChatStore } from '@/components/providers/chat-store-provider';
 import { useAnonymousAuth } from '@/components/anonymous-auth';
-import { toast } from 'sonner';
+import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Button } from '@/components/ui/button';
+import type { MessageItem } from '@/lib/stores/chat-store.types';
 import { RotateCcwIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 export const INITIAL_MESSAGE_ID = 'initial-question';
 

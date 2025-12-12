@@ -1,6 +1,6 @@
 import { generateUuid } from '@/lib/utils';
-import type { WahlSwiperStoreActionHandlerFor } from '@/lib/wahl-swiper/wahl-swiper-store.types';
 import { swiperAddUserMessage } from '@/lib/wahl-swiper/wahl-swiper-api';
+import type { WahlSwiperStoreActionHandlerFor } from '@/lib/wahl-swiper/wahl-swiper-store.types';
 
 export const addUserMessage: WahlSwiperStoreActionHandlerFor<'addUserMessage'> =
   (get, set) => async (message) => {

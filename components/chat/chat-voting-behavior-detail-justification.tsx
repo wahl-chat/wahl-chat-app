@@ -1,5 +1,5 @@
-import type { Vote } from '@/lib/socket.types';
 import { useChatVotingDetails } from '@/components/providers/chat-voting-details-provider';
+import type { Vote } from '@/lib/socket.types';
 
 type Props = {
   vote: Vote;

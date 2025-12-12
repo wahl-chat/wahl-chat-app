@@ -1,12 +1,12 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { track } from '@vercel/analytics/react';
 import type { VariantProps } from 'class-variance-authority';
 import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { track } from '@vercel/analytics/react';
 
 type Props = {
   text: string;

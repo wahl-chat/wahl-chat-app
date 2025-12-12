@@ -1,5 +1,7 @@
 'use client';
 
+import { ChatVotingDetailsProvider } from '@/components/providers/chat-voting-details-provider';
+import { Button } from '@/components/ui/button';
 import {
   Carousel,
   CarouselContent,
@@ -7,23 +9,21 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
-import ChatVoteDetailsSlideCounter from './chat-vote-details-slide-counter';
-import ChatVoteDetailsHeader from './chat-vote-details-header';
-import { prettifiedUrlName } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { ArrowUpRightIcon } from 'lucide-react';
-import ChatVoteChartsHeader from './chat-vote-charts-header';
-import type { Vote } from '@/lib/socket.types';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import ChatVotingBehaviorSubmittingParties from './chat-voting-behavior-submitting-parties';
-import { ChatVotingDetailsProvider } from '@/components/providers/chat-voting-details-provider';
+import type { Vote } from '@/lib/socket.types';
+import { prettifiedUrlName } from '@/lib/utils';
+import { ArrowUpRightIcon } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
+import ChatVoteChartsHeader from './chat-vote-charts-header';
+import ChatVoteDetailsHeader from './chat-vote-details-header';
+import ChatVoteDetailsSlideCounter from './chat-vote-details-slide-counter';
 import ChatVotingBehaviorDetailJustification from './chat-voting-behavior-detail-justification';
+import ChatVotingBehaviorSubmittingParties from './chat-voting-behavior-submitting-parties';
 
 type Props = {
   votes: Vote[];

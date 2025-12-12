@@ -1,5 +1,3 @@
-import type { PartyDetails } from '@/lib/party-details';
-import { UserIcon, UsersIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -7,6 +5,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
+import type { PartyDetails } from '@/lib/party-details';
+import { UserIcon, UsersIcon } from 'lucide-react';
 
 type Props = {
   parties: PartyDetails[];

@@ -1,6 +1,6 @@
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { type Topic, TOPIC_TITLES } from './topics.data';
+import { cn } from '@/lib/utils';
+import { TOPIC_TITLES, type Topic } from './topics.data';
 
 type Props = {
   topic: Topic;

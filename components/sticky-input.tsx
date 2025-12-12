@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
-import Logo from './chat/logo';
-import { Button } from './ui/button';
 import { ArrowUp } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import Logo from './chat/logo';
+import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
+import { Button } from './ui/button';
 
 type Props = {
   isLoading: boolean;

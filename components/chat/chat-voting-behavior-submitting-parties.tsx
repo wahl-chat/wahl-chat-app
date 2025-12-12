@@ -1,8 +1,8 @@
-import type { Vote } from '@/lib/socket.types';
 import { useParties } from '@/components/providers/parties-provider';
-import { useMemo } from 'react';
-import Image from 'next/image';
+import type { Vote } from '@/lib/socket.types';
 import { buildPartyImageUrl } from '@/lib/utils';
+import Image from 'next/image';
+import { useMemo } from 'react';
 
 type Props = {
   vote: Vote;

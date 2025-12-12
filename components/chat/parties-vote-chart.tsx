@@ -1,4 +1,5 @@
-import type { Vote } from '@/lib/socket.types';
+import { useChatVotingDetails } from '@/components/providers/chat-voting-details-provider';
+import { useParties } from '@/components/providers/parties-provider';
 import {
   Select,
   SelectContent,
@@ -7,10 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import type { Vote } from '@/lib/socket.types';
 import { useMemo } from 'react';
 import VoteChart from './vote-chart';
-import { useParties } from '@/components/providers/parties-provider';
-import { useChatVotingDetails } from '@/components/providers/chat-voting-details-provider';
 
 type Props = {
   vote: Vote;

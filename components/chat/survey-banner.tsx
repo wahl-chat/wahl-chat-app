@@ -1,15 +1,15 @@
 'use client';
 
 import '@fillout/react/style.css';
-import { Button } from '@/components/ui/button';
-import { useEffect, useState } from 'react';
-import { FilloutPopupEmbed } from '@fillout/react';
-import { useChatStore } from '@/components/providers/chat-store-provider';
-import { MessageCircleHeartIcon, XIcon } from 'lucide-react';
 import { useAnonymousAuth } from '@/components/anonymous-auth';
-import { Timestamp } from 'firebase/firestore';
+import { useChatStore } from '@/components/providers/chat-store-provider';
+import { Button } from '@/components/ui/button';
 import { SURVEY_BANNER_MIN_MESSAGE_COUNT } from '@/lib/stores/chat-store';
+import { FilloutPopupEmbed } from '@fillout/react';
 import { track } from '@vercel/analytics/react';
+import { Timestamp } from 'firebase/firestore';
+import { MessageCircleHeartIcon, XIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 function SurveyBanner() {
   const sessionId = useChatStore((state) => state.chatSessionId);

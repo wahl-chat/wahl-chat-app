@@ -1,10 +1,10 @@
-import { cn } from '@/lib/utils';
+import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
 import { Button } from '@/components/ui/button';
-import type { WahlSwiperButtonVariant } from './wahl-swiper-button';
 import { Popover, PopoverContent } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import * as RadixPopover from '@radix-ui/react-popover';
 import { ChevronsRightIcon, MessageCircleMoreIcon } from 'lucide-react';
-import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
+import type { WahlSwiperButtonVariant } from './wahl-swiper-button';
 
 type Props = {
   variant: WahlSwiperButtonVariant;

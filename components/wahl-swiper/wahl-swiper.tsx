@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAnonymousAuth } from '@/components/anonymous-auth';
+import LoadingSpinner from '@/components/loading-spinner';
 import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
 import { useRouter } from 'next/navigation';
-import { useAnonymousAuth } from '@/components/anonymous-auth';
-import SwipingCards from './swiping-cards';
-import LoadingSpinner from '@/components/loading-spinner';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import SwipingCards from './swiping-cards';
 
 function WahlSwiper() {
   const [isLoading, setIsLoading] = useState(false);

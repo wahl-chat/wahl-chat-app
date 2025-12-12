@@ -1,4 +1,11 @@
 'use client';
+import { useChatStore } from '@/components/providers/chat-store-provider';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { track } from '@vercel/analytics/react';
+import { ShareIcon } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FacebookIcon,
@@ -10,14 +17,7 @@ import {
   WhatsappShareButton,
   XIcon,
 } from 'react-share';
-import { useChatStore } from '@/components/providers/chat-store-provider';
-import { Label } from '@/components/ui/label';
 import CopyButton from './copy-button';
-import { Input } from '@/components/ui/input';
-import { useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { ShareIcon } from 'lucide-react';
-import { track } from '@vercel/analytics/react';
 
 type Props = {
   sharePrivateSession: boolean;

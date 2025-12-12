@@ -1,8 +1,8 @@
-import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
-import WahlSwiperChatMessage from './wahl-swiper-chat-message';
-import { useEffect, useRef } from 'react';
 import ThinkingMessage from '@/components/chat/thinking-message';
+import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
 import { MessageCircleMoreIcon } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import WahlSwiperChatMessage from './wahl-swiper-chat-message';
 
 function WahlSwiperChat() {
   const isFirstRender = useRef(true);

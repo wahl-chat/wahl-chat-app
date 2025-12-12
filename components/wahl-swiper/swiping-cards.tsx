@@ -1,8 +1,8 @@
+import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
 import { Progress } from '@/components/ui/progress';
+import { ChevronsRightIcon, HeartIcon, XIcon } from 'lucide-react';
 import ThesisCard from './thesis-card';
 import WahlSwiperButton from './wahl-swiper-button';
-import { ChevronsRightIcon, HeartIcon, XIcon } from 'lucide-react';
-import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
 
 function SwipingCards() {
   const currentThesesStack = useWahlSwiperStore((state) => state.thesesStack);

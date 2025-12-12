@@ -1,12 +1,12 @@
 'use client';
 
+import { useParty } from '@/components/providers/parties-provider';
+import { WAHL_CHAT_PARTY_ID } from '@/lib/constants';
+import type { PartyDetails } from '@/lib/party-details';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
 import { SparklesIcon } from 'lucide-react';
 import Image from 'next/image';
-import { useParty } from '@/components/providers/parties-provider';
-import { WAHL_CHAT_PARTY_ID } from '@/lib/constants';
 import Logo from './logo';
-import type { PartyDetails } from '@/lib/party-details';
 
 type Props = {
   partyId?: string;

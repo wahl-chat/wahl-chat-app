@@ -1,7 +1,7 @@
 'use client';
 
-import type { Source } from '@/lib/stores/chat-store.types';
 import { Markdown } from '@/components/markdown';
+import type { Source } from '@/lib/stores/chat-store.types';
 import { buildPdfUrl } from '@/lib/utils';
 
 type Props = {

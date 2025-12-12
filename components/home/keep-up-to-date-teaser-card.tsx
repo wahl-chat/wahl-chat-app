@@ -1,12 +1,12 @@
 'use client';
 
-import { MailCheckIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import Logo from '@/components/chat/logo';
-import { Input } from '@/components/ui/input';
 import { type FullUser, useAnonymousAuth } from '@/components/anonymous-auth';
-import { toast } from 'sonner';
+import Logo from '@/components/chat/logo';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { MailCheckIcon } from 'lucide-react';
 import { useMemo } from 'react';
+import { toast } from 'sonner';
 
 type Props = {
   initialUser: FullUser | null;

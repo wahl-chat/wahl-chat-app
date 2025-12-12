@@ -1,6 +1,5 @@
 'use client';
 
-import { ShareIcon } from 'lucide-react';
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,6 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { ShareIcon } from 'lucide-react';
 import ChatShareLinkInputForm from './chat-share-link-input-form';
 import {
   ResponsiveDialog,

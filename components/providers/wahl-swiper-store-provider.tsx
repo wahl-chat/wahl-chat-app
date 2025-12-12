@@ -1,7 +1,7 @@
 'use client';
 import {
-  createWahlOMatStore,
   SWIPER_DEFAULT_QUICK_REPLIES,
+  createWahlOMatStore,
 } from '@/lib/wahl-swiper/wahl-swiper-store';
 import type {
   SwiperMessage,

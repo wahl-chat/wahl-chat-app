@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
-import type { Vote } from '@/lib/socket.types';
 import useCarouselCurrentIndex from '@/lib/hooks/use-carousel-current-index';
+import type { Vote } from '@/lib/socket.types';
+import { useMemo } from 'react';
 import AnimateTextOverflow from './animate-text-overflow';
 
 type Props = {

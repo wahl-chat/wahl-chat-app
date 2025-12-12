@@ -1,16 +1,16 @@
 import {
-  AlertCircleIcon,
-  AlertTriangleIcon,
-  CpuIcon,
-  GitBranch,
-} from 'lucide-react';
-import {
   ResponsiveDialog,
   ResponsiveDialogContent,
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
   ResponsiveDialogTrigger,
 } from '@/components/chat/responsive-drawer-dialog';
+import {
+  AlertCircleIcon,
+  AlertTriangleIcon,
+  CpuIcon,
+  GitBranch,
+} from 'lucide-react';
 
 function AiDisclaimerContent() {
   return (

@@ -1,12 +1,12 @@
 import { useChatStore } from '@/components/providers/chat-store-provider';
-import CurrentStreamingMessage from './current-streaming-message';
-import ThinkingMessage from './thinking-message';
-import { buildCarouselContainerId } from '@/lib/scroll-constants';
+import { useParties } from '@/components/providers/parties-provider';
 import { Button } from '@/components/ui/button';
+import { buildCarouselContainerId } from '@/lib/scroll-constants';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
 import Image from 'next/image';
+import CurrentStreamingMessage from './current-streaming-message';
 import MessageLoadingBorderTrail from './message-loading-border-trail';
-import { useParties } from '@/components/providers/parties-provider';
+import ThinkingMessage from './thinking-message';
 
 function CurrentStreamingMessages() {
   const respondingPartyIds = useChatStore(
