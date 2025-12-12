@@ -6,8 +6,8 @@ import {
   getPartiesById,
   getProposedQuestions,
 } from '@/lib/firebase/firebase-server';
-import ChatMessagesView from './chat-messages-view';
 import { redirect } from 'next/navigation';
+import ChatMessagesView from './chat-messages-view';
 
 type Props = {
   chatSessionId?: string;
@@ -17,7 +17,7 @@ type Props = {
 
 async function getChatSessionServer(
   chatSessionId: string,
-  partyIds?: string[]
+  partyIds?: string[],
 ) {
   const user = await getCurrentUser();
 

@@ -8,5 +8,5 @@ export const firebaseConfig = {
 };
 
 export const firebaseConfigAsUrlParams = new URLSearchParams(
-  firebaseConfig as Record<string, string>
+  firebaseConfig as Record<string, string>,
 ).toString();

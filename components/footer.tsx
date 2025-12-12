@@ -1,7 +1,7 @@
-import Link from 'next/link';
 import { PRESS_LINK } from '@/lib/contact-config';
-import { ThemeModeToggle } from './chat/theme-mode-toggle';
+import Link from 'next/link';
 import Logo from './chat/logo';
+import { ThemeModeToggle } from './chat/theme-mode-toggle';
 import FeedbackDialog from './feedback-dialog';
 
 function Footer() {

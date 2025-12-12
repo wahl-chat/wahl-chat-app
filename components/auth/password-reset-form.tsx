@@ -2,9 +2,9 @@ import {
   ResponsiveDialogDescription,
   ResponsiveDialogTitle,
 } from '@/components/chat/responsive-drawer-dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 import { useState } from 'react';
 import { toast } from 'sonner';

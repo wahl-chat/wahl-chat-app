@@ -1,6 +1,5 @@
 'use client';
 
-import { useIsDesktop } from '@/lib/hooks/use-is-desktop';
 import {
   Dialog,
   DialogClose,
@@ -21,6 +20,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer';
+import { useIsDesktop } from '@/lib/hooks/use-is-desktop';
 
 type ResponsiveDefaultProps = {
   className?: string;

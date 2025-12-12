@@ -1,10 +1,10 @@
 import Logo from '@/components/chat/logo';
-import Link from 'next/link';
-import NavBar from './navbar/navbar';
-import MobileNavbar from './navbar/mobile-navbar';
 import { getCurrentUser } from '@/lib/firebase/firebase-server';
-import { getUserDetailsFromUser, IS_EMBEDDED } from '@/lib/utils';
+import { IS_EMBEDDED, getUserDetailsFromUser } from '@/lib/utils';
+import Link from 'next/link';
 import EmbedOpenWebsiteButton from './embed-open-website-button';
+import MobileNavbar from './navbar/mobile-navbar';
+import NavBar from './navbar/navbar';
 import WahlSwiperTeaserTag from './wahl-swiper/wahl-swiper-teaser-tag';
 
 async function Header() {

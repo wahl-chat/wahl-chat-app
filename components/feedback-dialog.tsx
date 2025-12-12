@@ -1,3 +1,4 @@
+import { MailIcon, MessageSquareHeart } from 'lucide-react';
 import Link from 'next/link';
 import {
   ResponsiveDialog,
@@ -8,7 +9,6 @@ import {
   ResponsiveDialogTrigger,
 } from './chat/responsive-drawer-dialog';
 import { Button } from './ui/button';
-import { MailIcon, MessageSquareHeart } from 'lucide-react';
 type Props = {
   children: React.ReactNode;
 };

@@ -1,10 +1,19 @@
 'use server';
 
+import type { FullUser } from '@/components/anonymous-auth';
+import { CacheTags } from '@/lib/cache-tags';
+import { GROUP_PARTY_ID, WAHL_CHAT_PARTY_ID } from '@/lib/constants';
 import type { PartyDetails } from '@/lib/party-details';
-import { headers } from 'next/headers';
-import { unstable_cache as cache } from 'next/cache';
+import type {
+  GroupedMessage,
+  MessageItem,
+} from '@/lib/stores/chat-store.types';
+import {
+  firestoreTimestampToDate,
+  makeFirebaseUserSerializable,
+} from '@/lib/utils';
+import type { WahlSwiperQuestion } from '@/lib/wahl-swiper/wahl-swiper.types';
 import { initializeServerApp } from 'firebase/app';
-import { firebaseConfig } from './firebase-config';
 import { getAuth } from 'firebase/auth';
 import {
   collection,
@@ -17,14 +26,9 @@ import {
   query,
   where,
 } from 'firebase/firestore';
-import type {
-  GroupedMessage,
-  MessageItem,
-} from '@/lib/stores/chat-store.types';
-import {
-  firestoreTimestampToDate,
-  makeFirebaseUserSerializable,
-} from '@/lib/utils';
+import { unstable_cache as cache } from 'next/cache';
+import { headers } from 'next/headers';
+import { firebaseConfig } from './firebase-config';
 import type {
   ChatSession,
   ExampleQuestionShareableChatSession,
@@ -33,10 +37,6 @@ import type {
   ProposedQuestion,
   SourceDocument,
 } from './firebase.types';
-import { GROUP_PARTY_ID, WAHL_CHAT_PARTY_ID } from '@/lib/constants';
-import { CacheTags } from '@/lib/cache-tags';
-import type { WahlSwiperQuestion } from '@/lib/wahl-swiper/wahl-swiper.types';
-import type { FullUser } from '@/components/anonymous-auth';
 
 async function getServerApp({
   useHeaders = true,

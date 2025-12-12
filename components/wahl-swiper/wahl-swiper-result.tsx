@@ -1,14 +1,14 @@
-import WahlSwiperPartyResultCard from './wahl-swiper-party-result-card';
-import { Button } from '@/components/ui/button';
+import ChatGroupPartySelect from '@/components/chat/chat-group-party-select';
 import { Accordion } from '@/components/ui/accordion';
+import { Button } from '@/components/ui/button';
+import type { PartyDetails } from '@/lib/party-details';
+import type { UserDetails } from '@/lib/utils';
 import type { PartiesScoreResult } from '@/lib/wahl-swiper/wahl-swiper.types';
 import { RefreshCcwIcon } from 'lucide-react';
-import type { PartyDetails } from '@/lib/party-details';
-import WahlSwiperSurveyLoginCard from './wahl-swiper-survey-login-card';
-import type { UserDetails } from '@/lib/utils';
-import ChatGroupPartySelect from '@/components/chat/chat-group-party-select';
-import WahlSwiperShareButton from './wahl-swiper-share-button';
 import Link from 'next/link';
+import WahlSwiperPartyResultCard from './wahl-swiper-party-result-card';
+import WahlSwiperShareButton from './wahl-swiper-share-button';
+import WahlSwiperSurveyLoginCard from './wahl-swiper-survey-login-card';
 
 type Props = {
   resultId: string;
@@ -19,7 +19,7 @@ type Props = {
 
 function WahlSwiperResult({ resultId, scores, parties, userDetails }: Props) {
   const sortedScores = Object.entries(scores).sort(
-    ([, score], [, otherScore]) => otherScore.score - score.score
+    ([, score], [, otherScore]) => otherScore.score - score.score,
   );
 
   return (

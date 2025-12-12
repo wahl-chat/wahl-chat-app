@@ -1,5 +1,5 @@
-import type { Vote } from '@/lib/socket.types';
 import useCarouselCurrentIndex from '@/lib/hooks/use-carousel-current-index';
+import type { Vote } from '@/lib/socket.types';
 
 type Props = {
   votes: Vote[];

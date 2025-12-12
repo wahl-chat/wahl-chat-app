@@ -1,11 +1,11 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 import { useAnonymousAuth } from '@/components/anonymous-auth';
-import { copySharedChatSession } from '@/lib/firebase/firebase-admin';
 import DynamicRateLimitStickyInput from '@/components/dynamic-rate-limit-sticky-input';
+import { copySharedChatSession } from '@/lib/firebase/firebase-admin';
 import type { LlmSystemStatus } from '@/lib/firebase/firebase.types';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 type Props = {
   snapshotId: string;
@@ -26,7 +26,7 @@ function ShareChatInput({
 
   const errorToast = () => {
     toast.error(
-      'Es ist ein Fehler aufgetreten. Bitte versuche es erneut oder lade die Seite neu.'
+      'Es ist ein Fehler aufgetreten. Bitte versuche es erneut oder lade die Seite neu.',
     );
   };
 

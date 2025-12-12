@@ -1,7 +1,7 @@
-import { revalidateTag } from 'next/cache';
-import type { NextRequest } from 'next/server';
-import { headers } from 'next/headers';
 import { timingSafeEqual } from 'node:crypto';
+import { revalidateTag } from 'next/cache';
+import { headers } from 'next/headers';
+import type { NextRequest } from 'next/server';
 
 const REVALIDATE_SECRET = process.env.REVALIDATE_SECRET;
 

@@ -16,7 +16,7 @@ function HowToDialog({ children }: Props) {
   return (
     <ResponsiveDialog>
       <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
-      <ResponsiveDialogContent className="flex flex-col max-h-[95dvh] overflow-hidden">
+      <ResponsiveDialogContent className="flex max-h-[95dvh] flex-col overflow-hidden">
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>
             Was kann ich mit <span className="underline">wahl.chat</span> alles
@@ -27,7 +27,7 @@ function HowToDialog({ children }: Props) {
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
-        <div className="px-4 md:px-0 overflow-y-auto grow">
+        <div className="grow overflow-y-auto px-4 md:px-0">
           <HowTo />
         </div>
       </ResponsiveDialogContent>

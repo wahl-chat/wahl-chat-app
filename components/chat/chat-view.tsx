@@ -1,13 +1,13 @@
-import { Suspense } from 'react';
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
 import LoadingSpinner from '@/components/loading-spinner';
-import ChatScrollDownIndicator from './chat-scroll-down-indicator';
 import {
   getCurrentUser,
   getSystemStatus,
 } from '@/lib/firebase/firebase-server';
-import ChatViewSsr from './chat-view-ssr';
+import { Suspense } from 'react';
 import ChatDynamicChatInput from './chat-dynamic-chat-input';
+import ChatScrollDownIndicator from './chat-scroll-down-indicator';
+import ChatViewSsr from './chat-view-ssr';
 
 type Props = {
   sessionId?: string;

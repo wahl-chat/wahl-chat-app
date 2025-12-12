@@ -1,6 +1,8 @@
-import { ThumbsDown } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { ThumbsDown } from 'lucide-react';
+import { useState } from 'react';
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -9,8 +11,6 @@ import {
   ResponsiveDialogTitle,
   ResponsiveDialogTrigger,
 } from './responsive-drawer-dialog';
-import { useState } from 'react';
-import { Textarea } from '../ui/textarea';
 
 type Props = {
   isDisliked: boolean;
@@ -62,7 +62,7 @@ function ChatDislikeFeedbackButton({
             name="details"
             defaultValue={feedbackDetail}
           />
-          <Button className="w-full mt-4 mb-4 md:mb-0" type="submit">
+          <Button className="my-4 w-full md:mb-0" type="submit">
             Feedback abgeben
           </Button>
         </form>

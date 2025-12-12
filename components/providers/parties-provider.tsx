@@ -9,7 +9,7 @@ type PartiesContextType = {
 };
 
 export const PartiesContext = createContext<PartiesContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export type Props = {

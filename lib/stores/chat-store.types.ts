@@ -1,3 +1,6 @@
+import type ChatSocket from '@/lib/chat-socket';
+import type { ChatSession, Tenant } from '@/lib/firebase/firebase.types';
+import type { PartyDetails } from '@/lib/party-details';
 import type {
   LLMSize,
   PartyResponseChunkReadyPayload,
@@ -5,10 +8,7 @@ import type {
   Vote,
 } from '@/lib/socket.types';
 import type { Timestamp } from 'firebase/firestore';
-import type { PartyDetails } from '@/lib/party-details';
 import type { WritableDraft } from 'immer';
-import type ChatSocket from '@/lib/chat-socket';
-import type { ChatSession, Tenant } from '@/lib/firebase/firebase.types';
 
 export type Source = {
   source: string;

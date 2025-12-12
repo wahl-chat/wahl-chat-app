@@ -1,10 +1,10 @@
+import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { Button } from '../ui/button';
-import type { WahlSwiperButtonVariant } from './wahl-swiper-button';
-import { Popover, PopoverContent } from '../ui/popover';
 import * as RadixPopover from '@radix-ui/react-popover';
 import { ChevronsRightIcon, MessageCircleMoreIcon } from 'lucide-react';
-import { useWahlSwiperStore } from '../providers/wahl-swiper-store-provider';
+import type { WahlSwiperButtonVariant } from './wahl-swiper-button';
 
 type Props = {
   variant: WahlSwiperButtonVariant;
@@ -15,16 +15,16 @@ type Props = {
 function WahlSwiperSkipButton({ variant, clicked, onClick }: Props) {
   const expandChat = useWahlSwiperStore((state) => state.setChatIsExpanded);
   const showSkipDisclaimer = useWahlSwiperStore(
-    (state) => state.showSkipDisclaimer
+    (state) => state.showSkipDisclaimer,
   );
   const setShowSkipDisclaimer = useWahlSwiperStore(
-    (state) => state.setShowSkipDisclaimer
+    (state) => state.setShowSkipDisclaimer,
   );
   const disclaimerShown = useWahlSwiperStore(
-    (state) => state.skipDisclaimerShown
+    (state) => state.skipDisclaimerShown,
   );
   const setSkipDisclaimerShown = useWahlSwiperStore(
-    (state) => state.setSkipDisclaimerShown
+    (state) => state.setSkipDisclaimerShown,
   );
 
   const handleClick = () => {
@@ -54,7 +54,7 @@ function WahlSwiperSkipButton({ variant, clicked, onClick }: Props) {
           className={cn(
             'size-14 rounded-full transition-all duration-200 border-4 md:hover:scale-[1.18] ease-in-out',
             !clicked && variant.hover,
-            clicked && variant.normal
+            clicked && variant.normal,
           )}
           onClick={handleClick}
         >
@@ -69,7 +69,7 @@ function WahlSwiperSkipButton({ variant, clicked, onClick }: Props) {
           These zu erfahren und eine{' '}
           <span className="font-bold">bessere Entscheidung</span> zu treffen.
         </p>
-        <div className="flex justify-center mt-2 gap-2">
+        <div className="mt-2 flex justify-center gap-2">
           <Button size="sm" className="grow" onClick={handleStartChat}>
             <MessageCircleMoreIcon className="size-4" />
             Chat starten

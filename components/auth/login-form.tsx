@@ -1,31 +1,31 @@
 'use client';
+import { useAnonymousAuth } from '@/components/anonymous-auth';
+import {
+  ResponsiveDialogDescription,
+  ResponsiveDialogTitle,
+} from '@/components/chat/responsive-drawer-dialog';
+import GithubIcon from '@/components/icons/github-icon';
+import GoogleIcon from '@/components/icons/google-icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import GoogleIcon from '@/components/icons/google-icon';
-import { useState } from 'react';
+import { getUser } from '@/lib/firebase/firebase';
+import { FirebaseError } from 'firebase/app';
 import {
   EmailAuthProvider,
-  getAuth,
   GithubAuthProvider,
   GoogleAuthProvider,
+  getAuth,
   linkWithCredential,
   linkWithPopup,
   signInWithCredential,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
-import { toast } from 'sonner';
-import { FirebaseError } from 'firebase/app';
-import GithubIcon from '@/components/icons/github-icon';
-import {
-  ResponsiveDialogDescription,
-  ResponsiveDialogTitle,
-} from '@/components/chat/responsive-drawer-dialog';
-import PasswordResetForm from './password-reset-form';
-import { useAnonymousAuth } from '@/components/anonymous-auth';
 import Link from 'next/link';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import PasswordResetForm from './password-reset-form';
 import SuccessAuthForm from './success-auth-form';
-import { getUser } from '@/lib/firebase/firebase';
 
 type AuthProvider = 'google' | 'github' | 'email';
 
@@ -76,7 +76,7 @@ function LoginForm({ onSuccess }: Props) {
 
   const handleCredentialAlreadyInUse = async (
     error: FirebaseError,
-    provider: AuthProvider
+    provider: AuthProvider,
   ) => {
     const auth = getAuth();
 
@@ -140,7 +140,7 @@ function LoginForm({ onSuccess }: Props) {
   };
 
   const handleOAuthLogin = async (
-    provider: GoogleAuthProvider | GithubAuthProvider
+    provider: GoogleAuthProvider | GithubAuthProvider,
   ) => {
     const auth = getAuth();
 
@@ -166,7 +166,7 @@ function LoginForm({ onSuccess }: Props) {
     } catch (error) {
       handleAuthError(
         error,
-        provider instanceof GoogleAuthProvider ? 'google' : 'github'
+        provider instanceof GoogleAuthProvider ? 'google' : 'github',
       );
     }
   };
@@ -194,7 +194,7 @@ function LoginForm({ onSuccess }: Props) {
 
   const showErrorReloadToast = () => {
     toast.error(
-      'Es ist ein Fehler aufgetreten. Bitte lade die Seite neu und versuche es erneut.'
+      'Es ist ein Fehler aufgetreten. Bitte lade die Seite neu und versuche es erneut.',
     );
   };
 
