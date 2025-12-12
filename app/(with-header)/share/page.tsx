@@ -27,14 +27,20 @@ export async function generateMetadata({ searchParams }: Props) {
   const snapshot = await getSnapshot(snapshot_id);
 
   if (snapshot.party_ids.length > 1) {
-    return;
+    return {};
   }
 
   const partyId = snapshot.party_ids[0];
 
+  const imageUrl = await generateOgImageUrl(partyId);
+
+  if (!imageUrl) {
+    return {};
+  }
+
   return {
     openGraph: {
-      images: [await generateOgImageUrl(partyId)],
+      images: [imageUrl],
     },
   };
 }
@@ -67,7 +73,7 @@ async function SharePage({ searchParams }: Props) {
       <div
         className={cn(
           'flex grow flex-col gap-6 overflow-y-auto',
-          !isFromTopics && 'mt-4'
+          !isFromTopics && 'mt-4',
         )}
       >
         {snapshot.messages.map((message) => (
@@ -75,7 +81,7 @@ async function SharePage({ searchParams }: Props) {
             key={message.id}
             message={message}
             parties={parties.filter((p) =>
-              snapshot.party_ids.includes(p.party_id)
+              snapshot.party_ids.includes(p.party_id),
             )}
           />
         ))}

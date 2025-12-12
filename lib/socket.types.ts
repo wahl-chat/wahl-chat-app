@@ -24,6 +24,7 @@ export type PartyResponseCompletePayload = {
   session_id: string;
   party_id: string;
   complete_message: string;
+  message_id?: string;
 };
 
 export type QuickRepliesAndTitleReadyPayload = {
@@ -74,6 +75,7 @@ export type ChatSessionInitializedPayload = {
 
 export type AddUserMessagePayload = {
   session_id: string;
+  id: string;
   user_message: string;
   party_ids: string[];
   user_is_logged_in: boolean;
@@ -154,4 +156,39 @@ export type GenerateVotingBehaviorSummaryPayload = {
   last_assistant_message: string;
   summary_llm_size: LLMSize;
   user_is_logged_in: boolean;
+};
+
+export type VoiceMessageRequestPayload = {
+  session_id: string;
+  grouped_message_id: string;
+  message_id: string;
+  audio_base64: string;
+  party_ids: string[];
+  user_is_logged_in: boolean;
+  language: string;
+};
+
+export type TextToSpeechRequestPayload = {
+  session_id: string;
+  party_id: string;
+  message_id: string;
+  voice?: string;
+};
+
+export type TextToSpeechCompletePayload = {
+  session_id: string;
+  party_id: string;
+  message_id: string;
+  audio_base64: string;
+  status: {
+    indicator: 'success' | 'error';
+    message: string;
+  };
+};
+
+export type VoiceTranscribedPayload = {
+  session_id: string;
+  grouped_message_id: string;
+  message_id: string;
+  transcribed_text: string;
 };

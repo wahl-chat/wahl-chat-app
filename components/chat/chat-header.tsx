@@ -1,18 +1,18 @@
+import HowToDialog from '@/components/how-to-dialog';
+import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import ChatShareButton from './chat-share-button';
-import SocketDisconnectedBanner from './socket-disconnected-banner';
-import CreateNewChatDropdownButton from './create-new-chat-dropdown-button';
-import ChatHeaderTitleDescription from './chat-header-title-description';
-import { Button } from '@/components/ui/button';
-import { HelpCircleIcon } from 'lucide-react';
-import HowToDialog from '@/components/how-to-dialog';
 import { IS_EMBEDDED } from '@/lib/utils';
+import { HelpCircleIcon } from 'lucide-react';
 import ChatEmbedHeader from './chat-embed-header';
+import ChatHeaderTitleDescription from './chat-header-title-description';
+import ChatShareButton from './chat-share-button';
+import CreateNewChatDropdownButton from './create-new-chat-dropdown-button';
+import SocketDisconnectedBanner from './socket-disconnected-banner';
 
 async function ChatHeader() {
   if (IS_EMBEDDED) {

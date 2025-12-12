@@ -6,18 +6,19 @@ import {
   getPartiesById,
   getProposedQuestions,
 } from '@/lib/firebase/firebase-server';
-import ChatMessagesView from './chat-messages-view';
 import { redirect } from 'next/navigation';
+import ChatMessagesView from './chat-messages-view';
 
 type Props = {
   chatSessionId?: string;
   partyIds?: string[];
   initialQuestion?: string;
+  hasPendingVoiceMessage?: boolean;
 };
 
 async function getChatSessionServer(
   chatSessionId: string,
-  partyIds?: string[]
+  partyIds?: string[],
 ) {
   const user = await getCurrentUser();
 
@@ -47,6 +48,7 @@ async function ChatViewSsr({
   chatSessionId,
   partyIds,
   initialQuestion,
+  hasPendingVoiceMessage,
 }: Props) {
   const chatSession = chatSessionId
     ? await getChatSessionServer(chatSessionId, partyIds)
@@ -75,6 +77,7 @@ async function ChatViewSsr({
       messages={messages}
       proposedQuestions={proposedQuestions}
       initialQuestion={initialQuestion}
+      hasPendingVoiceMessage={hasPendingVoiceMessage}
     />
   );
 }

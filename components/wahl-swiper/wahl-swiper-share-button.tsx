@@ -1,8 +1,5 @@
 'use client';
 
-import { ShareIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {} from '@/components/ui/tooltip';
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -11,6 +8,9 @@ import {
   ResponsiveDialogTitle,
   ResponsiveDialogTrigger,
 } from '@/components/chat/responsive-drawer-dialog';
+import { Button } from '@/components/ui/button';
+import {} from '@/components/ui/tooltip';
+import { ShareIcon } from 'lucide-react';
 import WahlSwiperShareLinkInputForm from './wahl-swiper-share-input-form';
 
 function WahlSwiperShareButton() {

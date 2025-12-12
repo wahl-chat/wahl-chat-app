@@ -22,15 +22,15 @@ async function SourcesPage() {
       acc[source.party_id].push(source);
       return acc;
     },
-    {} as Record<string, SourceDocument[]>
+    {} as Record<string, SourceDocument[]>,
   );
 
   return (
     <article>
-      <h1 className="text-xl md:text-2xl font-bold mt-4">
+      <h1 className="mt-4 text-xl font-bold md:text-2xl">
         Quellen die <span className="underline">wahl.chat</span> nutzt
       </h1>
-      <p className="text-sm text-muted-foreground mb-2">
+      <p className="mb-2 text-sm text-muted-foreground">
         Diese Quellen nutzt unsere KI für die allgemeinen Antworten. Für das
         Einordnen von Positionen verwenden wir Perplexity.ai, welches sich auf
         aktuelle Informationen aus dem Internet stützt.
@@ -50,7 +50,7 @@ async function SourcesPage() {
                 <AccordionTrigger>
                   <div className="flex items-center gap-4">
                     {partyId === WAHL_CHAT_PARTY_ID ? (
-                      <div className="rounded-full aspect-square object-contain p-1 border border-border size-8">
+                      <div className="aspect-square size-8 rounded-full border border-border object-contain p-1">
                         <Logo variant="small" className="size-full" />
                       </div>
                     ) : (
@@ -59,7 +59,7 @@ async function SourcesPage() {
                         alt={name}
                         width={32}
                         height={32}
-                        className="rounded-full aspect-square object-contain p-1"
+                        className="aspect-square rounded-full object-contain p-1"
                         style={{ backgroundColor: party?.background_color }}
                       />
                     )}
@@ -67,7 +67,7 @@ async function SourcesPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <ul className="list-disc list-inside">
+                  <ul className="list-inside list-disc">
                     {sources.map((source) => (
                       <li key={source.id}>
                         <Link

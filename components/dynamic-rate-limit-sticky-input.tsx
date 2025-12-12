@@ -1,15 +1,16 @@
 'use client';
 
+import { listenToSystemStatus } from '@/lib/firebase/firebase';
 import type { LlmSystemStatus } from '@/lib/firebase/firebase.types';
+import { useEffect, useState } from 'react';
 import { useAnonymousAuth } from './anonymous-auth';
 import StickyInput from './sticky-input';
-import { useEffect, useState } from 'react';
-import { listenToSystemStatus } from '@/lib/firebase/firebase';
 import StickyInputRateLimit from './sticky-input-rate-limit';
 
 type Props = {
   isLoading: boolean;
   onSubmit: (message: string) => void;
+  onVoiceMessage?: (audioBase64: string) => void;
   quickReplies?: string[];
   className?: string;
   initialSystemStatus: LlmSystemStatus;
@@ -19,6 +20,7 @@ type Props = {
 function DynamicRateLimitStickyInput({
   isLoading,
   onSubmit,
+  onVoiceMessage,
   quickReplies,
   className,
   initialSystemStatus,
@@ -26,7 +28,7 @@ function DynamicRateLimitStickyInput({
 }: Props) {
   const { user } = useAnonymousAuth();
   const [isAtRateLimit, setIsAtRateLimit] = useState(
-    initialSystemStatus.is_at_rate_limit
+    initialSystemStatus.is_at_rate_limit,
   );
 
   useEffect(() => {
@@ -56,6 +58,7 @@ function DynamicRateLimitStickyInput({
     <StickyInput
       isLoading={isLoading}
       onSubmit={onSubmit}
+      onVoiceMessage={onVoiceMessage}
       quickReplies={quickReplies}
       className={className}
     />

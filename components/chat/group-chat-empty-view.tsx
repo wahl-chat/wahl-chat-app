@@ -2,11 +2,11 @@
 
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import { useChatStore } from '@/components/providers/chat-store-provider';
-import InitialSuggestionBubble from './initial-suggestion-bubble';
-import Image from 'next/image';
-import type { PartyDetails } from '@/lib/party-details';
 import type { ProposedQuestion } from '@/lib/firebase/firebase.types';
+import type { PartyDetails } from '@/lib/party-details';
 import { buildPartyImageUrl } from '@/lib/utils';
+import Image from 'next/image';
+import InitialSuggestionBubble from './initial-suggestion-bubble';
 
 type Props = {
   parties: PartyDetails[];

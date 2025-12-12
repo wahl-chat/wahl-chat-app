@@ -1,10 +1,10 @@
 'use client';
 
+import type { UserDetails } from '@/lib/utils';
 import * as Dialog from '@radix-ui/react-dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
-import MobileNavbarItems from './mobile-navbar-items';
 import { useState } from 'react';
-import type { UserDetails } from '@/lib/utils';
+import MobileNavbarItems from './mobile-navbar-items';
 
 type Props = {
   userDetails?: UserDetails;

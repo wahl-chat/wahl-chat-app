@@ -1,8 +1,8 @@
+import Logo from '@/components/chat/logo';
+import RtlIcon from '@/components/icons/rtl-icon';
 import { Button } from '@/components/ui/button';
 import { LibraryBigIcon, XIcon } from 'lucide-react';
 import Link from 'next/link';
-import Logo from '@/components/chat/logo';
-import RtlIcon from '@/components/icons/rtl-icon';
 
 function SidebarTvTeaser() {
   return (

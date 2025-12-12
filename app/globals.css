@@ -120,7 +120,8 @@ body {
 
 .animate-scroll {
   position: relative;
-  animation: scroll-text var(--scroll-duration) ease-in-out alternate infinite 1s;
+  animation: scroll-text var(--scroll-duration) ease-in-out alternate infinite
+    1s;
 }
 
 .animate-scroll:hover {

@@ -1,21 +1,27 @@
-import { Suspense } from 'react';
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
 import LoadingSpinner from '@/components/loading-spinner';
-import ChatScrollDownIndicator from './chat-scroll-down-indicator';
 import {
   getCurrentUser,
   getSystemStatus,
 } from '@/lib/firebase/firebase-server';
-import ChatViewSsr from './chat-view-ssr';
+import { Suspense } from 'react';
 import ChatDynamicChatInput from './chat-dynamic-chat-input';
+import ChatScrollDownIndicator from './chat-scroll-down-indicator';
+import ChatViewSsr from './chat-view-ssr';
 
 type Props = {
   sessionId?: string;
   partyIds?: string[];
   initialQuestion?: string;
+  hasPendingVoiceMessage?: boolean;
 };
 
-async function ChatView({ sessionId, partyIds, initialQuestion }: Props) {
+async function ChatView({
+  sessionId,
+  partyIds,
+  initialQuestion,
+  hasPendingVoiceMessage,
+}: Props) {
   const systemStatus = await getSystemStatus();
   const user = await getCurrentUser();
 
@@ -35,6 +41,7 @@ async function ChatView({ sessionId, partyIds, initialQuestion }: Props) {
           chatSessionId={sessionId}
           partyIds={partyIds}
           initialQuestion={initialQuestion}
+          hasPendingVoiceMessage={hasPendingVoiceMessage}
         />
       </Suspense>
 

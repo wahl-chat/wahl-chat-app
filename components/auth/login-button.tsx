@@ -1,15 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useAnonymousAuth } from '@/components/anonymous-auth';
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
   ResponsiveDialogTrigger,
 } from '@/components/chat/responsive-drawer-dialog';
+import { type UserDetails, getUserDetailsFromUser } from '@/lib/utils';
+import { useState } from 'react';
 import LoginForm from './login-form';
-import { useAnonymousAuth } from '@/components/anonymous-auth';
 import UserDialog from './user-dialog';
-import { getUserDetailsFromUser, type UserDetails } from '@/lib/utils';
 
 type Props = {
   userDialogAsChild?: boolean;

@@ -1,3 +1,6 @@
+import type ChatSocket from '@/lib/chat-socket';
+import type { ChatSession, Tenant } from '@/lib/firebase/firebase.types';
+import type { PartyDetails } from '@/lib/party-details';
 import type {
   LLMSize,
   PartyResponseChunkReadyPayload,
@@ -5,10 +8,7 @@ import type {
   Vote,
 } from '@/lib/socket.types';
 import type { Timestamp } from 'firebase/firestore';
-import type { PartyDetails } from '@/lib/party-details';
 import type { WritableDraft } from 'immer';
-import type ChatSocket from '@/lib/chat-socket';
-import type { ChatSession, Tenant } from '@/lib/firebase/firebase.types';
 
 export type Source = {
   source: string;
@@ -51,9 +51,29 @@ export type VotingBehavior = {
   votes: Vote[];
 };
 
+export type TtsMessageState = {
+  status: 'idle' | 'loading' | 'ready' | 'playing' | 'error';
+  audioBase64?: string;
+  error?: string;
+};
+
+export function getTtsKey(
+  sessionId: string,
+  partyId: string,
+  messageId: string,
+): string {
+  return `${sessionId}_${partyId}_${messageId}`;
+}
+
+export type VoiceTranscriptionStatus = {
+  status: 'pending' | 'transcribed' | 'error';
+  error?: string;
+};
+
 export type GroupedMessage = {
   id: string;
   messages: MessageItem[];
+  voice_transcription?: VoiceTranscriptionStatus;
   chat_title?: string;
   quick_replies?: string[];
   role: 'user' | 'assistant';
@@ -104,6 +124,7 @@ export type ChatStoreState = {
   currentStreamedVotingBehavior?: CurrentStreamedVotingBehavior;
   clickedProConButton?: boolean;
   clickedVotingBehaviorSummaryButton?: boolean;
+  ttsState: Record<string, TtsMessageState>;
   sharingSnapshot?: {
     id: string;
     messagesLengthAtSharing: number;
@@ -172,6 +193,7 @@ export type ChatStoreActions = {
     sessionId: string,
     partyId: string,
     completeMessage: string,
+    messageId?: string,
   ) => void;
   startTimeoutForStreamingMessages: (streamingMessageId: string) => void;
   cancelStreamingMessages: (streamingMessageId?: string) => void;
@@ -198,6 +220,23 @@ export type ChatStoreActions = {
   ) => void;
   setPartyIds: (partyIds: string[]) => void;
   getLLMSize: () => LLMSize;
+  sendVoiceMessage: (audioBase64: string) => Promise<void>;
+  requestTextToSpeech: (partyId: string, messageId: string) => void;
+  setTtsReady: (
+    partyId: string,
+    messageId: string,
+    audioBase64: string,
+  ) => void;
+  setTtsError: (partyId: string, messageId: string, error: string) => void;
+  setTtsPlaying: (partyId: string, messageId: string) => void;
+  setTtsIdle: (partyId: string, messageId: string) => void;
+  setVoiceTranscriptionPending: (messageId: string) => void;
+  setVoiceTranscribed: (
+    groupedMessageId: string,
+    messageId: string,
+    transcribedText: string,
+  ) => void;
+  setVoiceTranscriptionError: (groupedMessageId: string, error: string) => void;
 };
 
 export type ChatStore = ChatStoreState & ChatStoreActions;

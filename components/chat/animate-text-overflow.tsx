@@ -66,7 +66,7 @@ function AnimateTextOverflow({ children, className }: Props) {
         after:top-0 after:h-full after:w-1/6 after:bg-gradient-to-l after:from-background after:to-transparent"
           />
           <h1
-            className="text-xl font-bold absolute left-0 top-0 whitespace-nowrap animate-scroll"
+            className="animate-scroll absolute left-0 top-0 whitespace-nowrap text-xl font-bold"
             ref={textRef}
             style={{
               ...animationStyle,
@@ -79,7 +79,7 @@ function AnimateTextOverflow({ children, className }: Props) {
         </>
       ) : (
         <h1
-          className="text-xl font-bold text-center absolute left-0 right-0 top-0 whitespace-nowrap"
+          className="absolute inset-x-0 top-0 whitespace-nowrap text-center text-xl font-bold"
           ref={textRef}
         >
           {children}

@@ -1,8 +1,8 @@
-import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
-import WahlSwiperChatMessage from './wahl-swiper-chat-message';
-import { useEffect, useRef } from 'react';
 import ThinkingMessage from '@/components/chat/thinking-message';
+import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
 import { MessageCircleMoreIcon } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import WahlSwiperChatMessage from './wahl-swiper-chat-message';
 
 function WahlSwiperChat() {
   const isFirstRender = useRef(true);
@@ -46,10 +46,10 @@ function WahlSwiperChat() {
     <div className="flex grow overflow-y-auto" ref={chatContainerRef}>
       <div className="flex min-h-fit w-full flex-col gap-6 px-[2px] py-4">
         {messageHistory.length === 0 && (
-          <div className="flex flex-col gap-4 grow justify-center items-center">
+          <div className="flex grow flex-col items-center justify-center gap-4">
             <MessageCircleMoreIcon className="size-8 text-gray-500" />
 
-            <p className="text-sm text-gray-500 text-center">
+            <p className="text-center text-sm text-gray-500">
               Starte eine Konversation zu dieser These um mehr darüber zu
               erfahren.
             </p>

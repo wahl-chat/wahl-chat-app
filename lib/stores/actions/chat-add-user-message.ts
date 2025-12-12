@@ -1,12 +1,13 @@
 import {
   addUserMessageToChatSession,
   createChatSession,
+  generateMessageId,
 } from '@/lib/firebase/firebase';
 import { chatViewScrollToBottom } from '@/lib/scroll-utils';
-import { generateUuid } from '@/lib/utils';
-import { toast } from 'sonner';
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
+import { generateUuid } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
+import { toast } from 'sonner';
 
 export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
   (get, set) =>
@@ -53,14 +54,22 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
       lastMessage.role === 'user' &&
       lastMessage.messages[0].content === message;
 
+    // Use existing IDs for resend, generate new ones otherwise
+    const groupedMessageId = isMessageResend
+      ? lastMessage.id
+      : generateMessageId(safeSessionId);
+    const innerMessageId = isMessageResend
+      ? lastMessage.messages[0].id
+      : generateUuid();
+
     set((state) => {
       if (!isMessageResend) {
         state.messages.push({
-          id: generateUuid(),
+          id: groupedMessageId,
           role: 'user',
           messages: [
             {
-              id: generateUuid(),
+              id: innerMessageId,
               content: message,
               sources: [],
               role: 'user',
@@ -99,11 +108,15 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
       }
 
       if (!isMessageResend) {
-        await addUserMessageToChatSession(safeSessionId, message);
+        await addUserMessageToChatSession(safeSessionId, message, {
+          groupedMessageId: groupedMessageId,
+          messageId: innerMessageId,
+        });
       }
 
       socket.io?.addUserMessage({
         session_id: safeSessionId,
+        id: innerMessageId,
         user_message: message,
         party_ids: Array.from(partyIds),
         user_is_logged_in: !isAnonymous,
