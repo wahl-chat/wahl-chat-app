@@ -10,7 +10,7 @@ import { Timestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
 
 export const sendVoiceMessage: ChatStoreActionHandlerFor<'sendVoiceMessage'> =
-  (get, set) => async (audioBase64: string) => {
+  (get, set) => async (audioBytes: Uint8Array) => {
     const {
       isAnonymous,
       userId,
@@ -106,13 +106,13 @@ export const sendVoiceMessage: ChatStoreActionHandlerFor<'sendVoiceMessage'> =
         },
       );
 
-      socket.io?.sendVoiceMessage({
+      socket.io?.addUserMessage({
+        id: innerMessageId,
         session_id: safeSessionId,
-        grouped_message_id: groupedMessageId,
-        message_id: innerMessageId,
-        audio_base64: audioBase64,
         party_ids: Array.from(partyIds),
         user_is_logged_in: !isAnonymous,
+        audio_bytes: audioBytes,
+        grouped_message_id: groupedMessageId,
         language: 'de',
       });
 

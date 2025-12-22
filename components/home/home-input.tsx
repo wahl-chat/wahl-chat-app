@@ -39,13 +39,15 @@ function HomeInput({
     router.push(`/session?q=${question}`);
   };
 
-  const handleVoiceMessage = (audioBase64: string) => {
+  const handleVoiceMessage = (audioBytes: Uint8Array) => {
     setIsLoading(true);
 
     track('home_voice_input_used');
 
     // Store voice message in sessionStorage for the chat page to pick up
-    sessionStorage.setItem(PENDING_VOICE_MESSAGE_KEY, audioBase64);
+    // Convert to base64 since sessionStorage only accepts strings
+    const base64 = btoa(String.fromCharCode(...audioBytes));
+    sessionStorage.setItem(PENDING_VOICE_MESSAGE_KEY, base64);
     router.push('/session?voice=1');
   };
 

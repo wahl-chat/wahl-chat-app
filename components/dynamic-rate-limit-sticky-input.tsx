@@ -10,7 +10,7 @@ import StickyInputRateLimit from './sticky-input-rate-limit';
 type Props = {
   isLoading: boolean;
   onSubmit: (message: string) => void;
-  onVoiceMessage?: (audioBase64: string) => void;
+  onVoiceMessage?: (audioBytes: Uint8Array) => void;
   quickReplies?: string[];
   className?: string;
   initialSystemStatus: LlmSystemStatus;

@@ -51,7 +51,8 @@ export function useVoiceRecorder(): VoiceRecorderReturn {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm',
+        mimeType: 'audio/webm;codecs=opus',
+        audioBitsPerSecond: 32000,
       });
 
       chunksRef.current = [];

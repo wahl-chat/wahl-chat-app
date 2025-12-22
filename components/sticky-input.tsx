@@ -15,7 +15,7 @@ import { Button } from './ui/button';
 type Props = {
   isLoading: boolean;
   onSubmit: (message: string) => void;
-  onVoiceMessage?: (audioBase64: string) => void;
+  onVoiceMessage?: (audioBytes: Uint8Array) => void;
   quickReplies?: string[];
   className?: string;
 };
@@ -31,8 +31,8 @@ function StickyInput({
   const [isSticky, setIsSticky] = useState(true);
   const ref = useRef<HTMLDivElement>(null);
 
-  const handleVoiceMessage = (audioBase64: string) => {
-    onVoiceMessage?.(audioBase64);
+  const handleVoiceMessage = (audioBytes: Uint8Array) => {
+    onVoiceMessage?.(audioBytes);
   };
 
   const { isRecording, handleStartRecording, handleStopRecording } =

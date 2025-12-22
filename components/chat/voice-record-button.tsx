@@ -5,20 +5,13 @@ import { Mic, Square } from 'lucide-react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+async function blobToUint8Array(blob: Blob): Promise<Uint8Array> {
+  const arrayBuffer = await blob.arrayBuffer();
+  return new Uint8Array(arrayBuffer);
 }
 
 export function useVoiceRecordButton(
-  onRecordingComplete: (audioBase64: string) => void,
+  onRecordingComplete: (audioBytes: Uint8Array) => void,
 ) {
   const {
     isRecording,
@@ -40,8 +33,8 @@ export function useVoiceRecordButton(
   const handleStopRecording = async () => {
     const blob = await stopRecording();
     if (blob) {
-      const base64 = await blobToBase64(blob);
-      onRecordingComplete(base64);
+      const bytes = await blobToUint8Array(blob);
+      onRecordingComplete(bytes);
     }
   };
 

@@ -85,11 +85,19 @@ function ChatMessagesView({
     )
       return;
 
-    const pendingAudio = sessionStorage.getItem(PENDING_VOICE_MESSAGE_KEY);
-    if (pendingAudio) {
+    const pendingAudioBase64 = sessionStorage.getItem(
+      PENDING_VOICE_MESSAGE_KEY,
+    );
+    if (pendingAudioBase64) {
       sessionStorage.removeItem(PENDING_VOICE_MESSAGE_KEY);
       hasProcessedVoiceMessage.current = true;
-      sendVoiceMessage(pendingAudio);
+      // Convert base64 back to Uint8Array
+      const binaryString = atob(pendingAudioBase64);
+      const audioBytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        audioBytes[i] = binaryString.charCodeAt(i);
+      }
+      sendVoiceMessage(audioBytes);
     }
   }, [hasPendingVoiceMessage, sendVoiceMessage, isSocketConnected]);
 

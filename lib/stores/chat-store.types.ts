@@ -220,7 +220,7 @@ export type ChatStoreActions = {
   ) => void;
   setPartyIds: (partyIds: string[]) => void;
   getLLMSize: () => LLMSize;
-  sendVoiceMessage: (audioBase64: string) => Promise<void>;
+  sendVoiceMessage: (audioBytes: Uint8Array) => Promise<void>;
   requestTextToSpeech: (partyId: string, messageId: string) => void;
   setTtsReady: (
     partyId: string,

@@ -76,9 +76,12 @@ export type ChatSessionInitializedPayload = {
 export type AddUserMessagePayload = {
   session_id: string;
   id: string;
-  user_message: string;
+  user_message?: string;
   party_ids: string[];
   user_is_logged_in: boolean;
+  audio_bytes?: Uint8Array;
+  grouped_message_id?: string;
+  language?: string;
 };
 
 export type ProConPerspectiveRequestPayload = {
@@ -156,16 +159,6 @@ export type GenerateVotingBehaviorSummaryPayload = {
   last_assistant_message: string;
   summary_llm_size: LLMSize;
   user_is_logged_in: boolean;
-};
-
-export type VoiceMessageRequestPayload = {
-  session_id: string;
-  grouped_message_id: string;
-  message_id: string;
-  audio_base64: string;
-  party_ids: string[];
-  user_is_logged_in: boolean;
-  language: string;
 };
 
 export type TextToSpeechRequestPayload = {
