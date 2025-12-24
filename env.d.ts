@@ -18,6 +18,7 @@ declare global {
       BUDGET_SPENT: TruthyKinda;
       REVALIDATE_SECRET: string;
       IS_EMBEDDED: TruthyKinda;
+      WAHL_AGENT_BACKEND_URL?: string;
     }
   }
 }
