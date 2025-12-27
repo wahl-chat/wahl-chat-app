@@ -1,8 +1,11 @@
 import { AgentStoreProvider } from '@/components/providers/agent-store-provider';
 import type { Metadata } from 'next';
+import AgentHeader from '@/components/agent/agent-header';
+import AgentSidebar from '@/components/agent/agent-sidebar';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
 export const metadata: Metadata = {
-    title: 'Wahl Agent',
+    title: 'Wahl Agent | wahl.chat',
     description:
         'Ihr persönlicher Begleiter zur politischen Meinungsbildung. Diskutieren Sie politische Themen mit dem Wahl Agent.',
 };
@@ -14,8 +17,13 @@ interface Props {
 export default function AgentLayout({ children }: Props) {
     return (
         <AgentStoreProvider>
-            <main className="flex min-h-dvh flex-col bg-background">{children}</main>
+            <SidebarProvider defaultOpen={true}>
+                <AgentSidebar />
+                <SidebarInset className="flex h-dvh flex-col overflow-hidden">
+                    <AgentHeader />
+                    <div className="flex-1 overflow-y-auto">{children}</div>
+                </SidebarInset>
+            </SidebarProvider>
         </AgentStoreProvider>
     );
 }
-

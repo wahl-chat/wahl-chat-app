@@ -3,8 +3,9 @@
 import { useAgentStore } from '@/components/providers/agent-store-provider';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ArrowUp, Loader2 } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 import { useCallback } from 'react';
+import MessageLoadingBorderTrail from '@/components/chat/message-loading-border-trail';
 
 interface Props {
     onSubmit: (message: string) => void;
@@ -48,6 +49,8 @@ export default function AgentChatInput({ onSubmit }: Props) {
                 'focus-within:border-zinc-300 dark:focus-within:border-zinc-700'
             )}
         >
+            {isStreaming && <MessageLoadingBorderTrail />}
+
             <input
                 className="w-full bg-chat-input py-3 pl-4 pr-12 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed"
                 placeholder="Geben Sie hier Ihre Nachricht ein..."
@@ -67,11 +70,7 @@ export default function AgentChatInput({ onSubmit }: Props) {
                 )}
                 size="icon"
             >
-                {isStreaming ? (
-                    <Loader2 className="size-4 animate-spin" />
-                ) : (
-                    <ArrowUp className="size-4 font-bold" />
-                )}
+                <ArrowUp className="size-4 font-bold" />
             </Button>
         </form>
     );

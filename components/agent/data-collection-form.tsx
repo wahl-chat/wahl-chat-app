@@ -84,7 +84,7 @@ export default function DataCollectionForm() {
   };
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center p-4">
+    <div className="flex flex-col items-center p-4 py-8">
       <div className="w-full max-w-lg">
         <Card>
           <CardHeader className="text-center">

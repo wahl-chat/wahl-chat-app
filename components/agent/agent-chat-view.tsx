@@ -7,7 +7,7 @@ import AgentChatInput from './agent-chat-input';
 import {
     createConversation,
     streamChatEvents,
-} from '@/app/agent/lib/agent-api';
+} from '@/lib/agent/agent-api';
 import { Loader2 } from 'lucide-react';
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
 
@@ -143,16 +143,11 @@ export default function AgentChatView() {
 
     return (
         <section className="relative mx-auto flex size-full max-w-2xl flex-col overflow-hidden">
-            {/* Header */}
-            <div className="shrink-0 border-b px-4 py-3">
-                <h1 className="text-center text-lg font-semibold">
-                    Wahl Agent Dialog: {topic}
-                </h1>
-                {conversationId && (
-                    <p className="text-center text-xs text-muted-foreground">
-                        Conversation ID: {conversationId}
-                    </p>
-                )}
+            {/* Topic indicator */}
+            <div className="shrink-0 px-4 py-2">
+                <p className="text-center text-sm text-muted-foreground">
+                    Thema: <span className="font-medium text-foreground">{topic}</span>
+                </p>
             </div>
 
             {/* Messages */}

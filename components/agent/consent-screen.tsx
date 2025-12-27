@@ -15,7 +15,7 @@ export default function ConsentScreen() {
     const giveConsent = useAgentStore((state) => state.giveConsent);
 
     return (
-        <div className="flex min-h-full flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center p-4 py-8">
             <div className="w-full max-w-2xl space-y-6">
                 {/* Header */}
                 <div className="text-center">

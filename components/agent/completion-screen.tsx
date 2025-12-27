@@ -24,7 +24,7 @@ export default function CompletionScreen() {
     }, []);
 
     return (
-        <div className="flex min-h-full flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center p-4 py-8">
             <div className="w-full max-w-lg space-y-6">
                 {/* Celebration Animation */}
                 <div className="relative flex justify-center">

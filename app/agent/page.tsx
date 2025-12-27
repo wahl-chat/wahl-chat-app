@@ -1,5 +1,5 @@
-import AgentFlowController from './components/agent-flow-controller';
+import AgentFlowController from '@/components/agent/agent-flow-controller';
 
 export default function AgentPage() {
-    return <AgentFlowController />;
+  return <AgentFlowController />;
 }
