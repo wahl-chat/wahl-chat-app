@@ -12,6 +12,35 @@ export type AgentStep =
 
 export type AgentTopic = 'Migration' | 'Wirtschaft' | 'Umwelt und Klima';
 
+export type ConversationStage =
+    | 'start'
+    | 'active_listening'
+    | 'party_positioning'
+    | 'perspective_taking'
+    | 'deliberation'
+    | 'party_matching'
+    | 'end';
+
+export const CONVERSATION_STAGES: ConversationStage[] = [
+    'start',
+    'active_listening',
+    'party_positioning',
+    'perspective_taking',
+    'deliberation',
+    'party_matching',
+    'end',
+];
+
+export const STAGE_LABELS: Record<ConversationStage, string> = {
+    start: 'Start',
+    active_listening: 'Aktives Zuhören',
+    party_positioning: 'Partei-Positionierung',
+    perspective_taking: 'Perspektivwechsel',
+    deliberation: 'Deliberation',
+    party_matching: 'Partei-Matching',
+    end: 'Abschluss',
+};
+
 export interface AgentUserData {
     age: number;
     region: string;
@@ -36,6 +65,7 @@ export interface AgentState {
 
     // Conversation
     conversationId: string | null;
+    conversationStage: ConversationStage | null;
     messages: AgentMessage[];
     isStreaming: boolean;
     pendingUserMessage: string | null;
@@ -56,6 +86,7 @@ export interface AgentActions {
 
     // Conversation actions
     setConversationId: (id: string) => void;
+    setConversationStage: (stage: ConversationStage) => void;
     addMessage: (message: Omit<AgentMessage, 'id'>) => void;
     setIsStreaming: (isStreaming: boolean) => void;
     setPendingUserMessage: (message: string | null) => void;
@@ -77,6 +108,7 @@ const initialState: AgentState = {
     userData: null,
     topic: null,
     conversationId: null,
+    conversationStage: null,
     messages: [],
     isStreaming: false,
     pendingUserMessage: null,
@@ -113,6 +145,8 @@ export const createAgentStore = (initState: Partial<AgentState> = {}) => {
 
         // Conversation actions
         setConversationId: (conversationId) => set({ conversationId }),
+
+        setConversationStage: (conversationStage) => set({ conversationStage }),
 
         addMessage: (message) =>
             set((state) => ({

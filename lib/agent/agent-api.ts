@@ -1,10 +1,14 @@
-import type { AgentUserData, AgentTopic } from '@/lib/stores/agent-store';
+import type { AgentUserData, AgentTopic, ConversationStage } from '@/lib/stores/agent-store';
 
 // Use Next.js API routes as proxy to avoid CORS issues
 const API_BASE_URL = '/api/agent';
 
 export interface CreateConversationResponse {
     conversation_id: string;
+}
+
+export interface ConversationStageResponse {
+    stage: ConversationStage;
 }
 
 export interface StreamEvent {
@@ -114,3 +118,19 @@ export async function* streamChatEvents(
     }
 }
 
+/**
+ * Fetches the current conversation stage from the backend
+ */
+export async function getConversationStage(
+    conversationId: string
+): Promise<ConversationStageResponse> {
+    const response = await fetch(`${API_BASE_URL}/conversation-stage/${conversationId}`, {
+        method: 'GET',
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to get conversation stage: ${response.statusText}`);
+    }
+
+    return response.json();
+}

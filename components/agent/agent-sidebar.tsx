@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import {
   Sidebar,
   SidebarContent,
@@ -15,10 +16,45 @@ import {
 } from '@/components/ui/sidebar';
 import Logo from '@/components/chat/logo';
 import { Button } from '@/components/ui/button';
-import { HomeIcon } from 'lucide-react';
+import { HomeIcon, CopyIcon, CheckIcon } from 'lucide-react';
 import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
+import { useAgentStore } from '@/components/providers/agent-store-provider';
+import {
+  CONVERSATION_STAGES,
+  STAGE_LABELS,
+  type ConversationStage,
+} from '@/lib/stores/agent-store';
+import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
+function getStageStatus(
+  stage: ConversationStage,
+  currentStage: ConversationStage | null
+): 'completed' | 'current' | 'upcoming' {
+  if (!currentStage) return 'upcoming';
+  const currentIndex = CONVERSATION_STAGES.indexOf(currentStage);
+  const stageIndex = CONVERSATION_STAGES.indexOf(stage);
+  if (stageIndex < currentIndex) return 'completed';
+  if (stageIndex === currentIndex) return 'current';
+  return 'upcoming';
+}
 
 export default function AgentSidebar() {
+  const conversationId = useAgentStore((state) => state.conversationId);
+  const conversationStage = useAgentStore((state) => state.conversationStage);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    if (!conversationId) return;
+    await navigator.clipboard.writeText(conversationId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <Sidebar
       mobileVisuallyHiddenTitle="Wahl Agent"
@@ -44,18 +80,66 @@ export default function AgentSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Wahl Agent</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="/agent">Neues Gespräch</Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {conversationId && (
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel>Conversation ID</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <div className="flex w-full items-center gap-2 px-2 py-1.5">
+                      <span className="flex-1 truncate font-mono text-xs text-muted-foreground">
+                        {conversationId}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-6 shrink-0"
+                        onClick={handleCopy}
+                        tooltip={copied ? 'Kopiert!' : 'ID kopieren'}
+                      >
+                        {copied ? (
+                          <CheckIcon className="size-3.5" />
+                        ) : (
+                          <CopyIcon className="size-3.5" />
+                        )}
+                      </Button>
+                    </div>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>Gesprächsfortschritt</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <div className="flex items-center justify-center gap-1.5 px-2 py-1.5">
+                  {CONVERSATION_STAGES.map((stage) => {
+                    const status = getStageStatus(stage, conversationStage);
+                    return (
+                      <Tooltip key={stage}>
+                        <TooltipTrigger asChild>
+                          <div
+                            className={cn(
+                              'h-2 w-5 rounded-full transition-all duration-300',
+                              status === 'completed' && 'bg-primary',
+                              status === 'current' &&
+                                'bg-primary ring-2 ring-primary/30 ring-offset-1 ring-offset-sidebar',
+                              status === 'upcoming' && 'bg-muted'
+                            )}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-xs">
+                          {STAGE_LABELS[stage]}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </div>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
 
         <SidebarGroup>
           <SidebarGroupLabel>Informationen</SidebarGroupLabel>
@@ -84,4 +168,5 @@ export default function AgentSidebar() {
     </Sidebar>
   );
 }
+
 

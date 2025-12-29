@@ -7,6 +7,7 @@ import AgentChatInput from './agent-chat-input';
 import {
     createConversation,
     streamChatEvents,
+    getConversationStage,
 } from '@/lib/agent/agent-api';
 import { Loader2 } from 'lucide-react';
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
@@ -22,6 +23,7 @@ export default function AgentChatView() {
     );
 
     const setConversationId = useAgentStore((state) => state.setConversationId);
+    const setConversationStage = useAgentStore((state) => state.setConversationStage);
     const addMessage = useAgentStore((state) => state.addMessage);
     const setIsStreaming = useAgentStore((state) => state.setIsStreaming);
     const setInitialMessageReceived = useAgentStore(
@@ -40,6 +42,19 @@ export default function AgentChatView() {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [messages]);
+
+    // Fetch and update conversation stage
+    const fetchConversationStage = useCallback(
+        async (convId: string) => {
+            try {
+                const response = await getConversationStage(convId);
+                setConversationStage(response.stage);
+            } catch (error) {
+                console.error('Error fetching conversation stage:', error);
+            }
+        },
+        [setConversationStage]
+    );
 
     // Stream assistant response
     const streamAssistantResponse = useCallback(
@@ -62,6 +77,9 @@ export default function AgentChatView() {
                         break;
                     }
                 }
+
+                // Fetch updated conversation stage after message completes
+                await fetchConversationStage(convId);
             } catch (error) {
                 console.error('Error streaming response:', error);
                 addMessage({
@@ -73,7 +91,7 @@ export default function AgentChatView() {
                 setIsStreaming(false);
             }
         },
-        [addMessage, setIsStreaming, updateLastAssistantMessage]
+        [addMessage, setIsStreaming, updateLastAssistantMessage, fetchConversationStage]
     );
 
     // Initialize conversation and get first message
@@ -196,4 +214,5 @@ export default function AgentChatView() {
         </section>
     );
 }
+
 
