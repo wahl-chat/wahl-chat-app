@@ -1,3 +1,7 @@
+import {
+  updateVoiceTranscription,
+  updateVoiceTranscriptionError,
+} from '@/lib/firebase/firebase';
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
 
 export const setVoiceTranscriptionPending: ChatStoreActionHandlerFor<
@@ -13,7 +17,9 @@ export const setVoiceTranscriptionPending: ChatStoreActionHandlerFor<
 
 export const setVoiceTranscribed: ChatStoreActionHandlerFor<
   'setVoiceTranscribed'
-> = (_get, set) => (groupedMessageId, messageId, transcribedText) => {
+> = (get, set) => (groupedMessageId, messageId, transcribedText) => {
+  const sessionId = get().chatSessionId;
+
   set((state) => {
     const group = state.messages.find((g) => g.id === groupedMessageId);
     if (group) {
@@ -26,15 +32,39 @@ export const setVoiceTranscribed: ChatStoreActionHandlerFor<
       });
     }
   });
+
+  if (sessionId) {
+    updateVoiceTranscription(
+      sessionId,
+      groupedMessageId,
+      messageId,
+      transcribedText,
+    ).catch((error) => {
+      console.error('Failed to update voice transcription in Firebase:', error);
+    });
+  }
 };
 
 export const setVoiceTranscriptionError: ChatStoreActionHandlerFor<
   'setVoiceTranscriptionError'
-> = (_get, set) => (groupedMessageId, error) => {
+> = (get, set) => (groupedMessageId, error) => {
+  const sessionId = get().chatSessionId;
+
   set((state) => {
     const group = state.messages.find((g) => g.id === groupedMessageId);
     if (group) {
       group.voice_transcription = { status: 'error', error };
     }
   });
+
+  if (sessionId) {
+    updateVoiceTranscriptionError(sessionId, groupedMessageId, error).catch(
+      (firebaseError) => {
+        console.error(
+          'Failed to update voice transcription error in Firebase:',
+          firebaseError,
+        );
+      },
+    );
+  }
 };

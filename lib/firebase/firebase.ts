@@ -383,3 +383,51 @@ export async function setWahlSwiperResultToPublic(resultId: string) {
     is_public: true,
   });
 }
+
+export async function updateVoiceTranscription(
+  sessionId: string,
+  groupedMessageId: string,
+  messageId: string,
+  transcribedText: string,
+) {
+  const groupedMessage = await getGroupedMessage(sessionId, groupedMessageId);
+
+  const groupedMessageRef = doc(
+    db,
+    'chat_sessions',
+    sessionId,
+    'messages',
+    groupedMessageId,
+  );
+
+  await updateDoc(groupedMessageRef, {
+    messages: groupedMessage.messages.map((message: MessageItem) => {
+      if (message.id === messageId) {
+        return {
+          ...message,
+          content: transcribedText,
+        };
+      }
+      return message;
+    }),
+    voice_transcription: { status: 'transcribed' },
+  });
+}
+
+export async function updateVoiceTranscriptionError(
+  sessionId: string,
+  groupedMessageId: string,
+  errorMessage: string,
+) {
+  const groupedMessageRef = doc(
+    db,
+    'chat_sessions',
+    sessionId,
+    'messages',
+    groupedMessageId,
+  );
+
+  await updateDoc(groupedMessageRef, {
+    voice_transcription: { status: 'error', error: errorMessage },
+  });
+}
