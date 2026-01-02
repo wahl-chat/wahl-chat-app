@@ -25,20 +25,14 @@ export function ConversationChoiceCard({
 
     return (
         <Card
-            className={`border-2 transition-all ${isPrimary
-                    ? 'cursor-pointer hover:border-primary hover:shadow-md'
-                    : ''
-                } ${className}`}
+            className="border-2 transition-all cursor-pointer hover:border-primary hover:shadow-md"
             onClick={onClick}
         >
-            <CardHeader className="items-center py-6">
+            <CardHeader className="flex justify-start py-6">
                 <div className="flex items-center gap-3">
                     <div
-                        className={`flex size-12 items-center justify-center rounded-full ${isPrimary
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted text-muted-foreground'
-                            }`}
-                    >
+                        className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                        >
                         <Icon className="size-6" />
                     </div>
                     <div className="text-left">
