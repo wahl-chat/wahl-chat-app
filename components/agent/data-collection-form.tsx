@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { User, MapPin, Home, Briefcase } from 'lucide-react';
+import { User, MapPin, Home, Briefcase, ArrowLeft } from 'lucide-react';
 
 const BUNDESLAENDER = [
   'Baden-Württemberg',
@@ -57,6 +57,7 @@ const OCCUPATIONS = [
 
 export default function DataCollectionForm() {
   const setUserData = useAgentStore((state) => state.setUserData);
+  const setStep = useAgentStore((state) => state.setStep);
 
   const [age, setAge] = useState<string>('');
   const [region, setRegion] = useState<string>('');
@@ -85,7 +86,15 @@ export default function DataCollectionForm() {
 
   return (
     <div className="flex flex-col items-center p-4 py-8">
-      <div className="w-full max-w-lg">
+      <div className="w-full max-w-lg space-y-4">
+        <Button
+          variant="ghost"
+          onClick={() => setStep('conversation-choice')}
+          className="gap-2"
+        >
+          <ArrowLeft className="size-4" />
+          Zurück
+        </Button>
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Datenerhebung</CardTitle>
