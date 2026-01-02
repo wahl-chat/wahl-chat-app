@@ -1,7 +1,5 @@
 'use client';
 
-import { useAgentStore } from '@/components/providers/agent-store-provider';
-import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -9,11 +7,10 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { PartyPopper, Heart, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { PartyPopper, Heart, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function CompletionScreen() {
-    const reset = useAgentStore((state) => state.reset);
     const [showConfetti, setShowConfetti] = useState(false);
 
     useEffect(() => {
@@ -62,19 +59,13 @@ export default function CompletionScreen() {
                 <Card className="border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/30">
                     <CardHeader className="text-center">
                         <CardTitle className="flex items-center justify-center gap-2 text-2xl text-green-700 dark:text-green-300">
-                            <CheckCircle2 className="size-6" />
                             Vielen Dank für Ihre Teilnahme!
                         </CardTitle>
-                        <CardDescription className="text-green-600 dark:text-green-400">
-                            Die Unterhaltung ist beendet.
-                        </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4 text-center">
-                        <p className="text-sm text-green-800 dark:text-green-200">
-                            <strong>
-                                Vielen Dank, dass Sie sich die Zeit genommen haben, an diesem
-                                Dialog teilzunehmen!
-                            </strong>
+                        <p className="text-sm text-green-700/80 dark:text-green-300/80">
+                            Vielen Dank, dass Sie sich die Zeit genommen haben, an diesem
+                            Dialog teilzunehmen!
                         </p>
                         <p className="text-sm text-green-700/80 dark:text-green-300/80">
                             Ihre Beiträge sind wertvoll für unsere Forschung zum Verständnis
@@ -87,26 +78,19 @@ export default function CompletionScreen() {
                     </CardContent>
                 </Card>
 
-                {/* Appreciation */}
-                <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                    <Heart className="size-4 text-red-500" />
+                {/* Close Window Notice */}
+                <div className="flex items-center justify-center gap-2 rounded-lg border border-muted bg-muted/50 p-4">
+                    <span className="text-sm text-muted-foreground">
+                        Sie können dieses Fenster jetzt schließen.
+                    </span>
+                </div>
+
+                  {/* Appreciation */}
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
                     <span className="text-sm">
                         Ihr Beitrag macht einen Unterschied für die Demokratie
                     </span>
                     <Heart className="size-4 text-red-500" />
-                </div>
-
-                {/* Restart Button */}
-                <div className="flex justify-center">
-                    <Button
-                        onClick={reset}
-                        variant="outline"
-                        size="lg"
-                        className="gap-2"
-                    >
-                        <RefreshCw className="size-4" />
-                        Neues Gespräch starten
-                    </Button>
                 </div>
             </div>
         </div>

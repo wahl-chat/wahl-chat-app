@@ -9,13 +9,15 @@ import {
     streamChatEvents,
     getConversationStage,
 } from '@/lib/agent/agent-api';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckCircle2 } from 'lucide-react';
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
+import { Button } from '@/components/ui/button';
 
 export default function AgentChatView() {
     const topic = useAgentStore((state) => state.topic);
     const userData = useAgentStore((state) => state.userData);
     const conversationId = useAgentStore((state) => state.conversationId);
+    const conversationStage = useAgentStore((state) => state.conversationStage);
     const messages = useAgentStore((state) => state.messages);
     const isStreaming = useAgentStore((state) => state.isStreaming);
     const initialMessageReceived = useAgentStore(
@@ -24,6 +26,7 @@ export default function AgentChatView() {
 
     const setConversationId = useAgentStore((state) => state.setConversationId);
     const setConversationStage = useAgentStore((state) => state.setConversationStage);
+    const setStep = useAgentStore((state) => state.setStep);
     const addMessage = useAgentStore((state) => state.addMessage);
     const setIsStreaming = useAgentStore((state) => state.setIsStreaming);
     const setInitialMessageReceived = useAgentStore(
@@ -32,6 +35,8 @@ export default function AgentChatView() {
     const updateLastAssistantMessage = useAgentStore(
         (state) => state.updateLastAssistantMessage
     );
+
+    const isConversationEnded = conversationStage === 'end';
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const isInitializingRef = useRef(false);
@@ -206,9 +211,20 @@ export default function AgentChatView() {
                 </div>
             )}
 
-            {/* Input */}
+            {/* Input or Completion Button */}
             <div className="shrink-0 px-3 pb-3 md:px-4 md:pb-4">
-                <AgentChatInput onSubmit={handleSubmit} />
+                {isConversationEnded ? (
+                    <Button
+                        onClick={() => setStep('completed')}
+                        className="w-full gap-2"
+                        size="lg"
+                    >
+                        <CheckCircle2 className="size-4" />
+                        Gespräch abschließen
+                    </Button>
+                ) : (
+                    <AgentChatInput onSubmit={handleSubmit} />
+                )}
                 <AiDisclaimer />
             </div>
         </section>
