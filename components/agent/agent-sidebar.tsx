@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import Logo from '@/components/chat/logo';
 import { Button } from '@/components/ui/button';
-import { HomeIcon, CopyIcon, CheckIcon } from 'lucide-react';
+import { HomeIcon, CopyIcon, CheckIcon, Info } from 'lucide-react';
 import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
 import { useAgentStore } from '@/components/providers/agent-store-provider';
 import {
@@ -83,7 +83,17 @@ export default function AgentSidebar() {
         {conversationId && (
           <>
             <SidebarGroup>
-              <SidebarGroupLabel>Conversation ID</SidebarGroupLabel>
+              <SidebarGroupLabel className="flex items-center gap-1.5">
+                <span>Conversation ID</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="size-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[200px] text-xs">
+                    Speichern Sie diese ID, um die Konversation auf einem anderen Gerät oder zu einem späteren Zeitpunkt fortzusetzen.
+                  </TooltipContent>
+                </Tooltip>
+              </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -124,7 +134,7 @@ export default function AgentSidebar() {
                               'h-2 w-5 rounded-full transition-all duration-300',
                               status === 'completed' && 'bg-primary',
                               status === 'current' &&
-                                'bg-primary ring-2 ring-primary/30 ring-offset-1 ring-offset-sidebar',
+                              'bg-primary ring-2 ring-primary/30 ring-offset-1 ring-offset-sidebar',
                               status === 'upcoming' && 'bg-muted'
                             )}
                           />
