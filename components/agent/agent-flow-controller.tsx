@@ -2,6 +2,7 @@
 
 import { useAgentStore } from '@/components/providers/agent-store-provider';
 import ConsentScreen from './consent-screen';
+import ConversationChoiceScreen from './conversation-choice-screen';
 import DataCollectionForm from './data-collection-form';
 import TopicSelection from './topic-selection';
 import AgentChatView from './agent-chat-view';
@@ -13,6 +14,8 @@ export default function AgentFlowController() {
     switch (step) {
         case 'consent':
             return <ConsentScreen />;
+        case 'conversation-choice':
+            return <ConversationChoiceScreen />;
         case 'data-collection':
             return <DataCollectionForm />;
         case 'topic-selection':

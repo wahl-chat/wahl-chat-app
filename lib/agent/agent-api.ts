@@ -11,6 +11,17 @@ export interface ConversationStageResponse {
     stage: ConversationStage;
 }
 
+export interface ConversationMessagesResponse {
+    messages: Array<{
+        role: string;
+        content: string;
+    }>;
+}
+
+export interface ConversationTopicResponse {
+    topic: AgentTopic;
+}
+
 export interface StreamEvent {
     type: 'message_start' | 'message_chunk' | 'message_end' | 'end';
     content?: string;
@@ -130,6 +141,40 @@ export async function getConversationStage(
 
     if (!response.ok) {
         throw new Error(`Failed to get conversation stage: ${response.statusText}`);
+    }
+
+    return response.json();
+}
+
+/**
+ * Fetches all messages for a conversation from the backend
+ */
+export async function getConversationMessages(
+    conversationId: string
+): Promise<ConversationMessagesResponse> {
+    const response = await fetch(`${API_BASE_URL}/conversation-messages/${conversationId}`, {
+        method: 'GET',
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to get conversation messages: ${response.statusText}`);
+    }
+
+    return response.json();
+}
+
+/**
+ * Fetches the topic for a conversation from the backend
+ */
+export async function getConversationTopic(
+    conversationId: string
+): Promise<ConversationTopicResponse> {
+    const response = await fetch(`${API_BASE_URL}/conversation-topic/${conversationId}`, {
+        method: 'GET',
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to get conversation topic: ${response.statusText}`);
     }
 
     return response.json();

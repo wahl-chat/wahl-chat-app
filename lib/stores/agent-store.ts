@@ -5,6 +5,7 @@ import { createStore } from 'zustand/vanilla';
 // Types
 export type AgentStep =
     | 'consent'
+    | 'conversation-choice'
     | 'data-collection'
     | 'topic-selection'
     | 'chat'
@@ -79,6 +80,13 @@ export interface AgentActions {
     // Flow actions
     setStep: (step: AgentStep) => void;
     giveConsent: () => void;
+    startNewConversation: () => void;
+    restoreConversation: (
+        conversationId: string,
+        messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+        topic: AgentTopic,
+        stage: ConversationStage
+    ) => void;
 
     // User data actions
     setUserData: (data: AgentUserData) => void;
@@ -127,7 +135,25 @@ export const createAgentStore = (initState: Partial<AgentState> = {}) => {
         giveConsent: () =>
             set({
                 consentGiven: true,
+                step: 'conversation-choice',
+            }),
+
+        startNewConversation: () =>
+            set({
                 step: 'data-collection',
+            }),
+
+        restoreConversation: (conversationId, messages, topic, stage) =>
+            set({
+                conversationId,
+                messages: messages.map((msg, index) => ({
+                    ...msg,
+                    id: `restored-${index}-${Date.now()}`,
+                })),
+                topic,
+                conversationStage: stage,
+                initialMessageReceived: true,
+                step: 'chat',
             }),
 
         // User data actions
