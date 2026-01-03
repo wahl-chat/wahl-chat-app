@@ -125,7 +125,7 @@ const initialState: AgentState = {
 };
 
 export const createAgentStore = (initState: Partial<AgentState> = {}) => {
-    return createStore<AgentStore>()((set, get) => ({
+    return createStore<AgentStore>()((set) => ({
         ...initialState,
         ...initState,
 

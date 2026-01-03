@@ -3,11 +3,10 @@
 import {
     Card,
     CardContent,
-    CardDescription,
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { PartyPopper, Heart, X } from 'lucide-react';
+import { PartyPopper, Heart } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function CompletionScreen() {
@@ -85,8 +84,8 @@ export default function CompletionScreen() {
                     </span>
                 </div>
 
-                  {/* Appreciation */}
-                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                {/* Appreciation */}
+                <div className="flex items-center justify-center gap-2 text-muted-foreground">
                     <span className="text-sm">
                         Ihr Beitrag macht einen Unterschied für die Demokratie
                     </span>
