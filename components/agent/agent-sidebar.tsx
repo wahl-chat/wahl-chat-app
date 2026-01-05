@@ -20,32 +20,13 @@ import { HomeIcon, CopyIcon, CheckIcon, Info } from 'lucide-react';
 import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
 import { useAgentStore } from '@/components/providers/agent-store-provider';
 import {
-  CONVERSATION_STAGES,
-  STAGE_LABELS,
-  type ConversationStage,
-} from '@/lib/stores/agent-store';
-import { cn } from '@/lib/utils';
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-function getStageStatus(
-  stage: ConversationStage,
-  currentStage: ConversationStage | null
-): 'completed' | 'current' | 'upcoming' {
-  if (!currentStage) return 'upcoming';
-  const currentIndex = CONVERSATION_STAGES.indexOf(currentStage);
-  const stageIndex = CONVERSATION_STAGES.indexOf(stage);
-  if (stageIndex < currentIndex) return 'completed';
-  if (stageIndex === currentIndex) return 'current';
-  return 'upcoming';
-}
-
 export default function AgentSidebar() {
   const conversationId = useAgentStore((state) => state.conversationId);
-  const conversationStage = useAgentStore((state) => state.conversationStage);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -81,8 +62,7 @@ export default function AgentSidebar() {
       </SidebarHeader>
       <SidebarContent>
         {conversationId && (
-          <>
-            <SidebarGroup>
+          <SidebarGroup>
               <SidebarGroupLabel className="flex items-center gap-1.5">
                 <span>Conversation ID</span>
                 <Tooltip>
@@ -119,36 +99,6 @@ export default function AgentSidebar() {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
-
-            <SidebarGroup>
-              <SidebarGroupLabel>Gesprächsfortschritt</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <div className="flex items-center justify-center gap-1.5 px-2 py-1.5">
-                  {CONVERSATION_STAGES.map((stage) => {
-                    const status = getStageStatus(stage, conversationStage);
-                    return (
-                      <Tooltip key={stage}>
-                        <TooltipTrigger asChild>
-                          <div
-                            className={cn(
-                              'h-2 w-5 rounded-full transition-all duration-300',
-                              status === 'completed' && 'bg-primary',
-                              status === 'current' &&
-                              'bg-primary ring-2 ring-primary/30 ring-offset-1 ring-offset-sidebar',
-                              status === 'upcoming' && 'bg-muted'
-                            )}
-                          />
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="text-xs">
-                          {STAGE_LABELS[stage]}
-                        </TooltipContent>
-                      </Tooltip>
-                    );
-                  })}
-                </div>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </>
         )}
 
         <SidebarGroup>
