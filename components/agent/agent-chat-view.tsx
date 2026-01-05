@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAgentStore } from '@/components/providers/agent-store-provider';
 import AgentChatMessage from './agent-chat-message';
 import AgentChatInput from './agent-chat-input';
@@ -9,11 +10,14 @@ import {
     streamChatEvents,
     getConversationStage,
 } from '@/lib/agent/agent-api';
+import { saveConversationId } from '@/lib/agent/conversation-storage';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
 import { Button } from '@/components/ui/button';
 
 export default function AgentChatView() {
+    const router = useRouter();
+
     const topic = useAgentStore((state) => state.topic);
     const userData = useAgentStore((state) => state.userData);
     const conversationId = useAgentStore((state) => state.conversationId);
@@ -121,6 +125,10 @@ export default function AgentChatView() {
                 setConversationId(response.conversation_id);
                 console.log('Created Conversation ID:', response.conversation_id);
 
+                // Save to localStorage and update URL
+                saveConversationId(response.conversation_id);
+                router.replace(`/agent/${response.conversation_id}`);
+
                 // Get initial message from assistant (empty user message triggers it)
                 await streamAssistantResponse(response.conversation_id, '');
                 setInitialMessageReceived(true);
@@ -146,6 +154,7 @@ export default function AgentChatView() {
         setInitialMessageReceived,
         addMessage,
         streamAssistantResponse,
+        router,
     ]);
 
     // Handle user message submission
