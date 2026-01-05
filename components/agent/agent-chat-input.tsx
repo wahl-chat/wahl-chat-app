@@ -53,7 +53,7 @@ export default function AgentChatInput({ onSubmit }: Props) {
 
             <input
                 className="w-full bg-chat-input py-3 pl-4 pr-12 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed"
-                placeholder="Geben Sie hier Ihre Nachricht ein..."
+                placeholder="Gib hier deine Nachricht ein..."
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 value={input}

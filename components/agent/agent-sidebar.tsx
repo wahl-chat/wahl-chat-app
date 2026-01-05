@@ -90,7 +90,7 @@ export default function AgentSidebar() {
                     <Info className="size-3 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent side="right" className="max-w-[200px] text-xs">
-                    Speichern Sie diese ID, um die Konversation auf einem anderen Gerät oder zu einem späteren Zeitpunkt fortzusetzen.
+                    Speichere diese ID, um die Konversation auf einem anderen Gerät oder zu einem späteren Zeitpunkt fortzusetzen.
                   </TooltipContent>
                 </Tooltip>
               </SidebarGroupLabel>

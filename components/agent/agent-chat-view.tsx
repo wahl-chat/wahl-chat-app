@@ -90,7 +90,7 @@ export default function AgentChatView() {
                 addMessage({
                     role: 'assistant',
                     content:
-                        'Es tut mir leid, es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.',
+                        'Es tut mir leid, es ist ein Fehler aufgetreten. Bitte versuche es erneut.',
                 });
             } finally {
                 setIsStreaming(false);
@@ -129,7 +129,7 @@ export default function AgentChatView() {
                 addMessage({
                     role: 'assistant',
                     content:
-                        'Es tut mir leid, die Konversation konnte nicht gestartet werden. Bitte laden Sie die Seite neu.',
+                        'Es tut mir leid, die Konversation konnte nicht gestartet werden. Bitte lade die Seite neu.',
                 });
             } finally {
                 isInitializingRef.current = false;

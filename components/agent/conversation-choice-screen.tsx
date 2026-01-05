@@ -72,7 +72,7 @@ export default function ConversationChoiceScreen() {
         } catch (err) {
             console.error('Error restoring conversation:', err);
             setError(
-                'Konversation konnte nicht gefunden werden. Bitte überprüfen Sie die ID.'
+                'Konversation konnte nicht gefunden werden. Bitte überprüfe die ID.'
             );
         } finally {
             setIsLoading(false);
@@ -110,7 +110,7 @@ export default function ConversationChoiceScreen() {
                             Konversation fortsetzen
                         </h1>
                         <p className="mt-2 text-muted-foreground">
-                            Geben Sie Ihre Conversation ID ein, um fortzufahren.
+                            Gib deine Conversation ID ein, um fortzufahren.
                         </p>
                     </div>
 
@@ -166,7 +166,7 @@ export default function ConversationChoiceScreen() {
                     </Card>
 
                     <p className="text-center text-sm text-muted-foreground">
-                        Sie finden Ihre Conversation ID in der Seitenleiste während
+                        Du findest deine Conversation ID in der Seitenleiste während
                         eines aktiven Gesprächs.
                     </p>
                 </div>

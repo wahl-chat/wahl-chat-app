@@ -119,19 +119,19 @@ export default function DataCollectionForm() {
                   type="number"
                   min={18}
                   max={120}
-                  placeholder="Ihr Alter"
+                  placeholder="Dein Alter"
                   value={age}
                   onChange={(e) => setAge(e.target.value)}
                   className="h-11"
                 />
                 {age && Number.parseInt(age) < 18 && (
                   <p className="text-sm text-destructive">
-                    Sie müssen mindestens 18 Jahre alt sein, um teilzunehmen.
+                    Du musst mindestens 18 Jahre alt sein, um teilzunehmen.
                   </p>
                 )}
                 {age && Number.parseInt(age) > 120 && (
                   <p className="text-sm text-destructive">
-                    Bitte geben Sie ein gültiges Alter ein.
+                    Bitte gib ein gültiges Alter ein.
                   </p>
                 )}
               </div>
@@ -147,7 +147,7 @@ export default function DataCollectionForm() {
                 </Label>
                 <Select value={region} onValueChange={setRegion}>
                   <SelectTrigger id="region" className="h-11">
-                    <SelectValue placeholder="Wählen Sie Ihre Region" />
+                    <SelectValue placeholder="Wähle deine Region" />
                   </SelectTrigger>
                   <SelectContent>
                     {BUNDESLAENDER.map((land) => (
@@ -173,7 +173,7 @@ export default function DataCollectionForm() {
                   onValueChange={setLivingSituation}
                 >
                   <SelectTrigger id="living" className="h-11">
-                    <SelectValue placeholder="Wählen Sie Ihre Wohnsituation" />
+                    <SelectValue placeholder="Wähle deine Wohnsituation" />
                   </SelectTrigger>
                   <SelectContent>
                     {LIVING_SITUATIONS.map((situation) => (
@@ -196,7 +196,7 @@ export default function DataCollectionForm() {
                 </Label>
                 <Select value={occupation} onValueChange={setOccupation}>
                   <SelectTrigger id="occupation" className="h-11">
-                    <SelectValue placeholder="Wählen Sie Ihren Beruf" />
+                    <SelectValue placeholder="Wähle deinen Beruf" />
                   </SelectTrigger>
                   <SelectContent>
                     {OCCUPATIONS.map((occ) => (

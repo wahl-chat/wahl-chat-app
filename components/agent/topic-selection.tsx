@@ -77,7 +77,7 @@ export default function TopicSelection() {
                 <div className="text-center">
                     <h1 className="text-3xl font-bold tracking-tight">Themenauswahl</h1>
                     <p className="mt-2 text-muted-foreground">
-                        Wählen Sie ein Thema für Ihr Gespräch mit dem Wahl Agent
+                        Wähle ein Thema für dein Gespräch mit dem Wahl Agent
                     </p>
                 </div>
 
@@ -87,8 +87,8 @@ export default function TopicSelection() {
                         <Info className="mt-0.5 size-5 shrink-0 text-blue-600 dark:text-blue-400" />
                         <div className="space-y-1 text-sm text-blue-900/80 dark:text-blue-100/80">
                             <p className="font-medium">
-                                Bitte wählen Sie EIN Thema aus, über das Sie mit dem Wahl Agent
-                                diskutieren möchten.
+                                Bitte wähle EIN Thema aus, über das du mit dem Wahl Agent
+                                diskutieren möchtest.
                             </p>
                             <p>
                                 Für diese Studie haben wir einige Themen vorbereitet, die im
@@ -101,7 +101,7 @@ export default function TopicSelection() {
                 {/* Topic Cards */}
                 <div className="space-y-3">
                     <h2 className="text-sm font-medium text-muted-foreground">
-                        Wählen Sie Ihr Thema:
+                        Wähle dein Thema:
                     </h2>
 
                     <div className="grid gap-3">
@@ -159,7 +159,7 @@ export default function TopicSelection() {
                 ) : (
                     <div className="flex items-center justify-center gap-2 text-sm text-amber-600 dark:text-amber-400">
                         <AlertCircle className="size-4" />
-                        <span>Bitte wählen Sie ein Thema aus, um fortzufahren.</span>
+                        <span>Bitte wähle ein Thema aus, um fortzufahren.</span>
                     </div>
                 )}
 
