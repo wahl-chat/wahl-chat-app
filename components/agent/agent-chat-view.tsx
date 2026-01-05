@@ -169,7 +169,7 @@ export default function AgentChatView() {
             {/* Topic indicator */}
             <div className="shrink-0 px-4 py-2">
                 <p className="text-center text-sm text-muted-foreground">
-                    Thema: <span className="font-medium text-foreground">{topic}</span>
+                    Konversation über: <span className="font-medium text-foreground">{topic}</span>
                 </p>
             </div>
 

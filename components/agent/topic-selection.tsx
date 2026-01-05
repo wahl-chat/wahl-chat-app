@@ -75,23 +75,19 @@ export default function TopicSelection() {
             <div className="w-full max-w-2xl space-y-6">
                 {/* Header */}
                 <div className="text-center">
-                    <h1 className="text-3xl font-bold tracking-tight">Themenauswahl</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Bereichsauswahl</h1>
                     <p className="mt-2 text-muted-foreground">
-                        Wähle ein Thema für dein Gespräch mit dem Wahl Agent
+                        Wähle, worüber du mit dem Wahl-Agent sprechen möchtest
                     </p>
                 </div>
 
                 {/* Info Card */}
                 <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/30">
-                    <CardContent className="flex items-start gap-3 pt-4">
+                    <CardContent className="flex items-start gap-3 p-4">
                         <Info className="mt-0.5 size-5 shrink-0 text-blue-600 dark:text-blue-400" />
                         <div className="space-y-1 text-sm text-blue-900/80 dark:text-blue-100/80">
-                            <p className="font-medium">
-                                Bitte wähle EIN Thema aus, über das du mit dem Wahl Agent
-                                diskutieren möchtest.
-                            </p>
                             <p>
-                                Für diese Studie haben wir einige Themen vorbereitet, die im
+                                Für diese Studie haben wir einige Bereiche vorbereitet, die im
                                 politischen Diskurs besonders häufig vorkommen.
                             </p>
                         </div>
@@ -101,7 +97,7 @@ export default function TopicSelection() {
                 {/* Topic Cards */}
                 <div className="space-y-3">
                     <h2 className="text-sm font-medium text-muted-foreground">
-                        Wähle dein Thema:
+                        Wähle deinen Bereich:
                     </h2>
 
                     <div className="grid gap-3">
@@ -153,13 +149,13 @@ export default function TopicSelection() {
                     <div className="flex items-center justify-center gap-2 text-sm text-green-600 dark:text-green-400">
                         <CheckCircle2 className="size-4" />
                         <span>
-                            Ausgewähltes Thema: <strong>{selectedTopic}</strong>
+                            Ausgewählter Bereich: <strong>{selectedTopic}</strong>
                         </span>
                     </div>
                 ) : (
                     <div className="flex items-center justify-center gap-2 text-sm text-amber-600 dark:text-amber-400">
                         <AlertCircle className="size-4" />
-                        <span>Bitte wähle ein Thema aus, um fortzufahren.</span>
+                        <span>Bitte wähle einen Bereich aus, um fortzufahren.</span>
                     </div>
                 )}
 
