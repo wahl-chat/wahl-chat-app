@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAgentStore } from '@/components/providers/agent-store-provider';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +29,7 @@ import {
 type Screen = 'choice' | 'resume';
 
 export default function ConversationChoiceScreen() {
+    const router = useRouter();
     const startNewConversation = useAgentStore(
         (state) => state.startNewConversation
     );
@@ -69,6 +71,9 @@ export default function ConversationChoiceScreen() {
                 topicRes.topic,
                 stageRes.stage
             );
+
+            // Update the URL to include the conversation ID
+            router.replace(`/agent/${conversationId.trim()}`);
         } catch (err) {
             console.error('Error restoring conversation:', err);
             setError(
