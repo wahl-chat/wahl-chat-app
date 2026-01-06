@@ -1,11 +1,11 @@
-import { Pie, PieChart } from 'recharts';
 import {
   type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from '../ui/chart';
+} from '@/components/ui/chart';
 import NumberFlow from '@number-flow/react';
+import { Pie, PieChart } from 'recharts';
 
 type Props = {
   voteResults: {
@@ -62,8 +62,8 @@ function VoteChart({ voteResults, memberCount }: Props) {
   ];
 
   return (
-    <div className="h-[150px] w-[150px] relative">
-      <ChartContainer config={chartConfig} className="size-full z-20 relative">
+    <div className="relative size-[150px]">
+      <ChartContainer config={chartConfig} className="relative z-20 size-full">
         <PieChart>
           <ChartTooltip
             cursor={false}
@@ -79,7 +79,7 @@ function VoteChart({ voteResults, memberCount }: Props) {
           />
         </PieChart>
       </ChartContainer>
-      <div className="absolute top-0 left-0 right-0 bottom-0 flex flex-col items-center justify-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
         <NumberFlow className="text-lg font-bold" value={memberCount} />
         <p className="text-xs text-muted-foreground">Mitglieder</p>
       </div>

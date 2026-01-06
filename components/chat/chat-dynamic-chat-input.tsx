@@ -1,11 +1,11 @@
 'use client';
 
-import type { LlmSystemStatus } from '@/lib/firebase/firebase.types';
-import ChatInputRateLimit from './chat-input-rate-limit';
-import ChatInput from './chat-input';
-import { useEffect, useState } from 'react';
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import { listenToSystemStatus } from '@/lib/firebase/firebase';
+import type { LlmSystemStatus } from '@/lib/firebase/firebase.types';
+import { useEffect, useState } from 'react';
+import ChatInput from './chat-input';
+import ChatInputRateLimit from './chat-input-rate-limit';
 
 type Props = {
   initialSystemStatus: LlmSystemStatus;
@@ -18,7 +18,7 @@ function ChatDynamicChatInput({
 }: Props) {
   const { user } = useAnonymousAuth();
   const [isAtRateLimit, setIsAtRateLimit] = useState(
-    initialSystemStatus.is_at_rate_limit
+    initialSystemStatus.is_at_rate_limit,
   );
 
   useEffect(() => {

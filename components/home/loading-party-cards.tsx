@@ -21,7 +21,7 @@ function LoadingPartyCards({ partyCount, className, gridColumns }: Props) {
           className={cn(
             'flex aspect-square items-center justify-center transition-all rounded-md',
             'bg-zinc-200 dark:bg-zinc-700 w-full h-fit p-6 border border-muted-foreground/20 overflow-hidden',
-            'animate-pulse'
+            'animate-pulse',
           )}
         />
       ))}

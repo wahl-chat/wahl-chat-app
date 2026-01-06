@@ -1,6 +1,15 @@
 'use client';
 
+import { createCheckoutSession } from '@/lib/server-actions/stripe-create-session';
 import { formatAmountForDisplay } from '@/lib/stripe/stripe-helpers';
+import { cn } from '@/lib/utils';
+import NumberFlow from '@number-flow/react';
+import { track } from '@vercel/analytics/react';
+import { EqualIcon } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+import { DonateSubmitButton } from './donate-submit-button';
+import { Button } from './ui/button';
 import {
   CardContent,
   CardDescription,
@@ -8,17 +17,8 @@ import {
   CardHeader,
   CardTitle,
 } from './ui/card';
-import { createCheckoutSession } from '@/lib/server-actions/stripe-create-session';
-import { useState } from 'react';
-import { Button } from './ui/button';
-import { Slider } from './ui/slider';
-import { DonateSubmitButton } from './donate-submit-button';
-import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
-import Link from 'next/link';
-import NumberFlow from '@number-flow/react';
-import { EqualIcon } from 'lucide-react';
-import { track } from '@vercel/analytics/react';
+import { Slider } from './ui/slider';
 
 function DonationForm() {
   const [amount, setAmount] = useState(50);
@@ -116,7 +116,7 @@ function DonationForm() {
               type="button"
               className={cn(
                 amount === currAmount &&
-                  'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground/90'
+                  'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground/90',
               )}
               onClick={() => handleSetAmount(currAmount)}
             >
@@ -128,7 +128,7 @@ function DonationForm() {
             variant="outline"
             className={cn(
               customAmount &&
-                'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground/90'
+                'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground/90',
             )}
             onClick={() => setCustomAmount(true)}
           >

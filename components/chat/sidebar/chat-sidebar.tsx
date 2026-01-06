@@ -1,6 +1,10 @@
+import LoginButton from '@/components/auth/login-button';
+import Logo from '@/components/chat/logo';
+import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
+import DonationDialog from '@/components/donation-dialog';
+import FeedbackDialog from '@/components/feedback-dialog';
 import LoadingSpinner from '@/components/loading-spinner';
-import Link from 'next/link';
-import { Suspense } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Sidebar,
   SidebarContent,
@@ -13,23 +17,19 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@/components/ui/sidebar';
-import SidebarHistorySr from './sidebar-history-sr';
-import SidebarNewChatButtons from './sidebar-new-chat-buttons';
-import Logo from '@/components/chat/logo';
-import DonationDialog from '@/components/donation-dialog';
-import { Button } from '@/components/ui/button';
+import { getCurrentUser } from '@/lib/firebase/firebase-server';
+import { getUserDetailsFromUser } from '@/lib/utils';
 import {
   HeartHandshakeIcon,
   HomeIcon,
   MessageCircleIcon,
   UserIcon,
 } from 'lucide-react';
-import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
-import FeedbackDialog from '@/components/feedback-dialog';
+import Link from 'next/link';
+import { Suspense } from 'react';
 import ChatSidebarGroupSelect from './chat-sidebar-group-select';
-import LoginButton from '@/components/auth/login-button';
-import { getCurrentUser } from '@/lib/firebase/firebase-server';
-import { getUserDetailsFromUser } from '@/lib/utils';
+import SidebarHistorySr from './sidebar-history-sr';
+import SidebarNewChatButtons from './sidebar-new-chat-buttons';
 import SidebarSwiperTeaser from './sidebar-swiper-teaser';
 
 async function ChatSidebar() {

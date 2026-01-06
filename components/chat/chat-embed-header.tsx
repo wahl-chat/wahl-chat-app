@@ -1,14 +1,14 @@
+import EmbedOpenWebsiteButton from '@/components/embed-open-website-button';
+import HowToDialog from '@/components/how-to-dialog';
+import { Button } from '@/components/ui/button';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
   Tooltip,
-  TooltipTrigger,
   TooltipContent,
+  TooltipTrigger,
 } from '@/components/ui/tooltip';
-import SocketDisconnectedBanner from './socket-disconnected-banner';
 import { HelpCircleIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import HowToDialog from '@/components/how-to-dialog';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import EmbedOpenWebsiteButton from '@/components/embed-open-website-button';
+import SocketDisconnectedBanner from './socket-disconnected-banner';
 
 function ChatEmbedHeader() {
   return (

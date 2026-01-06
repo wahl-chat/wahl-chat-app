@@ -1,4 +1,12 @@
 'use client';
+import CopyButton from '@/components/chat/copy-button';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { setWahlSwiperResultToPublic } from '@/lib/firebase/firebase';
+import { track } from '@vercel/analytics/react';
+import { ShareIcon } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FacebookIcon,
@@ -10,14 +18,6 @@ import {
   WhatsappShareButton,
   XIcon,
 } from 'react-share';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { useParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { ShareIcon } from 'lucide-react';
-import { track } from '@vercel/analytics/react';
-import CopyButton from '@/components/chat/copy-button';
-import { setWahlSwiperResultToPublic } from '@/lib/firebase/firebase';
 
 function WahlSwiperShareLinkInputForm() {
   const [isLoading, setIsLoading] = useState(false);

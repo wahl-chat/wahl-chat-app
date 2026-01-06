@@ -1,6 +1,6 @@
+import type { Source } from '@/lib/stores/chat-store.types';
 import type { WritableDraft } from 'immer';
 import type { SwipeType } from './wahl-swiper.types';
-import type { Source } from '@/lib/stores/chat-store.types';
 
 export type Thesis = {
   id: string;

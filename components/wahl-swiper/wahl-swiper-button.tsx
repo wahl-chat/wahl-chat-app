@@ -1,8 +1,8 @@
-import { ChevronsRightIcon, HeartIcon, XIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
 import type { SwipeType } from '@/lib/wahl-swiper/wahl-swiper.types';
+import { ChevronsRightIcon, HeartIcon, XIcon } from 'lucide-react';
+import { useState } from 'react';
 import WahlSwiperSkipButton from './wahl-swiper-skip-button';
 
 type Props = {
@@ -70,7 +70,7 @@ function WahlSwiperButton({ type, onClick }: Props) {
       className={cn(
         'size-14 rounded-full transition-all duration-200 border-4 md:hover:scale-[1.18] ease-in-out',
         !clicked && variants[type].hover,
-        clicked && variants[type].normal
+        clicked && variants[type].normal,
       )}
       tooltip={variants[type].tooltip}
       onClick={handleClick}

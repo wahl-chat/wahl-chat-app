@@ -1,9 +1,9 @@
 'use client';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import LoginButton from '@/components/auth/login-button';
-import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useEffect, useRef, useState } from 'react';
+import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
 
 type Props = {
   isLoading: boolean;
@@ -28,7 +28,7 @@ function StickyInputRateLimit({
 
     const observer = new IntersectionObserver(
       ([e]) => setIsSticky(e.intersectionRatio < 1),
-      { threshold: 1 }
+      { threshold: 1 },
     );
 
     observer.observe(cachedRef);
@@ -44,21 +44,21 @@ function StickyInputRateLimit({
       className={cn(
         'sticky bottom-[-1px] -mx-2 md:pb-2 pb-4 z-40 transition-all duration-300 ease-out',
         !isSticky && 'mx-0',
-        className
+        className,
       )}
     >
       <div
         className={cn(
           'relative w-full overflow-hidden rounded-lg border border-input bg-muted py-3 md:py-4',
           'shadow-2xl transition-shadow',
-          !isSticky && 'shadow-none'
+          !isSticky && 'shadow-none',
         )}
       >
         {quickReplies && quickReplies.length > 0 && (
           <div
             className={cn(
               'flex overflow-x-auto gap-1 px-3 md:px-4 whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
-              isLoading && 'opacity-50 z-0'
+              isLoading && 'opacity-50 z-0',
             )}
           >
             {quickReplies.map((r) => (
@@ -78,7 +78,7 @@ function StickyInputRateLimit({
         <section
           className={cn(
             'flex flex-col px-3 md:px-4',
-            quickReplies && quickReplies.length > 0 && 'mt-2'
+            quickReplies && quickReplies.length > 0 && 'mt-2',
           )}
         >
           <div className="flex items-center gap-2">

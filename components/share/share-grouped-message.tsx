@@ -1,20 +1,20 @@
 'use client';
 
+import ChatGroupSlideCounter from '@/components/chat/chat-group-slide-counter';
+import {
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
+import { Carousel } from '@/components/ui/carousel';
+import type { PartyDetails } from '@/lib/party-details';
 import type {
   GroupedMessage,
   MessageItem,
 } from '@/lib/stores/chat-store.types';
-import ShareSingleMessage from './share-single-message';
-import {
-  CarouselContent,
-  CarouselPrevious,
-  CarouselItem,
-  CarouselNext,
-} from '@/components/ui/carousel';
-import { Carousel } from '@/components/ui/carousel';
 import AutoHeight from 'embla-carousel-auto-height';
-import ChatGroupSlideCounter from '@/components/chat/chat-group-slide-counter';
-import type { PartyDetails } from '@/lib/party-details';
+import ShareSingleMessage from './share-single-message';
 
 type Props = {
   message: GroupedMessage;

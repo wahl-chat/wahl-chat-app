@@ -1,6 +1,6 @@
+import { useChatStore } from '@/components/providers/chat-store-provider';
 import { PlusIcon } from 'lucide-react';
 import ChatGroupPartySelect from './chat-group-party-select';
-import { useChatStore } from '../providers/chat-store-provider';
 
 type Props = {
   disabled: boolean;
@@ -18,7 +18,7 @@ function ChatInputAddPartiesButton({ disabled }: Props) {
         addPartiesToChat
       >
         <button
-          className="shrink-0 rounded-full bg-primary text-primary-foreground p-1 transition-all enabled:hover:scale-95 disabled:cursor-not-allowed flex items-center gap-1 duration-200 ease-out z-40"
+          className="z-40 flex shrink-0 items-center gap-1 rounded-full bg-primary p-1 text-primary-foreground transition-all duration-200 ease-out enabled:hover:scale-95 disabled:cursor-not-allowed"
           disabled={disabled}
           type="button"
         >

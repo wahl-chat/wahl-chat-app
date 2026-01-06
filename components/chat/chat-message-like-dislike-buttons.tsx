@@ -1,11 +1,11 @@
 'use client';
 import { ThumbsUp } from 'lucide-react';
 
-import type { MessageItem } from '@/lib/stores/chat-store.types';
-import { cn } from '@/lib/utils';
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Button } from '@/components/ui/button';
 import type { StreamingMessage } from '@/lib/socket.types';
+import type { MessageItem } from '@/lib/stores/chat-store.types';
+import { cn } from '@/lib/utils';
 import { track } from '@vercel/analytics/react';
 import ChatDislikeFeedbackButton from './chat-dislike-feedback-button';
 
