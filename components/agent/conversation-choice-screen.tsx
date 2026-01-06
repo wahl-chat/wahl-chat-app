@@ -185,13 +185,21 @@ export default function ConversationChoiceScreen() {
             <div className="w-full max-w-lg space-y-6">
                 {/* Header */}
                 <h1 className="text-3xl text-center font-bold tracking-tight">
-                    Wie möchten Sie fortfahren?
+                    Wie möchtest du fortfahren?
                 </h1>
 
                 {/* New Conversation Card */}
                 <Card
                     className="cursor-pointer border-2 transition-all hover:border-primary hover:shadow-md"
                     onClick={startNewConversation}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            startNewConversation();
+                        }
+                    }}
+                    role="button"
+                    tabIndex={0}
                 >
                     <CardHeader>
                         <div className="flex items-center gap-4">
@@ -214,6 +222,14 @@ export default function ConversationChoiceScreen() {
                 <Card
                     className="cursor-pointer border-2 transition-all hover:border-muted-foreground/50 hover:shadow-md"
                     onClick={() => setScreen('resume')}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setScreen('resume');
+                        }
+                    }}
+                    role="button"
+                    tabIndex={0}
                 >
                     <CardHeader>
                         <div className="flex items-center gap-4">

@@ -127,10 +127,8 @@ export default function AgentChatView() {
 
             try {
                 // Create conversation
-                console.log('Creating conversation...');
                 const response = await createConversation(topic, userData);
                 setConversationId(response.conversation_id);
-                console.log('Created Conversation ID:', response.conversation_id);
 
                 // Save to localStorage and update URL
                 saveConversationId(response.conversation_id);

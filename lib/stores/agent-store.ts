@@ -146,9 +146,9 @@ export const createAgentStore = (initState: Partial<AgentState> = {}) => {
         restoreConversation: (conversationId, messages, topic, stage) =>
             set({
                 conversationId,
-                messages: messages.map((msg, index) => ({
+                messages: messages.map((msg) => ({
                     ...msg,
-                    id: `restored-${index}-${Date.now()}`,
+                    id: crypto.randomUUID(),
                 })),
                 topic,
                 conversationStage: stage,
@@ -178,7 +178,7 @@ export const createAgentStore = (initState: Partial<AgentState> = {}) => {
             set((state) => ({
                 messages: [
                     ...state.messages,
-                    { ...message, id: `msg-${Date.now()}-${Math.random()}` },
+                    { ...message, id: crypto.randomUUID() },
                 ],
             })),
 

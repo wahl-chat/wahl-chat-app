@@ -48,6 +48,14 @@ export default function ResumeConversationPrompt({
                 <Card
                     className="cursor-pointer border-2 transition-all hover:border-primary hover:shadow-md"
                     onClick={handleResume}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleResume();
+                        }
+                    }}
+                    role="button"
+                    tabIndex={0}
                 >
                     <CardHeader>
                         <div className="flex items-center gap-4">
@@ -67,6 +75,14 @@ export default function ResumeConversationPrompt({
                 <Card
                     className="cursor-pointer border-2 transition-all hover:border-muted-foreground/50 hover:shadow-md"
                     onClick={handleStartNew}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleStartNew();
+                        }
+                    }}
+                    role="button"
+                    tabIndex={0}
                 >
                     <CardHeader>
                         <div className="flex items-center gap-4">

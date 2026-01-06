@@ -108,6 +108,7 @@ export default function TopicSelection() {
                                 <button
                                     key={topic.id}
                                     onClick={() => setSelectedTopic(topic.id)}
+                                    aria-pressed={isSelected}
                                     className={cn(
                                         'relative flex items-start gap-4 rounded-lg border-2 p-4 text-left transition-all',
                                         isSelected ? topic.activeColor : topic.color,
