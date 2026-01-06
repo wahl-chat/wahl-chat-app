@@ -10,7 +10,7 @@ import { Timestamp } from 'firebase/firestore';
 
 export const completeStreamingMessage: ChatStoreActionHandlerFor<
   'completeStreamingMessage'
-> = (get, set) => async (sessionId, partyId, completeMessage) => {
+> = (get, set) => async (sessionId, partyId, completeMessage, messageId) => {
   const { currentStreamingMessages, chatSessionId } = get();
 
   if (!chatSessionId) return;
@@ -25,14 +25,19 @@ export const completeStreamingMessage: ChatStoreActionHandlerFor<
     if (!state.currentStreamingMessages) return;
     state.currentStreamingMessages.messages[partyId].chunking_complete = true;
     state.currentStreamingMessages.messages[partyId].content = completeMessage;
+    // Use backend-provided message_id if available
+    if (messageId) {
+      state.currentStreamingMessages.messages[partyId].id = messageId;
+    }
   });
 
   const buildNewMessage = (
     message: StreamingMessage,
     completeMessage?: string,
+    overrideMessageId?: string,
   ) => {
     return {
-      id: message.id,
+      id: overrideMessageId ?? message.id,
       content: completeMessage ?? message.content ?? '',
       sources: message.sources ?? [],
       party_id: message.party_id,
@@ -76,6 +81,6 @@ export const completeStreamingMessage: ChatStoreActionHandlerFor<
   await addMessageToGroupedMessageOfChatSession(
     chatSessionId,
     safeGroupedMessageId,
-    buildNewMessage(currentStreamingMessage, completeMessage),
+    buildNewMessage(currentStreamingMessage, completeMessage, messageId),
   );
 };

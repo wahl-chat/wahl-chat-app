@@ -13,6 +13,7 @@ type Props = {
   chatSessionId?: string;
   partyIds?: string[];
   initialQuestion?: string;
+  hasPendingVoiceMessage?: boolean;
 };
 
 async function getChatSessionServer(
@@ -47,6 +48,7 @@ async function ChatViewSsr({
   chatSessionId,
   partyIds,
   initialQuestion,
+  hasPendingVoiceMessage,
 }: Props) {
   const chatSession = chatSessionId
     ? await getChatSessionServer(chatSessionId, partyIds)
@@ -75,6 +77,7 @@ async function ChatViewSsr({
       messages={messages}
       proposedQuestions={proposedQuestions}
       initialQuestion={initialQuestion}
+      hasPendingVoiceMessage={hasPendingVoiceMessage}
     />
   );
 }

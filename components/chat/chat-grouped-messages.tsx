@@ -41,6 +41,7 @@ function ChatGroupedMessages({ message, isLastMessage, parties }: Props) {
           (p) => p.party_id === message.messages[0].party_id,
         )}
         isLastMessage={isLastMessage}
+        voiceTranscriptionStatus={message.voice_transcription}
       />
     );
   }
@@ -66,14 +67,14 @@ function ChatGroupedMessages({ message, isLastMessage, parties }: Props) {
       plugins={[AutoHeight()]}
     >
       <CarouselContent>
-        {messagePartiesDict?.map(({ message, party }) => {
+        {messagePartiesDict?.map(({ message: innerMessage, party }) => {
           return (
-            <CarouselItem key={message.id}>
+            <CarouselItem key={innerMessage.id}>
               <div className="p-4">
                 <ChatSingleMessage
-                  message={message}
+                  message={innerMessage}
                   party={party}
-                  partyId={message.party_id}
+                  partyId={innerMessage.party_id}
                   showAssistantIcon={true}
                   isGroupChat
                 />

@@ -5,6 +5,7 @@ import type { StreamingMessage } from '@/lib/socket.types';
 import type { MessageItem } from '@/lib/stores/chat-store.types';
 import ChatMessageLikeDislikeButtons from './chat-message-like-dislike-buttons';
 import ChatProConButton from './chat-pro-con-button';
+import ChatTtsButton from './chat-tts-button';
 import ChatVotingBehaviorSummaryButton from './chat-voting-behavior-summary-button';
 import CopyButton from './copy-button';
 import SourcesButton from './sources-button';
@@ -84,6 +85,7 @@ function ChatSingleMessageActions({
           size="icon"
           className="size-8"
         />
+        {partyId && <ChatTtsButton partyId={partyId} messageId={message.id} />}
         <ChatMessageLikeDislikeButtons message={message} />
       </div>
     </div>

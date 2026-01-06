@@ -9,11 +9,11 @@ import { generateUuid } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
 
-export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
-  (get, set) =>
-  async (userId: string, message: string, fromInitialQuestion?: boolean) => {
+export const sendVoiceMessage: ChatStoreActionHandlerFor<'sendVoiceMessage'> =
+  (get, set) => async (audioBytes: Uint8Array) => {
     const {
       isAnonymous,
+      userId,
       chatSessionId,
       localPreliminaryChatSessionId,
       socket,
@@ -23,73 +23,62 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
     } = get();
 
     if (!socket.io?.connected) {
-      if (!fromInitialQuestion) toast.error('wahl.chat ist nicht verbunden.');
-      else
-        set((state) => {
-          state.initialQuestionError = message;
-        });
+      toast.error('wahl.chat ist nicht verbunden.');
+      return;
+    }
 
+    if (!userId) {
+      toast.error('Benutzer nicht authentifiziert.');
       return;
     }
 
     if (chatSessionId !== localPreliminaryChatSessionId) {
-      initializeChatSession();
+      await initializeChatSession();
     }
 
-    chatViewScrollToBottom();
+    await chatViewScrollToBottom();
 
     const safeSessionId =
       get().chatSessionId ?? get().localPreliminaryChatSessionId;
 
     if (!safeSessionId) {
       toast.error('Chat Session out of sync');
-
       return;
     }
 
-    let messages = get().messages;
-    const lastMessage = messages[messages.length - 1];
-    const isMessageResend =
-      messages.length > 0 &&
-      lastMessage.role === 'user' &&
-      lastMessage.messages[0].content === message;
-
-    // Use existing IDs for resend, generate new ones otherwise
-    const groupedMessageId = isMessageResend
-      ? lastMessage.id
-      : generateMessageId(safeSessionId);
-    const innerMessageId = isMessageResend
-      ? lastMessage.messages[0].id
-      : generateUuid();
+    const voiceMessagePlaceholder = '[Sprachnachricht]';
+    const groupedMessageId = generateMessageId(safeSessionId);
+    const innerMessageId = generateUuid();
 
     set((state) => {
-      if (!isMessageResend) {
-        state.messages.push({
-          id: groupedMessageId,
-          role: 'user',
-          messages: [
-            {
-              id: innerMessageId,
-              content: message,
-              sources: [],
-              role: 'user',
-              created_at: Timestamp.now(),
-            },
-          ],
-          quick_replies: [],
-          created_at: Timestamp.now(),
-        });
+      state.messages.push({
+        id: groupedMessageId,
+        role: 'user',
+        messages: [
+          {
+            id: innerMessageId,
+            content: voiceMessagePlaceholder,
+            sources: [],
+            role: 'user',
+            created_at: Timestamp.now(),
+          },
+        ],
+        quick_replies: [],
+        created_at: Timestamp.now(),
+        voice_transcription: {
+          status: 'pending',
+        },
+      });
 
-        state.input = '';
-      }
+      state.input = '';
       state.loading.newMessage = true;
     });
 
-    messages = get().messages;
+    const messages = get().messages;
     const { tenant } = get();
 
     try {
-      if (messages.length < 2 && !isMessageResend) {
+      if (messages.length < 2) {
         await createChatSession(
           userId,
           [...partyIds],
@@ -107,19 +96,24 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
         }
       }
 
-      if (!isMessageResend) {
-        await addUserMessageToChatSession(safeSessionId, message, {
+      await addUserMessageToChatSession(
+        safeSessionId,
+        voiceMessagePlaceholder,
+        {
           groupedMessageId: groupedMessageId,
           messageId: innerMessageId,
-        });
-      }
+          voiceTranscription: { status: 'pending' },
+        },
+      );
 
       socket.io?.addUserMessage({
-        session_id: safeSessionId,
         id: innerMessageId,
-        user_message: message,
+        session_id: safeSessionId,
         party_ids: Array.from(partyIds),
         user_is_logged_in: !isAnonymous,
+        audio_bytes: audioBytes,
+        grouped_message_id: groupedMessageId,
+        language: 'de',
       });
 
       const currentStreamingMessageId = generateUuid();
@@ -129,20 +123,17 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
           id: currentStreamingMessageId,
           messages: {},
         };
-
-        state.initialQuestionError = undefined;
-        state.pendingInitialQuestion = undefined;
       });
 
       startTimeoutForStreamingMessages(currentStreamingMessageId);
 
-      chatViewScrollToBottom();
+      await chatViewScrollToBottom();
     } catch (error) {
       console.error(error);
 
       set((state) => {
         state.loading.newMessage = false;
-        state.error = 'Failed to get chat answer';
+        state.error = 'Failed to send voice message';
       });
     }
   };

@@ -13,9 +13,15 @@ type Props = {
   sessionId?: string;
   partyIds?: string[];
   initialQuestion?: string;
+  hasPendingVoiceMessage?: boolean;
 };
 
-async function ChatView({ sessionId, partyIds, initialQuestion }: Props) {
+async function ChatView({
+  sessionId,
+  partyIds,
+  initialQuestion,
+  hasPendingVoiceMessage,
+}: Props) {
   const systemStatus = await getSystemStatus();
   const user = await getCurrentUser();
 
@@ -35,6 +41,7 @@ async function ChatView({ sessionId, partyIds, initialQuestion }: Props) {
           chatSessionId={sessionId}
           partyIds={partyIds}
           initialQuestion={initialQuestion}
+          hasPendingVoiceMessage={hasPendingVoiceMessage}
         />
       </Suspense>
 

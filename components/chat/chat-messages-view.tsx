@@ -1,6 +1,7 @@
 'use client';
 
 import { useAnonymousAuth } from '@/components/anonymous-auth';
+import { PENDING_VOICE_MESSAGE_KEY } from '@/components/home/home-input';
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { useTenant } from '@/components/providers/tenant-provider';
 import type {
@@ -24,6 +25,7 @@ type Props = {
   allParties?: PartyDetails[];
   proposedQuestions?: ProposedQuestion[];
   initialQuestion?: string;
+  hasPendingVoiceMessage?: boolean;
 };
 
 function ChatMessagesView({
@@ -34,16 +36,20 @@ function ChatMessagesView({
   allParties,
   proposedQuestions,
   initialQuestion,
+  hasPendingVoiceMessage,
 }: Props) {
   const hasFetched = useRef(false);
+  const hasProcessedVoiceMessage = useRef(false);
   const storeMessages = useChatStore((state) => state.messages);
   const hydrateChatSession = useChatStore((state) => state.hydrateChatSession);
+  const sendVoiceMessage = useChatStore((state) => state.sendVoiceMessage);
   const { user } = useAnonymousAuth();
   const tenant = useTenant();
 
   const hasCurrentStreamingMessages = useChatStore(
     (state) => state.currentStreamingMessages !== undefined,
   );
+  const isSocketConnected = useChatStore((state) => state.socket.connected);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -69,6 +75,31 @@ function ChatMessagesView({
     initialQuestion,
     tenant,
   ]);
+
+  // Handle pending voice message from home page
+  useEffect(() => {
+    if (
+      !hasPendingVoiceMessage ||
+      hasProcessedVoiceMessage.current ||
+      !isSocketConnected
+    )
+      return;
+
+    const pendingAudioBase64 = sessionStorage.getItem(
+      PENDING_VOICE_MESSAGE_KEY,
+    );
+    if (pendingAudioBase64) {
+      sessionStorage.removeItem(PENDING_VOICE_MESSAGE_KEY);
+      hasProcessedVoiceMessage.current = true;
+      // Convert base64 back to Uint8Array
+      const binaryString = atob(pendingAudioBase64);
+      const audioBytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        audioBytes[i] = binaryString.charCodeAt(i);
+      }
+      sendVoiceMessage(audioBytes);
+    }
+  }, [hasPendingVoiceMessage, sendVoiceMessage, isSocketConnected]);
 
   const normalizedMessages = useMemo(() => {
     if (messages && !storeMessages.length) {

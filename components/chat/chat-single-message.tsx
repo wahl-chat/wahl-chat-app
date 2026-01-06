@@ -1,6 +1,9 @@
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import type { PartyDetails } from '@/lib/party-details';
-import type { MessageItem } from '@/lib/stores/chat-store.types';
+import type {
+  MessageItem,
+  VoiceTranscriptionStatus,
+} from '@/lib/stores/chat-store.types';
 import { cn } from '@/lib/utils';
 import ChatMarkdown from './chat-markdown';
 import { ChatMessageIcon } from './chat-message-icon';
@@ -19,6 +22,7 @@ type Props = {
   showAssistantIcon?: boolean;
   showMessageActions?: boolean;
   isGroupChat?: boolean;
+  voiceTranscriptionStatus?: VoiceTranscriptionStatus;
 };
 
 function ChatSingleMessage({
@@ -29,6 +33,7 @@ function ChatSingleMessage({
   showAssistantIcon = true,
   showMessageActions = true,
   isGroupChat = false,
+  voiceTranscriptionStatus,
 }: Props) {
   const isLoadingAnyAction = useChatStore(
     (state) =>
@@ -52,6 +57,7 @@ function ChatSingleMessage({
       <ChatSingleUserMessage
         message={message}
         isLastMessage={isLastMessage ?? false}
+        voiceTranscriptionStatus={voiceTranscriptionStatus}
       />
     );
   }
