@@ -1,14 +1,14 @@
 'use client';
 
-import { SquarePenIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useSidebar } from '@/components/ui/sidebar';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useSidebar } from '@/components/ui/sidebar';
+import { SquarePenIcon } from 'lucide-react';
 
 type Props = {
   onTriggerClick?: () => void;

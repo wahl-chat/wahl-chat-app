@@ -9,7 +9,7 @@ import { useStore } from 'zustand';
 export type ChatStoreApi = ReturnType<typeof createChatStore>;
 
 export const ChatStoreContext = createContext<ChatStoreApi | undefined>(
-  undefined
+  undefined,
 );
 
 type Props = {

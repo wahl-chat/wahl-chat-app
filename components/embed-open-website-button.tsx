@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { Button } from './ui/button';
-import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
 import Logo from './chat/logo';
+import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
+import { Button } from './ui/button';
 
 function EmbedOpenWebsiteButton() {
   return (

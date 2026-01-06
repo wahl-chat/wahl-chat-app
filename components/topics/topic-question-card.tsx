@@ -1,9 +1,9 @@
+import type { ExampleQuestionShareableChatSession } from '@/lib/firebase/firebase.types';
+import { InternalReferrers } from '@/lib/internal-referrers';
+import Link from 'next/link';
 import { useMemo } from 'react';
 import TopicTag from './topic-tag';
 import type { Topic } from './topics.data';
-import Link from 'next/link';
-import type { ExampleQuestionShareableChatSession } from '@/lib/firebase/firebase.types';
-import { InternalReferrers } from '@/lib/internal-referrers';
 
 export type Question = {
   id: string;

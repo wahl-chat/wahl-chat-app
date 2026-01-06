@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 function BudgetSpent() {
   return (
-    <section className="max-w-lg mx-auto flex flex-col items-center p-4 space-y-4 h-full justify-center text-center">
+    <section className="mx-auto flex h-full max-w-lg flex-col items-center justify-center space-y-4 p-4 text-center">
       <BadgeEuroIcon className="size-12" />
       <h1 className="text-2xl font-bold">Budget aufgebraucht</h1>
       <p>

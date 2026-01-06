@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import {
-  createElement,
   type DetailedHTMLProps,
   type HTMLAttributes,
   type JSX,
+  createElement,
   memo,
 } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
@@ -28,7 +28,7 @@ const NonMemoizedMarkdown = ({
     {
       children,
       ...props
-    }: DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>
+    }: DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>,
   ) {
     const buildReference = (children: string) => {
       const parts = children.split(/(\[\d+(?:\s*,\s*\d+)*\])/g);
@@ -69,7 +69,7 @@ const NonMemoizedMarkdown = ({
             return buildReference(child);
           }
           return child;
-        })
+        }),
       );
     }
 
@@ -194,5 +194,5 @@ const NonMemoizedMarkdown = ({
 
 export const Markdown = memo(
   NonMemoizedMarkdown,
-  (prevProps, nextProps) => prevProps.children === nextProps.children
+  (prevProps, nextProps) => prevProps.children === nextProps.children,
 );

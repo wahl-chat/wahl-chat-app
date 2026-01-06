@@ -6,7 +6,9 @@ import {
   VoteIcon,
   WaypointsIcon,
 } from 'lucide-react';
+import Link from 'next/link';
 import ChatActionButtonHighlight from './chat/chat-action-button-highlight';
+import { MAX_SELECTABLE_PARTIES } from './chat/chat-group-party-select-content';
 import ProConIcon from './chat/pro-con-icon';
 import {
   Accordion,
@@ -15,8 +17,6 @@ import {
   AccordionTrigger,
 } from './ui/accordion';
 import { Button } from './ui/button';
-import Link from 'next/link';
-import { MAX_SELECTABLE_PARTIES } from './chat/chat-group-party-select-content';
 
 function HowTo() {
   const partySpecificQuestions = [

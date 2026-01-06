@@ -1,7 +1,7 @@
-import type { GroupedMessage } from '@/lib/stores/chat-store.types';
-import type { LLMSize } from '@/lib/socket.types';
 import type { Topic } from '@/components/topics/topics.data';
-import type { WahlSwiperResultHistory } from '../wahl-swiper/wahl-swiper.types';
+import type { LLMSize } from '@/lib/socket.types';
+import type { GroupedMessage } from '@/lib/stores/chat-store.types';
+import type { WahlSwiperResultHistory } from '@/lib/wahl-swiper/wahl-swiper.types';
 
 export type ChatSession = {
   id: string;

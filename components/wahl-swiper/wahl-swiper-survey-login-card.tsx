@@ -1,12 +1,12 @@
 'use client';
 
+import { useAnonymousAuth } from '@/components/anonymous-auth';
+import LoginButton from '@/components/auth/login-button';
+import { Button } from '@/components/ui/button';
+import type { UserDetails } from '@/lib/utils';
 import { FilloutPopupEmbed } from '@fillout/react';
 import { StarIcon, UserIcon } from 'lucide-react';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import LoginButton from '@/components/auth/login-button';
-import { useAnonymousAuth } from '@/components/anonymous-auth';
-import type { UserDetails } from '@/lib/utils';
 import '@fillout/react/style.css';
 
 type Props = {

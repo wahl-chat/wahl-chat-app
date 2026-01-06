@@ -1,7 +1,7 @@
 'use client';
 import { cn } from '@/lib/utils';
-import * as motion from 'motion/react-m';
 import type { Transition } from 'motion/react';
+import * as motion from 'motion/react-m';
 
 type BorderTrailProps = {
   className?: string;

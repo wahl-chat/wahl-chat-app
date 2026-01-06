@@ -1,9 +1,9 @@
-import type { MessageItem } from '@/lib/stores/chat-store.types';
-import { ChatMessageIcon } from '@/components/chat/chat-message-icon';
-import { cn } from '@/lib/utils';
 import ChatMarkdown from '@/components/chat/chat-markdown';
+import { ChatMessageIcon } from '@/components/chat/chat-message-icon';
 import SourcesButton from '@/components/chat/sources-button';
 import type { PartyDetails } from '@/lib/party-details';
+import type { MessageItem } from '@/lib/stores/chat-store.types';
+import { cn } from '@/lib/utils';
 
 type Props = {
   message: MessageItem;
@@ -25,7 +25,7 @@ function ShareSingleMessage({ message, party }: Props) {
     <article
       id={message.id}
       className={cn(
-        'flex flex-col gap-4 relative transition-all duration-200 ease-out'
+        'flex flex-col gap-4 relative transition-all duration-200 ease-out',
       )}
     >
       <div className={cn('flex items-start justify-start gap-3 md:gap-4')}>

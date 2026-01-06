@@ -1,11 +1,7 @@
 'use client';
 
-import { useChatStore } from '@/components/providers/chat-store-provider';
-import { listenToHistory } from '@/lib/firebase/firebase';
-import { cn } from '@/lib/utils';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
 import { useAnonymousAuth } from '@/components/anonymous-auth';
+import { useChatStore } from '@/components/providers/chat-store-provider';
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -15,7 +11,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { listenToHistory } from '@/lib/firebase/firebase';
 import type { ChatSession } from '@/lib/firebase/firebase.types';
+import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 type Props = {
   history?: ChatSession[];

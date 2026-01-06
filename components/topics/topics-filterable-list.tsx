@@ -1,10 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import TopicTag from './topic-tag';
-import TopicQuestionCard from './topic-question-card';
-import { type Topic, TOPIC_TITLES } from './topics.data';
 import type { ExampleQuestionShareableChatSession } from '@/lib/firebase/firebase.types';
+import { useMemo, useState } from 'react';
+import TopicQuestionCard from './topic-question-card';
+import TopicTag from './topic-tag';
+import { TOPIC_TITLES, type Topic } from './topics.data';
 
 type TopicsFilterableListProps = {
   exampleQuestionsShareableChatSessions: ExampleQuestionShareableChatSession[];
@@ -35,7 +35,7 @@ function TopicsFilterableList({
 
   const topics = useMemo(() => {
     return (Object.keys(TOPIC_TITLES) as Topic[]).sort((a, b) =>
-      a.localeCompare(b)
+      a.localeCompare(b),
     );
   }, []);
 
