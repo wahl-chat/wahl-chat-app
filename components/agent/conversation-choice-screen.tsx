@@ -180,7 +180,7 @@ export default function ConversationChoiceScreen() {
             <div className="w-full max-w-lg space-y-6">
                 {/* Header */}
                 <h1 className="text-3xl text-center font-bold tracking-tight">
-                    Wie möchten Sie fortfahren?
+                    Wie möchtest du fortfahren?
                 </h1>
 
                 {/* New Conversation Card */}

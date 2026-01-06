@@ -99,7 +99,7 @@ export default function DataCollectionForm() {
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Datenerhebung</CardTitle>
             <CardDescription>
-              Bitte geben Sie die folgenden Informationen ein, damit wir das
+              Bitte gib die folgenden Informationen ein, damit wir das
               Gespräch personalisieren können.
             </CardDescription>
           </CardHeader>
