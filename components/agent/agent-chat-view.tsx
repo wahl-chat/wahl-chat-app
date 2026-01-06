@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAgentStore } from '@/components/providers/agent-store-provider';
 import AgentChatMessage from './agent-chat-message';
@@ -42,6 +42,8 @@ export default function AgentChatView() {
 
     const isConversationEnded = conversationStage === 'end';
 
+    const [progressMessage, setProgressMessage] = useState<string | null>(null);
+
     const scrollRef = useRef<HTMLDivElement>(null);
     const isInitializingRef = useRef(false);
 
@@ -69,12 +71,16 @@ export default function AgentChatView() {
     const streamAssistantResponse = useCallback(
         async (convId: string, userMessage: string) => {
             setIsStreaming(true);
+            setProgressMessage(null);
 
             try {
                 let currentContent = '';
 
                 for await (const event of streamChatEvents(convId, userMessage)) {
-                    if (event.type === 'message_start') {
+                    if (event.type === 'progress_update' && event.content) {
+                        setProgressMessage(event.content);
+                    } else if (event.type === 'message_start') {
+                        setProgressMessage(null);
                         addMessage({ role: 'assistant', content: '' });
                         currentContent = '';
                     } else if (event.type === 'message_chunk' && event.content) {
@@ -98,6 +104,7 @@ export default function AgentChatView() {
                 });
             } finally {
                 setIsStreaming(false);
+                setProgressMessage(null);
             }
         },
         [addMessage, setIsStreaming, updateLastAssistantMessage, fetchConversationStage]
@@ -215,7 +222,7 @@ export default function AgentChatView() {
             {isStreaming && (
                 <div className="shrink-0 px-4 pb-2">
                     <p className="text-center text-xs text-muted-foreground">
-                        Der Wahl Agent denkt nach...
+                        {progressMessage ?? 'Der Wahl Agent denkt nach...'}
                     </p>
                 </div>
             )}

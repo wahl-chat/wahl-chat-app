@@ -23,7 +23,7 @@ export interface ConversationTopicResponse {
 }
 
 export interface StreamEvent {
-    type: 'message_start' | 'message_chunk' | 'message_end' | 'end';
+    type: 'message_start' | 'message_chunk' | 'message_end' | 'end' | 'progress_update';
     content?: string;
 }
 
