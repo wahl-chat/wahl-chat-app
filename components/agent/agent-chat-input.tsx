@@ -98,8 +98,6 @@ export default function AgentChatInput({ onSubmit }: Props) {
                 'focus-within:border-zinc-300 dark:focus-within:border-zinc-700'
             )}
         >
-            {isStreaming && <MessageLoadingBorderTrail />}
-
             <div className="relative">
                 <textarea
                     ref={textareaRef}
@@ -128,6 +126,8 @@ export default function AgentChatInput({ onSubmit }: Props) {
                     {submitButton}
                 </div>
             )}
+
+            {isStreaming && <MessageLoadingBorderTrail />}
         </form>
     );
 }
