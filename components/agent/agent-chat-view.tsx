@@ -218,14 +218,19 @@ export default function AgentChatView() {
                 )}
             </div>
 
-            {/* Streaming indicator */}
-            {isStreaming && (
-                <div className="shrink-0 px-4 pb-2">
-                    <p className="text-center text-xs text-muted-foreground">
-                        {progressMessage ?? 'Der Wahl Agent denkt nach...'}
+            {/* Streaming indicator - always rendered to prevent layout shift */}
+            <div className="h-8 shrink-0 px-4">
+                {isStreaming && (
+                    <p className="text-center text-sm text-muted-foreground">
+                        {progressMessage ?? 'Der Wahl Agent denkt nach'}
+                        <span className="ml-0.5 inline-flex gap-0.5 align-baseline">
+                            <span className="inline-block size-1 animate-typing-dot rounded-full bg-muted-foreground" style={{ animationDelay: '0ms' }} />
+                            <span className="inline-block size-1 animate-typing-dot rounded-full bg-muted-foreground" style={{ animationDelay: '200ms' }} />
+                            <span className="inline-block size-1 animate-typing-dot rounded-full bg-muted-foreground" style={{ animationDelay: '400ms' }} />
+                        </span>
                     </p>
-                </div>
-            )}
+                )}
+            </div>
 
             {/* Input or Completion Button */}
             <div className="shrink-0 px-3 pb-3 md:px-4 md:pb-4">
