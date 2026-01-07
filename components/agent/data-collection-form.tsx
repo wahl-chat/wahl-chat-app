@@ -177,7 +177,7 @@ export default function DataCollectionForm() {
                   </SelectTrigger>
                   <SelectContent>
                     {LIVING_SITUATIONS.map((situation) => (
-                      <SelectItem key={situation.value} value={situation.label}>
+                      <SelectItem key={situation.value} value={situation.value}>
                         {situation.label}
                       </SelectItem>
                     ))}
@@ -200,7 +200,7 @@ export default function DataCollectionForm() {
                   </SelectTrigger>
                   <SelectContent>
                     {OCCUPATIONS.map((occ) => (
-                      <SelectItem key={occ.value} value={occ.label}>
+                      <SelectItem key={occ.value} value={occ.value}>
                         {occ.label}
                       </SelectItem>
                     ))}
