@@ -128,5 +128,3 @@ export default function AgentSidebar() {
     </Sidebar>
   );
 }
-
-

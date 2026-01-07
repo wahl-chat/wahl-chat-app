@@ -224,5 +224,3 @@ export default function DataCollectionForm() {
     </div>
   );
 }
-
-

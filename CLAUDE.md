@@ -57,6 +57,7 @@ Backend URL configured via `NEXT_PUBLIC_API_URL` environment variable.
 
 ## Code Style
 
+- Single trailing blank line at the end of files
 - Biome for formatting (2-space indent, single quotes, trailing commas)
 - ESLint with Next.js + Tailwind plugins
 - German UI text throughout the application

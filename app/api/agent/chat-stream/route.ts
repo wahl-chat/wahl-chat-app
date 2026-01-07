@@ -40,5 +40,3 @@ export async function POST(request: Request) {
     return new Response('Failed to connect to agent backend', { status: 500 });
   }
 }
-
-
