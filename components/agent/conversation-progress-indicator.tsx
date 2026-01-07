@@ -36,25 +36,33 @@ export default function ConversationProgressIndicator() {
       <span className="text-xs text-muted-foreground">Fortschritt</span>
       <div className="flex items-center gap-1.5">
         {CONVERSATION_STAGES.map((stage) => {
-        const status = getStageStatus(stage, conversationStage);
-        return (
-          <Tooltip key={stage}>
-            <TooltipTrigger asChild>
-              <div
-                className={cn(
-                  'h-2 w-4 rounded-full transition-all duration-300',
-                  status === 'completed' && 'bg-primary',
-                  status === 'current' &&
-                    'bg-primary ring-2 ring-primary/30 ring-offset-1 ring-offset-background',
-                  status === 'upcoming' && 'bg-muted'
-                )}
-              />
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              {STAGE_LABELS[stage]}
-            </TooltipContent>
-          </Tooltip>
-        );
+          const status = getStageStatus(stage, conversationStage);
+          const statusLabel =
+            status === 'completed'
+              ? 'abgeschlossen'
+              : status === 'current'
+                ? 'aktuell'
+                : 'bevorstehend';
+          return (
+            <Tooltip key={stage}>
+              <TooltipTrigger asChild>
+                <div
+                  role="status"
+                  aria-label={`${STAGE_LABELS[stage]} - ${statusLabel}`}
+                  className={cn(
+                    'h-2 w-4 rounded-full transition-all duration-300',
+                    status === 'completed' && 'bg-primary',
+                    status === 'current' &&
+                      'bg-primary ring-2 ring-primary/30 ring-offset-1 ring-offset-background',
+                    status === 'upcoming' && 'bg-muted'
+                  )}
+                />
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                {STAGE_LABELS[stage]}
+              </TooltipContent>
+            </Tooltip>
+          );
         })}
       </div>
     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { createStore } from 'zustand/vanilla';
+import { generateUuid } from '@/lib/utils';
 
 // Types
 export type AgentStep =
@@ -148,7 +149,7 @@ export const createAgentStore = (initState: Partial<AgentState> = {}) => {
                 conversationId,
                 messages: messages.map((msg) => ({
                     ...msg,
-                    id: crypto.randomUUID(),
+                    id: generateUuid(),
                 })),
                 topic,
                 conversationStage: stage,
@@ -178,7 +179,7 @@ export const createAgentStore = (initState: Partial<AgentState> = {}) => {
             set((state) => ({
                 messages: [
                     ...state.messages,
-                    { ...message, id: crypto.randomUUID() },
+                    { ...message, id: generateUuid() },
                 ],
             })),
 
@@ -206,4 +207,3 @@ export const createAgentStore = (initState: Partial<AgentState> = {}) => {
         reset: () => set(initialState),
     }));
 };
-
