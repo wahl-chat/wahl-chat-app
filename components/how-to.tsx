@@ -195,7 +195,6 @@ function HowTo() {
     setIsExporting(true);
     try {
       // Dynamic import to avoid SSR issues
-      // @ts-expect-error - jspdf types not resolving correctly
       const jsPDFModule = (await import('jspdf')) as {
         default: JsPDFConstructor;
       };
