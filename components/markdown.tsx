@@ -83,14 +83,16 @@ const NonMemoizedMarkdown = ({
   }
 
   const components: Partial<Components> = {
-    code: ({ className, children, ...props }) => {
+    code: (props) => {
+      const { className, children, ...rest } = props;
+      const { inline, ...propsWithoutInline } = rest as Record<string, unknown>;
       const match = /language-(\w+)/.exec(className || '');
-      return match ? (
+      return !inline && match ? (
         <pre className={`${className} mt-2 w-[80dvw] overflow-x-scroll rounded-lg bg-zinc-100 p-3 text-sm dark:bg-zinc-800 md:max-w-[500px]`}>
           <code className={match[1]}>{children}</code>
         </pre>
       ) : (
-        <code className={`${className} rounded-md bg-zinc-100 px-1 py-0.5 text-sm dark:bg-zinc-800`} {...cleanProps(props)}>
+        <code className={`${className} rounded-md bg-zinc-100 px-1 py-0.5 text-sm dark:bg-zinc-800`} {...cleanProps(propsWithoutInline)}>
           {children}
         </code>
       );
