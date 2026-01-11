@@ -177,11 +177,18 @@ const ACCORDION_CONTENT = [
     title: 'Nach welchen Kriterien werden die Parteien ausgewählt?',
     content: {
       paragraphs: [
-        'Die ursprüngliche Auswahl der Parteien für den bundesweiten Kontext erfolgte vor der Bundestagswahl 2025 und orientierte sich an der Veröffentlichung ihrer Wahlprogramme. Wir wollen nun nach und nach auch für die anderen unterstützen Wahlen eine möglichst vollständige Parteienauswahl anbieten und freuen uns dafür über deine Mithilfe.',
+        'Die ursprüngliche Auswahl der Parteien für den bundesweiten Kontext erfolgte vor der Bundestagswahl 2025 und orientierte sich an der Veröffentlichung ihrer Wahlprogramme. Wir wollen nun nach und nach auch für die anderen unterstützten Wahlen eine möglichst vollständige Parteienauswahl anbieten und freuen uns dafür über deine Mithilfe.',
         'Solltest du eine Partei vermissen, schreibe uns gerne eine E-Mail mit ihrem Grundsatzprogramm als PDF im Anhang an info@wahl.chat, und wir werden sie so schnell wie möglich ergänzen.',
       ],
     },
   },
+];
+
+const PROCESS_STEP_ICONS = [
+  <MessageCircleQuestionIcon key="icon1" className="absolute left-0 top-0" />,
+  <TextSearchIcon key="icon2" className="absolute left-0 top-0" />,
+  <MessageCircleReplyIcon key="icon3" className="absolute left-0 top-0" />,
+  <WaypointsIcon key="icon4" className="absolute left-0 top-0" />,
 ];
 
 function HowTo() {
@@ -344,29 +351,12 @@ function HowTo() {
           <p className="mt-4 text-sm font-semibold">Der Prozess ist einfach:</p>
 
           <ul className="[&_li]:mt-4 [&_li]:text-sm">
-            {PROCESS_STEPS.map((step, index) => {
-              const icons = [
-                <MessageCircleQuestionIcon
-                  key="icon1"
-                  className="absolute left-0 top-0"
-                />,
-                <TextSearchIcon
-                  key="icon2"
-                  className="absolute left-0 top-0"
-                />,
-                <MessageCircleReplyIcon
-                  key="icon3"
-                  className="absolute left-0 top-0"
-                />,
-                <WaypointsIcon key="icon4" className="absolute left-0 top-0" />,
-              ];
-              return (
-                <li key={step} className="relative pl-10">
-                  {icons[index]}
-                  {step}
-                </li>
-              );
-            })}
+            {PROCESS_STEPS.map((step, index) => (
+              <li key={step} className="relative pl-10">
+                {PROCESS_STEP_ICONS[index]}
+                {step}
+              </li>
+            ))}
           </ul>
         </section>
 
@@ -426,12 +416,19 @@ function HowTo() {
                     {accordionItem.content.paragraphs?.[0]}
                     <br />
                     <br />
-                    Desweiteren, kannst du ganz einfach durch den{' '}
-                    <span className="inline-block">
-                      <PlusIcon className="size-4 rounded-full bg-primary p-1 text-primary-foreground" />
-                    </span>{' '}
-                    knopf über dem Textfeld weitere Parteien zum Chat
-                    hinzufügen, oder auch wieder entfernen.
+                    {(() => {
+                      const text = accordionItem.content.paragraphs?.[1] || '';
+                      const parts = text.split('Plus-Knopf');
+                      return (
+                        <>
+                          {parts[0]}
+                          <span className="inline-block">
+                            <PlusIcon className="size-4 rounded-full bg-primary p-1 text-primary-foreground" />
+                          </span>
+                          -Knopf{parts[1]}
+                        </>
+                      );
+                    })()}
                   </>
                 )}
 
@@ -486,33 +483,49 @@ function HowTo() {
                 {/* Data sources accordion */}
                 {accordionItem.id === 'data' && (
                   <>
-                    Um fundierte und quellenbasierte Antworten zu liefern,
-                    verwendet{' '}
-                    <span className="font-bold underline">wahl.chat</span> eine
-                    Vielzahl von Datenquellen:
+                    {(() => {
+                      const intro = accordionItem.content.intro || '';
+                      const introParts = intro.split('wahl.chat');
+                      return (
+                        <>
+                          {introParts[0]}
+                          <span className="font-bold underline">wahl.chat</span>
+                          {introParts[1]}
+                        </>
+                      );
+                    })()}
                     <ol className="list-outside list-decimal py-4 pl-4 [&_li]:pt-1">
-                      {accordionItem.content.orderedList?.map((item, idx) => {
+                      {accordionItem.content.orderedList?.map((item) => {
                         const parts = item.split(':');
+                        const isAbstimmungsverhalten = parts[0].includes(
+                          'Abstimmungsverhalten',
+                        );
                         return (
                           <li key={item}>
                             <div className="pl-2">
-                              {idx === 1 ? (
+                              {isAbstimmungsverhalten ? (
                                 <>
                                   <span className="font-bold">{parts[0]}:</span>{' '}
-                                  Für die Analyse des Abstimmungsverhaltens
-                                  nutzen wir Daten zu Bundestagsabstimmungen,
-                                  die über{' '}
-                                  <a
-                                    href="https://www.abgeordnetenwatch.de"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="underline"
-                                  >
-                                    abgeordnetenwatch.de
-                                  </a>{' '}
-                                  bereitgestellt werden. Diese Daten ermöglichen
-                                  es, Parteipositionen mit ihrem realpolitischen
-                                  Verhalten abzugleichen.
+                                  {(() => {
+                                    const text = parts.slice(1).join(':');
+                                    const linkParts = text.split(
+                                      'abgeordnetenwatch.de',
+                                    );
+                                    return (
+                                      <>
+                                        {linkParts[0]}
+                                        <a
+                                          href="https://www.abgeordnetenwatch.de"
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="underline"
+                                        >
+                                          abgeordnetenwatch.de
+                                        </a>
+                                        {linkParts[1]}
+                                      </>
+                                    );
+                                  })()}
                                 </>
                               ) : (
                                 <>
@@ -526,12 +539,27 @@ function HowTo() {
                       })}
                     </ol>
                     <br />
-                    Wir haben alle Quellen die{' '}
-                    <span className="font-bold underline">wahl.chat</span> nutzt{' '}
-                    <Link href="/sources" className="underline">
-                      hier
-                    </Link>{' '}
-                    aufgelistet.
+                    {(() => {
+                      const outro = accordionItem.content.outro || '';
+                      const outroParts = outro.split('wahl.chat');
+                      const beforeLink = outroParts[0];
+                      const afterWahlChat = outroParts[1] || '';
+                      const sourceParts = afterWahlChat.split('/sources');
+                      return (
+                        <>
+                          {beforeLink}
+                          <span className="font-bold underline">wahl.chat</span>
+                          {sourceParts[0]}
+                          <Link href="/sources" className="underline">
+                            hier
+                          </Link>
+                          {sourceParts[1]?.replace(
+                            ' aufgelistet.',
+                            ' aufgelistet.',
+                          )}
+                        </>
+                      );
+                    })()}
                   </>
                 )}
 
@@ -561,12 +589,19 @@ function HowTo() {
                     {accordionItem.content.paragraphs?.[0]}
                     <br />
                     <br />
-                    Solltest du eine Partei vermissen, schreibe uns gerne eine
-                    E-Mail mit ihrem Grundsatzprogramm als PDF im Anhang an{' '}
-                    <a href="mailto:info@wahl.chat" className="underline">
-                      info@wahl.chat
-                    </a>
-                    , und wir werden sie so schnell wie möglich ergänzen.
+                    {(() => {
+                      const text = accordionItem.content.paragraphs?.[1] || '';
+                      const parts = text.split('info@wahl.chat');
+                      return (
+                        <>
+                          {parts[0]}
+                          <a href="mailto:info@wahl.chat" className="underline">
+                            info@wahl.chat
+                          </a>
+                          {parts[1]}
+                        </>
+                      );
+                    })()}
                   </>
                 )}
               </AccordionContent>
