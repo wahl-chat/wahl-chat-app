@@ -334,7 +334,9 @@ function HowTo() {
         <section>
           <p>
             <span className="font-bold underline">wahl.chat</span>{' '}
-            {INTRO_TEXT.main.replace('wahl.chat ', '')}
+            {INTRO_TEXT.main.startsWith('wahl.chat ')
+              ? INTRO_TEXT.main.slice('wahl.chat '.length)
+              : INTRO_TEXT.main}
             <br />
             {INTRO_TEXT.sources}
           </p>
