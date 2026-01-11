@@ -23,6 +23,8 @@ const NonMemoizedMarkdown = ({
   getReferenceTooltip,
   getReferenceName,
 }: Props) => {
+  // react-markdown v9 passes a 'node' prop to components which is not a valid DOM attribute
+  // and causes TypeScript errors when spreading props to elements like Link or pre.
   const cleanProps = (props: Record<string, unknown>) => {
     const rest = { ...props };
     delete rest.node;
