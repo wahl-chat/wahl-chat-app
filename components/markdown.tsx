@@ -163,42 +163,42 @@ const NonMemoizedMarkdown = ({
     },
     h1: ({ children, ...props }) => {
       return (
-        <h1 className="mb-2 mt-0 text-xl font-semibold" {...cleanProps(props)}>
+        <h1 className="my-0 text-xl font-semibold" {...cleanProps(props)}>
           {children}
         </h1>
       );
     },
     h2: ({ children, ...props }) => {
       return (
-        <h2 className="mb-2 mt-0 text-xl font-semibold" {...cleanProps(props)}>
+        <h2 className="my-0 text-xl font-semibold" {...cleanProps(props)}>
           {children}
         </h2>
       );
     },
     h3: ({ children, ...props }) => {
       return (
-        <h3 className="mb-2 mt-0 text-xl font-semibold" {...cleanProps(props)}>
+        <h3 className="my-0 text-xl font-semibold" {...cleanProps(props)}>
           {children}
         </h3>
       );
     },
     h4: ({ children, ...props }) => {
       return (
-        <h4 className="mb-2 mt-0 text-lg font-semibold" {...cleanProps(props)}>
+        <h4 className="my-0 text-lg font-semibold" {...cleanProps(props)}>
           {children}
         </h4>
       );
     },
     h5: ({ children, ...props }) => {
       return (
-        <h5 className="mb-2 mt-0 text-base font-semibold" {...cleanProps(props)}>
+        <h5 className="my-0 text-base font-semibold" {...cleanProps(props)}>
           {children}
         </h5>
       );
     },
     h6: ({ children, ...props }) => {
       return (
-        <h6 className="mb-2 mt-0 text-sm font-semibold" {...cleanProps(props)}>
+        <h6 className="my-0 text-sm font-semibold" {...cleanProps(props)}>
           {children}
         </h6>
       );
