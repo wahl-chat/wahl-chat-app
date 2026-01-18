@@ -7,7 +7,7 @@ import type {
 export const saveSwiperHistory: WahlSwiperStoreActionHandlerFor<
   'saveSwiperHistory'
 > = (get) => (userId) => {
-  const { history, messageHistory } = get();
+  const { history, messageHistory, prolificMetadata } = get();
 
   const normalizedMessageHistory = Object.entries(messageHistory).reduce(
     (acc, [thesisId, messages]) => {
@@ -24,5 +24,10 @@ export const saveSwiperHistory: WahlSwiperStoreActionHandlerFor<
     {} as Record<string, SwiperMessage[]>,
   );
 
-  return saveWahlSwiperHistory(userId, history, normalizedMessageHistory);
+  return saveWahlSwiperHistory(
+    userId,
+    history,
+    normalizedMessageHistory,
+    prolificMetadata,
+  );
 };

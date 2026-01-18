@@ -3,7 +3,8 @@
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import LoadingSpinner from '@/components/loading-spinner';
 import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
-import { useRouter } from 'next/navigation';
+import { captureProlificParams } from '@/lib/study/prolific-params';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import SwipingCards from './swiping-cards';
@@ -16,8 +17,20 @@ function WahlSwiper() {
   const saveSwiperHistory = useWahlSwiperStore(
     (state) => state.saveSwiperHistory,
   );
+  const setProlificMetadata = useWahlSwiperStore(
+    (state) => state.setProlificMetadata,
+  );
   const { user } = useAnonymousAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Capture Prolific params on mount
+  useEffect(() => {
+    const metadata = captureProlificParams(searchParams);
+    if (metadata) {
+      setProlificMetadata(metadata);
+    }
+  }, [searchParams, setProlificMetadata]);
 
   const handleFinished = useCallback(async () => {
     const errorToast = () =>

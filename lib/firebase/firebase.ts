@@ -5,6 +5,7 @@ import type {
   MessageItem,
   VotingBehavior,
 } from '@/lib/stores/chat-store.types';
+import type { ProlificMetadata } from '@/lib/study/prolific-params';
 import { firestoreTimestampToDate, generateUuid } from '@/lib/utils';
 import type { SwiperMessage } from '@/lib/wahl-swiper/wahl-swiper-store.types';
 import type { WahlSwiperResultHistory } from '@/lib/wahl-swiper/wahl-swiper.types';
@@ -41,14 +42,25 @@ export async function createChatSession(
   partyIds: string[],
   sessionId: string,
   tenantId?: string,
+  prolificMetadata?: ProlificMetadata | null,
 ): Promise<void> {
-  return await setDoc(doc(db, 'chat_sessions', sessionId), {
+  const docData: Record<string, unknown> = {
     user_id: userId,
     party_ids: partyIds,
     created_at: Timestamp.now(),
     updated_at: Timestamp.now(),
-    ...(tenantId ? { tenant_id: tenantId } : {}),
-  });
+  };
+
+  if (tenantId) {
+    docData.tenant_id = tenantId;
+  }
+
+  if (prolificMetadata) {
+    docData.prolific_metadata = prolificMetadata;
+    docData.is_prolific_study = true;
+  }
+
+  return await setDoc(doc(db, 'chat_sessions', sessionId), docData);
 }
 
 export async function getUsersChatHistory(uid: string): Promise<ChatSession[]> {
@@ -344,15 +356,23 @@ export async function saveWahlSwiperHistory(
   userId: string,
   history: WahlSwiperResultHistory,
   chatMessages: Record<string, SwiperMessage[]>,
+  prolificMetadata?: ProlificMetadata | null,
 ) {
   const collectionRef = collection(db, 'wahl_swiper_results');
 
-  const docRef = await addDoc(collectionRef, {
+  const docData: Record<string, unknown> = {
     user_id: userId,
     created_at: serverTimestamp(),
     history,
     chat_messages: chatMessages,
-  });
+  };
+
+  if (prolificMetadata) {
+    docData.prolific_metadata = prolificMetadata;
+    docData.is_prolific_study = true;
+  }
+
+  const docRef = await addDoc(collectionRef, docData);
 
   return docRef.id;
 }

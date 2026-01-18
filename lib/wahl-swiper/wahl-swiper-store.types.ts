@@ -1,4 +1,5 @@
 import type { Source } from '@/lib/stores/chat-store.types';
+import type { ProlificMetadata } from '@/lib/study/prolific-params';
 import type { WritableDraft } from 'immer';
 import type { SwipeType } from './wahl-swiper.types';
 
@@ -26,6 +27,7 @@ export type WahlSwiperStoreState = {
   currentQuickReplies: Record<string, string[]>;
   showSkipDisclaimer: boolean;
   skipDisclaimerShown: boolean;
+  prolificMetadata: ProlificMetadata | null;
 };
 
 export type WahlSwiperStoreActions = {
@@ -40,6 +42,7 @@ export type WahlSwiperStoreActions = {
   saveSwiperHistory: (userId: string) => Promise<string>;
   setShowSkipDisclaimer: (show: boolean) => void;
   setSkipDisclaimerShown: (shown: boolean) => void;
+  setProlificMetadata: (metadata: ProlificMetadata | null) => void;
 };
 
 export type WahlSwiperStore = WahlSwiperStoreState & WahlSwiperStoreActions;

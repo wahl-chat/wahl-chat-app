@@ -80,3 +80,26 @@ export function captureProlificParams(
   }
   return getProlificMetadata();
 }
+
+/**
+ * Check if the current session is part of a Prolific study.
+ * Checks both URL params and sessionStorage.
+ */
+export function isProlificStudy(): boolean {
+  // Check sessionStorage first
+  if (getProlificMetadata() !== null) {
+    return true;
+  }
+
+  // Also check URL params directly (for initial render before useEffect runs)
+  if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasUrlParams =
+      urlParams.has('PROLIFIC_PID') ||
+      urlParams.has('STUDY_ID') ||
+      urlParams.has('SESSION_ID');
+    return hasUrlParams;
+  }
+
+  return false;
+}

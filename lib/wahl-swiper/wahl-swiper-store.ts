@@ -28,6 +28,7 @@ const defaultState: WahlSwiperStoreState = {
   currentQuickReplies: {},
   showSkipDisclaimer: false,
   skipDisclaimerShown: false,
+  prolificMetadata: null,
 };
 
 export function createWahlOMatStore(initialState?: Partial<WahlSwiperStore>) {
@@ -59,6 +60,7 @@ export function createWahlOMatStore(initialState?: Partial<WahlSwiperStore>) {
         set({ showSkipDisclaimer: show }),
       setSkipDisclaimerShown: (shown: boolean) =>
         set({ skipDisclaimerShown: shown }),
+      setProlificMetadata: (prolificMetadata) => set({ prolificMetadata }),
     })),
   );
 }

@@ -2,7 +2,7 @@ import { WahlSwiperStoreProvider } from '@/components/providers/wahl-swiper-stor
 
 import WahlSwiper from '@/components/wahl-swiper/wahl-swiper';
 import WahlSwiperChatWrapper from '@/components/wahl-swiper/wahl-swiper-chat-wrapper';
-import WahlSwiperExperimentalDisclaimer from '@/components/wahl-swiper/wahl-swiper-experimental-disclaimer';
+import WahlSwiperDisclaimerWrapper from '@/components/wahl-swiper/wahl-swiper-disclaimer-wrapper';
 import { getWahlSwiperTheses } from '@/lib/firebase/firebase-server';
 
 async function WahlOMatPage() {
@@ -19,7 +19,7 @@ async function WahlOMatPage() {
 
       <WahlSwiperChatWrapper />
 
-      <WahlSwiperExperimentalDisclaimer />
+      <WahlSwiperDisclaimerWrapper />
     </WahlSwiperStoreProvider>
   );
 }
