@@ -1,4 +1,4 @@
-import type { AgentUserData, AgentTopic, ConversationStage } from '@/lib/stores/agent-store';
+import type { AgentTopic, ConversationStage } from '@/lib/stores/agent-store';
 import type { Source } from '@/lib/stores/chat-store.types';
 import type { ProlificMetadata } from '@/lib/study/prolific-params';
 
@@ -41,15 +41,10 @@ export interface StreamEvent {
  */
 export async function createConversation(
     topic: AgentTopic,
-    userData: AgentUserData,
     prolificMetadata?: ProlificMetadata | null
 ): Promise<CreateConversationResponse> {
     const body: Record<string, unknown> = {
-        topic,
-        age: userData.age,
-        region: userData.region,
-        living_situation: userData.livingSituation,
-        occupation: userData.occupation,
+        topic
     };
 
     if (prolificMetadata) {

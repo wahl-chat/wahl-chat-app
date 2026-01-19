@@ -21,7 +21,6 @@ export default function AgentChatView() {
     const router = useRouter();
 
     const topic = useAgentStore((state) => state.topic);
-    const userData = useAgentStore((state) => state.userData);
     const prolificMetadata = useAgentStore((state) => state.prolificMetadata);
     const conversationId = useAgentStore((state) => state.conversationId);
     const conversationStage = useAgentStore((state) => state.conversationStage);
@@ -143,7 +142,6 @@ export default function AgentChatView() {
         const initializeConversation = async () => {
             if (
                 !topic ||
-                !userData ||
                 conversationId ||
                 initialMessageReceived ||
                 isInitializingRef.current
@@ -155,7 +153,7 @@ export default function AgentChatView() {
 
             try {
                 // Create conversation
-                const response = await createConversation(topic, userData, prolificMetadata);
+                const response = await createConversation(topic, prolificMetadata);
                 setConversationId(response.conversation_id);
 
                 // Save to localStorage and update URL
@@ -180,7 +178,6 @@ export default function AgentChatView() {
         initializeConversation();
     }, [
         topic,
-        userData,
         prolificMetadata,
         conversationId,
         initialMessageReceived,

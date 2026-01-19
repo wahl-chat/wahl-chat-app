@@ -23,7 +23,7 @@ pnpm format       # Format code with Biome
 Two Zustand stores power the application:
 
 - **ChatStore** (`lib/stores/chat-store.ts`): Main chat functionality with streaming messages, party responses, sources, voting behavior. Uses immer middleware. Actions are split into individual files in `lib/stores/actions/`.
-- **AgentStore** (`lib/stores/agent-store.ts`): Multi-step agent flow (consent → data-collection → topic-selection → chat → completed). Simpler vanilla Zustand store.
+- **AgentStore** (`lib/stores/agent-store.ts`): Multi-step agent flow (consent → topic-selection → chat → completed). Simpler vanilla Zustand store.
 
 Both stores are provided via React context (`components/providers/*-store-provider.tsx`).
 

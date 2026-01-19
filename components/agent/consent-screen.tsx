@@ -53,41 +53,6 @@ export default function ConsentScreen() {
                     </CardContent>
                 </Card>
 
-                {/* Data Collection Info */}
-                <Card>
-                    <CardHeader className="pb-3">
-                        <div className="flex items-center gap-2">
-                            <FileText className="size-5 text-muted-foreground" />
-                            <CardTitle className="text-lg">Datenerhebung</CardTitle>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li className="flex items-start gap-2">
-                                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-muted-foreground" />
-                                <span>
-                                    Wir werden während dieser Konversation anonymisierte
-                                    Informationen sammeln
-                                </span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-muted-foreground" />
-                                <span>
-                                    Diese umfassen das Alter, die Region, den Familienstand und
-                                    den Beruf
-                                </span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-muted-foreground" />
-                                <span>
-                                    Deine Antworten und Perspektiven zu politischen Themen werden
-                                    aufgezeichnet
-                                </span>
-                            </li>
-                        </ul>
-                    </CardContent>
-                </Card>
-
                 {/* Privacy Info */}
                 <Card>
                     <CardHeader className="pb-3">
