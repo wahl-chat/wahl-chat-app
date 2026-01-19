@@ -21,6 +21,7 @@ function WahlSwiperResult({ resultId, scores, parties, userDetails }: Props) {
   const sortedScores = Object.entries(scores).sort(
     ([, score], [, otherScore]) => otherScore.score - score.score,
   );
+  const hasValidScores = sortedScores.length > 0;
 
   return (
     <div className="relative mx-auto mt-4 flex w-full flex-col gap-4">
@@ -41,23 +42,32 @@ function WahlSwiperResult({ resultId, scores, parties, userDetails }: Props) {
         userDetails={userDetails}
       />
 
-      <Accordion type="single" collapsible className="flex flex-col gap-2">
-        {sortedScores.map(([party, score]) => {
-          const partyDetails = parties.find((p) => p.party_id === party);
+      {hasValidScores ? (
+        <Accordion type="single" collapsible className="flex flex-col gap-2">
+          {sortedScores.map(([party, score]) => {
+            const partyDetails = parties.find((p) => p.party_id === party);
 
-          if (!partyDetails) {
-            return null;
-          }
+            if (!partyDetails) {
+              return null;
+            }
 
-          return (
-            <WahlSwiperPartyResultCard
-              key={party}
-              party={partyDetails}
-              score={score}
-            />
-          );
-        })}
-      </Accordion>
+            return (
+              <WahlSwiperPartyResultCard
+                key={party}
+                party={partyDetails}
+                score={score}
+              />
+            );
+          })}
+        </Accordion>
+      ) : (
+        <div className="rounded-lg border border-muted bg-muted/50 p-6 text-center">
+          <p className="text-muted-foreground">
+            Keine Ergebnisse verfügbar. Um Übereinstimmungen mit den Parteien zu
+            sehen, beantworte mindestens eine Frage mit Ja oder Nein.
+          </p>
+        </div>
+      )}
       <div className="sticky inset-x-0 bottom-0 z-10 bg-background/20 backdrop-blur-sm">
         <div className="mb-4 mt-2 grid grid-cols-2 gap-2">
           <Button asChild>
