@@ -3,7 +3,15 @@
 import { useChatSessionParam } from '@/lib/hooks/use-chat-session-param';
 import { createChatStore } from '@/lib/stores/chat-store';
 import type { ChatStore } from '@/lib/stores/chat-store.types';
-import { type ReactNode, createContext, useContext, useRef } from 'react';
+import { captureProlificParams } from '@/lib/study/prolific-params';
+import { useSearchParams } from 'next/navigation';
+import {
+  type ReactNode,
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+} from 'react';
 import { useStore } from 'zustand';
 
 export type ChatStoreApi = ReturnType<typeof createChatStore>;
@@ -18,6 +26,7 @@ type Props = {
 
 export const ChatStoreProvider = ({ children }: Props) => {
   const sessionId = useChatSessionParam();
+  const searchParams = useSearchParams();
 
   const storeRef = useRef<ChatStoreApi>(null);
   if (!storeRef.current) {
@@ -25,6 +34,14 @@ export const ChatStoreProvider = ({ children }: Props) => {
       chatSessionId: sessionId,
     });
   }
+
+  // Capture Prolific params on mount
+  useEffect(() => {
+    const metadata = captureProlificParams(searchParams);
+    if (metadata && storeRef.current) {
+      storeRef.current.getState().setProlificMetadata(metadata);
+    }
+  }, [searchParams]);
 
   return (
     <ChatStoreContext.Provider value={storeRef.current}>

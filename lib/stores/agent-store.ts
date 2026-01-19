@@ -3,6 +3,7 @@
 import { createStore } from 'zustand/vanilla';
 import { generateUuid } from '@/lib/utils';
 import type { Source } from '@/lib/stores/chat-store.types';
+import type { ProlificMetadata } from '@/lib/study/prolific-params';
 
 // Types
 export type AgentStep =
@@ -67,6 +68,9 @@ export interface AgentState {
     userData: AgentUserData | null;
     topic: AgentTopic | null;
 
+    // Study metadata
+    prolificMetadata: ProlificMetadata | null;
+
     // Conversation
     conversationId: string | null;
     conversationStage: ConversationStage | null;
@@ -95,6 +99,9 @@ export interface AgentActions {
     setUserData: (data: AgentUserData) => void;
     setTopic: (topic: AgentTopic) => void;
 
+    // Study metadata actions
+    setProlificMetadata: (metadata: ProlificMetadata | null) => void;
+
     // Conversation actions
     setConversationId: (id: string) => void;
     setConversationStage: (stage: ConversationStage) => void;
@@ -119,6 +126,7 @@ const initialState: AgentState = {
     consentGiven: false,
     userData: null,
     topic: null,
+    prolificMetadata: null,
     conversationId: null,
     conversationStage: null,
     messages: [],
@@ -174,6 +182,9 @@ export const createAgentStore = (initState: Partial<AgentState> = {}) => {
                 topic,
                 step: 'chat',
             }),
+
+        // Study metadata actions
+        setProlificMetadata: (prolificMetadata) => set({ prolificMetadata }),
 
         // Conversation actions
         setConversationId: (conversationId) => set({ conversationId }),

@@ -1,5 +1,6 @@
 import type { AgentUserData, AgentTopic, ConversationStage } from '@/lib/stores/agent-store';
 import type { Source } from '@/lib/stores/chat-store.types';
+import type { ProlificMetadata } from '@/lib/study/prolific-params';
 
 // Use Next.js API routes as proxy to avoid CORS issues
 const API_BASE_URL = '/api/agent';
@@ -40,20 +41,27 @@ export interface StreamEvent {
  */
 export async function createConversation(
     topic: AgentTopic,
-    userData: AgentUserData
+    userData: AgentUserData,
+    prolificMetadata?: ProlificMetadata | null
 ): Promise<CreateConversationResponse> {
+    const body: Record<string, unknown> = {
+        topic,
+        age: userData.age,
+        region: userData.region,
+        living_situation: userData.livingSituation,
+        occupation: userData.occupation,
+    };
+
+    if (prolificMetadata) {
+        body.prolific_metadata = prolificMetadata;
+    }
+
     const response = await fetch(`${API_BASE_URL}/chat-start`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-            topic,
-            age: userData.age,
-            region: userData.region,
-            living_situation: userData.livingSituation,
-            occupation: userData.occupation,
-        }),
+        body: JSON.stringify(body),
     });
 
     if (!response.ok) {

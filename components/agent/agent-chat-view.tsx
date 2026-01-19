@@ -22,6 +22,7 @@ export default function AgentChatView() {
 
     const topic = useAgentStore((state) => state.topic);
     const userData = useAgentStore((state) => state.userData);
+    const prolificMetadata = useAgentStore((state) => state.prolificMetadata);
     const conversationId = useAgentStore((state) => state.conversationId);
     const conversationStage = useAgentStore((state) => state.conversationStage);
     const messages = useAgentStore((state) => state.messages);
@@ -154,7 +155,7 @@ export default function AgentChatView() {
 
             try {
                 // Create conversation
-                const response = await createConversation(topic, userData);
+                const response = await createConversation(topic, userData, prolificMetadata);
                 setConversationId(response.conversation_id);
 
                 // Save to localStorage and update URL
@@ -180,6 +181,7 @@ export default function AgentChatView() {
     }, [
         topic,
         userData,
+        prolificMetadata,
         conversationId,
         initialMessageReceived,
         setConversationId,

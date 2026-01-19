@@ -5,12 +5,34 @@ import { useAgentStore } from '@/components/providers/agent-store-provider';
 import AgentFlowController from './agent-flow-controller';
 import ResumeConversationPrompt from './resume-conversation-prompt';
 import { getStoredConversationId } from '@/lib/agent/conversation-storage';
+import { captureProlificParams } from '@/lib/study/prolific-params';
 
-export default function AgentEntryPoint() {
+interface AgentEntryPointProps {
+    searchParams?: { [key: string]: string | string[] | undefined };
+}
+
+export default function AgentEntryPoint({ searchParams }: AgentEntryPointProps) {
     const step = useAgentStore((state) => state.step);
+    const setProlificMetadata = useAgentStore((state) => state.setProlificMetadata);
     const [storedConversationId, setStoredConversationId] = useState<string | null>(null);
     const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
     const [showResumePrompt, setShowResumePrompt] = useState(false);
+
+    // Capture Prolific params on mount
+    useEffect(() => {
+        if (searchParams) {
+            const urlSearchParams = new URLSearchParams();
+            for (const [key, value] of Object.entries(searchParams)) {
+                if (typeof value === 'string') {
+                    urlSearchParams.set(key, value);
+                }
+            }
+            const metadata = captureProlificParams(urlSearchParams);
+            if (metadata) {
+                setProlificMetadata(metadata);
+            }
+        }
+    }, [searchParams, setProlificMetadata]);
 
     // Check localStorage on mount
     useEffect(() => {

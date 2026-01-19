@@ -107,6 +107,7 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
         completeVotingBehavior: completeVotingBehavior(get, set),
         setPartyIds: setPartyIds(get, set),
         getLLMSize: () => get().tenant?.llm_size ?? DEFAULT_LLM_SIZE,
+        setProlificMetadata: (prolificMetadata) => set({ prolificMetadata }),
       })),
     ),
   );

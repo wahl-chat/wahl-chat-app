@@ -7,6 +7,7 @@ import type {
   StreamingMessage,
   Vote,
 } from '@/lib/socket.types';
+import type { ProlificMetadata } from '@/lib/study/prolific-params';
 import type { Timestamp } from 'firebase/firestore';
 import type { WritableDraft } from 'immer';
 
@@ -109,6 +110,7 @@ export type ChatStoreState = {
     messagesLengthAtSharing: number;
   };
   tenant?: Tenant;
+  prolificMetadata?: ProlificMetadata | null;
 };
 
 export type ChatStoreActions = {
@@ -198,6 +200,7 @@ export type ChatStoreActions = {
   ) => void;
   setPartyIds: (partyIds: string[]) => void;
   getLLMSize: () => LLMSize;
+  setProlificMetadata: (metadata: ProlificMetadata | null) => void;
 };
 
 export type ChatStore = ChatStoreState & ChatStoreActions;

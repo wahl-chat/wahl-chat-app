@@ -19,6 +19,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
       partyIds,
       initializeChatSession,
       startTimeoutForStreamingMessages,
+      prolificMetadata,
     } = get();
 
     if (!socket.io?.connected) {
@@ -86,6 +87,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
           [...partyIds],
           safeSessionId,
           tenant?.id,
+          prolificMetadata,
         );
 
         if (typeof window !== 'undefined') {
