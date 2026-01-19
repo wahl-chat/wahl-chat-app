@@ -1,11 +1,15 @@
+'use client';
+
 import ChatGroupPartySelect from '@/components/chat/chat-group-party-select';
 import { Accordion } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import type { PartyDetails } from '@/lib/party-details';
+import { clearProlificMetadata } from '@/lib/study/prolific-params';
 import type { UserDetails } from '@/lib/utils';
 import type { PartiesScoreResult } from '@/lib/wahl-swiper/wahl-swiper.types';
 import { RefreshCcwIcon } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect } from 'react';
 import WahlSwiperPartyResultCard from './wahl-swiper-party-result-card';
 import WahlSwiperShareButton from './wahl-swiper-share-button';
 import WahlSwiperSurveyLoginCard from './wahl-swiper-survey-login-card';
@@ -15,16 +19,47 @@ type Props = {
   scores: PartiesScoreResult;
   parties: PartyDetails[];
   userDetails?: UserDetails;
+  prolificCompletionCode?: string | null;
 };
 
-function WahlSwiperResult({ resultId, scores, parties, userDetails }: Props) {
+function WahlSwiperResult({
+  resultId,
+  scores,
+  parties,
+  userDetails,
+  prolificCompletionCode,
+}: Props) {
   const sortedScores = Object.entries(scores).sort(
     ([, score], [, otherScore]) => otherScore.score - score.score,
   );
   const hasValidScores = sortedScores.length > 0;
 
+  // Clear Prolific metadata after study completion so user can restart with regular version
+  useEffect(() => {
+    if (prolificCompletionCode) {
+      clearProlificMetadata();
+    }
+  }, [prolificCompletionCode]);
+
   return (
     <div className="relative mx-auto mt-4 flex w-full flex-col gap-4">
+      {prolificCompletionCode && (
+        <div className="rounded-lg border-2 border-green-500 bg-green-50 p-4 dark:bg-green-950">
+          <h2 className="text-lg font-bold text-green-800 dark:text-green-200">
+            Studie abgeschlossen!
+          </h2>
+          <p className="mt-1 text-sm text-green-700 dark:text-green-300">
+            Vielen Dank für deine Teilnahme. Bitte kopiere den folgenden Code,
+            um die Studie auf Prolific abzuschliessen:
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <code className="flex-1 rounded-md bg-white px-4 py-2 text-lg font-mono font-bold text-green-900 dark:bg-green-900 dark:text-green-100">
+              {prolificCompletionCode}
+            </code>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col">
         <h1 className="text-lg font-bold">Swiper Ergebnisse</h1>
         <p className="text-sm text-muted-foreground">
