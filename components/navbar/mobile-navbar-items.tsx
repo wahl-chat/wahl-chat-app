@@ -1,11 +1,8 @@
-import LoginButton from '@/components/auth/login-button';
-import UserAvatar from '@/components/auth/user-avatar';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { type UserDetails, cn } from '@/lib/utils';
 import { SparklesIcon } from 'lucide-react';
 import type { NavbarItemDetails } from './navbar-item';
-import NavbarItem from './navbar-item';
+import NavbarLoginSection from './navbar-login-section';
+import NavbarTabs from './navbar-tabs';
 
 type Props = {
   userDetails?: UserDetails;
@@ -44,20 +41,9 @@ function MobileNavbarItems({ userDetails, mobileClose }: Props) {
         'flex flex-col md:flex-row items-center justify-center gap-2',
       )}
     >
-      {tabs.map((tab) => (
-        <NavbarItem key={tab.href} details={tab} mobileClose={mobileClose} />
-      ))}
+      <NavbarTabs tabs={tabs} mobileClose={mobileClose} />
 
-      <Separator orientation="horizontal" className="my-4 w-1/2" />
-      <LoginButton
-        userDetails={userDetails}
-        noUserChildren={
-          <Button variant="default" size="sm">
-            Anmelden
-          </Button>
-        }
-        userChildren={<UserAvatar details={userDetails} />}
-      />
+      <NavbarLoginSection userDetails={userDetails} orientation="horizontal" />
     </nav>
   );
 }
