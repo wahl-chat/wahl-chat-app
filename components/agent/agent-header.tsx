@@ -1,17 +1,17 @@
 'use client';
 
+import ConversationProgressIndicator from '@/components/agent/conversation-progress-indicator';
+import Logo from '@/components/chat/logo';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import Logo from '@/components/chat/logo';
-import ConversationProgressIndicator from '@/components/agent/conversation-progress-indicator';
 
 export default function AgentHeader() {
   return (
-    <header className="relative z-10 flex h-[65px] shrink-0 w-full items-center gap-2 border-b border-b-muted bg-background px-4">
+    <header className="relative z-10 flex h-[65px] w-full shrink-0 items-center gap-2 border-b border-b-muted bg-background px-4">
       {/* Sidebar trigger */}
       <Tooltip>
         <TooltipTrigger asChild>

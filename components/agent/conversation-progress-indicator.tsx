@@ -2,20 +2,20 @@
 
 import { useAgentStore } from '@/components/providers/agent-store-provider';
 import {
-  CONVERSATION_STAGES,
-  STAGE_LABELS,
-  type ConversationStage,
-} from '@/lib/stores/agent-store';
-import { cn } from '@/lib/utils';
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  CONVERSATION_STAGES,
+  type ConversationStage,
+  STAGE_LABELS,
+} from '@/lib/stores/agent-store';
+import { cn } from '@/lib/utils';
 
 function getStageStatus(
   stage: ConversationStage,
-  currentStage: ConversationStage | null
+  currentStage: ConversationStage | null,
 ): 'completed' | 'current' | 'upcoming' {
   if (!currentStage) return 'upcoming';
   const currentIndex = CONVERSATION_STAGES.indexOf(currentStage);
@@ -54,7 +54,7 @@ export default function ConversationProgressIndicator() {
                     status === 'completed' && 'bg-primary',
                     status === 'current' &&
                       'bg-primary ring-2 ring-primary/30 ring-offset-1 ring-offset-background',
-                    status === 'upcoming' && 'bg-muted'
+                    status === 'upcoming' && 'bg-muted',
                   )}
                 />
               </TooltipTrigger>

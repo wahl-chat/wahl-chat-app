@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       const errorText = await response.text();
       return NextResponse.json(
         { error: errorText || 'Failed to start conversation' },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     console.error('Error proxying chat-start:', error);
     return NextResponse.json(
       { error: 'Failed to connect to agent backend' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,17 +1,17 @@
 'use client';
 
-import { type ReactNode, createContext, useRef, useContext } from 'react';
-import { useStore } from 'zustand';
 import {
-  type AgentStore,
   type AgentState,
+  type AgentStore,
   createAgentStore,
 } from '@/lib/stores/agent-store';
+import { type ReactNode, createContext, useContext, useRef } from 'react';
+import { useStore } from 'zustand';
 
 export type AgentStoreApi = ReturnType<typeof createAgentStore>;
 
 export const AgentStoreContext = createContext<AgentStoreApi | undefined>(
-  undefined
+  undefined,
 );
 
 export interface AgentStoreProviderProps {

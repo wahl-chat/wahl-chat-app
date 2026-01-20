@@ -3,7 +3,10 @@
 import { useChatSessionParam } from '@/lib/hooks/use-chat-session-param';
 import { createChatStore } from '@/lib/stores/chat-store';
 import type { ChatStore } from '@/lib/stores/chat-store.types';
-import { captureProlificParams } from '@/lib/study/prolific-params';
+import {
+  captureProlificParams,
+  getProlificMessageCount,
+} from '@/lib/study/prolific-params';
 import { useSearchParams } from 'next/navigation';
 import {
   type ReactNode,
@@ -40,6 +43,11 @@ export const ChatStoreProvider = ({ children }: Props) => {
     const metadata = captureProlificParams(searchParams);
     if (metadata && storeRef.current) {
       storeRef.current.getState().setProlificMetadata(metadata);
+    }
+    // Load persisted message count from sessionStorage
+    if (storeRef.current) {
+      const count = getProlificMessageCount();
+      storeRef.current.getState().setProlificMessageCount(count);
     }
   }, [searchParams]);
 

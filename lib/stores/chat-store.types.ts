@@ -111,6 +111,9 @@ export type ChatStoreState = {
   };
   tenant?: Tenant;
   prolificMetadata?: ProlificMetadata | null;
+  prolificMinInteractions?: number;
+  prolificDisclaimerDismissed?: boolean;
+  prolificMessageCount: number;
 };
 
 export type ChatStoreActions = {
@@ -201,6 +204,10 @@ export type ChatStoreActions = {
   setPartyIds: (partyIds: string[]) => void;
   getLLMSize: () => LLMSize;
   setProlificMetadata: (metadata: ProlificMetadata | null) => void;
+  setProlificConfig: (config: { minInteractions: number }) => void;
+  setProlificDisclaimerDismissed: (dismissed: boolean) => void;
+  incrementProlificMessageCount: () => void;
+  setProlificMessageCount: (count: number) => void;
 };
 
 export type ChatStore = ChatStoreState & ChatStoreActions;
