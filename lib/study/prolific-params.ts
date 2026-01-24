@@ -24,8 +24,6 @@ export function extractProlificParams(
     return null;
   }
 
-  console.log('Prolific params found:', { prolificPid, studyId, sessionId });
-
   return {
     prolific_pid: prolificPid,
     study_id: studyId,
