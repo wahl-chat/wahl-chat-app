@@ -93,11 +93,9 @@ export function isProlificStudy(): boolean {
   // Also check URL params directly (for initial render before useEffect runs)
   if (typeof window !== 'undefined') {
     const urlParams = new URLSearchParams(window.location.search);
-    const hasUrlParams =
-      urlParams.has('PROLIFIC_PID') ||
-      urlParams.has('STUDY_ID') ||
-      urlParams.has('SESSION_ID');
-    return hasUrlParams;
+    return urlParams.has('PROLIFIC_PID') &&
+        urlParams.has('STUDY_ID') &&
+        urlParams.has('SESSION_ID');
   }
 
   return false;
