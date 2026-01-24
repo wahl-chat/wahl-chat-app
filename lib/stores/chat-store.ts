@@ -62,6 +62,9 @@ const defaultState: ChatStoreState = {
   socket: {},
   currentStreamingMessages: undefined,
   tenant: undefined,
+  prolificMinInteractions: undefined,
+  prolificDisclaimerDismissed: false,
+  prolificMessageCount: 0,
 };
 
 export function createChatStore(initialState?: Partial<ChatStore>) {
@@ -108,6 +111,16 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
         setPartyIds: setPartyIds(get, set),
         getLLMSize: () => get().tenant?.llm_size ?? DEFAULT_LLM_SIZE,
         setProlificMetadata: (prolificMetadata) => set({ prolificMetadata }),
+        setProlificConfig: ({ minInteractions }) =>
+          set({ prolificMinInteractions: minInteractions }),
+        setProlificDisclaimerDismissed: (prolificDisclaimerDismissed) =>
+          set({ prolificDisclaimerDismissed }),
+        incrementProlificMessageCount: () =>
+          set((state) => {
+            state.prolificMessageCount = state.prolificMessageCount + 1;
+          }),
+        setProlificMessageCount: (prolificMessageCount) =>
+          set({ prolificMessageCount }),
       })),
     ),
   );

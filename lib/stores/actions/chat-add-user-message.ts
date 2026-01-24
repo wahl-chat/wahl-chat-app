@@ -4,6 +4,7 @@ import {
 } from '@/lib/firebase/firebase';
 import { chatViewScrollToBottom } from '@/lib/scroll-utils';
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
+import { incrementProlificMessageCount } from '@/lib/study/prolific-params';
 import { generateUuid } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
@@ -20,6 +21,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
       initializeChatSession,
       startTimeoutForStreamingMessages,
       prolificMetadata,
+      incrementProlificMessageCount: incrementStoreCount,
     } = get();
 
     if (!socket.io?.connected) {
@@ -76,6 +78,12 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
       }
       state.loading.newMessage = true;
     });
+
+    // Track message count for Prolific studies (outside set() to avoid issues)
+    if (!isMessageResend) {
+      incrementProlificMessageCount(); // Persist to sessionStorage
+      incrementStoreCount(); // Update store for reactivity
+    }
 
     messages = get().messages;
     const { tenant } = get();

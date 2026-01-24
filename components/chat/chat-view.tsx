@@ -6,6 +6,7 @@ import {
 } from '@/lib/firebase/firebase-server';
 import { Suspense } from 'react';
 import ChatDynamicChatInput from './chat-dynamic-chat-input';
+import ChatProlificWrapper from './chat-prolific-wrapper';
 import ChatScrollDownIndicator from './chat-scroll-down-indicator';
 import ChatViewSsr from './chat-view-ssr';
 
@@ -39,6 +40,7 @@ async function ChatView({ sessionId, partyIds, initialQuestion }: Props) {
       </Suspense>
 
       <div className="relative px-3 md:px-4">
+        <ChatProlificWrapper />
         <ChatScrollDownIndicator />
         <ChatDynamicChatInput
           initialSystemStatus={systemStatus}

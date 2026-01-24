@@ -53,7 +53,7 @@ function WahlSwiperResult({
             um die Studie auf Prolific abzuschliessen:
           </p>
           <div className="mt-3 flex items-center gap-2">
-            <code className="flex-1 rounded-md bg-white px-4 py-2 text-lg font-mono font-bold text-green-900 dark:bg-green-900 dark:text-green-100">
+            <code className="flex-1 rounded-md bg-white px-4 py-2 font-mono text-lg font-bold text-green-900 dark:bg-green-900 dark:text-green-100">
               {prolificCompletionCode}
             </code>
           </div>

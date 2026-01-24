@@ -1,6 +1,7 @@
 'use client';
 
 const STORAGE_KEY = 'prolific_metadata';
+const MESSAGE_COUNT_KEY = 'prolific_message_count';
 
 export interface ProlificMetadata {
   prolific_pid: string;
@@ -13,7 +14,7 @@ export interface ProlificMetadata {
  * Returns null if not all params are present.
  */
 export function extractProlificParams(
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
 ): ProlificMetadata | null {
   const prolificPid = searchParams.get('PROLIFIC_PID');
   const studyId = searchParams.get('STUDY_ID');
@@ -71,7 +72,7 @@ export function clearProlificMetadata(): void {
  * Returns the metadata if found, null otherwise.
  */
 export function captureProlificParams(
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
 ): ProlificMetadata | null {
   const metadata = extractProlificParams(searchParams);
   if (metadata) {
@@ -102,4 +103,39 @@ export function isProlificStudy(): boolean {
   }
 
   return false;
+}
+
+/**
+ * Gets the total prolific message count from sessionStorage.
+ */
+export function getProlificMessageCount(): number {
+  if (typeof window === 'undefined') return 0;
+
+  const stored = sessionStorage.getItem(MESSAGE_COUNT_KEY);
+  if (!stored) return 0;
+
+  const count = Number.parseInt(stored, 10);
+  return Number.isNaN(count) ? 0 : count;
+}
+
+/**
+ * Increments the prolific message count in sessionStorage.
+ * Only increments if this is a prolific study session.
+ */
+export function incrementProlificMessageCount(): number {
+  if (typeof window === 'undefined') return 0;
+  if (!isProlificStudy()) return 0;
+
+  const currentCount = getProlificMessageCount();
+  const newCount = currentCount + 1;
+  sessionStorage.setItem(MESSAGE_COUNT_KEY, String(newCount));
+  return newCount;
+}
+
+/**
+ * Resets the prolific message count in sessionStorage.
+ */
+export function resetProlificMessageCount(): void {
+  if (typeof window === 'undefined') return;
+  sessionStorage.removeItem(MESSAGE_COUNT_KEY);
 }
