@@ -2,13 +2,10 @@
 
 /**
  * Returns the Prolific completion code from environment variable.
+ * Returns null if not configured.
  */
-export async function getProlificCompletionCode(): Promise<string> {
-  const completionCode = process.env.PROLIFIC_COMPLETION_CODE;
-  if (!completionCode) {
-    throw new Error('PROLIFIC_COMPLETION_CODE is not set');
-  }
-  return completionCode;
+export async function getProlificCompletionCode(): Promise<string | null> {
+  return process.env.PROLIFIC_COMPLETION_CODE ?? null;
 }
 
 /**

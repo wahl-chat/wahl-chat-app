@@ -19,6 +19,7 @@ type Props = {
   scores: PartiesScoreResult;
   parties: PartyDetails[];
   userDetails?: UserDetails;
+  isProlificStudy?: boolean;
   prolificCompletionCode?: string | null;
 };
 
@@ -27,6 +28,7 @@ function WahlSwiperResult({
   scores,
   parties,
   userDetails,
+  isProlificStudy,
   prolificCompletionCode,
 }: Props) {
   const sortedScores = Object.entries(scores).sort(
@@ -36,14 +38,14 @@ function WahlSwiperResult({
 
   // Clear Prolific metadata after study completion so user can restart with regular version
   useEffect(() => {
-    if (prolificCompletionCode) {
+    if (isProlificStudy) {
       clearProlificMetadata();
     }
-  }, [prolificCompletionCode]);
+  }, [isProlificStudy]);
 
   return (
     <div className="relative mx-auto mt-4 flex w-full flex-col gap-4">
-      {prolificCompletionCode && (
+      {isProlificStudy && prolificCompletionCode && (
         <div className="rounded-lg border-2 border-green-500 bg-green-50 p-4 dark:bg-green-950">
           <h2 className="text-lg font-bold text-green-800 dark:text-green-200">
             Studie abgeschlossen!
@@ -57,6 +59,17 @@ function WahlSwiperResult({
               {prolificCompletionCode}
             </code>
           </div>
+        </div>
+      )}
+      {isProlificStudy && !prolificCompletionCode && (
+        <div className="rounded-lg border-2 border-yellow-500 bg-yellow-50 p-4 dark:bg-yellow-950">
+          <h2 className="text-lg font-bold text-yellow-800 dark:text-yellow-200">
+            Studie abgeschlossen!
+          </h2>
+          <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+            Vielen Dank für deine Teilnahme. Der Abschlusscode ist leider nicht
+            verfügbar. Bitte kontaktiere den Studienverantwortlichen.
+          </p>
         </div>
       )}
 

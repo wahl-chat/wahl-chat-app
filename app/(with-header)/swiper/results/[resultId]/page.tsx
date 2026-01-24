@@ -42,6 +42,7 @@ async function WahlSwiperResultsPage({ params }: Props) {
       scores={scores}
       parties={parties}
       userDetails={userDetails}
+      isProlificStudy={history.is_prolific_study ?? false}
       prolificCompletionCode={prolificCompletionCode}
     />
   );
