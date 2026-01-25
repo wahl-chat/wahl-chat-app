@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import * as RadixPopover from '@radix-ui/react-popover';
 import { ChevronsRightIcon, MessageCircleMoreIcon } from 'lucide-react';
 import type { WahlSwiperButtonVariant } from './wahl-swiper-button';
+import {useEffect, useState} from "react";
 
 type Props = {
   variant: WahlSwiperButtonVariant;
@@ -27,6 +28,13 @@ function WahlSwiperSkipButton({ variant, clicked, onClick }: Props) {
   const setSkipDisclaimerShown = useWahlSwiperStore(
     (state) => state.setSkipDisclaimerShown,
   );
+  const [hideSkipButtonPopup, setHideSkipButtonPopup] = useState(false);
+
+  useEffect(() => {
+    if (isProlificStudy()) {
+      setHideSkipButtonPopup(true);
+    }
+  })
 
   const handleClick = () => {
     if (disclaimerShown) {
@@ -47,7 +55,7 @@ function WahlSwiperSkipButton({ variant, clicked, onClick }: Props) {
     onClick();
   };
 
-  if (isProlificStudy()) {
+  if (hideSkipButtonPopup) {
     return getSkipButton({ variant, clicked, onClick });
   }
 
