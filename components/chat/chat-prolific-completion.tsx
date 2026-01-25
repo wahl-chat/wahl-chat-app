@@ -2,7 +2,7 @@
 
 import {
   ResponsiveDialog,
-  ResponsiveDialogContent,
+  ResponsiveDialogContent, ResponsiveDialogTitle,
 } from '@/components/chat/responsive-drawer-dialog';
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { getProlificCompletionCode } from '@/lib/study/prolific-server';
@@ -52,6 +52,7 @@ function ChatProlificCompletion({ minInteractions }: Props) {
       </button>
 
       <ResponsiveDialog open={modalOpen} onOpenChange={setModalOpen}>
+        <ResponsiveDialogTitle>Studie abgeschlossen!</ResponsiveDialogTitle>
         <ResponsiveDialogContent>
           <CompletionCode/>
         </ResponsiveDialogContent>

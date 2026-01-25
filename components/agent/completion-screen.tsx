@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {clearProlificMetadata, isProlificStudy} from '@/lib/study/prolific-params';
+import { isProlificStudy} from '@/lib/study/prolific-params';
 import { Heart, PartyPopper } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import CompletionCode from "@/components/prolific-study/completion-code";
@@ -17,11 +17,9 @@ export default function CompletionScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Fetch Prolific completion code and clear metadata
   useEffect(() => {
     if (isProlificStudy()) {
         setShowCompletionCode(true);
-        clearProlificMetadata();
     }
   }, []);
 

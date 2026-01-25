@@ -3,6 +3,7 @@ import {toast} from "sonner";
 import {Button} from "@/components/ui/button";
 import {Check, Copy} from "lucide-react";
 import {getProlificCompletionCode} from "@/lib/study/prolific-server";
+import {clearProlificMetadata} from "@/lib/study/prolific-params";
 
 
 function CompletionCode() {
@@ -21,6 +22,9 @@ function CompletionCode() {
         setCopied(true);
         toast.success('Code in die Zwischenablage kopiert!');
         setTimeout(() => setCopied(false), 2000);
+
+        // Clear prolific metadata to exit study mode
+        clearProlificMetadata()
     }, [completionCode]);
 
     return (

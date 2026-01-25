@@ -4,12 +4,10 @@ import ChatGroupPartySelect from '@/components/chat/chat-group-party-select';
 import { Accordion } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import type { PartyDetails } from '@/lib/party-details';
-import { clearProlificMetadata } from '@/lib/study/prolific-params';
 import type { UserDetails } from '@/lib/utils';
 import type { PartiesScoreResult } from '@/lib/wahl-swiper/wahl-swiper.types';
 import { RefreshCcwIcon } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect } from 'react';
 import WahlSwiperPartyResultCard from './wahl-swiper-party-result-card';
 import WahlSwiperShareButton from './wahl-swiper-share-button';
 import WahlSwiperSurveyLoginCard from './wahl-swiper-survey-login-card';
@@ -35,12 +33,6 @@ function WahlSwiperResult({
     ([, score], [, otherScore]) => otherScore.score - score.score,
   );
   const hasValidScores = sortedScores.length > 0;
-
-  useEffect(() => {
-    if (isProlificStudy) {
-      clearProlificMetadata();
-    }
-  }, [isProlificStudy]);
 
   return (
     <div className="relative mx-auto mt-4 flex w-full flex-col gap-4">
