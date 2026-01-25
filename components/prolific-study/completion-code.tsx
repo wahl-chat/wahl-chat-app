@@ -30,7 +30,7 @@ function CompletionCode() {
                     Danke für deine Teilnahme!
                 </h2>
                 <p className="mt-1 text-sm text-green-700 dark:text-green-300">
-                    Bitte kopiere den folgenden Code, um mit der Studie auf Prolific fortzufahren.:
+                    Bitte kopiere den folgenden Code, um mit der Studie auf Prolific fortzufahren:
                 </p>
                 <div className="mt-3 flex items-center gap-2">
                     <code
