@@ -28,22 +28,22 @@ function WahlSwiperProlificDisclaimer() {
             Wichtige Informationen
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
-        <div className="px-4 text-sm md:px-0">
-          <p className="mb-4">
-            Vielen Dank, dass du an unserer Studie teilnimmst!
-          </p>
-          <div className="rounded-md border border-amber-500 bg-amber-50 p-4 dark:bg-amber-950">
-            <p className="font-semibold text-amber-800 dark:text-amber-200">
-              Bitte schliesse diesen Browser-Tab nicht, bevor du den
-              Abschlusscode erhalten hast.
-            </p>
-            <p className="mt-2 text-amber-700 dark:text-amber-300">
-              Der Code wird dir am Ende des Swipers angezeigt und ist notwendig,
-              um die Studie abzuschliessen.
-            </p>
-          </div>
-        </div>
+        <p className="px-4 text-sm md:px-0">
+          <span className="my-2 block rounded-md border border-border bg-muted p-4">
+            Um den Abschlusscode zu erhalten, musst du mindestens
+            <span className="font-semibold"> eine </span>
+            Frage mit
+            <span className="font-semibold"> ja </span>
+            oder
+            <span className="font-semibold"> nein </span>
+            beantworten.
+          </span>
+          Bitte schliesse diesen Browser-Tab nicht, bevor du den Abschlusscode erhalten hast.
+          <span className="mt-2 block font-semibold">
 
+            Der Code wird dir am Ende des Swipers angezeigt und ist notwendig, um die Studie abzuschliessen.
+          </span>
+        </p>
         <ResponsiveDialogFooter>
           <ResponsiveDialogClose asChild>
             <Button className="w-full">Verstanden, los geht&apos;s!</Button>
