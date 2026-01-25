@@ -1,8 +1,8 @@
-import { Button } from '@/components/ui/button';
-import { HeartHandshakeIcon, XIcon } from 'lucide-react';
 import { useAnonymousAuth } from '@/components/anonymous-auth';
+import { Button } from '@/components/ui/button';
 import { userAllowNewsletter } from '@/lib/firebase/firebase';
 import { track } from '@vercel/analytics/react';
+import { HeartHandshakeIcon, XIcon } from 'lucide-react';
 
 type Props = {
   onSuccess: () => void;

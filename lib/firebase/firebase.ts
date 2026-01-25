@@ -1,24 +1,4 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import {
-  getFirestore,
-  getDocs,
-  collection,
-  query,
-  limit,
-  where,
-  getDoc,
-  doc,
-  onSnapshot,
-  updateDoc,
-  orderBy,
-  Timestamp,
-  setDoc,
-  arrayUnion,
-  addDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { firebaseConfig } from './firebase-config';
+import type { WahlChatUser } from '@/components/anonymous-auth';
 import type {
   GroupedMessage,
   MessageFeedback,
@@ -26,10 +6,30 @@ import type {
   VotingBehavior,
 } from '@/lib/stores/chat-store.types';
 import { firestoreTimestampToDate, generateUuid } from '@/lib/utils';
-import type { ChatSession, LlmSystemStatus } from './firebase.types';
-import type { WahlChatUser } from '@/components/anonymous-auth';
-import type { WahlSwiperResultHistory } from '@/lib/wahl-swiper/wahl-swiper.types';
 import type { SwiperMessage } from '@/lib/wahl-swiper/wahl-swiper-store.types';
+import type { WahlSwiperResultHistory } from '@/lib/wahl-swiper/wahl-swiper.types';
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import {
+  Timestamp,
+  addDoc,
+  arrayUnion,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  getFirestore,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
+import { firebaseConfig } from './firebase-config';
+import type { ChatSession, LlmSystemStatus } from './firebase.types';
 
 const app = initializeApp(firebaseConfig);
 

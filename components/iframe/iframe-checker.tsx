@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useTenant } from '../providers/tenant-provider';
+import { useTenant } from '@/components/providers/tenant-provider';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -10,9 +9,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '../ui/alert-dialog';
-import { Button } from '../ui/button';
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 function IframeChecker() {
   const tenant = useTenant();

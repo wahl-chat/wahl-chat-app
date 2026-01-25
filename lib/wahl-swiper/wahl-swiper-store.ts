@@ -1,14 +1,14 @@
+import { immer } from 'zustand/middleware/immer';
 import { createStore } from 'zustand/vanilla';
+import { saveSwiperHistory } from './actions/save-swiper-history';
+import { setSwiperInput } from './actions/set-swiper-input';
+import { addUserMessage } from './actions/swiper-add-user-message';
+import { swiperRemoveCard } from './actions/swiper-remove-card';
+import { swiperSetIsLoadingMessage } from './actions/swiper-set-is-loading-message';
 import type {
   WahlSwiperStore,
   WahlSwiperStoreState,
 } from './wahl-swiper-store.types';
-import { immer } from 'zustand/middleware/immer';
-import { addUserMessage } from './actions/swiper-add-user-message';
-import { swiperRemoveCard } from './actions/swiper-remove-card';
-import { setSwiperInput } from './actions/set-swiper-input';
-import { swiperSetIsLoadingMessage } from './actions/swiper-set-is-loading-message';
-import { saveSwiperHistory } from './actions/save-swiper-history';
 
 export const SURVEY_BANNER_MIN_MESSAGE_COUNT = 8;
 export const SWIPER_DEFAULT_QUICK_REPLIES = [

@@ -1,9 +1,9 @@
+import { socialMediaConfig } from '@/lib/contact-config';
+import { MailIcon } from 'lucide-react';
+import Link from 'next/link';
 import InstagramIcon from './instagram-icon';
 import LinkedInIcon from './linkedin-icon';
 import XIcon from './x-icon';
-import Link from 'next/link';
-import { MailIcon } from 'lucide-react';
-import { socialMediaConfig } from '@/lib/contact-config';
 
 type Props = {
   type: keyof typeof socialMediaConfig;

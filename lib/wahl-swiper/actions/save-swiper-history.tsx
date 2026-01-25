@@ -21,7 +21,7 @@ export const saveSwiperHistory: WahlSwiperStoreActionHandlerFor<
 
       return acc;
     },
-    {} as Record<string, SwiperMessage[]>
+    {} as Record<string, SwiperMessage[]>,
   );
 
   return saveWahlSwiperHistory(userId, history, normalizedMessageHistory);

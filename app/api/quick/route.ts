@@ -1,7 +1,7 @@
 'use server';
 
 import { track } from '@vercel/analytics/server';
-import { NextResponse, type NextRequest } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   const tenantId = request.nextUrl.searchParams.get('tenant_id');

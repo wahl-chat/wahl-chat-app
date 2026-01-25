@@ -1,7 +1,4 @@
-import type {
-  GroupedMessage,
-  MessageItem,
-} from '@/lib/stores/chat-store.types';
+import { useChatStore } from '@/components/providers/chat-store-provider';
 import {
   Carousel,
   CarouselContent,
@@ -9,14 +6,17 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import type { PartyDetails } from '@/lib/party-details';
+import { buildCarouselContainerId } from '@/lib/scroll-constants';
+import type {
+  GroupedMessage,
+  MessageItem,
+} from '@/lib/stores/chat-store.types';
 import AutoHeight from 'embla-carousel-auto-height';
 import ChatGroupSlideCounter from './chat-group-slide-counter';
-import { buildCarouselContainerId } from '@/lib/scroll-constants';
 import ChatSingleMessage from './chat-single-message';
 import MessageLoadingBorderTrail from './message-loading-border-trail';
-import { useChatStore } from '@/components/providers/chat-store-provider';
 import SurveyBanner from './survey-banner';
-import type { PartyDetails } from '@/lib/party-details';
 
 type Props = {
   message: GroupedMessage;
@@ -29,7 +29,7 @@ function ChatGroupedMessages({ message, isLastMessage, parties }: Props) {
   const isLoadingAnyAction = useChatStore(
     (state) =>
       state.loading.proConPerspective === message.id ||
-      state.loading.votingBehaviorSummary === message.id
+      state.loading.votingBehaviorSummary === message.id,
   );
 
   if (message.messages.length === 1) {
@@ -38,7 +38,7 @@ function ChatGroupedMessages({ message, isLastMessage, parties }: Props) {
         message={message.messages[0]}
         partyId={message.messages[0].party_id}
         party={parties?.find(
-          (p) => p.party_id === message.messages[0].party_id
+          (p) => p.party_id === message.messages[0].party_id,
         )}
         isLastMessage={isLastMessage}
       />

@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useCarousel } from '@/components/ui/carousel';
-import Image from 'next/image';
-import type { PartyDetails } from '@/lib/party-details';
 import { Button } from '@/components/ui/button';
+import { useCarousel } from '@/components/ui/carousel';
+import type { PartyDetails } from '@/lib/party-details';
 import { scrollToCarouselContainerBottom } from '@/lib/scroll-utils';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
+import Image from 'next/image';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Props = {
   parties: PartyDetails[];
@@ -45,7 +45,7 @@ function ChatGroupSlideCounter({ parties, containerId }: Props) {
 
       api.scrollTo(index);
     },
-    [api]
+    [api],
   );
 
   return (
@@ -56,7 +56,7 @@ function ChatGroupSlideCounter({ parties, containerId }: Props) {
           className={cn(
             'size-5 rounded-full bg-zinc-300 overflow-hidden flex items-center justify-center hover:bg-zinc-300 transition-all duration-300 relative',
             selectedIndex === index &&
-              'ring-2 ring-zinc-900 dark:ring-zinc-100 ring-offset-2'
+              'ring-2 ring-zinc-900 dark:ring-zinc-100 ring-offset-2',
           )}
           style={{
             background: party.background_color,

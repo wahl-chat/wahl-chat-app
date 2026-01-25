@@ -1,7 +1,7 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
 import type { Tenant } from '@/lib/firebase/firebase.types';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 type Props = {
   tenant?: Tenant;

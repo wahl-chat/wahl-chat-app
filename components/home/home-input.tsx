@@ -1,14 +1,14 @@
 'use client';
 
-import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import DynamicRateLimitStickyInput from '@/components/dynamic-rate-limit-sticky-input';
 import type {
   LlmSystemStatus,
   ProposedQuestion,
 } from '@/lib/firebase/firebase.types';
+import { cn } from '@/lib/utils';
 import { track } from '@vercel/analytics/react';
-import DynamicRateLimitStickyInput from '@/components/dynamic-rate-limit-sticky-input';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 type Props = {
   questions: ProposedQuestion[];

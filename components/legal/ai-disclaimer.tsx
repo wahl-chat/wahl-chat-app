@@ -1,20 +1,20 @@
 import {
-  AlertCircleIcon,
-  AlertTriangleIcon,
-  CpuIcon,
-  GitBranch,
-} from 'lucide-react';
-import {
   ResponsiveDialog,
   ResponsiveDialogContent,
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
   ResponsiveDialogTrigger,
 } from '@/components/chat/responsive-drawer-dialog';
+import {
+  AlertCircleIcon,
+  AlertTriangleIcon,
+  CpuIcon,
+  GitBranch,
+} from 'lucide-react';
 
 function AiDisclaimerContent() {
   return (
-    <div className="px-4 pb-4 md:px-0 md:pb-0 text-sm text-foreground">
+    <div className="px-4 pb-4 text-sm text-foreground md:px-0 md:pb-0">
       <p>
         Die Antworten auf wahl.chat werden von einer{' '}
         <span className="font-semibold">künstlichen Intelligenz</span>{' '}

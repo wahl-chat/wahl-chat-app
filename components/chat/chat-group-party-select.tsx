@@ -1,3 +1,4 @@
+import ChatGroupPartySelectContent from './chat-group-party-select-content';
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -6,7 +7,6 @@ import {
   ResponsiveDialogTitle,
   ResponsiveDialogTrigger,
 } from './responsive-drawer-dialog';
-import ChatGroupPartySelectContent from './chat-group-party-select-content';
 
 type Props = {
   children: React.ReactNode;

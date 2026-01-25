@@ -1,7 +1,7 @@
 'use server';
 
 import { track } from '@vercel/analytics/server';
-import { NextResponse, type NextRequest } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 const SPECIAL_TENANT_ID = 'special-tenant-id';
 

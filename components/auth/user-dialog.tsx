@@ -1,3 +1,4 @@
+import { useAnonymousAuth } from '@/components/anonymous-auth';
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -7,14 +8,13 @@ import {
   ResponsiveDialogTitle,
   ResponsiveDialogTrigger,
 } from '@/components/chat/responsive-drawer-dialog';
-import { useState } from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { useAnonymousAuth } from '@/components/anonymous-auth';
 import { Button } from '@/components/ui/button';
-import { LogOutIcon } from 'lucide-react';
-import { getAuth, signOut } from 'firebase/auth';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import type { UserDetails } from '@/lib/utils';
+import { getAuth, signOut } from 'firebase/auth';
+import { LogOutIcon } from 'lucide-react';
+import { useState } from 'react';
 
 type Props = {
   children: React.ReactNode;

@@ -1,19 +1,19 @@
+import ChatGroupPartySelect from '@/components/chat/chat-group-party-select';
 import ContactCard from '@/components/home/contact-card';
+import HomeInput from '@/components/home/home-input';
+import HomePartyCards from '@/components/home/home-party-cards';
+import HowToCard from '@/components/home/how-to-card';
+import KnownFrom from '@/components/home/known-from';
 import SupportUsCard from '@/components/home/support-us-card';
+import SwiperTeaserCard from '@/components/home/swiper-teaser-card';
+import { Button } from '@/components/ui/button';
 import {
   getHomeInputProposedQuestions,
   getSystemStatus,
   getUser,
 } from '@/lib/firebase/firebase-server';
-import HomeInput from '@/components/home/home-input';
-import { Button } from '@/components/ui/button';
-import { GitCompareIcon, MousePointerClickIcon } from 'lucide-react';
-import ChatGroupPartySelect from '@/components/chat/chat-group-party-select';
-import KnownFrom from '@/components/home/known-from';
-import HowToCard from '@/components/home/how-to-card';
-import HomePartyCards from '@/components/home/home-party-cards';
 import { IS_EMBEDDED } from '@/lib/utils';
-import SwiperTeaserCard from '@/components/home/swiper-teaser-card';
+import { GitCompareIcon, MousePointerClickIcon } from 'lucide-react';
 
 export default async function Home() {
   const wahlChatQuestions = await getHomeInputProposedQuestions();

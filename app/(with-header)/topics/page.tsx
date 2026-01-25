@@ -15,7 +15,7 @@ async function TopicsPage() {
   const allParties = await getParties();
   const partiesToUse = ['spd', 'cdu', 'gruene', 'afd'];
   const parties = allParties.filter((party) =>
-    partiesToUse.includes(party.party_id)
+    partiesToUse.includes(party.party_id),
   );
 
   return (

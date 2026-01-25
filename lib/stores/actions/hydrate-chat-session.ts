@@ -1,7 +1,7 @@
-import { toast } from 'sonner';
-import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
 import { chatViewScrollToBottom } from '@/lib/scroll-utils';
+import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
 import { areSetsEqual, generateUuid } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export const hydrateChatSession: ChatStoreActionHandlerFor<
   'hydrateChatSession'

@@ -9,7 +9,7 @@ type Props = {
 
 function CurrentStreamingMessage({ partyId }: Props) {
   const messageId = useChatStore(
-    (state) => state.currentStreamingMessages?.messages[partyId].id
+    (state) => state.currentStreamingMessages?.messages[partyId].id,
   );
 
   if (!messageId) {

@@ -6,9 +6,9 @@ import {
   updateUser as updateUserFirebase,
 } from '@/lib/firebase/firebase';
 import {
-  signInAnonymously,
-  type UserMetadata,
   type UserInfo,
+  type UserMetadata,
+  signInAnonymously,
 } from 'firebase/auth';
 import type { Timestamp } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useState } from 'react';
@@ -108,7 +108,7 @@ export function AnonymousAuthProvider({
             ...currUser,
             ...user,
           }
-        : null
+        : null,
     );
 
     if (user) await fetchUser(user.uid);
@@ -121,7 +121,7 @@ export function AnonymousAuthProvider({
       console.error(error);
 
       toast.error(
-        'Es ist ein Fehler aufgetreten. Bitte lade die Seite erneut.'
+        'Es ist ein Fehler aufgetreten. Bitte lade die Seite erneut.',
       );
     }
   }

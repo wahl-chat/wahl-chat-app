@@ -10,7 +10,7 @@ function ContactCard() {
             Finde uns auf Social Media oder kontaktiere uns per E-Mail.
           </p>
         </div>
-        <div className="flex flex-row gap-3 items-center mt-4">
+        <div className="mt-4 flex flex-row items-center gap-3">
           <HomeSocialMediaIcon type="instagram" />
           <HomeSocialMediaIcon type="linkedin" />
           <HomeSocialMediaIcon type="email" />

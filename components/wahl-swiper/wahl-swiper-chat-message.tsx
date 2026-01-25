@@ -1,7 +1,7 @@
-import { cn, prettifiedUrlName } from '@/lib/utils';
-import type { SwiperMessage } from '@/lib/wahl-swiper/wahl-swiper-store.types';
 import { ChatMessageIcon } from '@/components/chat/chat-message-icon';
 import { Markdown } from '@/components/markdown';
+import { cn, prettifiedUrlName } from '@/lib/utils';
+import type { SwiperMessage } from '@/lib/wahl-swiper/wahl-swiper-store.types';
 
 type Props = {
   message: SwiperMessage;
@@ -50,7 +50,7 @@ function WahlSwiperChatMessage({ message }: Props) {
       <article
         className={cn(
           'flex w-fit max-w-[95%] rounded-[20px] text-foreground gap-3 md:gap-4',
-          'self-start'
+          'self-start',
         )}
       >
         <ChatMessageIcon />

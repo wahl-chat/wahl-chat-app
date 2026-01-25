@@ -2,12 +2,12 @@
 
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import { useChatStore } from '@/components/providers/chat-store-provider';
-import type { PartyDetails } from '@/lib/party-details';
-import Image from 'next/image';
-import InitialSuggestionBubble from './initial-suggestion-bubble';
-import GroupChatEmptyView from './group-chat-empty-view';
 import type { ProposedQuestion } from '@/lib/firebase/firebase.types';
+import type { PartyDetails } from '@/lib/party-details';
 import { buildPartyImageUrl } from '@/lib/utils';
+import Image from 'next/image';
+import GroupChatEmptyView from './group-chat-empty-view';
+import InitialSuggestionBubble from './initial-suggestion-bubble';
 import Logo from './logo';
 
 type Props = {

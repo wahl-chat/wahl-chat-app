@@ -1,15 +1,15 @@
 import { useChatStore } from '@/components/providers/chat-store-provider';
+import type { PartyDetails } from '@/lib/party-details';
+import type { MessageItem } from '@/lib/stores/chat-store.types';
+import { cn } from '@/lib/utils';
+import ChatMarkdown from './chat-markdown';
 import { ChatMessageIcon } from './chat-message-icon';
 import ChatProConExpandable from './chat-pro-con-expandable';
-import type { MessageItem } from '@/lib/stores/chat-store.types';
-import ChatMarkdown from './chat-markdown';
 import ChatSingleMessageActions from './chat-single-message-actions';
-import { cn } from '@/lib/utils';
+import ChatSingleUserMessage from './chat-single-user-message';
 import ChatVotingBehaviorExpandable from './chat-voting-behavior-expandable';
 import MessageLoadingBorderTrail from './message-loading-border-trail';
-import ChatSingleUserMessage from './chat-single-user-message';
 import SurveyBanner from './survey-banner';
-import type { PartyDetails } from '@/lib/party-details';
 
 type Props = {
   message: MessageItem;
@@ -33,7 +33,7 @@ function ChatSingleMessage({
   const isLoadingAnyAction = useChatStore(
     (state) =>
       state.loading.proConPerspective === message.id ||
-      state.loading.votingBehaviorSummary === message.id
+      state.loading.votingBehaviorSummary === message.id,
   );
 
   const shouldHaveBackground =
@@ -65,7 +65,7 @@ function ChatSingleMessage({
           shouldHaveBackground && 'bg-zinc-100 dark:bg-zinc-900 group',
           !isGroupChat &&
             shouldHaveBackground &&
-            'border border-muted p-3 md:p-4 rounded-lg'
+            'border border-muted p-3 md:p-4 rounded-lg',
         )}
         data-has-message-background={Boolean(shouldHaveBackground)}
       >

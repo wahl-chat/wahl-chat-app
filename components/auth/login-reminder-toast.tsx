@@ -1,20 +1,20 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { useAnonymousAuth } from '@/components/anonymous-auth';
-import { toast } from 'sonner';
-import { UserIcon, XIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
 } from '@/components/chat/responsive-drawer-dialog';
-import LoginForm from './login-form';
+import { Button } from '@/components/ui/button';
 import { FilloutPopupEmbed } from '@fillout/react';
+import { UserIcon, XIcon } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import LoginForm from './login-form';
 import '@fillout/react/style.css';
-import { Timestamp } from 'firebase/firestore';
-import { firestoreTimestampToDate } from '@/lib/utils';
 import Logo from '@/components/chat/logo';
+import { firestoreTimestampToDate } from '@/lib/utils';
+import { Timestamp } from 'firebase/firestore';
 import { usePathname } from 'next/navigation';
 
 const LOGIN_REMINDER_TOAST_ID = 'login-reminder-toast';
@@ -37,7 +37,7 @@ function LoginReminderToast() {
     }
 
     const clickedAway = firestoreTimestampToDate(
-      user.clicked_away_login_reminder
+      user.clicked_away_login_reminder,
     );
 
     if (clickedAway) {
@@ -126,7 +126,7 @@ function LoginReminderToast() {
           position: 'bottom-right',
           id: LOGIN_REMINDER_TOAST_ID,
           onDismiss: handleClickedAway,
-        }
+        },
       );
     }, timeout);
 

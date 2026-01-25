@@ -1,6 +1,6 @@
 import Logo from '@/components/chat/logo';
-import { ArrowRightIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ArrowRightIcon } from 'lucide-react';
 import Link from 'next/link';
 import WahlSwiperTeaserVector from './wahl-swiper-teaser-vector';
 

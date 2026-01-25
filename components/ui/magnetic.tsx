@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
 import {
+  type SpringOptions,
   motion,
   useMotionValue,
   useSpring,
-  type SpringOptions,
 } from 'motion/react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const SPRING_CONFIG = { stiffness: 26.7, damping: 4.1, mass: 0.2 };
 

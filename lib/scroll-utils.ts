@@ -1,9 +1,9 @@
 'use client';
 
 import {
+  SCROLL_CONTAINER_ID,
   buildProConPerspectiveSeparatorId,
   buildVotingBehaviorSeparatorId,
-  SCROLL_CONTAINER_ID,
 } from './scroll-constants';
 
 export async function chatViewScrollToBottom({

@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import {
   ResponsiveDialog,
   ResponsiveDialogClose,
@@ -10,6 +9,7 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from '@/components/chat/responsive-drawer-dialog';
+import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 
 function WahlSwiperExperimentalDisclaimer() {

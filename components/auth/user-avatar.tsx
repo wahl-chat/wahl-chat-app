@@ -1,7 +1,7 @@
 'use client';
-import { UserIcon } from 'lucide-react';
 import { useAnonymousAuth } from '@/components/anonymous-auth';
-import { getUserDetailsFromUser, type UserDetails } from '@/lib/utils';
+import { type UserDetails, getUserDetailsFromUser } from '@/lib/utils';
+import { UserIcon } from 'lucide-react';
 
 type Props = {
   details?: UserDetails;

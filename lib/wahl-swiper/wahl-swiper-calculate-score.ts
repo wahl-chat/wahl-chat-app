@@ -17,6 +17,11 @@ export async function wahlSwiperCalculateScore(
   );
   const totalQuestions = Object.keys(filteredUserResponses).length;
 
+  // Return empty scores if all questions were skipped
+  if (totalQuestions === 0) {
+    return {};
+  }
+
   for (const thesis of theses) {
     if (!(thesis.id in filteredUserResponses)) continue;
 

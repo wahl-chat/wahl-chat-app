@@ -55,7 +55,7 @@ function OverallVoteChart({ vote }: Props) {
   }, [vote.voting_results.overall]);
 
   return (
-    <section className="flex flex-col items-center justify-center gap-4 flex-1">
+    <section className="flex flex-1 flex-col items-center justify-center gap-4">
       <VoteChart
         voteResults={vote.voting_results.overall}
         memberCount={vote.voting_results.overall.members}

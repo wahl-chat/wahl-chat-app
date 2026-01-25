@@ -4,9 +4,9 @@ import type { Stripe } from 'stripe';
 
 import { headers } from 'next/headers';
 
+import { stripe } from '@/lib/stripe/stripe';
 import { CURRENCY } from '@/lib/stripe/stripe-config';
 import { formatAmountForStripe } from '@/lib/stripe/stripe-helpers';
-import { stripe } from '@/lib/stripe/stripe';
 
 export async function createCheckoutSession(
   data: FormData,

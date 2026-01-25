@@ -1,8 +1,5 @@
 'use client';
 
-import { cn } from '@/lib/utils';
-import { useEffect, useRef, useState } from 'react';
-import WahlSwiperInput from './wahl-swiper-input';
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -10,19 +7,22 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from '@/components/chat/responsive-drawer-dialog';
-import WahlSwiperChat from './wahl-swiper-chat';
-import VisuallyHidden from '@/components/visually-hidden';
 import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
 import { Separator } from '@/components/ui/separator';
+import VisuallyHidden from '@/components/visually-hidden';
+import { cn } from '@/lib/utils';
+import { useEffect, useRef, useState } from 'react';
+import WahlSwiperChat from './wahl-swiper-chat';
+import WahlSwiperInput from './wahl-swiper-input';
 
 function WahlSwiperChatWrapper() {
   const shouldShowChat = useWahlSwiperStore(
-    (state) => state.thesesStack.length > 0
+    (state) => state.thesesStack.length > 0,
   );
   const [isSticky, setIsSticky] = useState(true);
   const chatIsExpanded = useWahlSwiperStore((state) => state.chatIsExpanded);
   const setChatIsExpanded = useWahlSwiperStore(
-    (state) => state.setChatIsExpanded
+    (state) => state.setChatIsExpanded,
   );
   const currentThesis = useWahlSwiperStore((state) => state.getCurrentThesis());
   const ref = useRef<HTMLDivElement>(null);
@@ -34,7 +34,7 @@ function WahlSwiperChatWrapper() {
 
     const observer = new IntersectionObserver(
       ([e]) => setIsSticky(e.intersectionRatio < 1),
-      { threshold: 1 }
+      { threshold: 1 },
     );
 
     observer.observe(cachedRef);
@@ -56,7 +56,7 @@ function WahlSwiperChatWrapper() {
         ref={ref}
         className={cn(
           'sticky bottom-[-1px] -mx-2 mt-6 md:pb-2 pb-4 z-40 transition-all duration-300 ease-out',
-          !isSticky && 'mx-0'
+          !isSticky && 'mx-0',
         )}
       >
         <WahlSwiperInput
