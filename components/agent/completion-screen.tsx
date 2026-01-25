@@ -1,18 +1,14 @@
 'use client';
 
-import { useAgentStore } from '@/components/providers/agent-store-provider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { clearProlificMetadata } from '@/lib/study/prolific-params';
-import { getProlificCompletionCode } from '@/lib/study/prolific-server';
+import {clearProlificMetadata, isProlificStudy} from '@/lib/study/prolific-params';
 import { Heart, PartyPopper } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import CompletionCode from "@/components/prolific-study/completion-code";
 
 export default function CompletionScreen() {
   const [showConfetti, setShowConfetti] = useState(false);
-  const [prolificCompletionCode, setProlificCompletionCode] = useState<
-    string | null
-  >(null);
-  const prolificMetadata = useAgentStore((state) => state.prolificMetadata);
+  const [showCompletionCode, setShowCompletionCode] = useState(false);
 
   useEffect(() => {
     // Trigger confetti animation after mount
@@ -23,13 +19,11 @@ export default function CompletionScreen() {
 
   // Fetch Prolific completion code and clear metadata
   useEffect(() => {
-    if (prolificMetadata) {
-      getProlificCompletionCode().then((code) => {
-        setProlificCompletionCode(code);
+    if (isProlificStudy()) {
+        setShowCompletionCode(true);
         clearProlificMetadata();
-      });
     }
-  }, [prolificMetadata]);
+  }, []);
 
   return (
     <div className="flex flex-col items-center p-4 py-8">
@@ -66,22 +60,8 @@ export default function CompletionScreen() {
           )}
         </div>
 
-        {/* Prolific Completion Code */}
-        {prolificCompletionCode && (
-          <div className="rounded-lg border-2 border-green-500 bg-green-50 p-4 dark:bg-green-950">
-            <h2 className="text-lg font-bold text-green-800 dark:text-green-200">
-              Studie abgeschlossen!
-            </h2>
-            <p className="mt-1 text-sm text-green-700 dark:text-green-300">
-              Bitte kopiere den folgenden Code, um die Studie auf Prolific
-              abzuschliessen:
-            </p>
-            <div className="mt-3 flex items-center gap-2">
-              <code className="flex-1 rounded-md bg-white px-4 py-2 text-center font-mono text-lg font-bold text-green-900 dark:bg-green-900 dark:text-green-100">
-                {prolificCompletionCode}
-              </code>
-            </div>
-          </div>
+        {showCompletionCode && (
+         <CompletionCode/>
         )}
 
         {/* Thank You Card */}

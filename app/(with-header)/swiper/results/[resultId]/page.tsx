@@ -4,7 +4,6 @@ import {
   getParties,
   getWahlSwiperHistory,
 } from '@/lib/firebase/firebase-server';
-import { getProlificCompletionCode } from '@/lib/study/prolific-server';
 import { getUserDetailsFromUser } from '@/lib/utils';
 import { wahlSwiperCalculateScore } from '@/lib/wahl-swiper/wahl-swiper-calculate-score';
 import { notFound, redirect } from 'next/navigation';
@@ -31,11 +30,6 @@ async function WahlSwiperResultsPage({ params }: Props) {
   const parties = await getParties();
   const userDetails = user ? getUserDetailsFromUser(user) : undefined;
 
-  // Get Prolific completion code if this is a study participant
-  const prolificCompletionCode = history.is_prolific_study
-    ? await getProlificCompletionCode()
-    : null;
-
   return (
     <WahlSwiperResult
       resultId={resultId}
@@ -43,7 +37,6 @@ async function WahlSwiperResultsPage({ params }: Props) {
       parties={parties}
       userDetails={userDetails}
       isProlificStudy={history.is_prolific_study ?? false}
-      prolificCompletionCode={prolificCompletionCode}
     />
   );
 }

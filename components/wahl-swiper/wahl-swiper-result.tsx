@@ -13,6 +13,7 @@ import { useEffect } from 'react';
 import WahlSwiperPartyResultCard from './wahl-swiper-party-result-card';
 import WahlSwiperShareButton from './wahl-swiper-share-button';
 import WahlSwiperSurveyLoginCard from './wahl-swiper-survey-login-card';
+import CompletionCode from "@/components/prolific-study/completion-code";
 
 type Props = {
   resultId: string;
@@ -29,14 +30,12 @@ function WahlSwiperResult({
   parties,
   userDetails,
   isProlificStudy,
-  prolificCompletionCode,
 }: Props) {
   const sortedScores = Object.entries(scores).sort(
     ([, score], [, otherScore]) => otherScore.score - score.score,
   );
   const hasValidScores = sortedScores.length > 0;
 
-  // Clear Prolific metadata after study completion so user can restart with regular version
   useEffect(() => {
     if (isProlificStudy) {
       clearProlificMetadata();
@@ -45,32 +44,8 @@ function WahlSwiperResult({
 
   return (
     <div className="relative mx-auto mt-4 flex w-full flex-col gap-4">
-      {isProlificStudy && prolificCompletionCode && (
-        <div className="rounded-lg border-2 border-green-500 bg-green-50 p-4 dark:bg-green-950">
-          <h2 className="text-lg font-bold text-green-800 dark:text-green-200">
-            Studie abgeschlossen!
-          </h2>
-          <p className="mt-1 text-sm text-green-700 dark:text-green-300">
-            Vielen Dank für deine Teilnahme. Bitte kopiere den folgenden Code,
-            um die Studie auf Prolific abzuschliessen:
-          </p>
-          <div className="mt-3 flex items-center gap-2">
-            <code className="flex-1 rounded-md bg-white px-4 py-2 font-mono text-lg font-bold text-green-900 dark:bg-green-900 dark:text-green-100">
-              {prolificCompletionCode}
-            </code>
-          </div>
-        </div>
-      )}
-      {isProlificStudy && !prolificCompletionCode && (
-        <div className="rounded-lg border-2 border-yellow-500 bg-yellow-50 p-4 dark:bg-yellow-950">
-          <h2 className="text-lg font-bold text-yellow-800 dark:text-yellow-200">
-            Studie abgeschlossen!
-          </h2>
-          <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
-            Vielen Dank für deine Teilnahme. Der Abschlusscode ist leider nicht
-            verfügbar. Bitte kontaktiere den Studienverantwortlichen.
-          </p>
-        </div>
+      {isProlificStudy && (
+          <CompletionCode/>
       )}
 
       <div className="flex flex-col">

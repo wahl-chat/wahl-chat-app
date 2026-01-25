@@ -3,16 +3,12 @@
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
-  ResponsiveDialogDescription,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
 } from '@/components/chat/responsive-drawer-dialog';
 import { useChatStore } from '@/components/providers/chat-store-provider';
-import { Button } from '@/components/ui/button';
 import { getProlificCompletionCode } from '@/lib/study/prolific-server';
-import { Check, Copy, Gift } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { Gift } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import CompletionCode from "@/components/prolific-study/completion-code";
 
 type Props = {
   minInteractions: number;
@@ -24,7 +20,6 @@ function ChatProlificCompletion({ minInteractions }: Props) {
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [completionCode, setCompletionCode] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   const isEligible = prolificMessageCount >= minInteractions;
 
@@ -33,14 +28,6 @@ function ChatProlificCompletion({ minInteractions }: Props) {
       getProlificCompletionCode().then(setCompletionCode);
     }
   }, [isEligible, completionCode]);
-
-  const handleCopy = useCallback(async () => {
-    if (!completionCode) return;
-    await navigator.clipboard.writeText(completionCode);
-    setCopied(true);
-    toast.success('Code in die Zwischenablage kopiert!');
-    setTimeout(() => setCopied(false), 2000);
-  }, [completionCode]);
 
   if (!isEligible) {
     return null;
@@ -66,38 +53,7 @@ function ChatProlificCompletion({ minInteractions }: Props) {
 
       <ResponsiveDialog open={modalOpen} onOpenChange={setModalOpen}>
         <ResponsiveDialogContent>
-          <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>
-              Vielen Dank für deine Teilnahme!
-            </ResponsiveDialogTitle>
-            <ResponsiveDialogDescription>
-              Kopiere den folgenden Code, um die Studie auf Prolific
-              abzuschliessen.
-            </ResponsiveDialogDescription>
-          </ResponsiveDialogHeader>
-          <div className="px-4 md:px-0">
-            <div className="flex items-center gap-2">
-              <code className="flex-1 rounded-md bg-muted px-4 py-3 font-mono text-lg font-bold">
-                {completionCode ?? 'Laden...'}
-              </code>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleCopy}
-                disabled={!completionCode}
-              >
-                {copied ? (
-                  <Check className="size-4 text-green-600" />
-                ) : (
-                  <Copy className="size-4" />
-                )}
-              </Button>
-            </div>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Du kannst diesen Tab jetzt schliessen und den Code auf Prolific
-              eingeben.
-            </p>
-          </div>
+          <CompletionCode/>
         </ResponsiveDialogContent>
       </ResponsiveDialog>
     </>
