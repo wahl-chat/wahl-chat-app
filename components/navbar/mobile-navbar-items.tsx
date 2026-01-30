@@ -3,7 +3,6 @@ import UserAvatar from '@/components/auth/user-avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type UserDetails, cn } from '@/lib/utils';
-import { SparklesIcon } from 'lucide-react';
 import type { NavbarItemDetails } from './navbar-item';
 import NavbarItem from './navbar-item';
 
@@ -22,12 +21,12 @@ function MobileNavbarItems({ userDetails, mobileClose }: Props) {
       label: 'Anleitung',
       href: '/how-to',
     },
-    {
-      label: 'Wahl Swiper',
-      href: '/swiper',
-      highlight: true,
-      icon: <SparklesIcon className="size-3" />,
-    },
+    // {
+    //   label: 'Wahl Swiper',
+    //   href: '/swiper',    
+    //   highlight: true,
+    //   icon: <SparklesIcon className="size-3" />,
+    // },
     {
       label: 'Unterstütze uns',
       href: '/donate',

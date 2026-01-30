@@ -5,7 +5,6 @@ import Link from 'next/link';
 import EmbedOpenWebsiteButton from './embed-open-website-button';
 import MobileNavbar from './navbar/mobile-navbar';
 import NavBar from './navbar/navbar';
-import WahlSwiperTeaserTag from './wahl-swiper/wahl-swiper-teaser-tag';
 
 async function Header() {
   const user = await getCurrentUser();
@@ -18,12 +17,10 @@ async function Header() {
           <Logo className="size-12 md:size-16" />
         </Link>
 
-        {IS_EMBEDDED ? (
+        {IS_EMBEDDED && (
           <div className="absolute inset-0 flex items-center justify-center md:hidden">
             <EmbedOpenWebsiteButton />
           </div>
-        ) : (
-          <WahlSwiperTeaserTag />
         )}
 
         <MobileNavbar userDetails={userDetails} />
