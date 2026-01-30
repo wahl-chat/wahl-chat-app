@@ -30,7 +30,6 @@ import { Suspense } from 'react';
 import ChatSidebarGroupSelect from './chat-sidebar-group-select';
 import SidebarHistorySr from './sidebar-history-sr';
 import SidebarNewChatButtons from './sidebar-new-chat-buttons';
-import SidebarSwiperTeaser from './sidebar-swiper-teaser';
 
 async function ChatSidebar() {
   const user = await getCurrentUser();
@@ -62,11 +61,11 @@ async function ChatSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
+        {/* <SidebarGroup>
           <SidebarGroupContent>
             <SidebarSwiperTeaser />
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup> */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarGroupLabel>Neuer Chat</SidebarGroupLabel>

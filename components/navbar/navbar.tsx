@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { getCurrentUser } from '@/lib/firebase/firebase-server';
 import { IS_EMBEDDED, cn, getUserDetailsFromUser } from '@/lib/utils';
-import { SparklesIcon } from 'lucide-react';
 import type { NavbarItemDetails } from './navbar-item';
 import NavbarItem from './navbar-item';
 
@@ -19,12 +18,12 @@ export default async function NavBar({ className }: Props) {
       label: 'Startseite',
       href: '/',
     },
-    {
-      label: 'Wahl Swiper',
-      href: '/swiper',
-      highlight: true,
-      icon: <SparklesIcon className="size-3" />,
-    },
+    // {
+    //   label: 'Wahl Swiper',
+    //   href: '/swiper',
+    //   highlight: true,
+    //   icon: <SparklesIcon className="size-3" />,
+    // },
     {
       label: 'Anleitung',
       href: '/how-to',

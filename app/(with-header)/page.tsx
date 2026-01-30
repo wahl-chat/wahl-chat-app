@@ -5,7 +5,6 @@ import HomePartyCards from '@/components/home/home-party-cards';
 import HowToCard from '@/components/home/how-to-card';
 import KnownFrom from '@/components/home/known-from';
 import SupportUsCard from '@/components/home/support-us-card';
-import SwiperTeaserCard from '@/components/home/swiper-teaser-card';
 import { Button } from '@/components/ui/button';
 import {
   getHomeInputProposedQuestions,
@@ -60,7 +59,7 @@ export default async function Home() {
         </section>
       ) : (
         <section className="grid w-full grid-cols-1 flex-wrap gap-2 md:grid-cols-2 md:gap-2">
-          <SwiperTeaserCard />
+          {/* <SwiperTeaserCard /> */}
           {/* <TvTeaserCard /> */}
           <SupportUsCard />
           <HowToCard />

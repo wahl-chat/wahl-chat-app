@@ -27,7 +27,7 @@ const NonMemoizedMarkdown = ({
   // and causes TypeScript errors when spreading props to elements like Link or pre.
   const cleanProps = (props: Record<string, unknown>) => {
     const rest = { ...props };
-    delete rest.node;
+    rest.node = undefined;
     return rest;
   };
 
@@ -39,11 +39,11 @@ const NonMemoizedMarkdown = ({
     }: DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>,
   ) {
     const buildReference = (children: string) => {
-      const parts = children.split(/(\[\d+(?:\s*,\s*\d+)*\])/g);
+      const parts = children.split(/(\[\d+(?:\s*,\s*\d+)*])/g);
 
       if (parts.length > 1) {
         return parts.map((part, index) => {
-          const match = part.match(/^\[(\d+(?:\s*,\s*\d+)*)\]$/);
+          const match = part.match(/^\[(\d+(?:\s*,\s*\d+)*)]$/);
           if (match) {
             const numbers = match[1].split(',');
             return (
