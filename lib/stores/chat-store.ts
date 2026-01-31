@@ -19,6 +19,7 @@ import { loadChatSession } from './actions/load-chat-session';
 import { mergeStreamingChunkPayloadForMessage } from './actions/merge-streaming-chunk-payload-for-message';
 import { newChat } from './actions/new-chat';
 import { selectRespondingParties } from './actions/select-responding-parties';
+import { sendVoiceMessage } from './actions/send-voice-message';
 import { setChatSessionId } from './actions/set-chat-session-id';
 import { setChatSessionIsPublic } from './actions/set-chat-session-is-public';
 import { setInput } from './actions/set-input';
@@ -31,7 +32,19 @@ import { setSocketConnecting } from './actions/set-socket-connecting';
 import { setSocketError } from './actions/set-socket-error';
 import { startTimeoutForStreamingMessages } from './actions/start-timeout-for-streaming-messages';
 import { streamingMessageSourcesReady } from './actions/streaming-message-sources-ready';
+import {
+  requestTextToSpeech,
+  setTtsError,
+  setTtsIdle,
+  setTtsPlaying,
+  setTtsReady,
+} from './actions/tts-actions';
 import { updateQuickRepliesAndTitleForCurrentStreamingMessage } from './actions/update-quick-replies-and-title-for-current-streaming-message';
+import {
+  setVoiceTranscribed,
+  setVoiceTranscriptionError,
+  setVoiceTranscriptionPending,
+} from './actions/voice-transcription-actions';
 import type { ChatStore, ChatStoreState } from './chat-store.types';
 
 export const SURVEY_BANNER_MIN_MESSAGE_COUNT = 8;
@@ -62,6 +75,7 @@ const defaultState: ChatStoreState = {
   socket: {},
   currentStreamingMessages: undefined,
   tenant: undefined,
+  ttsState: {},
 };
 
 export function createChatStore(initialState?: Partial<ChatStore>) {
@@ -107,6 +121,15 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
         completeVotingBehavior: completeVotingBehavior(get, set),
         setPartyIds: setPartyIds(get, set),
         getLLMSize: () => get().tenant?.llm_size ?? DEFAULT_LLM_SIZE,
+        sendVoiceMessage: sendVoiceMessage(get, set),
+        requestTextToSpeech: requestTextToSpeech(get, set),
+        setTtsReady: setTtsReady(get, set),
+        setTtsError: setTtsError(get, set),
+        setTtsPlaying: setTtsPlaying(get, set),
+        setTtsIdle: setTtsIdle(get, set),
+        setVoiceTranscriptionPending: setVoiceTranscriptionPending(get, set),
+        setVoiceTranscribed: setVoiceTranscribed(get, set),
+        setVoiceTranscriptionError: setVoiceTranscriptionError(get, set),
       })),
     ),
   );

@@ -9,6 +9,8 @@ import type {
   QuickRepliesAndTitleReadyPayload,
   RespondingPartiesSelectedPayload,
   SourcesReadyPayload,
+  TextToSpeechCompletePayload,
+  VoiceTranscribedPayload,
   VotingBehaviorCompletePayload,
   VotingBehaviorResultPayload,
   VotingBehaviorSummaryChunkPayload,
@@ -62,6 +64,11 @@ function SocketProvider({ children }: Props) {
   const completeVotingBehavior = useChatStore(
     (state) => state.completeVotingBehavior,
   );
+  const setTtsReady = useChatStore((state) => state.setTtsReady);
+  const setTtsError = useChatStore((state) => state.setTtsError);
+  const setVoiceTranscribed = useChatStore(
+    (state) => state.setVoiceTranscribed,
+  );
 
   useEffect(() => {
     setSocket(chatSocket);
@@ -105,6 +112,7 @@ function SocketProvider({ children }: Props) {
         data.session_id,
         data.party_id,
         data.complete_message,
+        data.message_id,
       );
     }
 
@@ -144,6 +152,22 @@ function SocketProvider({ children }: Props) {
       completeVotingBehavior(data.request_id, data.votes, data.message);
     }
 
+    function onTextToSpeechComplete(data: TextToSpeechCompletePayload) {
+      if (data.status.indicator === 'success') {
+        setTtsReady(data.party_id, data.message_id, data.audio_base64);
+      } else {
+        setTtsError(data.party_id, data.message_id, data.status.message);
+      }
+    }
+
+    function onVoiceTranscribed(data: VoiceTranscribedPayload) {
+      setVoiceTranscribed(
+        data.grouped_message_id,
+        data.message_id,
+        data.transcribed_text,
+      );
+    }
+
     chatSocket.on('connect', onConnect);
     chatSocket.on('disconnect', onDisconnect);
     chatSocket.on('responding_parties_selected', onRespondingPartiesSelected);
@@ -159,6 +183,8 @@ function SocketProvider({ children }: Props) {
     );
     chatSocket.on('voting_behavior_result', onVotingBehaviorResult);
     chatSocket.on('voting_behavior_complete', onVotingBehaviorComplete);
+    chatSocket.on('text_to_speech_complete', onTextToSpeechComplete);
+    chatSocket.on('voice_transcribed', onVoiceTranscribed);
 
     return () => {
       chatSocket.off('connect', onConnect);
@@ -182,6 +208,8 @@ function SocketProvider({ children }: Props) {
       );
       chatSocket.off('voting_behavior_result', onVotingBehaviorResult);
       chatSocket.off('voting_behavior_complete', onVotingBehaviorComplete);
+      chatSocket.off('text_to_speech_complete', onTextToSpeechComplete);
+      chatSocket.off('voice_transcribed', onVoiceTranscribed);
     };
   }, [
     selectRespondingParties,
@@ -195,6 +223,10 @@ function SocketProvider({ children }: Props) {
     initializedChatSession,
     addVotingBehaviorSummaryChunk,
     addVotingBehaviorResult,
+    completeVotingBehavior,
+    setTtsReady,
+    setTtsError,
+    setVoiceTranscribed,
   ]);
 
   return <>{children}</>;

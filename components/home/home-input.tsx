@@ -10,6 +10,8 @@ import { track } from '@vercel/analytics/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+export const PENDING_VOICE_MESSAGE_KEY = 'pendingVoiceMessage';
+
 type Props = {
   questions: ProposedQuestion[];
   className?: string;
@@ -37,10 +39,23 @@ function HomeInput({
     router.push(`/session?q=${question}`);
   };
 
+  const handleVoiceMessage = (audioBytes: Uint8Array) => {
+    setIsLoading(true);
+
+    track('home_voice_input_used');
+
+    // Store voice message in sessionStorage for the chat page to pick up
+    // Convert to base64 since sessionStorage only accepts strings
+    const base64 = btoa(String.fromCharCode(...audioBytes));
+    sessionStorage.setItem(PENDING_VOICE_MESSAGE_KEY, base64);
+    router.push('/session?voice=1');
+  };
+
   return (
     <DynamicRateLimitStickyInput
       isLoading={isLoading}
       onSubmit={pushLink}
+      onVoiceMessage={handleVoiceMessage}
       quickReplies={questions.map((question) => question.content)}
       initialSystemStatus={initialSystemStatus}
       hasValidServerUser={hasValidServerUser}

@@ -8,6 +8,7 @@ type Props = {
     session_id?: string;
     party_id: string[] | string | undefined;
     q?: string;
+    voice?: string;
   }>;
 };
 
@@ -25,20 +26,26 @@ export async function generateMetadata({
     !party_id ||
     (Array.isArray(party_id) && (party_id.length === 0 || party_id.length > 1))
   ) {
-    return;
+    return {};
   }
 
   const partyId = Array.isArray(party_id) ? party_id[0] : party_id;
 
+  const imageUrl = await generateOgImageUrl(partyId);
+
+  if (!imageUrl) {
+    return {};
+  }
+
   return {
     openGraph: {
-      images: [await generateOgImageUrl(partyId)],
+      images: [imageUrl],
     },
   };
 }
 
 async function Page({ searchParams }: Props) {
-  const { party_id, q, session_id } = await searchParams;
+  const { party_id, q, session_id, voice } = await searchParams;
   const parties = await getParties();
 
   if (session_id) {
@@ -55,7 +62,13 @@ async function Page({ searchParams }: Props) {
     parties.some((p) => p.party_id === id),
   );
 
-  return <ChatView partyIds={normalizedPartyIds} initialQuestion={q} />;
+  return (
+    <ChatView
+      partyIds={normalizedPartyIds}
+      initialQuestion={q}
+      hasPendingVoiceMessage={voice === '1'}
+    />
+  );
 }
 
 export default Page;
