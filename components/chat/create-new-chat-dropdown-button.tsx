@@ -8,7 +8,11 @@ import {
 import { useState } from 'react';
 import CreateNewChatDropdownButtonTrigger from './create-new-chat-dropdown-button-trigger';
 
-function CreateNewChatDropdownButton() {
+type Props = {
+  contextId: string;
+};
+
+function CreateNewChatDropdownButton({ contextId }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -28,6 +32,7 @@ function CreateNewChatDropdownButton() {
           selectable={false}
           onPartyClicked={() => setOpen(false)}
           showWahlChatButton
+          contextId={contextId}
         />
       </DropdownMenuContent>
     </DropdownMenu>

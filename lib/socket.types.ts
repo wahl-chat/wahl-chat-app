@@ -61,6 +61,7 @@ export type LLMSize = 'small' | 'large';
 
 export type ChatSessionInitPayload = {
   session_id: string;
+  context_id: string;
   party_ids: string[];
   chat_history: MessageItem[];
   current_title: string;
@@ -74,6 +75,7 @@ export type ChatSessionInitializedPayload = {
 
 export type AddUserMessagePayload = {
   session_id: string;
+  context_id: string;
   user_message: string;
   party_ids: string[];
   user_is_logged_in: boolean;

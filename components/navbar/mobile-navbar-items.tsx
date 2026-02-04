@@ -23,7 +23,7 @@ function MobileNavbarItems({ userDetails, mobileClose }: Props) {
     },
     // {
     //   label: 'Wahl Swiper',
-    //   href: '/swiper',    
+    //   href: '/swiper',
     //   highlight: true,
     //   icon: <SparklesIcon className="size-3" />,
     // },

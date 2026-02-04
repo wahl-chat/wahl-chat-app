@@ -6,15 +6,28 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { WAHL_CHAT_PARTY_ID } from '@/lib/constants';
-import { getParties, getSourceDocuments } from '@/lib/firebase/firebase-server';
+import {
+  getPartiesForContext,
+  getSourceDocumentsForContext,
+} from '@/lib/firebase/firebase-server';
 import type { SourceDocument } from '@/lib/firebase/firebase.types';
 import { buildPartyImageUrl } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
 
-async function SourcesPage() {
-  const sources = await getSourceDocuments();
-  const parties = await getParties();
+type Props = {
+  params: Promise<{
+    contextId: string;
+  }>;
+};
+
+async function SourcesPage({ params }: Props) {
+  const { contextId } = await params;
+
+  const [sources, parties] = await Promise.all([
+    getSourceDocumentsForContext(contextId),
+    getPartiesForContext(contextId),
+  ]);
 
   const sourcesByPartyId = sources.reduce(
     (acc, source) => {

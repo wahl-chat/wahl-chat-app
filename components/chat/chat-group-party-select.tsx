@@ -13,6 +13,7 @@ type Props = {
   onNewChat?: (partyIds: string[]) => void;
   selectedPartyIdsInStore?: string[];
   addPartiesToChat?: boolean;
+  contextId?: string;
 };
 
 function ChatGroupPartySelect({
@@ -20,6 +21,7 @@ function ChatGroupPartySelect({
   onNewChat,
   selectedPartyIdsInStore,
   addPartiesToChat,
+  contextId,
 }: Props) {
   return (
     <ResponsiveDialog>
@@ -37,6 +39,7 @@ function ChatGroupPartySelect({
           selectedPartyIdsInStore={selectedPartyIdsInStore}
           onNewChat={onNewChat}
           addPartiesToChat={addPartiesToChat}
+          contextId={contextId}
         />
       </ResponsiveDialogContent>
     </ResponsiveDialog>

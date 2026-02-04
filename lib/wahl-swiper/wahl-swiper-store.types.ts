@@ -18,6 +18,7 @@ export type SwiperMessage = {
 export type WahlSwiperStoreState = {
   allTheses: Thesis[];
   thesesStack: Thesis[];
+  contextId?: string;
   history: Record<string, SwipeType>;
   messageHistory: Record<string, SwiperMessage[]>;
   swiperInput: Record<string, string>;

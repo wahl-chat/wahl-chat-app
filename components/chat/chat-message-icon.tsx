@@ -1,6 +1,6 @@
 'use client';
 
-import { useParty } from '@/components/providers/parties-provider';
+import { useContextParty } from '@/components/providers/context-provider';
 import { WAHL_CHAT_PARTY_ID } from '@/lib/constants';
 import type { PartyDetails } from '@/lib/party-details';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
@@ -14,7 +14,7 @@ type Props = {
 };
 
 export function ChatMessageIcon({ partyId, party }: Props) {
-  const clientParty = useParty(partyId ?? '');
+  const clientParty = useContextParty(partyId ?? '');
 
   const normalizedParty = clientParty ?? party;
 

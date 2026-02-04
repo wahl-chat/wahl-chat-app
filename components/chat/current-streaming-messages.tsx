@@ -1,5 +1,5 @@
 import { useChatStore } from '@/components/providers/chat-store-provider';
-import { useParties } from '@/components/providers/parties-provider';
+import { useContextParties } from '@/components/providers/context-provider';
 import { Button } from '@/components/ui/button';
 import { buildCarouselContainerId } from '@/lib/scroll-constants';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
@@ -32,7 +32,7 @@ function CurrentStreamingMessages() {
     (state) => state.currentStreamingMessages?.streaming_complete,
   );
 
-  const messageParties = useParties(respondingPartyIds)?.sort((a, b) => {
+  const messageParties = useContextParties(respondingPartyIds)?.sort((a, b) => {
     const aIndex = respondingPartyIds?.indexOf(a.party_id) ?? 0;
     const bIndex = respondingPartyIds?.indexOf(b.party_id) ?? 0;
     return aIndex - bIndex;

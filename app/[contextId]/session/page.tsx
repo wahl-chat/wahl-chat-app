@@ -1,9 +1,12 @@
 import ChatView from '@/components/chat/chat-view';
-import { getParties } from '@/lib/firebase/firebase-server';
+import { getPartiesForContext } from '@/lib/firebase/firebase-server';
 import { generateOgImageUrl } from '@/lib/utils';
 import { redirect } from 'next/navigation';
 
 type Props = {
+  params: Promise<{
+    contextId: string;
+  }>;
   searchParams: Promise<{
     session_id?: string;
     party_id: string[] | string | undefined;
@@ -14,6 +17,7 @@ type Props = {
 export async function generateMetadata({
   searchParams,
 }: {
+  params: Promise<{ contextId: string }>;
   searchParams: Promise<{
     party_id: string[];
     q?: string;
@@ -37,12 +41,13 @@ export async function generateMetadata({
   };
 }
 
-async function Page({ searchParams }: Props) {
+async function SessionPage({ params, searchParams }: Props) {
+  const { contextId } = await params;
   const { party_id, q, session_id } = await searchParams;
-  const parties = await getParties();
+  const parties = await getPartiesForContext(contextId);
 
   if (session_id) {
-    redirect(`/session/${session_id}`);
+    redirect(`/${contextId}/session/${session_id}`);
   }
 
   let normalizedPartyIds = Array.isArray(party_id)
@@ -55,7 +60,13 @@ async function Page({ searchParams }: Props) {
     parties.some((p) => p.party_id === id),
   );
 
-  return <ChatView partyIds={normalizedPartyIds} initialQuestion={q} />;
+  return (
+    <ChatView
+      partyIds={normalizedPartyIds}
+      initialQuestion={q}
+      contextId={contextId}
+    />
+  );
 }
 
-export default Page;
+export default SessionPage;

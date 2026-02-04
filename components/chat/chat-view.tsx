@@ -1,5 +1,6 @@
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
 import LoadingSpinner from '@/components/loading-spinner';
+import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import {
   getCurrentUser,
   getSystemStatus,
@@ -13,9 +14,15 @@ type Props = {
   sessionId?: string;
   partyIds?: string[];
   initialQuestion?: string;
+  contextId?: string;
 };
 
-async function ChatView({ sessionId, partyIds, initialQuestion }: Props) {
+async function ChatView({
+  sessionId,
+  partyIds,
+  initialQuestion,
+  contextId = DEFAULT_CONTEXT_ID,
+}: Props) {
   const systemStatus = await getSystemStatus();
   const user = await getCurrentUser();
 
@@ -35,6 +42,7 @@ async function ChatView({ sessionId, partyIds, initialQuestion }: Props) {
           chatSessionId={sessionId}
           partyIds={partyIds}
           initialQuestion={initialQuestion}
+          contextId={contextId}
         />
       </Suspense>
 

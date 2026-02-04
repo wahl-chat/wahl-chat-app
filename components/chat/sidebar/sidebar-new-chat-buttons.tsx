@@ -3,7 +3,11 @@
 import PartyCards from '@/components/party-cards';
 import { useSidebar } from '@/components/ui/sidebar';
 
-function SidebarNewChatButtons() {
+type Props = {
+  contextId: string;
+};
+
+function SidebarNewChatButtons({ contextId }: Props) {
   const { setOpenMobile } = useSidebar();
 
   const handleNewChat = () => {
@@ -16,6 +20,7 @@ function SidebarNewChatButtons() {
       selectable={false}
       showWahlChatButton
       onPartyClicked={handleNewChat}
+      contextId={contextId}
     />
   );
 }

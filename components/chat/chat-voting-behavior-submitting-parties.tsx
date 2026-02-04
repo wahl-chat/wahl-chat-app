@@ -1,4 +1,4 @@
-import { useParties } from '@/components/providers/parties-provider';
+import { useContextParties } from '@/components/providers/context-provider';
 import type { Vote } from '@/lib/socket.types';
 import { buildPartyImageUrl } from '@/lib/utils';
 import Image from 'next/image';
@@ -9,7 +9,7 @@ type Props = {
 };
 
 function ChatVotingBehaviorSubmittingParties({ vote }: Props) {
-  const parties = useParties();
+  const parties = useContextParties();
 
   const submittingParties = useMemo(() => {
     return vote.submitting_parties

@@ -1,7 +1,9 @@
 'use client';
 
-import Link from 'next/link';
-import { useState } from 'react';
+import Logo from '@/components/chat/logo';
+import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
+import { useAgentStore } from '@/components/providers/agent-store-provider';
+import { Button } from '@/components/ui/button';
 import {
   Sidebar,
   SidebarContent,
@@ -14,16 +16,14 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@/components/ui/sidebar';
-import Logo from '@/components/chat/logo';
-import { Button } from '@/components/ui/button';
-import { HomeIcon, CopyIcon, CheckIcon, Info } from 'lucide-react';
-import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
-import { useAgentStore } from '@/components/providers/agent-store-provider';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { CheckIcon, CopyIcon, HomeIcon, Info } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
 
 export default function AgentSidebar() {
   const conversationId = useAgentStore((state) => state.conversationId);
@@ -63,42 +63,43 @@ export default function AgentSidebar() {
       <SidebarContent>
         {conversationId && (
           <SidebarGroup>
-              <SidebarGroupLabel className="flex items-center gap-1.5">
-                <span>Conversation ID</span>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="size-3 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="max-w-[200px] text-xs">
-                    Speichere diese ID, um die Konversation auf einem anderen Gerät oder zu einem späteren Zeitpunkt fortzusetzen.
-                  </TooltipContent>
-                </Tooltip>
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <div className="flex w-full items-center gap-2 px-2 py-1.5">
-                      <span className="flex-1 truncate font-mono text-xs text-muted-foreground">
-                        {conversationId}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-6 shrink-0"
-                        onClick={handleCopy}
-                        tooltip={copied ? 'Kopiert!' : 'ID kopieren'}
-                      >
-                        {copied ? (
-                          <CheckIcon className="size-3.5" />
-                        ) : (
-                          <CopyIcon className="size-3.5" />
-                        )}
-                      </Button>
-                    </div>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            <SidebarGroupLabel className="flex items-center gap-1.5">
+              <span>Conversation ID</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="size-3 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-[200px] text-xs">
+                  Speichere diese ID, um die Konversation auf einem anderen
+                  Gerät oder zu einem späteren Zeitpunkt fortzusetzen.
+                </TooltipContent>
+              </Tooltip>
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <div className="flex w-full items-center gap-2 px-2 py-1.5">
+                    <span className="flex-1 truncate font-mono text-xs text-muted-foreground">
+                      {conversationId}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-6 shrink-0"
+                      onClick={handleCopy}
+                      tooltip={copied ? 'Kopiert!' : 'ID kopieren'}
+                    >
+                      {copied ? (
+                        <CheckIcon className="size-3.5" />
+                      ) : (
+                        <CopyIcon className="size-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
 
         <SidebarGroup>

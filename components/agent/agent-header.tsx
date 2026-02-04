@@ -1,12 +1,12 @@
 'use client';
 
+import ConversationProgressIndicator from '@/components/agent/conversation-progress-indicator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import ConversationProgressIndicator from '@/components/agent/conversation-progress-indicator';
 
 export default function AgentHeader() {
   return (

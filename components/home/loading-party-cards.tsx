@@ -13,6 +13,8 @@ function LoadingPartyCards({ partyCount, className, gridColumns }: Props) {
       style={{
         gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
       }}
+      aria-label="Parteien werden geladen"
+      aria-busy="true"
     >
       {Array.from({ length: partyCount }).map((_, index) => (
         <div
@@ -23,6 +25,7 @@ function LoadingPartyCards({ partyCount, className, gridColumns }: Props) {
             'bg-zinc-200 dark:bg-zinc-700 w-full h-fit p-6 border border-muted-foreground/20 overflow-hidden',
             'animate-pulse',
           )}
+          aria-hidden="true"
         />
       ))}
     </section>

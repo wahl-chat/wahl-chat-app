@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useAgentStore } from '@/components/providers/agent-store-provider';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,7 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { User, MapPin, Home, Briefcase, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Briefcase, Home, MapPin, User } from 'lucide-react';
+import { useState } from 'react';
 
 const BUNDESLAENDER = [
   'Baden-Württemberg',
@@ -99,8 +99,8 @@ export default function DataCollectionForm() {
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Datenerhebung</CardTitle>
             <CardDescription>
-              Bitte gib die folgenden Informationen ein, damit wir das
-              Gespräch personalisieren können.
+              Bitte gib die folgenden Informationen ein, damit wir das Gespräch
+              personalisieren können.
             </CardDescription>
           </CardHeader>
           <CardContent>

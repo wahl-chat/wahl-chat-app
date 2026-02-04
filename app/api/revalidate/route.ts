@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
-import { revalidateTag } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { headers } from 'next/headers';
 import type { NextRequest } from 'next/server';
 
@@ -30,14 +30,19 @@ export async function POST(request: NextRequest) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    const { tag } = await request.json();
+    const { tag, path } = await request.json();
 
-    if (!tag || typeof tag !== 'string') {
-      return new Response('Bad Request: Invalid tag', { status: 400 });
+    if (path && typeof path === 'string') {
+      revalidatePath(path);
+      return new Response(`Revalidated path: ${path}`, { status: 200 });
     }
 
-    revalidateTag(tag);
-    return new Response('Revalidation successful', { status: 200 });
+    if (tag && typeof tag === 'string') {
+      revalidateTag(tag);
+      return new Response(`Revalidated tag: ${tag}`, { status: 200 });
+    }
+
+    return new Response('Bad Request: Provide tag or path', { status: 400 });
   } catch (error) {
     console.error('Revalidation error:', error);
     return new Response('Internal Server Error', { status: 500 });

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { getSnapshot } from '@/lib/firebase/firebase-admin';
 import {
   getCurrentUser,
-  getParties,
+  getPartiesForContext,
   getSystemStatus,
 } from '@/lib/firebase/firebase-server';
 import { InternalReferrers } from '@/lib/internal-referrers';
@@ -15,6 +15,9 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 type Props = {
+  params: Promise<{
+    contextId: string;
+  }>;
   searchParams: Promise<{
     snapshot_id: string;
     ref?: InternalReferrers;
@@ -27,27 +30,34 @@ export async function generateMetadata({ searchParams }: Props) {
   const snapshot = await getSnapshot(snapshot_id);
 
   if (snapshot.party_ids.length > 1) {
-    return;
+    return {};
   }
 
   const partyId = snapshot.party_ids[0];
 
+  const image = await generateOgImageUrl(partyId);
+
+  if (!image) {
+    return {};
+  }
+
   return {
     openGraph: {
-      images: [await generateOgImageUrl(partyId)],
+      images: [image],
     },
   };
 }
 
-async function SharePage({ searchParams }: Props) {
+async function SharePage({ params, searchParams }: Props) {
+  const { contextId } = await params;
   const { snapshot_id, ref } = await searchParams;
 
   if (!snapshot_id) {
-    redirect('/');
+    redirect(`/${contextId}`);
   }
 
   const snapshot = await getSnapshot(snapshot_id);
-  const parties = await getParties();
+  const parties = await getPartiesForContext(contextId);
   const isFromTopics = ref === InternalReferrers.TOPICS;
   const systemStatus = await getSystemStatus();
   const user = await getCurrentUser();
@@ -82,6 +92,7 @@ async function SharePage({ searchParams }: Props) {
       </div>
       <ShareChatInput
         snapshotId={snapshot_id}
+        contextId={contextId}
         quickReplies={
           snapshot.messages.length > 1
             ? snapshot.messages[snapshot.messages.length - 1].quick_replies

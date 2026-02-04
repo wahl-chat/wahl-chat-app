@@ -1,6 +1,7 @@
 'use client';
 
 import DynamicRateLimitStickyInput from '@/components/dynamic-rate-limit-sticky-input';
+import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import type {
   LlmSystemStatus,
   ProposedQuestion,
@@ -15,6 +16,7 @@ type Props = {
   className?: string;
   initialSystemStatus: LlmSystemStatus;
   hasValidServerUser?: boolean;
+  contextId?: string;
 };
 
 function HomeInput({
@@ -22,6 +24,7 @@ function HomeInput({
   className,
   initialSystemStatus,
   hasValidServerUser,
+  contextId = DEFAULT_CONTEXT_ID,
 }: Props) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -33,8 +36,9 @@ function HomeInput({
 
     track('home_input_used', {
       question,
+      context: contextId,
     });
-    router.push(`/session?q=${question}`);
+    router.push(`/${contextId}/session?q=${question}`);
   };
 
   return (

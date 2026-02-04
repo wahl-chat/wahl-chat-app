@@ -75,22 +75,41 @@ export function generateUuid() {
 }
 
 export function firestoreTimestampToDate(
-  timestamp: Timestamp | Date | undefined,
-) {
+  timestamp: Timestamp | Date | string | number | undefined | null,
+): Date | undefined {
   if (!timestamp) {
-    return;
+    return undefined;
   }
 
   if (timestamp instanceof Date) {
     return timestamp;
   }
 
-  return timestamp.toDate();
+  // Handle Firestore Timestamp objects
+  if (typeof timestamp === 'object' && 'toDate' in timestamp) {
+    return timestamp.toDate();
+  }
+
+  // Handle string or number timestamps
+  if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+    const date = new Date(timestamp);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }
+
+  return undefined;
 }
 
 export function areSetsEqual(set1: Set<string>, set2: Set<string>): boolean {
   if (set1.size !== set2.size) return false;
   return [...set1].every((item) => set2.has(item));
+}
+
+/**
+ * Shuffles an array randomly using the sort-based shuffle algorithm.
+ * Note: This is not a perfectly uniform shuffle, but is sufficient for UI randomization.
+ */
+export function shuffleArray<T>(array: T[]): T[] {
+  return [...array].sort(() => Math.random() - 0.5);
 }
 
 export function prettyDate(
@@ -104,6 +123,25 @@ export function prettyDate(
   };
 
   return new Intl.DateTimeFormat('en-DE', options).format(date);
+}
+
+export function formatGermanDate(
+  dateString: string | null | undefined,
+  format: 'full' | 'long' | 'medium' | 'short' = 'long',
+): string | null {
+  if (!dateString || dateString.length === 0) return null;
+
+  const date = new Date(dateString);
+
+  if (!date) {
+    return null;
+  }
+
+  const options: Intl.DateTimeFormatOptions = {
+    dateStyle: format,
+  };
+
+  return new Intl.DateTimeFormat('de-DE', options).format(date);
 }
 
 export function buildPdfUrl(source: Source) {

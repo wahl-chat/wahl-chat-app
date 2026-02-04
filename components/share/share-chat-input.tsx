@@ -1,6 +1,7 @@
 'use client';
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import DynamicRateLimitStickyInput from '@/components/dynamic-rate-limit-sticky-input';
+import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { copySharedChatSession } from '@/lib/firebase/firebase-admin';
 import type { LlmSystemStatus } from '@/lib/firebase/firebase.types';
 import { useRouter } from 'next/navigation';
@@ -9,6 +10,7 @@ import { toast } from 'sonner';
 
 type Props = {
   snapshotId: string;
+  contextId?: string;
   quickReplies?: string[];
   initialSystemStatus: LlmSystemStatus;
   hasValidServerUser?: boolean;
@@ -16,6 +18,7 @@ type Props = {
 
 function ShareChatInput({
   snapshotId,
+  contextId = DEFAULT_CONTEXT_ID,
   quickReplies,
   initialSystemStatus,
   hasValidServerUser,
@@ -46,9 +49,12 @@ function ShareChatInput({
         q: message,
       });
 
-      router.push(`/session/${session_id}?${searchParams.toString()}`, {
-        scroll: false,
-      });
+      router.push(
+        `/${contextId}/session/${session_id}?${searchParams.toString()}`,
+        {
+          scroll: false,
+        },
+      );
     } catch (error) {
       console.error(error);
       errorToast();

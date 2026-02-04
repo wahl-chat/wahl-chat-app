@@ -17,6 +17,19 @@ export type ChatSession = {
     messages_length_at_sharing: number;
   };
   tenant_id?: string;
+  context_id?: string;
+};
+
+export type Context = {
+  context_id: string;
+  name: string;
+  icon_url: string;
+  type: 'election' | 'general';
+  date: string | null;
+  location_name: string;
+  is_active: boolean;
+  supports_swiper: boolean;
+  supports_voting_behavior: boolean;
 };
 
 export type ShareableChatSessionSnapshot = {
@@ -27,6 +40,7 @@ export type ShareableChatSessionSnapshot = {
   party_ids: string[];
   messages: GroupedMessage[];
   shared_at: Date;
+  context_id?: string;
 };
 
 export type ProposedQuestion = {

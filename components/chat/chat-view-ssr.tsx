@@ -1,10 +1,11 @@
+import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import {
   getChatSession,
   getChatSessionMessages,
   getCurrentUser,
-  getParties,
-  getPartiesById,
-  getProposedQuestions,
+  getPartiesForContext,
+  getPartiesForContextById,
+  getProposedQuestionsForContext,
 } from '@/lib/firebase/firebase-server';
 import { redirect } from 'next/navigation';
 import ChatMessagesView from './chat-messages-view';
@@ -13,10 +14,12 @@ type Props = {
   chatSessionId?: string;
   partyIds?: string[];
   initialQuestion?: string;
+  contextId?: string;
 };
 
 async function getChatSessionServer(
   chatSessionId: string,
+  contextId: string,
   partyIds?: string[],
 ) {
   const user = await getCurrentUser();
@@ -39,7 +42,7 @@ async function getChatSessionServer(
     const searchParams = new URLSearchParams();
     partyIds?.forEach((partyId) => searchParams.append('party_id', partyId));
 
-    redirect(`/session?${searchParams.toString()}`);
+    redirect(`/${contextId}/session?${searchParams.toString()}`);
   }
 }
 
@@ -47,9 +50,10 @@ async function ChatViewSsr({
   chatSessionId,
   partyIds,
   initialQuestion,
+  contextId = DEFAULT_CONTEXT_ID,
 }: Props) {
   const chatSession = chatSessionId
-    ? await getChatSessionServer(chatSessionId, partyIds)
+    ? await getChatSessionServer(chatSessionId, contextId, partyIds)
     : undefined;
 
   const messages = chatSessionId
@@ -59,12 +63,15 @@ async function ChatViewSsr({
   const normalizedPartyIds = chatSession?.party_ids ?? partyIds;
 
   const parties = normalizedPartyIds
-    ? await getPartiesById(normalizedPartyIds)
+    ? await getPartiesForContextById(contextId, normalizedPartyIds)
     : undefined;
 
-  const allParties = await getParties();
+  const allParties = await getPartiesForContext(contextId);
 
-  const proposedQuestions = await getProposedQuestions(normalizedPartyIds);
+  const proposedQuestions = await getProposedQuestionsForContext(
+    contextId,
+    normalizedPartyIds,
+  );
 
   return (
     <ChatMessagesView

@@ -144,7 +144,10 @@ const NonMemoizedMarkdown = ({
     a: ({ children, href, ...props }) => {
       if (!href) {
         return (
-          <span className="text-blue-500 hover:underline" {...cleanProps(props)}>
+          <span
+            className="text-blue-500 hover:underline"
+            {...cleanProps(props)}
+          >
             {children}
           </span>
         );

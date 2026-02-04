@@ -79,6 +79,7 @@ export async function createShareableSession(sessionId: string) {
       party_ids: sessionData.party_ids,
       messages: messagesData,
       shared_at: Timestamp.now(),
+      ...(sessionData.context_id ? { context_id: sessionData.context_id } : {}),
     });
 
   await sessionRef.update({
@@ -125,6 +126,7 @@ export async function copySharedChatSession(
     user_id: userId,
     party_ids: data.party_ids,
     title: data.title,
+    ...(data.context_id ? { context_id: data.context_id } : {}),
   });
 
   for (const message of data.messages) {

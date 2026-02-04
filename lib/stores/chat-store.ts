@@ -40,6 +40,7 @@ const defaultState: ChatStoreState = {
   userId: undefined,
   isAnonymous: true,
   chatSessionId: undefined,
+  contextId: undefined,
   localPreliminaryChatSessionId: undefined,
   partyIds: new Set(),
   messages: [],

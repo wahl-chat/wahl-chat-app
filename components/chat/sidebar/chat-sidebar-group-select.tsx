@@ -5,7 +5,11 @@ import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
 import { GitCompareIcon } from 'lucide-react';
 
-function ChatSidebarGroupSelect() {
+type Props = {
+  contextId: string;
+};
+
+function ChatSidebarGroupSelect({ contextId }: Props) {
   const { setOpenMobile, isMobile } = useSidebar();
 
   const handleNewChat = () => {
@@ -25,7 +29,7 @@ function ChatSidebarGroupSelect() {
 
   return (
     <div className="w-full">
-      <ChatGroupPartySelect onNewChat={handleNewChat}>
+      <ChatGroupPartySelect onNewChat={handleNewChat} contextId={contextId}>
         <Button
           className="mt-4 w-full max-w-xl whitespace-normal border border-border"
           variant="secondary"

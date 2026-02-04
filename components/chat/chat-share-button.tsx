@@ -18,7 +18,11 @@ import {
   ResponsiveDialogTrigger,
 } from './responsive-drawer-dialog';
 
-function ChatShareButton() {
+type Props = {
+  contextId: string;
+};
+
+function ChatShareButton({ contextId }: Props) {
   const sharePrivateSession = useChatStore(
     (state) => state.messages.length > 0,
   );
@@ -48,7 +52,10 @@ function ChatShareButton() {
         </ResponsiveDialogHeader>
 
         <div className="p-4 md:p-0">
-          <ChatShareLinkInputForm sharePrivateSession={sharePrivateSession} />
+          <ChatShareLinkInputForm
+            sharePrivateSession={sharePrivateSession}
+            contextId={contextId}
+          />
         </div>
       </ResponsiveDialogContent>
     </ResponsiveDialog>

@@ -1,10 +1,15 @@
 import Logo from '@/components/chat/logo';
 import { Button } from '@/components/ui/button';
+import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { ArrowRightIcon } from 'lucide-react';
 import Link from 'next/link';
 import WahlSwiperTeaserVector from './wahl-swiper-teaser-vector';
 
-function SwiperTeaserCard() {
+type Props = {
+  contextId?: string;
+};
+
+function SwiperTeaserCard({ contextId = DEFAULT_CONTEXT_ID }: Props) {
   return (
     <div className="relative h-[250px] overflow-hidden rounded-md border border-border bg-muted p-6 text-center md:col-span-2 md:h-[174px] md:text-left">
       <div className="flex items-center justify-center gap-2 md:justify-normal">
@@ -17,7 +22,7 @@ function SwiperTeaserCard() {
       </p>
 
       <Button className="relative z-10 mt-2" asChild>
-        <Link href="/swiper">
+        <Link href={`/${contextId}/swiper`}>
           Wahl Swiper
           <ArrowRightIcon className="size-4" />
         </Link>

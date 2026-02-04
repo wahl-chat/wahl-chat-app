@@ -1,3 +1,4 @@
+import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
 import { generateUuid } from '@/lib/utils';
 
@@ -6,6 +7,7 @@ export const initializeChatSession: ChatStoreActionHandlerFor<
 > = (get, set) => async () => {
   const {
     chatSessionId,
+    contextId,
     socket,
     messages,
     currentChatTitle,
@@ -40,6 +42,7 @@ export const initializeChatSession: ChatStoreActionHandlerFor<
   socket.io.initializeChatSession({
     session_id:
       chatSessionId ?? get().localPreliminaryChatSessionId ?? generateUuid(),
+    context_id: contextId ?? DEFAULT_CONTEXT_ID,
     party_ids: [...partyIds],
     chat_history: chatHistory,
     last_quick_replies: lastQuickReplies ?? [],

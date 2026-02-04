@@ -26,8 +26,8 @@ This project is **source-available** under the **PolyForm Noncommercial 1.0.0** 
 - Free for **non-commercial** use (see LICENSE for permitted purposes)
 - Share the license text and any `Required Notice:` lines when distributing
 - Please contact us at info@wahl.chat to
-a. inform us about your use case
-b. get access to assets required for a reference to wahl.chat on your project page
+a. Inform us about your use case
+b. Get access to assets required for a reference to wahl.chat on your project page
 - Do not use the wahl.chat name or logo in your project without our permission
 
 ## Setup
@@ -52,6 +52,12 @@ bun install
    - **Backend**: By default, `NEXT_PUBLIC_API_URL` is set to `http://localhost:8080`. For this to work, you must run the [wahl-chat-backend](https://github.com/wahl-chat/wahl-chat-backend) locally. Alternatively, you can point it to a publicly hosted backend endpoint.
    - **Firebase**: These variables are required for the app to function. You can find them in the [Firebase Console](https://console.firebase.google.com/) under Project Settings.
    - **Stripe**: These variables are optional for local development unless you are working on donation features.
+
+### 3. Configure regional election contexts
+
+The app uses geo-detection to redirect users to their regional election context. The mapping is defined in `lib/constants.ts` under `REGION_TO_CONTEXT`.
+
+**Important**: This mapping must be updated to reflect which elections are currently supported in each German state. Each region code (e.g., `HH` for Hamburg) maps to a context ID (e.g., `hh2029`) that must exist in the Firestore `contexts` collection. If a context doesn't exist, users will be automatically redirected to the default context (`bundestagswahl-2025`).
 
 ## Getting Started
 

@@ -1,3 +1,4 @@
+import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import {
   addUserMessageToChatSession,
   createChatSession,
@@ -14,12 +15,15 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
     const {
       isAnonymous,
       chatSessionId,
+      contextId,
       localPreliminaryChatSessionId,
       socket,
       partyIds,
       initializeChatSession,
       startTimeoutForStreamingMessages,
     } = get();
+
+    const safeContextId = contextId ?? DEFAULT_CONTEXT_ID;
 
     if (!socket.io?.connected) {
       if (!fromInitialQuestion) toast.error('wahl.chat ist nicht verbunden.');
@@ -86,12 +90,17 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
           [...partyIds],
           safeSessionId,
           tenant?.id,
+          safeContextId,
         );
 
         if (typeof window !== 'undefined') {
           const url = new URL(window.location.href);
 
-          if (url.pathname === '/session') {
+          // Check if we're on a session page (context-specific or legacy)
+          if (
+            url.pathname.endsWith('/session') ||
+            url.pathname === '/session'
+          ) {
             url.searchParams.set('session_id', safeSessionId);
             window.history.replaceState({}, '', url);
           }
@@ -104,6 +113,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
 
       socket.io?.addUserMessage({
         session_id: safeSessionId,
+        context_id: safeContextId,
         user_message: message,
         party_ids: Array.from(partyIds),
         user_is_logged_in: !isAnonymous,

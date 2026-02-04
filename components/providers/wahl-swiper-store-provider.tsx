@@ -20,15 +20,21 @@ export const WahlSwiperStoreContext = createContext<
 type Props = {
   children: ReactNode;
   allTheses: Thesis[];
+  contextId?: string;
 };
 
-export const WahlSwiperStoreProvider = ({ children, allTheses }: Props) => {
+export const WahlSwiperStoreProvider = ({
+  children,
+  allTheses,
+  contextId,
+}: Props) => {
   const storeRef = useRef<WahlSwiperStoreApi>(null);
 
   if (!storeRef.current) {
     storeRef.current = createWahlOMatStore({
       allTheses,
       thesesStack: allTheses,
+      contextId,
       messageHistory: allTheses.reduce(
         (acc, thesis) => {
           acc[thesis.id] = [];

@@ -14,15 +14,17 @@ export const ChatStoreContext = createContext<ChatStoreApi | undefined>(
 
 type Props = {
   children: ReactNode;
+  contextId?: string;
 };
 
-export const ChatStoreProvider = ({ children }: Props) => {
+export const ChatStoreProvider = ({ children, contextId }: Props) => {
   const sessionId = useChatSessionParam();
 
   const storeRef = useRef<ChatStoreApi>(null);
   if (!storeRef.current) {
     storeRef.current = createChatStore({
       chatSessionId: sessionId,
+      contextId,
     });
   }
 

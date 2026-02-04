@@ -21,9 +21,10 @@ import CopyButton from './copy-button';
 
 type Props = {
   sharePrivateSession: boolean;
+  contextId: string;
 };
 
-function ChatShareLinkInputForm({ sharePrivateSession }: Props) {
+function ChatShareLinkInputForm({ sharePrivateSession, contextId }: Props) {
   const [isLoading, setIsLoading] = useState(sharePrivateSession);
   const sessionTitle = useChatStore((state) => state.currentChatTitle);
   const sharingSnapshot = useChatStore((state) => state.sharingSnapshot);
@@ -42,8 +43,8 @@ function ChatShareLinkInputForm({ sharePrivateSession }: Props) {
       return url.toString();
     }
 
-    return `${window.location.origin}/share?snapshot_id=${sharingSnapshot?.id}`;
-  }, [sharingSnapshot?.id, params, sharePrivateSession]);
+    return `${window.location.origin}/${contextId}/share?snapshot_id=${sharingSnapshot?.id}`;
+  }, [sharingSnapshot?.id, params, sharePrivateSession, contextId]);
 
   const loadShareableSession = useCallback(async () => {
     try {

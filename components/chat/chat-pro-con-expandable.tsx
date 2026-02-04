@@ -1,5 +1,6 @@
 'use client';
 
+import PerplexityIcon from '@/components/icons/perplexity-icon';
 import { Markdown } from '@/components/markdown';
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ import {
 import type { StreamingMessage } from '@/lib/socket.types';
 import type { MessageItem } from '@/lib/stores/chat-store.types';
 import { cn, prettifiedUrlName } from '@/lib/utils';
-import { ArrowUpDown, Eye, EyeClosed, SparkleIcon } from 'lucide-react';
+import { Eye, EyeClosed, SparkleIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import AnimatedMessageSequence from './animated-message-sequence';
 import ChatGroupProConEmblaReinit from './chat-group-pro-con-embla-reinit';
@@ -163,9 +164,9 @@ function ChatProConExpandable({ message, isGroupChat }: Props) {
               <span className="font-bold">eingeordnete Position</span>.
             </p>
           ) : (
-            <span className="flex flex-row items-center gap-2 text-xs text-muted-foreground">
-              <ArrowUpDown className="size-4" />
-              Scrolle für mehr
+            <span className="flex flex-row items-center gap-1.5 text-xs text-muted-foreground">
+              <PerplexityIcon className="size-4" />
+              <span>Powered by Perplexity</span>
             </span>
           )}
           <Tooltip>

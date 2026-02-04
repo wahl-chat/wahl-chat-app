@@ -1,7 +1,7 @@
 import WahlSwiperResult from '@/components/wahl-swiper/wahl-swiper-result';
 import {
   getCurrentUser,
-  getParties,
+  getPartiesForContext,
   getWahlSwiperHistory,
 } from '@/lib/firebase/firebase-server';
 import { getUserDetailsFromUser } from '@/lib/utils';
@@ -10,16 +10,17 @@ import { notFound, redirect } from 'next/navigation';
 
 type Props = {
   params: Promise<{
+    contextId: string;
     resultId: string;
   }>;
 };
 
 async function WahlSwiperResultsPage({ params }: Props) {
-  const { resultId } = await params;
+  const { contextId, resultId } = await params;
 
   const user = await getCurrentUser();
   const history = await getWahlSwiperHistory(resultId).catch(() => {
-    redirect('/swiper');
+    redirect(`/${contextId}/swiper`);
   });
 
   if (!history) {
@@ -27,7 +28,7 @@ async function WahlSwiperResultsPage({ params }: Props) {
   }
 
   const scores = await wahlSwiperCalculateScore(history.history);
-  const parties = await getParties();
+  const parties = await getPartiesForContext(contextId);
   const userDetails = user ? getUserDetailsFromUser(user) : undefined;
 
   return (
@@ -36,6 +37,7 @@ async function WahlSwiperResultsPage({ params }: Props) {
       scores={scores}
       parties={parties}
       userDetails={userDetails}
+      contextId={contextId}
     />
   );
 }

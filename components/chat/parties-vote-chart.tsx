@@ -1,5 +1,5 @@
 import { useChatVotingDetails } from '@/components/providers/chat-voting-details-provider';
-import { useParties } from '@/components/providers/parties-provider';
+import { useContextParties } from '@/components/providers/context-provider';
 import {
   Select,
   SelectContent,
@@ -19,7 +19,7 @@ type Props = {
 function PartiesVoteChart({ vote }: Props) {
   const { selectedPartyId, setSelectedPartyId } = useChatVotingDetails();
 
-  const parties = useParties();
+  const parties = useContextParties();
   const byParty = vote.voting_results.by_party;
 
   const partyNamesAndKeys = useMemo(() => {

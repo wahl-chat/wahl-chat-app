@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
 import { ResponsiveDialogClose } from './responsive-drawer-dialog';
@@ -7,12 +8,14 @@ type Props = {
   selectedPartyIds: string[];
   onSubmit: () => void;
   addPartiesToChat?: boolean;
+  contextId?: string;
 };
 
 function ChatGroupPartySelectSubmitButton({
   selectedPartyIds,
   onSubmit,
   addPartiesToChat,
+  contextId = DEFAULT_CONTEXT_ID,
 }: Props) {
   const router = useRouter();
 
@@ -22,8 +25,8 @@ function ChatGroupPartySelectSubmitButton({
       searchParams.append('party_id', partyId);
     });
 
-    return `/session?${searchParams.toString()}`;
-  }, [selectedPartyIds]);
+    return `/${contextId}/session?${searchParams.toString()}`;
+  }, [selectedPartyIds, contextId]);
 
   const handleSubmit = () => {
     onSubmit();
@@ -32,7 +35,7 @@ function ChatGroupPartySelectSubmitButton({
 
   useEffect(() => {
     if (!addPartiesToChat) router.prefetch(navigateUrl);
-  }, [navigateUrl]);
+  }, [navigateUrl, addPartiesToChat, router]);
 
   return (
     <ResponsiveDialogClose asChild>

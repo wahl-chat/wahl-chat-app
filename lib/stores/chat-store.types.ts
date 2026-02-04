@@ -69,6 +69,7 @@ export type ChatStoreState = {
   userId?: string;
   isAnonymous?: boolean;
   chatSessionId?: string;
+  contextId?: string;
   // We set this when we start the chat session, then also initialize the chat session on the server. When sending messages, the
   // preliminary chat session id should be the same as the chat session id.
   localPreliminaryChatSessionId?: string;
