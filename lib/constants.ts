@@ -5,7 +5,8 @@ export const TENANT_ID_HEADER = 'x-tenant-id';
 export const CONTEXT_ID_HEADER = 'x-context-id';
 
 export const DEFAULT_CONTEXT_ID =
-  process.env.NEXT_PUBLIC_DEFAULT_CONTEXT_ID ?? 'bundestagswahl-2025';
+  process.env.NEXT_PUBLIC_DEFAULT_CONTEXT_ID ??
+  'landtagswahl-baden-wuerttemberg-2026';
 
 // Region to context ID mapping for geo-IP detection
 export const REGION_TO_CONTEXT: Record<string, string> = {

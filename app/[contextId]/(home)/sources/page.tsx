@@ -1,4 +1,5 @@
 import Logo from '@/components/chat/logo';
+import { SourcesContextBadge } from '@/components/sources/sources-context-badge';
 import {
   Accordion,
   AccordionContent,
@@ -7,6 +8,7 @@ import {
 } from '@/components/ui/accordion';
 import { WAHL_CHAT_PARTY_ID } from '@/lib/constants';
 import {
+  getContext,
   getPartiesForContext,
   getSourceDocumentsForContext,
 } from '@/lib/firebase/firebase-server';
@@ -24,9 +26,10 @@ type Props = {
 async function SourcesPage({ params }: Props) {
   const { contextId } = await params;
 
-  const [sources, parties] = await Promise.all([
+  const [sources, parties, context] = await Promise.all([
     getSourceDocumentsForContext(contextId),
     getPartiesForContext(contextId),
+    getContext(contextId),
   ]);
 
   const sourcesByPartyId = sources.reduce(
@@ -40,10 +43,14 @@ async function SourcesPage({ params }: Props) {
 
   return (
     <article>
-      <h1 className="mt-4 text-xl font-bold md:text-2xl">
-        Quellen die <span className="underline">wahl.chat</span> nutzt
-      </h1>
-      <p className="mb-2 text-sm text-muted-foreground">
+      <div className="mt-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+        <h1 className="text-xl font-bold md:text-2xl">
+          <span className="underline">wahl.chat&apos;s</span> Quellen
+          {context ? ' für:' : ''}
+        </h1>
+        {context && <SourcesContextBadge context={context} />}
+      </div>
+      <p className="mb-2 mt-4 text-sm text-muted-foreground">
         Diese Quellen nutzt unsere KI für die allgemeinen Antworten. Für das
         Einordnen von Positionen verwenden wir Perplexity.ai, welches sich auf
         aktuelle Informationen aus dem Internet stützt.

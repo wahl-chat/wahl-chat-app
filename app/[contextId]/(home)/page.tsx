@@ -1,5 +1,6 @@
 import ContactCard from '@/components/home/contact-card';
 import ElectionPartySelector from '@/components/home/election-party-selector';
+import GitHubCard from '@/components/home/github-card';
 import HomeInput from '@/components/home/home-input';
 import HowToCard from '@/components/home/how-to-card';
 import KnownFrom from '@/components/home/known-from';
@@ -49,8 +50,9 @@ export default async function ContextHome({ params }: Props) {
       ) : (
         <section className="grid w-full grid-cols-1 flex-wrap gap-2 md:grid-cols-2 md:gap-2">
           <SupportUsCard />
-          <HowToCard />
           <ContactCard />
+          <GitHubCard />
+          <HowToCard />
         </section>
       )}
 

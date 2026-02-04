@@ -8,7 +8,10 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
 } from '@/components/ui/select';
 import type { Context } from '@/lib/firebase/firebase.types';
@@ -92,6 +95,21 @@ export function ElectionSelect() {
     }
   };
 
+  // Separate contexts into upcoming and past elections
+  // Add a 5-day buffer before moving elections to past
+  const now = new Date();
+  const bufferDays = 5;
+  const cutoffDate = new Date(now.getTime() - bufferDays * 24 * 60 * 60 * 1000);
+
+  const upcomingElections = contexts.filter((ctx) => {
+    if (!ctx.date) return true; // No date = show in upcoming
+    return new Date(ctx.date) >= cutoffDate;
+  });
+  const pastElections = contexts.filter((ctx) => {
+    if (!ctx.date) return false;
+    return new Date(ctx.date) < cutoffDate;
+  });
+
   // Don't show selector if there's only one context
   if (contexts.length <= 1) {
     return (
@@ -120,7 +138,7 @@ export function ElectionSelect() {
         className="max-w-[calc(100vw-2rem)]"
         aria-label="Verfügbare Wahlen"
       >
-        {contexts.map((ctx) => {
+        {upcomingElections.map((ctx) => {
           const isSelected = ctx.context_id === currentContext.context_id;
           const formattedDate = formatGermanDate(ctx.date, 'long');
           const ariaLabel = `${ctx.name}${formattedDate ? `, ${formattedDate}` : ''}${ctx.location_name ? `, ${ctx.location_name}` : ''}${isSelected ? ' (ausgewählt)' : ''}`;
@@ -136,6 +154,36 @@ export function ElectionSelect() {
             </SelectItem>
           );
         })}
+
+        {pastElections.length > 0 && (
+          <>
+            <SelectSeparator className="bg-border/50" />
+            <SelectGroup>
+              <SelectLabel className="pl-3 text-xs font-normal text-muted-foreground/70">
+                Vergangene Wahlen
+              </SelectLabel>
+              {pastElections.map((ctx) => {
+                const isSelected = ctx.context_id === currentContext.context_id;
+                const formattedDate = formatGermanDate(ctx.date, 'long');
+                const ariaLabel = `${ctx.name}${formattedDate ? `, ${formattedDate}` : ''}${ctx.location_name ? `, ${ctx.location_name}` : ''}${isSelected ? ' (ausgewählt)' : ''}`;
+
+                return (
+                  <SelectItem
+                    key={ctx.context_id}
+                    value={ctx.context_id}
+                    className="block w-full cursor-pointer px-3 py-2 [&>span:first-child]:hidden [&>span]:whitespace-normal"
+                    aria-label={ariaLabel}
+                  >
+                    <DropdownElectionContent
+                      context={ctx}
+                      isSelected={isSelected}
+                    />
+                  </SelectItem>
+                );
+              })}
+            </SelectGroup>
+          </>
+        )}
       </SelectContent>
     </Select>
   );
