@@ -1,0 +1,41 @@
+{
+  "bundestagswahl-2025": {
+    "context_id": "bundestagswahl-2025",
+    "name": "Bundestagswahl 2025",
+    "short_name": "BTW 25",
+    "type": "election",
+    "date": "2025-02-23",
+    "location_name": "Deutschland",
+    "is_active": true,
+    "icon_url": null,
+    "supports_swiper": true,
+    "supports_voting_behavior": true,
+    "relevant_area": null
+  },
+  "landtagswahl-baden-wuerttemberg-2026": {
+    "context_id": "landtagswahl-baden-wuerttemberg-2026",
+    "name": "Landtagswahl Baden-Württemberg 2026",
+    "short_name": "LTW BW 26",
+    "type": "election",
+    "date": "2026-03-08",
+    "location_name": "Baden-Württemberg",
+    "is_active": true,
+    "icon_url": null,
+    "supports_swiper": false,
+    "supports_voting_behavior": false,
+    "relevant_area": "Baden-Württemberg"
+  },
+  "kommunalwahl-muenchen-2026": {
+    "context_id": "kommunalwahl-muenchen-2026",
+    "name": "Kommunalwahl München 2026",
+    "short_name": "KW M 26",
+    "type": "election",
+    "date": "2026-03-08",
+    "location_name": "München",
+    "is_active": true,
+    "icon_url": null,
+    "supports_swiper": false,
+    "supports_voting_behavior": false,
+    "relevant_area": "München"
+  }
+}

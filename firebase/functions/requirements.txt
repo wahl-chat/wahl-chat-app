@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2025 2025 wahl.chat
+#
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+firebase_functions~=0.5.0
+langchain~=1.2.0
+langchain-community~=0.4.1
+langchain-openai~=1.1.6
+langchain-qdrant~=1.1.0
+pypdf~=6.5.0
+pydantic~=2.12.5
+qdrant-client~=1.16.2

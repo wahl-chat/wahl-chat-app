@@ -1,0 +1,132 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+  	function getSession() {
+      return get(/databases/$(database)/documents/chat_sessions/$(session_id)).data
+    }
+
+    match /wahl_swiper_theses/{question_id} {
+    	allow read;
+    }
+
+    match /system_status/{id} {
+    	allow read;
+    }
+
+    match /parties/{document=**} {
+      allow read;
+    }
+
+    match /contexts/{context_id} {
+      allow read;
+
+      match /parties/{party_id} {
+        allow read;
+      }
+
+      match /proposed_questions/{document=**} {
+        allow read;
+      }
+    }
+
+    match /cached_answers/{id} {
+    	allow read;
+    }
+
+    match /cached_answers/{party_id}/{hash}/{cached_answer_id} {
+    	allow read;
+    }
+
+    match /cached_answers/{context_id}/{party_id}/{hash}/{cached_answer_id} {
+    	allow read;
+    }
+
+    match /cached_answers/{document=**} {
+    	allow read;
+    }
+
+    match /shareable_chat_session_snapshots/{doc_id} {
+    	allow read;
+    }
+
+    match /sources/{source_id} {
+    	allow read;
+
+      match /source_documents/{doc_id} {
+      	allow read;
+      }
+
+      match /parties/{party_id}/source_documents/{doc_id} {
+        allow read;
+      }
+    }
+
+    match /proposed_questions/{id} {
+    	allow read;
+    }
+
+    match /proposed_questions/{session_type}/questions/{question_id} {
+    	allow read;
+    }
+
+    match /proposed_questions/{context_id}/parties/{party_id}/questions/{question_id} {
+    	allow read;
+    }
+
+    match /frequently_asked_questions/{question} {
+    	allow read;
+    }
+
+    match /users/{user_id} {
+    	allow read, write: if request.auth != null && request.auth.uid == user_id;
+    }
+
+    match /users/{user_id}/chat_sessions/{session_id} {
+      allow read, write: if request.auth != null && request.auth.uid == user_id;
+    }
+
+    match /wahl_swiper_results/{result_id} {
+      allow read: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasAll(['user_id'])
+        && request.resource.data.user_id is string
+        && request.resource.data.user_id == request.auth.uid;
+
+      allow update: if request.auth != null
+        && request.resource.data.keys().hasAll(['user_id'])
+        && request.resource.data.user_id is string
+        && resource.data.user_id == request.auth.uid
+        && request.resource.data.user_id == resource.data.user_id;
+    }
+
+    match /chat_sessions/{session_id} {
+      allow read: if (request.auth != null && resource.data.user_id == request.auth.uid) || resource.data.is_public == true;
+
+      allow list: if request.auth != null && (
+        request.query.filters.size() >= 1 &&
+        'user_id' in request.query.filters.toMap() &&
+        request.query.filters[0] == ['user_id', '==', request.auth.uid]
+      );
+
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasAll(['user_id'])
+        && request.resource.data.user_id is string
+        && request.resource.data.user_id == request.auth.uid;
+
+      allow update: if request.auth != null
+        && request.resource.data.keys().hasAll(['user_id'])
+        && request.resource.data.user_id is string
+        && resource.data.user_id == request.auth.uid
+        && request.resource.data.user_id == resource.data.user_id;
+
+      allow delete: if request.auth != null
+        && resource.data.user_id == request.auth.uid;
+
+      match /messages/{message_id} {
+      	allow read, list, create, update: if true
+      }
+    }
+  }
+}

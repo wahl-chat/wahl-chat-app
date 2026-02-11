@@ -1,0 +1,9 @@
+{
+  "projects": {
+    "default": "wahl-chat-dev",
+    "dev": "wahl-chat-dev",
+    "prod": "wahl-chat"
+  },
+  "targets": {},
+  "etags": {}
+}

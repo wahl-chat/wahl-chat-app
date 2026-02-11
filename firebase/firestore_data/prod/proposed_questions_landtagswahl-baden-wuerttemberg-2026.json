@@ -1,0 +1,417 @@
+{
+    "proposed_questions/gruene/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/gruene/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/gruene/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/gruene/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/cdu/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/cdu/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/cdu/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/cdu/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/spd/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/spd/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/spd/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/spd/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/fdp/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/fdp/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/fdp/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/fdp/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/afd/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/afd/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/afd/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/afd/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/linke/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/linke/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/linke/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/linke/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/fw/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/fw/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/fw/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/fw/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/die-partei/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/die-partei/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/die-partei/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/die-partei/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/basis/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/basis/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/basis/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/basis/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/oedp/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/oedp/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/oedp/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/oedp/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/volt/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/volt/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/volt/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/volt/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/buendnis-c/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/buendnis-c/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/buendnis-c/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/buendnis-c/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/verjuengung/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/verjuengung/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/verjuengung/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/verjuengung/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/bsw/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/bsw/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/bsw/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/bsw/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/gerechtigkeit/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/gerechtigkeit/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/gerechtigkeit/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/gerechtigkeit/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/pdr/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/pdr/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/pdr/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/pdr/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/pdf/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/pdf/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/pdf/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/pdf/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/tierschutzpartei/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/tierschutzpartei/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/tierschutzpartei/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/tierschutzpartei/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/werteunion/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/werteunion/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/werteunion/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/werteunion/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/group/questions/question_1": {
+        "location": "chat",
+        "topic": "Infrastruktur",
+        "content": "Wie steht ihr zu Stuttgart 21 und wie soll es weitergehen?"
+    },
+    "proposed_questions/group/questions/question_2": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Wie wollt ihr in Baden-Württemberg Arbeitsplätze sichern?"
+    },
+    "proposed_questions/group/questions/question_3": {
+        "location": "chat",
+        "topic": "Wirtschaft",
+        "content": "Was sind eure Pläne für die Automobilindustrie?"
+    },
+    "proposed_questions/group/questions/question_4": {
+        "location": "chat",
+        "topic": "Zukunft",
+        "content": "Was ist eure Vision für ein fortschrittliches und zukunftsfähiges Baden-Württemberg?"
+    },
+    "proposed_questions/wahl-chat/questions/question_1": {
+        "topic": "wahl.chat",
+        "location": "chat",
+        "content": "Was kann ich fragen?"
+    },
+    "proposed_questions/wahl-chat/questions/question_2": {
+        "topic": "wahl.chat",
+        "location": "chat",
+        "content": "Kann ich mehrere Parteien miteinander vergleichen?"
+    },
+    "proposed_questions/wahl-chat/questions/question_3": {
+        "topic": "wahl.chat",
+        "location": "chat",
+        "content": "Wie entstehen die Antworten?"
+    }
+}

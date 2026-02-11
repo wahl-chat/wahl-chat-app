@@ -1,0 +1,139 @@
+{
+    "afd": {
+        "party_id": "afd",
+        "name": "AfD",
+        "long_name": "Alternative für Deutschland",
+        "candidate": "Alice Weidel und Tino Chrupalla",
+        "manifesto_url": "https://storage.googleapis.com/wahl-chat.firebasestorage.app/public/afd/Grundsatzprogramm_2016-01-05.pdf",
+        "website_url": "https://www.afd.de",
+        "is_already_in_parliament": true,
+        "background_color": "#019EE0",
+        "logo_src": ""
+    },
+    "bsw": {
+        "party_id": "bsw",
+        "name": "BSW",
+        "long_name": "Bündnis Sarah Wagenknecht",
+        "candidate": "Sarah Wagenknecht und Amira Mohamed Ali",
+        "manifesto_url": "https://storage.googleapis.com/wahl-chat.firebasestorage.app/public/bsw/Bundestagswahlprogramm%20BTW25_2025-01-12.pdf",
+        "website_url": "https://bsw-vg.de/",
+        "is_already_in_parliament": false,
+        "background_color": "#ffffff",
+        "logo_src": ""
+    },
+    "cdu": {
+        "party_id": "cdu",
+        "name": "CDU/CSU",
+        "long_name": "CDU/CSU-Bundestagsfraktion",
+        "candidate": "Friedrich Merz",
+        "manifesto_url": "https://storage.googleapis.com/wahl-chat.firebasestorage.app/public/cdu/Grundsatzprogramm_2024-01-15.pdf",
+        "website_url": "https://www.cducsu.de/",
+        "is_already_in_parliament": true,
+        "background_color": "#52B7C1",
+        "logo_src": ""
+    },
+    "fdp": {
+        "party_id": "fdp",
+        "name": "FDP",
+        "long_name": "Freie Demokratische Partei",
+        "candidate": "Christian Dürr",
+        "manifesto_url": "https://storage.googleapis.com/wahl-chat.firebasestorage.app/public/fdp/Grundsatzprogramm_2012-04-22.pdf",
+        "website_url": "https://www.fdp.de",
+        "is_already_in_parliament": false,
+        "background_color": "#FFED00",
+        "logo_src": ""
+    },
+    "gruene": {
+        "party_id": "gruene",
+        "name": "Die Grünen",
+        "long_name": "Bündnis 90/Die Grünen",
+        "candidate": "Franziska Brantner und Felix Banaszak",
+        "manifesto_url": "https://storage.googleapis.com/wahl-chat.firebasestorage.app/public/gruene/Grundsatzprogramm_2020-01-25.pdf",
+        "website_url": "https://www.gruene.de",
+        "is_already_in_parliament": true,
+        "background_color": "#005438",
+        "logo_src": ""
+    },
+    "linke": {
+        "party_id": "linke",
+        "name": "Die Linke",
+        "long_name": "Die Linke",
+        "candidate": "Jan van Aken und Ines Schwerdtner",
+        "manifesto_url": "https://storage.googleapis.com/wahl-chat.firebasestorage.app/public/linke/Grundsatzprogramm_2011-10-23.pdf",
+        "website_url": "https://www.die-linke.de",
+        "is_already_in_parliament": true,
+        "background_color": "#FF0000",
+        "logo_src": ""
+    },
+    "spd": {
+        "party_id": "spd",
+        "name": "SPD",
+        "long_name": "Sozialdemokratische Partei Deutschlands",
+        "candidate": "Bärbel Bas und Lars Klingbeil",
+        "manifesto_url": "https://storage.googleapis.com/wahl-chat.firebasestorage.app/public/spd/Grundsatzprogramm_2007-10-28.pdf",
+        "website_url": "https://www.spd.de/",
+        "is_already_in_parliament": true,
+        "background_color": "#E4001B",
+        "logo_src": ""
+    },
+    "fw": {
+        "party_id": "fw",
+        "name": "Freie Wähler",
+        "long_name": "Bundesvereinigung Freie Wähler",
+        "candidate": "Hubert Aiwanger",
+        "manifesto_url": "https://storage.googleapis.com/wahl-chat.firebasestorage.app/public/fw/Grundsatzprogramm_2012-10-20.pdf",
+        "website_url": "https://www.freiewaehler.eu//?details1=willkommen",
+        "is_already_in_parliament": false,
+        "is_small_party": true,
+        "background_color": "#ffffff",
+        "logo_src": ""
+    },
+    "oedp": {
+        "party_id": "oedp",
+        "name": "ÖDP",
+        "long_name": "Ökologisch-Demokratische Partei",
+        "candidate": "Günther Brendle-Behnisch",
+        "manifesto_url": "https://storage.googleapis.com/wahl-chat.firebasestorage.app/public/oedp/Grundsatzprogramm_2016-01-01.pdf",
+        "website_url": "https://www.oedp.de/startseite",
+        "is_already_in_parliament": false,
+        "is_small_party": true,
+        "background_color": "#EB6416",
+        "logo_src": ""
+    },
+    "piraten": {
+        "party_id": "piraten",
+        "name": "Piraten",
+        "long_name": "Piratenpartei Deutschland",
+        "candidate": "Lukas Küffner",
+        "manifesto_url": "https://storage.googleapis.com/wahl-chat.firebasestorage.app/public/piraten/Parteiprogramm_2024-07-15.pdf",
+        "website_url": "https://www.piratenpartei.de/",
+        "is_already_in_parliament": false,
+        "is_small_party": true,
+        "background_color": "#FA8909",
+        "logo_src": ""
+    },
+    "tierschutzpartei": {
+        "party_id": "tierschutzpartei",
+        "name": "Tierschutzpartei",
+        "long_name": "Partei Mensch Umwelt Tierschutz",
+        "candidate": "Dennis Landgraf",
+        "manifesto_url": "https://storage.googleapis.com/wahl-chat.firebasestorage.app/public/tierschutzpartei/Grundsatzprogramm_2024-11-01.pdf",
+        "website_url": "https://www.tierschutzpartei.de/",
+        "is_already_in_parliament": false,
+        "is_small_party": true,
+        "background_color": "#00555F",
+        "logo_src": ""
+    },
+    "volt": {
+        "party_id": "volt",
+        "name": "Volt",
+        "long_name": "Volt Deutschland",
+        "candidate": "Luca Loreen Kraft",
+        "manifesto_url": "https://storage.googleapis.com/wahl-chat.firebasestorage.app/public/volt/Grundsatzprogramm_2023-01-28.pdf",
+        "website_url": "https://voltdeutschland.org/",
+        "is_already_in_parliament": false,
+        "is_small_party": true,
+        "background_color": "#502379",
+        "logo_src": ""
+    }
+}
