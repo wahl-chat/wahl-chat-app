@@ -1,6 +1,7 @@
-'use client'
+'use client';
 
 import ChatGroupPartySelect from '@/components/chat/chat-group-party-select';
+import CompletionCode from '@/components/prolific-study/completion-code';
 import { Accordion } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
@@ -12,7 +13,6 @@ import Link from 'next/link';
 import WahlSwiperPartyResultCard from './wahl-swiper-party-result-card';
 import WahlSwiperShareButton from './wahl-swiper-share-button';
 import WahlSwiperSurveyLoginCard from './wahl-swiper-survey-login-card';
-import CompletionCode from "@/components/prolific-study/completion-code";
 
 type Props = {
   resultId: string;
@@ -38,9 +38,7 @@ function WahlSwiperResult({
 
   return (
     <div className="relative mx-auto mt-4 flex w-full flex-col gap-4">
-      {isProlificStudy && (
-          <CompletionCode/>
-      )}
+      {isProlificStudy && <CompletionCode />}
       <div className="flex flex-col">
         <h1 className="text-lg font-bold">Swiper Ergebnisse</h1>
         <p className="text-sm text-muted-foreground">
@@ -53,10 +51,12 @@ function WahlSwiperResult({
         </p>
       </div>
 
-      <WahlSwiperSurveyLoginCard
-        resultId={resultId}
-        userDetails={userDetails}
-      />
+      {!isProlificStudy && (
+        <WahlSwiperSurveyLoginCard
+          resultId={resultId}
+          userDetails={userDetails}
+        />
+      )}
 
       {hasValidScores ? (
         <Accordion type="single" collapsible className="flex flex-col gap-2">

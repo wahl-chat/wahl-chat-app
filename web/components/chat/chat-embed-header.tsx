@@ -1,4 +1,3 @@
-import EmbedOpenWebsiteButton from '@/components/embed-open-website-button';
 import HowToDialog from '@/components/how-to-dialog';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -28,7 +27,6 @@ function ChatEmbedHeader() {
               <HelpCircleIcon />
             </Button>
           </HowToDialog>
-          <EmbedOpenWebsiteButton />
         </div>
       </header>
 

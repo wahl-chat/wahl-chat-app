@@ -20,7 +20,7 @@ export const REGION_TO_CONTEXT: Record<string, string> = {
   MV: 'mv2026', // Mecklenburg-Vorpommern
   NI: 'ni2027', // Niedersachsen
   NW: 'nw2027', // Nordrhein-Westfalen
-  RP: 'rp2026', // Rheinland-Pfalz
+  RP: 'landtagswahl-rheinland-pfalz-2026', // Rheinland-Pfalz
   SL: 'sl2027', // Saarland
   SN: 'sn2029', // Sachsen
   ST: 'st2026', // Sachsen-Anhalt

@@ -8,8 +8,19 @@ const SPECIAL_TENANT_ID = 'special-tenant-id';
 export async function GET(request: NextRequest) {
   const tenantId = request.nextUrl.searchParams.get('tenant_id');
   const partyIds = request.nextUrl.searchParams.getAll('party_id');
+  const contextId = request.nextUrl.searchParams.get('context_id')?.trim();
 
   const url = new URL('https://embed.wahl.chat', request.url);
+
+  if (contextId) {
+    const encodedContextId = encodeURIComponent(contextId);
+    url.pathname =
+      partyIds.length > 0
+        ? `/${encodedContextId}/session`
+        : `/${encodedContextId}`;
+  } else if (partyIds.length > 0) {
+    url.pathname = '/session';
+  }
 
   if (tenantId === SPECIAL_TENANT_ID) {
     track('embed', {
@@ -17,10 +28,6 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.redirect(url);
-  }
-
-  if (partyIds.length > 0) {
-    url.pathname = '/session';
   }
 
   partyIds.forEach((partyId) => {

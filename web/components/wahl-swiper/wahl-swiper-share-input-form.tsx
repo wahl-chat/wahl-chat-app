@@ -3,6 +3,7 @@ import CopyButton from '@/components/chat/copy-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { setWahlSwiperResultToPublic } from '@/lib/firebase/firebase';
 import { track } from '@vercel/analytics/react';
 import { ShareIcon } from 'lucide-react';
@@ -21,16 +22,22 @@ import {
 
 function WahlSwiperShareLinkInputForm() {
   const [isLoading, setIsLoading] = useState(false);
-  const { resultId } = useParams();
+  const { contextId, resultId } = useParams();
+
+  const resolvedContextId = Array.isArray(contextId) ? contextId[0] : contextId;
+  const resolvedResultId = Array.isArray(resultId) ? resultId[0] : resultId;
 
   const link = useMemo(() => {
-    return `${window.location.origin}/swiper/results/${resultId}`;
-  }, [resultId]);
+    const currentContextId = resolvedContextId ?? DEFAULT_CONTEXT_ID;
+    return `${window.location.origin}/${currentContextId}/swiper/results/${resolvedResultId}`;
+  }, [resolvedContextId, resolvedResultId]);
 
   const loadShareableSession = useCallback(async () => {
+    if (!resolvedResultId) return;
+
     try {
       setIsLoading(true);
-      await setWahlSwiperResultToPublic(resultId as string);
+      await setWahlSwiperResultToPublic(resolvedResultId);
 
       track('share_link_generated');
     } catch (error) {
@@ -38,7 +45,7 @@ function WahlSwiperShareLinkInputForm() {
     } finally {
       setIsLoading(false);
     }
-  }, [resultId]);
+  }, [resolvedResultId]);
 
   useEffect(() => {
     loadShareableSession();

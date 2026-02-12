@@ -3,7 +3,9 @@
 .idea/
 .vscode/
 *.pem
+.next
 node_modules/
+.pnpm-store
 
 # === Environment / secrets ===
 .env

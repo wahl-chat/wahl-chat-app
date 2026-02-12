@@ -3,11 +3,12 @@
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import LoadingSpinner from '@/components/loading-spinner';
 import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
-import {useRouter, useSearchParams} from 'next/navigation';
+import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
+import { captureProlificParams } from '@/lib/prolific-study/prolific-metadata';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import SwipingCards from './swiping-cards';
-import {captureProlificParams} from "@/lib/prolific-study/prolific-metadata";
 
 function WahlSwiper() {
   const [isLoading, setIsLoading] = useState(false);
@@ -17,8 +18,9 @@ function WahlSwiper() {
   const saveSwiperHistory = useWahlSwiperStore(
     (state) => state.saveSwiperHistory,
   );
+  const contextId = useWahlSwiperStore((state) => state.contextId);
   const setProlificMetadata = useWahlSwiperStore(
-      (state) => state.setProlificMetadata,
+    (state) => state.setProlificMetadata,
   );
 
   const { user } = useAnonymousAuth();
@@ -48,13 +50,15 @@ function WahlSwiper() {
 
     try {
       const resultId = await saveSwiperHistory(user.uid);
-      router.push(`/swiper/results/${resultId}`);
+      router.push(
+        `/${contextId ?? DEFAULT_CONTEXT_ID}/swiper/results/${resultId}`,
+      );
     } catch (error) {
       console.error(error);
       errorToast();
       setIsLoading(false);
     }
-  }, [user, router, saveSwiperHistory]);
+  }, [user, router, saveSwiperHistory, contextId]);
 
   useEffect(() => {
     if (finished) {

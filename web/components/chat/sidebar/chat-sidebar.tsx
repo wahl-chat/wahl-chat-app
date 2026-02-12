@@ -18,7 +18,7 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar';
 import { getCurrentUser } from '@/lib/firebase/firebase-server';
-import { getUserDetailsFromUser } from '@/lib/utils';
+import { IS_EMBEDDED, getUserDetailsFromUser } from '@/lib/utils';
 import {
   HeartHandshakeIcon,
   HomeIcon,
@@ -38,7 +38,7 @@ type Props = {
 };
 
 async function ChatSidebar({ contextId = DEFAULT_CONTEXT_ID }: Props) {
-  const user = await getCurrentUser();
+  const user = !IS_EMBEDDED ? await getCurrentUser() : undefined;
 
   const userDetails = user ? getUserDetailsFromUser(user) : undefined;
 
@@ -80,24 +80,26 @@ async function ChatSidebar({ contextId = DEFAULT_CONTEXT_ID }: Props) {
           <SidebarGroupLabel>Unterstütze wahl.chat</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <LoginButton
-                  userDetails={userDetails}
-                  userDialogAsChild
-                  noUserChildren={
-                    <SidebarMenuButton>
-                      <UserIcon className="size-4" />
-                      <span>Anmelden</span>
-                    </SidebarMenuButton>
-                  }
-                  userChildren={
-                    <SidebarMenuButton>
-                      <UserIcon className="size-4" />
-                      <span>Account</span>
-                    </SidebarMenuButton>
-                  }
-                />
-              </SidebarMenuItem>
+              {!IS_EMBEDDED && (
+                <SidebarMenuItem>
+                  <LoginButton
+                    userDetails={userDetails}
+                    userDialogAsChild
+                    noUserChildren={
+                      <SidebarMenuButton>
+                        <UserIcon className="size-4" />
+                        <span>Anmelden</span>
+                      </SidebarMenuButton>
+                    }
+                    userChildren={
+                      <SidebarMenuButton>
+                        <UserIcon className="size-4" />
+                        <span>Account</span>
+                      </SidebarMenuButton>
+                    }
+                  />
+                </SidebarMenuItem>
+              )}
               <SidebarMenuItem>
                 <DonationDialog>
                   <SidebarMenuButton>

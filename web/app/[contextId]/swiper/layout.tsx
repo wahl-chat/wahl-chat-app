@@ -1,3 +1,5 @@
+import Footer from '@/components/footer';
+import WahlSwiperHeader from '@/components/wahl-swiper/wahl-swiper-header';
 import { getContext } from '@/lib/firebase/firebase-server';
 import type { Metadata } from 'next';
 
@@ -32,8 +34,24 @@ export async function generateMetadata({
   };
 }
 
-function Layout({ children }: { children: React.ReactNode }) {
-  return children;
+async function Layout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ contextId: string }>;
+}) {
+  const { contextId } = await params;
+
+  return (
+    <div className="relative flex w-full flex-col">
+      <WahlSwiperHeader contextId={contextId} />
+      <main className="mx-auto min-h-[calc(100vh-var(--header-height)-var(--footer-height))] w-full max-w-xl grow px-4 pb-8 md:px-0">
+        {children}
+      </main>
+      <Footer />
+    </div>
+  );
 }
 
 export default Layout;

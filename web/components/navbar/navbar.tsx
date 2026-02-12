@@ -1,6 +1,5 @@
 import LoginButton from '@/components/auth/login-button';
 import UserAvatar from '@/components/auth/user-avatar';
-import EmbedOpenWebsiteButton from '@/components/embed-open-website-button';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { getCurrentUser } from '@/lib/firebase/firebase-server';
@@ -30,7 +29,7 @@ export default async function NavBar({ className }: Props) {
     },
   ];
 
-  const user = await getCurrentUser();
+  const user = !IS_EMBEDDED ? await getCurrentUser() : undefined;
   const userDetails = user ? getUserDetailsFromUser(user) : undefined;
 
   return (
@@ -40,26 +39,23 @@ export default async function NavBar({ className }: Props) {
         className,
       )}
     >
-      {!IS_EMBEDDED ? (
+      {!IS_EMBEDDED && (
         <>
           {tabs.map((tab) => (
             <NavbarItem key={tab.href} details={tab} />
           ))}
+          <Separator orientation="vertical" className="hidden h-8 md:block" />
+          <LoginButton
+            userDetails={userDetails}
+            noUserChildren={
+              <Button variant="default" size="sm">
+                Anmelden
+              </Button>
+            }
+            userChildren={<UserAvatar details={userDetails} />}
+          />
         </>
-      ) : (
-        <EmbedOpenWebsiteButton />
       )}
-
-      <Separator orientation="vertical" className="hidden h-8 md:block" />
-      <LoginButton
-        userDetails={userDetails}
-        noUserChildren={
-          <Button variant="default" size="sm">
-            Anmelden
-          </Button>
-        }
-        userChildren={<UserAvatar details={userDetails} />}
-      />
     </nav>
   );
 }

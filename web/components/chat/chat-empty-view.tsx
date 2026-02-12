@@ -2,6 +2,7 @@
 
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import { useChatStore } from '@/components/providers/chat-store-provider';
+import { useCurrentContext } from '@/components/providers/context-provider';
 import type { ProposedQuestion } from '@/lib/firebase/firebase.types';
 import type { PartyDetails } from '@/lib/party-details';
 import { buildPartyImageUrl } from '@/lib/utils';
@@ -18,6 +19,8 @@ type Props = {
 function ChatEmptyView({ parties, proposedQuestions }: Props) {
   const { user } = useAnonymousAuth();
   const addUserMessage = useChatStore((state) => state.addUserMessage);
+  const currentContext = useCurrentContext({ optional: true });
+  const currentContextName = currentContext?.name ?? 'Bundestagswahl 2025';
 
   function handleSuggestionClick(suggestion: string) {
     if (!user?.uid) return;
@@ -63,7 +66,7 @@ function ChatEmptyView({ parties, proposedQuestions }: Props) {
       ) : (
         <p className="text-center">
           Stelle Fragen zu allen Themen rund um die{' '}
-          <span className="font-semibold">Bundestagswahl 2025</span> oder frage
+          <span className="font-semibold">{currentContextName}</span> oder frage
           die Parteien direkt zu ihren Positionen im Wahlprogramm.
         </p>
       )}
