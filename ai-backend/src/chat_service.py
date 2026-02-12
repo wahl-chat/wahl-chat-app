@@ -173,7 +173,9 @@ async def fetch_and_emit_party_response(
             )
             existing_cached_answers: List[
                 CachedResponse
-            ] = await aget_cached_answers_for_party(party.party_id, cache_key)
+            ] = await aget_cached_answers_for_party(
+                group_chat_session.context_id, party.party_id, cache_key
+            )
             logger.info(
                 f"Fetched {len(existing_cached_answers)} cached answers for party {party.party_id} and cache_key {cache_key}"
             )
@@ -424,7 +426,7 @@ async def fetch_and_emit_party_response(
                 ),
             )
             await awrite_cached_answer_for_party(
-                party.party_id, cache_key, cached_answer
+                group_chat_session.context_id, party.party_id, cache_key, cached_answer
             )
             logger.debug(f"Written cached answer: {cached_answer}")
     except openai.BadRequestError as e:

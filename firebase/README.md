@@ -16,6 +16,9 @@ firebase/
 │   ├── main.py          # Function handlers (PDF processing, vector store indexing)
 │   ├── models.py        # Data models
 │   └── requirements.txt # Python dependencies
+├── scripts/             # Maintenance scripts
+│   ├── seed_firestore.py   # Seed Firestore with contexts, parties, proposed questions
+│   └── manage_cache.py     # Clear / manage cached_answers collection
 ├── firestore_data/      # Seed data for Firestore
 │   ├── dev/             # Development environment data
 │   └── prod/            # Production environment data
@@ -93,6 +96,9 @@ contexts/{context_id}
 │   └── party_id, name, long_name, manifesto_url, candidate, ...
 └── proposed_questions/{party_id}/questions/{question_id}
     └── content, ...
+
+cached_answers/{context_id}/{party_id}/{cache_key}/{document_id}
+└── content, sources, created_at, rag_query, ...
 ```
 
 ### Seeding with the Python Script (Recommended)
@@ -122,6 +128,37 @@ cd firebase && python -m venv venv && source venv/bin/activate
 pip install firebase-admin google-auth
 python scripts/seed_firestore.py
 ```
+
+> **Note:** Running `make seed` also clears the cached answers collection, since cached responses may be stale after re-seeding.
+
+## Cache Management
+
+Cached answers are scoped per context to prevent cross-context contamination:
+
+```
+cached_answers/{context_id}/{party_id}/{cache_key}/{document_id}
+```
+
+### Clearing the Cache
+
+```bash
+# Clear ALL cached answers (dev)
+make clear-cache
+
+# Clear ALL cached answers (prod)
+make clear-cache-prod
+
+# Clear cache for a specific context
+cd ai-backend && poetry run python ../firebase/scripts/manage_cache.py clear --context bundestagswahl-2025
+
+# Clear cache for a specific party within a context
+cd ai-backend && poetry run python ../firebase/scripts/manage_cache.py clear --context bundestagswahl-2025 --party spd
+
+# Clear old non-context-scoped cache (migration from legacy format)
+make clear-legacy-cache
+```
+
+The cache management script can be run independently of the seed script.
 
 ### Seeding with firestore-import (Manual)
 

@@ -274,6 +274,11 @@ def main():
     # Seed proposed questions for each context
     seed_proposed_questions(db)
 
+    # Clear cached answers (they are context-scoped and may be stale after re-seeding)
+    from manage_cache import clear_cache
+
+    clear_cache(db)
+
     print("\n" + "=" * 60)
     print("✅ Seeding complete!")
     print("=" * 60)
