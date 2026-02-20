@@ -5,4 +5,4 @@ export const socialMediaConfig = {
   email: 'mailto:info@wahl.chat',
 };
 
-export const PRESS_LINK = 'https://wahlchat.notion.site';
+export const PRESS_LINK = 'https://wahl-chat.notion.site/press';

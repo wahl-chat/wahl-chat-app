@@ -10,7 +10,7 @@ The leading political information chatbot for the German federal elections 2025.
 
 **Application**: https://wahl.chat/
 **About**: https://wahl.chat/about-us
-**Press**: https://wahlchat.notion.site
+**Press**: https://wahl-chat.notion.site/press
 
 ## About
 
