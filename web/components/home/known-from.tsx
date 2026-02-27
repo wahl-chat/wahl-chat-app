@@ -1,5 +1,5 @@
 import ComputerBildIcon from '@/components/icons/computer-bild-icon';
-import HandelsblattIcon from '@/components/icons/handelsblatt-icon';
+import MerkurTzIcon from '@/components/icons/merkur-tz-icon';
 import SWRIcon from '@/components/icons/swr-icon';
 import ZdfHeuteIcon from '@/components/icons/zdf-heute-icon';
 import { Separator } from '@/components/ui/separator';
@@ -18,7 +18,7 @@ function KnownFrom() {
         <Separator className="w-auto grow" />
       </div>
       <div className="grid h-16 w-full grid-cols-4 items-center justify-center gap-8">
-        <HandelsblattIcon className={iconClassNames} />
+        <MerkurTzIcon className={iconClassNames} />
         <ZdfHeuteIcon className={iconClassNames} />
         <SWRIcon className={iconClassNames} />
         <ComputerBildIcon className={iconClassNames} />
