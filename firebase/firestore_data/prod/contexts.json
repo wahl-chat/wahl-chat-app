@@ -37,5 +37,18 @@
     "supports_swiper": false,
     "supports_voting_behavior": false,
     "relevant_area": "München"
+  },
+  "landtagswahl-rheinland-pfalz-2026": {
+    "context_id": "landtagswahl-rheinland-pfalz-2026",
+    "name": "Landtagswahl Rheinland-Pfalz 2026",
+    "short_name": "LTW RP 26",
+    "type": "election",
+    "date": "2026-03-22",
+    "location_name": "Rheinland-Pfalz",
+    "is_active": true,
+    "icon_url": null,
+    "supports_swiper": false,
+    "supports_voting_behavior": false,
+    "relevant_area": "Rheinland-Pfalz"
   }
 }

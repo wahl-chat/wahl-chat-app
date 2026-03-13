@@ -46,8 +46,8 @@ google_gemini_3_flash_preview = ChatGoogleGenerativeAI(
     thinking_level="low",  # Set thinking level to low for faster responses
 )
 
-google_gemini_2_5_flash_preview = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash-preview-09-2025",
+google_gemini_2_5_flash = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash",
     api_key=safe_load_api_key("GOOGLE_API_KEY"),
     max_retries=0,
     thinking_budget=0,  # Disable thinking budget for faster responses
@@ -74,8 +74,8 @@ RESPONSE_GENERATION_LLMS: list[LLM] = [
         is_at_rate_limit=False,
     ),
     LLM(
-        name="google-gemini-2.5-flash-preview-09-2025",
-        model=google_gemini_2_5_flash_preview,
+        name="google-gemini-2.5-flash",
+        model=google_gemini_2_5_flash,
         sizes=[LLMSize.SMALL, LLMSize.LARGE],
         priority=95,
         is_at_rate_limit=False,
@@ -128,8 +128,8 @@ azure_gpt_4o_mini_det = AzureChatOpenAI(
     max_retries=0,
 )
 
-google_gemini_2_5_flash_lite_preview_det = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash-lite-preview-09-2025",
+google_gemini_2_5_flash_lite_det = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash-lite",
     api_key=safe_load_api_key("GOOGLE_API_KEY"),
     temperature=0.0,
     max_retries=0,
@@ -151,8 +151,8 @@ openai_gpt_4o_mini_det = ChatOpenAI(
 
 PRE_AND_POST_PROCESSING_LLMS: list[LLM] = [
     LLM(
-        name="google-gemini-2.5-flash-lite-preview-09-2025",
-        model=google_gemini_2_5_flash_lite_preview_det,
+        name="google-gemini-2.5-flash-lite-det",
+        model=google_gemini_2_5_flash_lite_det,
         sizes=[LLMSize.SMALL],
         priority=100,
         is_at_rate_limit=False,

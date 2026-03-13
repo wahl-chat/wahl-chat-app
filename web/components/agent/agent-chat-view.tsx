@@ -37,7 +37,7 @@ const AgentChatMessages = memo(
     }, [messages, scrollRef]);
 
     return (
-      <div ref={scrollRef} className="flex-1 overflow-y-auto scroll-smooth p-4">
+      <div ref={scrollRef} className="grow overflow-x-hidden overflow-y-scroll">
         {isLoading ? (
           <div className="flex h-full flex-col items-center justify-center gap-3">
             <Loader2 className="size-8 animate-spin text-muted-foreground" />
@@ -46,7 +46,7 @@ const AgentChatMessages = memo(
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="flex flex-col gap-6 px-3 py-4 md:px-[35px]">
             {messages.map((message, index) => (
               <AgentChatMessage
                 key={message.id}

@@ -79,6 +79,12 @@ function buildReferenceMapping(
 }
 
 function AgentChatMarkdownComponent({ content, sources }: Props) {
+  const cleanProps = (props: Record<string, unknown>) => {
+    const rest = { ...props };
+    rest.node = undefined;
+    return rest;
+  };
+
   const hasSources = sources && sources.length > 0;
 
   const sourcesByParty = useMemo(
@@ -219,30 +225,30 @@ function AgentChatMarkdownComponent({ content, sources }: Props) {
 
   const components: Partial<Components> = {
     p: ({ children, ...props }) => (
-      <p className="mb-2 last:mb-0" {...props}>
+      <p className="mb-2 last:mb-0" {...cleanProps(props)}>
         {processChildren(children)}
       </p>
     ),
     li: ({ children, ...props }) => (
-      <li className="py-1" {...props}>
+      <li className="py-1" {...cleanProps(props)}>
         {processChildren(children)}
       </li>
     ),
     em: ({ children, ...props }) => (
-      <em {...props}>{processChildren(children)}</em>
+      <em {...cleanProps(props)}>{processChildren(children)}</em>
     ),
     strong: ({ children, ...props }) => (
-      <span className="font-semibold" {...props}>
+      <span className="font-semibold" {...cleanProps(props)}>
         {processChildren(children)}
       </span>
     ),
     ol: ({ children, ...props }) => (
-      <ol className="ml-4 list-outside list-decimal" {...props}>
+      <ol className="ml-4 list-outside list-decimal" {...cleanProps(props)}>
         {children}
       </ol>
     ),
     ul: ({ children, ...props }) => (
-      <ul className="ml-4 list-outside list-disc" {...props}>
+      <ul className="ml-4 list-outside list-disc" {...cleanProps(props)}>
         {children}
       </ul>
     ),
@@ -252,29 +258,29 @@ function AgentChatMarkdownComponent({ content, sources }: Props) {
         className="text-blue-500 hover:underline"
         target="_blank"
         rel="noreferrer"
-        {...props}
+        {...cleanProps(props)}
       >
         {children}
       </Link>
     ),
     h1: ({ children, ...props }) => (
-      <h1 className="mb-2 mt-4 text-lg font-semibold" {...props}>
+      <h1 className="mb-2 mt-4 text-2xl font-semibold" {...cleanProps(props)}>
         {children}
       </h1>
     ),
     h2: ({ children, ...props }) => (
-      <h2 className="mb-2 mt-4 text-base font-semibold" {...props}>
+      <h2 className="mb-2 mt-4 text-xl font-semibold" {...cleanProps(props)}>
         {children}
       </h2>
     ),
     h3: ({ children, ...props }) => (
-      <h3 className="mb-2 mt-3 text-sm font-semibold" {...props}>
+      <h3 className="mb-2 mt-3 text-lg font-semibold" {...cleanProps(props)}>
         {children}
       </h3>
     ),
     pre: ({ children, ...props }) => (
       <pre
-        {...props}
+        {...cleanProps(props)}
         className="mt-2 w-full overflow-x-auto rounded-lg bg-zinc-100 p-3 text-sm dark:bg-zinc-800"
       >
         {children}
@@ -288,7 +294,7 @@ function AgentChatMarkdownComponent({ content, sources }: Props) {
       return (
         <code
           className="rounded-md bg-zinc-100 px-1 py-0.5 text-sm dark:bg-zinc-800"
-          {...props}
+          {...cleanProps(props)}
         >
           {children}
         </code>
@@ -297,7 +303,7 @@ function AgentChatMarkdownComponent({ content, sources }: Props) {
     blockquote: ({ children, ...props }) => (
       <blockquote
         className="border-l-4 border-muted-foreground/30 pl-4 italic text-muted-foreground"
-        {...props}
+        {...cleanProps(props)}
       >
         {children}
       </blockquote>

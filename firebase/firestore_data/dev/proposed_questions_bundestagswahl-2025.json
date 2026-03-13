@@ -262,37 +262,37 @@
     "proposed_questions/wahl-chat/questions/question_2": {
         "topic": "wahl.chat",
         "location": "chat",
-        "content": "Kann ich das Abstimmverhalten der Parteien sehen?"
+        "content": "Kann ich das Abstimmverhalten der Parteien im Bundestag sehen?"
     },
     "proposed_questions/wahl-chat/questions/question_7": {
         "topic": "wahl.chat",
         "location": "chat",
-        "content": "Wie entstehen die Antworten?"
+        "content": "Wie entstehen die Antworten, wenn ich mich zur Bundestagswahl 2025 informiere?"
     },
     "proposed_questions/wahl-chat/questions/question_6": {
         "topic": "wahl.chat",
         "location": "chat",
-        "content": "Kann ich mehrere Parteien fragen?"
+        "content": "Kann ich mehrere Parteien zur Bundestagswahl 2025 befragen?"
     },
     "proposed_questions/wahl-chat/questions/question_4": {
         "topic": "Wahl",
         "location": "chat",
-        "content": "Wofür habe ich eine Erst- und eine Zweitstimme?"
+        "content": "Wofür habe ich eine Erst- und eine Zweitstimme bei der Bundestagswahl?"
     },
     "proposed_questions/wahl-chat/questions/question_5": {
         "topic": "wahl.chat",
         "location": "chat",
-        "content": "Was kann ich fragen?"
+        "content": "Was kann ich zur Bundestagswahl fragen?"
     },
     "proposed_questions/wahl-chat/questions/question_3": {
         "topic": "wahl.chat",
         "location": "chat",
-        "content": "Kann ich mehrere Parteien miteinander vergleichen?"
+        "content": "Kann ich mehrere Parteien zur Bundestagswahl miteinander vergleichen?"
     },
     "proposed_questions/wahl-chat/questions/question_1": {
         "topic": "Wahl",
         "location": "chat",
-        "content": "Wie funktioniert unser Wahlsystem?"
+        "content": "Wie funktioniert unser Wahlsystem für die Bundestagswahl?"
     },
     "proposed_questions/fdp/questions/banner_question_2": {
         "topic": "Digitalisierung",

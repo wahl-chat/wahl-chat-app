@@ -39,6 +39,13 @@ import type {
   SourceDocument,
 } from './firebase.types';
 
+class ContextNotFoundError extends Error {
+  constructor(contextId: string) {
+    super(`Context not found: ${contextId}`);
+    this.name = 'ContextNotFoundError';
+  }
+}
+
 async function getServerApp({
   useHeaders = true,
 }: { useHeaders?: boolean } = {}) {
@@ -163,14 +170,38 @@ async function getContextImpl(contextId: string) {
       `[Firestore] FAILED to fetch context "/contexts/${contextId}":`,
       error,
     );
-    return undefined;
+    throw error;
   }
 }
 
-export const getContext = cache(getContextImpl, ['getContext', 'v2'], {
-  revalidate: 3600,
-  tags: [CacheTags.CONTEXTS],
-});
+const getContextCached = cache(
+  async (contextId: string) => {
+    const context = await getContextImpl(contextId);
+
+    if (!context) {
+      throw new ContextNotFoundError(contextId);
+    }
+
+    return context;
+  },
+  ['getContext', 'v3'],
+  {
+    revalidate: 3600,
+    tags: [CacheTags.CONTEXTS],
+  },
+);
+
+export async function getContext(contextId: string) {
+  try {
+    return await getContextCached(contextId);
+  } catch (error) {
+    if (error instanceof ContextNotFoundError) {
+      return undefined;
+    }
+
+    return getContextImpl(contextId);
+  }
+}
 
 async function getPartiesForContextImpl(contextId: string) {
   try {
