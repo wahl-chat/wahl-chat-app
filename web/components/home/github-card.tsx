@@ -2,9 +2,13 @@ import GithubIcon from '@/components/icons/github-icon';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-function GitHubCard() {
+function GitHubCard({ fullWidth = false }: { fullWidth?: boolean }) {
   return (
-    <div className="flex flex-col rounded-md border border-border md:col-span-2">
+    <div
+      className={`flex flex-col rounded-md border border-border${
+        fullWidth ? ' md:col-span-2' : ''
+      }`}
+    >
       <div className="flex grow flex-col justify-between p-4">
         <div>
           <h2 className="font-bold">
