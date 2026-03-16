@@ -8,6 +8,7 @@ export default {
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './modules/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     extend: {
@@ -86,6 +87,19 @@ export default {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
         },
+        'ai-ring-rotate': {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
+        },
+        'ai-ring-arc': {
+          '0%': { strokeDasharray: '1, 150', strokeDashoffset: '0' },
+          '50%': { strokeDasharray: '90, 150', strokeDashoffset: '-35' },
+          '100%': { strokeDasharray: '1, 150', strokeDashoffset: '-125' },
+        },
+        'ai-star-pulse': {
+          '0%, 100%': { transform: 'scale(1)', opacity: '0.85' },
+          '50%': { transform: 'scale(1.1)', opacity: '1' },
+        },
         'typing-dot': {
           '0%, 60%, 100%': { transform: 'translateY(0)' },
           '30%': { transform: 'translateY(-4px)' },
@@ -94,6 +108,9 @@ export default {
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'ai-ring-rotate': 'ai-ring-rotate 2s linear infinite',
+        'ai-ring-arc': 'ai-ring-arc 1.5s ease-in-out infinite',
+        'ai-star-pulse': 'ai-star-pulse 2s ease-in-out infinite',
         'typing-dot': 'typing-dot 1.4s ease-in-out infinite',
       },
     },

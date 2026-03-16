@@ -1,8 +1,10 @@
 'use client';
 
 import { Markdown } from '@/components/markdown';
+import VisuallyHidden from '@/components/visually-hidden';
 import type { Source } from '@/lib/stores/chat-store.types';
 import { buildPdfUrl } from '@/lib/utils';
+import { useMemo } from 'react';
 
 type Props = {
   message: {
@@ -66,14 +68,46 @@ function ChatMarkdown({ message }: Props) {
     return `${number + 1}`;
   };
 
+  const sourceSummary = useMemo(() => {
+    if (!message.sources || message.sources.length === 0) return null;
+
+    const regex = /\[(\d+(?:\s*,\s*\d+)*)\]/g;
+    const matches = message.content?.match(regex);
+    if (!matches) return null;
+
+    const numbers = matches.flatMap((match) => {
+      const nums = match.match(/^\[(\d+(?:\s*,\s*\d+)*)\]$/);
+      if (!nums) return [];
+      return nums[1].split(',').map((n) => Number.parseInt(n.trim()));
+    });
+
+    const uniqueNumbers = [...new Set(numbers)];
+    const referencedSources = uniqueNumbers
+      .filter((n) => n >= 0 && n < (message.sources?.length ?? 0))
+      .map((n) => message.sources?.[n]);
+
+    if (referencedSources.length === 0) return null;
+
+    return referencedSources
+      .map((s, i) => `Quelle ${i + 1}: ${s?.source}, Seite ${s?.page}`)
+      .join('. ');
+  }, [message.content, message.sources]);
+
   return (
-    <Markdown
-      onReferenceClick={onReferenceClick}
-      getReferenceTooltip={getReferenceTooltip}
-      getReferenceName={getReferenceName}
-    >
-      {message.content ?? ''}
-    </Markdown>
+    <>
+      <Markdown
+        onReferenceClick={onReferenceClick}
+        getReferenceTooltip={getReferenceTooltip}
+        getReferenceName={getReferenceName}
+      >
+        {message.content ?? ''}
+      </Markdown>
+      {sourceSummary && (
+        <VisuallyHidden>
+          <p>Quellen: {sourceSummary}</p>
+        </VisuallyHidden>
+      )}
+    </>
   );
 }
 

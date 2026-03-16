@@ -37,3 +37,6 @@ next-env.d.ts
 # lockfiles (bun.lockb is tracked)
 package-lock.json
 pnpm-lock.yaml
+
+.idea
+docs/

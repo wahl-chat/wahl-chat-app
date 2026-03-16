@@ -34,6 +34,7 @@ export default async function NavBar({ className }: Props) {
 
   return (
     <nav
+      aria-label="Hauptnavigation"
       className={cn(
         'flex flex-col md:flex-row items-center justify-center gap-2',
         className,

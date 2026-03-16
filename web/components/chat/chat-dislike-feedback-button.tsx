@@ -42,6 +42,7 @@ function ChatDislikeFeedbackButton({
           size="icon"
           className="group/dislike size-8 group-data-[has-message-background=true]:hover:bg-zinc-200 group-data-[has-message-background=true]:dark:hover:bg-zinc-800"
           onClick={() => setIsOpen(true)}
+          aria-label="Feedback geben"
         >
           <div className="group-hover/dislike:-translate-y-2 group-hover/dislike:scale-125 group-hover/dislike:transition-transform group-hover/dislike:duration-200 group-hover/dislike:ease-in-out">
             <ThumbsDown className={cn(isDisliked && 'fill-foreground/30')} />

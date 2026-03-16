@@ -15,7 +15,10 @@ function Footer() {
     <footer className="flex h-footer w-full flex-col items-center justify-center gap-4 border-t p-4 text-xs text-muted-foreground md:flex-row">
       <Logo className="size-5" variant="small" />
 
-      <section className="flex grow flex-wrap items-center justify-center gap-2 underline md:justify-end">
+      <nav
+        aria-label="Footer-Navigation"
+        className="flex grow flex-wrap items-center justify-center gap-2 underline md:justify-end"
+      >
         <Link href="/how-to">Anleitung</Link>
         <Link href="/donate">Spenden</Link>
         <Link href="/about-us">Über uns</Link>
@@ -28,7 +31,7 @@ function Footer() {
         </FeedbackDialog>
         <Link href="/impressum">Impressum</Link>
         <Link href="/datenschutz">Datenschutz</Link>
-      </section>
+      </nav>
 
       <ThemeModeToggle />
     </footer>

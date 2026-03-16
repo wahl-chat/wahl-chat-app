@@ -1,6 +1,7 @@
 import type ChatSocket from '@/lib/chat-socket';
 import type { ChatSession, Tenant } from '@/lib/firebase/firebase.types';
 import type { PartyDetails } from '@/lib/party-details';
+import type { ProlificMetadata } from '@/lib/prolific-study/prolific-metadata';
 import type {
   LLMSize,
   PartyResponseChunkReadyPayload,
@@ -9,7 +10,6 @@ import type {
 } from '@/lib/socket.types';
 import type { Timestamp } from 'firebase/firestore';
 import type { WritableDraft } from 'immer';
-import {ProlificMetadata} from "@/lib/prolific-study/prolific-metadata";
 
 export type Source = {
   source: string;

@@ -1,3 +1,4 @@
+import bundleAnalyzer from '@next/bundle-analyzer';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
@@ -22,9 +23,17 @@ const nextConfig: NextConfig = {
 
     return config;
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/v1/exploration-study/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/v1/exploration-study/:path*`,
+      },
+    ];
+  },
 };
 
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
+const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
 

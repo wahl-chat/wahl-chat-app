@@ -35,8 +35,10 @@ function MobileNavbar({ userDetails }: Props) {
 
         <Dialog.Content className="fixed inset-x-0 bottom-0 top-[calc(var(--header-height)-1px)] z-50 flex flex-col items-center justify-center bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 md:hidden">
           <VisuallyHidden>
-            <Dialog.Title>Dialog Title</Dialog.Title>
-            <Dialog.Description>Dialog Description</Dialog.Description>
+            <Dialog.Title>Navigationsmenü</Dialog.Title>
+            <Dialog.Description>
+              Hauptnavigation und Benutzeroptionen
+            </Dialog.Description>
           </VisuallyHidden>
 
           <MobileNavbarItems

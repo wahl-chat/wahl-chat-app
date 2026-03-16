@@ -1,0 +1,178 @@
+'use client';
+
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { studyApi } from '@/modules/exploration-study/services/study-api';
+import type {
+  QuizAnswer,
+  QuizQuestion as QuizQuestionType,
+} from '@/modules/exploration-study/types';
+import { Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { QuizQuestion } from './quiz-question';
+
+export interface QuizDisplayProps {
+  sessionId: string;
+  taskNumber: 1 | 2;
+  onSubmit: (answers: QuizAnswer[]) => Promise<void>;
+  isSubmitting?: boolean;
+  className?: string;
+}
+
+const POLL_INTERVAL = 2000; // 2 seconds
+
+export function QuizDisplay({
+  sessionId,
+  taskNumber,
+  onSubmit,
+  isSubmitting = false,
+  className,
+}: QuizDisplayProps) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [questions, setQuestions] = useState<QuizQuestionType[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answers, setAnswers] = useState<Map<string, QuizAnswer>>(new Map());
+  const questionStartTime = useRef<number>(Date.now());
+
+  // Poll for quiz readiness
+  useEffect(() => {
+    let cancelled = false;
+    let timeoutId: NodeJS.Timeout;
+
+    const pollQuiz = async () => {
+      const response = await studyApi.getQuiz(sessionId, taskNumber);
+
+      if (cancelled) return;
+
+      if (response.data?.isReady && response.data.questions.length > 0) {
+        setQuestions(response.data.questions);
+        setIsLoading(false);
+        questionStartTime.current = Date.now();
+      } else {
+        // Continue polling
+        timeoutId = setTimeout(pollQuiz, POLL_INTERVAL);
+      }
+    };
+
+    pollQuiz();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [sessionId, taskNumber]);
+
+  const currentQuestion = questions[currentIndex];
+
+  const handleSelect = useCallback(
+    (selectedIndex: number) => {
+      if (!currentQuestion) return;
+
+      const responseTimeMs = Date.now() - questionStartTime.current;
+
+      setAnswers((prev) => {
+        const next = new Map(prev);
+        next.set(currentQuestion.id, {
+          questionId: currentQuestion.id,
+          selectedIndex,
+          responseTimeMs,
+        });
+        return next;
+      });
+    },
+    [currentQuestion],
+  );
+
+  const handleNext = useCallback(() => {
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+      questionStartTime.current = Date.now();
+    }
+  }, [currentIndex, questions.length]);
+
+  const handlePrevious = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+      questionStartTime.current = Date.now();
+    }
+  }, [currentIndex]);
+
+  const handleSubmit = useCallback(async () => {
+    const answersArray = Array.from(answers.values());
+    await onSubmit(answersArray);
+  }, [answers, onSubmit]);
+
+  const currentAnswer = currentQuestion
+    ? answers.get(currentQuestion.id)
+    : null;
+  const allAnswered = answers.size === questions.length;
+  const isLastQuestion = currentIndex === questions.length - 1;
+
+  if (isLoading) {
+    return (
+      <div
+        className={cn(
+          'flex flex-col items-center justify-center space-y-4 py-12',
+          className,
+        )}
+      >
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        <div className="text-center">
+          <h2 className="text-lg font-medium">Quiz wird vorbereitet...</h2>
+          <p className="text-sm text-muted-foreground">
+            Bitte warte einen Moment.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn('space-y-6', className)}>
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold">Wissensquiz</h1>
+        <p className="text-sm text-muted-foreground">
+          Bitte beantworte die folgenden Fragen basierend auf den Informationen
+          aus der vorherigen Aufgabe.
+        </p>
+      </div>
+
+      {currentQuestion && (
+        <QuizQuestion
+          question={currentQuestion}
+          questionNumber={currentIndex + 1}
+          totalQuestions={questions.length}
+          selectedIndex={currentAnswer?.selectedIndex ?? null}
+          onSelect={handleSelect}
+        />
+      )}
+
+      <div className="flex items-center justify-between">
+        <Button
+          variant="outline"
+          onClick={handlePrevious}
+          disabled={currentIndex === 0}
+        >
+          Zurück
+        </Button>
+
+        <div className="text-sm text-muted-foreground">
+          {answers.size} von {questions.length} beantwortet
+        </div>
+
+        {isLastQuestion ? (
+          <Button
+            onClick={handleSubmit}
+            disabled={!allAnswered || isSubmitting}
+          >
+            {isSubmitting ? 'Wird gespeichert...' : 'Absenden'}
+          </Button>
+        ) : (
+          <Button onClick={handleNext} disabled={!currentAnswer}>
+            Weiter
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}

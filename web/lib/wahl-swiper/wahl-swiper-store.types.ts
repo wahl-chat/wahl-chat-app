@@ -1,7 +1,7 @@
+import type { ProlificMetadata } from '@/lib/prolific-study/prolific-metadata';
 import type { Source } from '@/lib/stores/chat-store.types';
 import type { WritableDraft } from 'immer';
 import type { SwipeType } from './wahl-swiper.types';
-import type {ProlificMetadata} from "@/lib/prolific-study/prolific-metadata";
 
 export type Thesis = {
   id: string;

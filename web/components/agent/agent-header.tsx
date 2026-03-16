@@ -10,7 +10,7 @@ import {
 
 export default function AgentHeader() {
   return (
-    <header className="relative z-10 flex h-[65px] shrink-0 w-full items-center gap-2 border-b border-b-muted bg-background px-4">
+    <header className="relative z-10 flex h-[65px] w-full shrink-0 items-center gap-2 border-b border-b-muted bg-background px-4">
       {/* Sidebar trigger */}
       <Tooltip>
         <TooltipTrigger asChild>
@@ -20,7 +20,7 @@ export default function AgentHeader() {
       </Tooltip>
 
       {/* Title */}
-      <div className="hidden md:flex items-center gap-2">
+      <div className="hidden items-center gap-2 md:flex">
         <span className="text-lg font-semibold">Wahl Agent</span>
       </div>
 

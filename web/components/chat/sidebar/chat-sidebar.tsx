@@ -59,6 +59,7 @@ async function ChatSidebar({ contextId = DEFAULT_CONTEXT_ID }: Props) {
             asChild
             className="size-8"
             tooltip="Startseite"
+            aria-label="Zur Startseite"
           >
             <Link href={`/${contextId}`}>
               <HomeIcon className="size-4" />

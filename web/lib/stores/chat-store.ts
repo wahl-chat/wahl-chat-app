@@ -118,7 +118,7 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
           set({ prolificDisclaimerDismissed }),
         incrementProlificMessageCount: () =>
           set((state) => {
-              state.prolificMessageCount = state.prolificMessageCount + 1;
+            state.prolificMessageCount = state.prolificMessageCount + 1;
           }),
         setProlificMessageCount: (prolificMessageCount) =>
           set({ prolificMessageCount }),

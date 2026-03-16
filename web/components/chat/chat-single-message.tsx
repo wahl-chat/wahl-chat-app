@@ -69,6 +69,7 @@ function ChatSingleMessage({
             'border border-muted p-3 md:p-4 rounded-lg',
         )}
         data-has-message-background={Boolean(shouldHaveBackground)}
+        aria-label={`Antwort von ${party?.name ?? 'Assistent'}`}
       >
         <div className={cn('flex items-start justify-start gap-3 md:gap-4')}>
           {showAssistantIcon && (

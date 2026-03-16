@@ -35,7 +35,10 @@ function ChatSingleUserMessage({ message, isLastMessage }: Props) {
   };
 
   return (
-    <article className="flex flex-col items-end justify-end gap-1">
+    <article
+      className="flex flex-col items-end justify-end gap-1"
+      aria-label="Deine Nachricht"
+    >
       <div className="w-fit max-w-[90%] rounded-[20px] bg-muted px-4 py-2 text-foreground">
         {message.content ?? ''}
       </div>

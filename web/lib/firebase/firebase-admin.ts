@@ -23,7 +23,7 @@ let app: FirebaseApp;
 try {
   app = getApp();
 } catch (error) {
-  console.log('Initializing Firebase Admin App', error);
+  console.log('Initializing Firebase Admin App', JSON.stringify(error));
 
   const {
     NEXT_PUBLIC_FIREBASE_PROJECT_ID,

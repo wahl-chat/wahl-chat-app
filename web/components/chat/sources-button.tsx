@@ -75,8 +75,9 @@ function SourcesButton({ sources, messageContent }: Props) {
             <Button
               variant="outline"
               className="h-8 px-2 text-xs group-data-[has-message-background]:bg-zinc-100 group-data-[has-message-background]:hover:bg-zinc-200 group-data-[has-message-background]:dark:bg-zinc-900 group-data-[has-message-background]:dark:hover:bg-zinc-800"
+              aria-label={`${sources.length} Quellen anzeigen`}
             >
-              <BookMarkedIcon />
+              <BookMarkedIcon aria-hidden="true" />
               Quellen
             </Button>
           </ResponsiveDialogTrigger>

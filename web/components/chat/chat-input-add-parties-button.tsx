@@ -21,6 +21,7 @@ function ChatInputAddPartiesButton({ disabled }: Props) {
           className="z-40 flex shrink-0 items-center gap-1 rounded-full bg-primary p-1 text-primary-foreground transition-all duration-200 ease-out enabled:hover:scale-95 disabled:cursor-not-allowed"
           disabled={disabled}
           type="button"
+          aria-label="Parteien hinzufügen"
         >
           <PlusIcon className="size-4" />
         </button>

@@ -67,7 +67,7 @@ export default function AgentSidebar() {
               <span>Conversation ID</span>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Info className="size-3 text-muted-foreground cursor-help" />
+                  <Info className="size-3 cursor-help text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent side="right" className="max-w-[200px] text-xs">
                   Speichere diese ID, um die Konversation auf einem anderen

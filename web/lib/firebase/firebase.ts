@@ -1,4 +1,5 @@
 import type { WahlChatUser } from '@/components/anonymous-auth';
+import type { ProlificMetadata } from '@/lib/prolific-study/prolific-metadata';
 import type {
   GroupedMessage,
   MessageFeedback,
@@ -30,12 +31,11 @@ import {
 } from 'firebase/firestore';
 import { firebaseConfig } from './firebase-config';
 import type { ChatSession, LlmSystemStatus } from './firebase.types';
-import type {ProlificMetadata} from "@/lib/prolific-study/prolific-metadata";
 
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-const db = getFirestore(app);
+export const db = getFirestore(app);
 
 export async function createChatSession(
   userId: string,

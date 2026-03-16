@@ -30,7 +30,7 @@ async function ChatHeader({ contextId = DEFAULT_CONTEXT_ID }: Props) {
     <>
       <header className="relative z-10 flex min-h-chat-header w-full flex-col">
         <div className="flex h-chat-header w-full gap-1 border-b border-b-muted bg-background px-4">
-          <div className="flex min-w-0 items-center gap-2 overflow-x-hidden">
+          <div className="flex min-w-0 items-center gap-2 overflow-x-hidden pr-4">
             <Tooltip>
               <TooltipTrigger asChild>
                 <SidebarTrigger />

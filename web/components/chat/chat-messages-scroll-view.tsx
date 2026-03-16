@@ -15,6 +15,9 @@ function ChatMessagesScrollView({ children }: Props) {
     <div
       className="grow overflow-x-hidden overflow-y-scroll"
       id={SCROLL_CONTAINER_ID}
+      role="log"
+      aria-live="polite"
+      aria-label="Chat-Nachrichten"
     >
       {children}
     </div>

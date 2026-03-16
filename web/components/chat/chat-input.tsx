@@ -91,6 +91,7 @@ function ChatInput() {
         value={input}
         disabled={loading}
         maxLength={500}
+        aria-label="Nachricht eingeben"
       />
       <Button
         type="submit"
@@ -99,6 +100,7 @@ function ChatInput() {
           'absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/80 disabled:bg-foreground/20 disabled:text-muted',
           quickReplies.length > 0 && 'bottom-0 translate-y-0',
         )}
+        aria-label="Nachricht senden"
       >
         <ArrowUp className="size-4 font-bold" />
       </Button>

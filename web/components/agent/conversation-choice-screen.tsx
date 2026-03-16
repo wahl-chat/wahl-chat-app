@@ -182,7 +182,7 @@ export default function ConversationChoiceScreen() {
     <div className="flex min-h-full flex-col items-center justify-center p-4 py-8">
       <div className="w-full max-w-lg space-y-6">
         {/* Header */}
-        <h1 className="text-3xl text-center font-bold tracking-tight">
+        <h1 className="text-center text-3xl font-bold tracking-tight">
           Wie möchtest du fortfahren?
         </h1>
 

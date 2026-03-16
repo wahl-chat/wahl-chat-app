@@ -90,6 +90,7 @@ function SurveyBanner() {
           variant="ghost"
           className="size-6"
           onClick={handleForceCloseSurvey}
+          aria-label="Banner schließen"
         >
           <XIcon />
         </Button>

@@ -9,6 +9,7 @@ import {
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ChatMessageReference from './chat/chat-message-reference';
+import VisuallyHidden from './visually-hidden';
 
 type Props = {
   children: string;
@@ -161,12 +162,13 @@ const NonMemoizedMarkdown = ({
           {...cleanProps(props)}
         >
           {children}
+          <VisuallyHidden> (öffnet in neuem Tab)</VisuallyHidden>
         </Link>
       );
     },
     h1: ({ children, ...props }) => {
       return (
-        <h1 className="my-0 text-xl font-semibold" {...cleanProps(props)}>
+        <h1 className="my-0 text-2xl font-bold" {...cleanProps(props)}>
           {children}
         </h1>
       );
@@ -180,30 +182,40 @@ const NonMemoizedMarkdown = ({
     },
     h3: ({ children, ...props }) => {
       return (
-        <h3 className="my-0 text-xl font-semibold" {...cleanProps(props)}>
+        <h3 className="my-0 text-lg font-semibold" {...cleanProps(props)}>
           {children}
         </h3>
       );
     },
     h4: ({ children, ...props }) => {
       return (
-        <h4 className="my-0 text-lg font-semibold" {...cleanProps(props)}>
+        <h4 className="my-0 text-base font-semibold" {...cleanProps(props)}>
           {children}
         </h4>
       );
     },
     h5: ({ children, ...props }) => {
       return (
-        <h5 className="my-0 text-base font-semibold" {...cleanProps(props)}>
+        <h5 className="my-0 text-sm font-semibold" {...cleanProps(props)}>
           {children}
         </h5>
       );
     },
     h6: ({ children, ...props }) => {
       return (
-        <h6 className="my-0 text-sm font-semibold" {...cleanProps(props)}>
+        <h6 className="my-0 text-xs font-semibold" {...cleanProps(props)}>
           {children}
         </h6>
+      );
+    },
+    blockquote: ({ children, ...props }) => {
+      return (
+        <blockquote
+          className="my-4 rounded-lg bg-muted/50 px-4 py-3 italic text-muted-foreground"
+          {...cleanProps(props)}
+        >
+          {children}
+        </blockquote>
       );
     },
   };

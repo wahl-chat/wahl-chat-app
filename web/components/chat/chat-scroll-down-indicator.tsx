@@ -56,6 +56,7 @@ function ChatScrollDownIndicator() {
         )}
         onClick={handleClick}
         size="icon"
+        aria-label="Nach unten scrollen"
       >
         <ArrowDownIcon className="size-4 text-muted-foreground" />
       </Button>

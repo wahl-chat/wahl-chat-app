@@ -41,6 +41,7 @@ function ChatMessageLikeDislikeButtons({ message }: Props) {
         size="icon"
         className="group/like size-8 group-data-[has-message-background=true]:hover:bg-zinc-200 group-data-[has-message-background=true]:dark:hover:bg-zinc-800"
         onClick={handleLike}
+        aria-label="Nachricht liken"
       >
         <div className="group-hover/like:-translate-y-2 group-hover/like:scale-125 group-hover/like:transition-transform group-hover/like:duration-200 group-hover/like:ease-in-out">
           <ThumbsUp className={cn(isLiked && 'fill-foreground/30')} />
