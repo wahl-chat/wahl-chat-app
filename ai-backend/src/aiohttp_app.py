@@ -28,6 +28,8 @@ from src.models.vote import Vote
 from src.vector_store_helper import identify_relevant_parliamentary_questions
 from src.utils import build_chat_history_string, get_cors_allowed_origins
 from src.websocket_app import sio
+from src.guided_exploration.api.routes import setup_guided_exploration_routes
+from src.exploration_study.api.routes import setup_exploration_study_routes
 
 LOGGING_FORMAT = (
     "%(asctime)s - %(name)s - %(filename)s - %(lineno)d - %(levelname)s - %(message)s"
@@ -182,6 +184,20 @@ cors = aiohttp_cors.setup(
 for route in list(app.router.routes()):
     logger.info(f"Adding CORS to route {route}")
     cors.add(route, cors_config)
+
+# Setup guided exploration routes
+setup_guided_exploration_routes(app)
+
+# Setup exploration study routes
+setup_exploration_study_routes(app)
+
+# Add CORS to all new routes (guided exploration and exploration study)
+for route in list(app.router.routes()):
+    try:
+        cors.add(route, cors_config)
+    except ValueError:
+        # Route already has CORS configured
+        pass
 
 sio.attach(app)
 

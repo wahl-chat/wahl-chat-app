@@ -1,0 +1,241 @@
+# SPDX-FileCopyrightText: 2025 wahl.chat
+#
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+"""Models for exploration state and summary tree in guided exploration."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from enum import Enum
+from typing import Any, Optional
+
+from pydantic import BaseModel, Field
+
+from src.guided_exploration.models.content import Citation
+from src.guided_exploration.models.conversation import LeafSummary
+from src.guided_exploration.models.tree import TopicTree
+
+
+# =============================================================================
+# Per-Party Topic Models (for party-specific planning)
+# =============================================================================
+
+
+class PartySubtopic(BaseModel):
+    """A subtopic as discussed by a single party."""
+
+    id: str = Field(..., description="Unique identifier for this subtopic")
+    name: str = Field(..., description="Display name")
+    description: str = Field(..., description="Brief description")
+    has_content: bool = Field(
+        default=True, description="True if party has meaningful content on this"
+    )
+
+
+class PartyTopic(BaseModel):
+    """A topic as discussed by a single party."""
+
+    id: str = Field(..., description="Unique identifier for this topic")
+    name: str = Field(..., description="Display name")
+    description: str = Field(..., description="Brief description")
+    subtopics: list[PartySubtopic] = Field(
+        default_factory=list, description="Subtopics this party discusses"
+    )
+    importance_score: float = Field(
+        default=0.5, description="How much this party emphasizes this topic (0-1)"
+    )
+
+
+class PartyTopicTree(BaseModel):
+    """Topics/subtopics identified from a single party's documents."""
+
+    party_id: str = Field(..., description="Party ID this tree is for")
+    topics: list[PartyTopic] = Field(
+        default_factory=list, description="Topics this party discusses"
+    )
+    relevance_to_query: float = Field(
+        default=0.5, description="How well this party's content matches the query (0-1)"
+    )
+
+
+# =============================================================================
+# Per-Party Knowledge Models (for party-specific resolution)
+# =============================================================================
+
+
+class ExtractedClaim(BaseModel):
+    """A single claim extracted from party documents with source quote."""
+
+    claim: str = Field(..., description="The extracted claim/position in own words")
+    quote: str = Field(..., description="Verbatim quote from source document")
+    source_doc: str = Field(..., description="Source document name")
+    source_page: int | None = Field(
+        default=None, description="Page number if available"
+    )
+    claim_type: str = Field(
+        default="position",
+        description="Type: position, measure, target, argument, criticism",
+    )
+    citation_id: str | None = Field(
+        default=None,
+        description="ID of the citation for this claim (set during knowledge resolution)",
+    )
+
+
+class ExtractedPosition(BaseModel):
+    """Structured extraction of a party's position from documents."""
+
+    party_id: str = Field(..., description="Party ID")
+    summary: str = Field(default="", description="1-sentence summary")
+    claims: list[ExtractedClaim] = Field(
+        default_factory=list,
+        description="All extracted claims with quotes",
+    )
+
+
+class PartySubtopicKnowledge(BaseModel):
+    """A single party's knowledge for a single subtopic."""
+
+    subtopic_id: str = Field(..., description="ID of the subtopic")
+    party_id: str = Field(..., description="Party ID this knowledge is for")
+    position: ExtractedPosition | None = Field(
+        default=None,
+        description="Extracted position (None if party doesn't address this)",
+    )
+    key_points: list[str] = Field(
+        default_factory=list, description="Key points from this party"
+    )
+    citations: list[Citation] = Field(
+        default_factory=list, description="Citations from this party's documents"
+    )
+    retrieved_chunks: list["RetrievedChunk"] = Field(
+        default_factory=list,
+        description="Raw chunks retrieved from RAG for this subtopic",
+    )
+
+
+class PartyKnowledge(BaseModel):
+    """Knowledge resolved for a single party across all subtopics."""
+
+    party_id: str = Field(..., description="Party ID this knowledge is for")
+    subtopics: dict[str, PartySubtopicKnowledge] = Field(
+        default_factory=dict, description="Mapping of subtopic_id to knowledge"
+    )
+
+    def get_for_subtopic(self, subtopic_id: str) -> PartySubtopicKnowledge | None:
+        """Get knowledge for a specific subtopic."""
+        return self.subtopics.get(subtopic_id)
+
+
+class RetrievedChunk(BaseModel):
+    """A chunk retrieved from RAG."""
+
+    chunk_id: str = Field(..., description="Unique identifier for the chunk")
+    content: str = Field(..., description="The text content of the chunk")
+    party_id: str = Field(..., description="Party ID this chunk belongs to")
+    source_document: str = Field(..., description="Source document name/path")
+    source_section: str | None = Field(
+        default=None, description="Section within the document"
+    )
+    source_page: int | None = Field(
+        default=None, description="Page number if applicable"
+    )
+    relevance_score: float = Field(
+        ..., description="Relevance score from RAG retrieval"
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
+
+
+class ExplorationStatus(str, Enum):
+    """Status of an exploration."""
+
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    ABANDONED = "abandoned"
+
+
+class SummaryTree(BaseModel):
+    """Parallel tree tracking summaries."""
+
+    exploration_id: Optional[str] = Field(
+        None, description="ID of the parent exploration"
+    )
+    summaries: dict[str, LeafSummary] = Field(
+        default_factory=dict, description="Mapping of leaf_id to summary"
+    )
+    topic_summaries: dict[str, str] = Field(
+        default_factory=dict, description="Mapping of topic_id to aggregated summary"
+    )
+
+
+class FinalSummary(BaseModel):
+    """Generated when exploration completes."""
+
+    closing_summary: str = Field(..., description="Closing summary of the exploration")
+    overview: str = Field(..., description="High-level overview")
+    key_findings: list[str] = Field(
+        default_factory=list, description="Key findings from the exploration"
+    )
+    generated_at: datetime = Field(..., description="When the summary was generated")
+
+
+class Exploration(BaseModel):
+    """Full exploration state."""
+
+    id: str = Field(..., description="Unique exploration identifier")
+    session_id: str = Field(..., description="ID of the owning session")
+    original_query: str = Field(
+        ..., description="The user's original query that started this exploration"
+    )
+    tree: TopicTree = Field(..., description="The topic tree for this exploration")
+    knowledge_base: KnowledgeBase | None = Field(
+        default=None,
+        description="Knowledge base with resolved knowledge for all subtopics",
+    )
+    status: ExplorationStatus = Field(
+        default=ExplorationStatus.ACTIVE, description="Current status"
+    )
+    final_summary: FinalSummary | None = Field(
+        default=None, description="Final summary when exploration completes"
+    )
+    created_at: datetime = Field(..., description="When the exploration was created")
+    updated_at: datetime = Field(
+        ..., description="When the exploration was last updated"
+    )
+
+
+class ResolvedKnowledge(BaseModel):
+    """Pre-processed knowledge context for a leaf (cached)."""
+
+    leaf_id: str = Field(..., description="ID of the leaf node")
+    party_positions: dict[str, ExtractedPosition] = Field(
+        default_factory=dict, description="Mapping of party_id to extracted position"
+    )
+    citation_pool: list[Citation] = Field(
+        default_factory=list, description="Available citations"
+    )
+    party_chunks: dict[str, list["RetrievedChunk"]] = Field(
+        default_factory=dict,
+        description="Mapping of party_id to retrieved chunks for this subtopic",
+    )
+
+
+class KnowledgeBase(BaseModel):
+    """
+    Knowledge base mapping subtopic_id -> ResolvedKnowledge.
+
+    Stored as part of the exploration document in Firebase.
+    Each exploration has its own knowledge base built from RAG chunks.
+    """
+
+    subtopics: dict[str, ResolvedKnowledge] = Field(
+        default_factory=dict,
+        description="Mapping of subtopic_id to resolved knowledge",
+    )
+
+    def get_for_subtopic(self, subtopic_id: str) -> ResolvedKnowledge | None:
+        """Get resolved knowledge for a specific subtopic."""
+        return self.subtopics.get(subtopic_id)

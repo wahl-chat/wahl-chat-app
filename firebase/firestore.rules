@@ -30,6 +30,25 @@ service cloud.firestore {
       }
     }
 
+    match /guided_exploration_sessions/{session_id} {
+      allow read: if request.auth != null && resource.data.user_id == request.auth.uid;
+
+      match /explorations/{exploration_id} {
+        allow read: if request.auth != null
+          && get(/databases/$(database)/documents/guided_exploration_sessions/$(session_id)).data.user_id == request.auth.uid;
+
+        match /conversations/{leaf_id} {
+          allow read: if request.auth != null
+            && get(/databases/$(database)/documents/guided_exploration_sessions/$(session_id)).data.user_id == request.auth.uid;
+        }
+
+        match /summaries/{node_id} {
+          allow read: if request.auth != null
+            && get(/databases/$(database)/documents/guided_exploration_sessions/$(session_id)).data.user_id == request.auth.uid;
+        }
+      }
+    }
+
     match /cached_answers/{id} {
     	allow read;
     }
