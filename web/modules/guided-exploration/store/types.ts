@@ -8,6 +8,7 @@ import type {
   ChoicePromptEvent,
   Conversation,
   ErrorCode,
+  ExplorationTree,
   LeafSummary,
   Message,
   NavigationState,
@@ -15,7 +16,6 @@ import type {
   StreamSection,
   StreamTargetType,
   ThinkingStage,
-  TopicTree,
 } from '@/modules/guided-exploration/types';
 
 // ============ State Slices ============
@@ -42,7 +42,7 @@ export interface SessionSliceState {
 }
 
 export interface ExplorationSliceState {
-  tree: TopicTree | null;
+  tree: ExplorationTree | null;
   navigation: NavigationState | null;
   conversations: Record<string, Conversation>;
   activeLeafId: string | null;
@@ -141,13 +141,13 @@ export type ExplorationAction =
   | {
       type: 'EXPLORATION_STARTED';
       explorationId: string;
-      tree: TopicTree;
+      tree: ExplorationTree;
       navigation: NavigationState;
     }
   | {
       type: 'EXPLORATION_TREE_RECEIVED';
       explorationId: string;
-      tree: TopicTree;
+      tree: ExplorationTree;
     }
   | {
       type: 'EXPLORATION_READY';
@@ -157,7 +157,7 @@ export type ExplorationAction =
       partiesCount: number;
     }
   | { type: 'EXPLORATION_READY_CLEARED' }
-  | { type: 'TREE_UPDATED'; tree: TopicTree }
+  | { type: 'TREE_UPDATED'; tree: ExplorationTree }
   | {
       type: 'NAVIGATED_TO_ROOT';
       navigation: NavigationState;

@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from src.guided_exploration.models.content import Analysis, Citation
 from src.guided_exploration.models.conversation import Conversation, Message
 from src.guided_exploration.models.navigation import NavigationState, SiblingNavigation
-from src.guided_exploration.models.tree import Subtopic, TopicTree
+from src.guided_exploration.models.tree import ExplorationNode, ExplorationTree
 
 
 class ConnectedEvent(BaseModel):
@@ -43,11 +43,11 @@ class ChoicePromptEvent(BaseModel):
 
 
 class TopicTreeEvent(BaseModel):
-    """Sent when topic tree is generated (after Phase 2, before knowledge resolution)."""
+    """Sent when exploration tree is generated."""
 
     type: Literal["topic_tree"] = "topic_tree"
     exploration_id: str = Field(..., description="ID of the new exploration")
-    tree: TopicTree = Field(..., description="The generated topic tree")
+    tree: ExplorationTree = Field(..., description="The exploration tree")
     navigation: NavigationState = Field(..., description="Current navigation state")
 
 
@@ -64,13 +64,15 @@ class ExplorationReadyEvent(BaseModel):
 
 
 class TopicOverviewEvent(BaseModel):
-    """Sent when navigating to a topic."""
+    """Sent when navigating to a branch node."""
 
     type: Literal["topic_overview"] = "topic_overview"
-    topic_id: str = Field(..., description="ID of the topic")
-    name: str = Field(..., description="Display name of the topic")
-    description: str = Field(..., description="Topic description")
-    subtopics: list[Subtopic] = Field(..., description="Subtopics under this topic")
+    topic_id: str = Field(..., description="ID of the node")
+    name: str = Field(..., description="Display name of the node")
+    description: str = Field(..., description="Node description")
+    children: list[ExplorationNode] = Field(
+        ..., description="Child nodes under this branch"
+    )
     navigation: NavigationState = Field(..., description="Current navigation state")
 
 

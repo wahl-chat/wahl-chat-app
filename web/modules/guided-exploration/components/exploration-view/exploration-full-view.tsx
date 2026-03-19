@@ -7,11 +7,11 @@ import { ExplorationBreadcrumb } from '@/modules/guided-exploration/components/n
 import type {
   BreadcrumbItem,
   Conversation,
+  ExplorationTree,
   LeafSummary,
   StreamTargetType,
-  TopicTree,
 } from '@/modules/guided-exploration/types';
-import { findTopic } from '@/modules/guided-exploration/utils';
+import { findNode } from '@/modules/guided-exploration/utils/tree-helpers';
 import { ArrowLeft, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
@@ -27,7 +27,7 @@ export type ExplorationView = 'root' | 'branch' | 'leaf';
 interface ExplorationFullViewProps {
   contextId: string;
   sessionId: string;
-  tree: TopicTree;
+  tree: ExplorationTree;
   view: ExplorationView;
   currentPath: string[];
   breadcrumb: BreadcrumbItem[];
@@ -79,9 +79,9 @@ export function ExplorationFullView({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messageCount = activeConversation?.messages.length ?? 0;
 
-  const currentTopicId = currentPath[0];
-  const currentTopic = currentTopicId
-    ? findTopic(tree, currentTopicId)
+  const currentNodeId = currentPath[currentPath.length - 1] ?? null;
+  const currentBranchNode = currentNodeId
+    ? findNode(tree, currentNodeId)
     : undefined;
 
   // Auto-scroll to bottom when thinking starts or new messages arrive
@@ -105,8 +105,8 @@ export function ExplorationFullView({
     }
   };
 
-  const handleSummaryPanelNavigate = (topicId: string, subtopicId: string) => {
-    onSubtopicSelect(topicId, subtopicId);
+  const handleSummaryPanelNavigate = (nodeId: string) => {
+    onNavigate(nodeId);
   };
 
   /**
@@ -176,12 +176,12 @@ export function ExplorationFullView({
             {view === 'root' && (
               <RootContent tree={tree} onTopicSelect={onNavigate} />
             )}
-            {view === 'branch' && currentTopic && (
+            {view === 'branch' && currentBranchNode && (
               <BranchContent
-                topic={currentTopic}
+                node={currentBranchNode}
                 summaries={summaries}
-                onSubtopicSelect={(subtopicId) =>
-                  onSubtopicSelect(currentTopicId, subtopicId)
+                onChildSelect={(nodeId) =>
+                  onSubtopicSelect(currentBranchNode.id, nodeId)
                 }
               />
             )}
@@ -223,6 +223,9 @@ export function ExplorationFullView({
                 disabled={isThinking}
                 placeholder="Stelle eine Frage zu diesem Thema..."
                 suggestedQuestions={suggestedQuestions}
+                isLoadingQuestions={
+                  (isThinking || isStreaming) && suggestedQuestions.length === 0
+                }
               />
             </div>
           </footer>

@@ -1,110 +1,114 @@
 /**
  * Tree Helper Utilities
- * Functions for working with the topic tree structure
+ * Functions for working with the ExplorationTree structure
  */
 
 import type {
-  Subtopic,
-  Topic,
-  TopicTree,
+  Claim,
+  ExplorationNode,
+  ExplorationTree,
 } from '@/modules/guided-exploration/types';
 
 /**
- * Find a topic by ID
+ * Find a node by ID anywhere in the tree
  */
-export function findTopic(tree: TopicTree, topicId: string): Topic | undefined {
-  return tree.topics.find((t) => t.id === topicId);
+export function findNode(
+  tree: ExplorationTree,
+  nodeId: string,
+): ExplorationNode | undefined {
+  return findNodeRecursive(tree.root, nodeId);
 }
 
-/**
- * Find a subtopic by ID (format: "topicId.subtopicId" or just "subtopicId")
- */
-export function findSubtopic(
-  tree: TopicTree,
-  subtopicId: string,
-): { topic: Topic; subtopic: Subtopic } | undefined {
-  // Check if it's a compound ID
-  if (subtopicId.includes('.')) {
-    const [topicId, subId] = subtopicId.split('.');
-    const topic = findTopic(tree, topicId);
-    if (topic) {
-      const subtopic = topic.subtopics.find(
-        (s) => s.id === subtopicId || s.id === subId,
-      );
-      if (subtopic) {
-        return { topic, subtopic };
-      }
-    }
+function findNodeRecursive(
+  node: ExplorationNode,
+  nodeId: string,
+): ExplorationNode | undefined {
+  if (node.id === nodeId) return node;
+  for (const child of node.children) {
+    const found = findNodeRecursive(child, nodeId);
+    if (found) return found;
   }
-
-  // Search all topics
-  for (const topic of tree.topics) {
-    const subtopic = topic.subtopics.find(
-      (s) => s.id === subtopicId || s.id.endsWith(`.${subtopicId}`),
-    );
-    if (subtopic) {
-      return { topic, subtopic };
-    }
-  }
-
   return undefined;
 }
 
 /**
- * Get all leaves (subtopics) in the tree
+ * Get the path from root to a node (inclusive)
  */
-export function getAllLeaves(tree: TopicTree): Subtopic[] {
-  return tree.topics.flatMap((topic) => topic.subtopics);
+export function getPathTo(
+  tree: ExplorationTree,
+  nodeId: string,
+): ExplorationNode[] | undefined {
+  return getPathRecursive(tree.root, nodeId);
+}
+
+function getPathRecursive(
+  node: ExplorationNode,
+  nodeId: string,
+): ExplorationNode[] | undefined {
+  if (node.id === nodeId) return [node];
+  for (const child of node.children) {
+    const path = getPathRecursive(child, nodeId);
+    if (path) return [node, ...path];
+  }
+  return undefined;
 }
 
 /**
- * Get leaves for a specific topic
+ * Check if a node is a leaf (no children)
  */
-export function getTopicLeaves(tree: TopicTree, topicId: string): Subtopic[] {
-  const topic = findTopic(tree, topicId);
-  return topic?.subtopics ?? [];
+export function isLeaf(node: ExplorationNode): boolean {
+  return node.children.length === 0;
+}
+
+/**
+ * Get all leaf nodes in the tree
+ */
+export function getAllLeaves(tree: ExplorationTree): ExplorationNode[] {
+  return getLeavesRecursive(tree.root);
+}
+
+function getLeavesRecursive(node: ExplorationNode): ExplorationNode[] {
+  if (isLeaf(node)) return [node];
+  return node.children.flatMap(getLeavesRecursive);
+}
+
+/**
+ * Get leaf nodes under a specific branch
+ */
+export function getBranchLeaves(node: ExplorationNode): ExplorationNode[] {
+  return getLeavesRecursive(node);
 }
 
 /**
  * Count total leaves in tree
  */
-export function countLeaves(tree: TopicTree): number {
-  return tree.topics.reduce((acc, topic) => acc + topic.subtopics.length, 0);
+export function countLeaves(tree: ExplorationTree): number {
+  return getAllLeaves(tree).length;
 }
 
 /**
  * Count explored leaves in tree
  */
-export function countExploredLeaves(tree: TopicTree): number {
-  return tree.topics.reduce(
-    (acc, topic) =>
-      acc + topic.subtopics.filter((s) => s.status === 'explored').length,
-    0,
-  );
+export function countExploredLeaves(tree: ExplorationTree): number {
+  return getAllLeaves(tree).filter((l) => l.status === 'explored').length;
 }
 
 /**
- * Get exploration progress for a topic
+ * Get exploration progress for a branch node
  */
-export function getTopicProgress(
-  tree: TopicTree,
-  topicId: string,
-): { explored: number; total: number } {
-  const topic = findTopic(tree, topicId);
-  if (!topic) {
-    return { explored: 0, total: 0 };
-  }
-
-  const explored = topic.subtopics.filter(
-    (s) => s.status === 'explored',
-  ).length;
-  return { explored, total: topic.subtopics.length };
+export function getBranchProgress(node: ExplorationNode): {
+  explored: number;
+  total: number;
+} {
+  const leaves = getBranchLeaves(node);
+  const explored = leaves.filter((l) => l.status === 'explored').length;
+  return { explored, total: leaves.length };
 }
 
 /**
  * Get overall exploration progress
  */
-export function getOverallProgress(tree: TopicTree): {
+export function getOverallProgress(tree: ExplorationTree): {
   explored: number;
   total: number;
   percentage: number;
@@ -112,88 +116,86 @@ export function getOverallProgress(tree: TopicTree): {
   const total = countLeaves(tree);
   const explored = countExploredLeaves(tree);
   const percentage = total > 0 ? Math.round((explored / total) * 100) : 0;
-
   return { explored, total, percentage };
 }
 
 /**
- * Check if a topic has any explored subtopics
+ * Check if a branch has any explored leaves
  */
-export function hasExploredSubtopics(
-  tree: TopicTree,
-  topicId: string,
-): boolean {
-  const topic = findTopic(tree, topicId);
-  return topic?.subtopics.some((s) => s.status === 'explored') ?? false;
+export function hasExploredLeaves(node: ExplorationNode): boolean {
+  return getBranchLeaves(node).some((l) => l.status === 'explored');
 }
 
 /**
- * Check if all subtopics in a topic are explored
+ * Check if all leaves under a branch are explored
  */
-export function isTopicFullyExplored(
-  tree: TopicTree,
-  topicId: string,
-): boolean {
-  const topic = findTopic(tree, topicId);
-  if (!topic || topic.subtopics.length === 0) {
-    return false;
-  }
-  return topic.subtopics.every((s) => s.status === 'explored');
+export function isFullyExplored(node: ExplorationNode): boolean {
+  const leaves = getBranchLeaves(node);
+  return leaves.length > 0 && leaves.every((l) => l.status === 'explored');
 }
 
 /**
  * Get the next unexplored leaf in the tree
  */
 export function getNextUnexploredLeaf(
-  tree: TopicTree,
+  tree: ExplorationTree,
   currentLeafId?: string,
-): Subtopic | undefined {
+): ExplorationNode | undefined {
   const allLeaves = getAllLeaves(tree);
   const currentIndex = currentLeafId
     ? allLeaves.findIndex((l) => l.id === currentLeafId)
     : -1;
 
-  // Search from current position forward
+  // Search forward from current
   for (let i = currentIndex + 1; i < allLeaves.length; i++) {
-    if (allLeaves[i].status === 'pending') {
-      return allLeaves[i];
-    }
+    if (allLeaves[i].status === 'pending') return allLeaves[i];
   }
 
-  // Wrap around and search from beginning
+  // Wrap around
   for (let i = 0; i <= currentIndex; i++) {
-    if (allLeaves[i].status === 'pending') {
-      return allLeaves[i];
-    }
+    if (allLeaves[i].status === 'pending') return allLeaves[i];
   }
 
   return undefined;
 }
 
 /**
- * Get parties that have positions on a specific subtopic
+ * Get claims for a leaf node
  */
-export function getSubtopicParties(
-  tree: TopicTree,
-  subtopicId: string,
-): string[] {
-  const result = findSubtopic(tree, subtopicId);
-  return result?.subtopic.parties ?? [];
+export function getClaimsForLeaf(
+  tree: ExplorationTree,
+  leafId: string,
+): Claim[] {
+  const node = findNode(tree, leafId);
+  if (!node || !isLeaf(node)) return [];
+  return node.claimIds
+    .map((id) => tree.claims[id])
+    .filter((c): c is Claim => c !== undefined);
+}
+
+/**
+ * Get claims for a leaf grouped by party
+ */
+export function getClaimsByParty(
+  tree: ExplorationTree,
+  leafId: string,
+): Record<string, Claim[]> {
+  const claims = getClaimsForLeaf(tree, leafId);
+  const byParty: Record<string, Claim[]> = {};
+  for (const claim of claims) {
+    if (!byParty[claim.partyId]) byParty[claim.partyId] = [];
+    byParty[claim.partyId].push(claim);
+  }
+  return byParty;
 }
 
 /**
  * Get all unique parties across the entire tree
  */
-export function getAllParties(tree: TopicTree): string[] {
+export function getAllParties(tree: ExplorationTree): string[] {
   const parties = new Set<string>();
-
-  for (const topic of tree.topics) {
-    for (const subtopic of topic.subtopics) {
-      for (const party of subtopic.parties) {
-        parties.add(party);
-      }
-    }
+  for (const claim of Object.values(tree.claims)) {
+    parties.add(claim.partyId);
   }
-
   return Array.from(parties).sort();
 }

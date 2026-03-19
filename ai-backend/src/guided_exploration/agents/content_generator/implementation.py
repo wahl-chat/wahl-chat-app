@@ -19,7 +19,7 @@ from src.guided_exploration.agents.content_generator.prompts import (
     SYSTEM_PROMPT,
     ContentGeneratorLLMOutput,
     format_citations_pool,
-    format_party_positions_for_prompt,
+    format_claims_for_content_prompt,
 )
 from src.guided_exploration.agents.llm_provider import LLMProvider
 from src.guided_exploration.agents.party_context import format_party_context_for_prompt
@@ -38,15 +38,12 @@ CHUNK_DELAY = 0.05  # 50ms between chunks
 
 class ContentGeneratorAgent(StreamingAgent[ContentGeneratorInput, SubtopicContent]):
     """
-    Generates structured content for a subtopic with streaming.
+    Generates structured content for a leaf node from its claims.
 
-    Produces content structure:
-    - Summary: Overview of the subtopic
-    - Party positions: Each party's stance
-    - Analysis (optional, generated on request)
-
-    Streams content section by section with section markers
-    for progressive UI rendering.
+    Produces:
+    - Summary: Overview of the comparison point
+    - Party positions: Each party's stance (from claims)
+    - Suggested questions: Follow-up questions
     """
 
     def __init__(self, llm_provider: LLMProvider):
@@ -57,59 +54,48 @@ class ContentGeneratorAgent(StreamingAgent[ContentGeneratorInput, SubtopicConten
         return "content_generator"
 
     async def stream(self, input: ContentGeneratorInput) -> AsyncIterator[StreamChunk]:
-        """
-        Stream content generation for the subtopic.
-
-        Yields chunks with section markers for UI rendering.
-        Sections: summary, party_positions
-        """
-        # Generate full content first
+        """Stream content generation for the leaf node."""
         content = await self._generate_content(input)
 
-        # Stream summary section
         async for chunk in self._stream_text(content.summary, "summary"):
             yield chunk
 
-        # Stream party positions section
         positions_text = self._format_positions_for_streaming(content.party_positions)
         async for chunk in self._stream_text(positions_text, "party_positions"):
             yield chunk
 
-        # Final chunk
         yield StreamChunk(content="", is_final=True, section=None)
 
     async def execute(self, input: ContentGeneratorInput) -> SubtopicContent:
-        """
-        Non-streaming execution returning complete content.
-
-        Generates all content at once without streaming.
-        """
+        """Non-streaming execution returning complete content."""
         return await self._generate_content(input)
 
     async def _generate_content(self, input: ContentGeneratorInput) -> SubtopicContent:
-        """Generate subtopic content using LLM."""
-        knowledge = input.resolved_knowledge
+        """Generate content from claims."""
+        parties = input.parties or list(input.leaf_claims.keys())
+        citations = list(input.leaf_citations) if input.leaf_citations else []
 
-        # Filter parties if specified
-        parties = input.parties or list(knowledge.party_positions.keys())
+        # Collect citations from claims if not provided separately
+        if not citations:
+            for party_claims in input.leaf_claims.values():
+                for claim in party_claims:
+                    if claim.citation is not None:
+                        citations.append(claim.citation)
 
-        # Build party context for system prompt
         party_context = format_party_context_for_prompt(
             parties=input.parties_info,
             context_name=input.context_name,
         )
 
-        # Build system message
         system_prompt = SYSTEM_PROMPT.format(party_context=party_context)
 
-        # Build user message with resolved knowledge
         user_prompt = GENERATION_PROMPT.format(
             subtopic_name=input.subtopic_name,
             path=" > ".join(input.path),
-            party_positions=format_party_positions_for_prompt(
-                knowledge.party_positions, input.parties_info
+            party_positions=format_claims_for_content_prompt(
+                input.leaf_claims, input.parties_info
             ),
-            citations=format_citations_pool(knowledge.citation_pool),
+            citations=format_citations_pool(citations),
         )
 
         messages = [
@@ -117,49 +103,26 @@ class ContentGeneratorAgent(StreamingAgent[ContentGeneratorInput, SubtopicConten
             HumanMessage(content=user_prompt),
         ]
 
-        # Generate structured output
         llm_output: ContentGeneratorLLMOutput = await self._llm.generate_structured(
             messages=messages,
             output_schema=ContentGeneratorLLMOutput,
-            temperature=0.3,  # Low temperature for consistency
+            temperature=0.3,
         )
 
-        # Convert LLM output to domain model
-        return self._convert_to_content(
-            llm_output=llm_output,
-            input=input,
-            parties=parties,
-        )
-
-    def _convert_to_content(
-        self,
-        llm_output: ContentGeneratorLLMOutput,
-        input: ContentGeneratorInput,
-        parties: list[str],
-    ) -> SubtopicContent:
-        """Convert LLM output to SubtopicContent domain model."""
-        knowledge = input.resolved_knowledge
-
-        # Convert party positions
-        party_positions = []
-        for llm_pos in llm_output.party_positions:
-            if llm_pos.party not in parties:
-                continue
-
-            party_positions.append(
-                PartyPosition(
-                    party=llm_pos.party,
-                    content=llm_pos.content,
-                )
-            )
+        # Convert to domain model
+        party_positions = [
+            PartyPosition(party=pos.party, content=pos.content)
+            for pos in llm_output.party_positions
+            if pos.party in parties
+        ]
 
         return SubtopicContent(
             subtopic_id=input.subtopic_id,
             path=input.path,
             summary=llm_output.summary,
             party_positions=party_positions,
-            analysis=None,  # Analysis generated on request
-            citations=knowledge.citation_pool,
+            analysis=None,
+            citations=citations,
             announcement=f"Inhalt zum Thema {input.subtopic_name} wird geladen.",
             suggested_questions=llm_output.suggested_questions,
         )
@@ -167,12 +130,10 @@ class ContentGeneratorAgent(StreamingAgent[ContentGeneratorInput, SubtopicConten
     async def _stream_text(self, text: str, section: str) -> AsyncIterator[StreamChunk]:
         """Stream text in word chunks."""
         words = text.split()
-
         for i in range(0, len(words), WORDS_PER_CHUNK):
             chunk = " ".join(words[i : i + WORDS_PER_CHUNK])
             if i + WORDS_PER_CHUNK < len(words):
                 chunk += " "
-
             yield StreamChunk(content=chunk, section=section, is_final=False)
             await asyncio.sleep(CHUNK_DELAY)
 

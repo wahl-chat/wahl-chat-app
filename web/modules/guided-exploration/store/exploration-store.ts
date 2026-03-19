@@ -206,7 +206,17 @@ export const selectTotalLeavesCount = (state: ExplorationStore) => {
   const tree = state.exploration.tree;
   if (!tree) return 0;
 
-  return tree.topics.reduce((acc, topic) => acc + topic.subtopics.length, 0);
+  const countLeaves = (node: {
+    children: Array<{ children: unknown[] }>;
+  }): number =>
+    node.children.reduce(
+      (acc: number, child) =>
+        child.children.length === 0
+          ? acc + 1
+          : acc + countLeaves(child as typeof node),
+      0,
+    );
+  return countLeaves(tree.root);
 };
 
 /** Get exploration progress as fraction */

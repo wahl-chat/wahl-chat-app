@@ -1,12 +1,12 @@
 /**
  * Guided Exploration Module
  *
- * A tree-of-conversations exploration system for comparing party positions
- * on political topics.
+ * A claim-based adaptive hierarchy for comparing party positions
+ * on political topics. Uses recursive ExplorationNode tree structure.
  *
  * @example
  * ```tsx
- * import { useExploration, ExplorationProvider } from '@/modules/guided-exploration';
+ * import { useExploration } from '@/modules/guided-exploration';
  *
  * function ExplorationPage() {
  *   const {
@@ -24,9 +24,9 @@
 // ============ Types ============
 export type {
   // Tree types
-  Topic,
-  Subtopic,
-  TopicTree,
+  Claim,
+  ExplorationNode,
+  ExplorationTree,
   // Content types
   Citation,
   PartyPosition,
@@ -135,26 +135,29 @@ export {
 // ============ Utils ============
 export {
   // Tree helpers
-  findTopic,
-  findSubtopic,
+  findNode,
+  getPathTo,
+  isLeaf,
   getAllLeaves,
+  getBranchLeaves,
   countLeaves,
   countExploredLeaves,
+  getBranchProgress,
   getOverallProgress,
-  getTopicProgress,
+  hasExploredLeaves,
+  isFullyExplored,
   getNextUnexploredLeaf,
+  getClaimsForLeaf,
+  getClaimsByParty,
   getAllParties,
   // Navigation helpers
-  pathFromLeafId,
-  leafIdFromPath,
   getParentPath,
   isAtRoot,
-  isAtTopic,
-  isAtSubtopic,
   buildBreadcrumb,
-  getViewFromPath,
-  isValidPath,
-  getPathDisplayName,
+  getSiblingNavigation,
+  getViewFromNodeId,
+  isValidNodeId,
+  getNodeDisplayName,
 } from './utils';
 
 // ============ Components ============

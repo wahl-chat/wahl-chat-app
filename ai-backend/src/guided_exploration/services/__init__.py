@@ -4,7 +4,6 @@
 
 """Services module for guided exploration."""
 
-from src.guided_exploration.services.knowledge_merger import merge_party_knowledge
 from src.guided_exploration.services.orchestrator import Orchestrator
 from src.guided_exploration.services.session_repository import (
     SessionRepository,
@@ -12,7 +11,6 @@ from src.guided_exploration.services.session_repository import (
 )
 
 __all__ = [
-    "merge_party_knowledge",
     "Orchestrator",
     "SessionRepository",
     "get_session_repository",

@@ -1,6 +1,6 @@
 'use client';
 
-import { useParty } from '@/components/providers/parties-provider';
+import { useContextParty } from '@/components/providers/context-provider';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
 import Image from 'next/image';
 import { type ReactNode, useState } from 'react';
@@ -27,7 +27,7 @@ export function PartyCard({
 }: PartyCardProps) {
   const [imageError, setImageError] = useState(false);
   const normalizedPartyId = partyId.toLowerCase();
-  const partyDetails = useParty(normalizedPartyId);
+  const partyDetails = useContextParty(normalizedPartyId);
   const imageUrl = buildPartyImageUrl(normalizedPartyId);
   const displayName = partyDetails?.name ?? partyId.toUpperCase();
   const partyColor = partyDetails?.background_color ?? '#6B7280';

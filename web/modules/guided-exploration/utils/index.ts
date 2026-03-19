@@ -3,34 +3,31 @@
  */
 
 export {
-  findTopic,
-  findSubtopic,
+  findNode,
+  getPathTo,
+  isLeaf,
   getAllLeaves,
-  getTopicLeaves,
+  getBranchLeaves,
   countLeaves,
   countExploredLeaves,
-  getTopicProgress,
+  getBranchProgress,
   getOverallProgress,
-  hasExploredSubtopics,
-  isTopicFullyExplored,
+  hasExploredLeaves,
+  isFullyExplored,
   getNextUnexploredLeaf,
-  getSubtopicParties,
+  getClaimsForLeaf,
+  getClaimsByParty,
   getAllParties,
 } from './tree-helpers';
 
 export {
-  pathFromLeafId,
-  leafIdFromPath,
   getParentPath,
   isAtRoot,
-  isAtTopic,
-  isAtSubtopic,
-  getCurrentTopicId,
-  getCurrentSubtopicId,
   buildBreadcrumb,
-  getViewFromPath,
-  isValidPath,
-  getPathDisplayName,
+  getSiblingNavigation,
+  getViewFromNodeId,
+  isValidNodeId,
+  getNodeDisplayName,
 } from './navigation-helpers';
 
 export { keysToCamelCase, keysToSnakeCase } from './case-conversion';

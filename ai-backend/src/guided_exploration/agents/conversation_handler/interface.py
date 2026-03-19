@@ -22,13 +22,20 @@ class ConversationHandlerInput(BaseModel):
     """
 
     message: str = Field(..., description="The user's follow-up message")
-    leaf_id: str = Field(..., description="ID of the current leaf node (subtopic)")
+    leaf_id: str = Field(..., description="ID of the current leaf node")
+    leaf_name: str = Field(
+        default="", description="Display name of the current leaf node"
+    )
+    leaf_description: str = Field(
+        default="",
+        description="Description of the leaf node — what this comparison point covers",
+    )
     conversation_history: list[Message] = Field(
         default_factory=list,
         description="Previous messages in the conversation",
     )
     resolved_knowledge: ResolvedKnowledge = Field(
-        ..., description="Pre-resolved knowledge for this subtopic from KnowledgeBase"
+        ..., description="Pre-resolved knowledge for this subtopic"
     )
     context_id: str = Field(..., description="The election/political context ID")
     context_name: str = Field(..., description="Human-readable context name")

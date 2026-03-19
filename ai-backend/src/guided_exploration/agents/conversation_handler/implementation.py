@@ -21,8 +21,8 @@ from src.guided_exploration.agents.conversation_handler.prompts import (
     STREAMING_USER_PROMPT,
     SYSTEM_PROMPT,
     ConversationLLMOutput,
-    format_chunks_for_conversation,
     format_conversation_history,
+    format_party_positions_for_prompt,
 )
 from src.guided_exploration.agents.llm_provider import LLMProvider
 from src.guided_exploration.agents.party_context import format_party_context_for_prompt
@@ -94,31 +94,28 @@ class ConversationHandlerAgent(
         """Build messages for streaming LLM response with party markers."""
         knowledge = input.resolved_knowledge
 
-        # Build party context for system prompt
         party_context = format_party_context_for_prompt(
             parties=input.parties_info,
             context_name=input.context_name,
         )
 
-        # Build system message with streaming prompt
         system_prompt = STREAMING_SYSTEM_PROMPT.format(party_context=party_context)
 
-        # Get subtopic name from leaf_id
-        subtopic_name = input.leaf_id.split(".")[-1].replace("_", " ").title()
+        subtopic_name = input.leaf_name or input.leaf_id
+        subtopic_description = input.leaf_description or ""
 
-        # Format chunks for direct source access (primary source of truth)
-        chunks_text, _ = format_chunks_for_conversation(
-            knowledge.party_chunks, input.parties_info
+        source_text = format_party_positions_for_prompt(
+            knowledge.party_positions, input.parties_info
         )
 
-        # Build user message with context
         user_prompt = STREAMING_USER_PROMPT.format(
             subtopic_name=subtopic_name,
+            subtopic_description=subtopic_description,
             message=input.message,
             conversation_history=format_conversation_history(
                 input.conversation_history
             ),
-            chunks=chunks_text,
+            chunks=source_text,
         )
 
         return [
@@ -132,31 +129,28 @@ class ConversationHandlerAgent(
         """Generate response using LLM."""
         knowledge = input.resolved_knowledge
 
-        # Build party context for system prompt
         party_context = format_party_context_for_prompt(
             parties=input.parties_info,
             context_name=input.context_name,
         )
 
-        # Build system message
         system_prompt = SYSTEM_PROMPT.format(party_context=party_context)
 
-        # Get subtopic name from leaf_id
-        subtopic_name = input.leaf_id.split(".")[-1].replace("_", " ").title()
+        subtopic_name = input.leaf_name or input.leaf_id
+        subtopic_description = input.leaf_description or ""
 
-        # Format chunks for direct source access (primary source of truth)
-        chunks_text, _ = format_chunks_for_conversation(
-            knowledge.party_chunks, input.parties_info
+        source_text = format_party_positions_for_prompt(
+            knowledge.party_positions, input.parties_info
         )
 
-        # Build user message with context
         user_prompt = CONVERSATION_PROMPT.format(
             subtopic_name=subtopic_name,
+            subtopic_description=subtopic_description,
             message=input.message,
             conversation_history=format_conversation_history(
                 input.conversation_history
             ),
-            chunks=chunks_text,
+            chunks=source_text,
         )
 
         messages = [

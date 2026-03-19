@@ -3,11 +3,11 @@
 import { cn } from '@/lib/utils';
 import { TopicCard } from '@/modules/guided-exploration/components/navigation/topic-card';
 import { ProgressIndicator } from '@/modules/guided-exploration/components/shared/progress-indicator';
-import type { TopicTree } from '@/modules/guided-exploration/types';
+import type { ExplorationTree } from '@/modules/guided-exploration/types';
 import { getOverallProgress } from '@/modules/guided-exploration/utils';
 
 interface RootContentProps {
-  tree: TopicTree;
+  tree: ExplorationTree;
   onTopicSelect: (topicId: string) => void;
   className?: string;
 }
@@ -43,11 +43,11 @@ export function RootContent({
         role="list"
         aria-label="Verfügbare Themen"
       >
-        {tree.topics.map((topic) => (
+        {tree.root.children.map((node) => (
           <TopicCard
-            key={topic.id}
-            topic={topic}
-            onClick={() => onTopicSelect(topic.id)}
+            key={node.id}
+            node={node}
+            onClick={() => onTopicSelect(node.id)}
           />
         ))}
       </div>

@@ -3,34 +3,33 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Orchestrator for guided exploration with per-party parallel architecture.
+Orchestrator for guided exploration with claim-based adaptive hierarchy.
 
 Coordinates the 3-phase flow:
-1. Per-Party Topic Resolution (parallel) - RAG + topic extraction per party
-2. Topic Combining - Merge party trees into unified structure + send to frontend
-3. Per-Party Knowledge Resolution (parallel) - Resolve knowledge per party
-4. Merge into KnowledgeBase
+1. Per-Party RAG Retrieval + Claim Extraction (parallel)
+2. Hierarchy Construction from all claims (single LLM call)
+3. Send ExplorationTree to frontend
+
+Knowledge resolution is eliminated — claims already contain the knowledge.
 """
 
 import asyncio
 import logging
+import time
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from src.firebase_service import aget_context_by_id, aget_parties_for_context
-from src.guided_exploration.agents.knowledge_resolver import (
-    PartyKnowledgeResolverAgent,
-    PartyKnowledgeResolverInput,
+from src.guided_exploration.agents.claim_extractor import (
+    ClaimExtractorAgent,
+    ClaimExtractorInput,
+)
+from src.guided_exploration.agents.hierarchy_builder import (
+    HierarchyBuilderAgent,
+    HierarchyBuilderInput,
 )
 from src.guided_exploration.agents.llm_provider import LLMRegistry, LLMTier
 from src.guided_exploration.agents.party_context import PartyInfo, parties_to_info_map
-from src.guided_exploration.agents.party_topic_resolver import (
-    PartyTopicResolverAgent,
-    PartyTopicResolverInput,
-)
-from src.guided_exploration.agents.topic_combiner import (
-    TopicCombinerAgent,
-    TopicCombinerInput,
-)
 from src.guided_exploration.api.sse import SSEManager
 from src.guided_exploration.models import (
     BreadcrumbItem,
@@ -40,33 +39,28 @@ from src.guided_exploration.models import (
     ThinkingEvent,
     TopicTreeEvent,
 )
+from src.guided_exploration.models.claim import Claim, PartyClaims
 from src.guided_exploration.models.errors import InsufficientChunksError
-from src.guided_exploration.models.exploration import (
-    KnowledgeBase,
-    PartyKnowledge,
-    PartyTopicTree,
-    RetrievedChunk,
-)
-from src.guided_exploration.models.tree import TopicTree
-from src.guided_exploration.services.knowledge_merger import merge_party_knowledge
+from src.guided_exploration.models.exploration import RetrievedChunk
+from src.guided_exploration.models.tree import ExplorationNode, ExplorationTree
+from src.guided_exploration.services.debug_logger import DebugLogger
 from src.guided_exploration.services.rag_service import RAGService
 
 logger = logging.getLogger(__name__)
 
 # Timeout for per-party operations
-PARTY_TIMEOUT_SECONDS = 30.0
+PARTY_TIMEOUT_SECONDS = 60.0
 
 
 class Orchestrator:
     """
-    Orchestrates the guided exploration flow with per-party parallel architecture.
+    Orchestrates the guided exploration flow with claim-based architecture.
 
     Key principles:
-    1. Each party is planned separately (RAG + topic extraction)
-    2. TopicCombiner merges all party trees into unified structure
-    3. Topic tree is sent to frontend immediately (before knowledge resolution)
-    4. Each party's knowledge is resolved in parallel
-    5. Knowledge merged into unified KnowledgeBase
+    1. RAG retrieval + claim extraction per party in parallel
+    2. All claims combined into a single hierarchy (LLM sees full picture)
+    3. ExplorationTree sent to frontend — claims are the knowledge
+    4. No separate knowledge resolution phase needed
     """
 
     def __init__(
@@ -78,20 +72,13 @@ class Orchestrator:
         self._llm_registry = llm_registry
         self._rag_service = RAGService(embeddings=llm_registry.embeddings)
 
-        # Topic resolution and combining require good reasoning capabilities
-        self._party_topic_resolver = PartyTopicResolverAgent(
+        # Claim extraction: factual, low temperature
+        self._claim_extractor = ClaimExtractorAgent(
             self._llm_registry.get(LLMTier.BALANCED)
         )
-        self._topic_combiner = TopicCombinerAgent(
-            self._llm_registry.get(LLMTier.BALANCED)
-        )
-        # Knowledge resolution benefits from deeper reasoning
-        # Also provide RAG retriever for per-subtopic targeted retrieval
-        # and fast LLM for query rewriting
-        self._party_knowledge_resolver = PartyKnowledgeResolverAgent(
-            llm_provider=self._llm_registry.get(LLMTier.REASONING),
-            rag_retriever=self._retrieve_chunks_for_party,
-            fast_llm_provider=self._llm_registry.get(LLMTier.FAST),
+        # Hierarchy building: needs good reasoning for structure
+        self._hierarchy_builder = HierarchyBuilderAgent(
+            self._llm_registry.get(LLMTier.REASONING)
         )
 
     async def start_exploration(
@@ -101,35 +88,40 @@ class Orchestrator:
         context_id: str,
         parties: list[str],
         rag_query: str | None = None,
-    ) -> tuple[str, TopicTree, KnowledgeBase]:
+    ) -> tuple[str, ExplorationTree]:
         """
-        Start a new exploration with per-party parallel architecture.
+        Start a new exploration with claim-based adaptive hierarchy.
 
         Flow:
-        1. Per-Party Topic Resolution (parallel)
-        2. Topic Combining + send TopicTreeEvent to frontend
-        3. Per-Party Knowledge Resolution (parallel)
-        4. Merge into KnowledgeBase
+        1. Per-Party RAG + Claim Extraction (parallel)
+        2. Hierarchy Construction (single LLM call)
+        3. Send ExplorationTree to frontend
 
         Args:
             session_id: The session ID for SSE events
-            query: The user's original query (for display/context)
+            query: The user's original query
             context_id: The election/political context ID
-            parties: Party IDs to include in exploration
+            parties: Party IDs to include
             rag_query: Optimized query for RAG retrieval (defaults to query)
 
         Returns:
-            Tuple of (exploration_id, TopicTree, KnowledgeBase)
+            Tuple of (exploration_id, ExplorationTree)
         """
-        # Use rag_query for retrieval, query for context/display
         retrieval_query = rag_query or query
         exploration_id = str(uuid4())
+
+        # Initialize debug logger
+        debug_logger = DebugLogger(
+            session_id=session_id,
+            query=query,
+            parties=parties,
+        )
 
         # Fetch context and party info from Firebase
         context_name, parties_info = await self._get_context_info(context_id, parties)
 
         # =====================================================================
-        # PHASE 1: Per-Party Topic Resolution (parallel)
+        # PHASE 1: Per-Party RAG Retrieval + Claim Extraction (parallel)
         # =====================================================================
         await self._send_thinking(
             session_id,
@@ -137,9 +129,11 @@ class Orchestrator:
             f"Analysiere Wahlprogramme von {len(parties)} Parteien...",
         )
 
-        logger.info(f"Phase 1: Starting topic resolution for {len(parties)} parties")
+        logger.info(
+            f"Phase 1: Starting RAG + claim extraction for {len(parties)} parties"
+        )
 
-        party_trees, party_chunks = await self._phase1_topic_resolution(
+        all_claims, party_chunks = await self._phase1_claim_extraction(
             session_id=session_id,
             query=query,
             rag_query=retrieval_query,
@@ -147,118 +141,221 @@ class Orchestrator:
             context_name=context_name,
             parties=parties,
             parties_info=parties_info,
+            debug_logger=debug_logger,
         )
 
-        if not party_trees:
-            logger.error("No party trees resolved - cannot continue")
-            raise ValueError("No party topic trees could be resolved")
+        if not all_claims:
+            logger.error("No claims extracted - cannot continue")
+            raise ValueError("No claims could be extracted from party documents")
 
-        # Validate chunk coverage - ensure enough parties have chunks
+        # Validate chunk coverage
         self._validate_chunk_coverage(parties, party_chunks, parties_info)
 
         # =====================================================================
-        # PHASE 2: Combine Topic Trees + Send to Frontend
+        # PHASE 2: Hierarchy Construction (single LLM call)
         # =====================================================================
         await self._send_thinking(
             session_id,
             "planning",
-            "Strukturiere Themen...",
+            "Strukturiere Vergleichspunkte...",
         )
 
-        logger.info(f"Phase 2: Combining {len(party_trees)} party trees")
+        logger.info(
+            f"Phase 2: Building hierarchy from {len(all_claims)} claims"
+        )
 
-        combiner_output = await self._topic_combiner.execute(
-            TopicCombinerInput(
-                query=query,
-                context_id=context_id,
-                context_name=context_name,
-                party_trees=party_trees,
-                parties=parties_info,
+        with debug_logger.timed_section("Phase 2: Hierarchy Construction"):
+            start = time.monotonic()
+
+            builder_output = await self._hierarchy_builder.execute(
+                HierarchyBuilderInput(
+                    query=query,
+                    context_name=context_name,
+                    parties=parties_info,
+                    all_claims=all_claims,
+                )
             )
+
+            duration_ms = (time.monotonic() - start) * 1000
+
+        # Build the ExplorationTree from the builder output
+        root_node = ExplorationNode(**builder_output.tree_json)
+        claims_lookup = {c.id: c for c in all_claims}
+
+        exploration_tree = ExplorationTree(
+            exploration_id=exploration_id,
+            original_query=query,
+            root=root_node,
+            claims=claims_lookup,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
         )
 
-        topic_tree = combiner_output.topic_tree
-        topic_tree.exploration_id = exploration_id
-        party_coverage = combiner_output.party_coverage
-
-        # Send TopicTreeEvent immediately - frontend can show tree while we resolve knowledge
-        await self._send_topic_tree(session_id, exploration_id, topic_tree)
-
-        # =====================================================================
-        # PHASE 3: Per-Party Knowledge Resolution (parallel)
-        # =====================================================================
-        await self._send_thinking(
-            session_id,
-            "generating",
-            "Extrahiere Parteipositionen...",
+        # Log hierarchy
+        debug_logger.log_hierarchy_construction(
+            tree=exploration_tree,
+            total_claims=len(all_claims),
+            party_count=len(parties_info),
+            duration_ms=duration_ms,
         )
 
-        logger.info(
-            f"Phase 3: Starting knowledge resolution for {len(party_trees)} parties"
+        # Send tree to frontend
+        await self._send_exploration_tree(
+            session_id, exploration_id, exploration_tree
         )
 
-        party_knowledge = await self._phase3_knowledge_resolution(
-            session_id=session_id,
-            context_id=context_id,
-            context_name=context_name,
-            topic_tree=topic_tree,
-            party_chunks=party_chunks,
-            party_coverage=party_coverage,
-            parties_info=parties_info,
-        )
+        # Count leaves for the ready event
+        leaf_count = len(root_node.get_leaf_nodes())
 
-        # =====================================================================
-        # PHASE 4: Merge into KnowledgeBase
-        # =====================================================================
-        logger.info(f"Phase 4: Merging knowledge from {len(party_knowledge)} parties")
-
-        knowledge_base = merge_party_knowledge(topic_tree, party_knowledge)
-
-        logger.info(
-            f"Exploration {exploration_id} complete: "
-            f"{len(topic_tree.topics)} topics, "
-            f"{len(knowledge_base.subtopics)} subtopics with knowledge"
-        )
-
-        # Send ExplorationReadyEvent - KB is fully loaded
-        logger.info(f"Sending ExplorationReadyEvent for {exploration_id}")
-        sent = await self._sse.send_to_session(
+        # Send ExplorationReadyEvent
+        await self._sse.send_to_session(
             session_id,
             ExplorationReadyEvent(
                 exploration_id=exploration_id,
-                topics_count=len(topic_tree.topics),
-                subtopics_count=len(knowledge_base.subtopics),
-                parties_count=len(party_knowledge),
+                topics_count=len(root_node.children),
+                subtopics_count=leaf_count,
+                parties_count=len(parties_info),
             ),
         )
-        logger.info(f"ExplorationReadyEvent sent: {sent}")
 
-        return exploration_id, topic_tree, knowledge_base
+        logger.info(
+            f"Exploration {exploration_id} complete: "
+            f"{len(root_node.children)} top-level nodes, "
+            f"{leaf_count} leaf nodes, "
+            f"{len(all_claims)} claims"
+        )
+
+        # Flush debug log
+        debug_logger.flush()
+
+        return exploration_id, exploration_tree
+
+    # =========================================================================
+    # Phase 1: Claim Extraction
+    # =========================================================================
+
+    async def _phase1_claim_extraction(
+        self,
+        session_id: str,
+        query: str,
+        rag_query: str,
+        context_id: str,
+        context_name: str,
+        parties: list[str],
+        parties_info: dict[str, PartyInfo],
+        debug_logger: DebugLogger,
+    ) -> tuple[list[Claim], dict[str, list[RetrievedChunk]]]:
+        """
+        Phase 1: RAG retrieval + claim extraction for each party in parallel.
+
+        Returns:
+            Tuple of (all_claims, party_chunks)
+        """
+
+        async def extract_for_party(
+            party_id: str,
+        ) -> tuple[str, PartyClaims | None, list[RetrievedChunk]]:
+            try:
+                party_info = parties_info.get(
+                    party_id,
+                    PartyInfo(
+                        party_id=party_id,
+                        name=party_id.upper(),
+                        long_name=party_id.upper(),
+                        description=None,
+                    ),
+                )
+
+                # RAG retrieval
+                rag_start = time.monotonic()
+                chunks = await self._retrieve_chunks_for_party(
+                    rag_query, context_id, party_id
+                )
+                rag_duration = (time.monotonic() - rag_start) * 1000
+
+                debug_logger.log_rag_retrieval(
+                    party_id=party_id,
+                    party_name=party_info.name,
+                    chunks=chunks,
+                    duration_ms=rag_duration,
+                )
+
+                if not chunks:
+                    logger.warning(f"No chunks for party {party_id}")
+                    return party_id, None, []
+
+                # Claim extraction
+                extract_start = time.monotonic()
+                result = await self._claim_extractor.execute(
+                    ClaimExtractorInput(
+                        query=query,
+                        context_id=context_id,
+                        context_name=context_name,
+                        party_id=party_id,
+                        party_info=party_info,
+                        retrieved_chunks=chunks,
+                    )
+                )
+                extract_duration = (time.monotonic() - extract_start) * 1000
+
+                debug_logger.log_claim_extraction(
+                    party_id=party_id,
+                    party_name=party_info.name,
+                    party_claims=result.party_claims,
+                    duration_ms=extract_duration,
+                )
+
+                return party_id, result.party_claims, chunks
+
+            except Exception as e:
+                logger.error(
+                    f"Claim extraction failed for party {party_id}: {e}"
+                )
+                return party_id, None, []
+
+        # Run extraction for all parties in parallel with timeout
+        tasks = [
+            asyncio.wait_for(
+                extract_for_party(party_id),
+                timeout=PARTY_TIMEOUT_SECONDS,
+            )
+            for party_id in parties
+        ]
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Collect results
+        all_claims: list[Claim] = []
+        party_chunks: dict[str, list[RetrievedChunk]] = {}
+
+        for result in results:
+            if isinstance(result, BaseException):
+                logger.error(f"Phase 1 task failed: {type(result).__name__}: {result}")
+                continue
+
+            party_id, party_claims, chunks = result
+            if party_claims is not None:
+                all_claims.extend(party_claims.claims)
+                party_chunks[party_id] = chunks
+
+        return all_claims, party_chunks
+
+    # =========================================================================
+    # Context & Validation
+    # =========================================================================
 
     async def _get_context_info(
         self,
         context_id: str,
         party_ids: list[str],
     ) -> tuple[str, dict[str, PartyInfo]]:
-        """
-        Fetch context name and party info from Firebase.
-
-        Args:
-            context_id: The context ID
-            party_ids: List of party IDs to fetch info for
-
-        Returns:
-            Tuple of (context_name, {party_id: PartyInfo})
-        """
-        # Fetch context
+        """Fetch context name and party info from Firebase."""
         context = await aget_context_by_id(context_id)
         context_name = context.name if context else context_id
 
-        # Fetch all parties for context
         all_parties = await aget_parties_for_context(context_id)
         all_parties_map = parties_to_info_map(all_parties)
 
-        # Filter to only requested party IDs
         parties_info = {
             pid: all_parties_map[pid] for pid in party_ids if pid in all_parties_map
         }
@@ -271,32 +368,18 @@ class Orchestrator:
         party_chunks: dict[str, list[RetrievedChunk]],
         parties_info: dict[str, PartyInfo],
     ) -> None:
-        """
-        Validate that enough parties have retrieved chunks.
-
-        Raises InsufficientChunksError if:
-        - Fewer than 2 parties have chunks, OR
-        - Fewer than 50% of requested parties have chunks
-
-        Args:
-            requested_parties: List of party IDs that were requested
-            party_chunks: Mapping of party_id to retrieved chunks
-            parties_info: Mapping of party_id to PartyInfo for display names
-        """
+        """Validate that enough parties have retrieved chunks."""
         total_parties = len(requested_parties)
 
-        # Count parties with at least 1 chunk
         parties_with_chunks = [
             pid for pid in requested_parties if len(party_chunks.get(pid, [])) > 0
         ]
         count_with_chunks = len(parties_with_chunks)
 
-        # Find parties without chunks
         parties_without_chunks = [
             pid for pid in requested_parties if pid not in parties_with_chunks
         ]
 
-        # Get display names for parties without chunks
         party_names_without_chunks = [
             parties_info.get(
                 pid,
@@ -310,7 +393,6 @@ class Orchestrator:
             for pid in parties_without_chunks
         ]
 
-        # Log for debugging
         logger.info(
             f"Chunk coverage: {count_with_chunks}/{total_parties} parties have chunks"
         )
@@ -319,9 +401,6 @@ class Orchestrator:
                 f"Parties without chunks: {', '.join(parties_without_chunks)}"
             )
 
-        # Validation thresholds:
-        # - At least 2 parties must have chunks
-        # - At least 50% of requested parties must have chunks
         min_parties_threshold = 2
         min_percentage_threshold = 0.5
 
@@ -333,11 +412,6 @@ class Orchestrator:
             count_with_chunks < min_parties_threshold
             or coverage_percentage < min_percentage_threshold
         ):
-            logger.error(
-                f"Insufficient chunk coverage: {count_with_chunks}/{total_parties} "
-                f"({coverage_percentage:.0%}) parties have chunks. "
-                f"Missing: {', '.join(party_names_without_chunks)}"
-            )
             raise InsufficientChunksError(
                 message=(
                     f"Insufficient document chunks: only {count_with_chunks} of "
@@ -347,166 +421,6 @@ class Orchestrator:
                 parties_with_chunks=count_with_chunks,
                 parties_without_chunks=party_names_without_chunks,
             )
-
-    async def _phase1_topic_resolution(
-        self,
-        session_id: str,
-        query: str,
-        rag_query: str,
-        context_id: str,
-        context_name: str,
-        parties: list[str],
-        parties_info: dict[str, PartyInfo],
-    ) -> tuple[dict[str, PartyTopicTree], dict[str, list[RetrievedChunk]]]:
-        """
-        Phase 1: Resolve topics for each party in parallel.
-
-        Args:
-            query: Original user query (for topic resolution context)
-            rag_query: Optimized query (for RAG retrieval)
-
-        Returns:
-            Tuple of (party_trees, party_chunks)
-        """
-
-        async def resolve_for_party(
-            party_id: str,
-        ) -> tuple[str, PartyTopicTree | None, list[RetrievedChunk]]:
-            try:
-                # RAG retrieval for this party using optimized rag_query
-                chunks = await self._retrieve_chunks_for_party(
-                    rag_query, context_id, party_id
-                )
-
-                # Get party info (with fallback)
-                party_info = parties_info.get(
-                    party_id,
-                    PartyInfo(
-                        party_id=party_id,
-                        name=party_id.upper(),
-                        long_name=party_id.upper(),
-                        description=None,
-                    ),
-                )
-
-                # Resolve topics for this party
-                result = await self._party_topic_resolver.execute(
-                    PartyTopicResolverInput(
-                        query=query,
-                        context_id=context_id,
-                        context_name=context_name,
-                        party_id=party_id,
-                        party_info=party_info,
-                        retrieved_chunks=chunks,
-                    )
-                )
-
-                return party_id, result.party_topic_tree, chunks
-
-            except Exception as e:
-                logger.error(f"Topic resolution failed for party {party_id}: {e}")
-                return party_id, None, []
-
-        # Run topic resolution for all parties in parallel with timeout
-        tasks = [
-            asyncio.wait_for(
-                resolve_for_party(party_id),
-                timeout=PARTY_TIMEOUT_SECONDS,
-            )
-            for party_id in parties
-        ]
-
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        # Collect successful results
-        party_trees: dict[str, PartyTopicTree] = {}
-        party_chunks: dict[str, list[RetrievedChunk]] = {}
-
-        for result in results:
-            if isinstance(result, BaseException):
-                logger.error(f"Phase 1 task failed: {result}")
-                continue
-
-            party_id, tree, chunks = result
-            if tree is not None:
-                party_trees[party_id] = tree
-                party_chunks[party_id] = chunks
-
-        return party_trees, party_chunks
-
-    async def _phase3_knowledge_resolution(
-        self,
-        session_id: str,
-        context_id: str,
-        context_name: str,
-        topic_tree: TopicTree,
-        party_chunks: dict[str, list[RetrievedChunk]],
-        party_coverage: dict[str, list[str]],
-        parties_info: dict[str, PartyInfo],
-    ) -> dict[str, PartyKnowledge]:
-        """
-        Phase 3: Resolve knowledge for each party in parallel.
-
-        Returns:
-            Mapping of party_id to PartyKnowledge
-        """
-
-        async def resolve_for_party(party_id: str) -> tuple[str, PartyKnowledge | None]:
-            try:
-                # Get party info (with fallback)
-                party_info = parties_info.get(
-                    party_id,
-                    PartyInfo(
-                        party_id=party_id,
-                        name=party_id.upper(),
-                        long_name=party_id.upper(),
-                        description=None,
-                    ),
-                )
-
-                result = await self._party_knowledge_resolver.execute(
-                    PartyKnowledgeResolverInput(
-                        context_id=context_id,
-                        context_name=context_name,
-                        party_id=party_id,
-                        party_info=party_info,
-                        topic_tree=topic_tree,
-                        retrieved_chunks=party_chunks.get(party_id, []),
-                        party_coverage=party_coverage,
-                    )
-                )
-
-                return party_id, result.party_knowledge
-
-            except Exception as e:
-                logger.error(f"Knowledge resolution failed for party {party_id}: {e}")
-                return party_id, None
-
-        # Run knowledge resolution for all parties in parallel with timeout
-        party_ids = list(party_chunks.keys())
-        tasks = [
-            asyncio.wait_for(
-                resolve_for_party(party_id),
-                timeout=PARTY_TIMEOUT_SECONDS,
-            )
-            for party_id in party_ids
-        ]
-
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        # Collect successful results
-        party_knowledge: dict[str, PartyKnowledge] = {}
-
-        for result in results:
-            if isinstance(result, BaseException):
-                logger.error(f"Phase 3 task failed: {result}")
-                continue
-
-            party_id, knowledge = result
-            if knowledge is not None:
-                party_knowledge[party_id] = knowledge
-
-        return party_knowledge
 
     # =========================================================================
     # SSE Helpers
@@ -524,13 +438,13 @@ class Orchestrator:
             ThinkingEvent(stage=stage, message=message),
         )
 
-    async def _send_topic_tree(
+    async def _send_exploration_tree(
         self,
         session_id: str,
         exploration_id: str,
-        topic_tree: TopicTree,
+        tree: ExplorationTree,
     ) -> None:
-        """Send the topic tree to the frontend."""
+        """Send the exploration tree to the frontend."""
         navigation = NavigationState(
             exploration_id=exploration_id,
             current_path=[],
@@ -547,7 +461,7 @@ class Orchestrator:
             session_id,
             TopicTreeEvent(
                 exploration_id=exploration_id,
-                tree=topic_tree,
+                tree=tree,
                 navigation=navigation,
             ),
         )

@@ -7,25 +7,24 @@
 from pydantic import BaseModel, Field
 
 from src.guided_exploration.agents.party_context import PartyInfo
-from src.guided_exploration.models.exploration import ResolvedKnowledge
+from src.guided_exploration.models.claim import Claim
+from src.guided_exploration.models.content import Citation
 
 
 class ContentGeneratorInput(BaseModel):
-    """
-    Input for content generation.
+    """Input for content generation from claims."""
 
-    The ContentGenerator receives ResolvedKnowledge for the specific subtopic
-    from the KnowledgeBase. No RAG retrieval is needed - all knowledge is
-    pre-resolved by the KnowledgeResolver.
-    """
-
-    subtopic_id: str = Field(..., description="ID of the subtopic")
-    subtopic_name: str = Field(..., description="Display name of the subtopic")
+    subtopic_id: str = Field(..., description="ID of the leaf node")
+    subtopic_name: str = Field(..., description="Display name")
     path: list[str] = Field(
-        ..., description="Path in tree, e.g., ['wohnen', 'mietpreisbremse']"
+        ..., description="Path in tree, e.g., ['energie', 'erneuerbare']"
     )
-    resolved_knowledge: ResolvedKnowledge = Field(
-        ..., description="Pre-resolved knowledge for this subtopic from KnowledgeBase"
+    leaf_claims: dict[str, list[Claim]] = Field(
+        ..., description="Claims grouped by party_id"
+    )
+    leaf_citations: list[Citation] = Field(
+        default_factory=list,
+        description="All citations for this leaf's claims",
     )
     context_id: str = Field(..., description="The election/political context ID")
     context_name: str = Field(..., description="Human-readable context name")

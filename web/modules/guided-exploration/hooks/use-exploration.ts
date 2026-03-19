@@ -43,8 +43,7 @@ import {
 import type { SessionMessage } from '@/modules/guided-exploration/types';
 import {
   buildBreadcrumb,
-  getViewFromPath,
-  leafIdFromPath,
+  getViewFromNodeId,
 } from '@/modules/guided-exploration/utils';
 import { useExplorationApi } from './use-exploration-api';
 import { useFirebaseSummaries } from './use-firebase-summaries';
@@ -170,7 +169,8 @@ export function useExploration(options: UseExplorationOptions = {}) {
     (newPath: string[]) => {
       if (!tree || !explorationId) return;
 
-      const newView = getViewFromPath(newPath, tree);
+      const targetId = newPath[newPath.length - 1] ?? null;
+      const newView = getViewFromNodeId(tree, targetId);
       const newBreadcrumb = buildBreadcrumb(tree, newPath);
       const navigationState = {
         explorationId,
@@ -183,21 +183,18 @@ export function useExploration(options: UseExplorationOptions = {}) {
         dispatch(explorationActions.navigatedToRoot(navigationState));
       } else if (newView === 'branch') {
         dispatch(explorationActions.navigatedToBranch(navigationState));
-      } else if (newView === 'leaf') {
+      } else if (newView === 'leaf' && targetId) {
         // For leaf navigation, navigate immediately with empty conversation
         // Backend will stream the content
-        const leafId = leafIdFromPath(newPath);
-
-        // Create empty conversation - content will be streamed
         const emptyConversation = {
-          leafId,
+          leafId: targetId,
           messages: [],
           hasSummary: false,
         };
 
         dispatch(
           explorationActions.navigatedToLeaf(
-            leafId,
+            targetId,
             emptyConversation,
             navigationState,
             false, // analysisAvailable - will be updated by backend

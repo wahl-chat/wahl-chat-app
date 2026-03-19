@@ -11,6 +11,7 @@ import { useCallback } from 'react';
 import { explorationApi } from '@/modules/guided-exploration/services/exploration-api';
 import {
   connectionActions,
+  conversationActions,
   explorationActions,
   selectExplorationId,
   selectSessionId,
@@ -194,11 +195,23 @@ export function useExplorationApi(): UseExplorationApiReturn {
         throw new Error('No active session');
       }
 
+      // Optimistically add user message to conversation if in a leaf
+      if (leafId) {
+        const userMessage = {
+          id: crypto.randomUUID(),
+          role: 'user' as const,
+          type: 'followup' as const,
+          content,
+          timestamp: new Date().toISOString(),
+        };
+        dispatch(conversationActions.messageAdded(leafId, userMessage));
+      }
+
+      // Clear suggested questions immediately
+      dispatch(uiActions.suggestedQuestionsCleared());
+
       dispatch(
-        uiActions.thinkingStarted(
-          'classifying',
-          'Nachricht wird verarbeitet...',
-        ),
+        uiActions.thinkingStarted('generating', 'Antwort wird generiert...'),
       );
 
       try {

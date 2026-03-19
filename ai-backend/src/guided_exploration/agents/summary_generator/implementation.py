@@ -197,12 +197,18 @@ class SummaryGeneratorAgent(BaseAgent[SummaryInput, SummaryOutput]):
         )
 
     async def generate_suggested_questions(
-        self, query: str, response: str
+        self,
+        query: str,
+        response: str,
+        available_context: str = "",
+        conversation_history: str = "",
     ) -> list[str]:
-        """Generate suggested follow-up questions based on query and response."""
+        """Generate suggested follow-up questions based on full conversation context."""
         prompt = SUGGESTED_QUESTIONS_PROMPT.format(
             query=query,
-            response=response[:2000],  # Limit response length
+            response=response[:2000],
+            available_context=available_context[:3000] if available_context else "",
+            conversation_history=conversation_history[:2000] if conversation_history else "",
         )
 
         messages = [

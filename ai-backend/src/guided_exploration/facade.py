@@ -60,6 +60,8 @@ from src.guided_exploration.models import (
     ErrorEvent,
     Exploration,
     ExplorationCompleteEvent,
+    ExplorationNode,
+    ExplorationTree,
     ExtractedClaim,
     ExtractedPosition,
     Message,
@@ -80,9 +82,7 @@ from src.guided_exploration.models import (
     SummaryGeneratingEvent,
     SummaryTree,
     ThinkingEvent,
-    Topic,
     TopicOverviewEvent,
-    TopicTree,
     ChatMessageEvent,
 )
 from src.guided_exploration.services.orchestrator import Orchestrator
@@ -602,11 +602,10 @@ class GuidedExplorationFacade:
             )
 
             # Run orchestrator (sends SSE events including TopicTreeEvent)
-            # Use rag_query for retrieval if available, otherwise fall back to query
+            # New flow returns (exploration_id, ExplorationTree) — no separate KB
             (
                 exploration_id,
-                tree,
-                knowledge_base,
+                exploration_tree,
             ) = await self._orchestrator.start_exploration(
                 session_id=session_id,
                 query=query,
@@ -615,13 +614,12 @@ class GuidedExplorationFacade:
                 parties=parties,
             )
 
-            # Persist exploration with knowledge base
+            # Persist exploration
             await self._repo.create_exploration(
                 session_id,
                 query,
-                tree,
+                tree=exploration_tree,
                 exploration_id=exploration_id,
-                knowledge_base=knowledge_base,
             )
 
             # Add exploration reference to session messages
@@ -787,88 +785,19 @@ class GuidedExplorationFacade:
             )
             return {"status": "at_root"}
 
-        elif len(target_path) == 1:
-            # Navigate to topic
-            topic_id = target_path[0]
-            topic = self._find_topic(tree, topic_id)
-            if not topic:
-                await self._send_error(
-                    session_id,
-                    "topic_not_found",
-                    f"Thema '{topic_id}' nicht gefunden",
-                )
-                return {"status": "error", "code": "topic_not_found"}
-
-            # Check if topic is a leaf (no subtopics)
-            if not topic.subtopics:
-                # Leaf topic - treat like a subtopic (generate content)
-                context_name, parties_info = await self._get_context_info(
-                    session.context_id
-                )
-
-                conversation, navigation = await self._navigate_to_leaf(
-                    session_id,
-                    exploration,
-                    leaf_id=topic.id,
-                    leaf_name=topic.name,
-                    leaf_parties=topic.parties,
-                    parent_topic=None,  # No parent for leaf topics
-                    context_name=context_name,
-                    parties_info=parties_info,
-                )
-
-                # Save conversation
-                await self._repo.save_conversation(
-                    session_id,
-                    exploration_id,
-                    conversation,
-                )
-
-                self._navigation_states[session_id] = navigation
-                return {"status": "navigated", "path": target_path}
-
-            # Topic has subtopics - show topic overview
-            navigation = await self._navigate_to_topic(
+        # Find the target node by the last element of the path
+        target_id = target_path[-1]
+        node = tree.find_node(target_id)
+        if not node:
+            await self._send_error(
                 session_id,
-                exploration_id,
-                topic,
+                "node_not_found",
+                f"Knoten '{target_id}' nicht gefunden",
             )
-            self._navigation_states[session_id] = navigation
+            return {"status": "error", "code": "node_not_found"}
 
-            return {"status": "navigated", "path": target_path}
-
-        else:
-            # Navigate to subtopic
-            topic_id = target_path[0]
-            subtopic_id = target_path[1]
-
-            topic = self._find_topic(tree, topic_id)
-            if not topic:
-                await self._send_error(
-                    session_id,
-                    "topic_not_found",
-                    f"Thema '{topic_id}' nicht gefunden",
-                )
-                return {"status": "error", "code": "topic_not_found"}
-
-            # Full subtopic ID is typically "topic.subtopic"
-            full_subtopic_id = (
-                f"{topic_id}.{subtopic_id}" if "." not in subtopic_id else subtopic_id
-            )
-
-            # Find the subtopic
-            subtopic = next(
-                (s for s in topic.subtopics if s.id == full_subtopic_id), None
-            )
-            if not subtopic:
-                await self._send_error(
-                    session_id,
-                    "subtopic_not_found",
-                    f"Unterthema '{subtopic_id}' nicht gefunden",
-                )
-                return {"status": "error", "code": "subtopic_not_found"}
-
-            # Get context info for content generation
+        if node.is_leaf:
+            # Leaf node — generate content
             context_name, parties_info = await self._get_context_info(
                 session.context_id
             )
@@ -876,15 +805,14 @@ class GuidedExplorationFacade:
             conversation, navigation = await self._navigate_to_leaf(
                 session_id,
                 exploration,
-                leaf_id=full_subtopic_id,
-                leaf_name=subtopic.name,
-                leaf_parties=subtopic.parties,
-                parent_topic=topic,
+                leaf_id=node.id,
+                leaf_name=node.name,
+                leaf_parties=node.party_ids,
+                parent_topic=None,
                 context_name=context_name,
                 parties_info=parties_info,
             )
 
-            # Save conversation
             await self._repo.save_conversation(
                 session_id,
                 exploration_id,
@@ -892,7 +820,16 @@ class GuidedExplorationFacade:
             )
 
             self._navigation_states[session_id] = navigation
+            return {"status": "navigated", "path": target_path}
 
+        else:
+            # Branch node — show overview
+            navigation = await self._navigate_to_branch(
+                session_id,
+                exploration,
+                node,
+            )
+            self._navigation_states[session_id] = navigation
             return {"status": "navigated", "path": target_path}
 
     async def mark_explored(
@@ -1003,55 +940,51 @@ class GuidedExplorationFacade:
 
         return {"status": "marked_explored", "leaf_id": leaf_id}
 
-    def _get_leaf_name(self, tree: TopicTree, leaf_id: str) -> str:
-        """Get the display name for a leaf."""
-        # Check if it's a subtopic (contains .)
-        if "." in leaf_id:
-            topic_id = leaf_id.split(".")[0]
-            for topic in tree.topics:
-                if topic.id == topic_id:
-                    for subtopic in topic.subtopics:
-                        if subtopic.id == leaf_id:
-                            return subtopic.name
-        else:
-            # It's a leaf topic
-            for topic in tree.topics:
-                if topic.id == leaf_id:
-                    return topic.name
+    def _get_leaf_name(self, tree: ExplorationTree, leaf_id: str) -> str:
+        """Get the display name for a leaf node."""
+        node = tree.find_node(leaf_id)
+        if node is not None:
+            return node.name
+        return leaf_id
 
-        return leaf_id  # Fallback
-
-    async def _navigate_to_topic(
+    async def _navigate_to_branch(
         self,
         session_id: str,
-        exploration_id: str,
-        topic: Topic,
+        exploration: Exploration,
+        node: ExplorationNode,
     ) -> NavigationState:
-        """Navigate to a topic (branch node)."""
+        """Navigate to a branch node."""
+        # Build breadcrumb from path
+        path = exploration.tree.root.get_path_to(node.id) or []
+        breadcrumb = [
+            BreadcrumbItem(
+                id="root",
+                name="Übersicht",
+                level=BreadcrumbLevel.ROOT,
+            ),
+        ]
+        for p in path[1:]:  # skip root
+            breadcrumb.append(
+                BreadcrumbItem(
+                    id=p.id,
+                    name=p.name,
+                    level=BreadcrumbLevel.TOPIC if not p.is_leaf else BreadcrumbLevel.SUBTOPIC,
+                ),
+            )
+
         navigation = NavigationState(
-            exploration_id=exploration_id,
-            current_path=[topic.id],
-            breadcrumb=[
-                BreadcrumbItem(
-                    id="root",
-                    name="Übersicht",
-                    level=BreadcrumbLevel.ROOT,
-                ),
-                BreadcrumbItem(
-                    id=topic.id,
-                    name=topic.name,
-                    level=BreadcrumbLevel.TOPIC,
-                ),
-            ],
+            exploration_id=exploration.id,
+            current_path=[n.id for n in path[1:]],
+            breadcrumb=breadcrumb,
         )
 
         await self._sse.send_to_session(
             session_id,
             TopicOverviewEvent(
-                topic_id=topic.id,
-                name=topic.name,
-                description=topic.description,
-                subtopics=topic.subtopics,
+                topic_id=node.id,
+                name=node.name,
+                description=node.description,
+                children=node.children,
                 navigation=navigation,
             ),
         )
@@ -1065,66 +998,40 @@ class GuidedExplorationFacade:
         leaf_id: str,
         leaf_name: str,
         leaf_parties: list[str],
-        parent_topic: Topic | None,
-        context_name: str,
-        parties_info: dict[str, PartyInfo],
+        parent_topic: None = None,  # kept for signature compat, unused
+        context_name: str = "",
+        parties_info: dict[str, PartyInfo] | None = None,
     ) -> tuple[Conversation, NavigationState]:
-        """
-        Navigate to a leaf node and generate content.
+        """Navigate to a leaf node and generate content."""
+        if parties_info is None:
+            parties_info = {}
 
-        Works for both subtopics (parent_topic provided) and leaf topics
-        (parent_topic is None).
-        """
         # Check for existing conversation (cached content)
         existing_conversation = await self._repo.get_conversation(
             session_id, exploration.id, leaf_id
         )
 
-        # Get resolved knowledge from KB (needed for new content or follow-ups)
-        kb = exploration.knowledge_base
-        if kb is None:
-            raise ValueError(f"Exploration {exploration.id} has no knowledge base")
+        # Get claims for this leaf from the exploration tree
+        claims_by_party = exploration.tree.get_claims_by_party(leaf_id)
 
-        resolved = kb.get_for_subtopic(leaf_id)
-        if resolved is None:
-            raise ValueError(f"No resolved knowledge for leaf {leaf_id}")
-
-        # Build navigation state based on whether this is a subtopic or leaf topic
-        if parent_topic:
-            # Subtopic: path is [topic_id, leaf_id]
-            current_path = [parent_topic.id, leaf_id]
-            breadcrumb = [
+        # Build navigation from tree path
+        node_path = exploration.tree.root.get_path_to(leaf_id) or []
+        current_path = [n.id for n in node_path[1:]]  # skip root
+        breadcrumb = [
+            BreadcrumbItem(
+                id="root",
+                name="Übersicht",
+                level=BreadcrumbLevel.ROOT,
+            ),
+        ]
+        for n in node_path[1:]:
+            breadcrumb.append(
                 BreadcrumbItem(
-                    id="root",
-                    name="Übersicht",
-                    level=BreadcrumbLevel.ROOT,
+                    id=n.id,
+                    name=n.name,
+                    level=BreadcrumbLevel.SUBTOPIC if n.is_leaf else BreadcrumbLevel.TOPIC,
                 ),
-                BreadcrumbItem(
-                    id=parent_topic.id,
-                    name=parent_topic.name,
-                    level=BreadcrumbLevel.TOPIC,
-                ),
-                BreadcrumbItem(
-                    id=leaf_id,
-                    name=leaf_name,
-                    level=BreadcrumbLevel.SUBTOPIC,
-                ),
-            ]
-        else:
-            # Leaf topic: path is just [leaf_id]
-            current_path = [leaf_id]
-            breadcrumb = [
-                BreadcrumbItem(
-                    id="root",
-                    name="Übersicht",
-                    level=BreadcrumbLevel.ROOT,
-                ),
-                BreadcrumbItem(
-                    id=leaf_id,
-                    name=leaf_name,
-                    level=BreadcrumbLevel.TOPIC,
-                ),
-            ]
+            )
 
         navigation = NavigationState(
             exploration_id=exploration.id,
@@ -1161,17 +1068,21 @@ class GuidedExplorationFacade:
             )
 
             # Build path for content generator
-            if parent_topic:
-                path = [parent_topic.id, leaf_id.split(".")[-1]]
-            else:
-                path = [leaf_id]
+            path = current_path
 
+            leaf_citations = [
+                c.citation
+                for claims in claims_by_party.values()
+                for c in claims
+                if c.citation is not None
+            ]
             content = await self._content_generator.execute(
                 ContentGeneratorInput(
                     subtopic_id=leaf_id,
                     subtopic_name=leaf_name,
                     path=path,
-                    resolved_knowledge=resolved,
+                    leaf_claims=claims_by_party,
+                    leaf_citations=leaf_citations,
                     context_id=exploration.tree.exploration_id,
                     context_name=context_name,
                     parties_info=parties_info,
@@ -1213,27 +1124,28 @@ class GuidedExplorationFacade:
                 conversation,
             )
 
-        # Calculate sibling navigation (only for subtopics)
+        # Calculate sibling navigation from parent's children
         previous_sibling = None
         next_sibling = None
 
-        if parent_topic and parent_topic.subtopics:
-            subtopic_index = next(
-                (i for i, s in enumerate(parent_topic.subtopics) if s.id == leaf_id),
+        if len(node_path) >= 2:
+            parent = node_path[-2]
+            sibling_index = next(
+                (i for i, c in enumerate(parent.children) if c.id == leaf_id),
                 0,
             )
-            if subtopic_index > 0:
-                prev_subtopic = parent_topic.subtopics[subtopic_index - 1]
+            if sibling_index > 0:
+                prev_node = parent.children[sibling_index - 1]
                 previous_sibling = BreadcrumbItem(
-                    id=prev_subtopic.id,
-                    name=prev_subtopic.name,
+                    id=prev_node.id,
+                    name=prev_node.name,
                     level=BreadcrumbLevel.SUBTOPIC,
                 )
-            if subtopic_index < len(parent_topic.subtopics) - 1:
-                next_subtopic = parent_topic.subtopics[subtopic_index + 1]
+            if sibling_index < len(parent.children) - 1:
+                next_node = parent.children[sibling_index + 1]
                 next_sibling = BreadcrumbItem(
-                    id=next_subtopic.id,
-                    name=next_subtopic.name,
+                    id=next_node.id,
+                    name=next_node.name,
                     level=BreadcrumbLevel.SUBTOPIC,
                 )
 
@@ -1378,27 +1290,23 @@ class GuidedExplorationFacade:
                 target_path = []  # Back to root
 
         elif navigation_target in (NavigationTarget.NEXT, NavigationTarget.PREVIOUS):
-            # Navigate to sibling subtopic
-            if len(current_path_list) >= 2:
-                topic_id = current_path_list[0]
-                topic = self._find_topic(tree, topic_id)
-                if topic:
-                    # Find current subtopic index
-                    subtopic_ids = [s.id for s in topic.subtopics]
+            # Navigate to sibling node using tree path
+            if current_leaf_id:
+                node_path = tree.root.get_path_to(current_leaf_id)
+                if node_path and len(node_path) >= 2:
+                    parent = node_path[-2]
+                    sibling_ids = [c.id for c in parent.children]
                     try:
-                        current_index = subtopic_ids.index(current_leaf_id)
-                        if navigation_target == NavigationTarget.NEXT:
-                            new_index = current_index + 1
-                        else:
-                            new_index = current_index - 1
+                        current_index = sibling_ids.index(current_leaf_id)
+                        new_index = (
+                            current_index + 1
+                            if navigation_target == NavigationTarget.NEXT
+                            else current_index - 1
+                        )
 
-                        if 0 <= new_index < len(subtopic_ids):
-                            new_subtopic_id = subtopic_ids[new_index]
-                            # Extract just the suffix after the dot
-                            subtopic_suffix = new_subtopic_id.split(".")[-1]
-                            target_path = [topic_id, subtopic_suffix]
+                        if 0 <= new_index < len(sibling_ids):
+                            target_path = [sibling_ids[new_index]]
                         else:
-                            # At boundary, stay at current or go to topic overview
                             await self._send_error(
                                 session_id,
                                 "navigation_boundary",
@@ -1407,9 +1315,10 @@ class GuidedExplorationFacade:
                             )
                             return {"status": "at_boundary"}
                     except ValueError:
-                        target_path = current_path_list  # Stay at current
+                        target_path = current_path_list
+                else:
+                    target_path = current_path_list
             else:
-                # Not at a subtopic, can't navigate next/prev
                 await self._send_error(
                     session_id,
                     "navigation_not_applicable",
@@ -1433,24 +1342,50 @@ class GuidedExplorationFacade:
         conversation: Conversation | None = None,
     ) -> dict:
         """Handle a conversation message (followup, analysis, or summary request)."""
-        # Get resolved knowledge from KB
-        kb = exploration.knowledge_base
-        if kb is None:
-            await self._send_error(
-                session_id,
-                "no_knowledge_base",
-                "Keine Wissensbasis verfuegbar",
-            )
-            return {"status": "error", "code": "no_knowledge_base"}
-
-        resolved = kb.get_for_subtopic(leaf_id)
-        if resolved is None:
+        # Build ResolvedKnowledge from claims in the exploration tree
+        claims_by_party = exploration.tree.get_claims_by_party(leaf_id)
+        if not claims_by_party:
             await self._send_error(
                 session_id,
                 "no_knowledge",
                 "Kein Wissen fuer dieses Thema verfuegbar",
             )
             return {"status": "error", "code": "no_knowledge"}
+
+        # Convert claims to ResolvedKnowledge for the conversation handler
+        party_positions: dict[str, ExtractedPosition] = {}
+        citation_pool: list[Citation] = []
+        for party_id, claims in claims_by_party.items():
+            extracted_claims = [
+                ExtractedClaim(
+                    claim=c.content,
+                    quote=c.quote,
+                    source_doc=c.citation.document if c.citation else "",
+                    source_page=c.citation.page if c.citation else None,
+                    claim_type=c.claim_type,
+                    citation_id=c.citation.id if c.citation else None,
+                )
+                for c in claims
+            ]
+            party_positions[party_id] = ExtractedPosition(
+                party_id=party_id,
+                claims=extracted_claims,
+            )
+            for c in claims:
+                if c.citation is not None:
+                    citation_pool.append(c.citation)
+
+        resolved = ResolvedKnowledge(
+            leaf_id=leaf_id,
+            party_positions=party_positions,
+            citation_pool=citation_pool,
+        )
+        logger.info(
+            f"Follow-up context for leaf {leaf_id}: "
+            f"{len(party_positions)} parties, "
+            f"{sum(len(p.claims) for p in party_positions.values())} claims, "
+            f"{len(citation_pool)} citations"
+        )
 
         # Get current navigation state
         navigation = self._navigation_states.get(session_id)
@@ -1494,10 +1429,17 @@ class GuidedExplorationFacade:
         # Send thinking event
         await self._send_thinking(session_id, "generating", "Formuliere Antwort...")
 
+        # Get leaf node info for context
+        leaf_node = exploration.tree.find_node(leaf_id)
+        leaf_name = leaf_node.name if leaf_node else leaf_id
+        leaf_description = leaf_node.description if leaf_node else ""
+
         # Build input for streaming
         handler_input = ConversationHandlerInput(
             message=user_message,
             leaf_id=leaf_id,
+            leaf_name=leaf_name,
+            leaf_description=leaf_description,
             conversation_history=conversation_history,
             resolved_knowledge=resolved,
             context_id=exploration.tree.exploration_id,
@@ -1505,12 +1447,7 @@ class GuidedExplorationFacade:
             parties_info=parties_info,
         )
 
-        # Get index-to-citation_id mapping and citations from chunks
-        _, index_to_citation_id, chunk_citations = build_chunk_citation_mapping(
-            resolved.party_chunks, parties_info, leaf_id
-        )
-
-        # Stream response directly from LLM with party markers
+        # Stream response directly from LLM
         stream_id = str(uuid4())
         message_id = str(uuid4())
 
@@ -1522,11 +1459,11 @@ class GuidedExplorationFacade:
             target_id=leaf_id,
         )
 
-        # Replace indices [0], [1], etc. with actual citation IDs
-        full_text = self._replace_citation_indices(full_text, index_to_citation_id)
-
-        # Extract used citations from the text
-        used_citations = self._extract_used_citations(full_text, chunk_citations)
+        # Extract used citations — claims already have citation IDs in the text
+        used_citations = [
+            c for c in citation_pool
+            if c.id in full_text
+        ]
 
         # Create and save the response message
         response_message = Message(
@@ -1541,11 +1478,21 @@ class GuidedExplorationFacade:
             session_id, exploration_id, leaf_id, response_message
         )
 
-        # Generate suggested follow-up questions
+        # Generate suggested follow-up questions with full context
+        from src.guided_exploration.agents.conversation_handler.prompts import (
+            format_conversation_history,
+            format_party_positions_for_prompt as format_positions,
+        )
+        claims_context = format_positions(
+            resolved.party_positions, parties_info
+        )
+        history_text = format_conversation_history(conversation_history)
         suggested_questions = (
             await self._summary_generator.generate_suggested_questions(
                 query=user_message,
                 response=full_text,
+                available_context=claims_context,
+                conversation_history=history_text,
             )
         )
 
@@ -2028,25 +1975,14 @@ class GuidedExplorationFacade:
     # Helpers
     # =========================================================================
 
-    def _find_topic(self, tree: TopicTree, topic_id: str) -> Topic | None:
-        """Find a topic in the tree by ID."""
-        for topic in tree.topics:
-            if topic.id == topic_id:
-                return topic
-        return None
-
     async def _mark_leaf_explored(
         self,
         session_id: str,
         exploration_id: str,
         leaf_id: str,
-        tree: TopicTree,
+        tree: ExplorationTree,
     ) -> None:
-        """
-        Mark a leaf as explored and update topic status.
-
-        Works for both subtopics (leaf_id contains ".") and leaf topics.
-        """
+        """Mark a leaf node as explored in the tree."""
         # Track in memory
         if exploration_id not in self._explored_subtopics:
             self._explored_subtopics[exploration_id] = []
@@ -2054,34 +1990,10 @@ class GuidedExplorationFacade:
         if leaf_id not in self._explored_subtopics[exploration_id]:
             self._explored_subtopics[exploration_id].append(leaf_id)
 
-        # Determine if this is a subtopic or leaf topic
-        is_subtopic = "." in leaf_id
-
-        if is_subtopic:
-            # Subtopic: update both subtopic and parent topic status
-            topic_id = leaf_id.split(".")[0]
-            for topic in tree.topics:
-                if topic.id == topic_id:
-                    for subtopic in topic.subtopics:
-                        if subtopic.id == leaf_id:
-                            subtopic.status = "explored"
-
-                    # Update topic status
-                    explored_count = sum(
-                        1 for s in topic.subtopics if s.status == "explored"
-                    )
-                    if explored_count == len(topic.subtopics):
-                        topic.status = "explored"
-                    elif explored_count > 0:
-                        topic.status = "partial"
-
-                    break
-        else:
-            # Leaf topic: just update the topic status directly
-            for topic in tree.topics:
-                if topic.id == leaf_id:
-                    topic.status = "explored"
-                    break
+        # Update node status in tree
+        node = tree.find_node(leaf_id)
+        if node is not None:
+            node.status = "explored"
 
         # Persist updated tree
         await self._repo.update_tree(session_id, exploration_id, tree)
@@ -2353,12 +2265,13 @@ class GuidedExplorationFacade:
         if not exploration:
             return None
 
-        if not exploration.knowledge_base:
-            return {"exploration_id": exploration_id, "entries": {}}
-
+        # Return claims from the exploration tree for debugging
         return {
             "exploration_id": exploration_id,
-            "entries": exploration.knowledge_base.model_dump(mode="json"),
+            "claims": {
+                cid: c.model_dump(mode="json")
+                for cid, c in exploration.tree.claims.items()
+            },
         }
 
     async def request_analysis(
@@ -2411,18 +2324,9 @@ class GuidedExplorationFacade:
 
         subtopic_content = first_msg.content
 
-        # Get resolved knowledge
-        kb = exploration.knowledge_base
-        if kb is None:
-            await self._send_error(
-                session_id,
-                "no_knowledge_base",
-                "Keine Wissensbasis verfügbar",
-            )
-            return {"status": "error", "code": "no_knowledge_base"}
-
-        resolved = kb.get_for_subtopic(leaf_id)
-        if resolved is None:
+        # Get claims for analysis context
+        claims_by_party = exploration.tree.get_claims_by_party(leaf_id)
+        if not claims_by_party:
             await self._send_error(
                 session_id,
                 "no_knowledge",
@@ -2566,9 +2470,8 @@ class GuidedExplorationFacade:
 
         # Build stats
         tree = exploration.tree
-        total_subtopics = sum(
-            len(t.subtopics) if t.subtopics else 1 for t in tree.topics
-        )
+        all_leaves = tree.root.get_leaf_nodes()
+        total_subtopics = len(all_leaves)
 
         stats = {
             "topics_explored": len(explored),
@@ -2645,16 +2548,12 @@ class GuidedExplorationFacade:
                 {"closing_summary": closing_summary},
             )
 
-        # Find unexplored topics
-        unexplored = []
-        for topic in tree.topics:
-            if topic.subtopics:
-                for subtopic in topic.subtopics:
-                    if subtopic.id not in explored:
-                        unexplored.append({"id": subtopic.id, "name": subtopic.name})
-            else:
-                if topic.id not in explored:
-                    unexplored.append({"id": topic.id, "name": topic.name})
+        # Find unexplored leaves
+        unexplored = [
+            {"id": leaf.id, "name": leaf.name}
+            for leaf in all_leaves
+            if leaf.id not in explored
+        ]
 
         # Send ExplorationCompleteEvent
         await self._sse.send_to_session(

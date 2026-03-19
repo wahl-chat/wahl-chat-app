@@ -15,13 +15,12 @@ from src.guided_exploration.models import (
     Conversation,
     Exploration,
     ExplorationStatus,
-    KnowledgeBase,
+    ExplorationTree,
     LeafSummary,
     Message,
     Session,
     SessionMessage,
     SessionMode,
-    TopicTree,
 )
 
 logger = logging.getLogger(__name__)
@@ -137,9 +136,8 @@ class SessionRepository:
         self,
         session_id: str,
         original_query: str,
-        tree: TopicTree,
+        tree: ExplorationTree,
         exploration_id: str | None = None,
-        knowledge_base: KnowledgeBase | None = None,
     ) -> Exploration:
         """
         Create a new exploration.
@@ -159,7 +157,6 @@ class SessionRepository:
             session_id=session_id,
             original_query=original_query,
             tree=tree,
-            knowledge_base=knowledge_base,
             status=ExplorationStatus.ACTIVE,
             final_summary=None,
             created_at=now,
@@ -208,26 +205,13 @@ class SessionRepository:
         self,
         session_id: str,
         exploration_id: str,
-        tree: TopicTree,
+        tree: ExplorationTree,
     ) -> None:
-        """Update the exploration's topic tree."""
+        """Update the exploration's tree."""
         await self.update_exploration(
             session_id,
             exploration_id,
             {"tree": tree.model_dump(mode="json")},
-        )
-
-    async def update_knowledge_base(
-        self,
-        session_id: str,
-        exploration_id: str,
-        knowledge_base: KnowledgeBase,
-    ) -> None:
-        """Update the exploration's knowledge base."""
-        await self.update_exploration(
-            session_id,
-            exploration_id,
-            {"knowledge_base": knowledge_base.model_dump(mode="json")},
         )
 
     async def complete_exploration(

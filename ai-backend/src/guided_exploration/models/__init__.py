@@ -4,6 +4,7 @@
 
 """Re-export all model classes for easy imports."""
 
+from src.guided_exploration.models.claim import Claim, PartyClaims
 from src.guided_exploration.models.classification import (
     MessageClassificationInput,
     MessageClassificationOutput,
@@ -65,10 +66,7 @@ from src.guided_exploration.models.exploration import (
     FinalSummary,
     KnowledgeBase,
     PartyKnowledge,
-    PartySubtopic,
     PartySubtopicKnowledge,
-    PartyTopic,
-    PartyTopicTree,
     ResolvedKnowledge,
     RetrievedChunk,
     SummaryTree,
@@ -92,9 +90,15 @@ from src.guided_exploration.models.session import (
     SessionReconnectState,
 )
 from src.guided_exploration.models.streaming import StreamChunk
-from src.guided_exploration.models.tree import Subtopic, Topic, TopicTree
+from src.guided_exploration.models.tree import (
+    ExplorationNode,
+    ExplorationTree,
+)
 
 __all__ = [
+    # claim
+    "Claim",
+    "PartyClaims",
     # classification
     "MessageClassificationInput",
     "MessageClassificationOutput",
@@ -151,10 +155,7 @@ __all__ = [
     "FinalSummary",
     "KnowledgeBase",
     "PartyKnowledge",
-    "PartySubtopic",
     "PartySubtopicKnowledge",
-    "PartyTopic",
-    "PartyTopicTree",
     "ResolvedKnowledge",
     "RetrievedChunk",
     "SummaryTree",
@@ -177,7 +178,6 @@ __all__ = [
     # streaming
     "StreamChunk",
     # tree
-    "Subtopic",
-    "Topic",
-    "TopicTree",
+    "ExplorationNode",
+    "ExplorationTree",
 ]

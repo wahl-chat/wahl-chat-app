@@ -5,8 +5,8 @@
 """
 Guided Exploration Module.
 
-This module provides structured, tree-based exploration of political topics
-with conversational followups and analysis capabilities.
+Claim-based adaptive hierarchy for exploring party positions
+on political topics with conversational followups and analysis.
 """
 
 # Re-export facade
@@ -17,11 +17,13 @@ from src.guided_exploration.services import (
     Orchestrator,
     SessionRepository,
     get_session_repository,
-    merge_party_knowledge,
 )
 
 # Re-export all models for easy access
 from src.guided_exploration.models import (
+    # claim
+    Claim,
+    PartyClaims,
     # classification
     MessageClassificationInput,
     MessageClassificationOutput,
@@ -91,9 +93,8 @@ from src.guided_exploration.models import (
     # streaming
     StreamChunk,
     # tree
-    Subtopic,
-    Topic,
-    TopicTree,
+    ExplorationNode,
+    ExplorationTree,
 )
 
 __all__ = [
@@ -101,10 +102,12 @@ __all__ = [
     "GuidedExplorationFacade",
     "get_facade",
     # services
-    "merge_party_knowledge",
     "Orchestrator",
     "SessionRepository",
     "get_session_repository",
+    # claim
+    "Claim",
+    "PartyClaims",
     # classification
     "MessageClassificationInput",
     "MessageClassificationOutput",
@@ -174,7 +177,6 @@ __all__ = [
     # streaming
     "StreamChunk",
     # tree
-    "Subtopic",
-    "Topic",
-    "TopicTree",
+    "ExplorationNode",
+    "ExplorationTree",
 ]

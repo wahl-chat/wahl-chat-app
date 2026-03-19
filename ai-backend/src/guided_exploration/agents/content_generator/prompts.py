@@ -122,14 +122,17 @@ Begruendung: Die Partei argumentiert, dass ein hoeherer Mindestlohn Armut trotz 
 
 ## 3. Folgefragen (suggested_questions)
 Generiere 2-3 kurze Folgefragen, die:
-- Das Thema vertiefen oder einen neuen Aspekt beleuchten
+- NUR mit den bereitgestellten Parteipositionen beantwortbar sind
+- Konkret auf Unterschiede oder Details in den Positionen eingehen
 - Konkret und praegnant formuliert sind (max 10 Worte)
-- Den Nutzer zur weiteren Erkundung anregen
 
-Beispiele:
-- "Wie wird das finanziert?"
-- "Welche Auswirkungen hat das auf Mieter?"
-- "Was sagen Experten dazu?\""""
+WICHTIG: Folgefragen muessen mit den vorhandenen Daten beantwortbar sein!
+Stelle KEINE Fragen zu Themen die nicht in den Positionen vorkommen.
+
+Beispiele (nur wenn passende Daten vorhanden):
+- "Welche konkreten Zahlen nennen die Parteien?"
+- "Worin unterscheiden sich CDU und SPD hier?"
+- "Welche Partei geht am weitesten?\""""
 
 GENERATION_PROMPT = """Generiere Inhalte fuer folgendes Thema:
 
@@ -161,7 +164,9 @@ Generiere die Inhalte in dieser Reihenfolge:
    FALSCH: "Die Parteien haben unterschiedliche Ansaetze zu diesem Thema."
    RICHTIG: "Waehrend SPD und Gruene den Mindestlohn auf 15 Euro erhoehen wollen, setzt die FDP auf Tarifautonomie ohne staatliche Vorgaben. Einig sind sich alle Parteien, dass Arbeit sich lohnen muss."
 
-3. **Folgefragen** (suggested_questions): 2-3 kurze Fragen zur Vertiefung des Themas.
+3. **Folgefragen** (suggested_questions): 2-3 kurze Fragen die NUR mit den oben \
+stehenden Parteipositionen beantwortbar sind. Frage nach konkreten Unterschieden, \
+Zahlen oder Details die in den Positionen stehen. KEINE Fragen zu externen Themen.
 
 Verwende NUR die bereitgestellten Zitations-IDs."""
 
@@ -194,6 +199,37 @@ def format_party_positions_for_prompt(
                 if claim.citation_id:
                     formatted += f" [{claim.citation_id}]"
                 formatted += "\n"
+
+    return formatted
+
+
+def format_claims_for_content_prompt(
+    claims_by_party: dict, parties_info: dict[str, PartyInfo]
+) -> str:
+    """Format claim-based party positions for the content generation prompt."""
+    if not claims_by_party:
+        return "Keine Parteipositionen verfuegbar."
+
+    formatted = ""
+    for party_id, claims in claims_by_party.items():
+        party_name = parties_info.get(
+            party_id,
+            PartyInfo(
+                party_id=party_id, name=party_id.upper(), long_name=party_id.upper()
+            ),
+        ).name
+        formatted += f"\n## {party_name} ({party_id})\n"
+        formatted += "Positionen und Forderungen:\n"
+        for claim in claims:
+            formatted += f"  - ({claim.claim_type}) {claim.content}\n"
+            if claim.quote:
+                formatted += f'    Zitat: "{claim.quote}"\n'
+            if claim.citation:
+                cit = claim.citation
+                formatted += f"    Quelle: {cit.document}"
+                if cit.page:
+                    formatted += f", S. {cit.page}"
+                formatted += f" [{cit.id}]\n"
 
     return formatted
 

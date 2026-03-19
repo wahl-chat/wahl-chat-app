@@ -6,7 +6,7 @@
 import type { Analysis, Citation } from './content';
 import type { Conversation } from './conversation';
 import type { NavigationState, SiblingNavigation } from './navigation';
-import type { Subtopic, TopicTree } from './tree';
+import type { ExplorationNode, ExplorationTree } from './tree';
 
 // ============ Connection Events ============
 
@@ -54,7 +54,7 @@ export interface ChoicePromptEvent {
 export interface TopicTreeEvent {
   type: 'topic_tree';
   explorationId: string;
-  tree: TopicTree;
+  tree: ExplorationTree;
   navigation: NavigationState;
   isUpdate: boolean;
 }
@@ -64,7 +64,7 @@ export interface TopicOverviewEvent {
   topicId: string;
   name: string;
   description: string;
-  subtopics: Subtopic[];
+  children: ExplorationNode[];
   navigation: NavigationState;
 }
 

@@ -3,72 +3,62 @@
 import { cn } from '@/lib/utils';
 import { SubtopicItem } from '@/modules/guided-exploration/components/navigation/subtopic-item';
 import { ProgressIndicator } from '@/modules/guided-exploration/components/shared/progress-indicator';
-import type { LeafSummary, Topic } from '@/modules/guided-exploration/types';
+import type {
+  ExplorationNode,
+  LeafSummary,
+} from '@/modules/guided-exploration/types';
+import { getBranchProgress } from '@/modules/guided-exploration/utils/tree-helpers';
 
 interface BranchContentProps {
-  topic: Topic;
+  node: ExplorationNode;
   summaries?: Record<string, LeafSummary> | null;
-  onSubtopicSelect: (subtopicId: string) => void;
+  onChildSelect: (nodeId: string) => void;
   className?: string;
 }
 
 export function BranchContent({
-  topic,
+  node,
   summaries,
-  onSubtopicSelect,
+  onChildSelect,
   className,
 }: BranchContentProps) {
-  const explored = topic.subtopics.filter(
-    (s) => s.status === 'explored',
-  ).length;
-  const total = topic.subtopics.length;
+  const progress = getBranchProgress(node);
 
-  // Get summary for a subtopic
-  const getSummary = (subtopicId: string): LeafSummary | null => {
+  const getSummary = (childId: string): LeafSummary | null => {
     if (!summaries) return null;
-    // Try compound ID first, then simple ID
-    return (
-      summaries[subtopicId] ?? summaries[`${topic.id}.${subtopicId}`] ?? null
-    );
+    return summaries[childId] ?? null;
   };
 
   return (
     <div className={cn('space-y-6', className)}>
-      {/* Topic header */}
+      {/* Branch header */}
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold">{topic.name}</h1>
-        <p className="text-muted-foreground">{topic.description}</p>
+        <h1 className="text-2xl font-bold">{node.name}</h1>
+        <p className="text-muted-foreground">{node.description}</p>
         <div className="pt-2">
           <ProgressIndicator
-            explored={explored}
-            total={total}
+            explored={progress.explored}
+            total={progress.total}
             variant="bar"
             showLabel
           />
         </div>
       </div>
 
-      {/* Subtopic list */}
+      {/* Children list */}
       <div
         className="flex flex-col gap-4"
         role="list"
-        aria-label={`Unterthemen von ${topic.name}`}
+        aria-label={`Unterthemen von ${node.name}`}
       >
-        {topic.subtopics.map((subtopic) => {
-          // Extract the simple subtopic ID for lookup
-          const simpleId = subtopic.id.includes('.')
-            ? subtopic.id.split('.')[1]
-            : subtopic.id;
-
-          return (
-            <SubtopicItem
-              key={subtopic.id}
-              subtopic={subtopic}
-              summary={getSummary(simpleId)}
-              onClick={() => onSubtopicSelect(subtopic.id)}
-            />
-          );
-        })}
+        {node.children.map((child) => (
+          <SubtopicItem
+            key={child.id}
+            node={child}
+            summary={getSummary(child.id)}
+            onClick={() => onChildSelect(child.id)}
+          />
+        ))}
       </div>
     </div>
   );

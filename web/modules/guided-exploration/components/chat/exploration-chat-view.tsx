@@ -3,9 +3,9 @@
 import { PartyMarkedMarkdown } from '@/modules/guided-exploration/components/shared/party-marked-markdown';
 import type {
   ChoicePromptEvent,
+  ExplorationTree,
   SessionMessage,
   StreamTargetType,
-  TopicTree,
 } from '@/modules/guided-exploration/types';
 import { useEffect, useRef } from 'react';
 
@@ -26,7 +26,7 @@ interface ExplorationChatViewProps {
   /** The type of content being streamed */
   streamingTargetType?: StreamTargetType | null;
   /** Tree preview (shown when exploration is pending) */
-  tree: TopicTree | null;
+  tree: ExplorationTree | null;
   /** Whether exploration is pending (tree received, waiting for ready) */
   explorationPending: boolean;
   /** Suggested follow-up questions shown above the input */

@@ -208,11 +208,19 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
 
         case 'conversation_message': {
           const msgEvent = event as ConversationMessageEvent;
+
+          // Skip user messages — they're already added optimistically
+          if (msgEvent.message.role === 'user') {
+            break;
+          }
+
           // Attach citations from event to the message
           const messageWithCitations = {
             ...msgEvent.message,
             citations: msgEvent.citations ?? msgEvent.message.citations,
           };
+          // Clear stream buffer before adding final message (prevents flash)
+          dispatchRef.current(streamActions.bufferCleared());
           dispatchRef.current(
             conversationActions.messageAdded(
               msgEvent.leafId,

@@ -10,18 +10,18 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import type {
+  ExplorationTree,
   LeafSummary,
-  TopicTree,
 } from '@/modules/guided-exploration/types';
 import { ClipboardList } from 'lucide-react';
 import { useState } from 'react';
 import { ExplorationSummaryPanel } from './exploration-summary-panel';
 
 interface MobileSummarySheetProps {
-  tree: TopicTree;
+  tree: ExplorationTree;
   currentPath: string[];
   summaries: Record<string, LeafSummary> | null;
-  onNavigate: (topicId: string, subtopicId: string) => void;
+  onNavigate: (nodeId: string) => void;
 }
 
 /**
@@ -36,8 +36,8 @@ export function MobileSummarySheet({
 }: MobileSummarySheetProps) {
   const [open, setOpen] = useState(false);
 
-  const handleNavigate = (topicId: string, subtopicId: string) => {
-    onNavigate(topicId, subtopicId);
+  const handleNavigate = (nodeId: string) => {
+    onNavigate(nodeId);
     setOpen(false);
   };
 

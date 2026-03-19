@@ -1,12 +1,13 @@
 /**
  * Exploration Slice
- * Manages topic tree, navigation, and conversations state
+ * Manages exploration tree, navigation, and conversations state
  */
 
 import type {
   ExplorationAction,
   ExplorationSliceState,
 } from '@/modules/guided-exploration/store/types';
+import type { ExplorationNode } from '@/modules/guided-exploration/types';
 
 export const initialExplorationState: ExplorationSliceState = {
   tree: null,
@@ -16,14 +17,39 @@ export const initialExplorationState: ExplorationSliceState = {
   analysisAvailable: false,
 };
 
+/**
+ * Recursively mark a node as explored and update ancestor statuses.
+ * Returns a new node tree (immutable).
+ */
+function markNodeExplored(
+  node: ExplorationNode,
+  leafId: string,
+): ExplorationNode {
+  if (node.id === leafId) {
+    return { ...node, status: 'explored' };
+  }
+
+  if (node.children.length === 0) return node;
+
+  const updatedChildren = node.children.map((child) =>
+    markNodeExplored(child, leafId),
+  );
+
+  // Check if any child changed
+  const changed = updatedChildren.some(
+    (child, i) => child !== node.children[i],
+  );
+  if (!changed) return node;
+
+  return { ...node, children: updatedChildren };
+}
+
 export function explorationReducer(
   state: ExplorationSliceState,
   action: ExplorationAction,
 ): ExplorationSliceState {
   switch (action.type) {
     case 'SESSION_LOADED':
-      // Don't load tree/navigation - user starts fresh in chat view
-      // They can re-enter any active exploration from there
       return state;
 
     case 'EXPLORATION_STARTED':
@@ -36,7 +62,6 @@ export function explorationReducer(
       };
 
     case 'EXPLORATION_TREE_RECEIVED':
-      // Store tree for preview, but don't set navigation (not exploring yet)
       return {
         ...state,
         tree: action.tree,
@@ -107,7 +132,6 @@ export function explorationReducer(
       const conversation = state.conversations[action.leafId];
       if (!conversation) return state;
 
-      // Find the initial content message and add analysis to it
       const updatedMessages = conversation.messages.map((msg) => {
         if (msg.type === 'initial_content' && typeof msg.content !== 'string') {
           return {
@@ -142,52 +166,14 @@ export function explorationReducer(
     case 'LEAF_MARKED_EXPLORED': {
       if (!state.tree) return state;
 
-      const { leafId } = action;
-      const parts = leafId.split('.');
-
-      // Update the tree with the new explored status
-      const updatedTopics = state.tree.topics.map((topic) => {
-        if (parts.length === 1 && topic.id === parts[0]) {
-          // Leaf topic (no subtopics) - mark topic as explored
-          return { ...topic, status: 'explored' as const };
-        }
-
-        if (parts.length >= 2 && topic.id === parts[0]) {
-          // Subtopic - find and update it
-          const updatedSubtopics = topic.subtopics.map((subtopic) =>
-            subtopic.id === leafId
-              ? { ...subtopic, status: 'explored' as const }
-              : subtopic,
-          );
-
-          // Calculate topic status based on subtopics
-          const allExplored = updatedSubtopics.every(
-            (s) => s.status === 'explored',
-          );
-          const someExplored = updatedSubtopics.some(
-            (s) => s.status === 'explored',
-          );
-          const topicStatus = allExplored
-            ? ('explored' as const)
-            : someExplored
-              ? ('partial' as const)
-              : ('pending' as const);
-
-          return {
-            ...topic,
-            subtopics: updatedSubtopics,
-            status: topicStatus,
-          };
-        }
-
-        return topic;
-      });
+      const updatedRoot = markNodeExplored(state.tree.root, action.leafId);
+      if (updatedRoot === state.tree.root) return state;
 
       return {
         ...state,
         tree: {
           ...state.tree,
-          topics: updatedTopics,
+          root: updatedRoot,
           updatedAt: new Date().toISOString(),
         },
       };

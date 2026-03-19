@@ -14,53 +14,11 @@ from pydantic import BaseModel, Field
 
 from src.guided_exploration.models.content import Citation
 from src.guided_exploration.models.conversation import LeafSummary
-from src.guided_exploration.models.tree import TopicTree
+from src.guided_exploration.models.tree import ExplorationTree
 
 
 # =============================================================================
-# Per-Party Topic Models (for party-specific planning)
-# =============================================================================
-
-
-class PartySubtopic(BaseModel):
-    """A subtopic as discussed by a single party."""
-
-    id: str = Field(..., description="Unique identifier for this subtopic")
-    name: str = Field(..., description="Display name")
-    description: str = Field(..., description="Brief description")
-    has_content: bool = Field(
-        default=True, description="True if party has meaningful content on this"
-    )
-
-
-class PartyTopic(BaseModel):
-    """A topic as discussed by a single party."""
-
-    id: str = Field(..., description="Unique identifier for this topic")
-    name: str = Field(..., description="Display name")
-    description: str = Field(..., description="Brief description")
-    subtopics: list[PartySubtopic] = Field(
-        default_factory=list, description="Subtopics this party discusses"
-    )
-    importance_score: float = Field(
-        default=0.5, description="How much this party emphasizes this topic (0-1)"
-    )
-
-
-class PartyTopicTree(BaseModel):
-    """Topics/subtopics identified from a single party's documents."""
-
-    party_id: str = Field(..., description="Party ID this tree is for")
-    topics: list[PartyTopic] = Field(
-        default_factory=list, description="Topics this party discusses"
-    )
-    relevance_to_query: float = Field(
-        default=0.5, description="How well this party's content matches the query (0-1)"
-    )
-
-
-# =============================================================================
-# Per-Party Knowledge Models (for party-specific resolution)
+# Per-Party Knowledge Models (kept for conversation handler context)
 # =============================================================================
 
 
@@ -190,10 +148,8 @@ class Exploration(BaseModel):
     original_query: str = Field(
         ..., description="The user's original query that started this exploration"
     )
-    tree: TopicTree = Field(..., description="The topic tree for this exploration")
-    knowledge_base: KnowledgeBase | None = Field(
-        default=None,
-        description="Knowledge base with resolved knowledge for all subtopics",
+    tree: ExplorationTree = Field(
+        ..., description="The claim-based exploration tree"
     )
     status: ExplorationStatus = Field(
         default=ExplorationStatus.ACTIVE, description="Current status"

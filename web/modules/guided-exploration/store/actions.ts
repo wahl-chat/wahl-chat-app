@@ -8,6 +8,7 @@ import type {
   ChoicePromptEvent,
   Conversation,
   ErrorCode,
+  ExplorationTree,
   LeafSummary,
   Message,
   NavigationState,
@@ -15,7 +16,6 @@ import type {
   StreamSection,
   StreamTargetType,
   ThinkingStage,
-  TopicTree,
 } from '@/modules/guided-exploration/types';
 import type {
   AppMode,
@@ -82,7 +82,7 @@ export const sessionActions = {
 export const explorationActions = {
   started: (
     explorationId: string,
-    tree: TopicTree,
+    tree: ExplorationTree,
     navigation: NavigationState,
   ): ExplorationAction => ({
     type: 'EXPLORATION_STARTED',
@@ -93,7 +93,7 @@ export const explorationActions = {
 
   treeReceived: (
     explorationId: string,
-    tree: TopicTree,
+    tree: ExplorationTree,
   ): ExplorationAction => ({
     type: 'EXPLORATION_TREE_RECEIVED',
     explorationId,
@@ -117,7 +117,7 @@ export const explorationActions = {
     type: 'EXPLORATION_READY_CLEARED',
   }),
 
-  treeUpdated: (tree: TopicTree): ExplorationAction => ({
+  treeUpdated: (tree: ExplorationTree): ExplorationAction => ({
     type: 'TREE_UPDATED',
     tree,
   }),

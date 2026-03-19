@@ -1,43 +1,53 @@
 /**
- * Topic Tree Types
- * Represents the hierarchical structure of explorable topics
+ * Exploration Tree Types
+ * Claim-based adaptive hierarchy for exploring party positions
  */
 
-export interface Subtopic {
-  /** Unique identifier, e.g., "housing.rent-control" */
+/** A concrete position, demand, or statement from a party */
+export interface Claim {
   id: string;
-  /** Display name, e.g., "Rent Control" */
+  partyId: string;
+  content: string;
+  quote: string;
+  claimType: 'position' | 'measure' | 'target' | 'argument' | 'criticism';
+  citation: {
+    id: string;
+    party: string;
+    document: string;
+    section?: string;
+    page?: number;
+    url?: string;
+  } | null;
+  chunkIndex: number;
+}
+
+/**
+ * Recursive node in the exploration tree.
+ * Can be a branch (has children) or a leaf (has claimIds).
+ * Names must be screen-reader friendly.
+ */
+export interface ExplorationNode {
+  id: string;
+  /** Descriptive name — must be understandable for screen readers */
   name: string;
-  /** One sentence description */
   description: string;
-  /** Parties with positions on this subtopic */
-  parties: string[];
-  /** Exploration status */
+  /** Child nodes. Empty = leaf node */
+  children: ExplorationNode[];
+  /** Party IDs with claims in this node or its descendants */
+  partyIds: string[];
+  /** Claim IDs assigned to this leaf. Empty for branch nodes */
+  claimIds: string[];
   status: 'pending' | 'explored';
 }
 
-export interface Topic {
-  /** Unique identifier, e.g., "housing" */
-  id: string;
-  /** Display name, e.g., "Housing" */
-  name: string;
-  /** Brief description */
-  description: string;
-  /** Child subtopics (leaf nodes) */
-  subtopics: Subtopic[];
-  /** Exploration status */
-  status: 'pending' | 'partial' | 'explored';
-}
-
-export interface TopicTree {
-  /** Unique exploration identifier */
+/** Complete exploration tree with claim-based hierarchy */
+export interface ExplorationTree {
   explorationId: string;
-  /** The user's original query that started this exploration */
   originalQuery: string;
-  /** Top-level topics (branch nodes) */
-  topics: Topic[];
-  /** When the tree was created */
+  /** Root node of the tree (the query topic) */
+  root: ExplorationNode;
+  /** Lookup: claimId -> Claim */
+  claims: Record<string, Claim>;
   createdAt: string;
-  /** When the tree was last updated */
   updatedAt: string;
 }

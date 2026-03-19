@@ -315,25 +315,31 @@ QUICK_SUMMARY_STREAMING_USER_PROMPT = """## Nutzerfrage
 Nutze falls du sie nutzt, party marker [PARTY:partei_id] mit den exakten IDs aus der Parteiliste (spd, cdu, gruene, etc. - NICHT Zahlen wie 0, 1, 2).
 """
 
-SUGGESTED_QUESTIONS_PROMPT = """Basierend auf der Nutzerfrage und der gegebenen Antwort, generiere 2-3 kurze Folgefragen.
+SUGGESTED_QUESTIONS_PROMPT = """Generiere 2-3 kurze Folgefragen basierend auf dem \
+bisherigen Gespraech und den verfuegbaren Parteipositionen.
 
-## Nutzerfrage
+## Bisheriges Gespraech
+{conversation_history}
+
+## Letzte Nutzerfrage
 {query}
 
-## Gegebene Antwort
+## Letzte Antwort
 {response}
+
+## Verfuegbare Parteipositionen (Wissensbasis)
+{available_context}
 
 ## Deine Aufgabe
 Generiere 2-3 Folgefragen, die:
-- Das Thema sinnvoll vertiefen oder einen neuen Aspekt beleuchten
+- NUR mit den oben stehenden Parteipositionen beantwortbar sind
+- Nach konkreten Unterschieden, Details oder Zahlen fragen die in den Positionen stehen
+- Noch NICHT im bisherigen Gespraech behandelt wurden
 - Kurz und praegnant formuliert sind (max 10 Worte pro Frage)
-- Den Nutzer zur weiteren Erkundung anregen
 - Auf Deutsch formuliert sind
 
-Beispiele fuer gute Folgefragen:
-- "Wie wird das finanziert?"
-- "Welche Auswirkungen hat das auf Mieter?"
-- "Was unterscheidet die Parteien hier konkret?"
+WICHTIG: Jede Frage MUSS mit den verfuegbaren Parteipositionen beantwortbar sein!
+Stelle KEINE Fragen zu Themen die nicht in den Positionen vorkommen.
 """
 
 
