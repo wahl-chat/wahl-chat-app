@@ -151,6 +151,51 @@ class Orchestrator:
         # Validate chunk coverage
         self._validate_chunk_coverage(parties, party_chunks, parties_info)
 
+        # Validate claim quality — need enough data for a meaningful exploration
+        claims_per_party: dict[str, int] = {}
+        for claim in all_claims:
+            claims_per_party[claim.party_id] = (
+                claims_per_party.get(claim.party_id, 0) + 1
+            )
+
+        parties_with_claims = len(claims_per_party)
+        min_claims_per_party = min(claims_per_party.values()) if claims_per_party else 0
+        total_claims = len(all_claims)
+
+        logger.info(
+            f"Claim quality: {total_claims} total, "
+            f"{parties_with_claims} parties, "
+            f"min {min_claims_per_party} per party"
+        )
+
+        if total_claims < 15 or parties_with_claims < len(parties) or min_claims_per_party < 3:
+            logger.warning(
+                f"Insufficient claims for exploration: "
+                f"{total_claims} total (need 15), "
+                f"{parties_with_claims}/{len(parties)} parties with claims, "
+                f"min {min_claims_per_party} per party (need 3)"
+            )
+            raise InsufficientChunksError(
+                message=(
+                    f"Nicht genug Informationen fuer eine Exploration: "
+                    f"nur {total_claims} Positionen von {parties_with_claims} Parteien gefunden"
+                ),
+                total_parties=len(parties),
+                parties_with_chunks=parties_with_claims,
+                parties_without_chunks=[
+                    parties_info.get(
+                        pid,
+                        PartyInfo(
+                            party_id=pid, name=pid.upper(),
+                            long_name=pid.upper(), description=None,
+                        ),
+                    ).name
+                    for pid in parties
+                    if pid not in claims_per_party
+                ],
+                available_claims=all_claims,
+            )
+
         # =====================================================================
         # PHASE 2: Hierarchy Construction (single LLM call)
         # =====================================================================

@@ -9,7 +9,7 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
-from src.guided_exploration.models.content import Analysis, SubtopicContent
+from src.guided_exploration.models.content import Analysis, Citation, SubtopicContent
 
 
 class MessageType(str, Enum):
@@ -37,6 +37,10 @@ class Message(BaseModel):
     content: str | SubtopicContent | Analysis = Field(
         ...,
         description="String for followups, SubtopicContent for initial, Analysis for analysis",
+    )
+    citations: list[Citation] = Field(
+        default_factory=list,
+        description="Citations for this message (persisted for reload)",
     )
     timestamp: datetime = Field(..., description="When the message was sent")
 

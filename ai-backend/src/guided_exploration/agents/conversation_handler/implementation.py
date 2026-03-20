@@ -104,9 +104,7 @@ class ConversationHandlerAgent(
         subtopic_name = input.leaf_name or input.leaf_id
         subtopic_description = input.leaf_description or ""
 
-        source_text = format_party_positions_for_prompt(
-            knowledge.party_positions, input.parties_info
-        )
+        source_text = self._build_source_text(knowledge, input.parties_info)
 
         user_prompt = STREAMING_USER_PROMPT.format(
             subtopic_name=subtopic_name,
@@ -139,9 +137,7 @@ class ConversationHandlerAgent(
         subtopic_name = input.leaf_name or input.leaf_id
         subtopic_description = input.leaf_description or ""
 
-        source_text = format_party_positions_for_prompt(
-            knowledge.party_positions, input.parties_info
-        )
+        source_text = self._build_source_text(knowledge, input.parties_info)
 
         user_prompt = CONVERSATION_PROMPT.format(
             subtopic_name=subtopic_name,
@@ -176,6 +172,28 @@ class ConversationHandlerAgent(
             citations=citations,
             suggested_followups=llm_output.suggested_followups,
         )
+
+    @staticmethod
+    def _build_source_text(knowledge, parties_info) -> str:
+        """Build source text from claims + RAG chunks (if available)."""
+        # Start with extracted claims
+        source = format_party_positions_for_prompt(
+            knowledge.party_positions, parties_info
+        )
+
+        # Append RAG chunks if available (from on-demand retrieval)
+        if knowledge.party_chunks:
+            source += "\n\n== Zusaetzliche Quelltexte aus den Wahlprogrammen ==\n"
+            for party_id, chunks in knowledge.party_chunks.items():
+                party_name = parties_info.get(
+                    party_id,
+                    type('P', (), {'name': party_id.upper()})(),
+                ).name
+                source += f"\n--- {party_name} ({party_id}) ---\n"
+                for i, chunk in enumerate(chunks[:5], 1):
+                    source += f"[{party_id}-rag-{i}] {chunk.content[:500]}\n\n"
+
+        return source
 
     async def _stream_text(self, text: str, section: str) -> AsyncIterator[StreamChunk]:
         """Stream text in word chunks."""

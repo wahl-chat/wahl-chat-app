@@ -287,6 +287,21 @@ export const uiActions = {
   suggestedQuestionsCleared: (): ExplorationAction => ({
     type: 'SUGGESTED_QUESTIONS_CLEARED',
   }),
+
+  topicSwitchSuggested: (
+    targetNodeId: string,
+    targetNodeName: string,
+    message: string,
+  ): ExplorationAction => ({
+    type: 'TOPIC_SWITCH_SUGGESTED',
+    targetNodeId,
+    targetNodeName,
+    message,
+  }),
+
+  topicSwitchCleared: (): ExplorationAction => ({
+    type: 'TOPIC_SWITCH_CLEARED',
+  }),
 };
 
 // ============ Summary Actions ============

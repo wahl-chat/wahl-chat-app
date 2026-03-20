@@ -23,6 +23,7 @@ export const initialUIState: UISliceState = {
   explorationPending: false,
   explorationReadyData: null,
   suggestedQuestions: [],
+  topicSwitchSuggestion: null,
 };
 
 export function uiReducer(
@@ -107,8 +108,11 @@ export function uiReducer(
         ...state,
         thinkingStage: action.stage,
         thinkingMessage: action.message,
-        // Clear suggested questions when new thinking starts
         suggestedQuestions: [],
+        topicSwitchSuggestion: null,
+        streamBuffer: '',
+        isStreaming: false,
+        streamingTarget: null,
       };
 
     case 'THINKING_ENDED':
@@ -254,6 +258,22 @@ export function uiReducer(
       return {
         ...state,
         suggestedQuestions: [],
+      };
+
+    case 'TOPIC_SWITCH_SUGGESTED':
+      return {
+        ...state,
+        topicSwitchSuggestion: {
+          targetNodeId: action.targetNodeId,
+          targetNodeName: action.targetNodeName,
+          message: action.message,
+        },
+      };
+
+    case 'TOPIC_SWITCH_CLEARED':
+      return {
+        ...state,
+        topicSwitchSuggestion: null,
       };
 
     // Reset on session clear

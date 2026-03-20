@@ -96,14 +96,19 @@ Waehle die Zerlegungsart die am besten zum Inhalt passt:
 - Ebene 3: Nur wenn noetig (bei sehr detailreichen Bereichen)
 - Tiefe darf variieren: Ein Hauptbereich kann 3 Ebenen haben, ein anderer nur 2
 
-## 3. Blaetter = Vergleichspunkte
-Jeder Blattknoten ist ein Vergleichspunkt, an dem Parteipositionen verglichen werden.
-- Mindestens 2 Parteien pro Blatt (idealerweise mehr)
-- Wenn eine Partei KEINE Position hat, ist das ebenfalls informativ
+## 3. Blaetter = BREITE Vergleichspunkte (WICHTIGSTE REGEL!)
+Jeder Blattknoten muss BREIT genug sein fuer eine tiefere Exploration.
+- Mindestens 4-5 Claims pro Blatt, idealerweise mehr
+- Mindestens 2 Parteien pro Blatt (idealerweise alle)
 - Jeder Claim muss GENAU EINEM Blatt zugeordnet werden
+- LIEBER weniger, breitere Blaetter als viele enge mit nur 1-2 Claims!
 
-## 4. KEINE leeren Blaetter
-Jedes Blatt MUSS mindestens 2 Claims von mindestens 2 verschiedenen Parteien haben.
+FALSCH: "Klimaneutralitaet 2035" (zu eng, nur 1-2 Claims pro Partei)
+RICHTIG: "Klimaziele und Zeitplaene" (breit genug fuer 4+ Claims pro Partei)
+
+## 4. KEINE duennen Blaetter
+Jedes Blatt MUSS mindestens 4 Claims von mindestens 2 Parteien haben.
+Wenn ein Thema zu wenig Claims hat: mit verwandten Claims zusammenlegen!
 Claims die nicht gut passen: in ein breiteres Blatt einordnen, nicht weglassen.
 
 ## 5. Beschreibende Namen (Barrierefreiheit!)
@@ -117,11 +122,11 @@ Ein Screenreader-Nutzer navigiert den Baum nur ueber die Namen.
 
 # Qualitaetspruefung
 Bevor du antwortest, pruefe:
-1. Hat jeder Blattknoten Claims von mindestens 2 Parteien?
-2. Sind die Namen fuer Screenreader verstaendlich?
-3. Ist die Tiefe angemessen (nicht zu flach, nicht zu tief)?
+1. Hat jeder Blattknoten mindestens 4 Claims? Wenn nicht: zusammenlegen!
+2. Hat jeder Blattknoten Claims von mindestens 2 Parteien?
+3. Sind die Namen fuer Screenreader verstaendlich?
 4. Sind alle Claims zugeordnet (keiner vergessen)?
-5. Sind die Hauptbereiche etwa gleich gross?"""
+5. Wuerde ein Nutzer bei jedem Blatt genug Material fuer Folgefragen finden?"""
 
 CONSTRUCTION_PROMPT = """Organisiere diese {claim_count} Parteipositionen in einen \
 navigierbaren Vergleichsbaum:
@@ -138,7 +143,8 @@ Benutzeranfrage: {query}
 4. Ordne JEDEN Claim genau einem Blattknoten zu (ueber claim_indices, 0-basiert)
 
 Wichtig:
-- Jeder Blattknoten braucht Claims von mindestens 2 Parteien
+- Jeder Blattknoten braucht MINDESTENS 4 Claims von mindestens 2 Parteien
+- Lieber wenige breite Blaetter als viele enge!
 - Alle Claims muessen zugeordnet werden
 - Namen muessen fuer Screenreader eigenstaendig verstaendlich sein"""
 

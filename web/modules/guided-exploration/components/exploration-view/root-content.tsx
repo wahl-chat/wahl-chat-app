@@ -1,10 +1,11 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { SubtopicItem } from '@/modules/guided-exploration/components/navigation/subtopic-item';
 import { TopicCard } from '@/modules/guided-exploration/components/navigation/topic-card';
 import { ProgressIndicator } from '@/modules/guided-exploration/components/shared/progress-indicator';
 import type { ExplorationTree } from '@/modules/guided-exploration/types';
-import { getOverallProgress } from '@/modules/guided-exploration/utils';
+import { getOverallProgress, isLeaf } from '@/modules/guided-exploration/utils';
 
 interface RootContentProps {
   tree: ExplorationTree;
@@ -18,6 +19,7 @@ export function RootContent({
   className,
 }: RootContentProps) {
   const progress = getOverallProgress(tree);
+  const hasOnlyLeaves = tree.root.children.every((n) => isLeaf(n));
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -37,20 +39,47 @@ export function RootContent({
         </div>
       </div>
 
-      {/* Topic Grid */}
-      <div
-        className="grid gap-4 sm:grid-cols-2"
-        role="list"
-        aria-label="Verfügbare Themen"
-      >
-        {tree.root.children.map((node) => (
-          <TopicCard
-            key={node.id}
-            node={node}
-            onClick={() => onTopicSelect(node.id)}
-          />
-        ))}
-      </div>
+      {/* Flat layout: all children are leaves */}
+      {hasOnlyLeaves && (
+        <div
+          className="flex flex-col gap-4"
+          role="list"
+          aria-label="Verfügbare Themen"
+        >
+          {tree.root.children.map((node) => (
+            <SubtopicItem
+              key={node.id}
+              node={node}
+              onClick={() => onTopicSelect(node.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Nested layout: children are branches */}
+      {!hasOnlyLeaves && (
+        <div
+          className="grid gap-4 sm:grid-cols-2"
+          role="list"
+          aria-label="Verfügbare Themen"
+        >
+          {tree.root.children.map((node) =>
+            isLeaf(node) ? (
+              <SubtopicItem
+                key={node.id}
+                node={node}
+                onClick={() => onTopicSelect(node.id)}
+              />
+            ) : (
+              <TopicCard
+                key={node.id}
+                node={node}
+                onClick={() => onTopicSelect(node.id)}
+              />
+            ),
+          )}
+        </div>
+      )}
     </div>
   );
 }

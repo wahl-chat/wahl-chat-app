@@ -8,6 +8,7 @@ import {
   InitialContentMessage,
   ThinkingIndicator,
 } from '@/modules/guided-exploration/components/conversation';
+import { TopicSwitchCard } from '@/modules/guided-exploration/components/conversation/topic-switch-card';
 import { PartyMarkedMarkdown } from '@/modules/guided-exploration/components/shared/party-marked-markdown';
 import type {
   Conversation,
@@ -23,11 +24,22 @@ interface LeafContentProps {
   streamBuffer?: string;
   /** The type of content being streamed */
   streamingTargetType?: StreamTargetType | null;
+  /** Topic switch suggestion from routing agent */
+  topicSwitchSuggestion?: {
+    targetNodeId: string;
+    targetNodeName: string;
+    message: string;
+  } | null;
+  onAcceptSwitch?: () => void;
+  onDismissSwitch?: () => void;
   className?: string;
 }
 
 export function LeafContent({
   conversation,
+  topicSwitchSuggestion,
+  onAcceptSwitch,
+  onDismissSwitch,
   isThinking,
   thinkingMessage,
   isStreaming,
@@ -74,6 +86,16 @@ export function LeafContent({
       {/* Streaming content while loading - only for followup messages */}
       {shouldShowStreamBuffer && (
         <StreamingBuffer content={streamBuffer ?? ''} />
+      )}
+
+      {/* Topic switch suggestion */}
+      {topicSwitchSuggestion && onAcceptSwitch && onDismissSwitch && (
+        <TopicSwitchCard
+          targetNodeName={topicSwitchSuggestion.targetNodeName}
+          message={topicSwitchSuggestion.message}
+          onAccept={onAcceptSwitch}
+          onDismiss={onDismissSwitch}
+        />
       )}
 
       {/* Thinking indicator - show when thinking and not streaming followup */}

@@ -69,6 +69,9 @@ export function ExplorationMain({
     explorationReadyData,
     clearExplorationReady,
     suggestedQuestions,
+    topicSwitchSuggestion,
+    acceptTopicSwitch,
+    dismissTopicSwitch,
   } = useExploration({
     initialSessionId,
     autoCreateSession: !initialSessionId,
@@ -99,19 +102,10 @@ export function ExplorationMain({
     }
   }, [router, sessionId, initialExplorationId, buildExplorationUrl]);
 
-  const handleNavigateToTopic = useCallback(
-    (topicId: string) => {
+  const handleNavigateToNode = useCallback(
+    (nodeId: string) => {
       if (sessionId && initialExplorationId) {
-        router.push(buildExplorationUrl([topicId]));
-      }
-    },
-    [router, sessionId, initialExplorationId, buildExplorationUrl],
-  );
-
-  const handleNavigateToSubtopic = useCallback(
-    (topicId: string, subtopicId: string) => {
-      if (sessionId && initialExplorationId) {
-        router.push(buildExplorationUrl([topicId, subtopicId]));
+        router.push(buildExplorationUrl([nodeId]));
       }
     },
     [router, sessionId, initialExplorationId, buildExplorationUrl],
@@ -249,9 +243,9 @@ export function ExplorationMain({
         isStreaming={isStreaming}
         streamBuffer={streamBuffer}
         streamingTargetType={streamingTarget?.type}
-        onNavigate={handleNavigateToTopic}
+        onNavigate={handleNavigateToNode}
         onGoToRoot={handleNavigateToRoot}
-        onSubtopicSelect={handleNavigateToSubtopic}
+        onSubtopicSelect={handleNavigateToNode}
         onBack={handleBack}
         onSendMessage={(msg) => sendMessage(msg, activeConversation?.leafId)}
         onRequestAnalysis={() => {
@@ -261,6 +255,9 @@ export function ExplorationMain({
         }}
         onMarkExplored={markExplored}
         suggestedQuestions={suggestedQuestions}
+        topicSwitchSuggestion={topicSwitchSuggestion}
+        onAcceptSwitch={acceptTopicSwitch}
+        onDismissSwitch={dismissTopicSwitch}
       />
     );
   }

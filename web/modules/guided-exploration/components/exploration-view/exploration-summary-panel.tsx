@@ -1,6 +1,4 @@
 'use client';
-
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { StatusDot } from '@/modules/guided-exploration/components/shared/status-dot';
@@ -58,9 +56,17 @@ export function ExplorationSummaryPanel({
         <li key={node.id}>
           <article
             className={cn(
-              'rounded-lg border bg-card shadow-sm transition-colors',
+              'cursor-pointer rounded-lg border bg-card shadow-sm transition-colors hover:bg-accent',
               isActive && 'ring-2 ring-primary',
             )}
+            onClick={() => onNavigate(node.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onNavigate(node.id);
+              }
+            }}
+            aria-label={`Zu "${node.name}" navigieren${isExplored ? ', erkundet' : ''}`}
           >
             <div className="flex items-start gap-3 p-3">
               <StatusDot
@@ -77,19 +83,15 @@ export function ExplorationSummaryPanel({
                   </p>
                 )}
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onNavigate(node.id)}
-                className="shrink-0"
-                aria-label={`Zu "${node.name}" navigieren`}
-              >
-                <ArrowRight className="size-4" />
-              </Button>
+              <ArrowRight className="mt-1 size-4 shrink-0 text-muted-foreground" />
             </div>
 
             {isExplored && summary?.overview && (
-              <details className="group border-t">
+              <details
+                className="group border-t"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
                 <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50">
                   <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
                   Zusammenfassung

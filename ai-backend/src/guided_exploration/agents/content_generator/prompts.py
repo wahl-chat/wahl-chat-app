@@ -122,17 +122,17 @@ Begruendung: Die Partei argumentiert, dass ein hoeherer Mindestlohn Armut trotz 
 
 ## 3. Folgefragen (suggested_questions)
 Generiere 2-3 kurze Folgefragen, die:
-- NUR mit den bereitgestellten Parteipositionen beantwortbar sind
-- Konkret auf Unterschiede oder Details in den Positionen eingehen
+- NICHT bereits durch die Zusammenfassung oder Parteipositionen oben beantwortet werden!
+- Tiefer in die Hintergruende, Begruendungen oder Konsequenzen der Positionen gehen
 - Konkret und praegnant formuliert sind (max 10 Worte)
 
-WICHTIG: Folgefragen muessen mit den vorhandenen Daten beantwortbar sein!
-Stelle KEINE Fragen zu Themen die nicht in den Positionen vorkommen.
-
-Beispiele (nur wenn passende Daten vorhanden):
-- "Welche konkreten Zahlen nennen die Parteien?"
-- "Worin unterscheiden sich CDU und SPD hier?"
-- "Welche Partei geht am weitesten?\""""
+WICHTIG:
+- Die Frage darf NICHT direkt aus dem generierten Text ablesbar sein!
+- Frage nach dem WARUM, nach Konsequenzen, nach Umsetzungsdetails oder nach Widerspruechen
+- FALSCH: "Welche Partei fordert X?" (wenn X oben steht)
+- RICHTIG: "Wie soll die Finanzierung der Klimaziele erfolgen?"
+- RICHTIG: "Welche Konflikte gibt es zwischen Wirtschaft und Klimazielen?"
+- RICHTIG: "Wie realistisch sind die genannten Zeitplaene?\""""
 
 GENERATION_PROMPT = """Generiere Inhalte fuer folgendes Thema:
 
@@ -164,9 +164,10 @@ Generiere die Inhalte in dieser Reihenfolge:
    FALSCH: "Die Parteien haben unterschiedliche Ansaetze zu diesem Thema."
    RICHTIG: "Waehrend SPD und Gruene den Mindestlohn auf 15 Euro erhoehen wollen, setzt die FDP auf Tarifautonomie ohne staatliche Vorgaben. Einig sind sich alle Parteien, dass Arbeit sich lohnen muss."
 
-3. **Folgefragen** (suggested_questions): 2-3 kurze Fragen die NUR mit den oben \
-stehenden Parteipositionen beantwortbar sind. Frage nach konkreten Unterschieden, \
-Zahlen oder Details die in den Positionen stehen. KEINE Fragen zu externen Themen.
+3. **Folgefragen** (suggested_questions): 2-3 kurze Fragen die NICHT bereits \
+durch die generierten Parteipositionen und die Zusammenfassung beantwortet werden. \
+Frage nach Hintergruenden, Konsequenzen, Umsetzungsdetails oder Widerspruechen. \
+NIEMALS Fragen stellen deren Antwort im generierten Text steht!
 
 Verwende NUR die bereitgestellten Zitations-IDs."""
 

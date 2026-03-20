@@ -40,6 +40,7 @@ import type {
   SummaryGeneratingEvent,
   ThinkingEvent,
   TopicOverviewEvent,
+  TopicSwitchSuggestedEvent,
   TopicTreeEvent,
 } from '@/modules/guided-exploration/types';
 
@@ -160,7 +161,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           dispatchRef.current(uiActions.thinkingEnded());
           dispatchRef.current(
             uiActions.announce(
-              `Exploration bereit: ${readyEvent.topicsCount} Themen, ${readyEvent.subtopicsCount} Unterthemen`,
+              `Exploration bereit: ${readyEvent.topicsCount} Bereiche, ${readyEvent.subtopicsCount} Vergleichspunkte`,
             ),
           );
           break;
@@ -239,17 +240,16 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           // End thinking after receiving a message
           dispatchRef.current(uiActions.thinkingEnded());
           if (msgEvent.navigation) {
-            // Navigation command was recognized
+            // Only handle actual navigation changes (e.g. from navigation commands)
+            // Don't change view for regular follow-up responses
             const path = msgEvent.navigation.currentPath;
             if (path.length === 0) {
               dispatchRef.current(
                 explorationActions.navigatedToRoot(msgEvent.navigation),
               );
-            } else if (path.length === 1) {
-              dispatchRef.current(
-                explorationActions.navigatedToBranch(msgEvent.navigation),
-              );
             }
+            // Don't dispatch branch/leaf navigation here — it disrupts
+            // the current leaf view when follow-up messages arrive
           }
           dispatchRef.current(uiActions.announce('Neue Nachricht erhalten'));
           break;
@@ -369,6 +369,18 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           );
           // Safety: ensure thinking is ended when stream completes
           dispatchRef.current(uiActions.thinkingEnded());
+          break;
+        }
+
+        case 'topic_switch_suggested': {
+          const switchEvent = event as TopicSwitchSuggestedEvent;
+          dispatchRef.current(
+            uiActions.topicSwitchSuggested(
+              switchEvent.targetNodeId,
+              switchEvent.targetNodeName,
+              switchEvent.message,
+            ),
+          );
           break;
         }
 

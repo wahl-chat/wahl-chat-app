@@ -41,13 +41,21 @@ interface ExplorationFullViewProps {
   streamingTargetType?: StreamTargetType | null;
   onNavigate: (topicId: string) => void;
   onGoToRoot: () => void;
-  onSubtopicSelect: (topicId: string, subtopicId: string) => void;
+  onSubtopicSelect: (nodeId: string) => void;
   onBack: () => void;
   onSendMessage: (message: string) => void;
   onRequestAnalysis: () => void;
   onMarkExplored: (leafId: string) => void;
   /** Suggested follow-up questions shown above the input */
   suggestedQuestions?: string[];
+  /** Topic switch suggestion from routing agent */
+  topicSwitchSuggestion?: {
+    targetNodeId: string;
+    targetNodeName: string;
+    message: string;
+  } | null;
+  onAcceptSwitch?: (targetNodeId: string) => void;
+  onDismissSwitch?: () => void;
   className?: string;
 }
 
@@ -74,6 +82,9 @@ export function ExplorationFullView({
   onRequestAnalysis,
   onMarkExplored,
   suggestedQuestions = [],
+  topicSwitchSuggestion,
+  onAcceptSwitch,
+  onDismissSwitch,
   className,
 }: ExplorationFullViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -100,7 +111,7 @@ export function ExplorationFullView({
   ) => {
     if (level === 'root') {
       onGoToRoot();
-    } else if (level === 'topic' && id) {
+    } else if (id) {
       onNavigate(id);
     }
   };
@@ -180,9 +191,7 @@ export function ExplorationFullView({
               <BranchContent
                 node={currentBranchNode}
                 summaries={summaries}
-                onChildSelect={(nodeId) =>
-                  onSubtopicSelect(currentBranchNode.id, nodeId)
-                }
+                onChildSelect={(nodeId) => onSubtopicSelect(nodeId)}
               />
             )}
             {view === 'leaf' && (
@@ -193,6 +202,13 @@ export function ExplorationFullView({
                 isStreaming={isStreaming}
                 streamBuffer={streamBuffer}
                 streamingTargetType={streamingTargetType}
+                topicSwitchSuggestion={topicSwitchSuggestion}
+                onAcceptSwitch={
+                  onAcceptSwitch && topicSwitchSuggestion
+                    ? () => onAcceptSwitch(topicSwitchSuggestion.targetNodeId)
+                    : undefined
+                }
+                onDismissSwitch={onDismissSwitch}
               />
             )}
           </div>

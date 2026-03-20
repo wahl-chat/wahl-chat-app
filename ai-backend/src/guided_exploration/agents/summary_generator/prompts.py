@@ -332,14 +332,17 @@ bisherigen Gespraech und den verfuegbaren Parteipositionen.
 
 ## Deine Aufgabe
 Generiere 2-3 Folgefragen, die:
+- Zum angegebenen Thema passen (nicht zu anderen Themen abschweifen!)
 - NUR mit den oben stehenden Parteipositionen beantwortbar sind
-- Nach konkreten Unterschieden, Details oder Zahlen fragen die in den Positionen stehen
-- Noch NICHT im bisherigen Gespraech behandelt wurden
+- NICHT bereits durch die bisherigen Antworten beantwortet werden
+- Nach Hintergruenden, Konsequenzen oder Umsetzungsdetails fragen
 - Kurz und praegnant formuliert sind (max 10 Worte pro Frage)
 - Auf Deutsch formuliert sind
 
-WICHTIG: Jede Frage MUSS mit den verfuegbaren Parteipositionen beantwortbar sein!
-Stelle KEINE Fragen zu Themen die nicht in den Positionen vorkommen.
+WICHTIG:
+- Jede Frage MUSS zum aktuellen Thema passen UND beantwortbar sein
+- KEINE Fragen deren Antwort bereits im Gespraech steht
+- KEINE Fragen zu anderen Themenbereichen
 """
 
 

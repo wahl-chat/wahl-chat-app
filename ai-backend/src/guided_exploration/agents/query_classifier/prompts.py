@@ -37,31 +37,34 @@ Verfügbare Parteien in diesem Kontext:
 Verwende NUR die oben genannten Partei-IDs. Erkenne auch indirekte Referenzen (z.B. "die Grünen" → gruene, "Union" → cdu).
 
 # RAG-optimierte Suchanfrage (rag_query)
-Erstelle eine optimierte Suchanfrage für die Dokumentensuche.
+Erstelle eine Suchanfrage die in Wahlprogramm-Dokumenten die relevanten Passagen findet.
 
-## Kernregeln
-- Extrahiere relevante Schlüsselwörter und Fachbegriffe
-- Keine Füllwörter, Artikel oder Fragewörter
-- Auf Deutsch formulieren
-- **Bei Rückverweisen:** Extrahiere das Thema aus der vorherigen Konversation!
-  - "was heißt das?" nach einer Frage zu BSW Rente → "BSW Rente Lebensstandard Alter Erwerbstätige"
-  - "erkläre das genauer" → Nutze die Schlüsselwörter aus der letzten Antwort
+## Kontext
+Die Suche laeuft auf Wahlprogramm-Texte einzelner Parteien. Jede Partei wird \
+separat durchsucht. Die Suchanfrage wird als semantische Vektorsuche ausgefuehrt.
 
-## Themenerweiteurng - WICHTIG!
-Ergänze IMMER verwandte und benachbarte Themen, um umfassendere Suchergebnisse zu erhalten:
-- **Klimaschutz** → Finanzierung, Förderprogramme, nächste Generation, Umweltpolitik, Energiewende, CO2-Bepreisung
-- **Rente** → Altersvorsorge, Renteneintrittsalter, Generationengerechtigkeit, Rentenfinanzierung, Grundrente
-- **Migration** → Integration, Asylpolitik, Fachkräfte, Abschiebung, Familienzusammenführung, Einwanderungsgesetz
-- **Bildung** → Schule, Hochschule, Ausbildung, Digitalisierung, Chancengleichheit, Lehrermangel
-- **Wirtschaft** → Arbeitsmarkt, Mittelstand, Steuern, Innovation, Bürokratie, Wettbewerbsfähigkeit
-- **Wohnen** → Miete, Bauen, Sozialwohnungen, Wohngeld, Eigentumsförderung, Mietpreisbremse
-- **Gesundheit** → Pflege, Krankenversicherung, Krankenhäuser, Digitalisierung, Fachkräftemangel
+## Gute Suchanfragen
+Formuliere so, wie es in einem Wahlprogramm stehen wuerde:
+- "Mindestlohn erhoehen Arbeitnehmer Loehne" (Fachbegriffe aus dem Wahlprogramm)
+- "Mietpreisbremse Wohnungsmarkt Mieten bezahlbar" (wie eine Partei darueber schreibt)
+- "Klimaneutralitaet erneuerbare Energien CO2 Emissionen" (Themenwoerter)
 
-## Synonyme und alternative Formulierungen
-Beachte Synonyme und alternative Formulierungen für die Schlüsselbegriffe.
+## Schlechte Suchanfragen
+- "Was sagen die Parteien zu..." (Meta-Sprache, steht nicht im Wahlprogramm)
+- "Positionen Vergleich Unterschiede" (beschreibt die Aufgabe, nicht den Inhalt)
+- "SPD CDU Gruene" (Parteinamen nicht noetig, jede Partei wird einzeln durchsucht)
 
-## Beispiel
-"Was will die SPD beim Mindestlohn?" → "SPD Mindestlohn Erhöhung Lohnpolitik Arbeitnehmerrechte Tarifbindung Niedriglohnsektor"
+## Rueckverweise aufloesen
+Bei Rueckverweisen auf vorherige Nachrichten: extrahiere das eigentliche Thema!
+- "was heisst das?" nach einer Frage zu Rente → "Altersvorsorge Rentenfinanzierung Lebensstandard"
+- "erklaere das genauer" → Nutze die Schluesselwoerter aus der letzten Antwort
+- Formuliere immer auf Deutsch
+
+## Themenerweiterung
+Ergaenze verwandte Begriffe die in Wahlprogrammen typischerweise vorkommen:
+- Miete → Wohnungsbau, Sozialwohnungen, Mietpreisbremse, Wohngeld
+- Klima → Energiewende, CO2, Emissionen, erneuerbare Energien
+- Rente → Altersvorsorge, Renteneintrittsalter, Grundrente, Generationenvertrag
 
 # Klarstellungsbedarf (needs_clarification)
 - true: NUR wenn die Anfrage auch MIT dem Konversationskontext nicht verstanden werden kann

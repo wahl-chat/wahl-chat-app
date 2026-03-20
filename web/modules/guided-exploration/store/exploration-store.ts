@@ -241,3 +241,7 @@ export const selectExplorationReadyData = (state: ExplorationStore) =>
 /** Get suggested follow-up questions */
 export const selectSuggestedQuestions = (state: ExplorationStore) =>
   state.ui.suggestedQuestions;
+
+/** Get topic switch suggestion */
+export const selectTopicSwitchSuggestion = (state: ExplorationStore) =>
+  state.ui.topicSwitchSuggestion;

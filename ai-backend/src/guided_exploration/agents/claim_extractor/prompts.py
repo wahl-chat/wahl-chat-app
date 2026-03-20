@@ -49,10 +49,12 @@ class ClaimExtractorLLMOutput(BaseModel):
     """LLM output schema for claim extraction."""
 
     claims: list[LLMClaim] = Field(
-        default_factory=list,
+        ...,
+        min_length=5,
         description=(
             "ALLE konkreten Positionen, Forderungen, Massnahmen und Aussagen der Partei. "
-            "Jede Aussage muss eigenstaendig verstaendlich und zitierbar sein."
+            "Jede Aussage muss eigenstaendig verstaendlich und zitierbar sein. "
+            "Mindestens 5 Claims extrahieren — lieber zu viele als zu wenige!"
         ),
     )
     relevance_to_query: float = Field(

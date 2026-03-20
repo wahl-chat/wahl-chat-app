@@ -96,6 +96,12 @@ export interface UISliceState {
   explorationReadyData: ExplorationReadyData | null;
   /** Suggested follow-up questions to show above the input */
   suggestedQuestions: string[];
+  /** Topic switch suggestion from the routing agent */
+  topicSwitchSuggestion: {
+    targetNodeId: string;
+    targetNodeName: string;
+    message: string;
+  } | null;
 }
 
 export interface SummariesSliceState {
@@ -225,6 +231,13 @@ export type ExplorationAction =
   | { type: 'ERROR_CLEARED' }
   | { type: 'SUGGESTED_QUESTIONS_SET'; questions: string[] }
   | { type: 'SUGGESTED_QUESTIONS_CLEARED' }
+  | {
+      type: 'TOPIC_SWITCH_SUGGESTED';
+      targetNodeId: string;
+      targetNodeName: string;
+      message: string;
+    }
+  | { type: 'TOPIC_SWITCH_CLEARED' }
 
   // Summary Actions
   | { type: 'SUMMARY_GENERATING'; nodeId: string }

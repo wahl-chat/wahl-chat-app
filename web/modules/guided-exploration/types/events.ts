@@ -212,6 +212,16 @@ export interface ExportReadyEvent {
   filename: string;
 }
 
+// ============ Topic Switch Events ============
+
+export interface TopicSwitchSuggestedEvent {
+  type: 'topic_switch_suggested';
+  leafId: string;
+  targetNodeId: string;
+  targetNodeName: string;
+  message: string;
+}
+
 // ============ Error Events ============
 
 export type ErrorCode =
@@ -251,4 +261,5 @@ export type SSEEvent =
   | ExplorationReadyEvent
   | ExplorationCompleteEvent
   | ExportReadyEvent
-  | ErrorEvent;
+  | ErrorEvent
+  | TopicSwitchSuggestedEvent;

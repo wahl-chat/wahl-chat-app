@@ -96,6 +96,9 @@ export function useExploration(options: UseExplorationOptions = {}) {
   const explorationPending = useExplorationStore(selectExplorationPending);
   const explorationReadyData = useExplorationStore(selectExplorationReadyData);
   const suggestedQuestions = useExplorationStore(selectSuggestedQuestions);
+  const topicSwitchSuggestion = useExplorationStore(
+    (s) => s.ui.topicSwitchSuggestion,
+  );
 
   // SSE connection
   const { connect, disconnect } = useSSE({ autoConnect: true });
@@ -273,6 +276,22 @@ export function useExploration(options: UseExplorationOptions = {}) {
 
     // Suggested Questions
     suggestedQuestions,
+
+    // Topic Switch
+    topicSwitchSuggestion,
+    acceptTopicSwitch: useCallback(
+      (targetNodeId: string) => {
+        if (activeConversation?.leafId) {
+          api.markExplored(activeConversation.leafId);
+        }
+        dispatch(uiActions.topicSwitchCleared());
+        navigateOptimistically([targetNodeId]);
+      },
+      [activeConversation, api, dispatch, navigateOptimistically],
+    ),
+    dismissTopicSwitch: useCallback(() => {
+      dispatch(uiActions.topicSwitchCleared());
+    }, [dispatch]),
 
     // Exploration Pending State
     explorationPending,

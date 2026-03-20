@@ -255,6 +255,19 @@ class SessionClaimedEvent(BaseModel):
     message: str = Field(..., description="Confirmation message")
 
 
+class TopicSwitchSuggestedEvent(BaseModel):
+    """Sent when a follow-up question better matches another topic."""
+
+    type: Literal["topic_switch_suggested"] = "topic_switch_suggested"
+    leaf_id: str = Field(..., description="Current leaf (where the user is)")
+    target_node_id: str = Field(..., description="Suggested target leaf ID")
+    target_node_name: str = Field(..., description="Display name of target")
+    message: str = Field(
+        ...,
+        description="German message suggesting the switch",
+    )
+
+
 # Union type for all SSE events
 SSEEvent = Union[
     ConnectedEvent,
@@ -274,6 +287,7 @@ SSEEvent = Union[
     ExplorationCompleteEvent,
     ExportReadyEvent,
     ErrorEvent,
+    TopicSwitchSuggestedEvent,
     ReconnectedEvent,
     SessionClaimedEvent,
 ]

@@ -33,6 +33,7 @@ from src.guided_exploration.agents import (
     LeafSummaryInput,
     FinalSummaryInput,
     QuickSummaryInput,
+    LLMTier,
 )
 from src.guided_exploration.agents.party_context import (
     PartyInfo,
@@ -166,6 +167,13 @@ class GuidedExplorationFacade:
         # Summary generation - balanced model
         self._summary_generator = SummaryGeneratorAgent(
             self._llm_registry.get(LLMTier.BALANCED)
+        )
+        # Followup routing - fast model for minimal latency
+        from src.guided_exploration.agents.followup_router import (
+            FollowupRouterAgent,
+        )
+        self._followup_router = FollowupRouterAgent(
+            self._llm_registry.get(LLMTier.FAST)
         )
 
         # In-memory tracking of pending queries (query_id -> PendingQuery)
@@ -656,17 +664,48 @@ class GuidedExplorationFacade:
 
         except InsufficientChunksError as e:
             logger.warning(
-                f"Insufficient chunks for exploration: {e.parties_with_chunks}/"
+                f"Insufficient data for exploration: {e.parties_with_chunks}/"
                 f"{e.total_parties} parties have data. "
                 f"Missing: {', '.join(e.parties_without_chunks)}"
             )
 
-            # Send a friendly chat message instead of an error
-            chat_message = (
-                "Leider konnte ich zu diesem Thema keine ausreichenden Informationen "
-                "in den verfügbaren Wahlprogrammen finden. Versuche es gerne "
-                "mit einer anderen Formulierung oder einem anderen Thema."
+            # Build a summary from whatever claims we have
+            disclaimer = (
+                f"Dafuer habe ich leider nur begrenzt Informationen zur Verfuegung "
+                f"({e.parties_with_chunks} von {e.total_parties} Parteien haben "
+                f"Positionen zu diesem Thema). "
+                f"Hier eine Zusammenfassung der gefundenen Positionen:"
             )
+
+            # Get party info for proper names
+            _, parties_info_fallback = await self._get_context_info(context_id)
+
+            # Group claims by party for the summary
+            claims_by_party: dict[str, list[str]] = {}
+            for claim in e.available_claims:
+                pid = claim.party_id
+                if pid not in claims_by_party:
+                    claims_by_party[pid] = []
+                claims_by_party[pid].append(claim.content)
+
+            # Build summary text
+            summary_parts = [disclaimer, ""]
+            for party_id, claim_texts in claims_by_party.items():
+                party_name = party_id.upper()
+                if party_id in parties_info_fallback:
+                    party_name = parties_info_fallback[party_id].name
+                summary_parts.append(f"**{party_name}**")
+                for ct in claim_texts:
+                    summary_parts.append(f"- {ct}")
+                summary_parts.append("")
+
+            if e.parties_without_chunks:
+                summary_parts.append(
+                    f"*Fuer {', '.join(e.parties_without_chunks)} wurden keine "
+                    f"relevanten Positionen gefunden.*"
+                )
+
+            chat_message = "\n".join(summary_parts)
 
             # Stream the message
             stream_id = str(uuid4())
@@ -674,7 +713,7 @@ class GuidedExplorationFacade:
                 session_id,
                 chat_message,
                 stream_id,
-                "system_message",
+                "quick_summary",
                 "system",
             )
 
@@ -1242,18 +1281,35 @@ class GuidedExplorationFacade:
             )
             return {"status": "unclear", "confidence": classification.confidence}
 
-        # For FOLLOWUP_QUESTION, ANALYSIS_REQUEST, SUMMARY_REQUEST:
-        # Handle as conversation (ANALYSIS and SUMMARY agents not yet implemented)
-        return await self._handle_conversation_message(
+        logger.info(
+            f"Message classified as {classification.intent.value} "
+            f"(confidence: {classification.confidence:.2f})"
+        )
+
+        # For ANALYSIS_REQUEST, SUMMARY_REQUEST: handle directly
+        if classification.intent != MessageIntent.FOLLOWUP_QUESTION:
+            return await self._handle_conversation_message(
+                session_id=session_id,
+                exploration_id=exploration_id,
+                exploration=exploration,
+                leaf_id=leaf_id,
+                user_message=user_message,
+                message_type=classification.intent,
+                context_name=context_name,
+                parties_info=parties_info,
+                conversation=conversation,
+            )
+
+        # For FOLLOWUP_QUESTION: route through the followup router
+        return await self._route_followup(
             session_id=session_id,
             exploration_id=exploration_id,
             exploration=exploration,
             leaf_id=leaf_id,
             user_message=user_message,
-            message_type=classification.intent,
             context_name=context_name,
             parties_info=parties_info,
-            conversation=conversation,  # Pass already-fetched conversation
+            conversation=conversation,
         )
 
     async def _handle_navigation_command(
@@ -1329,32 +1385,218 @@ class GuidedExplorationFacade:
 
         return await self.navigate(session_id, exploration_id, target_path)
 
-    async def _handle_conversation_message(
+    async def _route_followup(
         self,
         session_id: str,
         exploration_id: str,
         exploration: Exploration,
         leaf_id: str,
         user_message: str,
-        message_type: MessageIntent,
         context_name: str,
         parties_info: dict[str, PartyInfo],
         conversation: Conversation | None = None,
     ) -> dict:
-        """Handle a conversation message (followup, analysis, or summary request)."""
-        # Build ResolvedKnowledge from claims in the exploration tree
-        claims_by_party = exploration.tree.get_claims_by_party(leaf_id)
-        if not claims_by_party:
-            await self._send_error(
-                session_id,
-                "no_knowledge",
-                "Kein Wissen fuer dieses Thema verfuegbar",
-            )
-            return {"status": "error", "code": "no_knowledge"}
+        """Route a follow-up question through the routing agent."""
+        from src.guided_exploration.agents.followup_router import (
+            FollowupRouterInput,
+            FollowupRoute,
+            LeafInfo,
+        )
+        from src.guided_exploration.agents.followup_router.prompts import (
+            format_claims_for_routing,
+        )
+        from src.guided_exploration.models.events import TopicSwitchSuggestedEvent
 
-        # Convert claims to ResolvedKnowledge for the conversation handler
+        # Gather routing context
+        leaf_node = exploration.tree.find_node(leaf_id)
+        claims_by_party = exploration.tree.get_claims_by_party(leaf_id)
+
+        # Get all other leaves for topic matching
+        all_leaves = exploration.tree.root.get_leaf_nodes()
+        other_leaves = [
+            LeafInfo(id=l.id, name=l.name, description=l.description)
+            for l in all_leaves
+            if l.id != leaf_id
+        ]
+
+        # Run the router
+        router_result = await self._followup_router.execute(
+            FollowupRouterInput(
+                message=user_message,
+                leaf_id=leaf_id,
+                leaf_name=leaf_node.name if leaf_node else leaf_id,
+                leaf_description=leaf_node.description if leaf_node else "",
+                existing_claims_summary=format_claims_for_routing(claims_by_party),
+                other_leaves=other_leaves,
+                context_name=context_name,
+            )
+        )
+
+        # Route: ON_TOPIC_EXISTING — answer from existing claims
+        if router_result.route == FollowupRoute.ON_TOPIC_EXISTING:
+            return await self._handle_conversation_message(
+                session_id=session_id,
+                exploration_id=exploration_id,
+                exploration=exploration,
+                leaf_id=leaf_id,
+                user_message=user_message,
+                message_type=MessageIntent.FOLLOWUP_QUESTION,
+                context_name=context_name,
+                parties_info=parties_info,
+                conversation=conversation,
+            )
+
+        # Route: ON_TOPIC_NEEDS_RAG — do targeted RAG, then answer
+        if router_result.route == FollowupRoute.ON_TOPIC_NEEDS_RAG:
+            return await self._handle_followup_with_rag(
+                session_id=session_id,
+                exploration_id=exploration_id,
+                exploration=exploration,
+                leaf_id=leaf_id,
+                user_message=user_message,
+                context_name=context_name,
+                parties_info=parties_info,
+                conversation=conversation,
+                claims_by_party=claims_by_party,
+            )
+
+        # Route: RELATED_TOPIC — suggest switching
+        if (
+            router_result.route == FollowupRoute.RELATED_TOPIC
+            and router_result.target_node_id
+        ):
+            target_node = exploration.tree.find_node(router_result.target_node_id)
+            target_name = (
+                target_node.name
+                if target_node
+                else (router_result.target_node_name or router_result.target_node_id)
+            )
+
+            # Send the switch suggestion event
+            await self._sse.send_to_session(
+                session_id,
+                TopicSwitchSuggestedEvent(
+                    leaf_id=leaf_id,
+                    target_node_id=router_result.target_node_id,
+                    target_node_name=target_name,
+                    message=(
+                        f"Deine Frage passt besser zum Thema \"{target_name}\". "
+                        f"Moechtest du dorthin wechseln?"
+                    ),
+                ),
+            )
+
+            # Still answer best-effort from current claims
+            return await self._handle_conversation_message(
+                session_id=session_id,
+                exploration_id=exploration_id,
+                exploration=exploration,
+                leaf_id=leaf_id,
+                user_message=user_message,
+                message_type=MessageIntent.FOLLOWUP_QUESTION,
+                context_name=context_name,
+                parties_info=parties_info,
+                conversation=conversation,
+            )
+
+        # Route: OFF_TOPIC — polite redirect
+        await self._send_thinking(session_id, "generating", "")
+
+        # Add user message to conversation
+        now = datetime.now(timezone.utc)
+        user_msg = Message(
+            id=str(uuid4()),
+            role=MessageRole.USER,
+            type=MessageType.FOLLOWUP,
+            content=user_message,
+            timestamp=now,
+        )
+        await self._repo.add_message_to_conversation(
+            session_id, exploration_id, leaf_id, user_msg
+        )
+        await self._sse.send_to_session(
+            session_id,
+            ConversationMessageEvent(
+                leaf_id=leaf_id,
+                message=user_msg,
+            ),
+        )
+
+        # Send redirect message
+        redirect_msg = Message(
+            id=str(uuid4()),
+            role=MessageRole.ASSISTANT,
+            type=MessageType.FOLLOWUP,
+            content=(
+                "Diese Frage liegt ausserhalb der verfuegbaren Themen. "
+                "Du kannst ueber die Navigation ein anderes Thema auswaehlen "
+                "oder dieses Thema abschliessen."
+            ),
+            timestamp=datetime.now(timezone.utc),
+        )
+        await self._repo.add_message_to_conversation(
+            session_id, exploration_id, leaf_id, redirect_msg
+        )
+        await self._sse.send_to_session(
+            session_id,
+            ConversationMessageEvent(
+                leaf_id=leaf_id,
+                message=redirect_msg,
+            ),
+        )
+        await self._sse.send_to_session(
+            session_id,
+            ThinkingEvent(stage="generating", message=""),
+        )
+
+        return {"status": "off_topic"}
+
+    async def _handle_followup_with_rag(
+        self,
+        session_id: str,
+        exploration_id: str,
+        exploration: Exploration,
+        leaf_id: str,
+        user_message: str,
+        context_name: str,
+        parties_info: dict[str, PartyInfo],
+        conversation: Conversation | None,
+        claims_by_party: dict[str, list],
+    ) -> dict:
+        """Handle a follow-up that needs additional RAG retrieval."""
+        # Get session for context_id
+        session = await self._repo.get_session(session_id)
+        if not session:
+            return {"status": "error", "code": "session_not_found"}
+
+        await self._send_thinking(
+            session_id, "retrieving", "Suche weitere Details..."
+        )
+
+        # Retrieve additional chunks for each party in the leaf
+        party_ids = list(claims_by_party.keys())
+        import asyncio
+
+        async def retrieve_for_party(party_id: str):
+            return party_id, await self._rag_service.retrieve_chunks_for_party(
+                query=user_message,
+                context_id=session.context_id,
+                party_id=party_id,
+                n_docs=5,
+                score_threshold=0.5,
+            )
+
+        results = await asyncio.gather(
+            *[retrieve_for_party(pid) for pid in party_ids],
+            return_exceptions=True,
+        )
+
+        # Build augmented ResolvedKnowledge with existing claims + new chunks
         party_positions: dict[str, ExtractedPosition] = {}
         citation_pool: list[Citation] = []
+        party_chunks: dict[str, list] = {}
+
+        # Add existing claims
         for party_id, claims in claims_by_party.items():
             extracted_claims = [
                 ExtractedClaim(
@@ -1375,16 +1617,136 @@ class GuidedExplorationFacade:
                 if c.citation is not None:
                     citation_pool.append(c.citation)
 
+        # Add RAG chunks and create citations for them
+        for result in results:
+            if isinstance(result, BaseException):
+                continue
+            party_id, chunks = result
+            party_chunks[party_id] = chunks
+            # Create Citation objects for RAG chunks so frontend can resolve them
+            for i, chunk in enumerate(chunks[:5], 1):
+                citation_pool.append(
+                    Citation(
+                        id=f"{party_id}-rag-{i}",
+                        party=party_id,
+                        document=chunk.source_document,
+                        section=chunk.source_section,
+                        page=chunk.source_page,
+                        source_document=chunk.source_document,
+                    )
+                )
+
         resolved = ResolvedKnowledge(
             leaf_id=leaf_id,
             party_positions=party_positions,
             citation_pool=citation_pool,
+            party_chunks=party_chunks,
         )
+
+        logger.info(
+            f"RAG-augmented follow-up for leaf {leaf_id}: "
+            f"{sum(len(c) for c in party_chunks.values())} additional chunks"
+        )
+
+        # Now handle the conversation with the augmented knowledge
+        return await self._handle_conversation_message(
+            session_id=session_id,
+            exploration_id=exploration_id,
+            exploration=exploration,
+            leaf_id=leaf_id,
+            user_message=user_message,
+            message_type=MessageIntent.FOLLOWUP_QUESTION,
+            context_name=context_name,
+            parties_info=parties_info,
+            conversation=conversation,
+            resolved_override=resolved,
+        )
+
+    async def _handle_conversation_message(
+        self,
+        session_id: str,
+        exploration_id: str,
+        exploration: Exploration,
+        leaf_id: str,
+        user_message: str,
+        message_type: MessageIntent,
+        context_name: str,
+        parties_info: dict[str, PartyInfo],
+        conversation: Conversation | None = None,
+        resolved_override: ResolvedKnowledge | None = None,
+    ) -> dict:
+        """Handle a conversation message (followup, analysis, or summary request)."""
+        # Always augment with RAG for follow-ups (claims alone are too limited)
+        if resolved_override is None:
+            claims_by_party = exploration.tree.get_claims_by_party(leaf_id)
+            logger.info(
+                f"Auto-augmenting follow-up with RAG for leaf {leaf_id}"
+            )
+            return await self._handle_followup_with_rag(
+                session_id=session_id,
+                exploration_id=exploration_id,
+                exploration=exploration,
+                leaf_id=leaf_id,
+                user_message=user_message,
+                context_name=context_name,
+                parties_info=parties_info,
+                conversation=conversation,
+                claims_by_party=claims_by_party,
+            )
+
+        # Use override if provided (RAG-augmented flow), otherwise build from claims
+        if resolved_override is not None:
+            resolved = resolved_override
+            citation_pool = resolved.citation_pool
+            claims_by_party = exploration.tree.get_claims_by_party(leaf_id)
+        else:
+            claims_by_party = exploration.tree.get_claims_by_party(leaf_id)
+
+        if not claims_by_party and resolved_override is None:
+            await self._send_error(
+                session_id,
+                "no_knowledge",
+                "Kein Wissen fuer dieses Thema verfuegbar",
+            )
+            return {"status": "error", "code": "no_knowledge"}
+
+        # Build ResolvedKnowledge from claims (skip if override provided)
+        if resolved_override is None:
+            party_positions: dict[str, ExtractedPosition] = {}
+            citation_pool: list[Citation] = []
+            for party_id, claims in claims_by_party.items():
+                extracted_claims = [
+                    ExtractedClaim(
+                        claim=c.content,
+                        quote=c.quote,
+                        source_doc=c.citation.document if c.citation else "",
+                        source_page=c.citation.page if c.citation else None,
+                        claim_type=c.claim_type,
+                        citation_id=c.citation.id if c.citation else None,
+                    )
+                    for c in claims
+                ]
+                party_positions[party_id] = ExtractedPosition(
+                    party_id=party_id,
+                    claims=extracted_claims,
+                )
+                for c in claims:
+                    if c.citation is not None:
+                        citation_pool.append(c.citation)
+
+            resolved = ResolvedKnowledge(
+                leaf_id=leaf_id,
+                party_positions=party_positions,
+                citation_pool=citation_pool,
+            )
+
         logger.info(
             f"Follow-up context for leaf {leaf_id}: "
-            f"{len(party_positions)} parties, "
-            f"{sum(len(p.claims) for p in party_positions.values())} claims, "
-            f"{len(citation_pool)} citations"
+            f"{len(resolved.party_positions)} parties, "
+            f"{sum(len(p.claims) for p in resolved.party_positions.values())} claims, "
+            f"{len(resolved.citation_pool)} citations"
+            + (f", {sum(len(c) for c in resolved.party_chunks.values())} RAG chunks"
+               if resolved.party_chunks else "")
         )
 
         # Get current navigation state
@@ -1465,12 +1827,13 @@ class GuidedExplorationFacade:
             if c.id in full_text
         ]
 
-        # Create and save the response message
+        # Create and save the response message (with citations for persistence)
         response_message = Message(
             id=message_id,
             role=MessageRole.ASSISTANT,
             type=MessageType.FOLLOWUP,
             content=full_text,
+            citations=used_citations,
             timestamp=datetime.now(timezone.utc),
         )
 
@@ -1478,23 +1841,10 @@ class GuidedExplorationFacade:
             session_id, exploration_id, leaf_id, response_message
         )
 
-        # Generate suggested follow-up questions with full context
-        from src.guided_exploration.agents.conversation_handler.prompts import (
-            format_conversation_history,
-            format_party_positions_for_prompt as format_positions,
-        )
-        claims_context = format_positions(
-            resolved.party_positions, parties_info
-        )
-        history_text = format_conversation_history(conversation_history)
-        suggested_questions = (
-            await self._summary_generator.generate_suggested_questions(
-                query=user_message,
-                response=full_text,
-                available_context=claims_context,
-                conversation_history=history_text,
-            )
-        )
+        # Skip suggested questions for follow-ups — they cause more harm
+        # than good (repeat content, get rejected by router, go off-topic).
+        # Users can type their own questions.
+        suggested_questions: list[str] = []
 
         # Send conversation message event with citations
         await self._sse.send_to_session(
@@ -2362,6 +2712,34 @@ class GuidedExplorationFacade:
                 message=user_request_msg,
                 navigation=navigation,
             ),
+        )
+
+        # Build ResolvedKnowledge from claims for the analyzer
+        analysis_positions: dict[str, ExtractedPosition] = {}
+        analysis_citations: list[Citation] = []
+        for party_id, claims in claims_by_party.items():
+            analysis_positions[party_id] = ExtractedPosition(
+                party_id=party_id,
+                claims=[
+                    ExtractedClaim(
+                        claim=c.content,
+                        quote=c.quote,
+                        source_doc=c.citation.document if c.citation else "",
+                        source_page=c.citation.page if c.citation else None,
+                        claim_type=c.claim_type,
+                        citation_id=c.citation.id if c.citation else None,
+                    )
+                    for c in claims
+                ],
+            )
+            for c in claims:
+                if c.citation is not None:
+                    analysis_citations.append(c.citation)
+
+        resolved = ResolvedKnowledge(
+            leaf_id=leaf_id,
+            party_positions=analysis_positions,
+            citation_pool=analysis_citations,
         )
 
         # Send thinking event
