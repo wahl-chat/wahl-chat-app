@@ -38,6 +38,27 @@ export interface Analysis {
   sources: string[];
 }
 
+/** A single party's stance on an aspect for comparison */
+export interface PartyStance {
+  /** Party ID */
+  party: string;
+  /** Short stance description */
+  stance: string;
+}
+
+/** A comparable aspect extracted across parties */
+export interface ComparisonAspect {
+  /** Aspect name, e.g., "Mindestlohn" */
+  name: string;
+  /** Each party's stance on this aspect */
+  partyStances: PartyStance[];
+}
+
+/** Structured comparison data for toggling between party and aspect views */
+export interface AspectComparison {
+  aspects: ComparisonAspect[];
+}
+
 export interface SubtopicContent {
   /** Subtopic identifier */
   subtopicId: string;
@@ -49,6 +70,8 @@ export interface SubtopicContent {
   partyPositions: PartyPosition[];
   /** On-demand analysis (may be null) */
   analysis?: Analysis;
+  /** Aspect-based comparison (generated alongside party positions) */
+  aspectComparison?: AspectComparison;
   /** All citations for this content */
   citations: Citation[];
   /** Suggested follow-up questions */

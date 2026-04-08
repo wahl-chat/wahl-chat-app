@@ -72,7 +72,12 @@ export function explorationReducer(
     case 'TREE_UPDATED':
       return {
         ...state,
-        tree: action.tree,
+        tree: {
+          ...action.tree,
+          // Preserve selectedDirections from original tree if not in update
+          selectedDirections:
+            action.tree.selectedDirections ?? state.tree?.selectedDirections,
+        },
       };
 
     case 'NAVIGATED_TO_ROOT':

@@ -8,9 +8,6 @@ from pydantic import BaseModel, Field, field_validator
 
 from src.exploration_study.models.state import StudyState
 
-# Type alias for task keys in conditions dict
-TaskKey = Literal["1", "2"]
-
 
 class ManipulationChecks(BaseModel):
     """Manipulation check responses for a condition (1-5 Likert scale)."""
@@ -155,40 +152,6 @@ class LiteracyData(BaseModel):
         return v
 
 
-class PreferencesData(BaseModel):
-    """Final preferences data comparing the two systems."""
-
-    # Overall preference (plan: pref_overall)
-    preferred_system: Literal["guided", "baseline", "no_preference"] | None = Field(
-        default=None,
-        description="Which system preferred overall",
-    )
-
-    # Why preferred (plan: pref_why)
-    preference_reason: str | None = Field(
-        default=None,
-        description="Why they preferred that system",
-    )
-
-    # Better for overview (plan: pref_overview)
-    better_for_overview: Literal["guided", "baseline", "no_difference"] | None = Field(
-        default=None,
-        description="Which system was better for getting an overview",
-    )
-
-    # Better for details (plan: pref_detail)
-    better_for_details: Literal["guided", "baseline", "no_difference"] | None = Field(
-        default=None,
-        description="Which system was better for understanding details",
-    )
-
-    # Optional feedback (plan: feedback)
-    additional_feedback: str | None = Field(
-        default=None,
-        description="Any other comments",
-    )
-
-
 class RecallData(BaseModel):
     """Recall text and scoring for a condition."""
 
@@ -217,9 +180,9 @@ class ParticipantData(BaseModel):
         default_factory=LiteracyData,
         description="Literacy screening data",
     )
-    preferences: PreferencesData = Field(
-        default_factory=PreferencesData,
-        description="Final preferences data",
+    feedback: str | None = Field(
+        default=None,
+        description="Optional open-ended feedback from participant",
     )
 
 
@@ -237,13 +200,13 @@ class StudySession(BaseModel):
         default=StudyState.CONSENT,
         description="Current step in the study flow",
     )
-    group: Literal["A", "B", "C", "D"] = Field(
+    group: Literal["A1", "A2", "B1", "B2"] = Field(
         ...,
-        description="Counterbalancing group for 2x2 Latin square design",
+        description="Between-subjects group (A=guided, B=baseline; 1/2=topic counterbalance)",
     )
-    conditions: dict[TaskKey, ConditionData] = Field(
+    condition: ConditionData = Field(
         ...,
-        description="Condition data for each task (1 and 2)",
+        description="Condition data for the single task",
     )
     participant_data: ParticipantData = Field(
         default_factory=ParticipantData,
@@ -269,51 +232,33 @@ class StudySession(BaseModel):
 STUDY_TOPICS = ["soziale-gerechtigkeit", "klimaschutz"]
 
 
-def get_conditions_for_group(
-    group: Literal["A", "B", "C", "D"],
+def get_condition_for_group(
+    group: Literal["A1", "A2", "B1", "B2"],
     topics: list[str] | None = None,
-) -> dict[TaskKey, ConditionData]:
+) -> ConditionData:
     """
     Create condition data based on group assignment.
 
-    2x2 Latin square design counterbalancing mode order and topic order:
-    - Group A: Task 1 = Guided + Topic1, Task 2 = Baseline + Topic2
-    - Group B: Task 1 = Baseline + Topic1, Task 2 = Guided + Topic2
-    - Group C: Task 1 = Guided + Topic2, Task 2 = Baseline + Topic1
-    - Group D: Task 1 = Baseline + Topic2, Task 2 = Guided + Topic1
+    Between-subjects A/B design with topic counterbalancing:
+    - Group A1: Guided + Topic1
+    - Group A2: Guided + Topic2
+    - Group B1: Baseline + Topic1
+    - Group B2: Baseline + Topic2
 
     Args:
-        group: The counterbalancing group (A, B, C, or D)
+        group: The between-subjects group
         topics: Optional list of topics (uses STUDY_TOPICS if not provided)
     """
-    # Use hardcoded topics if not provided
     topic_list = topics if topics else STUDY_TOPICS
     if len(topic_list) < 2:
         raise ValueError("At least 2 topics required for the study")
 
     topic1, topic2 = topic_list[0], topic_list[1]
 
-    if group == "A":
-        # Guided first, Topic1 first
-        return {
-            "1": ConditionData(system=SystemType.GUIDED, topic=topic1),
-            "2": ConditionData(system=SystemType.BASELINE, topic=topic2),
-        }
-    elif group == "B":
-        # Baseline first, Topic1 first
-        return {
-            "1": ConditionData(system=SystemType.BASELINE, topic=topic1),
-            "2": ConditionData(system=SystemType.GUIDED, topic=topic2),
-        }
-    elif group == "C":
-        # Guided first, Topic2 first
-        return {
-            "1": ConditionData(system=SystemType.GUIDED, topic=topic2),
-            "2": ConditionData(system=SystemType.BASELINE, topic=topic1),
-        }
-    else:  # group == "D"
-        # Baseline first, Topic2 first
-        return {
-            "1": ConditionData(system=SystemType.BASELINE, topic=topic2),
-            "2": ConditionData(system=SystemType.GUIDED, topic=topic1),
-        }
+    mapping: dict[str, ConditionData] = {
+        "A1": ConditionData(system=SystemType.GUIDED, topic=topic1),
+        "A2": ConditionData(system=SystemType.GUIDED, topic=topic2),
+        "B1": ConditionData(system=SystemType.BASELINE, topic=topic1),
+        "B2": ConditionData(system=SystemType.BASELINE, topic=topic2),
+    }
+    return mapping[group]

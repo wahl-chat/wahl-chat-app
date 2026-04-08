@@ -21,7 +21,7 @@ dev-web:
 	cd web && bun run dev
 
 dev-backend:
-	cd ai-backend && poetry run python -m src.aiohttp_app
+	cd ai-backend && poetry run python -m src.aiohttp_app --port 8082
 
 # --- Linting ---
 

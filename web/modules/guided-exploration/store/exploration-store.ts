@@ -245,3 +245,15 @@ export const selectSuggestedQuestions = (state: ExplorationStore) =>
 /** Get topic switch suggestion */
 export const selectTopicSwitchSuggestion = (state: ExplorationStore) =>
   state.ui.topicSwitchSuggestion;
+
+/** Get pending topic directions */
+export const selectPendingDirections = (state: ExplorationStore) =>
+  state.ui.pendingDirections;
+
+/** Get active tab ID */
+export const selectActiveTabId = (state: ExplorationStore) =>
+  state.session.activeTabId;
+
+/** Get all exploration tabs */
+export const selectExplorationTabs = (state: ExplorationStore) =>
+  state.session.explorationTabs;

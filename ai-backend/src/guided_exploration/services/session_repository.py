@@ -109,6 +109,27 @@ class SessionRepository:
             {"messages": ArrayUnion([message.model_dump(mode="json")])}
         )
 
+    async def update_session_message(
+        self,
+        session_id: str,
+        message_id: str,
+        updates: dict,
+    ) -> None:
+        """Update fields on a specific session message by ID."""
+        session = await self.get_session(session_id)
+        if not session:
+            return
+
+        updated_messages = []
+        for msg in session.messages:
+            data = msg.model_dump(mode="json")
+            if data.get("id") == message_id:
+                data.update(updates)
+            updated_messages.append(data)
+
+        doc_ref = self._db.collection(SESSIONS_COLLECTION).document(session_id)
+        await doc_ref.update({"messages": updated_messages})
+
     async def get_session_messages(
         self,
         session_id: str,

@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
   FollowupMessage,
@@ -15,6 +16,8 @@ import type {
   StreamTargetType,
   SubtopicContent,
 } from '@/modules/guided-exploration/types';
+
+import { AspectComparisonView } from './aspect-comparison-view';
 
 interface LeafContentProps {
   conversation: Conversation | null;
@@ -47,6 +50,8 @@ export function LeafContent({
   streamingTargetType,
   className,
 }: LeafContentProps) {
+  const [viewMode, setViewMode] = useState<'party' | 'aspect'>('party');
+
   if (!conversation) {
     return null;
   }
@@ -63,25 +68,86 @@ export function LeafContent({
   const isStreamingInitialContent =
     isStreaming && streamingTargetType === 'initial_content';
 
+  // Find initial content for aspect comparison
+  const initialMessage = conversation.messages.find(
+    (m) => m.type === 'initial_content' && typeof m.content !== 'string',
+  );
+  const initialContent =
+    initialMessage && typeof initialMessage.content !== 'string'
+      ? (initialMessage.content as SubtopicContent)
+      : null;
+  const hasAspectComparison =
+    initialContent?.aspectComparison &&
+    initialContent.aspectComparison.aspects.length > 0;
+
   return (
     <div className={cn('space-y-6', className)}>
-      {conversation.messages.map((message) => {
-        // First message is always initial_content with SubtopicContent
-        if (
-          message.type === 'initial_content' &&
-          typeof message.content !== 'string'
-        ) {
-          return (
-            <InitialContentMessage
-              key={message.id}
-              content={message.content as SubtopicContent}
-            />
-          );
-        }
+      {/* View toggle — only show when aspect comparison data is available */}
+      {hasAspectComparison && (
+        <div className="flex items-center gap-1 rounded-lg border p-1">
+          <Button
+            variant={viewMode === 'party' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('party')}
+            className="flex-1 text-xs"
+          >
+            Nach Partei
+          </Button>
+          <Button
+            variant={viewMode === 'aspect' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('aspect')}
+            className="flex-1 text-xs"
+          >
+            Nach Aspekt
+          </Button>
+        </div>
+      )}
 
-        // All others are followup text messages
-        return <FollowupMessage key={message.id} message={message} />;
-      })}
+      {/* Aspect comparison view */}
+      {viewMode === 'aspect' && hasAspectComparison && initialContent && (
+        <>
+          {/* Summary still shown above the comparison */}
+          {initialContent.summary && (
+            <div className="rounded-lg border p-4">
+              <p className="text-sm text-muted-foreground">
+                {initialContent.summary}
+              </p>
+            </div>
+          )}
+          {initialContent.aspectComparison && (
+            <AspectComparisonView
+              comparison={initialContent.aspectComparison}
+            />
+          )}
+          {/* Follow-up messages still shown below */}
+          {conversation.messages
+            .filter((m) => m.type !== 'initial_content')
+            .map((message) => (
+              <FollowupMessage key={message.id} message={message} />
+            ))}
+        </>
+      )}
+
+      {/* Party view (default) */}
+      {viewMode === 'party' &&
+        conversation.messages.map((message) => {
+          // First message is always initial_content with SubtopicContent
+          if (
+            message.type === 'initial_content' &&
+            typeof message.content !== 'string'
+          ) {
+            return (
+              <InitialContentMessage
+                key={message.id}
+                content={message.content as SubtopicContent}
+              />
+            );
+          }
+
+          // All others are followup text messages
+          return <FollowupMessage key={message.id} message={message} />;
+        })}
 
       {/* Streaming content while loading - only for followup messages */}
       {shouldShowStreamBuffer && (

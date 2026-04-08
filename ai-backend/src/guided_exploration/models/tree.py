@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Models for the exploration tree structure — claim-based adaptive hierarchy."""
+"""Models for the exploration tree structure — position-based adaptive hierarchy."""
 
 from __future__ import annotations
 
@@ -11,14 +11,14 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from src.guided_exploration.models.claim import Claim
+from src.guided_exploration.models.position import Position
 
 
 class ExplorationNode(BaseModel):
     """
     Recursive node in the exploration tree.
 
-    Can be a branch (has children) or a leaf (has claim_ids, no children).
+    Can be a branch (has children) or a leaf (has position_ids, no children).
     The tree adapts its depth to the content — typically 2-3 levels.
     Screen reader users navigate this tree, so names must be descriptive.
     """
@@ -40,11 +40,11 @@ class ExplorationNode(BaseModel):
     )
     party_ids: list[str] = Field(
         default_factory=list,
-        description="Party IDs that have claims in this node or its descendants",
+        description="Party IDs that have positions in this node or its descendants",
     )
-    claim_ids: list[str] = Field(
+    position_ids: list[str] = Field(
         default_factory=list,
-        description="Claim IDs assigned to this leaf node. Empty for branch nodes.",
+        description="Position IDs assigned to this leaf node. Empty for branch nodes.",
     )
     status: Literal["pending", "explored"] = Field(
         default="pending", description="Exploration status"
@@ -87,22 +87,26 @@ class ExplorationNode(BaseModel):
 
 class ExplorationTree(BaseModel):
     """
-    Complete exploration tree with claim-based hierarchy.
+    Complete exploration tree with position-based hierarchy.
 
-    The tree structure emerges bottom-up from concrete party claims.
-    Claims are extracted first, then organized into a navigable hierarchy.
+    The tree structure emerges bottom-up from concrete party positions.
+    Positions are extracted first, then organized into a navigable hierarchy.
     """
 
     exploration_id: str = Field(..., description="ID of the parent exploration")
     original_query: str = Field(
         ..., description="The user's original query that generated this tree"
     )
+    selected_directions: list[str] = Field(
+        default_factory=list,
+        description="User-selected direction focuses from topic direction choice",
+    )
     root: ExplorationNode = Field(
         ..., description="Root node of the exploration tree"
     )
-    claims: dict[str, Claim] = Field(
+    positions: dict[str, Position] = Field(
         default_factory=dict,
-        description="Lookup table: claim_id -> Claim. All claims referenced by leaf nodes.",
+        description="Lookup table: position_id -> Position. All positions referenced by leaf nodes.",
     )
     created_at: datetime = Field(..., description="When the tree was created")
     updated_at: datetime = Field(..., description="When the tree was last updated")
@@ -111,17 +115,17 @@ class ExplorationTree(BaseModel):
         """Find any node in the tree by ID."""
         return self.root.find_node(node_id)
 
-    def get_claims_for_leaf(self, leaf_id: str) -> list[Claim]:
-        """Get all claims for a leaf node."""
+    def get_positions_for_leaf(self, leaf_id: str) -> list[Position]:
+        """Get all positions for a leaf node."""
         node = self.find_node(leaf_id)
         if node is None or not node.is_leaf:
             return []
-        return [self.claims[cid] for cid in node.claim_ids if cid in self.claims]
+        return [self.positions[pid] for pid in node.position_ids if pid in self.positions]
 
-    def get_claims_by_party(self, leaf_id: str) -> dict[str, list[Claim]]:
-        """Get claims for a leaf grouped by party."""
-        claims = self.get_claims_for_leaf(leaf_id)
-        by_party: dict[str, list[Claim]] = {}
-        for claim in claims:
-            by_party.setdefault(claim.party_id, []).append(claim)
+    def get_positions_by_party(self, leaf_id: str) -> dict[str, list[Position]]:
+        """Get positions for a leaf grouped by party."""
+        positions = self.get_positions_for_leaf(leaf_id)
+        by_party: dict[str, list[Position]] = {}
+        for position in positions:
+            by_party.setdefault(position.party_id, []).append(position)
         return by_party

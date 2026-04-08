@@ -7,24 +7,24 @@
 from pydantic import BaseModel, Field
 
 from src.guided_exploration.agents.party_context import PartyInfo
-from src.guided_exploration.models.claim import Claim
+from src.guided_exploration.models.position import Position
 from src.guided_exploration.models.content import Citation
 
 
 class ContentGeneratorInput(BaseModel):
-    """Input for content generation from claims."""
+    """Input for content generation from positions."""
 
     subtopic_id: str = Field(..., description="ID of the leaf node")
     subtopic_name: str = Field(..., description="Display name")
     path: list[str] = Field(
         ..., description="Path in tree, e.g., ['energie', 'erneuerbare']"
     )
-    leaf_claims: dict[str, list[Claim]] = Field(
-        ..., description="Claims grouped by party_id"
+    leaf_positions: dict[str, list[Position]] = Field(
+        ..., description="Positions grouped by party_id"
     )
     leaf_citations: list[Citation] = Field(
         default_factory=list,
-        description="All citations for this leaf's claims",
+        description="All citations for this leaf's positions",
     )
     context_id: str = Field(..., description="The election/political context ID")
     context_name: str = Field(..., description="Human-readable context name")

@@ -17,7 +17,7 @@ from src.exploration_study.api.dtos import (
     StudyResponse,
     UpdateStudyRequest,
 )
-from src.exploration_study.models.session import get_conditions_for_group
+from src.exploration_study.models.session import get_condition_for_group
 from src.exploration_study.models.study import StudyConfig
 from src.exploration_study.services.counterbalancer import get_counterbalancer
 from src.exploration_study.services.session_repository import get_session_repository
@@ -246,13 +246,13 @@ async def create_sessions(request: web.Request) -> web.Response:
         group = await counterbalancer.assign_group(study_id)
 
         # Create condition data based on group
-        conditions = get_conditions_for_group(group, study.config.topics)
+        condition = get_condition_for_group(group, study.config.topics)
 
         # Create the session
         session = await session_repo.create_session(
             study_id=study_id,
             group=group,
-            conditions=conditions,
+            condition=condition,
         )
         session_ids.append(session.id)
 
@@ -288,7 +288,7 @@ async def list_sessions(request: web.Request) -> web.Response:
 
     # Aggregate stats
     by_state: dict[str, int] = {}
-    by_group: dict[Literal["A", "B", "C", "D"], int] = {"A": 0, "B": 0, "C": 0, "D": 0}
+    by_group: dict[Literal["A1", "A2", "B1", "B2"], int] = {"A1": 0, "A2": 0, "B1": 0, "B2": 0}
 
     summaries = []
     for session in sessions:
@@ -365,16 +365,13 @@ async def export_study_data(request: web.Request) -> web.Response:
                 "created_at",
                 "started_at",
                 "completed_at",
-                "condition_1_system",
-                "condition_1_topic",
-                "condition_2_system",
-                "condition_2_topic",
+                "condition_system",
+                "condition_topic",
             ]
         )
 
         for session in sessions:
-            cond_1 = session.conditions.get("1")
-            cond_2 = session.conditions.get("2")
+            cond = session.condition
             writer.writerow(
                 [
                     session.id,
@@ -385,10 +382,8 @@ async def export_study_data(request: web.Request) -> web.Response:
                     session.created_at.isoformat() if session.created_at else "",
                     session.started_at.isoformat() if session.started_at else "",
                     session.completed_at.isoformat() if session.completed_at else "",
-                    cond_1.system.value if cond_1 else "",
-                    cond_1.topic if cond_1 else "",
-                    cond_2.system.value if cond_2 else "",
-                    cond_2.topic if cond_2 else "",
+                    cond.system.value if hasattr(cond.system, "value") else str(cond.system),
+                    cond.topic,
                 ]
             )
 

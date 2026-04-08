@@ -44,6 +44,9 @@ export {
   selectExplorationPending,
   selectExplorationReadyData,
   selectSuggestedQuestions,
+  selectPendingDirections,
+  selectActiveTabId,
+  selectExplorationTabs,
 } from './exploration-store';
 
 // Action creators
@@ -71,4 +74,5 @@ export type {
   ViewType,
   ExplorationReadyData,
   QuickSummaryData,
+  ExplorationTabState,
 } from './types';

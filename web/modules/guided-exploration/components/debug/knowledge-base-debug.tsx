@@ -119,7 +119,7 @@ export function KnowledgeBaseDebug({
                             <ChevronRight className="size-3 transition-transform [[data-state=open]>&]:rotate-90" />
                             <span className="text-sm">{child.name}</span>
                             <span className="ml-auto text-xs text-muted-foreground">
-                              {child.claimIds.length} claims
+                              {child.positionIds.length} positions
                             </span>
                           </CollapsibleTrigger>
                           <CollapsibleContent className="pb-3 pt-2">

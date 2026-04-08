@@ -10,6 +10,7 @@ import { useCallback, useEffect } from 'react';
 import {
   explorationActions,
   selectActiveConversation,
+  selectActiveTabId,
   selectAnalysisAvailable,
   selectBreadcrumb,
   selectCurrentPath,
@@ -17,6 +18,7 @@ import {
   selectExplorationId,
   selectExplorationPending,
   selectExplorationReadyData,
+  selectExplorationTabs,
   selectExploredCount,
   selectIsConnected,
   selectIsStreaming,
@@ -24,6 +26,7 @@ import {
   selectMode,
   selectNavigation,
   selectPendingChoice,
+  selectPendingDirections,
   selectProgress,
   selectQuickSummary,
   selectSessionId,
@@ -99,6 +102,9 @@ export function useExploration(options: UseExplorationOptions = {}) {
   const topicSwitchSuggestion = useExplorationStore(
     (s) => s.ui.topicSwitchSuggestion,
   );
+  const pendingDirections = useExplorationStore(selectPendingDirections);
+  const activeTabId = useExplorationStore(selectActiveTabId);
+  const explorationTabs = useExplorationStore(selectExplorationTabs);
 
   // SSE connection
   const { connect, disconnect } = useSSE({ autoConnect: true });
@@ -269,6 +275,7 @@ export function useExploration(options: UseExplorationOptions = {}) {
 
     // Choice
     pendingChoice,
+    pendingDirections,
     quickSummary,
 
     // Session Messages
@@ -293,6 +300,16 @@ export function useExploration(options: UseExplorationOptions = {}) {
       dispatch(uiActions.topicSwitchCleared());
     }, [dispatch]),
 
+    // Tabs
+    activeTabId,
+    explorationTabs,
+    switchTab: useCallback(
+      (tabId: 'chat' | string) => {
+        dispatch(sessionActions.tabSwitched(tabId));
+      },
+      [dispatch],
+    ),
+
     // Exploration Pending State
     explorationPending,
     explorationReadyData,
@@ -315,6 +332,7 @@ export function useExploration(options: UseExplorationOptions = {}) {
     sendChatMessage,
     loadExploration: api.loadExploration,
     submitChoice: api.submitChoice,
+    submitDirectionChoice: api.submitDirectionChoice,
     requestAnalysis: api.requestAnalysis,
     endExploration: api.endExploration,
     requestExport: api.requestExport,

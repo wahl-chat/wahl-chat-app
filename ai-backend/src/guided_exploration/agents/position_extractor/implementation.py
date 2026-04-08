@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Implementation of claim extractor agent."""
+"""Implementation of position extractor agent."""
 
 import logging
 from uuid import uuid4
@@ -10,26 +10,26 @@ from uuid import uuid4
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from src.guided_exploration.agents.base import BaseAgent
-from src.guided_exploration.agents.claim_extractor.interface import (
-    ClaimExtractorInput,
-    ClaimExtractorOutput,
+from src.guided_exploration.agents.position_extractor.interface import (
+    PositionExtractorInput,
+    PositionExtractorOutput,
 )
-from src.guided_exploration.agents.claim_extractor.prompts import (
+from src.guided_exploration.agents.position_extractor.prompts import (
     EXTRACTION_PROMPT,
     SYSTEM_PROMPT,
-    ClaimExtractorLLMOutput,
+    PositionExtractorLLMOutput,
     format_chunks_for_party,
 )
 from src.guided_exploration.agents.llm_provider import LLMProvider
-from src.guided_exploration.models.claim import Claim, PartyClaims
+from src.guided_exploration.models.position import Position, PartyPositions
 from src.guided_exploration.models.content import Citation
 
 logger = logging.getLogger(__name__)
 
 
-class ClaimExtractorAgent(BaseAgent[ClaimExtractorInput, ClaimExtractorOutput]):
+class PositionExtractorAgent(BaseAgent[PositionExtractorInput, PositionExtractorOutput]):
     """
-    Extracts concrete claims from a single party's documents.
+    Extracts concrete positions from a single party's documents.
 
     Unlike the old PartyTopicResolverAgent which extracted abstract topics,
     this agent extracts discrete, quotable statements — positions, demands,
@@ -43,11 +43,11 @@ class ClaimExtractorAgent(BaseAgent[ClaimExtractorInput, ClaimExtractorOutput]):
 
     @property
     def name(self) -> str:
-        return "claim_extractor"
+        return "position_extractor"
 
-    async def execute(self, input: ClaimExtractorInput) -> ClaimExtractorOutput:
+    async def execute(self, input: PositionExtractorInput) -> PositionExtractorOutput:
         """
-        Extract all concrete claims from a single party's documents.
+        Extract all concrete positions from a single party's documents.
         """
         # Format chunks for the prompt
         formatted_chunks = format_chunks_for_party(
@@ -82,51 +82,51 @@ class ClaimExtractorAgent(BaseAgent[ClaimExtractorInput, ClaimExtractorOutput]):
         ]
 
         # Use structured output for reliable parsing
-        llm_output: ClaimExtractorLLMOutput = await self._llm.generate_structured(
+        llm_output: PositionExtractorLLMOutput = await self._llm.generate_structured(
             messages=messages,
-            output_schema=ClaimExtractorLLMOutput,
+            output_schema=PositionExtractorLLMOutput,
             temperature=0.2,  # Low for factual extraction
         )
 
         # Convert LLM output to domain models
-        claims = self._convert_to_claims(llm_output, input)
+        positions = self._convert_to_positions(llm_output, input)
 
-        party_claims = PartyClaims(
+        party_positions = PartyPositions(
             party_id=input.party_id,
-            claims=claims,
+            positions=positions,
             relevance_to_query=llm_output.relevance_to_query,
         )
 
         logger.info(
-            f"Extracted {len(claims)} claims from {input.party_info.name} "
+            f"Extracted {len(positions)} positions from {input.party_info.name} "
             f"(relevance: {llm_output.relevance_to_query:.2f})"
         )
 
-        return ClaimExtractorOutput(
+        return PositionExtractorOutput(
             party_id=input.party_id,
-            party_claims=party_claims,
+            party_positions=party_positions,
         )
 
-    def _convert_to_claims(
+    def _convert_to_positions(
         self,
-        llm_output: ClaimExtractorLLMOutput,
-        input: ClaimExtractorInput,
-    ) -> list[Claim]:
-        """Convert LLM output to Claim domain models with citations."""
-        claims = []
+        llm_output: PositionExtractorLLMOutput,
+        input: PositionExtractorInput,
+    ) -> list[Position]:
+        """Convert LLM output to Position domain models with citations."""
+        positions = []
         chunks = [c for c in input.retrieved_chunks if c.party_id == input.party_id]
 
-        for llm_claim in llm_output.claims:
-            claim_id = f"{input.party_id}-{uuid4().hex[:8]}"
+        for llm_position in llm_output.positions:
+            position_id = f"{input.party_id}-{uuid4().hex[:8]}"
 
             # Build citation from chunk metadata
             citation = None
             # chunk_index is 1-based from the prompt
-            chunk_idx = llm_claim.chunk_index - 1
+            chunk_idx = llm_position.chunk_index - 1
             if 0 <= chunk_idx < len(chunks):
                 chunk = chunks[chunk_idx]
                 citation = Citation(
-                    id=claim_id,
+                    id=position_id,
                     party=input.party_id,
                     document=chunk.source_document,
                     section=chunk.source_section,
@@ -134,16 +134,16 @@ class ClaimExtractorAgent(BaseAgent[ClaimExtractorInput, ClaimExtractorOutput]):
                     source_document=chunk.source_document,
                 )
 
-            claims.append(
-                Claim(
-                    id=claim_id,
+            positions.append(
+                Position(
+                    id=position_id,
                     party_id=input.party_id,
-                    content=llm_claim.content,
-                    quote=llm_claim.quote,
-                    claim_type=llm_claim.claim_type,
+                    content=llm_position.content,
+                    quote=llm_position.quote,
+                    position_type=llm_position.position_type,
                     citation=citation,
-                    chunk_index=llm_claim.chunk_index,
+                    chunk_index=llm_position.chunk_index,
                 )
             )
 
-        return claims
+        return positions

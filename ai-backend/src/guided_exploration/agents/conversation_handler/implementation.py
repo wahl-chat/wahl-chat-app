@@ -175,8 +175,8 @@ class ConversationHandlerAgent(
 
     @staticmethod
     def _build_source_text(knowledge, parties_info) -> str:
-        """Build source text from claims + RAG chunks (if available)."""
-        # Start with extracted claims
+        """Build source text from positions + RAG chunks (if available)."""
+        # Start with extracted positions
         source = format_party_positions_for_prompt(
             knowledge.party_positions, parties_info
         )

@@ -12,11 +12,11 @@ import type {
   StreamTargetType,
 } from '@/modules/guided-exploration/types';
 import { findNode } from '@/modules/guided-exploration/utils/tree-helpers';
-import { ArrowLeft, Check } from 'lucide-react';
-import Link from 'next/link';
+import { Check } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 import { BranchContent } from './branch-content';
+import { ExplorationContextBanner } from './exploration-context-banner';
 import { ExplorationSummaryPanel } from './exploration-summary-panel';
 import { LeafContent } from './leaf-content';
 import { MobileSummarySheet } from './mobile-summary-sheet';
@@ -25,8 +25,6 @@ import { RootContent } from './root-content';
 export type ExplorationView = 'root' | 'branch' | 'leaf';
 
 interface ExplorationFullViewProps {
-  contextId: string;
-  sessionId: string;
   tree: ExplorationTree;
   view: ExplorationView;
   currentPath: string[];
@@ -60,8 +58,6 @@ interface ExplorationFullViewProps {
 }
 
 export function ExplorationFullView({
-  contextId,
-  sessionId,
   tree,
   view,
   currentPath,
@@ -140,8 +136,6 @@ export function ExplorationFullView({
     });
   };
 
-  const chatUrl = `/${contextId}/explore/${sessionId}`;
-
   return (
     <div className={cn('flex flex-1 overflow-hidden', className)}>
       {/* Main Content */}
@@ -150,15 +144,8 @@ export function ExplorationFullView({
         <header className="shrink-0 border-b bg-background px-4 py-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              {/* Mobile back button */}
-              <Button variant="ghost" size="sm" asChild className="md:hidden">
-                <Link href={chatUrl}>
-                  <ArrowLeft className="size-4" />
-                </Link>
-              </Button>
               <ExplorationBreadcrumb
                 items={breadcrumb}
-                chatUrl={chatUrl}
                 onNavigate={handleBreadcrumbNavigate}
               />
             </div>
@@ -171,6 +158,11 @@ export function ExplorationFullView({
             />
           </div>
         </header>
+
+        {/* Context banner — always visible */}
+        <div className="shrink-0 border-b px-4 py-2">
+          <ExplorationContextBanner tree={tree} />
+        </div>
 
         {/* Content based on view - with gradient mask */}
         <div

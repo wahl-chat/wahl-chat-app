@@ -23,6 +23,7 @@ class SessionMessageType(str, Enum):
     USER = "user"
     ASSISTANT = "assistant"
     EXPLORATION_START = "exploration_start"  # Reference to exploration
+    TOPIC_DIRECTIONS = "topic_directions"  # Topic direction choices
 
 
 class SessionMessage(BaseModel):
@@ -42,6 +43,18 @@ class SessionMessage(BaseModel):
     )
     exploration_query: str | None = Field(
         default=None, description="Original query for exploration"
+    )
+    directions: list[dict] | None = Field(
+        default=None,
+        description="Topic direction choices (for topic_directions type)",
+    )
+    directions_query_id: str | None = Field(
+        default=None,
+        description="Query ID for direction choice tracking",
+    )
+    selected_directions: list[str] | None = Field(
+        default=None,
+        description="Names of directions the user selected (set on topic_directions message after submission)",
     )
     timestamp: datetime = Field(..., description="When the message was created")
 

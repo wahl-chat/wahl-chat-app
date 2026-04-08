@@ -55,6 +55,7 @@ export function StudyExplorationWrapper({
     sendChatMessage,
     loadExploration,
     submitChoice,
+    submitDirectionChoice,
     requestAnalysis,
     markExplored,
     sessionMessages,
@@ -115,10 +116,10 @@ export function StudyExplorationWrapper({
   );
 
   const handleNavigateToSubtopic = useCallback(
-    (topicId: string, subtopicId: string) => {
-      navigateOptimistically([topicId, subtopicId]);
+    (nodeId: string) => {
+      navigateOptimistically([...currentPath, nodeId]);
     },
-    [navigateOptimistically],
+    [navigateOptimistically, currentPath],
   );
 
   const handleBack = useCallback(() => {
@@ -159,8 +160,6 @@ export function StudyExplorationWrapper({
           <ErrorBanner message={error.message} onDismiss={handleDismissError} />
         )}
         <ExplorationFullView
-          contextId="study"
-          sessionId={sessionId}
           tree={tree}
           view={view}
           currentPath={currentPath}
@@ -214,6 +213,7 @@ export function StudyExplorationWrapper({
         suggestedQuestions={suggestedQuestions}
         onSendMessageAction={sendChatMessage}
         onSubmitChoiceAction={submitChoice}
+        onDirectionChoiceAction={submitDirectionChoice}
         onEnterExplorationAction={handleEnterExploration}
       />
     </>

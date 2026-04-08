@@ -29,6 +29,11 @@ export interface SubmitChoiceRequest {
   choice: 'summary' | 'explore';
 }
 
+export interface SubmitDirectionChoiceRequest {
+  queryId: string;
+  directions: Array<{ id: string; name: string }>;
+}
+
 export interface NavigateRequest {
   targetPath: string[];
 }
@@ -54,10 +59,27 @@ export interface ResumeSessionResponse {
   streamUrl: string;
   messages: Array<{
     id: string;
-    type: 'user' | 'assistant' | 'exploration_start';
-    content: string;
+    type: 'user' | 'assistant' | 'exploration_start' | 'topic_directions';
+    content: string | null;
+    citations?: Array<{
+      id: string;
+      party: string;
+      document: string;
+      section?: string;
+      page?: number;
+      url?: string;
+    }>;
     explorationId?: string;
     explorationQuery?: string;
+    directions?: Array<{
+      id: string;
+      name: string;
+      description: string;
+      partyStancesPreview: string;
+      suggestedQuestion: string;
+    }>;
+    directionsQueryId?: string;
+    selectedDirections?: string[];
     timestamp: string;
   }>;
   activeExploration?: {
@@ -226,6 +248,19 @@ export async function submitChoice(
 }
 
 /**
+ * Submit a topic direction choice
+ */
+export async function submitDirectionChoice(
+  sessionId: string,
+  req: SubmitDirectionChoiceRequest,
+): Promise<void> {
+  await request(`/sessions/${sessionId}/direction-choice`, {
+    method: 'POST',
+    body: req,
+  });
+}
+
+/**
  * Navigate to a path in the topic tree
  */
 export async function navigate(
@@ -338,6 +373,7 @@ export const explorationApi = {
   getExploration,
   sendMessage,
   submitChoice,
+  submitDirectionChoice,
   navigate,
   requestAnalysis,
   endExploration,

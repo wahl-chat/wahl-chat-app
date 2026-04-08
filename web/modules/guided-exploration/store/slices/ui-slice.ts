@@ -24,6 +24,7 @@ export const initialUIState: UISliceState = {
   explorationReadyData: null,
   suggestedQuestions: [],
   topicSwitchSuggestion: null,
+  pendingDirections: null,
 };
 
 export function uiReducer(
@@ -274,6 +275,20 @@ export function uiReducer(
       return {
         ...state,
         topicSwitchSuggestion: null,
+      };
+
+    case 'TOPIC_DIRECTIONS_RECEIVED':
+      return {
+        ...state,
+        pendingDirections: action.directions,
+        thinkingStage: null,
+        thinkingMessage: null,
+      };
+
+    case 'TOPIC_DIRECTIONS_CLEARED':
+      return {
+        ...state,
+        pendingDirections: null,
       };
 
     // Reset on session clear

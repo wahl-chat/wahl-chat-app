@@ -189,30 +189,30 @@ def format_party_positions_for_prompt(
         ).name
         formatted += f"\n## {party_name} ({party_id})\n"
         formatted += f"Zusammenfassung: {position.summary}\n"
-        if position.claims:
+        if position.positions:
             formatted += "Extrahierte Aussagen:\n"
-            for claim in position.claims:
-                formatted += f"  - {claim.claim}\n"
-                formatted += f'    Zitat: "{claim.quote}"\n'
-                formatted += f"    Quelle: {claim.source_doc}"
-                if claim.source_page:
-                    formatted += f", S. {claim.source_page}"
-                if claim.citation_id:
-                    formatted += f" [{claim.citation_id}]"
+            for pos_item in position.positions:
+                formatted += f"  - {pos_item.position}\n"
+                formatted += f'    Zitat: "{pos_item.quote}"\n'
+                formatted += f"    Quelle: {pos_item.source_doc}"
+                if pos_item.source_page:
+                    formatted += f", S. {pos_item.source_page}"
+                if pos_item.citation_id:
+                    formatted += f" [{pos_item.citation_id}]"
                 formatted += "\n"
 
     return formatted
 
 
-def format_claims_for_content_prompt(
-    claims_by_party: dict, parties_info: dict[str, PartyInfo]
+def format_positions_for_content_prompt(
+    positions_by_party: dict, parties_info: dict[str, PartyInfo]
 ) -> str:
-    """Format claim-based party positions for the content generation prompt."""
-    if not claims_by_party:
+    """Format position-based party positions for the content generation prompt."""
+    if not positions_by_party:
         return "Keine Parteipositionen verfuegbar."
 
     formatted = ""
-    for party_id, claims in claims_by_party.items():
+    for party_id, positions in positions_by_party.items():
         party_name = parties_info.get(
             party_id,
             PartyInfo(
@@ -221,12 +221,12 @@ def format_claims_for_content_prompt(
         ).name
         formatted += f"\n## {party_name} ({party_id})\n"
         formatted += "Positionen und Forderungen:\n"
-        for claim in claims:
-            formatted += f"  - ({claim.claim_type}) {claim.content}\n"
-            if claim.quote:
-                formatted += f'    Zitat: "{claim.quote}"\n'
-            if claim.citation:
-                cit = claim.citation
+        for position in positions:
+            formatted += f"  - ({position.position_type}) {position.content}\n"
+            if position.quote:
+                formatted += f'    Zitat: "{position.quote}"\n'
+            if position.citation:
+                cit = position.citation
                 formatted += f"    Quelle: {cit.document}"
                 if cit.page:
                     formatted += f", S. {cit.page}"

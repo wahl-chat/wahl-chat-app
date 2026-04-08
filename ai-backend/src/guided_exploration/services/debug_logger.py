@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.guided_exploration.models.claim import Claim, PartyClaims
+from src.guided_exploration.models.position import Position, PartyPositions
 from src.guided_exploration.models.exploration import RetrievedChunk
 from src.guided_exploration.models.tree import ExplorationNode, ExplorationTree
 
@@ -112,35 +112,35 @@ class DebugLogger:
             self._lines.append("- *No chunks retrieved*")
         self._lines.append("")
 
-    def log_claim_extraction(
+    def log_position_extraction(
         self,
         party_id: str,
         party_name: str,
-        party_claims: PartyClaims,
+        party_positions: PartyPositions,
         duration_ms: float,
     ) -> None:
-        """Log claim extraction results for a party."""
+        """Log position extraction results for a party."""
         if not self._enabled:
             return
 
         self._lines.append(f"### Party: {party_name} (`{party_id}`)")
-        self._lines.append(f"- Claims extracted: {len(party_claims.claims)}")
+        self._lines.append(f"- Positions extracted: {len(party_positions.positions)}")
         self._lines.append(
-            f"- Relevance to query: {party_claims.relevance_to_query:.2f}"
+            f"- Relevance to query: {party_positions.relevance_to_query:.2f}"
         )
         self._lines.append(f"- Duration: {duration_ms:.0f}ms")
-        self._lines.append("- Claims:")
-        for i, claim in enumerate(party_claims.claims, 1):
+        self._lines.append("- Positions:")
+        for i, position in enumerate(party_positions.positions, 1):
             self._lines.append(
-                f'  {i}. [{claim.claim_type}] "{claim.content}" '
-                f"[chunk {claim.chunk_index}]"
+                f'  {i}. [{position.position_type}] "{position.content}" '
+                f"[chunk {position.chunk_index}]"
             )
         self._lines.append("")
 
     def log_hierarchy_construction(
         self,
         tree: ExplorationTree,
-        total_claims: int,
+        total_positions: int,
         party_count: int,
         duration_ms: float,
     ) -> None:
@@ -149,7 +149,7 @@ class DebugLogger:
             return
 
         self._lines.append(
-            f"- Total claims input: {total_claims} across {party_count} parties"
+            f"- Total positions input: {total_positions} across {party_count} parties"
         )
         self._lines.append(f"- Duration: {duration_ms:.0f}ms")
         self._lines.append("- Tree structure:")
@@ -161,11 +161,11 @@ class DebugLogger:
         prefix = "  " * indent
         party_info = f"({len(node.party_ids)} parties: {', '.join(node.party_ids)})"
         leaf_marker = " [LEAF]" if node.is_leaf else ""
-        claims_info = (
-            f" — {len(node.claim_ids)} claims" if node.claim_ids else ""
+        positions_info = (
+            f" — {len(node.position_ids)} positions" if node.position_ids else ""
         )
         self._lines.append(
-            f"{prefix}- **{node.name}**{leaf_marker} {party_info}{claims_info}"
+            f"{prefix}- **{node.name}**{leaf_marker} {party_info}{positions_info}"
         )
         for child in node.children:
             self._log_node(child, indent + 1)
@@ -174,7 +174,7 @@ class DebugLogger:
         self,
         leaf_id: str,
         leaf_name: str,
-        claims_used: int,
+        positions_used: int,
         parties: list[str],
         duration_ms: float,
     ) -> None:
@@ -183,7 +183,7 @@ class DebugLogger:
             return
 
         self._lines.append(f"### Leaf: {leaf_name} (`{leaf_id}`)")
-        self._lines.append(f"- Claims used: {claims_used}")
+        self._lines.append(f"- Positions used: {positions_used}")
         self._lines.append(f"- Parties: {', '.join(parties)}")
         self._lines.append(f"- Duration: {duration_ms:.0f}ms")
         self._lines.append("")

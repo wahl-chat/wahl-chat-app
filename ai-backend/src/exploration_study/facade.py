@@ -85,7 +85,6 @@ class ExplorationStudyFacade:
     async def start_quiz_generation(
         self,
         session_id: str,
-        condition_num: int,
         topic: str,
         parties: list[str],
         chat_id: str,
@@ -95,7 +94,6 @@ class ExplorationStudyFacade:
 
         Args:
             session_id: The study session ID
-            condition_num: The condition number (1 or 2)
             topic: The topic explored
             parties: List of party names
             chat_id: The guided exploration session ID
@@ -115,16 +113,12 @@ class ExplorationStudyFacade:
         # Start quiz generation in background
         self._quiz_generator.start_quiz_generation(
             session_id=session_id,
-            condition_num=condition_num,
             topic=topic,
             parties=parties,
             chat_messages=chat_messages,
         )
 
-        logger.info(
-            f"Started quiz generation for session={session_id}, "
-            f"condition={condition_num}"
-        )
+        logger.info(f"Started quiz generation for session={session_id}")
 
     async def _get_chat_messages(self, chat_id: str) -> list[dict]:
         """

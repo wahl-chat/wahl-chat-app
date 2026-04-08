@@ -22,22 +22,22 @@ from src.guided_exploration.models.tree import ExplorationTree
 # =============================================================================
 
 
-class ExtractedClaim(BaseModel):
-    """A single claim extracted from party documents with source quote."""
+class ExtractedPositionItem(BaseModel):
+    """A single position extracted from party documents with source quote."""
 
-    claim: str = Field(..., description="The extracted claim/position in own words")
+    position: str = Field(..., description="The extracted position in own words")
     quote: str = Field(..., description="Verbatim quote from source document")
     source_doc: str = Field(..., description="Source document name")
     source_page: int | None = Field(
         default=None, description="Page number if available"
     )
-    claim_type: str = Field(
+    position_type: str = Field(
         default="position",
         description="Type: position, measure, target, argument, criticism",
     )
     citation_id: str | None = Field(
         default=None,
-        description="ID of the citation for this claim (set during knowledge resolution)",
+        description="ID of the citation for this position (set during knowledge resolution)",
     )
 
 
@@ -46,9 +46,9 @@ class ExtractedPosition(BaseModel):
 
     party_id: str = Field(..., description="Party ID")
     summary: str = Field(default="", description="1-sentence summary")
-    claims: list[ExtractedClaim] = Field(
+    positions: list[ExtractedPositionItem] = Field(
         default_factory=list,
-        description="All extracted claims with quotes",
+        description="All extracted positions with quotes",
     )
 
 
@@ -149,7 +149,7 @@ class Exploration(BaseModel):
         ..., description="The user's original query that started this exploration"
     )
     tree: ExplorationTree = Field(
-        ..., description="The claim-based exploration tree"
+        ..., description="The position-based exploration tree"
     )
     status: ExplorationStatus = Field(
         default=ExplorationStatus.ACTIVE, description="Current status"

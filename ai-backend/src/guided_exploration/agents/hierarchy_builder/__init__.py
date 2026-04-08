@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Hierarchy builder agent — organizes claims into a navigable tree."""
+"""Hierarchy builder agent — organizes positions into a navigable tree."""
 
 from src.guided_exploration.agents.hierarchy_builder.implementation import (
     HierarchyBuilderAgent,

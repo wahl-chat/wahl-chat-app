@@ -114,7 +114,7 @@ export default function StudySessionLayout({
   }
 
   // For task pages, hide the header and let the task component handle layout
-  const isTaskPage = pathname.includes('/task/');
+  const isTaskPage = pathname.endsWith('/task');
 
   return (
     <StudyLayout state={session.state} hideHeader={isTaskPage}>

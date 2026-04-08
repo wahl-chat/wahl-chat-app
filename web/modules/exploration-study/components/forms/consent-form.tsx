@@ -40,7 +40,7 @@ export function ConsentForm({
             Zweck der Studie
           </h2>
           <p>
-            Diese Studie untersucht, wie Menschen mit verschiedenen KI-Systemen
+            Diese Studie untersucht, wie Menschen mit einem KI-System
             interagieren, um politische Informationen zu finden und zu
             verstehen. Deine Teilnahme hilft uns, bessere Systeme für die
             politische Bildung zu entwickeln.
@@ -54,9 +54,8 @@ export function ConsentForm({
             <li>Demografische Fragen</li>
             <li>Fragen zu deiner digitalen Kompetenz</li>
             <li>Eine kurze Einführung</li>
-            <li>Zwei Aufgaben zur Informationssuche</li>
-            <li>Fragebögen nach jeder Aufgabe</li>
-            <li>Abschließende Präferenzfragen</li>
+            <li>Eine Aufgabe zur Informationssuche</li>
+            <li>Fragebogen nach der Aufgabe</li>
           </ul>
 
           <h2 className="text-lg font-semibold text-foreground">Datenschutz</h2>

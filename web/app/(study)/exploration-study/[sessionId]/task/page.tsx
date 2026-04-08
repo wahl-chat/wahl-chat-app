@@ -3,7 +3,6 @@
 import {
   StudyExplorationWrapper,
   StudyHeader,
-  type StudyState,
   type StudyTopic,
   TaskContainer,
   TaskIntro,
@@ -22,7 +21,6 @@ export default function TaskPage() {
   const params = useParams();
   const router = useRouter();
   const sessionId = params.sessionId as string;
-  const taskNumber = Number.parseInt(params.taskNumber as string) as 1 | 2;
 
   const [pageState, setPageState] = useState<PageState>('loading');
   const [error, setError] = useState<string | null>(null);
@@ -48,8 +46,6 @@ export default function TaskPage() {
     async function loadSession() {
       const response = await studyApi.getSession(sessionId);
 
-      console.log(response);
-
       if (response.error) {
         setError(response.error);
         setPageState('error');
@@ -58,13 +54,11 @@ export default function TaskPage() {
 
       if (response.data) {
         const session = response.data;
-        const taskKey = taskNumber.toString();
-        const chatId = session.chatIds?.[taskKey];
 
         // If task already started, go directly to task
-        if (chatId && session.currentCondition) {
+        if (session.chatId && session.currentCondition) {
           setTaskData({
-            chatId,
+            chatId: session.chatId,
             condition: session.currentCondition,
             durationSeconds: session.taskDurationSeconds,
           });
@@ -72,8 +66,7 @@ export default function TaskPage() {
           return;
         }
 
-        // Show intro - need topic and condition info
-        // The backend should provide this based on the group assignment
+        // Show intro
         const topic = session.currentTopic as StudyTopic;
         const condition = session.currentCondition;
 
@@ -93,11 +86,11 @@ export default function TaskPage() {
     }
 
     loadSession();
-  }, [sessionId, taskNumber]);
+  }, [sessionId]);
 
   const handleStart = useCallback(async () => {
     setIsStarting(true);
-    const response = await studyApi.startTask(sessionId, taskNumber);
+    const response = await studyApi.startTask(sessionId);
 
     if (response.error) {
       setError(response.error);
@@ -113,20 +106,19 @@ export default function TaskPage() {
       });
       setPageState('task');
     }
-  }, [sessionId, taskNumber]);
+  }, [sessionId]);
 
   const handleEnd = useCallback(async () => {
-    const response = await studyApi.endTask(sessionId, taskNumber);
+    const response = await studyApi.endTask(sessionId);
     if (response.data) {
       const nextState = getStateFromResponse(response.data);
       if (nextState) {
         router.push(getRouteForState(sessionId, nextState));
       }
     }
-  }, [sessionId, taskNumber, router]);
+  }, [sessionId, router]);
 
-  const state: StudyState = taskNumber === 1 ? 'task_1' : 'task_2';
-  const progress = getProgress(state);
+  const progress = getProgress('task');
 
   if (pageState === 'loading') {
     return (
@@ -176,7 +168,6 @@ export default function TaskPage() {
         />
         <div className="flex-1 overflow-auto py-8">
           <TaskIntro
-            taskNumber={taskNumber}
             topic={sessionInfo.topic}
             condition={sessionInfo.condition}
             durationMinutes={Math.round(sessionInfo.durationSeconds / 60)}

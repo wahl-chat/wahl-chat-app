@@ -164,22 +164,22 @@ def format_party_positions_for_prompt(
         formatted += f"\n{party_name} ({party_id}):\n"
         if position.summary:
             formatted += f"  Zusammenfassung: {position.summary}\n"
-        if position.claims:
+        if position.positions:
             formatted += "  Kernaussagen:\n"
-            for claim in position.claims:
-                formatted += f"    - {claim.claim}"
-                if claim.citation_id:
-                    formatted += f" [{claim.citation_id}]"
+            for pos_item in position.positions:
+                formatted += f"    - {pos_item.position}"
+                if pos_item.citation_id:
+                    formatted += f" [{pos_item.citation_id}]"
                 formatted += "\n"
 
     return formatted
 
 
-def format_claims_with_indices(
+def format_positions_with_indices(
     positions: dict,
     parties_info: dict[str, PartyInfo],
 ) -> tuple[str, dict[int, str]]:
-    """Format claims from party positions with indices for citation.
+    """Format positions from party positions with indices for citation.
 
     Returns:
         A tuple of (formatted string, index-to-citation_id mapping)
@@ -200,18 +200,18 @@ def format_claims_with_indices(
             ),
         ).name
 
-        if not position.claims:
+        if not position.positions:
             continue
 
         formatted += f"\n## {party_name}\n"
-        for claim in position.claims:
-            formatted += f"[{current_index}] {claim.claim}"
-            if claim.quote:
-                formatted += f' ("{claim.quote[:100]}...")'
+        for pos_item in position.positions:
+            formatted += f"[{current_index}] {pos_item.position}"
+            if pos_item.quote:
+                formatted += f' ("{pos_item.quote[:100]}...")'
             formatted += "\n"
 
-            if claim.citation_id:
-                index_to_citation_id[current_index] = claim.citation_id
+            if pos_item.citation_id:
+                index_to_citation_id[current_index] = pos_item.citation_id
             current_index += 1
 
     return formatted, index_to_citation_id
@@ -273,15 +273,13 @@ Beschreibung: {subtopic_description}
 {chunks}
 
 == WICHTIG ==
-1. Beantworte die Frage NUR mit den oben stehenden Parteipositionen
-2. Erwaehne NUR Parteien die oben aufgefuehrt sind
+1. Beantworte die Frage so gut wie möglich mit den oben stehenden Parteipositionen
+2. Erwähne NUR Parteien die oben aufgeführt sind
 3. Erfinde KEINE Positionen
 4. Zitiere mit den angegebenen Zitations-IDs
 5. Bei mehreren Parteien: [PARTY:id]...[/PARTY:id] verwenden
-6. Wenn die Frage NICHT zum aktuellen Thema passt, weise freundlich darauf hin: \
-"Diese Frage geht ueber das aktuelle Thema '{subtopic_name}' hinaus. \
-Du kannst dieses Thema abschliessen und ein anderes Thema im Ueberblick waehlen, \
-um dazu Parteipositionen zu vergleichen."
+6. Wenn die vorhandenen Informationen die Frage nur teilweise beantworten, \
+beantworte den Teil den du beantworten kannst. Sage NICHT dass du nicht antworten kannst.
 """
 
 

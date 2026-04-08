@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Prompt templates for claim extractor agent."""
+"""Prompt templates for position extractor agent."""
 
 from pydantic import BaseModel, Field
 
@@ -14,8 +14,8 @@ from src.guided_exploration.models.exploration import RetrievedChunk
 # =============================================================================
 
 
-class LLMClaim(BaseModel):
-    """A single concrete claim extracted by the LLM."""
+class LLMPosition(BaseModel):
+    """A single concrete position extracted by the LLM."""
 
     content: str = Field(
         ...,
@@ -32,7 +32,7 @@ class LLMClaim(BaseModel):
             "Exakt aus dem Dokument uebernommen."
         ),
     )
-    claim_type: str = Field(
+    position_type: str = Field(
         ...,
         description=(
             "Art der Aussage: 'position' (Grundhaltung), 'measure' (konkrete Massnahme), "
@@ -45,16 +45,16 @@ class LLMClaim(BaseModel):
     )
 
 
-class ClaimExtractorLLMOutput(BaseModel):
-    """LLM output schema for claim extraction."""
+class PositionExtractorLLMOutput(BaseModel):
+    """LLM output schema for position extraction."""
 
-    claims: list[LLMClaim] = Field(
+    positions: list[LLMPosition] = Field(
         ...,
         min_length=5,
         description=(
             "ALLE konkreten Positionen, Forderungen, Massnahmen und Aussagen der Partei. "
             "Jede Aussage muss eigenstaendig verstaendlich und zitierbar sein. "
-            "Mindestens 5 Claims extrahieren — lieber zu viele als zu wenige!"
+            "Mindestens 5 Positionen extrahieren — lieber zu viele als zu wenige!"
         ),
     )
     relevance_to_query: float = Field(
@@ -84,9 +84,9 @@ Extrahiere JEDE konkrete Position, Forderung, Massnahme und Aussage der Partei a
 den Quelldokumenten. Nicht abstrahieren — jede Aussage muss ein eigenstaendiger, \
 zitierbarer Satz sein.
 
-# Was ist eine Claim (Aussage)?
+# Was ist eine Position (Aussage)?
 
-Eine Claim ist eine KONKRETE, EIGENSTAENDIGE Aussage. Keine abstrakten Themen!
+Eine Position ist eine KONKRETE, EIGENSTAENDIGE Aussage. Keine abstrakten Themen!
 
 ## RICHTIG (konkret, zitierbar):
 - "Mindestlohn auf 15 Euro erhoehen"
@@ -110,7 +110,7 @@ Eine Claim ist eine KONKRETE, EIGENSTAENDIGE Aussage. Keine abstrakten Themen!
 - Lieber zu viel als zu wenig
 
 ## 2. Eigenstaendigkeit
-Jede Claim muss OHNE Kontext verstaendlich sein:
+Jede Position muss OHNE Kontext verstaendlich sein:
 - FALSCH: "Diese Massnahme soll bis 2030 umgesetzt werden"
 - RICHTIG: "Kohleausstieg bis 2030 abschliessen"
 
@@ -119,7 +119,7 @@ Immer die konkreten Zahlen, Zeitraeume und Details mit angeben:
 - FALSCH: "Mindestlohn erhoehen"
 - RICHTIG: "Mindestlohn auf 15 Euro pro Stunde erhoehen"
 
-## 4. Claim Types
+## 4. Position Types
 - **position**: Grundhaltung ("Lehnt menschengemachten Klimawandel ab")
 - **measure**: Konkrete Massnahme ("Tempolimit 130 einfuehren")
 - **target**: Ziel mit Zahl/Datum ("100% Erneuerbare bis 2035")
@@ -127,7 +127,7 @@ Immer die konkreten Zahlen, Zeitraeume und Details mit angeben:
 - **criticism**: Kritik an anderen ("EEG-Umlage ist marktverzerrend")
 
 ## 5. Quellenangabe
-- Gib fuer jede Claim den chunk_index an (welcher Quelltext-Abschnitt)
+- Gib fuer jede Position den chunk_index an (welcher Quelltext-Abschnitt)
 - Gib ein woertliches Zitat aus dem Dokument an
 
 # Themenerweiterung
@@ -147,12 +147,12 @@ Quelldokumente:
 
 # Aufgabe
 Extrahiere jede einzelne konkrete Position, Forderung, Massnahme, Ziel und Aussage.
-Jede Claim muss ein eigenstaendiger, zitierbarer Satz mit konkreten Details sein.
+Jede Position muss ein eigenstaendiger, zitierbarer Satz mit konkreten Details sein.
 
 Denke daran:
 - ALLE Aussagen extrahieren, nicht nur die offensichtlichen
 - Zahlen, Zeitraeume und Ziele immer mit angeben
-- Auch Ablehnungen und Kritik sind Claims ("Lehnt CO2-Steuer ab")
+- Auch Ablehnungen und Kritik sind Positionen ("Lehnt CO2-Steuer ab")
 - Begruendungen der Partei ebenfalls erfassen"""
 
 

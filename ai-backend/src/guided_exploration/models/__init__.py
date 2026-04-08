@@ -4,7 +4,7 @@
 
 """Re-export all model classes for easy imports."""
 
-from src.guided_exploration.models.claim import Claim, PartyClaims
+from src.guided_exploration.models.position import Position, PartyPositions
 from src.guided_exploration.models.classification import (
     MessageClassificationInput,
     MessageClassificationOutput,
@@ -55,13 +55,15 @@ from src.guided_exploration.models.events import (
     StreamEndEvent,
     SummaryGeneratingEvent,
     ThinkingEvent,
+    TopicDirectionItem,
+    TopicDirectionsEvent,
     TopicOverviewEvent,
     TopicTreeEvent,
 )
 from src.guided_exploration.models.exploration import (
     Exploration,
     ExplorationStatus,
-    ExtractedClaim,
+    ExtractedPositionItem,
     ExtractedPosition,
     FinalSummary,
     KnowledgeBase,
@@ -96,9 +98,9 @@ from src.guided_exploration.models.tree import (
 )
 
 __all__ = [
-    # claim
-    "Claim",
-    "PartyClaims",
+    # position
+    "Position",
+    "PartyPositions",
     # classification
     "MessageClassificationInput",
     "MessageClassificationOutput",
@@ -145,12 +147,14 @@ __all__ = [
     "StreamEndEvent",
     "SummaryGeneratingEvent",
     "ThinkingEvent",
+    "TopicDirectionItem",
+    "TopicDirectionsEvent",
     "TopicOverviewEvent",
     "TopicTreeEvent",
     # exploration
     "Exploration",
     "ExplorationStatus",
-    "ExtractedClaim",
+    "ExtractedPositionItem",
     "ExtractedPosition",
     "FinalSummary",
     "KnowledgeBase",

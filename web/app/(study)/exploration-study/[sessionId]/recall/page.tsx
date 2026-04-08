@@ -1,8 +1,8 @@
 'use client';
 
 import {
-  type QuestionnaireData,
-  QuestionnairePage,
+  FreeRecallInput,
+  type RecallData,
   getRouteForState,
   getStateFromResponse,
   studyApi,
@@ -10,20 +10,15 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-export default function QuestionnaireSurveyPage() {
+export default function RecallPage() {
   const params = useParams();
   const router = useRouter();
   const sessionId = params.sessionId as string;
-  const taskNumber = Number.parseInt(params.taskNumber as string) as 1 | 2;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (data: QuestionnaireData) => {
+  const handleSubmit = async (data: RecallData) => {
     setIsSubmitting(true);
-    const response = await studyApi.submitQuestionnaire(
-      sessionId,
-      taskNumber,
-      data,
-    );
+    const response = await studyApi.submitRecall(sessionId, data);
     if (response.error) {
       setIsSubmitting(false);
       return;
@@ -38,7 +33,7 @@ export default function QuestionnaireSurveyPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl">
-      <QuestionnairePage onSubmit={handleSubmit} isSubmitting={isSubmitting} />
+      <FreeRecallInput onSubmit={handleSubmit} isSubmitting={isSubmitting} />
     </div>
   );
 }

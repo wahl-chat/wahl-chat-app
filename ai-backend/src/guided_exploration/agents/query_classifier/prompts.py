@@ -27,7 +27,8 @@ Viele Anfragen beziehen sich auf vorherige Nachrichten. Erkenne solche Rückverw
 
 # Anfragetypen (query_type)
 - FACTUAL: Faktenfragen zu konkreten Positionen, Vergleiche, oder Folgefragen zu vorherigen Inhalten (z.B. "Was ist die Position der SPD zu einer Mindestlohnerhöhung?", "was heißt das?", "erkläre das genauer")
-- EXPLORATORY: Komplexe Fragen die tiefere Exploration erfordern (z.B. "Was sagen die Parteien zur Rente?", "Was sagen die gemäßigten Parteien zu Migration?")
+- EXPLORATORY: Fragen zu einem konkreten Thema die tiefere Exploration erfordern (z.B. "Was sagen die Parteien zur Rente?", "Wie stehen die Parteien zu Migration?")
+- META: Fragen über das Tool selbst, verfügbare Themen, oder Orientierungsfragen ohne konkretes politisches Thema. Beispiele: "was gibt es noch?", "was sonst noch so?", "welche Themen gibt es?", "was kann ich hier machen?", "wie funktioniert das?", "was ist das hier?", "worüber kann ich noch was erfahren?"
 - CLARIFICATION: NUR wenn die Anfrage auch MIT Kontext nicht verstanden werden kann
 
 # Parteierkennung (detected_parties)
@@ -40,31 +41,39 @@ Verwende NUR die oben genannten Partei-IDs. Erkenne auch indirekte Referenzen (z
 Erstelle eine Suchanfrage die in Wahlprogramm-Dokumenten die relevanten Passagen findet.
 
 ## Kontext
-Die Suche laeuft auf Wahlprogramm-Texte einzelner Parteien. Jede Partei wird \
-separat durchsucht. Die Suchanfrage wird als semantische Vektorsuche ausgefuehrt.
+Die Suche läuft auf Wahlprogramm-Texte einzelner Parteien. Jede Partei wird \
+separat durchsucht. Die Suchanfrage wird als semantische Vektorsuche ausgeführt.
 
 ## Gute Suchanfragen
-Formuliere so, wie es in einem Wahlprogramm stehen wuerde:
-- "Mindestlohn erhoehen Arbeitnehmer Loehne" (Fachbegriffe aus dem Wahlprogramm)
-- "Mietpreisbremse Wohnungsmarkt Mieten bezahlbar" (wie eine Partei darueber schreibt)
-- "Klimaneutralitaet erneuerbare Energien CO2 Emissionen" (Themenwoerter)
+Die Suchanfrage MUSS mindestens 5-8 Schlüsselwörter enthalten. Formuliere so, \
+wie es in einem Wahlprogramm stehen würde:
+- "Mindestlohn erhöhen Arbeitnehmer Löhne Tarifbindung Arbeitsbedingungen"
+- "Mietpreisbremse Wohnungsmarkt Mieten bezahlbar Sozialwohnungen Wohnungsbau"
+- "Klimaneutralität erneuerbare Energien CO2 Emissionen Energiewende Kohleausstieg"
+- "Migration Zuwanderung Asyl Integration Fachkräfte Abschiebung innere Sicherheit"
 
 ## Schlechte Suchanfragen
+- "Migration Sicherheit" (zu kurz! Mindestens 5 Schlüsselwörter)
 - "Was sagen die Parteien zu..." (Meta-Sprache, steht nicht im Wahlprogramm)
 - "Positionen Vergleich Unterschiede" (beschreibt die Aufgabe, nicht den Inhalt)
-- "SPD CDU Gruene" (Parteinamen nicht noetig, jede Partei wird einzeln durchsucht)
+- "SPD CDU Grüne" (Parteinamen nicht nötig, jede Partei wird einzeln durchsucht)
 
-## Rueckverweise aufloesen
-Bei Rueckverweisen auf vorherige Nachrichten: extrahiere das eigentliche Thema!
-- "was heisst das?" nach einer Frage zu Rente → "Altersvorsorge Rentenfinanzierung Lebensstandard"
-- "erklaere das genauer" → Nutze die Schluesselwoerter aus der letzten Antwort
+## Rückverweise auflösen
+Bei Rückverweisen auf vorherige Nachrichten: extrahiere das eigentliche Thema!
+- "was heißt das?" nach einer Frage zu Rente → "Altersvorsorge Rentenfinanzierung Lebensstandard Renteneintrittsalter"
+- "erkläre das genauer" → Nutze die Schlüsselwörter aus der letzten Antwort
 - Formuliere immer auf Deutsch
 
-## Themenerweiterung
-Ergaenze verwandte Begriffe die in Wahlprogrammen typischerweise vorkommen:
-- Miete → Wohnungsbau, Sozialwohnungen, Mietpreisbremse, Wohngeld
-- Klima → Energiewende, CO2, Emissionen, erneuerbare Energien
+## Themenerweiterung — WICHTIG
+Erweitere die Suchanfrage IMMER mit verwandten Begriffen die in Wahlprogrammen \
+typischerweise vorkommen. Die Suchanfrage darf NIEMALS nur 1-2 Wörter lang sein:
+- Miete → Wohnungsbau, Sozialwohnungen, Mietpreisbremse, Wohngeld, Mietspiegel
+- Klima → Energiewende, CO2, Emissionen, erneuerbare Energien, Kohleausstieg
 - Rente → Altersvorsorge, Renteneintrittsalter, Grundrente, Generationenvertrag
+- Migration → Zuwanderung, Asyl, Integration, Fachkräfte, Abschiebung, Aufenthaltsrecht
+- Sicherheit → Polizei, Bundeswehr, Verteidigung, Kriminalität, Terrorismus
+- Wirtschaft → Steuern, Fachkräftemangel, Mittelstand, Innovation, Bürokratie
+- Bildung → Schule, Hochschule, Ausbildung, Digitalisierung, Forschung, Kita
 
 # Klarstellungsbedarf (needs_clarification)
 - true: NUR wenn die Anfrage auch MIT dem Konversationskontext nicht verstanden werden kann

@@ -1,33 +1,26 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { studyApi } from '@/modules/exploration-study';
 import { CheckCircle } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 export default function CompletePage() {
   const params = useParams();
   const sessionId = params.sessionId as string;
-  const [isCompleting, setIsCompleting] = useState(true);
+  const [feedback, setFeedback] = useState('');
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mark study as complete on mount
-  useEffect(() => {
-    async function completeStudy() {
-      await studyApi.completeStudy(sessionId);
-      setIsCompleting(false);
-    }
-
-    completeStudy();
-  }, [sessionId]);
-
-  if (isCompleting) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-col items-center justify-center py-12">
-        <p className="text-muted-foreground">Studie wird abgeschlossen...</p>
-      </div>
-    );
-  }
+  const handleFeedbackSubmit = async () => {
+    if (!feedback.trim()) return;
+    setIsSubmitting(true);
+    await studyApi.submitFeedback(sessionId, { feedback: feedback.trim() });
+    setFeedbackSubmitted(true);
+    setIsSubmitting(false);
+  };
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-8 py-12 text-center">
@@ -46,11 +39,10 @@ export default function CompletePage() {
         <h2 className="text-lg font-semibold">Über diese Studie</h2>
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>
-            In dieser Studie hast du zwei verschiedene Systeme zur
-            Informationssuche über politische Themen verwendet. Ziel der
-            Forschung ist es zu verstehen, wie unterschiedliche
-            Interaktionsdesigns das Lernen und Verstehen politischer
-            Informationen beeinflussen.
+            In dieser Studie hast du ein System zur Informationssuche über
+            politische Themen verwendet. Ziel der Forschung ist es zu verstehen,
+            wie unterschiedliche Interaktionsdesigns das Lernen und Verstehen
+            politischer Informationen beeinflussen.
           </p>
           <p>
             <strong>Wichtig:</strong> Die in der Studie verwendeten Parteien und
@@ -64,6 +56,33 @@ export default function CompletePage() {
           </p>
         </div>
       </div>
+
+      {!feedbackSubmitted && (
+        <div className="space-y-4 rounded-lg border p-6 text-left">
+          <h2 className="text-lg font-semibold">
+            Hast du noch Anmerkungen? (optional)
+          </h2>
+          <Textarea
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            placeholder="Teile uns gerne deine Gedanken, Anregungen oder Kritik mit..."
+            rows={4}
+          />
+          <Button
+            onClick={handleFeedbackSubmit}
+            disabled={!feedback.trim() || isSubmitting}
+            variant="outline"
+          >
+            {isSubmitting ? 'Wird gesendet...' : 'Feedback absenden'}
+          </Button>
+        </div>
+      )}
+
+      {feedbackSubmitted && (
+        <p className="text-sm text-muted-foreground">
+          Danke für dein Feedback!
+        </p>
+      )}
 
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Kontakt</h2>

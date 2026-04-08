@@ -15,6 +15,7 @@ class QueryType(str, Enum):
     FACTUAL = "factual"
     EXPLORATORY = "exploratory"
     CLARIFICATION = "clarification"
+    META = "meta"
 
 
 class MessageIntent(str, Enum):

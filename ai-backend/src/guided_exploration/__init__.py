@@ -5,7 +5,7 @@
 """
 Guided Exploration Module.
 
-Claim-based adaptive hierarchy for exploring party positions
+Position-based adaptive hierarchy for exploring party positions
 on political topics with conversational followups and analysis.
 """
 
@@ -21,9 +21,9 @@ from src.guided_exploration.services import (
 
 # Re-export all models for easy access
 from src.guided_exploration.models import (
-    # claim
-    Claim,
-    PartyClaims,
+    # position
+    Position,
+    PartyPositions,
     # classification
     MessageClassificationInput,
     MessageClassificationOutput,
@@ -105,9 +105,9 @@ __all__ = [
     "Orchestrator",
     "SessionRepository",
     "get_session_repository",
-    # claim
-    "Claim",
-    "PartyClaims",
+    # position
+    "Position",
+    "PartyPositions",
     # classification
     "MessageClassificationInput",
     "MessageClassificationOutput",

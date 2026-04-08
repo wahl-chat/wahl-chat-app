@@ -52,6 +52,30 @@ class Analysis(BaseModel):
     )
 
 
+class PartyStance(BaseModel):
+    """A single party's stance on a comparison aspect."""
+
+    party: str = Field(..., description="Party ID")
+    stance: str = Field(..., description="Short stance description")
+
+
+class ComparisonAspect(BaseModel):
+    """A comparable aspect extracted across parties."""
+
+    name: str = Field(..., description="Aspect name, e.g., 'Mindestlohn'")
+    party_stances: list[PartyStance] = Field(
+        default_factory=list, description="Each party's stance"
+    )
+
+
+class AspectComparison(BaseModel):
+    """Structured comparison data for toggling between views."""
+
+    aspects: list[ComparisonAspect] = Field(
+        default_factory=list, description="Comparable aspects"
+    )
+
+
 class SubtopicContent(BaseModel):
     """The 4-section content for a leaf subtopic."""
 
@@ -65,6 +89,9 @@ class SubtopicContent(BaseModel):
     )
     analysis: Analysis | None = Field(
         default=None, description="Critical analysis (generated on request)"
+    )
+    aspect_comparison: AspectComparison | None = Field(
+        default=None, description="Aspect-based comparison (generated alongside positions)"
     )
     citations: list[Citation] = Field(
         default_factory=list, description="All citations for the content"

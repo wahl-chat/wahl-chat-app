@@ -4,9 +4,9 @@
  */
 
 import type {
-  Claim,
   ExplorationNode,
   ExplorationTree,
+  Position,
 } from '@/modules/guided-exploration/types';
 
 /**
@@ -160,31 +160,31 @@ export function getNextUnexploredLeaf(
 }
 
 /**
- * Get claims for a leaf node
+ * Get positions for a leaf node
  */
-export function getClaimsForLeaf(
+export function getPositionsForLeaf(
   tree: ExplorationTree,
   leafId: string,
-): Claim[] {
+): Position[] {
   const node = findNode(tree, leafId);
   if (!node || !isLeaf(node)) return [];
-  return node.claimIds
-    .map((id) => tree.claims[id])
-    .filter((c): c is Claim => c !== undefined);
+  return node.positionIds
+    .map((id) => tree.positions[id])
+    .filter((c): c is Position => c !== undefined);
 }
 
 /**
- * Get claims for a leaf grouped by party
+ * Get positions for a leaf grouped by party
  */
-export function getClaimsByParty(
+export function getPositionsByParty(
   tree: ExplorationTree,
   leafId: string,
-): Record<string, Claim[]> {
-  const claims = getClaimsForLeaf(tree, leafId);
-  const byParty: Record<string, Claim[]> = {};
-  for (const claim of claims) {
-    if (!byParty[claim.partyId]) byParty[claim.partyId] = [];
-    byParty[claim.partyId].push(claim);
+): Record<string, Position[]> {
+  const positions = getPositionsForLeaf(tree, leafId);
+  const byParty: Record<string, Position[]> = {};
+  for (const position of positions) {
+    if (!byParty[position.partyId]) byParty[position.partyId] = [];
+    byParty[position.partyId].push(position);
   }
   return byParty;
 }
@@ -194,8 +194,8 @@ export function getClaimsByParty(
  */
 export function getAllParties(tree: ExplorationTree): string[] {
   const parties = new Set<string>();
-  for (const claim of Object.values(tree.claims)) {
-    parties.add(claim.partyId);
+  for (const position of Object.values(tree.positions)) {
+    parties.add(position.partyId);
   }
   return Array.from(parties).sort();
 }

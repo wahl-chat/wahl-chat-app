@@ -100,6 +100,11 @@ class RAGService:
             ]
         )
 
+        logger.info(
+            f"RAG search: collection={collection_name}, party={party_id}, "
+            f"query='{query}', n_docs={n_docs}, score_threshold={score_threshold}"
+        )
+
         # Search Qdrant
         search_result = self._client.search(
             collection_name=collection_name,

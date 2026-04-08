@@ -6,6 +6,7 @@
 import type {
   Analysis,
   ChoicePromptEvent,
+  Citation,
   Conversation,
   ErrorCode,
   ExplorationTree,
@@ -16,6 +17,7 @@ import type {
   StreamSection,
   StreamTargetType,
   ThinkingStage,
+  TopicDirectionsEvent,
 } from '@/modules/guided-exploration/types';
 
 // ============ State Slices ============
@@ -34,11 +36,28 @@ export interface ConnectionSliceState {
   sessionClaimed: boolean;
 }
 
+/** Tab metadata for an exploration */
+export interface ExplorationTabState {
+  explorationId: string;
+  /** Truncated original query as tab label */
+  label: string;
+  /** Color palette index (0-5) for visual distinction */
+  colorIndex: number;
+  /** Whether there are unread updates in this exploration */
+  hasUnread: boolean;
+  /** Last navigation path (for restoring position on tab switch) */
+  lastPath: string[];
+}
+
 export interface SessionSliceState {
   sessionId: string | null;
   explorationId: string | null;
   /** Chat messages at session level */
   messages: SessionMessage[];
+  /** All exploration tabs, keyed by explorationId */
+  explorationTabs: Record<string, ExplorationTabState>;
+  /** Currently active tab: 'chat' or an explorationId */
+  activeTabId: 'chat' | string;
 }
 
 export interface ExplorationSliceState {
@@ -64,7 +83,7 @@ export interface QuickSummaryData {
   queryId: string;
   originalQuery: string;
   text: string;
-  citations: Array<{ id: string; party: string; document: string }>;
+  citations: Citation[];
   canExploreDeeper: boolean;
   suggestedQuestions?: string[];
 }
@@ -102,6 +121,8 @@ export interface UISliceState {
     targetNodeName: string;
     message: string;
   } | null;
+  /** Pending topic directions for user selection */
+  pendingDirections: TopicDirectionsEvent | null;
 }
 
 export interface SummariesSliceState {
@@ -141,7 +162,20 @@ export type ExplorationAction =
     }
   | { type: 'SESSION_CLEARED' }
   | { type: 'SESSION_MESSAGE_ADDED'; message: SessionMessage }
+  | {
+      type: 'SESSION_MESSAGE_UPDATED';
+      messageId: string;
+      updates: Partial<SessionMessage>;
+    }
   | { type: 'SESSION_MESSAGES_LOADED'; messages: SessionMessage[] }
+  | { type: 'TAB_SWITCHED'; tabId: 'chat' | string; previousPath?: string[] }
+  | {
+      type: 'EXPLORATION_TAB_ADDED';
+      explorationId: string;
+      label: string;
+      colorIndex: number;
+    }
+  | { type: 'EXPLORATION_TAB_REMOVED'; explorationId: string }
 
   // Exploration Actions
   | {
@@ -238,6 +272,8 @@ export type ExplorationAction =
       message: string;
     }
   | { type: 'TOPIC_SWITCH_CLEARED' }
+  | { type: 'TOPIC_DIRECTIONS_RECEIVED'; directions: TopicDirectionsEvent }
+  | { type: 'TOPIC_DIRECTIONS_CLEARED' }
 
   // Summary Actions
   | { type: 'SUMMARY_GENERATING'; nodeId: string }

@@ -40,7 +40,6 @@ class QuizGeneratorService:
     async def generate_quiz_async(
         self,
         session_id: str,
-        condition_num: int,
         topic: str,
         parties: list[str],
         chat_messages: list[dict],
@@ -54,11 +53,9 @@ class QuizGeneratorService:
         quiz: Quiz | None = None
         try:
             # Create or get the quiz record
-            quiz = await self._session_repo.get_quiz_for_condition(
-                session_id, condition_num
-            )
+            quiz = await self._session_repo.get_session_quiz(session_id)
             if not quiz:
-                quiz = await self._session_repo.create_quiz(session_id, condition_num)
+                quiz = await self._session_repo.create_quiz(session_id)
 
             # Update status to generating
             await self._session_repo.update_quiz(
@@ -102,14 +99,13 @@ class QuizGeneratorService:
             )
 
             logger.info(
-                f"Quiz generation complete for session {session_id}, "
-                f"condition {condition_num}: {len(questions)} questions"
+                f"Quiz generation complete for session {session_id}: "
+                f"{len(questions)} questions"
             )
 
         except Exception as e:
             logger.exception(
-                f"Quiz generation failed for session {session_id}, "
-                f"condition {condition_num}: {e}"
+                f"Quiz generation failed for session {session_id}: {e}"
             )
             # Update quiz with error status
             if quiz:
@@ -125,7 +121,6 @@ class QuizGeneratorService:
     def start_quiz_generation(
         self,
         session_id: str,
-        condition_num: int,
         topic: str,
         parties: list[str],
         chat_messages: list[dict],
@@ -138,7 +133,6 @@ class QuizGeneratorService:
         return asyncio.create_task(
             self.generate_quiz_async(
                 session_id=session_id,
-                condition_num=condition_num,
                 topic=topic,
                 parties=parties,
                 chat_messages=chat_messages,

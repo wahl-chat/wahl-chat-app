@@ -10,23 +10,19 @@ from src.exploration_study.services.session_repository import (
 
 logger = logging.getLogger(__name__)
 
-# Type for all 4 groups
-GroupType = Literal["A", "B", "C", "D"]
-
-# Hardcoded topics for the study
-STUDY_TOPICS = ["soziale-gerechtigkeit", "klimaschutz"]
+# Type for the 4 sub-groups (A=guided, B=baseline; 1/2=topic counterbalance)
+GroupType = Literal["A1", "A2", "B1", "B2"]
 
 
 class Counterbalancer:
     """
-    Assigns participants to groups for counterbalancing.
+    Assigns participants to groups for between-subjects A/B design.
 
-    Uses a 2x2 Latin square design with 4 groups to counterbalance
-    both mode order and topic order:
-    - Group A: Task 1 = Guided + Topic1, Task 2 = Baseline + Topic2
-    - Group B: Task 1 = Baseline + Topic1, Task 2 = Guided + Topic2
-    - Group C: Task 1 = Guided + Topic2, Task 2 = Baseline + Topic1
-    - Group D: Task 1 = Baseline + Topic2, Task 2 = Guided + Topic1
+    Uses 4 sub-groups to counterbalance topic assignment across conditions:
+    - Group A1: Guided + Topic1
+    - Group A2: Guided + Topic2
+    - Group B1: Baseline + Topic1
+    - Group B2: Baseline + Topic2
     """
 
     def __init__(self, session_repository: SessionRepository) -> None:
@@ -42,8 +38,8 @@ class Counterbalancer:
 
         # Find the group with minimum count
         min_count = min(counts.values())
-        groups: list[GroupType] = ["A", "B", "C", "D"]
-        selected_group: GroupType = "A"  # Default
+        groups: list[GroupType] = ["A1", "A2", "B1", "B2"]
+        selected_group: GroupType = "A1"  # Default
         for group in groups:
             if counts.get(group, 0) == min_count:
                 selected_group = group

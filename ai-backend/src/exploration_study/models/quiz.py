@@ -62,12 +62,6 @@ class Quiz(BaseModel):
 
     id: str = Field(..., description="Unique quiz identifier")
     session_id: str = Field(..., description="The session this quiz belongs to")
-    condition_num: int = Field(
-        ...,
-        description="The condition number (1 or 2)",
-        ge=1,
-        le=2,
-    )
     status: QuizStatus = Field(
         default=QuizStatus.PENDING,
         description="Current status of quiz generation",

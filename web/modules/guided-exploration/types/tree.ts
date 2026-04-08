@@ -1,15 +1,15 @@
 /**
  * Exploration Tree Types
- * Claim-based adaptive hierarchy for exploring party positions
+ * Position-based adaptive hierarchy for exploring party positions
  */
 
 /** A concrete position, demand, or statement from a party */
-export interface Claim {
+export interface Position {
   id: string;
   partyId: string;
   content: string;
   quote: string;
-  claimType: 'position' | 'measure' | 'target' | 'argument' | 'criticism';
+  positionType: 'position' | 'measure' | 'target' | 'argument' | 'criticism';
   citation: {
     id: string;
     party: string;
@@ -23,7 +23,7 @@ export interface Claim {
 
 /**
  * Recursive node in the exploration tree.
- * Can be a branch (has children) or a leaf (has claimIds).
+ * Can be a branch (has children) or a leaf (has positionIds).
  * Names must be screen-reader friendly.
  */
 export interface ExplorationNode {
@@ -33,21 +33,23 @@ export interface ExplorationNode {
   description: string;
   /** Child nodes. Empty = leaf node */
   children: ExplorationNode[];
-  /** Party IDs with claims in this node or its descendants */
+  /** Party IDs with positions in this node or its descendants */
   partyIds: string[];
-  /** Claim IDs assigned to this leaf. Empty for branch nodes */
-  claimIds: string[];
+  /** Position IDs assigned to this leaf. Empty for branch nodes */
+  positionIds: string[];
   status: 'pending' | 'explored';
 }
 
-/** Complete exploration tree with claim-based hierarchy */
+/** Complete exploration tree with position-based hierarchy */
 export interface ExplorationTree {
   explorationId: string;
   originalQuery: string;
+  /** User-selected direction focuses (from topic direction choice) */
+  selectedDirections?: string[];
   /** Root node of the tree (the query topic) */
   root: ExplorationNode;
-  /** Lookup: claimId -> Claim */
-  claims: Record<string, Claim>;
+  /** Lookup: positionId -> Position */
+  positions: Record<string, Position>;
   createdAt: string;
   updatedAt: string;
 }

@@ -55,10 +55,10 @@ class InsufficientChunksError(GuidedExplorationError):
         total_parties: int,
         parties_with_chunks: int,
         parties_without_chunks: list[str],
-        available_claims: list | None = None,
+        available_positions: list | None = None,
     ) -> None:
         super().__init__(message)
         self.total_parties = total_parties
         self.parties_with_chunks = parties_with_chunks
         self.parties_without_chunks = parties_without_chunks
-        self.available_claims = available_claims or []
+        self.available_positions = available_positions or []

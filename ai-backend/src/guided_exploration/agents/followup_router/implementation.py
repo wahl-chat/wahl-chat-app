@@ -18,7 +18,7 @@ from src.guided_exploration.agents.followup_router.prompts import (
     SYSTEM_PROMPT,
     USER_PROMPT,
     FollowupRouterLLMOutput,
-    format_claims_for_routing,
+    format_positions_for_routing,
     format_other_leaves,
 )
 from src.guided_exploration.agents.llm_provider import LLMProvider
@@ -30,7 +30,7 @@ class FollowupRouterAgent(BaseAgent[FollowupRouterInput, FollowupRouterOutput]):
     """
     Fast routing agent that classifies follow-up questions.
 
-    Decides whether a question can be answered from existing claims,
+    Decides whether a question can be answered from existing positions,
     needs additional RAG retrieval, belongs to another topic,
     or is completely off-topic.
 
@@ -51,7 +51,7 @@ class FollowupRouterAgent(BaseAgent[FollowupRouterInput, FollowupRouterOutput]):
         system_prompt = SYSTEM_PROMPT.format(
             leaf_name=input.leaf_name,
             leaf_description=input.leaf_description,
-            existing_claims=input.existing_claims_summary,
+            existing_positions=input.existing_positions_summary,
             other_leaves=format_other_leaves(input.other_leaves),
         )
 
@@ -90,6 +90,7 @@ class FollowupRouterAgent(BaseAgent[FollowupRouterInput, FollowupRouterOutput]):
 
         return FollowupRouterOutput(
             route=route,
+            rag_query=llm_output.rag_query,
             target_node_id=llm_output.target_node_id,
             target_node_name=llm_output.target_node_name,
         )

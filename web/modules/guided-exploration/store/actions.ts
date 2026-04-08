@@ -16,6 +16,7 @@ import type {
   StreamSection,
   StreamTargetType,
   ThinkingStage,
+  TopicDirectionsEvent,
 } from '@/modules/guided-exploration/types';
 import type {
   AppMode,
@@ -71,9 +72,43 @@ export const sessionActions = {
     message,
   }),
 
+  messageUpdated: (
+    messageId: string,
+    updates: Partial<SessionMessage>,
+  ): ExplorationAction => ({
+    type: 'SESSION_MESSAGE_UPDATED',
+    messageId,
+    updates,
+  }),
+
   messagesLoaded: (messages: SessionMessage[]): ExplorationAction => ({
     type: 'SESSION_MESSAGES_LOADED',
     messages,
+  }),
+
+  tabSwitched: (
+    tabId: 'chat' | string,
+    previousPath?: string[],
+  ): ExplorationAction => ({
+    type: 'TAB_SWITCHED',
+    tabId,
+    previousPath,
+  }),
+
+  explorationTabAdded: (
+    explorationId: string,
+    label: string,
+    colorIndex: number,
+  ): ExplorationAction => ({
+    type: 'EXPLORATION_TAB_ADDED',
+    explorationId,
+    label,
+    colorIndex,
+  }),
+
+  explorationTabRemoved: (explorationId: string): ExplorationAction => ({
+    type: 'EXPLORATION_TAB_REMOVED',
+    explorationId,
   }),
 };
 
@@ -301,6 +336,17 @@ export const uiActions = {
 
   topicSwitchCleared: (): ExplorationAction => ({
     type: 'TOPIC_SWITCH_CLEARED',
+  }),
+
+  topicDirectionsReceived: (
+    directions: TopicDirectionsEvent,
+  ): ExplorationAction => ({
+    type: 'TOPIC_DIRECTIONS_RECEIVED',
+    directions,
+  }),
+
+  topicDirectionsCleared: (): ExplorationAction => ({
+    type: 'TOPIC_DIRECTIONS_CLEARED',
   }),
 };
 

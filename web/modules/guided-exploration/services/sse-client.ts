@@ -143,6 +143,8 @@ export class SSEClient {
       'exploration_ready',
       'exploration_complete',
       'export_ready',
+      'topic_directions',
+      'topic_switch_suggested',
       'error',
     ];
 

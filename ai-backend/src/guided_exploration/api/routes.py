@@ -18,6 +18,7 @@ from src.guided_exploration.api.dtos import (
     ResumeSessionResponse,
     SendMessageRequest,
     SubmitChoiceRequest,
+    SubmitDirectionChoiceRequest,
 )
 from src.guided_exploration.api.sse import get_sse_manager, sse_handler
 
@@ -204,6 +205,34 @@ async def submit_choice(request: web.Request) -> web.Response:
     return web.json_response(result, status=202)
 
 
+async def submit_direction_choice(request: web.Request) -> web.Response:
+    """
+    POST /api/v1/guided-exploration/sessions/{session_id}/direction-choice
+    Submit a topic direction choice. Results streamed via SSE.
+    """
+    session_id = request.match_info["session_id"]
+
+    try:
+        body = await request.json()
+        req = SubmitDirectionChoiceRequest(**body)
+    except Exception as e:
+        return web.json_response(
+            {"error": "invalid_request", "message": str(e)},
+            status=400,
+        )
+
+    facade = get_facade()
+    result = await facade.handle_direction_choice(
+        session_id=session_id,
+        query_id=req.query_id,
+        directions=[
+            {"id": d.id, "name": d.name} for d in req.directions
+        ],
+    )
+
+    return web.json_response(result, status=202)
+
+
 async def navigate(request: web.Request) -> web.Response:
     """
     POST /api/v1/guided-exploration/sessions/{session_id}/explorations/{exploration_id}/navigate
@@ -340,6 +369,7 @@ def setup_guided_exploration_routes(app: web.Application) -> None:
         ),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/message", send_message),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/choice", submit_choice),
+        ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/direction-choice", submit_direction_choice),
         (
             "POST",
             f"{ROUTE_PREFIX}/sessions/{{session_id}}/explorations/{{exploration_id}}/navigate",

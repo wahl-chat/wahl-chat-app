@@ -11,7 +11,6 @@ import {
 import { Clock, Loader2, MessageCircle, TreePine } from 'lucide-react';
 
 interface TaskIntroProps {
-  taskNumber: 1 | 2;
   topic: StudyTopic;
   condition: StudyCondition;
   durationMinutes: number;
@@ -20,7 +19,6 @@ interface TaskIntroProps {
 }
 
 export function TaskIntro({
-  taskNumber,
   topic,
   condition,
   durationMinutes,
@@ -33,7 +31,7 @@ export function TaskIntro({
     <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
       <div className="space-y-2">
         <p className="text-sm font-medium text-muted-foreground">
-          Aufgabe {taskNumber} von 2
+          Deine Aufgabe
         </p>
         <h1 className="text-2xl font-bold">{topicInfo.title}</h1>
       </div>
@@ -90,7 +88,7 @@ export function TaskIntro({
 
       <div className="rounded-lg border bg-muted/50 p-4">
         <p className="text-sm text-muted-foreground">
-          <strong>Tipp:</strong> Versuchen Sie, die wichtigsten Positionen der
+          <strong>Tipp:</strong> Versuche, die wichtigsten Positionen der
           Parteien zu verstehen und Gemeinsamkeiten sowie Unterschiede zu
           identifizieren. Im Anschluss wirst du einige Fragen zu den Inhalten
           beantworten.

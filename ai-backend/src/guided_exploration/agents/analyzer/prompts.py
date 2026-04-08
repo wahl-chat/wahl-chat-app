@@ -12,11 +12,11 @@ class AnalysisLLMOutput(BaseModel):
 
     summary: str = Field(
         ...,
-        description="Kritische Einordnung in 2-3 Sätzen. Bewerte die Positionen auf Realismus.",
+        description="Kritische Einordnung in 2-3 Saetzen. Bewerte die Positionen auf Realismus.",
     )
     context: str = Field(
         ...,
-        description="Relevanter Hintergrund und aktuelle Lage in 2-3 Sätzen",
+        description="Relevanter Hintergrund und aktuelle Lage in 2-3 Saetzen",
     )
     feasibility: list[str] = Field(
         ...,
@@ -28,7 +28,7 @@ class AnalysisLLMOutput(BaseModel):
     )
     sources: list[str] = Field(
         default_factory=list,
-        description="Relevante Quellen oder Institute für weitere Information",
+        description="Relevante Quellen oder Institute fuer weitere Information",
     )
 
 
@@ -86,22 +86,22 @@ ANALYSIS_PROMPT = """Erstelle eine kritische Analyse:
 
 ## Deine Aufgabe:
 
-1. **summary** (2-3 Sätze): Kritische Einordnung der Positionen. Welche Ansätze sind realistischer? Wo gibt es Widersprüche oder unrealistische Versprechen?
+1. **summary** (2-3 Saetze): Kritische Einordnung der Positionen. Welche Ansaetze sind realistischer? Wo gibt es Widersprueche oder unrealistische Versprechen?
 
-2. **context** (2-3 Sätze): Aktueller Stand, relevante Rahmenbedingungen (EU-Recht, Haushaltslage, bestehende Gesetze)
+2. **context** (2-3 Saetze): Aktueller Stand, relevante Rahmenbedingungen (EU-Recht, Haushaltslage, bestehende Gesetze)
 
-3. **feasibility** (3-4 Punkte): Konkrete Hürden und Chancen der Umsetzung:
+3. **feasibility** (3-4 Punkte): Konkrete Huerden und Chancen der Umsetzung:
    - Rechtliche Machbarkeit
    - Finanzierbarkeit
    - Politische Durchsetzbarkeit
    - Praktische Umsetzung
 
 4. **considerations** (3-4 Punkte): Was sollte man bedenken?
-   - Mögliche Nebenwirkungen
+   - Moegliche Nebenwirkungen
    - Langfristige Auswirkungen
    - Wer profitiert, wer verliert?
 
-Sei kritisch aber sachlich. Bevorzuge realistische Perspektiven gegenüber Wunschdenken."""
+Sei kritisch aber sachlich. Bevorzuge realistische Perspektiven gegenueber Wunschdenken."""
 
 
 def format_focus_areas(focus_areas: list[str]) -> str:
@@ -117,7 +117,7 @@ def format_party_positions_for_analysis(
 ) -> str:
     """Format party positions (ExtractedPosition) for analysis prompt."""
     if not positions:
-        return "Keine Parteipositionen verfügbar."
+        return "Keine Parteipositionen verfuegbar."
 
     formatted = ""
     for party_id, position in positions.items():
@@ -133,12 +133,12 @@ def format_party_positions_for_analysis(
         else:
             formatted += "\n"
 
-        # Add claims as key points
-        if position.claims:
-            for claim in position.claims[:3]:  # Limit to 3 claims
-                formatted += f"  - {claim.claim}"
-                if claim.citation_id:
-                    formatted += f" [{claim.citation_id}]"
+        # Add positions as key points
+        if position.positions:
+            for pos_item in position.positions[:3]:  # Limit to 3 positions
+                formatted += f"  - {pos_item.position}"
+                if pos_item.citation_id:
+                    formatted += f" [{pos_item.citation_id}]"
                 formatted += "\n"
 
     return formatted

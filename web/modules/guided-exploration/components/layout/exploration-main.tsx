@@ -8,9 +8,12 @@ import { ExplorationFullView } from '@/modules/guided-exploration/components/exp
 import { ExplorationLoading } from '@/modules/guided-exploration/components/shared/exploration-loading';
 import { useExploration } from '@/modules/guided-exploration/hooks';
 import {
+  sessionActions,
   uiActions,
   useExplorationStore,
 } from '@/modules/guided-exploration/store';
+
+import { ExplorationTabBar } from './exploration-tab-bar';
 
 interface ExplorationMainProps {
   /** Session ID from URL (when navigating to /explore/[sessionId]) */
@@ -28,7 +31,7 @@ export function ExplorationMain({
   const searchParams = useSearchParams();
   const contextId = params.contextId as string;
   const hasNavigated = useRef(false);
-  const hasLoadedExploration = useRef(false);
+  const loadedExplorations = useRef<Set<string>>(new Set());
   const lastNavigatedPath = useRef<string | null>(null);
   const dispatch = useExplorationStore((s) => s.dispatch);
 
@@ -57,6 +60,7 @@ export function ExplorationMain({
     sendChatMessage,
     loadExploration,
     submitChoice,
+    submitDirectionChoice,
     requestAnalysis,
     markExplored,
     sessionMessages,
@@ -72,54 +76,56 @@ export function ExplorationMain({
     topicSwitchSuggestion,
     acceptTopicSwitch,
     dismissTopicSwitch,
+    // Tabs
+    activeTabId,
+    explorationTabs,
   } = useExploration({
     initialSessionId,
     autoCreateSession: !initialSessionId,
   });
 
-  // Debug: log streamingTarget in exploration-main
-  console.log('=== [ExplorationMain] RENDER ===');
-  console.log('[ExplorationMain] streamingTarget:', streamingTarget);
-  console.log('[ExplorationMain] isStreaming:', isStreaming);
-  console.log('[ExplorationMain] streamBuffer length:', streamBuffer?.length);
-
   // Build URL with path query param
   const buildExplorationUrl = useCallback(
-    (path: string[]) => {
-      const base = `/${contextId}/explore/${sessionId}/explorations/${initialExplorationId}`;
+    (explorationId: string, path: string[]) => {
+      const base = `/${contextId}/explore/${sessionId}/explorations/${explorationId}`;
       if (path.length === 0) {
         return base;
       }
       return `${base}?path=${path.join(',')}`;
     },
-    [contextId, sessionId, initialExplorationId],
+    [contextId, sessionId],
   );
 
-  // Navigation handlers that update URL
+  // Navigation handlers
+  const activeExplorationId =
+    activeTabId !== 'chat' ? activeTabId : initialExplorationId;
+
   const handleNavigateToRoot = useCallback(() => {
-    if (sessionId && initialExplorationId) {
-      router.push(buildExplorationUrl([]));
+    if (sessionId && activeExplorationId) {
+      router.push(buildExplorationUrl(activeExplorationId, []));
     }
-  }, [router, sessionId, initialExplorationId, buildExplorationUrl]);
+  }, [router, sessionId, activeExplorationId, buildExplorationUrl]);
 
   const handleNavigateToNode = useCallback(
     (nodeId: string) => {
-      if (sessionId && initialExplorationId) {
-        router.push(buildExplorationUrl([nodeId]));
+      if (sessionId && activeExplorationId) {
+        router.push(buildExplorationUrl(activeExplorationId, [nodeId]));
       }
     },
-    [router, sessionId, initialExplorationId, buildExplorationUrl],
+    [router, sessionId, activeExplorationId, buildExplorationUrl],
   );
 
   const handleBack = useCallback(() => {
-    if (currentPath.length > 0 && sessionId && initialExplorationId) {
-      router.push(buildExplorationUrl(currentPath.slice(0, -1)));
+    if (currentPath.length > 0 && sessionId && activeExplorationId) {
+      router.push(
+        buildExplorationUrl(activeExplorationId, currentPath.slice(0, -1)),
+      );
     }
   }, [
     router,
     currentPath,
     sessionId,
-    initialExplorationId,
+    activeExplorationId,
     buildExplorationUrl,
   ]);
 
@@ -131,41 +137,37 @@ export function ExplorationMain({
     }
   }, [sessionId, initialSessionId, contextId, router]);
 
-  // Clear thinking state when returning to chat mode (no explorationId in URL)
+  // Clear thinking state when returning to chat mode
   useEffect(() => {
     if (!initialExplorationId) {
       dispatch(uiActions.thinkingEnded());
-      hasLoadedExploration.current = false;
       lastNavigatedPath.current = null;
     }
   }, [initialExplorationId, dispatch]);
 
-  // Load exploration when navigating to /explore/[sessionId]/explorations/[explorationId]
+  // Load exploration when navigating to it via URL (skip if already loaded)
   useEffect(() => {
-    if (initialExplorationId && isConnected && !hasLoadedExploration.current) {
-      hasLoadedExploration.current = true;
+    if (
+      initialExplorationId &&
+      isConnected &&
+      !loadedExplorations.current.has(initialExplorationId)
+    ) {
+      loadedExplorations.current.add(initialExplorationId);
       loadExploration(initialExplorationId).catch(() => {
-        // Error already dispatched to UI state
+        // Remove from loaded set so it can be retried
+        loadedExplorations.current.delete(initialExplorationId);
       });
     }
   }, [initialExplorationId, isConnected, loadExploration]);
 
-  // Navigate to path from URL when it changes (optimistic)
+  // Navigate to path from URL when it changes
   useEffect(() => {
     if (initialExplorationId && isConnected && tree) {
       const urlPathStr = initialPath.join(',');
-
-      // Skip if we've already navigated to this path
-      if (lastNavigatedPath.current === urlPathStr) {
-        return;
-      }
-
+      if (lastNavigatedPath.current === urlPathStr) return;
       const currentPathStr = currentPath.join(',');
-
       if (urlPathStr !== currentPathStr) {
-        // Track that we're navigating to this path
         lastNavigatedPath.current = urlPathStr;
-        // URL path differs from store path, navigate optimistically
         navigateOptimistically(initialPath);
       }
     }
@@ -178,32 +180,68 @@ export function ExplorationMain({
     navigateOptimistically,
   ]);
 
-  // Auto-navigate to exploration when ready
+  // Clear exploration ready data
   useEffect(() => {
-    if (explorationReadyData && sessionId) {
-      const { explorationId } = explorationReadyData;
-      const targetUrl = `/${contextId}/explore/${sessionId}/explorations/${explorationId}`;
+    if (explorationReadyData) {
       clearExplorationReady();
-      router.push(targetUrl);
     }
-  }, [
-    explorationReadyData,
-    sessionId,
-    contextId,
-    router,
-    clearExplorationReady,
-  ]);
+  }, [explorationReadyData, clearExplorationReady]);
 
-  // Navigate to exploration URL instead of loading directly
-  const handleEnterExploration = useCallback(
-    (explorationId: string) => {
-      if (sessionId) {
-        router.push(
-          `/${contextId}/explore/${sessionId}/explorations/${explorationId}`,
-        );
+  // Tab switching: when user clicks an exploration tab, navigate to its URL
+  const handleTabSwitch = useCallback(
+    (tabId: 'chat' | string) => {
+      // Save current path before switching
+      dispatch(sessionActions.tabSwitched(tabId, currentPath));
+
+      if (tabId === 'chat') {
+        if (sessionId) {
+          router.push(`/${contextId}/explore/${sessionId}`);
+        }
+      } else {
+        if (sessionId) {
+          // Restore last path for the target exploration
+          const targetTab = explorationTabs[tabId];
+          const restoredPath = targetTab?.lastPath ?? [];
+          const pathParam =
+            restoredPath.length > 0 ? `?path=${restoredPath.join(',')}` : '';
+          router.push(
+            `/${contextId}/explore/${sessionId}/explorations/${tabId}${pathParam}`,
+          );
+        }
       }
     },
-    [contextId, sessionId, router],
+    [dispatch, sessionId, contextId, router, currentPath, explorationTabs],
+  );
+
+  const handleTabClose = useCallback(
+    (explorationId: string) => {
+      dispatch(sessionActions.explorationTabRemoved(explorationId));
+      // If closing the active tab, navigate to chat
+      if (activeTabId === explorationId && sessionId) {
+        router.push(`/${contextId}/explore/${sessionId}`);
+      }
+    },
+    [dispatch, activeTabId, sessionId, contextId, router],
+  );
+
+  // Enter exploration from chat card — ensure tab exists before switching
+  const handleEnterExploration = useCallback(
+    (expId: string) => {
+      if (!explorationTabs[expId]) {
+        // Find the exploration query from session messages
+        const startMsg = sessionMessages.find(
+          (m) => m.type === 'exploration_start' && m.explorationId === expId,
+        );
+        const query = startMsg?.explorationQuery || 'Erkundung';
+        const label = query.length > 30 ? `${query.slice(0, 27)}...` : query;
+        const tabCount = Object.keys(explorationTabs).length;
+        dispatch(
+          sessionActions.explorationTabAdded(expId, label, tabCount % 6),
+        );
+      }
+      handleTabSwitch(expId);
+    },
+    [handleTabSwitch, explorationTabs, sessionMessages, dispatch],
   );
 
   // Show error state
@@ -220,64 +258,76 @@ export function ExplorationMain({
     return <ExplorationLoading message="Verbindung wird hergestellt..." />;
   }
 
-  // Show loading while waiting for tree (after user starts exploration)
-  if (!tree && mode === 'exploring') {
-    return <ExplorationLoading message="Themenbaum wird erstellt..." />;
-  }
+  // Determine what to show in the content area
+  const isExplorationActive = !!initialExplorationId && !!sessionId;
+  const isExplorationLoaded = isExplorationActive && !!tree;
+  const isExplorationLoading = isExplorationActive && !tree;
 
-  // EXPLORATION MODE: When explorationId is in URL and tree is loaded
-  if (initialExplorationId && tree && sessionId) {
-    return (
-      <ExplorationFullView
-        contextId={contextId}
-        sessionId={sessionId}
-        tree={tree}
-        view={view}
-        currentPath={currentPath}
-        breadcrumb={breadcrumb}
-        activeConversation={activeConversation}
-        summaries={summaries}
-        analysisAvailable={analysisAvailable}
-        isThinking={isThinking}
-        thinkingMessage={thinkingMessage}
-        isStreaming={isStreaming}
-        streamBuffer={streamBuffer}
-        streamingTargetType={streamingTarget?.type}
-        onNavigate={handleNavigateToNode}
-        onGoToRoot={handleNavigateToRoot}
-        onSubtopicSelect={handleNavigateToNode}
-        onBack={handleBack}
-        onSendMessage={(msg) => sendMessage(msg, activeConversation?.leafId)}
-        onRequestAnalysis={() => {
-          if (activeConversation?.leafId) {
-            requestAnalysis(activeConversation.leafId);
-          }
-        }}
-        onMarkExplored={markExplored}
-        suggestedQuestions={suggestedQuestions}
-        topicSwitchSuggestion={topicSwitchSuggestion}
-        onAcceptSwitch={acceptTopicSwitch}
-        onDismissSwitch={dismissTopicSwitch}
-      />
-    );
-  }
-
-  // CHAT MODE: Regular chat with exploration entry cards
   return (
-    <ExplorationChatView
-      messages={sessionMessages}
-      pendingChoice={pendingChoice}
-      isThinking={isThinking}
-      thinkingMessage={thinkingMessage}
-      streamBuffer={streamBuffer}
-      isStreaming={isStreaming}
-      streamingTargetType={streamingTarget?.type}
-      tree={tree}
-      explorationPending={explorationPending}
-      suggestedQuestions={suggestedQuestions}
-      onSendMessageAction={sendChatMessage}
-      onSubmitChoiceAction={submitChoice}
-      onEnterExplorationAction={handleEnterExploration}
-    />
+    <div className="flex flex-1 flex-col overflow-hidden">
+      {/* Tab bar */}
+      <ExplorationTabBar
+        activeTabId={activeTabId}
+        explorationTabs={explorationTabs}
+        isInExploration={isExplorationActive}
+        onTabSwitch={handleTabSwitch}
+        onTabClose={handleTabClose}
+      />
+
+      {/* Loading state when switching to an exploration */}
+      {isExplorationLoading && (
+        <ExplorationLoading message="Erkundung wird geladen..." />
+      )}
+
+      {/* Exploration content */}
+      {isExplorationLoaded ? (
+        <ExplorationFullView
+          tree={tree}
+          view={view}
+          currentPath={currentPath}
+          breadcrumb={breadcrumb}
+          activeConversation={activeConversation}
+          summaries={summaries}
+          analysisAvailable={analysisAvailable}
+          isThinking={isThinking}
+          thinkingMessage={thinkingMessage}
+          isStreaming={isStreaming}
+          streamBuffer={streamBuffer}
+          streamingTargetType={streamingTarget?.type}
+          onNavigate={handleNavigateToNode}
+          onGoToRoot={handleNavigateToRoot}
+          onSubtopicSelect={handleNavigateToNode}
+          onBack={handleBack}
+          onSendMessage={(msg) => sendMessage(msg, activeConversation?.leafId)}
+          onRequestAnalysis={() => {
+            if (activeConversation?.leafId) {
+              requestAnalysis(activeConversation.leafId);
+            }
+          }}
+          onMarkExplored={markExplored}
+          suggestedQuestions={suggestedQuestions}
+          topicSwitchSuggestion={topicSwitchSuggestion}
+          onAcceptSwitch={acceptTopicSwitch}
+          onDismissSwitch={dismissTopicSwitch}
+        />
+      ) : !isExplorationLoading ? (
+        <ExplorationChatView
+          messages={sessionMessages}
+          pendingChoice={pendingChoice}
+          isThinking={isThinking}
+          thinkingMessage={thinkingMessage}
+          streamBuffer={streamBuffer}
+          isStreaming={isStreaming}
+          streamingTargetType={streamingTarget?.type}
+          tree={tree}
+          explorationPending={explorationPending}
+          suggestedQuestions={suggestedQuestions}
+          onSendMessageAction={sendChatMessage}
+          onSubmitChoiceAction={submitChoice}
+          onDirectionChoiceAction={submitDirectionChoice}
+          onEnterExplorationAction={handleEnterExploration}
+        />
+      ) : null}
+    </div>
   );
 }

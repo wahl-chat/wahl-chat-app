@@ -268,6 +268,33 @@ class TopicSwitchSuggestedEvent(BaseModel):
     )
 
 
+class TopicDirectionItem(BaseModel):
+    """A single topic direction for user selection."""
+
+    id: str = Field(..., description="Unique direction ID")
+    name: str = Field(..., description="Short name for the direction")
+    description: str = Field(
+        ..., description="1-2 sentence description"
+    )
+    party_stances_preview: str = Field(
+        ..., description="Brief party stance summary"
+    )
+    suggested_question: str = Field(
+        ..., description="Concrete follow-up question for this direction"
+    )
+
+
+class TopicDirectionsEvent(BaseModel):
+    """Sent when topic directions are available for user to choose."""
+
+    type: Literal["topic_directions"] = "topic_directions"
+    query_id: str = Field(..., description="ID for tracking this query")
+    original_query: str = Field(..., description="The user's original query")
+    directions: list[TopicDirectionItem] = Field(
+        ..., description="Available topic directions"
+    )
+
+
 # Union type for all SSE events
 SSEEvent = Union[
     ConnectedEvent,
@@ -288,6 +315,7 @@ SSEEvent = Union[
     ExportReadyEvent,
     ErrorEvent,
     TopicSwitchSuggestedEvent,
+    TopicDirectionsEvent,
     ReconnectedEvent,
     SessionClaimedEvent,
 ]

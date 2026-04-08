@@ -15,8 +15,8 @@ export {
   hasExploredLeaves,
   isFullyExplored,
   getNextUnexploredLeaf,
-  getClaimsForLeaf,
-  getClaimsByParty,
+  getPositionsForLeaf,
+  getPositionsByParty,
   getAllParties,
 } from './tree-helpers';
 

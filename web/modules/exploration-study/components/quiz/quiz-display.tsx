@@ -13,7 +13,6 @@ import { QuizQuestion } from './quiz-question';
 
 export interface QuizDisplayProps {
   sessionId: string;
-  taskNumber: 1 | 2;
   onSubmit: (answers: QuizAnswer[]) => Promise<void>;
   isSubmitting?: boolean;
   className?: string;
@@ -23,7 +22,6 @@ const POLL_INTERVAL = 2000; // 2 seconds
 
 export function QuizDisplay({
   sessionId,
-  taskNumber,
   onSubmit,
   isSubmitting = false,
   className,
@@ -40,7 +38,7 @@ export function QuizDisplay({
     let timeoutId: NodeJS.Timeout;
 
     const pollQuiz = async () => {
-      const response = await studyApi.getQuiz(sessionId, taskNumber);
+      const response = await studyApi.getQuiz(sessionId);
 
       if (cancelled) return;
 
@@ -60,7 +58,7 @@ export function QuizDisplay({
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [sessionId, taskNumber]);
+  }, [sessionId]);
 
   const currentQuestion = questions[currentIndex];
 

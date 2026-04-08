@@ -71,7 +71,7 @@ export default function TutorialPage() {
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">Einführung</h1>
         <p className="text-sm text-muted-foreground">
-          Willkommen zur Studie! Bevor du mit den Aufgaben beginnst, möchten wir
+          Willkommen zur Studie! Bevor du mit der Aufgabe beginnst, möchten wir
           dir die Parteien vorstellen, die in dieser Studie verwendet werden.
         </p>
       </div>
@@ -109,14 +109,14 @@ export default function TutorialPage() {
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Deine Aufgaben</h2>
+        <h2 className="text-lg font-semibold">Deine Aufgabe</h2>
         <p className="text-sm text-muted-foreground">
-          Du wirst zwei Aufgaben bearbeiten, bei denen du Informationen über die
-          Positionen der Parteien zu verschiedenen Themen erkundest. Nach jeder
-          Aufgabe wirst du einige Fragen beantworten.
+          Du wirst eine Aufgabe bearbeiten, bei der du Informationen über die
+          Positionen der Parteien zu einem Thema erkundest. Im Anschluss wirst
+          du einige Fragen beantworten.
         </p>
         <ul className="list-disc pl-5 text-sm text-muted-foreground">
-          <li>Erkunde die Parteipositionen zu den gestellten Themen</li>
+          <li>Erkunde die Parteipositionen zum gestellten Thema</li>
           <li>Nimm dir die Zeit, die du benötigst</li>
           <li>Es gibt keine richtigen oder falschen Wege</li>
         </ul>
@@ -133,7 +133,7 @@ export default function TutorialPage() {
             Wird geladen...
           </>
         ) : (
-          'Aufgaben starten'
+          'Aufgabe starten'
         )}
       </Button>
     </div>

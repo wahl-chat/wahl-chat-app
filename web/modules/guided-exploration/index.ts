@@ -1,7 +1,7 @@
 /**
  * Guided Exploration Module
  *
- * A claim-based adaptive hierarchy for comparing party positions
+ * A position-based adaptive hierarchy for comparing party positions
  * on political topics. Uses recursive ExplorationNode tree structure.
  *
  * @example
@@ -24,7 +24,7 @@
 // ============ Types ============
 export type {
   // Tree types
-  Claim,
+  Position,
   ExplorationNode,
   ExplorationTree,
   // Content types
@@ -147,8 +147,8 @@ export {
   hasExploredLeaves,
   isFullyExplored,
   getNextUnexploredLeaf,
-  getClaimsForLeaf,
-  getClaimsByParty,
+  getPositionsForLeaf,
+  getPositionsByParty,
   getAllParties,
   // Navigation helpers
   getParentPath,

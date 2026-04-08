@@ -34,24 +34,14 @@ export function getRouteForState(sessionId: string, state: StudyState): string {
       return `${basePath}/literacy`;
     case 'tutorial':
       return `${basePath}/tutorial`;
-    case 'task_1':
-      return `${basePath}/task/1`;
-    case 'questionnaire_1':
-      return `${basePath}/questionnaire/1`;
-    case 'recall_1':
-      return `${basePath}/recall/1`;
-    case 'quiz_1':
-      return `${basePath}/quiz/1`;
-    case 'task_2':
-      return `${basePath}/task/2`;
-    case 'questionnaire_2':
-      return `${basePath}/questionnaire/2`;
-    case 'recall_2':
-      return `${basePath}/recall/2`;
-    case 'quiz_2':
-      return `${basePath}/quiz/2`;
-    case 'preferences':
-      return `${basePath}/preferences`;
+    case 'task':
+      return `${basePath}/task`;
+    case 'questionnaire':
+      return `${basePath}/questionnaire`;
+    case 'recall':
+      return `${basePath}/recall`;
+    case 'quiz':
+      return `${basePath}/quiz`;
     case 'complete':
       return `${basePath}/complete`;
     default:
@@ -64,12 +54,10 @@ export function getRouteForState(sessionId: string, state: StudyState): string {
  */
 export function getStateFromRoute(pathname: string): StudyState | null {
   // Extract the segment after /exploration-study/[sessionId]/
-  const match = pathname.match(
-    /\/exploration-study\/[^/]+\/(.+?)(?:\/(\d+))?$/,
-  );
+  const match = pathname.match(/\/exploration-study\/[^/]+\/(.+?)$/);
   if (!match) return null;
 
-  const [, segment, taskNumber] = match;
+  const segment = match[1];
 
   switch (segment) {
     case 'consent':
@@ -81,15 +69,13 @@ export function getStateFromRoute(pathname: string): StudyState | null {
     case 'tutorial':
       return 'tutorial';
     case 'task':
-      return taskNumber === '1' ? 'task_1' : 'task_2';
+      return 'task';
     case 'questionnaire':
-      return taskNumber === '1' ? 'questionnaire_1' : 'questionnaire_2';
+      return 'questionnaire';
     case 'recall':
-      return taskNumber === '1' ? 'recall_1' : 'recall_2';
+      return 'recall';
     case 'quiz':
-      return taskNumber === '1' ? 'quiz_1' : 'quiz_2';
-    case 'preferences':
-      return 'preferences';
+      return 'quiz';
     case 'complete':
       return 'complete';
     default:

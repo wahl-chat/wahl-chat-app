@@ -6,7 +6,6 @@
 
 import asyncio
 import logging
-import random
 import re
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -33,6 +32,8 @@ from src.guided_exploration.agents import (
     LeafSummaryInput,
     FinalSummaryInput,
     QuickSummaryInput,
+    TopicScoutAgent,
+    TopicScoutInput,
     LLMTier,
 )
 from src.guided_exploration.agents.party_context import (
@@ -63,7 +64,7 @@ from src.guided_exploration.models import (
     ExplorationCompleteEvent,
     ExplorationNode,
     ExplorationTree,
-    ExtractedClaim,
+    ExtractedPositionItem,
     ExtractedPosition,
     Message,
     MessageRole,
@@ -83,6 +84,8 @@ from src.guided_exploration.models import (
     SummaryGeneratingEvent,
     SummaryTree,
     ThinkingEvent,
+    TopicDirectionItem,
+    TopicDirectionsEvent,
     TopicOverviewEvent,
     ChatMessageEvent,
 )
@@ -100,8 +103,9 @@ logger = logging.getLogger(__name__)
 CHUNK_DELAY = 0.05  # 50ms between chunks
 WORDS_PER_CHUNK = 5
 
-# Number of default parties to use when none specified
-DEFAULT_PARTY_COUNT = 5
+# Hardcoded parties for testing (the five large German parties)
+# TODO: Make configurable or load from context once testing is complete
+HARDCODED_PARTIES = ["cdu", "spd", "gruene", "afd", "linke"]
 
 
 class PendingQuery:
@@ -114,12 +118,14 @@ class PendingQuery:
         original_query: str,
         detected_parties: list[str],
         rag_query: str,
+        selected_direction: str | None = None,
     ) -> None:
         self.query_id = query_id
         self.session_id = session_id
         self.original_query = original_query
         self.detected_parties = detected_parties
         self.rag_query = rag_query
+        self.selected_direction = selected_direction
         self.created_at = datetime.now(timezone.utc)
 
 
@@ -155,8 +161,10 @@ class GuidedExplorationFacade:
             self._llm_registry.get(LLMTier.FAST)
         )
         # Content generation needs quality - use balanced model
+        # Aspect extraction uses fast model for speed
         self._content_generator = ContentGeneratorAgent(
-            self._llm_registry.get(LLMTier.BALANCED)
+            self._llm_registry.get(LLMTier.BALANCED),
+            fast_llm_provider=self._llm_registry.get(LLMTier.FAST),
         )
         # Conversation handling needs understanding - use balanced model
         self._conversation_handler = ConversationHandlerAgent(
@@ -175,6 +183,10 @@ class GuidedExplorationFacade:
         self._followup_router = FollowupRouterAgent(
             self._llm_registry.get(LLMTier.FAST)
         )
+        # Topic scouting - fast model for direction identification
+        self._topic_scout = TopicScoutAgent(
+            self._llm_registry.get(LLMTier.FAST)
+        )
 
         # In-memory tracking of pending queries (query_id -> PendingQuery)
         self._pending_queries: dict[str, PendingQuery] = {}
@@ -188,6 +200,11 @@ class GuidedExplorationFacade:
         # Cache for context info to avoid repeated Firebase calls
         # Maps context_id -> (context_name, parties_info_map)
         self._context_cache: dict[str, tuple[str, dict[str, PartyInfo]]] = {}
+
+        # Cache for topic directions — keyed by exact (query, context_id)
+        # Populated when the LLM flags a result as cacheable
+        from src.guided_exploration.agents.topic_scout import TopicScoutOutput
+        self._directions_cache: dict[tuple[str, str], TopicScoutOutput] = {}
 
     # =========================================================================
     # Context Helpers
@@ -219,14 +236,8 @@ class GuidedExplorationFacade:
         return context_name, parties_info
 
     async def _get_default_parties(self, context_id: str) -> list[str]:
-        """Get a random selection of default parties for a context."""
-        _, parties_map = await self._get_context_info(context_id)
-        party_ids = list(parties_map.keys())
-
-        if len(party_ids) <= DEFAULT_PARTY_COUNT:
-            return party_ids
-
-        return random.sample(party_ids, DEFAULT_PARTY_COUNT)
+        """Get hardcoded default parties for testing."""
+        return HARDCODED_PARTIES
 
     # =========================================================================
     # Session Management
@@ -397,12 +408,20 @@ class GuidedExplorationFacade:
                     context_id=session.context_id,
                 )
 
-            # In guided mode, send choice prompt
+            # In guided mode, ask user: quick answer or explore deeper?
             return await self._send_choice_prompt(
                 session_id=session_id,
                 original_query=content,
                 detected_parties=classifier_output.detected_parties,
                 rag_query=classifier_output.rag_query,
+            )
+
+        # For meta queries — answer about the tool, suggest topics, explain features
+        if classifier_output.query_type == QueryType.META:
+            return await self._handle_meta_query(
+                session_id=session_id,
+                query=content,
+                session=session,
             )
 
         # For factual queries, answer directly without exploration
@@ -466,6 +485,85 @@ class GuidedExplorationFacade:
             "query_type": classifier_output.query_type.value,
         }
 
+    async def _handle_meta_query(
+        self,
+        session_id: str,
+        query: str,
+        session,
+    ) -> dict:
+        """Handle meta questions about the tool, available topics, how it works."""
+        from langchain_core.messages import HumanMessage, SystemMessage
+
+        # Build context about what the user has done so far
+        explored_topics = []
+        for msg in session.messages:
+            if msg.type == SessionMessageType.EXPLORATION_START and msg.exploration_query:
+                explored_topics.append(msg.exploration_query)
+
+        context_parts = []
+        if explored_topics:
+            context_parts.append(
+                f"Der Nutzer hat bereits folgende Themen erkundet: {', '.join(explored_topics)}"
+            )
+        else:
+            context_parts.append("Der Nutzer hat noch keine Themen erkundet.")
+
+        session_context = "\n".join(context_parts)
+
+        system_prompt = (
+            "Du bist der Assistent von wahl.chat — einem KI-Tool, das es "
+            "ermöglicht, sich interaktiv und zeitgemäß über die Positionen und "
+            "Pläne der Parteien zu informieren.\n\n"
+            "Der Nutzer stellt eine Frage über das Tool, verfügbare Themen "
+            "oder möchte Orientierung. Antworte freundlich, kurz und hilfreich "
+            "auf Deutsch mit korrekten Umlauten. Spreche den Nutzer mit Du an.\n\n"
+            "# Was der Nutzer hier tun kann\n"
+            "- Konkrete Fragen zu Parteipositionen stellen und sofort eine "
+            "quellenbasierte Antwort erhalten\n"
+            "- Ein Thema auswählen und die Positionen der Parteien im Detail "
+            "vergleichen (Erkundungsmodus)\n"
+            "- Eigene Fragen zu beliebigen politischen Themen stellen\n\n"
+            "# Themenvorschläge\n"
+            "- Mieten & Wohnen\n"
+            "- Rente & Altersvorsorge\n"
+            "- Klima & Energie\n"
+            "- Migration & Sicherheit\n"
+            "- Wirtschaft & Arbeit\n"
+            "- Bildung & Forschung\n\n"
+            "Der Nutzer kann aber auch jedes andere politische Thema ansprechen.\n\n"
+            f"# Aktueller Stand des Nutzers\n{session_context}"
+        )
+
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=query),
+        ]
+
+        # Use fast LLM for quick response
+        llm = self._llm_registry.get(LLMTier.FAST)
+
+        # Stream the response
+        stream_id = str(uuid4())
+        full_text = await self._stream_from_llm(
+            session_id=session_id,
+            stream_id=stream_id,
+            llm_stream=llm.stream(messages=messages, temperature=0.7),
+            target_type="quick_summary",
+            target_id="meta",
+        )
+
+        await self._send_chat_message(session_id, full_text)
+
+        assistant_msg = SessionMessage(
+            id=str(uuid4()),
+            type=SessionMessageType.ASSISTANT,
+            content=full_text,
+            timestamp=datetime.now(timezone.utc),
+        )
+        await self._repo.add_session_message(session_id, assistant_msg)
+
+        return {"status": "meta_answered"}
+
     async def _send_choice_prompt(
         self,
         session_id: str,
@@ -498,14 +596,14 @@ class GuidedExplorationFacade:
                 original_query=original_query,
                 options=[
                     {
-                        "id": "explore",
-                        "label": "Themen erkunden",
-                        "description": "Tiefer mit Themen beschäftigen",
+                        "id": "summary",
+                        "label": "Schnelle Antwort",
+                        "description": "Kompakte Übersicht der Parteipositionen",
                     },
                     {
-                        "id": "summary",
-                        "label": "Schnelle Zusammenfassung",
-                        "description": "Erhalte eine kompakte Übersicht",
+                        "id": "explore",
+                        "label": "Thema vertiefen",
+                        "description": "Aspekte auswählen und Positionen im Detail vergleichen",
                     },
                 ],
             ),
@@ -521,6 +619,246 @@ class GuidedExplorationFacade:
             "detected_parties": detected_parties,
             "rag_query": rag_query,
         }
+
+    async def _send_topic_directions(
+        self,
+        session_id: str,
+        original_query: str,
+        detected_parties: list[str],
+        rag_query: str,
+        context_id: str,
+    ) -> dict:
+        """Scout topic directions and send them for user selection."""
+        query_id = str(uuid4())
+
+        # Determine parties
+        if not detected_parties:
+            detected_parties = await self._get_default_parties(context_id)
+
+        # Check cache first — exact match on original query
+        cache_key = (original_query, context_id)
+        cached = self._directions_cache.get(cache_key)
+
+        if cached:
+            logger.info(f"Cache hit for topic directions: '{original_query}'")
+            scout_output = cached
+        else:
+            # Send thinking event (only when not cached)
+            await self._send_thinking(
+                session_id, "retrieving", "Suche relevante Themenrichtungen..."
+            )
+
+            # Quick RAG retrieval to scout directions
+            chunks = await self._retrieve_chunks_for_summary(
+                rag_query, context_id, detected_parties
+            )
+
+            if not chunks:
+                # No data found — tell the user, don't loop back to choice
+                no_data_msg = (
+                    "Zu diesem Thema habe ich leider keine passenden "
+                    "Informationen in den Wahlprogrammen gefunden. "
+                    "Versuche es mit einem konkreteren Thema oder einer "
+                    "anderen Formulierung."
+                )
+                stream_id = str(uuid4())
+                await self._stream_text(
+                    session_id, no_data_msg, stream_id,
+                    "quick_summary", "system",
+                )
+                await self._send_chat_message(session_id, no_data_msg)
+                assistant_msg = SessionMessage(
+                    id=str(uuid4()),
+                    type=SessionMessageType.ASSISTANT,
+                    content=no_data_msg,
+                    timestamp=datetime.now(timezone.utc),
+                )
+                await self._repo.add_session_message(session_id, assistant_msg)
+                return {"status": "no_data"}
+
+            # Get context info
+            context_name, parties_info = await self._get_context_info(context_id)
+
+            # Format chunks for the scout
+            parties_map = {
+                p_id: parties_info.get(p_id) for p_id in detected_parties
+            }
+            chunks_text = self._format_chunks_for_scout(chunks, parties_map)
+
+            # Run topic scout agent
+            scout_output = await self._topic_scout.execute(
+                TopicScoutInput(
+                    query=original_query,
+                    rag_chunks_text=chunks_text,
+                    parties_info=parties_info,
+                    context_name=context_name,
+                )
+            )
+
+            # Cache if the LLM flagged this as reusable
+            if scout_output.cacheable:
+                self._directions_cache[cache_key] = scout_output
+                logger.info(
+                    f"Cached topic directions for: '{original_query}'"
+                )
+
+        # Track pending query
+        self._pending_queries[query_id] = PendingQuery(
+            query_id=query_id,
+            session_id=session_id,
+            original_query=original_query,
+            detected_parties=detected_parties,
+            rag_query=rag_query,
+        )
+
+        # Save directions as a structured session message for persistence
+        directions_data = [
+            {
+                "id": d.id,
+                "name": d.name,
+                "description": d.description,
+                "party_stances_preview": d.party_stances_preview,
+                "suggested_question": d.suggested_question,
+            }
+            for d in scout_output.directions
+        ]
+        directions_msg = SessionMessage(
+            id=str(uuid4()),
+            type=SessionMessageType.TOPIC_DIRECTIONS,
+            content=None,
+            directions=directions_data,
+            directions_query_id=query_id,
+            timestamp=datetime.now(timezone.utc),
+        )
+        await self._repo.add_session_message(session_id, directions_msg)
+
+        # Send topic directions event (renders interactive cards via SSE)
+        # The frontend SSE handler ends thinking when it receives this event
+        delivered = await self._sse.send_to_session(
+            session_id,
+            TopicDirectionsEvent(
+                query_id=query_id,
+                original_query=original_query,
+                directions=[
+                    TopicDirectionItem(
+                        id=d.id,
+                        name=d.name,
+                        description=d.description,
+                        party_stances_preview=d.party_stances_preview,
+                        suggested_question=d.suggested_question,
+                    )
+                    for d in scout_output.directions
+                ],
+            ),
+        )
+
+        logger.info(
+            f"Sent {len(scout_output.directions)} topic directions "
+            f"for session {session_id}, query_id: {query_id}, "
+            f"SSE delivered: {delivered}"
+        )
+
+        return {
+            "status": "pending_direction",
+            "query_id": query_id,
+            "directions_count": len(scout_output.directions),
+        }
+
+    def _format_chunks_for_scout(
+        self,
+        chunks: list[RetrievedChunk],
+        parties_map: dict,
+    ) -> str:
+        """Format RAG chunks for the topic scout prompt."""
+        chunks_by_party: dict[str, list[RetrievedChunk]] = {}
+        for chunk in chunks:
+            if chunk.party_id not in chunks_by_party:
+                chunks_by_party[chunk.party_id] = []
+            chunks_by_party[chunk.party_id].append(chunk)
+
+        parts = []
+        for party_id, party_chunks in chunks_by_party.items():
+            party = parties_map.get(party_id)
+            party_name = party.name if party else party_id.upper()
+            parts.append(f"\n## {party_name}")
+            for chunk in party_chunks:
+                parts.append(f"- {chunk.content[:400]}")
+        return "\n".join(parts)
+
+    async def handle_direction_choice(
+        self,
+        session_id: str,
+        query_id: str,
+        directions: list[dict],
+    ) -> dict:
+        """Handle user's topic direction choices — start focused exploration."""
+        pending = self._pending_queries.get(query_id)
+        if not pending:
+            await self._send_error(
+                session_id,
+                "query_not_found",
+                "Anfrage nicht gefunden oder bereits bearbeitet",
+            )
+            return {"status": "error", "code": "query_not_found"}
+
+        if pending.session_id != session_id:
+            await self._send_error(
+                session_id,
+                "session_mismatch",
+                "Anfrage gehört zu einer anderen Sitzung",
+            )
+            return {"status": "error", "code": "session_mismatch"}
+
+        # Remove from pending
+        del self._pending_queries[query_id]
+
+        # Get session for context_id
+        session = await self._repo.get_session(session_id)
+        if not session:
+            return {"status": "error", "code": "session_not_found"}
+
+        # Persist the user's selection on the original topic_directions message
+        direction_names = [d["name"] for d in directions]
+
+        # Find the topic_directions message by query_id and update it
+        session_messages = await self._repo.get_session_messages(session_id)
+        for msg in session_messages:
+            if (
+                msg.type == SessionMessageType.TOPIC_DIRECTIONS
+                and msg.directions_query_id == query_id
+            ):
+                await self._repo.update_session_message(
+                    session_id,
+                    msg.id,
+                    {"selected_directions": direction_names},
+                )
+                break
+
+        # Build focused query from selected directions
+        if len(direction_names) >= 5:
+            # All directions selected — no focus suffix
+            focused_query = pending.original_query
+        else:
+            focus = ", ".join(direction_names)
+            focused_query = f"{pending.original_query} — Fokus: {focus}"
+
+        # Combine direction names for broader RAG retrieval
+        rag_focus = " ".join(direction_names)
+
+        # Determine parties
+        exploration_parties = (
+            pending.detected_parties
+            or await self._get_default_parties(session.context_id)
+        )
+
+        return await self._start_exploration_internal(
+            session_id=session_id,
+            query=focused_query,
+            rag_query=f"{pending.rag_query} {rag_focus}",
+            context_id=session.context_id,
+            parties=exploration_parties,
+            selected_directions=direction_names,
+        )
 
     async def handle_choice(
         self,
@@ -544,7 +882,7 @@ class GuidedExplorationFacade:
             await self._send_error(
                 session_id,
                 "session_mismatch",
-                "Anfrage gehoert zu einer anderen Sitzung",
+                "Anfrage gehört zu einer anderen Sitzung",
             )
             return {"status": "error", "code": "session_mismatch"}
 
@@ -565,12 +903,13 @@ class GuidedExplorationFacade:
             exploration_parties = await self._get_default_parties(session.context_id)
 
         if choice == "explore":
-            return await self._start_exploration_internal(
+            # User wants to explore deeper — show topic directions
+            return await self._send_topic_directions(
                 session_id=session_id,
-                query=pending.original_query,
+                original_query=pending.original_query,
+                detected_parties=exploration_parties,
                 rag_query=pending.rag_query,
                 context_id=session.context_id,
-                parties=exploration_parties,
             )
         else:
             # Generate quick summary without exploration
@@ -593,6 +932,7 @@ class GuidedExplorationFacade:
         context_id: str,
         parties: list[str],
         rag_query: str | None = None,
+        selected_directions: list[str] | None = None,
     ) -> dict:
         """Internal method to start exploration (called after choice)."""
         try:
@@ -610,10 +950,10 @@ class GuidedExplorationFacade:
             )
 
             # Run orchestrator (sends SSE events including TopicTreeEvent)
-            # New flow returns (exploration_id, ExplorationTree) — no separate KB
             (
                 exploration_id,
                 exploration_tree,
+                low_confidence,
             ) = await self._orchestrator.start_exploration(
                 session_id=session_id,
                 query=query,
@@ -621,6 +961,27 @@ class GuidedExplorationFacade:
                 context_id=context_id,
                 parties=parties,
             )
+
+            # Attach selected directions to the tree for context display
+            if selected_directions:
+                exploration_tree.selected_directions = selected_directions
+
+            # Send and persist caveat message if data is limited
+            if low_confidence:
+                caveat_text = (
+                    "Zu diesem Thema habe ich nur begrenzte Informationen "
+                    "gefunden. Die Erkundung zeigt die verfügbaren "
+                    "Positionen — es kann sein, dass nicht alle Parteien "
+                    "vertreten sind."
+                )
+                await self._send_chat_message(session_id, message=caveat_text)
+                caveat_msg = SessionMessage(
+                    id=str(uuid4()),
+                    type=SessionMessageType.ASSISTANT,
+                    content=caveat_text,
+                    timestamp=datetime.now(timezone.utc),
+                )
+                await self._repo.add_session_message(session_id, caveat_msg)
 
             # Persist exploration
             await self._repo.create_exploration(
@@ -669,43 +1030,13 @@ class GuidedExplorationFacade:
                 f"Missing: {', '.join(e.parties_without_chunks)}"
             )
 
-            # Build a summary from whatever claims we have
-            disclaimer = (
-                f"Dafuer habe ich leider nur begrenzt Informationen zur Verfuegung "
-                f"({e.parties_with_chunks} von {e.total_parties} Parteien haben "
-                f"Positionen zu diesem Thema). "
-                f"Hier eine Zusammenfassung der gefundenen Positionen:"
+            # Friendly message — no raw data dump
+            chat_message = (
+                "Zu diesem Thema habe ich leider zu wenige Informationen "
+                "in den Wahlprogrammen gefunden, um eine Erkundung zu starten. "
+                "Versuche es mit einer anderen Frage oder formuliere das "
+                "Thema etwas breiter."
             )
-
-            # Get party info for proper names
-            _, parties_info_fallback = await self._get_context_info(context_id)
-
-            # Group claims by party for the summary
-            claims_by_party: dict[str, list[str]] = {}
-            for claim in e.available_claims:
-                pid = claim.party_id
-                if pid not in claims_by_party:
-                    claims_by_party[pid] = []
-                claims_by_party[pid].append(claim.content)
-
-            # Build summary text
-            summary_parts = [disclaimer, ""]
-            for party_id, claim_texts in claims_by_party.items():
-                party_name = party_id.upper()
-                if party_id in parties_info_fallback:
-                    party_name = parties_info_fallback[party_id].name
-                summary_parts.append(f"**{party_name}**")
-                for ct in claim_texts:
-                    summary_parts.append(f"- {ct}")
-                summary_parts.append("")
-
-            if e.parties_without_chunks:
-                summary_parts.append(
-                    f"*Fuer {', '.join(e.parties_without_chunks)} wurden keine "
-                    f"relevanten Positionen gefunden.*"
-                )
-
-            chat_message = "\n".join(summary_parts)
 
             # Stream the message
             stream_id = str(uuid4())
@@ -1050,8 +1381,8 @@ class GuidedExplorationFacade:
             session_id, exploration.id, leaf_id
         )
 
-        # Get claims for this leaf from the exploration tree
-        claims_by_party = exploration.tree.get_claims_by_party(leaf_id)
+        # Get positions for this leaf from the exploration tree
+        positions_by_party = exploration.tree.get_positions_by_party(leaf_id)
 
         # Build navigation from tree path
         node_path = exploration.tree.root.get_path_to(leaf_id) or []
@@ -1111,8 +1442,8 @@ class GuidedExplorationFacade:
 
             leaf_citations = [
                 c.citation
-                for claims in claims_by_party.values()
-                for c in claims
+                for positions in positions_by_party.values()
+                for c in positions
                 if c.citation is not None
             ]
             content = await self._content_generator.execute(
@@ -1120,7 +1451,7 @@ class GuidedExplorationFacade:
                     subtopic_id=leaf_id,
                     subtopic_name=leaf_name,
                     path=path,
-                    leaf_claims=claims_by_party,
+                    leaf_positions=positions_by_party,
                     leaf_citations=leaf_citations,
                     context_id=exploration.tree.exploration_id,
                     context_name=context_name,
@@ -1403,13 +1734,13 @@ class GuidedExplorationFacade:
             LeafInfo,
         )
         from src.guided_exploration.agents.followup_router.prompts import (
-            format_claims_for_routing,
+            format_positions_for_routing,
         )
         from src.guided_exploration.models.events import TopicSwitchSuggestedEvent
 
         # Gather routing context
         leaf_node = exploration.tree.find_node(leaf_id)
-        claims_by_party = exploration.tree.get_claims_by_party(leaf_id)
+        positions_by_party = exploration.tree.get_positions_by_party(leaf_id)
 
         # Get all other leaves for topic matching
         all_leaves = exploration.tree.root.get_leaf_nodes()
@@ -1426,13 +1757,13 @@ class GuidedExplorationFacade:
                 leaf_id=leaf_id,
                 leaf_name=leaf_node.name if leaf_node else leaf_id,
                 leaf_description=leaf_node.description if leaf_node else "",
-                existing_claims_summary=format_claims_for_routing(claims_by_party),
+                existing_positions_summary=format_positions_for_routing(positions_by_party),
                 other_leaves=other_leaves,
                 context_name=context_name,
             )
         )
 
-        # Route: ON_TOPIC_EXISTING — answer from existing claims
+        # Route: ON_TOPIC_EXISTING — answer from existing positions
         if router_result.route == FollowupRoute.ON_TOPIC_EXISTING:
             return await self._handle_conversation_message(
                 session_id=session_id,
@@ -1457,7 +1788,8 @@ class GuidedExplorationFacade:
                 context_name=context_name,
                 parties_info=parties_info,
                 conversation=conversation,
-                claims_by_party=claims_by_party,
+                positions_by_party=positions_by_party,
+                rag_query=router_result.rag_query,
             )
 
         # Route: RELATED_TOPIC — suggest switching
@@ -1481,12 +1813,12 @@ class GuidedExplorationFacade:
                     target_node_name=target_name,
                     message=(
                         f"Deine Frage passt besser zum Thema \"{target_name}\". "
-                        f"Moechtest du dorthin wechseln?"
+                        f"Möchtest du dorthin wechseln?"
                     ),
                 ),
             )
 
-            # Still answer best-effort from current claims
+            # Still answer best-effort from current positions
             return await self._handle_conversation_message(
                 session_id=session_id,
                 exploration_id=exploration_id,
@@ -1528,8 +1860,8 @@ class GuidedExplorationFacade:
             role=MessageRole.ASSISTANT,
             type=MessageType.FOLLOWUP,
             content=(
-                "Diese Frage liegt ausserhalb der verfuegbaren Themen. "
-                "Du kannst ueber die Navigation ein anderes Thema auswaehlen "
+                "Diese Frage liegt außerhalb der verfügbaren Themen. "
+                "Du kannst über die Navigation ein anderes Thema auswählen "
                 "oder dieses Thema abschliessen."
             ),
             timestamp=datetime.now(timezone.utc),
@@ -1561,7 +1893,8 @@ class GuidedExplorationFacade:
         context_name: str,
         parties_info: dict[str, PartyInfo],
         conversation: Conversation | None,
-        claims_by_party: dict[str, list],
+        positions_by_party: dict[str, list],
+        rag_query: str | None = None,
     ) -> dict:
         """Handle a follow-up that needs additional RAG retrieval."""
         # Get session for context_id
@@ -1573,13 +1906,16 @@ class GuidedExplorationFacade:
             session_id, "retrieving", "Suche weitere Details..."
         )
 
+        # Use optimized RAG query if available, otherwise fall back to user message
+        search_query = rag_query or user_message
+
         # Retrieve additional chunks for each party in the leaf
-        party_ids = list(claims_by_party.keys())
+        party_ids = list(positions_by_party.keys())
         import asyncio
 
         async def retrieve_for_party(party_id: str):
             return party_id, await self._rag_service.retrieve_chunks_for_party(
-                query=user_message,
+                query=search_query,
                 context_id=session.context_id,
                 party_id=party_id,
                 n_docs=5,
@@ -1591,29 +1927,29 @@ class GuidedExplorationFacade:
             return_exceptions=True,
         )
 
-        # Build augmented ResolvedKnowledge with existing claims + new chunks
+        # Build augmented ResolvedKnowledge with existing positions + new chunks
         party_positions: dict[str, ExtractedPosition] = {}
         citation_pool: list[Citation] = []
         party_chunks: dict[str, list] = {}
 
-        # Add existing claims
-        for party_id, claims in claims_by_party.items():
-            extracted_claims = [
-                ExtractedClaim(
-                    claim=c.content,
+        # Add existing positions
+        for party_id, positions in positions_by_party.items():
+            extracted_positions = [
+                ExtractedPositionItem(
+                    position=c.content,
                     quote=c.quote,
                     source_doc=c.citation.document if c.citation else "",
                     source_page=c.citation.page if c.citation else None,
-                    claim_type=c.claim_type,
+                    position_type=c.position_type,
                     citation_id=c.citation.id if c.citation else None,
                 )
-                for c in claims
+                for c in positions
             ]
             party_positions[party_id] = ExtractedPosition(
                 party_id=party_id,
-                claims=extracted_claims,
+                positions=extracted_positions,
             )
-            for c in claims:
+            for c in positions:
                 if c.citation is not None:
                     citation_pool.append(c.citation)
 
@@ -1624,11 +1960,18 @@ class GuidedExplorationFacade:
             party_id, chunks = result
             party_chunks[party_id] = chunks
             # Create Citation objects for RAG chunks so frontend can resolve them
+            party_name = parties_info.get(
+                party_id,
+                PartyInfo(
+                    party_id=party_id, name=party_id.upper(),
+                    long_name=party_id.upper(),
+                ),
+            ).name
             for i, chunk in enumerate(chunks[:5], 1):
                 citation_pool.append(
                     Citation(
                         id=f"{party_id}-rag-{i}",
-                        party=party_id,
+                        party=party_name,
                         document=chunk.source_document,
                         section=chunk.source_section,
                         page=chunk.source_page,
@@ -1676,9 +2019,9 @@ class GuidedExplorationFacade:
         resolved_override: ResolvedKnowledge | None = None,
     ) -> dict:
         """Handle a conversation message (followup, analysis, or summary request)."""
-        # Always augment with RAG for follow-ups (claims alone are too limited)
+        # Always augment with RAG for follow-ups (positions alone are too limited)
         if resolved_override is None:
-            claims_by_party = exploration.tree.get_claims_by_party(leaf_id)
+            positions_by_party = exploration.tree.get_positions_by_party(leaf_id)
             logger.info(
                 f"Auto-augmenting follow-up with RAG for leaf {leaf_id}"
             )
@@ -1691,46 +2034,46 @@ class GuidedExplorationFacade:
                 context_name=context_name,
                 parties_info=parties_info,
                 conversation=conversation,
-                claims_by_party=claims_by_party,
+                positions_by_party=positions_by_party,
             )
 
-        # Use override if provided (RAG-augmented flow), otherwise build from claims
+        # Use override if provided (RAG-augmented flow), otherwise build from positions
         if resolved_override is not None:
             resolved = resolved_override
             citation_pool = resolved.citation_pool
-            claims_by_party = exploration.tree.get_claims_by_party(leaf_id)
+            positions_by_party = exploration.tree.get_positions_by_party(leaf_id)
         else:
-            claims_by_party = exploration.tree.get_claims_by_party(leaf_id)
+            positions_by_party = exploration.tree.get_positions_by_party(leaf_id)
 
-        if not claims_by_party and resolved_override is None:
+        if not positions_by_party and resolved_override is None:
             await self._send_error(
                 session_id,
                 "no_knowledge",
-                "Kein Wissen fuer dieses Thema verfuegbar",
+                "Kein Wissen für dieses Thema verfügbar",
             )
             return {"status": "error", "code": "no_knowledge"}
 
-        # Build ResolvedKnowledge from claims (skip if override provided)
+        # Build ResolvedKnowledge from positions (skip if override provided)
         if resolved_override is None:
             party_positions: dict[str, ExtractedPosition] = {}
             citation_pool: list[Citation] = []
-            for party_id, claims in claims_by_party.items():
-                extracted_claims = [
-                    ExtractedClaim(
-                        claim=c.content,
+            for party_id, positions in positions_by_party.items():
+                extracted_positions = [
+                    ExtractedPositionItem(
+                        position=c.content,
                         quote=c.quote,
                         source_doc=c.citation.document if c.citation else "",
                         source_page=c.citation.page if c.citation else None,
-                        claim_type=c.claim_type,
+                        position_type=c.position_type,
                         citation_id=c.citation.id if c.citation else None,
                     )
-                    for c in claims
+                    for c in positions
                 ]
                 party_positions[party_id] = ExtractedPosition(
                     party_id=party_id,
-                    claims=extracted_claims,
+                    positions=extracted_positions,
                 )
-                for c in claims:
+                for c in positions:
                     if c.citation is not None:
                         citation_pool.append(c.citation)
 
@@ -1743,7 +2086,7 @@ class GuidedExplorationFacade:
         logger.info(
             f"Follow-up context for leaf {leaf_id}: "
             f"{len(resolved.party_positions)} parties, "
-            f"{sum(len(p.claims) for p in resolved.party_positions.values())} claims, "
+            f"{sum(len(p.positions) for p in resolved.party_positions.values())} positions, "
             f"{len(resolved.citation_pool)} citations"
             + (f", {sum(len(c) for c in resolved.party_chunks.values())} RAG chunks"
                if resolved.party_chunks else "")
@@ -1821,11 +2164,8 @@ class GuidedExplorationFacade:
             target_id=leaf_id,
         )
 
-        # Extract used citations — claims already have citation IDs in the text
-        used_citations = [
-            c for c in citation_pool
-            if c.id in full_text
-        ]
+        # Extract used citations — positions already have citation IDs in the text
+        used_citations = self._extract_used_citations(full_text, citation_pool)
 
         # Create and save the response message (with citations for persistence)
         response_message = Message(
@@ -1921,6 +2261,10 @@ class GuidedExplorationFacade:
 
         # 8. Extract only citations that were actually used by the LLM
         used_citations = self._extract_used_citations(full_text, citations)
+        logger.info(
+            f"Quick summary citations: {len(used_citations)} used "
+            f"of {len(citations)} available"
+        )
 
         # 9. Generate suggested follow-up questions
         suggested_questions = (
@@ -2015,10 +2359,12 @@ class GuidedExplorationFacade:
             page_raw = chunk.source_page
             page_number = (int(page_raw) + 1) if page_raw is not None else None
 
+            party = party_map.get(chunk.party_id)
+            party_display = party.name if party else chunk.party_id
             citations.append(
                 Citation(
                     id=chunk.chunk_id,
-                    party=chunk.party_id,
+                    party=party_display,
                     document=doc_name,
                     section=chunk.source_section,
                     page=page_number,
@@ -2181,6 +2527,26 @@ class GuidedExplorationFacade:
             rag_query, context_id, detected_parties
         )
 
+        # If no chunks found, offer topic suggestions instead of an empty answer
+        if not chunks:
+            fallback_msg = (
+                "Zu dieser Frage habe ich leider keine passenden Informationen "
+                "in den Wahlprogrammen gefunden. Versuche es mit einem "
+                "konkreteren Thema — zum Beispiel Mieten, Rente, Klima oder Wirtschaft."
+            )
+            await self._stream_text(
+                session_id, fallback_msg, str(uuid4()), "system_message", "system",
+            )
+            await self._send_chat_message(session_id, fallback_msg)
+            assistant_msg = SessionMessage(
+                id=str(uuid4()),
+                type=SessionMessageType.ASSISTANT,
+                content=fallback_msg,
+                timestamp=datetime.now(timezone.utc),
+            )
+            await self._repo.add_session_message(session_id, assistant_msg)
+            return {"status": "no_results"}
+
         # 4. Get context info
         context_name, parties_info = await self._get_context_info(context_id)
 
@@ -2190,20 +2556,70 @@ class GuidedExplorationFacade:
         # Build resolved knowledge from chunks for the handler
         resolved = self._build_resolved_from_chunks(chunks, detected_parties)
 
+        # Build conversation history from session messages for follow-up context
+        session = await self._repo.get_session(session_id)
+        factual_history = []
+        if session:
+            from src.guided_exploration.models.conversation import (
+                Message as ConvMessage,
+                MessageRole,
+                MessageType as ConvMessageType,
+            )
+            for msg in session.messages[-6:]:  # Last 6 messages for context
+                if msg.type == SessionMessageType.USER and msg.content:
+                    factual_history.append(ConvMessage(
+                        id=msg.id,
+                        role=MessageRole.USER,
+                        type=ConvMessageType.FOLLOWUP,
+                        content=msg.content,
+                        timestamp=msg.timestamp,
+                    ))
+                elif msg.type == SessionMessageType.ASSISTANT and msg.content:
+                    factual_history.append(ConvMessage(
+                        id=msg.id,
+                        role=MessageRole.ASSISTANT,
+                        type=ConvMessageType.FOLLOWUP,
+                        content=msg.content,
+                        timestamp=msg.timestamp,
+                    ))
+
         handler_input = ConversationHandlerInput(
             message=query,
-            leaf_id="factual_query",  # Placeholder
-            conversation_history=[],
+            leaf_id="factual_query",
+            conversation_history=factual_history,
             resolved_knowledge=resolved,
             context_id=context_id,
             context_name=context_name,
             parties_info=parties_info,
         )
 
-        # 6. Build index-to-citation_id mapping from chunks
-        _, index_to_citation_id, chunk_citations = build_chunk_citation_mapping(
-            resolved.party_chunks, parties_info, "factual_query"
-        )
+        # 6. Build citation objects matching the {party_id}-rag-{i} IDs
+        # that the streaming LLM uses (from _build_source_text)
+        rag_citations: list[Citation] = []
+        for party_id, party_chunks in (resolved.party_chunks or {}).items():
+            party_name = parties_info.get(
+                party_id,
+                PartyInfo(
+                    party_id=party_id, name=party_id.upper(),
+                    long_name=party_id.upper(),
+                ),
+            ).name
+            for i, chunk in enumerate(party_chunks[:5], 1):
+                doc_name = chunk.metadata.get("document_name", chunk.source_document)
+                page_raw = chunk.source_page
+                page_number = (int(page_raw) + 1) if page_raw is not None else None
+                rag_citations.append(
+                    Citation(
+                        id=f"{party_id}-rag-{i}",
+                        party=party_name,
+                        document=doc_name,
+                        section=chunk.source_section,
+                        page=page_number,
+                        document_publish_date=chunk.metadata.get("document_publish_date"),
+                        url=chunk.metadata.get("url"),
+                        source_document=chunk.metadata.get("source_document"),
+                    )
+                )
 
         # 7. Stream response directly from LLM with party markers
         stream_id = str(uuid4())
@@ -2211,15 +2627,12 @@ class GuidedExplorationFacade:
             session_id=session_id,
             stream_id=stream_id,
             llm_stream=self._conversation_handler.stream_from_llm(handler_input),
-            target_type="system_message",
+            target_type="quick_summary",
             target_id="factual",
         )
 
-        # 8. Replace indices [0], [1], etc. with actual citation IDs
-        full_text = self._replace_citation_indices(full_text, index_to_citation_id)
-
-        # 9. Extract used citations from generated text
-        used_citations = self._extract_used_citations(full_text, chunk_citations)
+        # 8. Extract used citations — IDs in text match rag_citations IDs
+        used_citations = self._extract_used_citations(full_text, rag_citations)
 
         # 10. Generate suggested follow-up questions
         suggested_questions = (
@@ -2290,16 +2703,16 @@ class GuidedExplorationFacade:
             if party_id in party_chunks:
                 chunks_for_party = party_chunks[party_id][:3]
 
-                # Create claims from chunks
-                claims = [
-                    ExtractedClaim(
-                        claim=c.content[:150] + "..."
+                # Create positions from chunks
+                position_items = [
+                    ExtractedPositionItem(
+                        position=c.content[:150] + "..."
                         if len(c.content) > 150
                         else c.content,
                         quote=c.content[:300],
                         source_doc=c.source_document,
                         source_page=c.source_page,
-                        claim_type="position",
+                        position_type="position",
                         citation_id=c.chunk_id,
                     )
                     for c in chunks_for_party
@@ -2311,7 +2724,7 @@ class GuidedExplorationFacade:
                 party_positions[party_id] = ExtractedPosition(
                     party_id=party_id,
                     summary=summary,
-                    claims=claims,
+                    positions=position_items,
                 )
 
         return ResolvedKnowledge(
@@ -2615,12 +3028,12 @@ class GuidedExplorationFacade:
         if not exploration:
             return None
 
-        # Return claims from the exploration tree for debugging
+        # Return positions from the exploration tree for debugging
         return {
             "exploration_id": exploration_id,
-            "claims": {
+            "positions": {
                 cid: c.model_dump(mode="json")
-                for cid, c in exploration.tree.claims.items()
+                for cid, c in exploration.tree.positions.items()
             },
         }
 
@@ -2674,9 +3087,9 @@ class GuidedExplorationFacade:
 
         subtopic_content = first_msg.content
 
-        # Get claims for analysis context
-        claims_by_party = exploration.tree.get_claims_by_party(leaf_id)
-        if not claims_by_party:
+        # Get positions for analysis context
+        positions_by_party = exploration.tree.get_positions_by_party(leaf_id)
+        if not positions_by_party:
             await self._send_error(
                 session_id,
                 "no_knowledge",
@@ -2714,25 +3127,25 @@ class GuidedExplorationFacade:
             ),
         )
 
-        # Build ResolvedKnowledge from claims for the analyzer
+        # Build ResolvedKnowledge from positions for the analyzer
         analysis_positions: dict[str, ExtractedPosition] = {}
         analysis_citations: list[Citation] = []
-        for party_id, claims in claims_by_party.items():
+        for party_id, positions in positions_by_party.items():
             analysis_positions[party_id] = ExtractedPosition(
                 party_id=party_id,
-                claims=[
-                    ExtractedClaim(
-                        claim=c.content,
+                positions=[
+                    ExtractedPositionItem(
+                        position=c.content,
                         quote=c.quote,
                         source_doc=c.citation.document if c.citation else "",
                         source_page=c.citation.page if c.citation else None,
-                        claim_type=c.claim_type,
+                        position_type=c.position_type,
                         citation_id=c.citation.id if c.citation else None,
                     )
-                    for c in claims
+                    for c in positions
                 ],
             )
-            for c in claims:
+            for c in positions:
                 if c.citation is not None:
                     analysis_citations.append(c.citation)
 

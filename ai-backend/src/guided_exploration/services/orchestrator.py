@@ -3,14 +3,14 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Orchestrator for guided exploration with claim-based adaptive hierarchy.
+Orchestrator for guided exploration with position-based adaptive hierarchy.
 
 Coordinates the 3-phase flow:
-1. Per-Party RAG Retrieval + Claim Extraction (parallel)
-2. Hierarchy Construction from all claims (single LLM call)
+1. Per-Party RAG Retrieval + Position Extraction (parallel)
+2. Hierarchy Construction from all positions (single LLM call)
 3. Send ExplorationTree to frontend
 
-Knowledge resolution is eliminated — claims already contain the knowledge.
+Knowledge resolution is eliminated — positions already contain the knowledge.
 """
 
 import asyncio
@@ -20,9 +20,9 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from src.firebase_service import aget_context_by_id, aget_parties_for_context
-from src.guided_exploration.agents.claim_extractor import (
-    ClaimExtractorAgent,
-    ClaimExtractorInput,
+from src.guided_exploration.agents.position_extractor import (
+    PositionExtractorAgent,
+    PositionExtractorInput,
 )
 from src.guided_exploration.agents.hierarchy_builder import (
     HierarchyBuilderAgent,
@@ -39,7 +39,7 @@ from src.guided_exploration.models import (
     ThinkingEvent,
     TopicTreeEvent,
 )
-from src.guided_exploration.models.claim import Claim, PartyClaims
+from src.guided_exploration.models.position import Position, PartyPositions
 from src.guided_exploration.models.errors import InsufficientChunksError
 from src.guided_exploration.models.exploration import RetrievedChunk
 from src.guided_exploration.models.tree import ExplorationNode, ExplorationTree
@@ -54,12 +54,12 @@ PARTY_TIMEOUT_SECONDS = 60.0
 
 class Orchestrator:
     """
-    Orchestrates the guided exploration flow with claim-based architecture.
+    Orchestrates the guided exploration flow with position-based architecture.
 
     Key principles:
-    1. RAG retrieval + claim extraction per party in parallel
-    2. All claims combined into a single hierarchy (LLM sees full picture)
-    3. ExplorationTree sent to frontend — claims are the knowledge
+    1. RAG retrieval + position extraction per party in parallel
+    2. All positions combined into a single hierarchy (LLM sees full picture)
+    3. ExplorationTree sent to frontend — positions are the knowledge
     4. No separate knowledge resolution phase needed
     """
 
@@ -72,8 +72,8 @@ class Orchestrator:
         self._llm_registry = llm_registry
         self._rag_service = RAGService(embeddings=llm_registry.embeddings)
 
-        # Claim extraction: factual, low temperature
-        self._claim_extractor = ClaimExtractorAgent(
+        # Position extraction: factual, low temperature
+        self._position_extractor = PositionExtractorAgent(
             self._llm_registry.get(LLMTier.BALANCED)
         )
         # Hierarchy building: needs good reasoning for structure
@@ -88,12 +88,12 @@ class Orchestrator:
         context_id: str,
         parties: list[str],
         rag_query: str | None = None,
-    ) -> tuple[str, ExplorationTree]:
+    ) -> tuple[str, ExplorationTree, bool]:
         """
-        Start a new exploration with claim-based adaptive hierarchy.
+        Start a new exploration with position-based adaptive hierarchy.
 
         Flow:
-        1. Per-Party RAG + Claim Extraction (parallel)
+        1. Per-Party RAG + Position Extraction (parallel)
         2. Hierarchy Construction (single LLM call)
         3. Send ExplorationTree to frontend
 
@@ -105,7 +105,8 @@ class Orchestrator:
             rag_query: Optimized query for RAG retrieval (defaults to query)
 
         Returns:
-            Tuple of (exploration_id, ExplorationTree)
+            Tuple of (exploration_id, ExplorationTree, low_confidence)
+            low_confidence is True when data is limited but still usable
         """
         retrieval_query = rag_query or query
         exploration_id = str(uuid4())
@@ -121,7 +122,7 @@ class Orchestrator:
         context_name, parties_info = await self._get_context_info(context_id, parties)
 
         # =====================================================================
-        # PHASE 1: Per-Party RAG Retrieval + Claim Extraction (parallel)
+        # PHASE 1: Per-Party RAG Retrieval + Position Extraction (parallel)
         # =====================================================================
         await self._send_thinking(
             session_id,
@@ -130,10 +131,10 @@ class Orchestrator:
         )
 
         logger.info(
-            f"Phase 1: Starting RAG + claim extraction for {len(parties)} parties"
+            f"Phase 1: Starting RAG + position extraction for {len(parties)} parties"
         )
 
-        all_claims, party_chunks = await self._phase1_claim_extraction(
+        all_positions, party_chunks = await self._phase1_position_extraction(
             session_id=session_id,
             query=query,
             rag_query=retrieval_query,
@@ -144,44 +145,47 @@ class Orchestrator:
             debug_logger=debug_logger,
         )
 
-        if not all_claims:
-            logger.error("No claims extracted - cannot continue")
-            raise ValueError("No claims could be extracted from party documents")
+        if not all_positions:
+            logger.error("No positions extracted - cannot continue")
+            raise ValueError("No positions could be extracted from party documents")
 
         # Validate chunk coverage
         self._validate_chunk_coverage(parties, party_chunks, parties_info)
 
-        # Validate claim quality — need enough data for a meaningful exploration
-        claims_per_party: dict[str, int] = {}
-        for claim in all_claims:
-            claims_per_party[claim.party_id] = (
-                claims_per_party.get(claim.party_id, 0) + 1
+        # Validate position quality — need enough data for a meaningful exploration
+        positions_per_party: dict[str, int] = {}
+        for position in all_positions:
+            positions_per_party[position.party_id] = (
+                positions_per_party.get(position.party_id, 0) + 1
             )
 
-        parties_with_claims = len(claims_per_party)
-        min_claims_per_party = min(claims_per_party.values()) if claims_per_party else 0
-        total_claims = len(all_claims)
+        parties_with_positions = len(positions_per_party)
+        min_positions_per_party = min(positions_per_party.values()) if positions_per_party else 0
+        total_positions = len(all_positions)
 
         logger.info(
-            f"Claim quality: {total_claims} total, "
-            f"{parties_with_claims} parties, "
-            f"min {min_claims_per_party} per party"
+            f"Position quality: {total_positions} total, "
+            f"{parties_with_positions} parties, "
+            f"min {min_positions_per_party} per party"
         )
 
-        if total_claims < 15 or parties_with_claims < len(parties) or min_claims_per_party < 3:
+        # Two-tier validation: hard minimum vs soft minimum
+        low_confidence = False
+
+        # Hard minimum — truly unusable, raise error
+        if total_positions < 5 or parties_with_positions < 2:
             logger.warning(
-                f"Insufficient claims for exploration: "
-                f"{total_claims} total (need 15), "
-                f"{parties_with_claims}/{len(parties)} parties with claims, "
-                f"min {min_claims_per_party} per party (need 3)"
+                f"Hard minimum not met: "
+                f"{total_positions} total (need 5), "
+                f"{parties_with_positions} parties (need 2)"
             )
             raise InsufficientChunksError(
                 message=(
                     f"Nicht genug Informationen fuer eine Exploration: "
-                    f"nur {total_claims} Positionen von {parties_with_claims} Parteien gefunden"
+                    f"nur {total_positions} Positionen von {parties_with_positions} Parteien gefunden"
                 ),
                 total_parties=len(parties),
-                parties_with_chunks=parties_with_claims,
+                parties_with_chunks=parties_with_positions,
                 parties_without_chunks=[
                     parties_info.get(
                         pid,
@@ -191,9 +195,19 @@ class Orchestrator:
                         ),
                     ).name
                     for pid in parties
-                    if pid not in claims_per_party
+                    if pid not in positions_per_party
                 ],
-                available_claims=all_claims,
+                available_positions=all_positions,
+            )
+
+        # Soft minimum — limited but workable, proceed with caveat
+        if total_positions < 15 or parties_with_positions < len(parties) or min_positions_per_party < 3:
+            low_confidence = True
+            logger.warning(
+                f"Soft minimum not met, proceeding with low confidence: "
+                f"{total_positions} total (want 15), "
+                f"{parties_with_positions}/{len(parties)} parties with positions, "
+                f"min {min_positions_per_party} per party (want 3)"
             )
 
         # =====================================================================
@@ -206,7 +220,7 @@ class Orchestrator:
         )
 
         logger.info(
-            f"Phase 2: Building hierarchy from {len(all_claims)} claims"
+            f"Phase 2: Building hierarchy from {len(all_positions)} positions"
         )
 
         with debug_logger.timed_section("Phase 2: Hierarchy Construction"):
@@ -217,7 +231,7 @@ class Orchestrator:
                     query=query,
                     context_name=context_name,
                     parties=parties_info,
-                    all_claims=all_claims,
+                    all_positions=all_positions,
                 )
             )
 
@@ -225,13 +239,13 @@ class Orchestrator:
 
         # Build the ExplorationTree from the builder output
         root_node = ExplorationNode(**builder_output.tree_json)
-        claims_lookup = {c.id: c for c in all_claims}
+        positions_lookup = {p.id: p for p in all_positions}
 
         exploration_tree = ExplorationTree(
             exploration_id=exploration_id,
             original_query=query,
             root=root_node,
-            claims=claims_lookup,
+            positions=positions_lookup,
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         )
@@ -239,7 +253,7 @@ class Orchestrator:
         # Log hierarchy
         debug_logger.log_hierarchy_construction(
             tree=exploration_tree,
-            total_claims=len(all_claims),
+            total_positions=len(all_positions),
             party_count=len(parties_info),
             duration_ms=duration_ms,
         )
@@ -267,19 +281,19 @@ class Orchestrator:
             f"Exploration {exploration_id} complete: "
             f"{len(root_node.children)} top-level nodes, "
             f"{leaf_count} leaf nodes, "
-            f"{len(all_claims)} claims"
+            f"{len(all_positions)} positions"
         )
 
         # Flush debug log
         debug_logger.flush()
 
-        return exploration_id, exploration_tree
+        return exploration_id, exploration_tree, low_confidence
 
     # =========================================================================
-    # Phase 1: Claim Extraction
+    # Phase 1: Position Extraction
     # =========================================================================
 
-    async def _phase1_claim_extraction(
+    async def _phase1_position_extraction(
         self,
         session_id: str,
         query: str,
@@ -289,17 +303,17 @@ class Orchestrator:
         parties: list[str],
         parties_info: dict[str, PartyInfo],
         debug_logger: DebugLogger,
-    ) -> tuple[list[Claim], dict[str, list[RetrievedChunk]]]:
+    ) -> tuple[list[Position], dict[str, list[RetrievedChunk]]]:
         """
-        Phase 1: RAG retrieval + claim extraction for each party in parallel.
+        Phase 1: RAG retrieval + position extraction for each party in parallel.
 
         Returns:
-            Tuple of (all_claims, party_chunks)
+            Tuple of (all_positions, party_chunks)
         """
 
         async def extract_for_party(
             party_id: str,
-        ) -> tuple[str, PartyClaims | None, list[RetrievedChunk]]:
+        ) -> tuple[str, PartyPositions | None, list[RetrievedChunk]]:
             try:
                 party_info = parties_info.get(
                     party_id,
@@ -329,10 +343,10 @@ class Orchestrator:
                     logger.warning(f"No chunks for party {party_id}")
                     return party_id, None, []
 
-                # Claim extraction
+                # Position extraction
                 extract_start = time.monotonic()
-                result = await self._claim_extractor.execute(
-                    ClaimExtractorInput(
+                result = await self._position_extractor.execute(
+                    PositionExtractorInput(
                         query=query,
                         context_id=context_id,
                         context_name=context_name,
@@ -343,18 +357,18 @@ class Orchestrator:
                 )
                 extract_duration = (time.monotonic() - extract_start) * 1000
 
-                debug_logger.log_claim_extraction(
+                debug_logger.log_position_extraction(
                     party_id=party_id,
                     party_name=party_info.name,
-                    party_claims=result.party_claims,
+                    party_positions=result.party_positions,
                     duration_ms=extract_duration,
                 )
 
-                return party_id, result.party_claims, chunks
+                return party_id, result.party_positions, chunks
 
             except Exception as e:
                 logger.error(
-                    f"Claim extraction failed for party {party_id}: {e}"
+                    f"Position extraction failed for party {party_id}: {e}"
                 )
                 return party_id, None, []
 
@@ -370,7 +384,7 @@ class Orchestrator:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Collect results
-        all_claims: list[Claim] = []
+        all_positions: list[Position] = []
         party_chunks: dict[str, list[RetrievedChunk]] = {}
 
         for result in results:
@@ -378,12 +392,12 @@ class Orchestrator:
                 logger.error(f"Phase 1 task failed: {type(result).__name__}: {result}")
                 continue
 
-            party_id, party_claims, chunks = result
-            if party_claims is not None:
-                all_claims.extend(party_claims.claims)
+            party_id, party_positions, chunks = result
+            if party_positions is not None:
+                all_positions.extend(party_positions.positions)
                 party_chunks[party_id] = chunks
 
-        return all_claims, party_chunks
+        return all_positions, party_chunks
 
     # =========================================================================
     # Context & Validation
@@ -446,25 +460,17 @@ class Orchestrator:
                 f"Parties without chunks: {', '.join(parties_without_chunks)}"
             )
 
-        min_parties_threshold = 2
-        min_percentage_threshold = 0.5
-
+        # Log coverage but don't raise — position-level check handles thresholds
         coverage_percentage = (
             count_with_chunks / total_parties if total_parties > 0 else 0
         )
 
-        if (
-            count_with_chunks < min_parties_threshold
-            or coverage_percentage < min_percentage_threshold
-        ):
-            raise InsufficientChunksError(
-                message=(
-                    f"Insufficient document chunks: only {count_with_chunks} of "
-                    f"{total_parties} parties have relevant content"
-                ),
-                total_parties=total_parties,
-                parties_with_chunks=count_with_chunks,
-                parties_without_chunks=party_names_without_chunks,
+        if count_with_chunks < 2 or coverage_percentage < 0.5:
+            logger.warning(
+                f"Low chunk coverage: {count_with_chunks}/{total_parties} "
+                f"({coverage_percentage:.0%}). "
+                f"Missing: {', '.join(party_names_without_chunks)}. "
+                f"Position-level check will determine if exploration is viable."
             )
 
     # =========================================================================
@@ -496,7 +502,7 @@ class Orchestrator:
             breadcrumb=[
                 BreadcrumbItem(
                     id="root",
-                    name="Übersicht",
+                    name="Uebersicht",
                     level=BreadcrumbLevel.ROOT,
                 ),
             ],

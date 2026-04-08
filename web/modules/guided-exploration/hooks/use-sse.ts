@@ -39,6 +39,7 @@ import type {
   StreamEndEvent,
   SummaryGeneratingEvent,
   ThinkingEvent,
+  TopicDirectionsEvent,
   TopicOverviewEvent,
   TopicSwitchSuggestedEvent,
   TopicTreeEvent,
@@ -139,6 +140,20 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
                 treeEvent.tree,
               ),
             );
+            // Add exploration tab with truncated query as label
+            const query = treeEvent.tree.originalQuery || 'Erkundung';
+            const label =
+              query.length > 30 ? `${query.slice(0, 27)}...` : query;
+            const tabCount = Object.keys(
+              useExplorationStore.getState().session.explorationTabs,
+            ).length;
+            dispatchRef.current(
+              sessionActions.explorationTabAdded(
+                treeEvent.explorationId,
+                label,
+                tabCount % 6,
+              ),
+            );
             dispatchRef.current(
               uiActions.announce('Themenbaum wird vorbereitet'),
             );
@@ -158,6 +173,17 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
               readyEvent.partiesCount,
             ),
           );
+          // Add exploration_start message to chat so the user can click to enter
+          const currentTree = useExplorationStore.getState().exploration.tree;
+          const explorationMessage: SessionMessage = {
+            id: crypto.randomUUID(),
+            type: 'exploration_start',
+            content: null,
+            explorationId: readyEvent.explorationId,
+            explorationQuery: currentTree?.originalQuery ?? undefined,
+            timestamp: new Date().toISOString(),
+          };
+          dispatchRef.current(sessionActions.messageAdded(explorationMessage));
           dispatchRef.current(uiActions.thinkingEnded());
           dispatchRef.current(
             uiActions.announce(
@@ -315,6 +341,8 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
             citations: chatEvent.citations,
             timestamp: new Date().toISOString(),
           };
+          // Clear stream buffer before adding message (prevents duplicate)
+          dispatchRef.current(streamActions.bufferCleared());
           dispatchRef.current(sessionActions.messageAdded(message));
           // Set suggested questions if available
           if (
@@ -381,6 +409,36 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
               switchEvent.message,
             ),
           );
+          break;
+        }
+
+        case 'topic_directions': {
+          const directionsEvent = event as TopicDirectionsEvent;
+          // Don't create a duplicate message — the backend already persists one.
+          // Just check if the persisted message is already in the store
+          // (it might not be if this is the live SSE flow, not a reload).
+          const existingMsg = useExplorationStore
+            .getState()
+            .session.messages.find(
+              (m) =>
+                m.type === 'topic_directions' &&
+                m.directionsQueryId === directionsEvent.queryId,
+            );
+          if (!existingMsg) {
+            const directionsMessage: SessionMessage = {
+              id: crypto.randomUUID(),
+              type: 'topic_directions',
+              content: '',
+              directions: directionsEvent.directions,
+              directionsQueryId: directionsEvent.queryId,
+              timestamp: new Date().toISOString(),
+            };
+            dispatchRef.current(sessionActions.messageAdded(directionsMessage));
+          }
+          dispatchRef.current(
+            uiActions.topicDirectionsReceived(directionsEvent),
+          );
+          dispatchRef.current(uiActions.thinkingEnded());
           break;
         }
 

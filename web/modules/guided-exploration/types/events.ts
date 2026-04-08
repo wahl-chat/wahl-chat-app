@@ -118,7 +118,7 @@ export interface QuickSummaryEvent {
   queryId: string;
   originalQuery: string;
   text: string;
-  citations: Array<{ id: string; party: string; document: string }>;
+  citations: Citation[];
   canExploreDeeper: boolean;
   /** Suggested follow-up questions */
   suggestedQuestions?: string[];
@@ -130,7 +130,7 @@ export interface ChatMessageEvent {
   type: 'chat_message';
   messageId: string;
   content: string;
-  citations: Array<{ id: string; party: string; document: string }>;
+  citations: Citation[];
   canExploreDeeper: boolean;
   queryId: string;
   /** Suggested follow-up questions */
@@ -222,6 +222,23 @@ export interface TopicSwitchSuggestedEvent {
   message: string;
 }
 
+// ============ Topic Directions Events ============
+
+export interface TopicDirectionItem {
+  id: string;
+  name: string;
+  description: string;
+  partyStancesPreview: string;
+  suggestedQuestion: string;
+}
+
+export interface TopicDirectionsEvent {
+  type: 'topic_directions';
+  queryId: string;
+  originalQuery: string;
+  directions: TopicDirectionItem[];
+}
+
 // ============ Error Events ============
 
 export type ErrorCode =
@@ -262,4 +279,5 @@ export type SSEEvent =
   | ExplorationCompleteEvent
   | ExportReadyEvent
   | ErrorEvent
-  | TopicSwitchSuggestedEvent;
+  | TopicSwitchSuggestedEvent
+  | TopicDirectionsEvent;

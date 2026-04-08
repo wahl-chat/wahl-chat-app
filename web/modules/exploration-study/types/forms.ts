@@ -49,13 +49,6 @@ export interface LiteracyData {
   politicalLiteracyAnswers: PoliticalLiteracyAnswers;
 }
 
-export type PreferenceSystem = 'guided' | 'baseline' | 'no_preference';
-export type ComparisonChoice = 'guided' | 'baseline' | 'no_difference';
-
-export interface PreferencesData {
-  preferredSystem: PreferenceSystem;
-  preferenceReason?: string;
-  betterForOverview: ComparisonChoice;
-  betterForDetails: ComparisonChoice;
-  additionalFeedback?: string;
+export interface FeedbackData {
+  feedback?: string;
 }

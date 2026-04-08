@@ -7,15 +7,10 @@ export type StudyState =
   | 'demographics'
   | 'literacy'
   | 'tutorial'
-  | 'task_1'
-  | 'questionnaire_1'
-  | 'recall_1'
-  | 'quiz_1'
-  | 'task_2'
-  | 'questionnaire_2'
-  | 'recall_2'
-  | 'quiz_2'
-  | 'preferences'
+  | 'task'
+  | 'questionnaire'
+  | 'recall'
+  | 'quiz'
   | 'complete';
 
 export type StudyCondition = 'guided' | 'chat';
@@ -61,7 +56,7 @@ export interface StudySession {
   group: string;
   currentCondition: StudyCondition | null;
   currentTopic: string | null;
-  chatIds: Record<string, string | null>; // { "1": chatId, "2": chatId }
+  chatId: string | null;
   taskDurationSeconds: number;
 }
 
@@ -76,15 +71,10 @@ export const STUDY_STEPS: StudyState[] = [
   'demographics',
   'literacy',
   'tutorial',
-  'task_1',
-  'questionnaire_1',
-  'recall_1',
-  'quiz_1',
-  'task_2',
-  'questionnaire_2',
-  'recall_2',
-  'quiz_2',
-  'preferences',
+  'task',
+  'questionnaire',
+  'recall',
+  'quiz',
   'complete',
 ];
 
@@ -93,14 +83,9 @@ export const STEP_LABELS: Record<StudyState, string> = {
   demographics: 'Demografische Angaben',
   literacy: 'Digitale Kompetenz',
   tutorial: 'Einführung',
-  task_1: 'Aufgabe 1',
-  questionnaire_1: 'Fragebogen 1',
-  recall_1: 'Erinnerung 1',
-  quiz_1: 'Quiz 1',
-  task_2: 'Aufgabe 2',
-  questionnaire_2: 'Fragebogen 2',
-  recall_2: 'Erinnerung 2',
-  quiz_2: 'Quiz 2',
-  preferences: 'Präferenzen',
+  task: 'Aufgabe',
+  questionnaire: 'Fragebogen',
+  recall: 'Erinnerung',
+  quiz: 'Quiz',
   complete: 'Abschluss',
 };

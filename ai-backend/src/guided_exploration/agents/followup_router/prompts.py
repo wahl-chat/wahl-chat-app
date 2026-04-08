@@ -7,7 +7,7 @@
 from pydantic import BaseModel, Field
 
 from src.guided_exploration.agents.followup_router.interface import LeafInfo
-from src.guided_exploration.models.claim import Claim
+from src.guided_exploration.models.position import Position
 
 
 # =============================================================================
@@ -25,6 +25,14 @@ class FollowupRouterLLMOutput(BaseModel):
             "'on_topic_needs_rag' (zum Thema passend aber mehr Details noetig), "
             "'related_topic' (passt besser zu einem anderen Thema), "
             "'off_topic' (nicht abgedeckt)"
+        ),
+    )
+    rag_query: str | None = Field(
+        default=None,
+        description=(
+            "Nur bei 'on_topic_needs_rag': Optimierte Suchbegriffe fuer die "
+            "Dokumentensuche. Keine ganzen Saetze, nur praegnante Stichworte. "
+            "Beispiel: 'Mindestlohn Erhoehung Arbeitnehmer Loehne'"
         ),
     )
     target_node_id: str | None = Field(
@@ -50,7 +58,7 @@ Name: {leaf_name}
 Beschreibung: {leaf_description}
 
 # Vorhandene Informationen zu diesem Thema
-{existing_claims}
+{existing_positions}
 
 # Andere verfuegbare Themen
 {other_leaves}
@@ -65,7 +73,7 @@ werden. Die Antwort steht bereits in den oben aufgelisteten Positionen.
 2. **on_topic_needs_rag**: Die Frage passt zum aktuellen Thema '{leaf_name}', aber \
 die vorhandenen Informationen reichen nicht aus. Es koennten aber weitere Details in \
 den Wahlprogrammen stehen. Beispiel: Eine Detailfrage zu einem Aspekt der nur \
-oberflaeechlich in den Claims vorkommt.
+oberflaechlich in den Positionen vorkommt.
 
 3. **related_topic**: Die Frage passt BESSER zu einem der anderen verfuegbaren Themen. \
 Gib die ID und den Namen des passenden Themas an (target_node_id, target_node_name).
@@ -77,27 +85,36 @@ auch nicht aus Wahlprogrammen beantwortet werden.
 - Bevorzuge 'on_topic_existing' wenn die Frage auch nur teilweise beantwortbar ist
 - Nutze 'on_topic_needs_rag' nur wenn die Frage klar zum Thema passt aber mehr \
 Details braucht
-- Nutze 'related_topic' nur wenn ein anderes Thema DEUTLICH besser passt"""
+- Nutze 'related_topic' nur wenn ein anderes Thema DEUTLICH besser passt
+
+# RAG-Suchbegriffe (nur bei on_topic_needs_rag)
+Wenn du 'on_topic_needs_rag' waehlst, generiere optimierte Suchbegriffe im Feld \
+'rag_query'. Regeln:
+- NUR Stichworte, keine ganzen Saetze
+- Keine Parteinamen oder Meta-Sprache ("Was sagen die Parteien zu...")
+- Fachbegriffe und konkrete Themen verwenden
+- Beispiel gut: "staatliche Foerderung Wohneigentum Baukindergeld Zuschuss"
+- Beispiel schlecht: "Wie sollen die staatlichen Zuschüsse konkret gestaltet werden?" """
 
 USER_PROMPT = """Nutzerfrage: {message}
 
 Klassifiziere diese Frage."""
 
 
-def format_claims_for_routing(
-    claims_by_party: dict[str, list[Claim]],
-    max_claims_per_party: int = 3,
+def format_positions_for_routing(
+    positions_by_party: dict[str, list[Position]],
+    max_positions_per_party: int = 3,
 ) -> str:
-    """Format claims as a compact summary for the routing prompt."""
-    if not claims_by_party:
+    """Format positions as a compact summary for the routing prompt."""
+    if not positions_by_party:
         return "Keine Informationen vorhanden."
 
     lines = []
-    for party_id, claims in claims_by_party.items():
-        claim_texts = [c.content for c in claims[:max_claims_per_party]]
-        if len(claims) > max_claims_per_party:
-            claim_texts.append(f"... (+{len(claims) - max_claims_per_party} weitere)")
-        lines.append(f"{party_id.upper()}: {'; '.join(claim_texts)}")
+    for party_id, positions in positions_by_party.items():
+        position_texts = [p.content for p in positions[:max_positions_per_party]]
+        if len(positions) > max_positions_per_party:
+            position_texts.append(f"... (+{len(positions) - max_positions_per_party} weitere)")
+        lines.append(f"{party_id.upper()}: {'; '.join(position_texts)}")
 
     return "\n".join(lines)
 

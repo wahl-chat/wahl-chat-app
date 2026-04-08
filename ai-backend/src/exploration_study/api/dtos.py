@@ -83,7 +83,7 @@ class CreateSessionsResponse(BaseModel):
     """Response for session creation."""
 
     session_ids: list[str] = Field(..., description="Created session IDs")
-    group_counts: dict[Literal["A", "B", "C", "D"], int] = Field(
+    group_counts: dict[Literal["A1", "A2", "B1", "B2"], int] = Field(
         ...,
         description="Number of sessions per group",
     )
@@ -94,7 +94,7 @@ class SessionSummary(BaseModel):
 
     id: str
     state: StudyState
-    group: Literal["A", "B", "C", "D"]
+    group: Literal["A1", "A2", "B1", "B2"]
     created_at: datetime
     started_at: datetime | None
     completed_at: datetime | None
@@ -109,7 +109,7 @@ class ListSessionsResponse(BaseModel):
         default_factory=dict,
         description="Count of sessions by state",
     )
-    by_group: dict[Literal["A", "B", "C", "D"], int] = Field(
+    by_group: dict[Literal["A1", "A2", "B1", "B2"], int] = Field(
         default_factory=dict,
         description="Count of sessions by group",
     )
@@ -125,22 +125,22 @@ class SessionStateResponse(BaseModel):
 
     session_id: str
     state: StudyState
-    group: Literal["A", "B", "C", "D"]
+    group: Literal["A1", "A2", "B1", "B2"]
     current_condition: SystemType | None = Field(
         default=None,
-        description="Current condition type ('guided' or 'baseline') if in task",
+        description="Condition type ('guided' or 'baseline')",
     )
     current_system: SystemType | None = Field(
         default=None,
-        description="Current system type if in task",
+        description="System type",
     )
     current_topic: str | None = Field(
         default=None,
-        description="Current topic if in task",
+        description="Topic for the task",
     )
-    chat_ids: dict[str, str | None] = Field(
-        default_factory=dict,
-        description="Chat session IDs for each task, keyed by task number ('1', '2')",
+    chat_id: str | None = Field(
+        default=None,
+        description="Chat session ID for the task",
     )
     task_duration_seconds: int = Field(
         default=600,
@@ -200,7 +200,6 @@ class LiteracyRequest(BaseModel):
 class StartTaskResponse(BaseModel):
     """Response when starting a task."""
 
-    condition_num: int
     system: SystemType
     topic: str
     chat_id: str
@@ -213,12 +212,6 @@ class StartTaskResponse(BaseModel):
         ...,
         description="The state after this task ends (for reference)",
     )
-
-
-class EndTaskRequest(BaseModel):
-    """Request for ending a task."""
-
-    pass  # No body needed, just POST to signal task end
 
 
 class ManipulationChecksRequest(BaseModel):
@@ -311,37 +304,13 @@ class QuizResultResponse(BaseModel):
     )
 
 
-class PreferencesRequest(BaseModel):
-    """Request for submitting final preferences."""
+class FeedbackRequest(BaseModel):
+    """Request for submitting optional feedback."""
 
-    # Overall preference (plan: pref_overall)
-    preferred_system: Literal["guided", "baseline", "no_preference"] = Field(
-        ...,
-        description="Which system preferred overall",
-    )
-
-    # Why preferred (plan: pref_why)
-    preference_reason: str | None = Field(
+    feedback: str | None = Field(
         default=None,
-        description="Why they preferred that system",
-    )
-
-    # Better for overview (plan: pref_overview)
-    better_for_overview: Literal["guided", "baseline", "no_difference"] = Field(
-        ...,
-        description="Which system was better for getting an overview",
-    )
-
-    # Better for details (plan: pref_detail)
-    better_for_details: Literal["guided", "baseline", "no_difference"] = Field(
-        ...,
-        description="Which system was better for understanding details",
-    )
-
-    # Optional feedback (plan: feedback)
-    additional_feedback: str | None = Field(
-        default=None,
-        description="Any other comments",
+        description="Optional open-ended feedback",
+        max_length=10000,
     )
 
 

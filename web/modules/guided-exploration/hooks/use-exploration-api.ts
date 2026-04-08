@@ -40,6 +40,12 @@ export interface UseExplorationApiReturn {
     choice: 'summary' | 'explore',
   ) => Promise<void>;
 
+  /** Submit topic direction choices (multi-select) */
+  submitDirectionChoice: (
+    queryId: string,
+    directions: Array<{ id: string; name: string }>,
+  ) => Promise<void>;
+
   /** Navigate to a path in the tree */
   navigate: (targetPath: string[]) => Promise<void>;
 
@@ -268,6 +274,56 @@ export function useExplorationApi(): UseExplorationApiReturn {
     [dispatch, sessionId],
   );
 
+  const submitDirectionChoice = useCallback(
+    async (
+      queryId: string,
+      directions: Array<{ id: string; name: string }>,
+    ): Promise<void> => {
+      if (!sessionId) {
+        throw new Error('No active session');
+      }
+
+      // Optimistically mark the directions message as completed in the store
+      const directionNames = directions.map((d) => d.name);
+      const currentMessages = useExplorationStore.getState().session.messages;
+      const directionsMsg = currentMessages.find(
+        (m) => m.type === 'topic_directions' && m.directionsQueryId === queryId,
+      );
+      if (directionsMsg) {
+        dispatch(
+          sessionActions.messageUpdated(directionsMsg.id, {
+            selectedDirections: directionNames,
+          }),
+        );
+      }
+
+      dispatch(uiActions.topicDirectionsCleared());
+      dispatch(
+        uiActions.thinkingStarted('planning', 'Themenbaum wird erstellt...'),
+      );
+
+      try {
+        await explorationApi.submitDirectionChoice(sessionId, {
+          queryId,
+          directions,
+        });
+      } catch (error) {
+        dispatch(uiActions.thinkingEnded());
+        dispatch(
+          uiActions.errorOccurred(
+            'LLM_ERROR',
+            error instanceof Error
+              ? error.message
+              : 'Failed to submit direction choice',
+            true,
+          ),
+        );
+        throw error;
+      }
+    },
+    [dispatch, sessionId],
+  );
+
   const navigate = useCallback(
     async (targetPath: string[]): Promise<void> => {
       if (!sessionId || !explorationId) {
@@ -422,6 +478,7 @@ export function useExplorationApi(): UseExplorationApiReturn {
     loadExploration,
     sendMessage,
     submitChoice,
+    submitDirectionChoice,
     navigate,
     requestAnalysis,
     endExploration,

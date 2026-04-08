@@ -7,7 +7,7 @@ import type {
   SessionMessage,
   StreamTargetType,
 } from '@/modules/guided-exploration/types';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import { ConversationInput } from '@/modules/guided-exploration/components/conversation/conversation-input';
 import { ThinkingIndicator } from '@/modules/guided-exploration/components/conversation/thinking-indicator';
@@ -36,6 +36,10 @@ interface ExplorationChatViewProps {
     queryId: string,
     choice: 'summary' | 'explore',
   ) => void;
+  onDirectionChoiceAction?: (
+    queryId: string,
+    directions: Array<{ id: string; name: string }>,
+  ) => void;
   onEnterExplorationAction: (explorationId: string) => void;
 }
 
@@ -52,40 +56,69 @@ export function ExplorationChatView({
   suggestedQuestions = [],
   onSendMessageAction,
   onSubmitChoiceAction,
+  onDirectionChoiceAction,
   onEnterExplorationAction,
 }: ExplorationChatViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const lastUserMessageRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef(messages.length);
+
   const hasMessages = messages.length > 0;
   const showTreePreview = explorationPending && tree;
+  const hasActiveDirections =
+    messages.length > 0 &&
+    messages[messages.length - 1]?.type === 'topic_directions' &&
+    !messages[messages.length - 1]?.selectedDirections;
 
-  // Only show stream buffer for markdown-based content types
+  // Show stream buffer while streaming OR while buffer still has content
+  // (covers the gap between stream_end and the final chat_message arriving)
+  const isStreamableType =
+    streamingTargetType === 'quick_summary' ||
+    streamingTargetType === 'followup';
   const shouldShowStreamBuffer =
-    isStreaming &&
-    streamBuffer &&
-    (streamingTargetType === 'quick_summary' ||
-      streamingTargetType === 'followup');
+    !!streamBuffer && (isStreaming ? isStreamableType : true);
 
-  // Debug streaming state
-  console.log('[ExplorationChatView] streaming state:', {
-    isStreaming,
-    streamBufferLength: streamBuffer?.length ?? 0,
-    streamingTargetType,
-    shouldShowStreamBuffer,
-  });
-
-  // Auto-scroll to bottom when thinking starts or new messages arrive
+  // Scroll the user's message to the top of the scroll container (not the page).
+  // Don't auto-scroll for bot responses — let them render below in view.
   useEffect(() => {
-    if (isThinking || isStreaming || messages.length > 0) {
-      scrollContainerRef.current?.scrollTo({
-        top: scrollContainerRef.current.scrollHeight,
-        behavior: 'smooth',
-      });
+    const newCount = messages.length;
+    const prevCount = prevMessageCountRef.current;
+    prevMessageCountRef.current = newCount;
+
+    if (newCount > prevCount) {
+      const lastMessage = messages[newCount - 1];
+      if (
+        lastMessage?.type === 'user' &&
+        lastUserMessageRef.current &&
+        scrollContainerRef.current
+      ) {
+        requestAnimationFrame(() => {
+          const container = scrollContainerRef.current;
+          const element = lastUserMessageRef.current;
+          if (!container || !element) return;
+
+          // Calculate element's position relative to the scroll container
+          const elementTop = element.offsetTop - container.offsetTop;
+          container.scrollTo({
+            top: elementTop - 24, // 24px padding from top
+            behavior: 'smooth',
+          });
+        });
+      }
     }
-  }, [isThinking, isStreaming, messages.length]);
+  }, [messages]);
+
+  // Find the index of the last user message for the scroll anchor
+  const lastUserMessageIndex = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].type === 'user') return i;
+    }
+    return -1;
+  })();
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Main content area - with gradient mask */}
+      {/* Main content area */}
       <div
         ref={scrollContainerRef}
         className="flex-1 overflow-auto"
@@ -104,17 +137,18 @@ export function ExplorationChatView({
               <SessionMessageList
                 messages={messages}
                 onEnterExplorationAction={onEnterExplorationAction}
+                onDirectionChoiceAction={onDirectionChoiceAction}
                 isLoading={isThinking}
+                lastUserMessageIndex={lastUserMessageIndex}
+                lastUserMessageRef={lastUserMessageRef}
               />
 
-              {/* Streaming content - only for markdown-based streams */}
+              {/* Streaming content with citation mapping */}
               {shouldShowStreamBuffer && (
-                <PartyMarkedMarkdown
-                  onReferenceClick={() => {}}
+                <ChatStreamingBuffer
+                  content={streamBuffer}
                   isStreaming={isStreaming}
-                >
-                  {streamBuffer}
-                </PartyMarkedMarkdown>
+                />
               )}
 
               {/* Tree preview while exploration is pending */}
@@ -151,12 +185,54 @@ export function ExplorationChatView({
         <div className="mx-auto w-full max-w-xl">
           <ConversationInput
             onSubmit={onSendMessageAction}
-            disabled={isThinking || !!pendingChoice}
+            disabled={isThinking || !!pendingChoice || hasActiveDirections}
             placeholder="Stelle eine Frage..."
             suggestedQuestions={suggestedQuestions}
           />
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Renders streaming buffer with citation IDs mapped to sequential numbers.
+ * Shows [1], [2] etc. instead of raw [spd-abc123] during streaming.
+ */
+function ChatStreamingBuffer({
+  content,
+  isStreaming,
+}: {
+  content: string;
+  isStreaming: boolean;
+}) {
+  const citationMap = useMemo(() => {
+    const map = new Map<string, number>();
+    const matches = content.matchAll(/\[([\w.-]+(?:\s*,\s*[\w.-]+)*)\]/g);
+    for (const match of matches) {
+      const ids = match[1].split(/\s*,\s*/);
+      for (const id of ids) {
+        // Citation IDs contain a hyphen (e.g., spd-abc123), skip PARTY markers
+        if (!map.has(id) && id.includes('-') && !id.startsWith('PARTY')) {
+          map.set(id, map.size + 1);
+        }
+      }
+    }
+    return map;
+  }, [content]);
+
+  const getReferenceName = (id: string): string | null => {
+    const num = citationMap.get(id);
+    return num !== undefined ? `${num}` : null;
+  };
+
+  return (
+    <PartyMarkedMarkdown
+      onReferenceClick={() => {}}
+      getReferenceName={getReferenceName}
+      isStreaming={isStreaming}
+    >
+      {content}
+    </PartyMarkedMarkdown>
   );
 }

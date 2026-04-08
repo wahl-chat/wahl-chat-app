@@ -33,8 +33,8 @@ class FollowupRouterInput(BaseModel):
     leaf_id: str = Field(..., description="Current leaf node ID")
     leaf_name: str = Field(..., description="Display name of current leaf")
     leaf_description: str = Field(..., description="What this leaf covers")
-    existing_claims_summary: str = Field(
-        ..., description="Condensed summary of claims in this leaf"
+    existing_positions_summary: str = Field(
+        ..., description="Condensed summary of positions in this leaf"
     )
     other_leaves: list[LeafInfo] = Field(
         default_factory=list,
@@ -49,6 +49,10 @@ class FollowupRouterOutput(BaseModel):
     """Routing decision from the agent."""
 
     route: FollowupRoute = Field(..., description="The routing decision")
+    rag_query: str | None = Field(
+        default=None,
+        description="Optimized RAG search query when route is ON_TOPIC_NEEDS_RAG",
+    )
     target_node_id: str | None = Field(
         default=None,
         description="Target leaf ID when route is RELATED_TOPIC",

@@ -19,12 +19,15 @@ from src.guided_exploration.agents.content_generator.prompts import (
     SYSTEM_PROMPT,
     ContentGeneratorLLMOutput,
     format_citations_pool,
-    format_claims_for_content_prompt,
+    format_positions_for_content_prompt,
 )
 from src.guided_exploration.agents.llm_provider import LLMProvider
 from src.guided_exploration.agents.party_context import format_party_context_for_prompt
 from src.guided_exploration.models.content import (
+    AspectComparison,
+    ComparisonAspect,
     PartyPosition,
+    PartyStance,
     SubtopicContent,
 )
 from src.guided_exploration.models.streaming import StreamChunk
@@ -38,16 +41,21 @@ CHUNK_DELAY = 0.05  # 50ms between chunks
 
 class ContentGeneratorAgent(StreamingAgent[ContentGeneratorInput, SubtopicContent]):
     """
-    Generates structured content for a leaf node from its claims.
+    Generates structured content for a leaf node from its positions.
 
     Produces:
     - Summary: Overview of the comparison point
-    - Party positions: Each party's stance (from claims)
+    - Party positions: Each party's stance (from positions)
     - Suggested questions: Follow-up questions
     """
 
-    def __init__(self, llm_provider: LLMProvider):
+    def __init__(
+        self,
+        llm_provider: LLMProvider,
+        fast_llm_provider: LLMProvider | None = None,
+    ):
         self._llm = llm_provider
+        self._fast_llm = fast_llm_provider or llm_provider
 
     @property
     def name(self) -> str:
@@ -71,16 +79,16 @@ class ContentGeneratorAgent(StreamingAgent[ContentGeneratorInput, SubtopicConten
         return await self._generate_content(input)
 
     async def _generate_content(self, input: ContentGeneratorInput) -> SubtopicContent:
-        """Generate content from claims."""
-        parties = input.parties or list(input.leaf_claims.keys())
+        """Generate content from positions."""
+        parties = input.parties or list(input.leaf_positions.keys())
         citations = list(input.leaf_citations) if input.leaf_citations else []
 
-        # Collect citations from claims if not provided separately
+        # Collect citations from positions if not provided separately
         if not citations:
-            for party_claims in input.leaf_claims.values():
-                for claim in party_claims:
-                    if claim.citation is not None:
-                        citations.append(claim.citation)
+            for party_positions in input.leaf_positions.values():
+                for position in party_positions:
+                    if position.citation is not None:
+                        citations.append(position.citation)
 
         party_context = format_party_context_for_prompt(
             parties=input.parties_info,
@@ -92,8 +100,8 @@ class ContentGeneratorAgent(StreamingAgent[ContentGeneratorInput, SubtopicConten
         user_prompt = GENERATION_PROMPT.format(
             subtopic_name=input.subtopic_name,
             path=" > ".join(input.path),
-            party_positions=format_claims_for_content_prompt(
-                input.leaf_claims, input.parties_info
+            party_positions=format_positions_for_content_prompt(
+                input.leaf_positions, input.parties_info
             ),
             citations=format_citations_pool(citations),
         )
@@ -116,12 +124,26 @@ class ContentGeneratorAgent(StreamingAgent[ContentGeneratorInput, SubtopicConten
             if pos.party in parties
         ]
 
+        # Extract aspect comparison if 2+ parties
+        aspect_comparison = None
+        if len(party_positions) >= 2:
+            try:
+                aspect_comparison = await self._extract_aspects(
+                    input.subtopic_name, party_positions
+                )
+            except Exception:
+                logger.warning(
+                    f"Failed to extract aspects for {input.subtopic_id}",
+                    exc_info=True,
+                )
+
         return SubtopicContent(
             subtopic_id=input.subtopic_id,
             path=input.path,
             summary=llm_output.summary,
             party_positions=party_positions,
             analysis=None,
+            aspect_comparison=aspect_comparison,
             citations=citations,
             announcement=f"Inhalt zum Thema {input.subtopic_name} wird geladen.",
             suggested_questions=llm_output.suggested_questions,
@@ -136,6 +158,75 @@ class ContentGeneratorAgent(StreamingAgent[ContentGeneratorInput, SubtopicConten
                 chunk += " "
             yield StreamChunk(content=chunk, section=section, is_final=False)
             await asyncio.sleep(CHUNK_DELAY)
+
+    async def _extract_aspects(
+        self,
+        subtopic_name: str,
+        party_positions: list[PartyPosition],
+    ) -> AspectComparison | None:
+        """Extract comparable aspects from party positions using FAST LLM."""
+        positions_text = "\n\n".join(
+            f"**{pos.party}**: {pos.content}" for pos in party_positions
+        )
+
+        from pydantic import BaseModel, Field
+
+        class LLMPartyStance(BaseModel):
+            party: str = Field(..., description="Parteiname")
+            stance: str = Field(
+                ..., description="Kurze Beschreibung der Position (max 1-2 Saetze)"
+            )
+
+        class LLMComparisonAspect(BaseModel):
+            name: str = Field(..., description="Name des Aspekts")
+            party_stances: list[LLMPartyStance] = Field(
+                ..., description="Position jeder Partei zu diesem Aspekt"
+            )
+
+        class LLMAspectOutput(BaseModel):
+            aspects: list[LLMComparisonAspect] = Field(
+                ..., description="3-6 vergleichbare Aspekte"
+            )
+
+        messages = [
+            SystemMessage(
+                content=(
+                    "Du extrahierst vergleichbare Aspekte aus Parteipositionen. "
+                    "Identifiziere 3-6 konkrete Aspekte zu denen sich die Parteien "
+                    "positionieren. Fuer jeden Aspekt: kurze Beschreibung der Position "
+                    "jeder Partei (max 1-2 Saetze). Nur Deutsch."
+                )
+            ),
+            HumanMessage(
+                content=(
+                    f"Thema: {subtopic_name}\n\n"
+                    f"Parteipositionen:\n{positions_text}\n\n"
+                    "Extrahiere vergleichbare Aspekte."
+                )
+            ),
+        ]
+
+        llm_output: LLMAspectOutput = await self._fast_llm.generate_structured(
+            messages=messages,
+            output_schema=LLMAspectOutput,
+            temperature=0.2,
+        )
+
+        if not llm_output.aspects:
+            return None
+
+        return AspectComparison(
+            aspects=[
+                ComparisonAspect(
+                    name=a.name,
+                    party_stances=[
+                        PartyStance(party=s.party, stance=s.stance)
+                        for s in a.party_stances
+                    ],
+                )
+                for a in llm_output.aspects
+            ]
+        )
 
     def _format_positions_for_streaming(self, positions: list[PartyPosition]) -> str:
         """Format party positions for streaming."""

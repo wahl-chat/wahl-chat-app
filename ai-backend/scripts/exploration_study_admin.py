@@ -37,7 +37,7 @@ sys.path.insert(0, str(project_root))
 # Initialize Firebase before importing modules that use it
 from src.firebase_service import db  # noqa: E402, F401
 
-from src.exploration_study.models.session import get_conditions_for_group  # noqa: E402
+from src.exploration_study.models.session import get_condition_for_group  # noqa: E402
 from src.exploration_study.models.study import StudyConfig  # noqa: E402
 from src.exploration_study.services.counterbalancer import get_counterbalancer  # noqa: E402
 from src.exploration_study.services.session_repository import get_session_repository  # noqa: E402
@@ -117,7 +117,7 @@ async def get_study(args: argparse.Namespace) -> None:
 
     # Count by state and group
     by_state: dict[str, int] = {}
-    by_group: dict[str, int] = {"A": 0, "B": 0, "C": 0, "D": 0}
+    by_group: dict[str, int] = {"A1": 0, "A2": 0, "B1": 0, "B2": 0}
     for s in sessions:
         state = s.state.value if hasattr(s.state, "value") else str(s.state)
         by_state[state] = by_state.get(state, 0) + 1
@@ -171,12 +171,12 @@ async def create_sessions(args: argparse.Namespace) -> None:
     session_ids = []
     for i in range(args.count):
         group = await counterbalancer.assign_group(args.study_id)
-        conditions = get_conditions_for_group(group, study.config.topics)
+        condition = get_condition_for_group(group, study.config.topics)
 
         session = await session_repo.create_session(
             study_id=args.study_id,
             group=group,
-            conditions=conditions,
+            condition=condition,
         )
         session_ids.append(session.id)
         print(f"  Created session {i + 1}/{args.count}: {session.id} (Group {group})")
@@ -184,10 +184,10 @@ async def create_sessions(args: argparse.Namespace) -> None:
     group_counts = await counterbalancer.get_group_counts(args.study_id)
 
     print(f"\nCreated {len(session_ids)} sessions")
-    print(f"  Group A: {group_counts.get('A', 0)}")
-    print(f"  Group B: {group_counts.get('B', 0)}")
-    print(f"  Group C: {group_counts.get('C', 0)}")
-    print(f"  Group D: {group_counts.get('D', 0)}")
+    print(f"  Group A1 (guided + topic1): {group_counts.get('A1', 0)}")
+    print(f"  Group A2 (guided + topic2): {group_counts.get('A2', 0)}")
+    print(f"  Group B1 (baseline + topic1): {group_counts.get('B1', 0)}")
+    print(f"  Group B2 (baseline + topic2): {group_counts.get('B2', 0)}")
 
     if args.output:
         with open(args.output, "w") as f:
@@ -223,7 +223,7 @@ async def list_sessions(args: argparse.Namespace) -> None:
             if hasattr(session.state, "value")
             else str(session.state)
         )
-        url = f"{base_url}/study/{session.id}"
+        url = f"{base_url}/exploration-study/{session.id}"
 
         status_icon = "✓" if state == "complete" else "▶" if state != "created" else "○"
 
@@ -276,19 +276,14 @@ async def export_data(args: argparse.Namespace) -> None:
                     "created_at",
                     "started_at",
                     "completed_at",
-                    "condition_1_system",
-                    "condition_1_topic",
-                    "condition_2_system",
-                    "condition_2_topic",
-                    "preferred_system",
-                    "preference_strength",
+                    "condition_system",
+                    "condition_topic",
+                    "feedback",
                 ]
             )
 
             for session in sessions:
-                cond_1 = session.conditions.get("1")
-                cond_2 = session.conditions.get("2")
-                prefs = session.participant_data.preferences
+                cond = session.condition
 
                 state = (
                     session.state.value
@@ -306,12 +301,9 @@ async def export_data(args: argparse.Namespace) -> None:
                         session.completed_at.isoformat()
                         if session.completed_at
                         else "",
-                        cond_1.system.value if cond_1 else "",
-                        cond_1.topic if cond_1 else "",
-                        cond_2.system.value if cond_2 else "",
-                        cond_2.topic if cond_2 else "",
-                        prefs.preferred_system.value if prefs.preferred_system else "",
-                        prefs.preference_strength or "",
+                        cond.system.value if hasattr(cond.system, "value") else str(cond.system),
+                        cond.topic,
+                        session.participant_data.feedback or "",
                     ]
                 )
 

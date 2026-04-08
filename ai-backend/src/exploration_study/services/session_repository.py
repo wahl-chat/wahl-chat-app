@@ -13,7 +13,6 @@ from src.exploration_study.models.session import (
     ConditionData,
     ParticipantData,
     StudySession,
-    TaskKey,
 )
 from src.exploration_study.models.state import StudyState
 
@@ -37,8 +36,8 @@ class SessionRepository:
     async def create_session(
         self,
         study_id: str,
-        group: Literal["A", "B", "C", "D"],
-        conditions: dict[TaskKey, ConditionData],
+        group: Literal["A1", "A2", "B1", "B2"],
+        condition: ConditionData,
     ) -> StudySession:
         """Create a new pre-generated session."""
         session_id = str(uuid4())
@@ -49,7 +48,7 @@ class SessionRepository:
             study_id=study_id,
             state=StudyState.CONSENT,
             group=group,
-            conditions=conditions,
+            condition=condition,
             participant_data=ParticipantData(),
             created_at=now,
             started_at=None,
@@ -109,13 +108,12 @@ class SessionRepository:
     async def update_condition_data(
         self,
         session_id: str,
-        condition_num: TaskKey,
         condition_data: ConditionData,
     ) -> StudySession | None:
-        """Update condition data for a specific task."""
+        """Update condition data."""
         return await self.update_session(
             session_id,
-            {f"conditions.{condition_num}": condition_data.model_dump(mode="json")},
+            {"condition": condition_data.model_dump(mode="json")},
         )
 
     async def mark_started(self, session_id: str) -> StudySession | None:
@@ -157,17 +155,17 @@ class SessionRepository:
     async def count_sessions_by_group(
         self,
         study_id: str,
-    ) -> dict[Literal["A", "B", "C", "D"], int]:
+    ) -> dict[Literal["A1", "A2", "B1", "B2"], int]:
         """Count sessions per group for counterbalancing."""
         # Use a simple query without ordering to avoid requiring a composite index
         collection_ref = self._db.collection(SESSIONS_COLLECTION)
         query = collection_ref.where(filter=FieldFilter("study_id", "==", study_id))
 
-        counts: dict[Literal["A", "B", "C", "D"], int] = {
-            "A": 0,
-            "B": 0,
-            "C": 0,
-            "D": 0,
+        counts: dict[Literal["A1", "A2", "B1", "B2"], int] = {
+            "A1": 0,
+            "A2": 0,
+            "B1": 0,
+            "B2": 0,
         }
         async for doc in query.stream():
             data = doc.to_dict()
@@ -203,16 +201,14 @@ class SessionRepository:
     async def create_quiz(
         self,
         session_id: str,
-        condition_num: int,
     ) -> Quiz:
-        """Create a pending quiz for a condition."""
+        """Create a pending quiz for the session."""
         quiz_id = str(uuid4())
         now = datetime.now(timezone.utc)
 
         quiz = Quiz(
             id=quiz_id,
             session_id=session_id,
-            condition_num=condition_num,
             status=QuizStatus.PENDING,
             questions=[],
             created_at=now,
@@ -240,18 +236,17 @@ class SessionRepository:
 
         return Quiz(**data)
 
-    async def get_quiz_for_condition(
+    async def get_session_quiz(
         self,
         session_id: str,
-        condition_num: int,
     ) -> Quiz | None:
-        """Get the quiz for a specific condition."""
+        """Get the quiz for the session."""
         collection_ref = (
             self._db.collection(SESSIONS_COLLECTION)
             .document(session_id)
             .collection(QUIZZES_SUBCOLLECTION)
         )
-        query = collection_ref.where("condition_num", "==", condition_num).limit(1)
+        query = collection_ref.limit(1)
 
         async for doc in query.stream():
             data = doc.to_dict()

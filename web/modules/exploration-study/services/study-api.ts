@@ -5,8 +5,8 @@
 import type {
   ConsentData,
   DemographicsData,
+  FeedbackData,
   LiteracyData,
-  PreferencesData,
   QuestionnaireData,
   QuizAnswer,
   QuizData,
@@ -106,31 +106,27 @@ export const studyApi = {
     }),
 
   /**
-   * Start a task - returns the chat_id for the exploration
+   * Start the task - returns the chat_id for the exploration
    */
-  startTask: (sessionId: string, taskNumber: 1 | 2) =>
+  startTask: (sessionId: string) =>
     fetchApi<{ chatId: string; condition: string; durationSeconds: number }>(
-      `/${sessionId}/task/${taskNumber}/start`,
+      `/${sessionId}/task/start`,
       { method: 'POST' },
     ),
 
   /**
-   * End a task
+   * End the task
    */
-  endTask: (sessionId: string, taskNumber: 1 | 2) =>
-    fetchApi<StudySession>(`/${sessionId}/task/${taskNumber}/end`, {
+  endTask: (sessionId: string) =>
+    fetchApi<StudySession>(`/${sessionId}/task/end`, {
       method: 'POST',
     }),
 
   /**
    * Submit questionnaire (NASA-TLX + UEQ-S)
    */
-  submitQuestionnaire: (
-    sessionId: string,
-    taskNumber: 1 | 2,
-    data: QuestionnaireData,
-  ) =>
-    fetchApi<StudySession>(`/${sessionId}/questionnaire/${taskNumber}`, {
+  submitQuestionnaire: (sessionId: string, data: QuestionnaireData) =>
+    fetchApi<StudySession>(`/${sessionId}/questionnaire`, {
       method: 'POST',
       body: data,
     }),
@@ -138,8 +134,8 @@ export const studyApi = {
   /**
    * Submit free recall
    */
-  submitRecall: (sessionId: string, taskNumber: 1 | 2, data: RecallData) =>
-    fetchApi<StudySession>(`/${sessionId}/recall/${taskNumber}`, {
+  submitRecall: (sessionId: string, data: RecallData) =>
+    fetchApi<StudySession>(`/${sessionId}/recall`, {
       method: 'POST',
       body: data,
     }),
@@ -147,32 +143,23 @@ export const studyApi = {
   /**
    * Get quiz questions (poll until ready)
    */
-  getQuiz: (sessionId: string, taskNumber: 1 | 2) =>
-    fetchApi<QuizData>(`/${sessionId}/quiz/${taskNumber}`),
+  getQuiz: (sessionId: string) => fetchApi<QuizData>(`/${sessionId}/quiz`),
 
   /**
    * Submit quiz answers
    */
-  submitQuiz: (sessionId: string, taskNumber: 1 | 2, answers: QuizAnswer[]) =>
-    fetchApi<StudySession>(`/${sessionId}/quiz/${taskNumber}`, {
+  submitQuiz: (sessionId: string, answers: QuizAnswer[]) =>
+    fetchApi<StudySession>(`/${sessionId}/quiz`, {
       method: 'POST',
       body: { answers },
     }),
 
   /**
-   * Submit preferences
+   * Submit optional feedback
    */
-  submitPreferences: (sessionId: string, data: PreferencesData) =>
-    fetchApi<StudySession>(`/${sessionId}/preferences`, {
+  submitFeedback: (sessionId: string, data: FeedbackData) =>
+    fetchApi<{ message: string }>(`/${sessionId}/feedback`, {
       method: 'POST',
       body: data,
-    }),
-
-  /**
-   * Complete the study
-   */
-  completeStudy: (sessionId: string) =>
-    fetchApi<StudySession>(`/${sessionId}/complete`, {
-      method: 'POST',
     }),
 };

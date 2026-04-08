@@ -112,6 +112,22 @@ class MarkExploredRequest(BaseModel):
     leaf_id: str = Field(..., description="ID of the leaf to mark as explored")
 
 
+class DirectionChoiceItem(BaseModel):
+    """A single direction choice."""
+
+    id: str = Field(..., description="Direction ID")
+    name: str = Field(..., description="Direction name")
+
+
+class SubmitDirectionChoiceRequest(BaseModel):
+    """Request body for submitting topic direction choices (multi-select)."""
+
+    query_id: str = Field(..., description="ID of the query this choice responds to")
+    directions: list[DirectionChoiceItem] = Field(
+        ..., description="Selected directions"
+    )
+
+
 class EndExplorationRequest(BaseModel):
     """Request body for ending an exploration."""
 

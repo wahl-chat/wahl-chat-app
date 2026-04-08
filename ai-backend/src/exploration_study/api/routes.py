@@ -10,8 +10,8 @@ from src.exploration_study.api.dtos import (
     ConsentRequest,
     DemographicsRequest,
     ErrorResponse,
+    FeedbackRequest,
     LiteracyRequest,
-    PreferencesRequest,
     QuestionnaireRequest,
     QuizResultResponse,
     QuizStatusResponse,
@@ -31,32 +31,20 @@ from src.exploration_study.models.session import (
     DemographicsData,
     LiteracyData,
     ManipulationChecks,
-    PreferencesData,
-    TaskKey,
 )
-from src.exploration_study.models.state import StudyState, get_task_number
+from src.exploration_study.models.state import StudyState
 from src.exploration_study.services.session_repository import get_session_repository
 from src.exploration_study.services.study_repository import get_study_repository
 
 logger = logging.getLogger(__name__)
 
 ROUTE_PREFIX = "/api/v1/exploration-study"
-
-
-def _task_key(n: int | str) -> TaskKey:
-    """Convert task number to TaskKey literal type."""
-    key = str(n)
-    if key not in ("1", "2"):
-        raise ValueError(f"Invalid task number: {n}")
-    return key  # type: ignore[return-value]
-
-
 GE_ROUTE_PREFIX = "/api/v1/guided-exploration"
 
 
 async def get_session_state(request: web.Request) -> web.Response:
     """
-    GET /api/exploration-study/session/{session_id}
+    GET /api/exploration-study/sessions/{session_id}
     Get current session state and data for participant.
     """
     session_id = request.match_info["session_id"]
@@ -73,34 +61,16 @@ async def get_session_state(request: web.Request) -> web.Response:
     study_repo = get_study_repository()
     study = await study_repo.get_study(session.study_id)
 
-    # Determine current condition info
-    task_num = get_task_number(session.state)
-    current_condition = None
-    current_system = None
-    current_topic = None
-
-    if task_num:
-        cond_key = _task_key(task_num)
-        cond = session.conditions.get(cond_key)
-        if cond:
-            current_condition = cond.system
-            current_system = cond.system
-            current_topic = cond.topic
-
-    # Build chat_ids dict from all conditions
-    chat_ids: dict[str, str | None] = {}
-    for cond_key in ("1", "2"):
-        cond = session.conditions.get(cond_key)
-        chat_ids[cond_key] = cond.chat_id if cond else None
+    condition = session.condition
 
     response = SessionStateResponse(
         session_id=session.id,
         state=session.state,
         group=session.group,
-        current_condition=current_condition,
-        current_system=current_system,
-        current_topic=current_topic,
-        chat_ids=chat_ids,
+        current_condition=condition.system,
+        current_system=condition.system,
+        current_topic=condition.topic,
+        chat_id=condition.chat_id,
         task_duration_seconds=study.config.task_duration_seconds if study else 600,
     )
     return web.json_response(response.model_dump(mode="json"))
@@ -108,7 +78,7 @@ async def get_session_state(request: web.Request) -> web.Response:
 
 async def submit_consent(request: web.Request) -> web.Response:
     """
-    POST /api/exploration-study/session/{session_id}/consent
+    POST /api/exploration-study/sessions/{session_id}/consent
     Submit consent.
     """
     session_id = request.match_info["session_id"]
@@ -131,7 +101,6 @@ async def submit_consent(request: web.Request) -> web.Response:
             status=404,
         )
 
-    # Check we're in the consent step
     if session.state != StudyState.CONSENT:
         return web.json_response(
             ErrorResponse(
@@ -147,7 +116,6 @@ async def submit_consent(request: web.Request) -> web.Response:
             status=400,
         )
 
-    # Update participant data
     participant_data = session.participant_data
     participant_data.consent_given = True
     participant_data.consent_timestamp = datetime.now(timezone.utc)
@@ -166,7 +134,7 @@ async def submit_consent(request: web.Request) -> web.Response:
 
 async def submit_demographics(request: web.Request) -> web.Response:
     """
-    POST /api/exploration-study/session/{session_id}/demographics
+    POST /api/exploration-study/sessions/{session_id}/demographics
     Submit demographics.
     """
     session_id = request.match_info["session_id"]
@@ -198,7 +166,6 @@ async def submit_demographics(request: web.Request) -> web.Response:
             status=400,
         )
 
-    # Update participant data
     participant_data = session.participant_data
     participant_data.demographics = DemographicsData(
         age_range=req.age_range,
@@ -219,7 +186,7 @@ async def submit_demographics(request: web.Request) -> web.Response:
 
 async def submit_literacy(request: web.Request) -> web.Response:
     """
-    POST /api/exploration-study/session/{session_id}/literacy
+    POST /api/exploration-study/sessions/{session_id}/literacy
     Submit literacy screening.
     """
     session_id = request.match_info["session_id"]
@@ -251,12 +218,10 @@ async def submit_literacy(request: web.Request) -> web.Response:
             status=400,
         )
 
-    # Calculate political literacy score
-    # Correct answers for the 3 political literacy questions
     correct_answers = {
-        "lit_1": "2",  # Wie viele Stimmen bei der Bundestagswahl? -> 2
-        "lit_2": "Bundestag",  # Welches Organ wählt den Bundeskanzler? -> Bundestag
-        "lit_3": "4 Jahre",  # Wie lange dauert eine Legislaturperiode? -> 4 Jahre
+        "lit_1": "2",
+        "lit_2": "Bundestag",
+        "lit_3": "4 Jahre",
     }
 
     score = 0
@@ -264,7 +229,6 @@ async def submit_literacy(request: web.Request) -> web.Response:
         if req.political_literacy_answers.get(q_id) == correct:
             score += 1
 
-    # Update participant data
     participant_data = session.participant_data
     participant_data.literacy = LiteracyData(
         ai_familiarity=req.ai_familiarity,
@@ -286,7 +250,7 @@ async def submit_literacy(request: web.Request) -> web.Response:
 
 async def complete_tutorial(request: web.Request) -> web.Response:
     """
-    POST /api/exploration-study/session/{session_id}/tutorial
+    POST /api/exploration-study/sessions/{session_id}/tutorial
     Mark tutorial as complete.
     """
     session_id = request.match_info["session_id"]
@@ -309,30 +273,21 @@ async def complete_tutorial(request: web.Request) -> web.Response:
             status=400,
         )
 
-    await session_repo.update_state(session_id, StudyState.TASK_1)
+    await session_repo.update_state(session_id, StudyState.TASK)
 
     response = StateTransitionResponse(
         previous_state=StudyState.TUTORIAL,
-        current_state=StudyState.TASK_1,
+        current_state=StudyState.TASK,
     )
     return web.json_response(response.model_dump(mode="json"))
 
 
 async def start_task(request: web.Request) -> web.Response:
     """
-    POST /api/exploration-study/session/{session_id}/task/{n}/start
-    Start a task.
+    POST /api/exploration-study/sessions/{session_id}/task/start
+    Start the task.
     """
     session_id = request.match_info["session_id"]
-    task_n = int(request.match_info["n"])
-
-    if task_n not in (1, 2):
-        return web.json_response(
-            ErrorResponse(
-                error="Invalid task number", detail="Must be 1 or 2"
-            ).model_dump(),
-            status=400,
-        )
 
     session_repo = get_session_repository()
     session = await session_repo.get_session(session_id)
@@ -343,19 +298,15 @@ async def start_task(request: web.Request) -> web.Response:
             status=404,
         )
 
-    # Check we're in the correct task state
-    expected_state = StudyState.TASK_1 if task_n == 1 else StudyState.TASK_2
-
-    if session.state != expected_state:
+    if session.state != StudyState.TASK:
         return web.json_response(
             ErrorResponse(
                 error="Invalid state",
-                detail=f"Expected state {expected_state}, got {session.state}",
+                detail=f"Expected state {StudyState.TASK}, got {session.state}",
             ).model_dump(),
             status=400,
         )
 
-    # Get study config
     study_repo = get_study_repository()
     study = await study_repo.get_study(session.study_id)
     if not study:
@@ -364,14 +315,7 @@ async def start_task(request: web.Request) -> web.Response:
             status=404,
         )
 
-    # Get condition data
-    cond_key = _task_key(task_n)
-    condition = session.conditions.get(cond_key)
-    if not condition:
-        return web.json_response(
-            ErrorResponse(error="Condition not found").model_dump(),
-            status=500,
-        )
+    condition = session.condition
 
     # Create a guided exploration session via the facade
     from src.exploration_study.facade import get_facade
@@ -386,38 +330,25 @@ async def start_task(request: web.Request) -> web.Response:
     # Update condition with chat ID and start time
     condition.chat_id = ge_session["session_id"]
     condition.started_at = datetime.now(timezone.utc)
-    await session_repo.update_condition_data(session_id, cond_key, condition)
-
-    # Determine the next state after this task ends
-    next_state_after_task = (
-        StudyState.QUESTIONNAIRE_1 if task_n == 1 else StudyState.QUESTIONNAIRE_2
-    )
+    await session_repo.update_condition_data(session_id, condition)
 
     response = StartTaskResponse(
-        condition_num=task_n,
         system=condition.system,
         topic=condition.topic,
         chat_id=ge_session["session_id"],
         stream_url=f"{GE_ROUTE_PREFIX}/sessions/{ge_session['session_id']}/stream",
         duration_seconds=study.config.task_duration_seconds,
-        next_state=next_state_after_task,
+        next_state=StudyState.QUESTIONNAIRE,
     )
     return web.json_response(response.model_dump(mode="json"))
 
 
 async def end_task(request: web.Request) -> web.Response:
     """
-    POST /api/exploration-study/session/{session_id}/task/{n}/end
-    End a task and trigger quiz generation.
+    POST /api/exploration-study/sessions/{session_id}/task/end
+    End the task and trigger quiz generation.
     """
     session_id = request.match_info["session_id"]
-    task_n = int(request.match_info["n"])
-
-    if task_n not in (1, 2):
-        return web.json_response(
-            ErrorResponse(error="Invalid task number").model_dump(),
-            status=400,
-        )
 
     session_repo = get_session_repository()
     session = await session_repo.get_session(session_id)
@@ -428,40 +359,31 @@ async def end_task(request: web.Request) -> web.Response:
             status=404,
         )
 
-    expected_state = StudyState.TASK_1 if task_n == 1 else StudyState.TASK_2
-    target_state = (
-        StudyState.QUESTIONNAIRE_1 if task_n == 1 else StudyState.QUESTIONNAIRE_2
-    )
-
-    if session.state != expected_state:
+    if session.state != StudyState.TASK:
         return web.json_response(
             ErrorResponse(
                 error="Invalid state",
-                detail=f"Expected state {expected_state}, got {session.state}",
+                detail=f"Expected state {StudyState.TASK}, got {session.state}",
             ).model_dump(),
             status=400,
         )
 
-    # Update condition end time
-    cond_key = _task_key(task_n)
-    condition = session.conditions.get(cond_key)
-    if condition:
-        condition.ended_at = datetime.now(timezone.utc)
-        await session_repo.update_condition_data(session_id, cond_key, condition)
+    condition = session.condition
+    condition.ended_at = datetime.now(timezone.utc)
+    await session_repo.update_condition_data(session_id, condition)
 
     # Get study for quiz generation
     study_repo = get_study_repository()
     study = await study_repo.get_study(session.study_id)
 
     # Start quiz generation in background
-    if study and condition and condition.chat_id:
+    if study and condition.chat_id:
         from src.exploration_study.facade import get_facade
 
         facade = get_facade()
         try:
             await facade.start_quiz_generation(
                 session_id=session_id,
-                condition_num=task_n,
                 topic=condition.topic,
                 parties=study.config.parties,
                 chat_id=condition.chat_id,
@@ -478,34 +400,26 @@ async def end_task(request: web.Request) -> web.Response:
         return web.json_response(
             ErrorResponse(
                 error="Cannot generate quiz",
-                detail="Missing study, condition, or chat_id",
+                detail="Missing study or chat_id",
             ).model_dump(),
             status=400,
         )
 
-    # Transition state
-    await session_repo.update_state(session_id, target_state)
+    await session_repo.update_state(session_id, StudyState.QUESTIONNAIRE)
 
     response = StateTransitionResponse(
-        previous_state=session.state,
-        current_state=target_state,
+        previous_state=StudyState.TASK,
+        current_state=StudyState.QUESTIONNAIRE,
     )
     return web.json_response(response.model_dump(mode="json"))
 
 
 async def submit_questionnaire(request: web.Request) -> web.Response:
     """
-    POST /api/exploration-study/session/{session_id}/questionnaire/{n}
+    POST /api/exploration-study/sessions/{session_id}/questionnaire
     Submit NASA-TLX and UEQ-S questionnaire.
     """
     session_id = request.match_info["session_id"]
-    task_n = int(request.match_info["n"])
-
-    if task_n not in (1, 2):
-        return web.json_response(
-            ErrorResponse(error="Invalid task number").model_dump(),
-            status=400,
-        )
 
     try:
         body = await request.json()
@@ -525,57 +439,42 @@ async def submit_questionnaire(request: web.Request) -> web.Response:
             status=404,
         )
 
-    expected_state = (
-        StudyState.QUESTIONNAIRE_1 if task_n == 1 else StudyState.QUESTIONNAIRE_2
-    )
-    target_state = StudyState.RECALL_1 if task_n == 1 else StudyState.RECALL_2
-
-    if session.state != expected_state:
+    if session.state != StudyState.QUESTIONNAIRE:
         return web.json_response(
             ErrorResponse(
                 error="Invalid state",
-                detail=f"Expected {expected_state}, got {session.state}",
+                detail=f"Expected {StudyState.QUESTIONNAIRE}, got {session.state}",
             ).model_dump(),
             status=400,
         )
 
-    # Update condition data
-    cond_key = _task_key(task_n)
-    condition = session.conditions.get(cond_key)
-    if condition:
-        condition.nasa_tlx = req.nasa_tlx
-        condition.ueq_s = req.ueq_s
-        condition.manipulation_checks = ManipulationChecks(
-            depth=req.manipulation_checks.depth,
-            clarity=req.manipulation_checks.clarity,
-            task_clarity=req.manipulation_checks.task_clarity,
-            technical=req.manipulation_checks.technical,
-        )
-        condition.questionnaire_submitted_at = datetime.now(timezone.utc)
-        await session_repo.update_condition_data(session_id, cond_key, condition)
+    condition = session.condition
+    condition.nasa_tlx = req.nasa_tlx
+    condition.ueq_s = req.ueq_s
+    condition.manipulation_checks = ManipulationChecks(
+        depth=req.manipulation_checks.depth,
+        clarity=req.manipulation_checks.clarity,
+        task_clarity=req.manipulation_checks.task_clarity,
+        technical=req.manipulation_checks.technical,
+    )
+    condition.questionnaire_submitted_at = datetime.now(timezone.utc)
+    await session_repo.update_condition_data(session_id, condition)
 
-    await session_repo.update_state(session_id, target_state)
+    await session_repo.update_state(session_id, StudyState.RECALL)
 
     response = StateTransitionResponse(
-        previous_state=session.state,
-        current_state=target_state,
+        previous_state=StudyState.QUESTIONNAIRE,
+        current_state=StudyState.RECALL,
     )
     return web.json_response(response.model_dump(mode="json"))
 
 
 async def submit_recall(request: web.Request) -> web.Response:
     """
-    POST /api/exploration-study/session/{session_id}/recall/{n}
+    POST /api/exploration-study/sessions/{session_id}/recall
     Submit free recall.
     """
     session_id = request.match_info["session_id"]
-    task_n = int(request.match_info["n"])
-
-    if task_n not in (1, 2):
-        return web.json_response(
-            ErrorResponse(error="Invalid task number").model_dump(),
-            status=400,
-        )
 
     try:
         body = await request.json()
@@ -595,48 +494,35 @@ async def submit_recall(request: web.Request) -> web.Response:
             status=404,
         )
 
-    expected_state = StudyState.RECALL_1 if task_n == 1 else StudyState.RECALL_2
-    target_state = StudyState.QUIZ_1 if task_n == 1 else StudyState.QUIZ_2
-
-    if session.state != expected_state:
+    if session.state != StudyState.RECALL:
         return web.json_response(
             ErrorResponse(
                 error="Invalid state",
-                detail=f"Expected {expected_state}, got {session.state}",
+                detail=f"Expected {StudyState.RECALL}, got {session.state}",
             ).model_dump(),
             status=400,
         )
 
-    # Update condition data
-    cond_key = _task_key(task_n)
-    condition = session.conditions.get(cond_key)
-    if condition:
-        condition.recall_text = req.text
-        condition.recall_submitted_at = datetime.now(timezone.utc)
-        await session_repo.update_condition_data(session_id, cond_key, condition)
+    condition = session.condition
+    condition.recall_text = req.text
+    condition.recall_submitted_at = datetime.now(timezone.utc)
+    await session_repo.update_condition_data(session_id, condition)
 
-    await session_repo.update_state(session_id, target_state)
+    await session_repo.update_state(session_id, StudyState.QUIZ)
 
     response = StateTransitionResponse(
-        previous_state=session.state,
-        current_state=target_state,
+        previous_state=StudyState.RECALL,
+        current_state=StudyState.QUIZ,
     )
     return web.json_response(response.model_dump(mode="json"))
 
 
 async def get_quiz(request: web.Request) -> web.Response:
     """
-    GET /api/exploration-study/session/{session_id}/quiz/{n}
+    GET /api/exploration-study/sessions/{session_id}/quiz
     Get quiz status and questions if ready.
     """
     session_id = request.match_info["session_id"]
-    task_n = int(request.match_info["n"])
-
-    if task_n not in (1, 2):
-        return web.json_response(
-            ErrorResponse(error="Invalid task number").model_dump(),
-            status=400,
-        )
 
     session_repo = get_session_repository()
     session = await session_repo.get_session(session_id)
@@ -647,7 +533,7 @@ async def get_quiz(request: web.Request) -> web.Response:
             status=404,
         )
 
-    quiz = await session_repo.get_quiz_for_condition(session_id, task_n)
+    quiz = await session_repo.get_session_quiz(session_id)
 
     if not quiz:
         response = QuizStatusResponse(
@@ -676,17 +562,10 @@ async def get_quiz(request: web.Request) -> web.Response:
 
 async def submit_quiz(request: web.Request) -> web.Response:
     """
-    POST /api/exploration-study/session/{session_id}/quiz/{n}
-    Submit quiz answers.
+    POST /api/exploration-study/sessions/{session_id}/quiz
+    Submit quiz answers and complete the study.
     """
     session_id = request.match_info["session_id"]
-    task_n = int(request.match_info["n"])
-
-    if task_n not in (1, 2):
-        return web.json_response(
-            ErrorResponse(error="Invalid task number").model_dump(),
-            status=400,
-        )
 
     try:
         body = await request.json()
@@ -706,19 +585,16 @@ async def submit_quiz(request: web.Request) -> web.Response:
             status=404,
         )
 
-    expected_state = StudyState.QUIZ_1 if task_n == 1 else StudyState.QUIZ_2
-    target_state = StudyState.TASK_2 if task_n == 1 else StudyState.PREFERENCES
-
-    if session.state != expected_state:
+    if session.state != StudyState.QUIZ:
         return web.json_response(
             ErrorResponse(
                 error="Invalid state",
-                detail=f"Expected {expected_state}, got {session.state}",
+                detail=f"Expected {StudyState.QUIZ}, got {session.state}",
             ).model_dump(),
             status=400,
         )
 
-    quiz = await session_repo.get_quiz_for_condition(session_id, task_n)
+    quiz = await session_repo.get_session_quiz(session_id)
     if not quiz or quiz.status != QuizStatus.READY:
         return web.json_response(
             ErrorResponse(error="Quiz not ready").model_dump(),
@@ -728,7 +604,6 @@ async def submit_quiz(request: web.Request) -> web.Response:
     # Create answer objects and calculate score
     answers = []
     for answer_req in req.answers:
-        # Find the question to check correctness
         question = next(
             (q for q in quiz.questions if q.id == answer_req.question_id), None
         )
@@ -745,12 +620,10 @@ async def submit_quiz(request: web.Request) -> web.Response:
             )
         )
 
-    # Calculate score
     total_correct, total_questions, score_percentage = calculate_quiz_score(
         quiz.questions, answers
     )
 
-    # Save submission
     submission = QuizSubmission(
         quiz_id=quiz.id,
         answers=answers,
@@ -762,35 +635,33 @@ async def submit_quiz(request: web.Request) -> web.Response:
     await session_repo.save_quiz_submission(session_id, submission)
 
     # Update condition with quiz submission time
-    cond_key = _task_key(task_n)
-    condition = session.conditions.get(cond_key)
-    if condition:
-        condition.quiz_id = quiz.id
-        condition.quiz_submitted_at = datetime.now(timezone.utc)
-        await session_repo.update_condition_data(session_id, cond_key, condition)
+    condition = session.condition
+    condition.quiz_id = quiz.id
+    condition.quiz_submitted_at = datetime.now(timezone.utc)
+    await session_repo.update_condition_data(session_id, condition)
 
-    # Transition state
-    await session_repo.update_state(session_id, target_state)
+    # Mark study as complete
+    await session_repo.mark_completed(session_id)
 
     response = QuizResultResponse(
         total_correct=total_correct,
         total_questions=total_questions,
         score_percentage=score_percentage,
-        next_state=target_state,
+        next_state=StudyState.COMPLETE,
     )
     return web.json_response(response.model_dump(mode="json"))
 
 
-async def submit_preferences(request: web.Request) -> web.Response:
+async def submit_feedback(request: web.Request) -> web.Response:
     """
-    POST /api/exploration-study/session/{session_id}/preferences
-    Submit final preferences comparison.
+    POST /api/exploration-study/sessions/{session_id}/feedback
+    Submit optional feedback.
     """
     session_id = request.match_info["session_id"]
 
     try:
         body = await request.json()
-        req = PreferencesRequest(**body)
+        req = FeedbackRequest(**body)
     except Exception as e:
         return web.json_response(
             ErrorResponse(error="Invalid request body", detail=str(e)).model_dump(),
@@ -806,39 +677,24 @@ async def submit_preferences(request: web.Request) -> web.Response:
             status=404,
         )
 
-    if session.state != StudyState.PREFERENCES:
+    if session.state != StudyState.COMPLETE:
         return web.json_response(
             ErrorResponse(
                 error="Invalid state",
-                detail=f"Expected {StudyState.PREFERENCES}, got {session.state}",
+                detail=f"Expected {StudyState.COMPLETE}, got {session.state}",
             ).model_dump(),
             status=400,
         )
 
-    # Update participant data
     participant_data = session.participant_data
-    participant_data.preferences = PreferencesData(
-        preferred_system=req.preferred_system,
-        preference_reason=req.preference_reason,
-        better_for_overview=req.better_for_overview,
-        better_for_details=req.better_for_details,
-        additional_feedback=req.additional_feedback,
-    )
-
+    participant_data.feedback = req.feedback
     await session_repo.update_participant_data(session_id, participant_data)
-    await session_repo.mark_completed(session_id)
 
-    response = StateTransitionResponse(
-        previous_state=session.state,
-        current_state=StudyState.COMPLETE,
-        message="Study completed. Thank you for participating!",
-    )
-    return web.json_response(response.model_dump(mode="json"))
+    return web.json_response({"message": "Feedback saved"})
 
 
 def setup_exploration_study_routes(app: web.Application) -> None:
     """Register all exploration study routes with the application."""
-    # Participant routes
     participant_routes = [
         ("GET", f"{ROUTE_PREFIX}/sessions/{{session_id}}", get_session_state),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/consent", submit_consent),
@@ -849,25 +705,17 @@ def setup_exploration_study_routes(app: web.Application) -> None:
         ),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/literacy", submit_literacy),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/tutorial", complete_tutorial),
+        ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/task/start", start_task),
+        ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/task/end", end_task),
         (
             "POST",
-            f"{ROUTE_PREFIX}/sessions/{{session_id}}/task/{{n}}/start",
-            start_task,
-        ),
-        ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/task/{{n}}/end", end_task),
-        (
-            "POST",
-            f"{ROUTE_PREFIX}/sessions/{{session_id}}/questionnaire/{{n}}",
+            f"{ROUTE_PREFIX}/sessions/{{session_id}}/questionnaire",
             submit_questionnaire,
         ),
-        ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/recall/{{n}}", submit_recall),
-        ("GET", f"{ROUTE_PREFIX}/sessions/{{session_id}}/quiz/{{n}}", get_quiz),
-        ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/quiz/{{n}}", submit_quiz),
-        (
-            "POST",
-            f"{ROUTE_PREFIX}/sessions/{{session_id}}/preferences",
-            submit_preferences,
-        ),
+        ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/recall", submit_recall),
+        ("GET", f"{ROUTE_PREFIX}/sessions/{{session_id}}/quiz", get_quiz),
+        ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/quiz", submit_quiz),
+        ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/feedback", submit_feedback),
     ]
 
     for method, path, handler in participant_routes:

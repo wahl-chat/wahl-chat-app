@@ -6,8 +6,8 @@
 Agent interfaces and implementations for guided exploration.
 
 Agent Types:
-- ClaimExtractorAgent: Extracts concrete claims from party documents
-- HierarchyBuilderAgent: Builds adaptive tree from all claims
+- PositionExtractorAgent: Extracts concrete positions from party documents
+- HierarchyBuilderAgent: Builds adaptive tree from all positions
 - QueryClassifierAgent: Classifies initial user queries (FAST tier)
 - MessageClassifierAgent: Classifies messages within explorations (FAST tier)
 - ContentGeneratorAgent: Generates streaming leaf content (BALANCED tier)
@@ -24,10 +24,10 @@ from src.guided_exploration.agents.base import (
     BaseAgent,
     StreamingAgent,
 )
-from src.guided_exploration.agents.claim_extractor import (
-    ClaimExtractorAgent,
-    ClaimExtractorInput,
-    ClaimExtractorOutput,
+from src.guided_exploration.agents.position_extractor import (
+    PositionExtractorAgent,
+    PositionExtractorInput,
+    PositionExtractorOutput,
 )
 from src.guided_exploration.agents.content_generator import (
     ContentGeneratorAgent,
@@ -76,6 +76,12 @@ from src.guided_exploration.agents.summary_generator import (
     SummaryInput,
     SummaryOutput,
 )
+from src.guided_exploration.agents.topic_scout import (
+    TopicDirection,
+    TopicScoutAgent,
+    TopicScoutInput,
+    TopicScoutOutput,
+)
 
 __all__ = [
     # Base interfaces
@@ -90,10 +96,10 @@ __all__ = [
     "LLMRegistry",
     "LLMTier",
     "LangChainLLMProvider",
-    # Claim Extractor
-    "ClaimExtractorAgent",
-    "ClaimExtractorInput",
-    "ClaimExtractorOutput",
+    # Position Extractor
+    "PositionExtractorAgent",
+    "PositionExtractorInput",
+    "PositionExtractorOutput",
     # Hierarchy Builder
     "HierarchyBuilderAgent",
     "HierarchyBuilderInput",
@@ -124,4 +130,9 @@ __all__ = [
     "QuickSummaryInput",
     "QuickSummaryOutput",
     "FinalSummaryInput",
+    # Topic Scout
+    "TopicScoutAgent",
+    "TopicDirection",
+    "TopicScoutInput",
+    "TopicScoutOutput",
 ]

@@ -14,21 +14,37 @@ export type MessageType =
 
 // ============ Session Messages ============
 
-export type SessionMessageType = 'user' | 'assistant' | 'exploration_start';
+export type SessionMessageType =
+  | 'user'
+  | 'assistant'
+  | 'exploration_start'
+  | 'topic_directions';
 
 export interface SessionMessage {
   /** Unique message identifier */
   id: string;
   /** Type of session message */
   type: SessionMessageType;
-  /** Message content */
-  content: string;
+  /** Message content (null for exploration_start and topic_directions) */
+  content: string | null;
   /** Citations for this message (for quick summaries) */
   citations?: Citation[];
   /** ID of the exploration if this is an exploration_start message */
   explorationId?: string;
   /** The query that triggered the exploration */
   explorationQuery?: string;
+  /** Topic direction choices (for topic_directions type) */
+  directions?: Array<{
+    id: string;
+    name: string;
+    description: string;
+    partyStancesPreview: string;
+    suggestedQuestion: string;
+  }>;
+  /** Query ID for direction choice tracking */
+  directionsQueryId?: string;
+  /** Names of directions the user selected (set after submission) */
+  selectedDirections?: string[];
   /** When the message was created */
   timestamp: string;
 }
