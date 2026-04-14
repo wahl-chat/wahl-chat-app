@@ -1,7 +1,7 @@
 'use client';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { StatusDot } from '@/modules/guided-exploration/components/shared/status-dot';
+import { LeafSummaryCard } from '@/modules/guided-exploration/components/shared/leaf-summary-card';
 import type {
   ExplorationNode,
   ExplorationTree,
@@ -12,8 +12,6 @@ import {
   getOverallProgress,
   isLeaf,
 } from '@/modules/guided-exploration/utils/tree-helpers';
-import { ArrowRight, ChevronDown } from 'lucide-react';
-import { nanoid } from 'nanoid';
 
 interface ExplorationSummaryPanelProps {
   tree: ExplorationTree;
@@ -48,75 +46,14 @@ export function ExplorationSummaryPanel({
 
   function renderNode(node: ExplorationNode) {
     if (isLeaf(node)) {
-      const isExplored = node.status === 'explored';
-      const isActive = node.id === currentLeafId;
-      const summary = getSummary(node.id);
-
       return (
         <li key={node.id}>
-          <article
-            className={cn(
-              'cursor-pointer rounded-lg border bg-card shadow-sm transition-colors hover:bg-accent',
-              isActive && 'ring-2 ring-primary',
-            )}
-            onClick={() => onNavigate(node.id)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onNavigate(node.id);
-              }
-            }}
-            aria-label={`Zu "${node.name}" navigieren${isExplored ? ', erkundet' : ''}`}
-          >
-            <div className="flex items-start gap-3 p-3">
-              <StatusDot
-                status={isExplored ? 'explored' : 'pending'}
-                className="mt-1 shrink-0"
-              />
-              <div className="min-w-0 flex-1">
-                <h4 className="text-sm font-medium leading-tight">
-                  {node.name}
-                </h4>
-                {!isExplored && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Noch nicht erkundet
-                  </p>
-                )}
-              </div>
-              <ArrowRight className="mt-1 size-4 shrink-0 text-muted-foreground" />
-            </div>
-
-            {isExplored && summary?.overview && (
-              <details
-                className="group border-t"
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-              >
-                <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50">
-                  <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
-                  Zusammenfassung
-                </summary>
-                <div className="px-3 pb-3 pt-1">
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    {summary.overview}
-                  </p>
-                  {summary.keyPoints && summary.keyPoints.length > 0 && (
-                    <ul className="mt-2 space-y-1">
-                      {summary.keyPoints.map((point) => (
-                        <li
-                          key={nanoid()}
-                          className="flex items-start gap-1.5 text-xs text-muted-foreground"
-                        >
-                          <span className="mt-1.5 size-1 shrink-0 rounded-full bg-muted-foreground/50" />
-                          {point}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </details>
-            )}
-          </article>
+          <LeafSummaryCard
+            node={node}
+            summary={getSummary(node.id)}
+            isActive={node.id === currentLeafId}
+            onNavigate={onNavigate}
+          />
         </li>
       );
     }

@@ -14,7 +14,7 @@ import type {
   LeafSummary,
 } from '@/modules/guided-exploration/types';
 import { ClipboardList } from 'lucide-react';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { ExplorationSummaryPanel } from './exploration-summary-panel';
 
 interface MobileSummarySheetProps {
@@ -22,6 +22,11 @@ interface MobileSummarySheetProps {
   currentPath: string[];
   summaries: Record<string, LeafSummary> | null;
   onNavigate: (nodeId: string) => void;
+  /**
+   * Optional override for the sheet body. When provided, this content is
+   * rendered instead of the default `ExplorationSummaryPanel`.
+   */
+  children?: ReactNode;
 }
 
 /**
@@ -33,6 +38,7 @@ export function MobileSummarySheet({
   currentPath,
   summaries,
   onNavigate,
+  children,
 }: MobileSummarySheetProps) {
   const [open, setOpen] = useState(false);
 
@@ -60,13 +66,15 @@ export function MobileSummarySheet({
             Übersicht über den Erkundungsfortschritt
           </SheetDescription>
         </SheetHeader>
-        <ExplorationSummaryPanel
-          tree={tree}
-          currentPath={currentPath}
-          summaries={summaries}
-          onNavigate={handleNavigate}
-          className="h-full"
-        />
+        {children ?? (
+          <ExplorationSummaryPanel
+            tree={tree}
+            currentPath={currentPath}
+            summaries={summaries}
+            onNavigate={handleNavigate}
+            className="h-full"
+          />
+        )}
       </SheetContent>
     </Sheet>
   );

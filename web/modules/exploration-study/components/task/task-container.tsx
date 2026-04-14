@@ -12,8 +12,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useCallback, useState } from 'react';
+import { useTimer } from '@/modules/exploration-study/hooks';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { TaskTimer } from './task-timer';
+
+export const MIN_TASK_DURATION_SECONDS = 7 * 60;
 
 export interface TaskContainerProps {
   condition: 'guided' | 'chat';
@@ -21,6 +24,13 @@ export interface TaskContainerProps {
   onEnd: () => Promise<void>;
   children: React.ReactNode;
   className?: string;
+}
+
+function formatMinutesSeconds(totalSeconds: number): string {
+  const clamped = Math.max(0, totalSeconds);
+  const minutes = Math.floor(clamped / 60);
+  const seconds = clamped % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
 export function TaskContainer({
@@ -32,11 +42,49 @@ export function TaskContainer({
 }: TaskContainerProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
+  const [unlockMessage, setUnlockMessage] = useState('');
+  const warningAnnouncerRef = useRef<HTMLDivElement>(null);
+  const wasLockedRef = useRef(true);
 
   const handleTimerEnd = useCallback(async () => {
     setIsEnding(true);
     await onEnd();
   }, [onEnd]);
+
+  const { secondsRemaining, formatTime, start } = useTimer({
+    durationSeconds,
+    onEnd: handleTimerEnd,
+    onWarning: (seconds) => {
+      if (warningAnnouncerRef.current) {
+        const minutes = Math.floor(seconds / 60);
+        warningAnnouncerRef.current.textContent =
+          minutes > 0
+            ? `Noch ${minutes} Minute${minutes > 1 ? 'n' : ''} verbleibend`
+            : `Noch ${seconds} Sekunden verbleibend`;
+      }
+    },
+  });
+
+  useEffect(() => {
+    start();
+  }, [start]);
+
+  const elapsedSeconds = Math.max(0, durationSeconds - secondsRemaining);
+  const canEnd = elapsedSeconds >= MIN_TASK_DURATION_SECONDS;
+  const secondsUntilUnlock = Math.max(
+    0,
+    MIN_TASK_DURATION_SECONDS - elapsedSeconds,
+  );
+
+  // Announce exactly once when the end-task button unlocks.
+  useEffect(() => {
+    if (canEnd && wasLockedRef.current) {
+      wasLockedRef.current = false;
+      setUnlockMessage('Du kannst die Aufgabe jetzt beenden.');
+      const timeout = setTimeout(() => setUnlockMessage(''), 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [canEnd]);
 
   const handleManualEnd = useCallback(() => {
     setShowConfirmDialog(true);
@@ -48,26 +96,63 @@ export function TaskContainer({
     await onEnd();
   }, [onEnd]);
 
+  const endButtonDisabled = isEnding || !canEnd;
+  const lockReason = canEnd
+    ? 'Du kannst die Aufgabe jetzt beenden.'
+    : `Du kannst die Aufgabe erst nach 7 Minuten beenden. Noch ${Math.ceil(secondsUntilUnlock / 60)} Minuten.`;
+
   return (
     <div
       className={cn('relative flex-1 overflow-hidden flex flex-col', className)}
     >
+      {/* Warning announcer (for time-remaining thresholds) */}
+      <div
+        ref={warningAnnouncerRef}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      />
+      {/* Unlock announcer (fires once when end-task unlocks) */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {unlockMessage}
+      </div>
+
       {/* Task header with timer and end button */}
-      <div className="flex items-center justify-between border-b bg-background px-4 py-2">
+      <div className="flex items-center justify-between gap-3 border-b bg-background px-4 py-2">
         <div className="flex items-center gap-3">
-          <TaskTimer durationSeconds={durationSeconds} onEnd={handleTimerEnd} />
+          <TaskTimer
+            secondsRemaining={secondsRemaining}
+            formattedTime={formatTime()}
+          />
           <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
             {condition === 'guided' ? 'Geführte Erkundung' : 'Chat-Modus'}
           </span>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleManualEnd}
-          disabled={isEnding}
-        >
-          {isEnding ? 'Wird beendet...' : 'Aufgabe beenden'}
-        </Button>
+        <div className="flex items-center gap-2">
+          {!canEnd && (
+            <span className="text-xs text-muted-foreground" aria-hidden="true">
+              Freigeschaltet in {formatMinutesSeconds(secondsUntilUnlock)}
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleManualEnd}
+            disabled={endButtonDisabled}
+            aria-describedby="end-task-reason"
+          >
+            {isEnding ? 'Wird beendet...' : 'Aufgabe beenden'}
+          </Button>
+          <span id="end-task-reason" className="sr-only">
+            {lockReason}
+          </span>
+        </div>
       </div>
 
       {/* Exploration content */}

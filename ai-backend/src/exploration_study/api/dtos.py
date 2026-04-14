@@ -120,6 +120,33 @@ class ListSessionsResponse(BaseModel):
 # =============================================================================
 
 
+class CreateSessionRequest(BaseModel):
+    """Request body for self-serve session creation."""
+
+    prolific_pid: str | None = Field(
+        default=None,
+        description="Prolific participant ID (PROLIFIC_PID)",
+        max_length=256,
+    )
+    prolific_study_id: str | None = Field(
+        default=None,
+        description="Prolific study ID (STUDY_ID)",
+        max_length=256,
+    )
+    prolific_session_id: str | None = Field(
+        default=None,
+        description="Prolific session ID (SESSION_ID)",
+        max_length=256,
+    )
+
+
+class CreateSessionResponse(BaseModel):
+    """Response for self-serve session creation."""
+
+    session_id: str = Field(..., description="Newly created session ID")
+    state: StudyState = Field(..., description="Initial state of the session")
+
+
 class SessionStateResponse(BaseModel):
     """Current session state for participant."""
 
@@ -171,29 +198,32 @@ class DemographicsRequest(BaseModel):
     )
 
 
+class MailsShortRequest(BaseModel):
+    """MAILS-Short responses (10 items, 0-10 scale)."""
+
+    item1: int = Field(..., ge=0, le=10)
+    item2: int = Field(..., ge=0, le=10)
+    item3: int = Field(..., ge=0, le=10)
+    item4: int = Field(..., ge=0, le=10)
+    item5: int = Field(..., ge=0, le=10)
+    item6: int = Field(..., ge=0, le=10)
+    item7: int = Field(..., ge=0, le=10)
+    item8: int = Field(..., ge=0, le=10)
+    item9: int = Field(..., ge=0, le=10)
+    item10: int = Field(..., ge=0, le=10)
+
+
 class LiteracyRequest(BaseModel):
     """Request for submitting literacy data."""
 
-    # AI literacy
-    ai_familiarity: int = Field(
+    # AI literacy: Meta-AI Literacy Scale – Short Version (Koch, Carolus, et al., 2024)
+    mails_short: MailsShortRequest = Field(
         ...,
-        ge=1,
-        le=7,
-        description="Familiarity with AI chatbots (1-7)",
-    )
-    chatbot_usage: str = Field(
-        ...,
-        description="How often they use chatbots (never, rarely, monthly, weekly, daily)",
+        description="MAILS-Short responses (10 items, 0-10 self-assessment)",
     )
     news_consumption: list[str] = Field(
         ...,
         description="News consumption sources (online, tv, newspaper, social_media, radio)",
-    )
-
-    # Political literacy quiz answers
-    political_literacy_answers: dict[str, str] = Field(
-        ...,
-        description="Answers to political literacy questions (lit_1, lit_2, lit_3)",
     )
 
 
@@ -237,16 +267,6 @@ class QuestionnaireRequest(BaseModel):
     manipulation_checks: ManipulationChecksRequest = Field(
         ...,
         description="Manipulation check responses",
-    )
-
-
-class RecallRequest(BaseModel):
-    """Request for submitting free recall."""
-
-    text: str = Field(
-        ...,
-        description="Free recall text from participant",
-        max_length=10000,
     )
 
 

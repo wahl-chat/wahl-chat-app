@@ -16,6 +16,7 @@ import {
 } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { PartyBadge } from './party-badge';
 
 type CitationMarkdownProps = {
   children: string;
@@ -26,6 +27,14 @@ type CitationMarkdownProps = {
   /** Get tooltip text for a citation ID */
   getReferenceTooltip?: (id: string) => string | null;
 };
+
+// Combined splitter for inline tokens we want to extract from text:
+//   - citations:    [id]  or  [id1, id2]
+//   - party badges: [PARTY_BADGE:id]
+const INLINE_TOKEN_REGEX =
+  /(\[PARTY_BADGE:[\w-]+\]|\[[\w.-]+(?:\s*,\s*[\w.-]+)*\])/g;
+const CITATION_MATCH = /^\[([\w.-]+(?:\s*,\s*[\w.-]+)*)\]$/;
+const PARTY_BADGE_MATCH = /^\[PARTY_BADGE:([\w-]+)\]$/;
 
 /**
  * Renders a citation reference button with tooltip
@@ -96,15 +105,27 @@ const NonMemoizedCitationMarkdown = ({
     }: DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>,
   ) {
     const buildReference = (children: string) => {
-      // Match both numeric IDs [0], [1, 2] and string IDs [spd-abc123], [id1, id2]
-      // Also supports dots in IDs like [oedp-soziale_gerechtigkeit.sozialpolitik-148daf66]
-      const parts = children.split(/(\[[\w.-]+(?:\s*,\s*[\w.-]+)*\])/g);
+      // Splits text on both citation tokens ([id], [id1, id2]) and party
+      // badge tokens ([PARTY_BADGE:id]). Citation IDs may contain word chars,
+      // dots, or hyphens (e.g. [oedp-soziale_gerechtigkeit.sozialpolitik-148daf66]).
+      const parts = children.split(INLINE_TOKEN_REGEX);
 
       if (parts.length > 1) {
         return parts.map((part, index) => {
-          const match = part.match(/^\[([\w.-]+(?:\s*,\s*[\w.-]+)*)\]$/);
-          if (match) {
-            const ids = match[1].split(/\s*,\s*/);
+          const badgeMatch = part.match(PARTY_BADGE_MATCH);
+          if (badgeMatch) {
+            return (
+              <PartyBadge
+                key={`badge-${index}-${badgeMatch[1]}`}
+                party={badgeMatch[1]}
+                inline
+              />
+            );
+          }
+
+          const citationMatch = part.match(CITATION_MATCH);
+          if (citationMatch) {
+            const ids = citationMatch[1].split(/\s*,\s*/);
             return (
               <CitationReference
                 key={`${index}-${ids.join('-')}`}

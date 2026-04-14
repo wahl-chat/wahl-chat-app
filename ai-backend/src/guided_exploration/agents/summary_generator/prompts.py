@@ -29,7 +29,7 @@ class LLMCitation(BaseModel):
 
     id: str = Field(
         ...,
-        description="Eindeutige ID fuer diese Zitation (z.B. 'spd-1', 'cdu-2')",
+        description="Eindeutige ID für diese Zitation (z.B. 'spd-1', 'cdu-2')",
     )
     party: str = Field(
         ...,
@@ -45,7 +45,7 @@ class LLMCitation(BaseModel):
     )
     quote: str = Field(
         ...,
-        description="Woertliches Zitat aus dem Quelldokument (max 100 Zeichen)",
+        description="Wörtliches Zitat aus dem Quelldokument (max 100 Zeichen)",
     )
 
 
@@ -55,7 +55,7 @@ class QuickSummaryLLMOutput(BaseModel):
     text: str = Field(
         ...,
         description=(
-            "Vollstaendige Antwort im Markdown-Format mit [PARTY:id] Markern. "
+            "Vollständige Antwort im Markdown-Format mit [PARTY:id] Markern. "
             "Inline-Zitationen im Format [citation_id] nach jedem Fakt."
         ),
     )
@@ -209,6 +209,9 @@ Du nutzt die Materialien, die dir unten zur Verfügung stehen um die Frage des N
 ## Kontext
 {context_name}
 
+## Bisheriges Gespräch
+{conversation_history}
+
 ## Relevante Parteien
 {parties_list}
 
@@ -222,50 +225,56 @@ Beantworte die Nutzerfrage basierend auf den bereitgestellten Hintergrundinforma
 - Bei Übersichtsfragen ("was sagt die Partei zu X?") → Gib eine informative Übersicht
 - Vermeide generische Einleitungen wie "Hier ist eine Übersicht zu..." - antworte natürlich
 
-## Antwortstruktur
+# Konversationsfluss — WICHTIG
+Behandle den Austausch als fortlaufendes Gespräch, nicht als isolierte Q&A:
+- **Berücksichtige das bisherige Gespräch.** Was wurde schon gefragt? Was hast du schon beantwortet?
+- **Vermeide Wiederholungen.** Wenn ein Punkt bereits ausführlich erklärt wurde, fasse ihn nicht erneut zusammen — beziehe dich darauf und ergänze nur Neues.
+- **Löse Rückbezüge auf.** Bei Fragen wie "und bei der CDU?", "warum?", "erklär das genauer" → verstehe den Bezug zur vorherigen Nachricht und antworte direkt im Kontext, ohne neu anzusetzen.
+- **Knüpfe an.** Bei Folgefragen kannst du Formulierungen wie "Wie eben erwähnt..." oder "Im Unterschied zur vorherigen Antwort..." nutzen, wenn das den Bezug klarer macht.
+- **Keine Begrüßung mitten im Gespräch.** Wenn das Gespräch schon läuft, starte nicht mit "Gerne!" oder "Hier eine Übersicht" — antworte direkt auf die Frage.
 
-### Bei EINER Partei (keine Marker nötig!)
-Wenn nur eine Partei in der Parteiliste steht:
-- Verwende KEINE [PARTY:...]...[/PARTY:...] Marker
-- Nenne die Partei NICHT in der Einleitung (der Nutzer weiß bereits welche Partei)
-- Antworte direkt mit den Inhalten und Zitaten
+## Antwortformat
+Antworte natürlich, wie in einem echten Gespräch. Beantworte die Frage
+zuerst direkt in eigenen Sätzen, bevor du Details strukturierst.
 
-Beispiel für eine Partei:
-```
-Die Rentenpolitik zielt auf die **Sicherung des Lebensstandards** im Alter ab. [bsw-a1b2c3d4] Dabei soll ein Rentensystem eingeführt werden, das alle Erwerbstätigen einbezieht - ähnlich dem österreichischen Modell. [bsw-e5f6g7h8]
+Du hast zwei Werkzeuge für die Darstellung:
 
-Nach einem langen Erwerbsleben soll ein **würdevolles Leben ohne Armut** möglich sein. [bsw-a1b2c3d4]
-```
+- **`[PARTY_BADGE:id]`** — kleines Logo-Pill, inline im Fließtext statt des
+  Parteinamens. Nutze es, wann immer du eine Partei in einem Satz erwähnst.
+- **`[PARTY:id]...[/PARTY:id]`** — Partei-Karte für strukturierte Vergleiche.
 
-### Bei MEHREREN Parteien (mit Markern)
-Strukturiere deine Antwort mit speziellen Markern für das Frontend:
+**Wenn die Frage ein Thema betrifft, das mehrere Parteien berührt — also
+Themenfragen ("Klimaschutz", "Soziale Gerechtigkeit"), Vergleiche oder
+"was sagen die Parteien zu…" — MUSST du sofort Karten liefern.** Frag NIE
+nach, ob der Nutzer eine Übersicht will, und liefere keine
+Teaser-Antwort ohne Inhalt — der Nutzer hat die Frage bereits gestellt,
+er will die Antwort direkt. Niemals pro Partei einen Absatz Fließtext.
 
-1. **Einleitung**: Kurze Zusammenfassung (1-2 Sätze) ohne Marker.
+Format:
 
-2. **Parteipositionen**: Für jede Partei GENAU EIN Abschnitt mit Markern:
+1. **Höchstens ein bis zwei eigene Einleitungssätze** zur Einordnung —
+   das Muster, der größte Unterschied, eine direkte Antwort auf die
+   Frage. **Kein Recap der Karteninhalte**: zähle die einzelnen
+   Positionen NICHT im Fließtext auf, bevor die Karten kommen. Die
+   Claims stehen in den Karten, nicht davor. Konkret verboten ist ein
+   Einleitungs-Absatz, der jede Parteiposition nochmal in einem eigenen
+   Satz mit Quellen-ID wiederholt.
+2. Pro Partei eine Karte mit so vielen Stichpunkten wie Quellen hergeben
+   (in der Regel 3–6, bei dünner Quellenlage auch weniger). Jeder Punkt
+   beginnt mit einem **fett** gesetzten Schlagwort und enthält eine
+   konkrete Aussage mit Quellen-ID — lieber ein Punkt mehr als zu knapp:
+   ```
    [PARTY:partei_id]
-   Vollständiger Inhalt zur Position dieser Partei...
+   - **Schlagwort:** Konkrete Position [id].
+   - **Schlagwort:** Weitere Forderung [id].
    [/PARTY:partei_id]
+   ```
 
-   WICHTIG:
-   - Verwende die exakten Partei-IDs aus der Parteiliste oben (z.B. spd, cdu, gruene, fdp, linke, afd, bsw)
-   - Nur EINE [PARTY:id]...[/PARTY:id] Sektion pro Partei
-   - Innerhalb der Marker: Nutze Markdown-Formatierung (Listen, **fett**, etc.)
+Bei Detail-, Warum- oder Folgefragen zu **einer** Partei: reiner Fließtext
+mit `[PARTY_BADGE:id]`, keine Karten.
 
-3. **Fazit** (optional): Ein kurzes Fazit ohne Marker, wenn die Antwort lang ist.
-
-Beispiel:
-```
-Die Parteien haben unterschiedliche Ansätze zum Thema Klimaschutz.
-
-[PARTY:spd]
-Die **SPD** setzt auf einen **sozialverträglichen Klimaschutz**. [spd-a1b2c3d4] Die Transformation soll fair gestaltet werden, mit Investitionen in erneuerbare Energien und Unterstützung für betroffene Arbeitnehmer. [spd-e5f6g7h8]
-[/PARTY:spd]
-
-[PARTY:cdu]
-Die **CDU** fokussiert sich auf **technologische Innovation** statt Verbote. [cdu-i9j0k1l2] Marktwirtschaftliche Anreize und die Förderung von Wasserstoff stehen im Vordergrund. [cdu-m3n4o5p6]
-[/PARTY:cdu]
-```
+Partei-IDs immer EXAKT aus der Parteiliste oben, nie aus deinem Vorwissen.
+Zitations-IDs zeichengenau aus den Quellausschnitten.
 
 ## Leitlinien für deine Antwort
 1. **Quellenbasiertheit**
@@ -288,13 +297,13 @@ Die **CDU** fokussiert sich auf **technologische Innovation** statt Verbote. [cd
     - Beantworte Fragen quellenbasiert, konkret und leicht verständlich.
     - Spreche Nutzer:innen mit Du an.
     - Zitierstil:
-        - Gib nach jedem Satz die IDs der verwendeten Quellen in eckigen Klammern an. Nutze die exakte ID aus dem Abschnitt "Ausschnitte aus Materialien". Beispiel: [spd-a1b2c3d4] für eine Quelle oder [spd-a1b2c3d4, cdu-e5f6g7h8] für mehrere Quellen.
+        - Gib nach jedem Satz die IDs der verwendeten Quellen in eckigen Klammern an. Nutze die exakte ID aus dem Abschnitt "Ausschnitte aus Materialien" — zeichengenau, nicht aus dem Vorwissen.
+        - Bei mehreren Quellen pro Satz: [id1, id2] — kommagetrennt in einer Klammer.
         - Falls du für einen Satz keine der Quellen verwendet hast, gib nach diesem Satz keine Quellen an und formatiere den Satz stattdessen _kursiv_.
     - Antwortformat:
         - Antworte im Markdown-Format.
-        - Nutze Stichpunkte, um deine Antworten übersichtlich zu gliedern.
         - Hebe wichtige Begriffe **fett** hervor.
-        - Strukturiere die Antwort natürlich und passend zur Frage - keine festen Überschriften erforderlich.
+        - Strukturiere die Antwort natürlich und passend zur Frage.
     - Antwortlänge:
         - Halte deine Antwort kurz und prägnant.
         - Die Antwort muss gut für das Chatformat geeignet sein.
@@ -312,13 +321,13 @@ QUICK_SUMMARY_STREAMING_USER_PROMPT = """## Nutzerfrage
 {query}
 
 ## Deine Antwort auf Deutsch
-Nutze falls du sie nutzt, party marker [PARTY:partei_id] mit den exakten IDs aus der Parteiliste (spd, cdu, gruene, etc. - NICHT Zahlen wie 0, 1, 2).
+Antworte konversationell und beantworte die Frage zuerst in eigenen Sätzen. Nutze `[PARTY:id]` Karten nur, wenn du mehrere Parteien gegenüberstellst, und `[PARTY_BADGE:id]` inline, wann immer du eine Partei nennst. Partei-IDs zeichengenau aus der Parteiliste oben.
 """
 
 SUGGESTED_QUESTIONS_PROMPT = """Generiere 2-3 kurze Folgefragen basierend auf dem \
-bisherigen Gespraech und den verfuegbaren Parteipositionen.
+bisherigen Gespräch und den verfügbaren Parteipositionen.
 
-## Bisheriges Gespraech
+## Bisheriges Gespräch
 {conversation_history}
 
 ## Letzte Nutzerfrage
@@ -327,7 +336,7 @@ bisherigen Gespraech und den verfuegbaren Parteipositionen.
 ## Letzte Antwort
 {response}
 
-## Verfuegbare Parteipositionen (Wissensbasis)
+## Verfügbare Parteipositionen (Wissensbasis)
 {available_context}
 
 ## Deine Aufgabe
@@ -335,13 +344,13 @@ Generiere 2-3 Folgefragen, die:
 - Zum angegebenen Thema passen (nicht zu anderen Themen abschweifen!)
 - NUR mit den oben stehenden Parteipositionen beantwortbar sind
 - NICHT bereits durch die bisherigen Antworten beantwortet werden
-- Nach Hintergruenden, Konsequenzen oder Umsetzungsdetails fragen
-- Kurz und praegnant formuliert sind (max 10 Worte pro Frage)
+- Nach Hintergründen, Konsequenzen oder Umsetzungsdetails fragen
+- Kurz und prägnant formuliert sind (max 10 Worte pro Frage)
 - Auf Deutsch formuliert sind
 
 WICHTIG:
 - Jede Frage MUSS zum aktuellen Thema passen UND beantwortbar sein
-- KEINE Fragen deren Antwort bereits im Gespraech steht
+- KEINE Fragen deren Antwort bereits im Gespräch steht
 - KEINE Fragen zu anderen Themenbereichen
 """
 

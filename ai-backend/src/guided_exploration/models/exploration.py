@@ -52,40 +52,6 @@ class ExtractedPosition(BaseModel):
     )
 
 
-class PartySubtopicKnowledge(BaseModel):
-    """A single party's knowledge for a single subtopic."""
-
-    subtopic_id: str = Field(..., description="ID of the subtopic")
-    party_id: str = Field(..., description="Party ID this knowledge is for")
-    position: ExtractedPosition | None = Field(
-        default=None,
-        description="Extracted position (None if party doesn't address this)",
-    )
-    key_points: list[str] = Field(
-        default_factory=list, description="Key points from this party"
-    )
-    citations: list[Citation] = Field(
-        default_factory=list, description="Citations from this party's documents"
-    )
-    retrieved_chunks: list["RetrievedChunk"] = Field(
-        default_factory=list,
-        description="Raw chunks retrieved from RAG for this subtopic",
-    )
-
-
-class PartyKnowledge(BaseModel):
-    """Knowledge resolved for a single party across all subtopics."""
-
-    party_id: str = Field(..., description="Party ID this knowledge is for")
-    subtopics: dict[str, PartySubtopicKnowledge] = Field(
-        default_factory=dict, description="Mapping of subtopic_id to knowledge"
-    )
-
-    def get_for_subtopic(self, subtopic_id: str) -> PartySubtopicKnowledge | None:
-        """Get knowledge for a specific subtopic."""
-        return self.subtopics.get(subtopic_id)
-
-
 class RetrievedChunk(BaseModel):
     """A chunk retrieved from RAG."""
 
@@ -179,19 +145,3 @@ class ResolvedKnowledge(BaseModel):
     )
 
 
-class KnowledgeBase(BaseModel):
-    """
-    Knowledge base mapping subtopic_id -> ResolvedKnowledge.
-
-    Stored as part of the exploration document in Firebase.
-    Each exploration has its own knowledge base built from RAG chunks.
-    """
-
-    subtopics: dict[str, ResolvedKnowledge] = Field(
-        default_factory=dict,
-        description="Mapping of subtopic_id to resolved knowledge",
-    )
-
-    def get_for_subtopic(self, subtopic_id: str) -> ResolvedKnowledge | None:
-        """Get resolved knowledge for a specific subtopic."""
-        return self.subtopics.get(subtopic_id)

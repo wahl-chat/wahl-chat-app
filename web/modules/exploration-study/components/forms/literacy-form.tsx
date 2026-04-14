@@ -2,22 +2,14 @@
 
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { SliderWithLabels } from '@/modules/exploration-study/components/shared/slider-with-labels';
 import { SubmitButton } from '@/modules/exploration-study/components/shared/submit-button';
-import type {
-  ChatbotUsage,
-  LiteracyData,
-  NewsSource,
-  PoliticalLiteracyAnswers,
+import {
+  type LiteracyData,
+  MAILS_SHORT_INTRO,
+  MAILS_SHORT_ITEMS,
+  type MailsShortData,
+  type NewsSource,
 } from '@/modules/exploration-study/types';
 import { useState } from 'react';
 
@@ -27,14 +19,6 @@ export interface LiteracyFormProps {
   className?: string;
 }
 
-const CHATBOT_USAGE_OPTIONS: { value: ChatbotUsage; label: string }[] = [
-  { value: 'never', label: 'Nie' },
-  { value: 'rarely', label: 'Selten' },
-  { value: 'monthly', label: 'Monatlich' },
-  { value: 'weekly', label: 'Wöchentlich' },
-  { value: 'daily', label: 'Täglich' },
-];
-
 const NEWS_SOURCE_OPTIONS: { value: NewsSource; label: string }[] = [
   { value: 'online', label: 'Online-Nachrichtenseiten' },
   { value: 'tv', label: 'Fernsehen' },
@@ -43,43 +27,82 @@ const NEWS_SOURCE_OPTIONS: { value: NewsSource; label: string }[] = [
   { value: 'radio', label: 'Radio' },
 ];
 
-interface PoliticalLiteracyQuestion {
-  key: keyof PoliticalLiteracyAnswers;
-  question: string;
-  options: { value: string; label: string }[];
+const MAILS_SCALE_VALUES = Array.from({ length: 11 }, (_, i) => i); // 0..10
+
+interface MailsRatingRowProps {
+  itemId: number;
+  itemText: string;
+  value: number | null;
+  onChange: (value: number) => void;
 }
 
-const POLITICAL_LITERACY_QUESTIONS: PoliticalLiteracyQuestion[] = [
-  {
-    key: 'lit_1',
-    question: 'Wie viele Stimmen hat man bei der Bundestagswahl?',
-    options: [
-      { value: '1', label: '1' },
-      { value: '2', label: '2' },
-      { value: '3', label: '3' },
-      { value: '4', label: '4' },
-    ],
-  },
-  {
-    key: 'lit_2',
-    question: 'Welches Organ wählt den Bundeskanzler?',
-    options: [
-      { value: 'bundesrat', label: 'Bundesrat' },
-      { value: 'bundestag', label: 'Bundestag' },
-      { value: 'bundesversammlung', label: 'Bundesversammlung' },
-      { value: 'volk', label: 'Volk direkt' },
-    ],
-  },
-  {
-    key: 'lit_3',
-    question: 'Wie lange dauert eine Legislaturperiode des Bundestags?',
-    options: [
-      { value: '3', label: '3 Jahre' },
-      { value: '4', label: '4 Jahre' },
-      { value: '5', label: '5 Jahre' },
-      { value: '6', label: '6 Jahre' },
-    ],
-  },
+function MailsRatingRow({
+  itemId,
+  itemText,
+  value,
+  onChange,
+}: MailsRatingRowProps) {
+  const groupName = `mails-item-${itemId}`;
+  return (
+    <div className="space-y-3 rounded-lg border p-4">
+      <p className="text-sm font-medium leading-relaxed">
+        <span className="mr-2 text-muted-foreground">{itemId}.</span>
+        {itemText}
+      </p>
+      <div
+        role="radiogroup"
+        aria-label={`Bewertung für Aussage ${itemId}`}
+        className="flex flex-wrap items-center gap-1.5"
+      >
+        {MAILS_SCALE_VALUES.map((v) => {
+          const inputId = `${groupName}-${v}`;
+          const isSelected = value === v;
+          return (
+            <label
+              key={v}
+              htmlFor={inputId}
+              className={cn(
+                'flex size-9 cursor-pointer items-center justify-center rounded-md border text-sm font-medium transition-colors',
+                isSelected
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-input bg-background hover:bg-accent hover:text-accent-foreground',
+              )}
+            >
+              <input
+                id={inputId}
+                type="radio"
+                name={groupName}
+                value={v}
+                checked={isSelected}
+                onChange={() => onChange(v)}
+                className="sr-only"
+              />
+              {v}
+            </label>
+          );
+        })}
+      </div>
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <span>gar nicht ausgeprägt</span>
+        <span>(nahezu) perfekt</span>
+      </div>
+    </div>
+  );
+}
+
+type MailsAnswers = Partial<Record<keyof MailsShortData, number>>;
+
+const MAILS_KEYS: (keyof MailsShortData)[] = [
+  'item1',
+  'item2',
+  'item3',
+  'item4',
+  'item5',
+  'item6',
+  'item7',
+  'item8',
+  'item9',
+  'item10',
 ];
 
 export function LiteracyForm({
@@ -87,22 +110,18 @@ export function LiteracyForm({
   isSubmitting = false,
   className,
 }: LiteracyFormProps) {
-  const [aiFamiliarity, setAiFamiliarity] = useState(4);
-  const [chatbotUsage, setChatbotUsage] = useState<ChatbotUsage | ''>('');
+  const [mailsAnswers, setMailsAnswers] = useState<MailsAnswers>({});
   const [newsConsumption, setNewsConsumption] = useState<NewsSource[]>([]);
-  const [politicalLiteracyAnswers, setPoliticalLiteracyAnswers] = useState<
-    Partial<PoliticalLiteracyAnswers>
-  >({});
 
-  const isPoliticalLiteracyComplete =
-    politicalLiteracyAnswers.lit_1 !== undefined &&
-    politicalLiteracyAnswers.lit_2 !== undefined &&
-    politicalLiteracyAnswers.lit_3 !== undefined;
+  const isMailsComplete = MAILS_KEYS.every(
+    (key) => mailsAnswers[key] !== undefined,
+  );
 
-  const isValid =
-    chatbotUsage !== '' &&
-    newsConsumption.length > 0 &&
-    isPoliticalLiteracyComplete;
+  const isValid = isMailsComplete && newsConsumption.length > 0;
+
+  const handleMailsChange = (key: keyof MailsShortData, value: number) => {
+    setMailsAnswers((prev) => ({ ...prev, [key]: value }));
+  };
 
   const handleToggleNewsSource = (source: NewsSource) => {
     setNewsConsumption((prev) =>
@@ -112,141 +131,88 @@ export function LiteracyForm({
     );
   };
 
-  const handlePoliticalLiteracyChange = (
-    key: keyof PoliticalLiteracyAnswers,
-    value: string,
-  ) => {
-    setPoliticalLiteracyAnswers((prev) => ({ ...prev, [key]: value }));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isValid && isPoliticalLiteracyComplete) {
-      await onSubmit({
-        aiFamiliarity,
-        chatbotUsage: chatbotUsage as ChatbotUsage,
-        newsConsumption,
-        politicalLiteracyAnswers:
-          politicalLiteracyAnswers as PoliticalLiteracyAnswers,
-      });
-    }
+    if (!isValid) return;
+
+    const mailsShort = MAILS_KEYS.reduce((acc, key) => {
+      acc[key] = mailsAnswers[key] as number;
+      return acc;
+    }, {} as MailsShortData);
+
+    await onSubmit({
+      mailsShort,
+      newsConsumption,
+    });
   };
 
   return (
-    <form onSubmit={handleSubmit} className={cn('space-y-6', className)}>
+    <form onSubmit={handleSubmit} className={cn('space-y-8', className)}>
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">Digitale Kompetenz</h1>
         <p className="text-sm text-muted-foreground">
-          Bitte gib an, wie vertraut du mit den folgenden Themen bist.
+          Bitte beantworte die folgenden Fragen zu deinen Fähigkeiten im Umgang
+          mit künstlicher Intelligenz und zu deinem Nachrichtenkonsum.
         </p>
       </div>
 
-      <div className="space-y-6">
-        <SliderWithLabels
-          id="ai-familiarity"
-          label="Wie vertraut bist du mit KI-Systemen (z.B. ChatGPT, Claude)?"
-          value={aiFamiliarity}
-          onChange={setAiFamiliarity}
-          min={1}
-          max={7}
-          lowAnchor="Gar nicht"
-          highAnchor="Sehr vertraut"
-        />
-
-        <div className="space-y-2">
-          <Label htmlFor="chatbot-usage">
-            Wie häufig nutzt du Chatbots oder KI-Assistenten?
-          </Label>
-          <Select
-            value={chatbotUsage}
-            onValueChange={(value) => setChatbotUsage(value as ChatbotUsage)}
-          >
-            <SelectTrigger id="chatbot-usage">
-              <SelectValue placeholder="Bitte auswählen" />
-            </SelectTrigger>
-            <SelectContent>
-              {CHATBOT_USAGE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-3">
-          <Label>
-            Über welche Quellen informierst du dich über politische Themen?
-          </Label>
-          <p className="text-sm text-muted-foreground">
-            Mehrfachauswahl möglich
+      <section className="space-y-4">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold">
+            Fähigkeiten im Umgang mit KI
+          </h2>
+          <p className="whitespace-pre-line text-sm text-muted-foreground">
+            {MAILS_SHORT_INTRO}
           </p>
-          <div className="space-y-2">
-            {NEWS_SOURCE_OPTIONS.map((option) => (
-              <div
-                key={option.value}
-                className="flex items-center gap-3 rounded-lg border p-3"
-              >
-                <Checkbox
-                  id={`news-source-${option.value}`}
-                  checked={newsConsumption.includes(option.value)}
-                  onCheckedChange={() => handleToggleNewsSource(option.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleToggleNewsSource(option.value);
-                    }
-                  }}
-                />
-                <Label
-                  htmlFor={`news-source-${option.value}`}
-                  className="flex-1 cursor-pointer text-sm font-normal"
-                >
-                  {option.label}
-                </Label>
-              </div>
-            ))}
-          </div>
         </div>
+        <div className="space-y-3">
+          {MAILS_SHORT_ITEMS.map((item, index) => {
+            const key = MAILS_KEYS[index];
+            return (
+              <MailsRatingRow
+                key={item.id}
+                itemId={item.id}
+                itemText={item.text}
+                value={mailsAnswers[key] ?? null}
+                onChange={(value) => handleMailsChange(key, value)}
+              />
+            );
+          })}
+        </div>
+      </section>
 
-        <div className="space-y-4 pt-4 border-t">
-          <div className="space-y-1">
-            <Label className="text-base font-semibold">
-              Politisches Wissen
-            </Label>
-            <p className="text-sm text-muted-foreground">
-              Bitte beantworte die folgenden Fragen.
-            </p>
-          </div>
-          {POLITICAL_LITERACY_QUESTIONS.map((q) => (
-            <div key={q.key} className="space-y-2">
-              <Label>{q.question}</Label>
-              <RadioGroup
-                value={politicalLiteracyAnswers[q.key] ?? ''}
-                onValueChange={(value) =>
-                  handlePoliticalLiteracyChange(q.key, value)
-                }
-                className="flex flex-wrap gap-4"
+      <section className="space-y-3">
+        <Label>
+          Über welche Quellen informierst du dich über politische Themen?
+        </Label>
+        <p className="text-sm text-muted-foreground">Mehrfachauswahl möglich</p>
+        <div className="space-y-2">
+          {NEWS_SOURCE_OPTIONS.map((option) => (
+            <div
+              key={option.value}
+              className="flex items-center gap-3 rounded-lg border p-3"
+            >
+              <Checkbox
+                id={`news-source-${option.value}`}
+                checked={newsConsumption.includes(option.value)}
+                onCheckedChange={() => handleToggleNewsSource(option.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleToggleNewsSource(option.value);
+                  }
+                }}
+              />
+              <Label
+                htmlFor={`news-source-${option.value}`}
+                className="flex-1 cursor-pointer text-sm font-normal"
               >
-                {q.options.map((option) => (
-                  <div key={option.value} className="flex items-center gap-2">
-                    <RadioGroupItem
-                      value={option.value}
-                      id={`${q.key}-${option.value}`}
-                    />
-                    <Label
-                      htmlFor={`${q.key}-${option.value}`}
-                      className="cursor-pointer font-normal"
-                    >
-                      {option.label}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
+                {option.label}
+              </Label>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
       <SubmitButton isSubmitting={isSubmitting} disabled={!isValid} />
     </form>

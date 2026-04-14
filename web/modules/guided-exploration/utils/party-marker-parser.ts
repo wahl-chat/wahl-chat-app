@@ -23,6 +23,9 @@ const PARTY_OPEN_TAG = /\[PARTY:(\w+)\]/g;
 const PARTY_CLOSE_TAG = /\[\/PARTY:(\w+)\]/g;
 const PARTIAL_OPEN_TAG = /\[PARTY(?::\w*)?$/;
 const PARTIAL_CLOSE_TAG = /\[\/PARTY(?::\w*)?$/;
+// Hide `[PARTY_BADGE`, `[PARTY_BADGE:`, `[PARTY_BADGE:sat` while streaming
+// so the half-typed marker doesn't briefly leak into the rendered text.
+const PARTIAL_BADGE_TAG = /\[PARTY_BADGE?(?::[\w-]*)?$|\[PARTY_BAD?G?E?$/;
 
 /**
  * Parse content with party markers into sections.
@@ -49,6 +52,15 @@ export function parsePartyMarkers(content: string): ParsedSection[] {
     const partialCloseMatch = content.match(PARTIAL_CLOSE_TAG);
     if (partialCloseMatch) {
       trailingPartial = partialCloseMatch[0];
+      cleanContent = content.slice(0, -trailingPartial.length);
+    }
+  }
+
+  // Check for partial party badge marker at end
+  if (!trailingPartial) {
+    const partialBadgeMatch = content.match(PARTIAL_BADGE_TAG);
+    if (partialBadgeMatch) {
+      trailingPartial = partialBadgeMatch[0];
       cleanContent = content.slice(0, -trailingPartial.length);
     }
   }

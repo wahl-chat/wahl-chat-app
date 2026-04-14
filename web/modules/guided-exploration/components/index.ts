@@ -17,6 +17,7 @@ export {
   LeafContent,
   MobileSummarySheet,
   RootContent,
+  useLeafActions,
   type ExplorationView,
 } from './exploration-view';
 

@@ -74,14 +74,6 @@ class ConditionData(BaseModel):
         default=None,
         description="UEQ-S responses",
     )
-    recall_text: str | None = Field(
-        default=None,
-        description="Free recall text from participant",
-    )
-    recall_submitted_at: datetime | None = Field(
-        default=None,
-        description="When the recall was submitted",
-    )
     quiz_id: str | None = Field(
         default=None,
         description="ID of the generated quiz",
@@ -93,6 +85,14 @@ class ConditionData(BaseModel):
     manipulation_checks: ManipulationChecks | None = Field(
         default=None,
         description="Manipulation check responses",
+    )
+    positions_encountered: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Master position ids that the LLM cited in responses during "
+            "the task. Dedup-appended as the participant interacts. Used "
+            "as the Information Exposure mediator (M1) in analysis."
+        ),
     )
 
 
@@ -110,35 +110,38 @@ class DemographicsData(BaseModel):
     )
 
 
+class MailsShortData(BaseModel):
+    """
+    Meta-AI Literacy Scale – Short Version (MAILS-Short).
+
+    Koch, Carolus, et al., 2024. 10 items, 0-10 self-assessment scale
+    (0 = gar nicht ausgeprägt, 10 = (nahezu) perfekt ausgeprägt).
+    """
+
+    item1: int | None = Field(default=None, ge=0, le=10)
+    item2: int | None = Field(default=None, ge=0, le=10)
+    item3: int | None = Field(default=None, ge=0, le=10)
+    item4: int | None = Field(default=None, ge=0, le=10)
+    item5: int | None = Field(default=None, ge=0, le=10)
+    item6: int | None = Field(default=None, ge=0, le=10)
+    item7: int | None = Field(default=None, ge=0, le=10)
+    item8: int | None = Field(default=None, ge=0, le=10)
+    item9: int | None = Field(default=None, ge=0, le=10)
+    item10: int | None = Field(default=None, ge=0, le=10)
+
+
 class LiteracyData(BaseModel):
     """Digital/AI literacy and political knowledge data from screening questionnaire."""
 
-    # AI literacy fields
-    ai_familiarity: int | None = Field(
+    # AI literacy: MAILS-Short (Koch, Carolus, et al., 2024)
+    mails_short: MailsShortData | None = Field(
         default=None,
-        ge=1,
-        le=7,
-        description="Familiarity with AI chatbots (1-7)",
+        description="MAILS-Short responses (10 items, 0-10 self-assessment)",
     )
-    chatbot_usage: str | None = Field(
-        default=None,
-        description="How often they use chatbots (never, rarely, monthly, weekly, daily)",
-    )
+
     news_consumption: list[str] | None = Field(
         default=None,
         description="News consumption sources (online, tv, newspaper, social_media, radio)",
-    )
-
-    # Political literacy quiz answers (3 questions)
-    political_literacy_answers: dict[str, str] | None = Field(
-        default=None,
-        description="Answers to political literacy questions (lit_1, lit_2, lit_3)",
-    )
-    political_literacy_score: int | None = Field(
-        default=None,
-        ge=0,
-        le=3,
-        description="Score on political literacy quiz (0-3)",
     )
 
     @field_validator("news_consumption", mode="before")
@@ -150,18 +153,6 @@ class LiteracyData(BaseModel):
         if isinstance(v, str):
             return [v]
         return v
-
-
-class RecallData(BaseModel):
-    """Recall text and scoring for a condition."""
-
-    text: str = Field(..., description="The free recall text from participant")
-    submitted_at: datetime = Field(..., description="When the recall was submitted")
-    # Scoring can be added later by analysis
-    score: float | None = Field(
-        default=None,
-        description="Recall score (set during analysis)",
-    )
 
 
 class ParticipantData(BaseModel):
@@ -184,6 +175,14 @@ class ParticipantData(BaseModel):
         default=None,
         description="Optional open-ended feedback from participant",
     )
+
+
+class ProlificData(BaseModel):
+    """Prolific tracking identifiers captured from the invitation URL."""
+
+    pid: str | None = Field(default=None, description="Prolific participant ID")
+    study_id: str | None = Field(default=None, description="Prolific study ID")
+    session_id: str | None = Field(default=None, description="Prolific session ID")
 
 
 class StudySession(BaseModel):
@@ -211,6 +210,10 @@ class StudySession(BaseModel):
     participant_data: ParticipantData = Field(
         default_factory=ParticipantData,
         description="Data collected from the participant",
+    )
+    prolific: ProlificData | None = Field(
+        default=None,
+        description="Prolific tracking identifiers (set at session creation)",
     )
     created_at: datetime = Field(..., description="When the session was created")
     started_at: datetime | None = Field(

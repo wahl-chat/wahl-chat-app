@@ -112,21 +112,31 @@ class PositionExtractorAgent(BaseAgent[PositionExtractorInput, PositionExtractor
         llm_output: PositionExtractorLLMOutput,
         input: PositionExtractorInput,
     ) -> list[Position]:
-        """Convert LLM output to Position domain models with citations."""
+        """Convert LLM output to Position domain models with citations.
+
+        ``Position.id`` is a unique identifier for the extracted statement
+        (used for tree navigation and deduplication). ``Citation.id`` is
+        the source chunk's id — the stable retrieval unit — so multiple
+        positions extracted from the same chunk share a citation, and the
+        LLM's inline ``[chunk_id]`` markers always map cleanly back to
+        the retrieved sources via ``extract_used_citations``.
+        """
         positions = []
         chunks = [c for c in input.retrieved_chunks if c.party_id == input.party_id]
 
         for llm_position in llm_output.positions:
             position_id = f"{input.party_id}-{uuid4().hex[:8]}"
 
-            # Build citation from chunk metadata
+            # Build citation pointing at the source chunk. Citation.id is
+            # the chunk's id — not the position's — so all citations are
+            # stable across repeated retrievals.
             citation = None
             # chunk_index is 1-based from the prompt
             chunk_idx = llm_position.chunk_index - 1
             if 0 <= chunk_idx < len(chunks):
                 chunk = chunks[chunk_idx]
                 citation = Citation(
-                    id=position_id,
+                    id=chunk.chunk_id,
                     party=input.party_id,
                     document=chunk.source_document,
                     section=chunk.source_section,

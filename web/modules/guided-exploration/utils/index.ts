@@ -33,6 +33,11 @@ export {
 export { keysToCamelCase, keysToSnakeCase } from './case-conversion';
 
 export {
+  useCitationHandlers,
+  useStreamingCitationMap,
+} from './citation-helpers';
+
+export {
   parsePartyMarkers,
   hasPartyMarkers,
   stripPartyMarkers,

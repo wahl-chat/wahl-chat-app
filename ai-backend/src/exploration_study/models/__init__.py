@@ -8,7 +8,6 @@ from src.exploration_study.models.session import (
     ParticipantData,
     DemographicsData,
     LiteracyData,
-    RecallData,
 )
 from src.exploration_study.models.quiz import (
     QuizQuestion,
@@ -31,7 +30,6 @@ __all__ = [
     "ParticipantData",
     "DemographicsData",
     "LiteracyData",
-    "RecallData",
     # Quiz
     "QuizQuestion",
     "QuizAnswer",

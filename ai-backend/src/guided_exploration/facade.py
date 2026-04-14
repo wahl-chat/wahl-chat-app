@@ -10,7 +10,7 @@ import re
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Literal
 
 from src.firebase_service import aget_context_by_id, aget_parties_for_context
@@ -40,10 +40,11 @@ from src.guided_exploration.agents.party_context import (
     PartyInfo,
     parties_to_info_map,
 )
-from src.guided_exploration.agents.conversation_handler.prompts import (
-    build_chunk_citation_mapping,
-)
 from src.guided_exploration.models.classification import MessageIntent, NavigationTarget
+from src.guided_exploration.services.citation_utils import (
+    create_citation_from_chunk as create_chunk_citation,
+    extract_used_citations,
+)
 from src.guided_exploration.models.errors import InsufficientChunksError
 from src.guided_exploration.agents.llm_provider import (
     LLMRegistry,
@@ -91,6 +92,11 @@ from src.guided_exploration.models import (
 )
 from src.guided_exploration.services.orchestrator import Orchestrator
 from src.guided_exploration.services.rag_service import RAGService
+from src.guided_exploration.services.study_context import (
+    STUDY_PARTY_IDS,
+    get_study_context_info,
+    is_study_context,
+)
 from src.guided_exploration.services.session_repository import (
     SessionRepository,
     get_session_repository,
@@ -206,6 +212,55 @@ class GuidedExplorationFacade:
         from src.guided_exploration.agents.topic_scout import TopicScoutOutput
         self._directions_cache: dict[tuple[str, str], TopicScoutOutput] = {}
 
+        # Optional callback that records cited position ids for study
+        # sessions. Registered by the exploration_study facade at startup.
+        # Signature: ``async (chat_id: str, position_ids: list[str]) -> None``.
+        self._study_exposure_logger: (
+            "Callable[[str, list[str]], Awaitable[None]] | None"
+        ) = None
+
+    def set_study_exposure_logger(
+        self,
+        logger_fn: "Callable[[str, list[str]], Awaitable[None]]",
+    ) -> None:
+        """
+        Register a callback that persists cited position ids for study
+        sessions. Called from ``_log_study_exposure`` after the LLM cites
+        sources — the callback typically resolves the chat id to a study
+        session and merges the ids into ``condition.positions_encountered``.
+        """
+        self._study_exposure_logger = logger_fn
+        logger.info("Study exposure logger registered")
+
+    async def _log_study_exposure(
+        self,
+        session_id: str,
+        citations: list[Citation],
+    ) -> None:
+        """
+        Log cited position ids for the participant if this is a study
+        session. Silent no-op for non-study sessions and when no logger
+        has been registered. Failures are logged but do not propagate to
+        the user-facing response.
+        """
+        if self._study_exposure_logger is None or not citations:
+            return
+
+        session = await self._repo.get_session(session_id)
+        if not session or not is_study_context(session.context_id):
+            return
+
+        position_ids = [c.id for c in citations if c.id]
+        if not position_ids:
+            return
+
+        try:
+            await self._study_exposure_logger(session_id, position_ids)
+        except Exception as e:
+            logger.warning(
+                f"Study exposure logger failed for session {session_id}: {e}"
+            )
+
     # =========================================================================
     # Context Helpers
     # =========================================================================
@@ -214,7 +269,11 @@ class GuidedExplorationFacade:
         self, context_id: str
     ) -> tuple[str, dict[str, PartyInfo]]:
         """
-        Get context name and available parties from Firebase.
+        Get context name and available parties.
+
+        For study contexts (``study-*``), returns static fake-party data
+        without touching Firebase. For all other contexts, loads from
+        Firebase as before.
 
         Returns:
             Tuple of (context_name, {party_id: PartyInfo})
@@ -222,6 +281,12 @@ class GuidedExplorationFacade:
         # Check cache first
         if context_id in self._context_cache:
             return self._context_cache[context_id]
+
+        # Study sessions use fictional parties — no Firebase lookup.
+        if is_study_context(context_id):
+            result = get_study_context_info(context_id)
+            self._context_cache[context_id] = result
+            return result
 
         # Load from Firebase
         context = await aget_context_by_id(context_id)
@@ -236,7 +301,9 @@ class GuidedExplorationFacade:
         return context_name, parties_info
 
     async def _get_default_parties(self, context_id: str) -> list[str]:
-        """Get hardcoded default parties for testing."""
+        """Get default parties for a context."""
+        if is_study_context(context_id):
+            return list(STUDY_PARTY_IDS)
         return HARDCODED_PARTIES
 
     # =========================================================================
@@ -362,6 +429,15 @@ class GuidedExplorationFacade:
                 content,
             )
 
+        # Baseline mode has its own self-contained router (no exploration option).
+        # Guided routing below stays untouched.
+        if session.mode == SessionMode.BASELINE:
+            return await self._handle_baseline_message(
+                session_id=session_id,
+                session=session,
+                content=content,
+            )
+
         # Send thinking event
         await self._send_thinking(
             session_id, "classifying", "Analysiere die Anfrage..."
@@ -395,20 +471,8 @@ class GuidedExplorationFacade:
 
         logger.info("Classified message: %s", classifier_output)
 
-        # For exploratory queries, check session mode
+        # For exploratory queries in guided mode, ask user: quick answer or explore deeper?
         if classifier_output.query_type == QueryType.EXPLORATORY:
-            # In baseline mode, skip choice and go directly to summary
-            if session.mode == SessionMode.BASELINE:
-                return await self._generate_quick_summary(
-                    session_id=session_id,
-                    query=content,
-                    rag_query=classifier_output.rag_query,
-                    detected_parties=classifier_output.detected_parties
-                    or await self._get_default_parties(session.context_id),
-                    context_id=session.context_id,
-                )
-
-            # In guided mode, ask user: quick answer or explore deeper?
             return await self._send_choice_prompt(
                 session_id=session_id,
                 original_query=content,
@@ -485,6 +549,132 @@ class GuidedExplorationFacade:
             "query_type": classifier_output.query_type.value,
         }
 
+    async def _handle_baseline_message(
+        self,
+        session_id: str,
+        session,
+        content: str,
+    ) -> dict:
+        """
+        Self-contained router for BASELINE mode.
+
+        No exploration option is offered. Content questions go through the
+        conversational quick summary path; meta and clarification queries use
+        their existing handlers (also conversational). Guided routing in
+        ``handle_message`` is intentionally untouched.
+        """
+        # Send thinking event
+        await self._send_thinking(
+            session_id, "classifying", "Analysiere die Anfrage..."
+        )
+
+        # Get context info for classification
+        context_name, parties_info = await self._get_context_info(session.context_id)
+
+        # Get recent conversation history (back-references like "und bei der CDU?")
+        conversation_history = self._format_conversation_history(session.messages)
+
+        # Classify the query
+        classifier_output = await self._query_classifier.execute(
+            QueryClassifierInput(
+                query=content,
+                context_id=session.context_id,
+                context_name=context_name,
+                parties_info=parties_info,
+                conversation_history=conversation_history,
+            )
+        )
+
+        # Save user message to session
+        user_msg = SessionMessage(
+            id=str(uuid4()),
+            type=SessionMessageType.USER,
+            content=content,
+            timestamp=datetime.now(timezone.utc),
+        )
+        await self._repo.add_session_message(session_id, user_msg)
+
+        logger.info("Baseline classified message: %s", classifier_output)
+
+        # Content questions → conversational quick summary
+        if classifier_output.query_type == QueryType.EXPLORATORY:
+            return await self._generate_quick_summary(
+                session_id=session_id,
+                query=content,
+                rag_query=classifier_output.rag_query,
+                detected_parties=classifier_output.detected_parties
+                or await self._get_default_parties(session.context_id),
+                context_id=session.context_id,
+                session=session,
+            )
+
+        # Specific factual questions → already-conversational factual handler
+        if classifier_output.query_type == QueryType.FACTUAL:
+            return await self._answer_factual_query(
+                session_id=session_id,
+                query=content,
+                rag_query=classifier_output.rag_query,
+                detected_parties=classifier_output.detected_parties,
+                context_id=session.context_id,
+            )
+
+        # Meta questions about the tool / orientation
+        if classifier_output.query_type == QueryType.META:
+            return await self._handle_meta_query(
+                session_id=session_id,
+                query=content,
+                session=session,
+            )
+
+        # Clarification queries
+        if classifier_output.query_type == QueryType.CLARIFICATION:
+            clarification_msg = classifier_output.clarification_question or (
+                "Könntest du deine Frage bitte präzisieren?"
+            )
+
+            stream_id = str(uuid4())
+            await self._stream_text(
+                session_id,
+                clarification_msg,
+                stream_id,
+                "system_message",
+                "system",
+            )
+
+            await self._send_chat_message(session_id, message=clarification_msg)
+
+            assistant_msg = SessionMessage(
+                id=str(uuid4()),
+                type=SessionMessageType.ASSISTANT,
+                content=clarification_msg,
+                timestamp=datetime.now(timezone.utc),
+            )
+            await self._repo.add_session_message(session_id, assistant_msg)
+
+            return {"status": "clarification_needed"}
+
+        # Fallback for unknown query types
+        fallback_msg = (
+            "Ich konnte deine Anfrage nicht einordnen. "
+            "Bitte stelle eine Frage zu politischen Themen."
+        )
+
+        stream_id = str(uuid4())
+        await self._stream_text(
+            session_id,
+            fallback_msg,
+            stream_id,
+            "system_message",
+            "system",
+        )
+
+        await self._send_chat_message(session_id, message=fallback_msg)
+
+        return {
+            "status": "unknown_query_type",
+            "query_type": classifier_output.query_type.value,
+        }
+
     async def _handle_meta_query(
         self,
         session_id: str,
@@ -494,21 +684,27 @@ class GuidedExplorationFacade:
         """Handle meta questions about the tool, available topics, how it works."""
         from langchain_core.messages import HumanMessage, SystemMessage
 
-        # Build context about what the user has done so far
+        # Format actual conversation history (last 10 turns) so meta replies
+        # can build on prior context rather than starting from scratch.
+        history_lines = self._format_conversation_history(session.messages)
+        if history_lines:
+            conversation_text = "\n".join(history_lines)
+        else:
+            conversation_text = "Keine vorherigen Nachrichten."
+
+        # Additional orientation: which topics has the user already explored?
         explored_topics = []
         for msg in session.messages:
             if msg.type == SessionMessageType.EXPLORATION_START and msg.exploration_query:
                 explored_topics.append(msg.exploration_query)
 
-        context_parts = []
         if explored_topics:
-            context_parts.append(
-                f"Der Nutzer hat bereits folgende Themen erkundet: {', '.join(explored_topics)}"
+            explored_context = (
+                f"Der Nutzer hat bereits folgende Themen erkundet: "
+                f"{', '.join(explored_topics)}"
             )
         else:
-            context_parts.append("Der Nutzer hat noch keine Themen erkundet.")
-
-        session_context = "\n".join(context_parts)
+            explored_context = "Der Nutzer hat noch keine Themen erkundet."
 
         system_prompt = (
             "Du bist der Assistent von wahl.chat — einem KI-Tool, das es "
@@ -531,7 +727,14 @@ class GuidedExplorationFacade:
             "- Wirtschaft & Arbeit\n"
             "- Bildung & Forschung\n\n"
             "Der Nutzer kann aber auch jedes andere politische Thema ansprechen.\n\n"
-            f"# Aktueller Stand des Nutzers\n{session_context}"
+            f"# Bisheriges Gespräch\n{conversation_text}\n\n"
+            f"# Aktueller Stand des Nutzers\n{explored_context}\n\n"
+            "# Konversationsfluss — WICHTIG\n"
+            "- Behandle den Austausch als fortlaufendes Gespräch.\n"
+            "- Berücksichtige das bisherige Gespräch und vermeide Wiederholungen.\n"
+            "- Bei Rückbezügen wie 'und was noch?', 'erklär das genauer', 'warum?' "
+            "→ verstehe den Bezug zur vorherigen Nachricht und antworte direkt im Kontext.\n"
+            "- Keine Begrüßung mitten im Gespräch."
         )
 
         messages = [
@@ -912,13 +1115,14 @@ class GuidedExplorationFacade:
                 context_id=session.context_id,
             )
         else:
-            # Generate quick summary without exploration
+            # Generate quick summary without exploration (with conversation history)
             return await self._generate_quick_summary(
                 session_id=session_id,
                 query=pending.original_query,
                 rag_query=pending.rag_query,
                 detected_parties=exploration_parties,
                 context_id=session.context_id,
+                session=session,
             )
 
     # =========================================================================
@@ -1953,13 +2157,15 @@ class GuidedExplorationFacade:
                 if c.citation is not None:
                     citation_pool.append(c.citation)
 
-        # Add RAG chunks and create citations for them
+        # Add RAG chunks and create citations for them. Citation ids use
+        # ``chunk.chunk_id`` so they match the IDs shown to the LLM in
+        # ``_build_source_text`` and map directly back to the original
+        # chunk (including master position ids for study sessions).
         for result in results:
             if isinstance(result, BaseException):
                 continue
             party_id, chunks = result
             party_chunks[party_id] = chunks
-            # Create Citation objects for RAG chunks so frontend can resolve them
             party_name = parties_info.get(
                 party_id,
                 PartyInfo(
@@ -1967,16 +2173,9 @@ class GuidedExplorationFacade:
                     long_name=party_id.upper(),
                 ),
             ).name
-            for i, chunk in enumerate(chunks[:5], 1):
+            for chunk in chunks[:5]:
                 citation_pool.append(
-                    Citation(
-                        id=f"{party_id}-rag-{i}",
-                        party=party_name,
-                        document=chunk.source_document,
-                        section=chunk.source_section,
-                        page=chunk.source_page,
-                        source_document=chunk.source_document,
-                    )
+                    create_chunk_citation(chunk, party_name)
                 )
 
         resolved = ResolvedKnowledge(
@@ -2165,7 +2364,10 @@ class GuidedExplorationFacade:
         )
 
         # Extract used citations — positions already have citation IDs in the text
-        used_citations = self._extract_used_citations(full_text, citation_pool)
+        used_citations = extract_used_citations(full_text, citation_pool)
+
+        # Record cited position ids for the study's Information Exposure metric.
+        await self._log_study_exposure(session_id, used_citations)
 
         # Create and save the response message (with citations for persistence)
         response_message = Message(
@@ -2214,8 +2416,14 @@ class GuidedExplorationFacade:
         rag_query: str,
         detected_parties: list[str],
         context_id: str,
+        session=None,
     ) -> dict:
-        """Generate a quick summary with real-time LLM streaming."""
+        """Generate a quick summary with real-time LLM streaming.
+
+        If ``session`` is provided, the recent conversation history is
+        threaded into the prompt so the response can build on prior turns
+        and resolve back-references naturally.
+        """
         # 1. Send thinking event
         await self._send_thinking(session_id, "retrieving", "Sammle Informationen...")
 
@@ -2225,9 +2433,16 @@ class GuidedExplorationFacade:
         )
 
         # 3. Get context info and party details
-        context_name, _ = await self._get_context_info(context_id)
-        parties = await aget_parties_for_context(context_id)
-        party_map = {p.party_id: p for p in parties}
+        context_name, parties_info = await self._get_context_info(context_id)
+        # For study contexts, ``parties_info`` already contains PartyInfo
+        # objects whose .name / .long_name attributes are used downstream by
+        # the summary formatters. For real contexts, load ContextParty objects
+        # from Firebase so .logo_url and other optional fields remain available.
+        if is_study_context(context_id):
+            party_map = parties_info
+        else:
+            parties = await aget_parties_for_context(context_id)
+            party_map = {p.party_id: p for p in parties}
 
         # 4. Format RAG context with document IDs and create citations
         rag_context, citations = self._format_rag_context_for_summary(chunks, party_map)
@@ -2237,9 +2452,16 @@ class GuidedExplorationFacade:
             detected_parties, party_map
         )
 
+        # 5b. Format conversation history if a session was provided
+        conversation_history_text = ""
+        if session is not None:
+            history_lines = self._format_conversation_history(session.messages)
+            if history_lines:
+                conversation_history_text = "\n".join(history_lines)
+
         # 6. Start streaming from LLM
         await self._send_thinking(
-            session_id, "generating", "Erstelle Zusammenfassung..."
+            session_id, "generating", "Erstelle Antwort..."
         )
 
         stream_id = str(uuid4())
@@ -2248,6 +2470,7 @@ class GuidedExplorationFacade:
             rag_context=rag_context,
             parties_list=parties_list,
             context_name=context_name,
+            conversation_history=conversation_history_text,
         )
 
         # 7. Stream directly from LLM to SSE
@@ -2260,11 +2483,14 @@ class GuidedExplorationFacade:
         )
 
         # 8. Extract only citations that were actually used by the LLM
-        used_citations = self._extract_used_citations(full_text, citations)
+        used_citations = extract_used_citations(full_text, citations)
         logger.info(
             f"Quick summary citations: {len(used_citations)} used "
             f"of {len(citations)} available"
         )
+
+        # Record cited position ids for the study's Information Exposure metric.
+        await self._log_study_exposure(session_id, used_citations)
 
         # 9. Generate suggested follow-up questions
         suggested_questions = (
@@ -2352,46 +2578,25 @@ class GuidedExplorationFacade:
                 chunks_by_party[chunk.party_id] = []
             chunks_by_party[chunk.party_id].append(chunk)
 
-            # Create citation for each chunk using actual chunk_id
-            # Match legacy system field mapping from chat_service.py
-            doc_name = chunk.metadata.get("document_name", "Wahlprogramm")
-            # Shift page by +1 for display indexing (like legacy system)
-            page_raw = chunk.source_page
-            page_number = (int(page_raw) + 1) if page_raw is not None else None
-
             party = party_map.get(chunk.party_id)
             party_display = party.name if party else chunk.party_id
             citations.append(
-                Citation(
-                    id=chunk.chunk_id,
-                    party=party_display,
-                    document=doc_name,
-                    section=chunk.source_section,
-                    page=page_number,
-                    document_publish_date=chunk.metadata.get("document_publish_date"),
-                    url=chunk.metadata.get("url"),
-                    source_document=chunk.metadata.get("source_document"),
-                )
+                create_chunk_citation(chunk, party_display)
             )
 
-        # Format context grouped by party
+        # Format context grouped by party, using the canonical
+        # "[chunk_id] content" bracket format shown to the LLM. Matches
+        # conversation_handler._build_source_text so extraction via
+        # extract_used_citations works identically in both paths.
         context_parts = []
         for party_id, party_chunks in chunks_by_party.items():
             party = party_map.get(party_id)
             party_name = party.name if party else party_id
-            context_parts.append(f"\n\nInformationen von {party_name}:")
+            context_parts.append(f"\n## {party_name}\n")
 
             for chunk in party_chunks:
-                doc_name = chunk.metadata.get("document_name", "Wahlprogramm")
-                publish_date = chunk.metadata.get("document_publish_date", "unbekannt")
                 context_parts.append(
-                    f"""- ID: {chunk.chunk_id}
-- Dokumentname: {doc_name}
-- Partei: {party_name}
-- Veröffentlichungsdatum: {publish_date}
-- Inhalt: "{chunk.content}"
-
-"""
+                    f"[{chunk.chunk_id}] {chunk.content}\n\n"
                 )
 
         return "".join(context_parts), citations
@@ -2416,93 +2621,7 @@ class GuidedExplorationFacade:
 
         return "\n".join(parts)
 
-    def _extract_used_citations(
-        self,
-        text: str,
-        all_citations: list[Citation],
-    ) -> list[Citation]:
-        """Extract only the citations that were actually used in the text.
-
-        Parses the text for [citation-id] markers and returns only
-        the citations that were referenced.
-
-        Handles both single citations [id] and multiple [id1, id2].
-
-        Args:
-            text: The generated text with inline citations
-            all_citations: All available citations
-
-        Returns:
-            List of citations that were actually used in the text
-        """
-        # Find all bracket contents - handles both [id] and [id1, id2, ...]
-        bracket_pattern = r"\[([^\]]+)\]"
-        bracket_contents = re.findall(bracket_pattern, text)
-
-        # Extract individual IDs (split by comma if multiple)
-        used_ids: set[str] = set()
-        for content in bracket_contents:
-            # Skip PARTY markers like "PARTY:spd" or "/PARTY:spd"
-            if "PARTY:" in content:
-                continue
-            # Split by comma and strip whitespace
-            for id_part in content.split(","):
-                id_part = id_part.strip()
-                if id_part:
-                    used_ids.add(id_part)
-
-        # Filter to only citations that were used
-        used_citations = [c for c in all_citations if c.id in used_ids]
-
-        logger.debug(
-            f"Citation extraction: found {len(used_ids)} IDs in text, "
-            f"matched {len(used_citations)} of {len(all_citations)} available citations. "
-            f"IDs found: {used_ids}"
-        )
-
-        return used_citations
-
-    def _replace_citation_indices(
-        self,
-        text: str,
-        index_to_citation_id: dict[int, str],
-    ) -> str:
-        """Replace citation indices [0], [1], etc. with actual citation IDs.
-
-        Args:
-            text: The text with index-based citations like [0], [1, 2]
-            index_to_citation_id: Mapping from index to actual citation ID
-
-        Returns:
-            Text with indices replaced by actual citation IDs
-        """
-        if not index_to_citation_id:
-            return text
-
-        def replace_match(match: re.Match) -> str:
-            content = match.group(1)
-
-            # Skip PARTY markers
-            if "PARTY:" in content:
-                return match.group(0)
-
-            # Split by comma, replace each index, rejoin
-            parts = []
-            for part in content.split(","):
-                part = part.strip()
-                try:
-                    idx = int(part)
-                    if idx in index_to_citation_id:
-                        parts.append(index_to_citation_id[idx])
-                    else:
-                        parts.append(part)  # Keep original if not found
-                except ValueError:
-                    parts.append(part)  # Keep non-numeric parts
-
-            return "[" + ", ".join(parts) + "]"
-
-        # Replace all bracket contents
-        return re.sub(r"\[([^\]]+)\]", replace_match, text)
+    # Citation utilities moved to services/citation_utils.py
 
     async def _answer_factual_query(
         self,
@@ -2593,8 +2712,10 @@ class GuidedExplorationFacade:
             parties_info=parties_info,
         )
 
-        # 6. Build citation objects matching the {party_id}-rag-{i} IDs
-        # that the streaming LLM uses (from _build_source_text)
+        # 6. Build citation objects matching the chunk.chunk_id values that
+        # the streaming LLM is shown in _build_source_text. For study
+        # sessions these ids are the master position ids, so the extracted
+        # citations can be logged directly against the master position list.
         rag_citations: list[Citation] = []
         for party_id, party_chunks in (resolved.party_chunks or {}).items():
             party_name = parties_info.get(
@@ -2604,21 +2725,9 @@ class GuidedExplorationFacade:
                     long_name=party_id.upper(),
                 ),
             ).name
-            for i, chunk in enumerate(party_chunks[:5], 1):
-                doc_name = chunk.metadata.get("document_name", chunk.source_document)
-                page_raw = chunk.source_page
-                page_number = (int(page_raw) + 1) if page_raw is not None else None
+            for chunk in party_chunks[:5]:
                 rag_citations.append(
-                    Citation(
-                        id=f"{party_id}-rag-{i}",
-                        party=party_name,
-                        document=doc_name,
-                        section=chunk.source_section,
-                        page=page_number,
-                        document_publish_date=chunk.metadata.get("document_publish_date"),
-                        url=chunk.metadata.get("url"),
-                        source_document=chunk.metadata.get("source_document"),
-                    )
+                    create_chunk_citation(chunk, party_name)
                 )
 
         # 7. Stream response directly from LLM with party markers
@@ -2632,7 +2741,10 @@ class GuidedExplorationFacade:
         )
 
         # 8. Extract used citations — IDs in text match rag_citations IDs
-        used_citations = self._extract_used_citations(full_text, rag_citations)
+        used_citations = extract_used_citations(full_text, rag_citations)
+
+        # Record cited position ids for the study's Information Exposure metric.
+        await self._log_study_exposure(session_id, used_citations)
 
         # 10. Generate suggested follow-up questions
         suggested_questions = (

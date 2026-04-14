@@ -40,6 +40,14 @@ class QuickSummaryInput(BaseModel):
         description="Formatted list of relevant parties",
     )
     context_name: str = Field(..., description="Display name of the context")
+    conversation_history: str = Field(
+        default="",
+        description=(
+            "Formatted prior conversation (last ~10 turns) so the response "
+            "can build on context, resolve back-references, and avoid "
+            "repetition."
+        ),
+    )
 
 
 class QuickSummaryOutput(BaseModel):

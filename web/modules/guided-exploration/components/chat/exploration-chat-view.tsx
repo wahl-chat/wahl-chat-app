@@ -7,10 +7,11 @@ import type {
   SessionMessage,
   StreamTargetType,
 } from '@/modules/guided-exploration/types';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { ConversationInput } from '@/modules/guided-exploration/components/conversation/conversation-input';
 import { ThinkingIndicator } from '@/modules/guided-exploration/components/conversation/thinking-indicator';
+import { useStreamingCitationMap } from '@/modules/guided-exploration/utils';
 import { ChoicePromptCard } from './choice-prompt-card';
 import { ExplorationEmptyView } from './exploration-empty-view';
 import { SessionMessageList } from './session-message-list';
@@ -31,6 +32,8 @@ interface ExplorationChatViewProps {
   explorationPending: boolean;
   /** Suggested follow-up questions shown above the input */
   suggestedQuestions?: string[];
+  /** When set, restricts the empty-view topic buttons to the assigned study topic. */
+  studyTopicLabel?: string;
   onSendMessageAction: (message: string) => void;
   onSubmitChoiceAction: (
     queryId: string,
@@ -54,6 +57,7 @@ export function ExplorationChatView({
   tree,
   explorationPending,
   suggestedQuestions = [],
+  studyTopicLabel,
   onSendMessageAction,
   onSubmitChoiceAction,
   onDirectionChoiceAction,
@@ -131,7 +135,12 @@ export function ExplorationChatView({
       >
         <main className="mx-auto w-full max-w-xl py-8">
           {!hasMessages ? (
-            <ExplorationEmptyView onSuggestionClick={onSendMessageAction} />
+            <ExplorationEmptyView
+              onSuggestionClick={onSendMessageAction}
+              studyTopic={
+                studyTopicLabel ? { label: studyTopicLabel } : undefined
+              }
+            />
           ) : (
             <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6">
               <SessionMessageList
@@ -195,10 +204,6 @@ export function ExplorationChatView({
   );
 }
 
-/**
- * Renders streaming buffer with citation IDs mapped to sequential numbers.
- * Shows [1], [2] etc. instead of raw [spd-abc123] during streaming.
- */
 function ChatStreamingBuffer({
   content,
   isStreaming,
@@ -206,25 +211,7 @@ function ChatStreamingBuffer({
   content: string;
   isStreaming: boolean;
 }) {
-  const citationMap = useMemo(() => {
-    const map = new Map<string, number>();
-    const matches = content.matchAll(/\[([\w.-]+(?:\s*,\s*[\w.-]+)*)\]/g);
-    for (const match of matches) {
-      const ids = match[1].split(/\s*,\s*/);
-      for (const id of ids) {
-        // Citation IDs contain a hyphen (e.g., spd-abc123), skip PARTY markers
-        if (!map.has(id) && id.includes('-') && !id.startsWith('PARTY')) {
-          map.set(id, map.size + 1);
-        }
-      }
-    }
-    return map;
-  }, [content]);
-
-  const getReferenceName = (id: string): string | null => {
-    const num = citationMap.get(id);
-    return num !== undefined ? `${num}` : null;
-  };
+  const { getReferenceName } = useStreamingCitationMap(content);
 
   return (
     <PartyMarkedMarkdown

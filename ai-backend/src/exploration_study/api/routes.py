@@ -1,6 +1,7 @@
 """Participant API routes for exploration study."""
 
 import logging
+import os
 from datetime import datetime, timezone
 
 from aiohttp import web
@@ -8,6 +9,8 @@ from aiohttp import web
 from src.exploration_study.api.admin_routes import setup_admin_routes
 from src.exploration_study.api.dtos import (
     ConsentRequest,
+    CreateSessionRequest,
+    CreateSessionResponse,
     DemographicsRequest,
     ErrorResponse,
     FeedbackRequest,
@@ -16,7 +19,6 @@ from src.exploration_study.api.dtos import (
     QuizResultResponse,
     QuizStatusResponse,
     QuizSubmissionRequest,
-    RecallRequest,
     SessionStateResponse,
     StartTaskResponse,
     StateTransitionResponse,
@@ -30,9 +32,14 @@ from src.exploration_study.models.quiz import (
 from src.exploration_study.models.session import (
     DemographicsData,
     LiteracyData,
+    MailsShortData,
     ManipulationChecks,
+    ProlificData,
+    get_condition_for_group,
 )
 from src.exploration_study.models.state import StudyState
+from src.exploration_study.models.study import Study, StudyConfig
+from src.exploration_study.services.counterbalancer import get_counterbalancer
 from src.exploration_study.services.session_repository import get_session_repository
 from src.exploration_study.services.study_repository import get_study_repository
 
@@ -40,6 +47,138 @@ logger = logging.getLogger(__name__)
 
 ROUTE_PREFIX = "/api/v1/exploration-study"
 GE_ROUTE_PREFIX = "/api/v1/guided-exploration"
+
+# Self-serve session creation config
+DEFAULT_STUDY_ID = os.getenv("EXPLORATION_STUDY_DEFAULT_ID", "").strip()
+DEFAULT_STUDY_NAME = "Exploration Study (self-serve)"
+DEFAULT_STUDY_CONTEXT_ID = "exploration-study"
+
+# Memoized id of the study used for self-serve session creation.
+_default_study_cache: str | None = None
+
+
+async def _get_or_create_default_study() -> Study:
+    """
+    Resolve the study used for self-serve session creation.
+
+    Resolution order:
+    1. In-memory cache from a prior call
+    2. Env-configured EXPLORATION_STUDY_DEFAULT_ID
+    3. First existing study in the repo
+    4. Auto-create a new study with default config
+    """
+    global _default_study_cache
+    study_repo = get_study_repository()
+
+    if _default_study_cache:
+        cached = await study_repo.get_study(_default_study_cache)
+        if cached:
+            return cached
+        _default_study_cache = None
+
+    if DEFAULT_STUDY_ID:
+        from_env = await study_repo.get_study(DEFAULT_STUDY_ID)
+        if from_env:
+            _default_study_cache = from_env.id
+            return from_env
+
+    existing = await study_repo.list_studies()
+    if existing:
+        _default_study_cache = existing[0].id
+        return existing[0]
+
+    study = await study_repo.create_study(
+        name=DEFAULT_STUDY_NAME,
+        config=StudyConfig(context_id=DEFAULT_STUDY_CONTEXT_ID),
+    )
+    _default_study_cache = study.id
+    logger.warning(
+        f"Auto-created default exploration study: {study.id} "
+        f"(set EXPLORATION_STUDY_DEFAULT_ID to pin this)"
+    )
+    return study
+
+
+async def create_session_self_serve(request: web.Request) -> web.Response:
+    """
+    POST /api/v1/exploration-study/sessions
+
+    Create a new self-serve study session. The participant is identified
+    via Prolific tracking parameters captured in the invitation URL; the
+    request must include at least ``prolific_pid`` and
+    ``prolific_session_id``. Repeat calls for the same
+    ``prolific_session_id`` return the existing session (idempotent).
+    """
+    try:
+        raw = await request.json()
+    except Exception:
+        return web.json_response(
+            ErrorResponse(
+                error="Invalid request body",
+                detail="Expected JSON body with Prolific identifiers",
+            ).model_dump(),
+            status=400,
+        )
+
+    try:
+        req = CreateSessionRequest(**(raw or {}))
+    except Exception as e:
+        return web.json_response(
+            ErrorResponse(error="Invalid request body", detail=str(e)).model_dump(),
+            status=400,
+        )
+
+    if not req.prolific_pid or not req.prolific_session_id:
+        return web.json_response(
+            ErrorResponse(
+                error="Missing Prolific identifiers",
+                detail="prolific_pid and prolific_session_id are required",
+            ).model_dump(),
+            status=400,
+        )
+
+    session_repo = get_session_repository()
+
+    existing = await session_repo.get_session_by_prolific_session_id(
+        req.prolific_session_id
+    )
+    if existing is not None:
+        logger.info(
+            f"Reusing existing session {existing.id} for "
+            f"prolific_session_id={req.prolific_session_id}"
+        )
+        return web.json_response(
+            CreateSessionResponse(
+                session_id=existing.id,
+                state=existing.state,
+            ).model_dump(mode="json"),
+            status=200,
+        )
+
+    prolific = ProlificData(
+        pid=req.prolific_pid,
+        study_id=req.prolific_study_id,
+        session_id=req.prolific_session_id,
+    )
+
+    study = await _get_or_create_default_study()
+
+    counterbalancer = get_counterbalancer()
+    group = await counterbalancer.assign_group(study.id)
+    condition = get_condition_for_group(group, study.config.topics)
+
+    session = await session_repo.create_session(
+        study_id=study.id,
+        group=group,
+        condition=condition,
+        prolific=prolific,
+    )
+
+    response = CreateSessionResponse(
+        session_id=session.id,
+        state=session.state,
+    )
+    return web.json_response(response.model_dump(mode="json"), status=201)
 
 
 async def get_session_state(request: web.Request) -> web.Response:
@@ -218,24 +357,10 @@ async def submit_literacy(request: web.Request) -> web.Response:
             status=400,
         )
 
-    correct_answers = {
-        "lit_1": "2",
-        "lit_2": "Bundestag",
-        "lit_3": "4 Jahre",
-    }
-
-    score = 0
-    for q_id, correct in correct_answers.items():
-        if req.political_literacy_answers.get(q_id) == correct:
-            score += 1
-
     participant_data = session.participant_data
     participant_data.literacy = LiteracyData(
-        ai_familiarity=req.ai_familiarity,
-        chatbot_usage=req.chatbot_usage,
+        mails_short=MailsShortData(**req.mails_short.model_dump()),
         news_consumption=req.news_consumption,
-        political_literacy_answers=req.political_literacy_answers,
-        political_literacy_score=score,
     )
 
     await session_repo.update_participant_data(session_id, participant_data)
@@ -317,13 +442,18 @@ async def start_task(request: web.Request) -> web.Response:
 
     condition = session.condition
 
-    # Create a guided exploration session via the facade
+    # Create a guided exploration session via the facade.
+    # Study sessions always use the fake-manifesto in-memory RAG, keyed by
+    # topic via a synthetic context_id of the form ``study-<topic>``. The
+    # topic comes from the participant's assigned condition.
     from src.exploration_study.facade import get_facade
 
     facade = get_facade()
 
+    study_context_id = f"study-{condition.topic}"
+
     ge_session = await facade.create_exploration_session(
-        context_id=study.config.context_id,
+        context_id=study_context_id,
         mode=condition.system.value,
     )
 
@@ -460,58 +590,10 @@ async def submit_questionnaire(request: web.Request) -> web.Response:
     condition.questionnaire_submitted_at = datetime.now(timezone.utc)
     await session_repo.update_condition_data(session_id, condition)
 
-    await session_repo.update_state(session_id, StudyState.RECALL)
-
-    response = StateTransitionResponse(
-        previous_state=StudyState.QUESTIONNAIRE,
-        current_state=StudyState.RECALL,
-    )
-    return web.json_response(response.model_dump(mode="json"))
-
-
-async def submit_recall(request: web.Request) -> web.Response:
-    """
-    POST /api/exploration-study/sessions/{session_id}/recall
-    Submit free recall.
-    """
-    session_id = request.match_info["session_id"]
-
-    try:
-        body = await request.json()
-        req = RecallRequest(**body)
-    except Exception as e:
-        return web.json_response(
-            ErrorResponse(error="Invalid request body", detail=str(e)).model_dump(),
-            status=400,
-        )
-
-    session_repo = get_session_repository()
-    session = await session_repo.get_session(session_id)
-
-    if not session:
-        return web.json_response(
-            ErrorResponse(error="Session not found").model_dump(),
-            status=404,
-        )
-
-    if session.state != StudyState.RECALL:
-        return web.json_response(
-            ErrorResponse(
-                error="Invalid state",
-                detail=f"Expected {StudyState.RECALL}, got {session.state}",
-            ).model_dump(),
-            status=400,
-        )
-
-    condition = session.condition
-    condition.recall_text = req.text
-    condition.recall_submitted_at = datetime.now(timezone.utc)
-    await session_repo.update_condition_data(session_id, condition)
-
     await session_repo.update_state(session_id, StudyState.QUIZ)
 
     response = StateTransitionResponse(
-        previous_state=StudyState.RECALL,
+        previous_state=StudyState.QUESTIONNAIRE,
         current_state=StudyState.QUIZ,
     )
     return web.json_response(response.model_dump(mode="json"))
@@ -696,6 +778,7 @@ async def submit_feedback(request: web.Request) -> web.Response:
 def setup_exploration_study_routes(app: web.Application) -> None:
     """Register all exploration study routes with the application."""
     participant_routes = [
+        ("POST", f"{ROUTE_PREFIX}/sessions", create_session_self_serve),
         ("GET", f"{ROUTE_PREFIX}/sessions/{{session_id}}", get_session_state),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/consent", submit_consent),
         (
@@ -712,7 +795,6 @@ def setup_exploration_study_routes(app: web.Application) -> None:
             f"{ROUTE_PREFIX}/sessions/{{session_id}}/questionnaire",
             submit_questionnaire,
         ),
-        ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/recall", submit_recall),
         ("GET", f"{ROUTE_PREFIX}/sessions/{{session_id}}/quiz", get_quiz),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/quiz", submit_quiz),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/feedback", submit_feedback),

@@ -39,12 +39,17 @@ from src.guided_exploration.models import (
     ThinkingEvent,
     TopicTreeEvent,
 )
+from src.guided_exploration.models.content import Citation
 from src.guided_exploration.models.position import Position, PartyPositions
 from src.guided_exploration.models.errors import InsufficientChunksError
 from src.guided_exploration.models.exploration import RetrievedChunk
 from src.guided_exploration.models.tree import ExplorationNode, ExplorationTree
 from src.guided_exploration.services.debug_logger import DebugLogger
 from src.guided_exploration.services.rag_service import RAGService
+from src.guided_exploration.services.study_context import (
+    get_study_context_info,
+    is_study_context,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -311,6 +316,15 @@ class Orchestrator:
             Tuple of (all_positions, party_chunks)
         """
 
+        # Study sessions bypass the position extractor entirely: each
+        # retrieved chunk already IS a fully-authored position, so we wrap
+        # chunks directly into Position objects and preserve the master
+        # position id as both Position.id and Citation.id. This keeps the
+        # master id visible all the way through tree → leaf → in-leaf
+        # conversation → cited_sources, which is what the study's
+        # Information Exposure logging relies on.
+        use_direct_positions = is_study_context(context_id)
+
         async def extract_for_party(
             party_id: str,
         ) -> tuple[str, PartyPositions | None, list[RetrievedChunk]]:
@@ -342,6 +356,22 @@ class Orchestrator:
                 if not chunks:
                     logger.warning(f"No chunks for party {party_id}")
                     return party_id, None, []
+
+                if use_direct_positions:
+                    # Study mode: wrap each chunk as a Position with the
+                    # master position id. No LLM call, no re-paraphrase.
+                    party_positions_obj = self._build_positions_from_chunks(
+                        party_id=party_id,
+                        party_info=party_info,
+                        chunks=chunks,
+                    )
+                    debug_logger.log_position_extraction(
+                        party_id=party_id,
+                        party_name=party_info.name,
+                        party_positions=party_positions_obj,
+                        duration_ms=0.0,
+                    )
+                    return party_id, party_positions_obj, chunks
 
                 # Position extraction
                 extract_start = time.monotonic()
@@ -400,6 +430,54 @@ class Orchestrator:
         return all_positions, party_chunks
 
     # =========================================================================
+    # Direct Position Construction (Study Mode)
+    # =========================================================================
+
+    def _build_positions_from_chunks(
+        self,
+        party_id: str,
+        party_info: PartyInfo,
+        chunks: list[RetrievedChunk],
+    ) -> PartyPositions:
+        """
+        Wrap study RAG chunks directly as Position objects.
+
+        Each chunk in a study session is a fully-authored position whose
+        ``chunk_id`` is the master position id. By using that id as both
+        ``Position.id`` and ``Citation.id``, master ids stay visible all
+        the way through the tree, leaves, extracted positions, and
+        in-leaf ``cited_sources`` — enabling citation-based Information
+        Exposure logging without any id translation layer.
+        """
+        positions: list[Position] = []
+        for idx, chunk in enumerate(chunks):
+            citation = Citation(
+                id=chunk.chunk_id,
+                party=party_info.name,
+                document=chunk.source_document,
+                section=chunk.source_section,
+                page=chunk.source_page,
+                source_document=chunk.source_document,
+            )
+            positions.append(
+                Position(
+                    id=chunk.chunk_id,
+                    party_id=party_id,
+                    content=chunk.content,
+                    quote="",
+                    position_type="position",
+                    citation=citation,
+                    chunk_index=idx,
+                )
+            )
+
+        return PartyPositions(
+            party_id=party_id,
+            positions=positions,
+            relevance_to_query=1.0,
+        )
+
+    # =========================================================================
     # Context & Validation
     # =========================================================================
 
@@ -408,7 +486,15 @@ class Orchestrator:
         context_id: str,
         party_ids: list[str],
     ) -> tuple[str, dict[str, PartyInfo]]:
-        """Fetch context name and party info from Firebase."""
+        """
+        Fetch context name and party info.
+
+        For study contexts (``study-*``), returns static fake-party data
+        without touching Firebase.
+        """
+        if is_study_context(context_id):
+            return get_study_context_info(context_id, party_ids)
+
         context = await aget_context_by_id(context_id)
         context_name = context.name if context else context_id
 

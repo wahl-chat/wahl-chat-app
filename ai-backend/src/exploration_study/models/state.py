@@ -13,7 +13,7 @@ class StudyState(str, Enum):
 
     Flow:
     CONSENT -> DEMOGRAPHICS -> LITERACY -> TUTORIAL
-      -> TASK -> QUESTIONNAIRE -> RECALL -> QUIZ -> COMPLETE
+      -> TASK -> QUESTIONNAIRE -> QUIZ -> COMPLETE
     """
 
     # Onboarding steps
@@ -25,7 +25,6 @@ class StudyState(str, Enum):
     # Task (single condition)
     TASK = "task"
     QUESTIONNAIRE = "questionnaire"
-    RECALL = "recall"
     QUIZ = "quiz"
 
     # Final states
@@ -44,8 +43,7 @@ TRANSITIONS: dict[StudyState, list[StudyState]] = {
     StudyState.TUTORIAL: [StudyState.TASK],
     # Task flow
     StudyState.TASK: [StudyState.QUESTIONNAIRE],
-    StudyState.QUESTIONNAIRE: [StudyState.RECALL],
-    StudyState.RECALL: [StudyState.QUIZ],
+    StudyState.QUESTIONNAIRE: [StudyState.QUIZ],
     StudyState.QUIZ: [StudyState.COMPLETE],
     # Final
     StudyState.COMPLETE: [],

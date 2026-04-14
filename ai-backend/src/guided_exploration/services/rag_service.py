@@ -13,6 +13,12 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 from src.guided_exploration.models.exploration import RetrievedChunk
+from src.guided_exploration.services.study_context import (
+    STUDY_CONTEXT_PREFIX,
+    get_study_topic,
+    is_study_context,
+)
+from src.guided_exploration.services.study_positions_rag import StudyPositionsRAG
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +45,15 @@ class RAGService:
 
     Uses embeddings to search for relevant documents and returns
     structured RetrievedChunk objects for use in the exploration flow.
+
+    For study sessions (``context_id`` starting with ``study-``), retrieval
+    is routed to an in-memory ``StudyPositionsRAG`` over ~200 precomputed
+    fake-manifesto positions — no Qdrant call is made.
     """
+
+    # Class-level cache: the study resolver loads ~1 MB of vectors once
+    # and is reused across all RAGService instances.
+    _study_rag: StudyPositionsRAG | None = None
 
     def __init__(
         self,
@@ -52,6 +66,12 @@ class RAGService:
             url=qdrant_url or os.getenv("QDRANT_URL", "http://localhost:6333"),
             api_key=qdrant_api_key or os.getenv("QDRANT_API_KEY"),
         )
+
+    def _get_study_rag(self) -> StudyPositionsRAG:
+        """Lazily instantiate the in-memory study positions resolver."""
+        if RAGService._study_rag is None:
+            RAGService._study_rag = StudyPositionsRAG(embeddings=self._embeddings)
+        return RAGService._study_rag
 
     async def retrieve_chunks_for_party(
         self,
@@ -74,6 +94,15 @@ class RAGService:
         Returns:
             List of RetrievedChunk objects
         """
+        # Study sessions: route to in-memory fake-manifesto resolver.
+        if is_study_context(context_id):
+            return await self._get_study_rag().retrieve_chunks_for_party(
+                query=query,
+                party_id=party_id,
+                topic=get_study_topic(context_id),
+                n_docs=n_docs,
+            )
+
         collection_name = get_context_collection_name(context_id)
 
         # Check if collection exists

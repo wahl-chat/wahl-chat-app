@@ -35,26 +35,38 @@ export function QuizQuestion({
         onValueChange={(value) => onSelect(Number.parseInt(value))}
         className="space-y-3"
       >
-        {question.options.map((option, index) => (
-          <label
-            key={`${question.id}-${index}`}
-            htmlFor={`option-${question.id}-${index}`}
-            className={cn(
-              'flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors',
-              'hover:border-primary/50 hover:bg-primary/5',
-              selectedIndex === index && 'border-primary bg-primary/5',
-            )}
-          >
-            <RadioGroupItem
-              value={index.toString()}
-              id={`option-${question.id}-${index}`}
-              className="mt-0.5"
-            />
-            <span className="text-sm font-normal leading-relaxed">
-              {option}
-            </span>
-          </label>
-        ))}
+        {question.options.map((option, index) => {
+          const isDontKnow = index === question.options.length - 1;
+          return (
+            <div key={`${question.id}-${index}`}>
+              {isDontKnow && (
+                <div className="my-3 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-xs text-muted-foreground">oder</span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+              )}
+              <label
+                htmlFor={`option-${question.id}-${index}`}
+                className={cn(
+                  'flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors',
+                  'hover:border-primary/50 hover:bg-primary/5',
+                  selectedIndex === index && 'border-primary bg-primary/5',
+                  isDontKnow && 'border-dashed text-muted-foreground',
+                )}
+              >
+                <RadioGroupItem
+                  value={index.toString()}
+                  id={`option-${question.id}-${index}`}
+                  className="mt-0.5"
+                />
+                <span className="text-sm font-normal leading-relaxed">
+                  {option}
+                </span>
+              </label>
+            </div>
+          );
+        })}
       </RadioGroup>
     </div>
   );

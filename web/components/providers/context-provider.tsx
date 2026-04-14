@@ -5,7 +5,7 @@ import type { PartyDetails } from '@/lib/party-details';
 import { createContext, useContext, useMemo } from 'react';
 
 type ContextProviderValue = {
-  context: Context;
+  context?: Context;
   contexts: Context[];
   parties?: PartyDetails[];
   partyCount: number;
@@ -17,8 +17,8 @@ const ElectionContext = createContext<ContextProviderValue | undefined>(
 
 export type ContextProviderProps = {
   children: React.ReactNode;
-  context: Context;
-  contexts: Context[];
+  context?: Context;
+  contexts?: Context[];
   parties?: PartyDetails[];
 };
 
@@ -31,7 +31,7 @@ export function ContextProvider({
   const value = useMemo(
     () => ({
       context,
-      contexts,
+      contexts: contexts ?? [],
       parties,
       partyCount: parties?.length ?? 0,
     }),
@@ -73,7 +73,11 @@ export function useContexts() {
 }
 
 export function useContextParties(partyIds?: string[]) {
-  const { parties } = useElectionContext();
+  // Optional lookup: study flows render party cards outside the main
+  // ContextProvider, so the hook must not throw when no provider is mounted.
+  // Callers already handle ``undefined``/missing party details gracefully.
+  const electionContext = useElectionContext({ optional: true });
+  const parties = electionContext?.parties;
 
   return useMemo(() => {
     if (partyIds) {

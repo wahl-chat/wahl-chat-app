@@ -10,9 +10,6 @@ export * from './questionnaire';
 // Task components
 export * from './task';
 
-// Recall components
-export * from './recall';
-
 // Quiz components
 export * from './quiz';
 

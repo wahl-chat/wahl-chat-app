@@ -44,9 +44,9 @@ class QuizGeneratorInput(BaseModel):
     )
     num_questions: int = Field(
         default=10,
-        description="Number of questions to generate",
+        description="Number of questions to generate (1-15)",
         ge=1,
-        le=20,
+        le=15,
     )
 
 

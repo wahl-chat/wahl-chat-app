@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,7 @@ import type {
   StreamTargetType,
   SubtopicContent,
 } from '@/modules/guided-exploration/types';
+import { useStreamingCitationMap } from '@/modules/guided-exploration/utils';
 
 import { AspectComparisonView } from './aspect-comparison-view';
 
@@ -183,31 +184,8 @@ export function LeafContent({
   );
 }
 
-/**
- * Renders streaming buffer with citation IDs mapped to sequential numbers.
- * Extracts all unique [party-hex] patterns and assigns 1, 2, 3...
- */
 function StreamingBuffer({ content }: { content: string }) {
-  // Build a stable mapping of citation IDs to sequential numbers
-  const citationMap = useMemo(() => {
-    const map = new Map<string, number>();
-    // Match citation IDs like [afd-3740c308] or [spd-abc123, cdu-def456]
-    const matches = content.matchAll(/\[([\w.-]+(?:\s*,\s*[\w.-]+)*)\]/g);
-    for (const match of matches) {
-      const ids = match[1].split(/\s*,\s*/);
-      for (const id of ids) {
-        if (!map.has(id) && id.includes('-')) {
-          map.set(id, map.size + 1);
-        }
-      }
-    }
-    return map;
-  }, [content]);
-
-  const getReferenceName = (id: string): string | null => {
-    const num = citationMap.get(id);
-    return num !== undefined ? `${num}` : null;
-  };
+  const { getReferenceName } = useStreamingCitationMap(content);
 
   return (
     <PartyMarkedMarkdown

@@ -10,7 +10,6 @@ import type {
   QuestionnaireData,
   QuizAnswer,
   QuizData,
-  RecallData,
   StudySession,
 } from '@/modules/exploration-study/types';
 import {
@@ -65,6 +64,22 @@ async function fetchApi<T>(
 }
 
 export const studyApi = {
+  /**
+   * Create a new self-serve study session.
+   * Participants are identified via Prolific tracking parameters captured
+   * from the invitation URL. Repeated calls with the same
+   * ``prolificSessionId`` return the existing session.
+   */
+  createSession: (prolific: {
+    prolificPid: string;
+    prolificStudyId?: string | null;
+    prolificSessionId: string;
+  }) =>
+    fetchApi<{ sessionId: string; state: string }>('', {
+      method: 'POST',
+      body: prolific,
+    }),
+
   /**
    * Get the current session state
    */
@@ -127,15 +142,6 @@ export const studyApi = {
    */
   submitQuestionnaire: (sessionId: string, data: QuestionnaireData) =>
     fetchApi<StudySession>(`/${sessionId}/questionnaire`, {
-      method: 'POST',
-      body: data,
-    }),
-
-  /**
-   * Submit free recall
-   */
-  submitRecall: (sessionId: string, data: RecallData) =>
-    fetchApi<StudySession>(`/${sessionId}/recall`, {
       method: 'POST',
       body: data,
     }),

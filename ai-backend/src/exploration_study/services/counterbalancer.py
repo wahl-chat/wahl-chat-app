@@ -1,6 +1,7 @@
 """Counterbalancer service for group assignment."""
 
 import logging
+import random
 from typing import Literal
 
 from src.exploration_study.services.session_repository import (
@@ -12,6 +13,17 @@ logger = logging.getLogger(__name__)
 
 # Type for the 4 sub-groups (A=guided, B=baseline; 1/2=topic counterbalance)
 GroupType = Literal["A1", "A2", "B1", "B2"]
+
+GROUPS: list[GroupType] = ["A1", "A2", "B1", "B2"]
+
+
+def compute_group_weights(counts: dict[GroupType, int]) -> list[int]:
+    """
+    Weight each group as ``(max_count + 1) - count`` so the least-represented
+    group gets the highest weight while every group keeps a non-zero chance.
+    """
+    max_count = max(counts.values()) if counts else 0
+    return [(max_count + 1) - counts.get(group, 0) for group in GROUPS]
 
 
 class Counterbalancer:
@@ -28,26 +40,26 @@ class Counterbalancer:
     def __init__(self, session_repository: SessionRepository) -> None:
         self._session_repo = session_repository
 
-    async def assign_group(self, study_id: str) -> GroupType:
+    async def assign_group(
+        self,
+        study_id: str,
+        rng: random.Random | None = None,
+    ) -> GroupType:
         """
-        Assign a group for a new session.
+        Assign a group for a new session via weighted random sampling.
 
-        Assigns to the group with fewest sessions to maintain balance.
+        The least-represented group gets the highest weight, so on average
+        the distribution stays balanced, but a small amount of randomness
+        is preserved to avoid lockstep assignment under concurrent creates.
         """
         counts = await self._session_repo.count_sessions_by_group(study_id)
-
-        # Find the group with minimum count
-        min_count = min(counts.values())
-        groups: list[GroupType] = ["A1", "A2", "B1", "B2"]
-        selected_group: GroupType = "A1"  # Default
-        for group in groups:
-            if counts.get(group, 0) == min_count:
-                selected_group = group
-                break
+        weights = compute_group_weights(counts)
+        picker = rng if rng is not None else random
+        selected_group: GroupType = picker.choices(GROUPS, weights=weights, k=1)[0]
 
         logger.info(
             f"Assigned group {selected_group} for study {study_id} "
-            f"(current counts: {counts})"
+            f"(counts={counts}, weights={dict(zip(GROUPS, weights))})"
         )
         return selected_group
 

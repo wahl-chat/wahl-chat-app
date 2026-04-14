@@ -43,12 +43,18 @@ class QuizGeneratorService:
         topic: str,
         parties: list[str],
         chat_messages: list[dict],
+        num_questions: int,
     ) -> None:
         """
         Generate a quiz asynchronously.
 
         This method is designed to be called with asyncio.create_task()
         so it runs in the background while the participant continues.
+
+        ``num_questions`` is computed by the caller from the participant's
+        exposure (see ``exploration_study.facade.start_quiz_generation``),
+        so each participant gets a quiz sized to the content they actually
+        encountered.
         """
         quiz: Quiz | None = None
         try:
@@ -79,7 +85,7 @@ class QuizGeneratorService:
                 topic=topic,
                 parties=parties,
                 chat_messages=formatted_messages,
-                num_questions=10,
+                num_questions=num_questions,
             )
 
             output = await self._agent.execute(agent_input)
@@ -124,6 +130,7 @@ class QuizGeneratorService:
         topic: str,
         parties: list[str],
         chat_messages: list[dict],
+        num_questions: int,
     ) -> asyncio.Task:
         """
         Start quiz generation in the background.
@@ -136,6 +143,7 @@ class QuizGeneratorService:
                 topic=topic,
                 parties=parties,
                 chat_messages=chat_messages,
+                num_questions=num_questions,
             )
         )
 

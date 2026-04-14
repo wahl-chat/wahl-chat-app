@@ -194,8 +194,3 @@ export interface QuizData {
   isReady: boolean;
   questions: QuizQuestion[];
 }
-
-export interface RecallData {
-  text: string;
-  voiceInputUsed: boolean;
-}

@@ -9,11 +9,9 @@ from src.guided_exploration.agents.conversation_handler.implementation import (
 )
 from src.guided_exploration.agents.conversation_handler.interface import (
     ConversationHandlerInput,
-    ConversationHandlerOutput,
 )
 
 __all__ = [
     "ConversationHandlerAgent",
     "ConversationHandlerInput",
-    "ConversationHandlerOutput",
 ]

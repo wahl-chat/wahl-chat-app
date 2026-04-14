@@ -110,15 +110,30 @@ class ExplorationStudyFacade:
                 f"Cannot generate quiz without conversation history."
             )
 
+        # Size the quiz to the participant's actual exposure: 1/5 of the
+        # positions they encountered, clamped to [5, 15]. Scoring is deferred
+        # to analysis time (see questionnaire-plan.md §Page 7).
+        study_session = await self._session_repo.get_session(session_id)
+        visited_count = (
+            len(study_session.condition.positions_encountered)
+            if study_session and study_session.condition
+            else 0
+        )
+        num_questions = max(5, min(15, visited_count // 5))
+
         # Start quiz generation in background
         self._quiz_generator.start_quiz_generation(
             session_id=session_id,
             topic=topic,
             parties=parties,
             chat_messages=chat_messages,
+            num_questions=num_questions,
         )
 
-        logger.info(f"Started quiz generation for session={session_id}")
+        logger.info(
+            f"Started quiz generation for session={session_id} "
+            f"(visited={visited_count}, num_questions={num_questions})"
+        )
 
     async def _get_chat_messages(self, chat_id: str) -> list[dict]:
         """
@@ -255,4 +270,17 @@ def get_facade() -> ExplorationStudyFacade:
         registry.register(LLMTier.BALANCED, LangChainLLMProvider(openai_gpt_4o_mini))
 
         _facade = ExplorationStudyFacade(session_repository, registry)
+
+        # Register the Information Exposure logger on the guided exploration
+        # facade. This crosses the module boundary via callback injection so
+        # guided_exploration has no hard dependency on exploration_study.
+        from src.exploration_study.services.exposure_logger import (
+            log_study_exposure,
+        )
+        from src.guided_exploration.facade import get_facade as get_ge_facade
+
+        try:
+            get_ge_facade().set_study_exposure_logger(log_study_exposure)
+        except Exception as e:
+            logger.warning(f"Could not register study exposure logger: {e}")
     return _facade

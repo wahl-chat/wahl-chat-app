@@ -1,5 +1,6 @@
 'use client';
 
+import { ContextProvider } from '@/components/providers/context-provider';
 import { Button } from '@/components/ui/button';
 import {
   StudyLayout,
@@ -8,6 +9,7 @@ import {
   getStateFromResponse,
   studyApi,
 } from '@/modules/exploration-study';
+import { STUDY_FAKE_PARTIES } from '@/modules/exploration-study/data/fake-parties';
 import { AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -117,8 +119,10 @@ export default function StudySessionLayout({
   const isTaskPage = pathname.endsWith('/task');
 
   return (
-    <StudyLayout state={session.state} hideHeader={isTaskPage}>
-      {children}
-    </StudyLayout>
+    <ContextProvider parties={STUDY_FAKE_PARTIES}>
+      <StudyLayout state={session.state} hideHeader={isTaskPage}>
+        {children}
+      </StudyLayout>
+    </ContextProvider>
   );
 }

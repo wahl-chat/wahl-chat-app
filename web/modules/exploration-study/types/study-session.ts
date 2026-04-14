@@ -9,7 +9,6 @@ export type StudyState =
   | 'tutorial'
   | 'task'
   | 'questionnaire'
-  | 'recall'
   | 'quiz'
   | 'complete';
 
@@ -73,7 +72,6 @@ export const STUDY_STEPS: StudyState[] = [
   'tutorial',
   'task',
   'questionnaire',
-  'recall',
   'quiz',
   'complete',
 ];
@@ -85,7 +83,6 @@ export const STEP_LABELS: Record<StudyState, string> = {
   tutorial: 'Einführung',
   task: 'Aufgabe',
   questionnaire: 'Fragebogen',
-  recall: 'Erinnerung',
   quiz: 'Quiz',
   complete: 'Abschluss',
 };

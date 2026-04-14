@@ -90,8 +90,15 @@ class SummaryGeneratorAgent(BaseAgent[SummaryInput, SummaryOutput]):
         self, input: QuickSummaryInput
     ) -> list[BaseMessage]:
         """Build messages for quick summary generation."""
+        history_text = (
+            input.conversation_history
+            if input.conversation_history
+            else "Keine vorherigen Nachrichten."
+        )
+
         system_prompt = QUICK_SUMMARY_STREAMING_SYSTEM_PROMPT.format(
             context_name=input.context_name,
+            conversation_history=history_text,
             parties_list=input.parties_list,
             rag_context=input.rag_context,
         )

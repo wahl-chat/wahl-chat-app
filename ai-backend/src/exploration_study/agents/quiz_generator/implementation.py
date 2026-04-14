@@ -74,13 +74,21 @@ class QuizGeneratorAgent(BaseAgent[QuizGeneratorInput, QuizGeneratorOutput]):
         output: QuizGeneratorOutput,
         topic: str,
     ) -> list[QuizQuestion]:
-        """Convert generated questions to QuizQuestion models."""
+        """Convert generated questions to QuizQuestion models.
+
+        The LLM generates 4 content options; we append "Weiß ich nicht"
+        as a fifth option here so participants can explicitly opt out of
+        guessing when they didn't encounter the relevant content.
+        ``correct_index`` stays 0-3 because the don't-know option is
+        never the correct answer.
+        """
         questions = []
         for gen_q in output.questions:
+            options_with_dontknow = [*gen_q.options, "Weiß ich nicht"]
             question = QuizQuestion(
                 id=str(uuid4()),
                 question=gen_q.question,
-                options=gen_q.options,
+                options=options_with_dontknow,
                 correct_index=gen_q.correct_index,
                 party=gen_q.party,
                 topic=topic,

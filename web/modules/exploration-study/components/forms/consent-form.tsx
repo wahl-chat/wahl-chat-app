@@ -75,32 +75,34 @@ export function ConsentForm({
         </div>
       </div>
 
-      <div className="flex items-start gap-3 rounded-lg border p-4">
-        <Checkbox
-          id="consent"
-          checked={consentGiven}
-          onCheckedChange={(checked) => setConsentGiven(checked === true)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              setConsentGiven(!consentGiven);
-            }
-          }}
-          aria-describedby="consent-description"
-        />
-        <div className="space-y-1">
+      <div className="rounded-lg border p-4">
+        <div className="flex items-center gap-3">
+          <Checkbox
+            id="consent"
+            checked={consentGiven}
+            onCheckedChange={(checked) => setConsentGiven(checked === true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                setConsentGiven(!consentGiven);
+              }
+            }}
+            aria-describedby="consent-description"
+          />
           <label
             htmlFor="consent"
             className="cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
             Ich habe die Informationen gelesen und stimme der Teilnahme zu
           </label>
-          <p id="consent-description" className="text-sm text-muted-foreground">
-            Mit dem Setzen des Häkchens bestätigst du, dass du die obigen
-            Informationen verstanden hast und freiwillig an der Studie
-            teilnimmst.
-          </p>
         </div>
+        <p
+          id="consent-description"
+          className="mt-1 pl-7 text-sm text-muted-foreground"
+        >
+          Mit dem Setzen des Häkchens bestätigst du, dass du die obigen
+          Informationen verstanden hast und freiwillig an der Studie teilnimmst.
+        </p>
       </div>
 
       <SubmitButton isSubmitting={isSubmitting} disabled={!consentGiven} />

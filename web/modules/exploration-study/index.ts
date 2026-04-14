@@ -19,5 +19,8 @@ export * from './hooks';
 // Services
 export { studyApi } from './services/study-api';
 
+// Data
+export * from './data/fake-parties';
+
 // Components
 export * from './components';

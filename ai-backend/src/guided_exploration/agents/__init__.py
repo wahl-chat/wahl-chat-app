@@ -36,7 +36,6 @@ from src.guided_exploration.agents.content_generator import (
 from src.guided_exploration.agents.conversation_handler import (
     ConversationHandlerAgent,
     ConversationHandlerInput,
-    ConversationHandlerOutput,
 )
 from src.guided_exploration.agents.followup_router import (
     FollowupRoute,
@@ -118,7 +117,6 @@ __all__ = [
     # Conversation Handler
     "ConversationHandlerAgent",
     "ConversationHandlerInput",
-    "ConversationHandlerOutput",
     # Analyzer
     "AnalyzerAgent",
     "AnalyzerInput",

@@ -12,6 +12,7 @@ from src.exploration_study.models.quiz import Quiz, QuizStatus, QuizSubmission
 from src.exploration_study.models.session import (
     ConditionData,
     ParticipantData,
+    ProlificData,
     StudySession,
 )
 from src.exploration_study.models.state import StudyState
@@ -38,6 +39,7 @@ class SessionRepository:
         study_id: str,
         group: Literal["A1", "A2", "B1", "B2"],
         condition: ConditionData,
+        prolific: ProlificData | None = None,
     ) -> StudySession:
         """Create a new pre-generated session."""
         session_id = str(uuid4())
@@ -50,6 +52,7 @@ class SessionRepository:
             group=group,
             condition=condition,
             participant_data=ParticipantData(),
+            prolific=prolific,
             created_at=now,
             started_at=None,
             completed_at=None,
@@ -114,6 +117,79 @@ class SessionRepository:
         return await self.update_session(
             session_id,
             {"condition": condition_data.model_dump(mode="json")},
+        )
+
+    async def get_session_by_prolific_session_id(
+        self,
+        prolific_session_id: str,
+    ) -> StudySession | None:
+        """
+        Look up a study session by its Prolific session id, used to make
+        self-serve session creation idempotent across refreshes.
+        """
+        query = (
+            self._db.collection(SESSIONS_COLLECTION)
+            .where(
+                filter=FieldFilter(
+                    "prolific.session_id", "==", prolific_session_id
+                )
+            )
+            .limit(1)
+        )
+        async for doc in query.stream():
+            data = doc.to_dict()
+            if data:
+                return StudySession(**data)
+        return None
+
+    async def get_session_by_chat_id(self, chat_id: str) -> StudySession | None:
+        """
+        Look up the study session whose condition holds a given guided
+        exploration chat session id. Returns ``None`` if no session is
+        currently linked to that chat id.
+        """
+        query = (
+            self._db.collection(SESSIONS_COLLECTION)
+            .where(filter=FieldFilter("condition.chat_id", "==", chat_id))
+            .limit(1)
+        )
+        docs = [doc async for doc in query.stream()]
+        if not docs:
+            return None
+        return StudySession(**docs[0].to_dict())
+
+    async def append_positions_encountered(
+        self,
+        chat_id: str,
+        position_ids: list[str],
+    ) -> None:
+        """
+        Merge new cited position ids into the study session's
+        ``condition.positions_encountered`` list (dedup preserved).
+
+        Looks up the session via ``chat_id``. Silent no-op if no session
+        is linked to this chat id (e.g. non-study sessions).
+        """
+        if not position_ids:
+            return
+
+        session = await self.get_session_by_chat_id(chat_id)
+        if session is None:
+            return
+
+        existing = set(session.condition.positions_encountered or [])
+        added = [pid for pid in position_ids if pid not in existing]
+        if not added:
+            return
+
+        merged = list(session.condition.positions_encountered) + added
+        await self.update_session(
+            session.id,
+            {"condition.positions_encountered": merged},
+        )
+        logger.info(
+            f"Logged {len(added)} new positions_encountered for "
+            f"session={session.id} (total={len(merged)})"
         )
 
     async def mark_started(self, session_id: str) -> StudySession | None:

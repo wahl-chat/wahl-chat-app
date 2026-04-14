@@ -4,6 +4,7 @@ import {
   StudyExplorationWrapper,
   StudyHeader,
   type StudyTopic,
+  TOPIC_INFO,
   TaskContainer,
   TaskIntro,
   getProgress,
@@ -37,6 +38,7 @@ export default function TaskPage() {
     chatId: string;
     condition: 'guided' | 'chat';
     durationSeconds: number;
+    topic: StudyTopic;
   } | null>(null);
 
   const [isStarting, setIsStarting] = useState(false);
@@ -61,6 +63,7 @@ export default function TaskPage() {
             chatId: session.chatId,
             condition: session.currentCondition,
             durationSeconds: session.taskDurationSeconds,
+            topic: session.currentTopic as StudyTopic,
           });
           setPageState('task');
           return;
@@ -98,15 +101,16 @@ export default function TaskPage() {
       return;
     }
 
-    if (response.data) {
+    if (response.data && sessionInfo) {
       setTaskData({
         chatId: response.data.chatId,
         condition: response.data.condition as 'guided' | 'chat',
         durationSeconds: response.data.durationSeconds,
+        topic: sessionInfo.topic,
       });
       setPageState('task');
     }
-  }, [sessionId]);
+  }, [sessionId, sessionInfo]);
 
   const handleEnd = useCallback(async () => {
     const response = await studyApi.endTask(sessionId);
@@ -192,7 +196,10 @@ export default function TaskPage() {
           durationSeconds={taskData.durationSeconds}
           onEnd={handleEnd}
         >
-          <StudyExplorationWrapper chatId={taskData.chatId} />
+          <StudyExplorationWrapper
+            chatId={taskData.chatId}
+            studyTopicLabel={TOPIC_INFO[taskData.topic]?.title}
+          />
         </TaskContainer>
       </div>
     );

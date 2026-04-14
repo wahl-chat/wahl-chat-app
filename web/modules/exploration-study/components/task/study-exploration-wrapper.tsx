@@ -13,6 +13,7 @@ import {
   useExplorationStore,
 } from '@/modules/guided-exploration/store';
 import { useCallback, useEffect, useRef } from 'react';
+import { StudyTopicSidebar } from './study-topic-sidebar';
 
 interface StudyExplorationWrapperProps {
   /** The chat session ID from the study API */
@@ -21,6 +22,12 @@ interface StudyExplorationWrapperProps {
   initialExplorationId?: string | null;
   /** Called when the exploration is ready */
   onReady?: () => void;
+  /**
+   * The label of the participant's assigned study topic
+   * (e.g. "Klimaschutz"). When set, the empty-view topic buttons are
+   * restricted to this topic only.
+   */
+  studyTopicLabel?: string;
 }
 
 /**
@@ -31,6 +38,7 @@ export function StudyExplorationWrapper({
   chatId,
   initialExplorationId,
   onReady,
+  studyTopicLabel,
 }: StudyExplorationWrapperProps) {
   const hasNotifiedReady = useRef(false);
   const explorationIdRef = useRef<string | null>(initialExplorationId ?? null);
@@ -48,7 +56,6 @@ export function StudyExplorationWrapper({
     navigateOptimistically,
     summaries,
     activeConversation,
-    analysisAvailable,
     isThinking,
     thinkingMessage,
     sendMessage,
@@ -56,7 +63,6 @@ export function StudyExplorationWrapper({
     loadExploration,
     submitChoice,
     submitDirectionChoice,
-    requestAnalysis,
     markExplored,
     sessionMessages,
     pendingChoice,
@@ -154,6 +160,9 @@ export function StudyExplorationWrapper({
 
   // EXPLORATION MODE: When tree is loaded
   if (tree && sessionId && explorationIdRef.current) {
+    const studySidebar = (
+      <StudyTopicSidebar tree={tree} summaries={summaries} />
+    );
     return (
       <>
         {error && (
@@ -166,7 +175,6 @@ export function StudyExplorationWrapper({
           breadcrumb={breadcrumb}
           activeConversation={activeConversation}
           summaries={summaries}
-          analysisAvailable={analysisAvailable}
           isThinking={isThinking}
           thinkingMessage={thinkingMessage}
           isStreaming={isStreaming}
@@ -177,13 +185,10 @@ export function StudyExplorationWrapper({
           onSubtopicSelect={handleNavigateToSubtopic}
           onBack={handleBack}
           onSendMessage={(msg) => sendMessage(msg, activeConversation?.leafId)}
-          onRequestAnalysis={() => {
-            if (activeConversation?.leafId) {
-              requestAnalysis(activeConversation.leafId);
-            }
-          }}
           onMarkExplored={markExplored}
           suggestedQuestions={suggestedQuestions}
+          sidebar={studySidebar}
+          hideLeafDoneButton
         />
         <KnowledgeBaseDebug
           sessionId={sessionId}
@@ -211,6 +216,7 @@ export function StudyExplorationWrapper({
         tree={tree}
         explorationPending={explorationPending}
         suggestedQuestions={suggestedQuestions}
+        studyTopicLabel={studyTopicLabel}
         onSendMessageAction={sendChatMessage}
         onSubmitChoiceAction={submitChoice}
         onDirectionChoiceAction={submitDirectionChoice}

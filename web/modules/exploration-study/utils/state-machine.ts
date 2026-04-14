@@ -38,8 +38,6 @@ export function getRouteForState(sessionId: string, state: StudyState): string {
       return `${basePath}/task`;
     case 'questionnaire':
       return `${basePath}/questionnaire`;
-    case 'recall':
-      return `${basePath}/recall`;
     case 'quiz':
       return `${basePath}/quiz`;
     case 'complete':
@@ -72,8 +70,6 @@ export function getStateFromRoute(pathname: string): StudyState | null {
       return 'task';
     case 'questionnaire':
       return 'questionnaire';
-    case 'recall':
-      return 'recall';
     case 'quiz':
       return 'quiz';
     case 'complete':
