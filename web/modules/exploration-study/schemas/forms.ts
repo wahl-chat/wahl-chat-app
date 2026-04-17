@@ -1,0 +1,126 @@
+import { z } from 'zod';
+
+const REQUIRED_SELECT = 'Bitte treffe eine Auswahl.';
+const REQUIRED_RATING = 'Bitte wähle einen Wert aus.';
+
+// ---------------------------------------------------------------------------
+// Consent
+// ---------------------------------------------------------------------------
+
+export const consentSchema = z.object({
+  consentGiven: z.boolean().refine((v) => v === true, {
+    message: 'Bitte stimme zu, um fortzufahren.',
+  }),
+});
+
+export type ConsentFormValues = z.infer<typeof consentSchema>;
+
+// ---------------------------------------------------------------------------
+// Demographics
+// ---------------------------------------------------------------------------
+
+const ageRangeValues = [
+  '18-24',
+  '25-34',
+  '35-44',
+  '45-54',
+  '55-64',
+  '65+',
+] as const;
+
+const genderValues = [
+  'male',
+  'female',
+  'diverse',
+  'prefer_not_to_say',
+] as const;
+
+const educationValues = [
+  'no_degree',
+  'hauptschule',
+  'realschule',
+  'abitur',
+  'bachelor',
+  'master',
+  'doctorate',
+  'other',
+] as const;
+
+export const demographicsSchema = z.object({
+  ageRange: z.enum(ageRangeValues, { error: REQUIRED_SELECT }),
+  gender: z.enum(genderValues, { error: REQUIRED_SELECT }),
+  education: z.enum(educationValues, { error: REQUIRED_SELECT }),
+  politicalInterest: z.number().min(1).max(7),
+});
+
+export type DemographicsFormValues = z.infer<typeof demographicsSchema>;
+
+// ---------------------------------------------------------------------------
+// Literacy (MAILS-Short + news consumption)
+// ---------------------------------------------------------------------------
+
+const newsSourceValues = [
+  'online',
+  'tv',
+  'newspaper',
+  'social_media',
+  'radio',
+] as const;
+
+const mailsRating = z.number({ error: REQUIRED_RATING }).min(0).max(10);
+
+export const literacySchema = z.object({
+  mailsShort: z.object({
+    item1: mailsRating,
+    item2: mailsRating,
+    item3: mailsRating,
+    item4: mailsRating,
+    item5: mailsRating,
+    item6: mailsRating,
+    item7: mailsRating,
+    item8: mailsRating,
+    item9: mailsRating,
+    item10: mailsRating,
+  }),
+  newsConsumption: z
+    .array(z.enum(newsSourceValues))
+    .min(1, { message: 'Bitte wähle mindestens eine Quelle aus.' }),
+});
+
+export type LiteracyFormValues = z.infer<typeof literacySchema>;
+
+// ---------------------------------------------------------------------------
+// UEQ-S
+// ---------------------------------------------------------------------------
+
+const ueqRating = z.number({ error: REQUIRED_RATING }).min(1).max(7);
+
+export const ueqShortSchema = z.object({
+  item1: ueqRating,
+  item2: ueqRating,
+  item3: ueqRating,
+  item4: ueqRating,
+  item5: ueqRating,
+  item6: ueqRating,
+  item7: ueqRating,
+  item8: ueqRating,
+});
+
+export type UeqShortFormValues = z.infer<typeof ueqShortSchema>;
+
+// ---------------------------------------------------------------------------
+// Manipulation checks (1-5 Likert)
+// ---------------------------------------------------------------------------
+
+const manipulationRating = z.number({ error: REQUIRED_RATING }).min(1).max(5);
+
+export const manipulationChecksSchema = z.object({
+  depth: manipulationRating,
+  clarity: manipulationRating,
+  taskClarity: manipulationRating,
+  technical: manipulationRating,
+});
+
+export type ManipulationChecksFormValues = z.infer<
+  typeof manipulationChecksSchema
+>;

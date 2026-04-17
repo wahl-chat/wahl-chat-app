@@ -1,5 +1,4 @@
 'use client';
-import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { LeafSummaryCard } from '@/modules/guided-exploration/components/shared/leaf-summary-card';
 import type {
@@ -9,7 +8,6 @@ import type {
 } from '@/modules/guided-exploration/types';
 import {
   getBranchProgress,
-  getOverallProgress,
   isLeaf,
 } from '@/modules/guided-exploration/utils/tree-helpers';
 
@@ -32,11 +30,6 @@ export function ExplorationSummaryPanel({
   onNavigate,
   className,
 }: ExplorationSummaryPanelProps) {
-  const progress = getOverallProgress(tree);
-  const percentage =
-    progress.total > 0
-      ? Math.round((progress.explored / progress.total) * 100)
-      : 0;
   const currentLeafId = currentPath[currentPath.length - 1];
 
   const getSummary = (nodeId: string): LeafSummary | null => {
@@ -81,16 +74,6 @@ export function ExplorationSummaryPanel({
       className={cn('flex h-full flex-col', className)}
       aria-label="Themenübersicht"
     >
-      <header className="shrink-0 border-b p-4">
-        <h2 className="mb-3 font-semibold">Fortschritt</h2>
-        <div className="space-y-2">
-          <Progress value={percentage} className="h-2" />
-          <p className="text-sm text-muted-foreground">
-            {progress.explored} von {progress.total} erkundet
-          </p>
-        </div>
-      </header>
-
       <div className="flex-1 overflow-y-auto p-4">
         <ul className="space-y-6">
           {tree.root.children.map((child) => renderNode(child))}

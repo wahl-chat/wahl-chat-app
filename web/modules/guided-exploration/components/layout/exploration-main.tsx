@@ -13,7 +13,7 @@ import {
   useExplorationStore,
 } from '@/modules/guided-exploration/store';
 
-import { ExplorationTabBar } from './exploration-tab-bar';
+import { EXPLORATION_PANEL_ID, ExplorationTabBar } from './exploration-tab-bar';
 
 interface ExplorationMainProps {
   /** Session ID from URL (when navigating to /explore/[sessionId]) */
@@ -274,60 +274,70 @@ export function ExplorationMain({
         onTabClose={handleTabClose}
       />
 
-      {/* Loading state when switching to an exploration */}
-      {isExplorationLoading && (
-        <ExplorationLoading message="Erkundung wird geladen..." />
-      )}
+      {/* Tab panel — holds whichever view matches the active tab */}
+      <div
+        id={EXPLORATION_PANEL_ID}
+        role="tabpanel"
+        aria-labelledby={`exploration-tab-${activeTabId}`}
+        className="flex flex-1 flex-col overflow-hidden focus:outline-none"
+      >
+        {/* Loading state when switching to an exploration */}
+        {isExplorationLoading && (
+          <ExplorationLoading message="Erkundung wird geladen..." />
+        )}
 
-      {/* Exploration content */}
-      {isExplorationLoaded ? (
-        <ExplorationFullView
-          tree={tree}
-          view={view}
-          currentPath={currentPath}
-          breadcrumb={breadcrumb}
-          activeConversation={activeConversation}
-          summaries={summaries}
-          analysisAvailable={analysisAvailable}
-          isThinking={isThinking}
-          thinkingMessage={thinkingMessage}
-          isStreaming={isStreaming}
-          streamBuffer={streamBuffer}
-          streamingTargetType={streamingTarget?.type}
-          onNavigate={handleNavigateToNode}
-          onGoToRoot={handleNavigateToRoot}
-          onSubtopicSelect={handleNavigateToNode}
-          onBack={handleBack}
-          onSendMessage={(msg) => sendMessage(msg, activeConversation?.leafId)}
-          onRequestAnalysis={() => {
-            if (activeConversation?.leafId) {
-              requestAnalysis(activeConversation.leafId);
+        {/* Exploration content */}
+        {isExplorationLoaded ? (
+          <ExplorationFullView
+            tree={tree}
+            view={view}
+            currentPath={currentPath}
+            breadcrumb={breadcrumb}
+            activeConversation={activeConversation}
+            summaries={summaries}
+            analysisAvailable={analysisAvailable}
+            isThinking={isThinking}
+            thinkingMessage={thinkingMessage}
+            isStreaming={isStreaming}
+            streamBuffer={streamBuffer}
+            streamingTargetType={streamingTarget?.type}
+            onNavigate={handleNavigateToNode}
+            onGoToRoot={handleNavigateToRoot}
+            onSubtopicSelect={handleNavigateToNode}
+            onBack={handleBack}
+            onSendMessage={(msg) =>
+              sendMessage(msg, activeConversation?.leafId)
             }
-          }}
-          onMarkExplored={markExplored}
-          suggestedQuestions={suggestedQuestions}
-          topicSwitchSuggestion={topicSwitchSuggestion}
-          onAcceptSwitch={acceptTopicSwitch}
-          onDismissSwitch={dismissTopicSwitch}
-        />
-      ) : !isExplorationLoading ? (
-        <ExplorationChatView
-          messages={sessionMessages}
-          pendingChoice={pendingChoice}
-          isThinking={isThinking}
-          thinkingMessage={thinkingMessage}
-          streamBuffer={streamBuffer}
-          isStreaming={isStreaming}
-          streamingTargetType={streamingTarget?.type}
-          tree={tree}
-          explorationPending={explorationPending}
-          suggestedQuestions={suggestedQuestions}
-          onSendMessageAction={sendChatMessage}
-          onSubmitChoiceAction={submitChoice}
-          onDirectionChoiceAction={submitDirectionChoice}
-          onEnterExplorationAction={handleEnterExploration}
-        />
-      ) : null}
+            onRequestAnalysis={() => {
+              if (activeConversation?.leafId) {
+                requestAnalysis(activeConversation.leafId);
+              }
+            }}
+            onMarkExplored={markExplored}
+            suggestedQuestions={suggestedQuestions}
+            topicSwitchSuggestion={topicSwitchSuggestion}
+            onAcceptSwitch={acceptTopicSwitch}
+            onDismissSwitch={dismissTopicSwitch}
+          />
+        ) : !isExplorationLoading ? (
+          <ExplorationChatView
+            messages={sessionMessages}
+            pendingChoice={pendingChoice}
+            isThinking={isThinking}
+            thinkingMessage={thinkingMessage}
+            streamBuffer={streamBuffer}
+            isStreaming={isStreaming}
+            streamingTargetType={streamingTarget?.type}
+            tree={tree}
+            explorationPending={explorationPending}
+            suggestedQuestions={suggestedQuestions}
+            onSendMessageAction={sendChatMessage}
+            onSubmitChoiceAction={submitChoice}
+            onDirectionChoiceAction={submitDirectionChoice}
+            onEnterExplorationAction={handleEnterExploration}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }

@@ -1,9 +1,23 @@
 'use client';
 
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormMessage,
+} from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { FormItemCard } from '@/modules/exploration-study/components/shared/form-item-card';
+import { RatingScale } from '@/modules/exploration-study/components/shared/rating-scale';
 import { SubmitButton } from '@/modules/exploration-study/components/shared/submit-button';
+import {
+  type LiteracyFormValues,
+  literacySchema,
+} from '@/modules/exploration-study/schemas/forms';
 import {
   type LiteracyData,
   MAILS_SHORT_INTRO,
@@ -11,7 +25,9 @@ import {
   type MailsShortData,
   type NewsSource,
 } from '@/modules/exploration-study/types';
-import { useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { CheckCircle2 } from 'lucide-react';
+import { type Control, useForm } from 'react-hook-form';
 
 export interface LiteracyFormProps {
   onSubmit: (data: LiteracyData) => Promise<void>;
@@ -27,71 +43,6 @@ const NEWS_SOURCE_OPTIONS: { value: NewsSource; label: string }[] = [
   { value: 'radio', label: 'Radio' },
 ];
 
-const MAILS_SCALE_VALUES = Array.from({ length: 11 }, (_, i) => i); // 0..10
-
-interface MailsRatingRowProps {
-  itemId: number;
-  itemText: string;
-  value: number | null;
-  onChange: (value: number) => void;
-}
-
-function MailsRatingRow({
-  itemId,
-  itemText,
-  value,
-  onChange,
-}: MailsRatingRowProps) {
-  const groupName = `mails-item-${itemId}`;
-  return (
-    <div className="space-y-3 rounded-lg border p-4">
-      <p className="text-sm font-medium leading-relaxed">
-        <span className="mr-2 text-muted-foreground">{itemId}.</span>
-        {itemText}
-      </p>
-      <div
-        role="radiogroup"
-        aria-label={`Bewertung für Aussage ${itemId}`}
-        className="flex flex-wrap items-center gap-1.5"
-      >
-        {MAILS_SCALE_VALUES.map((v) => {
-          const inputId = `${groupName}-${v}`;
-          const isSelected = value === v;
-          return (
-            <label
-              key={v}
-              htmlFor={inputId}
-              className={cn(
-                'flex size-9 cursor-pointer items-center justify-center rounded-md border text-sm font-medium transition-colors',
-                isSelected
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-input bg-background hover:bg-accent hover:text-accent-foreground',
-              )}
-            >
-              <input
-                id={inputId}
-                type="radio"
-                name={groupName}
-                value={v}
-                checked={isSelected}
-                onChange={() => onChange(v)}
-                className="sr-only"
-              />
-              {v}
-            </label>
-          );
-        })}
-      </div>
-      <div className="flex justify-between text-xs text-muted-foreground">
-        <span>gar nicht ausgeprägt</span>
-        <span>(nahezu) perfekt</span>
-      </div>
-    </div>
-  );
-}
-
-type MailsAnswers = Partial<Record<keyof MailsShortData, number>>;
-
 const MAILS_KEYS: (keyof MailsShortData)[] = [
   'item1',
   'item2',
@@ -105,116 +56,173 @@ const MAILS_KEYS: (keyof MailsShortData)[] = [
   'item10',
 ];
 
+interface MailsRowProps {
+  control: Control<LiteracyFormValues>;
+  fieldKey: keyof MailsShortData;
+  itemId: number;
+  itemText: string;
+}
+
+function MailsRow({ control, fieldKey, itemId, itemText }: MailsRowProps) {
+  const labelId = `mails-item-${itemId}-label`;
+  return (
+    <FormField
+      control={control}
+      name={`mailsShort.${fieldKey}`}
+      render={({ field, fieldState }) => {
+        const answered = field.value !== null && field.value !== undefined;
+        return (
+          <FormItemCard answered={answered}>
+            <p
+              id={labelId}
+              className="pr-8 text-sm font-medium leading-relaxed"
+            >
+              <span className="mr-2 text-muted-foreground">{itemId}.</span>
+              {itemText}
+            </p>
+            <FormControl>
+              <RatingScale
+                id={`mails-item-${itemId}`}
+                size="sm"
+                min={0}
+                max={10}
+                value={field.value ?? null}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                lowAnchor="gar nicht ausgeprägt"
+                highAnchor="(nahezu) perfekt"
+                labelledById={labelId}
+                invalid={!!fieldState.error}
+                className="mt-3"
+              />
+            </FormControl>
+            <FormMessage className="mt-2" />
+          </FormItemCard>
+        );
+      }}
+    />
+  );
+}
+
 export function LiteracyForm({
   onSubmit,
   isSubmitting = false,
   className,
 }: LiteracyFormProps) {
-  const [mailsAnswers, setMailsAnswers] = useState<MailsAnswers>({});
-  const [newsConsumption, setNewsConsumption] = useState<NewsSource[]>([]);
+  const form = useForm<LiteracyFormValues>({
+    resolver: zodResolver(literacySchema),
+    defaultValues: {
+      mailsShort: {},
+      newsConsumption: [],
+    },
+  });
 
-  const isMailsComplete = MAILS_KEYS.every(
-    (key) => mailsAnswers[key] !== undefined,
-  );
-
-  const isValid = isMailsComplete && newsConsumption.length > 0;
-
-  const handleMailsChange = (key: keyof MailsShortData, value: number) => {
-    setMailsAnswers((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleToggleNewsSource = (source: NewsSource) => {
-    setNewsConsumption((prev) =>
-      prev.includes(source)
-        ? prev.filter((s) => s !== source)
-        : [...prev, source],
-    );
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isValid) return;
-
-    const mailsShort = MAILS_KEYS.reduce((acc, key) => {
-      acc[key] = mailsAnswers[key] as number;
-      return acc;
-    }, {} as MailsShortData);
-
-    await onSubmit({
-      mailsShort,
-      newsConsumption,
-    });
-  };
+  const handleSubmit = form.handleSubmit(async (values) => {
+    await onSubmit(values);
+  });
 
   return (
-    <form onSubmit={handleSubmit} className={cn('space-y-8', className)}>
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold">Digitale Kompetenz</h1>
-        <p className="text-sm text-muted-foreground">
-          Bitte beantworte die folgenden Fragen zu deinen Fähigkeiten im Umgang
-          mit künstlicher Intelligenz und zu deinem Nachrichtenkonsum.
-        </p>
-      </div>
-
-      <section className="space-y-4">
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold">
-            Fähigkeiten im Umgang mit KI
-          </h2>
-          <p className="whitespace-pre-line text-sm text-muted-foreground">
-            {MAILS_SHORT_INTRO}
+    <Form {...form}>
+      <form onSubmit={handleSubmit} className={cn('space-y-8', className)}>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold">Digitale Kompetenz</h1>
+          <p className="text-sm text-muted-foreground">
+            Bitte beantworte die folgenden Fragen zu deinen Fähigkeiten im
+            Umgang mit künstlicher Intelligenz und zu deinem Nachrichtenkonsum.
           </p>
         </div>
-        <div className="space-y-3">
-          {MAILS_SHORT_ITEMS.map((item, index) => {
-            const key = MAILS_KEYS[index];
-            return (
-              <MailsRatingRow
+
+        <section className="space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold">
+              Fähigkeiten im Umgang mit KI
+            </h2>
+            <p className="whitespace-pre-line text-sm text-muted-foreground">
+              {MAILS_SHORT_INTRO}
+            </p>
+          </div>
+          <div className="space-y-3">
+            {MAILS_SHORT_ITEMS.map((item, index) => (
+              <MailsRow
                 key={item.id}
+                control={form.control}
+                fieldKey={MAILS_KEYS[index]}
                 itemId={item.id}
                 itemText={item.text}
-                value={mailsAnswers[key] ?? null}
-                onChange={(value) => handleMailsChange(key, value)}
               />
+            ))}
+          </div>
+        </section>
+
+        <FormField
+          control={form.control}
+          name="newsConsumption"
+          render={({ field, fieldState }) => {
+            const value = field.value ?? [];
+            const answered = value.length > 0;
+            const toggle = (source: NewsSource) => {
+              if (value.includes(source)) {
+                field.onChange(value.filter((s) => s !== source));
+              } else {
+                field.onChange([...value, source]);
+              }
+            };
+            return (
+              <FormItem>
+                <fieldset className="space-y-3">
+                  <legend className="inline-flex items-center gap-1.5 text-sm font-medium">
+                    Über welche Quellen informierst du dich über politische
+                    Themen?
+                    {answered && (
+                      <CheckCircle2
+                        className="size-4 text-primary"
+                        aria-label="ausgefüllt"
+                      />
+                    )}
+                  </legend>
+                  <FormDescription>Mehrfachauswahl möglich</FormDescription>
+                  <div
+                    role="group"
+                    aria-invalid={!!fieldState.error}
+                    className="space-y-2"
+                  >
+                    {NEWS_SOURCE_OPTIONS.map((option) => {
+                      const checked = value.includes(option.value);
+                      const checkboxId = `news-source-${option.value}`;
+                      return (
+                        <div
+                          key={option.value}
+                          className={cn(
+                            'flex items-center gap-3 rounded-lg border p-3 transition-colors',
+                            checked
+                              ? 'border-primary/40 bg-primary/5'
+                              : 'border-border bg-card',
+                          )}
+                        >
+                          <Checkbox
+                            id={checkboxId}
+                            checked={checked}
+                            onCheckedChange={() => toggle(option.value)}
+                          />
+                          <Label
+                            htmlFor={checkboxId}
+                            className="flex-1 cursor-pointer text-sm font-normal"
+                          >
+                            {option.label}
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <FormMessage />
+                </fieldset>
+              </FormItem>
             );
-          })}
-        </div>
-      </section>
+          }}
+        />
 
-      <section className="space-y-3">
-        <Label>
-          Über welche Quellen informierst du dich über politische Themen?
-        </Label>
-        <p className="text-sm text-muted-foreground">Mehrfachauswahl möglich</p>
-        <div className="space-y-2">
-          {NEWS_SOURCE_OPTIONS.map((option) => (
-            <div
-              key={option.value}
-              className="flex items-center gap-3 rounded-lg border p-3"
-            >
-              <Checkbox
-                id={`news-source-${option.value}`}
-                checked={newsConsumption.includes(option.value)}
-                onCheckedChange={() => handleToggleNewsSource(option.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleToggleNewsSource(option.value);
-                  }
-                }}
-              />
-              <Label
-                htmlFor={`news-source-${option.value}`}
-                className="flex-1 cursor-pointer text-sm font-normal"
-              >
-                {option.label}
-              </Label>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <SubmitButton isSubmitting={isSubmitting} disabled={!isValid} />
-    </form>
+        <SubmitButton isSubmitting={isSubmitting} />
+      </form>
+    </Form>
   );
 }

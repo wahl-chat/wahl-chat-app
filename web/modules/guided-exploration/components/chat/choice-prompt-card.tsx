@@ -30,10 +30,10 @@ export function ChoicePromptCard({
   isLoading,
 }: ChoicePromptCardProps) {
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
+    <fieldset className="space-y-3">
+      <legend className="text-sm text-muted-foreground">
         Wie möchtest du das Thema angehen?
-      </p>
+      </legend>
       <div className="grid gap-2 sm:grid-cols-2">
         {choice.options.map((option) => {
           const config = CHOICE_CONFIG[option.id as keyof typeof CHOICE_CONFIG];
@@ -48,7 +48,7 @@ export function ChoicePromptCard({
               onClick={() => onSubmit(option.id)}
               disabled={isLoading}
               className={cn(
-                'flex items-start gap-3 rounded-lg border p-4 text-left transition-all disabled:opacity-50',
+                'flex items-start gap-3 rounded-lg border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50',
                 accent,
               )}
             >
@@ -57,6 +57,7 @@ export function ChoicePromptCard({
                   'flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted',
                   iconColor,
                 )}
+                aria-hidden="true"
               >
                 <Icon className="size-5" />
               </div>
@@ -70,6 +71,6 @@ export function ChoicePromptCard({
           );
         })}
       </div>
-    </div>
+    </fieldset>
   );
 }

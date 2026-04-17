@@ -118,24 +118,19 @@ export function TopicDirectionsCard({
       <div className="space-y-2">
         {directions.directions.map((direction) => {
           const isChecked = selected.has(direction.id);
+          const inputId = `direction-${direction.id}`;
           return (
-            <div
+            <label
               key={direction.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => !isLoading && toggleDirection(direction.id)}
-              onKeyDown={(e) => {
-                if (e.key === ' ' || e.key === 'Enter') {
-                  e.preventDefault();
-                  if (!isLoading) toggleDirection(direction.id);
-                }
-              }}
+              htmlFor={inputId}
               className={cn(
-                'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted',
+                'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring',
                 isChecked ? 'border-primary/30 bg-primary/5' : 'border-input',
+                isLoading && 'pointer-events-none opacity-60',
               )}
             >
               <Checkbox
+                id={inputId}
                 checked={isChecked}
                 onCheckedChange={() => toggleDirection(direction.id)}
                 disabled={isLoading}
@@ -155,36 +150,33 @@ export function TopicDirectionsCard({
                   </p>
                 )}
               </div>
-            </div>
+            </label>
           );
         })}
 
         {/* Select all option */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => !isLoading && toggleAll()}
-          onKeyDown={(e) => {
-            if (e.key === ' ' || e.key === 'Enter') {
-              e.preventDefault();
-              if (!isLoading) toggleAll();
-            }
-          }}
+        <label
+          htmlFor="direction-select-all"
           className={cn(
-            'flex cursor-pointer items-center gap-3 rounded-lg border border-dashed p-3 transition-colors hover:bg-muted',
+            'flex cursor-pointer items-center gap-3 rounded-lg border border-dashed p-3 transition-colors hover:bg-muted has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring',
             allSelected ? 'border-primary/30 bg-primary/5' : 'border-input',
+            isLoading && 'pointer-events-none opacity-60',
           )}
         >
           <Checkbox
+            id="direction-select-all"
             checked={allSelected}
             onCheckedChange={toggleAll}
             disabled={isLoading}
           />
           <div className="flex items-center gap-1.5">
-            <Compass className="size-3.5 text-muted-foreground" />
+            <Compass
+              className="size-3.5 text-muted-foreground"
+              aria-hidden="true"
+            />
             <span className="text-sm font-medium">Alle Aspekte erkunden</span>
           </div>
-        </div>
+        </label>
       </div>
 
       <Button

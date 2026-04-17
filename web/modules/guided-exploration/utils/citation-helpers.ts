@@ -30,7 +30,10 @@ export function useCitationHandlers(citations: Citation[]) {
     (id: string): string | null => {
       const citation = citations.find((c) => c.id === id);
       if (!citation) return null;
-      return `${citation.party} - Seite: ${citation.page}`;
+      if (citation.page) {
+        return `${citation.party} – ${citation.document}, S. ${citation.page}`;
+      }
+      return `${citation.party} – ${citation.document}`;
     },
     [citations],
   );

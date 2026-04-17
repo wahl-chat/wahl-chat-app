@@ -46,20 +46,20 @@ export function BranchContent({
       </div>
 
       {/* Children list */}
-      <div
-        className="flex flex-col gap-4"
-        role="list"
+      <ul
+        className="flex list-none flex-col gap-4 pl-0"
         aria-label={`Unterthemen von ${node.name}`}
       >
         {node.children.map((child) => (
-          <SubtopicItem
-            key={child.id}
-            node={child}
-            summary={getSummary(child.id)}
-            onClick={() => onChildSelect(child.id)}
-          />
+          <li key={child.id}>
+            <SubtopicItem
+              node={child}
+              summary={getSummary(child.id)}
+              onClick={() => onChildSelect(child.id)}
+            />
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

@@ -347,3 +347,39 @@ class ErrorResponse(BaseModel):
 
     error: str
     detail: str | None = None
+
+
+# =============================================================================
+# Party claim source pages
+# =============================================================================
+
+
+class PartyClaimDto(BaseModel):
+    """A single claim on a party source page."""
+
+    id: str
+    content: str
+
+
+class PartySubtopicDto(BaseModel):
+    """A subtopic grouping within a topic."""
+
+    slug: str
+    label: str
+    claims: list[PartyClaimDto]
+
+
+class PartyTopicDto(BaseModel):
+    """A topic grouping for a party's claims."""
+
+    slug: str
+    label: str
+    subtopics: list[PartySubtopicDto]
+
+
+class PartyClaimsResponse(BaseModel):
+    """Full claim listing for one party, used by the study source page."""
+
+    party_id: str
+    party_name: str
+    topics: list[PartyTopicDto]

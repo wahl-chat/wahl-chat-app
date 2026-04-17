@@ -147,6 +147,7 @@ class StudyPositionsRAG:
                     metadata={
                         "topic": pos["topic"],
                         "position_id": pos["id"],
+                        "url": f"/exploration-study/sources/{pos['party_id']}#{pos['id']}",
                     },
                 )
             )

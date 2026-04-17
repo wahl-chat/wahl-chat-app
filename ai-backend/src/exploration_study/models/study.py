@@ -16,8 +16,40 @@ class StudyStatus(str, Enum):
 
 # Hardcoded study configuration
 STUDY_TOPICS = ["klimaschutz", "soziale-gerechtigkeit"]
+STUDY_TOPIC_LABELS: dict[str, str] = {
+    "klimaschutz": "Klimaschutz",
+    "soziale-gerechtigkeit": "Soziale Gerechtigkeit",
+}
 STUDY_TASK_DURATION_SECONDS = 600  # 10 minutes
 STUDY_PARTIES = ["Merkur", "Venus", "Mars", "Jupiter", "Saturn"]
+
+# Subtopic catalog for claim grouping on the source pages. Slugs match the
+# `subtopic` field in `data/study-fake-parties/positions/*.json`. The subtopic
+# is metadata only — it is NOT embedded by scripts/embed_study_positions.py
+# (which only vectorizes `content`). Order here defines display order.
+STUDY_SUBTOPICS: dict[str, list[tuple[str, str]]] = {
+    "klimaschutz": [
+        ("ziele-und-governance", "Klimaziele & Governance"),
+        ("energieerzeugung", "Stromerzeugung & Energiewende"),
+        ("co2-preis", "CO2-Preis & Emissionshandel"),
+        ("verkehr", "Verkehr & Mobilität"),
+        ("industrie", "Industrie & Transformation"),
+        ("gebaeude-und-waerme", "Gebäude & Wärme"),
+        ("landwirtschaft-und-natur", "Landwirtschaft & Naturschutz"),
+        ("subventionen-und-kreislauf", "Subventionen & Kreislaufwirtschaft"),
+    ],
+    "soziale-gerechtigkeit": [
+        ("steuern-und-abgaben", "Steuern & Abgaben"),
+        ("arbeit-und-loehne", "Arbeit & Löhne"),
+        ("rente", "Rente & Altersvorsorge"),
+        ("buergergeld", "Bürgergeld & Grundsicherung"),
+        ("wohnen", "Wohnen & Bauen"),
+        ("gesundheit-und-pflege", "Gesundheit & Pflege"),
+        ("bildung-und-familie", "Bildung & Familie"),
+        ("migration-und-integration", "Migration & Integration"),
+        ("staat-und-wirtschaft", "Staat, Wirtschaft & Sicherheit"),
+    ],
+}
 
 
 class StudyConfig(BaseModel):

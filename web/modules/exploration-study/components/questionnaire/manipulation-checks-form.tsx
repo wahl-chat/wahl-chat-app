@@ -1,13 +1,26 @@
 'use client';
 
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from '@/components/ui/form';
 import { cn } from '@/lib/utils';
+import { FormItemCard } from '@/modules/exploration-study/components/shared/form-item-card';
 import { SemanticDifferential } from '@/modules/exploration-study/components/shared/semantic-differential';
 import { SubmitButton } from '@/modules/exploration-study/components/shared/submit-button';
+import {
+  type ManipulationChecksFormValues,
+  manipulationChecksSchema,
+} from '@/modules/exploration-study/schemas/forms';
 import {
   MANIPULATION_CHECK_ITEMS,
   type ManipulationChecksData,
 } from '@/modules/exploration-study/types';
-import { useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 
 export interface ManipulationChecksFormProps {
   onSubmit: (data: ManipulationChecksData) => void;
@@ -20,52 +33,68 @@ export function ManipulationChecksForm({
   isSubmitting = false,
   className,
 }: ManipulationChecksFormProps) {
-  const [responses, setResponses] = useState<
-    Partial<Record<keyof ManipulationChecksData, number>>
-  >({});
+  const form = useForm<ManipulationChecksFormValues>({
+    resolver: zodResolver(manipulationChecksSchema),
+    defaultValues: {},
+  });
 
-  const isComplete = MANIPULATION_CHECK_ITEMS.every(
-    (item) => responses[item.key] !== undefined,
-  );
-
-  const handleChange = (key: keyof ManipulationChecksData, value: number) => {
-    setResponses((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isComplete) {
-      onSubmit(responses as ManipulationChecksData);
-    }
-  };
+  const handleSubmit = form.handleSubmit((values) => {
+    onSubmit(values);
+  });
 
   return (
-    <form onSubmit={handleSubmit} className={cn('space-y-6', className)}>
-      <div className="space-y-2">
-        <h2 className="text-xl font-semibold">Allgemeine Einschätzung</h2>
-        <p className="text-sm text-muted-foreground">
-          Bitte bewerte die folgenden Aussagen.
-        </p>
-      </div>
+    <Form {...form}>
+      <form onSubmit={handleSubmit} className={cn('space-y-6', className)}>
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold">Allgemeine Einschätzung</h2>
+          <p className="text-sm text-muted-foreground">
+            Bitte bewerte die folgenden Aussagen.
+          </p>
+        </div>
 
-      <div className="space-y-6">
-        {MANIPULATION_CHECK_ITEMS.map((item) => (
-          <div key={item.key} className="space-y-2">
-            <p className="text-sm font-medium">{item.label}</p>
-            <SemanticDifferential
-              id={`manipulation-check-${item.key}`}
-              leftAnchor="Stimme nicht zu"
-              rightAnchor="Stimme zu"
-              value={responses[item.key] ?? null}
-              onChange={(value) => handleChange(item.key, value)}
-              min={1}
-              max={5}
-            />
-          </div>
-        ))}
-      </div>
+        <div className="space-y-3">
+          {MANIPULATION_CHECK_ITEMS.map((item) => {
+            const labelId = `manipulation-check-${item.key}-label`;
+            return (
+              <FormField
+                key={item.key}
+                control={form.control}
+                name={item.key}
+                render={({ field, fieldState }) => {
+                  const answered =
+                    field.value !== null && field.value !== undefined;
+                  return (
+                    <FormItemCard answered={answered}>
+                      <FormItem className="space-y-3">
+                        <p id={labelId} className="pr-8 text-sm font-medium">
+                          {item.label}
+                        </p>
+                        <FormControl>
+                          <SemanticDifferential
+                            id={`manipulation-check-${item.key}`}
+                            labelledById={labelId}
+                            leftAnchor="Stimme nicht zu"
+                            rightAnchor="Stimme zu"
+                            min={1}
+                            max={5}
+                            value={field.value ?? null}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            invalid={!!fieldState.error}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    </FormItemCard>
+                  );
+                }}
+              />
+            );
+          })}
+        </div>
 
-      <SubmitButton isSubmitting={isSubmitting} disabled={!isComplete} />
-    </form>
+        <SubmitButton isSubmitting={isSubmitting} />
+      </form>
+    </Form>
   );
 }

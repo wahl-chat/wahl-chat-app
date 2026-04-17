@@ -1,8 +1,10 @@
 """Participant API routes for exploration study."""
 
+import json
 import logging
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 
 from aiohttp import web
 
@@ -15,6 +17,10 @@ from src.exploration_study.api.dtos import (
     ErrorResponse,
     FeedbackRequest,
     LiteracyRequest,
+    PartyClaimDto,
+    PartyClaimsResponse,
+    PartySubtopicDto,
+    PartyTopicDto,
     QuestionnaireRequest,
     QuizResultResponse,
     QuizStatusResponse,
@@ -22,6 +28,14 @@ from src.exploration_study.api.dtos import (
     SessionStateResponse,
     StartTaskResponse,
     StateTransitionResponse,
+)
+from src.exploration_study.models.study import (
+    STUDY_PARTIES,
+    STUDY_SUBTOPICS,
+    STUDY_TOPIC_LABELS,
+    STUDY_TOPICS,
+    Study,
+    StudyConfig,
 )
 from src.exploration_study.models.quiz import (
     QuizAnswer,
@@ -38,7 +52,6 @@ from src.exploration_study.models.session import (
     get_condition_for_group,
 )
 from src.exploration_study.models.state import StudyState
-from src.exploration_study.models.study import Study, StudyConfig
 from src.exploration_study.services.counterbalancer import get_counterbalancer
 from src.exploration_study.services.session_repository import get_session_repository
 from src.exploration_study.services.study_repository import get_study_repository
@@ -52,6 +65,28 @@ GE_ROUTE_PREFIX = "/api/v1/guided-exploration"
 DEFAULT_STUDY_ID = os.getenv("EXPLORATION_STUDY_DEFAULT_ID", "").strip()
 DEFAULT_STUDY_NAME = "Exploration Study (self-serve)"
 DEFAULT_STUDY_CONTEXT_ID = "exploration-study"
+
+# Positions JSON files (source of truth for the source pages).
+_POSITIONS_DIR = (
+    Path(__file__).resolve().parents[3]
+    / "data"
+    / "study-fake-parties"
+    / "positions"
+)
+_positions_cache: dict[str, list[dict]] = {}
+
+
+def _load_party_positions(party_id: str) -> list[dict]:
+    """Load the raw claims JSON for a single party, cached per process."""
+    cached = _positions_cache.get(party_id)
+    if cached is not None:
+        return cached
+    path = _POSITIONS_DIR / f"{party_id}.json"
+    if not path.exists():
+        raise FileNotFoundError(str(path))
+    data = json.loads(path.read_text(encoding="utf-8"))
+    _positions_cache[party_id] = data
+    return data
 
 # Memoized id of the study used for self-serve session creation.
 _default_study_cache: str | None = None
@@ -734,6 +769,115 @@ async def submit_quiz(request: web.Request) -> web.Response:
     return web.json_response(response.model_dump(mode="json"))
 
 
+async def get_party_claims(request: web.Request) -> web.Response:
+    """
+    GET /api/v1/exploration-study/parties/{party_id}/claims
+
+    Return all claims for a party, grouped by topic and subtopic, in the
+    display order defined by ``STUDY_SUBTOPICS``. Used by the study source
+    pages that citations deep-link into.
+    """
+    party_id = request.match_info["party_id"].strip().lower()
+
+    party_name = next(
+        (p for p in STUDY_PARTIES if p.lower() == party_id),
+        None,
+    )
+    if party_name is None:
+        return web.json_response(
+            ErrorResponse(
+                error="Unknown party",
+                detail=f"party_id must be one of {[p.lower() for p in STUDY_PARTIES]}",
+            ).model_dump(),
+            status=404,
+        )
+
+    try:
+        positions = _load_party_positions(party_id)
+    except FileNotFoundError:
+        logger.error(f"Positions file missing for party {party_id}")
+        return web.json_response(
+            ErrorResponse(error="Party positions not found").model_dump(),
+            status=404,
+        )
+
+    # Index claims by (topic, subtopic) in source order so claims on the page
+    # appear in the same sequence as in the JSON.
+    by_topic_subtopic: dict[str, dict[str, list[dict]]] = {
+        topic: {slug: [] for slug, _ in STUDY_SUBTOPICS.get(topic, [])}
+        for topic in STUDY_TOPICS
+    }
+    for claim in positions:
+        topic = claim.get("topic")
+        subtopic = claim.get("subtopic")
+        if topic not in by_topic_subtopic:
+            continue
+        if subtopic not in by_topic_subtopic[topic]:
+            # Unexpected subtopic — log but don't drop the claim; place it
+            # under a synthetic bucket that will be rendered at the end.
+            logger.warning(
+                f"Claim {claim.get('id')} has unknown subtopic '{subtopic}' "
+                f"for topic '{topic}'"
+            )
+            by_topic_subtopic[topic].setdefault("_uncategorized", []).append(claim)
+            continue
+        by_topic_subtopic[topic][subtopic].append(claim)
+
+    topics_out: list[PartyTopicDto] = []
+    for topic in STUDY_TOPICS:
+        topic_label = STUDY_TOPIC_LABELS.get(topic, topic)
+        subtopic_catalog = STUDY_SUBTOPICS.get(topic, [])
+        subtopics_out: list[PartySubtopicDto] = []
+        seen_slugs: set[str] = set()
+
+        for slug, label in subtopic_catalog:
+            claims = by_topic_subtopic[topic].get(slug, [])
+            seen_slugs.add(slug)
+            if not claims:
+                continue
+            subtopics_out.append(
+                PartySubtopicDto(
+                    slug=slug,
+                    label=label,
+                    claims=[
+                        PartyClaimDto(id=c["id"], content=c["content"])
+                        for c in claims
+                    ],
+                )
+            )
+
+        # Any stray buckets (e.g. "_uncategorized") rendered last.
+        for slug, claims in by_topic_subtopic[topic].items():
+            if slug in seen_slugs or not claims:
+                continue
+            subtopics_out.append(
+                PartySubtopicDto(
+                    slug=slug,
+                    label="Weitere",
+                    claims=[
+                        PartyClaimDto(id=c["id"], content=c["content"])
+                        for c in claims
+                    ],
+                )
+            )
+
+        if subtopics_out:
+            topics_out.append(
+                PartyTopicDto(
+                    slug=topic,
+                    label=topic_label,
+                    subtopics=subtopics_out,
+                )
+            )
+
+    response = PartyClaimsResponse(
+        party_id=party_id,
+        party_name=party_name,
+        topics=topics_out,
+    )
+    return web.json_response(response.model_dump(mode="json"))
+
+
 async def submit_feedback(request: web.Request) -> web.Response:
     """
     POST /api/exploration-study/sessions/{session_id}/feedback
@@ -798,6 +942,7 @@ def setup_exploration_study_routes(app: web.Application) -> None:
         ("GET", f"{ROUTE_PREFIX}/sessions/{{session_id}}/quiz", get_quiz),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/quiz", submit_quiz),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/feedback", submit_feedback),
+        ("GET", f"{ROUTE_PREFIX}/parties/{{party_id}}/claims", get_party_claims),
     ]
 
     for method, path, handler in participant_routes:

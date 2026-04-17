@@ -1,17 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { useLeafActions } from '@/modules/guided-exploration/components';
 import { LeafSummaryCard } from '@/modules/guided-exploration/components/shared/leaf-summary-card';
 import type {
   ExplorationTree,
   LeafSummary,
 } from '@/modules/guided-exploration/types';
-import {
-  getAllLeaves,
-  getOverallProgress,
-} from '@/modules/guided-exploration/utils/tree-helpers';
+import { getAllLeaves } from '@/modules/guided-exploration/utils/tree-helpers';
 import { Check } from 'lucide-react';
 
 interface StudyTopicSidebarProps {
@@ -30,12 +26,6 @@ interface StudyTopicSidebarProps {
 export function StudyTopicSidebar({ tree, summaries }: StudyTopicSidebarProps) {
   const { activeLeafNode, closeCurrentLeaf } = useLeafActions();
 
-  const progress = getOverallProgress(tree);
-  const percentage =
-    progress.total > 0
-      ? Math.round((progress.explored / progress.total) * 100)
-      : 0;
-
   const exploredLeaves = getAllLeaves(tree).filter(
     (leaf) => leaf.status === 'explored',
   );
@@ -46,10 +36,7 @@ export function StudyTopicSidebar({ tree, summaries }: StudyTopicSidebarProps) {
   };
 
   return (
-    <aside
-      className="flex h-full flex-col"
-      aria-label="Aktuelles Thema und Fortschritt"
-    >
+    <aside className="flex h-full flex-col" aria-label="Aktuelles Thema">
       {/* Current topic header */}
       <header className="shrink-0 border-b p-4">
         {activeLeafNode ? (
@@ -85,29 +72,6 @@ export function StudyTopicSidebar({ tree, summaries }: StudyTopicSidebarProps) {
           </p>
         )}
       </header>
-
-      {/* Progress */}
-      <section
-        className="shrink-0 border-b p-4"
-        aria-labelledby="study-sidebar-progress-label"
-      >
-        <div className="mb-2 flex items-center justify-between">
-          <h3
-            id="study-sidebar-progress-label"
-            className="text-sm font-semibold"
-          >
-            Fortschritt
-          </h3>
-          <span className="text-xs text-muted-foreground">
-            {progress.explored} / {progress.total}
-          </span>
-        </div>
-        <Progress
-          value={percentage}
-          className="h-2"
-          aria-label={`Fortschritt: ${progress.explored} von ${progress.total} Themen besprochen`}
-        />
-      </section>
 
       {/* Already handled */}
       <section

@@ -39,7 +39,7 @@ from src.guided_exploration.models import (
     ThinkingEvent,
     TopicTreeEvent,
 )
-from src.guided_exploration.models.content import Citation
+from src.guided_exploration.services.citation_utils import create_citation_from_chunk as create_chunk_citation
 from src.guided_exploration.models.position import Position, PartyPositions
 from src.guided_exploration.models.errors import InsufficientChunksError
 from src.guided_exploration.models.exploration import RetrievedChunk
@@ -451,14 +451,7 @@ class Orchestrator:
         """
         positions: list[Position] = []
         for idx, chunk in enumerate(chunks):
-            citation = Citation(
-                id=chunk.chunk_id,
-                party=party_info.name,
-                document=chunk.source_document,
-                section=chunk.source_section,
-                page=chunk.source_page,
-                source_document=chunk.source_document,
-            )
+            citation = create_chunk_citation(chunk, party_info.name)
             positions.append(
                 Position(
                     id=chunk.chunk_id,

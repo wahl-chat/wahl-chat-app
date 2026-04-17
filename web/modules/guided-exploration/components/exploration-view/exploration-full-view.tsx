@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { ConversationInput } from '@/modules/guided-exploration/components/conversation';
 import { ExplorationBreadcrumb } from '@/modules/guided-exploration/components/navigation/breadcrumb';
@@ -12,7 +13,10 @@ import type {
   LeafSummary,
   StreamTargetType,
 } from '@/modules/guided-exploration/types';
-import { findNode } from '@/modules/guided-exploration/utils/tree-helpers';
+import {
+  findNode,
+  getOverallProgress,
+} from '@/modules/guided-exploration/utils/tree-helpers';
 import { Check } from 'lucide-react';
 import {
   type ReactNode,
@@ -211,20 +215,39 @@ export function ExplorationFullView({
 
   const sidebarNode = sidebar ?? defaultSidebarNode;
 
+  const overallProgress = getOverallProgress(tree);
+  const progressPercentage =
+    overallProgress.total > 0
+      ? Math.round((overallProgress.explored / overallProgress.total) * 100)
+      : 0;
+
   return (
     <LeafActionsContext.Provider value={leafActions}>
-      <div className={cn('flex flex-1 overflow-hidden', className)}>
-        {/* Main Content */}
-        <main className="flex flex-1 flex-col overflow-hidden">
-          {/* Breadcrumb header */}
-          <header className="shrink-0 border-b bg-background px-4 py-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <ExplorationBreadcrumb
-                  items={breadcrumb}
-                  onNavigate={handleBreadcrumbNavigate}
-                />
-              </div>
+      <div className={cn('flex flex-1 flex-col overflow-hidden', className)}>
+        {/* Full-width navigation bar */}
+        <header className="shrink-0 border-b bg-background px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-2">
+              <ExplorationBreadcrumb
+                items={breadcrumb}
+                onNavigate={handleBreadcrumbNavigate}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              {overallProgress.total > 0 && (
+                <div
+                  className="hidden items-center gap-2 sm:flex"
+                  aria-label={`Fortschritt: ${overallProgress.explored} von ${overallProgress.total} Themen erkundet`}
+                >
+                  <Progress
+                    value={progressPercentage}
+                    className="h-2 w-32 lg:w-48"
+                  />
+                  <span className="whitespace-nowrap text-xs text-muted-foreground">
+                    {overallProgress.explored}/{overallProgress.total}
+                  </span>
+                </div>
+              )}
               {/* Mobile summary sheet trigger */}
               <MobileSummarySheet
                 tree={tree}
@@ -235,99 +258,113 @@ export function ExplorationFullView({
                 {sidebar}
               </MobileSummarySheet>
             </div>
-          </header>
-
-          {/* Context banner — always visible */}
-          <div className="shrink-0 border-b px-4 py-2">
-            <ExplorationContextBanner tree={tree} />
           </div>
+        </header>
 
-          {/* Content based on view - with gradient mask */}
-          <div
-            ref={scrollContainerRef}
-            className="flex-1 overflow-auto"
-            style={{
-              maskImage:
-                'linear-gradient(to bottom, transparent, black 2rem, black calc(100% - 2rem), transparent)',
-              WebkitMaskImage:
-                'linear-gradient(to bottom, transparent, black 2rem, black calc(100% - 2rem), transparent)',
-            }}
-          >
-            <div className="mx-auto w-full max-w-screen-sm p-4 md:p-8">
-              {view === 'root' && (
-                <RootContent tree={tree} onTopicSelect={onNavigate} />
-              )}
-              {view === 'branch' && currentBranchNode && (
-                <BranchContent
-                  node={currentBranchNode}
-                  summaries={summaries}
-                  onChildSelect={(nodeId) => onSubtopicSelect(nodeId)}
-                />
-              )}
-              {view === 'leaf' && (
-                <LeafContent
-                  conversation={activeConversation}
-                  isThinking={isThinking}
-                  thinkingMessage={thinkingMessage}
-                  isStreaming={isStreaming}
-                  streamBuffer={streamBuffer}
-                  streamingTargetType={streamingTargetType}
-                  topicSwitchSuggestion={topicSwitchSuggestion}
-                  onAcceptSwitch={
-                    onAcceptSwitch && topicSwitchSuggestion
-                      ? () => onAcceptSwitch(topicSwitchSuggestion.targetNodeId)
-                      : undefined
-                  }
-                  onDismissSwitch={onDismissSwitch}
-                />
-              )}
+        {/* Sidebar + content row */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Main Content */}
+          <main className="flex flex-1 flex-col overflow-hidden">
+            {/* Context banner — always visible */}
+            <div className="shrink-0 border-b px-4 py-2">
+              <ExplorationContextBanner tree={tree} />
             </div>
-          </div>
 
-          {/* Input and Done button for leaf view */}
-          {view === 'leaf' && (
-            <footer className="shrink-0 border-t bg-background">
-              <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-4 py-3">
-                {(!hideLeafDoneButton ||
-                  (analysisAvailable && onRequestAnalysis)) && (
-                  <div className="flex w-full items-center justify-between">
-                    <div>
-                      {/* Analysis button */}
-                      {analysisAvailable && onRequestAnalysis && (
-                        <div>
-                          <Button variant="outline" onClick={onRequestAnalysis}>
-                            Analyse anfordern
-                          </Button>
-                        </div>
+            {/* Content based on view - with gradient mask */}
+            <div
+              ref={scrollContainerRef}
+              className="flex-1 overflow-auto"
+              style={{
+                maskImage:
+                  'linear-gradient(to bottom, transparent, black 2rem, black calc(100% - 2rem), transparent)',
+                WebkitMaskImage:
+                  'linear-gradient(to bottom, transparent, black 2rem, black calc(100% - 2rem), transparent)',
+              }}
+            >
+              <div className="mx-auto w-full max-w-screen-sm p-4 md:p-8">
+                {view === 'root' && (
+                  <RootContent tree={tree} onTopicSelect={onNavigate} />
+                )}
+                {view === 'branch' && currentBranchNode && (
+                  <BranchContent
+                    node={currentBranchNode}
+                    summaries={summaries}
+                    onChildSelect={(nodeId) => onSubtopicSelect(nodeId)}
+                  />
+                )}
+                {view === 'leaf' && (
+                  <LeafContent
+                    conversation={activeConversation}
+                    isThinking={isThinking}
+                    thinkingMessage={thinkingMessage}
+                    isStreaming={isStreaming}
+                    streamBuffer={streamBuffer}
+                    streamingTargetType={streamingTargetType}
+                    topicSwitchSuggestion={topicSwitchSuggestion}
+                    onAcceptSwitch={
+                      onAcceptSwitch && topicSwitchSuggestion
+                        ? () =>
+                            onAcceptSwitch(topicSwitchSuggestion.targetNodeId)
+                        : undefined
+                    }
+                    onDismissSwitch={onDismissSwitch}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Input and Done button for leaf view */}
+            {view === 'leaf' && (
+              <footer className="shrink-0 border-t bg-background">
+                <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-4 py-3">
+                  {(!hideLeafDoneButton ||
+                    (analysisAvailable && onRequestAnalysis)) && (
+                    <div className="flex w-full items-center justify-between">
+                      <div>
+                        {/* Analysis button */}
+                        {analysisAvailable && onRequestAnalysis && (
+                          <div>
+                            <Button
+                              variant="outline"
+                              onClick={onRequestAnalysis}
+                            >
+                              Analyse anfordern
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      {!hideLeafDoneButton && (
+                        <Button
+                          onClick={handleDone}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Check className="mr-1.5 size-4" />
+                          Thema abschließen
+                        </Button>
                       )}
                     </div>
-                    {!hideLeafDoneButton && (
-                      <Button onClick={handleDone} variant="outline" size="sm">
-                        <Check className="mr-1.5 size-4" />
-                        Thema abschließen
-                      </Button>
-                    )}
-                  </div>
-                )}
-                <ConversationInput
-                  onSubmit={onSendMessage}
-                  disabled={isThinking}
-                  placeholder="Stelle eine Frage zu diesem Thema..."
-                  suggestedQuestions={suggestedQuestions}
-                  isLoadingQuestions={
-                    (isThinking || isStreaming) &&
-                    suggestedQuestions.length === 0
-                  }
-                />
-              </div>
-            </footer>
-          )}
-        </main>
+                  )}
+                  <ConversationInput
+                    onSubmit={onSendMessage}
+                    disabled={isThinking}
+                    placeholder="Stelle eine Frage zu diesem Thema..."
+                    suggestedQuestions={suggestedQuestions}
+                    isLoadingQuestions={
+                      (isThinking || isStreaming) &&
+                      suggestedQuestions.length === 0
+                    }
+                  />
+                </div>
+              </footer>
+            )}
+          </main>
 
-        {/* Summary Panel - Desktop only, wider on large screens */}
-        <aside className="hidden w-72 shrink-0 border-l bg-muted/30 md:block lg:w-80 xl:w-96">
-          {sidebarNode}
-        </aside>
+          {/* Summary Panel - Desktop only, wider on large screens */}
+          <aside className="hidden w-72 shrink-0 border-l bg-muted/30 md:block lg:w-80 xl:w-96">
+            {sidebarNode}
+          </aside>
+        </div>
       </div>
     </LeafActionsContext.Provider>
   );

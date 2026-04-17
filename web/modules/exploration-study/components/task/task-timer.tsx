@@ -19,6 +19,8 @@ export function TaskTimer({
 
   return (
     <div
+      role="timer"
+      aria-label={`Verbleibende Zeit: ${formattedTime}`}
       className={cn(
         'flex items-center gap-2 rounded-full px-3 py-1.5 transition-colors',
         isCriticalTime
@@ -28,9 +30,11 @@ export function TaskTimer({
             : 'bg-muted',
         className,
       )}
-      aria-label={`Verbleibende Zeit: ${formattedTime}`}
     >
-      <Clock className={cn('size-4', isCriticalTime && 'animate-pulse')} />
+      <Clock
+        aria-hidden="true"
+        className={cn('size-4', isCriticalTime && 'animate-pulse')}
+      />
       <span
         className="font-mono text-sm font-semibold tabular-nums"
         aria-hidden="true"
