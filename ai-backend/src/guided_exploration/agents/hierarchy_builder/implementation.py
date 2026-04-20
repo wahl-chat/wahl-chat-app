@@ -16,6 +16,10 @@ from src.guided_exploration.agents.hierarchy_builder.interface import (
 )
 from src.guided_exploration.agents.hierarchy_builder.prompts import (
     CONSTRUCTION_PROMPT,
+    STUDY_MODE_BLOCK,
+    STUDY_MODE_BLOCK_EMPTY,
+    STUDY_MODE_REMINDER,
+    STUDY_MODE_REMINDER_EMPTY,
     SYSTEM_PROMPT,
     HierarchyBuilderLLMOutput,
     LLMHierarchyNode,
@@ -61,12 +65,14 @@ class HierarchyBuilderAgent(BaseAgent[HierarchyBuilderInput, HierarchyBuilderOut
         system_prompt = SYSTEM_PROMPT.format(
             context_name=input.context_name,
             party_context=party_context,
+            study_mode_block=STUDY_MODE_BLOCK if input.is_study else STUDY_MODE_BLOCK_EMPTY,
         )
 
         user_prompt = CONSTRUCTION_PROMPT.format(
             query=input.query,
             position_count=len(input.all_positions),
             formatted_positions=formatted_positions,
+            study_mode_reminder=STUDY_MODE_REMINDER if input.is_study else STUDY_MODE_REMINDER_EMPTY,
         )
 
         messages = [

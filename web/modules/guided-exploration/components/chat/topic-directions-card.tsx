@@ -14,6 +14,8 @@ interface TopicDirectionsCardProps {
   isLoading?: boolean;
   /** Direction names the user already selected (persisted) */
   selectedDirections?: string[];
+  /** Minimum number of directions the user must select before submitting */
+  minSelections?: number;
 }
 
 export function TopicDirectionsCard({
@@ -21,6 +23,7 @@ export function TopicDirectionsCard({
   onSelectDirections,
   isLoading = false,
   selectedDirections,
+  minSelections = 1,
 }: TopicDirectionsCardProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const isCompleted = selectedDirections && selectedDirections.length > 0;
@@ -90,18 +93,18 @@ export function TopicDirectionsCard({
               >
                 {wasSelected && <Check className="size-3" />}
               </div>
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 <p
                   className={cn(
-                    'text-sm font-medium',
-                    !wasSelected && 'text-muted-foreground',
+                    'text-base font-bold text-foreground',
+                    !wasSelected && 'opacity-60',
                   )}
                 >
                   {direction.name}
                 </p>
                 {wasSelected && (
-                  <p className="text-xs text-muted-foreground">
-                    {direction.description}
+                  <p className="text-sm font-normal text-foreground">
+                    {direction.hook}
                   </p>
                 )}
               </div>
@@ -116,7 +119,7 @@ export function TopicDirectionsCard({
   const headingId = 'topic-directions-heading';
   return (
     <section aria-labelledby={headingId} role="group" className="space-y-3">
-      <h2 id={headingId} className="text-sm font-medium">
+      <h2 id={headingId} className="text-base font-bold text-foreground">
         Ich habe mehrere Aspekte zu diesem Thema gefunden. Wähle aus, was dich
         interessiert — du kannst auch mehrere Aspekte auswählen.
       </h2>
@@ -126,16 +129,13 @@ export function TopicDirectionsCard({
           const isChecked = selected.has(direction.id);
           const inputId = `direction-${direction.id}`;
           const labelTextId = `${inputId}-label`;
-          const descriptionIds = [`${inputId}-description`];
-          if (direction.suggestedQuestion) {
-            descriptionIds.push(`${inputId}-question`);
-          }
+          const hookId = `${inputId}-hook`;
           return (
             <label
               key={direction.id}
               htmlFor={inputId}
               className={cn(
-                'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring',
+                'flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-muted has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring',
                 isChecked ? 'border-primary/30 bg-primary/5' : 'border-input',
                 isLoading && 'pointer-events-none opacity-60',
               )}
@@ -146,34 +146,19 @@ export function TopicDirectionsCard({
                 onCheckedChange={() => toggleDirection(direction.id)}
                 disabled={isLoading}
                 aria-labelledby={labelTextId}
-                aria-describedby={descriptionIds.join(' ')}
-                className="mt-0.5"
+                aria-describedby={hookId}
+                className="mt-1"
               />
               <div className="space-y-1">
-                <p id={labelTextId} className="text-sm font-medium">
+                <p
+                  id={labelTextId}
+                  className="text-base font-bold text-foreground"
+                >
                   {direction.name}
                 </p>
-                <p
-                  id={`${inputId}-description`}
-                  className="text-xs text-muted-foreground"
-                >
-                  {direction.description}
+                <p id={hookId} className="text-sm font-normal text-foreground">
+                  {direction.hook}
                 </p>
-                <p
-                  className="text-xs italic text-muted-foreground/80"
-                  aria-hidden="true"
-                >
-                  {direction.partyStancesPreview}
-                </p>
-                {direction.suggestedQuestion && (
-                  <p
-                    id={`${inputId}-question`}
-                    className="mt-1 text-xs text-primary/70"
-                  >
-                    <span aria-hidden="true">&rarr; </span>
-                    {direction.suggestedQuestion}
-                  </p>
-                )}
               </div>
             </label>
           );
@@ -183,7 +168,7 @@ export function TopicDirectionsCard({
         <label
           htmlFor="direction-select-all"
           className={cn(
-            'flex cursor-pointer items-center gap-3 rounded-lg border border-dashed p-3 transition-colors hover:bg-muted has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring',
+            'flex cursor-pointer items-center gap-3 rounded-lg border border-dashed p-4 transition-colors hover:bg-muted has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring',
             allSelected ? 'border-primary/30 bg-primary/5' : 'border-input',
             isLoading && 'pointer-events-none opacity-60',
           )}
@@ -195,12 +180,12 @@ export function TopicDirectionsCard({
             disabled={isLoading}
             aria-label="Alle Aspekte erkunden"
           />
-          <div className="flex items-center gap-1.5">
-            <Compass
-              className="size-3.5 text-muted-foreground"
+          <div className="flex items-center gap-2">
+            <Compass className="size-4 text-foreground" aria-hidden="true" />
+            <span
+              className="text-base font-bold text-foreground"
               aria-hidden="true"
-            />
-            <span className="text-sm font-medium" aria-hidden="true">
+            >
               Alle Aspekte erkunden
             </span>
           </div>
@@ -209,16 +194,21 @@ export function TopicDirectionsCard({
 
       <Button
         onClick={handleSubmit}
-        disabled={isLoading || selected.size === 0}
-        className="w-full"
+        disabled={isLoading || selected.size < minSelections}
+        className="w-full text-base font-bold"
       >
         Erkundung starten
         {selected.size > 0 && (
-          <span className="ml-1 text-xs opacity-70">
+          <span className="ml-1 text-sm font-normal opacity-80">
             ({selected.size} ausgewählt)
           </span>
         )}
       </Button>
+      {minSelections > 1 && selected.size < minSelections && (
+        <p className="text-center text-sm font-normal text-foreground">
+          Bitte wähle mindestens {minSelections} Aspekte aus.
+        </p>
+      )}
     </section>
   );
 }

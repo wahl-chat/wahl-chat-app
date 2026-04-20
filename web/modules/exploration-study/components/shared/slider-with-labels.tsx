@@ -45,7 +45,7 @@ export function SliderWithLabels({
           {label}
         </label>
         {description && (
-          <p id={descriptionId} className="text-sm text-muted-foreground">
+          <p id={descriptionId} className="text-sm text-foreground">
             {description}
           </p>
         )}
@@ -66,7 +66,7 @@ export function SliderWithLabels({
           aria-describedby={ariaDescribedBy || undefined}
         />
         <div
-          className="flex justify-between text-xs text-muted-foreground"
+          className="flex justify-between text-xs text-foreground"
           aria-hidden="true"
         >
           <span>{lowAnchor}</span>

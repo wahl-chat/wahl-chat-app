@@ -46,14 +46,12 @@ export function LeafSummaryCard({
       <div className="min-w-0 flex-1">
         <h4 className="text-sm font-medium leading-tight">{node.name}</h4>
         {!isExplored && showPendingHint && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Noch nicht erkundet
-          </p>
+          <p className="mt-1 text-xs text-foreground">Noch nicht erkundet</p>
         )}
       </div>
       {isInteractive && (
         <ArrowRight
-          className="mt-1 size-4 shrink-0 text-muted-foreground"
+          className="mt-1 size-4 shrink-0 text-foreground"
           aria-hidden="true"
         />
       )}
@@ -62,12 +60,12 @@ export function LeafSummaryCard({
 
   const details = isExplored && summary?.overview && (
     <details className="group border-t">
-      <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50">
+      <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted/50">
         <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
         Zusammenfassung
       </summary>
       <div className="px-3 pb-3 pt-1">
-        <p className="text-xs leading-relaxed text-muted-foreground">
+        <p className="text-xs leading-relaxed text-foreground">
           {summary.overview}
         </p>
         {summary.keyPoints && summary.keyPoints.length > 0 && (
@@ -75,7 +73,7 @@ export function LeafSummaryCard({
             {summary.keyPoints.map((point, index) => (
               <li
                 key={`${index}-${point.slice(0, 16)}`}
-                className="flex items-start gap-1.5 text-xs text-muted-foreground"
+                className="flex items-start gap-1.5 text-xs text-foreground"
               >
                 <span className="mt-1.5 size-1 shrink-0 rounded-full bg-muted-foreground/50" />
                 {point}

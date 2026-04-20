@@ -53,7 +53,7 @@ export function ExplorationEmptyView({
             <Compass className="size-7 text-primary" aria-hidden="true" />
           </div>
           <h1 className="text-xl font-semibold">Erkunde die Parteiprogramme</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground">
             {isStudy
               ? 'In der Studie ist nur das dir zugewiesene Thema verfügbar. Wähle es aus oder stelle eine eigene Frage dazu.'
               : 'Wähle ein Thema oder stelle eine eigene Frage. Du kannst dann auswählen, welche Aspekte du genauer vergleichen möchtest.'}
@@ -90,8 +90,8 @@ export function ExplorationEmptyView({
                   aria-hidden="true"
                   className="flex h-24 flex-col items-center justify-center gap-2 rounded-lg border border-input p-4 opacity-40"
                 >
-                  <topic.icon className="size-5 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">
+                  <topic.icon className="size-5 text-foreground" />
+                  <span className="text-sm font-medium text-foreground">
                     {topic.label}
                   </span>
                 </div>
@@ -107,7 +107,7 @@ export function ExplorationEmptyView({
                 type="button"
               >
                 <topic.icon
-                  className="size-5 text-muted-foreground"
+                  className="size-5 text-foreground"
                   aria-hidden="true"
                 />
                 <span className="text-sm font-medium">{topic.label}</span>
@@ -117,7 +117,7 @@ export function ExplorationEmptyView({
         </nav>
 
         {isStudy && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-foreground">
             Weitere Themen sind im Studien-Modus nicht verfügbar – zu diesen
             Themen liegen keine Informationen vor.
           </p>

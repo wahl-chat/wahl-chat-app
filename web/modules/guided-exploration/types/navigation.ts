@@ -3,7 +3,7 @@
  * Represents navigation state and breadcrumb
  */
 
-export type BreadcrumbLevel = 'root' | 'topic' | 'subtopic';
+export type BreadcrumbLevel = 'root' | 'branch' | 'leaf';
 
 export interface BreadcrumbItem {
   /** Node identifier */

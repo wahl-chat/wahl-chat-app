@@ -129,13 +129,11 @@ export function QuizDisplay({
       >
         <Loader2
           aria-hidden="true"
-          className="size-8 animate-spin text-muted-foreground"
+          className="size-8 animate-spin text-foreground"
         />
         <div className="text-center">
           <h2 className="text-lg font-medium">Quiz wird vorbereitet...</h2>
-          <p className="text-sm text-muted-foreground">
-            Bitte warte einen Moment.
-          </p>
+          <p className="text-sm text-foreground">Bitte warte einen Moment.</p>
         </div>
       </div>
     );
@@ -145,7 +143,7 @@ export function QuizDisplay({
     <div className={cn('space-y-6', className)}>
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">Wissensquiz</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-foreground">
           Bitte beantworte die folgenden Fragen basierend auf den Informationen
           aus der vorherigen Aufgabe.
         </p>
@@ -185,7 +183,7 @@ export function QuizDisplay({
         <div
           role="status"
           aria-live="polite"
-          className="text-sm text-muted-foreground"
+          className="text-sm text-foreground"
         >
           {answers.size} von {questions.length} beantwortet
         </div>

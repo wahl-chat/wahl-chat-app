@@ -334,6 +334,7 @@ export function StudyExplorationWrapper({
               suggestedQuestions={suggestedQuestions}
               sidebar={studySidebar}
               hideLeafDoneButton
+              onExitToChat={() => handleTabSwitch('chat')}
             />
             {sessionId && urlExploration && (
               <KnowledgeBaseDebug
@@ -356,6 +357,7 @@ export function StudyExplorationWrapper({
             explorationPending={explorationPending}
             suggestedQuestions={suggestedQuestions}
             studyTopicLabel={studyTopicLabel}
+            minDirections={3}
             onSendMessageAction={sendChatMessage}
             onSubmitChoiceAction={submitChoice}
             onDirectionChoiceAction={submitDirectionChoice}

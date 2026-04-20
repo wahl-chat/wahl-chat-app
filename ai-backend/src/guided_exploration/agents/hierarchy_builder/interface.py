@@ -21,6 +21,13 @@ class HierarchyBuilderInput(BaseModel):
     all_positions: list[Position] = Field(
         ..., description="All positions from all parties, combined"
     )
+    is_study: bool = Field(
+        default=False,
+        description=(
+            "When True, force a strictly flat tree with exactly 2-3 top-level "
+            "leaves (no nesting). Used in study mode to fit the 10-minute budget."
+        ),
+    )
 
 
 class HierarchyBuilderOutput(BaseModel):

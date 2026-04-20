@@ -20,12 +20,12 @@ export function ErrorBanner({ message, onDismiss }: ErrorBannerProps) {
           <p className="text-sm font-medium text-destructive">
             Ein Fehler ist aufgetreten
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">{message}</p>
+          <p className="mt-1 text-sm text-foreground">{message}</p>
         </div>
         <Button
           variant="ghost"
           size="sm"
-          className="shrink-0 text-muted-foreground hover:text-foreground"
+          className="shrink-0 text-foreground hover:text-foreground"
           onClick={onDismiss}
         >
           <X className="size-4" />

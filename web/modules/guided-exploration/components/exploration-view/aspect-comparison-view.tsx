@@ -17,18 +17,25 @@ export function AspectComparisonView({
 }: AspectComparisonViewProps) {
   if (comparison.aspects.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-foreground">
         Keine vergleichbaren Aspekte gefunden.
       </p>
     );
   }
 
   return (
-    <div className={cn('space-y-6', className)}>
+    <div className={cn('space-y-4', className)}>
       {comparison.aspects.map((aspect) => (
-        <div key={aspect.name}>
-          <h3 className="mb-2.5 text-sm font-semibold">{aspect.name}</h3>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <section
+          key={aspect.name}
+          className="overflow-hidden rounded-lg border bg-card"
+        >
+          <header className="border-b bg-muted/40 px-4 py-2.5">
+            <h3 className="text-base font-bold text-foreground">
+              {aspect.name}
+            </h3>
+          </header>
+          <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2">
             {aspect.partyStances.map((stance) => (
               <CompactPartyCard
                 key={stance.party}
@@ -37,7 +44,7 @@ export function AspectComparisonView({
               />
             ))}
           </div>
-        </div>
+        </section>
       ))}
     </div>
   );
@@ -84,7 +91,7 @@ function CompactPartyCard({
       </div>
       {/* Stance content */}
       <div className="px-2.5 py-2">
-        <p className="text-sm text-muted-foreground">{stance}</p>
+        <p className="text-sm text-foreground">{stance}</p>
       </div>
     </div>
   );

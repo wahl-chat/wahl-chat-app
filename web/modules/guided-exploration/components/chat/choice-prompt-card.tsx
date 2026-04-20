@@ -41,7 +41,7 @@ export function ChoicePromptCard({
           const config = CHOICE_CONFIG[option.id as keyof typeof CHOICE_CONFIG];
           const Icon = config?.icon ?? Zap;
           const accent = config?.accent ?? '';
-          const iconColor = config?.iconColor ?? 'text-muted-foreground';
+          const iconColor = config?.iconColor ?? 'text-foreground';
 
           return (
             <button
@@ -66,9 +66,7 @@ export function ChoicePromptCard({
               </div>
               <div className="space-y-0.5">
                 <p className="text-sm font-medium">{option.label}</p>
-                <p className="text-xs text-muted-foreground">
-                  {option.description}
-                </p>
+                <p className="text-xs text-foreground">{option.description}</p>
               </div>
             </button>
           );

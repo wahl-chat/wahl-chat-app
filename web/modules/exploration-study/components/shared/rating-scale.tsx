@@ -145,7 +145,7 @@ export const RatingScale = forwardRef<HTMLDivElement, RatingScaleProps>(
         {(lowAnchor || highAnchor) && (
           <div
             aria-hidden="true"
-            className="flex justify-between text-xs text-muted-foreground"
+            className="flex justify-between text-xs text-foreground"
           >
             <span>{lowAnchor}</span>
             <span>{highAnchor}</span>

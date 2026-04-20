@@ -35,7 +35,7 @@ const NonMemoizedPartyMarkedMarkdown = ({
 }: PartyMarkedMarkdownProps) => {
   if (!hasPartyMarkers(children)) {
     return (
-      <div className="prose prose-sm max-w-none dark:prose-invert">
+      <div className="prose prose-sm max-w-none text-foreground dark:prose-invert prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground">
         <CitationMarkdown
           onReferenceClick={onReferenceClick}
           getReferenceName={getReferenceName}
@@ -59,7 +59,7 @@ const NonMemoizedPartyMarkedMarkdown = ({
               partyId={section.partyId}
               isStreaming={section.isStreaming}
             >
-              <div className="prose prose-sm max-w-none dark:prose-invert">
+              <div className="prose prose-sm max-w-none text-foreground dark:prose-invert prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground">
                 <CitationMarkdown
                   onReferenceClick={onReferenceClick}
                   getReferenceName={getReferenceName}
@@ -75,7 +75,7 @@ const NonMemoizedPartyMarkedMarkdown = ({
         return (
           <div
             key={`${section.type}-${index}`}
-            className="prose prose-sm max-w-none dark:prose-invert"
+            className="prose prose-sm max-w-none text-foreground dark:prose-invert prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground"
           >
             <CitationMarkdown
               onReferenceClick={onReferenceClick}

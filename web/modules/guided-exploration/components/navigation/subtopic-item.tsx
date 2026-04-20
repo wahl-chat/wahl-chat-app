@@ -63,11 +63,13 @@ export function SubtopicItem({
         {/* Content */}
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-start justify-between gap-2">
-            <h4 className="font-medium leading-tight">{node.name}</h4>
-            <ChevronRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <h4 className="text-base font-bold leading-tight text-foreground">
+              {node.name}
+            </h4>
+            <ChevronRight className="mt-0.5 size-4 shrink-0 text-foreground" />
           </div>
 
-          <p className="line-clamp-2 text-sm text-muted-foreground">
+          <p className="line-clamp-2 text-sm font-normal text-foreground">
             {summary?.overview ?? node.description}
           </p>
 
@@ -78,7 +80,7 @@ export function SubtopicItem({
                 <PartyBadge key={party} party={party} />
               ))}
               {node.partyIds.length > 5 && (
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-foreground">
                   +{node.partyIds.length - 5}
                 </span>
               )}

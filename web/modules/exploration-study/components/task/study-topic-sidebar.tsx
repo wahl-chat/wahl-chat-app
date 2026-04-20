@@ -42,7 +42,7 @@ export function StudyTopicSidebar({ tree, summaries }: StudyTopicSidebarProps) {
         {activeLeafNode ? (
           <>
             <p
-              className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              className="text-xs font-medium uppercase tracking-wide text-foreground"
               aria-hidden="true"
             >
               Aktuelles Thema
@@ -51,7 +51,7 @@ export function StudyTopicSidebar({ tree, summaries }: StudyTopicSidebarProps) {
               {activeLeafNode.name}
             </h2>
             {activeLeafNode.description && (
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 text-sm text-foreground">
                 {activeLeafNode.description}
               </p>
             )}
@@ -68,7 +68,7 @@ export function StudyTopicSidebar({ tree, summaries }: StudyTopicSidebarProps) {
             </Button>
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground">
             Wähle ein Thema aus der Übersicht, um ein Gespräch zu starten.
           </p>
         )}
@@ -86,7 +86,7 @@ export function StudyTopicSidebar({ tree, summaries }: StudyTopicSidebarProps) {
           Bereits besprochen
         </h3>
         {exploredLeaves.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground">
             Noch nichts besprochen. Stell eine Frage, um loszulegen.
           </p>
         ) : (

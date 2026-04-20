@@ -98,11 +98,14 @@ export function LeafContent({
       {/* Summary — rendered once above the view toggle, shared across modes */}
       {initialContent?.summary && (
         <section aria-labelledby="summary-heading">
-          <h3 id="summary-heading" className="mb-3 text-base font-semibold">
+          <h3
+            id="summary-heading"
+            className="mb-3 text-lg font-bold text-foreground"
+          >
             Zusammenfassung
           </h3>
           <div className="rounded-lg border p-4">
-            <div className="prose prose-sm max-w-none dark:prose-invert">
+            <div className="prose prose-sm max-w-none text-foreground dark:prose-invert prose-p:font-normal prose-p:text-foreground">
               <CitationMarkdown
                 onReferenceClick={handleSummaryReferenceClick}
                 getReferenceName={getSummaryReferenceName}

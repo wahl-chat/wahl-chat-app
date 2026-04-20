@@ -58,7 +58,7 @@ export function ExplorationSummaryPanel({
       <li key={node.id}>
         <h3 className="mb-3 flex items-center justify-between font-medium">
           <span>{node.name}</span>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-foreground">
             {branchProgress.explored}/{branchProgress.total}
           </span>
         </h3>

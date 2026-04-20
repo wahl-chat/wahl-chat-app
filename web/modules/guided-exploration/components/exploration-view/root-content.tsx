@@ -19,14 +19,13 @@ export function RootContent({
   className,
 }: RootContentProps) {
   const progress = getOverallProgress(tree);
-  const hasOnlyLeaves = tree.root.children.every((n) => isLeaf(n));
 
   return (
     <div className={cn('space-y-6', className)}>
       {/* Header */}
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">Themen erkunden</h1>
-        <p className="text-muted-foreground">
+        <p className="text-foreground">
           Wähle ein Thema aus, um die Positionen der Parteien zu vergleichen.
         </p>
         <div className="pt-2">
@@ -39,43 +38,25 @@ export function RootContent({
         </div>
       </div>
 
-      {/* Flat layout: all children are leaves */}
-      {hasOnlyLeaves && (
-        <ul
-          className="flex list-none flex-col gap-4"
-          aria-label="Verfügbare Themen"
-        >
-          {tree.root.children.map((node) => (
-            <li key={node.id}>
+      {/* Single full-width column — keeps leaves and branches visually consistent,
+          including mixed trees. */}
+      <ul
+        className="flex list-none flex-col gap-4"
+        aria-label="Verfügbare Themen"
+      >
+        {tree.root.children.map((node) => (
+          <li key={node.id}>
+            {isLeaf(node) ? (
               <SubtopicItem
                 node={node}
                 onClick={() => onTopicSelect(node.id)}
               />
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {/* Nested layout: children are branches */}
-      {!hasOnlyLeaves && (
-        <ul
-          className="grid list-none gap-4 sm:grid-cols-2"
-          aria-label="Verfügbare Themen"
-        >
-          {tree.root.children.map((node) => (
-            <li key={node.id}>
-              {isLeaf(node) ? (
-                <SubtopicItem
-                  node={node}
-                  onClick={() => onTopicSelect(node.id)}
-                />
-              ) : (
-                <TopicCard node={node} onClick={() => onTopicSelect(node.id)} />
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+            ) : (
+              <TopicCard node={node} onClick={() => onTopicSelect(node.id)} />
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

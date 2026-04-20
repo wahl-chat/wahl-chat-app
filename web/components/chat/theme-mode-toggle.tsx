@@ -14,9 +14,10 @@ import { useIsDesktop } from '@/lib/hooks/use-is-desktop';
 
 type Props = {
   align?: 'start' | 'end' | 'center';
+  showLabel?: boolean;
 };
 
-export function ThemeModeToggle({ align }: Props) {
+export function ThemeModeToggle({ align, showLabel }: Props) {
   const { setTheme } = useTheme();
   const isDesktop = useIsDesktop();
 
@@ -25,11 +26,21 @@ export function ThemeModeToggle({ align }: Props) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-8">
-          <Sun className="size-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute size-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">Toggle theme</span>
-        </Button>
+        {showLabel ? (
+          <Button variant="outline" size="sm" className="gap-2 text-foreground">
+            <span className="relative flex size-4 items-center justify-center">
+              <Sun className="absolute size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            </span>
+            <span>Theme</span>
+          </Button>
+        ) : (
+          <Button variant="ghost" size="icon" className="size-8">
+            <Sun className="size-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute size-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <span className="sr-only">Toggle theme</span>
+          </Button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align={normalizedAlign}>
         <DropdownMenuItem onClick={() => setTheme('light')}>

@@ -37,8 +37,7 @@ export interface SessionMessage {
   directions?: Array<{
     id: string;
     name: string;
-    description: string;
-    partyStancesPreview: string;
+    hook: string;
     suggestedQuestion: string;
   }>;
   /** Query ID for direction choice tracking */

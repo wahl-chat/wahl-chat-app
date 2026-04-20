@@ -74,8 +74,7 @@ export interface ResumeSessionResponse {
     directions?: Array<{
       id: string;
       name: string;
-      description: string;
-      partyStancesPreview: string;
+      hook: string;
       suggestedQuestion: string;
     }>;
     directionsQueryId?: string;

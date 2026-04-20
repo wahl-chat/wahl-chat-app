@@ -33,9 +33,7 @@ export function StatusDots({
             status={i < exploredVisible ? 'explored' : 'pending'}
           />
         ))}
-        <span className="text-xs text-muted-foreground">
-          +{total - visibleDots}
-        </span>
+        <span className="text-xs text-foreground">+{total - visibleDots}</span>
       </div>
     );
   }

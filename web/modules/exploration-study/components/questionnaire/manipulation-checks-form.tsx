@@ -47,7 +47,7 @@ export function ManipulationChecksForm({
       <form onSubmit={handleSubmit} className={cn('space-y-6', className)}>
         <div className="space-y-2">
           <h2 className="text-xl font-semibold">Allgemeine Einschätzung</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground">
             Bitte bewerte die folgenden Aussagen.
           </p>
         </div>

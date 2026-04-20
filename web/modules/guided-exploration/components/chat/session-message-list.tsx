@@ -18,6 +18,8 @@ interface SessionMessageListProps {
   isLoading?: boolean;
   lastUserMessageIndex?: number;
   lastUserMessageRef?: React.RefObject<HTMLDivElement | null>;
+  /** Minimum number of directions the user must select */
+  minDirections?: number;
 }
 
 export function SessionMessageList({
@@ -27,6 +29,7 @@ export function SessionMessageList({
   isLoading = false,
   lastUserMessageIndex = -1,
   lastUserMessageRef,
+  minDirections,
 }: SessionMessageListProps) {
   return (
     <div
@@ -85,6 +88,7 @@ export function SessionMessageList({
               }
               isLoading={isLoading || !onDirectionChoiceAction}
               selectedDirections={message.selectedDirections}
+              minSelections={minDirections}
             />
           );
         }

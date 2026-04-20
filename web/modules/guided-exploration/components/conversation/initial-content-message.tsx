@@ -21,7 +21,10 @@ export function InitialContentMessage({
       {/* Party Positions */}
       {content.partyPositions.length > 0 && (
         <section aria-labelledby="positions-heading">
-          <h3 id="positions-heading" className="mb-3 text-base font-semibold">
+          <h3
+            id="positions-heading"
+            className="mb-3 text-lg font-bold text-foreground"
+          >
             Parteipositionen
           </h3>
           <ul className="space-y-4">

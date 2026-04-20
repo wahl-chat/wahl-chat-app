@@ -201,7 +201,7 @@ function Tab({
         'group relative flex max-w-[240px] shrink-0 items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         isActive
           ? 'rounded-t-lg border border-b-0 border-border bg-background text-foreground'
-          : '-mb-px border-b border-transparent text-muted-foreground hover:text-foreground',
+          : '-mb-px border-b border-transparent text-foreground hover:text-foreground',
       )}
     >
       <span className="shrink-0">{icon}</span>
@@ -232,8 +232,8 @@ function Tab({
           className={cn(
             '-mr-1 ml-1 inline-flex items-center justify-center rounded p-0.5 transition-opacity duration-150',
             isActive
-              ? 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              : 'opacity-0 group-hover:opacity-100 group-hover:text-muted-foreground group-hover:hover:text-foreground',
+              ? 'text-foreground hover:bg-muted hover:text-foreground'
+              : 'opacity-0 group-hover:opacity-100 group-hover:text-foreground group-hover:hover:text-foreground',
           )}
         >
           <X className="size-3" />

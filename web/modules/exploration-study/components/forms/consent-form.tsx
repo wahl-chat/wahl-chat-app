@@ -53,7 +53,7 @@ export function ConsentForm({
             Einwilligungserklärung
           </h1>
 
-          <div className="space-y-6 text-sm text-muted-foreground">
+          <div className="space-y-6 text-sm text-foreground">
             <p>
               Vielen Dank für dein Interesse an unserer Studie zur Erforschung
               von KI-gestützten Informationssystemen für politische Bildung.

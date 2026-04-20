@@ -126,7 +126,7 @@ export function ConversationInput({
       >
         <textarea
           ref={textareaRef}
-          className="w-full resize-none bg-transparent py-3 pl-4 pr-11 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full resize-none bg-transparent py-3 pl-4 pr-11 text-[16px] placeholder:text-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           placeholder={placeholder}
           onChange={handleChange}
           onKeyDown={handleKeyDown}

@@ -18,7 +18,7 @@ export function ThinkingIndicator({
 }: ThinkingIndicatorProps) {
   return (
     <div
-      className={cn('flex items-center gap-2 text-muted-foreground', className)}
+      className={cn('flex items-center gap-2 text-foreground', className)}
       role="status"
       aria-live="polite"
     >

@@ -237,6 +237,7 @@ class Orchestrator:
                     context_name=context_name,
                     parties=parties_info,
                     all_positions=all_positions,
+                    is_study=is_study_context(context_id),
                 )
             )
 

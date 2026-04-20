@@ -30,9 +30,11 @@ export function TopicCard({ node, onClick, className }: TopicCardProps) {
       )}
     >
       {/* Header */}
-      <div className="flex flex-col space-y-1.5 p-6 pb-2">
+      <div className="flex flex-col space-y-1.5 p-4 pb-2">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-lg font-semibold leading-tight">{node.name}</h3>
+          <h3 className="text-base font-bold leading-tight text-foreground">
+            {node.name}
+          </h3>
           {fullyExplored && (
             <span className="shrink-0 rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
               Fertig
@@ -41,8 +43,8 @@ export function TopicCard({ node, onClick, className }: TopicCardProps) {
         </div>
       </div>
       {/* Content */}
-      <div className="space-y-3 p-6 pt-0">
-        <p className="line-clamp-2 text-sm text-muted-foreground">
+      <div className="space-y-3 p-4 pt-0">
+        <p className="line-clamp-2 text-sm font-normal text-foreground">
           {node.description}
         </p>
         <ProgressIndicator

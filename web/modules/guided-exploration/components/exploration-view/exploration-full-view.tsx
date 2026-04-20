@@ -21,7 +21,7 @@ import {
   findNode,
   getOverallProgress,
 } from '@/modules/guided-exploration/utils/tree-helpers';
-import { Check } from 'lucide-react';
+import { Check, MessageSquare } from 'lucide-react';
 import {
   type ReactNode,
   createContext,
@@ -32,7 +32,6 @@ import {
 } from 'react';
 
 import { BranchContent } from './branch-content';
-import { ExplorationContextBanner } from './exploration-context-banner';
 import { ExplorationSummaryPanel } from './exploration-summary-panel';
 import { LeafContent } from './leaf-content';
 import { MobileSummarySheet } from './mobile-summary-sheet';
@@ -106,6 +105,12 @@ interface ExplorationFullViewProps {
    * into the sidebar in study mode).
    */
   hideLeafDoneButton?: boolean;
+  /**
+   * If set, renders a "Chat" button in the header that returns the user to
+   * the chat tab of the exploration session. Gives desktop users a visible
+   * way out of exploration (mobile still uses the tab bar).
+   */
+  onExitToChat?: () => void;
   className?: string;
 }
 
@@ -135,6 +140,7 @@ export function ExplorationFullView({
   onDismissSwitch,
   sidebar,
   hideLeafDoneButton = false,
+  onExitToChat,
   className,
 }: ExplorationFullViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -164,7 +170,7 @@ export function ExplorationFullView({
   }, [view, isThinking, isStreaming, messageCount]);
 
   const handleBreadcrumbNavigate = (
-    level: 'root' | 'topic' | 'subtopic',
+    level: 'root' | 'branch' | 'leaf',
     id?: string,
   ) => {
     if (level === 'root') {
@@ -240,6 +246,18 @@ export function ExplorationFullView({
               />
             </div>
             <div className="flex items-center gap-3">
+              {onExitToChat && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={onExitToChat}
+                  className="hidden sm:flex"
+                >
+                  <MessageSquare aria-hidden="true" className="size-4" />
+                  Chat
+                </Button>
+              )}
               {isCompleted && (
                 <span
                   role="status"
@@ -258,7 +276,7 @@ export function ExplorationFullView({
                   />
                   <span
                     aria-hidden="true"
-                    className="whitespace-nowrap text-xs text-muted-foreground"
+                    className="whitespace-nowrap text-xs text-foreground"
                   >
                     {overallProgress.explored}/{overallProgress.total}
                   </span>
@@ -281,11 +299,6 @@ export function ExplorationFullView({
         <div className="flex flex-1 overflow-hidden">
           {/* Main Content */}
           <div className="flex flex-1 flex-col overflow-hidden">
-            {/* Context banner — always visible */}
-            <div className="shrink-0 border-b px-4 py-2">
-              <ExplorationContextBanner tree={tree} />
-            </div>
-
             {/* Content based on view - with gradient mask */}
             <div
               ref={scrollContainerRef}

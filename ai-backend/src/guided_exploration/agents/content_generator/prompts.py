@@ -27,11 +27,10 @@ class LLMPartyPosition(BaseModel):
     content: str = Field(
         ...,
         description=(
-            "Kurzer, gespraechseinladender Einstieg als Markdown "
-            "(ca. 60-90 Woerter). Festes Muster: 1-2 Saetze Kernposition, "
-            "danach 2-3 Stichpunkte mit den wichtigsten Forderungen "
-            "(je max. 1 Zeile). Keine Ueberschriften, keine "
-            "Begruendungsabschnitte. Inline-Zitationen [id]."
+            "Max 1-2 Saetze zur Grundhaltung der Partei zu diesem Thema "
+            "(≤ 40 Woerter). KEINE Bullet-Listen, KEINE Aufzaehlung aller "
+            "Forderungen, KEINE konkreten Zahlen oder Jahreszahlen — die "
+            "gehoeren in die Folgefragen. Inline-Zitation [id] am Ende."
         ),
     )
 
@@ -40,16 +39,21 @@ class ContentGeneratorLLMOutput(BaseModel):
     """LLM output schema for content generation."""
 
     summary: str = Field(
-        ..., description="Neutrale Zusammenfassung des Themas (2-3 Saetze)"
+        ...,
+        description=(
+            "Kurze Themen-Einleitung (1-2 Saetze, max ~30 Woerter). "
+            "Rahmt worum es geht, verraet aber NICHT die Parteipositionen. "
+            "Keine Zahlen, keine Parteinamen."
+        ),
     )
     party_positions: list[LLMPartyPosition] = Field(
-        default_factory=list, description="Positionen der Parteien als Markdown"
+        default_factory=list, description="Grundhaltung jeder Partei (sehr kurz)"
     )
     suggested_questions: list[str] = Field(
         default_factory=list,
         description=(
-            "2-3 Folgefragen, die der Nutzer stellen koennte um das Thema zu vertiefen. "
-            "Kurz und praegnant formuliert."
+            "2-3 Folgefragen, die den Weg zu den konkreten Details oeffnen "
+            "(z.B. 'welche Zahlen?', 'wie genau?', 'wer zahlt?'). Kurz und praegnant."
         ),
     )
 
@@ -64,39 +68,51 @@ SYSTEM_PROMPT = """Du bist ein Inhaltsgenerierungsagent fuer politische Bildungs
 {party_context}
 
 # Aufgabe
-Generiere KURZE, gespraechseinladende Einstiege zu einem politischen Unterthema.
-Dein Text ist NICHT die vollstaendige Zusammenfassung aller Positionen — er ist
-der Einstiegspunkt, von dem aus der Nutzer per Rueckfrage in die Tiefe geht.
+Generiere KURZE Gespraechseinstiege zu einem politischen Unterthema.
+Dein Text ist NICHT die Zusammenfassung aller Positionen — er ist der
+Einstiegspunkt. Die Details folgen ueber die Folgefragen.
 
 # Inhaltsstruktur
 
 ## 1. Zusammenfassung (summary)
-- 2-3 Saetze Ueberblick zum Thema
-- Erklaere knapp den Kontext
-- Zeige in EINEM Satz die Hauptunterschiede zwischen den Parteien
+- 1-2 Saetze (max ~30 Woerter)
+- Rahmt das Thema und macht neugierig — KEIN Recap der Parteipositionen
+- KEINE Parteinamen, KEINE konkreten Zahlen
+- FALSCH: "Mars fordert X, Venus fordert Y, Saturn lehnt Z ab."
+- RICHTIG: "Wie stark soll der Staat beim Klimaschutz steuern — und wer zahlt die Zeche?"
 
-## 2. Parteipositionen (party_positions) — kompakt, festes Muster!
-Fuer JEDE Partei genau EIN kurzer Markdown-Text nach diesem Muster:
+## 2. Parteipositionen (party_positions) — sehr kurz, kein Dump!
+Fuer JEDE Partei genau EIN kurzer Markdown-Text:
+- Max 1-2 Saetze (≤ 40 Woerter) zur Grundhaltung
+- KEINE Bullet-Listen, KEINE Aufzaehlungen aller Forderungen
+- KEINE konkreten Zahlen oder Jahreszahlen im Einstieg — die gehoeren in die Folgefragen
+- Inline-Zitation [id] am Ende
 
-1. Ein Einleitungsabsatz: 1-2 Saetze Kernposition mit Inline-Zitation [id].
-2. Direkt danach 2-3 Stichpunkte (Bullet-Liste) mit den wichtigsten Forderungen,
-   jeder Punkt EINE Zeile, jeweils mit [id].
-
-Beispiel:
+Gute Beispiele:
 ```
-Mars setzt auf den CO2-Preis als zentrales Klimainstrument. [m-klima-001]
-
-- Emissionshandel auf Verkehr, Gebaeude, Landwirtschaft ausweiten [m-klima-002]
-- Gebaeudeenergiegesetz und Flottengrenzwerte abschaffen [m-klima-003]
-- Kernkraftwerke als Brueckentechnologie reaktivieren [m-klima-007]
+Mars setzt beim Klimaschutz auf Marktmechanismen: der Emissionshandel soll lenken, Verbote bleiben letztes Mittel. [m-klima-001]
+```
+```
+Saturn lehnt staatliche Klimapreise ab und will Buerger vor den Kosten der Klimapolitik schuetzen. [s-klima-001]
 ```
 
-Harte Regeln fuer den content-Text:
-- Ca. 60-90 Woerter pro Partei
-- KEINE Ueberschriften (kein "**Kernposition:**", keine h2/h3)
-- KEINE separaten Begruendungsabschnitte ("Warum…", "Begruendung…")
-- KEINE Vollstaendigkeit — nur die 2-3 markantesten Forderungen
-- Gleiche Struktur fuer jede Partei (konsistent, damit gut vergleichbar)
+Schlechte Beispiele (zu lang, zu viele Details):
+```
+Mars setzt auf den CO2-Preis. Emissionshandel auf Verkehr ausweiten, GEG abschaffen, Kernkraft reaktivieren...
+```
+
+## 3. Folgefragen (suggested_questions)
+Genau HIER landen die Details. Generiere 2-3 Folgefragen, die:
+- Den Weg zu konkreten Zahlen, Mechanismen oder Mehrheiten oeffnen
+- NICHT direkt durch den generierten Text ablesbar sind
+- Konkret und praegnant formuliert (max ~10 Worte)
+
+Gute Beispiele:
+- "Welchen CO2-Preis fordern die Parteien konkret?"
+- "Wer zahlt am Ende fuer die Klimawende?"
+- "Welche Rolle spielt Kernenergie in den Plaenen?"
+
+Schlecht: "Welche Partei fordert X?" wenn X bereits oben steht.
 
 # Leitlinien
 
@@ -104,34 +120,14 @@ Harte Regeln fuer den content-Text:
 - Nutze AUSSCHLIESSLICH Informationen aus dem bereitgestellten Wissen
 - Verwende die exakten citation_ids aus dem Wissenspool
 
-## Knappheit statt Vollstaendigkeit
-- Waehle die 2-3 markantesten Forderungen, nicht alle
-- Zahlen nur, wenn sie die Position pointiert machen
-- Dopplungen zwischen Parteien vermeiden, Kernunterschiede herausstellen
-
 ## Strikte Neutralitaet
 - Bewerte politische Positionen NICHT
-- Vermeide wertende Adjektive
-- Stelle alle Parteien gleichwertig dar
+- Stelle alle Parteien gleichwertig dar — gleiche Laenge, gleicher Stil
 
 ## Antwortstil
-- Klare, aktive Saetze
-- Deutsch
+- Klare, aktive Saetze auf Deutsch
 - Keine Meta-Kommentare ("Die Partei argumentiert…", "Laut Programm…")
-
-## 3. Folgefragen (suggested_questions)
-Generiere 2-3 kurze Folgefragen, die:
-- NICHT bereits durch die Zusammenfassung oder Parteipositionen oben beantwortet werden
-- Tiefer in Hintergruende, Begruendungen oder Konsequenzen gehen
-- Konkret und praegnant formuliert sind (max 10 Worte)
-
-WICHTIG:
-- Die Frage darf NICHT direkt aus dem generierten Text ablesbar sein
-- Frage nach dem WARUM, nach Konsequenzen, nach Umsetzungsdetails oder Widerspruechen
-- FALSCH: "Welche Partei fordert X?" (wenn X oben steht)
-- RICHTIG: "Wie soll die Finanzierung der Klimaziele erfolgen?"
-- RICHTIG: "Welche Konflikte gibt es zwischen Wirtschaft und Klimazielen?"
-- RICHTIG: "Wie realistisch sind die genannten Zeitplaene?\""""
+- Kuerze schlaegt Vollstaendigkeit — immer."""
 
 GENERATION_PROMPT = """Generiere Inhalte fuer folgendes Thema:
 
@@ -148,25 +144,17 @@ Pfad: {path}
 
 Generiere die Inhalte in dieser Reihenfolge:
 
-1. **Parteipositionen** (party_positions): Fuer jede Partei ein kurzer Markdown-Text
-   (ca. 60-90 Woerter, festes Muster):
-   - 1-2 Saetze Kernposition mit Inline-Zitation [id]
-   - 2-3 Stichpunkte mit den wichtigsten Forderungen (je max. 1 Zeile), jeweils mit [id]
-   - KEINE Ueberschriften, keine Begruendungsabschnitte, keine langen Listen
+1. **Zusammenfassung** (summary): 1-2 Saetze (max ~30 Woerter), die das Thema
+   rahmen und neugierig machen. KEINE Parteinamen, KEINE Zahlen, kein Recap.
 
-2. **Zusammenfassung** (summary): Wird NACH den Parteipositionen angezeigt.
-   Schreibe 2-3 Saetze die die Parteipositionen zusammenfassen:
-   - Was sind die KONKRETEN Hauptunterschiede?
-   - Wo gibt es Gemeinsamkeiten?
-   - Nenne spezifische Zahlen/Massnahmen
+2. **Parteipositionen** (party_positions): Fuer jede Partei max 1-2 Saetze
+   zur Grundhaltung (≤ 40 Woerter). KEINE Bullet-Listen, KEINE Aufzaehlungen
+   aller Forderungen, KEINE spezifischen Zahlen — die gehoeren in die Folgefragen.
+   Inline-Zitation [id] am Ende.
 
-   FALSCH: "Die Parteien haben unterschiedliche Ansaetze zu diesem Thema."
-   RICHTIG: "Waehrend SPD und Gruene den Mindestlohn auf 15 Euro erhoehen wollen, setzt die FDP auf Tarifautonomie ohne staatliche Vorgaben. Einig sind sich alle Parteien, dass Arbeit sich lohnen muss."
-
-3. **Folgefragen** (suggested_questions): 2-3 kurze Fragen die NICHT bereits \
-durch die generierten Parteipositionen und die Zusammenfassung beantwortet werden. \
-Frage nach Hintergruenden, Konsequenzen, Umsetzungsdetails oder Widerspruechen. \
-NIEMALS Fragen stellen deren Antwort im generierten Text steht!
+3. **Folgefragen** (suggested_questions): 2-3 kurze Fragen (max ~10 Worte),
+   die den Weg zu konkreten Zahlen, Mechanismen und Details oeffnen.
+   NIEMALS Fragen stellen, deren Antwort bereits im generierten Text steht.
 
 Verwende NUR die bereitgestellten Zitations-IDs."""
 

@@ -2,14 +2,17 @@
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { BreadcrumbItem } from '@/modules/guided-exploration/types';
+import type {
+  BreadcrumbItem,
+  BreadcrumbLevel,
+} from '@/modules/guided-exploration/types';
 import { ChevronRight } from 'lucide-react';
 
 interface ExplorationBreadcrumbProps {
   items: BreadcrumbItem[];
   /** @deprecated No longer used — tab bar handles chat navigation */
   chatUrl?: string;
-  onNavigate: (level: 'root' | 'topic' | 'subtopic', id?: string) => void;
+  onNavigate: (level: BreadcrumbLevel, id?: string) => void;
   className?: string;
 }
 
@@ -30,7 +33,7 @@ export function ExplorationBreadcrumb({
             <li key={item.id} className="flex items-center gap-1">
               {!isFirst && (
                 <ChevronRight
-                  className="size-4 text-muted-foreground"
+                  className="size-4 text-foreground"
                   aria-hidden="true"
                 />
               )}

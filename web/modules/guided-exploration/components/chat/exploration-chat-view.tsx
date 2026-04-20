@@ -34,6 +34,8 @@ interface ExplorationChatViewProps {
   suggestedQuestions?: string[];
   /** When set, restricts the empty-view topic buttons to the assigned study topic. */
   studyTopicLabel?: string;
+  /** Minimum number of directions the user must select (used in study mode). */
+  minDirections?: number;
   onSendMessageAction: (message: string) => void;
   onSubmitChoiceAction: (
     queryId: string,
@@ -58,6 +60,7 @@ export function ExplorationChatView({
   explorationPending,
   suggestedQuestions = [],
   studyTopicLabel,
+  minDirections,
   onSendMessageAction,
   onSubmitChoiceAction,
   onDirectionChoiceAction,
@@ -167,6 +170,7 @@ export function ExplorationChatView({
                 isLoading={isThinking}
                 lastUserMessageIndex={lastUserMessageIndex}
                 lastUserMessageRef={lastUserMessageRef}
+                minDirections={minDirections}
               />
 
               {/* Streaming content with citation mapping */}

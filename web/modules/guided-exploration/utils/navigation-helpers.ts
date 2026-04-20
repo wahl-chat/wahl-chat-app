@@ -47,7 +47,7 @@ export function buildBreadcrumb(
       items.push({
         id: node.id,
         name: node.name,
-        level: isLeaf(node) ? 'subtopic' : 'topic',
+        level: isLeaf(node) ? 'leaf' : 'branch',
       });
     }
   }

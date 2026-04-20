@@ -30,7 +30,7 @@ export function CitationButton({ citation, index }: CitationButtonProps) {
       <TooltipTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center justify-center rounded bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex items-center justify-center rounded bg-muted px-1 py-0.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label={`Quelle ${index}: ${tooltipContent}`}
         >
           [{index}]

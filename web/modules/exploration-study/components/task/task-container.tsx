@@ -159,7 +159,7 @@ export function TaskContainer({
         </div>
         <div className="flex items-center gap-2">
           {!canEnd && (
-            <span className="text-xs text-muted-foreground" aria-hidden="true">
+            <span className="text-xs text-foreground" aria-hidden="true">
               Freigeschaltet in {formatMinutesSeconds(secondsUntilUnlock)}
             </span>
           )}

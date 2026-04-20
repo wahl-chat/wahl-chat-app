@@ -115,7 +115,7 @@ export function DemographicsForm({
           <h1 id="demographics-heading" className="text-2xl font-bold">
             Demografische Angaben
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground">
             Bitte beantworte die folgenden Fragen zu deiner Person.
           </p>
         </div>

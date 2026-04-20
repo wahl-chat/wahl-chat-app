@@ -76,9 +76,7 @@ export function TopicTreePreview({
 
       {/* Tree content */}
       <div className="p-4">
-        <p className="mb-4 text-sm text-muted-foreground">
-          {tree.originalQuery}
-        </p>
+        <p className="mb-4 text-sm text-foreground">{tree.originalQuery}</p>
 
         <div className="space-y-1.5">
           {flatItems.map((item, index) => {
@@ -107,7 +105,7 @@ export function TopicTreePreview({
                     ) : (
                       <>
                         <div className="size-1.5 rounded-full bg-muted-foreground/50" />
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-sm text-foreground">
                           {item.node.name}
                         </span>
                       </>

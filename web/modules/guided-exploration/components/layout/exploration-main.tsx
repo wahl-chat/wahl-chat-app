@@ -318,6 +318,7 @@ export function ExplorationMain({
             topicSwitchSuggestion={topicSwitchSuggestion}
             onAcceptSwitch={acceptTopicSwitch}
             onDismissSwitch={dismissTopicSwitch}
+            onExitToChat={() => handleTabSwitch('chat')}
           />
         ) : !isExplorationLoading ? (
           <ExplorationChatView

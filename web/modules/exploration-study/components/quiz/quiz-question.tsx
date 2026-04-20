@@ -44,7 +44,7 @@ export function QuizQuestion({
     <div className={cn('space-y-4', className)}>
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <p id={metaId} className="text-sm text-muted-foreground">
+          <p id={metaId} className="text-sm text-foreground">
             Frage {questionNumber} von {totalQuestions}
           </p>
           {question.party && <PartyBadge party={question.party} inline />}
@@ -73,7 +73,7 @@ export function QuizQuestion({
               {isDontKnow && (
                 <div className="my-3 flex items-center gap-3">
                   <div className="h-px flex-1 bg-border" />
-                  <span className="text-xs text-muted-foreground">oder</span>
+                  <span className="text-xs text-foreground">oder</span>
                   <div className="h-px flex-1 bg-border" />
                 </div>
               )}
@@ -83,7 +83,7 @@ export function QuizQuestion({
                   'flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors',
                   'hover:border-primary/50 hover:bg-primary/5',
                   selectedIndex === index && 'border-primary bg-primary/5',
-                  isDontKnow && 'border-dashed text-muted-foreground',
+                  isDontKnow && 'border-dashed text-foreground',
                 )}
               >
                 <RadioGroupItem

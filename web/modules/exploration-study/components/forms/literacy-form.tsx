@@ -77,7 +77,7 @@ function MailsRow({ control, fieldKey, itemId, itemText }: MailsRowProps) {
               id={labelId}
               className="pr-8 text-sm font-medium leading-relaxed"
             >
-              <span className="mr-2 text-muted-foreground">{itemId}.</span>
+              <span className="mr-2 text-foreground">{itemId}.</span>
               {itemText}
             </p>
             <FormControl>
@@ -133,7 +133,7 @@ export function LiteracyForm({
           <h1 id="literacy-heading" className="text-2xl font-bold">
             Digitale Kompetenz
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground">
             Bitte beantworte die folgenden Fragen zu deinen Fähigkeiten im
             Umgang mit künstlicher Intelligenz und zu deinem Nachrichtenkonsum.
           </p>
@@ -144,7 +144,7 @@ export function LiteracyForm({
             <h2 className="text-base font-semibold">
               Fähigkeiten im Umgang mit KI
             </h2>
-            <p className="whitespace-pre-line text-sm text-muted-foreground">
+            <p className="whitespace-pre-line text-sm text-foreground">
               {MAILS_SHORT_INTRO}
             </p>
           </div>
@@ -200,10 +200,7 @@ export function LiteracyForm({
                       </>
                     )}
                   </legend>
-                  <p
-                    id={descriptionId}
-                    className="text-sm text-muted-foreground"
-                  >
+                  <p id={descriptionId} className="text-sm text-foreground">
                     Mehrfachauswahl möglich
                   </p>
                   <div className="space-y-2">

@@ -17,9 +17,9 @@ export function ExplorationLoading({
     >
       <Loader2
         aria-hidden="true"
-        className="size-8 animate-spin text-muted-foreground"
+        className="size-8 animate-spin text-foreground"
       />
-      <p className="text-sm text-muted-foreground">{message}</p>
+      <p className="text-sm text-foreground">{message}</p>
     </div>
   );
 }

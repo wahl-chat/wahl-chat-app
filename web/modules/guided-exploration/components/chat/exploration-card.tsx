@@ -33,7 +33,7 @@ export function ExplorationCard({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium">Erkundung gestartet</p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-foreground">
             {message.explorationQuery || message.content}
           </p>
         </div>

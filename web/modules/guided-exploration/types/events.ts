@@ -226,8 +226,7 @@ export interface TopicSwitchSuggestedEvent {
 export interface TopicDirectionItem {
   id: string;
   name: string;
-  description: string;
-  partyStancesPreview: string;
+  hook: string;
   suggestedQuestion: string;
 }
 

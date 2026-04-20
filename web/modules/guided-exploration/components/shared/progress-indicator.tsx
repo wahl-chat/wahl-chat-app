@@ -27,7 +27,7 @@ export function ProgressIndicator({
     return (
       <div className={cn('flex flex-col gap-1', className)}>
         {showLabel && (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-foreground">
             {explored} von {total} erkundet
           </span>
         )}
@@ -44,7 +44,7 @@ export function ProgressIndicator({
     <div className={cn('flex items-center gap-2', className)}>
       <StatusDots explored={explored} total={total} />
       {showLabel && (
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-foreground">
           {explored}/{total}
         </span>
       )}

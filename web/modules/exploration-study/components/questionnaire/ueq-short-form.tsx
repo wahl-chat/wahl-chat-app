@@ -50,7 +50,7 @@ export function UeqShortForm({
       <form onSubmit={handleSubmit} className={cn('space-y-6', className)}>
         <div className="space-y-2">
           <h2 className="text-xl font-semibold">Benutzererfahrung</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground">
             Bitte bewerte das System auf den folgenden Skalen. Wähle für jedes
             Gegensatzpaar den Wert, der deiner Meinung nach am besten zutrifft.
           </p>

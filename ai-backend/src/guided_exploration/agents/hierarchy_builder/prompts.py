@@ -20,7 +20,11 @@ class LLMHierarchyNode(BaseModel):
 
     id: str = Field(
         ...,
-        description="Eindeutige ID, z.B. 'energie' oder 'energie.erneuerbare'",
+        description=(
+            "Eindeutige ID, z.B. 'erneuerbare-energien'. "
+            "Dotted IDs sind nicht noetig — Tiefe wird ueber `children` ausgedrueckt, "
+            "nicht ueber Namensschemata."
+        ),
     )
     name: str = Field(
         ...,
@@ -56,8 +60,11 @@ class HierarchyBuilderLLMOutput(BaseModel):
     nodes: list[LLMHierarchyNode] = Field(
         ...,
         description=(
-            "Top-Level-Knoten des Baums. Typisch 2-5 Hauptbereiche, "
-            "jeder mit 2-5 Unterknoten."
+            "Top-Level-Knoten des Baums. Default ist flach: die Top-Level-Knoten "
+            "SIND die Blaetter. Nur wenn eine Gruppe von Positionen wirklich in "
+            "klar unterscheidbare Cluster zerfaellt, darf ein Top-Level-Knoten "
+            "children haben. Mischungen aus Blatt- und Branch-Knoten auf "
+            "Top-Level sind explizit erlaubt und oft die beste Wahl."
         ),
     )
 
@@ -74,6 +81,8 @@ Wahlkontext: {context_name}
 
 {party_context}
 
+{study_mode_block}
+
 # Aufgabe
 Organisiere die konkreten Parteipositionen in eine navigierbare \
 Baumstruktur fuer blinde und sehbehinderte Nutzer.
@@ -84,49 +93,67 @@ Schau dir ZUERST die Positionen an, dann organisiere sie in eine sinnvolle Hiera
 
 # Strukturregeln
 
-## 1. Adaptive Zerlegung
-Waehle die Zerlegungsart die am besten zum Inhalt passt:
-- **Thematisch**: Energie, Verkehr, Gebaeude (wenn Positionen natuerlich in Unterbereiche fallen)
-- **Nach Politiktyp**: Ziele, Massnahmen, Finanzierung (wenn Positionen verschiedene Dimensionen abdecken)
-- **Hybrid**: Mischung aus beidem (oft am besten)
+## 1. Flach ist der Default
+- Starte IMMER mit einer flachen Liste von Blattknoten auf Top-Level.
+- Jeder Top-Level-Knoten ist ein Gespraechseinstieg (Blatt) — kein Ordner
+  mit Unterthemen.
+- Gruppiere nur dann in Unterknoten, wenn die Positionen in EINEM Blatt
+  aus Nutzersicht zu heterogen waeren, um ein fokussiertes Gespraech zu
+  fuehren (z.B. "Klima" waere zu gross, aber "CO2-Preis" und "Verkehr"
+  sind natuerliche separate Blaetter — also zwei Top-Level-Blaetter,
+  keine Klima-Mutter mit zwei Kindern).
+- Mischungen sind explizit erlaubt: ein Baum kann 3 Blaetter auf
+  Top-Level haben und ein Thema davon noch einmal in 2 Unter-Blaetter
+  aufteilen. Symmetrie ist KEIN Qualitaetsmerkmal.
 
-## 2. Tiefe: 2-3 Ebenen
-- Ebene 1: Hauptbereiche (2-5 Knoten)
-- Ebene 2: Unterbereiche (2-5 pro Hauptbereich)
-- Ebene 3: Nur wenn noetig (bei sehr detailreichen Bereichen)
-- Tiefe darf variieren: Ein Hauptbereich kann 3 Ebenen haben, ein anderer nur 2
+## 2. Tiefe: adaptiv (1-3 Ebenen)
+- Default-Tiefe = 1 Ebene (nur Blaetter).
+- Tiefe > 1 nur wenn eine sinnvolle Teilung nicht anders geht.
+- Erzwinge keine kuenstliche Tiefe — "Klima und Energie" als Branch mit
+  zwei Kindern ist fast immer schlechter als zwei Top-Level-Blaetter.
 
-## 3. Blaetter = BREITE Vergleichspunkte (WICHTIGSTE REGEL!)
-Jeder Blattknoten muss BREIT genug sein fuer eine tiefere Exploration.
-- Mindestens 4-5 Positionen pro Blatt, idealerweise mehr
-- Mindestens 2 Parteien pro Blatt (idealerweise alle)
-- Jede Position muss GENAU EINEM Blatt zugeordnet werden
-- LIEBER weniger, breitere Blaetter als viele enge mit nur 1-2 Positionen!
+## 3. Blaetter = Gespraechseinstiege
+Jeder Blattknoten ist ein Einstiegspunkt fuer ein Gespraech, kein Fakten-Dump.
+- Positionen von MINDESTENS 2 Parteien pro Blatt (idealerweise alle).
+- Jede Position gehoert zu GENAU EINEM Blatt.
+- Kleine Datasets (z.B. 2-3 Positionen pro Blatt) sind voellig in Ordnung,
+  solange das Blatt zwei Parteien vergleicht.
+- Ein einzelnes Blatt mit allen Positionen eines Subthemas ist akzeptabel.
 
-FALSCH: "Klimaneutralitaet 2035" (zu eng, nur 1-2 Positionen pro Partei)
-RICHTIG: "Klimaziele und Zeitplaene" (breit genug fuer 4+ Positionen pro Partei)
+## 4. Namen: kurz, konkret, eigenstaendig verstaendlich
+- Maximal 2-4 Woerter pro Name.
+- Konkret genug, dass ein Screenreader-Nutzer ohne Kontext weiss, worum es geht.
+- KEINE Koordinationsformulierungen wie "X und Y" — das sind zwei Themen, mach zwei Blaetter.
+- FALSCH: "Sonstiges", "Weiteres", "Klima und Energie", "Soziale Gerechtigkeit und Arbeit"
+- RICHTIG: "CO2-Preis", "Erneuerbare Energien", "Bürgergeld", "Rente"
 
-## 4. KEINE duennen Blaetter
-Jedes Blatt MUSS mindestens 4 Positionen von mindestens 2 Parteien haben.
-Wenn ein Thema zu wenig Positionen hat: mit verwandten Positionen zusammenlegen!
-Positionen die nicht gut passen: in ein breiteres Blatt einordnen, nicht weglassen.
-
-## 5. Beschreibende Namen (Barrierefreiheit!)
-Ein Screenreader-Nutzer navigiert den Baum nur ueber die Namen.
-- FALSCH: "Sonstiges", "Weiteres", "Massnahmen"
-- RICHTIG: "Erneuerbare Energien und Ausbau", "CO2-Bepreisung und Emissionshandel"
-
-## 6. position_indices NUR bei Blaettern
+## 5. position_indices NUR bei Blaettern
 - Branch-Knoten (mit children): position_indices = [] (leer!)
 - Blatt-Knoten (ohne children): position_indices = [0, 3, 7, ...] (zugeordnete Positionen)
 
 # Qualitaetspruefung
 Bevor du antwortest, pruefe:
-1. Hat jeder Blattknoten mindestens 4 Positionen? Wenn nicht: zusammenlegen!
-2. Hat jeder Blattknoten Positionen von mindestens 2 Parteien?
-3. Sind die Namen fuer Screenreader verstaendlich?
-4. Sind alle Positionen zugeordnet (keine vergessen)?
-5. Wuerde ein Nutzer bei jedem Blatt genug Material fuer Folgefragen finden?"""
+1. Hat jeder Blattknoten Positionen von mindestens 2 Parteien?
+2. Sind die Namen fuer Screenreader verstaendlich?
+3. Sind alle Positionen zugeordnet (keine vergessen)?
+4. Wuerde die Struktur auch ganz flach gut funktionieren? Wenn ja, MACH sie flach.
+5. Hat jeder Branch-Knoten mindestens 2 Kinder? Einkindige Branches
+   sind immer falsch — mach das Kind zum Top-Level-Blatt stattdessen."""
+
+STUDY_MODE_BLOCK = """# STUDIEN-MODUS (HARTE REGEL — UEBERSCHREIBT ALLES ANDERE)
+Dies ist eine Nutzerstudie mit 10 Minuten Zeitbudget.
+
+- Gib GENAU 2 oder 3 Top-Level-Knoten zurueck. Keine weniger, keine mehr.
+- ALLE Top-Level-Knoten muessen BLAETTER sein. `children` ist IMMER leer.
+- KEINE Verschachtelung. KEINE Branch-Knoten. KEINE Ebenen tiefer als 1.
+- Jeder Blattknoten braucht Positionen von mindestens 2 Parteien.
+- Verteile ALLE Positionen auf die 2-3 Blaetter.
+- Waehle die 2-3 Themen, die sich am staerksten zwischen den Parteien unterscheiden
+  und echten Vergleich erlauben.
+"""
+
+STUDY_MODE_BLOCK_EMPTY = ""
+
 
 CONSTRUCTION_PROMPT = """Organisiere diese {position_count} Parteipositionen in einen \
 navigierbaren Vergleichsbaum:
@@ -138,15 +165,28 @@ Benutzeranfrage: {query}
 
 # Aufgabe
 1. Lies ALLE Positionen durch
-2. Finde natuerliche Gruppierungen (thematisch, nach Politiktyp, oder hybrid)
-3. Baue eine 2-3-stufige Hierarchie
+2. Finde natuerliche Gespraechseinstiege (Blaetter) — jedes Blatt ist ein
+   fokussiertes Thema, an dem sich Parteien vergleichen lassen
+3. Default: alle Blaetter auf Top-Level (flache Liste). Baue Unterknoten
+   nur, wenn ein Blatt sonst zu heterogen waere.
 4. Ordne JEDE Position genau einem Blattknoten zu (ueber position_indices, 0-basiert)
 
 Wichtig:
-- Jeder Blattknoten braucht MINDESTENS 4 Positionen von mindestens 2 Parteien
-- Lieber wenige breite Blaetter als viele enge!
+- Jeder Blattknoten braucht Positionen von mindestens 2 Parteien
+- Keine einkindigen Branches — dann lieber direkt als Top-Level-Blatt
+- Mischbaum ist OK: manche Top-Level-Knoten koennen Blaetter sein,
+  andere Branches mit eigenen Kindern
 - Alle Positionen muessen zugeordnet werden
-- Namen muessen fuer Screenreader eigenstaendig verstaendlich sein"""
+- Namen muessen fuer Screenreader eigenstaendig verstaendlich sein
+
+{study_mode_reminder}"""
+
+STUDY_MODE_REMINDER = (
+    "STUDIEN-MODUS AKTIV: Gib GENAU 2 oder 3 Top-Level-BLAETTER zurueck. "
+    "Keine Verschachtelung. Keine Branches. `children` bleibt leer. "
+    "Verteile alle Positionen auf diese 2-3 Blaetter."
+)
+STUDY_MODE_REMINDER_EMPTY = ""
 
 
 def format_positions_for_prompt(

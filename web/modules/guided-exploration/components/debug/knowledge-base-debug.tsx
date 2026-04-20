@@ -99,7 +99,7 @@ export function KnowledgeBaseDebug({
             )}
             {data && (
               <div className="space-y-4 pr-4">
-                <div className="font-mono text-xs text-muted-foreground">
+                <div className="font-mono text-xs text-foreground">
                   {data.explorationId}
                 </div>
 
@@ -108,7 +108,7 @@ export function KnowledgeBaseDebug({
                     <CollapsibleTrigger className="-mx-2 flex w-full items-center gap-2 rounded p-2 text-left hover:bg-muted/50">
                       <ChevronRight className="size-4 transition-transform [[data-state=open]>&]:rotate-90" />
                       <span className="font-semibold">{node.name}</span>
-                      <span className="ml-auto text-xs text-muted-foreground">
+                      <span className="ml-auto text-xs text-foreground">
                         {node.children.length} children
                       </span>
                     </CollapsibleTrigger>
@@ -118,12 +118,12 @@ export function KnowledgeBaseDebug({
                           <CollapsibleTrigger className="-mx-2 flex w-full items-center gap-2 rounded px-2 py-1 text-left hover:bg-muted/50">
                             <ChevronRight className="size-3 transition-transform [[data-state=open]>&]:rotate-90" />
                             <span className="text-sm">{child.name}</span>
-                            <span className="ml-auto text-xs text-muted-foreground">
+                            <span className="ml-auto text-xs text-foreground">
                               {child.positionIds.length} positions
                             </span>
                           </CollapsibleTrigger>
                           <CollapsibleContent className="pb-3 pt-2">
-                            <p className="pl-4 text-xs text-muted-foreground">
+                            <p className="pl-4 text-xs text-foreground">
                               Parties: {child.partyIds.join(', ')}
                             </p>
                           </CollapsibleContent>

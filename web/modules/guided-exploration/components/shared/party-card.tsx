@@ -66,11 +66,13 @@ export function PartyCard({
         </div>
 
         {/* Party name - visible to all users */}
-        <span className="text-sm font-semibold">{displayName}</span>
+        <span className="text-base font-bold text-foreground">
+          {displayName}
+        </span>
 
         {/* Streaming indicator */}
         {isStreaming && (
-          <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="ml-auto flex items-center gap-1.5 text-xs text-foreground">
             <span className="size-1.5 animate-pulse rounded-full bg-primary" />
             <span className="sr-only">Wird geladen</span>
           </span>

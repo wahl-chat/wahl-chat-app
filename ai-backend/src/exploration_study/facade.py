@@ -110,16 +110,18 @@ class ExplorationStudyFacade:
                 f"Cannot generate quiz without conversation history."
             )
 
-        # Size the quiz to the participant's actual exposure: 1/5 of the
-        # positions they encountered, clamped to [5, 15]. Scoring is deferred
-        # to analysis time (see questionnaire-plan.md §Page 7).
+        # Size the quiz to the participant's actual exposure: 1/3 of the
+        # positions they encountered, clamped to [5, 10]. The smaller upper
+        # bound reflects the trimmed dataset (2 subtopics × 3 claims per
+        # party). Scoring is deferred to analysis time (see
+        # questionnaire-plan.md §Page 7).
         study_session = await self._session_repo.get_session(session_id)
         visited_count = (
             len(study_session.condition.positions_encountered)
             if study_session and study_session.condition
             else 0
         )
-        num_questions = max(5, min(15, visited_count // 5))
+        num_questions = max(5, min(10, visited_count // 3))
 
         # Start quiz generation in background
         self._quiz_generator.start_quiz_generation(

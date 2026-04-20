@@ -30,9 +30,7 @@ export function TaskIntro({
   return (
     <div className="mx-auto w-full max-w-2xl space-y-8 p-4">
       <header className="space-y-1">
-        <p className="text-sm font-medium text-muted-foreground">
-          Deine Aufgabe
-        </p>
+        <p className="text-sm font-medium text-foreground">Deine Aufgabe</p>
         <h1 className="text-2xl font-bold">{topicInfo.title}</h1>
       </header>
 
@@ -50,16 +48,16 @@ export function TaskIntro({
         <h2 id="notes-heading" className="text-lg font-semibold">
           Hinweise
         </h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-foreground">
           {condition === 'guided'
             ? 'Du erkundest das Thema gemeinsam mit der KI. Sie bietet dir passende Erkundungen an, in denen du die Parteipositionen Schritt für Schritt vergleichen kannst.'
             : 'Du chattest frei mit der KI und stellst ihr deine Fragen zu den Parteipositionen.'}
         </p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-foreground">
           Du hast {durationMinutes} Minuten Zeit — nimm dir so viel davon, wie
           du brauchst, um einen guten Überblick zu bekommen.
         </p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-foreground">
           Versuche, die wichtigsten Positionen zu verstehen und Gemeinsamkeiten
           sowie Unterschiede zu erkennen. Im Anschluss beantwortest du ein paar
           Wissensfragen zu den Parteipositionen — sei also so vorbereitet, dass

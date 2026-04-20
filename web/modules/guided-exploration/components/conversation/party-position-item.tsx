@@ -27,7 +27,7 @@ export function PartyPositionItem({
   return (
     <li className="list-none">
       <PartyCard partyId={position.party}>
-        <div className="prose prose-sm max-w-none dark:prose-invert">
+        <div className="prose prose-sm max-w-none text-foreground dark:prose-invert prose-p:font-normal prose-p:text-foreground">
           <CitationMarkdown
             onReferenceClick={handleReferenceClick}
             getReferenceName={getReferenceName}

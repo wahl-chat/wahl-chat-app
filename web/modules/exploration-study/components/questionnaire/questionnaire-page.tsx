@@ -91,7 +91,7 @@ export function QuestionnairePage({
         >
           Fragebogen
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-foreground">
           Teil {PHASE_NUMBERS[phase]} von 3: {PHASE_LABELS[phase]}
         </p>
       </div>
