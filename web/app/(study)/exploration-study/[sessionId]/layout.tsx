@@ -71,21 +71,34 @@ export default function StudySessionLayout({
 
   if (isLoading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      <main className="flex min-h-dvh items-center justify-center">
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-col items-center gap-4"
+        >
+          <Loader2
+            aria-hidden="true"
+            className="size-8 animate-spin text-muted-foreground"
+          />
           <p className="text-sm text-muted-foreground">Wird geladen...</p>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-dvh items-center justify-center p-4">
+      <main
+        role="alert"
+        className="flex min-h-dvh items-center justify-center p-4"
+      >
         <div className="w-full max-w-md rounded-lg border bg-card p-6 text-center shadow-sm">
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-destructive/10">
-            <AlertCircle className="size-6 text-destructive" />
+            <AlertCircle
+              aria-hidden="true"
+              className="size-6 text-destructive"
+            />
           </div>
           <h1 className="text-xl font-semibold">Ein Fehler ist aufgetreten</h1>
           <p className="mt-2 text-sm text-muted-foreground">{error}</p>
@@ -94,24 +107,24 @@ export default function StudySessionLayout({
             className="mt-6 gap-2"
             onClick={() => window.location.reload()}
           >
-            <RefreshCw className="size-4" />
+            <RefreshCw aria-hidden="true" className="size-4" />
             Erneut versuchen
           </Button>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (!session) {
     return (
-      <div className="flex min-h-dvh items-center justify-center">
+      <main className="flex min-h-dvh items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Studie nicht gefunden</h1>
           <p className="mt-2 text-muted-foreground">
             Die angegebene Studien-ID existiert nicht.
           </p>
         </div>
-      </div>
+      </main>
     );
   }
 

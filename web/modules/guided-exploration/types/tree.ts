@@ -37,7 +37,14 @@ export interface ExplorationNode {
   partyIds: string[];
   /** Position IDs assigned to this leaf. Empty for branch nodes */
   positionIds: string[];
-  status: 'pending' | 'explored';
+  /**
+   * Exploration status.
+   * - `pending`: no content generated yet
+   * - `loaded`: content pre-generated (study eager pre-gen) but user hasn't opened it
+   * - `started`: user has opened the leaf
+   * - `explored`: user marked the leaf as done
+   */
+  status: 'pending' | 'loaded' | 'started' | 'explored';
 }
 
 /** Complete exploration tree with position-based hierarchy */

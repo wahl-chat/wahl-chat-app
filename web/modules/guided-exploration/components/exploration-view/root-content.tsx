@@ -41,44 +41,40 @@ export function RootContent({
 
       {/* Flat layout: all children are leaves */}
       {hasOnlyLeaves && (
-        <div
-          className="flex flex-col gap-4"
-          role="list"
+        <ul
+          className="flex list-none flex-col gap-4"
           aria-label="Verfügbare Themen"
         >
           {tree.root.children.map((node) => (
-            <SubtopicItem
-              key={node.id}
-              node={node}
-              onClick={() => onTopicSelect(node.id)}
-            />
+            <li key={node.id}>
+              <SubtopicItem
+                node={node}
+                onClick={() => onTopicSelect(node.id)}
+              />
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
       {/* Nested layout: children are branches */}
       {!hasOnlyLeaves && (
-        <div
-          className="grid gap-4 sm:grid-cols-2"
-          role="list"
+        <ul
+          className="grid list-none gap-4 sm:grid-cols-2"
           aria-label="Verfügbare Themen"
         >
-          {tree.root.children.map((node) =>
-            isLeaf(node) ? (
-              <SubtopicItem
-                key={node.id}
-                node={node}
-                onClick={() => onTopicSelect(node.id)}
-              />
-            ) : (
-              <TopicCard
-                key={node.id}
-                node={node}
-                onClick={() => onTopicSelect(node.id)}
-              />
-            ),
-          )}
-        </div>
+          {tree.root.children.map((node) => (
+            <li key={node.id}>
+              {isLeaf(node) ? (
+                <SubtopicItem
+                  node={node}
+                  onClick={() => onTopicSelect(node.id)}
+                />
+              ) : (
+                <TopicCard node={node} onClick={() => onTopicSelect(node.id)} />
+              )}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

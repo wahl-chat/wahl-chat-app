@@ -56,7 +56,6 @@ export interface TopicTreeEvent {
   explorationId: string;
   tree: ExplorationTree;
   navigation: NavigationState;
-  isUpdate: boolean;
 }
 
 export interface TopicOverviewEvent {

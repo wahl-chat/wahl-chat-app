@@ -16,6 +16,7 @@ from src.guided_exploration.agents.message_classifier.prompts import (
     MESSAGE_CLASSIFICATION_PROMPT,
     SYSTEM_PROMPT,
     format_conversation_context,
+    format_last_assistant_block,
 )
 
 
@@ -35,7 +36,6 @@ class MessageClassifierAgent(
     - NAVIGATION_COMMAND: Handle navigation in orchestrator
     - ANALYSIS_REQUEST: Route to AnalyzerAgent
     - SUMMARY_REQUEST: Route to SummaryGeneratorAgent
-    - UNCLEAR: May need clarification
     """
 
     def __init__(self, llm_provider: LLMProvider):
@@ -54,12 +54,14 @@ class MessageClassifierAgent(
 
         # Format conversation context
         conversation_context = format_conversation_context(input.conversation_history)
+        last_assistant_block = format_last_assistant_block(input.last_assistant_message)
 
         # Build user message
         user_prompt = MESSAGE_CLASSIFICATION_PROMPT.format(
             message=input.message,
             context_name=input.context_name,
             current_leaf_id=input.current_leaf_id or "Keins",
+            last_assistant_block=last_assistant_block,
             conversation_context=conversation_context,
         )
 

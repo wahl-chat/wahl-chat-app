@@ -32,6 +32,10 @@ export interface RatingScaleProps {
    * Id of the error message element, wired into aria-describedby when set.
    */
   describedById?: string;
+  /**
+   * When true, the radiogroup is marked as required for screen readers.
+   */
+  required?: boolean;
 }
 
 export const RatingScale = forwardRef<HTMLDivElement, RatingScaleProps>(
@@ -50,6 +54,7 @@ export const RatingScale = forwardRef<HTMLDivElement, RatingScaleProps>(
       className,
       invalid,
       describedById,
+      required,
     },
     ref,
   ) {
@@ -93,6 +98,7 @@ export const RatingScale = forwardRef<HTMLDivElement, RatingScaleProps>(
         aria-labelledby={labelledBy}
         aria-invalid={invalid || undefined}
         aria-describedby={describedById}
+        aria-required={required || undefined}
         className={cn('space-y-2 outline-none', className)}
         onBlur={onBlur}
       >
@@ -125,11 +131,10 @@ export const RatingScale = forwardRef<HTMLDivElement, RatingScaleProps>(
                 className={cn(
                   'flex items-center justify-center rounded-full border-2 text-sm transition-colors',
                   size === 'sm' ? 'size-7' : 'size-8',
-                  'hover:border-primary hover:bg-primary/10',
                   'peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2',
                   value === option
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-muted-foreground/30 bg-background',
+                    ? 'border-primary bg-primary text-primary-foreground hover:border-muted-foreground/30 hover:bg-muted hover:text-foreground'
+                    : 'border-muted-foreground/30 bg-background hover:border-primary hover:bg-primary/10',
                 )}
               >
                 {option}

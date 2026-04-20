@@ -135,10 +135,15 @@ class StudyPositionsRAG:
         for local_idx in top_local:
             global_idx = int(indices[local_idx])
             pos = self._positions[global_idx]
+            # Merge claim + argument into a single content blob. The LLM
+            # sees both as one continuous piece of text — the split only
+            # exists for authoring discipline, the sources-page UI, and
+            # the quiz (which focuses on the declarative claims).
+            merged_content = f"{pos['claim']}\n\n{pos['argument']}"
             chunks.append(
                 RetrievedChunk(
                     chunk_id=pos["id"],
-                    content=pos["content"],
+                    content=merged_content,
                     party_id=pos["party_id"],
                     source_document=f"{pos['party_id'].title()}-Wahlprogramm",
                     source_section=None,

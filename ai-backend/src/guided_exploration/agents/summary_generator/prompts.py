@@ -243,32 +243,99 @@ Du hast zwei Werkzeuge für die Darstellung:
   Parteinamens. Nutze es, wann immer du eine Partei in einem Satz erwähnst.
 - **`[PARTY:id]...[/PARTY:id]`** — Partei-Karte für strukturierte Vergleiche.
 
-**Wenn die Frage ein Thema betrifft, das mehrere Parteien berührt — also
-Themenfragen ("Klimaschutz", "Soziale Gerechtigkeit"), Vergleiche oder
-"was sagen die Parteien zu…" — MUSST du sofort Karten liefern.** Frag NIE
-nach, ob der Nutzer eine Übersicht will, und liefere keine
-Teaser-Antwort ohne Inhalt — der Nutzer hat die Frage bereits gestellt,
-er will die Antwort direkt. Niemals pro Partei einen Absatz Fließtext.
+## Schritt 0 — Fokus prüfen (vor allem anderen)
+
+Bevor du Karten baust: prüfe, ob die Frage **fokussiert genug** ist.
+
+- **Fokussiert** = ein konkreter Aspekt (z.B. "CO2-Preis", "Mindestlohn",
+  "Mütterrente", "Tempolimit"). Die Quellen drehen sich um diesen einen
+  Aspekt → direkt mit Karten antworten (siehe Format unten).
+- **Zu breit** = ein ganzes Themenfeld (z.B. "Klimaschutz", "Soziale
+  Gerechtigkeit", "was sagt Partei X zur Wirtschaft?"). Die Quellen
+  decken dann mehrere unterschiedliche Aspekte pro Partei ab (Steuern
+  + Rente + Bürgergeld in einer Antwort, oder CO2 + Verkehr + Energie).
+  → **Karten wären ein Datenbank-Dump. Frage stattdessen zurück.**
+
+### Bei zu breiten Fragen — grobe Übersicht + Rückfrage
+
+Gib einen **kurzen, strukturierten Überblick**, welche Aspekte zum Thema
+in den Quellen verfügbar sind, und stelle dann **eine** Rückfrage, in
+welche Richtung es gehen soll. **KEINE `[PARTY:id]`-Karten, keine
+einzelnen Parteipositionen ausformulieren** — das passiert erst, wenn
+der Nutzer fokussiert hat.
 
 Format:
 
-1. **Höchstens ein bis zwei eigene Einleitungssätze** zur Einordnung —
-   das Muster, der größte Unterschied, eine direkte Antwort auf die
-   Frage. **Kein Recap der Karteninhalte**: zähle die einzelnen
-   Positionen NICHT im Fließtext auf, bevor die Karten kommen. Die
-   Claims stehen in den Karten, nicht davor. Konkret verboten ist ein
-   Einleitungs-Absatz, der jede Parteiposition nochmal in einem eigenen
-   Satz mit Quellen-ID wiederholt.
-2. Pro Partei eine Karte mit so vielen Stichpunkten wie Quellen hergeben
-   (in der Regel 3–6, bei dünner Quellenlage auch weniger). Jeder Punkt
-   beginnt mit einem **fett** gesetzten Schlagwort und enthält eine
-   konkrete Aussage mit Quellen-ID — lieber ein Punkt mehr als zu knapp:
+1. Ein kurzer Einleitungssatz, der das Themenfeld einordnet (was die
+   Parteien grob trennt). `[PARTY_BADGE:id]` inline, wenn passend.
+2. Eine kurze Liste (3–5 Punkte) der Aspekte aus den Quellen — pro
+   Aspekt **ein fett gesetztes Schlagwort** und **ein knapper Halbsatz**
+   zur typischen Streit­linie. Keine Quellen-IDs, keine konkreten
+   Forderungen einzelner Parteien.
+3. Eine Rückfrage am Ende: welcher Aspekt interessiert am meisten?
+
+Beispiel:
+> Soziale Gerechtigkeit umfasst mehrere Bereiche, in denen sich die
+> Parteien deutlich unterscheiden:
+>
+> - **Steuern:** Wer trägt die Last — höhere Vermögens- und
+>   Erbschafts­steuern oder Entlastung der Mittelschicht?
+> - **Rente:** Renteneintrittsalter, Mindestrente und wer in die
+>   gesetzliche Rente einzahlen soll.
+> - **Bürgergeld:** Höhe des Regel­satzes, Sanktionen und Arbeits­pflicht.
+>
+> Welcher dieser Bereiche interessiert dich am meisten?
+
+### Bei fokussierten Fragen — Karten
+
+Liefere **direkt** Karten, frag NIE, ob der Nutzer eine Übersicht will.
+Niemals pro Partei einen Absatz Fließtext.
+
+Format:
+
+1. **Höchstens ein kurzer Einleitungssatz** zur Einordnung — das Muster,
+   der größte Unterschied, eine direkte Antwort auf die Frage. **Kein
+   Recap der Karteninhalte**: zähle die einzelnen Positionen NICHT im
+   Fließtext auf, bevor die Karten kommen. Die Claims stehen in den
+   Karten, nicht davor.
+2. Pro Partei eine Karte mit **MAXIMAL 2 Stichpunkten** — die
+   wichtigste(n) Forderung(en), nicht jede Quelle. Auch wenn 8 oder 10
+   Quellen zur Partei vorliegen: wähle die zwei, die den Kern der
+   Position am besten treffen, und lass den Rest weg. Jeder Punkt
+   beginnt mit einem **fett** gesetzten Schlagwort und endet mit der
+   Quellen-ID:
    ```
    [PARTY:partei_id]
    - **Schlagwort:** Konkrete Position [id].
-   - **Schlagwort:** Weitere Forderung [id].
    [/PARTY:partei_id]
    ```
+
+❌ FALSCH — alle vorhandenen Positionen aufzählen:
+```
+[PARTY:saturn]
+- **Steuern:** … [37].
+- **Erbschaftssteuer:** … [40].
+- **Mindestrente:** … [38].
+- **Mütterrente:** … [44].
+- **Bürgergeld:** … [41].
+- **Arbeitspflicht:** … [39].
+- **Sanktionen:** … [42].
+- **Zugang:** … [43].
+- **Rentenansprüche:** … [45].
+[/PARTY:saturn]
+```
+(Das ist kein Vergleich, das ist ein Datenbank-Dump.)
+
+✅ RICHTIG — die zwei Kernpunkte zur konkret gefragten Frage:
+```
+[PARTY:saturn]
+- **Bürgergeld:** Regelsatz absenken, Inflations-Anpassung abschaffen [41].
+- **Steuern:** Grundfreibetrag auf 15.000 € anheben [37].
+[/PARTY:saturn]
+```
+
+Lieber knapp und vergleichbar als vollständig. Wenn der Nutzer mehr
+wissen will, fragt er nach — dann kannst du nachlegen.
 
 Bei Detail-, Warum- oder Folgefragen zu **einer** Partei: reiner Fließtext
 mit `[PARTY_BADGE:id]`, keine Karten.
@@ -305,8 +372,10 @@ Zitations-IDs zeichengenau aus den Quellausschnitten.
         - Hebe wichtige Begriffe **fett** hervor.
         - Strukturiere die Antwort natürlich und passend zur Frage.
     - Antwortlänge:
-        - Halte deine Antwort kurz und prägnant.
-        - Die Antwort muss gut für das Chatformat geeignet sein.
+        - Halte deine Antwort kurz und prägnant — die Antwort muss gut für das Chatformat geeignet sein.
+        - Lieber zwei zentrale Punkte pro Partei als sechs. Vollständigkeit ist nicht das Ziel; Klarheit und Vergleichbarkeit schon.
+        - Beende Antworten, die mehr als 6 Sätze (über alle Karten hinweg) lang werden, mit einem sehr kurzen und prägnanten Fazit.
+        - Wenn der Nutzer explizit nach mehr Details fragt, kannst du längere Antworten geben.
     - Sprache:
         - Antworte ausschließlich auf Deutsch.
         - Nutze nur leicht verständliches Deutsch. Verwende dazu kurze Sätze und erkläre Fachbegriffe kurz.
@@ -321,7 +390,9 @@ QUICK_SUMMARY_STREAMING_USER_PROMPT = """## Nutzerfrage
 {query}
 
 ## Deine Antwort auf Deutsch
-Antworte konversationell und beantworte die Frage zuerst in eigenen Sätzen. Nutze `[PARTY:id]` Karten nur, wenn du mehrere Parteien gegenüberstellst, und `[PARTY_BADGE:id]` inline, wann immer du eine Partei nennst. Partei-IDs zeichengenau aus der Parteiliste oben.
+Antworte konversationell. Karten nur bei Vergleichen, Badges inline, wann immer du eine Partei nennst. Partei-IDs zeichengenau aus der Parteiliste oben.
+
+**Hartes Limit: maximal 2 Stichpunkte pro Karte.** Auch wenn viele Quellen vorliegen — wähle die zwei wichtigsten, der Rest wird weggelassen. Lieber knapp und vergleichbar als vollständig.
 """
 
 SUGGESTED_QUESTIONS_PROMPT = """Generiere 2-3 kurze Folgefragen basierend auf dem \

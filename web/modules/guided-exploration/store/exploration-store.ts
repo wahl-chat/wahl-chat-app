@@ -8,6 +8,10 @@ import { devtools, subscribeWithSelector } from 'zustand/middleware';
 
 import type { BreadcrumbItem } from '@/modules/guided-exploration/types';
 import {
+  countExploredLeaves,
+  countLeaves,
+} from '@/modules/guided-exploration/utils/tree-helpers';
+import {
   connectionReducer,
   explorationReducer,
   initialConnectionState,
@@ -134,6 +138,10 @@ export const selectConversation =
 export const selectAnalysisAvailable = (state: ExplorationStore) =>
   state.exploration.analysisAvailable;
 
+/** Get the lifecycle status of the current exploration */
+export const selectExplorationStatus = (state: ExplorationStore) =>
+  state.exploration.status;
+
 /** Get current app mode */
 export const selectMode = (state: ExplorationStore) => state.ui.mode;
 
@@ -197,26 +205,18 @@ export const selectIsGeneratingSummary =
   (nodeId: string) => (state: ExplorationStore) =>
     state.summaries.generatingIds.includes(nodeId);
 
-/** Count explored leaves (leaves with summaries) */
-export const selectExploredCount = (state: ExplorationStore) =>
-  Object.keys(state.summaries.summaries).length;
+/** Count explored leaves (leaves where status === 'explored') */
+export const selectExploredCount = (state: ExplorationStore) => {
+  const tree = state.exploration.tree;
+  if (!tree) return 0;
+  return countExploredLeaves(tree);
+};
 
 /** Count total leaves in tree */
 export const selectTotalLeavesCount = (state: ExplorationStore) => {
   const tree = state.exploration.tree;
   if (!tree) return 0;
-
-  const countLeaves = (node: {
-    children: Array<{ children: unknown[] }>;
-  }): number =>
-    node.children.reduce(
-      (acc: number, child) =>
-        child.children.length === 0
-          ? acc + 1
-          : acc + countLeaves(child as typeof node),
-      0,
-    );
-  return countLeaves(tree.root);
+  return countLeaves(tree);
 };
 
 /** Get exploration progress as fraction */

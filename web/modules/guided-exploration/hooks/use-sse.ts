@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { explorationApi } from '@/modules/guided-exploration/services/exploration-api';
 import {
@@ -26,6 +26,7 @@ import type {
   AnalysisResultEvent,
   ChatMessageEvent,
   ChoicePromptEvent,
+  Citation,
   ConversationMessageEvent,
   ConversationOpenedEvent,
   ErrorEvent,
@@ -37,6 +38,7 @@ import type {
   SessionMessage,
   StreamChunkEvent,
   StreamEndEvent,
+  SubtopicContent,
   SummaryGeneratingEvent,
   ThinkingEvent,
   TopicDirectionsEvent,
@@ -44,6 +46,39 @@ import type {
   TopicSwitchSuggestedEvent,
   TopicTreeEvent,
 } from '@/modules/guided-exploration/types';
+import { buildBreadcrumb } from '@/modules/guided-exploration/utils';
+
+const CLIENT_ID_STORAGE_KEY = 'guided-exploration:client-id';
+
+// One stable id per browser tab (sessionStorage), reused across StrictMode
+// remounts and EventSource auto-reconnects. The backend uses it to tell a
+// same-tab reconnect (silent replace) apart from a real cross-tab claim
+// (session_claimed event).
+function getOrCreateClientId(): string {
+  if (typeof window === 'undefined') return '';
+  const existing = window.sessionStorage.getItem(CLIENT_ID_STORAGE_KEY);
+  if (existing) return existing;
+  const fresh = crypto.randomUUID();
+  window.sessionStorage.setItem(CLIENT_ID_STORAGE_KEY, fresh);
+  return fresh;
+}
+
+// Backend occasionally emits the same source twice in the citations array
+// (one reference per party position that quotes it). Deduplicate by id so
+// downstream consumers can safely use the id as a React key.
+function dedupeCitations<T extends { id: string } = Citation>(
+  citations: readonly T[] | undefined,
+): T[] | undefined {
+  if (!citations) return citations;
+  const seen = new Set<string>();
+  const unique: T[] = [];
+  for (const c of citations) {
+    if (seen.has(c.id)) continue;
+    seen.add(c.id);
+    unique.push(c);
+  }
+  return unique;
+}
 
 export interface UseSSEOptions {
   /** Whether to auto-connect when sessionId changes */
@@ -76,6 +111,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
     (s) => s.connection.sessionClaimed,
   );
 
+  const clientId = useMemo(() => getOrCreateClientId(), []);
   const clientRef = useRef<SSEClient | null>(null);
   // Use refs for callbacks to avoid recreating the SSE client
   const dispatchRef = useRef(dispatch);
@@ -101,7 +137,9 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
                 'Sitzung wurde in einem anderen Tab geöffnet',
             ),
           );
-          // Disconnect the client since another tab claimed the session
+          // The backend only emits session_claimed for a genuine cross-tab
+          // claim (different client_id). Stop reconnecting — the new tab
+          // is now the canonical session.
           clientRef.current?.disconnect();
           break;
         }
@@ -123,48 +161,36 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
 
         case 'topic_tree': {
           const treeEvent = event as TopicTreeEvent;
-          console.log(
-            '[SSE] topic_tree received:',
-            treeEvent.explorationId,
-            'isUpdate:',
-            treeEvent.isUpdate,
+          // Use treeReceived to show preview - don't end thinking yet
+          // Wait for exploration_ready event before navigating
+          dispatchRef.current(
+            explorationActions.treeReceived(
+              treeEvent.explorationId,
+              treeEvent.tree,
+            ),
           );
-          if (treeEvent.isUpdate) {
-            dispatchRef.current(explorationActions.treeUpdated(treeEvent.tree));
-          } else {
-            // Use treeReceived to show preview - don't end thinking yet
-            // Wait for exploration_ready event before navigating
-            dispatchRef.current(
-              explorationActions.treeReceived(
-                treeEvent.explorationId,
-                treeEvent.tree,
-              ),
-            );
-            // Add exploration tab with truncated query as label
-            const query = treeEvent.tree.originalQuery || 'Erkundung';
-            const label =
-              query.length > 30 ? `${query.slice(0, 27)}...` : query;
-            const tabCount = Object.keys(
-              useExplorationStore.getState().session.explorationTabs,
-            ).length;
-            dispatchRef.current(
-              sessionActions.explorationTabAdded(
-                treeEvent.explorationId,
-                label,
-                tabCount % 6,
-              ),
-            );
-            dispatchRef.current(
-              uiActions.announce('Themenbaum wird vorbereitet'),
-            );
-          }
+          // Add exploration tab with truncated query as label
+          const query = treeEvent.tree.originalQuery || 'Erkundung';
+          const label = query.length > 30 ? `${query.slice(0, 27)}...` : query;
+          const tabCount = Object.keys(
+            useExplorationStore.getState().session.explorationTabs,
+          ).length;
+          dispatchRef.current(
+            sessionActions.explorationTabAdded(
+              treeEvent.explorationId,
+              label,
+              tabCount % 6,
+            ),
+          );
+          dispatchRef.current(
+            uiActions.announce('Themenbaum wird vorbereitet'),
+          );
           // Don't end thinking - wait for exploration_ready
           break;
         }
 
         case 'exploration_ready': {
           const readyEvent = event as ExplorationReadyEvent;
-          console.log('[SSE] exploration_ready received:', readyEvent);
           dispatchRef.current(
             explorationActions.ready(
               readyEvent.explorationId,
@@ -207,10 +233,29 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
 
         case 'conversation_opened': {
           const convEvent = event as ConversationOpenedEvent;
+          const dedupedConversation = {
+            ...convEvent.conversation,
+            messages: convEvent.conversation.messages.map((m) => {
+              if (
+                m.type !== 'initial_content' ||
+                typeof m.content === 'string'
+              ) {
+                return m;
+              }
+              const sub = m.content as SubtopicContent;
+              return {
+                ...m,
+                content: {
+                  ...sub,
+                  citations: dedupeCitations(sub.citations) ?? sub.citations,
+                },
+              };
+            }),
+          };
           dispatchRef.current(
             explorationActions.navigatedToLeaf(
               convEvent.leafId,
-              convEvent.conversation,
+              dedupedConversation,
               convEvent.navigation,
               convEvent.analysisAvailable,
             ),
@@ -241,10 +286,13 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
             break;
           }
 
-          // Attach citations from event to the message
+          // Attach citations from event to the message, deduped so the
+          // citations list doesn't render two <li>s with the same key.
           const messageWithCitations = {
             ...msgEvent.message,
-            citations: msgEvent.citations ?? msgEvent.message.citations,
+            citations: dedupeCitations(
+              msgEvent.citations ?? msgEvent.message.citations,
+            ),
           };
           // Clear stream buffer before adding final message (prevents flash)
           dispatchRef.current(streamActions.bufferCleared());
@@ -265,18 +313,13 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           }
           // End thinking after receiving a message
           dispatchRef.current(uiActions.thinkingEnded());
-          if (msgEvent.navigation) {
-            // Only handle actual navigation changes (e.g. from navigation commands)
-            // Don't change view for regular follow-up responses
-            const path = msgEvent.navigation.currentPath;
-            if (path.length === 0) {
-              dispatchRef.current(
-                explorationActions.navigatedToRoot(msgEvent.navigation),
-              );
-            }
-            // Don't dispatch branch/leaf navigation here — it disrupts
-            // the current leaf view when follow-up messages arrive
-          }
+          // Intentionally do NOT dispatch any navigation action here.
+          // `conversation_message` arrives for routine follow-up replies on a
+          // leaf; the backend's `navigation` field often echoes an empty
+          // `currentPath`, which previously kicked the view back to root
+          // mid-conversation. First-load navigation comes via
+          // `conversation_opened`; explicit navigation commands flow through
+          // their own events.
           dispatchRef.current(uiActions.announce('Neue Nachricht erhalten'));
           break;
         }
@@ -307,13 +350,12 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
 
         case 'quick_summary': {
           const quickEvent = event as QuickSummaryEvent;
-          console.log('[SSE] quick_summary citations:', quickEvent.citations);
           dispatchRef.current(
             uiActions.quickSummaryReceived({
               queryId: quickEvent.queryId,
               originalQuery: quickEvent.originalQuery,
               text: quickEvent.text,
-              citations: quickEvent.citations,
+              citations: dedupeCitations(quickEvent.citations) ?? [],
               canExploreDeeper: quickEvent.canExploreDeeper,
               suggestedQuestions: quickEvent.suggestedQuestions,
             }),
@@ -338,7 +380,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
             id: chatEvent.messageId,
             type: 'assistant',
             content: chatEvent.content,
-            citations: chatEvent.citations,
+            citations: dedupeCitations(chatEvent.citations),
             timestamp: new Date().toISOString(),
           };
           // Clear stream buffer before adding message (prevents duplicate)
@@ -361,15 +403,6 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           const chunkEvent = event as StreamChunkEvent;
           // Start stream if this is first chunk
           if (chunkEvent.chunkIndex === 0) {
-            console.log(
-              '[SSE Handler] Raw chunk event:',
-              JSON.stringify(chunkEvent),
-            );
-            console.log('[SSE Handler] Dispatching STREAM_STARTED with:', {
-              streamId: chunkEvent.streamId,
-              targetType: chunkEvent.targetType,
-              targetId: chunkEvent.targetId,
-            });
             // End thinking when streaming starts - show content instead of spinner
             dispatchRef.current(uiActions.thinkingEnded());
             dispatchRef.current(
@@ -444,6 +477,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
 
         case 'exploration_complete': {
           const completeEvent = event as ExplorationCompleteEvent;
+          dispatchRef.current(explorationActions.statusUpdated('completed'));
           dispatchRef.current(
             uiActions.announce(
               `Exploration abgeschlossen: ${completeEvent.stats.topicsExplored} von ${completeEvent.stats.topicsTotal} Themen erkundet`,
@@ -519,14 +553,17 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
   // Auto-connect when sessionId changes
   useEffect(() => {
     if (autoConnect && sessionId && clientRef.current) {
-      clientRef.current.connect(sessionId);
+      clientRef.current.connect(sessionId, clientId);
     }
-  }, [autoConnect, sessionId]);
+  }, [autoConnect, sessionId, clientId]);
 
   // Connect function
-  const connect = useCallback((newSessionId: string) => {
-    clientRef.current?.connect(newSessionId);
-  }, []);
+  const connect = useCallback(
+    (newSessionId: string) => {
+      clientRef.current?.connect(newSessionId, clientId);
+    },
+    [clientId],
+  );
 
   // Disconnect function
   const disconnect = useCallback(() => {
@@ -544,14 +581,27 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
       dispatchRef.current(connectionActions.connecting());
       const sessionData = await explorationApi.getSession(sessionId);
 
-      // 2. Restore exploration state if there was an active exploration
-      if (sessionData.activeExploration) {
-        const { id } = sessionData.activeExploration;
-        dispatchRef.current(sessionActions.loaded(sessionId, id));
+      // 2. Restore session and exploration state
+      const activeExp = sessionData.activeExploration;
+      dispatchRef.current(sessionActions.loaded(sessionId, activeExp?.id));
+      if (activeExp) {
+        const initialBreadcrumb = buildBreadcrumb(activeExp.tree, []);
+        dispatchRef.current(
+          explorationActions.started(
+            activeExp.id,
+            activeExp.tree,
+            {
+              explorationId: activeExp.id,
+              currentPath: [],
+              breadcrumb: initialBreadcrumb,
+            },
+            activeExp.status,
+          ),
+        );
       }
 
       // 3. Reconnect to SSE stream
-      clientRef.current?.connect(sessionId);
+      clientRef.current?.connect(sessionId, clientId);
 
       dispatchRef.current(uiActions.announce('Verbindung wiederhergestellt'));
     } catch (error) {
@@ -567,7 +617,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
       );
       throw error;
     }
-  }, [sessionId]);
+  }, [sessionId, clientId]);
 
   return {
     connect,

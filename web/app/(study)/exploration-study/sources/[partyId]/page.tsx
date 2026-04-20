@@ -9,7 +9,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 type PartyClaim = {
   id: string;
-  content: string;
+  claim: string;
+  argument: string;
 };
 
 type PartySubtopic = {
@@ -147,7 +148,7 @@ export default function PartySourcesPage() {
         className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur"
         style={{ borderTopColor: party.background_color, borderTopWidth: 4 }}
       >
-        <div className="mx-auto flex max-w-3xl items-center gap-4 px-4 py-4">
+        <div className="mx-auto flex max-w-3xl items-center gap-4 p-4">
           <Button
             variant="ghost"
             size="icon"
@@ -225,12 +226,22 @@ export default function PartySourcesPage() {
                             id={claim.id}
                             tabIndex={-1}
                             data-claim-number={claimCounter}
-                            className="group scroll-mt-28 rounded-md border bg-card p-4 text-sm outline-none transition-colors data-[highlight=true]:border-primary data-[highlight=true]:bg-primary/5 data-[highlight=true]:ring-2 data-[highlight=true]:ring-primary focus-visible:ring-2 focus-visible:ring-primary"
+                            className="group scroll-mt-28 rounded-md border bg-card p-4 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary data-[highlight=true]:border-primary data-[highlight=true]:bg-primary/5 data-[highlight=true]:ring-2 data-[highlight=true]:ring-primary"
                           >
                             <div className="mb-1 text-xs font-medium text-muted-foreground">
                               Quelle {claimCounter}
                             </div>
-                            <p>{claim.content}</p>
+                            <p>{claim.claim}</p>
+                            {claim.argument ? (
+                              <details className="mt-3">
+                                <summary className="cursor-pointer select-none text-xs font-medium text-muted-foreground hover:text-foreground">
+                                  Warum?
+                                </summary>
+                                <p className="mt-2 text-sm text-muted-foreground">
+                                  {claim.argument}
+                                </p>
+                              </details>
+                            ) : null}
                           </li>
                         );
                       })}

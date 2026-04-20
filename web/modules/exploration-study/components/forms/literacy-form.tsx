@@ -4,7 +4,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormMessage,
@@ -14,20 +13,21 @@ import { cn } from '@/lib/utils';
 import { FormItemCard } from '@/modules/exploration-study/components/shared/form-item-card';
 import { RatingScale } from '@/modules/exploration-study/components/shared/rating-scale';
 import { SubmitButton } from '@/modules/exploration-study/components/shared/submit-button';
+import type { LiteracyFormValues } from '@/modules/exploration-study/schemas/forms';
+import { literacySchema } from '@/modules/exploration-study/schemas/forms';
+import type {
+  LiteracyData,
+  MailsShortData,
+  NewsSource,
+} from '@/modules/exploration-study/types';
 import {
-  type LiteracyFormValues,
-  literacySchema,
-} from '@/modules/exploration-study/schemas/forms';
-import {
-  type LiteracyData,
   MAILS_SHORT_INTRO,
   MAILS_SHORT_ITEMS,
-  type MailsShortData,
-  type NewsSource,
 } from '@/modules/exploration-study/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle2 } from 'lucide-react';
-import { type Control, useForm } from 'react-hook-form';
+import type { Control } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 
 export interface LiteracyFormProps {
   onSubmit: (data: LiteracyData) => Promise<void>;
@@ -93,6 +93,7 @@ function MailsRow({ control, fieldKey, itemId, itemText }: MailsRowProps) {
                 highAnchor="(nahezu) perfekt"
                 labelledById={labelId}
                 invalid={!!fieldState.error}
+                required
                 className="mt-3"
               />
             </FormControl>
@@ -123,9 +124,15 @@ export function LiteracyForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit} className={cn('space-y-8', className)}>
+      <form
+        onSubmit={handleSubmit}
+        aria-labelledby="literacy-heading"
+        className={cn('space-y-8', className)}
+      >
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold">Digitale Kompetenz</h1>
+          <h1 id="literacy-heading" className="text-2xl font-bold">
+            Digitale Kompetenz
+          </h1>
           <p className="text-sm text-muted-foreground">
             Bitte beantworte die folgenden Fragen zu deinen Fähigkeiten im
             Umgang mit künstlicher Intelligenz und zu deinem Nachrichtenkonsum.
@@ -167,25 +174,39 @@ export function LiteracyForm({
                 field.onChange([...value, source]);
               }
             };
+            const errorId = 'news-consumption-error';
+            const descriptionId = 'news-consumption-description';
             return (
               <FormItem>
-                <fieldset className="space-y-3">
+                <fieldset
+                  className="space-y-3"
+                  aria-invalid={!!fieldState.error}
+                  aria-describedby={
+                    fieldState.error
+                      ? `${descriptionId} ${errorId}`
+                      : descriptionId
+                  }
+                >
                   <legend className="inline-flex items-center gap-1.5 text-sm font-medium">
                     Über welche Quellen informierst du dich über politische
                     Themen?
                     {answered && (
-                      <CheckCircle2
-                        className="size-4 text-primary"
-                        aria-label="ausgefüllt"
-                      />
+                      <>
+                        <CheckCircle2
+                          className="size-4 text-primary"
+                          aria-hidden="true"
+                        />
+                        <span className="sr-only">(ausgefüllt)</span>
+                      </>
                     )}
                   </legend>
-                  <FormDescription>Mehrfachauswahl möglich</FormDescription>
-                  <div
-                    role="group"
-                    aria-invalid={!!fieldState.error}
-                    className="space-y-2"
+                  <p
+                    id={descriptionId}
+                    className="text-sm text-muted-foreground"
                   >
+                    Mehrfachauswahl möglich
+                  </p>
+                  <div className="space-y-2">
                     {NEWS_SOURCE_OPTIONS.map((option) => {
                       const checked = value.includes(option.value);
                       const checkboxId = `news-source-${option.value}`;
@@ -214,7 +235,7 @@ export function LiteracyForm({
                       );
                     })}
                   </div>
-                  <FormMessage />
+                  <FormMessage id={errorId} />
                 </fieldset>
               </FormItem>
             );

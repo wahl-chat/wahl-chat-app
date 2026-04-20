@@ -7,7 +7,7 @@ import type {
   QuestionnaireData,
   UeqData,
 } from '@/modules/exploration-study/types';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ManipulationChecksForm } from './manipulation-checks-form';
 import { NasaTlxForm } from './nasa-tlx-form';
 import { UeqShortForm } from './ueq-short-form';
@@ -26,6 +26,12 @@ const PHASE_NUMBERS: Record<Phase, number> = {
   'manipulation-checks': 3,
 };
 
+const PHASE_LABELS: Record<Phase, string> = {
+  'nasa-tlx': 'Arbeitsbelastung',
+  ueq: 'Benutzererfahrung',
+  'manipulation-checks': 'Allgemeine Einschätzung',
+};
+
 export function QuestionnairePage({
   onSubmit,
   isSubmitting = false,
@@ -34,6 +40,16 @@ export function QuestionnairePage({
   const [phase, setPhase] = useState<Phase>('nasa-tlx');
   const [nasaTlxData, setNasaTlxData] = useState<NasaTlxData | null>(null);
   const [ueqData, setUeqData] = useState<UeqData | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    requestAnimationFrame(() => headingRef.current?.focus());
+  }, [phase]);
 
   const handleNasaTlxSubmit = (data: NasaTlxData) => {
     setNasaTlxData(data);
@@ -59,10 +75,24 @@ export function QuestionnairePage({
 
   return (
     <div className={cn('mx-auto w-full max-w-2xl', className)}>
+      <div
+        role="status"
+        aria-live="assertive"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {`Fragebogen Teil ${PHASE_NUMBERS[phase]} von 3: ${PHASE_LABELS[phase]}`}
+      </div>
       <div className="mb-6 space-y-2">
-        <h1 className="text-2xl font-bold">Fragebogen</h1>
+        <h1
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-2xl font-bold outline-none"
+        >
+          Fragebogen
+        </h1>
         <p className="text-sm text-muted-foreground">
-          Teil {PHASE_NUMBERS[phase]} von 3
+          Teil {PHASE_NUMBERS[phase]} von 3: {PHASE_LABELS[phase]}
         </p>
       </div>
 

@@ -29,6 +29,14 @@ class MessageClassifierInput(BaseModel):
         default_factory=list,
         description="Previous messages for context (to resolve back-references)",
     )
+    last_assistant_message: str | None = Field(
+        default=None,
+        description=(
+            "The most recent assistant turn in full (untruncated). Surfaced "
+            "separately so short affirmations like 'gerne' or 'ja' can be "
+            "resolved against the specific question the assistant just asked."
+        ),
+    )
 
 
 class MessageClassifierOutput(BaseModel):

@@ -81,19 +81,30 @@ export function QuizDisplay({
     [currentQuestion],
   );
 
+  const focusCurrentQuestionHeading = useCallback(() => {
+    requestAnimationFrame(() => {
+      const heading = document.querySelector<HTMLHeadingElement>(
+        '[data-quiz-question-heading]',
+      );
+      heading?.focus();
+    });
+  }, []);
+
   const handleNext = useCallback(() => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
       questionStartTime.current = Date.now();
+      focusCurrentQuestionHeading();
     }
-  }, [currentIndex, questions.length]);
+  }, [currentIndex, questions.length, focusCurrentQuestionHeading]);
 
   const handlePrevious = useCallback(() => {
     if (currentIndex > 0) {
       setCurrentIndex((prev) => prev - 1);
       questionStartTime.current = Date.now();
+      focusCurrentQuestionHeading();
     }
-  }, [currentIndex]);
+  }, [currentIndex, focusCurrentQuestionHeading]);
 
   const handleSubmit = useCallback(async () => {
     const answersArray = Array.from(answers.values());
@@ -109,12 +120,17 @@ export function QuizDisplay({
   if (isLoading) {
     return (
       <div
+        role="status"
+        aria-live="polite"
         className={cn(
           'flex flex-col items-center justify-center space-y-4 py-12',
           className,
         )}
       >
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        <Loader2
+          aria-hidden="true"
+          className="size-8 animate-spin text-muted-foreground"
+        />
         <div className="text-center">
           <h2 className="text-lg font-medium">Quiz wird vorbereitet...</h2>
           <p className="text-sm text-muted-foreground">
@@ -135,8 +151,20 @@ export function QuizDisplay({
         </p>
       </div>
 
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {currentQuestion
+          ? `Frage ${currentIndex + 1} von ${questions.length}: ${currentQuestion.question.replace(/\[PARTY_BADGE:([\w-]+)\]/g, '$1')}`
+          : ''}
+      </div>
+
       {currentQuestion && (
         <QuizQuestion
+          key={currentQuestion.id}
           question={currentQuestion}
           questionNumber={currentIndex + 1}
           totalQuestions={questions.length}
@@ -154,7 +182,11 @@ export function QuizDisplay({
           Zurück
         </Button>
 
-        <div className="text-sm text-muted-foreground">
+        <div
+          role="status"
+          aria-live="polite"
+          className="text-sm text-muted-foreground"
+        >
           {answers.size} von {questions.length} beantwortet
         </div>
 

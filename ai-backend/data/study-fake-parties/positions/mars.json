@@ -3,280 +3,88 @@
     "id": "mars-klima-001",
     "party_id": "mars",
     "topic": "klimaschutz",
-    "subtopic": "ziele-und-governance",
-    "content": "Die Mars-Partei steht zum Ziel der Klimaneutralität bis 2045, weil dieser Zeitrahmen ambitioniert, aber realistisch ist und Wirtschaft und Gesellschaft Planungssicherheit gibt. Anstatt überstürzter Ausstiegsdaten setzen wir auf einen geordneten Übergang, der den Industriestandort Deutschland nicht gefährdet."
-  },
-  {
-    "id": "mars-klima-002",
-    "party_id": "mars",
-    "topic": "klimaschutz",
     "subtopic": "co2-preis",
-    "content": "Wir setzen auf einen marktwirtschaftlichen Rahmen mit dem europäischen Emissionshandel als Leitinstrument. Die Wirtschaft behält die Freiheit, den effizientesten Weg zur Zielerreichung selbst zu wählen – Verbote sind das letzte, nicht das erste Mittel."
+    "claim": "Der europäische Emissionshandel bleibt das Leitinstrument deutscher Klimapolitik.",
+    "argument": "Er kombiniert verlässliche Zielerreichung mit der Freiheit der Wirtschaft, den günstigsten Weg selbst zu wählen – Verbote sind das letzte Mittel."
   },
   {
     "id": "mars-klima-003",
     "party_id": "mars",
     "topic": "klimaschutz",
-    "subtopic": "ziele-und-governance",
-    "content": "Ein unabhängiger Sachverständigenrat für Klimafragen überprüft die Fortschritte und gibt Empfehlungen für Nachsteuerung. Anstatt politischer Tagesentscheidungen brauchen wir ein evidenzbasiertes Steuerungsmodell, das Verlässlichkeit für Industrie und Bürger schafft."
-  },
-  {
-    "id": "mars-klima-004",
-    "party_id": "mars",
-    "topic": "klimaschutz",
-    "subtopic": "energieerzeugung",
-    "content": "Der Ausbau von Wind- und Solarenergie muss beschleunigt werden, unterstützt durch deutlich kürzere Genehmigungsverfahren. Eine Genehmigung darf nicht mehr Jahre dauern, sondern muss innerhalb von zwölf Monaten entschieden werden – das ist entscheidend für Investitionssicherheit."
-  },
-  {
-    "id": "mars-klima-005",
-    "party_id": "mars",
-    "topic": "klimaschutz",
-    "subtopic": "energieerzeugung",
-    "content": "Kommunen, die Windräder oder Solarparks auf ihrem Gebiet akzeptieren, erhalten eine direkte finanzielle Beteiligung an den Erträgen. Nur wenn die Menschen vor Ort einen unmittelbaren Nutzen haben, wird die Energiewende auf breite Akzeptanz stoßen."
-  },
-  {
-    "id": "mars-klima-006",
-    "party_id": "mars",
-    "topic": "klimaschutz",
-    "subtopic": "energieerzeugung",
-    "content": "Bis die erneuerbaren Energien den gesamten Bedarf decken können, brauchen wir verlässliche Brückentechnologien. Moderne Gaskraftwerke, die später auf Wasserstoff umgerüstet werden können, sichern die Versorgung in wind- und sonnenarmen Zeiten und halten die Preise stabil."
-  },
-  {
-    "id": "mars-klima-007",
-    "party_id": "mars",
-    "topic": "klimaschutz",
-    "subtopic": "industrie",
-    "content": "Deutschland soll zum Leitmarkt für grünen Wasserstoff werden. Wir fordern massive Investitionen in die Wasserstoffinfrastruktur – Pipelines, Elektrolyseure und Importpartnerschaften – damit Industrie und Schwerlastverkehr klimaneutral werden können, ohne dass Wertschöpfung das Land verlässt."
-  },
-  {
-    "id": "mars-klima-008",
-    "party_id": "mars",
-    "topic": "klimaschutz",
-    "subtopic": "energieerzeugung",
-    "content": "Der Kohleausstieg erfolgt marktgetrieben bis spätestens 2038, begleitet von einem Strukturstärkungsgesetz für die betroffenen Regionen. Anstatt überstürzter Schließungen sichern wir den Strukturwandel mit verlässlichen Investitionen ab und halten die Versorgungssicherheit stabil."
-  },
-  {
-    "id": "mars-klima-009",
-    "party_id": "mars",
-    "topic": "klimaschutz",
-    "subtopic": "verkehr",
-    "content": "Bei der Mobilität setzen wir auf Technologieoffenheit statt Verbote. Elektromobilität wird eine zentrale Rolle spielen, aber auch synthetische Kraftstoffe und Wasserstoffantriebe haben ihre Berechtigung – das Verbot des Verbrennungsmotors muss überprüft werden."
+    "subtopic": "co2-preis",
+    "claim": "Die CO2-Einnahmen fließen über eine Senkung von Stromsteuer und EEG-Umlage an Bürger und Industrie zurück.",
+    "argument": "Mittelstand und Industrie brauchen bezahlbaren Strom – günstigere Energiepreise entlasten breiter als ein bürokratisches Klimageld."
   },
   {
     "id": "mars-klima-010",
     "party_id": "mars",
     "topic": "klimaschutz",
-    "subtopic": "verkehr",
-    "content": "Wir fordern den Ausbau der Ladeinfrastruktur auf 500.000 öffentliche Ladepunkte bis 2030, damit der Umstieg auf Elektromobilität für normale Familien machbar wird. Anstatt Verbote auszusprechen, schaffen wir attraktive Angebote."
-  },
-  {
-    "id": "mars-klima-011",
-    "party_id": "mars",
-    "topic": "klimaschutz",
-    "subtopic": "verkehr",
-    "content": "Das Deutschlandticket wird stabilisiert und dauerhaft finanziert, damit der öffentliche Verkehr für Berufspendler attraktiv bleibt. Anstatt ständiger Preisunsicherheit brauchen die Bürger eine verlässliche Grundlage für ihre Mobilitätsentscheidungen."
-  },
-  {
-    "id": "mars-klima-012",
-    "party_id": "mars",
-    "topic": "klimaschutz",
-    "subtopic": "verkehr",
-    "content": "Der Schienennetz-Ausbau wird mit einem Sondervermögen von 50 Milliarden Euro vorangetrieben, weil ein leistungsfähiges Bahnnetz das Rückgrat einer modernen Wirtschaft ist. Mehr Verkehr auf die Schiene heißt weniger Emissionen ohne Verbote für Autofahrer."
-  },
-  {
-    "id": "mars-klima-013",
-    "party_id": "mars",
-    "topic": "klimaschutz",
-    "subtopic": "verkehr",
-    "content": "Ein generelles Tempolimit auf Autobahnen lehnen wir ab, weil es einen unverhältnismäßigen Eingriff in die Mobilitätsfreiheit darstellt. Stattdessen setzen wir auf intelligente Verkehrsleitsysteme und situationsangepasste Geschwindigkeitsregelungen."
-  },
-  {
-    "id": "mars-klima-014",
-    "party_id": "mars",
-    "topic": "klimaschutz",
-    "subtopic": "industrie",
-    "content": "Die deutsche Industrie ist nicht das Problem, sondern Teil der Lösung. Wir fordern Klimaschutzverträge zwischen Staat und Industrie, die die Mehrkosten klimafreundlicher Produktion ausgleichen und Investitionssicherheit schaffen – Arbeitsplätze in der Industrie sind nicht verhandelbar."
-  },
-  {
-    "id": "mars-klima-015",
-    "party_id": "mars",
-    "topic": "klimaschutz",
     "subtopic": "co2-preis",
-    "content": "Wir brauchen einen wirksamen Carbon-Border-Adjustment-Mechanismus, der verhindert, dass energieintensive Produktion einfach in Länder mit niedrigeren Umweltstandards verlagert wird. Anstatt einseitiger Belastungen für die deutsche Industrie schaffen wir faire internationale Wettbewerbsbedingungen."
+    "claim": "Ein CO2-Grenzausgleich (CBAM) wird zügig auf Stahl, Zement und Chemie ausgeweitet.",
+    "argument": "Ohne Zoll auf CO2-intensive Importe verlieren deutsche Werke gegen Produktion aus Ländern ohne Klimaauflagen – CBAM ist industriepolitische Notwendigkeit."
   },
   {
-    "id": "mars-klima-016",
+    "id": "mars-klima-004",
     "party_id": "mars",
     "topic": "klimaschutz",
-    "subtopic": "industrie",
-    "content": "Die Transformation der Stahl-, Zement- und Chemieindustrie wird durch gezielte Forschungsförderung und den beschleunigten Aufbau einer Wasserstoffwirtschaft unterstützt. Diese Schlüsselbranchen sind das Fundament unseres Wohlstands und müssen im Land gehalten werden."
+    "subtopic": "verkehr",
+    "claim": "Beim Antrieb setzen wir auf Technologieoffenheit statt auf ein starres Verbrenner-Verbot 2035.",
+    "argument": "Niemand weiß heute, welcher Antrieb 2040 der effizienteste ist – E-Mobilität, Wasserstoff und synthetische Kraftstoffe sollten im Wettbewerb entschieden werden."
   },
   {
-    "id": "mars-klima-017",
+    "id": "mars-klima-006",
     "party_id": "mars",
     "topic": "klimaschutz",
-    "subtopic": "ziele-und-governance",
-    "content": "Wir fordern ein nationales Klimaanpassungsgesetz mit verbindlichen Standards für Hochwasserschutz, Trinkwasserversorgung und Schutz vor Hitze. Die Flutkatastrophe im Ahrtal hat gezeigt, wie verheerend mangelnde Vorsorge sein kann."
-  },
-  {
-    "id": "mars-klima-018",
-    "party_id": "mars",
-    "topic": "klimaschutz",
-    "subtopic": "industrie",
-    "content": "Die Strompreise für die Industrie müssen dauerhaft wettbewerbsfähig sein. Wir fordern eine sofortige Senkung der Stromsteuer auf das europäische Mindestniveau und einen Industriestrompreis für energieintensive Betriebe, solange klimaneutrale Verfahren noch nicht wirtschaftlich sind."
-  },
-  {
-    "id": "mars-klima-019",
-    "party_id": "mars",
-    "topic": "klimaschutz",
-    "subtopic": "ziele-und-governance",
-    "content": "Klimaschutz ist eine globale Aufgabe – ohne internationale Partnerschaften und Technologietransfer werden wir die Ziele nicht erreichen. Deutschland soll als Innovationsführer Technologien exportieren und so seinen größten Hebel zum globalen Klimaschutz nutzen."
-  },
-  {
-    "id": "mars-klima-020",
-    "party_id": "mars",
-    "topic": "klimaschutz",
-    "subtopic": "gebaeude-und-waerme",
-    "content": "Das Heizungsgesetz muss in seiner aktuellen Form deutlich entschärft werden, weil es Eigentümer und Mieter überfordert. Wir setzen auf Technologieoffenheit, längere Übergangsfristen und eine Förderung, die sozialverträglich statt strafend wirkt."
-  },
-  {
-    "id": "mars-sozial-001",
-    "party_id": "mars",
-    "topic": "soziale-gerechtigkeit",
-    "subtopic": "buergergeld",
-    "content": "Das Bürgergeld in seiner aktuellen Form muss grundlegend reformiert werden, weil es zu schwache Anreize setzt, Arbeit aufzunehmen. Wir fordern strengere Mitwirkungspflichten, verbindliche Termine beim Jobcenter und spürbare Leistungskürzungen bei wiederholter Arbeitsverweigerung."
-  },
-  {
-    "id": "mars-sozial-002",
-    "party_id": "mars",
-    "topic": "soziale-gerechtigkeit",
-    "subtopic": "buergergeld",
-    "content": "Wer eine zumutbare Arbeit dauerhaft ablehnt, muss mit einer Kürzung des Regelsatzes um bis zu 30 Prozent rechnen. Anstatt bedingungsloser Leistungen knüpfen wir den Bezug konsequent an die Bereitschaft, sich aktiv um Arbeit zu bemühen – Fordern und Fördern gehören zusammen."
-  },
-  {
-    "id": "mars-sozial-003",
-    "party_id": "mars",
-    "topic": "soziale-gerechtigkeit",
-    "subtopic": "buergergeld",
-    "content": "Die Schonvermögen im Bürgergeld müssen wieder spürbar gesenkt werden, damit die Leistung bedürftigkeitsgeprüft und zielgenau ausgezahlt wird. Anstatt Haushalte mit erheblichem Eigenvermögen zu alimentieren, konzentrieren wir die Hilfe auf diejenigen, die wirklich bedürftig sind."
+    "subtopic": "verkehr",
+    "claim": "Ein generelles Tempolimit auf Autobahnen lehnen wir ab.",
+    "argument": "Der Einspareffekt ist gering, der Eingriff in den Alltag der Pendler groß – echte Emissionssenkung kommt aus Technologie, nicht aus Verbot."
   },
   {
     "id": "mars-sozial-004",
     "party_id": "mars",
     "topic": "soziale-gerechtigkeit",
-    "subtopic": "migration-und-integration",
-    "content": "Die Migration in die deutschen Sozialsysteme muss konsequent begrenzt werden. Wir fordern, dass Asylbewerber in den ersten Jahren vorrangig Sachleistungen erhalten, und dass abgelehnte Asylbewerber zügig und rechtsstaatlich zurückgeführt werden."
+    "subtopic": "rente",
+    "claim": "Wir halten am Drei-Säulen-Modell aus gesetzlicher, betrieblicher und privater Rente fest.",
+    "argument": "Ein einziger Staatsfonds reicht nicht aus – Streuung macht die Altersvorsorge robust gegen Krisen und demografische Schocks."
   },
   {
     "id": "mars-sozial-005",
     "party_id": "mars",
     "topic": "soziale-gerechtigkeit",
-    "subtopic": "migration-und-integration",
-    "content": "Wir setzen auf gezielte Fachkräftezuwanderung nach klaren Kriterien – Qualifikation, Sprachkenntnisse und Integrationsbereitschaft. Humanitäre Verpflichtungen erkennen wir an, aber die Steuerung unserer Einwanderungspolitik darf nicht de facto an Schleuser abgegeben werden."
-  },
-  {
-    "id": "mars-sozial-006",
-    "party_id": "mars",
-    "topic": "soziale-gerechtigkeit",
-    "subtopic": "bildung-und-familie",
-    "content": "Wir wollen Familien gezielt entlasten, nicht pauschal. Das Kindergeld wird moderat angehoben, und der steuerliche Kinderfreibetrag wird erhöht, damit Familien mit mittleren Einkommen am Ende spürbar mehr im Portemonnaie haben."
-  },
-  {
-    "id": "mars-sozial-007",
-    "party_id": "mars",
-    "topic": "soziale-gerechtigkeit",
-    "subtopic": "bildung-und-familie",
-    "content": "Jedes Kind muss einen verlässlichen Betreuungsplatz haben, aber wir setzen auf den Ausbau durch Länder und Kommunen, nicht durch zentrale Vorgaben des Bundes. Die Wahlfreiheit der Eltern zwischen Krippe, Tagespflege und familiärer Betreuung bleibt erhalten."
-  },
-  {
-    "id": "mars-sozial-008",
-    "party_id": "mars",
-    "topic": "soziale-gerechtigkeit",
-    "subtopic": "arbeit-und-loehne",
-    "content": "Der Mindestlohn wird von der unabhängigen Mindestlohnkommission festgelegt, so wie es das Gesetz vorsieht. Wir lehnen politisch festgesetzte Sprünge nach oben ab, weil sie kleine und mittlere Betriebe überfordern und Arbeitsplätze kosten können."
-  },
-  {
-    "id": "mars-sozial-009",
-    "party_id": "mars",
-    "topic": "soziale-gerechtigkeit",
-    "subtopic": "staat-und-wirtschaft",
-    "content": "Das Lieferkettensorgfaltspflichtengesetz muss abgeschafft werden, weil es deutsche Unternehmen mit bürokratischen Berichtspflichten überzieht, während außereuropäische Wettbewerber keine vergleichbaren Auflagen erfüllen müssen. Der Schutz von Menschenrechten in globalen Lieferketten lässt sich besser über freiwillige Brancheninitiativen und europäische Regelungen erreichen als durch einseitige nationale Bürokratie."
+    "subtopic": "rente",
+    "claim": "Das gesetzliche Rentenniveau wird bei 48 Prozent stabilisiert, aber nicht weiter angehoben.",
+    "argument": "Jede Niveau-Anhebung zahlt die junge Generation – Generationengerechtigkeit verbietet Wahlgeschenke an heutige Rentner."
   },
   {
     "id": "mars-sozial-010",
     "party_id": "mars",
     "topic": "soziale-gerechtigkeit",
-    "subtopic": "steuern-und-abgaben",
-    "content": "Der Solidaritätszuschlag muss für alle verbliebenen Zahler sofort und vollständig abgeschafft werden. Es kann nicht sein, dass ausgerechnet die Leistungsträger unserer Gesellschaft – Facharbeiter, Handwerksmeister und Fachkräfte im oberen Einkommensbereich – dauerhaft eine Sondersteuer tragen, deren ursprüngliche Begründung längst entfallen ist. Zusätzlich wird die kalte Progression automatisch ausgeglichen, damit Leistung sich wieder lohnt."
-  },
-  {
-    "id": "mars-sozial-011",
-    "party_id": "mars",
-    "topic": "soziale-gerechtigkeit",
-    "subtopic": "steuern-und-abgaben",
-    "content": "Eine Vermögenssteuer lehnen wir kategorisch ab. Bei der Erbschaftssteuer halten wir an der bestehenden Schonung von Betriebsvermögen unverändert fest: Familienunternehmen dürfen nicht zerschlagen werden, wenn sie von einer Generation an die nächste übergehen. Anstatt erfolgreiche deutsche Unternehmerfamilien im Erbgang zu bestrafen, sichern wir den Fortbestand unserer mittelständischen Strukturen über Generationen hinweg."
-  },
-  {
-    "id": "mars-sozial-012",
-    "party_id": "mars",
-    "topic": "soziale-gerechtigkeit",
-    "subtopic": "wohnen",
-    "content": "Wir fordern 350.000 neue Wohnungen pro Jahr – vorrangig durch Abbau von Bauvorschriften, serielles Bauen und schnellere Genehmigungen. Anstatt auf Mietendeckel oder Enteignungen zu setzen, schaffen wir mehr Angebot und stabilisieren so die Preise."
-  },
-  {
-    "id": "mars-sozial-013",
-    "party_id": "mars",
-    "topic": "soziale-gerechtigkeit",
-    "subtopic": "wohnen",
-    "content": "Wir fördern den Erwerb von Wohneigentum durch eine Senkung der Grunderwerbsteuer für Erstkäufer und zinsgünstige KfW-Darlehen für junge Familien. Eigentum ist die beste Absicherung gegen Altersarmut und stärkt den sozialen Zusammenhalt."
-  },
-  {
-    "id": "mars-sozial-014",
-    "party_id": "mars",
-    "topic": "soziale-gerechtigkeit",
-    "subtopic": "wohnen",
-    "content": "Die Mietpreisbremse wird in ihrer aktuellen Form verlängert, aber nicht weiter verschärft. Anstatt den Wohnungsmarkt zu überregulieren, müssen wir die Ursachen der Knappheit bekämpfen: zu wenig Bauland, zu viele Vorschriften, zu hohe Baukosten."
-  },
-  {
-    "id": "mars-sozial-015",
-    "party_id": "mars",
-    "topic": "soziale-gerechtigkeit",
-    "subtopic": "gesundheit-und-pflege",
-    "content": "Die Wartezeiten für Kassenpatienten müssen durch verbindliche Termingarantien verkürzt werden. Wir stehen zum bewährten dualen Krankenversicherungssystem aus gesetzlicher und privater Versicherung – eine Bürgerversicherung lehnen wir ab."
-  },
-  {
-    "id": "mars-sozial-016",
-    "party_id": "mars",
-    "topic": "soziale-gerechtigkeit",
-    "subtopic": "gesundheit-und-pflege",
-    "content": "Die Krankenhausstruktur muss reformiert werden: Weniger, aber besser ausgestattete Häuser mit klaren Spezialisierungen. Die Fallpauschalen werden durch eine Grundfinanzierung für die Vorhaltung ergänzt, damit vor allem kleine Krankenhäuser nicht länger zur Mengensteigerung gezwungen werden."
-  },
-  {
-    "id": "mars-sozial-017",
-    "party_id": "mars",
-    "topic": "soziale-gerechtigkeit",
     "subtopic": "rente",
-    "content": "Wir stehen zum Drei-Säulen-Modell der Altersvorsorge aus gesetzlicher, betrieblicher und privater Rente. Das Rentenniveau wird stabilisiert, aber eine weitere Anhebung lehnen wir aus generationengerechten Gründen ab – die Beiträge der Jungen dürfen nicht ins Unbezahlbare steigen."
+    "claim": "Die Riester-Rente wird abgeschafft und durch ein einfaches, staatlich zertifiziertes Standardprodukt mit Kostendeckel ersetzt.",
+    "argument": "Riester ist gescheitert: zu teuer, zu komplex, zu niedrige Renditen – ein schlankes Standardprodukt macht private Vorsorge endlich wieder lohnend."
   },
   {
-    "id": "mars-sozial-018",
+    "id": "mars-sozial-007",
     "party_id": "mars",
     "topic": "soziale-gerechtigkeit",
-    "subtopic": "rente",
-    "content": "Die kapitalgedeckte Altersvorsorge muss gestärkt werden, etwa durch einen staatlich organisierten Aktienfonds, in den Arbeitnehmer freiwillig einzahlen können. Anstatt allein auf das Umlageverfahren zu setzen, nutzen wir die Renditen der Kapitalmärkte für die Altersvorsorge."
+    "subtopic": "buergergeld",
+    "claim": "Bürgergeld wird in 'Neue Grundsicherung' umbenannt und zur Logik von Fördern und Fordern zurückgeführt.",
+    "argument": "Der Markenwechsel zum Bürgergeld hat Rechte ausgeweitet, ohne Pflichten mitzudenken – ein funktionierender Sozialstaat braucht beides."
   },
   {
-    "id": "mars-sozial-019",
+    "id": "mars-sozial-008",
     "party_id": "mars",
     "topic": "soziale-gerechtigkeit",
-    "subtopic": "staat-und-wirtschaft",
-    "content": "Innere Sicherheit ist die Grundvoraussetzung für ein gutes Leben. Wir fordern mehr Polizei, eine schneller arbeitende Justiz und eine konsequente Abschiebung von Straftätern ohne deutschen Pass. Recht muss durchgesetzt werden, um glaubwürdig zu bleiben."
+    "subtopic": "buergergeld",
+    "claim": "Wer wiederholt zumutbare Arbeit ablehnt, verliert für drei Monate 100 % der Leistung.",
+    "argument": "Nur spürbare Konsequenzen aktivieren Langzeitarbeitslose – das war die entscheidende Einsicht aus Hartz IV, die wir wiederbeleben müssen."
   },
   {
-    "id": "mars-sozial-020",
+    "id": "mars-sozial-009",
     "party_id": "mars",
     "topic": "soziale-gerechtigkeit",
-    "subtopic": "staat-und-wirtschaft",
-    "content": "Der Mittelstand braucht verlässliche Rahmenbedingungen, und dazu gehört auch die bewährte Dienstwagenbesteuerung. Sie bleibt in ihrer jetzigen Form erhalten, weil der Firmenwagen ein unverzichtbarer Bestandteil moderner Arbeitsverhältnisse für Außendienst, Handwerk und Selbstständige ist. Gleichzeitig werden Berichtspflichten spürbar abgebaut und die duale Berufsausbildung als gleichwertige Alternative zum Studium aufgewertet."
+    "subtopic": "buergergeld",
+    "claim": "Vermittlung in Arbeit hat Vorrang vor langen Qualifizierungsmaßnahmen.",
+    "argument": "Praxis schlägt Theorie – wer arbeitet, lernt am schnellsten, integriert sich sozial und kommt aus dem Transferbezug heraus."
   }
 ]

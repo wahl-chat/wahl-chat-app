@@ -65,6 +65,30 @@ openai_gpt_4o_mini = ChatOpenAI(
     max_retries=0,
 )
 
+openai_gpt_5 = ChatOpenAI(
+    model="gpt-5",
+    api_key=safe_load_api_key("OPENAI_API_KEY"),
+    max_retries=0,
+)
+
+openai_gpt_5_mini = ChatOpenAI(
+    model="gpt-5-mini",
+    api_key=safe_load_api_key("OPENAI_API_KEY"),
+    max_retries=0,
+)
+
+openai_gpt_5_4 = ChatOpenAI(
+    model="gpt-5.4",
+    api_key=safe_load_api_key("OPENAI_API_KEY"),
+    max_retries=0,
+)
+
+openai_gpt_5_4_mini = ChatOpenAI(
+    model="gpt-5.4-mini",
+    api_key=safe_load_api_key("OPENAI_API_KEY"),
+    max_retries=0,
+)
+
 RESPONSE_GENERATION_LLMS: list[LLM] = [
     LLM(
         name="google-gemini-3.0-flash-preview",

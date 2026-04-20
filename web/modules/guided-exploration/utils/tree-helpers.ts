@@ -148,12 +148,12 @@ export function getNextUnexploredLeaf(
 
   // Search forward from current
   for (let i = currentIndex + 1; i < allLeaves.length; i++) {
-    if (allLeaves[i].status === 'pending') return allLeaves[i];
+    if (allLeaves[i].status !== 'explored') return allLeaves[i];
   }
 
   // Wrap around
   for (let i = 0; i <= currentIndex; i++) {
-    if (allLeaves[i].status === 'pending') return allLeaves[i];
+    if (allLeaves[i].status !== 'explored') return allLeaves[i];
   }
 
   return undefined;

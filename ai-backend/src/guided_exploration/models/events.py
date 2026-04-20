@@ -272,12 +272,9 @@ class TopicDirectionItem(BaseModel):
     """A single topic direction for user selection."""
 
     id: str = Field(..., description="Unique direction ID")
-    name: str = Field(..., description="Short name for the direction")
-    description: str = Field(
-        ..., description="1-2 sentence description"
-    )
-    party_stances_preview: str = Field(
-        ..., description="Brief party stance summary"
+    name: str = Field(..., description="Short name (3-6 words)")
+    hook: str = Field(
+        ..., description="One-sentence teaser that invites exploration"
     )
     suggested_question: str = Field(
         ..., description="Concrete follow-up question for this direction"

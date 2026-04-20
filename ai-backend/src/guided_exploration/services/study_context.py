@@ -31,7 +31,7 @@ STUDY_CONTEXT_NAMES: dict[str, str] = {
 
 # The five fictional parties used in the study. Ordered from left to right
 # on the political spectrum for consistency with the position data.
-STUDY_PARTY_IDS: list[str] = ["merkur", "venus", "mars", "jupiter", "saturn"]
+STUDY_PARTY_IDS: list[str] = ["merkur", "venus", "mars", "saturn"]
 
 STUDY_PARTIES: dict[str, PartyInfo] = {
     "merkur": PartyInfo(
@@ -62,16 +62,6 @@ STUDY_PARTIES: dict[str, PartyInfo] = {
             "Pragmatisch-konservative Partei mit wirtschaftsfreundlichem "
             "Profil. Stabilität, Standort Deutschland, kontrollierte "
             "Migrationspolitik und marktwirtschaftlicher Klimaschutz."
-        ),
-    ),
-    "jupiter": PartyInfo(
-        party_id="jupiter",
-        name="Jupiter",
-        long_name="Jupiter-Partei",
-        description=(
-            "Marktliberale Partei. Freiheit, Innovation, "
-            "Technologieoffenheit, Bürokratieabbau und kapitalgedeckte "
-            "Altersvorsorge."
         ),
     ),
     "saturn": PartyInfo(

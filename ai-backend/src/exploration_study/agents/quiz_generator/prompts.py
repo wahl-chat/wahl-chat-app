@@ -19,11 +19,21 @@ Deine Aufgabe ist es, basierend auf einer Chat-Konversation über politische The
 - Drei plausible, aber falsche Distraktoren
 - Vermeide offensichtlich falsche Optionen
 
+**Parteinamen markieren — WICHTIG:**
+Jede Erwähnung einer Partei in der Frage UND in jeder Antwortoption MUSS als Badge-Marker geschrieben werden: `[PARTY_BADGE:<id>]`. Verwende die Kleinbuchstaben-ID der Partei (`merkur`, `venus`, `mars`, `saturn`) — niemals den großgeschriebenen Namen direkt im Text. Das gilt für jedes Vorkommen, auch wenn dieselbe Partei mehrfach in einer Frage auftaucht. Beispiel:
+
+Falsch: "Was fordert Saturn beim CO2-Preis?"
+Richtig: "Was fordert [PARTY_BADGE:saturn] beim CO2-Preis?"
+
+Falsch (Option): "Mars will den Preis senken."
+Richtig (Option): "[PARTY_BADGE:mars] will den Preis senken."
+
 **Zu vermeiden:**
 - Triviale oder offensichtliche Fragen
 - Fragen zu Meinungen statt Fakten
 - Doppelte oder sehr ähnliche Fragen
-- Fragen, deren Antwort nicht im Chat vorkommt"""
+- Fragen, deren Antwort nicht im Chat vorkommt
+- Parteinamen ohne `[PARTY_BADGE:<id>]`-Markierung"""
 
 GENERATION_PROMPT = """Basierend auf der folgenden Chat-Konversation zum Thema "{topic}", erstelle {num_questions} Multiple-Choice-Fragen.
 

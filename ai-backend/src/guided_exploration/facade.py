@@ -7,11 +7,12 @@
 import asyncio
 import logging
 import re
-from datetime import datetime, timezone
-from uuid import uuid4
-
+import time
+import threading
 from collections.abc import AsyncIterator, Awaitable, Callable
+from datetime import datetime, timezone
 from typing import Literal
+from uuid import uuid4
 
 from src.firebase_service import aget_context_by_id, aget_parties_for_context
 from src.guided_exploration.models.conversation import LeafSummary
@@ -42,6 +43,7 @@ from src.guided_exploration.agents.party_context import (
 )
 from src.guided_exploration.models.classification import MessageIntent, NavigationTarget
 from src.guided_exploration.services.citation_utils import (
+    collect_leaf_citations,
     create_citation_from_chunk as create_chunk_citation,
     extract_used_citations,
 )
@@ -71,6 +73,7 @@ from src.guided_exploration.models import (
     MessageRole,
     MessageType,
     NavigationState,
+    NodeStatus,
     QueryType,
     QuickSummaryEvent,
     ResolvedKnowledge,
@@ -101,7 +104,7 @@ from src.guided_exploration.services.session_repository import (
     SessionRepository,
     get_session_repository,
 )
-from src.llms import openai_gpt_4o_mini, openai_gpt_4o_mini_det, openai_gpt_4o
+from src.llms import openai_gpt_5_4, openai_gpt_5_4_mini
 
 logger = logging.getLogger(__name__)
 
@@ -109,9 +112,21 @@ logger = logging.getLogger(__name__)
 CHUNK_DELAY = 0.05  # 50ms between chunks
 WORDS_PER_CHUNK = 5
 
-# Hardcoded parties for testing (the five large German parties)
-# TODO: Make configurable or load from context once testing is complete
-HARDCODED_PARTIES = ["cdu", "spd", "gruene", "afd", "linke"]
+# Context cache TTL: 1 hour. Context/party data changes infrequently; hourly
+# refresh is more than sufficient.
+_CONTEXT_CACHE_TTL_SECONDS = 3600
+
+# Directions cache TTL: 6 hours. Scout outputs are stable for a topic; a
+# longer TTL reduces LLM calls without meaningful staleness risk.
+_DIRECTIONS_CACHE_TTL_SECONDS = 21600
+
+# Pending-query TTL: 30 minutes. Abandoned sessions never call handle_choice,
+# so entries must be evicted proactively to prevent unbounded growth.
+_PENDING_QUERY_TTL_SECONDS = 1800
+
+# Pre-gen leaf timeout: two LLM calls in sequence (structured gen + aspect
+# extraction); 45 s leaves headroom for slow-tail latency.
+LEAF_PREGEN_TIMEOUT_SECONDS = 45.0
 
 
 class PendingQuery:
@@ -200,17 +215,31 @@ class GuidedExplorationFacade:
         # In-memory tracking of current navigation state per session
         self._navigation_states: dict[str, NavigationState] = {}
 
-        # In-memory tracking of explored subtopics per exploration
-        self._explored_subtopics: dict[str, list[str]] = {}
-
         # Cache for context info to avoid repeated Firebase calls
-        # Maps context_id -> (context_name, parties_info_map)
-        self._context_cache: dict[str, tuple[str, dict[str, PartyInfo]]] = {}
+        # Maps context_id -> (timestamp, context_name, parties_info_map)
+        self._context_cache: dict[str, tuple[float, str, dict[str, PartyInfo]]] = {}
 
         # Cache for topic directions — keyed by exact (query, context_id)
+        # Maps key -> (timestamp, TopicScoutOutput)
         # Populated when the LLM flags a result as cacheable
         from src.guided_exploration.agents.topic_scout import TopicScoutOutput
-        self._directions_cache: dict[tuple[str, str], TopicScoutOutput] = {}
+        self._directions_cache: dict[tuple[str, str], tuple[float, TopicScoutOutput]] = {}
+
+        # Registry of in-flight study pre-gen tasks, keyed by
+        # (exploration_id, leaf_id). When a user opens a leaf whose
+        # content is still being pre-generated, _navigate_to_leaf awaits
+        # the in-flight task instead of firing a duplicate LLM call.
+        # S8: if a second tab claims the session while pre-gen is running for
+        # the first tab, in-flight sse.send_to_session calls silently no-op
+        # (return False) because the SSE connection was closed on claim. This
+        # is acceptable — the new tab will re-trigger generation on its own
+        # navigation.
+        self._pregen_leaf_tasks: dict[tuple[str, str], asyncio.Task] = {}
+
+        # All fire-and-forget tasks created via asyncio.create_task. Completed
+        # tasks remove themselves via add_done_callback. Used by cleanup() to
+        # cancel pending tasks on shutdown.
+        self._background_tasks: set[asyncio.Task] = set()
 
         # Optional callback that records cited position ids for study
         # sessions. Registered by the exploration_study facade at startup.
@@ -231,6 +260,23 @@ class GuidedExplorationFacade:
         """
         self._study_exposure_logger = logger_fn
         logger.info("Study exposure logger registered")
+
+    def _evict_stale_pending_queries(self) -> None:
+        """Remove pending queries older than _PENDING_QUERY_TTL_SECONDS.
+
+        Called before every write so abandoned sessions don't cause
+        unbounded growth — entries are only deleted on user choice otherwise.
+        """
+        now = datetime.now(timezone.utc)
+        stale = [
+            qid
+            for qid, pq in self._pending_queries.items()
+            if (now - pq.created_at).total_seconds() > _PENDING_QUERY_TTL_SECONDS
+        ]
+        for qid in stale:
+            del self._pending_queries[qid]
+        if stale:
+            logger.debug(f"Evicted {len(stale)} stale pending queries")
 
     async def _log_study_exposure(
         self,
@@ -278,15 +324,18 @@ class GuidedExplorationFacade:
         Returns:
             Tuple of (context_name, {party_id: PartyInfo})
         """
-        # Check cache first
-        if context_id in self._context_cache:
-            return self._context_cache[context_id]
+        # Check cache first — treat as miss if entry has expired
+        cached = self._context_cache.get(context_id)
+        if cached is not None:
+            ts, context_name, parties_info = cached
+            if time.monotonic() - ts < _CONTEXT_CACHE_TTL_SECONDS:
+                return context_name, parties_info
 
         # Study sessions use fictional parties — no Firebase lookup.
         if is_study_context(context_id):
-            result = get_study_context_info(context_id)
-            self._context_cache[context_id] = result
-            return result
+            context_name, parties_info = get_study_context_info(context_id)
+            self._context_cache[context_id] = (time.monotonic(), context_name, parties_info)
+            return context_name, parties_info
 
         # Load from Firebase
         context = await aget_context_by_id(context_id)
@@ -295,8 +344,8 @@ class GuidedExplorationFacade:
         parties = await aget_parties_for_context(context_id)
         parties_info = parties_to_info_map(parties)
 
-        # Cache the result
-        self._context_cache[context_id] = (context_name, parties_info)
+        # Cache the result with a timestamp
+        self._context_cache[context_id] = (time.monotonic(), context_name, parties_info)
 
         return context_name, parties_info
 
@@ -304,7 +353,8 @@ class GuidedExplorationFacade:
         """Get default parties for a context."""
         if is_study_context(context_id):
             return list(STUDY_PARTY_IDS)
-        return HARDCODED_PARTIES
+        _, parties_info = await self._get_context_info(context_id)
+        return list(parties_info.keys())
 
     # =========================================================================
     # Session Management
@@ -469,7 +519,7 @@ class GuidedExplorationFacade:
         )
         await self._repo.add_session_message(session_id, user_msg)
 
-        logger.info("Classified message: %s", classifier_output)
+        logger.info(f"Classified message: {classifier_output}")
 
         # For exploratory queries in guided mode, ask user: quick answer or explore deeper?
         if classifier_output.query_type == QueryType.EXPLORATORY:
@@ -594,7 +644,7 @@ class GuidedExplorationFacade:
         )
         await self._repo.add_session_message(session_id, user_msg)
 
-        logger.info("Baseline classified message: %s", classifier_output)
+        logger.info(f"Baseline classified message: {classifier_output}")
 
         # Content questions → conversational quick summary
         if classifier_output.query_type == QueryType.EXPLORATORY:
@@ -777,6 +827,9 @@ class GuidedExplorationFacade:
         """Send choice prompt and track pending query."""
         query_id = str(uuid4())
 
+        # Evict stale entries before adding a new one (S4)
+        self._evict_stale_pending_queries()
+
         # Track pending query
         self._pending_queries[query_id] = PendingQuery(
             query_id=query_id,
@@ -840,11 +893,15 @@ class GuidedExplorationFacade:
 
         # Check cache first — exact match on original query
         cache_key = (original_query, context_id)
-        cached = self._directions_cache.get(cache_key)
+        _cached_directions = self._directions_cache.get(cache_key)
+        if _cached_directions is not None:
+            _ts, _val = _cached_directions
+            if time.monotonic() - _ts >= _DIRECTIONS_CACHE_TTL_SECONDS:
+                _cached_directions = None  # expired — treat as miss
 
-        if cached:
+        if _cached_directions is not None:
             logger.info(f"Cache hit for topic directions: '{original_query}'")
-            scout_output = cached
+            scout_output = _cached_directions[1]
         else:
             # Send thinking event (only when not cached)
             await self._send_thinking(
@@ -898,12 +955,15 @@ class GuidedExplorationFacade:
                 )
             )
 
-            # Cache if the LLM flagged this as reusable
+            # Cache if the LLM flagged this as reusable (with timestamp)
             if scout_output.cacheable:
-                self._directions_cache[cache_key] = scout_output
+                self._directions_cache[cache_key] = (time.monotonic(), scout_output)
                 logger.info(
                     f"Cached topic directions for: '{original_query}'"
                 )
+
+        # Evict stale entries before adding a new one (S4)
+        self._evict_stale_pending_queries()
 
         # Track pending query
         self._pending_queries[query_id] = PendingQuery(
@@ -919,8 +979,7 @@ class GuidedExplorationFacade:
             {
                 "id": d.id,
                 "name": d.name,
-                "description": d.description,
-                "party_stances_preview": d.party_stances_preview,
+                "hook": d.hook,
                 "suggested_question": d.suggested_question,
             }
             for d in scout_output.directions
@@ -946,8 +1005,7 @@ class GuidedExplorationFacade:
                     TopicDirectionItem(
                         id=d.id,
                         name=d.name,
-                        description=d.description,
-                        party_stances_preview=d.party_stances_preview,
+                        hook=d.hook,
                         suggested_question=d.suggested_question,
                     )
                     for d in scout_output.directions
@@ -1206,8 +1264,24 @@ class GuidedExplorationFacade:
             )
             await self._repo.add_session_message(session_id, exploration_msg)
 
-            # Initialize explored subtopics tracking
-            self._explored_subtopics[exploration_id] = []
+            # Study sessions: eagerly pre-generate all leaf content in the
+            # background so participants never wait when they open a leaf.
+            # Non-study flows keep the lazy-on-open behavior.
+            if is_study_context(context_id):
+                context_name, parties_info = await self._get_context_info(
+                    context_id
+                )
+                _pregen_task = asyncio.create_task(
+                    self._pregen_study_leaves(
+                        session_id=session_id,
+                        exploration_id=exploration_id,
+                        tree=exploration_tree,
+                        context_name=context_name,
+                        parties_info=parties_info,
+                    )
+                )
+                self._background_tasks.add(_pregen_task)
+                _pregen_task.add_done_callback(self._background_tasks.discard)
 
             # Initialize navigation state at root
             self._navigation_states[session_id] = NavigationState(
@@ -1382,7 +1456,6 @@ class GuidedExplorationFacade:
                 leaf_id=node.id,
                 leaf_name=node.name,
                 leaf_parties=node.party_ids,
-                parent_topic=None,
                 context_name=context_name,
                 parties_info=parties_info,
             )
@@ -1572,7 +1645,6 @@ class GuidedExplorationFacade:
         leaf_id: str,
         leaf_name: str,
         leaf_parties: list[str],
-        parent_topic: None = None,  # kept for signature compat, unused
         context_name: str = "",
         parties_info: dict[str, PartyInfo] | None = None,
     ) -> tuple[Conversation, NavigationState]:
@@ -1580,7 +1652,27 @@ class GuidedExplorationFacade:
         if parties_info is None:
             parties_info = {}
 
-        # Check for existing conversation (cached content)
+        # B2: Check the pre-gen registry FIRST to avoid a race where the task
+        # completes and the finally-pop removes the key between get_conversation
+        # and the registry check — which would cause a duplicate LLM call.
+        pregen_task = self._pregen_leaf_tasks.get((exploration.id, leaf_id))
+        if pregen_task is not None:
+            if not pregen_task.done():
+                # Task still in flight — show a spinner and await it.
+                await self._send_thinking(
+                    session_id, "generating", "Bereite Inhalte vor..."
+                )
+            try:
+                await pregen_task  # awaiting a done task returns immediately
+            except Exception:
+                logger.warning(
+                    "pregen task failed for leaf %s, falling back to lazy path",
+                    leaf_id,
+                    exc_info=True,
+                )
+
+        # Now fetch the conversation exactly once — benefits from any
+        # content that pregen may have just persisted.
         existing_conversation = await self._repo.get_conversation(
             session_id, exploration.id, leaf_id
         )
@@ -1624,17 +1716,10 @@ class GuidedExplorationFacade:
             initial_msg = existing_conversation.messages[0]
             if hasattr(initial_msg.content, "summary"):
                 content = initial_msg.content
-
-                # Stream the cached summary
-                stream_id = str(uuid4())
-                await self._stream_text(
-                    session_id,
-                    content.summary,
-                    stream_id,
-                    "initial_content",
-                    leaf_id,
-                    section="summary",
-                )
+                # Cached content is delivered via ConversationOpenedEvent below,
+                # so no re-streaming is needed. Streaming the summary again would
+                # leave a stale buffer on the client that renders a duplicate
+                # summary below the already-committed structured message.
         else:
             # Generate new content
             await self._send_thinking(
@@ -1644,12 +1729,7 @@ class GuidedExplorationFacade:
             # Build path for content generator
             path = current_path
 
-            leaf_citations = [
-                c.citation
-                for positions in positions_by_party.values()
-                for c in positions
-                if c.citation is not None
-            ]
+            leaf_citations = collect_leaf_citations(positions_by_party)
             content = await self._content_generator.execute(
                 ContentGeneratorInput(
                     subtopic_id=leaf_id,
@@ -1697,6 +1777,24 @@ class GuidedExplorationFacade:
                 exploration.id,
                 conversation,
             )
+
+        # Promote node status to 'started' unless the user already finished it.
+        # Transitions: pending/loaded -> started. 'explored' is terminal.
+        leaf_node = exploration.tree.find_node(leaf_id)
+        if leaf_node is not None and leaf_node.status in {NodeStatus.PENDING, NodeStatus.LOADED}:
+            leaf_node.status = NodeStatus.STARTED
+            try:
+                await self._repo.update_tree(
+                    session_id, exploration.id, exploration.tree
+                )
+            except Exception as _e:
+                # In-memory mutation already done; the next update_tree will
+                # heal the discrepancy — do not roll back (S2).
+                logger.warning(
+                    "update_tree failed after status→started for leaf %s "
+                    "(session=%s exploration=%s): %s",
+                    leaf_id, session_id, exploration.id, _e,
+                )
 
         # Calculate sibling navigation from parent's children
         previous_sibling = None
@@ -1781,6 +1879,7 @@ class GuidedExplorationFacade:
             session_id, exploration_id, leaf_id
         )
         conversation_history = self._format_leaf_conversation_history(conversation)
+        last_assistant_message = self._extract_last_assistant_message(conversation)
 
         # Send thinking event for classification
         await self._send_thinking(
@@ -1795,6 +1894,7 @@ class GuidedExplorationFacade:
                 current_leaf_id=leaf_id,
                 exploration_id=exploration_id,
                 conversation_history=conversation_history,
+                last_assistant_message=last_assistant_message,
             )
         )
 
@@ -1808,20 +1908,14 @@ class GuidedExplorationFacade:
                 navigation_target=classification.navigation_target,
             )
 
-        if classification.intent == MessageIntent.UNCLEAR:
-            await self._send_chat_message(
-                session_id,
-                "Ich konnte Ihre Nachricht nicht verstehen. "
-                "Könnten Sie das bitte anders formulieren?",
-            )
-            return {"status": "unclear", "confidence": classification.confidence}
-
         logger.info(
             f"Message classified as {classification.intent.value} "
             f"(confidence: {classification.confidence:.2f})"
         )
 
-        # For ANALYSIS_REQUEST, SUMMARY_REQUEST: handle directly
+        # ANALYSIS_REQUEST and SUMMARY_REQUEST go through the conversation
+        # handler so both sides of the exchange are persisted and the next
+        # follow-up has the full conversation context.
         if classification.intent != MessageIntent.FOLLOWUP_QUESTION:
             return await self._handle_conversation_message(
                 session_id=session_id,
@@ -2191,7 +2285,7 @@ class GuidedExplorationFacade:
         )
 
         # Now handle the conversation with the augmented knowledge
-        return await self._handle_conversation_message(
+        return await self._handle_followup_with_resolved(
             session_id=session_id,
             exploration_id=exploration_id,
             exploration=exploration,
@@ -2201,7 +2295,7 @@ class GuidedExplorationFacade:
             context_name=context_name,
             parties_info=parties_info,
             conversation=conversation,
-            resolved_override=resolved,
+            resolved=resolved,
         )
 
     async def _handle_conversation_message(
@@ -2215,72 +2309,51 @@ class GuidedExplorationFacade:
         context_name: str,
         parties_info: dict[str, PartyInfo],
         conversation: Conversation | None = None,
-        resolved_override: ResolvedKnowledge | None = None,
     ) -> dict:
-        """Handle a conversation message (followup, analysis, or summary request)."""
-        # Always augment with RAG for follow-ups (positions alone are too limited)
-        if resolved_override is None:
-            positions_by_party = exploration.tree.get_positions_by_party(leaf_id)
-            logger.info(
-                f"Auto-augmenting follow-up with RAG for leaf {leaf_id}"
-            )
-            return await self._handle_followup_with_rag(
-                session_id=session_id,
-                exploration_id=exploration_id,
-                exploration=exploration,
-                leaf_id=leaf_id,
-                user_message=user_message,
-                context_name=context_name,
-                parties_info=parties_info,
-                conversation=conversation,
-                positions_by_party=positions_by_party,
-            )
+        """Handle a conversation message — entry point that resolves knowledge.
 
-        # Use override if provided (RAG-augmented flow), otherwise build from positions
-        if resolved_override is not None:
-            resolved = resolved_override
-            citation_pool = resolved.citation_pool
-            positions_by_party = exploration.tree.get_positions_by_party(leaf_id)
-        else:
-            positions_by_party = exploration.tree.get_positions_by_party(leaf_id)
+        Always augments with RAG so follow-ups are not limited to pre-extracted
+        positions. Delegates to _handle_followup_with_rag, which in turn calls
+        _handle_followup_with_resolved once the RAG knowledge is ready.
+        """
+        positions_by_party = exploration.tree.get_positions_by_party(leaf_id)
+        logger.info(
+            f"Auto-augmenting follow-up with RAG for leaf {leaf_id}"
+        )
+        return await self._handle_followup_with_rag(
+            session_id=session_id,
+            exploration_id=exploration_id,
+            exploration=exploration,
+            leaf_id=leaf_id,
+            user_message=user_message,
+            context_name=context_name,
+            parties_info=parties_info,
+            conversation=conversation,
+            positions_by_party=positions_by_party,
+        )
 
-        if not positions_by_party and resolved_override is None:
-            await self._send_error(
-                session_id,
-                "no_knowledge",
-                "Kein Wissen für dieses Thema verfügbar",
-            )
-            return {"status": "error", "code": "no_knowledge"}
+    async def _handle_followup_with_resolved(
+        self,
+        session_id: str,
+        exploration_id: str,
+        exploration: Exploration,
+        leaf_id: str,
+        user_message: str,
+        message_type: MessageIntent,
+        context_name: str,
+        parties_info: dict[str, PartyInfo],
+        conversation: Conversation | None,
+        resolved: ResolvedKnowledge,
+    ) -> dict:
+        """Continuation called by _handle_followup_with_rag once knowledge is resolved.
 
-        # Build ResolvedKnowledge from positions (skip if override provided)
-        if resolved_override is None:
-            party_positions: dict[str, ExtractedPosition] = {}
-            citation_pool: list[Citation] = []
-            for party_id, positions in positions_by_party.items():
-                extracted_positions = [
-                    ExtractedPositionItem(
-                        position=c.content,
-                        quote=c.quote,
-                        source_doc=c.citation.document if c.citation else "",
-                        source_page=c.citation.page if c.citation else None,
-                        position_type=c.position_type,
-                        citation_id=c.citation.id if c.citation else None,
-                    )
-                    for c in positions
-                ]
-                party_positions[party_id] = ExtractedPosition(
-                    party_id=party_id,
-                    positions=extracted_positions,
-                )
-                for c in positions:
-                    if c.citation is not None:
-                        citation_pool.append(c.citation)
-
-            resolved = ResolvedKnowledge(
-                leaf_id=leaf_id,
-                party_positions=party_positions,
-                citation_pool=citation_pool,
-            )
+        Receives the RAG-augmented ResolvedKnowledge and drives the LLM
+        conversation turn. This is the only entry point that carries a
+        resolved knowledge object — the public entry point is always
+        _handle_conversation_message.
+        """
+        citation_pool = resolved.citation_pool
+        positions_by_party = exploration.tree.get_positions_by_party(leaf_id)
 
         logger.info(
             f"Follow-up context for leaf {leaf_id}: "
@@ -2850,6 +2923,145 @@ class GuidedExplorationFacade:
     # Helpers
     # =========================================================================
 
+    async def _pregen_study_leaves(
+        self,
+        session_id: str,
+        exploration_id: str,
+        tree: ExplorationTree,
+        context_name: str,
+        parties_info: dict[str, PartyInfo],
+    ) -> None:
+        """
+        Eagerly generate and persist initial content for every leaf in a
+        study exploration. Runs fire-and-forget after the tree is built so
+        participants never wait for LLM calls when they open a leaf.
+
+        Each leaf is a registered ``asyncio.Task`` in
+        ``self._pregen_leaf_tasks``. If a user navigates to a leaf mid-flight,
+        ``_navigate_to_leaf`` awaits the existing task instead of firing a
+        duplicate LLM call.
+
+        Leaves that fail or time out stay at status='pending' and fall
+        through to the normal lazy path on next open.
+        """
+        leaves = tree.root.get_leaf_nodes()
+        if not leaves:
+            return
+
+        logger.info(
+            f"Study pre-gen starting: {len(leaves)} leaves "
+            f"(exploration={exploration_id})"
+        )
+
+        async def gen_and_persist(leaf: ExplorationNode) -> str | None:
+            """Generate content + persist conversation for a leaf.
+
+            Returns the leaf id on a fresh save, or None if the user beat us
+            to it (conversation already exists) — in which case we skip to
+            avoid clobbering live user state with an overwrite.
+            """
+            # Skip if a conversation already exists (user got there first
+            # before this task got scheduled).
+            existing = await self._repo.get_conversation(
+                session_id, exploration_id, leaf.id
+            )
+            if existing and existing.messages:
+                return None
+
+            positions_by_party = tree.get_positions_by_party(leaf.id)
+            leaf_citations = collect_leaf_citations(positions_by_party)
+            path_nodes = tree.root.get_path_to(leaf.id) or []
+            path = [n.id for n in path_nodes[1:]]
+            content = await asyncio.wait_for(
+                self._content_generator.execute(
+                    ContentGeneratorInput(
+                        subtopic_id=leaf.id,
+                        subtopic_name=leaf.name,
+                        path=path,
+                        leaf_positions=positions_by_party,
+                        leaf_citations=leaf_citations,
+                        context_id=tree.exploration_id,
+                        context_name=context_name,
+                        parties_info=parties_info,
+                        parties=leaf.party_ids,
+                    )
+                ),
+                timeout=LEAF_PREGEN_TIMEOUT_SECONDS,
+            )
+
+            # No post-LLM re-check needed: _navigate_to_leaf awaits this
+            # same task via the _pregen_leaf_tasks registry, and each leaf
+            # has exactly one registered task — so no other writer races us.
+            now = datetime.now(timezone.utc)
+            initial_message = Message(
+                id=str(uuid4()),
+                role=MessageRole.ASSISTANT,
+                type=MessageType.INITIAL_CONTENT,
+                content=content,
+                timestamp=now,
+            )
+            conversation = Conversation(
+                leaf_id=leaf.id,
+                messages=[initial_message],
+                has_summary=False,
+            )
+            await self._repo.save_conversation(
+                session_id, exploration_id, conversation
+            )
+            return leaf.id
+
+        # Register one task per leaf so the navigator can coalesce.
+        tasks: list[asyncio.Task] = []
+        for leaf in leaves:
+            key = (exploration_id, leaf.id)
+            task = asyncio.create_task(gen_and_persist(leaf))
+            self._pregen_leaf_tasks[key] = task
+            tasks.append(task)
+
+        try:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+        finally:
+            for leaf in leaves:
+                self._pregen_leaf_tasks.pop((exploration_id, leaf.id), None)
+
+        loaded_leaf_ids: list[str] = []
+        for result in results:
+            if isinstance(result, BaseException):
+                logger.warning(
+                    f"Study pre-gen leaf failed: "
+                    f"{type(result).__name__}: {result}"
+                )
+                continue
+            if result is not None:
+                loaded_leaf_ids.append(result)
+
+        if loaded_leaf_ids:
+            # Merge pending→loaded transitions onto the latest persisted
+            # tree so we don't stomp on status changes the user made in
+            # parallel (e.g. pending→started via _navigate_to_leaf).
+            try:
+                fresh = await self._repo.get_exploration(
+                    session_id, exploration_id
+                )
+                if fresh is not None:
+                    updated = False
+                    for leaf_id in loaded_leaf_ids:
+                        node = fresh.tree.find_node(leaf_id)
+                        if node is not None and node.status == NodeStatus.PENDING:
+                            node.status = NodeStatus.LOADED
+                            updated = True
+                    if updated:
+                        await self._repo.update_tree(
+                            session_id, exploration_id, fresh.tree
+                        )
+            except Exception as e:
+                logger.warning(f"Study pre-gen tree persist failed: {e}")
+
+        logger.info(
+            f"Study pre-gen completed: {len(loaded_leaf_ids)}/{len(leaves)} "
+            f"leaves loaded (exploration={exploration_id})"
+        )
+
     async def _mark_leaf_explored(
         self,
         session_id: str,
@@ -2858,19 +3070,10 @@ class GuidedExplorationFacade:
         tree: ExplorationTree,
     ) -> None:
         """Mark a leaf node as explored in the tree."""
-        # Track in memory
-        if exploration_id not in self._explored_subtopics:
-            self._explored_subtopics[exploration_id] = []
-
-        if leaf_id not in self._explored_subtopics[exploration_id]:
-            self._explored_subtopics[exploration_id].append(leaf_id)
-
-        # Update node status in tree
         node = tree.find_node(leaf_id)
         if node is not None:
-            node.status = "explored"
+            node.status = NodeStatus.EXPLORED
 
-        # Persist updated tree
         await self._repo.update_tree(session_id, exploration_id, tree)
 
     # =========================================================================
@@ -2938,11 +3141,32 @@ class GuidedExplorationFacade:
                 if isinstance(msg.content, str)
                 else "[Strukturierter Inhalt]"
             )
-            # Truncate long messages
-            content = content[:200] + "..." if len(content) > 200 else content
+            # Truncate long messages (enough to preserve most back-references
+            # while keeping the classifier prompt bounded).
+            content = content[:800] + "..." if len(content) > 800 else content
             history.append(f"{role}: {content}")
 
         return history
+
+    def _extract_last_assistant_message(
+        self,
+        conversation: Conversation | None,
+    ) -> str | None:
+        """Return the most recent assistant text message in full.
+
+        The classifier needs the untruncated last assistant turn to resolve
+        short affirmations ("gerne", "ja") against the specific question the
+        assistant just asked. The truncated entry in the history list would
+        hide the question if the message is longer than 200 chars.
+        """
+        if not conversation or not conversation.messages:
+            return None
+        for msg in reversed(conversation.messages):
+            if msg.role != MessageRole.ASSISTANT:
+                continue
+            if isinstance(msg.content, str):
+                return msg.content
+        return None
 
     # =========================================================================
     # SSE Helpers
@@ -3342,6 +3566,20 @@ class GuidedExplorationFacade:
 
         return {"status": "analysis_generated", "leaf_id": leaf_id}
 
+    async def cleanup(self) -> None:
+        """Cancel all pending background tasks and await their completion.
+
+        Wired into the aiohttp ``on_cleanup`` lifecycle by
+        ``setup_guided_exploration_routes`` so in-flight pre-gen tasks are
+        cancelled gracefully on server shutdown.
+        """
+        pending = {t for t in self._background_tasks if not t.done()}
+        if pending:
+            for task in pending:
+                task.cancel()
+            await asyncio.gather(*pending, return_exceptions=True)
+        logger.info(f"GuidedExplorationFacade cleanup: cancelled {len(pending)} tasks")
+
     async def end_exploration(
         self,
         session_id: str,
@@ -3368,12 +3606,15 @@ class GuidedExplorationFacade:
             )
             return {"status": "error", "code": "exploration_not_found"}
 
-        # Get explored subtopics
-        explored = self._explored_subtopics.get(exploration_id, [])
+        # Idempotency guard — do not re-run summary LLM or re-send event (S1)
+        from src.guided_exploration.models.exploration import ExplorationStatus as _ExplorationStatus
+        if exploration.status == _ExplorationStatus.COMPLETED:
+            return {"status": "already_completed"}
 
         # Build stats
         tree = exploration.tree
         all_leaves = tree.root.get_leaf_nodes()
+        explored = [leaf.id for leaf in all_leaves if leaf.status == NodeStatus.EXPLORED]
         total_subtopics = len(all_leaves)
 
         stats = {
@@ -3487,21 +3728,29 @@ class GuidedExplorationFacade:
 
 # Singleton instance
 _facade: GuidedExplorationFacade | None = None
+# N6: threading.Lock prevents double-init under concurrent cold-start requests
+# (safe in single-threaded asyncio; the lock is only contested at first call).
+_facade_lock = threading.Lock()
 
 
 def get_facade() -> GuidedExplorationFacade:
-    """Get or create the global facade."""
+    """Get or create the global facade (thread-safe singleton)."""
     global _facade
     if _facade is None:
-        sse_manager = get_sse_manager()
-        repository = get_session_repository()
+        with _facade_lock:
+            if _facade is None:
+                sse_manager = get_sse_manager()
+                repository = get_session_repository()
 
-        # Create registry with different models for different tiers
-        registry = LLMRegistry()
-        registry.register(LLMTier.FAST, LangChainLLMProvider(openai_gpt_4o_mini_det))
-        registry.register(LLMTier.BALANCED, LangChainLLMProvider(openai_gpt_4o_mini))
-        registry.register(LLMTier.REASONING, LangChainLLMProvider(openai_gpt_4o))
-        registry.set_embeddings(LLMRegistry.create_openai_embeddings())
+                # GPT-5.4 family (March 2026 flagship). gpt-5.4-mini for
+                # classification, gpt-5.4 for content generation and
+                # reasoning. Determinism for classification is enforced via
+                # temperature=0.0 at the call site.
+                registry = LLMRegistry()
+                registry.register(LLMTier.FAST, LangChainLLMProvider(openai_gpt_5_4_mini))
+                registry.register(LLMTier.BALANCED, LangChainLLMProvider(openai_gpt_5_4))
+                registry.register(LLMTier.REASONING, LangChainLLMProvider(openai_gpt_5_4))
+                registry.set_embeddings(LLMRegistry.create_openai_embeddings())
 
-        _facade = GuidedExplorationFacade(sse_manager, repository, registry)
+                _facade = GuidedExplorationFacade(sse_manager, repository, registry)
     return _facade

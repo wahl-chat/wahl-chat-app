@@ -7,11 +7,20 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 from src.guided_exploration.models.position import Position
+
+
+class NodeStatus(StrEnum):
+    """Status of an exploration node. String values match the wire format."""
+
+    PENDING = "pending"
+    LOADED = "loaded"
+    STARTED = "started"
+    EXPLORED = "explored"
 
 
 class ExplorationNode(BaseModel):
@@ -46,8 +55,13 @@ class ExplorationNode(BaseModel):
         default_factory=list,
         description="Position IDs assigned to this leaf node. Empty for branch nodes.",
     )
-    status: Literal["pending", "explored"] = Field(
-        default="pending", description="Exploration status"
+    status: NodeStatus = Field(
+        default=NodeStatus.PENDING,
+        description=(
+            "Exploration status: 'pending' (no content yet), 'loaded' (content "
+            "pre-generated but user hasn't opened), 'started' (user has opened), "
+            "'explored' (user marked as done)."
+        ),
     )
 
     @property

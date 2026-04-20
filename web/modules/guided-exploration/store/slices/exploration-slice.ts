@@ -15,6 +15,7 @@ export const initialExplorationState: ExplorationSliceState = {
   conversations: {},
   activeLeafId: null,
   analysisAvailable: false,
+  status: null,
 };
 
 /**
@@ -59,6 +60,13 @@ export function explorationReducer(
         navigation: action.navigation,
         conversations: {},
         activeLeafId: null,
+        status: action.status ?? 'active',
+      };
+
+    case 'EXPLORATION_STATUS_UPDATED':
+      return {
+        ...state,
+        status: action.status,
       };
 
     case 'EXPLORATION_TREE_RECEIVED':
@@ -67,17 +75,6 @@ export function explorationReducer(
         tree: action.tree,
         conversations: {},
         activeLeafId: null,
-      };
-
-    case 'TREE_UPDATED':
-      return {
-        ...state,
-        tree: {
-          ...action.tree,
-          // Preserve selectedDirections from original tree if not in update
-          selectedDirections:
-            action.tree.selectedDirections ?? state.tree?.selectedDirections,
-        },
       };
 
     case 'NAVIGATED_TO_ROOT':

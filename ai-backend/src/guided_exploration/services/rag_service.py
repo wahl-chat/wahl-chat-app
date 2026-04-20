@@ -95,14 +95,17 @@ class RAGService:
             List of RetrievedChunk objects
         """
         # Study sessions: route to in-memory fake-manifesto resolver.
-        # Study chunks are much smaller than real manifesto chunks, so we
-        # retrieve more of them regardless of what the caller requested.
+        # Each chunk becomes one position directly (no extraction), so
+        # n_docs ≈ target positions per party. Dataset is up to 6 per party
+        # per topic (2 subtopics × up to 3 claims) — retrieve all of them so
+        # every subtopic is represented, giving the tree builder the full
+        # per-party payload for that topic.
         if is_study_context(context_id):
             return await self._get_study_rag().retrieve_chunks_for_party(
                 query=query,
                 party_id=party_id,
                 topic=get_study_topic(context_id),
-                n_docs=20,
+                n_docs=6,
             )
 
         collection_name = get_context_collection_name(context_id)

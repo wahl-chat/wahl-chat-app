@@ -30,6 +30,7 @@ export interface SSEClientOptions {
 export class SSEClient {
   private eventSource: EventSource | null = null;
   private sessionId: string | null = null;
+  private clientId: string | null = null;
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private isManualClose = false;
@@ -51,14 +52,21 @@ export class SSEClient {
   }
 
   /**
-   * Connect to SSE stream for a session
+   * Connect to SSE stream for a session.
+   *
+   * `clientId` identifies this browser tab to the backend so it can tell
+   * a same-tab reconnect (StrictMode remount, EventSource auto-reconnect)
+   * apart from a real cross-tab session claim. Same `clientId` reconnecting
+   * is a silent replace on the server; a different `clientId` triggers
+   * `session_claimed`.
    */
-  connect(sessionId: string): void {
+  connect(sessionId: string, clientId: string): void {
     if (this.eventSource) {
       this.disconnect();
     }
 
     this.sessionId = sessionId;
+    this.clientId = clientId;
     this.isManualClose = false;
     this.reconnectAttempts = 0;
 
@@ -95,12 +103,12 @@ export class SSEClient {
   }
 
   private establishConnection(): void {
-    if (!this.sessionId) return;
+    if (!this.sessionId || !this.clientId) return;
 
     this.onStatusChange?.('connecting');
 
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    const url = `${baseUrl}/api/v1/guided-exploration/sessions/${this.sessionId}/stream`;
+    const url = `${baseUrl}/api/v1/guided-exploration/sessions/${this.sessionId}/stream?client_id=${encodeURIComponent(this.clientId)}`;
 
     this.eventSource = new EventSource(url);
 
@@ -154,7 +162,6 @@ export class SSEClient {
           const rawData = JSON.parse(event.data);
           // Convert snake_case to camelCase
           const data = keysToCamelCase<Record<string, unknown>>(rawData);
-          console.log(`[SSE] received ${eventType}:`, data);
           this.onEvent({ type: eventType, ...data } as SSEEvent);
         } catch (e) {
           console.error(`[SSE] failed to parse ${eventType}:`, e, event.data);

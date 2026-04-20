@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -84,7 +84,7 @@ class ExplorationStatus(str, Enum):
 class SummaryTree(BaseModel):
     """Parallel tree tracking summaries."""
 
-    exploration_id: Optional[str] = Field(
+    exploration_id: str | None = Field(
         None, description="ID of the parent exploration"
     )
     summaries: dict[str, LeafSummary] = Field(

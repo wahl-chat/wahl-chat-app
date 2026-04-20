@@ -2,6 +2,7 @@ export { CitationMarkdown } from './citation-markdown';
 export { ErrorBanner } from './error-banner';
 export { ExplorationLoading } from './exploration-loading';
 export { LeafSummaryCard } from './leaf-summary-card';
+export { MessageCitationsList } from './message-citations-list';
 export { PartyBadge } from './party-badge';
 export { PartyCard } from './party-card';
 export { PartyMarkedMarkdown } from './party-marked-markdown';

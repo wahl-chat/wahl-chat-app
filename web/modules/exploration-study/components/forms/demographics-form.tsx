@@ -76,7 +76,10 @@ function LabelWithCheck({
     <span className="inline-flex items-center gap-1.5">
       {label}
       {answered && (
-        <CheckCircle2 className="size-4 text-primary" aria-label="ausgefüllt" />
+        <>
+          <CheckCircle2 className="size-4 text-primary" aria-hidden="true" />
+          <span className="sr-only">(ausgefüllt)</span>
+        </>
       )}
     </span>
   );
@@ -103,9 +106,15 @@ export function DemographicsForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit} className={cn('space-y-6', className)}>
+      <form
+        onSubmit={handleSubmit}
+        aria-labelledby="demographics-heading"
+        className={cn('space-y-6', className)}
+      >
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold">Demografische Angaben</h1>
+          <h1 id="demographics-heading" className="text-2xl font-bold">
+            Demografische Angaben
+          </h1>
           <p className="text-sm text-muted-foreground">
             Bitte beantworte die folgenden Fragen zu deiner Person.
           </p>
@@ -125,7 +134,7 @@ export function DemographicsForm({
                 </FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger aria-required="true">
                       <SelectValue placeholder="Bitte auswählen" />
                     </SelectTrigger>
                   </FormControl>
@@ -152,7 +161,7 @@ export function DemographicsForm({
                 </FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger aria-required="true">
                       <SelectValue placeholder="Bitte auswählen" />
                     </SelectTrigger>
                   </FormControl>
@@ -182,7 +191,7 @@ export function DemographicsForm({
                 </FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger aria-required="true">
                       <SelectValue placeholder="Bitte auswählen" />
                     </SelectTrigger>
                   </FormControl>

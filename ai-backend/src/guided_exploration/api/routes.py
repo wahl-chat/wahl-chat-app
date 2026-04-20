@@ -94,10 +94,18 @@ async def stream_session(request: web.Request) -> web.StreamResponse:
     """
     GET /api/v1/guided-exploration/sessions/{session_id}/stream
     SSE stream for real-time updates.
+
+    Requires `?client_id=...` to distinguish same-tab reconnects (silent
+    replace) from cross-tab claims (`session_claimed` event).
     """
     session_id = request.match_info["session_id"]
+    client_id = request.query.get("client_id")
+    if not client_id:
+        return web.json_response(
+            {"error": "client_id query parameter is required"}, status=400
+        )
     manager = get_sse_manager()
-    return await sse_handler(request, session_id, manager)
+    return await sse_handler(request, session_id, client_id, manager)
 
 
 async def list_explorations(request: web.Request) -> web.Response:
@@ -397,3 +405,11 @@ def setup_guided_exploration_routes(app: web.Application) -> None:
         resource = app.router.add_resource(path)
         resource.add_route(method, handler)
         logger.info(f"Registered guided exploration route: {method} {path}")
+
+    async def _cleanup_facade(_app: web.Application) -> None:
+        # Skip if the facade was never instantiated (worker handled no requests).
+        from src.guided_exploration import facade as _facade_module
+        if _facade_module._facade is not None:
+            await _facade_module._facade.cleanup()
+
+    app.on_cleanup.append(_cleanup_facade)

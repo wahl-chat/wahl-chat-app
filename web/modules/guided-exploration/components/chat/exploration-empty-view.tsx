@@ -60,7 +60,10 @@ export function ExplorationEmptyView({
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <nav
+          aria-label="Themen auswählen"
+          className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+        >
           {studyTopic && (
             <button
               key={`study-${studyTopic.label}`}
@@ -111,7 +114,7 @@ export function ExplorationEmptyView({
               </button>
             );
           })}
-        </div>
+        </nav>
 
         {isStudy && (
           <p className="text-xs text-muted-foreground">

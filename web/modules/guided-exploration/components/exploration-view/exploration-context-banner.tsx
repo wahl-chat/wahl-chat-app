@@ -17,9 +17,15 @@ export function ExplorationContextBanner({
   const query = tree.originalQuery.replace(/\s*—\s*Fokus:.*$/, '');
 
   return (
-    <div className="rounded-lg border bg-muted/30 px-4 py-3">
+    <section
+      aria-label="Erkundungskontext"
+      className="rounded-lg border bg-muted/30 px-4 py-3"
+    >
       <div className="flex items-start gap-2">
-        <Search className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <Search
+          aria-hidden="true"
+          className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+        />
         <div className="min-w-0 space-y-0.5">
           <p className="text-sm font-medium">{query}</p>
           {hasDirections && (
@@ -29,6 +35,6 @@ export function ExplorationContextBanner({
           )}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

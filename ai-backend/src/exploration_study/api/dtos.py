@@ -32,7 +32,7 @@ class CreateStudyRequest(BaseModel):
         ge=60,
     )
     parties: list[str] = Field(
-        default=["Merkur", "Venus", "Mars", "Jupiter", "Saturn"],
+        default=["Merkur", "Venus", "Mars", "Saturn"],
         description="List of party names for the fake context",
     )
 
@@ -299,10 +299,13 @@ class QuizForParticipant(BaseModel):
 
 
 class QuizAnswerRequest(BaseModel):
-    """A single quiz answer from participant."""
+    """A single quiz answer from participant.
+
+    ``selected_index`` 0-3 are content choices; 4 is "Weiß ich nicht".
+    """
 
     question_id: str
-    selected_index: int = Field(..., ge=0, le=3)
+    selected_index: int = Field(..., ge=0, le=4)
     response_time_ms: int | None = None
 
 
@@ -355,10 +358,17 @@ class ErrorResponse(BaseModel):
 
 
 class PartyClaimDto(BaseModel):
-    """A single claim on a party source page."""
+    """A single claim on a party source page.
+
+    ``claim`` is the short declarative assertion; ``argument`` is the
+    short "why" rationale surfaced when the participant digs deeper in
+    the UI. The LLM sees both merged as one blob during retrieval — the
+    split here is purely for authoring, UI display, and quiz focus.
+    """
 
     id: str
-    content: str
+    claim: str
+    argument: str
 
 
 class PartySubtopicDto(BaseModel):

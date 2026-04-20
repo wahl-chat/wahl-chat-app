@@ -24,7 +24,7 @@ from src.guided_exploration.agents.hierarchy_builder.prompts import (
 from src.guided_exploration.agents.llm_provider import LLMProvider
 from src.guided_exploration.agents.party_context import format_party_context_for_prompt
 from src.guided_exploration.models.position import Position
-from src.guided_exploration.models.tree import ExplorationNode
+from src.guided_exploration.models.tree import ExplorationNode, NodeStatus
 
 logger = logging.getLogger(__name__)
 
@@ -172,5 +172,5 @@ class HierarchyBuilderAgent(BaseAgent[HierarchyBuilderInput, HierarchyBuilderOut
             children=children,
             party_ids=sorted(party_ids_set),
             position_ids=position_ids,
-            status="pending",
+            status=NodeStatus.PENDING,
         )

@@ -14,13 +14,13 @@ class TopicDirection(BaseModel):
     """A subtopic direction that the user can choose to explore."""
 
     id: str = Field(..., description="Unique direction ID")
-    name: str = Field(..., description="Short name for the direction")
-    description: str = Field(
-        ..., description="1-2 sentence description of this direction"
-    )
-    party_stances_preview: str = Field(
+    name: str = Field(..., description="Short name for the direction (3-6 words)")
+    hook: str = Field(
         ...,
-        description="Brief summary of how the parties generally lean on this",
+        description=(
+            "One compelling sentence that hints at the tension or stakes. "
+            "Opens a conversation, does not summarize the answer."
+        ),
     )
     suggested_question: str = Field(
         ...,

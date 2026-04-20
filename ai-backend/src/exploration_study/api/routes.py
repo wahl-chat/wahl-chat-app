@@ -840,7 +840,11 @@ async def get_party_claims(request: web.Request) -> web.Response:
                     slug=slug,
                     label=label,
                     claims=[
-                        PartyClaimDto(id=c["id"], content=c["content"])
+                        PartyClaimDto(
+                            id=c["id"],
+                            claim=c["claim"],
+                            argument=c["argument"],
+                        )
                         for c in claims
                     ],
                 )
@@ -855,7 +859,11 @@ async def get_party_claims(request: web.Request) -> web.Response:
                     slug=slug,
                     label="Weitere",
                     claims=[
-                        PartyClaimDto(id=c["id"], content=c["content"])
+                        PartyClaimDto(
+                            id=c["id"],
+                            claim=c["claim"],
+                            argument=c["argument"],
+                        )
                         for c in claims
                     ],
                 )

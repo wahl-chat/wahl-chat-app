@@ -36,7 +36,7 @@ export function StudyTopicSidebar({ tree, summaries }: StudyTopicSidebarProps) {
   };
 
   return (
-    <aside className="flex h-full flex-col" aria-label="Aktuelles Thema">
+    <aside aria-label="Aktuelles Thema" className="flex h-full flex-col">
       {/* Current topic header */}
       <header className="shrink-0 border-b p-4">
         {activeLeafNode ? (
@@ -61,6 +61,7 @@ export function StudyTopicSidebar({ tree, summaries }: StudyTopicSidebarProps) {
               size="sm"
               className="mt-3 w-full"
               aria-label="Aktuelles Thema abschließen und zur Übersicht zurück"
+              disabled={activeLeafNode.status === 'explored'}
             >
               <Check className="mr-1.5 size-4" aria-hidden="true" />
               Thema abschließen

@@ -29,7 +29,7 @@ export function ExplorationCard({
     <div className="rounded-lg border bg-card p-4">
       <div className="flex items-start gap-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-          <Compass className="size-5 text-primary" />
+          <Compass aria-hidden="true" className="size-5 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium">Erkundung gestartet</p>
@@ -46,7 +46,7 @@ export function ExplorationCard({
           disabled={isLoading}
         >
           Erkundung öffnen
-          <ArrowRight className="ml-2 size-4" />
+          <ArrowRight aria-hidden="true" className="ml-2 size-4" />
         </Button>
       </div>
     </div>

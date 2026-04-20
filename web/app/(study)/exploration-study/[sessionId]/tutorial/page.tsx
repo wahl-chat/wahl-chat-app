@@ -1,8 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  type StudyCondition,
   getRouteForState,
   getStateFromResponse,
   studyApi,
@@ -10,39 +10,13 @@ import {
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const FAKE_PARTIES = [
-  {
-    name: 'Merkur',
-    abbreviation: 'MER',
-    color: 'bg-gray-500',
-    image: '/images/merkur.png',
-  },
-  {
-    name: 'Venus',
-    abbreviation: 'VEN',
-    color: 'bg-amber-400',
-    image: '/images/venus.png',
-  },
-  {
-    name: 'Mars',
-    abbreviation: 'MAR',
-    color: 'bg-red-500',
-    image: '/images/mars.png',
-  },
-  {
-    name: 'Jupiter',
-    abbreviation: 'JUP',
-    color: 'bg-orange-600',
-    image: '/images/jupiter.png',
-  },
-  {
-    name: 'Saturn',
-    abbreviation: 'SAT',
-    color: 'bg-yellow-600',
-    image: '/images/saturn.png',
-  },
+  { name: 'Merkur', abbreviation: 'MER', image: '/images/merkur.png' },
+  { name: 'Venus', abbreviation: 'VEN', image: '/images/venus.png' },
+  { name: 'Mars', abbreviation: 'MAR', image: '/images/mars.png' },
+  { name: 'Saturn', abbreviation: 'SAT', image: '/images/saturn.png' },
 ];
 
 export default function TutorialPage() {
@@ -50,6 +24,20 @@ export default function TutorialPage() {
   const router = useRouter();
   const sessionId = params.sessionId as string;
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [condition, setCondition] = useState<StudyCondition | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    studyApi.getSession(sessionId).then((response) => {
+      if (cancelled) return;
+      if (response.data?.currentCondition) {
+        setCondition(response.data.currentCondition);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
 
   const handleContinue = async () => {
     setIsSubmitting(true);
@@ -67,69 +55,103 @@ export default function TutorialPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6">
-      <div className="space-y-2">
+    <div className="mx-auto w-full max-w-2xl space-y-8">
+      <header className="space-y-2">
         <h1 className="text-2xl font-bold">Einführung</h1>
         <p className="text-sm text-muted-foreground">
-          Willkommen zur Studie! Bevor du mit der Aufgabe beginnst, möchten wir
-          dir die Parteien vorstellen, die in dieser Studie verwendet werden.
+          Bevor du mit der Aufgabe startest, eine kurze Übersicht.
         </p>
-      </div>
+      </header>
 
-      <div className="rounded-lg border bg-muted/50 p-4">
-        <p className="text-sm">
-          <strong>Wichtig:</strong> Die folgenden Parteien sind fiktiv und
-          wurden für diese Studie erstellt. Sie entsprechen keinen realen
-          politischen Parteien.
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Die Parteien</h2>
-
-        <div className="grid gap-4">
-          {FAKE_PARTIES.map((party) => (
-            <Card key={party.abbreviation}>
-              <CardHeader className="py-4">
-                <div className="flex items-center gap-3">
-                  <div className="relative size-10 overflow-hidden rounded-full">
-                    <Image
-                      src={party.image}
-                      alt={`${party.name} Logo`}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <CardTitle className="text-base">{party.name}</CardTitle>
-                </div>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Deine Aufgabe</h2>
+      <section aria-labelledby="parties-heading" className="space-y-3">
+        <h2 id="parties-heading" className="text-lg font-semibold">
+          Die Parteien
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Du wirst eine Aufgabe bearbeiten, bei der du Informationen über die
-          Positionen der Parteien zu einem Thema erkundest. Im Anschluss wirst
-          du einige Fragen beantworten.
+          Diese fünf Parteien sind{' '}
+          <strong className="font-semibold text-foreground">fiktiv</strong> und
+          entsprechen keinen realen politischen Parteien — sie wurden nur für
+          diese Studie erstellt.
         </p>
-        <ul className="list-disc pl-5 text-sm text-muted-foreground">
-          <li>Erkunde die Parteipositionen zum gestellten Thema</li>
-          <li>Nimm dir die Zeit, die du benötigst</li>
-          <li>Es gibt keine richtigen oder falschen Wege</li>
+        <ul className="flex flex-wrap gap-2">
+          {FAKE_PARTIES.map((party) => (
+            <li key={party.abbreviation}>
+              <div className="flex items-center gap-2 rounded-full border bg-card px-3 py-1.5">
+                <div className="relative size-6 overflow-hidden rounded-full">
+                  <Image
+                    src={party.image}
+                    alt=""
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <span className="text-sm">{party.name}</span>
+              </div>
+            </li>
+          ))}
         </ul>
-      </div>
+      </section>
+
+      <section aria-labelledby="task-heading" className="space-y-3">
+        <h2 id="task-heading" className="text-lg font-semibold">
+          Deine Aufgabe
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Erkunde die Positionen der fünf Parteien zu einem politischen Thema.
+          Im Anschluss beantwortest du einige Fragen zu deiner Erfahrung.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Nimm dir so viel Zeit, wie du brauchst — es gibt keinen richtigen oder
+          falschen Weg.
+        </p>
+      </section>
+
+      {condition === 'guided' && (
+        <section aria-labelledby="exploration-heading" className="space-y-3">
+          <h2 id="exploration-heading" className="text-lg font-semibold">
+            So funktioniert die Erkundung
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Du chattest mit der KI und sie bietet dir passende Erkundungen an,
+            in denen du die Parteien-Positionen vergleichen kannst.
+          </p>
+          <ol className="space-y-0 pt-1 text-sm">
+            {[
+              'Du chattest mit der KI über ein politisches Thema',
+              'Die KI bietet dir eine passende Erkundung an',
+              'Du wählst ein Unterthema und siehst die Positionen der Parteien nebeneinander',
+              'Im Chat darunter stellst du Rückfragen zu einzelnen Positionen',
+              'Schließe ein Unterthema ab, wenn du genug weißt, und wechsle zum nächsten',
+              'Jederzeit kannst du zum Chat zurück oder eine weitere Erkundung starten',
+            ].map((step, index, arr) => (
+              <li key={step} className="relative flex gap-3 pb-4 last:pb-0">
+                {index < arr.length - 1 && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute -bottom-1 left-3 top-7 w-px bg-border"
+                  />
+                )}
+                <span
+                  aria-hidden="true"
+                  className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full border bg-background text-xs font-semibold text-foreground"
+                >
+                  {index + 1}
+                </span>
+                <span className="pt-0.5 text-foreground">{step}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
       <Button
         onClick={handleContinue}
         disabled={isSubmitting}
-        className="mt-4 w-full"
+        className="w-full"
       >
         {isSubmitting ? (
           <>
-            <Loader2 className="mr-2 size-4 animate-spin" />
+            <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" />
             Wird geladen...
           </>
         ) : (

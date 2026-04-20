@@ -13,7 +13,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTimer } from '@/modules/exploration-study/hooks';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { TaskTimer } from './task-timer';
 
 export const MIN_TASK_DURATION_SECONDS = 7 * 60;
@@ -41,28 +42,41 @@ export function TaskContainer({
   className,
 }: TaskContainerProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showTimeUpDialog, setShowTimeUpDialog] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
   const [unlockMessage, setUnlockMessage] = useState('');
   const warningAnnouncerRef = useRef<HTMLDivElement>(null);
   const wasLockedRef = useRef(true);
 
-  const handleTimerEnd = useCallback(async () => {
-    setIsEnding(true);
-    await onEnd();
-  }, [onEnd]);
+  const handleTimerEnd = useCallback(() => {
+    setShowConfirmDialog(false);
+    setShowTimeUpDialog(true);
+  }, []);
+
+  const handleWarning = useCallback((seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const message =
+      minutes > 0
+        ? `Noch ${minutes} Minute${minutes > 1 ? 'n' : ''} verbleibend`
+        : `Noch ${seconds} Sekunden verbleibend`;
+    if (warningAnnouncerRef.current) {
+      warningAnnouncerRef.current.textContent = message;
+    }
+    toast(message, { duration: 6000 });
+  }, []);
+
+  const warningThresholds = useMemo(() => {
+    const raw = [Math.floor(durationSeconds / 2), 180, 60];
+    return [...new Set(raw)]
+      .filter((t) => t > 0 && t < durationSeconds)
+      .sort((a, b) => b - a);
+  }, [durationSeconds]);
 
   const { secondsRemaining, formatTime, start } = useTimer({
     durationSeconds,
     onEnd: handleTimerEnd,
-    onWarning: (seconds) => {
-      if (warningAnnouncerRef.current) {
-        const minutes = Math.floor(seconds / 60);
-        warningAnnouncerRef.current.textContent =
-          minutes > 0
-            ? `Noch ${minutes} Minute${minutes > 1 ? 'n' : ''} verbleibend`
-            : `Noch ${seconds} Sekunden verbleibend`;
-      }
-    },
+    onWarning: handleWarning,
+    warningThresholds,
   });
 
   useEffect(() => {
@@ -96,6 +110,11 @@ export function TaskContainer({
     await onEnd();
   }, [onEnd]);
 
+  const handleTimeUpContinue = useCallback(async () => {
+    setIsEnding(true);
+    await onEnd();
+  }, [onEnd]);
+
   const endButtonDisabled = isEnding || !canEnd;
   const lockReason = canEnd
     ? 'Du kannst die Aufgabe jetzt beenden.'
@@ -124,13 +143,17 @@ export function TaskContainer({
       </div>
 
       {/* Task header with timer and end button */}
-      <div className="flex items-center justify-between gap-3 border-b bg-background px-4 py-2">
+      <header
+        aria-label="Aufgaben-Steuerung"
+        className="flex items-center justify-between gap-3 border-b bg-background px-4 py-2"
+      >
         <div className="flex items-center gap-3">
           <TaskTimer
             secondsRemaining={secondsRemaining}
             formattedTime={formatTime()}
           />
           <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+            <span className="sr-only">Aktueller Modus: </span>
             {condition === 'guided' ? 'Geführte Erkundung' : 'Chat-Modus'}
           </span>
         </div>
@@ -153,7 +176,7 @@ export function TaskContainer({
             {lockReason}
           </span>
         </div>
-      </div>
+      </header>
 
       {/* Exploration content */}
       <div className="flex flex-1 flex-col overflow-hidden">{children}</div>
@@ -172,6 +195,29 @@ export function TaskContainer({
             <AlertDialogCancel>Abbrechen</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmEnd}>
               Ja, beenden
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Time-up dialog (no cancel — user must acknowledge to continue) */}
+      <AlertDialog open={showTimeUpDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Zeit ist abgelaufen</AlertDialogTitle>
+            <AlertDialogDescription>
+              Die Zeit für diese Aufgabe ist abgelaufen. Deine Antworten sind
+              gespeichert. Bitte fahre mit dem nächsten Schritt fort.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={handleTimeUpContinue}
+              disabled={isEnding}
+            >
+              {isEnding
+                ? 'Wird weitergeleitet…'
+                : 'Weiter zum nächsten Schritt'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

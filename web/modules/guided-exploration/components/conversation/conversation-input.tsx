@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { ArrowUp } from 'lucide-react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useId, useRef, useState } from 'react';
 
 interface ConversationInputProps {
   onSubmit: (message: string) => void;
   disabled?: boolean;
+  /** Reason shown to screen readers when the composer is disabled. */
+  disabledReason?: string;
   placeholder?: string;
   className?: string;
   /** Suggested follow-up questions shown as clickable buttons above the input */
@@ -24,6 +26,7 @@ interface ConversationInputProps {
 export function ConversationInput({
   onSubmit,
   disabled = false,
+  disabledReason,
   placeholder = 'Stelle eine Frage...',
   className,
   suggestedQuestions = [],
@@ -31,6 +34,8 @@ export function ConversationInput({
 }: ConversationInputProps) {
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const disabledReasonId = useId();
+  const showDisabledReason = disabled && !!disabledReason;
 
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
@@ -130,7 +135,13 @@ export function ConversationInput({
           maxLength={500}
           rows={1}
           aria-label="Nachricht eingeben"
+          aria-describedby={showDisabledReason ? disabledReasonId : undefined}
         />
+        {showDisabledReason && (
+          <span id={disabledReasonId} className="sr-only">
+            {disabledReason}
+          </span>
+        )}
         <Button
           type="submit"
           disabled={!input.trim().length || disabled}

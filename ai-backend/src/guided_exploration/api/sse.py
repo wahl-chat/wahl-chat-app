@@ -19,8 +19,9 @@ logger = logging.getLogger(__name__)
 class SSEConnection:
     """Manages a single SSE connection."""
 
-    def __init__(self, session_id: str):
+    def __init__(self, session_id: str, client_id: str):
         self.session_id = session_id
+        self.client_id = client_id
         self.connection_id = str(uuid4())
         self.queue: asyncio.Queue[SSEEvent | None] = asyncio.Queue()
         self._closed = False
@@ -44,33 +45,47 @@ class SSEManager:
     """
     Manages active SSE connections per session.
 
-    Handles session claiming: when a new connection arrives for an
-    existing session, the old connection is closed gracefully.
+    A `client_id` (per browser tab) identifies the caller. Reconnects from
+    the same `client_id` are silent replaces — covers React StrictMode
+    remounts and EventSource auto-reconnects without disrupting the user.
+    A different `client_id` for the same session is a real cross-tab claim
+    and emits `SessionClaimedEvent` on the old connection.
     """
 
     def __init__(self) -> None:
         self._connections: dict[str, SSEConnection] = {}
         self._lock = asyncio.Lock()
 
-    async def connect(self, session_id: str) -> SSEConnection:
+    async def connect(self, session_id: str, client_id: str) -> SSEConnection:
         """
-        Register a new connection. Claims session if already connected.
+        Register a new connection. Same-client reconnects silently replace
+        the old connection; different-client connects claim the session.
         """
         async with self._lock:
             if session_id in self._connections:
                 old_conn = self._connections[session_id]
-                await old_conn.send(
-                    SessionClaimedEvent(
-                        session_id=session_id,
-                        message="Session claimed by another connection",
+                if old_conn.client_id == client_id:
+                    await old_conn.close()
+                    logger.info(
+                        f"SSE same-client reconnect: session={session_id} "
+                        f"client={client_id}"
                     )
-                )
-                await old_conn.close()
-                logger.info(f"Session {session_id} claimed")
+                else:
+                    await old_conn.send(
+                        SessionClaimedEvent(
+                            session_id=session_id,
+                            message="Session claimed by another connection",
+                        )
+                    )
+                    await old_conn.close()
+                    logger.info(
+                        f"Session {session_id} claimed by client={client_id} "
+                        f"(was client={old_conn.client_id})"
+                    )
 
-            conn = SSEConnection(session_id)
+            conn = SSEConnection(session_id, client_id)
             self._connections[session_id] = conn
-            logger.info(f"SSE connected: {session_id}")
+            logger.info(f"SSE connected: session={session_id} client={client_id}")
             return conn
 
     async def disconnect(self, session_id: str, connection_id: str) -> None:
@@ -88,7 +103,14 @@ class SSEManager:
             logger.debug(f"SSE -> {event.type}: session={session_id}")
             await conn.send(event)
             return True
-        logger.debug(f"SSE -> {event.type}: session={session_id} (no connection)")
+        reason = (
+            "no_connection"
+            if conn is None
+            else "connection_closed"
+        )
+        logger.warning(
+            f"SSE DROP {event.type} session={session_id} reason={reason}"
+        )
         return False
 
     def get_connection(self, session_id: str) -> SSEConnection | None:
@@ -97,18 +119,19 @@ class SSEManager:
 
 
 async def sse_handler(
-    request: web.Request, session_id: str, manager: SSEManager
+    request: web.Request,
+    session_id: str,
+    client_id: str,
+    manager: SSEManager,
 ) -> web.StreamResponse:
     """
     aiohttp SSE endpoint handler.
 
-    Usage in routes:
-        @routes.get("/sessions/{session_id}/stream")
-        async def stream(request: web.Request):
-            session_id = request.match_info["session_id"]
-            return await sse_handler(request, session_id, get_sse_manager())
+    `client_id` identifies the browser tab (sent as `?client_id=` query
+    param). Same-client reconnects are silent; different-client triggers
+    `session_claimed` on the old connection.
     """
-    conn = await manager.connect(session_id)
+    conn = await manager.connect(session_id, client_id)
 
     async with sse_response(request) as resp:
         # Send connected event

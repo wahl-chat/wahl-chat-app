@@ -3,7 +3,8 @@
 import { useContextParty } from '@/components/providers/context-provider';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
 import Image from 'next/image';
-import { type ReactNode, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useState } from 'react';
 
 interface PartyCardProps {
   /** Party identifier (e.g., 'spd', 'cdu') */
@@ -45,7 +46,7 @@ export function PartyCard({
       <div className="flex items-center gap-2 border-b px-3 py-2">
         {/* Party logo with party color background */}
         <div
-          className="flex size-7 shrink-0 items-center justify-center rounded p-1"
+          className="flex size-7 shrink-0 items-center justify-center rounded p-0.5"
           style={{ backgroundColor: partyColor }}
         >
           {imageError ? (
@@ -56,8 +57,8 @@ export function PartyCard({
             <Image
               src={imageUrl}
               alt="" // Decorative, name is in text
-              width={20}
-              height={20}
+              width={24}
+              height={24}
               className="object-contain"
               onError={() => setImageError(true)}
             />

@@ -61,13 +61,17 @@ export function TopicDirectionsCard({
     const selectedSet = new Set(selectedDirections);
 
     return (
-      <div className="space-y-2">
+      <section
+        aria-label="Ausgewählte Erkundungsrichtungen"
+        className="space-y-2"
+      >
         {directions.directions.map((direction) => {
           const wasSelected = selectedSet.has(direction.name);
 
           return (
             <div
               key={direction.id}
+              aria-label={`${direction.name}: ${wasSelected ? 'ausgewählt' : 'nicht ausgewählt'}`}
               className={cn(
                 'flex items-start gap-3 rounded-lg border p-3',
                 wasSelected
@@ -76,6 +80,7 @@ export function TopicDirectionsCard({
               )}
             >
               <div
+                aria-hidden="true"
                 className={cn(
                   'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded',
                   wasSelected
@@ -103,22 +108,28 @@ export function TopicDirectionsCard({
             </div>
           );
         })}
-      </div>
+      </section>
     );
   }
 
   // Interactive state: checkboxes with submit
+  const headingId = 'topic-directions-heading';
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
+    <section aria-labelledby={headingId} role="group" className="space-y-3">
+      <h2 id={headingId} className="text-sm font-medium">
         Ich habe mehrere Aspekte zu diesem Thema gefunden. Wähle aus, was dich
         interessiert — du kannst auch mehrere Aspekte auswählen.
-      </p>
+      </h2>
 
       <div className="space-y-2">
         {directions.directions.map((direction) => {
           const isChecked = selected.has(direction.id);
           const inputId = `direction-${direction.id}`;
+          const labelTextId = `${inputId}-label`;
+          const descriptionIds = [`${inputId}-description`];
+          if (direction.suggestedQuestion) {
+            descriptionIds.push(`${inputId}-question`);
+          }
           return (
             <label
               key={direction.id}
@@ -134,19 +145,33 @@ export function TopicDirectionsCard({
                 checked={isChecked}
                 onCheckedChange={() => toggleDirection(direction.id)}
                 disabled={isLoading}
+                aria-labelledby={labelTextId}
+                aria-describedby={descriptionIds.join(' ')}
                 className="mt-0.5"
               />
               <div className="space-y-1">
-                <p className="text-sm font-medium">{direction.name}</p>
-                <p className="text-xs text-muted-foreground">
+                <p id={labelTextId} className="text-sm font-medium">
+                  {direction.name}
+                </p>
+                <p
+                  id={`${inputId}-description`}
+                  className="text-xs text-muted-foreground"
+                >
                   {direction.description}
                 </p>
-                <p className="text-xs italic text-muted-foreground/80">
+                <p
+                  className="text-xs italic text-muted-foreground/80"
+                  aria-hidden="true"
+                >
                   {direction.partyStancesPreview}
                 </p>
                 {direction.suggestedQuestion && (
-                  <p className="mt-1 text-xs text-primary/70">
-                    &rarr; {direction.suggestedQuestion}
+                  <p
+                    id={`${inputId}-question`}
+                    className="mt-1 text-xs text-primary/70"
+                  >
+                    <span aria-hidden="true">&rarr; </span>
+                    {direction.suggestedQuestion}
                   </p>
                 )}
               </div>
@@ -168,13 +193,16 @@ export function TopicDirectionsCard({
             checked={allSelected}
             onCheckedChange={toggleAll}
             disabled={isLoading}
+            aria-label="Alle Aspekte erkunden"
           />
           <div className="flex items-center gap-1.5">
             <Compass
               className="size-3.5 text-muted-foreground"
               aria-hidden="true"
             />
-            <span className="text-sm font-medium">Alle Aspekte erkunden</span>
+            <span className="text-sm font-medium" aria-hidden="true">
+              Alle Aspekte erkunden
+            </span>
           </div>
         </label>
       </div>
@@ -191,6 +219,6 @@ export function TopicDirectionsCard({
           </span>
         )}
       </Button>
-    </div>
+    </section>
   );
 }

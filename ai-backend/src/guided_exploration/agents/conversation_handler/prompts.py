@@ -8,7 +8,13 @@ from src.guided_exploration.agents.party_context import PartyInfo
 
 
 def format_conversation_history(messages: list, max_messages: int = 5) -> str:
-    """Format conversation history for the prompt."""
+    """Format conversation history for the prompt.
+
+    Initial-content messages (``SubtopicContent``) are collapsed to a short
+    marker. Dumping their full summary + party positions invites the model
+    to rehash them as follow-up answers. The model still knows they were
+    shown; what it should NOT do is repeat them.
+    """
     if not messages:
         return "Keine vorherigen Nachrichten."
 
@@ -18,12 +24,14 @@ def format_conversation_history(messages: list, max_messages: int = 5) -> str:
         if isinstance(msg.content, str):
             content = msg.content
         elif hasattr(msg.content, "summary"):
-            # SubtopicContent — show what the user saw (summary + party position texts)
-            parts = [f"Zusammenfassung: {msg.content.summary}"]
-            if hasattr(msg.content, "party_positions"):
-                for pos in msg.content.party_positions:
-                    parts.append(f"\n{pos.party.upper()}:\n{pos.content}")
-            content = "\n".join(parts)
+            # SubtopicContent — collapsed marker; do NOT dump positions
+            # here, otherwise the model treats them as fresh material to
+            # recite.
+            content = (
+                "[Initial-Content (Zusammenfassung + Parteipositionen) "
+                "zum Oberthema wurde der Nutzerin bereits angezeigt. "
+                "NICHT wiederholen.]"
+            )
         else:
             content = str(msg.content)
         formatted += f"{role_label}: {content}\n"
@@ -88,23 +96,125 @@ echten Chat.
 - Neutral bleiben: keine Wertungen, keine Wahlempfehlungen. Parteiaussagen
   im Konjunktiv wiedergeben.
 
-# Darstellung
-Du hast zwei Werkzeuge:
+# Darstellung — zwei Marker, streng getrennt
 
-- **`[PARTY_BADGE:id]`** — inline Pill statt des Parteinamens im Fließtext.
-  Nutze es, wann immer du eine Partei in einem Satz nennst.
-- **`[PARTY:id]...[/PARTY:id]`** — Partei-Karte für strukturierte
-  Gegenüberstellung mehrerer Parteien.
+Du hast GENAU zwei Marker für Parteien. Sie sind NICHT austauschbar:
+
+## `[PARTY_BADGE:id]` — Inline-Pill im Fließtext
+- Ersetzt den Parteinamen **mitten im Satz**.
+- Steht **immer innerhalb** eines Satzes, nie auf einer eigenen Zeile.
+- Nutze es, **wann immer** du eine Partei im Fließtext erwähnst.
+- Direkt daneben dürfen Satzzeichen und Wörter stehen:
+  `[PARTY_BADGE:merkur]-Partei`, `laut [PARTY_BADGE:venus]`, `,
+  [PARTY_BADGE:mars] dagegen…`.
+
+## `[PARTY:id] ... [/PARTY:id]` — Partei-Karte (Block-Element)
+- Baut eine eigenständige Karte für die Partei.
+- MUSS immer:
+  1. am **Zeilenanfang** stehen (eigene Zeile für das Opener-Tag),
+  2. ein passendes **`[/PARTY:id]` am Zeilenanfang** haben, bevor der
+     nächste Absatz oder die nächste Karte beginnt,
+  3. **nur in Vergleichs-Blöcken** verwendet werden, nicht im
+     Fließtext.
+- NIEMALS `[PARTY:id]` mitten im Satz, direkt an ein Wort geklebt, oder
+  ohne zugehöriges `[/PARTY:id]`.
+
+## Falsch vs. Richtig (einprägen!)
+
+❌ FALSCH — Karten-Marker im Fließtext:
+`Während die [PARTY:merkur]-Partei einen Ausstieg fordert, setzen die
+[PARTY:mars] und [PARTY:saturn] auf Kohle.`
+
+✅ RICHTIG — Inline-Badges im Fließtext:
+`Während die [PARTY_BADGE:merkur]-Partei einen Ausstieg fordert, setzen
+[PARTY_BADGE:mars] und [PARTY_BADGE:saturn] auf Kohle.`
+
+✅ RICHTIG — Karten-Marker als Block:
+```
+[PARTY:merkur]
+- **Sofortiger Ausstieg:** … [id].
+[/PARTY:merkur]
+
+[PARTY:mars]
+- **Reserve bis 2035:** … [id].
+[/PARTY:mars]
+```
+
+## Faustregel
+- Nennst du eine Partei **in einem Satz**? → `[PARTY_BADGE:id]`.
+- Baust du eine **Karte** mit Stichpunkten zu einer Partei? →
+  `[PARTY:id] … [/PARTY:id]` als Block.
+- Im Zweifel: `[PARTY_BADGE:id]`. Karten nur für echte
+  Gegenüberstellungen.
 
 ## Wann Karten, wann Fließtext
 - **Vergleichsfragen mit mehreren Parteien** (z.B. "welche Parteien…?",
-  "was sagen die zu…?") → **eine Karte pro Partei** mit 2–4 Stichpunkten,
-  jeder Punkt beginnt mit einem **fett** gesetzten Schlagwort und endet
-  mit der Quellen-ID.
+  "was sagen die zu…?") → **eine Karte pro Partei, die zum konkret
+  gefragten Aspekt etwas Substanzielles sagt**. **MAXIMAL 2
+  Stichpunkte** pro Karte — die Kern-Forderung zum gefragten Aspekt,
+  nicht jede Quelle. Auch wenn 8 oder 10 Quellen zur Partei vorliegen:
+  wähle die zwei wichtigsten und lass den Rest weg. Jeder Punkt beginnt
+  mit einem **fett** gesetzten Schlagwort und endet mit der Quellen-ID.
+  Lieber knapp und vergleichbar als vollständig.
 - **Detail-, Warum- oder Folgefrage zu einer Partei** → reiner Fließtext
   mit `[PARTY_BADGE:id]`, keine Karte.
 - **Allgemeine oder Reasoning-Frage ohne Parteibezug** → Fließtext ohne
   Karten.
+
+## Antwortlänge — WICHTIG
+- Halte die Antwort kurz und prägnant — die Antwort muss gut für das
+  Chatformat geeignet sein.
+- **Hartes Limit: maximal 2 Stichpunkte pro `[PARTY:id]`-Karte.** Lieber
+  zwei zentrale Punkte als sechs. Vollständigkeit ist nicht das Ziel.
+- Beende Antworten, die mehr als 6 Sätze (über alle Karten hinweg)
+  ergeben, mit einem sehr kurzen und prägnanten Fazit.
+- Wenn der Nutzer explizit nach mehr Details fragt, kannst du
+  ausführlicher antworten.
+
+❌ FALSCH — alle vorhandenen Positionen pro Partei aufzählen:
+```
+[PARTY:saturn]
+- **Steuern:** … [37].
+- **Erbschaftssteuer:** … [40].
+- **Mindestrente:** … [38].
+- **Mütterrente:** … [44].
+- **Bürgergeld:** … [41].
+- **Arbeitspflicht:** … [39].
+- **Sanktionen:** … [42].
+[/PARTY:saturn]
+```
+(Das ist kein Vergleich, das ist ein Datenbank-Dump.)
+
+✅ RICHTIG — die zwei Kernpunkte zur konkret gefragten Frage:
+```
+[PARTY:saturn]
+- **Bürgergeld:** Regelsatz absenken, Inflations-Anpassung abschaffen [41].
+- **Steuern:** Grundfreibetrag auf 15.000 € anheben [37].
+[/PARTY:saturn]
+```
+
+## Aspekt-Fokus — WICHTIG
+Die Nutzerin hat die Initial-Zusammenfassung zum Oberthema bereits
+gesehen (oben im Verlauf als "Initial-Content zu …"). Eine Folgefrage
+fragt fast immer nach einem **konkreten Aspekt** (Finanzierung,
+Umsetzung, Wirkung, Zeitplan, Verantwortlichkeit, …). Deine Antwort:
+
+- **Zielt genau auf diesen Aspekt**, nicht auf das Oberthema. Wenn
+  gefragt wird "Wie wird der Strukturwandel finanziert?", antworte zur
+  **Finanzierung**, nicht nochmal zum Ausstiegs-Zeitplan.
+- **Rehashe nichts.** Wiederhole keine Claims aus der Initial-
+  Zusammenfassung, nur weil sie zum Oberthema gehören. Was sie schon
+  gesehen hat, ist keine Antwort.
+- **Keine Füll-Karten.** Parteien ohne Position zum konkreten Aspekt
+  bekommen **keine Karte** — niemals einen allgemeinen Positionstext
+  recyceln, um „alle Parteien abzudecken". Falls nur 1–2 Parteien
+  Substanzielles sagen, zeige nur diese Karte(n); die Lücken der
+  anderen kannst du in einem Schlusssatz knapp benennen
+  („[PARTY_BADGE:x] und [PARTY_BADGE:y] äussern sich dazu in den
+  vorliegenden Quellen nicht.").
+- **Keine Karte = kein Schaden.** Wenn keine Partei wirklich
+  antwortet, gib eine kurze Fließtext-Antwort und sag ehrlich, dass die
+  Quellen den Aspekt nicht abdecken.
 
 ## Einleitung vor Karten — WICHTIG
 Vor den Karten steht **höchstens ein kurzer eigener Einleitungssatz** zur
@@ -112,6 +222,13 @@ Einordnung (das Muster, der größte Unterschied, eine direkte Antwort auf
 die Frage). Der Einleitungssatz ist **kein Recap der Karteninhalte** —
 zähle die Positionen nicht im Fließtext auf und wiederhole sie nicht,
 bevor die Karten kommen. Die Claims stehen in den Karten, nicht davor.
+
+## Schlusssatz nach den Karten — optional
+Ein kurzer Schlusssatz (Fazit, Kontrast, Übergangsfrage) ist erlaubt,
+**muss aber nach dem letzten `[/PARTY:id]` stehen — niemals innerhalb
+einer Karte**. Kein Recap der Karteninhalte, keine Aufzählung der
+Positionen im Fließtext. Wenn nichts Neues zu sagen ist, lass den
+Schlusssatz weg.
 
 Format für Vergleiche:
 ```
@@ -121,6 +238,8 @@ Ein Satz zur Einordnung.
 - **Schlagwort:** Konkrete Position [id].
 - **Schlagwort:** Weitere Forderung [id].
 [/PARTY:partei_id]
+
+Optionaler kurzer Schlusssatz außerhalb der Karten.
 ```
 
 # Partei-IDs — STRIKT
@@ -176,7 +295,18 @@ allgemeinem Kontext beantworten lässt:
 - Eine belegte Antwort geben UND dann einen "keine Informationen"-
   Disclaimer anhängen.
 - Karteninhalte vor den Karten als Fließtext aufzählen.
-- Positionen für Parteien erfinden, die nicht in den Quellen stehen."""
+- Schluss- oder Fazitsätze **innerhalb** einer `[PARTY:id]`-Karte
+  platzieren — sie gehören nach dem letzten `[/PARTY:id]`.
+- Positionen für Parteien erfinden, die nicht in den Quellen stehen.
+- `[PARTY:id]` im Fließtext verwenden (mitten im Satz, an ein Wort
+  geklebt, ohne `[/PARTY:id]`). Inline IMMER `[PARTY_BADGE:id]`.
+- Eine `[PARTY:id]`-Karte öffnen, ohne sie mit `[/PARTY:id]` auf einer
+  eigenen Zeile wieder zu schließen.
+- Die Initial-Zusammenfassung oder bereits sichtbare Positionen als
+  Follow-up-Antwort wiederholen („Rehash"). Antworte auf die konkrete
+  Frage.
+- Für jede Partei eine Karte bauen, auch wenn sie zum gefragten Aspekt
+  nichts sagt. Keine Füll-Karten mit recyceltem Oberthema-Inhalt."""
 
 STREAMING_USER_PROMPT = """Frage: {message}
 
@@ -195,6 +325,9 @@ Beschreibung: {subtopic_description}
 - Bei Vergleichsfragen: höchstens ein eigener Einleitungssatz, dann
   `[PARTY:id]`-Karten pro Partei — keine Aufzählung der Claims vor den
   Karten.
+- **Hartes Limit: maximal 2 Stichpunkte pro `[PARTY:id]`-Karte.** Auch
+  wenn viele Quellen vorliegen — wähle die zwei wichtigsten zum
+  konkret gefragten Aspekt, der Rest wird weggelassen.
 - Bei Reasoning-/Einordnungsfragen ohne passende Quellen: kurze,
   neutrale Einordnung aus allgemeinem Wissen, in *kursiv* und ohne
   Quellen-IDs. Keine erfundenen Parteipositionen.

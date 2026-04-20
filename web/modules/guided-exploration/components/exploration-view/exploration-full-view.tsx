@@ -5,6 +5,10 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { ConversationInput } from '@/modules/guided-exploration/components/conversation';
 import { ExplorationBreadcrumb } from '@/modules/guided-exploration/components/navigation/breadcrumb';
+import {
+  selectExplorationStatus,
+  useExplorationStore,
+} from '@/modules/guided-exploration/store';
 import type {
   BreadcrumbItem,
   Conversation,
@@ -135,6 +139,8 @@ export function ExplorationFullView({
 }: ExplorationFullViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messageCount = activeConversation?.messages.length ?? 0;
+  const explorationStatus = useExplorationStore(selectExplorationStatus);
+  const isCompleted = explorationStatus === 'completed';
 
   const currentNodeId = currentPath[currentPath.length - 1] ?? null;
   const currentBranchNode = currentNodeId
@@ -186,7 +192,7 @@ export function ExplorationFullView({
     // After navigation, focus next unexplored subtopic
     requestAnimationFrame(() => {
       const nextUnexplored = document.querySelector(
-        '[data-subtopic-id][data-status="pending"]',
+        '[data-subtopic-id]:not([data-status="explored"])',
       ) as HTMLButtonElement | null;
       nextUnexplored?.focus();
     });
@@ -234,16 +240,26 @@ export function ExplorationFullView({
               />
             </div>
             <div className="flex items-center gap-3">
-              {overallProgress.total > 0 && (
-                <div
-                  className="hidden items-center gap-2 sm:flex"
-                  aria-label={`Fortschritt: ${overallProgress.explored} von ${overallProgress.total} Themen erkundet`}
+              {isCompleted && (
+                <span
+                  role="status"
+                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
                 >
+                  <Check aria-hidden="true" className="size-3" />
+                  Erkundung abgeschlossen
+                </span>
+              )}
+              {overallProgress.total > 0 && (
+                <div className="hidden items-center gap-2 sm:flex">
                   <Progress
                     value={progressPercentage}
+                    aria-label={`Fortschritt: ${overallProgress.explored} von ${overallProgress.total} Themen erkundet`}
                     className="h-2 w-32 lg:w-48"
                   />
-                  <span className="whitespace-nowrap text-xs text-muted-foreground">
+                  <span
+                    aria-hidden="true"
+                    className="whitespace-nowrap text-xs text-muted-foreground"
+                  >
                     {overallProgress.explored}/{overallProgress.total}
                   </span>
                 </div>
@@ -264,7 +280,7 @@ export function ExplorationFullView({
         {/* Sidebar + content row */}
         <div className="flex flex-1 overflow-hidden">
           {/* Main Content */}
-          <main className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex flex-1 flex-col overflow-hidden">
             {/* Context banner — always visible */}
             <div className="shrink-0 border-b px-4 py-2">
               <ExplorationContextBanner tree={tree} />
@@ -338,8 +354,9 @@ export function ExplorationFullView({
                           onClick={handleDone}
                           variant="outline"
                           size="sm"
+                          disabled={activeLeafNode?.status === 'explored'}
                         >
-                          <Check className="mr-1.5 size-4" />
+                          <Check aria-hidden="true" className="mr-1.5 size-4" />
                           Thema abschließen
                         </Button>
                       )}
@@ -347,10 +364,15 @@ export function ExplorationFullView({
                   )}
                   <ConversationInput
                     onSubmit={onSendMessage}
-                    disabled={isThinking}
-                    placeholder="Stelle eine Frage zu diesem Thema..."
-                    suggestedQuestions={suggestedQuestions}
+                    disabled={isThinking || isCompleted}
+                    placeholder={
+                      isCompleted
+                        ? 'Diese Erkundung ist abgeschlossen.'
+                        : 'Stelle eine Frage zu diesem Thema...'
+                    }
+                    suggestedQuestions={isCompleted ? [] : suggestedQuestions}
                     isLoadingQuestions={
+                      !isCompleted &&
                       (isThinking || isStreaming) &&
                       suggestedQuestions.length === 0
                     }
@@ -358,12 +380,13 @@ export function ExplorationFullView({
                 </div>
               </footer>
             )}
-          </main>
+          </div>
 
-          {/* Summary Panel - Desktop only, wider on large screens */}
-          <aside className="hidden w-72 shrink-0 border-l bg-muted/30 md:block lg:w-80 xl:w-96">
+          {/* Summary Panel - Desktop only, wider on large screens.
+              The inner sidebar component provides its own landmark + label. */}
+          <div className="hidden w-72 shrink-0 border-l bg-muted/30 md:block lg:w-80 xl:w-96">
             {sidebarNode}
-          </aside>
+          </div>
         </div>
       </div>
     </LeafActionsContext.Provider>

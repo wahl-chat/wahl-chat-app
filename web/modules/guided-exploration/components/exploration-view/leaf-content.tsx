@@ -10,13 +10,17 @@ import {
   ThinkingIndicator,
 } from '@/modules/guided-exploration/components/conversation';
 import { TopicSwitchCard } from '@/modules/guided-exploration/components/conversation/topic-switch-card';
+import { CitationMarkdown } from '@/modules/guided-exploration/components/shared/citation-markdown';
 import { PartyMarkedMarkdown } from '@/modules/guided-exploration/components/shared/party-marked-markdown';
 import type {
   Conversation,
   StreamTargetType,
   SubtopicContent,
 } from '@/modules/guided-exploration/types';
-import { useStreamingCitationMap } from '@/modules/guided-exploration/utils';
+import {
+  useCitationHandlers,
+  useStreamingCitationMap,
+} from '@/modules/guided-exploration/utils';
 
 import { AspectComparisonView } from './aspect-comparison-view';
 
@@ -53,43 +57,76 @@ export function LeafContent({
 }: LeafContentProps) {
   const [viewMode, setViewMode] = useState<'party' | 'aspect'>('party');
 
-  if (!conversation) {
-    return null;
-  }
-
-  const hasMessages = conversation.messages.length > 0;
-
-  // Show stream buffer for followup messages while streaming OR while buffer
-  // still has content (covers the gap between stream_end and conversation_message)
-  const isFollowupStream =
-    streamingTargetType === 'followup' || (!isStreaming && streamBuffer);
-  const shouldShowStreamBuffer = !!streamBuffer && isFollowupStream;
-
-  // Show loading indicator when streaming initial_content
-  const isStreamingInitialContent =
-    isStreaming && streamingTargetType === 'initial_content';
-
-  // Find initial content for aspect comparison
-  const initialMessage = conversation.messages.find(
+  // Derived up-front so the citation hook below can run before the early
+  // return (rules of hooks).
+  const initialMessage = conversation?.messages.find(
     (m) => m.type === 'initial_content' && typeof m.content !== 'string',
   );
   const initialContent =
     initialMessage && typeof initialMessage.content !== 'string'
       ? (initialMessage.content as SubtopicContent)
       : null;
+  const {
+    getReferenceName: getSummaryReferenceName,
+    getReferenceTooltip: getSummaryReferenceTooltip,
+    handleReferenceClick: handleSummaryReferenceClick,
+  } = useCitationHandlers(initialContent?.citations ?? []);
+
+  if (!conversation) {
+    return null;
+  }
+
+  const hasMessages = conversation.messages.length > 0;
+
+  // Show stream buffer only while actively streaming a followup. Previously
+  // this also tried to cover the gap between stream_end and the committed
+  // conversation_message, but that caused the initial_content summary to
+  // linger and render a second time below the structured message.
+  const shouldShowStreamBuffer =
+    !!streamBuffer && streamingTargetType === 'followup';
+
+  // Show loading indicator when streaming initial_content
+  const isStreamingInitialContent =
+    isStreaming && streamingTargetType === 'initial_content';
+
   const hasAspectComparison =
     initialContent?.aspectComparison &&
     initialContent.aspectComparison.aspects.length > 0;
 
   return (
     <div className={cn('space-y-6', className)}>
+      {/* Summary — rendered once above the view toggle, shared across modes */}
+      {initialContent?.summary && (
+        <section aria-labelledby="summary-heading">
+          <h3 id="summary-heading" className="mb-3 text-base font-semibold">
+            Zusammenfassung
+          </h3>
+          <div className="rounded-lg border p-4">
+            <div className="prose prose-sm max-w-none dark:prose-invert">
+              <CitationMarkdown
+                onReferenceClick={handleSummaryReferenceClick}
+                getReferenceName={getSummaryReferenceName}
+                getReferenceTooltip={getSummaryReferenceTooltip}
+              >
+                {initialContent.summary}
+              </CitationMarkdown>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* View toggle — only show when aspect comparison data is available */}
       {hasAspectComparison && (
-        <div className="flex items-center gap-1 rounded-lg border p-1">
+        <div
+          role="group"
+          aria-label="Ansicht umschalten"
+          className="flex items-center gap-1 rounded-lg border p-1"
+        >
           <Button
             variant={viewMode === 'party' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setViewMode('party')}
+            aria-pressed={viewMode === 'party'}
             className="flex-1 text-xs"
           >
             Nach Partei
@@ -98,6 +135,7 @@ export function LeafContent({
             variant={viewMode === 'aspect' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setViewMode('aspect')}
+            aria-pressed={viewMode === 'aspect'}
             className="flex-1 text-xs"
           >
             Nach Aspekt
@@ -108,14 +146,6 @@ export function LeafContent({
       {/* Aspect comparison view */}
       {viewMode === 'aspect' && hasAspectComparison && initialContent && (
         <>
-          {/* Summary still shown above the comparison */}
-          {initialContent.summary && (
-            <div className="rounded-lg border p-4">
-              <p className="text-sm text-muted-foreground">
-                {initialContent.summary}
-              </p>
-            </div>
-          )}
           {initialContent.aspectComparison && (
             <AspectComparisonView
               comparison={initialContent.aspectComparison}
@@ -141,6 +171,7 @@ export function LeafContent({
             return (
               <InitialContentMessage
                 key={message.id}
+                messageId={message.id}
                 content={message.content as SubtopicContent}
               />
             );
@@ -152,7 +183,13 @@ export function LeafContent({
 
       {/* Streaming content while loading - only for followup messages */}
       {shouldShowStreamBuffer && (
-        <StreamingBuffer content={streamBuffer ?? ''} />
+        <div
+          aria-live="polite"
+          aria-atomic="false"
+          aria-label="KI-Antwort wird geschrieben"
+        >
+          <StreamingBuffer content={streamBuffer ?? ''} />
+        </div>
       )}
 
       {/* Topic switch suggestion */}

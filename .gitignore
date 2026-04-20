@@ -17,3 +17,6 @@ node_modules/
 *.log
 .local
 .diagrams/
+
+# === Study admin dashboard (local tool) ===
+study-admin/

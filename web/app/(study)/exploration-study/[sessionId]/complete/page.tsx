@@ -25,7 +25,7 @@ export default function CompletePage() {
   return (
     <div className="mx-auto w-full max-w-2xl space-y-8 py-12 text-center">
       <div className="flex justify-center">
-        <CheckCircle className="size-16 text-green-500" />
+        <CheckCircle aria-hidden="true" className="size-16 text-green-500" />
       </div>
 
       <div className="space-y-2">
@@ -59,10 +59,15 @@ export default function CompletePage() {
 
       {!feedbackSubmitted && (
         <div className="space-y-4 rounded-lg border p-6 text-left">
-          <h2 className="text-lg font-semibold">
+          <h2 id="feedback-heading" className="text-lg font-semibold">
             Hast du noch Anmerkungen? (optional)
           </h2>
+          <label htmlFor="feedback-textarea" className="sr-only">
+            Anmerkungen zur Studie
+          </label>
           <Textarea
+            id="feedback-textarea"
+            aria-labelledby="feedback-heading"
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             placeholder="Teile uns gerne deine Gedanken, Anregungen oder Kritik mit..."
@@ -78,11 +83,13 @@ export default function CompletePage() {
         </div>
       )}
 
-      {feedbackSubmitted && (
-        <p className="text-sm text-muted-foreground">
-          Danke für dein Feedback!
-        </p>
-      )}
+      <div role="status" aria-live="polite">
+        {feedbackSubmitted && (
+          <p className="text-sm text-muted-foreground">
+            Danke für dein Feedback!
+          </p>
+        )}
+      </div>
 
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Kontakt</h2>

@@ -120,8 +120,25 @@ export function ExplorationChatView({
     return -1;
   })();
 
+  const thinkingStatusText = (() => {
+    if (isStreaming) return 'KI-Antwort wird geschrieben.';
+    if (isThinking) {
+      return thinkingMessage ?? 'Nachricht wird verarbeitet...';
+    }
+    return '';
+  })();
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
+      {/* Persistent status announcer for thinking/streaming state */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {thinkingStatusText}
+      </div>
       {/* Main content area */}
       <div
         ref={scrollContainerRef}
@@ -133,7 +150,7 @@ export function ExplorationChatView({
             'linear-gradient(to bottom, transparent, black 2rem, black calc(100% - 2rem), transparent)',
         }}
       >
-        <main className="mx-auto w-full max-w-xl py-8">
+        <div className="mx-auto w-full max-w-xl py-8">
           {!hasMessages ? (
             <ExplorationEmptyView
               onSuggestionClick={onSendMessageAction}
@@ -154,10 +171,16 @@ export function ExplorationChatView({
 
               {/* Streaming content with citation mapping */}
               {shouldShowStreamBuffer && (
-                <ChatStreamingBuffer
-                  content={streamBuffer}
-                  isStreaming={isStreaming}
-                />
+                <div
+                  aria-live="polite"
+                  aria-atomic="false"
+                  aria-label="KI-Antwort wird geschrieben"
+                >
+                  <ChatStreamingBuffer
+                    content={streamBuffer}
+                    isStreaming={isStreaming}
+                  />
+                </div>
               )}
 
               {/* Tree preview while exploration is pending */}
@@ -186,7 +209,7 @@ export function ExplorationChatView({
             </div>
           )}
           <div style={{ height: '3rem' }} />
-        </main>
+        </div>
       </div>
 
       {/* Input - sticky at bottom */}
@@ -195,6 +218,15 @@ export function ExplorationChatView({
           <ConversationInput
             onSubmit={onSendMessageAction}
             disabled={isThinking || !!pendingChoice || hasActiveDirections}
+            disabledReason={
+              pendingChoice
+                ? 'Wähle zuerst oben eine Option, um fortzufahren.'
+                : hasActiveDirections
+                  ? 'Wähle zuerst oben die Aspekte aus, die dich interessieren.'
+                  : isThinking
+                    ? 'Die Antwort wird gerade generiert. Bitte warte einen Moment.'
+                    : undefined
+            }
             placeholder="Stelle eine Frage..."
             suggestedQuestions={suggestedQuestions}
           />

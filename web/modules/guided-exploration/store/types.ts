@@ -60,12 +60,16 @@ export interface SessionSliceState {
   activeTabId: 'chat' | string;
 }
 
+export type ExplorationStatus = 'active' | 'completed' | null;
+
 export interface ExplorationSliceState {
   tree: ExplorationTree | null;
   navigation: NavigationState | null;
   conversations: Record<string, Conversation>;
   activeLeafId: string | null;
   analysisAvailable: boolean;
+  /** Lifecycle status of the current exploration (mirrors backend). */
+  status: ExplorationStatus;
 }
 
 export type AppMode = 'idle' | 'chat' | 'choosing' | 'exploring';
@@ -183,7 +187,9 @@ export type ExplorationAction =
       explorationId: string;
       tree: ExplorationTree;
       navigation: NavigationState;
+      status?: ExplorationStatus;
     }
+  | { type: 'EXPLORATION_STATUS_UPDATED'; status: ExplorationStatus }
   | {
       type: 'EXPLORATION_TREE_RECEIVED';
       explorationId: string;
@@ -197,7 +203,6 @@ export type ExplorationAction =
       partiesCount: number;
     }
   | { type: 'EXPLORATION_READY_CLEARED' }
-  | { type: 'TREE_UPDATED'; tree: ExplorationTree }
   | {
       type: 'NAVIGATED_TO_ROOT';
       navigation: NavigationState;

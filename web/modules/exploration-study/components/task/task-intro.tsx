@@ -8,7 +8,7 @@ import {
   type StudyTopic,
   TOPIC_INFO,
 } from '@/modules/exploration-study/types';
-import { Clock, Loader2, MessageCircle, TreePine } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface TaskIntroProps {
   topic: StudyTopic;
@@ -28,17 +28,17 @@ export function TaskIntro({
   const topicInfo = TOPIC_INFO[topic];
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
-      <div className="space-y-2">
+    <div className="mx-auto w-full max-w-2xl space-y-8 p-4">
+      <header className="space-y-1">
         <p className="text-sm font-medium text-muted-foreground">
           Deine Aufgabe
         </p>
         <h1 className="text-2xl font-bold">{topicInfo.title}</h1>
-      </div>
+      </header>
 
-      <Card className="border-primary/20 bg-primary/5">
+      <Card className="border bg-card">
         <CardContent className="pt-6">
-          <div className="max-w-none">
+          <div className="max-w-none [&_blockquote]:rounded-none [&_blockquote]:border-l-4 [&_blockquote]:border-primary [&_blockquote]:bg-transparent [&_blockquote]:px-4 [&_blockquote]:py-2 [&_blockquote]:text-foreground">
             <Markdown onReferenceClick={() => {}}>
               {topicInfo.friendQuestion}
             </Markdown>
@@ -46,64 +46,36 @@ export function TaskIntro({
         </CardContent>
       </Card>
 
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Hinweise zur Bearbeitung</h2>
-
-        <div className="grid gap-3">
-          <div className="flex items-start gap-3 rounded-lg border p-4">
-            <div className="rounded-full bg-primary/10 p-2">
-              {condition === 'guided' ? (
-                <TreePine className="size-5 text-primary" />
-              ) : (
-                <MessageCircle className="size-5 text-primary" />
-              )}
-            </div>
-            <div>
-              <p className="font-medium">
-                {condition === 'guided' ? 'Geführte Erkundung' : 'Chat-Modus'}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {condition === 'guided'
-                  ? 'Du kannst die Themen über einen strukturierten Themenbaum erkunden und dich durch die verschiedenen Aspekte navigieren.'
-                  : 'Du kannst frei mit dem System chatten und Fragen zu den Parteipositionen stellen.'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 rounded-lg border p-4">
-            <div className="rounded-full bg-primary/10 p-2">
-              <Clock className="size-5 text-primary" />
-            </div>
-            <div>
-              <p className="font-medium">Zeitrahmen</p>
-              <p className="text-sm text-muted-foreground">
-                Du hast {durationMinutes} Minuten Zeit, um die Informationen zu
-                erkunden. Nimm dir die Zeit, die du brauchst, um einen guten
-                Überblick zu bekommen.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-lg border bg-muted/50 p-4">
+      <section aria-labelledby="notes-heading" className="space-y-2">
+        <h2 id="notes-heading" className="text-lg font-semibold">
+          Hinweise
+        </h2>
         <p className="text-sm text-muted-foreground">
-          <strong>Tipp:</strong> Versuche, die wichtigsten Positionen der
-          Parteien zu verstehen und Gemeinsamkeiten sowie Unterschiede zu
-          identifizieren. Im Anschluss wirst du einige Fragen zu den Inhalten
-          beantworten.
+          {condition === 'guided'
+            ? 'Du erkundest das Thema gemeinsam mit der KI. Sie bietet dir passende Erkundungen an, in denen du die Parteipositionen Schritt für Schritt vergleichen kannst.'
+            : 'Du chattest frei mit der KI und stellst ihr deine Fragen zu den Parteipositionen.'}
         </p>
-      </div>
+        <p className="text-sm text-muted-foreground">
+          Du hast {durationMinutes} Minuten Zeit — nimm dir so viel davon, wie
+          du brauchst, um einen guten Überblick zu bekommen.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Versuche, die wichtigsten Positionen zu verstehen und Gemeinsamkeiten
+          sowie Unterschiede zu erkennen. Im Anschluss beantwortest du ein paar
+          Wissensfragen zu den Parteipositionen — sei also so vorbereitet, dass
+          du deinem Freund die Standpunkte erklären könntest.
+        </p>
+      </section>
 
       <Button
         onClick={onStart}
         disabled={isStarting}
         size="lg"
-        className="mt-4 w-full"
+        className="w-full"
       >
         {isStarting ? (
           <>
-            <Loader2 className="mr-2 size-4 animate-spin" />
+            <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" />
             Wird gestartet...
           </>
         ) : (

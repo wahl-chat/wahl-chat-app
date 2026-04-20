@@ -7,18 +7,14 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import {
-  type DetailedHTMLProps,
-  type HTMLAttributes,
-  type JSX,
-  createElement,
-  memo,
-} from 'react';
-import ReactMarkdown, { type Components } from 'react-markdown';
+import type { DetailedHTMLProps, HTMLAttributes, JSX } from 'react';
+import { createElement, memo } from 'react';
+import type { Components } from 'react-markdown';
+import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { PartyBadge } from './party-badge';
 
-type CitationMarkdownProps = {
+interface CitationMarkdownProps {
   children: string;
   /** Callback when a citation reference is clicked */
   onReferenceClick: (id: string) => void;
@@ -26,7 +22,7 @@ type CitationMarkdownProps = {
   getReferenceName?: (id: string) => string | null;
   /** Get tooltip text for a citation ID */
   getReferenceTooltip?: (id: string) => string | null;
-};
+}
 
 // Combined splitter for inline tokens we want to extract from text:
 //   - citations:    [id]  or  [id1, id2]
@@ -52,6 +48,10 @@ function CitationReference({
   getReferenceTooltip?: (id: string) => string | null;
   getReferenceName?: (id: string) => string | null;
 }) {
+  // Hidden from SR + keyboard: inline "Quelle 1" announcements mid-sentence
+  // would shred reading flow. The canonical a11y affordance is the sources
+  // list rendered separately (see InitialContentMessage); these inline chips
+  // are a mouse-only convenience jumper.
   return (
     <span
       key={index}
@@ -67,6 +67,7 @@ function CitationReference({
             <TooltipTrigger asChild>
               <button
                 type="button"
+                tabIndex={-1}
                 className={cn(
                   'inline-flex cursor-pointer items-center justify-center rounded-full bg-muted px-2 py-1 text-xs transition-colors hover:bg-muted/80',
                 )}
@@ -125,7 +126,9 @@ const NonMemoizedCitationMarkdown = ({
 
           const citationMatch = part.match(CITATION_MATCH);
           if (citationMatch) {
-            const ids = citationMatch[1].split(/\s*,\s*/);
+            // Dedupe IDs so `[foo, foo]` doesn't render two identically-keyed
+            // children in the CitationReference list.
+            const ids = Array.from(new Set(citationMatch[1].split(/\s*,\s*/)));
             return (
               <CitationReference
                 key={`${index}-${ids.join('-')}`}
@@ -145,7 +148,7 @@ const NonMemoizedCitationMarkdown = ({
     };
 
     if (typeof children === 'string') {
-      return <span {...props}>{buildReference(children)}</span>;
+      return createElement(tag, props, buildReference(children));
     }
 
     if (Array.isArray(children)) {

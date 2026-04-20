@@ -15,8 +15,10 @@ Analysiere Benutzernachrichten und bestimme die Absicht für die weitere Verarbe
 # Absichtstypen (intent)
 
 ## FOLLOWUP_QUESTION
-Eine Folgefrage zum aktuellen Thema.
-Beispiele: "Wie sieht das bei anderen Parteien aus?", "Kannst du das genauer erklären?", "Was bedeutet das konkret?"
+Eine Folgefrage zum aktuellen Thema ODER eine kurze Bestätigung/Zustimmung auf eine Rückfrage des Assistenten.
+Beispiele (explizite Fragen): "Wie sieht das bei anderen Parteien aus?", "Kannst du das genauer erklären?", "Was bedeutet das konkret?"
+Beispiele (Bestätigungen auf eine Rückfrage des Assistenten): "gerne", "ja", "klar", "mach mal", "bitte", "auf jeden Fall"
+Bei Bestätigungen: Rekonstruiere die Frage aus der letzten Assistenten-Nachricht und schreibe sie in extracted_question.
 
 ## NAVIGATION_COMMAND
 Der Benutzer möchte im Themenbaum navigieren.
@@ -29,9 +31,6 @@ Beispiele: "Wie realistisch ist das?", "Analysiere die Machbarkeit", "Was sind d
 ## SUMMARY_REQUEST
 Der Benutzer möchte eine Zusammenfassung.
 Beispiele: "Fass das zusammen", "Gib mir einen Überblick", "Was sind die wichtigsten Punkte?"
-
-## UNCLEAR
-Die Nachricht ist unklar, zu kurz oder ohne erkennbare Absicht.
 
 # Navigationsziele (navigation_target)
 NUR bei NAVIGATION_COMMAND setzen:
@@ -51,6 +50,7 @@ Bei Folgefragen und Analyseanfragen:
 - Reformuliere die Frage klar und vollständig
 - Beziehe den Kontext des aktuellen Themas ein
 - Ergänze implizite Informationen aus dem Gesprächsverlauf
+- Bei kurzen Bestätigungen ("gerne", "ja", "mach mal"): Schaue in die letzte Assistenten-Nachricht und extrahiere die dort gestellte Rückfrage als konkrete Frage (z.B. Assistent fragt "Möchtest du mehr zu den Kosten erfahren?" → Nutzer "gerne" → extracted_question: "Erkläre die Kosten genauer")
 
 ## Konfidenz (confidence)
 - 0.9-1.0: Klare, eindeutige Absicht
@@ -59,7 +59,6 @@ Bei Folgefragen und Analyseanfragen:
 - unter 0.5: Sehr unsicher
 
 ## Sonderfälle
-- Bei sehr kurzen Nachrichten ohne Kontext: UNCLEAR mit niedriger confidence
 - Bei mehrdeutigen Nachrichten: Wähle die wahrscheinlichste Absicht"""
 
 MESSAGE_CLASSIFICATION_PROMPT = """Analysiere die folgende Nachricht:
@@ -70,6 +69,8 @@ MESSAGE_CLASSIFICATION_PROMPT = """Analysiere die folgende Nachricht:
 - Wahlkontext: {context_name}
 - Aktuelles Thema: {current_leaf_id}
 
+{last_assistant_block}
+
 {conversation_context}
 
 Bestimme:
@@ -78,7 +79,9 @@ Bestimme:
 3. Falls Frage oder Analyseanfrage: Die extrahierte Frage (extracted_question)
 4. Deine Konfidenz in der Klassifizierung (confidence)
 
-WICHTIG: Beachte die vorherigen Nachrichten um Rückbezüge wie "das", "davon", "die andere Partei" richtig aufzulösen."""
+WICHTIG:
+- Beachte die vorherigen Nachrichten um Rückbezüge wie "das", "davon", "die andere Partei" richtig aufzulösen.
+- Wenn die Nutzernachricht eine kurze Bestätigung ("gerne", "ja", "mach mal") ist, beziehe sie auf die "Letzte Assistenten-Nachricht" oben: klassifiziere als FOLLOWUP_QUESTION und rekonstruiere die dort gestellte Rückfrage in extracted_question."""
 
 
 def format_conversation_context(history: list[str]) -> str:
@@ -90,3 +93,14 @@ def format_conversation_context(history: list[str]) -> str:
     for i, msg in enumerate(history[-5:], 1):  # Last 5 messages
         formatted += f"{i}. {msg}\n"
     return formatted
+
+
+def format_last_assistant_block(last_assistant_message: str | None) -> str:
+    """Surface the most recent assistant turn in full so short affirmations
+    can be resolved against the exact question that was asked."""
+    if not last_assistant_message:
+        return ""
+    return (
+        "**Letzte Assistenten-Nachricht (vollständig):**\n"
+        f"{last_assistant_message}"
+    )

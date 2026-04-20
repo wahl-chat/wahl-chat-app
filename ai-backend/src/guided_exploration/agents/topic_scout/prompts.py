@@ -14,15 +14,14 @@ class LLMTopicDirection(BaseModel):
         ...,
         description="Kurzer, prägnanter Name für die Richtung (3-6 Wörter)",
     )
-    description: str = Field(
-        ...,
-        description="1-2 Sätze die beschreiben, worum es in dieser Richtung geht",
-    )
-    party_stances_preview: str = Field(
+    hook: str = Field(
         ...,
         description=(
-            "Kurze Zusammenfassung (1-2 Sätze) wie die Parteien in dieser "
-            "Richtung tendieren — z.B. welche Parteien dafür/dagegen sind"
+            "EIN Satz der neugierig macht — Spannung, Gegensatz oder "
+            "offene Frage. Max ~20 Wörter. KEIN Recap der Parteipositionen, "
+            "sondern ein Türöffner für das Gespräch. "
+            "Beispiel: 'Hier trennt sich der Wahlkampf — soll der Staat "
+            "lenken oder der Markt entscheiden?'"
         ),
     )
     suggested_question: str = Field(
@@ -66,17 +65,20 @@ Analysiere die bereitgestellten Auszüge aus Wahlprogrammen und identifiziere
 1. Jede Richtung muss durch die vorhandenen Quelltexte abgedeckt sein
 2. Richtungen sollen sich klar voneinander unterscheiden
 3. Namen müssen konkret und verständlich sein (NICHT "Sonstiges" oder "Allgemeines")
-4. Die Zusammenfassung der Parteipositionen muss neutral und faktenbasiert sein
-5. Nenne in der Zusammenfassung konkrete Parteien und ihre Tendenzen
-6. Bevorzuge Richtungen die für mehrere Parteien relevant sind
-7. Schreibe auf Deutsch mit korrekten Umlauten (ä, ö, ü, ß)
-8. Setze das Feld 'cacheable' auf true wenn die Anfrage ein allgemeines Thema ist
+4. Der Hook ist EIN einladender Satz — kein Inhaltsdump, sondern ein
+   Türöffner. Er macht neugierig auf das Gespräch, nennt keine konkreten
+   Parteinamen und keine Zahlen. Max ~20 Wörter.
+5. Schreibe auf Deutsch mit korrekten Umlauten (ä, ö, ü, ß)
+6. Setze das Feld 'cacheable' auf true wenn die Anfrage ein allgemeines Thema ist
 
 # Beispiel für gute Richtungen
 Frage: "Wie stehen die Parteien zur Wohnungspolitik?"
-- "Mietpreisbremse und Mieterschutz" — SPD und Grüne setzen auf stärkere Regulierung, FDP lehnt Eingriffe ab
-- "Sozialer Wohnungsbau" — Breiter Konsens für mehr Bau, aber unterschiedliche Finanzierungsmodelle
-- "Wohneigentum fördern" — CDU und FDP betonen Eigentumsbildung, Linke priorisiert Mietwohnungen"""
+- Name: "Mietpreisbremse und Mieterschutz"
+  Hook: "Soll der Staat in den Wohnungsmarkt eingreifen — oder macht das alles nur schlimmer?"
+- Name: "Sozialer Wohnungsbau"
+  Hook: "Wer zahlt eigentlich, wenn der Staat Millionen neuer Wohnungen bauen soll?"
+- Name: "Wohneigentum fördern"
+  Hook: "Eigene Wohnung als Altersvorsorge — oder Privileg, das Ungleichheit zementiert?\""""
 
 USER_PROMPT = """Frage des Nutzers: {query}
 

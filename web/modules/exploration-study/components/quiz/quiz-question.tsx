@@ -3,6 +3,8 @@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import type { QuizQuestion as QuizQuestionType } from '@/modules/exploration-study/types';
+import { PartyBadge } from '@/modules/guided-exploration/components/shared/party-badge';
+import { Fragment, type ReactNode } from 'react';
 
 export interface QuizQuestionProps {
   question: QuizQuestionType;
@@ -13,6 +15,21 @@ export interface QuizQuestionProps {
   className?: string;
 }
 
+const PARTY_BADGE_TOKEN = /(\[PARTY_BADGE:[\w-]+\])/g;
+const PARTY_BADGE_MATCH = /^\[PARTY_BADGE:([\w-]+)\]$/;
+
+function renderWithPartyBadges(text: string): ReactNode {
+  const parts = text.split(PARTY_BADGE_TOKEN);
+  return parts.map((part, index) => {
+    const match = part.match(PARTY_BADGE_MATCH);
+    const key = `${index}:${part}`;
+    if (match) {
+      return <PartyBadge key={key} party={match[1]} inline />;
+    }
+    return <Fragment key={key}>{part}</Fragment>;
+  });
+}
+
 export function QuizQuestion({
   question,
   questionNumber,
@@ -21,19 +38,33 @@ export function QuizQuestion({
   onSelect,
   className,
 }: QuizQuestionProps) {
+  const headingId = `quiz-question-${question.id}-heading`;
+  const metaId = `quiz-question-${question.id}-meta`;
   return (
     <div className={cn('space-y-4', className)}>
       <div className="space-y-2">
-        <p className="text-sm text-muted-foreground">
-          Frage {questionNumber} von {totalQuestions}
-        </p>
-        <h2 className="text-lg font-medium">{question.question}</h2>
+        <div className="flex items-center justify-between gap-2">
+          <p id={metaId} className="text-sm text-muted-foreground">
+            Frage {questionNumber} von {totalQuestions}
+          </p>
+          {question.party && <PartyBadge party={question.party} inline />}
+        </div>
+        <h2
+          id={headingId}
+          data-quiz-question-heading
+          className="text-lg font-medium outline-none"
+          tabIndex={-1}
+        >
+          {renderWithPartyBadges(question.question)}
+        </h2>
       </div>
 
       <RadioGroup
         value={selectedIndex?.toString() ?? ''}
         onValueChange={(value) => onSelect(Number.parseInt(value))}
         className="space-y-3"
+        aria-labelledby={headingId}
+        aria-describedby={metaId}
       >
         {question.options.map((option, index) => {
           const isDontKnow = index === question.options.length - 1;
@@ -61,7 +92,7 @@ export function QuizQuestion({
                   className="mt-0.5"
                 />
                 <span className="text-sm font-normal leading-relaxed">
-                  {option}
+                  {renderWithPartyBadges(option)}
                 </span>
               </label>
             </div>

@@ -35,7 +35,29 @@ Viele Anfragen beziehen sich auf vorherige Nachrichten. Erkenne solche Rückverw
 Verfügbare Parteien in diesem Kontext:
 {available_parties}
 
-Verwende NUR die oben genannten Partei-IDs. Erkenne auch indirekte Referenzen (z.B. "die Grünen" → gruene, "Union" → cdu).
+Extrahiere ALLE Parteien, auf die sich die Anfrage explizit oder implizit bezieht. \
+Verwende AUSSCHLIESSLICH die oben gelisteten Partei-IDs — keine anderen Strings.
+
+**Regeln:**
+1. Kürzel, Vollnamen, Spitznamen und gängige Synonyme auflösen:
+   - "die Grünen", "Grüne", "B90", "Bündnis 90" → gruene
+   - "Union", "CDU/CSU", "Schwarze", "Konservative" → cdu
+   - "Liberale", "FDP", "Gelbe" → fdp
+   - "Sozis", "Sozialdemokraten" → spd
+   - "Linkspartei", "Die Linke" → linke
+   - "Alternative", "Rechte" → afd
+   (Mapping je nach {available_parties} anpassen — nie IDs erfinden.)
+2. Quantoren auflösen:
+   - "alle Parteien", "was sagen die Parteien" → ALLE verfügbaren IDs
+   - "alle außer X", "ohne X" → alle IDs minus X
+   - "die großen Parteien", "etablierte Parteien" → die in {available_parties} \
+     aufgeführten großen Volksparteien (nicht alle)
+3. Negation respektieren: "nicht die CDU" → detected_parties enthält KEIN cdu.
+4. Vergleiche: "Unterschied CDU und Grüne" → [cdu, gruene].
+5. Rückverweise: fehlt die Partei in der aktuellen Anfrage, aber ergibt sich \
+   eindeutig aus der letzten Nachricht ("und bei der SPD?" → spd übernehmen).
+6. Keine explizite oder implizite Partei erkennbar → leere Liste []. NICHT raten.
+7. Bei Unsicherheit zwischen zwei IDs: beide aufnehmen, Konfidenz senken.
 
 # RAG-optimierte Suchanfrage (rag_query)
 Erstelle eine Suchanfrage die in Wahlprogramm-Dokumenten die relevanten Passagen findet.

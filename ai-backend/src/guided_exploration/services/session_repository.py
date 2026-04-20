@@ -18,6 +18,7 @@ from src.guided_exploration.models import (
     ExplorationTree,
     LeafSummary,
     Message,
+    NodeStatus,
     Session,
     SessionMessage,
     SessionMode,
@@ -287,16 +288,21 @@ class SessionRepository:
         async for doc in collection_ref.stream():
             data = doc.to_dict()
             if data:
-                # Count explored vs total topics
+                # Count explored vs total leaf nodes using the current schema.
+                # The tree has a recursive root/children structure; walk it via
+                # ExplorationTree so we don't hard-code the nesting depth.
                 tree_data = data.get("tree", {})
-                topics = tree_data.get("topics", [])
-                total_topics = sum(len(t.get("subtopics", [])) for t in topics)
-                explored_topics = sum(
-                    1
-                    for t in topics
-                    for s in t.get("subtopics", [])
-                    if s.get("status") == "explored"
-                )
+                total_topics = 0
+                explored_topics = 0
+                try:
+                    etree = ExplorationTree.model_validate(tree_data)
+                    leaves = etree.root.get_leaf_nodes()
+                    total_topics = len(leaves)
+                    explored_topics = sum(
+                        1 for leaf in leaves if leaf.status == NodeStatus.EXPLORED
+                    )
+                except Exception:
+                    pass  # malformed tree — leave counts at 0
 
                 explorations.append(
                     {

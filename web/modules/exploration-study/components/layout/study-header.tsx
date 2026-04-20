@@ -37,11 +37,7 @@ export function StudyHeader({
             Schritt {currentStep} von {totalSteps}
           </span>
         </div>
-        <Progress
-          value={percentage}
-          className="h-2"
-          aria-label={`Fortschritt: ${percentage}%`}
-        />
+        <Progress value={percentage} className="h-2" aria-label="Fortschritt" />
       </div>
     </header>
   );

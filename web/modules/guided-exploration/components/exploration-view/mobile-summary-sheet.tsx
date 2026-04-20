@@ -14,7 +14,8 @@ import type {
   LeafSummary,
 } from '@/modules/guided-exploration/types';
 import { ClipboardList } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { ExplorationSummaryPanel } from './exploration-summary-panel';
 
 interface MobileSummarySheetProps {

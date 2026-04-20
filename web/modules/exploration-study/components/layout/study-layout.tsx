@@ -30,9 +30,10 @@ export function StudyLayout({
         />
       )}
       <main
+        aria-label="Studieninhalt"
         className={cn(
           'flex flex-1 flex-col',
-          !hideHeader && 'px-4 py-8',
+          !hideHeader && 'px-4 pt-8 pb-20',
           className,
         )}
       >

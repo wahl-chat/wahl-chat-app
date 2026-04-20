@@ -40,7 +40,10 @@ export default function ConsentPage() {
   return (
     <div className="mx-auto w-full max-w-2xl">
       {error && (
-        <div className="mb-4 rounded-lg border border-destructive bg-destructive/10 p-4 text-destructive">
+        <div
+          role="alert"
+          className="mb-4 rounded-lg border border-destructive bg-destructive/10 p-4 text-destructive"
+        >
           {error}
         </div>
       )}

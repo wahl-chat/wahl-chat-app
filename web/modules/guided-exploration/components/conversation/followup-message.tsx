@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { MessageCitationsList } from '@/modules/guided-exploration/components/shared/message-citations-list';
 import { PartyMarkedMarkdown } from '@/modules/guided-exploration/components/shared/party-marked-markdown';
 import type { Message } from '@/modules/guided-exploration/types';
 import { useCitationHandlers } from '@/modules/guided-exploration/utils';
@@ -43,6 +44,7 @@ export function FollowupMessage({ message, className }: FollowupMessageProps) {
       >
         {message.content}
       </PartyMarkedMarkdown>
+      <MessageCitationsList citations={citations} messageId={message.id} />
     </div>
   );
 }

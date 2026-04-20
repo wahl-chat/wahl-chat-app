@@ -63,7 +63,7 @@ export interface MailsShortData {
 
 export const MAILS_SHORT_INTRO = `Im Folgenden liest du Beschreibungen verschiedener Fähigkeiten, die man im Umgang mit künstlicher Intelligenz haben kann. Diese Fähigkeiten können stärker oder schwächer ausgeprägt sein. Bitte bewerte dich selbst: Wie stark sind deine Fähigkeiten ausgeprägt?
 
-Ein Wert von **0** bedeutet, dass eine Fähigkeit gar nicht oder kaum ausgeprägt ist. Ein Wert von **10** bedeutet, dass eine Fähigkeit sehr gut oder (nahezu) perfekt ausgeprägt ist.`;
+Ein Wert von 0 bedeutet, dass eine Fähigkeit gar nicht oder kaum ausgeprägt ist. Ein Wert von 10 bedeutet, dass eine Fähigkeit sehr gut oder (nahezu) perfekt ausgeprägt ist.`;
 
 export const MAILS_SHORT_ITEMS: MailsShortItem[] = [
   {

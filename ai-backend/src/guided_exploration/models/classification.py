@@ -25,7 +25,6 @@ class MessageIntent(str, Enum):
     NAVIGATION_COMMAND = "navigation_command"
     ANALYSIS_REQUEST = "analysis_request"
     SUMMARY_REQUEST = "summary_request"
-    UNCLEAR = "unclear"
 
 
 class NavigationTarget(str, Enum):

@@ -130,36 +130,20 @@ export function uiReducer(
         type: action.targetType,
         id: action.targetId,
       };
-      console.log(
-        '[Reducer] STREAM_STARTED - creating streamingTarget:',
-        newStreamingTarget,
-      );
-      const newState = {
+      return {
         ...state,
         isStreaming: true,
         streamingTarget: newStreamingTarget,
         streamBuffer: '',
       };
-      console.log(
-        '[Reducer] STREAM_STARTED - new state.streamingTarget.type:',
-        newState.streamingTarget.type,
-      );
-      return newState;
     }
 
     case 'STREAM_CHUNK_RECEIVED': {
       // Only process if this is the active stream
       if (state.streamingTarget?.streamId !== action.streamId) {
-        console.log(
-          '[Reducer] STREAM_CHUNK_RECEIVED ignored - streamId mismatch',
-        );
         return state;
       }
       const newBuffer = state.streamBuffer + action.chunk;
-      console.log(
-        '[Reducer] STREAM_CHUNK_RECEIVED - buffer length:',
-        newBuffer.length,
-      );
       return {
         ...state,
         streamBuffer: newBuffer,

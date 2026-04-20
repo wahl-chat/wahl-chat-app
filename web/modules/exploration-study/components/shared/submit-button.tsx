@@ -28,7 +28,7 @@ export function SubmitButton({
       >
         {isSubmitting ? (
           <>
-            <Loader2 className="mr-2 size-4 animate-spin" />
+            <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" />
             {loadingLabel}
           </>
         ) : (

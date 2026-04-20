@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils';
 import type { ChoicePromptEvent } from '@/modules/guided-exploration/types';
 import { Compass, Zap } from 'lucide-react';
+import { useId } from 'react';
 
 interface ChoicePromptCardProps {
   choice: ChoicePromptEvent;
@@ -29,11 +30,12 @@ export function ChoicePromptCard({
   onSubmit,
   isLoading,
 }: ChoicePromptCardProps) {
+  const headingId = useId();
   return (
-    <fieldset className="space-y-3">
-      <legend className="text-sm text-muted-foreground">
+    <section aria-labelledby={headingId} className="space-y-3">
+      <h2 id={headingId} className="text-sm font-medium">
         Wie möchtest du das Thema angehen?
-      </legend>
+      </h2>
       <div className="grid gap-2 sm:grid-cols-2">
         {choice.options.map((option) => {
           const config = CHOICE_CONFIG[option.id as keyof typeof CHOICE_CONFIG];
@@ -47,6 +49,7 @@ export function ChoicePromptCard({
               type="button"
               onClick={() => onSubmit(option.id)}
               disabled={isLoading}
+              aria-describedby={headingId}
               className={cn(
                 'flex items-start gap-3 rounded-lg border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50',
                 accent,
@@ -71,6 +74,6 @@ export function ChoicePromptCard({
           );
         })}
       </div>
-    </fieldset>
+    </section>
   );
 }

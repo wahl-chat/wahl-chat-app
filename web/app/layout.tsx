@@ -165,7 +165,7 @@ export default async function RootLayout({
                 >
                   {children}
                 </ThemeProvider>
-                <Toaster expand duration={1500} position="top-right" />
+                <Toaster expand duration={4000} position="top-right" />
                 {/* <LoginReminderToast /> */}
                 {/* TODO: implement again when problems are fixed <IframeChecker /> */}
                 <Analytics />

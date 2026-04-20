@@ -47,7 +47,7 @@ export function PartyBadge({
     return (
       <span
         className={cn(
-          'mx-0.5 inline-flex items-center gap-1 rounded-full border bg-muted px-1.5 py-0.5 align-middle text-xs font-medium leading-none',
+          'mx-0.5 inline-flex items-center gap-1 rounded-md border bg-muted px-1.5 py-0 align-middle text-xs font-medium leading-none',
           className,
         )}
       >
@@ -57,7 +57,7 @@ export function PartyBadge({
             alt=""
             width={14}
             height={14}
-            className="size-3.5 rounded-sm object-contain"
+            className="my-0.5 size-3.5 rounded-sm object-contain"
             onError={() => setImageError(true)}
           />
         )}
@@ -85,14 +85,16 @@ export function PartyBadge({
       <Tooltip>
         <TooltipTrigger asChild>
           <span
+            role="img"
+            aria-label={displayName}
             className={cn(
-              'inline-flex items-center justify-center rounded-md border size-8 p-1',
+              'inline-flex items-center justify-center rounded-md border size-8 p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               className,
             )}
           >
             <Image
               src={imageUrl}
-              alt={party}
+              alt=""
               width={24}
               height={24}
               className="rounded object-contain"
@@ -101,7 +103,7 @@ export function PartyBadge({
           </span>
         </TooltipTrigger>
         <TooltipContent>
-          <span>{party}</span>
+          <span>{displayName}</span>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

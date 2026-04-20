@@ -31,7 +31,11 @@ export function ProgressIndicator({
             {explored} von {total} erkundet
           </span>
         )}
-        <Progress value={percentage} className="h-2" />
+        <Progress
+          value={percentage}
+          aria-label={`${explored} von ${total} erkundet`}
+          className="h-2"
+        />
       </div>
     );
   }

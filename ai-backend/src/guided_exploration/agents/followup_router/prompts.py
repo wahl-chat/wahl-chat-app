@@ -67,13 +67,19 @@ Beschreibung: {leaf_description}
 
 Klassifiziere die Nutzerfrage in GENAU EINE Kategorie:
 
-1. **on_topic_existing**: Die Frage kann mit den VORHANDENEN Informationen beantwortet \
-werden. Die Antwort steht bereits in den oben aufgelisteten Positionen.
+1. **on_topic_needs_rag** (**Standard für inhaltliche Fragen**): Die Frage passt zum \
+aktuellen Thema '{leaf_name}' und verlangt Inhalte aus den Wahlprogrammen. Wähle das \
+IMMER, sobald die Nutzerin etwas Konkretes, Detail-, Aspekt- oder Mechanik-bezogenes \
+fragt — auch wenn die vorhandenen Positionen das Oberthema bereits grob abdecken. \
+Beispiele: "Wie wird X finanziert?", "Was konkret fordert Y?", "Wie wirkt sich Z auf \
+A aus?".
 
-2. **on_topic_needs_rag**: Die Frage passt zum aktuellen Thema '{leaf_name}', aber \
-die vorhandenen Informationen reichen nicht aus. Es koennten aber weitere Details in \
-den Wahlprogrammen stehen. Beispiel: Eine Detailfrage zu einem Aspekt der nur \
-oberflaechlich in den Positionen vorkommt.
+2. **on_topic_existing** (**Ausnahme, nur für Meta-/Trivialfragen**): Die Frage braucht \
+KEINE neuen Inhalte aus den Wahlprogrammen. Nur erlaubt für:
+   - Meta-Fragen zur Anzeige ("Welche Parteien sind dabei?", "Was heisst das Symbol?").
+   - Reine Klarstellungen zu bereits sichtbarem Text ("Was genau meintest du mit X \
+oben?").
+   - Triviale Rückfragen ohne neuen inhaltlichen Anteil.
 
 3. **related_topic**: Die Frage passt BESSER zu einem der anderen verfuegbaren Themen. \
 Gib die ID und den Namen des passenden Themas an (target_node_id, target_node_name).
@@ -82,10 +88,12 @@ Gib die ID und den Namen des passenden Themas an (target_node_id, target_node_na
 auch nicht aus Wahlprogrammen beantwortet werden.
 
 # Wichtig
-- Bevorzuge 'on_topic_existing' wenn die Frage auch nur teilweise beantwortbar ist
-- Nutze 'on_topic_needs_rag' nur wenn die Frage klar zum Thema passt aber mehr \
-Details braucht
-- Nutze 'related_topic' nur wenn ein anderes Thema DEUTLICH besser passt
+- **Default ist 'on_topic_needs_rag'.** Im Zweifel immer RAG. Die vorhandenen \
+Positionen sind eine grobe Übersicht — für jede konkrete Folgefrage lohnt sich \
+zusätzliche Retrieval.
+- 'on_topic_existing' NUR, wenn die Frage keine inhaltliche Parteiinformation \
+verlangt (reine Meta-/Anzeige-Frage).
+- 'related_topic' nur wenn ein anderes Thema DEUTLICH besser passt.
 
 # RAG-Suchbegriffe (nur bei on_topic_needs_rag)
 Wenn du 'on_topic_needs_rag' waehlst, generiere optimierte Suchbegriffe im Feld \

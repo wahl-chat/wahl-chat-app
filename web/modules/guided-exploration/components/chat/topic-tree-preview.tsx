@@ -57,9 +57,14 @@ export function TopicTreePreview({
   return (
     <Card className="overflow-hidden">
       {/* Header with loading indicator */}
-      <div className="border-b bg-muted/50 px-4 py-3">
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="border-b bg-muted/50 px-4 py-3"
+      >
         <div className="flex items-center gap-3">
-          <div className="relative size-4">
+          <div aria-hidden="true" className="relative size-4">
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/60 opacity-75" />
             <span className="relative inline-flex size-4 rounded-full bg-primary" />
           </div>

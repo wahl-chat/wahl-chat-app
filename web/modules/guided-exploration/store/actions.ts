@@ -21,6 +21,7 @@ import type {
 import type {
   AppMode,
   ExplorationAction,
+  ExplorationStatus,
   QuickSummaryData,
   ViewType,
 } from './types';
@@ -119,11 +120,18 @@ export const explorationActions = {
     explorationId: string,
     tree: ExplorationTree,
     navigation: NavigationState,
+    status?: ExplorationStatus,
   ): ExplorationAction => ({
     type: 'EXPLORATION_STARTED',
     explorationId,
     tree,
     navigation,
+    status,
+  }),
+
+  statusUpdated: (status: ExplorationStatus): ExplorationAction => ({
+    type: 'EXPLORATION_STATUS_UPDATED',
+    status,
   }),
 
   treeReceived: (
@@ -150,11 +158,6 @@ export const explorationActions = {
 
   readyCleared: (): ExplorationAction => ({
     type: 'EXPLORATION_READY_CLEARED',
-  }),
-
-  treeUpdated: (tree: ExplorationTree): ExplorationAction => ({
-    type: 'TREE_UPDATED',
-    tree,
   }),
 
   navigatedToRoot: (navigation: NavigationState): ExplorationAction => ({

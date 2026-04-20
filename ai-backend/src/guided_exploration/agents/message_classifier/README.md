@@ -22,7 +22,7 @@ See `interface.py` for complete type definitions.
 - `has_exploration`: Whether an exploration is active
 
 **Output:** `MessageClassifierOutput`
-- `intent`: FOLLOWUP_QUESTION | NAVIGATION_COMMAND | ANALYSIS_REQUEST | SUMMARY_REQUEST | UNCLEAR
+- `intent`: FOLLOWUP_QUESTION | NAVIGATION_COMMAND | ANALYSIS_REQUEST | SUMMARY_REQUEST
 - `confidence`: 0.0-1.0 classification confidence
 - `navigation_target`: NEXT | PREVIOUS | BACK | OVERVIEW (if navigation)
 - `extracted_question`: The question text (if followup)
@@ -35,7 +35,6 @@ Based on `intent`:
 - **NAVIGATION_COMMAND**: Handle navigation in orchestrator
 - **ANALYSIS_REQUEST**: Route to AnalyzerAgent
 - **SUMMARY_REQUEST**: Route to SummaryGeneratorAgent
-- **UNCLEAR**: Ask for clarification or use context
 
 ## Processing Logic (Stub)
 
@@ -44,8 +43,7 @@ Current stub uses keyword matching:
 2. Check for analysis keywords -> ANALYSIS_REQUEST
 3. Check for summary keywords -> SUMMARY_REQUEST
 4. Check for question patterns -> FOLLOWUP_QUESTION
-5. Short messages -> UNCLEAR
-6. Default to FOLLOWUP_QUESTION
+5. Default to FOLLOWUP_QUESTION
 
 ## Future LLM Integration
 
@@ -58,7 +56,6 @@ See `prompts.py` for prompt templates. The LLM will:
 ## Error Handling
 
 - No active exploration: May limit classification options
-- Invalid navigation: Return UNCLEAR with low confidence
 - LLM failure: Fall back to keyword matching
 
 ## Test Scenarios
@@ -77,6 +74,3 @@ See `prompts.py` for prompt templates. The LLM will:
 
 5. **Summary request**: "Fass das zusammen"
    - Expected: SUMMARY_REQUEST
-
-6. **Unclear**: "ok"
-   - Expected: UNCLEAR, low confidence

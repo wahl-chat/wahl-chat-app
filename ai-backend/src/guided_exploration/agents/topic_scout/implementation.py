@@ -70,8 +70,7 @@ class TopicScoutAgent(BaseAgent[TopicScoutInput, TopicScoutOutput]):
             TopicDirection(
                 id=uuid4().hex[:8],
                 name=d.name,
-                description=d.description,
-                party_stances_preview=d.party_stances_preview,
+                hook=d.hook,
                 suggested_question=d.suggested_question,
             )
             for d in llm_output.directions

@@ -20,34 +20,29 @@ STUDY_TOPIC_LABELS: dict[str, str] = {
     "klimaschutz": "Klimaschutz",
     "soziale-gerechtigkeit": "Soziale Gerechtigkeit",
 }
+# 10-minute task budget is the binding constraint: it's long enough for the
+# guided condition to show structural benefit over chat, short enough to
+# avoid information overload. A longer budget would likely widen the
+# guided-vs-baseline gap — documented as a study limitation.
 STUDY_TASK_DURATION_SECONDS = 600  # 10 minutes
-STUDY_PARTIES = ["Merkur", "Venus", "Mars", "Jupiter", "Saturn"]
+STUDY_PARTIES = ["Merkur", "Venus", "Mars", "Saturn"]
 
 # Subtopic catalog for claim grouping on the source pages. Slugs match the
 # `subtopic` field in `data/study-fake-parties/positions/*.json`. The subtopic
-# is metadata only — it is NOT embedded by scripts/embed_study_positions.py
-# (which only vectorizes `content`). Order here defines display order.
+# is metadata only — it is NOT embedded by scripts/embed_study_positions.py.
+# Order here defines display order.
+#
+# Narrow by design (2 subtopics per topic, max 3 claims per party per subtopic)
+# to keep the exploration tree scannable within the 10-minute task budget and
+# leave room for a conversation-driven flow rather than exhaustive fact recall.
 STUDY_SUBTOPICS: dict[str, list[tuple[str, str]]] = {
     "klimaschutz": [
-        ("ziele-und-governance", "Klimaziele & Governance"),
-        ("energieerzeugung", "Stromerzeugung & Energiewende"),
         ("co2-preis", "CO2-Preis & Emissionshandel"),
         ("verkehr", "Verkehr & Mobilität"),
-        ("industrie", "Industrie & Transformation"),
-        ("gebaeude-und-waerme", "Gebäude & Wärme"),
-        ("landwirtschaft-und-natur", "Landwirtschaft & Naturschutz"),
-        ("subventionen-und-kreislauf", "Subventionen & Kreislaufwirtschaft"),
     ],
     "soziale-gerechtigkeit": [
-        ("steuern-und-abgaben", "Steuern & Abgaben"),
-        ("arbeit-und-loehne", "Arbeit & Löhne"),
         ("rente", "Rente & Altersvorsorge"),
         ("buergergeld", "Bürgergeld & Grundsicherung"),
-        ("wohnen", "Wohnen & Bauen"),
-        ("gesundheit-und-pflege", "Gesundheit & Pflege"),
-        ("bildung-und-familie", "Bildung & Familie"),
-        ("migration-und-integration", "Migration & Integration"),
-        ("staat-und-wirtschaft", "Staat, Wirtschaft & Sicherheit"),
     ],
 }
 

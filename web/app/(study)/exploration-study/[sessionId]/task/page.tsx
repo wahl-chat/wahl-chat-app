@@ -133,8 +133,15 @@ export default function TaskPage() {
           stepLabel={progress.label}
         />
         <div className="flex flex-1 items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="size-8 animate-spin text-muted-foreground" />
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex flex-col items-center gap-4"
+          >
+            <Loader2
+              aria-hidden="true"
+              className="size-8 animate-spin text-muted-foreground"
+            />
             <p className="text-sm text-muted-foreground">
               Aufgabe wird vorbereitet...
             </p>
@@ -152,7 +159,7 @@ export default function TaskPage() {
           totalSteps={progress.totalSteps}
           stepLabel={progress.label}
         />
-        <div className="flex flex-1 items-center justify-center">
+        <div role="alert" className="flex flex-1 items-center justify-center">
           <div className="text-center">
             <h1 className="text-2xl font-bold">Fehler</h1>
             <p className="mt-2 text-muted-foreground">{error}</p>

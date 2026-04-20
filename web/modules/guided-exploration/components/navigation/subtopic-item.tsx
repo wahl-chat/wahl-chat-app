@@ -15,21 +15,28 @@ interface SubtopicItemProps {
   className?: string;
 }
 
+const STATUS_LABEL: Record<ExplorationNode['status'], string> = {
+  pending: '',
+  loaded: ', Inhalte verfügbar',
+  started: ', begonnen',
+  explored: ', erkundet',
+};
+
 export function SubtopicItem({
   node,
   summary,
   onClick,
   className,
 }: SubtopicItemProps) {
-  const isExplored = node.status === 'explored';
+  const status = node.status;
 
   return (
     <button
       type="button"
       onClick={onClick}
       data-subtopic-id={node.id}
-      data-status={isExplored ? 'explored' : 'pending'}
-      aria-label={`${node.name}${isExplored ? ', erkundet' : ''}`}
+      data-status={status}
+      aria-label={`${node.name}${STATUS_LABEL[status]}`}
       className={cn(
         'w-full rounded-lg border bg-card text-left shadow-sm transition-colors',
         'cursor-pointer hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -41,12 +48,16 @@ export function SubtopicItem({
         <div
           className={cn(
             'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full',
-            isExplored
-              ? 'bg-primary text-primary-foreground'
-              : 'border-2 border-muted-foreground/30',
+            status === 'explored' && 'bg-primary text-primary-foreground',
+            status === 'started' && 'border-2 border-primary',
+            status === 'loaded' && 'border-2 border-muted-foreground',
+            status === 'pending' && 'border-2 border-muted-foreground/30',
           )}
         >
-          {isExplored && <Check className="size-3" />}
+          {status === 'explored' && <Check className="size-3" />}
+          {status === 'started' && (
+            <span className="size-2 rounded-full bg-primary" />
+          )}
         </div>
 
         {/* Content */}

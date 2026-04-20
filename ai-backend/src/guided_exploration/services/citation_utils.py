@@ -13,6 +13,7 @@ import re
 
 from src.guided_exploration.models.content import Citation
 from src.guided_exploration.models.exploration import RetrievedChunk
+from src.guided_exploration.models.position import Position
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,18 @@ def create_citation_from_chunk(
         url=chunk.metadata.get("url"),
         source_document=chunk.metadata.get("source_document"),
     )
+
+
+def collect_leaf_citations(
+    positions_by_party: dict[str, list[Position]],
+) -> list[Citation]:
+    """Flatten non-null citations from a leaf's positions-by-party map."""
+    return [
+        c.citation
+        for positions in positions_by_party.values()
+        for c in positions
+        if c.citation is not None
+    ]
 
 
 def extract_used_citations(

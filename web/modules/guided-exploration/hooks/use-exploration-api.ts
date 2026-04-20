@@ -122,6 +122,26 @@ export function useExplorationApi(): UseExplorationApiReturn {
         if (response.messages && response.messages.length > 0) {
           dispatch(sessionActions.messagesLoaded(response.messages));
         }
+
+        // Restore the exploration tree + status so reloads show the
+        // correct per-leaf status and completed banner without waiting
+        // for a separate loadExploration call.
+        const activeExp = response.activeExploration;
+        if (activeExp) {
+          const initialBreadcrumb = buildBreadcrumb(activeExp.tree, []);
+          dispatch(
+            explorationActions.started(
+              activeExp.id,
+              activeExp.tree,
+              {
+                explorationId: activeExp.id,
+                currentPath: [],
+                breadcrumb: initialBreadcrumb,
+              },
+              activeExp.status,
+            ),
+          );
+        }
       } catch (error) {
         dispatch(
           connectionActions.disconnected(
@@ -160,11 +180,16 @@ export function useExplorationApi(): UseExplorationApiReturn {
           const initialBreadcrumb = buildBreadcrumb(response.tree, []);
 
           dispatch(
-            explorationActions.started(response.id, response.tree, {
-              explorationId: response.id,
-              currentPath: [],
-              breadcrumb: initialBreadcrumb,
-            }),
+            explorationActions.started(
+              response.id,
+              response.tree,
+              {
+                explorationId: response.id,
+                currentPath: [],
+                breadcrumb: initialBreadcrumb,
+              },
+              response.status,
+            ),
           );
           dispatch(uiActions.thinkingEnded());
           return;

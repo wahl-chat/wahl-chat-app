@@ -6,15 +6,15 @@
 Compute OpenAI embeddings for the study position JSON files.
 
 Reads the 5 per-party JSONs in `ai-backend/data/study-fake-parties/positions/`,
-embeds each position's ``content`` with ``text-embedding-3-large``, and writes
-one consolidated file ``positions_embedded.json`` in the same directory.
+embeds ``claim + "\\n\\n" + argument`` with ``text-embedding-3-large``, and
+writes one consolidated file ``positions_embedded.json`` in the same directory.
 
 The output file is the runtime source of truth for the in-memory study RAG
 resolver — see ``services/study_positions_rag.py``.
 
-Idempotent: positions whose content has already been embedded (same id + same
-content hash) are skipped on re-runs. Delete the output file to force a full
-re-embedding.
+Idempotent: positions whose claim/argument combination has already been
+embedded (same id + same content hash) are skipped on re-runs. Delete the
+output file to force a full re-embedding.
 """
 
 from __future__ import annotations
@@ -41,8 +41,13 @@ OUTPUT_FILE = DATA_DIR / "positions_embedded.json"
 EMBEDDING_MODEL = "text-embedding-3-large"
 
 
+def embedding_text(position: dict) -> str:
+    """Text fed into the embedding model for a single position."""
+    return f"{position['claim']}\n\n{position['argument']}"
+
+
 def content_hash(text: str) -> str:
-    """Return a short deterministic fingerprint of a position's content."""
+    """Return a short deterministic fingerprint of the embedding text."""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
@@ -88,7 +93,7 @@ def main() -> None:
     # Determine which positions need (re-)embedding.
     to_embed: list[dict] = []
     for p in positions:
-        h = content_hash(p["content"])
+        h = content_hash(embedding_text(p))
         cached = existing.get(p["id"])
         if cached and cached.get("content_hash") == h and "embedding" in cached:
             continue
@@ -98,13 +103,13 @@ def main() -> None:
 
     if to_embed:
         model = OpenAIEmbeddings(model=EMBEDDING_MODEL)
-        texts = [p["content"] for p in to_embed]
+        texts = [embedding_text(p) for p in to_embed]
         print(f"Calling OpenAI ({EMBEDDING_MODEL}) for {len(texts)} positions...")
         vectors = model.embed_documents(texts)
         for p, vec in zip(to_embed, vectors):
             existing[p["id"]] = {
                 **p,
-                "content_hash": content_hash(p["content"]),
+                "content_hash": content_hash(embedding_text(p)),
                 "embedding": vec,
             }
         print(f"Embedded {len(to_embed)} positions ({len(vectors[0])}-dim)")

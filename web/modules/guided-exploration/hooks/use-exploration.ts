@@ -84,8 +84,6 @@ export function useExploration(options: UseExplorationOptions = {}) {
   const streamBuffer = useExplorationStore(selectStreamBuffer);
   const streamingTarget = useExplorationStore(selectStreamingTarget);
 
-  // Debug streaming state from store
-  console.log('[useExploration] streamingTarget from store:', streamingTarget);
   const thinkingStage = useExplorationStore(selectThinkingStage);
   const thinkingMessage = useExplorationStore(selectThinkingMessage);
   const isThinking = useExplorationStore(selectIsThinking);

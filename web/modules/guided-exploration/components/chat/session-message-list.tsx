@@ -1,5 +1,6 @@
 'use client';
 
+import { MessageCitationsList } from '@/modules/guided-exploration/components/shared/message-citations-list';
 import { PartyMarkedMarkdown } from '@/modules/guided-exploration/components/shared/party-marked-markdown';
 import type { SessionMessage } from '@/modules/guided-exploration/types';
 import { useCitationHandlers } from '@/modules/guided-exploration/utils';
@@ -28,7 +29,12 @@ export function SessionMessageList({
   lastUserMessageRef,
 }: SessionMessageListProps) {
   return (
-    <div className="space-y-4">
+    <div
+      className="space-y-4"
+      aria-live="polite"
+      aria-atomic="false"
+      aria-relevant="additions"
+    >
       {messages.map((message, index) => {
         if (message.type === 'user') {
           const isLastUser = index === lastUserMessageIndex;
@@ -39,6 +45,7 @@ export function SessionMessageList({
               className="flex justify-end"
             >
               <div className="max-w-[80%] rounded-[20px] bg-muted px-4 py-2">
+                <span className="sr-only">Deine Nachricht: </span>
                 <p className="text-sm">{message.content}</p>
               </div>
             </div>
@@ -95,6 +102,7 @@ function AssistantSessionMessage({ message }: { message: SessionMessage }) {
 
   return (
     <div>
+      <span className="sr-only">Antwort der KI: </span>
       <PartyMarkedMarkdown
         onReferenceClick={handleReferenceClick}
         getReferenceName={getReferenceName}
@@ -102,6 +110,7 @@ function AssistantSessionMessage({ message }: { message: SessionMessage }) {
       >
         {message.content ?? ''}
       </PartyMarkedMarkdown>
+      <MessageCitationsList citations={citations} messageId={message.id} />
     </div>
   );
 }

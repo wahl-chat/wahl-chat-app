@@ -17,10 +17,11 @@ async def test_sse_connection_basic():
     """Test basic SSE connection creation."""
     manager = SSEManager()
 
-    conn = await manager.connect("session-1")
+    conn = await manager.connect("session-1", "client-A")
 
     assert conn is not None
     assert conn.session_id == "session-1"
+    assert conn.client_id == "client-A"
     assert conn.connection_id is not None
     assert not conn.is_closed
     assert manager.get_connection("session-1") is conn
@@ -31,7 +32,7 @@ async def test_sse_send_event():
     """Test sending events to a session."""
     manager = SSEManager()
 
-    conn = await manager.connect("session-1")
+    conn = await manager.connect("session-1", "client-A")
 
     event = ConnectedEvent(session_id="session-1")
     result = await manager.send_to_session("session-1", event)
@@ -56,16 +57,14 @@ async def test_sse_send_to_nonexistent_session():
 
 
 @pytest.mark.asyncio
-async def test_sse_session_claiming():
-    """Test that a new connection claims the session from the old one."""
+async def test_sse_session_claiming_different_client():
+    """A connection from a different client_id claims the session."""
     manager = SSEManager()
 
-    # First connection
-    conn1 = await manager.connect("session-1")
+    conn1 = await manager.connect("session-1", "client-A")
     assert manager.get_connection("session-1") is conn1
 
-    # Second connection should claim the session
-    conn2 = await manager.connect("session-1")
+    conn2 = await manager.connect("session-1", "client-B")
     assert manager.get_connection("session-1") is conn2
     assert conn2 is not conn1
 
@@ -81,11 +80,30 @@ async def test_sse_session_claiming():
 
 
 @pytest.mark.asyncio
+async def test_sse_same_client_silent_replace():
+    """Same client_id reconnecting closes old connection without claim event."""
+    manager = SSEManager()
+
+    conn1 = await manager.connect("session-1", "client-A")
+    conn2 = await manager.connect("session-1", "client-A")
+
+    assert manager.get_connection("session-1") is conn2
+    assert conn2 is not conn1
+
+    # Old connection should be closed but receive no claim event
+    sentinel = await conn1.queue.get()
+    assert sentinel is None
+    assert conn1.is_closed
+    # No claim event was queued — only the close sentinel
+    assert conn1.queue.empty()
+
+
+@pytest.mark.asyncio
 async def test_sse_disconnect():
     """Test disconnecting a connection."""
     manager = SSEManager()
 
-    conn = await manager.connect("session-1")
+    conn = await manager.connect("session-1", "client-A")
     connection_id = conn.connection_id
 
     await manager.disconnect("session-1", connection_id)
@@ -98,7 +116,7 @@ async def test_sse_disconnect_wrong_connection_id():
     """Test that disconnect with wrong connection_id is ignored."""
     manager = SSEManager()
 
-    conn = await manager.connect("session-1")
+    conn = await manager.connect("session-1", "client-A")
 
     # Try to disconnect with wrong connection_id
     await manager.disconnect("session-1", "wrong-id")
@@ -112,7 +130,7 @@ async def test_sse_connection_close():
     """Test closing a connection."""
     manager = SSEManager()
 
-    conn = await manager.connect("session-1")
+    conn = await manager.connect("session-1", "client-A")
     await conn.close()
 
     assert conn.is_closed
@@ -127,7 +145,7 @@ async def test_sse_send_to_closed_connection():
     """Test that sending to a closed connection is ignored."""
     manager = SSEManager()
 
-    conn = await manager.connect("session-1")
+    conn = await manager.connect("session-1", "client-A")
     await conn.close()
 
     # This should not raise and should not queue
@@ -146,9 +164,9 @@ async def test_sse_multiple_sessions():
     """Test managing multiple sessions concurrently."""
     manager = SSEManager()
 
-    conn1 = await manager.connect("session-1")
-    conn2 = await manager.connect("session-2")
-    conn3 = await manager.connect("session-3")
+    conn1 = await manager.connect("session-1", "client-A")
+    conn2 = await manager.connect("session-2", "client-B")
+    conn3 = await manager.connect("session-3", "client-C")
 
     assert manager.get_connection("session-1") is conn1
     assert manager.get_connection("session-2") is conn2
@@ -173,7 +191,7 @@ async def test_sse_concurrent_operations():
     manager = SSEManager()
 
     async def connect_and_send(session_id: str):
-        conn = await manager.connect(session_id)
+        conn = await manager.connect(session_id, f"client-{session_id}")
         await manager.send_to_session(session_id, ConnectedEvent(session_id=session_id))
         return conn
 

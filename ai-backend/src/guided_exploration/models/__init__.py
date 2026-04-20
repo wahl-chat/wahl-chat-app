@@ -92,6 +92,7 @@ from src.guided_exploration.models.streaming import StreamChunk
 from src.guided_exploration.models.tree import (
     ExplorationNode,
     ExplorationTree,
+    NodeStatus,
 )
 
 __all__ = [
@@ -178,4 +179,5 @@ __all__ = [
     # tree
     "ExplorationNode",
     "ExplorationTree",
+    "NodeStatus",
 ]
