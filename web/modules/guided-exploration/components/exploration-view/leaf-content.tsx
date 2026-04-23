@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -56,6 +56,7 @@ export function LeafContent({
   className,
 }: LeafContentProps) {
   const [viewMode, setViewMode] = useState<'party' | 'aspect'>('party');
+  const summaryHeadingId = useId();
 
   // Derived up-front so the citation hook below can run before the early
   // return (rules of hooks).
@@ -97,9 +98,9 @@ export function LeafContent({
     <div className={cn('space-y-6', className)}>
       {/* Summary — rendered once above the view toggle, shared across modes */}
       {initialContent?.summary && (
-        <section aria-labelledby="summary-heading">
+        <section aria-labelledby={summaryHeadingId}>
           <h3
-            id="summary-heading"
+            id={summaryHeadingId}
             className="mb-3 text-lg font-bold text-foreground"
           >
             Zusammenfassung
@@ -184,13 +185,11 @@ export function LeafContent({
           return <FollowupMessage key={message.id} message={message} />;
         })}
 
-      {/* Streaming content while loading - only for followup messages */}
+      {/* Streaming content while loading - only for followup messages.
+          Not a live region — per-token aria-live floods SR with partial
+          words. Start/end announcement is handled elsewhere. */}
       {shouldShowStreamBuffer && (
-        <div
-          aria-live="polite"
-          aria-atomic="false"
-          aria-label="KI-Antwort wird geschrieben"
-        >
+        <div aria-hidden="true">
           <StreamingBuffer content={streamBuffer ?? ''} />
         </div>
       )}

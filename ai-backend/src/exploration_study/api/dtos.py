@@ -32,7 +32,7 @@ class CreateStudyRequest(BaseModel):
         ge=60,
     )
     parties: list[str] = Field(
-        default=["Merkur", "Venus", "Mars", "Saturn"],
+        default=["Venus", "Mars", "Saturn"],
         description="List of party names for the fake context",
     )
 
@@ -199,31 +199,25 @@ class DemographicsRequest(BaseModel):
 
 
 class MailsShortRequest(BaseModel):
-    """MAILS-Short responses (10 items, 0-10 scale)."""
+    """MAILS-Short responses (4 items, 0-10 scale).
+
+    One item per subscale: item1 Detect AI, item5 AI Ethics, item7 Apply AI,
+    item10 Understand AI. Item numbers preserved from the original 10-item
+    scale for traceability.
+    """
 
     item1: int = Field(..., ge=0, le=10)
-    item2: int = Field(..., ge=0, le=10)
-    item3: int = Field(..., ge=0, le=10)
-    item4: int = Field(..., ge=0, le=10)
     item5: int = Field(..., ge=0, le=10)
-    item6: int = Field(..., ge=0, le=10)
     item7: int = Field(..., ge=0, le=10)
-    item8: int = Field(..., ge=0, le=10)
-    item9: int = Field(..., ge=0, le=10)
     item10: int = Field(..., ge=0, le=10)
 
 
 class LiteracyRequest(BaseModel):
     """Request for submitting literacy data."""
 
-    # AI literacy: Meta-AI Literacy Scale – Short Version (Koch, Carolus, et al., 2024)
     mails_short: MailsShortRequest = Field(
         ...,
-        description="MAILS-Short responses (10 items, 0-10 self-assessment)",
-    )
-    news_consumption: list[str] = Field(
-        ...,
-        description="News consumption sources (online, tv, newspaper, social_media, radio)",
+        description="MAILS-Short responses (4 items, 0-10 self-assessment)",
     )
 
 

@@ -54,14 +54,11 @@ export function TaskIntro({
             : 'Du chattest frei mit der KI und stellst ihr deine Fragen zu den Parteipositionen.'}
         </p>
         <p className="text-sm text-foreground">
-          Du hast {durationMinutes} Minuten Zeit — nimm dir so viel davon, wie
-          du brauchst, um einen guten Überblick zu bekommen.
-        </p>
-        <p className="text-sm text-foreground">
-          Versuche, die wichtigsten Positionen zu verstehen und Gemeinsamkeiten
-          sowie Unterschiede zu erkennen. Im Anschluss beantwortest du ein paar
-          Wissensfragen zu den Parteipositionen — sei also so vorbereitet, dass
-          du deinem Freund die Standpunkte erklären könntest.
+          Du hast {durationMinutes} Minuten Zeit — schau einfach, wie weit du
+          kommst. Die anschließenden Wissensfragen basieren auf dem, worüber du
+          mit der KI gesprochen hast. Versuche also eher, die besprochenen
+          Positionen wirklich zu verstehen und zu behalten, statt möglichst viel
+          Stoff abzuarbeiten.
         </p>
       </section>
 

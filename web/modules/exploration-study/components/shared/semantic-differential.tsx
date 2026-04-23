@@ -22,6 +22,12 @@ export interface SemanticDifferentialProps {
   labelledById?: string;
   invalid?: boolean;
   describedById?: string;
+  /**
+   * Short description that prefixes each radio's accessible name so the
+   * Form Controls rotor is scannable. Defaults to "{leftAnchor} bis
+   * {rightAnchor}" when omitted.
+   */
+  itemLabel?: string;
 }
 
 export const SemanticDifferential = forwardRef<
@@ -41,10 +47,12 @@ export const SemanticDifferential = forwardRef<
     labelledById,
     invalid,
     describedById,
+    itemLabel,
   },
   ref,
 ) {
   const anchorPairId = `${id}-anchor-pair`;
+  const effectiveItemLabel = itemLabel ?? `${leftAnchor} bis ${rightAnchor}`;
 
   return (
     <div className={cn('space-y-1', className)}>
@@ -70,6 +78,7 @@ export const SemanticDifferential = forwardRef<
             }
             invalid={invalid}
             describedById={describedById}
+            itemLabel={effectiveItemLabel}
           />
         </div>
 

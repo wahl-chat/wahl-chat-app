@@ -184,6 +184,14 @@ export const selectIsThinking = (state: ExplorationStore) =>
 export const selectAnnouncement = (state: ExplorationStore) =>
   state.ui.announcement;
 
+/**
+ * Monotonic counter that increments on every announcement. Pair with
+ * `selectAnnouncement` and key on this value so identical back-to-back
+ * messages still trigger a re-announce.
+ */
+export const selectAnnouncementId = (state: ExplorationStore) =>
+  state.ui.announcementId;
+
 /** Get current error */
 export const selectError = (state: ExplorationStore) => state.ui.error;
 

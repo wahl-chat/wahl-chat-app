@@ -1,5 +1,6 @@
 'use client';
 
+import VisuallyHidden from '@/components/visually-hidden';
 import { cn } from '@/lib/utils';
 import type {
   ExplorationNode,
@@ -44,7 +45,19 @@ export function LeafSummaryCard({
         className="mt-1 shrink-0"
       />
       <div className="min-w-0 flex-1">
-        <h4 className="text-sm font-medium leading-tight">{node.name}</h4>
+        <h4 className="text-sm font-medium leading-tight">
+          {/*
+            The interactive variant already carries status in aria-label, so
+            we only surface it here for the static variant — otherwise SR
+            users would hear "Erkundet" twice.
+          */}
+          {!isInteractive && (
+            <VisuallyHidden>
+              {isExplored ? 'Erkundet: ' : 'Nicht erkundet: '}
+            </VisuallyHidden>
+          )}
+          {node.name}
+        </h4>
         {!isExplored && showPendingHint && (
           <p className="mt-1 text-xs text-foreground">Noch nicht erkundet</p>
         )}

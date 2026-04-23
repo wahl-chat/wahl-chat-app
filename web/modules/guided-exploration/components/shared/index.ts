@@ -1,3 +1,4 @@
+export { AnnouncementLiveRegion } from './announcement-live-region';
 export { CitationMarkdown } from './citation-markdown';
 export { ErrorBanner } from './error-banner';
 export { ExplorationLoading } from './exploration-loading';

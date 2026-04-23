@@ -264,7 +264,11 @@ export function ExplorationMain({
   const isExplorationLoading = isExplorationActive && !tree;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div
+      id="main-content"
+      tabIndex={-1}
+      className="flex flex-1 flex-col overflow-hidden focus:outline-none"
+    >
       {/* Tab bar */}
       <ExplorationTabBar
         activeTabId={activeTabId}

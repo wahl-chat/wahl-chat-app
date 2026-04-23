@@ -52,7 +52,7 @@ export function StudyHeader({
         </div>
         <Progress value={percentage} className="h-2" aria-label="Fortschritt" />
       </div>
-      <div className="ml-4 shrink-0">
+      <div className="ml-4 shrink-0" inert aria-hidden="true">
         <ThemeModeToggle align="end" showLabel />
       </div>
     </header>

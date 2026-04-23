@@ -44,9 +44,18 @@ export function ManipulationChecksForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit} className={cn('space-y-6', className)}>
+      <form
+        onSubmit={handleSubmit}
+        aria-labelledby="manipulation-checks-heading"
+        className={cn('space-y-6', className)}
+      >
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold">Allgemeine Einschätzung</h2>
+          <h2
+            id="manipulation-checks-heading"
+            className="text-xl font-semibold"
+          >
+            Allgemeine Einschätzung
+          </h2>
           <p className="text-sm text-foreground">
             Bitte bewerte die folgenden Aussagen.
           </p>
@@ -81,6 +90,7 @@ export function ManipulationChecksForm({
                             onChange={field.onChange}
                             onBlur={field.onBlur}
                             invalid={!!fieldState.error}
+                            itemLabel={item.label}
                           />
                         </FormControl>
                         <FormMessage />

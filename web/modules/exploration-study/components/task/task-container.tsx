@@ -45,6 +45,10 @@ export function TaskContainer({
   const [showTimeUpDialog, setShowTimeUpDialog] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
   const [unlockMessage, setUnlockMessage] = useState('');
+  // Hide the "Freigeschaltet in X:XX" readout until the participant first
+  // clicks "Aufgabe beenden". Keeps the clock out of sight during the task
+  // while still giving a clear answer when they ask "when can I end?".
+  const [unlockCountdownRevealed, setUnlockCountdownRevealed] = useState(false);
   const warningAnnouncerRef = useRef<HTMLDivElement>(null);
   const wasLockedRef = useRef(true);
 
@@ -101,8 +105,15 @@ export function TaskContainer({
   }, [canEnd]);
 
   const handleManualEnd = useCallback(() => {
+    // While still locked, the first click reveals the unlock countdown
+    // rather than opening the confirmation dialog — this is how
+    // participants discover "when can I end?" on demand.
+    if (!canEnd) {
+      setUnlockCountdownRevealed(true);
+      return;
+    }
     setShowConfirmDialog(true);
-  }, []);
+  }, [canEnd]);
 
   const handleConfirmEnd = useCallback(async () => {
     setShowConfirmDialog(false);
@@ -115,7 +126,9 @@ export function TaskContainer({
     await onEnd();
   }, [onEnd]);
 
-  const endButtonDisabled = isEnding || !canEnd;
+  // The button is always clickable (unless we're mid-submit). While locked,
+  // a click reveals the unlock countdown instead of submitting.
+  const endButtonDisabled = isEnding;
   const lockReason = canEnd
     ? 'Du kannst die Aufgabe jetzt beenden.'
     : `Du kannst die Aufgabe erst nach 7 Minuten beenden. Noch ${Math.ceil(secondsUntilUnlock / 60)} Minuten.`;
@@ -158,8 +171,8 @@ export function TaskContainer({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {!canEnd && (
-            <span className="text-xs text-foreground" aria-hidden="true">
+          {!canEnd && unlockCountdownRevealed && (
+            <span className="text-xs text-foreground">
               Freigeschaltet in {formatMinutesSeconds(secondsUntilUnlock)}
             </span>
           )}

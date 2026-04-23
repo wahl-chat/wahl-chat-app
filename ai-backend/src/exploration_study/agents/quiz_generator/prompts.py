@@ -17,9 +17,9 @@ Deine Aufgabe ist es, basierend auf einer Chat-Konversation über politische The
    - "Welche Partei bevorzugt einen staatsnahen Ansatz beim Verkehr?"
 
    Schlechte Fragen (zu spezifisch — vermeiden):
-   - "Welches Instrument schlägt [PARTY_BADGE:merkur] beim CO2-Preis vor?"
-   - "Auf wieviel Prozent will [PARTY_BADGE:merkur] das Rentenniveau anheben?"
-   - "Welchen CO2-Preis pro Tonne fordert [PARTY_BADGE:venus]?"
+   - "Welches Instrument schlägt [PARTY_BADGE:venus] beim CO2-Preis vor?"
+   - "Auf wieviel Prozent will [PARTY_BADGE:venus] das Rentenniveau anheben?"
+   - "Welchen CO2-Preis pro Tonne fordert [PARTY_BADGE:mars]?"
    - "Ab welchem Jahr soll der Verbrenner verboten werden laut [PARTY_BADGE:saturn]?"
    - "Welche konkrete Maßnahme fordert [PARTY_BADGE:mars] bei der Rente?"
 
@@ -40,10 +40,13 @@ Deine Aufgabe ist es, basierend auf einer Chat-Konversation über politische The
 - Eine korrekte Antwort
 - Drei plausible, aber falsche Distraktoren
 - Vermeide offensichtlich falsche Optionen
-- Die meisten Fragen sollten von der Form "Welche Partei ..." sein, sodass die 4 Optionen verschiedene Parteien sind
+- Die meisten Fragen sollten von der Form "Welche Partei ..." sein. Es gibt **genau drei Parteien** ([PARTY_BADGE:venus], [PARTY_BADGE:mars], [PARTY_BADGE:saturn]). Die 4 Optionen sind dann diese drei Parteien plus eine passende Meta-Option wie "Keine der genannten Parteien", "Mehrere der genannten Parteien" oder "Alle drei Parteien".
+
+**Parteien — STRIKT:**
+Es existieren NUR die drei Parteien [PARTY_BADGE:venus], [PARTY_BADGE:mars] und [PARTY_BADGE:saturn]. Erfinde NIEMALS weitere Parteien. Verwende ausschliesslich die unter "Verfügbare Parteien" gelisteten IDs — keine anderen Namen, auch nicht aus deinem Vorwissen (kein "spd"/"cdu"/"gruene"/"merkur"/"jupiter" o.ä.).
 
 **Parteinamen markieren — WICHTIG:**
-Jede Erwähnung einer Partei in der Frage UND in jeder Antwortoption MUSS als Badge-Marker geschrieben werden: `[PARTY_BADGE:<id>]`. Verwende die Kleinbuchstaben-ID der Partei (`merkur`, `venus`, `mars`, `saturn`) — niemals den großgeschriebenen Namen direkt im Text. Das gilt für jedes Vorkommen, auch wenn dieselbe Partei mehrfach in einer Frage auftaucht. Beispiel:
+Jede Erwähnung einer Partei in der Frage UND in jeder Antwortoption MUSS als Badge-Marker geschrieben werden: `[PARTY_BADGE:<id>]`. Verwende die Kleinbuchstaben-ID der Partei (`venus`, `mars`, `saturn`) — niemals den großgeschriebenen Namen direkt im Text. Das gilt für jedes Vorkommen, auch wenn dieselbe Partei mehrfach in einer Frage auftaucht. Beispiel:
 
 Falsch: "Welche Partei steht Saturn's Position am nächsten?"
 Richtig: "Welche Partei steht [PARTY_BADGE:saturn]'s Position am nächsten?"
@@ -58,7 +61,8 @@ Richtig (Option): "[PARTY_BADGE:mars]"
 - Triviale oder offensichtliche Fragen
 - Doppelte oder sehr ähnliche Fragen
 - Fragen, deren Antwort nicht im Chat vorkommt
-- Parteinamen ohne `[PARTY_BADGE:<id>]`-Markierung"""
+- Parteinamen ohne `[PARTY_BADGE:<id>]`-Markierung
+- Erfundene Parteien: nur [PARTY_BADGE:venus], [PARTY_BADGE:mars], [PARTY_BADGE:saturn] sind erlaubt"""
 
 GENERATION_PROMPT = """Basierend auf der folgenden Chat-Konversation zum Thema "{topic}", erstelle {num_questions} Multiple-Choice-Fragen.
 
@@ -72,10 +76,11 @@ Erstelle {num_questions} sehr allgemeine Fragen, die testen, ob jemand die grobe
 
 Achte darauf:
 1. Jede Frage bleibt auf der Ebene der Grundhaltung: dafür/dagegen, Ausbau/Rückbau, Markt/Staat — KEINE spezifischen Instrumente, Maßnahmen, Zahlen, Jahre oder Formulierungen
-2. Die meisten Fragen sollten von der Form "Welche Partei ..." sein, mit den vier Parteien als Optionen
-3. Verteile die Fragen gleichmäßig auf die besprochenen Parteien
-4. Erstelle genau 4 Antwortoptionen pro Frage (eine korrekt, drei falsch aber plausibel)
-5. Gib die Source-Excerpt an, also den Teil des Chats auf dem die Frage basiert
+2. Die meisten Fragen sollten von der Form "Welche Partei ..." sein. Die 4 Optionen sind dann die drei unter "Verfügbare Parteien" gelisteten Parteien plus eine Meta-Option ("Keine der genannten Parteien", "Mehrere der genannten Parteien" oder "Alle drei Parteien")
+3. Verwende AUSSCHLIESSLICH die unter "Verfügbare Parteien" gelisteten Parteien — erfinde keine weiteren Parteinamen, auch nicht aus deinem Vorwissen
+4. Verteile die Fragen gleichmäßig auf die besprochenen Parteien
+5. Erstelle genau 4 Antwortoptionen pro Frage (eine korrekt, drei falsch aber plausibel)
+6. Gib die Source-Excerpt an, also den Teil des Chats auf dem die Frage basiert
 
 Erstelle die Fragen im vorgegebenen JSON-Format."""
 

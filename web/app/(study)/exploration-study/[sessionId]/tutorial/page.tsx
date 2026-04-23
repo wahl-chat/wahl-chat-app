@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import VisuallyHidden from '@/components/visually-hidden';
 import {
   type StudyCondition,
   getRouteForState,
@@ -13,7 +14,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 const FAKE_PARTIES = [
-  { name: 'Merkur', abbreviation: 'MER', image: '/images/merkur.png' },
   { name: 'Venus', abbreviation: 'VEN', image: '/images/venus.png' },
   { name: 'Mars', abbreviation: 'MAR', image: '/images/mars.png' },
   { name: 'Saturn', abbreviation: 'SAT', image: '/images/saturn.png' },
@@ -68,7 +68,7 @@ export default function TutorialPage() {
           Die Parteien
         </h2>
         <p className="text-sm text-muted-foreground">
-          Diese fünf Parteien sind{' '}
+          Diese drei Parteien sind{' '}
           <strong className="font-semibold text-foreground">fiktiv</strong> und
           entsprechen keinen realen politischen Parteien — sie wurden nur für
           diese Studie erstellt.
@@ -97,12 +97,8 @@ export default function TutorialPage() {
           Deine Aufgabe
         </h2>
         <p className="text-sm text-muted-foreground">
-          Erkunde die Positionen der fünf Parteien zu einem politischen Thema.
+          Erkunde die Positionen der drei Parteien zu einem politischen Thema.
           Im Anschluss beantwortest du einige Fragen zu deiner Erfahrung.
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Nimm dir so viel Zeit, wie du brauchst — es gibt keinen richtigen oder
-          falschen Weg.
         </p>
       </section>
 
@@ -125,6 +121,7 @@ export default function TutorialPage() {
               'Jederzeit kannst du zum Chat zurück oder eine weitere Erkundung starten',
             ].map((step, index, arr) => (
               <li key={step} className="relative flex gap-3 pb-4 last:pb-0">
+                <VisuallyHidden>({index + 1}) </VisuallyHidden>
                 {index < arr.length - 1 && (
                   <span
                     aria-hidden="true"

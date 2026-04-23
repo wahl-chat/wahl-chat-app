@@ -67,12 +67,12 @@ export interface StudyProgress {
 
 export const STUDY_STEPS: StudyState[] = [
   'consent',
-  'demographics',
-  'literacy',
   'tutorial',
   'task',
   'questionnaire',
   'quiz',
+  'demographics',
+  'literacy',
   'complete',
 ];
 

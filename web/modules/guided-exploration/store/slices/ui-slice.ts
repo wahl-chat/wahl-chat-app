@@ -19,6 +19,7 @@ export const initialUIState: UISliceState = {
   thinkingStage: null,
   thinkingMessage: null,
   announcement: null,
+  announcementId: 0,
   error: null,
   explorationPending: false,
   explorationReadyData: null,
@@ -204,6 +205,7 @@ export function uiReducer(
       return {
         ...state,
         announcement: action.message,
+        announcementId: state.announcementId + 1,
       };
 
     case 'ANNOUNCEMENT_CLEARED':

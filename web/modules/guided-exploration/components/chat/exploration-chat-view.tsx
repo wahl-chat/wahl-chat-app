@@ -173,13 +173,15 @@ export function ExplorationChatView({
                 minDirections={minDirections}
               />
 
-              {/* Streaming content with citation mapping */}
+              {/*
+                Streaming content with citation mapping. Not a live region
+                — per-token aria-live updates flood the screen reader with
+                partial words. The outer "thinkingStatusText" status
+                announces "KI-Antwort wird geschrieben" once at start, and
+                the final message is read when it lands in SessionMessageList.
+              */}
               {shouldShowStreamBuffer && (
-                <div
-                  aria-live="polite"
-                  aria-atomic="false"
-                  aria-label="KI-Antwort wird geschrieben"
-                >
+                <div aria-hidden="true">
                   <ChatStreamingBuffer
                     content={streamBuffer}
                     isStreaming={isStreaming}
@@ -195,9 +197,14 @@ export function ExplorationChatView({
                 />
               )}
 
-              {/* Thinking indicator (only when no tree preview) */}
+              {/* Thinking indicator (only when no tree preview).
+                  announce=false because the outer persistent status region
+                  (above) already owns the SR announcement for thinking. */}
               {isThinking && !isStreaming && !showTreePreview && (
-                <ThinkingIndicator message={thinkingMessage ?? undefined} />
+                <ThinkingIndicator
+                  message={thinkingMessage ?? undefined}
+                  announce={false}
+                />
               )}
 
               {/* Choice prompt */}

@@ -25,7 +25,7 @@ STUDY_TOPIC_LABELS: dict[str, str] = {
 # avoid information overload. A longer budget would likely widen the
 # guided-vs-baseline gap — documented as a study limitation.
 STUDY_TASK_DURATION_SECONDS = 600  # 10 minutes
-STUDY_PARTIES = ["Merkur", "Venus", "Mars", "Saturn"]
+STUDY_PARTIES = ["Venus", "Mars", "Saturn"]
 
 # Subtopic catalog for claim grouping on the source pages. Slugs match the
 # `subtopic` field in `data/study-fake-parties/positions/*.json`. The subtopic

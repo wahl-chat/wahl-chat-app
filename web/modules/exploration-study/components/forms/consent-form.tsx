@@ -10,6 +10,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import VisuallyHidden from '@/components/visually-hidden';
 import { cn } from '@/lib/utils';
 import { SubmitButton } from '@/modules/exploration-study/components/shared/submit-button';
 import {
@@ -85,6 +86,7 @@ export function ConsentForm({
                   'Fragebogen nach der Aufgabe',
                 ].map((step, index, arr) => (
                   <li key={step} className="relative flex gap-3 pb-4 last:pb-0">
+                    <VisuallyHidden>({index + 1}) </VisuallyHidden>
                     {index < arr.length - 1 && (
                       <span
                         aria-hidden="true"

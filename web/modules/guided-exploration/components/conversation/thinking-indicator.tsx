@@ -6,6 +6,13 @@ import { StarsIcon } from 'lucide-react';
 interface ThinkingIndicatorProps {
   message?: string;
   className?: string;
+  /**
+   * Whether this indicator owns the SR announcement (role=status +
+   * aria-live). Set to `false` when a parent already renders a persistent
+   * status region for the same thinking state, to prevent double-announce.
+   * Defaults to `true` because most usages are standalone.
+   */
+  announce?: boolean;
 }
 
 /**
@@ -15,12 +22,14 @@ interface ThinkingIndicatorProps {
 export function ThinkingIndicator({
   message = 'Nachricht wird verarbeitet...',
   className,
+  announce = true,
 }: ThinkingIndicatorProps) {
   return (
     <div
       className={cn('flex items-center gap-2 text-foreground', className)}
-      role="status"
-      aria-live="polite"
+      {...(announce
+        ? { role: 'status', 'aria-live': 'polite' as const }
+        : { 'aria-hidden': true })}
     >
       <div className="relative size-10">
         {/* Dynamic arc ring - rotates and changes arc length */}

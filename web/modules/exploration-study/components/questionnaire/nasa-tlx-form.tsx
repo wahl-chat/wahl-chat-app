@@ -34,9 +34,15 @@ export function NasaTlxForm({ onSubmit, className }: NasaTlxFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className={cn('space-y-6', className)}>
+    <form
+      onSubmit={handleSubmit}
+      aria-labelledby="nasa-tlx-heading"
+      className={cn('space-y-6', className)}
+    >
       <div className="space-y-2">
-        <h2 className="text-xl font-semibold">Arbeitsbelastung</h2>
+        <h2 id="nasa-tlx-heading" className="text-xl font-semibold">
+          Arbeitsbelastung
+        </h2>
         <p className="text-sm text-foreground">
           Bitte bewerte die verschiedenen Aspekte der Arbeitsbelastung während
           der Aufgabe.

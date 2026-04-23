@@ -29,21 +29,11 @@ STUDY_CONTEXT_NAMES: dict[str, str] = {
     STUDY_CONTEXT_SOZIAL: "Soziale Gerechtigkeit (Studie)",
 }
 
-# The five fictional parties used in the study. Ordered from left to right
+# The fictional parties used in the study. Ordered from left to right
 # on the political spectrum for consistency with the position data.
-STUDY_PARTY_IDS: list[str] = ["merkur", "venus", "mars", "saturn"]
+STUDY_PARTY_IDS: list[str] = ["venus", "mars", "saturn"]
 
 STUDY_PARTIES: dict[str, PartyInfo] = {
-    "merkur": PartyInfo(
-        party_id="merkur",
-        name="Merkur",
-        long_name="Merkur-Partei",
-        description=(
-            "Linke, umverteilungsorientierte Partei. Starker Fokus auf "
-            "soziale Gerechtigkeit, staatliche Daseinsvorsorge und "
-            "ambitionierten Klimaschutz mit sozialem Ausgleich."
-        ),
-    ),
     "venus": PartyInfo(
         party_id="venus",
         name="Venus",
@@ -91,7 +81,7 @@ def get_study_context_info(
     Return (context_name, parties_info) for a study context, bypassing Firebase.
 
     If ``party_ids`` is given, only those parties are returned (in order).
-    Otherwise all five study parties are returned.
+    Otherwise all study parties are returned.
     """
     context_name = STUDY_CONTEXT_NAMES.get(context_id, context_id)
     if party_ids is None:

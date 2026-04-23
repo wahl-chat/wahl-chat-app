@@ -56,35 +56,18 @@ export const demographicsSchema = z.object({
 export type DemographicsFormValues = z.infer<typeof demographicsSchema>;
 
 // ---------------------------------------------------------------------------
-// Literacy (MAILS-Short + news consumption)
+// Literacy (MAILS-Short, trimmed to 4 items)
 // ---------------------------------------------------------------------------
-
-const newsSourceValues = [
-  'online',
-  'tv',
-  'newspaper',
-  'social_media',
-  'radio',
-] as const;
 
 const mailsRating = z.number({ error: REQUIRED_RATING }).min(0).max(10);
 
 export const literacySchema = z.object({
   mailsShort: z.object({
     item1: mailsRating,
-    item2: mailsRating,
-    item3: mailsRating,
-    item4: mailsRating,
     item5: mailsRating,
-    item6: mailsRating,
     item7: mailsRating,
-    item8: mailsRating,
-    item9: mailsRating,
     item10: mailsRating,
   }),
-  newsConsumption: z
-    .array(z.enum(newsSourceValues))
-    .min(1, { message: 'Bitte wähle mindestens eine Quelle aus.' }),
 });
 
 export type LiteracyFormValues = z.infer<typeof literacySchema>;

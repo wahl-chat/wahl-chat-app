@@ -1,6 +1,7 @@
 'use client';
 
 import { Progress } from '@/components/ui/progress';
+import VisuallyHidden from '@/components/visually-hidden';
 import { cn } from '@/lib/utils';
 import { StatusDots } from './status-dots';
 
@@ -23,19 +24,18 @@ export function ProgressIndicator({
 }: ProgressIndicatorProps) {
   const percentage = total > 0 ? Math.round((explored / total) * 100) : 0;
 
+  const srLabel = `${explored} von ${total} Themen erkundet`;
+
   if (variant === 'bar') {
     return (
       <div className={cn('flex flex-col gap-1', className)}>
         {showLabel && (
-          <span className="text-xs text-foreground">
+          <span aria-hidden="true" className="text-xs text-foreground">
             {explored} von {total} erkundet
           </span>
         )}
-        <Progress
-          value={percentage}
-          aria-label={`${explored} von ${total} erkundet`}
-          className="h-2"
-        />
+        <VisuallyHidden>{srLabel}</VisuallyHidden>
+        <Progress value={percentage} aria-hidden="true" className="h-2" />
       </div>
     );
   }
@@ -43,8 +43,9 @@ export function ProgressIndicator({
   return (
     <div className={cn('flex items-center gap-2', className)}>
       <StatusDots explored={explored} total={total} />
+      <VisuallyHidden>{srLabel}</VisuallyHidden>
       {showLabel && (
-        <span className="text-xs text-foreground">
+        <span aria-hidden="true" className="text-xs text-foreground">
           {explored}/{total}
         </span>
       )}

@@ -47,9 +47,15 @@ export function UeqShortForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit} className={cn('space-y-6', className)}>
+      <form
+        onSubmit={handleSubmit}
+        aria-labelledby="ueq-heading"
+        className={cn('space-y-6', className)}
+      >
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold">Benutzererfahrung</h2>
+          <h2 id="ueq-heading" className="text-xl font-semibold">
+            Benutzererfahrung
+          </h2>
           <p className="text-sm text-foreground">
             Bitte bewerte das System auf den folgenden Skalen. Wähle für jedes
             Gegensatzpaar den Wert, der deiner Meinung nach am besten zutrifft.

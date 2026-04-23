@@ -1,5 +1,6 @@
 'use client';
 
+import VisuallyHidden from '@/components/visually-hidden';
 import { cn } from '@/lib/utils';
 import { MessageCitationsList } from '@/modules/guided-exploration/components/shared/message-citations-list';
 import { PartyMarkedMarkdown } from '@/modules/guided-exploration/components/shared/party-marked-markdown';
@@ -29,7 +30,10 @@ export function FollowupMessage({ message, className }: FollowupMessageProps) {
     return (
       <div className={cn('flex justify-end', className)}>
         <div className="max-w-[80%] rounded-[20px] bg-muted px-4 py-2">
-          <p className="text-sm">{message.content}</p>
+          <p className="text-sm">
+            <VisuallyHidden>Deine Nachricht: </VisuallyHidden>
+            {message.content}
+          </p>
         </div>
       </div>
     );
@@ -37,6 +41,7 @@ export function FollowupMessage({ message, className }: FollowupMessageProps) {
 
   return (
     <div className={cn(className)}>
+      <VisuallyHidden>Antwort der KI:</VisuallyHidden>
       <PartyMarkedMarkdown
         onReferenceClick={handleReferenceClick}
         getReferenceName={getReferenceName}

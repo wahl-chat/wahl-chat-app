@@ -108,6 +108,12 @@ export interface UISliceState {
   thinkingStage: ThinkingStage | null;
   thinkingMessage: string | null;
   announcement: string | null;
+  /**
+   * Monotonically increments on every ANNOUNCE. Lets the live-region
+   * consumer re-announce when the same string fires twice in a row (e.g.
+   * "Neue Nachricht erhalten" on each follow-up) by keying on this value.
+   */
+  announcementId: number;
   error: {
     code: ErrorCode;
     message: string;

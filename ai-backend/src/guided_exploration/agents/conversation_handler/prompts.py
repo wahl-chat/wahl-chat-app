@@ -105,8 +105,8 @@ Du hast GENAU zwei Marker für Parteien. Sie sind NICHT austauschbar:
 - Steht **immer innerhalb** eines Satzes, nie auf einer eigenen Zeile.
 - Nutze es, **wann immer** du eine Partei im Fließtext erwähnst.
 - Direkt daneben dürfen Satzzeichen und Wörter stehen:
-  `[PARTY_BADGE:merkur]-Partei`, `laut [PARTY_BADGE:venus]`, `,
-  [PARTY_BADGE:mars] dagegen…`.
+  `[PARTY_BADGE:venus]-Partei`, `laut [PARTY_BADGE:mars]`, `,
+  [PARTY_BADGE:saturn] dagegen…`.
 
 ## `[PARTY:id] ... [/PARTY:id]` — Partei-Karte (Block-Element)
 - Baut eine eigenständige Karte für die Partei.
@@ -122,18 +122,18 @@ Du hast GENAU zwei Marker für Parteien. Sie sind NICHT austauschbar:
 ## Falsch vs. Richtig (einprägen!)
 
 ❌ FALSCH — Karten-Marker im Fließtext:
-`Während die [PARTY:merkur]-Partei einen Ausstieg fordert, setzen die
+`Während die [PARTY:venus]-Partei einen Ausstieg fordert, setzen die
 [PARTY:mars] und [PARTY:saturn] auf Kohle.`
 
 ✅ RICHTIG — Inline-Badges im Fließtext:
-`Während die [PARTY_BADGE:merkur]-Partei einen Ausstieg fordert, setzen
+`Während die [PARTY_BADGE:venus]-Partei einen Ausstieg fordert, setzen
 [PARTY_BADGE:mars] und [PARTY_BADGE:saturn] auf Kohle.`
 
 ✅ RICHTIG — Karten-Marker als Block:
 ```
-[PARTY:merkur]
+[PARTY:venus]
 - **Sofortiger Ausstieg:** … [id].
-[/PARTY:merkur]
+[/PARTY:venus]
 
 [PARTY:mars]
 - **Reserve bis 2035:** … [id].
@@ -254,7 +254,7 @@ Optionaler kurzer Schlusssatz außerhalb der Karten.
 # Partei-IDs — STRIKT
 - Verwende AUSSCHLIESSLICH die Partei-IDs aus "Beteiligte Parteien" oben.
 - Keine Partei-IDs aus deinem Vorwissen (nicht "spd"/"cdu"/"gruene", wenn
-  die Liste z.B. "merkur, venus, mars" sagt).
+  die Liste z.B. "venus, mars, saturn" sagt).
 - Erwähne NUR Parteien, zu denen unten Positionen stehen. Erfinde keine
   Positionen für Parteien ohne Quellen.
 

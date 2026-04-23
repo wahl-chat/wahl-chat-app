@@ -5,8 +5,10 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { ConversationInput } from '@/modules/guided-exploration/components/conversation';
 import { ExplorationBreadcrumb } from '@/modules/guided-exploration/components/navigation/breadcrumb';
+import { AnnouncementLiveRegion } from '@/modules/guided-exploration/components/shared';
 import {
   selectExplorationStatus,
+  uiActions,
   useExplorationStore,
 } from '@/modules/guided-exploration/store';
 import type {
@@ -146,6 +148,7 @@ export function ExplorationFullView({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messageCount = activeConversation?.messages.length ?? 0;
   const explorationStatus = useExplorationStore(selectExplorationStatus);
+  const dispatch = useExplorationStore((state) => state.dispatch);
   const isCompleted = explorationStatus === 'completed';
 
   const currentNodeId = currentPath[currentPath.length - 1] ?? null;
@@ -168,6 +171,40 @@ export function ExplorationFullView({
       });
     }
   }, [view, isThinking, isStreaming, messageCount]);
+
+  // Announce view changes for screen readers and move keyboard focus to the
+  // new content so SR users land at the top of the summary/positions instead
+  // of being silently dumped at the last focused element.
+  const activeLeafId = activeLeafNode?.id;
+  const activeLeafName = activeLeafNode?.name;
+  const currentBranchId = currentBranchNode?.id;
+  const currentBranchName = currentBranchNode?.name;
+  useEffect(() => {
+    if (view === 'leaf' && activeLeafName) {
+      dispatch(
+        uiActions.announce(
+          `Thema geöffnet: ${activeLeafName}. Es folgen die Zusammenfassung und die Parteipositionen.`,
+        ),
+      );
+    } else if (view === 'branch' && currentBranchName) {
+      dispatch(uiActions.announce(`Unterthema: ${currentBranchName}`));
+    } else if (view === 'root') {
+      dispatch(uiActions.announce('Themenübersicht'));
+    }
+    requestAnimationFrame(() => {
+      scrollContainerRef.current?.focus();
+    });
+    // Depend on ids so the effect re-runs for a new topic/leaf without
+    // thrashing on every render when object identity changes but content
+    // doesn't.
+  }, [
+    view,
+    activeLeafId,
+    activeLeafName,
+    currentBranchId,
+    currentBranchName,
+    dispatch,
+  ]);
 
   const handleBreadcrumbNavigate = (
     level: 'root' | 'branch' | 'leaf',
@@ -195,6 +232,9 @@ export function ExplorationFullView({
     }
 
     onBack();
+    dispatch(
+      uiActions.announce('Thema abgeschlossen. Zurück zur Themenübersicht.'),
+    );
     // After navigation, focus next unexplored subtopic
     requestAnimationFrame(() => {
       const nextUnexplored = document.querySelector(
@@ -233,9 +273,17 @@ export function ExplorationFullView({
       ? Math.round((overallProgress.explored / overallProgress.total) * 100)
       : 0;
 
+  const locationLabel = useMemo(() => {
+    if (view === 'leaf' && activeLeafName) return `Thema: ${activeLeafName}`;
+    if (view === 'branch' && currentBranchName)
+      return `Unterthemen von: ${currentBranchName}`;
+    return 'Themenübersicht';
+  }, [view, activeLeafName, currentBranchName]);
+
   return (
     <LeafActionsContext.Provider value={leafActions}>
       <div className={cn('flex flex-1 flex-col overflow-hidden', className)}>
+        <AnnouncementLiveRegion />
         {/* Full-width navigation bar */}
         <header className="shrink-0 border-b bg-background px-4 py-3">
           <div className="flex items-center justify-between gap-4">
@@ -302,7 +350,10 @@ export function ExplorationFullView({
             {/* Content based on view - with gradient mask */}
             <div
               ref={scrollContainerRef}
-              className="flex-1 overflow-auto"
+              tabIndex={-1}
+              role="region"
+              aria-label={locationLabel}
+              className="flex-1 overflow-auto focus:outline-none"
               style={{
                 maskImage:
                   'linear-gradient(to bottom, transparent, black 2rem, black calc(100% - 2rem), transparent)',
@@ -363,15 +414,28 @@ export function ExplorationFullView({
                         )}
                       </div>
                       {!hideLeafDoneButton && (
-                        <Button
-                          onClick={handleDone}
-                          variant="outline"
-                          size="sm"
-                          disabled={activeLeafNode?.status === 'explored'}
-                        >
-                          <Check aria-hidden="true" className="mr-1.5 size-4" />
-                          Thema abschließen
-                        </Button>
+                        <>
+                          <Button
+                            onClick={handleDone}
+                            variant="outline"
+                            size="sm"
+                            disabled={activeLeafNode?.status === 'explored'}
+                            aria-describedby={
+                              activeLeafNode?.status === 'explored'
+                                ? 'leaf-done-reason'
+                                : undefined
+                            }
+                          >
+                            <Check
+                              aria-hidden="true"
+                              className="mr-1.5 size-4"
+                            />
+                            Thema abschließen
+                          </Button>
+                          <span id="leaf-done-reason" className="sr-only">
+                            Dieses Thema ist bereits als erkundet markiert.
+                          </span>
+                        </>
                       )}
                     </div>
                   )}

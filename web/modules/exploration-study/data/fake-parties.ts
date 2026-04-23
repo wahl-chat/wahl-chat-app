@@ -2,13 +2,6 @@ import type { PartyDetails } from '@/lib/party-details';
 
 export const STUDY_FAKE_PARTIES: PartyDetails[] = [
   {
-    party_id: 'merkur',
-    name: 'Merkur',
-    long_name: 'Merkur-Partei',
-    website_url: '',
-    background_color: '#F8FAFC',
-  },
-  {
     party_id: 'venus',
     name: 'Venus',
     long_name: 'Venus-Partei',

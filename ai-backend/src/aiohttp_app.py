@@ -205,9 +205,14 @@ sio.attach(app)
 # Instantiate the argument parser
 parser = argparse.ArgumentParser()
 
+# Defaults can be overridden via env vars so the backend port does not have
+# to be hardcoded across local setups. CLI flags still win over env vars.
+_DEFAULT_HOST = os.environ.get("BACKEND_HOST", "127.0.0.1")
+_DEFAULT_PORT = int(os.environ.get("BACKEND_PORT") or os.environ.get("PORT") or 8080)
+
 # Add arguments to parser
-parser.add_argument("--host", type=str, nargs=1, default=["127.0.0.1"])
-parser.add_argument("--port", type=int, nargs=1, default=[8080])
+parser.add_argument("--host", type=str, nargs=1, default=[_DEFAULT_HOST])
+parser.add_argument("--port", type=int, nargs=1, default=[_DEFAULT_PORT])
 parser.add_argument("--debug", action="store_true", default=False)
 
 # Start the server

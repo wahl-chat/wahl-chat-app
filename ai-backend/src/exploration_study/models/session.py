@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from src.exploration_study.models.state import StudyState
 
@@ -112,47 +112,31 @@ class DemographicsData(BaseModel):
 
 class MailsShortData(BaseModel):
     """
-    Meta-AI Literacy Scale – Short Version (MAILS-Short).
+    MAILS-Short (Koch, Carolus, et al., 2024), trimmed to 4 items — one per
+    subscale — to keep pre-task screening short:
 
-    Koch, Carolus, et al., 2024. 10 items, 0-10 self-assessment scale
-    (0 = gar nicht ausgeprägt, 10 = (nahezu) perfekt ausgeprägt).
+    - item1: Detect AI
+    - item5: AI Ethics
+    - item7: Apply AI
+    - item10: Understand AI
+
+    0-10 self-assessment (0 = gar nicht ausgeprägt, 10 = (nahezu) perfekt).
+    Item numbers match the original 10-item scale for traceability.
     """
 
     item1: int | None = Field(default=None, ge=0, le=10)
-    item2: int | None = Field(default=None, ge=0, le=10)
-    item3: int | None = Field(default=None, ge=0, le=10)
-    item4: int | None = Field(default=None, ge=0, le=10)
     item5: int | None = Field(default=None, ge=0, le=10)
-    item6: int | None = Field(default=None, ge=0, le=10)
     item7: int | None = Field(default=None, ge=0, le=10)
-    item8: int | None = Field(default=None, ge=0, le=10)
-    item9: int | None = Field(default=None, ge=0, le=10)
     item10: int | None = Field(default=None, ge=0, le=10)
 
 
 class LiteracyData(BaseModel):
-    """Digital/AI literacy and political knowledge data from screening questionnaire."""
+    """AI literacy screening data (MAILS-Short, trimmed to 4 items)."""
 
-    # AI literacy: MAILS-Short (Koch, Carolus, et al., 2024)
     mails_short: MailsShortData | None = Field(
         default=None,
-        description="MAILS-Short responses (10 items, 0-10 self-assessment)",
+        description="MAILS-Short responses (4 items, 0-10 self-assessment)",
     )
-
-    news_consumption: list[str] | None = Field(
-        default=None,
-        description="News consumption sources (online, tv, newspaper, social_media, radio)",
-    )
-
-    @field_validator("news_consumption", mode="before")
-    @classmethod
-    def ensure_list(cls, v: str | list[str] | None) -> list[str] | None:
-        """Handle legacy data where news_consumption was stored as a string."""
-        if v is None:
-            return None
-        if isinstance(v, str):
-            return [v]
-        return v
 
 
 class ParticipantData(BaseModel):

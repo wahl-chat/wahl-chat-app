@@ -12,8 +12,11 @@ class StudyState(str, Enum):
     Between-subjects A/B design: each participant sees only one condition.
 
     Flow:
-    CONSENT -> DEMOGRAPHICS -> LITERACY -> TUTORIAL
-      -> TASK -> QUESTIONNAIRE -> QUIZ -> COMPLETE
+    CONSENT -> TUTORIAL -> TASK -> QUESTIONNAIRE -> QUIZ
+      -> DEMOGRAPHICS -> LITERACY -> COMPLETE
+
+    All non-consent survey material is asked *after* the task so
+    participants stay fresh for the exploration and knowledge quiz.
     """
 
     # Onboarding steps
@@ -36,15 +39,16 @@ class StudyState(str, Enum):
 
 # Valid state transitions (from current step -> next step after completion)
 TRANSITIONS: dict[StudyState, list[StudyState]] = {
-    # Onboarding flow
-    StudyState.CONSENT: [StudyState.DEMOGRAPHICS],
-    StudyState.DEMOGRAPHICS: [StudyState.LITERACY],
-    StudyState.LITERACY: [StudyState.TUTORIAL],
+    # Onboarding flow (minimal — straight to the task to keep focus fresh)
+    StudyState.CONSENT: [StudyState.TUTORIAL],
     StudyState.TUTORIAL: [StudyState.TASK],
     # Task flow
     StudyState.TASK: [StudyState.QUESTIONNAIRE],
     StudyState.QUESTIONNAIRE: [StudyState.QUIZ],
-    StudyState.QUIZ: [StudyState.COMPLETE],
+    StudyState.QUIZ: [StudyState.DEMOGRAPHICS],
+    # Post-task survey material
+    StudyState.DEMOGRAPHICS: [StudyState.LITERACY],
+    StudyState.LITERACY: [StudyState.COMPLETE],
     # Final
     StudyState.COMPLETE: [],
     # Abandoned can be reached from any state

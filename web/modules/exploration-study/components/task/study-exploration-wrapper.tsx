@@ -163,7 +163,8 @@ export function StudyExplorationWrapper({
   ]);
 
   // `exploration_ready` arrives when the backend finishes building a new
-  // tree in response to a chat message. Add a tab for it and switch via URL.
+  // tree in response to a chat message. Add a tab so the user can open it,
+  // but stay in chat — the user decides when to enter the exploration.
   useEffect(() => {
     if (!explorationReadyData) return;
     const { explorationId } = explorationReadyData;
@@ -181,16 +182,12 @@ export function StudyExplorationWrapper({
         sessionActions.explorationTabAdded(explorationId, label, tabCount % 6),
       );
     }
-
-    router.replace(buildStudyUrl(explorationId, []));
   }, [
     explorationReadyData,
     clearExplorationReady,
     explorationTabs,
     sessionMessages,
     dispatch,
-    router,
-    buildStudyUrl,
   ]);
 
   const handleNavigateToRoot = useCallback(() => {
@@ -286,7 +283,11 @@ export function StudyExplorationWrapper({
   ) : null;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div
+      id="main-content"
+      tabIndex={-1}
+      className="flex flex-1 flex-col overflow-hidden focus:outline-none"
+    >
       {error && (
         <ErrorBanner message={error.message} onDismiss={handleDismissError} />
       )}
@@ -357,7 +358,7 @@ export function StudyExplorationWrapper({
             explorationPending={explorationPending}
             suggestedQuestions={suggestedQuestions}
             studyTopicLabel={studyTopicLabel}
-            minDirections={3}
+            minDirections={2}
             onSendMessageAction={sendChatMessage}
             onSubmitChoiceAction={submitChoice}
             onDirectionChoiceAction={submitDirectionChoice}

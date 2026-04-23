@@ -36,6 +36,12 @@ export interface RatingScaleProps {
    * When true, the radiogroup is marked as required for screen readers.
    */
   required?: boolean;
+  /**
+   * Short description (e.g. the anchor pair "angenehm bis unangenehm") that
+   * prefixes each radio's accessible name so the Form Controls rotor is
+   * scannable without losing group context.
+   */
+  itemLabel?: string;
 }
 
 export const RatingScale = forwardRef<HTMLDivElement, RatingScaleProps>(
@@ -55,6 +61,7 @@ export const RatingScale = forwardRef<HTMLDivElement, RatingScaleProps>(
       invalid,
       describedById,
       required,
+      itemLabel,
     },
     ref,
   ) {
@@ -125,7 +132,11 @@ export const RatingScale = forwardRef<HTMLDivElement, RatingScaleProps>(
                 onChange={() => onChange(option)}
                 onKeyDown={(e) => handleKeyDown(e, option)}
                 className="peer sr-only"
-                aria-label={`${option} von ${max}`}
+                aria-label={
+                  itemLabel
+                    ? `${itemLabel}: ${option} von ${max}`
+                    : `${option} von ${max}`
+                }
               />
               <span
                 className={cn(

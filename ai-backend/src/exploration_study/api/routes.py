@@ -295,12 +295,12 @@ async def submit_consent(request: web.Request) -> web.Response:
     participant_data.consent_timestamp = datetime.now(timezone.utc)
 
     await session_repo.update_participant_data(session_id, participant_data)
-    await session_repo.update_state(session_id, StudyState.DEMOGRAPHICS)
+    await session_repo.update_state(session_id, StudyState.TUTORIAL)
     await session_repo.mark_started(session_id)
 
     response = StateTransitionResponse(
         previous_state=StudyState.CONSENT,
-        current_state=StudyState.DEMOGRAPHICS,
+        current_state=StudyState.TUTORIAL,
         message="Consent recorded",
     )
     return web.json_response(response.model_dump(mode="json"))
@@ -395,15 +395,15 @@ async def submit_literacy(request: web.Request) -> web.Response:
     participant_data = session.participant_data
     participant_data.literacy = LiteracyData(
         mails_short=MailsShortData(**req.mails_short.model_dump()),
-        news_consumption=req.news_consumption,
     )
 
     await session_repo.update_participant_data(session_id, participant_data)
-    await session_repo.update_state(session_id, StudyState.TUTORIAL)
+    # Literacy is the last survey step; close out the session.
+    await session_repo.mark_completed(session_id)
 
     response = StateTransitionResponse(
         previous_state=StudyState.LITERACY,
-        current_state=StudyState.TUTORIAL,
+        current_state=StudyState.COMPLETE,
     )
     return web.json_response(response.model_dump(mode="json"))
 
@@ -550,7 +550,7 @@ async def end_task(request: web.Request) -> web.Response:
             await facade.start_quiz_generation(
                 session_id=session_id,
                 topic=condition.topic,
-                parties=study.config.parties,
+                parties=STUDY_PARTIES,
                 chat_id=condition.chat_id,
             )
         except ValueError as e:
@@ -757,14 +757,14 @@ async def submit_quiz(request: web.Request) -> web.Response:
     condition.quiz_submitted_at = datetime.now(timezone.utc)
     await session_repo.update_condition_data(session_id, condition)
 
-    # Mark study as complete
-    await session_repo.mark_completed(session_id)
+    # Move to post-task demographics (the final step before COMPLETE)
+    await session_repo.update_state(session_id, StudyState.DEMOGRAPHICS)
 
     response = QuizResultResponse(
         total_correct=total_correct,
         total_questions=total_questions,
         score_percentage=score_percentage,
-        next_state=StudyState.COMPLETE,
+        next_state=StudyState.DEMOGRAPHICS,
     )
     return web.json_response(response.model_dump(mode="json"))
 
