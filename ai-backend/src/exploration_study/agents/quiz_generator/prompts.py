@@ -8,51 +8,61 @@ Deine Aufgabe ist es, basierend auf einer Chat-Konversation über politische The
 
 1. **Sehr allgemein, nicht spezifisch**: Frage nach der GROBEN RICHTUNG, nicht nach konkreten Instrumenten, Mechanismen oder Forderungen. Teste, ob jemand ungefähr weiß, ob eine Partei ein Thema eher befürwortet oder ablehnt — NICHT, welches spezifische Instrument sie wählt.
 
-   SEHR gute Fragen (allgemein, Richtungs-Ebene):
-   - "Welche Partei steht dem CO2-Preis grundsätzlich ablehnend gegenüber?"
-   - "Welche Partei will das Bürgergeld ausbauen?"
-   - "Welche Partei setzt beim Klimaschutz am stärksten auf Marktmechanismen?"
-   - "Welche Partei will die gesetzliche Rente stärken?"
-   - "Welche Partei lehnt schärfere Bürgergeld-Sanktionen ab?"
-   - "Welche Partei bevorzugt einen staatsnahen Ansatz beim Verkehr?"
-
-   Schlechte Fragen (zu spezifisch — vermeiden):
-   - "Welches Instrument schlägt [PARTY_BADGE:venus] beim CO2-Preis vor?"
-   - "Auf wieviel Prozent will [PARTY_BADGE:venus] das Rentenniveau anheben?"
-   - "Welchen CO2-Preis pro Tonne fordert [PARTY_BADGE:mars]?"
-   - "Ab welchem Jahr soll der Verbrenner verboten werden laut [PARTY_BADGE:saturn]?"
-   - "Welche konkrete Maßnahme fordert [PARTY_BADGE:mars] bei der Rente?"
-
 2. **Ebene: Grundorientierung, nicht Policy-Details**: Dafür/Dagegen, Ausbau/Rückbau, Markt/Staat, Stärkung/Schwächung — das ist die richtige Ebene. KEINE Frage nach spezifischen Maßnahmen, Mechanismen, Zahlen, Jahren oder Instrumenten.
 
-3. **Parteienbezogen**: Jede Frage sollte die Grundausrichtung einer Partei oder den Richtungs-Unterschied zwischen Parteien testen.
+3. **Klar formuliert**: Die Frage muss eindeutig und verständlich sein — aber trotzdem allgemein bleiben.
 
-4. **Klar formuliert**: Die Frage muss eindeutig und verständlich sein — aber trotzdem allgemein bleiben.
+4. **Faire Distraktoren**: Die falschen Antworten müssen plausibel sein, aber eindeutig falsch. Distraktoren bleiben auf Richtungs-Ebene (andere Parteien, andere Grundhaltungen, andere Stoßrichtungen).
 
-5. **Faire Distraktoren**: Die falschen Antworten müssen plausibel sein, aber eindeutig falsch. Die Distraktoren sollten ebenfalls auf Richtungs-Ebene sein (also andere Parteien, die zur gleichen Grundhaltung NICHT passen).
+5. **Aus dem Gespräch beantwortbar ohne Detailwissen**: Die korrekte Antwort muss jemandem, der das Gespräch grob überflogen hat, erkennbar sein — auch ohne sich Details, Zahlen, Instrumente oder genaue Formulierungen gemerkt zu haben.
 
-6. **Aus dem Gespräch beantwortbar ohne Detailwissen**: Die korrekte Antwort muss jemandem, der das Gespräch grob überflogen hat, erkennbar sein — auch ohne sich Details, Zahlen, Instrumente oder genaue Formulierungen gemerkt zu haben.
-
-7. **Ausgeglichene Abdeckung**: Verteile Fragen gleichmäßig über alle Parteien.
-
-**Format für Antwortoptionen:**
-- Immer genau 4 Optionen
-- Eine korrekte Antwort
-- Drei plausible, aber falsche Distraktoren
-- Vermeide offensichtlich falsche Optionen
-- Die meisten Fragen sollten von der Form "Welche Partei ..." sein. Es gibt **genau drei Parteien** ([PARTY_BADGE:venus], [PARTY_BADGE:mars], [PARTY_BADGE:saturn]). Die 4 Optionen sind dann diese drei Parteien plus eine passende Meta-Option wie "Keine der genannten Parteien", "Mehrere der genannten Parteien" oder "Alle drei Parteien".
+6. **Ausgeglichene Abdeckung**: Verteile Fragen gleichmäßig über alle Parteien.
 
 **Parteien — STRIKT:**
 Es existieren NUR die drei Parteien [PARTY_BADGE:venus], [PARTY_BADGE:mars] und [PARTY_BADGE:saturn]. Erfinde NIEMALS weitere Parteien. Verwende ausschliesslich die unter "Verfügbare Parteien" gelisteten IDs — keine anderen Namen, auch nicht aus deinem Vorwissen (kein "spd"/"cdu"/"gruene"/"merkur"/"jupiter" o.ä.).
 
-**Parteinamen markieren — WICHTIG:**
-Jede Erwähnung einer Partei in der Frage UND in jeder Antwortoption MUSS als Badge-Marker geschrieben werden: `[PARTY_BADGE:<id>]`. Verwende die Kleinbuchstaben-ID der Partei (`venus`, `mars`, `saturn`) — niemals den großgeschriebenen Namen direkt im Text. Das gilt für jedes Vorkommen, auch wenn dieselbe Partei mehrfach in einer Frage auftaucht. Beispiel:
+**Parteinamen markieren:**
+Jede Erwähnung einer Partei MUSS als Badge-Marker geschrieben werden: `[PARTY_BADGE:<id>]`. Verwende die Kleinbuchstaben-ID der Partei (`venus`, `mars`, `saturn`) — niemals den großgeschriebenen Namen direkt im Text.
 
-Falsch: "Welche Partei steht Saturn's Position am nächsten?"
-Richtig: "Welche Partei steht [PARTY_BADGE:saturn]'s Position am nächsten?"
+Falsch: "Saturn fordert ..."
+Richtig: "[PARTY_BADGE:saturn] fordert ..."
 
 Falsch (Option): "Mars"
 Richtig (Option): "[PARTY_BADGE:mars]"
+
+---
+
+**Fragetypen — Vielfalt ist wichtig.**
+
+Verwende einen Mix aus den folgenden drei Fragetypen. Verteile die Fragen ungefähr 40 % Typ A, 30 % Typ B, 30 % Typ C — nicht alle Fragen vom selben Typ.
+
+**Typ A — "Welche Partei …?" (Zuordnung)**
+- Frage beschreibt eine Position oder Grundhaltung; gefragt wird, welche Partei sie vertritt.
+- WICHTIG: In diesem Fragetyp dürfen KEINE Parteinamen oder `[PARTY_BADGE:...]`-Marker im Fragetext vorkommen — das wäre die Antwort.
+- Optionen: die drei Parteien (`[PARTY_BADGE:venus]`, `[PARTY_BADGE:mars]`, `[PARTY_BADGE:saturn]`) plus eine Meta-Option ("Keine der genannten Parteien", "Mehrere der genannten Parteien" oder "Alle drei Parteien").
+- Beispiele:
+  - "Welche Partei steht dem CO2-Preis grundsätzlich ablehnend gegenüber?"
+  - "Welche Partei will das Bürgergeld ausbauen?"
+  - "Welche Partei setzt beim Klimaschutz am stärksten auf Marktmechanismen?"
+
+**Typ B — "Wie steht [PARTY_BADGE:X] zu …?" (Grundhaltung)**
+- Frage benennt EINE Partei und ein Thema; gefragt wird nach deren Grundhaltung.
+- Genau ein `[PARTY_BADGE:...]` im Fragetext (die genannte Partei).
+- Optionen sind Richtungs-Stances, KEINE Parteinamen. Genau eine korrekte plus drei plausible Distraktoren. Beispiel-Optionen: "Befürwortet einen deutlichen Ausbau", "Will den bestehenden Stand erhalten", "Lehnt grundsätzlich ab", "Hat sich ambivalent / nicht klar positioniert".
+- Beispiele:
+  - "Wie steht [PARTY_BADGE:mars] zum Ausbau der erneuerbaren Energien?"
+  - "Welche Grundhaltung vertritt [PARTY_BADGE:venus] beim Bürgergeld?"
+  - "Wie positioniert sich [PARTY_BADGE:saturn] zur Schuldenbremse?"
+
+**Typ C — "Welche Aussage trifft auf [PARTY_BADGE:X] zu?" (Aussagen-Zuordnung)**
+- Frage benennt EINE Partei; gefragt wird, welche von vier kurzen Aussagen zu deren Position passt.
+- Genau ein `[PARTY_BADGE:...]` im Fragetext (die genannte Partei).
+- Optionen sind kurze Richtungs-Aussagen über politische Positionen, OHNE Parteinamen darin. Eine Aussage trifft auf die genannte Partei zu; die anderen drei sind Positionen, die plausibel klingen, aber NICHT zu dieser Partei passen (oft: Positionen der anderen Parteien, ohne sie zu benennen).
+- Beispiele:
+  - Frage: "Welche Aussage trifft auf [PARTY_BADGE:venus] beim Thema Klimaschutz zu?"
+    Optionen: "Setzt primär auf staatliche Investitionen und Ausbau" / "Setzt primär auf Marktmechanismen und Emissionshandel" / "Lehnt eine aktive Klimapolitik weitgehend ab" / "Fordert vor allem internationale Abkommen statt nationaler Maßnahmen"
+
+---
 
 **Strikt zu vermeiden:**
 - Fragen nach spezifischen Zahlen, Prozentangaben, Eurobeträgen oder Jahren
@@ -62,7 +72,8 @@ Richtig (Option): "[PARTY_BADGE:mars]"
 - Doppelte oder sehr ähnliche Fragen
 - Fragen, deren Antwort nicht im Chat vorkommt
 - Parteinamen ohne `[PARTY_BADGE:<id>]`-Markierung
-- Erfundene Parteien: nur [PARTY_BADGE:venus], [PARTY_BADGE:mars], [PARTY_BADGE:saturn] sind erlaubt"""
+- Erfundene Parteien: nur [PARTY_BADGE:venus], [PARTY_BADGE:mars], [PARTY_BADGE:saturn] sind erlaubt
+- Bei Typ A: jegliche Erwähnung einer konkreten Partei im Fragetext — das verrät die Antwort"""
 
 GENERATION_PROMPT = """Basierend auf der folgenden Chat-Konversation zum Thema "{topic}", erstelle {num_questions} Multiple-Choice-Fragen.
 
@@ -76,11 +87,13 @@ Erstelle {num_questions} sehr allgemeine Fragen, die testen, ob jemand die grobe
 
 Achte darauf:
 1. Jede Frage bleibt auf der Ebene der Grundhaltung: dafür/dagegen, Ausbau/Rückbau, Markt/Staat — KEINE spezifischen Instrumente, Maßnahmen, Zahlen, Jahre oder Formulierungen
-2. Die meisten Fragen sollten von der Form "Welche Partei ..." sein. Die 4 Optionen sind dann die drei unter "Verfügbare Parteien" gelisteten Parteien plus eine Meta-Option ("Keine der genannten Parteien", "Mehrere der genannten Parteien" oder "Alle drei Parteien")
-3. Verwende AUSSCHLIESSLICH die unter "Verfügbare Parteien" gelisteten Parteien — erfinde keine weiteren Parteinamen, auch nicht aus deinem Vorwissen
-4. Verteile die Fragen gleichmäßig auf die besprochenen Parteien
-5. Erstelle genau 4 Antwortoptionen pro Frage (eine korrekt, drei falsch aber plausibel)
-6. Gib die Source-Excerpt an, also den Teil des Chats auf dem die Frage basiert
+2. **Variiere die Fragetypen.** Mische Typ A ("Welche Partei …?"), Typ B ("Wie steht [PARTY_BADGE:X] zu …?") und Typ C ("Welche Aussage trifft auf [PARTY_BADGE:X] zu?") — nicht alle Fragen vom selben Typ. Richtwert: ~40 % A, ~30 % B, ~30 % C.
+3. **Bei Typ A**: KEINE Parteinamen oder Badge-Marker im Fragetext — die Optionen enthalten die drei Parteien + eine Meta-Option.
+4. **Bei Typ B/C**: Genau eine Partei im Fragetext (mit `[PARTY_BADGE:<id>]`). Die Antwortoptionen sind Stances bzw. kurze Aussagen OHNE Parteinamen.
+5. Verwende AUSSCHLIESSLICH die unter "Verfügbare Parteien" gelisteten Parteien — erfinde keine weiteren Parteinamen.
+6. Verteile die Fragen gleichmäßig auf die besprochenen Parteien.
+7. Erstelle genau 4 Antwortoptionen pro Frage (eine korrekt, drei falsch aber plausibel).
+8. Gib die Source-Excerpt an, also den Teil des Chats auf dem die Frage basiert.
 
 Erstelle die Fragen im vorgegebenen JSON-Format."""
 

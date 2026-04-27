@@ -21,7 +21,10 @@ from src.guided_exploration.agents.summary_generator.interface import (
     SummaryOutput,
 )
 from src.guided_exploration.agents.summary_generator.prompts import (
+    BASELINE_FOCUS_DIRECTIVE,
+    CITATION_DIRECTIVE,
     FINAL_SUMMARY_PROMPT,
+    GUIDED_FOCUS_DIRECTIVE,
     LEAF_SUMMARY_PROMPT,
     QUICK_SUMMARY_STREAMING_SYSTEM_PROMPT,
     QUICK_SUMMARY_STREAMING_USER_PROMPT,
@@ -96,11 +99,17 @@ class SummaryGeneratorAgent(BaseAgent[SummaryInput, SummaryOutput]):
             else "Keine vorherigen Nachrichten."
         )
 
+        focus_directive = (
+            BASELINE_FOCUS_DIRECTIVE if input.is_baseline else GUIDED_FOCUS_DIRECTIVE
+        )
+
         system_prompt = QUICK_SUMMARY_STREAMING_SYSTEM_PROMPT.format(
             context_name=input.context_name,
             conversation_history=history_text,
             parties_list=input.parties_list,
             rag_context=input.rag_context,
+            focus_directive=focus_directive,
+            citation_directive=CITATION_DIRECTIVE,
         )
 
         user_prompt = QUICK_SUMMARY_STREAMING_USER_PROMPT.format(

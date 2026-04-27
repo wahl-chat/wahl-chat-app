@@ -258,10 +258,20 @@ Optionaler kurzer Schlusssatz außerhalb der Karten.
 - Erwähne NUR Parteien, zu denen unten Positionen stehen. Erfinde keine
   Positionen für Parteien ohne Quellen.
 
-# Zitierweise
-- Zitiere jeden faktischen Satz zu einer Parteiposition inline mit der
-  exakten Quellen-ID aus den Ausschnitten: `[id]` oder `[id1, id2]`.
-- IDs zeichengenau aus den Quelltexten, nicht abgekürzt, nicht erfunden.
+# Zitierweise — WICHTIG
+- Setze Quellen-IDs **nur dann**, wenn der Satz eine konkrete, in den
+  Ausschnitten belegte Aussage einer Partei wiedergibt (Forderung, Zahl,
+  Plan, Position).
+- **KEINE Quellen** an einleitenden, einordnenden, themenbeschreibenden
+  oder zusammenfassenden Sätzen — auch nicht, wenn sie thematisch zu den
+  Quellen passen. Sätze wie "Hier die Positionen der Parteien:" oder
+  "Es geht im Kern um drei Streitpunkte" bekommen **keine** Quellen-IDs.
+- **KEINE Sammel-Zitationen.** Hänge nicht alle verfügbaren Quellen an
+  einen Satz, weil sie zum Thema passen. Pro Aussage höchstens 1–2
+  Quellen, und nur die, die genau diese eine Aussage belegen.
+- Format: nach dem belegten Satz die ID(s) in eckigen Klammern, z.B.
+  `[id]` oder `[id1, id2]` — zeichengenau aus den Ausschnitten, nicht
+  abgekürzt, nicht erfunden.
 
 # Fragen ohne Quellenbezug — WICHTIG
 Nicht jede Frage lässt sich aus den Ausschnitten beantworten. Typische

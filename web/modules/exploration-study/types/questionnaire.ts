@@ -181,8 +181,6 @@ export interface QuizQuestion {
   id: string;
   question: string;
   options: string[];
-  correctIndex: number;
-  party: string;
 }
 
 export interface QuizAnswer {

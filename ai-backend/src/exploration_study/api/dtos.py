@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from src.exploration_study.models.quiz import QuizQuestion, QuizStatus
+from src.exploration_study.models.quiz import QuizStatus
 from src.exploration_study.models.session import SystemType
 from src.exploration_study.models.state import StudyState
 from src.exploration_study.models.study import StudyStatus
@@ -264,25 +264,24 @@ class QuestionnaireRequest(BaseModel):
     )
 
 
-class QuizStatusResponse(BaseModel):
-    """Response for quiz status check."""
-
-    status: QuizStatus
-    is_ready: bool
-    questions: list[QuizQuestion] | None = Field(
-        default=None,
-        description="Questions if ready (without correct answers for participant)",
-    )
-    error_message: str | None = None
-
-
 class QuizQuestionForParticipant(BaseModel):
     """Quiz question without correct answer for participant view."""
 
     id: str
     question: str
     options: list[str]
-    party: str
+
+
+class QuizStatusResponse(BaseModel):
+    """Response for quiz status check."""
+
+    status: QuizStatus
+    is_ready: bool
+    questions: list[QuizQuestionForParticipant] | None = Field(
+        default=None,
+        description="Questions if ready (without correct answers for participant)",
+    )
+    error_message: str | None = None
 
 
 class QuizForParticipant(BaseModel):

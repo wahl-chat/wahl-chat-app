@@ -48,6 +48,15 @@ class QuickSummaryInput(BaseModel):
             "repetition."
         ),
     )
+    is_baseline: bool = Field(
+        default=False,
+        description=(
+            "True if this summary is for a BASELINE study session. Switches "
+            "the prompt to a regular-wahl.chat-style answer (no aspect-list "
+            "Rückfrage on broad questions, claim-only citations) so the "
+            "baseline doesn't bleed into exploration-style behaviour."
+        ),
+    )
 
 
 class QuickSummaryOutput(BaseModel):

@@ -2521,12 +2521,18 @@ class GuidedExplorationFacade:
         )
 
         stream_id = str(uuid4())
+        # In baseline study sessions, switch the prompt to a regular-
+        # wahl.chat-style answer (no aspect-list Rückfrage on broad
+        # questions, claim-only citations) so the baseline doesn't bleed
+        # exploration-style behaviour into the contrast condition.
+        is_baseline = session is not None and session.mode == SessionMode.BASELINE
         summary_input = QuickSummaryInput(
             query=query,
             rag_context=rag_context,
             parties_list=parties_list,
             context_name=context_name,
             conversation_history=conversation_history_text,
+            is_baseline=is_baseline,
         )
 
         # 7. Stream directly from LLM to SSE

@@ -6,6 +6,9 @@ import type { QuizQuestion as QuizQuestionType } from '@/modules/exploration-stu
 import { PartyBadge } from '@/modules/guided-exploration/components/shared/party-badge';
 import { Fragment, type ReactNode } from 'react';
 
+const PARTY_BADGE_TOKEN = /(\[PARTY_BADGE:[\w-]+\])/gi;
+const PARTY_BADGE_MATCH = /^\[PARTY_BADGE:([\w-]+)\]$/i;
+
 export interface QuizQuestionProps {
   question: QuizQuestionType;
   questionNumber: number;
@@ -14,9 +17,6 @@ export interface QuizQuestionProps {
   onSelect: (index: number) => void;
   className?: string;
 }
-
-const PARTY_BADGE_TOKEN = /(\[PARTY_BADGE:[\w-]+\])/g;
-const PARTY_BADGE_MATCH = /^\[PARTY_BADGE:([\w-]+)\]$/;
 
 function renderWithPartyBadges(text: string): ReactNode {
   const parts = text.split(PARTY_BADGE_TOKEN);
@@ -43,12 +43,9 @@ export function QuizQuestion({
   return (
     <div className={cn('space-y-4', className)}>
       <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <p id={metaId} className="text-sm text-foreground">
-            Frage {questionNumber} von {totalQuestions}
-          </p>
-          {question.party && <PartyBadge party={question.party} inline />}
-        </div>
+        <p id={metaId} className="text-sm text-foreground">
+          Frage {questionNumber} von {totalQuestions}
+        </p>
         <h2
           id={headingId}
           data-quiz-question-heading

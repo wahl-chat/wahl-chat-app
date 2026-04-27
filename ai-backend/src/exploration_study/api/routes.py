@@ -22,6 +22,7 @@ from src.exploration_study.api.dtos import (
     PartySubtopicDto,
     PartyTopicDto,
     QuestionnaireRequest,
+    QuizQuestionForParticipant,
     QuizResultResponse,
     QuizStatusResponse,
     QuizSubmissionRequest,
@@ -662,10 +663,18 @@ async def get_quiz(request: web.Request) -> web.Response:
     is_ready = quiz.status == QuizStatus.READY
 
     if is_ready:
+        participant_questions = [
+            QuizQuestionForParticipant(
+                id=q.id,
+                question=q.question,
+                options=q.options,
+            )
+            for q in quiz.questions
+        ]
         response = QuizStatusResponse(
             status=quiz.status,
             is_ready=True,
-            questions=quiz.questions,
+            questions=participant_questions,
         )
     else:
         response = QuizStatusResponse(
