@@ -1,15 +1,8 @@
 'use client';
 
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form';
+import { Form } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
-import { FormItemCard } from '@/modules/exploration-study/components/shared/form-item-card';
-import { SemanticDifferential } from '@/modules/exploration-study/components/shared/semantic-differential';
+import { LikertFormItem } from '@/modules/exploration-study/components/shared/likert-form-item';
 import { SubmitButton } from '@/modules/exploration-study/components/shared/submit-button';
 import {
   type CognitiveLoadFormValues,
@@ -60,48 +53,19 @@ export function CognitiveLoadForm({
         </div>
 
         <div className="space-y-3">
-          {COGNITIVE_LOAD_ITEMS.map((item) => {
-            const labelId = `cognitive-load-${item.id}-label`;
-            return (
-              <FormField
-                key={item.id}
-                control={form.control}
-                name={item.id as FieldPath<CognitiveLoadFormValues>}
-                render={({ field, fieldState }) => {
-                  const answered =
-                    field.value !== null && field.value !== undefined;
-                  return (
-                    <FormItemCard answered={answered}>
-                      <FormItem className="space-y-4">
-                        <p
-                          id={labelId}
-                          className="pr-8 text-base font-semibold leading-snug text-foreground"
-                        >
-                          {item.text}
-                        </p>
-                        <FormControl>
-                          <SemanticDifferential
-                            id={`cognitive-load-${item.id}`}
-                            labelledById={labelId}
-                            leftAnchor={COGNITIVE_LOAD_ANCHORS.low}
-                            rightAnchor={COGNITIVE_LOAD_ANCHORS.high}
-                            min={1}
-                            max={7}
-                            value={field.value ?? null}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
-                            invalid={!!fieldState.error}
-                            itemLabel={item.text}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    </FormItemCard>
-                  );
-                }}
-              />
-            );
-          })}
+          {COGNITIVE_LOAD_ITEMS.map((item) => (
+            <LikertFormItem
+              key={item.id}
+              control={form.control}
+              name={item.id as FieldPath<CognitiveLoadFormValues>}
+              id={`cognitive-load-${item.id}`}
+              label={item.text}
+              leftAnchor={COGNITIVE_LOAD_ANCHORS.low}
+              rightAnchor={COGNITIVE_LOAD_ANCHORS.high}
+              min={1}
+              max={7}
+            />
+          ))}
         </div>
 
         <SubmitButton />

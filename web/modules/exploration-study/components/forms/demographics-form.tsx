@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { SliderWithLabels } from '@/modules/exploration-study/components/shared/slider-with-labels';
+import { LikertFormItem } from '@/modules/exploration-study/components/shared/likert-form-item';
 import { SubmitButton } from '@/modules/exploration-study/components/shared/submit-button';
 import {
   type DemographicsFormValues,
@@ -96,7 +96,6 @@ export function DemographicsForm({
       ageRange: undefined,
       gender: undefined,
       education: undefined,
-      politicalInterest: 4,
     },
   });
 
@@ -208,24 +207,15 @@ export function DemographicsForm({
             )}
           />
 
-          <FormField
+          <LikertFormItem
             control={form.control}
             name="politicalInterest"
-            render={({ field }) => (
-              <FormItem>
-                <SliderWithLabels
-                  id="political-interest"
-                  label="Wie stark interessierst du dich für Politik?"
-                  value={field.value}
-                  onChange={field.onChange}
-                  min={1}
-                  max={7}
-                  lowAnchor="Gar nicht"
-                  highAnchor="Sehr stark"
-                />
-                <FormMessage />
-              </FormItem>
-            )}
+            id="political-interest"
+            label="Wie stark interessierst du dich für Politik?"
+            leftAnchor="Gar nicht"
+            rightAnchor="Sehr stark"
+            min={1}
+            max={7}
           />
         </div>
 

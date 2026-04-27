@@ -50,7 +50,7 @@ export const demographicsSchema = z.object({
   ageRange: z.enum(ageRangeValues, { error: REQUIRED_SELECT }),
   gender: z.enum(genderValues, { error: REQUIRED_SELECT }),
   education: z.enum(educationValues, { error: REQUIRED_SELECT }),
-  politicalInterest: z.number().min(1).max(7),
+  politicalInterest: z.number({ error: REQUIRED_RATING }).min(1).max(7),
 });
 
 export type DemographicsFormValues = z.infer<typeof demographicsSchema>;

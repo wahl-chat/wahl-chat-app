@@ -1,15 +1,8 @@
 'use client';
 
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form';
+import { Form } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
-import { FormItemCard } from '@/modules/exploration-study/components/shared/form-item-card';
-import { SemanticDifferential } from '@/modules/exploration-study/components/shared/semantic-differential';
+import { LikertFormItem } from '@/modules/exploration-study/components/shared/likert-form-item';
 import { SubmitButton } from '@/modules/exploration-study/components/shared/submit-button';
 import {
   type ManipulationChecksFormValues,
@@ -62,48 +55,19 @@ export function ManipulationChecksForm({
         </div>
 
         <div className="space-y-3">
-          {MANIPULATION_CHECK_ITEMS.map((item) => {
-            const labelId = `manipulation-check-${item.key}-label`;
-            return (
-              <FormField
-                key={item.key}
-                control={form.control}
-                name={item.key}
-                render={({ field, fieldState }) => {
-                  const answered =
-                    field.value !== null && field.value !== undefined;
-                  return (
-                    <FormItemCard answered={answered}>
-                      <FormItem className="space-y-4">
-                        <p
-                          id={labelId}
-                          className="pr-8 text-base font-semibold leading-snug text-foreground"
-                        >
-                          {item.label}
-                        </p>
-                        <FormControl>
-                          <SemanticDifferential
-                            id={`manipulation-check-${item.key}`}
-                            labelledById={labelId}
-                            leftAnchor="Stimme nicht zu"
-                            rightAnchor="Stimme zu"
-                            min={1}
-                            max={5}
-                            value={field.value ?? null}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
-                            invalid={!!fieldState.error}
-                            itemLabel={item.label}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    </FormItemCard>
-                  );
-                }}
-              />
-            );
-          })}
+          {MANIPULATION_CHECK_ITEMS.map((item) => (
+            <LikertFormItem
+              key={item.key}
+              control={form.control}
+              name={item.key}
+              id={`manipulation-check-${item.key}`}
+              label={item.label}
+              leftAnchor="Stimme nicht zu"
+              rightAnchor="Stimme zu"
+              min={1}
+              max={5}
+            />
+          ))}
         </div>
 
         <SubmitButton isSubmitting={isSubmitting} />

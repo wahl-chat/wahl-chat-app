@@ -1,15 +1,8 @@
 'use client';
 
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form';
+import { Form } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
-import { FormItemCard } from '@/modules/exploration-study/components/shared/form-item-card';
-import { SemanticDifferential } from '@/modules/exploration-study/components/shared/semantic-differential';
+import { LikertFormItem } from '@/modules/exploration-study/components/shared/likert-form-item';
 import { SubmitButton } from '@/modules/exploration-study/components/shared/submit-button';
 import {
   type UeqShortFormValues,
@@ -65,38 +58,17 @@ export function UeqShortForm({
         <div className="space-y-3">
           {items.map((item) => {
             const fieldKey = `item${item.id}` as UeqFieldKey;
-            const labelId = `ueq-item-${item.id}-label`;
             return (
-              <FormField
+              <LikertFormItem
                 key={item.id}
                 control={form.control}
                 name={fieldKey}
-                render={({ field, fieldState }) => {
-                  const answered =
-                    field.value !== null && field.value !== undefined;
-                  return (
-                    <FormItemCard answered={answered}>
-                      <FormItem className="space-y-3">
-                        <p id={labelId} className="pr-8 text-sm font-medium">
-                          {item.leftAnchor} – {item.rightAnchor}
-                        </p>
-                        <FormControl>
-                          <SemanticDifferential
-                            id={`ueq-item-${item.id}`}
-                            labelledById={labelId}
-                            leftAnchor={item.leftAnchor}
-                            rightAnchor={item.rightAnchor}
-                            value={field.value ?? null}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
-                            invalid={!!fieldState.error}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    </FormItemCard>
-                  );
-                }}
+                id={`ueq-item-${item.id}`}
+                label={`${item.leftAnchor} – ${item.rightAnchor}`}
+                leftAnchor={item.leftAnchor}
+                rightAnchor={item.rightAnchor}
+                min={1}
+                max={7}
               />
             );
           })}
