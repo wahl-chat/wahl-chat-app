@@ -53,7 +53,7 @@ export function LikertFormItem<T extends FieldValues>({
             <FormItem className="space-y-4">
               <p
                 id={labelId}
-                className="pr-8 text-base font-medium leading-snug text-foreground"
+                className="pr-8 text-sm font-bold leading-snug text-foreground"
               >
                 {label}
               </p>
