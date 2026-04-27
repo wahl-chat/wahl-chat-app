@@ -201,3 +201,10 @@ export interface QuizData {
   isReady: boolean;
   questions: QuizQuestion[];
 }
+
+export interface QuizScore {
+  totalCorrect: number;
+  totalCredit: number;
+  totalQuestions: number;
+  scorePercentage: number;
+}

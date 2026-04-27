@@ -348,6 +348,19 @@ class QuizResultResponse(BaseModel):
     )
 
 
+class QuizScoreResponse(BaseModel):
+    """Persistent quiz score returned for the feedback page.
+
+    Same score fields as ``QuizResultResponse`` but without ``next_state`` —
+    fetched from storage after the quiz has already been graded.
+    """
+
+    total_correct: int
+    total_credit: float
+    total_questions: int
+    score_percentage: float
+
+
 class FeedbackRequest(BaseModel):
     """Request for submitting optional feedback."""
 

@@ -49,7 +49,14 @@ def _format_overlap_themes() -> str:
 
 SYSTEM_PROMPT = f"""Du bist ein Experte für die Erstellung von Multiple-Choice-Fragen zur Überprüfung des Wissenserwerbs.
 
-Deine Aufgabe ist es, basierend auf einer Chat-Konversation über politische Themen Multiple-Choice-Fragen zu erstellen, die testen, ob jemand die **grobe Ausrichtung der Parteien** sowie deren **Position zu einzelnen Themen** verstanden hat — also sowohl die generelle Grundhaltung ("pro/contra", "mehr Staat/mehr Markt", "Ausbau/Rückbau") als auch, ob eine Partei ein konkretes Thema (z. B. Klimageld, CBAM, Beamte in die Rente) befürwortet oder ablehnt. Was NICHT getestet wird, sind Detail-Mechaniken: Zahlen, Eurobeträge, Jahre, exakte Instrumenten-Ausgestaltung oder genaue Formulierungen.
+**Studienkontext:**
+Die Fragen sind Teil einer wissenschaftlichen Studie zur politischen Informationsvermittlung. Teilnehmende haben zuvor mit einem Chatbot über die Positionen dreier (fiktiver) Parteien gesprochen und werden nun in einem Quiz auf ihren Wissenserwerb getestet. Als Anreiz wird unter den Teilnehmenden mit den besten Quiz-Ergebnissen ein **20 € Amazon-Gutschein** verlost — die Antworten werden also bewusst und konzentriert gegeben. Das Quiz muss daher fair, eindeutig und gut diskriminierend sein, weil es echte Belohnungs-Konsequenzen für die Teilnehmenden hat.
+
+**Antwortformat:**
+Jede Frage ist **Single Choice** — es gibt genau **eine richtige Antwort** unter den vier inhaltlichen Optionen. Die Teilnehmenden können zusätzlich "Weiß ich nicht" wählen (wird vom System angefügt, nicht von dir). Mehrfachauswahl ist nicht möglich. Formuliere Frage und Optionen so, dass für eine informierte Person genau eine Option eindeutig korrekt ist und die anderen drei eindeutig falsch sind.
+
+**Aufgabe:**
+Erstelle basierend auf einer Chat-Konversation über politische Themen Multiple-Choice-Fragen, die testen, ob jemand die **grobe Ausrichtung der Parteien** sowie deren **Position zu einzelnen Themen** verstanden hat — also sowohl die generelle Grundhaltung ("pro/contra", "mehr Staat/mehr Markt", "Ausbau/Rückbau") als auch, ob eine Partei ein konkretes Thema (z. B. Klimageld, CBAM, Beamte in die Rente) befürwortet oder ablehnt. Was NICHT getestet wird, sind Detail-Mechaniken: Zahlen, Eurobeträge, Jahre, exakte Instrumenten-Ausgestaltung oder genaue Formulierungen.
 
 **Richtlinien für gute Fragen:**
 
@@ -59,11 +66,24 @@ Deine Aufgabe ist es, basierend auf einer Chat-Konversation über politische The
 
 3. **Klar formuliert**: Die Frage muss eindeutig und verständlich sein — aber auf der Ebene der Grundhaltung bzw. thematischen Position bleiben.
 
-4. **Faire Distraktoren**: Die falschen Antworten müssen plausibel sein, aber eindeutig falsch. Distraktoren bleiben auf Richtungs-Ebene (andere Parteien, andere Grundhaltungen, andere Stoßrichtungen).
+4. **Trennscharfe Optionen — KRITISCH**: Die vier Optionen müssen klar voneinander unterscheidbar sein und sich auf der Richtungs-/Stärke-Ebene **eindeutig nicht überlappen**. Es darf nie zwei Optionen geben, die ungefähr dasselbe meinen — sonst ist die Frage nicht eindeutig beantwortbar.
+   - **VERBOTEN sind nahe Duplikate** wie:
+     - "Lehnt grundsätzlich ab" + "Eher dagegen"
+     - "Befürwortet deutlichen Ausbau" + "Eher für einen Ausbau"
+     - "Komplett dagegen" + "Eher für eine Abschaffung" (beide bedeuten Ablehnung)
+     - "Will den bestehenden Stand erhalten" + "Lehnt Veränderungen weitgehend ab"
+   - **ERLAUBT sind klar getrennte Stances** auf einer **diskreten** Skala, z. B.:
+     - "Befürwortet einen deutlichen Ausbau"
+     - "Will den bestehenden Stand erhalten"
+     - "Fordert einen klaren Rückbau"
+     - "Hat sich ambivalent / nicht klar positioniert"
+   - Nutze Abstufungen wie "eher", "leicht", "tendenziell" nur dann, wenn sie die einzige Position dieser Richtung im Optionsset sind. Verwende NICHT zwei Optionen mit unterschiedlich starken Formulierungen derselben Richtung.
 
-5. **Aus dem Gespräch beantwortbar ohne Detail-Auswendiglernen**: Die korrekte Antwort muss jemandem, der das Gespräch aufmerksam gelesen hat, erkennbar sein — auch ohne sich Zahlen, exakte Instrumente oder genaue Formulierungen gemerkt zu haben. Es darf jedoch erwartet werden, dass die Person sich an die diskutierten Themen und die Position der Parteien dazu erinnert.
+5. **Faire Distraktoren**: Die falschen Antworten müssen plausibel sein, aber **eindeutig** falsch. Distraktoren bleiben auf Richtungs-Ebene (andere Parteien, andere Grundhaltungen, andere Stoßrichtungen) — sie dürfen niemals "halb richtig" oder "fast korrekt" sein.
 
-6. **Ausgeglichene Abdeckung**: Verteile Fragen gleichmäßig über alle Parteien.
+6. **Aus dem Gespräch beantwortbar ohne Detail-Auswendiglernen**: Die korrekte Antwort muss jemandem, der das Gespräch aufmerksam gelesen hat, erkennbar sein — auch ohne sich Zahlen, exakte Instrumente oder genaue Formulierungen gemerkt zu haben. Es darf jedoch erwartet werden, dass die Person sich an die diskutierten Themen und die Position der Parteien dazu erinnert.
+
+7. **Ausgeglichene Abdeckung**: Verteile Fragen gleichmäßig über alle Parteien.
 
 **Parteien — STRIKT:**
 Es existieren NUR die drei Parteien [PARTY_BADGE:venus], [PARTY_BADGE:mars] und [PARTY_BADGE:saturn]. Erfinde NIEMALS weitere Parteien. Verwende ausschliesslich die unter "Verfügbare Parteien" gelisteten IDs — keine anderen Namen, auch nicht aus deinem Vorwissen (kein "spd"/"cdu"/"gruene"/"merkur"/"jupiter" o.ä.).
@@ -154,6 +174,7 @@ In dieser Studie gibt es bewusst Themen, bei denen ZWEI Parteien dieselbe Grundr
 - Fragen nach spezifischen Formulierungen aus dem Chat
 - Triviale oder offensichtliche Fragen
 - Doppelte oder sehr ähnliche Fragen
+- **Optionen, die sich semantisch überlappen oder dasselbe in unterschiedlicher Stärke ausdrücken** (z. B. "Komplett dagegen" und "Eher für eine Abschaffung", oder "Deutlicher Ausbau" und "Tendenziell für mehr") — Optionen müssen trennscharf sein, sodass genau eine eindeutig richtig ist.
 - Fragen, deren Antwort nicht im Chat vorkommt
 - Parteinamen ohne `[PARTY_BADGE:<id>]`-Markierung
 - Erfundene Parteien: nur [PARTY_BADGE:venus], [PARTY_BADGE:mars], [PARTY_BADGE:saturn] sind erlaubt
@@ -171,16 +192,19 @@ GENERATION_PROMPT = """Basierend auf der folgenden Chat-Konversation zum Thema "
 Erstelle {num_questions} Fragen, die testen, ob jemand die **grobe Ausrichtung** der im Chat besprochenen Parteien sowie ihre **Position zu einzelnen besprochenen Themen** verstanden hat.
 
 Achte darauf:
-1. Jede Frage bleibt auf der Ebene der Grundhaltung oder der thematischen Position: dafür/dagegen, Ausbau/Rückbau, Markt/Staat, "spricht sich für Thema Y aus" — KEINE spezifischen Zahlen, Eurobeträge, Jahre oder Mechanik-Details.
-2. **Variiere die Fragetypen.** Mische Typ A ("Welche Partei …?"), Typ B ("Wie steht [PARTY_BADGE:X] zu …?") und Typ C ("Welche Aussage trifft auf [PARTY_BADGE:X] zu?") — nicht alle Fragen vom selben Typ. Richtwert: ~40 % A, ~30 % B, ~30 % C.
-3. **Überlappungs-Quote: ~30 % der Fragen** sollen Typ-A-Überlappungs-Fragen sein, deren korrekte Antwort `"Mehrere der genannten Parteien"` ist (mit `is_overlap_question=true` und `partial_credit_indices` für die einzelnen beteiligten Parteien). Nur erstellen, wenn die Überlappung tatsächlich im Chat erwähnt wurde.
-4. **Bei Typ A**: KEINE Parteinamen oder Badge-Marker im Fragetext — die Optionen enthalten die drei Parteien + eine Meta-Option (typischerweise "Mehrere der genannten Parteien" für Überlappungs-Fragen, sonst "Keine der genannten Parteien" oder "Alle drei Parteien").
-5. **Bei Typ B/C**: Genau eine Partei im Fragetext (mit `[PARTY_BADGE:<id>]`). Die Antwortoptionen sind Stances bzw. kurze Aussagen OHNE Parteinamen.
-6. Verwende AUSSCHLIESSLICH die unter "Verfügbare Parteien" gelisteten Parteien — erfinde keine weiteren Parteinamen.
-7. Verteile die Fragen gleichmäßig auf die besprochenen Parteien.
-8. Erstelle genau 4 Antwortoptionen pro Frage (eine korrekt, drei falsch aber plausibel).
-9. Setze `question_type` ("A"/"B"/"C"), `is_overlap_question` und `partial_credit_indices` korrekt.
-10. Gib die Source-Excerpt an, also den Teil des Chats auf dem die Frage basiert.
+1. **Single Choice — genau eine richtige Antwort** unter den vier inhaltlichen Optionen. Optionen müssen **trennscharf** sein: keine zwei Optionen, die ungefähr dasselbe meinen ("Komplett dagegen" und "Eher für Abschaffung" → verboten).
+2. Jede Frage bleibt auf der Ebene der Grundhaltung oder der thematischen Position: dafür/dagegen, Ausbau/Rückbau, Markt/Staat, "spricht sich für Thema Y aus" — KEINE spezifischen Zahlen, Eurobeträge, Jahre oder Mechanik-Details.
+3. **Variiere die Fragetypen.** Mische Typ A ("Welche Partei …?"), Typ B ("Wie steht [PARTY_BADGE:X] zu …?") und Typ C ("Welche Aussage trifft auf [PARTY_BADGE:X] zu?") — nicht alle Fragen vom selben Typ. Richtwert: ~40 % A, ~30 % B, ~30 % C.
+4. **Überlappungs-Quote: ~30 % der Fragen** sollen Typ-A-Überlappungs-Fragen sein, deren korrekte Antwort `"Mehrere der genannten Parteien"` ist (mit `is_overlap_question=true` und `partial_credit_indices` für die einzelnen beteiligten Parteien). Nur erstellen, wenn die Überlappung tatsächlich im Chat erwähnt wurde.
+5. **Bei Typ A**: KEINE Parteinamen oder Badge-Marker im Fragetext — die Optionen enthalten die drei Parteien + eine Meta-Option (typischerweise "Mehrere der genannten Parteien" für Überlappungs-Fragen, sonst "Keine der genannten Parteien" oder "Alle drei Parteien").
+6. **Bei Typ B/C**: Genau eine Partei im Fragetext (mit `[PARTY_BADGE:<id>]`). Die Antwortoptionen sind Stances bzw. kurze Aussagen OHNE Parteinamen.
+7. Verwende AUSSCHLIESSLICH die unter "Verfügbare Parteien" gelisteten Parteien — erfinde keine weiteren Parteinamen.
+8. Verteile die Fragen gleichmäßig auf die besprochenen Parteien.
+9. Erstelle genau 4 Antwortoptionen pro Frage (eine korrekt, drei falsch aber plausibel und eindeutig falsch).
+10. Setze `question_type` ("A"/"B"/"C"), `is_overlap_question` und `partial_credit_indices` korrekt.
+11. Gib die Source-Excerpt an, also den Teil des Chats auf dem die Frage basiert.
+
+Denke daran: Teilnehmende, die das Quiz besonders gut lösen, gewinnen einen 20 € Amazon-Gutschein — die Fragen müssen daher fair, trennscharf und eindeutig beantwortbar sein.
 
 Erstelle die Fragen im vorgegebenen JSON-Format."""
 

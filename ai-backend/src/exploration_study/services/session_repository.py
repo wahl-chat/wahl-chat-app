@@ -358,6 +358,27 @@ class SessionRepository:
         )
         await doc_ref.set(submission.model_dump(mode="json"))
 
+    async def get_latest_quiz_submission(
+        self,
+        session_id: str,
+    ) -> QuizSubmission | None:
+        """Return the most recent quiz submission for the session, if any."""
+        collection_ref = (
+            self._db.collection(SESSIONS_COLLECTION)
+            .document(session_id)
+            .collection("quiz_submissions")
+        )
+        query = collection_ref.order_by(
+            "submitted_at", direction="DESCENDING"
+        ).limit(1)
+
+        async for doc in query.stream():
+            data = doc.to_dict()
+            if data:
+                return QuizSubmission(**data)
+
+        return None
+
 
 # Singleton instance
 _repository: SessionRepository | None = None

@@ -10,6 +10,7 @@ import type {
   QuestionnaireData,
   QuizAnswer,
   QuizData,
+  QuizScore,
   StudySession,
 } from '@/modules/exploration-study/types';
 import {
@@ -159,6 +160,13 @@ export const studyApi = {
       method: 'POST',
       body: { answers },
     }),
+
+  /**
+   * Get the participant's quiz score after submission (used on the
+   * feedback page to display how they performed).
+   */
+  getQuizResult: (sessionId: string) =>
+    fetchApi<QuizScore>(`/${sessionId}/quiz-result`),
 
   /**
    * Submit optional feedback

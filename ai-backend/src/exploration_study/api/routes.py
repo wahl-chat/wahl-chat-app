@@ -24,6 +24,7 @@ from src.exploration_study.api.dtos import (
     QuestionnaireRequest,
     QuizQuestionForParticipant,
     QuizResultResponse,
+    QuizScoreResponse,
     QuizStatusResponse,
     QuizSubmissionRequest,
     SessionStateResponse,
@@ -910,6 +911,39 @@ async def get_party_claims(request: web.Request) -> web.Response:
     return web.json_response(response.model_dump(mode="json"))
 
 
+async def get_quiz_result(request: web.Request) -> web.Response:
+    """
+    GET /api/v1/exploration-study/sessions/{session_id}/quiz-result
+
+    Return the participant's persisted quiz score so it can be displayed
+    on the feedback page after the quiz has been submitted.
+    """
+    session_id = request.match_info["session_id"]
+
+    session_repo = get_session_repository()
+    session = await session_repo.get_session(session_id)
+    if not session:
+        return web.json_response(
+            ErrorResponse(error="Session not found").model_dump(),
+            status=404,
+        )
+
+    submission = await session_repo.get_latest_quiz_submission(session_id)
+    if submission is None:
+        return web.json_response(
+            ErrorResponse(error="No quiz submission found").model_dump(),
+            status=404,
+        )
+
+    response = QuizScoreResponse(
+        total_correct=submission.total_correct,
+        total_credit=submission.total_credit,
+        total_questions=submission.total_questions,
+        score_percentage=submission.score_percentage,
+    )
+    return web.json_response(response.model_dump(mode="json"))
+
+
 async def submit_feedback(request: web.Request) -> web.Response:
     """
     POST /api/exploration-study/sessions/{session_id}/feedback
@@ -973,6 +1007,11 @@ def setup_exploration_study_routes(app: web.Application) -> None:
         ),
         ("GET", f"{ROUTE_PREFIX}/sessions/{{session_id}}/quiz", get_quiz),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/quiz", submit_quiz),
+        (
+            "GET",
+            f"{ROUTE_PREFIX}/sessions/{{session_id}}/quiz-result",
+            get_quiz_result,
+        ),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/feedback", submit_feedback),
         ("GET", f"{ROUTE_PREFIX}/parties/{{party_id}}/claims", get_party_claims),
     ]

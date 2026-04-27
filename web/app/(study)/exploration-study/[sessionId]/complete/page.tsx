@@ -3,9 +3,10 @@
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { studyApi } from '@/modules/exploration-study';
+import type { QuizScore } from '@/modules/exploration-study/types';
 import { CheckCircle } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function CompletePage() {
   const params = useParams();
@@ -13,6 +14,21 @@ export default function CompletePage() {
   const [feedback, setFeedback] = useState('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [quizScore, setQuizScore] = useState<QuizScore | null>(null);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    let cancelled = false;
+    (async () => {
+      const response = await studyApi.getQuizResult(sessionId);
+      if (!cancelled && response.data) {
+        setQuizScore(response.data);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
 
   const handleFeedbackSubmit = async () => {
     if (!feedback.trim()) return;
@@ -34,6 +50,30 @@ export default function CompletePage() {
           Du hast die Studie erfolgreich abgeschlossen.
         </p>
       </div>
+
+      {quizScore && (
+        <div className="space-y-3 rounded-lg border bg-muted/50 p-6 text-left">
+          <h2 className="text-lg font-semibold">Dein Quiz-Ergebnis</h2>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-bold">
+              {Math.round(quizScore.scorePercentage)}%
+            </span>
+            <span className="text-sm text-muted-foreground">
+              (
+              {quizScore.totalCredit.toLocaleString('de-DE', {
+                maximumFractionDigits: 1,
+              })}{' '}
+              von {quizScore.totalQuestions} Punkten — {quizScore.totalCorrect}{' '}
+              vollständig richtig)
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Unter allen Teilnehmenden mit den besten Ergebnissen verlosen wir
+            einen <strong>20 € Amazon-Gutschein</strong>. Die Verlosung findet
+            nach Abschluss der Studie statt.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-4 rounded-lg border bg-muted/50 p-6 text-left">
         <h2 className="text-lg font-semibold">Über diese Studie</h2>
