@@ -1,74 +1,82 @@
 /**
- * Questionnaire types for NASA-TLX and UEQ-S
+ * Questionnaire types for Cognitive Load (Klepsch et al. 2017) and UEQ-S
  */
 
-export interface NasaTlxData {
-  mentalDemand: number; // 1-21
-  physicalDemand: number; // 1-21
-  temporalDemand: number; // 1-21
-  performance: number; // 1-21
-  effort: number; // 1-21
-  frustration: number; // 1-21
+// Klepsch, Schmitz & Seufert (2017). Frontiers in Psychology, 8, Article 1997.
+// https://doi.org/10.3389/fpsyg.2017.01997
+// Naive-rating questionnaire (final version, Table 3).
+// 7 items, 7-point Likert. Anchors are direct German translations of the
+// original "completely wrong" / "absolutely right".
+// Optional GCL* item omitted (no germane-load manipulation between conditions).
+// "Lerneinheit" → "Aufgabe" in cl_gcl_2 to match task framing (declared
+// adaptation).
+
+export type CognitiveLoadSubscale = 'ICL' | 'ECL' | 'GCL';
+
+export interface CognitiveLoadItem {
+  id: string;
+  subscale: CognitiveLoadSubscale;
+  text: string;
 }
 
-export interface NasaTlxItem {
-  key: keyof NasaTlxData;
-  label: string;
-  description: string;
-  lowAnchor: string;
-  highAnchor: string;
-}
+export const COGNITIVE_LOAD_ITEMS: readonly CognitiveLoadItem[] = [
+  // Intrinsic — manipulation check (should NOT differ between conditions)
+  {
+    id: 'cl_icl_1',
+    subscale: 'ICL',
+    text: 'Bei der Aufgabe musste man viele Dinge gleichzeitig im Kopf bearbeiten.',
+  },
+  {
+    id: 'cl_icl_2',
+    subscale: 'ICL',
+    text: 'Diese Aufgabe war sehr komplex.',
+  },
 
-export const NASA_TLX_ITEMS: NasaTlxItem[] = [
+  // Extraneous — primary cognitive-load DV (H4b) and mediator (H4e)
   {
-    key: 'mentalDemand',
-    label: 'Geistige Anforderung',
-    description:
-      'Wie viel geistige Anstrengung war erforderlich (z.B. Denken, Entscheiden, Erinnern)?',
-    lowAnchor: 'Sehr gering',
-    highAnchor: 'Sehr hoch',
+    id: 'cl_ecl_1',
+    subscale: 'ECL',
+    text: 'Bei dieser Aufgabe ist es mühsam, die wichtigsten Informationen zu erkennen.',
   },
   {
-    key: 'physicalDemand',
-    label: 'Körperliche Anforderung',
-    description:
-      'Wie viel körperliche Aktivität war erforderlich (z.B. Klicken, Scrollen, Tippen)?',
-    lowAnchor: 'Sehr gering',
-    highAnchor: 'Sehr hoch',
+    id: 'cl_ecl_2',
+    subscale: 'ECL',
+    text: 'Die Darstellung bei dieser Aufgabe ist ungünstig, um wirklich etwas zu lernen.',
   },
   {
-    key: 'temporalDemand',
-    label: 'Zeitliche Anforderung',
-    description:
-      'Wie viel Zeitdruck hast du aufgrund der Geschwindigkeit der Aufgaben empfunden?',
-    lowAnchor: 'Sehr gering',
-    highAnchor: 'Sehr hoch',
+    id: 'cl_ecl_3',
+    subscale: 'ECL',
+    text: 'Bei dieser Aufgabe ist es schwer, die zentralen Inhalte miteinander in Verbindung zu bringen.',
+  },
+
+  // Germane — descriptive
+  {
+    id: 'cl_gcl_1',
+    subscale: 'GCL',
+    text: 'Ich habe mich angestrengt, mir nicht nur einzelne Dinge zu merken, sondern auch den Gesamtzusammenhang zu verstehen.',
   },
   {
-    key: 'performance',
-    label: 'Leistung',
-    description:
-      'Wie erfolgreich warst du deiner Meinung nach bei der Erreichung der Aufgabenziele?',
-    lowAnchor: 'Sehr schlecht',
-    highAnchor: 'Sehr gut',
+    id: 'cl_gcl_2',
+    subscale: 'GCL',
+    text: 'Es ging mir beim Bearbeiten der Aufgabe darum, alles richtig zu verstehen.',
   },
-  {
-    key: 'effort',
-    label: 'Anstrengung',
-    description:
-      'Wie hart musstest du arbeiten, um dein Leistungsniveau zu erreichen?',
-    lowAnchor: 'Sehr gering',
-    highAnchor: 'Sehr hoch',
-  },
-  {
-    key: 'frustration',
-    label: 'Frustration',
-    description:
-      'Wie unsicher, entmutigt, irritiert, gestresst oder verärgert hast du dich gefühlt?',
-    lowAnchor: 'Sehr gering',
-    highAnchor: 'Sehr hoch',
-  },
-];
+] as const;
+
+export const COGNITIVE_LOAD_ANCHORS = {
+  low: 'Komplett falsch',
+  high: 'Komplett richtig',
+  scale: [1, 2, 3, 4, 5, 6, 7] as const,
+};
+
+export interface CognitiveLoadResponse {
+  cl_icl_1: number;
+  cl_icl_2: number;
+  cl_ecl_1: number;
+  cl_ecl_2: number;
+  cl_ecl_3: number;
+  cl_gcl_1: number;
+  cl_gcl_2: number;
+}
 
 export interface UeqItem {
   id: number;
@@ -172,7 +180,7 @@ export const MANIPULATION_CHECK_ITEMS: ManipulationCheckItem[] = [
 ];
 
 export interface QuestionnaireData {
-  nasaTlx: NasaTlxData;
+  cognitiveLoad: CognitiveLoadResponse;
   ueqS: UeqData;
   manipulationChecks: ManipulationChecksData;
 }

@@ -138,7 +138,7 @@ export const studyApi = {
     }),
 
   /**
-   * Submit questionnaire (NASA-TLX + UEQ-S)
+   * Submit questionnaire (Cognitive Load + UEQ-S + Manipulation Checks)
    */
   submitQuestionnaire: (sessionId: string, data: QuestionnaireData) =>
     fetchApi<StudySession>(`/${sessionId}/questionnaire`, {

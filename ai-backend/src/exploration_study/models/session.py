@@ -9,6 +9,30 @@ from pydantic import BaseModel, Field
 from src.exploration_study.models.state import StudyState
 
 
+class CognitiveLoadData(BaseModel):
+    """
+    Cognitive load responses (Klepsch, Schmitz & Seufert, 2017,
+    Frontiers in Psychology, 8, Article 1997).
+
+    Naive-rating questionnaire (final version, Table 3). 7 items, 7-point
+    Likert (1 = "Komplett falsch" / 7 = "Komplett richtig"). Optional GCL*
+    item omitted (no germane-load manipulation between conditions).
+    "Lerneinheit" → "Aufgabe" in cl_gcl_2 to match task framing
+    (declared adaptation).
+
+    Subscale means computed in analysis as mean(cl_icl_1, cl_icl_2),
+    mean(cl_ecl_1..3), mean(cl_gcl_1, cl_gcl_2). Storage stays flat.
+    """
+
+    cl_icl_1: int | None = Field(default=None, ge=1, le=7)
+    cl_icl_2: int | None = Field(default=None, ge=1, le=7)
+    cl_ecl_1: int | None = Field(default=None, ge=1, le=7)
+    cl_ecl_2: int | None = Field(default=None, ge=1, le=7)
+    cl_ecl_3: int | None = Field(default=None, ge=1, le=7)
+    cl_gcl_1: int | None = Field(default=None, ge=1, le=7)
+    cl_gcl_2: int | None = Field(default=None, ge=1, le=7)
+
+
 class ManipulationChecks(BaseModel):
     """Manipulation check responses for a condition (1-5 Likert scale)."""
 
@@ -66,9 +90,9 @@ class ConditionData(BaseModel):
         default=None,
         description="When the questionnaire was submitted",
     )
-    nasa_tlx: dict | None = Field(
+    cognitive_load: CognitiveLoadData | None = Field(
         default=None,
-        description="NASA-TLX responses",
+        description="Cognitive Load responses (Klepsch et al., 2017)",
     )
     ueq_s: dict | None = Field(
         default=None,

@@ -2,14 +2,14 @@
 
 import { cn } from '@/lib/utils';
 import type {
+  CognitiveLoadResponse,
   ManipulationChecksData,
-  NasaTlxData,
   QuestionnaireData,
   UeqData,
 } from '@/modules/exploration-study/types';
 import { useEffect, useRef, useState } from 'react';
+import { CognitiveLoadForm } from './cognitive-load-form';
 import { ManipulationChecksForm } from './manipulation-checks-form';
-import { NasaTlxForm } from './nasa-tlx-form';
 import { UeqShortForm } from './ueq-short-form';
 
 export interface QuestionnairePageProps {
@@ -18,16 +18,16 @@ export interface QuestionnairePageProps {
   className?: string;
 }
 
-type Phase = 'nasa-tlx' | 'ueq' | 'manipulation-checks';
+type Phase = 'cognitive-load' | 'ueq' | 'manipulation-checks';
 
 const PHASE_NUMBERS: Record<Phase, number> = {
-  'nasa-tlx': 1,
+  'cognitive-load': 1,
   ueq: 2,
   'manipulation-checks': 3,
 };
 
 const PHASE_LABELS: Record<Phase, string> = {
-  'nasa-tlx': 'Arbeitsbelastung',
+  'cognitive-load': 'Bewertung der Aufgabe',
   ueq: 'Benutzererfahrung',
   'manipulation-checks': 'Allgemeine Einschätzung',
 };
@@ -37,8 +37,9 @@ export function QuestionnairePage({
   isSubmitting = false,
   className,
 }: QuestionnairePageProps) {
-  const [phase, setPhase] = useState<Phase>('nasa-tlx');
-  const [nasaTlxData, setNasaTlxData] = useState<NasaTlxData | null>(null);
+  const [phase, setPhase] = useState<Phase>('cognitive-load');
+  const [cognitiveLoadData, setCognitiveLoadData] =
+    useState<CognitiveLoadResponse | null>(null);
   const [ueqData, setUeqData] = useState<UeqData | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const isFirstRender = useRef(true);
@@ -51,8 +52,8 @@ export function QuestionnairePage({
     requestAnimationFrame(() => headingRef.current?.focus());
   }, [phase]);
 
-  const handleNasaTlxSubmit = (data: NasaTlxData) => {
-    setNasaTlxData(data);
+  const handleCognitiveLoadSubmit = (data: CognitiveLoadResponse) => {
+    setCognitiveLoadData(data);
     setPhase('ueq');
   };
 
@@ -64,10 +65,10 @@ export function QuestionnairePage({
   const handleManipulationChecksSubmit = async (
     manipulationChecks: ManipulationChecksData,
   ) => {
-    if (!nasaTlxData || !ueqData) return;
+    if (!cognitiveLoadData || !ueqData) return;
 
     await onSubmit({
-      nasaTlx: nasaTlxData,
+      cognitiveLoad: cognitiveLoadData,
       ueqS: ueqData,
       manipulationChecks,
     });
@@ -96,7 +97,9 @@ export function QuestionnairePage({
         </p>
       </div>
 
-      {phase === 'nasa-tlx' && <NasaTlxForm onSubmit={handleNasaTlxSubmit} />}
+      {phase === 'cognitive-load' && (
+        <CognitiveLoadForm onSubmit={handleCognitiveLoadSubmit} />
+      )}
 
       {phase === 'ueq' && <UeqShortForm onSubmit={handleUeqSubmit} />}
 

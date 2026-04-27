@@ -92,6 +92,24 @@ export const ueqShortSchema = z.object({
 export type UeqShortFormValues = z.infer<typeof ueqShortSchema>;
 
 // ---------------------------------------------------------------------------
+// Cognitive Load (Klepsch et al. 2017, 1-7 Likert)
+// ---------------------------------------------------------------------------
+
+const cognitiveLoadRating = z.number({ error: REQUIRED_RATING }).min(1).max(7);
+
+export const cognitiveLoadSchema = z.object({
+  cl_icl_1: cognitiveLoadRating,
+  cl_icl_2: cognitiveLoadRating,
+  cl_ecl_1: cognitiveLoadRating,
+  cl_ecl_2: cognitiveLoadRating,
+  cl_ecl_3: cognitiveLoadRating,
+  cl_gcl_1: cognitiveLoadRating,
+  cl_gcl_2: cognitiveLoadRating,
+});
+
+export type CognitiveLoadFormValues = z.infer<typeof cognitiveLoadSchema>;
+
+// ---------------------------------------------------------------------------
 // Manipulation checks (1-5 Likert)
 // ---------------------------------------------------------------------------
 

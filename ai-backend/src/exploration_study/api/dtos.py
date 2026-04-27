@@ -247,12 +247,30 @@ class ManipulationChecksRequest(BaseModel):
     technical: int = Field(..., ge=1, le=5, description="Technical function (1-5)")
 
 
-class QuestionnaireRequest(BaseModel):
-    """Request for submitting questionnaire (NASA-TLX + UEQ-S + Manipulation Checks)."""
+class CognitiveLoadRequest(BaseModel):
+    """
+    Cognitive Load responses (Klepsch, Schmitz & Seufert, 2017).
 
-    nasa_tlx: dict = Field(
+    7 items on a 7-point Likert scale (1 = "Komplett falsch" /
+    7 = "Komplett richtig"). Stored flat; subscale means computed in
+    analysis.
+    """
+
+    cl_icl_1: int = Field(..., ge=1, le=7)
+    cl_icl_2: int = Field(..., ge=1, le=7)
+    cl_ecl_1: int = Field(..., ge=1, le=7)
+    cl_ecl_2: int = Field(..., ge=1, le=7)
+    cl_ecl_3: int = Field(..., ge=1, le=7)
+    cl_gcl_1: int = Field(..., ge=1, le=7)
+    cl_gcl_2: int = Field(..., ge=1, le=7)
+
+
+class QuestionnaireRequest(BaseModel):
+    """Request for submitting questionnaire (Cognitive Load + UEQ-S + Manipulation Checks)."""
+
+    cognitive_load: CognitiveLoadRequest = Field(
         ...,
-        description="NASA-TLX responses",
+        description="Cognitive Load responses (Klepsch et al., 2017)",
     )
     ueq_s: dict = Field(
         ...,

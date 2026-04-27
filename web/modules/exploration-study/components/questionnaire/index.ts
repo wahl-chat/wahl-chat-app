@@ -1,4 +1,7 @@
-export { NasaTlxForm, type NasaTlxFormProps } from './nasa-tlx-form';
+export {
+  CognitiveLoadForm,
+  type CognitiveLoadFormProps,
+} from './cognitive-load-form';
 export { UeqShortForm, type UeqShortFormProps } from './ueq-short-form';
 export {
   ManipulationChecksForm,

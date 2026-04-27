@@ -45,6 +45,7 @@ from src.exploration_study.models.quiz import (
     calculate_quiz_score,
 )
 from src.exploration_study.models.session import (
+    CognitiveLoadData,
     DemographicsData,
     LiteracyData,
     MailsShortData,
@@ -583,7 +584,7 @@ async def end_task(request: web.Request) -> web.Response:
 async def submit_questionnaire(request: web.Request) -> web.Response:
     """
     POST /api/exploration-study/sessions/{session_id}/questionnaire
-    Submit NASA-TLX and UEQ-S questionnaire.
+    Submit Cognitive Load (Klepsch et al., 2017), UEQ-S and manipulation checks.
     """
     session_id = request.match_info["session_id"]
 
@@ -615,7 +616,15 @@ async def submit_questionnaire(request: web.Request) -> web.Response:
         )
 
     condition = session.condition
-    condition.nasa_tlx = req.nasa_tlx
+    condition.cognitive_load = CognitiveLoadData(
+        cl_icl_1=req.cognitive_load.cl_icl_1,
+        cl_icl_2=req.cognitive_load.cl_icl_2,
+        cl_ecl_1=req.cognitive_load.cl_ecl_1,
+        cl_ecl_2=req.cognitive_load.cl_ecl_2,
+        cl_ecl_3=req.cognitive_load.cl_ecl_3,
+        cl_gcl_1=req.cognitive_load.cl_gcl_1,
+        cl_gcl_2=req.cognitive_load.cl_gcl_2,
+    )
     condition.ueq_s = req.ueq_s
     condition.manipulation_checks = ManipulationChecks(
         depth=req.manipulation_checks.depth,
