@@ -24,6 +24,11 @@ class SessionMessageType(str, Enum):
     ASSISTANT = "assistant"
     EXPLORATION_START = "exploration_start"  # Reference to exploration
     TOPIC_DIRECTIONS = "topic_directions"  # Topic direction choices
+    # Research-only audit messages: persisted so the study admin can see
+    # what the participant was offered and what they picked. The chat
+    # frontend filters these out — they are not user-facing turns.
+    CHOICE_PROMPT = "choice_prompt"  # System offered explore/summary choice
+    CHOICE_MADE = "choice_made"  # User picked explore or summary
 
 
 class SessionMessage(BaseModel):
@@ -55,6 +60,22 @@ class SessionMessage(BaseModel):
     selected_directions: list[str] | None = Field(
         default=None,
         description="Names of directions the user selected (set on topic_directions message after submission)",
+    )
+    query_id: str | None = Field(
+        default=None,
+        description="Pending-query ID linking choice_prompt and choice_made messages.",
+    )
+    options: list[dict] | None = Field(
+        default=None,
+        description="Options offered (for choice_prompt type).",
+    )
+    choice: Literal["explore", "summary"] | None = Field(
+        default=None,
+        description="Option the user picked (for choice_made type).",
+    )
+    original_query: str | None = Field(
+        default=None,
+        description="Original user query the choice was about (for choice_prompt/choice_made).",
     )
     timestamp: datetime = Field(..., description="When the message was created")
 

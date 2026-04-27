@@ -177,6 +177,11 @@ async def create_session_self_serve(request: web.Request) -> web.Response:
 
     session_repo = get_session_repository()
 
+    # Legacy fallback: older sessions were keyed by uuid with prolific.session_id
+    # stored as a queryable field. Newer sessions are gated by an atomic claim
+    # (see ``claim_or_create_self_serve_session``), so once a participant has
+    # been migrated they'll match the claim path; the field-query is only for
+    # pre-existing data created before this fix.
     existing = await session_repo.get_session_by_prolific_session_id(
         req.prolific_session_id
     )
@@ -205,18 +210,29 @@ async def create_session_self_serve(request: web.Request) -> web.Response:
     group = await counterbalancer.assign_group(study.id)
     condition = get_condition_for_group(group, study.config.topics)
 
-    session = await session_repo.create_session(
+    session, was_created = await session_repo.claim_or_create_self_serve_session(
+        prolific_session_id=req.prolific_session_id,
         study_id=study.id,
         group=group,
         condition=condition,
         prolific=prolific,
     )
 
+    if not was_created:
+        logger.info(
+            f"Lost claim race for prolific_session_id="
+            f"{req.prolific_session_id}; returning existing "
+            f"session {session.id}"
+        )
+
     response = CreateSessionResponse(
         session_id=session.id,
         state=session.state,
     )
-    return web.json_response(response.model_dump(mode="json"), status=201)
+    return web.json_response(
+        response.model_dump(mode="json"),
+        status=201 if was_created else 200,
+    )
 
 
 async def get_session_state(request: web.Request) -> web.Response:
@@ -944,6 +960,50 @@ async def get_quiz_result(request: web.Request) -> web.Response:
     return web.json_response(response.model_dump(mode="json"))
 
 
+async def prolific_redirect(request: web.Request) -> web.Response:
+    """
+    GET /api/v1/exploration-study/sessions/{session_id}/prolific-redirect
+
+    Redirect a completed participant back to the Prolific completion URL
+    configured in ``PROLIFIC_STUDY_REDIRECT_URL`` and stamp the first
+    redirect time on the session for analysis. Subsequent calls re-redirect
+    but do not overwrite the original timestamp.
+    """
+    session_id = request.match_info["session_id"]
+
+    redirect_url = os.getenv("PROLIFIC_STUDY_REDIRECT_URL", "").strip()
+    if not redirect_url:
+        return web.json_response(
+            ErrorResponse(
+                error="Redirect URL not configured",
+                detail="PROLIFIC_STUDY_REDIRECT_URL is not set on the backend.",
+            ).model_dump(),
+            status=500,
+        )
+
+    session_repo = get_session_repository()
+    session = await session_repo.get_session(session_id)
+    if not session:
+        return web.json_response(
+            ErrorResponse(error="Session not found").model_dump(),
+            status=404,
+        )
+
+    if session.state != StudyState.COMPLETE:
+        return web.json_response(
+            ErrorResponse(
+                error="Invalid state",
+                detail=f"Expected {StudyState.COMPLETE}, got {session.state}",
+            ).model_dump(),
+            status=400,
+        )
+
+    if session.prolific_redirected_at is None:
+        await session_repo.mark_prolific_redirected(session_id)
+
+    raise web.HTTPSeeOther(location=redirect_url)
+
+
 async def submit_feedback(request: web.Request) -> web.Response:
     """
     POST /api/exploration-study/sessions/{session_id}/feedback
@@ -1013,6 +1073,11 @@ def setup_exploration_study_routes(app: web.Application) -> None:
             get_quiz_result,
         ),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/feedback", submit_feedback),
+        (
+            "GET",
+            f"{ROUTE_PREFIX}/sessions/{{session_id}}/prolific-redirect",
+            prolific_redirect,
+        ),
         ("GET", f"{ROUTE_PREFIX}/parties/{{party_id}}/claims", get_party_claims),
     ]
 

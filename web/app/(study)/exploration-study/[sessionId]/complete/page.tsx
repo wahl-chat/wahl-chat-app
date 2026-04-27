@@ -140,13 +140,12 @@ export default function CompletePage() {
       </div>
 
       <Button
-        variant="outline"
         onClick={() => {
-          window.location.href = '/';
+          window.location.href = `/api/v1/exploration-study/sessions/${sessionId}/prolific-redirect`;
         }}
         className="mt-8"
       >
-        Zur Startseite
+        Studie abschließen und zurück zu Prolific
       </Button>
     </div>
   );

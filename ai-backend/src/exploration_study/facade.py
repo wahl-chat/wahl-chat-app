@@ -111,7 +111,7 @@ class ExplorationStudyFacade:
             )
 
         # Size the quiz to the participant's actual exposure: ~0.6 questions
-        # per position encountered, clamped to [5, 15]. Scoring is deferred
+        # per position encountered, clamped to [5, 12]. Scoring is deferred
         # to analysis time (see questionnaire-plan.md §Page 7).
         study_session = await self._session_repo.get_session(session_id)
         visited_count = (
@@ -119,7 +119,7 @@ class ExplorationStudyFacade:
             if study_session and study_session.condition
             else 0
         )
-        num_questions = max(5, min(15, int(visited_count * 0.6)))
+        num_questions = max(5, min(12, int(visited_count * 0.6)))
 
         # Start quiz generation in background
         self._quiz_generator.start_quiz_generation(

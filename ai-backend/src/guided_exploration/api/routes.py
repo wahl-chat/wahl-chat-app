@@ -77,13 +77,24 @@ async def get_session(request: web.Request) -> web.Response:
             status=404,
         )
 
+    # ``choice_prompt`` and ``choice_made`` are research-only audit
+    # messages persisted for the study admin dashboard. They aren't
+    # user-facing turns, so strip them before serving the chat history
+    # to the frontend.
+    raw_messages = session_data.get("messages", [])
+    visible_messages = [
+        m for m in raw_messages
+        if (m.get("type") if isinstance(m, dict) else getattr(m, "type", None))
+        not in ("choice_prompt", "choice_made")
+    ]
+
     response = ResumeSessionResponse(
         session_id=session_id,
         stream_url=f"{ROUTE_PREFIX}/sessions/{session_id}/stream",
         context_id=session_data.get("context_id", "bundestagswahl-2025"),
         active_exploration=session_data.get("active_exploration"),
         navigation_state=session_data.get("navigation_state"),
-        messages=session_data.get("messages", []),
+        messages=visible_messages,
         explorations=session_data.get("explorations", []),
     )
 

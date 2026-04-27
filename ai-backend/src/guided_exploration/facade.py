@@ -827,24 +827,39 @@ class GuidedExplorationFacade:
             session_id, "planning", "Identifiziere relevante Themen..."
         )
 
+        options = [
+            {
+                "id": "summary",
+                "label": "Schnelle Antwort",
+                "description": "Kompakte Übersicht der Parteipositionen",
+            },
+            {
+                "id": "explore",
+                "label": "Thema vertiefen",
+                "description": "Aspekte auswählen und Positionen im Detail vergleichen",
+            },
+        ]
+
+        # Persist a research-only audit message so the study admin can see
+        # the participant was offered the explore-vs-summary choice. The
+        # chat frontend filters CHOICE_PROMPT messages out.
+        choice_prompt_msg = SessionMessage(
+            id=str(uuid4()),
+            type=SessionMessageType.CHOICE_PROMPT,
+            query_id=query_id,
+            original_query=original_query,
+            options=options,
+            timestamp=datetime.now(timezone.utc),
+        )
+        await self._repo.add_session_message(session_id, choice_prompt_msg)
+
         # Send choice prompt event
         await self._sse.send_to_session(
             session_id,
             ChoicePromptEvent(
                 query_id=query_id,
                 original_query=original_query,
-                options=[
-                    {
-                        "id": "summary",
-                        "label": "Schnelle Antwort",
-                        "description": "Kompakte Übersicht der Parteipositionen",
-                    },
-                    {
-                        "id": "explore",
-                        "label": "Thema vertiefen",
-                        "description": "Aspekte auswählen und Positionen im Detail vergleichen",
-                    },
-                ],
+                options=options,
             ),
         )
 
@@ -1132,6 +1147,18 @@ class GuidedExplorationFacade:
 
         # Remove from pending
         del self._pending_queries[query_id]
+
+        # Persist a research-only audit message recording the user's pick.
+        # The chat frontend filters CHOICE_MADE messages out.
+        choice_msg = SessionMessage(
+            id=str(uuid4()),
+            type=SessionMessageType.CHOICE_MADE,
+            query_id=query_id,
+            choice=choice,
+            original_query=pending.original_query,
+            timestamp=datetime.now(timezone.utc),
+        )
+        await self._repo.add_session_message(session_id, choice_msg)
 
         # Get session for context_id
         session = await self._repo.get_session(session_id)

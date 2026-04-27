@@ -232,6 +232,14 @@ class StudySession(BaseModel):
         default=None,
         description="When the participant completed the study",
     )
+    prolific_redirected_at: datetime | None = Field(
+        default=None,
+        description=(
+            "When the participant was redirected back to Prolific via the "
+            "post-study redirect endpoint. Set on the first redirect call; "
+            "subsequent calls re-redirect but do not overwrite the timestamp."
+        ),
+    )
 
     class Config:
         """Pydantic configuration."""

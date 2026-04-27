@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from firebase_admin import firestore_async
 from google.cloud.firestore_v1 import DocumentReference, FieldFilter
+from google.cloud.firestore_v1 import async_transactional
 
 from src.exploration_study.models.quiz import Quiz, QuizStatus, QuizSubmission
 from src.exploration_study.models.session import (
@@ -22,6 +23,7 @@ logger = logging.getLogger(__name__)
 # Collection names
 SESSIONS_COLLECTION = "exploration_study_sessions"
 QUIZZES_SUBCOLLECTION = "quizzes"
+PROLIFIC_CLAIMS_COLLECTION = "exploration_study_prolific_claims"
 
 
 class SessionRepository:
@@ -142,6 +144,98 @@ class SessionRepository:
                 return StudySession(**data)
         return None
 
+    async def claim_or_create_self_serve_session(
+        self,
+        prolific_session_id: str,
+        study_id: str,
+        group: Literal["A1", "A2", "B1", "B2"],
+        condition: ConditionData,
+        prolific: ProlificData,
+    ) -> tuple[StudySession, bool]:
+        """Atomically claim ``prolific_session_id`` and create the session.
+
+        Two concurrent self-serve requests with the same Prolific session id
+        (refresh during pending POST, double-click, two open tabs, network
+        retry) would otherwise both pass the existence check and both create a
+        new session — producing a duplicate. We close that race by gating
+        creation on a single-doc claim in
+        ``exploration_study_prolific_claims/{prolific_session_id}`` written
+        inside a Firestore transaction.
+
+        Returns ``(session, was_created)``. ``was_created`` is ``True`` for
+        the winner (claim freshly written, session doc freshly created) and
+        ``False`` if another concurrent caller had already claimed the id —
+        in that case the existing session is returned.
+        """
+        claim_ref = self._db.collection(PROLIFIC_CLAIMS_COLLECTION).document(
+            prolific_session_id
+        )
+        new_session_id = str(uuid4())
+        now = datetime.now(timezone.utc)
+
+        new_session = StudySession(
+            id=new_session_id,
+            study_id=study_id,
+            state=StudyState.CONSENT,
+            group=group,
+            condition=condition,
+            participant_data=ParticipantData(),
+            prolific=prolific,
+            created_at=now,
+            started_at=None,
+            completed_at=None,
+        )
+        session_ref = self._db.collection(SESSIONS_COLLECTION).document(
+            new_session_id
+        )
+
+        @async_transactional
+        async def _claim(tx) -> tuple[str, bool]:
+            snapshot = await claim_ref.get(transaction=tx)
+            if snapshot.exists:
+                claimed = (snapshot.to_dict() or {}).get("session_id")
+                if claimed:
+                    return claimed, False
+            tx.set(
+                claim_ref,
+                {
+                    "session_id": new_session_id,
+                    "prolific_session_id": prolific_session_id,
+                    "claimed_at": now.isoformat(),
+                },
+            )
+            tx.set(session_ref, new_session.model_dump(mode="json"))
+            return new_session_id, True
+
+        transaction = self._db.transaction()
+        session_id, won = await _claim(transaction)
+
+        if won:
+            logger.info(
+                f"Created self-serve session {session_id} (claimed "
+                f"prolific_session_id={prolific_session_id})"
+            )
+            return new_session, True
+
+        # Lost the race — fetch the winner's session doc.
+        existing = await self.get_session(session_id)
+        if existing is None:
+            # Claim exists but session doc missing — recover by writing the
+            # session doc under the claimed id. Can happen if a previous
+            # request crashed between transaction commit and a follow-up
+            # write; in this implementation tx writes both, so this branch
+            # is mostly defensive. Re-build the session under the claimed id.
+            recovered = new_session.model_copy(update={"id": session_id})
+            await self._db.collection(SESSIONS_COLLECTION).document(
+                session_id
+            ).set(recovered.model_dump(mode="json"))
+            logger.warning(
+                f"Recovered missing session doc for claimed "
+                f"prolific_session_id={prolific_session_id} -> {session_id}"
+            )
+            return recovered, True
+        return existing, False
+
     async def get_session_by_chat_id(self, chat_id: str) -> StudySession | None:
         """
         Look up the study session whose condition holds a given guided
@@ -207,6 +301,20 @@ class SessionRepository:
                 "state": StudyState.COMPLETE.value,
                 "completed_at": datetime.now(timezone.utc).isoformat(),
             },
+        )
+
+    async def mark_prolific_redirected(
+        self,
+        session_id: str,
+    ) -> StudySession | None:
+        """Stamp ``prolific_redirected_at`` on the first Prolific redirect.
+
+        Idempotent: if the timestamp is already set, leave it untouched so
+        the original redirect time is preserved for analysis.
+        """
+        return await self.update_session(
+            session_id,
+            {"prolific_redirected_at": datetime.now(timezone.utc).isoformat()},
         )
 
     async def list_sessions_for_study(
