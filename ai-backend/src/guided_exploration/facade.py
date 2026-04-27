@@ -124,6 +124,25 @@ _DIRECTIONS_CACHE_TTL_SECONDS = 21600
 # so entries must be evicted proactively to prevent unbounded growth.
 _PENDING_QUERY_TTL_SECONDS = 1800
 
+# Affirmations that mean "yes, do the deeper option" when a choice prompt is
+# pending. Mirrors the list in message_classifier/prompts.py so behavior is
+# consistent inside vs. outside an exploration leaf.
+_AFFIRMATION_TOKENS = frozenset({
+    "ja", "ja bitte", "ja gerne", "ja klar", "ja danke",
+    "gerne", "klar", "bitte",
+    "ok", "okay",
+    "mach", "mach mal", "los", "los gehts",
+    "auf jeden fall", "natürlich", "selbstverständlich",
+    "yes", "sure",
+})
+
+
+def _is_short_affirmation(content: str) -> bool:
+    cleaned = re.sub(r"[^\w\s]", "", content.lower(), flags=re.UNICODE)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned in _AFFIRMATION_TOKENS
+
+
 # Pre-gen leaf timeout: two LLM calls in sequence (structured gen + aspect
 # extraction); 45 s leaves headroom for slow-tail latency.
 LEAF_PREGEN_TIMEOUT_SECONDS = 45.0
@@ -488,6 +507,40 @@ class GuidedExplorationFacade:
                 content=content,
             )
 
+        # Affirmation shortcut: if a choice prompt ("Schnelle Antwort" vs.
+        # "Thema vertiefen") is pending for this session and the user replies
+        # with a short affirmation ("ja", "gerne", "klar", …), route directly
+        # into the explore branch instead of re-classifying — the bare "ja"
+        # would otherwise be misclassified and re-trigger META/CLARIFICATION.
+        if _is_short_affirmation(content):
+            self._evict_stale_pending_queries()
+            pending_for_session = next(
+                (
+                    (qid, pq)
+                    for qid, pq in self._pending_queries.items()
+                    if pq.session_id == session_id
+                ),
+                None,
+            )
+            if pending_for_session is not None:
+                query_id, _pending = pending_for_session
+                user_msg = SessionMessage(
+                    id=str(uuid4()),
+                    type=SessionMessageType.USER,
+                    content=content,
+                    timestamp=datetime.now(timezone.utc),
+                )
+                await self._repo.add_session_message(session_id, user_msg)
+                logger.info(
+                    f"Affirmation shortcut for session {session_id}: routing "
+                    f"'{content}' to explore branch (query_id={query_id})"
+                )
+                return await self.handle_choice(
+                    session_id=session_id,
+                    query_id=query_id,
+                    choice="explore",
+                )
+
         # Send thinking event
         await self._send_thinking(
             session_id, "classifying", "Analysiere die Anfrage..."
@@ -731,7 +784,7 @@ class GuidedExplorationFacade:
         query: str,
         session,
     ) -> dict:
-        """Handle meta questions about the tool, available topics, how it works."""
+        """Handle meta questions about wahl.chat itself (the tool, not topics)."""
         from langchain_core.messages import HumanMessage, SystemMessage
 
         # Format actual conversation history (last 10 turns) so meta replies
@@ -742,48 +795,31 @@ class GuidedExplorationFacade:
         else:
             conversation_text = "Keine vorherigen Nachrichten."
 
-        # Additional orientation: which topics has the user already explored?
-        explored_topics = []
-        for msg in session.messages:
-            if msg.type == SessionMessageType.EXPLORATION_START and msg.exploration_query:
-                explored_topics.append(msg.exploration_query)
-
-        if explored_topics:
-            explored_context = (
-                f"Der Nutzer hat bereits folgende Themen erkundet: "
-                f"{', '.join(explored_topics)}"
-            )
-        else:
-            explored_context = "Der Nutzer hat noch keine Themen erkundet."
-
         system_prompt = (
             "Du bist der Assistent von wahl.chat — einem KI-Tool, das es "
             "ermöglicht, sich interaktiv und zeitgemäß über die Positionen und "
             "Pläne der Parteien zu informieren.\n\n"
-            "Der Nutzer stellt eine Frage über das Tool, verfügbare Themen "
-            "oder möchte Orientierung. Antworte freundlich, kurz und hilfreich "
-            "auf Deutsch mit korrekten Umlauten. Spreche den Nutzer mit Du an.\n\n"
-            "# Was der Nutzer hier tun kann\n"
-            "- Konkrete Fragen zu Parteipositionen stellen und sofort eine "
-            "quellenbasierte Antwort erhalten\n"
-            "- Ein Thema auswählen und die Positionen der Parteien im Detail "
-            "vergleichen (Erkundungsmodus)\n"
-            "- Eigene Fragen zu beliebigen politischen Themen stellen\n\n"
-            "# Themenvorschläge\n"
-            "- Mieten & Wohnen\n"
-            "- Rente & Altersvorsorge\n"
-            "- Klima & Energie\n"
-            "- Migration & Sicherheit\n"
-            "- Wirtschaft & Arbeit\n"
-            "- Bildung & Forschung\n\n"
-            "Der Nutzer kann aber auch jedes andere politische Thema ansprechen.\n\n"
+            "Der Nutzer stellt eine Frage über das Tool selbst (z.B. wie es "
+            "funktioniert, was es kann, wer dahinter steht). Antworte "
+            "freundlich, kurz und hilfreich auf Deutsch mit korrekten "
+            "Umlauten. Spreche den Nutzer mit Du an.\n\n"
+            "# So funktioniert wahl.chat\n"
+            "- Du kannst zu jedem politischen Thema die Positionen der "
+            "Parteien vergleichen — auf Basis ihrer Wahlprogramme.\n"
+            "- Wenn Du ein Thema nennst, schlage ich Dir Aspekte zur "
+            "Vertiefung vor; Du wählst aus, was Dich interessiert.\n"
+            "- Antworten sind quellenbasiert; Du siehst, woher die Aussagen "
+            "stammen.\n\n"
+            "# Wichtig\n"
+            "- Liste hier KEINE Themenvorschläge auf — Themenfragen werden "
+            "an anderer Stelle behandelt. Beantworte ausschließlich die "
+            "konkrete Tool-Frage.\n"
+            "- Bei der Aufforderung, ein Thema zu nennen: lade den Nutzer "
+            "kurz ein, einfach ein Thema einzugeben — ohne Liste.\n\n"
             f"# Bisheriges Gespräch\n{conversation_text}\n\n"
-            f"# Aktueller Stand des Nutzers\n{explored_context}\n\n"
-            "# Konversationsfluss — WICHTIG\n"
+            "# Konversationsfluss\n"
             "- Behandle den Austausch als fortlaufendes Gespräch.\n"
             "- Berücksichtige das bisherige Gespräch und vermeide Wiederholungen.\n"
-            "- Bei Rückbezügen wie 'und was noch?', 'erklär das genauer', 'warum?' "
-            "→ verstehe den Bezug zur vorherigen Nachricht und antworte direkt im Kontext.\n"
             "- Keine Begrüßung mitten im Gespräch."
         )
 

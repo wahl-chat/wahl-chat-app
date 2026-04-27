@@ -27,9 +27,13 @@ Viele Anfragen beziehen sich auf vorherige Nachrichten. Erkenne solche Rückverw
 
 # Anfragetypen (query_type)
 - FACTUAL: Faktenfragen zu konkreten Positionen, Vergleiche, oder Folgefragen zu vorherigen Inhalten (z.B. "Was ist die Position der SPD zu einer Mindestlohnerhöhung?", "was heißt das?", "erkläre das genauer")
-- EXPLORATORY: Fragen zu einem konkreten Thema die tiefere Exploration erfordern (z.B. "Was sagen die Parteien zur Rente?", "Wie stehen die Parteien zu Migration?")
-- META: Fragen über das Tool selbst, verfügbare Themen, oder Orientierungsfragen ohne konkretes politisches Thema. Beispiele: "was gibt es noch?", "was sonst noch so?", "welche Themen gibt es?", "was kann ich hier machen?", "wie funktioniert das?", "was ist das hier?", "worüber kann ich noch was erfahren?"
-- CLARIFICATION: NUR wenn die Anfrage auch MIT Kontext nicht verstanden werden kann
+- EXPLORATORY: Anfragen, die ein politisches Thema benennen und die sich für eine tiefere Themen-Erkundung über mehrere Parteien hinweg eignen. Sowohl ausformulierte Fragen ALS AUCH bloße Themenangaben (Substantiv/Phrase ohne Verb) gehören hierher.
+  - Ausformulierte Fragen: "Was sagen die Parteien zur Rente?", "Wie stehen die Parteien zu Migration?"
+  - Bloße Themen: "Soziale Gerechtigkeit", "Rente", "Migration", "Klima", "Mieten und Wohnen", "Bildung"
+  - Kurzformen mit Thema: "Thema X", "Was ist mit X?", "Und X?" (sofern X ein konkretes politisches Thema ist)
+  WICHTIG: Sobald ein konkretes politisches Thema erkennbar ist — auch ohne Frageform — ist EXPLORATORY die richtige Klassifikation, NICHT META.
+- META: NUR Fragen über das Tool selbst, also wahl.chat, seine Funktionsweise oder Bedienung. Beispiele: "wie funktioniert das?", "was kann ich hier machen?", "was ist das hier?", "wer hat dich gebaut?", "welche Parteien sind verfügbar?". KEIN META, wenn ein politisches Thema genannt wird — dann EXPLORATORY.
+- CLARIFICATION: NUR wenn die Anfrage auch MIT Kontext nicht verstanden werden kann (weder ein Thema noch ein Rückbezug erkennbar)
 
 # Parteierkennung (detected_parties)
 Verfügbare Parteien in diesem Kontext:
