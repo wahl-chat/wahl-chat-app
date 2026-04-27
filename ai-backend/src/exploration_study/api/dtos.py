@@ -329,9 +329,19 @@ class QuizSubmissionRequest(BaseModel):
 class QuizResultResponse(BaseModel):
     """Response after quiz submission."""
 
-    total_correct: int
+    total_correct: int = Field(
+        ...,
+        description="Number of fully correct answers (credit == 1.0).",
+    )
+    total_credit: float = Field(
+        ...,
+        description="Sum of earned credit including 0.5 partial credit.",
+    )
     total_questions: int
-    score_percentage: float
+    score_percentage: float = Field(
+        ...,
+        description="Credit-based score as a percentage (0-100).",
+    )
     next_state: StudyState = Field(
         ...,
         description="The next state after quiz submission",

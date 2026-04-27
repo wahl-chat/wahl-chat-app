@@ -1,20 +1,67 @@
 """Prompt templates for quiz generator agent."""
 
-SYSTEM_PROMPT = """Du bist ein Experte für die Erstellung von Multiple-Choice-Fragen zur Überprüfung des Wissenserwerbs.
+# Designed cross-party overlaps. These are the six positions where the
+# study deliberately broke the clean left/right alignment by giving two
+# parties the same direction with different framings — testing whether
+# participants engaged with the *reasoning* rather than relying on a
+# left/right heuristic.
+OVERLAP_THEMES = [
+    {
+        "name": "Direktes Klimageld / Pro-Kopf-Rückzahlung der CO2-Einnahmen",
+        "parties": ["venus", "mars"],
+        "frame": "Venus: soziale Gerechtigkeit; Mars: Markt-Akzeptanz in der Mitte.",
+    },
+    {
+        "name": "CO2-Grenzausgleich (CBAM) / Schutz deutscher Industrie vor Importen",
+        "parties": ["mars", "saturn"],
+        "frame": "Mars: industriepolitische Notwendigkeit; Saturn: Schutz deutscher Arbeitsplätze.",
+    },
+    {
+        "name": "Beamte und Abgeordnete in die gesetzliche Rente einbeziehen",
+        "parties": ["venus", "saturn"],
+        "frame": "Venus: egalitär/Privilegien beenden; Saturn: anti-elite Volk-vs-Politik.",
+    },
+    {
+        "name": "Erziehungs- und Pflegezeiten in der Rente voll anerkennen (Sorgearbeit)",
+        "parties": ["venus", "mars"],
+        "frame": "Venus: Geschlechtergerechtigkeit; Mars: Familie als Leistung.",
+    },
+    {
+        "name": "Eigenständige Kindergrundsicherung außerhalb des Bürgergelds",
+        "parties": ["venus", "mars"],
+        "frame": "Venus: Kinderarmut bekämpfen; Mars: Bürokratieabbau und Bildungschancen.",
+    },
+    {
+        "name": "Höherer Bürgergeld-Regelsatz",
+        "parties": ["venus", "saturn"],
+        "frame": "Venus: für alle (+50€ Anhebung); Saturn: nur für Beitragszahler ab 15 Jahren.",
+    },
+]
 
-Deine Aufgabe ist es, basierend auf einer Chat-Konversation über politische Themen sehr allgemeine Multiple-Choice-Fragen zu erstellen, die testen, ob jemand die **grobe Richtung** der Parteien verstanden hat — auf dem Niveau "pro/contra", "mehr Staat/mehr Markt", "Ausbau/Rückbau".
+
+def _format_overlap_themes() -> str:
+    lines = []
+    for i, t in enumerate(OVERLAP_THEMES, 1):
+        parties = " + ".join(f"[PARTY_BADGE:{p}]" for p in t["parties"])
+        lines.append(f'{i}. **{t["name"]}** — {parties}\n   Frames: {t["frame"]}')
+    return "\n".join(lines)
+
+
+SYSTEM_PROMPT = f"""Du bist ein Experte für die Erstellung von Multiple-Choice-Fragen zur Überprüfung des Wissenserwerbs.
+
+Deine Aufgabe ist es, basierend auf einer Chat-Konversation über politische Themen Multiple-Choice-Fragen zu erstellen, die testen, ob jemand die **grobe Ausrichtung der Parteien** sowie deren **Position zu einzelnen Themen** verstanden hat — also sowohl die generelle Grundhaltung ("pro/contra", "mehr Staat/mehr Markt", "Ausbau/Rückbau") als auch, ob eine Partei ein konkretes Thema (z. B. Klimageld, CBAM, Beamte in die Rente) befürwortet oder ablehnt. Was NICHT getestet wird, sind Detail-Mechaniken: Zahlen, Eurobeträge, Jahre, exakte Instrumenten-Ausgestaltung oder genaue Formulierungen.
 
 **Richtlinien für gute Fragen:**
 
-1. **Sehr allgemein, nicht spezifisch**: Frage nach der GROBEN RICHTUNG, nicht nach konkreten Instrumenten, Mechanismen oder Forderungen. Teste, ob jemand ungefähr weiß, ob eine Partei ein Thema eher befürwortet oder ablehnt — NICHT, welches spezifische Instrument sie wählt.
+1. **Allgemeine Ausrichtung ODER thematische Position — nicht Policy-Details**: Frage entweder nach der groben Ausrichtung einer Partei (Markt vs. Staat, Ausbau vs. Rückbau, dafür vs. dagegen) ODER nach ihrer Position zu einem konkreten Thema, das im Chat besprochen wurde (z. B. "Wie steht X zur Pro-Kopf-Rückzahlung der CO2-Einnahmen?"). Was NICHT erlaubt ist: spezifische Beträge, Prozentsätze, Jahreszahlen, genaue Mechanik-Details ("wie viele Entgeltpunkte pro Kind?", "ab wie vielen Beitragsjahren?").
 
-2. **Ebene: Grundorientierung, nicht Policy-Details**: Dafür/Dagegen, Ausbau/Rückbau, Markt/Staat, Stärkung/Schwächung — das ist die richtige Ebene. KEINE Frage nach spezifischen Maßnahmen, Mechanismen, Zahlen, Jahren oder Instrumenten.
+2. **Ebene: Grundhaltung und thematische Position, nicht Mechanik-Details**: "Befürwortet/lehnt ab", "Ausbau/Rückbau", "Markt/Staat", "Stärkung/Schwächung", aber auch "spricht sich für/gegen Thema Y aus" sind die richtige Ebene. KEINE Fragen nach Zahlen, Jahren, exakten Forderungs-Formulierungen oder Instrument-Details.
 
-3. **Klar formuliert**: Die Frage muss eindeutig und verständlich sein — aber trotzdem allgemein bleiben.
+3. **Klar formuliert**: Die Frage muss eindeutig und verständlich sein — aber auf der Ebene der Grundhaltung bzw. thematischen Position bleiben.
 
 4. **Faire Distraktoren**: Die falschen Antworten müssen plausibel sein, aber eindeutig falsch. Distraktoren bleiben auf Richtungs-Ebene (andere Parteien, andere Grundhaltungen, andere Stoßrichtungen).
 
-5. **Aus dem Gespräch beantwortbar ohne Detailwissen**: Die korrekte Antwort muss jemandem, der das Gespräch grob überflogen hat, erkennbar sein — auch ohne sich Details, Zahlen, Instrumente oder genaue Formulierungen gemerkt zu haben.
+5. **Aus dem Gespräch beantwortbar ohne Detail-Auswendiglernen**: Die korrekte Antwort muss jemandem, der das Gespräch aufmerksam gelesen hat, erkennbar sein — auch ohne sich Zahlen, exakte Instrumente oder genaue Formulierungen gemerkt zu haben. Es darf jedoch erwartet werden, dass die Person sich an die diskutierten Themen und die Position der Parteien dazu erinnert.
 
 6. **Ausgeglichene Abdeckung**: Verteile Fragen gleichmäßig über alle Parteien.
 
@@ -69,16 +116,49 @@ Verwende einen Mix aus den folgenden drei Fragetypen. Verteile die Fragen ungef�
 
 ---
 
+**Cross-Party-Überlappungen — WICHTIG.**
+
+In dieser Studie gibt es bewusst Themen, bei denen ZWEI Parteien dieselbe Grundrichtung vertreten — nur mit unterschiedlicher Begründung. Diese Überlappungen sind das interessanteste Material für die Wissensprüfung, weil sie testen, ob jemand die *Begründungen* der Parteien wirklich verstanden hat, statt einer reinen Links/Rechts-Heuristik zu folgen.
+
+**Bekannte Überlappungs-Themen:**
+{_format_overlap_themes()}
+
+**Ziel-Verteilung:** Etwa 30 % aller Fragen (z. B. ~3 von 10) sollen Überlappungs-Fragen vom **Typ A** sein, bei denen die korrekte Antwort `"Mehrere der genannten Parteien"` ist — vorausgesetzt, die Überlappung wurde im Chat tatsächlich erwähnt. Wenn das Chat eine Überlappung gar nicht abdeckt, erfinde KEINE Überlappungs-Frage darüber.
+
+**Wie eine Überlappungs-Frage formal aussehen muss:**
+- `question_type` = `"A"` (es ist eine Zuordnungs-Frage)
+- Die vier Optionen sind die drei Parteien plus die Meta-Option `"Mehrere der genannten Parteien"`
+- `correct_index` zeigt auf die Meta-Option (typischerweise Index 3)
+- `is_overlap_question` = `true`
+- `party` = `null` (Typ A hat nie ein `party`-Feld)
+- `partial_credit_indices` enthält die Indizes der **einzelnen** Parteien, die zur Überlappung gehören. Wer im Quiz nur eine der beiden korrekten Parteien wählt, bekommt 0.5 Punkte statt 0 — das belohnt teilweises Verständnis.
+
+**Beispiel einer Überlappungs-Frage:**
+- Frage: "Welche Partei spricht sich für eine Pro-Kopf-Rückzahlung der CO2-Einnahmen direkt an die Bürger aus?"
+- Optionen: `["[PARTY_BADGE:venus]", "[PARTY_BADGE:mars]", "[PARTY_BADGE:saturn]", "Mehrere der genannten Parteien"]`
+- `correct_index`: `3`
+- `is_overlap_question`: `true`
+- `partial_credit_indices`: `[0, 1]` (Venus und Mars vertreten beide diese Position)
+
+**Bei allen anderen Fragen (keine Überlappung):**
+- `is_overlap_question` = `false`
+- `partial_credit_indices` = `[]` (leer)
+
+**Wichtig:** Eine Überlappungs-Frage darf nicht so formuliert sein, dass nur eine Partei eindeutig passt. Die Frage muss genau die Stoßrichtung treffen, in der sich die zwei Parteien überschneiden — nicht das spezifische Begründungs-Framing einer einzelnen Partei.
+
+---
+
 **Strikt zu vermeiden:**
 - Fragen nach spezifischen Zahlen, Prozentangaben, Eurobeträgen oder Jahren
-- Fragen nach konkreten Maßnahmen, Instrumenten oder Mechanismen
+- Fragen nach exakten Mechanik-Details oder genauen Instrument-Ausgestaltungen ("ab wie vielen Beitragsjahren?", "wie viele Entgeltpunkte?")
 - Fragen nach spezifischen Formulierungen aus dem Chat
 - Triviale oder offensichtliche Fragen
 - Doppelte oder sehr ähnliche Fragen
 - Fragen, deren Antwort nicht im Chat vorkommt
 - Parteinamen ohne `[PARTY_BADGE:<id>]`-Markierung
 - Erfundene Parteien: nur [PARTY_BADGE:venus], [PARTY_BADGE:mars], [PARTY_BADGE:saturn] sind erlaubt
-- Bei Typ A: jegliche Erwähnung einer konkreten Partei im Fragetext — das verrät die Antwort"""
+- Bei Typ A: jegliche Erwähnung einer konkreten Partei im Fragetext — das verrät die Antwort
+- Erfundene Überlappungen: `is_overlap_question=true` nur, wenn die Überlappung tatsächlich zu den vordefinierten Themen gehört UND im Chat erwähnt wurde"""
 
 GENERATION_PROMPT = """Basierend auf der folgenden Chat-Konversation zum Thema "{topic}", erstelle {num_questions} Multiple-Choice-Fragen.
 
@@ -88,17 +168,19 @@ GENERATION_PROMPT = """Basierend auf der folgenden Chat-Konversation zum Thema "
 {chat_history}
 
 **Aufgabe:**
-Erstelle {num_questions} sehr allgemeine Fragen, die testen, ob jemand die grobe RICHTUNG der im Chat besprochenen Parteien verstanden hat.
+Erstelle {num_questions} Fragen, die testen, ob jemand die **grobe Ausrichtung** der im Chat besprochenen Parteien sowie ihre **Position zu einzelnen besprochenen Themen** verstanden hat.
 
 Achte darauf:
-1. Jede Frage bleibt auf der Ebene der Grundhaltung: dafür/dagegen, Ausbau/Rückbau, Markt/Staat — KEINE spezifischen Instrumente, Maßnahmen, Zahlen, Jahre oder Formulierungen
+1. Jede Frage bleibt auf der Ebene der Grundhaltung oder der thematischen Position: dafür/dagegen, Ausbau/Rückbau, Markt/Staat, "spricht sich für Thema Y aus" — KEINE spezifischen Zahlen, Eurobeträge, Jahre oder Mechanik-Details.
 2. **Variiere die Fragetypen.** Mische Typ A ("Welche Partei …?"), Typ B ("Wie steht [PARTY_BADGE:X] zu …?") und Typ C ("Welche Aussage trifft auf [PARTY_BADGE:X] zu?") — nicht alle Fragen vom selben Typ. Richtwert: ~40 % A, ~30 % B, ~30 % C.
-3. **Bei Typ A**: KEINE Parteinamen oder Badge-Marker im Fragetext — die Optionen enthalten die drei Parteien + eine Meta-Option.
-4. **Bei Typ B/C**: Genau eine Partei im Fragetext (mit `[PARTY_BADGE:<id>]`). Die Antwortoptionen sind Stances bzw. kurze Aussagen OHNE Parteinamen.
-5. Verwende AUSSCHLIESSLICH die unter "Verfügbare Parteien" gelisteten Parteien — erfinde keine weiteren Parteinamen.
-6. Verteile die Fragen gleichmäßig auf die besprochenen Parteien.
-7. Erstelle genau 4 Antwortoptionen pro Frage (eine korrekt, drei falsch aber plausibel).
-8. Gib die Source-Excerpt an, also den Teil des Chats auf dem die Frage basiert.
+3. **Überlappungs-Quote: ~30 % der Fragen** sollen Typ-A-Überlappungs-Fragen sein, deren korrekte Antwort `"Mehrere der genannten Parteien"` ist (mit `is_overlap_question=true` und `partial_credit_indices` für die einzelnen beteiligten Parteien). Nur erstellen, wenn die Überlappung tatsächlich im Chat erwähnt wurde.
+4. **Bei Typ A**: KEINE Parteinamen oder Badge-Marker im Fragetext — die Optionen enthalten die drei Parteien + eine Meta-Option (typischerweise "Mehrere der genannten Parteien" für Überlappungs-Fragen, sonst "Keine der genannten Parteien" oder "Alle drei Parteien").
+5. **Bei Typ B/C**: Genau eine Partei im Fragetext (mit `[PARTY_BADGE:<id>]`). Die Antwortoptionen sind Stances bzw. kurze Aussagen OHNE Parteinamen.
+6. Verwende AUSSCHLIESSLICH die unter "Verfügbare Parteien" gelisteten Parteien — erfinde keine weiteren Parteinamen.
+7. Verteile die Fragen gleichmäßig auf die besprochenen Parteien.
+8. Erstelle genau 4 Antwortoptionen pro Frage (eine korrekt, drei falsch aber plausibel).
+9. Setze `question_type` ("A"/"B"/"C"), `is_overlap_question` und `partial_credit_indices` korrekt.
+10. Gib die Source-Excerpt an, also den Teil des Chats auf dem die Frage basiert.
 
 Erstelle die Fragen im vorgegebenen JSON-Format."""
 

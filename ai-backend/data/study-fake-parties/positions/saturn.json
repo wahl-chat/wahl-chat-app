@@ -20,8 +20,8 @@
     "party_id": "saturn",
     "topic": "klimaschutz",
     "subtopic": "co2-preis",
-    "claim": "Zahlungen zur internationalen Klimafinanzierung werden eingestellt.",
-    "argument": "Solange China und Indien ihre Emissionen weiter steigern, ist jede deutsche Milliarde ins Ausland verschenkt – das Geld fehlt bei Pflege und Schulen."
+    "claim": "Importe aus Ländern ohne vergleichbare Umweltstandards zahlen einen CO2-Grenzausgleich an der EU-Außengrenze.",
+    "argument": "Der deutsche Mittelstand darf nicht doppelt verlieren – wer hier produziert, hält Standards ein; chinesische Billigimporte sollen denselben Preis zahlen, statt unsere Werke zu unterbieten."
   },
   {
     "id": "saturn-klima-004",
@@ -60,8 +60,8 @@
     "party_id": "saturn",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "rente",
-    "claim": "Rentenansprüche aus dem Ausland ohne deutsche Beitragszeiten werden nicht mehr anerkannt.",
-    "argument": "Die deutsche Rentenkasse finanziert sich aus Beiträgen deutscher Arbeitnehmer – sie ist kein Sozialtransfer an Personen, die hier nie eingezahlt haben."
+    "claim": "Beamte, Abgeordnete und Minister zahlen künftig wie jeder Arbeitnehmer in die gesetzliche Rentenkasse ein.",
+    "argument": "Wer dem Volk die Rente kürzen will, soll erst einmal selbst einzahlen – Schluss mit der Zwei-Klassen-Altersvorsorge zwischen Berliner Politikbüros und der Werkbank."
   },
   {
     "id": "saturn-sozial-007",
@@ -84,7 +84,7 @@
     "party_id": "saturn",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "buergergeld",
-    "claim": "Arbeitsfähige Bürgergeld-Bezieher werden zu gemeinnütziger Arbeit verpflichtet, sonst entfällt der Anspruch.",
-    "argument": "Wer öffentliches Geld bezieht, muss der Gesellschaft etwas zurückgeben – Arbeitspflicht ist kein Zwang, sondern Ausdruck gelebter Solidarität."
+    "claim": "Bezieher mit mindestens fünfzehn Beitragsjahren erhalten einen Bürgergeld-Aufschlag von 50 Euro monatlich.",
+    "argument": "Wer Jahrzehnte in dieses Land eingezahlt hat, darf bei Arbeitslosigkeit nicht auf demselben Niveau landen wie ein Berufsanfänger – Lebensleistung muss sich auch in der Krise zeigen."
   }
 ]

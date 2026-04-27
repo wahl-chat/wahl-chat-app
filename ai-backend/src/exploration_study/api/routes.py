@@ -736,27 +736,31 @@ async def submit_quiz(request: web.Request) -> web.Response:
             status=400,
         )
 
-    # Create answer objects and calculate score
+    # Create answer objects and calculate score (with partial credit).
+    from src.exploration_study.models.quiz import grade_answer
+
     answers = []
     for answer_req in req.answers:
         question = next(
             (q for q in quiz.questions if q.id == answer_req.question_id), None
         )
-        is_correct = (
-            question.correct_index == answer_req.selected_index if question else False
-        )
+        if question is None:
+            is_correct, credit = False, 0.0
+        else:
+            is_correct, credit = grade_answer(question, answer_req.selected_index)
 
         answers.append(
             QuizAnswer(
                 question_id=answer_req.question_id,
                 selected_index=answer_req.selected_index,
                 is_correct=is_correct,
+                credit=credit,
                 response_time_ms=answer_req.response_time_ms,
             )
         )
 
-    total_correct, total_questions, score_percentage = calculate_quiz_score(
-        quiz.questions, answers
+    total_correct, total_credit, total_questions, score_percentage = (
+        calculate_quiz_score(quiz.questions, answers)
     )
 
     submission = QuizSubmission(
@@ -764,6 +768,7 @@ async def submit_quiz(request: web.Request) -> web.Response:
         answers=answers,
         submitted_at=datetime.now(timezone.utc),
         total_correct=total_correct,
+        total_credit=total_credit,
         total_questions=total_questions,
         score_percentage=score_percentage,
     )
@@ -780,6 +785,7 @@ async def submit_quiz(request: web.Request) -> web.Response:
 
     response = QuizResultResponse(
         total_correct=total_correct,
+        total_credit=total_credit,
         total_questions=total_questions,
         score_percentage=score_percentage,
         next_state=StudyState.DEMOGRAPHICS,

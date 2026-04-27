@@ -12,8 +12,8 @@
     "party_id": "mars",
     "topic": "klimaschutz",
     "subtopic": "co2-preis",
-    "claim": "Die CO2-Einnahmen fließen über eine Senkung von Stromsteuer und EEG-Umlage an Bürger und Industrie zurück.",
-    "argument": "Mittelstand und Industrie brauchen bezahlbaren Strom – günstigere Energiepreise entlasten breiter als ein bürokratisches Klimageld."
+    "claim": "Mindestens die Hälfte der CO2-Einnahmen wird als Pro-Kopf-Klimageld direkt an die Bürger ausgezahlt.",
+    "argument": "Ein Lenkungspreis funktioniert nur mit Akzeptanz in der arbeitenden Mitte – wer Pendler belastet, ohne ihnen das Geld sichtbar zurückzugeben, riskiert die Klimapolitik insgesamt."
   },
   {
     "id": "mars-klima-010",
@@ -60,8 +60,8 @@
     "party_id": "mars",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "rente",
-    "claim": "Die Riester-Rente wird abgeschafft und durch ein einfaches, staatlich zertifiziertes Standardprodukt mit Kostendeckel ersetzt.",
-    "argument": "Riester ist gescheitert: zu teuer, zu komplex, zu niedrige Renditen – ein schlankes Standardprodukt macht private Vorsorge endlich wieder lohnend."
+    "claim": "Pro Kind werden in der gesetzlichen Rente drei volle Entgeltpunkte für Erziehungs- und Pflegezeiten angerechnet.",
+    "argument": "Kinder großzuziehen ist die wichtigste Investition in die Rentenkasse von morgen – wer Familie als Leistung anerkennt, darf sie im Alter nicht durch Lücken in der Erwerbsbiografie bestrafen."
   },
   {
     "id": "mars-sozial-007",
@@ -84,7 +84,7 @@
     "party_id": "mars",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "buergergeld",
-    "claim": "Vermittlung in Arbeit hat Vorrang vor langen Qualifizierungsmaßnahmen.",
-    "argument": "Praxis schlägt Theorie – wer arbeitet, lernt am schnellsten, integriert sich sozial und kommt aus dem Transferbezug heraus."
+    "claim": "Kinder werden über eine eigenständige, gebündelte Kindergrundsicherung außerhalb des Bürgergelds abgesichert.",
+    "argument": "Kein Kind soll für die Arbeitslosigkeit seiner Eltern haften – ein einheitlicher, entbürokratisierter Anspruch schafft echte Bildungschancen und entlastet die Jobcenter."
   }
 ]

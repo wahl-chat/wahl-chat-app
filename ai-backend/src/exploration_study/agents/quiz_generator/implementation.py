@@ -85,12 +85,25 @@ class QuizGeneratorAgent(BaseAgent[QuizGeneratorInput, QuizGeneratorOutput]):
         questions = []
         for gen_q in output.questions:
             options_with_dontknow = [*gen_q.options, "Weiß ich nicht"]
+            # Drop any partial-credit index that accidentally points at the
+            # correct answer or out of range — a malformed model output
+            # shouldn't produce nonsensical 0.5 grading.
+            partial_indices = sorted(
+                {
+                    i
+                    for i in gen_q.partial_credit_indices
+                    if 0 <= i <= 3 and i != gen_q.correct_index
+                }
+            )
             question = QuizQuestion(
                 id=str(uuid4()),
                 question=gen_q.question,
                 options=options_with_dontknow,
                 correct_index=gen_q.correct_index,
                 party=gen_q.party,
+                question_type=gen_q.question_type,
+                is_overlap_question=gen_q.is_overlap_question,
+                partial_credit_indices=partial_indices,
                 topic=topic,
                 source_excerpt=gen_q.source_excerpt,
             )
