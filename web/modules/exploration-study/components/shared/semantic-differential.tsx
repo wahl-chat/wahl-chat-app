@@ -60,7 +60,10 @@ export const SemanticDifferential = forwardRef<
         {`${leftAnchor} bis ${rightAnchor}`}
       </span>
       <div className="flex items-center justify-between gap-2">
-        <span aria-hidden="true" className="min-w-[100px] text-sm font-medium">
+        <span
+          aria-hidden="true"
+          className="min-w-[90px] text-xs font-normal text-muted-foreground"
+        >
           {leftAnchor}
         </span>
 
@@ -84,7 +87,7 @@ export const SemanticDifferential = forwardRef<
 
         <span
           aria-hidden="true"
-          className="min-w-[100px] text-right text-sm font-medium"
+          className="min-w-[90px] text-right text-xs font-normal text-muted-foreground"
         >
           {rightAnchor}
         </span>

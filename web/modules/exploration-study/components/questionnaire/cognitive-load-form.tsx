@@ -72,8 +72,11 @@ export function CognitiveLoadForm({
                     field.value !== null && field.value !== undefined;
                   return (
                     <FormItemCard answered={answered}>
-                      <FormItem className="space-y-3">
-                        <p id={labelId} className="pr-8 text-sm font-medium">
+                      <FormItem className="space-y-4">
+                        <p
+                          id={labelId}
+                          className="pr-8 text-base font-semibold leading-snug text-foreground"
+                        >
                           {item.text}
                         </p>
                         <FormControl>
