@@ -124,25 +124,6 @@ _DIRECTIONS_CACHE_TTL_SECONDS = 21600
 # so entries must be evicted proactively to prevent unbounded growth.
 _PENDING_QUERY_TTL_SECONDS = 1800
 
-# Affirmations that mean "yes, do the deeper option" when a choice prompt is
-# pending. Mirrors the list in message_classifier/prompts.py so behavior is
-# consistent inside vs. outside an exploration leaf.
-_AFFIRMATION_TOKENS = frozenset({
-    "ja", "ja bitte", "ja gerne", "ja klar", "ja danke",
-    "gerne", "klar", "bitte",
-    "ok", "okay",
-    "mach", "mach mal", "los", "los gehts",
-    "auf jeden fall", "natürlich", "selbstverständlich",
-    "yes", "sure",
-})
-
-
-def _is_short_affirmation(content: str) -> bool:
-    cleaned = re.sub(r"[^\w\s]", "", content.lower(), flags=re.UNICODE)
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
-    return cleaned in _AFFIRMATION_TOKENS
-
-
 # Pre-gen leaf timeout: two LLM calls in sequence (structured gen + aspect
 # extraction); 45 s leaves headroom for slow-tail latency.
 LEAF_PREGEN_TIMEOUT_SECONDS = 45.0
@@ -506,40 +487,6 @@ class GuidedExplorationFacade:
                 session=session,
                 content=content,
             )
-
-        # Affirmation shortcut: if a choice prompt ("Schnelle Antwort" vs.
-        # "Thema vertiefen") is pending for this session and the user replies
-        # with a short affirmation ("ja", "gerne", "klar", …), route directly
-        # into the explore branch instead of re-classifying — the bare "ja"
-        # would otherwise be misclassified and re-trigger META/CLARIFICATION.
-        if _is_short_affirmation(content):
-            self._evict_stale_pending_queries()
-            pending_for_session = next(
-                (
-                    (qid, pq)
-                    for qid, pq in self._pending_queries.items()
-                    if pq.session_id == session_id
-                ),
-                None,
-            )
-            if pending_for_session is not None:
-                query_id, _pending = pending_for_session
-                user_msg = SessionMessage(
-                    id=str(uuid4()),
-                    type=SessionMessageType.USER,
-                    content=content,
-                    timestamp=datetime.now(timezone.utc),
-                )
-                await self._repo.add_session_message(session_id, user_msg)
-                logger.info(
-                    f"Affirmation shortcut for session {session_id}: routing "
-                    f"'{content}' to explore branch (query_id={query_id})"
-                )
-                return await self.handle_choice(
-                    session_id=session_id,
-                    query_id=query_id,
-                    choice="explore",
-                )
 
         # Send thinking event
         await self._send_thinking(

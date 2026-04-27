@@ -25,6 +25,36 @@ Viele Anfragen beziehen sich auf vorherige Nachrichten. Erkenne solche Rückverw
 3. Erstelle eine RAG-Suchanfrage die das referenzierte Thema einschließt
 4. Klassifiziere als FACTUAL (nicht als CLARIFICATION!)
 
+# Kurze Bestätigungen ("ja", "gerne", "klar", …) - WICHTIG!
+Eine kurze Bestätigung ist KEINE eigenständige Anfrage — sie bezieht sich immer auf die letzte Assistenten-Nachricht. Schau dir die letzte Assistenten-Nachricht GENAU an, bevor Du klassifizierst:
+
+**Fall 1 — Assistent hat ein politisches Thema angeboten oder zur Vertiefung eingeladen:**
+Beispiele für solche Assistenten-Nachrichten:
+- "Es gibt hier das Thema Soziale Gerechtigkeit, soll ich Dir was darüber erzählen?"
+- "Möchtest Du, dass ich Dir die Positionen der Parteien zur Rente zeige?"
+- "Soll ich das vertiefen?"
+- "Möchtest Du das Thema X erkunden?"
+
+Wenn der Nutzer darauf mit "ja", "ja bitte", "gerne", "klar", "mach mal", "auf jeden Fall" o.ä. antwortet:
+→ Klassifiziere als **EXPLORATORY**
+→ Übernimm das Thema aus der Assistenten-Nachricht in `rag_query` (so als hätte der Nutzer das Thema selbst genannt)
+→ `needs_clarification = false`
+
+**Fall 2 — Assistent hat eine konkrete Faktenfrage gestellt (z.B. "Möchtest Du wissen, ob die SPD den Mindestlohn erhöhen will?"):**
+→ Klassifiziere als **FACTUAL**
+→ Rekonstruiere die ursprüngliche Faktenfrage in `rag_query`
+
+**Fall 3 — Die letzte Nutzer-Nachricht hat selbst ein Thema benannt (ohne Frage), z.B. "Soziale Gerechtigkeit" oder "Rente", und es gab keine inhaltliche Assistenten-Antwort dazwischen:**
+In diesem Fall hat das System dem Nutzer im Hintergrund Optionen angeboten (Schnelle Antwort / Thema vertiefen). Eine Bestätigung gilt als "Ja, behandle dieses Thema":
+→ Klassifiziere als **EXPLORATORY**
+→ Übernimm das Thema aus der letzten Nutzer-Nachricht in `rag_query`
+
+**Fall 4 — Es gibt weder eine themenbezogene Assistenten-Nachricht noch eine vorherige Themen-Nennung des Nutzers (z.B. der Nutzer schreibt einfach nur "ja" am Anfang oder nach einer reinen Aussage ohne Frage):**
+→ Klassifiziere als **CLARIFICATION**
+→ `clarification_question`: "Worauf bezieht sich Dein Ja? Magst Du Dein Anliegen kurz konkretisieren?"
+
+NIEMALS eine kurze Bestätigung als META oder als eigenständige FACTUAL-Anfrage ohne Kontext klassifizieren.
+
 # Anfragetypen (query_type)
 - FACTUAL: Faktenfragen zu konkreten Positionen, Vergleiche, oder Folgefragen zu vorherigen Inhalten (z.B. "Was ist die Position der SPD zu einer Mindestlohnerhöhung?", "was heißt das?", "erkläre das genauer")
 - EXPLORATORY: Anfragen, die ein politisches Thema benennen und die sich für eine tiefere Themen-Erkundung über mehrere Parteien hinweg eignen. Sowohl ausformulierte Fragen ALS AUCH bloße Themenangaben (Substantiv/Phrase ohne Verb) gehören hierher.
@@ -131,7 +161,9 @@ Klassifiziere diese Anfrage und bestimme:
 3. RAG-optimierte Suchanfrage (rag_query) - Schlüsselwörter für Dokumentensuche
 4. Ob Klarstellung nötig ist (needs_clarification)
 5. Falls ja: Eine Klarstellungsfrage (clarification_question)
-6. Deine Konfidenz (confidence)"""
+6. Deine Konfidenz (confidence)
+
+WICHTIG: Wenn die Anfrage eine kurze Bestätigung ist ("ja", "ja bitte", "gerne", "klar", "mach mal", "ok", "auf jeden Fall" o.ä.), schaue zwingend in die letzte Assistenten-Nachricht oben und wende die Regeln aus dem Abschnitt "Kurze Bestätigungen" an. Klassifiziere niemals eine bloße Bestätigung als META."""
 
 
 def format_conversation_context(history: list[str]) -> str:
