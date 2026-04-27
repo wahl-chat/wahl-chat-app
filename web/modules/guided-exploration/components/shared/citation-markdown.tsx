@@ -212,11 +212,11 @@ const NonMemoizedCitationMarkdown = ({
       );
     },
     strong: ({ children, ...props }) => {
-      return (
-        <span className="font-semibold" {...cleanProps(props)}>
-          {children}
-        </span>
-      );
+      return checkAndBuildReference('span', {
+        children,
+        className: 'font-semibold',
+        ...cleanProps(props),
+      });
     },
     em: ({ children, ...props }) => {
       return checkAndBuildReference('em', { children, ...cleanProps(props) });

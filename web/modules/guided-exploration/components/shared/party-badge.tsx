@@ -47,7 +47,7 @@ export function PartyBadge({
     return (
       <span
         className={cn(
-          'not-prose mx-0.5 inline-flex items-center gap-1.5 rounded-md border bg-muted px-2.5 py-1 align-middle text-base font-medium leading-none',
+          'not-prose mx-0.5 inline-flex items-center gap-1.5 rounded-md border bg-muted px-1.5 py-0.5 align-middle text-sm font-medium leading-none',
           className,
         )}
       >

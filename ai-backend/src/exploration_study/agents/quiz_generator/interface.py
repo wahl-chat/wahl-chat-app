@@ -1,5 +1,7 @@
 """Interface models for quiz generator agent."""
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -13,6 +15,16 @@ class ChatMessage(BaseModel):
 class GeneratedQuestion(BaseModel):
     """A generated quiz question from the LLM."""
 
+    question_type: Literal["A", "B", "C"] = Field(
+        ...,
+        description=(
+            "Question type — MUST be decided FIRST and MUST match question/option "
+            "shape per the system prompt. A = 'Welche Partei …?' (options are the "
+            "three party badges + a meta-option). B = 'Wie steht [PARTY_BADGE:X] "
+            "zu …?' (options are stances). C = 'Welche Aussage trifft auf "
+            "[PARTY_BADGE:X] zu?' (options are short statements)."
+        ),
+    )
     question: str = Field(..., description="The question text")
     options: list[str] = Field(
         ...,
@@ -26,7 +38,14 @@ class GeneratedQuestion(BaseModel):
         ge=0,
         le=3,
     )
-    party: str = Field(..., description="The party this question is about")
+    party: str | None = Field(
+        default=None,
+        description=(
+            "For Type B/C: the party the question is about (party id, e.g. "
+            "'venus'). For Type A: MUST be null — the party is the answer, not "
+            "a fixed subject of the question."
+        ),
+    )
     source_excerpt: str = Field(
         ...,
         description="Brief excerpt from chat that this question is based on",

@@ -4,7 +4,33 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { ArrowUp } from 'lucide-react';
-import { useCallback, useId, useRef, useState } from 'react';
+import { Fragment, useCallback, useId, useRef, useState } from 'react';
+
+import { PartyBadge } from '@/modules/guided-exploration/components/shared/party-badge';
+
+const PARTY_BADGE_SPLIT = /(\[PARTY_BADGE:[\w-]+\])/g;
+const PARTY_BADGE_MATCH = /^\[PARTY_BADGE:([\w-]+)\]$/;
+
+function renderQuestionWithBadges(question: string): React.ReactNode {
+  const parts = question.split(PARTY_BADGE_SPLIT);
+  if (parts.length === 1) return question;
+  return parts.map((part, i) => {
+    const m = part.match(PARTY_BADGE_MATCH);
+    const key = `${i}:${part}`;
+    if (m) {
+      return <PartyBadge key={key} party={m[1]} inline />;
+    }
+    return <Fragment key={key}>{part}</Fragment>;
+  });
+}
+
+function questionToPlainText(question: string): string {
+  return question.replace(
+    /\[PARTY_BADGE:([\w-]+)\]/g,
+    (_, party: string) =>
+      party.charAt(0).toUpperCase() + party.slice(1).toLowerCase(),
+  );
+}
 
 interface ConversationInputProps {
   onSubmit: (message: string) => void;
@@ -76,7 +102,7 @@ export function ConversationInput({
 
   const handleSuggestionClick = (question: string) => {
     if (!disabled) {
-      onSubmit(question);
+      onSubmit(questionToPlainText(question));
     }
   };
 
@@ -85,39 +111,42 @@ export function ConversationInput({
 
   return (
     <div className={cn('flex w-full flex-col gap-2', className)}>
-      {/* Suggested questions — single scrollable row with fixed height */}
-      <div className="h-9" aria-live="polite">
-        {showLoading && (
-          <div className="flex gap-2 overflow-hidden">
-            <Skeleton className="h-8 w-48 shrink-0 rounded-full" />
-            <Skeleton className="h-8 w-36 shrink-0 rounded-full" />
-          </div>
-        )}
-        {showQuestions && (
-          <nav
-            aria-label="Vorgeschlagene Rückfragen"
-            className="flex gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            <span className="sr-only">
-              Vorgeschlagene Rückfragen. Navigiere mit Tab und bestätige mit
-              Enter.
-            </span>
-            {suggestedQuestions.map((question) => (
-              <button
-                key={question}
-                type="button"
-                tabIndex={0}
-                onClick={() => handleSuggestionClick(question)}
-                disabled={disabled}
-                className="shrink-0 whitespace-nowrap rounded-full border border-input bg-white px-3 py-1.5 text-sm text-black transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                aria-label={`Vorgeschlagene Frage: ${question}`}
-              >
-                {question}
-              </button>
-            ))}
-          </nav>
-        )}
-      </div>
+      {/* Suggested questions — single scrollable row, collapses entirely
+          when there are no questions and we're not loading. */}
+      {(showLoading || showQuestions) && (
+        <div className="h-9" aria-live="polite">
+          {showLoading && (
+            <div className="flex gap-2 overflow-hidden">
+              <Skeleton className="h-8 w-48 shrink-0 rounded-full" />
+              <Skeleton className="h-8 w-36 shrink-0 rounded-full" />
+            </div>
+          )}
+          {showQuestions && (
+            <nav
+              aria-label="Vorgeschlagene Rückfragen"
+              className="flex gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              <span className="sr-only">
+                Vorgeschlagene Rückfragen. Navigiere mit Tab und bestätige mit
+                Enter.
+              </span>
+              {suggestedQuestions.map((question) => (
+                <button
+                  key={question}
+                  type="button"
+                  tabIndex={0}
+                  onClick={() => handleSuggestionClick(question)}
+                  disabled={disabled}
+                  className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-input bg-white px-3 py-1.5 text-sm text-black transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label={`Vorgeschlagene Frage: ${questionToPlainText(question)}`}
+                >
+                  {renderQuestionWithBadges(question)}
+                </button>
+              ))}
+            </nav>
+          )}
+        </div>
+      )}
 
       {/* Input form */}
       <form
@@ -126,7 +155,7 @@ export function ConversationInput({
       >
         <textarea
           ref={textareaRef}
-          className="w-full resize-none bg-transparent py-3 pl-4 pr-11 text-[16px] placeholder:text-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          className="block min-h-[64px] w-full resize-none bg-transparent py-4 pl-4 pr-11 text-[16px] placeholder:text-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           placeholder={placeholder}
           onChange={handleChange}
           onKeyDown={handleKeyDown}

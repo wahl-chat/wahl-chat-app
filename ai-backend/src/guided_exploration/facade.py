@@ -2439,10 +2439,30 @@ class GuidedExplorationFacade:
             session_id, exploration_id, leaf_id, response_message
         )
 
-        # Skip suggested questions for follow-ups — they cause more harm
-        # than good (repeat content, get rejected by router, go off-topic).
-        # Users can type their own questions.
-        suggested_questions: list[str] = []
+        # Generate claim-anchored follow-up questions, deduped against the
+        # conversation history so we don't echo questions whose answer was
+        # just given. The prompt has explicit fail-soft instructions to
+        # return [] when no good follow-up exists.
+        history_lines = self._format_leaf_conversation_history(conversation, limit=8)
+        conversation_history_text = "\n".join(history_lines)
+
+        available_context_parts: list[str] = []
+        for party_id, party_data in resolved.party_positions.items():
+            party_info = parties_info.get(party_id)
+            party_name = party_info.name if party_info else party_id
+            available_context_parts.append(f"\n## {party_name}")
+            for pos in party_data.positions:
+                available_context_parts.append(f"- {pos.position}")
+        available_context = "\n".join(available_context_parts)
+
+        suggested_questions = (
+            await self._summary_generator.generate_suggested_questions(
+                query=user_message,
+                response=full_text,
+                available_context=available_context,
+                conversation_history=conversation_history_text,
+            )
+        )
 
         # Send conversation message event with citations
         await self._sse.send_to_session(

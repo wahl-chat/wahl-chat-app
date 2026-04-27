@@ -458,15 +458,6 @@ export function ExplorationFullView({
                       )}
                     </div>
                   )}
-                  {!isCompleted && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <MessageSquare aria-hidden="true" className="size-3.5" />
-                      <span>
-                        Du kannst hier weiter nachfragen — frag nach Details,
-                        Beispielen oder einer einfacheren Erklärung.
-                      </span>
-                    </div>
-                  )}
                   <ConversationInput
                     onSubmit={onSendMessage}
                     disabled={isThinking || isCompleted}

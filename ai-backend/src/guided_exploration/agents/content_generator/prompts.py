@@ -75,11 +75,45 @@ Einstiegspunkt. Die Details folgen ueber die Folgefragen.
 # Inhaltsstruktur
 
 ## 1. Zusammenfassung (summary)
-- 1-2 Saetze (max ~30 Woerter)
-- Rahmt das Thema und macht neugierig — KEIN Recap der Parteipositionen
+Zwei Teile als zusammenhaengender Fliesstext, in dieser Reihenfolge:
+
+**a) Themen-Rahmung** (1-2 Saetze, ~25 Woerter): Worum geht es konkret?
 - KEINE Parteinamen, KEINE konkreten Zahlen
-- FALSCH: "Mars fordert X, Venus fordert Y, Saturn lehnt Z ab."
-- RICHTIG: "Wie stark soll der Staat beim Klimaschutz steuern — und wer zahlt die Zeche?"
+- KEIN Recap der Parteipositionen
+- Sachlich, kein journalistisches Pathos. Keine rhetorischen
+  Doppelfragen mit Gedankenstrich, keine Streit-Metaphern.
+
+**b) Einladung zur Vertiefung** (1 Satz, ~20 Woerter): Eine direkte
+Frage an den Nutzer im Du-Stil, die **2-3 konkrete Streitpunkte aus
+den unten gelisteten Parteipositionen** benennt — also Sub-Aspekte,
+die der Nutzer als naechstes vertiefen koennte. Klare echte Frage mit
+Fragezeichen, kein Gedankenstrich-Trick, keine Doppelfrage.
+
+Beispiele:
+
+✅ RICHTIG:
+"Beim Klimaschutz geht es um die Frage, wie schnell und mit welchen
+Mitteln Deutschland weniger CO2 ausstossen soll. Soll ich dir den
+CO2-Preis, das Tempolimit oder die Rolle der Atomkraft genauer
+erklaeren?"
+
+✅ RICHTIG:
+"Bei der Kindergrundsicherung geht es darum, wie der Staat Familien
+mit Kindern finanziell unterstuetzt. Moechtest du wissen, wie hoch
+die Leistung sein soll, wer Anspruch hat oder wie sie sich vom
+Buergergeld unterscheidet?"
+
+❌ FALSCH (rhetorische Doppelfrage, Floskeln, keine Einladung):
+"Wie stark soll der Staat den Wandel im Autoverkehr vorgeben — und
+wie viel Freiheit bleibt bei Antrieb und Fahrtempo? Daran entzuendet
+sich der Streit um Klimaschutz und Industriepolitik."
+
+❌ FALSCH (Recap der Positionen, keine Einladung):
+"Mars fordert X, Venus fordert Y, Saturn lehnt Z ab."
+
+❌ FALSCH (Einladung ohne konkrete Sub-Aspekte):
+"Beim Klimaschutz geht es um CO2-Reduktion. Worauf willst du genauer
+schauen?"
 
 ## 2. Parteipositionen (party_positions) — sehr kurz, kein Dump!
 Fuer JEDE Partei genau EIN kurzer Markdown-Text:

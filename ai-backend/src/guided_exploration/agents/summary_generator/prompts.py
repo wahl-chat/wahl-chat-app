@@ -510,8 +510,8 @@ Antworte konversationell. Karten nur bei Vergleichen, Badges inline, wann immer 
 **Hartes Limit: maximal 2 Stichpunkte pro Karte.** Auch wenn viele Quellen vorliegen — wähle die zwei wichtigsten, der Rest wird weggelassen. Lieber knapp und vergleichbar als vollständig.
 """
 
-SUGGESTED_QUESTIONS_PROMPT = """Generiere 2-3 kurze Folgefragen basierend auf dem \
-bisherigen Gespräch und den verfügbaren Parteipositionen.
+SUGGESTED_QUESTIONS_PROMPT = """Generiere 2-3 kurze Folgefragen, die der Nutzer \
+als nächste Frage in diesem Gespräch tatsächlich stellen würde.
 
 ## Bisheriges Gespräch
 {conversation_history}
@@ -526,18 +526,41 @@ bisherigen Gespräch und den verfügbaren Parteipositionen.
 {available_context}
 
 ## Deine Aufgabe
-Generiere 2-3 Folgefragen, die:
-- Zum angegebenen Thema passen (nicht zu anderen Themen abschweifen!)
-- NUR mit den oben stehenden Parteipositionen beantwortbar sind
-- NICHT bereits durch die bisherigen Antworten beantwortet werden
-- Nach Hintergründen, Konsequenzen oder Umsetzungsdetails fragen
-- Kurz und prägnant formuliert sind (max 10 Worte pro Frage)
-- Auf Deutsch formuliert sind
+Schlage 2-3 Folgefragen vor, die:
 
-WICHTIG:
-- Jede Frage MUSS zum aktuellen Thema passen UND beantwortbar sein
-- KEINE Fragen deren Antwort bereits im Gespräch steht
-- KEINE Fragen zu anderen Themenbereichen
+1. **An eine konkrete Aussage in der letzten Antwort anknüpfen.**
+   Jede Frage soll sich auf eine bestimmte Forderung, Zahl oder Position
+   beziehen, die in der letzten Antwort genannt wurde — also ein
+   "warum?", "wie genau?", "was bedeutet das?" zu einer einzelnen
+   Aussage. Generische Fragen wie "Welche Position vertritt Partei X?"
+   sind verboten, wenn diese Position oben bereits steht.
+2. **Aus den verfügbaren Parteipositionen beantwortbar sind.**
+   Wenn die Wissensbasis keine Antwort auf eine Frage hergibt, schlage
+   sie nicht vor — sie würde ins Leere laufen.
+3. **NICHT eine Aussage wiederholen, die in der Antwort schon steht.**
+   Eine Frage, deren Antwort der Nutzer gerade gelesen hat, ist keine
+   Folgefrage.
+4. **NICHT vom Thema abschweifen.** Bleibe im aktuellen Themenbereich;
+   wechsle nicht zu einer anderen politischen Frage.
+5. **Im Du-Stil, kurz und natürlich formuliert** (max ~12 Worte). Klingt
+   wie eine echte Rückfrage im Chat, nicht wie ein FAQ-Eintrag.
+
+## Beispiele
+
+✅ Gute Folgefragen (Beispielkontext: Antwort hat genannt, dass Venus
+einen CO2-Preis von 80 €/t fordert und ihn pro Kopf zurückgeben will):
+- "Warum will Venus den Preis pro Kopf zurückgeben?"
+- "Wie soll die Auszahlung praktisch funktionieren?"
+- "Was passiert mit Pendlern und Heizöl-Haushalten?"
+
+❌ Schlechte Folgefragen für denselben Kontext:
+- "Wie hoch ist der CO2-Preis bei Venus?"  ← Antwort steht schon oben
+- "Was sagt Venus zur Wirtschaft?"  ← Themenabschweifung
+- "Welche Parteien gibt es?"  ← Generisch, nicht im Kontext verankert
+
+## Wenn keine guten Folgefragen möglich sind
+Gib eine LEERE Liste zurück. Lieber keine Folgefragen als schwache,
+wiederholende oder themenfremde.
 """
 
 

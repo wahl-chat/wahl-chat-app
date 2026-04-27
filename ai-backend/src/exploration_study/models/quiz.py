@@ -38,7 +38,13 @@ class QuizQuestion(BaseModel):
         ge=0,
         le=3,
     )
-    party: str = Field(..., description="The party this question is about")
+    party: str | None = Field(
+        default=None,
+        description=(
+            "For Type B/C questions: the party the question is about. "
+            "For Type A ('Welche Partei …?'): null, since the party is the answer."
+        ),
+    )
     topic: str = Field(..., description="The topic this question covers")
     source_excerpt: str | None = Field(
         default=None,

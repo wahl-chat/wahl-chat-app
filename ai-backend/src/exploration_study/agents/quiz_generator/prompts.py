@@ -36,6 +36,11 @@ Richtig (Option): "[PARTY_BADGE:mars]"
 
 Verwende einen Mix aus den folgenden drei Fragetypen. Verteile die Fragen ungefähr 40 % Typ A, 30 % Typ B, 30 % Typ C — nicht alle Fragen vom selben Typ.
 
+**Reihenfolge pro Frage — STRIKT:**
+1. Entscheide ZUERST den Fragetyp und setze `question_type` ("A", "B" oder "C").
+2. Formuliere DANN `question` und `options` so, dass beide zum gewählten Typ passen — Frageform und Optionsform müssen zusammen gehören.
+3. Setze `party` nur bei Typ B/C (die im Fragetext genannte Partei). Bei Typ A muss `party` null sein, weil die Partei dort die Antwort ist und nicht das Subjekt der Frage.
+
 **Typ A — "Welche Partei …?" (Zuordnung)**
 - Frage beschreibt eine Position oder Grundhaltung; gefragt wird, welche Partei sie vertritt.
 - WICHTIG: In diesem Fragetyp dürfen KEINE Parteinamen oder `[PARTY_BADGE:...]`-Marker im Fragetext vorkommen — das wäre die Antwort.
