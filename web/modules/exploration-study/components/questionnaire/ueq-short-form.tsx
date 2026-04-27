@@ -63,7 +63,7 @@ export function UeqShortForm({
         </div>
 
         <div className="space-y-3">
-          {items.map((item, index) => {
+          {items.map((item) => {
             const fieldKey = `item${item.id}` as UeqFieldKey;
             const labelId = `ueq-item-${item.id}-label`;
             return (
@@ -78,7 +78,7 @@ export function UeqShortForm({
                     <FormItemCard answered={answered}>
                       <FormItem className="space-y-3">
                         <p id={labelId} className="pr-8 text-sm font-medium">
-                          Frage {index + 1} von 8
+                          {item.leftAnchor} – {item.rightAnchor}
                         </p>
                         <FormControl>
                           <SemanticDifferential

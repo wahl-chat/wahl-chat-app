@@ -160,9 +160,17 @@ export const selectStreamBuffer = (state: ExplorationStore) =>
 export const selectStreamingTarget = (state: ExplorationStore) =>
   state.ui.streamingTarget;
 
+/** Tab the active stream belongs to (chat / leaf / null=unknown). */
+export const selectStreamingOriginTab = (state: ExplorationStore) =>
+  state.ui.streamingOriginTab;
+
 /** Get pending choice prompt */
 export const selectPendingChoice = (state: ExplorationStore) =>
   state.ui.pendingChoice;
+
+/** Tab the pending choice belongs to. */
+export const selectPendingChoiceOriginTab = (state: ExplorationStore) =>
+  state.ui.pendingChoiceOriginTab;
 
 /** Get quick summary (if in chat mode) */
 export const selectQuickSummary = (state: ExplorationStore) =>
@@ -179,6 +187,10 @@ export const selectThinkingMessage = (state: ExplorationStore) =>
 /** Check if thinking */
 export const selectIsThinking = (state: ExplorationStore) =>
   state.ui.thinkingStage !== null;
+
+/** Tab the active thinking indicator belongs to. */
+export const selectThinkingOriginTab = (state: ExplorationStore) =>
+  state.ui.thinkingOriginTab;
 
 /** Get current announcement for screen readers */
 export const selectAnnouncement = (state: ExplorationStore) =>
@@ -249,6 +261,10 @@ export const selectExplorationReadyData = (state: ExplorationStore) =>
 /** Get suggested follow-up questions */
 export const selectSuggestedQuestions = (state: ExplorationStore) =>
   state.ui.suggestedQuestions;
+
+/** Tab the active suggested-questions list belongs to. */
+export const selectSuggestedQuestionsOriginTab = (state: ExplorationStore) =>
+  state.ui.suggestedQuestionsOriginTab;
 
 /** Get topic switch suggestion */
 export const selectTopicSwitchSuggestion = (state: ExplorationStore) =>

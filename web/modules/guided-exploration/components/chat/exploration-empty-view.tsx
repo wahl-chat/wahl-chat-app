@@ -9,6 +9,7 @@ import {
   Home,
   Leaf,
   type LucideIcon,
+  MousePointerClick,
   Scale,
   ShieldCheck,
 } from 'lucide-react';
@@ -68,8 +69,9 @@ export function ExplorationEmptyView({
             <button
               key={`study-${studyTopic.label}`}
               onClick={() => onSuggestionClick(studyTopic.label)}
-              className="col-span-2 flex h-24 flex-col items-center justify-center gap-2 rounded-lg border-2 border-primary bg-primary/5 p-4 transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:col-span-3"
+              className="group col-span-2 flex h-28 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-primary bg-primary/5 p-4 transition-all hover:scale-[1.02] hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:col-span-3"
               type="button"
+              aria-label={`${studyTopic.label} — klicken zum Starten`}
             >
               {(() => {
                 const Icon = studyTopic.icon ?? Scale;
@@ -79,6 +81,13 @@ export function ExplorationEmptyView({
               })()}
               <span className="text-sm font-medium text-primary">
                 {studyTopic.label}
+              </span>
+              <span className="flex items-center gap-1 text-xs text-primary/80">
+                <MousePointerClick
+                  className="size-3.5 transition-transform group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                />
+                Klicken zum Starten
               </span>
             </button>
           )}

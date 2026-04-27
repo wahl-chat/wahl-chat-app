@@ -80,6 +80,7 @@ export function StudyExplorationWrapper({
     activeConversation,
     isThinking,
     thinkingMessage,
+    thinkingOriginTab,
     sendMessage,
     sendChatMessage,
     loadExploration,
@@ -88,20 +89,56 @@ export function StudyExplorationWrapper({
     markExplored,
     sessionMessages,
     pendingChoice,
+    pendingChoiceOriginTab,
     streamBuffer,
     streamingTarget,
+    streamingOriginTab,
     isStreaming,
     sessionId,
     explorationPending,
     explorationReadyData,
     clearExplorationReady,
     suggestedQuestions,
+    suggestedQuestionsOriginTab,
     activeTabId,
     explorationTabs,
   } = useExploration({
     initialSessionId: chatId,
     autoCreateSession: false,
   });
+
+  // Per-surface filters: a leaf-scoped event must not render in the chat
+  // tab and vice versa. `null` origin means "unknown" — pass through for
+  // backward compatibility (covers code paths that haven't been tagged).
+  const isForChatTab = (origin: typeof thinkingOriginTab) =>
+    origin === 'chat' || origin === null;
+  const isForLeafTab = (origin: typeof thinkingOriginTab) =>
+    origin === 'leaf' || origin === null;
+
+  const chatIsThinking = isThinking && isForChatTab(thinkingOriginTab);
+  const chatThinkingMessage = chatIsThinking ? thinkingMessage : null;
+  const chatStreamBuffer = isForChatTab(streamingOriginTab) ? streamBuffer : '';
+  const chatIsStreaming = isStreaming && isForChatTab(streamingOriginTab);
+  const chatStreamingTargetType = isForChatTab(streamingOriginTab)
+    ? streamingTarget?.type
+    : undefined;
+  const chatPendingChoice = isForChatTab(pendingChoiceOriginTab)
+    ? pendingChoice
+    : null;
+  const chatSuggestedQuestions = isForChatTab(suggestedQuestionsOriginTab)
+    ? suggestedQuestions
+    : [];
+
+  const leafIsThinking = isThinking && isForLeafTab(thinkingOriginTab);
+  const leafThinkingMessage = leafIsThinking ? thinkingMessage : null;
+  const leafStreamBuffer = isForLeafTab(streamingOriginTab) ? streamBuffer : '';
+  const leafIsStreaming = isStreaming && isForLeafTab(streamingOriginTab);
+  const leafStreamingTargetType = isForLeafTab(streamingOriginTab)
+    ? streamingTarget?.type
+    : undefined;
+  const leafSuggestedQuestions = isForLeafTab(suggestedQuestionsOriginTab)
+    ? suggestedQuestions
+    : [];
 
   const buildStudyUrl = useCallback(
     (explorationId: string | null, path: string[]) => {
@@ -319,11 +356,11 @@ export function StudyExplorationWrapper({
               breadcrumb={breadcrumb}
               activeConversation={activeConversation}
               summaries={summaries}
-              isThinking={isThinking}
-              thinkingMessage={thinkingMessage}
-              isStreaming={isStreaming}
-              streamBuffer={streamBuffer}
-              streamingTargetType={streamingTarget?.type}
+              isThinking={leafIsThinking}
+              thinkingMessage={leafThinkingMessage}
+              isStreaming={leafIsStreaming}
+              streamBuffer={leafStreamBuffer}
+              streamingTargetType={leafStreamingTargetType}
               onNavigate={handleNavigateToTopic}
               onGoToRoot={handleNavigateToRoot}
               onSubtopicSelect={handleNavigateToSubtopic}
@@ -332,9 +369,11 @@ export function StudyExplorationWrapper({
                 sendMessage(msg, activeConversation?.leafId)
               }
               onMarkExplored={markExplored}
-              suggestedQuestions={suggestedQuestions}
+              suggestedQuestions={leafSuggestedQuestions}
               sidebar={studySidebar}
               hideLeafDoneButton
+              hideAspectView
+              showMissingPartiesPlaceholder
               onExitToChat={() => handleTabSwitch('chat')}
             />
             {sessionId && urlExploration && (
@@ -348,15 +387,15 @@ export function StudyExplorationWrapper({
         ) : !isExplorationLoading ? (
           <ExplorationChatView
             messages={sessionMessages}
-            pendingChoice={pendingChoice}
-            isThinking={isThinking}
-            thinkingMessage={thinkingMessage}
-            streamBuffer={streamBuffer}
-            isStreaming={isStreaming}
-            streamingTargetType={streamingTarget?.type}
+            pendingChoice={chatPendingChoice}
+            isThinking={chatIsThinking}
+            thinkingMessage={chatThinkingMessage}
+            streamBuffer={chatStreamBuffer}
+            isStreaming={chatIsStreaming}
+            streamingTargetType={chatStreamingTargetType}
             tree={tree}
             explorationPending={explorationPending}
-            suggestedQuestions={suggestedQuestions}
+            suggestedQuestions={chatSuggestedQuestions}
             studyTopicLabel={studyTopicLabel}
             minDirections={2}
             onSendMessageAction={sendChatMessage}

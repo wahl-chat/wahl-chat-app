@@ -92,6 +92,22 @@ export interface QuickSummaryData {
   suggestedQuestions?: string[];
 }
 
+/**
+ * Which surface a streaming/thinking event belongs to.
+ *
+ * - `'chat'`: chat-tab actions (free-form questions, choice prompts,
+ *   quick summaries, direction selection).
+ * - `'leaf'`: anything scoped to an open leaf conversation inside an
+ *   exploration (initial content, follow-ups, leaf analysis).
+ * - `null`: unknown / not yet attributed — treat as visible everywhere
+ *   for backward compatibility.
+ *
+ * The store stores this per leaky field (streaming, thinking, pending
+ * choice, suggested questions) so the chat view and leaf view can each
+ * filter out the other's events.
+ */
+export type OriginTab = 'chat' | 'leaf' | null;
+
 export interface UISliceState {
   mode: AppMode;
   view: ViewType;
@@ -102,11 +118,23 @@ export interface UISliceState {
     id: string;
     section?: StreamSection;
   } | null;
+  /** Origin of the active stream — see {@link OriginTab}. */
+  streamingOriginTab: OriginTab;
   streamBuffer: string;
   pendingChoice: ChoicePromptEvent | null;
+  /** Origin of the active pending choice. */
+  pendingChoiceOriginTab: OriginTab;
   quickSummary: QuickSummaryData | null;
   thinkingStage: ThinkingStage | null;
   thinkingMessage: string | null;
+  /** Origin of the active thinking indicator. */
+  thinkingOriginTab: OriginTab;
+  /**
+   * Tab of the most recent user-initiated action. Used as a fallback
+   * scope for events that don't carry origin info (notably `thinking`
+   * events from the backend, which include only stage + message).
+   */
+  lastActionTab: OriginTab;
   announcement: string | null;
   /**
    * Monotonically increments on every ANNOUNCE. Lets the live-region
@@ -125,6 +153,8 @@ export interface UISliceState {
   explorationReadyData: ExplorationReadyData | null;
   /** Suggested follow-up questions to show above the input */
   suggestedQuestions: string[];
+  /** Origin of the active suggested-questions list. */
+  suggestedQuestionsOriginTab: OriginTab;
   /** Topic switch suggestion from the routing agent */
   topicSwitchSuggestion: {
     targetNodeId: string;
@@ -242,6 +272,7 @@ export type ExplorationAction =
       streamId: string;
       targetType: StreamTargetType;
       targetId: string;
+      originTab?: OriginTab;
     }
   | {
       type: 'STREAM_CHUNK_RECEIVED';
@@ -259,9 +290,14 @@ export type ExplorationAction =
       type: 'THINKING_STARTED';
       stage: ThinkingStage;
       message: string;
+      originTab?: OriginTab;
     }
   | { type: 'THINKING_ENDED' }
-  | { type: 'CHOICE_PROMPTED'; choice: ChoicePromptEvent }
+  | {
+      type: 'CHOICE_PROMPTED';
+      choice: ChoicePromptEvent;
+      originTab?: OriginTab;
+    }
   | { type: 'CHOICE_CLEARED' }
   | { type: 'QUICK_SUMMARY_RECEIVED'; data: QuickSummaryData }
   | { type: 'QUICK_SUMMARY_CLEARED' }
@@ -274,8 +310,13 @@ export type ExplorationAction =
       recoverable: boolean;
     }
   | { type: 'ERROR_CLEARED' }
-  | { type: 'SUGGESTED_QUESTIONS_SET'; questions: string[] }
+  | {
+      type: 'SUGGESTED_QUESTIONS_SET';
+      questions: string[];
+      originTab?: OriginTab;
+    }
   | { type: 'SUGGESTED_QUESTIONS_CLEARED' }
+  | { type: 'LAST_ACTION_TAB_SET'; tab: OriginTab }
   | {
       type: 'TOPIC_SWITCH_SUGGESTED';
       targetNodeId: string;

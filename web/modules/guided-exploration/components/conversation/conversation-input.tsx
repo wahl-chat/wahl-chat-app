@@ -109,7 +109,7 @@ export function ConversationInput({
                 tabIndex={0}
                 onClick={() => handleSuggestionClick(question)}
                 disabled={disabled}
-                className="shrink-0 whitespace-nowrap rounded-full border border-input bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                className="shrink-0 whitespace-nowrap rounded-full border border-input bg-white px-3 py-1.5 text-sm text-black transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label={`Vorgeschlagene Frage: ${question}`}
               >
                 {question}

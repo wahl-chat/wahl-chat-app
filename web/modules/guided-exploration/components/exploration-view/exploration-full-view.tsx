@@ -108,6 +108,18 @@ interface ExplorationFullViewProps {
    */
   hideLeafDoneButton?: boolean;
   /**
+   * When true, the "Nach Aspekt" toggle on the leaf view is hidden — the
+   * leaf renders only the summary plus the per-party view. Used in study
+   * mode where the trimmed dataset produces noisy aspect breakdowns.
+   */
+  hideAspectView?: boolean;
+  /**
+   * When true, the leaf view renders placeholder cards for parties from
+   * the active context that have no position on this subtopic. Used in
+   * study mode so participants see all assigned parties.
+   */
+  showMissingPartiesPlaceholder?: boolean;
+  /**
    * If set, renders a "Chat" button in the header that returns the user to
    * the chat tab of the exploration session. Gives desktop users a visible
    * way out of exploration (mobile still uses the tab bar).
@@ -142,6 +154,8 @@ export function ExplorationFullView({
   onDismissSwitch,
   sidebar,
   hideLeafDoneButton = false,
+  hideAspectView = false,
+  showMissingPartiesPlaceholder = false,
   onExitToChat,
   className,
 }: ExplorationFullViewProps) {
@@ -375,6 +389,7 @@ export function ExplorationFullView({
                 {view === 'leaf' && (
                   <LeafContent
                     conversation={activeConversation}
+                    leafName={activeLeafName ?? null}
                     isThinking={isThinking}
                     thinkingMessage={thinkingMessage}
                     isStreaming={isStreaming}
@@ -388,6 +403,10 @@ export function ExplorationFullView({
                         : undefined
                     }
                     onDismissSwitch={onDismissSwitch}
+                    hideAspectView={hideAspectView}
+                    showMissingPartiesPlaceholder={
+                      showMissingPartiesPlaceholder
+                    }
                   />
                 )}
               </div>
@@ -439,13 +458,22 @@ export function ExplorationFullView({
                       )}
                     </div>
                   )}
+                  {!isCompleted && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <MessageSquare aria-hidden="true" className="size-3.5" />
+                      <span>
+                        Du kannst hier weiter nachfragen — frag nach Details,
+                        Beispielen oder einer einfacheren Erklärung.
+                      </span>
+                    </div>
+                  )}
                   <ConversationInput
                     onSubmit={onSendMessage}
                     disabled={isThinking || isCompleted}
                     placeholder={
                       isCompleted
                         ? 'Diese Erkundung ist abgeschlossen.'
-                        : 'Stelle eine Frage zu diesem Thema...'
+                        : 'Frag mich alles dazu — z.B. „Wer zahlt das?“'
                     }
                     suggestedQuestions={isCompleted ? [] : suggestedQuestions}
                     isLoadingQuestions={

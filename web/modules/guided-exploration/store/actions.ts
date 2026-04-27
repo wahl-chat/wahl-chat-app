@@ -22,6 +22,7 @@ import type {
   AppMode,
   ExplorationAction,
   ExplorationStatus,
+  OriginTab,
   QuickSummaryData,
   ViewType,
 } from './types';
@@ -228,11 +229,13 @@ export const streamActions = {
     streamId: string,
     targetType: StreamTargetType,
     targetId: string,
+    originTab?: OriginTab,
   ): ExplorationAction => ({
     type: 'STREAM_STARTED',
     streamId,
     targetType,
     targetId,
+    originTab,
   }),
 
   chunkReceived: (
@@ -271,17 +274,23 @@ export const uiActions = {
   thinkingStarted: (
     stage: ThinkingStage,
     message: string,
+    originTab?: OriginTab,
   ): ExplorationAction => ({
     type: 'THINKING_STARTED',
     stage,
     message,
+    originTab,
   }),
 
   thinkingEnded: (): ExplorationAction => ({ type: 'THINKING_ENDED' }),
 
-  choicePrompted: (choice: ChoicePromptEvent): ExplorationAction => ({
+  choicePrompted: (
+    choice: ChoicePromptEvent,
+    originTab?: OriginTab,
+  ): ExplorationAction => ({
     type: 'CHOICE_PROMPTED',
     choice,
+    originTab,
   }),
 
   choiceCleared: (): ExplorationAction => ({ type: 'CHOICE_CLEARED' }),
@@ -317,13 +326,22 @@ export const uiActions = {
 
   errorCleared: (): ExplorationAction => ({ type: 'ERROR_CLEARED' }),
 
-  suggestedQuestionsSet: (questions: string[]): ExplorationAction => ({
+  suggestedQuestionsSet: (
+    questions: string[],
+    originTab?: OriginTab,
+  ): ExplorationAction => ({
     type: 'SUGGESTED_QUESTIONS_SET',
     questions,
+    originTab,
   }),
 
   suggestedQuestionsCleared: (): ExplorationAction => ({
     type: 'SUGGESTED_QUESTIONS_CLEARED',
+  }),
+
+  lastActionTabSet: (tab: OriginTab): ExplorationAction => ({
+    type: 'LAST_ACTION_TAB_SET',
+    tab,
   }),
 
   topicSwitchSuggested: (

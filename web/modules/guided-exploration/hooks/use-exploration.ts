@@ -26,15 +26,19 @@ import {
   selectMode,
   selectNavigation,
   selectPendingChoice,
+  selectPendingChoiceOriginTab,
   selectPendingDirections,
   selectProgress,
   selectQuickSummary,
   selectSessionId,
   selectSessionMessages,
   selectStreamBuffer,
+  selectStreamingOriginTab,
   selectStreamingTarget,
   selectSuggestedQuestions,
+  selectSuggestedQuestionsOriginTab,
   selectThinkingMessage,
+  selectThinkingOriginTab,
   selectThinkingStage,
   selectTotalLeavesCount,
   selectTree,
@@ -83,11 +87,16 @@ export function useExploration(options: UseExplorationOptions = {}) {
   const isStreaming = useExplorationStore(selectIsStreaming);
   const streamBuffer = useExplorationStore(selectStreamBuffer);
   const streamingTarget = useExplorationStore(selectStreamingTarget);
+  const streamingOriginTab = useExplorationStore(selectStreamingOriginTab);
 
   const thinkingStage = useExplorationStore(selectThinkingStage);
   const thinkingMessage = useExplorationStore(selectThinkingMessage);
   const isThinking = useExplorationStore(selectIsThinking);
+  const thinkingOriginTab = useExplorationStore(selectThinkingOriginTab);
   const pendingChoice = useExplorationStore(selectPendingChoice);
+  const pendingChoiceOriginTab = useExplorationStore(
+    selectPendingChoiceOriginTab,
+  );
   const quickSummary = useExplorationStore(selectQuickSummary);
   const error = useExplorationStore(selectError);
   const exploredCount = useExplorationStore(selectExploredCount);
@@ -97,6 +106,9 @@ export function useExploration(options: UseExplorationOptions = {}) {
   const explorationPending = useExplorationStore(selectExplorationPending);
   const explorationReadyData = useExplorationStore(selectExplorationReadyData);
   const suggestedQuestions = useExplorationStore(selectSuggestedQuestions);
+  const suggestedQuestionsOriginTab = useExplorationStore(
+    selectSuggestedQuestionsOriginTab,
+  );
   const topicSwitchSuggestion = useExplorationStore(
     (s) => s.ui.topicSwitchSuggestion,
   );
@@ -265,14 +277,17 @@ export function useExploration(options: UseExplorationOptions = {}) {
     isStreaming,
     streamBuffer,
     streamingTarget,
+    streamingOriginTab,
 
     // Thinking
     thinkingStage,
     thinkingMessage,
     isThinking,
+    thinkingOriginTab,
 
     // Choice
     pendingChoice,
+    pendingChoiceOriginTab,
     pendingDirections,
     quickSummary,
 
@@ -281,6 +296,7 @@ export function useExploration(options: UseExplorationOptions = {}) {
 
     // Suggested Questions
     suggestedQuestions,
+    suggestedQuestionsOriginTab,
 
     // Topic Switch
     topicSwitchSuggestion,

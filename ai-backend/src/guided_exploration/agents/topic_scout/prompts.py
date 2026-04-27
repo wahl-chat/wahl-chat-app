@@ -38,9 +38,9 @@ class TopicScoutLLMOutput(BaseModel):
 
     directions: list[LLMTopicDirection] = Field(
         ...,
-        description="2-4 Themenrichtungen die der Nutzer erkunden kann",
+        description="2-3 Themenrichtungen die der Nutzer erkunden kann",
         min_length=2,
-        max_length=5,
+        max_length=3,
     )
     cacheable: bool = Field(
         default=False,
@@ -59,7 +59,9 @@ SYSTEM_PROMPT = """Du bist ein politischer Themen-Scout.
 
 # Aufgabe
 Analysiere die bereitgestellten Auszüge aus Wahlprogrammen und identifiziere
-2-4 Themenrichtungen, die der Nutzer vertiefen kann.
+2-3 Themenrichtungen, die der Nutzer vertiefen kann. Nimm lieber WENIGE,
+klar abgegrenzte Richtungen als viele schwammige — wenn die Quelltexte nur
+zwei klare Cluster hergeben, gib zwei aus, nicht drei.
 
 # Regeln
 1. Jede Richtung muss durch die vorhandenen Quelltexte abgedeckt sein
@@ -86,6 +88,6 @@ USER_PROMPT = """Frage des Nutzers: {query}
 {rag_chunks}
 
 == Aufgabe ==
-Identifiziere 3-5 konkrete Themenrichtungen die der Nutzer basierend auf
+Identifiziere 2-3 konkrete Themenrichtungen die der Nutzer basierend auf
 diesen Quelltexten erkunden kann. Jede Richtung muss durch die Quelltexte
-abgedeckt sein."""
+abgedeckt sein. Wenn nur zwei Richtungen wirklich gut belegt sind, gib zwei aus."""

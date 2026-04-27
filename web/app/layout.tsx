@@ -160,6 +160,7 @@ export default async function RootLayout({
               <LazyMotion features={domAnimation}>
                 <ThemeProvider
                   attribute="class"
+                  defaultTheme="light"
                   enableSystem={!IS_EMBEDDED}
                   disableTransitionOnChange
                 >

@@ -5,6 +5,7 @@
 
 import type {
   ExplorationAction,
+  OriginTab,
   UISliceState,
 } from '@/modules/guided-exploration/store/types';
 
@@ -13,17 +14,22 @@ export const initialUIState: UISliceState = {
   view: 'root',
   isStreaming: false,
   streamingTarget: null,
+  streamingOriginTab: null,
   streamBuffer: '',
   pendingChoice: null,
+  pendingChoiceOriginTab: null,
   quickSummary: null,
   thinkingStage: null,
   thinkingMessage: null,
+  thinkingOriginTab: null,
+  lastActionTab: null,
   announcement: null,
   announcementId: 0,
   error: null,
   explorationPending: false,
   explorationReadyData: null,
   suggestedQuestions: [],
+  suggestedQuestionsOriginTab: null,
   topicSwitchSuggestion: null,
   pendingDirections: null,
 };
@@ -77,6 +83,7 @@ export function uiReducer(
         },
         thinkingStage: null,
         thinkingMessage: null,
+        thinkingOriginTab: null,
       };
 
     case 'EXPLORATION_READY_CLEARED':
@@ -110,11 +117,17 @@ export function uiReducer(
         ...state,
         thinkingStage: action.stage,
         thinkingMessage: action.message,
+        // Backend `thinking` events carry no scope, so callers can pass an
+        // explicit originTab; otherwise we fall back to the most recent
+        // user-action's tab so the indicator only shows on its own surface.
+        thinkingOriginTab: action.originTab ?? state.lastActionTab,
         suggestedQuestions: [],
+        suggestedQuestionsOriginTab: null,
         topicSwitchSuggestion: null,
         streamBuffer: '',
         isStreaming: false,
         streamingTarget: null,
+        streamingOriginTab: null,
       };
 
     case 'THINKING_ENDED':
@@ -122,6 +135,7 @@ export function uiReducer(
         ...state,
         thinkingStage: null,
         thinkingMessage: null,
+        thinkingOriginTab: null,
       };
 
     // Streaming
@@ -131,10 +145,16 @@ export function uiReducer(
         type: action.targetType,
         id: action.targetId,
       };
+      // Infer scope from the target type when the caller doesn't pass one:
+      // `quick_summary` is the chat-tab streamable type; everything else
+      // (`followup`, `initial_content`, `analysis`) is leaf-scoped.
+      const inferredOrigin: OriginTab =
+        action.targetType === 'quick_summary' ? 'chat' : 'leaf';
       return {
         ...state,
         isStreaming: true,
         streamingTarget: newStreamingTarget,
+        streamingOriginTab: action.originTab ?? inferredOrigin,
         streamBuffer: '',
       };
     }
@@ -162,12 +182,14 @@ export function uiReducer(
         ...state,
         isStreaming: false,
         streamingTarget: null,
+        streamingOriginTab: null,
       };
 
     case 'STREAM_BUFFER_CLEARED':
       return {
         ...state,
         streamBuffer: '',
+        streamingOriginTab: null,
       };
 
     // Choice
@@ -176,14 +198,18 @@ export function uiReducer(
         ...state,
         mode: 'choosing',
         pendingChoice: action.choice,
+        // Choice prompts (summarize-vs-explore) are always chat-tab events.
+        pendingChoiceOriginTab: action.originTab ?? 'chat',
         thinkingStage: null,
         thinkingMessage: null,
+        thinkingOriginTab: null,
       };
 
     case 'CHOICE_CLEARED':
       return {
         ...state,
         pendingChoice: null,
+        pendingChoiceOriginTab: null,
       };
 
     // Quick Summary
@@ -224,8 +250,10 @@ export function uiReducer(
           recoverable: action.recoverable,
         },
         isStreaming: false,
+        streamingOriginTab: null,
         thinkingStage: null,
         thinkingMessage: null,
+        thinkingOriginTab: null,
       };
 
     case 'ERROR_CLEARED':
@@ -239,12 +267,20 @@ export function uiReducer(
       return {
         ...state,
         suggestedQuestions: action.questions,
+        suggestedQuestionsOriginTab: action.originTab ?? state.lastActionTab,
       };
 
     case 'SUGGESTED_QUESTIONS_CLEARED':
       return {
         ...state,
         suggestedQuestions: [],
+        suggestedQuestionsOriginTab: null,
+      };
+
+    case 'LAST_ACTION_TAB_SET':
+      return {
+        ...state,
+        lastActionTab: action.tab,
       };
 
     case 'TOPIC_SWITCH_SUGGESTED':

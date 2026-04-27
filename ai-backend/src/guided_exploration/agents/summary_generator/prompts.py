@@ -315,15 +315,23 @@ welche Richtung es gehen soll. **KEINE `[PARTY:id]`-Karten, keine
 einzelnen Parteipositionen ausformulieren** — das passiert erst, wenn
 der Nutzer fokussiert hat.
 
+In diesem Modus (Übersicht + Rückfrage) gilt: **die gesamte Antwort
+enthält null Quellen-IDs.** Weder am Einleitungssatz, noch an der
+Aspekt-Liste, noch an der Rückfrage. Quellen-IDs gehören erst in die
+Folgeantwort, wenn der Nutzer einen konkreten Aspekt gewählt hat und
+echte Parteiforderungen wiedergegeben werden.
+
 Format:
 
 1. Ein kurzer Einleitungssatz, der das Themenfeld einordnet (was die
    Parteien grob trennt). `[PARTY_BADGE:id]` inline, wenn passend.
+   **Keine Quellen-IDs.**
 2. Eine kurze Liste (3–5 Punkte) der Aspekte aus den Quellen — pro
    Aspekt **ein fett gesetztes Schlagwort** und **ein knapper Halbsatz**
-   zur typischen Streit­linie. Keine Quellen-IDs, keine konkreten
+   zur typischen Streit­linie. **Keine Quellen-IDs**, keine konkreten
    Forderungen einzelner Parteien.
 3. Eine Rückfrage am Ende: welcher Aspekt interessiert am meisten?
+   **Keine Quellen-IDs.**
 
 Beispiel:
 > Soziale Gerechtigkeit umfasst mehrere Bereiche, in denen sich die
@@ -460,12 +468,37 @@ Zitations-IDs zeichengenau aus den Quellausschnitten."""
 # framing/summary sentences inflate the study's Information Exposure metric
 # and read as over-the-top — only sentences that state a concrete claim
 # from a source get IDs.
-CITATION_DIRECTIVE = """    - Zitierstil — WICHTIG:
-        - Setze Quellen-IDs **nur dann**, wenn der Satz eine konkrete, in den Ausschnitten belegte Aussage einer Partei wiedergibt (Forderung, Zahl, Plan, Position).
-        - **KEINE Quellen** an einleitenden, einordnenden, themenbeschreibenden oder zusammenfassenden Sätzen — auch nicht, wenn sie thematisch zu den Quellen passen. Sätze wie "Beim Klimaschutz unterscheiden sich die Parteien vor allem bei …", "Hier die Positionen der Parteien:" oder "Es geht im Kern um drei Streitpunkte" bekommen **keine** Quellen-IDs.
-        - **KEINE Sammel-Zitationen.** Hänge nicht alle verfügbaren Quellen an einen Satz, weil sie zum Thema passen. Pro Aussage höchstens 1–2 Quellen, und nur die, die genau diese eine Aussage belegen.
-        - Format: nach dem belegten Satz die ID(s) in eckigen Klammern, z.B. [12] oder [12, 15] — zeichengenau aus den Ausschnitten.
-        - Falls ein Satz keine Quelle braucht (Einordnung, Eigenanteil) → keine ID. Falls er auf Eigenwissen basiert, formatiere ihn _kursiv_."""
+CITATION_DIRECTIVE = """    - Zitierstil — KRITISCH, BEFOLGE DIESE REGEL STRIKT:
+        - **Standard ist KEINE Quelle.** Setze Quellen-IDs **nur**, wenn der Satz eine **konkrete, namentlich einer Partei zugeordnete Aussage** wiedergibt (eine Forderung, eine Zahl, ein Plan, eine konkrete Position). Wenn keine Partei im Satz genannt ist und keine konkrete Forderung zitiert wird → **keine ID**.
+        - **Niemals Sammel-Zitationen.** Hänge **niemals** mehrere Quellen-IDs (z.B. `[2, 4, 6, 9, 11, 13]`) an einen Satz, nur weil sie alle zum Thema passen. Pro Aussage **höchstens 1–2** Quellen, und nur jene, die genau **diese eine Aussage** belegen.
+        - **Niemals an Framing-/Meta-Sätzen.** Einleitungs-, Einordnungs-, Themen­beschreibungs-, Aspekt-Listen- oder Zusammenfassungs-Sätze bekommen **null** Quellen-IDs — auch wenn sie thematisch passen, auch wenn die Quellen vorhanden sind.
+        - Format: nach dem belegten Satz die ID(s) in eckigen Klammern, z.B. `[12]` oder `[12, 15]` — zeichengenau aus den Ausschnitten.
+        - Falls ein Satz auf Eigenwissen basiert, formatiere ihn _kursiv_ und gib **keine** ID an.
+
+        ❌ **VERBOTEN — so darf eine Antwort nie aussehen:**
+        ```
+        Beim Klimaschutz liegen die Unterschiede zwischen [PARTY_BADGE:venus],
+        [PARTY_BADGE:mars] und [PARTY_BADGE:saturn] vor allem darin, wie stark
+        der Staat eingreifen soll. [4, 2, 6, 9, 11, 13]
+
+        - **CO2-Preis:** Soll der CO2-Preis steigen oder ausgesetzt werden? [4, 6, 11, 10]
+        - **Verkehr:** Streit gibt es bei Tempolimit und Verbrenner-Aus. [2, 5, 8, 9, 12, 13]
+        ```
+        Falsch, weil: (1) Sammel-Zitationen am Einleitungssatz, (2) Quellen an
+        einer Aspekt-Liste, die gar keine Partei nennt, (3) jeweils 4–6 IDs
+        statt höchstens 1–2.
+
+        ✅ **RICHTIG — Framing ohne Quellen, IDs nur an konkreten Aussagen:**
+        ```
+        Beim Klimaschutz liegen die Unterschiede zwischen [PARTY_BADGE:venus],
+        [PARTY_BADGE:mars] und [PARTY_BADGE:saturn] vor allem darin, wie stark
+        der Staat eingreifen soll.
+
+        - **CO2-Preis:** Soll der CO2-Preis steigen oder ausgesetzt werden?
+        - **Verkehr:** Streit gibt es bei Tempolimit und Verbrenner-Aus.
+        ```
+        Quellen kommen erst in den Karten/Antworten zu den einzelnen Parteien
+        — und auch dort nur an dem Satz, der **die konkrete Forderung dieser einen Partei** ausspricht."""
 
 
 QUICK_SUMMARY_STREAMING_USER_PROMPT = """## Nutzerfrage

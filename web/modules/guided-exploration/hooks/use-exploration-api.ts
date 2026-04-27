@@ -160,6 +160,8 @@ export function useExplorationApi(): UseExplorationApiReturn {
         throw new Error('No active session');
       }
 
+      // Loading an exploration is initiated from the chat tab.
+      dispatch(uiActions.lastActionTabSet('chat'));
       dispatch(
         uiActions.thinkingStarted('retrieving', 'Erkundung wird geladen...'),
       );
@@ -226,6 +228,10 @@ export function useExplorationApi(): UseExplorationApiReturn {
         throw new Error('No active session');
       }
 
+      // Tag the action surface so SSE events without scope (notably the
+      // backend's `thinking` events) can be filtered to the originating tab.
+      dispatch(uiActions.lastActionTabSet(leafId ? 'leaf' : 'chat'));
+
       // Optimistically add user message to conversation if in a leaf
       if (leafId) {
         const userMessage = {
@@ -272,6 +278,9 @@ export function useExplorationApi(): UseExplorationApiReturn {
         throw new Error('No active session');
       }
 
+      // Choice prompts live in the chat tab; the resulting work belongs
+      // to chat as well (quick summary or topic-tree generation).
+      dispatch(uiActions.lastActionTabSet('chat'));
       dispatch(uiActions.choiceCleared());
       dispatch(
         uiActions.thinkingStarted(
@@ -322,6 +331,9 @@ export function useExplorationApi(): UseExplorationApiReturn {
         );
       }
 
+      // Direction selection happens in chat; resulting tree generation is
+      // chat-tab work too.
+      dispatch(uiActions.lastActionTabSet('chat'));
       dispatch(uiActions.topicDirectionsCleared());
       dispatch(
         uiActions.thinkingStarted('planning', 'Themenbaum wird erstellt...'),
@@ -355,6 +367,8 @@ export function useExplorationApi(): UseExplorationApiReturn {
         throw new Error('No active exploration');
       }
 
+      // Navigation only fires from inside an exploration tab.
+      dispatch(uiActions.lastActionTabSet('leaf'));
       dispatch(
         uiActions.thinkingStarted('retrieving', 'Inhalte werden geladen...'),
       );
@@ -382,6 +396,8 @@ export function useExplorationApi(): UseExplorationApiReturn {
         throw new Error('No active exploration');
       }
 
+      // Analysis is shown inside the leaf view.
+      dispatch(uiActions.lastActionTabSet('leaf'));
       dispatch(
         uiActions.thinkingStarted('generating', 'Analyse wird erstellt...'),
       );

@@ -145,6 +145,9 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
         }
 
         case 'thinking':
+          // Backend `thinking` events carry no scope. Let the reducer fall
+          // back to `lastActionTab` (set by the user-action site) so the
+          // indicator only shows on its own surface.
           dispatchRef.current(
             uiActions.thinkingStarted(
               (event as ThinkingEvent).stage,
@@ -154,8 +157,9 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           break;
 
         case 'choice_prompt':
+          // Choice prompts (summarize-vs-explore) are always chat-tab events.
           dispatchRef.current(
-            uiActions.choicePrompted(event as ChoicePromptEvent),
+            uiActions.choicePrompted(event as ChoicePromptEvent, 'chat'),
           );
           break;
 
@@ -267,7 +271,10 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
             convEvent.suggestedQuestions.length > 0
           ) {
             dispatchRef.current(
-              uiActions.suggestedQuestionsSet(convEvent.suggestedQuestions),
+              uiActions.suggestedQuestionsSet(
+                convEvent.suggestedQuestions,
+                'leaf',
+              ),
             );
           }
           dispatchRef.current(
@@ -308,7 +315,10 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
             msgEvent.suggestedQuestions.length > 0
           ) {
             dispatchRef.current(
-              uiActions.suggestedQuestionsSet(msgEvent.suggestedQuestions),
+              uiActions.suggestedQuestionsSet(
+                msgEvent.suggestedQuestions,
+                'leaf',
+              ),
             );
           }
           // End thinking after receiving a message
@@ -366,7 +376,10 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
             quickEvent.suggestedQuestions.length > 0
           ) {
             dispatchRef.current(
-              uiActions.suggestedQuestionsSet(quickEvent.suggestedQuestions),
+              uiActions.suggestedQuestionsSet(
+                quickEvent.suggestedQuestions,
+                'chat',
+              ),
             );
           }
           dispatchRef.current(uiActions.thinkingEnded());
@@ -392,7 +405,10 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
             chatEvent.suggestedQuestions.length > 0
           ) {
             dispatchRef.current(
-              uiActions.suggestedQuestionsSet(chatEvent.suggestedQuestions),
+              uiActions.suggestedQuestionsSet(
+                chatEvent.suggestedQuestions,
+                'chat',
+              ),
             );
           }
           dispatchRef.current(uiActions.thinkingEnded());

@@ -102,6 +102,11 @@ class SummaryGeneratorAgent(BaseAgent[SummaryInput, SummaryOutput]):
         focus_directive = (
             BASELINE_FOCUS_DIRECTIVE if input.is_baseline else GUIDED_FOCUS_DIRECTIVE
         )
+        logger.info(
+            "Quick summary directive: %s (is_baseline=%s)",
+            "BASELINE" if input.is_baseline else "GUIDED",
+            input.is_baseline,
+        )
 
         system_prompt = QUICK_SUMMARY_STREAMING_SYSTEM_PROMPT.format(
             context_name=input.context_name,

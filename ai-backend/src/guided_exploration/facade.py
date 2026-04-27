@@ -2526,6 +2526,12 @@ class GuidedExplorationFacade:
         # questions, claim-only citations) so the baseline doesn't bleed
         # exploration-style behaviour into the contrast condition.
         is_baseline = session is not None and session.mode == SessionMode.BASELINE
+        logger.info(
+            "Quick summary path: session_id=%s mode=%s is_baseline=%s",
+            session_id,
+            session.mode.value if session else None,
+            is_baseline,
+        )
         summary_input = QuickSummaryInput(
             query=query,
             rag_context=rag_context,

@@ -47,7 +47,7 @@ export function PartyBadge({
     return (
       <span
         className={cn(
-          'mx-0.5 inline-flex items-center gap-1 rounded-md border bg-muted px-1.5 py-0 align-middle text-xs font-medium leading-none',
+          'mx-0.5 inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-0.5 align-middle text-sm font-medium leading-none',
           className,
         )}
       >
@@ -55,9 +55,9 @@ export function PartyBadge({
           <Image
             src={imageUrl}
             alt=""
-            width={14}
-            height={14}
-            className="my-0.5 size-3.5 rounded-sm object-contain"
+            width={16}
+            height={16}
+            className="size-4 rounded-sm object-contain"
             onError={() => setImageError(true)}
           />
         )}

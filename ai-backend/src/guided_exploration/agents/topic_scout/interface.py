@@ -47,7 +47,7 @@ class TopicScoutOutput(BaseModel):
     """Output from topic scout agent."""
 
     directions: list[TopicDirection] = Field(
-        ..., description="3-5 topic directions the user can choose from"
+        ..., description="2-3 topic directions the user can choose from"
     )
     cacheable: bool = Field(
         default=False,

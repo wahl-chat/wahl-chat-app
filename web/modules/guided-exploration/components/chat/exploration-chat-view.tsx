@@ -78,10 +78,10 @@ export function ExplorationChatView({
     !messages[messages.length - 1]?.selectedDirections;
 
   // Show stream buffer while streaming OR while buffer still has content
-  // (covers the gap between stream_end and the final chat_message arriving)
-  const isStreamableType =
-    streamingTargetType === 'quick_summary' ||
-    streamingTargetType === 'followup';
+  // (covers the gap between stream_end and the final chat_message arriving).
+  // Only `quick_summary` is a chat-tab stream — `followup`/`initial_content`/
+  // `analysis` are leaf-scoped and must not bleed into the chat view.
+  const isStreamableType = streamingTargetType === 'quick_summary';
   const shouldShowStreamBuffer =
     !!streamBuffer && (isStreaming ? isStreamableType : true);
 

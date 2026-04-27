@@ -3,6 +3,7 @@
 import { useId, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import VisuallyHidden from '@/components/visually-hidden';
 import { cn } from '@/lib/utils';
 import {
   FollowupMessage,
@@ -26,6 +27,12 @@ import { AspectComparisonView } from './aspect-comparison-view';
 
 interface LeafContentProps {
   conversation: Conversation | null;
+  /**
+   * Name of the active leaf, used to render a synthetic user message at
+   * the top of the conversation ("Gib mir einen Überblick über …") so the
+   * leaf reads as a chat thread rather than a static info page.
+   */
+  leafName?: string | null;
   isThinking: boolean;
   thinkingMessage?: string | null;
   isStreaming?: boolean;
@@ -40,11 +47,24 @@ interface LeafContentProps {
   } | null;
   onAcceptSwitch?: () => void;
   onDismissSwitch?: () => void;
+  /**
+   * Hide the "Nach Aspekt" toggle and the aspect comparison view. Used in
+   * study mode where the trimmed dataset produces low-quality aspect
+   * breakdowns that distract from the conversational summary + party view.
+   */
+  hideAspectView?: boolean;
+  /**
+   * Render placeholder cards for parties from the active context that have
+   * no position on this subtopic. Used in study mode so participants see
+   * all assigned parties.
+   */
+  showMissingPartiesPlaceholder?: boolean;
   className?: string;
 }
 
 export function LeafContent({
   conversation,
+  leafName,
   topicSwitchSuggestion,
   onAcceptSwitch,
   onDismissSwitch,
@@ -53,6 +73,8 @@ export function LeafContent({
   isStreaming,
   streamBuffer,
   streamingTargetType,
+  hideAspectView = false,
+  showMissingPartiesPlaceholder = false,
   className,
 }: LeafContentProps) {
   const [viewMode, setViewMode] = useState<'party' | 'aspect'>('party');
@@ -91,32 +113,41 @@ export function LeafContent({
     isStreaming && streamingTargetType === 'initial_content';
 
   const hasAspectComparison =
+    !hideAspectView &&
     initialContent?.aspectComparison &&
     initialContent.aspectComparison.aspects.length > 0;
 
   return (
     <div className={cn('space-y-6', className)}>
-      {/* Summary — rendered once above the view toggle, shared across modes */}
-      {initialContent?.summary && (
-        <section aria-labelledby={summaryHeadingId}>
-          <h3
-            id={summaryHeadingId}
-            className="mb-3 text-lg font-bold text-foreground"
-          >
-            Zusammenfassung
-          </h3>
-          <div className="rounded-lg border p-4">
-            <div className="prose prose-sm max-w-none text-foreground dark:prose-invert prose-p:font-normal prose-p:text-foreground">
-              <CitationMarkdown
-                onReferenceClick={handleSummaryReferenceClick}
-                getReferenceName={getSummaryReferenceName}
-                getReferenceTooltip={getSummaryReferenceTooltip}
-              >
-                {initialContent.summary}
-              </CitationMarkdown>
-            </div>
+      {/* Synthetic opening user message — frames the leaf as a chat thread
+          where the assistant response below is the answer to this question. */}
+      {leafName && (
+        <div className="flex justify-end">
+          <div className="max-w-[80%] rounded-[20px] bg-muted px-4 py-2">
+            <p className="text-sm">
+              Gib mir einen Überblick über „{leafName}“.
+            </p>
           </div>
-        </section>
+        </div>
+      )}
+
+      {/* Summary — rendered as plain assistant message text (no box, no
+          heading) so the leaf reads as a real chat reply rather than a
+          static info page. The party cards below are part of the same
+          assistant turn. */}
+      {initialContent?.summary && (
+        <div className="prose prose-sm max-w-none text-foreground dark:prose-invert prose-p:font-normal prose-p:text-foreground">
+          <VisuallyHidden>
+            <h3 id={summaryHeadingId}>Antwort der KI:</h3>
+          </VisuallyHidden>
+          <CitationMarkdown
+            onReferenceClick={handleSummaryReferenceClick}
+            getReferenceName={getSummaryReferenceName}
+            getReferenceTooltip={getSummaryReferenceTooltip}
+          >
+            {initialContent.summary}
+          </CitationMarkdown>
+        </div>
       )}
 
       {/* View toggle — only show when aspect comparison data is available */}
@@ -177,6 +208,7 @@ export function LeafContent({
                 key={message.id}
                 messageId={message.id}
                 content={message.content as SubtopicContent}
+                showMissingPartiesPlaceholder={showMissingPartiesPlaceholder}
               />
             );
           }
