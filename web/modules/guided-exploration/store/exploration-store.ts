@@ -6,10 +6,10 @@
 import { create } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 
-import type { BreadcrumbItem } from '@/modules/guided-exploration/types';
 import {
   countExploredLeaves,
   countLeaves,
+  findNode,
 } from '@/modules/guided-exploration/utils/tree-helpers';
 import {
   connectionReducer,
@@ -25,12 +25,18 @@ import {
 } from './slices';
 import type { ExplorationAction, ExplorationStoreState } from './types';
 
-import type { SessionMessage } from '@/modules/guided-exploration/types';
+import type {
+  ExplorationNode,
+  ExplorationTree,
+  LeafSummary,
+  SessionMessage,
+} from '@/modules/guided-exploration/types';
 
 // ============ Stable References (for selector stability) ============
-const EMPTY_PATH: string[] = [];
-const EMPTY_BREADCRUMB: BreadcrumbItem[] = [];
 const EMPTY_MESSAGES: SessionMessage[] = [];
+const EMPTY_TREES: ExplorationTree[] = [];
+const EMPTY_TREE_IDS: string[] = [];
+const EMPTY_SUMMARIES: Record<string, LeafSummary> = {};
 
 // ============ Initial State ============
 
@@ -104,49 +110,102 @@ export const selectIsConnected = (state: ExplorationStore) =>
 export const selectSessionId = (state: ExplorationStore) =>
   state.session.sessionId;
 
-/** Get current exploration ID */
-export const selectExplorationId = (state: ExplorationStore) =>
-  state.session.explorationId;
+// ----- Multi-tree -----
 
-/** Get the topic tree */
-export const selectTree = (state: ExplorationStore) => state.exploration.tree;
+/** All trees keyed by explorationId. */
+export const selectTrees = (state: ExplorationStore) => state.exploration.trees;
 
-/** Get current navigation state */
-export const selectNavigation = (state: ExplorationStore) =>
-  state.exploration.navigation;
-
-/** Get current path in tree */
-export const selectCurrentPath = (state: ExplorationStore) =>
-  state.exploration.navigation?.currentPath ?? EMPTY_PATH;
-
-/** Get breadcrumb items */
-export const selectBreadcrumb = (state: ExplorationStore) =>
-  state.exploration.navigation?.breadcrumb ?? EMPTY_BREADCRUMB;
-
-/** Get the active leaf conversation */
-export const selectActiveConversation = (state: ExplorationStore) => {
-  const { activeLeafId, conversations } = state.exploration;
-  return activeLeafId ? (conversations[activeLeafId] ?? null) : null;
+/**
+ * List of explorationIds present in the store. Wrap with
+ * `useShallow` at the call site — this returns a fresh array on every
+ * call and would loop `useSyncExternalStore` otherwise.
+ */
+export const selectTreeIds = (state: ExplorationStore) => {
+  const ids = Object.keys(state.exploration.trees);
+  return ids.length === 0 ? EMPTY_TREE_IDS : ids;
 };
 
-/** Get a specific conversation by leaf ID */
+/** A specific tree by explorationId. */
+export const selectTree =
+  (explorationId: string | null | undefined) => (state: ExplorationStore) =>
+    explorationId ? (state.exploration.trees[explorationId] ?? null) : null;
+
+/** A specific conversation. */
 export const selectConversation =
-  (leafId: string) => (state: ExplorationStore) =>
-    state.exploration.conversations[leafId] ?? null;
+  (
+    explorationId: string | null | undefined,
+    leafId: string | null | undefined,
+  ) =>
+  (state: ExplorationStore) =>
+    explorationId && leafId
+      ? (state.exploration.conversations[explorationId]?.[leafId] ?? null)
+      : null;
 
-/** Check if analysis is available for current leaf */
-export const selectAnalysisAvailable = (state: ExplorationStore) =>
-  state.exploration.analysisAvailable;
+/** Currently open leaf sidebar pointer. */
+export const selectActiveLeaf = (state: ExplorationStore) =>
+  state.exploration.activeLeaf;
 
-/** Get the lifecycle status of the current exploration */
-export const selectExplorationStatus = (state: ExplorationStore) =>
-  state.exploration.status;
+/** Tree of the currently open leaf. */
+export const selectActiveLeafTree = (state: ExplorationStore) => {
+  const active = state.exploration.activeLeaf;
+  return active
+    ? (state.exploration.trees[active.explorationId] ?? null)
+    : null;
+};
+
+/** Node of the currently open leaf. */
+export const selectActiveLeafNode = (
+  state: ExplorationStore,
+): ExplorationNode | null => {
+  const active = state.exploration.activeLeaf;
+  if (!active) return null;
+  const tree = state.exploration.trees[active.explorationId];
+  if (!tree) return null;
+  return findNode(tree, active.leafId) ?? null;
+};
+
+/** Conversation of the currently open leaf. */
+export const selectActiveConversation = (state: ExplorationStore) => {
+  const active = state.exploration.activeLeaf;
+  if (!active) return null;
+  return (
+    state.exploration.conversations[active.explorationId]?.[active.leafId] ??
+    null
+  );
+};
+
+/** Status of a specific exploration. */
+export const selectExplorationStatus =
+  (explorationId: string | null | undefined) => (state: ExplorationStore) =>
+    explorationId ? (state.exploration.status[explorationId] ?? null) : null;
+
+/** Whether analysis is available for a specific leaf. */
+export const selectAnalysisAvailable =
+  (
+    explorationId: string | null | undefined,
+    leafId: string | null | undefined,
+  ) =>
+  (state: ExplorationStore) =>
+    explorationId && leafId
+      ? Boolean(state.exploration.analysisAvailable[explorationId]?.[leafId])
+      : false;
+
+/**
+ * All trees as an array. Wrap with `useShallow` at the call site — this
+ * returns a fresh array on every call and would loop
+ * `useSyncExternalStore` otherwise.
+ */
+export const selectTreesArray = (state: ExplorationStore) => {
+  const trees = state.exploration.trees;
+  const keys = Object.keys(trees);
+  if (keys.length === 0) return EMPTY_TREES;
+  return keys.map((id) => trees[id]);
+};
+
+// ----- UI -----
 
 /** Get current app mode */
 export const selectMode = (state: ExplorationStore) => state.ui.mode;
-
-/** Get current view type */
-export const selectView = (state: ExplorationStore) => state.ui.view;
 
 /** Check if currently streaming */
 export const selectIsStreaming = (state: ExplorationStore) =>
@@ -196,55 +255,72 @@ export const selectThinkingOriginTab = (state: ExplorationStore) =>
 export const selectAnnouncement = (state: ExplorationStore) =>
   state.ui.announcement;
 
-/**
- * Monotonic counter that increments on every announcement. Pair with
- * `selectAnnouncement` and key on this value so identical back-to-back
- * messages still trigger a re-announce.
- */
+/** Monotonic counter that increments on every announcement. */
 export const selectAnnouncementId = (state: ExplorationStore) =>
   state.ui.announcementId;
 
 /** Get current error */
 export const selectError = (state: ExplorationStore) => state.ui.error;
 
-/** Get all leaf summaries */
-export const selectSummaries = (state: ExplorationStore) =>
-  state.summaries.summaries;
+// ----- Summaries -----
 
-/** Get summary for a specific leaf */
+/** Summaries map for an exploration. */
+export const selectExplorationSummaries =
+  (explorationId: string | null | undefined) => (state: ExplorationStore) =>
+    explorationId
+      ? (state.summaries.summaries[explorationId] ?? EMPTY_SUMMARIES)
+      : EMPTY_SUMMARIES;
+
+/** Get summary for a specific leaf within an exploration. */
 export const selectLeafSummary =
-  (leafId: string) => (state: ExplorationStore) =>
-    state.summaries.summaries[leafId] ?? null;
+  (
+    explorationId: string | null | undefined,
+    leafId: string | null | undefined,
+  ) =>
+  (state: ExplorationStore) =>
+    explorationId && leafId
+      ? (state.summaries.summaries[explorationId]?.[leafId] ?? null)
+      : null;
 
-/** Get topic summaries */
-export const selectTopicSummaries = (state: ExplorationStore) =>
-  state.summaries.topicSummaries;
+/** Topic summaries map for an exploration. */
+export const selectTopicSummaries =
+  (explorationId: string | null | undefined) => (state: ExplorationStore) =>
+    explorationId
+      ? (state.summaries.topicSummaries[explorationId] ?? null)
+      : null;
 
 /** Check if a node is currently generating summary */
 export const selectIsGeneratingSummary =
   (nodeId: string) => (state: ExplorationStore) =>
     state.summaries.generatingIds.includes(nodeId);
 
-/** Count explored leaves (leaves where status === 'explored') */
-export const selectExploredCount = (state: ExplorationStore) => {
-  const tree = state.exploration.tree;
-  if (!tree) return 0;
-  return countExploredLeaves(tree);
-};
+// ----- Progress -----
 
-/** Count total leaves in tree */
-export const selectTotalLeavesCount = (state: ExplorationStore) => {
-  const tree = state.exploration.tree;
-  if (!tree) return 0;
-  return countLeaves(tree);
-};
+/** Count explored leaves for a specific exploration. */
+export const selectExploredCount =
+  (explorationId: string | null | undefined) => (state: ExplorationStore) => {
+    const tree = explorationId ? state.exploration.trees[explorationId] : null;
+    return tree ? countExploredLeaves(tree) : 0;
+  };
 
-/** Get exploration progress as fraction */
-export const selectProgress = (state: ExplorationStore) => {
-  const explored = selectExploredCount(state);
-  const total = selectTotalLeavesCount(state);
-  return total > 0 ? explored / total : 0;
-};
+/** Count total leaves for a specific exploration. */
+export const selectTotalLeavesCount =
+  (explorationId: string | null | undefined) => (state: ExplorationStore) => {
+    const tree = explorationId ? state.exploration.trees[explorationId] : null;
+    return tree ? countLeaves(tree) : 0;
+  };
+
+/** Get exploration progress for a specific exploration. */
+export const selectProgress =
+  (explorationId: string | null | undefined) => (state: ExplorationStore) => {
+    const tree = explorationId ? state.exploration.trees[explorationId] : null;
+    if (!tree) return 0;
+    const total = countLeaves(tree);
+    const explored = countExploredLeaves(tree);
+    return total > 0 ? explored / total : 0;
+  };
+
+// ----- Session -----
 
 /** Get session messages (chat history) */
 export const selectSessionMessages = (state: ExplorationStore) =>
@@ -273,11 +349,3 @@ export const selectTopicSwitchSuggestion = (state: ExplorationStore) =>
 /** Get pending topic directions */
 export const selectPendingDirections = (state: ExplorationStore) =>
   state.ui.pendingDirections;
-
-/** Get active tab ID */
-export const selectActiveTabId = (state: ExplorationStore) =>
-  state.session.activeTabId;
-
-/** Get all exploration tabs */
-export const selectExplorationTabs = (state: ExplorationStore) =>
-  state.session.explorationTabs;

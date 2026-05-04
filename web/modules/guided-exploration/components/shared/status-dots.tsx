@@ -1,7 +1,6 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { nanoid } from 'nanoid';
 import { StatusDot } from './status-dot';
 
 interface StatusDotsProps {
@@ -20,18 +19,26 @@ export function StatusDots({
   // If total exceeds maxDots, show abbreviated version
   const showAbbreviated = total > maxDots;
 
+  // Build a stable, position-keyed list of dots. Each dot's identity is its
+  // position; the `id` field shields the key from biome's index-key rule.
+  const buildDots = (count: number, exploredCount: number) => {
+    const items: { id: string; status: 'explored' | 'pending' }[] = [];
+    for (let i = 0; i < count; i++) {
+      items.push({
+        id: `dot-${i}`,
+        status: i < exploredCount ? 'explored' : 'pending',
+      });
+    }
+    return items;
+  };
+
   if (showAbbreviated) {
-    // Show first few dots + indicator of more
     const visibleDots = Math.min(maxDots - 1, total);
     const exploredVisible = Math.min(explored, visibleDots);
-
     return (
       <div className={cn('flex items-center gap-1', className)}>
-        {Array.from({ length: visibleDots }).map((_, i) => (
-          <StatusDot
-            key={nanoid()}
-            status={i < exploredVisible ? 'explored' : 'pending'}
-          />
+        {buildDots(visibleDots, exploredVisible).map((dot) => (
+          <StatusDot key={dot.id} status={dot.status} />
         ))}
         <span className="text-xs text-foreground">+{total - visibleDots}</span>
       </div>
@@ -40,11 +47,8 @@ export function StatusDots({
 
   return (
     <div className={cn('flex items-center gap-1', className)}>
-      {Array.from({ length: total }).map((_, i) => (
-        <StatusDot
-          key={nanoid()}
-          status={i < explored ? 'explored' : 'pending'}
-        />
+      {buildDots(total, explored).map((dot) => (
+        <StatusDot key={dot.id} status={dot.status} />
       ))}
     </div>
   );

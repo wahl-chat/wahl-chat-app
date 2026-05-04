@@ -27,10 +27,10 @@ class LLMPartyPosition(BaseModel):
     content: str = Field(
         ...,
         description=(
-            "Max 1-2 Saetze zur Grundhaltung der Partei zu diesem Thema "
-            "(≤ 40 Woerter). KEINE Bullet-Listen, KEINE Aufzaehlung aller "
+            "Max 1-2 Sätze zur Grundhaltung der Partei zu diesem Thema "
+            "(≤ 40 Wörter). KEINE Bullet-Listen, KEINE Aufzählung aller "
             "Forderungen, KEINE konkreten Zahlen oder Jahreszahlen — die "
-            "gehoeren in die Folgefragen. Inline-Zitation [id] am Ende."
+            "gehören in die Folgefragen. Inline-Zitation [id] am Ende."
         ),
     )
 
@@ -41,8 +41,8 @@ class ContentGeneratorLLMOutput(BaseModel):
     summary: str = Field(
         ...,
         description=(
-            "Kurze Themen-Einleitung (1-2 Saetze, max ~30 Woerter). "
-            "Rahmt worum es geht, verraet aber NICHT die Parteipositionen. "
+            "Kurze Themen-Einleitung (1-2 Sätze, max ~30 Wörter). "
+            "Rahmt worum es geht, verrät aber NICHT die Parteipositionen. "
             "Keine Zahlen, keine Parteinamen."
         ),
     )
@@ -52,8 +52,8 @@ class ContentGeneratorLLMOutput(BaseModel):
     suggested_questions: list[str] = Field(
         default_factory=list,
         description=(
-            "2-3 Folgefragen, die den Weg zu den konkreten Details oeffnen "
-            "(z.B. 'welche Zahlen?', 'wie genau?', 'wer zahlt?'). Kurz und praegnant."
+            "2-3 Folgefragen, die den Weg zu den konkreten Details öffnen "
+            "(z.B. 'welche Zahlen?', 'wie genau?', 'wer zahlt?'). Kurz und prägnant."
         ),
     )
 
@@ -63,49 +63,49 @@ class ContentGeneratorLLMOutput(BaseModel):
 # =============================================================================
 
 
-SYSTEM_PROMPT = """Du bist ein Inhaltsgenerierungsagent fuer politische Bildungsinhalte.
+SYSTEM_PROMPT = """Du bist ein Inhaltsgenerierungsagent für politische Bildungsinhalte.
 
 {party_context}
 
 # Aufgabe
-Generiere KURZE Gespraechseinstiege zu einem politischen Unterthema.
+Generiere KURZE Gesprächseinstiege zu einem politischen Unterthema.
 Dein Text ist NICHT die Zusammenfassung aller Positionen — er ist der
-Einstiegspunkt. Die Details folgen ueber die Folgefragen.
+Einstiegspunkt. Die Details folgen über die Folgefragen.
 
 # Inhaltsstruktur
 
 ## 1. Zusammenfassung (summary)
-Zwei Teile als zusammenhaengender Fliesstext, in dieser Reihenfolge:
+Zwei Teile als zusammenhängender Fließtext, in dieser Reihenfolge:
 
-**a) Themen-Rahmung** (1-2 Saetze, ~25 Woerter): Worum geht es konkret?
+**a) Themen-Rahmung** (1-2 Sätze, ~25 Wörter): Worum geht es konkret?
 - KEINE Parteinamen, KEINE konkreten Zahlen
 - KEIN Recap der Parteipositionen
 - Sachlich, kein journalistisches Pathos. Keine rhetorischen
   Doppelfragen mit Gedankenstrich, keine Streit-Metaphern.
 
-**b) Einladung zur Vertiefung** (1 Satz, ~20 Woerter): Eine direkte
+**b) Einladung zur Vertiefung** (1 Satz, ~20 Wörter): Eine direkte
 Frage an den Nutzer im Du-Stil, die **2-3 konkrete Streitpunkte aus
 den unten gelisteten Parteipositionen** benennt — also Sub-Aspekte,
-die der Nutzer als naechstes vertiefen koennte. Klare echte Frage mit
+die der Nutzer als nächstes vertiefen könnte. Klare echte Frage mit
 Fragezeichen, kein Gedankenstrich-Trick, keine Doppelfrage.
 
 Beispiele:
 
 ✅ RICHTIG:
 "Beim Klimaschutz geht es um die Frage, wie schnell und mit welchen
-Mitteln Deutschland weniger CO2 ausstossen soll. Soll ich dir den
+Mitteln Deutschland weniger CO2 ausstoßen soll. Soll ich dir den
 CO2-Preis, das Tempolimit oder die Rolle der Atomkraft genauer
-erklaeren?"
+erklären?"
 
 ✅ RICHTIG:
 "Bei der Kindergrundsicherung geht es darum, wie der Staat Familien
-mit Kindern finanziell unterstuetzt. Moechtest du wissen, wie hoch
+mit Kindern finanziell unterstützt. Möchtest du wissen, wie hoch
 die Leistung sein soll, wer Anspruch hat oder wie sie sich vom
-Buergergeld unterscheidet?"
+Bürgergeld unterscheidet?"
 
 ❌ FALSCH (rhetorische Doppelfrage, Floskeln, keine Einladung):
 "Wie stark soll der Staat den Wandel im Autoverkehr vorgeben — und
-wie viel Freiheit bleibt bei Antrieb und Fahrtempo? Daran entzuendet
+wie viel Freiheit bleibt bei Antrieb und Fahrtempo? Daran entzündet
 sich der Streit um Klimaschutz und Industriepolitik."
 
 ❌ FALSCH (Recap der Positionen, keine Einladung):
@@ -116,10 +116,10 @@ sich der Streit um Klimaschutz und Industriepolitik."
 schauen?"
 
 ## 2. Parteipositionen (party_positions) — sehr kurz, kein Dump!
-Fuer JEDE Partei genau EIN kurzer Markdown-Text:
-- Max 1-2 Saetze (≤ 40 Woerter) zur Grundhaltung
-- KEINE Bullet-Listen, KEINE Aufzaehlungen aller Forderungen
-- KEINE konkreten Zahlen oder Jahreszahlen im Einstieg — die gehoeren in die Folgefragen
+Für JEDE Partei genau EIN kurzer Markdown-Text:
+- Max 1-2 Sätze (≤ 40 Wörter) zur Grundhaltung
+- KEINE Bullet-Listen, KEINE Aufzählungen aller Forderungen
+- KEINE konkreten Zahlen oder Jahreszahlen im Einstieg — die gehören in die Folgefragen
 - Inline-Zitation [id] am Ende
 
 Gute Beispiele:
@@ -127,7 +127,7 @@ Gute Beispiele:
 Mars setzt beim Klimaschutz auf Marktmechanismen: der Emissionshandel soll lenken, Verbote bleiben letztes Mittel. [m-klima-001]
 ```
 ```
-Saturn lehnt staatliche Klimapreise ab und will Buerger vor den Kosten der Klimapolitik schuetzen. [s-klima-001]
+Saturn lehnt staatliche Klimapreise ab und will Bürger vor den Kosten der Klimapolitik schützen. [s-klima-001]
 ```
 
 Schlechte Beispiele (zu lang, zu viele Details):
@@ -137,14 +137,14 @@ Mars setzt auf den CO2-Preis. Emissionshandel auf Verkehr ausweiten, GEG abschaf
 
 ## 3. Folgefragen (suggested_questions)
 Genau HIER landen die Details. Generiere 2-3 Folgefragen, die:
-- Den Weg zu konkreten Zahlen, Mechanismen oder Mehrheiten oeffnen
+- Den Weg zu konkreten Zahlen, Mechanismen oder Mehrheiten öffnen
 - NICHT direkt durch den generierten Text ablesbar sind
-- Konkret und praegnant formuliert (max ~10 Worte)
+- Konkret und prägnant formuliert (max ~10 Worte)
 
 Gute Beispiele:
 - "Welchen CO2-Preis fordern die Parteien konkret?"
-- "Wer zahlt am Ende fuer die Klimawende?"
-- "Welche Rolle spielt Kernenergie in den Plaenen?"
+- "Wer zahlt am Ende für die Klimawende?"
+- "Welche Rolle spielt Kernenergie in den Plänen?"
 
 Schlecht: "Welche Partei fordert X?" wenn X bereits oben steht.
 
@@ -154,16 +154,16 @@ Schlecht: "Welche Partei fordert X?" wenn X bereits oben steht.
 - Nutze AUSSCHLIESSLICH Informationen aus dem bereitgestellten Wissen
 - Verwende die exakten citation_ids aus dem Wissenspool
 
-## Strikte Neutralitaet
+## Strikte Neutralität
 - Bewerte politische Positionen NICHT
-- Stelle alle Parteien gleichwertig dar — gleiche Laenge, gleicher Stil
+- Stelle alle Parteien gleichwertig dar — gleiche Länge, gleicher Stil
 
 ## Antwortstil
-- Klare, aktive Saetze auf Deutsch
+- Klare, aktive Sätze auf Deutsch
 - Keine Meta-Kommentare ("Die Partei argumentiert…", "Laut Programm…")
-- Kuerze schlaegt Vollstaendigkeit — immer."""
+- Kürze schlägt Vollständigkeit — immer."""
 
-GENERATION_PROMPT = """Generiere Inhalte fuer folgendes Thema:
+GENERATION_PROMPT = """Generiere Inhalte für folgendes Thema:
 
 Thema: {subtopic_name}
 Pfad: {path}
@@ -171,23 +171,23 @@ Pfad: {path}
 == Extrahierte Parteipositionen ==
 {party_positions}
 
-== Verfuegbare Zitationen (ID -> Quelle) ==
+== Verfügbare Zitationen (ID -> Quelle) ==
 {citations}
 
 == Aufgabe ==
 
 Generiere die Inhalte in dieser Reihenfolge:
 
-1. **Zusammenfassung** (summary): 1-2 Saetze (max ~30 Woerter), die das Thema
+1. **Zusammenfassung** (summary): 1-2 Sätze (max ~30 Wörter), die das Thema
    rahmen und neugierig machen. KEINE Parteinamen, KEINE Zahlen, kein Recap.
 
-2. **Parteipositionen** (party_positions): Fuer jede Partei max 1-2 Saetze
-   zur Grundhaltung (≤ 40 Woerter). KEINE Bullet-Listen, KEINE Aufzaehlungen
-   aller Forderungen, KEINE spezifischen Zahlen — die gehoeren in die Folgefragen.
+2. **Parteipositionen** (party_positions): Für jede Partei max 1-2 Sätze
+   zur Grundhaltung (≤ 40 Wörter). KEINE Bullet-Listen, KEINE Aufzählungen
+   aller Forderungen, KEINE spezifischen Zahlen — die gehören in die Folgefragen.
    Inline-Zitation [id] am Ende.
 
 3. **Folgefragen** (suggested_questions): 2-3 kurze Fragen (max ~10 Worte),
-   die den Weg zu konkreten Zahlen, Mechanismen und Details oeffnen.
+   die den Weg zu konkreten Zahlen, Mechanismen und Details öffnen.
    NIEMALS Fragen stellen, deren Antwort bereits im generierten Text steht.
 
 Verwende NUR die bereitgestellten Zitations-IDs."""
@@ -198,7 +198,7 @@ def format_party_positions_for_prompt(
 ) -> str:
     """Format party positions (ExtractedPosition) for the prompt."""
     if not positions:
-        return "Keine Parteipositionen verfuegbar."
+        return "Keine Parteipositionen verfügbar."
 
     formatted = ""
     for party_id, position in positions.items():
@@ -230,7 +230,7 @@ def format_positions_for_content_prompt(
 ) -> str:
     """Format position-based party positions for the content generation prompt."""
     if not positions_by_party:
-        return "Keine Parteipositionen verfuegbar."
+        return "Keine Parteipositionen verfügbar."
 
     formatted = ""
     for party_id, positions in positions_by_party.items():
@@ -259,7 +259,7 @@ def format_positions_for_content_prompt(
 def format_citations_pool(citations: list) -> str:
     """Format the citation pool for the prompt."""
     if not citations:
-        return "Keine Zitationen verfuegbar."
+        return "Keine Zitationen verfügbar."
 
     formatted = ""
     for cit in citations:

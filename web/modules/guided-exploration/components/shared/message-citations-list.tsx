@@ -75,7 +75,18 @@ export function MessageCitationsList({
           return (
             <li key={`sr-${messageId}-${citation.id}`} value={index + 1}>
               {href ? (
-                <a href={href} target="_blank" rel="noopener noreferrer">
+                // tabIndex={-1}: this list lives inside a `sr-only` block.
+                // Without it, sighted keyboard users tab into the (1×1
+                // absolutely-positioned) link and the browser scrolls the
+                // chat container to the top to reveal it — leaving the
+                // visible area looking blank. Screen readers reach it via
+                // virtual cursor / link list, which is unaffected.
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  tabIndex={-1}
+                >
                   {label}
                 </a>
               ) : (

@@ -11,7 +11,6 @@ import type {
   ExplorationTree,
   LeafSummary,
   Message,
-  NavigationState,
   SessionMessage,
   StreamSection,
   StreamTargetType,
@@ -24,29 +23,22 @@ import type {
   ExplorationStatus,
   OriginTab,
   QuickSummaryData,
-  ViewType,
 } from './types';
 
 // ============ Connection Actions ============
 
 export const connectionActions = {
   init: (): ExplorationAction => ({ type: 'CONNECTION_INIT' }),
-
   connecting: (): ExplorationAction => ({ type: 'CONNECTION_CONNECTING' }),
-
   connected: (): ExplorationAction => ({ type: 'CONNECTION_CONNECTED' }),
-
   disconnected: (error?: string): ExplorationAction => ({
     type: 'CONNECTION_DISCONNECTED',
     error,
   }),
-
   reconnectAttempt: (): ExplorationAction => ({
     type: 'CONNECTION_RECONNECT_ATTEMPT',
   }),
-
   reset: (): ExplorationAction => ({ type: 'CONNECTION_RESET' }),
-
   sessionClaimed: (message?: string): ExplorationAction => ({
     type: 'SESSION_CLAIMED',
     message,
@@ -61,10 +53,9 @@ export const sessionActions = {
     sessionId,
   }),
 
-  loaded: (sessionId: string, explorationId?: string): ExplorationAction => ({
+  loaded: (sessionId: string): ExplorationAction => ({
     type: 'SESSION_LOADED',
     sessionId,
-    explorationId,
   }),
 
   cleared: (): ExplorationAction => ({ type: 'SESSION_CLEARED' }),
@@ -87,31 +78,6 @@ export const sessionActions = {
     type: 'SESSION_MESSAGES_LOADED',
     messages,
   }),
-
-  tabSwitched: (
-    tabId: 'chat' | string,
-    previousPath?: string[],
-  ): ExplorationAction => ({
-    type: 'TAB_SWITCHED',
-    tabId,
-    previousPath,
-  }),
-
-  explorationTabAdded: (
-    explorationId: string,
-    label: string,
-    colorIndex: number,
-  ): ExplorationAction => ({
-    type: 'EXPLORATION_TAB_ADDED',
-    explorationId,
-    label,
-    colorIndex,
-  }),
-
-  explorationTabRemoved: (explorationId: string): ExplorationAction => ({
-    type: 'EXPLORATION_TAB_REMOVED',
-    explorationId,
-  }),
 };
 
 // ============ Exploration Actions ============
@@ -120,27 +86,25 @@ export const explorationActions = {
   started: (
     explorationId: string,
     tree: ExplorationTree,
-    navigation: NavigationState,
     status?: ExplorationStatus,
   ): ExplorationAction => ({
     type: 'EXPLORATION_STARTED',
     explorationId,
     tree,
-    navigation,
     status,
   }),
 
-  statusUpdated: (status: ExplorationStatus): ExplorationAction => ({
-    type: 'EXPLORATION_STATUS_UPDATED',
-    status,
-  }),
-
-  treeReceived: (
+  statusUpdated: (
     explorationId: string,
-    tree: ExplorationTree,
+    status: ExplorationStatus,
   ): ExplorationAction => ({
-    type: 'EXPLORATION_TREE_RECEIVED',
+    type: 'EXPLORATION_STATUS_UPDATED',
     explorationId,
+    status,
+  }),
+
+  treeReceived: (tree: ExplorationTree): ExplorationAction => ({
+    type: 'EXPLORATION_TREE_RECEIVED',
     tree,
   }),
 
@@ -161,33 +125,41 @@ export const explorationActions = {
     type: 'EXPLORATION_READY_CLEARED',
   }),
 
-  navigatedToRoot: (navigation: NavigationState): ExplorationAction => ({
-    type: 'NAVIGATED_TO_ROOT',
-    navigation,
+  ended: (explorationId: string): ExplorationAction => ({
+    type: 'EXPLORATION_ENDED',
+    explorationId,
   }),
 
-  navigatedToBranch: (navigation: NavigationState): ExplorationAction => ({
-    type: 'NAVIGATED_TO_BRANCH',
-    navigation,
+  leafActivated: (
+    explorationId: string,
+    leafId: string,
+  ): ExplorationAction => ({
+    type: 'LEAF_ACTIVATED',
+    explorationId,
+    leafId,
   }),
 
-  navigatedToLeaf: (
+  leafOpened: (
+    explorationId: string,
     leafId: string,
     conversation: Conversation,
-    navigation: NavigationState,
     analysisAvailable: boolean,
   ): ExplorationAction => ({
-    type: 'NAVIGATED_TO_LEAF',
+    type: 'LEAF_OPENED',
+    explorationId,
     leafId,
     conversation,
-    navigation,
     analysisAvailable,
   }),
 
-  ended: (): ExplorationAction => ({ type: 'EXPLORATION_ENDED' }),
+  leafClosed: (): ExplorationAction => ({ type: 'LEAF_CLOSED' }),
 
-  leafMarkedExplored: (leafId: string): ExplorationAction => ({
+  leafMarkedExplored: (
+    explorationId: string,
+    leafId: string,
+  ): ExplorationAction => ({
     type: 'LEAF_MARKED_EXPLORED',
+    explorationId,
     leafId,
   }),
 };
@@ -195,28 +167,24 @@ export const explorationActions = {
 // ============ Conversation Actions ============
 
 export const conversationActions = {
-  opened: (
+  messageAdded: (
+    explorationId: string,
     leafId: string,
-    conversation: Conversation,
-    analysisAvailable: boolean,
+    message: Message,
   ): ExplorationAction => ({
-    type: 'CONVERSATION_OPENED',
-    leafId,
-    conversation,
-    analysisAvailable,
-  }),
-
-  messageAdded: (leafId: string, message: Message): ExplorationAction => ({
     type: 'MESSAGE_ADDED',
+    explorationId,
     leafId,
     message,
   }),
 
   analysisReceived: (
+    explorationId: string,
     leafId: string,
     analysis: Analysis,
   ): ExplorationAction => ({
     type: 'ANALYSIS_RECEIVED',
+    explorationId,
     leafId,
     analysis,
   }),
@@ -229,12 +197,16 @@ export const streamActions = {
     streamId: string,
     targetType: StreamTargetType,
     targetId: string,
+    explorationId: string | null,
+    leafId: string | null,
     originTab?: OriginTab,
   ): ExplorationAction => ({
     type: 'STREAM_STARTED',
     streamId,
     targetType,
     targetId,
+    explorationId,
+    leafId,
     originTab,
   }),
 
@@ -264,11 +236,6 @@ export const uiActions = {
   modeChanged: (mode: AppMode): ExplorationAction => ({
     type: 'MODE_CHANGED',
     mode,
-  }),
-
-  viewChanged: (view: ViewType): ExplorationAction => ({
-    type: 'VIEW_CHANGED',
-    view,
   }),
 
   thinkingStarted: (
@@ -345,11 +312,15 @@ export const uiActions = {
   }),
 
   topicSwitchSuggested: (
+    explorationId: string,
+    leafId: string,
     targetNodeId: string,
     targetNodeName: string,
     message: string,
   ): ExplorationAction => ({
     type: 'TOPIC_SWITCH_SUGGESTED',
+    explorationId,
+    leafId,
     targetNodeId,
     targetNodeName,
     message,
@@ -385,25 +356,33 @@ export const summaryActions = {
   }),
 
   leafSummaryReceived: (
+    explorationId: string,
     leafId: string,
     summary: LeafSummary,
   ): ExplorationAction => ({
     type: 'LEAF_SUMMARY_RECEIVED',
+    explorationId,
     leafId,
     summary,
   }),
 
   topicSummaryReceived: (
+    explorationId: string,
     topicId: string,
     summary: string,
   ): ExplorationAction => ({
     type: 'TOPIC_SUMMARY_RECEIVED',
+    explorationId,
     topicId,
     summary,
   }),
 
-  synced: (summaries: Record<string, LeafSummary>): ExplorationAction => ({
+  synced: (
+    explorationId: string,
+    summaries: Record<string, LeafSummary>,
+  ): ExplorationAction => ({
     type: 'SUMMARIES_SYNCED',
+    explorationId,
     summaries,
   }),
 

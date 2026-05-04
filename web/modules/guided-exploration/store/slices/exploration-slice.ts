@@ -1,6 +1,7 @@
 /**
  * Exploration Slice
- * Manages exploration tree, navigation, and conversations state
+ * Multi-tree state keyed by explorationId. Conversations are nested
+ * `[explorationId][leafId]` because leaf ids aren't globally unique.
  */
 
 import type {
@@ -10,18 +11,13 @@ import type {
 import type { ExplorationNode } from '@/modules/guided-exploration/types';
 
 export const initialExplorationState: ExplorationSliceState = {
-  tree: null,
-  navigation: null,
+  trees: {},
   conversations: {},
-  activeLeafId: null,
-  analysisAvailable: false,
-  status: null,
+  status: {},
+  activeLeaf: null,
+  analysisAvailable: {},
 };
 
-/**
- * Recursively mark a node as explored and update ancestor statuses.
- * Returns a new node tree (immutable).
- */
 function markNodeExplored(
   node: ExplorationNode,
   leafId: string,
@@ -36,7 +32,6 @@ function markNodeExplored(
     markNodeExplored(child, leafId),
   );
 
-  // Check if any child changed
   const changed = updatedChildren.some(
     (child, i) => child !== node.children[i],
   );
@@ -45,103 +40,112 @@ function markNodeExplored(
   return { ...node, children: updatedChildren };
 }
 
+function omitKey<V>(record: Record<string, V>, key: string): Record<string, V> {
+  if (!(key in record)) return record;
+  const next = { ...record };
+  delete next[key];
+  return next;
+}
+
 export function explorationReducer(
   state: ExplorationSliceState,
   action: ExplorationAction,
 ): ExplorationSliceState {
   switch (action.type) {
-    case 'SESSION_LOADED':
-      return state;
-
     case 'EXPLORATION_STARTED':
       return {
         ...state,
-        tree: action.tree,
-        navigation: action.navigation,
-        conversations: {},
-        activeLeafId: null,
-        status: action.status ?? 'active',
+        trees: { ...state.trees, [action.explorationId]: action.tree },
+        status: {
+          ...state.status,
+          [action.explorationId]: action.status ?? 'active',
+        },
       };
 
     case 'EXPLORATION_STATUS_UPDATED':
       return {
         ...state,
-        status: action.status,
+        status: { ...state.status, [action.explorationId]: action.status },
       };
 
     case 'EXPLORATION_TREE_RECEIVED':
       return {
         ...state,
-        tree: action.tree,
-        conversations: {},
-        activeLeafId: null,
+        trees: { ...state.trees, [action.tree.explorationId]: action.tree },
       };
 
-    case 'NAVIGATED_TO_ROOT':
+    case 'LEAF_ACTIVATED': {
+      const { explorationId, leafId } = action;
       return {
         ...state,
-        navigation: action.navigation,
-        activeLeafId: null,
+        activeLeaf: { explorationId, leafId },
       };
+    }
 
-    case 'NAVIGATED_TO_BRANCH':
+    case 'LEAF_OPENED': {
+      const { explorationId, leafId, conversation, analysisAvailable } = action;
+      const explorationConversations = state.conversations[explorationId] ?? {};
+      const existing = explorationConversations[leafId];
+      // Backend conversation_opened may arrive after a user-typed
+      // optimistic message has already been appended. Preserve the longer
+      // history (a full backend payload always supersedes an empty seed).
+      const shouldOverwrite =
+        !existing || conversation.messages.length >= existing.messages.length;
+      const nextConversation = shouldOverwrite ? conversation : existing;
+      const explorationAnalysis = state.analysisAvailable[explorationId] ?? {};
       return {
         ...state,
-        navigation: action.navigation,
-        activeLeafId: null,
-      };
-
-    case 'NAVIGATED_TO_LEAF':
-      return {
-        ...state,
-        navigation: action.navigation,
-        activeLeafId: action.leafId,
-        analysisAvailable: action.analysisAvailable,
+        activeLeaf: { explorationId, leafId },
         conversations: {
           ...state.conversations,
-          [action.leafId]: action.conversation,
+          [explorationId]: {
+            ...explorationConversations,
+            [leafId]: nextConversation,
+          },
+        },
+        analysisAvailable: {
+          ...state.analysisAvailable,
+          [explorationId]: {
+            ...explorationAnalysis,
+            [leafId]: analysisAvailable,
+          },
         },
       };
+    }
 
-    case 'CONVERSATION_OPENED':
-      return {
-        ...state,
-        activeLeafId: action.leafId,
-        analysisAvailable: action.analysisAvailable,
-        conversations: {
-          ...state.conversations,
-          [action.leafId]: action.conversation,
-        },
-      };
+    case 'LEAF_CLOSED':
+      return { ...state, activeLeaf: null };
 
     case 'MESSAGE_ADDED': {
-      const conversation = state.conversations[action.leafId];
+      const { explorationId, leafId, message } = action;
+      const conversation = state.conversations[explorationId]?.[leafId];
       if (!conversation) return state;
 
       return {
         ...state,
         conversations: {
           ...state.conversations,
-          [action.leafId]: {
-            ...conversation,
-            messages: [...conversation.messages, action.message],
+          [explorationId]: {
+            ...state.conversations[explorationId],
+            [leafId]: {
+              ...conversation,
+              messages: [...conversation.messages, message],
+            },
           },
         },
       };
     }
 
     case 'ANALYSIS_RECEIVED': {
-      const conversation = state.conversations[action.leafId];
+      const { explorationId, leafId, analysis } = action;
+      const conversation = state.conversations[explorationId]?.[leafId];
       if (!conversation) return state;
 
       const updatedMessages = conversation.messages.map((msg) => {
         if (msg.type === 'initial_content' && typeof msg.content !== 'string') {
           return {
             ...msg,
-            content: {
-              ...msg.content,
-              analysis: action.analysis,
-            },
+            content: { ...msg.content, analysis },
           };
         }
         return msg;
@@ -151,32 +155,47 @@ export function explorationReducer(
         ...state,
         conversations: {
           ...state.conversations,
-          [action.leafId]: {
-            ...conversation,
-            messages: updatedMessages,
+          [explorationId]: {
+            ...state.conversations[explorationId],
+            [leafId]: { ...conversation, messages: updatedMessages },
           },
         },
       };
     }
 
-    case 'EXPLORATION_ENDED':
-      return initialExplorationState;
+    case 'EXPLORATION_ENDED': {
+      const { explorationId } = action;
+      const wasActive = state.activeLeaf?.explorationId === explorationId;
+      return {
+        ...state,
+        trees: omitKey(state.trees, explorationId),
+        conversations: omitKey(state.conversations, explorationId),
+        status: omitKey(state.status, explorationId),
+        analysisAvailable: omitKey(state.analysisAvailable, explorationId),
+        activeLeaf: wasActive ? null : state.activeLeaf,
+      };
+    }
 
     case 'SESSION_CLEARED':
       return initialExplorationState;
 
     case 'LEAF_MARKED_EXPLORED': {
-      if (!state.tree) return state;
+      const { explorationId, leafId } = action;
+      const tree = state.trees[explorationId];
+      if (!tree) return state;
 
-      const updatedRoot = markNodeExplored(state.tree.root, action.leafId);
-      if (updatedRoot === state.tree.root) return state;
+      const updatedRoot = markNodeExplored(tree.root, leafId);
+      if (updatedRoot === tree.root) return state;
 
       return {
         ...state,
-        tree: {
-          ...state.tree,
-          root: updatedRoot,
-          updatedAt: new Date().toISOString(),
+        trees: {
+          ...state.trees,
+          [explorationId]: {
+            ...tree,
+            root: updatedRoot,
+            updatedAt: new Date().toISOString(),
+          },
         },
       };
     }

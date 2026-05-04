@@ -1,10 +1,16 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { forwardRef, useCallback } from 'react';
+import { type ReactNode, forwardRef } from 'react';
 
 export interface RatingScaleProps {
   id: string;
+  /**
+   * Question / item text rendered inside the fieldset's <legend>. AT picks
+   * this up natively as the group's accessible name — no aria-labelledby
+   * plumbing needed.
+   */
+  legend: ReactNode;
   min: number;
   max: number;
   value: number | null;
@@ -13,41 +19,33 @@ export interface RatingScaleProps {
   lowAnchor?: string;
   highAnchor?: string;
   /**
-   * Id of a visible element (e.g. the statement above the scale) that
-   * describes what is being rated. Wired through to the radiogroup's
-   * accessible name.
-   */
-  labelledById?: string;
-  /**
    * 'md' (default): size-8 circles, gap-2 — good for scales up to ~7 options.
    * 'sm': size-7 circles, gap-1 — fits 11 circles (MAILS 0-10) on mobile.
    */
   size?: 'sm' | 'md';
   className?: string;
   /**
-   * When true, the radiogroup is marked invalid for screen readers.
-   */
-  invalid?: boolean;
-  /**
-   * Id of the error message element, wired into aria-describedby when set.
-   */
-  describedById?: string;
-  /**
-   * When true, the radiogroup is marked as required for screen readers.
+   * Marks each radio as required so native HTML form validation kicks in.
    */
   required?: boolean;
-  /**
-   * Short description (e.g. the anchor pair "angenehm bis unangenehm") that
-   * prefixes each radio's accessible name so the Form Controls rotor is
-   * scannable without losing group context.
-   */
-  itemLabel?: string;
 }
 
-export const RatingScale = forwardRef<HTMLDivElement, RatingScaleProps>(
+/**
+ * Pure-HTML Likert scale. Uses a real `<fieldset>` + `<legend>` for
+ * grouping (so screen readers announce the question on entry) and native
+ * `<input type="radio">` siblings sharing a `name` (so the browser handles
+ * arrow-key navigation, roving focus, and the "checked is the tab stop"
+ * rule for free).
+ *
+ * Endpoint radios include the anchor word in their accessible name —
+ * VoiceOver users hear "1 – Stimme nicht zu" / "5 – Stimme zu" instead of
+ * a bare "1 von 5" with no semantic pole.
+ */
+export const RatingScale = forwardRef<HTMLFieldSetElement, RatingScaleProps>(
   function RatingScale(
     {
       id,
+      legend,
       min,
       max,
       value,
@@ -55,114 +53,97 @@ export const RatingScale = forwardRef<HTMLDivElement, RatingScaleProps>(
       onBlur,
       lowAnchor,
       highAnchor,
-      labelledById,
       size = 'md',
       className,
-      invalid,
-      describedById,
       required,
-      itemLabel,
     },
     ref,
   ) {
     const options = Array.from({ length: max - min + 1 }, (_, i) => min + i);
 
-    const handleKeyDown = useCallback(
-      (e: React.KeyboardEvent, currentValue: number) => {
-        let next: number | null = null;
-        switch (e.key) {
-          case 'ArrowRight':
-          case 'ArrowUp':
-            if (currentValue < max) next = currentValue + 1;
-            break;
-          case 'ArrowLeft':
-          case 'ArrowDown':
-            if (currentValue > min) next = currentValue - 1;
-            break;
-          default:
-            return;
-        }
-        if (next !== null) {
-          e.preventDefault();
-          onChange(next);
-          const nextInput = document.querySelector<HTMLInputElement>(
-            `input[name="${id}"][value="${next}"]`,
-          );
-          nextInput?.focus();
-        }
-      },
-      [id, min, max, onChange],
-    );
-
-    const fallbackAnchorsId = `${id}-anchors`;
-    const labelledBy = labelledById ?? fallbackAnchorsId;
-
     return (
-      <div
+      <fieldset
         ref={ref}
-        tabIndex={-1}
-        role="radiogroup"
-        aria-labelledby={labelledBy}
-        aria-invalid={invalid || undefined}
-        aria-describedby={describedById}
-        aria-required={required || undefined}
-        className={cn('space-y-2 outline-none', className)}
+        // Reset default UA fieldset chrome (border + min-inline-size). Tailwind's
+        // preflight already zeroes margin/padding.
+        className={cn('m-0 min-w-0 border-0 p-0', className)}
         onBlur={onBlur}
       >
-        {!labelledById && (
-          <span id={fallbackAnchorsId} className="sr-only">
-            {lowAnchor && highAnchor
-              ? `${lowAnchor} bis ${highAnchor}`
-              : `Skala von ${min} bis ${max}`}
-          </span>
-        )}
-        <div
-          className={cn(
-            'flex flex-wrap items-center justify-center',
-            size === 'sm' ? 'gap-1 sm:gap-1.5' : 'gap-1.5 sm:gap-2',
-          )}
-        >
-          {options.map((option) => (
-            <label key={option} className="relative cursor-pointer">
-              <input
-                type="radio"
-                name={id}
-                value={option}
-                checked={value === option}
-                onChange={() => onChange(option)}
-                onKeyDown={(e) => handleKeyDown(e, option)}
-                className="peer sr-only"
-                aria-label={
-                  itemLabel
-                    ? `${itemLabel}: ${option} von ${max}`
-                    : `${option} von ${max}`
-                }
-              />
-              <span
-                className={cn(
-                  'flex items-center justify-center rounded-full border-2 text-sm transition-colors',
-                  size === 'sm' ? 'size-7' : 'size-8',
-                  'peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2',
-                  value === option
-                    ? 'border-primary bg-primary text-primary-foreground hover:border-muted-foreground/30 hover:bg-muted hover:text-foreground'
-                    : 'border-muted-foreground/30 bg-background hover:border-primary hover:bg-primary/10',
-                )}
-              >
-                {option}
-              </span>
-            </label>
-          ))}
-        </div>
-        {(lowAnchor || highAnchor) && (
+        <legend className="mb-4 block w-full pr-8 text-sm font-bold leading-snug text-foreground">
+          {legend}
+        </legend>
+        <div className="space-y-2">
           <div
-            aria-hidden="true"
-            className="flex justify-between text-xs text-foreground"
+            className={cn(
+              'flex flex-wrap items-center justify-center',
+              size === 'sm' ? 'gap-1 sm:gap-1.5' : 'gap-1.5 sm:gap-2',
+            )}
           >
-            <span>{lowAnchor}</span>
-            <span>{highAnchor}</span>
+            {options.map((option) => {
+              const isMin = option === min;
+              const isMax = option === max;
+              // Endpoint radios bake the anchor word into the accessible
+              // name so SR users hear which side means what at every focus.
+              // Midpoints stay numeric — naming all 5/7 points "1 von 5",
+              // "2 von 5"… is the standard Likert pattern.
+              const ariaLabel =
+                isMin && lowAnchor
+                  ? `${option} – ${lowAnchor}`
+                  : isMax && highAnchor
+                    ? `${option} – ${highAnchor}`
+                    : `${option}`;
+              return (
+                <label
+                  key={option}
+                  className={cn(
+                    'relative cursor-pointer',
+                    size === 'sm' ? 'size-7' : 'size-8',
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name={id}
+                    value={option}
+                    checked={value === option}
+                    onChange={() => onChange(option)}
+                    required={required}
+                    aria-label={ariaLabel}
+                    // Fills the visible circle's footprint instead of the
+                    // 1×1 sr-only trick — iOS VoiceOver touch-explore can
+                    // actually land on it. Keep `peer` so the visible span
+                    // can react to focus/checked state.
+                    className="peer absolute inset-0 cursor-pointer opacity-0"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      'flex size-full items-center justify-center rounded-full border-2 text-sm transition-colors',
+                      'peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2',
+                      value === option
+                        ? 'border-primary bg-primary text-primary-foreground hover:border-muted-foreground/30 hover:bg-muted hover:text-foreground'
+                        : 'border-muted-foreground/30 bg-background hover:border-primary hover:bg-primary/10',
+                    )}
+                  >
+                    {option}
+                  </span>
+                </label>
+              );
+            })}
           </div>
-        )}
-      </div>
+          {(lowAnchor || highAnchor) && (
+            // Visible anchor row for sighted users. Hidden from AT — the
+            // anchors are already conveyed via the endpoint radios'
+            // aria-labels, so reading them again here would be redundant.
+            <div
+              aria-hidden="true"
+              className="flex justify-between text-xs text-foreground"
+            >
+              <span>{lowAnchor}</span>
+              <span>{highAnchor}</span>
+            </div>
+          )}
+        </div>
+      </fieldset>
     );
   },
 );

@@ -1,24 +1,9 @@
 /**
  * Guided Exploration Module
  *
- * A position-based adaptive hierarchy for comparing party positions
- * on political topics. Uses recursive ExplorationNode tree structure.
- *
- * @example
- * ```tsx
- * import { useExploration } from '@/modules/guided-exploration';
- *
- * function ExplorationPage() {
- *   const {
- *     tree,
- *     activeConversation,
- *     navigate,
- *     sendMessage,
- *   } = useExploration({ autoCreateSession: true });
- *
- *   // ... render exploration UI
- * }
- * ```
+ * Multi-tree adaptive hierarchy for comparing party positions on
+ * political topics. Trees render inline in the chat; leaves open in a
+ * right-side sidebar via {@link useExploration}.
  */
 
 // ============ Types ============
@@ -39,11 +24,6 @@ export type {
   Conversation,
   LeafSummary,
   SummaryTree,
-  // Navigation types
-  NavigationState,
-  BreadcrumbItem,
-  BreadcrumbLevel,
-  SiblingNavigation as SiblingNavigationType,
   // Event types
   SSEEvent,
   ThinkingStage,
@@ -65,7 +45,6 @@ export type {
   ExplorationStoreState,
   ExplorationAction,
   AppMode,
-  ViewType,
   ConnectionStatus,
 } from './store';
 
@@ -73,21 +52,21 @@ export type {
 export {
   selectIsConnected,
   selectSessionId,
-  selectExplorationId,
+  selectTrees,
+  selectTreeIds,
+  selectTreesArray,
   selectTree,
-  selectNavigation,
-  selectCurrentPath,
-  selectBreadcrumb,
-  selectActiveConversation,
   selectConversation,
+  selectActiveLeaf,
+  selectActiveConversation,
   selectMode,
-  selectView,
   selectIsStreaming,
   selectStreamBuffer,
   selectPendingChoice,
   selectIsThinking,
   selectError,
-  selectSummaries,
+  selectExplorationSummaries,
+  selectLeafSummary,
   selectProgress,
 } from './store';
 
@@ -134,7 +113,6 @@ export {
 
 // ============ Utils ============
 export {
-  // Tree helpers
   findNode,
   getPathTo,
   isLeaf,
@@ -150,33 +128,14 @@ export {
   getPositionsForLeaf,
   getPositionsByParty,
   getAllParties,
-  // Navigation helpers
-  getParentPath,
-  isAtRoot,
-  buildBreadcrumb,
-  getSiblingNavigation,
-  getViewFromNodeId,
-  isValidNodeId,
-  getNodeDisplayName,
 } from './utils';
 
 // ============ Components ============
 export {
   // Layout
   ExplorationMain,
-  // Exploration view
-  BranchContent,
-  ExplorationFullView,
-  ExplorationSummaryPanel,
+  // Leaf sidebar dependency
   LeafContent,
-  MobileSummarySheet,
-  RootContent,
-  type ExplorationView,
-  // Navigation
-  ExplorationBreadcrumb,
-  SiblingNavigation,
-  SubtopicItem,
-  TopicCard,
   // Shared
   ExplorationLoading,
   PartyBadge,

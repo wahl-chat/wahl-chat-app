@@ -1,6 +1,6 @@
 /**
  * UI Slice
- * Manages UI state including mode, view, streaming, and notifications
+ * Manages UI state: mode, streaming, thinking, and per-message singletons.
  */
 
 import type {
@@ -11,7 +11,6 @@ import type {
 
 export const initialUIState: UISliceState = {
   mode: 'idle',
-  view: 'root',
   isStreaming: false,
   streamingTarget: null,
   streamingOriginTab: null,
@@ -39,39 +38,22 @@ export function uiReducer(
   action: ExplorationAction,
 ): UISliceState {
   switch (action.type) {
-    // Mode and View
     case 'MODE_CHANGED':
-      return {
-        ...state,
-        mode: action.mode,
-      };
-
-    case 'VIEW_CHANGED':
-      return {
-        ...state,
-        view: action.view,
-      };
+      return { ...state, mode: action.mode };
 
     case 'EXPLORATION_STARTED':
       return {
         ...state,
         mode: 'exploring',
-        view: 'root',
         pendingChoice: null,
         explorationPending: false,
         explorationReadyData: null,
       };
 
     case 'EXPLORATION_TREE_RECEIVED':
-      // Tree received but keep mode as 'chat' - show preview with loading
-      return {
-        ...state,
-        explorationPending: true,
-        pendingChoice: null,
-      };
+      return { ...state, explorationPending: true, pendingChoice: null };
 
     case 'EXPLORATION_READY':
-      // Exploration is ready for navigation
       return {
         ...state,
         explorationPending: false,
@@ -87,39 +69,45 @@ export function uiReducer(
       };
 
     case 'EXPLORATION_READY_CLEARED':
+      return { ...state, explorationReadyData: null };
+
+    case 'LEAF_ACTIVATED':
+    case 'LEAF_OPENED':
+      // Opening a (potentially different) leaf invalidates leaf-scoped
+      // singletons. Otherwise stale topic-switch suggestions and
+      // suggested-question lists from the previous leaf would render.
       return {
         ...state,
-        explorationReadyData: null,
+        topicSwitchSuggestion: null,
+        suggestedQuestions:
+          state.suggestedQuestionsOriginTab === 'leaf'
+            ? []
+            : state.suggestedQuestions,
+        suggestedQuestionsOriginTab:
+          state.suggestedQuestionsOriginTab === 'leaf'
+            ? null
+            : state.suggestedQuestionsOriginTab,
       };
 
-    case 'NAVIGATED_TO_ROOT':
+    case 'LEAF_CLOSED':
       return {
         ...state,
-        view: 'root',
+        topicSwitchSuggestion: null,
+        suggestedQuestions:
+          state.suggestedQuestionsOriginTab === 'leaf'
+            ? []
+            : state.suggestedQuestions,
+        suggestedQuestionsOriginTab:
+          state.suggestedQuestionsOriginTab === 'leaf'
+            ? null
+            : state.suggestedQuestionsOriginTab,
       };
 
-    case 'NAVIGATED_TO_BRANCH':
-      return {
-        ...state,
-        view: 'branch',
-      };
-
-    case 'NAVIGATED_TO_LEAF':
-    case 'CONVERSATION_OPENED':
-      return {
-        ...state,
-        view: 'leaf',
-      };
-
-    // Thinking
     case 'THINKING_STARTED':
       return {
         ...state,
         thinkingStage: action.stage,
         thinkingMessage: action.message,
-        // Backend `thinking` events carry no scope, so callers can pass an
-        // explicit originTab; otherwise we fall back to the most recent
-        // user-action's tab so the indicator only shows on its own surface.
         thinkingOriginTab: action.originTab ?? state.lastActionTab,
         suggestedQuestions: [],
         suggestedQuestionsOriginTab: null,
@@ -138,36 +126,31 @@ export function uiReducer(
         thinkingOriginTab: null,
       };
 
-    // Streaming
     case 'STREAM_STARTED': {
-      const newStreamingTarget = {
-        streamId: action.streamId,
-        type: action.targetType,
-        id: action.targetId,
-      };
-      // Infer scope from the target type when the caller doesn't pass one:
-      // `quick_summary` is the chat-tab streamable type; everything else
-      // (`followup`, `initial_content`, `analysis`) is leaf-scoped.
       const inferredOrigin: OriginTab =
         action.targetType === 'quick_summary' ? 'chat' : 'leaf';
       return {
         ...state,
         isStreaming: true,
-        streamingTarget: newStreamingTarget,
+        streamingTarget: {
+          streamId: action.streamId,
+          type: action.targetType,
+          id: action.targetId,
+          explorationId: action.explorationId,
+          leafId: action.leafId,
+        },
         streamingOriginTab: action.originTab ?? inferredOrigin,
         streamBuffer: '',
       };
     }
 
     case 'STREAM_CHUNK_RECEIVED': {
-      // Only process if this is the active stream
       if (state.streamingTarget?.streamId !== action.streamId) {
         return state;
       }
-      const newBuffer = state.streamBuffer + action.chunk;
       return {
         ...state,
-        streamBuffer: newBuffer,
+        streamBuffer: state.streamBuffer + action.chunk,
         streamingTarget: action.section
           ? { ...state.streamingTarget, section: action.section }
           : state.streamingTarget,
@@ -178,27 +161,26 @@ export function uiReducer(
       if (state.streamingTarget?.streamId !== action.streamId) {
         return state;
       }
-      return {
-        ...state,
-        isStreaming: false,
-        streamingTarget: null,
-        streamingOriginTab: null,
-      };
+      // Keep `streamingTarget` and `streamingOriginTab` populated until the
+      // buffer is cleared (on the final chat_message / conversation_message)
+      // so the streaming buffer keeps rendering during the gap between
+      // stream_end and the message commit. Clearing them here would null
+      // out the routing target and hide the buffer for the consumer hooks.
+      return { ...state, isStreaming: false };
 
     case 'STREAM_BUFFER_CLEARED':
       return {
         ...state,
         streamBuffer: '',
+        streamingTarget: null,
         streamingOriginTab: null,
       };
 
-    // Choice
     case 'CHOICE_PROMPTED':
       return {
         ...state,
         mode: 'choosing',
         pendingChoice: action.choice,
-        // Choice prompts (summarize-vs-explore) are always chat-tab events.
         pendingChoiceOriginTab: action.originTab ?? 'chat',
         thinkingStage: null,
         thinkingMessage: null,
@@ -206,27 +188,14 @@ export function uiReducer(
       };
 
     case 'CHOICE_CLEARED':
-      return {
-        ...state,
-        pendingChoice: null,
-        pendingChoiceOriginTab: null,
-      };
+      return { ...state, pendingChoice: null, pendingChoiceOriginTab: null };
 
-    // Quick Summary
     case 'QUICK_SUMMARY_RECEIVED':
-      return {
-        ...state,
-        quickSummary: action.data,
-        mode: 'chat',
-      };
+      return { ...state, quickSummary: action.data, mode: 'chat' };
 
     case 'QUICK_SUMMARY_CLEARED':
-      return {
-        ...state,
-        quickSummary: null,
-      };
+      return { ...state, quickSummary: null };
 
-    // Announcements
     case 'ANNOUNCE':
       return {
         ...state,
@@ -235,12 +204,8 @@ export function uiReducer(
       };
 
     case 'ANNOUNCEMENT_CLEARED':
-      return {
-        ...state,
-        announcement: null,
-      };
+      return { ...state, announcement: null };
 
-    // Errors
     case 'ERROR_OCCURRED':
       return {
         ...state,
@@ -257,12 +222,8 @@ export function uiReducer(
       };
 
     case 'ERROR_CLEARED':
-      return {
-        ...state,
-        error: null,
-      };
+      return { ...state, error: null };
 
-    // Suggested Questions
     case 'SUGGESTED_QUESTIONS_SET':
       return {
         ...state,
@@ -278,15 +239,14 @@ export function uiReducer(
       };
 
     case 'LAST_ACTION_TAB_SET':
-      return {
-        ...state,
-        lastActionTab: action.tab,
-      };
+      return { ...state, lastActionTab: action.tab };
 
     case 'TOPIC_SWITCH_SUGGESTED':
       return {
         ...state,
         topicSwitchSuggestion: {
+          explorationId: action.explorationId,
+          leafId: action.leafId,
           targetNodeId: action.targetNodeId,
           targetNodeName: action.targetNodeName,
           message: action.message,
@@ -294,10 +254,7 @@ export function uiReducer(
       };
 
     case 'TOPIC_SWITCH_CLEARED':
-      return {
-        ...state,
-        topicSwitchSuggestion: null,
-      };
+      return { ...state, topicSwitchSuggestion: null };
 
     case 'TOPIC_DIRECTIONS_RECEIVED':
       return {
@@ -308,17 +265,26 @@ export function uiReducer(
       };
 
     case 'TOPIC_DIRECTIONS_CLEARED':
+      return { ...state, pendingDirections: null };
+
+    case 'SESSION_CLEARED':
+      return initialUIState;
+
+    case 'EXPLORATION_ENDED':
+      // A specific exploration ended — clear leaf-scoped singletons
+      // tied to it and drop streaming if it was for that exploration.
+      if (state.streamingTarget?.explorationId === action.explorationId) {
+        return {
+          ...initialUIState,
+          mode: state.mode === 'exploring' ? 'idle' : state.mode,
+        };
+      }
       return {
         ...state,
-        pendingDirections: null,
-      };
-
-    // Reset on session clear
-    case 'SESSION_CLEARED':
-    case 'EXPLORATION_ENDED':
-      return {
-        ...initialUIState,
-        mode: state.mode === 'exploring' ? 'idle' : state.mode,
+        topicSwitchSuggestion:
+          state.topicSwitchSuggestion?.explorationId === action.explorationId
+            ? null
+            : state.topicSwitchSuggestion,
       };
 
     default:

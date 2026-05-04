@@ -151,11 +151,11 @@ export function ConversationInput({
       {/* Input form */}
       <form
         onSubmit={handleSubmit}
-        className="relative w-full overflow-hidden rounded-[24px] border border-input bg-background transition-colors focus-within:border-ring"
+        className="flex w-full flex-col overflow-hidden rounded-[24px] border border-input bg-background transition-colors focus-within:border-ring"
       >
         <textarea
           ref={textareaRef}
-          className="block min-h-[64px] w-full resize-none bg-transparent py-4 pl-4 pr-11 text-[16px] placeholder:text-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          className="block w-full resize-none bg-transparent px-4 pt-3 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           placeholder={placeholder}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
@@ -171,17 +171,17 @@ export function ConversationInput({
             {disabledReason}
           </span>
         )}
-        <Button
-          type="submit"
-          disabled={!input.trim().length || disabled}
-          size="icon"
-          className={cn(
-            'absolute bottom-2 right-2 flex size-8 items-center justify-center rounded-full',
-          )}
-          aria-label="Nachricht senden"
-        >
-          <ArrowUp className="size-4" />
-        </Button>
+        <div className="flex justify-end p-2">
+          <Button
+            type="submit"
+            disabled={!input.trim().length || disabled}
+            size="icon"
+            className="flex size-8 items-center justify-center rounded-full"
+            aria-label="Nachricht senden"
+          >
+            <ArrowUp className="size-4" />
+          </Button>
+        </div>
       </form>
     </div>
   );

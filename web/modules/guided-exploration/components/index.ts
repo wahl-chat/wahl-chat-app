@@ -9,23 +9,8 @@ export {
   SessionMessageList,
 } from './chat';
 
-// Exploration view components
-export {
-  BranchContent,
-  ExplorationFullView,
-  ExplorationSummaryPanel,
-  LeafContent,
-  MobileSummarySheet,
-  RootContent,
-  useLeafActions,
-  type ExplorationView,
-} from './exploration-view';
-
-// Navigation components
-export { ExplorationBreadcrumb } from './navigation/breadcrumb';
-export { SiblingNavigation } from './navigation/sibling-navigation';
-export { SubtopicItem } from './navigation/subtopic-item';
-export { TopicCard } from './navigation/topic-card';
+// Exploration view components (only the leaf-sidebar dependency remains)
+export { LeafContent } from './exploration-view';
 
 // Conversation components
 export {

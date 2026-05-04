@@ -1,6 +1,6 @@
 /**
  * Summaries Slice
- * Manages summary state (synced with Firebase)
+ * Manages summary state (synced with Firebase) per exploration.
  */
 
 import type {
@@ -33,37 +33,57 @@ export function summariesReducer(
         generatingIds: state.generatingIds.filter((id) => id !== action.nodeId),
       };
 
-    case 'LEAF_SUMMARY_RECEIVED':
+    case 'LEAF_SUMMARY_RECEIVED': {
+      const existing = state.summaries[action.explorationId] ?? {};
       return {
         ...state,
         summaries: {
           ...state.summaries,
-          [action.leafId]: action.summary,
+          [action.explorationId]: {
+            ...existing,
+            [action.leafId]: action.summary,
+          },
         },
         generatingIds: state.generatingIds.filter((id) => id !== action.leafId),
       };
+    }
 
-    case 'TOPIC_SUMMARY_RECEIVED':
+    case 'TOPIC_SUMMARY_RECEIVED': {
+      const existing = state.topicSummaries[action.explorationId] ?? {};
       return {
         ...state,
         topicSummaries: {
           ...state.topicSummaries,
-          [action.topicId]: action.summary,
+          [action.explorationId]: {
+            ...existing,
+            [action.topicId]: action.summary,
+          },
         },
         generatingIds: state.generatingIds.filter(
           (id) => id !== action.topicId,
         ),
       };
+    }
 
     case 'SUMMARIES_SYNCED':
       return {
         ...state,
-        summaries: action.summaries,
+        summaries: {
+          ...state.summaries,
+          [action.explorationId]: action.summaries,
+        },
       };
+
+    case 'EXPLORATION_ENDED': {
+      const summaries = { ...state.summaries };
+      const topicSummaries = { ...state.topicSummaries };
+      delete summaries[action.explorationId];
+      delete topicSummaries[action.explorationId];
+      return { ...state, summaries, topicSummaries };
+    }
 
     case 'SUMMARIES_CLEARED':
     case 'SESSION_CLEARED':
-    case 'EXPLORATION_ENDED':
       return initialSummariesState;
 
     default:

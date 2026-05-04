@@ -20,23 +20,23 @@ class LLMPosition(BaseModel):
     content: str = Field(
         ...,
         description=(
-            "Die konkrete Position, Forderung, Massnahme oder Aussage. "
-            "Muss ein eigenstaendiger, zitierbarer Satz sein — kein abstraktes Thema! "
-            "Beispiel: 'Mindestlohn auf 15 Euro erhoehen' statt 'Mindestlohn'"
+            "Die konkrete Position, Forderung, Maßnahme oder Aussage. "
+            "Muss ein eigenständiger, zitierbarer Satz sein — kein abstraktes Thema! "
+            "Beispiel: 'Mindestlohn auf 15 Euro erhöhen' statt 'Mindestlohn'"
         ),
     )
     quote: str = Field(
         ...,
         description=(
-            "Woertliches Zitat aus dem Quelldokument das diese Position belegt. "
-            "Exakt aus dem Dokument uebernommen."
+            "Wörtliches Zitat aus dem Quelldokument das diese Position belegt. "
+            "Exakt aus dem Dokument übernommen."
         ),
     )
     position_type: str = Field(
         ...,
         description=(
-            "Art der Aussage: 'position' (Grundhaltung), 'measure' (konkrete Massnahme), "
-            "'target' (Ziel/Zahl), 'argument' (Begruendung), 'criticism' (Kritik an Anderen)"
+            "Art der Aussage: 'position' (Grundhaltung), 'measure' (konkrete Maßnahme), "
+            "'target' (Ziel/Zahl), 'argument' (Begründung), 'criticism' (Kritik an Anderen)"
         ),
     )
     chunk_index: int = Field(
@@ -52,8 +52,8 @@ class PositionExtractorLLMOutput(BaseModel):
         ...,
         min_length=5,
         description=(
-            "ALLE konkreten Positionen, Forderungen, Massnahmen und Aussagen der Partei. "
-            "Jede Aussage muss eigenstaendig verstaendlich und zitierbar sein. "
+            "ALLE konkreten Positionen, Forderungen, Maßnahmen und Aussagen der Partei. "
+            "Jede Aussage muss eigenständig verständlich und zitierbar sein. "
             "Mindestens 5 Positionen extrahieren — lieber zu viele als zu wenige!"
         ),
     )
@@ -68,7 +68,7 @@ class PositionExtractorLLMOutput(BaseModel):
 # =============================================================================
 
 
-SYSTEM_PROMPT = """Du bist ein Positionsextraktionsagent fuer politische Dokumente.
+SYSTEM_PROMPT = """Du bist ein Positionsextraktionsagent für politische Dokumente.
 
 # Kontext
 Wahlkontext: {context_name}
@@ -80,8 +80,8 @@ Wahlkontext: {context_name}
 {party_description}
 
 # Aufgabe
-Extrahiere JEDE konkrete Position, Forderung, Massnahme und Aussage der Partei aus \
-den Quelldokumenten. Nicht abstrahieren — jede Aussage muss ein eigenstaendiger, \
+Extrahiere JEDE konkrete Position, Forderung, Maßnahme und Aussage der Partei aus \
+den Quelldokumenten. Nicht abstrahieren — jede Aussage muss ein eigenständiger, \
 zitierbarer Satz sein.
 
 # Was ist eine Position (Aussage)?
@@ -89,53 +89,53 @@ zitierbarer Satz sein.
 Eine Position ist eine KONKRETE, EIGENSTAENDIGE Aussage. Keine abstrakten Themen!
 
 ## RICHTIG (konkret, zitierbar):
-- "Mindestlohn auf 15 Euro erhoehen"
-- "Mietpreisbremse bis 2030 verlaengern"
-- "CO2-Preis auf 60 Euro pro Tonne erhoehen"
+- "Mindestlohn auf 15 Euro erhöhen"
+- "Mietpreisbremse bis 2030 verlängern"
+- "CO2-Preis auf 60 Euro pro Tonne erhöhen"
 - "Kernkraftwerke sofort abschalten"
 - "Klimaschutzgesetz aufheben"
 - "100% Erneuerbare Energien bis 2035"
-- "Tempolimit 130 auf Autobahnen einfuehren"
+- "Tempolimit 130 auf Autobahnen einführen"
 
 ## FALSCH (zu abstrakt):
 - "Klimapolitik" (kein Satz, nur ein Thema)
-- "Massnahmen fuer mehr Wohnraum" (zu vage)
+- "Maßnahmen für mehr Wohnraum" (zu vage)
 - "Bessere Bildung" (nicht konkret genug)
 
 # Extraktionsregeln
 
-## 1. Vollstaendigkeit
+## 1. Vollständigkeit
 - Extrahiere ALLE konkreten Aussagen, nicht nur die wichtigsten
 - Auch kleine Details und Zahlen erfassen
 - Lieber zu viel als zu wenig
 
-## 2. Eigenstaendigkeit
-Jede Position muss OHNE Kontext verstaendlich sein:
-- FALSCH: "Diese Massnahme soll bis 2030 umgesetzt werden"
-- RICHTIG: "Kohleausstieg bis 2030 abschliessen"
+## 2. Eigenständigkeit
+Jede Position muss OHNE Kontext verständlich sein:
+- FALSCH: "Diese Maßnahme soll bis 2030 umgesetzt werden"
+- RICHTIG: "Kohleausstieg bis 2030 abschließen"
 
 ## 3. Konkretheit
-Immer die konkreten Zahlen, Zeitraeume und Details mit angeben:
-- FALSCH: "Mindestlohn erhoehen"
-- RICHTIG: "Mindestlohn auf 15 Euro pro Stunde erhoehen"
+Immer die konkreten Zahlen, Zeiträume und Details mit angeben:
+- FALSCH: "Mindestlohn erhöhen"
+- RICHTIG: "Mindestlohn auf 15 Euro pro Stunde erhöhen"
 
 ## 4. Position Types
 - **position**: Grundhaltung ("Lehnt menschengemachten Klimawandel ab")
-- **measure**: Konkrete Massnahme ("Tempolimit 130 einfuehren")
+- **measure**: Konkrete Maßnahme ("Tempolimit 130 einführen")
 - **target**: Ziel mit Zahl/Datum ("100% Erneuerbare bis 2035")
-- **argument**: Begruendung ("Hoeherer Mindestlohn bekaempft Armut trotz Arbeit")
+- **argument**: Begründung ("Höherer Mindestlohn bekämpft Armut trotz Arbeit")
 - **criticism**: Kritik an anderen ("EEG-Umlage ist marktverzerrend")
 
 ## 5. Quellenangabe
-- Gib fuer jede Position den chunk_index an (welcher Quelltext-Abschnitt)
-- Gib ein woertliches Zitat aus dem Dokument an
+- Gib für jede Position den chunk_index an (welcher Quelltext-Abschnitt)
+- Gib ein wörtliches Zitat aus dem Dokument an
 
 # Themenerweiterung
-Beruecksichtige ALLE Aspekte des Themas und verwandte Bereiche:
-- Klimaschutz → auch Energiepolitik, Verkehr, Gebaeude, Industrie, Finanzierung
+Berücksichtige ALLE Aspekte des Themas und verwandte Bereiche:
+- Klimaschutz → auch Energiepolitik, Verkehr, Gebäude, Industrie, Finanzierung
 - Rente → auch Arbeitsmarkt, Demografie, Finanzierung, Altersarmut
-- Migration → auch Integration, Fachkraefte, Bildung, Wohnraum, Asyl
-- Wirtschaft → auch Steuern, Innovation, Buerokratie, Arbeitsmarkt"""
+- Migration → auch Integration, Fachkräfte, Bildung, Wohnraum, Asyl
+- Wirtschaft → auch Steuern, Innovation, Bürokratie, Arbeitsmarkt"""
 
 EXTRACTION_PROMPT = """Extrahiere ALLE konkreten Positionen und Forderungen der Partei \
 zur folgenden Anfrage:
@@ -146,14 +146,14 @@ Quelldokumente:
 {retrieved_chunks}
 
 # Aufgabe
-Extrahiere jede einzelne konkrete Position, Forderung, Massnahme, Ziel und Aussage.
-Jede Position muss ein eigenstaendiger, zitierbarer Satz mit konkreten Details sein.
+Extrahiere jede einzelne konkrete Position, Forderung, Maßnahme, Ziel und Aussage.
+Jede Position muss ein eigenständiger, zitierbarer Satz mit konkreten Details sein.
 
 Denke daran:
 - ALLE Aussagen extrahieren, nicht nur die offensichtlichen
-- Zahlen, Zeitraeume und Ziele immer mit angeben
+- Zahlen, Zeiträume und Ziele immer mit angeben
 - Auch Ablehnungen und Kritik sind Positionen ("Lehnt CO2-Steuer ab")
-- Begruendungen der Partei ebenfalls erfassen"""
+- Begründungen der Partei ebenfalls erfassen"""
 
 
 def format_chunks_for_party(
@@ -163,7 +163,7 @@ def format_chunks_for_party(
     party_chunks = [c for c in chunks if c.party_id == party_id]
 
     if not party_chunks:
-        return "Keine Quelldokumente verfuegbar."
+        return "Keine Quelldokumente verfügbar."
 
     formatted = ""
     total_chars = 0
@@ -171,7 +171,7 @@ def format_chunks_for_party(
     for i, chunk in enumerate(party_chunks, 1):
         content = chunk.content
         if total_chars + len(content) > max_chars:
-            formatted += f"\n[{i}] [Abgeschnitten wegen Laenge...]\n"
+            formatted += f"\n[{i}] [Abgeschnitten wegen Länge...]\n"
             break
         formatted += f"\n[{i}] {content}\n"
         total_chars += len(content)

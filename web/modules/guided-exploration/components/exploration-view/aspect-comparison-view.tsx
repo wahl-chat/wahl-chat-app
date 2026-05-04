@@ -26,25 +26,24 @@ export function AspectComparisonView({
   return (
     <div className={cn('space-y-4', className)}>
       {comparison.aspects.map((aspect) => (
-        <section
+        <article
           key={aspect.name}
           className="overflow-hidden rounded-lg border bg-card"
         >
-          <header className="border-b bg-muted/40 px-4 py-2.5">
-            <h3 className="text-base font-bold text-foreground">
-              {aspect.name}
-            </h3>
-          </header>
-          <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2">
+          <h3 className="border-b bg-muted/40 px-4 py-2.5 text-base font-bold text-foreground">
+            {aspect.name}
+          </h3>
+          <ul className="grid list-none grid-cols-1 gap-2 p-3 sm:grid-cols-2">
             {aspect.partyStances.map((stance) => (
-              <CompactPartyCard
-                key={stance.party}
-                partyId={stance.party}
-                stance={stance.stance}
-              />
+              <li key={stance.party}>
+                <CompactPartyCard
+                  partyId={stance.party}
+                  stance={stance.stance}
+                />
+              </li>
             ))}
-          </div>
-        </section>
+          </ul>
+        </article>
       ))}
     </div>
   );

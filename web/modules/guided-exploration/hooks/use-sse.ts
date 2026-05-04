@@ -42,11 +42,10 @@ import type {
   SummaryGeneratingEvent,
   ThinkingEvent,
   TopicDirectionsEvent,
-  TopicOverviewEvent,
   TopicSwitchSuggestedEvent,
   TopicTreeEvent,
 } from '@/modules/guided-exploration/types';
-import { buildBreadcrumb } from '@/modules/guided-exploration/utils';
+import { findNode } from '@/modules/guided-exploration/utils/tree-helpers';
 
 const CLIENT_ID_STORAGE_KEY = 'guided-exploration:client-id';
 
@@ -117,6 +116,34 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
   const dispatchRef = useRef(dispatch);
   dispatchRef.current = dispatch;
 
+  // Tracks the active leaf scope for the current leaf-targeted stream.
+  // Stamped on stream_chunk(chunkIndex===0) and read by follow-up events
+  // that lack their own explorationId (conversation_message, analysis_result,
+  // topic_switch_suggested). Persists past stream_end so late-arriving
+  // conversation_message events still resolve their owning exploration even
+  // after the user closes the sidebar.
+  const leafStreamScopeRef = useRef<{
+    explorationId: string;
+    leafId: string;
+  } | null>(null);
+
+  // Resolve the explorationId for a leaf-scoped event that doesn't carry
+  // one. Prefer the streaming snapshot, fall back to currently-open leaf.
+  const resolveLeafScope = useCallback((leafId: string): string | null => {
+    const scope = leafStreamScopeRef.current;
+    if (scope && scope.leafId === leafId) return scope.explorationId;
+    const active = useExplorationStore.getState().exploration.activeLeaf;
+    if (active && active.leafId === leafId) return active.explorationId;
+    // Last resort: scan trees for a node with this id (path-based ids
+    // include the topic ancestry, so collisions across trees are unlikely).
+    const trees = useExplorationStore.getState().exploration.trees;
+    for (const eid of Object.keys(trees)) {
+      const tree = trees[eid];
+      if (tree && findNode(tree, leafId)) return eid;
+    }
+    return null;
+  }, []);
+
   // Event handler that dispatches to store
   const handleEvent = useCallback(
     (event: SSEEvent) => {
@@ -165,27 +192,25 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
 
         case 'topic_tree': {
           const treeEvent = event as TopicTreeEvent;
-          // Use treeReceived to show preview - don't end thinking yet
-          // Wait for exploration_ready event before navigating
-          dispatchRef.current(
-            explorationActions.treeReceived(
-              treeEvent.explorationId,
-              treeEvent.tree,
-            ),
-          );
-          // Add exploration tab with truncated query as label
-          const query = treeEvent.tree.originalQuery || 'Erkundung';
-          const label = query.length > 30 ? `${query.slice(0, 27)}...` : query;
-          const tabCount = Object.keys(
-            useExplorationStore.getState().session.explorationTabs,
-          ).length;
-          dispatchRef.current(
-            sessionActions.explorationTabAdded(
-              treeEvent.explorationId,
-              label,
-              tabCount % 6,
-            ),
-          );
+          const existing =
+            useExplorationStore.getState().exploration.trees[
+              treeEvent.explorationId
+            ];
+          if (existing) {
+            // Update only — preserve in-flight conversations.
+            dispatchRef.current(
+              explorationActions.treeReceived(treeEvent.tree),
+            );
+          } else {
+            // First sighting of this exploration — initialize trees + status.
+            dispatchRef.current(
+              explorationActions.started(
+                treeEvent.explorationId,
+                treeEvent.tree,
+                'active',
+              ),
+            );
+          }
           dispatchRef.current(
             uiActions.announce('Themenbaum wird vorbereitet'),
           );
@@ -204,13 +229,16 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
             ),
           );
           // Add exploration_start message to chat so the user can click to enter
-          const currentTree = useExplorationStore.getState().exploration.tree;
+          const tree =
+            useExplorationStore.getState().exploration.trees[
+              readyEvent.explorationId
+            ] ?? null;
           const explorationMessage: SessionMessage = {
             id: crypto.randomUUID(),
             type: 'exploration_start',
             content: null,
             explorationId: readyEvent.explorationId,
-            explorationQuery: currentTree?.originalQuery ?? undefined,
+            explorationQuery: tree?.originalQuery ?? undefined,
             timestamp: new Date().toISOString(),
           };
           dispatchRef.current(sessionActions.messageAdded(explorationMessage));
@@ -223,20 +251,18 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           break;
         }
 
-        case 'topic_overview': {
-          const overviewEvent = event as TopicOverviewEvent;
-          dispatchRef.current(
-            explorationActions.navigatedToBranch(overviewEvent.navigation),
-          );
-          dispatchRef.current(uiActions.thinkingEnded());
-          dispatchRef.current(
-            uiActions.announce(`Thema: ${overviewEvent.name}`),
-          );
-          break;
-        }
-
         case 'conversation_opened': {
           const convEvent = event as ConversationOpenedEvent;
+          const explorationId =
+            convEvent.navigation?.explorationId ??
+            resolveLeafScope(convEvent.leafId);
+          if (!explorationId) {
+            console.warn(
+              '[SSE] conversation_opened without explorationId',
+              convEvent,
+            );
+            break;
+          }
           const dedupedConversation = {
             ...convEvent.conversation,
             messages: convEvent.conversation.messages.map((m) => {
@@ -257,10 +283,10 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
             }),
           };
           dispatchRef.current(
-            explorationActions.navigatedToLeaf(
+            explorationActions.leafOpened(
+              explorationId,
               convEvent.leafId,
               dedupedConversation,
-              convEvent.navigation,
               convEvent.analysisAvailable,
             ),
           );
@@ -293,6 +319,17 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
             break;
           }
 
+          const explorationId =
+            msgEvent.navigation?.explorationId ??
+            resolveLeafScope(msgEvent.leafId);
+          if (!explorationId) {
+            console.warn(
+              '[SSE] conversation_message without resolvable explorationId',
+              msgEvent,
+            );
+            break;
+          }
+
           // Attach citations from event to the message, deduped so the
           // citations list doesn't render two <li>s with the same key.
           const messageWithCitations = {
@@ -305,6 +342,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           dispatchRef.current(streamActions.bufferCleared());
           dispatchRef.current(
             conversationActions.messageAdded(
+              explorationId,
               msgEvent.leafId,
               messageWithCitations,
             ),
@@ -323,13 +361,6 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           }
           // End thinking after receiving a message
           dispatchRef.current(uiActions.thinkingEnded());
-          // Intentionally do NOT dispatch any navigation action here.
-          // `conversation_message` arrives for routine follow-up replies on a
-          // leaf; the backend's `navigation` field often echoes an empty
-          // `currentPath`, which previously kicked the view back to root
-          // mid-conversation. First-load navigation comes via
-          // `conversation_opened`; explicit navigation commands flow through
-          // their own events.
           dispatchRef.current(uiActions.announce('Neue Nachricht erhalten'));
           break;
         }
@@ -348,8 +379,17 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
 
         case 'analysis_result': {
           const analysisEvent = event as AnalysisResultEvent;
+          const explorationId = resolveLeafScope(analysisEvent.leafId);
+          if (!explorationId) {
+            console.warn(
+              '[SSE] analysis_result without resolvable explorationId',
+              analysisEvent,
+            );
+            break;
+          }
           dispatchRef.current(
             conversationActions.analysisReceived(
+              explorationId,
               analysisEvent.leafId,
               analysisEvent.analysis,
             ),
@@ -421,11 +461,35 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           if (chunkEvent.chunkIndex === 0) {
             // End thinking when streaming starts - show content instead of spinner
             dispatchRef.current(uiActions.thinkingEnded());
+
+            const isLeafStream =
+              chunkEvent.targetType === 'initial_content' ||
+              chunkEvent.targetType === 'followup' ||
+              chunkEvent.targetType === 'analysis';
+            const active = isLeafStream
+              ? useExplorationStore.getState().exploration.activeLeaf
+              : null;
+            const explorationId = active?.explorationId ?? null;
+            const leafId = active?.leafId ?? null;
+            const originTab = isLeafStream ? 'leaf' : 'chat';
+
+            // Snapshot scope so late-arriving leaf events still resolve
+            // their explorationId after stream_end / sidebar close.
+            if (isLeafStream && active) {
+              leafStreamScopeRef.current = {
+                explorationId: active.explorationId,
+                leafId: active.leafId,
+              };
+            }
+
             dispatchRef.current(
               streamActions.started(
                 chunkEvent.streamId,
                 chunkEvent.targetType,
                 chunkEvent.targetId,
+                explorationId,
+                leafId,
+                originTab,
               ),
             );
           }
@@ -446,13 +510,26 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           );
           // Safety: ensure thinking is ended when stream completes
           dispatchRef.current(uiActions.thinkingEnded());
+          // Intentionally do NOT clear leafStreamScopeRef here — the
+          // conversation_message that finalizes the assistant turn often
+          // arrives AFTER stream_end and still needs the scope.
           break;
         }
 
         case 'topic_switch_suggested': {
           const switchEvent = event as TopicSwitchSuggestedEvent;
+          const explorationId = resolveLeafScope(switchEvent.leafId);
+          if (!explorationId) {
+            console.warn(
+              '[SSE] topic_switch_suggested without resolvable explorationId',
+              switchEvent,
+            );
+            break;
+          }
           dispatchRef.current(
             uiActions.topicSwitchSuggested(
+              explorationId,
+              switchEvent.leafId,
               switchEvent.targetNodeId,
               switchEvent.targetNodeName,
               switchEvent.message,
@@ -493,7 +570,12 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
 
         case 'exploration_complete': {
           const completeEvent = event as ExplorationCompleteEvent;
-          dispatchRef.current(explorationActions.statusUpdated('completed'));
+          dispatchRef.current(
+            explorationActions.statusUpdated(
+              completeEvent.explorationId,
+              'completed',
+            ),
+          );
           dispatchRef.current(
             uiActions.announce(
               `Exploration abgeschlossen: ${completeEvent.stats.topicsExplored} von ${completeEvent.stats.topicsTotal} Themen erkundet`,
@@ -521,8 +603,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           console.warn('[SSE] Unhandled event type:', event.type, event);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- using dispatchRef for stability
-    [],
+    [resolveLeafScope],
   );
 
   // Error handler - stable reference using dispatchRef
@@ -551,10 +632,16 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
     [],
   );
 
+  // Stable handleEvent ref — recreates only when resolveLeafScope changes
+  // (which is stable thanks to its empty dep array). The SSE client is
+  // created once below.
+  const handleEventRef = useRef(handleEvent);
+  handleEventRef.current = handleEvent;
+
   // Create client once on mount - callbacks are stable via refs
   useEffect(() => {
     clientRef.current = createSSEClient({
-      onEvent: handleEvent,
+      onEvent: (e) => handleEventRef.current(e),
       onError: handleError,
       onStatusChange: handleStatusChange,
     });
@@ -597,20 +684,14 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
       dispatchRef.current(connectionActions.connecting());
       const sessionData = await explorationApi.getSession(sessionId);
 
-      // 2. Restore session and exploration state
+      // 2. Restore session and any active exploration
+      dispatchRef.current(sessionActions.loaded(sessionId));
       const activeExp = sessionData.activeExploration;
-      dispatchRef.current(sessionActions.loaded(sessionId, activeExp?.id));
       if (activeExp) {
-        const initialBreadcrumb = buildBreadcrumb(activeExp.tree, []);
         dispatchRef.current(
           explorationActions.started(
             activeExp.id,
             activeExp.tree,
-            {
-              explorationId: activeExp.id,
-              currentPath: [],
-              breadcrumb: initialBreadcrumb,
-            },
             activeExp.status,
           ),
         );

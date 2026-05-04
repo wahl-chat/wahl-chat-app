@@ -1,6 +1,8 @@
 /**
  * useExplorationApi Hook
- * Provides typed API methods with store integration
+ * Provides typed API methods with store integration. Every method that
+ * targets a specific exploration takes `explorationId` as a parameter — the
+ * store no longer keeps a single "current" exploration pointer in v3.
  */
 
 'use client';
@@ -13,13 +15,11 @@ import {
   connectionActions,
   conversationActions,
   explorationActions,
-  selectExplorationId,
   selectSessionId,
   sessionActions,
   uiActions,
   useExplorationStore,
 } from '@/modules/guided-exploration/store';
-import { buildBreadcrumb } from '@/modules/guided-exploration/utils';
 
 export interface UseExplorationApiReturn {
   /** Create a new session and connect */
@@ -31,8 +31,15 @@ export interface UseExplorationApiReturn {
   /** Load a specific exploration */
   loadExploration: (explorationId: string) => Promise<void>;
 
-  /** Send a message or question */
-  sendMessage: (content: string, leafId?: string) => Promise<void>;
+  /**
+   * Send a message or question. When `leafId` is set, `explorationId` is
+   * required (the message scopes to that leaf inside that exploration).
+   */
+  sendMessage: (
+    content: string,
+    leafId?: string,
+    explorationId?: string,
+  ) => Promise<void>;
 
   /** Submit choice (summary or explore) */
   submitChoice: (
@@ -46,32 +53,27 @@ export interface UseExplorationApiReturn {
     directions: Array<{ id: string; name: string }>,
   ) => Promise<void>;
 
-  /** Navigate to a path in the tree */
-  navigate: (targetPath: string[]) => Promise<void>;
+  /** Request analysis for a specific leaf */
+  requestAnalysis: (explorationId: string, leafId: string) => Promise<void>;
 
-  /** Request analysis for current leaf */
-  requestAnalysis: (leafId: string) => Promise<void>;
+  /** End a specific exploration */
+  endExploration: (explorationId: string) => Promise<void>;
 
-  /** End the current exploration */
-  endExploration: () => Promise<void>;
-
-  /** Request PDF export */
+  /** Request PDF export for a specific exploration */
   requestExport: (
+    explorationId: string,
     includeAnalysis: boolean,
     includeUnexplored: boolean,
   ) => Promise<string>;
 
   /** Get export download URL */
-  getExportUrl: (exportId: string) => string;
+  getExportUrl: (explorationId: string, exportId: string) => string;
 
-  /** Mark a leaf as explored */
-  markExplored: (leafId: string) => Promise<void>;
+  /** Mark a leaf as explored within an exploration */
+  markExplored: (explorationId: string, leafId: string) => Promise<void>;
 
   /** Current session ID */
   sessionId: string | null;
-
-  /** Current exploration ID */
-  explorationId: string | null;
 }
 
 /**
@@ -82,7 +84,6 @@ export function useExplorationApi(): UseExplorationApiReturn {
   const contextId = params.contextId as string;
   const dispatch = useExplorationStore((s) => s.dispatch);
   const sessionId = useExplorationStore(selectSessionId);
-  const explorationId = useExplorationStore(selectExplorationId);
 
   const createSession = useCallback(async (): Promise<string> => {
     dispatch(connectionActions.connecting());
@@ -112,12 +113,7 @@ export function useExplorationApi(): UseExplorationApiReturn {
       try {
         const response = await explorationApi.getSession(existingSessionId);
 
-        dispatch(
-          sessionActions.loaded(
-            response.sessionId,
-            response.activeExploration?.id,
-          ),
-        );
+        dispatch(sessionActions.loaded(response.sessionId));
         // Load session messages into the store
         if (response.messages && response.messages.length > 0) {
           dispatch(sessionActions.messagesLoaded(response.messages));
@@ -128,16 +124,10 @@ export function useExplorationApi(): UseExplorationApiReturn {
         // for a separate loadExploration call.
         const activeExp = response.activeExploration;
         if (activeExp) {
-          const initialBreadcrumb = buildBreadcrumb(activeExp.tree, []);
           dispatch(
             explorationActions.started(
               activeExp.id,
               activeExp.tree,
-              {
-                explorationId: activeExp.id,
-                currentPath: [],
-                breadcrumb: initialBreadcrumb,
-              },
               activeExp.status,
             ),
           );
@@ -178,18 +168,10 @@ export function useExplorationApi(): UseExplorationApiReturn {
             expId,
           );
 
-          // Compute initial breadcrumb for root view
-          const initialBreadcrumb = buildBreadcrumb(response.tree, []);
-
           dispatch(
             explorationActions.started(
               response.id,
               response.tree,
-              {
-                explorationId: response.id,
-                currentPath: [],
-                breadcrumb: initialBreadcrumb,
-              },
               response.status,
             ),
           );
@@ -223,9 +205,18 @@ export function useExplorationApi(): UseExplorationApiReturn {
   );
 
   const sendMessage = useCallback(
-    async (content: string, leafId?: string): Promise<void> => {
+    async (
+      content: string,
+      leafId?: string,
+      explorationId?: string,
+    ): Promise<void> => {
       if (!sessionId) {
         throw new Error('No active session');
+      }
+      if (leafId && !explorationId) {
+        throw new Error(
+          'sendMessage: explorationId is required when leafId is set',
+        );
       }
 
       // Tag the action surface so SSE events without scope (notably the
@@ -233,7 +224,7 @@ export function useExplorationApi(): UseExplorationApiReturn {
       dispatch(uiActions.lastActionTabSet(leafId ? 'leaf' : 'chat'));
 
       // Optimistically add user message to conversation if in a leaf
-      if (leafId) {
+      if (leafId && explorationId) {
         const userMessage = {
           id: crypto.randomUUID(),
           role: 'user' as const,
@@ -241,7 +232,9 @@ export function useExplorationApi(): UseExplorationApiReturn {
           content,
           timestamp: new Date().toISOString(),
         };
-        dispatch(conversationActions.messageAdded(leafId, userMessage));
+        dispatch(
+          conversationActions.messageAdded(explorationId, leafId, userMessage),
+        );
       }
 
       // Clear suggested questions immediately
@@ -269,7 +262,7 @@ export function useExplorationApi(): UseExplorationApiReturn {
         throw error;
       }
     },
-    [dispatch, sessionId, explorationId],
+    [dispatch, sessionId],
   );
 
   const submitChoice = useCallback(
@@ -361,39 +354,10 @@ export function useExplorationApi(): UseExplorationApiReturn {
     [dispatch, sessionId],
   );
 
-  const navigate = useCallback(
-    async (targetPath: string[]): Promise<void> => {
-      if (!sessionId || !explorationId) {
-        throw new Error('No active exploration');
-      }
-
-      // Navigation only fires from inside an exploration tab.
-      dispatch(uiActions.lastActionTabSet('leaf'));
-      dispatch(
-        uiActions.thinkingStarted('retrieving', 'Inhalte werden geladen...'),
-      );
-
-      try {
-        await explorationApi.navigate(sessionId, explorationId, { targetPath });
-      } catch (error) {
-        dispatch(uiActions.thinkingEnded());
-        dispatch(
-          uiActions.errorOccurred(
-            'NAVIGATION_INVALID',
-            error instanceof Error ? error.message : 'Navigation failed',
-            true,
-          ),
-        );
-        throw error;
-      }
-    },
-    [dispatch, sessionId, explorationId],
-  );
-
   const requestAnalysis = useCallback(
-    async (leafId: string): Promise<void> => {
-      if (!sessionId || !explorationId) {
-        throw new Error('No active exploration');
+    async (explorationId: string, leafId: string): Promise<void> => {
+      if (!sessionId) {
+        throw new Error('No active session');
       }
 
       // Analysis is shown inside the leaf view.
@@ -418,43 +382,49 @@ export function useExplorationApi(): UseExplorationApiReturn {
         throw error;
       }
     },
-    [dispatch, sessionId, explorationId],
+    [dispatch, sessionId],
   );
 
-  const endExploration = useCallback(async (): Promise<void> => {
-    if (!sessionId || !explorationId) {
-      throw new Error('No active exploration');
-    }
+  const endExploration = useCallback(
+    async (explorationId: string): Promise<void> => {
+      if (!sessionId) {
+        throw new Error('No active session');
+      }
 
-    dispatch(
-      uiActions.thinkingStarted(
-        'generating',
-        'Abschlusszusammenfassung wird erstellt...',
-      ),
-    );
-
-    try {
-      await explorationApi.endExploration(sessionId, explorationId);
-    } catch (error) {
-      dispatch(uiActions.thinkingEnded());
       dispatch(
-        uiActions.errorOccurred(
-          'LLM_ERROR',
-          error instanceof Error ? error.message : 'Failed to end exploration',
-          true,
+        uiActions.thinkingStarted(
+          'generating',
+          'Abschlusszusammenfassung wird erstellt...',
         ),
       );
-      throw error;
-    }
-  }, [dispatch, sessionId, explorationId]);
+
+      try {
+        await explorationApi.endExploration(sessionId, explorationId);
+      } catch (error) {
+        dispatch(uiActions.thinkingEnded());
+        dispatch(
+          uiActions.errorOccurred(
+            'LLM_ERROR',
+            error instanceof Error
+              ? error.message
+              : 'Failed to end exploration',
+            true,
+          ),
+        );
+        throw error;
+      }
+    },
+    [dispatch, sessionId],
+  );
 
   const requestExport = useCallback(
     async (
+      explorationId: string,
       includeAnalysis: boolean,
       includeUnexplored: boolean,
     ): Promise<string> => {
-      if (!sessionId || !explorationId) {
-        throw new Error('No active exploration');
+      if (!sessionId) {
+        throw new Error('No active session');
       }
 
       try {
@@ -475,13 +445,13 @@ export function useExplorationApi(): UseExplorationApiReturn {
         throw error;
       }
     },
-    [dispatch, sessionId, explorationId],
+    [dispatch, sessionId],
   );
 
   const getExportUrl = useCallback(
-    (exportId: string): string => {
-      if (!sessionId || !explorationId) {
-        throw new Error('No active exploration');
+    (explorationId: string, exportId: string): string => {
+      if (!sessionId) {
+        throw new Error('No active session');
       }
 
       return explorationApi.getExportDownloadUrl(
@@ -490,17 +460,17 @@ export function useExplorationApi(): UseExplorationApiReturn {
         exportId,
       );
     },
-    [sessionId, explorationId],
+    [sessionId],
   );
 
   const markExplored = useCallback(
-    async (leafId: string): Promise<void> => {
-      if (!sessionId || !explorationId) {
+    async (explorationId: string, leafId: string): Promise<void> => {
+      if (!sessionId) {
         return;
       }
 
       // Optimistically update the tree
-      dispatch(explorationActions.leafMarkedExplored(leafId));
+      dispatch(explorationActions.leafMarkedExplored(explorationId, leafId));
 
       try {
         await explorationApi.markExplored(sessionId, explorationId, leafId);
@@ -510,7 +480,7 @@ export function useExplorationApi(): UseExplorationApiReturn {
         console.error('Failed to mark explored:', error);
       }
     },
-    [dispatch, sessionId, explorationId],
+    [dispatch, sessionId],
   );
 
   return {
@@ -520,13 +490,11 @@ export function useExplorationApi(): UseExplorationApiReturn {
     sendMessage,
     submitChoice,
     submitDirectionChoice,
-    navigate,
     requestAnalysis,
     endExploration,
     requestExport,
     getExportUrl,
     markExplored,
     sessionId,
-    explorationId,
   };
 }

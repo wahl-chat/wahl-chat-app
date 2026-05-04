@@ -5,12 +5,12 @@ import { PartyMarkedMarkdown } from '@/modules/guided-exploration/components/sha
 import type { SessionMessage } from '@/modules/guided-exploration/types';
 import { useCitationHandlers } from '@/modules/guided-exploration/utils';
 
-import { ExplorationCard } from './exploration-card';
+import { ExplorationTreeCard } from './exploration-tree-card';
 import { TopicDirectionsCard } from './topic-directions-card';
 
 interface SessionMessageListProps {
   messages: SessionMessage[];
-  onEnterExplorationAction: (explorationId: string) => void;
+  onOpenLeafAction?: (explorationId: string, leafId: string) => void;
   onDirectionChoiceAction?: (
     queryId: string,
     directions: Array<{ id: string; name: string }>,
@@ -20,16 +20,22 @@ interface SessionMessageListProps {
   lastUserMessageRef?: React.RefObject<HTMLDivElement | null>;
   /** Minimum number of directions the user must select */
   minDirections?: number;
+  /** Owning tree of the deep-link leaf, used to scope `deepLinkLeafId`. */
+  deepLinkExplorationId?: string | null;
+  /** Leaf id from a `?leaf=<id>` deep link, forwarded to the matching card. */
+  deepLinkLeafId?: string | null;
 }
 
 export function SessionMessageList({
   messages,
-  onEnterExplorationAction,
+  onOpenLeafAction,
   onDirectionChoiceAction,
   isLoading = false,
   lastUserMessageIndex = -1,
   lastUserMessageRef,
   minDirections,
+  deepLinkExplorationId,
+  deepLinkLeafId,
 }: SessionMessageListProps) {
   return (
     <div
@@ -60,12 +66,16 @@ export function SessionMessageList({
         }
 
         if (message.type === 'exploration_start') {
+          const ownsDeepLink =
+            !!deepLinkLeafId &&
+            !!deepLinkExplorationId &&
+            message.explorationId === deepLinkExplorationId;
           return (
-            <ExplorationCard
+            <ExplorationTreeCard
               key={message.id}
               message={message}
-              onEnter={onEnterExplorationAction}
-              isLoading={isLoading}
+              onOpenLeaf={onOpenLeafAction}
+              deepLinkLeafId={ownsDeepLink ? deepLinkLeafId : null}
             />
           );
         }

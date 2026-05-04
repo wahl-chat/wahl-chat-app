@@ -12,7 +12,6 @@ import type {
   ExplorationTree,
   LeafSummary,
   Message,
-  NavigationState,
   SessionMessage,
   StreamSection,
   StreamTargetType,
@@ -36,44 +35,34 @@ export interface ConnectionSliceState {
   sessionClaimed: boolean;
 }
 
-/** Tab metadata for an exploration */
-export interface ExplorationTabState {
-  explorationId: string;
-  /** Truncated original query as tab label */
-  label: string;
-  /** Color palette index (0-5) for visual distinction */
-  colorIndex: number;
-  /** Whether there are unread updates in this exploration */
-  hasUnread: boolean;
-  /** Last navigation path (for restoring position on tab switch) */
-  lastPath: string[];
-}
-
 export interface SessionSliceState {
   sessionId: string | null;
-  explorationId: string | null;
   /** Chat messages at session level */
   messages: SessionMessage[];
-  /** All exploration tabs, keyed by explorationId */
-  explorationTabs: Record<string, ExplorationTabState>;
-  /** Currently active tab: 'chat' or an explorationId */
-  activeTabId: 'chat' | string;
 }
 
 export type ExplorationStatus = 'active' | 'completed' | null;
 
+/** Pointer to the currently open leaf sidebar (one at a time). */
+export interface ActiveLeafPointer {
+  explorationId: string;
+  leafId: string;
+}
+
 export interface ExplorationSliceState {
-  tree: ExplorationTree | null;
-  navigation: NavigationState | null;
-  conversations: Record<string, Conversation>;
-  activeLeafId: string | null;
-  analysisAvailable: boolean;
-  /** Lifecycle status of the current exploration (mirrors backend). */
-  status: ExplorationStatus;
+  /** Trees keyed by explorationId. Multiple explorations can be active. */
+  trees: Record<string, ExplorationTree>;
+  /** Conversations keyed by [explorationId][leafId]. Leaf ids aren't globally unique. */
+  conversations: Record<string, Record<string, Conversation>>;
+  /** Lifecycle status keyed by explorationId. */
+  status: Record<string, ExplorationStatus>;
+  /** Currently open leaf sidebar (one at a time). */
+  activeLeaf: ActiveLeafPointer | null;
+  /** Whether analysis is available, keyed by [explorationId][leafId]. */
+  analysisAvailable: Record<string, Record<string, boolean>>;
 }
 
 export type AppMode = 'idle' | 'chat' | 'choosing' | 'exploring';
-export type ViewType = 'root' | 'branch' | 'leaf';
 
 export interface ExplorationReadyData {
   explorationId: string;
@@ -101,23 +90,36 @@ export interface QuickSummaryData {
  *   exploration (initial content, follow-ups, leaf analysis).
  * - `null`: unknown / not yet attributed — treat as visible everywhere
  *   for backward compatibility.
- *
- * The store stores this per leaky field (streaming, thinking, pending
- * choice, suggested questions) so the chat view and leaf view can each
- * filter out the other's events.
  */
 export type OriginTab = 'chat' | 'leaf' | null;
 
+/**
+ * Snapshot stamped at STREAM_STARTED so conversation writes survive the
+ * user closing the leaf sidebar mid-stream. `explorationId`/`leafId` are
+ * null for chat-tab streams (quick_summary).
+ */
+export interface StreamingTarget {
+  explorationId: string | null;
+  leafId: string | null;
+  streamId: string;
+  type: StreamTargetType;
+  id: string;
+  section?: StreamSection;
+}
+
+/** Topic-switch suggestion is always scoped to a specific leaf. */
+export interface TopicSwitchSuggestion {
+  explorationId: string;
+  leafId: string;
+  targetNodeId: string;
+  targetNodeName: string;
+  message: string;
+}
+
 export interface UISliceState {
   mode: AppMode;
-  view: ViewType;
   isStreaming: boolean;
-  streamingTarget: {
-    streamId: string;
-    type: StreamTargetType;
-    id: string;
-    section?: StreamSection;
-  } | null;
+  streamingTarget: StreamingTarget | null;
   /** Origin of the active stream — see {@link OriginTab}. */
   streamingOriginTab: OriginTab;
   streamBuffer: string;
@@ -138,8 +140,7 @@ export interface UISliceState {
   announcement: string | null;
   /**
    * Monotonically increments on every ANNOUNCE. Lets the live-region
-   * consumer re-announce when the same string fires twice in a row (e.g.
-   * "Neue Nachricht erhalten" on each follow-up) by keying on this value.
+   * consumer re-announce when the same string fires twice in a row.
    */
   announcementId: number;
   error: {
@@ -155,19 +156,17 @@ export interface UISliceState {
   suggestedQuestions: string[];
   /** Origin of the active suggested-questions list. */
   suggestedQuestionsOriginTab: OriginTab;
-  /** Topic switch suggestion from the routing agent */
-  topicSwitchSuggestion: {
-    targetNodeId: string;
-    targetNodeName: string;
-    message: string;
-  } | null;
+  /** Topic switch suggestion from the routing agent (always leaf-scoped). */
+  topicSwitchSuggestion: TopicSwitchSuggestion | null;
   /** Pending topic directions for user selection */
   pendingDirections: TopicDirectionsEvent | null;
 }
 
 export interface SummariesSliceState {
-  summaries: Record<string, LeafSummary>;
-  topicSummaries: Record<string, string>;
+  /** Leaf summaries keyed by [explorationId][leafId]. */
+  summaries: Record<string, Record<string, LeafSummary>>;
+  /** Topic summaries keyed by [explorationId][topicId]. */
+  topicSummaries: Record<string, Record<string, string>>;
   generatingIds: string[];
 }
 
@@ -195,11 +194,7 @@ export type ExplorationAction =
 
   // Session Actions
   | { type: 'SESSION_CREATED'; sessionId: string }
-  | {
-      type: 'SESSION_LOADED';
-      sessionId: string;
-      explorationId?: string;
-    }
+  | { type: 'SESSION_LOADED'; sessionId: string }
   | { type: 'SESSION_CLEARED' }
   | { type: 'SESSION_MESSAGE_ADDED'; message: SessionMessage }
   | {
@@ -208,27 +203,21 @@ export type ExplorationAction =
       updates: Partial<SessionMessage>;
     }
   | { type: 'SESSION_MESSAGES_LOADED'; messages: SessionMessage[] }
-  | { type: 'TAB_SWITCHED'; tabId: 'chat' | string; previousPath?: string[] }
-  | {
-      type: 'EXPLORATION_TAB_ADDED';
-      explorationId: string;
-      label: string;
-      colorIndex: number;
-    }
-  | { type: 'EXPLORATION_TAB_REMOVED'; explorationId: string }
 
   // Exploration Actions
   | {
       type: 'EXPLORATION_STARTED';
       explorationId: string;
       tree: ExplorationTree;
-      navigation: NavigationState;
       status?: ExplorationStatus;
     }
-  | { type: 'EXPLORATION_STATUS_UPDATED'; status: ExplorationStatus }
+  | {
+      type: 'EXPLORATION_STATUS_UPDATED';
+      explorationId: string;
+      status: ExplorationStatus;
+    }
   | {
       type: 'EXPLORATION_TREE_RECEIVED';
-      explorationId: string;
       tree: ExplorationTree;
     }
   | {
@@ -239,32 +228,48 @@ export type ExplorationAction =
       partiesCount: number;
     }
   | { type: 'EXPLORATION_READY_CLEARED' }
-  | {
-      type: 'NAVIGATED_TO_ROOT';
-      navigation: NavigationState;
-    }
-  | {
-      type: 'NAVIGATED_TO_BRANCH';
-      navigation: NavigationState;
-    }
-  | {
-      type: 'NAVIGATED_TO_LEAF';
-      leafId: string;
-      conversation: Conversation;
-      navigation: NavigationState;
-      analysisAvailable: boolean;
-    }
-  | { type: 'EXPLORATION_ENDED' }
+  | { type: 'EXPLORATION_ENDED'; explorationId: string }
 
-  // Conversation Actions
+  // Leaf / Conversation Actions
   | {
-      type: 'CONVERSATION_OPENED';
+      /**
+       * User-initiated leaf focus. Only sets `activeLeaf`. Conversation
+       * data — if the leaf hasn't been visited yet — arrives later via
+       * SSE `conversation_opened` (`LEAF_OPENED`).
+       */
+      type: 'LEAF_ACTIVATED';
+      explorationId: string;
+      leafId: string;
+    }
+  | {
+      /**
+       * Backend-confirmed leaf open with conversation payload. Seeds the
+       * conversation if absent and sets `activeLeaf`.
+       */
+      type: 'LEAF_OPENED';
+      explorationId: string;
       leafId: string;
       conversation: Conversation;
       analysisAvailable: boolean;
     }
-  | { type: 'MESSAGE_ADDED'; leafId: string; message: Message }
-  | { type: 'ANALYSIS_RECEIVED'; leafId: string; analysis: Analysis }
+  | { type: 'LEAF_CLOSED' }
+  | {
+      type: 'LEAF_MARKED_EXPLORED';
+      explorationId: string;
+      leafId: string;
+    }
+  | {
+      type: 'MESSAGE_ADDED';
+      explorationId: string;
+      leafId: string;
+      message: Message;
+    }
+  | {
+      type: 'ANALYSIS_RECEIVED';
+      explorationId: string;
+      leafId: string;
+      analysis: Analysis;
+    }
 
   // Streaming Actions
   | {
@@ -272,6 +277,8 @@ export type ExplorationAction =
       streamId: string;
       targetType: StreamTargetType;
       targetId: string;
+      explorationId: string | null;
+      leafId: string | null;
       originTab?: OriginTab;
     }
   | {
@@ -285,7 +292,6 @@ export type ExplorationAction =
 
   // UI Actions
   | { type: 'MODE_CHANGED'; mode: AppMode }
-  | { type: 'VIEW_CHANGED'; view: ViewType }
   | {
       type: 'THINKING_STARTED';
       stage: ThinkingStage;
@@ -319,6 +325,8 @@ export type ExplorationAction =
   | { type: 'LAST_ACTION_TAB_SET'; tab: OriginTab }
   | {
       type: 'TOPIC_SWITCH_SUGGESTED';
+      explorationId: string;
+      leafId: string;
       targetNodeId: string;
       targetNodeName: string;
       message: string;
@@ -330,10 +338,21 @@ export type ExplorationAction =
   // Summary Actions
   | { type: 'SUMMARY_GENERATING'; nodeId: string }
   | { type: 'SUMMARY_GENERATION_DONE'; nodeId: string }
-  | { type: 'LEAF_SUMMARY_RECEIVED'; leafId: string; summary: LeafSummary }
-  | { type: 'TOPIC_SUMMARY_RECEIVED'; topicId: string; summary: string }
-  | { type: 'SUMMARIES_SYNCED'; summaries: Record<string, LeafSummary> }
-  | { type: 'SUMMARIES_CLEARED' }
-
-  // Mark Explored Action
-  | { type: 'LEAF_MARKED_EXPLORED'; leafId: string };
+  | {
+      type: 'LEAF_SUMMARY_RECEIVED';
+      explorationId: string;
+      leafId: string;
+      summary: LeafSummary;
+    }
+  | {
+      type: 'TOPIC_SUMMARY_RECEIVED';
+      explorationId: string;
+      topicId: string;
+      summary: string;
+    }
+  | {
+      type: 'SUMMARIES_SYNCED';
+      explorationId: string;
+      summaries: Record<string, LeafSummary>;
+    }
+  | { type: 'SUMMARIES_CLEARED' };

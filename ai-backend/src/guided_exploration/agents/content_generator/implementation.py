@@ -174,7 +174,7 @@ class ContentGeneratorAgent(StreamingAgent[ContentGeneratorInput, SubtopicConten
         class LLMPartyStance(BaseModel):
             party: str = Field(..., description="Parteiname")
             stance: str = Field(
-                ..., description="Kurze Beschreibung der Position (max 1-2 Saetze)"
+                ..., description="Kurze Beschreibung der Position (max 1-2 Sätze)"
             )
 
         class LLMComparisonAspect(BaseModel):
@@ -193,8 +193,8 @@ class ContentGeneratorAgent(StreamingAgent[ContentGeneratorInput, SubtopicConten
                 content=(
                     "Du extrahierst vergleichbare Aspekte aus Parteipositionen. "
                     "Identifiziere 3-6 konkrete Aspekte zu denen sich die Parteien "
-                    "positionieren. Fuer jeden Aspekt: kurze Beschreibung der Position "
-                    "jeder Partei (max 1-2 Saetze). Nur Deutsch."
+                    "positionieren. Für jeden Aspekt: kurze Beschreibung der Position "
+                    "jeder Partei (max 1-2 Sätze). Nur Deutsch."
                 )
             ),
             HumanMessage(

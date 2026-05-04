@@ -69,7 +69,7 @@ export function ExplorationEmptyView({
             <button
               key={`study-${studyTopic.label}`}
               onClick={() => onSuggestionClick(studyTopic.label)}
-              className="group col-span-2 flex h-28 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-primary bg-primary/5 p-4 transition-all hover:scale-[1.02] hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:col-span-3"
+              className="group col-span-2 flex h-24 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-primary bg-primary/5 p-3 transition-all hover:scale-[1.02] hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:col-span-3"
               type="button"
               aria-label={`${studyTopic.label} — klicken zum Starten`}
             >
@@ -97,7 +97,7 @@ export function ExplorationEmptyView({
                 <div
                   key={topic.label}
                   aria-hidden="true"
-                  className="flex h-24 flex-col items-center justify-center gap-2 rounded-lg border border-input p-4 opacity-40"
+                  className="flex h-20 flex-col items-center justify-center gap-1.5 rounded-lg border border-input p-3 opacity-40"
                 >
                   <topic.icon className="size-5 text-foreground" />
                   <span className="text-sm font-medium text-foreground">
@@ -111,7 +111,7 @@ export function ExplorationEmptyView({
                 key={topic.label}
                 onClick={() => onSuggestionClick(topic.label)}
                 className={cn(
-                  'flex h-24 w-full flex-col items-center justify-center gap-2 rounded-lg border border-input p-4 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  'flex h-20 w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-input p-3 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 )}
                 type="button"
               >

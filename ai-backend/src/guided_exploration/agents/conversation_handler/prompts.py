@@ -218,8 +218,8 @@ Umsetzung, Wirkung, Zeitplan, Verantwortlichkeit, …). Deine Antwort:
 
 ## Broad-First bei allgemeinen Folgefragen — WICHTIG
 Wenn die Folgefrage allgemein klingt ("mehr dazu", "kannst du das
-erklaeren?", "was heisst das?", "worum geht's hier?"), antworte ZUERST
-mit dem uebergeordneten Bild — das groesste Muster, die zentrale Tension,
+erklären?", "was heißt das?", "worum geht's hier?"), antworte ZUERST
+mit dem übergeordneten Bild — das größte Muster, die zentrale Tension,
 nicht jede Zahl auf einmal. Konkrete Zahlen, Jahreszahlen und Mechanismen
 kommen erst, wenn die Nutzerin explizit danach fragt ("welche Zahlen?",
 "wie soll das finanziert werden?", "wann genau?"). Lieber ein Karten-Paar
@@ -253,7 +253,7 @@ Optionaler kurzer Schlusssatz außerhalb der Karten.
 
 # Partei-IDs — STRIKT
 - Verwende AUSSCHLIESSLICH die Partei-IDs aus "Beteiligte Parteien" oben.
-- Keine Partei-IDs aus deinem Vorwissen (nicht "spd"/"cdu"/"gruene", wenn
+- Keine Partei-IDs aus deinem Vorwissen (nicht "spd"/"cdu"/"grüne", wenn
   die Liste z.B. "venus, mars, saturn" sagt).
 - Erwähne NUR Parteien, zu denen unten Positionen stehen. Erfinde keine
   Positionen für Parteien ohne Quellen.

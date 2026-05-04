@@ -1,25 +1,18 @@
 'use client';
 
-import {
-  ExplorationChatView,
-  ExplorationFullView,
-  ExplorationLoading,
-} from '@/modules/guided-exploration/components';
-import { KnowledgeBaseDebug } from '@/modules/guided-exploration/components/debug/knowledge-base-debug';
-import {
-  EXPLORATION_PANEL_ID,
-  ExplorationTabBar,
-} from '@/modules/guided-exploration/components/layout/exploration-tab-bar';
+import { useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+
+import { ExplorationChatView } from '@/modules/guided-exploration/components/chat/exploration-chat-view';
+import { LeafSidebar } from '@/modules/guided-exploration/components/chat/leaf-sidebar';
 import { ErrorBanner } from '@/modules/guided-exploration/components/shared';
+import { ExplorationLoading } from '@/modules/guided-exploration/components/shared/exploration-loading';
 import { useExploration } from '@/modules/guided-exploration/hooks';
 import {
-  sessionActions,
   uiActions,
   useExplorationStore,
 } from '@/modules/guided-exploration/store';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { StudyTopicSidebar } from './study-topic-sidebar';
+import { findNode } from '@/modules/guided-exploration/utils/tree-helpers';
 
 interface StudyExplorationWrapperProps {
   /** The chat session ID from the study API */
@@ -35,122 +28,72 @@ interface StudyExplorationWrapperProps {
 }
 
 /**
- * Study task exploration view.
+ * Study task exploration view (v3).
  *
- * URL-synced via query params on `/exploration-study/[sessionId]/task`:
- *   - `?exploration=<id>` — which exploration tab is active
- *   - `?path=<a,b,c>` — current path within that exploration
+ * Same shape as {@link import('@/modules/guided-exploration/components/layout/exploration-main').ExplorationMain}:
+ * a single chat surface with inline tree cards and a right-side
+ * {@link LeafSidebar}. The study-specific behaviours are:
+ *  - empty view restricted to a single assigned topic via `studyTopicLabel`
+ *  - direction selection requires `minDirections={2}`
+ *  - signals readiness once the SSE connection is up
  *
- * The URL is the source of truth; effects hydrate the Zustand store from
- * the URL, and navigation handlers write to the URL via `router.replace`
- * (no history pollution during a study session).
+ * The previous URL-driven `?exploration=` / `?path=` flow is gone — the
+ * sidebar handles the per-leaf chat without route changes. `?leaf=<id>`
+ * deep links still work and open the matching tree's leaf sidebar.
  */
 export function StudyExplorationWrapper({
   chatId,
   onReady,
   studyTopicLabel,
 }: StudyExplorationWrapperProps) {
-  const router = useRouter();
-  const params = useParams();
   const searchParams = useSearchParams();
-  const studySessionId = params.sessionId as string;
-
   const hasNotifiedReady = useRef(false);
-  const loadedExplorations = useRef<Set<string>>(new Set());
-  const lastNavigatedPath = useRef<string | null>(null);
+  const hasOpenedDeepLink = useRef(false);
   const dispatch = useExplorationStore((s) => s.dispatch);
 
-  const urlExploration = searchParams.get('exploration');
-  const urlPathStr = searchParams.get('path');
-  const urlPath = useMemo(
-    () => (urlPathStr ? urlPathStr.split(',').filter(Boolean) : []),
-    [urlPathStr],
-  );
-
   const {
-    mode,
-    view,
-    tree,
-    currentPath,
-    breadcrumb,
     isConnected,
     error,
-    navigateOptimistically,
-    summaries,
+    mode,
+    sessionMessages,
+
+    trees,
+    activeLeaf,
+    activeLeafNode,
     activeConversation,
-    isThinking,
-    thinkingMessage,
-    thinkingOriginTab,
-    sendMessage,
+    openLeaf,
+    closeLeaf,
+
+    chatIsThinking,
+    chatThinkingMessage,
+    chatStreamBuffer,
+    chatIsStreaming,
+    chatStreamingTargetType,
+    chatPendingChoice,
+    chatSuggestedQuestions,
     sendChatMessage,
-    loadExploration,
     submitChoice,
     submitDirectionChoice,
+
+    leafIsThinking,
+    leafThinkingMessage,
+    leafStreamBuffer,
+    leafIsStreaming,
+    leafStreamingTargetType,
+    leafSuggestedQuestions,
+    leafTopicSwitchSuggestion,
+    sendLeafMessage,
+    acceptTopicSwitch,
+    dismissTopicSwitch,
     markExplored,
-    sessionMessages,
-    pendingChoice,
-    pendingChoiceOriginTab,
-    streamBuffer,
-    streamingTarget,
-    streamingOriginTab,
-    isStreaming,
-    sessionId,
+
     explorationPending,
     explorationReadyData,
     clearExplorationReady,
-    suggestedQuestions,
-    suggestedQuestionsOriginTab,
-    activeTabId,
-    explorationTabs,
   } = useExploration({
     initialSessionId: chatId,
     autoCreateSession: false,
   });
-
-  // Per-surface filters: a leaf-scoped event must not render in the chat
-  // tab and vice versa. `null` origin means "unknown" — pass through for
-  // backward compatibility (covers code paths that haven't been tagged).
-  const isForChatTab = (origin: typeof thinkingOriginTab) =>
-    origin === 'chat' || origin === null;
-  const isForLeafTab = (origin: typeof thinkingOriginTab) =>
-    origin === 'leaf' || origin === null;
-
-  const chatIsThinking = isThinking && isForChatTab(thinkingOriginTab);
-  const chatThinkingMessage = chatIsThinking ? thinkingMessage : null;
-  const chatStreamBuffer = isForChatTab(streamingOriginTab) ? streamBuffer : '';
-  const chatIsStreaming = isStreaming && isForChatTab(streamingOriginTab);
-  const chatStreamingTargetType = isForChatTab(streamingOriginTab)
-    ? streamingTarget?.type
-    : undefined;
-  const chatPendingChoice = isForChatTab(pendingChoiceOriginTab)
-    ? pendingChoice
-    : null;
-  const chatSuggestedQuestions = isForChatTab(suggestedQuestionsOriginTab)
-    ? suggestedQuestions
-    : [];
-
-  const leafIsThinking = isThinking && isForLeafTab(thinkingOriginTab);
-  const leafThinkingMessage = leafIsThinking ? thinkingMessage : null;
-  const leafStreamBuffer = isForLeafTab(streamingOriginTab) ? streamBuffer : '';
-  const leafIsStreaming = isStreaming && isForLeafTab(streamingOriginTab);
-  const leafStreamingTargetType = isForLeafTab(streamingOriginTab)
-    ? streamingTarget?.type
-    : undefined;
-  const leafSuggestedQuestions = isForLeafTab(suggestedQuestionsOriginTab)
-    ? suggestedQuestions
-    : [];
-
-  const buildStudyUrl = useCallback(
-    (explorationId: string | null, path: string[]) => {
-      const base = `/exploration-study/${studySessionId}/task`;
-      if (!explorationId) return base;
-      const qs = new URLSearchParams();
-      qs.set('exploration', explorationId);
-      if (path.length > 0) qs.set('path', path.join(','));
-      return `${base}?${qs.toString()}`;
-    },
-    [studySessionId],
-  );
 
   useEffect(() => {
     if (isConnected && !hasNotifiedReady.current) {
@@ -159,150 +102,36 @@ export function StudyExplorationWrapper({
     }
   }, [isConnected, onReady]);
 
-  // URL -> store: load exploration when URL points at one we haven't loaded.
+  // Clear the one-shot exploration_ready signal once observed.
   useEffect(() => {
-    if (!urlExploration || !isConnected) return;
-    if (loadedExplorations.current.has(urlExploration)) return;
-    loadedExplorations.current.add(urlExploration);
-    loadExploration(urlExploration).catch(() => {
-      loadedExplorations.current.delete(urlExploration);
-    });
-  }, [urlExploration, isConnected, loadExploration]);
+    if (explorationReadyData) {
+      clearExplorationReady();
+    }
+  }, [explorationReadyData, clearExplorationReady]);
 
-  // URL -> store: keep activeTabId in sync with the `?exploration=` param.
+  const pendingTree = useMemo(
+    () => (explorationPending ? (trees[trees.length - 1] ?? null) : null),
+    [explorationPending, trees],
+  );
+
+  // Deep link: ?leaf=<id> opens the matching leaf sidebar once the leaf
+  // can be resolved to a tree. Runs once per mount.
+  const deepLinkLeaf = searchParams.get('leaf');
+  const deepLinkExplorationId = useMemo(() => {
+    if (!deepLinkLeaf) return null;
+    for (const t of trees) {
+      if (findNode(t, deepLinkLeaf)) return t.explorationId;
+    }
+    return null;
+  }, [deepLinkLeaf, trees]);
+
   useEffect(() => {
-    const target: 'chat' | string = urlExploration ?? 'chat';
-    if (activeTabId !== target) {
-      dispatch(sessionActions.tabSwitched(target, currentPath));
+    if (!deepLinkLeaf || !deepLinkExplorationId || hasOpenedDeepLink.current) {
+      return;
     }
-    // currentPath intentionally omitted — tabSwitched only needs it as the
-    // "previousPath" breadcrumb, and re-firing this effect on every nav
-    // would cause infinite loops.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlExploration, activeTabId, dispatch]);
-
-  // URL -> store: navigate the tree when `?path=` differs from currentPath.
-  useEffect(() => {
-    if (!urlExploration || !isConnected || !tree) return;
-    const urlJoined = urlPath.join(',');
-    if (lastNavigatedPath.current === urlJoined) return;
-    if (urlJoined !== currentPath.join(',')) {
-      lastNavigatedPath.current = urlJoined;
-      navigateOptimistically(urlPath);
-    }
-  }, [
-    urlExploration,
-    isConnected,
-    tree,
-    urlPath,
-    currentPath,
-    navigateOptimistically,
-  ]);
-
-  // `exploration_ready` arrives when the backend finishes building a new
-  // tree in response to a chat message. Add a tab so the user can open it,
-  // but stay in chat — the user decides when to enter the exploration.
-  useEffect(() => {
-    if (!explorationReadyData) return;
-    const { explorationId } = explorationReadyData;
-    clearExplorationReady();
-
-    if (!explorationTabs[explorationId]) {
-      const startMsg = sessionMessages.find(
-        (m) =>
-          m.type === 'exploration_start' && m.explorationId === explorationId,
-      );
-      const query = startMsg?.explorationQuery || 'Erkundung';
-      const label = query.length > 30 ? `${query.slice(0, 27)}...` : query;
-      const tabCount = Object.keys(explorationTabs).length;
-      dispatch(
-        sessionActions.explorationTabAdded(explorationId, label, tabCount % 6),
-      );
-    }
-  }, [
-    explorationReadyData,
-    clearExplorationReady,
-    explorationTabs,
-    sessionMessages,
-    dispatch,
-  ]);
-
-  const handleNavigateToRoot = useCallback(() => {
-    if (urlExploration) {
-      router.replace(buildStudyUrl(urlExploration, []));
-    }
-  }, [router, urlExploration, buildStudyUrl]);
-
-  const handleNavigateToTopic = useCallback(
-    (topicId: string) => {
-      if (urlExploration) {
-        router.replace(buildStudyUrl(urlExploration, [topicId]));
-      }
-    },
-    [router, urlExploration, buildStudyUrl],
-  );
-
-  const handleNavigateToSubtopic = useCallback(
-    (nodeId: string) => {
-      if (urlExploration) {
-        router.replace(buildStudyUrl(urlExploration, [...currentPath, nodeId]));
-      }
-    },
-    [router, urlExploration, currentPath, buildStudyUrl],
-  );
-
-  const handleBack = useCallback(() => {
-    if (urlExploration && currentPath.length > 0) {
-      router.replace(buildStudyUrl(urlExploration, currentPath.slice(0, -1)));
-    }
-  }, [router, urlExploration, currentPath, buildStudyUrl]);
-
-  const handleTabSwitch = useCallback(
-    (tabId: 'chat' | string) => {
-      dispatch(sessionActions.tabSwitched(tabId, currentPath));
-      if (tabId === 'chat') {
-        router.replace(buildStudyUrl(null, []));
-      } else {
-        const targetTab = explorationTabs[tabId];
-        const restoredPath = targetTab?.lastPath ?? [];
-        router.replace(buildStudyUrl(tabId, restoredPath));
-      }
-    },
-    [dispatch, currentPath, router, buildStudyUrl, explorationTabs],
-  );
-
-  const handleTabClose = useCallback(
-    (explorationId: string) => {
-      dispatch(sessionActions.explorationTabRemoved(explorationId));
-      if (activeTabId === explorationId) {
-        router.replace(buildStudyUrl(null, []));
-      }
-    },
-    [dispatch, activeTabId, router, buildStudyUrl],
-  );
-
-  const handleEnterExploration = useCallback(
-    (explorationId: string) => {
-      if (!explorationTabs[explorationId]) {
-        const startMsg = sessionMessages.find(
-          (m) =>
-            m.type === 'exploration_start' && m.explorationId === explorationId,
-        );
-        const query = startMsg?.explorationQuery || 'Erkundung';
-        const label = query.length > 30 ? `${query.slice(0, 27)}...` : query;
-        const tabCount = Object.keys(explorationTabs).length;
-        dispatch(
-          sessionActions.explorationTabAdded(
-            explorationId,
-            label,
-            tabCount % 6,
-          ),
-        );
-      }
-      handleTabSwitch(explorationId);
-    },
-    [explorationTabs, sessionMessages, dispatch, handleTabSwitch],
-  );
+    hasOpenedDeepLink.current = true;
+    openLeaf(deepLinkExplorationId, deepLinkLeaf);
+  }, [deepLinkLeaf, deepLinkExplorationId, openLeaf]);
 
   const handleDismissError = useCallback(() => {
     dispatch(uiActions.errorCleared());
@@ -312,12 +141,7 @@ export function StudyExplorationWrapper({
     return <ExplorationLoading message="Verbindung wird hergestellt..." />;
   }
 
-  const isExplorationActive = !!urlExploration && !!sessionId;
-  const isExplorationLoaded = isExplorationActive && !!tree;
-  const isExplorationLoading = isExplorationActive && !tree;
-  const studySidebar = tree ? (
-    <StudyTopicSidebar tree={tree} summaries={summaries} />
-  ) : null;
+  const isLeafOpen = !!activeLeaf;
 
   return (
     <div
@@ -329,82 +153,57 @@ export function StudyExplorationWrapper({
         <ErrorBanner message={error.message} onDismiss={handleDismissError} />
       )}
 
-      <ExplorationTabBar
-        activeTabId={activeTabId}
-        explorationTabs={explorationTabs}
-        isInExploration={isExplorationActive}
-        onTabSwitch={handleTabSwitch}
-        onTabClose={handleTabClose}
+      <ExplorationChatView
+        messages={sessionMessages}
+        pendingChoice={chatPendingChoice}
+        isThinking={chatIsThinking}
+        thinkingMessage={chatThinkingMessage}
+        streamBuffer={chatStreamBuffer}
+        isStreaming={chatIsStreaming}
+        streamingTargetType={chatStreamingTargetType}
+        tree={pendingTree}
+        explorationPending={explorationPending}
+        suggestedQuestions={chatSuggestedQuestions}
+        studyTopicLabel={studyTopicLabel}
+        minDirections={2}
+        onSendMessageAction={sendChatMessage}
+        onSubmitChoiceAction={submitChoice}
+        onDirectionChoiceAction={submitDirectionChoice}
+        onOpenLeafAction={openLeaf}
+        deepLinkExplorationId={deepLinkExplorationId}
+        deepLinkLeafId={deepLinkLeaf}
       />
 
-      <div
-        id={EXPLORATION_PANEL_ID}
-        role="tabpanel"
-        aria-labelledby={`exploration-tab-${activeTabId}`}
-        className="flex flex-1 flex-col overflow-hidden focus:outline-none"
-      >
-        {isExplorationLoading && (
-          <ExplorationLoading message="Erkundung wird geladen..." />
-        )}
-
-        {isExplorationLoaded ? (
-          <>
-            <ExplorationFullView
-              tree={tree}
-              view={view}
-              currentPath={currentPath}
-              breadcrumb={breadcrumb}
-              activeConversation={activeConversation}
-              summaries={summaries}
-              isThinking={leafIsThinking}
-              thinkingMessage={leafThinkingMessage}
-              isStreaming={leafIsStreaming}
-              streamBuffer={leafStreamBuffer}
-              streamingTargetType={leafStreamingTargetType}
-              onNavigate={handleNavigateToTopic}
-              onGoToRoot={handleNavigateToRoot}
-              onSubtopicSelect={handleNavigateToSubtopic}
-              onBack={handleBack}
-              onSendMessage={(msg) =>
-                sendMessage(msg, activeConversation?.leafId)
+      <LeafSidebar
+        open={isLeafOpen}
+        leafNode={activeLeafNode}
+        conversation={activeConversation}
+        isThinking={leafIsThinking}
+        thinkingMessage={leafThinkingMessage}
+        isStreaming={leafIsStreaming}
+        streamBuffer={leafStreamBuffer}
+        streamingTargetType={leafStreamingTargetType}
+        topicSwitchSuggestion={leafTopicSwitchSuggestion}
+        suggestedQuestions={leafSuggestedQuestions}
+        hideAspectView
+        showMissingPartiesPlaceholder
+        onSendMessage={sendLeafMessage}
+        onAcceptSwitch={
+          leafTopicSwitchSuggestion
+            ? () => acceptTopicSwitch(leafTopicSwitchSuggestion.targetNodeId)
+            : undefined
+        }
+        onDismissSwitch={dismissTopicSwitch}
+        onMarkExplored={
+          activeLeaf
+            ? () => {
+                void markExplored(activeLeaf.explorationId, activeLeaf.leafId);
+                closeLeaf();
               }
-              onMarkExplored={markExplored}
-              suggestedQuestions={leafSuggestedQuestions}
-              sidebar={studySidebar}
-              hideLeafDoneButton
-              hideAspectView
-              showMissingPartiesPlaceholder
-              onExitToChat={() => handleTabSwitch('chat')}
-            />
-            {sessionId && urlExploration && (
-              <KnowledgeBaseDebug
-                sessionId={sessionId}
-                explorationId={urlExploration}
-                tree={tree}
-              />
-            )}
-          </>
-        ) : !isExplorationLoading ? (
-          <ExplorationChatView
-            messages={sessionMessages}
-            pendingChoice={chatPendingChoice}
-            isThinking={chatIsThinking}
-            thinkingMessage={chatThinkingMessage}
-            streamBuffer={chatStreamBuffer}
-            isStreaming={chatIsStreaming}
-            streamingTargetType={chatStreamingTargetType}
-            tree={tree}
-            explorationPending={explorationPending}
-            suggestedQuestions={chatSuggestedQuestions}
-            studyTopicLabel={studyTopicLabel}
-            minDirections={2}
-            onSendMessageAction={sendChatMessage}
-            onSubmitChoiceAction={submitChoice}
-            onDirectionChoiceAction={submitDirectionChoice}
-            onEnterExplorationAction={handleEnterExploration}
-          />
-        ) : null}
-      </div>
+            : undefined
+        }
+        onClose={closeLeaf}
+      />
     </div>
   );
 }

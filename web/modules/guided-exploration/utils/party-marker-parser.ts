@@ -16,8 +16,11 @@ export interface ParsedSection {
 }
 
 // Regex patterns
-// Non-global version for testing existence
-const PARTY_OPEN_TAG_TEST = /\[PARTY:\w+\]/;
+// Existence test: any `[PARTY` prefix — full party group, party badge, or a
+// partial token mid-stream. Routing all of these through `parsePartyMarkers`
+// is what gives us trailing-partial stripping for `[PARTY_BADGE:...]` chunks
+// when no `[PARTY:...]` group is present.
+const PARTY_OPEN_TAG_TEST = /\[PARTY/;
 // Global version for matching all occurrences
 const PARTY_OPEN_TAG = /\[PARTY:(\w+)\]/g;
 const PARTY_CLOSE_TAG = /\[\/PARTY:(\w+)\]/g;

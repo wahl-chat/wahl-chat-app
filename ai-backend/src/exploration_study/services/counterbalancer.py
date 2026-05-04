@@ -17,13 +17,34 @@ GroupType = Literal["A1", "A2", "B1", "B2"]
 GROUPS: list[GroupType] = ["A1", "A2", "B1", "B2"]
 
 
+MAX_LEAD_OVER_MIN = 2
+
+
 def compute_group_weights(counts: dict[GroupType, int]) -> list[int]:
     """
-    Weight each group as ``(max_count + 1) - count`` so the least-represented
-    group gets the highest weight while every group keeps a non-zero chance.
+    Hard round-robin weighting.
+
+    Any group whose count is more than ``MAX_LEAD_OVER_MIN`` ahead of the
+    least-represented group gets weight ``0`` and is skipped on the next
+    draw. Among the remaining groups the least-represented still gets the
+    highest weight, so the loose randomness within the eligible window is
+    preserved (avoids lockstep assignment under concurrent creates).
+
+    Example with ``MAX_LEAD_OVER_MIN = 2`` and counts ``{A1: 2, A2: 0,
+    B1: 4, B2: 2}``: min is ``0``, threshold is ``2``, so weights are
+    ``[1, 3, 0, 1]`` — A2 is heavily favoured and B1 is excluded until
+    others catch up.
     """
-    max_count = max(counts.values()) if counts else 0
-    return [(max_count + 1) - counts.get(group, 0) for group in GROUPS]
+    min_count = min(counts.get(group, 0) for group in GROUPS)
+    threshold = min_count + MAX_LEAD_OVER_MIN
+    weights: list[int] = []
+    for group in GROUPS:
+        c = counts.get(group, 0)
+        if c > threshold:
+            weights.append(0)
+        else:
+            weights.append((threshold + 1) - c)
+    return weights
 
 
 class Counterbalancer:

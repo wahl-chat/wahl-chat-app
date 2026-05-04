@@ -2184,10 +2184,6 @@ class GuidedExplorationFacade:
                 message=redirect_msg,
             ),
         )
-        await self._sse.send_to_session(
-            session_id,
-            ThinkingEvent(stage="generating", message=""),
-        )
 
         return {"status": "off_topic"}
 

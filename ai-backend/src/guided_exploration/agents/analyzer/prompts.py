@@ -12,11 +12,11 @@ class AnalysisLLMOutput(BaseModel):
 
     summary: str = Field(
         ...,
-        description="Kritische Einordnung in 2-3 Saetzen. Bewerte die Positionen auf Realismus.",
+        description="Kritische Einordnung in 2-3 Sätzen. Bewerte die Positionen auf Realismus.",
     )
     context: str = Field(
         ...,
-        description="Relevanter Hintergrund und aktuelle Lage in 2-3 Saetzen",
+        description="Relevanter Hintergrund und aktuelle Lage in 2-3 Sätzen",
     )
     feasibility: list[str] = Field(
         ...,
@@ -28,7 +28,7 @@ class AnalysisLLMOutput(BaseModel):
     )
     sources: list[str] = Field(
         default_factory=list,
-        description="Relevante Quellen oder Institute fuer weitere Information",
+        description="Relevante Quellen oder Institute für weitere Information",
     )
 
 
@@ -41,40 +41,40 @@ Erstelle realistische, fundierte Einordnungen politischer Positionen.
 
 ## Kritisch aber fair
 - Hinterfrage politische Versprechen auf ihre Machbarkeit
-- Pruefe finanzielle und rechtliche Rahmenbedingungen
-- Beruecksichtige EU-Recht, Grundgesetz und bestehende Gesetze
+- Prüfe finanzielle und rechtliche Rahmenbedingungen
+- Berücksichtige EU-Recht, Grundgesetz und bestehende Gesetze
 
 ## Realismus bevorzugen
 - Bei mehreren Positionen die realistischeren hervorheben
-- Wunschdenken von umsetzbaren Massnahmen unterscheiden
+- Wunschdenken von umsetzbaren Maßnahmen unterscheiden
 - Nenne konkrete Zahlen und Fakten zur Untermauerung
 
 ## Konkrete Analyse
-- Nenne spezifische Huerden (Kosten, Gesetze, Umsetzung, politische Mehrheiten)
-- Beruecksichtige Haushaltslage und Finanzierbarkeit
-- Analysiere praktische Umsetzungshuerden
+- Nenne spezifische Hürden (Kosten, Gesetze, Umsetzung, politische Mehrheiten)
+- Berücksichtige Haushaltslage und Finanzierbarkeit
+- Analysiere praktische Umsetzungshürden
 
 ## Ausgewogenheit
-- Staerken UND Schwaechen jeder Position benennen
+- Stärken UND Schwächen jeder Position benennen
 - Keine Partei bevorzugen oder benachteiligen
 - Vermeide wertende Adjektive
 
 # Leitlinien
 
-## Neutralitaet
+## Neutralität
 - KEINE Wahlempfehlungen geben
 - Sachlich und faktenbasiert bleiben
 - Formuliere kritische Punkte neutral
 
 ## Transparenz
 - Kennzeichne Unsicherheiten klar
-- Unterscheide zwischen Fakten und Einschaetzungen
-- Nenne Quellen fuer weitere Information
+- Unterscheide zwischen Fakten und Einschätzungen
+- Nenne Quellen für weitere Information
 
 ## Antwortstil
 - Schreibe auf Deutsch
-- Kurze, praegnante Saetze
-- Erklaere Fachbegriffe kurz"""
+- Kurze, prägnante Sätze
+- Erkläre Fachbegriffe kurz"""
 
 ANALYSIS_PROMPT = """Erstelle eine kritische Analyse:
 
@@ -86,22 +86,22 @@ ANALYSIS_PROMPT = """Erstelle eine kritische Analyse:
 
 ## Deine Aufgabe:
 
-1. **summary** (2-3 Saetze): Kritische Einordnung der Positionen. Welche Ansaetze sind realistischer? Wo gibt es Widersprueche oder unrealistische Versprechen?
+1. **summary** (2-3 Sätze): Kritische Einordnung der Positionen. Welche Ansätze sind realistischer? Wo gibt es Widersprüche oder unrealistische Versprechen?
 
-2. **context** (2-3 Saetze): Aktueller Stand, relevante Rahmenbedingungen (EU-Recht, Haushaltslage, bestehende Gesetze)
+2. **context** (2-3 Sätze): Aktueller Stand, relevante Rahmenbedingungen (EU-Recht, Haushaltslage, bestehende Gesetze)
 
-3. **feasibility** (3-4 Punkte): Konkrete Huerden und Chancen der Umsetzung:
+3. **feasibility** (3-4 Punkte): Konkrete Hürden und Chancen der Umsetzung:
    - Rechtliche Machbarkeit
    - Finanzierbarkeit
    - Politische Durchsetzbarkeit
    - Praktische Umsetzung
 
 4. **considerations** (3-4 Punkte): Was sollte man bedenken?
-   - Moegliche Nebenwirkungen
+   - Mögliche Nebenwirkungen
    - Langfristige Auswirkungen
    - Wer profitiert, wer verliert?
 
-Sei kritisch aber sachlich. Bevorzuge realistische Perspektiven gegenueber Wunschdenken."""
+Sei kritisch aber sachlich. Bevorzuge realistische Perspektiven gegenüber Wunschdenken."""
 
 
 def format_focus_areas(focus_areas: list[str]) -> str:
@@ -117,7 +117,7 @@ def format_party_positions_for_analysis(
 ) -> str:
     """Format party positions (ExtractedPosition) for analysis prompt."""
     if not positions:
-        return "Keine Parteipositionen verfuegbar."
+        return "Keine Parteipositionen verfügbar."
 
     formatted = ""
     for party_id, position in positions.items():

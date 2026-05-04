@@ -22,7 +22,7 @@ class FollowupRouterLLMOutput(BaseModel):
         ...,
         description=(
             "Entscheidung: 'on_topic_existing' (beantwortbar mit vorhandenen Daten), "
-            "'on_topic_needs_rag' (zum Thema passend aber mehr Details noetig), "
+            "'on_topic_needs_rag' (zum Thema passend aber mehr Details nötig), "
             "'related_topic' (passt besser zu einem anderen Thema), "
             "'off_topic' (nicht abgedeckt)"
         ),
@@ -30,9 +30,9 @@ class FollowupRouterLLMOutput(BaseModel):
     rag_query: str | None = Field(
         default=None,
         description=(
-            "Nur bei 'on_topic_needs_rag': Optimierte Suchbegriffe fuer die "
-            "Dokumentensuche. Keine ganzen Saetze, nur praegnante Stichworte. "
-            "Beispiel: 'Mindestlohn Erhoehung Arbeitnehmer Loehne'"
+            "Nur bei 'on_topic_needs_rag': Optimierte Suchbegriffe für die "
+            "Dokumentensuche. Keine ganzen Sätze, nur prägnante Stichworte. "
+            "Beispiel: 'Mindestlohn Erhöhung Arbeitnehmer Löhne'"
         ),
     )
     target_node_id: str | None = Field(
@@ -60,7 +60,7 @@ Beschreibung: {leaf_description}
 # Vorhandene Informationen zu diesem Thema
 {existing_positions}
 
-# Andere verfuegbare Themen
+# Andere verfügbare Themen
 {other_leaves}
 
 # Routing-Regeln
@@ -76,15 +76,15 @@ A aus?".
 
 2. **on_topic_existing** (**Ausnahme, nur für Meta-/Trivialfragen**): Die Frage braucht \
 KEINE neuen Inhalte aus den Wahlprogrammen. Nur erlaubt für:
-   - Meta-Fragen zur Anzeige ("Welche Parteien sind dabei?", "Was heisst das Symbol?").
+   - Meta-Fragen zur Anzeige ("Welche Parteien sind dabei?", "Was heißt das Symbol?").
    - Reine Klarstellungen zu bereits sichtbarem Text ("Was genau meintest du mit X \
 oben?").
    - Triviale Rückfragen ohne neuen inhaltlichen Anteil.
 
-3. **related_topic**: Die Frage passt BESSER zu einem der anderen verfuegbaren Themen. \
+3. **related_topic**: Die Frage passt BESSER zu einem der anderen verfügbaren Themen. \
 Gib die ID und den Namen des passenden Themas an (target_node_id, target_node_name).
 
-4. **off_topic**: Die Frage hat nichts mit den verfuegbaren Themen zu tun und kann \
+4. **off_topic**: Die Frage hat nichts mit den verfügbaren Themen zu tun und kann \
 auch nicht aus Wahlprogrammen beantwortet werden.
 
 # Wichtig
@@ -96,12 +96,12 @@ verlangt (reine Meta-/Anzeige-Frage).
 - 'related_topic' nur wenn ein anderes Thema DEUTLICH besser passt.
 
 # RAG-Suchbegriffe (nur bei on_topic_needs_rag)
-Wenn du 'on_topic_needs_rag' waehlst, generiere optimierte Suchbegriffe im Feld \
+Wenn du 'on_topic_needs_rag' wählst, generiere optimierte Suchbegriffe im Feld \
 'rag_query'. Regeln:
-- NUR Stichworte, keine ganzen Saetze
+- NUR Stichworte, keine ganzen Sätze
 - Keine Parteinamen oder Meta-Sprache ("Was sagen die Parteien zu...")
 - Fachbegriffe und konkrete Themen verwenden
-- Beispiel gut: "staatliche Foerderung Wohneigentum Baukindergeld Zuschuss"
+- Beispiel gut: "staatliche Förderung Wohneigentum Baukindergeld Zuschuss"
 - Beispiel schlecht: "Wie sollen die staatlichen Zuschüsse konkret gestaltet werden?" """
 
 USER_PROMPT = """Nutzerfrage: {message}
@@ -130,7 +130,7 @@ def format_positions_for_routing(
 def format_other_leaves(leaves: list[LeafInfo]) -> str:
     """Format other leaves as compact list for the routing prompt."""
     if not leaves:
-        return "Keine anderen Themen verfuegbar."
+        return "Keine anderen Themen verfügbar."
 
     lines = []
     for leaf in leaves:

@@ -95,11 +95,27 @@ export function LeafContent({
     handleReferenceClick: handleSummaryReferenceClick,
   } = useCitationHandlers(initialContent?.citations ?? []);
 
-  if (!conversation) {
-    return null;
+  // Pre-content state: leaf was just opened, conversation hasn't been
+  // hydrated yet (or is empty) and no stream/thinking signal has arrived.
+  // Render the synthetic opening user message plus a loading indicator so
+  // the sidebar never flashes empty.
+  const hasMessages = !!conversation && conversation.messages.length > 0;
+  if (!conversation || (!hasMessages && !isStreaming && !isThinking)) {
+    return (
+      <div className={cn('space-y-6', className)}>
+        {leafName && (
+          <div className="flex justify-end">
+            <div className="max-w-[80%] rounded-[20px] bg-muted px-4 py-2">
+              <p className="text-sm">
+                Gib mir einen Überblick über „{leafName}“.
+              </p>
+            </div>
+          </div>
+        )}
+        <ThinkingIndicator message="Inhalte werden geladen..." />
+      </div>
+    );
   }
-
-  const hasMessages = conversation.messages.length > 0;
 
   // Show stream buffer only while actively streaming a followup. Previously
   // this also tried to cover the gap between stream_end and the committed
@@ -229,7 +245,6 @@ export function LeafContent({
       {/* Topic switch suggestion */}
       {topicSwitchSuggestion && onAcceptSwitch && onDismissSwitch && (
         <TopicSwitchCard
-          targetNodeName={topicSwitchSuggestion.targetNodeName}
           message={topicSwitchSuggestion.message}
           onAccept={onAcceptSwitch}
           onDismiss={onDismissSwitch}
@@ -245,11 +260,6 @@ export function LeafContent({
               : (thinkingMessage ?? undefined)
           }
         />
-      )}
-
-      {/* Loading state when no messages and not streaming yet */}
-      {!hasMessages && !isStreaming && !isThinking && (
-        <ThinkingIndicator message="Inhalte werden geladen..." />
       )}
     </div>
   );

@@ -45,7 +45,12 @@ interface ExplorationChatViewProps {
     queryId: string,
     directions: Array<{ id: string; name: string }>,
   ) => void;
-  onEnterExplorationAction: (explorationId: string) => void;
+  /** Open a leaf in the sub-chat sidebar. */
+  onOpenLeafAction?: (explorationId: string, leafId: string) => void;
+  /** When set, the matching tree card auto-expands the ancestor chain. */
+  deepLinkExplorationId?: string | null;
+  /** Leaf id from a `?leaf=<id>` deep link, forwarded to the matching card. */
+  deepLinkLeafId?: string | null;
 }
 
 export function ExplorationChatView({
@@ -64,7 +69,9 @@ export function ExplorationChatView({
   onSendMessageAction,
   onSubmitChoiceAction,
   onDirectionChoiceAction,
-  onEnterExplorationAction,
+  onOpenLeafAction,
+  deepLinkExplorationId,
+  deepLinkLeafId,
 }: ExplorationChatViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
@@ -165,12 +172,14 @@ export function ExplorationChatView({
             <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6">
               <SessionMessageList
                 messages={messages}
-                onEnterExplorationAction={onEnterExplorationAction}
+                onOpenLeafAction={onOpenLeafAction}
                 onDirectionChoiceAction={onDirectionChoiceAction}
                 isLoading={isThinking}
                 lastUserMessageIndex={lastUserMessageIndex}
                 lastUserMessageRef={lastUserMessageRef}
                 minDirections={minDirections}
+                deepLinkExplorationId={deepLinkExplorationId}
+                deepLinkLeafId={deepLinkLeafId}
               />
 
               {/*

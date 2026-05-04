@@ -13,9 +13,9 @@ import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 export interface LikertFormItemProps<T extends FieldValues> {
   control: Control<T>;
   name: FieldPath<T>;
-  /** DOM id base; the heading gets `${id}-label`. */
+  /** DOM id base — shared `name` for the radio group. */
   id: string;
-  /** The question / item text rendered as the prominent heading. */
+  /** The question / item text rendered inside the fieldset's <legend>. */
   label: string;
   leftAnchor: string;
   rightAnchor: string;
@@ -24,9 +24,9 @@ export interface LikertFormItemProps<T extends FieldValues> {
 }
 
 /**
- * Shared question card used by all Likert-scale questionnaires. Renders a
- * `FormItemCard` with a prominent heading and a numeric rating scale with
- * anchors below, wired into a react-hook-form `FormField`.
+ * Shared question card used by all Likert-scale questionnaires. The
+ * `RatingScale` is a real `<fieldset>` + `<legend>` so the question becomes
+ * the group's accessible name natively — no separate `<p>` + aria plumbing.
  */
 export function LikertFormItem<T extends FieldValues>({
   control,
@@ -38,28 +38,22 @@ export function LikertFormItem<T extends FieldValues>({
   min = 1,
   max = 7,
 }: LikertFormItemProps<T>) {
-  const labelId = `${id}-label`;
   const optionCount = max - min + 1;
 
   return (
     <FormField
       control={control}
       name={name}
-      render={({ field, fieldState }) => {
+      render={({ field }) => {
         const answered = field.value !== null && field.value !== undefined;
         const value = (field.value as number | null | undefined) ?? null;
         return (
           <FormItemCard answered={answered}>
             <FormItem className="space-y-4">
-              <p
-                id={labelId}
-                className="pr-8 text-sm font-bold leading-snug text-foreground"
-              >
-                {label}
-              </p>
               <FormControl>
                 <RatingScale
                   id={id}
+                  legend={label}
                   size={optionCount > 7 ? 'sm' : 'md'}
                   min={min}
                   max={max}
@@ -68,8 +62,6 @@ export function LikertFormItem<T extends FieldValues>({
                   onBlur={field.onBlur}
                   lowAnchor={leftAnchor}
                   highAnchor={rightAnchor}
-                  labelledById={labelId}
-                  invalid={!!fieldState.error}
                   required
                 />
               </FormControl>

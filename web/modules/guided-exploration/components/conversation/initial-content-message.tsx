@@ -68,9 +68,9 @@ export function InitialContentMessage({
           summary text — no visible heading, so the whole leaf reads as a
           single chat reply. The heading stays for screen readers. */}
       {orderedEntries.length > 0 && (
-        <section aria-labelledby="positions-heading">
+        <>
           <VisuallyHidden>
-            <h3 id="positions-heading">Parteipositionen</h3>
+            <h3>Parteipositionen</h3>
           </VisuallyHidden>
           <ul className="space-y-4">
             {orderedEntries.map(({ partyId, position }) =>
@@ -92,7 +92,7 @@ export function InitialContentMessage({
               ),
             )}
           </ul>
-        </section>
+        </>
       )}
 
       <MessageCitationsList

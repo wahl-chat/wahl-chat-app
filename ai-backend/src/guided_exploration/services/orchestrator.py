@@ -186,7 +186,7 @@ class Orchestrator:
             )
             raise InsufficientChunksError(
                 message=(
-                    f"Nicht genug Informationen fuer eine Exploration: "
+                    f"Nicht genug Informationen für eine Exploration: "
                     f"nur {total_positions} Positionen von {parties_with_positions} Parteien gefunden"
                 ),
                 total_parties=len(parties),
@@ -582,7 +582,7 @@ class Orchestrator:
             breadcrumb=[
                 BreadcrumbItem(
                     id="root",
-                    name="Uebersicht",
+                    name="Übersicht",
                     level=BreadcrumbLevel.ROOT,
                 ),
             ],
