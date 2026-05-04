@@ -2608,6 +2608,8 @@ class GuidedExplorationFacade:
             await self._summary_generator.generate_suggested_questions(
                 query=query,
                 response=full_text,
+                available_context=rag_context,
+                conversation_history=conversation_history_text,
             )
         )
 
@@ -2858,10 +2860,27 @@ class GuidedExplorationFacade:
         await self._log_study_exposure(session_id, used_citations)
 
         # 10. Generate suggested follow-up questions
+        available_context_parts: list[str] = []
+        for party_id, party_data in resolved.party_positions.items():
+            party_info = parties_info.get(party_id)
+            party_name = party_info.name if party_info else party_id
+            available_context_parts.append(f"\n## {party_name}")
+            for pos in party_data.positions:
+                available_context_parts.append(f"- {pos.position}")
+        available_context = "\n".join(available_context_parts)
+
+        conversation_history_text = ""
+        if session is not None:
+            history_lines = self._format_conversation_history(session.messages)
+            if history_lines:
+                conversation_history_text = "\n".join(history_lines)
+
         suggested_questions = (
             await self._summary_generator.generate_suggested_questions(
                 query=query,
                 response=full_text,
+                available_context=available_context,
+                conversation_history=conversation_history_text,
             )
         )
 

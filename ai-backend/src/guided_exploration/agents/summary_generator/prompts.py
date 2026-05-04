@@ -71,8 +71,9 @@ class SuggestedQuestionsLLMOutput(BaseModel):
     questions: list[str] = Field(
         ...,
         description=(
-            "2-3 kurze Folgefragen zur Vertiefung des Themas. "
-            "Jede Frage maximal 10 Worte."
+            "0-2 kurze Folgefragen zur Vertiefung des Themas. "
+            "Lieber leere Liste als schwache, generische oder themenfremde "
+            "Vorschläge. Jede Frage maximal 7 Worte."
         ),
     )
 
@@ -510,7 +511,7 @@ Antworte konversationell. Karten nur bei Vergleichen, Badges inline, wann immer 
 **Hartes Limit: maximal 2 Stichpunkte pro Karte.** Auch wenn viele Quellen vorliegen — wähle die zwei wichtigsten, der Rest wird weggelassen. Lieber knapp und vergleichbar als vollständig.
 """
 
-SUGGESTED_QUESTIONS_PROMPT = """Generiere 2-3 kurze Folgefragen, die der Nutzer \
+SUGGESTED_QUESTIONS_PROMPT = """Generiere 0-2 kurze Folgefragen, die der Nutzer \
 als nächste Frage in diesem Gespräch tatsächlich stellen würde.
 
 ## Bisheriges Gespräch
@@ -526,7 +527,7 @@ als nächste Frage in diesem Gespräch tatsächlich stellen würde.
 {available_context}
 
 ## Deine Aufgabe
-Schlage 2-3 Folgefragen vor, die:
+Schlage höchstens 2 Folgefragen vor, die:
 
 1. **An eine konkrete Aussage in der letzten Antwort anknüpfen.**
    Jede Frage soll sich auf eine bestimmte Forderung, Zahl oder Position
@@ -540,27 +541,37 @@ Schlage 2-3 Folgefragen vor, die:
 3. **NICHT eine Aussage wiederholen, die in der Antwort schon steht.**
    Eine Frage, deren Antwort der Nutzer gerade gelesen hat, ist keine
    Folgefrage.
-4. **NICHT vom Thema abschweifen.** Bleibe im aktuellen Themenbereich;
-   wechsle nicht zu einer anderen politischen Frage.
-5. **Im Du-Stil, kurz und natürlich formuliert** (max ~12 Worte). Klingt
+4. **Im selben konkreten Themenbereich bleiben.** Der Themenbereich ist
+   das konkrete Politikfeld der letzten Nutzerfrage (z.B. "CO2-Preis",
+   nicht das Oberthema "Klimaschutz"; "Mindestlohn", nicht
+   "Sozialpolitik"). Folgefragen, die in ein anderes oder ein
+   übergeordnetes Politikfeld führen, sind keine Folgefragen — auch
+   wenn sie sich thematisch verwandt anfühlen. Faustregel: wenn die
+   Frage einen zentralen Begriff einführt, der in der letzten Antwort
+   nicht vorkam, ist sie meistens schon ein Themenwechsel.
+5. **Im Du-Stil, kurz und natürlich formuliert** (max 7 Worte). Klingt
    wie eine echte Rückfrage im Chat, nicht wie ein FAQ-Eintrag.
 
 ## Beispiele
 
 ✅ Gute Folgefragen (Beispielkontext: Antwort hat genannt, dass Venus
 einen CO2-Preis von 80 €/t fordert und ihn pro Kopf zurückgeben will):
-- "Warum will Venus den Preis pro Kopf zurückgeben?"
+- "Warum gibt Venus den Preis zurück?"
 - "Wie soll die Auszahlung praktisch funktionieren?"
 - "Was passiert mit Pendlern und Heizöl-Haushalten?"
 
 ❌ Schlechte Folgefragen für denselben Kontext:
 - "Wie hoch ist der CO2-Preis bei Venus?"  ← Antwort steht schon oben
 - "Was sagt Venus zur Wirtschaft?"  ← Themenabschweifung
+- "Wie steht es um andere Klimamaßnahmen?"  ← Verwandt, aber ein
+  anderer Aspekt — gehört nicht zur konkreten Frage nach dem CO2-Preis
 - "Welche Parteien gibt es?"  ← Generisch, nicht im Kontext verankert
 
 ## Wenn keine guten Folgefragen möglich sind
-Gib eine LEERE Liste zurück. Lieber keine Folgefragen als schwache,
-wiederholende oder themenfremde.
+Gib eine leere Liste zurück. Bei Zweifeln, ob eine Folgefrage wirklich
+am gleichen konkreten Aspekt anknüpft oder schon ein Stück abdriftet:
+weglassen. Lieber gar keine Folgefrage als eine, die den Nutzer aus
+dem konkreten Thema heraustragen würde.
 """
 
 

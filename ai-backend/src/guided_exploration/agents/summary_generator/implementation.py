@@ -227,9 +227,9 @@ class SummaryGeneratorAgent(BaseAgent[SummaryInput, SummaryOutput]):
         """Generate suggested follow-up questions based on full conversation context."""
         prompt = SUGGESTED_QUESTIONS_PROMPT.format(
             query=query,
-            response=response[:2000],
-            available_context=available_context[:3000] if available_context else "",
-            conversation_history=conversation_history[:2000] if conversation_history else "",
+            response=response,
+            available_context=available_context or "",
+            conversation_history=conversation_history or "",
         )
 
         messages = [

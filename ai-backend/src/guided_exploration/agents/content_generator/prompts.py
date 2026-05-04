@@ -43,7 +43,7 @@ class ContentGeneratorLLMOutput(BaseModel):
         description=(
             "Kurze Themen-Einleitung (1-2 Sätze, max ~30 Wörter). "
             "Rahmt worum es geht, verrät aber NICHT die Parteipositionen. "
-            "Keine Zahlen, keine Parteinamen."
+            "Keine Zahlen, keine Parteinamen, keine Inline-Zitationen `[id]`."
         ),
     )
     party_positions: list[LLMPartyPosition] = Field(
@@ -75,7 +75,9 @@ Einstiegspunkt. Die Details folgen über die Folgefragen.
 # Inhaltsstruktur
 
 ## 1. Zusammenfassung (summary)
-Zwei Teile als zusammenhängender Fließtext, in dieser Reihenfolge:
+Zwei Teile als zusammenhängender Fließtext, in dieser Reihenfolge.
+**Keine Inline-Zitationen `[id]` in der summary** — weder in der
+Themen-Rahmung noch in der Einladung.
 
 **a) Themen-Rahmung** (1-2 Sätze, ~25 Wörter): Worum geht es konkret?
 - KEINE Parteinamen, KEINE konkreten Zahlen
