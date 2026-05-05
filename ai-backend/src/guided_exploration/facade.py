@@ -6,15 +6,13 @@
 
 import asyncio
 import logging
-import re
-import time
 import threading
 from collections.abc import AsyncIterator, Awaitable, Callable
 from datetime import datetime, timezone
 from typing import Literal
 from uuid import uuid4
 
-from src.firebase_service import aget_context_by_id, aget_parties_for_context
+from src.firebase_service import aget_parties_for_context
 from src.guided_exploration.models.conversation import LeafSummary
 from src.guided_exploration.models.exploration import FinalSummary
 
@@ -37,10 +35,7 @@ from src.guided_exploration.agents import (
     TopicScoutInput,
     LLMTier,
 )
-from src.guided_exploration.agents.party_context import (
-    PartyInfo,
-    parties_to_info_map,
-)
+from src.guided_exploration.agents.party_context import PartyInfo
 from src.guided_exploration.models.classification import MessageIntent, NavigationTarget
 from src.guided_exploration.services.citation_utils import (
     collect_leaf_citations,
@@ -62,7 +57,6 @@ from src.guided_exploration.models import (
     Conversation,
     ConversationMessageEvent,
     ConversationOpenedEvent,
-    ErrorEvent,
     Exploration,
     ExplorationCompleteEvent,
     ExplorationNode,
@@ -83,23 +77,32 @@ from src.guided_exploration.models import (
     SessionMessageType,
     SessionMode,
     SiblingNavigation,
-    StreamChunkEvent,
-    StreamEndEvent,
     SummaryGeneratingEvent,
     SummaryTree,
-    ThinkingEvent,
     TopicDirectionItem,
     TopicDirectionsEvent,
     TopicOverviewEvent,
     ChatMessageEvent,
 )
-from src.guided_exploration.services.orchestrator import Orchestrator
-from src.guided_exploration.services.rag_service import RAGService
-from src.guided_exploration.services.study_context import (
-    STUDY_PARTY_IDS,
-    get_study_context_info,
-    is_study_context,
+from src.guided_exploration.services.context_resolver import ContextResolver
+from src.guided_exploration.services.conversation_history import (
+    extract_last_assistant_message,
+    format_leaf_history,
+    format_session_history,
 )
+from src.guided_exploration.services.directions_cache import DirectionsCache
+from src.guided_exploration.services.navigation_state_store import (
+    NavigationStateStore,
+)
+from src.guided_exploration.services.orchestrator import Orchestrator
+from src.guided_exploration.services.pending_query_store import (
+    PendingQuery,
+    PendingQueryStore,
+)
+from src.guided_exploration.services.rag_service import RAGService
+from src.guided_exploration.services.streaming import StreamingService
+from src.guided_exploration.services.study_context import is_study_context
+from src.guided_exploration.services.study_exposure import StudyExposureLogger
 from src.guided_exploration.services.session_repository import (
     SessionRepository,
     get_session_repository,
@@ -108,46 +111,9 @@ from src.llms import openai_gpt_5_4, openai_gpt_5_4_mini
 
 logger = logging.getLogger(__name__)
 
-# Streaming configuration
-CHUNK_DELAY = 0.05  # 50ms between chunks
-WORDS_PER_CHUNK = 5
-
-# Context cache TTL: 1 hour. Context/party data changes infrequently; hourly
-# refresh is more than sufficient.
-_CONTEXT_CACHE_TTL_SECONDS = 3600
-
-# Directions cache TTL: 6 hours. Scout outputs are stable for a topic; a
-# longer TTL reduces LLM calls without meaningful staleness risk.
-_DIRECTIONS_CACHE_TTL_SECONDS = 21600
-
-# Pending-query TTL: 30 minutes. Abandoned sessions never call handle_choice,
-# so entries must be evicted proactively to prevent unbounded growth.
-_PENDING_QUERY_TTL_SECONDS = 1800
-
 # Pre-gen leaf timeout: two LLM calls in sequence (structured gen + aspect
 # extraction); 45 s leaves headroom for slow-tail latency.
 LEAF_PREGEN_TIMEOUT_SECONDS = 45.0
-
-
-class PendingQuery:
-    """Tracks a pending query awaiting user choice."""
-
-    def __init__(
-        self,
-        query_id: str,
-        session_id: str,
-        original_query: str,
-        detected_parties: list[str],
-        rag_query: str,
-        selected_direction: str | None = None,
-    ) -> None:
-        self.query_id = query_id
-        self.session_id = session_id
-        self.original_query = original_query
-        self.detected_parties = detected_parties
-        self.rag_query = rag_query
-        self.selected_direction = selected_direction
-        self.created_at = datetime.now(timezone.utc)
 
 
 class GuidedExplorationFacade:
@@ -164,6 +130,7 @@ class GuidedExplorationFacade:
         llm_registry: LLMRegistry,
     ) -> None:
         self._sse = sse_manager
+        self._streaming = StreamingService(sse_manager)
         self._repo = repository
         self._llm_registry = llm_registry
 
@@ -209,21 +176,12 @@ class GuidedExplorationFacade:
             self._llm_registry.get(LLMTier.FAST)
         )
 
-        # In-memory tracking of pending queries (query_id -> PendingQuery)
-        self._pending_queries: dict[str, PendingQuery] = {}
-
-        # In-memory tracking of current navigation state per session
-        self._navigation_states: dict[str, NavigationState] = {}
-
-        # Cache for context info to avoid repeated Firebase calls
-        # Maps context_id -> (timestamp, context_name, parties_info_map)
-        self._context_cache: dict[str, tuple[float, str, dict[str, PartyInfo]]] = {}
-
-        # Cache for topic directions — keyed by exact (query, context_id)
-        # Maps key -> (timestamp, TopicScoutOutput)
-        # Populated when the LLM flags a result as cacheable
-        from src.guided_exploration.agents.topic_scout import TopicScoutOutput
-        self._directions_cache: dict[tuple[str, str], tuple[float, TopicScoutOutput]] = {}
+        # State stores
+        self._pending_queries = PendingQueryStore()
+        self._navigation_states = NavigationStateStore()
+        self._context_resolver = ContextResolver()
+        self._directions_cache = DirectionsCache()
+        self._study_exposure = StudyExposureLogger(repository)
 
         # Registry of in-flight study pre-gen tasks, keyed by
         # (exploration_id, leaf_id). When a user opens a leaf whose
@@ -241,13 +199,6 @@ class GuidedExplorationFacade:
         # cancel pending tasks on shutdown.
         self._background_tasks: set[asyncio.Task] = set()
 
-        # Optional callback that records cited position ids for study
-        # sessions. Registered by the exploration_study facade at startup.
-        # Signature: ``async (chat_id: str, position_ids: list[str]) -> None``.
-        self._study_exposure_logger: (
-            "Callable[[str, list[str]], Awaitable[None]] | None"
-        ) = None
-
     def set_study_exposure_logger(
         self,
         logger_fn: "Callable[[str, list[str]], Awaitable[None]]",
@@ -258,54 +209,14 @@ class GuidedExplorationFacade:
         sources — the callback typically resolves the chat id to a study
         session and merges the ids into ``condition.positions_encountered``.
         """
-        self._study_exposure_logger = logger_fn
-        logger.info("Study exposure logger registered")
-
-    def _evict_stale_pending_queries(self) -> None:
-        """Remove pending queries older than _PENDING_QUERY_TTL_SECONDS.
-
-        Called before every write so abandoned sessions don't cause
-        unbounded growth — entries are only deleted on user choice otherwise.
-        """
-        now = datetime.now(timezone.utc)
-        stale = [
-            qid
-            for qid, pq in self._pending_queries.items()
-            if (now - pq.created_at).total_seconds() > _PENDING_QUERY_TTL_SECONDS
-        ]
-        for qid in stale:
-            del self._pending_queries[qid]
-        if stale:
-            logger.debug(f"Evicted {len(stale)} stale pending queries")
+        self._study_exposure.register(logger_fn)
 
     async def _log_study_exposure(
         self,
         session_id: str,
         citations: list[Citation],
     ) -> None:
-        """
-        Log cited position ids for the participant if this is a study
-        session. Silent no-op for non-study sessions and when no logger
-        has been registered. Failures are logged but do not propagate to
-        the user-facing response.
-        """
-        if self._study_exposure_logger is None or not citations:
-            return
-
-        session = await self._repo.get_session(session_id)
-        if not session or not is_study_context(session.context_id):
-            return
-
-        position_ids = [c.id for c in citations if c.id]
-        if not position_ids:
-            return
-
-        try:
-            await self._study_exposure_logger(session_id, position_ids)
-        except Exception as e:
-            logger.warning(
-                f"Study exposure logger failed for session {session_id}: {e}"
-            )
+        await self._study_exposure.log(session_id, citations)
 
     # =========================================================================
     # Context Helpers
@@ -314,47 +225,10 @@ class GuidedExplorationFacade:
     async def _get_context_info(
         self, context_id: str
     ) -> tuple[str, dict[str, PartyInfo]]:
-        """
-        Get context name and available parties.
-
-        For study contexts (``study-*``), returns static fake-party data
-        without touching Firebase. For all other contexts, loads from
-        Firebase as before.
-
-        Returns:
-            Tuple of (context_name, {party_id: PartyInfo})
-        """
-        # Check cache first — treat as miss if entry has expired
-        cached = self._context_cache.get(context_id)
-        if cached is not None:
-            ts, context_name, parties_info = cached
-            if time.monotonic() - ts < _CONTEXT_CACHE_TTL_SECONDS:
-                return context_name, parties_info
-
-        # Study sessions use fictional parties — no Firebase lookup.
-        if is_study_context(context_id):
-            context_name, parties_info = get_study_context_info(context_id)
-            self._context_cache[context_id] = (time.monotonic(), context_name, parties_info)
-            return context_name, parties_info
-
-        # Load from Firebase
-        context = await aget_context_by_id(context_id)
-        context_name = context.name if context else context_id
-
-        parties = await aget_parties_for_context(context_id)
-        parties_info = parties_to_info_map(parties)
-
-        # Cache the result with a timestamp
-        self._context_cache[context_id] = (time.monotonic(), context_name, parties_info)
-
-        return context_name, parties_info
+        return await self._context_resolver.get_context_info(context_id)
 
     async def _get_default_parties(self, context_id: str) -> list[str]:
-        """Get default parties for a context."""
-        if is_study_context(context_id):
-            return list(STUDY_PARTY_IDS)
-        _, parties_info = await self._get_context_info(context_id)
-        return list(parties_info.keys())
+        return await self._context_resolver.get_default_parties(context_id)
 
     # =========================================================================
     # Session Management
@@ -810,16 +684,15 @@ class GuidedExplorationFacade:
         """Send choice prompt and track pending query."""
         query_id = str(uuid4())
 
-        # Evict stale entries before adding a new one (S4)
-        self._evict_stale_pending_queries()
-
-        # Track pending query
-        self._pending_queries[query_id] = PendingQuery(
-            query_id=query_id,
-            session_id=session_id,
-            original_query=original_query,
-            detected_parties=detected_parties,
-            rag_query=rag_query,
+        # Track pending query (register evicts stale entries first)
+        self._pending_queries.register(
+            PendingQuery(
+                query_id=query_id,
+                session_id=session_id,
+                original_query=original_query,
+                detected_parties=detected_parties,
+                rag_query=rag_query,
+            )
         )
 
         # Send thinking for planning
@@ -890,16 +763,9 @@ class GuidedExplorationFacade:
             detected_parties = await self._get_default_parties(context_id)
 
         # Check cache first — exact match on original query
-        cache_key = (original_query, context_id)
-        _cached_directions = self._directions_cache.get(cache_key)
-        if _cached_directions is not None:
-            _ts, _val = _cached_directions
-            if time.monotonic() - _ts >= _DIRECTIONS_CACHE_TTL_SECONDS:
-                _cached_directions = None  # expired — treat as miss
-
-        if _cached_directions is not None:
+        scout_output = self._directions_cache.get(original_query, context_id)
+        if scout_output is not None:
             logger.info(f"Cache hit for topic directions: '{original_query}'")
-            scout_output = _cached_directions[1]
         else:
             # Send thinking event (only when not cached)
             await self._send_thinking(
@@ -953,23 +819,21 @@ class GuidedExplorationFacade:
                 )
             )
 
-            # Cache if the LLM flagged this as reusable (with timestamp)
+            # Cache if the LLM flagged this as reusable
             if scout_output.cacheable:
-                self._directions_cache[cache_key] = (time.monotonic(), scout_output)
-                logger.info(
-                    f"Cached topic directions for: '{original_query}'"
+                self._directions_cache.put(
+                    original_query, context_id, scout_output
                 )
 
-        # Evict stale entries before adding a new one (S4)
-        self._evict_stale_pending_queries()
-
-        # Track pending query
-        self._pending_queries[query_id] = PendingQuery(
-            query_id=query_id,
-            session_id=session_id,
-            original_query=original_query,
-            detected_parties=detected_parties,
-            rag_query=rag_query,
+        # Track pending query (register evicts stale entries first)
+        self._pending_queries.register(
+            PendingQuery(
+                query_id=query_id,
+                session_id=session_id,
+                original_query=original_query,
+                detected_parties=detected_parties,
+                rag_query=rag_query,
+            )
         )
 
         # Save directions as a structured session message for persistence
@@ -1068,8 +932,7 @@ class GuidedExplorationFacade:
             )
             return {"status": "error", "code": "session_mismatch"}
 
-        # Remove from pending
-        del self._pending_queries[query_id]
+        self._pending_queries.pop(query_id)
 
         # Get session for context_id
         session = await self._repo.get_session(session_id)
@@ -1145,8 +1008,7 @@ class GuidedExplorationFacade:
             )
             return {"status": "error", "code": "session_mismatch"}
 
-        # Remove from pending
-        del self._pending_queries[query_id]
+        self._pending_queries.pop(query_id)
 
         # Persist a research-only audit message recording the user's pick.
         # The chat frontend filters CHOICE_MADE messages out.
@@ -1294,16 +1156,19 @@ class GuidedExplorationFacade:
                 _pregen_task.add_done_callback(self._background_tasks.discard)
 
             # Initialize navigation state at root
-            self._navigation_states[session_id] = NavigationState(
-                exploration_id=exploration_id,
-                current_path=[],
-                breadcrumb=[
-                    BreadcrumbItem(
-                        id="root",
-                        name="Übersicht",
-                        level=BreadcrumbLevel.ROOT,
-                    ),
-                ],
+            self._navigation_states.set(
+                session_id,
+                NavigationState(
+                    exploration_id=exploration_id,
+                    current_path=[],
+                    breadcrumb=[
+                        BreadcrumbItem(
+                            id="root",
+                            name="Übersicht",
+                            level=BreadcrumbLevel.ROOT,
+                        ),
+                    ],
+                ),
             )
 
             return {
@@ -1430,16 +1295,19 @@ class GuidedExplorationFacade:
 
         if len(target_path) == 0:
             # Navigate to root
-            self._navigation_states[session_id] = NavigationState(
-                exploration_id=exploration_id,
-                current_path=[],
-                breadcrumb=[
-                    BreadcrumbItem(
-                        id="root",
-                        name="Übersicht",
-                        level=BreadcrumbLevel.ROOT,
-                    ),
-                ],
+            self._navigation_states.set(
+                session_id,
+                NavigationState(
+                    exploration_id=exploration_id,
+                    current_path=[],
+                    breadcrumb=[
+                        BreadcrumbItem(
+                            id="root",
+                            name="Übersicht",
+                            level=BreadcrumbLevel.ROOT,
+                        ),
+                    ],
+                ),
             )
             return {"status": "at_root"}
 
@@ -1476,7 +1344,7 @@ class GuidedExplorationFacade:
                 conversation,
             )
 
-            self._navigation_states[session_id] = navigation
+            self._navigation_states.set(session_id, navigation)
             return {"status": "navigated", "path": target_path}
 
         else:
@@ -1486,7 +1354,7 @@ class GuidedExplorationFacade:
                 exploration,
                 node,
             )
-            self._navigation_states[session_id] = navigation
+            self._navigation_states.set(session_id, navigation)
             return {"status": "navigated", "path": target_path}
 
     async def mark_explored(
@@ -3142,88 +3010,20 @@ class GuidedExplorationFacade:
         messages: list[SessionMessage],
         limit: int = 10,
     ) -> list[str]:
-        """Format session messages as conversation history strings.
-
-        Args:
-            messages: List of session messages
-            limit: Maximum number of recent messages to include
-
-        Returns:
-            List of formatted message strings for classifier context
-        """
-        history = []
-        # Get last N messages that have content
-        recent = [
-            m
-            for m in messages
-            if m.content
-            and m.type in (SessionMessageType.USER, SessionMessageType.ASSISTANT)
-        ][-limit:]
-
-        for msg in recent:
-            role = "Nutzer" if msg.type == SessionMessageType.USER else "Assistent"
-            # Truncate long messages
-            msg_content = msg.content or ""
-            content = (
-                msg_content[:200] + "..." if len(msg_content) > 200 else msg_content
-            )
-            history.append(f"{role}: {content}")
-
-        return history
+        return format_session_history(messages, limit)
 
     def _format_leaf_conversation_history(
         self,
         conversation: Conversation | None,
         limit: int = 10,
     ) -> list[str]:
-        """Format leaf conversation messages as history strings.
-
-        Args:
-            conversation: The leaf conversation
-            limit: Maximum number of recent messages to include
-
-        Returns:
-            List of formatted message strings for classifier context
-        """
-        if not conversation or not conversation.messages:
-            return []
-
-        history = []
-        recent = conversation.messages[-limit:]
-
-        for msg in recent:
-            role = "Nutzer" if msg.role == MessageRole.USER else "Assistent"
-            content = (
-                msg.content
-                if isinstance(msg.content, str)
-                else "[Strukturierter Inhalt]"
-            )
-            # Truncate long messages (enough to preserve most back-references
-            # while keeping the classifier prompt bounded).
-            content = content[:800] + "..." if len(content) > 800 else content
-            history.append(f"{role}: {content}")
-
-        return history
+        return format_leaf_history(conversation, limit)
 
     def _extract_last_assistant_message(
         self,
         conversation: Conversation | None,
     ) -> str | None:
-        """Return the most recent assistant text message in full.
-
-        The classifier needs the untruncated last assistant turn to resolve
-        short affirmations ("gerne", "ja") against the specific question the
-        assistant just asked. The truncated entry in the history list would
-        hide the question if the message is longer than 200 chars.
-        """
-        if not conversation or not conversation.messages:
-            return None
-        for msg in reversed(conversation.messages):
-            if msg.role != MessageRole.ASSISTANT:
-                continue
-            if isinstance(msg.content, str):
-                return msg.content
-        return None
+        return extract_last_assistant_message(conversation)
 
     # =========================================================================
     # SSE Helpers
@@ -3235,11 +3035,7 @@ class GuidedExplorationFacade:
         stage: Literal["classifying", "planning", "retrieving", "generating"],
         message: str,
     ) -> None:
-        """Send a thinking event."""
-        await self._sse.send_to_session(
-            session_id,
-            ThinkingEvent(stage=stage, message=message),
-        )
+        await self._streaming.send_thinking(session_id, stage, message)
 
     async def _send_chat_message(
         self,
@@ -3250,18 +3046,13 @@ class GuidedExplorationFacade:
         query_id: str | None = None,
         suggested_questions: list[str] | None = None,
     ) -> None:
-        """Send a chat message event."""
-        await self._sse.send_to_session(
+        await self._streaming.send_chat_message(
             session_id,
-            ChatMessageEvent(
-                type="chat_message",
-                message_id=str(uuid4()),
-                content=message,
-                citations=citations or [],
-                can_explore_deeper=can_explore_deeper,
-                query_id=query_id,
-                suggested_questions=suggested_questions or [],
-            ),
+            message,
+            citations=citations,
+            can_explore_deeper=can_explore_deeper,
+            query_id=query_id,
+            suggested_questions=suggested_questions,
         )
 
     async def _stream_text(
@@ -3275,38 +3066,13 @@ class GuidedExplorationFacade:
         target_id: str,
         section: str | None = None,
     ) -> None:
-        """Stream content in word chunks."""
-        words = content.split()
-        chunk_index = 0
-
-        for i in range(0, len(words), WORDS_PER_CHUNK):
-            chunk = " ".join(words[i : i + WORDS_PER_CHUNK])
-            if i + WORDS_PER_CHUNK < len(words):
-                chunk += " "
-
-            await self._sse.send_to_session(
-                session_id,
-                StreamChunkEvent(
-                    stream_id=stream_id,
-                    target_type=target_type,
-                    target_id=target_id,
-                    section=section,
-                    chunk=chunk,
-                    chunk_index=chunk_index,
-                ),
-            )
-            chunk_index += 1
-            await asyncio.sleep(CHUNK_DELAY)
-
-        # Send stream end
-        await self._sse.send_to_session(
+        await self._streaming.stream_text(
             session_id,
-            StreamEndEvent(
-                stream_id=stream_id,
-                target_type=target_type,
-                target_id=target_id,
-                complete=True,
-            ),
+            content,
+            stream_id,
+            target_type,
+            target_id,
+            section=section,
         )
 
     async def _stream_from_llm(
@@ -3320,54 +3086,14 @@ class GuidedExplorationFacade:
         target_id: str,
         section: str | None = None,
     ) -> str:
-        """
-        Stream directly from LLM to SSE, returning the full text.
-
-        This provides real-time streaming from the LLM to the frontend,
-        rather than generating the full response first.
-
-        Args:
-            session_id: The session to stream to
-            stream_id: Unique ID for this stream
-            llm_stream: AsyncIterator yielding text chunks from LLM
-            target_type: Type of content being streamed
-            target_id: ID of the target (e.g., leaf_id)
-            section: Optional section marker
-
-        Returns:
-            The complete accumulated text
-        """
-        full_text = ""
-        chunk_index = 0
-
-        async for chunk in llm_stream:
-            full_text += chunk
-
-            await self._sse.send_to_session(
-                session_id,
-                StreamChunkEvent(
-                    stream_id=stream_id,
-                    target_type=target_type,
-                    target_id=target_id,
-                    section=section,
-                    chunk=chunk,
-                    chunk_index=chunk_index,
-                ),
-            )
-            chunk_index += 1
-
-        # Send stream end
-        await self._sse.send_to_session(
+        return await self._streaming.stream_from_llm(
             session_id,
-            StreamEndEvent(
-                stream_id=stream_id,
-                target_type=target_type,
-                target_id=target_id,
-                complete=True,
-            ),
+            stream_id,
+            llm_stream,
+            target_type,
+            target_id,
+            section=section,
         )
-
-        return full_text
 
     async def _send_error(
         self,
@@ -3376,15 +3102,8 @@ class GuidedExplorationFacade:
         message: str,
         recoverable: bool = True,
     ) -> None:
-        """Send an error event to the session."""
-        await self._sse.send_to_session(
-            session_id,
-            ErrorEvent(
-                code=code,
-                message=message,
-                recoverable=recoverable,
-                suggested_action=None,
-            ),
+        await self._streaming.send_error(
+            session_id, code, message, recoverable=recoverable
         )
 
     # =========================================================================
@@ -3772,9 +3491,7 @@ class GuidedExplorationFacade:
             ),
         )
 
-        # Clear navigation state
-        if session_id in self._navigation_states:
-            del self._navigation_states[session_id]
+        self._navigation_states.clear(session_id)
 
         return {
             "status": "exploration_ended",
