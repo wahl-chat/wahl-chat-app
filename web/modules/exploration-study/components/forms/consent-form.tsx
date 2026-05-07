@@ -76,14 +76,17 @@ export function ConsentForm({
               <h2 className="text-lg font-semibold text-foreground">
                 Ablauf der Studie
               </h2>
-              <p>Die Studie führt dich Schritt für Schritt durch fünf Teile:</p>
+              <p>
+                Die Studie führt dich Schritt für Schritt durch sechs Teile:
+              </p>
               <ol className="space-y-0 pt-1">
                 {[
-                  'Demografische Fragen',
-                  'Fragen zu deiner digitalen Kompetenz',
                   'Eine kurze Einführung',
                   'Eine Aufgabe zur Informationssuche',
-                  'Fragebogen nach der Aufgabe',
+                  'Fragebogen zur Aufgabe',
+                  'Ein kurzes Wissensquiz',
+                  'Demografische Fragen',
+                  'Fragen zu deiner digitalen Kompetenz',
                 ].map((step, index, arr) => (
                   <li key={step} className="relative flex gap-3 pb-4 last:pb-0">
                     <VisuallyHidden>({index + 1}) </VisuallyHidden>
