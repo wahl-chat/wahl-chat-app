@@ -199,7 +199,6 @@ export default function TaskPage() {
           stepLabel={progress.label}
         />
         <TaskContainer
-          condition={taskData.condition}
           durationSeconds={taskData.durationSeconds}
           onEnd={handleEnd}
         >

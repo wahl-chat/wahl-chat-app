@@ -73,6 +73,31 @@ class RAGService:
             RAGService._study_rag = StudyPositionsRAG(embeddings=self._embeddings)
         return RAGService._study_rag
 
+    async def retrieve_chunks_for_parties(
+        self,
+        query: str,
+        context_id: str,
+        parties: list[str],
+        n_docs: int = 3,
+        score_threshold: float = 0.5,
+    ) -> list[RetrievedChunk]:
+        """Fan out per-party retrieval and concatenate results.
+
+        Used by the quick-summary and factual-query paths where the LLM is
+        shown a single flat chunk list grouped by party.
+        """
+        all_chunks: list[RetrievedChunk] = []
+        for party_id in parties:
+            chunks = await self.retrieve_chunks_for_party(
+                query=query,
+                context_id=context_id,
+                party_id=party_id,
+                n_docs=n_docs,
+                score_threshold=score_threshold,
+            )
+            all_chunks.extend(chunks)
+        return all_chunks
+
     async def retrieve_chunks_for_party(
         self,
         query: str,

@@ -20,7 +20,6 @@ import { TaskTimer } from './task-timer';
 export const MIN_TASK_DURATION_SECONDS = 7 * 60;
 
 export interface TaskContainerProps {
-  condition: 'guided' | 'chat';
   durationSeconds: number;
   onEnd: () => Promise<void>;
   children: React.ReactNode;
@@ -35,7 +34,6 @@ function formatMinutesSeconds(totalSeconds: number): string {
 }
 
 export function TaskContainer({
-  condition,
   durationSeconds,
   onEnd,
   children,
@@ -165,10 +163,6 @@ export function TaskContainer({
             secondsRemaining={secondsRemaining}
             formattedTime={formatTime()}
           />
-          <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-            <span className="sr-only">Aktueller Modus: </span>
-            {condition === 'guided' ? 'Geführte Erkundung' : 'Chat-Modus'}
-          </span>
         </div>
         <div className="flex items-center gap-2">
           {!canEnd && unlockCountdownRevealed && (

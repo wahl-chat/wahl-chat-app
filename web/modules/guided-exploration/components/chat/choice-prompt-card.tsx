@@ -11,66 +11,67 @@ interface ChoicePromptCardProps {
   isLoading: boolean;
 }
 
-const CHOICE_CONFIG = {
-  summary: {
-    icon: Zap,
-    accent:
-      'border-amber-500/30 hover:border-amber-500/50 hover:bg-amber-500/5',
-    iconColor: 'text-amber-500',
-  },
-  explore: {
-    icon: Compass,
-    accent: 'border-primary/30 hover:border-primary/50 hover:bg-primary/5',
-    iconColor: 'text-primary',
-  },
-} as const;
-
 export function ChoicePromptCard({
   choice,
   onSubmit,
   isLoading,
 }: ChoicePromptCardProps) {
   const headingId = useId();
+  const exploreOption = choice.options.find((o) => o.id === 'explore');
+  const summaryOption = choice.options.find((o) => o.id === 'summary');
+
   return (
     <section aria-labelledby={headingId} className="space-y-3">
       <h2 id={headingId} className="text-sm font-medium">
         Wie möchtest du das Thema angehen?
       </h2>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {choice.options.map((option) => {
-          const config = CHOICE_CONFIG[option.id as keyof typeof CHOICE_CONFIG];
-          const Icon = config?.icon ?? Zap;
-          const accent = config?.accent ?? '';
-          const iconColor = config?.iconColor ?? 'text-foreground';
-
-          return (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => onSubmit(option.id)}
-              disabled={isLoading}
-              aria-describedby={headingId}
-              className={cn(
-                'flex items-start gap-3 rounded-lg border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50',
-                accent,
-              )}
+      <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-stretch">
+        {exploreOption && (
+          <button
+            type="button"
+            onClick={() => onSubmit('explore')}
+            disabled={isLoading}
+            aria-describedby={headingId}
+            className={cn(
+              'group relative flex items-start gap-4 overflow-hidden rounded-lg border-2 border-primary/40 bg-primary/5 p-5 text-left shadow-sm transition-all hover:border-primary hover:bg-primary/10 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50',
+            )}
+          >
+            <div
+              className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+              aria-hidden="true"
             >
-              <div
-                className={cn(
-                  'flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted',
-                  iconColor,
-                )}
-                aria-hidden="true"
-              >
-                <Icon className="size-5" />
+              <Compass className="size-6" />
+            </div>
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex items-center gap-2">
+                <p className="text-base font-semibold">{exploreOption.label}</p>
+                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                  Empfohlen
+                </span>
               </div>
-              <div className="space-y-0.5">
-                <p className="text-sm font-medium">{option.label}</p>
-                <p className="text-xs text-foreground">{option.description}</p>
-              </div>
-            </button>
-          );
-        })}
+              <p className="text-sm text-foreground/80">
+                {exploreOption.description}
+              </p>
+            </div>
+          </button>
+        )}
+        {summaryOption && (
+          <button
+            type="button"
+            onClick={() => onSubmit('summary')}
+            disabled={isLoading}
+            aria-describedby={headingId}
+            className={cn(
+              'flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left text-sm text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 sm:flex-col sm:justify-center sm:px-4',
+            )}
+          >
+            <Zap
+              className="size-4 shrink-0 text-amber-500"
+              aria-hidden="true"
+            />
+            <span className="font-medium">{summaryOption.label}</span>
+          </button>
+        )}
       </div>
     </section>
   );

@@ -1,0 +1,628 @@
+# SPDX-FileCopyrightText: 2025 wahl.chat
+#
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+"""Lifecycle of an exploration — start, leaf-summary on mark, final summary on end."""
+
+import asyncio
+import logging
+from datetime import datetime, timezone
+from uuid import uuid4
+
+from src.guided_exploration.agents import (
+    ContentGeneratorAgent,
+    ContentGeneratorInput,
+    FinalSummaryInput,
+    LeafSummaryInput,
+    SummaryGeneratorAgent,
+)
+from src.guided_exploration.agents.party_context import PartyInfo
+from src.guided_exploration.api.sse import SSEManager
+from src.guided_exploration.handlers.navigation import get_leaf_name
+from src.guided_exploration.models import (
+    BreadcrumbItem,
+    BreadcrumbLevel,
+    ChatMessageEvent,
+    Conversation,
+    ExplorationCompleteEvent,
+    ExplorationNode,
+    ExplorationTree,
+    Message,
+    MessageRole,
+    MessageType,
+    NavigationState,
+    NodeStatus,
+    SessionMessage,
+    SessionMessageType,
+    SummaryGeneratingEvent,
+    SummaryTree,
+)
+from src.guided_exploration.models.conversation import LeafSummary
+from src.guided_exploration.models.errors import InsufficientChunksError
+from src.guided_exploration.models.exploration import (
+    ExplorationStatus,
+    FinalSummary,
+)
+from src.guided_exploration.services.citation_utils import collect_leaf_citations
+from src.guided_exploration.services.context_resolver import ContextResolver
+from src.guided_exploration.services.navigation_state_store import (
+    NavigationStateStore,
+)
+from src.guided_exploration.services.orchestrator import Orchestrator
+from src.guided_exploration.services.session_repository import SessionRepository
+from src.guided_exploration.services.streaming import StreamingService
+from src.guided_exploration.services.study_context import is_study_context
+
+logger = logging.getLogger(__name__)
+
+# Pre-gen leaf timeout: two LLM calls in sequence (structured gen + aspect
+# extraction); 45 s leaves headroom for slow-tail latency.
+LEAF_PREGEN_TIMEOUT_SECONDS = 45.0
+
+
+class ExplorationLifecycleHandler:
+    """Owns the start/mark/end lifecycle of an exploration.
+
+    The internal start path runs the orchestrator, persists the tree, kicks
+    off study pre-gen (when applicable) and seeds navigation state. Public
+    ``start_exploration`` is a session-bookkeeping shim that delegates to the
+    internal path; ``mark_explored`` records a leaf as explored and
+    generates its summary; ``end_exploration`` produces the final summary
+    and emits ``ExplorationCompleteEvent``.
+    """
+
+    def __init__(
+        self,
+        repo: SessionRepository,
+        sse: SSEManager,
+        streaming: StreamingService,
+        context_resolver: ContextResolver,
+        navigation_states: NavigationStateStore,
+        orchestrator: Orchestrator,
+        content_generator: ContentGeneratorAgent,
+        summary_generator: SummaryGeneratorAgent,
+        pregen_leaf_tasks: dict[tuple[str, str], asyncio.Task],
+        background_tasks: set[asyncio.Task],
+    ) -> None:
+        self._repo = repo
+        self._sse = sse
+        self._streaming = streaming
+        self._context_resolver = context_resolver
+        self._navigation_states = navigation_states
+        self._orchestrator = orchestrator
+        self._content_generator = content_generator
+        self._summary_generator = summary_generator
+        self._pregen_leaf_tasks = pregen_leaf_tasks
+        self._background_tasks = background_tasks
+
+    async def start_internal(
+        self,
+        session_id: str,
+        query: str,
+        context_id: str,
+        parties: list[str],
+        rag_query: str | None = None,
+        selected_directions: list[str] | None = None,
+    ) -> dict:
+        """Internal method to start exploration (called after choice)."""
+        try:
+            await self._sse.send_to_session(
+                session_id,
+                ChatMessageEvent(
+                    message_id=str(uuid4()),
+                    content=(
+                        "Perfekt! Ich suche jetzt Informationen zu diesem Thema und "
+                        "melde mich, sobald ich fertig bin. Du kannst den Fortschritt "
+                        "hier im Chat verfolgen."
+                    ),
+                ),
+            )
+
+            (
+                exploration_id,
+                exploration_tree,
+                low_confidence,
+            ) = await self._orchestrator.start_exploration(
+                session_id=session_id,
+                query=query,
+                rag_query=rag_query or query,
+                context_id=context_id,
+                parties=parties,
+            )
+
+            if selected_directions:
+                exploration_tree.selected_directions = selected_directions
+
+            if low_confidence:
+                caveat_text = (
+                    "Zu diesem Thema habe ich nur begrenzte Informationen "
+                    "gefunden. Die Erkundung zeigt die verfügbaren "
+                    "Positionen — es kann sein, dass nicht alle Parteien "
+                    "vertreten sind."
+                )
+                await self._streaming.send_chat_message(session_id, caveat_text)
+                caveat_msg = SessionMessage(
+                    id=str(uuid4()),
+                    type=SessionMessageType.ASSISTANT,
+                    content=caveat_text,
+                    timestamp=datetime.now(timezone.utc),
+                )
+                await self._repo.add_session_message(session_id, caveat_msg)
+
+            await self._repo.create_exploration(
+                session_id,
+                query,
+                tree=exploration_tree,
+                exploration_id=exploration_id,
+            )
+
+            exploration_msg = SessionMessage(
+                id=str(uuid4()),
+                type=SessionMessageType.EXPLORATION_START,
+                content=None,
+                exploration_id=exploration_id,
+                exploration_query=query,
+                timestamp=datetime.now(timezone.utc),
+            )
+            await self._repo.add_session_message(session_id, exploration_msg)
+
+            # Study sessions: eagerly pre-generate all leaf content in the
+            # background so participants never wait when they open a leaf.
+            # Non-study flows keep the lazy-on-open behavior.
+            if is_study_context(context_id):
+                context_name, parties_info = (
+                    await self._context_resolver.get_context_info(context_id)
+                )
+                pregen_task = asyncio.create_task(
+                    self._pregen_study_leaves(
+                        session_id=session_id,
+                        exploration_id=exploration_id,
+                        tree=exploration_tree,
+                        context_name=context_name,
+                        parties_info=parties_info,
+                    )
+                )
+                self._background_tasks.add(pregen_task)
+                pregen_task.add_done_callback(self._background_tasks.discard)
+
+            self._navigation_states.set(
+                session_id,
+                NavigationState(
+                    exploration_id=exploration_id,
+                    current_path=[],
+                    breadcrumb=[
+                        BreadcrumbItem(
+                            id="root",
+                            name="Übersicht",
+                            level=BreadcrumbLevel.ROOT,
+                        ),
+                    ],
+                ),
+            )
+
+            return {
+                "status": "exploration_started",
+                "exploration_id": exploration_id,
+            }
+
+        except InsufficientChunksError as e:
+            logger.warning(
+                f"Insufficient data for exploration: {e.parties_with_chunks}/"
+                f"{e.total_parties} parties have data. "
+                f"Missing: {', '.join(e.parties_without_chunks)}"
+            )
+
+            chat_message = (
+                "Zu diesem Thema habe ich leider zu wenige Informationen "
+                "in den Wahlprogrammen gefunden, um eine Erkundung zu starten. "
+                "Versuche es mit einer anderen Frage oder formuliere das "
+                "Thema etwas breiter."
+            )
+
+            stream_id = str(uuid4())
+            await self._streaming.stream_text(
+                session_id,
+                chat_message,
+                stream_id,
+                "quick_summary",
+                "system",
+            )
+
+            await self._streaming.send_chat_message(session_id, chat_message)
+
+            assistant_msg = SessionMessage(
+                id=str(uuid4()),
+                type=SessionMessageType.ASSISTANT,
+                content=chat_message,
+                timestamp=datetime.now(timezone.utc),
+            )
+            await self._repo.add_session_message(session_id, assistant_msg)
+
+            return {"status": "insufficient_data"}
+
+        except Exception as e:
+            logger.error(f"Failed to start exploration: {e}")
+            await self._streaming.send_error(
+                session_id,
+                "exploration_failed",
+                "Fehler beim Starten der Erkundung",
+            )
+            return {"status": "error", "code": "exploration_failed"}
+
+    async def start_exploration(
+        self,
+        session_id: str,
+        query: str,
+        context_id: str,
+        parties: list[str],
+    ) -> dict:
+        """Start a new exploration directly (bypasses choice flow)."""
+        session = await self._repo.get_session(session_id)
+        if not session:
+            await self._streaming.send_error(
+                session_id,
+                "session_not_found",
+                "Sitzung nicht gefunden",
+            )
+            return {"status": "error", "code": "session_not_found"}
+
+        await self._repo.update_session_activity(session_id)
+
+        user_msg = SessionMessage(
+            id=str(uuid4()),
+            type=SessionMessageType.USER,
+            content=query,
+            timestamp=datetime.now(timezone.utc),
+        )
+        await self._repo.add_session_message(session_id, user_msg)
+
+        return await self.start_internal(
+            session_id=session_id,
+            query=query,
+            context_id=context_id,
+            parties=parties,
+        )
+
+    async def mark_explored(
+        self,
+        session_id: str,
+        exploration_id: str,
+        leaf_id: str,
+    ) -> dict:
+        """Mark a leaf as explored and generate a summary."""
+        session = await self._repo.get_session(session_id)
+        if not session:
+            return {"status": "error", "code": "session_not_found"}
+
+        exploration = await self._repo.get_exploration(session_id, exploration_id)
+        if not exploration:
+            await self._streaming.send_error(
+                session_id,
+                "exploration_not_found",
+                "Erkundung nicht gefunden",
+            )
+            return {"status": "error", "code": "exploration_not_found"}
+
+        tree = exploration.tree
+
+        await self._mark_leaf_explored(session_id, exploration_id, leaf_id, tree)
+
+        try:
+            conversation = await self._repo.get_conversation(
+                session_id, exploration_id, leaf_id
+            )
+
+            if conversation and conversation.messages:
+                first_msg = conversation.messages[0]
+                if hasattr(first_msg.content, "summary"):
+                    subtopic_content = first_msg.content
+                    context_name, _ = await self._context_resolver.get_context_info(
+                        session.context_id
+                    )
+                    leaf_name = get_leaf_name(tree, leaf_id)
+
+                    await self._sse.send_to_session(
+                        session_id,
+                        SummaryGeneratingEvent(
+                            leaf_id=leaf_id,
+                            status="started",
+                        ),
+                    )
+
+                    leaf_summary = await self._summary_generator.execute(
+                        LeafSummaryInput(
+                            leaf_id=leaf_id,
+                            leaf_name=leaf_name,
+                            conversation=conversation,
+                            subtopic_content=subtopic_content,
+                            context_name=context_name,
+                        )
+                    )
+
+                    await self._repo.save_leaf_summary(
+                        session_id,
+                        exploration_id,
+                        LeafSummary.model_validate(leaf_summary),
+                    )
+
+                    await self._sse.send_to_session(
+                        session_id,
+                        SummaryGeneratingEvent(
+                            leaf_id=leaf_id,
+                            status="completed",
+                        ),
+                    )
+
+                    logger.debug(f"Generated summary for leaf {leaf_id}")
+
+        except Exception as e:
+            logger.error(f"Failed to generate leaf summary: {e}")
+            await self._sse.send_to_session(
+                session_id,
+                SummaryGeneratingEvent(
+                    leaf_id=leaf_id,
+                    status="failed",
+                    error=str(e),
+                ),
+            )
+
+        return {"status": "marked_explored", "leaf_id": leaf_id}
+
+    async def end_exploration(
+        self,
+        session_id: str,
+        exploration_id: str,
+        generate_summary: bool = True,
+    ) -> dict:
+        """End an exploration and optionally generate a final summary."""
+        session = await self._repo.get_session(session_id)
+        if not session:
+            return {"status": "error", "code": "session_not_found"}
+
+        exploration = await self._repo.get_exploration(session_id, exploration_id)
+        if not exploration:
+            await self._streaming.send_error(
+                session_id,
+                "exploration_not_found",
+                "Erkundung nicht gefunden",
+            )
+            return {"status": "error", "code": "exploration_not_found"}
+
+        # Idempotency guard — do not re-run summary LLM or re-send event (S1)
+        if exploration.status == ExplorationStatus.COMPLETED:
+            return {"status": "already_completed"}
+
+        tree = exploration.tree
+        all_leaves = tree.root.get_leaf_nodes()
+        explored = [leaf.id for leaf in all_leaves if leaf.status == NodeStatus.EXPLORED]
+        total_subtopics = len(all_leaves)
+
+        stats = {
+            "topics_explored": len(explored),
+            "total_topics": total_subtopics,
+            "completion_percentage": (
+                int(len(explored) / total_subtopics * 100) if total_subtopics > 0 else 0
+            ),
+        }
+
+        closing_summary = ""
+
+        if generate_summary and explored:
+            try:
+                context_name, _ = await self._context_resolver.get_context_info(
+                    session.context_id
+                )
+
+                all_summaries = await self._repo.get_all_summaries(
+                    session_id, exploration_id
+                )
+
+                summary_tree = SummaryTree(summaries=all_summaries)
+
+                await self._streaming.send_thinking(
+                    session_id, "generating", "Erstelle Zusammenfassung..."
+                )
+
+                final_summary = FinalSummary.model_validate(
+                    await self._summary_generator.execute(
+                        FinalSummaryInput(
+                            exploration_id=exploration_id,
+                            original_query=exploration.original_query,
+                            summary_tree=summary_tree,
+                            explored_subtopics=explored,
+                            context_name=context_name,
+                        )
+                    )
+                )
+
+                closing_summary = final_summary.closing_summary
+
+                stream_id = str(uuid4())
+                await self._streaming.stream_text(
+                    session_id,
+                    closing_summary,
+                    stream_id,
+                    "quick_summary",
+                    exploration_id,
+                )
+
+                await self._repo.complete_exploration(
+                    session_id,
+                    exploration_id,
+                    final_summary.model_dump(mode="json"),
+                )
+
+            except Exception as e:
+                logger.error(f"Failed to generate final summary: {e}")
+                closing_summary = (
+                    f"Vielen Dank für Ihre Erkundung zum Thema "
+                    f"'{exploration.original_query}'. "
+                    f"Sie haben {len(explored)} Themen erkundet."
+                )
+        else:
+            closing_summary = (
+                f"Erkundung zum Thema '{exploration.original_query}' beendet."
+            )
+            await self._repo.complete_exploration(
+                session_id,
+                exploration_id,
+                {"closing_summary": closing_summary},
+            )
+
+        unexplored = [
+            {"id": leaf.id, "name": leaf.name}
+            for leaf in all_leaves
+            if leaf.id not in explored
+        ]
+
+        await self._sse.send_to_session(
+            session_id,
+            ExplorationCompleteEvent(
+                exploration_id=exploration_id,
+                closing_summary=closing_summary,
+                stats=stats,
+                next_actions={
+                    "can_export": False,
+                    "can_restart": True,
+                    "suggested_topics": unexplored[:3] if unexplored else [],
+                },
+                unexplored_topics=unexplored,
+            ),
+        )
+
+        self._navigation_states.clear(session_id)
+
+        return {
+            "status": "exploration_ended",
+            "exploration_id": exploration_id,
+            "stats": stats,
+        }
+
+    async def _pregen_study_leaves(
+        self,
+        session_id: str,
+        exploration_id: str,
+        tree: ExplorationTree,
+        context_name: str,
+        parties_info: dict[str, PartyInfo],
+    ) -> None:
+        """Eagerly generate and persist initial content for every leaf in a study."""
+        leaves = tree.root.get_leaf_nodes()
+        if not leaves:
+            return
+
+        logger.info(
+            f"Study pre-gen starting: {len(leaves)} leaves "
+            f"(exploration={exploration_id})"
+        )
+
+        async def gen_and_persist(leaf: ExplorationNode) -> str | None:
+            existing = await self._repo.get_conversation(
+                session_id, exploration_id, leaf.id
+            )
+            if existing and existing.messages:
+                return None
+
+            positions_by_party = tree.get_positions_by_party(leaf.id)
+            leaf_citations = collect_leaf_citations(positions_by_party)
+            path_nodes = tree.root.get_path_to(leaf.id) or []
+            path = [n.id for n in path_nodes[1:]]
+            content = await asyncio.wait_for(
+                self._content_generator.execute(
+                    ContentGeneratorInput(
+                        subtopic_id=leaf.id,
+                        subtopic_name=leaf.name,
+                        path=path,
+                        leaf_positions=positions_by_party,
+                        leaf_citations=leaf_citations,
+                        context_id=tree.exploration_id,
+                        context_name=context_name,
+                        parties_info=parties_info,
+                        parties=leaf.party_ids,
+                    )
+                ),
+                timeout=LEAF_PREGEN_TIMEOUT_SECONDS,
+            )
+
+            now = datetime.now(timezone.utc)
+            initial_message = Message(
+                id=str(uuid4()),
+                role=MessageRole.ASSISTANT,
+                type=MessageType.INITIAL_CONTENT,
+                content=content,
+                timestamp=now,
+            )
+            conversation = Conversation(
+                leaf_id=leaf.id,
+                messages=[initial_message],
+                has_summary=False,
+            )
+            await self._repo.save_conversation(
+                session_id, exploration_id, conversation
+            )
+            return leaf.id
+
+        tasks: list[asyncio.Task] = []
+        for leaf in leaves:
+            key = (exploration_id, leaf.id)
+            task = asyncio.create_task(gen_and_persist(leaf))
+            self._pregen_leaf_tasks[key] = task
+            tasks.append(task)
+
+        try:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+        finally:
+            for leaf in leaves:
+                self._pregen_leaf_tasks.pop((exploration_id, leaf.id), None)
+
+        loaded_leaf_ids: list[str] = []
+        for result in results:
+            if isinstance(result, BaseException):
+                logger.warning(
+                    f"Study pre-gen leaf failed: "
+                    f"{type(result).__name__}: {result}"
+                )
+                continue
+            if result is not None:
+                loaded_leaf_ids.append(result)
+
+        if loaded_leaf_ids:
+            # Merge pending→loaded transitions onto the latest persisted
+            # tree so we don't stomp on status changes the user made in
+            # parallel (e.g. pending→started via _navigate_to_leaf).
+            try:
+                fresh = await self._repo.get_exploration(
+                    session_id, exploration_id
+                )
+                if fresh is not None:
+                    updated = False
+                    for leaf_id in loaded_leaf_ids:
+                        node = fresh.tree.find_node(leaf_id)
+                        if node is not None and node.status == NodeStatus.PENDING:
+                            node.status = NodeStatus.LOADED
+                            updated = True
+                    if updated:
+                        await self._repo.update_tree(
+                            session_id, exploration_id, fresh.tree
+                        )
+            except Exception as e:
+                logger.warning(f"Study pre-gen tree persist failed: {e}")
+
+        logger.info(
+            f"Study pre-gen completed: {len(loaded_leaf_ids)}/{len(leaves)} "
+            f"leaves loaded (exploration={exploration_id})"
+        )
+
+    async def _mark_leaf_explored(
+        self,
+        session_id: str,
+        exploration_id: str,
+        leaf_id: str,
+        tree: ExplorationTree,
+    ) -> None:
+        """Mark a leaf node as explored in the tree."""
+        node = tree.find_node(leaf_id)
+        if node is not None:
+            node.status = NodeStatus.EXPLORED
+
+        await self._repo.update_tree(session_id, exploration_id, tree)
