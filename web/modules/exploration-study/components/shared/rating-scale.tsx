@@ -20,7 +20,7 @@ export interface RatingScaleProps {
   highAnchor?: string;
   /**
    * 'md' (default): size-8 circles, gap-2 — good for scales up to ~7 options.
-   * 'sm': size-7 circles, gap-1 — fits 11 circles (MAILS 0-10) on mobile.
+   * 'sm': size-7 circles, gap-1 — fits 11-point scales (0-10) on mobile.
    */
   size?: 'sm' | 'md';
   className?: string;

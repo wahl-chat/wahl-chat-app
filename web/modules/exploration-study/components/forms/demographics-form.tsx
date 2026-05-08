@@ -24,6 +24,7 @@ import {
 } from '@/modules/exploration-study/schemas/forms';
 import type {
   AgeRange,
+  AiChatUsageFrequency,
   DemographicsData,
   Education,
   Gender,
@@ -64,6 +65,18 @@ const EDUCATION_OPTIONS: { value: Education; label: string }[] = [
   { value: 'doctorate', label: 'Promotion' },
   { value: 'other', label: 'Sonstiges' },
 ];
+
+const AI_CHAT_USAGE_OPTIONS: { value: AiChatUsageFrequency; label: string }[] =
+  [
+    { value: 'never', label: 'Nie' },
+    {
+      value: 'less_than_monthly',
+      label: 'Seltener als einmal pro Monat',
+    },
+    { value: 'several_times_per_month', label: 'Mehrmals pro Monat' },
+    { value: 'several_times_per_week', label: 'Mehrmals pro Woche' },
+    { value: 'almost_daily', label: '(Fast) täglich' },
+  ];
 
 function LabelWithCheck({
   label,
@@ -216,6 +229,36 @@ export function DemographicsForm({
             rightAnchor="Sehr stark"
             min={1}
             max={7}
+          />
+
+          <FormField
+            control={form.control}
+            name="aiChatUsageFrequency"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  <LabelWithCheck
+                    label="Wie oft nutzt du KI-Chat-Anwendungen wie ChatGPT oder Claude?"
+                    answered={!!field.value}
+                  />
+                </FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger aria-required="true">
+                      <SelectValue placeholder="Bitte auswählen" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {AI_CHAT_USAGE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
 

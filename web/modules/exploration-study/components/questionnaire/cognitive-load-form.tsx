@@ -17,10 +17,22 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import type { FieldPath } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 
+export interface CognitiveLoadFormSubmitData {
+  cognitiveLoad: CognitiveLoadResponse;
+  attentionCheck: number;
+}
+
 export interface CognitiveLoadFormProps {
-  onSubmit: (data: CognitiveLoadResponse) => void;
+  onSubmit: (data: CognitiveLoadFormSubmitData) => void;
   className?: string;
 }
+
+// Position 4 of 8 — surrounded on both sides by real CL items so the check
+// blends into the block visually and answer-format-wise.
+const ATTENTION_CHECK_INSERT_INDEX = 3;
+
+const ATTENTION_CHECK_LABEL =
+  'Dies ist eine Aufmerksamkeitsfrage. Bitte wählen Sie für diese Aussage den Wert 2.';
 
 export function CognitiveLoadForm({
   onSubmit,
@@ -32,8 +44,15 @@ export function CognitiveLoadForm({
   });
 
   const handleSubmit = form.handleSubmit((values) => {
-    onSubmit(values);
+    const { attentionCheck, ...cognitiveLoad } = values;
+    onSubmit({ cognitiveLoad, attentionCheck });
   });
+
+  const itemsBefore = COGNITIVE_LOAD_ITEMS.slice(
+    0,
+    ATTENTION_CHECK_INSERT_INDEX,
+  );
+  const itemsAfter = COGNITIVE_LOAD_ITEMS.slice(ATTENTION_CHECK_INSERT_INDEX);
 
   return (
     <Form {...form}>
@@ -53,7 +72,30 @@ export function CognitiveLoadForm({
         </div>
 
         <div className="space-y-3">
-          {COGNITIVE_LOAD_ITEMS.map((item) => (
+          {itemsBefore.map((item) => (
+            <LikertFormItem
+              key={item.id}
+              control={form.control}
+              name={item.id as FieldPath<CognitiveLoadFormValues>}
+              id={`cognitive-load-${item.id}`}
+              label={item.text}
+              leftAnchor={COGNITIVE_LOAD_ANCHORS.low}
+              rightAnchor={COGNITIVE_LOAD_ANCHORS.high}
+              min={1}
+              max={7}
+            />
+          ))}
+          <LikertFormItem
+            control={form.control}
+            name="attentionCheck"
+            id="cognitive-load-attention-check"
+            label={ATTENTION_CHECK_LABEL}
+            leftAnchor={COGNITIVE_LOAD_ANCHORS.low}
+            rightAnchor={COGNITIVE_LOAD_ANCHORS.high}
+            min={1}
+            max={7}
+          />
+          {itemsAfter.map((item) => (
             <LikertFormItem
               key={item.id}
               control={form.control}

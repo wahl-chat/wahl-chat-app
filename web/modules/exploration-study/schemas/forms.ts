@@ -46,31 +46,25 @@ const educationValues = [
   'other',
 ] as const;
 
+const aiChatUsageFrequencyValues = [
+  'never',
+  'less_than_monthly',
+  'several_times_per_month',
+  'several_times_per_week',
+  'almost_daily',
+] as const;
+
 export const demographicsSchema = z.object({
   ageRange: z.enum(ageRangeValues, { error: REQUIRED_SELECT }),
   gender: z.enum(genderValues, { error: REQUIRED_SELECT }),
   education: z.enum(educationValues, { error: REQUIRED_SELECT }),
   politicalInterest: z.number({ error: REQUIRED_RATING }).min(1).max(7),
-});
-
-export type DemographicsFormValues = z.infer<typeof demographicsSchema>;
-
-// ---------------------------------------------------------------------------
-// Literacy (MAILS-Short, trimmed to 4 items)
-// ---------------------------------------------------------------------------
-
-const mailsRating = z.number({ error: REQUIRED_RATING }).min(0).max(10);
-
-export const literacySchema = z.object({
-  mailsShort: z.object({
-    item1: mailsRating,
-    item5: mailsRating,
-    item7: mailsRating,
-    item10: mailsRating,
+  aiChatUsageFrequency: z.enum(aiChatUsageFrequencyValues, {
+    error: REQUIRED_SELECT,
   }),
 });
 
-export type LiteracyFormValues = z.infer<typeof literacySchema>;
+export type DemographicsFormValues = z.infer<typeof demographicsSchema>;
 
 // ---------------------------------------------------------------------------
 // UEQ-S
@@ -105,6 +99,9 @@ export const cognitiveLoadSchema = z.object({
   cl_ecl_3: cognitiveLoadRating,
   cl_gcl_1: cognitiveLoadRating,
   cl_gcl_2: cognitiveLoadRating,
+  // Embedded attention check. Validated by form, split out at submit so it
+  // never lands inside the CL response object that downstream code scores.
+  attentionCheck: cognitiveLoadRating,
 });
 
 export type CognitiveLoadFormValues = z.infer<typeof cognitiveLoadSchema>;

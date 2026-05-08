@@ -5,7 +5,6 @@
 export type StudyState =
   | 'consent'
   | 'demographics'
-  | 'literacy'
   | 'tutorial'
   | 'task'
   | 'questionnaire'
@@ -72,14 +71,12 @@ export const STUDY_STEPS: StudyState[] = [
   'questionnaire',
   'quiz',
   'demographics',
-  'literacy',
   'complete',
 ];
 
 export const STEP_LABELS: Record<StudyState, string> = {
   consent: 'Einwilligung',
   demographics: 'Demografische Angaben',
-  literacy: 'Digitale Kompetenz',
   tutorial: 'Einführung',
   task: 'Aufgabe',
   questionnaire: 'Fragebogen',

@@ -16,7 +16,6 @@ from src.exploration_study.api.dtos import (
     DemographicsRequest,
     ErrorResponse,
     FeedbackRequest,
-    LiteracyRequest,
     PartyClaimDto,
     PartyClaimsResponse,
     PartySubtopicDto,
@@ -48,8 +47,6 @@ from src.exploration_study.models.quiz import (
 from src.exploration_study.models.session import (
     CognitiveLoadData,
     DemographicsData,
-    LiteracyData,
-    MailsShortData,
     ManipulationChecks,
     ProlificData,
     get_condition_for_group,
@@ -365,63 +362,15 @@ async def submit_demographics(request: web.Request) -> web.Response:
         gender=req.gender,
         education=req.education,
         political_interest=req.political_interest,
+        ai_chat_usage_frequency=req.ai_chat_usage_frequency,
     )
 
     await session_repo.update_participant_data(session_id, participant_data)
-    await session_repo.update_state(session_id, StudyState.LITERACY)
-
-    response = StateTransitionResponse(
-        previous_state=StudyState.DEMOGRAPHICS,
-        current_state=StudyState.LITERACY,
-    )
-    return web.json_response(response.model_dump(mode="json"))
-
-
-async def submit_literacy(request: web.Request) -> web.Response:
-    """
-    POST /api/exploration-study/sessions/{session_id}/literacy
-    Submit literacy screening.
-    """
-    session_id = request.match_info["session_id"]
-
-    try:
-        body = await request.json()
-        req = LiteracyRequest(**body)
-    except Exception as e:
-        return web.json_response(
-            ErrorResponse(error="Invalid request body", detail=str(e)).model_dump(),
-            status=400,
-        )
-
-    session_repo = get_session_repository()
-    session = await session_repo.get_session(session_id)
-
-    if not session:
-        return web.json_response(
-            ErrorResponse(error="Session not found").model_dump(),
-            status=404,
-        )
-
-    if session.state != StudyState.LITERACY:
-        return web.json_response(
-            ErrorResponse(
-                error="Invalid state",
-                detail=f"Expected state {StudyState.LITERACY}, got {session.state}",
-            ).model_dump(),
-            status=400,
-        )
-
-    participant_data = session.participant_data
-    participant_data.literacy = LiteracyData(
-        mails_short=MailsShortData(**req.mails_short.model_dump()),
-    )
-
-    await session_repo.update_participant_data(session_id, participant_data)
-    # Literacy is the last survey step; close out the session.
+    # Demographics is the last survey step; close out the session.
     await session_repo.mark_completed(session_id)
 
     response = StateTransitionResponse(
-        previous_state=StudyState.LITERACY,
+        previous_state=StudyState.DEMOGRAPHICS,
         current_state=StudyState.COMPLETE,
     )
     return web.json_response(response.model_dump(mode="json"))
@@ -642,6 +591,7 @@ async def submit_questionnaire(request: web.Request) -> web.Response:
         cl_gcl_1=req.cognitive_load.cl_gcl_1,
         cl_gcl_2=req.cognitive_load.cl_gcl_2,
     )
+    condition.attention_check = req.attention_check
     condition.ueq_s = req.ueq_s
     condition.manipulation_checks = ManipulationChecks(
         depth=req.manipulation_checks.depth,
@@ -1056,7 +1006,6 @@ def setup_exploration_study_routes(app: web.Application) -> None:
             f"{ROUTE_PREFIX}/sessions/{{session_id}}/demographics",
             submit_demographics,
         ),
-        ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/literacy", submit_literacy),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/tutorial", complete_tutorial),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/task/start", start_task),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/task/end", end_task),

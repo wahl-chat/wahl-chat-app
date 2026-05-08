@@ -13,7 +13,7 @@ class StudyState(str, Enum):
 
     Flow:
     CONSENT -> TUTORIAL -> TASK -> QUESTIONNAIRE -> QUIZ
-      -> DEMOGRAPHICS -> LITERACY -> COMPLETE
+      -> DEMOGRAPHICS -> COMPLETE
 
     All non-consent survey material is asked *after* the task so
     participants stay fresh for the exploration and knowledge quiz.
@@ -22,7 +22,6 @@ class StudyState(str, Enum):
     # Onboarding steps
     CONSENT = "consent"
     DEMOGRAPHICS = "demographics"
-    LITERACY = "literacy"
     TUTORIAL = "tutorial"
 
     # Task (single condition)
@@ -46,9 +45,8 @@ TRANSITIONS: dict[StudyState, list[StudyState]] = {
     StudyState.TASK: [StudyState.QUESTIONNAIRE],
     StudyState.QUESTIONNAIRE: [StudyState.QUIZ],
     StudyState.QUIZ: [StudyState.DEMOGRAPHICS],
-    # Post-task survey material
-    StudyState.DEMOGRAPHICS: [StudyState.LITERACY],
-    StudyState.LITERACY: [StudyState.COMPLETE],
+    # Post-task survey material — demographics is the final survey step
+    StudyState.DEMOGRAPHICS: [StudyState.COMPLETE],
     # Final
     StudyState.COMPLETE: [],
     # Abandoned can be reached from any state

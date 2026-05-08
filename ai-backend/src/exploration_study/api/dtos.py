@@ -187,7 +187,7 @@ class ConsentRequest(BaseModel):
 class DemographicsRequest(BaseModel):
     """Request for submitting demographics."""
 
-    age_range: str = Field(..., description="Age range buckGive me et")
+    age_range: str = Field(..., description="Age range bucket")
     gender: str = Field(..., description="Gender identity")
     education: str = Field(..., description="Education level")
     political_interest: int = Field(
@@ -196,28 +196,18 @@ class DemographicsRequest(BaseModel):
         le=7,
         description="Political interest (1-7)",
     )
-
-
-class MailsShortRequest(BaseModel):
-    """MAILS-Short responses (4 items, 0-10 scale).
-
-    One item per subscale: item1 Detect AI, item5 AI Ethics, item7 Apply AI,
-    item10 Understand AI. Item numbers preserved from the original 10-item
-    scale for traceability.
-    """
-
-    item1: int = Field(..., ge=0, le=10)
-    item5: int = Field(..., ge=0, le=10)
-    item7: int = Field(..., ge=0, le=10)
-    item10: int = Field(..., ge=0, le=10)
-
-
-class LiteracyRequest(BaseModel):
-    """Request for submitting literacy data."""
-
-    mails_short: MailsShortRequest = Field(
+    ai_chat_usage_frequency: Literal[
+        "never",
+        "less_than_monthly",
+        "several_times_per_month",
+        "several_times_per_week",
+        "almost_daily",
+    ] = Field(
         ...,
-        description="MAILS-Short responses (4 items, 0-10 self-assessment)",
+        description=(
+            "How often the participant uses AI chat applications like ChatGPT "
+            "or Claude."
+        ),
     )
 
 
@@ -271,6 +261,16 @@ class QuestionnaireRequest(BaseModel):
     cognitive_load: CognitiveLoadRequest = Field(
         ...,
         description="Cognitive Load responses (Klepsch et al., 2017)",
+    )
+    attention_check: int = Field(
+        ...,
+        ge=1,
+        le=7,
+        description=(
+            "Embedded attention-check item rendered inside the Cognitive Load "
+            "block (1-7). Expected value: 2. Stored separately from CL data; "
+            "exclusion is decided in analysis."
+        ),
     )
     ueq_s: dict = Field(
         ...,

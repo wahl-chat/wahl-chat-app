@@ -181,6 +181,9 @@ export const MANIPULATION_CHECK_ITEMS: ManipulationCheckItem[] = [
 
 export interface QuestionnaireData {
   cognitiveLoad: CognitiveLoadResponse;
+  // Embedded attention check (1-7). Expected value: 2. Stored as a sibling
+  // of the scale data so it never pollutes CL subscale scoring.
+  attentionCheck: number;
   ueqS: UeqData;
   manipulationChecks: ManipulationChecksData;
 }

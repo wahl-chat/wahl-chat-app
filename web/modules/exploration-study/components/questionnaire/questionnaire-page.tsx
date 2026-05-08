@@ -8,7 +8,10 @@ import type {
   UeqData,
 } from '@/modules/exploration-study/types';
 import { useEffect, useRef, useState } from 'react';
-import { CognitiveLoadForm } from './cognitive-load-form';
+import {
+  CognitiveLoadForm,
+  type CognitiveLoadFormSubmitData,
+} from './cognitive-load-form';
 import { ManipulationChecksForm } from './manipulation-checks-form';
 import { UeqShortForm } from './ueq-short-form';
 
@@ -40,6 +43,9 @@ export function QuestionnairePage({
   const [phase, setPhase] = useState<Phase>('cognitive-load');
   const [cognitiveLoadData, setCognitiveLoadData] =
     useState<CognitiveLoadResponse | null>(null);
+  const [attentionCheckData, setAttentionCheckData] = useState<number | null>(
+    null,
+  );
   const [ueqData, setUeqData] = useState<UeqData | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const isFirstRender = useRef(true);
@@ -52,8 +58,9 @@ export function QuestionnairePage({
     requestAnimationFrame(() => headingRef.current?.focus());
   }, [phase]);
 
-  const handleCognitiveLoadSubmit = (data: CognitiveLoadResponse) => {
-    setCognitiveLoadData(data);
+  const handleCognitiveLoadSubmit = (data: CognitiveLoadFormSubmitData) => {
+    setCognitiveLoadData(data.cognitiveLoad);
+    setAttentionCheckData(data.attentionCheck);
     setPhase('ueq');
   };
 
@@ -65,10 +72,11 @@ export function QuestionnairePage({
   const handleManipulationChecksSubmit = async (
     manipulationChecks: ManipulationChecksData,
   ) => {
-    if (!cognitiveLoadData || !ueqData) return;
+    if (!cognitiveLoadData || !ueqData || attentionCheckData === null) return;
 
     await onSubmit({
       cognitiveLoad: cognitiveLoadData,
+      attentionCheck: attentionCheckData,
       ueqS: ueqData,
       manipulationChecks,
     });

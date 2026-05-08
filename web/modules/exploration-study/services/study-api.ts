@@ -6,7 +6,6 @@ import type {
   ConsentData,
   DemographicsData,
   FeedbackData,
-  LiteracyData,
   QuestionnaireData,
   QuizAnswer,
   QuizData,
@@ -100,15 +99,6 @@ export const studyApi = {
    */
   submitDemographics: (sessionId: string, data: DemographicsData) =>
     fetchApi<StudySession>(`/${sessionId}/demographics`, {
-      method: 'POST',
-      body: data,
-    }),
-
-  /**
-   * Submit literacy data
-   */
-  submitLiteracy: (sessionId: string, data: LiteracyData) =>
-    fetchApi<StudySession>(`/${sessionId}/literacy`, {
       method: 'POST',
       body: data,
     }),

@@ -94,6 +94,16 @@ class ConditionData(BaseModel):
         default=None,
         description="Cognitive Load responses (Klepsch et al., 2017)",
     )
+    attention_check: int | None = Field(
+        default=None,
+        ge=1,
+        le=7,
+        description=(
+            "Embedded attention-check response from the Cognitive Load block "
+            "(1-7). Expected value: 2. Used for participant-quality filtering "
+            "in analysis; exclusion criterion is not enforced in-form."
+        ),
+    )
     ueq_s: dict | None = Field(
         default=None,
         description="UEQ-S responses",
@@ -132,34 +142,13 @@ class DemographicsData(BaseModel):
         le=7,
         description="Political interest (1-7 scale)",
     )
-
-
-class MailsShortData(BaseModel):
-    """
-    MAILS-Short (Koch, Carolus, et al., 2024), trimmed to 4 items — one per
-    subscale — to keep pre-task screening short:
-
-    - item1: Detect AI
-    - item5: AI Ethics
-    - item7: Apply AI
-    - item10: Understand AI
-
-    0-10 self-assessment (0 = gar nicht ausgeprägt, 10 = (nahezu) perfekt).
-    Item numbers match the original 10-item scale for traceability.
-    """
-
-    item1: int | None = Field(default=None, ge=0, le=10)
-    item5: int | None = Field(default=None, ge=0, le=10)
-    item7: int | None = Field(default=None, ge=0, le=10)
-    item10: int | None = Field(default=None, ge=0, le=10)
-
-
-class LiteracyData(BaseModel):
-    """AI literacy screening data (MAILS-Short, trimmed to 4 items)."""
-
-    mails_short: MailsShortData | None = Field(
+    ai_chat_usage_frequency: str | None = Field(
         default=None,
-        description="MAILS-Short responses (4 items, 0-10 self-assessment)",
+        description=(
+            "How often the participant uses AI chat applications like "
+            "ChatGPT or Claude. One of: never, less_than_monthly, "
+            "several_times_per_month, several_times_per_week, almost_daily."
+        ),
     )
 
 
@@ -174,10 +163,6 @@ class ParticipantData(BaseModel):
     demographics: DemographicsData = Field(
         default_factory=DemographicsData,
         description="Demographics data",
-    )
-    literacy: LiteracyData = Field(
-        default_factory=LiteracyData,
-        description="Literacy screening data",
     )
     feedback: str | None = Field(
         default=None,

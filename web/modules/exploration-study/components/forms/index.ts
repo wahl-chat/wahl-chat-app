@@ -3,4 +3,3 @@ export {
   DemographicsForm,
   type DemographicsFormProps,
 } from './demographics-form';
-export { LiteracyForm, type LiteracyFormProps } from './literacy-form';
