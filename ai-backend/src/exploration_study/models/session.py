@@ -45,6 +45,15 @@ class ConditionData(BaseModel):
 
     system: SystemType = Field(..., description="Which system to use for this task")
     topic: str = Field(..., description="The topic for this task")
+    max_claims_per_party: int | None = Field(
+        default=None,
+        description=(
+            "Optional cap on how many claims the baseline assistant may "
+            "surface per party in a single response. None = no cap (free "
+            "baseline, B groups). Set to 3 for the capped baseline arm "
+            "(C groups). Ignored for guided sessions."
+        ),
+    )
     chat_id: str | None = Field(
         default=None,
         description="The guided exploration session ID once task starts",
@@ -159,9 +168,12 @@ class StudySession(BaseModel):
         default=StudyState.CONSENT,
         description="Current step in the study flow",
     )
-    group: Literal["A1", "A2", "B1", "B2"] = Field(
+    group: Literal["A1", "A2", "B1", "B2", "C1", "C2"] = Field(
         ...,
-        description="Between-subjects group (A=guided, B=baseline; 1/2=topic counterbalance)",
+        description=(
+            "Between-subjects group (A=guided, B=baseline-free, "
+            "C=baseline-capped; 1/2=topic counterbalance)"
+        ),
     )
     condition: ConditionData = Field(
         ...,
@@ -203,18 +215,23 @@ class StudySession(BaseModel):
 STUDY_TOPICS = ["soziale-gerechtigkeit", "klimaschutz"]
 
 
+BASELINE_CAPPED_CLAIMS_PER_PARTY = 3
+
+
 def get_condition_for_group(
-    group: Literal["A1", "A2", "B1", "B2"],
+    group: Literal["A1", "A2", "B1", "B2", "C1", "C2"],
     topics: list[str] | None = None,
 ) -> ConditionData:
     """
     Create condition data based on group assignment.
 
-    Between-subjects A/B design with topic counterbalancing:
-    - Group A1: Guided + Topic1
-    - Group A2: Guided + Topic2
-    - Group B1: Baseline + Topic1
-    - Group B2: Baseline + Topic2
+    Between-subjects design with topic counterbalancing:
+    - Group A1: Guided          + Topic1
+    - Group A2: Guided          + Topic2
+    - Group B1: Baseline (free) + Topic1
+    - Group B2: Baseline (free) + Topic2
+    - Group C1: Baseline capped + Topic1 (≤3 claims/party/turn)
+    - Group C2: Baseline capped + Topic2 (≤3 claims/party/turn)
 
     Args:
         group: The between-subjects group
@@ -231,5 +248,15 @@ def get_condition_for_group(
         "A2": ConditionData(system=SystemType.GUIDED, topic=topic2),
         "B1": ConditionData(system=SystemType.BASELINE, topic=topic1),
         "B2": ConditionData(system=SystemType.BASELINE, topic=topic2),
+        "C1": ConditionData(
+            system=SystemType.BASELINE,
+            topic=topic1,
+            max_claims_per_party=BASELINE_CAPPED_CLAIMS_PER_PARTY,
+        ),
+        "C2": ConditionData(
+            system=SystemType.BASELINE,
+            topic=topic2,
+            max_claims_per_party=BASELINE_CAPPED_CLAIMS_PER_PARTY,
+        ),
     }
     return mapping[group]

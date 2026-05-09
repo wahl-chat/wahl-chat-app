@@ -11,10 +11,11 @@ from src.exploration_study.services.session_repository import (
 
 logger = logging.getLogger(__name__)
 
-# Type for the 4 sub-groups (A=guided, B=baseline; 1/2=topic counterbalance)
-GroupType = Literal["A1", "A2", "B1", "B2"]
+# Type for the 6 sub-groups (A=guided, B=baseline-free, C=baseline-capped;
+# 1/2=topic counterbalance).
+GroupType = Literal["A1", "A2", "B1", "B2", "C1", "C2"]
 
-GROUPS: list[GroupType] = ["A1", "A2", "B1", "B2"]
+GROUPS: list[GroupType] = ["A1", "A2", "B1", "B2", "C1", "C2"]
 
 
 MAX_LEAD_OVER_MIN = 2
@@ -51,11 +52,13 @@ class Counterbalancer:
     """
     Assigns participants to groups for between-subjects A/B design.
 
-    Uses 4 sub-groups to counterbalance topic assignment across conditions:
+    Uses 6 sub-groups to counterbalance topic assignment across conditions:
     - Group A1: Guided + Topic1
     - Group A2: Guided + Topic2
-    - Group B1: Baseline + Topic1
-    - Group B2: Baseline + Topic2
+    - Group B1: Baseline (free)   + Topic1
+    - Group B2: Baseline (free)   + Topic2
+    - Group C1: Baseline (capped) + Topic1
+    - Group C2: Baseline (capped) + Topic2
     """
 
     def __init__(self, session_repository: SessionRepository) -> None:

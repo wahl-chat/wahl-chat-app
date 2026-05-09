@@ -11,7 +11,7 @@ export type StudyState =
   | 'quiz'
   | 'complete';
 
-export type StudyCondition = 'guided' | 'chat';
+export type StudyCondition = 'guided' | 'baseline';
 
 export type StudyTopic = 'klimaschutz' | 'soziale-gerechtigkeit';
 

@@ -134,6 +134,15 @@ class Session(BaseModel):
         default=SessionMode.GUIDED,
         description="Session mode - guided allows exploration, baseline is summary-only",
     )
+    max_claims_per_party: int | None = Field(
+        default=None,
+        description=(
+            "Optional cap on how many claims the baseline summary handler "
+            "may surface per party in a single response. Set on session "
+            "creation by the study facade for the capped-baseline arm "
+            "(C groups). None = no cap."
+        ),
+    )
     created_at: datetime = Field(..., description="When the session was created")
     last_active_at: datetime = Field(
         ..., description="When the session was last active"

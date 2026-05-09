@@ -29,14 +29,14 @@ export default function TaskPage() {
   // Session info for intro
   const [sessionInfo, setSessionInfo] = useState<{
     topic: StudyTopic;
-    condition: 'guided' | 'chat';
+    condition: 'guided' | 'baseline';
     durationSeconds: number;
   } | null>(null);
 
   // Task data after starting
   const [taskData, setTaskData] = useState<{
     chatId: string;
-    condition: 'guided' | 'chat';
+    condition: 'guided' | 'baseline';
     durationSeconds: number;
     topic: StudyTopic;
   } | null>(null);
@@ -104,7 +104,7 @@ export default function TaskPage() {
     if (response.data && sessionInfo) {
       setTaskData({
         chatId: response.data.chatId,
-        condition: response.data.condition as 'guided' | 'chat',
+        condition: response.data.condition as 'guided' | 'baseline',
         durationSeconds: response.data.durationSeconds,
         topic: sessionInfo.topic,
       });

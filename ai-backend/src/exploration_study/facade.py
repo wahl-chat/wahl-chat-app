@@ -44,6 +44,7 @@ class ExplorationStudyFacade:
         self,
         context_id: str,
         mode: Literal["guided", "baseline"] = "guided",
+        max_claims_per_party: int | None = None,
     ) -> dict:
         """
         Create a guided exploration session for a study task.
@@ -51,6 +52,8 @@ class ExplorationStudyFacade:
         Args:
             context_id: The context ID (e.g., "study-fake-parties")
             mode: "guided" for full exploration, "baseline" for summary-only
+            max_claims_per_party: Optional cap on baseline claims surfaced
+                per party per turn (study C groups). None = no cap.
 
         Returns:
             Dict with session_id and stream_url
@@ -69,11 +72,13 @@ class ExplorationStudyFacade:
             context_id=context_id,
             user_id=None,  # Study sessions don't have user auth
             mode=session_mode,
+            max_claims_per_party=max_claims_per_party,
         )
 
         logger.info(
             f"Created exploration session {session_info.session_id} "
-            f"with mode={mode} for context={context_id}"
+            f"with mode={mode} max_claims_per_party={max_claims_per_party} "
+            f"for context={context_id}"
         )
 
         return {

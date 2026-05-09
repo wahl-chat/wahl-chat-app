@@ -57,6 +57,15 @@ class QuickSummaryInput(BaseModel):
             "baseline doesn't bleed into exploration-style behaviour."
         ),
     )
+    max_claims_per_party: int | None = Field(
+        default=None,
+        description=(
+            "Optional cap on how many claims the baseline assistant may "
+            "surface per party in this response. None = no cap (B groups). "
+            "Set to 3 for the capped baseline arm (C groups). Only honoured "
+            "when ``is_baseline`` is True."
+        ),
+    )
 
 
 class QuickSummaryOutput(BaseModel):

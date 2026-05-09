@@ -39,7 +39,7 @@ class SessionRepository:
     async def create_session(
         self,
         study_id: str,
-        group: Literal["A1", "A2", "B1", "B2"],
+        group: Literal["A1", "A2", "B1", "B2", "C1", "C2"],
         condition: ConditionData,
         prolific: ProlificData | None = None,
     ) -> StudySession:
@@ -148,7 +148,7 @@ class SessionRepository:
         self,
         prolific_session_id: str,
         study_id: str,
-        group: Literal["A1", "A2", "B1", "B2"],
+        group: Literal["A1", "A2", "B1", "B2", "C1", "C2"],
         condition: ConditionData,
         prolific: ProlificData,
     ) -> tuple[StudySession, bool]:
@@ -343,17 +343,19 @@ class SessionRepository:
     async def count_sessions_by_group(
         self,
         study_id: str,
-    ) -> dict[Literal["A1", "A2", "B1", "B2"], int]:
+    ) -> dict[Literal["A1", "A2", "B1", "B2", "C1", "C2"], int]:
         """Count sessions per group for counterbalancing."""
         # Use a simple query without ordering to avoid requiring a composite index
         collection_ref = self._db.collection(SESSIONS_COLLECTION)
         query = collection_ref.where(filter=FieldFilter("study_id", "==", study_id))
 
-        counts: dict[Literal["A1", "A2", "B1", "B2"], int] = {
+        counts: dict[Literal["A1", "A2", "B1", "B2", "C1", "C2"], int] = {
             "A1": 0,
             "A2": 0,
             "B1": 0,
             "B2": 0,
+            "C1": 0,
+            "C2": 0,
         }
         async for doc in query.stream():
             data = doc.to_dict()

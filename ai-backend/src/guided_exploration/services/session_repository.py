@@ -49,6 +49,7 @@ class SessionRepository:
         context_id: str,
         user_id: str | None = None,
         mode: SessionMode = SessionMode.GUIDED,
+        max_claims_per_party: int | None = None,
     ) -> Session:
         """Create a new session."""
         session_id = str(uuid4())
@@ -59,6 +60,7 @@ class SessionRepository:
             context_id=context_id,
             user_id=user_id,
             mode=mode,
+            max_claims_per_party=max_claims_per_party,
             created_at=now,
             last_active_at=now,
             preferences={},

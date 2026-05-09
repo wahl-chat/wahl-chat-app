@@ -257,15 +257,20 @@ class GuidedExplorationFacade:
         context_id: str,
         user_id: str | None = None,
         mode: SessionMode = SessionMode.GUIDED,
+        max_claims_per_party: int | None = None,
     ) -> SessionInfo:
         """Create a new guided exploration session."""
         session = await self._repo.create_session(
             context_id=context_id,
             user_id=user_id,
             mode=mode,
+            max_claims_per_party=max_claims_per_party,
         )
 
-        logger.info(f"Created session: {session.id} with mode={mode.value}")
+        logger.info(
+            f"Created session: {session.id} with mode={mode.value} "
+            f"max_claims_per_party={max_claims_per_party}"
+        )
 
         return SessionInfo(
             session_id=session.id,

@@ -162,11 +162,37 @@ class SummaryGeneratorAgent(BaseAgent[SummaryInput, SummaryOutput]):
             else "Keine vorherigen Nachrichten."
         )
 
+        if input.max_claims_per_party is not None:
+            cap = input.max_claims_per_party
+            claims_cap_directive = (
+                "\n## WICHTIG — Antwortumfang (verpflichtend)\n"
+                f"**Pro Partei höchstens {cap} Aussagen.** Diese Vorgabe gilt "
+                "strikt für jede Antwort, unabhängig davon, wie viele "
+                "Quellen oben gelistet sind.\n\n"
+                f"- Auch wenn die Quellenliste mehr als {cap} Aussagen für "
+                f"eine Partei enthält: nimm nur die {cap} relevantesten "
+                "und lasse den Rest weg.\n"
+                "- Wähle die Aussagen, die die Nutzerfrage am direktesten "
+                "beantworten.\n"
+                "- Lieber wenige, prägnante Stichpunkte als eine "
+                "vollständige Liste.\n"
+                "- Diese Obergrenze gilt **pro Antwort**, nicht über das "
+                "ganze Gespräch hinweg — der Nutzer kann gezielt nach "
+                "weiteren Aussagen fragen.\n\n"
+                "❌ FALSCH: alle verfügbaren Aussagen einer Partei "
+                "aufzählen.  \n"
+                f"✅ RICHTIG: maximal {cap} Stichpunkte pro Partei-Karte, "
+                "fokussiert auf die Frage.\n"
+            )
+        else:
+            claims_cap_directive = ""
+
         system_prompt = BASELINE_QUICK_SUMMARY_SYSTEM_PROMPT.format(
             context_name=input.context_name,
             conversation_history=history_text,
             parties_list=input.parties_list,
             rag_context=input.rag_context,
+            claims_cap_directive=claims_cap_directive,
         )
 
         user_prompt = BASELINE_QUICK_SUMMARY_USER_PROMPT.format(

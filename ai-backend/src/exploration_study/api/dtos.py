@@ -83,7 +83,7 @@ class CreateSessionsResponse(BaseModel):
     """Response for session creation."""
 
     session_ids: list[str] = Field(..., description="Created session IDs")
-    group_counts: dict[Literal["A1", "A2", "B1", "B2"], int] = Field(
+    group_counts: dict[Literal["A1", "A2", "B1", "B2", "C1", "C2"], int] = Field(
         ...,
         description="Number of sessions per group",
     )
@@ -94,7 +94,7 @@ class SessionSummary(BaseModel):
 
     id: str
     state: StudyState
-    group: Literal["A1", "A2", "B1", "B2"]
+    group: Literal["A1", "A2", "B1", "B2", "C1", "C2"]
     created_at: datetime
     started_at: datetime | None
     completed_at: datetime | None
@@ -109,7 +109,7 @@ class ListSessionsResponse(BaseModel):
         default_factory=dict,
         description="Count of sessions by state",
     )
-    by_group: dict[Literal["A1", "A2", "B1", "B2"], int] = Field(
+    by_group: dict[Literal["A1", "A2", "B1", "B2", "C1", "C2"], int] = Field(
         default_factory=dict,
         description="Count of sessions by group",
     )
@@ -152,7 +152,7 @@ class SessionStateResponse(BaseModel):
 
     session_id: str
     state: StudyState
-    group: Literal["A1", "A2", "B1", "B2"]
+    group: Literal["A1", "A2", "B1", "B2", "C1", "C2"]
     current_condition: SystemType | None = Field(
         default=None,
         description="Condition type ('guided' or 'baseline')",

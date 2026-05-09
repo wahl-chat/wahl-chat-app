@@ -288,7 +288,14 @@ async def list_sessions(request: web.Request) -> web.Response:
 
     # Aggregate stats
     by_state: dict[str, int] = {}
-    by_group: dict[Literal["A1", "A2", "B1", "B2"], int] = {"A1": 0, "A2": 0, "B1": 0, "B2": 0}
+    by_group: dict[Literal["A1", "A2", "B1", "B2", "C1", "C2"], int] = {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0,
+        "B2": 0,
+        "C1": 0,
+        "C2": 0,
+    }
 
     summaries = []
     for session in sessions:

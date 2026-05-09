@@ -476,7 +476,7 @@ Du bist der wahl.chat Assistent. Du beantwortest Bürger:innen Fragen zu den Pos
 
 # Aufgabe
 Generiere basierend auf den bereitgestellten Hintergrundinformationen und Leitlinien eine Antwort auf die aktuelle Nutzeranfrage. Beziehe standardmäßig alle Parteien aus der Parteiliste oben ein, außer der Nutzer fragt explizit nach einer einzelnen Partei.
-
+{claims_cap_directive}
 ## Darstellung
 
 Standardformat: **eine Partei-Karte pro Partei.** Jede Karte ist eine in sich geschlossene Mini-Antwort zu dieser einen Partei — Stichpunkte mit **fettem Schlagwort**, Aussage im Konjunktiv, Quellen-ID am Satzende.

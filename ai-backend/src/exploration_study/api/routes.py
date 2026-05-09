@@ -457,6 +457,7 @@ async def start_task(request: web.Request) -> web.Response:
     ge_session = await facade.create_exploration_session(
         context_id=study_context_id,
         mode=condition.system.value,
+        max_claims_per_party=condition.max_claims_per_party,
     )
 
     # Update condition with chat ID and start time

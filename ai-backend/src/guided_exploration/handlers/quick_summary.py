@@ -88,7 +88,7 @@ class QuickSummaryHandler:
         )
 
         chunks = await self._rag_service.retrieve_chunks_for_parties(
-            rag_query, context_id, detected_parties, n_docs=5
+            rag_query, context_id, detected_parties, n_docs=8
         )
 
         context_name, parties_info = await self._context_resolver.get_context_info(
@@ -123,11 +123,18 @@ class QuickSummaryHandler:
         # questions, claim-only citations) so the baseline doesn't bleed
         # exploration-style behaviour into the contrast condition.
         is_baseline = session is not None and session.mode == SessionMode.BASELINE
+        max_claims_per_party = (
+            session.max_claims_per_party
+            if is_baseline and session is not None
+            else None
+        )
         logger.info(
-            "Quick summary path: session_id=%s mode=%s is_baseline=%s",
+            "Quick summary path: session_id=%s mode=%s is_baseline=%s "
+            "max_claims_per_party=%s",
             session_id,
             session.mode.value if session else None,
             is_baseline,
+            max_claims_per_party,
         )
         summary_input = QuickSummaryInput(
             query=query,
@@ -136,6 +143,7 @@ class QuickSummaryHandler:
             context_name=context_name,
             conversation_history=conversation_history_text,
             is_baseline=is_baseline,
+            max_claims_per_party=max_claims_per_party,
         )
 
         full_text = await self._streaming.stream_from_llm(
