@@ -13,9 +13,6 @@ from src.exploration_study.services.counterbalancer import (
     get_counterbalancer,
 )
 
-# QuizGeneratorService is imported lazily to avoid circular imports
-# Use: from src.exploration_study.services.quiz_generator import QuizGeneratorService
-
 __all__ = [
     "StudyRepository",
     "get_study_repository",

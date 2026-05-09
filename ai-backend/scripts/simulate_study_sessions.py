@@ -1113,10 +1113,9 @@ async def run_one_session(
                 # Submit the questionnaire so the session can move to QUIZ.
                 await client.submit_questionnaire(session_id)
 
-                # Poll until quiz is READY or FAILED (or timeout).
+                # Quiz is sampled synchronously now; poll resolves immediately.
                 quiz_resp = await _poll_quiz(client, session_id, cfg)
                 report.quiz_status = quiz_resp.get("status")
-                report.quiz_error = quiz_resp.get("error_message")
                 if quiz_resp.get("is_ready"):
                     questions = quiz_resp.get("questions") or []
                     report.quiz_questions = questions
@@ -1150,10 +1149,7 @@ async def _poll_quiz(
     while time.time() < deadline:
         last = await client.get_quiz(session_id)
         status = last.get("status")
-        if last.get("is_ready") or status in (
-            QuizStatus.READY.value,
-            QuizStatus.FAILED.value,
-        ):
+        if last.get("is_ready") or status == QuizStatus.READY.value:
             return last
         await asyncio.sleep(cfg.quiz_poll_interval_seconds)
     return last

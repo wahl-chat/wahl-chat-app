@@ -403,7 +403,6 @@ class SessionRepository:
             questions=[],
             created_at=now,
             generated_at=None,
-            error_message=None,
         )
 
         doc_ref = self._get_quiz_ref(session_id, quiz_id)

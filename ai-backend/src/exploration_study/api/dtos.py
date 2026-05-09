@@ -286,7 +286,6 @@ class QuizStatusResponse(BaseModel):
         default=None,
         description="Questions if ready (without correct answers for participant)",
     )
-    error_message: str | None = None
 
 
 class QuizForParticipant(BaseModel):

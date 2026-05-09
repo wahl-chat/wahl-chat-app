@@ -505,35 +505,17 @@ async def end_task(request: web.Request) -> web.Response:
     condition.ended_at = datetime.now(timezone.utc)
     await session_repo.update_condition_data(session_id, condition)
 
-    # Get study for quiz generation
-    study_repo = get_study_repository()
-    study = await study_repo.get_study(session.study_id)
+    # Sample quiz from the hand-authored corpus, gated by encountered positions.
+    from src.exploration_study.facade import get_facade
 
-    # Start quiz generation in background
-    if study and condition.chat_id:
-        from src.exploration_study.facade import get_facade
-
-        facade = get_facade()
-        try:
-            await facade.start_quiz_generation(
-                session_id=session_id,
-                topic=condition.topic,
-                parties=STUDY_PARTIES,
-                chat_id=condition.chat_id,
-            )
-        except ValueError as e:
-            return web.json_response(
-                ErrorResponse(
-                    error="Quiz generation failed",
-                    detail=str(e),
-                ).model_dump(),
-                status=400,
-            )
-    else:
+    facade = get_facade()
+    try:
+        await facade.start_quiz_generation(session_id=session_id)
+    except ValueError as e:
         return web.json_response(
             ErrorResponse(
-                error="Cannot generate quiz",
-                detail="Missing study or chat_id",
+                error="Quiz generation failed",
+                detail=str(e),
             ).model_dump(),
             status=400,
         )
@@ -650,7 +632,6 @@ async def get_quiz(request: web.Request) -> web.Response:
         response = QuizStatusResponse(
             status=quiz.status,
             is_ready=False,
-            error_message=quiz.error_message,
         )
 
     return web.json_response(response.model_dump(mode="json"))
