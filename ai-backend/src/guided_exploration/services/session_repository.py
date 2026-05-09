@@ -16,6 +16,7 @@ from src.guided_exploration.models import (
     Exploration,
     ExplorationStatus,
     ExplorationTree,
+    FlaggedCitation,
     LeafSummary,
     Message,
     NodeStatus,
@@ -92,6 +93,31 @@ class SessionRepository:
         """Update the active exploration for a session."""
         doc_ref = self._db.collection(SESSIONS_COLLECTION).document(session_id)
         await doc_ref.update({"active_exploration_id": exploration_id})
+
+    async def add_flagged_citation(
+        self,
+        session_id: str,
+        flagged: FlaggedCitation,
+    ) -> None:
+        """Append a fabricated-citation record to the session.
+
+        Auxiliary observability — the response itself still ships and the
+        offending ids never enter exposure logging (they fail the pool
+        intersection in ``extract_used_citations``). Failures here must
+        not break the user-facing response.
+        """
+        from google.cloud.firestore_v1 import ArrayUnion
+
+        doc_ref = self._db.collection(SESSIONS_COLLECTION).document(session_id)
+        try:
+            await doc_ref.update(
+                {"flagged_citations": ArrayUnion([flagged.model_dump(mode="json")])}
+            )
+        except Exception as e:
+            logger.warning(
+                f"add_flagged_citation failed for session={session_id}: "
+                f"{type(e).__name__}: {e}"
+            )
 
     # =========================================================================
     # Session Messages

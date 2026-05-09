@@ -41,3 +41,12 @@ class ConversationHandlerInput(BaseModel):
     parties_info: dict[str, PartyInfo] = Field(
         ..., description="Map of party_id -> PartyInfo for all parties"
     )
+    already_cited_ids: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Citation IDs already shown to the user in this leaf — initial-"
+            "content positions plus citations from prior assistant follow-ups. "
+            "Used to let the model bail out gracefully when a turn would only "
+            "rehash known material."
+        ),
+    )

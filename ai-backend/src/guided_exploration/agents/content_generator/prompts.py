@@ -160,15 +160,27 @@ zurückrollen [m-021]…
 (Detail-Dump — soll Folgefragen-Material bleiben, kein Voll-Report.)
 
 ## 3. Folgefragen (suggested_questions)
-Genau HIER landen die Details. Generiere 2-3 Folgefragen, die:
-- Den Weg zu konkreten Zahlen, Mechanismen oder Mehrheiten öffnen
-- NICHT direkt durch den generierten Text ablesbar sind
-- Konkret und prägnant formuliert (max ~10 Worte)
+Genau HIER landen die Details. Generiere 2-3 Folgefragen, die der Nutzer
+realistisch als Nächstes anklicken würde. Mische zwei Richtungen:
+- **Vertiefung** einer in der Zusammenfassung erwähnten Forderung
+  (Zahl, Mechanismus, Begründung).
+- **Benachbarter Aspekt** dieses Unterthemas, der oben noch nicht
+  behandelt wurde, aber in den Parteipositionen der Wissensbasis
+  vorkommt — z.B. nach CO2-Preis-Einstieg eine Frage zu CBAM /
+  EU-Außengrenze, nach Verbrennerverbot eine zu Pendlerpauschale
+  oder Inlandsflügen.
 
-Gute Beispiele:
-- "Welchen CO2-Preis fordern die Parteien konkret?"
-- "Wer zahlt am Ende für die Klimawende?"
-- "Welche Rolle spielt Kernenergie in den Plänen?"
+Anforderungen:
+- NICHT direkt durch den generierten Text ablesbar
+- Konkret und prägnant (max ~10 Worte)
+- Im Geltungsbereich dieses Unterthemas bleiben — kein Sprung ins
+  Oberthema oder andere Politikfeld
+
+Gute Beispiele (Mischung Vertiefung + Nachbar):
+- "Welchen CO2-Preis fordern die Parteien konkret?" (Vertiefung)
+- "Was passiert an der EU-Außengrenze?" (benachbarter Aspekt — CBAM)
+- "Und Inlandsflüge — fallen die unter den CO2-Preis?" (benachbart)
+- "Wer zahlt am Ende für die Klimawende?" (Vertiefung)
 
 Schlecht: "Welche Partei fordert X?" wenn X bereits oben steht.
 

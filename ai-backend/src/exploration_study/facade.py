@@ -16,7 +16,7 @@ from src.guided_exploration.agents.llm_provider import (
     LLMTier,
     LangChainLLMProvider,
 )
-from src.llms import openai_gpt_4o_mini
+from src.llms import openai_gpt_5_4
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class ExplorationStudyFacade:
         self._session_repo = session_repository
         self._llm_registry = llm_registry
         self._quiz_generator = create_quiz_generator_service(
-            llm_provider=llm_registry.get(LLMTier.BALANCED)
+            llm_provider=llm_registry.get(LLMTier.REASONING)
         )
 
     async def create_exploration_session(
@@ -265,9 +265,10 @@ def get_facade() -> ExplorationStudyFacade:
     if _facade is None:
         session_repository = get_session_repository()
 
-        # Create registry with LLM provider for quiz generation
+        # Quiz generation runs on the REASONING tier — verbatim source
+        # citation + overlap detection benefit from a stronger model.
         registry = LLMRegistry()
-        registry.register(LLMTier.BALANCED, LangChainLLMProvider(openai_gpt_4o_mini))
+        registry.register(LLMTier.REASONING, LangChainLLMProvider(openai_gpt_5_4))
 
         _facade = ExplorationStudyFacade(session_repository, registry)
 

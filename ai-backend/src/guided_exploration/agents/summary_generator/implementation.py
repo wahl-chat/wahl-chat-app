@@ -21,14 +21,17 @@ from src.guided_exploration.agents.summary_generator.interface import (
     SummaryOutput,
 )
 from src.guided_exploration.agents.summary_generator.prompts import (
-    BASELINE_FOCUS_DIRECTIVE,
+    BASELINE_QUICK_SUMMARY_SYSTEM_PROMPT,
+    BASELINE_QUICK_SUMMARY_USER_PROMPT,
+    BASELINE_SUGGESTED_QUESTIONS_PROMPT,
     CITATION_DIRECTIVE,
     FINAL_SUMMARY_PROMPT,
     GUIDED_FOCUS_DIRECTIVE,
     LEAF_SUMMARY_PROMPT,
     QUICK_SUMMARY_STREAMING_SYSTEM_PROMPT,
     QUICK_SUMMARY_STREAMING_USER_PROMPT,
-    SUGGESTED_QUESTIONS_PROMPT,
+    SUGGESTED_QUESTIONS_PROMPT_IN_LEAF,
+    SUGGESTED_QUESTIONS_PROMPT_MAIN_CHAT,
     SYSTEM_PROMPT,
     FinalSummaryLLMOutput,
     LeafSummaryLLMOutput,
@@ -86,26 +89,42 @@ class SummaryGeneratorAgent(BaseAgent[SummaryInput, SummaryOutput]):
         Yields text chunks as they are generated.
         Use this for real-time streaming to the frontend.
         """
-        messages = self._build_quick_summary_messages(input)
+        messages = self._build_messages_for_input(input)
         return self._llm.stream(messages=messages, temperature=0.3)
 
-    def _build_quick_summary_messages(
+    def _build_messages_for_input(
         self, input: QuickSummaryInput
     ) -> list[BaseMessage]:
-        """Build messages for quick summary generation."""
+        """Route to baseline or guided message builder based on session mode."""
+        if input.is_baseline:
+            messages = self._build_baseline_messages(input)
+            system_prompt = str(messages[0].content)
+            logger.info(
+                "Quick summary path: BASELINE prompt | "
+                "system_prompt_chars=%d | starts_with=%r | ends_with=%r",
+                len(system_prompt),
+                system_prompt[:120],
+                system_prompt[-120:],
+            )
+            return messages
+        messages = self._build_guided_messages(input)
+        system_prompt = str(messages[0].content)
+        logger.info(
+            "Quick summary path: GUIDED prompt | "
+            "system_prompt_chars=%d | starts_with=%r",
+            len(system_prompt),
+            system_prompt[:120],
+        )
+        return messages
+
+    def _build_guided_messages(
+        self, input: QuickSummaryInput
+    ) -> list[BaseMessage]:
+        """Build messages for the guided overview-or-cards quick summary."""
         history_text = (
             input.conversation_history
             if input.conversation_history
             else "Keine vorherigen Nachrichten."
-        )
-
-        focus_directive = (
-            BASELINE_FOCUS_DIRECTIVE if input.is_baseline else GUIDED_FOCUS_DIRECTIVE
-        )
-        logger.info(
-            "Quick summary directive: %s (is_baseline=%s)",
-            "BASELINE" if input.is_baseline else "GUIDED",
-            input.is_baseline,
         )
 
         system_prompt = QUICK_SUMMARY_STREAMING_SYSTEM_PROMPT.format(
@@ -113,11 +132,44 @@ class SummaryGeneratorAgent(BaseAgent[SummaryInput, SummaryOutput]):
             conversation_history=history_text,
             parties_list=input.parties_list,
             rag_context=input.rag_context,
-            focus_directive=focus_directive,
+            focus_directive=GUIDED_FOCUS_DIRECTIVE,
             citation_directive=CITATION_DIRECTIVE,
         )
 
         user_prompt = QUICK_SUMMARY_STREAMING_USER_PROMPT.format(
+            query=input.query,
+        )
+
+        return [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_prompt),
+        ]
+
+    def _build_baseline_messages(
+        self, input: QuickSummaryInput
+    ) -> list[BaseMessage]:
+        """Build messages for the baseline (production-wahl.chat-shaped) reply.
+
+        Fully separate from the guided template — no shared focus/citation
+        directive swap. Mirrors `wahl_chat_response_system_prompt_template_str`
+        + `get_wahl_chat_answer_guidelines` (src/prompts.py) so the contrast
+        condition behaves like the regular wahl.chat assistant rather than
+        an exploration variant with one swapped block.
+        """
+        history_text = (
+            input.conversation_history
+            if input.conversation_history
+            else "Keine vorherigen Nachrichten."
+        )
+
+        system_prompt = BASELINE_QUICK_SUMMARY_SYSTEM_PROMPT.format(
+            context_name=input.context_name,
+            conversation_history=history_text,
+            parties_list=input.parties_list,
+            rag_context=input.rag_context,
+        )
+
+        user_prompt = BASELINE_QUICK_SUMMARY_USER_PROMPT.format(
             query=input.query,
         )
 
@@ -165,7 +217,7 @@ class SummaryGeneratorAgent(BaseAgent[SummaryInput, SummaryOutput]):
         self, input: QuickSummaryInput
     ) -> QuickSummaryOutput:
         """Generate a quick summary (non-streaming, collects full response)."""
-        messages = self._build_quick_summary_messages(input)
+        messages = self._build_messages_for_input(input)
 
         # Generate direct text output (not structured)
         response_text = await self._llm.generate(
@@ -223,14 +275,52 @@ class SummaryGeneratorAgent(BaseAgent[SummaryInput, SummaryOutput]):
         response: str,
         available_context: str = "",
         conversation_history: str = "",
+        context: str = "main_chat",
+        is_baseline: bool = False,
+        already_cited_ids: list[str] | None = None,
     ) -> list[str]:
-        """Generate suggested follow-up questions based on full conversation context."""
-        prompt = SUGGESTED_QUESTIONS_PROMPT.format(
-            query=query,
-            response=response,
-            available_context=available_context or "",
-            conversation_history=conversation_history or "",
-        )
+        """Generate suggested follow-up questions based on full conversation context.
+
+        ``is_baseline=True`` mirrors the production wahl.chat quick-reply
+        prompt: three replies covering follow-up / clarification / topic
+        switch.
+
+        Otherwise the guided variants apply: ``context="in_leaf"`` invites
+        neighboring sub-aspects of the same leaf; ``context="main_chat"``
+        stays conservative and biases toward vertical drill-down.
+
+        ``already_cited_ids`` lists the citation IDs that have already been
+        shown to the user — suggestions whose answer would only rest on
+        those IDs are filtered out by the prompt rule (only applied to the
+        guided in-leaf / main-chat variants; the baseline prompt is left
+        untouched to mirror production wahl.chat).
+        """
+        if is_baseline:
+            template = BASELINE_SUGGESTED_QUESTIONS_PROMPT
+            prompt = template.format(
+                query=query,
+                response=response,
+                available_context=available_context or "",
+                conversation_history=conversation_history or "",
+            )
+        else:
+            template = (
+                SUGGESTED_QUESTIONS_PROMPT_IN_LEAF
+                if context == "in_leaf"
+                else SUGGESTED_QUESTIONS_PROMPT_MAIN_CHAT
+            )
+            already_cited_text = (
+                ", ".join(f"[{cid}]" for cid in already_cited_ids)
+                if already_cited_ids
+                else "keine"
+            )
+            prompt = template.format(
+                query=query,
+                response=response,
+                available_context=available_context or "",
+                conversation_history=conversation_history or "",
+                already_cited_ids=already_cited_text,
+            )
 
         messages = [
             HumanMessage(content=prompt),

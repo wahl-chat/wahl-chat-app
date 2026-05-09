@@ -32,7 +32,7 @@
     "argument": "Es zerstört deutsche Schlüsselindustrien und vernichtet Millionen Arbeitsplätze – ein politisches Verbot ist kein Fortschritt, sondern Deindustrialisierung."
   },
   {
-    "id": "saturn-klima-006",
+    "id": "saturn-klima-005",
     "party_id": "saturn",
     "topic": "klimaschutz",
     "subtopic": "verkehr",
@@ -40,7 +40,15 @@
     "argument": "Freiheit bedeutet, selbst zu entscheiden, wie schnell man fährt – wer Deutschland autogerecht gebaut hat, darf jetzt nicht die Bürger bestrafen."
   },
   {
-    "id": "saturn-sozial-004",
+    "id": "saturn-klima-006",
+    "party_id": "saturn",
+    "topic": "klimaschutz",
+    "subtopic": "verkehr",
+    "claim": "Die Pendlerpauschale wird dauerhaft auf 50 Cent pro Kilometer erhöht.",
+    "argument": "Wer aufs Land gezogen ist, weil Wohnen dort noch bezahlbar ist, darf nicht für die Klimapolitik der Stadt bestraft werden – steigende Spritpreise treffen Pendler hart, und nur eine spürbar höhere Pauschale gleicht das aus."
+  },
+  {
+    "id": "saturn-sozial-001",
     "party_id": "saturn",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "rente",
@@ -48,7 +56,7 @@
     "argument": "Wer ein Leben lang gearbeitet und Beiträge gezahlt hat, verdient einen würdigen Ruhestand – nicht Flaschensammeln im Park."
   },
   {
-    "id": "saturn-sozial-005",
+    "id": "saturn-sozial-002",
     "party_id": "saturn",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "rente",
@@ -56,7 +64,7 @@
     "argument": "Ein Facharbeiter, der mit 17 angefangen hat, soll nicht bis 67 schuften müssen – Rente ist Wertschätzung, nicht Strafe für frühen Berufsstart."
   },
   {
-    "id": "saturn-sozial-006",
+    "id": "saturn-sozial-003",
     "party_id": "saturn",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "rente",
@@ -64,7 +72,15 @@
     "argument": "Wer dem Volk die Rente kürzen will, soll erst einmal selbst einzahlen – Schluss mit der Zwei-Klassen-Altersvorsorge zwischen Berliner Politikbüros und der Werkbank."
   },
   {
-    "id": "saturn-sozial-007",
+    "id": "saturn-sozial-004",
+    "party_id": "saturn",
+    "topic": "soziale-gerechtigkeit",
+    "subtopic": "rente",
+    "claim": "Künftige Beamtenpensionen werden auf das Niveau der gesetzlichen Rente abgesenkt.",
+    "argument": "Es ist nicht vermittelbar, dass ein pensionierter Ministerialrat das Vierfache eines Facharbeiters bezieht – Gerechtigkeit beginnt damit, dass der Staat bei sich selbst kürzt, bevor er andere zur Kasse bittet."
+  },
+  {
+    "id": "saturn-sozial-005",
     "party_id": "saturn",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "buergergeld",
@@ -72,7 +88,7 @@
     "argument": "Der deutsche Sozialstaat ist für diejenigen da, die ihn aufgebaut haben – er ist kein Einwanderungsanreiz in unsere Sozialkassen."
   },
   {
-    "id": "saturn-sozial-008",
+    "id": "saturn-sozial-006",
     "party_id": "saturn",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "buergergeld",
@@ -80,11 +96,19 @@
     "argument": "Wer sich weigert zu arbeiten, obwohl er könnte, hat keinen Anspruch auf das Geld anderer – das ist keine Härte, sondern Gerechtigkeit."
   },
   {
-    "id": "saturn-sozial-011",
+    "id": "saturn-sozial-007",
     "party_id": "saturn",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "buergergeld",
     "claim": "Bezieher mit mindestens fünfzehn Beitragsjahren erhalten einen Bürgergeld-Aufschlag von 50 Euro monatlich.",
     "argument": "Wer Jahrzehnte in dieses Land eingezahlt hat, darf bei Arbeitslosigkeit nicht auf demselben Niveau landen wie ein Berufsanfänger – Lebensleistung muss sich auch in der Krise zeigen."
+  },
+  {
+    "id": "saturn-sozial-008",
+    "party_id": "saturn",
+    "topic": "soziale-gerechtigkeit",
+    "subtopic": "buergergeld",
+    "claim": "Langzeitleistungsbezieher müssen eine gemeinnützige Tätigkeit von mindestens 20 Wochenstunden ausüben, sonst entfällt der Anspruch.",
+    "argument": "Wer von der Solidarität anderer lebt, schuldet der Gesellschaft eine Gegenleistung – Bürgerarbeit hält im Tagesrhythmus, schützt vor Vereinsamung und macht Arbeitslosigkeit nicht zur Komfortzone."
   }
 ]

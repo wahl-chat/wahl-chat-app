@@ -8,7 +8,7 @@
     "argument": "Nur ein Preis, der die wahren Klimakosten widerspiegelt, lenkt Investitionen schnell genug um – zögerliche Signale verschenken das 1,5-Grad-Ziel."
   },
   {
-    "id": "venus-klima-003",
+    "id": "venus-klima-002",
     "party_id": "venus",
     "topic": "klimaschutz",
     "subtopic": "co2-preis",
@@ -16,7 +16,7 @@
     "argument": "Der CO2-Preis wirkt regressiv, wenn er nicht rückverteilt wird – Klimapolitik darf Familien mit kleinen Einkommen nicht bestrafen, sondern muss sie entlasten."
   },
   {
-    "id": "venus-klima-010",
+    "id": "venus-klima-003",
     "party_id": "venus",
     "topic": "klimaschutz",
     "subtopic": "co2-preis",
@@ -28,7 +28,7 @@
     "party_id": "venus",
     "topic": "klimaschutz",
     "subtopic": "verkehr",
-    "claim": "Wir fordern Tempo 120 auf Autobahnen und Tempo 30 als Regelgeschwindigkeit innerorts.",
+    "claim": "Wir fordern Tempo 120 auf Autobahnen.",
     "argument": "Eine Maßnahme, die sofort wirkt, keine Investitionen kostet, Leben rettet und Emissionen senkt – günstiger ist Klimapolitik nicht zu haben."
   },
   {
@@ -40,7 +40,39 @@
     "argument": "Die Auto-Transformation ist längst im Gang – wer früher umstellt, sichert sich die Wertschöpfung; wer zögert, verliert Arbeitsplätze an China."
   },
   {
-    "id": "venus-sozial-004",
+    "id": "venus-klima-006",
+    "party_id": "venus",
+    "topic": "klimaschutz",
+    "subtopic": "verkehr",
+    "claim": "Wir investieren 30 Milliarden Euro pro Jahr in den Ausbau des öffentlichen Nahverkehrs.",
+    "argument": "Klimaschutz im Verkehr scheitert nicht an den Bürgern, sondern an fehlenden Alternativen – wer sich kein Auto leisten kann oder will, braucht einen ÖPNV, der überall fährt, und das geht nur mit echten Investitionen in Netz und Takt."
+  },
+  {
+    "id": "venus-klima-007",
+    "party_id": "venus",
+    "topic": "klimaschutz",
+    "subtopic": "verkehr",
+    "claim": "Wir führen ein bundesweites 9-Euro-Klimaticket ein.",
+    "argument": "Mobilität ist ein Grundrecht, kein Wohlstandsthema – ein bezahlbares Bundesticket nimmt Familien mit kleinen Einkommen die Hürde, klimafreundlich zu pendeln, und macht den ÖPNV für jeden zur naheliegenden Wahl."
+  },
+  {
+    "id": "venus-klima-008",
+    "party_id": "venus",
+    "topic": "klimaschutz",
+    "subtopic": "co2-preis",
+    "claim": "Wir verankern einen gesetzlichen CO2-Mindestpreis von 200 Euro pro Tonne, der auch dann gilt, wenn der Emissionshandel günstigere Zertifikate ausweist.",
+    "argument": "Investitionen in klimaneutrale Technologien rechnen sich nur bei Planungssicherheit – ein Mindestpreis verhindert, dass billige Zertifikate die Transformation um Jahre zurückwerfen."
+  },
+  {
+    "id": "venus-klima-009",
+    "party_id": "venus",
+    "topic": "klimaschutz",
+    "subtopic": "verkehr",
+    "claim": "Inlandsflüge werden über die Kerosinsteuer und einen Aufschlag auf Kurzstrecken-Tickets schrittweise unattraktiv gemacht.",
+    "argument": "Es ist klimapolitisch absurd, dass ein Flug Berlin–München steuerlich günstiger ist als der ICE – wer dieses Privileg streicht, lässt den Markt die klimafreundlichere Alternative wählen, statt sie zu verbieten."
+  },
+  {
+    "id": "venus-sozial-001",
     "party_id": "venus",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "rente",
@@ -48,7 +80,7 @@
     "argument": "Ein Niveau von 48 Prozent bedeutet Altersarmut für Millionen, besonders für Frauen – verlässliche Rente ist eine Frage der Würde."
   },
   {
-    "id": "venus-sozial-005",
+    "id": "venus-sozial-002",
     "party_id": "venus",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "rente",
@@ -56,7 +88,7 @@
     "argument": "Die Rente finanziert sich nur noch, wenn alle ihren Beitrag leisten – Privilegien für Beamte und Politiker sind heute nicht mehr begründbar."
   },
   {
-    "id": "venus-sozial-010",
+    "id": "venus-sozial-003",
     "party_id": "venus",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "rente",
@@ -64,15 +96,15 @@
     "argument": "Die Pflege von Kindern und Angehörigen ist gesellschaftlich unverzichtbar – ohne rentenrechtliche Gleichstellung bleibt sie unbezahlte Frauenarbeit mit Altersarmut als Konsequenz."
   },
   {
-    "id": "venus-sozial-007",
+    "id": "venus-sozial-004",
     "party_id": "venus",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "buergergeld",
-    "claim": "Der Bürgergeld-Regelsatz wird um 50 € monatlich angehoben und künftig an die reale Lebenshaltung gekoppelt.",
-    "argument": "Studien zeigen, dass der heutige Satz die tatsächlichen Kosten nicht deckt – Armut in einem reichen Land darf nicht strukturell sein."
+    "claim": "Der Bürgergeld-Regelsatz wird um 50 € monatlich angehoben.",
+    "argument": "Studien zeigen, dass der heutige Satz die tatsächlichen Kosten für Energie, Lebensmittel und Mobilität nicht deckt – ohne sofortige Anhebung bleibt Armut in einem reichen Land strukturell."
   },
   {
-    "id": "venus-sozial-008",
+    "id": "venus-sozial-005",
     "party_id": "venus",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "buergergeld",
@@ -80,7 +112,7 @@
     "argument": "Das Bundesverfassungsgericht hat klargestellt: Existenzsicherung ist Grundrecht – Kürzungen unter das Minimum sind nicht zulässig."
   },
   {
-    "id": "venus-sozial-009",
+    "id": "venus-sozial-006",
     "party_id": "venus",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "buergergeld",

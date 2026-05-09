@@ -16,6 +16,7 @@ from src.guided_exploration.agents import (
 from src.guided_exploration.api.sse import SSEManager
 from src.guided_exploration.models import (
     Citation,
+    FlaggedCitation,
     QuickSummaryEvent,
     RetrievedChunk,
     SessionMessage,
@@ -24,6 +25,7 @@ from src.guided_exploration.models import (
 )
 from src.guided_exploration.services.citation_utils import (
     create_citation_from_chunk as create_chunk_citation,
+    extract_fabricated_citation_ids,
     extract_used_citations,
 )
 from src.guided_exploration.services.context_resolver import ContextResolver
@@ -86,7 +88,7 @@ class QuickSummaryHandler:
         )
 
         chunks = await self._rag_service.retrieve_chunks_for_parties(
-            rag_query, context_id, detected_parties, n_docs=3
+            rag_query, context_id, detected_parties, n_docs=5
         )
 
         context_name, parties_info = await self._context_resolver.get_context_info(
@@ -150,6 +152,22 @@ class QuickSummaryHandler:
             f"of {len(citations)} available"
         )
 
+        fabricated_ids = extract_fabricated_citation_ids(full_text, citations)
+        if fabricated_ids:
+            logger.warning(
+                f"Quick summary fabricated citations session={session_id} "
+                f"ids={fabricated_ids} pool_size={len(citations)}"
+            )
+            await self._repo.add_flagged_citation(
+                session_id,
+                FlaggedCitation(
+                    handler="quick_summary",
+                    fabricated_ids=fabricated_ids,
+                    pool_size=len(citations),
+                    occurred_at=datetime.now(timezone.utc),
+                ),
+            )
+
         await self._study_exposure.log(session_id, used_citations)
 
         suggested_questions = (
@@ -158,6 +176,7 @@ class QuickSummaryHandler:
                 response=full_text,
                 available_context=rag_context,
                 conversation_history=conversation_history_text,
+                is_baseline=is_baseline,
             )
         )
 

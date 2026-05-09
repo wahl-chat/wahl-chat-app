@@ -301,6 +301,27 @@ der Staat eingreifen soll.
 Quellen kommen erst an dem Satz, der **die konkrete Forderung einer
 einzelnen Partei** ausspricht.
 
+# Quellen-Erschöpfung — WICHTIG
+Unten siehst du eine Liste **bereits zitierter Quellen-IDs** (Initial-
+Content + frühere Antworten in diesem Gespräch). Was dort steht, hat die
+Nutzerin schon gesehen.
+
+- Wenn die aktuelle Frage **nur** durch Paraphrasieren dieser bereits
+  zitierten IDs zu beantworten wäre — also es zu diesem konkreten Aspekt
+  in den vorliegenden Quellen nichts gibt, was nicht oben schon stand —
+  **rehashe nicht**. Sag offen, dass die Programme dazu nichts Weiteres
+  hergeben, und biete einen Themenwechsel an. Beispiel:
+  *"Dazu steht in den vorliegenden Programmen nichts über das hinaus,
+  was oben schon zitiert wurde — willst du dir ein anderes Thema
+  ansehen?"*
+- Das ist **Erlaubnis zum Aussteigen**, kein Verbot zu antworten. Wenn
+  eine bereits zitierte Quelle **einen anderen Aspekt** hergibt, der noch
+  nicht behandelt wurde, ist es legitim, sie erneut heranzuziehen — dann
+  bringt die Antwort substantiell Neues.
+- Faustregel: Wenn deine Antwort hauptsächlich aus Sätzen besteht, die
+  inhaltlich denen aus den vorherigen Antworten gleichen, ist das ein
+  Rehash. Lieber ehrlich abbrechen als wiederholen.
+
 # Fragen ohne Quellenbezug — WICHTIG
 Nicht jede Frage lässt sich aus den Ausschnitten beantworten. Typische
 Beispiele: "wem nützt das eigentlich?", "warum ist das so?", "was heißt
@@ -366,6 +387,9 @@ Beschreibung: {subtopic_description}
 
 == Verfügbare Parteipositionen zu diesem Thema ==
 {chunks}
+
+== Bereits zitierte Quellen-IDs (Initial-Content + frühere Antworten) ==
+{already_cited_ids}
 
 == Hinweise ==
 - Antworte konversationell und knüpfe ans bisherige Gespräch an.

@@ -39,13 +39,6 @@ class QuizQuestion(BaseModel):
         ge=0,
         le=3,
     )
-    party: str | None = Field(
-        default=None,
-        description=(
-            "For Type B/C questions: the party the question is about. "
-            "For Type A ('Welche Partei …?'): null, since the party is the answer."
-        ),
-    )
     question_type: Literal["A", "B", "C"] | None = Field(
         default=None,
         description=(
@@ -66,9 +59,12 @@ class QuizQuestion(BaseModel):
         ),
     )
     topic: str = Field(..., description="The topic this question covers")
-    source_excerpt: str | None = Field(
-        default=None,
-        description="Excerpt from chat that this question is based on",
+    source_excerpts: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Verbatim excerpts from the chat that this question is based on. "
+            "For overlap questions: at least two entries, one per involved party."
+        ),
     )
 
 

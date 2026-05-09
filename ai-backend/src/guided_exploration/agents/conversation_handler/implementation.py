@@ -74,6 +74,12 @@ class ConversationHandlerAgent:
 
         source_text = self._build_source_text(knowledge, input.parties_info)
 
+        already_cited = (
+            ", ".join(f"[{cid}]" for cid in input.already_cited_ids)
+            if input.already_cited_ids
+            else "keine"
+        )
+
         user_prompt = STREAMING_USER_PROMPT.format(
             subtopic_name=subtopic_name,
             subtopic_description=subtopic_description,
@@ -82,6 +88,7 @@ class ConversationHandlerAgent:
                 input.conversation_history
             ),
             chunks=source_text,
+            already_cited_ids=already_cited,
         )
 
         return [

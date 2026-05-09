@@ -141,15 +141,22 @@ Bevor du antwortest, prüfe:
    sind immer falsch — mach das Kind zum Top-Level-Blatt stattdessen."""
 
 STUDY_MODE_BLOCK = """# STUDIEN-MODUS (HARTE REGEL — UEBERSCHREIBT ALLES ANDERE)
-Dies ist eine Nutzerstudie mit 10 Minuten Zeitbudget.
+Dies ist eine Nutzerstudie. Die Blätter werden parallel vor-generiert,
+die Anzahl beeinflusst die Wartezeit nicht.
 
-- Gib GENAU 2 oder 3 Top-Level-Knoten zurück. Keine weniger, keine mehr.
+- Gib BIS ZU 5 Top-Level-Knoten zurück. Wähle die Anzahl so, wie es das
+  Material hergibt — wenn die Positionen natürlich in zwei klar
+  unterscheidbare Cluster fallen, gib zwei zurück; wenn fünf saubere
+  Sub-Aspekte sichtbar sind, gib fünf zurück. Erfinde keine künstliche
+  Aufspaltung, nur um die Obergrenze auszuschöpfen.
+- Ein Blatt sollte einen klar abgegrenzten Sub-Aspekt abdecken
+  (z.B. getrennt: "Tempolimit", "Verbrennerverbot", "ÖPNV-Ausbau"),
+  nicht ein ganzes Politikfeld zusammenfassen.
 - ALLE Top-Level-Knoten müssen BLAETTER sein. `children` ist IMMER leer.
 - KEINE Verschachtelung. KEINE Branch-Knoten. KEINE Ebenen tiefer als 1.
 - Jeder Blattknoten braucht Positionen von mindestens 2 Parteien.
-- Verteile ALLE Positionen auf die 2-3 Blätter.
-- Wähle die 2-3 Themen, die sich am stärksten zwischen den Parteien unterscheiden
-  und echten Vergleich erlauben.
+  Reine Single-Party-Blätter sind verboten.
+- Verteile ALLE Positionen auf die Blätter. Keine darf wegfallen.
 """
 
 STUDY_MODE_BLOCK_EMPTY = ""
@@ -182,9 +189,11 @@ Wichtig:
 {study_mode_reminder}"""
 
 STUDY_MODE_REMINDER = (
-    "STUDIEN-MODUS AKTIV: Gib GENAU 2 oder 3 Top-Level-BLAETTER zurück. "
+    "STUDIEN-MODUS AKTIV: Gib BIS ZU 5 Top-Level-BLAETTER zurück. "
+    "Anzahl richtet sich nach den natürlichen Sub-Aspekten im Material — "
+    "nicht künstlich aufspalten, um die Obergrenze zu erreichen. "
     "Keine Verschachtelung. Keine Branches. `children` bleibt leer. "
-    "Verteile alle Positionen auf diese 2-3 Blätter."
+    "Verteile alle Positionen; jedes Blatt braucht mindestens 2 Parteien."
 )
 STUDY_MODE_REMINDER_EMPTY = ""
 

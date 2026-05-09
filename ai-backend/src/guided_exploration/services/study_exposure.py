@@ -44,7 +44,12 @@ class StudyExposureLogger:
         if not session or not is_study_context(session.context_id):
             return
 
-        position_ids = [c.id for c in citations if c.id]
+        position_ids: list[str] = []
+        seen: set[str] = set()
+        for c in citations:
+            if c.id and c.id not in seen:
+                seen.add(c.id)
+                position_ids.append(c.id)
         if not position_ids:
             return
 

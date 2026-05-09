@@ -148,44 +148,12 @@ export interface UeqData {
   itemOrder: number[]; // Randomized order for analysis
 }
 
-export interface ManipulationChecksData {
-  depth: number; // 1-5 Likert
-  clarity: number; // 1-5 Likert
-  taskClarity: number; // 1-5 Likert
-  technical: number; // 1-5 Likert
-}
-
-export interface ManipulationCheckItem {
-  key: keyof ManipulationChecksData;
-  label: string;
-}
-
-export const MANIPULATION_CHECK_ITEMS: ManipulationCheckItem[] = [
-  {
-    key: 'depth',
-    label: 'Die Informationen waren ausreichend detailliert.',
-  },
-  {
-    key: 'clarity',
-    label: 'Die Informationen waren verständlich dargestellt.',
-  },
-  {
-    key: 'taskClarity',
-    label: 'Mir war klar, was ich tun sollte.',
-  },
-  {
-    key: 'technical',
-    label: 'Das System funktionierte ohne technische Probleme.',
-  },
-];
-
 export interface QuestionnaireData {
   cognitiveLoad: CognitiveLoadResponse;
   // Embedded attention check (1-7). Expected value: 2. Stored as a sibling
   // of the scale data so it never pollutes CL subscale scoring.
   attentionCheck: number;
   ueqS: UeqData;
-  manipulationChecks: ManipulationChecksData;
 }
 
 export interface QuizQuestion {

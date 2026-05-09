@@ -32,13 +32,17 @@ from src.guided_exploration.models import (
     TopicOverviewEvent,
 )
 from src.guided_exploration.models.classification import NavigationTarget
-from src.guided_exploration.services.citation_utils import collect_leaf_citations
+from src.guided_exploration.services.citation_utils import (
+    collect_leaf_citations,
+    extract_used_citations,
+)
 from src.guided_exploration.services.context_resolver import ContextResolver
 from src.guided_exploration.services.navigation_state_store import (
     NavigationStateStore,
 )
 from src.guided_exploration.services.session_repository import SessionRepository
 from src.guided_exploration.services.streaming import StreamingService
+from src.guided_exploration.services.study_exposure import StudyExposureLogger
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +74,7 @@ class NavigationHandler:
         navigation_states: NavigationStateStore,
         content_generator: ContentGeneratorAgent,
         pregen_leaf_tasks: dict[tuple[str, str], asyncio.Task],
+        study_exposure: StudyExposureLogger,
     ) -> None:
         self._repo = repo
         self._sse = sse
@@ -78,6 +83,7 @@ class NavigationHandler:
         self._navigation_states = navigation_states
         self._content_generator = content_generator
         self._pregen_leaf_tasks = pregen_leaf_tasks
+        self._study_exposure = study_exposure
 
     async def navigate(
         self,
@@ -329,6 +335,16 @@ class NavigationHandler:
                 exploration.id,
                 conversation,
             )
+
+        # Log Information-Exposure for the leaf intro the participant just
+        # opened. We parse `[id]` markers out of party_positions[*].content
+        # (the only field where the content_generator inlines citations) and
+        # match against the leaf's full citation pool. Cached and freshly-
+        # generated branches both end up here; dedup is handled at storage.
+        if content is not None and content.party_positions:
+            initial_text = "\n".join(p.content for p in content.party_positions)
+            used_citations = extract_used_citations(initial_text, content.citations)
+            await self._study_exposure.log(session_id, used_citations)
 
         # Promote node status to 'started' unless the user already finished it.
         # Transitions: pending/loaded -> started. 'explored' is terminal.

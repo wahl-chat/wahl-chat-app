@@ -105,20 +105,3 @@ export const cognitiveLoadSchema = z.object({
 });
 
 export type CognitiveLoadFormValues = z.infer<typeof cognitiveLoadSchema>;
-
-// ---------------------------------------------------------------------------
-// Manipulation checks (1-5 Likert)
-// ---------------------------------------------------------------------------
-
-const manipulationRating = z.number({ error: REQUIRED_RATING }).min(1).max(5);
-
-export const manipulationChecksSchema = z.object({
-  depth: manipulationRating,
-  clarity: manipulationRating,
-  taskClarity: manipulationRating,
-  technical: manipulationRating,
-});
-
-export type ManipulationChecksFormValues = z.infer<
-  typeof manipulationChecksSchema
->;

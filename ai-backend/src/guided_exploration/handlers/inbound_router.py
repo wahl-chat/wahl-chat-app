@@ -251,7 +251,11 @@ class InboundRouter:
 
         logger.info(f"Baseline classified message: {classifier_output}")
 
-        if classifier_output.query_type == QueryType.EXPLORATORY:
+        # Production wahl.chat funnels every content question through a
+        # single answer pipeline — no exploratory/factual split. Baseline
+        # mirrors that: both go to the quick-summary handler so the
+        # prod-aligned BASELINE_QUICK_SUMMARY_SYSTEM_PROMPT applies uniformly.
+        if classifier_output.query_type in (QueryType.EXPLORATORY, QueryType.FACTUAL):
             return await self._quick_summary_handler.generate(
                 session_id=session_id,
                 query=content,
@@ -262,15 +266,6 @@ class InboundRouter:
                 ),
                 context_id=session.context_id,
                 session=session,
-            )
-
-        if classifier_output.query_type == QueryType.FACTUAL:
-            return await self._factual_query_handler.answer(
-                session_id=session_id,
-                query=content,
-                rag_query=classifier_output.rag_query,
-                detected_parties=classifier_output.detected_parties,
-                context_id=session.context_id,
             )
 
         if classifier_output.query_type == QueryType.META:

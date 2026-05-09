@@ -87,6 +87,38 @@ class SessionMode(str, Enum):
     BASELINE = "baseline"  # Summary-only, no exploration choice
 
 
+class FlaggedCitation(BaseModel):
+    """One occurrence of an LLM citing an id outside the leaf's pool.
+
+    Recorded for analysis — the response itself still ships to the user;
+    the offending ids just don't survive the ``extract_used_citations``
+    intersection so they're never logged as exposure.
+    """
+
+    exploration_id: str | None = Field(
+        default=None, description="Exploration the response belonged to, if any"
+    )
+    leaf_id: str | None = Field(
+        default=None, description="Leaf id the response was scoped to, if any"
+    )
+    message_id: str | None = Field(
+        default=None,
+        description="Assistant message id the fabrication appeared in, if any",
+    )
+    handler: str = Field(
+        ...,
+        description="Which handler produced the response (followup, quick_summary, factual_query)",
+    )
+    fabricated_ids: list[str] = Field(
+        default_factory=list,
+        description="Citation ids the LLM bracketed that weren't in the pool",
+    )
+    pool_size: int = Field(
+        default=0, description="Size of the citation pool the response had access to"
+    )
+    occurred_at: datetime = Field(..., description="When the fabrication was detected")
+
+
 class Session(BaseModel):
     """Session stored in Firebase."""
 
@@ -111,6 +143,10 @@ class Session(BaseModel):
     )
     messages: list[SessionMessage] = Field(
         default_factory=list, description="Session-level chat messages"
+    )
+    flagged_citations: list[FlaggedCitation] = Field(
+        default_factory=list,
+        description="Citation fabrications detected on responses in this session",
     )
 
 

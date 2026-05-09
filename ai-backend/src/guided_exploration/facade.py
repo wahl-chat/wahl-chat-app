@@ -181,6 +181,7 @@ class GuidedExplorationFacade:
             navigation_states=self._navigation_states,
             content_generator=self._content_generator,
             pregen_leaf_tasks=self._pregen_leaf_tasks,
+            study_exposure=self._study_exposure,
         )
         self._followup_handler = FollowupHandler(
             repo=repository,
@@ -498,13 +499,16 @@ def get_facade() -> GuidedExplorationFacade:
                 sse_manager = get_sse_manager()
                 repository = get_session_repository()
 
-                # GPT-5.4 family (March 2026 flagship). gpt-5.4-mini for
-                # classification, gpt-5.4 for content generation and
-                # reasoning. Determinism for classification is enforced via
-                # temperature=0.0 at the call site.
+                # GPT-5.4 family (March 2026 flagship). gpt-5.4-mini handles
+                # classification AND structured content rendering — the leaf
+                # summaries and hierarchy construction are template-shaped
+                # tasks with all facts provided, where the flagship's extra
+                # reasoning headroom buys nothing. gpt-5.4 is reserved for
+                # the analyzer, which does open-ended judgment over conversation
+                # history.
                 registry = LLMRegistry()
                 registry.register(LLMTier.FAST, LangChainLLMProvider(openai_gpt_5_4_mini))
-                registry.register(LLMTier.BALANCED, LangChainLLMProvider(openai_gpt_5_4))
+                registry.register(LLMTier.BALANCED, LangChainLLMProvider(openai_gpt_5_4_mini))
                 registry.register(LLMTier.REASONING, LangChainLLMProvider(openai_gpt_5_4))
                 registry.set_embeddings(LLMRegistry.create_openai_embeddings())
 

@@ -228,15 +228,6 @@ class StartTaskResponse(BaseModel):
     )
 
 
-class ManipulationChecksRequest(BaseModel):
-    """Manipulation check responses (1-5 Likert scale)."""
-
-    depth: int = Field(..., ge=1, le=5, description="Information detail adequacy (1-5)")
-    clarity: int = Field(..., ge=1, le=5, description="Information clarity (1-5)")
-    task_clarity: int = Field(..., ge=1, le=5, description="Task clarity (1-5)")
-    technical: int = Field(..., ge=1, le=5, description="Technical function (1-5)")
-
-
 class CognitiveLoadRequest(BaseModel):
     """
     Cognitive Load responses (Klepsch, Schmitz & Seufert, 2017).
@@ -256,7 +247,7 @@ class CognitiveLoadRequest(BaseModel):
 
 
 class QuestionnaireRequest(BaseModel):
-    """Request for submitting questionnaire (Cognitive Load + UEQ-S + Manipulation Checks)."""
+    """Request for submitting questionnaire (Cognitive Load + UEQ-S)."""
 
     cognitive_load: CognitiveLoadRequest = Field(
         ...,
@@ -275,10 +266,6 @@ class QuestionnaireRequest(BaseModel):
     ueq_s: dict = Field(
         ...,
         description="UEQ-S responses",
-    )
-    manipulation_checks: ManipulationChecksRequest = Field(
-        ...,
-        description="Manipulation check responses",
     )
 
 

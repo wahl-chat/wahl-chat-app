@@ -271,8 +271,12 @@ class SessionRepository:
         if session is None:
             return
 
-        existing = set(session.condition.positions_encountered or [])
-        added = [pid for pid in position_ids if pid not in existing]
+        seen = set(session.condition.positions_encountered or [])
+        added: list[str] = []
+        for pid in position_ids:
+            if pid not in seen:
+                seen.add(pid)
+                added.append(pid)
         if not added:
             return
 

@@ -33,35 +33,6 @@ class CognitiveLoadData(BaseModel):
     cl_gcl_2: int | None = Field(default=None, ge=1, le=7)
 
 
-class ManipulationChecks(BaseModel):
-    """Manipulation check responses for a condition (1-5 Likert scale)."""
-
-    depth: int | None = Field(
-        default=None,
-        ge=1,
-        le=5,
-        description="Die Informationen waren ausreichend detailliert. (1-5)",
-    )
-    clarity: int | None = Field(
-        default=None,
-        ge=1,
-        le=5,
-        description="Die Informationen waren verständlich dargestellt. (1-5)",
-    )
-    task_clarity: int | None = Field(
-        default=None,
-        ge=1,
-        le=5,
-        description="Mir war klar, was ich tun sollte. (1-5)",
-    )
-    technical: int | None = Field(
-        default=None,
-        ge=1,
-        le=5,
-        description="Das System funktionierte ohne technische Probleme. (1-5)",
-    )
-
-
 class SystemType(str, Enum):
     """The type of system (condition) for a task."""
 
@@ -115,10 +86,6 @@ class ConditionData(BaseModel):
     quiz_submitted_at: datetime | None = Field(
         default=None,
         description="When the quiz was submitted",
-    )
-    manipulation_checks: ManipulationChecks | None = Field(
-        default=None,
-        description="Manipulation check responses",
     )
     positions_encountered: list[str] = Field(
         default_factory=list,

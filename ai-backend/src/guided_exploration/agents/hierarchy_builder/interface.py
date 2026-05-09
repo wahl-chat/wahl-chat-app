@@ -24,8 +24,11 @@ class HierarchyBuilderInput(BaseModel):
     is_study: bool = Field(
         default=False,
         description=(
-            "When True, force a strictly flat tree with exactly 2-3 top-level "
-            "leaves (no nesting). Used in study mode to fit the 10-minute budget."
+            "When True, force a strictly flat tree with up to 5 top-level "
+            "leaves (no nesting). The model picks the natural number based "
+            "on the sub-aspect structure of the input positions; the cap "
+            "only prevents over-shredding. Leaves are pre-generated in "
+            "parallel, so leaf count does not affect latency."
         ),
     )
 

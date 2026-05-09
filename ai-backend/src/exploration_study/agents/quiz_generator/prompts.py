@@ -58,6 +58,29 @@ Jede Frage ist **Single Choice** — es gibt genau **eine richtige Antwort** unt
 **Aufgabe:**
 Erstelle basierend auf einer Chat-Konversation über politische Themen Multiple-Choice-Fragen, die testen, ob jemand die **grobe Ausrichtung der Parteien** sowie deren **Position zu einzelnen Themen** verstanden hat — also sowohl die generelle Grundhaltung ("pro/contra", "mehr Staat/mehr Markt", "Ausbau/Rückbau") als auch, ob eine Partei ein konkretes Thema (z. B. Klimageld, CBAM, Beamte in die Rente) befürwortet oder ablehnt. Was NICHT getestet wird, sind Detail-Mechaniken: Zahlen, Eurobeträge, Jahre, exakte Instrumenten-Ausgestaltung oder genaue Formulierungen.
 
+---
+
+**WÖRTLICHE QUELLENZITATE — HARTES KO-KRITERIUM (lies dies zweimal).**
+
+Jeder Eintrag in `source_excerpts` MUSS ein **Zeichen-für-Zeichen identischer, ununterbrochener Substring** einer einzigen Assistent-Nachricht aus dem unten gelieferten Chat sein. Es gibt keine Toleranz, keine "fast wörtlich", keine "sinngemäß". Der Validator prüft das automatisch und verwirft die GESAMTE Quizgenerierung, sobald **eine** Frage einen nicht-wörtlichen Excerpt enthält. Es gibt keine Teilannahme.
+
+**Verboten — alle diese Fehler kassieren die ganze Generierung:**
+- Fragmente aus zwei verschiedenen Sätzen oder Nachrichten zusammenfügen (z. B. den Satzanfang einer Nachricht mit dem Inhalt einer anderen Stelle kombinieren).
+- Den Satz **kürzen oder erweitern**, wenn das eine Stelle erzeugt, die so im Chat nicht steht (anders gesagt: NUR ein zusammenhängender Substring eines existierenden Satzes ist erlaubt).
+- Wörter umstellen, Synonyme einsetzen, Konjunktionen oder Pronomen ändern, Plural/Singular oder Tempus anpassen.
+- Tippfehler, Zeichensetzung, Klammern, Bindestriche oder Anführungszeichen "korrigieren". Der Excerpt steht im Chat genau so wie er steht — wenn dort `[PARTY_BADGE:saturn]` steht, muss exakt das im Excerpt stehen, nicht "Saturn".
+- Aussagen einer Partei der falschen Partei zuschreiben (also einen Satz, der über `[PARTY_BADGE:venus]` spricht, als Excerpt für `[PARTY_BADGE:saturn]` liefern).
+
+**Verfahren — pflichtgemäss in dieser Reihenfolge:**
+1. Suche im Chat den Satz, der die Partei-Position belegt, die du gerade fragen willst.
+2. Markiere den **kleinsten zusammenhängenden Ausschnitt**, der die Position eindeutig stützt — NICHT mehr als nötig.
+3. Kopiere diesen Ausschnitt **Zeichen für Zeichen** in `source_excerpts`. Verifiziere mental: Wenn ich diesen String in der Chat-Nachricht suche, finde ich ihn dort vollständig?
+4. Findest du keinen passenden wörtlichen Beleg (z. B. weil das Thema nur paraphrasiert oder gar nicht genannt wurde) — **erstelle die Frage NICHT**. Lieber weniger Fragen als eine erfundene.
+
+Ein paraphrasierter, gestückelter oder umformulierter Excerpt ist **eine Halluzination**, kein Stilfehler. Der Validator ist hart — eine einzige nicht-wörtliche Stelle, und 3 Retries sind aufgebraucht; das Quiz kommt für diesen Teilnehmer nie zustande.
+
+---
+
 **Richtlinien für gute Fragen:**
 
 1. **Allgemeine Ausrichtung ODER thematische Position — nicht Policy-Details**: Frage entweder nach der groben Ausrichtung einer Partei (Markt vs. Staat, Ausbau vs. Rückbau, dafür vs. dagegen) ODER nach ihrer Position zu einem konkreten Thema, das im Chat besprochen wurde (z. B. "Wie steht X zur Pro-Kopf-Rückzahlung der CO2-Einnahmen?"). Was NICHT erlaubt ist: spezifische Beträge, Prozentsätze, Jahreszahlen, genaue Mechanik-Details ("wie viele Entgeltpunkte pro Kind?", "ab wie vielen Beitragsjahren?").
@@ -101,12 +124,11 @@ Richtig (Option): "[PARTY_BADGE:mars]"
 
 **Fragetypen — Vielfalt ist wichtig.**
 
-Verwende einen Mix aus den folgenden drei Fragetypen. Verteile die Fragen ungefähr 40 % Typ A, 30 % Typ B, 30 % Typ C — nicht alle Fragen vom selben Typ.
+Verwende einen Mix aus den folgenden drei Fragetypen, soweit der Chat es hergibt — nicht alle Fragen vom selben Typ. Eine Richtgröße ist eine ausgeglichene Mischung aus A, B und C; das ist aber kein Muss. **Generiere lieber weniger oder gar keine Fragen eines Typs als Fragen, die nicht im Chat verankert sind.**
 
 **Reihenfolge pro Frage — STRIKT:**
 1. Entscheide ZUERST den Fragetyp und setze `question_type` ("A", "B" oder "C").
 2. Formuliere DANN `question` und `options` so, dass beide zum gewählten Typ passen — Frageform und Optionsform müssen zusammen gehören.
-3. Setze `party` nur bei Typ B/C (die im Fragetext genannte Partei). Bei Typ A muss `party` null sein, weil die Partei dort die Antwort ist und nicht das Subjekt der Frage.
 
 **Typ A — "Welche Partei …?" (Zuordnung)**
 - Frage beschreibt eine Position oder Grundhaltung; gefragt wird, welche Partei sie vertritt.
@@ -143,15 +165,16 @@ In dieser Studie gibt es bewusst Themen, bei denen ZWEI Parteien dieselbe Grundr
 **Bekannte Überlappungs-Themen:**
 {_format_overlap_themes()}
 
-**Ziel-Verteilung:** Etwa 30 % aller Fragen (z. B. ~3 von 10) sollen Überlappungs-Fragen vom **Typ A** sein, bei denen die korrekte Antwort `"Mehrere der genannten Parteien"` ist — vorausgesetzt, die Überlappung wurde im Chat tatsächlich erwähnt. Wenn das Chat eine Überlappung gar nicht abdeckt, erfinde KEINE Überlappungs-Frage darüber.
+**Wann eine Überlappungs-Frage erlaubt ist — STRIKT:**
+Erstelle eine Überlappungs-Frage NUR, wenn der Chat die Position **beider** beteiligter Parteien zu diesem Thema explizit benennt — sodass du für jede Partei einen wörtlichen Excerpt aus dem Chat zitieren kannst. Wenn der Chat nur eine der beiden Parteien zu einem Überlappungs-Thema erwähnt, oder die Überlappung gar nicht thematisiert wurde, erstelle KEINE Überlappungs-Frage. Lieber null Überlappungs-Fragen als erfundene. Es gibt keine fixe Quote.
 
 **Wie eine Überlappungs-Frage formal aussehen muss:**
 - `question_type` = `"A"` (es ist eine Zuordnungs-Frage)
 - Die vier Optionen sind die drei Parteien plus die Meta-Option `"Mehrere der genannten Parteien"`
 - `correct_index` zeigt auf die Meta-Option (typischerweise Index 3)
 - `is_overlap_question` = `true`
-- `party` = `null` (Typ A hat nie ein `party`-Feld)
-- `partial_credit_indices` enthält die Indizes der **einzelnen** Parteien, die zur Überlappung gehören. Wer im Quiz nur eine der beiden korrekten Parteien wählt, bekommt 0.5 Punkte statt 0 — das belohnt teilweises Verständnis.
+- `partial_credit_indices` enthält die Indizes der **einzelnen** Parteien, die zur Überlappung gehören — **MINDESTENS ZWEI Einträge**. Wenn nur eine Partei zutrifft, ist es KEINE Überlappung — setze `is_overlap_question=false` und mach diese Partei zum `correct_index`.
+- `source_excerpts` enthält **mindestens zwei wörtliche Zitate** aus dem Chat — eines pro beteiligte Partei, das deren Position belegt.
 
 **Beispiel einer Überlappungs-Frage:**
 - Frage: "Welche Partei spricht sich für eine Pro-Kopf-Rückzahlung der CO2-Einnahmen direkt an die Bürger aus?"
@@ -159,6 +182,7 @@ In dieser Studie gibt es bewusst Themen, bei denen ZWEI Parteien dieselbe Grundr
 - `correct_index`: `3`
 - `is_overlap_question`: `true`
 - `partial_credit_indices`: `[0, 1]` (Venus und Mars vertreten beide diese Position)
+- `source_excerpts`: `["[PARTY_BADGE:venus] fordert ein direktes Klimageld …", "[PARTY_BADGE:mars] unterstützt die Pro-Kopf-Rückzahlung …"]`
 
 **Bei allen anderen Fragen (keine Überlappung):**
 - `is_overlap_question` = `false`
@@ -194,15 +218,15 @@ Erstelle {num_questions} Fragen, die testen, ob jemand die **grobe Ausrichtung**
 Achte darauf:
 1. **Single Choice — genau eine richtige Antwort** unter den vier inhaltlichen Optionen. Optionen müssen **trennscharf** sein: keine zwei Optionen, die ungefähr dasselbe meinen ("Komplett dagegen" und "Eher für Abschaffung" → verboten).
 2. Jede Frage bleibt auf der Ebene der Grundhaltung oder der thematischen Position: dafür/dagegen, Ausbau/Rückbau, Markt/Staat, "spricht sich für Thema Y aus" — KEINE spezifischen Zahlen, Eurobeträge, Jahre oder Mechanik-Details.
-3. **Variiere die Fragetypen.** Mische Typ A ("Welche Partei …?"), Typ B ("Wie steht [PARTY_BADGE:X] zu …?") und Typ C ("Welche Aussage trifft auf [PARTY_BADGE:X] zu?") — nicht alle Fragen vom selben Typ. Richtwert: ~40 % A, ~30 % B, ~30 % C.
-4. **Überlappungs-Quote: ~30 % der Fragen** sollen Typ-A-Überlappungs-Fragen sein, deren korrekte Antwort `"Mehrere der genannten Parteien"` ist (mit `is_overlap_question=true` und `partial_credit_indices` für die einzelnen beteiligten Parteien). Nur erstellen, wenn die Überlappung tatsächlich im Chat erwähnt wurde.
+3. **Variiere die Fragetypen, soweit der Chat es hergibt.** Mische Typ A ("Welche Partei …?"), Typ B ("Wie steht [PARTY_BADGE:X] zu …?") und Typ C ("Welche Aussage trifft auf [PARTY_BADGE:X] zu?"). Es gibt KEINE festen Quoten — generiere lieber weniger Fragen eines Typs als nicht-fundierte.
+4. **Überlappungs-Fragen NUR wenn fundiert**: Erstelle eine Typ-A-Überlappungs-Frage (`correct_index` = "Mehrere der genannten Parteien", `is_overlap_question=true`, mind. 2 Einträge in `partial_credit_indices`) **nur dann**, wenn der Chat die Position **beider** beteiligter Parteien zum gleichen Thema explizit nennt und du für jede einen wörtlichen Excerpt zitieren kannst. Sonst KEINE Überlappungs-Frage — keine fixe Quote, lieber null als erfundene.
 5. **Bei Typ A**: KEINE Parteinamen oder Badge-Marker im Fragetext — die Optionen enthalten die drei Parteien + eine Meta-Option (typischerweise "Mehrere der genannten Parteien" für Überlappungs-Fragen, sonst "Keine der genannten Parteien" oder "Alle drei Parteien").
 6. **Bei Typ B/C**: Genau eine Partei im Fragetext (mit `[PARTY_BADGE:<id>]`). Die Antwortoptionen sind Stances bzw. kurze Aussagen OHNE Parteinamen.
 7. Verwende AUSSCHLIESSLICH die unter "Verfügbare Parteien" gelisteten Parteien — erfinde keine weiteren Parteinamen.
-8. Verteile die Fragen gleichmäßig auf die besprochenen Parteien.
+8. Verteile die Fragen gleichmäßig auf die besprochenen Parteien, soweit möglich.
 9. Erstelle genau 4 Antwortoptionen pro Frage (eine korrekt, drei falsch aber plausibel und eindeutig falsch).
 10. Setze `question_type` ("A"/"B"/"C"), `is_overlap_question` und `partial_credit_indices` korrekt.
-11. Gib die Source-Excerpt an, also den Teil des Chats auf dem die Frage basiert.
+11. **`source_excerpts` — Zeichen-für-Zeichen verbatim, automatisch validiert.** Jeder Eintrag MUSS ein **zusammenhängender, unveränderter Substring genau einer Assistent-Nachricht** aus dem oben gelieferten Chat sein. Keine Paraphrase, kein Stitching aus zwei Sätzen, keine "Korrekturen" von Zeichensetzung, kein Umformulieren, keine Partei-Verwechslung. Wenn `[PARTY_BADGE:venus]` im Chat steht, kopiere `[PARTY_BADGE:venus]` — nicht "Venus" und nicht das Badge einer anderen Partei. Bei Überlappungs-Fragen: **mindestens zwei** Zitate, eines pro beteiligter Partei, jeweils aus der wirklich entsprechenden Partei-Passage. **Findest du keinen sauberen wörtlichen Beleg, erstelle die Frage NICHT** — der Validator verwirft die GESAMTE Generierung beim ersten nicht-wörtlichen Excerpt, und du hast nur 3 Versuche.
 
 Denke daran: Teilnehmende, die das Quiz besonders gut lösen, gewinnen einen 20 € Amazon-Gutschein — die Fragen müssen daher fair, trennscharf und eindeutig beantwortbar sein.
 

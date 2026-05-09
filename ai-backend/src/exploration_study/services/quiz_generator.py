@@ -8,6 +8,9 @@ from src.exploration_study.agents.quiz_generator import (
     QuizGeneratorAgent,
     QuizGeneratorInput,
 )
+from src.exploration_study.agents.quiz_generator.implementation import (
+    QuizValidationError,
+)
 from src.exploration_study.agents.quiz_generator.interface import ChatMessage
 from src.exploration_study.models.quiz import Quiz, QuizStatus
 from src.exploration_study.services.session_repository import (
@@ -17,6 +20,8 @@ from src.exploration_study.services.session_repository import (
 from src.guided_exploration.agents.llm_provider import LLMProvider
 
 logger = logging.getLogger(__name__)
+
+MAX_GENERATION_ATTEMPTS = 3
 
 
 class QuizGeneratorService:
@@ -80,18 +85,49 @@ class QuizGeneratorService:
                 if msg.get("content")
             ]
 
-            # Generate questions using the agent
-            agent_input = QuizGeneratorInput(
-                topic=topic,
-                parties=parties,
-                chat_messages=formatted_messages,
-                num_questions=num_questions,
-            )
+            # Generate questions using the agent. Retry on validation
+            # failure (hallucinated source excerpts, malformed overlap
+            # questions, etc.) — the LLM occasionally invents content
+            # that doesn't ground in the actual chat, and re-prompting
+            # tends to fix it.
+            questions = None
+            last_error: QuizValidationError | None = None
+            for attempt in range(1, MAX_GENERATION_ATTEMPTS + 1):
+                # Surface the previous failure to the LLM so it knows
+                # specifically what to fix on the next attempt.
+                feedback = (
+                    f"{last_error.reason} — die betroffene Frage war: "
+                    f"{last_error.question.question!r}"
+                    if last_error is not None
+                    else None
+                )
+                agent_input = QuizGeneratorInput(
+                    topic=topic,
+                    parties=parties,
+                    chat_messages=formatted_messages,
+                    num_questions=num_questions,
+                    previous_validation_error=feedback,
+                )
+                try:
+                    output = await self._agent.execute(agent_input)
+                    questions = self._agent.convert_to_quiz_questions(
+                        output, topic, formatted_messages
+                    )
+                    break
+                except QuizValidationError as e:
+                    last_error = e
+                    logger.warning(
+                        f"Quiz validation failed for session {session_id} "
+                        f"(attempt {attempt}/{MAX_GENERATION_ATTEMPTS}): "
+                        f"{e.reason} — question: {e.question.question!r}"
+                    )
 
-            output = await self._agent.execute(agent_input)
-
-            # Convert to QuizQuestion models
-            questions = self._agent.convert_to_quiz_questions(output, topic)
+            if questions is None:
+                assert last_error is not None
+                raise RuntimeError(
+                    f"Quiz generation failed validation after "
+                    f"{MAX_GENERATION_ATTEMPTS} attempts: {last_error.reason}"
+                )
 
             # Update quiz with generated questions
             await self._session_repo.update_quiz(

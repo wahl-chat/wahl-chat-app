@@ -59,6 +59,24 @@ def collect_leaf_citations(
     ]
 
 
+def _parse_bracket_citation_ids(text: str) -> set[str]:
+    """Parse all citation-style ids out of a text's [..] brackets.
+
+    Handles both single ``[id]`` and comma-separated ``[id1, id2]``
+    forms. Skips ``[PARTY:...]`` and ``[PARTY_BADGE:id]`` markers used
+    for party-section formatting and inline party pills.
+    """
+    ids: set[str] = set()
+    for content in re.findall(r"\[([^\]]+)\]", text):
+        if "PARTY:" in content or content.startswith("PARTY_BADGE:"):
+            continue
+        for id_part in content.split(","):
+            id_part = id_part.strip()
+            if id_part:
+                ids.add(id_part)
+    return ids
+
+
 def extract_used_citations(
     text: str,
     all_citations: list[Citation],
@@ -79,18 +97,7 @@ def extract_used_citations(
     Returns:
         List of citations that were actually used in the text
     """
-    bracket_pattern = r"\[([^\]]+)\]"
-    bracket_contents = re.findall(bracket_pattern, text)
-
-    used_ids: set[str] = set()
-    for content in bracket_contents:
-        if "PARTY:" in content or content.startswith("PARTY_BADGE:"):
-            continue
-        for id_part in content.split(","):
-            id_part = id_part.strip()
-            if id_part:
-                used_ids.add(id_part)
-
+    used_ids = _parse_bracket_citation_ids(text)
     used_citations = [c for c in all_citations if c.id in used_ids]
 
     logger.debug(
@@ -99,3 +106,20 @@ def extract_used_citations(
     )
 
     return used_citations
+
+
+def extract_fabricated_citation_ids(
+    text: str,
+    all_citations: list[Citation],
+) -> list[str]:
+    """Return citation ids that appear in the text but not in the pool.
+
+    These are LLM-fabricated references — bracketed in the response in
+    a citation-shaped way but with no matching Citation in the leaf's
+    pool. Order is stable (sorted) so flagged records are deterministic.
+    """
+    bracket_ids = _parse_bracket_citation_ids(text)
+    if not bracket_ids:
+        return []
+    valid_ids = {c.id for c in all_citations}
+    return sorted(bracket_ids - valid_ids)

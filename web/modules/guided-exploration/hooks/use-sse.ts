@@ -623,6 +623,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           break;
         case 'connected':
           dispatchRef.current(connectionActions.connected());
+          dispatchRef.current(uiActions.errorCleared());
           break;
         case 'disconnected':
           dispatchRef.current(connectionActions.disconnected());

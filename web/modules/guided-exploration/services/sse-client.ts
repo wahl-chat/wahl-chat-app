@@ -118,11 +118,13 @@ export class SSEClient {
     };
 
     this.eventSource.onerror = () => {
-      // EventSource automatically reconnects, but we want custom control
+      // Transient drops (e.g. Cloud Run's ~5min stream cap) are recovered
+      // either by the browser's built-in EventSource reconnect or by our
+      // explicit backoff in `handleDisconnect`. Don't surface a UI error
+      // for either — only the terminal failure after maxReconnectAttempts
+      // is user-actionable, and that path already calls `onError` below.
       if (this.eventSource?.readyState === EventSource.CLOSED) {
         this.handleDisconnect();
-      } else {
-        this.onError?.(new Error('SSE connection error'));
       }
     };
 

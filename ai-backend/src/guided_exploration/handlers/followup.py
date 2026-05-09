@@ -35,6 +35,7 @@ from src.guided_exploration.models import (
     Exploration,
     ExtractedPosition,
     ExtractedPositionItem,
+    FlaggedCitation,
     Message,
     MessageRole,
     MessageType,
@@ -45,6 +46,7 @@ from src.guided_exploration.models.classification import MessageIntent
 from src.guided_exploration.models.events import TopicSwitchSuggestedEvent
 from src.guided_exploration.services.citation_utils import (
     create_citation_from_chunk as create_chunk_citation,
+    extract_fabricated_citation_ids,
     extract_used_citations,
 )
 from src.guided_exploration.services.context_resolver import ContextResolver
@@ -458,6 +460,39 @@ class FollowupHandler:
             positions_by_party=positions_by_party,
         )
 
+    @staticmethod
+    def _gather_already_cited_ids(
+        conversation: Conversation | None,
+        resolved: ResolvedKnowledge,
+    ) -> list[str]:
+        """Citation IDs the user has already seen in this leaf.
+
+        Union of: (1) the leaf's initial-content positions (passed in via
+        ``resolved.party_positions``), and (2) citations attached to prior
+        assistant messages in this leaf's conversation — both follow-up
+        messages (``msg.citations``) and the initial-content message
+        (citations on the ``SubtopicContent`` content payload).
+        """
+        ids: set[str] = set()
+        for ep in resolved.party_positions.values():
+            for item in ep.positions:
+                if item.citation_id:
+                    ids.add(item.citation_id)
+        if conversation:
+            for msg in conversation.messages:
+                if msg.role != MessageRole.ASSISTANT:
+                    continue
+                for cit in msg.citations:
+                    if cit.id:
+                        ids.add(cit.id)
+                content = msg.content
+                inner = getattr(content, "citations", None)
+                if inner:
+                    for cit in inner:
+                        if cit.id:
+                            ids.add(cit.id)
+        return sorted(ids)
+
     async def _handle_followup_with_resolved(
         self,
         session_id: str,
@@ -500,6 +535,18 @@ class FollowupHandler:
             )
         conversation_history = conversation.messages if conversation else []
 
+        already_cited_ids = self._gather_already_cited_ids(conversation, resolved)
+        new_chunk_ids: list[str] = []
+        for chunks in resolved.party_chunks.values():
+            for chunk in chunks:
+                if chunk.chunk_id and chunk.chunk_id not in already_cited_ids:
+                    new_chunk_ids.append(chunk.chunk_id)
+        logger.info(
+            f"Follow-up exhaustion signal leaf={leaf_id} "
+            f"already_cited={len(already_cited_ids)} "
+            f"new_chunks={len(new_chunk_ids)}"
+        )
+
         now = datetime.now(timezone.utc)
         user_msg = Message(
             id=str(uuid4()),
@@ -539,6 +586,7 @@ class FollowupHandler:
             context_id=exploration.tree.exploration_id,
             context_name=context_name,
             parties_info=parties_info,
+            already_cited_ids=already_cited_ids,
         )
 
         stream_id = str(uuid4())
@@ -553,6 +601,25 @@ class FollowupHandler:
         )
 
         used_citations = extract_used_citations(full_text, citation_pool)
+        fabricated_ids = extract_fabricated_citation_ids(full_text, citation_pool)
+        if fabricated_ids:
+            logger.warning(
+                f"Followup fabricated citations session={session_id} "
+                f"leaf={leaf_id} ids={fabricated_ids} "
+                f"pool_size={len(citation_pool)}"
+            )
+            await self._repo.add_flagged_citation(
+                session_id,
+                FlaggedCitation(
+                    exploration_id=exploration_id,
+                    leaf_id=leaf_id,
+                    message_id=message_id,
+                    handler="followup",
+                    fabricated_ids=fabricated_ids,
+                    pool_size=len(citation_pool),
+                    occurred_at=datetime.now(timezone.utc),
+                ),
+            )
 
         await self._study_exposure.log(session_id, used_citations)
 
@@ -587,6 +654,8 @@ class FollowupHandler:
                 response=full_text,
                 available_context=available_context,
                 conversation_history=conversation_history_text,
+                context="in_leaf",
+                already_cited_ids=already_cited_ids,
             )
         )
 

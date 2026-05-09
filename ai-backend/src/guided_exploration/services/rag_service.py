@@ -121,16 +121,17 @@ class RAGService:
         """
         # Study sessions: route to in-memory fake-manifesto resolver.
         # Each chunk becomes one position directly (no extraction), so
-        # n_docs ≈ target positions per party. Dataset is up to 6 per party
-        # per topic (2 subtopics × up to 3 claims) — retrieve all of them so
-        # every subtopic is represented, giving the tree builder the full
-        # per-party payload for that topic.
+        # n_docs ≈ target positions per party. Caller controls the cap:
+        # the tree builder explicitly passes n_docs=10 to see the full
+        # per-party payload; chat-style paths (quick summary, followup)
+        # pass smaller numbers so the LLM gets a focused slice instead
+        # of every available claim.
         if is_study_context(context_id):
             return await self._get_study_rag().retrieve_chunks_for_party(
                 query=query,
                 party_id=party_id,
                 topic=get_study_topic(context_id),
-                n_docs=6,
+                n_docs=n_docs,
             )
 
         collection_name = get_context_collection_name(context_id)

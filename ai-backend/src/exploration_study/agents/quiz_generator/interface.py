@@ -38,22 +38,15 @@ class GeneratedQuestion(BaseModel):
         ge=0,
         le=3,
     )
-    party: str | None = Field(
-        default=None,
-        description=(
-            "For Type B/C: the party the question is about (party id, e.g. "
-            "'venus'). For Type A: MUST be null — the party is the answer, not "
-            "a fixed subject of the question."
-        ),
-    )
     is_overlap_question: bool = Field(
         default=False,
         description=(
             "True if the question targets a known cross-party overlap (e.g. "
             "Klimageld is held by both Venus and Mars). For Type A overlap "
-            "questions, the correct answer is typically the meta-option "
+            "questions, the correct answer MUST be the meta-option "
             "'Mehrere der genannten Parteien' and partial_credit_indices "
-            "should list the individual-party options that earn 0.5 credit."
+            "MUST list the individual-party options that earn 0.5 credit "
+            "(at least two)."
         ),
     )
     partial_credit_indices: list[int] = Field(
@@ -62,13 +55,21 @@ class GeneratedQuestion(BaseModel):
             "Indices of answer options (0-3) that earn 0.5 partial credit "
             "instead of 0. Used for Type A overlap questions where picking "
             "ONE of the two correct parties is partially right but misses "
-            "the overlap. MUST NOT include the fully-correct index. Empty "
-            "for non-overlap questions."
+            "the overlap. MUST NOT include the fully-correct index. MUST "
+            "have at least two entries for overlap questions. Empty for "
+            "non-overlap questions."
         ),
     )
-    source_excerpt: str = Field(
+    source_excerpts: list[str] = Field(
         ...,
-        description="Brief excerpt from chat that this question is based on",
+        description=(
+            "Verbatim excerpts from the chat that this question is based on. "
+            "Each entry MUST be an exact, unmodified substring of an "
+            "assistant message in the chat — copy the text exactly, do not "
+            "paraphrase. For overlap questions, provide at least two "
+            "excerpts (one citing each involved party's position)."
+        ),
+        min_length=1,
     )
 
 
@@ -86,6 +87,14 @@ class QuizGeneratorInput(BaseModel):
         description="Number of questions to generate (1-15)",
         ge=1,
         le=15,
+    )
+    previous_validation_error: str | None = Field(
+        default=None,
+        description=(
+            "On retry, the validator's reason for rejecting the previous "
+            "attempt. Surfaced to the LLM so it can correct the specific "
+            "failure mode rather than blindly regenerating."
+        ),
     )
 
 

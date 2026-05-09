@@ -18,6 +18,7 @@ from src.guided_exploration.models import (
     Citation,
     ExtractedPosition,
     ExtractedPositionItem,
+    FlaggedCitation,
     ResolvedKnowledge,
     RetrievedChunk,
     SessionMessage,
@@ -25,6 +26,7 @@ from src.guided_exploration.models import (
 )
 from src.guided_exploration.services.citation_utils import (
     create_citation_from_chunk as create_chunk_citation,
+    extract_fabricated_citation_ids,
     extract_used_citations,
 )
 from src.guided_exploration.services.context_resolver import ContextResolver
@@ -189,6 +191,22 @@ class FactualQueryHandler:
         )
 
         used_citations = extract_used_citations(full_text, rag_citations)
+
+        fabricated_ids = extract_fabricated_citation_ids(full_text, rag_citations)
+        if fabricated_ids:
+            logger.warning(
+                f"Factual query fabricated citations session={session_id} "
+                f"ids={fabricated_ids} pool_size={len(rag_citations)}"
+            )
+            await self._repo.add_flagged_citation(
+                session_id,
+                FlaggedCitation(
+                    handler="factual_query",
+                    fabricated_ids=fabricated_ids,
+                    pool_size=len(rag_citations),
+                    occurred_at=datetime.now(timezone.utc),
+                ),
+            )
 
         await self._study_exposure.log(session_id, used_citations)
 

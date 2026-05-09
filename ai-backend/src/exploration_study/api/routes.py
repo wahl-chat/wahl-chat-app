@@ -47,7 +47,6 @@ from src.exploration_study.models.quiz import (
 from src.exploration_study.models.session import (
     CognitiveLoadData,
     DemographicsData,
-    ManipulationChecks,
     ProlificData,
     get_condition_for_group,
 )
@@ -550,7 +549,7 @@ async def end_task(request: web.Request) -> web.Response:
 async def submit_questionnaire(request: web.Request) -> web.Response:
     """
     POST /api/exploration-study/sessions/{session_id}/questionnaire
-    Submit Cognitive Load (Klepsch et al., 2017), UEQ-S and manipulation checks.
+    Submit Cognitive Load (Klepsch et al., 2017) and UEQ-S.
     """
     session_id = request.match_info["session_id"]
 
@@ -593,12 +592,6 @@ async def submit_questionnaire(request: web.Request) -> web.Response:
     )
     condition.attention_check = req.attention_check
     condition.ueq_s = req.ueq_s
-    condition.manipulation_checks = ManipulationChecks(
-        depth=req.manipulation_checks.depth,
-        clarity=req.manipulation_checks.clarity,
-        task_clarity=req.manipulation_checks.task_clarity,
-        technical=req.manipulation_checks.technical,
-    )
     condition.questionnaire_submitted_at = datetime.now(timezone.utc)
     await session_repo.update_condition_data(session_id, condition)
 

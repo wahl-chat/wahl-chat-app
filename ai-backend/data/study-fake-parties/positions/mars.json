@@ -8,7 +8,7 @@
     "argument": "Er kombiniert verlässliche Zielerreichung mit der Freiheit der Wirtschaft, den günstigsten Weg selbst zu wählen – Verbote sind das letzte Mittel."
   },
   {
-    "id": "mars-klima-003",
+    "id": "mars-klima-002",
     "party_id": "mars",
     "topic": "klimaschutz",
     "subtopic": "co2-preis",
@@ -16,7 +16,7 @@
     "argument": "Ein Lenkungspreis funktioniert nur mit Akzeptanz in der arbeitenden Mitte – wer Pendler belastet, ohne ihnen das Geld sichtbar zurückzugeben, riskiert die Klimapolitik insgesamt."
   },
   {
-    "id": "mars-klima-010",
+    "id": "mars-klima-003",
     "party_id": "mars",
     "topic": "klimaschutz",
     "subtopic": "co2-preis",
@@ -32,7 +32,7 @@
     "argument": "Niemand weiß heute, welcher Antrieb 2040 der effizienteste ist – E-Mobilität, Wasserstoff und synthetische Kraftstoffe sollten im Wettbewerb entschieden werden."
   },
   {
-    "id": "mars-klima-006",
+    "id": "mars-klima-005",
     "party_id": "mars",
     "topic": "klimaschutz",
     "subtopic": "verkehr",
@@ -40,7 +40,15 @@
     "argument": "Der Einspareffekt ist gering, der Eingriff in den Alltag der Pendler groß – echte Emissionssenkung kommt aus Technologie, nicht aus Verbot."
   },
   {
-    "id": "mars-sozial-004",
+    "id": "mars-klima-006",
+    "party_id": "mars",
+    "topic": "klimaschutz",
+    "subtopic": "verkehr",
+    "claim": "Wir verdoppeln die Investitionen in den Schienen-Güterverkehr.",
+    "argument": "Eine starke Schiene entlastet die Autobahn und senkt CO2-Emissionen pro Tonnenkilometer um rund 80 Prozent – wirtschaftlich und ökologisch ist das beste Argument, Güter aufs Gleis zu bringen statt auf den Lkw."
+  },
+  {
+    "id": "mars-sozial-001",
     "party_id": "mars",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "rente",
@@ -48,7 +56,7 @@
     "argument": "Ein einziger Staatsfonds reicht nicht aus – Streuung macht die Altersvorsorge robust gegen Krisen und demografische Schocks."
   },
   {
-    "id": "mars-sozial-005",
+    "id": "mars-sozial-002",
     "party_id": "mars",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "rente",
@@ -56,7 +64,7 @@
     "argument": "Jede Niveau-Anhebung zahlt die junge Generation – Generationengerechtigkeit verbietet Wahlgeschenke an heutige Rentner."
   },
   {
-    "id": "mars-sozial-010",
+    "id": "mars-sozial-003",
     "party_id": "mars",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "rente",
@@ -64,15 +72,23 @@
     "argument": "Kinder großzuziehen ist die wichtigste Investition in die Rentenkasse von morgen – wer Familie als Leistung anerkennt, darf sie im Alter nicht durch Lücken in der Erwerbsbiografie bestrafen."
   },
   {
-    "id": "mars-sozial-007",
+    "id": "mars-sozial-004",
+    "party_id": "mars",
+    "topic": "soziale-gerechtigkeit",
+    "subtopic": "rente",
+    "claim": "Wer freiwillig über die Regelaltersgrenze hinaus arbeitet, erhält einen monatlichen steuerfreien Zuverdienst von bis zu 2.000 Euro.",
+    "argument": "Erfahrene Beschäftigte sind ein knappes Gut – wer Anreize statt Verbote schafft, entlastet Rentenkasse und Fachkräftemarkt zugleich, ohne jemanden zur Mehrarbeit zu zwingen."
+  },
+  {
+    "id": "mars-sozial-005",
     "party_id": "mars",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "buergergeld",
-    "claim": "Bürgergeld wird in 'Neue Grundsicherung' umbenannt und zur Logik von Fördern und Fordern zurückgeführt.",
-    "argument": "Der Markenwechsel zum Bürgergeld hat Rechte ausgeweitet, ohne Pflichten mitzudenken – ein funktionierender Sozialstaat braucht beides."
+    "claim": "Bürgergeld wird in 'Neue Grundsicherung' umbenannt.",
+    "argument": "Der Markenwechsel zum Bürgergeld hat das falsche Signal gesetzt – schon der Name muss wieder klarstellen, dass es um Grundsicherung in Notlagen geht und nicht um eine bedingungslose Zuwendung."
   },
   {
-    "id": "mars-sozial-008",
+    "id": "mars-sozial-006",
     "party_id": "mars",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "buergergeld",
@@ -80,7 +96,7 @@
     "argument": "Nur spürbare Konsequenzen aktivieren Langzeitarbeitslose – das war die entscheidende Einsicht aus Hartz IV, die wir wiederbeleben müssen."
   },
   {
-    "id": "mars-sozial-009",
+    "id": "mars-sozial-007",
     "party_id": "mars",
     "topic": "soziale-gerechtigkeit",
     "subtopic": "buergergeld",

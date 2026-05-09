@@ -129,7 +129,7 @@ export const studyApi = {
     }),
 
   /**
-   * Submit questionnaire (Cognitive Load + UEQ-S + Manipulation Checks)
+   * Submit questionnaire (Cognitive Load + UEQ-S)
    */
   submitQuestionnaire: (sessionId: string, data: QuestionnaireData) =>
     fetchApi<StudySession>(`/${sessionId}/questionnaire`, {
