@@ -16,14 +16,8 @@ from src.guided_exploration.agents import (
     MessageClassifierInput,
     SummaryGeneratorAgent,
 )
-from src.guided_exploration.agents.followup_router import (
-    FollowupRouterAgent,
-    FollowupRouterInput,
-    FollowupRoute,
-    LeafInfo,
-)
-from src.guided_exploration.agents.followup_router.prompts import (
-    format_positions_for_routing,
+from src.guided_exploration.agents.conversation_handler.prompts import (
+    format_neighboring_leaves,
 )
 from src.guided_exploration.agents.party_context import PartyInfo
 from src.guided_exploration.api.sse import SSEManager
@@ -68,10 +62,11 @@ logger = logging.getLogger(__name__)
 class FollowupHandler:
     """Drives the follow-up conversation chain inside a leaf.
 
-    Classifies the user message, optionally routes through the followup
-    router (on-topic/needs-RAG/related/off-topic), and either delegates to
-    the navigation handler (navigation commands) or runs a RAG-augmented
-    LLM turn that streams back via the conversation handler agent.
+    Classifies the user message and either delegates to the navigation
+    handler (for navigation commands) or runs a RAG-augmented LLM turn
+    that streams back via the conversation handler agent. Topic-switch
+    suggestions and leaf closure are post-stream signals derived from
+    the suggested-questions agent, not from a pre-stream router.
     """
 
     def __init__(
@@ -84,7 +79,6 @@ class FollowupHandler:
         navigation_states: NavigationStateStore,
         navigation_handler: NavigationHandler,
         message_classifier: MessageClassifierAgent,
-        followup_router: FollowupRouterAgent,
         conversation_handler: ConversationHandlerAgent,
         summary_generator: SummaryGeneratorAgent,
         study_exposure: StudyExposureLogger,
@@ -97,7 +91,6 @@ class FollowupHandler:
         self._navigation_states = navigation_states
         self._navigation_handler = navigation_handler
         self._message_classifier = message_classifier
-        self._followup_router = followup_router
         self._conversation_handler = conversation_handler
         self._summary_generator = summary_generator
         self._study_exposure = study_exposure
@@ -162,172 +155,17 @@ class FollowupHandler:
             f"(confidence: {classification.confidence:.2f})"
         )
 
-        if classification.intent != MessageIntent.FOLLOWUP_QUESTION:
-            return await self._handle_conversation_message(
-                session_id=session_id,
-                exploration_id=exploration_id,
-                exploration=exploration,
-                leaf_id=leaf_id,
-                user_message=user_message,
-                message_type=classification.intent,
-                context_name=context_name,
-                parties_info=parties_info,
-                conversation=conversation,
-            )
-
-        return await self._route_followup(
+        return await self._handle_conversation_message(
             session_id=session_id,
             exploration_id=exploration_id,
             exploration=exploration,
             leaf_id=leaf_id,
             user_message=user_message,
+            message_type=classification.intent,
             context_name=context_name,
             parties_info=parties_info,
             conversation=conversation,
         )
-
-    async def _route_followup(
-        self,
-        session_id: str,
-        exploration_id: str,
-        exploration: Exploration,
-        leaf_id: str,
-        user_message: str,
-        context_name: str,
-        parties_info: dict[str, PartyInfo],
-        conversation: Conversation | None = None,
-    ) -> dict:
-        """Route a follow-up question through the routing agent."""
-        leaf_node = exploration.tree.find_node(leaf_id)
-        positions_by_party = exploration.tree.get_positions_by_party(leaf_id)
-
-        all_leaves = exploration.tree.root.get_leaf_nodes()
-        other_leaves = [
-            LeafInfo(id=node.id, name=node.name, description=node.description)
-            for node in all_leaves
-            if node.id != leaf_id
-        ]
-
-        router_result = await self._followup_router.execute(
-            FollowupRouterInput(
-                message=user_message,
-                leaf_id=leaf_id,
-                leaf_name=leaf_node.name if leaf_node else leaf_id,
-                leaf_description=leaf_node.description if leaf_node else "",
-                existing_positions_summary=format_positions_for_routing(positions_by_party),
-                other_leaves=other_leaves,
-                context_name=context_name,
-            )
-        )
-
-        if router_result.route == FollowupRoute.ON_TOPIC_EXISTING:
-            return await self._handle_conversation_message(
-                session_id=session_id,
-                exploration_id=exploration_id,
-                exploration=exploration,
-                leaf_id=leaf_id,
-                user_message=user_message,
-                message_type=MessageIntent.FOLLOWUP_QUESTION,
-                context_name=context_name,
-                parties_info=parties_info,
-                conversation=conversation,
-            )
-
-        if router_result.route == FollowupRoute.ON_TOPIC_NEEDS_RAG:
-            return await self._handle_followup_with_rag(
-                session_id=session_id,
-                exploration_id=exploration_id,
-                exploration=exploration,
-                leaf_id=leaf_id,
-                user_message=user_message,
-                context_name=context_name,
-                parties_info=parties_info,
-                conversation=conversation,
-                positions_by_party=positions_by_party,
-                rag_query=router_result.rag_query,
-            )
-
-        if (
-            router_result.route == FollowupRoute.RELATED_TOPIC
-            and router_result.target_node_id
-        ):
-            target_node = exploration.tree.find_node(router_result.target_node_id)
-            target_name = (
-                target_node.name
-                if target_node
-                else (router_result.target_node_name or router_result.target_node_id)
-            )
-
-            await self._sse.send_to_session(
-                session_id,
-                TopicSwitchSuggestedEvent(
-                    leaf_id=leaf_id,
-                    target_node_id=router_result.target_node_id,
-                    target_node_name=target_name,
-                    message=(
-                        f"Deine Frage passt besser zum Thema \"{target_name}\". "
-                        f"Möchtest du dorthin wechseln?"
-                    ),
-                ),
-            )
-
-            return await self._handle_conversation_message(
-                session_id=session_id,
-                exploration_id=exploration_id,
-                exploration=exploration,
-                leaf_id=leaf_id,
-                user_message=user_message,
-                message_type=MessageIntent.FOLLOWUP_QUESTION,
-                context_name=context_name,
-                parties_info=parties_info,
-                conversation=conversation,
-            )
-
-        # OFF_TOPIC — polite redirect
-        await self._streaming.send_thinking(session_id, "generating", "")
-
-        now = datetime.now(timezone.utc)
-        user_msg = Message(
-            id=str(uuid4()),
-            role=MessageRole.USER,
-            type=MessageType.FOLLOWUP,
-            content=user_message,
-            timestamp=now,
-        )
-        await self._repo.add_message_to_conversation(
-            session_id, exploration_id, leaf_id, user_msg
-        )
-        await self._sse.send_to_session(
-            session_id,
-            ConversationMessageEvent(
-                leaf_id=leaf_id,
-                message=user_msg,
-            ),
-        )
-
-        redirect_msg = Message(
-            id=str(uuid4()),
-            role=MessageRole.ASSISTANT,
-            type=MessageType.FOLLOWUP,
-            content=(
-                "Diese Frage liegt außerhalb der verfügbaren Themen. "
-                "Du kannst über die Navigation ein anderes Thema auswählen "
-                "oder dieses Thema abschliessen."
-            ),
-            timestamp=datetime.now(timezone.utc),
-        )
-        await self._repo.add_message_to_conversation(
-            session_id, exploration_id, leaf_id, redirect_msg
-        )
-        await self._sse.send_to_session(
-            session_id,
-            ConversationMessageEvent(
-                leaf_id=leaf_id,
-                message=redirect_msg,
-            ),
-        )
-
-        return {"status": "off_topic"}
 
     async def _handle_followup_with_rag(
         self,
@@ -340,7 +178,6 @@ class FollowupHandler:
         parties_info: dict[str, PartyInfo],
         conversation: Conversation | None,
         positions_by_party: dict[str, list],
-        rag_query: str | None = None,
     ) -> dict:
         """Handle a follow-up that needs additional RAG retrieval."""
         session = await self._repo.get_session(session_id)
@@ -351,7 +188,7 @@ class FollowupHandler:
             session_id, "retrieving", "Suche weitere Details..."
         )
 
-        search_query = rag_query or user_message
+        search_query = user_message
         party_ids = list(positions_by_party.keys())
 
         async def retrieve_for_party(party_id: str):
@@ -576,6 +413,18 @@ class FollowupHandler:
         leaf_name = leaf_node.name if leaf_node else leaf_id
         leaf_description = leaf_node.description if leaf_node else ""
 
+        neighboring_leaves_text = format_neighboring_leaves(
+            exploration.tree, leaf_id
+        )
+        # Map of valid sibling-leaf id -> name. Used to validate any
+        # topic_switch_proposal the suggested-questions agent emits and
+        # to pull the canonical display name for the switch banner.
+        valid_neighbour_ids: dict[str, str] = {
+            n.id: n.name
+            for n in exploration.tree.root.get_leaf_nodes()
+            if n.id != leaf_id
+        }
+
         handler_input = ConversationHandlerInput(
             message=user_message,
             leaf_id=leaf_id,
@@ -587,6 +436,7 @@ class FollowupHandler:
             context_name=context_name,
             parties_info=parties_info,
             already_cited_ids=already_cited_ids,
+            neighboring_leaves=neighboring_leaves_text,
         )
 
         stream_id = str(uuid4())
@@ -648,16 +498,28 @@ class FollowupHandler:
                 available_context_parts.append(f"- {pos.position}")
         available_context = "\n".join(available_context_parts)
 
-        suggested_questions = (
-            await self._summary_generator.generate_suggested_questions(
-                query=user_message,
-                response=full_text,
-                available_context=available_context,
-                conversation_history=conversation_history_text,
-                context="in_leaf",
-                already_cited_ids=already_cited_ids,
-            )
+        suggestions = await self._summary_generator.generate_suggested_questions(
+            query=user_message,
+            response=full_text,
+            available_context=available_context,
+            conversation_history=conversation_history_text,
+            context="in_leaf",
+            already_cited_ids=already_cited_ids,
+            neighboring_leaves=neighboring_leaves_text,
+            valid_neighbour_ids=valid_neighbour_ids,
         )
+
+        if suggestions.topic_switch_proposal is not None:
+            proposal = suggestions.topic_switch_proposal
+            await self._sse.send_to_session(
+                session_id,
+                TopicSwitchSuggestedEvent(
+                    leaf_id=leaf_id,
+                    target_node_id=proposal.target_node_id,
+                    target_node_name=proposal.target_node_name,
+                    message=proposal.reason,
+                ),
+            )
 
         await self._sse.send_to_session(
             session_id,
@@ -666,7 +528,8 @@ class FollowupHandler:
                 message=response_message,
                 navigation=navigation,
                 citations=used_citations,
-                suggested_questions=suggested_questions,
+                suggested_questions=suggestions.questions,
+                closure_ready=suggestions.closure_ready,
             ),
         )
 

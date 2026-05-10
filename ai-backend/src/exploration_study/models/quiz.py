@@ -13,40 +13,33 @@ class QuizStatus(str, Enum):
     READY = "ready"
 
 
-class QuizQuestion(BaseModel):
-    """A single multiple-choice quiz question.
+DONT_KNOW_INDEX = -1
 
-    Options 0-3 are content choices from the corpus. Option 4 is always
-    ``"Weiß ich nicht"``, appended by the sampler. ``correct_index`` is
-    always 0-3 — don't-know is never the correct answer, only a valid
-    response.
+
+class QuizQuestion(BaseModel):
+    """A single multiple-choice quiz question with 3 substantive options.
+
+    The "Weiß ich nicht" abstain is rendered by the frontend as a
+    separate UI control and is not part of ``options``.
     """
 
     id: str = Field(..., description="Unique question identifier")
     question: str = Field(..., description="The question text")
     options: list[str] = Field(
         ...,
-        description="Answer options (4 content + 1 'Weiß ich nicht')",
-        min_length=5,
-        max_length=5,
+        description="Three substantive answer options",
+        min_length=3,
+        max_length=3,
     )
     correct_index: int = Field(
         ...,
-        description="Index of the correct answer (0-3); never 4 (don't-know)",
+        description="Index of the correct answer (0-2)",
         ge=0,
-        le=3,
+        le=2,
     )
     is_overlap_question: bool = Field(
         default=False,
         description="True if the question targets a known cross-party overlap.",
-    )
-    partial_credit_indices: list[int] = Field(
-        default_factory=list,
-        description=(
-            "Answer indices (0-3) that earn 0.5 partial credit instead of 0. "
-            "Typically the individual-party options on an overlap question "
-            "whose correct answer is 'Mehrere der genannten Parteien'."
-        ),
     )
     topic: str = Field(..., description="The topic this question covers")
 
@@ -54,31 +47,19 @@ class QuizQuestion(BaseModel):
 class QuizAnswer(BaseModel):
     """A participant's answer to a quiz question.
 
-    ``selected_index`` 0-3 are content choices; 4 is "Weiß ich nicht".
-    ``credit`` captures partial-credit scoring: 1.0 for the fully correct
-    answer, 0.5 for an option listed in the question's
-    ``partial_credit_indices`` (typically picking one of two parties when
-    the correct answer is "Mehrere"), 0.0 otherwise.
-    ``is_correct`` is True only when ``credit == 1.0`` (fully correct).
+    ``selected_index`` is 0-2 for substantive options; ``-1`` indicates
+    the participant chose the UI abstain ("Weiß ich nicht"). Scoring is
+    binary: correct (1.0) or wrong (0.0).
     """
 
     question_id: str = Field(..., description="ID of the question being answered")
     selected_index: int = Field(
         ...,
-        description="Index of the selected answer (0-4; 4 = don't-know)",
-        ge=0,
-        le=4,
+        description="Selected option index (0-2); -1 = 'Weiß ich nicht' abstain",
+        ge=-1,
+        le=2,
     )
-    is_correct: bool = Field(
-        ...,
-        description="True only when fully correct (credit == 1.0).",
-    )
-    credit: float = Field(
-        default=0.0,
-        description="Earned credit: 1.0 fully correct, 0.5 partial, 0.0 wrong.",
-        ge=0.0,
-        le=1.0,
-    )
+    is_correct: bool = Field(..., description="True if fully correct.")
     response_time_ms: int | None = Field(
         default=None,
         description="Time taken to answer in milliseconds",
@@ -113,57 +94,40 @@ class QuizSubmission(BaseModel):
     quiz_id: str = Field(..., description="ID of the quiz being submitted")
     answers: list[QuizAnswer] = Field(..., description="The participant's answers")
     submitted_at: datetime = Field(..., description="When the quiz was submitted")
-    total_correct: int = Field(
-        ...,
-        description="Number of fully correct answers (credit == 1.0).",
-    )
-    total_credit: float = Field(
-        ...,
-        description="Sum of earned credit including partial credit (0.5 each).",
-    )
+    total_correct: int = Field(..., description="Number of correct answers.")
     total_questions: int = Field(..., description="Total number of questions")
     score_percentage: float = Field(
         ...,
-        description="Credit-based score as a percentage (0-100).",
+        description="Score as a percentage (0-100). Abstain counts as wrong.",
     )
 
 
-def grade_answer(
-    question: QuizQuestion,
-    selected_index: int,
-) -> tuple[bool, float]:
-    """Return ``(is_correct, credit)`` for a single answer."""
-    if selected_index == question.correct_index:
-        return True, 1.0
-    if selected_index in question.partial_credit_indices:
-        return False, 0.5
-    return False, 0.0
+def grade_answer(question: QuizQuestion, selected_index: int) -> bool:
+    """Return ``True`` iff the selected option matches the correct one.
+
+    Abstain (``selected_index == -1``) is always wrong.
+    """
+    return selected_index == question.correct_index
 
 
 def calculate_quiz_score(
     questions: list[QuizQuestion],
     answers: list[QuizAnswer],
-) -> tuple[int, float, int, float]:
+) -> tuple[int, int, float]:
     """
-    Calculate quiz score from questions and answers with partial credit.
+    Calculate the quiz score (binary correct/wrong; abstain = wrong).
 
     Returns:
-        Tuple of (fully_correct_count, total_credit, total_questions, percentage).
-        ``percentage`` is credit-based (total_credit / total_questions * 100).
+        Tuple of (correct_count, total_questions, percentage).
     """
     if not questions:
-        return 0, 0.0, 0, 0.0
+        return 0, 0, 0.0
 
     question_map = {q.id: q for q in questions}
-    fully_correct = 0
-    total_credit = 0.0
+    correct = 0
     for a in answers:
-        question = question_map.get(a.question_id)
-        if question is None:
-            continue
-        total_credit += a.credit
-        if a.is_correct:
-            fully_correct += 1
+        if a.question_id in question_map and a.is_correct:
+            correct += 1
     total = len(questions)
-    percentage = (total_credit / total) * 100 if total > 0 else 0.0
-    return fully_correct, total_credit, total, percentage
+    percentage = (correct / total) * 100 if total > 0 else 0.0
+    return correct, total, percentage

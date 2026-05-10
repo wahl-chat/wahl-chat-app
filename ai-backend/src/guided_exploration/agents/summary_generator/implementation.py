@@ -17,8 +17,10 @@ from src.guided_exploration.agents.summary_generator.interface import (
     LeafSummaryInput,
     QuickSummaryInput,
     QuickSummaryOutput,
+    SuggestedQuestionsResult,
     SummaryInput,
     SummaryOutput,
+    TopicSwitchProposal,
 )
 from src.guided_exploration.agents.summary_generator.prompts import (
     BASELINE_QUICK_SUMMARY_SYSTEM_PROMPT,
@@ -304,8 +306,10 @@ class SummaryGeneratorAgent(BaseAgent[SummaryInput, SummaryOutput]):
         context: str = "main_chat",
         is_baseline: bool = False,
         already_cited_ids: list[str] | None = None,
-    ) -> list[str]:
-        """Generate suggested follow-up questions based on full conversation context.
+        neighboring_leaves: str = "",
+        valid_neighbour_ids: dict[str, str] | None = None,
+    ) -> SuggestedQuestionsResult:
+        """Generate suggested follow-up questions plus a closure-ready flag.
 
         ``is_baseline=True`` mirrors the production wahl.chat quick-reply
         prompt: three replies covering follow-up / clarification / topic
@@ -320,6 +324,12 @@ class SummaryGeneratorAgent(BaseAgent[SummaryInput, SummaryOutput]):
         those IDs are filtered out by the prompt rule (only applied to the
         guided in-leaf / main-chat variants; the baseline prompt is left
         untouched to mirror production wahl.chat).
+
+        ``closure_ready`` in the result is only honoured for the in-leaf
+        guided context — that's where the prompt actively reasons about
+        leaf exhaustion. For other contexts the flag is forced to false
+        because the surrounding UI doesn't have a "close this leaf"
+        affordance there.
         """
         if is_baseline:
             template = BASELINE_SUGGESTED_QUESTIONS_PROMPT
@@ -340,13 +350,23 @@ class SummaryGeneratorAgent(BaseAgent[SummaryInput, SummaryOutput]):
                 if already_cited_ids
                 else "keine"
             )
-            prompt = template.format(
-                query=query,
-                response=response,
-                available_context=available_context or "",
-                conversation_history=conversation_history or "",
-                already_cited_ids=already_cited_text,
-            )
+            # neighboring_leaves only appears as a placeholder in the
+            # in-leaf variant. The main-chat scope rule has no tree
+            # context, so we only thread it in for in_leaf and fall back
+            # to a sentinel when the caller didn't pre-format the list.
+            format_kwargs: dict[str, str] = {
+                "query": query,
+                "response": response,
+                "available_context": available_context or "",
+                "conversation_history": conversation_history or "",
+                "already_cited_ids": already_cited_text,
+            }
+            if context == "in_leaf":
+                format_kwargs["neighboring_leaves"] = (
+                    neighboring_leaves
+                    or "(keine — kein Themenbaum-Kontext für diesen Aufruf verfügbar.)"
+                )
+            prompt = template.format(**format_kwargs)
 
         messages = [
             HumanMessage(content=prompt),
@@ -360,7 +380,51 @@ class SummaryGeneratorAgent(BaseAgent[SummaryInput, SummaryOutput]):
                     temperature=0.5,
                 )
             )
-            return llm_output.questions[:3]  # Limit to 3 questions
         except Exception as e:
             logger.warning(f"Failed to generate suggested questions: {e}")
-            return []
+            return SuggestedQuestionsResult(questions=[], closure_ready=False)
+
+        questions = llm_output.questions[:3]
+        # closure_ready and topic_switch_proposal only apply to the
+        # in-leaf guided flow. Force-strip them elsewhere so a
+        # hallucinated flag from the main-chat or baseline prompt can't
+        # surface a closure UI / switch banner in a place that has no
+        # leaf to close.
+        in_leaf = context == "in_leaf" and not is_baseline
+        closure_ready = bool(llm_output.closure_ready and in_leaf)
+        # Spec-enforce: closure_ready=true must come with empty questions.
+        # If the LLM violates this, drop the questions rather than the flag
+        # so the closure UI still fires cleanly.
+        if closure_ready and questions:
+            logger.info(
+                "Suggested-questions: closure_ready=true with %d questions; "
+                "dropping questions to honour closure spec",
+                len(questions),
+            )
+            questions = []
+
+        topic_switch_proposal: TopicSwitchProposal | None = None
+        if in_leaf and llm_output.topic_switch_proposal is not None:
+            proposal = llm_output.topic_switch_proposal
+            valid = valid_neighbour_ids or {}
+            target_id = proposal.target_node_id.strip()
+            if target_id and target_id in valid:
+                topic_switch_proposal = TopicSwitchProposal(
+                    target_node_id=target_id,
+                    # Trust the canonical name from the tree, not what
+                    # the LLM echoed back, so display stays consistent.
+                    target_node_name=valid[target_id],
+                    reason=proposal.reason.strip(),
+                )
+            else:
+                logger.info(
+                    "Suggested-questions: dropping topic_switch_proposal "
+                    "with unknown target_node_id=%r (valid=%s)",
+                    target_id,
+                    sorted(valid.keys()),
+                )
+        return SuggestedQuestionsResult(
+            questions=questions,
+            closure_ready=closure_ready,
+            topic_switch_proposal=topic_switch_proposal,
+        )

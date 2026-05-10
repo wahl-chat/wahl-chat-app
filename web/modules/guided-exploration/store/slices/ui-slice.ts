@@ -30,6 +30,7 @@ export const initialUIState: UISliceState = {
   suggestedQuestions: [],
   suggestedQuestionsOriginTab: null,
   topicSwitchSuggestion: null,
+  closurePrompt: null,
   pendingDirections: null,
 };
 
@@ -79,6 +80,7 @@ export function uiReducer(
       return {
         ...state,
         topicSwitchSuggestion: null,
+        closurePrompt: null,
         suggestedQuestions:
           state.suggestedQuestionsOriginTab === 'leaf'
             ? []
@@ -93,6 +95,7 @@ export function uiReducer(
       return {
         ...state,
         topicSwitchSuggestion: null,
+        closurePrompt: null,
         suggestedQuestions:
           state.suggestedQuestionsOriginTab === 'leaf'
             ? []
@@ -112,6 +115,9 @@ export function uiReducer(
         suggestedQuestions: [],
         suggestedQuestionsOriginTab: null,
         topicSwitchSuggestion: null,
+        // A new turn invalidates the previous closure judgement — the
+        // upcoming response decides afresh whether the leaf is done.
+        closurePrompt: null,
         streamBuffer: '',
         isStreaming: false,
         streamingTarget: null,
@@ -255,6 +261,18 @@ export function uiReducer(
 
     case 'TOPIC_SWITCH_CLEARED':
       return { ...state, topicSwitchSuggestion: null };
+
+    case 'CLOSURE_PROMPT_SHOWN':
+      return {
+        ...state,
+        closurePrompt: {
+          explorationId: action.explorationId,
+          leafId: action.leafId,
+        },
+      };
+
+    case 'CLOSURE_PROMPT_CLEARED':
+      return { ...state, closurePrompt: null };
 
     case 'TOPIC_DIRECTIONS_RECEIVED':
       return {

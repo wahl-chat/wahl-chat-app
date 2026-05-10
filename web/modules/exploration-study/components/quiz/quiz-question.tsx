@@ -9,6 +9,8 @@ import { Fragment, type ReactNode } from 'react';
 const PARTY_BADGE_TOKEN = /(\[PARTY_BADGE:[\w-]+\])/gi;
 const PARTY_BADGE_MATCH = /^\[PARTY_BADGE:([\w-]+)\]$/i;
 
+const DONT_KNOW_INDEX = -1;
+
 export interface QuizQuestionProps {
   question: QuizQuestionType;
   questionNumber: number;
@@ -40,6 +42,8 @@ export function QuizQuestion({
 }: QuizQuestionProps) {
   const headingId = `quiz-question-${question.id}-heading`;
   const metaId = `quiz-question-${question.id}-meta`;
+  const dontKnowId = `option-${question.id}-dont-know`;
+  const isDontKnowSelected = selectedIndex === DONT_KNOW_INDEX;
   return (
     <div className={cn('space-y-4', className)}>
       <div className="space-y-2">
@@ -57,44 +61,56 @@ export function QuizQuestion({
       </div>
 
       <RadioGroup
-        value={selectedIndex?.toString() ?? ''}
+        value={selectedIndex !== null ? selectedIndex.toString() : ''}
         onValueChange={(value) => onSelect(Number.parseInt(value))}
         className="space-y-3"
         aria-labelledby={headingId}
         aria-describedby={metaId}
       >
-        {question.options.map((option, index) => {
-          const isDontKnow = index === question.options.length - 1;
-          return (
-            <div key={`${question.id}-${index}`}>
-              {isDontKnow && (
-                <div className="my-3 flex items-center gap-3">
-                  <div className="h-px flex-1 bg-border" />
-                  <span className="text-xs text-foreground">oder</span>
-                  <div className="h-px flex-1 bg-border" />
-                </div>
-              )}
-              <label
-                htmlFor={`option-${question.id}-${index}`}
-                className={cn(
-                  'flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors',
-                  'hover:border-primary/50 hover:bg-primary/5',
-                  selectedIndex === index && 'border-primary bg-primary/5',
-                  isDontKnow && 'border-dashed text-foreground',
-                )}
-              >
-                <RadioGroupItem
-                  value={index.toString()}
-                  id={`option-${question.id}-${index}`}
-                  className="mt-0.5"
-                />
-                <span className="text-sm font-normal leading-relaxed">
-                  {renderWithPartyBadges(option)}
-                </span>
-              </label>
-            </div>
-          );
-        })}
+        {question.options.map((option, index) => (
+          <label
+            key={`${question.id}-${index}`}
+            htmlFor={`option-${question.id}-${index}`}
+            className={cn(
+              'flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors',
+              'hover:border-primary/50 hover:bg-primary/5',
+              selectedIndex === index && 'border-primary bg-primary/5',
+            )}
+          >
+            <RadioGroupItem
+              value={index.toString()}
+              id={`option-${question.id}-${index}`}
+              className="mt-0.5"
+            />
+            <span className="text-sm font-normal leading-relaxed">
+              {renderWithPartyBadges(option)}
+            </span>
+          </label>
+        ))}
+
+        <div className="my-3 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-foreground">oder</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <label
+          htmlFor={dontKnowId}
+          className={cn(
+            'flex cursor-pointer items-start gap-3 rounded-lg border border-dashed p-4 text-foreground transition-colors',
+            'hover:border-primary/50 hover:bg-primary/5',
+            isDontKnowSelected && 'border-primary bg-primary/5',
+          )}
+        >
+          <RadioGroupItem
+            value={DONT_KNOW_INDEX.toString()}
+            id={dontKnowId}
+            className="mt-0.5"
+          />
+          <span className="text-sm font-normal leading-relaxed">
+            Weiß ich nicht
+          </span>
+        </label>
       </RadioGroup>
     </div>
   );

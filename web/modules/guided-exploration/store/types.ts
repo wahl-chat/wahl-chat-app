@@ -158,6 +158,13 @@ export interface UISliceState {
   suggestedQuestionsOriginTab: OriginTab;
   /** Topic switch suggestion from the routing agent (always leaf-scoped). */
   topicSwitchSuggestion: TopicSwitchSuggestion | null;
+  /**
+   * When non-null, the LLM judged the active leaf substantially
+   * explored. The leaf sidebar replaces the chat input with an
+   * accessible closure prompt ("Thema abschließen / Weiter erkunden")
+   * scoped to this leaf.
+   */
+  closurePrompt: { explorationId: string; leafId: string } | null;
   /** Pending topic directions for user selection */
   pendingDirections: TopicDirectionsEvent | null;
 }
@@ -332,6 +339,12 @@ export type ExplorationAction =
       message: string;
     }
   | { type: 'TOPIC_SWITCH_CLEARED' }
+  | {
+      type: 'CLOSURE_PROMPT_SHOWN';
+      explorationId: string;
+      leafId: string;
+    }
+  | { type: 'CLOSURE_PROMPT_CLEARED' }
   | { type: 'TOPIC_DIRECTIONS_RECEIVED'; directions: TopicDirectionsEvent }
   | { type: 'TOPIC_DIRECTIONS_CLEARED' }
 

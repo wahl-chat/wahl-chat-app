@@ -28,7 +28,7 @@ export function StudyLayout({
 
   useEffect(() => {
     if (hideHeader) return;
-    mainRef.current?.focus();
+    mainRef.current?.focus({ preventScroll: true });
     setAnnouncement(
       `Schritt ${progress.currentStep} von ${progress.totalSteps}: ${progress.label}`,
     );

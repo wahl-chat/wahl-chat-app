@@ -20,25 +20,23 @@ from src.exploration_study.models.quiz import QuizQuestion
 
 logger = logging.getLogger(__name__)
 
-DONT_KNOW_OPTION = "Weiß ich nicht"
-
 DATA_DIR = Path(__file__).resolve().parents[3] / "data" / "study-fake-parties"
 CORPUS_PATH = DATA_DIR / "quiz_questions.json"
 POSITIONS_DIR = DATA_DIR / "positions"
 
 
 class _CorpusEntry(BaseModel):
-    """A single corpus entry. Options are 4 content choices; the sampler
-    appends 'Weiß ich nicht' as the 5th option at runtime."""
+    """A single corpus entry. Options are 3-4 content choices; the
+    don't-know affordance is rendered by the frontend as a separate UI
+    control and is not part of the data."""
 
     id: str
     question: str
-    options: list[str] = Field(min_length=4, max_length=4)
-    correct_index: int = Field(ge=0, le=3)
+    options: list[str] = Field(min_length=3, max_length=3)
+    correct_index: int = Field(ge=0, le=2)
     topic: str
     prerequisite_position_ids: list[str] = Field(min_length=1, max_length=2)
     is_overlap_question: bool = False
-    partial_credit_indices: list[int] = Field(default_factory=list)
 
 
 _corpus_cache: list[_CorpusEntry] | None = None
@@ -74,11 +72,6 @@ def _load_corpus() -> list[_CorpusEntry]:
                 raise ValueError(
                     f"Quiz question {entry.id} references unknown position {pid}"
                 )
-        for idx in entry.partial_credit_indices:
-            if not 0 <= idx <= 3 or idx == entry.correct_index:
-                raise ValueError(
-                    f"Quiz question {entry.id} has invalid partial_credit index {idx}"
-                )
 
     _corpus_cache = entries
     return entries
@@ -88,11 +81,10 @@ def _to_quiz_question(entry: _CorpusEntry) -> QuizQuestion:
     return QuizQuestion(
         id=str(uuid4()),
         question=entry.question,
-        options=[*entry.options, DONT_KNOW_OPTION],
+        options=list(entry.options),
         correct_index=entry.correct_index,
         topic=entry.topic,
         is_overlap_question=entry.is_overlap_question,
-        partial_credit_indices=list(entry.partial_credit_indices),
     )
 
 

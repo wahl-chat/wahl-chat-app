@@ -5,6 +5,32 @@
 """Prompt templates for conversation handler agent."""
 
 from src.guided_exploration.agents.party_context import PartyInfo
+from src.guided_exploration.models.tree import ExplorationTree
+
+
+def format_neighboring_leaves(
+    tree: ExplorationTree | None, active_leaf_id: str
+) -> str:
+    """Format the OTHER leaves of the tree as a list of off-scope siblings.
+
+    Each line carries the leaf's node ID so downstream agents that need
+    to reference a sibling (e.g. the suggested-questions agent emitting
+    a topic-switch proposal) can return a valid identifier verbatim.
+    """
+    if tree is None:
+        return "(keine — kein Themenbaum verfügbar.)"
+    leaves = tree.root.get_leaf_nodes()
+    others = [n for n in leaves if n.id != active_leaf_id]
+    if not others:
+        return "(keine — dies ist das einzige Unterthema dieses Baums.)"
+    lines = []
+    for n in others:
+        desc = n.description.strip() if n.description else ""
+        if desc:
+            lines.append(f"- **{n.name}** [ID: `{n.id}`] — {desc}")
+        else:
+            lines.append(f"- **{n.name}** [ID: `{n.id}`]")
+    return "\n".join(lines)
 
 
 def format_conversation_history(messages: list, max_messages: int = 5) -> str:
@@ -216,6 +242,56 @@ Umsetzung, Wirkung, Zeitplan, Verantwortlichkeit, …). Deine Antwort:
   antwortet, gib eine kurze Fließtext-Antwort und sag ehrlich, dass die
   Quellen den Aspekt nicht abdecken.
 
+## Leaf-Exploration — Interplay & Fokus — WICHTIG
+Du bist Begleiter für **genau dieses Unterthema**. Ziel ist, dass die
+Nutzerin am Ende versteht, **welche Positionen es gibt**, **wie sie sich
+zueinander verhalten** und **welche Partei wofür steht**. Die Antwort
+soll Verständnis aufbauen, nicht nur Fakten ausgeben.
+
+- **Interplay sichtbar machen.** Wenn zwei Parteien gegensätzlich
+  argumentieren oder eine Partei einen Aspekt zuspitzt, den andere gar
+  nicht ansprechen, benenne das in einem kurzen Einleitungs- oder
+  Schlusssatz ("[PARTY_BADGE:venus] hebt … hervor, während
+  [PARTY_BADGE:mars] genau das ablehnt", "nur [PARTY_BADGE:saturn]
+  knüpft … an Vorbedingungen"). Solche Einordnungs-Sätze tragen **keine**
+  Quellen-IDs.
+- **Im Unterthema bleiben — harte Grenze.** Du bist Begleiter für
+  GENAU dieses eine Unterthema. Die anderen Unterthemen desselben
+  Themenbaums (siehe Abschnitt „Andere Unterthemen dieses Baums" im
+  User-Prompt) sind eigenständige Leafs mit eigenen Positionen — sie
+  sind für diesen Turn **off-scope**. Wenn die Frage inhaltlich in
+  eines dieser Nachbar-Leafs fällt (z.B. „und beim Verkehr?" in einem
+  Leaf zu CO2-Preis & Klimageld), dann ziehe **keine** Inhalte aus
+  diesen Nachbarthemen heran — nicht aus den unten gelisteten
+  Quellen, nicht aus deinem allgemeinen Wissen. Antworte stattdessen
+  ehrlich, dass das ein eigenes Unterthema ist, und biete den Wechsel
+  an: *„Das gehört eher zum Unterthema *…* — willst du dorthin
+  wechseln?"*. Das gilt auch dann, wenn die unten verfügbaren Quellen
+  zufällig etwas zum Nachbarthema enthalten sollten.
+- **Boundary ist die Positionsliste dieses Leafs.** Substanz für
+  deine Antwort kommt **ausschließlich** aus den unten gelisteten
+  „Verfügbaren Parteipositionen zu diesem Thema". Was darin nicht
+  vorkommt, gehört nicht in diese Antwort — auch wenn es politisch
+  verwandt klingt.
+- **Kein Rehash, wenn der Aspekt nicht abgedeckt ist.** Wenn der von
+  der Nutzerin gefragte Aspekt in den vorliegenden Positionen schlicht
+  nicht vorkommt, sag das offen — recycle nicht den allgemeinen
+  Leaf-Inhalt oder schon gezeigte Karten, nur um „etwas" zu liefern.
+  Beispiel: *„Zu diesem konkreten Aspekt finden sich in den
+  vorliegenden Programmen zu diesem Unterthema keine Positionen — das
+  gehört eher in *…*."*
+- **Keine UI-Sätze im Antworttext.** Kein „damit sind wir mit dem Thema
+  durch", kein „willst du zurück zur Übersicht?", kein „willst du zum
+  Thema *X* wechseln?", kein „Du kannst über die Navigation ein anderes
+  Thema auswählen". Auch keine Variation davon. Closure und
+  Themenwechsel werden nicht im Antworttext kommuniziert — sie laufen
+  über getrennte UI-Elemente, die das Frontend aus strukturierten
+  Signalen rendert. Du beantwortest die Frage so weit ehrlich wie
+  möglich aus den vorliegenden Quellen, oder sagst offen, dass die
+  Quellen den Aspekt nicht abdecken (siehe „Aspekt-Fokus" und
+  „Quellen-Erschöpfung"). Die Einladung zum Wechseln oder Abschließen
+  formuliert das UI, nicht du.
+
 ## Broad-First bei allgemeinen Folgefragen — WICHTIG
 Wenn die Folgefrage allgemein klingt ("mehr dazu", "kannst du das
 erklären?", "was heißt das?", "worum geht's hier?"), antworte ZUERST
@@ -381,6 +457,9 @@ STREAMING_USER_PROMPT = """Frage: {message}
 == Aktuelles Thema ==
 Name: {subtopic_name}
 Beschreibung: {subtopic_description}
+
+== Andere Unterthemen dieses Baums (off-scope für diesen Turn) ==
+{neighboring_leaves}
 
 == Vorherige Nachrichten ==
 {conversation_history}

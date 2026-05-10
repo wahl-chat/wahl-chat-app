@@ -89,6 +89,8 @@ export interface ConversationMessageEvent {
   citations?: Citation[];
   /** Suggested follow-up questions */
   suggestedQuestions?: string[];
+  /** True iff the LLM judges the leaf substantially explored. */
+  closureReady?: boolean;
 }
 
 // ============ Summary Events ============

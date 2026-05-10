@@ -3,15 +3,15 @@
 import { Button } from '@/components/ui/button';
 import VisuallyHidden from '@/components/visually-hidden';
 import {
-  type StudyCondition,
   getRouteForState,
   getStateFromResponse,
   studyApi,
+  useStudySessionContext,
 } from '@/modules/exploration-study';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const FAKE_PARTIES = [
   { name: 'Venus', abbreviation: 'VEN', image: '/images/venus.png' },
@@ -24,20 +24,8 @@ export default function TutorialPage() {
   const router = useRouter();
   const sessionId = params.sessionId as string;
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [condition, setCondition] = useState<StudyCondition | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    studyApi.getSession(sessionId).then((response) => {
-      if (cancelled) return;
-      if (response.data?.currentCondition) {
-        setCondition(response.data.currentCondition);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [sessionId]);
+  const session = useStudySessionContext();
+  const condition = session.currentCondition ?? null;
 
   const handleContinue = async () => {
     setIsSubmitting(true);

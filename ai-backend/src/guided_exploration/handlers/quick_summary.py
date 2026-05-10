@@ -88,7 +88,7 @@ class QuickSummaryHandler:
         )
 
         chunks = await self._rag_service.retrieve_chunks_for_parties(
-            rag_query, context_id, detected_parties, n_docs=8
+            rag_query, context_id, detected_parties, n_docs=6
         )
 
         context_name, parties_info = await self._context_resolver.get_context_info(
@@ -178,15 +178,14 @@ class QuickSummaryHandler:
 
         await self._study_exposure.log(session_id, used_citations)
 
-        suggested_questions = (
-            await self._summary_generator.generate_suggested_questions(
-                query=query,
-                response=full_text,
-                available_context=rag_context,
-                conversation_history=conversation_history_text,
-                is_baseline=is_baseline,
-            )
+        suggestions = await self._summary_generator.generate_suggested_questions(
+            query=query,
+            response=full_text,
+            available_context=rag_context,
+            conversation_history=conversation_history_text,
+            is_baseline=is_baseline,
         )
+        suggested_questions = suggestions.questions
 
         await self._sse.send_to_session(
             session_id,

@@ -12,6 +12,7 @@ from src.guided_exploration.agents.summary_generator.interface import (
     LeafSummaryInput,
     QuickSummaryInput,
     QuickSummaryOutput,
+    SuggestedQuestionsResult,
     SummaryInput,
     SummaryOutput,
 )
@@ -23,5 +24,6 @@ __all__ = [
     "LeafSummaryInput",
     "QuickSummaryInput",
     "QuickSummaryOutput",
+    "SuggestedQuestionsResult",
     "FinalSummaryInput",
 ]

@@ -298,11 +298,12 @@ class QuizForParticipant(BaseModel):
 class QuizAnswerRequest(BaseModel):
     """A single quiz answer from participant.
 
-    ``selected_index`` 0-3 are content choices; 4 is "Weiß ich nicht".
+    ``selected_index`` is 0-2 for substantive options; ``-1`` indicates
+    the "Weiß ich nicht" abstain (a UI affordance, not a stored option).
     """
 
     question_id: str
-    selected_index: int = Field(..., ge=0, le=4)
+    selected_index: int = Field(..., ge=-1, le=2)
     response_time_ms: int | None = None
 
 
@@ -315,18 +316,11 @@ class QuizSubmissionRequest(BaseModel):
 class QuizResultResponse(BaseModel):
     """Response after quiz submission."""
 
-    total_correct: int = Field(
-        ...,
-        description="Number of fully correct answers (credit == 1.0).",
-    )
-    total_credit: float = Field(
-        ...,
-        description="Sum of earned credit including 0.5 partial credit.",
-    )
+    total_correct: int = Field(..., description="Number of correct answers.")
     total_questions: int
     score_percentage: float = Field(
         ...,
-        description="Credit-based score as a percentage (0-100).",
+        description="Score as a percentage (0-100). Abstain counts as wrong.",
     )
     next_state: StudyState = Field(
         ...,
@@ -335,14 +329,9 @@ class QuizResultResponse(BaseModel):
 
 
 class QuizScoreResponse(BaseModel):
-    """Persistent quiz score returned for the feedback page.
-
-    Same score fields as ``QuizResultResponse`` but without ``next_state`` —
-    fetched from storage after the quiz has already been graded.
-    """
+    """Persistent quiz score returned for the feedback page."""
 
     total_correct: int
-    total_credit: float
     total_questions: int
     score_percentage: float
 

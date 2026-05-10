@@ -164,6 +164,7 @@ export interface QuizQuestion {
 
 export interface QuizAnswer {
   questionId: string;
+  // 0-2 for substantive options; -1 for the "Weiß ich nicht" UI abstain.
   selectedIndex: number;
   responseTimeMs: number;
 }
@@ -175,7 +176,6 @@ export interface QuizData {
 
 export interface QuizScore {
   totalCorrect: number;
-  totalCredit: number;
   totalQuestions: number;
   scorePercentage: number;
 }

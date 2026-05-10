@@ -82,6 +82,59 @@ class QuickSummaryOutput(BaseModel):
     )
 
 
+class TopicSwitchProposal(BaseModel):
+    """A post-stream proposal that the user's question fits a sibling
+    leaf better than the current one.
+
+    Surfaced via ``SuggestedQuestionsResult.topic_switch_proposal`` and
+    converted to a ``TopicSwitchSuggestedEvent`` by the followup handler.
+    Only ever populated in the in-leaf flow.
+    """
+
+    target_node_id: str = Field(
+        ..., description="ID of the sibling leaf the question fits better."
+    )
+    target_node_name: str = Field(
+        ..., description="Display name of the target leaf."
+    )
+    reason: str = Field(
+        ...,
+        description=(
+            "Short German message shown next to the switch action — "
+            "why the other leaf fits better."
+        ),
+    )
+
+
+class SuggestedQuestionsResult(BaseModel):
+    """Result of generate_suggested_questions: chips plus closure / switch
+    signals.
+
+    ``closure_ready`` and ``topic_switch_proposal`` are only ever
+    populated in the in-leaf flow. The followup handler forwards them
+    to the frontend as a closure prompt and a topic-switch banner
+    respectively. For other contexts (main_chat, baseline,
+    factual_query) both stay empty.
+    """
+
+    questions: list[str] = Field(
+        default_factory=list,
+        description="0-2 short follow-up question chips.",
+    )
+    closure_ready: bool = Field(
+        default=False,
+        description="True iff the leaf is judged sufficiently explored.",
+    )
+    topic_switch_proposal: TopicSwitchProposal | None = Field(
+        default=None,
+        description=(
+            "Set when the user's last question fits a sibling leaf "
+            "better than the current one. Validated against the actual "
+            "neighbouring leaf list in the followup handler."
+        ),
+    )
+
+
 class FinalSummaryInput(BaseModel):
     """Input for generating final exploration summary."""
 

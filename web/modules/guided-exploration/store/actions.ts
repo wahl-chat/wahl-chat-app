@@ -330,6 +330,19 @@ export const uiActions = {
     type: 'TOPIC_SWITCH_CLEARED',
   }),
 
+  closurePromptShown: (
+    explorationId: string,
+    leafId: string,
+  ): ExplorationAction => ({
+    type: 'CLOSURE_PROMPT_SHOWN',
+    explorationId,
+    leafId,
+  }),
+
+  closurePromptCleared: (): ExplorationAction => ({
+    type: 'CLOSURE_PROMPT_CLEARED',
+  }),
+
   topicDirectionsReceived: (
     directions: TopicDirectionsEvent,
   ): ExplorationAction => ({

@@ -1,6 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import VisuallyHidden from '@/components/visually-hidden';
 import { cn } from '@/lib/utils';
 import { studyApi } from '@/modules/exploration-study/services/study-api';
 import type {
@@ -27,6 +29,7 @@ export function QuizDisplay({
   className,
 }: QuizDisplayProps) {
   const [isLoading, setIsLoading] = useState(true);
+  const [hasStarted, setHasStarted] = useState(false);
   const [questions, setQuestions] = useState<QuizQuestionType[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Map<string, QuizAnswer>>(new Map());
@@ -132,33 +135,58 @@ export function QuizDisplay({
           className="size-8 animate-spin text-foreground"
         />
         <div className="text-center">
-          <h2 className="text-lg font-medium">Quiz wird vorbereitet...</h2>
+          <h2 className="text-lg font-medium">Wird vorbereitet...</h2>
           <p className="text-sm text-foreground">Bitte warte einen Moment.</p>
         </div>
       </div>
     );
   }
 
+  if (!hasStarted) {
+    return (
+      <div className={cn('space-y-6', className)}>
+        <VisuallyHidden>
+          <h1>Das Gespräch</h1>
+        </VisuallyHidden>
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <h2>Deine Freundin trifft ein</h2>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p>
+              Deine Freundin trifft jetzt ein und beginnt das Gespräch. Sie
+              stellt dir zu jeder Partei eine Frage.
+            </p>
+            <p>
+              Bitte wähle die Antwort, die zu dem passt, was du vorbereitet
+              hast. Wenn du dir nicht sicher bist, wähle{' '}
+              <strong>„Weiß ich nicht“</strong> — deine Freundin hört das
+              lieber, als dass du rätst.
+            </p>
+          </CardContent>
+        </Card>
+        <Button
+          onClick={() => {
+            setHasStarted(true);
+            questionStartTime.current = Date.now();
+            focusCurrentQuestionHeading();
+          }}
+          size="lg"
+          className="w-full"
+        >
+          Gespräch beginnen
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className={cn('space-y-6', className)}>
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold">Wissensquiz</h1>
-        <p className="text-sm text-foreground">
-          Bitte beantworte die folgenden Fragen basierend auf den Informationen
-          aus der vorherigen Aufgabe.
-        </p>
-      </div>
-
-      <div
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-        className="sr-only"
-      >
-        {currentQuestion
-          ? `Frage ${currentIndex + 1} von ${questions.length}: ${currentQuestion.question.replace(/\[PARTY_BADGE:([\w-]+)\]/g, '$1')}`
-          : ''}
-      </div>
+      <VisuallyHidden>
+        <h1>Das Gespräch</h1>
+      </VisuallyHidden>
 
       {currentQuestion && (
         <QuizQuestion

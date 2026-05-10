@@ -80,10 +80,16 @@ class ConversationHandlerAgent:
             else "keine"
         )
 
+        neighboring_leaves = (
+            input.neighboring_leaves
+            or "(keine — kein Themenbaum-Kontext für diesen Aufruf verfügbar.)"
+        )
+
         user_prompt = STREAMING_USER_PROMPT.format(
             subtopic_name=subtopic_name,
             subtopic_description=subtopic_description,
             message=input.message,
+            neighboring_leaves=neighboring_leaves,
             conversation_history=format_conversation_history(
                 input.conversation_history
             ),

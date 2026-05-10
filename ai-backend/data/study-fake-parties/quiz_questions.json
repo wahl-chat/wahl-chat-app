@@ -1,842 +1,912 @@
 [
   {
     "id": "q-001",
-    "question": "Wie steht Venus zur Höhe des CO2-Preises in den kommenden Jahren?",
+    "question": "Wie steht [PARTY_BADGE:venus] zur Höhe des CO2-Preises in den kommenden Jahren?",
     "options": [
       "Befürwortet eine deutliche Anhebung weit über das heutige Niveau",
       "Will das aktuelle Preisniveau im Wesentlichen beibehalten",
-      "Fordert eine Senkung oder Abschaffung des CO2-Preises",
-      "Hat sich nicht klar festgelegt"
+      "Fordert eine Senkung oder Abschaffung des CO2-Preises"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
-    "prerequisite_position_ids": ["venus-klima-001"],
+    "prerequisite_position_ids": [
+      "venus-klima-001"
+    ],
     "is_overlap_question": false,
-    "partial_credit_indices": []
+    "category": "retention"
   },
   {
     "id": "q-002",
-    "question": "Welche Aussage zum Umgang mit klimaschädlichen Subventionen trifft auf Venus zu?",
+    "question": "Welche Aussage zum Umgang mit klimaschädlichen Subventionen trifft auf [PARTY_BADGE:venus] zu?",
     "options": [
       "Will sie vollständig abbauen",
       "Will sie teilweise erhalten",
-      "Will sie ausweiten",
-      "Hat sich nicht klar positioniert"
+      "Will sie ausweiten"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
-    "prerequisite_position_ids": ["venus-klima-003"],
+    "prerequisite_position_ids": [
+      "venus-klima-003"
+    ],
     "is_overlap_question": false,
-    "partial_credit_indices": []
+    "category": "retention"
   },
   {
     "id": "q-003",
-    "question": "Wie steht Venus zu einem generellen Tempolimit auf Autobahnen?",
+    "question": "Wie steht [PARTY_BADGE:venus] zu einem generellen Tempolimit auf Autobahnen?",
     "options": [
       "Befürwortet die Einführung eines generellen Tempolimits",
       "Lehnt ein generelles Tempolimit ab",
-      "Will nur situative Geschwindigkeitsbeschränkungen",
-      "Hat sich nicht klar festgelegt"
+      "Will nur situative Geschwindigkeitsbeschränkungen"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
-    "prerequisite_position_ids": ["venus-klima-004"],
+    "prerequisite_position_ids": [
+      "venus-klima-004"
+    ],
     "is_overlap_question": false,
-    "partial_credit_indices": []
+    "category": "retention"
   },
   {
     "id": "q-004",
-    "question": "Welche Position vertritt Venus zum Ausstieg aus dem Verbrennungsmotor?",
+    "question": "Welche Position vertritt [PARTY_BADGE:venus] zum Ausstieg aus dem Verbrennungsmotor?",
     "options": [
-      "Befürwortet einen früheren Ausstieg als der heutige EU-Plan vorsieht",
+      "Will Neuzulassungen von Verbrennern früher als bisher beschlossen beenden",
       "Will am bestehenden EU-Ausstiegsplan festhalten",
-      "Lehnt einen festen Ausstiegstermin ab und setzt auf Technologieoffenheit",
+      "Lehnt einen festen Ausstiegstermin ab und setzt auf Technologieoffenheit"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-005"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-005",
+    "question": "Wie steht [PARTY_BADGE:venus] zu öffentlichen Investitionen in den Nahverkehr?",
+    "options": [
+      "Befürwortet einen deutlichen Ausbau der Investitionen",
+      "Will das aktuelle Investitionsniveau halten",
+      "Fordert eine Reduzierung der ÖPNV-Förderung"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-006"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-006",
+    "question": "Welche Aussage zum bundesweiten ÖPNV-Ticket trifft auf [PARTY_BADGE:venus] zu?",
+    "options": [
+      "Will ein günstiges bundesweites Klimaticket einführen",
+      "Will beim heutigen Preisniveau für ein Bundesticket bleiben",
+      "Will ein bundesweites Ticket abschaffen"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-007"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-007",
+    "question": "Wie steht [PARTY_BADGE:venus] zu einem gesetzlichen CO2-Mindestpreis als Ergänzung zum Emissionshandel?",
+    "options": [
+      "Befürwortet die Einführung eines verbindlichen Mindestpreises",
+      "Lehnt einen zusätzlichen Mindestpreis ab und vertraut allein dem Emissionshandel",
+      "Will den Emissionshandel komplett durch eine nationale Steuer ersetzen"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-008"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-008",
+    "question": "Wie steht [PARTY_BADGE:venus] zu Inlandsflügen?",
+    "options": [
+      "Will Inlandsflüge schrittweise unattraktiv machen",
+      "Will Inlandsflüge komplett verbieten",
+      "Will Inlandsflüge wie heute steuerlich behandeln"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-009"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-009",
+    "question": "Wie steht [PARTY_BADGE:venus] zur Höhe des gesetzlichen Rentenniveaus?",
+    "options": [
+      "Will das Rentenniveau gegenüber heute deutlich anheben und gesetzlich festschreiben",
+      "Will das heutige Rentenniveau lediglich stabilisieren",
+      "Will das Rentenniveau schrittweise absenken"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "venus-sozial-001"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-010",
+    "question": "Wie steht [PARTY_BADGE:venus] zur Höhe des Bürgergeld-Regelsatzes?",
+    "options": [
+      "Will den Regelsatz spürbar anheben",
+      "Will den Regelsatz auf dem heutigen Stand belassen",
+      "Will den Regelsatz absenken"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "venus-sozial-004"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-011",
+    "question": "Wie steht [PARTY_BADGE:venus] zu Sanktionen im Bürgergeld?",
+    "options": [
+      "Will Sanktionen auf das verfassungsrechtlich zulässige Minimum begrenzen",
+      "Will Sanktionen vollständig abschaffen",
+      "Will Sanktionen verschärfen"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "venus-sozial-005"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-012",
+    "question": "Welches Instrument soll laut [PARTY_BADGE:mars] Leitinstrument deutscher Klimapolitik bleiben?",
+    "options": [
+      "Der europäische Emissionshandel",
+      "Eine nationale CO2-Steuer",
+      "Ordnungsrechtliche Verbote bestimmter Technologien"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "mars-klima-001"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-013",
+    "question": "Wie steht [PARTY_BADGE:mars] zu einem generellen Tempolimit auf Autobahnen?",
+    "options": [
+      "Lehnt ein generelles Tempolimit ab",
+      "Befürwortet ein generelles Tempolimit",
+      "Will nur situative Geschwindigkeitsbeschränkungen"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "mars-klima-005"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-014",
+    "question": "Welche verkehrspolitische Investition will [PARTY_BADGE:mars] deutlich ausbauen?",
+    "options": [
+      "Investitionen in den Schienen-Güterverkehr",
+      "Investitionen in den Bau neuer Autobahnen",
+      "Investitionen in Inlandsflughäfen"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "mars-klima-006"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-015",
+    "question": "Welche Struktur der Altersvorsorge will [PARTY_BADGE:mars] erhalten?",
+    "options": [
+      "Das bestehende Zusammenspiel aus gesetzlicher Rente, Betriebsrente und privater Vorsorge",
+      "Die gesetzliche Rente als alleinige verpflichtende Säule",
+      "Einen staatlichen Bürgerfonds als alleinige Pflicht-Säule"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "mars-sozial-001"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-016",
+    "question": "Wie steht [PARTY_BADGE:mars] zur Höhe des gesetzlichen Rentenniveaus?",
+    "options": [
+      "Will das Rentenniveau auf dem heutigen Stand sichern, ohne es weiter zu erhöhen",
+      "Will das Rentenniveau deutlich anheben",
+      "Will das Rentenniveau schrittweise absenken"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "mars-sozial-002"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-017",
+    "question": "Wie will [PARTY_BADGE:mars] Beschäftigte ermutigen, freiwillig über die Regelaltersgrenze hinaus zu arbeiten?",
+    "options": [
+      "Über finanzielle Anreize wie steuerfreien Zuverdienst",
+      "Über eine verpflichtende Anhebung des Renteneintrittsalters",
+      "Sieht keinen Bedarf für zusätzliche Anreize"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "mars-sozial-004"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-018",
+    "question": "Wie steht [PARTY_BADGE:mars] zur Umbenennung des Bürgergelds?",
+    "options": [
+      "Will den Namen ändern, um den Charakter als Grundsicherung in Notlagen zu betonen",
+      "Will den Namen ändern, um Bürgergeld als bedingungslose Leistung zu kennzeichnen",
+      "Will den heutigen Namen Bürgergeld beibehalten"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "mars-sozial-005"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-019",
+    "question": "Welche Haltung vertritt [PARTY_BADGE:saturn] zur nationalen CO2-Steuer?",
+    "options": [
+      "Fordert die sofortige Abschaffung",
+      "Will sie verschärfen",
+      "Will sie unverändert beibehalten"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "saturn-klima-001"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-020",
+    "question": "Wie steht [PARTY_BADGE:saturn] zum europäischen Emissionshandel?",
+    "options": [
+      "Will ihn stoppen, bis er auf die Industrie beschränkt wird",
+      "Will ihn auf alle Sektoren ausweiten",
+      "Will ihn durch eine nationale CO2-Steuer ersetzen"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "saturn-klima-002"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-021",
+    "question": "Welche Haltung vertritt [PARTY_BADGE:saturn] zum generellen Tempolimit auf Autobahnen?",
+    "options": [
+      "Lehnt ein generelles Tempolimit ab",
+      "Befürwortet ein generelles Tempolimit",
+      "Will nur situative Geschwindigkeitsbeschränkungen"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "saturn-klima-005"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-022",
+    "question": "Wie steht [PARTY_BADGE:saturn] zur Pendlerpauschale?",
+    "options": [
+      "Will sie spürbar und langfristig erhöhen",
+      "Will sie auf dem heutigen Stand halten",
+      "Will sie schrittweise absenken"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "saturn-klima-006"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-023",
+    "question": "Wie steht [PARTY_BADGE:saturn] zu einer staatlich garantierten Mindestrente nach langjähriger Beitragszahlung?",
+    "options": [
+      "Befürwortet eine staatlich garantierte Mindestrente nach langjähriger Beitragszahlung",
+      "Lehnt eine staatliche Mindestrente ab",
+      "Setzt allein auf private Vorsorge zur Vermeidung von Altersarmut"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "saturn-sozial-001"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-024",
+    "question": "Wie steht [PARTY_BADGE:saturn] zum vorzeitigen Renteneintritt nach langer Beitragsdauer?",
+    "options": [
+      "Will einen vorzeitigen Renteneintritt ohne Abschläge zulassen",
+      "Will den vorzeitigen Renteneintritt abschaffen und das Renteneintrittsalter generell anheben",
+      "Will den vorzeitigen Renteneintritt auf jüngere Jahrgänge ausweiten"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "saturn-sozial-002"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-025",
+    "question": "Was plant [PARTY_BADGE:saturn] mit künftigen Beamtenpensionen?",
+    "options": [
+      "Absenkung auf das Niveau der gesetzlichen Rente",
+      "Verdopplung als Anreiz für den Staatsdienst",
+      "Vollständige Privatisierung der Altersvorsorge für Beamte"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "saturn-sozial-004"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-026",
+    "question": "Welche Aussage zum Anspruch auf Bürgergeld trifft auf [PARTY_BADGE:saturn] zu?",
+    "options": [
+      "Will den Anspruch auf Staatsbürger sowie auf Zuwanderer mit längerer Beitragszeit beschränken",
+      "Will allen mit Aufenthaltstitel ohne Wartezeit Anspruch geben",
+      "Lehnt das Bürgergeld grundsätzlich ab"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "saturn-sozial-005"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-027",
+    "question": "Welche Aussage zur Behandlung von Bürgergeld-Beziehern mit langer Beitragsdauer trifft auf [PARTY_BADGE:saturn] zu?",
+    "options": [
+      "Sieht für sie einen Aufschlag auf das Bürgergeld vor",
+      "Lehnt jede Differenzierung im Bürgergeld nach Beitragshistorie ab",
+      "Will sie ganz aus dem Bürgergeld herausnehmen und über die Rente absichern"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "saturn-sozial-007"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-028",
+    "question": "Welche Pflicht sieht [PARTY_BADGE:saturn] für Langzeitbezieher von Bürgergeld vor?",
+    "options": [
+      "Eine verpflichtende gemeinnützige Tätigkeit",
+      "Lehnt zusätzliche Pflichten für Bürgergeld-Bezieher ab",
+      "Eine wöchentliche Pflicht-Beratung beim Jobcenter"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "saturn-sozial-008"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-029",
+    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:mars] fordert ein Pro-Kopf-Klimageld, das einen Teil der CO2-Einnahmen direkt an die Bürger zurückzahlt?",
+    "options": [
+      "Nur [PARTY_BADGE:venus]",
+      "Nur [PARTY_BADGE:mars]",
+      "Beide Parteien"
+    ],
+    "correct_index": 2,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-002",
+      "mars-klima-002"
+    ],
+    "is_overlap_question": true,
+    "category": "comparative"
+  },
+  {
+    "id": "q-030",
+    "question": "Welche der Parteien [PARTY_BADGE:mars] und [PARTY_BADGE:saturn] fordert einen CO2-Grenzausgleich (CBAM) auf Importe aus Ländern mit niedrigeren Klimastandards?",
+    "options": [
+      "Nur [PARTY_BADGE:mars]",
+      "Nur [PARTY_BADGE:saturn]",
+      "Beide Parteien"
+    ],
+    "correct_index": 2,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "mars-klima-003",
+      "saturn-klima-003"
+    ],
+    "is_overlap_question": true,
+    "category": "comparative"
+  },
+  {
+    "id": "q-031",
+    "question": "Welche der Parteien [PARTY_BADGE:mars] und [PARTY_BADGE:saturn] lehnt einen festen Ausstiegstermin für den Verbrennungsmotor ab?",
+    "options": [
+      "Nur [PARTY_BADGE:mars]",
+      "Nur [PARTY_BADGE:saturn]",
+      "Beide Parteien"
+    ],
+    "correct_index": 2,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "mars-klima-004",
+      "saturn-klima-004"
+    ],
+    "is_overlap_question": true,
+    "category": "comparative"
+  },
+  {
+    "id": "q-032",
+    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:saturn] fordert, dass auch Beamte und Abgeordnete in die gesetzliche Rentenkasse einzahlen?",
+    "options": [
+      "Nur [PARTY_BADGE:venus]",
+      "Nur [PARTY_BADGE:saturn]",
+      "Beide Parteien"
+    ],
+    "correct_index": 2,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "venus-sozial-002",
+      "saturn-sozial-003"
+    ],
+    "is_overlap_question": true,
+    "category": "comparative"
+  },
+  {
+    "id": "q-033",
+    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:mars] will Erziehungs- und Pflegezeiten in der Rente stärker mit Entgeltpunkten anerkennen?",
+    "options": [
+      "Nur [PARTY_BADGE:venus]",
+      "Nur [PARTY_BADGE:mars]",
+      "Beide Parteien"
+    ],
+    "correct_index": 2,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "venus-sozial-003",
+      "mars-sozial-003"
+    ],
+    "is_overlap_question": true,
+    "category": "comparative"
+  },
+  {
+    "id": "q-034",
+    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:mars] fordert eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds?",
+    "options": [
+      "Nur [PARTY_BADGE:venus]",
+      "Nur [PARTY_BADGE:mars]",
+      "Beide Parteien"
+    ],
+    "correct_index": 2,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "venus-sozial-006",
+      "mars-sozial-007"
+    ],
+    "is_overlap_question": true,
+    "category": "comparative"
+  },
+  {
+    "id": "q-035",
+    "question": "Welche der Parteien [PARTY_BADGE:mars] und [PARTY_BADGE:saturn] fordert deutlich härtere Sanktionen bei Arbeitsverweigerung im Bürgergeld?",
+    "options": [
+      "Nur [PARTY_BADGE:mars]",
+      "Nur [PARTY_BADGE:saturn]",
+      "Beide Parteien"
+    ],
+    "correct_index": 2,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "mars-sozial-006",
+      "saturn-sozial-006"
+    ],
+    "is_overlap_question": true,
+    "category": "comparative"
+  },
+  {
+    "id": "q-036",
+    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:saturn] steht der nationalen CO2-Steuer am kritischsten gegenüber?",
+    "options": [
+      "Nur [PARTY_BADGE:venus]",
+      "Nur [PARTY_BADGE:saturn]",
+      "Beide Parteien"
+    ],
+    "correct_index": 1,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-001",
+      "saturn-klima-001"
+    ],
+    "is_overlap_question": false,
+    "category": "comparative"
+  },
+  {
+    "id": "q-037",
+    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:saturn] fordert ein generelles Tempolimit auf Autobahnen?",
+    "options": [
+      "Nur [PARTY_BADGE:venus]",
+      "Nur [PARTY_BADGE:saturn]",
+      "Beide Parteien"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-004",
+      "saturn-klima-005"
+    ],
+    "is_overlap_question": false,
+    "category": "comparative"
+  },
+  {
+    "id": "q-038",
+    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:mars] fordert einen früheren Ausstieg aus dem Verbrennungsmotor?",
+    "options": [
+      "Nur [PARTY_BADGE:venus]",
+      "Nur [PARTY_BADGE:mars]",
+      "Beide Parteien"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-005",
+      "mars-klima-004"
+    ],
+    "is_overlap_question": false,
+    "category": "comparative"
+  },
+  {
+    "id": "q-039",
+    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:mars] will das gesetzliche Rentenniveau anheben statt nur stabilisieren?",
+    "options": [
+      "Nur [PARTY_BADGE:venus]",
+      "Nur [PARTY_BADGE:mars]",
+      "Beide Parteien"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "venus-sozial-001",
+      "mars-sozial-002"
+    ],
+    "is_overlap_question": false,
+    "category": "comparative"
+  },
+  {
+    "id": "q-040",
+    "question": "Welche der Parteien [PARTY_BADGE:mars] und [PARTY_BADGE:saturn] sieht den europäischen Emissionshandel als Leitinstrument der Klimapolitik?",
+    "options": [
+      "Nur [PARTY_BADGE:mars]",
+      "Nur [PARTY_BADGE:saturn]",
+      "Beide Parteien"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "mars-klima-001",
+      "saturn-klima-002"
+    ],
+    "is_overlap_question": false,
+    "category": "comparative"
+  },
+  {
+    "id": "q-041",
+    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:saturn] will Bürgergeld-Sanktionen einschränken statt verschärfen?",
+    "options": [
+      "Nur [PARTY_BADGE:venus]",
+      "Nur [PARTY_BADGE:saturn]",
+      "Beide Parteien"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "venus-sozial-005",
+      "saturn-sozial-006"
+    ],
+    "is_overlap_question": false,
+    "category": "comparative"
+  },
+  {
+    "id": "q-042",
+    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:saturn] will den Bürgergeld-Anspruch eng auf Staatsbürger und Beitragszahler beschränken?",
+    "options": [
+      "Nur [PARTY_BADGE:venus]",
+      "Nur [PARTY_BADGE:saturn]",
+      "Beide Parteien"
+    ],
+    "correct_index": 1,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-sozial-005",
+      "saturn-sozial-005"
+    ],
+    "is_overlap_question": false,
+    "category": "comparative"
+  },
+  {
+    "id": "q-043",
+    "question": "Wie steht [PARTY_BADGE:venus] zur Rückverteilung der CO2-Einnahmen an die Bürger?",
+    "options": [
+      "Will die Einnahmen über ein Pro-Kopf-Klimageld direkt an die Bürger zurückzahlen",
+      "Lehnt eine Rückverteilung der CO2-Einnahmen ab",
+      "Will die Einnahmen ausschließlich für Klimainvestitionen nutzen"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-002"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-044",
+    "question": "Wie steht [PARTY_BADGE:mars] zur Rückverteilung der CO2-Einnahmen an die Bürger?",
+    "options": [
+      "Will einen relevanten Anteil als Pro-Kopf-Klimageld direkt an die Bürger zurückzahlen",
+      "Lehnt eine Rückverteilung der CO2-Einnahmen ab",
+      "Will die Einnahmen ausschließlich für Klimainvestitionen nutzen"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "mars-klima-002"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-045",
+    "question": "Wie steht [PARTY_BADGE:mars] zu einem CO2-Grenzausgleich auf Importe aus Ländern mit niedrigeren Klimastandards?",
+    "options": [
+      "Will den CO2-Grenzausgleich auf zentrale Industriebereiche ausweiten",
+      "Lehnt einen CO2-Grenzausgleich ab",
+      "Will Importe wie heute ohne CO2-Aufschlag belassen"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "mars-klima-003"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-046",
+    "question": "Wie steht [PARTY_BADGE:saturn] zu einem CO2-Grenzausgleich auf Importe aus Ländern mit niedrigeren Klimastandards?",
+    "options": [
+      "Befürwortet einen CO2-Grenzausgleich an der EU-Außengrenze",
+      "Lehnt einen CO2-Grenzausgleich ab",
+      "Will Importe wie heute ohne CO2-Aufschlag belassen"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "saturn-klima-003"
+    ],
+    "is_overlap_question": false,
+    "category": "retention"
+  },
+  {
+    "id": "q-047",
+    "question": "Welche Position vertritt [PARTY_BADGE:mars] zur Wahl des Antriebs der Zukunft im Pkw-Bereich?",
+    "options": [
+      "Setzt auf Technologieoffenheit zwischen verschiedenen Antrieben",
+      "Setzt allein auf E-Mobilität",
       "Will den Verbrennungsmotor langfristig erhalten"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
-    "prerequisite_position_ids": ["venus-klima-005"],
+    "prerequisite_position_ids": [
+      "mars-klima-004"
+    ],
     "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-005",
-    "question": "Wie steht Venus zu öffentlichen Investitionen in den Nahverkehr?",
-    "options": [
-      "Befürwortet einen deutlichen Ausbau der Investitionen",
-      "Will das aktuelle Investitionsniveau halten",
-      "Fordert eine Reduzierung der ÖPNV-Förderung",
-      "Hat sich nicht klar positioniert"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["venus-klima-006"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-006",
-    "question": "Welche Aussage zum bundesweiten ÖPNV-Ticket trifft auf Venus zu?",
-    "options": [
-      "Will den Preis für das Bundesticket deutlich senken",
-      "Will das aktuelle Deutschlandticket-Modell unverändert lassen",
-      "Will ein bundesweites Ticket abschaffen",
-      "Hat sich zum Bundesticket nicht klar festgelegt"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["venus-klima-007"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-007",
-    "question": "Wie steht Venus zu einem gesetzlichen CO2-Mindestpreis als Ergänzung zum Emissionshandel?",
-    "options": [
-      "Befürwortet die Einführung eines verbindlichen Mindestpreises",
-      "Lehnt einen zusätzlichen Mindestpreis ab und vertraut allein dem Emissionshandel",
-      "Will den Emissionshandel komplett durch eine nationale Steuer ersetzen",
-      "Hat sich nicht klar festgelegt"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["venus-klima-008"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-008",
-    "question": "Wie steht Venus zu Inlandsflügen?",
-    "options": [
-      "Will Inlandsflüge schrittweise unattraktiv machen",
-      "Will Inlandsflüge komplett verbieten",
-      "Will Inlandsflüge wie heute steuerlich behandeln",
-      "Will Inlandsflüge stärker fördern"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["venus-klima-009"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-009",
-    "question": "Wie steht Venus zur Höhe des gesetzlichen Rentenniveaus?",
-    "options": [
-      "Will das Rentenniveau gegenüber heute deutlich anheben und gesetzlich festschreiben",
-      "Will das heutige Rentenniveau lediglich stabilisieren",
-      "Will das Rentenniveau schrittweise absenken",
-      "Will das gesetzliche Rentenniveau abschaffen"
-    ],
-    "correct_index": 0,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["venus-sozial-001"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-010",
-    "question": "Wie steht Venus zur Höhe des Bürgergeld-Regelsatzes?",
-    "options": [
-      "Will den Regelsatz spürbar anheben",
-      "Will den Regelsatz auf dem heutigen Stand belassen",
-      "Will den Regelsatz absenken",
-      "Will das Bürgergeld grundsätzlich abschaffen"
-    ],
-    "correct_index": 0,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["venus-sozial-004"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-011",
-    "question": "Wie steht Venus zu Sanktionen im Bürgergeld?",
-    "options": [
-      "Will Sanktionen deutlich einschränken",
-      "Will Sanktionen vollständig abschaffen",
-      "Will Sanktionen verschärfen",
-      "Will Sanktionen im heutigen Umfang beibehalten"
-    ],
-    "correct_index": 0,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["venus-sozial-005"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-012",
-    "question": "Welches Instrument soll laut Mars Leitinstrument deutscher Klimapolitik bleiben?",
-    "options": [
-      "Der europäische Emissionshandel",
-      "Eine nationale CO2-Steuer",
-      "Ordnungsrechtliche Verbote bestimmter Technologien",
-      "Direkte staatliche Subventionen für klimaneutrale Technologien"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["mars-klima-001"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-013",
-    "question": "Wie steht Mars zu einem generellen Tempolimit auf Autobahnen?",
-    "options": [
-      "Lehnt ein generelles Tempolimit ab",
-      "Befürwortet ein generelles Tempolimit",
-      "Will nur situative Geschwindigkeitsbeschränkungen",
-      "Hat sich nicht klar festgelegt"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["mars-klima-005"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-014",
-    "question": "Welche verkehrspolitische Investition will Mars deutlich ausbauen?",
-    "options": [
-      "Investitionen in den Schienen-Güterverkehr",
-      "Investitionen in den Bau neuer Autobahnen",
-      "Investitionen in Inlandsflughäfen",
-      "Investitionen in den Ausbau der Pendlerpauschale"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["mars-klima-006"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-015",
-    "question": "Auf welches Modell der Altersvorsorge setzt Mars?",
-    "options": [
-      "Drei-Säulen-Modell aus gesetzlicher, betrieblicher und privater Rente",
-      "Bürgerfonds als einzige verpflichtende Säule",
-      "Steuerfinanzierte Einheitsrente für alle",
-      "Vollständige Kapitaldeckung statt Umlageverfahren"
-    ],
-    "correct_index": 0,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["mars-sozial-001"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-016",
-    "question": "Wie steht Mars zur Höhe des gesetzlichen Rentenniveaus?",
-    "options": [
-      "Will das aktuelle Rentenniveau stabilisieren, aber nicht weiter anheben",
-      "Will das Rentenniveau deutlich anheben",
-      "Will das Rentenniveau schrittweise absenken",
-      "Will das gesetzliche Rentenniveau abschaffen"
-    ],
-    "correct_index": 0,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["mars-sozial-002"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-017",
-    "question": "Wie will Mars Beschäftigte ermutigen, freiwillig über die Regelaltersgrenze hinaus zu arbeiten?",
-    "options": [
-      "Über finanzielle Anreize wie steuerfreien Zuverdienst",
-      "Über eine verpflichtende Anhebung des Renteneintrittsalters",
-      "Mars sieht keinen Bedarf für zusätzliche Anreize",
-      "Über höhere Steuern auf vorzeitigen Renteneintritt"
-    ],
-    "correct_index": 0,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["mars-sozial-004"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-018",
-    "question": "Welche symbolische Änderung am Bürgergeld fordert Mars?",
-    "options": [
-      "Umbenennung in 'Neue Grundsicherung'",
-      "Umbenennung in 'Solidarisches Grundeinkommen'",
-      "Beibehaltung des Namens 'Bürgergeld'",
-      "Umbenennung in 'Hartz V'"
-    ],
-    "correct_index": 0,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["mars-sozial-005"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-019",
-    "question": "Welche Haltung vertritt Saturn zur nationalen CO2-Steuer?",
-    "options": [
-      "Fordert die sofortige Abschaffung",
-      "Will sie verschärfen",
-      "Will sie unverändert beibehalten",
-      "Hat sich nicht klar festgelegt"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["saturn-klima-001"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-020",
-    "question": "Wie steht Saturn zum europäischen Emissionshandel?",
-    "options": [
-      "Will ihn stoppen, bis er auf die Industrie beschränkt wird",
-      "Will ihn auf alle Sektoren ausweiten",
-      "Will ihn durch eine nationale CO2-Steuer ersetzen",
-      "Will ihn wie heute unverändert fortführen"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["saturn-klima-002"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-021",
-    "question": "Welche Haltung vertritt Saturn zum generellen Tempolimit auf Autobahnen?",
-    "options": [
-      "Lehnt ein generelles Tempolimit kategorisch ab",
-      "Befürwortet ein generelles Tempolimit",
-      "Will nur situative Geschwindigkeitsbeschränkungen",
-      "Hat sich nicht klar festgelegt"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["saturn-klima-005"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-022",
-    "question": "Wie steht Saturn zur Pendlerpauschale?",
-    "options": [
-      "Will sie dauerhaft anheben",
-      "Will sie auf dem heutigen Stand halten",
-      "Will sie schrittweise absenken",
-      "Will sie abschaffen"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["saturn-klima-006"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-023",
-    "question": "Wie steht Saturn zu einer staatlich garantierten Mindestrente nach langjähriger Beitragszahlung?",
-    "options": [
-      "Befürwortet eine staatlich garantierte Mindestrente nach langjähriger Beitragszahlung",
-      "Lehnt eine staatliche Mindestrente ab",
-      "Setzt allein auf private Vorsorge zur Vermeidung von Altersarmut",
-      "Will eine bedingungslose Grundrente für alle ohne Beitragsbedingung"
-    ],
-    "correct_index": 0,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["saturn-sozial-001"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-024",
-    "question": "Wie steht Saturn zum vorzeitigen Renteneintritt nach langer Beitragsdauer?",
-    "options": [
-      "Will einen vorzeitigen Renteneintritt ohne Abschläge zulassen",
-      "Will den vorzeitigen Renteneintritt abschaffen und das Renteneintrittsalter generell anheben",
-      "Will den vorzeitigen Renteneintritt auf jüngere Jahrgänge ausweiten",
-      "Will den vorzeitigen Renteneintritt nur mit deutlichen Abschlägen zulassen"
-    ],
-    "correct_index": 0,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["saturn-sozial-002"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-025",
-    "question": "Was plant Saturn mit künftigen Beamtenpensionen?",
-    "options": [
-      "Absenkung auf das Niveau der gesetzlichen Rente",
-      "Verdopplung als Anreiz für den Staatsdienst",
-      "Vollständige Privatisierung der Altersvorsorge für Beamte",
-      "Keine Änderung – das Beamtenpensionsrecht bleibt erhalten"
-    ],
-    "correct_index": 0,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["saturn-sozial-004"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-026",
-    "question": "Welche Aussage zum Anspruch auf Bürgergeld trifft auf Saturn zu?",
-    "options": [
-      "Will den Anspruch auf Staatsbürger und langjährig Einzahlende beschränken",
-      "Will allen mit Aufenthaltstitel ohne Wartezeit Anspruch geben",
-      "Lehnt das Bürgergeld grundsätzlich ab",
-      "Will den Anspruch wie heute unverändert lassen"
-    ],
-    "correct_index": 0,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["saturn-sozial-005"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-027",
-    "question": "Welche Aussage zur Behandlung von Bürgergeld-Beziehern mit langer Beitragsdauer trifft auf Saturn zu?",
-    "options": [
-      "Sieht für sie einen Aufschlag auf das Bürgergeld vor",
-      "Lehnt jede Differenzierung im Bürgergeld nach Beitragshistorie ab",
-      "Will sie ganz aus dem Bürgergeld herausnehmen und über die Rente absichern",
-      "Will Beitragsjahre nur in Form einer Einmalzahlung berücksichtigen"
-    ],
-    "correct_index": 0,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["saturn-sozial-007"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-028",
-    "question": "Welche Pflicht sieht Saturn für Langzeitbezieher von Bürgergeld vor?",
-    "options": [
-      "Eine verpflichtende gemeinnützige Tätigkeit",
-      "Eine verpflichtende mehrjährige Umschulung",
-      "Saturn lehnt zusätzliche Pflichten ab",
-      "Eine verpflichtende ehrenamtliche Tätigkeit in der Kommunalpolitik"
-    ],
-    "correct_index": 0,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["saturn-sozial-008"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-029",
-    "question": "Welche Partei fordert ein Pro-Kopf-Klimageld, das einen Teil der CO2-Einnahmen direkt an die Bürger zurückzahlt?",
-    "options": [
-      "Venus",
-      "Mars",
-      "Saturn",
-      "Mehrere der genannten Parteien"
-    ],
-    "correct_index": 3,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["venus-klima-002", "mars-klima-002"],
-    "is_overlap_question": true,
-    "partial_credit_indices": [0, 1]
-  },
-  {
-    "id": "q-030",
-    "question": "Welche Partei fordert einen CO2-Grenzausgleich (CBAM) auf Importe aus Ländern mit niedrigeren Klimastandards?",
-    "options": [
-      "Venus",
-      "Mars",
-      "Saturn",
-      "Mehrere der genannten Parteien"
-    ],
-    "correct_index": 3,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["mars-klima-003", "saturn-klima-003"],
-    "is_overlap_question": true,
-    "partial_credit_indices": [1, 2]
-  },
-  {
-    "id": "q-031",
-    "question": "Welche Partei lehnt einen festen Ausstiegstermin für den Verbrennungsmotor ab?",
-    "options": [
-      "Venus",
-      "Mars",
-      "Saturn",
-      "Mehrere der genannten Parteien"
-    ],
-    "correct_index": 3,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["mars-klima-004", "saturn-klima-004"],
-    "is_overlap_question": true,
-    "partial_credit_indices": [1, 2]
-  },
-  {
-    "id": "q-032",
-    "question": "Welche Partei fordert, dass auch Beamte und Abgeordnete in die gesetzliche Rentenkasse einzahlen?",
-    "options": [
-      "Venus",
-      "Mars",
-      "Saturn",
-      "Mehrere der genannten Parteien"
-    ],
-    "correct_index": 3,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["venus-sozial-002", "saturn-sozial-003"],
-    "is_overlap_question": true,
-    "partial_credit_indices": [0, 2]
-  },
-  {
-    "id": "q-033",
-    "question": "Welche Partei will Erziehungs- und Pflegezeiten in der gesetzlichen Rente stärker als heute mit Entgeltpunkten anerkennen?",
-    "options": [
-      "Venus",
-      "Mars",
-      "Saturn",
-      "Mehrere der genannten Parteien"
-    ],
-    "correct_index": 3,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["venus-sozial-003", "mars-sozial-003"],
-    "is_overlap_question": true,
-    "partial_credit_indices": [0, 1]
-  },
-  {
-    "id": "q-034",
-    "question": "Welche Partei fordert eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds?",
-    "options": [
-      "Venus",
-      "Mars",
-      "Saturn",
-      "Mehrere der genannten Parteien"
-    ],
-    "correct_index": 3,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["venus-sozial-006", "mars-sozial-007"],
-    "is_overlap_question": true,
-    "partial_credit_indices": [0, 1]
-  },
-  {
-    "id": "q-035",
-    "question": "Welche Partei fordert deutlich härtere Sanktionen bei Arbeitsverweigerung im Bürgergeld?",
-    "options": [
-      "Venus",
-      "Mars",
-      "Saturn",
-      "Mehrere der genannten Parteien"
-    ],
-    "correct_index": 3,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["mars-sozial-006", "saturn-sozial-006"],
-    "is_overlap_question": true,
-    "partial_credit_indices": [1, 2]
-  },
-  {
-    "id": "q-036",
-    "question": "Welche Partei fordert eher die sofortige Abschaffung der CO2-Steuer als ihre Verschärfung?",
-    "options": [
-      "Venus",
-      "Mars",
-      "Saturn",
-      "Keine der genannten Parteien"
-    ],
-    "correct_index": 2,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["venus-klima-001", "saturn-klima-001"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-037",
-    "question": "Welche Partei fordert eher ein generelles Tempolimit auf Autobahnen?",
-    "options": [
-      "Venus",
-      "Mars",
-      "Saturn",
-      "Keine der genannten Parteien"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["venus-klima-004", "saturn-klima-005"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-038",
-    "question": "Welche Partei fordert eher einen früheren Ausstieg aus dem Verbrennungsmotor?",
-    "options": [
-      "Venus",
-      "Mars",
-      "Saturn",
-      "Keine der genannten Parteien"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["venus-klima-005", "mars-klima-004"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-039",
-    "question": "Welche Partei will das gesetzliche Rentenniveau eher anheben statt nur zu stabilisieren?",
-    "options": [
-      "Venus",
-      "Mars",
-      "Saturn",
-      "Keine der genannten Parteien"
-    ],
-    "correct_index": 0,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["venus-sozial-001", "mars-sozial-002"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-040",
-    "question": "Welche Partei sieht den europäischen Emissionshandel eher als Leitinstrument der Klimapolitik?",
-    "options": [
-      "Venus",
-      "Mars",
-      "Saturn",
-      "Keine der genannten Parteien"
-    ],
-    "correct_index": 1,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["mars-klima-001", "saturn-klima-002"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-041",
-    "question": "Welche Partei will Bürgergeld-Sanktionen eher einschränken statt verschärfen?",
-    "options": [
-      "Venus",
-      "Mars",
-      "Saturn",
-      "Keine der genannten Parteien"
-    ],
-    "correct_index": 0,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["venus-sozial-005", "saturn-sozial-006"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-042",
-    "question": "Welche Partei fordert den Abbau klimaschädlicher Steuervergünstigungen für Diesel, Kerosin und Dienstwagen?",
-    "options": [
-      "Venus",
-      "Mars",
-      "Saturn",
-      "Keine der genannten Parteien"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["venus-klima-003"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-043",
-    "question": "Wie steht Venus zur Rückverteilung der CO2-Einnahmen an die Bürger?",
-    "options": [
-      "Will die Einnahmen über ein Pro-Kopf-Klimageld direkt an die Bürger zurückzahlen",
-      "Lehnt eine Rückverteilung der CO2-Einnahmen ab",
-      "Will die Einnahmen ausschließlich für Klimainvestitionen nutzen",
-      "Hat sich nicht klar festgelegt"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["venus-klima-002"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-044",
-    "question": "Wie steht Mars zur Rückverteilung der CO2-Einnahmen an die Bürger?",
-    "options": [
-      "Will einen relevanten Anteil als Pro-Kopf-Klimageld direkt an die Bürger zurückzahlen",
-      "Lehnt eine Rückverteilung der CO2-Einnahmen ab",
-      "Will die Einnahmen ausschließlich für Klimainvestitionen nutzen",
-      "Hat sich nicht klar festgelegt"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["mars-klima-002"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-045",
-    "question": "Wie steht Mars zu einem CO2-Grenzausgleich auf Importe aus Ländern mit niedrigeren Klimastandards?",
-    "options": [
-      "Will den CO2-Grenzausgleich auf zentrale Industriebereiche ausweiten",
-      "Lehnt einen CO2-Grenzausgleich ab",
-      "Will Importe wie heute ohne CO2-Aufschlag belassen",
-      "Hat sich nicht klar festgelegt"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["mars-klima-003"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-046",
-    "question": "Wie steht Saturn zu einem CO2-Grenzausgleich auf Importe aus Ländern mit niedrigeren Klimastandards?",
-    "options": [
-      "Befürwortet einen CO2-Grenzausgleich an der EU-Außengrenze",
-      "Lehnt einen CO2-Grenzausgleich ab",
-      "Will Importe wie heute ohne CO2-Aufschlag belassen",
-      "Hat sich nicht klar festgelegt"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["saturn-klima-003"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
-  },
-  {
-    "id": "q-047",
-    "question": "Welche Position vertritt Mars zur Wahl des Antriebs der Zukunft im Pkw-Bereich?",
-    "options": [
-      "Setzt auf Technologieoffenheit zwischen verschiedenen Antrieben",
-      "Setzt allein auf E-Mobilität",
-      "Will den Verbrennungsmotor langfristig erhalten",
-      "Hat sich nicht klar festgelegt"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": ["mars-klima-004"],
-    "is_overlap_question": false,
-    "partial_credit_indices": []
+    "category": "retention"
   },
   {
     "id": "q-048",
-    "question": "Welche Haltung vertritt Saturn zum Ausstieg aus dem Verbrennungsmotor?",
+    "question": "Welche Haltung vertritt [PARTY_BADGE:saturn] zum Ausstieg aus dem Verbrennungsmotor?",
     "options": [
-      "Lehnt einen festen Ausstiegstermin kategorisch ab",
+      "Lehnt einen festen Ausstiegstermin grundsätzlich ab und setzt auf Technologieoffenheit",
       "Befürwortet einen früheren Ausstieg",
-      "Will am bestehenden EU-Ausstiegsplan festhalten",
-      "Hat sich nicht klar festgelegt"
+      "Will am bestehenden EU-Ausstiegsplan festhalten"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
-    "prerequisite_position_ids": ["saturn-klima-004"],
+    "prerequisite_position_ids": [
+      "saturn-klima-004"
+    ],
     "is_overlap_question": false,
-    "partial_credit_indices": []
+    "category": "retention"
   },
   {
     "id": "q-049",
-    "question": "Wie steht Venus zur Frage, wer in die gesetzliche Rente einzahlen soll?",
+    "question": "Wie steht [PARTY_BADGE:venus] zur Frage, wer in die gesetzliche Rente einzahlen soll?",
     "options": [
-      "Will alle Erwerbstätigen einbeziehen, auch Selbstständige, Beamte und Abgeordnete",
+      "Will die Versicherungspflicht auf alle Erwerbstätigen ausweiten, auch auf bisher ausgenommene Berufsgruppen",
       "Will an der heutigen Trennung zwischen Rente und Beamtenpension festhalten",
-      "Will die gesetzliche Rente langfristig durch private Vorsorge ersetzen",
-      "Hat sich nicht klar festgelegt"
+      "Will die gesetzliche Rente langfristig durch private Vorsorge ersetzen"
     ],
     "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["venus-sozial-002"],
+    "prerequisite_position_ids": [
+      "venus-sozial-002"
+    ],
     "is_overlap_question": false,
-    "partial_credit_indices": []
+    "category": "retention"
   },
   {
     "id": "q-050",
-    "question": "Wie steht Saturn dazu, dass auch Beamte und Abgeordnete in die gesetzliche Rentenkasse einzahlen?",
+    "question": "Wie steht [PARTY_BADGE:saturn] dazu, dass auch Beamte und Abgeordnete in die gesetzliche Rentenkasse einzahlen?",
     "options": [
       "Fordert, dass auch Beamte und Abgeordnete in die gesetzliche Rente einzahlen",
       "Will an der heutigen Trennung zwischen Beamtenpension und Rente festhalten",
-      "Will Beamte und Abgeordnete vollständig privat absichern",
-      "Hat sich nicht klar festgelegt"
+      "Will Beamte und Abgeordnete vollständig privat absichern"
     ],
     "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["saturn-sozial-003"],
+    "prerequisite_position_ids": [
+      "saturn-sozial-003"
+    ],
     "is_overlap_question": false,
-    "partial_credit_indices": []
+    "category": "retention"
   },
   {
     "id": "q-051",
-    "question": "Wie steht Venus zur rentenrechtlichen Anerkennung von Pflege- und Sorgearbeit?",
+    "question": "Wie steht [PARTY_BADGE:venus] zur rentenrechtlichen Anerkennung von Pflege- und Sorgearbeit?",
     "options": [
-      "Will Pflege- und Sorgearbeit voll wie Erwerbsarbeit anerkennen",
+      "Will Pflege- und Sorgejahre in der Rente gleichwertig zu Erwerbsjahren bewerten",
       "Lehnt eine zusätzliche rentenrechtliche Anerkennung ab",
-      "Will Sorgearbeit ausschließlich über das Steuer- und Sozialsystem ausgleichen",
-      "Hat sich nicht klar festgelegt"
+      "Will Sorgearbeit ausschließlich über das Steuer- und Sozialsystem ausgleichen"
     ],
     "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["venus-sozial-003"],
+    "prerequisite_position_ids": [
+      "venus-sozial-003"
+    ],
     "is_overlap_question": false,
-    "partial_credit_indices": []
+    "category": "retention"
   },
   {
     "id": "q-052",
-    "question": "Wie steht Mars zur rentenrechtlichen Anerkennung von Erziehungs- und Pflegezeiten?",
+    "question": "Wie steht [PARTY_BADGE:mars] zur rentenrechtlichen Anerkennung von Erziehungs- und Pflegezeiten?",
     "options": [
       "Will Erziehungs- und Pflegezeiten in der Rente stärker anerkennen",
       "Lehnt eine zusätzliche Anerkennung ab",
-      "Will sie ausschließlich über Steuern statt Rentenpunkte ausgleichen",
-      "Hat sich nicht klar festgelegt"
+      "Will sie ausschließlich über Steuern statt Rentenpunkte ausgleichen"
     ],
     "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["mars-sozial-003"],
+    "prerequisite_position_ids": [
+      "mars-sozial-003"
+    ],
     "is_overlap_question": false,
-    "partial_credit_indices": []
+    "category": "retention"
   },
   {
     "id": "q-053",
-    "question": "Wie steht Mars zu Sanktionen bei wiederholter Arbeitsverweigerung im Bürgergeld?",
+    "question": "Wie steht [PARTY_BADGE:mars] zu Sanktionen bei wiederholter Arbeitsverweigerung im Bürgergeld?",
     "options": [
       "Will spürbare Leistungskürzungen bei wiederholter Arbeitsverweigerung",
-      "Lehnt Sanktionen grundsätzlich ab",
       "Will das heutige Sanktionsniveau unverändert lassen",
       "Will Sanktionen auf das verfassungsrechtliche Minimum begrenzen"
     ],
     "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["mars-sozial-006"],
+    "prerequisite_position_ids": [
+      "mars-sozial-006"
+    ],
     "is_overlap_question": false,
-    "partial_credit_indices": []
+    "category": "retention"
   },
   {
     "id": "q-054",
-    "question": "Wie steht Saturn zu Sanktionen bei Arbeitsverweigerung im Bürgergeld?",
+    "question": "Wie steht [PARTY_BADGE:saturn] zu Sanktionen bei Arbeitsverweigerung im Bürgergeld?",
     "options": [
-      "Fordert deutlich härtere Sanktionen bis hin zum vollständigen Leistungsentzug",
+      "Fordert deutlich härtere Sanktionen einschließlich des vollständigen Leistungsentzugs bei Arbeitsverweigerung",
       "Will das heutige Sanktionsniveau unverändert lassen",
-      "Will Sanktionen einschränken",
-      "Lehnt Sanktionen grundsätzlich ab"
+      "Will Sanktionen einschränken"
     ],
     "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["saturn-sozial-006"],
+    "prerequisite_position_ids": [
+      "saturn-sozial-006"
+    ],
     "is_overlap_question": false,
-    "partial_credit_indices": []
+    "category": "retention"
   },
   {
     "id": "q-055",
-    "question": "Wie steht Venus zur Absicherung von Kindern in armutsgefährdeten Familien?",
+    "question": "Welches Hauptziel verfolgt [PARTY_BADGE:venus] mit einer eigenständigen Kindergrundsicherung?",
     "options": [
-      "Will Kinder über eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds absichern",
-      "Will Kinder weiter im Bürgergeld absichern",
-      "Lehnt zusätzliche Leistungen für Kinder ab",
-      "Will Familienleistungen vollständig privatisieren"
+      "Kinder unabhängig von der Arbeitslosigkeit ihrer Eltern absichern",
+      "Familienleistungen entbürokratisieren und in einem Anspruch bündeln",
+      "Familien zur stärkeren privaten Eigenvorsorge motivieren"
     ],
     "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["venus-sozial-006"],
+    "prerequisite_position_ids": [
+      "venus-sozial-006"
+    ],
     "is_overlap_question": false,
-    "partial_credit_indices": []
+    "category": "retention"
   },
   {
     "id": "q-056",
-    "question": "Wie steht Mars zur Absicherung von Kindern in armutsgefährdeten Familien?",
+    "question": "Welches Hauptziel verfolgt [PARTY_BADGE:mars] mit einer eigenständigen Kindergrundsicherung?",
     "options": [
-      "Will Kinder über eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds absichern",
-      "Will Kinder weiter im Bürgergeld absichern",
-      "Lehnt zusätzliche Leistungen für Kinder ab",
-      "Will Familienleistungen vollständig privatisieren"
+      "Familienleistungen entbürokratisieren und in einem gebündelten Anspruch zusammenführen",
+      "Eltern dazu verpflichten, ihre Kinder selbst aus dem Bürgergeld zu finanzieren",
+      "Familienleistungen vollständig privatisieren"
     ],
     "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": ["mars-sozial-007"],
+    "prerequisite_position_ids": [
+      "mars-sozial-007"
+    ],
     "is_overlap_question": false,
-    "partial_credit_indices": []
+    "category": "retention"
   }
 ]

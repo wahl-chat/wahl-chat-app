@@ -50,3 +50,13 @@ class ConversationHandlerInput(BaseModel):
             "rehash known material."
         ),
     )
+    neighboring_leaves: str = Field(
+        default="",
+        description=(
+            "Pre-formatted Markdown list of the OTHER leaves in the same "
+            "exploration tree (sibling subtopics). Injected verbatim into the "
+            "user prompt so the model knows which neighboring topics are "
+            "off-scope for this leaf and should redirect rather than absorb "
+            "their content."
+        ),
+    )

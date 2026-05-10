@@ -82,9 +82,11 @@ export function StudyExplorationWrapper({
     leafStreamingTargetType,
     leafSuggestedQuestions,
     leafTopicSwitchSuggestion,
+    leafClosureActive,
     sendLeafMessage,
     acceptTopicSwitch,
     dismissTopicSwitch,
+    dismissClosurePrompt,
     markExplored,
 
     explorationPending,
@@ -185,6 +187,7 @@ export function StudyExplorationWrapper({
         streamingTargetType={leafStreamingTargetType}
         topicSwitchSuggestion={leafTopicSwitchSuggestion}
         suggestedQuestions={leafSuggestedQuestions}
+        showClosurePrompt={leafClosureActive}
         hideAspectView
         showMissingPartiesPlaceholder
         onSendMessage={sendLeafMessage}
@@ -202,6 +205,7 @@ export function StudyExplorationWrapper({
               }
             : undefined
         }
+        onContinueExploring={dismissClosurePrompt}
         onClose={closeLeaf}
       />
     </div>

@@ -123,6 +123,7 @@ export function useExploration(options: UseExplorationOptions = {}) {
   const topicSwitchSuggestion = useExplorationStore(
     (s) => s.ui.topicSwitchSuggestion,
   );
+  const closurePrompt = useExplorationStore((s) => s.ui.closurePrompt);
   const pendingDirections = useExplorationStore(selectPendingDirections);
 
   const explorationPending = useExplorationStore(selectExplorationPending);
@@ -330,6 +331,15 @@ export function useExploration(options: UseExplorationOptions = {}) {
     return null;
   }, [topicSwitchSuggestion, activeLeaf]);
 
+  /** True iff the closure prompt is for the currently-open leaf. */
+  const leafClosureActive = useMemo(() => {
+    if (!closurePrompt || !activeLeaf) return false;
+    return (
+      closurePrompt.explorationId === activeLeaf.explorationId &&
+      closurePrompt.leafId === activeLeaf.leafId
+    );
+  }, [closurePrompt, activeLeaf]);
+
   // ----- Action wrappers -----
 
   /** Send a chat-tab message (adds user message to session immediately). */
@@ -374,6 +384,11 @@ export function useExploration(options: UseExplorationOptions = {}) {
 
   const dismissTopicSwitch = useCallback(() => {
     dispatch(uiActions.topicSwitchCleared());
+  }, [dispatch]);
+
+  /** User chose "Weiter erkunden" — drop the closure prompt for this turn. */
+  const dismissClosurePrompt = useCallback(() => {
+    dispatch(uiActions.closurePromptCleared());
   }, [dispatch]);
 
   const markExplored = useCallback(
@@ -433,9 +448,11 @@ export function useExploration(options: UseExplorationOptions = {}) {
     leafStreamingTargetType,
     leafSuggestedQuestions,
     leafTopicSwitchSuggestion,
+    leafClosureActive,
     sendLeafMessage,
     acceptTopicSwitch,
     dismissTopicSwitch,
+    dismissClosurePrompt,
 
     // Per-tree actions
     markExplored,

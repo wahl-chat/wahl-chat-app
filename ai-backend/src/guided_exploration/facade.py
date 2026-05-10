@@ -115,13 +115,6 @@ class GuidedExplorationFacade:
         self._summary_generator = SummaryGeneratorAgent(
             self._llm_registry.get(LLMTier.BALANCED)
         )
-        # Followup routing - fast model for minimal latency
-        from src.guided_exploration.agents.followup_router import (
-            FollowupRouterAgent,
-        )
-        self._followup_router = FollowupRouterAgent(
-            self._llm_registry.get(LLMTier.FAST)
-        )
         # Topic scouting - fast model for direction identification
         self._topic_scout = TopicScoutAgent(
             self._llm_registry.get(LLMTier.FAST)
@@ -192,7 +185,6 @@ class GuidedExplorationFacade:
             navigation_states=self._navigation_states,
             navigation_handler=self._navigation_handler,
             message_classifier=self._message_classifier,
-            followup_router=self._followup_router,
             conversation_handler=self._conversation_handler,
             summary_generator=self._summary_generator,
             study_exposure=self._study_exposure,

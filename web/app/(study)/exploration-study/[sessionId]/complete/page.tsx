@@ -59,12 +59,7 @@ export default function CompletePage() {
               {Math.round(quizScore.scorePercentage)}%
             </span>
             <span className="text-sm text-muted-foreground">
-              (
-              {quizScore.totalCredit.toLocaleString('de-DE', {
-                maximumFractionDigits: 1,
-              })}{' '}
-              von {quizScore.totalQuestions} Punkten — {quizScore.totalCorrect}{' '}
-              vollständig richtig)
+              ({quizScore.totalCorrect} von {quizScore.totalQuestions} richtig)
             </span>
           </div>
           <p className="text-sm text-muted-foreground">

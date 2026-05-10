@@ -65,6 +65,44 @@ class QuickSummaryLLMOutput(BaseModel):
     )
 
 
+class TopicSwitchProposalLLM(BaseModel):
+    """LLM output schema for an optional topic-switch proposal.
+
+    Set only when the user's last question fits one of the listed
+    Nachbar-Unterthemen clearly better than the current leaf. The
+    `target_node_id` MUST be one of the IDs from the
+    "Andere Unterthemen dieses Baums" list — never invented, never the
+    current leaf. The followup handler validates the ID and drops the
+    proposal silently if it doesn't match a real sibling.
+    """
+
+    target_node_id: str = Field(
+        ...,
+        description=(
+            "ID des Nachbar-Unterthemas, das besser zur letzten Frage "
+            "passt — exakt aus der Liste 'Andere Unterthemen dieses "
+            "Baums' kopiert (zwischen den Backticks). Niemals die "
+            "aktuelle Leaf-ID, niemals erfunden."
+        ),
+    )
+    target_node_name: str = Field(
+        ...,
+        description=(
+            "Anzeigename des Nachbar-Unterthemas — exakt der **fett** "
+            "geschriebene Name aus der Liste."
+        ),
+    )
+    reason: str = Field(
+        ...,
+        description=(
+            "Ein kurzer deutscher Satz (max ~15 Worte), der erklärt, "
+            "warum das Nachbar-Unterthema besser passt. Wird in der "
+            "Switch-UI angezeigt. Du-Form, neutral. Keine Floskeln "
+            "wie 'willst du wechseln?'."
+        ),
+    )
+
+
 class SuggestedQuestionsLLMOutput(BaseModel):
     """LLM output schema for generating suggested follow-up questions."""
 
@@ -74,6 +112,26 @@ class SuggestedQuestionsLLMOutput(BaseModel):
             "0-2 kurze Folgefragen zur Vertiefung des Themas. "
             "Lieber leere Liste als schwache, generische oder themenfremde "
             "Vorschläge. Jede Frage maximal 7 Worte."
+        ),
+    )
+    closure_ready: bool = Field(
+        default=False,
+        description=(
+            "True, wenn die zentralen Positionen des Leafs, ihr Verhältnis "
+            "zueinander und die Stance jeder Partei besprochen wurden und "
+            "die verfügbaren Quellen substanziell nichts Neues mehr "
+            "hergeben. Dann zeigt das Frontend dem Nutzer einen "
+            "Abschluss-Hinweis mit Buttons. Bei false läuft die "
+            "Erkundung weiter — der Default."
+        ),
+    )
+    topic_switch_proposal: TopicSwitchProposalLLM | None = Field(
+        default=None,
+        description=(
+            "Optional: Wenn die letzte Nutzerfrage eindeutig besser zu "
+            "einem der gelisteten Nachbar-Unterthemen passt, setze "
+            "diesen Block. Sonst null. Niemals auf das aktuelle Leaf "
+            "verweisen, niemals eine ID erfinden."
         ),
     )
 
@@ -449,14 +507,19 @@ Antworte konversationell. Karten nur bei Vergleichen, Badges inline, wann immer 
 
 
 # =============================================================================
-# Baseline prompts — fully separate from the guided template.
-# Mirror production wahl.chat (`wahl_chat_response_system_prompt_template_str`
-# + `get_wahl_chat_answer_guidelines` in src/prompts.py): prose with badges
-# inline, optional H3 thematic structuring, citation list per sourced
-# sentence, italics for own-knowledge. Adapted for the study: all parties
-# from the parties list are relevant by default, no Rückfrage; the
-# Antwortlänge guideline is tightened so baseline answers stay chat-shaped
-# with a clear hook for follow-up rather than dumping every retrieved claim.
+# Baseline prompt — production wahl.chat applied to the study.
+# Skeleton mirrors `wahl_chat_response_system_prompt_template_str`
+# + `get_wahl_chat_answer_guidelines` (`get_base_guidelines`) in
+# src/prompts.py 1:1. Three deliberate deviations:
+#  1. Party-card mechanism (`## Darstellung` block + `[PARTY:id]` /
+#     `[PARTY_BADGE:id]` markers) — required by the study UI renderer.
+#  2. ID-format rule (`zeichengenau`, no `venus:` prefix) — the marker
+#     syntax would otherwise collide with citation IDs.
+#  3. No-Rückfrage rule replacing prod's "frage, von welchen Parteien" —
+#     baseline always answers all parties from the list.
+# Per-party bullet count is NOT capped here; the C arms inject
+# `{claims_cap_directive}` at runtime. The B arms leave it empty and let
+# prod's length rule ("kurz und prägnant", Fazit after >6 Sätze) govern.
 # =============================================================================
 
 BASELINE_QUICK_SUMMARY_SYSTEM_PROMPT = """# Rolle
@@ -479,21 +542,26 @@ Generiere basierend auf den bereitgestellten Hintergrundinformationen und Leitli
 {claims_cap_directive}
 ## Darstellung
 
-Standardformat: **eine Partei-Karte pro Partei.** Jede Karte ist eine in sich geschlossene Mini-Antwort zu dieser einen Partei — Stichpunkte mit **fettem Schlagwort**, Aussage im Konjunktiv, Quellen-ID am Satzende.
+Standardformat bei Mehr-Parteien-Fragen: **eine Partei-Karte pro Partei.** Jede Karte ist eine in sich geschlossene Mini-Antwort zu **dieser einen Partei** — geschrieben so, wie du antworten würdest, wenn ausschließlich nach dieser Partei gefragt worden wäre. Innerhalb der Karte gilt der **gesamte Antwortstil unten** (Markdown, Sub-Überschriften, Absätze, Stichpunkte, **fett**, Konjunktiv, Quellen-ID am Satzende).
+
+Eine Karte ist also **keine reine Bullet-Liste**. Wähle pro Karte die Form, die dem Thema dient:
+- Wenn sich die Position der Partei in zwei oder drei sinnvolle Unterabschnitte gliedern lässt, nutze `###`/`####` Sub-Überschriften und je einen kurzen Absatz oder eine kurze Liste pro Abschnitt.
+- Wenn die Aussagen sich besser als kompakte Liste lesen, nimm Stichpunkte mit **fettem Schlagwort** und Konjunktiv-Aussage.
+- Ein kurzer Einleitungssatz pro Karte ist erlaubt und oft hilfreich, um die Partei einzuordnen.
 
 Du hast GENAU zwei Marker. Sie sind NICHT austauschbar. **Schreibe NIE `[id:id]` oder `[id:Name]`** — diese Form existiert nicht.
 
 ### `[PARTY:id] … [/PARTY:id]` — Partei-Karte (Block, Standardwerkzeug)
 - Eine Karte pro Partei, die zur Frage etwas zu sagen hat.
-- **Inhalt der Karte:** 1–3 Stichpunkte, jeder mit **fettem Schlagwort**, Aussage im Konjunktiv, Quellen-ID am Satzende.
+- **Inhalt:** strukturierte wahl.chat-Antwort für diese eine Partei (Sub-Überschriften, Absätze, Stichpunkte — je nach Thema). Aussagen im Konjunktiv, Quellen-ID am Satzende.
 - `[PARTY:id]` und `[/PARTY:id]` jeweils am **Zeilenanfang** (eigene Zeile), keine Inline-Verwendung.
 
 ### `[PARTY_BADGE:id]` — Inline-Pille im Fließtext
-- Ersetzt den Parteinamen **mitten im Satz** — z.B. in der Einleitung vor den Karten oder im Fazit nach den Karten.
+- Ersetzt den Parteinamen **mitten im Satz** — z.B. in der Einleitung vor den Karten, im Fazit nach den Karten, oder im Einleitungssatz innerhalb einer Karte.
 - Direkt daneben dürfen Satzzeichen und Wörter stehen: `[PARTY_BADGE:venus]-Partei`, `laut [PARTY_BADGE:mars]`, `, [PARTY_BADGE:saturn] dagegen…`.
 
 ### Wann Karten, wann nur Fließtext
-- **Frage betrifft mehrere Parteien** (Standardfall) → **eine Karte pro Partei** mit jeweils 1–3 Stichpunkten. Optional ein kurzer Einleitungssatz davor und/oder Fazit-Satz danach im Fließtext mit `[PARTY_BADGE:id]`.
+- **Frage betrifft mehrere Parteien** (Standardfall) → **eine Karte pro Partei**, Inhalt wie oben. Optional ein kurzer Einleitungssatz davor und/oder Fazit-Satz danach im Fließtext mit `[PARTY_BADGE:id]`; beide enthalten **keine** Quellen-IDs.
 - **Detail-, Warum- oder Folgefrage zu nur einer Partei** → entweder eine einzelne Karte oder reiner Fließtext mit `[PARTY_BADGE:id]`. Keine leeren Karten für andere Parteien.
 - **Allgemeine Frage ohne Parteibezug** → Fließtext ohne Marker.
 
@@ -505,18 +573,32 @@ Du hast GENAU zwei Marker. Sie sind NICHT austauschbar. **Schreibe NIE `[id:id]`
 ✅ RICHTIG — Inline-Pille außerhalb von Karten:
 `[PARTY_BADGE:venus] will…`, `Laut [PARTY_BADGE:mars]…`, `Bei [PARTY_BADGE:saturn] dagegen…`.
 
-✅ RICHTIG — Standardantwort mit Karten:
+✅ RICHTIG — Standardantwort mit Karten (Karteninhalt im wahl.chat-Stil: Sub-Abschnitte, Absätze und Stichpunkte je nach Thema):
 ```
-Beim Bürgergeld unterscheiden sich die Parteien vor allem darin, wie streng Sanktionen ausfallen sollen.
+Beim Klimaschutz unterscheiden sich [PARTY_BADGE:venus] und [PARTY_BADGE:mars] vor allem darin, wie stark der Staat eingreifen soll.
 
 [PARTY:venus]
-- **Sanktionen:** [PARTY_BADGE:venus] wolle Sanktionen auf das verfassungsrechtliche Minimum begrenzen. [venus-sozial-005]
-- **Regelsatz:** Der Regelsatz solle um 50 € monatlich angehoben werden. [venus-sozial-004]
+[PARTY_BADGE:venus] setze auf eine starke staatliche Klimasteuerung mit deutlich höheren CO2-Preisen, sozialem Ausgleich und massiven Investitionen in den Verkehr.
+
+### CO2-Preis und sozialer Ausgleich
+Der CO2-Preis solle bis 2030 auf mindestens 180 € pro Tonne steigen, ergänzt um einen gesetzlichen Mindestpreis von 200 €. [venus-klima-001, venus-klima-008]
+Ein Klimageld von 320 € pro Kopf solle einkommensschwache Haushalte entlasten. [venus-klima-002]
+
+### Verkehr und Subventionen
+- **Tempolimit:** 120 km/h auf Autobahnen. [venus-klima-004]
+- **ÖPNV:** 30 Mrd. € jährlich für den öffentlichen Nahverkehr. [venus-klima-006]
+- **Subventionen:** Klimaschädliche Subventionen (65 Mrd. €/Jahr) sollen bis 2028 vollständig abgebaut werden. [venus-klima-003]
 [/PARTY:venus]
 
 [PARTY:mars]
-- **Umbenennung:** [PARTY_BADGE:mars] wolle das Bürgergeld in eine „Neue Grundsicherung" umbenennen. [mars-sozial-005]
+[PARTY_BADGE:mars] setze auf marktwirtschaftliche Steuerung über den europäischen Emissionshandel und auf Technologieoffenheit beim Verkehr.
+
+- **Leitinstrument:** Der EU-Emissionshandel solle das zentrale Instrument der Klimapolitik bleiben. [mars-klima-001]
+- **Klimageld:** Mindestens die Hälfte der CO2-Einnahmen solle als Pro-Kopf-Klimageld zurückfließen. [mars-klima-002]
+- **Verkehr:** Statt eines Verbrenner-Verbots ab 2035 solle Technologieoffenheit gelten; ein generelles Tempolimit lehne die Partei ab. [mars-klima-004, mars-klima-005]
 [/PARTY:mars]
+
+Kurz gesagt: [PARTY_BADGE:venus] setzt auf stärkere Klimasteuerung und Investitionen, [PARTY_BADGE:mars] auf Emissionshandel und Technologieoffenheit.
 ```
 
 Partei-IDs immer EXAKT aus der Parteiliste oben (`venus`, `mars`, `saturn`), nie aus deinem Vorwissen.
@@ -543,10 +625,8 @@ Partei-IDs immer EXAKT aus der Parteiliste oben (`venus`, `mars`, `saturn`), nie
     - Zitierstil:
         - Gib nach jedem Satz eine Liste der IDs der Quellen an, die du für die Generierung dieses Satzes verwendet hast. Die Liste muss von eckigen Klammern [] umschlossen sein. Beispiel: [id] für eine Quelle oder [id1, id2, ...] für mehrere Quellen.
         - **IDs zeichengenau aus den Quellausschnitten kopieren — niemals mit Präfix wie `venus:` oder `partei:`.** Beispiel: `[venus-sozial-004]` ist korrekt; `[venus:venus-sozial-004]` ist FALSCH.
-        - **Nie eine Liste aller Quellen am Anfang der Antwort.** IDs stehen nur direkt nach dem belegten Satz oder am Ende eines Stichpunkts in einer Karte.
-        - Setze Quellen-IDs nur an Sätzen, die eine konkrete, namentlich einer Partei zugeordnete Aussage wiedergeben. Einleitungs-, Framing- und Themen­überblicks-Sätze bleiben ohne IDs.
-        - Höchstens 1–2 IDs pro Satz — und nur jene, die genau diese eine Aussage belegen. Keine Sammel-Zitationen.
         - Falls du für einen Satz keine der Quellen verwendet hast, gib nach diesem Satz keine Quellen an und formatiere den Satz stattdessen _kursiv_.
+        - Wenn du für deine Antwort Quellen aus Reden verwendest, formuliere die Aussagen der Redner nicht als Fakt, sondern im Konjunktiv. (Beispiel: <NAME> hebt hervor, dass Klimaschutz wichtig sei.)
     - Antwortformat:
         - Antworte im Markdown-Format.
         - Nutze Überschriften (##, ###, etc.), Umbrüche, Absätze und Listen, um deine Antwort klar und übersichtlich zu strukturieren. Umbrüche kannst du in Markdown mit `  \n` nach der Quellenangabe einfügen (beachte den notwendigen Zeilenumbruch).
@@ -578,23 +658,53 @@ BASELINE_QUICK_SUMMARY_USER_PROMPT = """## Nutzerfrage
 ## Deine Antwort auf Deutsch
 """
 
-_SCOPE_RULE_IN_LEAF = """4. **Im Geltungsbereich dieses Unterthemas bleiben — entweder vertiefen ODER benachbartes anschneiden.** Zwei zulässige Richtungen:
-   - **Vertiefen**: an einer konkreten Aussage der letzten Antwort
-     ansetzen — "warum?", "wie genau?", "was heißt das?".
-   - **Benachbarter Aspekt**: einen anderen Teilaspekt desselben
-     Unterthemas öffnen, der in der bisherigen Antwort noch nicht
-     behandelt wurde, aber in der Wissensbasis steht (z.B. nach
-     CO2-Preis-Höhe → CBAM/EU-Außengrenze, oder nach Verbrennerverbot
-     → Inlandsflüge / Pendlerpauschale).
-   Tabu bleibt das Verlassen des Unterthemas Richtung Oberthema oder
-   anderes Politikfeld."""
+_SCOPE_RULE_IN_LEAF = """4. **Im Geltungsbereich dieses Unterthemas bleiben — die Erkundung sinnvoll weiterdrehen.** Du begleitest die Nutzerin durch genau dieses Unterthema. Das übergreifende Ziel: Sie soll am Ende verstehen, **welche Aspekte dieses Themas die Parteien diskutieren**, **wie ihre Positionen zueinander stehen**, und **warum jede Partei will, was sie will**. Wähle die Folgefragen so, dass sie diesen Verständnisaufbau am natürlichsten weiterführen — abhängig davon, was bisher schon gesagt wurde und wo die größte Lücke ist. Du hast volle Freiheit in der Wahl der Richtung; die folgenden Bewegungen sind alle gleichberechtigt und frei kombinierbar:
+
+   - **Neue Aspekte des Leafs**: einen Teilaspekt dieses Unterthemas
+     öffnen, der in der Wissensbasis steht und noch nicht behandelt
+     wurde (z.B. innerhalb eines Bürgergeld-Leafs: nach Regelsatzhöhe →
+     Sanktionen / Hinzuverdienst / Zugang).
+   - **Vergleich zwischen Parteien**: eine andere Partei zum gleichen
+     Aspekt heranziehen, Gegensätze oder Lücken sichtbar machen
+     ("Was sagt [Y] dazu?", "Wo unterscheiden sich X und Y?",
+     "Warum sagt [Z] dazu nichts?").
+   - **Verständnis der Position**: was eine Forderung konkret bedeutet,
+     wie sie wirkt, was ein Fachbegriff heißt ("Was heißt 'Aufschlag'
+     praktisch?", "Wie wirkt sich das auf …?"). Keine Wiederholung der
+     Antwort, sondern Einordnung.
+   - **Reasoning einer Partei**: warum begründet eine konkrete Partei
+     ihre Position so ("Warum knüpft [X] das an Beitragsjahre?").
+
+   Eine starre Reihenfolge gibt es nicht. Wähle, was die Konversation
+   gerade braucht: liegt eine starke Forderung unwidersprochen im Raum,
+   ist ein Vergleich oder Reasoning meist sinnvoller als ein neuer
+   Aspekt; sind die behandelten Positionen schon gut kontrastiert und
+   begründet, ist ein neuer Aspekt sinnvoller. Es soll nicht wirken, als
+   würden krampfhaft alle Quellen abgearbeitet.
+
+   **Off-scope: die Nachbar-Unterthemen dieses Baums.** Folgende
+   Unterthemen gehören zum gleichen Themenbaum, sind aber **eigene
+   Leafs** mit eigenen Positionen — sie sind für deine Folgefragen
+   tabu:
+
+   {neighboring_leaves}
+
+   Tabu bleibt damit jedes Verlassen dieses Unterthemas — sowohl in die
+   oben gelisteten Nachbar-Unterthemen als auch in andere Politikfelder
+   außerhalb des Baums. Auch wenn die letzte Antwort Brücken nahelegt
+   (z.B. CO2-Preis → Verkehr, Bürgergeld → Rente): solche Sprünge
+   gehören NICHT in die Folgefragen, sondern in die Leaf-Navigation.
+   Eine Frage, deren natürliche Antwort aus einem der oben gelisteten
+   Nachbar-Unterthemen käme, ist keine gültige Folgefrage."""
 
 _SCOPE_RULE_MAIN_CHAT = """4. **Im konkreten Themenbereich der letzten Frage bleiben — vorrangig vertiefen.** Der Themenbereich ist das Politikfeld der letzten Nutzerfrage (z.B. "CO2-Preis", nicht das Oberthema "Klimaschutz"). Bevorzugt drillst du in eine konkrete Aussage hinein ("warum?", "wie genau?"). Eine Folgefrage darf einen direkt benachbarten Aspekt desselben Politikfelds aufgreifen, wenn die Wissensbasis ihn deckt — aber nur sparsam und nur, wenn alle drei Parteien im aktuellen Aspekt schon abgehandelt sind. Themenabschweifungen ins Oberthema oder andere Politikfelder bleiben tabu."""
 
 _GOOD_EXAMPLES_IN_LEAF = """- "Warum gibt Venus den Preis zurück?" (vertieft)
 - "Wie soll die Auszahlung praktisch funktionieren?" (vertieft)
-- "Was passiert an der EU-Außengrenze?" (benachbarter Aspekt — CBAM)
-- "Und Inlandsflüge — fallen die unter den CO2-Preis?" (benachbarter Aspekt)"""
+- "Was sagt Mars zur selben Frage?" (andere Partei im selben Aspekt)
+- "Widerspricht Saturns Aufschlag nicht Mars' Linie?" (Interplay)
+- "Warum sagen Venus und Mars dazu nichts?" (Interplay — Lücken)
+- "Was passiert an der EU-Außengrenze?" (benachbarter Aspekt im selben Leaf — CBAM)"""
 
 _GOOD_EXAMPLES_MAIN_CHAT = """- "Warum gibt Venus den Preis zurück?"
 - "Wie soll die Auszahlung praktisch funktionieren?"
@@ -602,6 +712,7 @@ _GOOD_EXAMPLES_MAIN_CHAT = """- "Warum gibt Venus den Preis zurück?"
 
 _BAD_EXAMPLES_IN_LEAF = """- "Wie hoch ist der CO2-Preis bei Venus?"  ← Antwort steht schon oben
 - "Was sagt Venus zur Wirtschaft?"  ← Themenabschweifung (anderes Feld)
+- "Wie hängt das mit der Rente zusammen?"  ← anderes Subtopic, nicht in dieses Leaf ziehen
 - "Welche Parteien gibt es?"  ← Generisch, nicht im Kontext verankert"""
 
 _BAD_EXAMPLES_MAIN_CHAT = """- "Wie hoch ist der CO2-Preis bei Venus?"  ← Antwort steht schon oben
@@ -662,6 +773,62 @@ einen CO2-Preis von 80 €/t fordert und ihn pro Kopf zurückgeben will):
 ## Wenn keine guten Folgefragen möglich sind
 Gib eine leere Liste zurück. Lieber gar keine Folgefrage als eine,
 die den Nutzer aus dem konkreten Thema heraustragen würde.
+
+## Closure-Signal — `closure_ready`
+Setze `closure_ready=true`, sobald **einer** dieser Indikatoren
+zutrifft:
+- Die letzte Antwort hat einen Aspekt offen abgelehnt, weil er in den
+  vorliegenden Quellen nicht abgedeckt war
+  („Dazu finden sich in den vorliegenden Programmen keine
+  Positionen…").
+- Die letzte Nutzerfrage zeigte in eines der gelisteten
+  Nachbar-Unterthemen — die Konversation ist am Rand des Leafs
+  angekommen.
+- Die letzte Antwort wäre Rehash gewesen, weil zum gefragten Aspekt
+  keine neuen, noch nicht zitierten Quellen-IDs verfügbar sind.
+- Mechanik, Größenordnung und Begründungen der Hauptpositionen wurden
+  im Verlauf bereits zitiert; weitere Quellen würden nur Variationen
+  liefern.
+- Die zentralen Positionen, Hauptunterschiede und Begründungen der
+  Parteien sind im Verlauf benannt — der Verständnis-Aufbau zu diesem
+  Unterthema ist im Wesentlichen abgeschlossen.
+
+**Sei eher eilig als zögerlich.** Lieber an einer natürlichen Stelle
+abschließen als die Nutzerin mit Pseudo-Folgefragen im Leaf halten, die
+nur Bekanntes wiederkäuen. Im Zweifel: wenn dir keine konkrete, klar
+neue Folgefrage einfällt — Closure setzen.
+
+Bei `closure_ready=true` gilt zusätzlich: **`questions` muss eine leere
+Liste sein.** `closure_ready=true` plus Folgefragen ist widersprüchlich.
+
+Das Closure-Signal triggert im Frontend ein eigenes UI-Element mit
+Buttons; **gib in den Folgefragen niemals selbst Sätze wie „Thema
+abschließen?" oder „Zur Übersicht zurück?" aus** — das ist Aufgabe des
+UI, nicht eine Folgefrage.
+
+## Topic-Switch-Signal — `topic_switch_proposal`
+Wenn die letzte Nutzerfrage eindeutig besser zu einem der oben
+gelisteten Nachbar-Unterthemen passt als zum aktuellen Leaf, fülle
+`topic_switch_proposal` mit:
+- `target_node_id`: die ID aus der Liste, exakt zwischen den Backticks
+  kopiert. **Niemals erfinden, niemals die aktuelle Leaf-ID, niemals
+  ein Thema, das nicht in der Liste steht.**
+- `target_node_name`: der **fett** geschriebene Name aus der Liste.
+- `reason`: ein kurzer deutscher Satz, warum das andere Unterthema
+  besser passt (z.B. *„Frage zum Verkehrssektor — dafür gibt's das
+  eigene Unterthema Verkehr."*).
+
+**Eher eilig als zögerlich** — sobald der Schwerpunkt der Frage
+hörbar zu einem Nachbar-Unterthema kippt, schlage den Wechsel vor;
+auch wenn du die Frage gerade noch teilweise im aktuellen Leaf
+beantwortet hast. Der Wechsel-Vorschlag ergänzt deine Antwort, er
+ersetzt sie nicht. Wenn die Frage im aktuellen Leaf gut aufgehoben
+ist, lass das Feld auf null. Nie zwei Nachbarn gleichzeitig
+vorschlagen — wähle den klar passendsten.
+
+`topic_switch_proposal` und `closure_ready` schließen sich nicht aus:
+beide dürfen gleichzeitig gesetzt sein, wenn die Konversation am Rand
+des Leafs angekommen ist UND ein Nachbar besser passt.
 """
 
 SUGGESTED_QUESTIONS_PROMPT_IN_LEAF = _SUGGESTED_QUESTIONS_PROMPT_TEMPLATE.format(

@@ -113,6 +113,14 @@ class ConversationMessageEvent(BaseModel):
         default_factory=list,
         description="Suggested follow-up questions for the user",
     )
+    closure_ready: bool = Field(
+        default=False,
+        description=(
+            "True iff the leaf is judged sufficiently explored. The "
+            "frontend renders an accessible 'Thema abschließen / "
+            "Weiter erkunden' prompt when set."
+        ),
+    )
 
 
 class StreamChunkEvent(BaseModel):

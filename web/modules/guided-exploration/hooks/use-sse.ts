@@ -359,6 +359,14 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
               ),
             );
           }
+          // Closure prompt — backend signals the leaf is substantially explored.
+          // Reducer also clears it on next THINKING_STARTED, so a follow-up
+          // turn starts with a fresh judgement.
+          if (msgEvent.closureReady) {
+            dispatchRef.current(
+              uiActions.closurePromptShown(explorationId, msgEvent.leafId),
+            );
+          }
           // End thinking after receiving a message
           dispatchRef.current(uiActions.thinkingEnded());
           dispatchRef.current(uiActions.announce('Neue Nachricht erhalten'));

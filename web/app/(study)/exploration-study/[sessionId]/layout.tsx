@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import {
   StudyLayout,
   type StudySession,
+  StudySessionProvider,
   getRouteForState,
   getStateFromResponse,
   studyApi,
@@ -133,9 +134,11 @@ export default function StudySessionLayout({
 
   return (
     <ContextProvider parties={STUDY_FAKE_PARTIES}>
-      <StudyLayout state={session.state} hideHeader={isTaskPage}>
-        {children}
-      </StudyLayout>
+      <StudySessionProvider session={session}>
+        <StudyLayout state={session.state} hideHeader={isTaskPage}>
+          {children}
+        </StudyLayout>
+      </StudySessionProvider>
     </ContextProvider>
   );
 }

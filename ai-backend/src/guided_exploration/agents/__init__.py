@@ -37,13 +37,6 @@ from src.guided_exploration.agents.conversation_handler import (
     ConversationHandlerAgent,
     ConversationHandlerInput,
 )
-from src.guided_exploration.agents.followup_router import (
-    FollowupRoute,
-    FollowupRouterAgent,
-    FollowupRouterInput,
-    FollowupRouterOutput,
-    LeafInfo,
-)
 from src.guided_exploration.agents.hierarchy_builder import (
     HierarchyBuilderAgent,
     HierarchyBuilderInput,

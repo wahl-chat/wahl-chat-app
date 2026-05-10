@@ -678,7 +678,6 @@ async def submit_quiz(request: web.Request) -> web.Response:
             status=400,
         )
 
-    # Create answer objects and calculate score (with partial credit).
     from src.exploration_study.models.quiz import grade_answer
 
     answers = []
@@ -686,23 +685,19 @@ async def submit_quiz(request: web.Request) -> web.Response:
         question = next(
             (q for q in quiz.questions if q.id == answer_req.question_id), None
         )
-        if question is None:
-            is_correct, credit = False, 0.0
-        else:
-            is_correct, credit = grade_answer(question, answer_req.selected_index)
+        is_correct = grade_answer(question, answer_req.selected_index) if question else False
 
         answers.append(
             QuizAnswer(
                 question_id=answer_req.question_id,
                 selected_index=answer_req.selected_index,
                 is_correct=is_correct,
-                credit=credit,
                 response_time_ms=answer_req.response_time_ms,
             )
         )
 
-    total_correct, total_credit, total_questions, score_percentage = (
-        calculate_quiz_score(quiz.questions, answers)
+    total_correct, total_questions, score_percentage = calculate_quiz_score(
+        quiz.questions, answers
     )
 
     submission = QuizSubmission(
@@ -710,24 +705,20 @@ async def submit_quiz(request: web.Request) -> web.Response:
         answers=answers,
         submitted_at=datetime.now(timezone.utc),
         total_correct=total_correct,
-        total_credit=total_credit,
         total_questions=total_questions,
         score_percentage=score_percentage,
     )
     await session_repo.save_quiz_submission(session_id, submission)
 
-    # Update condition with quiz submission time
     condition = session.condition
     condition.quiz_id = quiz.id
     condition.quiz_submitted_at = datetime.now(timezone.utc)
     await session_repo.update_condition_data(session_id, condition)
 
-    # Move to post-task demographics (the final step before COMPLETE)
     await session_repo.update_state(session_id, StudyState.DEMOGRAPHICS)
 
     response = QuizResultResponse(
         total_correct=total_correct,
-        total_credit=total_credit,
         total_questions=total_questions,
         score_percentage=score_percentage,
         next_state=StudyState.DEMOGRAPHICS,
@@ -878,7 +869,6 @@ async def get_quiz_result(request: web.Request) -> web.Response:
 
     response = QuizScoreResponse(
         total_correct=submission.total_correct,
-        total_credit=submission.total_credit,
         total_questions=submission.total_questions,
         score_percentage=submission.score_percentage,
     )

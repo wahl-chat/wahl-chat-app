@@ -225,20 +225,18 @@ class FactualQueryHandler:
             if history_lines:
                 conversation_history_text = "\n".join(history_lines)
 
-        suggested_questions = (
-            await self._summary_generator.generate_suggested_questions(
-                query=query,
-                response=full_text,
-                available_context=available_context,
-                conversation_history=conversation_history_text,
-            )
+        suggestions = await self._summary_generator.generate_suggested_questions(
+            query=query,
+            response=full_text,
+            available_context=available_context,
+            conversation_history=conversation_history_text,
         )
 
         await self._streaming.send_chat_message(
             session_id,
             full_text,
             citations=used_citations,
-            suggested_questions=suggested_questions,
+            suggested_questions=suggestions.questions,
         )
 
         await self._repo.add_session_message(

@@ -60,9 +60,11 @@ export function ExplorationMain({ initialSessionId }: ExplorationMainProps) {
     leafStreamingTargetType,
     leafSuggestedQuestions,
     leafTopicSwitchSuggestion,
+    leafClosureActive,
     sendLeafMessage,
     acceptTopicSwitch,
     dismissTopicSwitch,
+    dismissClosurePrompt,
     markExplored,
 
     explorationPending,
@@ -167,6 +169,7 @@ export function ExplorationMain({ initialSessionId }: ExplorationMainProps) {
         streamingTargetType={leafStreamingTargetType}
         topicSwitchSuggestion={leafTopicSwitchSuggestion}
         suggestedQuestions={leafSuggestedQuestions}
+        showClosurePrompt={leafClosureActive}
         onSendMessage={sendLeafMessage}
         onAcceptSwitch={
           leafTopicSwitchSuggestion
@@ -182,6 +185,7 @@ export function ExplorationMain({ initialSessionId }: ExplorationMainProps) {
               }
             : undefined
         }
+        onContinueExploring={dismissClosurePrompt}
         onClose={closeLeaf}
       />
     </div>

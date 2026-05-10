@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { ConversationInput } from '@/modules/guided-exploration/components/conversation/conversation-input';
+import { LeafClosurePrompt } from '@/modules/guided-exploration/components/conversation/leaf-closure-prompt';
 import { LeafContent } from '@/modules/guided-exploration/components/exploration-view/leaf-content';
 import type {
   Conversation,
@@ -36,6 +37,12 @@ interface LeafSidebarProps {
   } | null;
   suggestedQuestions?: string[];
   /**
+   * When true the LLM has judged the leaf substantially explored. The
+   * composer is replaced by an accessible closure prompt for as long as
+   * this is set.
+   */
+  showClosurePrompt?: boolean;
+  /**
    * Hide the "Nach Aspekt" toggle and aspect comparison view (study mode).
    */
   hideAspectView?: boolean;
@@ -52,6 +59,10 @@ interface LeafSidebarProps {
    * responsible for both updating server state and closing the sheet.
    */
   onMarkExplored?: () => void;
+  /**
+   * Called when the user dismisses the closure prompt to keep exploring.
+   */
+  onContinueExploring?: () => void;
   onClose: () => void;
 }
 
@@ -73,12 +84,14 @@ export function LeafSidebar({
   streamingTargetType,
   topicSwitchSuggestion,
   suggestedQuestions = [],
+  showClosurePrompt = false,
   hideAspectView = false,
   showMissingPartiesPlaceholder = false,
   onSendMessage,
   onAcceptSwitch,
   onDismissSwitch,
   onMarkExplored,
+  onContinueExploring,
   onClose,
 }: LeafSidebarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -178,15 +191,24 @@ export function LeafSidebar({
         </div>
 
         <div className="flex shrink-0 flex-col gap-2 border-t bg-background px-4 py-3">
-          <ConversationInput
-            onSubmit={onSendMessage}
-            disabled={isThinking}
-            placeholder={'Frag mich alles dazu — z.B. „Wer zahlt das?"'}
-            suggestedQuestions={suggestedQuestions}
-            isLoadingQuestions={
-              (isThinking || !!isStreaming) && suggestedQuestions.length === 0
-            }
-          />
+          {showClosurePrompt ? (
+            <LeafClosurePrompt
+              onClose={onMarkExplored ?? (() => {})}
+              onContinue={onContinueExploring ?? (() => {})}
+              closeDisabled={!onMarkExplored || markExploredDisabled}
+              continueDisabled={!onContinueExploring}
+            />
+          ) : (
+            <ConversationInput
+              onSubmit={onSendMessage}
+              disabled={isThinking}
+              placeholder={'Frag mich alles dazu — z.B. „Wer zahlt das?"'}
+              suggestedQuestions={suggestedQuestions}
+              isLoadingQuestions={
+                (isThinking || !!isStreaming) && suggestedQuestions.length === 0
+              }
+            />
+          )}
         </div>
       </SheetContent>
     </Sheet>
