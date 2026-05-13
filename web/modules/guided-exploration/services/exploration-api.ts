@@ -42,11 +42,6 @@ export interface RequestAnalysisRequest {
   leafId: string;
 }
 
-export interface ExportRequest {
-  includeAnalysis: boolean;
-  includeUnexplored: boolean;
-}
-
 // ============ Response Types (camelCase after conversion) ============
 
 export interface CreateSessionResponse {
@@ -95,11 +90,6 @@ export interface GetExplorationResponse {
   status: 'active' | 'completed';
   tree: ExplorationTree;
   createdAt: string;
-}
-
-export interface ExportResponse {
-  exportId: string;
-  status: 'generating';
 }
 
 // Debug types (camelCase after conversion)
@@ -307,35 +297,6 @@ export async function endExploration(
 }
 
 /**
- * Request PDF export
- */
-export async function requestExport(
-  sessionId: string,
-  explorationId: string,
-  req: ExportRequest,
-): Promise<ExportResponse> {
-  return request<ExportResponse>(
-    `/sessions/${sessionId}/explorations/${explorationId}/export`,
-    {
-      method: 'POST',
-      body: req,
-    },
-  );
-}
-
-/**
- * Get export download URL
- * Returns the URL to download the PDF, or null if not ready
- */
-export function getExportDownloadUrl(
-  sessionId: string,
-  explorationId: string,
-  exportId: string,
-): string {
-  return `${API_BASE}/sessions/${sessionId}/explorations/${explorationId}/export/${exportId}`;
-}
-
-/**
  * Mark a leaf as explored
  */
 export async function markExplored(
@@ -376,8 +337,6 @@ export const explorationApi = {
   navigate,
   requestAnalysis,
   endExploration,
-  requestExport,
-  getExportDownloadUrl,
   markExplored,
   getKnowledgeBase,
 };

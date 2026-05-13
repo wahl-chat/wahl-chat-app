@@ -36,7 +36,10 @@ class ExtractedPositionItem(BaseModel):
     )
     citation_id: str | None = Field(
         default=None,
-        description="ID of the citation for this position (set during knowledge resolution)",
+        description=(
+            "ID of the citation backing this position. Set by the "
+            "position_extractor agent when it builds the citation pool."
+        ),
     )
 
 

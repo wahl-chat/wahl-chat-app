@@ -207,13 +207,10 @@ class NavigationHandler:
         leaf_id: str,
         leaf_name: str,
         leaf_parties: list[str],
-        context_name: str = "",
-        parties_info: dict[str, PartyInfo] | None = None,
+        context_name: str,
+        parties_info: dict[str, PartyInfo],
     ) -> tuple[Conversation, NavigationState]:
         """Open a leaf — generate or reuse content, persist, emit opened event."""
-        if parties_info is None:
-            parties_info = {}
-
         # B2: Check the pre-gen registry FIRST to avoid a race where the task
         # completes and the finally-pop removes the key between get_conversation
         # and the registry check — which would cause a duplicate LLM call.

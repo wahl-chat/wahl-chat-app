@@ -59,7 +59,7 @@ class AnalysisHandler:
         exploration_id: str,
         leaf_id: str,
     ) -> dict:
-        """Stream the analyzer's output and emit an AnalysisResultEvent."""
+        """Run the analyzer and persist its output as an assistant message."""
         session = await self._repo.get_session(session_id)
         if not session:
             return {"status": "error", "code": "session_not_found"}

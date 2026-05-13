@@ -31,11 +31,9 @@ class PositionExtractorAgent(BaseAgent[PositionExtractorInput, PositionExtractor
     """
     Extracts concrete positions from a single party's documents.
 
-    Unlike the old PartyTopicResolverAgent which extracted abstract topics,
-    this agent extracts discrete, quotable statements — positions, demands,
-    measures, targets, arguments, and criticisms.
-
-    Each party is processed independently, allowing parallel execution.
+    Produces discrete, quotable statements — positions, demands, measures,
+    targets, arguments, and criticisms. Each party is processed
+    independently, allowing parallel execution.
     """
 
     def __init__(self, llm_provider: LLMProvider):

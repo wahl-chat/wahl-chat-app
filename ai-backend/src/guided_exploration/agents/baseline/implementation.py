@@ -9,7 +9,6 @@ arm. Single public ``stream`` method — the agent has one job and one
 prompt regime.
 """
 
-import logging
 from collections.abc import AsyncIterator
 
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
@@ -31,8 +30,6 @@ from src.guided_exploration.agents.baseline.prompts import (
     CITATION_DIRECTIVE,
 )
 from src.guided_exploration.agents.llm_provider import LLMProvider
-
-logger = logging.getLogger(__name__)
 
 
 class BaselineAgent:

@@ -8,7 +8,7 @@ from typing import Literal, Union
 
 from pydantic import BaseModel, Field
 
-from src.guided_exploration.models.content import Analysis, Citation
+from src.guided_exploration.models.content import Citation
 from src.guided_exploration.models.conversation import Conversation, Message
 from src.guided_exploration.models.navigation import NavigationState, SiblingNavigation
 from src.guided_exploration.models.tree import ExplorationNode, ExplorationTree
@@ -31,14 +31,22 @@ class ThinkingEvent(BaseModel):
     message: str = Field(..., description="Human-readable status message")
 
 
+class ChoiceOption(BaseModel):
+    """One of the two options offered in a choice prompt."""
+
+    id: Literal["summary", "explore"]
+    label: str
+    description: str
+
+
 class ChoicePromptEvent(BaseModel):
     """Sent when user needs to choose exploration vs quick answer."""
 
     type: Literal["choice_prompt"] = "choice_prompt"
     query_id: str = Field(..., description="ID for tracking this query")
     original_query: str = Field(..., description="The user's original query")
-    options: list[dict] = Field(
-        ..., description="Available options for the user to choose"
+    options: tuple[ChoiceOption, ChoiceOption] = Field(
+        ..., description="The two options offered (summary, explore)"
     )
 
 
@@ -52,14 +60,14 @@ class TopicTreeEvent(BaseModel):
 
 
 class ExplorationReadyEvent(BaseModel):
-    """Sent when exploration is fully ready (knowledge base loaded after Phase 4)."""
+    """Sent when the exploration tree has been built and is navigable."""
 
     type: Literal["exploration_ready"] = "exploration_ready"
     exploration_id: str = Field(..., description="ID of the exploration")
     topics_count: int = Field(..., description="Number of topics in the tree")
-    subtopics_count: int = Field(..., description="Number of subtopics with knowledge")
+    subtopics_count: int = Field(..., description="Number of subtopics in the tree")
     parties_count: int = Field(
-        ..., description="Number of parties with resolved knowledge"
+        ..., description="Number of parties covered by the exploration"
     )
 
 
@@ -167,14 +175,6 @@ class QuickSummaryEvent(BaseModel):
     )
 
 
-class AnalysisResultEvent(BaseModel):
-    """Sent when analysis is generated."""
-
-    type: Literal["analysis_result"] = "analysis_result"
-    leaf_id: str = Field(..., description="ID of the analyzed leaf")
-    analysis: Analysis = Field(..., description="The generated analysis")
-
-
 class ExplorationCompleteEvent(BaseModel):
     """Sent when exploration is completed."""
 
@@ -185,17 +185,6 @@ class ExplorationCompleteEvent(BaseModel):
     unexplored_topics: list[dict] = Field(
         ..., description="Topics that were not explored"
     )
-
-
-class ExportReadyEvent(BaseModel):
-    """Sent when PDF export is ready."""
-
-    type: Literal["export_ready"] = "export_ready"
-    exploration_id: str = Field(..., description="ID of the exported exploration")
-    export_id: str = Field(..., description="ID of the export")
-    download_url: str = Field(..., description="URL to download the PDF")
-    expires_at: str = Field(..., description="When the download URL expires")
-    filename: str = Field(..., description="Suggested filename")
 
 
 class ChatMessageEvent(BaseModel):
@@ -227,19 +216,6 @@ class ErrorEvent(BaseModel):
     recoverable: bool = Field(..., description="Whether the error is recoverable")
     suggested_action: str | None = Field(
         default=None, description="Suggested action for the user"
-    )
-
-
-class ReconnectedEvent(BaseModel):
-    """Sent when reconnecting to an existing session."""
-
-    type: Literal["reconnected"] = "reconnected"
-    session_id: str = Field(..., description="The reconnected session ID")
-    active_exploration: dict | None = Field(
-        default=None, description="Active exploration state if any"
-    )
-    resuming_stream: dict | None = Field(
-        default=None, description="Stream being resumed if any"
     )
 
 
@@ -302,12 +278,9 @@ SSEEvent = Union[
     StreamEndEvent,
     QuickSummaryEvent,
     ChatMessageEvent,
-    AnalysisResultEvent,
     ExplorationCompleteEvent,
-    ExportReadyEvent,
     ErrorEvent,
     TopicSwitchSuggestedEvent,
     TopicDirectionsEvent,
-    ReconnectedEvent,
     SessionClaimedEvent,
 ]

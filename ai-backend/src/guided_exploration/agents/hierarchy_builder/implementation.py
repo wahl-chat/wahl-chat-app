@@ -40,9 +40,6 @@ class HierarchyBuilderAgent(BaseAgent[HierarchyBuilderInput, HierarchyBuilderOut
     Takes all positions from all parties and organizes them into a multi-level
     tree structure. The decomposition is adaptive — the LLM chooses the best
     structure (thematic, policy-type, or hybrid) based on the actual content.
-
-    Key difference from TopicCombinerAgent: works with concrete positions
-    (bottom-up) rather than abstract topic trees (top-down merging).
     """
 
     def __init__(self, llm_provider: LLMProvider):

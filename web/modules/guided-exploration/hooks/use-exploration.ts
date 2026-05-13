@@ -456,8 +456,6 @@ export function useExploration(options: UseExplorationOptions = {}) {
     markExplored,
     requestAnalysis,
     endExploration: api.endExploration,
-    requestExport: api.requestExport,
-    getExportUrl: api.getExportUrl,
     loadExploration: api.loadExploration,
 
     // Signals

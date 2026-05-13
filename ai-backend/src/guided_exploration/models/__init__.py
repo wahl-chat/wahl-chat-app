@@ -6,12 +6,8 @@
 
 from src.guided_exploration.models.position import Position, PartyPositions
 from src.guided_exploration.models.classification import (
-    MessageClassificationInput,
-    MessageClassificationOutput,
     MessageIntent,
     NavigationTarget,
-    QueryClassificationInput,
-    QueryClassificationOutput,
     QueryType,
 )
 from src.guided_exploration.models.content import (
@@ -30,15 +26,14 @@ from src.guided_exploration.models.conversation import (
 from src.guided_exploration.models.errors import (
     AuthorizationError,
     ExplorationNotFoundError,
-    ExportGenerationError,
     GuidedExplorationError,
     InsufficientChunksError,
     InvalidNavigationError,
     SessionNotFoundError,
 )
 from src.guided_exploration.models.events import (
-    AnalysisResultEvent,
     ChatMessageEvent,
+    ChoiceOption,
     ChoicePromptEvent,
     ConnectedEvent,
     ConversationMessageEvent,
@@ -46,9 +41,7 @@ from src.guided_exploration.models.events import (
     ErrorEvent,
     ExplorationCompleteEvent,
     ExplorationReadyEvent,
-    ExportReadyEvent,
     QuickSummaryEvent,
-    ReconnectedEvent,
     SessionClaimedEvent,
     SSEEvent,
     StreamChunkEvent,
@@ -74,17 +67,12 @@ from src.guided_exploration.models.navigation import (
     SiblingNavigation,
 )
 from src.guided_exploration.models.session import (
-    ExplorationContext,
-    ExportOptions,
-    ExportResult,
     FlaggedCitation,
-    PartialStream,
     Session,
     SessionInfo,
     SessionMessage,
     SessionMessageType,
     SessionMode,
-    SessionReconnectState,
 )
 from src.guided_exploration.models.streaming import StreamChunk
 from src.guided_exploration.models.tree import (
@@ -98,12 +86,8 @@ __all__ = [
     "Position",
     "PartyPositions",
     # classification
-    "MessageClassificationInput",
-    "MessageClassificationOutput",
     "MessageIntent",
     "NavigationTarget",
-    "QueryClassificationInput",
-    "QueryClassificationOutput",
     "QueryType",
     # content
     "Analysis",
@@ -119,14 +103,13 @@ __all__ = [
     # errors
     "AuthorizationError",
     "ExplorationNotFoundError",
-    "ExportGenerationError",
     "GuidedExplorationError",
     "InsufficientChunksError",
     "InvalidNavigationError",
     "SessionNotFoundError",
     # events
-    "AnalysisResultEvent",
     "ChatMessageEvent",
+    "ChoiceOption",
     "ChoicePromptEvent",
     "ConnectedEvent",
     "ConversationMessageEvent",
@@ -134,9 +117,7 @@ __all__ = [
     "ErrorEvent",
     "ExplorationCompleteEvent",
     "ExplorationReadyEvent",
-    "ExportReadyEvent",
     "QuickSummaryEvent",
-    "ReconnectedEvent",
     "SessionClaimedEvent",
     "SSEEvent",
     "StreamChunkEvent",
@@ -159,17 +140,12 @@ __all__ = [
     "NavigationState",
     "SiblingNavigation",
     # session
-    "ExplorationContext",
-    "ExportOptions",
-    "ExportResult",
     "FlaggedCitation",
-    "PartialStream",
     "Session",
     "SessionInfo",
     "SessionMessage",
     "SessionMessageType",
     "SessionMode",
-    "SessionReconnectState",
     # streaming
     "StreamChunk",
     # tree

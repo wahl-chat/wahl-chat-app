@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from firebase_admin import firestore_async
-from google.cloud.firestore_v1 import DocumentReference
+from google.cloud.firestore_v1 import DocumentReference, async_transactional
 
 from src.guided_exploration.models import (
     Conversation,
@@ -142,20 +142,30 @@ class SessionRepository:
         message_id: str,
         updates: dict,
     ) -> None:
-        """Update fields on a specific session message by ID."""
-        session = await self.get_session(session_id)
-        if not session:
-            return
+        """Update fields on a specific session message by ID.
 
-        updated_messages = []
-        for msg in session.messages:
-            data = msg.model_dump(mode="json")
-            if data.get("id") == message_id:
-                data.update(updates)
-            updated_messages.append(data)
-
+        Wrapped in a Firestore transaction so concurrent updates on the
+        ``messages`` array don't clobber each other — the array is read
+        and written as a unit, and read-modify-write outside a transaction
+        would race.
+        """
         doc_ref = self._db.collection(SESSIONS_COLLECTION).document(session_id)
-        await doc_ref.update({"messages": updated_messages})
+
+        @async_transactional
+        async def _apply(tx) -> None:
+            snapshot = await doc_ref.get(transaction=tx)
+            if not snapshot.exists:
+                return
+            data = snapshot.to_dict() or {}
+            raw_messages = data.get("messages", [])
+            updated: list[dict] = []
+            for raw in raw_messages:
+                if raw.get("id") == message_id:
+                    raw = {**raw, **updates}
+                updated.append(raw)
+            tx.update(doc_ref, {"messages": updated})
+
+        await _apply(self._db.transaction())
 
     async def get_session_messages(
         self,
@@ -195,7 +205,6 @@ class SessionRepository:
             original_query: The user's original query
             tree: The topic tree structure
             exploration_id: Optional pre-generated exploration ID
-            knowledge_base: Optional knowledge base with resolved knowledge for all subtopics
         """
         exploration_id = exploration_id or str(uuid4())
         now = datetime.now(timezone.utc)
@@ -280,19 +289,10 @@ class SessionRepository:
     ) -> Exploration | None:
         """Get the active exploration for a session."""
         session = await self.get_session(session_id)
-        if not session:
+        if not session or not session.active_exploration_id:
             return None
 
-        session_doc = (
-            await self._db.collection(SESSIONS_COLLECTION).document(session_id).get()
-        )
-        session_data = session_doc.to_dict()
-
-        exploration_id = session_data.get("active_exploration_id")
-        if not exploration_id:
-            return None
-
-        return await self.get_exploration(session_id, exploration_id)
+        return await self.get_exploration(session_id, session.active_exploration_id)
 
     async def list_explorations(
         self,

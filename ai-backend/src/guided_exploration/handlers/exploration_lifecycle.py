@@ -226,8 +226,8 @@ class ExplorationLifecycleHandler:
 
             return {"status": "insufficient_data"}
 
-        except Exception as e:
-            logger.error(f"Failed to start exploration: {e}")
+        except Exception:
+            logger.exception("Failed to start exploration")
             await self._streaming.send_error(
                 session_id,
                 "exploration_failed",

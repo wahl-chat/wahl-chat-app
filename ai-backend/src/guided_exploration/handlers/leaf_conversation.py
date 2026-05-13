@@ -164,7 +164,6 @@ class LeafConversationHandler:
             exploration=exploration,
             leaf_id=leaf_id,
             user_message=user_message,
-            message_type=classification.intent,
             context_name=context_name,
             parties_info=parties_info,
             conversation=conversation,
@@ -266,7 +265,6 @@ class LeafConversationHandler:
             exploration=exploration,
             leaf_id=leaf_id,
             user_message=user_message,
-            message_type=MessageIntent.FOLLOWUP_QUESTION,
             context_name=context_name,
             parties_info=parties_info,
             conversation=conversation,
@@ -280,7 +278,6 @@ class LeafConversationHandler:
         exploration: Exploration,
         leaf_id: str,
         user_message: str,
-        message_type: MessageIntent,
         context_name: str,
         parties_info: dict[str, PartyInfo],
         conversation: Conversation | None = None,
@@ -332,7 +329,6 @@ class LeafConversationHandler:
         exploration: Exploration,
         leaf_id: str,
         user_message: str,
-        message_type: MessageIntent,
         context_name: str,
         parties_info: dict[str, PartyInfo],
         conversation: Conversation | None,
@@ -368,16 +364,6 @@ class LeafConversationHandler:
         conversation_history = conversation.messages if conversation else []
 
         already_cited_ids = self._gather_already_cited_ids(conversation, resolved)
-        new_chunk_ids: list[str] = []
-        for chunks in resolved.party_chunks.values():
-            for chunk in chunks:
-                if chunk.chunk_id and chunk.chunk_id not in already_cited_ids:
-                    new_chunk_ids.append(chunk.chunk_id)
-        logger.info(
-            f"Follow-up exhaustion signal leaf={leaf_id} "
-            f"already_cited={len(already_cited_ids)} "
-            f"new_chunks={len(new_chunk_ids)}"
-        )
 
         now = datetime.now(timezone.utc)
         user_msg = Message(

@@ -16,6 +16,7 @@ from src.guided_exploration.handlers.exploration_lifecycle import (
 )
 from src.guided_exploration.handlers.quick_summary import QuickSummaryHandler
 from src.guided_exploration.models import (
+    ChoiceOption,
     ChoicePromptEvent,
     RetrievedChunk,
     SessionMessage,
@@ -95,18 +96,18 @@ class ChoiceFlowHandler:
             session_id, "planning", "Identifiziere relevante Themen..."
         )
 
-        options = [
-            {
-                "id": "summary",
-                "label": "Schnelle Antwort",
-                "description": "Kompakte Übersicht der Parteipositionen",
-            },
-            {
-                "id": "explore",
-                "label": "Thema vertiefen",
-                "description": "Aspekte auswählen und Positionen im Detail vergleichen",
-            },
-        ]
+        options: tuple[ChoiceOption, ChoiceOption] = (
+            ChoiceOption(
+                id="summary",
+                label="Schnelle Antwort",
+                description="Kompakte Übersicht der Parteipositionen",
+            ),
+            ChoiceOption(
+                id="explore",
+                label="Thema vertiefen",
+                description="Aspekte auswählen und Positionen im Detail vergleichen",
+            ),
+        )
 
         # Persist a research-only audit message so the study admin can see
         # the participant was offered the explore-vs-summary choice. The
@@ -116,7 +117,7 @@ class ChoiceFlowHandler:
             type=SessionMessageType.CHOICE_PROMPT,
             query_id=query_id,
             original_query=original_query,
-            options=options,
+            options=[opt.model_dump(mode="json") for opt in options],
             timestamp=datetime.now(timezone.utc),
         )
         await self._repo.add_session_message(session_id, choice_prompt_msg)

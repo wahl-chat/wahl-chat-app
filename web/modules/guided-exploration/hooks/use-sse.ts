@@ -22,7 +22,6 @@ import {
   useExplorationStore,
 } from '@/modules/guided-exploration/store';
 import type {
-  AnalysisResultEvent,
   ChatMessageEvent,
   ChoicePromptEvent,
   Citation,
@@ -116,7 +115,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
 
   // Tracks the active leaf scope for the current leaf-targeted stream.
   // Stamped on stream_chunk(chunkIndex===0) and read by follow-up events
-  // that lack their own explorationId (conversation_message, analysis_result,
+  // that lack their own explorationId (conversation_message,
   // topic_switch_suggested). Persists past stream_end so late-arriving
   // conversation_message events still resolve their owning exploration even
   // after the user closes the sidebar.
@@ -368,27 +367,6 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           // End thinking after receiving a message
           dispatchRef.current(uiActions.thinkingEnded());
           dispatchRef.current(uiActions.announce('Neue Nachricht erhalten'));
-          break;
-        }
-
-        case 'analysis_result': {
-          const analysisEvent = event as AnalysisResultEvent;
-          const explorationId = resolveLeafScope(analysisEvent.leafId);
-          if (!explorationId) {
-            console.warn(
-              '[SSE] analysis_result without resolvable explorationId',
-              analysisEvent,
-            );
-            break;
-          }
-          dispatchRef.current(
-            conversationActions.analysisReceived(
-              explorationId,
-              analysisEvent.leafId,
-              analysisEvent.analysis,
-            ),
-          );
-          dispatchRef.current(uiActions.announce('Analyse geladen'));
           break;
         }
 

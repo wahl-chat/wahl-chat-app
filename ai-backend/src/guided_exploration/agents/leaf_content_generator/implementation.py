@@ -4,9 +4,7 @@
 
 """Implementation of leaf content generator agent."""
 
-import asyncio
 import logging
-from collections.abc import AsyncIterator
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -16,7 +14,7 @@ from src.guided_exploration.agents._shared import (
     EXPLORATION_GOALS,
     LEAF_CONTENT_APPLICATION_CONTEXT,
 )
-from src.guided_exploration.agents.base import StreamingAgent
+from src.guided_exploration.agents.base import BaseAgent
 from src.guided_exploration.agents.leaf_content_generator.interface import (
     LeafContentGeneratorInput,
 )
@@ -36,17 +34,12 @@ from src.guided_exploration.models.content import (
     PartyStance,
     SubtopicContent,
 )
-from src.guided_exploration.models.streaming import StreamChunk
 
 logger = logging.getLogger(__name__)
 
-# Streaming configuration
-WORDS_PER_CHUNK = 5
-CHUNK_DELAY = 0.05  # 50ms between chunks
-
 
 class LeafContentGeneratorAgent(
-    StreamingAgent[LeafContentGeneratorInput, SubtopicContent]
+    BaseAgent[LeafContentGeneratorInput, SubtopicContent]
 ):
     """
     Generates structured content for a leaf node from its positions.
@@ -68,21 +61,6 @@ class LeafContentGeneratorAgent(
     @property
     def name(self) -> str:
         return "leaf_content_generator"
-
-    async def stream(
-        self, input: LeafContentGeneratorInput
-    ) -> AsyncIterator[StreamChunk]:
-        """Stream content generation for the leaf node."""
-        content = await self._generate_content(input)
-
-        async for chunk in self._stream_text(content.summary, "summary"):
-            yield chunk
-
-        positions_text = self._format_positions_for_streaming(content.party_positions)
-        async for chunk in self._stream_text(positions_text, "party_positions"):
-            yield chunk
-
-        yield StreamChunk(content="", is_final=True, section=None)
 
     async def execute(self, input: LeafContentGeneratorInput) -> SubtopicContent:
         """Non-streaming execution returning complete content."""
@@ -167,16 +145,6 @@ class LeafContentGeneratorAgent(
             suggested_questions=llm_output.suggested_questions,
         )
 
-    async def _stream_text(self, text: str, section: str) -> AsyncIterator[StreamChunk]:
-        """Stream text in word chunks."""
-        words = text.split()
-        for i in range(0, len(words), WORDS_PER_CHUNK):
-            chunk = " ".join(words[i : i + WORDS_PER_CHUNK])
-            if i + WORDS_PER_CHUNK < len(words):
-                chunk += " "
-            yield StreamChunk(content=chunk, section=section, is_final=False)
-            await asyncio.sleep(CHUNK_DELAY)
-
     async def _extract_aspects(
         self,
         subtopic_name: str,
@@ -246,9 +214,3 @@ class LeafContentGeneratorAgent(
             ]
         )
 
-    def _format_positions_for_streaming(self, positions: list[PartyPosition]) -> str:
-        """Format party positions for streaming."""
-        parts = []
-        for pos in positions:
-            parts.append(f"**{pos.party.upper()}**\n{pos.content}")
-        return "\n\n".join(parts)

@@ -170,31 +170,6 @@ class DebugLogger:
         for child in node.children:
             self._log_node(child, indent + 1)
 
-    def log_content_generation(
-        self,
-        leaf_id: str,
-        leaf_name: str,
-        positions_used: int,
-        parties: list[str],
-        duration_ms: float,
-    ) -> None:
-        """Log content generation for a leaf navigation."""
-        if not self._enabled:
-            return
-
-        self._lines.append(f"### Leaf: {leaf_name} (`{leaf_id}`)")
-        self._lines.append(f"- Positions used: {positions_used}")
-        self._lines.append(f"- Parties: {', '.join(parties)}")
-        self._lines.append(f"- Duration: {duration_ms:.0f}ms")
-        self._lines.append("")
-
-    def log_message(self, message: str) -> None:
-        """Log a free-form message."""
-        if not self._enabled:
-            return
-        self._lines.append(message)
-        self._lines.append("")
-
     def flush(self) -> None:
         """Write all buffered log lines to the file."""
         if not self._enabled or self._file_path is None:

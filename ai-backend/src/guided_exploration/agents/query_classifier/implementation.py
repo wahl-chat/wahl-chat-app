@@ -4,8 +4,6 @@
 
 """Implementation of query classifier agent."""
 
-import logging
-
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from src.guided_exploration.agents.base import BaseAgent
@@ -20,8 +18,6 @@ from src.guided_exploration.agents.query_classifier.prompts import (
     format_available_parties,
     format_conversation_context,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class QueryClassifierAgent(BaseAgent[QueryClassifierInput, QueryClassifierOutput]):

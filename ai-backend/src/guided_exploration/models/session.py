@@ -14,7 +14,6 @@ from pydantic import BaseModel, Field
 
 from src.guided_exploration.models.content import Citation
 from src.guided_exploration.models.exploration import Exploration
-from src.guided_exploration.models.navigation import NavigationState
 
 
 class SessionMessageType(str, Enum):
@@ -115,7 +114,7 @@ class FlaggedCitation(BaseModel):
     )
     handler: str = Field(
         ...,
-        description="Which handler produced the response (followup, quick_summary, factual_query)",
+        description="Which handler produced the response (leaf followup, quick_summary, baseline)",
     )
     fabricated_ids: list[str] = Field(
         default_factory=list,
@@ -165,6 +164,10 @@ class Session(BaseModel):
         default_factory=list,
         description="Citation fabrications detected on responses in this session",
     )
+    active_exploration_id: str | None = Field(
+        default=None,
+        description="ID of the currently active exploration, if any",
+    )
 
 
 class SessionInfo(BaseModel):
@@ -177,64 +180,3 @@ class SessionInfo(BaseModel):
     )
 
 
-class ExplorationContext(BaseModel):
-    """Context passed with messages when in exploration."""
-
-    exploration_id: str = Field(..., description="ID of the current exploration")
-    leaf_id: str | None = Field(
-        default=None, description="Current leaf node ID if navigated to one"
-    )
-
-
-class ExportOptions(BaseModel):
-    """Options for PDF export."""
-
-    include_analysis: bool = Field(
-        default=True, description="Whether to include analysis sections"
-    )
-    include_unexplored: bool = Field(
-        default=False, description="Whether to include unexplored topics"
-    )
-
-
-class ExportResult(BaseModel):
-    """Result of export request."""
-
-    export_id: str = Field(..., description="Unique export identifier")
-    status: Literal["generating", "ready", "failed"] = Field(
-        ..., description="Current export status"
-    )
-    download_url: str | None = Field(
-        default=None, description="URL to download when ready"
-    )
-    expires_at: datetime | None = Field(
-        default=None, description="When the download URL expires"
-    )
-    filename: str | None = Field(
-        default=None, description="Suggested filename for download"
-    )
-
-
-class PartialStream(BaseModel):
-    """Partial stream state for recovery."""
-
-    stream_id: str = Field(..., description="ID of the interrupted stream")
-    chunks: list[str] = Field(
-        default_factory=list, description="Chunks received before disconnect"
-    )
-    metadata: dict = Field(default_factory=dict, description="Stream metadata")
-
-
-class SessionReconnectState(BaseModel):
-    """State for SSE reconnection recovery."""
-
-    session: Session = Field(..., description="The session being reconnected")
-    active_exploration: Exploration | None = Field(
-        default=None, description="Active exploration at disconnect time"
-    )
-    current_navigation: NavigationState | None = Field(
-        default=None, description="Navigation state at disconnect time"
-    )
-    partial_stream: PartialStream | None = Field(
-        default=None, description="Partial stream state if streaming was interrupted"
-    )

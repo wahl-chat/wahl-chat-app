@@ -172,17 +172,6 @@ class GuidedExplorationFacade:
             session_id, exploration_id, leaf_id
         )
 
-    async def handle_followup(
-        self,
-        session_id: str,
-        exploration_id: str,
-        leaf_id: str,
-        user_message: str,
-    ) -> dict:
-        return await self._leaf_conversation_handler.handle(
-            session_id, exploration_id, leaf_id, user_message
-        )
-
     async def request_analysis(
         self,
         session_id: str,

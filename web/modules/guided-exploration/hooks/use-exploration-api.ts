@@ -59,16 +59,6 @@ export interface UseExplorationApiReturn {
   /** End a specific exploration */
   endExploration: (explorationId: string) => Promise<void>;
 
-  /** Request PDF export for a specific exploration */
-  requestExport: (
-    explorationId: string,
-    includeAnalysis: boolean,
-    includeUnexplored: boolean,
-  ) => Promise<string>;
-
-  /** Get export download URL */
-  getExportUrl: (explorationId: string, exportId: string) => string;
-
   /** Mark a leaf as explored within an exploration */
   markExplored: (explorationId: string, leafId: string) => Promise<void>;
 
@@ -417,52 +407,6 @@ export function useExplorationApi(): UseExplorationApiReturn {
     [dispatch, sessionId],
   );
 
-  const requestExport = useCallback(
-    async (
-      explorationId: string,
-      includeAnalysis: boolean,
-      includeUnexplored: boolean,
-    ): Promise<string> => {
-      if (!sessionId) {
-        throw new Error('No active session');
-      }
-
-      try {
-        const response = await explorationApi.requestExport(
-          sessionId,
-          explorationId,
-          { includeAnalysis, includeUnexplored },
-        );
-        return response.exportId;
-      } catch (error) {
-        dispatch(
-          uiActions.errorOccurred(
-            'EXPORT_FAILED',
-            error instanceof Error ? error.message : 'Export failed',
-            true,
-          ),
-        );
-        throw error;
-      }
-    },
-    [dispatch, sessionId],
-  );
-
-  const getExportUrl = useCallback(
-    (explorationId: string, exportId: string): string => {
-      if (!sessionId) {
-        throw new Error('No active session');
-      }
-
-      return explorationApi.getExportDownloadUrl(
-        sessionId,
-        explorationId,
-        exportId,
-      );
-    },
-    [sessionId],
-  );
-
   const markExplored = useCallback(
     async (explorationId: string, leafId: string): Promise<void> => {
       if (!sessionId) {
@@ -492,8 +436,6 @@ export function useExplorationApi(): UseExplorationApiReturn {
     submitDirectionChoice,
     requestAnalysis,
     endExploration,
-    requestExport,
-    getExportUrl,
     markExplored,
     sessionId,
   };

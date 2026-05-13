@@ -12,7 +12,6 @@ response is consumed by the facade and fed back through
 """
 
 from collections.abc import AsyncIterator
-import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -33,8 +32,6 @@ from src.guided_exploration.agents.leaf_conversation_handler.prompts import (
 )
 from src.guided_exploration.agents.llm_provider import LLMProvider
 from src.guided_exploration.agents.party_context import format_party_context_for_prompt
-
-logger = logging.getLogger(__name__)
 
 
 class LeafConversationHandlerAgent:

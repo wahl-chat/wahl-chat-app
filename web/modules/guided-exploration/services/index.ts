@@ -21,8 +21,6 @@ export {
   navigate,
   requestAnalysis,
   endExploration,
-  requestExport,
-  getExportDownloadUrl,
   type CreateSessionRequest,
   type CreateSessionResponse,
   type ResumeSessionResponse,
@@ -31,7 +29,5 @@ export {
   type SubmitChoiceRequest,
   type NavigateRequest,
   type RequestAnalysisRequest,
-  type ExportRequest,
-  type ExportResponse,
   type ApiError,
 } from './exploration-api';

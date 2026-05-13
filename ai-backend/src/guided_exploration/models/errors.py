@@ -35,12 +35,6 @@ class InvalidNavigationError(GuidedExplorationError):
     pass
 
 
-class ExportGenerationError(GuidedExplorationError):
-    """PDF generation failed."""
-
-    pass
-
-
 class InsufficientChunksError(GuidedExplorationError):
     """Not enough document chunks found to create a meaningful exploration.
 

@@ -229,21 +229,6 @@ class LLMRegistry:
         )
 
     @property
-    def fast(self) -> LLMProvider:
-        """Get the FAST tier provider."""
-        return self.get(LLMTier.FAST)
-
-    @property
-    def balanced(self) -> LLMProvider:
-        """Get the BALANCED tier provider."""
-        return self.get(LLMTier.BALANCED)
-
-    @property
-    def reasoning(self) -> LLMProvider:
-        """Get the REASONING tier provider."""
-        return self.get(LLMTier.REASONING)
-
-    @property
     def embeddings(self) -> Embeddings:
         """Get the embeddings model."""
         if self._embeddings is None:

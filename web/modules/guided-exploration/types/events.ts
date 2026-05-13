@@ -3,7 +3,7 @@
  * All server-sent event payloads
  */
 
-import type { Analysis, Citation } from './content';
+import type { Citation } from './content';
 import type { Conversation } from './conversation';
 import type { NavigationState, SiblingNavigation } from './navigation';
 import type { ExplorationNode, ExplorationTree } from './tree';
@@ -91,14 +91,6 @@ export interface ConversationMessageEvent {
   suggestedQuestions?: string[];
   /** True iff the LLM judges the leaf substantially explored. */
   closureReady?: boolean;
-}
-
-// ============ Analysis Events ============
-
-export interface AnalysisResultEvent {
-  type: 'analysis_result';
-  leafId: string;
-  analysis: Analysis;
 }
 
 // ============ Quick Summary Events ============
@@ -190,17 +182,6 @@ export interface ExplorationCompleteEvent {
   }>;
 }
 
-// ============ Export Events ============
-
-export interface ExportReadyEvent {
-  type: 'export_ready';
-  explorationId: string;
-  exportId: string;
-  downloadUrl: string;
-  expiresAt: string;
-  filename: string;
-}
-
 // ============ Topic Switch Events ============
 
 export interface TopicSwitchSuggestedEvent {
@@ -235,8 +216,7 @@ export type ErrorCode =
   | 'NAVIGATION_INVALID'
   | 'RETRIEVAL_FAILED'
   | 'LLM_ERROR'
-  | 'RATE_LIMITED'
-  | 'EXPORT_FAILED';
+  | 'RATE_LIMITED';
 
 export interface ErrorEvent {
   type: 'error';
@@ -257,14 +237,12 @@ export type SSEEvent =
   | TopicOverviewEvent
   | ConversationOpenedEvent
   | ConversationMessageEvent
-  | AnalysisResultEvent
   | QuickSummaryEvent
   | ChatMessageEvent
   | StreamChunkEvent
   | StreamEndEvent
   | ExplorationReadyEvent
   | ExplorationCompleteEvent
-  | ExportReadyEvent
   | ErrorEvent
   | TopicSwitchSuggestedEvent
   | TopicDirectionsEvent;

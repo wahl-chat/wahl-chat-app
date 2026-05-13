@@ -6,15 +6,13 @@
 
 import logging
 import os
-from uuid import uuid4
 
 from langchain_core.embeddings import Embeddings
-from qdrant_client import QdrantClient
+from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 from src.guided_exploration.models.exploration import RetrievedChunk
 from src.guided_exploration.services.study_context import (
-    STUDY_CONTEXT_PREFIX,
     get_study_topic,
     is_study_context,
 )
@@ -62,7 +60,7 @@ class RAGService:
         qdrant_api_key: str | None = None,
     ) -> None:
         self._embeddings = embeddings
-        self._client = QdrantClient(
+        self._client = AsyncQdrantClient(
             url=qdrant_url or os.getenv("QDRANT_URL", "http://localhost:6333"),
             api_key=qdrant_api_key or os.getenv("QDRANT_API_KEY"),
         )
@@ -83,8 +81,8 @@ class RAGService:
     ) -> list[RetrievedChunk]:
         """Fan out per-party retrieval and concatenate results.
 
-        Used by the quick-summary and factual-query paths where the LLM is
-        shown a single flat chunk list grouped by party.
+        Used by the quick-summary and baseline paths where the LLM is shown
+        a single flat chunk list grouped by party.
         """
         all_chunks: list[RetrievedChunk] = []
         for party_id in parties:
@@ -137,7 +135,7 @@ class RAGService:
         collection_name = get_context_collection_name(context_id)
 
         # Check if collection exists
-        collections = self._client.get_collections().collections
+        collections = (await self._client.get_collections()).collections
         collection_names = [c.name for c in collections]
 
         if collection_name not in collection_names:
@@ -166,7 +164,7 @@ class RAGService:
         )
 
         # Search Qdrant
-        search_result = self._client.search(
+        search_result = await self._client.search(
             collection_name=collection_name,
             query_vector=("dense", query_vector),
             limit=n_docs,
@@ -183,7 +181,7 @@ class RAGService:
 
             chunks.append(
                 RetrievedChunk(
-                    chunk_id=f"{party_id}-{uuid4().hex[:8]}",
+                    chunk_id=f"{party_id}-{point.id}",
                     content=point.payload.get("text", ""),
                     party_id=party_id,
                     source_document=point.payload.get("source", "Wahlprogramm"),
