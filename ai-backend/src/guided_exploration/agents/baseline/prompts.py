@@ -50,9 +50,11 @@ __all__ = [
 # =============================================================================
 
 BASELINE_LENGTH_DIRECTIVE_CAPPED = """    - Antwortlänge:
-        - Halte deine Antwort kurz und prägnant.
-        - Wenn der Nutzer explizit nach mehr Details fragt, kannst du längere Antworten geben.
-        - Die Antwort muss gut für das Chatformat geeignet sein."""
+        - Eine Antwort behandelt EINEN Sub-Aspekt; mehr macht den Fokus kaputt.
+        - Pro Partei 1–2 prägnante Aussagen zum gewählten Sub-Aspekt — keine vollständige Aufzählung.
+        - Schließe mit einer kurzen Zeile, die 2–3 andere Sub-Aspekte des Themas als Angebot nennt.
+        - Wenn der Nutzer explizit nach mehr Details zu genau diesem Sub-Aspekt fragt, darfst du dort tiefer gehen — aber keine neuen Sub-Aspekte mit aufmachen.
+        - Die Antwort muss gut für das Chatformat geeignet sein — keine Textwände."""
 
 
 BASELINE_LENGTH_DIRECTIVE_UNCAPPED = """    - Antwortlänge:
@@ -191,12 +193,13 @@ BASELINE_DARSTELLUNG_EXAMPLE_COMPACT = (
 
 ### Hinweis zur Länge in diesem Modus
 
-In diesem Modus sind kurze, fokussierte Antworten der Default. Die
-Pro-Partei-Obergrenze aus dem Block oben begrenzt die **Anzahl der
-Aussagen**, nicht die Form — alle drei Formate bleiben gültig, du
-nutzt sie nur knapper. Behandle pro Antwort die wenigen Punkte, die
-für die konkrete Frage am wichtigsten sind, und überlasse den Rest
-der Folgefrage."""
+In diesem Modus behandelst du **einen Sub-Aspekt pro Antwort** und
+nennst am Ende kurz die anderen verfügbaren Sub-Aspekte des Themas
+als Angebot. Beide Formate oben bleiben gültig — du nutzt sie auf
+genau einen Sub-Aspekt zugeschnitten, nicht aufs ganze Thema. Pro
+Partei reichen 1–2 fokussierte Aussagen zu genau diesem einen
+Aspekt; alles Weitere kommt in Folge-Antworten, wenn die Nutzer:in
+einen der angebotenen Aspekte wählt."""
 )
 
 
@@ -207,7 +210,7 @@ BASELINE_DARSTELLUNG_EXAMPLE_EXPANSIVE = (
 ### Hinweis zur Länge in diesem Modus
 
 In diesem Modus sind längere, inhaltsreiche Antworten erwünscht. Du
-kannst die drei Formate oben voll ausschöpfen — mehrere Stichpunkte
+kannst beide Formate oben voll ausschöpfen — mehrere Stichpunkte
 pro Karte, mehrere Teilaspekte pro Antwort, längere Erläuterungen.
 Sorge dafür, dass die Nutzer:in nach der Antwort genug Material an der
 Hand hat, um zu erkennen, welcher Teilaspekt sie als nächstes

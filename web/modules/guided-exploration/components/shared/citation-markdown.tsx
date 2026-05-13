@@ -247,26 +247,30 @@ const NonMemoizedCitationMarkdown = ({
         </Link>
       );
     },
-    h1: ({ children, ...props }) => (
-      <h1 className="my-0 text-2xl font-bold" {...cleanProps(props)}>
-        {children}
-      </h1>
-    ),
-    h2: ({ children, ...props }) => (
-      <h2 className="my-0 text-xl font-semibold" {...cleanProps(props)}>
-        {children}
-      </h2>
-    ),
-    h3: ({ children, ...props }) => (
-      <h3 className="my-0 text-lg font-semibold" {...cleanProps(props)}>
-        {children}
-      </h3>
-    ),
-    h4: ({ children, ...props }) => (
-      <h4 className="my-0 text-base font-semibold" {...cleanProps(props)}>
-        {children}
-      </h4>
-    ),
+    h1: ({ children, ...props }) =>
+      checkAndBuildReference('h1', {
+        children,
+        className: 'my-0 text-2xl font-bold',
+        ...cleanProps(props),
+      }),
+    h2: ({ children, ...props }) =>
+      checkAndBuildReference('h2', {
+        children,
+        className: 'my-0 text-xl font-semibold',
+        ...cleanProps(props),
+      }),
+    h3: ({ children, ...props }) =>
+      checkAndBuildReference('h3', {
+        children,
+        className: 'my-0 text-lg font-semibold',
+        ...cleanProps(props),
+      }),
+    h4: ({ children, ...props }) =>
+      checkAndBuildReference('h4', {
+        children,
+        className: 'my-0 text-base font-semibold',
+        ...cleanProps(props),
+      }),
   };
 
   return (
