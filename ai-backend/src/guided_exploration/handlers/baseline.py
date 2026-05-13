@@ -26,17 +26,19 @@ from src.guided_exploration.agents.main_chat_followup_generator import (
 )
 from src.guided_exploration.api.sse import SSEManager
 from src.guided_exploration.models import (
-    Citation,
     FlaggedCitation,
     QuickSummaryEvent,
-    RetrievedChunk,
+    Session,
     SessionMessage,
     SessionMessageType,
 )
 from src.guided_exploration.services.citation_utils import (
-    create_citation_from_chunk as create_chunk_citation,
     extract_fabricated_citation_ids,
     extract_used_citations,
+)
+from src.guided_exploration.services.rag_formatting import (
+    format_parties_list,
+    format_rag_context,
 )
 from src.guided_exploration.services.context_resolver import ContextResolver
 from src.guided_exploration.services.conversation_history import (
@@ -84,7 +86,7 @@ class BaselineHandler:
         rag_query: str,
         detected_parties: list[str],
         context_id: str,
-        session,
+        session: Session,
     ) -> dict:
         """Generate a baseline reply with real-time LLM streaming.
 
@@ -109,8 +111,8 @@ class BaselineHandler:
             parties = await aget_parties_for_context(context_id)
             party_map = {p.party_id: p for p in parties}
 
-        rag_context, citations = self._format_rag_context(chunks, party_map)
-        parties_list = self._format_parties_list(detected_parties, party_map)
+        rag_context, citations = format_rag_context(chunks, party_map)
+        parties_list = format_parties_list(detected_parties, party_map)
 
         history_lines = format_session_history(session.messages)
         conversation_history_text = "\n".join(history_lines) if history_lines else ""
@@ -214,53 +216,3 @@ class BaselineHandler:
         await self._repo.add_session_message(session_id, assistant_msg)
 
         return {"status": "summary_generated"}
-
-    def _format_rag_context(
-        self,
-        chunks: list[RetrievedChunk],
-        party_map: dict,
-    ) -> tuple[str, list[Citation]]:
-        if not chunks:
-            return (
-                "Keine relevanten Informationen in der Dokumentensammlung gefunden.",
-                [],
-            )
-
-        citations: list[Citation] = []
-        chunks_by_party: dict[str, list[RetrievedChunk]] = {}
-        for chunk in chunks:
-            if chunk.party_id not in chunks_by_party:
-                chunks_by_party[chunk.party_id] = []
-            chunks_by_party[chunk.party_id].append(chunk)
-
-            party = party_map.get(chunk.party_id)
-            party_display = party.name if party else chunk.party_id
-            citations.append(create_chunk_citation(chunk, party_display))
-
-        context_parts = []
-        for party_id, party_chunks in chunks_by_party.items():
-            party = party_map.get(party_id)
-            party_name = party.name if party else party_id
-            context_parts.append(f"\n## {party_name}\n")
-            for chunk in party_chunks:
-                context_parts.append(f"[{chunk.chunk_id}] {chunk.content}\n\n")
-
-        return "".join(context_parts), citations
-
-    def _format_parties_list(
-        self,
-        party_ids: list[str],
-        party_map: dict,
-    ) -> str:
-        if not party_ids:
-            return "Keine spezifischen Parteien"
-
-        parts = []
-        for party_id in party_ids:
-            party = party_map.get(party_id)
-            if party:
-                parts.append(f"- {party_id}: {party.name} ({party.long_name})")
-            else:
-                parts.append(f"- {party_id}: {party_id.upper()}")
-
-        return "\n".join(parts)

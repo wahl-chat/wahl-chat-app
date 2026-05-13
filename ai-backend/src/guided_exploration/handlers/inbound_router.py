@@ -24,6 +24,7 @@ from src.guided_exploration.handlers.leaf_conversation import (
 from src.guided_exploration.handlers.quick_summary import QuickSummaryHandler
 from src.guided_exploration.models import (
     QueryType,
+    Session,
     SessionMessage,
     SessionMessageType,
     SessionMode,
@@ -165,58 +166,16 @@ class InboundRouter:
             )
 
         if classifier_output.query_type == QueryType.CLARIFICATION:
-            clarification_msg = classifier_output.clarification_question or (
-                "Könntest du deine Frage bitte präzisieren?"
+            return await self._emit_clarification(
+                session_id, classifier_output.clarification_question
             )
 
-            stream_id = str(uuid4())
-            await self._streaming.stream_text(
-                session_id,
-                clarification_msg,
-                stream_id,
-                "system_message",
-                "system",
-            )
-
-            await self._streaming.send_chat_message(
-                session_id, message=clarification_msg
-            )
-
-            assistant_msg = SessionMessage(
-                id=str(uuid4()),
-                type=SessionMessageType.ASSISTANT,
-                content=clarification_msg,
-                timestamp=datetime.now(timezone.utc),
-            )
-            await self._repo.add_session_message(session_id, assistant_msg)
-
-            return {"status": "clarification_needed"}
-
-        fallback_msg = (
-            "Ich konnte deine Anfrage nicht einordnen. "
-            "Bitte stelle eine Frage zu politischen Themen."
-        )
-
-        stream_id = str(uuid4())
-        await self._streaming.stream_text(
-            session_id,
-            fallback_msg,
-            stream_id,
-            "system_message",
-            "system",
-        )
-
-        await self._streaming.send_chat_message(session_id, message=fallback_msg)
-
-        return {
-            "status": "unknown_query_type",
-            "query_type": classifier_output.query_type.value,
-        }
+        return await self._emit_fallback(session_id, classifier_output.query_type)
 
     async def _handle_baseline_message(
         self,
         session_id: str,
-        session,
+        session: Session,
         content: str,
     ) -> dict:
         """Self-contained router for BASELINE mode.
@@ -280,33 +239,50 @@ class InboundRouter:
             )
 
         if classifier_output.query_type == QueryType.CLARIFICATION:
-            clarification_msg = classifier_output.clarification_question or (
-                "Könntest du deine Frage bitte präzisieren?"
+            return await self._emit_clarification(
+                session_id, classifier_output.clarification_question
             )
 
-            stream_id = str(uuid4())
-            await self._streaming.stream_text(
-                session_id,
-                clarification_msg,
-                stream_id,
-                "system_message",
-                "system",
-            )
+        return await self._emit_fallback(session_id, classifier_output.query_type)
 
-            await self._streaming.send_chat_message(
-                session_id, message=clarification_msg
-            )
+    async def _emit_clarification(
+        self,
+        session_id: str,
+        clarification_question: str | None,
+    ) -> dict:
+        """Stream a clarification prompt and persist it to the transcript."""
+        clarification_msg = clarification_question or (
+            "Könntest du deine Frage bitte präzisieren?"
+        )
 
-            assistant_msg = SessionMessage(
-                id=str(uuid4()),
-                type=SessionMessageType.ASSISTANT,
-                content=clarification_msg,
-                timestamp=datetime.now(timezone.utc),
-            )
-            await self._repo.add_session_message(session_id, assistant_msg)
+        stream_id = str(uuid4())
+        await self._streaming.stream_text(
+            session_id,
+            clarification_msg,
+            stream_id,
+            "system_message",
+            "system",
+        )
+        await self._streaming.send_chat_message(
+            session_id, message=clarification_msg
+        )
 
-            return {"status": "clarification_needed"}
+        assistant_msg = SessionMessage(
+            id=str(uuid4()),
+            type=SessionMessageType.ASSISTANT,
+            content=clarification_msg,
+            timestamp=datetime.now(timezone.utc),
+        )
+        await self._repo.add_session_message(session_id, assistant_msg)
 
+        return {"status": "clarification_needed"}
+
+    async def _emit_fallback(
+        self,
+        session_id: str,
+        query_type: QueryType,
+    ) -> dict:
+        """Stream the unknown-query-type fallback message."""
         fallback_msg = (
             "Ich konnte deine Anfrage nicht einordnen. "
             "Bitte stelle eine Frage zu politischen Themen."
@@ -320,19 +296,18 @@ class InboundRouter:
             "system_message",
             "system",
         )
-
         await self._streaming.send_chat_message(session_id, message=fallback_msg)
 
         return {
             "status": "unknown_query_type",
-            "query_type": classifier_output.query_type.value,
+            "query_type": query_type.value,
         }
 
     async def _handle_meta_query(
         self,
         session_id: str,
         query: str,
-        session,
+        session: Session,
     ) -> dict:
         """Handle meta questions about wahl.chat itself (the tool, not topics)."""
         history_lines = format_session_history(session.messages)

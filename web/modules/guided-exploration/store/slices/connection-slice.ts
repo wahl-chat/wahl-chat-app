@@ -11,7 +11,6 @@ import type {
 export const initialConnectionState: ConnectionSliceState = {
   status: 'idle',
   error: null,
-  reconnectAttempts: 0,
   sessionClaimed: false,
 };
 
@@ -25,7 +24,6 @@ export function connectionReducer(
         ...state,
         status: 'idle',
         error: null,
-        reconnectAttempts: 0,
       };
 
     case 'CONNECTION_CONNECTING':
@@ -40,7 +38,6 @@ export function connectionReducer(
         ...state,
         status: 'connected',
         error: null,
-        reconnectAttempts: 0,
       };
 
     case 'CONNECTION_DISCONNECTED':
@@ -48,12 +45,6 @@ export function connectionReducer(
         ...state,
         status: 'disconnected',
         error: action.error ?? null,
-      };
-
-    case 'CONNECTION_RECONNECT_ATTEMPT':
-      return {
-        ...state,
-        reconnectAttempts: state.reconnectAttempts + 1,
       };
 
     case 'CONNECTION_RESET':

@@ -320,11 +320,11 @@ class ChoiceFlowHandler:
             )
             return {"status": "error", "code": "session_mismatch"}
 
-        self._pending_queries.pop(query_id)
-
         session = await self._repo.get_session(session_id)
         if not session:
             return {"status": "error", "code": "session_not_found"}
+
+        self._pending_queries.pop(query_id)
 
         direction_names = [d["name"] for d in directions]
 
@@ -370,7 +370,6 @@ class ChoiceFlowHandler:
         session_id: str,
         query_id: str,
         choice: Literal["explore", "summary"],
-        parties: list[str] | None = None,
     ) -> dict:
         """Handle user's choice for explore vs summary."""
         pending = self._pending_queries.get(query_id)
@@ -390,6 +389,10 @@ class ChoiceFlowHandler:
             )
             return {"status": "error", "code": "session_mismatch"}
 
+        session = await self._repo.get_session(session_id)
+        if not session:
+            return {"status": "error", "code": "session_not_found"}
+
         self._pending_queries.pop(query_id)
 
         # Persist a research-only audit message recording the user's pick.
@@ -404,13 +407,7 @@ class ChoiceFlowHandler:
         )
         await self._repo.add_session_message(session_id, choice_msg)
 
-        session = await self._repo.get_session(session_id)
-        if not session:
-            return {"status": "error", "code": "session_not_found"}
-
-        if parties:
-            exploration_parties = parties
-        elif pending.detected_parties:
+        if pending.detected_parties:
             exploration_parties = pending.detected_parties
         else:
             exploration_parties = await self._context_resolver.get_default_parties(

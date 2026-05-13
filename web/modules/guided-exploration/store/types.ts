@@ -29,7 +29,6 @@ export type ConnectionStatus =
 export interface ConnectionSliceState {
   status: ConnectionStatus;
   error: string | null;
-  reconnectAttempts: number;
   /** Whether this session was claimed by another tab */
   sessionClaimed: boolean;
 }
@@ -185,7 +184,6 @@ export type ExplorationAction =
   | { type: 'CONNECTION_CONNECTING' }
   | { type: 'CONNECTION_CONNECTED' }
   | { type: 'CONNECTION_DISCONNECTED'; error?: string }
-  | { type: 'CONNECTION_RECONNECT_ATTEMPT' }
   | { type: 'CONNECTION_RESET' }
   | { type: 'SESSION_CLAIMED'; message?: string }
 
@@ -276,7 +274,7 @@ export type ExplorationAction =
       targetId: string;
       explorationId: string | null;
       leafId: string | null;
-      originTab?: OriginTab;
+      originTab: OriginTab;
     }
   | {
       type: 'STREAM_CHUNK_RECEIVED';
@@ -303,7 +301,6 @@ export type ExplorationAction =
     }
   | { type: 'CHOICE_CLEARED' }
   | { type: 'QUICK_SUMMARY_RECEIVED'; data: QuickSummaryData }
-  | { type: 'QUICK_SUMMARY_CLEARED' }
   | { type: 'ANNOUNCE'; message: string }
   | { type: 'ANNOUNCEMENT_CLEARED' }
   | {

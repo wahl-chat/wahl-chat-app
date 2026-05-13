@@ -125,7 +125,8 @@ export type StreamTargetType =
   | 'initial_content'
   | 'followup'
   | 'analysis'
-  | 'quick_summary';
+  | 'quick_summary'
+  | 'system_message';
 
 export type StreamSection =
   | 'summary'

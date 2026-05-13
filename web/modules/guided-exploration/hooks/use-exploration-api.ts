@@ -29,7 +29,10 @@ export interface UseExplorationApiReturn {
   resumeSession: (sessionId: string) => Promise<void>;
 
   /** Load a specific exploration */
-  loadExploration: (explorationId: string) => Promise<void>;
+  loadExploration: (
+    explorationId: string,
+    options?: { signal?: AbortSignal },
+  ) => Promise<void>;
 
   /**
    * Send a message or question. When `leafId` is set, `explorationId` is
@@ -135,10 +138,16 @@ export function useExplorationApi(): UseExplorationApiReturn {
   );
 
   const loadExploration = useCallback(
-    async (expId: string): Promise<void> => {
+    async (
+      expId: string,
+      options?: { signal?: AbortSignal },
+    ): Promise<void> => {
       if (!sessionId) {
         throw new Error('No active session');
       }
+
+      const signal = options?.signal;
+      if (signal?.aborted) return;
 
       // Loading an exploration is initiated from the chat tab.
       dispatch(uiActions.lastActionTabSet('chat'));
@@ -152,11 +161,14 @@ export function useExplorationApi(): UseExplorationApiReturn {
       let lastError: Error | null = null;
 
       for (let attempt = 0; attempt < maxRetries; attempt++) {
+        if (signal?.aborted) return;
         try {
           const response = await explorationApi.getExploration(
             sessionId,
             expId,
           );
+
+          if (signal?.aborted) return;
 
           dispatch(
             explorationActions.started(
@@ -173,12 +185,24 @@ export function useExplorationApi(): UseExplorationApiReturn {
 
           // If not the last attempt, wait before retrying
           if (attempt < maxRetries - 1) {
-            await new Promise((resolve) =>
-              setTimeout(resolve, baseDelay * (attempt + 1)),
-            );
+            await new Promise((resolve, reject) => {
+              const timer = setTimeout(resolve, baseDelay * (attempt + 1));
+              signal?.addEventListener(
+                'abort',
+                () => {
+                  clearTimeout(timer);
+                  reject(new DOMException('Aborted', 'AbortError'));
+                },
+                { once: true },
+              );
+            }).catch(() => {
+              /* abort handled by signal check on next iteration */
+            });
           }
         }
       }
+
+      if (signal?.aborted) return;
 
       // All retries failed
       dispatch(uiActions.thinkingEnded());

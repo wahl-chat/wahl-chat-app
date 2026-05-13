@@ -27,14 +27,17 @@ class MessageClassifierAgent(
     Classifies user messages within an active exploration.
 
     Analyzes messages sent during an exploration to determine:
-    - Intent (followup question, navigation command, analysis request, etc.)
+    - Intent (followup question or navigation command)
     - Navigation target if applicable
     - Extracted question for followup intents
 
     This classification drives message handling:
     - FOLLOWUP_QUESTION: Route to LeafConversationHandlerAgent
     - NAVIGATION_COMMAND: Handle navigation in orchestrator
-    - ANALYSIS_REQUEST: Route to AnalyzerAgent
+
+    Analysis is triggered explicitly via a dedicated UI action that calls
+    ``AnalysisHandler.request_analysis`` directly — it does not flow through
+    this classifier.
     """
 
     def __init__(self, llm_provider: LLMProvider):

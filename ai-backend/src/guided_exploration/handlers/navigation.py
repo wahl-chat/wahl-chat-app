@@ -130,7 +130,7 @@ class NavigationHandler:
                 await self._context_resolver.get_context_info(session.context_id)
             )
 
-            conversation, navigation = await self.navigate_to_leaf(
+            _, navigation = await self.navigate_to_leaf(
                 session_id,
                 exploration,
                 leaf_id=node.id,
@@ -138,12 +138,6 @@ class NavigationHandler:
                 leaf_parties=node.party_ids,
                 context_name=context_name,
                 parties_info=parties_info,
-            )
-
-            await self._repo.save_conversation(
-                session_id,
-                exploration_id,
-                conversation,
             )
 
             self._navigation_states.set(session_id, navigation)
@@ -463,5 +457,16 @@ class NavigationHandler:
                     recoverable=True,
                 )
                 return {"status": "not_applicable"}
+
+        else:
+            # Classifier returned NAVIGATION_COMMAND without a resolved target.
+            # Surface as a recoverable error instead of silently going to root.
+            await self._streaming.send_error(
+                session_id,
+                "navigation_invalid",
+                "Navigation nicht erkannt. Bitte präziser formulieren.",
+                recoverable=True,
+            )
+            return {"status": "not_applicable"}
 
         return await self.navigate(session_id, exploration_id, target_path)

@@ -6,11 +6,7 @@
 import { create } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 
-import {
-  countExploredLeaves,
-  countLeaves,
-  findNode,
-} from '@/modules/guided-exploration/utils/tree-helpers';
+import { findNode } from '@/modules/guided-exploration/utils/tree-helpers';
 import {
   connectionReducer,
   explorationReducer,
@@ -32,7 +28,6 @@ import type {
 // ============ Stable References (for selector stability) ============
 const EMPTY_MESSAGES: SessionMessage[] = [];
 const EMPTY_TREES: ExplorationTree[] = [];
-const EMPTY_TREE_IDS: string[] = [];
 
 // ============ Initial State ============
 
@@ -106,34 +101,10 @@ export const selectSessionId = (state: ExplorationStore) =>
 
 // ----- Multi-tree -----
 
-/** All trees keyed by explorationId. */
-export const selectTrees = (state: ExplorationStore) => state.exploration.trees;
-
-/**
- * List of explorationIds present in the store. Wrap with
- * `useShallow` at the call site — this returns a fresh array on every
- * call and would loop `useSyncExternalStore` otherwise.
- */
-export const selectTreeIds = (state: ExplorationStore) => {
-  const ids = Object.keys(state.exploration.trees);
-  return ids.length === 0 ? EMPTY_TREE_IDS : ids;
-};
-
 /** A specific tree by explorationId. */
 export const selectTree =
   (explorationId: string | null | undefined) => (state: ExplorationStore) =>
     explorationId ? (state.exploration.trees[explorationId] ?? null) : null;
-
-/** A specific conversation. */
-export const selectConversation =
-  (
-    explorationId: string | null | undefined,
-    leafId: string | null | undefined,
-  ) =>
-  (state: ExplorationStore) =>
-    explorationId && leafId
-      ? (state.exploration.conversations[explorationId]?.[leafId] ?? null)
-      : null;
 
 /** Currently open leaf sidebar pointer. */
 export const selectActiveLeaf = (state: ExplorationStore) =>
@@ -167,22 +138,6 @@ export const selectActiveConversation = (state: ExplorationStore) => {
     null
   );
 };
-
-/** Status of a specific exploration. */
-export const selectExplorationStatus =
-  (explorationId: string | null | undefined) => (state: ExplorationStore) =>
-    explorationId ? (state.exploration.status[explorationId] ?? null) : null;
-
-/** Whether analysis is available for a specific leaf. */
-export const selectAnalysisAvailable =
-  (
-    explorationId: string | null | undefined,
-    leafId: string | null | undefined,
-  ) =>
-  (state: ExplorationStore) =>
-    explorationId && leafId
-      ? Boolean(state.exploration.analysisAvailable[explorationId]?.[leafId])
-      : false;
 
 /**
  * All trees as an array. Wrap with `useShallow` at the call site — this
@@ -229,10 +184,6 @@ export const selectPendingChoiceOriginTab = (state: ExplorationStore) =>
 export const selectQuickSummary = (state: ExplorationStore) =>
   state.ui.quickSummary;
 
-/** Get thinking stage */
-export const selectThinkingStage = (state: ExplorationStore) =>
-  state.ui.thinkingStage;
-
 /** Get thinking message */
 export const selectThinkingMessage = (state: ExplorationStore) =>
   state.ui.thinkingMessage;
@@ -256,32 +207,6 @@ export const selectAnnouncementId = (state: ExplorationStore) =>
 /** Get current error */
 export const selectError = (state: ExplorationStore) => state.ui.error;
 
-// ----- Progress -----
-
-/** Count explored leaves for a specific exploration. */
-export const selectExploredCount =
-  (explorationId: string | null | undefined) => (state: ExplorationStore) => {
-    const tree = explorationId ? state.exploration.trees[explorationId] : null;
-    return tree ? countExploredLeaves(tree) : 0;
-  };
-
-/** Count total leaves for a specific exploration. */
-export const selectTotalLeavesCount =
-  (explorationId: string | null | undefined) => (state: ExplorationStore) => {
-    const tree = explorationId ? state.exploration.trees[explorationId] : null;
-    return tree ? countLeaves(tree) : 0;
-  };
-
-/** Get exploration progress for a specific exploration. */
-export const selectProgress =
-  (explorationId: string | null | undefined) => (state: ExplorationStore) => {
-    const tree = explorationId ? state.exploration.trees[explorationId] : null;
-    if (!tree) return 0;
-    const total = countLeaves(tree);
-    const explored = countExploredLeaves(tree);
-    return total > 0 ? explored / total : 0;
-  };
-
 // ----- Session -----
 
 /** Get session messages (chat history) */
@@ -303,10 +228,6 @@ export const selectSuggestedQuestions = (state: ExplorationStore) =>
 /** Tab the active suggested-questions list belongs to. */
 export const selectSuggestedQuestionsOriginTab = (state: ExplorationStore) =>
   state.ui.suggestedQuestionsOriginTab;
-
-/** Get topic switch suggestion */
-export const selectTopicSwitchSuggestion = (state: ExplorationStore) =>
-  state.ui.topicSwitchSuggestion;
 
 /** Get pending topic directions */
 export const selectPendingDirections = (state: ExplorationStore) =>

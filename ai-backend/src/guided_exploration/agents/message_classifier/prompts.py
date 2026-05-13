@@ -24,10 +24,6 @@ Bei Bestätigungen: Rekonstruiere die Frage aus der letzten Assistenten-Nachrich
 Der Benutzer möchte im Themenbaum navigieren.
 Beispiele: "weiter", "zurück", "zeig mir die Übersicht", "nächstes Thema"
 
-## ANALYSIS_REQUEST
-Der Benutzer möchte eine tiefere Analyse oder kritische Einordnung.
-Beispiele: "Wie realistisch ist das?", "Analysiere die Machbarkeit", "Was sind die Vor- und Nachteile?"
-
 # Navigationsziele (navigation_target)
 NUR bei NAVIGATION_COMMAND setzen:
 - NEXT: Zum nächsten Unterthema ("weiter", "nächstes Thema")
@@ -39,10 +35,10 @@ NUR bei NAVIGATION_COMMAND setzen:
 
 ## Strukturelle Regeln
 - Setze navigation_target NUR wenn intent = NAVIGATION_COMMAND
-- Setze extracted_question bei FOLLOWUP_QUESTION und ANALYSIS_REQUEST auf die extrahierte/reformulierte Frage
+- Setze extracted_question bei FOLLOWUP_QUESTION auf die extrahierte/reformulierte Frage
 
 ## Fragenextraktion
-Bei Folgefragen und Analyseanfragen:
+Bei Folgefragen:
 - Reformuliere die Frage klar und vollständig
 - Beziehe den Kontext des aktuellen Themas ein
 - Ergänze implizite Informationen aus dem Gesprächsverlauf
@@ -72,7 +68,7 @@ MESSAGE_CLASSIFICATION_PROMPT = """Analysiere die folgende Nachricht:
 Bestimme:
 1. Die Absicht des Benutzers (intent)
 2. Falls Navigation: Das Navigationsziel (navigation_target)
-3. Falls Frage oder Analyseanfrage: Die extrahierte Frage (extracted_question)
+3. Falls Frage: Die extrahierte Frage (extracted_question)
 4. Deine Konfidenz in der Klassifizierung (confidence)
 
 WICHTIG:

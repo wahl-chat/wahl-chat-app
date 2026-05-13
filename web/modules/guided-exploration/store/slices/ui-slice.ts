@@ -5,7 +5,6 @@
 
 import type {
   ExplorationAction,
-  OriginTab,
   UISliceState,
 } from '@/modules/guided-exploration/store/types';
 
@@ -132,9 +131,7 @@ export function uiReducer(
         thinkingOriginTab: null,
       };
 
-    case 'STREAM_STARTED': {
-      const inferredOrigin: OriginTab =
-        action.targetType === 'quick_summary' ? 'chat' : 'leaf';
+    case 'STREAM_STARTED':
       return {
         ...state,
         isStreaming: true,
@@ -145,10 +142,9 @@ export function uiReducer(
           explorationId: action.explorationId,
           leafId: action.leafId,
         },
-        streamingOriginTab: action.originTab ?? inferredOrigin,
+        streamingOriginTab: action.originTab,
         streamBuffer: '',
       };
-    }
 
     case 'STREAM_CHUNK_RECEIVED': {
       if (state.streamingTarget?.streamId !== action.streamId) {
@@ -199,9 +195,6 @@ export function uiReducer(
     case 'QUICK_SUMMARY_RECEIVED':
       return { ...state, quickSummary: action.data, mode: 'chat' };
 
-    case 'QUICK_SUMMARY_CLEARED':
-      return { ...state, quickSummary: null };
-
     case 'ANNOUNCE':
       return {
         ...state,
@@ -222,6 +215,8 @@ export function uiReducer(
         },
         isStreaming: false,
         streamingOriginTab: null,
+        streamBuffer: '',
+        streamingTarget: null,
         thinkingStage: null,
         thinkingMessage: null,
         thinkingOriginTab: null,

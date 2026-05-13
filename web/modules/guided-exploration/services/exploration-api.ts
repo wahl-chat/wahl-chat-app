@@ -46,12 +46,10 @@ export interface RequestAnalysisRequest {
 
 export interface CreateSessionResponse {
   sessionId: string;
-  streamUrl: string;
 }
 
 export interface ResumeSessionResponse {
   sessionId: string;
-  streamUrl: string;
   messages: Array<{
     id: string;
     type: 'user' | 'assistant' | 'exploration_start' | 'topic_directions';
@@ -90,36 +88,6 @@ export interface GetExplorationResponse {
   status: 'active' | 'completed';
   tree: ExplorationTree;
   createdAt: string;
-}
-
-// Debug types (camelCase after conversion)
-export interface KnowledgeCitation {
-  id: string;
-  party: string;
-  document: string;
-  page: number;
-  section: string | null;
-}
-
-export interface KnowledgePartyPosition {
-  party: string;
-  /** Full markdown content with inline citations [id] */
-  content: string;
-}
-
-export interface ResolvedKnowledge {
-  leafId: string;
-  summaryPoints: string[];
-  partyPositions: Record<string, KnowledgePartyPosition>;
-  keyFacts: string[];
-  citationPool: KnowledgeCitation[];
-}
-
-export interface KnowledgeBaseResponse {
-  explorationId: string;
-  entries: {
-    subtopics: Record<string, ResolvedKnowledge>;
-  };
 }
 
 export interface ApiError {
@@ -303,25 +271,13 @@ export async function markExplored(
   sessionId: string,
   explorationId: string,
   leafId: string,
-): Promise<{ status: string; leafId: string }> {
-  return request<{ status: string; leafId: string }>(
+): Promise<void> {
+  await request<unknown>(
     `/sessions/${sessionId}/explorations/${explorationId}/mark-explored`,
     {
       method: 'POST',
       body: { leafId },
     },
-  );
-}
-
-/**
- * Get the knowledge base for an exploration (debug endpoint)
- */
-export async function getKnowledgeBase(
-  sessionId: string,
-  explorationId: string,
-): Promise<KnowledgeBaseResponse> {
-  return request<KnowledgeBaseResponse>(
-    `/sessions/${sessionId}/explorations/${explorationId}/knowledge-base`,
   );
 }
 
@@ -338,5 +294,4 @@ export const explorationApi = {
   requestAnalysis,
   endExploration,
   markExplored,
-  getKnowledgeBase,
 };

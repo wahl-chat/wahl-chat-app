@@ -131,27 +131,33 @@ export function useExploration(options: UseExplorationOptions = {}) {
   // ----- SSE + API -----
   const { connect, disconnect } = useSSE({ autoConnect: true });
   const api = useExplorationApi();
+  const { resumeSession, createSession } = api;
 
   // ----- Init session -----
   useEffect(() => {
     const initSession = async () => {
       if (initialSessionId) {
         try {
-          await api.resumeSession(initialSessionId);
+          await resumeSession(initialSessionId);
         } catch (e) {
           console.error('Failed to restore session:', e);
           if (autoCreateSession) {
-            await api.createSession();
+            await createSession();
           }
         }
-      } else if (autoCreateSession && !sessionId) {
-        await api.createSession();
+      } else if (
+        autoCreateSession &&
+        // Read sessionId at call time rather than closing over the
+        // render-time value so a concurrent SESSION_LOADED dispatch
+        // is observed.
+        !useExplorationStore.getState().session.sessionId
+      ) {
+        await createSession();
       }
     };
 
     initSession();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialSessionId, autoCreateSession]);
+  }, [initialSessionId, autoCreateSession, resumeSession, createSession]);
 
   // ----- Helpers -----
   const clearError = useCallback(() => {

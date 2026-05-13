@@ -168,24 +168,25 @@ class AnalysisHandler:
 
         stream_id = str(uuid4())
 
-        analysis = await self._analyzer.execute(
-            AnalyzerInput(
-                leaf_id=leaf_id,
-                leaf_name=leaf_name,
-                subtopic_content=subtopic_content,
-                resolved_knowledge=resolved,
-                context_id=session.context_id,
-                context_name=context_name,
-                parties_info=parties_info,
+        try:
+            analysis = await self._analyzer.execute(
+                AnalyzerInput(
+                    leaf_id=leaf_id,
+                    leaf_name=leaf_name,
+                    subtopic_content=subtopic_content,
+                    resolved_knowledge=resolved,
+                    context_id=session.context_id,
+                    context_name=context_name,
+                    parties_info=parties_info,
+                )
             )
-        )
 
-        feasibility_text = "\n".join(f"- {point}" for point in analysis.feasibility)
-        considerations_text = "\n".join(
-            f"- {point}" for point in analysis.considerations
-        )
+            feasibility_text = "\n".join(f"- {point}" for point in analysis.feasibility)
+            considerations_text = "\n".join(
+                f"- {point}" for point in analysis.considerations
+            )
 
-        analysis_markdown = f"""#### Kritische Analyse
+            analysis_markdown = f"""#### Kritische Analyse
 
 {analysis.summary}
 
@@ -201,33 +202,42 @@ class AnalysisHandler:
 
 {considerations_text}"""
 
-        await self._streaming.stream_text(
-            session_id,
-            analysis_markdown,
-            stream_id,
-            "followup",
-            leaf_id,
-        )
+            await self._streaming.stream_text(
+                session_id,
+                analysis_markdown,
+                stream_id,
+                "followup",
+                leaf_id,
+            )
 
-        analysis_message = Message(
-            id=str(uuid4()),
-            role=MessageRole.ASSISTANT,
-            type=MessageType.ANALYSIS,
-            content=analysis_markdown,
-            timestamp=datetime.now(timezone.utc),
-        )
-        await self._repo.add_message_to_conversation(
-            session_id, exploration_id, leaf_id, analysis_message
-        )
+            analysis_message = Message(
+                id=str(uuid4()),
+                role=MessageRole.ASSISTANT,
+                type=MessageType.ANALYSIS,
+                content=analysis_markdown,
+                timestamp=datetime.now(timezone.utc),
+            )
+            await self._repo.add_message_to_conversation(
+                session_id, exploration_id, leaf_id, analysis_message
+            )
 
-        nav_state = self._navigation_states.get(session_id)
-        await self._sse.send_to_session(
-            session_id,
-            ConversationMessageEvent(
-                leaf_id=leaf_id,
-                message=analysis_message,
-                navigation=nav_state,
-            ),
-        )
+            nav_state = self._navigation_states.get(session_id)
+            await self._sse.send_to_session(
+                session_id,
+                ConversationMessageEvent(
+                    leaf_id=leaf_id,
+                    message=analysis_message,
+                    navigation=nav_state,
+                ),
+            )
+        except Exception:
+            logger.exception("Analyzer failed for leaf %s", leaf_id)
+            await self._streaming.send_error(
+                session_id,
+                "LLM_ERROR",
+                "Analyse konnte nicht erstellt werden. Bitte erneut versuchen.",
+                recoverable=True,
+            )
+            return {"status": "error", "code": "LLM_ERROR"}
 
         return {"status": "analysis_generated", "leaf_id": leaf_id}

@@ -34,9 +34,6 @@ export const connectionActions = {
     type: 'CONNECTION_DISCONNECTED',
     error,
   }),
-  reconnectAttempt: (): ExplorationAction => ({
-    type: 'CONNECTION_RECONNECT_ATTEMPT',
-  }),
   reset: (): ExplorationAction => ({ type: 'CONNECTION_RESET' }),
   sessionClaimed: (message?: string): ExplorationAction => ({
     type: 'SESSION_CLAIMED',
@@ -198,7 +195,7 @@ export const streamActions = {
     targetId: string,
     explorationId: string | null,
     leafId: string | null,
-    originTab?: OriginTab,
+    originTab: OriginTab,
   ): ExplorationAction => ({
     type: 'STREAM_STARTED',
     streamId,
@@ -264,10 +261,6 @@ export const uiActions = {
   quickSummaryReceived: (data: QuickSummaryData): ExplorationAction => ({
     type: 'QUICK_SUMMARY_RECEIVED',
     data,
-  }),
-
-  quickSummaryCleared: (): ExplorationAction => ({
-    type: 'QUICK_SUMMARY_CLEARED',
   }),
 
   announce: (message: string): ExplorationAction => ({

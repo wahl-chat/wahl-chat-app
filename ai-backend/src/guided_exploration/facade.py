@@ -132,11 +132,8 @@ class GuidedExplorationFacade:
         session_id: str,
         query_id: str,
         choice: Literal["explore", "summary"],
-        parties: list[str] | None = None,
     ) -> dict:
-        return await self._choice_flow.handle_choice(
-            session_id, query_id, choice, parties
-        )
+        return await self._choice_flow.handle_choice(session_id, query_id, choice)
 
     async def start_exploration(
         self,

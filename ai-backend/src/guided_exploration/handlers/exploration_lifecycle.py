@@ -285,9 +285,7 @@ class ExplorationLifecycleHandler:
             )
             return {"status": "error", "code": "exploration_not_found"}
 
-        await self._mark_leaf_explored(
-            session_id, exploration_id, leaf_id, exploration.tree
-        )
+        await self._mark_leaf_explored(session_id, exploration_id, leaf_id)
         return {"status": "marked_explored", "leaf_id": leaf_id}
 
     async def end_exploration(
@@ -475,11 +473,20 @@ class ExplorationLifecycleHandler:
         session_id: str,
         exploration_id: str,
         leaf_id: str,
-        tree: ExplorationTree,
     ) -> None:
-        """Mark a leaf node as explored in the tree."""
-        node = tree.find_node(leaf_id)
-        if node is not None:
-            node.status = NodeStatus.EXPLORED
+        """Mark a leaf node as explored in the tree.
 
-        await self._repo.update_tree(session_id, exploration_id, tree)
+        Re-fetches the exploration before mutating so concurrent
+        navigate / pregen status updates aren't overwritten by a stale
+        snapshot.
+        """
+        fresh = await self._repo.get_exploration(session_id, exploration_id)
+        if fresh is None:
+            return
+
+        node = fresh.tree.find_node(leaf_id)
+        if node is None:
+            return
+
+        node.status = NodeStatus.EXPLORED
+        await self._repo.update_tree(session_id, exploration_id, fresh.tree)

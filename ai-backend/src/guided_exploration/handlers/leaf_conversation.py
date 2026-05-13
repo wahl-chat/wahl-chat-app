@@ -158,15 +158,19 @@ class LeafConversationHandler:
             f"(confidence: {classification.confidence:.2f})"
         )
 
-        return await self._handle_conversation_message(
+        positions_by_party = exploration.tree.get_positions_by_party(leaf_id)
+        logger.info(f"Auto-augmenting follow-up with RAG for leaf {leaf_id}")
+        return await self._handle_followup_with_rag(
             session_id=session_id,
             exploration_id=exploration_id,
             exploration=exploration,
             leaf_id=leaf_id,
             user_message=user_message,
+            context_id=session.context_id,
             context_name=context_name,
             parties_info=parties_info,
             conversation=conversation,
+            positions_by_party=positions_by_party,
         )
 
     async def _handle_followup_with_rag(
@@ -176,16 +180,13 @@ class LeafConversationHandler:
         exploration: Exploration,
         leaf_id: str,
         user_message: str,
+        context_id: str,
         context_name: str,
         parties_info: dict[str, PartyInfo],
         conversation: Conversation | None,
         positions_by_party: dict[str, list],
     ) -> dict:
         """Handle a follow-up that needs additional RAG retrieval."""
-        session = await self._repo.get_session(session_id)
-        if not session:
-            return {"status": "error", "code": "session_not_found"}
-
         await self._streaming.send_thinking(
             session_id, "retrieving", "Suche weitere Details..."
         )
@@ -196,7 +197,7 @@ class LeafConversationHandler:
         async def retrieve_for_party(party_id: str):
             return party_id, await self._rag_service.retrieve_chunks_for_party(
                 query=search_query,
-                context_id=session.context_id,
+                context_id=context_id,
                 party_id=party_id,
                 n_docs=5,
                 score_threshold=0.5,
@@ -269,31 +270,6 @@ class LeafConversationHandler:
             parties_info=parties_info,
             conversation=conversation,
             resolved=resolved,
-        )
-
-    async def _handle_conversation_message(
-        self,
-        session_id: str,
-        exploration_id: str,
-        exploration: Exploration,
-        leaf_id: str,
-        user_message: str,
-        context_name: str,
-        parties_info: dict[str, PartyInfo],
-        conversation: Conversation | None = None,
-    ) -> dict:
-        positions_by_party = exploration.tree.get_positions_by_party(leaf_id)
-        logger.info(f"Auto-augmenting follow-up with RAG for leaf {leaf_id}")
-        return await self._handle_followup_with_rag(
-            session_id=session_id,
-            exploration_id=exploration_id,
-            exploration=exploration,
-            leaf_id=leaf_id,
-            user_message=user_message,
-            context_name=context_name,
-            parties_info=parties_info,
-            conversation=conversation,
-            positions_by_party=positions_by_party,
         )
 
     @staticmethod
@@ -420,107 +396,117 @@ class LeafConversationHandler:
         stream_id = str(uuid4())
         message_id = str(uuid4())
 
-        full_text = await self._streaming.stream_from_llm(
-            session_id=session_id,
-            stream_id=stream_id,
-            llm_stream=self._conversation_handler.stream_from_llm(handler_input),
-            target_type="followup",
-            target_id=leaf_id,
-        )
-
-        used_citations = extract_used_citations(full_text, citation_pool)
-        fabricated_ids = extract_fabricated_citation_ids(full_text, citation_pool)
-        if fabricated_ids:
-            logger.warning(
-                f"Followup fabricated citations session={session_id} "
-                f"leaf={leaf_id} ids={fabricated_ids} "
-                f"pool_size={len(citation_pool)}"
-            )
-            await self._repo.add_flagged_citation(
-                session_id,
-                FlaggedCitation(
-                    exploration_id=exploration_id,
-                    leaf_id=leaf_id,
-                    message_id=message_id,
-                    handler="followup",
-                    fabricated_ids=fabricated_ids,
-                    pool_size=len(citation_pool),
-                    occurred_at=datetime.now(timezone.utc),
-                ),
+        try:
+            full_text = await self._streaming.stream_from_llm(
+                session_id=session_id,
+                stream_id=stream_id,
+                llm_stream=self._conversation_handler.stream_from_llm(handler_input),
+                target_type="followup",
+                target_id=leaf_id,
             )
 
-        await self._study_exposure.log(session_id, used_citations)
+            used_citations = extract_used_citations(full_text, citation_pool)
+            fabricated_ids = extract_fabricated_citation_ids(full_text, citation_pool)
+            if fabricated_ids:
+                logger.warning(
+                    f"Followup fabricated citations session={session_id} "
+                    f"leaf={leaf_id} ids={fabricated_ids} "
+                    f"pool_size={len(citation_pool)}"
+                )
+                await self._repo.add_flagged_citation(
+                    session_id,
+                    FlaggedCitation(
+                        exploration_id=exploration_id,
+                        leaf_id=leaf_id,
+                        message_id=message_id,
+                        handler="followup",
+                        fabricated_ids=fabricated_ids,
+                        pool_size=len(citation_pool),
+                        occurred_at=datetime.now(timezone.utc),
+                    ),
+                )
 
-        response_message = Message(
-            id=message_id,
-            role=MessageRole.ASSISTANT,
-            type=MessageType.FOLLOWUP,
-            content=full_text,
-            citations=used_citations,
-            timestamp=datetime.now(timezone.utc),
-        )
+            await self._study_exposure.log(session_id, used_citations)
 
-        # Build the conversation in memory for the follow-up generator —
-        # the user message has been persisted (line above the streaming
-        # call); the assistant message is persisted further below once
-        # the follow-up signals (chips, closure_ready, switch proposal)
-        # are populated, so they land on the same Firestore document.
-        full_conversation = Conversation(
-            leaf_id=leaf_id,
-            messages=[*conversation_history, user_msg, response_message],
-        )
-
-        available_context_parts: list[str] = []
-        for party_id, party_data in resolved.party_positions.items():
-            party_info = parties_info.get(party_id)
-            party_name = party_info.name if party_info else party_id
-            available_context_parts.append(f"\n## {party_name}")
-            for pos in party_data.positions:
-                cite_tag = f" [{pos.citation_id}]" if pos.citation_id else ""
-                available_context_parts.append(f"- {pos.position}{cite_tag}")
-        available_context = "\n".join(available_context_parts)
-
-        suggestions = await self._leaf_followup.generate(
-            LeafFollowUpInput(
-                conversation=full_conversation,
-                available_context=available_context,
-                already_cited_ids=already_cited_ids,
-                neighboring_leaves=neighboring_leaves_text,
-                valid_neighbour_ids=valid_neighbour_ids,
+            response_message = Message(
+                id=message_id,
+                role=MessageRole.ASSISTANT,
+                type=MessageType.FOLLOWUP,
+                content=full_text,
+                citations=used_citations,
+                timestamp=datetime.now(timezone.utc),
             )
-        )
 
-        response_message.suggested_followups = list(suggestions.questions)
-        response_message.closure_ready = suggestions.closure_ready
-        response_message.topic_switch_proposal = suggestions.topic_switch_proposal
+            # Build the conversation in memory for the follow-up generator —
+            # the user message has been persisted (line above the streaming
+            # call); the assistant message is persisted further below once
+            # the follow-up signals (chips, closure_ready, switch proposal)
+            # are populated, so they land on the same Firestore document.
+            full_conversation = Conversation(
+                leaf_id=leaf_id,
+                messages=[*conversation_history, user_msg, response_message],
+            )
 
-        await self._repo.add_message_to_conversation(
-            session_id, exploration_id, leaf_id, response_message
-        )
+            available_context_parts: list[str] = []
+            for party_id, party_data in resolved.party_positions.items():
+                party_info = parties_info.get(party_id)
+                party_name = party_info.name if party_info else party_id
+                available_context_parts.append(f"\n## {party_name}")
+                for pos in party_data.positions:
+                    cite_tag = f" [{pos.citation_id}]" if pos.citation_id else ""
+                    available_context_parts.append(f"- {pos.position}{cite_tag}")
+            available_context = "\n".join(available_context_parts)
 
-        if suggestions.topic_switch_proposal is not None:
-            proposal = suggestions.topic_switch_proposal
+            suggestions = await self._leaf_followup.generate(
+                LeafFollowUpInput(
+                    conversation=full_conversation,
+                    available_context=available_context,
+                    already_cited_ids=already_cited_ids,
+                    neighboring_leaves=neighboring_leaves_text,
+                    valid_neighbour_ids=valid_neighbour_ids,
+                )
+            )
+
+            response_message.suggested_followups = list(suggestions.questions)
+            response_message.closure_ready = suggestions.closure_ready
+            response_message.topic_switch_proposal = suggestions.topic_switch_proposal
+
+            await self._repo.add_message_to_conversation(
+                session_id, exploration_id, leaf_id, response_message
+            )
+
+            if suggestions.topic_switch_proposal is not None:
+                proposal = suggestions.topic_switch_proposal
+                await self._sse.send_to_session(
+                    session_id,
+                    TopicSwitchSuggestedEvent(
+                        leaf_id=leaf_id,
+                        target_node_id=proposal.target_node_id,
+                        target_node_name=proposal.target_node_name,
+                        message=proposal.reason,
+                    ),
+                )
+
             await self._sse.send_to_session(
                 session_id,
-                TopicSwitchSuggestedEvent(
+                ConversationMessageEvent(
                     leaf_id=leaf_id,
-                    target_node_id=proposal.target_node_id,
-                    target_node_name=proposal.target_node_name,
-                    message=proposal.reason,
+                    message=response_message,
+                    navigation=navigation,
+                    citations=used_citations,
+                    suggested_questions=suggestions.questions,
+                    closure_ready=suggestions.closure_ready,
                 ),
             )
-
-        await self._sse.send_to_session(
-            session_id,
-            ConversationMessageEvent(
-                leaf_id=leaf_id,
-                message=response_message,
-                navigation=navigation,
-                citations=used_citations,
-                suggested_questions=suggestions.questions,
-                closure_ready=suggestions.closure_ready,
-            ),
-        )
+        except Exception:
+            logger.exception("Follow-up generation failed for leaf %s", leaf_id)
+            await self._streaming.send_error(
+                session_id,
+                "LLM_ERROR",
+                "Antwort konnte nicht erstellt werden. Bitte erneut versuchen.",
+                recoverable=True,
+            )
+            return {"status": "error", "code": "LLM_ERROR"}
 
         return {
             "status": "accepted",

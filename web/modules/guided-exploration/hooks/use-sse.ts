@@ -124,6 +124,17 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
     leafId: string;
   } | null>(null);
 
+  // Set suggested questions for the given surface, no-op when the list is
+  // empty/missing. Centralizes a pattern repeated across four event cases.
+  const dispatchSuggestedQuestions = useCallback(
+    (questions: string[] | undefined, tab: 'chat' | 'leaf') => {
+      if (questions && questions.length > 0) {
+        dispatchRef.current(uiActions.suggestedQuestionsSet(questions, tab));
+      }
+    },
+    [],
+  );
+
   // Resolve the explorationId for a leaf-scoped event that doesn't carry
   // one. Prefer the streaming snapshot, fall back to currently-open leaf.
   const resolveLeafScope = useCallback((leafId: string): string | null => {
@@ -146,7 +157,9 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
     (event: SSEEvent) => {
       switch (event.type) {
         case 'connected':
-          dispatchRef.current(connectionActions.connected());
+          // CONNECTION_CONNECTED is already dispatched by the transport
+          // `onopen` (see handleStatusChange). The backend-level event is
+          // only used here to surface the screen-reader announcement.
           dispatchRef.current(uiActions.announce('Verbindung hergestellt'));
           break;
 
@@ -288,18 +301,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
             ),
           );
           dispatchRef.current(uiActions.thinkingEnded());
-          // Set suggested questions if available
-          if (
-            convEvent.suggestedQuestions &&
-            convEvent.suggestedQuestions.length > 0
-          ) {
-            dispatchRef.current(
-              uiActions.suggestedQuestionsSet(
-                convEvent.suggestedQuestions,
-                'leaf',
-              ),
-            );
-          }
+          dispatchSuggestedQuestions(convEvent.suggestedQuestions, 'leaf');
           dispatchRef.current(
             uiActions.announce(
               `Unterthema geöffnet: ${convEvent.conversation.messages.length} Nachrichten`,
@@ -344,18 +346,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
               messageWithCitations,
             ),
           );
-          // Set suggested questions if available
-          if (
-            msgEvent.suggestedQuestions &&
-            msgEvent.suggestedQuestions.length > 0
-          ) {
-            dispatchRef.current(
-              uiActions.suggestedQuestionsSet(
-                msgEvent.suggestedQuestions,
-                'leaf',
-              ),
-            );
-          }
+          dispatchSuggestedQuestions(msgEvent.suggestedQuestions, 'leaf');
           // Closure prompt — backend signals the leaf is substantially explored.
           // Reducer also clears it on next THINKING_STARTED, so a follow-up
           // turn starts with a fresh judgement.
@@ -382,18 +373,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
               suggestedQuestions: quickEvent.suggestedQuestions,
             }),
           );
-          // Set suggested questions if available
-          if (
-            quickEvent.suggestedQuestions &&
-            quickEvent.suggestedQuestions.length > 0
-          ) {
-            dispatchRef.current(
-              uiActions.suggestedQuestionsSet(
-                quickEvent.suggestedQuestions,
-                'chat',
-              ),
-            );
-          }
+          dispatchSuggestedQuestions(quickEvent.suggestedQuestions, 'chat');
           dispatchRef.current(uiActions.thinkingEnded());
           break;
         }
@@ -411,18 +391,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           // Clear stream buffer before adding message (prevents duplicate)
           dispatchRef.current(streamActions.bufferCleared());
           dispatchRef.current(sessionActions.messageAdded(message));
-          // Set suggested questions if available
-          if (
-            chatEvent.suggestedQuestions &&
-            chatEvent.suggestedQuestions.length > 0
-          ) {
-            dispatchRef.current(
-              uiActions.suggestedQuestionsSet(
-                chatEvent.suggestedQuestions,
-                'chat',
-              ),
-            );
-          }
+          dispatchSuggestedQuestions(chatEvent.suggestedQuestions, 'chat');
           dispatchRef.current(uiActions.thinkingEnded());
           break;
         }
@@ -575,7 +544,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           console.warn('[SSE] Unhandled event type:', event.type, event);
       }
     },
-    [resolveLeafScope],
+    [resolveLeafScope, dispatchSuggestedQuestions],
   );
 
   // Error handler - stable reference using dispatchRef
@@ -657,8 +626,13 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
       dispatchRef.current(connectionActions.connecting());
       const sessionData = await explorationApi.getSession(sessionId);
 
-      // 2. Restore session and any active exploration
+      // 2. Restore session, replay messages, and re-attach any active exploration
       dispatchRef.current(sessionActions.loaded(sessionId));
+      if (sessionData.messages && sessionData.messages.length > 0) {
+        dispatchRef.current(
+          sessionActions.messagesLoaded(sessionData.messages),
+        );
+      }
       const activeExp = sessionData.activeExploration;
       if (activeExp) {
         dispatchRef.current(
