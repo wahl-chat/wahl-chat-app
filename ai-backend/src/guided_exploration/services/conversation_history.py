@@ -15,10 +15,15 @@ from src.guided_exploration.models import (
 def format_session_history(
     messages: list[SessionMessage],
     limit: int = 10,
+    per_message_chars: int = 200,
 ) -> list[str]:
     """Format session messages as ``Nutzer: …`` / ``Assistent: …`` lines.
 
-    Truncates each message to 200 chars so the classifier prompt stays bounded.
+    Truncates each message to ``per_message_chars`` chars to keep prompts
+    bounded. The classifier path uses the default 200 — short, since
+    classification only needs surface-level context. The chip generator
+    passes a much larger cap so it can actually see what was covered in
+    earlier rich replies and avoid suggesting redundant follow-ups.
     Returns the most recent ``limit`` messages with non-empty text content.
     """
     recent = [
@@ -33,7 +38,9 @@ def format_session_history(
         role = "Nutzer" if msg.type == SessionMessageType.USER else "Assistent"
         msg_content = msg.content or ""
         content = (
-            msg_content[:200] + "..." if len(msg_content) > 200 else msg_content
+            msg_content[:per_message_chars] + "..."
+            if len(msg_content) > per_message_chars
+            else msg_content
         )
         history.append(f"{role}: {content}")
     return history

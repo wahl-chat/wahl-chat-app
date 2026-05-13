@@ -58,7 +58,6 @@ import {
 } from '@/modules/guided-exploration/utils/tree-helpers';
 
 import { useExplorationApi } from './use-exploration-api';
-import { useFirebaseSummaries } from './use-firebase-summaries';
 import { useSSE } from './use-sse';
 
 export interface UseExplorationOptions {
@@ -129,10 +128,9 @@ export function useExploration(options: UseExplorationOptions = {}) {
   const explorationPending = useExplorationStore(selectExplorationPending);
   const explorationReadyData = useExplorationStore(selectExplorationReadyData);
 
-  // ----- SSE + API + Firebase -----
+  // ----- SSE + API -----
   const { connect, disconnect } = useSSE({ autoConnect: true });
   const api = useExplorationApi();
-  const { summaries, loading: summariesLoading } = useFirebaseSummaries();
 
   // ----- Init session -----
   useEffect(() => {
@@ -466,10 +464,6 @@ export function useExploration(options: UseExplorationOptions = {}) {
     explorationPending,
     explorationReadyData,
     clearExplorationReady,
-
-    // Summaries (firebase-synced)
-    summaries,
-    summariesLoading,
 
     // Connection
     connect,

@@ -10,7 +10,8 @@ on political topics with conversational followups and analysis.
 """
 
 # Re-export facade
-from src.guided_exploration.facade import GuidedExplorationFacade, get_facade
+from src.guided_exploration.composition import get_facade
+from src.guided_exploration.facade import GuidedExplorationFacade
 
 # Re-export services
 from src.guided_exploration.services import (
@@ -39,7 +40,6 @@ from src.guided_exploration.models import (
     SubtopicContent,
     # conversation
     Conversation,
-    LeafSummary,
     Message,
     MessageRole,
     MessageType,
@@ -65,17 +65,14 @@ from src.guided_exploration.models import (
     SSEEvent,
     StreamChunkEvent,
     StreamEndEvent,
-    SummaryGeneratingEvent,
     ThinkingEvent,
     TopicOverviewEvent,
     TopicTreeEvent,
     # exploration
     Exploration,
     ExplorationStatus,
-    FinalSummary,
     ResolvedKnowledge,
     RetrievedChunk,
-    SummaryTree,
     # navigation
     BreadcrumbItem,
     BreadcrumbLevel,
@@ -122,7 +119,6 @@ __all__ = [
     "SubtopicContent",
     # conversation
     "Conversation",
-    "LeafSummary",
     "Message",
     "MessageRole",
     "MessageType",
@@ -148,17 +144,14 @@ __all__ = [
     "SSEEvent",
     "StreamChunkEvent",
     "StreamEndEvent",
-    "SummaryGeneratingEvent",
     "ThinkingEvent",
     "TopicOverviewEvent",
     "TopicTreeEvent",
     # exploration
     "Exploration",
     "ExplorationStatus",
-    "FinalSummary",
     "ResolvedKnowledge",
     "RetrievedChunk",
-    "SummaryTree",
     # navigation
     "BreadcrumbItem",
     "BreadcrumbLevel",

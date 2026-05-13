@@ -3,15 +3,10 @@
 import VisuallyHidden from '@/components/visually-hidden';
 import { cn } from '@/lib/utils';
 import { PartyBadge } from '@/modules/guided-exploration/components/shared/party-badge';
-import {
-  selectLeafSummary,
-  useExplorationStore,
-} from '@/modules/guided-exploration/store';
 import type { ExplorationNode } from '@/modules/guided-exploration/types';
 import { Check, ChevronRight } from 'lucide-react';
 
 interface ExplorationLeafCardProps {
-  explorationId: string;
   node: ExplorationNode;
   onOpen?: (leafId: string) => void;
 }
@@ -24,14 +19,9 @@ const MAX_VISIBLE_BADGES = 5;
  * proper white card matching the v2 SubtopicItem look.
  */
 export function ExplorationLeafCard({
-  explorationId,
   node,
   onOpen,
 }: ExplorationLeafCardProps) {
-  const summary = useExplorationStore(
-    selectLeafSummary(explorationId, node.id),
-  );
-
   const isExplored = node.status === 'explored';
   const isStarted = node.status === 'started';
 
@@ -41,8 +31,7 @@ export function ExplorationLeafCard({
       ? 'in Bearbeitung'
       : 'noch nicht erkundet';
 
-  const overview = isExplored ? (summary?.overview?.trim() ?? '') : '';
-  const description = overview || node.description;
+  const description = node.description;
 
   const visibleParties = node.partyIds.slice(0, MAX_VISIBLE_BADGES);
   const overflowCount = Math.max(0, node.partyIds.length - MAX_VISIBLE_BADGES);

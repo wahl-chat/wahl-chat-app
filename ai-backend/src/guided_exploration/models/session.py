@@ -43,6 +43,14 @@ class SessionMessage(BaseModel):
         default_factory=list,
         description="Citations for this message (for quick summaries)",
     )
+    suggested_followups: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Quick-reply chips offered alongside this assistant turn. "
+            "Persisted so the study admin can audit what the participant "
+            "was offered next to each message."
+        ),
+    )
     exploration_id: str | None = Field(
         default=None, description="Set for exploration_start type"
     )

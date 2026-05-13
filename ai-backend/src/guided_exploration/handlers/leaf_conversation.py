@@ -1,0 +1,542 @@
+# SPDX-FileCopyrightText: 2025 wahl.chat
+#
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+"""In-leaf conversation handler.
+
+Drives the follow-up conversation chain inside a leaf — classifies the
+user message, delegates navigation commands to the navigation handler,
+and otherwise streams a RAG-augmented LLM turn via the conversation
+handler agent. After the stream completes, hands off to
+``LeafFollowUpGenerator`` for chips + closure + topic-switch.
+"""
+
+import asyncio
+import logging
+from datetime import datetime, timezone
+from uuid import uuid4
+
+from src.guided_exploration.agents import (
+    LeafConversationHandlerAgent,
+    LeafConversationHandlerInput,
+    MessageClassifierAgent,
+    MessageClassifierInput,
+)
+from src.guided_exploration.agents.leaf_conversation_handler.prompts import (
+    format_neighboring_leaves,
+)
+from src.guided_exploration.agents.leaf_followup_generator import (
+    LeafFollowUpGenerator,
+    LeafFollowUpInput,
+)
+from src.guided_exploration.agents.party_context import PartyInfo
+from src.guided_exploration.api.sse import SSEManager
+from src.guided_exploration.handlers.navigation import NavigationHandler
+from src.guided_exploration.models import (
+    Citation,
+    Conversation,
+    ConversationMessageEvent,
+    Exploration,
+    ExtractedPosition,
+    ExtractedPositionItem,
+    FlaggedCitation,
+    Message,
+    MessageRole,
+    MessageType,
+    NavigationState,
+    ResolvedKnowledge,
+)
+from src.guided_exploration.models.classification import MessageIntent
+from src.guided_exploration.models.events import TopicSwitchSuggestedEvent
+from src.guided_exploration.services.citation_utils import (
+    create_citation_from_chunk as create_chunk_citation,
+    extract_fabricated_citation_ids,
+    extract_used_citations,
+)
+from src.guided_exploration.services.context_resolver import ContextResolver
+from src.guided_exploration.services.conversation_history import (
+    extract_last_assistant_message,
+    format_leaf_history,
+)
+from src.guided_exploration.services.navigation_state_store import (
+    NavigationStateStore,
+)
+from src.guided_exploration.services.rag_service import RAGService
+from src.guided_exploration.services.session_repository import SessionRepository
+from src.guided_exploration.services.streaming import StreamingService
+from src.guided_exploration.services.study_exposure import StudyExposureLogger
+
+logger = logging.getLogger(__name__)
+
+
+class LeafConversationHandler:
+    """Owns in-leaf turns: classification → RAG → stream → chips/closure/switch."""
+
+    def __init__(
+        self,
+        repo: SessionRepository,
+        sse: SSEManager,
+        streaming: StreamingService,
+        rag_service: RAGService,
+        context_resolver: ContextResolver,
+        navigation_states: NavigationStateStore,
+        navigation_handler: NavigationHandler,
+        message_classifier: MessageClassifierAgent,
+        conversation_handler: LeafConversationHandlerAgent,
+        leaf_followup_generator: LeafFollowUpGenerator,
+        study_exposure: StudyExposureLogger,
+    ) -> None:
+        self._repo = repo
+        self._sse = sse
+        self._streaming = streaming
+        self._rag_service = rag_service
+        self._context_resolver = context_resolver
+        self._navigation_states = navigation_states
+        self._navigation_handler = navigation_handler
+        self._message_classifier = message_classifier
+        self._conversation_handler = conversation_handler
+        self._leaf_followup = leaf_followup_generator
+        self._study_exposure = study_exposure
+
+    async def handle(
+        self,
+        session_id: str,
+        exploration_id: str,
+        leaf_id: str,
+        user_message: str,
+    ) -> dict:
+        """Handle a user message within an active exploration leaf."""
+        exploration = await self._repo.get_exploration(session_id, exploration_id)
+        if not exploration:
+            await self._streaming.send_error(
+                session_id,
+                "exploration_not_found",
+                "Erkundung nicht gefunden",
+            )
+            return {"status": "error", "code": "exploration_not_found"}
+
+        session = await self._repo.get_session(session_id)
+        if not session:
+            return {"status": "error", "code": "session_not_found"}
+
+        context_name, parties_info = await self._context_resolver.get_context_info(
+            session.context_id
+        )
+
+        conversation = await self._repo.get_conversation(
+            session_id, exploration_id, leaf_id
+        )
+        conversation_history = format_leaf_history(conversation)
+        last_assistant_message = extract_last_assistant_message(conversation)
+
+        await self._streaming.send_thinking(
+            session_id, "classifying", "Analysiere Ihre Nachricht..."
+        )
+
+        classification = await self._message_classifier.execute(
+            MessageClassifierInput(
+                message=user_message,
+                context_name=context_name,
+                current_leaf_id=leaf_id,
+                exploration_id=exploration_id,
+                conversation_history=conversation_history,
+                last_assistant_message=last_assistant_message,
+            )
+        )
+
+        if classification.intent == MessageIntent.NAVIGATION_COMMAND:
+            return await self._navigation_handler.handle_navigation_command(
+                session_id,
+                exploration_id,
+                exploration,
+                leaf_id,
+                classification.navigation_target,
+            )
+
+        logger.info(
+            f"Message classified as {classification.intent.value} "
+            f"(confidence: {classification.confidence:.2f})"
+        )
+
+        return await self._handle_conversation_message(
+            session_id=session_id,
+            exploration_id=exploration_id,
+            exploration=exploration,
+            leaf_id=leaf_id,
+            user_message=user_message,
+            message_type=classification.intent,
+            context_name=context_name,
+            parties_info=parties_info,
+            conversation=conversation,
+        )
+
+    async def _handle_followup_with_rag(
+        self,
+        session_id: str,
+        exploration_id: str,
+        exploration: Exploration,
+        leaf_id: str,
+        user_message: str,
+        context_name: str,
+        parties_info: dict[str, PartyInfo],
+        conversation: Conversation | None,
+        positions_by_party: dict[str, list],
+    ) -> dict:
+        """Handle a follow-up that needs additional RAG retrieval."""
+        session = await self._repo.get_session(session_id)
+        if not session:
+            return {"status": "error", "code": "session_not_found"}
+
+        await self._streaming.send_thinking(
+            session_id, "retrieving", "Suche weitere Details..."
+        )
+
+        search_query = user_message
+        party_ids = list(positions_by_party.keys())
+
+        async def retrieve_for_party(party_id: str):
+            return party_id, await self._rag_service.retrieve_chunks_for_party(
+                query=search_query,
+                context_id=session.context_id,
+                party_id=party_id,
+                n_docs=5,
+                score_threshold=0.5,
+            )
+
+        results = await asyncio.gather(
+            *[retrieve_for_party(pid) for pid in party_ids],
+            return_exceptions=True,
+        )
+
+        party_positions: dict[str, ExtractedPosition] = {}
+        citation_pool: list[Citation] = []
+        party_chunks: dict[str, list] = {}
+
+        for party_id, positions in positions_by_party.items():
+            extracted_positions = [
+                ExtractedPositionItem(
+                    position=c.content,
+                    quote=c.quote,
+                    source_doc=c.citation.document if c.citation else "",
+                    source_page=c.citation.page if c.citation else None,
+                    position_type=c.position_type,
+                    citation_id=c.citation.id if c.citation else None,
+                )
+                for c in positions
+            ]
+            party_positions[party_id] = ExtractedPosition(
+                party_id=party_id,
+                positions=extracted_positions,
+            )
+            for c in positions:
+                if c.citation is not None:
+                    citation_pool.append(c.citation)
+
+        for result in results:
+            if isinstance(result, BaseException):
+                continue
+            party_id, chunks = result
+            party_chunks[party_id] = chunks
+            party_name = parties_info.get(
+                party_id,
+                PartyInfo(
+                    party_id=party_id,
+                    name=party_id.upper(),
+                    long_name=party_id.upper(),
+                ),
+            ).name
+            for chunk in chunks[:5]:
+                citation_pool.append(create_chunk_citation(chunk, party_name))
+
+        resolved = ResolvedKnowledge(
+            leaf_id=leaf_id,
+            party_positions=party_positions,
+            citation_pool=citation_pool,
+            party_chunks=party_chunks,
+        )
+
+        logger.info(
+            f"RAG-augmented follow-up for leaf {leaf_id}: "
+            f"{sum(len(c) for c in party_chunks.values())} additional chunks"
+        )
+
+        return await self._handle_followup_with_resolved(
+            session_id=session_id,
+            exploration_id=exploration_id,
+            exploration=exploration,
+            leaf_id=leaf_id,
+            user_message=user_message,
+            message_type=MessageIntent.FOLLOWUP_QUESTION,
+            context_name=context_name,
+            parties_info=parties_info,
+            conversation=conversation,
+            resolved=resolved,
+        )
+
+    async def _handle_conversation_message(
+        self,
+        session_id: str,
+        exploration_id: str,
+        exploration: Exploration,
+        leaf_id: str,
+        user_message: str,
+        message_type: MessageIntent,
+        context_name: str,
+        parties_info: dict[str, PartyInfo],
+        conversation: Conversation | None = None,
+    ) -> dict:
+        positions_by_party = exploration.tree.get_positions_by_party(leaf_id)
+        logger.info(f"Auto-augmenting follow-up with RAG for leaf {leaf_id}")
+        return await self._handle_followup_with_rag(
+            session_id=session_id,
+            exploration_id=exploration_id,
+            exploration=exploration,
+            leaf_id=leaf_id,
+            user_message=user_message,
+            context_name=context_name,
+            parties_info=parties_info,
+            conversation=conversation,
+            positions_by_party=positions_by_party,
+        )
+
+    @staticmethod
+    def _gather_already_cited_ids(
+        conversation: Conversation | None,
+        resolved: ResolvedKnowledge,
+    ) -> list[str]:
+        """Citation IDs the user has already seen in this leaf."""
+        ids: set[str] = set()
+        for ep in resolved.party_positions.values():
+            for item in ep.positions:
+                if item.citation_id:
+                    ids.add(item.citation_id)
+        if conversation:
+            for msg in conversation.messages:
+                if msg.role != MessageRole.ASSISTANT:
+                    continue
+                for cit in msg.citations:
+                    if cit.id:
+                        ids.add(cit.id)
+                content = msg.content
+                inner = getattr(content, "citations", None)
+                if inner:
+                    for cit in inner:
+                        if cit.id:
+                            ids.add(cit.id)
+        return sorted(ids)
+
+    async def _handle_followup_with_resolved(
+        self,
+        session_id: str,
+        exploration_id: str,
+        exploration: Exploration,
+        leaf_id: str,
+        user_message: str,
+        message_type: MessageIntent,
+        context_name: str,
+        parties_info: dict[str, PartyInfo],
+        conversation: Conversation | None,
+        resolved: ResolvedKnowledge,
+    ) -> dict:
+        """Run the LLM turn with RAG-augmented knowledge and persist results."""
+        citation_pool = resolved.citation_pool
+
+        logger.info(
+            f"Follow-up context for leaf {leaf_id}: "
+            f"{len(resolved.party_positions)} parties, "
+            f"{sum(len(p.positions) for p in resolved.party_positions.values())} positions, "
+            f"{len(resolved.citation_pool)} citations"
+            + (
+                f", {sum(len(c) for c in resolved.party_chunks.values())} RAG chunks"
+                if resolved.party_chunks
+                else ""
+            )
+        )
+
+        navigation = self._navigation_states.get(session_id)
+        if not navigation:
+            navigation = NavigationState(
+                exploration_id=exploration_id,
+                current_path=[],
+                breadcrumb=[],
+            )
+
+        if conversation is None:
+            conversation = await self._repo.get_conversation(
+                session_id, exploration_id, leaf_id
+            )
+        conversation_history = conversation.messages if conversation else []
+
+        already_cited_ids = self._gather_already_cited_ids(conversation, resolved)
+        new_chunk_ids: list[str] = []
+        for chunks in resolved.party_chunks.values():
+            for chunk in chunks:
+                if chunk.chunk_id and chunk.chunk_id not in already_cited_ids:
+                    new_chunk_ids.append(chunk.chunk_id)
+        logger.info(
+            f"Follow-up exhaustion signal leaf={leaf_id} "
+            f"already_cited={len(already_cited_ids)} "
+            f"new_chunks={len(new_chunk_ids)}"
+        )
+
+        now = datetime.now(timezone.utc)
+        user_msg = Message(
+            id=str(uuid4()),
+            role=MessageRole.USER,
+            type=MessageType.FOLLOWUP,
+            content=user_message,
+            timestamp=now,
+        )
+        await self._repo.add_message_to_conversation(
+            session_id, exploration_id, leaf_id, user_msg
+        )
+
+        await self._sse.send_to_session(
+            session_id,
+            ConversationMessageEvent(
+                leaf_id=leaf_id,
+                message=user_msg,
+                navigation=navigation,
+            ),
+        )
+
+        await self._streaming.send_thinking(
+            session_id, "generating", "Formuliere Antwort..."
+        )
+
+        leaf_node = exploration.tree.find_node(leaf_id)
+        leaf_name = leaf_node.name if leaf_node else leaf_id
+        leaf_description = leaf_node.description if leaf_node else ""
+
+        neighboring_leaves_text = format_neighboring_leaves(
+            exploration.tree, leaf_id
+        )
+        valid_neighbour_ids: dict[str, str] = {
+            n.id: n.name
+            for n in exploration.tree.root.get_leaf_nodes()
+            if n.id != leaf_id
+        }
+
+        handler_input = LeafConversationHandlerInput(
+            message=user_message,
+            leaf_id=leaf_id,
+            leaf_name=leaf_name,
+            leaf_description=leaf_description,
+            conversation_history=conversation_history,
+            resolved_knowledge=resolved,
+            context_id=exploration.tree.exploration_id,
+            context_name=context_name,
+            parties_info=parties_info,
+            already_cited_ids=already_cited_ids,
+            neighboring_leaves=neighboring_leaves_text,
+        )
+
+        stream_id = str(uuid4())
+        message_id = str(uuid4())
+
+        full_text = await self._streaming.stream_from_llm(
+            session_id=session_id,
+            stream_id=stream_id,
+            llm_stream=self._conversation_handler.stream_from_llm(handler_input),
+            target_type="followup",
+            target_id=leaf_id,
+        )
+
+        used_citations = extract_used_citations(full_text, citation_pool)
+        fabricated_ids = extract_fabricated_citation_ids(full_text, citation_pool)
+        if fabricated_ids:
+            logger.warning(
+                f"Followup fabricated citations session={session_id} "
+                f"leaf={leaf_id} ids={fabricated_ids} "
+                f"pool_size={len(citation_pool)}"
+            )
+            await self._repo.add_flagged_citation(
+                session_id,
+                FlaggedCitation(
+                    exploration_id=exploration_id,
+                    leaf_id=leaf_id,
+                    message_id=message_id,
+                    handler="followup",
+                    fabricated_ids=fabricated_ids,
+                    pool_size=len(citation_pool),
+                    occurred_at=datetime.now(timezone.utc),
+                ),
+            )
+
+        await self._study_exposure.log(session_id, used_citations)
+
+        response_message = Message(
+            id=message_id,
+            role=MessageRole.ASSISTANT,
+            type=MessageType.FOLLOWUP,
+            content=full_text,
+            citations=used_citations,
+            timestamp=datetime.now(timezone.utc),
+        )
+
+        # Build the conversation in memory for the follow-up generator —
+        # the user message has been persisted (line above the streaming
+        # call); the assistant message is persisted further below once
+        # the follow-up signals (chips, closure_ready, switch proposal)
+        # are populated, so they land on the same Firestore document.
+        full_conversation = Conversation(
+            leaf_id=leaf_id,
+            messages=[*conversation_history, user_msg, response_message],
+        )
+
+        available_context_parts: list[str] = []
+        for party_id, party_data in resolved.party_positions.items():
+            party_info = parties_info.get(party_id)
+            party_name = party_info.name if party_info else party_id
+            available_context_parts.append(f"\n## {party_name}")
+            for pos in party_data.positions:
+                cite_tag = f" [{pos.citation_id}]" if pos.citation_id else ""
+                available_context_parts.append(f"- {pos.position}{cite_tag}")
+        available_context = "\n".join(available_context_parts)
+
+        suggestions = await self._leaf_followup.generate(
+            LeafFollowUpInput(
+                conversation=full_conversation,
+                available_context=available_context,
+                already_cited_ids=already_cited_ids,
+                neighboring_leaves=neighboring_leaves_text,
+                valid_neighbour_ids=valid_neighbour_ids,
+            )
+        )
+
+        response_message.suggested_followups = list(suggestions.questions)
+        response_message.closure_ready = suggestions.closure_ready
+        response_message.topic_switch_proposal = suggestions.topic_switch_proposal
+
+        await self._repo.add_message_to_conversation(
+            session_id, exploration_id, leaf_id, response_message
+        )
+
+        if suggestions.topic_switch_proposal is not None:
+            proposal = suggestions.topic_switch_proposal
+            await self._sse.send_to_session(
+                session_id,
+                TopicSwitchSuggestedEvent(
+                    leaf_id=leaf_id,
+                    target_node_id=proposal.target_node_id,
+                    target_node_name=proposal.target_node_name,
+                    message=proposal.reason,
+                ),
+            )
+
+        await self._sse.send_to_session(
+            session_id,
+            ConversationMessageEvent(
+                leaf_id=leaf_id,
+                message=response_message,
+                navigation=navigation,
+                citations=used_citations,
+                suggested_questions=suggestions.questions,
+                closure_ready=suggestions.closure_ready,
+            ),
+        )
+
+        return {
+            "status": "accepted",
+            "message_id": response_message.id,
+        }

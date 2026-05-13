@@ -39,10 +39,6 @@ export {
   selectAnnouncement,
   selectAnnouncementId,
   selectError,
-  selectExplorationSummaries,
-  selectLeafSummary,
-  selectTopicSummaries,
-  selectIsGeneratingSummary,
   selectExploredCount,
   selectTotalLeavesCount,
   selectProgress,
@@ -63,7 +59,6 @@ export {
   conversationActions,
   streamActions,
   uiActions,
-  summaryActions,
 } from './actions';
 
 // Types
@@ -78,7 +73,6 @@ export type {
   StreamingTarget,
   TopicSwitchSuggestion,
   UISliceState,
-  SummariesSliceState,
   ConnectionStatus,
   AppMode,
   ExplorationReadyData,

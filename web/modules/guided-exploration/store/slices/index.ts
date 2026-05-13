@@ -22,8 +22,3 @@ export {
   uiReducer,
   initialUIState,
 } from './ui-slice';
-
-export {
-  summariesReducer,
-  initialSummariesState,
-} from './summaries-slice';

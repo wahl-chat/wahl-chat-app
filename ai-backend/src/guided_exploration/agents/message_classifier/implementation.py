@@ -32,10 +32,9 @@ class MessageClassifierAgent(
     - Extracted question for followup intents
 
     This classification drives message handling:
-    - FOLLOWUP_QUESTION: Route to ConversationHandlerAgent
+    - FOLLOWUP_QUESTION: Route to LeafConversationHandlerAgent
     - NAVIGATION_COMMAND: Handle navigation in orchestrator
     - ANALYSIS_REQUEST: Route to AnalyzerAgent
-    - SUMMARY_REQUEST: Route to SummaryGeneratorAgent
     """
 
     def __init__(self, llm_provider: LLMProvider):

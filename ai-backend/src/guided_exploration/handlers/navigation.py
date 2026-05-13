@@ -10,8 +10,8 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from src.guided_exploration.agents import (
-    ContentGeneratorAgent,
-    ContentGeneratorInput,
+    LeafContentGeneratorAgent,
+    LeafContentGeneratorInput,
 )
 from src.guided_exploration.agents.party_context import PartyInfo
 from src.guided_exploration.api.sse import SSEManager
@@ -22,7 +22,6 @@ from src.guided_exploration.models import (
     ConversationOpenedEvent,
     Exploration,
     ExplorationNode,
-    ExplorationTree,
     Message,
     MessageRole,
     MessageType,
@@ -47,14 +46,6 @@ from src.guided_exploration.services.study_exposure import StudyExposureLogger
 logger = logging.getLogger(__name__)
 
 
-def get_leaf_name(tree: ExplorationTree, leaf_id: str) -> str:
-    """Display name for a leaf, falling back to the id if the node is missing."""
-    node = tree.find_node(leaf_id)
-    if node is not None:
-        return node.name
-    return leaf_id
-
-
 class NavigationHandler:
     """Handles position changes within the topic tree.
 
@@ -72,7 +63,7 @@ class NavigationHandler:
         streaming: StreamingService,
         context_resolver: ContextResolver,
         navigation_states: NavigationStateStore,
-        content_generator: ContentGeneratorAgent,
+        content_generator: LeafContentGeneratorAgent,
         pregen_leaf_tasks: dict[tuple[str, str], asyncio.Task],
         study_exposure: StudyExposureLogger,
     ) -> None:
@@ -292,7 +283,7 @@ class NavigationHandler:
 
             leaf_citations = collect_leaf_citations(positions_by_party)
             content = await self._content_generator.execute(
-                ContentGeneratorInput(
+                LeafContentGeneratorInput(
                     subtopic_id=leaf_id,
                     subtopic_name=leaf_name,
                     path=path,
@@ -327,7 +318,6 @@ class NavigationHandler:
             conversation = Conversation(
                 leaf_id=leaf_id,
                 messages=[initial_message],
-                has_summary=False,
             )
 
             await self._repo.save_conversation(
@@ -338,7 +328,7 @@ class NavigationHandler:
 
         # Log Information-Exposure for the leaf intro the participant just
         # opened. We parse `[id]` markers out of party_positions[*].content
-        # (the only field where the content_generator inlines citations) and
+        # (the only field where the leaf_content_generator inlines citations) and
         # match against the leaf's full citation pool. Cached and freshly-
         # generated branches both end up here; dedup is handled at storage.
         if content is not None and content.party_positions:

@@ -431,5 +431,6 @@ class ChoiceFlowHandler:
                 rag_query=pending.rag_query,
                 detected_parties=exploration_parties,
                 context_id=session.context_id,
+                query_kind="broad",
                 session=session,
             )

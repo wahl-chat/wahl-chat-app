@@ -10,7 +10,6 @@ import type {
   Conversation,
   ErrorCode,
   ExplorationTree,
-  LeafSummary,
   Message,
   SessionMessage,
   StreamSection,
@@ -169,14 +168,6 @@ export interface UISliceState {
   pendingDirections: TopicDirectionsEvent | null;
 }
 
-export interface SummariesSliceState {
-  /** Leaf summaries keyed by [explorationId][leafId]. */
-  summaries: Record<string, Record<string, LeafSummary>>;
-  /** Topic summaries keyed by [explorationId][topicId]. */
-  topicSummaries: Record<string, Record<string, string>>;
-  generatingIds: string[];
-}
-
 // ============ Combined State ============
 
 export interface ExplorationStoreState {
@@ -184,7 +175,6 @@ export interface ExplorationStoreState {
   session: SessionSliceState;
   exploration: ExplorationSliceState;
   ui: UISliceState;
-  summaries: SummariesSliceState;
 }
 
 // ============ Actions (Discriminated Union) ============
@@ -346,26 +336,4 @@ export type ExplorationAction =
     }
   | { type: 'CLOSURE_PROMPT_CLEARED' }
   | { type: 'TOPIC_DIRECTIONS_RECEIVED'; directions: TopicDirectionsEvent }
-  | { type: 'TOPIC_DIRECTIONS_CLEARED' }
-
-  // Summary Actions
-  | { type: 'SUMMARY_GENERATING'; nodeId: string }
-  | { type: 'SUMMARY_GENERATION_DONE'; nodeId: string }
-  | {
-      type: 'LEAF_SUMMARY_RECEIVED';
-      explorationId: string;
-      leafId: string;
-      summary: LeafSummary;
-    }
-  | {
-      type: 'TOPIC_SUMMARY_RECEIVED';
-      explorationId: string;
-      topicId: string;
-      summary: string;
-    }
-  | {
-      type: 'SUMMARIES_SYNCED';
-      explorationId: string;
-      summaries: Record<string, LeafSummary>;
-    }
-  | { type: 'SUMMARIES_CLEARED' };
+  | { type: 'TOPIC_DIRECTIONS_CLEARED' };

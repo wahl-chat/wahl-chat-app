@@ -33,23 +33,6 @@ def parties_to_info_map(parties: list[ContextParty]) -> dict[str, PartyInfo]:
     return {p.party_id: context_party_to_info(p) for p in parties}
 
 
-def get_party_name(party_id: str, parties: dict[str, PartyInfo]) -> str:
-    """Get display name for a party, falling back to uppercase ID."""
-    if party_id in parties:
-        return parties[party_id].name
-    return party_id.upper()
-
-
-def format_party_list(party_ids: list[str], parties: dict[str, PartyInfo]) -> str:
-    """Format a list of party IDs as readable names."""
-    names = [get_party_name(pid, parties) for pid in party_ids]
-    if len(names) == 0:
-        return "Keine Parteien"
-    if len(names) == 1:
-        return names[0]
-    return ", ".join(names[:-1]) + " und " + names[-1]
-
-
 def format_party_context_for_prompt(
     parties: dict[str, PartyInfo],
     context_name: str | None = None,
@@ -75,12 +58,4 @@ def format_party_context_for_prompt(
         desc_part = f" - {info.description}" if info.description else ""
         lines.append(f"- {party_id}: {info.name} ({info.long_name}){desc_part}")
 
-    return "\n".join(lines)
-
-
-def format_party_id_mapping(parties: dict[str, PartyInfo]) -> str:
-    """Format party ID to name mapping for prompts."""
-    lines = ["Partei-IDs und Namen:"]
-    for party_id, info in parties.items():
-        lines.append(f"- {party_id} = {info.name}")
     return "\n".join(lines)

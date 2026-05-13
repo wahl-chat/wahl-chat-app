@@ -93,17 +93,6 @@ export interface ConversationMessageEvent {
   closureReady?: boolean;
 }
 
-// ============ Summary Events ============
-
-export type SummaryStatus = 'started' | 'completed' | 'failed';
-
-export interface SummaryGeneratingEvent {
-  type: 'summary_generating';
-  leafId: string;
-  status: SummaryStatus;
-  error?: string;
-}
-
 // ============ Analysis Events ============
 
 export interface AnalysisResultEvent {
@@ -185,7 +174,6 @@ export interface ExplorationReadyEvent {
 export interface ExplorationCompleteEvent {
   type: 'exploration_complete';
   explorationId: string;
-  closingSummary: string;
   stats: {
     topicsExplored: number;
     topicsTotal: number;
@@ -269,7 +257,6 @@ export type SSEEvent =
   | TopicOverviewEvent
   | ConversationOpenedEvent
   | ConversationMessageEvent
-  | SummaryGeneratingEvent
   | AnalysisResultEvent
   | QuickSummaryEvent
   | ChatMessageEvent

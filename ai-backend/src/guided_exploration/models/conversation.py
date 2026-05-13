@@ -28,6 +28,29 @@ class MessageRole(str, Enum):
     ASSISTANT = "assistant"
 
 
+class TopicSwitchProposal(BaseModel):
+    """A neighbour-leaf switch proposal emitted alongside an assistant turn.
+
+    Lives at the model layer (not the agent layer) because it's persisted
+    on the Message and read back by both the leaf-followup generator and
+    the leaf conversation handler on subsequent turns.
+    """
+
+    target_node_id: str = Field(
+        ..., description="ID of the sibling leaf the question fits better."
+    )
+    target_node_name: str = Field(
+        ..., description="Display name of the target leaf."
+    )
+    reason: str = Field(
+        ...,
+        description=(
+            "Short German message shown next to the switch action — "
+            "why the other leaf fits better."
+        ),
+    )
+
+
 class Message(BaseModel):
     """A single message in a conversation."""
 
@@ -42,6 +65,31 @@ class Message(BaseModel):
         default_factory=list,
         description="Citations for this message (persisted for reload)",
     )
+    suggested_followups: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Follow-up chips emitted alongside this assistant turn. "
+            "Persisted so later turns can see what was offered."
+        ),
+    )
+    closure_ready: bool = Field(
+        default=False,
+        description=(
+            "Whether the leaf was deemed substantially explored at this "
+            "turn. Persisted so a later turn can see prior closure "
+            "offerings — if the user kept exploring after a closure pill, "
+            "the next turn should not re-offer closure unless something "
+            "substantially new has happened."
+        ),
+    )
+    topic_switch_proposal: TopicSwitchProposal | None = Field(
+        default=None,
+        description=(
+            "Neighbour-leaf switch proposal emitted alongside this "
+            "assistant turn, if any. Persisted so the same switch is not "
+            "offered again on every subsequent turn."
+        ),
+    )
     timestamp: datetime = Field(..., description="When the message was sent")
 
 
@@ -54,20 +102,3 @@ class Conversation(BaseModel):
     messages: list[Message] = Field(
         default_factory=list, description="Messages in the conversation"
     )
-    has_summary: bool = Field(
-        default=False, description="Whether a summary has been generated"
-    )
-
-
-class LeafSummary(BaseModel):
-    """Summary generated for a leaf conversation."""
-
-    leaf_id: str = Field(..., description="ID of the summarized leaf")
-    overview: str = Field(..., description="2-3 sentence overview")
-    key_points: list[str] = Field(
-        default_factory=list, description="Main takeaways from the conversation"
-    )
-    party_comparison: str | None = Field(
-        default=None, description="Brief comparison of party positions"
-    )
-    generated_at: datetime = Field(..., description="When the summary was generated")

@@ -24,7 +24,6 @@ class MessageIntent(str, Enum):
     FOLLOWUP_QUESTION = "followup_question"
     NAVIGATION_COMMAND = "navigation_command"
     ANALYSIS_REQUEST = "analysis_request"
-    SUMMARY_REQUEST = "summary_request"
 
 
 class NavigationTarget(str, Enum):

@@ -144,7 +144,6 @@ export class SSEClient {
       'topic_overview',
       'conversation_opened',
       'conversation_message',
-      'summary_generating',
       'analysis_result',
       'quick_summary',
       'chat_message',

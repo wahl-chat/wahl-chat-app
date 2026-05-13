@@ -68,28 +68,4 @@ export interface Conversation {
   leafId: string;
   /** All messages in this conversation */
   messages: Message[];
-  /** Whether a summary has been generated for this conversation */
-  hasSummary: boolean;
-}
-
-export interface LeafSummary {
-  /** Leaf node identifier */
-  leafId: string;
-  /** 2-3 sentence overview */
-  overview: string;
-  /** Main takeaways */
-  keyPoints: string[];
-  /** Brief comparison if applicable */
-  partyComparison?: string;
-  /** When the summary was generated */
-  generatedAt: string;
-}
-
-export interface SummaryTree {
-  /** Exploration identifier */
-  explorationId: string;
-  /** Leaf summaries by leafId */
-  summaries: Record<string, LeafSummary>;
-  /** Aggregated topic summaries by topicId */
-  topicSummaries: Record<string, string>;
 }

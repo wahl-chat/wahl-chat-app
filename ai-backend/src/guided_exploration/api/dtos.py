@@ -54,19 +54,6 @@ class ResumeSessionResponse(BaseModel):
     )
 
 
-class ExplorationSummaryDto(BaseModel):
-    """Summary of an exploration for listing."""
-
-    id: str = Field(..., description="Exploration ID")
-    original_query: str = Field(
-        ..., description="The original query that started exploration"
-    )
-    status: str = Field(..., description="Status: 'active' or 'completed'")
-    created_at: str = Field(..., description="When the exploration was created")
-    topics_explored: int = Field(..., description="Number of topics explored")
-    total_topics: int = Field(..., description="Total number of topics")
-
-
 class SendMessageRequest(BaseModel):
     """Request body for sending a message."""
 
@@ -128,10 +115,3 @@ class SubmitDirectionChoiceRequest(BaseModel):
     )
 
 
-class EndExplorationRequest(BaseModel):
-    """Request body for ending an exploration."""
-
-    generate_summary: bool = Field(
-        default=True,
-        description="Whether to generate a closing summary",
-    )

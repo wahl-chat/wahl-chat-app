@@ -22,10 +22,10 @@ from src.guided_exploration.models.content import (
 )
 from src.guided_exploration.models.conversation import (
     Conversation,
-    LeafSummary,
     Message,
     MessageRole,
     MessageType,
+    TopicSwitchProposal,
 )
 from src.guided_exploration.models.errors import (
     AuthorizationError,
@@ -53,7 +53,6 @@ from src.guided_exploration.models.events import (
     SSEEvent,
     StreamChunkEvent,
     StreamEndEvent,
-    SummaryGeneratingEvent,
     ThinkingEvent,
     TopicDirectionItem,
     TopicDirectionsEvent,
@@ -65,10 +64,8 @@ from src.guided_exploration.models.exploration import (
     ExplorationStatus,
     ExtractedPositionItem,
     ExtractedPosition,
-    FinalSummary,
     ResolvedKnowledge,
     RetrievedChunk,
-    SummaryTree,
 )
 from src.guided_exploration.models.navigation import (
     BreadcrumbItem,
@@ -115,10 +112,10 @@ __all__ = [
     "SubtopicContent",
     # conversation
     "Conversation",
-    "LeafSummary",
     "Message",
     "MessageRole",
     "MessageType",
+    "TopicSwitchProposal",
     # errors
     "AuthorizationError",
     "ExplorationNotFoundError",
@@ -144,7 +141,6 @@ __all__ = [
     "SSEEvent",
     "StreamChunkEvent",
     "StreamEndEvent",
-    "SummaryGeneratingEvent",
     "ThinkingEvent",
     "TopicDirectionItem",
     "TopicDirectionsEvent",
@@ -155,10 +151,8 @@ __all__ = [
     "ExplorationStatus",
     "ExtractedPositionItem",
     "ExtractedPosition",
-    "FinalSummary",
     "ResolvedKnowledge",
     "RetrievedChunk",
-    "SummaryTree",
     # navigation
     "BreadcrumbItem",
     "BreadcrumbLevel",

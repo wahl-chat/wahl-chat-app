@@ -110,13 +110,7 @@ function TreeNode({
   forceOpenIds,
 }: TreeNodeProps) {
   if (isLeaf(node)) {
-    return (
-      <ExplorationLeafCard
-        explorationId={explorationId}
-        node={node}
-        onOpen={onOpenLeaf}
-      />
-    );
+    return <ExplorationLeafCard node={node} onOpen={onOpenLeaf} />;
   }
 
   return (

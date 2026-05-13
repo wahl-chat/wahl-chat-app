@@ -7,7 +7,7 @@ logging them.
 For each study session, we walk every exploration's conversations, take
 the first message of each (the persisted INITIAL_CONTENT for that leaf),
 parse the inline ``[id]`` markers out of ``party_positions[*].content``
-(the only content_generator field that inlines citations — ``summary`` is
+(the only leaf_content_generator field that inlines citations — ``summary`` is
 citation-free by prompt), intersect with the leaf's citation pool, and
 treat that set as "exposed to the participant". Anything in that set that
 is not already in ``condition.positions_encountered`` is missing.
@@ -53,7 +53,7 @@ def _used_ids_from_initial_content(content: dict) -> set[str]:
 
     ``content`` is the persisted SubtopicContent dict on an INITIAL_CONTENT
     message. We only look at ``party_positions[*].content`` because that is
-    the single field where the content_generator emits ``[id]`` markers
+    the single field where the leaf_content_generator emits ``[id]`` markers
     (``summary`` is citation-free by prompt; ``suggested_questions`` are
     plain prose). The pool we match against is the message's ``citations``
     list — that is, the leaf's full citation pool baked into the message

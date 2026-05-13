@@ -68,49 +68,76 @@ logger = logging.getLogger("simulate")
 # Persona — knowledge-seeker only. No content stances, no preferences.
 # =============================================================================
 
-# Persona = study participant exploring the chatbot, not a real voter using
-# the tool to inform their own life. The goal is to learn the positions of
-# Venus / Mars / Saturn within the assigned topic — no personal stakes, no
-# party preferences. The texture should be casual chat, not an interview:
-# short, sometimes lazy phrasing, lowercase starts, the occasional fragment
-# or "?" — but the *content* stays focused on understanding party positions.
+# Persona = simulated study participant typing into a chatbot's text field.
+# Fully aware of the setup: online study, post-chat multiple-choice quiz on
+# Venus/Mars/Saturn positions, quiz score is the measurable goal. Each turn
+# is chosen to fill the biggest remaining knowledge gap. Chips are options,
+# never a default. Texture: short, lowercase, phone-typed.
 PERSONA_SYSTEM = (
-    "Du nimmst an einer Studie teil und chattest mit einem Bot über die "
-    "Positionen der drei (fiktiven) Parteien Venus, Mars und Saturn. Du "
-    "kennst die Parteien nicht und hast keine Vorlieben.\n\n"
-    "## Dein Ziel — alle drei Parteien lernen\n"
-    "Nach dem Chat kommt ein Quiz mit konkreten Fragen, welche Partei "
-    "was fordert (Maßnahmen, Zahlen, Unterschiede). Du willst möglichst "
-    "viele richtig beantworten. Dafür brauchst du zu **jeder** der drei "
-    "Parteien (Venus, Mars, Saturn) konkrete inhaltliche Aussagen — "
-    "nicht nur zu einer oder zweien.\n\n"
-    "## Wie du fragst — Drei-Parteien-Reflex\n"
-    "- Standardfrage ist eine **Vergleichsfrage über alle drei**: 'was "
-    "sagen Venus, Mars und Saturn zu X?', 'wie unterscheiden sie sich "
-    "bei X?', 'X — alle drei kurz?'. Nenne ruhig alle drei beim Namen.\n"
-    "- Wenn die Bot-Antwort eine Partei auslässt, **direkt nachhaken**: "
-    "'und Saturn dazu?', 'was ist mit Mars hier?', 'fehlt noch Venus'.\n"
-    "- Wenn die Antwort eine Partei nur grob behandelt: 'mars konkreter?', "
-    "'was genau fordert venus dazu?'.\n"
-    "- Wenn ein Aspekt einer Partei interessant ist und du detailliert "
-    "nachfragst, denk kurz danach 'wie machen das die anderen beiden?' "
-    "und stell die nächste Frage entsprechend. Lass keine Partei links "
-    "liegen.\n"
-    "- Vermeide einseitige Drilldowns über mehrere Turns am Stück "
-    "ausschließlich zu **einer** Partei. Maximal 1–2 Detail-Turns zu "
-    "einer Partei, dann zurück zu den anderen.\n\n"
-    "## Wie du tippst — wie ein echter Chatnutzer\n"
-    "- Kurze Fragen, meist 1 Satz, oft nur Halbsatz oder Stichwort + "
-    "Fragezeichen ('und Saturn dazu?', 'CBAM kurz?', 'wie genau?').\n"
-    "- Klein-/Großschreibung locker, Punkt am Ende optional. Keine "
-    "Interview-Floskeln wie 'Welche konkreten Maßnahmen schlagen die "
-    "Parteien Venus, Mars und Saturn vor, …'.\n"
-    "- Nachhaken ist gut: 'warum?', 'was heißt das?', 'okay und die "
-    "anderen beiden?', 'unterschied venus vs mars hier?'.\n"
-    "- KEINE Meinungen, keine persönliche Lebenslage, keine "
-    "Parteibevorzugung. Du bringst dich nicht ein — dir geht's nur "
-    "darum, die Positionen aller drei für das Quiz zu kennen.\n\n"
-    "Antworte ausschließlich mit deinem nächsten Chat-Beitrag."
+    "## Wer du bist und wo\n"
+    "Du bist **Versuchsperson in einer Online-Studie**. Du sitzt vor einem "
+    "Web-Chatbot und tippst Fragen ins Eingabefeld. Der Bot antwortet — "
+    "dann tippst du die nächste Frage. So läuft die Chat-Phase.\n\n"
+    "Direkt nach dieser Chat-Phase kommt ein **Multiple-Choice-Quiz**, das "
+    "deine Leistung in der Studie misst. Jede Quiz-Frage zählt.\n\n"
+    "**Du bist NICHT der Bot.** Du beantwortest keine Fragen, du stellst "
+    "sie. Sätze wie 'Hi, womit kann ich helfen?' oder 'soll ich mit einem "
+    "Überblick starten?' wären Bot-Rolle — die machst du nie.\n\n"
+    "## Was im Quiz drankommt\n"
+    "Es gibt drei fiktive Parteien: **Venus, Mars, Saturn**. Du hast ein "
+    "Themenfeld zugewiesen bekommen. Das Quiz fragt für jede der drei "
+    "Parteien konkrete Positionen aus diesem Themenfeld ab — Forderungen, "
+    "Zahlen, Maßnahmen, Unterschiede zwischen den Parteien.\n\n"
+    "**Dein Ziel ist messbar:** maximale Quiz-Punktzahl. Heißt: am Ende "
+    "dieses Chats willst du für **alle drei Parteien** wissen, was sie "
+    "konkret im Themenfeld fordern. Jede Nachricht, die du tippst, "
+    "investierst du in genau dieses Ziel.\n\n"
+    "## Wie du jede Frage wählst (Zielorientierung)\n"
+    "Vor jeder Nachricht eine Sekunde überlegen: **welche Wissenslücke "
+    "kostet mich gerade am ehesten einen Quiz-Punkt?** Die Frage, die "
+    "diese Lücke am direktesten schließt, ist die richtige.\n\n"
+    "Typische Lücken, priorisiert:\n"
+    "- **Eine Partei fehlt komplett** zu einem Aspekt → konkret nach ihr "
+    "fragen ('was sagt saturn zum tempolimit?'), nicht generisch.\n"
+    "- **Aspekt im Themenfeld noch nicht gestreift** → frag den auf, "
+    "möglichst für alle drei Parteien.\n"
+    "- **Zahlen oder Details fehlen** zu einer schon genannten Forderung "
+    "→ nachhaken ('konkret welche zahl?', 'ab wann?').\n"
+    "- **Unterschied unklar** zwischen Parteien → direkt vergleichen.\n\n"
+    "**Niemals** nach etwas fragen, das in der letzten Bot-Antwort schon "
+    "explizit steht — verschenkter Quiz-Punkt.\n\n"
+    "## Vorschlags-Chips des Bots\n"
+    "Der Bot zeigt manchmal Quick-Reply-Chips unter seinen Antworten. "
+    "**Das sind Optionen, kein Default.** Lies sie, gleich mit deinem "
+    "Quiz-Ziel ab, entscheide:\n"
+    "- Schließt der Chip eine Lücke, die dich Quiz-Punkte kosten würde? "
+    "→ übernimm ihn (wörtlich oder leicht umformuliert).\n"
+    "- Würde der Chip nur was wiederholen, was schon dasteht — oder eine "
+    "andere Partei links liegen lassen, die du gerade brauchst? → "
+    "ignorier die Chips und tipp deine eigene Frage.\n\n"
+    "Es gibt **keine Bevorzugungsregel** für Chips. Was den nächsten "
+    "Quiz-Punkt bringt, gewinnt — egal ob das ein Chip ist oder eine "
+    "selbst getippte Frage.\n\n"
+    "## Wie du tippst\n"
+    "Wie auf dem Handy: **kurz, locker, klein geschrieben, oft nur ein "
+    "Halbsatz + Fragezeichen**. Maximal ~12 Wörter. Keine "
+    "Interview-Sprache, keine Aufzählungen, keine Höflichkeitsformeln. "
+    "Beispiel-Texturen (nicht Inhalt kopieren):\n"
+    "- 'wie meint ihr das mit X?'\n"
+    "- 'und konkret? zahlen?'\n"
+    "- 'kurz unterschied zwischen X und Y?'\n"
+    "- 'was sagt saturn dazu?'\n\n"
+    "## Was du NIE tust\n"
+    "- Keine Meinung zu Parteien oder Politik äußern.\n"
+    "- Keine persönlichen Lebensumstände erfinden.\n"
+    "- Keine Bot-Sprache: kein 'hi', kein 'wie kann ich dir helfen'.\n"
+    "- Keine Frage stellen, deren Antwort gerade explizit dasteht.\n"
+    "- Keine reine Chip-Übernahme, wenn der Chip dem Quiz-Ziel nicht "
+    "dient.\n\n"
+    "## Ausgabe\n"
+    "Antworte ausschließlich mit der **einen Nachricht**, die du als "
+    "Nächstes ins Chatfeld tippen würdest. Nichts davor, nichts danach — "
+    "kein Anführungszeichen, kein 'Hier ist meine Frage:', nur der Text."
 )
 
 
@@ -142,12 +169,7 @@ class SimConfig:
     baseline_max_turns: int = 25
     followups_per_leaf_min: int = 1
     followups_per_leaf_max: int = 3
-    # Probability of picking from the chatbot's `suggested_questions`
-    # when it offers them (vs. generating a fresh persona-driven turn).
-    # Set high because the suggestions are now the primary lever for
-    # surfacing breadth — original turns sprinkle in occasionally.
-    suggestion_pickup_prob: float = 0.85
-    openai_model: str = "gpt-4o-mini"
+    openai_model: str = "gpt-4o"
     sse_idle_timeout_seconds: int = 120
 
 
@@ -165,6 +187,10 @@ class SessionReport:
     quiz_questions: list[dict] = field(default_factory=list)
     user_messages: list[str] = field(default_factory=list)
     assistant_messages: list[str] = field(default_factory=list)
+    # Parallel to ``assistant_messages``: the suggested-question chips
+    # that arrived alongside each reply (or [] for leaf-scoped turns
+    # where chips don't apply on the main chat surface).
+    assistant_chips: list[list[str]] = field(default_factory=list)
     leaves_visited: list[str] = field(default_factory=list)
     error: str | None = None
 
@@ -188,18 +214,14 @@ class PersonaChat:
             {
                 "role": "system",
                 "content": (
-                    f"Themenfeld dieser Sitzung: {topic_label}. Bleib bei "
-                    "diesem Thema. Versuche aktiv, zu **jeder** der drei "
-                    "Parteien (Venus, Mars, Saturn) konkrete Positionen "
-                    "zu erfahren — nicht nur zu einer oder zweien. Wenn "
-                    "eine Antwort eine Partei auslässt oder nur streift, "
-                    "frag nach. Schreib locker und kurz, nicht förmlich."
+                    f"Themenfeld dieser Sitzung: {topic_label}. Bleib im "
+                    "Themenfeld. Vor jeder Nachricht kurz prüfen, welche "
+                    "Wissenslücke zu Venus, Mars oder Saturn dich gerade "
+                    "Quiz-Punkte kosten würde — und genau diese Lücke "
+                    "schließen. Locker, kurz, wie auf dem Handy."
                 ),
             },
         ]
-        # Suggestions the persona has already used — avoid repeats when the
-        # backend keeps surfacing the same idea across turns.
-        self._used_suggestions: set[str] = set()
 
     def add_assistant(self, text: str) -> None:
         """Record what the chatbot replied (becomes 'user' from the persona's POV)."""
@@ -211,38 +233,39 @@ class PersonaChat:
     def _record_user_turn(self, text: str) -> None:
         self._history.append({"role": "assistant", "content": text})
 
-    def pick_suggestion(self, suggestions: list[str]) -> str | None:
-        """Return an unused suggested question, or None if all are used/empty."""
-        for s in suggestions:
-            cleaned = (s or "").strip()
-            if cleaned and cleaned not in self._used_suggestions:
-                self._used_suggestions.add(cleaned)
-                self._record_user_turn(cleaned)
-                return cleaned
-        return None
-
     async def next_user_turn(
         self,
         suggestions: list[str] | None = None,
         hint: str | None = None,
-        pickup_prob: float = 0.65,
     ) -> str:
-        """Generate the persona's next chat turn.
+        """Generate the persona's next chat turn via LLM.
 
-        With probability ``pickup_prob`` and an unused suggestion available,
-        return one of the chatbot's proposed follow-ups verbatim — that's
-        what real users do most of the time when buttons are offered.
-        Otherwise fall back to an LLM-generated, reactive turn.
+        Any chips the chatbot offered are passed in as context. The LLM
+        is the only decider — no mechanical pickup, no chip preference
+        baked in. It picks whichever question (chip or own) best fills
+        the next Quiz-Lücke.
         """
         suggestions = suggestions or []
-        if suggestions and random.random() < pickup_prob:
-            picked = self.pick_suggestion(suggestions)
-            if picked is not None:
-                return picked
+        chips_block = ""
+        if suggestions:
+            cleaned = [s.strip() for s in suggestions if s and s.strip()]
+            if cleaned:
+                chips_block = (
+                    "\n\nDer Bot hat dir folgende Quick-Reply-Chips "
+                    "angeboten (reine Optionen, keine Pflicht):\n"
+                    + "\n".join(f"- {s}" for s in cleaned)
+                    + "\nPrüf für jeden Chip: schließt er eine "
+                    "Wissenslücke, die dich Quiz-Punkte kosten würde? "
+                    "Wenn ja, kannst du ihn übernehmen (wörtlich oder "
+                    "umformuliert). Wenn nein — z.B. weil die Antwort "
+                    "schon dasteht oder eine andere Partei dringender "
+                    "ist — ignorier die Chips und tipp deine eigene "
+                    "Frage. Entscheide allein nach Quiz-Nutzen."
+                )
 
         messages = list(self._history)
         if hint:
-            messages.append({"role": "system", "content": hint})
+            messages.append({"role": "system", "content": hint + chips_block})
         else:
             messages.append(
                 {
@@ -251,18 +274,15 @@ class PersonaChat:
                         "Schreib die nächste Nachricht im Chat — kurz, "
                         "wie tatsächlich getippt. Maximal 1–2 Sätze, "
                         "gerne nur ein Halbsatz mit '?'. Keine "
-                        "Interview-Sprache.\n"
-                        "Prüfe vorher kurz: hat die letzte Antwort "
-                        "**alle drei Parteien** abgedeckt (Venus, Mars, "
-                        "Saturn)? Wenn nein → frag nach der fehlenden "
-                        "oder nur gestreiften Partei ('und Saturn?', "
-                        "'mars konkreter?'). Wenn ja → vergleichende "
-                        "Folgefrage ('unterschied bei X?', 'wer ist da "
-                        "am strengsten?') oder Detail-Drilldown zu "
-                        "einer Partei, sofern du zu den anderen schon "
-                        "konkrete Positionen kennst.\n"
-                        "Nicht zwei Detail-Turns hintereinander zur "
-                        "selben Partei."
+                        "Interview-Sprache.\n\n"
+                        "Vor dem Tippen kurz prüfen: welche "
+                        "Wissenslücke zu Venus, Mars oder Saturn im "
+                        "Themenfeld kostet mich gerade am ehesten einen "
+                        "Quiz-Punkt? Stell genau die Frage, die diese "
+                        "Lücke am direktesten schließt. Egal ob das "
+                        "eine eigene Frage ist oder einer der Chips — "
+                        "entscheide allein nach Quiz-Nutzen, nie "
+                        "automatisch." + chips_block
                     ),
                 }
             )
@@ -720,7 +740,6 @@ async def run_baseline(
     for turn in range(cfg.baseline_max_turns):
         question = await persona.next_user_turn(
             suggestions=last_suggestions,
-            pickup_prob=cfg.suggestion_pickup_prob,
         )
         report.user_messages.append(question)
         logger.info(f"[{report.session_id[:8]}] baseline turn {turn+1}: {question[:80]}")
@@ -756,6 +775,7 @@ async def run_baseline(
         if text:
             persona.add_assistant(text)
             report.assistant_messages.append(text)
+            report.assistant_chips.append(list(last_suggestions))
 
         # Stop when the persona's estimated elapsed time hits the budget.
         elapsed = await persona.estimate_elapsed_minutes()
@@ -795,7 +815,6 @@ async def run_guided(
             "sagen venus, mars und saturn zu …?' oder 'wie unterscheiden "
             "die drei sich bei …?'. Locker und knapp, kein Interview-Stil."
         ),
-        pickup_prob=0.0,
     )
     report.user_messages.append(initial_q)
     logger.info(f"[{report.session_id[:8]}] guided initial: {initial_q[:80]}")
@@ -811,6 +830,9 @@ async def run_guided(
         if text:
             persona.add_assistant(text)
             report.assistant_messages.append(text)
+            report.assistant_chips.append(
+                list(ev.get("suggested_questions", []) or [])
+            )
         await _final_main_chat_question(client, bus, persona, chat_id, report)
         return
 
@@ -882,6 +904,7 @@ async def run_guided(
         if initial_text:
             persona.add_assistant(f"[{leaf_name}] {initial_text}")
             report.assistant_messages.append(initial_text)
+            report.assistant_chips.append(list(last_suggestions))
 
         target_followups = random.randint(
             cfg.followups_per_leaf_min, cfg.followups_per_leaf_max
@@ -901,7 +924,6 @@ async def run_guided(
                     break
             q = await persona.next_user_turn(
                 suggestions=last_suggestions,
-                pickup_prob=cfg.suggestion_pickup_prob,
                 hint=(
                     f"Du bist im Unterthema '{leaf_name}'. Bevor du "
                     "Detail-Drilldowns machst: stell sicher, dass du in "
@@ -936,6 +958,11 @@ async def run_guided(
             if reply:
                 persona.add_assistant(reply)
                 report.assistant_messages.append(reply)
+                # Leaf-scoped chips arrive on the conversation_message
+                # event below; record [] now and patch the slot once we
+                # have them, so assistant_chips stays index-aligned with
+                # assistant_messages.
+                report.assistant_chips.append([])
             # The conversation_message event carrying fresh suggestions
             # arrives shortly after the follow-up stream ends.
             try:
@@ -945,6 +972,8 @@ async def run_guided(
                 last_suggestions = list(
                     msg_ev.get("suggested_questions", []) or []
                 )
+                if reply and report.assistant_chips:
+                    report.assistant_chips[-1] = list(last_suggestions)
             except TimeoutError:
                 last_suggestions = []
 
@@ -975,7 +1004,6 @@ async def _final_main_chat_question(
             "ein noch nicht gestreifter Aspekt für alle drei. Locker und "
             "knapp, kein Interview-Ton."
         ),
-        pickup_prob=0.0,
     )
     report.user_messages.append(q)
     logger.info(f"[{report.session_id[:8]}] guided final: {q[:80]}")
@@ -1002,11 +1030,17 @@ async def _final_main_chat_question(
             if text:
                 persona.add_assistant(text)
                 report.assistant_messages.append(text)
+                report.assistant_chips.append(
+                    list(ev2.get("suggested_questions", []) or [])
+                )
     elif ev.get("type") in ("quick_summary", "chat_message"):
         text = ev.get("text") or ev.get("content", "")
         if text:
             persona.add_assistant(text)
             report.assistant_messages.append(text)
+            report.assistant_chips.append(
+                list(ev.get("suggested_questions", []) or [])
+            )
 
 
 def _collect_leaves(root: dict) -> list[dict]:
@@ -1123,7 +1157,7 @@ async def run_one_session(
                     answers = [
                         {
                             "question_id": q["id"],
-                            "selected_index": random.randint(0, 4),
+                            "selected_index": random.randint(-1, 2),
                             "response_time_ms": 1500,
                         }
                         for q in questions
@@ -1203,7 +1237,6 @@ async def main_async(args: argparse.Namespace) -> None:
         baseline_max_turns=args.baseline_max_turns,
         followups_per_leaf_min=args.followups_per_leaf_min,
         followups_per_leaf_max=args.followups_per_leaf_max,
-        suggestion_pickup_prob=args.suggestion_pickup_prob,
         openai_model=args.openai_model,
     )
 
@@ -1319,17 +1352,8 @@ def main() -> None:
         help="Maximum follow-ups per leaf in guided sessions",
     )
     parser.add_argument(
-        "--suggestion-pickup-prob",
-        type=float,
-        default=0.85,
-        help=(
-            "Probability of picking from the chatbot's suggested follow-ups "
-            "when offered (vs. generating a fresh persona-driven turn)."
-        ),
-    )
-    parser.add_argument(
         "--openai-model",
-        default=os.getenv("SIMULATOR_OPENAI_MODEL", "gpt-4o-mini"),
+        default=os.getenv("SIMULATOR_OPENAI_MODEL", "gpt-4o"),
         help="OpenAI model for the simulated participant",
     )
     parser.add_argument(

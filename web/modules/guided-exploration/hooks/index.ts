@@ -10,11 +10,6 @@ export {
 } from './use-exploration-api';
 
 export {
-  useFirebaseSummaries,
-  type UseFirebaseSummariesReturn,
-} from './use-firebase-summaries';
-
-export {
   useExploration,
   type UseExplorationOptions,
 } from './use-exploration';

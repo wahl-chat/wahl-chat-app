@@ -16,9 +16,11 @@ from src.guided_exploration.agents import (
 )
 from src.guided_exploration.agents.llm_provider import LLMRegistry, LLMTier
 from src.guided_exploration.api.sse import SSEManager
+from src.guided_exploration.handlers.baseline import BaselineHandler
 from src.guided_exploration.handlers.choice_flow import ChoiceFlowHandler
-from src.guided_exploration.handlers.factual_query import FactualQueryHandler
-from src.guided_exploration.handlers.followup import FollowupHandler
+from src.guided_exploration.handlers.leaf_conversation import (
+    LeafConversationHandler,
+)
 from src.guided_exploration.handlers.quick_summary import QuickSummaryHandler
 from src.guided_exploration.models import (
     QueryType,
@@ -56,9 +58,9 @@ class InboundRouter:
         query_classifier: QueryClassifierAgent,
         llm_registry: LLMRegistry,
         choice_flow: ChoiceFlowHandler,
+        baseline_handler: BaselineHandler,
         quick_summary_handler: QuickSummaryHandler,
-        factual_query_handler: FactualQueryHandler,
-        followup_handler: FollowupHandler,
+        leaf_conversation_handler: LeafConversationHandler,
     ) -> None:
         self._repo = repo
         self._sse = sse
@@ -67,9 +69,9 @@ class InboundRouter:
         self._query_classifier = query_classifier
         self._llm_registry = llm_registry
         self._choice_flow = choice_flow
+        self._baseline_handler = baseline_handler
         self._quick_summary_handler = quick_summary_handler
-        self._factual_query_handler = factual_query_handler
-        self._followup_handler = followup_handler
+        self._leaf_conversation_handler = leaf_conversation_handler
 
     async def handle_message(
         self,
@@ -90,7 +92,7 @@ class InboundRouter:
         await self._repo.update_session_activity(session_id)
 
         if exploration_context:
-            return await self._followup_handler.handle(
+            return await self._leaf_conversation_handler.handle(
                 session_id,
                 exploration_context.get("exploration_id", ""),
                 exploration_context.get("leaf_id", ""),
@@ -152,12 +154,14 @@ class InboundRouter:
             )
 
         if classifier_output.query_type == QueryType.FACTUAL:
-            return await self._factual_query_handler.answer(
+            return await self._quick_summary_handler.generate(
                 session_id=session_id,
                 query=content,
                 rag_query=classifier_output.rag_query,
                 detected_parties=classifier_output.detected_parties,
                 context_id=session.context_id,
+                query_kind="focused",
+                session=session,
             )
 
         if classifier_output.query_type == QueryType.CLARIFICATION:
@@ -253,10 +257,10 @@ class InboundRouter:
 
         # Production wahl.chat funnels every content question through a
         # single answer pipeline — no exploratory/factual split. Baseline
-        # mirrors that: both go to the quick-summary handler so the
+        # mirrors that: both go to the baseline handler so the
         # prod-aligned BASELINE_QUICK_SUMMARY_SYSTEM_PROMPT applies uniformly.
         if classifier_output.query_type in (QueryType.EXPLORATORY, QueryType.FACTUAL):
-            return await self._quick_summary_handler.generate(
+            return await self._baseline_handler.generate(
                 session_id=session_id,
                 query=content,
                 rag_query=classifier_output.rag_query,

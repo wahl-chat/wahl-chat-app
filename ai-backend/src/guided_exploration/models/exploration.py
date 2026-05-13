@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Models for exploration state and summary tree in guided exploration."""
+"""Models for exploration state in guided exploration."""
 
 from __future__ import annotations
 
@@ -13,7 +13,6 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from src.guided_exploration.models.content import Citation
-from src.guided_exploration.models.conversation import LeafSummary
 from src.guided_exploration.models.tree import ExplorationTree
 
 
@@ -81,31 +80,6 @@ class ExplorationStatus(str, Enum):
     ABANDONED = "abandoned"
 
 
-class SummaryTree(BaseModel):
-    """Parallel tree tracking summaries."""
-
-    exploration_id: str | None = Field(
-        None, description="ID of the parent exploration"
-    )
-    summaries: dict[str, LeafSummary] = Field(
-        default_factory=dict, description="Mapping of leaf_id to summary"
-    )
-    topic_summaries: dict[str, str] = Field(
-        default_factory=dict, description="Mapping of topic_id to aggregated summary"
-    )
-
-
-class FinalSummary(BaseModel):
-    """Generated when exploration completes."""
-
-    closing_summary: str = Field(..., description="Closing summary of the exploration")
-    overview: str = Field(..., description="High-level overview")
-    key_findings: list[str] = Field(
-        default_factory=list, description="Key findings from the exploration"
-    )
-    generated_at: datetime = Field(..., description="When the summary was generated")
-
-
 class Exploration(BaseModel):
     """Full exploration state."""
 
@@ -119,9 +93,6 @@ class Exploration(BaseModel):
     )
     status: ExplorationStatus = Field(
         default=ExplorationStatus.ACTIVE, description="Current status"
-    )
-    final_summary: FinalSummary | None = Field(
-        default=None, description="Final summary when exploration completes"
     )
     created_at: datetime = Field(..., description="When the exploration was created")
     updated_at: datetime = Field(

@@ -144,10 +144,10 @@ STUDY_MODE_BLOCK = """# STUDIEN-MODUS (HARTE REGEL — UEBERSCHREIBT ALLES ANDER
 Dies ist eine Nutzerstudie. Die Blätter werden parallel vor-generiert,
 die Anzahl beeinflusst die Wartezeit nicht.
 
-- Gib BIS ZU 5 Top-Level-Knoten zurück. Wähle die Anzahl so, wie es das
-  Material hergibt — wenn die Positionen natürlich in zwei klar
-  unterscheidbare Cluster fallen, gib zwei zurück; wenn fünf saubere
-  Sub-Aspekte sichtbar sind, gib fünf zurück. Erfinde keine künstliche
+- Gib HOECHSTENS 4 Top-Level-Knoten zurück. Wähle die Anzahl so, wie es
+  das Material hergibt — wenn die Positionen natürlich in zwei klar
+  unterscheidbare Cluster fallen, gib zwei zurück; wenn vier saubere
+  Sub-Aspekte sichtbar sind, gib vier zurück. Erfinde keine künstliche
   Aufspaltung, nur um die Obergrenze auszuschöpfen.
 - Ein Blatt sollte einen klar abgegrenzten Sub-Aspekt abdecken
   (z.B. getrennt: "Tempolimit", "Verbrennerverbot", "ÖPNV-Ausbau"),
@@ -157,6 +157,25 @@ die Anzahl beeinflusst die Wartezeit nicht.
 - Jeder Blattknoten braucht Positionen von mindestens 2 Parteien.
   Reine Single-Party-Blätter sind verboten.
 - Verteile ALLE Positionen auf die Blätter. Keine darf wegfallen.
+
+## Auffang-Blatt für Übrig-Positionen
+Wenn nach 3 fokussierten Sub-Aspekten Positionen übrig bleiben, die
+keinem davon sauber zuzuordnen sind, sammle sie in EINEM zusätzlichen
+Blatt — das wird das 4. (und letzte) Top-Level-Blatt.
+
+Anforderungen:
+- Das Blatt braucht eine **innere thematische Klammer** — irgendetwas
+  verbindet die übrigen Positionen inhaltlich (z.B. „Internationale
+  Klima-Kooperation", „Klimaanpassung statt Vermeidung", „Klima und
+  Wirtschaftsstandort"). Keine reine Resterampe ohne roten Faden.
+- Wenn die Klammer klar erkennbar ist, **benenne das Blatt nach der
+  Klammer** — das ist immer besser. Nimm den Namen „Sonstiges" oder
+  „Weiteres" nur, wenn wirklich keine engere Klammer beschreibbar ist;
+  in der `description` muss dann der rote Faden trotzdem benannt sein.
+- Es gelten weiterhin: ≥ 2 Parteien, Blatt (kein Branch), Positionen
+  NUR über `position_indices`.
+- Wenn nichts übrig bleibt, dieses Blatt einfach weglassen — es ist
+  kein Pflicht-Slot, nur eine zulässige Auffang-Option.
 """
 
 STUDY_MODE_BLOCK_EMPTY = ""
@@ -189,11 +208,16 @@ Wichtig:
 {study_mode_reminder}"""
 
 STUDY_MODE_REMINDER = (
-    "STUDIEN-MODUS AKTIV: Gib BIS ZU 5 Top-Level-BLAETTER zurück. "
+    "STUDIEN-MODUS AKTIV: Gib HOECHSTENS 4 Top-Level-BLAETTER zurück. "
     "Anzahl richtet sich nach den natürlichen Sub-Aspekten im Material — "
     "nicht künstlich aufspalten, um die Obergrenze zu erreichen. "
     "Keine Verschachtelung. Keine Branches. `children` bleibt leer. "
-    "Verteile alle Positionen; jedes Blatt braucht mindestens 2 Parteien."
+    "Verteile alle Positionen; jedes Blatt braucht mindestens 2 Parteien. "
+    "Wenn nach 3 fokussierten Sub-Aspekten Positionen übrig bleiben, "
+    "fasse sie zu EINEM 4. Auffang-Blatt zusammen — bevorzugt benannt "
+    "nach der inneren thematischen Klammer (z.B. \"Internationale "
+    "Klima-Kooperation\"), nur als letzte Wahl \"Sonstiges\". "
+    "Wenn nichts übrig bleibt, das Auffang-Blatt weglassen."
 )
 STUDY_MODE_REMINDER_EMPTY = ""
 

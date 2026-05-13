@@ -28,10 +28,6 @@ Beispiele: "weiter", "zurück", "zeig mir die Übersicht", "nächstes Thema"
 Der Benutzer möchte eine tiefere Analyse oder kritische Einordnung.
 Beispiele: "Wie realistisch ist das?", "Analysiere die Machbarkeit", "Was sind die Vor- und Nachteile?"
 
-## SUMMARY_REQUEST
-Der Benutzer möchte eine Zusammenfassung.
-Beispiele: "Fass das zusammen", "Gib mir einen Überblick", "Was sind die wichtigsten Punkte?"
-
 # Navigationsziele (navigation_target)
 NUR bei NAVIGATION_COMMAND setzen:
 - NEXT: Zum nächsten Unterthema ("weiter", "nächstes Thema")

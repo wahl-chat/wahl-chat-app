@@ -7,7 +7,6 @@
 from src.guided_exploration.api.dtos import (
     CreateSessionRequest,
     CreateSessionResponse,
-    EndExplorationRequest,
     NavigateRequest,
     RequestAnalysisRequest,
     ResumeSessionResponse,
@@ -26,7 +25,6 @@ __all__ = [
     # DTOs
     "CreateSessionRequest",
     "CreateSessionResponse",
-    "EndExplorationRequest",
     "NavigateRequest",
     "RequestAnalysisRequest",
     "ResumeSessionResponse",

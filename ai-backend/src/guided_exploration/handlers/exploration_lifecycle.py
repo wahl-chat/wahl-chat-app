@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Lifecycle of an exploration — start, leaf-summary on mark, final summary on end."""
+"""Lifecycle of an exploration — start, mark, end. No summary plumbing."""
 
 import asyncio
 import logging
@@ -10,15 +10,11 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from src.guided_exploration.agents import (
-    ContentGeneratorAgent,
-    ContentGeneratorInput,
-    FinalSummaryInput,
-    LeafSummaryInput,
-    SummaryGeneratorAgent,
+    LeafContentGeneratorAgent,
+    LeafContentGeneratorInput,
 )
 from src.guided_exploration.agents.party_context import PartyInfo
 from src.guided_exploration.api.sse import SSEManager
-from src.guided_exploration.handlers.navigation import get_leaf_name
 from src.guided_exploration.models import (
     BreadcrumbItem,
     BreadcrumbLevel,
@@ -34,15 +30,10 @@ from src.guided_exploration.models import (
     NodeStatus,
     SessionMessage,
     SessionMessageType,
-    SummaryGeneratingEvent,
-    SummaryTree,
 )
-from src.guided_exploration.models.conversation import LeafSummary
 from src.guided_exploration.models.errors import InsufficientChunksError
-from src.guided_exploration.models.exploration import (
-    ExplorationStatus,
-    FinalSummary,
-)
+from src.guided_exploration.models.exploration import ExplorationStatus
+from src.guided_exploration.services.background_tasks import BackgroundTaskRegistry
 from src.guided_exploration.services.citation_utils import collect_leaf_citations
 from src.guided_exploration.services.context_resolver import ContextResolver
 from src.guided_exploration.services.navigation_state_store import (
@@ -64,11 +55,9 @@ class ExplorationLifecycleHandler:
     """Owns the start/mark/end lifecycle of an exploration.
 
     The internal start path runs the orchestrator, persists the tree, kicks
-    off study pre-gen (when applicable) and seeds navigation state. Public
-    ``start_exploration`` is a session-bookkeeping shim that delegates to the
-    internal path; ``mark_explored`` records a leaf as explored and
-    generates its summary; ``end_exploration`` produces the final summary
-    and emits ``ExplorationCompleteEvent``.
+    off study pre-gen (when applicable) and seeds navigation state.
+    ``mark_explored`` flips the node status; ``end_exploration`` completes
+    the exploration and emits ``ExplorationCompleteEvent``.
     """
 
     def __init__(
@@ -79,10 +68,9 @@ class ExplorationLifecycleHandler:
         context_resolver: ContextResolver,
         navigation_states: NavigationStateStore,
         orchestrator: Orchestrator,
-        content_generator: ContentGeneratorAgent,
-        summary_generator: SummaryGeneratorAgent,
+        content_generator: LeafContentGeneratorAgent,
         pregen_leaf_tasks: dict[tuple[str, str], asyncio.Task],
-        background_tasks: set[asyncio.Task],
+        background_tasks: BackgroundTaskRegistry,
     ) -> None:
         self._repo = repo
         self._sse = sse
@@ -91,7 +79,6 @@ class ExplorationLifecycleHandler:
         self._navigation_states = navigation_states
         self._orchestrator = orchestrator
         self._content_generator = content_generator
-        self._summary_generator = summary_generator
         self._pregen_leaf_tasks = pregen_leaf_tasks
         self._background_tasks = background_tasks
 
@@ -182,8 +169,7 @@ class ExplorationLifecycleHandler:
                         parties_info=parties_info,
                     )
                 )
-                self._background_tasks.add(pregen_task)
-                pregen_task.add_done_callback(self._background_tasks.discard)
+                self._background_tasks.register(pregen_task)
 
             self._navigation_states.set(
                 session_id,
@@ -289,11 +275,7 @@ class ExplorationLifecycleHandler:
         exploration_id: str,
         leaf_id: str,
     ) -> dict:
-        """Mark a leaf as explored and generate a summary."""
-        session = await self._repo.get_session(session_id)
-        if not session:
-            return {"status": "error", "code": "session_not_found"}
-
+        """Mark a leaf as explored. No summary is generated."""
         exploration = await self._repo.get_exploration(session_id, exploration_id)
         if not exploration:
             await self._streaming.send_error(
@@ -303,78 +285,17 @@ class ExplorationLifecycleHandler:
             )
             return {"status": "error", "code": "exploration_not_found"}
 
-        tree = exploration.tree
-
-        await self._mark_leaf_explored(session_id, exploration_id, leaf_id, tree)
-
-        try:
-            conversation = await self._repo.get_conversation(
-                session_id, exploration_id, leaf_id
-            )
-
-            if conversation and conversation.messages:
-                first_msg = conversation.messages[0]
-                if hasattr(first_msg.content, "summary"):
-                    subtopic_content = first_msg.content
-                    context_name, _ = await self._context_resolver.get_context_info(
-                        session.context_id
-                    )
-                    leaf_name = get_leaf_name(tree, leaf_id)
-
-                    await self._sse.send_to_session(
-                        session_id,
-                        SummaryGeneratingEvent(
-                            leaf_id=leaf_id,
-                            status="started",
-                        ),
-                    )
-
-                    leaf_summary = await self._summary_generator.execute(
-                        LeafSummaryInput(
-                            leaf_id=leaf_id,
-                            leaf_name=leaf_name,
-                            conversation=conversation,
-                            subtopic_content=subtopic_content,
-                            context_name=context_name,
-                        )
-                    )
-
-                    await self._repo.save_leaf_summary(
-                        session_id,
-                        exploration_id,
-                        LeafSummary.model_validate(leaf_summary),
-                    )
-
-                    await self._sse.send_to_session(
-                        session_id,
-                        SummaryGeneratingEvent(
-                            leaf_id=leaf_id,
-                            status="completed",
-                        ),
-                    )
-
-                    logger.debug(f"Generated summary for leaf {leaf_id}")
-
-        except Exception as e:
-            logger.error(f"Failed to generate leaf summary: {e}")
-            await self._sse.send_to_session(
-                session_id,
-                SummaryGeneratingEvent(
-                    leaf_id=leaf_id,
-                    status="failed",
-                    error=str(e),
-                ),
-            )
-
+        await self._mark_leaf_explored(
+            session_id, exploration_id, leaf_id, exploration.tree
+        )
         return {"status": "marked_explored", "leaf_id": leaf_id}
 
     async def end_exploration(
         self,
         session_id: str,
         exploration_id: str,
-        generate_summary: bool = True,
     ) -> dict:
-        """End an exploration and optionally generate a final summary."""
+        """End an exploration. Emits ExplorationCompleteEvent with stats only."""
         session = await self._repo.get_session(session_id)
         if not session:
             return {"status": "error", "code": "session_not_found"}
@@ -388,7 +309,7 @@ class ExplorationLifecycleHandler:
             )
             return {"status": "error", "code": "exploration_not_found"}
 
-        # Idempotency guard — do not re-run summary LLM or re-send event (S1)
+        # Idempotency guard — do not re-send event (S1)
         if exploration.status == ExplorationStatus.COMPLETED:
             return {"status": "already_completed"}
 
@@ -405,69 +326,7 @@ class ExplorationLifecycleHandler:
             ),
         }
 
-        closing_summary = ""
-
-        if generate_summary and explored:
-            try:
-                context_name, _ = await self._context_resolver.get_context_info(
-                    session.context_id
-                )
-
-                all_summaries = await self._repo.get_all_summaries(
-                    session_id, exploration_id
-                )
-
-                summary_tree = SummaryTree(summaries=all_summaries)
-
-                await self._streaming.send_thinking(
-                    session_id, "generating", "Erstelle Zusammenfassung..."
-                )
-
-                final_summary = FinalSummary.model_validate(
-                    await self._summary_generator.execute(
-                        FinalSummaryInput(
-                            exploration_id=exploration_id,
-                            original_query=exploration.original_query,
-                            summary_tree=summary_tree,
-                            explored_subtopics=explored,
-                            context_name=context_name,
-                        )
-                    )
-                )
-
-                closing_summary = final_summary.closing_summary
-
-                stream_id = str(uuid4())
-                await self._streaming.stream_text(
-                    session_id,
-                    closing_summary,
-                    stream_id,
-                    "quick_summary",
-                    exploration_id,
-                )
-
-                await self._repo.complete_exploration(
-                    session_id,
-                    exploration_id,
-                    final_summary.model_dump(mode="json"),
-                )
-
-            except Exception as e:
-                logger.error(f"Failed to generate final summary: {e}")
-                closing_summary = (
-                    f"Vielen Dank für Ihre Erkundung zum Thema "
-                    f"'{exploration.original_query}'. "
-                    f"Sie haben {len(explored)} Themen erkundet."
-                )
-        else:
-            closing_summary = (
-                f"Erkundung zum Thema '{exploration.original_query}' beendet."
-            )
-            await self._repo.complete_exploration(
-                session_id,
-                exploration_id,
-                {"closing_summary": closing_summary},
-            )
+        await self._repo.complete_exploration(session_id, exploration_id)
 
         unexplored = [
             {"id": leaf.id, "name": leaf.name}
@@ -479,7 +338,6 @@ class ExplorationLifecycleHandler:
             session_id,
             ExplorationCompleteEvent(
                 exploration_id=exploration_id,
-                closing_summary=closing_summary,
                 stats=stats,
                 next_actions={
                     "can_export": False,
@@ -529,7 +387,7 @@ class ExplorationLifecycleHandler:
             path = [n.id for n in path_nodes[1:]]
             content = await asyncio.wait_for(
                 self._content_generator.execute(
-                    ContentGeneratorInput(
+                    LeafContentGeneratorInput(
                         subtopic_id=leaf.id,
                         subtopic_name=leaf.name,
                         path=path,
@@ -555,7 +413,6 @@ class ExplorationLifecycleHandler:
             conversation = Conversation(
                 leaf_id=leaf.id,
                 messages=[initial_message],
-                has_summary=False,
             )
             await self._repo.save_conversation(
                 session_id, exploration_id, conversation

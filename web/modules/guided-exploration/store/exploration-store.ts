@@ -17,10 +17,8 @@ import {
   initialConnectionState,
   initialExplorationState,
   initialSessionState,
-  initialSummariesState,
   initialUIState,
   sessionReducer,
-  summariesReducer,
   uiReducer,
 } from './slices';
 import type { ExplorationAction, ExplorationStoreState } from './types';
@@ -28,7 +26,6 @@ import type { ExplorationAction, ExplorationStoreState } from './types';
 import type {
   ExplorationNode,
   ExplorationTree,
-  LeafSummary,
   SessionMessage,
 } from '@/modules/guided-exploration/types';
 
@@ -36,7 +33,6 @@ import type {
 const EMPTY_MESSAGES: SessionMessage[] = [];
 const EMPTY_TREES: ExplorationTree[] = [];
 const EMPTY_TREE_IDS: string[] = [];
-const EMPTY_SUMMARIES: Record<string, LeafSummary> = {};
 
 // ============ Initial State ============
 
@@ -45,7 +41,6 @@ const initialState: ExplorationStoreState = {
   session: initialSessionState,
   exploration: initialExplorationState,
   ui: initialUIState,
-  summaries: initialSummariesState,
 };
 
 // ============ Root Reducer ============
@@ -59,7 +54,6 @@ function rootReducer(
     session: sessionReducer(state.session, action),
     exploration: explorationReducer(state.exploration, action),
     ui: uiReducer(state.ui, action),
-    summaries: summariesReducer(state.summaries, action),
   };
 }
 
@@ -261,38 +255,6 @@ export const selectAnnouncementId = (state: ExplorationStore) =>
 
 /** Get current error */
 export const selectError = (state: ExplorationStore) => state.ui.error;
-
-// ----- Summaries -----
-
-/** Summaries map for an exploration. */
-export const selectExplorationSummaries =
-  (explorationId: string | null | undefined) => (state: ExplorationStore) =>
-    explorationId
-      ? (state.summaries.summaries[explorationId] ?? EMPTY_SUMMARIES)
-      : EMPTY_SUMMARIES;
-
-/** Get summary for a specific leaf within an exploration. */
-export const selectLeafSummary =
-  (
-    explorationId: string | null | undefined,
-    leafId: string | null | undefined,
-  ) =>
-  (state: ExplorationStore) =>
-    explorationId && leafId
-      ? (state.summaries.summaries[explorationId]?.[leafId] ?? null)
-      : null;
-
-/** Topic summaries map for an exploration. */
-export const selectTopicSummaries =
-  (explorationId: string | null | undefined) => (state: ExplorationStore) =>
-    explorationId
-      ? (state.summaries.topicSummaries[explorationId] ?? null)
-      : null;
-
-/** Check if a node is currently generating summary */
-export const selectIsGeneratingSummary =
-  (nodeId: string) => (state: ExplorationStore) =>
-    state.summaries.generatingIds.includes(nodeId);
 
 // ----- Progress -----
 

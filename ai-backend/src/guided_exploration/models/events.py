@@ -175,23 +175,11 @@ class AnalysisResultEvent(BaseModel):
     analysis: Analysis = Field(..., description="The generated analysis")
 
 
-class SummaryGeneratingEvent(BaseModel):
-    """Sent during summary generation."""
-
-    type: Literal["summary_generating"] = "summary_generating"
-    leaf_id: str = Field(..., description="ID of the leaf being summarized")
-    status: Literal["started", "completed", "failed"] = Field(
-        ..., description="Status of summary generation"
-    )
-    error: str | None = Field(default=None, description="Error message if failed")
-
-
 class ExplorationCompleteEvent(BaseModel):
     """Sent when exploration is completed."""
 
     type: Literal["exploration_complete"] = "exploration_complete"
     exploration_id: str = Field(..., description="ID of the completed exploration")
-    closing_summary: str = Field(..., description="Final summary text")
     stats: dict = Field(..., description="Statistics about the exploration")
     next_actions: dict = Field(..., description="Suggested next actions")
     unexplored_topics: list[dict] = Field(
@@ -315,7 +303,6 @@ SSEEvent = Union[
     QuickSummaryEvent,
     ChatMessageEvent,
     AnalysisResultEvent,
-    SummaryGeneratingEvent,
     ExplorationCompleteEvent,
     ExportReadyEvent,
     ErrorEvent,

@@ -11,7 +11,6 @@ from aiohttp import web
 from src.guided_exploration.api.dtos import (
     CreateSessionRequest,
     CreateSessionResponse,
-    EndExplorationRequest,
     MarkExploredRequest,
     NavigateRequest,
     RequestAnalysisRequest,
@@ -30,7 +29,7 @@ ROUTE_PREFIX = "/api/v1/guided-exploration"
 
 def get_facade():
     """Get the facade instance (lazy import to avoid circular imports)."""
-    from src.guided_exploration.facade import get_facade as _get_facade
+    from src.guided_exploration.composition import get_facade as _get_facade
 
     return _get_facade()
 
@@ -341,17 +340,10 @@ async def end_exploration(request: web.Request) -> web.Response:
     session_id = request.match_info["session_id"]
     exploration_id = request.match_info["exploration_id"]
 
-    try:
-        body = await request.json()
-        req = EndExplorationRequest(**body)
-    except Exception:
-        req = EndExplorationRequest()
-
     facade = get_facade()
     result = await facade.end_exploration(
         session_id=session_id,
         exploration_id=exploration_id,
-        generate_summary=req.generate_summary,
     )
 
     return web.json_response(result, status=202)

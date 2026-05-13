@@ -9,7 +9,6 @@ import type {
   Conversation,
   ErrorCode,
   ExplorationTree,
-  LeafSummary,
   Message,
   SessionMessage,
   StreamSection,
@@ -353,51 +352,4 @@ export const uiActions = {
   topicDirectionsCleared: (): ExplorationAction => ({
     type: 'TOPIC_DIRECTIONS_CLEARED',
   }),
-};
-
-// ============ Summary Actions ============
-
-export const summaryActions = {
-  generating: (nodeId: string): ExplorationAction => ({
-    type: 'SUMMARY_GENERATING',
-    nodeId,
-  }),
-
-  generationDone: (nodeId: string): ExplorationAction => ({
-    type: 'SUMMARY_GENERATION_DONE',
-    nodeId,
-  }),
-
-  leafSummaryReceived: (
-    explorationId: string,
-    leafId: string,
-    summary: LeafSummary,
-  ): ExplorationAction => ({
-    type: 'LEAF_SUMMARY_RECEIVED',
-    explorationId,
-    leafId,
-    summary,
-  }),
-
-  topicSummaryReceived: (
-    explorationId: string,
-    topicId: string,
-    summary: string,
-  ): ExplorationAction => ({
-    type: 'TOPIC_SUMMARY_RECEIVED',
-    explorationId,
-    topicId,
-    summary,
-  }),
-
-  synced: (
-    explorationId: string,
-    summaries: Record<string, LeafSummary>,
-  ): ExplorationAction => ({
-    type: 'SUMMARIES_SYNCED',
-    explorationId,
-    summaries,
-  }),
-
-  cleared: (): ExplorationAction => ({ type: 'SUMMARIES_CLEARED' }),
 };

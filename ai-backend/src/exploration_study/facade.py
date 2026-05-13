@@ -49,7 +49,7 @@ class ExplorationStudyFacade:
             Dict with session_id and stream_url
         """
         # Import here to avoid circular imports
-        from src.guided_exploration.facade import get_facade as get_ge_facade
+        from src.guided_exploration import get_facade as get_ge_facade
         from src.guided_exploration.models import SessionMode
 
         ge_facade = get_ge_facade()
@@ -138,7 +138,7 @@ def get_facade() -> ExplorationStudyFacade:
         from src.exploration_study.services.exposure_logger import (
             log_study_exposure,
         )
-        from src.guided_exploration.facade import get_facade as get_ge_facade
+        from src.guided_exploration import get_facade as get_ge_facade
 
         try:
             get_ge_facade().set_study_exposure_logger(log_study_exposure)

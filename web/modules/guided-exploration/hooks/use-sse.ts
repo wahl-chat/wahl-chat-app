@@ -18,7 +18,6 @@ import {
   explorationActions,
   sessionActions,
   streamActions,
-  summaryActions,
   uiActions,
   useExplorationStore,
 } from '@/modules/guided-exploration/store';
@@ -39,7 +38,6 @@ import type {
   StreamChunkEvent,
   StreamEndEvent,
   SubtopicContent,
-  SummaryGeneratingEvent,
   ThinkingEvent,
   TopicDirectionsEvent,
   TopicSwitchSuggestedEvent,
@@ -370,18 +368,6 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           // End thinking after receiving a message
           dispatchRef.current(uiActions.thinkingEnded());
           dispatchRef.current(uiActions.announce('Neue Nachricht erhalten'));
-          break;
-        }
-
-        case 'summary_generating': {
-          const summaryEvent = event as SummaryGeneratingEvent;
-          if (summaryEvent.status === 'started') {
-            dispatchRef.current(summaryActions.generating(summaryEvent.leafId));
-          } else {
-            dispatchRef.current(
-              summaryActions.generationDone(summaryEvent.leafId),
-            );
-          }
           break;
         }
 

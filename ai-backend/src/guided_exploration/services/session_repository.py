@@ -17,7 +17,6 @@ from src.guided_exploration.models import (
     ExplorationStatus,
     ExplorationTree,
     FlaggedCitation,
-    LeafSummary,
     Message,
     NodeStatus,
     Session,
@@ -31,7 +30,6 @@ logger = logging.getLogger(__name__)
 SESSIONS_COLLECTION = "guided_exploration_sessions"
 EXPLORATIONS_SUBCOLLECTION = "explorations"
 CONVERSATIONS_SUBCOLLECTION = "conversations"
-SUMMARIES_SUBCOLLECTION = "summaries"
 
 
 class SessionRepository:
@@ -208,7 +206,6 @@ class SessionRepository:
             original_query=original_query,
             tree=tree,
             status=ExplorationStatus.ACTIVE,
-            final_summary=None,
             created_at=now,
             updated_at=now,
         )
@@ -268,16 +265,12 @@ class SessionRepository:
         self,
         session_id: str,
         exploration_id: str,
-        final_summary: dict,
     ) -> None:
-        """Mark exploration as completed with final summary."""
+        """Mark exploration as completed."""
         await self.update_exploration(
             session_id,
             exploration_id,
-            {
-                "status": ExplorationStatus.COMPLETED.value,
-                "final_summary": final_summary,
-            },
+            {"status": ExplorationStatus.COMPLETED.value},
         )
         await self.update_session_active_exploration(session_id, None)
 
@@ -415,7 +408,6 @@ class SessionRepository:
             conversation = Conversation(
                 leaf_id=leaf_id,
                 messages=[message],
-                has_summary=False,
             )
             await doc_ref.set(conversation.model_dump(mode="json"))
 
@@ -436,77 +428,6 @@ class SessionRepository:
                 conversations.append(Conversation(**data))
 
         return conversations
-
-    # =========================================================================
-    # Summary Operations
-    # =========================================================================
-
-    def _get_summary_ref(
-        self,
-        session_id: str,
-        exploration_id: str,
-        node_id: str,
-    ) -> DocumentReference:
-        """Get reference to a summary document."""
-        return (
-            self._get_exploration_ref(session_id, exploration_id)
-            .collection(SUMMARIES_SUBCOLLECTION)
-            .document(node_id)
-        )
-
-    async def save_leaf_summary(
-        self,
-        session_id: str,
-        exploration_id: str,
-        summary: LeafSummary,
-    ) -> None:
-        """Save a leaf summary."""
-        doc_ref = self._get_summary_ref(session_id, exploration_id, summary.leaf_id)
-        await doc_ref.set(summary.model_dump(mode="json"))
-
-        # Update conversation to indicate summary exists
-        conv_ref = self._get_conversation_ref(
-            session_id, exploration_id, summary.leaf_id
-        )
-        await conv_ref.update({"has_summary": True})
-
-    async def get_leaf_summary(
-        self,
-        session_id: str,
-        exploration_id: str,
-        leaf_id: str,
-    ) -> LeafSummary | None:
-        """Get a leaf summary."""
-        doc_ref = self._get_summary_ref(session_id, exploration_id, leaf_id)
-        doc = await doc_ref.get()
-
-        if not doc.exists:
-            return None
-
-        data = doc.to_dict()
-        if data is None:
-            return None
-
-        return LeafSummary(**data)
-
-    async def get_all_summaries(
-        self,
-        session_id: str,
-        exploration_id: str,
-    ) -> dict[str, LeafSummary]:
-        """Get all summaries for an exploration."""
-        collection_ref = self._get_exploration_ref(
-            session_id, exploration_id
-        ).collection(SUMMARIES_SUBCOLLECTION)
-
-        summaries: dict[str, LeafSummary] = {}
-        async for doc in collection_ref.stream():
-            data = doc.to_dict()
-            if data:
-                summary = LeafSummary(**data)
-                summaries[summary.leaf_id] = summary
-
-        return summaries
 
 
 # Singleton instance
