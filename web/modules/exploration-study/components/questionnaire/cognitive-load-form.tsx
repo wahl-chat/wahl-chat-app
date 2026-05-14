@@ -32,7 +32,7 @@ export interface CognitiveLoadFormProps {
 const ATTENTION_CHECK_INSERT_INDEX = 3;
 
 const ATTENTION_CHECK_LABEL =
-  'Dies ist eine Aufmerksamkeitsfrage. Bitte wählen Sie für diese Aussage den Wert 2.';
+  'Dies ist eine Aufmerksamkeitsfrage. Bitte wähle für diese Aussage den Wert 2.';
 
 export function CognitiveLoadForm({
   onSubmit,
