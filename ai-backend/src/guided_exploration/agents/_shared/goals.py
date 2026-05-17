@@ -126,14 +126,18 @@ hat. Du erreichst die Ziele oben für diesen einen Einstieg:
 
 
 MAIN_CHAT_FOLLOWUP_APPLICATION_CONTEXT = """# Anwendungskontext
-Du generierst drei Quick-Reply-Vorschläge, die nach einer Assistent-
-Antwort unter dem Chat erscheinen. Jeder Slot bedient eines der drei
-Ziele oben — als nächster Schritt, den die Nutzer:in mit einem Tap
-auslösen kann:
+Du generierst drei Folgefragen-Vorschläge, die nach einer Assistent-
+Antwort als tippbare Chips unter dem Chat erscheinen. Die Vorschläge
+stehen **in der Stimme der Nutzer:in** — als Fragen, die sie als
+nächstes selbst stellen würde, um die Parteien-Positionen weiter zu
+erkunden. Die Nutzer:in spricht *über* die Parteien, nicht *mit* ihnen
+(dritte Person, nie Du-Stil an die Parteien).
 
-1. **Erkunden / Vertiefen** — direkte Folgefrage zur letzten Antwort,
-   die einen genannten Aspekt vertieft.
-2. **Verstehen** — Begriffs- oder Definitionsklärung zu einem
-   Fachbegriff aus der letzten Antwort.
-3. **Vergleichen / Wechseln** — ein anderer Wahlkampfthemen-Aspekt, der
-   den Vergleichshorizont öffnet."""
+Jeder der drei Slots bedient eines der drei Ziele oben:
+
+1. **Erkunden** — Folgefrage zu einem konkreten Aspekt aus dem
+   Themen-Inventar, der bisher noch nicht behandelt wurde.
+2. **Verstehen** — Frage nach der Grundhaltung hinter einer Position
+   oder nach einem unklaren Fachbegriff aus der letzten Antwort.
+3. **Vergleichen** — Frage, die die Parteien an einem konkreten Aspekt
+   gegeneinanderstellt, der noch nicht direkt kontrastiert wurde."""
