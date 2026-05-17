@@ -1,6 +1,14 @@
 'use client';
 
-import { Form } from '@/components/ui/form';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { LikertFormItem } from '@/modules/exploration-study/components/shared/likert-form-item';
 import { SubmitButton } from '@/modules/exploration-study/components/shared/submit-button';
@@ -24,8 +32,13 @@ export interface CognitiveLoadFormSubmitData {
 
 export interface CognitiveLoadFormProps {
   onSubmit: (data: CognitiveLoadFormSubmitData) => void;
+  // When true, renders an optional free-text field for qualitative studies.
+  showQualitativeFeedback?: boolean;
   className?: string;
 }
+
+const QUALITATIVE_FEEDBACK_LABEL =
+  'Möchtest du noch etwas zu deiner Wahrnehmung der Aufgabenbelastung ergänzen? (optional)';
 
 // Position 4 of 8 — surrounded on both sides by real CL items so the check
 // blends into the block visually and answer-format-wise.
@@ -36,6 +49,7 @@ const ATTENTION_CHECK_LABEL =
 
 export function CognitiveLoadForm({
   onSubmit,
+  showQualitativeFeedback = false,
   className,
 }: CognitiveLoadFormProps) {
   const form = useForm<CognitiveLoadFormValues>({
@@ -44,7 +58,11 @@ export function CognitiveLoadForm({
   });
 
   const handleSubmit = form.handleSubmit((values) => {
-    const { attentionCheck, ...cognitiveLoad } = values;
+    const { attentionCheck, qualitativeFeedback, ...clItems } = values;
+    const cognitiveLoad: CognitiveLoadResponse = {
+      ...clItems,
+      ...(qualitativeFeedback ? { qualitativeFeedback } : {}),
+    };
     onSubmit({ cognitiveLoad, attentionCheck });
   });
 
@@ -109,6 +127,29 @@ export function CognitiveLoadForm({
             />
           ))}
         </div>
+
+        {showQualitativeFeedback && (
+          <FormField
+            control={form.control}
+            name="qualitativeFeedback"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel htmlFor="cognitive-load-qualitative-feedback">
+                  {QUALITATIVE_FEEDBACK_LABEL}
+                </FormLabel>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    id="cognitive-load-qualitative-feedback"
+                    value={field.value ?? ''}
+                    rows={4}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <SubmitButton />
       </form>

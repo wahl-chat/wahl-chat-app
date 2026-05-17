@@ -69,6 +69,7 @@ async def create_study(request: web.Request) -> web.Response:
         topics=req.topics,
         task_duration_seconds=req.task_duration_seconds,
         parties=req.parties,
+        study_type=req.study_type,
     )
 
     study = await study_repo.create_study(name=req.name, config=config)
@@ -106,6 +107,7 @@ async def list_studies(request: web.Request) -> web.Response:
                 topics=study.config.topics,
                 task_duration_seconds=study.config.task_duration_seconds,
                 parties=study.config.parties,
+                study_type=study.config.study_type,
                 created_at=study.created_at,
                 updated_at=study.updated_at,
                 session_count=len(sessions),
@@ -143,6 +145,7 @@ async def get_study(request: web.Request) -> web.Response:
         topics=study.config.topics,
         task_duration_seconds=study.config.task_duration_seconds,
         parties=study.config.parties,
+        study_type=study.config.study_type,
         created_at=study.created_at,
         updated_at=study.updated_at,
         session_count=len(sessions),
@@ -199,6 +202,7 @@ async def update_study(request: web.Request) -> web.Response:
         topics=study.config.topics,
         task_duration_seconds=study.config.task_duration_seconds,
         parties=study.config.parties,
+        study_type=study.config.study_type,
         created_at=study.created_at,
         updated_at=study.updated_at,
         session_count=len(sessions),

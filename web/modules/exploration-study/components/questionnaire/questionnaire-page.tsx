@@ -16,6 +16,9 @@ import { UeqShortForm } from './ueq-short-form';
 export interface QuestionnairePageProps {
   onSubmit: (data: QuestionnaireData) => Promise<void>;
   isSubmitting?: boolean;
+  // When true, each questionnaire renders an optional qualitative free-text
+  // field for the construct it measures.
+  showQualitativeFeedback?: boolean;
   className?: string;
 }
 
@@ -34,6 +37,7 @@ const PHASE_LABELS: Record<Phase, string> = {
 export function QuestionnairePage({
   onSubmit,
   isSubmitting = false,
+  showQualitativeFeedback = false,
   className,
 }: QuestionnairePageProps) {
   const [phase, setPhase] = useState<Phase>('cognitive-load');
@@ -93,11 +97,18 @@ export function QuestionnairePage({
       </div>
 
       {phase === 'cognitive-load' && (
-        <CognitiveLoadForm onSubmit={handleCognitiveLoadSubmit} />
+        <CognitiveLoadForm
+          onSubmit={handleCognitiveLoadSubmit}
+          showQualitativeFeedback={showQualitativeFeedback}
+        />
       )}
 
       {phase === 'ueq' && (
-        <UeqShortForm onSubmit={handleUeqSubmit} isSubmitting={isSubmitting} />
+        <UeqShortForm
+          onSubmit={handleUeqSubmit}
+          isSubmitting={isSubmitting}
+          showQualitativeFeedback={showQualitativeFeedback}
+        />
       )}
     </div>
   );

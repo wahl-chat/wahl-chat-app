@@ -35,6 +35,13 @@ class CreateStudyRequest(BaseModel):
         default=["Venus", "Mars", "Saturn"],
         description="List of party names for the fake context",
     )
+    study_type: Literal["quantitative", "qualitative"] = Field(
+        default="quantitative",
+        description=(
+            "Whether the study is quantitative or qualitative. Qualitative "
+            "studies render optional free-text fields on the questionnaires."
+        ),
+    )
 
 
 class CreateStudyResponse(BaseModel):
@@ -56,6 +63,10 @@ class StudyResponse(BaseModel):
     topics: list[str]
     task_duration_seconds: int
     parties: list[str]
+    study_type: Literal["quantitative", "qualitative"] = Field(
+        default="quantitative",
+        description="Whether the study is quantitative or qualitative",
+    )
     created_at: datetime
     updated_at: datetime
     session_count: int = Field(default=0, description="Number of sessions")
@@ -173,6 +184,14 @@ class SessionStateResponse(BaseModel):
         default=600,
         description="Task duration in seconds",
     )
+    study_type: Literal["quantitative", "qualitative"] = Field(
+        default="quantitative",
+        description=(
+            "Whether the study is quantitative or qualitative. In qualitative "
+            "studies the frontend renders optional free-text fields on the "
+            "questionnaires."
+        ),
+    )
 
 
 class ConsentRequest(BaseModel):
@@ -244,6 +263,13 @@ class CognitiveLoadRequest(BaseModel):
     cl_ecl_3: int = Field(..., ge=1, le=7)
     cl_gcl_1: int = Field(..., ge=1, le=7)
     cl_gcl_2: int = Field(..., ge=1, le=7)
+    qualitative_feedback: str | None = Field(
+        default=None,
+        description=(
+            "Optional free-text comment on perceived task load. Only collected "
+            "in qualitative studies; absent otherwise."
+        ),
+    )
 
 
 class QuestionnaireRequest(BaseModel):

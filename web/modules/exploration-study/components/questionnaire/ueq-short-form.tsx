@@ -1,6 +1,14 @@
 'use client';
 
-import { Form } from '@/components/ui/form';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { LikertFormItem } from '@/modules/exploration-study/components/shared/likert-form-item';
 import { SubmitButton } from '@/modules/exploration-study/components/shared/submit-button';
@@ -17,14 +25,20 @@ import { useForm } from 'react-hook-form';
 export interface UeqShortFormProps {
   onSubmit: (data: UeqData) => void;
   isSubmitting?: boolean;
+  // When true, renders an optional free-text field for qualitative studies.
+  showQualitativeFeedback?: boolean;
   className?: string;
 }
 
 type UeqFieldKey = keyof UeqShortFormValues;
 
+const QUALITATIVE_FEEDBACK_LABEL =
+  'Möchtest du noch etwas zu deiner Nutzungserfahrung ergänzen? (optional)';
+
 export function UeqShortForm({
   onSubmit,
   isSubmitting = false,
+  showQualitativeFeedback = false,
   className,
 }: UeqShortFormProps) {
   const { items, order } = useMemo(() => getRandomizedUeqItems(), []);
@@ -35,7 +49,12 @@ export function UeqShortForm({
   });
 
   const handleSubmit = form.handleSubmit((values) => {
-    onSubmit({ ...values, itemOrder: order });
+    const { qualitativeFeedback, ...ratings } = values;
+    onSubmit({
+      ...ratings,
+      itemOrder: order,
+      ...(qualitativeFeedback ? { qualitativeFeedback } : {}),
+    });
   });
 
   return (
@@ -73,6 +92,29 @@ export function UeqShortForm({
             );
           })}
         </div>
+
+        {showQualitativeFeedback && (
+          <FormField
+            control={form.control}
+            name="qualitativeFeedback"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel htmlFor="ueq-qualitative-feedback">
+                  {QUALITATIVE_FEEDBACK_LABEL}
+                </FormLabel>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    id="ueq-qualitative-feedback"
+                    value={field.value ?? ''}
+                    rows={4}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <SubmitButton isSubmitting={isSubmitting} />
       </form>

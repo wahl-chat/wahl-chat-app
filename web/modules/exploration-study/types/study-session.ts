@@ -15,6 +15,11 @@ export type StudyCondition = 'guided' | 'baseline';
 
 export type StudyTopic = 'klimaschutz' | 'soziale-gerechtigkeit';
 
+// Whether the study collects purely quantitative data or also adds qualitative
+// free-text fields to the questionnaires. Set by the backend; the frontend
+// treats a missing value as 'quantitative'.
+export type StudyType = 'quantitative' | 'qualitative';
+
 export interface TopicInfo {
   id: StudyTopic;
   title: string;
@@ -56,6 +61,9 @@ export interface StudySession {
   currentTopic: string | null;
   chatId: string | null;
   taskDurationSeconds: number;
+  // Optional: backend marks the study as quantitative or qualitative.
+  // Frontend treats a missing value as 'quantitative'.
+  studyType?: StudyType;
 }
 
 export interface StudyProgress {

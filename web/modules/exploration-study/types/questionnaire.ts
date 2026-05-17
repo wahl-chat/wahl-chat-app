@@ -76,6 +76,8 @@ export interface CognitiveLoadResponse {
   cl_ecl_3: number;
   cl_gcl_1: number;
   cl_gcl_2: number;
+  // Optional free-text comment, collected only in qualitative studies.
+  qualitativeFeedback?: string;
 }
 
 export interface UeqItem {
@@ -146,6 +148,8 @@ export interface UeqData {
   item7: number;
   item8: number;
   itemOrder: number[]; // Randomized order for analysis
+  // Optional free-text comment, collected only in qualitative studies.
+  qualitativeFeedback?: string;
 }
 
 export interface QuestionnaireData {

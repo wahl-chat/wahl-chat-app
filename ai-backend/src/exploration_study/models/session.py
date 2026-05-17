@@ -31,6 +31,13 @@ class CognitiveLoadData(BaseModel):
     cl_ecl_3: int | None = Field(default=None, ge=1, le=7)
     cl_gcl_1: int | None = Field(default=None, ge=1, le=7)
     cl_gcl_2: int | None = Field(default=None, ge=1, le=7)
+    qualitative_feedback: str | None = Field(
+        default=None,
+        description=(
+            "Optional free-text comment on perceived task load. Only collected "
+            "in qualitative studies; None otherwise."
+        ),
+    )
 
 
 class SystemType(str, Enum):

@@ -166,4 +166,13 @@ export const studyApi = {
       method: 'POST',
       body: data,
     }),
+
+  /**
+   * Get the Prolific completion code for this session, looked up by the
+   * session's Prolific STUDY_ID on the backend. Returns `{ code: null }`
+   * when no code is configured for this study (in which case the Prolific
+   * return UI should be hidden).
+   */
+  getProlificCompletionCode: (sessionId: string) =>
+    fetchApi<{ code: string | null }>(`/${sessionId}/prolific-completion-code`),
 };

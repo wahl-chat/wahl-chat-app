@@ -3,6 +3,10 @@ import { z } from 'zod';
 const REQUIRED_SELECT = 'Bitte treffe eine Auswahl.';
 const REQUIRED_RATING = 'Bitte wähle einen Wert aus.';
 
+// Optional free-text comment, rendered only in qualitative studies. Always
+// part of the schema so the form type is stable across study types.
+const qualitativeFeedback = z.string().trim().optional();
+
 // ---------------------------------------------------------------------------
 // Consent
 // ---------------------------------------------------------------------------
@@ -81,6 +85,7 @@ export const ueqShortSchema = z.object({
   item6: ueqRating,
   item7: ueqRating,
   item8: ueqRating,
+  qualitativeFeedback,
 });
 
 export type UeqShortFormValues = z.infer<typeof ueqShortSchema>;
@@ -102,6 +107,7 @@ export const cognitiveLoadSchema = z.object({
   // Embedded attention check. Validated by form, split out at submit so it
   // never lands inside the CL response object that downstream code scores.
   attentionCheck: cognitiveLoadRating,
+  qualitativeFeedback,
 });
 
 export type CognitiveLoadFormValues = z.infer<typeof cognitiveLoadSchema>;

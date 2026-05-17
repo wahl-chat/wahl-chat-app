@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -65,6 +66,14 @@ class StudyConfig(BaseModel):
     parties: list[str] = Field(
         default=STUDY_PARTIES,
         description="List of party names for the fake context (hardcoded)",
+    )
+    study_type: Literal["quantitative", "qualitative"] = Field(
+        default="quantitative",
+        description=(
+            "Whether the study collects purely quantitative data or also adds "
+            "qualitative free-text fields to the questionnaires. Sessions "
+            "inherit this from their study."
+        ),
     )
 
 

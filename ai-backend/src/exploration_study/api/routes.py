@@ -48,6 +48,7 @@ from src.exploration_study.models.session import (
     CognitiveLoadData,
     DemographicsData,
     ProlificData,
+    StudySession,
     get_condition_for_group,
 )
 from src.exploration_study.models.state import StudyState
@@ -89,6 +90,66 @@ def _load_party_positions(party_id: str) -> list[dict]:
 
 # Memoized id of the study used for self-serve session creation.
 _default_study_cache: str | None = None
+
+# Memoized parsed map from Prolific STUDY_ID -> internal study ID.
+_prolific_study_id_map_cache: dict[str, str] | None = None
+
+
+def _get_prolific_study_id_map() -> dict[str, str]:
+    """
+    Parse the ``PROLIFIC_STUDY_ID_MAP`` env var, a JSON object mapping
+    Prolific STUDY_ID values to internal study IDs. Invalid JSON yields
+    an empty map and is logged once.
+    """
+    global _prolific_study_id_map_cache
+    if _prolific_study_id_map_cache is not None:
+        return _prolific_study_id_map_cache
+
+    raw = os.getenv("PROLIFIC_STUDY_ID_MAP", "").strip()
+    if not raw:
+        _prolific_study_id_map_cache = {}
+        return _prolific_study_id_map_cache
+
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as e:
+        logger.warning(f"PROLIFIC_STUDY_ID_MAP is not valid JSON: {e}")
+        _prolific_study_id_map_cache = {}
+        return _prolific_study_id_map_cache
+
+    if not isinstance(parsed, dict):
+        logger.warning(
+            "PROLIFIC_STUDY_ID_MAP must be a JSON object of "
+            "{prolific_study_id: internal_study_id}"
+        )
+        _prolific_study_id_map_cache = {}
+        return _prolific_study_id_map_cache
+
+    _prolific_study_id_map_cache = {str(k): str(v) for k, v in parsed.items()}
+    return _prolific_study_id_map_cache
+
+
+async def _resolve_study_for_prolific(prolific_study_id: str | None) -> Study:
+    """
+    Resolve the internal study for an incoming Prolific participant.
+
+    If ``PROLIFIC_STUDY_ID_MAP`` contains an entry for ``prolific_study_id``
+    and that internal study exists, return it. Otherwise fall back to the
+    default study (see ``_get_or_create_default_study``).
+    """
+    if prolific_study_id:
+        mapping = _get_prolific_study_id_map()
+        mapped_id = mapping.get(prolific_study_id)
+        if mapped_id:
+            study_repo = get_study_repository()
+            mapped = await study_repo.get_study(mapped_id)
+            if mapped:
+                return mapped
+            logger.warning(
+                f"PROLIFIC_STUDY_ID_MAP entry for {prolific_study_id} -> "
+                f"{mapped_id} does not exist in the study repo; falling back"
+            )
+    return await _get_or_create_default_study()
 
 
 async def _get_or_create_default_study() -> Study:
@@ -200,7 +261,7 @@ async def create_session_self_serve(request: web.Request) -> web.Response:
         session_id=req.prolific_session_id,
     )
 
-    study = await _get_or_create_default_study()
+    study = await _resolve_study_for_prolific(req.prolific_study_id)
 
     counterbalancer = get_counterbalancer()
     group = await counterbalancer.assign_group(study.id)
@@ -261,6 +322,7 @@ async def get_session_state(request: web.Request) -> web.Response:
         current_topic=condition.topic,
         chat_id=condition.chat_id,
         task_duration_seconds=study.config.task_duration_seconds if study else 600,
+        study_type=study.config.study_type if study else "quantitative",
     )
     return web.json_response(response.model_dump(mode="json"))
 
@@ -572,6 +634,7 @@ async def submit_questionnaire(request: web.Request) -> web.Response:
         cl_ecl_3=req.cognitive_load.cl_ecl_3,
         cl_gcl_1=req.cognitive_load.cl_gcl_1,
         cl_gcl_2=req.cognitive_load.cl_gcl_2,
+        qualitative_feedback=req.cognitive_load.qualitative_feedback,
     )
     condition.attention_check = req.attention_check
     condition.ueq_s = req.ueq_s
@@ -875,26 +938,88 @@ async def get_quiz_result(request: web.Request) -> web.Response:
     return web.json_response(response.model_dump(mode="json"))
 
 
+PROLIFIC_COMPLETION_BASE_URL = "https://app.prolific.com/submissions/complete"
+
+# Memoized parsed map from Prolific STUDY_ID -> completion code.
+_prolific_completion_codes_cache: dict[str, str] | None = None
+
+
+def _get_prolific_completion_codes() -> dict[str, str]:
+    """
+    Parse the ``PROLIFIC_COMPLETION_CODES`` env var, a JSON object mapping
+    Prolific STUDY_ID values to Prolific completion codes. Invalid JSON
+    yields an empty map and is logged once.
+    """
+    global _prolific_completion_codes_cache
+    if _prolific_completion_codes_cache is not None:
+        return _prolific_completion_codes_cache
+
+    raw = os.getenv("PROLIFIC_COMPLETION_CODES", "").strip()
+    if not raw:
+        _prolific_completion_codes_cache = {}
+        return _prolific_completion_codes_cache
+
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as e:
+        logger.warning(f"PROLIFIC_COMPLETION_CODES is not valid JSON: {e}")
+        _prolific_completion_codes_cache = {}
+        return _prolific_completion_codes_cache
+
+    if not isinstance(parsed, dict):
+        logger.warning(
+            "PROLIFIC_COMPLETION_CODES must be a JSON object of "
+            "{prolific_study_id: completion_code}"
+        )
+        _prolific_completion_codes_cache = {}
+        return _prolific_completion_codes_cache
+
+    _prolific_completion_codes_cache = {
+        str(k): str(v).strip() for k, v in parsed.items() if str(v).strip()
+    }
+    return _prolific_completion_codes_cache
+
+
+def _get_completion_code_for_session(session: StudySession) -> str | None:
+    """Resolve the Prolific completion code for a given session, if any."""
+    prolific_study_id = session.prolific.study_id if session.prolific else None
+    if not prolific_study_id:
+        return None
+    return _get_prolific_completion_codes().get(prolific_study_id)
+
+
+async def get_prolific_completion_code(request: web.Request) -> web.Response:
+    """
+    GET /api/v1/exploration-study/sessions/{session_id}/prolific-completion-code
+
+    Return the Prolific completion code that the participant should submit
+    on Prolific, looked up by the session's Prolific STUDY_ID. Returns
+    ``{"code": null}`` if no code is configured for this session.
+    """
+    session_id = request.match_info["session_id"]
+
+    session_repo = get_session_repository()
+    session = await session_repo.get_session(session_id)
+    if not session:
+        return web.json_response(
+            ErrorResponse(error="Session not found").model_dump(),
+            status=404,
+        )
+
+    return web.json_response({"code": _get_completion_code_for_session(session)})
+
+
 async def prolific_redirect(request: web.Request) -> web.Response:
     """
     GET /api/v1/exploration-study/sessions/{session_id}/prolific-redirect
 
     Redirect a completed participant back to the Prolific completion URL
-    configured in ``PROLIFIC_STUDY_REDIRECT_URL`` and stamp the first
+    built from the completion code configured for the session's Prolific
+    STUDY_ID (see ``PROLIFIC_COMPLETION_CODES``) and stamp the first
     redirect time on the session for analysis. Subsequent calls re-redirect
     but do not overwrite the original timestamp.
     """
     session_id = request.match_info["session_id"]
-
-    redirect_url = os.getenv("PROLIFIC_STUDY_REDIRECT_URL", "").strip()
-    if not redirect_url:
-        return web.json_response(
-            ErrorResponse(
-                error="Redirect URL not configured",
-                detail="PROLIFIC_STUDY_REDIRECT_URL is not set on the backend.",
-            ).model_dump(),
-            status=500,
-        )
 
     session_repo = get_session_repository()
     session = await session_repo.get_session(session_id)
@@ -913,10 +1038,25 @@ async def prolific_redirect(request: web.Request) -> web.Response:
             status=400,
         )
 
+    code = _get_completion_code_for_session(session)
+    if not code:
+        return web.json_response(
+            ErrorResponse(
+                error="Completion code not configured",
+                detail=(
+                    "No PROLIFIC_COMPLETION_CODES entry for this session's "
+                    "Prolific STUDY_ID."
+                ),
+            ).model_dump(),
+            status=500,
+        )
+
     if session.prolific_redirected_at is None:
         await session_repo.mark_prolific_redirected(session_id)
 
-    raise web.HTTPSeeOther(location=redirect_url)
+    raise web.HTTPSeeOther(
+        location=f"{PROLIFIC_COMPLETION_BASE_URL}?cc={code}",
+    )
 
 
 async def submit_feedback(request: web.Request) -> web.Response:
@@ -987,6 +1127,11 @@ def setup_exploration_study_routes(app: web.Application) -> None:
             get_quiz_result,
         ),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/feedback", submit_feedback),
+        (
+            "GET",
+            f"{ROUTE_PREFIX}/sessions/{{session_id}}/prolific-completion-code",
+            get_prolific_completion_code,
+        ),
         (
             "GET",
             f"{ROUTE_PREFIX}/sessions/{{session_id}}/prolific-redirect",
