@@ -40,6 +40,33 @@ function markNodeExplored(
   return { ...node, children: updatedChildren };
 }
 
+// Mirrors the backend transition in navigation.py (`pending`/`loaded` ->
+// `started`); leaves `started`/`explored` alone so a re-open never regresses.
+function markNodeStarted(
+  node: ExplorationNode,
+  leafId: string,
+): ExplorationNode {
+  if (node.id === leafId) {
+    if (node.status === 'pending' || node.status === 'loaded') {
+      return { ...node, status: 'started' };
+    }
+    return node;
+  }
+
+  if (node.children.length === 0) return node;
+
+  const updatedChildren = node.children.map((child) =>
+    markNodeStarted(child, leafId),
+  );
+
+  const changed = updatedChildren.some(
+    (child, i) => child !== node.children[i],
+  );
+  if (!changed) return node;
+
+  return { ...node, children: updatedChildren };
+}
+
 function omitKey<V>(record: Record<string, V>, key: string): Record<string, V> {
   if (!(key in record)) return record;
   const next = { ...record };
@@ -93,8 +120,24 @@ export function explorationReducer(
         !existing || conversation.messages.length >= existing.messages.length;
       const nextConversation = shouldOverwrite ? conversation : existing;
       const explorationAnalysis = state.analysisAvailable[explorationId] ?? {};
+      const tree = state.trees[explorationId];
+      const updatedRoot = tree ? markNodeStarted(tree.root, leafId) : undefined;
+      const treesPatch =
+        tree && updatedRoot && updatedRoot !== tree.root
+          ? {
+              trees: {
+                ...state.trees,
+                [explorationId]: {
+                  ...tree,
+                  root: updatedRoot,
+                  updatedAt: new Date().toISOString(),
+                },
+              },
+            }
+          : {};
       return {
         ...state,
+        ...treesPatch,
         activeLeaf: { explorationId, leafId },
         conversations: {
           ...state.conversations,
