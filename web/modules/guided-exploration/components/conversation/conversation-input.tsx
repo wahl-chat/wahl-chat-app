@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, ChevronDown } from 'lucide-react';
 import { Fragment, useCallback, useId, useRef, useState } from 'react';
 
 import { PartyBadge } from '@/modules/guided-exploration/components/shared/party-badge';
@@ -167,10 +167,14 @@ export function ConversationInput({
               input.length > 0 ? 'opacity-0' : 'opacity-100',
             )}
           >
-            <div className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background shadow-md">
+            <div className="rounded-full bg-foreground px-6 py-3 text-base font-semibold text-background shadow-lg">
               {firstMessageHintLabel}
             </div>
-            <div className="-mt-px size-3 rotate-45 bg-foreground" />
+            <ChevronDown
+              aria-hidden="true"
+              className="-mt-1 size-6 text-foreground"
+              strokeWidth={2.5}
+            />
           </div>
         )}
         <form

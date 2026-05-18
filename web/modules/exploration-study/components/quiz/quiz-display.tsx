@@ -165,6 +165,24 @@ export function QuizDisplay({
               <strong>„Weiß ich nicht“</strong> — deine Freundin hört das
               lieber, als dass du rätst.
             </p>
+            <div className="rounded-md border bg-muted/40 p-3 text-sm">
+              <p className="font-medium">So wird gewertet:</p>
+              <ul className="mt-1 space-y-0.5">
+                <li>
+                  Richtige Antwort: <strong>+1 Punkt</strong>
+                </li>
+                <li>
+                  „Weiß ich nicht“: <strong>0 Punkte</strong>
+                </li>
+                <li>
+                  Falsche Antwort: <strong>−1 Punkt</strong>
+                </li>
+              </ul>
+              <p className="mt-2 text-muted-foreground">
+                Raten lohnt sich also nicht — „Weiß ich nicht“ ist die bessere
+                Wahl, wenn du unsicher bist.
+              </p>
+            </div>
           </CardContent>
         </Card>
         <Button

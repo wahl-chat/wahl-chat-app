@@ -449,7 +449,7 @@
   },
   {
     "id": "q-029",
-    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:mars] fordert ein Pro-Kopf-Klimageld, das einen Teil der CO2-Einnahmen direkt an die Bürger zurückzahlt?",
+    "question": "Welche Parteien fordern ein Pro-Kopf-Klimageld, das einen Teil der CO2-Einnahmen direkt an die Bürger zurückzahlt?",
     "options": [
       "Nur [PARTY_BADGE:venus]",
       "Nur [PARTY_BADGE:mars]",
@@ -466,7 +466,7 @@
   },
   {
     "id": "q-030",
-    "question": "Welche der Parteien [PARTY_BADGE:mars] und [PARTY_BADGE:saturn] fordert einen CO2-Grenzausgleich (CBAM) auf Importe aus Ländern mit niedrigeren Klimastandards?",
+    "question": "Welche Parteien fordern einen CO2-Grenzausgleich (CBAM) auf Importe aus Ländern mit niedrigeren Klimastandards?",
     "options": [
       "Nur [PARTY_BADGE:mars]",
       "Nur [PARTY_BADGE:saturn]",
@@ -483,7 +483,7 @@
   },
   {
     "id": "q-031",
-    "question": "Welche der Parteien [PARTY_BADGE:mars] und [PARTY_BADGE:saturn] lehnt einen festen Ausstiegstermin für den Verbrennungsmotor ab?",
+    "question": "Welche Parteien lehnen einen festen Ausstiegstermin für den Verbrennungsmotor ab?",
     "options": [
       "Nur [PARTY_BADGE:mars]",
       "Nur [PARTY_BADGE:saturn]",
@@ -500,7 +500,7 @@
   },
   {
     "id": "q-032",
-    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:saturn] fordert, dass auch Beamte und Abgeordnete in die gesetzliche Rentenkasse einzahlen?",
+    "question": "Welche Parteien fordern, dass auch Beamte und Abgeordnete in die gesetzliche Rentenkasse einzahlen?",
     "options": [
       "Nur [PARTY_BADGE:venus]",
       "Nur [PARTY_BADGE:saturn]",
@@ -517,7 +517,7 @@
   },
   {
     "id": "q-033",
-    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:mars] will Erziehungs- und Pflegezeiten in der Rente stärker mit Entgeltpunkten anerkennen?",
+    "question": "Welche Parteien wollen Erziehungs- und Pflegezeiten in der Rente stärker mit Entgeltpunkten anerkennen?",
     "options": [
       "Nur [PARTY_BADGE:venus]",
       "Nur [PARTY_BADGE:mars]",
@@ -534,7 +534,7 @@
   },
   {
     "id": "q-034",
-    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:mars] fordert eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds?",
+    "question": "Welche Parteien fordern eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds?",
     "options": [
       "Nur [PARTY_BADGE:venus]",
       "Nur [PARTY_BADGE:mars]",
@@ -551,7 +551,7 @@
   },
   {
     "id": "q-035",
-    "question": "Welche der Parteien [PARTY_BADGE:mars] und [PARTY_BADGE:saturn] fordert deutlich härtere Sanktionen bei Arbeitsverweigerung im Bürgergeld?",
+    "question": "Welche Parteien fordern deutlich härtere Sanktionen bei Arbeitsverweigerung im Bürgergeld?",
     "options": [
       "Nur [PARTY_BADGE:mars]",
       "Nur [PARTY_BADGE:saturn]",
@@ -568,7 +568,7 @@
   },
   {
     "id": "q-036",
-    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:saturn] steht der nationalen CO2-Steuer am kritischsten gegenüber?",
+    "question": "Welche Parteien lehnen die nationale CO2-Steuer ab?",
     "options": [
       "Nur [PARTY_BADGE:venus]",
       "Nur [PARTY_BADGE:saturn]",
@@ -585,7 +585,7 @@
   },
   {
     "id": "q-037",
-    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:saturn] fordert ein generelles Tempolimit auf Autobahnen?",
+    "question": "Welche Parteien fordern ein generelles Tempolimit auf Autobahnen?",
     "options": [
       "Nur [PARTY_BADGE:venus]",
       "Nur [PARTY_BADGE:saturn]",
@@ -602,7 +602,7 @@
   },
   {
     "id": "q-038",
-    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:mars] fordert einen früheren Ausstieg aus dem Verbrennungsmotor?",
+    "question": "Welche Parteien fordern einen früheren Ausstieg aus dem Verbrennungsmotor?",
     "options": [
       "Nur [PARTY_BADGE:venus]",
       "Nur [PARTY_BADGE:mars]",
@@ -619,7 +619,7 @@
   },
   {
     "id": "q-039",
-    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:mars] will das gesetzliche Rentenniveau anheben statt nur stabilisieren?",
+    "question": "Welche Parteien wollen das gesetzliche Rentenniveau anheben statt nur stabilisieren?",
     "options": [
       "Nur [PARTY_BADGE:venus]",
       "Nur [PARTY_BADGE:mars]",
@@ -636,7 +636,7 @@
   },
   {
     "id": "q-040",
-    "question": "Welche der Parteien [PARTY_BADGE:mars] und [PARTY_BADGE:saturn] sieht den europäischen Emissionshandel als Leitinstrument der Klimapolitik?",
+    "question": "Welche Parteien sehen den europäischen Emissionshandel als Leitinstrument der Klimapolitik?",
     "options": [
       "Nur [PARTY_BADGE:mars]",
       "Nur [PARTY_BADGE:saturn]",
@@ -653,7 +653,7 @@
   },
   {
     "id": "q-041",
-    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:saturn] will Bürgergeld-Sanktionen einschränken statt verschärfen?",
+    "question": "Welche Parteien wollen Bürgergeld-Sanktionen einschränken statt verschärfen?",
     "options": [
       "Nur [PARTY_BADGE:venus]",
       "Nur [PARTY_BADGE:saturn]",
@@ -670,7 +670,7 @@
   },
   {
     "id": "q-042",
-    "question": "Welche der Parteien [PARTY_BADGE:venus] und [PARTY_BADGE:saturn] will den Bürgergeld-Anspruch eng auf Staatsbürger und Beitragszahler beschränken?",
+    "question": "Welche Parteien wollen den Bürgergeld-Anspruch eng auf Staatsbürger und Beitragszahler beschränken?",
     "options": [
       "Nur [PARTY_BADGE:venus]",
       "Nur [PARTY_BADGE:saturn]",
