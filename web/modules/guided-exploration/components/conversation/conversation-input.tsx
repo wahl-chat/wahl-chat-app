@@ -43,6 +43,13 @@ interface ConversationInputProps {
   suggestedQuestions?: string[];
   /** Whether follow-up questions are currently being generated */
   isLoadingQuestions?: boolean;
+  /**
+   * Show a small "ask your first question" callout above the composer.
+   * Auto-hides once the user types a character.
+   */
+  showFirstMessageHint?: boolean;
+  /** Label for the first-message hint. Defaults to German du-form. */
+  firstMessageHintLabel?: string;
 }
 
 /**
@@ -57,6 +64,8 @@ export function ConversationInput({
   className,
   suggestedQuestions = [],
   isLoadingQuestions = false,
+  showFirstMessageHint = false,
+  firstMessageHintLabel = 'Stell hier deine erste Frage',
 }: ConversationInputProps) {
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -149,40 +158,56 @@ export function ConversationInput({
       )}
 
       {/* Input form */}
-      <form
-        onSubmit={handleSubmit}
-        className="flex w-full flex-col overflow-hidden rounded-[24px] border border-input bg-background transition-colors focus-within:border-ring"
-      >
-        <textarea
-          ref={textareaRef}
-          className="block w-full resize-none bg-transparent px-4 pt-3 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-          placeholder={placeholder}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          value={input}
-          disabled={disabled}
-          maxLength={500}
-          rows={1}
-          aria-label="Nachricht eingeben"
-          aria-describedby={showDisabledReason ? disabledReasonId : undefined}
-        />
-        {showDisabledReason && (
-          <span id={disabledReasonId} className="sr-only">
-            {disabledReason}
-          </span>
-        )}
-        <div className="flex justify-end p-2">
-          <Button
-            type="submit"
-            disabled={!input.trim().length || disabled}
-            size="icon"
-            className="flex size-8 items-center justify-center rounded-full"
-            aria-label="Nachricht senden"
+      <div className="relative">
+        {showFirstMessageHint && (
+          <div
+            aria-hidden={input.length > 0}
+            className={cn(
+              'pointer-events-none absolute -top-2 left-1/2 z-10 flex -translate-x-1/2 -translate-y-full flex-col items-center transition-opacity duration-200',
+              input.length > 0 ? 'opacity-0' : 'opacity-100',
+            )}
           >
-            <ArrowUp className="size-4" />
-          </Button>
-        </div>
-      </form>
+            <div className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background shadow-md">
+              {firstMessageHintLabel}
+            </div>
+            <div className="-mt-px size-3 rotate-45 bg-foreground" />
+          </div>
+        )}
+        <form
+          onSubmit={handleSubmit}
+          className="flex w-full flex-col overflow-hidden rounded-[24px] border border-input bg-background transition-colors focus-within:border-ring"
+        >
+          <textarea
+            ref={textareaRef}
+            className="block w-full resize-none bg-transparent px-4 pt-3 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            placeholder={placeholder}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            value={input}
+            disabled={disabled}
+            maxLength={500}
+            rows={1}
+            aria-label="Nachricht eingeben"
+            aria-describedby={showDisabledReason ? disabledReasonId : undefined}
+          />
+          {showDisabledReason && (
+            <span id={disabledReasonId} className="sr-only">
+              {disabledReason}
+            </span>
+          )}
+          <div className="flex justify-end p-2">
+            <Button
+              type="submit"
+              disabled={!input.trim().length || disabled}
+              size="icon"
+              className="flex size-8 items-center justify-center rounded-full"
+              aria-label="Nachricht senden"
+            >
+              <ArrowUp className="size-4" />
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

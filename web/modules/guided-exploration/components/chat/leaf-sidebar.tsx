@@ -207,6 +207,7 @@ export function LeafSidebar({
               isLoadingQuestions={
                 (isThinking || !!isStreaming) && suggestedQuestions.length === 0
               }
+              showFirstMessageHint={messageCount === 0}
             />
           )}
         </div>
