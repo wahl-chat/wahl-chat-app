@@ -3,11 +3,11 @@
     "id": "q-001",
     "question": "Wie steht [PARTY_BADGE:venus] zur Höhe des CO2-Preises in den kommenden Jahren?",
     "options": [
+      "Fordert eine Senkung oder Abschaffung des CO2-Preises",
       "Befürwortet eine deutliche Anhebung weit über das heutige Niveau",
-      "Will das aktuelle Preisniveau im Wesentlichen beibehalten",
-      "Fordert eine Senkung oder Abschaffung des CO2-Preises"
+      "Will das aktuelle Preisniveau im Wesentlichen beibehalten"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "venus-klima-001"
@@ -20,8 +20,8 @@
     "question": "Welche Aussage zum Umgang mit klimaschädlichen Subventionen trifft auf [PARTY_BADGE:venus] zu?",
     "options": [
       "Will sie vollständig abbauen",
-      "Will sie teilweise erhalten",
-      "Will sie ausweiten"
+      "Will sie ausweiten",
+      "Will sie teilweise erhalten"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
@@ -35,11 +35,11 @@
     "id": "q-003",
     "question": "Wie steht [PARTY_BADGE:venus] zu einem generellen Tempolimit auf Autobahnen?",
     "options": [
-      "Befürwortet die Einführung eines generellen Tempolimits",
+      "Will nur situative Geschwindigkeitsbeschränkungen",
       "Lehnt ein generelles Tempolimit ab",
-      "Will nur situative Geschwindigkeitsbeschränkungen"
+      "Befürwortet die Einführung eines generellen Tempolimits"
     ],
-    "correct_index": 0,
+    "correct_index": 2,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "venus-klima-004"
@@ -51,11 +51,11 @@
     "id": "q-004",
     "question": "Welche Position vertritt [PARTY_BADGE:venus] zum Ausstieg aus dem Verbrennungsmotor?",
     "options": [
-      "Will Neuzulassungen von Verbrennern früher als bisher beschlossen beenden",
+      "Lehnt einen festen Ausstiegstermin ab und setzt auf Technologieoffenheit",
       "Will am bestehenden EU-Ausstiegsplan festhalten",
-      "Lehnt einen festen Ausstiegstermin ab und setzt auf Technologieoffenheit"
+      "Will Neuzulassungen von Verbrennern früher als bisher beschlossen beenden"
     ],
-    "correct_index": 0,
+    "correct_index": 2,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "venus-klima-005"
@@ -67,11 +67,11 @@
     "id": "q-005",
     "question": "Wie steht [PARTY_BADGE:venus] zu öffentlichen Investitionen in den Nahverkehr?",
     "options": [
-      "Befürwortet einen deutlichen Ausbau der Investitionen",
       "Will das aktuelle Investitionsniveau halten",
+      "Befürwortet einen deutlichen Ausbau der Investitionen",
       "Fordert eine Reduzierung der ÖPNV-Förderung"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "venus-klima-006"
@@ -83,11 +83,11 @@
     "id": "q-006",
     "question": "Welche Aussage zum bundesweiten ÖPNV-Ticket trifft auf [PARTY_BADGE:venus] zu?",
     "options": [
-      "Will ein günstiges bundesweites Klimaticket einführen",
+      "Will ein bundesweites Ticket abschaffen",
       "Will beim heutigen Preisniveau für ein Bundesticket bleiben",
-      "Will ein bundesweites Ticket abschaffen"
+      "Will ein günstiges bundesweites Klimaticket einführen"
     ],
-    "correct_index": 0,
+    "correct_index": 2,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "venus-klima-007"
@@ -116,8 +116,8 @@
     "question": "Wie steht [PARTY_BADGE:venus] zu Inlandsflügen?",
     "options": [
       "Will Inlandsflüge schrittweise unattraktiv machen",
-      "Will Inlandsflüge komplett verbieten",
-      "Will Inlandsflüge wie heute steuerlich behandeln"
+      "Will Inlandsflüge wie heute steuerlich behandeln",
+      "Will Inlandsflüge komplett verbieten"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
@@ -131,11 +131,11 @@
     "id": "q-009",
     "question": "Wie steht [PARTY_BADGE:venus] zur Höhe des gesetzlichen Rentenniveaus?",
     "options": [
-      "Will das Rentenniveau gegenüber heute deutlich anheben und gesetzlich festschreiben",
+      "Will das Rentenniveau schrittweise absenken",
       "Will das heutige Rentenniveau lediglich stabilisieren",
-      "Will das Rentenniveau schrittweise absenken"
+      "Will das Rentenniveau gegenüber heute deutlich anheben und gesetzlich festschreiben"
     ],
-    "correct_index": 0,
+    "correct_index": 2,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "venus-sozial-001"
@@ -147,11 +147,11 @@
     "id": "q-010",
     "question": "Wie steht [PARTY_BADGE:venus] zur Höhe des Bürgergeld-Regelsatzes?",
     "options": [
-      "Will den Regelsatz spürbar anheben",
       "Will den Regelsatz auf dem heutigen Stand belassen",
+      "Will den Regelsatz spürbar anheben",
       "Will den Regelsatz absenken"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "venus-sozial-004"
@@ -179,11 +179,11 @@
     "id": "q-012",
     "question": "Welches Instrument soll laut [PARTY_BADGE:mars] Leitinstrument deutscher Klimapolitik bleiben?",
     "options": [
-      "Der europäische Emissionshandel",
       "Eine nationale CO2-Steuer",
+      "Der europäische Emissionshandel",
       "Ordnungsrechtliche Verbote bestimmter Technologien"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "mars-klima-001"
@@ -211,11 +211,11 @@
     "id": "q-014",
     "question": "Welche verkehrspolitische Investition will [PARTY_BADGE:mars] deutlich ausbauen?",
     "options": [
-      "Investitionen in den Schienen-Güterverkehr",
+      "Investitionen in Inlandsflughäfen",
       "Investitionen in den Bau neuer Autobahnen",
-      "Investitionen in Inlandsflughäfen"
+      "Investitionen in den Schienen-Güterverkehr"
     ],
-    "correct_index": 0,
+    "correct_index": 2,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "mars-klima-006"
@@ -227,11 +227,11 @@
     "id": "q-015",
     "question": "Welche Struktur der Altersvorsorge will [PARTY_BADGE:mars] erhalten?",
     "options": [
+      "Einen staatlichen Bürgerfonds als alleinige Pflicht-Säule",
       "Das bestehende Zusammenspiel aus gesetzlicher Rente, Betriebsrente und privater Vorsorge",
-      "Die gesetzliche Rente als alleinige verpflichtende Säule",
-      "Einen staatlichen Bürgerfonds als alleinige Pflicht-Säule"
+      "Die gesetzliche Rente als alleinige verpflichtende Säule"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "mars-sozial-001"
@@ -243,11 +243,11 @@
     "id": "q-016",
     "question": "Wie steht [PARTY_BADGE:mars] zur Höhe des gesetzlichen Rentenniveaus?",
     "options": [
-      "Will das Rentenniveau auf dem heutigen Stand sichern, ohne es weiter zu erhöhen",
+      "Will das Rentenniveau schrittweise absenken",
       "Will das Rentenniveau deutlich anheben",
-      "Will das Rentenniveau schrittweise absenken"
+      "Will das Rentenniveau auf dem heutigen Stand sichern, ohne es weiter zu erhöhen"
     ],
-    "correct_index": 0,
+    "correct_index": 2,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "mars-sozial-002"
@@ -275,11 +275,11 @@
     "id": "q-018",
     "question": "Wie steht [PARTY_BADGE:mars] zur Umbenennung des Bürgergelds?",
     "options": [
-      "Will den Namen ändern, um den Charakter als Grundsicherung in Notlagen zu betonen",
       "Will den Namen ändern, um Bürgergeld als bedingungslose Leistung zu kennzeichnen",
+      "Will den Namen ändern, um den Charakter als Grundsicherung in Notlagen zu betonen",
       "Will den heutigen Namen Bürgergeld beibehalten"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "mars-sozial-005"
@@ -292,8 +292,8 @@
     "question": "Welche Haltung vertritt [PARTY_BADGE:saturn] zur nationalen CO2-Steuer?",
     "options": [
       "Fordert die sofortige Abschaffung",
-      "Will sie verschärfen",
-      "Will sie unverändert beibehalten"
+      "Will sie unverändert beibehalten",
+      "Will sie verschärfen"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
@@ -307,11 +307,11 @@
     "id": "q-020",
     "question": "Wie steht [PARTY_BADGE:saturn] zum europäischen Emissionshandel?",
     "options": [
+      "Will ihn durch eine nationale CO2-Steuer ersetzen",
       "Will ihn stoppen, bis er auf die Industrie beschränkt wird",
-      "Will ihn auf alle Sektoren ausweiten",
-      "Will ihn durch eine nationale CO2-Steuer ersetzen"
+      "Will ihn auf alle Sektoren ausweiten"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "saturn-klima-002"
@@ -339,11 +339,11 @@
     "id": "q-022",
     "question": "Wie steht [PARTY_BADGE:saturn] zur Pendlerpauschale?",
     "options": [
-      "Will sie spürbar und langfristig erhöhen",
       "Will sie auf dem heutigen Stand halten",
-      "Will sie schrittweise absenken"
+      "Will sie schrittweise absenken",
+      "Will sie spürbar und langfristig erhöhen"
     ],
-    "correct_index": 0,
+    "correct_index": 2,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "saturn-klima-006"
@@ -371,11 +371,11 @@
     "id": "q-024",
     "question": "Wie steht [PARTY_BADGE:saturn] zum vorzeitigen Renteneintritt nach langer Beitragsdauer?",
     "options": [
-      "Will einen vorzeitigen Renteneintritt ohne Abschläge zulassen",
       "Will den vorzeitigen Renteneintritt abschaffen und das Renteneintrittsalter generell anheben",
+      "Will einen vorzeitigen Renteneintritt ohne Abschläge zulassen",
       "Will den vorzeitigen Renteneintritt auf jüngere Jahrgänge ausweiten"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "saturn-sozial-002"
@@ -387,11 +387,11 @@
     "id": "q-025",
     "question": "Was plant [PARTY_BADGE:saturn] mit künftigen Beamtenpensionen?",
     "options": [
-      "Absenkung auf das Niveau der gesetzlichen Rente",
       "Verdopplung als Anreiz für den Staatsdienst",
-      "Vollständige Privatisierung der Altersvorsorge für Beamte"
+      "Vollständige Privatisierung der Altersvorsorge für Beamte",
+      "Absenkung auf das Niveau der gesetzlichen Rente"
     ],
-    "correct_index": 0,
+    "correct_index": 2,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "saturn-sozial-004"
@@ -403,11 +403,11 @@
     "id": "q-026",
     "question": "Welche Aussage zum Anspruch auf Bürgergeld trifft auf [PARTY_BADGE:saturn] zu?",
     "options": [
-      "Will den Anspruch auf Staatsbürger sowie auf Zuwanderer mit längerer Beitragszeit beschränken",
       "Will allen mit Aufenthaltstitel ohne Wartezeit Anspruch geben",
+      "Will den Anspruch auf Staatsbürger sowie auf Zuwanderer mit längerer Beitragszeit beschränken",
       "Lehnt das Bürgergeld grundsätzlich ab"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "saturn-sozial-005"
@@ -419,11 +419,11 @@
     "id": "q-027",
     "question": "Welche Aussage zur Behandlung von Bürgergeld-Beziehern mit langer Beitragsdauer trifft auf [PARTY_BADGE:saturn] zu?",
     "options": [
-      "Sieht für sie einen Aufschlag auf das Bürgergeld vor",
       "Lehnt jede Differenzierung im Bürgergeld nach Beitragshistorie ab",
+      "Sieht für sie einen Aufschlag auf das Bürgergeld vor",
       "Will sie ganz aus dem Bürgergeld herausnehmen und über die Rente absichern"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "saturn-sozial-007"
@@ -468,8 +468,8 @@
     "id": "q-030",
     "question": "Welche Parteien fordern einen CO2-Grenzausgleich (CBAM) auf Importe aus Ländern mit niedrigeren Klimastandards?",
     "options": [
-      "Nur [PARTY_BADGE:mars]",
       "Nur [PARTY_BADGE:saturn]",
+      "Nur [PARTY_BADGE:mars]",
       "Beide Parteien"
     ],
     "correct_index": 2,
@@ -486,10 +486,10 @@
     "question": "Welche Parteien lehnen einen festen Ausstiegstermin für den Verbrennungsmotor ab?",
     "options": [
       "Nur [PARTY_BADGE:mars]",
-      "Nur [PARTY_BADGE:saturn]",
-      "Beide Parteien"
+      "Beide Parteien",
+      "Nur [PARTY_BADGE:saturn]"
     ],
-    "correct_index": 2,
+    "correct_index": 1,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "mars-klima-004",
@@ -502,8 +502,8 @@
     "id": "q-032",
     "question": "Welche Parteien fordern, dass auch Beamte und Abgeordnete in die gesetzliche Rentenkasse einzahlen?",
     "options": [
-      "Nur [PARTY_BADGE:venus]",
       "Nur [PARTY_BADGE:saturn]",
+      "Nur [PARTY_BADGE:venus]",
       "Beide Parteien"
     ],
     "correct_index": 2,
@@ -519,11 +519,11 @@
     "id": "q-033",
     "question": "Welche Parteien wollen Erziehungs- und Pflegezeiten in der Rente stärker mit Entgeltpunkten anerkennen?",
     "options": [
-      "Nur [PARTY_BADGE:venus]",
+      "Beide Parteien",
       "Nur [PARTY_BADGE:mars]",
-      "Beide Parteien"
+      "Nur [PARTY_BADGE:venus]"
     ],
-    "correct_index": 2,
+    "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "venus-sozial-003",
@@ -537,10 +537,10 @@
     "question": "Welche Parteien fordern eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds?",
     "options": [
       "Nur [PARTY_BADGE:venus]",
-      "Nur [PARTY_BADGE:mars]",
-      "Beide Parteien"
+      "Beide Parteien",
+      "Nur [PARTY_BADGE:mars]"
     ],
-    "correct_index": 2,
+    "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "venus-sozial-006",
@@ -553,11 +553,11 @@
     "id": "q-035",
     "question": "Welche Parteien fordern deutlich härtere Sanktionen bei Arbeitsverweigerung im Bürgergeld?",
     "options": [
+      "Beide Parteien",
       "Nur [PARTY_BADGE:mars]",
-      "Nur [PARTY_BADGE:saturn]",
-      "Beide Parteien"
+      "Nur [PARTY_BADGE:saturn]"
     ],
-    "correct_index": 2,
+    "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "mars-sozial-006",
@@ -570,11 +570,11 @@
     "id": "q-036",
     "question": "Welche Parteien lehnen die nationale CO2-Steuer ab?",
     "options": [
-      "Nur [PARTY_BADGE:venus]",
       "Nur [PARTY_BADGE:saturn]",
-      "Beide Parteien"
+      "Beide Parteien",
+      "Nur [PARTY_BADGE:venus]"
     ],
-    "correct_index": 1,
+    "correct_index": 0,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "venus-klima-001",
@@ -587,11 +587,11 @@
     "id": "q-037",
     "question": "Welche Parteien fordern ein generelles Tempolimit auf Autobahnen?",
     "options": [
-      "Nur [PARTY_BADGE:venus]",
       "Nur [PARTY_BADGE:saturn]",
-      "Beide Parteien"
+      "Beide Parteien",
+      "Nur [PARTY_BADGE:venus]"
     ],
-    "correct_index": 0,
+    "correct_index": 2,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "venus-klima-004",
@@ -605,8 +605,8 @@
     "question": "Welche Parteien fordern einen früheren Ausstieg aus dem Verbrennungsmotor?",
     "options": [
       "Nur [PARTY_BADGE:venus]",
-      "Nur [PARTY_BADGE:mars]",
-      "Beide Parteien"
+      "Beide Parteien",
+      "Nur [PARTY_BADGE:mars]"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
@@ -621,11 +621,11 @@
     "id": "q-039",
     "question": "Welche Parteien wollen das gesetzliche Rentenniveau anheben statt nur stabilisieren?",
     "options": [
+      "Beide Parteien",
       "Nur [PARTY_BADGE:venus]",
-      "Nur [PARTY_BADGE:mars]",
-      "Beide Parteien"
+      "Nur [PARTY_BADGE:mars]"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "venus-sozial-001",
@@ -655,11 +655,11 @@
     "id": "q-041",
     "question": "Welche Parteien wollen Bürgergeld-Sanktionen einschränken statt verschärfen?",
     "options": [
+      "Beide Parteien",
       "Nur [PARTY_BADGE:venus]",
-      "Nur [PARTY_BADGE:saturn]",
-      "Beide Parteien"
+      "Nur [PARTY_BADGE:saturn]"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "venus-sozial-005",
@@ -672,9 +672,9 @@
     "id": "q-042",
     "question": "Welche Parteien wollen den Bürgergeld-Anspruch eng auf Staatsbürger und Beitragszahler beschränken?",
     "options": [
-      "Nur [PARTY_BADGE:venus]",
+      "Beide Parteien",
       "Nur [PARTY_BADGE:saturn]",
-      "Beide Parteien"
+      "Nur [PARTY_BADGE:venus]"
     ],
     "correct_index": 1,
     "topic": "klimaschutz",
@@ -689,11 +689,11 @@
     "id": "q-043",
     "question": "Wie steht [PARTY_BADGE:venus] zur Rückverteilung der CO2-Einnahmen an die Bürger?",
     "options": [
-      "Will die Einnahmen über ein Pro-Kopf-Klimageld direkt an die Bürger zurückzahlen",
       "Lehnt eine Rückverteilung der CO2-Einnahmen ab",
-      "Will die Einnahmen ausschließlich für Klimainvestitionen nutzen"
+      "Will die Einnahmen ausschließlich für Klimainvestitionen nutzen",
+      "Will die Einnahmen über ein Pro-Kopf-Klimageld direkt an die Bürger zurückzahlen"
     ],
-    "correct_index": 0,
+    "correct_index": 2,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "venus-klima-002"
@@ -705,11 +705,11 @@
     "id": "q-044",
     "question": "Wie steht [PARTY_BADGE:mars] zur Rückverteilung der CO2-Einnahmen an die Bürger?",
     "options": [
-      "Will einen relevanten Anteil als Pro-Kopf-Klimageld direkt an die Bürger zurückzahlen",
       "Lehnt eine Rückverteilung der CO2-Einnahmen ab",
-      "Will die Einnahmen ausschließlich für Klimainvestitionen nutzen"
+      "Will die Einnahmen ausschließlich für Klimainvestitionen nutzen",
+      "Will einen relevanten Anteil als Pro-Kopf-Klimageld direkt an die Bürger zurückzahlen"
     ],
-    "correct_index": 0,
+    "correct_index": 2,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "mars-klima-002"
@@ -721,11 +721,11 @@
     "id": "q-045",
     "question": "Wie steht [PARTY_BADGE:mars] zu einem CO2-Grenzausgleich auf Importe aus Ländern mit niedrigeren Klimastandards?",
     "options": [
-      "Will den CO2-Grenzausgleich auf zentrale Industriebereiche ausweiten",
       "Lehnt einen CO2-Grenzausgleich ab",
+      "Will den CO2-Grenzausgleich auf zentrale Industriebereiche ausweiten",
       "Will Importe wie heute ohne CO2-Aufschlag belassen"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "mars-klima-003"
@@ -737,11 +737,11 @@
     "id": "q-046",
     "question": "Wie steht [PARTY_BADGE:saturn] zu einem CO2-Grenzausgleich auf Importe aus Ländern mit niedrigeren Klimastandards?",
     "options": [
-      "Befürwortet einen CO2-Grenzausgleich an der EU-Außengrenze",
       "Lehnt einen CO2-Grenzausgleich ab",
-      "Will Importe wie heute ohne CO2-Aufschlag belassen"
+      "Will Importe wie heute ohne CO2-Aufschlag belassen",
+      "Befürwortet einen CO2-Grenzausgleich an der EU-Außengrenze"
     ],
-    "correct_index": 0,
+    "correct_index": 2,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "saturn-klima-003"
@@ -754,8 +754,8 @@
     "question": "Welche Position vertritt [PARTY_BADGE:mars] zur Wahl des Antriebs der Zukunft im Pkw-Bereich?",
     "options": [
       "Setzt auf Technologieoffenheit zwischen verschiedenen Antrieben",
-      "Setzt allein auf E-Mobilität",
-      "Will den Verbrennungsmotor langfristig erhalten"
+      "Will den Verbrennungsmotor langfristig erhalten",
+      "Setzt allein auf E-Mobilität"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
@@ -801,11 +801,11 @@
     "id": "q-050",
     "question": "Wie steht [PARTY_BADGE:saturn] dazu, dass auch Beamte und Abgeordnete in die gesetzliche Rentenkasse einzahlen?",
     "options": [
-      "Fordert, dass auch Beamte und Abgeordnete in die gesetzliche Rente einzahlen",
       "Will an der heutigen Trennung zwischen Beamtenpension und Rente festhalten",
+      "Fordert, dass auch Beamte und Abgeordnete in die gesetzliche Rente einzahlen",
       "Will Beamte und Abgeordnete vollständig privat absichern"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "saturn-sozial-003"
@@ -817,11 +817,11 @@
     "id": "q-051",
     "question": "Wie steht [PARTY_BADGE:venus] zur rentenrechtlichen Anerkennung von Pflege- und Sorgearbeit?",
     "options": [
-      "Will Pflege- und Sorgejahre in der Rente gleichwertig zu Erwerbsjahren bewerten",
       "Lehnt eine zusätzliche rentenrechtliche Anerkennung ab",
+      "Will Pflege- und Sorgejahre in der Rente gleichwertig zu Erwerbsjahren bewerten",
       "Will Sorgearbeit ausschließlich über das Steuer- und Sozialsystem ausgleichen"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "venus-sozial-003"
@@ -834,8 +834,8 @@
     "question": "Wie steht [PARTY_BADGE:mars] zur rentenrechtlichen Anerkennung von Erziehungs- und Pflegezeiten?",
     "options": [
       "Will Erziehungs- und Pflegezeiten in der Rente stärker anerkennen",
-      "Lehnt eine zusätzliche Anerkennung ab",
-      "Will sie ausschließlich über Steuern statt Rentenpunkte ausgleichen"
+      "Will sie ausschließlich über Steuern statt Rentenpunkte ausgleichen",
+      "Lehnt eine zusätzliche Anerkennung ab"
     ],
     "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
@@ -849,11 +849,11 @@
     "id": "q-053",
     "question": "Wie steht [PARTY_BADGE:mars] zu Sanktionen bei wiederholter Arbeitsverweigerung im Bürgergeld?",
     "options": [
-      "Will spürbare Leistungskürzungen bei wiederholter Arbeitsverweigerung",
+      "Will Sanktionen auf das verfassungsrechtliche Minimum begrenzen",
       "Will das heutige Sanktionsniveau unverändert lassen",
-      "Will Sanktionen auf das verfassungsrechtliche Minimum begrenzen"
+      "Will spürbare Leistungskürzungen bei wiederholter Arbeitsverweigerung"
     ],
-    "correct_index": 0,
+    "correct_index": 2,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "mars-sozial-006"
@@ -865,11 +865,11 @@
     "id": "q-054",
     "question": "Wie steht [PARTY_BADGE:saturn] zu Sanktionen bei Arbeitsverweigerung im Bürgergeld?",
     "options": [
-      "Fordert deutlich härtere Sanktionen einschließlich des vollständigen Leistungsentzugs bei Arbeitsverweigerung",
+      "Will Sanktionen einschränken",
       "Will das heutige Sanktionsniveau unverändert lassen",
-      "Will Sanktionen einschränken"
+      "Fordert deutlich härtere Sanktionen einschließlich des vollständigen Leistungsentzugs bei Arbeitsverweigerung"
     ],
-    "correct_index": 0,
+    "correct_index": 2,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "saturn-sozial-006"
@@ -881,11 +881,11 @@
     "id": "q-055",
     "question": "Welches Hauptziel verfolgt [PARTY_BADGE:venus] mit einer eigenständigen Kindergrundsicherung?",
     "options": [
-      "Kinder unabhängig von der Arbeitslosigkeit ihrer Eltern absichern",
       "Familienleistungen entbürokratisieren und in einem Anspruch bündeln",
-      "Familien zur stärkeren privaten Eigenvorsorge motivieren"
+      "Familien zur stärkeren privaten Eigenvorsorge motivieren",
+      "Kinder unabhängig von der Arbeitslosigkeit ihrer Eltern absichern"
     ],
-    "correct_index": 0,
+    "correct_index": 2,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "venus-sozial-006"
@@ -897,11 +897,11 @@
     "id": "q-056",
     "question": "Welches Hauptziel verfolgt [PARTY_BADGE:mars] mit einer eigenständigen Kindergrundsicherung?",
     "options": [
+      "Familienleistungen vollständig privatisieren",
       "Familienleistungen entbürokratisieren und in einem gebündelten Anspruch zusammenführen",
-      "Eltern dazu verpflichten, ihre Kinder selbst aus dem Bürgergeld zu finanzieren",
-      "Familienleistungen vollständig privatisieren"
+      "Eltern dazu verpflichten, ihre Kinder selbst aus dem Bürgergeld zu finanzieren"
     ],
-    "correct_index": 0,
+    "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "mars-sozial-007"

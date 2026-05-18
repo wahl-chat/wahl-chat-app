@@ -122,6 +122,10 @@ export default function TaskPage() {
     }
   }, [sessionId, router]);
 
+  const handleFirstFinishClick = useCallback(() => {
+    void studyApi.notifyFirstFinishClick(sessionId);
+  }, [sessionId]);
+
   const progress = getProgress('task');
 
   if (pageState === 'loading') {
@@ -201,6 +205,7 @@ export default function TaskPage() {
         <TaskContainer
           durationSeconds={taskData.durationSeconds}
           onEnd={handleEnd}
+          onFirstFinishClick={handleFirstFinishClick}
         >
           <StudyExplorationWrapper
             chatId={taskData.chatId}

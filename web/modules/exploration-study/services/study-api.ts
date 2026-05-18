@@ -129,6 +129,17 @@ export const studyApi = {
     }),
 
   /**
+   * Telemetry-only: record the first time the user clicked
+   * 'Aufgabe beenden', even during the 7-min lockout. Fire-and-forget;
+   * errors are swallowed because failing this call must not break the
+   * task screen.
+   */
+  notifyFirstFinishClick: (sessionId: string) =>
+    fetchApi<void>(`/${sessionId}/task/finish-click`, {
+      method: 'POST',
+    }).catch(() => undefined),
+
+  /**
    * Submit questionnaire (Cognitive Load + UEQ-S)
    */
   submitQuestionnaire: (sessionId: string, data: QuestionnaireData) =>

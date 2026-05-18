@@ -538,6 +538,41 @@ async def start_task(request: web.Request) -> web.Response:
     return web.json_response(response.model_dump(mode="json"))
 
 
+async def record_first_finish_click(request: web.Request) -> web.Response:
+    """
+    POST /api/exploration-study/sessions/{session_id}/task/finish-click
+
+    Telemetry: record the first time the user clicked 'Aufgabe beenden'.
+    Fired even when the 7-min lockout is still active and the frontend
+    swallows the click, so we can later see who was trying to bail
+    early. Subsequent clicks are no-ops — the timestamp is set once.
+    """
+    session_id = request.match_info["session_id"]
+    session_repo = get_session_repository()
+    session = await session_repo.get_session(session_id)
+
+    if not session:
+        return web.json_response(
+            ErrorResponse(error="Session not found").model_dump(),
+            status=404,
+        )
+
+    if session.state != StudyState.TASK:
+        return web.json_response(
+            ErrorResponse(
+                error="Invalid state",
+                detail=f"Expected state {StudyState.TASK}, got {session.state}",
+            ).model_dump(),
+            status=400,
+        )
+
+    if session.condition.first_finish_click_at is None:
+        session.condition.first_finish_click_at = datetime.now(timezone.utc)
+        await session_repo.update_condition_data(session_id, session.condition)
+
+    return web.Response(status=204)
+
+
 async def end_task(request: web.Request) -> web.Response:
     """
     POST /api/exploration-study/sessions/{session_id}/task/end
@@ -1114,6 +1149,11 @@ def setup_exploration_study_routes(app: web.Application) -> None:
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/tutorial", complete_tutorial),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/task/start", start_task),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/task/end", end_task),
+        (
+            "POST",
+            f"{ROUTE_PREFIX}/sessions/{{session_id}}/task/finish-click",
+            record_first_finish_click,
+        ),
         (
             "POST",
             f"{ROUTE_PREFIX}/sessions/{{session_id}}/questionnaire",

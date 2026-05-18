@@ -15,6 +15,11 @@ class QuizStatus(str, Enum):
 
 DONT_KNOW_INDEX = -1
 
+# Quiz corpus version. Bump when the answer-key positions change so that
+# downstream analysis can compare like-for-like; older quizzes saved with
+# ``version=None`` implicitly belong to the original (v1) corpus.
+QUIZ_CORPUS_VERSION = "v2"
+
 
 class QuizQuestion(BaseModel):
     """A single multiple-choice quiz question with 3 substantive options.
@@ -85,6 +90,13 @@ class Quiz(BaseModel):
     generated_at: datetime | None = Field(
         default=None,
         description="When the quiz finished generating",
+    )
+    # Nullable on purpose: pre-existing quizzes saved before versioning
+    # was introduced remain ``None``, which downstream code reads as v1
+    # (the original, position-skewed corpus).
+    version: str | None = Field(
+        default=None,
+        description="Corpus version (e.g. 'v2'). None = legacy v1.",
     )
 
 

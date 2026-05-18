@@ -73,6 +73,15 @@ class ConditionData(BaseModel):
         default=None,
         description="When the task was ended",
     )
+    first_finish_click_at: datetime | None = Field(
+        default=None,
+        description=(
+            "When the user first clicked 'Aufgabe beenden' — recorded "
+            "even if the 7-min lockout was still active and the click "
+            "was swallowed by the frontend. Used to surface participants "
+            "who tried to bail out before the minimum task duration."
+        ),
+    )
     questionnaire_submitted_at: datetime | None = Field(
         default=None,
         description="When the questionnaire was submitted",

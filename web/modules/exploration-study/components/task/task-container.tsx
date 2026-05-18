@@ -22,6 +22,12 @@ export const MIN_TASK_DURATION_SECONDS = 7 * 60;
 export interface TaskContainerProps {
   durationSeconds: number;
   onEnd: () => Promise<void>;
+  /**
+   * Telemetry callback fired the first time the user clicks
+   * "Aufgabe beenden" — including clicks during the lockout that don't
+   * open the confirm dialog. Subsequent clicks are ignored.
+   */
+  onFirstFinishClick?: () => void;
   children: React.ReactNode;
   className?: string;
 }
@@ -36,6 +42,7 @@ function formatMinutesSeconds(totalSeconds: number): string {
 export function TaskContainer({
   durationSeconds,
   onEnd,
+  onFirstFinishClick,
   children,
   className,
 }: TaskContainerProps) {
@@ -102,7 +109,12 @@ export function TaskContainer({
     }
   }, [canEnd]);
 
+  const firstFinishClickFiredRef = useRef(false);
   const handleManualEnd = useCallback(() => {
+    if (!firstFinishClickFiredRef.current) {
+      firstFinishClickFiredRef.current = true;
+      onFirstFinishClick?.();
+    }
     // While still locked, the first click reveals the unlock countdown
     // rather than opening the confirmation dialog — this is how
     // participants discover "when can I end?" on demand.
@@ -111,7 +123,7 @@ export function TaskContainer({
       return;
     }
     setShowConfirmDialog(true);
-  }, [canEnd]);
+  }, [canEnd, onFirstFinishClick]);
 
   const handleConfirmEnd = useCallback(async () => {
     setShowConfirmDialog(false);

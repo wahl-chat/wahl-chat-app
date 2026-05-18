@@ -9,7 +9,12 @@ from firebase_admin import firestore_async
 from google.cloud.firestore_v1 import DocumentReference, FieldFilter
 from google.cloud.firestore_v1 import async_transactional
 
-from src.exploration_study.models.quiz import Quiz, QuizStatus, QuizSubmission
+from src.exploration_study.models.quiz import (
+    QUIZ_CORPUS_VERSION,
+    Quiz,
+    QuizStatus,
+    QuizSubmission,
+)
 from src.exploration_study.models.session import (
     ConditionData,
     ParticipantData,
@@ -403,6 +408,7 @@ class SessionRepository:
             questions=[],
             created_at=now,
             generated_at=None,
+            version=QUIZ_CORPUS_VERSION,
         )
 
         doc_ref = self._get_quiz_ref(session_id, quiz_id)
