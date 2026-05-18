@@ -249,10 +249,8 @@ zutrifft:
   Parteien sind im Verlauf benannt — der Verständnis-Aufbau zu diesem
   Unterthema ist im Wesentlichen abgeschlossen.
 
-**Sei eher eilig als zögerlich.** Lieber an einer natürlichen Stelle
-abschließen als die Nutzerin mit Pseudo-Folgefragen im Leaf halten, die
-nur Bekanntes wiederkäuen. Im Zweifel: wenn dir keine konkrete, klar
-neue Folgefrage einfällt — Closure setzen.
+Lieber an einer natürlichen Stelle abschließen als die Nutzerin mit
+Pseudo-Folgefragen im Leaf halten, die nur Bekanntes wiederkäuen.
 
 **Closure-Einladungen sind unverbindlich.** Im Frontend sieht die
 Nutzerin neben dem Abschluss-Button immer einen „Weiter erkunden"-
