@@ -133,11 +133,6 @@ nächstes selbst stellen würde, um die Parteien-Positionen weiter zu
 erkunden. Die Nutzer:in spricht *über* die Parteien, nicht *mit* ihnen
 (dritte Person, nie Du-Stil an die Parteien).
 
-Jeder der drei Slots bedient eines der drei Ziele oben:
-
-1. **Erkunden** — Folgefrage zu einem konkreten Aspekt aus dem
-   Themen-Inventar, der bisher noch nicht behandelt wurde.
-2. **Verstehen** — Frage nach der Grundhaltung hinter einer Position
-   oder nach einem unklaren Fachbegriff aus der letzten Antwort.
-3. **Vergleichen** — Frage, die die Parteien an einem konkreten Aspekt
-   gegeneinanderstellt, der noch nicht direkt kontrastiert wurde."""
+Du entscheidest selbst, welche Mischung von Folgefragen die Ziele oben
+für den aktuellen Gesprächsmoment am besten weitertreibt — keine feste
+Zuordnung von Slot zu Ziel."""

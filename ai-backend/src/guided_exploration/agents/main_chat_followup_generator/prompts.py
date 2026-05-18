@@ -4,28 +4,24 @@
 
 """Prompt template for the main-chat follow-up chip generator.
 
-Built around the shared ``EXPLORATION_GOALS`` (Erkunden / Verstehen /
-Vergleichen). The three chip slots each pursue one of those goals as a
-question the participant would ask themselves next — third-person,
-user-voice, never addressed to the parties.
+Built around the shared ``EXPLORATION_GOALS``. The generator produces
+three follow-up questions in the participant's own voice — third-person
+about the parties, never addressed to them. The model picks the mix of
+angles itself; no per-slot constraint is imposed.
 """
 
 from pydantic import BaseModel, Field
 
 
 class MainChatFollowUpLLMOutput(BaseModel):
-    """LLM output schema for the 3 goal-aligned main-chat follow-ups."""
+    """LLM output schema for the three main-chat follow-up chips."""
 
     questions: list[str] = Field(
         ...,
         description=(
-            "Genau drei Folgefragen in Reihenfolge: "
-            "1) Erkunden (neuer Aspekt), "
-            "2) Verstehen (Grundhaltung oder Begriff), "
-            "3) Vergleichen (neuer Aspekt für Partei-Vergleich). "
-            "In der Stimme der Nutzer:in, dritte Person über die Parteien "
-            "(nie Du-Stil an die Parteien), natürliche Länge "
-            "(etwa 5–14 Wörter), korrektes Deutsch."
+            "Genau drei Folgefragen in der Stimme der Nutzer:in, "
+            "dritte Person über die Parteien (nie Du-Stil an die Parteien), "
+            "natürliche Länge (etwa 5–14 Wörter), korrektes Deutsch."
         ),
     )
 
@@ -56,11 +52,7 @@ Das sind die Chunks, die für die letzte Bot-Antwort retrieved wurden — Teilme
 ## Deine Aufgabe
 Generiere genau 3 Folgefragen-Vorschläge, die unter der letzten Antwort als tippbare Chips erscheinen. Die Vorschläge stehen **in der Stimme der Nutzer:in** — als Fragen, die sie als nächstes selbst stellen würde, um die Parteien-Positionen weiter zu erkunden. Die Nutzer:in spricht *über* die Parteien, nicht *mit* ihnen.
 
-Die drei Slots bedienen die drei Ziele in fester Reihenfolge:
-
-1. **Erkunden** — eine Frage zu einem konkreten Aspekt aus „Themenweite Parteipositionen", der in „Letzte Antwort" und „Bisheriges Gespräch" noch **nicht** substanziell behandelt wurde. Sichtbar machen, was noch unentdeckt ist.
-2. **Verstehen** — eine Frage nach der Grundhaltung hinter einer Position („Warum will Venus X?", „Was steckt hinter Saturns Ablehnung von Y?") oder nach einem unklaren Fachbegriff aus der letzten Antwort. Nicht „wie genau", sondern „warum" oder „was steckt dahinter".
-3. **Vergleichen** — eine Frage, die die Parteien an einem konkreten Aspekt gegeneinanderstellt, der bisher noch nicht direkt kontrastiert wurde — entweder ein neuer Sub-Aspekt des aktuellen Themas oder ein verwandter Aspekt für einen Mehr-Parteien-Vergleich.
+Du entscheidest, welche Mischung von Folgefragen die Nutzer:in im aktuellen Gesprächsmoment am besten weiterbringt — gemessen an den Zielen oben (Erkunden, Verstehen, Vergleichen). Nutze „Themenweite Parteipositionen" als Horizont für das, was es überhaupt noch zu entdecken gibt, und die letzte Antwort als Ausgangspunkt.
 
 Form jeder Frage:
 - **In der Stimme der Nutzer:in.** Dritte Person, wenn von Parteien die Rede ist („Wie steht Mars zu X?", „Worin unterscheiden sich die Konzepte von Venus und Saturn?", „Warum lehnt Mars Y ab?"). **Nicht** im Du-Stil an die Parteien gerichtet — kein „eure", „ihr", „wie seht ihr", „kannst du".
@@ -76,10 +68,8 @@ Form jeder Frage:
 - ❌ **Keine „Wie genau?"-Frage**, deren konkrete Antwort wortwörtlich oder mit minimalen Umstellungen schon in der letzten Antwort steht.
 - ❌ **Keine Frage zu Inhalt, den die Bot-Antwort gerade explizit als nicht im Material vorhanden markiert hat** (z. B. „Wie wollen die Parteien Erneuerbare ausbauen?", wenn der Bot gerade gesagt hat: dazu liegen keine Aussagen vor). Picke stattdessen einen benachbarten, in „Themenweite Parteipositionen" belegten Aspekt.
 
-**Vor jedem Slot prüfen:**
-1. Ist die Antwort auf diese Frage schon in „Letzte Antwort" oder „Bisheriges Gespräch" enthalten? Wenn ja → verwerfen, anderen Aspekt aus „Themenweite Parteipositionen" suchen.
+**Vor jeder Frage prüfen:**
+1. Ist die Antwort auf diese Frage schon in „Letzte Antwort" oder „Bisheriges Gespräch" enthalten? Wenn ja → verwerfen.
 2. Bringt die Frage die Nutzer:in tatsächlich auf etwas Neues (Aspekt, Unterschied, Grundhaltung), das sie noch nicht weiß?
 3. Klingt die Frage so, wie die Nutzer:in sie selbst stellen würde — dritte Person über die Parteien, nicht direkte Anrede an sie?
-
-Wenn du für Slot 1 keinen sinnvollen *neuen* Aspekt findest, ohne in den Rephrase-Modus zu fallen, formuliere Slot 1 wie Slot 3 als Wechsel zu einem benachbarten Sub-Thema.
 """
