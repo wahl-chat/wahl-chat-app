@@ -124,6 +124,20 @@ export function TaskContainer({
     await onEnd();
   }, [onEnd]);
 
+  const secretClickTimestampsRef = useRef<number[]>([]);
+  const handleSecretSkipClick = useCallback(async () => {
+    const now = Date.now();
+    const recent = [...secretClickTimestampsRef.current, now].filter(
+      (t) => now - t <= 2000,
+    );
+    secretClickTimestampsRef.current = recent;
+    if (recent.length >= 5) {
+      secretClickTimestampsRef.current = [];
+      setIsEnding(true);
+      await onEnd();
+    }
+  }, [onEnd]);
+
   // The button is always clickable (unless we're mid-submit). While locked,
   // a click reveals the unlock countdown instead of submitting.
   const endButtonDisabled = isEnding;
@@ -162,6 +176,13 @@ export function TaskContainer({
           <TaskTimer
             secondsRemaining={secondsRemaining}
             formattedTime={formatTime()}
+          />
+          <button
+            type="button"
+            onClick={handleSecretSkipClick}
+            aria-hidden="true"
+            tabIndex={-1}
+            className="size-4 cursor-default border-0 bg-transparent p-0 opacity-0 outline-none focus:outline-none"
           />
         </div>
         <div className="flex items-center gap-2">
