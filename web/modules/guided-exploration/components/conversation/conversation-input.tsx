@@ -119,7 +119,25 @@ export function ConversationInput({
   const showLoading = isLoadingQuestions && !showQuestions;
 
   return (
-    <div className={cn('flex w-full flex-col gap-2', className)}>
+    <div className={cn('relative flex w-full flex-col gap-2', className)}>
+      {showFirstMessageHint && (
+        <div
+          aria-hidden={input.length > 0}
+          className={cn(
+            'pointer-events-none absolute -top-2 left-1/2 z-10 flex -translate-x-1/2 -translate-y-full flex-col items-center transition-opacity duration-200',
+            input.length > 0 ? 'opacity-0' : 'opacity-100',
+          )}
+        >
+          <div className="rounded-full bg-foreground px-6 py-3 text-base font-semibold text-background shadow-lg">
+            {firstMessageHintLabel}
+          </div>
+          <ChevronDown
+            aria-hidden="true"
+            className="-mt-1 size-6 text-foreground"
+            strokeWidth={2.5}
+          />
+        </div>
+      )}
       {/* Suggested questions — single scrollable row, collapses entirely
           when there are no questions and we're not loading. */}
       {(showLoading || showQuestions) && (
@@ -159,24 +177,6 @@ export function ConversationInput({
 
       {/* Input form */}
       <div className="relative">
-        {showFirstMessageHint && (
-          <div
-            aria-hidden={input.length > 0}
-            className={cn(
-              'pointer-events-none absolute -top-2 left-1/2 z-10 flex -translate-x-1/2 -translate-y-full flex-col items-center transition-opacity duration-200',
-              input.length > 0 ? 'opacity-0' : 'opacity-100',
-            )}
-          >
-            <div className="rounded-full bg-foreground px-6 py-3 text-base font-semibold text-background shadow-lg">
-              {firstMessageHintLabel}
-            </div>
-            <ChevronDown
-              aria-hidden="true"
-              className="-mt-1 size-6 text-foreground"
-              strokeWidth={2.5}
-            />
-          </div>
-        )}
         <form
           onSubmit={handleSubmit}
           className="flex w-full flex-col overflow-hidden rounded-[24px] border border-input bg-background transition-colors focus-within:border-ring"
