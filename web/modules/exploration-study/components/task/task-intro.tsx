@@ -22,7 +22,7 @@ import {
   TOPIC_INFO,
 } from '@/modules/exploration-study/types';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
+import { Gift, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 
 interface TaskIntroProps {
@@ -115,6 +115,18 @@ export function TaskIntro({
           </p>
         </CardContent>
       </Card>
+
+      <div className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm">
+        <Gift
+          aria-hidden="true"
+          className="mt-0.5 size-5 shrink-0 text-primary"
+        />
+        <p>
+          <strong>Bonus:</strong> Unter den besten Quiz-Leistungen verlosen wir
+          einen <strong>10€-Amazon-Gutschein</strong>. Eine gute Vorbereitung
+          lohnt sich also.
+        </p>
+      </div>
 
       <Form {...form}>
         <form onSubmit={onClick} className="space-y-6">
