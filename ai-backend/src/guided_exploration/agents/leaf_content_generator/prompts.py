@@ -30,7 +30,9 @@ class LLMPartyPosition(BaseModel):
             "Parteinamens, wann immer du die Partei in einem Satz "
             "erwähnst — die Frontend-Renderung ersetzt das durch eine "
             "Inline-Pille. Inline-Zitation [id] direkt nach der konkreten "
-            "Aussage, höchstens 1-2 IDs."
+            "Aussage — pro Forderung höchstens 1 ID, niemals zwei IDs "
+            "nebeneinander gestapelt. Insgesamt höchstens 1-2 IDs im "
+            "ganzen Text."
         ),
     )
 
@@ -139,15 +141,15 @@ Für JEDE Partei genau EIN Markdown-Fließtext:
 
 Gute Beispiele (Beispiel-IDs `mars` und `saturn`):
 ```
-[PARTY_BADGE:mars] setzt beim Klimaschutz auf Marktmechanismen: Der
-Emissionshandel soll lenken und auf Verkehr und Gebäude ausgeweitet
-werden [m-klima-007]. Verbote wie ein Tempolimit lehnt
-[PARTY_BADGE:mars] ab [m-klima-012].
+[PARTY_BADGE:mars] setzt beim Klimaschutz auf Marktmechanismen. Der
+Emissionshandel soll auf Verkehr und Gebäude ausgeweitet werden
+[m-klima-007]. Ein Tempolimit lehnt die Partei dagegen ab
+[m-klima-012].
 ```
 ```
-[PARTY_BADGE:saturn] lehnt staatliche Klimapreise ab und will den
-CO2-Preis aussetzen [s-klima-001]. Stattdessen setzt die Partei auf
-Technologieoffenheit, etwa Wasserstoff und synthetische Kraftstoffe
+[PARTY_BADGE:saturn] lehnt staatliche Klimapreise ab. Konkret soll
+der CO2-Preis ausgesetzt werden [s-klima-001]. Stattdessen sollen
+Wasserstoff und synthetische Kraftstoffe gefördert werden
 [s-klima-004].
 ```
 
@@ -162,7 +164,10 @@ Emissionshandel auf Verkehr und Gebäude [m-007], GEG abschaffen
 [m-009], Tempolimit ablehnen [m-012], Kernenergie reaktivieren
 [m-014], Heizungsgesetz zurückrollen [m-021]…
 ```
-(Detail-Dump — soll Folgefragen-Material bleiben, kein Voll-Report.)
+(Detail-Dump — sechs Forderungen in einem Satz; das gehört in die
+Folgefragen, nicht in den Einstieg. Die Zitationsform an sich (jede
+ID inline an ihrer Forderung) wäre sauber — das Problem ist allein
+die Menge: Einstieg ≠ Voll-Report.)
 
 ## 3. Folgefragen (suggested_questions)
 Genau HIER landen die Details. Generiere 2-3 Folgefragen, die der Nutzer
@@ -226,7 +231,8 @@ Generiere die Inhalte in dieser Reihenfolge:
    Kernforderung gehören — nicht alle verfügbaren Werte aufzählen. KEINE
    Bullet-Listen. Verwende `[PARTY_BADGE:id]` statt des Parteinamens
    für inline Parteierwähnungen. Inline-Zitation [id] direkt nach der
-   konkreten Aussage.
+   konkreten Aussage — pro Forderung höchstens 1 ID, niemals zwei IDs
+   nebeneinander gestapelt.
 
 3. **Folgefragen** (suggested_questions): 2-3 kurze Fragen (max ~10 Worte),
    die den Weg zu konkreten Zahlen, Mechanismen und Details öffnen.

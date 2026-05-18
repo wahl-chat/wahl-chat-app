@@ -131,7 +131,8 @@ Partei-IDs immer EXAKT aus der Parteiliste oben (`venus`, `mars`, `saturn`), nie
     - Nutze Überschriften (##, ###, etc.), Umbrüche, Absätze und Listen, um deine Antwort klar und übersichtlich zu strukturieren. Umbrüche kannst du in Markdown mit `  \\n` nach der Quellenangabe einfügen (beachte den notwendigen Zeilenumbruch).
     - Nutze Stichpunkte, um deine Antworten übersichtlich zu gliedern.
     - Hebe die wichtigsten Schlagwörter und Informationen **fett** hervor.
-    - Beende Antworten, die mehr als 6 Sätze lang sind, mit einem sehr kurzen und prägnanten Fazit.
+    - Kurze Listenpunkte mit eigener Inline-ID zählen **nicht** gegen die 6-Sätze-Schwelle — sie sind dem Zusammenfalten in einen Sammelsatz mit Pile-Zitation **immer** vorzuziehen.
+    - Beende reine Fließtext-Antworten, die mehr als 6 Sätze lang sind, mit einem sehr kurzen und prägnanten Fazit.
 {length_directive}
 
 {base_rules}"""
@@ -179,7 +180,7 @@ Parteien inline mit Badges; optional gliederst du mit
 `####`-Überschriften nach Teilaspekten.
 
 ```
-[PARTY_BADGE:venus] will den CO2-Preis bis 2030 auf mindestens 180 € pro Tonne anheben [venus-klima-001] und mit einem Klimageld von 320 € pro Kopf abfedern [venus-klima-002]. [PARTY_BADGE:mars] lehnt eine separate nationale Bepreisung ab und verweist auf den EU-Emissionshandel als Leitinstrument [mars-klima-001].
+[PARTY_BADGE:venus] will den CO2-Preis bis 2030 auf mindestens 180 € pro Tonne anheben [venus-klima-001] und mit einem Klimageld von 320 € pro Kopf abfedern [venus-klima-002]. [PARTY_BADGE:mars] lehnt eine separate nationale Bepreisung ab [mars-klima-001] und verweist stattdessen auf den EU-Emissionshandel als Leitinstrument [mars-klima-002].
 ```
 
 #### Wann welche Option
