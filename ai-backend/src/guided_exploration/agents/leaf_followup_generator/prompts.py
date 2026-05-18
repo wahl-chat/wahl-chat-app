@@ -210,14 +210,19 @@ ist, lass die Frage weg.
    Spezifika), wechselt nicht ohne Grund zurück und überspringt keine
    Stufe ohne klaren Anlass.
 5. **Nicht schon beantwortet:** Die Frage zielt nicht auf eine Partei
-   oder einen Aspekt, den die letzte Assistent-Antwort bereits konkret
-   und attribuiert dargestellt hat. ❌ „Was sagt Mars dazu?" verbieten,
-   wenn Mars im letzten Antworttext bereits einen eigenen Block oder
-   Absatz mit konkreten Forderungen hatte. ❌ Auch keine Frage, deren
-   Antwort die letzte Bot-Nachricht explizit als „im Material nicht
-   vorhanden" markiert hat. Self-Check: Steht die Antwort wortwörtlich
-   oder offensichtlich schon in der letzten Antwort? Wenn ja, verwirf
-   sie.
+   oder einen Aspekt, den **irgendeine vorherige Assistent-Nachricht**
+   (Initial-Content, frühere Folgefrage-Antwort oder Analyse) bereits
+   konkret und attribuiert dargestellt hat. Der Initial-Content-Block
+   am Anfang des Verlaufs (`[Initial-Content zum Leaf]`) enthält in der
+   Regel schon einen Überblick und je Partei einen Positions-Absatz —
+   alles, was dort steht, gilt als „schon gesagt". ❌ „Was sagt Mars
+   dazu?" verbieten, wenn Mars im Initial-Content oder in einer
+   früheren Antwort bereits einen eigenen Block oder Absatz mit
+   konkreten Forderungen hatte. ❌ Auch keine Frage, deren Antwort eine
+   frühere Bot-Nachricht explizit als „im Material nicht vorhanden"
+   markiert hat. Self-Check: Steht die Antwort wortwörtlich oder
+   offensichtlich schon irgendwo im bisherigen Gespräch? Wenn ja,
+   verwirf sie.
 
 Wenn nach diesem Check keine Frage übrig bleibt: **leere Liste
 ausgeben** und stattdessen das `closure_ready`-Signal prüfen. Lieber

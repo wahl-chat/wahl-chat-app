@@ -18,6 +18,10 @@ from src.guided_exploration.agents.leaf_followup_generator.prompts import (
     LeafFollowUpLLMOutput,
 )
 from src.guided_exploration.agents.llm_provider import LLMProvider
+from src.guided_exploration.models.content import (
+    Analysis,
+    SubtopicContent,
+)
 from src.guided_exploration.models.conversation import (
     Conversation,
     Message,
@@ -30,9 +34,10 @@ logger = logging.getLogger(__name__)
 def _format_conversation(conversation: Conversation) -> str:
     """Format the leaf conversation as ``Nutzer: …`` / ``Assistent: …`` lines.
 
-    Initial-content and analysis messages render as a brief tag — the
-    follow-up generator only needs the trajectory of the back-and-forth
-    to judge closure / switches.
+    Initial-content and analysis turns are expanded into their actual
+    text (summary + per-party positions, or analysis sections) so the
+    don't-repeat checks can compare against what the user has already
+    seen — not just a placeholder.
 
     Past assistant turns also surface their persisted ``closure_ready``
     and ``topic_switch_proposal`` so the model can see what was already
@@ -59,7 +64,49 @@ def _format_conversation(conversation: Conversation) -> str:
 def _stringify_message(msg: Message) -> str:
     if isinstance(msg.content, str):
         return msg.content
-    return "[Strukturierter Inhalt — Initial-Content oder Analyse]"
+    if isinstance(msg.content, SubtopicContent):
+        return _render_subtopic_content(msg.content)
+    if isinstance(msg.content, Analysis):
+        return _render_analysis(msg.content)
+    return "[Strukturierter Inhalt — unbekannter Typ]"
+
+
+def _render_subtopic_content(content: SubtopicContent) -> str:
+    """Render the initial-content block as markdown the LLM can read."""
+    parts: list[str] = ["[Initial-Content zum Leaf]"]
+    if content.summary:
+        parts.append(f"**Überblick:** {content.summary}")
+    for position in content.party_positions:
+        parts.append(f"**{position.party}:** {position.content}")
+    if content.aspect_comparison and content.aspect_comparison.aspects:
+        aspect_lines = ["**Aspekt-Vergleich:**"]
+        for aspect in content.aspect_comparison.aspects:
+            stances = "; ".join(
+                f"{s.party}: {s.stance}" for s in aspect.party_stances
+            )
+            aspect_lines.append(f"- {aspect.name} — {stances}")
+        parts.append("\n".join(aspect_lines))
+    return "\n\n".join(parts)
+
+
+def _render_analysis(analysis: Analysis) -> str:
+    """Render an analysis turn as readable text."""
+    parts: list[str] = ["[Analyse zum Leaf]"]
+    if analysis.summary:
+        parts.append(f"**Zusammenfassung:** {analysis.summary}")
+    if analysis.context:
+        parts.append(f"**Kontext:** {analysis.context}")
+    if analysis.feasibility:
+        parts.append(
+            "**Umsetzbarkeit:**\n"
+            + "\n".join(f"- {item}" for item in analysis.feasibility)
+        )
+    if analysis.considerations:
+        parts.append(
+            "**Weitere Punkte:**\n"
+            + "\n".join(f"- {item}" for item in analysis.considerations)
+        )
+    return "\n\n".join(parts)
 
 
 def _signal_markers(msg: Message) -> str:
