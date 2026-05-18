@@ -96,6 +96,9 @@ export function LeafSidebar({
 }: LeafSidebarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messageCount = conversation?.messages.length ?? 0;
+  const hasUserMessage = !!conversation?.messages.some(
+    (m) => m.role === 'user',
+  );
   const hasAssistantTurn = !!conversation?.messages.some(
     (m) => m.role === 'assistant',
   );
@@ -207,7 +210,7 @@ export function LeafSidebar({
               isLoadingQuestions={
                 (isThinking || !!isStreaming) && suggestedQuestions.length === 0
               }
-              showFirstMessageHint={messageCount === 0}
+              showFirstMessageHint={!hasUserMessage}
             />
           )}
         </div>
