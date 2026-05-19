@@ -13,3 +13,5 @@ export {
   useExploration,
   type UseExplorationOptions,
 } from './use-exploration';
+
+export { useLeafBackInterception } from './use-leaf-back-interception';

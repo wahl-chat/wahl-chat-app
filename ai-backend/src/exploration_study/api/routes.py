@@ -322,6 +322,7 @@ async def get_session_state(request: web.Request) -> web.Response:
         current_topic=condition.topic,
         chat_id=condition.chat_id,
         task_duration_seconds=study.config.task_duration_seconds if study else 600,
+        task_started_at=condition.started_at,
         study_type=study.config.study_type if study else "quantitative",
     )
     return web.json_response(response.model_dump(mode="json"))
@@ -533,6 +534,7 @@ async def start_task(request: web.Request) -> web.Response:
         chat_id=ge_session["session_id"],
         stream_url=f"{GE_ROUTE_PREFIX}/sessions/{ge_session['session_id']}/stream",
         duration_seconds=study.config.task_duration_seconds,
+        task_started_at=condition.started_at,
         next_state=StudyState.QUESTIONNAIRE,
     )
     return web.json_response(response.model_dump(mode="json"))

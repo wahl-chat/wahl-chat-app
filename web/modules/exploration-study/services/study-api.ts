@@ -115,10 +115,12 @@ export const studyApi = {
    * Start the task - returns the chat_id for the exploration
    */
   startTask: (sessionId: string) =>
-    fetchApi<{ chatId: string; condition: string; durationSeconds: number }>(
-      `/${sessionId}/task/start`,
-      { method: 'POST' },
-    ),
+    fetchApi<{
+      chatId: string;
+      condition: string;
+      durationSeconds: number;
+      taskStartedAt: string;
+    }>(`/${sessionId}/task/start`, { method: 'POST' }),
 
   /**
    * End the task

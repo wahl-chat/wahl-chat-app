@@ -5,10 +5,13 @@
 """
 Orchestrator for guided exploration with position-based adaptive hierarchy.
 
-Coordinates the 3-phase flow:
+Coordinates the 2-phase flow:
 1. Per-Party RAG Retrieval + Position Extraction (parallel)
 2. Hierarchy Construction from all positions (single LLM call)
-3. Send ExplorationTree to frontend
+
+The ExplorationTree is returned to the caller; the lifecycle handler is
+responsible for emitting ``TopicTreeEvent``/``ExplorationReadyEvent`` once
+the overview is ready, so the tree and its overview ship together.
 
 Knowledge resolution is eliminated — positions already contain the knowledge.
 """
@@ -32,12 +35,7 @@ from src.guided_exploration.agents.llm_provider import LLMRegistry, LLMTier
 from src.guided_exploration.agents.party_context import PartyInfo, parties_to_info_map
 from src.guided_exploration.api.sse import SSEManager
 from src.guided_exploration.models import (
-    BreadcrumbItem,
-    BreadcrumbLevel,
-    ExplorationReadyEvent,
-    NavigationState,
     ThinkingEvent,
-    TopicTreeEvent,
 )
 from src.guided_exploration.services.citation_utils import create_citation_from_chunk as create_chunk_citation
 from src.guided_exploration.models.position import Position, PartyPositions
@@ -100,7 +98,10 @@ class Orchestrator:
         Flow:
         1. Per-Party RAG + Position Extraction (parallel)
         2. Hierarchy Construction (single LLM call)
-        3. Send ExplorationTree to frontend
+
+        The tree is returned to the caller (the lifecycle handler), which
+        emits ``TopicTreeEvent``/``ExplorationReadyEvent`` once the
+        overview is ready so tree + overview ship together.
 
         Args:
             session_id: The session ID for SSE events
@@ -264,27 +265,9 @@ class Orchestrator:
             duration_ms=duration_ms,
         )
 
-        # Send tree to frontend
-        await self._send_exploration_tree(
-            session_id, exploration_id, exploration_tree
-        )
-
-        # Count leaves for the ready event
         leaf_count = len(root_node.get_leaf_nodes())
-
-        # Send ExplorationReadyEvent
-        await self._sse.send_to_session(
-            session_id,
-            ExplorationReadyEvent(
-                exploration_id=exploration_id,
-                topics_count=len(root_node.children),
-                subtopics_count=leaf_count,
-                parties_count=len(parties_info),
-            ),
-        )
-
         logger.info(
-            f"Exploration {exploration_id} complete: "
+            f"Exploration {exploration_id} tree built: "
             f"{len(root_node.children)} top-level nodes, "
             f"{leaf_count} leaf nodes, "
             f"{len(all_positions)} positions"
@@ -567,34 +550,6 @@ class Orchestrator:
         await self._sse.send_to_session(
             session_id,
             ThinkingEvent(stage=stage, message=message),
-        )
-
-    async def _send_exploration_tree(
-        self,
-        session_id: str,
-        exploration_id: str,
-        tree: ExplorationTree,
-    ) -> None:
-        """Send the exploration tree to the frontend."""
-        navigation = NavigationState(
-            exploration_id=exploration_id,
-            current_path=[],
-            breadcrumb=[
-                BreadcrumbItem(
-                    id="root",
-                    name="Übersicht",
-                    level=BreadcrumbLevel.ROOT,
-                ),
-            ],
-        )
-
-        await self._sse.send_to_session(
-            session_id,
-            TopicTreeEvent(
-                exploration_id=exploration_id,
-                tree=tree,
-                navigation=navigation,
-            ),
         )
 
     # =========================================================================

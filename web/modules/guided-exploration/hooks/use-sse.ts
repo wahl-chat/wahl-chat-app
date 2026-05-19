@@ -209,7 +209,10 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
           if (existing) {
             // Update only — preserve in-flight conversations.
             dispatchRef.current(
-              explorationActions.treeReceived(treeEvent.tree),
+              explorationActions.treeReceived(
+                treeEvent.tree,
+                treeEvent.overview,
+              ),
             );
           } else {
             // First sighting of this exploration — initialize trees + status.
@@ -218,6 +221,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
                 treeEvent.explorationId,
                 treeEvent.tree,
                 'active',
+                treeEvent.overview,
               ),
             );
           }
@@ -640,6 +644,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
             activeExp.id,
             activeExp.tree,
             activeExp.status,
+            activeExp.overview ?? null,
           ),
         );
       }

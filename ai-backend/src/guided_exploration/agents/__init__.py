@@ -21,6 +21,10 @@ Agent Types:
 """
 
 from src.guided_exploration.agents.analyzer import AnalyzerAgent, AnalyzerInput
+from src.guided_exploration.agents.exploration_overview import (
+    ExplorationOverviewAgent,
+    ExplorationOverviewAgentInput,
+)
 from src.guided_exploration.agents.base import (
     AgentError,
     AgentExecutionError,
@@ -128,6 +132,9 @@ __all__ = [
     # Analyzer
     "AnalyzerAgent",
     "AnalyzerInput",
+    # Exploration Overview
+    "ExplorationOverviewAgent",
+    "ExplorationOverviewAgentInput",
     # Baseline (production-wahl.chat-shaped reply streamer)
     "BaselineAgent",
     "BaselineInput",

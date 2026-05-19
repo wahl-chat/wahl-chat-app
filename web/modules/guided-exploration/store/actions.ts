@@ -8,6 +8,7 @@ import type {
   ChoicePromptEvent,
   Conversation,
   ErrorCode,
+  ExplorationOverview,
   ExplorationTree,
   Message,
   SessionMessage,
@@ -83,10 +84,12 @@ export const explorationActions = {
     explorationId: string,
     tree: ExplorationTree,
     status?: ExplorationStatus,
+    overview?: ExplorationOverview | null,
   ): ExplorationAction => ({
     type: 'EXPLORATION_STARTED',
     explorationId,
     tree,
+    overview,
     status,
   }),
 
@@ -99,9 +102,13 @@ export const explorationActions = {
     status,
   }),
 
-  treeReceived: (tree: ExplorationTree): ExplorationAction => ({
+  treeReceived: (
+    tree: ExplorationTree,
+    overview?: ExplorationOverview | null,
+  ): ExplorationAction => ({
     type: 'EXPLORATION_TREE_RECEIVED',
     tree,
+    overview,
   }),
 
   ready: (

@@ -10,8 +10,13 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from src.guided_exploration.agents import (
+    ExplorationOverviewAgent,
+    ExplorationOverviewAgentInput,
     LeafContentGeneratorAgent,
     LeafContentGeneratorInput,
+)
+from src.guided_exploration.agents.exploration_overview.interface import (
+    OverviewAreaInput,
 )
 from src.guided_exploration.agents.party_context import PartyInfo
 from src.guided_exploration.api.sse import SSEManager
@@ -22,6 +27,8 @@ from src.guided_exploration.models import (
     Conversation,
     ExplorationCompleteEvent,
     ExplorationNode,
+    ExplorationOverview,
+    ExplorationReadyEvent,
     ExplorationTree,
     Message,
     MessageRole,
@@ -30,6 +37,7 @@ from src.guided_exploration.models import (
     NodeStatus,
     SessionMessage,
     SessionMessageType,
+    TopicTreeEvent,
 )
 from src.guided_exploration.models.errors import InsufficientChunksError
 from src.guided_exploration.models.exploration import ExplorationStatus
@@ -69,6 +77,7 @@ class ExplorationLifecycleHandler:
         navigation_states: NavigationStateStore,
         orchestrator: Orchestrator,
         content_generator: LeafContentGeneratorAgent,
+        exploration_overview_agent: ExplorationOverviewAgent,
         pregen_leaf_tasks: dict[tuple[str, str], asyncio.Task],
         background_tasks: BackgroundTaskRegistry,
     ) -> None:
@@ -79,6 +88,7 @@ class ExplorationLifecycleHandler:
         self._navigation_states = navigation_states
         self._orchestrator = orchestrator
         self._content_generator = content_generator
+        self._exploration_overview = exploration_overview_agent
         self._pregen_leaf_tasks = pregen_leaf_tasks
         self._background_tasks = background_tasks
 
@@ -120,6 +130,61 @@ class ExplorationLifecycleHandler:
             if selected_directions:
                 exploration_tree.selected_directions = selected_directions
 
+            # Resolve context once; reused by overview + study pre-gen.
+            context_name, parties_info = (
+                await self._context_resolver.get_context_info(context_id)
+            )
+
+            overview = await self._generate_overview(
+                query=query,
+                tree=exploration_tree,
+                context_name=context_name,
+                parties_info=parties_info,
+            )
+
+            await self._repo.create_exploration(
+                session_id,
+                query,
+                tree=exploration_tree,
+                exploration_id=exploration_id,
+                overview=overview,
+            )
+
+            # Now that the exploration is persisted with its overview,
+            # ship tree + overview together so the frontend can render
+            # them as a single unit.
+            navigation = NavigationState(
+                exploration_id=exploration_id,
+                current_path=[],
+                breadcrumb=[
+                    BreadcrumbItem(
+                        id="root",
+                        name="Übersicht",
+                        level=BreadcrumbLevel.ROOT,
+                    ),
+                ],
+            )
+            await self._sse.send_to_session(
+                session_id,
+                TopicTreeEvent(
+                    exploration_id=exploration_id,
+                    tree=exploration_tree,
+                    overview=overview,
+                    navigation=navigation,
+                ),
+            )
+
+            leaf_count = len(exploration_tree.root.get_leaf_nodes())
+            await self._sse.send_to_session(
+                session_id,
+                ExplorationReadyEvent(
+                    exploration_id=exploration_id,
+                    topics_count=len(exploration_tree.root.children),
+                    subtopics_count=leaf_count,
+                    parties_count=len(parties_info),
+                ),
+            )
+
             if low_confidence:
                 caveat_text = (
                     "Zu diesem Thema habe ich nur begrenzte Informationen "
@@ -136,13 +201,6 @@ class ExplorationLifecycleHandler:
                 )
                 await self._repo.add_session_message(session_id, caveat_msg)
 
-            await self._repo.create_exploration(
-                session_id,
-                query,
-                tree=exploration_tree,
-                exploration_id=exploration_id,
-            )
-
             exploration_msg = SessionMessage(
                 id=str(uuid4()),
                 type=SessionMessageType.EXPLORATION_START,
@@ -157,9 +215,6 @@ class ExplorationLifecycleHandler:
             # background so participants never wait when they open a leaf.
             # Non-study flows keep the lazy-on-open behavior.
             if is_study_context(context_id):
-                context_name, parties_info = (
-                    await self._context_resolver.get_context_info(context_id)
-                )
                 pregen_task = asyncio.create_task(
                     self._pregen_study_leaves(
                         session_id=session_id,
@@ -353,6 +408,49 @@ class ExplorationLifecycleHandler:
             "exploration_id": exploration_id,
             "stats": stats,
         }
+
+    async def _generate_overview(
+        self,
+        query: str,
+        tree: ExplorationTree,
+        context_name: str,
+        parties_info: dict[str, PartyInfo],
+    ) -> ExplorationOverview | None:
+        """Generate the structured overview that ships alongside the tree.
+
+        Best-effort: returns ``None`` when the LLM call fails or the tree
+        has no areas. The exploration still works without it.
+        """
+        areas = [
+            OverviewAreaInput(
+                name=node.name,
+                description=node.description,
+                party_ids=list(node.party_ids),
+            )
+            for node in tree.root.children
+        ]
+        if not areas:
+            return None
+
+        positions_by_party: dict[str, list] = {}
+        for position in tree.positions.values():
+            positions_by_party.setdefault(position.party_id, []).append(position)
+
+        try:
+            return await self._exploration_overview.execute(
+                ExplorationOverviewAgentInput(
+                    query=query,
+                    context_name=context_name,
+                    parties=parties_info,
+                    areas=areas,
+                    positions_by_party=positions_by_party,
+                )
+            )
+        except Exception:
+            logger.exception(
+                "Exploration overview generation failed; skipping overview"
+            )
+            return None
 
     async def _pregen_study_leaves(
         self,

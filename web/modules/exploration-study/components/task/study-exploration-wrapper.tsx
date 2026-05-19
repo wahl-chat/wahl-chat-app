@@ -7,7 +7,10 @@ import { ExplorationChatView } from '@/modules/guided-exploration/components/cha
 import { LeafSidebar } from '@/modules/guided-exploration/components/chat/leaf-sidebar';
 import { ErrorBanner } from '@/modules/guided-exploration/components/shared';
 import { ExplorationLoading } from '@/modules/guided-exploration/components/shared/exploration-loading';
-import { useExploration } from '@/modules/guided-exploration/hooks';
+import {
+  useExploration,
+  useLeafBackInterception,
+} from '@/modules/guided-exploration/hooks';
 import {
   uiActions,
   useExplorationStore,
@@ -139,11 +142,14 @@ export function StudyExplorationWrapper({
     dispatch(uiActions.errorCleared());
   }, [dispatch]);
 
+  // First browser-back press closes the leaf sheet instead of leaving
+  // the task page — particularly important on mobile.
+  const isLeafOpen = !!activeLeaf;
+  useLeafBackInterception({ isOpen: isLeafOpen, onBack: closeLeaf });
+
   if (!isConnected && mode === 'idle') {
     return <ExplorationLoading message="Verbindung wird hergestellt..." />;
   }
-
-  const isLeafOpen = !!activeLeaf;
 
   return (
     <div

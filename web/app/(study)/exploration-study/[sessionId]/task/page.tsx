@@ -39,6 +39,7 @@ export default function TaskPage() {
     condition: 'guided' | 'baseline';
     durationSeconds: number;
     topic: StudyTopic;
+    taskStartedAt: string | null;
   } | null>(null);
 
   const [isStarting, setIsStarting] = useState(false);
@@ -64,6 +65,7 @@ export default function TaskPage() {
             condition: session.currentCondition,
             durationSeconds: session.taskDurationSeconds,
             topic: session.currentTopic as StudyTopic,
+            taskStartedAt: session.taskStartedAt ?? null,
           });
           setPageState('task');
           return;
@@ -107,6 +109,7 @@ export default function TaskPage() {
         condition: response.data.condition as 'guided' | 'baseline',
         durationSeconds: response.data.durationSeconds,
         topic: sessionInfo.topic,
+        taskStartedAt: response.data.taskStartedAt,
       });
       setPageState('task');
     }
@@ -204,6 +207,7 @@ export default function TaskPage() {
         />
         <TaskContainer
           durationSeconds={taskData.durationSeconds}
+          startedAt={taskData.taskStartedAt}
           onEnd={handleEnd}
           onFirstFinishClick={handleFirstFinishClick}
         >

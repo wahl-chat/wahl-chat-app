@@ -21,6 +21,14 @@ export const MIN_TASK_DURATION_SECONDS = 7 * 60;
 
 export interface TaskContainerProps {
   durationSeconds: number;
+  /**
+   * Server timestamp at which the task was started (ISO string or
+   * `Date.parse`-compatible). When provided, the timer anchors to it so the
+   * countdown survives page reloads instead of restarting from
+   * `durationSeconds`. `null`/`undefined` falls back to the legacy
+   * mount-time start.
+   */
+  startedAt?: string | null;
   onEnd: () => Promise<void>;
   /**
    * Telemetry callback fired the first time the user clicks
@@ -41,6 +49,7 @@ function formatMinutesSeconds(totalSeconds: number): string {
 
 export function TaskContainer({
   durationSeconds,
+  startedAt,
   onEnd,
   onFirstFinishClick,
   children,
@@ -83,6 +92,7 @@ export function TaskContainer({
 
   const { secondsRemaining, formatTime, start } = useTimer({
     durationSeconds,
+    startedAt,
     onEnd: handleTimerEnd,
     onWarning: handleWarning,
     warningThresholds,

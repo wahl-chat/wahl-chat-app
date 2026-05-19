@@ -106,6 +106,11 @@ export const selectTree =
   (explorationId: string | null | undefined) => (state: ExplorationStore) =>
     explorationId ? (state.exploration.trees[explorationId] ?? null) : null;
 
+/** Structured overview that ships alongside the tree. */
+export const selectOverview =
+  (explorationId: string | null | undefined) => (state: ExplorationStore) =>
+    explorationId ? (state.exploration.overviews[explorationId] ?? null) : null;
+
 /** Currently open leaf sidebar pointer. */
 export const selectActiveLeaf = (state: ExplorationStore) =>
   state.exploration.activeLeaf;

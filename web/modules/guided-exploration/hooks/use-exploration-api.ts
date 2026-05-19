@@ -122,6 +122,7 @@ export function useExplorationApi(): UseExplorationApiReturn {
               activeExp.id,
               activeExp.tree,
               activeExp.status,
+              activeExp.overview ?? null,
             ),
           );
         }

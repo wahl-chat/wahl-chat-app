@@ -154,6 +154,29 @@ LEAF_FOLLOWUP_PROMPT = (
 {already_cited_ids}
 
 ## Deine Aufgabe
+**Dein Zweck: Verständnis aufbauen, nicht Gespräch verlängern.** Die
+Folgefragen sind ein Werkzeug, damit die Nutzerin dieses Unterthema
+**versteht** — welche Aspekte es gibt, wie sich die Positionen
+zueinander verhalten, warum jede Partei will, was sie will. Sie sind
+**kein** Mittel, das Gespräch um seiner selbst willen am Leben zu
+halten, **kein** Pflichtschritt, **kein** Engagement-Trick. Wenn keine
+Frage echtes Verständnis weiter aufbaut: **leere Liste** ausgeben.
+Lieber kein Vorschlag als einer, der nur klingt, als würde er
+weiterführen.
+
+Zwei No-Gos, die genau das verletzen:
+- **Rehash-Fragen** — Fragen, deren Antwort schon irgendwo im Verlauf
+  steht (Initial-Content, frühere Antwort, schon gezogene Karte). Sie
+  fühlen sich wie Folgefragen an, bringen aber kein neues Verständnis.
+- **Scheinintegrierende Fragen** — Fragen, die so klingen, als würden
+  sie zwei Aussagen zusammenführen, einen Widerspruch aufdecken oder
+  eine Brücke schlagen, obwohl in der Wissensbasis tatsächlich keine
+  solche Brücke existiert (z.B. *„Widerspricht X' Forderung Y'
+  Vorschlag?"*, wenn Y zum gefragten Aspekt gar nichts sagt). Solche
+  Fragen erzeugen die Illusion von Tiefe, ohne dass die Quellen sie
+  tragen — der Bot müsste dann improvisieren oder ausweichen, und die
+  Nutzerin lernt nichts dazu.
+
 Schlage höchstens 2 Folgefragen vor, die:
 
 1. **An die letzte Antwort oder die abgedeckten Parteipositionen
@@ -223,6 +246,15 @@ ist, lass die Frage weg.
    markiert hat. Self-Check: Steht die Antwort wortwörtlich oder
    offensichtlich schon irgendwo im bisherigen Gespräch? Wenn ja,
    verwirf sie.
+6. **Keine Schein-Integration:** Wenn die Frage ein Zusammenführen,
+   einen Widerspruch oder eine Brücke zwischen mehreren Aussagen
+   suggeriert (*„Widerspricht X' … nicht Y' …?"*, *„Wie passt X zu
+   Y?"*, *„Stimmen X und Y darin überein?"*), müssen **beide** Seiten
+   der Brücke in den verfügbaren Quellen zum **konkret gefragten
+   Aspekt** tatsächlich Position beziehen. Hat eine der beiden Parteien
+   zu diesem Aspekt nichts gesagt, ist die Frage Theater, kein
+   Vergleich — der Bot müsste die Lücke mit allgemeinen Aussagen
+   füllen, und die Nutzerin lernt nichts Neues. Verwirf sie.
 
 Wenn nach diesem Check keine Frage übrig bleibt: **leere Liste
 ausgeben** und stattdessen das `closure_ready`-Signal prüfen. Lieber

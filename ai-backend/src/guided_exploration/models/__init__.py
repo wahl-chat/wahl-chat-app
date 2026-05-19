@@ -5,6 +5,10 @@
 """Re-export all model classes for easy imports."""
 
 from src.guided_exploration.models.position import Position, PartyPositions
+from src.guided_exploration.models.exploration_overview import (
+    ExplorationOverview,
+    PartyStanceSummary,
+)
 from src.guided_exploration.models.classification import (
     MessageIntent,
     NavigationTarget,
@@ -85,6 +89,9 @@ __all__ = [
     # position
     "Position",
     "PartyPositions",
+    # exploration_overview
+    "ExplorationOverview",
+    "PartyStanceSummary",
     # classification
     "MessageIntent",
     "NavigationTarget",

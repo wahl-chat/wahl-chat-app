@@ -8,6 +8,7 @@ from typing import Literal, Union
 
 from pydantic import BaseModel, Field
 
+from src.guided_exploration.models.exploration_overview import ExplorationOverview
 from src.guided_exploration.models.content import Citation
 from src.guided_exploration.models.conversation import Conversation, Message
 from src.guided_exploration.models.navigation import NavigationState, SiblingNavigation
@@ -56,6 +57,13 @@ class TopicTreeEvent(BaseModel):
     type: Literal["topic_tree"] = "topic_tree"
     exploration_id: str = Field(..., description="ID of the new exploration")
     tree: ExplorationTree = Field(..., description="The exploration tree")
+    overview: ExplorationOverview | None = Field(
+        default=None,
+        description=(
+            "Structured intro + per-party stance cards shipped alongside the "
+            "tree. None when overview generation was skipped or failed."
+        ),
+    )
     navigation: NavigationState = Field(..., description="Current navigation state")
 
 

@@ -3,7 +3,10 @@
  * REST API client for guided exploration endpoints
  */
 
-import type { ExplorationTree } from '@/modules/guided-exploration/types';
+import type {
+  ExplorationOverview,
+  ExplorationTree,
+} from '@/modules/guided-exploration/types';
 import {
   keysToCamelCase,
   keysToSnakeCase,
@@ -79,6 +82,7 @@ export interface ResumeSessionResponse {
     originalQuery: string;
     status: 'active' | 'completed';
     tree: ExplorationTree;
+    overview?: ExplorationOverview | null;
   };
 }
 

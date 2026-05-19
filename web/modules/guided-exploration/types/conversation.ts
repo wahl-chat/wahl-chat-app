@@ -20,12 +20,22 @@ export type SessionMessageType =
   | 'exploration_start'
   | 'topic_directions';
 
+export interface PartyStanceSummary {
+  partyId: string;
+  summary: string;
+}
+
+export interface ExplorationOverview {
+  introParagraph: string;
+  partySummaries: PartyStanceSummary[];
+}
+
 export interface SessionMessage {
   /** Unique message identifier */
   id: string;
   /** Type of session message */
   type: SessionMessageType;
-  /** Message content (null for exploration_start and topic_directions) */
+  /** Message content (null for structured messages like exploration_start) */
   content: string | null;
   /** Citations for this message (for quick summaries) */
   citations?: Citation[];

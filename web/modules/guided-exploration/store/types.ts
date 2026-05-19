@@ -9,6 +9,7 @@ import type {
   Citation,
   Conversation,
   ErrorCode,
+  ExplorationOverview,
   ExplorationTree,
   Message,
   SessionMessage,
@@ -50,6 +51,11 @@ export interface ActiveLeafPointer {
 export interface ExplorationSliceState {
   /** Trees keyed by explorationId. Multiple explorations can be active. */
   trees: Record<string, ExplorationTree>;
+  /**
+   * Intro + per-party stance summary keyed by explorationId. Ships with
+   * the tree event and is rendered alongside the tree card.
+   */
+  overviews: Record<string, ExplorationOverview>;
   /** Conversations keyed by [explorationId][leafId]. Leaf ids aren't globally unique. */
   conversations: Record<string, Record<string, Conversation>>;
   /** Lifecycle status keyed by explorationId. */
@@ -204,6 +210,7 @@ export type ExplorationAction =
       type: 'EXPLORATION_STARTED';
       explorationId: string;
       tree: ExplorationTree;
+      overview?: ExplorationOverview | null;
       status?: ExplorationStatus;
     }
   | {
@@ -214,6 +221,7 @@ export type ExplorationAction =
   | {
       type: 'EXPLORATION_TREE_RECEIVED';
       tree: ExplorationTree;
+      overview?: ExplorationOverview | null;
     }
   | {
       type: 'EXPLORATION_READY';

@@ -184,6 +184,14 @@ class SessionStateResponse(BaseModel):
         default=600,
         description="Task duration in seconds",
     )
+    task_started_at: datetime | None = Field(
+        default=None,
+        description=(
+            "When the participant started the task (condition.started_at). "
+            "Used by the frontend to keep the countdown timer in sync across "
+            "page reloads. None until the task is started."
+        ),
+    )
     study_type: Literal["quantitative", "qualitative"] = Field(
         default="quantitative",
         description=(
@@ -241,6 +249,14 @@ class StartTaskResponse(BaseModel):
         description="URL for the SSE stream",
     )
     duration_seconds: int
+    task_started_at: datetime = Field(
+        ...,
+        description=(
+            "When the task was started (condition.started_at). Returned so "
+            "the frontend timer can anchor to a server timestamp instead of "
+            "the moment the response is parsed."
+        ),
+    )
     next_state: StudyState = Field(
         ...,
         description="The state after this task ends (for reference)",

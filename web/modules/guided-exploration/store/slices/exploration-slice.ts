@@ -12,6 +12,7 @@ import type { ExplorationNode } from '@/modules/guided-exploration/types';
 
 export const initialExplorationState: ExplorationSliceState = {
   trees: {},
+  overviews: {},
   conversations: {},
   status: {},
   activeLeaf: null,
@@ -79,15 +80,20 @@ export function explorationReducer(
   action: ExplorationAction,
 ): ExplorationSliceState {
   switch (action.type) {
-    case 'EXPLORATION_STARTED':
+    case 'EXPLORATION_STARTED': {
+      const overviews = action.overview
+        ? { ...state.overviews, [action.explorationId]: action.overview }
+        : state.overviews;
       return {
         ...state,
         trees: { ...state.trees, [action.explorationId]: action.tree },
+        overviews,
         status: {
           ...state.status,
           [action.explorationId]: action.status ?? 'active',
         },
       };
+    }
 
     case 'EXPLORATION_STATUS_UPDATED':
       return {
@@ -95,11 +101,19 @@ export function explorationReducer(
         status: { ...state.status, [action.explorationId]: action.status },
       };
 
-    case 'EXPLORATION_TREE_RECEIVED':
+    case 'EXPLORATION_TREE_RECEIVED': {
+      const overviews = action.overview
+        ? {
+            ...state.overviews,
+            [action.tree.explorationId]: action.overview,
+          }
+        : state.overviews;
       return {
         ...state,
         trees: { ...state.trees, [action.tree.explorationId]: action.tree },
+        overviews,
       };
+    }
 
     case 'LEAF_ACTIVATED': {
       const { explorationId, leafId } = action;
@@ -212,6 +226,7 @@ export function explorationReducer(
       return {
         ...state,
         trees: omitKey(state.trees, explorationId),
+        overviews: omitKey(state.overviews, explorationId),
         conversations: omitKey(state.conversations, explorationId),
         status: omitKey(state.status, explorationId),
         analysisAvailable: omitKey(state.analysisAvailable, explorationId),

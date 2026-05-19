@@ -16,6 +16,7 @@ import threading
 from src.guided_exploration.agents import (
     AnalyzerAgent,
     BaselineAgent,
+    ExplorationOverviewAgent,
     LeafContentGeneratorAgent,
     LeafConversationHandlerAgent,
     LeafFollowUpGenerator,
@@ -99,6 +100,9 @@ def build_facade(
         llm_registry.get(LLMTier.FAST)
     )
     topic_scout = TopicScoutAgent(llm_registry.get(LLMTier.FAST))
+    exploration_overview_agent = ExplorationOverviewAgent(
+        llm_registry.get(LLMTier.BALANCED)
+    )
 
     # State stores / shared services
     pending_queries = PendingQueryStore()
@@ -179,6 +183,7 @@ def build_facade(
         navigation_states=navigation_states,
         orchestrator=orchestrator,
         content_generator=content_generator,
+        exploration_overview_agent=exploration_overview_agent,
         pregen_leaf_tasks=pregen_leaf_tasks,
         background_tasks=background_tasks,
     )

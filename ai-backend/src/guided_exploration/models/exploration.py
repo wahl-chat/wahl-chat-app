@@ -13,6 +13,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from src.guided_exploration.models.content import Citation
+from src.guided_exploration.models.exploration_overview import ExplorationOverview
 from src.guided_exploration.models.tree import ExplorationTree
 
 
@@ -93,6 +94,13 @@ class Exploration(BaseModel):
     )
     tree: ExplorationTree = Field(
         ..., description="The position-based exploration tree"
+    )
+    overview: ExplorationOverview | None = Field(
+        default=None,
+        description=(
+            "Structured intro + per-party stance cards shown alongside the "
+            "tree. Best-effort: may be None when generation failed."
+        ),
     )
     status: ExplorationStatus = Field(
         default=ExplorationStatus.ACTIVE, description="Current status"

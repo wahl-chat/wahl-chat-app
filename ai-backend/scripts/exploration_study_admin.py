@@ -48,7 +48,10 @@ async def create_study(args: argparse.Namespace) -> None:
     """Create a new study."""
     study_repo = get_study_repository()
 
-    config = StudyConfig(context_id=args.context_id)
+    config = StudyConfig(
+        context_id=args.context_id,
+        study_type=args.study_type,
+    )
 
     study = await study_repo.create_study(name=args.name, config=config)
 
@@ -56,6 +59,7 @@ async def create_study(args: argparse.Namespace) -> None:
     print(f"  ID: {study.id}")
     print(f"  Name: {study.name}")
     print(f"  Status: {study.status}")
+    print(f"  Type: {config.study_type}")
     print(f"  Context: {config.context_id}")
     print(f"  Topics: {', '.join(config.topics)}")
     print(f"  Parties: {', '.join(config.parties)}")
@@ -170,7 +174,10 @@ async def create_sessions(args: argparse.Namespace) -> None:
 
     session_ids = []
     for i in range(args.count):
-        group = await counterbalancer.assign_group(args.study_id)
+        if args.force_group:
+            group = args.force_group
+        else:
+            group = await counterbalancer.assign_group(args.study_id)
         condition = get_condition_for_group(group, study.config.topics)
 
         session = await session_repo.create_session(
@@ -343,6 +350,12 @@ def main() -> None:
     create_study_parser.add_argument(
         "--context-id", required=True, help="Context ID for fake parties"
     )
+    create_study_parser.add_argument(
+        "--study-type",
+        choices=["quantitative", "qualitative"],
+        default="quantitative",
+        help="Whether the study collects qualitative free-text answers too.",
+    )
 
     # list-studies
     subparsers.add_parser("list-studies", help="List all studies")
@@ -370,6 +383,11 @@ def main() -> None:
         "--count", type=int, required=True, help="Number of sessions to create"
     )
     create_sessions_parser.add_argument("--output", help="Output file for session IDs")
+    create_sessions_parser.add_argument(
+        "--force-group",
+        choices=["A1", "A2", "B1", "B2", "C1", "C2"],
+        help="Skip the counterbalancer and pin every session to this group.",
+    )
 
     # list-sessions
     list_sessions_parser = subparsers.add_parser(

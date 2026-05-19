@@ -1,8 +1,10 @@
 'use client';
 
 import { ExplorationLeafCard } from '@/modules/guided-exploration/components/chat/exploration-leaf-card';
+import { ExplorationOverviewCard } from '@/modules/guided-exploration/components/chat/exploration-overview-card';
 import { ExplorationTopicCard } from '@/modules/guided-exploration/components/chat/exploration-topic-card';
 import {
+  selectOverview,
   selectTree,
   useExplorationStore,
 } from '@/modules/guided-exploration/store';
@@ -40,6 +42,7 @@ export function ExplorationTreeCard({
 }: ExplorationTreeCardProps) {
   const explorationId = message.explorationId ?? null;
   const tree = useExplorationStore(selectTree(explorationId));
+  const overview = useExplorationStore(selectOverview(explorationId));
   const headingId = useId();
   const query = message.explorationQuery || message.content || '';
 
@@ -73,9 +76,13 @@ export function ExplorationTreeCard({
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
-      <p id={headingId} className="text-sm text-foreground">
-        Hier sind die Themen, die ich für dich gefunden habe:
-      </p>
+      {overview ? (
+        <ExplorationOverviewCard overview={overview} headingId={headingId} />
+      ) : (
+        <p id={headingId} className="text-sm text-foreground">
+          Hier sind die Themen, die ich für dich gefunden habe:
+        </p>
+      )}
 
       <ul
         className="flex list-none flex-col gap-2 pl-0"

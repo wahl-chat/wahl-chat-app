@@ -14,6 +14,7 @@ from google.cloud.firestore_v1 import DocumentReference, async_transactional
 from src.guided_exploration.models import (
     Conversation,
     Exploration,
+    ExplorationOverview,
     ExplorationStatus,
     ExplorationTree,
     FlaggedCitation,
@@ -196,6 +197,7 @@ class SessionRepository:
         original_query: str,
         tree: ExplorationTree,
         exploration_id: str | None = None,
+        overview: ExplorationOverview | None = None,
     ) -> Exploration:
         """
         Create a new exploration.
@@ -205,6 +207,8 @@ class SessionRepository:
             original_query: The user's original query
             tree: The topic tree structure
             exploration_id: Optional pre-generated exploration ID
+            overview: Optional intro + per-party stance summary shipped
+                alongside the tree.
         """
         exploration_id = exploration_id or str(uuid4())
         now = datetime.now(timezone.utc)
@@ -214,6 +218,7 @@ class SessionRepository:
             session_id=session_id,
             original_query=original_query,
             tree=tree,
+            overview=overview,
             status=ExplorationStatus.ACTIVE,
             created_at=now,
             updated_at=now,

@@ -61,6 +61,12 @@ export interface StudySession {
   currentTopic: string | null;
   chatId: string | null;
   taskDurationSeconds: number;
+  /**
+   * ISO timestamp at which the participant started the task (set by the
+   * backend on `start_task`). Used to anchor the countdown so it survives
+   * page reloads. `null` until the task has started.
+   */
+  taskStartedAt?: string | null;
   // Optional: backend marks the study as quantitative or qualitative.
   // Frontend treats a missing value as 'quantitative'.
   studyType?: StudyType;

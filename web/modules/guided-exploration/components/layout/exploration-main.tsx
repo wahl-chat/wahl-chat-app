@@ -6,7 +6,10 @@ import { useEffect, useMemo, useRef } from 'react';
 import { ExplorationChatView } from '@/modules/guided-exploration/components/chat/exploration-chat-view';
 import { LeafSidebar } from '@/modules/guided-exploration/components/chat/leaf-sidebar';
 import { ExplorationLoading } from '@/modules/guided-exploration/components/shared/exploration-loading';
-import { useExploration } from '@/modules/guided-exploration/hooks';
+import {
+  useExploration,
+  useLeafBackInterception,
+} from '@/modules/guided-exploration/hooks';
 import { findNode } from '@/modules/guided-exploration/utils/tree-helpers';
 
 interface ExplorationMainProps {
@@ -119,6 +122,11 @@ export function ExplorationMain({ initialSessionId }: ExplorationMainProps) {
     openLeaf(deepLinkExplorationId, deepLinkLeaf);
   }, [deepLinkLeaf, deepLinkExplorationId, openLeaf]);
 
+  // First browser-back press closes the leaf sheet instead of leaving
+  // the page — particularly meaningful on mobile.
+  const isLeafOpen = !!activeLeaf;
+  useLeafBackInterception({ isOpen: isLeafOpen, onBack: closeLeaf });
+
   if (error) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4">
@@ -130,8 +138,6 @@ export function ExplorationMain({ initialSessionId }: ExplorationMainProps) {
   if (!isConnected && mode === 'idle') {
     return <ExplorationLoading message="Verbindung wird hergestellt..." />;
   }
-
-  const isLeafOpen = !!activeLeaf;
 
   return (
     <div

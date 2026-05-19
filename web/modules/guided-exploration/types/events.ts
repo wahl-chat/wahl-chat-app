@@ -4,7 +4,7 @@
  */
 
 import type { Citation } from './content';
-import type { Conversation } from './conversation';
+import type { Conversation, ExplorationOverview } from './conversation';
 import type { NavigationState, SiblingNavigation } from './navigation';
 import type { ExplorationNode, ExplorationTree } from './tree';
 
@@ -55,6 +55,11 @@ export interface TopicTreeEvent {
   type: 'topic_tree';
   explorationId: string;
   tree: ExplorationTree;
+  /**
+   * Structured intro + per-party stance cards shipped alongside the tree.
+   * `null`/absent when overview generation was skipped or failed.
+   */
+  overview?: ExplorationOverview | null;
   navigation: NavigationState;
 }
 

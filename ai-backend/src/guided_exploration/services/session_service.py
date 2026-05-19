@@ -85,6 +85,11 @@ class SessionService:
                 "original_query": active_exploration.original_query,
                 "status": active_exploration.status.value,
                 "tree": active_exploration.tree.model_dump(mode="json"),
+                "overview": (
+                    active_exploration.overview.model_dump(mode="json")
+                    if active_exploration.overview
+                    else None
+                ),
             }
             nav_state = self._navigation_states.get(session_id)
             if nav_state:

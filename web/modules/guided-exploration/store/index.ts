@@ -15,6 +15,7 @@ export {
   selectSessionId,
   selectTreesArray,
   selectTree,
+  selectOverview,
   selectActiveLeaf,
   selectActiveLeafTree,
   selectActiveLeafNode,
