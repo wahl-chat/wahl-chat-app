@@ -18,7 +18,10 @@ DONT_KNOW_INDEX = -1
 # Quiz corpus version. Bump when the answer-key positions change so that
 # downstream analysis can compare like-for-like; older quizzes saved with
 # ``version=None`` implicitly belong to the original (v1) corpus.
-QUIZ_CORPUS_VERSION = "v2"
+#
+# v3 adds difficulty-aware sampling: each quiz is composed as 5 easy +
+# 3 hard (one per hard pattern) + 2 comparative questions.
+QUIZ_CORPUS_VERSION = "v3"
 
 
 class QuizQuestion(BaseModel):
@@ -47,6 +50,21 @@ class QuizQuestion(BaseModel):
         description="True if the question targets a known cross-party overlap.",
     )
     topic: str = Field(..., description="The topic this question covers")
+    # The next three carry the sampling metadata through to persistence so
+    # downstream analysis can break results down by bucket. Defaults keep
+    # legacy quizzes (saved before v3) loadable as easy retention questions.
+    category: str = Field(
+        default="retention",
+        description="'retention' (single-party) or 'comparative' (two-party).",
+    )
+    difficulty: str = Field(
+        default="easy",
+        description="'easy' or 'hard'.",
+    )
+    hard_pattern: str | None = Field(
+        default=None,
+        description="For hard questions: 'detail', 'counter_stereotype' or 'transfer'.",
+    )
 
 
 class QuizAnswer(BaseModel):

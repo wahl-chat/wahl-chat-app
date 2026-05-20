@@ -908,5 +908,437 @@
     ],
     "is_overlap_question": false,
     "category": "retention"
+  },
+  {
+    "id": "q-057",
+    "question": "Auf welchen Wert pro Tonne soll der CO2-Preis nach dem Willen von [PARTY_BADGE:venus] bis 2030 steigen?",
+    "options": [
+      "mindestens 120 Euro",
+      "mindestens 160 Euro",
+      "mindestens 200 Euro"
+    ],
+    "correct_index": 2,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-001"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail"
+  },
+  {
+    "id": "q-058",
+    "question": "Welches Tempolimit auf Autobahnen fordert [PARTY_BADGE:venus] konkret?",
+    "options": [
+      "Tempo 100",
+      "Tempo 120",
+      "Tempo 130"
+    ],
+    "correct_index": 1,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-004"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail"
+  },
+  {
+    "id": "q-059",
+    "question": "Wie hoch soll das von [PARTY_BADGE:venus] geforderte Pro-Kopf-Klimageld pro Jahr sein?",
+    "options": [
+      "220 Euro",
+      "320 Euro",
+      "480 Euro"
+    ],
+    "correct_index": 1,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-002"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail"
+  },
+  {
+    "id": "q-060",
+    "question": "Auf welchen Betrag pro Kilometer will [PARTY_BADGE:saturn] die Pendlerpauschale dauerhaft anheben?",
+    "options": [
+      "38 Cent",
+      "50 Cent",
+      "65 Cent"
+    ],
+    "correct_index": 1,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "saturn-klima-006"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail"
+  },
+  {
+    "id": "q-061",
+    "question": "Auf welches gesetzliche Rentenniveau will [PARTY_BADGE:venus] die Rente anheben und festschreiben?",
+    "options": [
+      "48 Prozent",
+      "50 Prozent",
+      "53 Prozent"
+    ],
+    "correct_index": 1,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "venus-sozial-001"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail"
+  },
+  {
+    "id": "q-062",
+    "question": "Wie hoch soll die von [PARTY_BADGE:saturn] geforderte steuerfinanzierte Mindestrente nach 35 Beitragsjahren sein?",
+    "options": [
+      "1.100 Euro netto",
+      "1.300 Euro netto",
+      "1.500 Euro netto"
+    ],
+    "correct_index": 1,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "saturn-sozial-001"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail"
+  },
+  {
+    "id": "q-063",
+    "question": "Bis zu welchem Betrag im Monat soll der Zuverdienst beim freiwilligen Weiterarbeiten nach dem Modell von [PARTY_BADGE:mars] steuerfrei bleiben?",
+    "options": [
+      "1.000 Euro",
+      "2.000 Euro",
+      "3.000 Euro"
+    ],
+    "correct_index": 1,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "mars-sozial-004"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail"
+  },
+  {
+    "id": "q-064",
+    "question": "Um welchen Betrag pro Monat will [PARTY_BADGE:venus] den Bürgergeld-Regelsatz anheben?",
+    "options": [
+      "um 20 Euro",
+      "um 50 Euro",
+      "um 100 Euro"
+    ],
+    "correct_index": 1,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "venus-sozial-004"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail"
+  },
+  {
+    "id": "q-065",
+    "question": "Welches Instrument fordert [PARTY_BADGE:mars] zum Schutz der heimischen Industrie vor CO2-intensiven Importen?",
+    "options": [
+      "Einen CO2-Grenzausgleich auf Importe aus Ländern mit niedrigeren Standards",
+      "Eine Befreiung der heimischen Industrie von den CO2-Kosten",
+      "Direkte staatliche Subventionen für energieintensive Betriebe"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "mars-klima-003"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype"
+  },
+  {
+    "id": "q-066",
+    "question": "Was will [PARTY_BADGE:mars] mit den Einnahmen aus dem CO2-Preis vorrangig tun?",
+    "options": [
+      "Sie vollständig in staatliche Klimaprojekte investieren",
+      "Mindestens die Hälfte als Pro-Kopf-Klimageld an die Bürger auszahlen",
+      "Mit ihnen die Unternehmenssteuern senken"
+    ],
+    "correct_index": 1,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "mars-klima-002"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype"
+  },
+  {
+    "id": "q-067",
+    "question": "Wie steht [PARTY_BADGE:saturn] zu einem CO2-Grenzausgleich auf Importe aus Ländern mit niedrigeren Umweltstandards?",
+    "options": [
+      "Lehnt jeden CO2-Aufschlag auf Importe ab",
+      "Befürwortet einen CO2-Grenzausgleich an der EU-Außengrenze zum Schutz des Mittelstands",
+      "Will solche Importe vollständig verbieten"
+    ],
+    "correct_index": 1,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "saturn-klima-003"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype"
+  },
+  {
+    "id": "q-068",
+    "question": "Mit welchem Ansatz will [PARTY_BADGE:venus] Inlandsflüge zurückdrängen?",
+    "options": [
+      "Mit einem gesetzlichen Verbot von Inlandsflügen",
+      "Indem Inlandsflüge über Steuern und Aufschläge teurer werden",
+      "Mit einer festen Obergrenze für die Zahl der Flüge pro Strecke"
+    ],
+    "correct_index": 1,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-009"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype"
+  },
+  {
+    "id": "q-069",
+    "question": "Welche Haltung vertritt [PARTY_BADGE:saturn] dazu, wer künftig in die gesetzliche Rentenkasse einzahlen soll?",
+    "options": [
+      "Will an der heutigen Trennung zwischen Beamtenpension und gesetzlicher Rente festhalten",
+      "Will auch Beamte, Abgeordnete und Minister einbeziehen",
+      "Will die gesetzliche Rente langfristig durch private Vorsorge ersetzen"
+    ],
+    "correct_index": 1,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "saturn-sozial-003"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype"
+  },
+  {
+    "id": "q-070",
+    "question": "Was plant [PARTY_BADGE:saturn] mit künftigen Beamtenpensionen?",
+    "options": [
+      "Sie als Anerkennung des Staatsdienstes anheben",
+      "Sie unverändert auf dem heutigen Niveau halten",
+      "Sie auf das Niveau der gesetzlichen Rente absenken"
+    ],
+    "correct_index": 2,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "saturn-sozial-004"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype"
+  },
+  {
+    "id": "q-071",
+    "question": "Wie will [PARTY_BADGE:saturn] Bürgergeld-Bezieher behandeln, die viele Jahre eingezahlt haben, bevor sie arbeitslos wurden?",
+    "options": [
+      "Genauso wie alle anderen Bezieher, ohne Unterschied",
+      "Mit einem monatlichen Aufschlag auf das Bürgergeld",
+      "Indem ihnen das Bürgergeld ganz gestrichen wird"
+    ],
+    "correct_index": 1,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "saturn-sozial-007"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype"
+  },
+  {
+    "id": "q-072",
+    "question": "Wie will [PARTY_BADGE:mars] Erziehungs- und Pflegezeiten in der gesetzlichen Rente berücksichtigen?",
+    "options": [
+      "Mit drei vollen Entgeltpunkten pro Kind",
+      "Gar nicht, da die Rente allein auf eigenen Beiträgen beruhen soll",
+      "Nur über einen steuerfinanzierten Bonus außerhalb der Rente"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "mars-sozial-003"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype"
+  },
+  {
+    "id": "q-073",
+    "question": "Jemand möchte sich im Jahr 2031 fabrikneu einen Benziner kaufen. Wie passt das zu den Plänen von [PARTY_BADGE:venus]?",
+    "options": [
+      "Das ist weiterhin ohne Einschränkung möglich",
+      "Neuzulassungen von Verbrennern sind ab 2030 nicht mehr vorgesehen",
+      "Das ist dann nur noch als Plug-in-Hybrid möglich"
+    ],
+    "correct_index": 1,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-005"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer"
+  },
+  {
+    "id": "q-074",
+    "question": "Jemand mit kleinem Einkommen will möglichst günstig mit Bus und Bahn pendeln. Was bietet [PARTY_BADGE:venus] dafür an?",
+    "options": [
+      "Ein bundesweites 9-Euro-Klimaticket",
+      "Einen vollständig kostenlosen Nahverkehr für alle",
+      "Eine höhere Pendlerpauschale fürs Auto"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "venus-klima-007"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer"
+  },
+  {
+    "id": "q-075",
+    "question": "Ein Spediteur überlegt, Güter von der Autobahn auf die Schiene zu verlagern. Wie steht [PARTY_BADGE:mars] dazu?",
+    "options": [
+      "Will die Investitionen in den Schienen-Güterverkehr verdoppeln",
+      "Will vor allem neue Autobahnen für den Lkw-Verkehr bauen",
+      "Sieht beim Güterverkehr keinen Handlungsbedarf"
+    ],
+    "correct_index": 0,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "mars-klima-006"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer"
+  },
+  {
+    "id": "q-076",
+    "question": "Ein Autohersteller fragt, ob er weiter an Wasserstoff und synthetischen Kraftstoffen forschen soll oder nur auf E-Autos setzen. Wie positioniert sich [PARTY_BADGE:mars]?",
+    "options": [
+      "Empfiehlt, allein auf E-Mobilität zu setzen",
+      "Will verschiedene Antriebe im Wettbewerb offenlassen",
+      "Will den klassischen Verbrenner dauerhaft festschreiben"
+    ],
+    "correct_index": 1,
+    "topic": "klimaschutz",
+    "prerequisite_position_ids": [
+      "mars-klima-004"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer"
+  },
+  {
+    "id": "q-077",
+    "question": "Ein Facharbeiter hat mit 17 zu arbeiten begonnen und 45 Jahre lang Beiträge gezahlt. Wie steht [PARTY_BADGE:saturn] zu seinem Wunsch, mit 63 in Rente zu gehen?",
+    "options": [
+      "Soll abschlagsfrei mit 63 in Rente gehen können",
+      "Soll nur mit dauerhaften Abschlägen früher gehen können",
+      "Soll regulär bis 67 weiterarbeiten"
+    ],
+    "correct_index": 0,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "saturn-sozial-002"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer"
+  },
+  {
+    "id": "q-078",
+    "question": "Jemand im Bürgergeld lehnt wiederholt eine zumutbare Arbeitsstelle ab. Wie reagiert [PARTY_BADGE:saturn]?",
+    "options": [
+      "Die Leistung wird für drei Monate um 30 Prozent gekürzt",
+      "Die gesamte Leistung wird für drei Monate gestrichen",
+      "Alle Leistungen werden sofort vollständig entzogen"
+    ],
+    "correct_index": 2,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "saturn-sozial-006"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer"
+  },
+  {
+    "id": "q-079",
+    "question": "Jemand pflegt über Jahre Angehörige, statt erwerbstätig zu sein. Wie wirkt sich das nach dem Modell von [PARTY_BADGE:venus] auf die spätere Rente aus?",
+    "options": [
+      "Es zählt gar nicht für die gesetzliche Rente",
+      "Es wird über Steuervorteile statt über Rentenpunkte ausgeglichen",
+      "Es wird mit vollen Entgeltpunkten wie Erwerbsarbeit angerechnet"
+    ],
+    "correct_index": 2,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "venus-sozial-003"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer"
+  },
+  {
+    "id": "q-080",
+    "question": "Eine Person ist vor zwei Jahren nach Deutschland zugewandert und arbeitet noch nicht. Hat sie nach dem Modell von [PARTY_BADGE:saturn] Anspruch auf Bürgergeld?",
+    "options": [
+      "Ja, mit Aufenthaltstitel sofort",
+      "Nein, erst nach mindestens fünf Jahren Beitragszahlung",
+      "Ja, aber nur zum halben Regelsatz"
+    ],
+    "correct_index": 1,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisite_position_ids": [
+      "saturn-sozial-005"
+    ],
+    "is_overlap_question": false,
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer"
   }
 ]
