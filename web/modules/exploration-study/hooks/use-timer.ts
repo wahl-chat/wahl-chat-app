@@ -89,40 +89,70 @@ export function useTimer({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }, [secondsRemaining]);
 
+  // Single tick: when anchored to `startedAt`, the remaining time is derived
+  // from wall-clock (`durationSeconds - (now - startedAt)`) rather than
+  // decremented, so the countdown stays correct even when the browser
+  // throttles or pauses the interval in a background tab. The interval then
+  // only drives repaints; the value itself is always re-derived. Without an
+  // anchor we fall back to the legacy `prev - 1` decrement.
+  const tick = useCallback(() => {
+    setSecondsRemaining((prev) => {
+      const newValue = startedAt
+        ? computeInitialRemaining(durationSeconds, startedAt)
+        : prev - 1;
+
+      // Fire warnings for every threshold crossed downward this tick. Using
+      // crossing detection (rather than `=== threshold`) means thresholds the
+      // timer jumped past while the tab was hidden still fire on return.
+      if (onWarning) {
+        for (const threshold of warningThresholds) {
+          if (
+            prev > threshold &&
+            newValue <= threshold &&
+            !warningsGiven.current.has(threshold)
+          ) {
+            warningsGiven.current.add(threshold);
+            onWarning(threshold);
+          }
+        }
+      }
+
+      if (newValue <= 0) {
+        clearTimer();
+        setIsRunning(false);
+        setHasEnded(true);
+        return 0;
+      }
+
+      return newValue;
+    });
+  }, [startedAt, durationSeconds, onWarning, warningThresholds, clearTimer]);
+
   useEffect(() => {
     if (!isRunning) return;
 
-    intervalRef.current = setInterval(() => {
-      setSecondsRemaining((prev) => {
-        const newValue = prev - 1;
-
-        // Check for warnings
-        if (onWarning) {
-          for (const threshold of warningThresholds) {
-            if (
-              newValue === threshold &&
-              !warningsGiven.current.has(threshold)
-            ) {
-              warningsGiven.current.add(threshold);
-              onWarning(threshold);
-            }
-          }
-        }
-
-        // Check for end
-        if (newValue <= 0) {
-          clearTimer();
-          setIsRunning(false);
-          setHasEnded(true);
-          return 0;
-        }
-
-        return newValue;
-      });
-    }, 1000);
+    intervalRef.current = setInterval(tick, 1000);
 
     return () => clearTimer();
-  }, [isRunning, clearTimer, onWarning, warningThresholds]);
+  }, [isRunning, clearTimer, tick]);
+
+  // Re-sync immediately when the tab regains focus, so the correction is
+  // instant instead of waiting up to ~1s for the next interval tick.
+  useEffect(() => {
+    if (!isRunning) return;
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') tick();
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', tick);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', tick);
+    };
+  }, [isRunning, tick]);
 
   // Call onEnd outside of state updater to avoid React warning
   useEffect(() => {
