@@ -20,8 +20,8 @@
     "question": "Welche Aussage zum Umgang mit klimaschädlichen Subventionen trifft auf [PARTY_BADGE:venus] zu?",
     "options": [
       "Will sie vollständig abbauen",
-      "Will sie ausweiten",
-      "Will sie teilweise erhalten"
+      "Will nur einzelne Subventionen streichen und die übrigen behalten",
+      "Will sie zwar verringern, aber ohne festen Zeitplan"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
@@ -211,8 +211,8 @@
     "id": "q-014",
     "question": "Welche verkehrspolitische Investition will [PARTY_BADGE:mars] deutlich ausbauen?",
     "options": [
-      "Investitionen in Inlandsflughäfen",
-      "Investitionen in den Bau neuer Autobahnen",
+      "Investitionen in den Ausbau der Ladeinfrastruktur für E-Autos",
+      "Investitionen in den Bau neuer Autobahnen und Fernstraßen",
       "Investitionen in den Schienen-Güterverkehr"
     ],
     "correct_index": 2,
@@ -259,9 +259,9 @@
     "id": "q-017",
     "question": "Wie will [PARTY_BADGE:mars] Beschäftigte ermutigen, freiwillig über die Regelaltersgrenze hinaus zu arbeiten?",
     "options": [
-      "Über finanzielle Anreize wie steuerfreien Zuverdienst",
-      "Über eine verpflichtende Anhebung des Renteneintrittsalters",
-      "Sieht keinen Bedarf für zusätzliche Anreize"
+      "Über einen steuerfreien Zuverdienst zusätzlich zur Rente",
+      "Über einen dauerhaften Rentenzuschlag, der erst ab dem späteren Renteneintritt ausgezahlt wird",
+      "Über eine einmalige Bonuszahlung beim späteren Renteneintritt"
     ],
     "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
@@ -371,9 +371,9 @@
     "id": "q-024",
     "question": "Wie steht [PARTY_BADGE:saturn] zum vorzeitigen Renteneintritt nach langer Beitragsdauer?",
     "options": [
-      "Will den vorzeitigen Renteneintritt abschaffen und das Renteneintrittsalter generell anheben",
+      "Will einen vorzeitigen Renteneintritt nur mit dauerhaften Abschlägen zulassen",
       "Will einen vorzeitigen Renteneintritt ohne Abschläge zulassen",
-      "Will den vorzeitigen Renteneintritt auf jüngere Jahrgänge ausweiten"
+      "Will das Renteneintrittsalter generell anheben und die Frührente beenden"
     ],
     "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
@@ -387,9 +387,9 @@
     "id": "q-025",
     "question": "Was plant [PARTY_BADGE:saturn] mit künftigen Beamtenpensionen?",
     "options": [
-      "Verdopplung als Anreiz für den Staatsdienst",
-      "Vollständige Privatisierung der Altersvorsorge für Beamte",
-      "Absenkung auf das Niveau der gesetzlichen Rente"
+      "Sie weiterhin deutlich oberhalb der gesetzlichen Rente halten",
+      "Sie über eine verpflichtende private Vorsorge absichern",
+      "Sie auf das Niveau der gesetzlichen Rente absenken"
     ],
     "correct_index": 2,
     "topic": "soziale-gerechtigkeit",
@@ -404,8 +404,8 @@
     "question": "Welche Aussage zum Anspruch auf Bürgergeld trifft auf [PARTY_BADGE:saturn] zu?",
     "options": [
       "Will allen mit Aufenthaltstitel ohne Wartezeit Anspruch geben",
-      "Will den Anspruch auf Staatsbürger sowie auf Zuwanderer mit längerer Beitragszeit beschränken",
-      "Lehnt das Bürgergeld grundsätzlich ab"
+      "Will den Anspruch auf Staatsbürger sowie auf Zuwanderer mit langjähriger Beitragszeit beschränken",
+      "Will Zuwanderern nur eine abgesenkte Grundleistung statt des vollen Bürgergelds zahlen"
     ],
     "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
@@ -669,23 +669,6 @@
     "category": "comparative"
   },
   {
-    "id": "q-042",
-    "question": "Welche Parteien wollen den Bürgergeld-Anspruch eng auf Staatsbürger und Beitragszahler beschränken?",
-    "options": [
-      "Beide Parteien",
-      "Nur [PARTY_BADGE:saturn]",
-      "Nur [PARTY_BADGE:venus]"
-    ],
-    "correct_index": 1,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": [
-      "venus-sozial-005",
-      "saturn-sozial-005"
-    ],
-    "is_overlap_question": false,
-    "category": "comparative"
-  },
-  {
     "id": "q-043",
     "question": "Wie steht [PARTY_BADGE:venus] zur Rückverteilung der CO2-Einnahmen an die Bürger?",
     "options": [
@@ -879,11 +862,11 @@
   },
   {
     "id": "q-055",
-    "question": "Welches Hauptziel verfolgt [PARTY_BADGE:venus] mit einer eigenständigen Kindergrundsicherung?",
+    "question": "Wie will [PARTY_BADGE:venus] Kinder künftig absichern?",
     "options": [
-      "Familienleistungen entbürokratisieren und in einem Anspruch bündeln",
-      "Familien zur stärkeren privaten Eigenvorsorge motivieren",
-      "Kinder unabhängig von der Arbeitslosigkeit ihrer Eltern absichern"
+      "Über einen höheren Kinderzuschlag innerhalb des Bürgergelds",
+      "Über zusätzliche Steuerfreibeträge für Familien",
+      "Über eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds"
     ],
     "correct_index": 2,
     "topic": "soziale-gerechtigkeit",
@@ -895,13 +878,13 @@
   },
   {
     "id": "q-056",
-    "question": "Welches Hauptziel verfolgt [PARTY_BADGE:mars] mit einer eigenständigen Kindergrundsicherung?",
+    "question": "Wie will [PARTY_BADGE:mars] Kinder künftig absichern?",
     "options": [
-      "Familienleistungen vollständig privatisieren",
-      "Familienleistungen entbürokratisieren und in einem gebündelten Anspruch zusammenführen",
-      "Eltern dazu verpflichten, ihre Kinder selbst aus dem Bürgergeld zu finanzieren"
+      "Über eine eigenständige, gebündelte Kindergrundsicherung außerhalb des Bürgergelds",
+      "Über höhere Familienleistungen innerhalb des Bürgergelds",
+      "Über Kinderfreibeträge im Steuerrecht für erwerbstätige Eltern"
     ],
-    "correct_index": 1,
+    "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "mars-sozial-007"

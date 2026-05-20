@@ -34,7 +34,7 @@ def test_corpus_loads_and_validates():
     hard = [e for e in corpus if e.difficulty == "hard"]
 
     assert len(easy_retention) == 42
-    assert len(comparative) == 14
+    assert len(comparative) == 13
     assert len(hard) == 24
 
     for e in hard:
