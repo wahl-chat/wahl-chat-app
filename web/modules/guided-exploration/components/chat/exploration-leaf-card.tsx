@@ -78,6 +78,7 @@ export function ExplorationLeafCard({
         )}
       </div>
 
+      <VisuallyHidden>– öffnen, um über dieses Thema zu chatten</VisuallyHidden>
       <ChevronRight
         aria-hidden="true"
         className="mt-1 size-4 shrink-0 text-foreground"

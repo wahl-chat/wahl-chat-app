@@ -43,6 +43,7 @@ export function ExplorationTopicCard({
       className="rounded-lg border bg-card shadow-sm"
     >
       <summary
+        aria-expanded={expanded}
         className={cn(
           'group flex cursor-pointer list-none items-start gap-3 rounded-lg p-4 text-left transition-colors',
           'hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
