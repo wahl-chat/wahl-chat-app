@@ -22,12 +22,14 @@ from src.exploration_study.models.session import (
     StudySession,
 )
 from src.exploration_study.models.state import StudyState
+from src.exploration_study.models.telemetry import TelemetryBatch
 
 logger = logging.getLogger(__name__)
 
 # Collection names
 SESSIONS_COLLECTION = "exploration_study_sessions"
 QUIZZES_SUBCOLLECTION = "quizzes"
+TELEMETRY_SUBCOLLECTION = "telemetry_events"
 PROLIFIC_CLAIMS_COLLECTION = "exploration_study_prolific_claims"
 
 
@@ -312,6 +314,26 @@ class SessionRepository:
             },
         )
 
+    async def mark_manually_completed(
+        self, session_id: str
+    ) -> StudySession | None:
+        """Force-complete a session as an admin action.
+
+        Sets state to COMPLETE and stamps ``completed_at`` like the normal
+        completion path, but additionally flags ``manually_completed`` so
+        these stay distinguishable from genuine demographics-submission
+        completions. Used for participants who finished the study but could
+        not submit the demographics step.
+        """
+        return await self.update_session(
+            session_id,
+            {
+                "state": StudyState.COMPLETE.value,
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "manually_completed": True,
+            },
+        )
+
     async def mark_prolific_redirected(
         self,
         session_id: str,
@@ -476,6 +498,25 @@ class SessionRepository:
             .document(submission.quiz_id)
         )
         await doc_ref.set(submission.model_dump(mode="json"))
+
+    async def append_telemetry(
+        self,
+        session_id: str,
+        batch: TelemetryBatch,
+    ) -> None:
+        """Append one behavioral-telemetry batch to the session.
+
+        Stored append-only as a doc per flush in the ``telemetry_events``
+        subcollection. The admin aggregates these for display; we keep the
+        write path dead simple so it never blocks the participant.
+        """
+        doc_ref = (
+            self._db.collection(SESSIONS_COLLECTION)
+            .document(session_id)
+            .collection(TELEMETRY_SUBCOLLECTION)
+            .document()
+        )
+        await doc_ref.set(batch.model_dump(mode="json"))
 
     async def get_latest_quiz_submission(
         self,

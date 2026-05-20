@@ -334,6 +334,45 @@ async def delete_session(args: argparse.Namespace) -> None:
         print(f"Session not found: {args.session_id}")
 
 
+async def complete_session(args: argparse.Namespace) -> None:
+    """Force-complete sessions, flagging them as manually completed.
+
+    For participants who finished the study but could not submit the
+    demographics step. Sets state to complete, stamps completed_at, and
+    flags manually_completed so they stay distinguishable from genuine
+    completions in analysis (their demographics remain empty).
+    """
+    session_repo = get_session_repository()
+
+    session_ids: list[str] = args.session_id
+
+    print(f"\nAbout to mark {len(session_ids)} session(s) as manually completed:")
+    for sid in session_ids:
+        print(f"  {sid}")
+
+    if not args.force:
+        confirm = input("Proceed? [y/N]: ")
+        if confirm.lower() != "y":
+            print("Cancelled.")
+            return
+
+    for sid in session_ids:
+        updated = await session_repo.mark_manually_completed(sid)
+        if updated:
+            state = (
+                updated.state.value
+                if hasattr(updated.state, "value")
+                else str(updated.state)
+            )
+            print(
+                f"  ✓ {sid}: state={state} | "
+                f"completed_at={updated.completed_at} | "
+                f"manually_completed={updated.manually_completed}"
+            )
+        else:
+            print(f"  ✗ Session not found: {sid}")
+
+
 def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -406,6 +445,21 @@ def main() -> None:
     )
     export_parser.add_argument("--output", help="Output file path")
 
+    # complete-session
+    complete_session_parser = subparsers.add_parser(
+        "complete-session",
+        help="Force-complete sessions (flagged manually_completed)",
+    )
+    complete_session_parser.add_argument(
+        "--session-id",
+        required=True,
+        nargs="+",
+        help="One or more session IDs to mark complete",
+    )
+    complete_session_parser.add_argument(
+        "--force", "-f", action="store_true", help="Skip confirmation"
+    )
+
     # delete-session
     delete_session_parser = subparsers.add_parser(
         "delete-session", help="Delete a session"
@@ -430,6 +484,7 @@ def main() -> None:
         "create-sessions": create_sessions,
         "list-sessions": list_sessions,
         "export": export_data,
+        "complete-session": complete_session,
         "delete-session": delete_session,
     }
 

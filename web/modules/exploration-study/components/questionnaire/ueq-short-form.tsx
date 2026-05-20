@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { LikertFormItem } from '@/modules/exploration-study/components/shared/likert-form-item';
 import { SubmitButton } from '@/modules/exploration-study/components/shared/submit-button';
+import { useFormItemTiming } from '@/modules/exploration-study/hooks/use-form-item-timing';
 import {
   type UeqShortFormValues,
   ueqShortSchema,
@@ -27,6 +28,9 @@ export interface UeqShortFormProps {
   isSubmitting?: boolean;
   // When true, renders an optional free-text field for qualitative studies.
   showQualitativeFeedback?: boolean;
+  // Telemetry: called on each Likert change with the field name and the ms
+  // since the previous change (straightlining detection).
+  onItemAnswered?: (itemId: string, intervalMs: number) => void;
   className?: string;
 }
 
@@ -39,6 +43,7 @@ export function UeqShortForm({
   onSubmit,
   isSubmitting = false,
   showQualitativeFeedback = false,
+  onItemAnswered,
   className,
 }: UeqShortFormProps) {
   const { items, order } = useMemo(() => getRandomizedUeqItems(), []);
@@ -47,6 +52,8 @@ export function UeqShortForm({
     resolver: zodResolver(ueqShortSchema),
     defaultValues: {},
   });
+
+  useFormItemTiming(form, onItemAnswered);
 
   const handleSubmit = form.handleSubmit((values) => {
     const { qualitativeFeedback, ...ratings } = values;

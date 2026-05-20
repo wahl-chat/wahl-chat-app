@@ -40,6 +40,7 @@ export default function QuestionnaireSurveyPage() {
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
         showQualitativeFeedback={showQualitativeFeedback}
+        sessionId={sessionId}
       />
     </div>
   );

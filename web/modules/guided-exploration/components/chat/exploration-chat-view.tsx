@@ -130,24 +130,28 @@ export function ExplorationChatView({
     return -1;
   })();
 
-  const thinkingStatusText = (() => {
+  const statusText = (() => {
     if (isStreaming) return 'KI-Antwort wird geschrieben.';
     if (isThinking) {
       return thinkingMessage ?? 'Nachricht wird verarbeitet...';
+    }
+    if (pendingChoice) {
+      return 'Du kannst jetzt oben wählen: „Schnelle Antwort" für eine kompakte Übersicht oder „Thema vertiefen", um Aspekte im Detail zu vergleichen.';
     }
     return '';
   })();
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Persistent status announcer for thinking/streaming state */}
+      {/* Persistent status announcer for thinking/streaming state and
+          pending choice prompts. */}
       <div
         role="status"
         aria-live="polite"
         aria-atomic="true"
         className="sr-only"
       >
-        {thinkingStatusText}
+        {statusText}
       </div>
       {/* Main content area */}
       <div
@@ -185,7 +189,7 @@ export function ExplorationChatView({
               {/*
                 Streaming content with citation mapping. Not a live region
                 — per-token aria-live updates flood the screen reader with
-                partial words. The outer "thinkingStatusText" status
+                partial words. The outer "statusText" status
                 announces "KI-Antwort wird geschrieben" once at start, and
                 the final message is read when it lands in SessionMessageList.
               */}

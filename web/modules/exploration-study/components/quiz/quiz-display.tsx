@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import VisuallyHidden from '@/components/visually-hidden';
 import { cn } from '@/lib/utils';
+import { useScreenTelemetry } from '@/modules/exploration-study/hooks/use-screen-telemetry';
 import { studyApi } from '@/modules/exploration-study/services/study-api';
 import type {
   QuizAnswer,
@@ -35,6 +36,25 @@ export function QuizDisplay({
   const [answers, setAnswers] = useState<Map<string, QuizAnswer>>(new Map());
   const questionStartTime = useRef<number>(Date.now());
 
+  const currentQuestion = questions[currentIndex];
+
+  // Behavioral integrity telemetry: tab/window focus, copy/paste, cursor
+  // jumps — tagged with the question the participant is currently on. Only
+  // active once the quiz is interactive (not while polling / on the intro).
+  const { recordItemTiming } = useScreenTelemetry(sessionId, 'quiz', {
+    enabled: hasStarted && !isLoading,
+    getItemId: () => currentQuestion?.id,
+  });
+
+  // Record dwell time on the question being left before moving on.
+  const recordLeavingItem = useCallback(() => {
+    if (!currentQuestion) return;
+    recordItemTiming(
+      currentQuestion.id,
+      Date.now() - questionStartTime.current,
+    );
+  }, [currentQuestion, recordItemTiming]);
+
   // Poll for quiz readiness
   useEffect(() => {
     let cancelled = false;
@@ -62,8 +82,6 @@ export function QuizDisplay({
       clearTimeout(timeoutId);
     };
   }, [sessionId]);
-
-  const currentQuestion = questions[currentIndex];
 
   const handleSelect = useCallback(
     (selectedIndex: number) => {
@@ -95,24 +113,32 @@ export function QuizDisplay({
 
   const handleNext = useCallback(() => {
     if (currentIndex < questions.length - 1) {
+      recordLeavingItem();
       setCurrentIndex((prev) => prev + 1);
       questionStartTime.current = Date.now();
       focusCurrentQuestionHeading();
     }
-  }, [currentIndex, questions.length, focusCurrentQuestionHeading]);
+  }, [
+    currentIndex,
+    questions.length,
+    focusCurrentQuestionHeading,
+    recordLeavingItem,
+  ]);
 
   const handlePrevious = useCallback(() => {
     if (currentIndex > 0) {
+      recordLeavingItem();
       setCurrentIndex((prev) => prev - 1);
       questionStartTime.current = Date.now();
       focusCurrentQuestionHeading();
     }
-  }, [currentIndex, focusCurrentQuestionHeading]);
+  }, [currentIndex, focusCurrentQuestionHeading, recordLeavingItem]);
 
   const handleSubmit = useCallback(async () => {
+    recordLeavingItem();
     const answersArray = Array.from(answers.values());
     await onSubmit(answersArray);
-  }, [answers, onSubmit]);
+  }, [answers, onSubmit, recordLeavingItem]);
 
   const currentAnswer = currentQuestion
     ? answers.get(currentQuestion.id)

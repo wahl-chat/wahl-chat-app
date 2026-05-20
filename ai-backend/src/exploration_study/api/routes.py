@@ -52,6 +52,10 @@ from src.exploration_study.models.session import (
     get_condition_for_group,
 )
 from src.exploration_study.models.state import StudyState
+from src.exploration_study.models.telemetry import (
+    TelemetryBatch,
+    TelemetryBatchRequest,
+)
 from src.exploration_study.services.counterbalancer import get_counterbalancer
 from src.exploration_study.services.session_repository import get_session_repository
 from src.exploration_study.services.study_repository import get_study_repository
@@ -1137,6 +1141,43 @@ async def submit_feedback(request: web.Request) -> web.Response:
     return web.json_response({"message": "Feedback saved"})
 
 
+async def ingest_telemetry(request: web.Request) -> web.Response:
+    """
+    POST /api/v1/exploration-study/sessions/{session_id}/telemetry
+
+    Append one batch of behavioral integrity telemetry (tab/focus changes,
+    copy/paste, cursor-out, item timings, …). Best-effort and content-free:
+    never blocks the participant flow, so parse failures and unknown
+    sessions are swallowed with a 204 rather than surfaced as errors. Valid
+    from any state — telemetry streams across every screen.
+    """
+    session_id = request.match_info["session_id"]
+
+    try:
+        body = await request.json()
+        req = TelemetryBatchRequest(**body)
+    except Exception as e:
+        # Malformed beacon — log and drop, don't fail the client.
+        logger.warning(f"Dropping malformed telemetry for {session_id}: {e}")
+        return web.Response(status=204)
+
+    if not req.events and req.browser_profile is None:
+        return web.Response(status=204)
+
+    session_repo = get_session_repository()
+    session = await session_repo.get_session(session_id)
+    if not session:
+        return web.Response(status=204)
+
+    batch = TelemetryBatch(
+        browser_profile=req.browser_profile,
+        events=req.events,
+        received_at=datetime.now(timezone.utc),
+    )
+    await session_repo.append_telemetry(session_id, batch)
+    return web.Response(status=204)
+
+
 def setup_exploration_study_routes(app: web.Application) -> None:
     """Register all exploration study routes with the application."""
     participant_routes = [
@@ -1169,6 +1210,11 @@ def setup_exploration_study_routes(app: web.Application) -> None:
             get_quiz_result,
         ),
         ("POST", f"{ROUTE_PREFIX}/sessions/{{session_id}}/feedback", submit_feedback),
+        (
+            "POST",
+            f"{ROUTE_PREFIX}/sessions/{{session_id}}/telemetry",
+            ingest_telemetry,
+        ),
         (
             "GET",
             f"{ROUTE_PREFIX}/sessions/{{session_id}}/prolific-completion-code",

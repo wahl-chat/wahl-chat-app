@@ -1,12 +1,13 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { useScreenTelemetry } from '@/modules/exploration-study/hooks/use-screen-telemetry';
 import type {
   CognitiveLoadResponse,
   QuestionnaireData,
   UeqData,
 } from '@/modules/exploration-study/types';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   CognitiveLoadForm,
   type CognitiveLoadFormSubmitData,
@@ -19,6 +20,9 @@ export interface QuestionnairePageProps {
   // When true, each questionnaire renders an optional qualitative free-text
   // field for the construct it measures.
   showQualitativeFeedback?: boolean;
+  // Session id, used for behavioral integrity telemetry (item timing /
+  // straightlining). Telemetry is skipped when absent.
+  sessionId?: string;
   className?: string;
 }
 
@@ -38,6 +42,7 @@ export function QuestionnairePage({
   onSubmit,
   isSubmitting = false,
   showQualitativeFeedback = false,
+  sessionId,
   className,
 }: QuestionnairePageProps) {
   const [phase, setPhase] = useState<Phase>('cognitive-load');
@@ -48,6 +53,34 @@ export function QuestionnairePage({
   );
   const headingRef = useRef<HTMLHeadingElement>(null);
   const isFirstRender = useRef(true);
+
+  // Behavioral integrity telemetry. `item_timing` events carry the inter-item
+  // interval (ms since the previous Likert change) so the admin can flag
+  // straightlining. Field names are namespaced by phase.
+  const { record } = useScreenTelemetry(sessionId ?? '', 'questionnaire', {
+    enabled: Boolean(sessionId),
+    trackCursorJumps: false,
+  });
+  const onCognitiveLoadItem = useCallback(
+    (itemId: string, intervalMs: number) => {
+      record({
+        type: 'item_timing',
+        itemId: `cl:${itemId}`,
+        durationMs: intervalMs,
+      });
+    },
+    [record],
+  );
+  const onUeqItem = useCallback(
+    (itemId: string, intervalMs: number) => {
+      record({
+        type: 'item_timing',
+        itemId: `ueq:${itemId}`,
+        durationMs: intervalMs,
+      });
+    },
+    [record],
+  );
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -100,6 +133,7 @@ export function QuestionnairePage({
         <CognitiveLoadForm
           onSubmit={handleCognitiveLoadSubmit}
           showQualitativeFeedback={showQualitativeFeedback}
+          onItemAnswered={sessionId ? onCognitiveLoadItem : undefined}
         />
       )}
 
@@ -108,6 +142,7 @@ export function QuestionnairePage({
           onSubmit={handleUeqSubmit}
           isSubmitting={isSubmitting}
           showQualitativeFeedback={showQualitativeFeedback}
+          onItemAnswered={sessionId ? onUeqItem : undefined}
         />
       )}
     </div>

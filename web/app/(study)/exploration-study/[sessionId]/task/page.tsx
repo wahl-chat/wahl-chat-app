@@ -11,6 +11,7 @@ import {
   getRouteForState,
   getStateFromResponse,
   studyApi,
+  useScreenTelemetry,
 } from '@/modules/exploration-study';
 import { Loader2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
@@ -43,6 +44,11 @@ export default function TaskPage() {
   } | null>(null);
 
   const [isStarting, setIsStarting] = useState(false);
+
+  // Behavioral integrity telemetry while the participant works on the task
+  // (tab/window focus, copy/paste, cursor leaving the viewport). Active only
+  // once the chat/exploration is on screen.
+  useScreenTelemetry(sessionId, 'task', { enabled: pageState === 'task' });
 
   // Load session on mount
   useEffect(() => {

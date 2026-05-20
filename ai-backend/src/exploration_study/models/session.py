@@ -220,6 +220,16 @@ class StudySession(BaseModel):
             "subsequent calls re-redirect but do not overwrite the timestamp."
         ),
     )
+    manually_completed: bool = Field(
+        default=False,
+        description=(
+            "True if an admin force-completed this session rather than the "
+            "participant submitting demographics (e.g. someone who finished "
+            "the study but could not complete the demographics step). Keeps "
+            "admin completions distinguishable from genuine completions in "
+            "analysis; such sessions have empty demographics."
+        ),
+    )
 
     class Config:
         """Pydantic configuration."""

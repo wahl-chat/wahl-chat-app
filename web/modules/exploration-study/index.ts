@@ -18,6 +18,11 @@ export * from './hooks';
 
 // Services
 export { studyApi } from './services/study-api';
+export {
+  getTelemetry,
+  type TelemetryEventInput,
+  type TelemetryEventType,
+} from './services/telemetry';
 
 // Data
 export * from './data/fake-parties';

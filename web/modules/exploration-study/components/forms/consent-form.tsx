@@ -118,6 +118,11 @@ export function ConsentForm({
                 personenbezogenen Daten erhoben, die Rückschlüsse auf deine
                 Identität ermöglichen.
               </p>
+              <p>
+                Um besser zu verstehen, wie du die Aufgabe angehst, erfassen wir
+                während der Studie einige grundlegende Verhaltensdaten zur
+                Nutzung der Seite.
+              </p>
             </section>
 
             <section className="space-y-2">

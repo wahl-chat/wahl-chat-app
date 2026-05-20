@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { LikertFormItem } from '@/modules/exploration-study/components/shared/likert-form-item';
 import { SubmitButton } from '@/modules/exploration-study/components/shared/submit-button';
+import { useFormItemTiming } from '@/modules/exploration-study/hooks/use-form-item-timing';
 import {
   type CognitiveLoadFormValues,
   cognitiveLoadSchema,
@@ -34,6 +35,9 @@ export interface CognitiveLoadFormProps {
   onSubmit: (data: CognitiveLoadFormSubmitData) => void;
   // When true, renders an optional free-text field for qualitative studies.
   showQualitativeFeedback?: boolean;
+  // Telemetry: called on each Likert change with the field name and the ms
+  // since the previous change (straightlining detection).
+  onItemAnswered?: (itemId: string, intervalMs: number) => void;
   className?: string;
 }
 
@@ -50,12 +54,15 @@ const ATTENTION_CHECK_LABEL =
 export function CognitiveLoadForm({
   onSubmit,
   showQualitativeFeedback = false,
+  onItemAnswered,
   className,
 }: CognitiveLoadFormProps) {
   const form = useForm<CognitiveLoadFormValues>({
     resolver: zodResolver(cognitiveLoadSchema),
     defaultValues: {},
   });
+
+  useFormItemTiming(form, onItemAnswered);
 
   const handleSubmit = form.handleSubmit((values) => {
     const { attentionCheck, qualitativeFeedback, ...clItems } = values;
