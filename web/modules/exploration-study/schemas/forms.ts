@@ -78,6 +78,7 @@ export const demographicsSchema = z.object({
   aiChatUsageFrequency: z.enum(aiChatUsageFrequencyValues, {
     error: REQUIRED_SELECT,
   }),
+  netPromoterScore: z.number({ error: REQUIRED_RATING }).min(0).max(10),
 });
 
 export type DemographicsFormValues = z.infer<typeof demographicsSchema>;

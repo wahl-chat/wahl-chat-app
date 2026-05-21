@@ -429,6 +429,7 @@ async def submit_demographics(request: web.Request) -> web.Response:
         education=req.education,
         political_interest=req.political_interest,
         ai_chat_usage_frequency=req.ai_chat_usage_frequency,
+        net_promoter_score=req.net_promoter_score,
     )
 
     await session_repo.update_participant_data(session_id, participant_data)

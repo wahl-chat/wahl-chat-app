@@ -236,6 +236,12 @@ class DemographicsRequest(BaseModel):
             "or Claude."
         ),
     )
+    net_promoter_score: int = Field(
+        ...,
+        ge=0,
+        le=10,
+        description="Net Promoter Score: likelihood to recommend (0-10)",
+    )
 
 
 class StartTaskResponse(BaseModel):

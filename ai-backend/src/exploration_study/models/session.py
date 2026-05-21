@@ -142,6 +142,12 @@ class DemographicsData(BaseModel):
             "several_times_per_month, several_times_per_week, almost_daily."
         ),
     )
+    net_promoter_score: int | None = Field(
+        default=None,
+        ge=0,
+        le=10,
+        description="Net Promoter Score: likelihood to recommend (0-10 scale)",
+    )
 
 
 class ParticipantData(BaseModel):

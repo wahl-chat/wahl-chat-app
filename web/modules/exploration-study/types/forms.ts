@@ -33,6 +33,7 @@ export interface DemographicsData {
   education: Education;
   politicalInterest: number; // 1-7
   aiChatUsageFrequency: AiChatUsageFrequency;
+  netPromoterScore: number; // 0-10 NPS
 }
 
 export interface FeedbackData {

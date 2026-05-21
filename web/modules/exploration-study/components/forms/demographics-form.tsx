@@ -260,6 +260,17 @@ export function DemographicsForm({
               </FormItem>
             )}
           />
+
+          <LikertFormItem
+            control={form.control}
+            name="netPromoterScore"
+            id="net-promoter-score"
+            label="Wie wahrscheinlich ist es, dass du das System, das du gerade genutzt hast, einer Freundin oder einem Freund weiterempfiehlst?"
+            leftAnchor="Gar nicht wahrscheinlich"
+            rightAnchor="Äußerst wahrscheinlich"
+            min={0}
+            max={10}
+          />
         </div>
 
         <SubmitButton isSubmitting={isSubmitting} />
