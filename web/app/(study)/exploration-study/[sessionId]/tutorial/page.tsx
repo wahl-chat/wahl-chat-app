@@ -57,7 +57,9 @@ export default function TutorialPage() {
         </h2>
         <p className="text-sm text-muted-foreground">
           Diese drei Parteien sind{' '}
-          <strong className="font-semibold text-foreground">fiktiv</strong> und
+          {/* Styled span, not <strong>: keeps the sentence as one continuous
+              screen-reader chunk instead of fragmenting at the emphasis. */}
+          <span className="font-semibold text-foreground">fiktiv</span> und
           entsprechen keinen realen politischen Parteien — sie wurden nur für
           diese Studie erstellt.
         </p>

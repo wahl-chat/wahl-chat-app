@@ -7,7 +7,7 @@ import type {
   SessionMessage,
   StreamTargetType,
 } from '@/modules/guided-exploration/types';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { ConversationInput } from '@/modules/guided-exploration/components/conversation/conversation-input';
 import { ThinkingIndicator } from '@/modules/guided-exploration/components/conversation/thinking-indicator';
@@ -73,8 +73,9 @@ export function ExplorationChatView({
   deepLinkExplorationId,
   deepLinkLeafId,
 }: ExplorationChatViewProps) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
+  const lastBotMessageRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(messages.length);
 
   const hasMessages = messages.length > 0;
@@ -92,8 +93,12 @@ export function ExplorationChatView({
   const shouldShowStreamBuffer =
     !!streamBuffer && (isStreaming ? isStreamableType : true);
 
-  // Scroll the user's message to the top of the scroll container (not the page).
-  // Don't auto-scroll for bot responses — let them render below in view.
+  // On send, scroll the user's message to the top of the scroll container
+  // (not the page) and move focus onto it — the single managed focus move.
+  // Without the focus move the composer disables on submit and the browser
+  // drops focus to <body> (the "jumps to top-left" bug). Bot responses don't
+  // grab focus: they're announced via the status region and the user navigates
+  // to them by heading at their own pace.
   useEffect(() => {
     const newCount = messages.length;
     const prevCount = prevMessageCountRef.current;
@@ -111,12 +116,17 @@ export function ExplorationChatView({
           const element = lastUserMessageRef.current;
           if (!container || !element) return;
 
-          // Calculate element's position relative to the scroll container
+          // Calculate the wrapper's position relative to the scroll container
+          // (the sr-only heading is position:absolute, so its own offsetTop is
+          // meaningless — the wrapper is the scroll anchor).
           const elementTop = element.offsetTop - container.offsetTop;
           container.scrollTo({
             top: elementTop - 24, // 24px padding from top
             behavior: 'smooth',
           });
+          // Focus the message's heading (announces "Du: …" once), not the
+          // wrapper. preventScroll: our scrollTo already positioned it.
+          element.querySelector('h2')?.focus({ preventScroll: true });
         });
       }
     }
@@ -130,6 +140,97 @@ export function ExplorationChatView({
     return -1;
   })();
 
+  // The most recent non-user message. The assistant turn only lands in
+  // `messages` once it's complete (streaming lives in `streamBuffer`), so a new
+  // id here means "the answer just settled".
+  let lastBotMessage: SessionMessage | null = null;
+  let lastBotMessageIndex = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].type !== 'user') {
+      lastBotMessage = messages[i];
+      lastBotMessageIndex = i;
+      break;
+    }
+  }
+
+  // Seed the "already announced" id from whatever is present on the first
+  // render so a resumed/hydrated transcript doesn't fire a cue on load. A
+  // fresh session seeds `null`, so its very first answer still announces.
+  const seenBotIdRef = useRef<string | null>(null);
+  const didSeedRef = useRef(false);
+  if (!didSeedRef.current) {
+    didSeedRef.current = true;
+    seenBotIdRef.current = lastBotMessage?.id ?? null;
+  }
+
+  // Arrival handling. We announce only for the direction-selection prompt —
+  // there's no answer to read there, so a spoken cue is the signal. For
+  // assistant answers we stay silent in the live region and let the focus move
+  // (below) onto the heading announce arrival ("KI: …"); a competing
+  // "Antwort fertig." cue would interrupt a continuous read before it reaches
+  // the party cards and falsely signal completion.
+  const [finishedCue, setFinishedCue] = useState('');
+  useEffect(() => {
+    if (!lastBotMessage || seenBotIdRef.current === lastBotMessage.id) return;
+    seenBotIdRef.current = lastBotMessage.id;
+
+    const cue =
+      lastBotMessage.type === 'topic_directions'
+        ? 'Bitte wähle Aspekte aus.'
+        : '';
+    setFinishedCue(cue);
+
+    // Move focus onto the settled message so the cursor lands at the top of the
+    // new reply (its <h2> announces "KI: …"). Mirrors the scroll+focus the user
+    // message gets on send.
+    requestAnimationFrame(() => {
+      const container = scrollContainerRef.current;
+      const element = lastBotMessageRef.current;
+      if (!container || !element) return;
+      const elementTop = element.offsetTop - container.offsetTop;
+      container.scrollTo({ top: elementTop - 24, behavior: 'smooth' });
+      // Focus the message's heading (data-answer-start marks the latest bot
+      // one) so the cursor lands on "KI: …" / "Aspekt-Auswahl" — a heading,
+      // announced as "Überschrift" in every browser, never "group".
+      const target =
+        element.querySelector<HTMLElement>('[data-answer-start]') ??
+        element.querySelector<HTMLElement>('h2');
+      target?.focus({ preventScroll: true });
+    });
+
+    if (!cue) return;
+    const clear = setTimeout(() => setFinishedCue(''), 4500);
+    return () => clearTimeout(clear);
+  }, [lastBotMessage]);
+
+  // The choice prompt ("Wie möchtest du das Thema angehen?") isn't a message,
+  // so it never gets the settle focus above. Without this it lands the user
+  // nowhere and its only announcement (the status region) is easily missed.
+  // Move focus onto its heading when it appears so arrival is unmistakable and
+  // the options are one tab away.
+  const choicePromptRef = useRef<HTMLDivElement>(null);
+  const seenChoiceIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const id = pendingChoice?.queryId ?? null;
+    if (!id) {
+      seenChoiceIdRef.current = null;
+      return;
+    }
+    if (seenChoiceIdRef.current === id) return;
+    seenChoiceIdRef.current = id;
+
+    requestAnimationFrame(() => {
+      const container = scrollContainerRef.current;
+      const wrapper = choicePromptRef.current;
+      if (!container || !wrapper) return;
+      const elementTop = wrapper.offsetTop - container.offsetTop;
+      container.scrollTo({ top: elementTop - 24, behavior: 'smooth' });
+      wrapper.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
+    });
+  }, [pendingChoice]);
+
+  // One narration region drives all transient speech: process state while the
+  // answer is generating, then the brief arrival cue once it settles.
   const statusText = (() => {
     if (isStreaming) return 'KI-Antwort wird geschrieben.';
     if (isThinking) {
@@ -138,7 +239,7 @@ export function ExplorationChatView({
     if (pendingChoice) {
       return 'Du kannst jetzt oben wählen: „Schnelle Antwort" für eine kompakte Übersicht oder „Thema vertiefen", um Aspekte im Detail zu vergleichen.';
     }
-    return '';
+    return finishedCue;
   })();
 
   return (
@@ -153,9 +254,14 @@ export function ExplorationChatView({
       >
         {statusText}
       </div>
-      {/* Main content area */}
-      <div
+      {/* Conversation landmark: the scrollable transcript. A labelled region
+          is how screen-reader users jump *to* the conversation; the per-message
+          <h2> headings inside are how they jump *through* it. No rendered
+          heading here — that would just be one more thing to skip before the
+          first message. */}
+      <section
         ref={scrollContainerRef}
+        aria-label="Gesprächsverlauf"
         className="flex-1 overflow-auto"
         style={{
           maskImage:
@@ -181,6 +287,8 @@ export function ExplorationChatView({
                 isLoading={isThinking}
                 lastUserMessageIndex={lastUserMessageIndex}
                 lastUserMessageRef={lastUserMessageRef}
+                lastBotMessageIndex={lastBotMessageIndex}
+                lastBotMessageRef={lastBotMessageRef}
                 minDirections={minDirections}
                 deepLinkExplorationId={deepLinkExplorationId}
                 deepLinkLeafId={deepLinkLeafId}
@@ -222,24 +330,31 @@ export function ExplorationChatView({
 
               {/* Choice prompt */}
               {pendingChoice && (
-                <ChoicePromptCard
-                  choice={pendingChoice}
-                  onSubmit={(choice) =>
-                    onSubmitChoiceAction(pendingChoice.queryId, choice)
-                  }
-                  isLoading={isThinking}
-                />
+                <div ref={choicePromptRef}>
+                  <ChoicePromptCard
+                    choice={pendingChoice}
+                    onSubmit={(choice) =>
+                      onSubmitChoiceAction(pendingChoice.queryId, choice)
+                    }
+                    isLoading={isThinking}
+                  />
+                </div>
               )}
             </div>
           )}
           <div style={{ height: '3rem' }} />
         </div>
-      </div>
+      </section>
 
-      {/* Input - sticky at bottom */}
-      <div className="sticky bottom-0 w-full border-t bg-background px-4 py-3">
+      {/* Composer landmark: a sibling of the conversation so users can flip
+          between "Gesprächsverlauf" and the input with one landmark keystroke. */}
+      <section
+        aria-label="Nachricht an die KI"
+        className="sticky bottom-0 w-full border-t bg-background px-4 py-3"
+      >
         <div className="mx-auto w-full max-w-xl">
           <ConversationInput
+            inputId="chat-input"
             onSubmit={onSendMessageAction}
             disabled={isThinking || !!pendingChoice || hasActiveDirections}
             disabledReason={
@@ -255,7 +370,7 @@ export function ExplorationChatView({
             suggestedQuestions={suggestedQuestions}
           />
         </div>
-      </div>
+      </section>
     </div>
   );
 }

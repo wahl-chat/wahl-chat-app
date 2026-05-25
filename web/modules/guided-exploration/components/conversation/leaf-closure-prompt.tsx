@@ -27,7 +27,14 @@ export function LeafClosurePrompt({
       aria-labelledby="leaf-closure-heading"
       className="rounded-[24px] border border-primary/20 bg-primary/5 px-4 py-3"
     >
-      <h2 id="leaf-closure-heading" className="text-sm font-medium">
+      {/* tabIndex={-1}: the per-message "jump to input" skip-link focuses this
+          heading when the composer is replaced by this prompt, so SR users
+          aren't stranded on a dead link to the now-unmounted textarea. */}
+      <h2
+        id="leaf-closure-heading"
+        tabIndex={-1}
+        className="text-sm font-medium outline-none"
+      >
         Ich denke, wir haben das Wesentliche zu diesem Thema besprochen.
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">

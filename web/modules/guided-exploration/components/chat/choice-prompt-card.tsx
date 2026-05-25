@@ -22,7 +22,13 @@ export function ChoicePromptCard({
 
   return (
     <section aria-labelledby={headingId} className="space-y-3">
-      <h2 id={headingId} className="text-sm font-medium">
+      {/* tabIndex={-1}: the chat view moves focus here when the prompt appears
+          so arrival lands on a heading (announced as "Überschrift"). */}
+      <h2
+        id={headingId}
+        tabIndex={-1}
+        className="text-sm font-medium outline-none"
+      >
         Wie möchtest du das Thema angehen?
       </h2>
       <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-stretch">

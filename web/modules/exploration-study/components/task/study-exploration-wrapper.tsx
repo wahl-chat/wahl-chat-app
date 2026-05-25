@@ -4,12 +4,14 @@ import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { ExplorationChatView } from '@/modules/guided-exploration/components/chat/exploration-chat-view';
+import { LeafCloseAnnouncer } from '@/modules/guided-exploration/components/chat/leaf-close-announcer';
 import { LeafSidebar } from '@/modules/guided-exploration/components/chat/leaf-sidebar';
 import { ErrorBanner } from '@/modules/guided-exploration/components/shared';
 import { ExplorationLoading } from '@/modules/guided-exploration/components/shared/exploration-loading';
 import {
   useExploration,
   useLeafBackInterception,
+  useLeafCloseFlow,
 } from '@/modules/guided-exploration/hooks';
 import {
   uiActions,
@@ -100,6 +102,18 @@ export function StudyExplorationWrapper({
     autoCreateSession: false,
   });
 
+  // Close feedback: announce where the user landed and focus a "next topic /
+  // chat input" skip-link. Wraps open/close/mark-explored.
+  const { closeInfo, handleOpenLeaf, handleClose, handleMarkExplored } =
+    useLeafCloseFlow({
+      trees,
+      activeLeaf,
+      activeLeafNode,
+      openLeaf,
+      closeLeaf,
+      markExplored,
+    });
+
   useEffect(() => {
     if (isConnected && !hasNotifiedReady.current) {
       hasNotifiedReady.current = true;
@@ -135,8 +149,8 @@ export function StudyExplorationWrapper({
       return;
     }
     hasOpenedDeepLink.current = true;
-    openLeaf(deepLinkExplorationId, deepLinkLeaf);
-  }, [deepLinkLeaf, deepLinkExplorationId, openLeaf]);
+    handleOpenLeaf(deepLinkExplorationId, deepLinkLeaf);
+  }, [deepLinkLeaf, deepLinkExplorationId, handleOpenLeaf]);
 
   const handleDismissError = useCallback(() => {
     dispatch(uiActions.errorCleared());
@@ -145,21 +159,19 @@ export function StudyExplorationWrapper({
   // First browser-back press closes the leaf sheet instead of leaving
   // the task page — particularly important on mobile.
   const isLeafOpen = !!activeLeaf;
-  useLeafBackInterception({ isOpen: isLeafOpen, onBack: closeLeaf });
+  useLeafBackInterception({ isOpen: isLeafOpen, onBack: handleClose });
 
   if (!isConnected && mode === 'idle') {
     return <ExplorationLoading message="Verbindung wird hergestellt..." />;
   }
 
   return (
-    <div
-      id="main-content"
-      tabIndex={-1}
-      className="flex flex-1 flex-col overflow-hidden focus:outline-none"
-    >
+    <div className="flex flex-1 flex-col overflow-hidden">
       {error && (
         <ErrorBanner message={error.message} onDismiss={handleDismissError} />
       )}
+
+      <LeafCloseAnnouncer info={closeInfo} />
 
       <ExplorationChatView
         messages={sessionMessages}
@@ -177,7 +189,7 @@ export function StudyExplorationWrapper({
         onSendMessageAction={sendChatMessage}
         onSubmitChoiceAction={submitChoice}
         onDirectionChoiceAction={submitDirectionChoice}
-        onOpenLeafAction={openLeaf}
+        onOpenLeafAction={handleOpenLeaf}
         deepLinkExplorationId={deepLinkExplorationId}
         deepLinkLeafId={deepLinkLeaf}
       />
@@ -203,16 +215,9 @@ export function StudyExplorationWrapper({
             : undefined
         }
         onDismissSwitch={dismissTopicSwitch}
-        onMarkExplored={
-          activeLeaf
-            ? () => {
-                void markExplored(activeLeaf.explorationId, activeLeaf.leafId);
-                closeLeaf();
-              }
-            : undefined
-        }
+        onMarkExplored={activeLeaf ? handleMarkExplored : undefined}
         onContinueExploring={dismissClosurePrompt}
-        onClose={closeLeaf}
+        onClose={handleClose}
       />
     </div>
   );

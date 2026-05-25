@@ -39,6 +39,11 @@ interface ConversationInputProps {
   disabledReason?: string;
   placeholder?: string;
   className?: string;
+  /**
+   * id applied to the textarea so skip-links (e.g. "Zur Chat-Eingabe
+   * springen") can move focus directly here.
+   */
+  inputId?: string;
   /** Suggested follow-up questions shown as clickable buttons above the input */
   suggestedQuestions?: string[];
   /** Whether follow-up questions are currently being generated */
@@ -62,6 +67,7 @@ export function ConversationInput({
   disabledReason,
   placeholder = 'Stelle eine Frage...',
   className,
+  inputId,
   suggestedQuestions = [],
   isLoadingQuestions = false,
   showFirstMessageHint = false,
@@ -121,8 +127,10 @@ export function ConversationInput({
   return (
     <div className={cn('relative flex w-full flex-col gap-2', className)}>
       {showFirstMessageHint && (
+        // Purely a visual nudge — hidden from screen readers (the textarea's
+        // own label already tells SR users this is the message input).
         <div
-          aria-hidden={input.length > 0}
+          aria-hidden="true"
           className={cn(
             'pointer-events-none absolute -top-2 left-1/2 z-10 flex -translate-x-1/2 -translate-y-full flex-col items-center transition-opacity duration-200',
             input.length > 0 ? 'opacity-0' : 'opacity-100',
@@ -139,9 +147,12 @@ export function ConversationInput({
         </div>
       )}
       {/* Suggested questions — single scrollable row, collapses entirely
-          when there are no questions and we're not loading. */}
+          when there are no questions and we're not loading. Not a live region:
+          announcing the whole list read the follow-ups aloud unprompted on
+          open. They stay discoverable via the "Vorgeschlagene Rückfragen"
+          landmark and the tab order. */}
       {(showLoading || showQuestions) && (
-        <div className="h-9" aria-live="polite">
+        <div className="h-9">
           {showLoading && (
             <div className="flex gap-2 overflow-hidden">
               <Skeleton className="h-8 w-48 shrink-0 rounded-full" />
@@ -183,6 +194,7 @@ export function ConversationInput({
         >
           <textarea
             ref={textareaRef}
+            id={inputId}
             className="block w-full resize-none bg-transparent px-4 pt-3 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             placeholder={placeholder}
             onChange={handleChange}

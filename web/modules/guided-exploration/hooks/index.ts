@@ -15,3 +15,9 @@ export {
 } from './use-exploration';
 
 export { useLeafBackInterception } from './use-leaf-back-interception';
+
+export {
+  useLeafCloseFlow,
+  type LeafCloseInfo,
+  type UseLeafCloseFlowReturn,
+} from './use-leaf-close-flow';

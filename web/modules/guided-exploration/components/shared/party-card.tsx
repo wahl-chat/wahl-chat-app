@@ -65,10 +65,9 @@ export function PartyCard({
           )}
         </div>
 
-        {/* Party name - visible to all users */}
-        <span className="text-base font-bold text-foreground">
-          {displayName}
-        </span>
+        {/* Party name as a real heading (h3, under the message's h2) so SR
+            users can jump card-to-card with the headings command. */}
+        <h3 className="text-base font-bold text-foreground">{displayName}</h3>
 
         {/* Streaming indicator */}
         {isStreaming && (

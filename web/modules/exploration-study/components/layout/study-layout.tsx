@@ -58,19 +58,25 @@ export function StudyLayout({
           stepLabel={progress.label}
         />
       )}
-      <main
-        ref={mainRef}
-        id={hideHeader ? undefined : 'main-content'}
-        tabIndex={hideHeader ? undefined : -1}
-        aria-label="Studieninhalt"
-        className={cn(
-          'flex flex-1 flex-col focus:outline-none',
-          !hideHeader && 'px-4 pt-8 pb-20',
-          className,
-        )}
-      >
-        {children}
-      </main>
+      {hideHeader ? (
+        // Task page: no page-level <main> wrapper. The task screen supplies
+        // its own landmarks (progress <header> banner + the task <main>), so
+        // wrapping everything here would make <main> swallow the headers.
+        <div className={cn('flex flex-1 flex-col', className)}>{children}</div>
+      ) : (
+        <main
+          ref={mainRef}
+          id="main-content"
+          tabIndex={-1}
+          aria-label="Studieninhalt"
+          className={cn(
+            'flex flex-1 flex-col px-4 pt-8 pb-20 focus:outline-none',
+            className,
+          )}
+        >
+          {children}
+        </main>
+      )}
     </div>
   );
 }

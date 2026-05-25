@@ -26,6 +26,10 @@ export default function TaskPage() {
 
   const [pageState, setPageState] = useState<PageState>('loading');
   const [error, setError] = useState<string | null>(null);
+  // Step announcement for this route. StudyLayout deliberately skips its own
+  // focus/announcement on the task route (it hides the header), so we mirror
+  // that behaviour here once the content for a state is ready.
+  const [stepAnnouncement, setStepAnnouncement] = useState('');
 
   // Session info for intro
   const [sessionInfo, setSessionInfo] = useState<{
@@ -137,6 +141,25 @@ export default function TaskPage() {
 
   const progress = getProgress('task');
 
+  // On arrival at a ready state, announce the step and move focus to the top
+  // of the content (the "Deine Aufgabe" heading on the intro; the chat content
+  // region once the task is live) so screen-reader users land in the right
+  // place instead of at the top of the document.
+  useEffect(() => {
+    if (pageState !== 'intro' && pageState !== 'task') return;
+    setStepAnnouncement(
+      `Schritt ${progress.currentStep} von ${progress.totalSteps}: ${progress.label}`,
+    );
+    const raf = requestAnimationFrame(() => {
+      const target =
+        pageState === 'intro'
+          ? document.querySelector<HTMLElement>('[data-task-intro-heading]')
+          : document.getElementById('main-content');
+      target?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [pageState, progress.currentStep, progress.totalSteps, progress.label]);
+
   if (pageState === 'loading') {
     return (
       <div className="flex h-dvh flex-col overflow-hidden">
@@ -190,6 +213,14 @@ export default function TaskPage() {
           totalSteps={progress.totalSteps}
           stepLabel={progress.label}
         />
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {stepAnnouncement}
+        </div>
         <div className="flex-1 overflow-auto py-8">
           <TaskIntro
             topic={sessionInfo.topic}
@@ -211,6 +242,14 @@ export default function TaskPage() {
           totalSteps={progress.totalSteps}
           stepLabel={progress.label}
         />
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {stepAnnouncement}
+        </div>
         <TaskContainer
           durationSeconds={taskData.durationSeconds}
           startedAt={taskData.taskStartedAt}

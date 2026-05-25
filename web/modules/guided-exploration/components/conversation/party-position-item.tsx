@@ -15,7 +15,8 @@ interface PartyPositionItemProps {
 }
 
 /**
- * Single party position as list item with markdown content
+ * Single party position card with markdown content. Flows inline within the
+ * opening overview turn (no list semantics) so the leaf reads as one message.
  */
 export function PartyPositionItem({
   position,
@@ -25,18 +26,16 @@ export function PartyPositionItem({
     useCitationHandlers(citations);
 
   return (
-    <li className="list-none">
-      <PartyCard partyId={position.party}>
-        <div className="prose prose-sm max-w-none text-foreground dark:prose-invert prose-p:font-normal prose-p:text-foreground">
-          <CitationMarkdown
-            onReferenceClick={handleReferenceClick}
-            getReferenceName={getReferenceName}
-            getReferenceTooltip={getReferenceTooltip}
-          >
-            {position.content}
-          </CitationMarkdown>
-        </div>
-      </PartyCard>
-    </li>
+    <PartyCard partyId={position.party}>
+      <div className="prose prose-sm max-w-none text-foreground dark:prose-invert prose-p:font-normal prose-p:text-foreground">
+        <CitationMarkdown
+          onReferenceClick={handleReferenceClick}
+          getReferenceName={getReferenceName}
+          getReferenceTooltip={getReferenceTooltip}
+        >
+          {position.content}
+        </CitationMarkdown>
+      </div>
+    </PartyCard>
   );
 }

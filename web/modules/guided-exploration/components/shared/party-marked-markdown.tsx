@@ -20,6 +20,11 @@ interface PartyMarkedMarkdownProps {
   getReferenceTooltip?: (id: string) => string | null;
   /** Whether the content is currently streaming */
   isStreaming?: boolean;
+  /**
+   * Heading level the surrounding context occupies; markdown headings render
+   * offset below it. Forwarded to CitationMarkdown. Defaults to its value (3).
+   */
+  baseHeadingLevel?: number;
 }
 
 /**
@@ -32,6 +37,7 @@ const NonMemoizedPartyMarkedMarkdown = ({
   onReferenceClick,
   getReferenceName,
   getReferenceTooltip,
+  baseHeadingLevel,
 }: PartyMarkedMarkdownProps) => {
   if (!hasPartyMarkers(children)) {
     return (
@@ -40,6 +46,7 @@ const NonMemoizedPartyMarkedMarkdown = ({
           onReferenceClick={onReferenceClick}
           getReferenceName={getReferenceName}
           getReferenceTooltip={getReferenceTooltip}
+          baseHeadingLevel={baseHeadingLevel}
         >
           {children}
         </CitationMarkdown>
@@ -64,6 +71,7 @@ const NonMemoizedPartyMarkedMarkdown = ({
                   onReferenceClick={onReferenceClick}
                   getReferenceName={getReferenceName}
                   getReferenceTooltip={getReferenceTooltip}
+                  baseHeadingLevel={baseHeadingLevel}
                 >
                   {section.content}
                 </CitationMarkdown>
@@ -81,6 +89,7 @@ const NonMemoizedPartyMarkedMarkdown = ({
               onReferenceClick={onReferenceClick}
               getReferenceName={getReferenceName}
               getReferenceTooltip={getReferenceTooltip}
+              baseHeadingLevel={baseHeadingLevel}
             >
               {section.content}
             </CitationMarkdown>
@@ -95,5 +104,6 @@ export const PartyMarkedMarkdown = memo(
   NonMemoizedPartyMarkedMarkdown,
   (prevProps, nextProps) =>
     prevProps.children === nextProps.children &&
-    prevProps.isStreaming === nextProps.isStreaming,
+    prevProps.isStreaming === nextProps.isStreaming &&
+    prevProps.baseHeadingLevel === nextProps.baseHeadingLevel,
 );

@@ -36,7 +36,10 @@ export function ExplorationOverviewCard({
       </div>
 
       {overview.partySummaries.length > 0 && (
-        <ul className="flex list-none flex-col gap-2 pl-0">
+        <ul
+          aria-label="Zusammenfassung nach Parteien"
+          className="flex list-none flex-col gap-2 pl-0"
+        >
           {overview.partySummaries.map((entry) => (
             <li key={entry.partyId}>
               <PartyCard partyId={entry.partyId}>

@@ -1,8 +1,8 @@
 'use client';
 
 import { useContextParties } from '@/components/providers/context-provider';
-import VisuallyHidden from '@/components/visually-hidden';
 import { MessageCitationsList } from '@/modules/guided-exploration/components/shared/message-citations-list';
+import { MessageNavLinks } from '@/modules/guided-exploration/components/shared/message-nav-links';
 import { PartyCard } from '@/modules/guided-exploration/components/shared/party-card';
 import type {
   PartyPosition,
@@ -20,15 +20,37 @@ interface InitialContentMessageProps {
    * why a party is missing.
    */
   showMissingPartiesPlaceholder?: boolean;
+  /**
+   * Heading id of the next message in the transcript. Drives the "jump to
+   * next message" skip-link rendered before this turn's sources.
+   */
+  nextHeadingId?: string | null;
+  /** Contextual link text for the next-message skip-link. */
+  nextLabel?: string;
+  /**
+   * Target id for the "jump to input" skip-link. Usually the leaf composer
+   * (`leaf-chat-input`), but switches to the closure prompt's heading when the
+   * LLM has replaced the composer with a closure prompt.
+   */
+  inputId?: string;
+  /** Contextual link text for the "jump to input" skip-link. */
+  inputLabel?: string;
 }
 
 /**
- * Renders the initial subtopic content as a styled article/message
+ * Renders the party-position cards of the opening leaf turn. No wrapper
+ * landmark or section heading — the cards flow directly beneath the
+ * "Initiale Übersicht" heading owned by the leaf summary, so the whole opening
+ * turn reads as a single chat message.
  */
 export function InitialContentMessage({
   content,
   messageId,
   showMissingPartiesPlaceholder = false,
+  nextHeadingId = null,
+  nextLabel,
+  inputId = 'leaf-chat-input',
+  inputLabel = 'Zum Eingabefeld springen, um eine eigene Frage zu stellen',
 }: InitialContentMessageProps) {
   const contextParties = useContextParties();
 
@@ -63,42 +85,40 @@ export function InitialContentMessage({
   })();
 
   return (
-    <article className="space-y-4">
-      {/* Party positions render as cards directly below the assistant
-          summary text — no visible heading, so the whole leaf reads as a
-          single chat reply. The heading stays for screen readers. */}
-      {orderedEntries.length > 0 && (
-        <>
-          <VisuallyHidden>
-            <h3>Parteipositionen</h3>
-          </VisuallyHidden>
-          <ul className="space-y-4">
-            {orderedEntries.map(({ partyId, position }) =>
-              position ? (
-                <PartyPositionItem
-                  key={partyId}
-                  position={position}
-                  citations={content.citations}
-                />
-              ) : (
-                <li key={partyId} className="list-none">
-                  <PartyCard partyId={partyId} className="opacity-70">
-                    <p className="text-sm italic text-muted-foreground">
-                      Diese Partei hat zu diesem Aspekt keine Position in ihrem
-                      Wahlprogramm formuliert.
-                    </p>
-                  </PartyCard>
-                </li>
-              ),
-            )}
-          </ul>
-        </>
-      )}
+    <div className="space-y-4">
+      {/* Party positions render as cards directly below the assistant summary
+          text — flowing, no list/landmark wrapper, so the whole opening turn
+          reads as a single chat reply under the "Initiale Übersicht" heading. */}
+      {orderedEntries.length > 0 &&
+        orderedEntries.map(({ partyId, position }) =>
+          position ? (
+            <PartyPositionItem
+              key={partyId}
+              position={position}
+              citations={content.citations}
+            />
+          ) : (
+            <PartyCard key={partyId} partyId={partyId} className="opacity-70">
+              <p className="text-sm italic text-muted-foreground">
+                Diese Partei hat zu diesem Aspekt keine Position in ihrem
+                Wahlprogramm formuliert.
+              </p>
+            </PartyCard>
+          ),
+        )}
 
+      {/* Before the sources: skip straight to the next message or the
+          composer, so SR users aren't forced to arrow through every citation. */}
+      <MessageNavLinks
+        nextHeadingId={nextHeadingId}
+        nextLabel={nextLabel}
+        inputId={inputId}
+        inputLabel={inputLabel}
+      />
       <MessageCitationsList
         citations={content.citations}
         messageId={messageId}
       />
-    </article>
+    </div>
   );
 }

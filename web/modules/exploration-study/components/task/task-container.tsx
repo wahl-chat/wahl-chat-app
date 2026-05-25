@@ -168,8 +168,14 @@ export function TaskContainer({
     : `Du kannst die Aufgabe erst nach 7 Minuten beenden. Noch ${Math.ceil(secondsUntilUnlock / 60)} Minuten.`;
 
   return (
-    <div
-      className={cn('relative flex-1 overflow-hidden flex flex-col', className)}
+    <main
+      id="main-content"
+      aria-label="Aufgabe"
+      tabIndex={-1}
+      className={cn(
+        'relative flex flex-1 flex-col overflow-hidden focus:outline-none',
+        className,
+      )}
     >
       {/* Warning announcer (for time-remaining thresholds) */}
       <div
@@ -189,8 +195,10 @@ export function TaskContainer({
         {unlockMessage}
       </div>
 
-      {/* Task header with timer and end button */}
-      <header
+      {/* Task controls: timer and end button. A labelled <section> is a
+          navigable region landmark — a <header> nested inside <main> isn't a
+          banner and otherwise exposes no landmark to jump to. */}
+      <section
         aria-label="Aufgaben-Steuerung"
         className="flex items-center justify-between gap-3 border-b bg-background px-4 py-2"
       >
@@ -226,7 +234,7 @@ export function TaskContainer({
             {lockReason}
           </span>
         </div>
-      </header>
+      </section>
 
       {/* Exploration content */}
       <div className="flex flex-1 flex-col overflow-hidden">{children}</div>
@@ -272,6 +280,6 @@ export function TaskContainer({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </main>
   );
 }

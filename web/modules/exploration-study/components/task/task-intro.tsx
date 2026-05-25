@@ -72,17 +72,24 @@ export function TaskIntro({
       <Card>
         <CardHeader>
           <CardTitle>
-            <h2>Deine Aufgabe</h2>
+            {/* Focus target on arrival; tabIndex={-1} so it isn't a tab stop. */}
+            <h2 data-task-intro-heading tabIndex={-1} className="outline-none">
+              Deine Aufgabe
+            </h2>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* Visual emphasis uses font-weight spans, not <strong>: a semantic
+              element makes each highlighted run its own VoiceOver navigation
+              stop, which fragments the sentence for screen-reader users. */}
           <p>
             Stell dir vor, eine gute Freundin von dir möchte bei der
             bevorstehenden Wahl ihre Stimme abgeben und ist sich noch unsicher,
             welche Partei sie wählen soll. Sie hat dich gefragt, was die
-            Parteien <strong>Venus</strong>, <strong>Mars</strong> und{' '}
-            <strong>Saturn</strong> zum Thema <strong>{topicInfo.title}</strong>{' '}
-            sagen.
+            Parteien <span className="font-bold">Venus</span>,{' '}
+            <span className="font-bold">Mars</span> und{' '}
+            <span className="font-bold">Saturn</span> zum Thema{' '}
+            <span className="font-bold">{topicInfo.title}</span> sagen.
           </p>
           <p>
             Ihr trefft euch gleich, und sie wird dich zu den Positionen der
@@ -99,15 +106,16 @@ export function TaskIntro({
         </CardHeader>
         <CardContent className="space-y-3">
           <p>
-            Du hast jetzt <strong>{minutesLabel}</strong> Zeit, dich mit
-            wahl.chat auf dieses Gespräch vorzubereiten.{' '}
+            Du hast jetzt <span className="font-bold">{minutesLabel}</span>{' '}
+            Zeit, dich mit wahl.chat auf dieses Gespräch vorzubereiten.{' '}
             {isGuided
               ? 'Die KI bietet dir passende Erkundungen an, in denen du die Parteipositionen Schritt für Schritt vergleichen kannst.'
               : 'Du chattest frei mit der KI und stellst ihr deine Fragen zu den Parteipositionen.'}
           </p>
           <p>
-            Bitte mach dir <strong>keine Notizen</strong> — uns interessiert,
-            was du aus dem Gespräch behältst.
+            Bitte mach dir <span className="font-bold">keine Notizen</span> und
+            nutze <span className="font-bold">keine Hilfsmittel</span> — uns
+            interessiert, was du aus dem Gespräch behältst.
           </p>
           <p>
             Nach deiner Vorbereitung beginnt das Gespräch mit deiner Freundin:
@@ -122,9 +130,10 @@ export function TaskIntro({
           className="mt-0.5 size-5 shrink-0 text-primary"
         />
         <p>
-          <strong>Bonus:</strong> Unter den besten Quiz-Leistungen verlosen wir
-          einen <strong>10€-Amazon-Gutschein</strong>. Eine gute Vorbereitung
-          lohnt sich also.
+          <span className="font-bold">Bonus:</span> Unter den besten
+          Quiz-Leistungen verlosen wir einen{' '}
+          <span className="font-bold">10€-Amazon-Gutschein</span>. Eine gute
+          Vorbereitung lohnt sich also.
         </p>
       </div>
 

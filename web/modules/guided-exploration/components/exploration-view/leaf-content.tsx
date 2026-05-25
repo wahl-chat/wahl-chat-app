@@ -1,9 +1,8 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import VisuallyHidden from '@/components/visually-hidden';
 import { cn } from '@/lib/utils';
 import {
   FollowupMessage,
@@ -12,6 +11,7 @@ import {
 } from '@/modules/guided-exploration/components/conversation';
 import { TopicSwitchCard } from '@/modules/guided-exploration/components/conversation/topic-switch-card';
 import { CitationMarkdown } from '@/modules/guided-exploration/components/shared/citation-markdown';
+import { leafMessageHeadingId } from '@/modules/guided-exploration/components/shared/message-nav-links';
 import { PartyMarkedMarkdown } from '@/modules/guided-exploration/components/shared/party-marked-markdown';
 import type {
   Conversation,
@@ -59,6 +59,19 @@ interface LeafContentProps {
    * all assigned parties.
    */
   showMissingPartiesPlaceholder?: boolean;
+  /**
+   * id of the most recent assistant turn. Its heading becomes the focus
+   * target (`data-leaf-latest-answer`) the sidebar moves focus to when the
+   * answer settles.
+   */
+  latestAnswerId?: string | null;
+  /**
+   * True when the LLM has proposed closing the leaf, so the composer is
+   * replaced by the closure prompt. Re-points the per-message "jump to input"
+   * skip-links at the closure prompt's heading (instead of the now-unmounted
+   * composer) so they never dead-end.
+   */
+  showClosurePrompt?: boolean;
   className?: string;
 }
 
@@ -75,16 +88,51 @@ export function LeafContent({
   streamingTargetType,
   hideAspectView = false,
   showMissingPartiesPlaceholder = false,
+  latestAnswerId = null,
+  showClosurePrompt = false,
   className,
 }: LeafContentProps) {
   const [viewMode, setViewMode] = useState<'party' | 'aspect'>('party');
-  const summaryHeadingId = useId();
 
   // Derived up-front so the citation hook below can run before the early
   // return (rules of hooks).
   const initialMessage = conversation?.messages.find(
     (m) => m.type === 'initial_content' && typeof m.content !== 'string',
   );
+  const initialHeadingId = initialMessage
+    ? leafMessageHeadingId(initialMessage.id)
+    : undefined;
+
+  // Heading id + contextual link text of the message *after* each message, so
+  // a "jump to next message" link can skip past the current turn's source list
+  // and announce what it lands on. Built over the full message order; works for
+  // both the party and aspect views (the latter just omits the opening turn's
+  // cards, the ids still resolve).
+  const nextNavById = new Map<string, { headingId: string; label: string }>();
+  const orderedMessages = conversation?.messages ?? [];
+  for (let i = 0; i < orderedMessages.length - 1; i++) {
+    const next = orderedMessages[i + 1];
+    const label =
+      next.type === 'initial_content'
+        ? 'Zur Themenzusammenfassung der KI springen'
+        : next.role === 'user'
+          ? 'Zu deiner nächsten Frage springen'
+          : 'Zur nächsten Antwort der KI springen';
+    nextNavById.set(orderedMessages[i].id, {
+      headingId: leafMessageHeadingId(next.id),
+      label,
+    });
+  }
+
+  // When the LLM proposes closing the leaf, the composer is unmounted and
+  // replaced by the closure prompt — so the per-message "jump to input" links
+  // must target the prompt's heading instead, or they'd focus nothing.
+  const inputId = showClosurePrompt
+    ? 'leaf-closure-heading'
+    : 'leaf-chat-input';
+  const inputLabel = showClosurePrompt
+    ? 'Zur Abschlussfrage der KI springen'
+    : 'Zum Eingabefeld springen, um eine eigene Frage zu stellen';
   const initialContent =
     initialMessage && typeof initialMessage.content !== 'string'
       ? (initialMessage.content as SubtopicContent)
@@ -112,7 +160,12 @@ export function LeafContent({
             </div>
           </div>
         )}
-        <ThinkingIndicator message="Inhalte werden geladen..." />
+        {/* announce={false}: the sidebar's status region owns SR narration
+            for the leaf's thinking/streaming state. */}
+        <ThinkingIndicator
+          message="Inhalte werden geladen..."
+          announce={false}
+        />
       </div>
     );
   }
@@ -153,13 +206,30 @@ export function LeafContent({
           assistant turn. */}
       {initialContent?.summary && (
         <div className="prose prose-sm max-w-none text-foreground dark:prose-invert prose-p:font-normal prose-p:text-foreground">
-          <VisuallyHidden>
-            <h3 id={summaryHeadingId}>Antwort der KI:</h3>
-          </VisuallyHidden>
+          {/* sr-only heading for the whole opening turn (summary text + party
+              cards flow beneath it). Also the focus target when the leaf opens:
+              the sidebar focuses [data-leaf-latest-answer] on settle, landing
+              on "Initiale Übersicht" — a heading, announced as "Überschrift" in
+              every browser (never "group"). */}
+          <h2
+            id={initialHeadingId}
+            data-leaf-latest-answer={
+              latestAnswerId && initialMessage?.id === latestAnswerId
+                ? ''
+                : undefined
+            }
+            tabIndex={-1}
+            className="sr-only outline-none"
+          >
+            {leafName
+              ? `Initiale Übersicht zum Thema „${leafName}“`
+              : 'Initiale Übersicht'}
+          </h2>
           <CitationMarkdown
             onReferenceClick={handleSummaryReferenceClick}
             getReferenceName={getSummaryReferenceName}
             getReferenceTooltip={getSummaryReferenceTooltip}
+            baseHeadingLevel={2}
           >
             {initialContent.summary}
           </CitationMarkdown>
@@ -206,7 +276,15 @@ export function LeafContent({
           {conversation.messages
             .filter((m) => m.type !== 'initial_content')
             .map((message) => (
-              <FollowupMessage key={message.id} message={message} />
+              <FollowupMessage
+                key={message.id}
+                message={message}
+                isLatestAnswer={message.id === latestAnswerId}
+                nextHeadingId={nextNavById.get(message.id)?.headingId ?? null}
+                nextLabel={nextNavById.get(message.id)?.label}
+                inputId={inputId}
+                inputLabel={inputLabel}
+              />
             ))}
         </>
       )}
@@ -225,12 +303,26 @@ export function LeafContent({
                 messageId={message.id}
                 content={message.content as SubtopicContent}
                 showMissingPartiesPlaceholder={showMissingPartiesPlaceholder}
+                nextHeadingId={nextNavById.get(message.id)?.headingId ?? null}
+                nextLabel={nextNavById.get(message.id)?.label}
+                inputId={inputId}
+                inputLabel={inputLabel}
               />
             );
           }
 
           // All others are followup text messages
-          return <FollowupMessage key={message.id} message={message} />;
+          return (
+            <FollowupMessage
+              key={message.id}
+              message={message}
+              isLatestAnswer={message.id === latestAnswerId}
+              nextHeadingId={nextNavById.get(message.id)?.headingId ?? null}
+              nextLabel={nextNavById.get(message.id)?.label}
+              inputId={inputId}
+              inputLabel={inputLabel}
+            />
+          );
         })}
 
       {/* Streaming content while loading - only for followup messages.
@@ -259,6 +351,7 @@ export function LeafContent({
               ? 'Inhalte werden generiert...'
               : (thinkingMessage ?? undefined)
           }
+          announce={false}
         />
       )}
     </div>

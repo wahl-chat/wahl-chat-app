@@ -4,7 +4,7 @@ import { useContextParty } from '@/components/providers/context-provider';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
 import type { AspectComparison } from '@/modules/guided-exploration/types';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 interface AspectComparisonViewProps {
   comparison: AspectComparison;
@@ -15,6 +15,7 @@ export function AspectComparisonView({
   comparison,
   className,
 }: AspectComparisonViewProps) {
+  const baseId = useId();
   if (comparison.aspects.length === 0) {
     return (
       <p className="text-sm text-foreground">
@@ -25,26 +26,35 @@ export function AspectComparisonView({
 
   return (
     <div className={cn('space-y-4', className)}>
-      {comparison.aspects.map((aspect) => (
-        <article
-          key={aspect.name}
-          className="overflow-hidden rounded-lg border bg-card"
-        >
-          <h3 className="border-b bg-muted/40 px-4 py-2.5 text-base font-bold text-foreground">
-            {aspect.name}
-          </h3>
-          <ul className="grid list-none grid-cols-1 gap-2 p-3 sm:grid-cols-2">
-            {aspect.partyStances.map((stance) => (
-              <li key={stance.party}>
-                <CompactPartyCard
-                  partyId={stance.party}
-                  stance={stance.stance}
-                />
-              </li>
-            ))}
-          </ul>
-        </article>
-      ))}
+      {comparison.aspects.map((aspect, index) => {
+        const aspectHeadingId = `${baseId}-${index}`;
+        return (
+          <article
+            key={aspect.name}
+            className="overflow-hidden rounded-lg border bg-card"
+          >
+            <h3
+              id={aspectHeadingId}
+              className="border-b bg-muted/40 px-4 py-2.5 text-base font-bold text-foreground"
+            >
+              {aspect.name}
+            </h3>
+            <ul
+              aria-labelledby={aspectHeadingId}
+              className="grid list-none grid-cols-1 gap-2 p-3 sm:grid-cols-2"
+            >
+              {aspect.partyStances.map((stance) => (
+                <li key={stance.party}>
+                  <CompactPartyCard
+                    partyId={stance.party}
+                    stance={stance.stance}
+                  />
+                </li>
+              ))}
+            </ul>
+          </article>
+        );
+      })}
     </div>
   );
 }

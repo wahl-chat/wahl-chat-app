@@ -22,7 +22,25 @@ interface CitationMarkdownProps {
   getReferenceName?: (id: string) => string | null;
   /** Get tooltip text for a citation ID */
   getReferenceTooltip?: (id: string) => string | null;
+  /**
+   * Heading level the surrounding context occupies (chat messages use 3).
+   * Markdown headings render offset below it — min(baseHeadingLevel + level, 6)
+   * — so an `h2` inside answer content becomes a real `h5` nested under the
+   * message's `h3` rather than jumping back to level 2 and scrambling the
+   * conversation's heading outline. Visual sizing stays tied to the markdown
+   * level, only the semantic tag shifts.
+   */
+  baseHeadingLevel?: number;
 }
+
+// Visual sizing keyed to the markdown heading level (h1..h4), independent of
+// the rendered tag, so an offset h2 still looks like a markdown h2.
+const HEADING_CLASS_BY_LEVEL: Record<number, string> = {
+  1: 'my-0 text-2xl font-bold',
+  2: 'my-0 text-xl font-semibold',
+  3: 'my-0 text-lg font-semibold',
+  4: 'my-0 text-base font-semibold',
+};
 
 // Combined splitter for inline tokens we want to extract from text:
 //   - citations:    [id]  or  [id1, id2]
@@ -91,6 +109,7 @@ const NonMemoizedCitationMarkdown = ({
   onReferenceClick,
   getReferenceTooltip,
   getReferenceName,
+  baseHeadingLevel = 3,
 }: CitationMarkdownProps) => {
   const cleanProps = (props: Record<string, unknown>) => {
     const rest = { ...props };
@@ -167,6 +186,26 @@ const NonMemoizedCitationMarkdown = ({
     return createElement(tag, props, children);
   }
 
+  // Renders a markdown heading of `markdownLevel` (1..4) as a real heading tag
+  // offset below the surrounding context — clamped to h6 — keeping it
+  // navigable in the heading rotor while nesting correctly under the message.
+  const renderHeading =
+    (markdownLevel: number) =>
+    ({
+      children,
+      ...props
+    }: DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>) => {
+      const tagLevel = Math.min(baseHeadingLevel + markdownLevel, 6);
+      return checkAndBuildReference(
+        `h${tagLevel}` as keyof JSX.IntrinsicElements,
+        {
+          children,
+          className: HEADING_CLASS_BY_LEVEL[markdownLevel],
+          ...cleanProps(props),
+        },
+      );
+    };
+
   const components: Partial<Components> = {
     code: (props) => {
       const { className, children, ...rest } = props;
@@ -201,6 +240,9 @@ const NonMemoizedCitationMarkdown = ({
       return checkAndBuildReference('li', {
         children,
         className: 'py-1',
+        // role="text" flattens inline badges/citation chips/<br> into one
+        // continuous VoiceOver string so the item reads as a single chunk.
+        role: 'text',
         ...cleanProps(props),
       });
     },
@@ -212,6 +254,9 @@ const NonMemoizedCitationMarkdown = ({
       );
     },
     strong: ({ children, ...props }) => {
+      // Rendered as a styled span, not <strong>: a real emphasis element
+      // fragments the surrounding text into separate VoiceOver chunks. The
+      // bold is purely visual here.
       return checkAndBuildReference('span', {
         children,
         className: 'font-semibold',
@@ -222,7 +267,13 @@ const NonMemoizedCitationMarkdown = ({
       return checkAndBuildReference('em', { children, ...cleanProps(props) });
     },
     p: ({ children, ...props }) => {
-      return checkAndBuildReference('p', { children, ...cleanProps(props) });
+      // role="text" flattens inline badges/citation chips/<br> into one
+      // continuous VoiceOver string so the paragraph reads as a single chunk.
+      return checkAndBuildReference('p', {
+        children,
+        role: 'text',
+        ...cleanProps(props),
+      });
     },
     a: ({ children, href, ...props }) => {
       if (!href) {
@@ -247,30 +298,12 @@ const NonMemoizedCitationMarkdown = ({
         </Link>
       );
     },
-    h1: ({ children, ...props }) =>
-      checkAndBuildReference('h1', {
-        children,
-        className: 'my-0 text-2xl font-bold',
-        ...cleanProps(props),
-      }),
-    h2: ({ children, ...props }) =>
-      checkAndBuildReference('h2', {
-        children,
-        className: 'my-0 text-xl font-semibold',
-        ...cleanProps(props),
-      }),
-    h3: ({ children, ...props }) =>
-      checkAndBuildReference('h3', {
-        children,
-        className: 'my-0 text-lg font-semibold',
-        ...cleanProps(props),
-      }),
-    h4: ({ children, ...props }) =>
-      checkAndBuildReference('h4', {
-        children,
-        className: 'my-0 text-base font-semibold',
-        ...cleanProps(props),
-      }),
+    // Headings stay real headings (no role="text") so they remain in the
+    // heading rotor; renderHeading offsets their level below the message.
+    h1: renderHeading(1),
+    h2: renderHeading(2),
+    h3: renderHeading(3),
+    h4: renderHeading(4),
   };
 
   return (
@@ -282,5 +315,7 @@ const NonMemoizedCitationMarkdown = ({
 
 export const CitationMarkdown = memo(
   NonMemoizedCitationMarkdown,
-  (prevProps, nextProps) => prevProps.children === nextProps.children,
+  (prevProps, nextProps) =>
+    prevProps.children === nextProps.children &&
+    prevProps.baseHeadingLevel === nextProps.baseHeadingLevel,
 );

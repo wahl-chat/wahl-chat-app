@@ -43,9 +43,10 @@ class LeafContentGeneratorLLMOutput(BaseModel):
     summary: str = Field(
         ...,
         description=(
-            "Kurze Themen-Einleitung (1-2 Sätze, max ~30 Wörter). "
+            "Kurze Themen-Einleitung (1-2 Sätze, max ~25 Wörter). "
             "Rahmt worum es geht, verrät aber NICHT die Parteipositionen. "
-            "Keine Zahlen, keine Parteinamen, keine Inline-Zitationen `[id]`."
+            "Keine Zahlen, keine Parteinamen, keine Inline-Zitationen `[id]`, "
+            "keine Frage an den Nutzer (dafür sind die Folgefragen da)."
         ),
     )
     party_positions: list[LLMPartyPosition] = Field(
@@ -82,47 +83,37 @@ werden. Detailfragen werden über die Folgefragen aufgemacht.
 # Inhaltsstruktur
 
 ## 1. Zusammenfassung (summary)
-Zwei Teile als zusammenhängender Fließtext, in dieser Reihenfolge.
-**Keine Inline-Zitationen `[id]` in der summary** — weder in der
-Themen-Rahmung noch in der Einladung.
-
-**a) Themen-Rahmung** (1-2 Sätze, ~25 Wörter): Worum geht es konkret?
+Eine kurze Themen-Rahmung (1-2 Sätze, ~25 Wörter) als
+zusammenhängender Fließtext: Worum geht es konkret?
 - KEINE Parteinamen, KEINE konkreten Zahlen
 - KEIN Recap der Parteipositionen
+- KEINE Inline-Zitationen `[id]`
+- KEINE Frage an den Nutzer und KEINE Einladung zur Vertiefung — dafür
+  sind allein die Folgefragen (suggested_questions) da.
 - Sachlich, kein journalistisches Pathos. Keine rhetorischen
   Doppelfragen mit Gedankenstrich, keine Streit-Metaphern.
-
-**b) Einladung zur Vertiefung** (1 Satz, ~20 Wörter): Eine direkte
-Frage an den Nutzer im Du-Stil, die **2-3 konkrete Streitpunkte aus
-den unten gelisteten Parteipositionen** benennt — also Sub-Aspekte,
-die der Nutzer als nächstes vertiefen könnte. Klare echte Frage mit
-Fragezeichen, kein Gedankenstrich-Trick, keine Doppelfrage.
 
 Beispiele:
 
 ✅ RICHTIG:
 "Beim Klimaschutz geht es um die Frage, wie schnell und mit welchen
-Mitteln Deutschland weniger CO2 ausstoßen soll. Soll ich dir den
-CO2-Preis, das Tempolimit oder die Rolle der Atomkraft genauer
-erklären?"
+Mitteln Deutschland weniger CO2 ausstoßen soll."
 
 ✅ RICHTIG:
 "Bei der Kindergrundsicherung geht es darum, wie der Staat Familien
-mit Kindern finanziell unterstützt. Möchtest du wissen, wie hoch
-die Leistung sein soll, wer Anspruch hat oder wie sie sich vom
-Bürgergeld unterscheidet?"
+mit Kindern finanziell unterstützt."
 
-❌ FALSCH (rhetorische Doppelfrage, Floskeln, keine Einladung):
+❌ FALSCH (Recap der Positionen):
+"Mars fordert X, Venus fordert Y, Saturn lehnt Z ab."
+
+❌ FALSCH (journalistisches Pathos, Streit-Metapher):
 "Wie stark soll der Staat den Wandel im Autoverkehr vorgeben — und
 wie viel Freiheit bleibt bei Antrieb und Fahrtempo? Daran entzündet
 sich der Streit um Klimaschutz und Industriepolitik."
 
-❌ FALSCH (Recap der Positionen, keine Einladung):
-"Mars fordert X, Venus fordert Y, Saturn lehnt Z ab."
-
-❌ FALSCH (Einladung ohne konkrete Sub-Aspekte):
-"Beim Klimaschutz geht es um CO2-Reduktion. Worauf willst du genauer
-schauen?"
+❌ FALSCH (Frage an den Nutzer — gehört in die Folgefragen):
+"Beim Klimaschutz geht es um CO2-Reduktion. Soll ich dir den CO2-Preis
+oder das Tempolimit genauer erklären?"
 
 ## 2. Parteipositionen (party_positions) — Einstieg, nicht Voll-Report
 Für JEDE Partei genau EIN Markdown-Fließtext:
@@ -222,8 +213,9 @@ Pfad: {path}
 
 Generiere die Inhalte in dieser Reihenfolge:
 
-1. **Zusammenfassung** (summary): 1-2 Sätze (max ~30 Wörter), die das Thema
-   rahmen und neugierig machen. KEINE Parteinamen, KEINE Zahlen, kein Recap.
+1. **Zusammenfassung** (summary): 1-2 Sätze (max ~25 Wörter), die das Thema
+   rahmen. KEINE Parteinamen, KEINE Zahlen, kein Recap, KEINE Frage an den
+   Nutzer (die Folgefragen übernehmen das).
 
 2. **Parteipositionen** (party_positions): Für jede Partei 2-3 Sätze
    (≤ 60 Wörter) durchlaufender Fließtext: **Grundhaltung + eine

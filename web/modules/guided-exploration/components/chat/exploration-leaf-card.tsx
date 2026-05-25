@@ -39,6 +39,9 @@ export function ExplorationLeafCard({
   return (
     <button
       type="button"
+      // Stable id so the "next topic" skip-link shown after closing a leaf
+      // can move focus straight to this card.
+      id={`leaf-card-${node.id}`}
       onClick={() => onOpen?.(node.id)}
       disabled={!onOpen}
       className={cn(
