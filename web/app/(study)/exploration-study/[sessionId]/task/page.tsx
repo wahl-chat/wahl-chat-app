@@ -13,6 +13,10 @@ import {
   studyApi,
   useScreenTelemetry,
 } from '@/modules/exploration-study';
+import {
+  explorationActions,
+  useExplorationStore,
+} from '@/modules/guided-exploration/store';
 import { Loader2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -23,6 +27,8 @@ export default function TaskPage() {
   const params = useParams();
   const router = useRouter();
   const sessionId = params.sessionId as string;
+
+  const dispatch = useExplorationStore((s) => s.dispatch);
 
   const [pageState, setPageState] = useState<PageState>('loading');
   const [error, setError] = useState<string | null>(null);
@@ -254,6 +260,9 @@ export default function TaskPage() {
           durationSeconds={taskData.durationSeconds}
           startedAt={taskData.taskStartedAt}
           onEnd={handleEnd}
+          // On time-up, close any open leaf panel so the time-up dialog is the
+          // only modal — otherwise focus bounces between two stacked dialogs.
+          onTimeUp={() => dispatch(explorationActions.leafClosed())}
           onFirstFinishClick={handleFirstFinishClick}
         >
           <StudyExplorationWrapper

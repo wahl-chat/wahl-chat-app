@@ -31,6 +31,12 @@ export interface TaskContainerProps {
   startedAt?: string | null;
   onEnd: () => Promise<void>;
   /**
+   * Fired the moment the countdown reaches zero, before the time-up dialog
+   * grabs focus. Used to dismiss any competing modal (e.g. an open leaf
+   * panel) so the time-up dialog is the only focus-trapped surface.
+   */
+  onTimeUp?: () => void;
+  /**
    * Telemetry callback fired the first time the user clicks
    * "Aufgabe beenden" — including clicks during the lockout that don't
    * open the confirm dialog. Subsequent clicks are ignored.
@@ -51,6 +57,7 @@ export function TaskContainer({
   durationSeconds,
   startedAt,
   onEnd,
+  onTimeUp,
   onFirstFinishClick,
   children,
   className,
@@ -59,6 +66,9 @@ export function TaskContainer({
   const [showTimeUpDialog, setShowTimeUpDialog] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
   const [unlockMessage, setUnlockMessage] = useState('');
+  // Assertive announcement fired when the clock hits zero. Independent of the
+  // dialog's own labelling so the user hears it even if it interrupts a read.
+  const [timeUpMessage, setTimeUpMessage] = useState('');
   // Hide the "Freigeschaltet in X:XX" readout until the participant first
   // clicks "Aufgabe beenden". Keeps the clock out of sight during the task
   // while still giving a clear answer when they ask "when can I end?".
@@ -68,8 +78,13 @@ export function TaskContainer({
 
   const handleTimerEnd = useCallback(() => {
     setShowConfirmDialog(false);
+    // Dismiss any competing modal (e.g. an open leaf panel) first, so the
+    // time-up dialog becomes the sole focus-trapped surface and focus can't
+    // bounce out between two stacked dialogs.
+    onTimeUp?.();
+    setTimeUpMessage('Die Zeit für diese Aufgabe ist abgelaufen.');
     setShowTimeUpDialog(true);
-  }, []);
+  }, [onTimeUp]);
 
   const handleWarning = useCallback((seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -194,6 +209,16 @@ export function TaskContainer({
       >
         {unlockMessage}
       </div>
+      {/* Time-up announcer — assertive so it interrupts any in-progress read
+          the instant the clock hits zero, regardless of where focus is. */}
+      <div
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {timeUpMessage}
+      </div>
 
       {/* Task controls: timer and end button. A labelled <section> is a
           navigable region landmark — a <header> nested inside <main> isn't a
@@ -260,7 +285,11 @@ export function TaskContainer({
 
       {/* Time-up dialog (no cancel — user must acknowledge to continue) */}
       <AlertDialog open={showTimeUpDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent
+          // Keep focus locked in: Escape must not disturb the trap (open is
+          // force-controlled, so it can't actually close here either way).
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Zeit ist abgelaufen</AlertDialogTitle>
             <AlertDialogDescription>
