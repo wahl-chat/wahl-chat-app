@@ -21,7 +21,11 @@ import { TopicDirectionsCard } from './topic-directions-card';
 export function toPlainText(markdown: string): string {
   return markdown
     .replace(/!?\[([^\]]+)\]\([^)]*\)/g, '$1') // [text](url)/![alt](url) -> text
-    .replace(/\[\/?PARTY(?:_BADGE)?:[\w-]+\]/g, ' ') // party section/badge markers
+    .replace(
+      /\[PARTY_BADGE:([\w-]+)\]/g,
+      (_, id: string) => id.charAt(0).toUpperCase() + id.slice(1).toLowerCase(),
+    ) // inline party badge -> capitalised party id (stripping it is confusing)
+    .replace(/\[\/?PARTY:[\w-]+\]/g, ' ') // party section open/close markers
     .replace(/\[[\w.-]+(?:\s*,\s*[\w.-]+)*\]/g, ' ') // citation tokens [id]/[id, id]
     .replace(/^\s*[#>\-*+]+\s*/gm, '') // line-start heading/quote/list markers
     .replace(/[*_`~]+/g, '') // emphasis / code fences
@@ -74,6 +78,9 @@ function getMessageHeadingLabel(message: SessionMessage): string {
     }
     case 'topic_directions':
       return 'Aspekt-Auswahl: Wähle aus, welche Aspekte des Themas du genauer erkunden möchtest.';
+    case 'choice_result':
+      // content already reads e.g. "Strukturierte Erkundung ausgewählt."
+      return message.content ?? 'Auswahl getroffen.';
   }
 }
 
@@ -88,6 +95,8 @@ function chatNextLabel(message: SessionMessage): string {
       return 'Zur strukturierten Themen-Erkundung springen';
     case 'topic_directions':
       return 'Zur Aspekt-Auswahl springen';
+    case 'choice_result':
+      return 'Zur getroffenen Auswahl springen';
   }
 }
 
@@ -171,6 +180,13 @@ export function SessionMessageList({
                 <p className="text-sm">{message.content}</p>
               </div>
             </div>
+          );
+        } else if (message.type === 'choice_result') {
+          // Transient confirmation of the user's choice — a quiet inline note,
+          // not a chat bubble. The sr-only heading above carries the same text
+          // and is the focus target the chat view moves to on submit.
+          body = (
+            <p className="text-sm text-muted-foreground">{message.content}</p>
           );
         } else if (message.type === 'assistant') {
           body = (

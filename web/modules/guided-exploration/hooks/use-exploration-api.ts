@@ -286,6 +286,26 @@ export function useExplorationApi(): UseExplorationApiReturn {
         throw new Error('No active session');
       }
 
+      // Leave a transient confirmation of what the user picked in the
+      // transcript, in the correct spot (right after the triggering message).
+      // Client-only — reloads replace `messages` from the backend, which has
+      // no such entry, so it doesn't reappear. The label is read from the
+      // pending choice's own options so it matches what the user saw.
+      const pendingChoice = useExplorationStore.getState().ui.pendingChoice;
+      const chosenLabel =
+        pendingChoice?.options.find((o) => o.id === choice)?.label ??
+        (choice === 'explore'
+          ? 'Strukturierte Erkundung'
+          : 'Schnelle Zusammenfassung');
+      dispatch(
+        sessionActions.messageAdded({
+          id: crypto.randomUUID(),
+          type: 'choice_result',
+          content: `${chosenLabel} ausgewählt.`,
+          timestamp: new Date().toISOString(),
+        }),
+      );
+
       // Choice prompts live in the chat tab; the resulting work belongs
       // to chat as well (quick summary or topic-tree generation).
       dispatch(uiActions.lastActionTabSet('chat'));

@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { ConversationInput } from '@/modules/guided-exploration/components/conversation/conversation-input';
-import { LeafClosurePrompt } from '@/modules/guided-exploration/components/conversation/leaf-closure-prompt';
 import { LeafContent } from '@/modules/guided-exploration/components/exploration-view/leaf-content';
 import type {
   Conversation,
@@ -20,7 +19,15 @@ import type {
   StreamTargetType,
 } from '@/modules/guided-exploration/types';
 import { Check, X } from 'lucide-react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+/**
+ * Cue spoken once an answer finishes. The answer's <h2> heading carries its
+ * content, so this only flags completion and points at the heading rotor — no
+ * focus steal.
+ */
+const FINISHED_ANNOUNCEMENT =
+  'Antwort fertig. Über das Überschriften-Menü dorthin navigieren.';
 
 interface LeafSidebarProps {
   open: boolean;
@@ -38,9 +45,9 @@ interface LeafSidebarProps {
   } | null;
   suggestedQuestions?: string[];
   /**
-   * When true the LLM has judged the leaf substantially explored. The
-   * composer is replaced by an accessible closure prompt for as long as
-   * this is set.
+   * When true the LLM has judged the leaf substantially explored. An accessible
+   * closure prompt is rendered inline at the end of the transcript (the composer
+   * stays mounted) for as long as this is set.
    */
   showClosurePrompt?: boolean;
   /**
@@ -97,6 +104,13 @@ export function LeafSidebar({
 }: LeafSidebarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const introRef = useRef<HTMLDivElement>(null);
+
+  // Single polite narration for the leaf: thinking → writing → finished. One
+  // stable region whose text we mutate (no keyed remount — VoiceOver reliably
+  // announces a text change on a stable node, but often misses a full child
+  // swap). One region also avoids two polite regions changing at once on
+  // completion, where the screen reader tends to service only one.
+  const [liveText, setLiveText] = useState('');
   const messageCount = conversation?.messages.length ?? 0;
   const hasUserMessage = !!conversation?.messages.some(
     (m) => m.role === 'user',
@@ -143,12 +157,25 @@ export function LeafSidebar({
     }
   }, [leafId, latestAnswerId]);
 
-  // Scroll the latest answer into view and move focus onto its heading. The
-  // heading is sr-only (position:absolute → its own offsetTop is meaningless),
-  // so we measure its in-flow parent as the scroll anchor. Focusing the heading
-  // announces "Antwort der KI" — the signal that the user has landed on the
-  // answer and can read on — without a competing live-region cue that would
-  // interrupt a continuous read before it reaches the party cards.
+  // Scroll the latest answer to the top of the transcript. The heading is
+  // sr-only (position:absolute → its own offsetTop is meaningless), so we
+  // measure its in-flow parent as the scroll anchor.
+  const scrollLatestAnswerIntoView = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const target = container.querySelector<HTMLElement>(
+      '[data-leaf-latest-answer]',
+    );
+    const anchor = target?.parentElement;
+    if (target && anchor) {
+      const top = anchor.offsetTop - container.offsetTop;
+      container.scrollTo({ top: top - 24, behavior: 'smooth' });
+    }
+  }, []);
+
+  // The user-initiated skip-link ("zur neuesten Antwort springen") scrolls AND
+  // moves focus onto the answer's heading — that move is requested, not
+  // imposed. Falls back to the conversation region when there's no answer yet.
   const focusLatestAnswer = useCallback(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -161,15 +188,14 @@ export function LeafSidebar({
       container.scrollTo({ top: top - 24, behavior: 'smooth' });
       target.focus({ preventScroll: true });
     } else {
-      // No answer yet — fall back to the conversation region itself.
       container.focus({ preventScroll: true });
     }
   }, []);
 
-  // When a NEW answer settles while the leaf is open, move focus onto it.
-  // Gated to follow-up answers: the initial summary loads right after the sheet
-  // opens, where focus is intentionally on the intro — yanking it to the answer
-  // mid-read is jarring (the skip-link covers that case instead).
+  // When a NEW answer settles while the leaf is open, announce completion and
+  // scroll it into view — but don't move focus. Gated to follow-up answers: the
+  // initial summary loads right after the sheet opens, where focus is
+  // intentionally on the intro (the skip-link covers jumping to it).
   useEffect(() => {
     if (!open) return;
     if (!latestAnswerId || seenAnswerIdRef.current === latestAnswerId) return;
@@ -179,13 +205,25 @@ export function LeafSidebar({
       latestAnswerType !== null && latestAnswerType !== 'initial_content';
     if (!isFollowupAnswer) return;
 
-    requestAnimationFrame(() => focusLatestAnswer());
-  }, [open, latestAnswerId, latestAnswerType, focusLatestAnswer]);
+    // Distinct from the "wird geschrieben" text it replaces, so the change is
+    // detected and spoken.
+    setLiveText(FINISHED_ANNOUNCEMENT);
+    requestAnimationFrame(() => scrollLatestAnswerIntoView());
+    // Drop the text once spoken so it isn't left sitting in the region (which
+    // a screen reader can re-read on restart). Functional guard so it never
+    // clobbers the next turn's "wird verarbeitet" if that has already landed.
+    const clear = window.setTimeout(
+      () => setLiveText((cur) => (cur === FINISHED_ANNOUNCEMENT ? '' : cur)),
+      4000,
+    );
+    return () => clearTimeout(clear);
+  }, [open, latestAnswerId, latestAnswerType, scrollLatestAnswerIntoView]);
 
-  // "Weiter erkunden": dismissing the closure prompt brings the composer back,
-  // so move focus into it — the user just signalled they want to keep asking.
-  // A one-shot flag scopes this to the continue action; closing the leaf or
-  // switching leaves also clears `showClosurePrompt` but must not grab focus.
+  // "Weiter erkunden": dismissing the inline closure prompt unmounts the focused
+  // button, so move focus into the composer — the user just signalled they want
+  // to keep asking. A one-shot flag scopes this to the continue action; closing
+  // the leaf or switching leaves also clears `showClosurePrompt` but must not
+  // grab focus.
   const focusComposerOnReopenRef = useRef(false);
   const prevShowClosurePromptRef = useRef(showClosurePrompt);
   const handleContinueExploring = useCallback(() => {
@@ -200,17 +238,28 @@ export function LeafSidebar({
       requestAnimationFrame(() => {
         document.getElementById('leaf-chat-input')?.focus();
       });
+    } else if (!wasShown && showClosurePrompt) {
+      // The prompt now appears inline at the end of the transcript; bring it
+      // into view. Scroll only — no focus move, so the SR cursor and whatever
+      // the user has focused (often the composer) stay put.
+      requestAnimationFrame(() => {
+        document
+          .getElementById('leaf-closure-heading')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
     }
   }, [showClosurePrompt]);
 
-  // One narration region for the leaf, for transient process state only. The
-  // answer's arrival is conveyed by the focus move onto its heading, not a
-  // live-region cue.
-  const statusText = isStreaming
-    ? 'KI-Antwort wird geschrieben.'
-    : isThinking
-      ? (thinkingMessage ?? 'Nachricht wird verarbeitet...')
-      : '';
+  // Narrate transient process state into the same region. Crucially we do NOT
+  // clear when idle: the finished cue (set by the answer-settled effect above)
+  // must survive the moment streaming stops, so neither-branch is a no-op.
+  useEffect(() => {
+    if (isStreaming) {
+      setLiveText('KI-Antwort wird geschrieben.');
+    } else if (isThinking) {
+      setLiveText(thinkingMessage ?? 'Nachricht wird verarbeitet...');
+    }
+  }, [isThinking, isStreaming, thinkingMessage]);
 
   return (
     <Sheet
@@ -240,14 +289,17 @@ export function LeafSidebar({
           '[&>button]:hidden',
         )}
       >
-        {/* Leaf narration: thinking/streaming state, then the arrival cue. */}
+        {/* The leaf's single narration region: thinking → writing → finished.
+            One stable node whose text we mutate, so each transition is a real
+            content change VoiceOver announces — and there's never a second
+            polite region changing at the same instant to compete with it. */}
         <div
           role="status"
           aria-live="polite"
           aria-atomic="true"
           className="sr-only"
         >
-          {statusText}
+          {liveText}
         </div>
 
         {/* Header region: title, how-it-works, jump-to-content, controls. */}
@@ -313,61 +365,53 @@ export function LeafSidebar({
           </div>
         </SheetHeader>
 
-        {/* Conversation region: the scrollable transcript. */}
+        {/* One landmark groups the transcript and the composer so a screen
+            reader flips between them without an extra nested-region stop. */}
         <section
-          ref={scrollContainerRef}
-          id="leaf-content"
-          aria-label="Gesprächsverlauf"
-          className="flex-1 overflow-auto outline-none"
-          tabIndex={-1}
+          aria-label="Gespräch zu diesem Thema"
+          className="flex min-h-0 flex-1 flex-col"
         >
-          <div className="mx-auto w-full max-w-2xl px-4 py-6">
-            <LeafContent
-              conversation={conversation}
-              leafName={leafName}
-              isThinking={isThinking}
-              thinkingMessage={thinkingMessage}
-              isStreaming={isStreaming}
-              streamBuffer={streamBuffer}
-              streamingTargetType={streamingTargetType}
-              topicSwitchSuggestion={topicSwitchSuggestion}
-              hideAspectView={hideAspectView}
-              showMissingPartiesPlaceholder={showMissingPartiesPlaceholder}
-              latestAnswerId={latestAnswerId}
-              showClosurePrompt={showClosurePrompt}
-              onAcceptSwitch={onAcceptSwitch}
-              onDismissSwitch={onDismissSwitch}
-            />
+          {/* The scrollable transcript. Keeps id + tabIndex so the header's
+              "zur neuesten Antwort springen" skip-link can target it. */}
+          <div
+            ref={scrollContainerRef}
+            id="leaf-content"
+            className="flex-1 overflow-auto outline-none"
+            tabIndex={-1}
+          >
+            <div className="mx-auto w-full max-w-2xl px-4 py-6">
+              <LeafContent
+                conversation={conversation}
+                leafName={leafName}
+                isThinking={isThinking}
+                thinkingMessage={thinkingMessage}
+                isStreaming={isStreaming}
+                streamBuffer={streamBuffer}
+                streamingTargetType={streamingTargetType}
+                topicSwitchSuggestion={topicSwitchSuggestion}
+                hideAspectView={hideAspectView}
+                showMissingPartiesPlaceholder={showMissingPartiesPlaceholder}
+                latestAnswerId={latestAnswerId}
+                showClosurePrompt={showClosurePrompt}
+                onMarkExplored={onMarkExplored}
+                onContinueExploring={handleContinueExploring}
+                markExploredDisabled={markExploredDisabled}
+                onAcceptSwitch={onAcceptSwitch}
+                onDismissSwitch={onDismissSwitch}
+              />
+            </div>
           </div>
-        </section>
 
-        {/* Controls region: composer or closure prompt. Both stay mounted and
-            we toggle the `hidden` attribute rather than swapping them. The
-            closure judgement arrives in the SAME commit as the answer + the
-            focus move onto its heading; structurally unmounting a focusable
-            region (the composer) in that instant desyncs VoiceOver's cursor
-            and strands SR users on the heading. Keeping both mounted means the
-            only change near the focused answer is content appended below —
-            normal chat behaviour. `hidden` also drops the inactive control
-            from the accessibility tree. */}
-        <section
-          aria-label="Nachricht an die KI"
-          className="flex shrink-0 flex-col gap-2 border-t bg-background px-4 py-3"
-        >
-          <div hidden={!showClosurePrompt}>
-            <LeafClosurePrompt
-              onClose={onMarkExplored ?? (() => {})}
-              onContinue={handleContinueExploring}
-              closeDisabled={!onMarkExplored || markExploredDisabled}
-              continueDisabled={!onContinueExploring}
-            />
-          </div>
-          <div hidden={showClosurePrompt}>
+          {/* The composer stays mounted and visible at all times — even while
+              the closure prompt is shown (the prompt now lives inline at the end
+              of the transcript). Never hiding the focused textarea is what keeps
+              VoiceOver from dropping focus to <body> when the closure judgement
+              arrives. The composer is never disabled either. */}
+          <div className="flex shrink-0 flex-col gap-2 border-t bg-background px-4 py-3">
             <ConversationInput
               inputId="leaf-chat-input"
               onSubmit={onSendMessage}
-              disabled={isThinking}
-              placeholder={'Frag mich alles dazu — z.B. „Wer zahlt das?"'}
+              placeholder="Frag mich alles dazu"
               suggestedQuestions={suggestedQuestions}
               isLoadingQuestions={
                 (isThinking || !!isStreaming) && suggestedQuestions.length === 0

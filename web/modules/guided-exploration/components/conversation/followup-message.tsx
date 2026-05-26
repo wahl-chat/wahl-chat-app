@@ -36,6 +36,12 @@ interface FollowupMessageProps {
   inputId?: string;
   /** Contextual link text for the "jump to input" skip-link. */
   inputLabel?: string;
+  /**
+   * Content rendered at the end of this turn — after the answer, before the
+   * skip-links and sources. Used to attach the leaf closure prompt to the
+   * latest turn so it reads ahead of the "jump to input" skip-link.
+   */
+  trailing?: React.ReactNode;
 }
 
 /**
@@ -51,6 +57,7 @@ export function FollowupMessage({
   nextLabel,
   inputId = 'leaf-chat-input',
   inputLabel = 'Zum Eingabefeld springen, um eine eigene Frage zu stellen',
+  trailing,
 }: FollowupMessageProps) {
   const citations = message.citations ?? [];
   const { getReferenceName, getReferenceTooltip, handleReferenceClick } =
@@ -103,6 +110,8 @@ export function FollowupMessage({
       >
         {message.content}
       </PartyMarkedMarkdown>
+      {trailing}
+
       {/* Before the sources: skip straight to the next message or the
           composer, so SR users aren't forced to arrow through every citation. */}
       <MessageNavLinks

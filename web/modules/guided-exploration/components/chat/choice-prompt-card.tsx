@@ -22,13 +22,16 @@ export function ChoicePromptCard({
 
   return (
     <section aria-labelledby={headingId} className="space-y-3">
-      {/* tabIndex={-1}: the chat view moves focus here when the prompt appears
-          so arrival lands on a heading (announced as "Überschrift"). */}
+      {/* sr-only "KI:" prefix matches the per-message heading convention so the
+          rotor entry reads as an AI turn, not a bare question, while the visible
+          heading stays clean. tabIndex={-1} keeps it a focus target for the
+          "jump to next message" skip-links. */}
       <h2
         id={headingId}
         tabIndex={-1}
         className="text-sm font-medium outline-none"
       >
+        <span className="sr-only">KI: </span>
         Wie möchtest du das Thema angehen?
       </h2>
       <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-stretch">

@@ -18,7 +18,12 @@ export type SessionMessageType =
   | 'user'
   | 'assistant'
   | 'exploration_start'
-  | 'topic_directions';
+  | 'topic_directions'
+  // Transient, client-only confirmation of the user's summarize-vs-explore
+  // choice. Inserted right after the triggering message so it sits in the
+  // correct spot; never persisted (reloads replace `messages` from the
+  // backend, which has no such entry).
+  | 'choice_result';
 
 export interface PartyStanceSummary {
   partyId: string;

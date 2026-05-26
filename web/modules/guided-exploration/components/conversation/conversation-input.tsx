@@ -116,9 +116,13 @@ export function ConversationInput({
   };
 
   const handleSuggestionClick = (question: string) => {
-    if (!disabled) {
-      onSubmit(questionToPlainText(question));
-    }
+    if (disabled) return;
+    onSubmit(questionToPlainText(question));
+    // Submitting collapses the suggestions row to its loading state, which
+    // unmounts the button the user just clicked. Move focus to the always-
+    // mounted textarea first, otherwise focus drops to <body> and a screen
+    // reader lands on whichever live region is mid-announcement.
+    textareaRef.current?.focus();
   };
 
   const showQuestions = suggestedQuestions.length > 0;

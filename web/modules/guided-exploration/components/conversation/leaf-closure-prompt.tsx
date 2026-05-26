@@ -14,7 +14,9 @@ interface LeafClosurePromptProps {
  * Replaces the leaf composer once the LLM judges the leaf substantially
  * explored. Two actions: finish the topic or keep digging. Wrapped in a
  * landmark with an explicit heading so screen readers announce the prompt
- * when focus enters the region.
+ * when focus enters the region. The heading is an h3 — it belongs to the
+ * latest answer it trails, so it nests under that message's h2 rather than
+ * sitting beside the messages in the heading rotor.
  */
 export function LeafClosurePrompt({
   onClose,
@@ -25,18 +27,18 @@ export function LeafClosurePrompt({
   return (
     <section
       aria-labelledby="leaf-closure-heading"
-      className="rounded-[24px] border border-primary/20 bg-primary/5 px-4 py-3"
+      className="mt-6 rounded-[24px] border border-primary/20 bg-primary/5 px-4 py-3"
     >
       {/* tabIndex={-1}: the per-message "jump to input" skip-link focuses this
           heading when the composer is replaced by this prompt, so SR users
           aren't stranded on a dead link to the now-unmounted textarea. */}
-      <h2
+      <h3
         id="leaf-closure-heading"
         tabIndex={-1}
         className="text-sm font-medium outline-none"
       >
         Ich denke, wir haben das Wesentliche zu diesem Thema besprochen.
-      </h2>
+      </h3>
       <p className="mt-1 text-sm text-muted-foreground">
         Möchtest du das Thema abschließen oder noch weiter erkunden?
       </p>

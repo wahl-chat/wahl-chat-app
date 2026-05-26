@@ -80,11 +80,10 @@ export function ExplorationMain({ initialSessionId }: ExplorationMainProps) {
     autoCreateSession: !initialSessionId,
   });
 
-  // Close feedback: announce where the user landed and focus a "next topic /
-  // chat input" skip-link. Wraps open/close/mark-explored.
+  // Close feedback: announce the leaf's new state and return focus to the leaf
+  // card the user was just in. Wraps open/close/mark-explored.
   const { closeInfo, handleOpenLeaf, handleClose, handleMarkExplored } =
     useLeafCloseFlow({
-      trees,
       activeLeaf,
       activeLeafNode,
       openLeaf,

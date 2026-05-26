@@ -59,10 +59,17 @@ export function TopicDirectionsCard({
     onSelectDirections(dirs);
   };
 
-  // Completed state: collapse to a single inline summary line.
+  // Completed state: collapse to a single inline summary line. tabIndex={-1} +
+  // the data hook make it the focus target the chat view moves to on submit,
+  // so the selection is read aloud instead of focus dropping to <body> when the
+  // interactive submit button unmounts.
   if (isCompleted) {
     return (
-      <p className="text-sm text-foreground">
+      <p
+        data-directions-summary
+        tabIndex={-1}
+        className="text-sm text-foreground outline-none"
+      >
         <strong className="font-semibold">Erkundet wird:</strong>{' '}
         {selectedDirections.join(' · ')}
       </p>

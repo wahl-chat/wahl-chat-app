@@ -2,19 +2,19 @@
 
 import { useCallback, useRef, useState } from 'react';
 
-import type {
-  ExplorationNode,
-  ExplorationTree,
-} from '@/modules/guided-exploration/types';
-import { getNextUnexploredLeaf } from '@/modules/guided-exploration/utils/tree-helpers';
+import type { ExplorationNode } from '@/modules/guided-exploration/types';
 
 export interface LeafCloseInfo {
   /** Bumped on every close so consumers can react to repeat closes. */
   key: number;
   /** Spoken status read by the parent's live region after the leaf closes. */
   announcement: string;
-  /** Self-describing skip-link the parent focuses as the user's next step. */
-  skip: { href: string; label: string };
+  /**
+   * The leaf the user was just in. The parent returns focus to this leaf's
+   * card so the user lands back where they started — on the card now showing
+   * its updated status — rather than being sent off to a skip-link.
+   */
+  focusLeafId: string;
 }
 
 interface ActiveLeafRef {
@@ -23,7 +23,6 @@ interface ActiveLeafRef {
 }
 
 interface UseLeafCloseFlowParams {
-  trees: ExplorationTree[];
   activeLeaf: ActiveLeafRef | null;
   activeLeafNode: ExplorationNode | null;
   openLeaf: (explorationId: string, leafId: string) => void;
@@ -43,13 +42,12 @@ export interface UseLeafCloseFlowReturn {
 
 /**
  * Owns the "where am I now" feedback shown when a leaf sidebar closes: a live
- * announcement (explored vs. just closed, plus the next topic or "all
- * explored") and a matching skip-link the parent focuses so the user has an
- * immediate next step. Lives in the parent because the sidebar — and its own
- * live region — unmount on close.
+ * announcement (explored vs. just closed) plus the id of the leaf card the
+ * parent returns focus to, so the user lands back on the topic they were just
+ * in. Lives in the parent because the sidebar — and its own live region —
+ * unmount on close.
  */
 export function useLeafCloseFlow({
-  trees,
   activeLeaf,
   activeLeafNode,
   openLeaf,
@@ -60,67 +58,32 @@ export function useLeafCloseFlow({
   const keyRef = useRef(0);
 
   const buildInfo = useCallback(
-    (leafName: string, exploredNow: boolean): LeafCloseInfo => {
-      const skipId = activeLeaf?.leafId;
-      const pick = (node: ExplorationNode | undefined) =>
-        node && node.id !== skipId ? { id: node.id, name: node.name } : null;
-
-      // Prefer the next unexplored leaf in the leaf's own tree (continuing
-      // from where the user was), then fall back to any other tree.
-      let next: { id: string; name: string } | null = null;
-      const currentTree = trees.find(
-        (t) => t.explorationId === activeLeaf?.explorationId,
-      );
-      if (currentTree) next = pick(getNextUnexploredLeaf(currentTree, skipId));
-      if (!next) {
-        for (const t of trees) {
-          if (t.explorationId === activeLeaf?.explorationId) continue;
-          next = pick(getNextUnexploredLeaf(t));
-          if (next) break;
-        }
-      }
-
+    (exploredNow: boolean): LeafCloseInfo => {
       keyRef.current += 1;
-      const status = exploredNow
-        ? `„${leafName}“ als erkundet markiert.`
-        : `„${leafName}“ geschlossen.`;
-
-      if (next) {
-        return {
-          key: keyRef.current,
-          announcement: `${status} Zurück in der Themenübersicht. Nächstes Thema: „${next.name}“.`,
-          skip: {
-            href: `#leaf-card-${next.id}`,
-            label: `Zum nächsten Thema „${next.name}“ springen`,
-          },
-        };
-      }
+      // No leaf name here — focus lands back on the card first, which already
+      // speaks the name. This only reports the action + where the user is now.
+      const status = exploredNow ? 'Als erkundet markiert.' : 'Geschlossen.';
       return {
         key: keyRef.current,
-        announcement: `${status} Zurück in der Themenübersicht. Alle Themen erkundet.`,
-        skip: {
-          href: '#chat-input',
-          label: 'Alle Themen erkundet – zum Eingabefeld im Hauptchat springen',
-        },
+        announcement: `${status} Zurück in der Themenübersicht.`,
+        focusLeafId: activeLeaf?.leafId ?? '',
       };
     },
-    [trees, activeLeaf],
+    [activeLeaf],
   );
 
   const handleClose = useCallback(() => {
-    const name = activeLeafNode?.name ?? 'Thema';
     const explored = activeLeafNode?.status === 'explored';
-    setCloseInfo(buildInfo(name, explored));
+    setCloseInfo(buildInfo(explored));
     closeLeaf();
   }, [activeLeafNode, buildInfo, closeLeaf]);
 
   const handleMarkExplored = useCallback(() => {
     if (!activeLeaf) return;
-    const name = activeLeafNode?.name ?? 'Thema';
     void markExplored(activeLeaf.explorationId, activeLeaf.leafId);
-    setCloseInfo(buildInfo(name, true));
+    setCloseInfo(buildInfo(true));
     closeLeaf();
-  }, [activeLeaf, activeLeafNode, buildInfo, closeLeaf, markExplored]);
+  }, [activeLeaf, buildInfo, closeLeaf, markExplored]);
 
   const handleOpenLeaf = useCallback(
     (explorationId: string, leafId: string) => {

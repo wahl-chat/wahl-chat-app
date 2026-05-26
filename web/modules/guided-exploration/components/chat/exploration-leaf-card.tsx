@@ -39,9 +39,14 @@ export function ExplorationLeafCard({
   return (
     <button
       type="button"
-      // Stable id so the "next topic" skip-link shown after closing a leaf
-      // can move focus straight to this card.
+      // Stable id so closing a leaf can move focus straight back to this card.
       id={`leaf-card-${node.id}`}
+      // Terse accessible name: identity + status only. The description and
+      // party badges stay visual; folding them into the name makes every card
+      // a wall of speech to arrow past, and the close flow re-reads it on
+      // return. "What just happened" is reported separately by the close
+      // announcer's live region, not by this label.
+      aria-label={`${node.name}, ${statusLabel}`}
       onClick={() => onOpen?.(node.id)}
       disabled={!onOpen}
       className={cn(
@@ -52,7 +57,6 @@ export function ExplorationLeafCard({
     >
       <span className="mt-0.5 flex shrink-0 items-center justify-center">
         <LeafStatusIcon status={node.status} />
-        <VisuallyHidden>{statusLabel}: </VisuallyHidden>
       </span>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -81,7 +85,6 @@ export function ExplorationLeafCard({
         )}
       </div>
 
-      <VisuallyHidden>– öffnen, um über dieses Thema zu chatten</VisuallyHidden>
       <ChevronRight
         aria-hidden="true"
         className="mt-1 size-4 shrink-0 text-foreground"

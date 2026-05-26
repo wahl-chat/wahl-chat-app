@@ -150,6 +150,36 @@ export function TaskContainer({
     setShowConfirmDialog(true);
   }, [canEnd, onFirstFinishClick]);
 
+  // When the clock hits zero, the leaf panel (if open) is dismissed in the same
+  // tick the time-up dialog opens. The leaf Sheet's exit animation keeps its
+  // focus scope alive for ~200ms and its unmounting focused element drops focus
+  // to <body>, which can leave focus outside the freshly-opened dialog. Force
+  // focus onto the dialog's sole action and hold it there for a few frames until
+  // the Sheet is gone — Radix's own focus trap keeps it after that. This is the
+  // one place we deliberately yank focus: the task is over, it's a hard modal
+  // interruption the participant must acknowledge.
+  const timeUpContentRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!showTimeUpDialog) return;
+    let frame = 0;
+    let raf = 0;
+    const enforce = () => {
+      const dialog = timeUpContentRef.current;
+      // Land on the dialog itself, not its button: its accessible name is the
+      // title + description, so the screen reader reads what happened before
+      // the user reaches the action. Only re-focus if focus has escaped the
+      // dialog entirely (don't yank it off the button once the user tabs in).
+      if (dialog && !dialog.contains(document.activeElement)) {
+        dialog.focus();
+      }
+      frame += 1;
+      // ~20 frames (≈320ms) outlasts the leaf Sheet's 200ms close animation.
+      if (frame < 20) raf = requestAnimationFrame(enforce);
+    };
+    raf = requestAnimationFrame(enforce);
+    return () => cancelAnimationFrame(raf);
+  }, [showTimeUpDialog]);
+
   const handleConfirmEnd = useCallback(async () => {
     setShowConfirmDialog(false);
     setIsEnding(true);
@@ -286,6 +316,14 @@ export function TaskContainer({
       {/* Time-up dialog (no cancel — user must acknowledge to continue) */}
       <AlertDialog open={showTimeUpDialog}>
         <AlertDialogContent
+          ref={timeUpContentRef}
+          tabIndex={-1}
+          // Focus the dialog itself on open (reads the title + description),
+          // not Radix's default of the first button.
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            timeUpContentRef.current?.focus();
+          }}
           // Keep focus locked in: Escape must not disturb the trap (open is
           // force-controlled, so it can't actually close here either way).
           onEscapeKeyDown={(e) => e.preventDefault()}

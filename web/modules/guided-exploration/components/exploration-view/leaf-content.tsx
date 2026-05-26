@@ -9,6 +9,7 @@ import {
   InitialContentMessage,
   ThinkingIndicator,
 } from '@/modules/guided-exploration/components/conversation';
+import { LeafClosurePrompt } from '@/modules/guided-exploration/components/conversation/leaf-closure-prompt';
 import { TopicSwitchCard } from '@/modules/guided-exploration/components/conversation/topic-switch-card';
 import { CitationMarkdown } from '@/modules/guided-exploration/components/shared/citation-markdown';
 import { leafMessageHeadingId } from '@/modules/guided-exploration/components/shared/message-nav-links';
@@ -66,12 +67,18 @@ interface LeafContentProps {
    */
   latestAnswerId?: string | null;
   /**
-   * True when the LLM has proposed closing the leaf, so the composer is
-   * replaced by the closure prompt. Re-points the per-message "jump to input"
-   * skip-links at the closure prompt's heading (instead of the now-unmounted
-   * composer) so they never dead-end.
+   * True when the LLM has proposed closing the leaf. The closure prompt then
+   * renders inline at the end of the transcript (the end of the answer it was
+   * generated for) instead of replacing the composer — so a focused composer is
+   * never hidden out from under a screen-reader user.
    */
   showClosurePrompt?: boolean;
+  /** Mark the leaf explored (the closure prompt's "Thema abschließen"). */
+  onMarkExplored?: () => void;
+  /** Dismiss the closure prompt to keep asking ("Weiter erkunden"). */
+  onContinueExploring?: () => void;
+  /** Disable "Thema abschließen" (e.g. mid-stream). */
+  markExploredDisabled?: boolean;
   className?: string;
 }
 
@@ -90,6 +97,9 @@ export function LeafContent({
   showMissingPartiesPlaceholder = false,
   latestAnswerId = null,
   showClosurePrompt = false,
+  onMarkExplored,
+  onContinueExploring,
+  markExploredDisabled = false,
   className,
 }: LeafContentProps) {
   const [viewMode, setViewMode] = useState<'party' | 'aspect'>('party');
@@ -102,6 +112,11 @@ export function LeafContent({
   const initialHeadingId = initialMessage
     ? leafMessageHeadingId(initialMessage.id)
     : undefined;
+
+  // The synthetic opening question that frames the leaf as a chat thread.
+  const overviewQuestion = leafName
+    ? `Gib mir einen Überblick über „${leafName}“.`
+    : null;
 
   // Heading id + contextual link text of the message *after* each message, so
   // a "jump to next message" link can skip past the current turn's source list
@@ -124,15 +139,11 @@ export function LeafContent({
     });
   }
 
-  // When the LLM proposes closing the leaf, the composer is unmounted and
-  // replaced by the closure prompt — so the per-message "jump to input" links
-  // must target the prompt's heading instead, or they'd focus nothing.
-  const inputId = showClosurePrompt
-    ? 'leaf-closure-heading'
-    : 'leaf-chat-input';
-  const inputLabel = showClosurePrompt
-    ? 'Zur Abschlussfrage der KI springen'
-    : 'Zum Eingabefeld springen, um eine eigene Frage zu stellen';
+  // The composer stays mounted even while the closure prompt is shown, so the
+  // per-message "jump to input" links always target it.
+  const inputId = 'leaf-chat-input';
+  const inputLabel =
+    'Zum Eingabefeld springen, um eine eigene Frage zu stellen';
   const initialContent =
     initialMessage && typeof initialMessage.content !== 'string'
       ? (initialMessage.content as SubtopicContent)
@@ -151,12 +162,17 @@ export function LeafContent({
   if (!conversation || (!hasMessages && !isStreaming && !isThinking)) {
     return (
       <div className={cn('space-y-6', className)}>
-        {leafName && (
-          <div className="flex justify-end">
-            <div className="max-w-[80%] rounded-[20px] bg-muted px-4 py-2">
-              <p className="text-sm">
-                Gib mir einen Überblick über „{leafName}“.
-              </p>
+        {overviewQuestion && (
+          <div>
+            {/* Content-bearing sr-only heading so this opening turn is a rotor
+                stop reading "Du: …", matching the chat transcript convention. */}
+            <h2 tabIndex={-1} className="sr-only outline-none">
+              Du: {overviewQuestion}
+            </h2>
+            <div className="flex justify-end">
+              <div className="max-w-[80%] rounded-[20px] bg-muted px-4 py-2">
+                <p className="text-sm">{overviewQuestion}</p>
+              </div>
             </div>
           </div>
         )}
@@ -186,16 +202,34 @@ export function LeafContent({
     initialContent?.aspectComparison &&
     initialContent.aspectComparison.aspects.length > 0;
 
+  // The closure prompt attaches to the latest answer turn as that message's
+  // `trailing` slot, so it reads right after the answer and *before* that turn's
+  // "jump to input" skip-link — rather than trailing the whole transcript.
+  // Built once here and handed to whichever message is the latest answer.
+  const closurePrompt =
+    showClosurePrompt && onMarkExplored && onContinueExploring ? (
+      <LeafClosurePrompt
+        onClose={onMarkExplored}
+        onContinue={onContinueExploring}
+        closeDisabled={markExploredDisabled}
+      />
+    ) : null;
+
   return (
     <div className={cn('space-y-6', className)}>
       {/* Synthetic opening user message — frames the leaf as a chat thread
           where the assistant response below is the answer to this question. */}
-      {leafName && (
-        <div className="flex justify-end">
-          <div className="max-w-[80%] rounded-[20px] bg-muted px-4 py-2">
-            <p className="text-sm">
-              Gib mir einen Überblick über „{leafName}“.
-            </p>
+      {overviewQuestion && (
+        <div>
+          {/* Content-bearing sr-only heading so this opening turn is a rotor
+              stop reading "Du: …", matching the chat transcript convention. */}
+          <h2 tabIndex={-1} className="sr-only outline-none">
+            Du: {overviewQuestion}
+          </h2>
+          <div className="flex justify-end">
+            <div className="max-w-[80%] rounded-[20px] bg-muted px-4 py-2">
+              <p className="text-sm">{overviewQuestion}</p>
+            </div>
           </div>
         </div>
       )}
@@ -284,8 +318,15 @@ export function LeafContent({
                 nextLabel={nextNavById.get(message.id)?.label}
                 inputId={inputId}
                 inputLabel={inputLabel}
+                trailing={
+                  message.id === latestAnswerId ? closurePrompt : undefined
+                }
               />
             ))}
+          {/* Aspect view renders the opening turn as the comparison above
+              (no message slot), so when the closure prompt belongs to that turn
+              — closure proposed before any follow-up — attach it here. */}
+          {latestAnswerId === initialMessage?.id && closurePrompt}
         </>
       )}
 
@@ -307,6 +348,9 @@ export function LeafContent({
                 nextLabel={nextNavById.get(message.id)?.label}
                 inputId={inputId}
                 inputLabel={inputLabel}
+                trailing={
+                  message.id === latestAnswerId ? closurePrompt : undefined
+                }
               />
             );
           }
@@ -321,6 +365,9 @@ export function LeafContent({
               nextLabel={nextNavById.get(message.id)?.label}
               inputId={inputId}
               inputLabel={inputLabel}
+              trailing={
+                message.id === latestAnswerId ? closurePrompt : undefined
+              }
             />
           );
         })}

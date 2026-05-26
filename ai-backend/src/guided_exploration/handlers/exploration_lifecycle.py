@@ -23,7 +23,6 @@ from src.guided_exploration.api.sse import SSEManager
 from src.guided_exploration.models import (
     BreadcrumbItem,
     BreadcrumbLevel,
-    ChatMessageEvent,
     Conversation,
     ExplorationCompleteEvent,
     ExplorationNode,
@@ -103,18 +102,6 @@ class ExplorationLifecycleHandler:
     ) -> dict:
         """Internal method to start exploration (called after choice)."""
         try:
-            await self._sse.send_to_session(
-                session_id,
-                ChatMessageEvent(
-                    message_id=str(uuid4()),
-                    content=(
-                        "Perfekt! Ich suche jetzt Informationen zu diesem Thema und "
-                        "melde mich, sobald ich fertig bin. Du kannst den Fortschritt "
-                        "hier im Chat verfolgen."
-                    ),
-                ),
-            )
-
             (
                 exploration_id,
                 exploration_tree,
