@@ -30,16 +30,16 @@ CITATION_DIRECTIVE = """    - Zitierstil — KRITISCH, BEFOLGE DIESE REGEL STRIK
 
         ❌ **VERBOTEN — Quellen-Pile am Absatzende (häufigster Fehler):**
         ```
-        [PARTY_BADGE:venus] wolle massiv in den ÖPNV investieren. Außerdem wolle
-        sie klimaschädliche Subventionen abbauen. Den CO2-Preis wolle sie deutlich
+        [PARTY_BADGE:venus] will massiv in den ÖPNV investieren. Außerdem wolle
+        sie klimaschädliche Subventionen abbauen. Den CO2-Preis will sie deutlich
         erhöhen und ein Klimageld einführen. [venus-klima-006, venus-klima-003, venus-klima-001, venus-klima-002]
         ```
 
         ✅ **RICHTIG — pro Satz die ID, die genau diesen Satz belegt:**
         ```
-        [PARTY_BADGE:venus] wolle massiv in den ÖPNV investieren. [venus-klima-006]
-        Außerdem wolle sie klimaschädliche Subventionen abbauen. [venus-klima-003]
-        Den CO2-Preis wolle sie deutlich erhöhen [venus-klima-001] und ein Klimageld
+        [PARTY_BADGE:venus] will massiv in den ÖPNV investieren. [venus-klima-006]
+        Außerdem will sie klimaschädliche Subventionen abbauen. [venus-klima-003]
+        Den CO2-Preis will sie deutlich erhöhen [venus-klima-001] und ein Klimageld
         einführen. [venus-klima-002]
         ```
 

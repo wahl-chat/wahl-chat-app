@@ -18,7 +18,9 @@ interface PartyCardProps {
 
 /**
  * Card component for displaying party-specific content with logo.
- * Accessible: includes proper ARIA labels for screen readers.
+ * Accessibility: the card is a plain container (no landmark) so screen readers
+ * read it as the party-name heading (h3) followed by the content, instead of
+ * announcing a redundant "Position der …" region first.
  */
 export function PartyCard({
   partyId,
@@ -34,8 +36,10 @@ export function PartyCard({
   const partyColor = partyDetails?.background_color ?? '#6B7280';
 
   return (
-    <section
-      aria-label={`Position der ${displayName}`}
+    // Plain container (not a landmark): a named <section> would expose a
+    // "Position der …" region that SR users hear before the h3, duplicating
+    // the party name. We let the h3 heading + content carry the semantics.
+    <div
       className={cn(
         'relative rounded-lg border bg-card',
         isStreaming && 'border-dashed',
@@ -80,6 +84,6 @@ export function PartyCard({
 
       {/* Content area */}
       <div className="px-3 py-2">{children}</div>
-    </section>
+    </div>
   );
 }

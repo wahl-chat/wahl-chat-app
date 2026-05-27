@@ -114,6 +114,14 @@ export function InitialContentMessage({
           ),
         )}
 
+      {orderedEntries.length > 0 && (
+        <p className="text-sm text-muted-foreground">
+          Stell gerne weitere Rückfragen. Ich sage dir Bescheid, wenn wir die
+          Informationen, die die Parteien zu diesem Thema bieten, abgehandelt
+          haben.
+        </p>
+      )}
+
       {trailing}
 
       {/* Before the sources: skip straight to the next message or the

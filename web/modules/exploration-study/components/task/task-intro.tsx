@@ -132,7 +132,7 @@ export function TaskIntro({
         <p>
           <span className="font-bold">Bonus:</span> Unter den besten
           Quiz-Leistungen verlosen wir einen{' '}
-          <span className="font-bold">10€-Amazon-Gutschein</span>. Eine gute
+          <span className="font-bold">20€-Amazon-Gutschein</span>. Eine gute
           Vorbereitung lohnt sich also.
         </p>
       </div>

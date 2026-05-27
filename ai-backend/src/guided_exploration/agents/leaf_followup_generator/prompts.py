@@ -13,6 +13,8 @@ knowledge.
 
 from pydantic import BaseModel, Field
 
+from src.guided_exploration.agents._shared import EXPLORATION_GOALS
+
 
 class TopicSwitchProposalLLM(BaseModel):
     """LLM output schema for an optional topic-switch proposal.
@@ -58,7 +60,7 @@ class LeafFollowUpLLMOutput(BaseModel):
     questions: list[str] = Field(
         ...,
         description=(
-            "0-2 kurze Folgefragen zur Vertiefung des Themas. "
+            "0-3 kurze Folgefragen zur Vertiefung des Themas. "
             "Lieber leere Liste als schwache, generische oder themenfremde "
             "Vorschläge. Jede Frage maximal 7 Worte."
         ),
@@ -144,6 +146,10 @@ _BAD_EXAMPLES_IN_LEAF = """- "Wie hoch ist der CO2-Preis bei Venus?"  ← Antwor
 LEAF_FOLLOWUP_PROMPT = (
     """Generiere 0-2 kurze Folgefragen, die der Nutzer als nächste Frage in diesem Gespräch tatsächlich stellen würde.
 
+"""
+    + EXPLORATION_GOALS
+    + """
+
 ## Bisheriges Gespräch (vollständig)
 {conversation}
 
@@ -155,9 +161,10 @@ LEAF_FOLLOWUP_PROMPT = (
 
 ## Deine Aufgabe
 **Dein Zweck: Verständnis aufbauen, nicht Gespräch verlängern.** Die
-Folgefragen sind ein Werkzeug, damit die Nutzerin dieses Unterthema
-**versteht** — welche Aspekte es gibt, wie sich die Positionen
-zueinander verhalten, warum jede Partei will, was sie will. Sie sind
+Folgefragen sind dein Werkzeug, um die drei Ziele oben für genau dieses
+Unterthema voranzutreiben: **Erkunden** (welche Aspekte die Parteien
+diskutieren), **Vergleichen** (wie ihre Positionen zueinander stehen)
+und **Verstehen** (warum jede Partei will, was sie will). Sie sind
 **kein** Mittel, das Gespräch um seiner selbst willen am Leben zu
 halten, **kein** Pflichtschritt, **kein** Engagement-Trick. Wenn keine
 Frage echtes Verständnis weiter aufbaut: **leere Liste** ausgeben.
