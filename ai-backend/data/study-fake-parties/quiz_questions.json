@@ -17,11 +17,11 @@
   },
   {
     "id": "q-002",
-    "question": "Welche Aussage zum Umgang mit klimaschädlichen Subventionen trifft auf [PARTY_BADGE:venus] zu?",
+    "question": "Welche Aussage zu Subventionen für fossile Energieträger trifft auf [PARTY_BADGE:venus] zu?",
     "options": [
-      "Will sie vollständig abbauen",
-      "Will einzelne Subventionen streichen und die übrigen behalten",
-      "Will sie zwar verringern, aber ohne festen Zeitplan"
+      "Will diese Subventionen vollständig und zügig abbauen",
+      "Will einzelne Subventionen streichen, aber den Großteil behalten",
+      "Will diese Subventionen unverändert beibehalten"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
@@ -35,8 +35,8 @@
     "id": "q-003",
     "question": "Wie steht [PARTY_BADGE:venus] zu einem generellen Tempolimit auf Autobahnen?",
     "options": [
-      "Will nur situative Geschwindigkeitsbeschränkungen",
-      "Lehnt ein generelles Tempolimit ab",
+      "Lehnt ein generelles Tempolimit grundsätzlich ab",
+      "Will die Entscheidung über ein Tempolimit den Bundesländern überlassen",
       "Befürwortet die Einführung eines generellen Tempolimits"
     ],
     "correct_index": 2,
@@ -67,9 +67,9 @@
     "id": "q-005",
     "question": "Wie steht [PARTY_BADGE:venus] zu öffentlichen Investitionen in den Nahverkehr?",
     "options": [
-      "Will das aktuelle Investitionsniveau halten",
+      "Will das heutige Investitionsniveau im Wesentlichen beibehalten",
       "Befürwortet einen deutlichen Ausbau der Investitionen",
-      "Fordert eine Reduzierung der ÖPNV-Förderung"
+      "Will die öffentliche Förderung des Nahverkehrs zurückfahren"
     ],
     "correct_index": 1,
     "topic": "klimaschutz",
@@ -83,8 +83,8 @@
     "id": "q-006",
     "question": "Welche Aussage zum bundesweiten ÖPNV-Ticket trifft auf [PARTY_BADGE:venus] zu?",
     "options": [
-      "Will ein bundesweites Ticket abschaffen",
-      "Will beim heutigen Preisniveau für ein Bundesticket bleiben",
+      "Lehnt ein vergünstigtes bundesweites Ticket als zu teuer ab",
+      "Will ein bundesweites Ticket nur zu kostendeckenden Preisen anbieten",
       "Will ein günstiges bundesweites Klimaticket einführen"
     ],
     "correct_index": 2,
@@ -117,7 +117,7 @@
     "options": [
       "Will Inlandsflüge schrittweise unattraktiv machen",
       "Will Inlandsflüge wie heute steuerlich behandeln",
-      "Will Inlandsflüge gesetzlich verbieten"
+      "Hat sich zu Inlandsflügen nicht klar positioniert"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
@@ -129,11 +129,11 @@
   },
   {
     "id": "q-009",
-    "question": "Wie steht [PARTY_BADGE:venus] zur Höhe des gesetzlichen Rentenniveaus?",
+    "question": "Wie steht [PARTY_BADGE:venus] zum gesetzlichen Rentenniveau?",
     "options": [
-      "Will das Rentenniveau schrittweise absenken",
-      "Will das heutige Rentenniveau lediglich stabilisieren",
-      "Will das Rentenniveau gegenüber heute deutlich anheben und gesetzlich festschreiben"
+      "Will das heutige Rentenniveau stabilisieren, aber nicht anheben",
+      "Will das Niveau nicht festschreiben und mehr auf private Vorsorge setzen",
+      "Will das Rentenniveau anheben und dauerhaft gesetzlich absichern"
     ],
     "correct_index": 2,
     "topic": "soziale-gerechtigkeit",
@@ -163,9 +163,9 @@
     "id": "q-011",
     "question": "Wie steht [PARTY_BADGE:venus] zu Sanktionen im Bürgergeld?",
     "options": [
-      "Will Sanktionen auf das verfassungsrechtlich zulässige Minimum begrenzen",
-      "Will Sanktionen durch ein alternatives Modell ersetzen",
-      "Will Sanktionen verschärfen"
+      "Will Sanktionen auf das verfassungsrechtliche Minimum begrenzen",
+      "Will an den heutigen Sanktionsregeln im Wesentlichen festhalten",
+      "Will die Sanktionen gegenüber heute deutlich verschärfen"
     ],
     "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
@@ -197,7 +197,7 @@
     "options": [
       "Lehnt ein generelles Tempolimit ab",
       "Befürwortet ein generelles Tempolimit",
-      "Will nur situative Geschwindigkeitsbeschränkungen"
+      "Will die Entscheidung   über ein Tempolimit den Bundesländern überlassen"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
@@ -227,9 +227,9 @@
     "id": "q-015",
     "question": "Welche Struktur der Altersvorsorge will [PARTY_BADGE:mars] erhalten?",
     "options": [
-      "Einen staatlichen Bürgerfonds als zentrale Pflicht-Säule",
-      "Das bestehende Zusammenspiel aus gesetzlicher Rente, Betriebsrente und privater Vorsorge",
-      "Die gesetzliche Rente als zentrale verpflichtende Säule"
+      "Einen einzigen staatlichen Bürgerfonds als zentrale Pflichtsäule",
+      "Den Mix aus gesetzlicher, betrieblicher und privater Vorsorge",
+      "Vor allem die gesetzliche Rente als tragende Pflichtsäule"
     ],
     "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
@@ -241,11 +241,11 @@
   },
   {
     "id": "q-016",
-    "question": "Wie steht [PARTY_BADGE:mars] zur Höhe des gesetzlichen Rentenniveaus?",
+    "question": "Wie steht [PARTY_BADGE:mars] zum gesetzlichen Rentenniveau?",
     "options": [
-      "Will das Rentenniveau schrittweise absenken",
-      "Will das Rentenniveau deutlich anheben",
-      "Will das Rentenniveau auf dem heutigen Stand sichern, ohne es weiter zu erhöhen"
+      "Will das Rentenniveau gegenüber heute deutlich anheben",
+      "Will das Niveau nicht festschreiben und mehr auf private Vorsorge setzen",
+      "Will das heutige Rentenniveau sichern, aber nicht weiter anheben"
     ],
     "correct_index": 2,
     "topic": "soziale-gerechtigkeit",
@@ -260,7 +260,7 @@
     "question": "Wie will [PARTY_BADGE:mars] Beschäftigte ermutigen, freiwillig über die Regelaltersgrenze hinaus zu arbeiten?",
     "options": [
       "Über einen steuerfreien Zuverdienst zusätzlich zur Rente",
-      "Über einen dauerhaften Rentenzuschlag, der erst ab dem späteren Renteneintritt ausgezahlt wird",
+      "Über einen dauerhaften Aufschlag auf die spätere Rente",
       "Über eine einmalige Bonuszahlung beim späteren Renteneintritt"
     ],
     "correct_index": 0,
@@ -273,11 +273,11 @@
   },
   {
     "id": "q-018",
-    "question": "Wie steht [PARTY_BADGE:mars] zur Umbenennung des Bürgergelds?",
+    "question": "Wie steht [PARTY_BADGE:mars] zur Bezeichnung 'Bürgergeld'?",
     "options": [
-      "Will den Namen ändern, um Bürgergeld als weitgehend voraussetzungsfreie Leistung zu kennzeichnen",
-      "Will den Namen ändern, um den Charakter als Grundsicherung in Notlagen zu betonen",
-      "Will den heutigen Namen Bürgergeld beibehalten"
+      "Will den heutigen Namen Bürgergeld weiterhin unverändert beibehalten",
+      "Will den Namen ändern, um den Charakter als Grundsicherung zu betonen",
+      "Hat sich zu einer Bezeichnungsänderung nicht positioniert"
     ],
     "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
@@ -307,9 +307,9 @@
     "id": "q-020",
     "question": "Wie steht [PARTY_BADGE:saturn] zum europäischen Emissionshandel?",
     "options": [
-      "Will ihn durch eine nationale CO2-Steuer ersetzen",
+      "Will ihn vollständig durch eine nationale CO2-Steuer ersetzen",
       "Will ihn stoppen, bis er auf die Industrie beschränkt wird",
-      "Will ihn auf alle Sektoren ausweiten"
+      "Will ihn auf möglichst alle Wirtschaftssektoren ausweiten"
     ],
     "correct_index": 1,
     "topic": "klimaschutz",
@@ -325,7 +325,7 @@
     "options": [
       "Lehnt ein generelles Tempolimit ab",
       "Befürwortet ein generelles Tempolimit",
-      "Will nur situative Geschwindigkeitsbeschränkungen"
+      "Will die Entscheidung über ein Tempolimit den Bundesländern überlassen"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
@@ -353,11 +353,11 @@
   },
   {
     "id": "q-023",
-    "question": "Wie steht [PARTY_BADGE:saturn] zu einer staatlich garantierten Mindestrente nach langjähriger Beitragszahlung?",
+    "question": "Wie will [PARTY_BADGE:saturn] Altersarmut trotz langer Beitragszahlung verhindern?",
     "options": [
-      "Befürwortet eine staatlich garantierte Mindestrente nach langjähriger Beitragszahlung",
-      "Lehnt eine staatliche Mindestrente ab",
-      "Setzt vor allem auf private Vorsorge zur Vermeidung von Altersarmut"
+      "Über eine staatlich garantierte Mindestrente",
+      "Über die bestehende bedarfsgeprüfte Grundsicherung",
+      "Vor allem über stärkere private Vorsorge"
     ],
     "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
@@ -403,9 +403,9 @@
     "id": "q-026",
     "question": "Welche Aussage zum Anspruch auf Bürgergeld trifft auf [PARTY_BADGE:saturn] zu?",
     "options": [
-      "Will allen mit Aufenthaltstitel ohne Wartezeit Anspruch geben",
-      "Will den Anspruch auf Staatsbürger sowie auf Zuwanderer mit langjähriger Beitragszeit beschränken",
-      "Will Zuwanderern nur eine abgesenkte Grundleistung statt des vollen Bürgergelds zahlen"
+      "Will ihn allen rechtmäßig hier Lebenden offen halten",
+      "Will ihn auf Staatsbürger und langjährige Beitragszahler beschränken",
+      "Will ihn allein an die Bedürftigkeit knüpfen, unabhängig von der Herkunft"
     ],
     "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
@@ -670,11 +670,11 @@
   },
   {
     "id": "q-043",
-    "question": "Wie steht [PARTY_BADGE:venus] zur Rückverteilung der CO2-Einnahmen an die Bürger?",
+    "question": "Wofür will [PARTY_BADGE:venus] die Einnahmen aus dem CO2-Preis vor allem verwenden?",
     "options": [
-      "Lehnt eine Rückverteilung der CO2-Einnahmen ab",
-      "Will die Einnahmen vor allem für Klimainvestitionen nutzen",
-      "Will die Einnahmen über ein Pro-Kopf-Klimageld direkt an die Bürger zurückzahlen"
+      "Vor allem zur Entlastung der heimischen Wirtschaft",
+      "Vor allem für direkte staatliche Klimaschutzprojekte",
+      "Vor allem als Pro-Kopf-Klimageld zurück an die Bürger"
     ],
     "correct_index": 2,
     "topic": "klimaschutz",
@@ -686,11 +686,11 @@
   },
   {
     "id": "q-044",
-    "question": "Wie steht [PARTY_BADGE:mars] zur Rückverteilung der CO2-Einnahmen an die Bürger?",
+    "question": "Wofür will [PARTY_BADGE:mars] die Einnahmen aus dem CO2-Preis vor allem verwenden?",
     "options": [
-      "Lehnt eine Rückverteilung der CO2-Einnahmen ab",
-      "Will die Einnahmen vor allem für Klimainvestitionen nutzen",
-      "Will einen relevanten Anteil als Pro-Kopf-Klimageld direkt an die Bürger zurückzahlen"
+      "Vor allem zur Entlastung der heimischen Wirtschaft",
+      "Vor allem für direkte staatliche Klimaschutzprojekte",
+      "Vor allem als Pro-Kopf-Klimageld zurück an die Bürger"
     ],
     "correct_index": 2,
     "topic": "klimaschutz",
@@ -704,9 +704,9 @@
     "id": "q-045",
     "question": "Wie steht [PARTY_BADGE:mars] zu einem CO2-Grenzausgleich auf Importe aus Ländern mit niedrigeren Klimastandards?",
     "options": [
-      "Lehnt einen CO2-Grenzausgleich ab",
-      "Will den CO2-Grenzausgleich auf zentrale Industriebereiche ausweiten",
-      "Will Importe wie heute ohne CO2-Aufschlag belassen"
+      "Setzt stattdessen auf staatliche Hilfen für die heimische Industrie",
+      "Will den CO2-Grenzausgleich auf zentrale Industrien ausweiten",
+      "Hat sich zu einem CO2-Grenzausgleich nicht klar positioniert"
     ],
     "correct_index": 1,
     "topic": "klimaschutz",
@@ -720,8 +720,8 @@
     "id": "q-046",
     "question": "Wie steht [PARTY_BADGE:saturn] zu einem CO2-Grenzausgleich auf Importe aus Ländern mit niedrigeren Klimastandards?",
     "options": [
-      "Lehnt einen CO2-Grenzausgleich ab",
-      "Will Importe wie heute ohne CO2-Aufschlag belassen",
+      "Setzt stattdessen auf staatliche Hilfen für die heimische Industrie",
+      "Hat sich zu einem CO2-Grenzausgleich nicht klar positioniert",
       "Befürwortet einen CO2-Grenzausgleich an der EU-Außengrenze"
     ],
     "correct_index": 2,
@@ -733,27 +733,11 @@
     "category": "retention"
   },
   {
-    "id": "q-047",
-    "question": "Welche Position vertritt [PARTY_BADGE:mars] zur Wahl des Antriebs der Zukunft im Pkw-Bereich?",
-    "options": [
-      "Setzt auf Technologieoffenheit zwischen verschiedenen Antrieben",
-      "Will den Verbrennungsmotor langfristig erhalten",
-      "Setzt den Hauptfokus auf E-Mobilität"
-    ],
-    "correct_index": 0,
-    "topic": "klimaschutz",
-    "prerequisite_position_ids": [
-      "mars-klima-004"
-    ],
-    "is_overlap_question": false,
-    "category": "retention"
-  },
-  {
     "id": "q-048",
     "question": "Welche Haltung vertritt [PARTY_BADGE:saturn] zum Ausstieg aus dem Verbrennungsmotor?",
     "options": [
-      "Lehnt einen festen Ausstiegstermin grundsätzlich ab und setzt auf Technologieoffenheit",
-      "Befürwortet einen früheren Ausstieg",
+      "Lehnt einen festen Ausstiegstermin grundsätzlich ab",
+      "Befürwortet einen früheren Ausstieg aus dem Verbrenner",
       "Will am bestehenden EU-Ausstiegsplan festhalten"
     ],
     "correct_index": 0,
@@ -768,30 +752,14 @@
     "id": "q-049",
     "question": "Wie steht [PARTY_BADGE:venus] zur Frage, wer in die gesetzliche Rente einzahlen soll?",
     "options": [
-      "Will die Versicherungspflicht auf alle Erwerbstätigen ausweiten, auch auf bisher ausgenommene Berufsgruppen",
-      "Will an der heutigen Trennung zwischen Rente und Beamtenpension festhalten",
-      "Will die gesetzliche Rente langfristig durch private Vorsorge ersetzen"
+      "Will alle Erwerbstätigen einbeziehen, auch bisher ausgenommene Gruppen",
+      "Will die heutige Trennung von Rente und Beamtenversorgung beibehalten",
+      "Will stärker auf private Vorsorge statt die gesetzliche Rente setzen"
     ],
     "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "venus-sozial-002"
-    ],
-    "is_overlap_question": false,
-    "category": "retention"
-  },
-  {
-    "id": "q-050",
-    "question": "Wie steht [PARTY_BADGE:saturn] dazu, dass auch Beamte und Abgeordnete in die gesetzliche Rentenkasse einzahlen?",
-    "options": [
-      "Will an der heutigen Trennung zwischen Beamtenpension und Rente festhalten",
-      "Fordert, dass auch Beamte und Abgeordnete in die gesetzliche Rente einzahlen",
-      "Will Beamte und Abgeordnete vollständig privat absichern"
-    ],
-    "correct_index": 1,
-    "topic": "soziale-gerechtigkeit",
-    "prerequisite_position_ids": [
-      "saturn-sozial-003"
     ],
     "is_overlap_question": false,
     "category": "retention"
@@ -834,7 +802,7 @@
     "options": [
       "Will Sanktionen auf das verfassungsrechtliche Minimum begrenzen",
       "Will das heutige Sanktionsniveau unverändert lassen",
-      "Will spürbare Leistungskürzungen bei wiederholter Arbeitsverweigerung"
+      "Will spürbare Kürzungen bis hin zum vollständigen Wegfall der Leistung"
     ],
     "correct_index": 2,
     "topic": "soziale-gerechtigkeit",
@@ -848,9 +816,9 @@
     "id": "q-054",
     "question": "Wie steht [PARTY_BADGE:saturn] zu Sanktionen bei Arbeitsverweigerung im Bürgergeld?",
     "options": [
-      "Will Sanktionen einschränken",
-      "Will das heutige Sanktionsniveau unverändert lassen",
-      "Fordert deutlich härtere Sanktionen einschließlich des vollständigen Leistungsentzugs bei Arbeitsverweigerung"
+      "Will die Sanktionen deutlich einschränken und abmildern",
+      "Will das heutige Sanktionsniveau im Wesentlichen beibehalten",
+      "Will die Sanktionen deutlich verschärfen und ausweiten"
     ],
     "correct_index": 2,
     "topic": "soziale-gerechtigkeit",
@@ -864,8 +832,8 @@
     "id": "q-055",
     "question": "Wie will [PARTY_BADGE:venus] Kinder künftig absichern?",
     "options": [
-      "Über einen höheren Kinderzuschlag innerhalb des Bürgergelds",
-      "Über zusätzliche Steuerfreibeträge für Familien",
+      "Über deutlich höhere Kinderleistungen im bestehenden Bürgergeld",
+      "Über zusätzliche Steuerfreibeträge für erwerbstätige Familien",
       "Über eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds"
     ],
     "correct_index": 2,
@@ -880,9 +848,9 @@
     "id": "q-056",
     "question": "Wie will [PARTY_BADGE:mars] Kinder künftig absichern?",
     "options": [
-      "Über eine eigenständige, gebündelte Kindergrundsicherung außerhalb des Bürgergelds",
-      "Über höhere Familienleistungen innerhalb des Bürgergelds",
-      "Über Kinderfreibeträge im Steuerrecht für erwerbstätige Eltern"
+      "Über eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds",
+      "Über deutlich höhere Kinderleistungen im bestehenden Bürgergeld",
+      "Über zusätzliche Steuerfreibeträge für erwerbstätige Familien"
     ],
     "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
@@ -1038,11 +1006,11 @@
   },
   {
     "id": "q-065",
-    "question": "Welches Instrument fordert [PARTY_BADGE:mars] zum Schutz der heimischen Industrie vor CO2-intensiven Importen?",
+    "question": "Mit welchem Instrument will [PARTY_BADGE:mars] die heimische Industrie im CO2-Wettbewerb schützen?",
     "options": [
-      "Einen CO2-Grenzausgleich auf Importe aus Ländern mit niedrigeren Standards",
-      "Eine Befreiung der heimischen Industrie von den CO2-Kosten",
-      "Direkte staatliche Subventionen für energieintensive Betriebe"
+      "Mit einem CO2-Grenzausgleich auf CO2-intensive Importe",
+      "Mit einer Befreiung der heimischen Industrie von den CO2-Kosten",
+      "Mit direkten Subventionen für energieintensive Betriebe"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
@@ -1058,9 +1026,9 @@
     "id": "q-066",
     "question": "Was will [PARTY_BADGE:mars] mit den Einnahmen aus dem CO2-Preis vorrangig tun?",
     "options": [
-      "Sie vollständig in staatliche Klimaprojekte investieren",
+      "Sie vollständig in staatliche Klimaschutzprojekte investieren",
       "Mindestens die Hälfte als Pro-Kopf-Klimageld an die Bürger auszahlen",
-      "Mit ihnen die Unternehmenssteuern senken"
+      "Mit ihnen die Unternehmenssteuern senken, um Betriebe zu entlasten"
     ],
     "correct_index": 1,
     "topic": "klimaschutz",
@@ -1076,9 +1044,9 @@
     "id": "q-067",
     "question": "Wie steht [PARTY_BADGE:saturn] zu einem CO2-Grenzausgleich auf Importe aus Ländern mit niedrigeren Umweltstandards?",
     "options": [
-      "Lehnt jeden CO2-Aufschlag auf Importe ab",
-      "Befürwortet einen CO2-Grenzausgleich an der EU-Außengrenze zum Schutz des Mittelstands",
-      "Will solche Importe vollständig verbieten"
+      "Lehnt einen CO2-Aufschlag auf Importe grundsätzlich ab",
+      "Befürwortet einen CO2-Grenzausgleich an der EU-Außengrenze",
+      "Setzt stattdessen auf nationale Subventionen für die Industrie"
     ],
     "correct_index": 1,
     "topic": "klimaschutz",
@@ -1095,8 +1063,8 @@
     "question": "Mit welchem Ansatz will [PARTY_BADGE:venus] Inlandsflüge zurückdrängen?",
     "options": [
       "Mit einem gesetzlichen Verbot von Inlandsflügen",
-      "Indem Inlandsflüge über Steuern und Aufschläge teurer werden",
-      "Mit einer festen Obergrenze für die Zahl der Flüge pro Strecke"
+      "Mit höheren Steuern und Aufschlägen auf Inlandsflüge",
+      "Mit einer festen Obergrenze für Flüge pro Strecke"
     ],
     "correct_index": 1,
     "topic": "klimaschutz",
@@ -1112,9 +1080,9 @@
     "id": "q-069",
     "question": "Welche Haltung vertritt [PARTY_BADGE:saturn] dazu, wer künftig in die gesetzliche Rentenkasse einzahlen soll?",
     "options": [
-      "Will an der heutigen Trennung zwischen Beamtenpension und gesetzlicher Rente festhalten",
-      "Will auch Beamte, Abgeordnete und Minister einbeziehen",
-      "Will die gesetzliche Rente langfristig durch private Vorsorge ersetzen"
+      "Will die heutige Trennung von Beamtenpension und Rente beibehalten",
+      "Will auch Beamte, Abgeordnete und Minister in die Rente einbeziehen",
+      "Will stärker auf private Vorsorge statt die gesetzliche Rente setzen"
     ],
     "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
@@ -1148,9 +1116,9 @@
     "id": "q-071",
     "question": "Wie will [PARTY_BADGE:saturn] Bürgergeld-Bezieher behandeln, die viele Jahre eingezahlt haben, bevor sie arbeitslos wurden?",
     "options": [
-      "Genauso wie alle anderen Bezieher, ohne Unterschied",
+      "Mit denselben Regeln wie für alle anderen Bezieher",
       "Mit einem monatlichen Aufschlag auf das Bürgergeld",
-      "Indem ihnen das Bürgergeld ganz gestrichen wird"
+      "Mit einem längeren Schutz ihres Ersparten vor der Anrechnung"
     ],
     "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
@@ -1184,9 +1152,9 @@
     "id": "q-073",
     "question": "Jemand möchte sich im Jahr 2031 fabrikneu einen Benziner kaufen. Wie passt das zu den Plänen von [PARTY_BADGE:venus]?",
     "options": [
-      "Das ist weiterhin ohne Einschränkung möglich",
-      "Neuzulassungen von Verbrennern sind ab 2030 nicht mehr vorgesehen",
-      "Das ist dann nur noch als Plug-in-Hybrid möglich"
+      "Das ist dann weiterhin ohne jede Einschränkung möglich",
+      "Das ist dann nicht mehr möglich, Neuzulassungen sind gestoppt",
+      "Das ist dann nur noch mit einem Plug-in-Hybrid möglich"
     ],
     "correct_index": 1,
     "topic": "klimaschutz",
@@ -1310,9 +1278,9 @@
     "id": "q-080",
     "question": "Eine Person ist vor zwei Jahren nach Deutschland zugewandert und arbeitet noch nicht. Hat sie nach dem Modell von [PARTY_BADGE:saturn] Anspruch auf Bürgergeld?",
     "options": [
-      "Ja, mit Aufenthaltstitel sofort",
-      "Nein, erst nach mindestens fünf Jahren Beitragszahlung",
-      "Ja, aber nur zum halben Regelsatz"
+      "Sie erhält es sofort, schon mit einem Aufenthaltstitel",
+      "Sie erhält es erst nach mehreren Jahren Beitragszahlung",
+      "Sie erhält es, in den ersten Jahren nur zum halben Regelsatz"
     ],
     "correct_index": 1,
     "topic": "soziale-gerechtigkeit",

@@ -1,0 +1,2108 @@
+[
+  {
+    "id": "q-001",
+    "question": "Wie steht [PARTY_BADGE:venus] zur Höhe des CO2-Preises in den kommenden Jahren?",
+    "options": [
+      "Fordert eine Senkung oder Abschaffung des CO2-Preises",
+      "Befürwortet eine deutliche Anhebung weit über das heutige Niveau",
+      "Will das aktuelle Preisniveau im Wesentlichen beibehalten"
+    ],
+    "correct_index": 1,
+    "correct_option": "Befürwortet eine deutliche Anhebung weit über das heutige Niveau",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-001",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Der CO2-Preis muss bis 2030 auf mindestens 200 Euro pro Tonne steigen.",
+        "argument": "Nur ein Preis, der die wahren Klimakosten widerspiegelt, lenkt Investitionen schnell genug um – zögerliche Signale verschenken das 1,5-Grad-Ziel."
+      }
+    ]
+  },
+  {
+    "id": "q-002",
+    "question": "Welche Aussage zu Subventionen für fossile Energieträger trifft auf [PARTY_BADGE:venus] zu?",
+    "options": [
+      "Will diese Subventionen vollständig und zügig abbauen",
+      "Will einzelne Subventionen streichen, aber den Großteil behalten",
+      "Will diese Subventionen unverändert beibehalten"
+    ],
+    "correct_index": 0,
+    "correct_option": "Will diese Subventionen vollständig und zügig abbauen",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-003",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Klimaschädliche Subventionen von jährlich 65 Milliarden Euro werden bis 2028 vollständig abgebaut.",
+        "argument": "Dieselprivileg, Kerosin-Freiheit, Dienstwagenregelung – jedes Jahr subventioniert der Staat Emissionen mit Milliarden, die wir für die Transformation dringend brauchen."
+      }
+    ]
+  },
+  {
+    "id": "q-003",
+    "question": "Wie steht [PARTY_BADGE:venus] zu einem generellen Tempolimit auf Autobahnen?",
+    "options": [
+      "Lehnt ein generelles Tempolimit grundsätzlich ab",
+      "Will die Entscheidung über ein Tempolimit den Bundesländern überlassen",
+      "Befürwortet die Einführung eines generellen Tempolimits"
+    ],
+    "correct_index": 2,
+    "correct_option": "Befürwortet die Einführung eines generellen Tempolimits",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-004",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Wir fordern Tempo 120 auf Autobahnen.",
+        "argument": "Eine Maßnahme, die sofort wirkt, keine Investitionen kostet, Leben rettet und Emissionen senkt – günstiger ist Klimapolitik nicht zu haben."
+      }
+    ]
+  },
+  {
+    "id": "q-004",
+    "question": "Welche Position vertritt [PARTY_BADGE:venus] zum Ausstieg aus dem Verbrennungsmotor?",
+    "options": [
+      "Lehnt einen festen Ausstiegstermin ab und setzt auf Technologieoffenheit",
+      "Will am bestehenden EU-Ausstiegsplan festhalten",
+      "Will Neuzulassungen von Verbrennern früher als bisher beschlossen beenden"
+    ],
+    "correct_index": 2,
+    "correct_option": "Will Neuzulassungen von Verbrennern früher als bisher beschlossen beenden",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-005",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Alle Neuzulassungen von Verbrennungs-Pkw enden ab 2030, nicht erst 2035.",
+        "argument": "Die Auto-Transformation ist längst im Gang – wer früher umstellt, sichert sich die Wertschöpfung; wer zögert, verliert Arbeitsplätze an China."
+      }
+    ]
+  },
+  {
+    "id": "q-005",
+    "question": "Wie steht [PARTY_BADGE:venus] zu öffentlichen Investitionen in den Nahverkehr?",
+    "options": [
+      "Will das heutige Investitionsniveau im Wesentlichen beibehalten",
+      "Befürwortet einen deutlichen Ausbau der Investitionen",
+      "Will die öffentliche Förderung des Nahverkehrs zurückfahren"
+    ],
+    "correct_index": 1,
+    "correct_option": "Befürwortet einen deutlichen Ausbau der Investitionen",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-006",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Wir investieren 30 Milliarden Euro pro Jahr in den Ausbau des öffentlichen Nahverkehrs.",
+        "argument": "Klimaschutz im Verkehr scheitert nicht an den Bürgern, sondern an fehlenden Alternativen – wer sich kein Auto leisten kann oder will, braucht einen ÖPNV, der überall fährt, und das geht nur mit echten Investitionen in Netz und Takt."
+      }
+    ]
+  },
+  {
+    "id": "q-006",
+    "question": "Welche Aussage zum bundesweiten ÖPNV-Ticket trifft auf [PARTY_BADGE:venus] zu?",
+    "options": [
+      "Lehnt ein vergünstigtes bundesweites Ticket als zu teuer ab",
+      "Will ein bundesweites Ticket nur zu kostendeckenden Preisen anbieten",
+      "Will ein günstiges bundesweites Klimaticket einführen"
+    ],
+    "correct_index": 2,
+    "correct_option": "Will ein günstiges bundesweites Klimaticket einführen",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-007",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Wir führen ein bundesweites 9-Euro-Klimaticket ein.",
+        "argument": "Mobilität ist ein Grundrecht, kein Wohlstandsthema – ein bezahlbares Bundesticket nimmt Familien mit kleinen Einkommen die Hürde, klimafreundlich zu pendeln, und macht den ÖPNV für jeden zur naheliegenden Wahl."
+      }
+    ]
+  },
+  {
+    "id": "q-007",
+    "question": "Wie steht [PARTY_BADGE:venus] zu einem gesetzlichen CO2-Mindestpreis als Ergänzung zum Emissionshandel?",
+    "options": [
+      "Befürwortet die Einführung eines verbindlichen Mindestpreises",
+      "Lehnt einen zusätzlichen Mindestpreis ab und vertraut vor allem dem Emissionshandel",
+      "Will den Emissionshandel weitgehend durch eine nationale Steuer ersetzen"
+    ],
+    "correct_index": 0,
+    "correct_option": "Befürwortet die Einführung eines verbindlichen Mindestpreises",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-008",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Wir verankern einen gesetzlichen CO2-Mindestpreis von 180 Euro pro Tonne, der auch dann gilt, wenn der Emissionshandel günstigere Zertifikate ausweist.",
+        "argument": "Investitionen in klimaneutrale Technologien rechnen sich nur bei Planungssicherheit – ein Mindestpreis verhindert, dass billige Zertifikate die Transformation um Jahre zurückwerfen."
+      }
+    ]
+  },
+  {
+    "id": "q-008",
+    "question": "Wie steht [PARTY_BADGE:venus] zu Inlandsflügen?",
+    "options": [
+      "Will Inlandsflüge schrittweise unattraktiv machen",
+      "Will Inlandsflüge wie heute steuerlich behandeln",
+      "Hat sich zu Inlandsflügen nicht klar positioniert"
+    ],
+    "correct_index": 0,
+    "correct_option": "Will Inlandsflüge schrittweise unattraktiv machen",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-009",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Inlandsflüge werden über die Kerosinsteuer und einen Aufschlag auf Kurzstrecken-Tickets schrittweise unattraktiv gemacht.",
+        "argument": "Es ist klimapolitisch absurd, dass ein Flug Berlin–München steuerlich günstiger ist als der ICE – wer dieses Privileg streicht, lässt den Markt die klimafreundlichere Alternative wählen, statt sie zu verbieten."
+      }
+    ]
+  },
+  {
+    "id": "q-009",
+    "question": "Wie steht [PARTY_BADGE:venus] zum gesetzlichen Rentenniveau?",
+    "options": [
+      "Will das heutige Rentenniveau stabilisieren, aber nicht anheben",
+      "Will das Niveau nicht festschreiben und mehr auf private Vorsorge setzen",
+      "Will das Rentenniveau anheben und dauerhaft gesetzlich absichern"
+    ],
+    "correct_index": 2,
+    "correct_option": "Will das Rentenniveau anheben und dauerhaft gesetzlich absichern",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "venus-sozial-001",
+        "party_id": "venus",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Das gesetzliche Rentenniveau wird auf 50 Prozent angehoben und gesetzlich festgeschrieben.",
+        "argument": "Ein Niveau von 48 Prozent bedeutet Altersarmut für Millionen, besonders für Frauen – verlässliche Rente ist eine Frage der Würde."
+      }
+    ]
+  },
+  {
+    "id": "q-010",
+    "question": "Wie steht [PARTY_BADGE:venus] zur Höhe des Bürgergeld-Regelsatzes?",
+    "options": [
+      "Will den Regelsatz auf dem heutigen Stand belassen",
+      "Will den Regelsatz spürbar anheben",
+      "Will den Regelsatz absenken"
+    ],
+    "correct_index": 1,
+    "correct_option": "Will den Regelsatz spürbar anheben",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "venus-sozial-004",
+        "party_id": "venus",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Der Bürgergeld-Regelsatz wird um 50 € monatlich angehoben.",
+        "argument": "Studien zeigen, dass der heutige Satz die tatsächlichen Kosten für Energie, Lebensmittel und Mobilität nicht deckt – ohne sofortige Anhebung bleibt Armut in einem reichen Land strukturell."
+      }
+    ]
+  },
+  {
+    "id": "q-011",
+    "question": "Wie steht [PARTY_BADGE:venus] zu Sanktionen im Bürgergeld?",
+    "options": [
+      "Will Sanktionen auf das verfassungsrechtliche Minimum begrenzen",
+      "Will an den heutigen Sanktionsregeln im Wesentlichen festhalten",
+      "Will die Sanktionen gegenüber heute deutlich verschärfen"
+    ],
+    "correct_index": 0,
+    "correct_option": "Will Sanktionen auf das verfassungsrechtliche Minimum begrenzen",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "venus-sozial-005",
+        "party_id": "venus",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Sanktionen gegen Bürgergeld-Beziehende werden auf das verfassungsrechtliche Minimum begrenzt.",
+        "argument": "Das Bundesverfassungsgericht hat klargestellt: Existenzsicherung ist Grundrecht – Kürzungen unter das Minimum sind nicht zulässig."
+      }
+    ]
+  },
+  {
+    "id": "q-012",
+    "question": "Welches Instrument soll laut [PARTY_BADGE:mars] Leitinstrument deutscher Klimapolitik bleiben?",
+    "options": [
+      "Eine nationale CO2-Steuer",
+      "Der europäische Emissionshandel",
+      "Ordnungsrechtliche Verbote bestimmter Technologien"
+    ],
+    "correct_index": 1,
+    "correct_option": "Der europäische Emissionshandel",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "mars-klima-001",
+        "party_id": "mars",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Der europäische Emissionshandel bleibt das Leitinstrument deutscher Klimapolitik.",
+        "argument": "Er kombiniert verlässliche Zielerreichung mit der Freiheit der Wirtschaft, den günstigsten Weg selbst zu wählen – Verbote sind das letzte Mittel."
+      }
+    ]
+  },
+  {
+    "id": "q-013",
+    "question": "Wie steht [PARTY_BADGE:mars] zu einem generellen Tempolimit auf Autobahnen?",
+    "options": [
+      "Lehnt ein generelles Tempolimit ab",
+      "Befürwortet ein generelles Tempolimit",
+      "Will die Entscheidung   über ein Tempolimit den Bundesländern überlassen"
+    ],
+    "correct_index": 0,
+    "correct_option": "Lehnt ein generelles Tempolimit ab",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "mars-klima-005",
+        "party_id": "mars",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Ein generelles Tempolimit auf Autobahnen lehnen wir ab.",
+        "argument": "Der Einspareffekt ist gering, der Eingriff in den Alltag der Pendler groß – echte Emissionssenkung kommt aus Technologie, nicht aus Verbot."
+      }
+    ]
+  },
+  {
+    "id": "q-014",
+    "question": "Welche verkehrspolitische Investition will [PARTY_BADGE:mars] deutlich ausbauen?",
+    "options": [
+      "Investitionen in den Ausbau der Ladeinfrastruktur für E-Autos",
+      "Investitionen in den Bau neuer Autobahnen und Fernstraßen",
+      "Investitionen in den Schienen-Güterverkehr"
+    ],
+    "correct_index": 2,
+    "correct_option": "Investitionen in den Schienen-Güterverkehr",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "mars-klima-006",
+        "party_id": "mars",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Wir verdoppeln die Investitionen in den Schienen-Güterverkehr.",
+        "argument": "Eine starke Schiene entlastet die Autobahn und senkt CO2-Emissionen pro Tonnenkilometer um rund 80 Prozent – wirtschaftlich und ökologisch ist das beste Argument, Güter aufs Gleis zu bringen statt auf den Lkw."
+      }
+    ]
+  },
+  {
+    "id": "q-015",
+    "question": "Welche Struktur der Altersvorsorge will [PARTY_BADGE:mars] erhalten?",
+    "options": [
+      "Einen einzigen staatlichen Bürgerfonds als zentrale Pflichtsäule",
+      "Den Mix aus gesetzlicher, betrieblicher und privater Vorsorge",
+      "Vor allem die gesetzliche Rente als tragende Pflichtsäule"
+    ],
+    "correct_index": 1,
+    "correct_option": "Den Mix aus gesetzlicher, betrieblicher und privater Vorsorge",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "mars-sozial-001",
+        "party_id": "mars",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Wir halten am Drei-Säulen-Modell aus gesetzlicher, betrieblicher und privater Rente fest.",
+        "argument": "Ein einziger Staatsfonds reicht nicht aus – Streuung macht die Altersvorsorge robust gegen Krisen und demografische Schocks."
+      }
+    ]
+  },
+  {
+    "id": "q-016",
+    "question": "Wie steht [PARTY_BADGE:mars] zum gesetzlichen Rentenniveau?",
+    "options": [
+      "Will das Rentenniveau gegenüber heute deutlich anheben",
+      "Will das Niveau nicht festschreiben und mehr auf private Vorsorge setzen",
+      "Will das heutige Rentenniveau sichern, aber nicht weiter anheben"
+    ],
+    "correct_index": 2,
+    "correct_option": "Will das heutige Rentenniveau sichern, aber nicht weiter anheben",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "mars-sozial-002",
+        "party_id": "mars",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Das gesetzliche Rentenniveau wird bei 48 Prozent stabilisiert, aber nicht weiter angehoben.",
+        "argument": "Jede Niveau-Anhebung zahlt die junge Generation – Generationengerechtigkeit verbietet Wahlgeschenke an heutige Rentner."
+      }
+    ]
+  },
+  {
+    "id": "q-017",
+    "question": "Wie will [PARTY_BADGE:mars] Beschäftigte ermutigen, freiwillig über die Regelaltersgrenze hinaus zu arbeiten?",
+    "options": [
+      "Über einen steuerfreien Zuverdienst zusätzlich zur Rente",
+      "Über einen dauerhaften Aufschlag auf die spätere Rente",
+      "Über eine einmalige Bonuszahlung beim späteren Renteneintritt"
+    ],
+    "correct_index": 0,
+    "correct_option": "Über einen steuerfreien Zuverdienst zusätzlich zur Rente",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "mars-sozial-004",
+        "party_id": "mars",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Wer freiwillig über die Regelaltersgrenze hinaus arbeitet, erhält einen monatlichen steuerfreien Zuverdienst von bis zu 2.000 Euro.",
+        "argument": "Erfahrene Beschäftigte sind ein knappes Gut – wer Anreize statt Verbote schafft, entlastet Rentenkasse und Fachkräftemarkt zugleich, ohne jemanden zur Mehrarbeit zu zwingen."
+      }
+    ]
+  },
+  {
+    "id": "q-018",
+    "question": "Wie steht [PARTY_BADGE:mars] zur Bezeichnung 'Bürgergeld'?",
+    "options": [
+      "Will den heutigen Namen Bürgergeld weiterhin unverändert beibehalten",
+      "Will den Namen ändern, um den Charakter als Grundsicherung zu betonen",
+      "Hat sich zu einer Bezeichnungsänderung nicht positioniert"
+    ],
+    "correct_index": 1,
+    "correct_option": "Will den Namen ändern, um den Charakter als Grundsicherung zu betonen",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "mars-sozial-005",
+        "party_id": "mars",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Bürgergeld wird in 'Neue Grundsicherung' umbenannt.",
+        "argument": "Der Markenwechsel zum Bürgergeld hat das falsche Signal gesetzt – schon der Name muss wieder klarstellen, dass es um Grundsicherung in Notlagen geht und nicht um eine bedingungslose Zuwendung."
+      }
+    ]
+  },
+  {
+    "id": "q-019",
+    "question": "Welche Haltung vertritt [PARTY_BADGE:saturn] zur nationalen CO2-Steuer?",
+    "options": [
+      "Fordert die sofortige Abschaffung",
+      "Will sie unverändert beibehalten",
+      "Will sie verschärfen"
+    ],
+    "correct_index": 0,
+    "correct_option": "Fordert die sofortige Abschaffung",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "saturn-klima-001",
+        "party_id": "saturn",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Die nationale CO2-Steuer wird sofort abgeschafft.",
+        "argument": "Sie belastet Familien jährlich mit mehreren Hundert Euro für eine Symbolpolitik, die messbar nichts am Weltklima ändert."
+      }
+    ]
+  },
+  {
+    "id": "q-020",
+    "question": "Wie steht [PARTY_BADGE:saturn] zum europäischen Emissionshandel?",
+    "options": [
+      "Will ihn vollständig durch eine nationale CO2-Steuer ersetzen",
+      "Will ihn stoppen, bis er auf die Industrie beschränkt wird",
+      "Will ihn auf möglichst alle Wirtschaftssektoren ausweiten"
+    ],
+    "correct_index": 1,
+    "correct_option": "Will ihn stoppen, bis er auf die Industrie beschränkt wird",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "saturn-klima-002",
+        "party_id": "saturn",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Den europäischen Emissionshandel stoppen wir, bis er auf die Industrie beschränkt wird.",
+        "argument": "Der deutsche Bürger darf nicht für die Klimapolitik Brüssels zahlen – Schutz vor staatlicher Verteuerung ist Sozialpolitik."
+      }
+    ]
+  },
+  {
+    "id": "q-021",
+    "question": "Welche Haltung vertritt [PARTY_BADGE:saturn] zum generellen Tempolimit auf Autobahnen?",
+    "options": [
+      "Lehnt ein generelles Tempolimit ab",
+      "Befürwortet ein generelles Tempolimit",
+      "Will die Entscheidung über ein Tempolimit den Bundesländern überlassen"
+    ],
+    "correct_index": 0,
+    "correct_option": "Lehnt ein generelles Tempolimit ab",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "saturn-klima-005",
+        "party_id": "saturn",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Ein Tempolimit auf deutschen Autobahnen wird es mit uns nicht geben.",
+        "argument": "Freiheit bedeutet, selbst zu entscheiden, wie schnell man fährt – wer Deutschland autogerecht gebaut hat, darf jetzt nicht die Bürger bestrafen."
+      }
+    ]
+  },
+  {
+    "id": "q-022",
+    "question": "Wie steht [PARTY_BADGE:saturn] zur Pendlerpauschale?",
+    "options": [
+      "Will sie auf dem heutigen Stand halten",
+      "Will sie schrittweise absenken",
+      "Will sie spürbar und langfristig erhöhen"
+    ],
+    "correct_index": 2,
+    "correct_option": "Will sie spürbar und langfristig erhöhen",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "saturn-klima-006",
+        "party_id": "saturn",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Die Pendlerpauschale wird dauerhaft auf 50 Cent pro Kilometer erhöht.",
+        "argument": "Wer aufs Land gezogen ist, weil Wohnen dort noch bezahlbar ist, darf nicht für die Klimapolitik der Stadt bestraft werden – steigende Spritpreise treffen Pendler hart, und nur eine spürbar höhere Pauschale gleicht das aus."
+      }
+    ]
+  },
+  {
+    "id": "q-023",
+    "question": "Wie will [PARTY_BADGE:saturn] Altersarmut trotz langer Beitragszahlung verhindern?",
+    "options": [
+      "Über eine staatlich garantierte Mindestrente",
+      "Über die bestehende bedarfsgeprüfte Grundsicherung",
+      "Vor allem über stärkere private Vorsorge"
+    ],
+    "correct_index": 0,
+    "correct_option": "Über eine staatlich garantierte Mindestrente",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "saturn-sozial-001",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Wir führen eine steuerfinanzierte Mindestrente von 1.300 Euro netto nach 35 Beitragsjahren ein.",
+        "argument": "Wer ein Leben lang gearbeitet und Beiträge gezahlt hat, verdient einen würdigen Ruhestand – nicht Flaschensammeln im Park."
+      }
+    ]
+  },
+  {
+    "id": "q-024",
+    "question": "Wie steht [PARTY_BADGE:saturn] zum vorzeitigen Renteneintritt nach langer Beitragsdauer?",
+    "options": [
+      "Will einen vorzeitigen Renteneintritt nur mit dauerhaften Abschlägen zulassen",
+      "Will einen vorzeitigen Renteneintritt ohne Abschläge zulassen",
+      "Will das Renteneintrittsalter generell anheben und die Frührente beenden"
+    ],
+    "correct_index": 1,
+    "correct_option": "Will einen vorzeitigen Renteneintritt ohne Abschläge zulassen",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "saturn-sozial-002",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Die Rente mit 63 nach 45 Beitragsjahren bleibt ohne Abschläge erhalten.",
+        "argument": "Ein Facharbeiter, der mit 17 angefangen hat, soll nicht bis 67 schuften müssen – Rente ist Wertschätzung, nicht Strafe für frühen Berufsstart."
+      }
+    ]
+  },
+  {
+    "id": "q-025",
+    "question": "Was plant [PARTY_BADGE:saturn] mit künftigen Beamtenpensionen?",
+    "options": [
+      "Sie weiterhin deutlich oberhalb der gesetzlichen Rente halten",
+      "Sie über eine verpflichtende private Vorsorge absichern",
+      "Sie auf das Niveau der gesetzlichen Rente absenken"
+    ],
+    "correct_index": 2,
+    "correct_option": "Sie auf das Niveau der gesetzlichen Rente absenken",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "saturn-sozial-004",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Künftige Beamtenpensionen werden auf das Niveau der gesetzlichen Rente abgesenkt.",
+        "argument": "Es ist nicht vermittelbar, dass ein pensionierter Ministerialrat das Vierfache eines Facharbeiters bezieht – Gerechtigkeit beginnt damit, dass der Staat bei sich selbst kürzt, bevor er andere zur Kasse bittet."
+      }
+    ]
+  },
+  {
+    "id": "q-026",
+    "question": "Welche Aussage zum Anspruch auf Bürgergeld trifft auf [PARTY_BADGE:saturn] zu?",
+    "options": [
+      "Will ihn allen rechtmäßig hier Lebenden offen halten",
+      "Will ihn auf Staatsbürger und langjährige Beitragszahler beschränken",
+      "Will ihn allein an die Bedürftigkeit knüpfen, unabhängig von der Herkunft"
+    ],
+    "correct_index": 1,
+    "correct_option": "Will ihn auf Staatsbürger und langjährige Beitragszahler beschränken",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "saturn-sozial-005",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Bürgergeld gibt es nur für deutsche Staatsbürger und Zuwanderer nach mindestens fünf Jahren Beitragszahlung.",
+        "argument": "Der deutsche Sozialstaat ist für diejenigen da, die ihn aufgebaut haben – er ist kein Einwanderungsanreiz in unsere Sozialkassen."
+      }
+    ]
+  },
+  {
+    "id": "q-027",
+    "question": "Welche Aussage zur Behandlung von Bürgergeld-Beziehern mit langer Beitragsdauer trifft auf [PARTY_BADGE:saturn] zu?",
+    "options": [
+      "Lehnt eine Differenzierung im Bürgergeld nach Beitragshistorie ab",
+      "Sieht für sie einen Aufschlag auf das Bürgergeld vor",
+      "Will sie ganz aus dem Bürgergeld herausnehmen und über die Rente absichern"
+    ],
+    "correct_index": 1,
+    "correct_option": "Sieht für sie einen Aufschlag auf das Bürgergeld vor",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "saturn-sozial-007",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Bezieher mit mindestens fünfzehn Beitragsjahren erhalten einen Bürgergeld-Aufschlag von 50 Euro monatlich.",
+        "argument": "Wer Jahrzehnte in dieses Land eingezahlt hat, darf bei Arbeitslosigkeit nicht auf demselben Niveau landen wie ein Berufsanfänger – Lebensleistung muss sich auch in der Krise zeigen."
+      }
+    ]
+  },
+  {
+    "id": "q-028",
+    "question": "Welche Pflicht sieht [PARTY_BADGE:saturn] für Langzeitbezieher von Bürgergeld vor?",
+    "options": [
+      "Eine verpflichtende gemeinnützige Tätigkeit",
+      "Lehnt zusätzliche Pflichten für Bürgergeld-Bezieher ab",
+      "Eine wöchentliche Pflicht-Beratung beim Jobcenter"
+    ],
+    "correct_index": 0,
+    "correct_option": "Eine verpflichtende gemeinnützige Tätigkeit",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "saturn-sozial-008",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Langzeitleistungsbezieher müssen eine gemeinnützige Tätigkeit von mindestens 20 Wochenstunden ausüben, sonst entfällt der Anspruch.",
+        "argument": "Wer von der Solidarität anderer lebt, schuldet der Gesellschaft eine Gegenleistung – Bürgerarbeit hält im Tagesrhythmus, schützt vor Vereinsamung und macht Arbeitslosigkeit nicht zur Komfortzone."
+      }
+    ]
+  },
+  {
+    "id": "q-029",
+    "question": "Welche Parteien fordern ein Pro-Kopf-Klimageld, das einen Teil der CO2-Einnahmen direkt an die Bürger zurückzahlt?",
+    "options": [
+      "Nur [PARTY_BADGE:venus]",
+      "Nur [PARTY_BADGE:mars]",
+      "Beide Parteien"
+    ],
+    "correct_index": 2,
+    "correct_option": "Beide Parteien",
+    "category": "comparative",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": true,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-002",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Ein Pro-Kopf-Klimageld von 320 Euro pro Jahr entlastet einkommensschwache Haushalte überproportional.",
+        "argument": "Der CO2-Preis wirkt regressiv, wenn er nicht rückverteilt wird – Klimapolitik darf Familien mit kleinen Einkommen nicht bestrafen, sondern muss sie entlasten."
+      },
+      {
+        "id": "mars-klima-002",
+        "party_id": "mars",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Mindestens die Hälfte der CO2-Einnahmen wird als Pro-Kopf-Klimageld direkt an die Bürger ausgezahlt.",
+        "argument": "Ein Lenkungspreis funktioniert nur mit Akzeptanz in der arbeitenden Mitte – wer Pendler belastet, ohne ihnen das Geld sichtbar zurückzugeben, riskiert die Klimapolitik insgesamt."
+      }
+    ]
+  },
+  {
+    "id": "q-030",
+    "question": "Welche Parteien fordern einen CO2-Grenzausgleich (CBAM) auf Importe aus Ländern mit niedrigeren Klimastandards?",
+    "options": [
+      "Nur [PARTY_BADGE:saturn]",
+      "Nur [PARTY_BADGE:mars]",
+      "Beide Parteien"
+    ],
+    "correct_index": 2,
+    "correct_option": "Beide Parteien",
+    "category": "comparative",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": true,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "mars-klima-003",
+        "party_id": "mars",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Ein CO2-Grenzausgleich (CBAM) wird zügig auf Stahl, Zement und Chemie ausgeweitet.",
+        "argument": "Ohne Zoll auf CO2-intensive Importe verlieren deutsche Werke gegen Produktion aus Ländern ohne Klimaauflagen – CBAM ist industriepolitische Notwendigkeit."
+      },
+      {
+        "id": "saturn-klima-003",
+        "party_id": "saturn",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Importe aus Ländern ohne vergleichbare Umweltstandards zahlen einen CO2-Grenzausgleich an der EU-Außengrenze.",
+        "argument": "Der deutsche Mittelstand darf nicht doppelt verlieren – wer hier produziert, hält Standards ein; chinesische Billigimporte sollen denselben Preis zahlen, statt unsere Werke zu unterbieten."
+      }
+    ]
+  },
+  {
+    "id": "q-031",
+    "question": "Welche Parteien lehnen einen festen Ausstiegstermin für den Verbrennungsmotor ab?",
+    "options": [
+      "Nur [PARTY_BADGE:mars]",
+      "Beide Parteien",
+      "Nur [PARTY_BADGE:saturn]"
+    ],
+    "correct_index": 1,
+    "correct_option": "Beide Parteien",
+    "category": "comparative",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": true,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "mars-klima-004",
+        "party_id": "mars",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Beim Antrieb setzen wir auf Technologieoffenheit statt auf ein starres Verbrenner-Verbot 2035.",
+        "argument": "Niemand weiß heute, welcher Antrieb 2040 der effizienteste ist – E-Mobilität, Wasserstoff und synthetische Kraftstoffe sollten im Wettbewerb entschieden werden."
+      },
+      {
+        "id": "saturn-klima-004",
+        "party_id": "saturn",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Ein Verbot des Verbrennungsmotors ab 2035 lehnen wir kategorisch ab.",
+        "argument": "Es zerstört deutsche Schlüsselindustrien und vernichtet Millionen Arbeitsplätze – ein politisches Verbot ist kein Fortschritt, sondern Deindustrialisierung."
+      }
+    ]
+  },
+  {
+    "id": "q-032",
+    "question": "Welche Parteien fordern, dass auch Beamte und Abgeordnete in die gesetzliche Rentenkasse einzahlen?",
+    "options": [
+      "Nur [PARTY_BADGE:saturn]",
+      "Nur [PARTY_BADGE:venus]",
+      "Beide Parteien"
+    ],
+    "correct_index": 2,
+    "correct_option": "Beide Parteien",
+    "category": "comparative",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": true,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "venus-sozial-002",
+        "party_id": "venus",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Alle Erwerbstätigen – auch Selbstständige, Beamte und Abgeordnete – zahlen in die gesetzliche Rente ein.",
+        "argument": "Die Rente finanziert sich nur noch, wenn alle ihren Beitrag leisten – Privilegien für Beamte und Politiker sind heute nicht mehr begründbar."
+      },
+      {
+        "id": "saturn-sozial-003",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Beamte, Abgeordnete und Minister zahlen künftig wie jeder Arbeitnehmer in die gesetzliche Rentenkasse ein.",
+        "argument": "Wer dem Volk die Rente kürzen will, soll erst einmal selbst einzahlen – Schluss mit der Zwei-Klassen-Altersvorsorge zwischen Berliner Politikbüros und der Werkbank."
+      }
+    ]
+  },
+  {
+    "id": "q-033",
+    "question": "Welche Parteien wollen Erziehungs- und Pflegezeiten in der Rente stärker mit Entgeltpunkten anerkennen?",
+    "options": [
+      "Beide Parteien",
+      "Nur [PARTY_BADGE:mars]",
+      "Nur [PARTY_BADGE:venus]"
+    ],
+    "correct_index": 0,
+    "correct_option": "Beide Parteien",
+    "category": "comparative",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": true,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "venus-sozial-003",
+        "party_id": "venus",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Pflege- und Sorgearbeit wird rentenrechtlich wie Erwerbsarbeit anerkannt, mit vollen Entgeltpunkten pro Pflegejahr.",
+        "argument": "Die Pflege von Kindern und Angehörigen ist gesellschaftlich unverzichtbar – ohne rentenrechtliche Gleichstellung bleibt sie unbezahlte Frauenarbeit mit Altersarmut als Konsequenz."
+      },
+      {
+        "id": "mars-sozial-003",
+        "party_id": "mars",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Pro Kind werden in der gesetzlichen Rente drei volle Entgeltpunkte für Erziehungs- und Pflegezeiten angerechnet.",
+        "argument": "Kinder großzuziehen ist die wichtigste Investition in die Rentenkasse von morgen – wer Familie als Leistung anerkennt, darf sie im Alter nicht durch Lücken in der Erwerbsbiografie bestrafen."
+      }
+    ]
+  },
+  {
+    "id": "q-034",
+    "question": "Welche Parteien fordern eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds?",
+    "options": [
+      "Nur [PARTY_BADGE:venus]",
+      "Beide Parteien",
+      "Nur [PARTY_BADGE:mars]"
+    ],
+    "correct_index": 1,
+    "correct_option": "Beide Parteien",
+    "category": "comparative",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": true,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "venus-sozial-006",
+        "party_id": "venus",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Kinder werden aus dem Bürgergeld herausgelöst und über eine eigenständige Kindergrundsicherung abgesichert.",
+        "argument": "Kein Kind soll von der Arbeitslosigkeit seiner Eltern abhängen – Kindergrundsicherung ist der Befreiungsschlag gegen Kinderarmut."
+      },
+      {
+        "id": "mars-sozial-007",
+        "party_id": "mars",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Kinder werden über eine eigenständige, gebündelte Kindergrundsicherung außerhalb des Bürgergelds abgesichert.",
+        "argument": "Kein Kind soll für die Arbeitslosigkeit seiner Eltern haften – ein einheitlicher, entbürokratisierter Anspruch schafft echte Bildungschancen und entlastet die Jobcenter."
+      }
+    ]
+  },
+  {
+    "id": "q-035",
+    "question": "Welche Parteien fordern deutlich härtere Sanktionen bei Arbeitsverweigerung im Bürgergeld?",
+    "options": [
+      "Beide Parteien",
+      "Nur [PARTY_BADGE:mars]",
+      "Nur [PARTY_BADGE:saturn]"
+    ],
+    "correct_index": 0,
+    "correct_option": "Beide Parteien",
+    "category": "comparative",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": true,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "mars-sozial-006",
+        "party_id": "mars",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Wer wiederholt zumutbare Arbeit ablehnt, verliert für drei Monate 100 % der Leistung.",
+        "argument": "Nur spürbare Konsequenzen aktivieren Langzeitarbeitslose – das war die entscheidende Einsicht aus Hartz IV, die wir wiederbeleben müssen."
+      },
+      {
+        "id": "saturn-sozial-006",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Arbeitsverweigerung führt sofort zum vollständigen Entzug aller Leistungen.",
+        "argument": "Wer sich weigert zu arbeiten, obwohl er könnte, hat keinen Anspruch auf das Geld anderer – das ist keine Härte, sondern Gerechtigkeit."
+      }
+    ]
+  },
+  {
+    "id": "q-036",
+    "question": "Welche Parteien lehnen die nationale CO2-Steuer ab?",
+    "options": [
+      "Nur [PARTY_BADGE:saturn]",
+      "Beide Parteien",
+      "Nur [PARTY_BADGE:venus]"
+    ],
+    "correct_index": 0,
+    "correct_option": "Nur [PARTY_BADGE:saturn]",
+    "category": "comparative",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-001",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Der CO2-Preis muss bis 2030 auf mindestens 200 Euro pro Tonne steigen.",
+        "argument": "Nur ein Preis, der die wahren Klimakosten widerspiegelt, lenkt Investitionen schnell genug um – zögerliche Signale verschenken das 1,5-Grad-Ziel."
+      },
+      {
+        "id": "saturn-klima-001",
+        "party_id": "saturn",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Die nationale CO2-Steuer wird sofort abgeschafft.",
+        "argument": "Sie belastet Familien jährlich mit mehreren Hundert Euro für eine Symbolpolitik, die messbar nichts am Weltklima ändert."
+      }
+    ]
+  },
+  {
+    "id": "q-037",
+    "question": "Welche Parteien fordern ein generelles Tempolimit auf Autobahnen?",
+    "options": [
+      "Nur [PARTY_BADGE:saturn]",
+      "Beide Parteien",
+      "Nur [PARTY_BADGE:venus]"
+    ],
+    "correct_index": 2,
+    "correct_option": "Nur [PARTY_BADGE:venus]",
+    "category": "comparative",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-004",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Wir fordern Tempo 120 auf Autobahnen.",
+        "argument": "Eine Maßnahme, die sofort wirkt, keine Investitionen kostet, Leben rettet und Emissionen senkt – günstiger ist Klimapolitik nicht zu haben."
+      },
+      {
+        "id": "saturn-klima-005",
+        "party_id": "saturn",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Ein Tempolimit auf deutschen Autobahnen wird es mit uns nicht geben.",
+        "argument": "Freiheit bedeutet, selbst zu entscheiden, wie schnell man fährt – wer Deutschland autogerecht gebaut hat, darf jetzt nicht die Bürger bestrafen."
+      }
+    ]
+  },
+  {
+    "id": "q-038",
+    "question": "Welche Parteien fordern einen früheren Ausstieg aus dem Verbrennungsmotor?",
+    "options": [
+      "Nur [PARTY_BADGE:venus]",
+      "Beide Parteien",
+      "Nur [PARTY_BADGE:mars]"
+    ],
+    "correct_index": 0,
+    "correct_option": "Nur [PARTY_BADGE:venus]",
+    "category": "comparative",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-005",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Alle Neuzulassungen von Verbrennungs-Pkw enden ab 2030, nicht erst 2035.",
+        "argument": "Die Auto-Transformation ist längst im Gang – wer früher umstellt, sichert sich die Wertschöpfung; wer zögert, verliert Arbeitsplätze an China."
+      },
+      {
+        "id": "mars-klima-004",
+        "party_id": "mars",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Beim Antrieb setzen wir auf Technologieoffenheit statt auf ein starres Verbrenner-Verbot 2035.",
+        "argument": "Niemand weiß heute, welcher Antrieb 2040 der effizienteste ist – E-Mobilität, Wasserstoff und synthetische Kraftstoffe sollten im Wettbewerb entschieden werden."
+      }
+    ]
+  },
+  {
+    "id": "q-039",
+    "question": "Welche Parteien wollen das gesetzliche Rentenniveau anheben statt nur stabilisieren?",
+    "options": [
+      "Beide Parteien",
+      "Nur [PARTY_BADGE:venus]",
+      "Nur [PARTY_BADGE:mars]"
+    ],
+    "correct_index": 1,
+    "correct_option": "Nur [PARTY_BADGE:venus]",
+    "category": "comparative",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "venus-sozial-001",
+        "party_id": "venus",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Das gesetzliche Rentenniveau wird auf 50 Prozent angehoben und gesetzlich festgeschrieben.",
+        "argument": "Ein Niveau von 48 Prozent bedeutet Altersarmut für Millionen, besonders für Frauen – verlässliche Rente ist eine Frage der Würde."
+      },
+      {
+        "id": "mars-sozial-002",
+        "party_id": "mars",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Das gesetzliche Rentenniveau wird bei 48 Prozent stabilisiert, aber nicht weiter angehoben.",
+        "argument": "Jede Niveau-Anhebung zahlt die junge Generation – Generationengerechtigkeit verbietet Wahlgeschenke an heutige Rentner."
+      }
+    ]
+  },
+  {
+    "id": "q-040",
+    "question": "Welche Parteien sehen den europäischen Emissionshandel als Leitinstrument der Klimapolitik?",
+    "options": [
+      "Nur [PARTY_BADGE:mars]",
+      "Nur [PARTY_BADGE:saturn]",
+      "Beide Parteien"
+    ],
+    "correct_index": 0,
+    "correct_option": "Nur [PARTY_BADGE:mars]",
+    "category": "comparative",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "mars-klima-001",
+        "party_id": "mars",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Der europäische Emissionshandel bleibt das Leitinstrument deutscher Klimapolitik.",
+        "argument": "Er kombiniert verlässliche Zielerreichung mit der Freiheit der Wirtschaft, den günstigsten Weg selbst zu wählen – Verbote sind das letzte Mittel."
+      },
+      {
+        "id": "saturn-klima-002",
+        "party_id": "saturn",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Den europäischen Emissionshandel stoppen wir, bis er auf die Industrie beschränkt wird.",
+        "argument": "Der deutsche Bürger darf nicht für die Klimapolitik Brüssels zahlen – Schutz vor staatlicher Verteuerung ist Sozialpolitik."
+      }
+    ]
+  },
+  {
+    "id": "q-041",
+    "question": "Welche Parteien wollen Bürgergeld-Sanktionen einschränken statt verschärfen?",
+    "options": [
+      "Beide Parteien",
+      "Nur [PARTY_BADGE:venus]",
+      "Nur [PARTY_BADGE:saturn]"
+    ],
+    "correct_index": 1,
+    "correct_option": "Nur [PARTY_BADGE:venus]",
+    "category": "comparative",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "venus-sozial-005",
+        "party_id": "venus",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Sanktionen gegen Bürgergeld-Beziehende werden auf das verfassungsrechtliche Minimum begrenzt.",
+        "argument": "Das Bundesverfassungsgericht hat klargestellt: Existenzsicherung ist Grundrecht – Kürzungen unter das Minimum sind nicht zulässig."
+      },
+      {
+        "id": "saturn-sozial-006",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Arbeitsverweigerung führt sofort zum vollständigen Entzug aller Leistungen.",
+        "argument": "Wer sich weigert zu arbeiten, obwohl er könnte, hat keinen Anspruch auf das Geld anderer – das ist keine Härte, sondern Gerechtigkeit."
+      }
+    ]
+  },
+  {
+    "id": "q-043",
+    "question": "Wofür will [PARTY_BADGE:venus] die Einnahmen aus dem CO2-Preis vor allem verwenden?",
+    "options": [
+      "Vor allem zur Entlastung der heimischen Wirtschaft",
+      "Vor allem für direkte staatliche Klimaschutzprojekte",
+      "Vor allem als Pro-Kopf-Klimageld zurück an die Bürger"
+    ],
+    "correct_index": 2,
+    "correct_option": "Vor allem als Pro-Kopf-Klimageld zurück an die Bürger",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-002",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Ein Pro-Kopf-Klimageld von 320 Euro pro Jahr entlastet einkommensschwache Haushalte überproportional.",
+        "argument": "Der CO2-Preis wirkt regressiv, wenn er nicht rückverteilt wird – Klimapolitik darf Familien mit kleinen Einkommen nicht bestrafen, sondern muss sie entlasten."
+      }
+    ]
+  },
+  {
+    "id": "q-044",
+    "question": "Wofür will [PARTY_BADGE:mars] die Einnahmen aus dem CO2-Preis vor allem verwenden?",
+    "options": [
+      "Vor allem zur Entlastung der heimischen Wirtschaft",
+      "Vor allem für direkte staatliche Klimaschutzprojekte",
+      "Vor allem als Pro-Kopf-Klimageld zurück an die Bürger"
+    ],
+    "correct_index": 2,
+    "correct_option": "Vor allem als Pro-Kopf-Klimageld zurück an die Bürger",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "mars-klima-002",
+        "party_id": "mars",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Mindestens die Hälfte der CO2-Einnahmen wird als Pro-Kopf-Klimageld direkt an die Bürger ausgezahlt.",
+        "argument": "Ein Lenkungspreis funktioniert nur mit Akzeptanz in der arbeitenden Mitte – wer Pendler belastet, ohne ihnen das Geld sichtbar zurückzugeben, riskiert die Klimapolitik insgesamt."
+      }
+    ]
+  },
+  {
+    "id": "q-045",
+    "question": "Wie steht [PARTY_BADGE:mars] zu einem CO2-Grenzausgleich auf Importe aus Ländern mit niedrigeren Klimastandards?",
+    "options": [
+      "Setzt stattdessen auf staatliche Hilfen für die heimische Industrie",
+      "Will den CO2-Grenzausgleich auf zentrale Industrien ausweiten",
+      "Hat sich zu einem CO2-Grenzausgleich nicht klar positioniert"
+    ],
+    "correct_index": 1,
+    "correct_option": "Will den CO2-Grenzausgleich auf zentrale Industrien ausweiten",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "mars-klima-003",
+        "party_id": "mars",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Ein CO2-Grenzausgleich (CBAM) wird zügig auf Stahl, Zement und Chemie ausgeweitet.",
+        "argument": "Ohne Zoll auf CO2-intensive Importe verlieren deutsche Werke gegen Produktion aus Ländern ohne Klimaauflagen – CBAM ist industriepolitische Notwendigkeit."
+      }
+    ]
+  },
+  {
+    "id": "q-046",
+    "question": "Wie steht [PARTY_BADGE:saturn] zu einem CO2-Grenzausgleich auf Importe aus Ländern mit niedrigeren Klimastandards?",
+    "options": [
+      "Setzt stattdessen auf staatliche Hilfen für die heimische Industrie",
+      "Hat sich zu einem CO2-Grenzausgleich nicht klar positioniert",
+      "Befürwortet einen CO2-Grenzausgleich an der EU-Außengrenze"
+    ],
+    "correct_index": 2,
+    "correct_option": "Befürwortet einen CO2-Grenzausgleich an der EU-Außengrenze",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "saturn-klima-003",
+        "party_id": "saturn",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Importe aus Ländern ohne vergleichbare Umweltstandards zahlen einen CO2-Grenzausgleich an der EU-Außengrenze.",
+        "argument": "Der deutsche Mittelstand darf nicht doppelt verlieren – wer hier produziert, hält Standards ein; chinesische Billigimporte sollen denselben Preis zahlen, statt unsere Werke zu unterbieten."
+      }
+    ]
+  },
+  {
+    "id": "q-048",
+    "question": "Welche Haltung vertritt [PARTY_BADGE:saturn] zum Ausstieg aus dem Verbrennungsmotor?",
+    "options": [
+      "Lehnt einen festen Ausstiegstermin grundsätzlich ab",
+      "Befürwortet einen früheren Ausstieg aus dem Verbrenner",
+      "Will am bestehenden EU-Ausstiegsplan festhalten"
+    ],
+    "correct_index": 0,
+    "correct_option": "Lehnt einen festen Ausstiegstermin grundsätzlich ab",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "saturn-klima-004",
+        "party_id": "saturn",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Ein Verbot des Verbrennungsmotors ab 2035 lehnen wir kategorisch ab.",
+        "argument": "Es zerstört deutsche Schlüsselindustrien und vernichtet Millionen Arbeitsplätze – ein politisches Verbot ist kein Fortschritt, sondern Deindustrialisierung."
+      }
+    ]
+  },
+  {
+    "id": "q-049",
+    "question": "Wie steht [PARTY_BADGE:venus] zur Frage, wer in die gesetzliche Rente einzahlen soll?",
+    "options": [
+      "Will alle Erwerbstätigen einbeziehen, auch bisher ausgenommene Gruppen",
+      "Will die heutige Trennung von Rente und Beamtenversorgung beibehalten",
+      "Will stärker auf private Vorsorge statt die gesetzliche Rente setzen"
+    ],
+    "correct_index": 0,
+    "correct_option": "Will alle Erwerbstätigen einbeziehen, auch bisher ausgenommene Gruppen",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "venus-sozial-002",
+        "party_id": "venus",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Alle Erwerbstätigen – auch Selbstständige, Beamte und Abgeordnete – zahlen in die gesetzliche Rente ein.",
+        "argument": "Die Rente finanziert sich nur noch, wenn alle ihren Beitrag leisten – Privilegien für Beamte und Politiker sind heute nicht mehr begründbar."
+      }
+    ]
+  },
+  {
+    "id": "q-051",
+    "question": "Wie steht [PARTY_BADGE:venus] zur rentenrechtlichen Anerkennung von Pflege- und Sorgearbeit?",
+    "options": [
+      "Lehnt eine zusätzliche rentenrechtliche Anerkennung ab",
+      "Will Pflege- und Sorgejahre in der Rente gleichwertig zu Erwerbsjahren bewerten",
+      "Will Sorgearbeit vor allem über das Steuer- und Sozialsystem ausgleichen"
+    ],
+    "correct_index": 1,
+    "correct_option": "Will Pflege- und Sorgejahre in der Rente gleichwertig zu Erwerbsjahren bewerten",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "venus-sozial-003",
+        "party_id": "venus",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Pflege- und Sorgearbeit wird rentenrechtlich wie Erwerbsarbeit anerkannt, mit vollen Entgeltpunkten pro Pflegejahr.",
+        "argument": "Die Pflege von Kindern und Angehörigen ist gesellschaftlich unverzichtbar – ohne rentenrechtliche Gleichstellung bleibt sie unbezahlte Frauenarbeit mit Altersarmut als Konsequenz."
+      }
+    ]
+  },
+  {
+    "id": "q-052",
+    "question": "Wie steht [PARTY_BADGE:mars] zur rentenrechtlichen Anerkennung von Erziehungs- und Pflegezeiten?",
+    "options": [
+      "Will Erziehungs- und Pflegezeiten in der Rente stärker anerkennen",
+      "Will sie eher über Steuern als über Rentenpunkte ausgleichen",
+      "Lehnt eine zusätzliche Anerkennung ab"
+    ],
+    "correct_index": 0,
+    "correct_option": "Will Erziehungs- und Pflegezeiten in der Rente stärker anerkennen",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "mars-sozial-003",
+        "party_id": "mars",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Pro Kind werden in der gesetzlichen Rente drei volle Entgeltpunkte für Erziehungs- und Pflegezeiten angerechnet.",
+        "argument": "Kinder großzuziehen ist die wichtigste Investition in die Rentenkasse von morgen – wer Familie als Leistung anerkennt, darf sie im Alter nicht durch Lücken in der Erwerbsbiografie bestrafen."
+      }
+    ]
+  },
+  {
+    "id": "q-053",
+    "question": "Wie steht [PARTY_BADGE:mars] zu Sanktionen bei wiederholter Arbeitsverweigerung im Bürgergeld?",
+    "options": [
+      "Will Sanktionen auf das verfassungsrechtliche Minimum begrenzen",
+      "Will das heutige Sanktionsniveau unverändert lassen",
+      "Will spürbare Kürzungen bis hin zum vollständigen Wegfall der Leistung"
+    ],
+    "correct_index": 2,
+    "correct_option": "Will spürbare Kürzungen bis hin zum vollständigen Wegfall der Leistung",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "mars-sozial-006",
+        "party_id": "mars",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Wer wiederholt zumutbare Arbeit ablehnt, verliert für drei Monate 100 % der Leistung.",
+        "argument": "Nur spürbare Konsequenzen aktivieren Langzeitarbeitslose – das war die entscheidende Einsicht aus Hartz IV, die wir wiederbeleben müssen."
+      }
+    ]
+  },
+  {
+    "id": "q-054",
+    "question": "Wie steht [PARTY_BADGE:saturn] zu Sanktionen bei Arbeitsverweigerung im Bürgergeld?",
+    "options": [
+      "Will die Sanktionen deutlich einschränken und abmildern",
+      "Will das heutige Sanktionsniveau im Wesentlichen beibehalten",
+      "Will die Sanktionen deutlich verschärfen und ausweiten"
+    ],
+    "correct_index": 2,
+    "correct_option": "Will die Sanktionen deutlich verschärfen und ausweiten",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "saturn-sozial-006",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Arbeitsverweigerung führt sofort zum vollständigen Entzug aller Leistungen.",
+        "argument": "Wer sich weigert zu arbeiten, obwohl er könnte, hat keinen Anspruch auf das Geld anderer – das ist keine Härte, sondern Gerechtigkeit."
+      }
+    ]
+  },
+  {
+    "id": "q-055",
+    "question": "Wie will [PARTY_BADGE:venus] Kinder künftig absichern?",
+    "options": [
+      "Über deutlich höhere Kinderleistungen im bestehenden Bürgergeld",
+      "Über zusätzliche Steuerfreibeträge für erwerbstätige Familien",
+      "Über eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds"
+    ],
+    "correct_index": 2,
+    "correct_option": "Über eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "venus-sozial-006",
+        "party_id": "venus",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Kinder werden aus dem Bürgergeld herausgelöst und über eine eigenständige Kindergrundsicherung abgesichert.",
+        "argument": "Kein Kind soll von der Arbeitslosigkeit seiner Eltern abhängen – Kindergrundsicherung ist der Befreiungsschlag gegen Kinderarmut."
+      }
+    ]
+  },
+  {
+    "id": "q-056",
+    "question": "Wie will [PARTY_BADGE:mars] Kinder künftig absichern?",
+    "options": [
+      "Über eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds",
+      "Über deutlich höhere Kinderleistungen im bestehenden Bürgergeld",
+      "Über zusätzliche Steuerfreibeträge für erwerbstätige Familien"
+    ],
+    "correct_index": 0,
+    "correct_option": "Über eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds",
+    "category": "retention",
+    "difficulty": "easy",
+    "hard_pattern": null,
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "mars-sozial-007",
+        "party_id": "mars",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Kinder werden über eine eigenständige, gebündelte Kindergrundsicherung außerhalb des Bürgergelds abgesichert.",
+        "argument": "Kein Kind soll für die Arbeitslosigkeit seiner Eltern haften – ein einheitlicher, entbürokratisierter Anspruch schafft echte Bildungschancen und entlastet die Jobcenter."
+      }
+    ]
+  },
+  {
+    "id": "q-057",
+    "question": "Auf welchen Wert pro Tonne soll der CO2-Preis nach dem Willen von [PARTY_BADGE:venus] bis 2030 steigen?",
+    "options": [
+      "mindestens 120 Euro",
+      "mindestens 160 Euro",
+      "mindestens 200 Euro"
+    ],
+    "correct_index": 2,
+    "correct_option": "mindestens 200 Euro",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail",
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-001",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Der CO2-Preis muss bis 2030 auf mindestens 200 Euro pro Tonne steigen.",
+        "argument": "Nur ein Preis, der die wahren Klimakosten widerspiegelt, lenkt Investitionen schnell genug um – zögerliche Signale verschenken das 1,5-Grad-Ziel."
+      }
+    ]
+  },
+  {
+    "id": "q-058",
+    "question": "Welches Tempolimit auf Autobahnen fordert [PARTY_BADGE:venus] konkret?",
+    "options": [
+      "Tempo 120",
+      "Tempo 100",
+      "Tempo 130"
+    ],
+    "correct_index": 0,
+    "correct_option": "Tempo 120",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail",
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-004",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Wir fordern Tempo 120 auf Autobahnen.",
+        "argument": "Eine Maßnahme, die sofort wirkt, keine Investitionen kostet, Leben rettet und Emissionen senkt – günstiger ist Klimapolitik nicht zu haben."
+      }
+    ]
+  },
+  {
+    "id": "q-059",
+    "question": "Wie hoch soll das von [PARTY_BADGE:venus] geforderte Pro-Kopf-Klimageld pro Jahr sein?",
+    "options": [
+      "220 Euro",
+      "320 Euro",
+      "480 Euro"
+    ],
+    "correct_index": 1,
+    "correct_option": "320 Euro",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail",
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-002",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Ein Pro-Kopf-Klimageld von 320 Euro pro Jahr entlastet einkommensschwache Haushalte überproportional.",
+        "argument": "Der CO2-Preis wirkt regressiv, wenn er nicht rückverteilt wird – Klimapolitik darf Familien mit kleinen Einkommen nicht bestrafen, sondern muss sie entlasten."
+      }
+    ]
+  },
+  {
+    "id": "q-060",
+    "question": "Auf welchen Betrag pro Kilometer will [PARTY_BADGE:saturn] die Pendlerpauschale dauerhaft anheben?",
+    "options": [
+      "50 Cent",
+      "55 Cent",
+      "65 Cent"
+    ],
+    "correct_index": 0,
+    "correct_option": "50 Cent",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail",
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "saturn-klima-006",
+        "party_id": "saturn",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Die Pendlerpauschale wird dauerhaft auf 50 Cent pro Kilometer erhöht.",
+        "argument": "Wer aufs Land gezogen ist, weil Wohnen dort noch bezahlbar ist, darf nicht für die Klimapolitik der Stadt bestraft werden – steigende Spritpreise treffen Pendler hart, und nur eine spürbar höhere Pauschale gleicht das aus."
+      }
+    ]
+  },
+  {
+    "id": "q-061",
+    "question": "Auf welches gesetzliche Rentenniveau will [PARTY_BADGE:venus] die Rente anheben und festschreiben?",
+    "options": [
+      "48 Prozent",
+      "49 Prozent",
+      "50 Prozent"
+    ],
+    "correct_index": 2,
+    "correct_option": "50 Prozent",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail",
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "venus-sozial-001",
+        "party_id": "venus",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Das gesetzliche Rentenniveau wird auf 50 Prozent angehoben und gesetzlich festgeschrieben.",
+        "argument": "Ein Niveau von 48 Prozent bedeutet Altersarmut für Millionen, besonders für Frauen – verlässliche Rente ist eine Frage der Würde."
+      }
+    ]
+  },
+  {
+    "id": "q-062",
+    "question": "Wie hoch soll die von [PARTY_BADGE:saturn] geforderte steuerfinanzierte Mindestrente nach 35 Beitragsjahren sein?",
+    "options": [
+      "1.000 Euro netto",
+      "1.150 Euro netto",
+      "1.300 Euro netto"
+    ],
+    "correct_index": 2,
+    "correct_option": "1.300 Euro netto",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail",
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "saturn-sozial-001",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Wir führen eine steuerfinanzierte Mindestrente von 1.300 Euro netto nach 35 Beitragsjahren ein.",
+        "argument": "Wer ein Leben lang gearbeitet und Beiträge gezahlt hat, verdient einen würdigen Ruhestand – nicht Flaschensammeln im Park."
+      }
+    ]
+  },
+  {
+    "id": "q-063",
+    "question": "Bis zu welchem Betrag im Monat soll der Zuverdienst beim freiwilligen Weiterarbeiten nach dem Modell von [PARTY_BADGE:mars] steuerfrei bleiben?",
+    "options": [
+      "2.000 Euro",
+      "2.500 Euro",
+      "3.000 Euro"
+    ],
+    "correct_index": 0,
+    "correct_option": "2.000 Euro",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail",
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "mars-sozial-004",
+        "party_id": "mars",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Wer freiwillig über die Regelaltersgrenze hinaus arbeitet, erhält einen monatlichen steuerfreien Zuverdienst von bis zu 2.000 Euro.",
+        "argument": "Erfahrene Beschäftigte sind ein knappes Gut – wer Anreize statt Verbote schafft, entlastet Rentenkasse und Fachkräftemarkt zugleich, ohne jemanden zur Mehrarbeit zu zwingen."
+      }
+    ]
+  },
+  {
+    "id": "q-064",
+    "question": "Um welchen Betrag pro Monat will [PARTY_BADGE:venus] den Bürgergeld-Regelsatz anheben?",
+    "options": [
+      "um 50 Euro",
+      "um 75 Euro",
+      "um 100 Euro"
+    ],
+    "correct_index": 0,
+    "correct_option": "um 50 Euro",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "detail",
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "venus-sozial-004",
+        "party_id": "venus",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Der Bürgergeld-Regelsatz wird um 50 € monatlich angehoben.",
+        "argument": "Studien zeigen, dass der heutige Satz die tatsächlichen Kosten für Energie, Lebensmittel und Mobilität nicht deckt – ohne sofortige Anhebung bleibt Armut in einem reichen Land strukturell."
+      }
+    ]
+  },
+  {
+    "id": "q-065",
+    "question": "Mit welchem Instrument will [PARTY_BADGE:mars] die heimische Industrie im CO2-Wettbewerb schützen?",
+    "options": [
+      "Mit einem CO2-Grenzausgleich auf CO2-intensive Importe",
+      "Mit einer Befreiung der heimischen Industrie von den CO2-Kosten",
+      "Mit direkten Subventionen für energieintensive Betriebe"
+    ],
+    "correct_index": 0,
+    "correct_option": "Mit einem CO2-Grenzausgleich auf CO2-intensive Importe",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype",
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "mars-klima-003",
+        "party_id": "mars",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Ein CO2-Grenzausgleich (CBAM) wird zügig auf Stahl, Zement und Chemie ausgeweitet.",
+        "argument": "Ohne Zoll auf CO2-intensive Importe verlieren deutsche Werke gegen Produktion aus Ländern ohne Klimaauflagen – CBAM ist industriepolitische Notwendigkeit."
+      }
+    ]
+  },
+  {
+    "id": "q-066",
+    "question": "Was will [PARTY_BADGE:mars] mit den Einnahmen aus dem CO2-Preis vorrangig tun?",
+    "options": [
+      "Sie vollständig in staatliche Klimaschutzprojekte investieren",
+      "Mindestens die Hälfte als Pro-Kopf-Klimageld an die Bürger auszahlen",
+      "Mit ihnen die Unternehmenssteuern senken, um Betriebe zu entlasten"
+    ],
+    "correct_index": 1,
+    "correct_option": "Mindestens die Hälfte als Pro-Kopf-Klimageld an die Bürger auszahlen",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype",
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "mars-klima-002",
+        "party_id": "mars",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Mindestens die Hälfte der CO2-Einnahmen wird als Pro-Kopf-Klimageld direkt an die Bürger ausgezahlt.",
+        "argument": "Ein Lenkungspreis funktioniert nur mit Akzeptanz in der arbeitenden Mitte – wer Pendler belastet, ohne ihnen das Geld sichtbar zurückzugeben, riskiert die Klimapolitik insgesamt."
+      }
+    ]
+  },
+  {
+    "id": "q-067",
+    "question": "Wie steht [PARTY_BADGE:saturn] zu einem CO2-Grenzausgleich auf Importe aus Ländern mit niedrigeren Umweltstandards?",
+    "options": [
+      "Lehnt einen CO2-Aufschlag auf Importe grundsätzlich ab",
+      "Befürwortet einen CO2-Grenzausgleich an der EU-Außengrenze",
+      "Setzt stattdessen auf nationale Subventionen für die Industrie"
+    ],
+    "correct_index": 1,
+    "correct_option": "Befürwortet einen CO2-Grenzausgleich an der EU-Außengrenze",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype",
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "saturn-klima-003",
+        "party_id": "saturn",
+        "topic": "klimaschutz",
+        "subtopic": "co2-preis",
+        "claim": "Importe aus Ländern ohne vergleichbare Umweltstandards zahlen einen CO2-Grenzausgleich an der EU-Außengrenze.",
+        "argument": "Der deutsche Mittelstand darf nicht doppelt verlieren – wer hier produziert, hält Standards ein; chinesische Billigimporte sollen denselben Preis zahlen, statt unsere Werke zu unterbieten."
+      }
+    ]
+  },
+  {
+    "id": "q-068",
+    "question": "Mit welchem Ansatz will [PARTY_BADGE:venus] Inlandsflüge zurückdrängen?",
+    "options": [
+      "Mit einem gesetzlichen Verbot von Inlandsflügen",
+      "Mit höheren Steuern und Aufschlägen auf Inlandsflüge",
+      "Mit einer festen Obergrenze für Flüge pro Strecke"
+    ],
+    "correct_index": 1,
+    "correct_option": "Mit höheren Steuern und Aufschlägen auf Inlandsflüge",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype",
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-009",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Inlandsflüge werden über die Kerosinsteuer und einen Aufschlag auf Kurzstrecken-Tickets schrittweise unattraktiv gemacht.",
+        "argument": "Es ist klimapolitisch absurd, dass ein Flug Berlin–München steuerlich günstiger ist als der ICE – wer dieses Privileg streicht, lässt den Markt die klimafreundlichere Alternative wählen, statt sie zu verbieten."
+      }
+    ]
+  },
+  {
+    "id": "q-069",
+    "question": "Welche Haltung vertritt [PARTY_BADGE:saturn] dazu, wer künftig in die gesetzliche Rentenkasse einzahlen soll?",
+    "options": [
+      "Will die heutige Trennung von Beamtenpension und Rente beibehalten",
+      "Will auch Beamte, Abgeordnete und Minister in die Rente einbeziehen",
+      "Will stärker auf private Vorsorge statt die gesetzliche Rente setzen"
+    ],
+    "correct_index": 1,
+    "correct_option": "Will auch Beamte, Abgeordnete und Minister in die Rente einbeziehen",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype",
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "saturn-sozial-003",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Beamte, Abgeordnete und Minister zahlen künftig wie jeder Arbeitnehmer in die gesetzliche Rentenkasse ein.",
+        "argument": "Wer dem Volk die Rente kürzen will, soll erst einmal selbst einzahlen – Schluss mit der Zwei-Klassen-Altersvorsorge zwischen Berliner Politikbüros und der Werkbank."
+      }
+    ]
+  },
+  {
+    "id": "q-070",
+    "question": "Was plant [PARTY_BADGE:saturn] mit künftigen Beamtenpensionen?",
+    "options": [
+      "Sie als Anerkennung des Staatsdienstes anheben",
+      "Sie unverändert auf dem heutigen Niveau halten",
+      "Sie auf das Niveau der gesetzlichen Rente absenken"
+    ],
+    "correct_index": 2,
+    "correct_option": "Sie auf das Niveau der gesetzlichen Rente absenken",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype",
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "saturn-sozial-004",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Künftige Beamtenpensionen werden auf das Niveau der gesetzlichen Rente abgesenkt.",
+        "argument": "Es ist nicht vermittelbar, dass ein pensionierter Ministerialrat das Vierfache eines Facharbeiters bezieht – Gerechtigkeit beginnt damit, dass der Staat bei sich selbst kürzt, bevor er andere zur Kasse bittet."
+      }
+    ]
+  },
+  {
+    "id": "q-071",
+    "question": "Wie will [PARTY_BADGE:saturn] Bürgergeld-Bezieher behandeln, die viele Jahre eingezahlt haben, bevor sie arbeitslos wurden?",
+    "options": [
+      "Mit denselben Regeln wie für alle anderen Bezieher",
+      "Mit einem monatlichen Aufschlag auf das Bürgergeld",
+      "Mit einem längeren Schutz ihres Ersparten vor der Anrechnung"
+    ],
+    "correct_index": 1,
+    "correct_option": "Mit einem monatlichen Aufschlag auf das Bürgergeld",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype",
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "saturn-sozial-007",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Bezieher mit mindestens fünfzehn Beitragsjahren erhalten einen Bürgergeld-Aufschlag von 50 Euro monatlich.",
+        "argument": "Wer Jahrzehnte in dieses Land eingezahlt hat, darf bei Arbeitslosigkeit nicht auf demselben Niveau landen wie ein Berufsanfänger – Lebensleistung muss sich auch in der Krise zeigen."
+      }
+    ]
+  },
+  {
+    "id": "q-072",
+    "question": "Wie will [PARTY_BADGE:mars] Erziehungs- und Pflegezeiten in der gesetzlichen Rente berücksichtigen?",
+    "options": [
+      "Mit drei vollen Entgeltpunkten pro Kind",
+      "Gar nicht, da die Rente allein auf eigenen Beiträgen beruhen soll",
+      "Nur über einen steuerfinanzierten Bonus außerhalb der Rente"
+    ],
+    "correct_index": 0,
+    "correct_option": "Mit drei vollen Entgeltpunkten pro Kind",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "counter_stereotype",
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "mars-sozial-003",
+        "party_id": "mars",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Pro Kind werden in der gesetzlichen Rente drei volle Entgeltpunkte für Erziehungs- und Pflegezeiten angerechnet.",
+        "argument": "Kinder großzuziehen ist die wichtigste Investition in die Rentenkasse von morgen – wer Familie als Leistung anerkennt, darf sie im Alter nicht durch Lücken in der Erwerbsbiografie bestrafen."
+      }
+    ]
+  },
+  {
+    "id": "q-073",
+    "question": "Jemand möchte sich im Jahr 2031 fabrikneu einen Benziner kaufen. Wie passt das zu den Plänen von [PARTY_BADGE:venus]?",
+    "options": [
+      "Das ist dann weiterhin ohne jede Einschränkung möglich",
+      "Das ist dann nicht mehr möglich, Neuzulassungen sind gestoppt",
+      "Das ist dann nur noch mit einem Plug-in-Hybrid möglich"
+    ],
+    "correct_index": 1,
+    "correct_option": "Das ist dann nicht mehr möglich, Neuzulassungen sind gestoppt",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer",
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-005",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Alle Neuzulassungen von Verbrennungs-Pkw enden ab 2030, nicht erst 2035.",
+        "argument": "Die Auto-Transformation ist längst im Gang – wer früher umstellt, sichert sich die Wertschöpfung; wer zögert, verliert Arbeitsplätze an China."
+      }
+    ]
+  },
+  {
+    "id": "q-074",
+    "question": "Jemand mit kleinem Einkommen will möglichst günstig mit Bus und Bahn pendeln. Was bietet [PARTY_BADGE:venus] dafür an?",
+    "options": [
+      "Ein bundesweites 9-Euro-Klimaticket",
+      "Einen vollständig kostenlosen Nahverkehr für alle",
+      "Eine höhere Pendlerpauschale fürs Auto"
+    ],
+    "correct_index": 0,
+    "correct_option": "Ein bundesweites 9-Euro-Klimaticket",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer",
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "venus-klima-007",
+        "party_id": "venus",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Wir führen ein bundesweites 9-Euro-Klimaticket ein.",
+        "argument": "Mobilität ist ein Grundrecht, kein Wohlstandsthema – ein bezahlbares Bundesticket nimmt Familien mit kleinen Einkommen die Hürde, klimafreundlich zu pendeln, und macht den ÖPNV für jeden zur naheliegenden Wahl."
+      }
+    ]
+  },
+  {
+    "id": "q-075",
+    "question": "Ein Spediteur überlegt, Güter von der Autobahn auf die Schiene zu verlagern. Wie steht [PARTY_BADGE:mars] dazu?",
+    "options": [
+      "Will die Investitionen in den Schienen-Güterverkehr verdoppeln",
+      "Will vor allem neue Autobahnen für den Lkw-Verkehr bauen",
+      "Sieht beim Güterverkehr keinen Handlungsbedarf"
+    ],
+    "correct_index": 0,
+    "correct_option": "Will die Investitionen in den Schienen-Güterverkehr verdoppeln",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer",
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "mars-klima-006",
+        "party_id": "mars",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Wir verdoppeln die Investitionen in den Schienen-Güterverkehr.",
+        "argument": "Eine starke Schiene entlastet die Autobahn und senkt CO2-Emissionen pro Tonnenkilometer um rund 80 Prozent – wirtschaftlich und ökologisch ist das beste Argument, Güter aufs Gleis zu bringen statt auf den Lkw."
+      }
+    ]
+  },
+  {
+    "id": "q-076",
+    "question": "Ein Autohersteller fragt, ob er weiter an Wasserstoff und synthetischen Kraftstoffen forschen soll oder nur auf E-Autos setzen. Wie positioniert sich [PARTY_BADGE:mars]?",
+    "options": [
+      "Empfiehlt, allein auf E-Mobilität zu setzen",
+      "Will verschiedene Antriebe im Wettbewerb offenlassen",
+      "Will den klassischen Verbrenner dauerhaft festschreiben"
+    ],
+    "correct_index": 1,
+    "correct_option": "Will verschiedene Antriebe im Wettbewerb offenlassen",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer",
+    "is_overlap_question": false,
+    "topic": "klimaschutz",
+    "prerequisites": [
+      {
+        "id": "mars-klima-004",
+        "party_id": "mars",
+        "topic": "klimaschutz",
+        "subtopic": "verkehr",
+        "claim": "Beim Antrieb setzen wir auf Technologieoffenheit statt auf ein starres Verbrenner-Verbot 2035.",
+        "argument": "Niemand weiß heute, welcher Antrieb 2040 der effizienteste ist – E-Mobilität, Wasserstoff und synthetische Kraftstoffe sollten im Wettbewerb entschieden werden."
+      }
+    ]
+  },
+  {
+    "id": "q-077",
+    "question": "Ein Facharbeiter hat mit 17 zu arbeiten begonnen und 45 Jahre lang Beiträge gezahlt. Wie steht [PARTY_BADGE:saturn] zu seinem Wunsch, mit 63 in Rente zu gehen?",
+    "options": [
+      "Soll abschlagsfrei mit 63 in Rente gehen können",
+      "Soll nur mit dauerhaften Abschlägen früher gehen können",
+      "Soll regulär bis 67 weiterarbeiten"
+    ],
+    "correct_index": 0,
+    "correct_option": "Soll abschlagsfrei mit 63 in Rente gehen können",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer",
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "saturn-sozial-002",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Die Rente mit 63 nach 45 Beitragsjahren bleibt ohne Abschläge erhalten.",
+        "argument": "Ein Facharbeiter, der mit 17 angefangen hat, soll nicht bis 67 schuften müssen – Rente ist Wertschätzung, nicht Strafe für frühen Berufsstart."
+      }
+    ]
+  },
+  {
+    "id": "q-078",
+    "question": "Jemand im Bürgergeld lehnt wiederholt eine zumutbare Arbeitsstelle ab. Wie reagiert [PARTY_BADGE:saturn]?",
+    "options": [
+      "Die Leistung wird für drei Monate um 30 Prozent gekürzt",
+      "Die gesamte Leistung wird für drei Monate gestrichen",
+      "Alle Leistungen werden sofort vollständig entzogen"
+    ],
+    "correct_index": 2,
+    "correct_option": "Alle Leistungen werden sofort vollständig entzogen",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer",
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "saturn-sozial-006",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Arbeitsverweigerung führt sofort zum vollständigen Entzug aller Leistungen.",
+        "argument": "Wer sich weigert zu arbeiten, obwohl er könnte, hat keinen Anspruch auf das Geld anderer – das ist keine Härte, sondern Gerechtigkeit."
+      }
+    ]
+  },
+  {
+    "id": "q-079",
+    "question": "Jemand pflegt über Jahre Angehörige, statt erwerbstätig zu sein. Wie wirkt sich das nach dem Modell von [PARTY_BADGE:venus] auf die spätere Rente aus?",
+    "options": [
+      "Es zählt gar nicht für die gesetzliche Rente",
+      "Es wird über Steuervorteile statt über Rentenpunkte ausgeglichen",
+      "Es wird mit vollen Entgeltpunkten wie Erwerbsarbeit angerechnet"
+    ],
+    "correct_index": 2,
+    "correct_option": "Es wird mit vollen Entgeltpunkten wie Erwerbsarbeit angerechnet",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer",
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "venus-sozial-003",
+        "party_id": "venus",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "rente",
+        "claim": "Pflege- und Sorgearbeit wird rentenrechtlich wie Erwerbsarbeit anerkannt, mit vollen Entgeltpunkten pro Pflegejahr.",
+        "argument": "Die Pflege von Kindern und Angehörigen ist gesellschaftlich unverzichtbar – ohne rentenrechtliche Gleichstellung bleibt sie unbezahlte Frauenarbeit mit Altersarmut als Konsequenz."
+      }
+    ]
+  },
+  {
+    "id": "q-080",
+    "question": "Eine Person ist vor zwei Jahren nach Deutschland zugewandert und arbeitet noch nicht. Hat sie nach dem Modell von [PARTY_BADGE:saturn] Anspruch auf Bürgergeld?",
+    "options": [
+      "Sie erhält es sofort, schon mit einem Aufenthaltstitel",
+      "Sie erhält es erst nach mehreren Jahren Beitragszahlung",
+      "Sie erhält es, in den ersten Jahren nur zum halben Regelsatz"
+    ],
+    "correct_index": 1,
+    "correct_option": "Sie erhält es erst nach mehreren Jahren Beitragszahlung",
+    "category": "retention",
+    "difficulty": "hard",
+    "hard_pattern": "transfer",
+    "is_overlap_question": false,
+    "topic": "soziale-gerechtigkeit",
+    "prerequisites": [
+      {
+        "id": "saturn-sozial-005",
+        "party_id": "saturn",
+        "topic": "soziale-gerechtigkeit",
+        "subtopic": "buergergeld",
+        "claim": "Bürgergeld gibt es nur für deutsche Staatsbürger und Zuwanderer nach mindestens fünf Jahren Beitragszahlung.",
+        "argument": "Der deutsche Sozialstaat ist für diejenigen da, die ihn aufgebaut haben – er ist kein Einwanderungsanreiz in unsere Sozialkassen."
+      }
+    ]
+  }
+]
