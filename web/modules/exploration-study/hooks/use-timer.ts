@@ -57,6 +57,12 @@ export function useTimer({
   const [hasEnded, setHasEnded] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const warningsGiven = useRef<Set<number>>(new Set());
+  // Latest `onEnd` kept in a ref so the fire-once effect below depends only on
+  // `hasEnded`. Callers frequently pass an inline arrow; without this, the
+  // effect re-runs (and re-fires `onEnd`) every time that identity changes
+  // while `hasEnded` is already `true`.
+  const onEndRef = useRef(onEnd);
+  onEndRef.current = onEnd;
 
   const clearTimer = useCallback(() => {
     if (intervalRef.current) {
@@ -65,10 +71,13 @@ export function useTimer({
     }
   }, []);
 
+  // Stable identity: setting `true` when already running is a no-op React
+  // bails on, so no `isRunning` dependency is needed. Keeping `start` stable
+  // stops a consumer's `useEffect(() => start(), [start])` from re-firing on
+  // every running-state change.
   const start = useCallback(() => {
-    if (isRunning) return;
     setIsRunning(true);
-  }, [isRunning]);
+  }, []);
 
   const pause = useCallback(() => {
     setIsRunning(false);
@@ -154,12 +163,13 @@ export function useTimer({
     };
   }, [isRunning, tick]);
 
-  // Call onEnd outside of state updater to avoid React warning
+  // Fire `onEnd` once when the countdown reaches zero. Read through the ref so
+  // a changing `onEnd` identity can't retrigger it while `hasEnded` stays true.
   useEffect(() => {
     if (hasEnded) {
-      onEnd?.();
+      onEndRef.current?.();
     }
-  }, [hasEnded, onEnd]);
+  }, [hasEnded]);
 
   return {
     secondsRemaining,

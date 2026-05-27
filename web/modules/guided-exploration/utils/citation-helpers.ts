@@ -18,12 +18,27 @@ import type { Citation } from '@/modules/guided-exploration/types';
  * @param citations - The citations array from the message
  */
 export function useCitationHandlers(citations: Citation[]) {
+  // De-duped id order (first occurrence wins) so the inline "Quelle N" number
+  // matches the entry number in MessageCitationsList, which renders the same
+  // de-duped list. Numbering against the raw array would drift whenever a
+  // source is cited more than once in a message.
+  const uniqueIds = useMemo(() => {
+    const seen = new Set<string>();
+    const ids: string[] = [];
+    for (const c of citations) {
+      if (seen.has(c.id)) continue;
+      seen.add(c.id);
+      ids.push(c.id);
+    }
+    return ids;
+  }, [citations]);
+
   const getReferenceName = useCallback(
     (id: string): string | null => {
-      const index = citations.findIndex((c) => c.id === id);
+      const index = uniqueIds.indexOf(id);
       return index >= 0 ? `${index + 1}` : null;
     },
-    [citations],
+    [uniqueIds],
   );
 
   const getReferenceTooltip = useCallback(

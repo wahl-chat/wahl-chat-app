@@ -66,16 +66,12 @@ function CitationReference({
   getReferenceTooltip?: (id: string) => string | null;
   getReferenceName?: (id: string) => string | null;
 }) {
-  // Hidden from SR + keyboard: inline "Quelle 1" announcements mid-sentence
-  // would shred reading flow. The canonical a11y affordance is the sources
-  // list rendered separately (see InitialContentMessage); these inline chips
-  // are a mouse-only convenience jumper.
+  // Announced to screen readers (read inline as "Quelle N", tying back to the
+  // numbered sr-only sources list — see MessageCitationsList) but kept out of
+  // the Tab order (tabIndex={-1}): sighted keyboard users would otherwise tab
+  // through every chip, scrolling the chat. Mouse click still opens the source.
   return (
-    <span
-      key={index}
-      className="inline-flex flex-row flex-wrap gap-1"
-      aria-hidden="true"
-    >
+    <span key={index} className="inline-flex flex-row flex-wrap gap-1">
       {ids.map((id) => {
         const name = getReferenceName?.(id) ?? `[${id}]`;
         const tooltip = getReferenceTooltip?.(id) ?? name;
@@ -91,7 +87,12 @@ function CitationReference({
                 )}
                 onClick={() => onReferenceClick(id)}
               >
-                {name}
+                {/* Visible chip stays the bare number; the spoken form is
+                    "Quelle N" so it isn't read as a stray digit mid-sentence
+                    (under the surrounding role="text" the sr-only text folds
+                    into the paragraph's flattened reading). */}
+                <span aria-hidden="true">{name}</span>
+                <span className="sr-only">Quelle {name}</span>
               </button>
             </TooltipTrigger>
             <TooltipContent className="max-w-96 text-ellipsis whitespace-nowrap">

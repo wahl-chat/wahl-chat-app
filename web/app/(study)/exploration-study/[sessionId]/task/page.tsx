@@ -131,14 +131,21 @@ export default function TaskPage() {
     }
   }, [sessionId, sessionInfo]);
 
-  const handleEnd = useCallback(async () => {
+  // Returns `true` when the task was ended and a navigation was kicked off,
+  // `false` on any failure (network error, missing/unrecognized next state).
+  // The caller (`TaskContainer`) re-enables its end button on `false` so the
+  // participant isn't stranded on a "Wird beendet…" state after a hiccup.
+  const handleEnd = useCallback(async (): Promise<boolean> => {
     const response = await studyApi.endTask(sessionId);
-    if (response.data) {
-      const nextState = getStateFromResponse(response.data);
-      if (nextState) {
-        router.push(getRouteForState(sessionId, nextState));
-      }
+    if (response.error || !response.data) {
+      return false;
     }
+    const nextState = getStateFromResponse(response.data);
+    if (!nextState) {
+      return false;
+    }
+    router.push(getRouteForState(sessionId, nextState));
+    return true;
   }, [sessionId, router]);
 
   const handleFirstFinishClick = useCallback(() => {

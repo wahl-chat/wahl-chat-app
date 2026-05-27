@@ -118,32 +118,6 @@ export function LeafContent({
     ? `Gib mir einen Überblick über „${leafName}“.`
     : null;
 
-  // Heading id + contextual link text of the message *after* each message, so
-  // a "jump to next message" link can skip past the current turn's source list
-  // and announce what it lands on. Built over the full message order; works for
-  // both the party and aspect views (the latter just omits the opening turn's
-  // cards, the ids still resolve).
-  const nextNavById = new Map<string, { headingId: string; label: string }>();
-  const orderedMessages = conversation?.messages ?? [];
-  for (let i = 0; i < orderedMessages.length - 1; i++) {
-    const next = orderedMessages[i + 1];
-    const label =
-      next.type === 'initial_content'
-        ? 'Zur Themenzusammenfassung der KI springen'
-        : next.role === 'user'
-          ? 'Zu deiner nächsten Frage springen'
-          : 'Zur nächsten Antwort der KI springen';
-    nextNavById.set(orderedMessages[i].id, {
-      headingId: leafMessageHeadingId(next.id),
-      label,
-    });
-  }
-
-  // The composer stays mounted even while the closure prompt is shown, so the
-  // per-message "jump to input" links always target it.
-  const inputId = 'leaf-chat-input';
-  const inputLabel =
-    'Zum Eingabefeld springen, um eine eigene Frage zu stellen';
   const initialContent =
     initialMessage && typeof initialMessage.content !== 'string'
       ? (initialMessage.content as SubtopicContent)
@@ -314,10 +288,6 @@ export function LeafContent({
                 key={message.id}
                 message={message}
                 isLatestAnswer={message.id === latestAnswerId}
-                nextHeadingId={nextNavById.get(message.id)?.headingId ?? null}
-                nextLabel={nextNavById.get(message.id)?.label}
-                inputId={inputId}
-                inputLabel={inputLabel}
                 trailing={
                   message.id === latestAnswerId ? closurePrompt : undefined
                 }
@@ -344,10 +314,6 @@ export function LeafContent({
                 messageId={message.id}
                 content={message.content as SubtopicContent}
                 showMissingPartiesPlaceholder={showMissingPartiesPlaceholder}
-                nextHeadingId={nextNavById.get(message.id)?.headingId ?? null}
-                nextLabel={nextNavById.get(message.id)?.label}
-                inputId={inputId}
-                inputLabel={inputLabel}
                 trailing={
                   message.id === latestAnswerId ? closurePrompt : undefined
                 }
@@ -361,10 +327,6 @@ export function LeafContent({
               key={message.id}
               message={message}
               isLatestAnswer={message.id === latestAnswerId}
-              nextHeadingId={nextNavById.get(message.id)?.headingId ?? null}
-              nextLabel={nextNavById.get(message.id)?.label}
-              inputId={inputId}
-              inputLabel={inputLabel}
               trailing={
                 message.id === latestAnswerId ? closurePrompt : undefined
               }

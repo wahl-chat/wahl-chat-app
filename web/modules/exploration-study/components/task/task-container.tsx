@@ -29,7 +29,12 @@ export interface TaskContainerProps {
    * mount-time start.
    */
   startedAt?: string | null;
-  onEnd: () => Promise<void>;
+  /**
+   * Ends the task. Resolves `true` once a navigation has been kicked off,
+   * `false` on failure — on which the container re-enables its end controls
+   * and prompts the participant to retry rather than leaving them stuck.
+   */
+  onEnd: () => Promise<boolean>;
   /**
    * Fired the moment the countdown reaches zero, before the time-up dialog
    * grabs focus. Used to dismiss any competing modal (e.g. an open leaf
@@ -180,16 +185,26 @@ export function TaskContainer({
     return () => cancelAnimationFrame(raf);
   }, [showTimeUpDialog]);
 
-  const handleConfirmEnd = useCallback(async () => {
-    setShowConfirmDialog(false);
+  // Re-enable the end controls and prompt a retry when `onEnd` fails, so a
+  // network hiccup can't strand the participant on "Wird beendet…" with no
+  // way forward — the button itself becomes the retry.
+  const endAndHandleFailure = useCallback(async () => {
     setIsEnding(true);
-    await onEnd();
+    const ok = await onEnd();
+    if (!ok) {
+      setIsEnding(false);
+      toast.error('Beenden fehlgeschlagen. Bitte versuche es erneut.');
+    }
   }, [onEnd]);
 
+  const handleConfirmEnd = useCallback(async () => {
+    setShowConfirmDialog(false);
+    await endAndHandleFailure();
+  }, [endAndHandleFailure]);
+
   const handleTimeUpContinue = useCallback(async () => {
-    setIsEnding(true);
-    await onEnd();
-  }, [onEnd]);
+    await endAndHandleFailure();
+  }, [endAndHandleFailure]);
 
   const secretClickTimestampsRef = useRef<number[]>([]);
   const handleSecretSkipClick = useCallback(async () => {
@@ -200,10 +215,9 @@ export function TaskContainer({
     secretClickTimestampsRef.current = recent;
     if (recent.length >= 5) {
       secretClickTimestampsRef.current = [];
-      setIsEnding(true);
-      await onEnd();
+      await endAndHandleFailure();
     }
-  }, [onEnd]);
+  }, [endAndHandleFailure]);
 
   // The button is always clickable (unless we're mid-submit). While locked,
   // a click reveals the unlock countdown instead of submitting.

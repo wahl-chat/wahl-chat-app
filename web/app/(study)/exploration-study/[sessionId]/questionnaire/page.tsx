@@ -26,12 +26,16 @@ export default function QuestionnaireSurveyPage() {
       setIsSubmitting(false);
       return;
     }
-    if (response.data) {
-      const nextState = getStateFromResponse(response.data);
-      if (nextState) {
-        router.push(getRouteForState(sessionId, nextState));
-      }
+    const nextState = response.data
+      ? getStateFromResponse(response.data)
+      : undefined;
+    if (nextState) {
+      router.push(getRouteForState(sessionId, nextState));
+      return;
     }
+    // Success but no recognizable next state — re-enable the button rather
+    // than leaving it stuck in the submitting state.
+    setIsSubmitting(false);
   };
 
   return (

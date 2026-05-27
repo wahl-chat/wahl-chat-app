@@ -2,7 +2,6 @@
 
 import { useContextParties } from '@/components/providers/context-provider';
 import { MessageCitationsList } from '@/modules/guided-exploration/components/shared/message-citations-list';
-import { MessageNavLinks } from '@/modules/guided-exploration/components/shared/message-nav-links';
 import { PartyCard } from '@/modules/guided-exploration/components/shared/party-card';
 import type {
   PartyPosition,
@@ -21,24 +20,9 @@ interface InitialContentMessageProps {
    */
   showMissingPartiesPlaceholder?: boolean;
   /**
-   * Heading id of the next message in the transcript. Drives the "jump to
-   * next message" skip-link rendered before this turn's sources.
-   */
-  nextHeadingId?: string | null;
-  /** Contextual link text for the next-message skip-link. */
-  nextLabel?: string;
-  /**
-   * Target id for the "jump to input" skip-link. Usually the leaf composer
-   * (`leaf-chat-input`), but switches to the closure prompt's heading when the
-   * LLM has replaced the composer with a closure prompt.
-   */
-  inputId?: string;
-  /** Contextual link text for the "jump to input" skip-link. */
-  inputLabel?: string;
-  /**
    * Content rendered at the end of this turn — after the answer, before the
-   * skip-links and sources. Used to attach the leaf closure prompt to the
-   * latest turn so it reads ahead of the "jump to input" skip-link.
+   * sources. Used to attach the leaf closure prompt to the latest turn so it
+   * reads right after the answer.
    */
   trailing?: React.ReactNode;
 }
@@ -53,10 +37,6 @@ export function InitialContentMessage({
   content,
   messageId,
   showMissingPartiesPlaceholder = false,
-  nextHeadingId = null,
-  nextLabel,
-  inputId = 'leaf-chat-input',
-  inputLabel = 'Zum Eingabefeld springen, um eine eigene Frage zu stellen',
   trailing,
 }: InitialContentMessageProps) {
   const contextParties = useContextParties();
@@ -124,14 +104,6 @@ export function InitialContentMessage({
 
       {trailing}
 
-      {/* Before the sources: skip straight to the next message or the
-          composer, so SR users aren't forced to arrow through every citation. */}
-      <MessageNavLinks
-        nextHeadingId={nextHeadingId}
-        nextLabel={nextLabel}
-        inputId={inputId}
-        inputLabel={inputLabel}
-      />
       <MessageCitationsList
         citations={content.citations}
         messageId={messageId}

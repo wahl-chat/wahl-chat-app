@@ -3,10 +3,7 @@
 import { cn } from '@/lib/utils';
 import { firstSentence } from '@/modules/guided-exploration/components/chat/session-message-list';
 import { MessageCitationsList } from '@/modules/guided-exploration/components/shared/message-citations-list';
-import {
-  MessageNavLinks,
-  leafMessageHeadingId,
-} from '@/modules/guided-exploration/components/shared/message-nav-links';
+import { leafMessageHeadingId } from '@/modules/guided-exploration/components/shared/message-nav-links';
 import { PartyMarkedMarkdown } from '@/modules/guided-exploration/components/shared/party-marked-markdown';
 import type { Message } from '@/modules/guided-exploration/types';
 import { useCitationHandlers } from '@/modules/guided-exploration/utils';
@@ -21,25 +18,9 @@ interface FollowupMessageProps {
    */
   isLatestAnswer?: boolean;
   /**
-   * Heading id of the next message in the transcript. Drives the "jump to
-   * next message" skip-link rendered before this answer's sources.
-   */
-  nextHeadingId?: string | null;
-  /** Contextual link text for the next-message skip-link. */
-  nextLabel?: string;
-  /**
-   * Target id for the "jump to input" skip-link. Usually the leaf composer
-   * (`leaf-chat-input`), but switches to the closure prompt's heading when the
-   * LLM has replaced the composer with a closure prompt, so the link never
-   * points at an unmounted element.
-   */
-  inputId?: string;
-  /** Contextual link text for the "jump to input" skip-link. */
-  inputLabel?: string;
-  /**
    * Content rendered at the end of this turn — after the answer, before the
-   * skip-links and sources. Used to attach the leaf closure prompt to the
-   * latest turn so it reads ahead of the "jump to input" skip-link.
+   * sources. Used to attach the leaf closure prompt to the latest turn so it
+   * reads right after the answer.
    */
   trailing?: React.ReactNode;
 }
@@ -53,10 +34,6 @@ export function FollowupMessage({
   message,
   className,
   isLatestAnswer = false,
-  nextHeadingId = null,
-  nextLabel,
-  inputId = 'leaf-chat-input',
-  inputLabel = 'Zum Eingabefeld springen, um eine eigene Frage zu stellen',
   trailing,
 }: FollowupMessageProps) {
   const citations = message.citations ?? [];
@@ -112,14 +89,6 @@ export function FollowupMessage({
       </PartyMarkedMarkdown>
       {trailing}
 
-      {/* Before the sources: skip straight to the next message or the
-          composer, so SR users aren't forced to arrow through every citation. */}
-      <MessageNavLinks
-        nextHeadingId={nextHeadingId}
-        nextLabel={nextLabel}
-        inputId={inputId}
-        inputLabel={inputLabel}
-      />
       <MessageCitationsList citations={citations} messageId={message.id} />
     </div>
   );

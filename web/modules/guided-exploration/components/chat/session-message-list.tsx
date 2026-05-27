@@ -1,10 +1,7 @@
 'use client';
 
 import { MessageCitationsList } from '@/modules/guided-exploration/components/shared/message-citations-list';
-import {
-  MessageNavLinks,
-  chatMessageHeadingId,
-} from '@/modules/guided-exploration/components/shared/message-nav-links';
+import { chatMessageHeadingId } from '@/modules/guided-exploration/components/shared/message-nav-links';
 import { PartyMarkedMarkdown } from '@/modules/guided-exploration/components/shared/party-marked-markdown';
 import type { SessionMessage } from '@/modules/guided-exploration/types';
 import { useCitationHandlers } from '@/modules/guided-exploration/utils';
@@ -84,22 +81,6 @@ function getMessageHeadingLabel(message: SessionMessage): string {
   }
 }
 
-/** Contextual link text for the "jump to next message" link in the main chat. */
-function chatNextLabel(message: SessionMessage): string {
-  switch (message.type) {
-    case 'user':
-      return 'Zu deiner nächsten Nachricht springen';
-    case 'assistant':
-      return 'Zur nächsten Antwort der KI springen';
-    case 'exploration_start':
-      return 'Zur strukturierten Themen-Erkundung springen';
-    case 'topic_directions':
-      return 'Zur Aspekt-Auswahl springen';
-    case 'choice_result':
-      return 'Zur getroffenen Auswahl springen';
-  }
-}
-
 interface SessionMessageListProps {
   messages: SessionMessage[];
   onOpenLeafAction?: (explorationId: string, leafId: string) => void;
@@ -163,15 +144,6 @@ export function SessionMessageList({
         const isLastBot = index === lastBotMessageIndex;
 
         let body: React.ReactNode = null;
-        // Heading id + contextual label of the next message, so this one's
-        // "jump to next message" link can skip past its source list and
-        // announce what it lands on.
-        const nextMessage =
-          index + 1 < messages.length ? messages[index + 1] : null;
-        const nextHeadingId = nextMessage
-          ? chatMessageHeadingId(nextMessage.id)
-          : null;
-        const nextLabel = nextMessage ? chatNextLabel(nextMessage) : undefined;
 
         if (message.type === 'user') {
           body = (
@@ -189,13 +161,7 @@ export function SessionMessageList({
             <p className="text-sm text-muted-foreground">{message.content}</p>
           );
         } else if (message.type === 'assistant') {
-          body = (
-            <AssistantSessionMessage
-              message={message}
-              nextHeadingId={nextHeadingId}
-              nextLabel={nextLabel}
-            />
-          );
+          body = <AssistantSessionMessage message={message} />;
         } else if (message.type === 'exploration_start') {
           const ownsDeepLink =
             !!deepLinkLeafId &&
@@ -267,12 +233,8 @@ export function SessionMessageList({
 
 function AssistantSessionMessage({
   message,
-  nextHeadingId,
-  nextLabel,
 }: {
   message: SessionMessage;
-  nextHeadingId: string | null;
-  nextLabel?: string;
 }) {
   const citations = message.citations ?? [];
   const { getReferenceName, getReferenceTooltip, handleReferenceClick } =
@@ -288,15 +250,6 @@ function AssistantSessionMessage({
       >
         {message.content ?? ''}
       </PartyMarkedMarkdown>
-      {/* Before the sources: skip straight to the next message or the
-          composer, so SR/keyboard users aren't forced to tab/arrow through
-          every citation. sr-only until focused. */}
-      <MessageNavLinks
-        nextHeadingId={nextHeadingId}
-        nextLabel={nextLabel}
-        inputId="chat-input"
-        inputLabel="Zum Eingabefeld springen, um eine Nachricht zu schreiben"
-      />
       <MessageCitationsList citations={citations} messageId={message.id} />
     </div>
   );
