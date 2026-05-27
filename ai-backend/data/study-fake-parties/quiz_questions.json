@@ -20,7 +20,7 @@
     "question": "Welche Aussage zum Umgang mit klimaschädlichen Subventionen trifft auf [PARTY_BADGE:venus] zu?",
     "options": [
       "Will sie vollständig abbauen",
-      "Will nur einzelne Subventionen streichen und die übrigen behalten",
+      "Will einzelne Subventionen streichen und die übrigen behalten",
       "Will sie zwar verringern, aber ohne festen Zeitplan"
     ],
     "correct_index": 0,
@@ -100,8 +100,8 @@
     "question": "Wie steht [PARTY_BADGE:venus] zu einem gesetzlichen CO2-Mindestpreis als Ergänzung zum Emissionshandel?",
     "options": [
       "Befürwortet die Einführung eines verbindlichen Mindestpreises",
-      "Lehnt einen zusätzlichen Mindestpreis ab und vertraut allein dem Emissionshandel",
-      "Will den Emissionshandel komplett durch eine nationale Steuer ersetzen"
+      "Lehnt einen zusätzlichen Mindestpreis ab und vertraut vor allem dem Emissionshandel",
+      "Will den Emissionshandel weitgehend durch eine nationale Steuer ersetzen"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
@@ -117,7 +117,7 @@
     "options": [
       "Will Inlandsflüge schrittweise unattraktiv machen",
       "Will Inlandsflüge wie heute steuerlich behandeln",
-      "Will Inlandsflüge komplett verbieten"
+      "Will Inlandsflüge gesetzlich verbieten"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
@@ -164,7 +164,7 @@
     "question": "Wie steht [PARTY_BADGE:venus] zu Sanktionen im Bürgergeld?",
     "options": [
       "Will Sanktionen auf das verfassungsrechtlich zulässige Minimum begrenzen",
-      "Will Sanktionen vollständig abschaffen",
+      "Will Sanktionen durch ein alternatives Modell ersetzen",
       "Will Sanktionen verschärfen"
     ],
     "correct_index": 0,
@@ -227,9 +227,9 @@
     "id": "q-015",
     "question": "Welche Struktur der Altersvorsorge will [PARTY_BADGE:mars] erhalten?",
     "options": [
-      "Einen staatlichen Bürgerfonds als alleinige Pflicht-Säule",
+      "Einen staatlichen Bürgerfonds als zentrale Pflicht-Säule",
       "Das bestehende Zusammenspiel aus gesetzlicher Rente, Betriebsrente und privater Vorsorge",
-      "Die gesetzliche Rente als alleinige verpflichtende Säule"
+      "Die gesetzliche Rente als zentrale verpflichtende Säule"
     ],
     "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
@@ -275,7 +275,7 @@
     "id": "q-018",
     "question": "Wie steht [PARTY_BADGE:mars] zur Umbenennung des Bürgergelds?",
     "options": [
-      "Will den Namen ändern, um Bürgergeld als bedingungslose Leistung zu kennzeichnen",
+      "Will den Namen ändern, um Bürgergeld als weitgehend voraussetzungsfreie Leistung zu kennzeichnen",
       "Will den Namen ändern, um den Charakter als Grundsicherung in Notlagen zu betonen",
       "Will den heutigen Namen Bürgergeld beibehalten"
     ],
@@ -357,7 +357,7 @@
     "options": [
       "Befürwortet eine staatlich garantierte Mindestrente nach langjähriger Beitragszahlung",
       "Lehnt eine staatliche Mindestrente ab",
-      "Setzt allein auf private Vorsorge zur Vermeidung von Altersarmut"
+      "Setzt vor allem auf private Vorsorge zur Vermeidung von Altersarmut"
     ],
     "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
@@ -419,7 +419,7 @@
     "id": "q-027",
     "question": "Welche Aussage zur Behandlung von Bürgergeld-Beziehern mit langer Beitragsdauer trifft auf [PARTY_BADGE:saturn] zu?",
     "options": [
-      "Lehnt jede Differenzierung im Bürgergeld nach Beitragshistorie ab",
+      "Lehnt eine Differenzierung im Bürgergeld nach Beitragshistorie ab",
       "Sieht für sie einen Aufschlag auf das Bürgergeld vor",
       "Will sie ganz aus dem Bürgergeld herausnehmen und über die Rente absichern"
     ],
@@ -673,7 +673,7 @@
     "question": "Wie steht [PARTY_BADGE:venus] zur Rückverteilung der CO2-Einnahmen an die Bürger?",
     "options": [
       "Lehnt eine Rückverteilung der CO2-Einnahmen ab",
-      "Will die Einnahmen ausschließlich für Klimainvestitionen nutzen",
+      "Will die Einnahmen vor allem für Klimainvestitionen nutzen",
       "Will die Einnahmen über ein Pro-Kopf-Klimageld direkt an die Bürger zurückzahlen"
     ],
     "correct_index": 2,
@@ -689,7 +689,7 @@
     "question": "Wie steht [PARTY_BADGE:mars] zur Rückverteilung der CO2-Einnahmen an die Bürger?",
     "options": [
       "Lehnt eine Rückverteilung der CO2-Einnahmen ab",
-      "Will die Einnahmen ausschließlich für Klimainvestitionen nutzen",
+      "Will die Einnahmen vor allem für Klimainvestitionen nutzen",
       "Will einen relevanten Anteil als Pro-Kopf-Klimageld direkt an die Bürger zurückzahlen"
     ],
     "correct_index": 2,
@@ -738,7 +738,7 @@
     "options": [
       "Setzt auf Technologieoffenheit zwischen verschiedenen Antrieben",
       "Will den Verbrennungsmotor langfristig erhalten",
-      "Setzt allein auf E-Mobilität"
+      "Setzt den Hauptfokus auf E-Mobilität"
     ],
     "correct_index": 0,
     "topic": "klimaschutz",
@@ -802,7 +802,7 @@
     "options": [
       "Lehnt eine zusätzliche rentenrechtliche Anerkennung ab",
       "Will Pflege- und Sorgejahre in der Rente gleichwertig zu Erwerbsjahren bewerten",
-      "Will Sorgearbeit ausschließlich über das Steuer- und Sozialsystem ausgleichen"
+      "Will Sorgearbeit vor allem über das Steuer- und Sozialsystem ausgleichen"
     ],
     "correct_index": 1,
     "topic": "soziale-gerechtigkeit",
@@ -817,7 +817,7 @@
     "question": "Wie steht [PARTY_BADGE:mars] zur rentenrechtlichen Anerkennung von Erziehungs- und Pflegezeiten?",
     "options": [
       "Will Erziehungs- und Pflegezeiten in der Rente stärker anerkennen",
-      "Will sie ausschließlich über Steuern statt Rentenpunkte ausgleichen",
+      "Will sie eher über Steuern als über Rentenpunkte ausgleichen",
       "Lehnt eine zusätzliche Anerkennung ab"
     ],
     "correct_index": 0,
@@ -914,11 +914,11 @@
     "id": "q-058",
     "question": "Welches Tempolimit auf Autobahnen fordert [PARTY_BADGE:venus] konkret?",
     "options": [
-      "Tempo 100",
       "Tempo 120",
+      "Tempo 100",
       "Tempo 130"
     ],
-    "correct_index": 1,
+    "correct_index": 0,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "venus-klima-004"
@@ -950,11 +950,11 @@
     "id": "q-060",
     "question": "Auf welchen Betrag pro Kilometer will [PARTY_BADGE:saturn] die Pendlerpauschale dauerhaft anheben?",
     "options": [
-      "38 Cent",
       "50 Cent",
+      "55 Cent",
       "65 Cent"
     ],
-    "correct_index": 1,
+    "correct_index": 0,
     "topic": "klimaschutz",
     "prerequisite_position_ids": [
       "saturn-klima-006"
@@ -969,10 +969,10 @@
     "question": "Auf welches gesetzliche Rentenniveau will [PARTY_BADGE:venus] die Rente anheben und festschreiben?",
     "options": [
       "48 Prozent",
-      "50 Prozent",
-      "53 Prozent"
+      "49 Prozent",
+      "50 Prozent"
     ],
-    "correct_index": 1,
+    "correct_index": 2,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "venus-sozial-001"
@@ -986,11 +986,11 @@
     "id": "q-062",
     "question": "Wie hoch soll die von [PARTY_BADGE:saturn] geforderte steuerfinanzierte Mindestrente nach 35 Beitragsjahren sein?",
     "options": [
-      "1.100 Euro netto",
-      "1.300 Euro netto",
-      "1.500 Euro netto"
+      "1.000 Euro netto",
+      "1.150 Euro netto",
+      "1.300 Euro netto"
     ],
-    "correct_index": 1,
+    "correct_index": 2,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "saturn-sozial-001"
@@ -1004,11 +1004,11 @@
     "id": "q-063",
     "question": "Bis zu welchem Betrag im Monat soll der Zuverdienst beim freiwilligen Weiterarbeiten nach dem Modell von [PARTY_BADGE:mars] steuerfrei bleiben?",
     "options": [
-      "1.000 Euro",
       "2.000 Euro",
+      "2.500 Euro",
       "3.000 Euro"
     ],
-    "correct_index": 1,
+    "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "mars-sozial-004"
@@ -1022,11 +1022,11 @@
     "id": "q-064",
     "question": "Um welchen Betrag pro Monat will [PARTY_BADGE:venus] den Bürgergeld-Regelsatz anheben?",
     "options": [
-      "um 20 Euro",
       "um 50 Euro",
+      "um 75 Euro",
       "um 100 Euro"
     ],
-    "correct_index": 1,
+    "correct_index": 0,
     "topic": "soziale-gerechtigkeit",
     "prerequisite_position_ids": [
       "venus-sozial-004"
