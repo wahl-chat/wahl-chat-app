@@ -17,10 +17,11 @@ import {
   type UeqShortFormValues,
   ueqShortSchema,
 } from '@/modules/exploration-study/schemas/forms';
-import type { UeqData } from '@/modules/exploration-study/types';
-import { getRandomizedUeqItems } from '@/modules/exploration-study/utils';
+import {
+  UEQ_SHORT_ITEMS,
+  type UeqData,
+} from '@/modules/exploration-study/types';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 
 export interface UeqShortFormProps {
@@ -46,7 +47,7 @@ export function UeqShortForm({
   onItemAnswered,
   className,
 }: UeqShortFormProps) {
-  const { items, order } = useMemo(() => getRandomizedUeqItems(), []);
+  const items = UEQ_SHORT_ITEMS;
 
   const form = useForm<UeqShortFormValues>({
     resolver: zodResolver(ueqShortSchema),
@@ -59,7 +60,7 @@ export function UeqShortForm({
     const { qualitativeFeedback, ...ratings } = values;
     onSubmit({
       ...ratings,
-      itemOrder: order,
+      itemOrder: UEQ_SHORT_ITEMS.map((item) => item.id),
       ...(qualitativeFeedback ? { qualitativeFeedback } : {}),
     });
   });

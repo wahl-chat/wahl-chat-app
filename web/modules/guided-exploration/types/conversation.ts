@@ -74,6 +74,8 @@ export interface Message {
   content: string | SubtopicContent;
   /** Citations for followup messages */
   citations?: Citation[];
+  /** Follow-up chips emitted alongside this assistant turn (backend `suggested_followups`) */
+  suggestedFollowups?: string[];
   /** When the message was created */
   timestamp: string;
 }

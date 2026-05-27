@@ -92,8 +92,7 @@ export function useExploration(options: UseExplorationOptions = {}) {
 
   // ----- Multi-tree state -----
   // `selectTreesArray` returns a new array reference on every call;
-  // wrap with `useShallow` so identity-based snapshot comparison stops
-  // looping when nothing actually changed.
+  // `useShallow` so identity-based snapshot comparison stops
   const trees = useExplorationStore(useShallow(selectTreesArray));
 
   // ----- Active leaf -----
@@ -212,8 +211,8 @@ export function useExploration(options: UseExplorationOptions = {}) {
 
   /**
    * Optimistically set the active leaf, then ask the backend to stream
-   * the leaf content. The backend's `conversation_opened` event will seed
-   * the conversation if absent.
+   * the leaf content. The backend's `conversation_opened` event will
+   * create the initial content of the leaf topic if absent.
    */
   const openLeaf = useCallback(
     (explorationId: string, leafId: string) => {
@@ -228,10 +227,37 @@ export function useExploration(options: UseExplorationOptions = {}) {
       const tree = state.exploration.trees[explorationId];
       const existingConversation =
         state.exploration.conversations[explorationId]?.[leafId];
+
+      // If a leaf already has suggested questions, LEAF_ACTIVATED just
+      // cleared the leaf-scoped list and there is no backend event to set it.
+      // As the Convo is already in the store, get the suggestions from the newest
+      // assistant message and fall back to initial content's suggestedQuestions
+      if (existingConversation) {
+        let questions: string[] = [];
+        for (let i = existingConversation.messages.length - 1; i >= 0; i--) {
+          const m = existingConversation.messages[i];
+          if (m.role !== 'assistant') continue;
+          const fromFollowups = m.suggestedFollowups ?? [];
+          const fromContent =
+            typeof m.content !== 'string'
+              ? (m.content.suggestedQuestions ?? [])
+              : [];
+          const q = fromFollowups.length > 0 ? fromFollowups : fromContent;
+          if (q.length > 0) {
+            questions = q;
+            break;
+          }
+        }
+        if (questions.length > 0) {
+          dispatch(uiActions.suggestedQuestionsSet(questions, 'leaf'));
+        }
+      }
+
       if (!tree || existingConversation) return;
 
       const nodes = getPathTo(tree, leafId);
       if (!nodes) return;
+
       const targetPath = nodes.slice(1).map((n) => n.id);
       if (targetPath.length === 0) return;
 
@@ -241,7 +267,8 @@ export function useExploration(options: UseExplorationOptions = {}) {
       dispatch(
         uiActions.thinkingStarted('retrieving', 'Inhalte werden geladen...'),
       );
-      void explorationApiService
+
+      explorationApiService
         .navigate(sid, explorationId, { targetPath })
         .catch((err) => {
           dispatch(uiActions.thinkingEnded());

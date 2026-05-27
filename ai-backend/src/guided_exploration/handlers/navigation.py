@@ -372,9 +372,19 @@ class NavigationHandler:
                     level=BreadcrumbLevel.SUBTOPIC,
                 )
 
+        # Surface the latest answer's chips on reopen: walk newest-first and
+        # prefer a follow-up's persisted suggested_followups, falling back to
+        # the initial content's suggested_questions. First non-empty wins.
         suggested_questions: list[str] = []
-        if content and hasattr(content, "suggested_questions"):
-            suggested_questions = content.suggested_questions or []
+        for msg in reversed(conversation.messages):
+            if msg.role != MessageRole.ASSISTANT:
+                continue
+            from_followups = msg.suggested_followups or []
+            from_content = getattr(msg.content, "suggested_questions", None) or []
+            q = from_followups or from_content
+            if q:
+                suggested_questions = q
+                break
 
         await self._sse.send_to_session(
             session_id,
