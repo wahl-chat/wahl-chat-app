@@ -21,7 +21,9 @@ DONT_KNOW_INDEX = -1
 #
 # v3 adds difficulty-aware sampling: each quiz is composed as 5 easy +
 # 3 hard (one per hard pattern) + 2 comparative questions.
-QUIZ_CORPUS_VERSION = "v3"
+# v4 adjusts some of the hard questions to be better distributed
+#
+QUIZ_CORPUS_VERSION = "v4"
 
 
 class QuizQuestion(BaseModel):
