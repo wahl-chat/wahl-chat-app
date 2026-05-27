@@ -1,7 +1,6 @@
 'use client';
 
 import { CitationMarkdown } from '@/modules/guided-exploration/components/shared/citation-markdown';
-import { PartyCard } from '@/modules/guided-exploration/components/shared/party-card';
 import type { ExplorationOverview } from '@/modules/guided-exploration/types';
 import { useCallback, useId } from 'react';
 
@@ -34,23 +33,6 @@ export function ExplorationOverviewCard({
           {overview.introParagraph}
         </CitationMarkdown>
       </div>
-
-      {overview.partySummaries.length > 0 && (
-        <ul
-          aria-label="Zusammenfassung nach Parteien"
-          className="flex list-none flex-col gap-2 pl-0"
-        >
-          {overview.partySummaries.map((entry) => (
-            <li key={entry.partyId}>
-              <PartyCard partyId={entry.partyId}>
-                <p className="text-sm text-foreground whitespace-pre-line">
-                  {entry.summary}
-                </p>
-              </PartyCard>
-            </li>
-          ))}
-        </ul>
-      )}
 
       <p className="text-sm text-foreground">
         Klicke dich hier durch die einzelnen Themen, um zu jeweils einem Thema

@@ -18,7 +18,7 @@ GroupType = Literal["A1", "A2", "B1", "B2", "C1", "C2"]
 GROUPS: list[GroupType] = ["A1", "A2", "B1", "B2", "C1", "C2"]
 
 
-MAX_LEAD_OVER_MIN = 2
+MAX_LEAD_OVER_MIN = 0
 
 
 def compute_group_weights(counts: dict[GroupType, int]) -> list[int]:
