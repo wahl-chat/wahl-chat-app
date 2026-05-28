@@ -365,10 +365,18 @@ class QuizResultResponse(BaseModel):
     """Response after quiz submission."""
 
     total_correct: int = Field(..., description="Number of correct answers.")
+    total_wrong: int = Field(
+        ...,
+        description="Number of wrong, non-abstain answers.",
+    )
     total_questions: int
     score_percentage: float = Field(
         ...,
         description="Score as a percentage (0-100). Abstain counts as wrong.",
+    )
+    score_penalty: int = Field(
+        ...,
+        description="Net +1/0/−1 score: correct − wrong (abstain neutral).",
     )
     next_state: StudyState = Field(
         ...,
@@ -380,8 +388,16 @@ class QuizScoreResponse(BaseModel):
     """Persistent quiz score returned for the feedback page."""
 
     total_correct: int
+    total_wrong: int = Field(
+        default=0,
+        description="Number of wrong, non-abstain answers.",
+    )
     total_questions: int
     score_percentage: float
+    score_penalty: int = Field(
+        default=0,
+        description="Net +1/0/−1 score: correct − wrong (abstain neutral).",
+    )
     attention_check_passed: bool = Field(
         default=False,
         description=(

@@ -452,9 +452,18 @@ class LeafConversationHandler:
                 party_info = parties_info.get(party_id)
                 party_name = party_info.name if party_info else party_id
                 available_context_parts.append(f"\n## {party_name}")
+                position_citation_ids: set[str] = set()
                 for pos in party_data.positions:
                     cite_tag = f" [{pos.citation_id}]" if pos.citation_id else ""
                     available_context_parts.append(f"- {pos.position}{cite_tag}")
+                    if pos.citation_id:
+                        position_citation_ids.add(pos.citation_id)
+                for chunk in resolved.party_chunks.get(party_id, [])[:5]:
+                    if chunk.chunk_id in position_citation_ids:
+                        continue
+                    available_context_parts.append(
+                        f"- {chunk.content.strip()} [{chunk.chunk_id}]"
+                    )
             available_context = "\n".join(available_context_parts)
 
             suggestions = await self._leaf_followup.generate(

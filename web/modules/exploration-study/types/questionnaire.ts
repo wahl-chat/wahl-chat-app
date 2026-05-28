@@ -180,7 +180,9 @@ export interface QuizData {
 
 export interface QuizScore {
   totalCorrect: number;
+  totalWrong: number;
   totalQuestions: number;
   scorePercentage: number;
+  scorePenalty: number;
   attentionCheckPassed: boolean;
 }

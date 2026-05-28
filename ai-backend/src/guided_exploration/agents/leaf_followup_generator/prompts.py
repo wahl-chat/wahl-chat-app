@@ -144,9 +144,8 @@ _BAD_EXAMPLES_IN_LEAF = """- "Wie hoch ist der CO2-Preis bei Venus?"  ← Antwor
 
 
 LEAF_FOLLOWUP_PROMPT = (
-    """Generiere 0-2 kurze Folgefragen, die der Nutzer als nächste Frage in diesem Gespräch tatsächlich stellen würde.
-
-"""
+    """Generiere 0-3 kurze Folgefragen, die der Nutzer als nächste Frage in diesem Gespräch tatsächlich stellen würde.
+    """
     + EXPLORATION_GOALS
     + """
 
@@ -160,7 +159,7 @@ LEAF_FOLLOWUP_PROMPT = (
 {already_cited_ids}
 
 ## Deine Aufgabe
-**Dein Zweck: Verständnis aufbauen, nicht Gespräch verlängern.** Die
+**Dein Zweck: Verständnis aufbauen** Die
 Folgefragen sind dein Werkzeug, um die drei Ziele oben für genau dieses
 Unterthema voranzutreiben: **Erkunden** (welche Aspekte die Parteien
 diskutieren), **Vergleichen** (wie ihre Positionen zueinander stehen)
@@ -173,8 +172,9 @@ weiterführen.
 
 Zwei No-Gos, die genau das verletzen:
 - **Rehash-Fragen** — Fragen, deren Antwort schon irgendwo im Verlauf
-  steht (Initial-Content, frühere Antwort, schon gezogene Karte). Sie
-  fühlen sich wie Folgefragen an, bringen aber kein neues Verständnis.
+  steht (Initial-Content, frühere Antwort, schon gezogene Karte). Außer
+  sie geben wirklich neue Erkenntnisse. Sie fühlen sich sonst
+  wie Folgefragen an, bringen aber kein neues Verständnis.
 - **Scheinintegrierende Fragen** — Fragen, die so klingen, als würden
   sie zwei Aussagen zusammenführen, einen Widerspruch aufdecken oder
   eine Brücke schlagen, obwohl in der Wissensbasis tatsächlich keine
@@ -184,7 +184,7 @@ Zwei No-Gos, die genau das verletzen:
   tragen — der Bot müsste dann improvisieren oder ausweichen, und die
   Nutzerin lernt nichts dazu.
 
-Schlage höchstens 2 Folgefragen vor, die:
+Schlage höchstens 3 Folgefragen vor, die:
 
 1. **An die letzte Antwort oder die abgedeckten Parteipositionen
    anknüpfen.** Eine Frage greift entweder eine konkrete Aussage aus

@@ -794,8 +794,8 @@ async def submit_quiz(request: web.Request) -> web.Response:
             )
         )
 
-    total_correct, total_questions, score_percentage = calculate_quiz_score(
-        quiz.questions, answers
+    total_correct, total_wrong, total_questions, score_percentage, score_penalty = (
+        calculate_quiz_score(quiz.questions, answers)
     )
 
     submission = QuizSubmission(
@@ -803,8 +803,10 @@ async def submit_quiz(request: web.Request) -> web.Response:
         answers=answers,
         submitted_at=datetime.now(timezone.utc),
         total_correct=total_correct,
+        total_wrong=total_wrong,
         total_questions=total_questions,
         score_percentage=score_percentage,
+        score_penalty=score_penalty,
     )
     await session_repo.save_quiz_submission(session_id, submission)
 
@@ -817,8 +819,10 @@ async def submit_quiz(request: web.Request) -> web.Response:
 
     response = QuizResultResponse(
         total_correct=total_correct,
+        total_wrong=total_wrong,
         total_questions=total_questions,
         score_percentage=score_percentage,
+        score_penalty=score_penalty,
         next_state=StudyState.DEMOGRAPHICS,
     )
     return web.json_response(response.model_dump(mode="json"))
@@ -967,8 +971,10 @@ async def get_quiz_result(request: web.Request) -> web.Response:
 
     response = QuizScoreResponse(
         total_correct=submission.total_correct,
+        total_wrong=submission.total_wrong,
         total_questions=submission.total_questions,
         score_percentage=submission.score_percentage,
+        score_penalty=submission.score_penalty,
         attention_check_passed=session.condition.attention_check == 2,
     )
     return web.json_response(response.model_dump(mode="json"))

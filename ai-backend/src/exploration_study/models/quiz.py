@@ -121,16 +121,43 @@ class Quiz(BaseModel):
 
 
 class QuizSubmission(BaseModel):
-    """A participant's submission for a quiz."""
+    """A participant's submission for a quiz.
+
+    Two scoring schemes are persisted side-by-side:
+
+    * ``total_correct`` counts hits only (wrong = 0). ``score_percentage``
+      mirrors that as a 0–100 share for admin views.
+    * ``score_penalty`` is the +1/0/−1 net score (correct − wrong, abstain
+      neutral) that participants are explicitly told about in the quiz
+      intro. ``total_wrong`` is the matching wrong-pick count (abstain not
+      included).
+    """
+
+    model_config = {"extra": "ignore"}
 
     quiz_id: str = Field(..., description="ID of the quiz being submitted")
     answers: list[QuizAnswer] = Field(..., description="The participant's answers")
     submitted_at: datetime = Field(..., description="When the quiz was submitted")
-    total_correct: int = Field(..., description="Number of correct answers.")
+    total_correct: int = Field(..., description="Number of correct answers (wrong = 0).")
+    total_wrong: int = Field(
+        default=0,
+        description=(
+            "Number of wrong, non-abstain answers. Defaults to 0 for "
+            "submissions written before the dual-scoring change."
+        ),
+    )
     total_questions: int = Field(..., description="Total number of questions")
     score_percentage: float = Field(
         ...,
         description="Score as a percentage (0-100). Abstain counts as wrong.",
+    )
+    score_penalty: int = Field(
+        default=0,
+        description=(
+            "Net +1/0/−1 score: correct − wrong (abstain neutral). "
+            "Defaults to 0 for legacy submissions; recompute from "
+            "``answers`` if you need it on those."
+        ),
     )
 
 
@@ -145,21 +172,28 @@ def grade_answer(question: QuizQuestion, selected_index: int) -> bool:
 def calculate_quiz_score(
     questions: list[QuizQuestion],
     answers: list[QuizAnswer],
-) -> tuple[int, int, float]:
-    """
-    Calculate the quiz score (binary correct/wrong; abstain = wrong).
+) -> tuple[int, int, int, float, int]:
+    """Calculate both scoring schemes for one quiz submission.
 
     Returns:
-        Tuple of (correct_count, total_questions, percentage).
+        ``(correct, wrong, total, percentage, penalty)``. ``wrong`` excludes
+        abstain picks (``selected_index == -1``); ``penalty`` is
+        ``correct − wrong``.
     """
+    total = len(questions)
     if not questions:
-        return 0, 0, 0.0
+        return 0, 0, 0, 0.0, 0
 
     question_map = {q.id: q for q in questions}
     correct = 0
+    wrong = 0
     for a in answers:
-        if a.question_id in question_map and a.is_correct:
+        if a.question_id not in question_map:
+            continue
+        if a.is_correct:
             correct += 1
-    total = len(questions)
+        elif a.selected_index != -1:
+            wrong += 1
     percentage = (correct / total) * 100 if total > 0 else 0.0
-    return correct, total, percentage
+    penalty = correct - wrong
+    return correct, wrong, total, percentage, penalty

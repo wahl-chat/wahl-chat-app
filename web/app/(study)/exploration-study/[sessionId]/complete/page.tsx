@@ -79,13 +79,13 @@ export default function CompletePage() {
       {quizScore && (
         <div className="space-y-3 rounded-lg border bg-muted/50 p-6 text-left">
           <h2 className="text-lg font-semibold">Dein Quiz-Ergebnis</h2>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold">
-              {Math.round(quizScore.scorePercentage)}%
-            </span>
-            <span className="text-sm text-muted-foreground">
-              ({quizScore.totalCorrect} von {quizScore.totalQuestions} richtig)
-            </span>
+          <div>
+            <div className="text-3xl font-bold">
+              {quizScore.scorePenalty} / {quizScore.totalQuestions} Punkte
+            </div>
+            <div className="text-sm text-muted-foreground">
+              ({quizScore.totalCorrect} richtig, {quizScore.totalWrong} falsch)
+            </div>
           </div>
           <p
             className={

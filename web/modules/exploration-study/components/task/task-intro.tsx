@@ -2,28 +2,13 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import VisuallyHidden from '@/components/visually-hidden';
-import {
-  type TaskAckFormValues,
-  taskAckSchema,
-} from '@/modules/exploration-study/schemas/forms';
 import {
   type StudyCondition,
   type StudyTopic,
   TOPIC_INFO,
 } from '@/modules/exploration-study/types';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Gift, Loader2 } from 'lucide-react';
-import { useForm } from 'react-hook-form';
 
 interface TaskIntroProps {
   topic: StudyTopic;
@@ -43,23 +28,9 @@ export function TaskIntro({
   const topicInfo = TOPIC_INFO[topic];
   const isGuided = condition === 'guided';
 
-  const form = useForm<TaskAckFormValues>({
-    resolver: zodResolver(taskAckSchema),
-    defaultValues: { interventionAck: false },
-    mode: 'onSubmit',
-  });
-
   const minutesLabel = `${durationMinutes} Minute${
     durationMinutes === 1 ? '' : 'n'
   }`;
-
-  const handleSubmit = form.handleSubmit(() => {
-    onStart();
-  });
-
-  const ackLabel = isGuided
-    ? 'Mir ist bewusst, dass ich die KI um strukturierte Erkundungen bitten kann, um die Parteipositionen Schritt für Schritt zu vergleichen.'
-    : 'Mir ist bewusst, dass ich die KI frei zu den Positionen der Parteien befragen kann.';
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
@@ -134,53 +105,22 @@ export function TaskIntro({
         </p>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="interventionAck"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex items-start gap-3">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value === true}
-                      onCheckedChange={(checked) =>
-                        field.onChange(checked === true)
-                      }
-                      onBlur={field.onBlur}
-                      className="mt-0.5"
-                    />
-                  </FormControl>
-                  <FormLabel className="cursor-pointer text-sm font-normal leading-snug">
-                    {ackLabel}
-                  </FormLabel>
-                </div>
-                <FormMessage className="pl-7" />
-              </FormItem>
-            )}
-          />
-
-          <Button
-            type="submit"
-            disabled={isStarting}
-            size="lg"
-            className="w-full"
-          >
-            {isStarting ? (
-              <>
-                <Loader2
-                  aria-hidden="true"
-                  className="mr-2 size-4 animate-spin"
-                />
-                Wird gestartet...
-              </>
-            ) : (
-              'Aufgabe starten'
-            )}
-          </Button>
-        </form>
-      </Form>
+      <Button
+        type="button"
+        onClick={onStart}
+        disabled={isStarting}
+        size="lg"
+        className="w-full"
+      >
+        {isStarting ? (
+          <>
+            <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" />
+            Wird gestartet...
+          </>
+        ) : (
+          'Aufgabe starten'
+        )}
+      </Button>
     </div>
   );
 }
