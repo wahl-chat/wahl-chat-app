@@ -449,7 +449,7 @@
   },
   {
     "id": "q-029",
-    "question": "Welche Parteien fordern ein Pro-Kopf-Klimageld, das einen Teil der CO2-Einnahmen direkt an die Bürger zurückzahlt?",
+    "question": "Welche der Parteien fordern ein Pro-Kopf-Klimageld, das einen Teil der CO2-Einnahmen direkt an die Bürger zurückzahlt?",
     "options": [
       "Nur [PARTY_BADGE:venus]",
       "Nur [PARTY_BADGE:mars]",
@@ -466,7 +466,7 @@
   },
   {
     "id": "q-030",
-    "question": "Welche Parteien fordern einen CO2-Grenzausgleich (CBAM) auf Importe aus Ländern mit niedrigeren Klimastandards?",
+    "question": "Welche der Parteien fordern einen CO2-Grenzausgleich (CBAM) auf Importe aus Ländern mit niedrigeren Klimastandards?",
     "options": [
       "Nur [PARTY_BADGE:saturn]",
       "Nur [PARTY_BADGE:mars]",
@@ -483,7 +483,7 @@
   },
   {
     "id": "q-031",
-    "question": "Welche Parteien lehnen einen festen Ausstiegstermin für den Verbrennungsmotor ab?",
+    "question": "Welche der Parteien lehnen einen festen Ausstiegstermin für den Verbrennungsmotor ab?",
     "options": [
       "Nur [PARTY_BADGE:mars]",
       "Beide Parteien",
@@ -500,7 +500,7 @@
   },
   {
     "id": "q-032",
-    "question": "Welche Parteien fordern, dass auch Beamte und Abgeordnete in die gesetzliche Rentenkasse einzahlen?",
+    "question": "Welche der Parteien fordern, dass auch Beamte und Abgeordnete in die gesetzliche Rentenkasse einzahlen?",
     "options": [
       "Nur [PARTY_BADGE:saturn]",
       "Nur [PARTY_BADGE:venus]",
@@ -517,7 +517,7 @@
   },
   {
     "id": "q-033",
-    "question": "Welche Parteien wollen Erziehungs- und Pflegezeiten in der Rente stärker mit Entgeltpunkten anerkennen?",
+    "question": "Welche der Parteien wollen Erziehungs- und Pflegezeiten in der Rente stärker mit Entgeltpunkten anerkennen?",
     "options": [
       "Beide Parteien",
       "Nur [PARTY_BADGE:mars]",
@@ -534,7 +534,7 @@
   },
   {
     "id": "q-034",
-    "question": "Welche Parteien fordern eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds?",
+    "question": "Welche der Parteien fordern eine eigenständige Kindergrundsicherung außerhalb des Bürgergelds?",
     "options": [
       "Nur [PARTY_BADGE:venus]",
       "Beide Parteien",
@@ -551,7 +551,7 @@
   },
   {
     "id": "q-035",
-    "question": "Welche Parteien fordern deutlich härtere Sanktionen bei Arbeitsverweigerung im Bürgergeld?",
+    "question": "Welche der Parteien fordern deutlich härtere Sanktionen bei Arbeitsverweigerung im Bürgergeld?",
     "options": [
       "Beide Parteien",
       "Nur [PARTY_BADGE:mars]",
@@ -568,7 +568,7 @@
   },
   {
     "id": "q-036",
-    "question": "Welche Parteien lehnen die nationale CO2-Steuer ab?",
+    "question": "Welche der Parteien lehnen die nationale CO2-Steuer ab?",
     "options": [
       "Nur [PARTY_BADGE:saturn]",
       "Beide Parteien",
@@ -585,7 +585,7 @@
   },
   {
     "id": "q-037",
-    "question": "Welche Parteien fordern ein generelles Tempolimit auf Autobahnen?",
+    "question": "Welche der Parteien fordern ein generelles Tempolimit auf Autobahnen?",
     "options": [
       "Nur [PARTY_BADGE:saturn]",
       "Beide Parteien",
@@ -602,7 +602,7 @@
   },
   {
     "id": "q-038",
-    "question": "Welche Parteien fordern einen früheren Ausstieg aus dem Verbrennungsmotor?",
+    "question": "Welche der Parteien fordern einen früheren Ausstieg aus dem Verbrennungsmotor?",
     "options": [
       "Nur [PARTY_BADGE:venus]",
       "Beide Parteien",
@@ -619,7 +619,7 @@
   },
   {
     "id": "q-039",
-    "question": "Welche Parteien wollen das gesetzliche Rentenniveau anheben statt nur stabilisieren?",
+    "question": "Welche der Parteien wollen das gesetzliche Rentenniveau anheben statt nur stabilisieren?",
     "options": [
       "Beide Parteien",
       "Nur [PARTY_BADGE:venus]",
@@ -636,7 +636,7 @@
   },
   {
     "id": "q-040",
-    "question": "Welche Parteien sehen den europäischen Emissionshandel als Leitinstrument der Klimapolitik?",
+    "question": "Welche der Parteien sehen den europäischen Emissionshandel als Leitinstrument der Klimapolitik?",
     "options": [
       "Nur [PARTY_BADGE:mars]",
       "Nur [PARTY_BADGE:saturn]",
@@ -653,7 +653,7 @@
   },
   {
     "id": "q-041",
-    "question": "Welche Parteien wollen Bürgergeld-Sanktionen einschränken statt verschärfen?",
+    "question": "Welche der Parteien wollen Bürgergeld-Sanktionen einschränken statt verschärfen?",
     "options": [
       "Beide Parteien",
       "Nur [PARTY_BADGE:venus]",
