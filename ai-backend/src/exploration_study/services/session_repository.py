@@ -20,6 +20,7 @@ from src.exploration_study.models.session import (
     ParticipantData,
     ProlificData,
     StudySession,
+    get_condition_for_group,
 )
 from src.exploration_study.models.state import StudyState
 from src.exploration_study.models.telemetry import TelemetryBatch
@@ -50,7 +51,13 @@ class SessionRepository:
         condition: ConditionData,
         prolific: ProlificData | None = None,
     ) -> StudySession:
-        """Create a new pre-generated session."""
+        """Create a new pre-generated session with an explicitly chosen group.
+
+        For admin/CLI paths that pin a specific group (e.g. ``--force-group``).
+        Self-serve and bulk-create paths should use
+        :meth:`create_session_with_assigned_group` instead, which assigns the
+        next group via the counterbalancer inside a transaction.
+        """
         session_id = str(uuid4())
         now = datetime.now(timezone.utc)
 
@@ -72,6 +79,86 @@ class SessionRepository:
 
         logger.info(f"Created session: {session_id} for study: {study_id}")
         return session
+
+    async def _count_sessions_by_group_in_tx(
+        self,
+        tx,
+        study_id: str,
+    ) -> dict[Literal["A1", "A2", "B1", "B2", "C1", "C2"], int]:
+        """Count sessions per group inside a transaction.
+
+        Mirrors :meth:`count_sessions_by_group` but reads through ``tx`` so
+        the count is consistent with subsequent writes in the same
+        transaction.
+        """
+        query = self._db.collection(SESSIONS_COLLECTION).where(
+            filter=FieldFilter("study_id", "==", study_id)
+        )
+        counts: dict[Literal["A1", "A2", "B1", "B2", "C1", "C2"], int] = {
+            "A1": 0,
+            "A2": 0,
+            "B1": 0,
+            "B2": 0,
+            "C1": 0,
+            "C2": 0,
+        }
+        async for doc in query.stream(transaction=tx):
+            data = doc.to_dict()
+            if data and data.get("group") in counts:
+                counts[data["group"]] += 1
+        return counts
+
+    async def create_session_with_assigned_group(
+        self,
+        study_id: str,
+        topics: list[str],
+        prolific: ProlificData | None = None,
+    ) -> tuple[StudySession, Literal["A1", "A2", "B1", "B2", "C1", "C2"]]:
+        """Atomically assign the next group and create the session.
+
+        Reads the current per-group counts and writes the new session document
+        inside a single Firestore transaction, so two concurrent calls cannot
+        both observe the same count and assign the same group. Group is
+        selected via the random-per-block scheme in
+        :func:`assign_group_from_count`.
+        """
+        from src.exploration_study.services.counterbalancer import (
+            assign_group_from_count,
+        )
+
+        new_session_id = str(uuid4())
+        now = datetime.now(timezone.utc)
+        session_ref = self._db.collection(SESSIONS_COLLECTION).document(
+            new_session_id
+        )
+
+        @async_transactional
+        async def _assign_and_create(tx) -> StudySession:
+            counts = await self._count_sessions_by_group_in_tx(tx, study_id)
+            total = sum(counts.values())
+            group = assign_group_from_count(study_id, total)
+            condition = get_condition_for_group(group, topics)
+            session = StudySession(
+                id=new_session_id,
+                study_id=study_id,
+                state=StudyState.CONSENT,
+                group=group,
+                condition=condition,
+                participant_data=ParticipantData(),
+                prolific=prolific,
+                created_at=now,
+                started_at=None,
+                completed_at=None,
+            )
+            tx.set(session_ref, session.model_dump(mode="json"))
+            return session
+
+        session = await _assign_and_create(self._db.transaction())
+        logger.info(
+            f"Created session {session.id} for study {study_id} "
+            f"(group={session.group})"
+        )
+        return session, session.group
 
     async def get_session(self, session_id: str) -> StudySession | None:
         """Get a session by ID."""
@@ -155,11 +242,11 @@ class SessionRepository:
         self,
         prolific_session_id: str,
         study_id: str,
-        group: Literal["A1", "A2", "B1", "B2", "C1", "C2"],
-        condition: ConditionData,
+        topics: list[str],
         prolific: ProlificData,
     ) -> tuple[StudySession, bool]:
-        """Atomically claim ``prolific_session_id`` and create the session.
+        """Atomically claim ``prolific_session_id``, assign a group, and
+        create the session.
 
         Two concurrent self-serve requests with the same Prolific session id
         (refresh during pending POST, double-click, two open tabs, network
@@ -169,29 +256,25 @@ class SessionRepository:
         ``exploration_study_prolific_claims/{prolific_session_id}`` written
         inside a Firestore transaction.
 
+        The same transaction also counts existing sessions for the study and
+        assigns the next group via :func:`assign_group_from_count`, so two
+        concurrent claims for *different* Prolific session ids cannot read
+        the same count and assign the same group.
+
         Returns ``(session, was_created)``. ``was_created`` is ``True`` for
         the winner (claim freshly written, session doc freshly created) and
         ``False`` if another concurrent caller had already claimed the id —
         in that case the existing session is returned.
         """
+        from src.exploration_study.services.counterbalancer import (
+            assign_group_from_count,
+        )
+
         claim_ref = self._db.collection(PROLIFIC_CLAIMS_COLLECTION).document(
             prolific_session_id
         )
         new_session_id = str(uuid4())
         now = datetime.now(timezone.utc)
-
-        new_session = StudySession(
-            id=new_session_id,
-            study_id=study_id,
-            state=StudyState.CONSENT,
-            group=group,
-            condition=condition,
-            participant_data=ParticipantData(),
-            prolific=prolific,
-            created_at=now,
-            started_at=None,
-            completed_at=None,
-        )
         session_ref = self._db.collection(SESSIONS_COLLECTION).document(
             new_session_id
         )
@@ -203,6 +286,22 @@ class SessionRepository:
                 claimed = (snapshot.to_dict() or {}).get("session_id")
                 if claimed:
                     return claimed, False
+            counts = await self._count_sessions_by_group_in_tx(tx, study_id)
+            total = sum(counts.values())
+            group = assign_group_from_count(study_id, total)
+            condition = get_condition_for_group(group, topics)
+            new_session = StudySession(
+                id=new_session_id,
+                study_id=study_id,
+                state=StudyState.CONSENT,
+                group=group,
+                condition=condition,
+                participant_data=ParticipantData(),
+                prolific=prolific,
+                created_at=now,
+                started_at=None,
+                completed_at=None,
+            )
             tx.set(
                 claim_ref,
                 {
@@ -218,29 +317,27 @@ class SessionRepository:
         session_id, won = await _claim(transaction)
 
         if won:
+            session = await self.get_session(session_id)
+            if session is None:
+                raise RuntimeError(
+                    f"Session {session_id} missing immediately after "
+                    f"transactional create"
+                )
             logger.info(
-                f"Created self-serve session {session_id} (claimed "
+                f"Created self-serve session {session_id} "
+                f"(group={session.group}, "
                 f"prolific_session_id={prolific_session_id})"
             )
-            return new_session, True
+            return session, True
 
         # Lost the race — fetch the winner's session doc.
         existing = await self.get_session(session_id)
         if existing is None:
-            # Claim exists but session doc missing — recover by writing the
-            # session doc under the claimed id. Can happen if a previous
-            # request crashed between transaction commit and a follow-up
-            # write; in this implementation tx writes both, so this branch
-            # is mostly defensive. Re-build the session under the claimed id.
-            recovered = new_session.model_copy(update={"id": session_id})
-            await self._db.collection(SESSIONS_COLLECTION).document(
-                session_id
-            ).set(recovered.model_dump(mode="json"))
-            logger.warning(
-                f"Recovered missing session doc for claimed "
-                f"prolific_session_id={prolific_session_id} -> {session_id}"
+            raise RuntimeError(
+                f"Claim exists for prolific_session_id="
+                f"{prolific_session_id} but session doc {session_id} "
+                f"is missing"
             )
-            return recovered, True
         return existing, False
 
     async def get_session_by_chat_id(self, chat_id: str) -> StudySession | None:

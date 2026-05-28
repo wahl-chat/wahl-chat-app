@@ -382,6 +382,13 @@ class QuizScoreResponse(BaseModel):
     total_correct: int
     total_questions: int
     score_percentage: float
+    attention_check_passed: bool = Field(
+        default=False,
+        description=(
+            "True iff the embedded cognitive-load attention check was "
+            "answered with the expected value (2)."
+        ),
+    )
 
 
 class FeedbackRequest(BaseModel):

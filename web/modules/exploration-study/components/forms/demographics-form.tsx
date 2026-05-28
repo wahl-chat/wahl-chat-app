@@ -128,11 +128,22 @@ export function DemographicsForm({
             Demografische Angaben
           </h1>
           <p className="text-sm text-foreground">
-            Bitte beantworte die folgenden Fragen zu deiner Person.
+            Bitte beantworte die folgenden Fragen zu deiner Person und deiner
+            Erfahrung.
           </p>
         </div>
 
-        <div className="space-y-4">
+        <section
+          aria-labelledby="demographics-section-heading"
+          className="space-y-4"
+        >
+          <h2
+            id="demographics-section-heading"
+            className="text-lg font-semibold"
+          >
+            Zu deiner Person
+          </h2>
+
           <FormField
             control={form.control}
             name="ageRange"
@@ -219,17 +230,15 @@ export function DemographicsForm({
               </FormItem>
             )}
           />
+        </section>
 
-          <LikertFormItem
-            control={form.control}
-            name="politicalInterest"
-            id="political-interest"
-            label="Wie stark interessierst du dich für Politik?"
-            leftAnchor="Gar nicht"
-            rightAnchor="Sehr stark"
-            min={1}
-            max={7}
-          />
+        <section
+          aria-labelledby="additional-section-heading"
+          className="space-y-4"
+        >
+          <h2 id="additional-section-heading" className="text-lg font-semibold">
+            Weitere Angaben
+          </h2>
 
           <FormField
             control={form.control}
@@ -263,6 +272,17 @@ export function DemographicsForm({
 
           <LikertFormItem
             control={form.control}
+            name="politicalInterest"
+            id="political-interest"
+            label="Wie stark interessierst du dich für Politik?"
+            leftAnchor="Gar nicht"
+            rightAnchor="Sehr stark"
+            min={1}
+            max={7}
+          />
+
+          <LikertFormItem
+            control={form.control}
             name="netPromoterScore"
             id="net-promoter-score"
             label="Wie wahrscheinlich ist es, dass du das System, das du gerade genutzt hast, einer Freundin oder einem Freund weiterempfiehlst?"
@@ -271,7 +291,7 @@ export function DemographicsForm({
             min={0}
             max={10}
           />
-        </div>
+        </section>
 
         <SubmitButton isSubmitting={isSubmitting} />
       </form>

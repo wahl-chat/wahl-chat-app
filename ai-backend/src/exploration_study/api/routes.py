@@ -49,14 +49,12 @@ from src.exploration_study.models.session import (
     DemographicsData,
     ProlificData,
     StudySession,
-    get_condition_for_group,
 )
 from src.exploration_study.models.state import StudyState
 from src.exploration_study.models.telemetry import (
     TelemetryBatch,
     TelemetryBatchRequest,
 )
-from src.exploration_study.services.counterbalancer import get_counterbalancer
 from src.exploration_study.services.session_repository import get_session_repository
 from src.exploration_study.services.study_repository import get_study_repository
 
@@ -267,15 +265,10 @@ async def create_session_self_serve(request: web.Request) -> web.Response:
 
     study = await _resolve_study_for_prolific(req.prolific_study_id)
 
-    counterbalancer = get_counterbalancer()
-    group = await counterbalancer.assign_group(study.id)
-    condition = get_condition_for_group(group, study.config.topics)
-
     session, was_created = await session_repo.claim_or_create_self_serve_session(
         prolific_session_id=req.prolific_session_id,
         study_id=study.id,
-        group=group,
-        condition=condition,
+        topics=study.config.topics,
         prolific=prolific,
     )
 
@@ -976,6 +969,7 @@ async def get_quiz_result(request: web.Request) -> web.Response:
         total_correct=submission.total_correct,
         total_questions=submission.total_questions,
         score_percentage=submission.score_percentage,
+        attention_check_passed=session.condition.attention_check == 2,
     )
     return web.json_response(response.model_dump(mode="json"))
 

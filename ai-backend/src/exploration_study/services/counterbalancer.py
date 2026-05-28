@@ -1,8 +1,25 @@
-"""Counterbalancer service for group assignment."""
+"""Counterbalancer service for group assignment.
+
+Each block of ``BLOCK_SIZE`` (= 6) participants fills every cell A1/A2/B1/B2/
+C1/C2 exactly once. The block is built from two half-blocks of 3, each a
+random permutation of the systems ``A/B/C``; the two topic slots for each
+system are split across the halves (one half gets topic 1, the other topic 2,
+in random order). The half-block structure means **every 3 consecutive
+assignments** form a complete A/B/C triple, so the primary system axis stays
+within ±0 of perfect balance whenever ``N % 3 == 0`` (e.g. N = 45 → 15/15/15)
+instead of only when ``N % 6 == 0``.
+
+The assignment is stateless — derived from ``total_count`` and ``study_id``
+alone — so the count read and the session write must share a Firestore
+transaction for the assignment to be safe under concurrency. That transaction
+lives in :class:`SessionRepository`; see ``create_session_with_assigned_group``
+and ``claim_or_create_self_serve_session``. The ``Counterbalancer`` class here
+only exposes a read-only ``get_group_counts`` helper for admin views.
+"""
 
 import logging
 import random
-from typing import Literal
+from typing import Literal, cast
 
 from src.exploration_study.services.session_repository import (
     SessionRepository,
@@ -16,76 +33,50 @@ logger = logging.getLogger(__name__)
 GroupType = Literal["A1", "A2", "B1", "B2", "C1", "C2"]
 
 GROUPS: list[GroupType] = ["A1", "A2", "B1", "B2", "C1", "C2"]
+BLOCK_SIZE = 6
+HALF_BLOCK_SIZE = 3
+SYSTEMS: list[str] = ["A", "B", "C"]
 
 
-MAX_LEAD_OVER_MIN = 0
+def _build_block(study_id: str, block_index: int) -> list[GroupType]:
+    """Return the 6-cell sequence for a single block.
 
-
-def compute_group_weights(counts: dict[GroupType, int]) -> list[int]:
+    The two halves are independent random permutations of the systems, with
+    topics paired across halves so each cell appears exactly once.
     """
-    Hard round-robin weighting.
+    rng = random.Random(f"{study_id}:{block_index}")
 
-    Any group whose count is more than ``MAX_LEAD_OVER_MIN`` ahead of the
-    least-represented group gets weight ``0`` and is skipped on the next
-    draw. Among the remaining groups the least-represented still gets the
-    highest weight, so the loose randomness within the eligible window is
-    preserved (avoids lockstep assignment under concurrent creates).
+    half1_systems = SYSTEMS.copy()
+    rng.shuffle(half1_systems)
+    half2_systems = SYSTEMS.copy()
+    rng.shuffle(half2_systems)
 
-    Example with ``MAX_LEAD_OVER_MIN = 2`` and counts ``{A1: 2, A2: 0,
-    B1: 4, B2: 2}``: min is ``0``, threshold is ``2``, so weights are
-    ``[1, 3, 0, 1]`` — A2 is heavily favoured and B1 is excluded until
-    others catch up.
-    """
-    min_count = min(counts.get(group, 0) for group in GROUPS)
-    threshold = min_count + MAX_LEAD_OVER_MIN
-    weights: list[int] = []
-    for group in GROUPS:
-        c = counts.get(group, 0)
-        if c > threshold:
-            weights.append(0)
-        else:
-            weights.append((threshold + 1) - c)
-    return weights
+    # For each system, decide whether the first appearance gets topic 1 or 2.
+    # The other appearance gets the complementary topic, so every cell
+    # (A1/A2/B1/B2/C1/C2) lands exactly once in the block.
+    first_topic = {s: rng.choice([1, 2]) for s in SYSTEMS}
+
+    block: list[GroupType] = []
+    for system in half1_systems:
+        block.append(cast(GroupType, f"{system}{first_topic[system]}"))
+    for system in half2_systems:
+        other = 1 if first_topic[system] == 2 else 2
+        block.append(cast(GroupType, f"{system}{other}"))
+    return block
+
+
+def assign_group_from_count(study_id: str, total_count: int) -> GroupType:
+    """Pick the group for the ``(total_count + 1)``-th session of ``study_id``."""
+    block_index = total_count // BLOCK_SIZE
+    position_in_block = total_count % BLOCK_SIZE
+    return _build_block(study_id, block_index)[position_in_block]
 
 
 class Counterbalancer:
-    """
-    Assigns participants to groups for between-subjects A/B design.
-
-    Uses 6 sub-groups to counterbalance topic assignment across conditions:
-    - Group A1: Guided + Topic1
-    - Group A2: Guided + Topic2
-    - Group B1: Baseline (free)   + Topic1
-    - Group B2: Baseline (free)   + Topic2
-    - Group C1: Baseline (capped) + Topic1
-    - Group C2: Baseline (capped) + Topic2
-    """
+    """Read-only helper for admin views of the current group distribution."""
 
     def __init__(self, session_repository: SessionRepository) -> None:
         self._session_repo = session_repository
-
-    async def assign_group(
-        self,
-        study_id: str,
-        rng: random.Random | None = None,
-    ) -> GroupType:
-        """
-        Assign a group for a new session via weighted random sampling.
-
-        The least-represented group gets the highest weight, so on average
-        the distribution stays balanced, but a small amount of randomness
-        is preserved to avoid lockstep assignment under concurrent creates.
-        """
-        counts = await self._session_repo.count_sessions_by_group(study_id)
-        weights = compute_group_weights(counts)
-        picker = rng if rng is not None else random
-        selected_group: GroupType = picker.choices(GROUPS, weights=weights, k=1)[0]
-
-        logger.info(
-            f"Assigned group {selected_group} for study {study_id} "
-            f"(counts={counts}, weights={dict(zip(GROUPS, weights))})"
-        )
-        return selected_group
 
     async def get_group_counts(
         self,

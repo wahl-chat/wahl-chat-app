@@ -182,4 +182,5 @@ export interface QuizScore {
   totalCorrect: number;
   totalQuestions: number;
   scorePercentage: number;
+  attentionCheckPassed: boolean;
 }

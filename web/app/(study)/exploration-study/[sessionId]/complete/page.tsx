@@ -87,6 +87,17 @@ export default function CompletePage() {
               ({quizScore.totalCorrect} von {quizScore.totalQuestions} richtig)
             </span>
           </div>
+          <p
+            className={
+              quizScore.attentionCheckPassed
+                ? 'text-sm text-green-700 dark:text-green-400'
+                : 'text-sm text-muted-foreground'
+            }
+          >
+            {quizScore.attentionCheckPassed
+              ? 'Aufmerksamkeitsprüfung: bestanden ✓'
+              : 'Aufmerksamkeitsprüfung: nicht bestanden'}
+          </p>
           <p className="text-sm text-muted-foreground">
             Unter allen Teilnehmenden mit den besten Ergebnissen verlosen wir
             einen <strong>20 € Amazon-Gutschein</strong>. Die Verlosung findet
@@ -154,30 +165,40 @@ export default function CompletePage() {
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Kontakt</h2>
         <p className="text-sm text-muted-foreground">
-          Bei Fragen zur Studie kannst du dich gerne an das Forschungsteam
+          Bei Fragen zur Studie kannst du dich gerne an{' '}
+          <a
+            href="mailto:paul@wahl.chat"
+            className="font-medium text-foreground underline underline-offset-2"
+          >
+            paul@wahl.chat
+          </a>{' '}
           wenden.
         </p>
       </div>
 
       {completionCode && (
-        <>
-          <div className="space-y-4 rounded-lg border-2 border-green-500 bg-green-50 p-6 text-left dark:bg-green-950">
-            <div>
-              <h2 className="text-lg font-bold text-green-800 dark:text-green-200">
-                Dein Abschlusscode für Prolific
-              </h2>
-              <p className="mt-1 text-sm text-green-700 dark:text-green-300">
-                Mit dem Button unten wirst du automatisch zu Prolific
-                weitergeleitet. Solltest du nicht weitergeleitet werden, kopiere
-                diesen Code und füge ihn auf Prolific manuell ein:
-              </p>
-            </div>
+        <div className="space-y-4">
+          <Button
+            onClick={() => {
+              window.location.href = `/api/v1/exploration-study/sessions/${sessionId}/prolific-redirect`;
+            }}
+            size="lg"
+            className="w-full bg-green-600 text-white hover:bg-green-700"
+          >
+            Studie abschließen und zurück zu Prolific
+          </Button>
+
+          <div className="space-y-2 rounded-md border bg-muted/40 p-3 text-left text-xs text-muted-foreground">
+            <p>
+              Falls die Weiterleitung nicht funktioniert, kannst du diesen Code
+              in Prolific eingeben:
+            </p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 rounded-md bg-white px-4 py-2 font-mono text-lg font-bold text-green-900 dark:bg-green-900 dark:text-green-100">
+              <code className="flex-1 rounded bg-background px-2 py-1 font-mono text-sm text-foreground">
                 {completionCode}
               </code>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 onClick={handleCopyCode}
                 aria-label="Code kopieren"
@@ -190,16 +211,7 @@ export default function CompletePage() {
               </Button>
             </div>
           </div>
-
-          <Button
-            onClick={() => {
-              window.location.href = `/api/v1/exploration-study/sessions/${sessionId}/prolific-redirect`;
-            }}
-            className="mt-8"
-          >
-            Studie abschließen und zurück zu Prolific
-          </Button>
-        </>
+        </div>
       )}
     </div>
   );

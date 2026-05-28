@@ -57,12 +57,9 @@ export function TaskIntro({
     onStart();
   });
 
-  const onClick = isGuided
-    ? handleSubmit
-    : (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        onStart();
-      };
+  const ackLabel = isGuided
+    ? 'Mir ist bewusst, dass ich die KI um strukturierte Erkundungen bitten kann, um die Parteipositionen Schritt für Schritt zu vergleichen.'
+    : 'Mir ist bewusst, dass ich die KI frei zu den Positionen der Parteien befragen kann.';
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
@@ -138,36 +135,31 @@ export function TaskIntro({
       </div>
 
       <Form {...form}>
-        <form onSubmit={onClick} className="space-y-6">
-          {isGuided && (
-            <FormField
-              control={form.control}
-              name="interventionAck"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-start gap-3">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value === true}
-                        onCheckedChange={(checked) =>
-                          field.onChange(checked === true)
-                        }
-                        onBlur={field.onBlur}
-                        className="mt-0.5"
-                      />
-                    </FormControl>
-                    <FormLabel className="cursor-pointer text-sm font-normal leading-snug">
-                      Mir ist bewusst, dass ich die KI um strukturierte
-                      Erkundungen bitten kann, die es mir ermöglichen, die
-                      Parteipositionen Schritt für Schritt und im Vergleich
-                      durchzugehen.
-                    </FormLabel>
-                  </div>
-                  <FormMessage className="pl-7" />
-                </FormItem>
-              )}
-            />
-          )}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="interventionAck"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-start gap-3">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value === true}
+                      onCheckedChange={(checked) =>
+                        field.onChange(checked === true)
+                      }
+                      onBlur={field.onBlur}
+                      className="mt-0.5"
+                    />
+                  </FormControl>
+                  <FormLabel className="cursor-pointer text-sm font-normal leading-snug">
+                    {ackLabel}
+                  </FormLabel>
+                </div>
+                <FormMessage className="pl-7" />
+              </FormItem>
+            )}
+          />
 
           <Button
             type="submit"

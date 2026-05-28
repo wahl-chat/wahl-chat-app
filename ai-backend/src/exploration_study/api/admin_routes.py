@@ -17,7 +17,6 @@ from src.exploration_study.api.dtos import (
     StudyResponse,
     UpdateStudyRequest,
 )
-from src.exploration_study.models.session import get_condition_for_group
 from src.exploration_study.models.study import StudyConfig
 from src.exploration_study.services.counterbalancer import get_counterbalancer
 from src.exploration_study.services.session_repository import get_session_repository
@@ -246,17 +245,9 @@ async def create_sessions(request: web.Request) -> web.Response:
 
     session_ids = []
     for _ in range(req.count):
-        # Assign group for counterbalancing
-        group = await counterbalancer.assign_group(study_id)
-
-        # Create condition data based on group
-        condition = get_condition_for_group(group, study.config.topics)
-
-        # Create the session
-        session = await session_repo.create_session(
+        session, _group = await session_repo.create_session_with_assigned_group(
             study_id=study_id,
-            group=group,
-            condition=condition,
+            topics=study.config.topics,
         )
         session_ids.append(session.id)
 

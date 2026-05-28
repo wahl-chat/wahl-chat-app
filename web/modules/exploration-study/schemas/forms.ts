@@ -20,7 +20,19 @@ export const consentSchema = z.object({
 export type ConsentFormValues = z.infer<typeof consentSchema>;
 
 // ---------------------------------------------------------------------------
-// Task intro acknowledgement (guided condition)
+// Tutorial acknowledgement (both conditions)
+// ---------------------------------------------------------------------------
+
+export const tutorialAckSchema = z.object({
+  understood: z.boolean().refine((v) => v === true, {
+    message: 'Bitte bestätige, dass du dies verstanden hast.',
+  }),
+});
+
+export type TutorialAckFormValues = z.infer<typeof tutorialAckSchema>;
+
+// ---------------------------------------------------------------------------
+// Task intro acknowledgement (both conditions)
 // ---------------------------------------------------------------------------
 
 export const taskAckSchema = z.object({

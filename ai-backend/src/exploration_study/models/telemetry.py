@@ -17,26 +17,18 @@ from pydantic import BaseModel, Field
 
 
 class BrowserProfile(BaseModel):
-    """One-shot client/device fingerprint, captured once per session.
-
-    Standard, non-invasive ``navigator``/``screen`` fields. Useful for
-    spotting e.g. mobile vs desktop, or the same device across sessions.
-    """
+    """One-shot, coarse device class, captured once per session."""
 
     model_config = {"extra": "ignore"}
 
-    user_agent: str | None = None
-    platform: str | None = None
-    languages: list[str] = Field(default_factory=list)
-    timezone: str | None = None
-    screen_width: int | None = None
-    screen_height: int | None = None
-    viewport_width: int | None = None
-    viewport_height: int | None = None
-    device_pixel_ratio: float | None = None
-    hardware_concurrency: int | None = None
-    device_memory: float | None = None
-    max_touch_points: int | None = None
+    device_type: str | None = Field(
+        default=None,
+        description="'mobile' | 'tablet' | 'desktop' — derived client-side.",
+    )
+    screen_size_class: str | None = Field(
+        default=None,
+        description="'small' (<640) | 'medium' (640-1280) | 'large' (>1280).",
+    )
 
 
 class TelemetryEvent(BaseModel):

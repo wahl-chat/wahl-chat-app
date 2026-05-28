@@ -76,9 +76,7 @@ export function ConsentForm({
               <h2 className="text-lg font-semibold text-foreground">
                 Ablauf der Studie
               </h2>
-              <p>
-                Die Studie führt dich Schritt für Schritt durch sechs Teile:
-              </p>
+              <p>Die Studie führt dich Schritt für Schritt durch fünf Teile:</p>
               <ol className="space-y-0 pt-1">
                 {[
                   'Eine kurze Einführung',
@@ -86,7 +84,6 @@ export function ConsentForm({
                   'Fragebogen zur Aufgabe',
                   'Ein kurzes Wissensquiz',
                   'Demografische Fragen',
-                  'Fragen zu deiner digitalen Kompetenz',
                 ].map((step, index, arr) => (
                   <li key={step} className="relative flex gap-3 pb-4 last:pb-0">
                     <VisuallyHidden>({index + 1}) </VisuallyHidden>
@@ -114,9 +111,8 @@ export function ConsentForm({
               </h2>
               <p>
                 Deine Daten werden anonymisiert gespeichert und ausschließlich
-                für Forschungszwecke verwendet. Es werden keine
-                personenbezogenen Daten erhoben, die Rückschlüsse auf deine
-                Identität ermöglichen.
+                für Forschungszwecke verwendet. Wir erhalten von Prolific eine
+                pseudonyme Teilnehmer-ID; deine Identität ist uns nicht bekannt.
               </p>
               <p>
                 Um besser zu verstehen, wie du die Aufgabe angehst, erfassen wir

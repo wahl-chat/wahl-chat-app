@@ -176,15 +176,17 @@ async def create_sessions(args: argparse.Namespace) -> None:
     for i in range(args.count):
         if args.force_group:
             group = args.force_group
+            condition = get_condition_for_group(group, study.config.topics)
+            session = await session_repo.create_session(
+                study_id=args.study_id,
+                group=group,
+                condition=condition,
+            )
         else:
-            group = await counterbalancer.assign_group(args.study_id)
-        condition = get_condition_for_group(group, study.config.topics)
-
-        session = await session_repo.create_session(
-            study_id=args.study_id,
-            group=group,
-            condition=condition,
-        )
+            session, group = await session_repo.create_session_with_assigned_group(
+                study_id=args.study_id,
+                topics=study.config.topics,
+            )
         session_ids.append(session.id)
         print(f"  Created session {i + 1}/{args.count}: {session.id} (Group {group})")
 

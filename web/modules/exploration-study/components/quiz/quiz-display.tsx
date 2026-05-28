@@ -22,6 +22,7 @@ export interface QuizDisplayProps {
 }
 
 const POLL_INTERVAL = 2000; // 2 seconds
+const POLL_TIMEOUT_MS = 30_000; // give up after 30s of no result
 
 export function QuizDisplay({
   sessionId,
@@ -30,6 +31,8 @@ export function QuizDisplay({
   className,
 }: QuizDisplayProps) {
   const [isLoading, setIsLoading] = useState(true);
+  const [pollFailed, setPollFailed] = useState(false);
+  const [pollAttempt, setPollAttempt] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const [questions, setQuestions] = useState<QuizQuestionType[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -55,10 +58,13 @@ export function QuizDisplay({
     );
   }, [currentQuestion, recordItemTiming]);
 
-  // Poll for quiz readiness
+  // Poll for quiz readiness. Times out after POLL_TIMEOUT_MS so a stuck
+  // backend doesn't leave the participant on an infinite spinner; the user
+  // can then retry via the error UI (which bumps pollAttempt).
   useEffect(() => {
     let cancelled = false;
     let timeoutId: NodeJS.Timeout;
+    const pollStartedAt = Date.now();
 
     const pollQuiz = async () => {
       const response = await studyApi.getQuiz(sessionId);
@@ -69,10 +75,16 @@ export function QuizDisplay({
         setQuestions(response.data.questions);
         setIsLoading(false);
         questionStartTime.current = Date.now();
-      } else {
-        // Continue polling
-        timeoutId = setTimeout(pollQuiz, POLL_INTERVAL);
+        return;
       }
+
+      if (Date.now() - pollStartedAt >= POLL_TIMEOUT_MS) {
+        setPollFailed(true);
+        setIsLoading(false);
+        return;
+      }
+
+      timeoutId = setTimeout(pollQuiz, POLL_INTERVAL);
     };
 
     pollQuiz();
@@ -81,7 +93,13 @@ export function QuizDisplay({
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [sessionId]);
+  }, [sessionId, pollAttempt]);
+
+  const retryPoll = useCallback(() => {
+    setPollFailed(false);
+    setIsLoading(true);
+    setPollAttempt((n) => n + 1);
+  }, []);
 
   const handleSelect = useCallback(
     (selectedIndex: number) => {
@@ -145,6 +163,27 @@ export function QuizDisplay({
     : null;
   const allAnswered = answers.size === questions.length;
   const isLastQuestion = currentIndex === questions.length - 1;
+
+  if (pollFailed) {
+    return (
+      <div
+        role="alert"
+        className={cn(
+          'flex flex-col items-center justify-center space-y-4 py-12 text-center',
+          className,
+        )}
+      >
+        <h2 className="text-lg font-medium">
+          Das Quiz konnte nicht geladen werden.
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Bitte versuche es noch einmal. Falls das Problem bestehen bleibt,
+          warte einen Moment und versuche es erneut.
+        </p>
+        <Button onClick={retryPoll}>Erneut versuchen</Button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

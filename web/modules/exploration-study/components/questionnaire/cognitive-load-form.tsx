@@ -44,9 +44,9 @@ export interface CognitiveLoadFormProps {
 const QUALITATIVE_FEEDBACK_LABEL =
   'Möchtest du noch etwas zu deiner Wahrnehmung der Aufgabenbelastung ergänzen? (optional)';
 
-// Position 4 of 8 — surrounded on both sides by real CL items so the check
+// Position 3 of 8 — surrounded on both sides by real CL items so the check
 // blends into the block visually and answer-format-wise.
-const ATTENTION_CHECK_INSERT_INDEX = 3;
+const ATTENTION_CHECK_INSERT_INDEX = 2;
 
 const ATTENTION_CHECK_LABEL =
   'Dies ist eine Aufmerksamkeitsfrage. Bitte wähle für diese Aussage den Wert 2.';

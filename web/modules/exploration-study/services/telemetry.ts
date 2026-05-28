@@ -59,43 +59,34 @@ interface BufferedEvent {
 }
 
 interface BrowserProfile {
-  userAgent?: string;
-  platform?: string;
-  languages: string[];
-  timezone?: string;
-  screenWidth?: number;
-  screenHeight?: number;
-  viewportWidth?: number;
-  viewportHeight?: number;
-  devicePixelRatio?: number;
-  hardwareConcurrency?: number;
-  deviceMemory?: number;
-  maxTouchPoints?: number;
+  deviceType: 'mobile' | 'tablet' | 'desktop';
+  screenSizeClass: 'small' | 'medium' | 'large';
+}
+
+function deriveDeviceType(): 'mobile' | 'tablet' | 'desktop' {
+  const coarsePointer =
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(pointer: coarse)').matches;
+  const touchPoints = navigator.maxTouchPoints ?? 0;
+  const width = window.screen?.width ?? window.innerWidth ?? 0;
+
+  if (coarsePointer || touchPoints > 0) {
+    return width >= 768 ? 'tablet' : 'mobile';
+  }
+  return 'desktop';
+}
+
+function deriveScreenSizeClass(): 'small' | 'medium' | 'large' {
+  const width = window.screen?.width ?? window.innerWidth ?? 0;
+  if (width < 640) return 'small';
+  if (width <= 1280) return 'medium';
+  return 'large';
 }
 
 function captureBrowserProfile(): BrowserProfile {
-  const nav = navigator as Navigator & {
-    deviceMemory?: number;
-  };
-  let timezone: string | undefined;
-  try {
-    timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  } catch {
-    timezone = undefined;
-  }
   return {
-    userAgent: nav.userAgent,
-    platform: nav.platform,
-    languages: nav.languages ? [...nav.languages] : [],
-    timezone,
-    screenWidth: window.screen?.width,
-    screenHeight: window.screen?.height,
-    viewportWidth: window.innerWidth,
-    viewportHeight: window.innerHeight,
-    devicePixelRatio: window.devicePixelRatio,
-    hardwareConcurrency: nav.hardwareConcurrency,
-    deviceMemory: nav.deviceMemory,
-    maxTouchPoints: nav.maxTouchPoints,
+    deviceType: deriveDeviceType(),
+    screenSizeClass: deriveScreenSizeClass(),
   };
 }
 
