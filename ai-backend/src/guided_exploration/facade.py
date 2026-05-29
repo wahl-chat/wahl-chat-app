@@ -169,6 +169,16 @@ class GuidedExplorationFacade:
             session_id, exploration_id, leaf_id
         )
 
+    async def mark_closed(
+        self,
+        session_id: str,
+        exploration_id: str,
+        leaf_id: str,
+    ) -> dict:
+        return await self._exploration_lifecycle.mark_closed(
+            session_id, exploration_id, leaf_id
+        )
+
     async def request_analysis(
         self,
         session_id: str,

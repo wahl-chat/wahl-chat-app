@@ -60,9 +60,7 @@ class HierarchyBuilderLLMOutput(BaseModel):
     nodes: list[LLMHierarchyNode] = Field(
         ...,
         description=(
-            "Top-Level-Knoten des Baums. Default ist flach: die Top-Level-Knoten "
-            "SIND die Blätter. Nur wenn eine Gruppe von Positionen wirklich in "
-            "klar unterscheidbare Cluster zerfällt, darf ein Top-Level-Knoten "
+            "Top-Level-Knoten des Baums. Wenn klar unterscheidbare Cluster zerfällt, darf ein Top-Level-Knoten "
             "children haben. Mischungen aus Blatt- und Branch-Knoten auf "
             "Top-Level sind explizit erlaubt und oft die beste Wahl."
         ),
@@ -93,26 +91,23 @@ Schau dir ZUERST die Positionen an, dann organisiere sie in eine sinnvolle Hiera
 
 # Strukturregeln
 
-## 1. Flach ist der Default
-- Starte IMMER mit einer flachen Liste von Blattknoten auf Top-Level.
-- Jeder Top-Level-Knoten ist ein Gesprächseinstieg (Blatt) — kein Ordner
-  mit Unterthemen.
-- Gruppiere nur dann in Unterknoten, wenn die Positionen in EINEM Blatt
-  aus Nutzersicht zu heterogen wären, um ein fokussiertes Gespräch zu
-  führen (z.B. "Klima" wäre zu groß, aber "CO2-Preis" und "Verkehr"
-  sind natürliche separate Blätter — also zwei Top-Level-Blätter,
-  keine Klima-Mutter mit zwei Kindern).
-- Mischungen sind explizit erlaubt: ein Baum kann 3 Blätter auf
-  Top-Level haben und ein Thema davon noch einmal in 2 Unter-Blätter
-  aufteilen. Symmetrie ist KEIN Qualitätsmerkmal.
+## 1. Erst Blätter finden, dann gruppieren
+- Identifiziere ZUERST die Gesprächseinstiege (Blätter) bottom-up aus den Positionen.
+- Gruppiere danach inhaltlich verwandte Blätter unter thematischen Top-Level-Branches.
+- Jeder Blattknoten ist ein Gesprächseinstieg — kein Ordner mit Unterthemen.
 
-## 2. Tiefe: adaptiv (1-3 Ebenen)
-- Default-Tiefe = 1 Ebene (nur Blätter).
-- Tiefe > 1 nur wenn eine sinnvolle Teilung nicht anders geht.
-- Erzwinge keine künstliche Tiefe — "Klima und Energie" als Branch mit
-  zwei Kindern ist fast immer schlechter als zwei Top-Level-Blätter.
+## 2. Tiefe: 2 Ebenen sind der Normalfall bei vielen Themen
+- Bei vielen Blättern ist eine zweistufige Struktur (Thema → Blätter) der Regelfall,
+  nicht die Ausnahme.
+- 1-3 Ebenen sind erlaubt; erzwinge aber keine Tiefe, wenn nur wenige Blätter existieren.
 
-## 3. Blätter = Gesprächseinstiege
+## 3. Top-Level: 3-6 Knoten
+- Strebe 3-6 Top-Level-Knoten an.
+- Bei mehr als ~6 Blättern MUSST du sie unter thematischen Branches gruppieren —
+  eine flache Liste aus 10+ Top-Level-Blättern ist falsch.
+- Eine flache Top-Level-Liste ist nur akzeptabel, wenn es insgesamt ≤ ~6 Blätter gibt.
+
+## 4. Blätter = Gesprächseinstiege
 Jeder Blattknoten ist ein Einstiegspunkt für ein Gespräch, kein Fakten-Dump.
 - Positionen von MINDESTENS 2 Parteien pro Blatt (idealerweise alle).
 - Jede Position gehört zu GENAU EINEM Blatt.
@@ -120,23 +115,26 @@ Jeder Blattknoten ist ein Einstiegspunkt für ein Gespräch, kein Fakten-Dump.
   solange das Blatt zwei Parteien vergleicht.
 - Ein einzelnes Blatt mit allen Positionen eines Subthemas ist akzeptabel.
 
-## 4. Namen: kurz, konkret, eigenständig verständlich
+## 5. Namen: kurz, konkret, eigenständig verständlich
 - Maximal 2-4 Wörter pro Name.
 - Konkret genug, dass ein Screenreader-Nutzer ohne Kontext weiß, worum es geht.
 - KEINE Koordinationsformulierungen wie "X und Y" — das sind zwei Themen, mach zwei Blätter.
+  Wenn beide thematisch zusammengehören, hänge sie als zwei Blätter unter einen
+  gemeinsamen Branch (z.B. Branch "Klima" mit Blättern "CO2-Preis" und "Erneuerbare Energien").
 - FALSCH: "Sonstiges", "Weiteres", "Klima und Energie", "Soziale Gerechtigkeit und Arbeit"
 - RICHTIG: "CO2-Preis", "Erneuerbare Energien", "Bürgergeld", "Rente"
 
-## 5. position_indices NUR bei Blättern
+## 6. position_indices NUR bei Blättern
 - Branch-Knoten (mit children): position_indices = [] (leer!)
 - Blatt-Knoten (ohne children): position_indices = [0, 3, 7, ...] (zugeordnete Positionen)
 
 # Qualitätsprüfung
 Bevor du antwortest, prüfe:
-1. Hat jeder Blattknoten Positionen von mindestens 2 Parteien?
-2. Sind die Namen für Screenreader verständlich?
-3. Sind alle Positionen zugeordnet (keine vergessen)?
-4. Würde die Struktur auch ganz flach gut funktionieren? Wenn ja, MACH sie flach.
+1. Hast du mehr als ~6 Top-Level-Knoten? Dann gruppiere verwandte Blätter
+   unter thematischen Branches.
+2. Hat jeder Blattknoten Positionen von mindestens 2 Parteien?
+3. Sind die Namen für Screenreader verständlich?
+4. Sind alle Positionen zugeordnet (keine vergessen)?
 5. Hat jeder Branch-Knoten mindestens 2 Kinder? Einkindige Branches
    sind immer falsch — mach das Kind zum Top-Level-Blatt stattdessen."""
 
@@ -193,8 +191,9 @@ Benutzeranfrage: {query}
 1. Lies ALLE Positionen durch
 2. Finde natürliche Gesprächseinstiege (Blätter) — jedes Blatt ist ein
    fokussiertes Thema, an dem sich Parteien vergleichen lassen
-3. Default: alle Blätter auf Top-Level (flache Liste). Baue Unterknoten
-   nur, wenn ein Blatt sonst zu heterogen wäre.
+3. Gruppiere verwandte Blätter unter thematischen Top-Level-Branches
+   (Ziel: 3-6 Top-Level-Knoten). Eine flache Top-Level-Liste ist nur OK,
+   wenn es insgesamt ≤ ~6 Blätter gibt.
 4. Ordne JEDE Position genau einem Blattknoten zu (über position_indices, 0-basiert)
 
 Wichtig:

@@ -11,6 +11,7 @@ from aiohttp import web
 from src.guided_exploration.api.dtos import (
     CreateSessionRequest,
     CreateSessionResponse,
+    MarkClosedRequest,
     MarkExploredRequest,
     NavigateRequest,
     RequestAnalysisRequest,
@@ -305,6 +306,33 @@ async def mark_explored(request: web.Request) -> web.Response:
     return web.json_response(result, status=200)
 
 
+async def mark_closed(request: web.Request) -> web.Response:
+    """
+    POST /api/v1/guided-exploration/sessions/{session_id}/explorations/{exploration_id}/mark-closed
+    Record a leaf-close event (analytics-only; status is not changed).
+    """
+    session_id = request.match_info["session_id"]
+    exploration_id = request.match_info["exploration_id"]
+
+    try:
+        body = await request.json()
+        req = MarkClosedRequest(**body)
+    except Exception as e:
+        return web.json_response(
+            {"error": "invalid_request", "message": str(e)},
+            status=400,
+        )
+
+    facade = get_facade()
+    result = await facade.mark_closed(
+        session_id=session_id,
+        exploration_id=exploration_id,
+        leaf_id=req.leaf_id,
+    )
+
+    return web.json_response(result, status=200)
+
+
 async def request_analysis(request: web.Request) -> web.Response:
     """
     POST /api/v1/guided-exploration/sessions/{session_id}/explorations/{exploration_id}/analysis
@@ -390,6 +418,11 @@ def setup_guided_exploration_routes(app: web.Application) -> None:
             "POST",
             f"{ROUTE_PREFIX}/sessions/{{session_id}}/explorations/{{exploration_id}}/mark-explored",
             mark_explored,
+        ),
+        (
+            "POST",
+            f"{ROUTE_PREFIX}/sessions/{{session_id}}/explorations/{{exploration_id}}/mark-closed",
+            mark_closed,
         ),
         (
             "POST",

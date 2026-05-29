@@ -285,6 +285,23 @@ export async function markExplored(
   );
 }
 
+/**
+ * Record a leaf-close event (analytics-only; status is unchanged).
+ */
+export async function markClosed(
+  sessionId: string,
+  explorationId: string,
+  leafId: string,
+): Promise<void> {
+  await request<unknown>(
+    `/sessions/${sessionId}/explorations/${explorationId}/mark-closed`,
+    {
+      method: 'POST',
+      body: { leafId },
+    },
+  );
+}
+
 // ============ API Object Export ============
 
 export const explorationApi = {
@@ -298,4 +315,5 @@ export const explorationApi = {
   requestAnalysis,
   endExploration,
   markExplored,
+  markClosed,
 };

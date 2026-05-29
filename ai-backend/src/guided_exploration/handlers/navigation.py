@@ -327,26 +327,36 @@ class NavigationHandler:
             used_citations = extract_used_citations(initial_text, content.citations)
             await self._study_exposure.log(session_id, used_citations)
 
-        # Promote node status to 'started' unless the user already finished it.
-        # Transitions: pending/loaded -> started. 'explored' is terminal.
+        # Record this user-triggered open. Two cases:
+        #   - pending/loaded → started: first open. Promote status and stamp
+        #     opened_at.
+        #   - started/explored: re-open. Status stays put ('explored' is
+        #     terminal); append a timestamp to re_opened_at so the count and
+        #     spacing of re-opens are recoverable for analytics.
         leaf_node = exploration.tree.find_node(leaf_id)
-        if leaf_node is not None and leaf_node.status in {
-            NodeStatus.PENDING,
-            NodeStatus.LOADED,
-        }:
-            leaf_node.status = NodeStatus.STARTED
-            try:
-                await self._repo.update_tree(
-                    session_id, exploration.id, exploration.tree
-                )
-            except Exception as _e:
-                # In-memory mutation already done; the next update_tree will
-                # heal the discrepancy — do not roll back (S2).
-                logger.warning(
-                    "update_tree failed after status→started for leaf %s "
-                    "(session=%s exploration=%s): %s",
-                    leaf_id, session_id, exploration.id, _e,
-                )
+        if leaf_node is not None:
+            now = datetime.now(timezone.utc)
+            tree_changed = False
+            if leaf_node.status in {NodeStatus.PENDING, NodeStatus.LOADED}:
+                leaf_node.status = NodeStatus.STARTED
+                leaf_node.opened_at = now
+                tree_changed = True
+            elif leaf_node.status in {NodeStatus.STARTED, NodeStatus.EXPLORED}:
+                leaf_node.re_opened_at.append(now)
+                tree_changed = True
+            if tree_changed:
+                try:
+                    await self._repo.update_tree(
+                        session_id, exploration.id, exploration.tree
+                    )
+                except Exception as _e:
+                    # In-memory mutation already done; the next update_tree
+                    # will heal the discrepancy — do not roll back (S2).
+                    logger.warning(
+                        "update_tree failed after open tracking for leaf %s "
+                        "(session=%s exploration=%s): %s",
+                        leaf_id, session_id, exploration.id, _e,
+                    )
 
         previous_sibling = None
         next_sibling = None

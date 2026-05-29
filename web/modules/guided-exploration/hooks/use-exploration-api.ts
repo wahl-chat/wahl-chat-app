@@ -64,6 +64,7 @@ export interface UseExplorationApiReturn {
 
   /** Mark a leaf as explored within an exploration */
   markExplored: (explorationId: string, leafId: string) => Promise<void>;
+  markClosed: (explorationId: string, leafId: string) => Promise<void>;
 
   /** Current session ID */
   sessionId: string | null;
@@ -472,6 +473,21 @@ export function useExplorationApi(): UseExplorationApiReturn {
     [dispatch, sessionId],
   );
 
+  const markClosed = useCallback(
+    async (explorationId: string, leafId: string): Promise<void> => {
+      if (!sessionId) {
+        return;
+      }
+      try {
+        await explorationApi.markClosed(sessionId, explorationId, leafId);
+      } catch (error) {
+        // Analytics-only; never block the close UX.
+        console.error('Failed to mark closed:', error);
+      }
+    },
+    [sessionId],
+  );
+
   return {
     createSession,
     resumeSession,
@@ -482,6 +498,7 @@ export function useExplorationApi(): UseExplorationApiReturn {
     requestAnalysis,
     endExploration,
     markExplored,
+    markClosed,
     sessionId,
   };
 }

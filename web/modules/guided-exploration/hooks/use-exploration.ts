@@ -285,8 +285,14 @@ export function useExploration(options: UseExplorationOptions = {}) {
   );
 
   const closeLeaf = useCallback(() => {
+    // Read activeLeaf at call time so the close event tags the leaf the user
+    // was actually in, even if a render hasn't propagated yet.
+    const active = useExplorationStore.getState().exploration.activeLeaf;
+    if (active) {
+      void api.markClosed(active.explorationId, active.leafId);
+    }
     dispatch(explorationActions.leafClosed());
-  }, [dispatch]);
+  }, [dispatch, api]);
 
   // ----- Origin-gated derived state -----
 

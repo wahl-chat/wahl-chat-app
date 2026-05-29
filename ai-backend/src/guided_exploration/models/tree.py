@@ -63,6 +63,33 @@ class ExplorationNode(BaseModel):
             "'explored' (user marked as done)."
         ),
     )
+    opened_at: datetime | None = Field(
+        default=None,
+        description=(
+            "Timestamp of the first user-triggered open — set on the "
+            "pending/loaded → started transition. Distinct from the leaf's "
+            "intro-card timestamp, which reflects pre-gen time, not user click."
+        ),
+    )
+    re_opened_at: list[datetime] = Field(
+        default_factory=list,
+        description=(
+            "Timestamps of each subsequent navigate-to-leaf after the first "
+            "(i.e. calls that hit the node while status is already started or "
+            "explored). One entry per re-open; analytics can derive count and "
+            "spacing from the list."
+        ),
+    )
+    closed_at: list[datetime] = Field(
+        default_factory=list,
+        description=(
+            "Timestamps of each user-triggered close of the leaf sidebar "
+            "(plain close, escape, browser back, or mark-explored close). "
+            "Independent of status — closing does not change status. Paired "
+            "with opened_at + re_opened_at, this reconstructs the full "
+            "open/close visit history for dwell-time analysis."
+        ),
+    )
 
     @property
     def is_leaf(self) -> bool:

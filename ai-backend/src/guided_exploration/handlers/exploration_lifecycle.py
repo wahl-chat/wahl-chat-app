@@ -330,6 +330,20 @@ class ExplorationLifecycleHandler:
         await self._mark_leaf_explored(session_id, exploration_id, leaf_id)
         return {"status": "marked_explored", "leaf_id": leaf_id}
 
+    async def mark_closed(
+        self,
+        session_id: str,
+        exploration_id: str,
+        leaf_id: str,
+    ) -> dict:
+        """Record a user-triggered leaf-close event. Status is untouched."""
+        exploration = await self._repo.get_exploration(session_id, exploration_id)
+        if not exploration:
+            return {"status": "error", "code": "exploration_not_found"}
+
+        await self._mark_leaf_closed(session_id, exploration_id, leaf_id)
+        return {"status": "marked_closed", "leaf_id": leaf_id}
+
     async def end_exploration(
         self,
         session_id: str,
@@ -574,4 +588,26 @@ class ExplorationLifecycleHandler:
             return
 
         node.status = NodeStatus.EXPLORED
+        await self._repo.update_tree(session_id, exploration_id, fresh.tree)
+
+    async def _mark_leaf_closed(
+        self,
+        session_id: str,
+        exploration_id: str,
+        leaf_id: str,
+    ) -> None:
+        """Append a close-event timestamp to the leaf node.
+
+        Re-fetches the exploration before mutating so concurrent navigate
+        and pregen status updates aren't overwritten by a stale snapshot.
+        """
+        fresh = await self._repo.get_exploration(session_id, exploration_id)
+        if fresh is None:
+            return
+
+        node = fresh.tree.find_node(leaf_id)
+        if node is None:
+            return
+
+        node.closed_at.append(datetime.now(timezone.utc))
         await self._repo.update_tree(session_id, exploration_id, fresh.tree)

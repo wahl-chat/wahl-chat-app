@@ -99,6 +99,12 @@ class MarkExploredRequest(BaseModel):
     leaf_id: str = Field(..., description="ID of the leaf to mark as explored")
 
 
+class MarkClosedRequest(BaseModel):
+    """Request body for recording a leaf-close event."""
+
+    leaf_id: str = Field(..., description="ID of the leaf the user just closed")
+
+
 class DirectionChoiceItem(BaseModel):
     """A single direction choice."""
 
