@@ -7,6 +7,8 @@ import {
   STUDY_STEPS,
   type StudySession,
   type StudyState,
+  type StudyType,
+  getStudySteps,
 } from '@/modules/exploration-study/types';
 
 /**
@@ -76,18 +78,23 @@ export function getStateFromRoute(pathname: string): StudyState | null {
 }
 
 /**
- * Get the step number (1-indexed) for a given state
+ * Get the step number (1-indexed) for a given state. The step list depends on
+ * the study type — qualitative runs end after the task, so they count fewer
+ * steps than quantitative ones.
  */
-export function getStepNumber(state: StudyState): number {
-  const index = STUDY_STEPS.indexOf(state);
+export function getStepNumber(
+  state: StudyState,
+  studyType?: StudyType,
+): number {
+  const index = getStudySteps(studyType).indexOf(state);
   return index >= 0 ? index + 1 : 1;
 }
 
 /**
- * Get the total number of steps
+ * Get the total number of steps for the given study type
  */
-export function getTotalSteps(): number {
-  return STUDY_STEPS.length;
+export function getTotalSteps(studyType?: StudyType): number {
+  return getStudySteps(studyType).length;
 }
 
 /**
@@ -122,14 +129,17 @@ export function getNextState(currentState: StudyState): StudyState | null {
 /**
  * Get progress information for the current state
  */
-export function getProgress(state: StudyState): {
+export function getProgress(
+  state: StudyState,
+  studyType?: StudyType,
+): {
   currentStep: number;
   totalSteps: number;
   percentage: number;
   label: string;
 } {
-  const currentStep = getStepNumber(state);
-  const totalSteps = getTotalSteps();
+  const currentStep = getStepNumber(state, studyType);
+  const totalSteps = getTotalSteps(studyType);
   const percentage = Math.round((currentStep / totalSteps) * 100);
   const label = getStepLabel(state);
 

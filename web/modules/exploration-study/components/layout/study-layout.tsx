@@ -2,7 +2,7 @@
 
 import SkipLink from '@/components/skip-link';
 import { cn } from '@/lib/utils';
-import type { StudyState } from '@/modules/exploration-study/types';
+import type { StudyState, StudyType } from '@/modules/exploration-study/types';
 import { getProgress } from '@/modules/exploration-study/utils';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -10,6 +10,7 @@ import { StudyHeader } from './study-header';
 
 export interface StudyLayoutProps {
   state: StudyState;
+  studyType?: StudyType;
   children: React.ReactNode;
   className?: string;
   hideHeader?: boolean;
@@ -17,11 +18,12 @@ export interface StudyLayoutProps {
 
 export function StudyLayout({
   state,
+  studyType,
   children,
   className,
   hideHeader = false,
 }: StudyLayoutProps) {
-  const progress = getProgress(state);
+  const progress = getProgress(state, studyType);
   const pathname = usePathname();
   const mainRef = useRef<HTMLElement>(null);
   const [announcement, setAnnouncement] = useState('');

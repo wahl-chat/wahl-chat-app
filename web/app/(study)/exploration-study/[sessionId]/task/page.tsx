@@ -12,6 +12,7 @@ import {
   getStateFromResponse,
   studyApi,
   useScreenTelemetry,
+  useStudySessionContext,
 } from '@/modules/exploration-study';
 import {
   explorationActions,
@@ -27,6 +28,7 @@ export default function TaskPage() {
   const params = useParams();
   const router = useRouter();
   const sessionId = params.sessionId as string;
+  const studySession = useStudySessionContext();
 
   const dispatch = useExplorationStore((s) => s.dispatch);
 
@@ -152,7 +154,7 @@ export default function TaskPage() {
     void studyApi.notifyFirstFinishClick(sessionId);
   }, [sessionId]);
 
-  const progress = getProgress('task');
+  const progress = getProgress('task', studySession.studyType);
 
   // On arrival at a ready state, announce the step and move focus to the top
   // of the content (the "Deine Aufgabe" heading on the intro; the chat content

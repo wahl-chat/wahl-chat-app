@@ -88,6 +88,19 @@ export const STUDY_STEPS: StudyState[] = [
   'complete',
 ];
 
+// Qualitative runs stop right after the task: there is no questionnaire, quiz,
+// or demographics step (the session is moderated live from there). The progress
+// header counts these three steps instead of the full quantitative seven.
+export const QUALITATIVE_STUDY_STEPS: StudyState[] = [
+  'consent',
+  'tutorial',
+  'task',
+];
+
+export function getStudySteps(studyType?: StudyType): StudyState[] {
+  return studyType === 'qualitative' ? QUALITATIVE_STUDY_STEPS : STUDY_STEPS;
+}
+
 export const STEP_LABELS: Record<StudyState, string> = {
   consent: 'Einwilligung',
   demographics: 'Demografische Angaben',

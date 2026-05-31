@@ -135,7 +135,11 @@ export default function StudySessionLayout({
   return (
     <ContextProvider parties={STUDY_FAKE_PARTIES}>
       <StudySessionProvider session={session}>
-        <StudyLayout state={session.state} hideHeader={isTaskPage}>
+        <StudyLayout
+          state={session.state}
+          studyType={session.studyType}
+          hideHeader={isTaskPage}
+        >
           {children}
         </StudyLayout>
       </StudySessionProvider>
