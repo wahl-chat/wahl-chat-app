@@ -77,28 +77,31 @@ function CitationReference({
         const tooltip = getReferenceTooltip?.(id) ?? name;
 
         return (
-          <Tooltip key={id}>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                tabIndex={-1}
-                className={cn(
-                  'inline-flex cursor-pointer items-center justify-center rounded-full bg-muted px-2 py-1 text-xs transition-colors hover:bg-muted/80',
-                )}
-                onClick={() => onReferenceClick(id)}
-              >
-                {/* Visible chip stays the bare number; the spoken form is
+          <>
+            <Tooltip key={id}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className={cn(
+                    'inline-flex cursor-pointer items-center justify-center rounded-full bg-muted px-2 py-1 text-xs transition-colors hover:bg-muted/80',
+                  )}
+                  aria-hidden="true"
+                  onClick={() => onReferenceClick(id)}
+                >
+                  {/* Visible chip stays the bare number; the spoken form is
                     "Quelle N" so it isn't read as a stray digit mid-sentence
                     (under the surrounding role="text" the sr-only text folds
                     into the paragraph's flattened reading). */}
-                <span aria-hidden="true">{name}</span>
-                <span className="sr-only">Quelle {name}</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-96 text-ellipsis whitespace-nowrap">
-              {tooltip}
-            </TooltipContent>
-          </Tooltip>
+                  <span>{name}</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-96 text-ellipsis whitespace-nowrap">
+                {tooltip}
+              </TooltipContent>
+            </Tooltip>
+            <span className="sr-only">Quelle {name}</span>
+          </>
         );
       })}
     </span>

@@ -21,10 +21,11 @@ import { TopicTreePreview } from './topic-tree-preview';
 // something new is here, says what kind, and points at the heading rotor — no
 // focus steal. Action gates (choice, aspect selection) name themselves so the
 // user knows a decision is waiting, not just a new answer.
+const NAV_HINT = 'Über das Überschriften-Menü dorthin navigieren.';
 const SENT_ANNOUNCEMENT = 'Nachricht gesendet.';
 const ANSWER_ANNOUNCEMENT = `Neue Antwort der KI.`;
-const DIRECTIONS_ANNOUNCEMENT = `Aspekt-Auswahl verfügbar.`;
-const CHOICE_ANNOUNCEMENT = `Auswahl verfügbar: Wie möchtest du das Thema angehen?`;
+const DIRECTIONS_ANNOUNCEMENT = `Aspekt-Auswahl verfügbar. ${NAV_HINT}`;
+const CHOICE_ANNOUNCEMENT = `Auswahl verfügbar: Wie möchtest du das Thema angehen? ${NAV_HINT}`;
 
 /** Arrival cue for a settled bot message, by type. */
 function botArrivalAnnouncement(type: SessionMessage['type']): string {

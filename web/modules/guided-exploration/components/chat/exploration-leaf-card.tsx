@@ -37,22 +37,15 @@ export function ExplorationLeafCard({
   const overflowCount = Math.max(0, node.partyIds.length - MAX_VISIBLE_BADGES);
 
   return (
-    <button
-      type="button"
-      // Stable id so closing a leaf can move focus straight back to this card.
-      id={`leaf-card-${node.id}`}
-      // Terse accessible name: identity + status only. The description and
-      // party badges stay visual; folding them into the name makes every card
-      // a wall of speech to arrow past, and the close flow re-reads it on
-      // return. "What just happened" is reported separately by the close
-      // announcer's live region, not by this label.
-      aria-label={`${node.name}, ${statusLabel}`}
-      onClick={() => onOpen?.(node.id)}
-      disabled={!onOpen}
+    // Heading wraps the actionable control (not the other way round) so that a
+    // screen-reader user landing here via the heading rotor lands *on* the
+    // button and can activate it. The button's `after:absolute after:inset-0`
+    // stretches its hit area over the whole card, preserving full-card click.
+    <div
       className={cn(
-        'flex w-full items-start gap-3 rounded-lg border bg-card p-4 text-left shadow-sm transition-colors',
-        'hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        'disabled:cursor-not-allowed disabled:opacity-60',
+        'relative flex w-full items-start gap-3 rounded-lg border bg-card p-4 text-left shadow-sm transition-colors',
+        'hover:bg-accent has-[:focus-visible]:outline-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring',
+        !onOpen && 'opacity-60',
       )}
     >
       <span className="mt-0.5 flex shrink-0 items-center justify-center">
@@ -61,7 +54,23 @@ export function ExplorationLeafCard({
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <h4 className="text-sm font-semibold leading-tight text-foreground">
-          {node.name}
+          <button
+            type="button"
+            // Stable id so closing a leaf can move focus straight back here.
+            id={`leaf-card-${node.id}`}
+            // Terse accessible name: identity + status only. The description
+            // and party badges stay visual; folding them into the name makes
+            // every card a wall of speech to arrow past, and the close flow
+            // re-reads it on return. "What just happened" is reported
+            // separately by the close announcer's live region, not by this
+            // label.
+            aria-label={`${node.name}, ${statusLabel}`}
+            onClick={() => onOpen?.(node.id)}
+            disabled={!onOpen}
+            className="text-left after:absolute after:inset-0 focus-visible:outline-none disabled:cursor-not-allowed"
+          >
+            {node.name}
+          </button>
         </h4>
         {description && (
           <p className="line-clamp-2 text-sm font-normal text-foreground">
@@ -69,7 +78,9 @@ export function ExplorationLeafCard({
           </p>
         )}
         {visibleParties.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
+          // `relative z-10` keeps the badges above the button's stretched
+          // overlay so their hover tooltips still work.
+          <div className="relative z-10 flex flex-wrap items-center gap-1.5">
             {visibleParties.map((party) => (
               <PartyBadge key={party} party={party} className="size-7" />
             ))}
@@ -89,7 +100,7 @@ export function ExplorationLeafCard({
         aria-hidden="true"
         className="mt-1 size-4 shrink-0 text-foreground"
       />
-    </button>
+    </div>
   );
 }
 

@@ -68,12 +68,12 @@ function ChatMarkdown({ message }: Props) {
     return `${number + 1}`;
   };
 
-  const sourceSummary = useMemo(() => {
-    if (!message.sources || message.sources.length === 0) return null;
+  const referencedSources = useMemo(() => {
+    if (!message.sources || message.sources.length === 0) return [];
 
     const regex = /\[(\d+(?:\s*,\s*\d+)*)\]/g;
     const matches = message.content?.match(regex);
-    if (!matches) return null;
+    if (!matches) return [];
 
     const numbers = matches.flatMap((match) => {
       const nums = match.match(/^\[(\d+(?:\s*,\s*\d+)*)\]$/);
@@ -81,16 +81,11 @@ function ChatMarkdown({ message }: Props) {
       return nums[1].split(',').map((n) => Number.parseInt(n.trim()));
     });
 
-    const uniqueNumbers = [...new Set(numbers)];
-    const referencedSources = uniqueNumbers
+    const uniqueNumbers = [...new Set(numbers)].sort((a, b) => a - b);
+
+    return uniqueNumbers
       .filter((n) => n >= 0 && n < (message.sources?.length ?? 0))
-      .map((n) => message.sources?.[n]);
-
-    if (referencedSources.length === 0) return null;
-
-    return referencedSources
-      .map((s, i) => `Quelle ${i + 1}: ${s?.source}, Seite ${s?.page}`)
-      .join('. ');
+      .map((n) => ({ number: n + 1, source: message.sources?.[n] }));
   }, [message.content, message.sources]);
 
   return (
@@ -102,9 +97,16 @@ function ChatMarkdown({ message }: Props) {
       >
         {message.content ?? ''}
       </Markdown>
-      {sourceSummary && (
+      {referencedSources.length > 0 && (
         <VisuallyHidden>
-          <p>Quellen: {sourceSummary}</p>
+          <h3>Quellen</h3>
+          <ul>
+            {referencedSources.map(({ number, source }) => (
+              <li key={number}>
+                Quelle {number}: {source?.source}, Seite {source?.page}
+              </li>
+            ))}
+          </ul>
         </VisuallyHidden>
       )}
     </>
