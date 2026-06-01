@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 import { forwardRef } from 'react';
 
 type Props = {
-  href: string;
+  href?: string;
   children: React.ReactNode;
   className?: string;
   /**
