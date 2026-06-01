@@ -69,20 +69,28 @@ export function ExplorationTopicCard({
               </button>
             </h3>
             {fullyExplored && (
-              <span className="shrink-0 rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+              <span
+                aria-hidden="true"
+                className="shrink-0 rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary"
+              >
                 Fertig
               </span>
             )}
           </div>
           {node.description && (
-            <p className="line-clamp-2 text-sm font-normal text-foreground">
+            <p
+              aria-hidden="true"
+              className="line-clamp-2 text-sm font-normal text-foreground"
+            >
               {node.description}
             </p>
           )}
-          <ProgressIndicator
-            explored={progress.explored}
-            total={progress.total}
-          />
+          <div aria-hidden="true">
+            <ProgressIndicator
+              explored={progress.explored}
+              total={progress.total}
+            />
+          </div>
         </div>
       </div>
 

@@ -73,14 +73,20 @@ export function ExplorationLeafCard({
           </button>
         </h4>
         {description && (
-          <p className="line-clamp-2 text-sm font-normal text-foreground">
+          <p
+            aria-hidden="true"
+            className="line-clamp-2 text-sm font-normal text-foreground"
+          >
             {description}
           </p>
         )}
         {visibleParties.length > 0 && (
           // `relative z-10` keeps the badges above the button's stretched
           // overlay so their hover tooltips still work.
-          <div className="relative z-10 flex flex-wrap items-center gap-1.5">
+          <div
+            aria-hidden="true"
+            className="relative z-10 flex flex-wrap items-center gap-1.5"
+          >
             {visibleParties.map((party) => (
               <PartyBadge key={party} party={party} className="size-7" />
             ))}

@@ -90,7 +90,6 @@ export function TopicDirectionsCard({
         {directions.directions.map((direction) => {
           const isChecked = selected.has(direction.id);
           const inputId = `direction-${direction.id}`;
-          const hookId = `${inputId}-hook`;
           return (
             <label
               key={direction.id}
@@ -106,7 +105,6 @@ export function TopicDirectionsCard({
                 checked={isChecked}
                 onCheckedChange={() => toggleDirection(direction.id)}
                 disabled={isLoading}
-                aria-describedby={hookId}
                 className="mt-0.5"
               />
               <div className="space-y-0.5">
@@ -114,7 +112,7 @@ export function TopicDirectionsCard({
                   {direction.name}
                 </span>
                 <span
-                  id={hookId}
+                  aria-hidden="true"
                   className="block text-sm font-normal text-foreground"
                 >
                   {direction.hook}
