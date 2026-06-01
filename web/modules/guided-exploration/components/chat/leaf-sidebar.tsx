@@ -102,6 +102,7 @@ export function LeafSidebar({
   onClose,
 }: LeafSidebarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Single polite narration for the leaf: thinking → writing → finished. One
   // stable region whose text we mutate (no keyed remount — VoiceOver reliably
@@ -267,13 +268,20 @@ export function LeafSidebar({
       }}
     >
       <SheetContent
+        ref={contentRef}
         side="right"
-        // Open focus + orientation are left to Radix: on open it announces the
-        // dialog with its SheetTitle (name) and SheetDescription (description)
-        // and focuses the first control. No manual focus move, no tabIndex
-        // wrapper — that wrapper was what VoiceOver exposed as a group and
-        // re-read on arrow navigation.
-        //
+        // Open focus: land on the dialog container itself rather than the first
+        // focusable control (which, with no header buttons left, is the chat
+        // input at the very bottom). Focusing the content node makes the screen
+        // reader announce the dialog name (SheetTitle <h1> via aria-labelledby)
+        // and its description (SheetDescription via aria-describedby) on open,
+        // so the user starts on the header + orientation, not the composer. No
+        // focus on the <h1> itself — that tabIndex wrapper was what VoiceOver
+        // exposed as a group and re-read on arrow navigation.
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          contentRef.current?.focus();
+        }}
         // Close is still managed: don't let Radix restore focus to the opener
         // card — LeafCloseAnnouncer moves focus back to it after the sheet
         // unmounts and announces the return.
