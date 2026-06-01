@@ -53,10 +53,10 @@ export function ExplorationLeafCard({
       </span>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
-        {/* Standard ARIA disclosure pattern: the heading wraps the button so
-            the accessibility tree exposes both semantics — the rotor finds it
-            via the heading, and it's announced as a button the user can press.
-            A single Enter activates it. */}
+        {/* Standard ARIA pattern: the heading wraps the button so the tree
+            exposes both semantics — the heading menu finds it for orientation,
+            and it's announced and activated as a button. Activation happens one
+            navigation step after the heading, which is the expected SR flow. */}
         <h4 className="text-sm font-semibold leading-tight text-foreground">
           <button
             type="button"

@@ -32,7 +32,7 @@ export function toPlainText(markdown: string): string {
 }
 
 /** First sentence of `text`, capped at `maxLen` chars on a word boundary. */
-function buildSnippet(text: string, maxLen = 100): string {
+function buildSnippet(text: string, maxLen = 20): string {
   if (!text) return '';
   const sentence = text.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? text;
   if (sentence.length <= maxLen) return sentence;
@@ -55,11 +55,11 @@ function getMessageHeadingLabel(message: SessionMessage): string {
   switch (message.type) {
     case 'user': {
       const snippet = buildSnippet(toPlainText(message.content ?? ''));
-      return snippet ? `Du: ${snippet}` : 'Deine Nachricht';
+      return snippet ? `Deine Nachricht: ${snippet}` : 'Deine Nachricht';
     }
     case 'assistant': {
       const snippet = buildSnippet(toPlainText(message.content ?? ''));
-      return snippet ? `KI: ${snippet}` : 'Antwort der KI';
+      return snippet ? `Antwort der KI: ${snippet}` : 'Antwort der KI';
     }
     case 'exploration_start': {
       // Heading should say *what this is* (a structured topic exploration), not

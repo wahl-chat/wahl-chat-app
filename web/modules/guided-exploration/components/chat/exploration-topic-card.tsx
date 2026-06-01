@@ -62,6 +62,12 @@ export function ExplorationTopicCard({
                 type="button"
                 aria-expanded={expanded}
                 aria-controls={panelId}
+                // Spell out the affordance in the label, mirroring the leaf
+                // card. aria-expanded already announces the state; the verb
+                // tells the user what activating does.
+                aria-label={`${node.name}, Auswählen zum ${
+                  expanded ? 'Einklappen' : 'Aufklappen'
+                }`}
                 onClick={() => setExpanded((v) => !v)}
                 className="text-left after:absolute after:inset-0 focus-visible:outline-none"
               >
