@@ -143,7 +143,10 @@ export function TopicDirectionsCard({
           />
           <span className="flex items-center gap-2">
             <Compass className="size-4 text-foreground" aria-hidden="true" />
-            <span className="text-sm font-semibold text-foreground">
+            <span
+              className="text-sm font-semibold text-foreground"
+              aria-hidden="true"
+            >
               Alle Aspekte erkunden
             </span>
           </span>

@@ -4,7 +4,6 @@ import SkipLink from '@/components/skip-link';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
-  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -18,7 +17,7 @@ import type {
   ExplorationNode,
   StreamTargetType,
 } from '@/modules/guided-exploration/types';
-import { Check, X } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
@@ -282,10 +281,6 @@ export function LeafSidebar({
         className={cn(
           'flex w-full flex-col gap-0 p-0 sm:max-w-xl md:max-w-2xl',
           'data-[state=closed]:duration-200 data-[state=open]:duration-200',
-          // Hide the default close (X) baked into SheetContent — we
-          // render an explicit one in the header so it sits inline
-          // with the other action button.
-          '[&>button]:hidden',
         )}
       >
         {/* The leaf's single narration region: thinking → writing → finished.
@@ -330,7 +325,6 @@ export function LeafSidebar({
                 position:fixed, would scroll the page (and trip the history-back
                 interception, closing the leaf). */}
             <SkipLink
-              href="#leaf-content"
               onClick={(e) => {
                 e.preventDefault();
                 focusLatestAnswer();
@@ -359,17 +353,6 @@ export function LeafSidebar({
                 Als erkundet markieren
               </Button>
             )}
-            <SheetClose asChild>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                aria-label="Themen-Detailansicht schließen"
-                className="size-8 shrink-0"
-              >
-                <X aria-hidden="true" className="size-4" />
-              </Button>
-            </SheetClose>
           </div>
         </SheetHeader>
 
