@@ -15,7 +15,7 @@ from src.guided_exploration.models import (
 def format_session_history(
     messages: list[SessionMessage],
     limit: int = 10,
-    per_message_chars: int = 200,
+    per_message_chars: int = 2000,
 ) -> list[str]:
     """Format session messages as ``Nutzer: …`` / ``Assistent: …`` lines.
 

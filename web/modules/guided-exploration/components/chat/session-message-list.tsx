@@ -54,12 +54,10 @@ export function firstSentence(markdown: string, maxLen = 160): string {
 function getMessageHeadingLabel(message: SessionMessage): string {
   switch (message.type) {
     case 'user': {
-      const snippet = buildSnippet(toPlainText(message.content ?? ''));
-      return snippet ? `Deine Nachricht: ${snippet}` : 'Deine Nachricht';
+      return `Deine Nachricht: ${message.content}`;
     }
     case 'assistant': {
-      const snippet = buildSnippet(toPlainText(message.content ?? ''));
-      return snippet ? `Antwort der KI: ${snippet}` : 'Antwort der KI';
+      return 'Antwort der KI';
     }
     case 'exploration_start': {
       // Heading should say *what this is* (a structured topic exploration), not

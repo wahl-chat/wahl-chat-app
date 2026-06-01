@@ -1,7 +1,6 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { firstSentence } from '@/modules/guided-exploration/components/chat/session-message-list';
 import { MessageCitationsList } from '@/modules/guided-exploration/components/shared/message-citations-list';
 import { leafMessageHeadingId } from '@/modules/guided-exploration/components/shared/message-nav-links';
 import { PartyMarkedMarkdown } from '@/modules/guided-exploration/components/shared/party-marked-markdown';
@@ -54,7 +53,7 @@ export function FollowupMessage({
           tabIndex={-1}
           className="sr-only outline-none"
         >
-          {`Du: ${firstSentence(message.content, 100)}`}
+          {`Deine Nachricht: ${message.content}`}
         </h2>
         <div className="max-w-[80%] rounded-[20px] bg-muted px-4 py-2">
           <p className="text-sm">{message.content}</p>
@@ -62,8 +61,6 @@ export function FollowupMessage({
       </div>
     );
   }
-
-  const snippet = firstSentence(message.content, 100);
 
   return (
     <div className={cn(className)}>
@@ -77,7 +74,7 @@ export function FollowupMessage({
         data-leaf-latest-answer={isLatestAnswer ? '' : undefined}
         tabIndex={-1}
       >
-        {snippet ? `KI: ${snippet}` : 'Antwort der KI'}
+        Antwort der KI
       </h2>
       <PartyMarkedMarkdown
         onReferenceClick={handleReferenceClick}
