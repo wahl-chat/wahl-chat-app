@@ -74,6 +74,12 @@ function getMessageHeadingLabel(message: SessionMessage): string {
         : 'Strukturierte Erkundung. Lies weiter für einen Überblick und die Unterthemen.';
     }
     case 'topic_directions':
+      // Once the user has submitted, the card collapses to an inline summary —
+      // the heading should match it ("Erkundet wird: …") rather than keep
+      // prompting for a selection that's already been made.
+      if (message.selectedDirections && message.selectedDirections.length > 0) {
+        return `Erkundet wird: ${message.selectedDirections.join(' · ')}`;
+      }
       return 'Aspekt-Auswahl: Wähle aus, welche Aspekte des Themas du genauer erkunden möchtest.';
     case 'choice_result':
       // content already reads e.g. "Strukturierte Erkundung ausgewählt."

@@ -68,7 +68,7 @@ export function MessageCitationsList({
       <ol>
         {uniqueCitations.map((citation, index) => {
           const href = buildCitationHref(citation);
-          const label = formatCitation(citation);
+          const label = `Quelle ${index + 1}: ${formatCitation(citation)}`;
           // `sr-` prefix keeps these keys in their own namespace so they
           // can never collide with inline citation keys elsewhere in the
           // tree (those use `citation.id` directly inside scoped subtrees).

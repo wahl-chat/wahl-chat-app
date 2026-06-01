@@ -53,6 +53,10 @@ export function ExplorationLeafCard({
       </span>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
+        {/* Standard ARIA disclosure pattern: the heading wraps the button so
+            the accessibility tree exposes both semantics — the rotor finds it
+            via the heading, and it's announced as a button the user can press.
+            A single Enter activates it. */}
         <h4 className="text-sm font-semibold leading-tight text-foreground">
           <button
             type="button"
@@ -64,7 +68,7 @@ export function ExplorationLeafCard({
             // re-reads it on return. "What just happened" is reported
             // separately by the close announcer's live region, not by this
             // label.
-            aria-label={`${node.name}, ${statusLabel}`}
+            aria-label={`${node.name}, ${statusLabel}, Auswählen zum Öffnen`}
             onClick={() => onOpen?.(node.id)}
             disabled={!onOpen}
             className="text-left after:absolute after:inset-0 focus-visible:outline-none disabled:cursor-not-allowed"

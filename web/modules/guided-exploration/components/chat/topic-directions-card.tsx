@@ -105,10 +105,14 @@ export function TopicDirectionsCard({
                 checked={isChecked}
                 onCheckedChange={() => toggleDirection(direction.id)}
                 disabled={isLoading}
+                aria-label={direction.name}
                 className="mt-0.5"
               />
               <div className="space-y-0.5">
-                <span className="block text-sm font-semibold text-foreground">
+                <span
+                  aria-hidden="true"
+                  className="block text-sm font-semibold text-foreground"
+                >
                   {direction.name}
                 </span>
                 <span
