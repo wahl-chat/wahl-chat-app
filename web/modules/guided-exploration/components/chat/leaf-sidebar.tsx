@@ -6,6 +6,7 @@ import {
   Sheet,
   SheetClose,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
@@ -102,7 +103,6 @@ export function LeafSidebar({
   onClose,
 }: LeafSidebarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const introRef = useRef<HTMLDivElement>(null);
 
   // Single polite narration for the leaf: thinking → writing → finished. One
   // stable region whose text we mutate (no keyed remount — VoiceOver reliably
@@ -269,20 +269,15 @@ export function LeafSidebar({
     >
       <SheetContent
         side="right"
-        // Opt out of Radix's auto aria-describedby: the orientation text lives
-        // inside the focused intro and is read there. Letting Radix also wire
-        // it as the dialog description announces the same paragraph a second
-        // time (and makes it its own arrow-key block, "Ende Detailansicht…").
-        aria-describedby={undefined}
-        // Land focus at the top (the intro), not on a control, so the dialog
-        // name + how-it-works description are read first. The skip-link is the
-        // next tab stop, letting users jump straight to the conversation.
-        onOpenAutoFocus={(e) => {
-          e.preventDefault();
-          requestAnimationFrame(() => introRef.current?.focus());
-        }}
-        // Don't let Radix restore focus to the opener card on close — the
-        // parent moves focus to its "next topic / chat input" skip-link.
+        // Open focus + orientation are left to Radix: on open it announces the
+        // dialog with its SheetTitle (name) and SheetDescription (description)
+        // and focuses the first control. No manual focus move, no tabIndex
+        // wrapper — that wrapper was what VoiceOver exposed as a group and
+        // re-read on arrow navigation.
+        //
+        // Close is still managed: don't let Radix restore focus to the opener
+        // card — LeafCloseAnnouncer moves focus back to it after the sheet
+        // unmounts and announces the return.
         onCloseAutoFocus={(e) => e.preventDefault()}
         className={cn(
           'flex w-full flex-col gap-0 p-0 sm:max-w-xl md:max-w-2xl',
@@ -309,39 +304,25 @@ export function LeafSidebar({
         {/* Header region: title, how-it-works, jump-to-content, controls. */}
         <SheetHeader className="shrink-0 gap-2 border-b px-4 py-3 text-left">
           <div className="flex items-start gap-2">
-            <div
-              ref={introRef}
-              tabIndex={-1}
-              // Orientation is exposed via aria-describedby (read on focus),
-              // NOT as inline text. As a child <p> it became part of this
-              // group's navigable content, so VoiceOver read the whole
-              // paragraph again as "Ende …" when arrowing past the boundary.
-              // aria-describedby reads the hidden paragraph's text on focus
-              // without making it its own arrow-stop.
-              aria-describedby="leaf-intro-description"
-              className="min-w-0 flex-1 outline-none"
+            {/* asChild renders a real <h1> while keeping Radix's aria-labelledby
+                wiring — the panel's top-level heading, distinct from the h3/h4
+                chat headings and reachable via the heading menu. Radix consumes
+                it as the dialog name on open. */}
+            <SheetTitle
+              asChild
+              className="min-w-0 flex-1 truncate text-base font-medium"
             >
-              {/* Render the dialog title as an <h1> (asChild keeps Radix's
-                  aria-labelledby wiring) so it's the panel's top-level heading
-                  — distinct from the h3/h4 topic and leaf headings out in the
-                  chat, and reachable on its own via the heading menu. */}
-              <SheetTitle asChild className="truncate text-base font-medium">
-                <h1>{leafName ?? 'Thema'}</h1>
-              </SheetTitle>
-            </div>
-            {/* aria-hidden: kept out of the arrow-navigation tree (so it isn't
-                a boundary "Ende …" block); still spoken once via the intro's
-                aria-describedby when focus lands there on open. */}
-            <p
-              id="leaf-intro-description"
-              aria-hidden="true"
-              className="sr-only"
-            >
+              <h1>{leafName ?? 'Thema'}</h1>
+            </SheetTitle>
+            {/* Radix wires this as the dialog's aria-describedby and announces
+                it on open — it is the dialog description, not navigable inline
+                text, so it isn't re-read as an arrow-key boundary block. */}
+            <SheetDescription className="sr-only">
               Detailansicht zum Thema {leafName ?? 'X'}. Oben findest du einen
               Überblick und die Positionen der Parteien. Über das Eingabefeld am
               Ende kannst du eigene Fragen zu diesem Thema stellen; mit der
               Schaltfläche oben rechts schließt du diese Ansicht wieder.
-            </p>
+            </SheetDescription>
             {/* First tab stop after the intro: jump straight to the latest AI
                 answer, past the control buttons. preventDefault + programmatic
                 focus avoids a hash change — which, because the sheet is
