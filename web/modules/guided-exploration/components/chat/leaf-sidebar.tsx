@@ -320,8 +320,9 @@ export function LeafSidebar({
             <SheetDescription className="sr-only">
               Detailansicht zum Thema {leafName ?? 'X'}. Oben findest du einen
               Überblick und die Positionen der Parteien. Über das Eingabefeld am
-              Ende kannst du eigene Fragen zu diesem Thema stellen; mit der
-              Schaltfläche oben rechts schließt du diese Ansicht wieder.
+              Ende kannst du eigene Fragen zu diesem Thema stellen. Mit der
+              Escape-Taste oder der Zurück-Navigation schließt du diese Ansicht
+              wieder.
             </SheetDescription>
             {/* First tab stop after the intro: jump straight to the latest AI
                 answer, past the control buttons. preventDefault + programmatic
@@ -340,11 +341,18 @@ export function LeafSidebar({
                 : 'Zur Themenzusammenfassung der KI springen'}
             </SkipLink>
             {showMarkExplored && (
+              // Visible and clickable for mouse users, but taken out of the
+              // accessibility tree: aria-hidden removes it from the SR
+              // announcement and tabIndex={-1} from the keyboard tab order
+              // (aria-hidden on a still-focusable control is an error). SR
+              // users finish a topic by closing the panel.
               <Button
                 type="button"
                 size="sm"
                 onClick={onMarkExplored}
                 disabled={markExploredDisabled}
+                aria-hidden="true"
+                tabIndex={-1}
                 className="shrink-0"
               >
                 <Check aria-hidden="true" className="mr-1.5 size-4" />
