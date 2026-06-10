@@ -22,7 +22,6 @@ from src.guided_exploration.agents.position_extractor.prompts import (
 )
 from src.guided_exploration.agents.llm_provider import LLMProvider
 from src.guided_exploration.models.position import Position, PartyPositions
-from src.guided_exploration.models.content import Citation
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +118,13 @@ class PositionExtractorAgent(BaseAgent[PositionExtractorInput, PositionExtractor
         LLM's inline ``[chunk_id]`` markers always map cleanly back to
         the retrieved sources via ``extract_used_citations``.
         """
+        # Local import: the ``services`` package eagerly imports the
+        # orchestrator, which imports this agent — a top-level import here
+        # would create a circular import.
+        from src.guided_exploration.services.citation_utils import (
+            create_citation_from_chunk,
+        )
+
         positions = []
         chunks = [c for c in input.retrieved_chunks if c.party_id == input.party_id]
 
@@ -133,14 +139,7 @@ class PositionExtractorAgent(BaseAgent[PositionExtractorInput, PositionExtractor
             chunk_idx = llm_position.chunk_index - 1
             if 0 <= chunk_idx < len(chunks):
                 chunk = chunks[chunk_idx]
-                citation = Citation(
-                    id=chunk.chunk_id,
-                    party=input.party_id,
-                    document=chunk.source_document,
-                    section=chunk.source_section,
-                    page=chunk.source_page,
-                    source_document=chunk.source_document,
-                )
+                citation = create_citation_from_chunk(chunk, input.party_info.name)
 
             positions.append(
                 Position(

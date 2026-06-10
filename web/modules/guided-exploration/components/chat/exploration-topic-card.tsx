@@ -104,7 +104,7 @@ export function ExplorationTopicCard({
         <ul
           id={panelId}
           aria-label={`Unterthemen von ${node.name}`}
-          className="mb-4 ml-7 mr-4 flex list-none flex-col gap-2 border-l border-border/60 pl-3"
+          className="mb-4 ml-7 mr-4 flex list-none flex-col gap-2 pl-3"
         >
           {children}
         </ul>

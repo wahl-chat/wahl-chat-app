@@ -54,10 +54,10 @@ class RAGService:
     _study_rag: StudyPositionsRAG | None = None
 
     def __init__(
-        self,
-        embeddings: Embeddings,
-        qdrant_url: str | None = None,
-        qdrant_api_key: str | None = None,
+            self,
+            embeddings: Embeddings,
+            qdrant_url: str | None = None,
+            qdrant_api_key: str | None = None,
     ) -> None:
         self._embeddings = embeddings
         self._client = AsyncQdrantClient(
@@ -72,12 +72,12 @@ class RAGService:
         return RAGService._study_rag
 
     async def retrieve_chunks_for_parties(
-        self,
-        query: str,
-        context_id: str,
-        parties: list[str],
-        n_docs: int = 3,
-        score_threshold: float = 0.5,
+            self,
+            query: str,
+            context_id: str,
+            parties: list[str],
+            n_docs: int = 3,
+            score_threshold: float = 0.5,
     ) -> list[RetrievedChunk]:
         """Fan out per-party retrieval and concatenate results.
 
@@ -97,12 +97,12 @@ class RAGService:
         return all_chunks
 
     async def retrieve_chunks_for_party(
-        self,
-        query: str,
-        context_id: str,
-        party_id: str,
-        n_docs: int = 5,
-        score_threshold: float = 0.5,
+            self,
+            query: str,
+            context_id: str,
+            party_id: str,
+            n_docs: int = 5,
+            score_threshold: float = 0.5,
     ) -> list[RetrievedChunk]:
         """
         Retrieve document chunks from Qdrant for a specific party.
@@ -179,12 +179,15 @@ class RAGService:
             if point.payload is None:
                 continue
 
+            print(point)
+
             chunks.append(
                 RetrievedChunk(
                     chunk_id=f"{party_id}-{point.id}",
                     content=point.payload.get("text", ""),
                     party_id=party_id,
-                    source_document=point.payload.get("source", "Wahlprogramm"),
+                    source_document=point.payload.get("source_document")
+                                    or point.payload.get("source", "Wahlprogramm"),
                     source_section=point.payload.get("section"),
                     source_page=point.payload.get("page"),
                     relevance_score=point.score,

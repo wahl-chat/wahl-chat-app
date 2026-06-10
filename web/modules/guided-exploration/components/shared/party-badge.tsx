@@ -1,5 +1,6 @@
 'use client';
 
+import { useContextParty } from '@/components/providers/context-provider';
 import {
   Tooltip,
   TooltipContent,
@@ -40,27 +41,34 @@ export function PartyBadge({
 }: PartyBadgeProps) {
   const [imageError, setImageError] = useState(false);
   const partyId = party.toLowerCase();
+  const partyDetails = useContextParty(partyId);
   const imageUrl = buildPartyImageUrl(partyId);
-  const displayName = capitalize(party);
+  const displayName = partyDetails?.name ?? capitalize(party);
+  const partyColor = partyDetails?.background_color ?? '#6B7280';
 
   if (inline) {
     return (
       <span
         className={cn(
-          'not-prose mx-0.5 inline-flex items-center gap-1.5 rounded-md border bg-muted px-1.5 py-0.5 align-middle text-sm font-medium leading-none',
+          'not-prose mx-0.5 inline-flex items-center gap-1.5 rounded-md border bg-muted py-0.5 pl-0.5 pr-1.5 align-middle text-sm font-medium leading-none',
           className,
         )}
       >
         {!imageError && (
-          <Image
-            src={imageUrl}
-            alt=""
-            aria-hidden="true"
-            width={18}
-            height={18}
-            className="!my-0 size-[18px] rounded-sm object-contain"
-            onError={() => setImageError(true)}
-          />
+          <span
+            className="flex size-[18px] shrink-0 items-center justify-center rounded-sm p-px"
+            style={{ backgroundColor: partyColor }}
+          >
+            <Image
+              src={imageUrl}
+              alt=""
+              aria-hidden="true"
+              width={16}
+              height={16}
+              className="!my-0 size-4 rounded-[2px] object-contain"
+              onError={() => setImageError(true)}
+            />
+          </span>
         )}
         <span>{displayName}</span>
       </span>
@@ -76,7 +84,7 @@ export function PartyBadge({
           className,
         )}
       >
-        {party}
+        {displayName}
       </span>
     );
   }
@@ -88,6 +96,7 @@ export function PartyBadge({
           <span
             role="img"
             aria-label={displayName}
+            style={{ backgroundColor: partyColor }}
             className={cn(
               'inline-flex items-center justify-center rounded-md border size-8 p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               className,
