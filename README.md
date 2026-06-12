@@ -63,6 +63,19 @@ Guided exploration backend: LLM agent pipeline, RAG services, SSE API.
 | `services/`      | Orchestrator, session/navigation state stores, RAG services, streaming, citation utils                                                            |
 | `composition.py` | Dependency wiring with `facade.py` as the module entry point                                                                                      |
 
+## Setup
+
+Setup is the same as for the main project (see [Getting Started](#getting-started) below):
+
+```bash
+make install
+cp web/.env.example web/.env.local
+cp ai-backend/.env.example ai-backend/.env
+make dev
+```
+
+Once both servers are running, the guided exploration is available at `http://localhost:3000/{context-id}/explore`
+
 The original project README follows below.
 
 ---
