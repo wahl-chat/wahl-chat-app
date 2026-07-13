@@ -1,0 +1,190 @@
+# CI pipeline — wahl.chat V2 (D-08, D-09, FOUND-05)
+#
+# Three jobs:
+#   backend    — uv ruff check + mypy + pytest (unit/integration, not smoke)
+#   frontend   — bun frozen install + bun audit (D-08 supply-chain gate) + build
+#   smoke-test — D-09 E2E SSE smoke test (needs: [backend, frontend])
+#
+# Key constraints (CLAUDE.md):
+#   - uv sync --locked  everywhere (locked installs only — no version bumping)
+#   - bun install --frozen-lockfile  (never bare bun install in CI)
+#   - bun audit gate (D-08 supply-chain hardening)
+#
+# Smoke-test determinism (D-09 / plan 01-08 Task 1):
+#   The smoke test uses in-process ASGI transport (httpx.ASGITransport) so
+#   monkeypatching works without a separately-running server.  The conftest
+#   patch_chat_io fixture patches the two primary external I/O calls:
+#     - src.chat_service.identify_relevant_docs_with_llm_based_reranking (Qdrant)
+#     - src.chatbot_async.stream_answer_from_llms (LLM stream)
+#   Therefore NO live Qdrant service, NO OpenAI/Gemini key, and NO Firestore
+#   emulator or real Firestore credentials are needed in the smoke-test job.
+#   The conftest.py sets os.environ.setdefault() for all required env vars
+#   (API_NAME, dummy API keys, FIRESTORE_EMULATOR_HOST) so module-level
+#   client instantiation succeeds without real credentials.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# A push to a branch that already has an open PR fires BOTH the `push` and the
+# `pull_request` events, double-running the pipeline. The `guard` job below lets
+# exactly one proceed: the push run when there is NO open PR for the branch, and
+# the pull_request run when a PR IS open (the push run then no-ops). Minimal token
+# scope — pull-requests:read for `gh pr list`, contents:read for checkout.
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Guard: dedupe push-vs-PR runs so the pipeline never runs twice for one push
+  # ---------------------------------------------------------------------------
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.decide.outputs.should_run }}
+    steps:
+      - name: Decide whether this run should proceed
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          # Via env (not inline ${{ }}) — branch names are attacker-controllable
+          # and would otherwise be a shell-injection vector in the run script.
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          # Non-push events (pull_request) always proceed.
+          if [ "$EVENT_NAME" != "push" ]; then
+            echo "$EVENT_NAME event → proceed"
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Push: proceed only when the branch has no open PR (else the PR run handles CI).
+          open_prs=$(gh pr list --repo "$GITHUB_REPOSITORY" \
+            --head "$REF_NAME" --state open --json number --jq 'length')
+          if [ "$open_prs" = "0" ]; then
+            echo "push with no open PR for '$REF_NAME' → proceed"
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "push but $open_prs open PR(s) for '$REF_NAME' → skip (PR run handles CI)"
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Backend: ruff + mypy + pytest (excludes smoke test — that is in smoke-test job)
+  # ---------------------------------------------------------------------------
+  backend:
+    needs: guard
+    if: needs.guard.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.11.x"
+          python-version: "3.12"
+
+      # Reproducible install — frozen lockfile only (CLAUDE.md)
+      - name: Install dependencies (locked)
+        run: uv sync --locked --no-dev
+
+      - name: Lint — ruff
+        run: uv run ruff check src/
+
+      - name: Type-check — mypy
+        run: uv run mypy src/
+
+      - name: Unit / integration tests (excluding smoke test)
+        run: |
+          uv run pytest tests/ -x \
+            --ignore=tests/test_chat_sse.py \
+            --ignore=tests/test_local_mode.py
+
+  # ---------------------------------------------------------------------------
+  # Frontend: bun frozen install + audit gate + lint + build
+  # ---------------------------------------------------------------------------
+  frontend:
+    needs: guard
+    if: needs.guard.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Reproducible install — never bare bun install in CI (CLAUDE.md)
+      - name: Install dependencies (frozen)
+        run: bun install --frozen-lockfile
+
+      # D-08: supply-chain hardening gate (CLAUDE.md "bun audit as CI gate")
+      # HARD-BLOCKING at --audit-level high: there are currently 0 critical/high
+      # findings (Next.js bumped to 15.x >=15.2.3, fixing GHSA-f82v-jwr5-mffw;
+      # unused `swiper` removed, fixing the GHSA-hmx5-qpq5-p643 prototype-pollution
+      # critical). Any new high/critical fails CI.
+      # Known remaining MODERATE findings are transitive and pinned upstream
+      # (held pins, D-07): jsondiffpatch + postcss via ai@4.x, uuid via
+      # firebase-admin. Tracked for a future dependency-update phase; they do not
+      # block the gate while it runs at `high`.
+      - name: Supply-chain audit (D-08)
+        run: bun audit --audit-level=high
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Build
+        run: bun run build
+
+  # ---------------------------------------------------------------------------
+  # Smoke-test: D-09 E2E SSE smoke test (depends on backend + frontend passing)
+  # ---------------------------------------------------------------------------
+  smoke-test:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-backend
+
+    # NOTE: No live Qdrant service container needed — the conftest.py mocks
+    # QdrantClient at import time and the patch_chat_io fixture patches
+    # identify_relevant_docs_with_llm_based_reranking + stream_answer_from_llms.
+    # No live LLM API keys or Firestore credentials needed.
+    # The conftest sets os.environ.setdefault() for all required env vars
+    # (using safe dummy values that allow module-level client instantiation).
+    # No "Start FastAPI backend" step needed — the test uses in-process ASGI
+    # transport (httpx.ASGITransport(app=app)) rather than a real HTTP server.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.11.x"
+          python-version: "3.12"
+
+      # Install all deps (including dev: pytest, httpx) for the smoke test
+      - name: Install dependencies (locked, with dev)
+        run: uv sync --locked
+
+      # D-09: E2E SSE smoke test — green CI means chat works.
+      # The test exercises the real FastAPI route, StreamingResponse SSE framing,
+      # and Vercel AI SDK data-stream protocol (f/0/8/e/d/[DONE]) in-process.
+      # Only the LLM stream and Qdrant search are patched (patch_chat_io fixture).
+      - name: SSE smoke test (D-09)
+        run: uv run pytest tests/test_chat_sse.py -x -v

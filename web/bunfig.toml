@@ -1,0 +1,11 @@
+# Supply-chain hardening (D-08), ported from the pnpm-era pnpm-workspace.yaml
+[install]
+# Quarantines packages published less than 7 days ago (bun default is 259200s = 3 days;
+# this MUST be set explicitly to mirror the pnpm minimumReleaseAge D-08 control, which
+# was 10080 minutes = 7 days).
+minimumReleaseAge = 604800
+
+# Note: pnpm's blockExoticSubdeps (blocks sub-dependencies installed via a package
+# manager other than the lockfile's own) has NO bun equivalent. Bun's only analog is
+# the third-party Security Scanner API, which is deliberately NOT added here — this
+# control is intentionally dropped, not silently lost.

@@ -1,0 +1,25 @@
+{
+  "party_id": "spd",
+  "claim_id": "mindestlohn-15-euro",
+  "region": "DE",
+  "events": [
+    {
+      "date": "2025-03-01",
+      "event": "Koalitionsvertrag nennt 15-Euro-Ziel als verbindliche Mindestlohnhöhe bis Ende 2025.",
+      "url": "https://www.bundesregierung.de/koalitionsvertrag-2025",
+      "event_type": "announcement"
+    },
+    {
+      "date": "2025-03-21",
+      "event": "Bundestag beschließt Gesetzentwurf zur Modernisierung des Mindestlohngesetzes mit Anhebung auf 15 Euro.",
+      "url": "https://www.bundestag.de/parlament/plenum/abstimmung/abstimmung?id=939",
+      "event_type": "legislation"
+    },
+    {
+      "date": "2025-05-01",
+      "event": "Mindestlohn von 15 Euro tritt in Kraft.",
+      "url": "https://www.bmas.de/mindestlohn-2025",
+      "event_type": "completed"
+    }
+  ]
+}

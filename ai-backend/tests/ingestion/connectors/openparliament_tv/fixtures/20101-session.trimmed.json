@@ -1,0 +1,232 @@
+{
+  "meta": {
+    "source": "openparliament.tv bulk processed/20101-session.json (TRIMMED test fixture)",
+    "note": "Hand-authored subset of a real op session file. FOUR data[] speech items covering every D-03 branch: (a) aligned+proceedings CDU/CSU main speaker, (b) unaligned, (c) ASR-only (generated), (d) minister with empty faction. Timestamps are per-speech-relative seconds as STRINGS (first sentence '1.000') exactly like the live bulk data.",
+    "parliament": "DE",
+    "electoralPeriod": 20,
+    "session": 101
+  },
+  "data": [
+    {
+      "parliament": "DE",
+      "electoralPeriod": { "number": 20 },
+      "session": { "number": 101, "dateStart": "2023-04-28T09:00:05+02:00", "dateEnd": "2023-04-28T14:30:00+02:00" },
+      "agendaItem": {
+        "title": "Stärkung der Aus- und Weiterbildungsförderung",
+        "officialTitle": "Tagesordnungspunkt 20",
+        "type": "regular"
+      },
+      "dateStart": "2023-04-28T10:12:00+02:00",
+      "dateEnd": "2023-04-28T10:18:30+02:00",
+      "media": {
+        "videoFileURI": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7553315/7553315_h264_1920_1080_5000kb_baseline_de_5000.mp4",
+        "audioFileURI": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7553315/7553315.mp3",
+        "sourcePage": "http://dbtg.tv/fvid/7553315",
+        "originMediaID": "7553315",
+        "duration": 390,
+        "creator": "Deutscher Bundestag",
+        "license": "&lt;a href=\"https://www.bundestag.de/nutzungsbedingungen\"&gt;Nutzungsbedingungen&lt;/a&gt;",
+        "aligned": true
+      },
+      "people": [
+        {
+          "type": "memberOfParliament",
+          "label": "Mareike Lotte Wulf",
+          "firstname": "Mareike Lotte",
+          "lastname": "Wulf",
+          "context": "main-speaker",
+          "faction": { "wid": "Q1023134", "label": "CDU/CSU", "wtype": "ORG" },
+          "wid": "Q41569156",
+          "wtype": "PERSON"
+        }
+      ],
+      "speechIndex": 3,
+      "textContents": [
+        {
+          "type": "proceedings",
+          "sourceURI": "https://de.openparliament.tv/api/v1/media/DE-0200101003",
+          "creator": "Deutscher Bundestag",
+          "license": "Public Domain",
+          "language": "de",
+          "originTextID": "DE-0200101003",
+          "textBody": [
+            {
+              "type": "speech",
+              "speaker": "Mareike Lotte Wulf",
+              "speakerstatus": "main-speaker",
+              "text": "Sehr geehrte Frau Präsidentin! Wir stärken die Aus- und Weiterbildungsförderung.",
+              "sentences": [
+                { "text": "Sehr geehrte Frau Präsidentin!", "timeStart": "1.000", "timeEnd": "2.800", "entities": [] },
+                { "text": "Wir stärken die Aus- und Weiterbildungsförderung.", "timeStart": "2.800", "timeEnd": "6.400", "entities": [] }
+              ]
+            },
+            {
+              "type": "comment",
+              "speaker": "Präsidentin",
+              "speakerstatus": "president",
+              "text": "(Beifall bei der CDU/CSU)",
+              "sentences": []
+            }
+          ]
+        }
+      ],
+      "documents": [],
+      "originalLanguage": "de"
+    },
+    {
+      "parliament": "DE",
+      "electoralPeriod": { "number": 20 },
+      "session": { "number": 101, "dateStart": "2023-04-28T09:00:05+02:00", "dateEnd": "2023-04-28T14:30:00+02:00" },
+      "agendaItem": {
+        "title": "Aktuelle Stunde zur Energiepolitik",
+        "officialTitle": "Tagesordnungspunkt 21",
+        "type": "regular"
+      },
+      "dateStart": "2023-04-28T11:05:00+02:00",
+      "dateEnd": "2023-04-28T11:12:00+02:00",
+      "media": {
+        "videoFileURI": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7553320/7553320_h264_1920_1080_5000kb_baseline_de_5000.mp4",
+        "audioFileURI": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7553320/7553320.mp3",
+        "sourcePage": "http://dbtg.tv/fvid/7553320",
+        "originMediaID": "7553320",
+        "duration": 420,
+        "creator": "Deutscher Bundestag",
+        "license": "&lt;a href=\"https://www.bundestag.de/nutzungsbedingungen\"&gt;Nutzungsbedingungen&lt;/a&gt;",
+        "aligned": false
+      },
+      "people": [
+        {
+          "type": "memberOfParliament",
+          "label": "Timon Gremmels",
+          "firstname": "Timon",
+          "lastname": "Gremmels",
+          "context": "main-speaker",
+          "faction": { "wid": "Q2207512", "label": "SPD", "wtype": "ORG" },
+          "wid": "Q1613538",
+          "wtype": "PERSON"
+        }
+      ],
+      "speechIndex": 7,
+      "textContents": [],
+      "documents": [],
+      "originalLanguage": "de"
+    },
+    {
+      "parliament": "DE",
+      "electoralPeriod": { "number": 20 },
+      "session": { "number": 101, "dateStart": "2023-04-28T09:00:05+02:00", "dateEnd": "2023-04-28T14:30:00+02:00" },
+      "agendaItem": {
+        "title": "Fragestunde",
+        "officialTitle": "Tagesordnungspunkt 22",
+        "type": "regular"
+      },
+      "dateStart": "2023-04-28T12:00:00+02:00",
+      "dateEnd": "2023-04-28T12:04:00+02:00",
+      "media": {
+        "videoFileURI": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7553330/7553330_h264_1920_1080_5000kb_baseline_de_5000.mp4",
+        "audioFileURI": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7553330/7553330.mp3",
+        "sourcePage": "http://dbtg.tv/fvid/7553330",
+        "originMediaID": "7553330",
+        "duration": 240,
+        "creator": "Deutscher Bundestag",
+        "license": "&lt;a href=\"https://www.bundestag.de/nutzungsbedingungen\"&gt;Nutzungsbedingungen&lt;/a&gt;",
+        "aligned": true
+      },
+      "people": [
+        {
+          "type": "memberOfParliament",
+          "label": "Peter Boehringer",
+          "firstname": "Peter",
+          "lastname": "Boehringer",
+          "context": "main-speaker",
+          "faction": { "wid": "Q42575708", "label": "AfD", "wtype": "ORG" },
+          "wid": "Q17123769",
+          "wtype": "PERSON"
+        }
+      ],
+      "speechIndex": 11,
+      "textContents": [
+        {
+          "type": "generated",
+          "sourceURI": "https://de.openparliament.tv/api/v1/media/DE-0200101011",
+          "creator": "openparliament.tv ASR",
+          "license": "Public Domain",
+          "language": "de",
+          "originTextID": "DE-0200101011-asr",
+          "textBody": [
+            {
+              "type": "speech",
+              "speaker": "Peter Boehringer",
+              "speakerstatus": "main-speaker",
+              "text": "Ich habe eine Frage an die Bundesregierung zur Haushaltslage.",
+              "sentences": [
+                { "text": "Ich habe eine Frage an die Bundesregierung zur Haushaltslage.", "timeStart": "1.000", "timeEnd": "5.200", "entities": [] }
+              ]
+            }
+          ]
+        }
+      ],
+      "documents": [],
+      "originalLanguage": "de"
+    },
+    {
+      "parliament": "DE",
+      "electoralPeriod": { "number": 20 },
+      "session": { "number": 101, "dateStart": "2023-04-28T09:00:05+02:00", "dateEnd": "2023-04-28T14:30:00+02:00" },
+      "agendaItem": {
+        "title": "Regierungserklärung zur Arbeitsmarktpolitik",
+        "officialTitle": "Tagesordnungspunkt 23",
+        "type": "regular"
+      },
+      "dateStart": "2023-04-28T13:00:00+02:00",
+      "dateEnd": "2023-04-28T13:10:00+02:00",
+      "media": {
+        "videoFileURI": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7553340/7553340_h264_1920_1080_5000kb_baseline_de_5000.mp4",
+        "audioFileURI": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7553340/7553340.mp3",
+        "sourcePage": "http://dbtg.tv/fvid/7553340",
+        "originMediaID": "7553340",
+        "duration": 600,
+        "creator": "Deutscher Bundestag",
+        "license": "&lt;a href=\"https://www.bundestag.de/nutzungsbedingungen\"&gt;Nutzungsbedingungen&lt;/a&gt;",
+        "aligned": true
+      },
+      "people": [
+        {
+          "type": "memberOfGovernment",
+          "label": "Hubertus Heil",
+          "firstname": "Hubertus",
+          "lastname": "Heil",
+          "context": "main-speaker",
+          "faction": { "wid": "", "label": "", "wtype": "ORG" },
+          "wid": "Q1636634",
+          "wtype": "PERSON"
+        }
+      ],
+      "speechIndex": 15,
+      "textContents": [
+        {
+          "type": "proceedings",
+          "sourceURI": "https://de.openparliament.tv/api/v1/media/DE-0200101015",
+          "creator": "Deutscher Bundestag",
+          "license": "Public Domain",
+          "language": "de",
+          "originTextID": "DE-0200101015",
+          "textBody": [
+            {
+              "type": "speech",
+              "speaker": "Hubertus Heil",
+              "speakerstatus": "main-speaker",
+              "text": "Als Bundesminister für Arbeit lege ich Ihnen die Eckpunkte vor. Wir schaffen sichere Arbeitsplätze.",
+              "sentences": [
+                { "text": "Als Bundesminister für Arbeit lege ich Ihnen die Eckpunkte vor.", "timeStart": "1.000", "timeEnd": "4.900", "entities": [] },
+                { "text": "Wir schaffen sichere Arbeitsplätze.", "timeStart": "4.900", "timeEnd": "7.300", "entities": [] }
+              ]
+            }
+          ]
+        }
+      ],
+      "documents": [],
+      "originalLanguage": "de"
+    }
+  ]
+}

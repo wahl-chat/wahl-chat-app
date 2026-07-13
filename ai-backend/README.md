@@ -8,7 +8,7 @@ SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 Python AI/RAG backend for [wahl.chat](https://wahl.chat/).
 
-Built with aiohttp, Socket.IO, LangChain, and Qdrant.
+Built with FastAPI, sse-starlette (Server-Sent Events), LangChain, and Qdrant. Dependencies are managed with **uv**.
 
 ## Localization
 
@@ -22,15 +22,14 @@ To adapt it for use in other countries, you will need to adjust the prompts and 
 ### 1. Install dependencies
 
 ```bash
-poetry install
-# With dev dependencies:
-poetry install --with dev
+uv sync            # all dependencies, including the dev group
+uv sync --no-dev   # runtime dependencies only
 ```
 
 ### 2. Install pre-commit hooks
 
 ```bash
-poetry run pre-commit install
+uv run pre-commit install
 ```
 
 ### 3. Configure environment variables
@@ -69,8 +68,10 @@ For CI/CD or Docker deployments, place a `wahl-chat-dev-firebase-adminsdk.json` 
 ### Locally
 
 ```bash
-poetry run python -m src.aiohttp_app --debug
+uv run python -m src.app --debug
 ```
+
+Or run the full stack (web + backend) from the repo root with `make dev`.
 
 ### Docker
 
@@ -95,12 +96,15 @@ Set `ENV=prod` in `.env` and use `wahl-chat-firebase-adminsdk.json` for producti
 
 ## Test
 
-Prerequisite: run the backend locally.
+The suite mocks Qdrant/embeddings (see `tests/conftest.py`), so no running backend or live stores are required.
 
 ```bash
-# All websocket tests
-poetry run pytest tests/test_websocket_app.py -s
+# Whole suite
+uv run pytest
 
-# Specific test
-poetry run pytest tests/test_websocket_app.py -k test_get_chat_answer -s
+# The SSE chat-endpoint tests
+uv run pytest tests/test_chat_sse.py
+
+# A specific test
+uv run pytest tests/test_chat_sse.py -k test_get_chat_answer -s
 ```

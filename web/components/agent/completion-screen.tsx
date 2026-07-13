@@ -1,10 +1,10 @@
 'use client';
 
+import CompletionCode from '@/components/prolific-study/completion-code';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { isProlificStudy } from '@/lib/prolific-study/prolific-metadata';
 import { Heart, PartyPopper } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { isProlificStudy } from '@/lib/prolific-study/prolific-metadata';
-import CompletionCode from '@/components/prolific-study/completion-code';
 
 export default function CompletionScreen() {
   const [showConfetti, setShowConfetti] = useState(false);

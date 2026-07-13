@@ -1,3 +1,8 @@
+# === Planning (local only) ===
+.planning/
+CLAUDE.md
+.claude/
+
 # === Common ===
 .DS_Store
 .idea/
@@ -5,7 +10,6 @@
 *.pem
 .next
 node_modules/
-.pnpm-store
 
 # === Environment / secrets ===
 .env
@@ -13,6 +17,16 @@ node_modules/
 !.env.example
 *firebase-adminsdk*.json
 
+# === Python runtime ===
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+*.egg-info/
+
 # === Misc ===
 *.log
 .local
+
+# === Local data files ===
+speeches.jsonl

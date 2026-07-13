@@ -1,6 +1,6 @@
+import type { ProlificMetadata } from '@/lib/prolific-study/prolific-metadata';
 import type { AgentTopic, ConversationStage } from '@/lib/stores/agent-store';
 import type { Source } from '@/lib/stores/chat-store.types';
-import { ProlificMetadata } from '@/lib/prolific-study/prolific-metadata';
 
 // Use Next.js API routes as proxy to avoid CORS issues
 const API_BASE_URL = '/api/agent';

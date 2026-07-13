@@ -168,14 +168,15 @@ async def _identify_relevant_documents(
 
     # Search directly using Qdrant client to preserve all metadata
     # Note: Using sync client in async context - this might need optimization later
-    search_result = qdrant_client.search(
+    search_result = qdrant_client.query_points(
         collection_name=vector_store.collection_name,
-        query_vector=("dense", query_vector),
+        query=query_vector,
+        using="dense",
         limit=n_docs,
         with_payload=True,
         query_filter=filter_condition,
         score_threshold=score_threshold,
-    )
+    ).points
 
     return _search_results_to_documents(search_result)
 
@@ -308,14 +309,15 @@ async def identify_relevant_votes(
         must=[FieldCondition(key="namespace", match=MatchValue(value="vote_summary"))]
     )
 
-    search_result = qdrant_client.search(
+    search_result = qdrant_client.query_points(
         collection_name=voting_behavior_vector_store.collection_name,
-        query_vector=("dense", query_vector),
+        query=query_vector,
+        using="dense",
         limit=n_docs,
         with_payload=True,
         query_filter=filter_condition,
         score_threshold=score_threshold,
-    )
+    ).points
 
     return _search_results_to_documents(search_result)
 
@@ -340,13 +342,14 @@ async def identify_relevant_parliamentary_questions(
         must=[FieldCondition(key="namespace", match=MatchValue(value=namespace))]
     )
 
-    search_result = qdrant_client.search(
+    search_result = qdrant_client.query_points(
         collection_name=parliamentary_questions_vector_store.collection_name,
-        query_vector=("dense", query_vector),
+        query=query_vector,
+        using="dense",
         limit=n_docs,
         with_payload=True,
         query_filter=filter_condition,
         score_threshold=score_threshold,
-    )
+    ).points
 
     return _search_results_to_documents(search_result)

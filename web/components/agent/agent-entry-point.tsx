@@ -2,11 +2,11 @@
 
 import { useAgentStore } from '@/components/providers/agent-store-provider';
 import { getStoredConversationId } from '@/lib/agent/conversation-storage';
+import { captureProlificParams } from '@/lib/prolific-study/prolific-metadata';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import AgentFlowController from './agent-flow-controller';
 import ResumeConversationPrompt from './resume-conversation-prompt';
-import { useSearchParams } from 'next/navigation';
-import { captureProlificParams } from '@/lib/prolific-study/prolific-metadata';
 
 export default function AgentEntryPoint() {
   const step = useAgentStore((state) => state.step);

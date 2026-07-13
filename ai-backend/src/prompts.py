@@ -64,6 +64,7 @@ def get_base_guidelines(
         - Gib nach jedem Satz eine Liste der Integer-IDs der Quellen an, die du für die Generierung dieses Satzes verwendet hast. Die Liste muss von eckigen Klammern [] umschlossen sein. Beispiel: [id] für eine Quelle oder [id1, id2, ...] für mehrere Quellen.
         - Falls du für einen Satz keine der Quellen verwendet hast, gib nach diesem Satz keine Quellen an und formatiere den Satz stattdessen _kursiv_.
         - Wenn du für deine Antwort Quellen aus Reden verwendest, formuliere die Aussagen der Redner nicht als Fakt, sondern im Konjunktiv. (Beispiel: <NAME> hebt hervor, dass Klimaschutz wichtig sei.)
+        - Quellenpriorität bei Widersprüchen: Bevorzuge Quellen mit höherer Vertrauensstufe (Reihenfolge: authoritative > factual_record > self_reported > promotional). Bei Widersprüchen zwischen Quellen unterschiedlicher Vertrauensstufe weise darauf hin und nutze die vertrauenswürdigere Quelle.
     - Antwortformat:
         - Antworte im Markdown-Format.
         - Nutze Überschriften (##, ###, etc.), Umbrüche, Absätze und Listen, um deine Antwort klar und übersichtlich zu strukturieren. Umbrüche kannst du in Markdown mit `  \n` nach der Quellenangabe einfügen (beachte den notwendigen Zeilenumbruch).
@@ -133,6 +134,55 @@ def get_party_vote_behavior_summary_guidelines():
         source_instructions=source_instructions,
         additional_style_instructions=additional_style_instructions,
     )
+
+
+# =============================================================================
+# Phase 10 — source-aware answer structuring (D1/D2/D3/D4/D5)
+# =============================================================================
+# Centralised German instruction fragments for the SINGLE-PARTY party answer's
+# four-section soft-lead-in shape (D1/D2), the always-when-present historic
+# section (D3), and the conditional coverage-transparency line (D4/D5). These are
+# composed by chatbot_async._source_structure_note so ALL German wording lives
+# here in one reviewable place and is never hardcoded as answer text in
+# chat_service. Plain string constants (no PromptTemplate) — they are appended to
+# answer_guidelines, which is substituted as a literal value into the system
+# prompt (so the illustrative "[N]" citation markers are never re-parsed).
+#
+# SOURCE_STRUCTURE_LEADINS_DE carries a single "{party_name}" placeholder that
+# _source_structure_note fills via str.format; the historic + coverage fragments
+# carry no placeholders and are appended verbatim.
+
+SOURCE_STRUCTURE_LEADINS_DE = """
+- **Quellenbewusste Struktur deiner Antwort:** Gliedere deine Antwort — soweit die bereitgestellten Quellen es hergeben — gedanklich in dieser Reihenfolge: (1) Position aus dem Wahlprogramm, (2) Abstimmungsverhalten, (3) Aussagen aus Reden, (4) historischer Kontext. Lass Abschnitte weg, für die es keine Quellen gibt — erfinde nichts.
+- Nutze erkennbare, natürliche sprachliche Übergänge, KEINE starren Formular-Überschriften, damit der Text als fließende Prosa lesbar bleibt. Die folgenden Übergänge sind nur ILLUSTRATIV (Stilbeispiele, nicht wörtlich zu übernehmen):
+    - Position (Wahlprogramm): „Im Wahlprogramm fordert/betont die {party_name}, dass … [N]"
+    - Abstimmungsverhalten: „Bei namentlichen Abstimmungen stimmte die {party_name} … [N]"
+    - Aussagen/Reden (im Konjunktiv): „In Reden betonte die {party_name}, dass … sei [N]"
+    - Historischer Kontext: „Historisch (aus früheren Jahren) … [N]"
+- Formuliere die Übergänge frei und dem Thema angemessen; die Beispiele zeigen nur den Stil, nicht den Wortlaut. Gib Aussagen aus Reden stets im Konjunktiv wieder.
+"""
+
+HISTORIC_SECTION_NOTE_DE = """
+- **Historischer Kontext (immer als letzter Abschnitt):** Es liegt dir Material aus früheren Jahren (ggf. aus mehreren früheren Legislaturperioden) vor. Ordne es klar erkennbar als historisch bzw. aus früheren Jahren ein und stelle es an das ENDE deiner Antwort. Vermische es nicht mit dem aktuellen Stand — die Nutzer:innen müssen erkennen können, was aktuell und was historisch ist.
+"""
+
+# Positive coverage preamble (replaces the earlier negative COVERAGE_*_ABSENT
+# clauses). Names the source types that DO ground the answer so the model opens
+# with a transparent, value-neutral "based on X, Y and Z" line. Rationale
+# (customer feedback): flagging a *missing* source type ("no voting record
+# found") implicitly frames speeches as a lesser source; a positive attribution
+# of what WAS found treats every source type as first-class. The present-source
+# list is composed by ``_source_structure_note`` from the SOURCE_LABEL_*_DE
+# fragments and interpolated into the single ``{present_sources}`` placeholder.
+SOURCE_COVERAGE_PREAMBLE_DE = """
+- **Transparenz zur Datenlage (Quellen-Vorspann):** Leite deine Antwort mit einem kurzen, natürlichen Satz ein, der offenlegt, auf welche Quellenarten sich die Einschätzung stützt: {present_sources}. Formuliere das positiv und wertneutral (etwa: „Zu diesem Thema liegen Informationen aus {present_sources} vor …"). Stelle KEINE Quellenart als minderwertig dar und weise NICHT tadelnd auf fehlende Quellenarten hin — Reden sind eine vollwertige, gleichwertige Quelle. Nenne nur Quellenarten, die dir tatsächlich vorliegen, und erfinde keine hinzu.
+"""
+
+# Dative-case labels for the coverage preamble's "aus {present_sources}" list.
+# Kept here so ALL German wording lives in prompts.py.
+SOURCE_LABEL_MANIFESTO_DE = "dem Wahlprogramm"
+SOURCE_LABEL_VOTES_DE = "namentlichen Abstimmungen"
+SOURCE_LABEL_SPEECHES_DE = "Reden"
 
 
 party_response_system_prompt_template_str = """

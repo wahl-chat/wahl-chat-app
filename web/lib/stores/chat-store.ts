@@ -25,11 +25,11 @@ import { setInput } from './actions/set-input';
 import { setMessageFeedback } from './actions/set-message-feedback';
 import { setPartyIds } from './actions/set-party-ids';
 import { setPreSelectedParties } from './actions/set-pre-selected-parties';
-import { setSocket } from './actions/set-socket';
-import { setSocketConnected } from './actions/set-socket-connected';
-import { setSocketConnecting } from './actions/set-socket-connecting';
-import { setSocketError } from './actions/set-socket-error';
-import { startTimeoutForStreamingMessages } from './actions/start-timeout-for-streaming-messages';
+// FIX 15: set-socket* action files removed (Socket.IO is gone; SSE replaces it).
+import {
+  resetStreamingMessageWatchdog,
+  startTimeoutForStreamingMessages,
+} from './actions/start-timeout-for-streaming-messages';
 import { streamingMessageSourcesReady } from './actions/streaming-message-sources-ready';
 import { updateQuickRepliesAndTitleForCurrentStreamingMessage } from './actions/update-quick-replies-and-title-for-current-streaming-message';
 import type { ChatStore, ChatStoreState } from './chat-store.types';
@@ -86,10 +86,8 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
         setChatSessionIsPublic: setChatSessionIsPublic(get, set),
         setMessageFeedback: setMessageFeedback(get, set),
         setPreSelectedParties: setPreSelectedParties(get, set),
-        setSocket: setSocket(get, set),
-        setSocketConnecting: setSocketConnecting(get, set),
-        setSocketConnected: setSocketConnected(get, set),
-        setSocketError: setSocketError(get, set),
+        // FIX 15: setSocket*, setSocketConnecting, setSocketConnected, setSocketError removed.
+        // Action files deleted; Socket.IO is replaced by SSE in this codebase.
         initializeChatSession: initializeChatSession(get, set),
         initializedChatSession: initializedChatSession(get, set),
         streamingMessageSourcesReady: streamingMessageSourcesReady(get, set),
@@ -103,6 +101,7 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
           get,
           set,
         ),
+        resetStreamingMessageWatchdog: resetStreamingMessageWatchdog(get, set),
         completeProConPerspective: completeProConPerspective(get, set),
         generateSharingSnapshotLink: generateSharingSnapshotLink(get, set),
         generateVotingBehaviorSummary: generateVotingBehaviorSummary(get, set),
@@ -118,7 +117,7 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
           set({ prolificDisclaimerDismissed }),
         incrementProlificMessageCount: () =>
           set((state) => {
-              state.prolificMessageCount = state.prolificMessageCount + 1;
+            state.prolificMessageCount = state.prolificMessageCount + 1;
           }),
         setProlificMessageCount: (prolificMessageCount) =>
           set({ prolificMessageCount }),

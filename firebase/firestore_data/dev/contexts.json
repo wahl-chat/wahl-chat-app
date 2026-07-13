@@ -10,7 +10,10 @@
     "icon_url": null,
     "supports_swiper": true,
     "supports_voting_behavior": true,
-    "relevant_area": null
+    "relevant_area": null,
+    "region_path": ["DE"],
+    "legislature_period_id": 161,
+    "level": "federal"
   },
   "landtagswahl-baden-wuerttemberg-2026": {
     "context_id": "landtagswahl-baden-wuerttemberg-2026",
@@ -23,7 +26,9 @@
     "icon_url": null,
     "supports_swiper": false,
     "supports_voting_behavior": false,
-    "relevant_area": "Baden-Württemberg"
+    "relevant_area": "Baden-Württemberg",
+    "region_path": ["DE", "DE-BW"],
+    "level": "state"
   },
   "kommunalwahl-muenchen-2026": {
     "context_id": "kommunalwahl-muenchen-2026",
@@ -36,7 +41,9 @@
     "icon_url": null,
     "supports_swiper": false,
     "supports_voting_behavior": false,
-    "relevant_area": "München"
+    "relevant_area": "München",
+    "region_path": ["DE", "DE-BY", "DE-BY-MUC"],
+    "level": "municipal"
   },
   "landtagswahl-rheinland-pfalz-2026": {
     "context_id": "landtagswahl-rheinland-pfalz-2026",
@@ -49,6 +56,8 @@
     "icon_url": null,
     "supports_swiper": false,
     "supports_voting_behavior": false,
-    "relevant_area": "Rheinland-Pfalz"
+    "relevant_area": "Rheinland-Pfalz",
+    "region_path": ["DE", "DE-RP"],
+    "level": "state"
   }
 }

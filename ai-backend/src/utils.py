@@ -101,10 +101,13 @@ def build_chat_history_string(
 def build_document_string_for_context(
     doc_num: int, doc: Document, doc_num_label="ID"
 ) -> str:
+    # Include authority_tier when present so the LLM can weigh source trust.
+    authority_tier = doc.metadata.get("authority_tier")
+    authority_line = f"- Vertrauensstufe: {authority_tier}\n" if authority_tier else ""
     return f"""{doc_num_label}: {doc_num}
 - Dokumentname: {doc.metadata.get("document_name", "unbekannt")}
 - Veröffentlichungsdatum: {doc.metadata.get("document_publish_date", "unbekannt")}
-- Inhalt: "{doc.page_content}"
+{authority_line}- Inhalt: "{doc.page_content}"
 """
 
 

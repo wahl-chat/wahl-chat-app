@@ -13,45 +13,63 @@ import {
   getApp,
   initializeApp,
 } from 'firebase-admin/app';
-import { Timestamp, getFirestore } from 'firebase-admin/firestore';
+import {
+  type Firestore,
+  Timestamp,
+  getFirestore,
+} from 'firebase-admin/firestore';
 import { unstable_cache as cache } from 'next/cache';
 import { getCurrentUser } from './firebase-server';
 import type { ShareableChatSessionSnapshot, Tenant } from './firebase.types';
 
-let app: FirebaseApp;
+// Lazily initialize the Firebase Admin app + Firestore on first use rather than
+// at module load. Importing this module (e.g. from app/layout.tsx, which every
+// page pulls in) must not require Firebase env vars at build time — the env check
+// only runs when a server action actually touches Firestore at request time,
+// where credentials are present. Keeps `next build` secret-independent.
+let _db: Firestore | undefined;
 
-try {
-  app = getApp();
-} catch (error) {
-  console.log('Initializing Firebase Admin App', error);
-
-  const {
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    FIREBASE_CLIENT_EMAIL,
-    FIREBASE_PRIVATE_KEY,
-  } = process.env;
-
-  if (
-    !NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
-    !FIREBASE_CLIENT_EMAIL ||
-    !FIREBASE_PRIVATE_KEY
-  ) {
-    throw new Error('Missing Firebase environment variables.');
+function getDb(): Firestore {
+  if (_db) {
+    return _db;
   }
 
-  app = initializeApp({
-    credential: credential.cert({
-      projectId: NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      clientEmail: FIREBASE_CLIENT_EMAIL,
-      privateKey: FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    }),
-  });
+  let app: FirebaseApp;
+
+  try {
+    app = getApp();
+  } catch (error) {
+    console.log('Initializing Firebase Admin App', error);
+
+    const {
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      FIREBASE_CLIENT_EMAIL,
+      FIREBASE_PRIVATE_KEY,
+    } = process.env;
+
+    if (
+      !NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+      !FIREBASE_CLIENT_EMAIL ||
+      !FIREBASE_PRIVATE_KEY
+    ) {
+      throw new Error('Missing Firebase environment variables.');
+    }
+
+    app = initializeApp({
+      credential: credential.cert({
+        projectId: NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        clientEmail: FIREBASE_CLIENT_EMAIL,
+        privateKey: FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      }),
+    });
+  }
+
+  _db = getFirestore(app);
+  return _db;
 }
 
-const db = getFirestore(app);
-
 export async function createShareableSession(sessionId: string) {
-  const sessionRef = db.collection('chat_sessions').doc(sessionId);
+  const sessionRef = getDb().collection('chat_sessions').doc(sessionId);
 
   const session = await sessionRef.get();
 
@@ -70,7 +88,7 @@ export async function createShareableSession(sessionId: string) {
 
   const messagesData = messages.docs.map((doc) => doc.data());
 
-  const shareableSessionSnapshotRef = await db
+  const shareableSessionSnapshotRef = await getDb()
     .collection('shareable_chat_session_snapshots')
     .add({
       session_id: session.id,
@@ -105,6 +123,7 @@ export async function copySharedChatSession(
     throw new Error('User not found');
   }
 
+  const db = getDb();
   const snapshotRef = db
     .collection('shareable_chat_session_snapshots')
     .doc(snapshotId);
@@ -143,6 +162,7 @@ export async function copySharedChatSession(
 }
 
 export async function getSnapshotImpl(snapshotId: string) {
+  const db = getDb();
   const snapshotRef = db
     .collection('shareable_chat_session_snapshots')
     .doc(snapshotId);
@@ -179,7 +199,7 @@ export async function getTenantImpl(tenantId?: string | null) {
     return;
   }
 
-  const tenantRef = db.collection('tenants').doc(tenantId);
+  const tenantRef = getDb().collection('tenants').doc(tenantId);
   const tenant = await tenantRef.get();
 
   if (!tenant.exists) {

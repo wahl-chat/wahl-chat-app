@@ -6,6 +6,7 @@ from typing import Optional
 import firebase_admin
 from firebase_admin import firestore, credentials, firestore_async
 import google.auth
+import google.auth.credentials
 import google.auth.transport.requests
 from google.auth.exceptions import RefreshError
 from pathlib import Path
@@ -24,10 +25,35 @@ credentials_path = (
     else "wahl-chat-dev-firebase-adminsdk.json"
 )
 
+# Local/CI runs talk to the Firestore emulator (FIRESTORE_EMULATOR_HOST set) and
+# must never require real credentials. In that mode, initialize with
+# anonymous credentials + an explicit project id so firebase_admin performs NO
+# Application Default Credentials lookup at all (ADC is absent in CI and would
+# otherwise raise DefaultCredentialsError when the Firestore client is built).
+emulator_mode = bool(os.getenv("FIRESTORE_EMULATOR_HOST"))
+
+
+class _EmulatorCredentials(credentials.Base):
+    """No-auth credential for the Firestore emulator — never contacts an IdP."""
+
+    def get_credential(self) -> google.auth.credentials.Credentials:
+        return google.auth.credentials.AnonymousCredentials()
+
+
 # If the credentials file does not exist, use the application default credentials
 if Path(credentials_path).exists():
     cred = credentials.Certificate(credentials_path)
     firebase_admin.initialize_app(cred)
+elif emulator_mode:
+    project_id = (
+        os.getenv("GOOGLE_CLOUD_PROJECT")
+        or os.getenv("GCLOUD_PROJECT")
+        or os.getenv("FIREBASE_PROJECT_ID")
+        or "demo-wahl-chat"
+    )
+    firebase_admin.initialize_app(
+        _EmulatorCredentials(), options={"projectId": project_id}
+    )
 else:
     firebase_admin.initialize_app()
 
@@ -44,6 +70,9 @@ def _validate_credentials():
     """
     if Path(credentials_path).exists():
         return  # Using service account JSON — no expiry issues
+
+    if emulator_mode:
+        return  # Firestore emulator — no ADC to validate
 
     try:
         adc_credentials, _ = google.auth.default()

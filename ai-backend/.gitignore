@@ -184,3 +184,14 @@ cython_debug/
 
 .DS_Store
 .local
+
+# Local manifesto PDF storage (ingest_manifestos.py) — never commit PDFs
+.local_storage/
+
+# MdB-Stammdaten data files (15 MB XML + DTD) — download manually, never commit
+# Download: https://www.bundestag.de/resource/blob/472878/MdB-Stammdaten.xml
+#           → ai-backend/data/MDB_STAMMDATEN.XML
+# DTD:      https://www.bundestag.de/resource/blob/1112466/MdB-Stammdaten_dtd.dtd
+#           → ai-backend/data/MDB_STAMMDATEN.DTD
+data/MDB_STAMMDATEN.XML
+data/MDB_STAMMDATEN.DTD

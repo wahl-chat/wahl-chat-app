@@ -2,6 +2,10 @@
 """
 Seed Firestore with contexts, parties, and proposed questions data.
 
+Phase 5 (D-10): source_items, questions, question_stance_pairs, topics,
+claims, and ingestion_watermarks collections are no longer seeded — those
+data paths moved to Qdrant ChunkRecords (vote_record + pledge_record).
+
 Usage (from the firebase/ directory):
     python scripts/seed_firestore.py
 
@@ -32,72 +36,60 @@ from pathlib import Path
 import firebase_admin
 from firebase_admin import credentials, firestore
 
+# --- Emulator guard (LOCAL-02 / RESEARCH.md Pitfall 7) ---
+# Refuse to run unless the Firestore emulator host is explicitly set.
+# This prevents accidental writes to production Firestore during local dev.
+if not os.getenv("FIRESTORE_EMULATOR_HOST"):
+    print(
+        "\n"
+        "============================================================\n"
+        " ERROR: FIRESTORE_EMULATOR_HOST is not set.\n"
+        " Refusing to seed — this would write to production Firestore.\n"
+        "\n"
+        " To seed the local emulator, run:\n"
+        "   FIRESTORE_EMULATOR_HOST=localhost:8081 python seed_firestore.py\n"
+        " or use the Makefile target:\n"
+        "   make seed-local\n"
+        "============================================================\n"
+    )
+    sys.exit(1)
+
 # Configuration
 ENV = os.getenv("ENV", "dev")
 SCRIPT_DIR = Path(__file__).parent
 FIREBASE_DIR = SCRIPT_DIR.parent
-REPO_ROOT = FIREBASE_DIR.parent
 DATA_DIR = FIREBASE_DIR / "firestore_data" / ENV
 
-# Service account JSON file (looked up in ai-backend/ where it's typically placed)
-CREDENTIALS_FILE = (
-    "wahl-chat-firebase-adminsdk.json"
-    if ENV == "prod"
-    else "wahl-chat-dev-firebase-adminsdk.json"
-)
-
-
-def _find_credentials_file():
-    """Search for the service account JSON in common locations."""
-    search_paths = [
-        REPO_ROOT / "ai-backend" / CREDENTIALS_FILE,
-        REPO_ROOT / CREDENTIALS_FILE,
-        Path.cwd() / CREDENTIALS_FILE,
-    ]
-    for path in search_paths:
-        if path.exists():
-            return path
-    return None
-
-
-def _validate_adc():
-    """Validate Application Default Credentials and give a clear error if expired."""
-    try:
-        import google.auth
-        import google.auth.transport.requests
-        from google.auth.exceptions import RefreshError
-
-        adc_credentials, _ = google.auth.default()
-        adc_credentials.refresh(google.auth.transport.requests.Request())
-    except RefreshError:
-        print(
-            "\n"
-            "============================================================\n"
-            " Firebase credentials have expired.\n"
-            " Run 'make auth' or 'gcloud auth application-default login'\n"
-            " to re-authenticate.\n"
-            "============================================================\n"
-        )
-        sys.exit(1)
-    except ImportError:
-        pass  # google.auth not installed; let firebase_admin handle it
-    except Exception as e:
-        print(f"⚠️  Could not validate credentials: {e}")
-
-
 def initialize_firebase():
-    """Initialize Firebase Admin SDK."""
-    cred_path = _find_credentials_file()
+    """Initialize Firebase Admin SDK against the Firestore emulator.
 
-    if cred_path:
-        print(f"Using credentials: {cred_path}")
-        cred = credentials.Certificate(str(cred_path))
-        firebase_admin.initialize_app(cred)
-    else:
-        print("Using Application Default Credentials (gcloud ADC)")
-        _validate_adc()
-        firebase_admin.initialize_app()
+    This script only ever runs against the emulator (the FIRESTORE_EMULATOR_HOST
+    guard above hard-exits otherwise), so it initializes with anonymous
+    credentials + an explicit project id and performs NO Application Default
+    Credentials lookup — the emulator needs no real credentials (LOCAL-02). This
+    avoids failing when gcloud ADC is absent or expired.
+    """
+    import google.auth.credentials
 
+    class _EmulatorCredentials(credentials.Base):
+        """No-auth credential for the Firestore emulator."""
+
+        def get_credential(self):
+            return google.auth.credentials.AnonymousCredentials()
+
+    project_id = (
+        os.getenv("GOOGLE_CLOUD_PROJECT")
+        or os.getenv("GCLOUD_PROJECT")
+        or os.getenv("FIREBASE_PROJECT_ID")
+        or "demo-wahl-chat"
+    )
+    print(
+        f"Connecting to Firestore emulator at "
+        f"{os.environ['FIRESTORE_EMULATOR_HOST']} (project: {project_id})"
+    )
+    firebase_admin.initialize_app(
+        _EmulatorCredentials(), options={"projectId": project_id}
+    )
     return firestore.client()
 
 

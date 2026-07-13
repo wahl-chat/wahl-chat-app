@@ -1,0 +1,31 @@
+{
+  "gate": "SC6",
+  "status": "APPROVED",
+  "reviewer": "Annika Siefke",
+  "date": "2026-06-07",
+  "gate_description": "SC6 — derived/external pledge contract reviewed and agreed before Phase 3 connector work begins.",
+  "decisions": {
+    "D-01": {
+      "label": "Pledges never in Qdrant",
+      "confirmation": "Pledge records are never embedded into Qdrant. They are a derived, external source maintained in Firestore only."
+    },
+    "D-02": {
+      "label": "grounded_in links to corpus",
+      "confirmation": "`grounded_in[]` points to `source_item_ids` (pledge→corpus, one-directional, D-02)."
+    },
+    "D-03": {
+      "label": "Firestore key and indexed fields",
+      "confirmation": "Pledge keying is `{party_id}_{claim_id}_{region}` with `party_id`, `claim_id`, `region`, and `as_of_date` as queryable indexed top-level fields — `where(\"party_id\",\"==\",\"spd\")` is supported (D-03, not hash-only)."
+    },
+    "D-04": {
+      "label": "Status vocabulary provisional",
+      "confirmation": "`PledgeStatus` / `PledgeEventType` vocabulary is accepted as a provisional Phase-2 snapshot; `raw` buffer absorbs Cambridge-endpoint drift (D-04)."
+    },
+    "D-05": {
+      "label": "claims/ shape agreed",
+      "confirmation": "`claims/` shape `{text, party_id, topic_id?, region, made_on}` is agreed (D-05)."
+    }
+  },
+  "unblocked": "Phase 3 connector work is **unblocked**.",
+  "superseded_note": "Phase-5 D-04 supersedes Phase-2 decisions D-01..D-05: pledge records are now embedded into Qdrant as ChunkRecords with source_type=pledge_record (not stored as Firestore records). The Phase-2 SC6 sign-off (status APPROVED, 2026-06-07) transitively covers the superseded Firestore-pledge design; a fresh Phase-5 SC6 sign-off against the regenerated single-store CONTRACT.md may be warranted at the developer's discretion."
+}

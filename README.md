@@ -6,7 +6,7 @@ SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 # wahl.chat
 
-The leading political information chatbot for the German federal elections 2025.
+A grounded, source-cited political-information chatbot for German elections — federal, state, and local.
 
 **Application**: https://wahl.chat/
 **About**: https://wahl.chat/about-us
@@ -21,16 +21,22 @@ The aim of wahl.chat is to enable users to engage in a contemporary way with the
 | Directory | Description | Docs |
 |---|---|---|
 | [`web/`](web/) | Next.js frontend application | [README](web/README.md) |
-| [`ai-backend/`](ai-backend/) | Python AI/RAG backend (aiohttp + Socket.IO + LangChain) | [README](ai-backend/README.md) |
+| [`ai-backend/`](ai-backend/) | Python AI/RAG backend (FastAPI + SSE + LangChain) | [README](ai-backend/README.md) |
 | [`firebase/`](firebase/) | Firebase config, Cloud Functions, Firestore rules & seed data | [README](firebase/README.md) |
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 18+ and [Bun](https://bun.sh/) (for `web/`)
-- [Python](https://www.python.org/) 3.11+ and [Poetry](https://python-poetry.org/) (for `ai-backend/`)
-- [Firebase CLI](https://firebase.google.com/docs/cli) (for `firebase/`)
+- [Node.js](https://nodejs.org/) 22+
+- [bun](https://bun.sh/) 1.3.x — install via Homebrew: `brew install bun`, or `curl -fsSL https://bun.sh/install | bash`
+- [uv](https://docs.astral.sh/uv/) 0.11.x — `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- [Docker](https://www.docker.com/) 29+ with Compose v5+
+- [Firebase CLI](https://firebase.google.com/docs/cli) 15.x — `npm install -g firebase-tools`
+
+## Local development
+
+No production credentials needed. All data stores run locally.
 
 ### 1. Install dependencies
 
@@ -41,19 +47,61 @@ make install
 ### 2. Configure environment variables
 
 ```bash
-cp web/.env.example web/.env.local
 cp ai-backend/.env.example ai-backend/.env
+cp web/.env.example web/.env.local
 ```
 
-See sub-project READMEs for details on required variables.
+The `.env.example` files are pre-configured for local mode (`QDRANT_URL=http://localhost:6333`, `FIRESTORE_EMULATOR_HOST=localhost:8081`, `STORAGE_EMULATOR_HOST=http://localhost:4443`). You only need to fill in LLM API keys (`OPENAI_API_KEY`, `GOOGLE_API_KEY`) for the chat to work.
 
-### 3. Run development servers
+### 3. Start local data stores
+
+```bash
+make stores-up
+```
+
+This starts Qdrant and fake-gcs-server via Docker Compose, and starts the Firestore emulator via Firebase CLI on port 8081 (avoids the default 8080 clash with the backend).
+
+### 4. Seed local data
+
+```bash
+FIRESTORE_EMULATOR_HOST=localhost:8081 make seed-local
+```
+
+Loads scrubbed fixture data (election contexts, parties, proposed questions) into the local Firestore emulator. The seed script refuses to run without `FIRESTORE_EMULATOR_HOST` set — it will never write to production.
+
+### 5. Start development servers
 
 ```bash
 make dev
 ```
 
+Or start everything at once (stores + servers):
+
+```bash
+make dev-local
+```
+
 This starts both the Next.js frontend (`localhost:3000`) and the Python backend (`localhost:8080`).
+
+### Stopping local stores
+
+```bash
+make stores-down
+```
+
+### Makefile targets
+
+| Target | Description |
+|--------|-------------|
+| `make install` | Install all dependencies (web + backend) |
+| `make stores-up` | Start Qdrant, fake-gcs-server (Docker) and Firestore emulator (host process) |
+| `make stores-down` | Stop all local stores |
+| `make seed-local` | Load scrubbed fixtures into local stores (requires `FIRESTORE_EMULATOR_HOST`) |
+| `make dev-local` | Start stores + both dev servers |
+| `make dev` | Start both dev servers (assumes stores are already running) |
+| `make test-backend` | Run backend unit tests |
+| `make test-smoke` | Run E2E SSE smoke test |
+| `make lint` | Lint web (biome) + backend (ruff) |
 
 ## Contributing
 

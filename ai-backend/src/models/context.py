@@ -60,6 +60,34 @@ class Context(BaseModel):
         ...,
         description="Relevant area for the context to check which is the most relevant context for a user",
     )
+    region_path: list[str] = Field(
+        default_factory=lambda: ["DE"],
+        description=(
+            "ISO 3166-2 style region ancestry path (most-general first), used as a "
+            "MatchAny filter on the chunk-level scalar `region` field for "
+            "election-scoped retrieval. Federal = ['DE']."
+        ),
+    )
+    legislature_period_id: Optional[int] = Field(
+        None,
+        description=(
+            "AW parliament_period ID for election-scoped vote retrieval. "
+            "Set for election contexts that have Landtag or Bundestag vote data. "
+            "None for general/municipal contexts or elections without vote data. "
+            "Backward compat: existing Firestore docs without this field deserialize "
+            "to None (Pydantic Optional default)."
+        ),
+    )
+    # Governance level for the election context.
+    level: Optional[str] = Field(
+        None,
+        description=(
+            "Governance level for the election context. "
+            "Values: 'federal' | 'state' | 'municipal'. "
+            "Default None is treated as 'federal' by chat_service.py. "
+            "Backward compat: existing Firestore docs without field deserialize to None."
+        ),
+    )
 
 
 class ContextParty(BaseModel):
