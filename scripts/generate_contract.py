@@ -27,8 +27,6 @@ try:
     from ingestion.schemas import (
         AuthorityTier,
         ChunkRecord,
-        PledgeEventType,
-        PledgeStatus,
         SourceType,
     )
     # Phase 5 (D-10): matcher.schemas deleted — no import from matcher
@@ -120,6 +118,12 @@ def _render_sc6_signoff() -> list[str]:
     Reads scripts/contract_signoff.json.  If the file is absent or status is
     not APPROVED, renders a clearly-marked "review pending" placeholder so the
     gate state is always visible and the generator never crashes.
+
+    Note: the derived/external-source contract this gate originally covered
+    was removed from the milestone (see quick task 260714-da9). The sign-off
+    record is retained for provenance via `provenance_note` in
+    contract_signoff.json — it no longer describes any contract present in
+    the current schema.
     """
     placeholder = [
         "---",
@@ -127,7 +131,7 @@ def _render_sc6_signoff() -> list[str]:
         "## SC6 Review Sign-off",
         "",
         "> **Status:** PENDING",
-        "> **Gate:** SC6 — derived/external pledge contract review not yet completed.",
+        "> **Gate:** SC6 — derived/external source contract review not yet completed.",
         "> _(Update `scripts/contract_signoff.json` with status APPROVED to record approval.)_",
         "",
     ]
@@ -146,9 +150,7 @@ def _render_sc6_signoff() -> list[str]:
     reviewer = data.get("reviewer", "")
     review_date = data.get("date", "")
     gate_desc = data.get("gate_description", "")
-    decisions = data.get("decisions", {})
-    unblocked = data.get("unblocked", "")
-    superseded_note = data.get("superseded_note", "")
+    provenance_note = data.get("provenance_note", "")
 
     lines = [
         "---",
@@ -161,32 +163,13 @@ def _render_sc6_signoff() -> list[str]:
         f"> **Gate:** {gate_desc}",
     ]
 
-    # Render the supersession note (if any) BEFORE the Phase-2 confirmations, so a
-    # reader can't mistake the superseded Firestore-pledge design for current behaviour.
-    if superseded_note:
+    if provenance_note:
         lines += [
             ">",
-            f"> ⚠️ **Superseded.** {superseded_note}",
+            f"> {provenance_note}",
         ]
 
-    lines += [
-        ">",
-        '> The "Derived / External Sources (Pledge Contract)" section above (Phase-2 pledge design:',
-        "> PledgeStatus, PledgeEventType) has been reviewed and explicitly approved:",
-        ">",
-    ]
-
-    # Emit decisions in sorted key order so output is stable across Python versions.
-    for key in sorted(decisions.keys()):
-        entry = decisions[key]
-        confirmation = entry.get("confirmation", "")
-        lines.append(f"> - {confirmation}")
-
-    lines += [
-        ">",
-        f"> {unblocked}",
-        "",
-    ]
+    lines.append("")
     return lines
 
 
@@ -228,40 +211,6 @@ def main() -> None:
     ]
     out += _render_enum(AuthorityTier)
     out += _render_enum(SourceType)
-
-    # -----------------------------------------------------------------------
-    # Derived / External Sources (Pledge Contract) — SC6
-    # -----------------------------------------------------------------------
-    out += [
-        "---",
-        "",
-        "## Derived / External Sources (Pledge Contract)",
-        "",
-        "Pledge records represent the fulfillment status of political pledges tracked by",
-        "external sources (e.g. the Cambridge PledgeTracker project). Phase 5 (D-04):",
-        "pledges are embedded into Qdrant as ChunkRecords with `source_type=pledge_record`.",
-        "The filterable fields `status`, `as_of_date`, and `claim_id` live on `ChunkRecord`",
-        "(Qdrant payload indexes) — no separate Firestore pledges/ collection.",
-        "",
-        "**Key design decisions (D-04..D-06):**",
-        "",
-        "- **D-04:** Pledge records ARE embedded into Qdrant as ChunkRecords (Phase-5 reversal",
-        "  of Phase-2 no-embed decision). `source_type=pledge_record` distinguishes them.",
-        "- **D-05:** `status`, `as_of_date`, and `claim_id` are Qdrant payload fields",
-        "  on ChunkRecord, enabling per-status / per-claim Qdrant filtering.",
-        "- **D-06:** Pledge fulfillment status is public governmental commitment data, NOT",
-        "  GDPR Art. 9 special-category data — embedding is permitted.",
-        "- **Phase 5 removed:** `src/matcher/` package (Topic, Claim, Question,",
-        "  QuestionStancePair Firestore models) — deleted in D-10.",
-        "",
-    ]
-    # Pledge enums
-    out += [
-        "### Pledge Enums",
-        "",
-    ]
-    out += _render_enum(PledgeStatus)
-    out += _render_enum(PledgeEventType)
 
     # -----------------------------------------------------------------------
     # SC6 Review Sign-off (data-driven — reads scripts/contract_signoff.json)

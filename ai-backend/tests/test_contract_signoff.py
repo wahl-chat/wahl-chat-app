@@ -75,10 +75,10 @@ def test_sc6_date_present(regenerated_contract: str) -> None:
     )
 
 
-def test_sc6_unblocked_line(regenerated_contract: str) -> None:
-    """SC6 regression: the 'unblocked' conclusion must appear in the sign-off."""
-    assert "Phase 3 connector work is **unblocked**" in regenerated_contract, (
-        "SC6 Review Sign-off is missing the 'unblocked' conclusion line. "
+def test_sc6_provenance_note_present(regenerated_contract: str) -> None:
+    """SC6 regression: the provenance note must appear in the sign-off."""
+    assert "removed from the milestone" in regenerated_contract, (
+        "SC6 Review Sign-off is missing the provenance note. "
         "Check scripts/contract_signoff.json."
     )
 
