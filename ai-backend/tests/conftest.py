@@ -224,6 +224,7 @@ def patch_chat_io(monkeypatch: pytest.MonkeyPatch) -> None:
       - src.chat_service.awrite_cached_answer_for_party
       - src.llms.awrite_llm_status  (called by handle_rate_limit_hit)
       - src.chatbot_async.aget_context_by_id
+      - src.chat_service.aget_context_by_id  (direct import for region_path fetch)
       - src.chatbot_async.get_question_targets_and_type
       - src.chatbot_async.generate_improvement_rag_query
       - src.chatbot_async.generate_chat_title_and_chick_replies
@@ -285,6 +286,14 @@ def patch_chat_io(monkeypatch: pytest.MonkeyPatch) -> None:
     # and generate_streaming_chatbot_response — patching the importers:
     monkeypatch.setattr(
         "src.chatbot_async.aget_context_by_id",
+        _fake_aget_context_by_id,
+    )
+    # chat_service imports aget_context_by_id directly (region_path fetch at the
+    # top of generate_chat_stream) — without this use-site patch the smoke test
+    # makes a live Firestore call, which times out (~300s) in CI where no
+    # emulator listens on FIRESTORE_EMULATOR_HOST.
+    monkeypatch.setattr(
+        "src.chat_service.aget_context_by_id",
         _fake_aget_context_by_id,
     )
 
