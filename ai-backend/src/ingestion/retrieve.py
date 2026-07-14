@@ -119,10 +119,6 @@ SourceTypeLiteral = Literal[
     "drucksache",
     "qa_transcript",
     "parliamentary_speech",
-    # pledge_record: forward-looking — contract defined but NOT yet ingested into
-    # the corpus and NOT wired into any chat retrieval call. Added here for
-    # enum/contract consistency.
-    "pledge_record",
 ]
 
 AuthorityTierLiteral = Literal[

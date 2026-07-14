@@ -4,7 +4,7 @@
 
 """
 Create ``wahlchat_chunks_{env}`` with HNSW m=0/payload_m=16, 3072-dim COSINE
-vectors, and all sixteen payload indexes — run BEFORE any upsert.
+vectors, and all thirteen payload indexes — run BEFORE any upsert.
 
     uv run python -m src.ingestion.setup_collection
 
@@ -67,13 +67,10 @@ _client = QdrantClient(
 # source_type:    keyword (party_manifesto | vote_record | …).
 # publish_date:   datetime (context-window scoping at query time).
 # source_item_id: uuid (per-source lookup and dedup checks).
-# Cursor + pledge payload fields:
+# Cursor field:
 # external_id:    integer range index for order_by DESC cursor.
 #                 MUST use IntegerIndexParams(range=True) — shorthand PayloadSchemaType.INTEGER
 #                 may not enable range support and silently breaks the cursor query.
-# status:         keyword (pledge fulfillment status filtering).
-# as_of_date:     datetime (pledge recency scoping).
-# claim_id:       keyword (cross-party claim lookup).
 # Envelope+meta fields:
 # wahlperiode:    integer equality index (Wahlperiode number, e.g. 19 for 19th Bundestag).
 #                 lookup=True for MatchValue equality; range=False (no range needed).
@@ -107,7 +104,7 @@ _INDEX_SPECS: list[tuple[str, models.PayloadSchemaType | models.KeywordIndexPara
         "source_item_id",
         models.UuidIndexParams(type=models.UuidIndexType.UUID),
     ),
-    # Cursor + pledge payload fields:
+    # Cursor field:
     (
         "external_id",
         models.IntegerIndexParams(
@@ -116,12 +113,6 @@ _INDEX_SPECS: list[tuple[str, models.PayloadSchemaType | models.KeywordIndexPara
             range=True,    # REQUIRED for order_by DESC cursor query
         ),
     ),
-    ("status",    models.PayloadSchemaType.KEYWORD),    # pledge status filtering
-    (
-        "as_of_date",
-        models.DatetimeIndexParams(type=models.DatetimeIndexType.DATETIME),
-    ),                                                  # pledge recency scoping
-    ("claim_id",  models.PayloadSchemaType.KEYWORD),    # cross-party claim lookup
     (
         "wahlperiode",
         models.IntegerIndexParams(
@@ -150,7 +141,7 @@ _REQUIRED_INDEXES: frozenset[str] = frozenset(field for field, _ in _INDEX_SPECS
 
 
 def setup(client: QdrantClient = _client) -> None:
-    """Create ``COLLECTION_NAME`` and all sixteen payload indexes.
+    """Create ``COLLECTION_NAME`` and all thirteen payload indexes.
 
     Idempotent: safe to call multiple times; existence-guarded before
     ``create_collection``; ``create_payload_index(wait=True)`` is a no-op
@@ -183,7 +174,7 @@ def setup(client: QdrantClient = _client) -> None:
         print(f"Created collection '{COLLECTION_NAME}'.")
 
     # -----------------------------------------------------------------------
-    # Create / overwrite all sixteen payload indexes.
+    # Create / overwrite all thirteen payload indexes.
     # -----------------------------------------------------------------------
     for field_name, field_schema in _INDEX_SPECS:
         client.create_payload_index(

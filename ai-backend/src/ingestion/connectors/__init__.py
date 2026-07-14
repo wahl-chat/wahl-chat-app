@@ -11,5 +11,4 @@ import time.
 
 Exports (append-only — later plans add their own connector registrations):
     bundestag_votes.BundestagVoteConnector  (plan 03-03)
-    pledgetracker.PledgeTrackerConnector    (plan 03-05)
 """

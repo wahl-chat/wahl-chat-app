@@ -655,7 +655,7 @@ if __name__ == "__main__":
         description="Run a wahl.chat V2 ingestion connector.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "Connector IDs: abgeordnetenwatch_votes, pledgetracker, manifestos, bundestag_speeches, openparliament_tv\n"
+            "Connector IDs: abgeordnetenwatch_votes, manifestos, bundestag_speeches, openparliament_tv\n"
             "\n"
             "Local usage:\n"
             "  QDRANT_URL=http://localhost:6333 uv run python -m src.ingestion.run --connector abgeordnetenwatch_votes\n"

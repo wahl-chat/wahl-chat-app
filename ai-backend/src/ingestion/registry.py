@@ -18,7 +18,6 @@ fetches plenary speeches from the DIP Bundestag API.
 Design:
     - Registered IDs:
         "abgeordnetenwatch_votes" → AbgeordnetenwatchVotesConnector
-        "pledgetracker"           → PledgeTrackerConnector
         "manifestos"              → ManifestoConnector (party_manifesto corpus)
         "bundestag_speeches"      → BundestagSpeechesConnector
 
@@ -50,13 +49,6 @@ def _abgeordnetenwatch_votes_factory() -> BaseConnector:
     from src.ingestion.connectors.abgeordnetenwatch.connector import AbgeordnetenwatchVotesConnector  # noqa: PLC0415
 
     return AbgeordnetenwatchVotesConnector()
-
-
-def _pledgetracker_factory() -> BaseConnector:
-    """Return a PledgeTrackerConnector instance (deferred import)."""
-    from src.ingestion.connectors.pledgetracker import PledgeTrackerConnector  # noqa: PLC0415
-
-    return PledgeTrackerConnector()
 
 
 def _manifestos_factory() -> BaseConnector:
@@ -102,7 +94,6 @@ def _openparliament_tv_factory() -> BaseConnector:
 
 CONNECTOR_FACTORIES: dict[str, Callable] = {
     "abgeordnetenwatch_votes": _abgeordnetenwatch_votes_factory,
-    "pledgetracker": _pledgetracker_factory,
     "manifestos": _manifestos_factory,
     "bundestag_speeches": _bundestag_speeches_factory,
     "openparliament_tv": _openparliament_tv_factory,

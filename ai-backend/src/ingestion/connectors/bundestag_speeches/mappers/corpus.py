@@ -250,7 +250,7 @@ def build_chunk_records(speech: dict) -> list[ChunkRecord]:
 
     Speech-specific descriptive fields (person_id, speaker_name, xml_rede_id,
     protocol_id, protocol_api_id) are packed into a SpeechMeta dict and stored
-    in the envelope ``meta`` field. Top-level vote/pledge-specific fields are
+    in the envelope ``meta`` field. Top-level vote-specific fields are
     not set (defaults to None, excluded by exclude_none on upsert).
 
     Behavioural note: ``external_id`` is NOT set explicitly here.

@@ -31,38 +31,7 @@ class SourceType(str, Enum):
     VOTE_RECORD = "vote_record"
     DRUCKSACHE = "drucksache"
     QA_TRANSCRIPT = "qa_transcript"
-    PLEDGE_RECORD = "pledge_record"   # replaces VOTE_RECORD workaround
     PARLIAMENTARY_SPEECH = "parliamentary_speech"  # Bundestag plenary speeches (ingest_speeches.py)
-
-
-class PledgeStatus(str, Enum):
-    """Fulfillment status of a political pledge.
-
-    Values are intentionally stable — Cambridge PledgeTracker endpoint
-    may use equivalent but differently-named categories; map on ingestion.
-    """
-
-    FULFILLED = "fulfilled"
-    PARTIALLY_FULFILLED = "partially_fulfilled"
-    IN_PROGRESS = "in_progress"
-    BROKEN = "broken"
-    STALLED = "stalled"
-    NOT_YET_STARTED = "not_yet_started"
-
-
-class PledgeEventType(str, Enum):
-    """Type of event recorded against a pledge.
-
-    Provisional — may be refined against the Cambridge endpoint.
-    """
-
-    PROGRESS = "progress"
-    REVERSAL = "reversal"
-    ANNOUNCEMENT = "announcement"
-    LEGISLATION = "legislation"
-    BUDGET = "budget"
-    DEADLINE_MISSED = "deadline_missed"
-    COMPLETED = "completed"
 
 
 # =============================================================================
@@ -143,7 +112,7 @@ class ChunkRecord(BaseModel):
     Envelope fields (top-level, all sources):
         chunk_key, source_item_id, chunk_index, text, party_id, region,
         authority_tier, source_type, publish_date, citation_url, citation_title,
-        external_id, party_ids, status, as_of_date, claim_id, wahlperiode,
+        external_id, party_ids, wahlperiode,
         speech_key, source, meta.
 
     vote_record meta (VoteMeta): vote_results, motion_outcome.
@@ -152,7 +121,6 @@ class ChunkRecord(BaseModel):
 
     Note: the Qdrant point ID is computed externally via compute_chunk_id().
     This model carries NO region_path field — only the scalar region.
-    Cursor + pledge fields: external_id (Qdrant cursor), status/as_of_date/claim_id (pledge payload).
     Vote-record fields: party_ids (participating parties, filterable array; INDEXED top-level).
     """
 
@@ -172,26 +140,14 @@ class ChunkRecord(BaseModel):
     publish_date: date_type = Field(..., description="Date the source was published")
     citation_url: Optional[str] = Field(None, description="URL for SSE citation annotation")
     citation_title: Optional[str] = Field(None, description="Title for SSE citation annotation")
-    # Cursor + pledge payload fields:
+    # Cursor field:
     external_id: Optional[int] = Field(
         None,
         description=(
             "Monotonic integer source ID for the Qdrant cursor. "
             "Set to the raw AW poll integer for vote_record chunks; "
-            "None for pledges (no monotonic integer ID) and other source types."
+            "None for source types without a monotonic integer ID."
         ),
-    )
-    status: Optional[str] = Field(
-        None,
-        description="Pledge fulfillment status (PledgeStatus enum value) — pledge chunks only",
-    )
-    as_of_date: Optional[date_type] = Field(
-        None,
-        description="Date the pledge status was assessed — pledge chunks only",
-    )
-    claim_id: Optional[str] = Field(
-        None,
-        description="Pledge claim identifier for cross-party lookup — pledge chunks only",
     )
     # Vote-record additions (INDEXED top-level — stays in envelope):
     party_ids: Optional[List[str]] = Field(
