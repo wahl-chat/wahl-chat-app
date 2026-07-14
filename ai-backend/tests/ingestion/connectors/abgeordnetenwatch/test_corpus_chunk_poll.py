@@ -107,18 +107,13 @@ def test_citation_fields_preserved() -> None:
 
 
 def test_vote_chunk_dump_has_no_speech_meta_keys() -> None:
-    """A vote chunk's exclude_none dump must not contain SpeechMeta or pledge-only keys."""
+    """A vote chunk's exclude_none dump must not contain SpeechMeta keys."""
     chunk = _chunks()[0]
     dumped = chunk.model_dump(mode="json", exclude_none=True)
     # SpeechMeta keys must not appear at the top level of a vote chunk.
     for speech_key in ("person_id", "speaker_name", "xml_rede_id", "protocol_id", "protocol_api_id"):
         assert speech_key not in dumped, (
             f"Vote chunk dump must not contain SpeechMeta key '{speech_key}'"
-        )
-    # Pledge-only envelope keys must not appear.
-    for pledge_key in ("status", "as_of_date", "claim_id"):
-        assert pledge_key not in dumped, (
-            f"Vote chunk dump must not contain pledge-only key '{pledge_key}'"
         )
     # vote_results and motion_outcome must NOT appear at top-level (they live in meta).
     assert "vote_results" not in dumped, "vote_results must live in meta, not top-level"

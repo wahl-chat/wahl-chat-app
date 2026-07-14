@@ -7,7 +7,7 @@ Unit tests for ingestion/schemas.py.
 
 Requirements covered:
   - ChunkRecord model — no region_path field; has scalar region
-  - ChunkRecord has new optional fields (external_id, status, as_of_date, claim_id)
+  - ChunkRecord has new optional fields (external_id)
   - SourceItemRecord and WatermarkRecord removed from schemas.py
 
 These are pure unit tests; no live services required.
@@ -22,7 +22,6 @@ from src.ingestion.ids import compute_source_item_id
 from src.ingestion.schemas import (
     AuthorityTier,
     ChunkRecord,
-    PledgeStatus,
     SourceType,
 )
 
@@ -86,21 +85,6 @@ def test_chunk_record_extra_field_rejected():
 
 
 # =============================================================================
-# PledgeStatus
-# =============================================================================
-
-
-def test_pledge_status_values():
-    """PledgeStatus enum has exactly the six specified values."""
-    expected = {"fulfilled", "partially_fulfilled", "in_progress", "broken", "stalled", "not_yet_started"}
-    actual = {s.value for s in PledgeStatus}
-    assert actual == expected, (
-        f"D-04: PledgeStatus must have exactly these values: {expected}. "
-        f"Got: {actual}."
-    )
-
-
-# =============================================================================
 # ChunkRecord optional fields
 # =============================================================================
 
@@ -118,29 +102,6 @@ def test_chunk_record_external_id_optional():
     """ChunkRecord.external_id defaults to None."""
     chunk = ChunkRecord(**_valid_chunk_kwargs())
     assert chunk.external_id is None
-
-
-def test_chunk_record_has_status():
-    """ChunkRecord must have optional status field."""
-    assert "status" in ChunkRecord.model_fields
-
-
-def test_chunk_record_has_as_of_date():
-    """ChunkRecord must have optional as_of_date field."""
-    assert "as_of_date" in ChunkRecord.model_fields
-
-
-def test_chunk_record_has_claim_id():
-    """ChunkRecord must have optional claim_id field."""
-    assert "claim_id" in ChunkRecord.model_fields
-
-
-def test_chunk_record_pledge_fields_default_none():
-    """ChunkRecord status/as_of_date/claim_id default to None."""
-    chunk = ChunkRecord(**_valid_chunk_kwargs())
-    assert chunk.status is None
-    assert chunk.as_of_date is None
-    assert chunk.claim_id is None
 
 
 # =============================================================================
@@ -161,12 +122,4 @@ def test_watermark_record_removed():
     import src.ingestion.schemas as s
     assert not hasattr(s, "WatermarkRecord"), (
         "P5-DATA-02: WatermarkRecord must be deleted from schemas.py."
-    )
-
-
-def test_source_type_has_pledge_record():
-    """SourceType enum must include PLEDGE_RECORD."""
-    from src.ingestion.schemas import SourceType
-    assert "pledge_record" in {s.value for s in SourceType}, (
-        "P5-DATA-01: SourceType must include PLEDGE_RECORD = 'pledge_record'."
     )

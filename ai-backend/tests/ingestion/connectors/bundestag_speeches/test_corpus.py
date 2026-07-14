@@ -285,16 +285,13 @@ class TestBuildChunkRecords:
         for rec in result:
             assert rec.wahlperiode is None
 
-    def test_speech_chunk_dump_has_no_vote_or_pledge_keys(self) -> None:
-        """Speech chunk's exclude_none dump must not contain vote or pledge envelope keys."""
+    def test_speech_chunk_dump_has_no_vote_keys(self) -> None:
+        """Speech chunk's exclude_none dump must not contain vote envelope keys."""
         result = build_chunk_records(_SAMPLE_SPEECH_NO_META)
         for rec in result:
             dumped = rec.model_dump(mode="json", exclude_none=True)
             assert "vote_results" not in dumped
             assert "motion_outcome" not in dumped
-            assert "status" not in dumped
-            assert "as_of_date" not in dumped
-            assert "claim_id" not in dumped
             assert "party_ids" not in dumped
             # NOTE: external_id may be absent from dump since build_chunk_records
             # leaves it None; the connector stamps it via model_copy in normalize()

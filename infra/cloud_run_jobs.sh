@@ -4,13 +4,13 @@
 #
 # Cloud Run Jobs + Cloud Scheduler IaC for wahl.chat V2 ingestion connectors.
 #
-# Phase 5 (D-09/D-10): reconciled to the two surviving connectors
-# (abgeordnetenwatch_votes, pledgetracker). Removed connectors and GCS/Firestore
+# Phase 5 (D-09/D-10): reconciled to the surviving connector
+# (abgeordnetenwatch_votes). Removed connectors and GCS/Firestore
 # env wiring deleted. Connectors now need only:
 #   QDRANT_URL + OPENAI_API_KEY + EU region (Qdrant-only single-store runtime).
 #
 # Purpose:
-#   Author the GCP configuration for the two surviving ingestion connectors so
+#   Author the GCP configuration for the surviving ingestion connector so
 #   that the "scheduled Cloud Run Jobs in an EU region" acceptance criterion
 #   (INGEST-01) is satisfied by having the config committed — even though
 #   no gcloud commands are executed this milestone (D-01).
@@ -56,11 +56,10 @@ QDRANT_URL="${QDRANT_URL:-https://qdrant.wahl-chat-prod.internal:6333}"
 # Task timeout = 3600s (1 hour — far exceeds Firebase Scheduled Functions 15-min cap;
 # Firebase's 15-min limit does NOT apply to Cloud Run Jobs which support up to 24h).
 #
-# Phase 5 connectors (two surviving — two others removed in D-09):
+# Phase 5 connector (one surviving — others removed in D-09):
 #   abgeordnetenwatch_votes → daily (parliament votes published nightly)
-#   pledgetracker           → daily (Cambridge endpoint refreshes overnight)
 
-for CONN in abgeordnetenwatch_votes pledgetracker; do
+for CONN in abgeordnetenwatch_votes; do
   gcloud run jobs create "wahlchat-${CONN}" \
     --image "${IMAGE}" \
     --region "${REGION}" \
@@ -79,22 +78,12 @@ done
 #
 # Schedule examples (adjust to actual requirements):
 #   abgeordnetenwatch_votes → 04:00 daily (parliament votes published nightly)
-#   pledgetracker           → 06:00 daily (Cambridge endpoint refreshes overnight)
 
 gcloud scheduler jobs create http "wahlchat-abgeordnetenwatch_votes-cron" \
   --location "${REGION}" \
   --schedule "0 4 * * *" \
   --time-zone "Europe/Berlin" \
   --uri "https://run.googleapis.com/v2/projects/${PROJECT}/locations/${REGION}/jobs/wahlchat-abgeordnetenwatch_votes:run" \
-  --http-method POST \
-  --oauth-service-account-email "${RUN_INVOKER_SA}" \
-  --project "${PROJECT}"
-
-gcloud scheduler jobs create http "wahlchat-pledgetracker-cron" \
-  --location "${REGION}" \
-  --schedule "0 6 * * *" \
-  --time-zone "Europe/Berlin" \
-  --uri "https://run.googleapis.com/v2/projects/${PROJECT}/locations/${REGION}/jobs/wahlchat-pledgetracker:run" \
   --http-method POST \
   --oauth-service-account-email "${RUN_INVOKER_SA}" \
   --project "${PROJECT}"

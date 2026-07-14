@@ -14,8 +14,9 @@ The golden fixtures (aw_poll_3602_poll.json, aw_poll_3602_votes.json) contain
 data verified from the live AW API (poll 3602 "Corona-Maßnahmen zum Schutz der
 Bevölkerung", parliament period 111, date 2020-05-14).
 
-The emulator_db fixture mirrors the pattern from tests/test_pledgetracker.py
-using a socket-reachability check instead of a mere env-var-presence guard.
+The emulator_db fixture mirrors the emulator-guard pattern used across the
+ingestion connector tests using a socket-reachability check instead of a
+mere env-var-presence guard.
 """
 
 from __future__ import annotations
@@ -58,7 +59,8 @@ def aw_poll_3602_votes() -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Firestore emulator fixture (socket-reachability guard — mirrors test_pledgetracker.py)
+# Firestore emulator fixture (socket-reachability guard — mirrors the
+# emulator-guard pattern used across the ingestion connector tests)
 # ---------------------------------------------------------------------------
 
 

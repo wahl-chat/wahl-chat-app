@@ -3,7 +3,7 @@
 .PHONY: dev dev-web dev-backend install install-web install-backend \
         lint lint-web lint-backend test-backend test-smoke \
         stores-up stores-down seed-local dev-local auth \
-        run-abgeordnetenwatch-votes run-all-landtage-votes run-pledgetracker run-speeches \
+        run-abgeordnetenwatch-votes run-all-landtage-votes run-speeches \
         run-manifestos collect-speeches \
         update-speeches speeches-stats
 
@@ -98,9 +98,6 @@ run-all-landtage-votes:
 	    exit 1; \
 	fi; \
 	echo "=== run-all-landtage-votes: all legislatures completed ==="
-
-run-pledgetracker:
-	cd ai-backend && QDRANT_URL=http://localhost:6333 uv run python -m src.ingestion.run --connector pledgetracker
 
 # Speeches: runs the live incremental BundestagSpeechesConnector via run.py.
 # --batch-size and --time-budget flow via ARGS (run.py flags).

@@ -8,8 +8,8 @@ during this milestone.** The INGEST-01 acceptance criterion ("scheduled Cloud Ru
 Jobs in an EU region") is satisfied by committing this authored configuration;
 actual deployment is deferred to a later milestone.
 
-**Phase 5 (D-09/D-10):** Reconciled to the two surviving connectors
-(`abgeordnetenwatch_votes`, `pledgetracker`). Two obsolete connectors and all
+**Phase 5 (D-09/D-10):** Reconciled to the surviving connector
+(`abgeordnetenwatch_votes`). Obsolete connectors and all
 GCS/Firestore env wiring removed; connectors now require only `QDRANT_URL` +
 `OPENAI_API_KEY` (Qdrant-only single-store runtime).
 
@@ -38,13 +38,13 @@ in CLAUDE.md (`europe-west1`/`europe-west3`).
 
 ### Single Image, CONNECTOR_ID Selects (D-03)
 
-Both connectors (`abgeordnetenwatch_votes`, `pledgetracker`) run from the **same
-Docker image**. The `CONNECTOR_ID` environment variable tells the runner
-(`src.ingestion.run`) which connector to invoke:
+The connector (`abgeordnetenwatch_votes`) runs from the **same
+Docker image** used for every ingestion connector. The `CONNECTOR_ID`
+environment variable tells the runner (`src.ingestion.run`) which connector
+to invoke:
 
 ```
 CONNECTOR_ID=abgeordnetenwatch_votes → runs AbgeordnetenwatchVotesConnector via run_connector()
-CONNECTOR_ID=pledgetracker           → runs PledgeTrackerConnector via run_connector()
 ```
 
 This is the same code path locally and in Cloud Run: locally you invoke
@@ -54,8 +54,8 @@ sets the `CONNECTOR_ID` env var and the same entrypoint is the container CMD.
 ### Per-connector Scheduling (D-03)
 
 Each connector has its own Cloud Scheduler trigger pointing at its own Cloud Run Job.
-This allows independent schedules (e.g. `abgeordnetenwatch_votes` daily at 04:00,
-`pledgetracker` daily at 06:00) without coupling the connectors' run cadences.
+This allows independent schedules (e.g. `abgeordnetenwatch_votes` daily at 04:00)
+without coupling the connectors' run cadences.
 
 ### Single Task per Job (D-04)
 
@@ -67,9 +67,9 @@ shard-awareness hook; do NOT build it now.
 
 `--task-timeout 3600` sets a 1-hour per-task timeout. The 15-minute cap is a
 **Firebase Scheduled Functions** limit, NOT a Cloud Run Jobs limit (Cloud Run Jobs
-support up to 24 hours). Long connectors (e.g. PledgeTracker with a large claim
-backlog) will stay within 1 hour; if they need longer, bump the timeout — no
-architectural change is required.
+support up to 24 hours). Long connectors with a large backlog will stay within
+1 hour; if they need longer, bump the timeout — no architectural change is
+required.
 
 ### Qdrant-only Runtime (Phase 5, D-09)
 
@@ -92,14 +92,12 @@ make stores-up
 
 # Run connectors locally (Qdrant-only — no Firestore emulator needed)
 make run-abgeordnetenwatch-votes
-make run-pledgetracker
 ```
 
 Or invoke directly:
 
 ```bash
 QDRANT_URL=http://localhost:6333 uv run python -m src.ingestion.run --connector abgeordnetenwatch_votes
-QDRANT_URL=http://localhost:6333 uv run python -m src.ingestion.run --connector pledgetracker
 ```
 
 ---

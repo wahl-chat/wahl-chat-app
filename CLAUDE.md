@@ -15,7 +15,7 @@ This first milestone is **foundation + data layer**. New user-facing V2 features
 - **Tooling**: uv for Python (`ai-backend`), bun for Node (`web`) — Why: modern, faster, requested (pnpm recommended by a professor; uv requested by lead).
 - **Transport**: SSE instead of Socket.IO — Why: websockets fail for users behind some corporate networks.
 - **Compliance**: GDPR Art. 9 — political opinions are special-category data; explicit consent, EU data residency (`europe-west1`/`europe-west3`), never embedded into the corpus.
-- **Ingestion**: must tolerate Firebase's 15-min scheduled-job cap — Why: customer note #5; long jobs (e.g. PledgeTracker) need Cloud Run Jobs or chunked/watermarked runs.
+- **Ingestion**: must tolerate Firebase's 15-min scheduled-job cap — Why: customer note #5; long jobs need Cloud Run Jobs or chunked/watermarked runs.
 - **Dev environment**: local-only data stores during this milestone — Why: avoid corrupting real stores while the design is still settling.
 - **Team**: multiple people will build connectors in parallel — Why: drives the "common ground first, then one phase per source" structure.
 <!-- GSD:project-end -->

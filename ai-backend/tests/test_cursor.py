@@ -86,7 +86,7 @@ def test_get_cursor_passes_source_type_filter():
     qdrant = MagicMock()
     qdrant.scroll.return_value = ([_make_mock_point(100)], None)
 
-    get_cursor(qdrant, "wahlchat_chunks_dev", "pledge_record")
+    get_cursor(qdrant, "wahlchat_chunks_dev", "vote_record")
 
     call_kwargs = qdrant.scroll.call_args.kwargs
     scroll_filter = call_kwargs.get("scroll_filter")

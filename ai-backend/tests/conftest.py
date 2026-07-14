@@ -308,16 +308,6 @@ def bundestag_vote_939() -> dict:
 
 
 @pytest.fixture()
-def pledge_timeline_spd() -> dict:
-    """Load the pledge_timeline_spd.json stub fixture (Pattern 6 shape).
-
-    Shape: party_id, claim_id, region, events:[{date, event, url, event_type}].
-    Used by: test_pledgetracker.py.
-    """
-    return json.loads((_FIXTURES_DIR / "pledge_timeline_spd.json").read_text())
-
-
-@pytest.fixture()
 def temp_qdrant_collection() -> "Generator[tuple, None, None]":
     """Create an isolated throwaway Qdrant collection and yield (client, name).
 
