@@ -3,14 +3,24 @@
 """
 Chat service module — SSE streaming (emit→yield adaptation).
 
-All V1 socket_emit() calls are converted to yield statements emitting Vercel AI SDK
-data-stream protocol events:
-  f  — message frame init
-  0  — text delta (token chunk)
-  8  — data annotation (sources_ready, responding_parties, party_complete, etc.)
-  e  — step finish
-  d  — final summary
-  [DONE] — stream end
+All V1 socket_emit() calls are converted to yield statements emitting AI SDK v5
+UI-message-stream parts — each SSE event is ``data: <json>`` where the JSON
+carries a ``type`` discriminator:
+
+  start / start-step             — message opened + first step opened
+  text-start / text-delta / text-end
+                                 — one text block per party answer
+  data-chat_event                — custom part carrying the V1 named chat
+                                   events verbatim (responding_parties,
+                                   sources_ready, party_chunk, party_complete,
+                                   quick_replies_title, error); the frontend
+                                   switches on the inner ``data.type``
+  finish-step / finish           — step + message finished
+  data: [DONE]                   — literal stream terminator
+
+The legacy v4 wire codes (f/0/8/e/d) survive ONLY as internal shorthand in
+``_frame()``, which translates them to the v5 parts above — they never reach
+the wire as code-prefixed frames on this endpoint.
 
 Multi-party streaming: SERIALIZED (one party at a time).
 True concurrent multiplexed SSE would require an asyncio.Queue
@@ -25,7 +35,7 @@ import difflib
 import json
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import logging
 import random
 import uuid
@@ -67,6 +77,7 @@ from src.models.context import ContextParty
 from src.models.party import WAHL_CHAT_PARTY
 from src.vector_store_helper import embed
 from src.utils import (
+    GENERIC_ERROR_MESSAGE,
     build_chat_history_string,
     get_chat_history_hash_key,
     sanitize_references,
@@ -726,8 +737,20 @@ async def with_heartbeat(
                 # No chunk within `interval`; keep the same pending task and ping.
                 yield ": keep-alive\n\n"
     finally:
-        if pending is not None and not pending.done():
+        if pending is not None:
+            # Cancel then AWAIT the in-flight __anext__ task before closing the
+            # generator: calling agen.aclose() while __anext__ is still running
+            # raises "aclose(): asynchronous generator is already running".
             pending.cancel()
+            try:
+                await pending
+            except (asyncio.CancelledError, StopAsyncIteration):
+                pass
+            except Exception:  # noqa: BLE001 — teardown must not mask the exit path
+                logger.debug(
+                    "with_heartbeat: pending task raised during teardown",
+                    exc_info=True,
+                )
         await agen.aclose()
 
 
@@ -809,6 +832,7 @@ async def fetch_party_response_stream(
     all_available_parties: List[ContextParty],
     use_premium_llms: bool,
     is_proposed_question: bool = False,
+    is_single_proposed_turn: bool = False,
     is_cacheable_chat: bool = True,
     relevant_docs: Optional[Union[List[Document], Dict[str, List[Document]]]] = None,
     parties_being_compared: Optional[List[ContextParty]] = None,
@@ -818,6 +842,7 @@ async def fetch_party_response_stream(
     legislature_period_id: Optional[int] = None,
     election_level: Optional[str] = None,
     term_window: Optional[tuple[datetime, datetime]] = None,
+    manifesto_term_start: Optional[datetime] = None,
 ) -> AsyncGenerator[str, None]:
     """Yield SSE events for a single party's RAG response.
 
@@ -839,13 +864,34 @@ async def fetch_party_response_stream(
     # (index_in_sources, verbatim_chunk_text) for PDF-backed sources (manifestos +
     # speeches) that can gain a best-effort `#search=` highlight from the cited claim.
     highlight_refs: list[tuple[int, str]] = []
+    # The id of the currently-open v5 text block (if any) — tracked so the
+    # error handlers below can close it with a text-end part; a mid-stream
+    # exception would otherwise leave the stream protocol-invalid (dangling
+    # streaming text part) for any v5 useChat consumer.
+    open_text_id: Optional[str] = None
 
     try:
-        # Caching logic preserved from V1
-        if is_proposed_question or is_cacheable_chat:
-            if is_proposed_question:
+        # GDPR cache gate (Art. 9): cache participation requires a CURATED
+        # conversation — the caller sets is_cacheable_chat from
+        # _is_curated_conversation(). A proposed question clicked mid-way
+        # through a NON-curated (free-text) conversation must never set a
+        # cache_key: the generated answer is conditioned on user-authored
+        # history (special-category data) and would otherwise be replayed
+        # cross-user from the party answer cache.
+        if is_cacheable_chat:
+            if is_proposed_question and is_single_proposed_turn:
+                # First-turn proposed question: the effective history is exactly
+                # the single wahl.chat-authored question (server-verified by the
+                # caller BEFORE any assistant turns were appended), so the answer
+                # may be cached under the question key and replayed to other
+                # first-turn users. Requiring the single-turn shape also blocks
+                # cache poisoning via fabricated assistant turns smuggled into
+                # chat_history (first write wins permanently otherwise).
                 cache_key = question_for_party
             else:
+                # Curated multi-turn conversation: key by the full history hash
+                # so the cached answer only replays for the identical curated
+                # conversation — never under the bare proposed-question key.
                 cache_key = get_chat_history_hash_key(cache_conversation_history_str)
             logger.debug(
                 f"Checking cache for party {party.party_id} with key {cache_key}"
@@ -983,11 +1029,19 @@ async def fetch_party_response_stream(
                     # legislature_period_id and level scope ONLY vote_record — never
                     # passed to manifesto/speech (those chunks lack the fields, so the
                     # MatchValue filter would match nothing and strip their grounding).
+                    # Campaign-window semantics (manifesto pass ONLY): a manifesto's
+                    # publish_date is stamped as its period's ELECTION DATE, which
+                    # always precedes the term's constituent-session start — so the
+                    # caller supplies a widened manifesto_term_start; term_end stays.
                     _manifesto_coro = _safe_two_pass(
                         query_vector=rag_query_vector,
                         source_type="party_manifesto",
                         party_id=party.party_id,
-                        term_start=term_start,
+                        term_start=(
+                            manifesto_term_start
+                            if manifesto_term_start is not None
+                            else term_start
+                        ),
                         term_end=term_end,
                         current_limit=_CURRENT_MANIFESTO_LIMIT,
                         historic_limit=_HISTORIC_LIMITS["manifesto"],
@@ -1114,10 +1168,14 @@ async def fetch_party_response_stream(
             def _append_manifesto_sources(payloads: list[dict]) -> None:
                 for manifesto_payload in payloads:
                     meta = manifesto_payload.get("meta") or {}
-                    # Manifestos are always PDF-backed → eligible for a `#search=`
-                    # highlight on the cited passage (in addition to the page anchor).
+                    # PDF-backed manifestos (meta.source_kind != "link") are
+                    # eligible for a `#search=` highlight on the cited passage
+                    # (in addition to the page anchor). HTML ("link"-kind)
+                    # manifestos are NOT PDF-backed — appending a PDF `#search=`
+                    # fragment to their HTML URL would break the link, so they
+                    # are excluded from highlight_refs.
                     manifesto_text = manifesto_payload.get("text")
-                    if manifesto_text:
+                    if manifesto_text and meta.get("source_kind") != "link":
                         highlight_refs.append((len(sources), manifesto_text))
                     sources.append(
                         {
@@ -1309,6 +1367,7 @@ async def fetch_party_response_stream(
 
         # v5 text block — one id for the whole party answer's deltas.
         message_id = str(uuid.uuid4())
+        open_text_id = message_id
         yield _text_start(message_id)
         async for message_chunk in chunk_stream:
             chunk_content = message_chunk.content
@@ -1333,6 +1392,7 @@ async def fetch_party_response_stream(
                     group_chat_session.session_id, party.party_id, split_chunk
                 )
         yield _text_end(message_id)
+        open_text_id = None
 
         # Finalise
         full_response_text = full_response.text if full_response else ""
@@ -1411,6 +1471,10 @@ async def fetch_party_response_stream(
         logger.error(
             f"BadRequestError for party {party.party_id}: {e}", exc_info=True
         )
+        if open_text_id is not None:
+            # Close the dangling v5 text block so the stream stays protocol-valid.
+            yield _text_end(open_text_id)
+            open_text_id = None
         yield _frame(
             "8",
             {
@@ -1419,13 +1483,17 @@ async def fetch_party_response_stream(
                 "party_id": party.party_id,
                 "complete_message": "Diese Frage kann ich leider nicht beantworten.",
                 "message_id": None,
-                "status": {"indicator": "error", "message": str(e)},
+                "status": {"indicator": "error", "message": GENERIC_ERROR_MESSAGE},
             },
         )
     except Exception as e:
         logger.error(
             f"Error fetching party response for {party.party_id}: {e}", exc_info=True
         )
+        if open_text_id is not None:
+            # Close the dangling v5 text block so the stream stays protocol-valid.
+            yield _text_end(open_text_id)
+            open_text_id = None
         yield _frame(
             "8",
             {
@@ -1434,7 +1502,7 @@ async def fetch_party_response_stream(
                 "party_id": party.party_id,
                 "complete_message": "Es tut mir Leid, leider ist ein Fehler aufgetreten. Bitte versuche es später erneut.",
                 "message_id": None,
-                "status": {"indicator": "error", "message": str(e)},
+                "status": {"indicator": "error", "message": GENERIC_ERROR_MESSAGE},
             },
         )
 
@@ -1454,6 +1522,7 @@ async def process_party(
     legislature_period_id: Optional[int] = None,
     election_level: Optional[str] = None,
     term_window: Optional[tuple[datetime, datetime]] = None,
+    manifesto_term_start: Optional[datetime] = None,
 ) -> None:
     """Fetch relevant docs for one party in a comparison question (no emit).
 
@@ -1533,11 +1602,17 @@ async def process_party(
                 level=election_level,   # vote-only
             )
             # legislature_period_id and level scope ONLY vote_record (see single-party path).
+            # Manifesto pass uses the widened campaign-window start (see the
+            # single-party path comment: manifesto publish_date == election date).
             _manifesto_coro = _safe_two_pass_cmp(
                 query_vector=rag_query_vector,
                 source_type="party_manifesto",
                 party_id=party.party_id,
-                term_start=term_start,
+                term_start=(
+                    manifesto_term_start
+                    if manifesto_term_start is not None
+                    else term_start
+                ),
                 term_end=term_end,
                 current_limit=_CURRENT_MANIFESTO_LIMIT,
                 historic_limit=_HISTORIC_LIMITS["manifesto"],
@@ -1714,13 +1789,14 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
     Takes a ChatRequestDto (body) from the route handler; the client sends the
     full chat_history per request (stateless design).
 
-    Emits Vercel AI SDK data-stream protocol:
-      f  — frame init
-      8  — data annotation (responding_parties, sources_ready, party_complete, quick_replies_title)
-      0  — text delta
-      e  — step finish
-      d  — final summary
-      [DONE] — stream end
+    Emits AI SDK v5 UI-message-stream parts (see module docstring):
+      start / start-step          — message frame init
+      data-chat_event             — named chat events (responding_parties,
+                                    sources_ready, party_chunk, party_complete,
+                                    quick_replies_title, error)
+      text-start/-delta/-end      — party answer text blocks
+      finish-step / finish        — finish events
+      data: [DONE]                — stream terminator
 
     Multi-party: SERIALIZED — parties respond one at a time.
     Concurrent streaming could later multiplex via asyncio.Queue if required.
@@ -1728,8 +1804,10 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
     Args:
         body:    ChatRequestDto from the route handler.
         request: Optional FastAPI Request for disconnect detection.
-                 When supplied, generation stops between parties or between
-                 deltas when the client has disconnected.
+                 When supplied, generation stops BETWEEN parties when the
+                 client has disconnected (disconnect is NOT checked per
+                 delta); quick-replies/title generation is skipped entirely
+                 after a disconnect.
     """
     # Record wall-clock start time for per-stream budget enforcement.
     _stream_start = time.monotonic()
@@ -1807,6 +1885,26 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
             _context.legislature_period_id if _context is not None else None,
             _context.date if _context is not None else None,
         )
+        # Manifesto current-window widening (campaign-window semantics, E2):
+        # a manifesto's publish_date is stamped as its period's ELECTION DATE,
+        # which always precedes the term's constituent-session date_from — so a
+        # [term_start, term_end] current window can NEVER contain the current
+        # term's own manifesto (it would only surface via the high-bar historic
+        # pass). For the MANIFESTO two-pass only, widen the window start to
+        # (election_date − 30 days) when the context carries a usable date,
+        # else (term_start − 60 days); the upper bound stays term_end. Votes
+        # and speeches keep the exact term window — they genuinely occur
+        # inside the term.
+        manifesto_term_start: Optional[datetime] = None
+        if term_window is not None:
+            _ctx_date = _context.date if _context is not None else None
+            if _ctx_date is not None:
+                manifesto_term_start = datetime(
+                    _ctx_date.year, _ctx_date.month, _ctx_date.day,
+                    tzinfo=timezone.utc,
+                ) - timedelta(days=30)
+            else:
+                manifesto_term_start = term_window[0] - timedelta(days=60)
         # legislature_period_id is a single-value Qdrant filter, so applying it in a
         # non-federal context hard-excludes federal votes (which carry a different period
         # id) and silently disables the federal-vote down-rank. Scope it to FEDERAL
@@ -1868,7 +1966,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     "party_id": WAHL_CHAT_PARTY.party_id,
                     "complete_message": "Diese Frage kann ich leider nicht beantworten.",
                     "message_id": None,
-                    "status": {"indicator": "error", "message": str(e)},
+                    "status": {"indicator": "error", "message": GENERIC_ERROR_MESSAGE},
                 },
             )
             yield _frame("e", {"finishReason": "stop", "usage": {}})
@@ -1917,6 +2015,18 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     user_message.content in proposed_questions
                     or user_message.content in proposed_questions_group
                 )
+                # Server-verified single-turn shape for the proposed-question
+                # cache key (A2): the effective history must be EXACTLY the one
+                # proposed-question user message. Evaluated EAGERLY here (before
+                # any party generator runs and appends assistant turns), so a
+                # client-fabricated history — e.g. [assistant(<injected>),
+                # user(<proposed>)] — can never poison the cross-user cache
+                # under the proposed-question key.
+                is_single_proposed_turn = (
+                    is_proposed_question
+                    and len(chat_history) == 1
+                    and chat_history[0].role == Role.USER
+                )
                 # GDPR cache gate: only curated conversations (proposed-question
                 # first turn + every follow-up chosen from the preceding
                 # assistant message's quick_replies) may be cached by
@@ -1939,11 +2049,13 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                         all_available_parties=all_parties,
                         use_premium_llms=body.user_is_logged_in,
                         is_proposed_question=is_proposed_question,
+                        is_single_proposed_turn=is_single_proposed_turn,
                         is_cacheable_chat=group_chat_session.is_cacheable,
                         region_path=region_path,
                         legislature_period_id=legislature_period_id,
                         election_level=election_level,
                         term_window=term_window,
+                        manifesto_term_start=manifesto_term_start,
                     )
                 )
         else:
@@ -1965,6 +2077,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     legislature_period_id=legislature_period_id,
                     election_level=election_level,
                     term_window=term_window,
+                    manifesto_term_start=manifesto_term_start,
                 )
                 for p in parties_being_compared
             ]
@@ -1999,34 +2112,62 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                 )
             ]
 
-        # SERIALIZED multi-party iteration (see module docstring)
-        # Check client disconnect and wall-clock budget between parties.
+        # SERIALIZED multi-party iteration (see module docstring).
+        # Client disconnect is checked BETWEEN parties (not per delta); the
+        # wall-clock budget bounds EVERY drain step via asyncio.wait_for, so
+        # even a single hung party stream cannot outlive the budget (the 15s
+        # heartbeat would otherwise keep the wire alive indefinitely).
         for gen in party_generators:
-            # bail out between parties when client has disconnected.
+            # The client is gone — return WITHOUT generating quick replies /
+            # title (a live LLM call nobody would receive).
             if request is not None and await request.is_disconnected():
-                logger.info("generate_chat_stream: client disconnected — stopping generation")
-                break
-
-            # enforce per-stream wall-clock budget between parties.
-            if time.monotonic() - _stream_start > _CHAT_STREAM_BUDGET_S:
-                logger.warning(
-                    "generate_chat_stream: per-stream budget of %ds exceeded — stopping",
-                    _CHAT_STREAM_BUDGET_S,
+                logger.info(
+                    "generate_chat_stream: client disconnected — stopping generation"
                 )
-                break
+                return
 
+            gen_iter = gen.__aiter__()
             try:
-                async for event in gen:
+                while True:
+                    remaining = _CHAT_STREAM_BUDGET_S - (
+                        time.monotonic() - _stream_start
+                    )
+                    if remaining <= 0:
+                        raise asyncio.TimeoutError(
+                            f"per-stream budget of {_CHAT_STREAM_BUDGET_S}s exceeded"
+                        )
+                    try:
+                        # wait_for wraps __anext__ in its own task and cancels
+                        # it on timeout — this is what actually bounds a hung
+                        # single-party stream (asyncio.timeout around the loop
+                        # would target the wrong task across yield suspensions).
+                        event = await asyncio.wait_for(
+                            gen_iter.__anext__(), timeout=remaining
+                        )
+                    except StopAsyncIteration:
+                        break
                     yield event
             except asyncio.TimeoutError:
-                # Previously dead code (nothing inside raised TimeoutError).
-                # now reachable if asyncio.timeout is added; kept for safety.
-                logger.error("Timeout iterating party generator")
-                break
+                logger.warning(
+                    "generate_chat_stream: per-stream budget of %ds exceeded — "
+                    "terminating stream",
+                    _CHAT_STREAM_BUDGET_S,
+                )
+                # Best-effort close of the abandoned party generator.
+                try:
+                    await gen.aclose()
+                except Exception:  # noqa: BLE001
+                    pass
+                # Terminate cleanly for the (still connected) client, skipping
+                # quick-replies/title generation (another live LLM call).
+                yield _frame("e", {"finishReason": "stop", "usage": {}})
+                yield _frame("d", {"finishReason": "stop", "usage": {}})
+                yield "data: [DONE]\n\n"
+                return
 
     except Exception as e:
         logger.error(f"Unexpected error in generate_chat_stream: {e}", exc_info=True)
-        yield _frame("8", {"type": "error", "message": str(e)})
+        yield _frame("8", {"type": "error", "message": GENERIC_ERROR_MESSAGE})
         yield _frame("e", {"finishReason": "stop", "usage": {}})
         yield _frame("d", {"finishReason": "stop", "usage": {}})
         yield "data: [DONE]\n\n"

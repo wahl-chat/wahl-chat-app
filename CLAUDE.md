@@ -12,7 +12,7 @@ This first milestone is **foundation + data layer**. New user-facing V2 features
 ### Constraints
 
 - **Tech stack**: Qdrant stays as the vector store; embeddings stay OpenAI `text-embedding-3-large` (3072-dim) — Why: index parity, mixing models/dimensions breaks the index.
-- **Tooling**: uv for Python (`ai-backend`), bun for Node (`web`) — Why: modern, faster, requested (pnpm recommended by a professor; uv requested by lead).
+- **Tooling**: uv for Python (`ai-backend`), bun for Node (`web`) — Why: modern, faster; uv requested by lead, bun confirmed as the sole Node package manager (D-08 revert).
 - **Transport**: SSE instead of Socket.IO — Why: websockets fail for users behind some corporate networks.
 - **Compliance**: GDPR Art. 9 — political opinions are special-category data; explicit consent, EU data residency (`europe-west1`/`europe-west3`), never embedded into the corpus.
 - **Ingestion**: must tolerate Firebase's 15-min scheduled-job cap — Why: customer note #5; long jobs need Cloud Run Jobs or chunked/watermarked runs.
@@ -81,30 +81,19 @@ This first milestone is **foundation + data layer**. New user-facing V2 features
 # One-off tools without installing globally
 ### Workspace / Monorepo (Optional)
 # Root pyproject.toml
-## 3. pnpm — Node Package Manager
+## 3. bun — Node Package Manager
 ### Decision
+The team reverted the briefly-planned package-manager migration (D-08 revert): **bun is the sole Node package manager** for `web/`. `bun.lock` is the committed lockfile.
 ### Current Version
-### pnpm 11 Key Changes vs pnpm 9/10
-- Native ESM distribution.
-- `.npmrc` is now auth/registry-only; all pnpm settings move to `pnpm-workspace.yaml` or `~/.config/pnpm/config.yaml`.
-- Security defaults: `minimumReleaseAge` set to 1440 min (1 day) by default; `blockExoticSubdeps` enabled. These protect against supply chain attacks out of the box.
-- New store format: package index is a single SQLite database (faster resolution, fewer filesystem syscalls).
-- Requires `pnpm-workspace.yaml` even for single-package repos (or explicit `packages` field).
-### Migration from bun
-# From the web directory:
-# 1. Remove bun artifacts
-# 2. Install pnpm (via Corepack — preferred for version pinning)
-# 3. Add packageManager field to package.json for Corepack + Vercel version pinning
-#    (Vercel reads this via Corepack to use the exact pnpm version)
-#    Edit package.json to add:
-#    "packageManager": "pnpm@11.5.2"
-# 4. Create minimal pnpm-workspace.yaml (required in pnpm 11 even for single package)
-# 5. Install dependencies — generates pnpm-lock.yaml (lockfileVersion: 9.0)
-# 6. Verify dev workflow
+bun 1.3.14 (install via Homebrew: `brew install bun`).
+### CI Rules
+- Always `bun install --frozen-lockfile` in CI — never bare `bun install` (it silently re-resolves).
+- `bun audit --audit-level=high` is the D-08 supply-chain gate.
+### Supply-Chain Hardening (`web/bunfig.toml`)
+- `minimumReleaseAge = 604800` — quarantines packages published less than 7 days ago (bun's default is 3 days; set explicitly to preserve the D-08 control).
+- `trustedDependencies` in `package.json` allow-lists the only packages permitted to run postinstall scripts.
 ### Vercel Deployment
-### Husky + lint-staged + Biome Compatibility
-### Monorepo Option (uv + pnpm)
-# pnpm-workspace.yaml
+Vercel detects `bun.lock` and installs with bun natively — no extra configuration needed.
 ## 4. Socket.IO → SSE Migration
 ### Decision
 ### Backend: FastAPI + sse-starlette
@@ -142,7 +131,7 @@ This first milestone is **foundation + data layer**. New user-facing V2 features
 ### CI Gates (Minimum)
 ### What NOT to Do
 - Do not run `uv lock --upgrade` in CI — use `uv sync --locked` to enforce reproducibility.
-- Do not use `pnpm install` without `--frozen-lockfile` in CI — it silently re-resolves.
+- Do not use `bun install` without `--frozen-lockfile` in CI — it silently re-resolves.
 - Do not update all deps in a single commit — one batch per domain (core framework, AI/LLM, UI, infra) makes bisecting failures practical.
 - Do not skip the migration-first, updates-second ordering — mixed failures are intractable.
 ## Core Technologies (Summary Table)
@@ -172,9 +161,8 @@ This first milestone is **foundation + data layer**. New user-facing V2 features
 | Multiple Qdrant collections per election context | Cross-collection queries are limited; duplicates national docs | Single collection with payload filtering |
 | `socket.io-client` + `python-socketio` | WebSocket blocked by corporate firewalls; customer confirmed failure | SSE via sse-starlette + Vercel AI SDK useChat |
 | Poetry | Slower; non-standard lockfile; migration requested | uv |
-| bun (as package manager) | Less Vercel-native than pnpm; requested migration | pnpm 11 |
 | `uv lock --upgrade` in CI | Upgrades everything simultaneously; makes failures unattributable | `uv sync --locked` in CI; targeted upgrades in dev |
-| `pnpm install` without `--frozen-lockfile` in CI | Silently re-resolves; non-reproducible | `pnpm install --frozen-lockfile` |
+| `bun install` without `--frozen-lockfile` in CI | Silently re-resolves; non-reproducible | `bun install --frozen-lockfile` |
 | Global HNSW (`m != 0`) with `is_tenant` | Wastes RAM building global index never used in tenant-filtered queries | `m=0, payload_m=16` |
 | Python 3.13 this milestone | numpy 2.0 cascade risk; LangChain integration packages may lag | Python 3.12; bump 3.13 in a dedicated dep update phase |
 | AI SDK v4 `ai/react` + hand-rolled `data: {code}{json}` frames | v4 parser can't read SSE-framed parts; renders nothing | v5 `@ai-sdk/react` useChat + backend emitting v5 UI-message-stream parts (`data: {"type":...}`) |
@@ -183,7 +171,7 @@ This first milestone is **foundation + data layer**. New user-facing V2 features
 |---------|-----------------|-------|
 | qdrant-client 1.18 | Qdrant server 1.18.x | Client and server should track same minor version |
 | langchain-qdrant 1.1.0 | qdrant-client ≥1.12 | Verified against PyPI requires |
-| pnpm 11 | Node.js ≥22 | Hard requirement; drop Node 18/20 in dev environments |
+| bun ≥1.3 | Node.js ≥22 | Node 22+ is the supported runtime; drop Node 18/20 in dev environments |
 | sse-starlette 3.4.4 | FastAPI ≥0.100, Starlette ≥0.27 | FastAPI ≥0.115 bundles compatible Starlette |
 | Vercel AI SDK ai 5.x + `@ai-sdk/react` 2.x | Next.js 15, React 19 | useChat moved to `@ai-sdk/react`; transport via `DefaultChatTransport` |
 | uv 0.11.x | Python 3.10–3.13 | Manages Python version via `.python-version` file |
@@ -194,11 +182,12 @@ This first milestone is **foundation + data layer**. New user-facing V2 features
 # Install all dependencies
 # Dev workflow
 # Add new dependencies
-### Node (after bun → pnpm migration)
-# Enable Corepack for version pinning
+### Node (bun)
+# Install bun (once per machine): brew install bun
 # In web directory
-# Remove socket.io-client, no replacement needed
-# Dev workflow
+# Install dependencies (local): bun install
+# CI / reproducible installs: bun install --frozen-lockfile
+# Dev workflow: bun run dev / bun run lint / bun run build
 ## Sources
 - [Qdrant Multitenancy Documentation](https://qdrant.tech/documentation/manage-data/multitenancy/) — `is_tenant` index, HNSW config, single collection recommendation
 - [Qdrant Filtering Documentation](https://qdrant.tech/documentation/search/filtering/) — `MatchAny`, array field semantics
@@ -209,8 +198,8 @@ This first milestone is **foundation + data layer**. New user-facing V2 features
 - [uv GitHub Releases](https://github.com/astral-sh/uv/releases) — version 0.11.19, 2026-06-03
 - [uv Docker Integration Guide](https://docs.astral.sh/uv/guides/integration/docker/) — multi-stage Dockerfile pattern
 - [migrate-to-uv PyPI](https://pypi.org/project/poetry-to-uv/) — Poetry migration tool
-- [pnpm 11.0 Release Notes](https://pnpm.io/blog/releases/11.0) — Node 22 requirement, .npmrc changes, ESM, store format
-- [Vercel Package Managers Documentation](https://vercel.com/docs/package-managers) — pnpm support, lockfileVersion, Corepack
+- [Bun Documentation](https://bun.sh/docs) — install, `--frozen-lockfile`, `bunfig.toml` (`minimumReleaseAge`), audit
+- [Vercel Package Managers Documentation](https://vercel.com/docs/package-managers) — bun lockfile support
 - [Vercel AI SDK Stream Protocols](https://ai-sdk.dev/docs/ai-sdk-ui/stream-protocol) — data stream v1 format, event types
 - [sse-starlette PyPI](https://pypi.org/project/sse-starlette/) — version 3.4.4, 2026-03-29
 - [Vercel AI SDK Python Streaming Template](https://vercel.com/templates/next.js/ai-sdk-python-streaming) — FastAPI + useChat integration pattern

@@ -144,9 +144,13 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
       // sse-chat-provider via getSseChatAppend() (SSE-03).
       const appendMessage = getSseChatAppend();
       if (!appendMessage) {
+        // User-visible feedback via toast — the old `state.error` write was
+        // dead (no component renders it).
+        toast.error(
+          'Der Chat ist noch nicht bereit. Bitte lade die Seite neu.',
+        );
         set((state) => {
           state.loading.newMessage = false;
-          state.error = 'Chat provider not ready';
         });
         return;
       }
@@ -180,9 +184,13 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
     } catch (error) {
       console.error(error);
 
+      // User-visible feedback via toast — the old `state.error` write was
+      // dead (no component renders it).
+      toast.error(
+        'Die Antwort konnte nicht geladen werden. Bitte versuche es erneut.',
+      );
       set((state) => {
         state.loading.newMessage = false;
-        state.error = 'Failed to get chat answer';
       });
     }
   };

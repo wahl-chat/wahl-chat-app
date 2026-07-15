@@ -46,6 +46,9 @@ from src.ingestion.connectors.abgeordnetenwatch.mappers.stance import (
     aggregate_fraction_tallies,
     derive_stance,
 )
+from src.ingestion.connectors.abgeordnetenwatch.topic_taxonomy_config import (
+    get_relevance_levels,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -60,14 +63,25 @@ class SourceItemLike(Protocol):
     """Structural protocol for the source_item argument to chunk_poll().
 
     Any object exposing these five attributes satisfies the protocol —
-    no import of SourceItemRecord (deleted) required.
+    no import of SourceItemRecord (deleted) required. Members are declared
+    as read-only properties so FROZEN dataclasses (connector._SourceItem)
+    satisfy the protocol; chunk_poll only reads them.
     """
 
-    source_item_id: uuid.UUID
-    region: str
-    authority_tier: AuthorityTier
-    source_type: SourceType
-    publish_date: date_type
+    @property
+    def source_item_id(self) -> uuid.UUID: ...
+
+    @property
+    def region(self) -> str: ...
+
+    @property
+    def authority_tier(self) -> AuthorityTier: ...
+
+    @property
+    def source_type(self) -> SourceType: ...
+
+    @property
+    def publish_date(self) -> date_type: ...
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -205,6 +219,21 @@ def _strip_html(html: Optional[str]) -> str:
 # ---------------------------------------------------------------------------
 
 
+def extract_topic_labels(poll: dict) -> list[str]:
+    """Extract the field_topics label strings from an AW poll dict.
+
+    Single home for the extraction (D9) — used for both the embed text and the
+    relevance_levels taxonomy lookup inside :func:`chunk_poll`.
+
+    isinstance check + str() cast before use (ASVS V5 — untrusted AW payload).
+    """
+    return [
+        str(t["label"])
+        for t in (poll.get("field_topics") or [])
+        if isinstance(t, dict) and t.get("label")
+    ]
+
+
 def _motion_outcome(poll: dict) -> Optional[str]:
     """Derive the overall motion result from the poll's ``field_accepted`` flag.
 
@@ -222,8 +251,14 @@ def _motion_outcome(poll: dict) -> Optional[str]:
     return None
 
 
-def chunk_poll(source_item: SourceItemLike, raw: dict) -> list[ChunkRecord]:
-    """Produce ONE deterministic ChunkRecord per AW poll (subject-embedded).
+def chunk_poll(
+    source_item: SourceItemLike,
+    raw: dict,
+    *,
+    wahlperiode: Optional[int] = None,
+    legislature_period_id: Optional[int] = None,
+) -> list[ChunkRecord]:
+    """Produce ONE deterministic, FULLY-STAMPED ChunkRecord per AW poll.
 
     Design (vote-record array model + envelope/meta split):
       - The embedded ``text`` is the *subject* of the motion only — poll label,
@@ -239,8 +274,24 @@ def chunk_poll(source_item: SourceItemLike, raw: dict) -> list[ChunkRecord]:
         so it opts out of per-party tenant co-location and is filtered via
         ``party_ids`` instead.
 
+    This function owns the WHOLE record build (D9): topic extraction
+    (:func:`extract_topic_labels`), relevance_levels derivation
+    (``get_relevance_levels``; the no-topics WARNING is suppressed for
+    non-federal regions per D14), and the envelope stamping that previously
+    lived in connector.normalize() (external_id, wahlperiode,
+    legislature_period_id, relevance_levels).
+
+    content_hash covers the correctness-bearing content AND the
+    normalize()-stamped envelope fields (region, publish_date,
+    relevance_levels, wahlperiode, legislature_period_id) — so an
+    AW_REFRESH reconcile run propagates envelope corrections (e.g. a
+    re-classified topic or a fixed region), not just text/tally changes (D6).
+    NOTE: widening the hash input changes ALL existing hashes once — the next
+    AW_REFRESH run performs a one-time full re-write of stored vote_record
+    chunks (acceptable pre-production; no production ingest has happened).
+
     source_item is typed as the structural SourceItemLike Protocol
-    (the deleted SourceItemRecord is gone) — the minimal stub built in
+    (the deleted SourceItemRecord is gone) — the frozen stub built in
     connector.normalize() satisfies it.
 
     Party slugs are resolved from the ``fraction.label`` inside each vote dict via
@@ -255,11 +306,13 @@ def chunk_poll(source_item: SourceItemLike, raw: dict) -> list[ChunkRecord]:
         source_item: Any SourceItemLike object with source_item_id, region,
                      authority_tier, source_type, publish_date attributes.
         raw:         Raw payload: ``{"poll": <poll dict>, "votes": <votes list>}``.
+        wahlperiode: German Wahlperiode number (Bundestag only; None for
+                     Landtage — state Wahlperiode ints collide across states).
+        legislature_period_id: AW parliament_period ID (globally unique period key).
 
     Returns:
-        A list with a single ``ChunkRecord`` (or empty when no usable tallies).
-        Note: external_id and wahlperiode are NOT stamped here — connector.normalize()
-        stamps them via model_copy(update=...).
+        A list with a single fully-stamped ``ChunkRecord`` (or empty when no
+        usable tallies).
     """
     poll: dict = raw["poll"]
     votes: list[dict] = raw["votes"]
@@ -267,11 +320,7 @@ def chunk_poll(source_item: SourceItemLike, raw: dict) -> list[ChunkRecord]:
     poll_label: str = poll.get("label") or ""
     field_intro: Optional[str] = poll.get("field_intro")
     intro_text: str = _strip_html(field_intro)
-    topic_labels: list[str] = [
-        str(t["label"])
-        for t in (poll.get("field_topics") or [])
-        if isinstance(t, dict) and t.get("label")
-    ]
+    topic_labels: list[str] = extract_topic_labels(poll)
 
     # Aggregate per-fraction tallies (skips degenerate fraction=[] entries)
     tallies: dict[int, dict] = aggregate_fraction_tallies(votes)
@@ -322,12 +371,34 @@ def chunk_poll(source_item: SourceItemLike, raw: dict) -> list[ChunkRecord]:
         motion_outcome=_motion_outcome(poll),
     ).model_dump(mode="json", exclude_none=True)
 
-    # Stable hash of the correctness-bearing content (embed text + tallies/outcome +
-    # participating parties). Lets run.py detect an upstream correction on re-ingest and
-    # re-write the chunk; unchanged polls are skipped without re-embedding.
+    # Relevance levels from the topic taxonomy (single home for the lookup, D9).
+    # D14: Landtag polls routinely carry no field_topics — suppress the per-poll
+    # no-topics WARNING for non-federal regions (unknown-label warnings stay
+    # loud everywhere).
+    relevance_levels = get_relevance_levels(
+        topic_labels, warn_on_missing_topics=(source_item.region == "DE")
+    )
+
+    # Stable hash of the correctness-bearing content (embed text + tallies/outcome
+    # + participating parties) PLUS the stamped envelope fields (D6: region,
+    # publish_date, relevance_levels, wahlperiode, legislature_period_id) — so an
+    # AW_REFRESH reconcile run re-writes chunks whose envelope changed (e.g. a
+    # re-classified topic), not only text/tally corrections.
+    # NOTE: widening the hash input changed all pre-existing hashes once; the
+    # next AW_REFRESH performs a one-time full re-write (acceptable
+    # pre-production — no production ingest had happened).
     content_hash = hashlib.sha256(
         json.dumps(
-            {"text": text, "meta": meta, "party_ids": sorted(party_slugs)},
+            {
+                "text": text,
+                "meta": meta,
+                "party_ids": sorted(party_slugs),
+                "region": source_item.region,
+                "publish_date": source_item.publish_date.isoformat(),
+                "relevance_levels": relevance_levels,
+                "wahlperiode": wahlperiode,
+                "legislature_period_id": legislature_period_id,
+            },
             sort_keys=True,
             ensure_ascii=False,
         ).encode("utf-8")
@@ -347,6 +418,10 @@ def chunk_poll(source_item: SourceItemLike, raw: dict) -> list[ChunkRecord]:
             citation_url=poll.get("abgeordnetenwatch_url"),
             citation_title=poll_label,
             party_ids=sorted(party_slugs),
+            external_id=poll["id"],
+            wahlperiode=wahlperiode,
+            legislature_period_id=legislature_period_id,
+            relevance_levels=relevance_levels,
             content_hash=content_hash,
             meta=meta,
         )

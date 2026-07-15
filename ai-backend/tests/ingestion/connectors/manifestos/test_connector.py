@@ -171,3 +171,182 @@ class TestDiscoverSetDifference:
         monkeypatch.setattr(connector, "_get_ingested_program_ids", lambda: set())
 
         assert connector.discover(since=None) == []
+
+
+class TestManifestoRefresh:
+    """E1: MANIFESTO_REFRESH=1 skips the ingested-ids exclusion so run.py's
+    content-hash rewrite + orphan cleanup can reconcile replaced PDFs."""
+
+    def test_refresh_includes_already_ingested_programs(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        ingested_program = dict(_PDF_PROGRAM, id=598)
+        new_program = dict(_PDF_PROGRAM, id=700)
+
+        connector = ManifestoConnector()
+        connector._client = TestDiscoverSetDifference._FakeAwClient(  # type: ignore[assignment]
+            [ingested_program, new_program]
+        )
+        monkeypatch.setattr(
+            conn_mod, "_fetch_period_date", lambda *a, **k: "2025-02-23"
+        )
+
+        def _boom() -> set[int]:
+            raise AssertionError(
+                "MANIFESTO_REFRESH must not touch Qdrant for the ingested-ids set"
+            )
+
+        monkeypatch.setattr(connector, "_get_ingested_program_ids", _boom)
+        monkeypatch.setenv("MANIFESTO_REFRESH", "1")
+
+        ids = connector.discover(since=None)
+
+        assert ids == ["598", "700"], (
+            "refresh discover must return ALL eligible programs (incl. ingested), "
+            f"got {ids!r}"
+        )
+
+    def test_refresh_flag_parsing_matches_aw_refresh(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """'true'/'yes'/'1' enable refresh; other values do not."""
+        ingested_program = dict(_PDF_PROGRAM, id=598)
+
+        for value, expect_included in [
+            ("true", True), ("YES", True), ("1", True),
+            ("0", False), ("off", False), ("", False),
+        ]:
+            connector = ManifestoConnector()
+            connector._client = TestDiscoverSetDifference._FakeAwClient(  # type: ignore[assignment]
+                [ingested_program]
+            )
+            monkeypatch.setattr(
+                conn_mod, "_fetch_period_date", lambda *a, **k: "2025-02-23"
+            )
+            monkeypatch.setattr(
+                connector, "_get_ingested_program_ids", lambda: {598}
+            )
+            monkeypatch.setenv("MANIFESTO_REFRESH", value)
+
+            ids = connector.discover(since=None)
+            assert (("598" in ids) is expect_included), (
+                f"MANIFESTO_REFRESH={value!r}: expected included={expect_included}, got {ids!r}"
+            )
+
+
+class TestDetermineSource:
+    """E9: determine_source precedence — link[0].uri wins over file; both
+    null raises; a non-dict link entry falls back to file."""
+
+    def test_link_uri_wins_over_file(self) -> None:
+        program = {
+            "link": [{"uri": "https://example.com/programm", "title": "Programm"}],
+            "file": "https://example.com/programm.pdf",
+        }
+        assert conn_mod.determine_source(program) == (
+            "link", "https://example.com/programm"
+        )
+
+    def test_file_used_when_no_link(self) -> None:
+        program = {"link": [], "file": "https://example.com/programm.pdf"}
+        assert conn_mod.determine_source(program) == (
+            "pdf", "https://example.com/programm.pdf"
+        )
+
+    def test_null_link_uri_falls_back_to_file(self) -> None:
+        program = {
+            "link": [{"uri": None, "title": "kaputt"}],
+            "file": "https://example.com/programm.pdf",
+        }
+        assert conn_mod.determine_source(program) == (
+            "pdf", "https://example.com/programm.pdf"
+        )
+
+    def test_non_dict_link_entry_falls_back_to_file(self) -> None:
+        program = {
+            "link": ["https://not-a-dict.example.com"],
+            "file": "https://example.com/programm.pdf",
+        }
+        assert conn_mod.determine_source(program) == (
+            "pdf", "https://example.com/programm.pdf"
+        )
+
+    def test_both_null_raises(self) -> None:
+        with pytest.raises(ValueError, match="no link or file"):
+            conn_mod.determine_source({"link": [], "file": None})
+
+
+class TestLoadProgramPagesHtmlFloor:
+    """E9: HTML sources shorter than 500 extracted chars are skipped (a
+    'download our program' landing page must not be embedded)."""
+
+    class _FakeResponse:
+        def __init__(self, text: str) -> None:
+            self.text = text
+
+        def raise_for_status(self) -> None:
+            return None
+
+    def test_short_html_raises_floor_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        nav_only = "<html><body><nav><a href='/'>Home</a></nav></body></html>"
+        monkeypatch.setattr(
+            "requests.get", lambda *a, **k: self._FakeResponse(nav_only)
+        )
+        with pytest.raises(ValueError, match="HTML too short"):
+            conn_mod.load_program_pages("link", "https://example.com/landing")
+
+    def test_long_html_passes_floor(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        paragraph = "<p>" + ("Wir fordern bezahlbaren Wohnraum für alle Menschen. " * 20) + "</p>"
+        html = f"<html><body><article><h1>Programm</h1>{paragraph}</article></body></html>"
+        monkeypatch.setattr(
+            "requests.get", lambda *a, **k: self._FakeResponse(html)
+        )
+        result = conn_mod.load_program_pages("link", "https://example.com/programm")
+        assert result["total_pages"] is None
+        assert len(result["pages"]) == 1
+        page_no, text = result["pages"][0]
+        assert page_no == 1
+        assert len(text) >= 500
+
+
+class TestGetIngestedProgramIds:
+    """E9: _get_ingested_program_ids paginates the Qdrant scroll and filters
+    non-int external_ids."""
+
+    class _Point:
+        def __init__(self, payload: dict | None) -> None:
+            self.payload = payload
+
+    class _PagingQdrant:
+        """Two scroll pages; second page carries the terminating None offset."""
+
+        def __init__(self) -> None:
+            self.calls: list[object] = []
+
+        def scroll(self, **kwargs: object) -> tuple:
+            offset = kwargs.get("offset")
+            self.calls.append(offset)
+            P = TestGetIngestedProgramIds._Point
+            if offset is None:
+                return (
+                    [P({"external_id": 598}), P({"external_id": "not-int"})],
+                    "page-2-offset",
+                )
+            return (
+                [P({"external_id": 700}), P(None), P({"external_id": 3.5})],
+                None,
+            )
+
+    def test_pagination_and_non_int_filtering(self) -> None:
+        connector = ManifestoConnector()
+        fake = self._PagingQdrant()
+        connector._qdrant = fake  # type: ignore[assignment]
+
+        ids = connector._get_ingested_program_ids()
+
+        assert ids == {598, 700}, f"expected int-only ids across pages, got {ids!r}"
+        assert fake.calls == [None, "page-2-offset"], (
+            "scroll must be called once per page, chaining next_offset"
+        )

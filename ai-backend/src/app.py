@@ -28,12 +28,10 @@ app = FastAPI(
     version="2.0.0",
 )
 
-# CORS: allow only known origins
-cors_allowed_origins = get_cors_allowed_origins(os.getenv("ENV"))
-if isinstance(cors_allowed_origins, str):
-    cors_origins = [cors_allowed_origins]
-else:
-    cors_origins = cors_allowed_origins
+# CORS: enumerated origins only — get_cors_allowed_origins never returns "*"
+# (allow_credentials=True below would otherwise reflect any Origin with
+# credentials). Extra deploy-specific origins come from CORS_EXTRA_ORIGINS.
+cors_origins = get_cors_allowed_origins(os.getenv("ENV"))
 
 app.add_middleware(
     CORSMiddleware,

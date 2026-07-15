@@ -6,8 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint && biome lint --write --unsafe",
-    "lint:fix": "next lint --fix && biome lint --write --unsafe",
+    "lint": "next lint && biome ci .",
+    "lint:fix": "next lint --fix && biome lint --write --unsafe .",
+    "typecheck": "tsc --noEmit",
     "format": "biome format --write",
     "prepare": "cd .. && husky"
   },

@@ -25,6 +25,7 @@ This script NEVER touches the legacy V1 collections
 
 import os
 import sys
+from typing import Optional
 
 from qdrant_client import QdrantClient, models
 
@@ -43,13 +44,19 @@ ENV: str = os.getenv("ENV", "dev")
 COLLECTION_NAME: str = f"wahlchat_chunks_{ENV}"
 
 # ---------------------------------------------------------------------------
-# Client wiring — mirrors vector_store_helper.py lines 57-60.
+# Client wiring — mirrors vector_store_helper.py lines 57-60, but LAZY (B9):
+# this module is imported project-wide just for COLLECTION_NAME /
+# EMBEDDING_MODEL, so a module-level QdrantClient would allocate an unused,
+# never-closed client in every importing process. The client is constructed
+# only inside setup() (when none is injected) / the __main__ path.
 # api_key is None in local dev; that is valid for an unauthenticated Qdrant.
 # ---------------------------------------------------------------------------
-_client = QdrantClient(
-    url=os.getenv("QDRANT_URL", "http://localhost:6333"),
-    api_key=os.getenv("QDRANT_API_KEY"),
-)
+def _make_client() -> QdrantClient:
+    """Construct the default QdrantClient from QDRANT_URL / QDRANT_API_KEY."""
+    return QdrantClient(
+        url=os.getenv("QDRANT_URL", "http://localhost:6333"),
+        api_key=os.getenv("QDRANT_API_KEY"),
+    )
 
 # ---------------------------------------------------------------------------
 # Index specification list — ORDER MATTERS for readability; Qdrant accepts
@@ -140,7 +147,7 @@ _INDEX_SPECS: list[tuple[str, models.PayloadSchemaType | models.KeywordIndexPara
 _REQUIRED_INDEXES: frozenset[str] = frozenset(field for field, _ in _INDEX_SPECS)
 
 
-def setup(client: QdrantClient = _client) -> None:
+def setup(client: Optional[QdrantClient] = None) -> None:
     """Create ``COLLECTION_NAME`` and all thirteen payload indexes.
 
     Idempotent: safe to call multiple times; existence-guarded before
@@ -148,12 +155,16 @@ def setup(client: QdrantClient = _client) -> None:
     when the same params are re-submitted.
 
     Args:
-        client: QdrantClient instance (default: module-level singleton).
+        client: QdrantClient instance. When None (the __main__ path), a
+                client is constructed lazily from QDRANT_URL/QDRANT_API_KEY —
+                importing this module allocates nothing (B9).
 
     Raises:
         RuntimeError: if self-verification fails (index missing after
                       creation — should never occur on a healthy Qdrant).
     """
+    if client is None:
+        client = _make_client()
     # -----------------------------------------------------------------------
     # Existence guard — mirrors vector_store_helper.py lines 148-155.
     # -----------------------------------------------------------------------

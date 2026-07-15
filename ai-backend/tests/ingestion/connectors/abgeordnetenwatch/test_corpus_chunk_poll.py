@@ -202,3 +202,54 @@ def test_region_for_period_aw_labels() -> None:
     from src.ingestion.connectors.manifestos.mappers.corpus import region_for_period
 
     assert region_for_period("Bayern 2023 - 2028") == "DE-BY"
+
+
+# ---------------------------------------------------------------------------
+# D6: content_hash covers the stamped envelope fields
+# ---------------------------------------------------------------------------
+
+
+def test_chunk_poll_stamps_envelope_fields() -> None:
+    """chunk_poll owns the full envelope stamping (D9): external_id,
+    wahlperiode, legislature_period_id and relevance_levels."""
+    chunk = chunk_poll(
+        _SourceItemStub(),
+        _load_raw_3602(),
+        wahlperiode=19,
+        legislature_period_id=111,
+    )[0]
+    assert chunk.external_id == 3602
+    assert chunk.wahlperiode == 19
+    assert chunk.legislature_period_id == 111
+    # Fixture topics: Gesundheit / Innere Sicherheit / Öffentliche Finanzen —
+    # all resolve to {federal, state} (no ALL_LEVELS fallback).
+    assert chunk.relevance_levels == ["federal", "state"]
+
+
+def test_content_hash_changes_with_envelope_fields() -> None:
+    """D6: the content_hash must cover the normalize()-stamped envelope fields
+    so an AW_REFRESH reconcile run propagates envelope corrections."""
+    raw = _load_raw_3602()
+
+    base = chunk_poll(_SourceItemStub(), raw, wahlperiode=19, legislature_period_id=111)[0]
+
+    different_period = chunk_poll(
+        _SourceItemStub(), raw, wahlperiode=20, legislature_period_id=132
+    )[0]
+    assert different_period.content_hash != base.content_hash, (
+        "changing wahlperiode/legislature_period_id must change content_hash"
+    )
+
+    other_region_stub = _SourceItemStub()
+    other_region_stub.region = "DE-BY"
+    different_region = chunk_poll(
+        other_region_stub, raw, wahlperiode=19, legislature_period_id=111
+    )[0]
+    assert different_region.content_hash != base.content_hash, (
+        "changing region must change content_hash"
+    )
+
+    repeat = chunk_poll(_SourceItemStub(), raw, wahlperiode=19, legislature_period_id=111)[0]
+    assert repeat.content_hash == base.content_hash, (
+        "content_hash must stay deterministic for identical inputs"
+    )

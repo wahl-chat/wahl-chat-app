@@ -136,6 +136,30 @@ def _fake_retrieve(*args: Any, **kwargs: Any) -> list[dict]:
     return []
 
 
+_FAKE_MANIFESTO_PAYLOAD = {
+    "citation_title": "SPD Wahlprogramm 2025",
+    "citation_url": "https://www.spd.de/wahlprogramm.pdf",
+    "publish_date": "2025-01-01",
+    "text": "Die SPD setzt sich für ambitionierten Klimaschutz ein.",
+    "authority_tier": "self_reported",
+    "meta": {"page_start": 1, "source_kind": "pdf"},
+}
+
+
+def _fake_retrieve_two_pass(query: str, **kwargs: Any) -> dict[str, list[dict]]:
+    """Deterministic retrieve_two_pass() replacement.
+
+    The default context resolves a term window (region ["DE"]), so the chat
+    stream takes the TWO-PASS path — this patch makes that path deterministic
+    instead of silently falling into _safe_two_pass's exception fallback.
+    Returns one manifesto payload in the current bucket so sources_ready
+    carries real two-pass content; other sources return empty buckets.
+    """
+    if kwargs.get("source_type") == "party_manifesto":
+        return {"current": [dict(_FAKE_MANIFESTO_PAYLOAD)], "historic": []}
+    return {"current": [], "historic": []}
+
+
 async def _fake_stream_answer(*args: Any, **kwargs: Any) -> AsyncIterator[AIMessageChunk]:
     """Deterministic LLM stream replacement — no external LLM call."""
 
@@ -213,6 +237,9 @@ def patch_chat_io(monkeypatch: pytest.MonkeyPatch) -> None:
           (identify_relevant_docs_with_llm_based_reranking was replaced with
           embed.aembed_query + retrieve(); this patch eliminates the OpenAI call)
       - src.chat_service.retrieve → returns [] (empty payloads; no Qdrant call)
+      - src.chat_service.retrieve_two_pass → deterministic manifesto-only
+          current bucket (the default context resolves a term window, so the
+          chat stream takes the two-pass path)
       - src.chatbot_async.stream_answer_from_llms → deterministic token stream
           (eliminates live LLM / OpenAI / Gemini astream call)
 
@@ -240,6 +267,11 @@ def patch_chat_io(monkeypatch: pytest.MonkeyPatch) -> None:
     _fake_embed_mock.aembed_query = AsyncMock(return_value=_FAKE_ZERO_VECTOR)
     monkeypatch.setattr("src.chat_service.embed", _fake_embed_mock)
     monkeypatch.setattr("src.chat_service.retrieve", _fake_retrieve)
+    # Both retrieval entry points must be patched: contexts that resolve a term
+    # window use retrieve_two_pass, all others use retrieve. Patching only
+    # retrieve would leave the two-pass path exercising the Qdrant mock via
+    # _safe_two_pass's exception fallback instead of real framing.
+    monkeypatch.setattr("src.chat_service.retrieve_two_pass", _fake_retrieve_two_pass)
     monkeypatch.setattr(
         "src.chatbot_async.stream_answer_from_llms",
         _fake_stream_answer,

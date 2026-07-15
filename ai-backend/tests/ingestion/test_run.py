@@ -79,6 +79,57 @@ def test_source_scoped_cursor() -> None:
     assert "source" in must_keys and "source_type" in must_keys
 
 
+class _CursorFilterRecorder:
+    """Fake Qdrant recording the scroll_filter of every order_by (cursor) scroll."""
+
+    def __init__(self) -> None:
+        self.cursor_filters: list = []
+
+    def scroll(self, **kwargs):  # noqa: ANN003, ANN201
+        if kwargs.get("order_by") is not None:
+            self.cursor_filters.append(kwargs.get("scroll_filter"))
+        return ([], None)
+
+
+def _cursor_filter_keys(flt) -> set:  # noqa: ANN001
+    return {getattr(c, "key", None) for c in (getattr(flt, "must", []) or [])}
+
+
+def test_runner_honors_cursor_source_none() -> None:
+    """C6: a connector with cursor_source=None gets an UNSCOPED cursor read even
+    though it stamps a `source` — the DIP floor must span both speech sources
+    (op supersede-deletes dip points, so a dip-scoped max walks backward)."""
+    from unittest.mock import MagicMock as _MM
+
+    class _DipLikeStub(_ChunksStub):
+        source: str = "dip"
+        cursor_source = None  # class attr shadows the BaseConnector property
+
+    qdrant = _CursorFilterRecorder()
+    run_connector(_DipLikeStub({}), qdrant, _MM(), batch_size=1)
+
+    assert qdrant.cursor_filters, "get_cursor must have been consulted"
+    assert "source" not in _cursor_filter_keys(qdrant.cursor_filters[0]), (
+        "cursor_source=None must drop the source condition from the cursor scroll"
+    )
+
+
+def test_runner_defaults_cursor_source_to_source() -> None:
+    """C6: without an override, the cursor stays scoped to the connector's source
+    (op keeps its independent source-scoped cursor)."""
+    from unittest.mock import MagicMock as _MM
+
+    class _OpLikeStub(_ChunksStub):
+        source: str = "op"
+
+    qdrant = _CursorFilterRecorder()
+    run_connector(_OpLikeStub({}), qdrant, _MM(), batch_size=1)
+
+    assert "source" in _cursor_filter_keys(qdrant.cursor_filters[0]), (
+        "the BaseConnector default scopes the cursor to the connector's source"
+    )
+
+
 # ---------------------------------------------------------------------------
 # run_connector batch-stall + multi-source_item_id orphan-cleanup regressions
 # ---------------------------------------------------------------------------
@@ -107,8 +158,23 @@ def _chunk(
     )
 
 
+def test_base_connector_declares_source_type_contract() -> None:
+    """B4: the ABC itself declares the required `source_type` attribute (annotation,
+    no default) and the optional `source` discriminator (default None)."""
+    assert "source_type" in BaseConnector.__annotations__, (
+        "BaseConnector must declare source_type as a documented required attribute"
+    )
+    assert not hasattr(BaseConnector, "source_type") or isinstance(
+        BaseConnector.source_type, str
+    ), "source_type must have NO non-str default on the ABC"
+    assert BaseConnector.source is None, "the optional source discriminator defaults to None"
+
+
 class _ChunksStub(BaseConnector):
-    """Stub connector returning a pre-baked chunks list per external_id."""
+    """Stub connector returning a pre-baked chunks list per external_id.
+
+    Declares the B4-required `source_type` class attribute (the ABC now documents
+    it as mandatory; the runner reads it without a type: ignore)."""
 
     source_type: str = SourceType.VOTE_RECORD.value
 
@@ -224,9 +290,20 @@ def test_batch_budget_counts_only_worked_items() -> None:
     assert report.remaining == 1, "id '4' was never reached → remaining tail is 1"
 
 
+def _deleted_point_ids(delete_call: dict) -> set[str]:
+    """Extract the point ids from a PointIdsList delete call (B2 semantics)."""
+    selector = delete_call["points_selector"]
+    points = getattr(selector, "points", None)
+    assert points is not None, (
+        f"B2: delete must use PointIdsList (orphan ids only), got {selector!r}"
+    )
+    return {str(p) for p in points}
+
+
 def test_multi_source_item_id_orphan_delete() -> None:
-    """(c) An item whose chunks span source_item_ids A and B must delete orphans
-    under BOTH siids before upsert — not just chunks[0]'s."""
+    """(c) An item whose chunks span source_item_ids A and B must delete the
+    orphan under siid B — and ONLY that orphan (B2: PointIdsList of
+    existing − new; surviving ids are overwritten in place by the upsert)."""
     chunk_a = _chunk("speech-A", 0, "Rede A", content_hash="h-a")
     chunk_b = _chunk("speech-B", 0, "Rede B", content_hash="h-b")
 
@@ -245,23 +322,18 @@ def test_multi_source_item_id_orphan_delete() -> None:
 
     report = run_connector(connector, qdrant, embed, batch_size=10)
 
-    assert len(qdrant.deletes) == 1, "orphan cleanup must delete before upsert"
-    delete_filter = qdrant.deletes[0]["points_selector"].filter
-    matched: set[str] = set()
-    for cond in delete_filter.must:
-        if cond.key == "source_item_id":
-            values = getattr(cond.match, "any", None) or [cond.match.value]
-            matched.update(str(v) for v in values)
-    assert str(chunk_a.source_item_id) in matched, "siid A must be covered by the delete"
-    assert str(chunk_b.source_item_id) in matched, "siid B (orphan owner) must be covered"
+    assert len(qdrant.deletes) == 1, "orphan cleanup must delete the stale point"
+    assert _deleted_point_ids(qdrant.deletes[0]) == {orphan_pid}, (
+        "ONLY the orphan point id may be deleted — never the whole footprint"
+    )
     assert len(qdrant.upserts) == 1
     assert report.chunks_upserted == 2
 
 
 def test_shrink_in_place_removes_stale_chunk() -> None:
     """(c) An item that previously stored 3 chunks and now yields 2 (all present,
-    content unchanged) must STILL take the delete+re-upsert branch so the stale
-    3rd chunk stops being retrievable."""
+    content unchanged) must STILL take the rewrite branch and delete ONLY the
+    stale 3rd chunk's point id (B2) so it stops being retrievable."""
     kept_0 = _chunk("item-S", 0, "Teil 1", content_hash="h-0")
     kept_1 = _chunk("item-S", 1, "Teil 2", content_hash="h-1")
     existing: dict[str, dict] = {}
@@ -282,12 +354,133 @@ def test_shrink_in_place_removes_stale_chunk() -> None:
     report = run_connector(connector, qdrant, embed, batch_size=10)
 
     assert len(qdrant.deletes) == 1, (
-        "3→2 shrink-in-place must delete the item's footprint (stale chunk_index=2)"
+        "3→2 shrink-in-place must delete the stale chunk_index=2 point"
+    )
+    assert _deleted_point_ids(qdrant.deletes[0]) == {stale_pid}, (
+        "only the orphan id is deleted; the surviving 2 ids are upsert-overwritten"
     )
     assert len(qdrant.upserts) == 1, "the surviving 2 chunks must be re-upserted"
     assert report.chunks_upserted == 2
     assert report.processed == 1
     assert report.present_skips == 0, "an orphaned footprint is NOT a clean present-skip"
+
+
+def test_rewrite_preserves_grafted_transcript_pdf_url() -> None:
+    """C8 regression: a rewrite (content changed) must carry a previously grafted
+    meta.transcript_pdf_url into the new payloads — the fresh mapper output never
+    emits it and the donating DIP twin is already deleted, so without this every
+    op re-alignment cycle strips the merge result."""
+    pdf_url = "https://dserver.bundestag.de/btp/20/2000101.pdf"
+    new_chunk = _chunk("speech-G", 0, "neu ausgerichteter Text", content_hash="h-new")
+    pid = str(compute_chunk_id(new_chunk.source_item_id, 0))
+    existing = {
+        pid: {
+            "source_item_id": str(new_chunk.source_item_id),
+            "content_hash": "h-old",  # content changed → rewrite fires
+            "meta": {"transcript_pdf_url": pdf_url},
+        }
+    }
+
+    connector = _ChunksStub({"g1": [new_chunk]})
+    qdrant = _FootprintQdrant(existing)
+    embed = _mock_embed()
+
+    run_connector(connector, qdrant, embed, batch_size=10)
+
+    assert len(qdrant.upserts) == 1
+    upserted = qdrant.upserts[0]["points"][0]
+    assert (upserted.payload.get("meta") or {}).get("transcript_pdf_url") == pdf_url, (
+        "the grafted transcript PDF must survive the rewrite"
+    )
+
+
+def test_rewrite_does_not_overwrite_new_chunks_own_pdf() -> None:
+    """C8: a new payload that ALREADY carries meta.transcript_pdf_url keeps its
+    own value — the preserved graft applies only where the field is absent."""
+    own_pdf = "https://dserver.bundestag.de/btp/21/OWN.pdf"
+    stale_pdf = "https://dserver.bundestag.de/btp/20/STALE.pdf"
+    base = _chunk("speech-H", 0, "Text", content_hash="h-new")
+    new_chunk = base.model_copy(update={"meta": {"transcript_pdf_url": own_pdf}})
+    pid = str(compute_chunk_id(new_chunk.source_item_id, 0))
+    existing = {
+        pid: {
+            "source_item_id": str(new_chunk.source_item_id),
+            "content_hash": "h-old",
+            "meta": {"transcript_pdf_url": stale_pdf},
+        }
+    }
+
+    connector = _ChunksStub({"h1": [new_chunk]})
+    qdrant = _FootprintQdrant(existing)
+    embed = _mock_embed()
+
+    run_connector(connector, qdrant, embed, batch_size=10)
+
+    upserted = qdrant.upserts[0]["points"][0]
+    assert (upserted.payload.get("meta") or {}).get("transcript_pdf_url") == own_pdf
+
+
+class _SkipReportingStub(_ChunksStub):
+    """Stub whose normalize() reports op-superseded skipped siids (C9 plumbing)."""
+
+    def __init__(self, chunks_by_id: dict, superseded_siids: list[str]) -> None:
+        super().__init__(chunks_by_id)
+        self._superseded_siids = superseded_siids
+
+    def normalize(self, raw: dict) -> list[ChunkRecord]:
+        self.last_superseded_siids = tuple(self._superseded_siids)
+        return super().normalize(raw)
+
+
+def test_runner_deletes_stranded_twins_reported_by_normalize() -> None:
+    """C9 mitigation: siids a connector's normalize() skipped as op-superseded
+    are cleaned up by the runner — a stranded DIP twin from an interleaved
+    concurrent DIP+op run appears in no new-chunk/orphan filter otherwise."""
+    stranded_siid = "11111111-2222-3333-4444-555555555555"
+    connector = _SkipReportingStub({"p1": []}, [stranded_siid])
+    qdrant = _FootprintQdrant({})
+    embed = _mock_embed()
+
+    run_connector(connector, qdrant, embed, batch_size=10)
+
+    assert len(qdrant.deletes) == 1, "the stranded twin's siid must be deleted"
+    delete_filter = qdrant.deletes[0]["points_selector"].filter
+    matched: set[str] = set()
+    for cond in delete_filter.must:
+        if cond.key == "source_item_id":
+            values = getattr(cond.match, "any", None) or [cond.match.value]
+            matched.update(str(v) for v in values)
+    assert matched == {stranded_siid}
+    assert not qdrant.upserts, "an empty-chunks item still upserts nothing"
+
+
+def test_embed_failure_leaves_existing_footprint_intact() -> None:
+    """B2 loss-window regression: when the embed call fails mid-item, NOTHING may
+    have been deleted — the old delete-before-embed order left the item absent
+    until (or beyond) lookback expiry."""
+    changed = [_chunk("item-C", 0, "korrigierter Text", content_hash="h-new")]
+    pid = str(compute_chunk_id(changed[0].source_item_id, 0))
+    existing = {
+        pid: {
+            "source_item_id": str(changed[0].source_item_id),
+            "content_hash": "h-old",  # content changed → rewrite branch fires
+        }
+    }
+
+    connector = _ChunksStub({"c1": changed})
+    qdrant = _FootprintQdrant(existing)
+    embed = MagicMock()
+    embed.embed_documents.side_effect = RuntimeError("OpenAI down")
+
+    # Neutralize tenacity's exponential backoff so the test stays fast.
+    from unittest.mock import patch
+
+    with patch("src.ingestion.run._embed_texts", side_effect=RuntimeError("OpenAI down")):
+        report = run_connector(connector, qdrant, embed, batch_size=10)
+
+    assert report.failed_ids == ("c1",), "the item is skip-and-warned, not lost"
+    assert not qdrant.deletes, "embed must run BEFORE any delete (no loss window)"
+    assert not qdrant.upserts
 
 
 def test_no_orphans_all_present_unchanged_skips() -> None:
@@ -314,10 +507,9 @@ def test_no_orphans_all_present_unchanged_skips() -> None:
 
 
 def test_qdrant_api_key_plumbed_everywhere() -> None:
-    """(e) run.py runner, the DIP resurrection-guard client, and
-    migrate_speech_key all pass api_key=os.getenv("QDRANT_API_KEY")."""
+    """(e) run.py runner and the DIP resurrection-guard client both pass
+    api_key=os.getenv("QDRANT_API_KEY")."""
     import src.ingestion.connectors.bundestag_speeches.connector as dip_mod
-    import src.ingestion.connectors.bundestag_speeches.migrate_speech_key as mig_mod
     import src.ingestion.run as run_mod
 
     needle = 'api_key=os.getenv("QDRANT_API_KEY")'
@@ -325,4 +517,3 @@ def test_qdrant_api_key_plumbed_everywhere() -> None:
     assert needle in inspect.getsource(
         dip_mod.BundestagSpeechesConnector._get_qdrant
     ), "DIP resurrection-guard client must pass api_key"
-    assert needle in inspect.getsource(mig_mod), "migrate_speech_key client must pass api_key"

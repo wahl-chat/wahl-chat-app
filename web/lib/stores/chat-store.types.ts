@@ -92,7 +92,6 @@ export type ChatStoreState = {
     proConPerspective: string | undefined;
     votingBehaviorSummary: string | undefined;
     chatSession: boolean;
-    initializingChatSocketSession: boolean;
   };
   pendingStreamingMessageTimeoutHandler: {
     timeout?: NodeJS.Timeout;
@@ -103,12 +102,6 @@ export type ChatStoreState = {
   currentQuickReplies: string[];
   currentChatTitle?: string;
   chatSessionIsPublic?: boolean;
-  // socket field kept for backwards compatibility; io is no longer used (SSE replaces Socket.IO)
-  socket: {
-    connected?: boolean;
-    error?: string;
-    isConnecting?: boolean;
-  };
   currentStreamingMessages?: CurrentStreamingMessages;
   currentStreamedVotingBehavior?: CurrentStreamedVotingBehavior;
   clickedProConButton?: boolean;
@@ -162,7 +155,6 @@ export type ChatStoreActions = {
   // FIX 15: setSocket, setSocketConnecting, setSocketConnected, setSocketError removed.
   // Action files deleted; Socket.IO is replaced by SSE.
   initializeChatSession: () => Promise<void>;
-  initializedChatSession: (sessionId: string) => void;
   selectRespondingParties: (sessionId: string, partyIds: string[]) => void;
   streamingMessageSourcesReady: (
     sessionId: string,

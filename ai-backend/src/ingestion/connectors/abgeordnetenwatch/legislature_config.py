@@ -39,6 +39,10 @@ class LegislatureConfig:
         label:                AW period label, e.g. ``"Bayern 2023 - 2028"``.
         date_from:            ISO date string of period start (start_date_period).
         date_to:              ISO date string of period end (end_date_period), or None.
+        wahlperiode:          German Wahlperiode number for Bundestag periods
+                              (e.g. 20 for the 20th Bundestag). None for Länder —
+                              state Wahlperiode ints collide across states, so
+                              Landtag chunks never carry one.
     """
 
     parliament_period_id: int
@@ -46,6 +50,7 @@ class LegislatureConfig:
     label: str
     date_from: str
     date_to: Optional[str]
+    wahlperiode: Optional[int] = None
 
 
 # ---------------------------------------------------------------------------
@@ -58,12 +63,13 @@ class LegislatureConfig:
 # ---------------------------------------------------------------------------
 LEGISLATURE_CONFIG: dict[int, LegislatureConfig] = {
     # -----------------------------------------------------------------------
-    # Bundestag (back-compat; replaces _LEGISLATURE_TO_WAHLPERIODE in connector.py)
-    # Verified: connector.py lines 64-68 + AW API parliament-periods/{id} (2026-06-25)
+    # Bundestag — wahlperiode is the sole source of the Wahlperiode number
+    # (connector.py's former _LEGISLATURE_TO_WAHLPERIODE map is deleted).
+    # Verified: AW API parliament-periods/{id} (2026-06-25)
     # -----------------------------------------------------------------------
-    111: LegislatureConfig(111, "DE", "Bundestag 2017 - 2021", "2017-10-24", "2021-10-25"),
-    132: LegislatureConfig(132, "DE", "Bundestag 2021 - 2025", "2021-10-26", "2025-03-24"),
-    161: LegislatureConfig(161, "DE", "Bundestag 2025 - 2029", "2025-03-25", "2029-02-22"),
+    111: LegislatureConfig(111, "DE", "Bundestag 2017 - 2021", "2017-10-24", "2021-10-25", wahlperiode=19),
+    132: LegislatureConfig(132, "DE", "Bundestag 2021 - 2025", "2021-10-26", "2025-03-24", wahlperiode=20),
+    161: LegislatureConfig(161, "DE", "Bundestag 2025 - 2029", "2025-03-25", "2029-02-22", wahlperiode=21),
 
     # -----------------------------------------------------------------------
     # Landtage — current legislature period each (IDs VERIFIED from AW API, 2026-06-25).
@@ -135,12 +141,11 @@ LEGISLATURE_CONFIG: dict[int, LegislatureConfig] = {
 }
 
 # ---------------------------------------------------------------------------
-# LANDTAG_LEGISLATURE_IDS — all Landtag parliament_period IDs to ingest.
+# LANDTAG_LEGISLATURE_IDS — all Landtag parliament_period IDs.
 # Derived from LEGISLATURE_CONFIG: any entry with region != "DE" is a Landtag.
-# This includes the OUTGOING BW/RP 2021–2026 terms (126/127) added for D6, so
-# the existing --all-landtage run loop picks them up automatically alongside the
-# post-election 165/166 rows.
-# Used by the run CLI for --all-landtage loops and by tests.
+# Includes the OUTGOING BW/RP 2021–2026 terms (126/127) added for D6 alongside
+# the post-election 165/166 rows. Currently consumed by tests; an operator
+# ingesting all Landtage runs the connector once per id (AW_LEGISLATURE_ID).
 # ---------------------------------------------------------------------------
 LANDTAG_LEGISLATURE_IDS: list[int] = [
     key for key, cfg in LEGISLATURE_CONFIG.items() if cfg.region != "DE"

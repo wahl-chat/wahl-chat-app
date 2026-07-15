@@ -351,7 +351,12 @@ def build_chunk_records(speech: dict) -> list[ChunkRecord]:
                 text=chunk_str,
                 party_id=party_slug,
                 region="DE",
-                authority_tier=AuthorityTier.SELF_REPORTED,
+                # C17: a plenary speech is a factual parliamentary record
+                # regardless of transport — unified with the op mapper
+                # (FACTUAL_RECORD) so the surviving tier no longer depends on
+                # which connector won the dedup. Existing chunks keep the old
+                # tier until re-ingest (tier is not part of content_hash).
+                authority_tier=AuthorityTier.FACTUAL_RECORD,
                 source_type=SourceType.PARLIAMENTARY_SPEECH,
                 publish_date=publish_date,
                 citation_url=citation_url,

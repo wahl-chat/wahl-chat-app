@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+import hashlib
 import logging
 import os
 import sys
@@ -114,11 +115,25 @@ async def aget_proposed_questions_for_party(party_id: str) -> list[str]:
     return [question.get("content") async for question in questions]
 
 
+def _sanitize_cache_key(cache_key: str) -> str:
+    """Make a cache key safe to use as a Firestore path segment.
+
+    Proposed-question cache keys are raw LLM/user-facing text; a ``/`` inside
+    that text would silently corrupt the Firestore collection path
+    (``cached_answers/{party_id}/{cache_key}``). When the key contains a ``/``
+    it is replaced by its sha256 hex digest. Applied identically on the read
+    AND write paths so lookups stay consistent.
+    """
+    if "/" in cache_key:
+        return hashlib.sha256(cache_key.encode("utf-8")).hexdigest()
+    return cache_key
+
+
 async def aget_cached_answers_for_party(
     party_id: str, cache_key: str
 ) -> list[CachedResponse]:
     cached_answers = async_db.collection(
-        f"cached_answers/{party_id}/{cache_key}"
+        f"cached_answers/{party_id}/{_sanitize_cache_key(cache_key)}"
     ).stream()
     return [
         CachedResponse(**cached_answer.to_dict())
@@ -130,7 +145,7 @@ async def awrite_cached_answer_for_party(
     party_id: str, cache_key: str, cached_answer: CachedResponse
 ) -> None:
     cached_answer_ref = async_db.collection(
-        f"cached_answers/{party_id}/{cache_key}"
+        f"cached_answers/{party_id}/{_sanitize_cache_key(cache_key)}"
     ).document()
     await cached_answer_ref.set(cached_answer.model_dump())
 

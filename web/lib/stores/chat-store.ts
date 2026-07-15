@@ -14,7 +14,6 @@ import { generateSharingSnapshotLink } from './actions/generate-sharing-snapshot
 import { generateVotingBehaviorSummary } from './actions/generate-voting-behavior-summary';
 import { hydrateChatSession } from './actions/hydrate-chat-session';
 import { initializeChatSession } from './actions/initialize-chat-session';
-import { initializedChatSession } from './actions/initialized-chat-session';
 import { loadChatSession } from './actions/load-chat-session';
 import { mergeStreamingChunkPayloadForMessage } from './actions/merge-streaming-chunk-payload-for-message';
 import { newChat } from './actions/new-chat';
@@ -47,7 +46,6 @@ const defaultState: ChatStoreState = {
   input: '',
   loading: {
     general: false,
-    initializingChatSocketSession: false,
     chatSession: false,
     proConPerspective: undefined,
     newMessage: false,
@@ -60,7 +58,6 @@ const defaultState: ChatStoreState = {
   currentChatTitle: undefined,
   chatSessionIsPublic: false,
   preSelectedParties: undefined,
-  socket: {},
   currentStreamingMessages: undefined,
   tenant: undefined,
   prolificMinInteractions: undefined,
@@ -89,7 +86,6 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
         // FIX 15: setSocket*, setSocketConnecting, setSocketConnected, setSocketError removed.
         // Action files deleted; Socket.IO is replaced by SSE in this codebase.
         initializeChatSession: initializeChatSession(get, set),
-        initializedChatSession: initializedChatSession(get, set),
         streamingMessageSourcesReady: streamingMessageSourcesReady(get, set),
         mergeStreamingChunkPayloadForMessage:
           mergeStreamingChunkPayloadForMessage(get, set),

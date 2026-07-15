@@ -1,3 +1,4 @@
+import { getAuthHeader } from '@/lib/firebase/firebase';
 import { scrollMessageBottomInView } from '@/lib/scroll-utils';
 import type { Vote } from '@/lib/socket.types';
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
@@ -43,6 +44,9 @@ export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
+        // Firebase ID token when signed in ({} otherwise) — the proxy route
+        // forwards it so the backend can verify auth claims (A3 contract).
+        ...(await getAuthHeader()),
       },
       body: JSON.stringify({
         request_id: message.id,
@@ -62,6 +66,12 @@ export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    // Track whether the summary ever completed: the backend error path is
+    // HTTP 200 + an `error` annotation, and a stream can also end without
+    // `voting_behavior_complete` — both must clear the spinner
+    // (loading.votingBehaviorSummary) and the half-populated
+    // currentStreamedVotingBehavior.
+    let receivedComplete = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -90,6 +100,7 @@ export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
                 annotation.is_end as boolean,
               );
             } else if (annotation.type === 'voting_behavior_complete') {
+              receivedComplete = true;
               completeVotingBehavior(
                 annotation.request_id as string,
                 annotation.votes as Vote[],
@@ -101,6 +112,13 @@ export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
                 annotation.message,
               );
               toast.error('Fehler beim Laden des Abstimmungsverhaltens.');
+              // Server-emitted error: stop the spinner and drop the
+              // half-populated stream state (only `catch` cleared the spinner
+              // before, so an HTTP-200 error left it spinning forever).
+              set((state) => {
+                state.loading.votingBehaviorSummary = undefined;
+                state.currentStreamedVotingBehavior = undefined;
+              });
             }
           } catch {
             // Malformed annotation — skip
@@ -116,12 +134,22 @@ export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
         }
       }
     }
+
+    // Stream ended without voting_behavior_complete (and without an explicit
+    // error annotation): clear the spinner and the half-populated stream state.
+    if (!receivedComplete) {
+      set((state) => {
+        state.loading.votingBehaviorSummary = undefined;
+        state.currentStreamedVotingBehavior = undefined;
+      });
+    }
   } catch (error) {
     console.error('[generateVotingBehaviorSummary] error:', error);
     toast.error('Fehler beim Laden des Abstimmungsverhaltens.');
 
     set((state) => {
       state.loading.votingBehaviorSummary = undefined;
+      state.currentStreamedVotingBehavior = undefined;
     });
     return;
   }

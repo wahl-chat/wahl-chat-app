@@ -1,0 +1,71 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+"""
+Optional Firebase ID-token verification for backend routes.
+
+The backend routes are reachable without authentication by design (anonymous
+chat is a product requirement), but privileged request flags — currently
+``user_is_logged_in``, which selects premium LLMs — must never be trusted from
+the request body alone. Routes read an optional ``Authorization: Bearer
+<Firebase ID token>`` header and verify it server-side; the body flag is
+honored ONLY when a valid token is present.
+
+Verification never rejects a request: an absent/invalid token simply resolves
+to anonymous (no 401s). The web proxy routes forward the client's
+``Authorization`` header verbatim; the client attaches its Firebase ID token
+when signed in.
+"""
+
+import logging
+from typing import Optional
+
+from fastapi import Request
+from firebase_admin import auth as firebase_auth
+
+# Importing firebase_service guarantees firebase_admin.initialize_app() has run
+# (including the emulator/anonymous-credential handling) before any
+# verify_id_token call. verify_id_token itself honors
+# FIREBASE_AUTH_EMULATOR_HOST for local/emulator runs.
+import src.firebase_service  # noqa: F401
+
+logger = logging.getLogger(__name__)
+
+
+def verify_optional_bearer_token(request: Request) -> Optional[dict]:
+    """Verify an optional ``Authorization: Bearer <Firebase ID token>`` header.
+
+    Returns the decoded token claims when a valid token is present, else None.
+    NEVER raises and NEVER rejects the request — anonymous access stays
+    allowed. Callers must only honor privileged flags (e.g. premium LLM
+    selection) when this returns non-None.
+    """
+    header = request.headers.get("Authorization", "")
+    if not header.startswith("Bearer "):
+        return None
+    token = header[len("Bearer ") :].strip()
+    if not token:
+        return None
+    try:
+        return firebase_auth.verify_id_token(token)
+    except Exception as err:  # noqa: BLE001 — any invalid token → anonymous
+        logger.debug("Firebase ID token verification failed: %s", err)
+        return None
+
+
+def resolve_user_is_logged_in(request: Request, body_flag: bool, route: str) -> bool:
+    """Server-side truth for ``user_is_logged_in`` (premium LLM gating).
+
+    The client-supplied body flag alone is NEVER trusted: it is honored only
+    when the request also carries a valid Firebase ID token.
+    """
+    if not body_flag:
+        return False
+    claims = verify_optional_bearer_token(request)
+    if claims is None:
+        logger.debug(
+            "%s: request body claims user_is_logged_in but presented no valid "
+            "Firebase ID token — ignoring the flag (treated as anonymous).",
+            route,
+        )
+        return False
+    return True

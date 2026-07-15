@@ -63,6 +63,10 @@ _AW_REQUEST_DELAY_S = float(os.getenv("AW_REQUEST_DELAY_S", "2.0"))
 # Retry configuration — mirrors bundestag_votes.py _get_session() pattern.
 _MAX_RETRIES = 5
 
+# User-Agent identifying wahl.chat to the AW API (fair-use policy asks
+# consumers to identify themselves so they can be contacted about usage).
+_USER_AGENT = "wahl.chat-ingestion/2.0 (https://wahl.chat)"
+
 # Number of items requested per page in get_all() (absolute-index pagination).
 _PAGE_SIZE = 100
 
@@ -113,11 +117,16 @@ class AWClient:
         until the first live get() call.
 
         Retry policy:
-          - total=5 attempts (1 original + 4 retries)
-          - backoff_factor=1.0 — waits 0s, 2s, 4s, 8s, 16s between retries
+          - Retry(total=5) — up to 5 retries on top of the original request,
+            i.e. up to 6 attempts in total
+          - backoff_factor=1.0 — urllib3 2.x sleeps 1s, 2s, 4s, 8s, 16s before
+            the successive retries
           - status_forcelist=(429, 500, 502, 503, 504)
           - respect_retry_after_header=True — honours server-side 429 Retry-After
           - allowed_methods={"GET"} — only idempotent GETs are retried
+
+        The session identifies wahl.chat via a User-Agent header (AW fair-use
+        policy asks API consumers to identify themselves).
         """
         if self._session is None:
             retry = Retry(
@@ -130,6 +139,7 @@ class AWClient:
             adapter = HTTPAdapter(max_retries=retry)
             session = requests.Session()
             session.mount("https://", adapter)
+            session.headers.update({"User-Agent": _USER_AGENT})
             self._session = session
         return self._session
 
@@ -197,7 +207,9 @@ class AWClient:
 
         Raises:
             ValueError: When a page envelope is missing ``meta.result.total`` or
-                        ``data``.
+                        ``data``, or when a page delivers fewer items than the
+                        window it was asked for (server-side under-delivery
+                        would silently skip the page tail).
         """
         # Work from a copy so we don't mutate the caller's dict
         page_params: dict = dict(params or {})
@@ -238,6 +250,19 @@ class AWClient:
             if not isinstance(data, list):
                 raise ValueError(
                     f"AW API response for path={path!r} missing or non-list 'data'"
+                )
+
+            # Detect UNDER-delivery — the endpoint may cap items per response even
+            # below range_end. Advancing start by _PAGE_SIZE past a short page would
+            # silently skip the page's tail forever (discover would permanently miss
+            # polls). Raise rather than silently under-collect.
+            expected = min(_PAGE_SIZE, total - start)
+            if len(data) < expected:
+                raise ValueError(
+                    f"AW get_all for path={path!r}: expected {expected} items at "
+                    f"range_start={start} but received {len(data)} in this page "
+                    "(server-side page cap?). Results would be silently incomplete — "
+                    "lower _PAGE_SIZE or paginate by the delivered count."
                 )
 
             all_data.extend(data)

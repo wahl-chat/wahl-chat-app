@@ -54,8 +54,9 @@ def _abgeordnetenwatch_votes_factory() -> BaseConnector:
 def _manifestos_factory() -> BaseConnector:
     """Return a ManifestoConnector instance (deferred import).
 
-    Standard cursor-based embed path via run.py.  The bespoke local-dev workflow
-    (flags + Firestore backfill) lives in connectors.manifestos.bulk.
+    Standard cursor-based embed path via run.py.  The bespoke local-dev CLI
+    (--dry-run / --ids / --limit flags; no Firestore) lives in
+    connectors.manifestos.bulk.
     """
     from src.ingestion.connectors.manifestos.connector import ManifestoConnector  # noqa: PLC0415
 

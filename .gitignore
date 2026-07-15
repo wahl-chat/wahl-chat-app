@@ -1,6 +1,7 @@
 # === Planning (local only) ===
 .planning/
-CLAUDE.md
+# Agent-local runtime state (worktrees, locks). NOTE: CLAUDE.md itself is
+# committed and must NOT be ignored.
 .claude/
 
 # === Common ===

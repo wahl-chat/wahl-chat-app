@@ -46,29 +46,50 @@ from typing import Optional
 from langchain_openai import OpenAIEmbeddings
 from qdrant_client import QdrantClient
 
+from src.ingestion.connector import BaseConnector
 from src.ingestion.connectors.bundestag_speeches.constants import MDB_STAMMDATEN_FILE
 from src.ingestion.connectors.bundestag_speeches.mdb import load_mdb_lookup
 from src.ingestion.connectors.openparliament_tv.client import OpTvClient
 from src.ingestion.connectors.openparliament_tv.mappers.corpus import build_chunk_records
+from src.ingestion.connectors.openparliament_tv.supersede import supersede_dip_duplicates
 from src.ingestion.run import _embed_texts, _upsert_chunks
 from src.ingestion.schemas import ChunkRecord
 from src.ingestion.setup_collection import COLLECTION_NAME, EMBEDDING_MODEL
 
+# Shared speech-dedup helper (C11) — one definition for both speech connectors.
+from src.ingestion.speech_dedup import datum_to_external_id as _datum_to_external_id
+
 logger = logging.getLogger(__name__)
+
+
+class _OpSourceStub(BaseConnector):
+    """Minimal connector stand-in for the supersede op source-gate (C4).
+
+    ``supersede_dip_duplicates`` fires only for ``connector.source == "op"``;
+    the backfill has no live connector instance, so this stub carries the gate.
+    Only the class attributes are ever read — the pipeline methods are never
+    called during a bulk backfill.
+    """
+
+    source_type = "parliamentary_speech"
+    source = "op"
+
+    def discover(self, since):  # noqa: ANN001, ANN201 — never called
+        raise NotImplementedError("_OpSourceStub only carries the supersede source gate")
+
+    def fetch(self, external_id):  # noqa: ANN001, ANN201 — never called
+        raise NotImplementedError("_OpSourceStub only carries the supersede source gate")
+
+    def normalize(self, raw):  # noqa: ANN001, ANN201 — never called
+        raise NotImplementedError("_OpSourceStub only carries the supersede source gate")
+
+
+_OP_GATE = _OpSourceStub()
 
 _BATCH_SIZE = 100  # chunks per embed+upsert batch
 
 # MdB-Stammdaten XML, resolved relative to ai-backend/ (bulk.py is 4 levels deep).
 _MDB_PATH: Path = Path(__file__).resolve().parents[4] / MDB_STAMMDATEN_FILE
-
-
-def _datum_to_external_id(date_start: Optional[str]) -> Optional[int]:
-    """Convert an op ISO ``dateStart`` to a YYYYMMDD integer external_id."""
-    iso = str(date_start or "")[:10]
-    try:
-        return int(iso.replace("-", ""))
-    except ValueError:
-        return None
 
 
 # =============================================================================
@@ -108,6 +129,11 @@ def ingest(
             return 0
         vectors = _embed_texts(embed, [c.text for c in b])
         _upsert_chunks(qdrant, COLLECTION_NAME, b, vectors)
+        # C4: supersede each flushed batch's DIP twins immediately. Without this
+        # the entire historical overlap stays duplicated forever: later live runs
+        # see the backfilled sessions as present-skips, so the post_upsert hook
+        # never fires for them and the PDF graft never happens.
+        supersede_dip_duplicates(qdrant, COLLECTION_NAME, b, connector=_OP_GATE)
         return len(b)
 
     session_files = client.list_session_files()

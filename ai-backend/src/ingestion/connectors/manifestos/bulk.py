@@ -30,8 +30,12 @@ Usage (local dev):
     uv run python -m src.ingestion.connectors.manifestos.bulk --ids 598,599,600
     QDRANT_URL=http://localhost:6333 ENV=dev uv run python -m src.ingestion.connectors.manifestos.bulk
 
-The script is idempotent: deterministic chunk UUIDs (via compute_chunk_id) mean
-re-running upserts the same Qdrant point IDs, which is a no-op.
+Re-running REWRITES each processed program's footprint: the flush deletes the
+program's existing chunks by source_item_id (wait=True) before upserting the
+fresh ones, so a shrunk/replaced PDF leaves no stale higher-index chunks behind.
+Deterministic chunk UUIDs (via compute_chunk_id) keep unchanged chunks at the
+same point IDs; everything flushed IS re-embedded (this bespoke CLI has no
+content-hash skip — use run.py + MANIFESTO_REFRESH for the cheap reconcile).
 """
 
 from __future__ import annotations
@@ -138,7 +142,34 @@ def ingest(
     def _flush(b: list[ChunkRecord]) -> int:
         if not b or dry_run:
             return 0
+        from qdrant_client import models as qdrant_models  # noqa: PLC0415
+
+        # Embed FIRST — an embed failure leaves the existing footprint intact
+        # (no delete-before-embed loss window; mirrors run.py's ordering).
         vectors = _embed_texts(embed, [c.text for c in b])
+
+        # E5: rewrite semantics (mirrors run.py's footprint guard) — delete each
+        # program's EXISTING footprint by source_item_id before upserting, one
+        # delete per program with wait=True, so a re-run against a shrunk PDF
+        # (fewer chunks than stored) leaves no stale higher-index chunks
+        # retrievable forever.
+        siids = sorted({str(c.source_item_id) for c in b})
+        for siid in siids:
+            qdrant.delete(
+                collection_name=COLLECTION_NAME,
+                points_selector=qdrant_models.FilterSelector(
+                    filter=qdrant_models.Filter(
+                        must=[
+                            qdrant_models.FieldCondition(
+                                key="source_item_id",
+                                match=qdrant_models.MatchValue(value=siid),
+                            )
+                        ]
+                    )
+                ),
+                wait=True,
+            )
+
         _upsert_chunks(qdrant, COLLECTION_NAME, b, vectors)
         return len(b)
 

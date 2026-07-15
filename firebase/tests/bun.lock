@@ -5,9 +5,9 @@
     "": {
       "name": "firebase-rules-tests",
       "devDependencies": {
-        "@firebase/rules-unit-testing": "latest",
-        "firebase": "latest",
-        "vitest": "latest",
+        "@firebase/rules-unit-testing": "^5.0.1",
+        "firebase": "^12.16.0",
+        "vitest": "^4.1.10",
       },
     },
   },

@@ -51,7 +51,7 @@ cp ai-backend/.env.example ai-backend/.env
 cp web/.env.example web/.env.local
 ```
 
-The `.env.example` files are pre-configured for local mode (`QDRANT_URL=http://localhost:6333`, `FIRESTORE_EMULATOR_HOST=localhost:8081`, `STORAGE_EMULATOR_HOST=http://localhost:4443`). You only need to fill in LLM API keys (`OPENAI_API_KEY`, `GOOGLE_API_KEY`) for the chat to work.
+The `.env.example` files are pre-configured for local mode (`QDRANT_URL=http://localhost:6333`, `FIRESTORE_EMULATOR_HOST=localhost:8081`). You only need to fill in LLM API keys (`OPENAI_API_KEY`, `GOOGLE_API_KEY`) for the chat to work.
 
 ### 3. Start local data stores
 
@@ -59,7 +59,7 @@ The `.env.example` files are pre-configured for local mode (`QDRANT_URL=http://l
 make stores-up
 ```
 
-This starts Qdrant and fake-gcs-server via Docker Compose, and starts the Firestore emulator via Firebase CLI on port 8081 (avoids the default 8080 clash with the backend).
+This starts Qdrant via Docker Compose, and starts the Firestore emulator via Firebase CLI on port 8081 (avoids the default 8080 clash with the backend). The target waits until the emulator answers on port 8081 before returning.
 
 ### 4. Seed local data
 
@@ -94,13 +94,14 @@ make stores-down
 | Target | Description |
 |--------|-------------|
 | `make install` | Install all dependencies (web + backend) |
-| `make stores-up` | Start Qdrant, fake-gcs-server (Docker) and Firestore emulator (host process) |
+| `make stores-up` | Start Qdrant (Docker) and Firestore emulator (host process) |
 | `make stores-down` | Stop all local stores |
 | `make seed-local` | Load scrubbed fixtures into local stores (requires `FIRESTORE_EMULATOR_HOST`) |
 | `make dev-local` | Start stores + both dev servers |
 | `make dev` | Start both dev servers (assumes stores are already running) |
 | `make test-backend` | Run backend unit tests |
 | `make test-smoke` | Run E2E SSE smoke test |
+| `make test-local-mode` | Run the seed-script emulator-guard tests (needs live local stores: `make stores-up` first) |
 | `make lint` | Lint web (biome) + backend (ruff) |
 
 ## Contributing

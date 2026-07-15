@@ -4,13 +4,17 @@ Seed Firestore with contexts, parties, and proposed questions data.
 
 Phase 5 (D-10): source_items, questions, question_stance_pairs, topics,
 claims, and ingestion_watermarks collections are no longer seeded — those
-data paths moved to Qdrant ChunkRecords (vote_record + pledge_record).
+data paths moved to Qdrant ChunkRecords.
 
 Usage (from the firebase/ directory):
-    python scripts/seed_firestore.py
+    FIRESTORE_EMULATOR_HOST=localhost:8081 python scripts/seed_firestore.py
+    # or from the repo root:
+    FIRESTORE_EMULATOR_HOST=localhost:8081 make seed-local
 
-    # For production:
-    ENV=prod python scripts/seed_firestore.py
+This script only ever seeds the LOCAL Firestore emulator. Production seeding
+is intentionally blocked this milestone: the FIRESTORE_EMULATOR_HOST guard
+below hard-exits when no emulator host is set, so the script can never write
+to a real Firestore instance.
 
 This script:
 1. Imports all contexts from firestore_data/{env}/contexts.json
@@ -153,8 +157,11 @@ def seed_parties(db):
     print(f"\nTotal parties seeded: {total_parties}")
 
 
-def seed_proposed_questions(db):
+def seed_proposed_questions(db) -> tuple[list, list]:
     """Seed proposed_questions sub-collections for each context.
+
+    Returns (failed_files, failed_writes) so the caller can exit non-zero
+    when anything failed (G13).
 
     File naming convention:
     - proposed_questions_{context_id}.json: Contains proposed questions for a specific context
@@ -169,7 +176,7 @@ def seed_proposed_questions(db):
 
     if not pq_files:
         print("\n⚠️  No proposed questions files found")
-        return
+        return [], []
 
     print(f"\n📁 Found {len(pq_files)} proposed questions files")
     print("-" * 60)
@@ -243,6 +250,8 @@ def seed_proposed_questions(db):
         for context_id, path, error in failed_writes:
             print(f"    - {context_id}/{path}: {error}")
 
+    return failed_files, failed_writes
+
 
 def main():
     print("=" * 60)
@@ -253,7 +262,7 @@ def main():
 
     if not DATA_DIR.exists():
         print(f"\n❌ Data directory not found: {DATA_DIR}")
-        return
+        sys.exit(1)
 
     db = initialize_firebase()
 
@@ -264,7 +273,16 @@ def main():
     seed_parties(db)
 
     # Seed proposed questions for each context
-    seed_proposed_questions(db)
+    failed_files, failed_writes = seed_proposed_questions(db)
+
+    if failed_files or failed_writes:
+        print("\n" + "=" * 60)
+        print(
+            f"❌ Seeding FAILED: {len(failed_files)} unparseable file(s), "
+            f"{len(failed_writes)} failed write(s)."
+        )
+        print("=" * 60)
+        sys.exit(1)
 
     print("\n" + "=" * 60)
     print("✅ Seeding complete!")

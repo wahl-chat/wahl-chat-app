@@ -19,6 +19,12 @@ Determinism doctrine (mirrors ids.py): the slug/key rules here MUST NOT change
 after the first production ingest. Any change shifts every speech_key and
 silently breaks dedup, the supersede filter, and the resurrection guard across
 already-stamped chunks. Treat this like the WAHL_CHAT_NS namespace: frozen.
+
+Rules frozen as of 2026-07-14. The 2026-07-14 rule changes (NFC pre-normalize,
+compound-academic-title tokens, name-particle stripping, opening→"" agenda
+fallback) were only safe because NO production ingest had happened before that
+date — every stored dev corpus is disposable and will be re-ingested. Any
+further change after a production ingest requires a full re-key migration.
 """
 
 from __future__ import annotations
@@ -41,7 +47,29 @@ _UMLAUT_MAP = {
 
 # Academic / role title tokens dropped from the speaker slug so DIP's merged
 # "Dr. Mareike Lotte Wulf" and op's discrete firstname/lastname agree.
-_TITLE_TOKENS = frozenset({"dr", "prof"})
+#
+# Compound German academic titles tokenize into these fragments after the
+# non-alphanumeric split: "Dr. h. c." → h, c; "Dr.-Ing." → ing; "Dr. med." →
+# med; "Dr. jur." → jur; "Dr. rer. nat." → rer, nat; "Dr. rer. pol." → pol;
+# "Dr. habil." → habil; "Dr. E. h." → e, h. Without them a DIP merged name like
+# "Dr. h. c. Thomas Sattelberger" keeps stray h/c tokens and never matches op's
+# discrete firstname/lastname key — the twin is never superseded (C1).
+#
+# Single letters "e"/"h"/"c" could theoretically appear as hyphenated-name
+# fragments, but real MdB surnames never slugify to a bare single letter (the
+# tokenizer splits on non-alphanumerics; German surname fragments like "Meyer",
+# "Lühmann", "van" are all multi-letter), so dropping them is safe here.
+_TITLE_TOKENS = frozenset(
+    {"dr", "prof", "h", "c", "ing", "med", "jur", "rer", "nat", "pol", "habil", "e"}
+)
+
+# Name-particle (nobiliary/preposition) tokens dropped from the speaker slug —
+# SOURCE-INDEPENDENT so DIP (whose parser never reads <namenszusatz>, yielding
+# "Beatrix Storch") and op (whose lastname includes the particle, "von Storch")
+# agree on one key (C2): both sides drop the particle → beatrix-storch.
+_PARTICLE_TOKENS = frozenset(
+    {"von", "der", "van", "de", "zu", "graf", "freiherr", "freifrau", "baron", "prinz"}
+)
 
 
 def _expand_umlauts(text: str) -> str:
@@ -66,11 +94,16 @@ def slugify_speaker(
 
     Accepts EITHER op's discrete ``firstname``/``lastname`` OR DIP's merged
     ``full_name``. Steps (order matters for parity):
-      1. expand umlauts ``ä→ae ö→oe ü→ue ß→ss`` BEFORE folding (never dropped);
-      2. NFKD-fold remaining accents to ASCII;
-      3. lowercase;
-      4. tokenize on non-alphanumerics and drop academic titles (``dr``/``prof``);
-      5. join surviving tokens with single ``-``.
+      1. NFC-normalize (a decomposed NFD ``o`` + combining diaeresis must become
+         the composed ``ö`` BEFORE the umlaut expansion, else it silently folds
+         to a bare ``o`` — B6);
+      2. expand umlauts ``ä→ae ö→oe ü→ue ß→ss`` BEFORE folding (never dropped);
+      3. NFKD-fold remaining accents to ASCII;
+      4. lowercase;
+      5. tokenize on non-alphanumerics and drop academic-title tokens
+         (``dr``/``prof`` + compound-title fragments) and name particles
+         (``von``/``der``/``van``/...);
+      6. join surviving tokens with single ``-``.
 
     ``"Mareike Lotte Wulf"`` and op ``firstname="Mareike Lotte", lastname="Wulf"``
     both yield ``mareike-lotte-wulf``.
@@ -80,12 +113,15 @@ def slugify_speaker(
     else:
         raw = " ".join(part for part in (firstname, lastname) if part)
 
+    raw = unicodedata.normalize("NFC", raw)
     raw = _expand_umlauts(raw)
     raw = _ascii_fold(raw)
     raw = raw.lower()
 
     tokens = [tok for tok in re.split(r"[^a-z0-9]+", raw) if tok]
-    tokens = [tok for tok in tokens if tok not in _TITLE_TOKENS]
+    tokens = [
+        tok for tok in tokens if tok not in _TITLE_TOKENS and tok not in _PARTICLE_TOKENS
+    ]
     return "-".join(tokens)
 
 
@@ -109,17 +145,19 @@ def agenda_slug_from_official(
     Rules: detect the item KIND — an official title starting with
     ``Zusatzpunkt`` → ``zp{n}``, otherwise ``top{n}`` — where ``{n}`` is the
     FIRST integer in the title (identical extraction to
-    ``agenda_slug_from_top_id`` for byte-parity); ``agenda_type == "opening"`` →
-    ``opening``; otherwise the empty string (the D-07 graceful no-agenda
-    fallback).
+    ``agenda_slug_from_top_id`` for byte-parity); anything else — including
+    ``agenda_type == "opening"`` — yields the empty string (the D-07 graceful
+    no-agenda fallback). Opening segments have NO DIP counterpart slug (DIP
+    yields ``""`` for redes outside any <tagesordnungspunkt>), so an op-side
+    ``"opening"`` slug would break cross-source dedup for opening-segment
+    speeches (C10). ``agenda_type`` is kept in the signature for call-site
+    compatibility but no longer influences the slug.
     """
     if official_title:
         match = _FIRST_INT_RE.search(official_title)
         if match:
             prefix = "zp" if _ZP_OFFICIAL_RE.match(official_title) else "top"
             return f"{prefix}{int(match.group(1))}"
-    if agenda_type == "opening":
-        return "opening"
     return ""
 
 

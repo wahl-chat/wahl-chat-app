@@ -163,13 +163,32 @@ class TestRegionForPeriod:
             ("Sachsen Wahl 2024", "DE-SN"),
             # Regression: Sachsen-Anhalt must NOT match the shorter "sachsen" prefix (insertion-order bug)
             ("Sachsen-Anhalt Wahl 2021", "DE-ST"),
-            # Fallback
-            ("Kommunalwahl München 2026", "DE"),
-            ("Unbekanntes Parlament", "DE"),
+            # E4: unrecognized labels are QUARANTINED, not stamped "DE" —
+            # region "DE" would MatchAny-match every context; "unbekannt"
+            # matches none, so the chunk is unreachable until re-labeled.
+            ("Kommunalwahl München 2026", "unbekannt"),
+            ("Unbekanntes Parlament", "unbekannt"),
         ],
     )
     def test_region_mapping(self, label: str, expected: str) -> None:
         assert region_for_period(label) == expected
+
+    def test_unknown_label_quarantine_warns(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """E4: the quarantine fallback must log a WARNING so the gap is visible."""
+        import logging
+
+        from src.ingestion.connectors.manifestos.mappers import corpus as corpus_mod
+
+        with caplog.at_level(logging.WARNING, logger=corpus_mod.logger.name):
+            assert region_for_period("Völlig Unbekanntes Gremium 2030") == "unbekannt"
+        assert any("unbekannt" in r.message for r in caplog.records)
+
+    def test_de_only_for_bundestag_labels(self) -> None:
+        """E4: 'DE' is reserved for labels starting with 'bundestag'."""
+        assert region_for_period("Bundestag Wahl 2029") == "DE"
+        assert region_for_period("Irgendein Bundes-Gremium") == "unbekannt"
 
 
 # ===========================================================================
@@ -617,3 +636,167 @@ class TestBuildManifestoRecords:
         assert changed[0].content_hash != records[0].content_hash, (
             "changing the chunk text must change content_hash"
         )
+
+
+# ===========================================================================
+# E3: manifesto/votes slug-map parity
+# ===========================================================================
+
+
+class TestSlugMapParity:
+    """The manifesto map and the AW votes map must be slug-identical for every
+    shared label — otherwise manifesto party_id != vote slug != context
+    party_id and tenant-filtered manifesto retrieval returns nothing (E3)."""
+
+    def test_new_e3_entries_resolve(self) -> None:
+        assert party_to_slug("Bürger in Wut") == "biw"
+        assert party_to_slug("BVB/Freie Wähler") == "bvb-fw"
+        assert party_to_slug("Die Basis") == "basis"
+        assert party_to_slug("SSW") == "ssw"
+
+    def test_shared_labels_have_identical_slugs(self) -> None:
+        from src.ingestion.connectors.abgeordnetenwatch.mappers.corpus import (
+            _AW_FRACTION_SLUG_MAP,
+        )
+        from src.ingestion.connectors.manifestos.mappers.corpus import (
+            _MANIFESTO_PARTY_SLUG_MAP,
+        )
+
+        shared = set(_AW_FRACTION_SLUG_MAP) & set(_MANIFESTO_PARTY_SLUG_MAP)
+        assert shared, "expected the two maps to share labels"
+        mismatches = {
+            label: (_AW_FRACTION_SLUG_MAP[label], _MANIFESTO_PARTY_SLUG_MAP[label])
+            for label in sorted(shared)
+            if _AW_FRACTION_SLUG_MAP[label] != _MANIFESTO_PARTY_SLUG_MAP[label]
+        }
+        assert not mismatches, (
+            "votes map and manifesto map diverge for shared labels "
+            f"(label: (votes_slug, manifesto_slug)): {mismatches!r}"
+        )
+
+
+# ===========================================================================
+# E6: chunk_pages default budget
+# ===========================================================================
+
+
+def test_chunk_pages_default_max_tokens_is_1500() -> None:
+    """E6: the default token budget is 1500 (tight page spans for citation
+    deep-links). ~2000 tokens must split under the default (one chunk under
+    the old 6000 default)."""
+    import inspect
+
+    sig = inspect.signature(chunk_pages)
+    assert sig.parameters["max_tokens"].default == 1500
+
+    pages = [(1, "wort " * 1000), (2, "wort " * 1000)]  # ~2000 tokens
+    result = chunk_pages(pages)
+    assert len(result) > 1, "~2000 tokens must split under the 1500 default"
+
+
+# ===========================================================================
+# E10: U+FFFD stripping at chunk edges
+# ===========================================================================
+
+
+class TestChunkEdgeReplacementChars:
+    """A token-boundary slice can split a multi-byte UTF-8 sequence — decode
+    then yields U+FFFD at the chunk edges. Edges must be stripped; interior
+    replacement chars (genuine source data) are preserved."""
+
+    def test_edges_are_stripped(self) -> None:
+        # "🤖" encodes to 3 partial-byte tokens in cl100k_base; max_tokens=2
+        # guarantees a chunk boundary inside the character.
+        pages = [(1, "Anfang " + "🤖" * 4 + " Ende")]
+        chunks = chunk_pages(pages, max_tokens=2, overlap=0)
+        assert len(chunks) > 1
+        for text, _ps, _pe in chunks:
+            assert not text.startswith("�"), f"leading U+FFFD in {text!r}"
+            assert not text.endswith("�"), f"trailing U+FFFD in {text!r}"
+
+    def test_interior_replacement_char_preserved(self) -> None:
+        # A genuine U+FFFD inside the text must survive chunking untouched.
+        pages = [(1, "vorher � nachher")]
+        chunks = chunk_pages(pages)
+        assert len(chunks) == 1
+        assert "�" in chunks[0][0]
+
+
+# ===========================================================================
+# E8: ManifestoMeta typed builder
+# ===========================================================================
+
+
+class TestManifestoMeta:
+    def test_extra_fields_forbidden(self) -> None:
+        import pydantic
+        import pytest as _pytest
+
+        from src.ingestion.connectors.manifestos.mappers.corpus import ManifestoMeta
+
+        with _pytest.raises(pydantic.ValidationError):
+            ManifestoMeta(aw_program_id=1, not_a_field="boom")  # type: ignore[call-arg]
+
+    def test_model_dump_drops_none(self) -> None:
+        from src.ingestion.connectors.manifestos.mappers.corpus import ManifestoMeta
+
+        dumped = ManifestoMeta(
+            aw_program_id=598,
+            source_kind="link",
+            source_url="https://example.com",
+        ).model_dump(exclude_none=True)
+        assert dumped == {
+            "aw_program_id": 598,
+            "source_kind": "link",
+            "source_url": "https://example.com",
+        }
+
+
+# ===========================================================================
+# E9: chunk_pages overlap > 0 behavior
+# ===========================================================================
+
+
+class TestChunkPagesOverlap:
+    """Overlap must duplicate the window tail into the next chunk AND the loop
+    must terminate (start advances by max_tokens - overlap each round)."""
+
+    def test_overlap_duplicates_window_tail(self) -> None:
+        from src.ingestion.connectors.manifestos.mappers.corpus import _get_encoding
+
+        enc = _get_encoding()
+        text = " ".join(f"w{i}" for i in range(60))  # ASCII → no FFFD stripping
+        all_tokens = enc.encode(text)
+        max_tokens, overlap = 20, 5
+
+        chunks = chunk_pages([(1, text)], max_tokens=max_tokens, overlap=overlap)
+
+        assert len(chunks) > 1
+        # Chunk k spans tokens [k*(max-o), k*(max-o)+max) — pin the exact spans.
+        step = max_tokens - overlap
+        for k, (chunk_text, _ps, _pe) in enumerate(chunks):
+            start = k * step
+            end = min(start + max_tokens, len(all_tokens))
+            assert chunk_text == enc.decode(all_tokens[start:end]), (
+                f"chunk {k} does not match token span [{start}:{end}]"
+            )
+        # The overlapped region is literally duplicated across neighbours.
+        for k in range(len(chunks) - 1):
+            start_next = (k + 1) * step
+            shared = enc.decode(all_tokens[start_next : start_next + overlap])
+            assert chunks[k][0].endswith(shared)
+            assert chunks[k + 1][0].startswith(shared)
+
+    def test_overlap_terminates_and_covers_all_tokens(self) -> None:
+        from src.ingestion.connectors.manifestos.mappers.corpus import _get_encoding
+
+        enc = _get_encoding()
+        text = " ".join(f"w{i}" for i in range(203))
+        chunks = chunk_pages([(1, text)], max_tokens=50, overlap=10)
+
+        # Terminates (no infinite loop) and the final chunk carries the true tail.
+        all_tokens = enc.encode(text)
+        assert chunks[-1][0].endswith(enc.decode(all_tokens[-5:]))
+        # Every chunk respects the token budget.
+        for chunk_text, _ps, _pe in chunks:
+            assert len(enc.encode(chunk_text)) <= 50

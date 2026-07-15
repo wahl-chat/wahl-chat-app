@@ -4,20 +4,30 @@ import { type NextRequest, NextResponse } from 'next/server';
 // Trusted public-institution hosts whose PDFs we stream same-origin so the
 // citation viewer can frame them (Bundestag + abgeordnetenwatch block direct
 // framing via X-Frame-Options / frame-ancestors). Imported from lib/utils so the
-// client-side "is proxyable" check and this allow decision share ONE list. Both
-// the initial URL and the post-redirect final URL are validated against it, so
-// there is no open-redirect / SSRF surface.
+// client-side "is proxyable" check and this allow decision share ONE list. The
+// initial URL and EVERY redirect hop are validated against it before being
+// fetched, so there is no open-redirect / SSRF surface.
 const ALLOWED_HOSTS = PROXYABLE_PDF_HOSTS;
 
 function isAllowed(url: URL): boolean {
   return url.protocol === 'https:' && ALLOWED_HOSTS.has(url.hostname);
 }
 
+// FIX F9: match the chat route's budget so Vercel does not kill long PDF
+// streams at the default function timeout.
+export const maxDuration = 300;
+
 // Upstreams occasionally serve PDFs as octet-stream; accept both but reject
 // anything else (e.g. an HTML error page) so we never frame non-PDF content.
 const PDF_CONTENT_TYPES = ['application/pdf', 'application/octet-stream'];
 
+// Budget for receiving response HEADERS (across all redirect hops).
 const FETCH_TIMEOUT_MS = 15_000;
+// Overall deadline for streaming the response BODY — large plenary PDFs must
+// not be able to stall the function forever after headers arrived.
+const BODY_DEADLINE_MS = 120_000;
+// Redirect hops we are willing to follow (each hop is re-validated).
+const MAX_REDIRECTS = 5;
 
 /**
  * A framed-error response for runtime failures the <iframe> actually renders.
@@ -47,6 +57,7 @@ function framedError(href: string): NextResponse {
     status: 200,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
+      'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'SAMEORIGIN',
       'Content-Security-Policy': "frame-ancestors 'self'",
       'Cache-Control': 'no-store',
@@ -84,32 +95,55 @@ export async function GET(request: NextRequest) {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const headerTimeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  // FIX F6: follow redirects MANUALLY, validating EVERY hop's Location against
+  // the https + host allowlist BEFORE fetching it. `redirect: 'follow'` only
+  // let us validate the final URL — an open redirect on an allowlisted host
+  // could still fire unvalidated intermediate requests (blind GET SSRF).
   let upstream: Response;
   try {
-    upstream = await fetch(target.toString(), {
-      // Public documents — never forward cookies/credentials.
-      credentials: 'omit',
-      redirect: 'follow',
-      signal: controller.signal,
-      headers: { Accept: 'application/pdf' },
-    });
-  } catch {
-    clearTimeout(timeout);
-    return framedError(target.toString());
-  }
-  clearTimeout(timeout);
+    let current = target;
+    let hops = 0;
+    for (;;) {
+      const response = await fetch(current.toString(), {
+        // Public documents — never forward cookies/credentials.
+        credentials: 'omit',
+        redirect: 'manual',
+        signal: controller.signal,
+        headers: { Accept: 'application/pdf' },
+      });
 
-  // Re-validate the FINAL url after any redirects: an allowlisted host that
-  // 3xx-redirects elsewhere (open redirect / compromise) must not let us stream
-  // from an off-allowlist or non-https target. Fail closed → client new-tab.
-  try {
-    if (!isAllowed(new URL(upstream.url))) {
-      // Fail closed on an off-allowlist redirect; the framed page offers new-tab.
-      return framedError(target.toString());
+      if (response.status >= 300 && response.status < 400) {
+        hops += 1;
+        if (hops > MAX_REDIRECTS) {
+          return framedError(target.toString());
+        }
+        const location = response.headers.get('location');
+        if (!location) {
+          return framedError(target.toString());
+        }
+        let next: URL;
+        try {
+          next = new URL(location, current);
+        } catch {
+          return framedError(target.toString());
+        }
+        // Fail closed: every hop must be https AND on the host allowlist.
+        if (!isAllowed(next)) {
+          return framedError(target.toString());
+        }
+        current = next;
+        continue;
+      }
+
+      upstream = response;
+      break;
     }
   } catch {
     return framedError(target.toString());
+  } finally {
+    clearTimeout(headerTimeout);
   }
 
   if (!upstream.ok || !upstream.body) {
@@ -125,11 +159,26 @@ export async function GET(request: NextRequest) {
     return framedError(target.toString());
   }
 
-  return new NextResponse(upstream.body, {
+  // FIX F9: overall deadline covering BODY streaming — the previous
+  // clearTimeout-after-headers left large PDFs free to stall mid-stream
+  // indefinitely. The timer aborts the upstream fetch; it is cleared when the
+  // body finishes streaming (abort after completion is a harmless no-op).
+  const bodyDeadline = setTimeout(() => controller.abort(), BODY_DEADLINE_MS);
+  const body = upstream.body.pipeThrough(
+    new TransformStream({
+      flush() {
+        clearTimeout(bodyDeadline);
+      },
+    }),
+  );
+
+  return new NextResponse(body, {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': 'inline',
+      // Never MIME-sniff proxied bytes into something frameable as HTML.
+      'X-Content-Type-Options': 'nosniff',
       // Same-origin framing only (our own page), and short-lived caching.
       'X-Frame-Options': 'SAMEORIGIN',
       'Content-Security-Policy': "frame-ancestors 'self'",

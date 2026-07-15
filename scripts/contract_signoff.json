@@ -1,8 +1,0 @@
-{
-  "gate": "SC6",
-  "status": "APPROVED",
-  "reviewer": "Annika Siefke",
-  "date": "2026-06-07",
-  "gate_description": "SC6 — derived/external source contract reviewed and agreed.",
-  "provenance_note": "The derived/external-source contract this gate originally covered (a commitment-fulfillment-tracking design, including its status/event enums and their ChunkRecord fields) was removed from the milestone — see quick task 260714-da9. This approval record is retained for provenance only; it no longer describes any contract present in the current schema."
-}

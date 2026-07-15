@@ -1,8 +1,12 @@
-import { getSseChatStop } from '@/components/providers/sse-chat-provider';
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
+import { toast } from 'sonner';
 
+// 60s default: the watchdog only resets on received `data-chat_event` parts, and
+// the quiet gaps BEFORE `responding_parties` (retrieval) and AFTER the last
+// `party_complete` (quick-replies/title generation) emit no events at all — 30s
+// was not safely above their worst case.
 const STREAMING_MESSAGE_TIMEOUT =
-  Number(process.env.NEXT_PUBLIC_STREAMING_MESSAGE_TIMEOUT_MS) || 30000;
+  Number(process.env.NEXT_PUBLIC_STREAMING_MESSAGE_TIMEOUT_MS) || 60000;
 
 type WatchdogGet = Parameters<
   ChatStoreActionHandlerFor<'startTimeoutForStreamingMessages'>
@@ -38,17 +42,12 @@ const armStreamingMessageWatchdog = (
       return;
     }
 
-    // Genuine inactivity: abort the live SSE stream first so tokens stop
-    // burning, then wipe the streaming state.
-    getSseChatStop()?.();
-
-    set((state) => {
-      state.currentStreamingMessages = undefined;
-      state.loading.newMessage = false;
-      state.pendingStreamingMessageTimeoutHandler.timeout = undefined;
-    });
-
+    // Genuine inactivity: cancelStreamingMessages is the SINGLE cleanup path —
+    // it aborts the live SSE stream (getSseChatStop) and wipes the streaming
+    // state. It must run BEFORE any inline wipe so its id-guard
+    // (currentStreamingMessages.id === streamingMessageId) still passes.
     get().cancelStreamingMessages(streamingMessageId);
+    toast.error('Zeitüberschreitung — die Antwort wurde abgebrochen.');
   }, STREAMING_MESSAGE_TIMEOUT);
 
   set((state) => {

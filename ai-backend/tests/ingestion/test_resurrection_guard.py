@@ -180,6 +180,131 @@ def test_dip_normalize_skips_op_superseded_speech() -> None:
     assert all(r.source == "dip" for r in records)
 
 
+class _MultiChunkQdrant:
+    """Fake Qdrant serving one op speech as TWO chunks, deliberately out of order."""
+
+    def __init__(self, key: str, parts: list[tuple[int, str]]) -> None:
+        self._key = key
+        self._parts = parts
+        self._served = False
+
+    def scroll(self, *a, **k):  # noqa: ANN002, ANN003, ANN201
+        import types
+
+        if self._served:
+            return ([], None)
+        self._served = True
+        points = [
+            types.SimpleNamespace(
+                payload={
+                    "speech_key": self._key,
+                    "source": "op",
+                    "source_item_id": "op-multichunk",
+                    "text": text,
+                    "chunk_index": idx,
+                }
+            )
+            for idx, text in self._parts
+        ]
+        return (points, None)
+
+
+def test_is_op_superseded_joins_multichunk_op_speech_in_chunk_order() -> None:
+    """C3 regression: a 2-chunk op speech scrolled in REVERSE chunk order must
+    still match the DIP twin's full text — joined by chunk_index, never scroll
+    order ("B+A" vs "A+B" scores ≈0.5 < 0.85 → silent resurrection)."""
+    from src.ingestion.connectors.bundestag_speeches.connector import is_op_superseded
+
+    key = "de-20-101-mareike-lotte-wulf-top20"
+    part_a = "Sehr geehrte Frau Praesidentin! Liebe Kolleginnen und Kollegen im Saal!"
+    part_b = "Wir staerken die Aus- und Weiterbildungsfoerderung in diesem ganzen Land."
+    # Scroll serves chunk_index=1 FIRST.
+    qdrant = _MultiChunkQdrant(key, [(1, part_b), (0, part_a)])
+
+    assert (
+        is_op_superseded(qdrant, "wahlchat_chunks_dev", key, dip_text=f"{part_a} {part_b}")
+        is True
+    ), "in-order join must recognise the same speech despite scroll order"
+
+
+def test_is_op_superseded_empty_folded_dip_text_inserts_fail_safe() -> None:
+    """C18: a dip_text that folds to EMPTY after normalization is unverifiable —
+    the guard must return False (insert; fail-safe), consistent with its posture
+    everywhere else. Bare key existence is NOT proof of the same speech."""
+    from src.ingestion.connectors.bundestag_speeches.connector import is_op_superseded
+
+    key = "de-20-101-mareike-lotte-wulf-top20"
+    qdrant = _ConditionalQdrant(key, "Eine ganz normale Rede mit Text.")
+
+    # "!!! ---" folds to "" → unverifiable → insert.
+    assert (
+        is_op_superseded(qdrant, "wahlchat_chunks_dev", key, dip_text="!!! ---")
+        is False
+    )
+
+
+def test_normalize_returns_empty_when_all_speeches_op_superseded() -> None:
+    """C12: a protocol whose EVERY usable speech is op-superseded is a clean
+    no-op — normalize() returns [] (and reports the skipped siids) instead of
+    raising 'zero usable speeches' into failed_ids on every run for 60 days."""
+    from src.ingestion.connectors.bundestag_speeches.connector import (
+        BundestagSpeechesConnector,
+    )
+
+    class _AllSupersededQdrant:
+        """Fake Qdrant reporting EVERY speech_key as op-owned with matching text."""
+
+        def __init__(self, text_by_any: str) -> None:
+            self._text = text_by_any
+
+        def scroll(self, *a, **k):  # noqa: ANN002, ANN003, ANN201
+            import types
+
+            point = types.SimpleNamespace(
+                payload={
+                    "source": "op",
+                    "source_item_id": "op-x",
+                    "text": self._text,
+                    "chunk_index": 0,
+                }
+            )
+            return ([point], None)
+
+    speech_text = "Diese Rede wurde vollstaendig von op abgedeckt."
+    conn = object.__new__(BundestagSpeechesConnector)
+    conn._mdb_lookup = {"by_id": {}, "by_name": {}}
+    conn._qdrant = _AllSupersededQdrant(speech_text)
+    conn._qdrant_lazy_enabled = False
+    conn._collection_name = "wahlchat_chunks_dev"
+
+    raw = {
+        "protocol": {
+            "id": "4242",
+            "dokumentnummer": "21/42",
+            "datum": "2026-06-01",
+            "wahlperiode": 21,
+            "fundstelle": {"pdf_url": None},
+        },
+        "speeches": [
+            {
+                "speaker_xml_id": "11000001",
+                "speaker_name": "Voll Abgedeckt",
+                "party": "SPD",
+                "text": speech_text,
+                "xml_rede_id": "ID42001",
+            }
+        ],
+        "mdb_lookup": {"by_id": {}, "by_name": {}},
+    }
+
+    records = conn.normalize(raw)
+
+    assert records == [], "fully-op-covered protocol must be a clean no-op, not an error"
+    assert len(conn.last_superseded_siids) == 1, (
+        "the skipped siid must be reported for the C9 stranded-twin cleanup"
+    )
+
+
 def test_is_op_superseded_precise_rejects_distinct_same_key_speech() -> None:
     """HIGH-1: an op point under the key whose TEXT differs (a distinct speech a
     speaker gave under the same agenda item) must NOT mark this DIP speech as

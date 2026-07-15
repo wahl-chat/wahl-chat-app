@@ -34,8 +34,6 @@ Security / robustness:
 from __future__ import annotations
 
 import logging
-from datetime import date as date_type
-from datetime import timedelta
 from pathlib import Path
 from typing import Any, Optional
 
@@ -43,9 +41,13 @@ from src.ingestion.connector import BaseConnector
 from src.ingestion.connectors.bundestag_speeches.constants import MDB_STAMMDATEN_FILE
 from src.ingestion.connectors.bundestag_speeches.mdb import load_mdb_lookup
 from src.ingestion.connectors.openparliament_tv.client import OpTvClient
-from src.ingestion.connectors.openparliament_tv.constants import LOOKBACK_DAYS
 from src.ingestion.connectors.openparliament_tv.mappers.corpus import build_chunk_records
+from src.ingestion.connectors.openparliament_tv.supersede import supersede_dip_duplicates
 from src.ingestion.schemas import ChunkRecord, SourceType
+
+# Shared speech-dedup helpers (C11) — one definition for both speech connectors.
+from src.ingestion.speech_dedup import datum_to_external_id as _datum_to_external_id
+from src.ingestion.speech_dedup import lookback_floor as _lookback_floor
 
 logger = logging.getLogger(__name__)
 
@@ -57,43 +59,6 @@ _MDB_PATH: Path = Path(__file__).resolve().parents[4] / MDB_STAMMDATEN_FILE
 # ---------------------------------------------------------------------------
 # Module-level helpers
 # ---------------------------------------------------------------------------
-
-
-def _as_external_id(entry: Any) -> Optional[int]:
-    """Return a YYYYMMDD external_id int for an already-date-keyed session entry.
-
-    The op bulk client currently enumerates ``YYYYY-session.json`` basenames (an
-    EP+session id, not a date), so those return ``None`` here and are resolved by
-    fetching the session in ``discover``. A client (or the test fake) that returns
-    date-derived external_ids directly is floored without a fetch.
-    """
-    if isinstance(entry, bool):  # bool is an int subclass — reject explicitly
-        return None
-    if isinstance(entry, int):
-        return entry
-    if isinstance(entry, str) and entry.isdigit():
-        return int(entry)
-    return None
-
-
-def _lookback_floor(since: int) -> int:
-    """Translate a YYYYMMDD cursor into a ``since − LOOKBACK_DAYS`` YYYYMMDD floor."""
-    s = str(since)
-    try:
-        cursor_date = date_type(int(s[0:4]), int(s[4:6]), int(s[6:8]))
-    except (ValueError, IndexError):
-        return since
-    floored = cursor_date - timedelta(days=LOOKBACK_DAYS)
-    return int(floored.strftime("%Y%m%d"))
-
-
-def _datum_to_external_id(date_start: Optional[str]) -> Optional[int]:
-    """Convert an op ISO ``dateStart`` (e.g. ``2023-04-28T10:12:00+02:00``) to YYYYMMDD."""
-    iso = str(date_start or "")[:10]
-    try:
-        return int(iso.replace("-", ""))
-    except ValueError:
-        return None
 
 
 def _session_external_id(items: list[dict]) -> Optional[int]:
@@ -132,7 +97,7 @@ class OpenParliamentTvConnector(BaseConnector):
     def __init__(self, sleep: float = 0.2) -> None:
         self._client = OpTvClient(sleep=sleep)
         # Per-run caches: populated in discover(), read in fetch().
-        # external_id(str) → {"items": list[raw item], "basename": Optional[str]}
+        # basename(str) → {"items": list[raw item], "basename": str, "ext": int}
         self._sessions: dict[str, dict] = {}
         # MdB-Stammdaten lookup loaded once per run in discover().
         self._mdb_lookup: Optional[dict] = None
@@ -142,31 +107,38 @@ class OpenParliamentTvConnector(BaseConnector):
     # ------------------------------------------------------------------
 
     def discover(self, since: Optional[int]) -> list[str]:
-        """Return unique session HANDLES to process, floored at the lookback.
+        """Return unique session basenames to process, floored at the lookback.
 
-        Enumerates the bulk ``processed/*-session.json`` files via the client, floors
-        the scan at ``since − LOOKBACK_DAYS`` (D-08/Q3), populates the per-run cache
-        of raw speech items keyed by a UNIQUE session handle, and loads the MdB
-        lookup once.
+        Enumerates the bulk ``processed/*-session.json`` basenames via the client
+        and iterates them in DESCENDING date order, stopping the per-file fetches
+        as soon as a fetched session's derived YYYYMMDD external_id drops below
+        the ``since − LOOKBACK_DAYS`` floor (C5). Previously EVERY WP20+21 session
+        JSON (~260+ multi-MB files, paced) was fetched on each incremental run —
+        defeating the cursor and the 15-min job posture.
 
-        Handle disambiguation: two sessions whose earliest ``dateStart`` falls on
-        the SAME calendar date previously collided on the ``str(ext)`` cache key,
-        silently dropping one session's speeches. The DISCOVER/CACHE handle is now
-        unique per session — the file basename when present, or (direct-ext fast
-        path with no basename) ``"{ext}"`` with a run-local ``#{n}`` suffix on
-        collision. The stamped chunk external_id is UNAFFECTED: normalize()
-        derives the YYYYMMDD external_id per item from ``dateStart``, so the
-        cursor order_by stays an int.
+        Descending-order invariant: the validated basename shape is
+        ``{EP:2}{session:03}-session.json`` (SESSION_FILE_RE — e.g. ``20101`` =
+        EP 20, session 101). Session numbers are assigned chronologically within
+        an electoral period and zero-padded to three digits, so LEXICAL basename
+        order is monotone in the session date that ``_session_external_id``
+        derives from the earliest item ``dateStart`` — reverse-sorting the
+        basenames walks sessions newest-first.
+
+        ``since=None`` (full backfill) fetches ALL sessions — no floor, no early
+        stop. Handles are the basenames themselves: unique per session even when
+        two sessions share one calendar date. The stamped chunk external_id is
+        unaffected — normalize() derives YYYYMMDD per item from ``dateStart``.
 
         Args:
             since: Max op external_id (YYYYMMDD) already committed to Qdrant for
                    ``parliamentary_speech``/``source="op"``, or None on first run.
 
         Returns:
-            Session handle strings sorted ascending by (YYYYMMDD ext, handle) so
+            Session basename strings sorted ascending by (YYYYMMDD ext, name) so
             cursor order stays oldest-first.
         """
-        entries = list(self._client.list_session_files())
+        # De-duplicate + reverse-sort: newest session file first (see invariant above).
+        entries = sorted({str(e) for e in self._client.list_session_files()}, reverse=True)
         floor = _lookback_floor(since) if since is not None else None
 
         # Tolerate instances built via object.__new__ (unit tests bypass __init__).
@@ -175,30 +147,8 @@ class OpenParliamentTvConnector(BaseConnector):
 
         self._sessions = {}
         discovered: list[tuple[int, str]] = []
-        direct_seen: dict[int, int] = {}
 
-        for entry in entries:
-            direct_ext = _as_external_id(entry)
-            if direct_ext is not None:
-                # Client already yields a date-keyed session external_id — floor
-                # without fetching (fast path; also the test-fake contract).
-                if floor is not None and direct_ext < floor:
-                    continue
-                # No basename available — disambiguate same-date entries with a
-                # run-local monotonic suffix so neither overwrites the other.
-                n = direct_seen.get(direct_ext, 0)
-                direct_seen[direct_ext] = n + 1
-                handle = str(direct_ext) if n == 0 else f"{direct_ext}#{n}"
-                self._sessions[handle] = {
-                    "items": [],
-                    "basename": None,
-                    "ext": direct_ext,
-                }
-                discovered.append((direct_ext, handle))
-                continue
-
-            # Basename path: fetch + derive the session's date-based external_id, floor.
-            name = str(entry)
+        for name in entries:
             try:
                 session = self._client.fetch_session_json(name)
             except Exception as exc:  # noqa: BLE001 — a bad session file must not abort the run
@@ -210,9 +160,9 @@ class OpenParliamentTvConnector(BaseConnector):
             if ext is None:
                 continue
             if floor is not None and ext < floor:
-                continue
-            if name in self._sessions:
-                continue  # duplicate enumeration of the same session file
+                # Descending scan: every remaining basename is older still —
+                # stop fetching entirely (C5 early stop).
+                break
             self._sessions[name] = {"items": items, "basename": name, "ext": ext}
             discovered.append((ext, name))
 
@@ -229,8 +179,8 @@ class OpenParliamentTvConnector(BaseConnector):
         that ``normalize`` converts into a ValueError-skip.
 
         Args:
-            external_id: Unique session handle string returned by discover()
-                         (basename, or YYYYMMDD ext with optional ``#{n}`` suffix).
+            external_id: Session basename string returned by discover()
+                         (e.g. ``"20101-session.json"``).
 
         Returns:
             ``{"external_id", "items", "mdb_lookup"}`` or ``{"skip_reason": ...}``.
@@ -303,3 +253,20 @@ class OpenParliamentTvConnector(BaseConnector):
             )
 
         return records
+
+    # ------------------------------------------------------------------
+    # 4. post_upsert — op-owned supersede policy (B8)
+    # ------------------------------------------------------------------
+
+    def post_upsert(self, qdrant: Any, collection_name: str, chunks: list[ChunkRecord]) -> int:
+        """Supersede the just-upserted op speeches' DIP twins (D-04/D-09).
+
+        Called by run_connector after each successful item upsert. Grafts each
+        matched DIP twin's transcript PDF onto the op record, then deletes the
+        twin. The policy lives here (connector-owned), not in the generic
+        runner; ``supersede_dip_duplicates`` keeps its own op source-gate.
+
+        Returns:
+            Number of DIP twins superseded.
+        """
+        return supersede_dip_duplicates(qdrant, collection_name, chunks, connector=self)

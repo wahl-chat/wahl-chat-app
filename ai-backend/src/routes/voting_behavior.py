@@ -37,9 +37,10 @@ import asyncio
 import json
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
+from src.auth import resolve_user_is_logged_in
 from src.chatbot_async import (
     get_improved_rag_query_voting_behavior,
     generate_party_vote_behavior_summary,
@@ -53,6 +54,7 @@ from src.models.dtos import (
 )
 from src.models.vote import Link, Vote, VotingResults, VotingResultsByParty, VotingResultsOverall
 from src.chat_service import MAX_RESPONSE_CHUNK_LENGTH
+from src.utils import GENERIC_ERROR_MESSAGE
 
 logger = logging.getLogger(__name__)
 
@@ -61,9 +63,12 @@ router = APIRouter(prefix="/api/v1")
 # SSE headers
 # NOTE: StreamingResponse is used (not EventSourceResponse) because the generator
 # yields pre-framed "data: ...\n\n" strings; EventSourceResponse would double-wrap them.
+# NOTE: deliberately NO `x-vercel-ai-ui-message-stream: v1` header here — this
+# endpoint emits legacy code-prefixed frames (`data: 8{...}` / `data: 0"..."`)
+# that the frontend hand-parses; the header would falsely claim v5
+# UI-message-stream framing to any AI SDK consumer.
 _SSE_HEADERS = {
     "Content-Type": "text/event-stream",
-    "x-vercel-ai-ui-message-stream": "v1",
     "Cache-Control": "no-cache, no-transform",
     "X-Accel-Buffering": "no",
 }
@@ -177,7 +182,7 @@ def _chunk_payload_to_vote(payload: dict, party_id: str) -> Vote | None:
 
 
 @router.post("/voting-behavior")
-async def voting_behavior_endpoint(body: VotingBehaviorRequestDto):
+async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequestDto):
     """POST /api/v1/voting-behavior — streams votes + summary over SSE.
 
     Retrieves vote_record chunks from the single wahlchat_chunks_{ENV} store
@@ -189,7 +194,14 @@ async def voting_behavior_endpoint(body: VotingBehaviorRequestDto):
       voting_behavior_summary_chunk → 0 text delta (summary chunks)
       voting_behavior_complete      → e / d / [DONE]
     Pydantic validates request body.
+
+    Auth: verification is OPTIONAL (no 401s), but the body's user_is_logged_in
+    flag (premium LLM selection for the summary) is honored only with a valid
+    `Authorization: Bearer <Firebase ID token>`.
     """
+    body.user_is_logged_in = resolve_user_is_logged_in(
+        request, body.user_is_logged_in, "voting-behavior"
+    )
 
     async def stream():
         improved_rag_query = None
@@ -273,7 +285,8 @@ async def voting_behavior_endpoint(body: VotingBehaviorRequestDto):
 
         except Exception as e:
             logger.error(f"Error processing voting behavior request: {e}", exc_info=True)
-            yield f"data: 8{json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            # Generic client-facing message only — full detail is logged above.
+            yield f"data: 8{json.dumps({'type': 'error', 'message': GENERIC_ERROR_MESSAGE})}\n\n"
             yield "data: [DONE]\n\n"
 
     return StreamingResponse(with_heartbeat(stream()), headers=_SSE_HEADERS)

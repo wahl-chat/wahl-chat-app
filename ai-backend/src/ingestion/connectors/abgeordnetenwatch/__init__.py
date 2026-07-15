@@ -13,6 +13,7 @@ Package structure:
   mappers/            — pure transforms (no I/O)
     stance.py         — tally -> stance + fraction -> party
     corpus.py         — poll -> vote_record ChunkRecord list
-  programs.py         — linked program docs -> party_manifesto corpus
-  qa.py               — HTML scrape -> qa_transcript corpus
+
+The party_manifesto corpus is produced by the separate manifestos connector
+package (connectors/manifestos/) — this package produces vote_record only.
 """

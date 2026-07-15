@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 import re
 import logging
 
@@ -19,6 +19,13 @@ from src.models.party import WAHL_CHAT_PARTY
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 EXPECTED_API_NAME = "wahl-chat-api"
+
+# Client-facing generic error text: internal exception details (str(e)) must
+# never reach the wire — they can leak stack/config/internal identifiers. Full
+# detail belongs in server logs only (logger.error with exc_info).
+GENERIC_ERROR_MESSAGE = (
+    "Es ist ein interner Fehler aufgetreten. Bitte versuche es später erneut."
+)
 
 logger = logging.getLogger(__name__)
 
@@ -61,18 +68,32 @@ def safe_load_api_key(api_key: str) -> Optional[SecretStr]:
     return SecretStr(key)
 
 
-def get_cors_allowed_origins(env: Optional[str]) -> Union[str, list[str]]:
+def get_cors_allowed_origins(env: Optional[str]) -> list[str]:
+    """Enumerated CORS origins — NEVER "*".
+
+    app.py runs the CORS middleware with allow_credentials=True; a wildcard
+    there makes Starlette reflect ANY Origin with credentials, so origins must
+    always be an explicit list. CORS_EXTRA_ORIGINS (comma-separated) extends
+    the list per deployment (e.g. the Vercel URL of the deployed dev demo).
+    """
+    extra_origins = [
+        origin.strip()
+        for origin in (os.getenv("CORS_EXTRA_ORIGINS") or "").split(",")
+        if origin.strip()
+    ]
     if env == "dev":
-        return "*"
-    else:
         return [
-            "https://wahl.chat",
-            "https://embed.wahl.chat",
-            "https://pre-prod.wahl.chat",
-            "https://dev.wahl.chat",
             "http://localhost:3000",
-            "http://localhost:8080",
-        ]
+            "http://127.0.0.1:3000",
+        ] + extra_origins
+    return [
+        "https://wahl.chat",
+        "https://embed.wahl.chat",
+        "https://pre-prod.wahl.chat",
+        "https://dev.wahl.chat",
+        "http://localhost:3000",
+        "http://localhost:8080",
+    ] + extra_origins
 
 
 def build_chat_history_string(

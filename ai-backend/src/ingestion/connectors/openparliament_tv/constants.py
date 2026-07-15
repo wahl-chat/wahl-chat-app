@@ -42,8 +42,9 @@ SESSION_FILE_RE = r"^processed/(2[01]\d{3})-session\.json$"
 # Lookback floor (days) for the incremental discover() re-scan (D-08 / Q3).
 # op aligns speeches ~3–4 weeks after a session; 60 days comfortably exceeds that
 # backlog lag so a session that only *just* aligned below the prior cursor is
-# still re-picked instead of being stranded forever.
-LOOKBACK_DAYS = 60
+# still re-picked instead of being stranded forever. Re-exported from the shared
+# speech-dedup module (C11) so the op and DIP windows can never drift apart.
+from src.ingestion.speech_dedup import LOOKBACK_DAYS  # noqa: E402, F401
 
 # Finite cap on the trees listing to bound memory / parse work on a hostile or
 # runaway response (T-11-06 DoS mitigation). The full DE repo is a few thousand

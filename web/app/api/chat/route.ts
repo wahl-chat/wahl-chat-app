@@ -88,13 +88,21 @@ export async function POST(request: NextRequest) {
     chat_history: payload.chat_history ?? [],
   };
 
+  // Forward the caller's Firebase ID token so the backend can verify
+  // user_is_logged_in / premium claims (A3 contract). Absent when signed out.
+  const authorization = request.headers.get('authorization');
+
   const upstream = await fetch(targetUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'text/event-stream',
+      ...(authorization ? { Authorization: authorization } : {}),
     },
     body: JSON.stringify(dto),
+    // Propagate client aborts upstream so an abandoned stream stops burning
+    // backend tokens instead of running to the 180s budget.
+    signal: request.signal,
     // Do not buffer — stream directly to the client.
     // @ts-expect-error — Node 18+ fetch supports duplex streaming
     duplex: 'half',

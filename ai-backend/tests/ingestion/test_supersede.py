@@ -3,34 +3,22 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Supersede-delete integration test (D-04) — fake Qdrant.
+Supersede-delete integration tests (D-04) — fake Qdrant.
 
-When op ingests an aligned+proceedings speech, the runner (op-gated post-upsert
-hook) must issue a `delete-by-filter(speech_key == X AND source == "dip")` so the
-transient DIP duplicate is removed. Duplication is transient.
-
-Wave-0 SCAFFOLD: the supersede hook does not exist yet. This file collects
-cleanly and CAPABILITY-SKIPS until the hook lands (Wave 11-04), then runs the
-real assertion against a fake Qdrant that records `delete(...)` calls.
+When op ingests an aligned+proceedings speech, the op connector's post_upsert
+hook (B8 — the policy lives in the connector package, not the generic runner)
+must graft the DIP twin's transcript PDF and issue a delete scoped to the
+twin's source_item_id AND source == "dip". Duplication is transient.
 """
 
 from __future__ import annotations
 
 import types
+import uuid
 
-import pytest
-
-
-def _supersede_capability() -> bool:
-    """True once the runner exposes an op-gated supersede-delete hook."""
-    try:
-        from src.ingestion import run as run_mod
-    except ImportError:
-        return False
-    return any(
-        hasattr(run_mod, name)
-        for name in ("supersede_dip_duplicates", "_supersede_dip", "run_connector_with_supersede")
-    )
+from src.ingestion.connectors.openparliament_tv.supersede import (
+    supersede_dip_duplicates,
+)
 
 
 def _filter_mentions(obj: object, needles: tuple[str, ...]) -> bool:
@@ -39,10 +27,15 @@ def _filter_mentions(obj: object, needles: tuple[str, ...]) -> bool:
     return all(n in blob for n in needles)
 
 
-def _op_chunk(speech_key: str, source_item_id: str, text: str) -> types.SimpleNamespace:
-    """A stub op ChunkRecord (supersede reads .speech_key/.source_item_id/.text)."""
+def _op_chunk(
+    speech_key: str, source_item_id, text: str, chunk_index: int = 0
+) -> types.SimpleNamespace:
+    """A stub op ChunkRecord (supersede reads .speech_key/.source_item_id/.text/.chunk_index)."""
     return types.SimpleNamespace(
-        speech_key=speech_key, source_item_id=source_item_id, text=text
+        speech_key=speech_key,
+        source_item_id=source_item_id,
+        text=text,
+        chunk_index=chunk_index,
     )
 
 
@@ -57,11 +50,6 @@ _SPEECH_TEXT = (
 def test_supersede_deletes_dip_duplicate() -> None:
     """D-04: op ingest deletes ONLY its text-matched DIP twin, by the twin's
     source_item_id (never by the non-unique speech_key)."""
-    if not _supersede_capability():
-        pytest.skip("supersede-delete hook not yet implemented (11-04) — Wave-0 scaffold")
-
-    from src.ingestion import run as run_mod
-
     speech_key = "de-20-101-mareike-lotte-wulf-top20"
     dip_point = types.SimpleNamespace(
         payload={
@@ -74,9 +62,7 @@ def test_supersede_deletes_dip_duplicate() -> None:
     qdrant = _MergeRecordingQdrant([dip_point])
     stub_connector = types.SimpleNamespace(source="op", source_type="parliamentary_speech")
 
-    supersede = getattr(run_mod, "supersede_dip_duplicates", None)
-    assert supersede is not None
-    supersede(
+    supersede_dip_duplicates(
         qdrant,
         "wahlchat_chunks_dev",
         [_op_chunk(speech_key, "op-1", _SPEECH_TEXT)],
@@ -89,14 +75,47 @@ def test_supersede_deletes_dip_duplicate() -> None:
     ), "delete must be scoped to the twin's source_item_id AND source == 'dip'"
 
 
+def test_supersede_grafts_with_real_uuid_source_item_id() -> None:
+    """B1 regression: ChunkRecord.source_item_id is a real uuid.UUID in production.
+
+    The graft filter's MatchValue accepts only bool/int/str — a raw UUID raised a
+    ValidationError AFTER the successful upsert, permanently disabling the op→DIP
+    merge (the next run present-skipped the item). The supersede pass must
+    stringify the op source_item_id before building the graft filter.
+    """
+    speech_key = "de-20-101-mareike-lotte-wulf-top20"
+    pdf_url = "https://dserver.bundestag.de/btp/20/20101.pdf"
+    dip_point = types.SimpleNamespace(
+        payload={
+            "speech_key": speech_key,
+            "source_item_id": "dip-1",
+            "citation_url": pdf_url,
+            "text": _SPEECH_TEXT,
+        }
+    )
+    qdrant = _MergeRecordingQdrant([dip_point])
+    stub_connector = types.SimpleNamespace(source="op", source_type="parliamentary_speech")
+
+    op_sid = uuid.uuid4()  # a REAL UUID, exactly as ChunkRecord carries it
+    superseded = supersede_dip_duplicates(
+        qdrant,
+        "wahlchat_chunks_dev",
+        [_op_chunk(speech_key, op_sid, _SPEECH_TEXT)],
+        connector=stub_connector,
+    )
+
+    assert superseded == 1, "UUID source_item_id must not break the merge"
+    assert qdrant.batch_updates, "the graft must be issued (no ValidationError)"
+    graft = qdrant.batch_updates[0]
+    assert _filter_mentions(graft.get("update_operations"), (pdf_url, str(op_sid))), (
+        "graft filter must carry the STRINGIFIED op source_item_id"
+    )
+    assert any(_filter_mentions(d, ("dip-1", "dip")) for d in qdrant.deletes)
+
+
 def test_supersede_keeps_distinct_dip_speech_sharing_the_key() -> None:
     """HIGH-1: a DISTINCT DIP speech that merely shares the non-unique speech_key
     (different text — a speaker's second turn op never aligned) must NOT be deleted."""
-    if not _supersede_capability():
-        pytest.skip("supersede hook not yet implemented")
-
-    from src.ingestion import run as run_mod
-
     speech_key = "de-20-101-mareike-lotte-wulf-top20"
     # DIP row under the same key but a completely different speech → must survive.
     other = types.SimpleNamespace(
@@ -110,7 +129,7 @@ def test_supersede_keeps_distinct_dip_speech_sharing_the_key() -> None:
     qdrant = _MergeRecordingQdrant([other])
     stub_connector = types.SimpleNamespace(source="op", source_type="parliamentary_speech")
 
-    superseded = run_mod.supersede_dip_duplicates(
+    superseded = supersede_dip_duplicates(
         qdrant,
         "wahlchat_chunks_dev",
         [_op_chunk(speech_key, "op-1", _SPEECH_TEXT)],
@@ -118,6 +137,55 @@ def test_supersede_keeps_distinct_dip_speech_sharing_the_key() -> None:
     )
     assert superseded == 0, "no text match → nothing superseded"
     assert not qdrant.deletes, "a distinct same-key DIP speech must never be deleted"
+
+
+def test_supersede_multichunk_dip_twin_joined_in_chunk_order() -> None:
+    """C3 regression: a 2-chunk DIP twin served by scroll() in REVERSE chunk
+    order must still match (texts joined by chunk_index, not scroll order) —
+    "B+A" vs "A+B" would score ≈0.5 and silently miss the supersede."""
+    speech_key = "de-20-101-mareike-lotte-wulf-top20"
+    part_a = "Sehr geehrte Frau Präsidentin! Liebe Kolleginnen und Kollegen im Saal!"
+    part_b = "Wir stärken die Aus- und Weiterbildungsförderung in diesem ganzen Land."
+    pdf_url = "https://dserver.bundestag.de/btp/20/2000101.pdf"
+
+    # Scroll serves chunk_index=1 FIRST — deliberately out of order.
+    dip_points = [
+        types.SimpleNamespace(
+            payload={
+                "speech_key": speech_key,
+                "source_item_id": "dip-2c",
+                "citation_url": pdf_url,
+                "text": part_b,
+                "chunk_index": 1,
+            }
+        ),
+        types.SimpleNamespace(
+            payload={
+                "speech_key": speech_key,
+                "source_item_id": "dip-2c",
+                "citation_url": pdf_url,
+                "text": part_a,
+                "chunk_index": 0,
+            }
+        ),
+    ]
+    qdrant = _MergeRecordingQdrant(dip_points)
+    stub_connector = types.SimpleNamespace(source="op", source_type="parliamentary_speech")
+
+    # The op side carries the same speech as TWO chunks, listed out of order too.
+    op_chunks = [
+        _op_chunk(speech_key, "op-2c", part_b, chunk_index=1),
+        _op_chunk(speech_key, "op-2c", part_a, chunk_index=0),
+    ]
+
+    superseded = supersede_dip_duplicates(
+        qdrant, "wahlchat_chunks_dev", op_chunks, connector=stub_connector
+    )
+
+    assert superseded == 1, (
+        "multi-chunk twin must match when joined in chunk_index order"
+    )
+    assert any(_filter_mentions(d, ("dip-2c", "dip")) for d in qdrant.deletes)
 
 
 class _MergeRecordingQdrant:
@@ -151,11 +219,6 @@ def test_supersede_grafts_dip_pdf_onto_op_before_delete() -> None:
     """Merge (not replace): op ingest harvests the DIP duplicate's transcript PDF and
     grafts it onto the op record (meta.transcript_pdf_url) in a durable batch BEFORE
     deleting the DIP point, so one speech source keeps both the video and the PDF."""
-    if not _supersede_capability():
-        pytest.skip("supersede-delete hook not yet implemented (11-04) — Wave-0 scaffold")
-
-    from src.ingestion import run as run_mod
-
     speech_key = "de-20-101-mareike-lotte-wulf-top20"
     pdf_url = "https://dserver.bundestag.de/btp/20/2000101.pdf"
     dip_point = types.SimpleNamespace(
@@ -172,7 +235,7 @@ def test_supersede_grafts_dip_pdf_onto_op_before_delete() -> None:
         source_type="parliamentary_speech",
     )
 
-    run_mod.supersede_dip_duplicates(
+    supersede_dip_duplicates(
         qdrant,
         "wahlchat_chunks_dev",
         [_op_chunk(speech_key, "op-1", _SPEECH_TEXT)],
@@ -192,13 +255,60 @@ def test_supersede_grafts_dip_pdf_onto_op_before_delete() -> None:
     assert any(_filter_mentions(d, ("dip-1", "dip")) for d in qdrant.deletes)
 
 
+def test_op_connector_post_upsert_calls_supersede() -> None:
+    """B8: OpenParliamentTvConnector.post_upsert drives the supersede policy —
+    the generic runner only calls the neutral hook."""
+    from src.ingestion.connectors.openparliament_tv.connector import (
+        OpenParliamentTvConnector,
+    )
+
+    conn = object.__new__(OpenParliamentTvConnector)  # bypass __init__ (no network)
+    speech_key = "de-20-101-mareike-lotte-wulf-top20"
+    dip_point = types.SimpleNamespace(
+        payload={
+            "speech_key": speech_key,
+            "source_item_id": "dip-1",
+            "citation_url": "https://dserver.bundestag.de/btp/20/20101.pdf",
+            "text": _SPEECH_TEXT,
+        }
+    )
+    qdrant = _MergeRecordingQdrant([dip_point])
+
+    superseded = conn.post_upsert(
+        qdrant, "wahlchat_chunks_dev", [_op_chunk(speech_key, "op-1", _SPEECH_TEXT)]
+    )
+
+    assert superseded == 1
+    assert any(_filter_mentions(d, ("dip-1", "dip")) for d in qdrant.deletes)
+
+
+def test_base_connector_post_upsert_is_noop() -> None:
+    """B8: every other connector inherits the no-op hook — no Qdrant calls."""
+    from src.ingestion.connector import BaseConnector
+
+    class _Stub(BaseConnector):
+        source_type = "vote_record"
+
+        def discover(self, since):  # noqa: ANN001, ANN201
+            return []
+
+        def fetch(self, external_id):  # noqa: ANN001, ANN201
+            return {}
+
+        def normalize(self, raw):  # noqa: ANN001, ANN201
+            return []
+
+    qdrant = _MergeRecordingQdrant([])
+    assert _Stub().post_upsert(qdrant, "wahlchat_chunks_dev", []) == 0
+    assert not qdrant.deletes and not qdrant.batch_updates
+
+
 def test_supersede_merge_end_to_end_in_memory() -> None:
     """End-to-end against a real in-memory Qdrant: with a dip + op point sharing a
     speech_key, supersede grafts the dip PDF into the op record's meta (WITHOUT
     clobbering video_uri/sentence_map) and deletes the dip point — one merged record
     survives carrying both links."""
-    if not _supersede_capability():
-        pytest.skip("supersede-delete hook not yet implemented (11-04) — Wave-0 scaffold")
+    import pytest
 
     pytest.importorskip("qdrant_client")
     from qdrant_client import models
@@ -206,8 +316,6 @@ def test_supersede_merge_end_to_end_in_memory() -> None:
     # Import the REAL client from the submodule to bypass conftest's module-level
     # `qdrant_client.QdrantClient` MagicMock patch (same escape hatch conftest uses).
     from qdrant_client.qdrant_client import QdrantClient as RealQdrantClient
-
-    from src.ingestion import run as run_mod
 
     client = RealQdrantClient(":memory:")
     client.create_collection(
@@ -249,7 +357,7 @@ def test_supersede_merge_end_to_end_in_memory() -> None:
     )
 
     stub_connector = types.SimpleNamespace(source="op", source_type="parliamentary_speech")
-    run_mod.supersede_dip_duplicates(
+    supersede_dip_duplicates(
         client,
         "wahlchat_chunks_dev",
         [_op_chunk(speech_key, "op-2", _SPEECH_TEXT)],

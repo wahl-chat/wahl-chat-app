@@ -1,8 +1,9 @@
 'use client';
 
+import { getAuthHeader } from '@/lib/firebase/firebase';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useChatStore } from './chat-store-provider';
 
@@ -59,12 +60,22 @@ function SseChatProvider({ children }: Props) {
   const resetStreamingMessageWatchdog = useChatStore(
     (state) => state.resetStreamingMessageWatchdog,
   );
+  const cancelStreamingMessages = useChatStore(
+    (state) => state.cancelStreamingMessages,
+  );
 
   const { sendMessage, stop } = useChat({
     // v5: transport replaces the `api`/`streamProtocol` options. The backend
     // emits the v5 UI-message-stream (data: <json> parts) so no protocol flag
     // is needed — useChat parses it natively.
-    transport: new DefaultChatTransport({ api: '/api/chat' }),
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      // Attach the Firebase ID token per request (async resolvable): the proxy
+      // route forwards it so the backend can verify user_is_logged_in/premium
+      // (A3 contract). Resolves to {} when signed out / on token errors —
+      // the request degrades gracefully to unauthenticated.
+      headers: () => getAuthHeader(),
+    }),
     // v5 removed `message.annotations`. Our V1 named chat events arrive as
     // custom `data-chat_event` parts and are delivered here per-event as they
     // stream (more reliable than scraping message.parts in onFinish). The inner
@@ -125,10 +136,21 @@ function SseChatProvider({ children }: Props) {
         // Backend emits type-8 error annotations from generate_chat_stream's except block.
         console.error('[SseChatProvider] backend stream error:', ann.message);
         toast.error('Es ist ein Fehler aufgetreten.');
+        // Clear the streaming state so loading.newMessage does not stay stuck
+        // until the watchdog fires (the backend ends the stream after an error
+        // part, so nothing else would ever clear it).
+        cancelStreamingMessages();
       }
     },
     onError: (error) => {
       console.error('[SseChatProvider] stream error:', error);
+      // Transport-level failure (network drop, proxy 5xx, ...): wipe the
+      // streaming state immediately instead of leaving a frozen UI until the
+      // inactivity watchdog silently clears it.
+      cancelStreamingMessages();
+      toast.error(
+        'Die Antwort konnte nicht geladen werden. Bitte versuche es erneut.',
+      );
     },
   });
 
@@ -149,10 +171,19 @@ function SseChatProvider({ children }: Props) {
     [sendMessage],
   );
 
-  // Register the append function so chatAddUserMessage can reach it.
-  _appendFn = stableAppend as typeof _appendFn;
-  // Register stop so cancelStreamingMessages / the watchdog can abort the SSE.
-  _stopFn = stop;
+  // Register append (for chatAddUserMessage) and stop (for
+  // cancelStreamingMessages / the watchdog) as an EFFECT, not in the render
+  // body: render-body assignment is a side effect (StrictMode double-invokes
+  // render) and was never cleared, leaving stale sendMessage/stop closures
+  // reachable after navigation. The cleanup nulls both on unmount.
+  useEffect(() => {
+    _appendFn = stableAppend as typeof _appendFn;
+    _stopFn = stop;
+    return () => {
+      _appendFn = null;
+      _stopFn = null;
+    };
+  }, [stableAppend, stop]);
 
   return <>{children}</>;
 }

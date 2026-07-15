@@ -1,9 +1,10 @@
 # CI pipeline — wahl.chat V2 (D-08, D-09, FOUND-05)
 #
-# Three jobs:
-#   backend    — uv ruff check + mypy + pytest (unit/integration, not smoke)
-#   frontend   — bun frozen install + bun audit (D-08 supply-chain gate) + build
-#   smoke-test — D-09 E2E SSE smoke test (needs: [backend, frontend])
+# Jobs:
+#   backend        — GDPR wall guard + uv ruff check + mypy + pytest (unit/integration, not smoke)
+#   frontend       — bun frozen install + bun audit (D-08 supply-chain gate) + lint + tsc + build
+#   firebase-rules — Firestore security-rules tests against the emulator (G2)
+#   smoke-test     — D-09 E2E SSE smoke test (needs: [backend, frontend])
 #
 # Key constraints (CLAUDE.md):
 #   - uv sync --locked  everywhere (locked installs only — no version bumping)
@@ -62,8 +63,12 @@ jobs:
             exit 0
           fi
           # Push: proceed only when the branch has no open PR (else the PR run handles CI).
+          # Fail-open (G19): a transient GitHub API failure must not skip all of CI —
+          # treat an errored `gh pr list` as "no open PR" and proceed (worst case:
+          # one duplicate pipeline run, never a silently skipped one).
           open_prs=$(gh pr list --repo "$GITHUB_REPOSITORY" \
-            --head "$REF_NAME" --state open --json number --jq 'length')
+            --head "$REF_NAME" --state open --json number --jq 'length' \
+            || echo "0")
           if [ "$open_prs" = "0" ]; then
             echo "push with no open PR for '$REF_NAME' → proceed"
             echo "should_run=true" >> "$GITHUB_OUTPUT"
@@ -91,19 +96,28 @@ jobs:
           version: "0.11.x"
           python-version: "3.12"
 
-      # Reproducible install — frozen lockfile only (CLAUDE.md)
-      - name: Install dependencies (locked)
-        run: uv sync --locked --no-dev
+      # Reproducible install — frozen lockfile only (CLAUDE.md).
+      # G9: sync WITH the dev group (ruff/mypy/pytest are dev deps) and pass
+      # --no-sync to every `uv run` below so it can neither re-sync (bypassing
+      # --locked) nor silently change the installed set.
+      - name: Install dependencies (locked, with dev)
+        run: uv sync --locked
+
+      # A7/G1: GDPR Art. 9 wall — no Firestore users/ access in ingestion code.
+      # Stdlib-only script; runs from the repo root.
+      - name: GDPR Art. 9 wall guard
+        working-directory: .
+        run: python3 scripts/check_gdpr_wall.py
 
       - name: Lint — ruff
-        run: uv run ruff check src/
+        run: uv run --no-sync ruff check src/
 
       - name: Type-check — mypy
-        run: uv run mypy src/
+        run: uv run --no-sync mypy src/
 
       - name: Unit / integration tests (excluding smoke test)
         run: |
-          uv run pytest tests/ -x \
+          uv run --no-sync pytest tests/ -x \
             --ignore=tests/test_chat_sse.py \
             --ignore=tests/test_local_mode.py
 
@@ -145,11 +159,57 @@ jobs:
       - name: Supply-chain audit (D-08)
         run: bun audit --audit-level=high
 
+      # G5: non-mutating lint (next lint + biome ci) — violations FAIL the job
+      # instead of being auto-fixed on the runner and silently building.
       - name: Lint
         run: bun run lint
 
+      - name: Type-check — tsc
+        run: bun run typecheck
+
       - name: Build
         run: bun run build
+
+  # ---------------------------------------------------------------------------
+  # Firebase rules: Firestore security-rules tests against the emulator (G2)
+  # Proves the GDPR Art. 9 consent gate + chat-message privacy rules in CI.
+  # ---------------------------------------------------------------------------
+  firebase-rules:
+    needs: guard
+    if: needs.guard.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      # The Firestore emulator needs a JVM
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # Reproducible install — never bare bun install in CI (CLAUDE.md)
+      - name: Install rules-test dependencies (frozen)
+        working-directory: firebase/tests
+        run: bun install --frozen-lockfile
+
+      - name: Install firebase-tools
+        run: npm install -g firebase-tools
+
+      # firebase.json pins the Firestore emulator to port 8081; rules.test.ts
+      # connects to localhost:8081 with projectId "demo-wahl-chat" (demo- prefix
+      # keeps the emulator fully offline/isolated).
+      - name: Firestore rules tests (emulator)
+        run: |
+          firebase emulators:exec --only firestore --project demo-wahl-chat \
+            "cd tests && bun run test"
 
   # ---------------------------------------------------------------------------
   # Smoke-test: D-09 E2E SSE smoke test (depends on backend + frontend passing)
@@ -187,4 +247,4 @@ jobs:
       # and Vercel AI SDK data-stream protocol (f/0/8/e/d/[DONE]) in-process.
       # Only the LLM stream and Qdrant search are patched (patch_chat_io fixture).
       - name: SSE smoke test (D-09)
-        run: uv run pytest tests/test_chat_sse.py -x -v
+        run: uv run --no-sync pytest tests/test_chat_sse.py -x -v

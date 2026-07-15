@@ -1,7 +1,7 @@
 # Development convenience targets for the wahl.chat monorepo
 
 .PHONY: dev dev-web dev-backend install install-web install-backend \
-        lint lint-web lint-backend test-backend test-smoke \
+        lint lint-web lint-backend test-backend test-smoke test-local-mode \
         stores-up stores-down seed-local dev-local auth \
         run-abgeordnetenwatch-votes run-all-landtage-votes run-speeches \
         run-manifestos collect-speeches \
@@ -22,6 +22,16 @@ install-backend:
 stores-up:
 	docker compose up -d qdrant
 	cd firebase && nohup firebase emulators:start --only firestore > ../firebase-emulators.log 2>&1 &
+	@echo "Waiting for the Firestore emulator on localhost:8081 (max 30s) ..."
+	@for i in $$(seq 1 30); do \
+		if curl -sf http://localhost:8081 > /dev/null 2>&1; then \
+			echo "Firestore emulator is ready."; \
+			exit 0; \
+		fi; \
+		sleep 1; \
+	done; \
+	echo "ERROR: Firestore emulator not ready after 30s — see firebase-emulators.log" >&2; \
+	exit 1
 
 stores-down:
 	docker compose down
@@ -62,6 +72,12 @@ test-backend:
 
 test-smoke:
 	cd ai-backend && uv run pytest tests/test_chat_sse.py -x
+
+# test-local-mode: exercises the seed-script FIRESTORE_EMULATOR_HOST guard
+# end-to-end (G11). Deliberately NOT part of CI or test-backend — it needs
+# LIVE local stores: run `make stores-up` first.
+test-local-mode:
+	cd ai-backend && uv run pytest tests/test_local_mode.py -x
 
 # --- Ingestion connector local-run targets (Open Question 5 — Makefile is the local scheduler) ---
 # Cloud Scheduler stays IaC-only (infra/cloud_run_jobs.sh).

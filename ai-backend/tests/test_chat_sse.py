@@ -27,6 +27,7 @@ Tests:
 
 import asyncio
 import json
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
@@ -174,3 +175,277 @@ async def test_sse_headers(patch_chat_io, app):
             assert "no-transform" in response.headers.get("cache-control", ""), (
                 "Missing no-transform in Cache-Control header"
             )
+
+
+# ===========================================================================
+# GDPR cache-gate behavioral tests (A1/A2)
+# ===========================================================================
+
+_PROPOSED_QUESTION = "Was ist die Position der SPD zum Klimaschutz?"
+
+
+async def _fake_proposed_questions(party_id: str) -> list[str]:
+    return [_PROPOSED_QUESTION]
+
+
+async def _drain_chat_stream(app, body: dict) -> list[str]:
+    """POST /api/v1/chat and return all `data:` payload strings until [DONE]."""
+    payloads: list[str] = []
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://test", timeout=30.0
+    ) as client:
+        async with client.stream(
+            "POST",
+            "/api/v1/chat",
+            json=body,
+            headers={"Accept": "text/event-stream"},
+        ) as response:
+            assert response.status_code == 200
+            async for line in response.aiter_lines():
+                if not line.startswith("data:"):
+                    continue
+                payload = line[5:].strip()
+                payloads.append(payload)
+                if payload == "[DONE]":
+                    break
+    return payloads
+
+
+@pytest.mark.asyncio
+async def test_proposed_question_with_free_text_history_not_cached(
+    patch_chat_io, app, monkeypatch
+):
+    """GDPR cache gate (Art. 9): a proposed question sent MID a non-curated
+    (free-text) conversation performs NO cache write — the answer is
+    conditioned on user-authored history and must never replay cross-user."""
+    write_mock = AsyncMock()
+    monkeypatch.setattr(
+        "src.chat_service.aget_proposed_questions_for_party",
+        _fake_proposed_questions,
+    )
+    monkeypatch.setattr(
+        "src.chat_service.awrite_cached_answer_for_party", write_mock
+    )
+
+    body = dict(_CHAT_REQUEST_BODY)
+    body["user_message"] = _PROPOSED_QUESTION
+    body["chat_history"] = [
+        {"role": "user", "content": "Ich habe eine sehr persönliche Meinung dazu."},
+        {"role": "assistant", "content": "Danke für deine Nachricht."},
+    ]
+
+    payloads = await _drain_chat_stream(app, body)
+
+    assert payloads[-1] == "[DONE]", "stream must still terminate normally"
+    write_mock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_first_turn_proposed_question_is_cached(
+    patch_chat_io, app, monkeypatch
+):
+    """The legitimate first-turn proposed-question cache is preserved: a single
+    proposed-question user turn IS curated, so the answer is written under the
+    proposed-question key (regression guard for the A1/A2 gate rework)."""
+    write_mock = AsyncMock()
+    monkeypatch.setattr(
+        "src.chat_service.aget_proposed_questions_for_party",
+        _fake_proposed_questions,
+    )
+    monkeypatch.setattr(
+        "src.chat_service.awrite_cached_answer_for_party", write_mock
+    )
+
+    body = dict(_CHAT_REQUEST_BODY)
+    body["user_message"] = _PROPOSED_QUESTION
+    body["chat_history"] = []
+
+    payloads = await _drain_chat_stream(app, body)
+
+    assert payloads[-1] == "[DONE]"
+    write_mock.assert_awaited_once()
+    # (party_id, cache_key, cached_answer) — the key is the question text.
+    _party_id, cache_key, _cached = write_mock.await_args.args
+    assert cache_key == _PROPOSED_QUESTION
+
+
+# ===========================================================================
+# Mid-stream error path (A10/A11): the client still receives a protocol-valid
+# stream — closed text block, error party_complete (generic message only),
+# finish events and the [DONE] terminator.
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+async def test_mid_stream_error_still_finishes(patch_chat_io, app, monkeypatch):
+    """An LLM stream failing MID-generation must not wedge or truncate the SSE
+    stream: the open text block is closed, party_complete carries an error
+    status WITHOUT internal exception detail, and finish events + [DONE] follow."""
+    from langchain_core.messages import AIMessageChunk
+
+    async def _err_stream(*args, **kwargs):
+        async def _gen():
+            yield AIMessageChunk(content="Hallo")
+            raise RuntimeError("boom-internal-detail")
+
+        return _gen()
+
+    monkeypatch.setattr("src.chatbot_async.stream_answer_from_llms", _err_stream)
+
+    payloads = await _drain_chat_stream(app, dict(_CHAT_REQUEST_BODY))
+
+    assert payloads[-1] == "[DONE]", "stream must terminate with [DONE]"
+    raw = "\n".join(payloads)
+    assert "boom-internal-detail" not in raw, (
+        "internal exception detail must never reach the client"
+    )
+
+    parts = [json.loads(p) for p in payloads if p != "[DONE]"]
+    types = [p.get("type") for p in parts]
+    assert types.count("text-start") == types.count("text-end"), (
+        "every opened v5 text block must be closed on the error path"
+    )
+    party_completes = [
+        p["data"]
+        for p in parts
+        if p.get("type") == "data-chat_event"
+        and p.get("data", {}).get("type") == "party_complete"
+    ]
+    assert any(
+        (pc.get("status") or {}).get("indicator") == "error"
+        for pc in party_completes
+    ), "an error party_complete must be emitted"
+    assert "finish-step" in types and "finish" in types, (
+        "finish events must still be emitted after a mid-stream error"
+    )
+
+
+# ===========================================================================
+# Side-channel route-level SSE tests (/api/v1/pro-con, /api/v1/voting-behavior):
+# status 200, SSE content type, NO x-vercel-ai-ui-message-stream header (they
+# emit legacy code-prefixed frames the frontend hand-parses), [DONE] terminal.
+# ===========================================================================
+
+_SIDE_CHANNEL_PARTY = {
+    "party_id": "spd",
+    "name": "SPD",
+    "long_name": "Sozialdemokratische Partei Deutschlands",
+    "website_url": "https://www.spd.de",
+}
+
+
+async def _drain_sse(app, path: str, body: dict):
+    """POST an SSE endpoint; return (headers, data payload strings until [DONE])."""
+    payloads: list[str] = []
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://test", timeout=30.0
+    ) as client:
+        async with client.stream(
+            "POST", path, json=body, headers={"Accept": "text/event-stream"}
+        ) as response:
+            assert response.status_code == 200
+            headers = response.headers
+            async for line in response.aiter_lines():
+                if not line.startswith("data:"):
+                    continue
+                payload = line[5:].strip()
+                payloads.append(payload)
+                if payload == "[DONE]":
+                    break
+    return headers, payloads
+
+
+@pytest.mark.asyncio
+async def test_pro_con_route_sse(app, monkeypatch):
+    """/api/v1/pro-con: 200, text/event-stream, NO v1 stream header, ends [DONE]."""
+    from src.models.chat import Message
+    from src.models.context import ContextParty
+
+    async def _party(party_id: str):
+        return ContextParty(**_SIDE_CHANNEL_PARTY)
+
+    async def _pro_con(chat_history, party, context_id=None):
+        return Message(role="assistant", content="Pro: ... Contra: ...")
+
+    monkeypatch.setattr("src.routes.pro_con.aget_party_by_id", _party)
+    monkeypatch.setattr(
+        "src.routes.pro_con.generate_pro_con_perspective", _pro_con
+    )
+
+    headers, payloads = await _drain_sse(
+        app,
+        "/api/v1/pro-con",
+        {
+            "request_id": "r1",
+            "party_id": "spd",
+            "last_assistant_message": "Antwort",
+            "last_user_message": "Frage",
+        },
+    )
+
+    assert "text/event-stream" in headers.get("content-type", "")
+    assert "x-vercel-ai-ui-message-stream" not in headers, (
+        "pro-con emits legacy code-prefixed frames — it must NOT claim the v5 "
+        "UI-message-stream protocol"
+    )
+    assert payloads[-1] == "[DONE]"
+    assert any(p.startswith("8") for p in payloads), (
+        "pro_con_result must be emitted as a legacy code-8 frame"
+    )
+
+
+@pytest.mark.asyncio
+async def test_voting_behavior_route_sse(app, monkeypatch):
+    """/api/v1/voting-behavior: 200, text/event-stream, NO v1 stream header,
+    ends [DONE]."""
+    from langchain_core.messages import AIMessageChunk
+    from src.models.context import ContextParty
+
+    async def _party(party_id: str):
+        return ContextParty(**_SIDE_CHANNEL_PARTY)
+
+    async def _rag_query(*args, **kwargs):
+        return "verbesserte Anfrage"
+
+    def _retrieve(*args, **kwargs):
+        return []
+
+    async def _summary(*args, **kwargs):
+        async def _gen():
+            yield AIMessageChunk(content="Zusammenfassung.")
+
+        return _gen()
+
+    monkeypatch.setattr("src.routes.voting_behavior.aget_party_by_id", _party)
+    monkeypatch.setattr(
+        "src.routes.voting_behavior.get_improved_rag_query_voting_behavior",
+        _rag_query,
+    )
+    monkeypatch.setattr("src.routes.voting_behavior.retrieve", _retrieve)
+    monkeypatch.setattr(
+        "src.routes.voting_behavior.generate_party_vote_behavior_summary",
+        _summary,
+    )
+
+    headers, payloads = await _drain_sse(
+        app,
+        "/api/v1/voting-behavior",
+        {
+            "request_id": "r1",
+            "party_id": "spd",
+            "last_user_message": "Frage",
+            "last_assistant_message": "Antwort",
+        },
+    )
+
+    assert "text/event-stream" in headers.get("content-type", "")
+    assert "x-vercel-ai-ui-message-stream" not in headers, (
+        "voting-behavior emits legacy code-prefixed frames — it must NOT claim "
+        "the v5 UI-message-stream protocol"
+    )
+    assert payloads[-1] == "[DONE]"
+    assert any(p.startswith("8") for p in payloads), (
+        "voting_behavior_complete must be emitted as a legacy code-8 frame"
+    )

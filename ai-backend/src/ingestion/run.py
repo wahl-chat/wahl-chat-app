@@ -27,9 +27,7 @@ Cursor auto-advances on the next run via get_cursor() scroll(DESC).
 """
 
 import argparse
-import difflib
 import os
-import re
 import sys
 import time
 from typing import NamedTuple, Optional
@@ -46,6 +44,21 @@ from src.ingestion.setup_collection import (
     EMBEDDING_MODEL,
 )
 from src.ingestion.ids import compute_chunk_id
+
+
+# ---------------------------------------------------------------------------
+# DimensionMismatchError — VEC-05 coding invariant (B11)
+# ---------------------------------------------------------------------------
+
+
+class DimensionMismatchError(ValueError):
+    """Embedding vector dimension != EMBEDDING_DIM (VEC-05).
+
+    A coding/config invariant violation, not a data error: run_connector
+    re-raises it (isinstance check, not string matching) instead of
+    skip-and-warning, so it is immediately visible. Subclasses ValueError to
+    stay compatible with callers that catch ValueError.
+    """
 
 
 # ---------------------------------------------------------------------------
@@ -68,9 +81,13 @@ class RunReport(NamedTuple):
                           this run (sum of len(chunks) for each processed item that
                           produced non-empty chunks; skipped/empty items contribute 0).
         failed_ids:       External ids skipped this run due to a fetch/normalize/upsert
-                          error. These are NOT lost — set-difference discovery re-surfaces
-                          them next run — but they are surfaced here (and logged) so an
-                          operator can see coverage gaps instead of them being swallowed.
+                          error. Whether they are re-surfaced next run depends on the
+                          connector's discovery strategy (BaseConnector.discover):
+                          set-difference discovery (AW, manifestos) re-surfaces every
+                          failure; lookback-floor discovery (DIP, op) re-surfaces them
+                          only while they remain inside the lookback window. Either way
+                          they are surfaced here (and logged) so an operator can see
+                          coverage gaps instead of them being swallowed.
         present_skips:    Items found already present AND unchanged AND orphan-free —
                           cheaply skipped (one footprint scroll, no embed) WITHOUT
                           consuming the batch_size budget, so an already-ingested
@@ -158,192 +175,21 @@ def get_cursor(
 
 
 # ---------------------------------------------------------------------------
-# supersede_dip_duplicates() — op-gated post-upsert supersede-delete hook
+# _cursor_source_scope() — resolve the cursor's source scope for a connector
 # ---------------------------------------------------------------------------
 
 
-# A DIP twin is superseded only when its normalized text matches the op speech
-# this closely. The proceedings text is byte-identical in intent across op/DIP
-# but ~99% identical in practice (op runs ~1% longer), and a DIFFERENT speech by
-# the same speaker under the same agenda item scores far lower (~0.3–0.6), so
-# this cleanly separates "same speech" from "distinct speech that merely shares
-# the non-unique speech_key". See run's HIGH-1 fix.
-_SUPERSEDE_TEXT_MATCH_RATIO = 0.85
+def _cursor_source_scope(connector: BaseConnector) -> Optional[str]:
+    """Return the source scope for get_cursor (C6).
 
-
-def _norm_speech_text(text: Optional[str]) -> str:
-    """Lowercase, alphanumeric-only fold for order-stable cross-source text compare."""
-    return re.sub(r"[^a-z0-9]+", "", (text or "").lower())
-
-
-def supersede_dip_duplicates(
-    qdrant: QdrantClient,
-    collection_name: str,
-    op_chunks: list[ChunkRecord],
-    *,
-    connector: BaseConnector,
-) -> int:
-    """Merge the true DIP twin into an op speech, then delete ONLY that twin (D-04/D-09).
-
-    NARROW, op-gated hook: fires ONLY when ``getattr(connector, "source", None) == "op"``.
-    Called per just-upserted op item (all chunks of ONE op speech), so exactly one
-    op speech is superseding here; the ambiguity is only ever on the DIP side.
-
-    ``speech_key`` (``de-{ep}-{session}-{speaker}-{agenda}``) is NOT unique per
-    speech and there is no exact shared op↔DIP id, so the old
-    "delete every DIP row whose speech_key op just ingested" would delete a
-    DISTINCT DIP speech that merely shares the key (a speaker's second turn under
-    the same agenda item that op did NOT align) — a permanent grounding loss.
-    Instead we identify the true twin by TEXT: the op speech carries the full
-    proceedings text, so its genuine DIP twin is the same-key DIP speech whose
-    normalized text matches (``ratio >= _SUPERSEDE_TEXT_MATCH_RATIO``). Distinct
-    same-key DIP speeches score far lower and are left untouched.
-
-    Per matched twin it then:
-      1. **Grafts the transcript PDF** — copies the DIP twin's ``citation_url``
-         (the plenary-protocol PDF) onto THIS op record (matched precisely on the
-         op ``source_item_id``) as ``meta.transcript_pdf_url``, durably (wait=True)
-         BEFORE the delete, so a crash can never lose the PDF with its source gone.
-      2. **Deletes the DIP twin** by its ``source_item_id`` (all its chunks) —
-         never by the shared, non-unique speech_key.
-
-    Non-op / no-source connectors return 0 immediately (every other connector runs
-    byte-for-byte unchanged). Returns the number of DIP twins superseded.
-
-    Args:
-        qdrant:          Initialised QdrantClient.
-        collection_name: Target Qdrant collection.
-        op_chunks:       The just-upserted op ChunkRecords (all chunks of one op
-                         speech; may be several for a long speech).
-        connector:       The connector being run — used only for the op source-gate.
+    ``connector.cursor_source`` when the attribute exists (BaseConnector
+    defaults it to ``source``; subclasses may override — e.g. the DIP
+    connector sets None so its floor spans both speech sources), else the
+    plain ``source`` attribute (bare test stubs).
     """
-    if getattr(connector, "source", None) != "op":
-        return 0
-
-    # Group the just-upserted op chunks into distinct op speeches (by source_item_id),
-    # each with its speech_key and full concatenated text.
-    op_speeches: dict[str, dict] = {}
-    for chunk in op_chunks:
-        key = getattr(chunk, "speech_key", None)
-        sid = getattr(chunk, "source_item_id", None)
-        if key is None or sid is None:
-            continue
-        entry = op_speeches.setdefault(sid, {"key": key, "texts": []})
-        entry["texts"].append(getattr(chunk, "text", "") or "")
-    if not op_speeches:
-        return 0
-
-    keys = sorted({e["key"] for e in op_speeches.values()})
-
-    # Collect DIP candidates under those keys, grouped into distinct DIP speeches
-    # (by source_item_id) with their full text + protocol-PDF citation_url.
-    dip_speeches: dict[str, dict] = {}
-    next_offset = None
-    while True:
-        points, next_offset = qdrant.scroll(
-            collection_name=collection_name,
-            scroll_filter=models.Filter(
-                must=[
-                    models.FieldCondition(key="speech_key", match=models.MatchAny(any=keys)),
-                    models.FieldCondition(key="source", match=models.MatchValue(value="dip")),
-                ]
-            ),
-            with_payload=["speech_key", "source_item_id", "citation_url", "text"],
-            with_vectors=False,
-            limit=256,
-            offset=next_offset,
-        )
-        for point in points:
-            payload = point.payload or {}
-            dsid = payload.get("source_item_id")
-            if dsid is None:
-                continue
-            entry = dip_speeches.setdefault(
-                dsid,
-                {
-                    "key": payload.get("speech_key"),
-                    "texts": [],
-                    "citation_url": payload.get("citation_url"),
-                },
-            )
-            entry["texts"].append(payload.get("text") or "")
-        if next_offset is None:
-            break
-
-    # Match each op speech to its true DIP twin by normalized-text similarity.
-    graft_ops: list[tuple[str, str]] = []  # (op_source_item_id, pdf_url)
-    delete_dip_sids: list[str] = []
-    for op_sid, op in op_speeches.items():
-        op_norm = _norm_speech_text(" ".join(op["texts"]))
-        if not op_norm:
-            continue
-        for dsid, dip in dip_speeches.items():
-            if dip["key"] != op["key"] or dsid in delete_dip_sids:
-                continue
-            dip_norm = _norm_speech_text(" ".join(dip["texts"]))
-            if not dip_norm:
-                continue
-            ratio = difflib.SequenceMatcher(None, op_norm, dip_norm).ratio()
-            if ratio >= _SUPERSEDE_TEXT_MATCH_RATIO:
-                if dip["citation_url"]:
-                    graft_ops.append((op_sid, dip["citation_url"]))
-                delete_dip_sids.append(dsid)
-                break  # one op speech has at most one DIP twin
-
-    if not delete_dip_sids:
-        return 0
-
-    # 1. Graft each twin's transcript PDF onto its specific op record (by
-    #    source_item_id, not the shared key), durably before the delete.
-    if graft_ops:
-        qdrant.batch_update_points(
-            collection_name=collection_name,
-            update_operations=[
-                models.SetPayloadOperation(
-                    set_payload=models.SetPayload(
-                        payload={"transcript_pdf_url": pdf_url},
-                        key="meta",
-                        filter=models.Filter(
-                            must=[
-                                models.FieldCondition(
-                                    key="source_item_id",
-                                    match=models.MatchValue(value=op_sid),
-                                ),
-                                models.FieldCondition(
-                                    key="source", match=models.MatchValue(value="op")
-                                ),
-                            ]
-                        ),
-                    )
-                )
-                for op_sid, pdf_url in graft_ops
-            ],
-            wait=True,
-        )
-
-    # 2. Delete ONLY the matched DIP twins, by their source_item_id (all chunks).
-    #    Distinct same-key DIP speeches op did not match are never touched.
-    qdrant.delete(
-        collection_name=collection_name,
-        points_selector=models.FilterSelector(
-            filter=models.Filter(
-                must=[
-                    models.FieldCondition(
-                        key="source_item_id", match=models.MatchAny(any=delete_dip_sids)
-                    ),
-                    models.FieldCondition(key="source", match=models.MatchValue(value="dip")),
-                ]
-            )
-        ),
-        wait=True,
-    )
-    # T-11-11: operator visibility on the merge + duplicate deletion.
-    print(
-        f"supersede: grafted DIP transcript PDF onto {len(graft_ops)} op speech(es), "
-        f"then deleted {len(delete_dip_sids)} matched DIP twin(s)",
-        file=sys.stderr,
-    )
-    return len(delete_dip_sids)
+    if hasattr(connector, "cursor_source"):
+        return connector.cursor_source
+    return getattr(connector, "source", None)
 
 
 # ---------------------------------------------------------------------------
@@ -379,7 +225,7 @@ def _upsert_chunks(
     """Upsert ChunkRecord + vector pairs as PointStructs to Qdrant (idempotent).
 
     Asserts len(vector) == EMBEDDING_DIM before any upsert so dimension
-    drift never reaches the index.  Raises ValueError on mismatch.
+    drift never reaches the index.  Raises DimensionMismatchError on mismatch.
 
     Args:
         qdrant:          Initialised QdrantClient.
@@ -388,14 +234,14 @@ def _upsert_chunks(
         vectors:         Corresponding embedding vectors (one per chunk).
 
     Raises:
-        ValueError: If any vector's dimension != EMBEDDING_DIM.
+        DimensionMismatchError: If any vector's dimension != EMBEDDING_DIM.
     """
     from qdrant_client.models import PointStruct  # noqa: PLC0415
 
     points = []
     for chunk, vector in zip(chunks, vectors):
         if len(vector) != EMBEDDING_DIM:
-            raise ValueError(
+            raise DimensionMismatchError(
                 f"VEC-05: embedding dim mismatch: expected {EMBEDDING_DIM}, "
                 f"got {len(vector)} for chunk {chunk.chunk_key!r}"
             )
@@ -449,8 +295,8 @@ def run_connector(
     since = get_cursor(
         qdrant,
         collection_name,
-        connector.source_type,  # type: ignore[attr-defined]
-        source=getattr(connector, "source", None),
+        connector.source_type,
+        source=_cursor_source_scope(connector),
     )
     ids = connector.discover(since)
 
@@ -492,6 +338,31 @@ def run_connector(
                 failed_ids.append(str(external_id))
                 continue
 
+            # C9 mitigation (concurrent DIP+op hazard): a connector may report the
+            # source_item_ids its normalize() SKIPPED as already-superseded (the
+            # DIP connector sets last_superseded_siids). Any stored points under
+            # those siids are stranded twins from an interleaved concurrent run —
+            # they appear in NO new-chunk or orphan filter, so delete them here.
+            # No-op for every connector that does not expose the attribute.
+            superseded_siids = [
+                str(s) for s in (getattr(connector, "last_superseded_siids", ()) or ())
+            ]
+            if superseded_siids:
+                qdrant.delete(
+                    collection_name=collection_name,
+                    points_selector=models.FilterSelector(
+                        filter=models.Filter(
+                            must=[
+                                models.FieldCondition(
+                                    key="source_item_id",
+                                    match=models.MatchAny(any=superseded_siids),
+                                )
+                            ]
+                        )
+                    ),
+                    wait=True,
+                )
+
             if chunks:
                 # Already-present / orphan guard (cost optimisation + staleness fix):
                 # Compute deterministic point IDs for this item's chunks (same formula as
@@ -525,6 +396,11 @@ def run_connector(
                     ]
                 )
                 existing_hash_by_id: dict[str, Optional[str]] = {}
+                # C8: previously grafted DIP transcript PDFs (meta.transcript_pdf_url,
+                # written by the op supersede pass) per siid — must survive a rewrite,
+                # since the fresh mapper output never carries the graft and the DIP
+                # twin that donated it is already deleted.
+                pdf_by_siid: dict[str, str] = {}
                 next_offset = None
                 while True:
                     points, next_offset = qdrant.scroll(
@@ -532,13 +408,23 @@ def run_connector(
                         scroll_filter=footprint_filter,
                         limit=1000,
                         offset=next_offset,
-                        with_payload=["source_item_id", "content_hash"],
+                        with_payload=[
+                            "source_item_id",
+                            "content_hash",
+                            "meta.transcript_pdf_url",
+                        ],
                         with_vectors=False,
                     )
                     for p in points:
-                        existing_hash_by_id[str(p.id)] = (p.payload or {}).get(
-                            "content_hash"
+                        payload = p.payload or {}
+                        existing_hash_by_id[str(p.id)] = payload.get("content_hash")
+                        grafted_pdf = (payload.get("meta") or {}).get(
+                            "transcript_pdf_url"
                         )
+                        if grafted_pdf and payload.get("source_item_id") is not None:
+                            pdf_by_siid.setdefault(
+                                str(payload["source_item_id"]), grafted_pdf
+                            )
                     if next_offset is None:
                         break
 
@@ -555,47 +441,66 @@ def run_connector(
                 has_orphans = bool(existing_point_ids - new_point_ids)
 
                 if (not all_present) or content_changed or has_orphans:
-                    # Orphan cleanup: before upserting, delete ALL existing points
-                    # across EVERY distinct source_item_id this item spans (one
-                    # MatchAny filter) so orphans under every speech's siid are
-                    # cleared — not just chunks[0]'s.
-                    qdrant.delete(
-                        collection_name=collection_name,
-                        points_selector=models.FilterSelector(
-                            filter=models.Filter(
-                                must=[
-                                    models.FieldCondition(
-                                        key="source_item_id",
-                                        match=models.MatchAny(any=siids),
-                                    )
-                                ]
-                            )
-                        ),
-                        wait=True,
-                    )
+                    # B2 loss-window fix — order matters:
+                    #   1. EMBED first: the external call (5 tenacity retries) is
+                    #      the failure-prone step. The old delete-before-embed
+                    #      left the item ABSENT from the store when the embed
+                    #      failed in between; connectors whose discovery cannot
+                    #      re-surface it past the lookback window lost it forever.
+                    #   2. Delete ONLY the orphan point ids (stored points the new
+                    #      normalize no longer produces) — the surviving ids are
+                    #      overwritten in place by the idempotent upsert, so the
+                    #      item is never absent at any point in time.
+                    #   3. Upsert (wait=True inside _upsert_chunks).
                     vectors = _embed_texts(embed, [c.text for c in chunks])
+                    # C8: re-apply a previously grafted transcript PDF to the new
+                    # payloads (only where the fresh mapper output lacks it) so an
+                    # op re-write cannot strip the merge result. content_hash is
+                    # computed by the mapper BEFORE this graft, so idempotency
+                    # comparisons on later runs are unaffected.
+                    if pdf_by_siid:
+                        chunks = [
+                            c.model_copy(
+                                update={
+                                    "meta": {
+                                        **(c.meta or {}),
+                                        "transcript_pdf_url": pdf_by_siid[
+                                            str(c.source_item_id)
+                                        ],
+                                    }
+                                }
+                            )
+                            if str(c.source_item_id) in pdf_by_siid
+                            and "transcript_pdf_url" not in (c.meta or {})
+                            else c
+                            for c in chunks
+                        ]
+                    orphan_ids = sorted(existing_point_ids - new_point_ids)
+                    if orphan_ids:
+                        qdrant.delete(
+                            collection_name=collection_name,
+                            points_selector=models.PointIdsList(points=orphan_ids),
+                            wait=True,
+                        )
                     _upsert_chunks(qdrant, collection_name, chunks, vectors)
                     chunks_upserted += len(chunks)
-                    # op-gated supersede hook (D-04/D-09): after a successful op
-                    # upsert, delete the transient DIP duplicate(s) for each speech
-                    # op just ingested. No-op for every non-op connector.
-                    supersede_dip_duplicates(
-                        qdrant,
-                        collection_name,
-                        chunks,
-                        connector=connector,
-                    )
+                    # Post-upsert connector hook (B8): source-specific follow-up
+                    # policy (e.g. the op connector's supersede-the-DIP-twin merge)
+                    # lives on the connector, not in this generic runner. The
+                    # BaseConnector default is a no-op returning 0.
+                    connector.post_upsert(qdrant, collection_name, chunks)
                     did_work = True
                 else:
                     # All chunks present AND content unchanged AND no orphans —
                     # cheap skip that does NOT consume the batch_size budget.
                     present_skips += 1
 
-        except Exception as exc:  # noqa: BLE001
+        except DimensionMismatchError:
             # A dimension mismatch is a coding invariant, not a data error —
-            # re-raise rather than silently skipping, so it is immediately visible.
-            if "VEC-05" in str(exc):
-                raise
+            # re-raise (typed, not substring-matched) rather than silently
+            # skipping, so it is immediately visible.
+            raise
+        except Exception as exc:  # noqa: BLE001
             print(
                 f"WARNING: skipping item {external_id}: unexpected error: {exc}",
                 file=sys.stderr,
@@ -684,9 +589,11 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    # CONNECTOR_ID env takes precedence over --connector arg if both are set;
-    # the arg is the local-dev convenience; the env is the Cloud Run path.
-    connector_id = os.getenv("CONNECTOR_ID") or args.connector
+    # An explicit --connector arg wins over the CONNECTOR_ID env (matches the
+    # argparse help text): the arg is the operator's deliberate local choice;
+    # the env is the Cloud Run job-spec path — and run.py loads .env above, so
+    # a stray CONNECTOR_ID= line must never override an explicit CLI arg.
+    connector_id = args.connector or os.getenv("CONNECTOR_ID")
 
     if not connector_id:
         print(
@@ -730,7 +637,7 @@ if __name__ == "__main__":
             _qdrant,
             COLLECTION_NAME,
             _connector.source_type,
-            source=getattr(_connector, "source", None),
+            source=_cursor_source_scope(_connector),
         )
 
         _t0 = time.monotonic()
@@ -747,12 +654,9 @@ if __name__ == "__main__":
             _qdrant,
             COLLECTION_NAME,
             _connector.source_type,
-            source=getattr(_connector, "source", None),
+            source=_cursor_source_scope(_connector),
         )
 
-        print(
-            f"run_connector({connector_id}): processed={_report.processed} remaining={_report.remaining}"
-        )
         print(
             f"\n=== ingestion run: {connector_id} ===\n"
             f"cursor before : {_cursor_before}\n"

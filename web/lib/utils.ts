@@ -315,13 +315,21 @@ export const PROXYABLE_PDF_HOSTS = new Set<string>([
   'abgeordnetenwatch.de',
 ]);
 
-/** True when a PDF URL's host is on the in-page-viewer proxy allowlist. */
+/**
+ * True when a PDF URL's host is on the in-page-viewer proxy allowlist AND it is
+ * https. The proxy route rejects non-https URLs with a raw 400, so letting an
+ * `http://` source pass here would frame that raw English error instead of the
+ * German framed fallback — mirror the server's protocol check client-side.
+ */
 export function isProxyablePdfHost(url: string | undefined): boolean {
   if (!url) {
     return false;
   }
   try {
-    return PROXYABLE_PDF_HOSTS.has(new URL(url).hostname);
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === 'https:' && PROXYABLE_PDF_HOSTS.has(parsed.hostname)
+    );
   } catch {
     return false;
   }

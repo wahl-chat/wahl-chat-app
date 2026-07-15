@@ -300,6 +300,53 @@ class TestGetAll:
             "get_all must pass field_legislature (not parliament_period) — Pitfall 2"
         )
 
+    def test_raises_on_under_delivered_page(self) -> None:
+        """D1: a page delivering fewer items than its window must raise, not skip.
+
+        The server may cap items-per-response below _PAGE_SIZE. Advancing
+        start += _PAGE_SIZE past a short page would silently and permanently
+        skip the page's tail (discover would miss polls forever).
+        """
+
+        def fake_get(path: str, params: dict | None = None) -> dict:
+            rs = (params or {}).get("range_start", 0)
+            # total=150, but the server delivers only 60 items per page.
+            return {
+                "meta": {
+                    "status": "ok",
+                    "status_message": "",
+                    "result": {"count": 60, "total": 150, "range_start": rs, "range_end": rs + 100},
+                },
+                "data": [{"id": rs + i} for i in range(60)],
+            }
+
+        c = AWClient()
+        with patch.object(c, "get", side_effect=fake_get):
+            with pytest.raises(ValueError, match="expected 100 items at range_start=0 but received 60"):
+                c.get_all("polls", {"field_legislature": 111})
+
+    def test_short_final_page_is_not_under_delivery(self) -> None:
+        """The last page legitimately delivers total - start items (< _PAGE_SIZE)."""
+        page1 = [{"id": i} for i in range(100)]
+        page2 = [{"id": i} for i in range(100, 130)]  # 30 items — the true tail
+
+        def fake_get(path: str, params: dict | None = None) -> dict:
+            rs = (params or {}).get("range_start", 0)
+            data = page1 if rs == 0 else page2
+            return {
+                "meta": {
+                    "status": "ok",
+                    "status_message": "",
+                    "result": {"count": len(data), "total": 130, "range_start": rs, "range_end": rs + 100},
+                },
+                "data": data,
+            }
+
+        c = AWClient()
+        with patch.object(c, "get", side_effect=fake_get):
+            result = c.get_all("polls", {"field_legislature": 111})
+        assert len(result) == 130
+
 
 # ---------------------------------------------------------------------------
 # get_votes_for_poll() — single call with range_end=800
@@ -461,4 +508,20 @@ class TestRateCeiling:
             f"Got: {total_slept:.1f}s. "
             f"Ensure AWClient sleeps >=2s per call (30 * 2.0 = 60.0s; 58.0s is the floor "
             f"allowing for minor float drift)."
+        )
+
+
+# ---------------------------------------------------------------------------
+# User-Agent identification (D13)
+# ---------------------------------------------------------------------------
+
+
+class TestUserAgent:
+    def test_session_identifies_wahl_chat(self) -> None:
+        """The retrying session must carry a wahl.chat-identifying User-Agent
+        (AW fair-use policy asks API consumers to identify themselves)."""
+        c = AWClient()
+        session = c._get_session()
+        assert session.headers.get("User-Agent") == (
+            "wahl.chat-ingestion/2.0 (https://wahl.chat)"
         )

@@ -37,6 +37,26 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 const db = getFirestore(app);
 
+/**
+ * Best-effort Firebase ID-token auth header for backend requests.
+ *
+ * Returns `{ Authorization: 'Bearer <idToken>' }` when a user is signed in,
+ * or `{}` when signed out or the token cannot be obtained — callers degrade
+ * gracefully to an unauthenticated request instead of failing. The backend
+ * honors `user_is_logged_in` / premium ONLY with a verified token; the body
+ * flag alone is ignored (A3 contract).
+ */
+export async function getAuthHeader(): Promise<Record<string, string>> {
+  try {
+    const user = auth.currentUser;
+    if (!user) return {};
+    const token = await user.getIdToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 export async function createChatSession(
   userId: string,
   partyIds: string[],

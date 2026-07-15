@@ -1,3 +1,4 @@
+import { getAuthHeader } from '@/lib/firebase/firebase';
 import { scrollMessageBottomInView } from '@/lib/scroll-utils';
 import type { StreamingMessage } from '@/lib/socket.types';
 import type {
@@ -45,6 +46,9 @@ export const generateProConPerspective: ChatStoreActionHandlerFor<
         headers: {
           'Content-Type': 'application/json',
           Accept: 'text/event-stream',
+          // Firebase ID token when signed in ({} otherwise) — the proxy route
+          // forwards it so the backend can verify auth claims (A3 contract).
+          ...(await getAuthHeader()),
         },
         body: JSON.stringify({
           request_id: message.id,
@@ -64,6 +68,10 @@ export const generateProConPerspective: ChatStoreActionHandlerFor<
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      // Track whether a result ever arrived: the backend error path is
+      // HTTP 200 + an `error` annotation, and a stream can also end without
+      // any result — both must clear the spinner (loading.proConPerspective).
+      let receivedResult = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -86,6 +94,7 @@ export const generateProConPerspective: ChatStoreActionHandlerFor<
               >;
               if (annotation.type === 'pro_con_result') {
                 // V1: 'pro_con_perspective_complete' → completeProConPerspective
+                receivedResult = true;
                 completeProConPerspective(
                   annotation.request_id as string,
                   annotation.message as MessageItem,
@@ -93,12 +102,25 @@ export const generateProConPerspective: ChatStoreActionHandlerFor<
               } else if (annotation.type === 'error') {
                 console.error('[pro-con] server error:', annotation.message);
                 toast.error('Fehler beim Laden der Pro/Contra-Perspektive.');
+                // Server-emitted error: stop the spinner (only `catch` cleared
+                // it before, so an HTTP-200 error left it spinning forever).
+                set((state) => {
+                  state.loading.proConPerspective = undefined;
+                });
               }
             } catch {
               // Malformed annotation — skip
             }
           }
         }
+      }
+
+      // Stream ended without a pro_con_result (and without an explicit error
+      // annotation): clear the spinner so it cannot spin forever.
+      if (!receivedResult) {
+        set((state) => {
+          state.loading.proConPerspective = undefined;
+        });
       }
     } catch (error) {
       console.error('[generateProConPerspective] error:', error);

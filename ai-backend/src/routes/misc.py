@@ -30,7 +30,11 @@ from src.models.dtos import (
     WahlChatSwiperAnswerDto,
     WahlChatSwiperAnswerRequestDto,
 )
-from src.utils import build_chat_history_string, sanitize_text_for_speech
+from src.utils import (
+    GENERIC_ERROR_MESSAGE,
+    build_chat_history_string,
+    sanitize_text_for_speech,
+)
 from src.audio_service import synthesize_speech
 
 logger = logging.getLogger(__name__)
@@ -134,7 +138,8 @@ async def chat_summary(body: RequestSummaryDto):
         logger.error(f"Error generating chat summary: {e}", exc_info=True)
         return SummaryDto(
             chat_summary="Hier sollte eigentlich eine Zusammenfassung stehen...",
-            status=Status(indicator=StatusIndicator.ERROR, message=str(e)),
+            # Generic client-facing message only — full detail is logged above.
+            status=Status(indicator=StatusIndicator.ERROR, message=GENERIC_ERROR_MESSAGE),
         ).model_dump()
 
 
@@ -146,6 +151,11 @@ async def text_to_speech(body: TextToSpeechRequestDto):
     must supply the text to synthesize in the request body. V1 looked up the message by ID
     from the socket session; that session no longer exists. The frontend holds the message
     content and can pass it directly.
+
+    COST EXPOSURE: this endpoint synthesizes arbitrary client-supplied text and
+    is intentionally reachable without authentication (parity with anonymous
+    chat). Every request incurs a paid TTS call — if abuse appears, add rate
+    limiting and/or require the optional Bearer token (src.auth) here first.
     """
     try:
         # Frontend sends the text to synthesize in the voice field (repurposed as text)
@@ -181,5 +191,6 @@ async def text_to_speech(body: TextToSpeechRequestDto):
             message_id=body.message_id,
             party_id=body.party_id,
             audio_base64="",
-            status=Status(indicator=StatusIndicator.ERROR, message=str(e)),
+            # Generic client-facing message only — full detail is logged above.
+            status=Status(indicator=StatusIndicator.ERROR, message=GENERIC_ERROR_MESSAGE),
         ).model_dump()

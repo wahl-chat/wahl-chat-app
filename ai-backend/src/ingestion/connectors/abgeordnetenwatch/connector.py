@@ -29,6 +29,8 @@ from __future__ import annotations
 
 import logging
 import os
+import uuid
+from dataclasses import dataclass
 from datetime import date as date_type
 from typing import Optional
 
@@ -39,16 +41,7 @@ from src.ingestion.connectors.abgeordnetenwatch.client import AWClient
 from src.ingestion.connectors.abgeordnetenwatch.legislature_config import (
     LEGISLATURE_CONFIG,
 )
-from src.ingestion.connectors.abgeordnetenwatch.topic_taxonomy_config import (
-    get_relevance_levels,
-)
 from src.ingestion.connectors.abgeordnetenwatch.mappers import corpus as corpus_mapper
-from src.ingestion.connectors.abgeordnetenwatch.mappers.corpus import (
-    _normalize_fraction_label,
-)
-from src.ingestion.connectors.abgeordnetenwatch.mappers.stance import (
-    aggregate_fraction_tallies,
-)
 from src.ingestion.ids import compute_source_item_id
 from src.ingestion.schemas import AuthorityTier, ChunkRecord, SourceType
 
@@ -58,53 +51,26 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-# Default Bundestag legislature ID (19th Bundestag, 2017-2021).
-# Override via AW_LEGISLATURE_ID env var.
-_DEFAULT_LEGISLATURE_ID = int(os.getenv("AW_LEGISLATURE_ID", "111"))
-
-# Map from AW legislature (parliament_period) ID to German Wahlperiode number.
-# 111 = 19th Bundestag (2017-2021), 132 = 20th Bundestag (2021-2025),
-# 161 = 21st Bundestag (2025-).
-_LEGISLATURE_TO_WAHLPERIODE: dict[int, int] = {
-    111: 19,
-    132: 20,
-    161: 21,
-}
-
-# Canonical AW fraction-label → party slug map.
-# Full name variants (as returned by the AW fractions endpoint full_name).
-_AW_FRACTION_SLUG_MAP: dict[str, str] = {
-    "spd": "spd",
-    "cdu/csu": "cdu",
-    "cdu": "cdu",
-    "csu": "csu",
-    "bündnis 90/die grünen": "gruene",
-    "bündnis 90/die grüne": "gruene",
-    "die grünen": "gruene",
-    "grüne": "gruene",
-    "fdp": "fdp",
-    "afd": "afd",
-    "alternative für deutschland": "afd",
-    "die linke": "linke",
-    "die linke.": "linke",
-    "die linke. (gruppe)": "linke",
-    "die linke (gruppe)": "linke",
-    "linke": "linke",
-    "bsw": "bsw",
-    "bsw (gruppe)": "bsw",
-    "fraktionslos": "fraktionslos",
-}
+# Zero-polls grace window (days since the period's date_from). A legitimately
+# NEW term (e.g. BW/RP 2026-2031 in their first weeks) plausibly has zero polls
+# for a while — only a period older than this window turns "zero polls from the
+# API" into a hard misconfiguration error (D4).
+_ZERO_POLLS_GRACE_DAYS = 90
 
 
-def _full_name_to_slug(full_name: str) -> str:
-    """Map an AW fraction full_name to a canonical party slug.
+@dataclass(frozen=True)
+class _SourceItem:
+    """Frozen source-item envelope fed to corpus_mapper.chunk_poll() (D10).
 
-    Normalises away invisible formatting characters (the U+00AD soft hyphen AW
-    puts in "BÜNDNIS 90/­DIE GRÜNEN"), lowercases and strips before lookup.
-    Unknown names return "unbekannt".
+    Satisfies the structural SourceItemLike protocol in mappers/corpus.py —
+    the five attributes chunk_poll() reads from its first argument.
     """
-    clean = _normalize_fraction_label(full_name)
-    return _AW_FRACTION_SLUG_MAP.get(clean, "unbekannt")
+
+    source_item_id: uuid.UUID
+    region: str
+    authority_tier: AuthorityTier
+    source_type: SourceType
+    publish_date: date_type
 
 
 # ---------------------------------------------------------------------------
@@ -124,7 +90,10 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
 
     Args:
         legislature_id: AW legislature (parliament_period) ID to scope discovery.
-                        Defaults to 111 (19th Bundestag 2017-2021) or AW_LEGISLATURE_ID.
+                        None (default) reads AW_LEGISLATURE_ID from the
+                        environment at CONSTRUCTION time (not import time, so a
+                        long-lived process can construct one connector per
+                        legislature), falling back to 111 (19th Bundestag).
     """
 
     # Class attribute: used by runner.get_cursor() to scope the Qdrant scroll.
@@ -132,8 +101,13 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
 
     def __init__(
         self,
-        legislature_id: int = _DEFAULT_LEGISLATURE_ID,
+        legislature_id: Optional[int] = None,
     ) -> None:
+        # Env read lives in the __init__ BODY (D7): an import-time default arg
+        # would freeze the value for the process lifetime and force one process
+        # invocation per legislature.
+        if legislature_id is None:
+            legislature_id = int(os.getenv("AW_LEGISLATURE_ID", "111"))
         self._legislature_id = legislature_id
 
         # Validate legislature_id against LEGISLATURE_CONFIG; fail loudly on miss.
@@ -147,13 +121,10 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         self._period_id: int = cfg.parliament_period_id
         # ISO 3166-2 region code (e.g. "DE-BY" for Bayern, "DE" for Bundestag).
         self._region: str = cfg.region
-
-        # Runtime fraction_id → party_slug map.
-        # NOTE: self._fraction_map and discover()'s fractions API call are dead code
-        # superseded by mappers/corpus.py::_canonical_party_slug().  The attribute
-        # is retained here for backward-compat with tests that set it; discover()
-        # no longer populates it (saves one AW /fractions call per run).
-        self._fraction_map: dict[int, str] = {}
+        # German Wahlperiode number (Bundestag rows only; None for Landtage).
+        self._wahlperiode: Optional[int] = cfg.wahlperiode
+        # Period start date — drives the D4 zero-polls grace window.
+        self._period_date_from: str = cfg.date_from
 
         # Paced AW API client.
         self._client = AWClient()
@@ -242,12 +213,14 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         The global `since` argument from run_connector() is accepted (preserves
         the ABC contract) but IGNORED — set-difference supersedes it.
 
-        Fail-fast: raises ValueError when the AW API returns zero polls
-        for the configured legislature BEFORE applying the set-difference filter.
-        Zero polls from the raw API response means the parliament_period_id in
-        LEGISLATURE_CONFIG is wrong — an incremental run that is simply up-to-date
-        would still have polls in the raw response (set-difference filters to empty,
-        which is normal). Zero from the API is always an error.
+        Fail-fast (with grace window): zero polls from the raw API response is
+        checked BEFORE the set-difference filter (a set-difference-filtered-to-empty
+        result is normal on incremental runs). It raises ValueError ONLY when the
+        configured period's date_from is older than _ZERO_POLLS_GRACE_DAYS —
+        a legitimately NEW term (e.g. BW/RP right after their 2026 elections)
+        plausibly has zero polls for weeks; in that case a warning is logged and
+        [] is returned instead of aborting with a misleading
+        "wrong parliament_period_id" error.
 
         Args:
             since: Global max external_id for "vote_record" from run_connector().
@@ -260,22 +233,41 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         """
         legislature_id = self._legislature_id
 
-        # NOTE: self._fraction_map / fractions API call is dead code — the active
-        # slug-resolution path is mappers/corpus.py::_canonical_party_slug().
-        # Removing the fractions call saves one AW API call per run.
-
         # Fetch all polls for this legislature.
         polls = self._client.get_all("polls", {"field_legislature": legislature_id})
 
-        # Fail-fast: zero polls from the raw API response means a misconfigured
-        # parliament_period_id in LEGISLATURE_CONFIG.  MUST check BEFORE the set-difference
-        # filter — a set-difference-filtered-to-empty result is normal on incremental runs.
+        # Fail-fast with grace window (D4): zero polls from the raw API response
+        # usually means a misconfigured parliament_period_id in LEGISLATURE_CONFIG.
+        # MUST check BEFORE the set-difference filter — a set-difference-filtered-
+        # to-empty result is normal on incremental runs. Exception: a legitimately
+        # NEW term (period started within _ZERO_POLLS_GRACE_DAYS) plausibly has
+        # zero polls for weeks — warn and return [] instead of aborting.
         if not polls:
-            raise ValueError(
-                f"AW legislature {legislature_id} ({self._region}) returned zero polls "
-                f"from the API. This usually means a wrong parliament_period_id in "
-                f"LEGISLATURE_CONFIG (D-05). Expected >0 polls for a configured legislature."
+            period_start = date_type.fromisoformat(self._period_date_from)
+            period_age_days = (date_type.today() - period_start).days
+            if period_age_days > _ZERO_POLLS_GRACE_DAYS:
+                raise ValueError(
+                    f"AW legislature {legislature_id} ({self._region}) returned zero polls "
+                    f"from the API and its period started {period_age_days} days ago "
+                    f"(> {_ZERO_POLLS_GRACE_DAYS}-day grace window). This usually means a "
+                    f"wrong parliament_period_id in LEGISLATURE_CONFIG (D-05). "
+                    f"Expected >0 polls for an established legislature."
+                )
+            logger.warning(
+                "AW legislature %s (%s) returned zero polls, but its period started "
+                "only %s days ago (<= %s-day grace window) — likely a legitimately "
+                "new term with no polls yet. Returning no work.",
+                legislature_id,
+                self._region,
+                period_age_days,
+                _ZERO_POLLS_GRACE_DAYS,
             )
+            return []
+
+        # Drop malformed poll entries whose id is not an int (untrusted AW payload).
+        # Applied on BOTH the incremental and the AW_REFRESH path (D11) — a
+        # non-int id would crash str(p["id"]) sorting / fetch downstream.
+        polls = [p for p in polls if isinstance(p.get("id"), int)]
 
         # Set-difference discovery: ingest polls present in the AW API but not yet in
         # Qdrant for this legislature. Gap-free and self-healing — a poll skipped/failed
@@ -289,11 +281,7 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         refresh = os.getenv("AW_REFRESH", "").strip().lower() in ("1", "true", "yes")
         if not refresh:
             ingested_ids = self._get_ingested_poll_ids()
-            polls = [
-                p
-                for p in polls
-                if isinstance(p.get("id"), int) and p["id"] not in ingested_ids
-            ]
+            polls = [p for p in polls if p["id"] not in ingested_ids]
 
         # Optional date floor — read inside discover() so tests can monkeypatch per-call.
         aw_poll_since = os.getenv("AW_POLL_SINCE", "").strip()
@@ -310,7 +298,8 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         # deterministic batch order. run.py processes the first batch_size ids per run;
         # on the next run those are ingested and drop out of the set-difference, so newer
         # polls surface. Sorting by date could reorder the batch window run-to-run.
-        polls_sorted = sorted(polls, key=lambda p: (p.get("id") or 0))
+        # (ids are guaranteed int by the isinstance filter above.)
+        polls_sorted = sorted(polls, key=lambda p: p["id"])
         return [str(p["id"]) for p in polls_sorted]
 
     # ------------------------------------------------------------------
@@ -340,41 +329,47 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         """Build ChunkRecords directly from poll + votes payload.
 
         No SourceItemRecord, no matcher objects, no Firestore.
-        Calls corpus_mapper.chunk_poll() with a minimal source-item stub and
-        stamps external_id=poll_id (raw int, no "aw_poll:" prefix).
+        The whole record build lives in corpus_mapper.chunk_poll() (D9): topic
+        extraction, relevance_levels derivation, envelope stamping (external_id
+        = raw int poll_id, wahlperiode, legislature_period_id, region) and the
+        envelope-inclusive content_hash. This method owns only the connector
+        concerns: the D12 legislature cross-check, publish_date parsing, the
+        source-item stub, and the runner skip contract (raising ValueError).
 
         Zero-tally guard:
             If the poll produces zero usable fraction tallies (all votes have
-            fraction=[]), raises ValueError so run_connector skip-and-continue
-            applies.
+            fraction=[]), chunk_poll() returns an empty list and this method
+            raises ValueError so run_connector skip-and-continue applies.
 
         Args:
             raw: Dict with keys "poll" (poll item dict) and "votes" (list).
 
         Returns:
-            list[ChunkRecord] — one or more chunks from chunk_poll(), each
-            with external_id = poll_id (raw int).
+            list[ChunkRecord] — one fully-stamped chunk per poll from
+            chunk_poll(), each with external_id = poll_id (raw int).
 
         Raises:
-            ValueError: If the poll has zero usable fraction tallies.
+            ValueError: If the poll has zero usable fraction tallies, an
+                unparseable poll date, or belongs to a different legislature
+                than this connector is configured for (D12 cross-check).
         """
         poll: dict = raw["poll"]
-        votes: list[dict] = raw["votes"]
 
         poll_id: int = poll["id"]
 
-        # Zero-tally guard — skip degenerate polls
-        tallies = aggregate_fraction_tallies(votes)
-        if not tallies:
+        # Legislature cross-check (D12): an operator error (e.g. fetching a
+        # Bundestag poll under a Bayern connector) would silently stamp the
+        # wrong region/legislature_period_id. Raise so run_connector
+        # skip-and-warns instead of mislabeling the chunk.
+        poll_legislature_id = (poll.get("field_legislature") or {}).get("id")
+        if poll_legislature_id != self._legislature_id:
             raise ValueError(
-                f"AW poll {poll_id} has zero usable tallies — "
-                "all votes have fraction=[] or no votes at all. "
-                "Skipping poll (T-04-13 zero usable tallies)."
+                f"AW poll {poll_id} belongs to legislature {poll_legislature_id!r} "
+                f"but this connector is configured for legislature "
+                f"{self._legislature_id} ({self._region}) — refusing to stamp a "
+                f"foreign-legislature poll (skipping)."
             )
 
-        # Build a minimal source-item stub to feed corpus_mapper.chunk_poll().
-        # SourceItemRecord is deleted; we use a simple object exposing
-        # the five attributes that chunk_poll() reads from the source_item arg.
         poll_date_str: str = poll.get("field_poll_date") or ""
         try:
             publish_date = date_type.fromisoformat(poll_date_str)
@@ -391,47 +386,30 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         external_id_str = str(poll_id)
         source_item_id = compute_source_item_id("vote_record", external_id_str)
 
-        class _SourceItemStub:
-            """Minimal duck-typed stub for chunk_poll (SourceItemLike protocol)."""
-            pass
+        stub = _SourceItem(
+            source_item_id=source_item_id,
+            region=self._region,  # from LegislatureConfig
+            authority_tier=AuthorityTier.FACTUAL_RECORD,
+            source_type=SourceType.VOTE_RECORD,
+            publish_date=publish_date,
+        )
 
-        stub = _SourceItemStub()
-        stub.source_item_id = source_item_id  # type: ignore[attr-defined]
-        stub.region = self._region  # type: ignore[attr-defined]  # from LegislatureConfig
-        stub.authority_tier = AuthorityTier.FACTUAL_RECORD  # type: ignore[attr-defined]
-        stub.source_type = SourceType.VOTE_RECORD  # type: ignore[attr-defined]
-        stub.publish_date = publish_date  # type: ignore[attr-defined]
+        # chunk_poll produces ONE fully-stamped ChunkRecord per poll (the
+        # tallies live inside meta.vote_results, not one chunk per fraction).
+        chunks = corpus_mapper.chunk_poll(
+            stub,
+            raw,
+            wahlperiode=self._wahlperiode,          # None for Landtage
+            legislature_period_id=self._period_id,  # from LegislatureConfig
+        )
 
-        # chunk_poll produces one ChunkRecord per fraction tally.
-        chunks = corpus_mapper.chunk_poll(stub, raw)  # type: ignore[arg-type]
+        # Zero-tally guard — chunk_poll returns [] when aggregate_fraction_tallies
+        # finds no usable tallies; surface it as the runner's skip contract.
+        if not chunks:
+            raise ValueError(
+                f"AW poll {poll_id} has zero usable tallies — "
+                "all votes have fraction=[] or no votes at all. "
+                "Skipping poll (T-04-13 zero usable tallies)."
+            )
 
-        # Derive topic labels for taxonomy lookup.
-        # Mirrors corpus.py lines 262-266 field_topics extraction exactly.
-        # isinstance check + str() cast before lookup (ASVS V5 — untrusted AW payload).
-        # Unknown labels / empty list → ALL_LEVELS + loud logger.warning (inside helper).
-        topic_labels: list[str] = [
-            str(t["label"])
-            for t in (poll.get("field_topics") or [])
-            if isinstance(t, dict) and t.get("label")
-        ]
-        relevance_levels = get_relevance_levels(topic_labels)
-
-        # Stamp external_id, wahlperiode (Bundestag only), region, legislature_period_id,
-        # and relevance_levels.
-        # ChunkRecord is frozen; use model_copy(update=...) to create new instances.
-        # region from LegislatureConfig (replaces hardcoded "DE")
-        # legislature_period_id = AW parliament_period ID (globally unique; no collision)
-        # wahlperiode stays None for Landtage — state Wahlperiode ints collide
-        #            across states (Bayern 8th ≠ NRW 8th in meaning).
-        wp = _LEGISLATURE_TO_WAHLPERIODE.get(self._legislature_id)  # None for Landtage
-        stamped = [
-            chunk.model_copy(update={
-                "external_id": poll_id,
-                "wahlperiode": wp,                        # None for Landtage
-                "region": self._region,                   # from LegislatureConfig.region
-                "legislature_period_id": self._period_id, # from LegislatureConfig
-                "relevance_levels": relevance_levels,
-            })
-            for chunk in chunks
-        ]
-        return stamped
+        return chunks

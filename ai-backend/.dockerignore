@@ -5,3 +5,12 @@
 data/wahlprogramme/
 firebase/
 .venv/
+# Secrets must NEVER enter the build context (COPY . /app would bake them).
+.env
+.env.*
+# Test suite and tool caches are not needed in the image.
+tests/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/

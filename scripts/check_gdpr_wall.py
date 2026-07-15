@@ -21,10 +21,19 @@ import sys
 from pathlib import Path
 
 # Pattern for ACTUAL Firestore users/ collection access (not docstring mentions).
-# Matches .collection("users") / .collection('users') / db["users"] patterns.
+# Matches (A7 hardening):
+#   - collection("users") / .collection('users')
+#   - .document("users/...") / .document('users/...')  — direct document-path access
+#   - collection_group(...)                            — ANY collection-group query
+#     (a collection-group query scans every subcollection with that name across
+#      all users, so it is forbidden in ingestion code regardless of argument)
+#   - db["users"] style access
 # Does NOT match bare 'users/' in security comments/docstrings.
 FORBIDDEN_PATTERN = re.compile(
-    r'\.collection\(["\']users["\']|db\[.?users|collection\("users'
+    r'collection\(["\']users["\']'
+    r'|\.document\(["\']users/'
+    r"|collection_group\("
+    r"|db\[.?users"
 )
 
 # Paths are relative to the repo root so the script runs identically from CI

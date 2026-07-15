@@ -22,17 +22,49 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 from datetime import date as date_type
 from typing import Optional
 
 import tiktoken
+from pydantic import BaseModel, ConfigDict
 
 from src.ingestion.connectors.abgeordnetenwatch.mappers.corpus import (
     _normalize_fraction_label,
 )
 from src.ingestion.ids import compute_source_item_id, make_chunk_key
 from src.ingestion.schemas import AuthorityTier, ChunkRecord, SourceType
+
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# ManifestoMeta — source-owned meta for party_manifesto chunks (E8).
+# ---------------------------------------------------------------------------
+
+
+class ManifestoMeta(BaseModel):
+    """Typed builder for the manifesto chunk ``meta`` dict.
+
+    Mirrors the schemas.py convention (VoteMeta / SpeechMeta): extra="forbid"
+    rejects typo'd keys at build time; None-valued fields are dropped via
+    ``model_dump(exclude_none=True)`` (reproducing the previous
+    build-dict-drop-None behavior).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    aw_program_id: int
+    parliament_period_id: Optional[int] = None
+    parliament_period_label: Optional[str] = None
+    source_kind: Optional[str] = None
+    source_url: Optional[str] = None
+    total_pages: Optional[int] = None
+    page_start: Optional[int] = None
+    page_end: Optional[int] = None
+    # Only stamped when the party slug quarantines to "unbekannt".
+    raw_party_label: Optional[str] = None
 
 # ---------------------------------------------------------------------------
 # Party slug map — for election-program party.label
@@ -71,12 +103,19 @@ _MANIFESTO_PARTY_SLUG_MAP: dict[str, str] = {
     "partei für verjüngungsforschung": "verjuengung",
     "tierschutzpartei": "tierschutzpartei",
     "diebasis": "basis",
+    "die basis": "basis",           # spaced variant (matches the votes map)
     "bündnis c": "buendnis-c",
     "pdf": "pdf",
     "werteunion": "werteunion",
     "die gerechtigkeitspartei - team todenhöfer": "gerechtigkeit",
     "bayernpartei": "bayernpartei",
     "pdr": "pdr",
+    # E3: labels present in the votes map (_AW_FRACTION_SLUG_MAP) — the two maps
+    # must stay slug-identical for every shared label, otherwise tenant-filtered
+    # manifesto retrieval misses the party (a cross-map parity test pins this).
+    "ssw": "ssw",                   # Südschleswigscher Wählerverband
+    "bvb/freie wähler": "bvb-fw",  # BVB / Freie Wähler (Brandenburg)
+    "bürger in wut": "biw",        # Bürger in Wut (Bremen)
 }
 
 # ---------------------------------------------------------------------------
@@ -224,14 +263,21 @@ def region_for_period(period_label: str) -> str:
       - "Bundestag …"  -> "DE"
       - "EU-Parlament …" / "Europaparlament …" -> "EU"
       - "<State> Wahl YYYY" -> "DE-<code>" using the German state map
-      - Fallback -> "DE"
+      - Fallback -> "unbekannt" (quarantine) + WARNING
+
+    E4: the fallback is a QUARANTINE, not "DE" — an unrecognized label (new
+    format, Kommunalwahl) stamped "DE" would MatchAny-match EVERY election
+    context and could never be scoped. "unbekannt" matches no real region_path,
+    so quarantined chunks are unreachable by retrieval until re-labeled — safe
+    by design, and the WARNING makes the gap visible.
 
     Args:
         period_label: The ``label`` field of a parliament-period record,
                       e.g. ``"Bundestag Wahl 2021"``.
 
     Returns:
-        Scalar region string for Qdrant payload, e.g. ``"DE"`` or ``"DE-BW"``.
+        Scalar region string for Qdrant payload, e.g. ``"DE"`` or ``"DE-BW"``;
+        ``"unbekannt"`` for unrecognized labels.
     """
     lower = period_label.strip().lower()
     if lower.startswith("bundestag"):
@@ -244,7 +290,13 @@ def region_for_period(period_label: str) -> str:
     for state_name, code in sorted(_STATE_CODE_MAP.items(), key=lambda kv: -len(kv[0])):
         if lower.startswith(state_name):
             return code
-    return "DE"
+    logger.warning(
+        "region_for_period: unrecognized parliament-period label %r — quarantining "
+        "with region 'unbekannt' (unreachable by retrieval until re-labeled; "
+        "add a mapping rule if this is a real election level).",
+        period_label,
+    )
+    return "unbekannt"
 
 
 def wahlperiode_for_period(period_label: str) -> Optional[int]:
@@ -301,7 +353,11 @@ def extract_main_text(html: str) -> str:
 
 def chunk_pages(
     pages: list[tuple[int, str]],
-    max_tokens: int = 6000,
+    # E6: 1500 tokens keeps page spans tight so citation deep-links
+    # (#page=<page_start>) land near the quoted passage (6000-token chunks put
+    # them up to ~10 pages early) and keeps grounding prompts lean. Re-chunking
+    # the existing corpus is an operator action via MANIFESTO_REFRESH.
+    max_tokens: int = 1500,
     overlap: int = 200,
 ) -> list[tuple[str, int, int]]:
     """Split page-annotated text into token-bounded chunks with overlap.
@@ -312,7 +368,8 @@ def chunk_pages(
 
     Args:
         pages: List of (page_no, text) tuples (1-indexed page numbers).
-        max_tokens: Maximum tokens per chunk (default 6000, well under 8191).
+        max_tokens: Maximum tokens per chunk (default 1500 — tight page spans
+                    for citation deep-links; well under the 8191 embed limit).
         overlap: Number of tokens to repeat at the start of each subsequent
                  chunk for context continuity (default 200).
 
@@ -343,10 +400,17 @@ def chunk_pages(
     if not all_tokens:
         return []
 
+    # E10: a token-boundary slice can split a multi-byte UTF-8 sequence, making
+    # enc.decode() emit U+FFFD replacement characters at the chunk EDGES. Strip
+    # them (leading/trailing only — interior U+FFFD would be genuine source
+    # data and is preserved).
+    def _decode(tokens: list[int]) -> str:
+        return enc.decode(tokens).strip("\ufffd")
+
     if len(all_tokens) <= max_tokens:
         page_start = page_of_token[0]
         page_end = page_of_token[-1]
-        return [(enc.decode(all_tokens), page_start, page_end)]
+        return [(_decode(all_tokens), page_start, page_end)]
 
     chunks: list[tuple[str, int, int]] = []
     start = 0
@@ -355,7 +419,7 @@ def chunk_pages(
         chunk_tokens = all_tokens[start:end]
         page_start = page_of_token[start]
         page_end = page_of_token[end - 1]
-        chunks.append((enc.decode(chunk_tokens), page_start, page_end))
+        chunks.append((_decode(chunk_tokens), page_start, page_end))
         if end == len(all_tokens):
             break
         start = end - overlap
@@ -414,27 +478,31 @@ def build_manifesto_records(
 
     citation_title = f"{program_label} – {period_label}"
 
+    parliament_period_id = (program.get("parliament_period") or {}).get("id")
+
     records: list[ChunkRecord] = []
     for chunk_index, (text, page_start, page_end) in enumerate(chunks):
-        meta: dict = {
-            "aw_program_id": program_id,
-            "parliament_period_id": (program.get("parliament_period") or {}).get("id"),
-            "parliament_period_label": period_label,
-            "source_kind": source_kind,
-            "source_url": source_url,
-        }
-        meta["total_pages"] = total_pages
-        meta["page_start"] = page_start
-        meta["page_end"] = page_end
-        if party_slug == "unbekannt":
-            meta["raw_party_label"] = party_label
-
-        # Drop None values from meta
-        meta = {k: v for k, v in meta.items() if v is not None}
+        # E8: typed meta builder (schemas convention that votes/speeches follow —
+        # extra="forbid" rejects typos at build time); exclude_none reproduces
+        # the previous build-dict-drop-None behavior.
+        meta: dict = ManifestoMeta(
+            aw_program_id=program_id,
+            parliament_period_id=parliament_period_id,
+            parliament_period_label=period_label,
+            source_kind=source_kind,
+            source_url=source_url,
+            total_pages=total_pages,
+            page_start=page_start,
+            page_end=page_end,
+            raw_party_label=party_label if party_slug == "unbekannt" else None,
+        ).model_dump(exclude_none=True)
 
         # Change-aware content_hash (mirrors the op mapper): per-chunk text so an
         # updated program text re-writes via run.py's guard; includes the resolved
-        # party slug (indexed tenant field).
+        # party slug (indexed tenant field). NOTE: on the connector path the
+        # guard only sees already-present programs on MANIFESTO_REFRESH=1 runs
+        # (normal discover excludes them via set-difference); bulk.py rewrites
+        # each program's footprint unconditionally.
         content_hash = hashlib.sha256(
             json.dumps(
                 {

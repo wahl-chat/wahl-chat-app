@@ -47,7 +47,7 @@ from qdrant_client.models import (
 )
 
 from src.ingestion.setup_collection import COLLECTION_NAME, EMBEDDING_MODEL
-from src.ingestion.connectors.abgeordnetenwatch.topic_taxonomy_config import ALL_LEVELS
+from src.ingestion.levels import ALL_LEVELS
 
 logger = logging.getLogger(__name__)
 
@@ -778,7 +778,10 @@ def retrieve_two_pass(
         else:
             age_days = max(0, (term_start_date - pub_date).days)
             decay = 0.5 ** (age_days / _HISTORIC_DECAY_HALFLIFE_DAYS)
-        decayed.append((payload, score * decay))
+        # B13: clamp at 0 — a vote-downranked NEGATIVE score times a small decay
+        # would rank an older item ABOVE a newer one (multiplying a negative by
+        # <1 raises it), inverting the recency ordering.
+        decayed.append((payload, max(score, 0.0) * decay))
     # Stable sort by decayed score desc — equal decayed scores keep retrieve() order.
     decayed.sort(key=lambda x: x[1], reverse=True)
     historic_results = [payload for payload, _ in decayed[:historic_limit]]

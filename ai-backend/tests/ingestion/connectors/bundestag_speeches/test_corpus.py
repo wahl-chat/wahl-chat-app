@@ -203,10 +203,11 @@ class TestBuildChunkRecords:
         result = build_chunk_records(_SAMPLE_SPEECH)
         assert result[0].source_type == SourceType.PARLIAMENTARY_SPEECH
 
-    def test_authority_tier_self_reported(self) -> None:
-        """authority_tier must be SELF_REPORTED."""
+    def test_authority_tier_factual_record(self) -> None:
+        """authority_tier must be FACTUAL_RECORD (C17: unified with op — a plenary
+        speech is a factual parliamentary record regardless of transport)."""
         result = build_chunk_records(_SAMPLE_SPEECH)
-        assert result[0].authority_tier == AuthorityTier.SELF_REPORTED
+        assert result[0].authority_tier == AuthorityTier.FACTUAL_RECORD
 
     def test_region_is_de(self) -> None:
         """region must be 'DE'."""
@@ -316,10 +317,10 @@ class TestDipSpeechKeyAndSource:
         for rec in build_chunk_records(_SAMPLE_SPEECH):
             assert rec.source == "dip"
 
-    def test_authority_tier_unchanged(self) -> None:
-        """DIP authority_tier stays SELF_REPORTED (unchanged by speech_key work)."""
+    def test_authority_tier_matches_op(self) -> None:
+        """DIP authority_tier is FACTUAL_RECORD, matching the op mapper (C17)."""
         for rec in build_chunk_records(_SAMPLE_SPEECH):
-            assert rec.authority_tier == AuthorityTier.SELF_REPORTED
+            assert rec.authority_tier == AuthorityTier.FACTUAL_RECORD
 
     def test_speech_key_shape(self) -> None:
         """speech_key follows de-{wp}-{session}-{slug}-{agenda_slug} (empty agenda ok)."""

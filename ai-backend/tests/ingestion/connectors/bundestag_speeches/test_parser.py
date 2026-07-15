@@ -155,6 +155,67 @@ class TestNonMdbSpeaker:
 
 
 # ---------------------------------------------------------------------------
+# TestAgendaTopIdMapping — multi-TOP / ZP / outside-any-TOP agenda resolution
+# (C14a — parser-level coverage for the agenda map the speech_key depends on)
+# ---------------------------------------------------------------------------
+
+_MULTI_TOP_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<sitzungsverlauf>
+  <sitzungstitel>101. Sitzung des Deutschen Bundestages</sitzungstitel>
+  <rede id="R-OPEN">
+    <p klasse="redner">
+      <redner id="11000010">
+        <name><vorname>Erste</vorname><nachname>Rednerin</nachname><fraktion>SPD</fraktion></name>
+      </redner>Erste Rednerin (SPD):</p>
+    <p klasse="J">Eroeffnungsrede ausserhalb jedes Tagesordnungspunkts.</p>
+  </rede>
+  <tagesordnungspunkt top-id="20">
+    <rede id="R-T20">
+      <p klasse="redner">
+        <redner id="11000011">
+          <name><vorname>Zweiter</vorname><nachname>Redner</nachname><fraktion>SPD</fraktion></name>
+        </redner>Zweiter Redner (SPD):</p>
+      <p klasse="J">Rede unter Tagesordnungspunkt 20.</p>
+    </rede>
+  </tagesordnungspunkt>
+  <tagesordnungspunkt top-id="21">
+    <rede id="R-T21">
+      <p klasse="redner">
+        <redner id="11000012">
+          <name><vorname>Dritte</vorname><nachname>Rednerin</nachname><fraktion>FDP</fraktion></name>
+        </redner>Dritte Rednerin (FDP):</p>
+      <p klasse="J">Rede unter Tagesordnungspunkt 21.</p>
+    </rede>
+  </tagesordnungspunkt>
+  <tagesordnungspunkt top-id="ZP5">
+    <rede id="R-ZP5">
+      <p klasse="redner">
+        <redner id="11000013">
+          <name><vorname>Vierter</vorname><nachname>Redner</nachname><fraktion>AfD</fraktion></name>
+        </redner>Vierter Redner (AfD):</p>
+      <p klasse="J">Rede unter Zusatzpunkt 5.</p>
+    </rede>
+  </tagesordnungspunkt>
+</sitzungsverlauf>
+"""
+
+
+class TestAgendaTopIdMapping:
+    """agenda_top_id resolves per enclosing <tagesordnungspunkt>, incl. ZP and none."""
+
+    def test_agenda_top_id_mapping(self) -> None:
+        """Multiple TOPs, a Zusatzpunkt, and a rede outside any TOP map correctly."""
+        result = parse_speeches_from_xml(_MULTI_TOP_XML)
+        agenda_by_rede = {s["xml_rede_id"]: s.get("agenda_top_id") for s in result}
+        assert agenda_by_rede == {
+            "R-OPEN": None,  # outside any tagesordnungspunkt → no-agenda fallback
+            "R-T20": "20",
+            "R-T21": "21",
+            "R-ZP5": "ZP5",  # Zusatzpunkt keeps its distinct top-id
+        }
+
+
+# ---------------------------------------------------------------------------
 # TestDefusedXmlHardening — billion-laughs regression guard
 # ---------------------------------------------------------------------------
 

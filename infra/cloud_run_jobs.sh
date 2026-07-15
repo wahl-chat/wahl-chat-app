@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Strict mode — uncomment when actually deploying (kept commented while this
+# script is AUTHORED, NOT APPLIED so sourcing/reviewing it can never exit a shell):
+# set -euo pipefail
 # =============================================================================
 # AUTHORED, NOT APPLIED this milestone (D-01) — do NOT run gcloud deploy/apply.
 #
@@ -16,7 +19,7 @@
 #   no gcloud commands are executed this milestone (D-01).
 #
 # Design:
-#   - ONE shared Docker image (same image for both connectors — D-03)
+#   - ONE shared Docker image (same image for every connector — D-03)
 #   - CONNECTOR_ID env var selects which connector the runner invokes
 #   - Single task per job execution (D-04); --task-timeout 3600 (1h >> Firebase 15-min cap)
 #   - EU residency: REGION=europe-west1 (CLAUDE.md constraint)
@@ -60,14 +63,23 @@ QDRANT_URL="${QDRANT_URL:-https://qdrant.wahl-chat-prod.internal:6333}"
 #   abgeordnetenwatch_votes → daily (parliament votes published nightly)
 
 for CONN in abgeordnetenwatch_votes; do
-  gcloud run jobs create "wahlchat-${CONN}" \
+  # Job NAME must match Cloud Run's [a-z]([-a-z0-9]*[a-z0-9])? — no underscores,
+  # so connector-id underscores become hyphens (G4). CONNECTOR_ID env var keeps
+  # the underscore form: it is the registry key the runner resolves.
+  #
+  # `deploy` (not `create`) is idempotent: it creates the job on first run and
+  # updates it on re-runs, so this script can be re-applied safely (G18).
+  gcloud run jobs deploy "wahlchat-${CONN//_/-}" \
     --image "${IMAGE}" \
     --region "${REGION}" \
     --set-env-vars "CONNECTOR_ID=${CONN},ENV=prod,QDRANT_URL=${QDRANT_URL}" \
+    --set-secrets "OPENAI_API_KEY=openai-api-key:latest" \
     --task-timeout 3600 \
     --max-retries 1 \
     --tasks 1 \
     --project "${PROJECT}"
+    # Add when the connector needs an Abgeordnetenwatch API key (rate limits):
+    # --set-secrets "AW_API_KEY=aw-api-key:latest" \
 done
 
 # --- Cloud Scheduler triggers ------------------------------------------------
@@ -79,11 +91,13 @@ done
 # Schedule examples (adjust to actual requirements):
 #   abgeordnetenwatch_votes → 04:00 daily (parliament votes published nightly)
 
-gcloud scheduler jobs create http "wahlchat-abgeordnetenwatch_votes-cron" \
+# The :run URI references the Cloud Run job by its hyphenated name (G4 — must
+# match the `gcloud run jobs deploy` name above, never the underscore form).
+gcloud scheduler jobs create http "wahlchat-abgeordnetenwatch-votes-cron" \
   --location "${REGION}" \
   --schedule "0 4 * * *" \
   --time-zone "Europe/Berlin" \
-  --uri "https://run.googleapis.com/v2/projects/${PROJECT}/locations/${REGION}/jobs/wahlchat-abgeordnetenwatch_votes:run" \
+  --uri "https://run.googleapis.com/v2/projects/${PROJECT}/locations/${REGION}/jobs/wahlchat-abgeordnetenwatch-votes:run" \
   --http-method POST \
   --oauth-service-account-email "${RUN_INVOKER_SA}" \
   --project "${PROJECT}"

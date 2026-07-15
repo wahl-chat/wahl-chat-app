@@ -268,3 +268,23 @@ class TestTermWindowForContext:
         assert start == datetime(2020, 1, 1, tzinfo=timezone.utc)
         assert end == TERM_END_SENTINEL
         assert end.tzinfo == timezone.utc
+
+
+class TestWahlperiodeField:
+    """LegislatureConfig.wahlperiode (D7) — Bundestag rows carry the number,
+    Landtag rows stay None (state Wahlperiode ints collide across states)."""
+
+    def test_bundestag_rows_carry_wahlperiode(self) -> None:
+        assert LEGISLATURE_CONFIG[111].wahlperiode == 19
+        assert LEGISLATURE_CONFIG[132].wahlperiode == 20
+        assert LEGISLATURE_CONFIG[161].wahlperiode == 21
+
+    def test_landtag_rows_have_no_wahlperiode(self) -> None:
+        bad = [
+            lid
+            for lid in LANDTAG_LEGISLATURE_IDS
+            if LEGISLATURE_CONFIG[lid].wahlperiode is not None
+        ]
+        assert not bad, (
+            f"Landtag rows must not carry a wahlperiode int, offenders: {bad!r}"
+        )

@@ -12,13 +12,15 @@ On error: yields an error annotation (type "error") then [DONE].
 import json
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
 
+from src.auth import verify_optional_bearer_token
 from src.chatbot_async import generate_pro_con_perspective
 from src.chat_service import with_heartbeat
+from src.utils import GENERIC_ERROR_MESSAGE
 from src.firebase_service import aget_party_by_id
 from src.models.chat import Message
 from src.models.dtos import (
@@ -34,9 +36,12 @@ router = APIRouter(prefix="/api/v1")
 # SSE headers
 # NOTE: StreamingResponse is used (not EventSourceResponse) because the generator
 # yields pre-framed "data: ...\n\n" strings; EventSourceResponse would double-wrap them.
+# NOTE: deliberately NO `x-vercel-ai-ui-message-stream: v1` header here — this
+# endpoint emits legacy code-prefixed frames (`data: 8{...}` / `data: d{...}`)
+# that the frontend hand-parses; the header would falsely claim v5
+# UI-message-stream framing to any AI SDK consumer.
 _SSE_HEADERS = {
     "Content-Type": "text/event-stream",
-    "x-vercel-ai-ui-message-stream": "v1",
     "Cache-Control": "no-cache, no-transform",
     "X-Accel-Buffering": "no",
 }
@@ -51,13 +56,20 @@ class ProConRequestDto(BaseModel):
 
 
 @router.post("/pro-con")
-async def pro_con_endpoint(body: ProConRequestDto):
+async def pro_con_endpoint(request: Request, body: ProConRequestDto):
     """POST /api/v1/pro-con — streams pro/con result as data annotation then [DONE].
 
     V1 event map: pro_con_perspective_complete → 8 type=pro_con_result.
     Error path: yields 8 type=error then [DONE] (matches V1 error DTO pattern).
     Pydantic validates request body.
+
+    Auth: verification is OPTIONAL (no 401s). This route currently carries no
+    privileged body flag, but the optional Bearer token is verified for parity
+    with /chat and /voting-behavior so future premium gating inherits it.
     """
+    # Verified claims (or None for anonymous) — no privileged flag consumes
+    # them yet; kept so the auth contract is uniform across the SSE routes.
+    _ = verify_optional_bearer_token(request)
 
     async def stream():
         try:
@@ -92,8 +104,9 @@ async def pro_con_endpoint(body: ProConRequestDto):
                 f"Error generating pro/con perspective for party {body.party_id}: {e}",
                 exc_info=True,
             )
-            # Error path: yield error annotation then [DONE] (V1 error pattern)
-            yield f"data: 8{json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            # Error path: yield error annotation then [DONE] (V1 error pattern).
+            # Generic client-facing message only — full detail is logged above.
+            yield f"data: 8{json.dumps({'type': 'error', 'message': GENERIC_ERROR_MESSAGE})}\n\n"
             yield "data: [DONE]\n\n"
 
     return StreamingResponse(with_heartbeat(stream()), headers=_SSE_HEADERS)

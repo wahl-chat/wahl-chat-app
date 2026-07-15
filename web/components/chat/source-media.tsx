@@ -8,6 +8,7 @@ import {
   cn,
   formatGermanDate,
   getSourceMediaLinks,
+  isPdfUrl,
   isProxyablePdfHost,
   pdfProxyUrl,
   sourceBadgeLabel,
@@ -64,6 +65,18 @@ function pdfFragment(page?: number, search?: string): string {
   return params.length > 0 ? `#${params.join('&')}` : '';
 }
 
+/**
+ * Append the PDF open-parameter fragment to a PDF URL — unless the URL already
+ * carries its own `#` fragment (never clobber an existing anchor). Callers gate
+ * on the target actually being a PDF; non-PDF links must not get PDF params.
+ */
+function withPdfFragment(url: string, page?: number, search?: string): string {
+  if (url.includes('#')) {
+    return url;
+  }
+  return `${url}${pdfFragment(page, search)}`;
+}
+
 /** Same-origin proxied PDF URL to frame, deep-linked to `page`/`search` when known. */
 function pdfViewerSrc(url: string, page?: number, search?: string): string {
   return `${pdfProxyUrl(url)}${pdfFragment(page, search)}`;
@@ -94,8 +107,10 @@ function resolveMediaOpen(
       },
     };
   }
-  // New tab (off-allowlist / touch): keep the page + highlight anchors on the raw URL.
-  return { newTab: `${link.url}${pdfFragment(source.page, source.snippet)}` };
+  // New tab (off-allowlist / touch): keep the page + highlight anchors on the
+  // raw URL. `link.kind` is 'pdf' here (video returned above), and
+  // withPdfFragment skips URLs that already carry a fragment.
+  return { newTab: withPdfFragment(link.url, source.page, source.snippet) };
 }
 
 /**
@@ -116,8 +131,13 @@ export function openSourceMedia(
       openExternally(resolved.newTab);
     }
   } else if (source.url) {
-    // Plain weblink (no embeddable media) — open externally.
-    openExternally(`${source.url}${pdfFragment(source.page, source.snippet)}`);
+    // Plain weblink (no embeddable media) — open externally. PDF open-params
+    // only make sense on PDF targets; plain weblinks open unmodified.
+    openExternally(
+      isPdfUrl(source.url)
+        ? withPdfFragment(source.url, source.page, source.snippet)
+        : source.url,
+    );
   }
 }
 
@@ -151,7 +171,7 @@ export function SourceMediaViewer({
   // "Neuer Tab" opens the same anchored location as the in-page frame for PDFs.
   const externalHref =
     media.kind === 'pdf'
-      ? `${media.url}${pdfFragment(media.page, media.search)}`
+      ? withPdfFragment(media.url, media.page, media.search)
       : media.url;
 
   return (
@@ -236,6 +256,12 @@ export function SourceMediaViewer({
               <iframe
                 src={pdfViewerSrc(media.url, media.page, media.search)}
                 title={media.title}
+                // Deliberately NOT sandboxed: Chromium disables its built-in
+                // PDF viewer inside sandboxed iframes (any token set), which
+                // renders a blank frame after load. The frame only ever shows
+                // our own same-origin /api/pdf-proxy output (allowlisted host,
+                // per-hop redirect validation, PDF-only content-type, nosniff),
+                // so third-party content cannot reach this frame anyway.
                 className="size-full border-0"
                 onLoad={() => setLoaded(true)}
                 onError={() => setFailed(true)}

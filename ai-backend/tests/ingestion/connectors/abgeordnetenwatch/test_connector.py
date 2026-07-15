@@ -24,15 +24,11 @@ from typing import Any
 
 import pytest
 
-try:
-    from src.ingestion.connectors.abgeordnetenwatch.connector import (  # noqa: F401
-        AbgeordnetenwatchVotesConnector,
-    )
-except ImportError as _e:
-    pytest.skip(
-        f"Phase-5 schema teardown: {_e} — AW connector not importable",
-        allow_module_level=True,
-    )
+# D8: no ImportError skip guard — a broken connector import must FAIL the
+# suite loudly, not turn it green with an "s".
+from src.ingestion.connectors.abgeordnetenwatch.connector import (
+    AbgeordnetenwatchVotesConnector,
+)
 
 _FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -147,20 +143,6 @@ class TestRegistry:
             "bundestag_votes must be removed from CONNECTOR_FACTORIES (Req 8)"
         )
 
-    def test_bundestag_vote_connector_still_importable(self) -> None:
-        """BundestagVoteConnector must still be importable even after deregistration (Req 8).
-
-        bundestag_votes.py is superseded and still imports SourceItemRecord
-        (since removed).  Skip until the connector is rewritten to the new 3-method ABC.
-        """
-        try:
-            from src.ingestion.connectors.bundestag_votes import BundestagVoteConnector
-        except ImportError as exc:
-            pytest.skip(
-                f"Phase-5 schema teardown: {exc} — bundestag_votes rewrite deferred to Plan 05-04"
-            )
-        assert BundestagVoteConnector is not None
-
 
 # ---------------------------------------------------------------------------
 # normalize() returns list[ChunkRecord] with external_id=poll_id
@@ -179,7 +161,6 @@ class TestNormalize:
 
         raw = _load_poll_3602()
         connector = AbgeordnetenwatchVotesConnector()
-        connector._fraction_map = {}
 
         result = connector.normalize(raw)
 
@@ -201,7 +182,6 @@ class TestNormalize:
 
         raw = _load_poll_3602()
         connector = AbgeordnetenwatchVotesConnector()
-        connector._fraction_map = {}
 
         chunks = connector.normalize(raw)
 
@@ -230,7 +210,6 @@ class TestNormalize:
 
         raw = _load_poll_3602()
         connector = AbgeordnetenwatchVotesConnector(legislature_id=111)
-        connector._fraction_map = {}
 
         chunks = connector.normalize(raw)
         for chunk in chunks:
@@ -239,14 +218,19 @@ class TestNormalize:
             )
 
     def test_normalize_stamps_wahlperiode_legislature_132(self) -> None:
-        """normalize() stamps wahlperiode=20 for legislature_id=132 (20th Bundestag)."""
+        """normalize() stamps wahlperiode=20 for legislature_id=132 (20th Bundestag).
+
+        The fixture poll is retagged to field_legislature.id=132 so the D12
+        legislature cross-check passes (the golden fixture is a period-111 poll).
+        """
         from src.ingestion.connectors.abgeordnetenwatch.connector import (
             AbgeordnetenwatchVotesConnector,
         )
 
         raw = _load_poll_3602()
+        raw["poll"] = dict(raw["poll"])
+        raw["poll"]["field_legislature"] = {"id": 132, "label": "Bundestag 2021 - 2025"}
         connector = AbgeordnetenwatchVotesConnector(legislature_id=132)
-        connector._fraction_map = {}
 
         chunks = connector.normalize(raw)
         for chunk in chunks:
@@ -260,14 +244,17 @@ class TestNormalize:
         State Wahlperiode integers collide across states (Bayern 8th = some other state 8th),
         so Landtag chunks MUST NOT carry a wahlperiode int.  legislature_period_id is the
         sole period key for Landtage. Legislature 149 = Bayern 2023-2028.
+        The fixture poll is retagged to field_legislature.id=149 so the D12
+        legislature cross-check passes.
         """
         from src.ingestion.connectors.abgeordnetenwatch.connector import (
             AbgeordnetenwatchVotesConnector,
         )
 
         raw = _load_poll_3602()
+        raw["poll"] = dict(raw["poll"])
+        raw["poll"]["field_legislature"] = {"id": 149, "label": "Bayern 2023 - 2028"}
         connector = AbgeordnetenwatchVotesConnector(legislature_id=149)
-        connector._fraction_map = {}
 
         chunks = connector.normalize(raw)
         for chunk in chunks:
@@ -275,6 +262,20 @@ class TestNormalize:
                 f"Landtag legislature 149 must yield wahlperiode=None (Pitfall 5), "
                 f"got {chunk.wahlperiode!r}"
             )
+
+    def test_normalize_raises_on_legislature_mismatch(self) -> None:
+        """D12: normalizing a period-111 poll under a Bayern/149 connector must
+        raise ValueError (skip-and-warn via the runner) instead of silently
+        stamping region DE-BY on a Bundestag poll."""
+        from src.ingestion.connectors.abgeordnetenwatch.connector import (
+            AbgeordnetenwatchVotesConnector,
+        )
+
+        raw = _load_poll_3602()  # fixture poll carries field_legislature.id=111
+        connector = AbgeordnetenwatchVotesConnector(legislature_id=149)
+
+        with pytest.raises(ValueError, match="legislature 111"):
+            connector.normalize(raw)
 
 
 def test_unknown_legislature_raises_value_error() -> None:
@@ -329,8 +330,6 @@ class TestPollSinceFloor:
 
     def _make_connector(self) -> "AbgeordnetenwatchVotesConnector":
         connector = AbgeordnetenwatchVotesConnector()
-        # Pre-populate fraction_map so discover() doesn't need to call the real client.
-        connector._fraction_map = {}
         return connector
 
     def _stub_client(self, connector: "AbgeordnetenwatchVotesConnector") -> None:
@@ -338,8 +337,6 @@ class TestPollSinceFloor:
 
         class _FakeClient:
             def get_all(self, endpoint: str, params: dict) -> list[dict]:  # type: ignore[override]
-                if endpoint == "fractions":
-                    return []
                 # polls endpoint — return canned list
                 return _make_stub_polls()
 
@@ -466,15 +463,12 @@ class TestDiscoverSortByPollId:
 
     def _make_connector(self) -> "AbgeordnetenwatchVotesConnector":
         connector = AbgeordnetenwatchVotesConnector()
-        connector._fraction_map = {}
         connector._qdrant = _MockQdrantEmpty()  # type: ignore[assignment]
         return connector
 
     def _stub_client_mixed(self, connector: "AbgeordnetenwatchVotesConnector") -> None:
         class _FakeClient:
             def get_all(self, endpoint: str, params: dict) -> list[dict]:  # type: ignore[override]
-                if endpoint == "fractions":
-                    return []
                 return _make_mixed_polls()
         connector._client = _FakeClient()  # type: ignore[assignment]
 
@@ -516,7 +510,6 @@ class TestDiscoverSortByPollId:
     def test_normalize_raises_on_missing_date(self) -> None:
         """normalize() raises ValueError on unparseable/missing date instead of fabricating."""
         connector = AbgeordnetenwatchVotesConnector()
-        connector._fraction_map = {}
 
         # Build a raw payload with a poll that has no date but has valid votes.
         raw = _load_poll_3602()
@@ -542,7 +535,6 @@ class TestNormalizeLegislaturePeriodId:
         """
         raw = _load_poll_3602()
         connector = AbgeordnetenwatchVotesConnector(legislature_id=111)
-        connector._fraction_map = {}
 
         chunks = connector.normalize(raw)
 
@@ -574,7 +566,6 @@ class TestPerLegislatureCursor:
 
     def _make_connector_149(self) -> "AbgeordnetenwatchVotesConnector":
         connector = AbgeordnetenwatchVotesConnector(legislature_id=149)
-        connector._fraction_map = {}
         return connector
 
     def _stub_client_with_bayern_polls(
@@ -584,8 +575,6 @@ class TestPerLegislatureCursor:
 
         class _FakeBayernClient:
             def get_all(self, endpoint: str, params: dict) -> list:  # type: ignore[type-arg]
-                if endpoint == "fractions":
-                    return []
                 # Bayern polls with low IDs that would be filtered out by a global since=5000
                 return [
                     {"id": 50, "field_poll_date": "2024-01-15"},
@@ -655,7 +644,6 @@ class TestNormalizeRelevanceLevels:
         raw["poll"]["field_topics"] = [{"id": 13, "label": "Verteidigung"}]
 
         connector = AbgeordnetenwatchVotesConnector()
-        connector._fraction_map = {}
         chunks = connector.normalize(raw)
 
         assert len(chunks) >= 1, "normalize() must return at least one chunk for poll 3602"
@@ -687,7 +675,6 @@ class TestNormalizeRelevanceLevels:
         raw["poll"]["field_topics"] = []  # no topics → max-recall default
 
         connector = AbgeordnetenwatchVotesConnector()
-        connector._fraction_map = {}
 
         with caplog.at_level(logging.WARNING):
             chunks = connector.normalize(raw)
@@ -724,17 +711,86 @@ class TestDiscoverFailFast:
         monkeypatch.delenv("AW_POLL_SINCE", raising=False)
 
         connector = AbgeordnetenwatchVotesConnector(legislature_id=111)
-        connector._fraction_map = {}
 
         class _EmptyPollClient:
             """Stub AW client that returns zero polls (simulates wrong parliament_period_id)."""
 
             def get_all(self, endpoint: str, params: dict) -> list:  # type: ignore[type-arg]
-                if endpoint == "fractions":
-                    return []
                 return []  # zero polls — wrong period ID
 
         connector._client = _EmptyPollClient()  # type: ignore[assignment]
 
+        # Legislature 111 started 2017-10-24 — far older than the grace window.
         with pytest.raises(ValueError, match="zero polls"):
             connector.discover(since=None)
+
+    def test_discover_zero_polls_within_grace_window_returns_empty(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """D4: a legitimately NEW term (period started <= 90 days ago) with zero
+        polls must NOT abort — warn and return [] instead."""
+        import logging
+        from datetime import date, timedelta
+
+        from src.ingestion.connectors.abgeordnetenwatch import connector as conn_mod
+        from src.ingestion.connectors.abgeordnetenwatch.legislature_config import (
+            LEGISLATURE_CONFIG,
+            LegislatureConfig,
+        )
+
+        monkeypatch.delenv("AW_POLL_SINCE", raising=False)
+        # Register a synthetic just-started legislature (30 days old).
+        recent_start = (date.today() - timedelta(days=30)).isoformat()
+        monkeypatch.setitem(
+            LEGISLATURE_CONFIG,
+            999001,
+            LegislatureConfig(999001, "DE-XX", "Testland 2026 - 2031", recent_start, None),
+        )
+
+        connector = AbgeordnetenwatchVotesConnector(legislature_id=999001)
+
+        class _EmptyPollClient:
+            def get_all(self, endpoint: str, params: dict) -> list:  # type: ignore[type-arg]
+                return []
+
+        connector._client = _EmptyPollClient()  # type: ignore[assignment]
+
+        with caplog.at_level(logging.WARNING, logger=conn_mod.logger.name):
+            result = connector.discover(since=None)
+
+        assert result == [], "zero polls inside the grace window must return []"
+        assert any("grace window" in r.message for r in caplog.records), (
+            "the grace-window branch must log a warning"
+        )
+
+
+class TestDiscoverRefreshPath:
+    """AW_REFRESH=1 discover path hygiene (D11)."""
+
+    def test_refresh_path_filters_non_int_ids(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The isinstance(id, int) filter must apply on the AW_REFRESH path too —
+        a malformed poll entry must not crash sorting or leak a non-int id."""
+        monkeypatch.delenv("AW_POLL_SINCE", raising=False)
+        monkeypatch.setenv("AW_REFRESH", "1")
+
+        connector = AbgeordnetenwatchVotesConnector(legislature_id=111)
+
+        class _MalformedClient:
+            def get_all(self, endpoint: str, params: dict) -> list:  # type: ignore[type-arg]
+                return [
+                    {"id": 100, "field_poll_date": "2020-05-14"},
+                    {"id": "not-an-int", "field_poll_date": "2020-05-14"},
+                    {"field_poll_date": "2020-05-14"},  # id missing entirely
+                    {"id": 200, "field_poll_date": "2020-06-01"},
+                ]
+
+        connector._client = _MalformedClient()  # type: ignore[assignment]
+        # AW_REFRESH skips the Qdrant set-difference — no Qdrant mock needed.
+
+        ids = connector.discover(since=None)
+
+        assert ids == ["100", "200"], (
+            f"Refresh discover must keep only int-id polls, got {ids!r}"
+        )

@@ -10,6 +10,8 @@ Python AI/RAG backend for [wahl.chat](https://wahl.chat/).
 
 Built with FastAPI, sse-starlette (Server-Sent Events), LangChain, and Qdrant. Dependencies are managed with **uv**.
 
+The Pydantic models in `src/ingestion/schemas.py` are the single source of truth for the ingestion data contract (chunk payloads, source items, authority tiers).
+
 ## Localization
 
 This project was initially implemented for the German political system.
@@ -26,13 +28,7 @@ uv sync            # all dependencies, including the dev group
 uv sync --no-dev   # runtime dependencies only
 ```
 
-### 2. Install pre-commit hooks
-
-```bash
-uv run pre-commit install
-```
-
-### 3. Configure environment variables
+### 2. Configure environment variables
 
 ```bash
 cp .env.example .env
@@ -42,7 +38,7 @@ Fill in the values. For the LangChain API key (used for tracing on [smith.langch
 1. Set up your own project and API key, or
 2. Set `LANGCHAIN_TRACING_V2=false` to deactivate tracing.
 
-### 4. Authenticate with Firebase
+### 3. Authenticate with Firebase
 
 The recommended approach for local development is **Google Application Default Credentials (ADC)**:
 

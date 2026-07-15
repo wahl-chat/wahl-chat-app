@@ -358,14 +358,15 @@ def test_already_present_item_skips_embed() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_orphan_cleanup_calls_delete_before_upsert() -> None:
-    """re-ingesting an item whose chunks are missing issues qdrant.delete
-    before qdrant.upsert so stale higher-index points are removed.
+def test_new_item_upserts_without_delete() -> None:
+    """A brand-new item (no stored footprint) must embed+upsert WITHOUT any
+    delete (B2: only orphan point ids — existing − new — are ever deleted;
+    a new item has none).
 
-    Setup: poll 1's chunk point IDs are NOT in Qdrant (retrieve returns []).
+    Setup: poll 1's chunk point IDs are NOT in Qdrant (scroll returns []).
     Expected:
-      - qdrant.delete called exactly once for the poll's source_item_id filter.
-      - qdrant.upsert called once after the delete.
+      - qdrant.delete never called (no orphans exist).
+      - qdrant.upsert called once.
       - report.chunks_upserted == 1.
     """
 
@@ -374,32 +375,47 @@ def test_orphan_cleanup_calls_delete_before_upsert() -> None:
     mock_qdrant = _make_mock_qdrant()
     mock_embed = _make_mock_embed()
 
-    # footprint scroll returns nothing → at least one chunk is missing → embed+upsert fires.
+    # footprint scroll returns nothing → chunk missing → embed+upsert fires.
     report = run_connector(connector, mock_qdrant, mock_embed, batch_size=10)
 
-    # delete must have been called with a filter on source_item_id.
-    assert mock_qdrant.delete.call_count == 1, (
-        f"FIX 4: qdrant.delete must be called once for orphan cleanup, "
-        f"got {mock_qdrant.delete.call_count}"
-    )
-
-    # Verify the delete filter targets the correct source_item_id.
-    delete_call_kwargs = mock_qdrant.delete.call_args
-    # Inspect the points_selector argument.
-    points_selector = delete_call_kwargs.kwargs.get("points_selector") or (
-        delete_call_kwargs.args[1] if len(delete_call_kwargs.args) > 1 else None
-    )
-    assert points_selector is not None, "delete must be called with a points_selector"
-
-    # qdrant.upsert called after delete.
+    mock_qdrant.delete.assert_not_called()
     assert mock_qdrant.upsert.call_count == 1, (
-        f"FIX 4: qdrant.upsert must be called once after delete, "
-        f"got {mock_qdrant.upsert.call_count}"
+        f"qdrant.upsert must be called once, got {mock_qdrant.upsert.call_count}"
+    )
+    assert report.chunks_upserted == 1, (
+        f"chunks_upserted must be 1, got {report.chunks_upserted}"
     )
 
-    assert report.chunks_upserted == 1, (
-        f"FIX 4: chunks_upserted must be 1, got {report.chunks_upserted}"
+
+def test_orphan_delete_uses_point_ids_after_embed() -> None:
+    """B2: an item with a stale extra point deletes ONLY that orphan id via
+    PointIdsList — and only AFTER the embed succeeded (no loss window)."""
+    poll_id = 42
+    connector = StubConnector(poll_ids=[poll_id])
+    mock_qdrant = _make_mock_qdrant()
+    mock_embed = _make_mock_embed()
+
+    source_item_id = compute_source_item_id("vote_record", str(poll_id))
+    kept_pid = str(compute_chunk_id(source_item_id, 0))
+    orphan_pid = str(compute_chunk_id(source_item_id, 1))  # stale higher-index chunk
+    mock_qdrant.scroll.side_effect = _footprint_scroll(
+        [
+            SimpleNamespace(id=kept_pid, payload={"source_item_id": str(source_item_id)}),
+            SimpleNamespace(id=orphan_pid, payload={"source_item_id": str(source_item_id)}),
+        ]
     )
+
+    report = run_connector(connector, mock_qdrant, mock_embed, batch_size=10)
+
+    assert mock_qdrant.delete.call_count == 1
+    selector = mock_qdrant.delete.call_args.kwargs.get("points_selector")
+    points = getattr(selector, "points", None)
+    assert points is not None, f"delete must use PointIdsList, got {selector!r}"
+    assert set(str(p) for p in points) == {orphan_pid}, (
+        "only the orphan point id may be deleted"
+    )
+    assert mock_qdrant.upsert.call_count == 1
+    assert report.chunks_upserted == 1
 
 
 def test_orphan_cleanup_skipped_when_all_chunks_present() -> None:

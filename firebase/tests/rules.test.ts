@@ -110,6 +110,44 @@ describe("GDPR Art. 9 wall — users/{uid}/answers consent gate (SC3/DATA-05)", 
       mallory.firestore().doc("users/dave/answers/a1").delete()
     );
   });
+
+  // G15: answers are special-category data — no cross-user READ, ever.
+  it("rejects a cross-user READ of another user's answer (assertFails)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await ctx
+        .firestore()
+        .doc("users/erin")
+        .set({ email: "erin@example.com", consent: { political_data: true } });
+      await ctx
+        .firestore()
+        .doc("users/erin/answers/a1")
+        .set({ stance: "yes" });
+    });
+
+    const snoop = testEnv.authenticatedContext("snoop");
+    await assertFails(
+      snoop.firestore().doc("users/erin/answers/a1").get()
+    );
+  });
+
+  // G15: consent explicitly WITHDRAWN (false) must deny create just like absent consent.
+  it("rejects answers create when consent.political_data === false (assertFails)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await ctx
+        .firestore()
+        .doc("users/frank")
+        .set({ email: "frank@example.com", consent: { political_data: false } });
+    });
+
+    // Authenticated as frank himself — consent revoked, so create must fail.
+    const frank = testEnv.authenticatedContext("frank");
+    await assertFails(
+      frank
+        .firestore()
+        .doc("users/frank/answers/a1")
+        .set({ stance: "yes" })
+    );
+  });
 });
 
 describe("CR-03 — chat_sessions/{id}/messages access is scoped to owner/public", () => {
@@ -199,6 +237,24 @@ describe("CR-03 — chat_sessions/{id}/messages access is scoped to owner/public
         .firestore()
         .doc("chat_sessions/s-public2/messages/m1")
         .set({ role: "user", content: "spam" })
+    );
+  });
+
+  // G15: being AUTHENTICATED is not enough — only the session owner may write messages.
+  it("rejects an authenticated non-owner writing to another user's session messages (assertFails)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await ctx
+        .firestore()
+        .doc("chat_sessions/s-private4")
+        .set({ user_id: "owner6", is_public: false });
+    });
+
+    const intruder = testEnv.authenticatedContext("intruder2");
+    await assertFails(
+      intruder
+        .firestore()
+        .doc("chat_sessions/s-private4/messages/m1")
+        .set({ role: "user", content: "injected" })
     );
   });
 });

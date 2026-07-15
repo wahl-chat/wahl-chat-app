@@ -242,3 +242,88 @@ def test_all_levels_constant_matches_context_level_values() -> None:
     assert FEDERAL == "federal"
     assert STATE == "state"
     assert MUNICIPAL == "municipal"
+
+
+# ---------------------------------------------------------------------------
+# 3. Short-form embedded-label aliases (D2)
+# ---------------------------------------------------------------------------
+
+
+def test_short_form_oeffentliche_finanzen_resolves_like_long_form() -> None:
+    """The embedded short form "Öffentliche Finanzen" must resolve to the same
+    levels as the canonical "Öffentliche Finanzen, Steuern und Abgaben"."""
+    short = get_relevance_levels(["Öffentliche Finanzen"])
+    long = get_relevance_levels(["Öffentliche Finanzen, Steuern und Abgaben"])
+    assert short == long == ["federal", "state"]
+
+
+def test_all_aliases_match_their_canonical_levels() -> None:
+    """Every _TOPIC_ALIASES value must be identical to a canonical key's levels."""
+    for alias, levels in ttc._TOPIC_ALIASES.items():
+        assert alias not in TOPIC_TAXONOMY, (
+            f"Alias {alias!r} shadows a canonical TOPIC_TAXONOMY key"
+        )
+        assert levels in TOPIC_TAXONOMY.values(), (
+            f"Alias {alias!r} levels {levels!r} do not match any canonical entry"
+        )
+
+
+def test_golden_fixture_labels_resolve_without_all_levels_fallback(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """D2: every field_topics label in the golden poll fixtures must resolve via
+    the taxonomy (canonical key or alias) WITHOUT the unknown-label ALL_LEVELS
+    fallback — the fallback would make the vote over-surface in state/municipal
+    chats and defeat the down-rank."""
+    import json
+    from pathlib import Path
+
+    fixtures_dir = Path(__file__).parent / "fixtures"
+    labels: list[str] = []
+    for fixture in sorted(fixtures_dir.glob("aw_poll_*_poll.json")):
+        poll = json.loads(fixture.read_text())["data"]
+        labels.extend(
+            str(t["label"])
+            for t in (poll.get("field_topics") or [])
+            if isinstance(t, dict) and t.get("label")
+        )
+    assert labels, "expected at least one field_topics label across golden fixtures"
+
+    for label in labels:
+        with caplog.at_level(logging.WARNING, logger=ttc.logger.name):
+            caplog.clear()
+            get_relevance_levels([label])
+        assert not any(
+            "not in TOPIC_TAXONOMY" in r.message for r in caplog.records
+        ), f"Golden-fixture label {label!r} fell back to ALL_LEVELS (unmapped)"
+
+
+# ---------------------------------------------------------------------------
+# 4. Missing-topics warning gate (D14)
+# ---------------------------------------------------------------------------
+
+
+def test_empty_topics_warning_suppressed_for_non_federal(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """warn_on_missing_topics=False (non-federal legislatures) must NOT emit the
+    per-poll no-field_topics WARNING; the ALL_LEVELS default still applies."""
+    with caplog.at_level(logging.WARNING, logger=ttc.logger.name):
+        result = get_relevance_levels([], warn_on_missing_topics=False)
+    assert result == sorted(ALL_LEVELS)
+    assert not any("no field_topics" in r.message for r in caplog.records), (
+        "no-field_topics WARNING must be suppressed when warn_on_missing_topics=False"
+    )
+
+
+def test_unknown_label_still_warns_with_suppressed_missing_topics(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Unknown-label warnings stay loud everywhere — the D14 gate only covers
+    the empty-input case."""
+    with caplog.at_level(logging.WARNING, logger=ttc.logger.name):
+        result = get_relevance_levels(
+            ["Definitiv unbekanntes Thema"], warn_on_missing_topics=False
+        )
+    assert result == sorted(ALL_LEVELS)
+    assert any("not in TOPIC_TAXONOMY" in r.message for r in caplog.records)

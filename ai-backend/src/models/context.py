@@ -2,11 +2,12 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
+import logging
 from datetime import date as date_type
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 # =============================================================================
 # Constants
@@ -88,6 +89,27 @@ class Context(BaseModel):
             "Backward compat: existing Firestore docs without field deserialize to None."
         ),
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _warn_missing_region_path(cls, data: object) -> object:
+        """Warn loudly when a Firestore doc has no explicit region_path.
+
+        The ["DE"] default silently turns a state-election context into a
+        FEDERAL-scoped chat: its own Land's manifestos/votes become invisible
+        to retrieval and no error ever fires. Every seeded context carries the
+        field explicitly (see firebase/README.md "Adding a New Context"), so a
+        missing field almost always means a hand-created doc forgot it.
+        """
+        if isinstance(data, dict) and "region_path" not in data:
+            logging.getLogger(__name__).warning(
+                "Context %r deserialized WITHOUT region_path — defaulting to "
+                "federal scope ['DE']. If this is a Landtag/municipal context, "
+                "set region_path on the Firestore doc (retrieval is mis-scoped "
+                "until then).",
+                data.get("context_id", "<unknown>"),
+            )
+        return data
 
 
 class ContextParty(BaseModel):

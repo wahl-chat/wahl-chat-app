@@ -3,12 +3,18 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Maps all 53 AbgeordnetenWatch Themen to the governance levels a federal (Bundestag)
-vote on that topic is relevant to — FEDERAL, or FEDERAL + STATE — for the vote
-down-rank.
+Maps the 53 canonical AbgeordnetenWatch Themen to the governance levels a federal
+(Bundestag) vote on that topic is relevant to — FEDERAL, or FEDERAL + STATE — for
+the vote down-rank.
 
-Labels are the exact ``field_topics[*].label`` strings from the AW polls endpoint and
-must match verbatim; they are never re-fetched at runtime.
+The 53 ``TOPIC_TAXONOMY`` keys are the exact long-form labels verified from the AW
+v2 ``/topics`` endpoint; they are never re-fetched at runtime. The topic objects
+EMBEDDED in a poll response (``field_topics[*].label``) may instead carry a
+truncated pre-comma short form of a canonical label (verified: golden fixture
+poll 3602 carries "Öffentliche Finanzen" for the canonical "Öffentliche Finanzen,
+Steuern und Abgaben"). ``_TOPIC_ALIASES`` maps these short forms to the same
+levels as their canonical key so embedded labels resolve without the max-recall
+ALL_LEVELS fallback.
 
 Level assignment follows the Grundgesetz division of competence (verified against
 gesetze-im-internet.de/gg):
@@ -35,6 +41,17 @@ import logging
 import re
 from typing import FrozenSet
 
+# B7: the governance-level constants are owned by the shared framework module
+# src/ingestion/levels.py (retrieve.py imports from there without touching a
+# connector). Re-exported here because the taxonomy dict below, the AW
+# connector, and the AW tests all reference them from this module.
+from src.ingestion.levels import (  # noqa: F401
+    ALL_LEVELS,
+    FEDERAL,
+    MUNICIPAL,
+    STATE,
+)
+
 logger = logging.getLogger(__name__)
 
 # AW injects invisible formatting characters into label strings (notably the U+00AD
@@ -52,13 +69,10 @@ def _normalize_topic_label(label: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Governance level constants — MUST match Context.level values exactly.
+# Governance level constants: re-exported from src.ingestion.levels above —
+# do NOT re-introduce local definitions (a parity test in
+# tests/ingestion/test_enum_parity.py guards this).
 # ---------------------------------------------------------------------------
-
-FEDERAL: str = "federal"
-STATE: str = "state"
-MUNICIPAL: str = "municipal"
-ALL_LEVELS: FrozenSet[str] = frozenset({FEDERAL, STATE, MUNICIPAL})
 
 
 # ---------------------------------------------------------------------------
@@ -202,31 +216,79 @@ TOPIC_TAXONOMY: dict[str, FrozenSet[str]] = {
 }
 
 
-def get_relevance_levels(topic_labels: list[str]) -> list[str]:
+# ---------------------------------------------------------------------------
+# _TOPIC_ALIASES — short-form labels observed in EMBEDDED poll field_topics.
+#
+# The AW /topics endpoint returns the long canonical labels keyed in
+# TOPIC_TAXONOMY above, but the topic objects embedded in a poll response may
+# carry a truncated pre-comma short form (verified: golden fixture poll 3602,
+# topic 22, carries "Öffentliche Finanzen"). Each alias maps to the SAME levels
+# as its canonical key.
+#
+# Conservative scope: only pre-comma truncations of comma-containing canonical
+# keys are aliased — that is the one attested truncation mechanism. Pre-comma
+# prefixes that are already canonical keys with identical levels ("Medien" for
+# "Medien, Kommunikation und Informationstechnik", "Sport" for "Sport, Freizeit
+# und Tourismus") need no alias. "und"-joined keys without a comma have no
+# attested short form and are deliberately NOT aliased.
+# ---------------------------------------------------------------------------
+
+_TOPIC_ALIASES: dict[str, FrozenSet[str]] = {
+    # Verified from the repo's own golden fixture (poll 3602).
+    "Öffentliche Finanzen": TOPIC_TAXONOMY["Öffentliche Finanzen, Steuern und Abgaben"],
+    # Same pre-comma truncation mechanism for the remaining comma-containing keys.
+    "Raumordnung": TOPIC_TAXONOMY["Raumordnung, Bau- und Wohnungswesen"],
+    "Gesellschaftspolitik": TOPIC_TAXONOMY["Gesellschaftspolitik, soziale Gruppen"],
+    "Politisches Leben": TOPIC_TAXONOMY["Politisches Leben, Parteien"],
+    "Wissenschaft": TOPIC_TAXONOMY["Wissenschaft, Forschung und Technologie"],
+}
+
+
+def get_relevance_levels(
+    topic_labels: list[str],
+    *,
+    warn_on_missing_topics: bool = True,
+) -> list[str]:
     """Return the sorted union of governance levels for the given topic labels.
 
-    Unknown labels or empty input default to all levels (max recall) with a logged
-    warning.
+    Unknown labels or empty input default to all levels (max recall). Unknown
+    labels ALWAYS log a warning (an unmapped label is actionable everywhere).
+    Empty input logs a warning only when ``warn_on_missing_topics`` is True —
+    Landtag polls routinely carry no field_topics, so callers pass False for
+    non-federal legislatures to avoid one noise WARNING per poll burying
+    actionable warnings (federal polls keep the loud default).
 
     Args:
         topic_labels: List of AW field_topics[*].label strings for a poll. Labels are
             cast to str before lookup (untrusted AW payload; used only as dict keys).
+        warn_on_missing_topics: Emit the no-field_topics WARNING on empty input
+            (True, default — federal polls); False logs at DEBUG instead
+            (non-federal legislatures where missing topics are the norm).
 
     Returns:
         Sorted list of governance level strings, e.g. ['federal', 'state'].
         Returns sorted(ALL_LEVELS) for unknown labels or empty input.
     """
     if not topic_labels:
-        logger.warning(
-            "AW poll has no field_topics — defaulting to all levels. "
-            "This vote will surface across all election level contexts."
-        )
+        if warn_on_missing_topics:
+            logger.warning(
+                "AW poll has no field_topics — defaulting to all levels. "
+                "This vote will surface across all election level contexts."
+            )
+        else:
+            logger.debug(
+                "AW poll has no field_topics — defaulting to all levels "
+                "(expected for this legislature; suppressing per-poll warning)."
+            )
         return sorted(ALL_LEVELS)
 
     result: set[str] = set()
     for label in topic_labels:
         safe_label = _normalize_topic_label(str(label))
         mapped = TOPIC_TAXONOMY.get(safe_label)
+        if mapped is None:
+            # Embedded poll payloads may carry the pre-comma short form.
+            mapped = _TOPIC_ALIASES.get(safe_label)
         if mapped is None:
             logger.warning(
                 "AW Thema %r is not in TOPIC_TAXONOMY — defaulting to all levels. "

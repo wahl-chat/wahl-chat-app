@@ -305,6 +305,12 @@ class ManifestoConnector(BaseConnector):
         dropped any program that transiently failed below the max; set-difference
         is gap-free and always retries missing programs.
 
+        MANIFESTO_REFRESH=1 (same 1/true/yes parsing as the votes connector's
+        AW_REFRESH) forces a full reconcile: the already-ingested exclusion is
+        skipped so run.py's content-hash rewrite + orphan cleanup can propagate
+        replaced/corrected PDFs and shrunk programs (E1). Unchanged chunks are
+        cheaply skipped there without re-embedding.
+
         Args:
             since: Max external_id (AW program integer ID) already committed to
                    Qdrant for "party_manifesto". Accepted for ABC-contract
@@ -318,7 +324,10 @@ class ManifestoConnector(BaseConnector):
 
         all_programs = self._client.get_all("election-program", {})
 
-        ingested_ids = self._get_ingested_program_ids()
+        # E1: MANIFESTO_REFRESH skips the ingested-ids exclusion so already
+        # present programs flow through run.py's content-hash guard again.
+        refresh = os.getenv("MANIFESTO_REFRESH", "").strip().lower() in ("1", "true", "yes")
+        ingested_ids: set[int] = set() if refresh else self._get_ingested_program_ids()
 
         eligible: list[int] = []
         for program in all_programs:
@@ -365,8 +374,9 @@ class ManifestoConnector(BaseConnector):
 
         Returns:
             Dict with ``program``, ``period_date_iso``, ``source_kind``,
-            ``source_url``, ``pages``, ``stored_path``, ``total_pages`` — or a
-            minimal dict carrying ``skip_reason`` on any problem.
+            ``source_url``, ``pages``, ``total_pages`` — or a minimal dict
+            carrying ``skip_reason`` on any problem. Nothing is persisted to
+            disk (no stored_path — PDFs are parsed in-memory and discarded).
         """
         pid = int(external_id)
         program = self._programs.get(pid)
