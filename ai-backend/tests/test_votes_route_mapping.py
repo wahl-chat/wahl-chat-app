@@ -87,6 +87,12 @@ def test_chunk_payload_to_vote_maps_correctly() -> None:
     assert vote.subtitle == "passed", (
         f"W2: subtitle/motion_outcome mismatch — got {vote.subtitle!r}"
     )
+    # submitting_parties must NOT be populated from party_ids — party_ids is
+    # every participating faction (here spd + cdu), not the motion's sponsor(s).
+    assert vote.submitting_parties == [], (
+        "submitting_parties must be empty (no submitter metadata ingested), not "
+        f"the participant list — got {vote.submitting_parties!r}"
+    )
     assert vote.id == "aw_poll:12345", (
         f"W2: id mismatch — got {vote.id!r}"
     )

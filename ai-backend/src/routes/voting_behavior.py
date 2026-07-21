@@ -169,7 +169,13 @@ def _chunk_payload_to_vote(payload: dict, party_id: str) -> Vote | None:
             voting_results=VotingResults(overall=overall, by_party=by_party),
             short_description=outcome,
             vote_category=None,
-            submitting_parties=list(payload.get("party_ids") or []),
+            # Do NOT populate from party_ids: that is EVERY faction that
+            # participated in the roll call, not the motion's sponsor(s).
+            # Rendering it as "Einreichende Partei(en)" mislabels all voting
+            # parties as submitters. No submitter metadata exists in the
+            # vote_record corpus yet, so leave it empty (the UI hides the
+            # section); populate only from real submitter data later.
+            submitting_parties=[],
         )
 
     except Exception as e:  # noqa: BLE001
