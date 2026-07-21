@@ -363,13 +363,13 @@ async def test_pro_con_route_sse(app, monkeypatch):
     from src.models.chat import Message
     from src.models.context import ContextParty
 
-    async def _party(party_id: str):
+    async def _party(context_id: str, party_id: str):
         return ContextParty(**_SIDE_CHANNEL_PARTY)
 
     async def _pro_con(chat_history, party, context_id=None):
         return Message(role="assistant", content="Pro: ... Contra: ...")
 
-    monkeypatch.setattr("src.routes.pro_con.aget_party_by_id", _party)
+    monkeypatch.setattr("src.routes.pro_con.aget_party_for_context", _party)
     monkeypatch.setattr(
         "src.routes.pro_con.generate_pro_con_perspective", _pro_con
     )
@@ -403,7 +403,7 @@ async def test_voting_behavior_route_sse(app, monkeypatch):
     from langchain_core.messages import AIMessageChunk
     from src.models.context import ContextParty
 
-    async def _party(party_id: str):
+    async def _party(context_id: str, party_id: str):
         return ContextParty(**_SIDE_CHANNEL_PARTY)
 
     async def _rag_query(*args, **kwargs):
@@ -418,7 +418,7 @@ async def test_voting_behavior_route_sse(app, monkeypatch):
 
         return _gen()
 
-    monkeypatch.setattr("src.routes.voting_behavior.aget_party_by_id", _party)
+    monkeypatch.setattr("src.routes.voting_behavior.aget_party_for_context", _party)
     monkeypatch.setattr(
         "src.routes.voting_behavior.get_improved_rag_query_voting_behavior",
         _rag_query,

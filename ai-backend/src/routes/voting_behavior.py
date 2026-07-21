@@ -46,8 +46,9 @@ from src.chatbot_async import (
     generate_party_vote_behavior_summary,
 )
 from src.chat_service import with_heartbeat
-from src.firebase_service import aget_party_by_id
+from src.firebase_service import aget_party_for_context
 from src.ingestion.retrieve import retrieve
+from src.models.context import DEFAULT_CONTEXT_ID
 from src.models.dtos import (
     VotingBehaviorRequestDto,
     VotingBehaviorVoteDto,
@@ -211,9 +212,12 @@ async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequest
     async def stream():
         improved_rag_query = None
         try:
-            party = await aget_party_by_id(body.party_id)
+            context_id = body.context_id or DEFAULT_CONTEXT_ID
+            party = await aget_party_for_context(context_id, body.party_id)
             if party is None:
-                raise ValueError(f"Party {body.party_id} not found")
+                raise ValueError(
+                    f"Party {body.party_id} not found in context {context_id}"
+                )
 
             improved_rag_query = await get_improved_rag_query_voting_behavior(
                 party, body.last_user_message, body.last_assistant_message

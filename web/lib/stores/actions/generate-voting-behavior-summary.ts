@@ -11,6 +11,7 @@ export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
 > = (get, set) => async (partyId, message) => {
   const {
     messages,
+    contextId,
     getLLMSize,
     isAnonymous,
     addVotingBehaviorResult,
@@ -51,6 +52,7 @@ export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
       body: JSON.stringify({
         request_id: message.id,
         party_id: partyId,
+        context_id: contextId,
         last_user_message:
           lastUserMessageBeforeVotingBehavior.messages[0].content,
         last_assistant_message: message.content,

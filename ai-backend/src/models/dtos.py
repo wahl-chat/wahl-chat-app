@@ -102,6 +102,10 @@ class VotingBehaviorRequestDto(BaseModel):
     party_id: str = Field(
         ..., description="The ID of the party the user is chatting with"
     )
+    context_id: Optional[str] = Field(
+        default=None,
+        description="Election context id; scopes party lookup and vote retrieval.",
+    )
     last_user_message: str = Field(..., description="The last user message")
     last_assistant_message: str = Field(..., description="The last assistant message")
     summary_llm_size: LLMSize = Field(

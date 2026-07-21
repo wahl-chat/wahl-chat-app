@@ -21,8 +21,9 @@ from src.auth import verify_optional_bearer_token
 from src.chatbot_async import generate_pro_con_perspective
 from src.chat_service import with_heartbeat
 from src.utils import GENERIC_ERROR_MESSAGE
-from src.firebase_service import aget_party_by_id
+from src.firebase_service import aget_party_for_context
 from src.models.chat import Message
+from src.models.context import DEFAULT_CONTEXT_ID
 from src.models.dtos import (
     ProConPerspectiveDto,
     Status,
@@ -73,9 +74,12 @@ async def pro_con_endpoint(request: Request, body: ProConRequestDto):
 
     async def stream():
         try:
-            party = await aget_party_by_id(body.party_id)
+            context_id = body.context_id or DEFAULT_CONTEXT_ID
+            party = await aget_party_for_context(context_id, body.party_id)
             if party is None:
-                raise ValueError(f"Party {body.party_id} not found")
+                raise ValueError(
+                    f"Party {body.party_id} not found in context {context_id}"
+                )
 
             last_user_message = Message(role="user", content=body.last_user_message)
             last_assistant_message = Message(
