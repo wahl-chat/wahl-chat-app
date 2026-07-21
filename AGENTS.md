@@ -217,6 +217,21 @@ Ingestion must tolerate the 15-minute scheduled-job cap: runs are
 batch-windowed and time-budgeted (`--batch-size`, `--time-budget`) and resume
 from the Qdrant-derived cursor on the next run.
 
+### Seeding dev/prod
+
+The two stores are seeded by different mechanisms, on purpose:
+
+- **Firestore config** (contexts / parties / proposed_questions) — small and
+  version-controlled. Seeded into a real project by the
+  `Seed Firestore (config)` GitHub workflow (`.github/workflows/seed-firestore.yml`),
+  which authenticates via Workload Identity (no service-account key) and runs
+  `seed_firestore.py` with `SEED_TARGET=real`. The script refuses a real target
+  without an explicit project, and refuses prod without `SEED_CONFIRM_PROJECT`.
+- **Qdrant corpus** — large and ingested, not version-controlled. Populated by
+  the scheduled Cloud Run ingestion jobs; for the initial backfill, copy a Qdrant
+  snapshot from the local/known-good store into the dev/prod store once (Qdrant
+  snapshot create → upload → recover). Qdrant is never seeded from CI.
+
 ## How to treat data
 
 - **Political opinions are GDPR Art. 9 special-category data.** Handling

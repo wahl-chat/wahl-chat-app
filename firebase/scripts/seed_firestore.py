@@ -11,10 +11,16 @@ Usage (from the firebase/ directory):
     # or from the repo root:
     FIRESTORE_EMULATOR_HOST=localhost:8081 make seed-local
 
-This script only ever seeds the LOCAL Firestore emulator. Production seeding
-is intentionally blocked: the FIRESTORE_EMULATOR_HOST guard
-below hard-exits when no emulator host is set, so the script can never write
-to a real Firestore instance.
+By default this script seeds ONLY the local Firestore emulator: with
+SEED_TARGET unset it hard-exits unless FIRESTORE_EMULATOR_HOST is set, so a
+local run can never write to a real project.
+
+Seeding a real project (dev/prod) is strictly opt-in via SEED_TARGET=real and is
+driven by the CI/CD pipeline, authenticated with Workload Identity (Application
+Default Credentials — no service-account key on disk). It seeds only the config
+collections here (contexts / parties / proposed_questions); the Qdrant corpus is
+NOT seeded from CI — it is populated by the scheduled ingestion jobs (plus a
+one-time snapshot copy for the initial backfill).
 
 This script:
 1. Imports all contexts from firestore_data/{env}/contexts.json
@@ -40,21 +46,55 @@ from pathlib import Path
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-# --- Emulator guard ---
-# Refuse to run unless the Firestore emulator host is explicitly set.
-# This prevents accidental writes to production Firestore during local dev.
-if not os.getenv("FIRESTORE_EMULATOR_HOST"):
+# --- Target guard ---
+# Default target is the local emulator; writing to a real project is strictly
+# opt-in via SEED_TARGET=real. Prod (wahl-chat) additionally requires a matching
+# SEED_CONFIRM_PROJECT so a misconfigured dev pipeline can never seed prod.
+_PROD_PROJECT = "wahl-chat"
+SEED_TARGET = os.getenv("SEED_TARGET", "emulator")
+
+if SEED_TARGET == "emulator":
+    # Refuse to run unless the Firestore emulator host is explicitly set — this
+    # prevents accidental writes to a real Firestore during local dev.
+    if not os.getenv("FIRESTORE_EMULATOR_HOST"):
+        print(
+            "\n"
+            "============================================================\n"
+            " ERROR: FIRESTORE_EMULATOR_HOST is not set.\n"
+            " Refusing to seed — this would write to production Firestore.\n"
+            "\n"
+            " To seed the local emulator, run:\n"
+            "   FIRESTORE_EMULATOR_HOST=localhost:8081 python seed_firestore.py\n"
+            " or use the Makefile target:\n"
+            "   make seed-local\n"
+            " (Real-project seeding is CI-only: SEED_TARGET=real.)\n"
+            "============================================================\n"
+        )
+        sys.exit(1)
+elif SEED_TARGET == "real":
+    # An emulator host must never silently redirect a "real" seed.
+    if os.getenv("FIRESTORE_EMULATOR_HOST"):
+        print(
+            "ERROR: SEED_TARGET=real but FIRESTORE_EMULATOR_HOST is set — "
+            "refusing (ambiguous target)."
+        )
+        sys.exit(1)
+    _REAL_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCLOUD_PROJECT")
+    if not _REAL_PROJECT:
+        print("ERROR: SEED_TARGET=real requires GOOGLE_CLOUD_PROJECT to be set.")
+        sys.exit(1)
+    if (
+        _REAL_PROJECT == _PROD_PROJECT
+        and os.getenv("SEED_CONFIRM_PROJECT") != _PROD_PROJECT
+    ):
+        print(
+            f"ERROR: seeding the prod project '{_PROD_PROJECT}' requires "
+            f"SEED_CONFIRM_PROJECT={_PROD_PROJECT} (explicit confirmation)."
+        )
+        sys.exit(1)
+else:
     print(
-        "\n"
-        "============================================================\n"
-        " ERROR: FIRESTORE_EMULATOR_HOST is not set.\n"
-        " Refusing to seed — this would write to production Firestore.\n"
-        "\n"
-        " To seed the local emulator, run:\n"
-        "   FIRESTORE_EMULATOR_HOST=localhost:8081 python seed_firestore.py\n"
-        " or use the Makefile target:\n"
-        "   make seed-local\n"
-        "============================================================\n"
+        f"ERROR: invalid SEED_TARGET={SEED_TARGET!r} — expected 'emulator' or 'real'."
     )
     sys.exit(1)
 
@@ -65,14 +105,22 @@ FIREBASE_DIR = SCRIPT_DIR.parent
 DATA_DIR = FIREBASE_DIR / "firestore_data" / ENV
 
 def initialize_firebase():
-    """Initialize Firebase Admin SDK against the Firestore emulator.
+    """Initialize the Firebase Admin SDK for the guarded SEED_TARGET.
 
-    This script only ever runs against the emulator (the FIRESTORE_EMULATOR_HOST
-    guard above hard-exits otherwise), so it initializes with anonymous
-    credentials + an explicit project id and performs NO Application Default
-    Credentials lookup — the emulator needs no real credentials. This
-    avoids failing when gcloud ADC is absent or expired.
+    - ``emulator`` (default): anonymous credentials + an explicit project id, NO
+      Application Default Credentials lookup — the emulator needs no real
+      credentials, and this avoids failing when gcloud ADC is absent/expired.
+    - ``real``: Application Default Credentials (Workload Identity in CI) against
+      the real ``GOOGLE_CLOUD_PROJECT``. Reached only after the target guard
+      above has validated the project (and confirmed prod).
     """
+    if SEED_TARGET == "real":
+        project_id = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCLOUD_PROJECT")
+        print(f"Connecting to REAL Firestore project: {project_id}")
+        # No credential arg → Application Default Credentials (WIF in CI).
+        firebase_admin.initialize_app(options={"projectId": project_id})
+        return firestore.client()
+
     import google.auth.credentials
 
     class _EmulatorCredentials(credentials.Base):
