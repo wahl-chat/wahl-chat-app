@@ -59,6 +59,8 @@ make auth
 
 For CI/CD or Docker deployments, place a `wahl-chat-dev-firebase-adminsdk.json` file in this directory. Generate it at the [Firebase Console](https://console.firebase.google.com/u/0/project/wahl-chat-dev/settings/serviceaccounts/adminsdk). The backend auto-detects and uses it when present. Note that [Google recommends ADC over service account keys](https://cloud.google.com/docs/authentication#auth-decision-tree) for local development.
 
+> **Security:** never bake a service-account key into the container image. `COPY . /app` would capture it into the image layers permanently, so `.dockerignore` excludes `*-adminsdk-*.json` / `serviceAccount*.json` / ADC files. For deployed environments, supply credentials at runtime via a mounted secret or Workload Identity — not a key copied into the build context.
+
 ## Run
 
 ### Locally
