@@ -245,15 +245,15 @@ so it can never write to a real Firestore instance. Seeding production data is
 a manual operator step deferred (e.g. via
 `firestore-import` with production credentials, as described above).
 
-### 5. Deploy Qdrant vector store data
+### 5. Ensure the Qdrant corpus covers the new region
 
-V2 uses a **single Qdrant collection per environment** (e.g.
-`wahlchat_chunks_dev`) holding every source for every election — NOT the V1
-per-context collections. Election scoping happens at query time via payload
-filters (`party_id` tenant key, `region`/`region_path`, `source_type`,
-`authority_tier`). See CLAUDE.md section 1 ("Qdrant Collection Design") for
-the full design. No per-context collection needs to be created when moving a
-context to prod — only the corpus chunks for the relevant region must exist.
+The Qdrant vector store is **not** part of Firestore seeding and is not
+documented here — it is a single shared corpus per environment filled by the
+ingestion pipeline, not per-context collections. See the repo-root `AGENTS.md`
+("Qdrant collection design" and "Running ingestion connectors") for the design
+and how the corpus is populated. Moving a context to prod creates no Qdrant
+collection; just confirm the ingestion jobs have populated chunks for the
+context's region (the region filter must match at query time).
 
 ### 6. Verify
 
