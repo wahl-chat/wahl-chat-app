@@ -63,7 +63,9 @@ The `.env.example` files are pre-configured for local mode (`QDRANT_URL=http://l
 make stores-up
 ```
 
-This starts Qdrant via Docker Compose, and starts the Firestore emulator via Firebase CLI on port 8081 (avoids the default 8080 clash with the backend). The target waits until the emulator answers on port 8081 before returning.
+This starts Qdrant via Docker Compose (waiting on `/readyz`, then bootstrapping the collection) and the Firestore + Auth emulators via the Firebase CLI (Firestore on 8081 — avoids the default 8080 clash with the backend — and Auth on 9099). The target waits until the Firestore emulator answers before returning.
+
+For the web app to actually use these emulators (rather than the real project), `web/.env.local` must set `NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true` plus `FIRESTORE_EMULATOR_HOST` / `FIREBASE_AUTH_EMULATOR_HOST` — the `web/.env.example` ships with these enabled. With them set, no service-account key is needed and the browser signs in against the local Auth emulator, so a local session never writes to the real project.
 
 ### 4. Seed local data
 

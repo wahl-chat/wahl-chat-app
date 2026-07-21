@@ -21,7 +21,7 @@ install-backend:
 
 stores-up:
 	docker compose up -d qdrant
-	cd firebase && nohup firebase emulators:start --only firestore > ../firebase-emulators.log 2>&1 &
+	cd firebase && nohup firebase emulators:start --only firestore,auth > ../firebase-emulators.log 2>&1 &
 	@echo "Waiting for Qdrant on localhost:6333 (max 30s) ..."
 	@for i in $$(seq 1 30); do \
 		if curl -sf http://localhost:6333/readyz > /dev/null 2>&1; then \

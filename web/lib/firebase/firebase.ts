@@ -10,12 +10,13 @@ import { firestoreTimestampToDate, generateUuid } from '@/lib/utils';
 import type { SwiperMessage } from '@/lib/wahl-swiper/wahl-swiper-store.types';
 import type { WahlSwiperResultHistory } from '@/lib/wahl-swiper/wahl-swiper.types';
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import {
   Timestamp,
   addDoc,
   arrayUnion,
   collection,
+  connectFirestoreEmulator,
   doc,
   getDoc,
   getDocs,
@@ -30,12 +31,27 @@ import {
   where,
 } from 'firebase/firestore';
 import { firebaseConfig } from './firebase-config';
+import {
+  FIREBASE_EMULATOR_HOST,
+  FIRESTORE_EMULATOR_PORT,
+  authEmulatorUrl,
+  firebaseEmulatorsEnabled,
+} from './firebase-emulators';
 import type { ChatSession, LlmSystemStatus } from './firebase.types';
 
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 const db = getFirestore(app);
+
+// Route the browser SDKs at the local emulators when explicitly opted in, so a
+// local session never authenticates against — or writes to — the real project.
+// Must run before any auth/Firestore call; this module is a singleton so it runs
+// once.
+if (firebaseEmulatorsEnabled()) {
+  connectAuthEmulator(auth, authEmulatorUrl(), { disableWarnings: true });
+  connectFirestoreEmulator(db, FIREBASE_EMULATOR_HOST, FIRESTORE_EMULATOR_PORT);
+}
 
 /**
  * Best-effort Firebase ID-token auth header for backend requests.
