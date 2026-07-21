@@ -135,18 +135,5 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/chat_sessions/$(session_id)).data.user_id == request.auth.uid;
       }
     }
-
-    // GDPR Art. 9: political opinion data requires explicit consent before write
-    // Source: https://firebase.google.com/docs/firestore/security/rules-conditions
-    match /users/{user_id}/answers/{answer_id} {
-      allow read: if request.auth != null && request.auth.uid == user_id;
-      // create/update of special-category political data requires explicit consent (Art. 9)
-      allow create, update: if request.auth != null
-        && request.auth.uid == user_id
-        && get(/databases/$(database)/documents/users/$(user_id)).data.consent.political_data == true;
-      // erasure (Art. 17) must NOT require consent — a user who has withdrawn
-      // consent must still be able to delete their own political-opinion answers
-      allow delete: if request.auth != null && request.auth.uid == user_id;
-    }
   }
 }

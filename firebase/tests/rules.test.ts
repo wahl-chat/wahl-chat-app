@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-// Prove the GDPR Art. 9 consent gate in Firestore rules.
+// Prove the Firestore security rules that protect user content (chat-session
+// message privacy). The users/{uid}/answers consent gate is not on this branch
+// — it returns with the party-matcher feature that actually writes a user's own
+// political answers.
 //
 // Python firebase-admin bypasses security rules — this test MUST be JS/TS.
 // projectId must start with "demo-" for emulator-only isolation.
@@ -35,119 +38,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await testEnv.cleanup();
-});
-
-describe("GDPR Art. 9 wall — users/{uid}/answers consent gate", () => {
-  it("rejects answers write when consent.political_data is absent (assertFails)", async () => {
-    // Seed a user doc WITHOUT consent using Admin-equivalent bypass
-    await testEnv.withSecurityRulesDisabled(async (ctx) => {
-      await ctx
-        .firestore()
-        .doc("users/alice")
-        .set({ email: "alice@example.com" });
-    });
-
-    // Authenticated as alice, but no consent.political_data on parent doc
-    const alice = testEnv.authenticatedContext("alice");
-    await assertFails(
-      alice
-        .firestore()
-        .doc("users/alice/answers/a1")
-        .set({ stance: "yes" })
-    );
-  });
-
-  it("allows answers write when consent.political_data === true (assertSucceeds)", async () => {
-    // Seed a user doc WITH explicit political consent
-    await testEnv.withSecurityRulesDisabled(async (ctx) => {
-      await ctx
-        .firestore()
-        .doc("users/bob")
-        .set({ email: "bob@example.com", consent: { political_data: true } });
-    });
-
-    // Authenticated as bob, consent granted
-    const bob = testEnv.authenticatedContext("bob");
-    await assertSucceeds(
-      bob
-        .firestore()
-        .doc("users/bob/answers/a1")
-        .set({ stance: "yes" })
-    );
-  });
-
-  // CR-02: GDPR Art. 17 — erasure must be allowed even after consent withdrawal.
-  it("allows the owner to DELETE their answer even when consent is absent/false (assertSucceeds)", async () => {
-    // Seed an answer + a user doc WITHOUT political consent, bypassing rules.
-    await testEnv.withSecurityRulesDisabled(async (ctx) => {
-      await ctx
-        .firestore()
-        .doc("users/carol")
-        .set({ email: "carol@example.com", consent: { political_data: false } });
-      await ctx
-        .firestore()
-        .doc("users/carol/answers/a1")
-        .set({ stance: "yes" });
-    });
-
-    // Authenticated as carol, consent revoked — erasure must still succeed.
-    const carol = testEnv.authenticatedContext("carol");
-    await assertSucceeds(
-      carol.firestore().doc("users/carol/answers/a1").delete()
-    );
-  });
-
-  it("rejects DELETE of another user's answer (assertFails)", async () => {
-    await testEnv.withSecurityRulesDisabled(async (ctx) => {
-      await ctx
-        .firestore()
-        .doc("users/dave/answers/a1")
-        .set({ stance: "yes" });
-    });
-
-    const mallory = testEnv.authenticatedContext("mallory");
-    await assertFails(
-      mallory.firestore().doc("users/dave/answers/a1").delete()
-    );
-  });
-
-  // Answers are special-category data — no cross-user READ, ever.
-  it("rejects a cross-user READ of another user's answer (assertFails)", async () => {
-    await testEnv.withSecurityRulesDisabled(async (ctx) => {
-      await ctx
-        .firestore()
-        .doc("users/erin")
-        .set({ email: "erin@example.com", consent: { political_data: true } });
-      await ctx
-        .firestore()
-        .doc("users/erin/answers/a1")
-        .set({ stance: "yes" });
-    });
-
-    const snoop = testEnv.authenticatedContext("snoop");
-    await assertFails(
-      snoop.firestore().doc("users/erin/answers/a1").get()
-    );
-  });
-
-  // Consent explicitly WITHDRAWN (false) must deny create just like absent consent.
-  it("rejects answers create when consent.political_data === false (assertFails)", async () => {
-    await testEnv.withSecurityRulesDisabled(async (ctx) => {
-      await ctx
-        .firestore()
-        .doc("users/frank")
-        .set({ email: "frank@example.com", consent: { political_data: false } });
-    });
-
-    // Authenticated as frank himself — consent revoked, so create must fail.
-    const frank = testEnv.authenticatedContext("frank");
-    await assertFails(
-      frank
-        .firestore()
-        .doc("users/frank/answers/a1")
-        .set({ stance: "yes" })
-    );
-  });
 });
 
 describe("CR-03 — chat_sessions/{id}/messages access is scoped to owner/public", () => {

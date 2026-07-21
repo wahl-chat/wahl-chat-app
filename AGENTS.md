@@ -225,8 +225,11 @@ from the Qdrant-derived cursor on the next run.
   the corpus. Ingestion/corpus code must not read the Firestore `users/` path —
   this is enforced in CI by `scripts/check_gdpr_wall.py` (the "GDPR Art. 9
   wall"), which fails the build if ingestion code references `users/`
-  collections. Firestore security rules gate consent and chat-message privacy
-  (tested in the `firebase-rules` CI job).
+  collections. Firestore security rules gate chat-message privacy (tested in the
+  `firebase-rules` CI job). The explicit Art. 9 consent gate on a user's own
+  political answers is **not** on this branch: it returns with the party-matcher
+  feature (the first thing that stores those answers), which must ship with a
+  real affirmative opt-in — consent cannot be implied from app usage.
 - **Local-only stores during this milestone.** Develop against local Qdrant and
   the Firestore emulator; do not point local work at production stores while the
   data design is still settling. The seed script hard-requires
@@ -311,7 +314,7 @@ CI (`.github/workflows/ci.yml`) runs four jobs on every push/PR:
 - **frontend** — `bun install --frozen-lockfile` → `bun audit --audit-level=high`
   (supply-chain gate) → lint → tsc → build.
 - **firebase-rules** — Firestore security-rules tests against the emulator
-  (proves the GDPR consent gate and chat-message privacy rules).
+  (proves the chat-message privacy rules).
 - **smoke-test** — the E2E SSE smoke test, in-process via `httpx.ASGITransport`
   (needs backend + frontend green first).
 
