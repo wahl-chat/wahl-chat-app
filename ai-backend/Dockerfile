@@ -19,6 +19,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
+# Ensure the dispatch entrypoint is executable regardless of the host's mode bits.
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Runtime stage — no uv, no build tools, non-root user.
 FROM python:3.12-slim AS runtime
@@ -28,20 +30,9 @@ WORKDIR /app
 ENV PATH="/app/.venv/bin:$PATH"
 USER appuser
 
-# Entry point: FastAPI app (D-04 — aiohttp_app replaced in plan 01-06)
-# Web image: docker build -t wahlchat-web . (default CMD)
-CMD ["python", "-m", "src.app", "--host", "0.0.0.0", "--port", "8080"]
-
-# ---------------------------------------------------------------------------
-# Production ingestion entrypoint (D-03 — same image, CONNECTOR_ID selects).
-# To run as the ingestion image, override CMD at docker run / job spec:
-#
-#   docker run --env CONNECTOR_ID=bundestag_votes wahlchat-ingestion
-#   gcloud run jobs create ... --set-env-vars "CONNECTOR_ID=bundestag_votes"
-#
-# The runner reads CONNECTOR_ID (or --connector arg) and dispatches to the
-# matching connector factory in src.ingestion.registry (D-03).
-#
-# Ingestion image: docker build --build-arg ENTRYPOINT=ingestion -t wahlchat-ingestion .
-# ---------------------------------------------------------------------------
-# CMD ["python", "-m", "src.ingestion.run"]
+# Single image serves both roles; the entrypoint dispatches on CONNECTOR_ID:
+#   - unset  → FastAPI app (web service, the default)
+#   - set    → src.ingestion.run for that connector (Cloud Run ingestion Job)
+# So the ingestion Job only sets CONNECTOR_ID (see infra/cloud_run_jobs.sh) — no
+# container-command override, and the job can never boot the API by mistake.
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
