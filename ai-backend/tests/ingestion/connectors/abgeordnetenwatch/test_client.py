@@ -8,8 +8,8 @@ Unit tests for AWClient — covers the rate ceiling and core invariants.
 Tests defined here:
   - test_get_sleeps_before_request: get() sleeps >=2s before each call
   - test_get_raises_on_bad_meta_status: meta.status != "ok" -> ValueError
-  - test_get_all_paginates_by_absolute_index: get_all uses range_start/range_end
-    as absolute indices, advancing 100 at a time until meta.result.total
+  - test_paginates_by_row_count_without_overlap: get_all treats range_end as a
+    row count and advances range_start by the delivered count (no page overlap)
   - test_get_all_stops_at_total: get_all stops when start >= total (no infinite loop)
   - test_rate_ceiling_30_per_60s: 30 sequential get() calls accumulate >=58s of
     mocked sleep (<=30 req/60s ceiling)
@@ -147,47 +147,59 @@ class TestGet:
 
 
 # ---------------------------------------------------------------------------
-# get_all() — absolute-index pagination
+# get_all() — row-count pagination
 # ---------------------------------------------------------------------------
 
 
 class TestGetAll:
-    def test_paginates_by_absolute_index(self) -> None:
-        """get_all() uses range_start/range_end as absolute indices."""
-        # Simulate 150 total items: page 1 = 100 items, page 2 = 50 items
-        page1_data = [{"id": i} for i in range(100)]
-        page2_data = [{"id": i} for i in range(100, 150)]
+    def test_paginates_by_row_count_without_overlap(self) -> None:
+        """get_all() must treat range_end as a ROW COUNT (live AW contract).
+
+        The mock mimics the live API — a request at range_start=N for
+        range_end=K returns rows N..N+K-1 — so the old ``range_end=start+100``
+        (absolute-index) assumption would re-fetch rows and duplicate them.
+        get_all must request a fixed _PAGE_SIZE window and advance by the
+        delivered count, so each row appears exactly once, in order.
+        """
+        from src.ingestion.connectors.abgeordnetenwatch.client import _PAGE_SIZE
+
+        total = 250
+        universe = [{"id": i} for i in range(total)]
+        seen: list[tuple[int, int]] = []
 
         def fake_get(path: str, params: dict | None = None) -> dict:
-            rs = (params or {}).get("range_start", 0)
-            if rs == 0:
-                return {
-                    "meta": {
-                        "status": "ok",
-                        "status_message": "",
-                        "result": {"count": 100, "total": 150, "range_start": 0, "range_end": 100},
+            params = params or {}
+            rs = params.get("range_start", 0)
+            row_count = params.get("range_end")
+            seen.append((rs, row_count))
+            rows = universe[rs : rs + row_count] if row_count else universe[rs:]
+            return {
+                "meta": {
+                    "status": "ok",
+                    "status_message": "",
+                    "result": {
+                        "count": len(rows),
+                        "total": total,
+                        "range_start": rs,
+                        "range_end": row_count,
                     },
-                    "data": page1_data,
-                }
-            else:
-                return {
-                    "meta": {
-                        "status": "ok",
-                        "status_message": "",
-                        "result": {"count": 50, "total": 150, "range_start": 100, "range_end": 200},
-                    },
-                    "data": page2_data,
-                }
+                },
+                "data": rows,
+            }
 
         c = AWClient()
-        with patch.object(c, "get", side_effect=fake_get) as mock_get:
+        with patch.object(c, "get", side_effect=fake_get):
             result = c.get_all("polls", {"field_legislature": 111})
 
-        assert len(result) == 150, f"Expected 150 items, got {len(result)}"
-        # Verify two page calls were made (100 items per page for 150 total)
-        assert len(mock_get.call_args_list) == 2, (
-            f"Expected 2 page calls, got {len(mock_get.call_args_list)}"
+        ids = [r["id"] for r in result]
+        assert ids == list(range(total)), "each row exactly once, in order"
+        assert len(ids) == len(set(ids)), "no duplicates (no page overlap)"
+        # range_end must be the constant page size (a row count), never start+size.
+        assert all(rc == _PAGE_SIZE for _, rc in seen), (
+            f"range_end must equal _PAGE_SIZE={_PAGE_SIZE}, saw {seen}"
         )
+        # range_start advances by the delivered count: 0 -> 100 -> 200.
+        assert [rs for rs, _ in seen] == [0, 100, 200], seen
 
     def test_stops_at_total(self) -> None:
         """get_all() stops when all items have been fetched (no infinite loop)."""
@@ -300,30 +312,42 @@ class TestGetAll:
             "get_all must pass field_legislature (not parliament_period)"
         )
 
-    def test_raises_on_under_delivered_page(self) -> None:
-        """a page delivering fewer items than its window must raise, not skip.
-
-        The server may cap items-per-response below _PAGE_SIZE. Advancing
-        start += _PAGE_SIZE past a short page would silently and permanently
-        skip the page's tail (discover would miss polls forever).
+    def test_under_delivered_page_advances_by_delivered_count(self) -> None:
+        """A server that caps a page below the requested window must NOT be
+        skipped or raise: because get_all advances range_start by the count
+        actually delivered, the extra pages collect every row (no gap, no
+        duplicate) rather than striding past the tail.
         """
+        total = 150
+        universe = [{"id": i} for i in range(total)]
+        cap = 60  # server delivers at most 60 rows per page (below _PAGE_SIZE)
 
         def fake_get(path: str, params: dict | None = None) -> dict:
-            rs = (params or {}).get("range_start", 0)
-            # total=150, but the server delivers only 60 items per page.
+            params = params or {}
+            rs = params.get("range_start", 0)
+            requested = params.get("range_end") or cap
+            rows = universe[rs : rs + min(cap, requested)]
             return {
                 "meta": {
                     "status": "ok",
                     "status_message": "",
-                    "result": {"count": 60, "total": 150, "range_start": rs, "range_end": rs + 100},
+                    "result": {
+                        "count": len(rows),
+                        "total": total,
+                        "range_start": rs,
+                        "range_end": requested,
+                    },
                 },
-                "data": [{"id": rs + i} for i in range(60)],
+                "data": rows,
             }
 
         c = AWClient()
         with patch.object(c, "get", side_effect=fake_get):
-            with pytest.raises(ValueError, match="expected 100 items at range_start=0 but received 60"):
-                c.get_all("polls", {"field_legislature": 111})
+            result = c.get_all("polls", {"field_legislature": 111})
+
+        ids = [r["id"] for r in result]
+        assert ids == list(range(total)), "all rows collected once despite the cap"
+        assert len(ids) == len(set(ids)), "no duplicates"
 
     def test_short_final_page_is_not_under_delivery(self) -> None:
         """The last page legitimately delivers total - start items (< _PAGE_SIZE)."""

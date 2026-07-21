@@ -183,13 +183,15 @@ class AWClient:
         return d
 
     def get_all(self, path: str, params: dict | None = None) -> list:
-        """Paginate through all results using absolute-index pagination.
+        """Paginate through all results, advancing by the delivered row count.
 
-        The AW API uses absolute position indices: range_start=N, range_end=N+100
-        returns items at positions N..N+99.  This is NOT offset+limit — setting
-        range_start=100, range_end=100 would return 0 items.
-
-        Each page adds 100 to range_start until range_start >= meta.result.total.
+        AW's ``range_end`` is the NUMBER of rows to return, not an absolute end
+        index: ``range_start=100&range_end=200`` returns 200 rows from position
+        100. Each page therefore requests a fixed window of ``_PAGE_SIZE`` rows
+        (``range_end=_PAGE_SIZE``) and advances ``range_start`` by the number of
+        rows actually delivered, until ``range_start >= meta.result.total``.
+        (Requesting ``range_end=start+_PAGE_SIZE`` would grow the window every
+        page and re-fetch already-collected rows.)
         A hard page cap (_MAX_PAGES) bounds the loop even if the
         server-controlled ``total`` is absurdly large, and the envelope is read
         with guarded ``.get()`` so a 200-OK response missing ``result``/``data``
@@ -206,9 +208,7 @@ class AWClient:
 
         Raises:
             ValueError: When a page envelope is missing ``meta.result.total`` or
-                        ``data``, or when a page delivers fewer items than the
-                        window it was asked for (server-side under-delivery
-                        would silently skip the page tail).
+                        a list ``data``.
         """
         # Work from a copy so we don't mutate the caller's dict
         page_params: dict = dict(params or {})
@@ -232,7 +232,10 @@ class AWClient:
                 break
 
             page_params["range_start"] = start
-            page_params["range_end"] = start + _PAGE_SIZE
+            # range_end is a ROW COUNT (not an absolute end index): request a
+            # fixed page of _PAGE_SIZE rows. Using start+_PAGE_SIZE here would
+            # request an ever-larger window and re-fetch already-collected rows.
+            page_params["range_end"] = _PAGE_SIZE
 
             resp = self.get(path, page_params)
 
@@ -251,22 +254,24 @@ class AWClient:
                     f"AW API response for path={path!r} missing or non-list 'data'"
                 )
 
-            # Detect UNDER-delivery — the endpoint may cap items per response even
-            # below range_end. Advancing start by _PAGE_SIZE past a short page would
-            # silently skip the page's tail forever (discover would permanently miss
-            # polls). Raise rather than silently under-collect.
-            expected = min(_PAGE_SIZE, total - start)
-            if len(data) < expected:
-                raise ValueError(
-                    f"AW get_all for path={path!r}: expected {expected} items at "
-                    f"range_start={start} but received {len(data)} in this page "
-                    "(server-side page cap?). Results would be silently incomplete — "
-                    "lower _PAGE_SIZE or paginate by the delivered count."
-                )
-
             all_data.extend(data)
-            start += _PAGE_SIZE
             pages += 1
+
+            # Advance by the rows ACTUALLY delivered — correct for a full page,
+            # the short final tail, or a server cap below _PAGE_SIZE, and it
+            # never skips or overlaps. A page returning nothing while more rows
+            # are advertised would loop forever, so stop (results may be short).
+            if not data:
+                if total is not None and start < total:
+                    logger.warning(
+                        "get_all: path=%r returned 0 rows at range_start=%s "
+                        "(total advertised=%s) — stopping; results may be incomplete.",
+                        path,
+                        start,
+                        total,
+                    )
+                break
+            start += len(data)
 
         return all_data
 
