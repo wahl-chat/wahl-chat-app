@@ -10,26 +10,25 @@ matching the model's quoted text and builds `video_uri#t={ts_start}`. Verbatim
 substring match wins; a fuzzy near-match still resolves; a no-match falls back
 to `sentence_map[0]["ts_start"]` and NEVER raises.
 
-The locator does not exist yet. The top-level
-`pytest.importorskip(...)` makes this file SKIP cleanly until it lands in
-`src.chat_service`, then runs the real assertions.
+The citation-refinement helpers live in `src.deeplink`. The top-level
+`pytest.importorskip(...)` makes this file SKIP cleanly if that module fails to
+import, then runs the real assertions.
 """
 
 from __future__ import annotations
 
 import pytest
 
-# SKIP until the locator lives in chat_service.
-chat_service = pytest.importorskip(
-    "src.chat_service",
-    reason="src.chat_service import failed",
+deeplink = pytest.importorskip(
+    "src.deeplink",
+    reason="src.deeplink import failed",
 )
 
-_locate = getattr(chat_service, "locate_deeplink", None)
+_locate = getattr(deeplink, "locate_deeplink", None)
 
 pytestmark = pytest.mark.skipif(
     _locate is None,
-    reason="locate_deeplink not yet implemented in chat_service",
+    reason="locate_deeplink not present in src.deeplink",
 )
 
 
@@ -84,7 +83,7 @@ def test_missing_ts_start_never_raises_and_never_emits_literal_none() -> None:
 # always the speech-start. Guards the "every video opens at 0:00" bug.
 # ---------------------------------------------------------------------------
 
-_deeplink_url = getattr(chat_service, "_speech_deeplink_url", None)
+_deeplink_url = getattr(deeplink, "_speech_deeplink_url", None)
 
 _relevance_skip = pytest.mark.skipif(
     _deeplink_url is None,
@@ -130,8 +129,8 @@ def test_dip_speech_url_unchanged() -> None:
 # the video deep-link at the sentence the model actually cited, not the RAG query.
 # ---------------------------------------------------------------------------
 
-_cited_claim = getattr(chat_service, "_cited_claim_for_index", None)
-_refine = getattr(chat_service, "_refine_speech_deeplinks", None)
+_cited_claim = getattr(deeplink, "_cited_claim_for_index", None)
+_refine = getattr(deeplink, "_refine_speech_deeplinks", None)
 _postgen_skip = pytest.mark.skipif(
     _cited_claim is None or _refine is None,
     reason="post-generation deep-link refinement not present",
@@ -182,8 +181,8 @@ def test_refine_noop_when_source_not_cited() -> None:
 # source, never the model's paraphrased answer.
 # ---------------------------------------------------------------------------
 
-_snippet = getattr(chat_service, "_search_snippet", None)
-_refine_hl = getattr(chat_service, "_refine_pdf_highlights", None)
+_snippet = getattr(deeplink, "_search_snippet", None)
+_refine_hl = getattr(deeplink, "_refine_pdf_highlights", None)
 _highlight_skip = pytest.mark.skipif(
     _snippet is None or _refine_hl is None,
     reason="PDF highlight refinement not present",
