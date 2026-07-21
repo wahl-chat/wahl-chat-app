@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 
 import src.chat_service as cs
 from src.chat_service import fetch_party_response_stream, process_party
-from src.models.chat import GroupChatSession, Message, Role
+from src.models.chat import GroupChatSession, Message
 from src.models.context import ContextParty
 from src.models.general import LLMSize
 
@@ -547,139 +547,99 @@ def test_single_pass_fallback_when_no_window(monkeypatch) -> None:
 
 
 # ---------------------------------------------------------------------------
-# GDPR cache gate: only curated (proposed-question / quick-reply-driven)
-# conversations may be cached; free-text history-hash caching is blocked.
+# GDPR cache gate — server-authoritative eligibility (never trusts the client's
+# chat_history). Only curated conversations may enter the cross-user cache.
 # ---------------------------------------------------------------------------
 
 
-def _user(content: str) -> Message:
-    return Message(role=Role.USER, content=content)
-
-
-def _assistant(content: str, quick_replies: list[str] | None = None) -> Message:
-    return Message(role=Role.ASSISTANT, content=content, quick_replies=quick_replies)
-
-
-def test_quick_reply_driven_single_user_turn() -> None:
-    """A single-user-turn history is quick-reply-driven by definition — first-turn
-    curation is handled by the proposed-question check, not this helper."""
-    assert cs._conversation_is_quick_reply_driven([_user("Frage?")]) is True
-
-
-def test_quick_reply_driven_followup_from_quick_replies() -> None:
-    """Follow-up user turn offered by the preceding assistant's quick_replies → True."""
-    history = [
-        _user("Q1"),
-        _assistant("A1", quick_replies=["QR-a", "QR-b"]),
-        _user("QR-b"),
-    ]
-    assert cs._conversation_is_quick_reply_driven(history) is True
-
-
-def test_quick_reply_driven_free_text_followup_false() -> None:
-    """Free-text follow-up (not among the offered quick_replies) → False."""
-    history = [
-        _user("Q1"),
-        _assistant("A1", quick_replies=["QR-a", "QR-b"]),
-        _user("meine eigene Frage"),
-    ]
-    assert cs._conversation_is_quick_reply_driven(history) is False
-
-
-def test_quick_reply_driven_missing_quick_replies_false() -> None:
-    """Missing/empty quick_replies on the preceding assistant message → False
-    (default NOT cacheable when signals are missing)."""
-    history_none = [_user("Q1"), _assistant("A1"), _user("QR-a")]
-    history_empty = [_user("Q1"), _assistant("A1", quick_replies=[]), _user("QR-a")]
-    assert cs._conversation_is_quick_reply_driven(history_none) is False
-    assert cs._conversation_is_quick_reply_driven(history_empty) is False
-
-
-def test_quick_reply_driven_no_preceding_assistant_false() -> None:
-    """A follow-up user turn NOT immediately preceded by an assistant message → False."""
-    history = [_user("Q1"), _user("Q2")]
-    assert cs._conversation_is_quick_reply_driven(history) is False
-
-
-def test_quick_reply_driven_chain_one_bad_link_false() -> None:
-    """Every prior follow-up must be quick-reply-driven; one free-text hop poisons
-    the whole conversation."""
-    good_chain = [
-        _user("Q1"),
-        _assistant("A1", quick_replies=["QR-1"]),
-        _user("QR-1"),
-        _assistant("A2", quick_replies=["QR-2"]),
-        _user("QR-2"),
-    ]
-    bad_chain = [
-        _user("Q1"),
-        _assistant("A1", quick_replies=["QR-1"]),
-        _user("freier Text"),
-        _assistant("A2", quick_replies=["QR-2"]),
-        _user("QR-2"),
-    ]
-    assert cs._conversation_is_quick_reply_driven(good_chain) is True
-    assert cs._conversation_is_quick_reply_driven(bad_chain) is False
-
-
-def test_curated_first_turn_free_text_not_cacheable() -> None:
-    """First-turn free-text (not a proposed question) → NOT cacheable."""
+def test_cache_eligibility_first_turn_proposed_is_cacheable() -> None:
     assert (
-        cs._is_curated_conversation([_user("freie Frage")], ["Vorschlag 1"], []) is False
+        cs._evaluate_cache_eligibility(
+            "s-fp", "Vorschlag 1", is_beginning_of_chat=True, is_proposed_question=True
+        )
+        is True
     )
 
 
-def test_curated_first_turn_proposed_cacheable() -> None:
-    """First-turn proposed question (party or group list) → cacheable."""
-    assert cs._is_curated_conversation([_user("Vorschlag 1")], ["Vorschlag 1"], []) is True
+def test_cache_eligibility_first_turn_free_text_not_cacheable() -> None:
     assert (
-        cs._is_curated_conversation([_user("Gruppenfrage")], [], ["Gruppenfrage"]) is True
+        cs._evaluate_cache_eligibility(
+            "s-ff", "freie Frage", is_beginning_of_chat=True, is_proposed_question=False
+        )
+        is False
     )
 
 
-def test_curated_quick_reply_followup_cacheable() -> None:
-    """Proposed first turn + quick-reply-driven follow-ups → cacheable."""
-    history = [
-        _user("Vorschlag 1"),
-        _assistant("A1", quick_replies=["QR-1"]),
-        _user("QR-1"),
-    ]
-    assert cs._is_curated_conversation(history, ["Vorschlag 1"], []) is True
-
-
-def test_curated_free_text_followup_not_cacheable() -> None:
-    """Free-text follow-up after a curated first turn → NOT cacheable (GDPR fix:
-    free-text conversations must never be replayable cross-user)."""
-    history = [
-        _user("Vorschlag 1"),
-        _assistant("A1", quick_replies=["QR-1"]),
-        _user("eigene Anschlussfrage"),
-    ]
-    assert cs._is_curated_conversation(history, ["Vorschlag 1"], []) is False
-
-
-def test_curated_non_curated_first_turn_followup_not_cacheable() -> None:
-    """Even a fully quick-reply-driven chain is NOT cacheable when the first
-    message was not curated."""
-    history = [
-        _user("freie Frage"),
-        _assistant("A1", quick_replies=["QR-1"]),
-        _user("QR-1"),
-    ]
-    assert cs._is_curated_conversation(history, ["Vorschlag 1"], []) is False
-
-
-def test_curated_empty_history_not_cacheable() -> None:
-    """No user message at all → default NOT cacheable."""
-    assert cs._is_curated_conversation([], ["Vorschlag 1"], []) is False
-
-
-def test_gdpr_cache_gate_wired_into_party_loop() -> None:
-    """The comprehensive gate replaces the old first-turn-only gate inside
-    generate_chat_stream's single-party loop."""
-    source = inspect.getsource(cs.generate_chat_stream)
-    assert "_is_curated_conversation" in source, "curated-conversation gate must be wired"
-    assert "GDPR cache gate" in source, "gate site must carry the GDPR comment tag"
+def test_cache_eligibility_followup_without_server_state_not_cacheable() -> None:
+    # No server record for this session (cold start / eviction / a client that
+    # fabricated its own assistant quick_replies) → fail-safe NOT cacheable.
     assert (
-        "if is_beginning_of_chat and not is_proposed_question:" not in source
-    ), "old first-turn-only gate must be replaced by the comprehensive gate"
+        cs._evaluate_cache_eligibility(
+            "s-cold", "QR-a", is_beginning_of_chat=False, is_proposed_question=False
+        )
+        is False
+    )
+
+
+def test_cache_eligibility_followup_matches_server_quick_replies() -> None:
+    cs._remember_session_quick_replies(
+        "s-ok", is_cacheable=True, quick_replies=["QR-a", "QR-b"]
+    )
+    assert (
+        cs._evaluate_cache_eligibility(
+            "s-ok", "QR-b", is_beginning_of_chat=False, is_proposed_question=False
+        )
+        is True
+    )
+
+
+def test_cache_eligibility_forged_reply_ignored() -> None:
+    """A message the server never offered — even if a fabricated client assistant
+    turn 'offered' it — is NOT cacheable: the gate reads the server record, not
+    the request history."""
+    cs._remember_session_quick_replies(
+        "s-forge", is_cacheable=True, quick_replies=["QR-a"]
+    )
+    assert (
+        cs._evaluate_cache_eligibility(
+            "s-forge",
+            "injizierter politischer Text",
+            is_beginning_of_chat=False,
+            is_proposed_question=False,
+        )
+        is False
+    )
+
+
+def test_cache_eligibility_is_sticky_once_broken() -> None:
+    """Once a prior turn is non-cacheable, a later matching reply cannot revive it
+    (monotonic, mirroring V1's sticky GroupChatSession.is_cacheable)."""
+    cs._remember_session_quick_replies(
+        "s-sticky", is_cacheable=False, quick_replies=["QR-a"]
+    )
+    assert (
+        cs._evaluate_cache_eligibility(
+            "s-sticky", "QR-a", is_beginning_of_chat=False, is_proposed_question=False
+        )
+        is False
+    )
+
+
+def test_cache_gate_wired_server_side() -> None:
+    """The cache gate must be server-authoritative: generate_chat_stream gates
+    via _evaluate_cache_eligibility, the module records the offered quick_replies
+    for the next turn, and the forgeable client-history helper is gone."""
+    stream_source = inspect.getsource(cs.generate_chat_stream)
+    module_source = inspect.getsource(cs)
+    assert "_evaluate_cache_eligibility(" in stream_source, (
+        "server-authoritative cache gate must be wired into the party loop"
+    )
+    assert "_remember_session_quick_replies(" in module_source, (
+        "the server must record the quick_replies it offered for the next turn"
+    )
+    assert "_is_curated_conversation" not in module_source, (
+        "the forgeable client-history gate must be removed"
+    )
+    assert (
+        "if is_beginning_of_chat and not is_proposed_question:" not in stream_source
+    ), "old first-turn-only gate must be replaced by the server-side gate"

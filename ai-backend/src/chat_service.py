@@ -39,6 +39,8 @@ from datetime import datetime, timedelta, timezone
 import logging
 import random
 import uuid
+from collections import OrderedDict
+from dataclasses import dataclass
 from typing import AsyncGenerator, List, Dict, Optional, Union, cast
 
 import openai
@@ -870,12 +872,12 @@ async def fetch_party_response_stream(
 
     try:
         # GDPR cache gate (Art. 9): cache participation requires a CURATED
-        # conversation — the caller sets is_cacheable_chat from
-        # _is_curated_conversation(). A proposed question clicked mid-way
-        # through a NON-curated (free-text) conversation must never set a
-        # cache_key: the generated answer is conditioned on user-authored
-        # history (special-category data) and would otherwise be replayed
-        # cross-user from the party answer cache.
+        # conversation — the caller sets is_cacheable_chat from the
+        # server-authoritative _evaluate_cache_eligibility(). A proposed
+        # question clicked mid-way through a NON-curated (free-text)
+        # conversation must never set a cache_key: the generated answer is
+        # conditioned on user-authored history (special-category data) and
+        # would otherwise be replayed cross-user from the party answer cache.
         if is_cacheable_chat:
             if is_proposed_question and is_single_proposed_turn:
                 # First-turn proposed question: the effective history is exactly
@@ -1709,63 +1711,73 @@ async def process_party(
 
 
 # ---------------------------------------------------------------------------
-# GDPR cache gate helpers (stateless — evaluated from the request's
-# chat_history): only curated conversations may be cached. Political opinions
-# are special-category data (GDPR Art. 9); free-text conversations must never
-# be written to the cross-user party answer cache.
+# GDPR cache gate — SERVER-AUTHORITATIVE eligibility.
+#
+# The cross-user party-answer cache may only ever hold curated conversations
+# (wahl.chat-authored questions), never user-authored political opinions (GDPR
+# Art. 9 special-category data). Whether a conversation is curated must NOT be
+# decided from the request's chat_history: a client can fabricate an assistant
+# turn whose quick_replies contain arbitrary text and echo it as the next user
+# turn, laundering free-text into the cache.
+#
+# So eligibility is tracked server-side, mirroring V1's stateful
+# GroupChatSession.is_cacheable: a sticky, monotonic flag plus the quick_replies
+# the server ACTUALLY offered last turn, kept per session_id. A follow-up turn
+# is cacheable only if it matches those server-recorded replies; the stateless
+# request never gets a vote.
+#
+# In-memory (not Firestore) because losing state is safe: a missing entry (cold
+# start / different Cloud Run instance / LRU eviction) yields "not cacheable" —
+# a lost cache HIT, never a cross-user leak. Bounded by an LRU cap so the map
+# cannot grow without limit. A Firestore-backed store is the scale-out upgrade;
+# the interface here is unchanged. This store holds ONLY this best-effort
+# optimization signal — never anything an answer's correctness depends on.
 # ---------------------------------------------------------------------------
-def _conversation_is_quick_reply_driven(chat_history: List[Message]) -> bool:
-    """True iff every user turn AFTER the first was selected from the
-    immediately-preceding assistant message's quick_replies.
-
-    The web client attaches the group-level quick_replies to every assistant
-    message in chat_history, so each assistant message carries the replies it
-    offered for the following user turn. Any missing preceding assistant
-    message, missing/empty quick_replies, or a user turn whose content was not
-    offered → False (default NOT cacheable when signals are missing).
-
-    A single-user-turn history returns True — first-turn curation is handled
-    by the proposed-question check at the gate site.
-    """
-    first_user_seen = False
-    for idx, msg in enumerate(chat_history):
-        if msg.role != Role.USER:
-            continue
-        if not first_user_seen:
-            first_user_seen = True
-            continue
-        preceding = chat_history[idx - 1] if idx > 0 else None
-        if preceding is None or preceding.role != Role.ASSISTANT:
-            return False
-        if not preceding.quick_replies:
-            return False
-        if msg.content not in preceding.quick_replies:
-            return False
-    return True
+@dataclass
+class _SessionCacheState:
+    is_cacheable: bool
+    last_quick_replies: List[str]
 
 
-def _is_curated_conversation(
-    chat_history: List[Message],
-    proposed_questions: List[str],
-    proposed_questions_group: List[str],
+_SESSION_CACHE_MAX = 10_000
+_session_cache_state: "OrderedDict[str, _SessionCacheState]" = OrderedDict()
+
+
+def _evaluate_cache_eligibility(
+    session_id: str,
+    user_message_content: str,
+    is_beginning_of_chat: bool,
+    is_proposed_question: bool,
 ) -> bool:
-    """True iff the conversation is fully curated: the first user message is a
-    proposed question AND every follow-up user turn is quick-reply-driven.
+    """Server-authoritative eligibility for the chat-history-hash cache.
 
-    Only curated conversations are safe to cache — their content is authored
-    by wahl.chat, not the user, so no special-category data (GDPR Art. 9) can
-    leak cross-user via the party answer cache.
+    First turn: cacheable iff it is a curated proposed question (verified
+    upstream against server-loaded proposed_questions). Follow-up turn:
+    cacheable iff the prior turn was cacheable AND this message is one of the
+    quick_replies the SERVER offered last turn — read from the server-side
+    store, never from the client's chat_history. Missing state on a follow-up
+    → NOT cacheable (fail-safe).
     """
-    first_user_msg = next(
-        (msg for msg in chat_history if msg.role == Role.USER), None
-    )
-    if first_user_msg is None:
+    if is_beginning_of_chat:
+        return is_proposed_question
+    state = _session_cache_state.get(session_id)
+    if state is None:
         return False
-    first_curated = (
-        first_user_msg.content in proposed_questions
-        or first_user_msg.content in proposed_questions_group
+    return state.is_cacheable and (user_message_content in state.last_quick_replies)
+
+
+def _remember_session_quick_replies(
+    session_id: str, *, is_cacheable: bool, quick_replies: List[str]
+) -> None:
+    """Record the quick_replies the server just offered for this session and the
+    turn's final cache-eligibility, for the NEXT turn's server-side gate."""
+    _session_cache_state[session_id] = _SessionCacheState(
+        is_cacheable=is_cacheable,
+        last_quick_replies=list(quick_replies or []),
     )
-    return first_curated and _conversation_is_quick_reply_driven(chat_history)
+    _session_cache_state.move_to_end(session_id)
+    while len(_session_cache_state) > _SESSION_CACHE_MAX:
+        _session_cache_state.popitem(last=False)
 
 
 # ---------------------------------------------------------------------------
@@ -2027,10 +2039,16 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                 # this is equivalent to the old `is_beginning_of_chat and not
                 # is_proposed_question` gate; it additionally blocks
                 # non-curated follow-ups. Default: NOT cacheable.
-                if not _is_curated_conversation(
-                    chat_history, proposed_questions, proposed_questions_group
-                ):
-                    group_chat_session.is_cacheable = False
+                # Server-authoritative — never trust the client's chat_history
+                # quick_replies (forgeable). First turn uses the server-verified
+                # proposed-question check; follow-ups are gated against the
+                # quick_replies the server recorded last turn for this session.
+                group_chat_session.is_cacheable = _evaluate_cache_eligibility(
+                    body.session_id,
+                    user_message.content,
+                    is_beginning_of_chat,
+                    is_proposed_question,
+                )
                 party_generators.append(
                     fetch_party_response_stream(
                         party,
@@ -2190,6 +2208,14 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
         yield _frame(
             "8",
             {"type": "quick_replies_title", **quick_replies_dto.model_dump()},
+        )
+        # Record what the server offered so the NEXT turn's cache gate is decided
+        # server-side (not from client-supplied history). Sticky is_cacheable +
+        # the offered replies mirror V1's GroupChatSession state.
+        _remember_session_quick_replies(
+            body.session_id,
+            is_cacheable=group_chat_session.is_cacheable,
+            quick_replies=chat_title_and_qr.quick_replies,
         )
     except Exception as e:
         logger.error(f"Error generating quick replies/title: {e}", exc_info=True)
