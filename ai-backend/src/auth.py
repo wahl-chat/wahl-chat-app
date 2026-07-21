@@ -52,11 +52,31 @@ def verify_optional_bearer_token(request: Request) -> Optional[dict]:
         return None
 
 
+def _has_real_signin(claims: dict) -> bool:
+    """True only for a verified, NON-anonymous Firebase sign-in.
+
+    A valid token is not proof of a registered user: the frontend signs every
+    visitor in anonymously, and an anonymous session yields a fully valid
+    Firebase ID token. The provider lives at
+    ``claims["firebase"]["sign_in_provider"]`` ("anonymous" for anon sessions;
+    "password"/"google.com"/… for real sign-ins). Premium requires an explicit
+    non-anonymous provider; anything else (anonymous, or an unexpected token
+    shape) is denied.
+    """
+    firebase_claims = claims.get("firebase")
+    if not isinstance(firebase_claims, dict):
+        return False
+    provider = firebase_claims.get("sign_in_provider")
+    return bool(provider) and provider != "anonymous"
+
+
 def resolve_user_is_logged_in(request: Request, body_flag: bool, route: str) -> bool:
     """Server-side truth for ``user_is_logged_in`` (premium LLM gating).
 
     The client-supplied body flag alone is NEVER trusted: it is honored only
-    when the request also carries a valid Firebase ID token.
+    when the request also carries a valid, NON-anonymous Firebase ID token
+    (every visitor is signed in anonymously, so an anonymous token — though
+    valid — must not unlock premium).
     """
     if not body_flag:
         return False
@@ -65,6 +85,13 @@ def resolve_user_is_logged_in(request: Request, body_flag: bool, route: str) -> 
         logger.debug(
             "%s: request body claims user_is_logged_in but presented no valid "
             "Firebase ID token — ignoring the flag (treated as anonymous).",
+            route,
+        )
+        return False
+    if not _has_real_signin(claims):
+        logger.debug(
+            "%s: token is anonymous / lacks a real sign-in provider — premium "
+            "flag ignored (treated as anonymous).",
             route,
         )
         return False

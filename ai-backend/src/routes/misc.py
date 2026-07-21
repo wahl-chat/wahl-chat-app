@@ -9,7 +9,7 @@ These are regular JSON POST endpoints (not SSE streams).
 
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Request
 
 from src.chatbot_async import (
     generate_swiper_assistant_response,
@@ -36,6 +36,7 @@ from src.utils import (
     sanitize_text_for_speech,
 )
 from src.audio_service import synthesize_speech
+from src.auth import verify_optional_bearer_token
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +145,7 @@ async def chat_summary(body: RequestSummaryDto):
 
 
 @router.post("/tts")
-async def text_to_speech(body: TextToSpeechRequestDto):
+async def text_to_speech(request: Request, body: TextToSpeechRequestDto):
     """Generate TTS audio from message text (JSON response, not SSE).
 
     NOTE: In the SSE model the chat history is stateless (per-request). The frontend
@@ -152,10 +153,12 @@ async def text_to_speech(body: TextToSpeechRequestDto):
     session to look the message up by ID.
 
     COST EXPOSURE: this endpoint synthesizes arbitrary client-supplied text and
-    is intentionally reachable without authentication (parity with anonymous
-    chat). Every request incurs a paid TTS call — if abuse appears, add rate
-    limiting and/or require the optional Bearer token (src.auth) here first.
+    each request incurs a paid TTS call. It requires at least a valid (possibly
+    anonymous) Firebase token — every real user carries one — so unauthenticated
+    callers are turned away without adding friction for anonymous chat users.
     """
+    if verify_optional_bearer_token(request) is None:
+        raise HTTPException(status_code=401, detail="Firebase authentication required")
     try:
         # Frontend sends the text to synthesize in the voice field (repurposed as text)
         # The TTS endpoint requires the text content to be provided
