@@ -21,10 +21,11 @@ import logging
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.auth import resolve_user_is_logged_in
 from src.chat_service import generate_chat_stream, with_heartbeat
+from src.models.chat import Message
 
 logger = logging.getLogger(__name__)
 
@@ -44,13 +45,25 @@ _SSE_HEADERS = {
 }
 
 
+# Server-side bounds on the PUBLIC, unauthenticated chat endpoint. Every field
+# flows into LLM prompts, so an unbounded body is a cost / context-overflow /
+# memory vector. V1 enforced a 500-char user message (ChatUserMessageDto) that
+# the SSE migration dropped; restore it and bound the list inputs + history
+# depth. Invalid input is rejected by FastAPI with 422 before reaching the LLM.
+_MAX_USER_MESSAGE_CHARS = 500
+_MAX_PARTY_IDS = 20  # largest seeded roster (Baden-Württemberg) is 19
+_MAX_HISTORY_MESSAGES = 100
+
+
 class ChatRequestDto(BaseModel):
-    session_id: str
-    context_id: str
-    user_message: str
-    party_ids: list[str]
+    session_id: str = Field(max_length=200)
+    context_id: str = Field(max_length=200)
+    user_message: str = Field(max_length=_MAX_USER_MESSAGE_CHARS)
+    party_ids: list[str] = Field(default_factory=list, max_length=_MAX_PARTY_IDS)
     user_is_logged_in: bool = False
-    chat_history: list = []
+    chat_history: list[Message] = Field(
+        default_factory=list, max_length=_MAX_HISTORY_MESSAGES
+    )
 
 
 @router.post("/chat")

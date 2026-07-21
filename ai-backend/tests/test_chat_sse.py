@@ -449,3 +449,51 @@ async def test_voting_behavior_route_sse(app, monkeypatch):
     assert any(p.startswith("8") for p in payloads), (
         "voting_behavior_complete must be emitted as a legacy code-8 frame"
     )
+
+
+# ===========================================================================
+# Request-DTO bounds (public endpoint hardening)
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+async def test_chat_request_rejects_unbounded_input(patch_chat_io, app):
+    """The public SSE endpoint must bound user-message length, party count, and
+    history depth. V1's ChatUserMessageDto enforced a 500-char cap that the SSE
+    migration dropped; each violation must be rejected with 422 before it can
+    reach an LLM prompt (cost / context-overflow / memory guard)."""
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://test", timeout=30.0
+    ) as client:
+        # over-long user message (> 500 chars)
+        over_msg = dict(_CHAT_REQUEST_BODY, user_message="x" * 501)
+        r = await client.post("/api/v1/chat", json=over_msg)
+        assert r.status_code == 422, r.text
+
+        # too many parties (> 20)
+        over_parties = dict(
+            _CHAT_REQUEST_BODY, party_ids=[f"p{i}" for i in range(21)]
+        )
+        r = await client.post("/api/v1/chat", json=over_parties)
+        assert r.status_code == 422, r.text
+
+        # too-deep history (> 100 turns)
+        over_history = dict(
+            _CHAT_REQUEST_BODY,
+            chat_history=[{"role": "user", "content": "hi"}] * 101,
+        )
+        r = await client.post("/api/v1/chat", json=over_history)
+        assert r.status_code == 422, r.text
+
+        # malformed history entry (missing required Message fields)
+        bad_history = dict(_CHAT_REQUEST_BODY, chat_history=[{"foo": "bar"}])
+        r = await client.post("/api/v1/chat", json=bad_history)
+        assert r.status_code == 422, r.text
+
+
+@pytest.mark.asyncio
+async def test_chat_request_accepts_valid_bounded_input(patch_chat_io, app):
+    """A well-formed request at the boundary is still accepted (streams 200)."""
+    payloads = await _drain_chat_stream(app, dict(_CHAT_REQUEST_BODY))
+    assert payloads[-1] == "[DONE]"
