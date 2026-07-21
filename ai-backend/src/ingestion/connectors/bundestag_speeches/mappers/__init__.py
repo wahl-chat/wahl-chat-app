@@ -6,5 +6,5 @@
 
 Pure transform functions — no I/O.
 
-  corpus.py    — build_chunk_records, chunk_text, _get_encoding, party_to_slug
+  corpus.py    — build_chunk_records, chunk_text, party_to_slug
 """

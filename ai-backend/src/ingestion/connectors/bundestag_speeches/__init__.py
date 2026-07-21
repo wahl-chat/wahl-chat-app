@@ -19,5 +19,5 @@ Package structure (mirrors connectors/abgeordnetenwatch/):
   utils.py            — normalize_party, normalize_whitespace
   bulk.py             — optional --from-jsonl backfill (manifestos bulk.py analog)
   mappers/
-    corpus.py         — build_chunk_records, chunk_text, _get_encoding, party_to_slug
+    corpus.py         — build_chunk_records, chunk_text, party_to_slug
 """

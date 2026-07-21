@@ -56,7 +56,6 @@ from src.ingestion.connectors.manifestos.connector import (
     load_program_pages,
 )
 from src.ingestion.connectors.manifestos.mappers.corpus import (
-    _get_encoding,
     build_manifesto_records,
     chunk_pages,
     party_to_slug,
@@ -90,7 +89,7 @@ def ingest(
         limit:   Max programs to process (None = all passing the 2020 filter).
         ids:     Specific AW program IDs to process (overrides limit).
         dry_run: If True, skip embed/upsert; fetch, parse, and print per-program
-                 stats (party, period, source_kind, pages, tokens, chunks).
+                 stats (party, period, source_kind, pages, chars, chunks).
 
     Returns:
         Tuple of (programs_processed, chunks_upserted).
@@ -212,15 +211,14 @@ def ingest(
         else:
             build_chunks = list(chunk_tuples)
 
-        # --- Count tokens for dry-run report ---
-        enc = _get_encoding()
-        total_tokens = sum(len(enc.encode(t)) for t, _, _ in build_chunks)
+        # --- Count characters for dry-run report (chunking is character-based) ---
+        total_chars = sum(len(t) for t, _, _ in build_chunks)
 
         if dry_run:
             print(
                 f"  DRY-RUN program {program_id}: party={party_slug!r} "
                 f"period={period_label!r} source_kind={source_kind!r} "
-                f"pages={total_pages} tokens={total_tokens} chunks={len(build_chunks)}"
+                f"pages={total_pages} chars={total_chars} chunks={len(build_chunks)}"
             )
             programs_processed += 1
             chunks_total += len(build_chunks)
@@ -302,7 +300,7 @@ if __name__ == "__main__":
         default=False,
         help=(
             "Fetch and parse programs but skip embed + upsert. "
-            "Prints per-program stats (party, period, source_kind, pages, tokens, chunks)."
+            "Prints per-program stats (party, period, source_kind, pages, chars, chunks)."
         ),
     )
     args = parser.parse_args()
