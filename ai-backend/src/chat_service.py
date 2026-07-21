@@ -640,12 +640,18 @@ def _sse(part: object) -> str:
 
 
 def _frame(event_type: str, payload: object) -> str:
-    """Map a legacy event code to AI SDK v5 UI-message-stream part(s).
+    """Map a legacy V1 event code to AI SDK v5 UI-message-stream part(s).
 
-    The v1 hand-rolled wire codes (f/0/8/e/d) are translated to the real v5
-    UI-message-stream parts so ``@ai-sdk/react`` useChat can parse the stream.
-    All V1 named chat events (type '8') are carried verbatim inside a single
-    custom ``data-chat_event`` part (the frontend switches on ``data.type``).
+    The single-character codes (f/0/8/e/d) are NOT chosen here — they are the
+    event codes V1 already emitted over Socket.IO. Keeping them as the input
+    vocabulary let the many V1 call sites port to SSE unchanged; this function
+    is the single place that translates each to its real v5 part, so the codes
+    never reach the wire (clients only ever see named v5 parts):
+        f → start + start-step         e → finish-step
+        8 → data-chat_event (custom)   d → finish
+        0 → text-delta (bare fallback; prefer _text_start/_text_end)
+    All V1 named chat events ride inside the '8' ``data-chat_event`` part (the
+    frontend switches on ``data.type``).
     """
     if event_type == "f":
         msg_id = payload.get("messageId") if isinstance(payload, dict) else None
@@ -685,13 +691,11 @@ def _text_end(text_id: str) -> str:
 def _party_chunk(session_id: str, party_id: str, chunk: str) -> str:
     """Emit one incremental answer chunk as a `party_chunk` data annotation.
 
-    The frontend renders the visible chat from the Zustand store, not from
-    useChat's internal `messages`. The store appends a party's answer live via
-    `mergeStreamingChunkPayloadForMessage`, which keys on `party_chunk` events
-    carrying `chunk_content` (the V1 `party_response_chunk_ready` contract).
-    The v5 `text-delta` parts feed useChat's (unrendered) message state only, so
-    without this companion event the answer only appears at `party_complete` —
-    as one block. Emitting both keeps useChat's stream valid AND streams to the UI.
+    Emitted alongside the v5 text-delta parts: the `party_chunk` data event
+    carries `chunk_content` and preserves the V1 `party_response_chunk_ready`
+    contract for live per-party rendering. Both are emitted so the v5 stream
+    stays valid while the incremental answer is also delivered via the named
+    event that clients consume for live output.
     """
     return _frame(
         "8",
