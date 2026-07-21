@@ -271,7 +271,9 @@ if __name__ == "__main__":
 
     _env_path = Path(__file__).resolve().parents[4] / ".env"
     if _env_path.exists():
-        load_dotenv(_env_path, override=False)
+        # .env is the source of truth for local dev — let it win over any stale
+        # value inherited from the shell.
+        load_dotenv(_env_path, override=True)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 

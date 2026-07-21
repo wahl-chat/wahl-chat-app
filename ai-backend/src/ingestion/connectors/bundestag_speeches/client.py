@@ -24,12 +24,19 @@ import time
 from urllib.parse import urlencode
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 import logging as _logging
 
 from .constants import BASE_URL, _MAX_PAGES
 
 _client_logger = _logging.getLogger(__name__)
+
+# User-Agent identifying wahl.chat (same string the AW client sends). Honest
+# identification over a spoofed browser UA; the DIP WAF's .enodia/challenge is
+# handled by the curl fallback in get(), not by masquerading here.
+_USER_AGENT = "wahl.chat-ingestion/2.0 (https://wahl.chat)"
 
 
 class DipChallengeError(RuntimeError):
@@ -52,10 +59,24 @@ class DipClient:
         self.api_key = api_key
         self.sleep = sleep
         self.session = requests.Session()
+        # Retry transient HTTP failures at the adapter level (mirrors the AW
+        # client): urllib3 backs off on 429/5xx and honours Retry-After. The
+        # .enodia/challenge redirect is NOT an HTTP error status, so it is
+        # handled separately (curl fallback) in get().
+        retry = Retry(
+            total=3,
+            backoff_factor=1.0,
+            status_forcelist=(429, 500, 502, 503, 504),
+            allowed_methods=("GET",),
+            respect_retry_after_header=True,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
         self.session.headers.update(
             {
                 "Accept": "application/json",
-                "User-Agent": "Mozilla/5.0 bundestag-speeches-student-project/1.0",
+                "User-Agent": _USER_AGENT,
             }
         )
 

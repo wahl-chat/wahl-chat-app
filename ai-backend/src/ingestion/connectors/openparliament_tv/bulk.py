@@ -158,6 +158,13 @@ def ingest(
             records = build_chunk_records(item, mdb_lookup)
             if not records:
                 # Unaligned / ASR-only / empty-text item — skip (not counted).
+                # debug (not warning): these are legitimately common in the bulk
+                # feed, so per-item visibility belongs in a debug run, not the
+                # normal log stream.
+                logger.debug(
+                    "op backfill: skipping item with no usable records (id=%s)",
+                    item.get("id"),
+                )
                 continue
 
             ext = _datum_to_external_id(item.get("dateStart"))

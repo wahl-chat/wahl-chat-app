@@ -103,14 +103,15 @@ def supersede_dip_duplicates(
     # the per-item except fired AFTER the upsert, so the next run present-skipped).
     op_speeches: dict[str, dict] = {}
     for chunk in op_chunks:
-        key = getattr(chunk, "speech_key", None)
-        sid = getattr(chunk, "source_item_id", None)
+        # op_chunks are real ChunkRecord instances; every field below is declared
+        # on the model, so plain attribute access is correct (getattr would only
+        # imply a dict-like path that does not exist here).
+        key = chunk.speech_key
+        sid = chunk.source_item_id
         if key is None or sid is None:
             continue
         entry = op_speeches.setdefault(str(sid), {"key": key, "texts": []})
-        entry["texts"].append(
-            (getattr(chunk, "chunk_index", 0) or 0, getattr(chunk, "text", "") or "")
-        )
+        entry["texts"].append((chunk.chunk_index or 0, chunk.text or ""))
     if not op_speeches:
         return 0
 
