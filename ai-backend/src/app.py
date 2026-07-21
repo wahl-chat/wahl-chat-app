@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-FastAPI entry point — replaces the V1 aiohttp entry point.
+FastAPI application entry point.
 
 Transport: SSE via sse-starlette.
 """
@@ -43,7 +43,7 @@ app.add_middleware(
 
 logger.info(f"CORS allowed origins: {cors_origins}")
 
-# Routers — all prefixed with /api/v1 (preserved from V1 route_prefix convention)
+# Routers — all prefixed with /api/v1
 app.include_router(chat.router)
 app.include_router(pro_con.router)
 app.include_router(voting_behavior.router)

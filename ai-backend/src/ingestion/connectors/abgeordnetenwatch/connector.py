@@ -54,13 +54,13 @@ logger = logging.getLogger(__name__)
 # Zero-polls grace window (days since the period's date_from). A legitimately
 # NEW term (e.g. BW/RP 2026-2031 in their first weeks) plausibly has zero polls
 # for a while — only a period older than this window turns "zero polls from the
-# API" into a hard misconfiguration error (D4).
+# API" into a hard misconfiguration error.
 _ZERO_POLLS_GRACE_DAYS = 90
 
 
 @dataclass(frozen=True)
 class _SourceItem:
-    """Frozen source-item envelope fed to corpus_mapper.chunk_poll() (D10).
+    """Frozen source-item envelope fed to corpus_mapper.chunk_poll().
 
     Satisfies the structural SourceItemLike protocol in mappers/corpus.py —
     the five attributes chunk_poll() reads from its first argument.
@@ -103,7 +103,7 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         self,
         legislature_id: Optional[int] = None,
     ) -> None:
-        # Env read lives in the __init__ BODY (D7): an import-time default arg
+        # Env read lives in the __init__ BODY: an import-time default arg
         # would freeze the value for the process lifetime and force one process
         # invocation per legislature.
         if legislature_id is None:
@@ -114,7 +114,7 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         cfg = LEGISLATURE_CONFIG.get(legislature_id)
         if cfg is None:
             raise ValueError(
-                f"Legislature {legislature_id} not in LEGISLATURE_CONFIG (D-05). "
+                f"Legislature {legislature_id} not in LEGISLATURE_CONFIG. "
                 f"Add a LegislatureConfig row in legislature_config.py before running."
             )
         # Period key (globally unique AW parliament_period int).
@@ -123,7 +123,7 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         self._region: str = cfg.region
         # German Wahlperiode number (Bundestag rows only; None for Landtage).
         self._wahlperiode: Optional[int] = cfg.wahlperiode
-        # Period start date — drives the D4 zero-polls grace window.
+        # Period start date — drives the zero-polls grace window.
         self._period_date_from: str = cfg.date_from
 
         # Paced AW API client.
@@ -236,7 +236,7 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         # Fetch all polls for this legislature.
         polls = self._client.get_all("polls", {"field_legislature": legislature_id})
 
-        # Fail-fast with grace window (D4): zero polls from the raw API response
+        # Fail-fast with grace window: zero polls from the raw API response
         # usually means a misconfigured parliament_period_id in LEGISLATURE_CONFIG.
         # MUST check BEFORE the set-difference filter — a set-difference-filtered-
         # to-empty result is normal on incremental runs. Exception: a legitimately
@@ -250,7 +250,7 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
                     f"AW legislature {legislature_id} ({self._region}) returned zero polls "
                     f"from the API and its period started {period_age_days} days ago "
                     f"(> {_ZERO_POLLS_GRACE_DAYS}-day grace window). This usually means a "
-                    f"wrong parliament_period_id in LEGISLATURE_CONFIG (D-05). "
+                    f"wrong parliament_period_id in LEGISLATURE_CONFIG. "
                     f"Expected >0 polls for an established legislature."
                 )
             logger.warning(
@@ -265,7 +265,7 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
             return []
 
         # Drop malformed poll entries whose id is not an int (untrusted AW payload).
-        # Applied on BOTH the incremental and the AW_REFRESH path (D11) — a
+        # Applied on BOTH the incremental and the AW_REFRESH path — a
         # non-int id would crash str(p["id"]) sorting / fetch downstream.
         polls = [p for p in polls if isinstance(p.get("id"), int)]
 
@@ -329,17 +329,17 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         """Build ChunkRecords directly from poll + votes payload.
 
         No SourceItemRecord, no matcher objects, no Firestore.
-        The whole record build lives in corpus_mapper.chunk_poll() (D9): topic
+        The whole record build lives in corpus_mapper.chunk_poll(): topic
         extraction, relevance_levels derivation, envelope stamping (external_id
         = raw int poll_id, wahlperiode, legislature_period_id, region) and the
         envelope-inclusive content_hash. This method owns only the connector
-        concerns: the D12 legislature cross-check, publish_date parsing, the
-        source-item stub, and the runner skip contract (raising ValueError).
+        concerns: the legislature cross-check, publish_date parsing, the
+        source-item stub, and raising ValueError on unusable input.
 
         Zero-tally guard:
             If the poll produces zero usable fraction tallies (all votes have
             fraction=[]), chunk_poll() returns an empty list and this method
-            raises ValueError so run_connector skip-and-continue applies.
+            raises ValueError.
 
         Args:
             raw: Dict with keys "poll" (poll item dict) and "votes" (list).
@@ -351,16 +351,15 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         Raises:
             ValueError: If the poll has zero usable fraction tallies, an
                 unparseable poll date, or belongs to a different legislature
-                than this connector is configured for (D12 cross-check).
+                than this connector is configured for.
         """
         poll: dict = raw["poll"]
 
         poll_id: int = poll["id"]
 
-        # Legislature cross-check (D12): an operator error (e.g. fetching a
+        # Legislature cross-check: an operator error (e.g. fetching a
         # Bundestag poll under a Bayern connector) would silently stamp the
-        # wrong region/legislature_period_id. Raise so run_connector
-        # skip-and-warns instead of mislabeling the chunk.
+        # wrong region/legislature_period_id, so refuse rather than mislabel.
         poll_legislature_id = (poll.get("field_legislature") or {}).get("id")
         if poll_legislature_id != self._legislature_id:
             raise ValueError(
@@ -374,9 +373,8 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         try:
             publish_date = date_type.fromisoformat(poll_date_str)
         except (ValueError, TypeError):
-            # skip-and-warn instead of fabricating date.today().
-            # A missing/unparseable poll date makes the publish_date non-deterministic;
-            # raising ValueError here triggers run_connector skip-and-continue.
+            # A missing/unparseable poll date makes publish_date non-deterministic;
+            # raise rather than fabricate date.today().
             raise ValueError(
                 f"AW poll {poll_id} has missing or unparseable field_poll_date "
                 f"{poll_date_str!r} — skipping to avoid fabricated publish_date."
@@ -409,7 +407,7 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
             raise ValueError(
                 f"AW poll {poll_id} has zero usable tallies — "
                 "all votes have fraction=[] or no votes at all. "
-                "Skipping poll (T-04-13 zero usable tallies)."
+                "Skipping poll."
             )
 
         return chunks

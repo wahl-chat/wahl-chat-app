@@ -566,8 +566,8 @@ async def generate_streaming_chatbot_response(
         # For non-federal elections, instruct the LLM to explicitly flag Bundestag-origin
         # votes vs the local Landtag (additive to the structural region marker in sources[]).
         answer_guidelines += _federal_origin_disclosure_note(election_level)
-        # Phase 10 (D1/D2/D3) + positive coverage preamble: append the
-        # source-aware four-section structure guidance ONLY when a caller opts in
+        # Source-aware structure + positive coverage preamble: append the
+        # four-section structure guidance ONLY when a caller opts in
         # (present_sources passed or has_historic set). With the
         # backward-compatible defaults (present_sources=None, has_historic=False)
         # no structure note is emitted, so untouched callers reproduce today's
@@ -655,9 +655,9 @@ def _source_structure_note(
     """Guideline block appended to the SINGLE-PARTY answer's ``answer_guidelines``.
 
     Mirrors ``_federal_origin_disclosure_note``: returns a string appended to
-    ``answer_guidelines``. It gives the German answer the Phase-10 four-section
-    shape with soft lead-in cues (D1/D2), a clearly-marked historic section when
-    the historic bucket is non-empty (D3), and a POSITIVE coverage preamble that
+    ``answer_guidelines``. It gives the German answer the four-section
+    shape with soft lead-in cues, a clearly-marked historic section when
+    the historic bucket is non-empty, and a POSITIVE coverage preamble that
     names the source types actually grounding the answer. All German literals
     live in ``prompts.py``; this helper only composes them conditionally.
 
@@ -676,7 +676,7 @@ def _source_structure_note(
       current source type is present no preamble is emitted.
 
     Scope: the four-section shape + coverage preamble are single-party only. The
-    comparison path keeps its own by-party structure and receives only the D3
+    comparison path keeps its own by-party structure and receives only the
     historic-marking instruction (see
     ``generate_streaming_chatbot_comparing_response``).
     """
@@ -717,7 +717,7 @@ async def generate_streaming_chatbot_comparing_response(
     # tell the model to flag Bundestag votes so a comparison can't present a federal vote
     # as a party's local-election stance without disclosure.
     answer_guidelines += _federal_origin_disclosure_note(election_level)
-    # Phase 10 (D3): the comparison keeps its own by-party structure, so the
+    # The comparison keeps its own by-party structure, so the
     # four-section shape + coverage transparency (single-party only) do NOT apply
     # here. Only the historic-marking instruction is threaded: when historic
     # material is present, tell the model to mark it as a prior legislature so a

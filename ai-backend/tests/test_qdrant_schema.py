@@ -152,7 +152,7 @@ def test_collection_exists(qdrant: QdrantClient) -> None:
     """
     collection_names = [c.name for c in qdrant.get_collections().collections]
     assert COLLECTION_NAME in collection_names, (
-        f"VEC-01: collection '{COLLECTION_NAME}' not found in Qdrant after "
+        f"collection '{COLLECTION_NAME}' not found in Qdrant after "
         f"calling setup(). Found: {collection_names!r}. "
         "Run `uv run python -m src.ingestion.setup_collection` to create it."
     )
@@ -170,12 +170,12 @@ def test_payload_indexes(qdrant: QdrantClient) -> None:
     indexed = set(info.payload_schema.keys())
     missing = _REQUIRED_INDEXES - indexed
     assert not missing, (
-        f"SC1/VEC-02: missing payload indexes in '{COLLECTION_NAME}': {missing!r}. "
+        f"missing payload indexes in '{COLLECTION_NAME}': {missing!r}. "
         "Expected all of: {_REQUIRED_INDEXES!r}. "
         "Re-run `uv run python -m src.ingestion.setup_collection` to add them."
     )
     assert indexed.issuperset(_REQUIRED_INDEXES), (
-        f"SC1/VEC-02: payload_schema does not cover all required indexes. "
+        f"payload_schema does not cover all required indexes. "
         f"indexed={indexed!r}, required={_REQUIRED_INDEXES!r}"
     )
 
@@ -233,15 +233,15 @@ def test_match_any_filter(qdrant: QdrantClient, temp_collection: str) -> None:
     returned_ids = {str(pt.id) for pt in results[0]}
 
     assert str(point_id_de) in returned_ids, (
-        "SC2/VEC-03: chunk with region='DE' must be returned when election "
+        "chunk with region='DE' must be returned when election "
         f"region_path={election_region_path!r} — 'DE' is a member of that path. "
         f"Returned IDs: {returned_ids!r}"
     )
     assert str(point_id_de_by) not in returned_ids, (
-        "SC2/VEC-03: chunk with region='DE-BY' must NOT be returned when election "
+        "chunk with region='DE-BY' must NOT be returned when election "
         f"region_path={election_region_path!r} — 'DE-BY' is not a member of that path. "
         "If this assertion fails, wrong-region documents would leak into Rhineland-Palatinate "
-        "query results at runtime (information disclosure, T-02-04). "
+        "query results at runtime (information disclosure). "
         f"Returned IDs: {returned_ids!r}"
     )
 
@@ -285,7 +285,7 @@ def test_idempotent_upsert(qdrant: QdrantClient, temp_collection: str) -> None:
     count_after_second = _count()
 
     assert count_after_first == count_after_second, (
-        "VEC-04: point count must not increase when the same UUID is upserted twice. "
+        "point count must not increase when the same UUID is upserted twice. "
         f"After first upsert: {count_after_first}; after second upsert: {count_after_second}. "
         "Qdrant should overwrite the existing point, not duplicate it. "
         "If this fails, connectors that re-run ingestion will bloat the collection."
@@ -298,10 +298,10 @@ def test_idempotent_upsert(qdrant: QdrantClient, temp_collection: str) -> None:
         with_payload=True,
     )
     assert fetched and fetched[0].payload is not None, (
-        "VEC-04: could not retrieve the upserted point — something went wrong."
+        "could not retrieve the upserted point — something went wrong."
     )
     assert fetched[0].payload.get("text") == "version-two", (
-        "VEC-04: second upsert should have overwritten the payload with 'version-two'. "
+        "second upsert should have overwritten the payload with 'version-two'. "
         f"Actual payload: {fetched[0].payload!r}"
     )
 
@@ -319,7 +319,7 @@ def test_new_phase5_indexes_present(qdrant: QdrantClient) -> None:
     indexed = set(info.payload_schema.keys())
     missing = _PHASE5_INDEXES - indexed
     assert not missing, (
-        f"P5-VEC-01: missing Phase-5 payload indexes in '{COLLECTION_NAME}': {missing!r}. "
+        f"missing payload indexes in '{COLLECTION_NAME}': {missing!r}. "
         "Re-run `uv run python -m src.ingestion.setup_collection` to add them. "
         "Note: external_id must use IntegerIndexParams(range=True) for the cursor query."
     )

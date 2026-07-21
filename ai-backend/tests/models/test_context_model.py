@@ -45,7 +45,7 @@ class TestContextLegislaturePeriodId:
         assert ctx.legislature_period_id == 161, (
             "legislature_period_id=161 was passed to Context constructor but "
             "ctx.legislature_period_id did not return 161. "
-            "Add legislature_period_id: Optional[int] = Field(None, ...) to Context (07-03)."
+            "Add legislature_period_id: Optional[int] = Field(None, ...) to Context."
         )
 
     def test_context_legislature_period_id_default_is_none(self) -> None:
@@ -53,5 +53,5 @@ class TestContextLegislaturePeriodId:
         ctx = Context(**_base_context_kwargs())
         assert ctx.legislature_period_id is None, (
             "Context.legislature_period_id must default to None when not supplied. "
-            "Add legislature_period_id: Optional[int] = Field(None, ...) to Context (07-03)."
+            "Add legislature_period_id: Optional[int] = Field(None, ...) to Context."
         )

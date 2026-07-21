@@ -60,7 +60,7 @@ class BaseConnector(ABC):
 
     @property
     def cursor_source(self) -> Optional[str]:
-        """Source scope for the runner's cursor read (C6). Defaults to ``source``.
+        """Source scope for the runner's cursor read. Defaults to ``source``.
 
         The runner derives ``since`` from max(external_id) scoped to
         ``cursor_source`` (when not None). Override with a plain class attribute
@@ -127,7 +127,7 @@ class BaseConnector(ABC):
         ...
 
     def post_upsert(self, qdrant, collection_name: str, chunks: list[ChunkRecord]) -> int:  # noqa: ANN001
-        """Optional hook — called by the runner AFTER each successful item upsert (B8).
+        """Optional hook — called by the runner AFTER each successful item upsert.
 
         Source-specific follow-up policy belongs here, on the connector, not in
         the generic runner. Example: the openparliament_tv connector supersedes

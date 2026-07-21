@@ -1,7 +1,7 @@
 {
   "meta": {
     "source": "openparliament.tv bulk processed/20101-session.json (TRIMMED test fixture)",
-    "note": "Hand-authored subset of a real op session file. FOUR data[] speech items covering every D-03 branch: (a) aligned+proceedings CDU/CSU main speaker, (b) unaligned, (c) ASR-only (generated), (d) minister with empty faction. Timestamps are per-speech-relative seconds as STRINGS (first sentence '1.000') exactly like the live bulk data.",
+    "note": "Hand-authored subset of a real op session file. FOUR data[] speech items covering every transcript-alignment branch: (a) aligned+proceedings CDU/CSU main speaker, (b) unaligned, (c) ASR-only (generated), (d) minister with empty faction. Timestamps are per-speech-relative seconds as STRINGS (first sentence '1.000') exactly like the live bulk data.",
     "parliament": "DE",
     "electoralPeriod": 20,
     "session": 101

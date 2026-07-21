@@ -4,7 +4,7 @@
 
 """Connector-level constants for the bundestag_speeches package.
 
-CONFIG_FILE removed — DIP_API_KEY is read from .env, not a config.json file.
+DIP_API_KEY is read from .env.
 
 Security: BASE_URL is a pinned module constant — never derived
 from a caller arg or runtime input (mirrors abgeordnetenwatch/_AW_BASE).

@@ -205,12 +205,12 @@ def test_region_for_period_aw_labels() -> None:
 
 
 # ---------------------------------------------------------------------------
-# D6: content_hash covers the stamped envelope fields
+# content_hash covers the stamped envelope fields
 # ---------------------------------------------------------------------------
 
 
 def test_chunk_poll_stamps_envelope_fields() -> None:
-    """chunk_poll owns the full envelope stamping (D9): external_id,
+    """chunk_poll owns the full envelope stamping: external_id,
     wahlperiode, legislature_period_id and relevance_levels."""
     chunk = chunk_poll(
         _SourceItemStub(),
@@ -227,7 +227,7 @@ def test_chunk_poll_stamps_envelope_fields() -> None:
 
 
 def test_content_hash_changes_with_envelope_fields() -> None:
-    """D6: the content_hash must cover the normalize()-stamped envelope fields
+    """the content_hash must cover the normalize()-stamped envelope fields
     so an AW_REFRESH reconcile run propagates envelope corrections."""
     raw = _load_raw_3602()
 

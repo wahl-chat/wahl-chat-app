@@ -25,7 +25,7 @@ try:
     )
 except ImportError as _e:
     pytest.skip(
-        f"Wave 3 pending: connector.py not yet created — {_e}",
+        f"connector.py not yet created — {_e}",
         allow_module_level=True,
     )
 

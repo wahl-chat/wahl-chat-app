@@ -41,7 +41,7 @@ import logging
 import re
 from typing import FrozenSet
 
-# B7: the governance-level constants are owned by the shared framework module
+# The governance-level constants are owned by the shared framework module
 # src/ingestion/levels.py (retrieve.py imports from there without touching a
 # connector). Re-exported here because the taxonomy dict below, the AW
 # connector, and the AW tests all reference them from this module.

@@ -3,15 +3,15 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Source-scoped cursor test for run.get_cursor (D-11/Q2).
+Source-scoped cursor test for run.get_cursor.
 
 `get_cursor` must gain an optional `source` param so op and DIP maintain
 ISOLATED `max(external_id)` cursors (both share source_type
 "parliamentary_speech"). Without it, op's alignment backlog would drag DIP's
 cursor and vice-versa.
 
-Wave-0 SCAFFOLD: the `source` param does not exist yet (11-05). This file
-collects cleanly and CAPABILITY-SKIPS (via signature inspection) until the
+The `source` param does not exist yet. This file
+collects cleanly and skips (via signature inspection) until the
 param lands, then asserts the second FieldCondition scopes the scroll filter.
 """
 
@@ -37,7 +37,7 @@ from src.ingestion.schemas import AuthorityTier, ChunkRecord, SourceType
 # Capability guard: SKIP until get_cursor accepts a `source` kwarg.
 if "source" not in inspect.signature(get_cursor).parameters:
     pytest.skip(
-        "get_cursor(source=...) not yet implemented (11-05) — Wave-0 scaffold",
+        "get_cursor(source=...) not yet implemented",
         allow_module_level=True,
     )
 
@@ -64,7 +64,7 @@ class _CursorQdrant:
 
 
 def test_source_scoped_cursor() -> None:
-    """Q2: op vs dip max(external_id) is isolated by the `source` param."""
+    """op vs dip max(external_id) is isolated by the `source` param."""
     qdrant = _CursorQdrant({"op": 20230601, "dip": 20260615})
 
     op_cursor = get_cursor(qdrant, "wahlchat_chunks_dev", "parliamentary_speech", source="op")
@@ -96,7 +96,7 @@ def _cursor_filter_keys(flt) -> set:  # noqa: ANN001
 
 
 def test_runner_honors_cursor_source_none() -> None:
-    """C6: a connector with cursor_source=None gets an UNSCOPED cursor read even
+    """A connector with cursor_source=None gets an UNSCOPED cursor read even
     though it stamps a `source` — the DIP floor must span both speech sources
     (op supersede-deletes dip points, so a dip-scoped max walks backward)."""
     from unittest.mock import MagicMock as _MM
@@ -115,7 +115,7 @@ def test_runner_honors_cursor_source_none() -> None:
 
 
 def test_runner_defaults_cursor_source_to_source() -> None:
-    """C6: without an override, the cursor stays scoped to the connector's source
+    """Without an override, the cursor stays scoped to the connector's source
     (op keeps its independent source-scoped cursor)."""
     from unittest.mock import MagicMock as _MM
 
@@ -159,7 +159,7 @@ def _chunk(
 
 
 def test_base_connector_declares_source_type_contract() -> None:
-    """B4: the ABC itself declares the required `source_type` attribute (annotation,
+    """The ABC itself declares the required `source_type` attribute (annotation,
     no default) and the optional `source` discriminator (default None)."""
     assert "source_type" in BaseConnector.__annotations__, (
         "BaseConnector must declare source_type as a documented required attribute"
@@ -173,7 +173,7 @@ def test_base_connector_declares_source_type_contract() -> None:
 class _ChunksStub(BaseConnector):
     """Stub connector returning a pre-baked chunks list per external_id.
 
-    Declares the B4-required `source_type` class attribute (the ABC now documents
+    Declares the required `source_type` class attribute (the ABC now documents
     it as mandatory; the runner reads it without a type: ignore)."""
 
     source_type: str = SourceType.VOTE_RECORD.value
@@ -291,18 +291,18 @@ def test_batch_budget_counts_only_worked_items() -> None:
 
 
 def _deleted_point_ids(delete_call: dict) -> set[str]:
-    """Extract the point ids from a PointIdsList delete call (B2 semantics)."""
+    """Extract the point ids from a PointIdsList delete call."""
     selector = delete_call["points_selector"]
     points = getattr(selector, "points", None)
     assert points is not None, (
-        f"B2: delete must use PointIdsList (orphan ids only), got {selector!r}"
+        f"delete must use PointIdsList (orphan ids only), got {selector!r}"
     )
     return {str(p) for p in points}
 
 
 def test_multi_source_item_id_orphan_delete() -> None:
     """(c) An item whose chunks span source_item_ids A and B must delete the
-    orphan under siid B — and ONLY that orphan (B2: PointIdsList of
+    orphan under siid B — and ONLY that orphan (PointIdsList of
     existing − new; surviving ids are overwritten in place by the upsert)."""
     chunk_a = _chunk("speech-A", 0, "Rede A", content_hash="h-a")
     chunk_b = _chunk("speech-B", 0, "Rede B", content_hash="h-b")
@@ -333,7 +333,7 @@ def test_multi_source_item_id_orphan_delete() -> None:
 def test_shrink_in_place_removes_stale_chunk() -> None:
     """(c) An item that previously stored 3 chunks and now yields 2 (all present,
     content unchanged) must STILL take the rewrite branch and delete ONLY the
-    stale 3rd chunk's point id (B2) so it stops being retrievable."""
+    stale 3rd chunk's point id so it stops being retrievable."""
     kept_0 = _chunk("item-S", 0, "Teil 1", content_hash="h-0")
     kept_1 = _chunk("item-S", 1, "Teil 2", content_hash="h-1")
     existing: dict[str, dict] = {}
@@ -366,7 +366,7 @@ def test_shrink_in_place_removes_stale_chunk() -> None:
 
 
 def test_rewrite_preserves_grafted_transcript_pdf_url() -> None:
-    """C8 regression: a rewrite (content changed) must carry a previously grafted
+    """Regression: a rewrite (content changed) must carry a previously grafted
     meta.transcript_pdf_url into the new payloads — the fresh mapper output never
     emits it and the donating DIP twin is already deleted, so without this every
     op re-alignment cycle strips the merge result."""
@@ -395,7 +395,7 @@ def test_rewrite_preserves_grafted_transcript_pdf_url() -> None:
 
 
 def test_rewrite_does_not_overwrite_new_chunks_own_pdf() -> None:
-    """C8: a new payload that ALREADY carries meta.transcript_pdf_url keeps its
+    """A new payload that ALREADY carries meta.transcript_pdf_url keeps its
     own value — the preserved graft applies only where the field is absent."""
     own_pdf = "https://dserver.bundestag.de/btp/21/OWN.pdf"
     stale_pdf = "https://dserver.bundestag.de/btp/20/STALE.pdf"
@@ -421,7 +421,7 @@ def test_rewrite_does_not_overwrite_new_chunks_own_pdf() -> None:
 
 
 class _SkipReportingStub(_ChunksStub):
-    """Stub whose normalize() reports op-superseded skipped siids (C9 plumbing)."""
+    """Stub whose normalize() reports op-superseded skipped siids (plumbing)."""
 
     def __init__(self, chunks_by_id: dict, superseded_siids: list[str]) -> None:
         super().__init__(chunks_by_id)
@@ -433,7 +433,7 @@ class _SkipReportingStub(_ChunksStub):
 
 
 def test_runner_deletes_stranded_twins_reported_by_normalize() -> None:
-    """C9 mitigation: siids a connector's normalize() skipped as op-superseded
+    """Mitigation: siids a connector's normalize() skipped as op-superseded
     are cleaned up by the runner — a stranded DIP twin from an interleaved
     concurrent DIP+op run appears in no new-chunk/orphan filter otherwise."""
     stranded_siid = "11111111-2222-3333-4444-555555555555"
@@ -455,7 +455,7 @@ def test_runner_deletes_stranded_twins_reported_by_normalize() -> None:
 
 
 def test_embed_failure_leaves_existing_footprint_intact() -> None:
-    """B2 loss-window regression: when the embed call fails mid-item, NOTHING may
+    """Loss-window regression: when the embed call fails mid-item, NOTHING may
     have been deleted — the old delete-before-embed order left the item absent
     until (or beyond) lookback expiry."""
     changed = [_chunk("item-C", 0, "korrigierter Text", content_hash="h-new")]

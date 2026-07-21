@@ -13,7 +13,7 @@ Tests covered:
   1. normalize() returns list[ChunkRecord] with external_id=poll_id
   2. normalize() raises ValueError on zero-tally poll
   3. GDPR wall: no "users/" path in any AW module (static assertion)
-  4. Registry: abgeordnetenwatch_votes registered; bundestag_votes deregistered (Req 8)
+  4. Registry: abgeordnetenwatch_votes registered; bundestag_votes deregistered
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from typing import Any
 
 import pytest
 
-# D8: no ImportError skip guard — a broken connector import must FAIL the
+# no ImportError skip guard — a broken connector import must FAIL the
 # suite loudly, not turn it green with an "s".
 from src.ingestion.connectors.abgeordnetenwatch.connector import (
     AbgeordnetenwatchVotesConnector,
@@ -60,7 +60,7 @@ def _make_zero_tally_raw() -> dict:
         "field_poll_date": "2020-05-14",
         "field_related_links": [],
     }
-    # All votes have fraction=[] — zero usable tallies (Req 6 degenerate case)
+    # All votes have fraction=[] — zero usable tallies (degenerate case)
     votes: list[dict[str, Any]] = [
         {"id": i, "vote": "no_show", "fraction": [], "mandate": None, "poll": {"id": 9999}}
         for i in range(5)
@@ -122,7 +122,7 @@ class TestGdprWall:
 
 
 # ---------------------------------------------------------------------------
-# Registry tests (Req 8) — these do NOT need the emulator
+# Registry tests — these do NOT need the emulator
 # ---------------------------------------------------------------------------
 
 
@@ -140,7 +140,7 @@ class TestRegistry:
         from src.ingestion.registry import CONNECTOR_FACTORIES
 
         assert "bundestag_votes" not in CONNECTOR_FACTORIES, (
-            "bundestag_votes must be removed from CONNECTOR_FACTORIES (Req 8)"
+            "bundestag_votes must be removed from CONNECTOR_FACTORIES"
         )
 
 
@@ -165,13 +165,13 @@ class TestNormalize:
         result = connector.normalize(raw)
 
         assert isinstance(result, list), (
-            "P5-INGEST-03: normalize() must return a list"
+            "normalize() must return a list"
         )
         assert len(result) >= 1, (
-            "P5-INGEST-03: normalize() must return at least one ChunkRecord for poll 3602"
+            "normalize() must return at least one ChunkRecord for poll 3602"
         )
         assert all(isinstance(c, ChunkRecord) for c in result), (
-            "P5-INGEST-03: every element in normalize() result must be a ChunkRecord"
+            "every element in normalize() result must be a ChunkRecord"
         )
 
     def test_normalize_sets_external_id(self) -> None:
@@ -187,7 +187,7 @@ class TestNormalize:
 
         for chunk in chunks:
             assert chunk.external_id == 3602, (
-                f"P5-INGEST-03: chunk.external_id must be 3602 (raw int), got {chunk.external_id!r}"
+                f"chunk.external_id must be 3602 (raw int), got {chunk.external_id!r}"
             )
 
     def test_normalize_zero_tally_raises(self) -> None:
@@ -220,7 +220,7 @@ class TestNormalize:
     def test_normalize_stamps_wahlperiode_legislature_132(self) -> None:
         """normalize() stamps wahlperiode=20 for legislature_id=132 (20th Bundestag).
 
-        The fixture poll is retagged to field_legislature.id=132 so the D12
+        The fixture poll is retagged to field_legislature.id=132 so the
         legislature cross-check passes (the golden fixture is a period-111 poll).
         """
         from src.ingestion.connectors.abgeordnetenwatch.connector import (
@@ -239,12 +239,12 @@ class TestNormalize:
             )
 
     def test_landtag_connector_stamps_wahlperiode_none(self) -> None:
-        """normalize() stamps wahlperiode=None for Landtag legislature IDs (Pitfall 5).
+        """normalize() stamps wahlperiode=None for Landtag legislature IDs.
 
         State Wahlperiode integers collide across states (Bayern 8th = some other state 8th),
         so Landtag chunks MUST NOT carry a wahlperiode int.  legislature_period_id is the
         sole period key for Landtage. Legislature 149 = Bayern 2023-2028.
-        The fixture poll is retagged to field_legislature.id=149 so the D12
+        The fixture poll is retagged to field_legislature.id=149 so the
         legislature cross-check passes.
         """
         from src.ingestion.connectors.abgeordnetenwatch.connector import (
@@ -259,12 +259,12 @@ class TestNormalize:
         chunks = connector.normalize(raw)
         for chunk in chunks:
             assert chunk.wahlperiode is None, (
-                f"Landtag legislature 149 must yield wahlperiode=None (Pitfall 5), "
+                f"Landtag legislature 149 must yield wahlperiode=None, "
                 f"got {chunk.wahlperiode!r}"
             )
 
     def test_normalize_raises_on_legislature_mismatch(self) -> None:
-        """D12: normalizing a period-111 poll under a Bayern/149 connector must
+        """normalizing a period-111 poll under a Bayern/149 connector must
         raise ValueError (skip-and-warn via the runner) instead of silently
         stamping region DE-BY on a Bundestag poll."""
         from src.ingestion.connectors.abgeordnetenwatch.connector import (
@@ -387,7 +387,7 @@ class TestPollSinceFloor:
         )
         # Integer-id order: 100 < 200 < 300 < 400 < 500
         assert ids == ["100", "200", "300", "400", "500"], (
-            f"FIX 1: Expected integer-id order ['100', '200', '300', '400', '500'], got {ids!r}"
+            f"Expected integer-id order ['100', '200', '300', '400', '500'], got {ids!r}"
         )
 
     def test_floor_set_with_cursor_filters_both(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -419,7 +419,7 @@ class TestPollSinceFloor:
     ) -> None:
         """Self-healing: a poll whose id is BELOW the highest already-ingested id must
         still be (re)discovered. A max(external_id) high-water mark (the previous design)
-        would compute cursor=500 and permanently skip every poll with id <= 500 — the C1
+        would compute cursor=500 and permanently skip every poll with id <= 500 — the
         vote-loss bug. Set-difference re-surfaces the missing polls."""
         monkeypatch.delenv("AW_POLL_SINCE", raising=False)
 
@@ -482,7 +482,7 @@ class TestDiscoverSortByPollId:
 
         # Integer-id sort: 1 < 500 < 9999 — NOT date sort (which would be: 9999, 500, 1)
         assert ids == ["1", "500", "9999"], (
-            f"FIX 1: discover() must sort by integer poll id, got {ids!r}. "
+            f"discover() must sort by integer poll id, got {ids!r}. "
             "Date-based sort would produce ['9999', '500', '1'] — wrong."
         )
 
@@ -543,7 +543,7 @@ class TestNormalizeLegislaturePeriodId:
             assert chunk.legislature_period_id == 111, (
                 f"Every chunk must have legislature_period_id=111 for legislature 111, "
                 f"got {chunk.legislature_period_id!r}. "
-                "Implement legislature_period_id stamping in normalize() (07-02)."
+                "Implement legislature_period_id stamping in normalize()."
             )
 
 
@@ -618,7 +618,7 @@ class TestPerLegislatureCursor:
             f"discover(since=5000) for legislature 149 returned {ids!r}; expected ['50', '60', '70']. "
             "The per-legislature cursor for id=149 is 30 (mocked), so polls with id > 30 must be "
             "discovered regardless of the global since=5000. "
-            "Implement _get_legislature_cursor() in connector.py (07-02)."
+            "Implement _get_legislature_cursor() in connector.py."
         )
 
 
@@ -651,7 +651,7 @@ class TestNormalizeRelevanceLevels:
             assert chunk.relevance_levels == ["federal", "state"], (
                 f"Poll with Verteidigung topic must yield relevance_levels=['federal','state'], "
                 f"got {chunk.relevance_levels!r}. "
-                "Implement relevance_levels stamping in normalize() (08-02, P8-INGEST-01)."
+                "Implement relevance_levels stamping in normalize()."
             )
 
     def test_normalize_no_topics_defaults_all_levels(
@@ -683,14 +683,14 @@ class TestNormalizeRelevanceLevels:
         expected = sorted(ALL_LEVELS)  # ['federal', 'municipal', 'state']
         for chunk in chunks:
             assert chunk.relevance_levels == expected, (
-                f"Poll with no field_topics must yield relevance_levels={expected!r} (D-05), "
+                f"Poll with no field_topics must yield relevance_levels={expected!r}, "
                 f"got {chunk.relevance_levels!r}. "
-                "Implement relevance_levels stamping in normalize() (08-02, P8-INGEST-02)."
+                "Implement relevance_levels stamping in normalize()."
             )
 
         # the 'no field_topics' warning must appear in the log
         assert any("no field_topics" in rec.message for rec in caplog.records), (
-            "D-05: logger.warning must be emitted for polls with no field_topics. "
+            "logger.warning must be emitted for polls with no field_topics. "
             f"Captured log records: {[rec.message for rec in caplog.records]!r}"
         )
 
@@ -727,7 +727,7 @@ class TestDiscoverFailFast:
     def test_discover_zero_polls_within_grace_window_returns_empty(
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
-        """D4: a legitimately NEW term (period started <= 90 days ago) with zero
+        """a legitimately NEW term (period started <= 90 days ago) with zero
         polls must NOT abort — warn and return [] instead."""
         import logging
         from datetime import date, timedelta
@@ -765,7 +765,7 @@ class TestDiscoverFailFast:
 
 
 class TestDiscoverRefreshPath:
-    """AW_REFRESH=1 discover path hygiene (D11)."""
+    """AW_REFRESH=1 discover path hygiene."""
 
     def test_refresh_path_filters_non_int_ids(
         self, monkeypatch: pytest.MonkeyPatch

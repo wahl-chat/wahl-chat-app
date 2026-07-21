@@ -7,11 +7,11 @@
 Design goals (mirrors bundestag_speeches/client.DipClient posture):
   - RAW_BASE / TREES_URL are pinned module constants — the fetch host is never
     derived from a caller arg or a session-supplied URI.
-  - `curl_get` uses a fixed arg list, never routed through a shell (T-11-05
-    command-injection mitigation).
+  - `curl_get` uses a fixed arg list, never routed through a shell
+    (command-injection mitigation).
   - Requests are paced with a small sleep to be a good GitHub citizen (keyless).
   - `fetch_session_json` builds its URL ONLY from `RAW_BASE + a validated basename`;
-    it NEVER fetches videoFileURI/audioFileURI/sourcePage (T-11-04 SSRF mitigation).
+    it NEVER fetches videoFileURI/audioFileURI/sourcePage (SSRF mitigation).
 
 Public API:
   OpTvClient(sleep=0.2)
@@ -167,7 +167,7 @@ class OpTvClient:
                 try:
                     body = curl_get(url, accept="application/json")
                 except OpTvChallengeError as exc:
-                    # LOW-02: preserve the original HTTP status (e.g. 404 vs 500)
+                    # Preserve the original HTTP status (e.g. 404 vs 500)
                     # that the plain curl fallback error would otherwise drop —
                     # makes bulk backfill failures triageable. The curl posture
                     # (pinned host, fixed arg list) is untouched.
@@ -188,7 +188,7 @@ def curl_get(url: str, accept: str = "*/*") -> str:
 
     Security: the URL is pinned-host-derived (RAW_BASE / TREES_URL + validated
     basename), not user-supplied; the arg list is fixed at call time and never
-    passed through a shell (T-11-05 command-injection mitigation).
+    passed through a shell (command-injection mitigation).
 
     Args:
         url: URL to fetch (pinned-host-derived; not source input).

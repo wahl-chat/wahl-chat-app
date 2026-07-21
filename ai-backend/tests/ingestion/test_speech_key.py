@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Golden op/DIP parity test for the shared speech_key helper (D-06/D-07/Q5).
+Golden op/DIP parity test for the shared speech_key helper.
 
-Wave-0 SCAFFOLD: the shared module does not exist yet. The top-level
+The shared module does not exist yet. The top-level
 `pytest.importorskip(...)` makes this whole file SKIP cleanly until
-`src.ingestion.speech_key` lands (Wave 11-02+), at which point the real
+`src.ingestion.speech_key` lands, at which point the real
 assertions run.
 
 Covers:
@@ -21,10 +21,10 @@ from __future__ import annotations
 
 import pytest
 
-# Wave-0 guard: SKIP until the shared speech_key helper exists.
+# SKIP until the shared speech_key helper exists.
 speech_key = pytest.importorskip(
     "src.ingestion.speech_key",
-    reason="shared speech_key helper not yet implemented (11-02+) — Wave-0 scaffold",
+    reason="shared speech_key helper not yet implemented",
 )
 
 
@@ -35,7 +35,7 @@ def _make_key(**kwargs) -> str:
 
 
 def test_op_dip_parity() -> None:
-    """D-06: identical speech_key from op (discrete names) and DIP (merged name+title).
+    """Identical speech_key from op (discrete names) and DIP (merged name+title).
 
     Same real speaker (Mareike Lotte Wulf, CDU/CSU), same session 101 / EP 20,
     same agenda "Tagesordnungspunkt 20" → both sources must derive the identical
@@ -64,12 +64,12 @@ def test_op_dip_parity() -> None:
 
 
 # ---------------------------------------------------------------------------
-# B6: NFC pre-normalization — NFD input must not bypass the umlaut expansion
+# NFC pre-normalization — NFD input must not bypass the umlaut expansion
 # ---------------------------------------------------------------------------
 
 
 def test_nfd_and_nfc_names_produce_identical_slug() -> None:
-    """B6: 'Körig' as NFD (o + combining diaeresis) must slugify identically to
+    """'Körig' as NFD (o + combining diaeresis) must slugify identically to
     NFC 'Körig' — both expand ö→oe → 'koerig' (previously NFD folded to 'korig',
     a silent cross-source dedup miss)."""
     import unicodedata
@@ -82,12 +82,12 @@ def test_nfd_and_nfc_names_produce_identical_slug() -> None:
 
 
 # ---------------------------------------------------------------------------
-# C1: compound academic titles — DIP merged name vs op discrete names parity
+# Compound academic titles — DIP merged name vs op discrete names parity
 # ---------------------------------------------------------------------------
 
 
 def test_compound_title_dr_h_c_parity() -> None:
-    """C1: DIP 'Dr. h. c. Thomas Sattelberger' == op discrete names — the h/c
+    """DIP 'Dr. h. c. Thomas Sattelberger' == op discrete names — the h/c
     fragments of the compound title must be dropped."""
     dip_key = _make_key(
         ep=20, session=101,
@@ -103,7 +103,7 @@ def test_compound_title_dr_h_c_parity() -> None:
 
 
 def test_compound_title_dr_ing_parity() -> None:
-    """C1: DIP 'Dr.-Ing. Klara Beispiel' == op discrete names ('ing' dropped)."""
+    """DIP 'Dr.-Ing. Klara Beispiel' == op discrete names ('ing' dropped)."""
     dip_key = _make_key(
         ep=21, session=5,
         speaker_name="Dr.-Ing. Klara Beispiel",
@@ -118,12 +118,12 @@ def test_compound_title_dr_ing_parity() -> None:
 
 
 # ---------------------------------------------------------------------------
-# C2: name particles — DIP (namenszusatz unparsed) vs op (particle in lastname)
+# Name particles — DIP (namenszusatz unparsed) vs op (particle in lastname)
 # ---------------------------------------------------------------------------
 
 
 def test_name_particle_von_parity() -> None:
-    """C2: DIP merged 'Beatrix Storch' (parser never reads <namenszusatz>) and op
+    """DIP merged 'Beatrix Storch' (parser never reads <namenszusatz>) and op
     firstname='Beatrix' lastname='von Storch' must derive one identical key —
     the particle is dropped source-independently."""
     dip_key = _make_key(
@@ -140,7 +140,7 @@ def test_name_particle_von_parity() -> None:
 
 
 # ---------------------------------------------------------------------------
-# C14b: umlaut/ß + title/particle parity via BOTH make_speech_key call surfaces
+# Umlaut/ß + title/particle parity via BOTH make_speech_key call surfaces
 # (raw names vs pre-slugified speaker_slug/agenda_slug)
 # ---------------------------------------------------------------------------
 
@@ -182,12 +182,12 @@ def test_title_and_particle_parity_via_both_call_surfaces() -> None:
 
 
 # ---------------------------------------------------------------------------
-# C10: opening segments have no DIP counterpart → empty agenda slug on both sides
+# Opening segments have no DIP counterpart → empty agenda slug on both sides
 # ---------------------------------------------------------------------------
 
 
 def test_opening_agenda_maps_to_empty_slug() -> None:
-    """C10: op agenda_type='opening' must yield '' (DIP redes outside any
+    """op agenda_type='opening' must yield '' (DIP redes outside any
     <tagesordnungspunkt> also yield ''), so opening-segment speeches dedup."""
     _agenda = getattr(speech_key, "agenda_slug_from_official")
     assert _agenda(None, "opening") == ""
@@ -200,7 +200,7 @@ def test_opening_agenda_maps_to_empty_slug() -> None:
 
 
 # ---------------------------------------------------------------------------
-# HIGH-01: agenda-slug op/DIP parity + Zusatzpunkt/Tagesordnungspunkt distinction
+# Agenda-slug op/DIP parity + Zusatzpunkt/Tagesordnungspunkt distinction
 # ---------------------------------------------------------------------------
 
 _agenda_from_official = getattr(speech_key, "agenda_slug_from_official")
@@ -208,7 +208,7 @@ _agenda_from_top_id = getattr(speech_key, "agenda_slug_from_top_id")
 
 
 def test_agenda_slug_zusatzpunkt_parity() -> None:
-    """HIGH-01: ``Zusatzpunkt 5`` (op) and ``ZP5`` (DIP top-id) both → ``zp5``."""
+    """``Zusatzpunkt 5`` (op) and ``ZP5`` (DIP top-id) both → ``zp5``."""
     assert _agenda_from_official("Zusatzpunkt 5") == "zp5"
     assert _agenda_from_top_id("ZP5") == "zp5"
     assert _agenda_from_top_id("Z5") == "zp5"
@@ -220,7 +220,7 @@ def test_agenda_slug_zusatzpunkt_parity() -> None:
 
 
 def test_agenda_slug_tagesordnungspunkt_parity() -> None:
-    """HIGH-01: ``Tagesordnungspunkt 5`` (op) and ``5`` (DIP top-id) both → ``top5``."""
+    """``Tagesordnungspunkt 5`` (op) and ``5`` (DIP top-id) both → ``top5``."""
     assert _agenda_from_official("Tagesordnungspunkt 5") == "top5"
     assert _agenda_from_top_id("5") == "top5"
     op_key = _make_key(ep=20, session=101, firstname="A", lastname="B",
@@ -230,7 +230,7 @@ def test_agenda_slug_tagesordnungspunkt_parity() -> None:
 
 
 def test_agenda_slug_letter_suffix_parity() -> None:
-    """HIGH-01: letter-suffixed / combined item matches on both sides (first integer).
+    """Letter-suffixed / combined item matches on both sides (first integer).
 
     op ``"Tagesordnungspunkt 20 a"`` and DIP top-id ``"20a"`` must both → ``top20``
     (previously op used the TRAILING integer and produced an empty agenda → a
@@ -245,7 +245,7 @@ def test_agenda_slug_letter_suffix_parity() -> None:
 
 
 def test_zusatzpunkt_and_tagesordnungspunkt_do_not_collide() -> None:
-    """HIGH-01: ZP5 and TOP5 must produce DIFFERENT keys.
+    """ZP5 and TOP5 must produce DIFFERENT keys.
 
     Guards against the destructive supersede-delete: if a speaker speaks under
     both ZP5 and TOP5 in one session, the two distinct speeches must NOT share a

@@ -3,16 +3,15 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Shared governance-level constants — framework-owned, connector-independent (B7).
+Shared governance-level constants — framework-owned, connector-independent.
 
 These values MUST match ``Context.level`` values exactly ("federal" | "state" |
-"municipal"; "eu" is reserved for future EU election contexts). They were
-previously defined only inside the abgeordnetenwatch connector's
-``topic_taxonomy_config`` — which forced the STANDALONE retrieval module to
-import a connector, inverting the framework→connector layering. The framework
-(``retrieve.py``) now imports from here; connectors may re-export from this
-module (the abgeordnetenwatch taxonomy keeps its own identical definitions
-until it is re-pointed — a parity test pins the equality).
+"municipal"; "eu" is reserved for future EU election contexts). They live here,
+not inside the abgeordnetenwatch connector's ``topic_taxonomy_config``, so the
+STANDALONE retrieval module need not import a connector (which would invert the
+framework→connector layering). The framework (``retrieve.py``) imports from
+here; connectors may re-export from this module (the abgeordnetenwatch taxonomy
+keeps its own identical definitions — a parity test pins the equality).
 
 Semantics copied EXACTLY from
 ``connectors/abgeordnetenwatch/topic_taxonomy_config.py``:

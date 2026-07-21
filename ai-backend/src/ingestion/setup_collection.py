@@ -44,7 +44,7 @@ ENV: str = os.getenv("ENV", "dev")
 COLLECTION_NAME: str = f"wahlchat_chunks_{ENV}"
 
 # ---------------------------------------------------------------------------
-# Client wiring — mirrors vector_store_helper.py lines 57-60, but LAZY (B9):
+# Client wiring — mirrors vector_store_helper.py lines 57-60, but LAZY:
 # this module is imported project-wide just for COLLECTION_NAME /
 # EMBEDDING_MODEL, so a module-level QdrantClient would allocate an unused,
 # never-closed client in every importing process. The client is constructed
@@ -136,10 +136,10 @@ _INDEX_SPECS: list[tuple[str, models.PayloadSchemaType | models.KeywordIndexPara
             range=False,    # no range queries needed for period filtering
         ),
     ),
-    # Cross-source speech coexist fields (Phase 11):
-    # speech_key: deterministic dedup identity — supersede-delete filter (D-04)
-    #             + DIP pre-insert resurrection-guard lookup (D-05).
-    # source:     "dip"|"op" discriminator — source-scoped cursor in run.py (D-11).
+    # Cross-source speech coexist fields:
+    # speech_key: deterministic dedup identity — supersede-delete filter
+    #             + DIP pre-insert resurrection-guard lookup.
+    # source:     "dip"|"op" discriminator — source-scoped cursor in run.py.
     ("speech_key", models.PayloadSchemaType.KEYWORD),
     ("source",     models.PayloadSchemaType.KEYWORD),
 ]
@@ -157,7 +157,7 @@ def setup(client: Optional[QdrantClient] = None) -> None:
     Args:
         client: QdrantClient instance. When None (the __main__ path), a
                 client is constructed lazily from QDRANT_URL/QDRANT_API_KEY —
-                importing this module allocates nothing (B9).
+                importing this module allocates nothing.
 
     Raises:
         RuntimeError: if self-verification fails (index missing after
@@ -204,9 +204,9 @@ def setup(client: Optional[QdrantClient] = None) -> None:
     missing = _REQUIRED_INDEXES - indexed
     if missing:
         raise RuntimeError(
-            f"SC1 FAIL: payload indexes missing after creation: {missing!r}"
+            f"payload indexes missing after creation: {missing!r}"
         )
-    print(f"SC1 VERIFIED: all {len(_REQUIRED_INDEXES)} payload indexes present")
+    print(f"Collection verified: all {len(_REQUIRED_INDEXES)} payload indexes present")
 
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@ Pattern mirrors tests/ingestion/connectors/bundestag_speeches/conftest.py:
   _FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 Fixture content (`20101-session.trimmed.json`) — FOUR data[] speech items
-spanning every D-03 branch:
+spanning every alignment branch:
   (a) ALIGNED + `proceedings` CDU/CSU main speaker (faction.wid="Q1023134"),
       officialTitle "Tagesordnungspunkt 20", EP 20 / session 101, first sentence
       timeStart "1.000" (string, per-speech-relative seconds).
@@ -42,7 +42,7 @@ _SESSION_FIXTURE = _FIXTURES_DIR / "20101-session.trimmed.json"
 def session_json_text() -> str:
     """Return the raw text of the trimmed op bulk session-JSON fixture.
 
-    Used by parser/corpus/discover tests (Wave 1+). Static committed file.
+    Used by parser/corpus/discover tests. Static committed file.
     """
     return _SESSION_FIXTURE.read_text(encoding="utf-8")
 

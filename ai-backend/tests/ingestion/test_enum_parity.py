@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Parity guards for duplicated constant surfaces (B7 / B10).
+Parity guards for duplicated constant surfaces.
 
 - retrieve.py duplicates the schemas enums as Literal types (clean Gemini
   tool-schema generation, issue #409). Without a parity test, adding a new
   SourceType silently leaves the tool schema stale.
 - src/ingestion/levels.py hoists the governance-level constants out of the
-  abgeordnetenwatch connector (B7); until the connector is re-pointed to
+  abgeordnetenwatch connector; until the connector is re-pointed to
   re-export from the shared module, both definitions must stay identical.
 """
 
@@ -22,17 +22,17 @@ from src.ingestion.schemas import AuthorityTier, SourceType
 
 
 def test_source_type_literal_matches_enum() -> None:
-    """B10: SourceTypeLiteral (retrieve.py tool surface) == SourceType enum values."""
+    """SourceTypeLiteral (retrieve.py tool surface) == SourceType enum values."""
     assert set(get_args(SourceTypeLiteral)) == {e.value for e in SourceType}
 
 
 def test_authority_tier_literal_matches_enum() -> None:
-    """B10: AuthorityTierLiteral (retrieve.py tool surface) == AuthorityTier enum values."""
+    """AuthorityTierLiteral (retrieve.py tool surface) == AuthorityTier enum values."""
     assert set(get_args(AuthorityTierLiteral)) == {e.value for e in AuthorityTier}
 
 
 def test_levels_module_matches_aw_taxonomy_definitions() -> None:
-    """B7: the AW taxonomy RE-EXPORTS the shared levels module's constants.
+    """The AW taxonomy RE-EXPORTS the shared levels module's constants.
     Identity assertions guard against someone re-introducing local definitions
     in topic_taxonomy_config.py (equal-but-distinct objects would fail)."""
     from src.ingestion import levels
@@ -47,7 +47,7 @@ def test_levels_module_matches_aw_taxonomy_definitions() -> None:
 
 
 def test_retrieve_imports_levels_from_shared_module() -> None:
-    """B7: the framework retrieval module must not import a connector for levels."""
+    """The framework retrieval module must not import a connector for levels."""
     import inspect
 
     import src.ingestion.retrieve as retrieve_mod

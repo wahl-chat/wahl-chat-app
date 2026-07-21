@@ -45,7 +45,7 @@ export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
         // Firebase ID token when signed in ({} otherwise) — the proxy route
-        // forwards it so the backend can verify auth claims (A3 contract).
+        // forwards it so the backend can verify auth claims.
         ...(await getAuthHeader()),
       },
       body: JSON.stringify({

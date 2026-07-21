@@ -7,7 +7,7 @@ Shared pytest fixtures for the Abgeordnetenwatch connector test suite.
 
 Provides:
   - aw_poll_3602_poll: the poll metadata fixture (poll 3602 from the AW API)
-  - aw_poll_3602_votes: the 710-vote fixture including the Req 6 empty-fraction edge case
+  - aw_poll_3602_votes: the 710-vote fixture including the empty-fraction edge case
 
 The golden fixtures (aw_poll_3602_poll.json, aw_poll_3602_votes.json) contain
 data verified from the live AW API (poll 3602 "Corona-Maßnahmen zum Schutz der
@@ -34,7 +34,7 @@ def aw_poll_3602_poll() -> dict:
     """Load the aw_poll_3602_poll.json golden fixture.
 
     Shape: single poll item (data: {...}) for poll id=3602.
-    Used by: test_stance.py golden-record assertion (Req 10).
+    Used by: test_stance.py golden-record assertion.
     """
     return json.loads((_FIXTURES_DIR / "aw_poll_3602_poll.json").read_text())
 
@@ -44,7 +44,7 @@ def aw_poll_3602_votes() -> dict:
     """Load the aw_poll_3602_votes.json golden fixture.
 
     Shape: 710 per-mandate vote items (data: [...]) including one vote
-    with fraction=[] to exercise the Req 6 degenerate-input guard.
-    Used by: test_stance.py golden-record assertion (Req 10).
+    with fraction=[] to exercise the degenerate-input guard.
+    Used by: test_stance.py golden-record assertion.
     """
     return json.loads((_FIXTURES_DIR / "aw_poll_3602_votes.json").read_text())

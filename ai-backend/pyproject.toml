@@ -12,7 +12,7 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 
 dependencies = [
-    # HTTP framework + SSE streaming (replaces aiohttp/python-socketio — D-04/D-05/D-06)
+    # HTTP framework + SSE streaming (replaces aiohttp/python-socketio)
     "fastapi>=0.136.3",
     "sse-starlette>=3.4.4",
     "uvicorn>=0.34.0",
@@ -29,7 +29,7 @@ dependencies = [
     "python-dotenv>=1.0.1,<2.0",
     "pyyaml>=6.0.2",
     "xxhash>=3.5.0",
-    # qdrant-client tracks Qdrant server minor 1.18.x (held pin — CLAUDE.md D-07)
+    # qdrant-client tracks Qdrant server minor 1.18.x (pin held for index parity)
     "qdrant-client>=1.18.0,<1.19",
     "beautifulsoup4>=4.15.0",
     "requests>=2.34.2",

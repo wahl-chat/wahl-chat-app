@@ -52,20 +52,17 @@ from src.ingestion.connectors.abgeordnetenwatch.topic_taxonomy_config import (
 
 
 # ---------------------------------------------------------------------------
-# SourceItemLike Protocol — replaces the deleted SourceItemRecord annotation.
-# Defines the five attributes that chunk_poll() reads from its first argument.
-# This keeps programs.py and qa.py callers source-compatible without importing
-# a deleted model.
+# SourceItemLike Protocol — the five attributes chunk_poll() reads from its
+# first argument.
 # ---------------------------------------------------------------------------
 
 
 class SourceItemLike(Protocol):
     """Structural protocol for the source_item argument to chunk_poll().
 
-    Any object exposing these five attributes satisfies the protocol —
-    no import of SourceItemRecord (deleted) required. Members are declared
-    as read-only properties so FROZEN dataclasses (connector._SourceItem)
-    satisfy the protocol; chunk_poll only reads them.
+    Any object exposing these five attributes satisfies the protocol. Members
+    are declared as read-only properties so FROZEN dataclasses
+    (connector._SourceItem) satisfy the protocol; chunk_poll only reads them.
     """
 
     @property
@@ -87,11 +84,11 @@ class SourceItemLike(Protocol):
 # Constants
 # ---------------------------------------------------------------------------
 
-# Party ID sentinel: SourceItemRecord always uses "_all" (the real per-party
-# id lives on ChunkRecord).  Mirrors bundestag_votes.py _PARTY_ID_SENTINEL.
+# Party ID sentinel: a vote record belongs to no single party, so its
+# top-level party_id is "_all" (the real per-party ids live in party_ids).
 _PARTY_ID_SENTINEL = "_all"
 
-# Quarantine slug for unmapped fraction names — same as bundestag_votes.py.
+# Quarantine slug for unmapped fraction names.
 _PARTY_SLUG_QUARANTINE = "unbekannt"
 
 # Canonical party slug mapping from AW fraction label fragments.
@@ -99,9 +96,8 @@ _PARTY_SLUG_QUARANTINE = "unbekannt"
 # The AW votes endpoint embeds fraction objects with a "label" like
 # "FDP (Bundestag 2017 - 2021)"; we strip the parenthetical before mapping.
 #
-# Note: this is NOT the same as the bundestag_votes._PARTY_SLUG_MAP which
-# maps raw HTML table names.  AW fraction labels use German parliamentary
-# party names (verified from the AW fractions endpoint).
+# AW fraction labels use German parliamentary party names (verified from the
+# AW fractions endpoint).
 #
 # KNOWN LIMITATION (CDU/CSU): at the Bundestag, CDU and CSU sit as one joint fraction
 # "CDU/CSU", so a federal vote's Union tally is attributed to slug "cdu" only. CSU has no
@@ -184,8 +180,7 @@ def _canonical_party_slug(fraction_label: str) -> str:
     suffix before looking up in ``_AW_FRACTION_SLUG_MAP``.
 
     Unknown fraction labels (including after stripping) return the quarantine
-    slug ``"unbekannt"`` rather than crashing or producing an ad-hoc slug
-    (same defensive pattern as bundestag_votes._canonical_party_slug).
+    slug ``"unbekannt"`` rather than crashing or producing an ad-hoc slug.
 
     Args:
         fraction_label: The ``label`` field from an AW ``fraction`` dict in
@@ -222,10 +217,10 @@ def _strip_html(html: Optional[str]) -> str:
 def extract_topic_labels(poll: dict) -> list[str]:
     """Extract the field_topics label strings from an AW poll dict.
 
-    Single home for the extraction (D9) — used for both the embed text and the
-    relevance_levels taxonomy lookup inside :func:`chunk_poll`.
+    Used for both the embed text and the relevance_levels taxonomy lookup
+    inside :func:`chunk_poll`.
 
-    isinstance check + str() cast before use (ASVS V5 — untrusted AW payload).
+    isinstance check + str() cast before use (untrusted AW payload).
     """
     return [
         str(t["label"])
@@ -274,25 +269,20 @@ def chunk_poll(
         so it opts out of per-party tenant co-location and is filtered via
         ``party_ids`` instead.
 
-    This function owns the WHOLE record build (D9): topic extraction
+    This function owns the WHOLE record build: topic extraction
     (:func:`extract_topic_labels`), relevance_levels derivation
     (``get_relevance_levels``; the no-topics WARNING is suppressed for
-    non-federal regions per D14), and the envelope stamping that previously
-    lived in connector.normalize() (external_id, wahlperiode,
+    non-federal regions), and the envelope stamping (external_id, wahlperiode,
     legislature_period_id, relevance_levels).
 
-    content_hash covers the correctness-bearing content AND the
-    normalize()-stamped envelope fields (region, publish_date,
-    relevance_levels, wahlperiode, legislature_period_id) — so an
-    AW_REFRESH reconcile run propagates envelope corrections (e.g. a
-    re-classified topic or a fixed region), not just text/tally changes (D6).
-    NOTE: widening the hash input changes ALL existing hashes once — the next
-    AW_REFRESH run performs a one-time full re-write of stored vote_record
-    chunks (acceptable pre-production; no production ingest has happened).
+    content_hash covers the correctness-bearing content AND the stamped
+    envelope fields (region, publish_date, relevance_levels, wahlperiode,
+    legislature_period_id) — so an AW_REFRESH reconcile run propagates envelope
+    corrections (e.g. a re-classified topic or a fixed region), not just
+    text/tally changes.
 
-    source_item is typed as the structural SourceItemLike Protocol
-    (the deleted SourceItemRecord is gone) — the frozen stub built in
-    connector.normalize() satisfies it.
+    source_item is typed as the structural SourceItemLike Protocol — the frozen
+    stub built in connector.normalize() satisfies it.
 
     Party slugs are resolved from the ``fraction.label`` inside each vote dict via
     ``_canonical_party_slug()`` — no connector-level fraction_map needed.
@@ -371,22 +361,18 @@ def chunk_poll(
         motion_outcome=_motion_outcome(poll),
     ).model_dump(mode="json", exclude_none=True)
 
-    # Relevance levels from the topic taxonomy (single home for the lookup, D9).
-    # D14: Landtag polls routinely carry no field_topics — suppress the per-poll
-    # no-topics WARNING for non-federal regions (unknown-label warnings stay
-    # loud everywhere).
+    # Relevance levels from the topic taxonomy. Landtag polls routinely carry no
+    # field_topics — suppress the per-poll no-topics WARNING for non-federal
+    # regions (unknown-label warnings stay loud everywhere).
     relevance_levels = get_relevance_levels(
         topic_labels, warn_on_missing_topics=(source_item.region == "DE")
     )
 
     # Stable hash of the correctness-bearing content (embed text + tallies/outcome
-    # + participating parties) PLUS the stamped envelope fields (D6: region,
+    # + participating parties) PLUS the stamped envelope fields (region,
     # publish_date, relevance_levels, wahlperiode, legislature_period_id) — so an
     # AW_REFRESH reconcile run re-writes chunks whose envelope changed (e.g. a
     # re-classified topic), not only text/tally corrections.
-    # NOTE: widening the hash input changed all pre-existing hashes once; the
-    # next AW_REFRESH performs a one-time full re-write (acceptable
-    # pre-production — no production ingest had happened).
     content_hash = hashlib.sha256(
         json.dumps(
             {

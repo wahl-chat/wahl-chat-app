@@ -137,11 +137,11 @@ def get_party_vote_behavior_summary_guidelines():
 
 
 # =============================================================================
-# Phase 10 — source-aware answer structuring (D1/D2/D3/D4/D5)
+# Source-aware answer structuring
 # =============================================================================
 # Centralised German instruction fragments for the SINGLE-PARTY party answer's
-# four-section soft-lead-in shape (D1/D2), the always-when-present historic
-# section (D3), and the conditional coverage-transparency line (D4/D5). These are
+# four-section soft-lead-in shape, the always-when-present historic section, and
+# the conditional coverage-transparency line. These are
 # composed by chatbot_async._source_structure_note so ALL German wording lives
 # here in one reviewable place and is never hardcoded as answer text in
 # chat_service. Plain string constants (no PromptTemplate) — they are appended to
@@ -166,9 +166,9 @@ HISTORIC_SECTION_NOTE_DE = """
 - **Historischer Kontext (immer als letzter Abschnitt):** Es liegt dir Material aus früheren Jahren (ggf. aus mehreren früheren Legislaturperioden) vor. Ordne es klar erkennbar als historisch bzw. aus früheren Jahren ein und stelle es an das ENDE deiner Antwort. Vermische es nicht mit dem aktuellen Stand — die Nutzer:innen müssen erkennen können, was aktuell und was historisch ist.
 """
 
-# Positive coverage preamble (replaces the earlier negative COVERAGE_*_ABSENT
-# clauses). Names the source types that DO ground the answer so the model opens
-# with a transparent, value-neutral "based on X, Y and Z" line. Rationale
+# Positive coverage preamble. Names the source types that DO ground the answer
+# so the model opens with a transparent, value-neutral "based on X, Y and Z"
+# line. Rationale
 # (customer feedback): flagging a *missing* source type ("no voting record
 # found") implicitly frames speeches as a lesser source; a positive attribution
 # of what WAS found treats every source type as first-class. The present-source

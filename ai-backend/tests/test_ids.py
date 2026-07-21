@@ -31,7 +31,7 @@ def test_source_item_id_determinism():
     a = compute_source_item_id("party_manifesto", "test-001")
     b = compute_source_item_id("party_manifesto", "test-001")
     assert a == b, (
-        "compute_source_item_id must be deterministic (D-08/VEC-04): "
+        "compute_source_item_id must be deterministic: "
         "two calls with identical arguments produced different UUIDs."
     )
 
@@ -42,10 +42,10 @@ def test_source_item_id_different_inputs_differ():
     b = compute_source_item_id("vote_record", "test-001")
     c = compute_source_item_id("party_manifesto", "test-002")
     assert a != b, (
-        "compute_source_item_id must differ when source_type differs (D-08)."
+        "compute_source_item_id must differ when source_type differs."
     )
     assert a != c, (
-        "compute_source_item_id must differ when external_id differs (D-08)."
+        "compute_source_item_id must differ when external_id differs."
     )
 
 
@@ -54,7 +54,7 @@ def test_chunk_id_returns_uuid():
     source_item_id = compute_source_item_id("vote_record", "bt-2025-001")
     chunk_id = compute_chunk_id(source_item_id, 3)
     assert isinstance(chunk_id, uuid.UUID), (
-        "compute_chunk_id must return uuid.UUID (D-09): "
+        "compute_chunk_id must return uuid.UUID: "
         f"got {type(chunk_id).__name__!r} instead. "
         "Qdrant requires UUID point IDs; string IDs cause type errors at upsert time."
     )
@@ -66,7 +66,7 @@ def test_chunk_id_determinism():
     a = compute_chunk_id(source_item_id, 7)
     b = compute_chunk_id(source_item_id, 7)
     assert a == b, (
-        "compute_chunk_id must be deterministic (D-09/VEC-04): "
+        "compute_chunk_id must be deterministic: "
         "two calls with identical arguments produced different UUIDs."
     )
 
@@ -78,7 +78,7 @@ def test_make_chunk_key_format():
     # Format: <uuid>:0003
     parts = key.rsplit(":", 1)
     assert len(parts) == 2, (
-        "make_chunk_key must produce exactly one colon separator between UUID and index (D-09)."
+        "make_chunk_key must produce exactly one colon separator between UUID and index."
     )
     uuid_part, index_part = parts
     # Validate UUID part
@@ -86,11 +86,11 @@ def test_make_chunk_key_format():
         uuid.UUID(uuid_part)
     except ValueError:
         pytest.fail(
-            f"make_chunk_key UUID portion is not a valid UUID: {uuid_part!r} (D-09)"
+            f"make_chunk_key UUID portion is not a valid UUID: {uuid_part!r}"
         )
     # Validate zero-padded index
     assert index_part == "0003", (
-        f"make_chunk_key must zero-pad the chunk index to 4 digits (D-09): "
+        f"make_chunk_key must zero-pad the chunk index to 4 digits: "
         f"expected '0003', got {index_part!r}."
     )
 
@@ -98,9 +98,9 @@ def test_make_chunk_key_format():
 def test_wahl_chat_ns_is_uuid():
     """WAHL_CHAT_NS must be a committed uuid.UUID constant."""
     assert isinstance(WAHL_CHAT_NS, uuid.UUID), (
-        "WAHL_CHAT_NS must be a uuid.UUID instance (D-10). "
+        "WAHL_CHAT_NS must be a uuid.UUID instance. "
         "It must never be changed after first production use — changing it shifts "
-        "all corpus IDs and breaks VEC-04 idempotency."
+        "all corpus IDs and breaks idempotency."
     )
 
 
@@ -113,13 +113,13 @@ def test_embedding_guard():
     """
     setup = pytest.importorskip(
         "src.ingestion.setup_collection",
-        reason="setup_collection.py is created in Plan 02-02 — test tightens after that plan lands",
+        reason="setup_collection.py is not yet created — test tightens once it lands",
     )
     dim = getattr(setup, "EMBEDDING_DIM", None)
     model = getattr(setup, "EMBEDDING_MODEL", None)
     assert dim == 3072, (
-        f"EMBEDDING_DIM must be 3072 for text-embedding-3-large (VEC-05): got {dim!r}."
+        f"EMBEDDING_DIM must be 3072 for text-embedding-3-large: got {dim!r}."
     )
     assert model == "text-embedding-3-large", (
-        f"EMBEDDING_MODEL must be 'text-embedding-3-large' (VEC-05): got {model!r}."
+        f"EMBEDDING_MODEL must be 'text-embedding-3-large': got {model!r}."
     )

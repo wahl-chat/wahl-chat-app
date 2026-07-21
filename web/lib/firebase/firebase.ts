@@ -44,7 +44,7 @@ const db = getFirestore(app);
  * or `{}` when signed out or the token cannot be obtained — callers degrade
  * gracefully to an unauthenticated request instead of failing. The backend
  * honors `user_is_logged_in` / premium ONLY with a verified token; the body
- * flag alone is ignored (A3 contract).
+ * flag alone is ignored.
  */
 export async function getAuthHeader(): Promise<Record<string, string>> {
   try {

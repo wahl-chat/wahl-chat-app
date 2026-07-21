@@ -8,11 +8,6 @@ Pure stance-derivation and fraction-aggregation mappers for the AW connector.
 All functions in this module are I/O-free (no network, no Firestore, no
 filesystem) and deterministic — suitable for unit testing without mocks.
 
-build_qsp() and QuestionStancePair removed — src/matcher/
-deleted; these functions produced Firestore matcher objects that the
-Qdrant-only pipeline no longer writes.  aggregate_fraction_tallies,
-derive_stance, and fraction_to_party_slug survive as pure stance helpers.
-
 Security notes:
   Elevation of Privilege mitigation: aggregate_fraction_tallies guards
   against the degenerate `fraction: []` case (verified poll 4539 idx 107).
@@ -20,7 +15,7 @@ Security notes:
 
   Information disclosure: this module reads only poll/vote/fraction
   JSON fields; no code path reads users/{uid} data.  The import surface is
-  restricted to stdlib only (src.matcher.schemas removed).
+  restricted to stdlib only.
 
   Tampering: derive_stance checks for an exact top-two tie before
   applying stance_map, preventing Python-version-dependent sort instability.
@@ -39,8 +34,8 @@ logger = logging.getLogger(__name__)
 _PARTY_SLUG_QUARANTINE = "unbekannt"
 
 # The only vote tokens AW emits that contribute to a tally.  Any other token
-# (a new enum value, null, or a missing "vote" key) is skip-and-warned rather
-# than crashing the run (skip-and-continue, do NOT crash).
+# (a new enum value, null, or a missing "vote" key) is skipped with a warning
+# rather than crashing the whole run.
 _VALID_VOTE_TOKENS = ("yes", "no", "abstain", "no_show")
 
 
@@ -62,12 +57,12 @@ def aggregate_fraction_tallies(votes: list[dict]) -> dict[int, dict]:
                Each item must have ``fraction`` (dict or list/None) and
                ``vote`` (str: "yes" | "no" | "abstain" | "no_show").
 
-    Robustness guards (skip-and-continue, do NOT crash):
+    Robustness guards — a single malformed vote must not abort the whole poll
+    (or crash the embedding worker at chunk time):
     - A fraction dict missing ``id`` is skipped with a warning.
     - A vote whose ``vote`` token is not one of the four valid tokens (a new
       enum value, ``null``, or a missing key) is skipped with a warning instead
-      of raising ``KeyError``/``TypeError`` — a single malformed vote must not
-      abort the whole poll (or crash the embedding worker at chunk time).
+      of raising ``KeyError``/``TypeError``.
 
     Label determinism:
     The ``fraction`` dict stored on a tally is selected deterministically — the
@@ -88,7 +83,6 @@ def aggregate_fraction_tallies(votes: list[dict]) -> dict[int, dict]:
             continue
         fid = frac.get("id")
         if fid is None:
-            # Fraction dict missing "id" — skip-and-warn, do not crash.
             logger.warning(
                 "aggregate_fraction_tallies: fraction dict missing 'id' — "
                 "skipping vote (fraction=%r)",
@@ -98,7 +92,6 @@ def aggregate_fraction_tallies(votes: list[dict]) -> dict[int, dict]:
 
         vote = v.get("vote")
         if vote not in _VALID_VOTE_TOKENS:
-            # Unknown/missing vote token — skip this mandate-vote, do not crash.
             logger.warning(
                 "aggregate_fraction_tallies: unexpected vote token %r for "
                 "fraction_id=%s — skipping vote (valid tokens: %s)",
@@ -180,8 +173,7 @@ def fraction_to_party_slug(fraction_id: int, fraction_map: dict[int, str]) -> st
 
     Uses a runtime map built from the AW ``/fractions`` endpoint response.
     Unknown/unmapped fraction_ids (e.g., new Gruppen not yet in the map)
-    route to the quarantine slug ``"unbekannt"`` (same pattern as
-    bundestag_votes._canonical_party_slug quarantine).
+    route to the quarantine slug ``"unbekannt"``.
 
     Args:
         fraction_id: AW numeric fraction ID.

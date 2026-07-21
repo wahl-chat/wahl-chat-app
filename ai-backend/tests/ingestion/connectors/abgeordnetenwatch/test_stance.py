@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Unit tests for mappers/stance.py — covers Req 5, Req 6, Req 10.
+Unit tests for mappers/stance.py.
 
 build_qsp / TestBuildQsp removed — src/matcher/ deleted; the
 QuestionStancePair type no longer exists. The three surviving pure functions
@@ -15,11 +15,11 @@ Tests defined here:
   - test_derive_stance_disagree: no is the dominant bucket
   - test_derive_stance_neutral_abstain: abstain is the dominant bucket
   - test_derive_stance_absent: no_show is the dominant bucket (fraktionslos case)
-  - test_derive_stance_tie: exact top-two tie resolves to neutral (Pitfall 6)
-  - test_aggregate_skips_empty_fraction: votes with fraction=[] are skipped (Req 6)
+  - test_derive_stance_tie: exact top-two tie resolves to neutral
+  - test_aggregate_skips_empty_fraction: votes with fraction=[] are skipped
   - test_fraction_to_party_slug_unmapped: unknown fraction_id -> "unbekannt" quarantine
   - test_golden_record_3602: poll 3602 full 709-vote fixture reproduces the exact
-    per-fraction stances (Req 10, golden-record assertion)
+    per-fraction stances (golden-record assertion)
 
 All tests are pure (no I/O, no Firestore, no network) — stance.py itself must be
 I/O-free (no firestore/requests/firebase imports).
@@ -36,7 +36,7 @@ from src.ingestion.connectors.abgeordnetenwatch.mappers.stance import (
 
 
 # ---------------------------------------------------------------------------
-# derive_stance — 5 outcomes + tie (Req 5)
+# derive_stance — 5 outcomes + tie
 # ---------------------------------------------------------------------------
 
 
@@ -58,7 +58,7 @@ class TestDeriveStance:
         assert derive_stance(0, 2, 0, 4) == "absent"
 
     def test_tie_top_two_equal(self) -> None:
-        """Exact tie between two buckets -> neutral (Pitfall 6 non-determinism guard)."""
+        """Exact tie between two buckets -> neutral (non-determinism guard)."""
         assert derive_stance(5, 5, 0, 0) == "neutral"
 
     def test_tie_preserves_locked_rule(self) -> None:
@@ -68,13 +68,13 @@ class TestDeriveStance:
 
 
 # ---------------------------------------------------------------------------
-# aggregate_fraction_tallies — Req 6 degenerate-input guard
+# aggregate_fraction_tallies — degenerate-input guard
 # ---------------------------------------------------------------------------
 
 
 class TestAggregateFractionTallies:
     def test_skips_empty_fraction_list(self) -> None:
-        """Votes with fraction=[] (not a dict) are silently skipped (Req 6)."""
+        """Votes with fraction=[] (not a dict) are silently skipped."""
         votes = [
             {"fraction": [], "vote": "no_show"},
             {"fraction": {"id": 22, "entity_type": "fraction", "label": "SPD"}, "vote": "yes"},
@@ -182,7 +182,7 @@ class TestAggregateFractionTallies:
 
 
 # ---------------------------------------------------------------------------
-# fraction_to_party_slug — unmapped -> quarantine (Req 6)
+# fraction_to_party_slug — unmapped -> quarantine
 # ---------------------------------------------------------------------------
 
 
@@ -194,7 +194,7 @@ class TestFractionToPartySlug:
         assert fraction_to_party_slug(14, fraction_map) == "fdp"
 
     def test_unmapped_fraction_returns_unbekannt(self) -> None:
-        """Unknown fraction_id returns quarantine slug 'unbekannt' (Req 6)."""
+        """Unknown fraction_id returns quarantine slug 'unbekannt'."""
         fraction_map = {22: "spd"}
         assert fraction_to_party_slug(999, fraction_map) == "unbekannt"
 
@@ -204,7 +204,7 @@ class TestFractionToPartySlug:
 
 
 # ---------------------------------------------------------------------------
-# Golden-record assertion — poll 3602 (Req 10)
+# Golden-record assertion — poll 3602
 # ---------------------------------------------------------------------------
 
 

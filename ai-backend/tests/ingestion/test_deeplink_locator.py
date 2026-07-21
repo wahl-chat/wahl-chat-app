@@ -3,33 +3,33 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Second-pass video deep-link locator (D-02b) — verbatim → fuzzy → speech-start fallback.
+Second-pass video deep-link locator — verbatim → fuzzy → speech-start fallback.
 
 At citation time the locator picks the sentence in `meta.sentence_map` best
 matching the model's quoted text and builds `video_uri#t={ts_start}`. Verbatim
 substring match wins; a fuzzy near-match still resolves; a no-match falls back
 to `sentence_map[0]["ts_start"]` and NEVER raises.
 
-Wave-0 SCAFFOLD: the locator does not exist yet. The top-level
+The locator does not exist yet. The top-level
 `pytest.importorskip(...)` makes this file SKIP cleanly until it lands in
-`src.chat_service` (Wave 11-05+), then runs the real assertions.
+`src.chat_service`, then runs the real assertions.
 """
 
 from __future__ import annotations
 
 import pytest
 
-# Wave-0 guard: SKIP until the locator lives in chat_service.
+# SKIP until the locator lives in chat_service.
 chat_service = pytest.importorskip(
     "src.chat_service",
-    reason="src.chat_service import failed — Wave-0 scaffold",
+    reason="src.chat_service import failed",
 )
 
 _locate = getattr(chat_service, "locate_deeplink", None)
 
 pytestmark = pytest.mark.skipif(
     _locate is None,
-    reason="locate_deeplink not yet implemented in chat_service (11-05+) — Wave-0 scaffold",
+    reason="locate_deeplink not yet implemented in chat_service",
 )
 
 
@@ -60,7 +60,7 @@ def test_no_match_falls_back_to_speech_start_and_never_raises() -> None:
 
 
 def test_missing_ts_start_never_raises_and_never_emits_literal_none() -> None:
-    """LOW-1 regression: a sentence lacking ``ts_start`` must not raise KeyError and
+    """Regression: a sentence lacking ``ts_start`` must not raise KeyError and
     must never render as the literal ``#t=None`` (contract: "never raises")."""
     # First sentence has no ts_start; matched sentence also lacks it → bare uri.
     broken = [
@@ -126,7 +126,7 @@ def test_dip_speech_url_unchanged() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Post-generation deep-link refinement (D-02b): once the answer exists, re-point
+# Post-generation deep-link refinement: once the answer exists, re-point
 # the video deep-link at the sentence the model actually cited, not the RAG query.
 # ---------------------------------------------------------------------------
 

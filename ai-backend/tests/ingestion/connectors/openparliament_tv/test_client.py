@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""OpTvClient._get_json fallback tests (LOW-02).
+"""OpTvClient._get_json fallback tests.
 
 Focus: on a persistent non-2xx the curl fallback error must carry the original
 HTTP status context (e.g. 404) so bulk-backfill failures are triageable. No
@@ -15,7 +15,7 @@ import pytest
 
 client_mod = pytest.importorskip(
     "src.ingestion.connectors.openparliament_tv.client",
-    reason="op client not yet implemented — Wave-0 scaffold",
+    reason="op client not yet implemented",
 )
 
 
@@ -39,7 +39,7 @@ class _FakeSession:
 
 
 def test_get_json_fallback_includes_http_status(monkeypatch) -> None:
-    """LOW-02: a 404 loop whose curl fallback also fails surfaces HTTP 404 in the error."""
+    """a 404 loop whose curl fallback also fails surfaces HTTP 404 in the error."""
     op = client_mod.OpTvClient(sleep=0)
     op.session = _FakeSession(404)
 

@@ -80,10 +80,10 @@ def test_vote_sources_include_region() -> None:
     assert len(sources) == 1, "Expected 1 source entry for participating party"
     source_dict = sources[0]
     assert "region" in source_dict, (
-        "P8-LABEL-02: vote source dict must include 'region' key"
+        "vote source dict must include 'region' key"
     )
     assert source_dict["region"] == "DE", (
-        f"P8-LABEL-02: region must match payload region 'DE', got {source_dict['region']!r}"
+        f"region must match payload region 'DE', got {source_dict['region']!r}"
     )
 
 
@@ -97,7 +97,7 @@ def test_vote_sources_region_de_payload() -> None:
     # Must contain the region assignment in the vote sources loop
     assert '"region": vote_payload.get("region")' in source or \
            "'region': vote_payload.get('region')" in source, (
-        "P8-LABEL-02: chat_service.py sources loop must include "
+        "chat_service.py sources loop must include "
         "'\"region\": vote_payload.get(\"region\")'"
     )
 
@@ -165,16 +165,16 @@ def test_fetch_party_response_stream_has_election_level_param() -> None:
     """fetch_party_response_stream signature must include election_level: Optional[str] = None."""
     sig = inspect.signature(fetch_party_response_stream)
     assert "election_level" in sig.parameters, (
-        "P8-RANK-01: fetch_party_response_stream must accept 'election_level' parameter"
+        "fetch_party_response_stream must accept 'election_level' parameter"
     )
     param = sig.parameters["election_level"]
     assert param.default is None, (
-        f"P8-RANK-01: election_level default must be None, got {param.default!r}"
+        f"election_level default must be None, got {param.default!r}"
     )
 
 
 # ---------------------------------------------------------------------------
-# Phase 09 two-pass wiring tests
+# two-pass wiring tests
 # ---------------------------------------------------------------------------
 #
 # The first three are source-inspection / structural guarantees; the last two
@@ -259,13 +259,13 @@ def _sources_from_events(events: list[str]) -> list[dict]:
 
 def test_two_pass_window_derived_before_nulling() -> None:
     """term_window is derived from the RAW _context.legislature_period_id BEFORE
-    the non-federal nulling of legislature_period_id (source-order guarantee, D5)."""
+    the non-federal nulling of legislature_period_id (source-order guarantee)."""
     source = inspect.getsource(cs)
     deriv_idx = source.index("term_window_for_context(")
     null_idx = source.index('if election_level not in (None, "federal")')
     assert deriv_idx < null_idx, (
         "term_window must be derived BEFORE legislature_period_id is nulled for "
-        "non-federal contexts (D5)"
+        "non-federal contexts"
     )
     # The derivation must use the raw context values (period id + date).
     assert "_context.legislature_period_id" in source
@@ -335,7 +335,7 @@ def _participating_vote_payload(title: str, publish_date: str) -> dict:
 
 def test_current_first_merge_order(monkeypatch) -> None:
     """combined_docs is all-current-then-all-historic (manifesto→vote→speech within
-    each bucket, SC1) and sources[] mirror the identical order for [N] alignment (D1/D4)."""
+    each bucket) and sources[] mirror the identical order for [N] alignment."""
     capture: dict = {}
 
     def _mock_two_pass(_query, **kwargs):
@@ -390,7 +390,7 @@ def test_current_first_merge_order(monkeypatch) -> None:
         "HIST-MANI", "HIST-VOTE", "HIST-SPEECH",
     ], (
         "combined_docs must be current-first, historic-after "
-        "(manifesto→vote→speech per bucket, SC1) — not the old manifesto→speech order"
+        "(manifesto→vote→speech per bucket) — not the old manifesto→speech order"
     )
 
     source_titles = [s["source"] for s in _sources_from_events(events)]
@@ -400,7 +400,7 @@ def test_current_first_merge_order(monkeypatch) -> None:
 def test_adaptive_speech_fallback_when_official_sparse(monkeypatch) -> None:
     """When votes+manifesto current buckets are empty (official data sparse) and
     more than _CURRENT_SPEECH_LIMIT speeches are present, the extra speeches survive
-    into combined_docs — the adaptive fallback fires so the answer isn't starved (SC2)."""
+    into combined_docs — the adaptive fallback fires so the answer isn't starved."""
     capture: dict = {}
     n_speeches = cs._CURRENT_SPEECH_LIMIT + 2  # strictly above the normal cap
 
@@ -443,7 +443,7 @@ def test_adaptive_speech_fallback_when_official_sparse(monkeypatch) -> None:
 
 def test_speech_trimmed_when_official_present(monkeypatch) -> None:
     """When official data (votes+manifesto) is present, current speeches are trimmed
-    to exactly _CURRENT_SPEECH_LIMIT even though more were fetched (SC2)."""
+    to exactly _CURRENT_SPEECH_LIMIT even though more were fetched."""
     capture: dict = {}
     n_speeches = cs._CURRENT_SPEECH_LIMIT + 2
 
@@ -515,7 +515,7 @@ def test_official_coverage_helper() -> None:
 
 def test_single_pass_fallback_when_no_window(monkeypatch) -> None:
     """When term_window is None, single-pass retrieve() is used (retrieve_two_pass
-    is never called) and grounding matches the pre-Phase-09 behaviour (SC4)."""
+    is never called) and grounding matches the earlier behaviour."""
     capture: dict = {}
     called = {"single": False, "two_pass": False}
 

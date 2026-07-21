@@ -91,7 +91,7 @@ MAX_RESPONSE_CHUNK_LENGTH = 10  # preserved from V1 for cached-response replay
 # Informationen" for that source type, producing a valid (possibly empty) context.
 _CHAT_SCORE_THRESHOLD = 0.5
 
-# Two-pass temporal retrieval (Phase 09, decisions D1/D4).
+# Two-pass temporal retrieval.
 # When a term window resolves for the chat context (term_window_for_context),
 # each source is retrieved in TWO passes:
 #   - current pass  : publish_date ∈ [term_start, term_end], FLAT, keeps the
@@ -99,7 +99,7 @@ _CHAT_SCORE_THRESHOLD = 0.5
 #                     current record). Uses _CHAT_SCORE_THRESHOLD (0.5).
 #   - historic pass : publish_date < term_start, gated by a HIGH threshold so
 #                     only strongly on-topic history returns, and kept small
-#                     (context-only, D4 + Claude's-discretion budget split).
+#                     (context-only budget split).
 # The two buckets are merged CURRENT-FIRST, HISTORIC-AFTER into a single
 # combined grounding; sources[] are built in the IDENTICAL bucket-then-source
 # order so [N] citations stay aligned with combined_docs. Per-section rendering
@@ -107,22 +107,22 @@ _CHAT_SCORE_THRESHOLD = 0.5
 _HISTORIC_SCORE_THRESHOLD = 0.6
 _HISTORIC_LIMITS = {"vote": 2, "manifesto": 2, "speech": 1}
 
-# Current-bucket per-source budgets (Phase 10, D1/D4 — the "speeches overcrowd
-# the answer" fix). Grounding is ordered manifesto → vote → speech, so speeches
+# Current-bucket per-source budgets (the "speeches overcrowd the answer" fix).
+# Grounding is ordered manifesto → vote → speech, so speeches
 # rank LAST and are budget-capped, BUT expand adaptively when official data
 # (votes + manifesto) is sparse so vote-sparse contexts (e.g. Rheinland-Pfalz =
 # 5 recorded votes for a whole term) still produce a substantive answer.
-#   - manifesto / vote: unchanged from the pre-Phase-10 caps.
+#   - manifesto / vote: fixed caps.
 #   - speech: fetched at the FALLBACK ceiling, then trimmed to the normal cap
 #     ONLY when official data is present (see _official_coverage + the adaptive
 #     trim in fetch_party_response_stream / process_party). When official data is
 #     sparse the fetched-at-ceiling speeches are kept so the answer isn't starved.
 _CURRENT_VOTE_LIMIT = 5
 _CURRENT_MANIFESTO_LIMIT = 4
-_CURRENT_SPEECH_LIMIT = 2          # normal cap (reduced from 3 per D4 — ranked last)
+_CURRENT_SPEECH_LIMIT = 2          # normal cap (ranked last)
 _CURRENT_SPEECH_FALLBACK = 5       # adaptive ceiling when official data is sparse
 
-# Second-pass deep-link locator (D-02b). A cited op speech chunk carries a
+# Second-pass deep-link locator. A cited op speech chunk carries a
 # `meta.sentence_map` (verbatim sentences + per-sentence timestamps). The locator
 # matches the model's quoted text to the best sentence and rewrites the citation
 # url to `video_uri#t={ts_start}` (phrase-level deep-link). Fuzzy fallback uses a
@@ -131,14 +131,14 @@ _DEEPLINK_FUZZY_THRESHOLD = 0.6
 
 
 def locate_deeplink(quoted: str, sentence_map: list[dict], video_uri: str) -> str:
-    """Map cited text to a phrase-level video deep-link (D-02b, zero embeddings).
+    """Map cited text to a phrase-level video deep-link (zero embeddings).
 
     Given the model's quoted/answer text and a matched op whole-speech chunk's
     ``meta.sentence_map`` (a list of ``{"text", "ts_start", "ts_end"}``), find the
     sentence whose text best matches and return ``f"{video_uri}#t={ts_start}"`` so
     the citation opens the video at that phrase.
 
-    Matching (verbatim-first, per RESEARCH Q4):
+    Matching (verbatim-first):
       1. Exact substring either direction (``quoted in sentence`` or
          ``sentence in quoted``) → that sentence wins immediately.
       2. Else the best ``difflib.SequenceMatcher`` ratio sentence, if it clears
@@ -148,9 +148,8 @@ def locate_deeplink(quoted: str, sentence_map: list[dict], video_uri: str) -> st
 
     NEVER raises: an empty / None ``quoted`` or an empty / missing
     ``sentence_map`` returns ``video_uri`` unchanged (no ``#t=`` fragment), so a
-    malformed payload can never crash citation assembly (threat T-11-20). The
-    source-supplied ``video_uri`` is only appended to — never fetched or executed
-    (threat T-11-19).
+    malformed payload can never crash citation assembly. The
+    source-supplied ``video_uri`` is only appended to — never fetched or executed.
 
     Args:
         quoted: The model's quoted/answer text to locate within the speech.
@@ -283,7 +282,7 @@ def _speech_deeplink_url(payload: dict, quoted: str) -> Optional[str]:
 
     For an op-sourced speech (``source == "op"``) that carries a
     ``meta.sentence_map`` and ``meta.video_uri``, refine the citation to a
-    phrase-level ``video_uri#t={ts_start}`` deep-link (D-02b). DIP speeches (no
+    phrase-level ``video_uri#t={ts_start}`` deep-link. DIP speeches (no
     ``sentence_map``) — and any op chunk missing the media payload — keep their
     stored ``citation_url`` unchanged.
 
@@ -345,7 +344,7 @@ def _mk_manifesto_docs(payloads: list[dict]) -> list[Document]:
 
 def _mk_speech_docs(payloads: list[dict], improved_rag_query: str) -> list[Document]:
     # op speeches carry a video deep-link (meta.sentence_map + video_uri);
-    # rewrite their url to video_uri#t={ts_start} (D-02b). DIP unchanged.
+    # rewrite their url to video_uri#t={ts_start}. DIP unchanged.
     return [
         Document(
             page_content=(p.get("text") or ""),
@@ -369,7 +368,7 @@ _CITATION_MARKER_RE = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
 def _cited_claim_for_index(answer: str, idx: int) -> Optional[str]:
     """Return the sentence(s) in *answer* that actually cite source ``idx``.
 
-    Post-generation deep-link refinement (D-02b): the citation URL is first built
+    Post-generation deep-link refinement: the citation URL is first built
     BEFORE the answer exists, so the op video timestamp can only be guessed from
     the RAG query. Once the answer is in hand we can do better — feed the model's
     REAL asserted claim (the clause ending at its ``[idx]`` marker) to the video
@@ -399,7 +398,7 @@ def _refine_speech_deeplinks(
     speech_refs: list[tuple[int, dict]],
     answer: str,
 ) -> bool:
-    """Re-resolve op speech deep-links from the model's actual cited claim (D-02b).
+    """Re-resolve op speech deep-links from the model's actual cited claim.
 
     Mutates *sources* in place: for each refinable op speech source (kept in
     *speech_refs* as ``(index_in_sources, op_payload)``) whose ``[index]`` the
@@ -543,7 +542,7 @@ def _is_video_link(url: Optional[str]) -> bool:
 
 
 def _speech_attribution(payload: dict) -> dict:
-    """Surface ODbL/Bundestag attribution from an op speech's meta (Q8).
+    """Surface ODbL/Bundestag attribution from an op speech's meta.
 
     Returns a dict with ``creator`` / ``license`` / ``source_data`` when present
     (op speeches), else an empty dict (DIP speeches carry no such meta). The app
@@ -572,8 +571,7 @@ def _official_coverage(
 
     ``official_sparse`` is the disjunction ``votes_absent or manifesto_absent``;
     this helper returns the two booleans and leaves the disjunction to callers.
-    Task 10-01 consumes it to drive the adaptive speech trim; plan 10-02 consumes
-    it to drive the SC5 coverage-transparency line.
+    It drives both the adaptive speech trim and the coverage-transparency line.
     """
     votes_absent = len(vote_docs_current) == 0
     manifesto_absent = len(manifesto_current) == 0
@@ -584,7 +582,7 @@ def _has_historic_docs(
     docs_by_party: Optional[Dict[str, List[Document]]],
     term_window: Optional[tuple[datetime, datetime]],
 ) -> bool:
-    """Best-effort D3 signal for the COMPARISON path.
+    """Best-effort historic signal for the COMPARISON path.
 
     The comparison grounding (process_party) merges current+historic per party into
     a single per-party list WITHOUT a per-doc historic marker, so re-derive the
@@ -859,7 +857,7 @@ async def fetch_party_response_stream(
     full_response: Optional[BaseMessageChunk] = None
     sources: list = []
     # (index_in_sources, op_payload) for op speeches whose video deep-link can be
-    # refined from the model's actual cited claim once the answer exists (D-02b).
+    # refined from the model's actual cited claim once the answer exists.
     speech_refs: list[tuple[int, dict]] = []
     # (index_in_sources, verbatim_chunk_text) for PDF-backed sources (manifestos +
     # speeches) that can gain a best-effort `#search=` highlight from the cited claim.
@@ -928,13 +926,10 @@ async def fetch_party_response_stream(
             # Embed the rag query ONCE and reuse the vector for all three
             # source retrievals (vote, manifesto, speech). This avoids three
             # separate OpenAI embed API calls for the same query string.
-            # The V1 identify_relevant_docs_with_llm_based_reranking call that
-            # previously sat here queried the EMPTY all_parties_dev / context
-            # collection — it was producing zero documents and wasting an embed.
-            # It is replaced with a no-op empty list; the single-store sources
-            # (manifesto, speech, vote) below are the canonical doc sources.
+            # The single-store sources (manifesto, speech, vote) below are the
+            # canonical doc sources.
             rag_query_vector = await embed.aembed_query(improved_rag_query)
-            relevant_docs_list = []  # V1 legacy slot — now always empty (typed at decl)
+            relevant_docs_list = []  # always empty; canonical sources are fetched below
             improved_rag_query_list = [improved_rag_query]
 
             # Run all three per-source retrieve() calls concurrently via
@@ -983,10 +978,10 @@ async def fetch_party_response_stream(
                     )
                     return {"current": [], "historic": []}
 
-            # Per-source current/historic payload buckets (D4). When no term window
+            # Per-source current/historic payload buckets. When no term window
             # resolves, everything lands in the *current* buckets via single-pass
-            # retrieve() and the historic buckets stay empty — preserving the exact
-            # pre-Phase-09 grounding for federal-default and general contexts (SC4).
+            # retrieve() and the historic buckets stay empty — preserving the
+            # single-pass grounding for federal-default and general contexts.
             manifesto_current: list[dict] = []
             speech_current: list[dict] = []
             vote_current: list[dict] = []
@@ -1002,7 +997,7 @@ async def fetch_party_response_stream(
                 # region_path is the election scope — MatchAny on the chunk-level
                 # scalar `region` field.  Federal default = ["DE"].
                 if term_window is not None:
-                    # TWO-PASS temporal retrieval (Phase 09, D1/D3/D4). A window
+                    # TWO-PASS temporal retrieval. A window
                     # resolved, so each source is split into a current pass
                     # (publish_date ∈ [term_start, term_end], EXISTING per-source
                     # current limits) and a small high-bar historic pass
@@ -1051,7 +1046,7 @@ async def fetch_party_response_stream(
                     )
                     # Speeches are fetched at the adaptive FALLBACK ceiling and
                     # trimmed to _CURRENT_SPEECH_LIMIT after the gather ONLY when
-                    # official data (votes+manifesto) is present (D4).
+                    # official data (votes+manifesto) is present.
                     _speech_coro = _safe_two_pass(
                         query_vector=rag_query_vector,
                         source_type="parliamentary_speech",
@@ -1124,17 +1119,17 @@ async def fetch_party_response_stream(
             # path stay byte-for-byte in sync.
 
             # Build the current-bucket vote Documents ONCE (participation-filtered),
-            # then apply the adaptive speech trim (D4): when official data
+            # then apply the adaptive speech trim: when official data
             # (votes+manifesto) is NOT sparse, drop speeches back to the normal cap;
             # when sparse, keep the fetched-at-ceiling speeches so the answer isn't
-            # starved. Historic speeches are never trimmed (kept small per Phase 09).
+            # starved. Historic speeches are never trimmed (kept small).
             vote_docs_current = build_vote_documents(
                 party.party_id, party.name, vote_current
             )
             votes_absent, manifesto_absent = _official_coverage(
                 vote_docs_current, manifesto_current
             )
-            # Phase 10 (D3): the historic bucket is already high-bar threshold-gated
+            # The historic bucket is already high-bar threshold-gated
             # at retrieval, so a non-empty raw historic payload means "cleared the
             # bar" — enough to instruct a marked historic section. Drives has_historic
             # threaded into generation below.
@@ -1145,13 +1140,12 @@ async def fetch_party_response_stream(
                 speech_current = speech_current[:_CURRENT_SPEECH_LIMIT]
 
             # combined_docs is the single list passed to generate_streaming_chatbot_response.
-            # Order (D1/D4): CURRENT bucket first (manifesto → vote → speech — votes
+            # Order: CURRENT bucket first (manifesto → vote → speech — votes
             # precede speeches so the model leads with position then record, treating
             # speeches as supporting material), then the HISTORIC bucket in the SAME
             # source order. build_vote_documents drops non-participating votes, so vote
             # doc counts equal the participation-filtered sources[] entries below
-            # (citation alignment). Per-section rendering is DEFERRED — both buckets
-            # feed the SAME combined grounding.
+            # (citation alignment). Both buckets feed the SAME combined grounding.
             combined_docs = (
                 _mk_manifesto_docs(manifesto_current)
                 + vote_docs_current
@@ -1190,7 +1184,7 @@ async def fetch_party_response_stream(
             def _append_speech_sources(payloads: list[dict]) -> None:
                 for speech_payload in payloads:
                     # op speeches → phrase-level video deep-link + ODbL/Bundestag
-                    # attribution (Q8); DIP speeches keep their citation_url and add
+                    # attribution; DIP speeches keep their citation_url and add
                     # no attribution keys.
                     primary_url = _speech_deeplink_url(
                         speech_payload, improved_rag_query
@@ -1254,8 +1248,7 @@ async def fetch_party_response_stream(
                         }
                     )
 
-            # relevant_docs_list is always [] (dead V1 all_parties query removed) —
-            # this loop is a no-op but retained for clarity.
+            # relevant_docs_list is always empty; this loop is a defensive no-op.
             for source_doc in relevant_docs_list:
                 page_raw = source_doc.metadata.get("page", 0)
                 page_number = int(page_raw if page_raw is not None else 0) + 1
@@ -1322,7 +1315,7 @@ async def fetch_party_response_stream(
 
         # LLM streaming
         if not is_comparing_question:
-            # Phase 10 (D1–D5): thread the sparse-official-data coverage signal
+            # Thread the sparse-official-data coverage signal
             # (_official_coverage, computed above from the participation-filtered
             # vote docs + manifesto payloads) and has_historic into generation so
             # the answer follows the four-section shape, marks historic material,
@@ -1338,9 +1331,9 @@ async def fetch_party_response_stream(
                 use_premium_llms=use_premium_llms,
                 election_level=election_level,
                 # Positive coverage preamble: name the source types that DO ground
-                # the answer (manifesto / votes / speeches present), replacing the
-                # old absent-source flagging. Presence mirrors the buckets that feed
-                # combined_docs above; speech_current is the already-trimmed list.
+                # the answer (manifesto / votes / speeches present). Presence mirrors
+                # the buckets that feed combined_docs above; speech_current is the
+                # already-trimmed list.
                 present_sources=(
                     not manifesto_absent,
                     not votes_absent,
@@ -1349,7 +1342,7 @@ async def fetch_party_response_stream(
                 has_historic=has_historic,
             )
         else:
-            # Comparison keeps its own by-party structure; only the D3 historic
+            # Comparison keeps its own by-party structure; only the historic
             # marking is threaded (coverage transparency is single-party only).
             # has_historic is re-derived from the merged comparison grounding
             # (publish_date < term_start) since process_party leaves no per-doc marker.
@@ -1400,7 +1393,7 @@ async def fetch_party_response_stream(
 
         # Post-generation source refinement (now the answer exists): (1) re-point
         # each cited op speech's video deep-link at the sentence the model actually
-        # asserted, not the pre-answer RAG-query guess (D-02b); (2) attach a
+        # asserted, not the pre-answer RAG-query guess; (2) attach a
         # best-effort `#search=` highlight snippet to each cited PDF source from that
         # same claim. Either mutation → re-emit sources_ready (the client overwrites
         # the prior sources for this party).
@@ -1526,9 +1519,7 @@ async def process_party(
 ) -> None:
     """Fetch relevant docs for one party in a comparison question (no emit).
 
-    Previously called identify_relevant_docs_with_llm_based_reranking which
-    queried the EMPTY all_parties_dev / context collection — answers were completely
-    ungrounded. Now embeds the rag query ONCE and retrieves manifesto + speech + vote
+    Embeds the rag query ONCE and retrieves manifesto + speech + vote
     documents from the single wahlchat_chunks store, mirroring the single-party path.
     """
     improved_rag_query = await generate_improvement_rag_query(
@@ -1581,7 +1572,7 @@ async def process_party(
     if party.party_id != WAHL_CHAT_PARTY.party_id:
         # Run all three source retrievals concurrently for this party.
         if term_window is not None:
-            # TWO-PASS temporal retrieval (D1/D3/D4) — same wiring as the
+            # TWO-PASS temporal retrieval — same wiring as the
             # single-party path: current window [term_start, term_end] with the
             # existing per-source limits, plus a small high-bar historic bucket.
             # One query vector reused across all six passes; legislature_period_id
@@ -1689,7 +1680,7 @@ async def process_party(
     # _mk_speech_docs helpers (identical to the single-party path).
 
     # Build the current-bucket vote Documents ONCE (participation-filtered), then
-    # apply the adaptive speech trim (D4): drop speeches to the normal cap when
+    # apply the adaptive speech trim: drop speeches to the normal cap when
     # official data (votes+manifesto) is present; keep the fetched-at-ceiling
     # speeches when official data is sparse. Mirrors the single-party path.
     vote_docs_current = build_vote_documents(party.party_id, party.name, vote_current)
@@ -1699,7 +1690,7 @@ async def process_party(
     if not votes_absent and not manifesto_absent:
         speech_current = speech_current[:_CURRENT_SPEECH_LIMIT]
 
-    # Merge current-first, historic-after (D1/D4) in manifesto → vote → speech order
+    # Merge current-first, historic-after in manifesto → vote → speech order
     # so [N] citations built downstream (from document_name metadata) stay aligned
     # with the same bucket-then-source order used by the single-party path.
     grounded_docs = (
@@ -1871,7 +1862,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
         election_level: Optional[str] = (
             _context.level if _context is not None else None
         )
-        # Derive the current-term window ONCE from the RAW context values (D5),
+        # Derive the current-term window ONCE from the RAW context values,
         # BEFORE the federal-only nulling of legislature_period_id below — the raw
         # period id lets term_window_for_context resolve the exact legislature row
         # for federal/period-named contexts, while region_path + date resolve state
@@ -1885,7 +1876,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
             _context.legislature_period_id if _context is not None else None,
             _context.date if _context is not None else None,
         )
-        # Manifesto current-window widening (campaign-window semantics, E2):
+        # Manifesto current-window widening (campaign-window semantics):
         # a manifesto's publish_date is stamped as its period's ELECTION DATE,
         # which always precedes the term's constituent-session date_from — so a
         # [term_start, term_end] current window can NEVER contain the current
@@ -2016,7 +2007,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     or user_message.content in proposed_questions_group
                 )
                 # Server-verified single-turn shape for the proposed-question
-                # cache key (A2): the effective history must be EXACTLY the one
+                # cache key: the effective history must be EXACTLY the one
                 # proposed-question user message. Evaluated EAGERLY here (before
                 # any party generator runs and appends assistant turns), so a
                 # client-fabricated history — e.g. [assistant(<injected>),

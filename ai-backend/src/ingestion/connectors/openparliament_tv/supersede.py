@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-op→DIP supersede policy — owned by the openparliament_tv connector (B8).
+op→DIP supersede policy — owned by the openparliament_tv connector.
 
 Relocated from the generic runner (run.py): the "op supersedes its DIP twin"
 merge is source-specific policy, not framework behavior. The runner now exposes
@@ -11,7 +11,7 @@ a neutral ``BaseConnector.post_upsert`` hook; ``OpenParliamentTvConnector``
 implements it by calling :func:`supersede_dip_duplicates` for each just-upserted
 op item. Every other connector inherits the no-op hook.
 
-CONCURRENCY HAZARD (C9): the DIP (bundestag_speeches) and op schedules MUST be
+CONCURRENCY HAZARD: the DIP (bundestag_speeches) and op schedules MUST be
 serialized — never run both connectors concurrently. Interleaving
 "DIP resurrection-guard passes → op ingests+supersedes → DIP commits" strands a
 DIP twin whose source_item_id never appears in either connector's later
@@ -32,9 +32,9 @@ from qdrant_client import QdrantClient, models
 from src.ingestion.connector import BaseConnector
 from src.ingestion.schemas import ChunkRecord
 
-# Shared with the DIP resurrection guard (C11): a DIP twin is superseded only
+# Shared with the DIP resurrection guard: a DIP twin is superseded only
 # when its normalized text matches the op speech at/above this ratio — see the
-# rationale in src/ingestion/speech_dedup.py and run's HIGH-1 fix.
+# rationale in src/ingestion/speech_dedup.py.
 from src.ingestion.speech_dedup import (
     SUPERSEDE_TEXT_MATCH_RATIO as _SUPERSEDE_TEXT_MATCH_RATIO,
 )
@@ -42,7 +42,7 @@ from src.ingestion.speech_dedup import norm_speech_text as _norm_speech_text
 
 
 def _join_indexed_texts(texts: list[tuple[int, str]]) -> str:
-    """Join (chunk_index, text) pairs in chunk_index order (C3).
+    """Join (chunk_index, text) pairs in chunk_index order.
 
     A 2+-chunk speech scrolled out of order would otherwise concatenate as
     "B+A" and SequenceMatcher("A+B", "B+A") ≈ 0.5 < 0.85 — a silent supersede
@@ -58,7 +58,7 @@ def supersede_dip_duplicates(
     *,
     connector: BaseConnector,
 ) -> int:
-    """Merge the true DIP twin into an op speech, then delete ONLY that twin (D-04/D-09).
+    """Merge the true DIP twin into an op speech, then delete ONLY that twin.
 
     NARROW, op-gated hook: fires ONLY when ``getattr(connector, "source", None) == "op"``.
     Called per just-upserted op item (all chunks of ONE op speech), so exactly one
@@ -119,7 +119,7 @@ def supersede_dip_duplicates(
     # Collect DIP candidates under those keys, grouped into distinct DIP speeches
     # (by source_item_id, stringified — stored payloads serialize it to str) with
     # their (chunk_index, text) pairs + protocol-PDF citation_url. chunk_index is
-    # fetched so a multi-chunk speech joins in chunk order, not scroll order (C3).
+    # fetched so a multi-chunk speech joins in chunk order, not scroll order.
     dip_speeches: dict[str, dict] = {}
     next_offset = None
     while True:
@@ -223,7 +223,7 @@ def supersede_dip_duplicates(
         ),
         wait=True,
     )
-    # T-11-11: operator visibility on the merge + duplicate deletion.
+    # operator visibility on the merge + duplicate deletion.
     print(
         f"supersede: grafted DIP transcript PDF onto {len(graft_ops)} op speech(es), "
         f"then deleted {len(delete_dip_sids)} matched DIP twin(s)",

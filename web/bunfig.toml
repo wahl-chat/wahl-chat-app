@@ -1,8 +1,8 @@
-# Supply-chain hardening (D-08), ported from the pnpm-era pnpm-workspace.yaml
+# Supply-chain hardening.
 [install]
-# Quarantines packages published less than 7 days ago (bun default is 259200s = 3 days;
-# this MUST be set explicitly to mirror the pnpm minimumReleaseAge D-08 control, which
-# was 10080 minutes = 7 days).
+# Quarantines packages published less than 7 days ago. Bun's default is
+# 259200s = 3 days; set explicitly so the 7-day window is enforced regardless
+# of the bun default.
 minimumReleaseAge = 604800
 
 # Note: pnpm's blockExoticSubdeps (blocks sub-dependencies installed via a package

@@ -8,15 +8,15 @@ Regression tests for the code-review BLOCKER fixes.
 These guard the *production wiring* paths that the original tests did NOT
 exercise (they used injection seams that bypass run.py → worker.py):
 
-  - CR-01: run.py's embedding_worker branch must call run_embedding_worker(db, qdrant)
+  - run.py's embedding_worker branch must call run_embedding_worker(db, qdrant)
            with both clients — not run_embedding_worker() with zero args.
-  - CR-02: BundestagVoteConnector.normalize() must persist a non-null storage_ref
+  - BundestagVoteConnector.normalize() must persist a non-null storage_ref
            so the worker's GCS load gets a real blob path.
-  - CR-04: BundestagVoteConnector.discover() must honour the persisted high-water
+  - BundestagVoteConnector.discover() must honour the persisted high-water
            vote ID and exclude already-processed IDs.
-  - CR-05: work_queue.claim_pending_work() must also re-claim retryable "failed"
+  - work_queue.claim_pending_work() must also re-claim retryable "failed"
            items (not only "pending"), so the dead-letter retry path runs.
-  - WR-03: _parse_german_date() raises on an unparseable date (no 1970 epoch).
+  - _parse_german_date() raises on an unparseable date (no 1970 epoch).
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ try:
     )
 except ImportError as _e:
     pytest.skip(
-        f"Phase-5 schema teardown: {_e} — bundestag_votes deleted in Plan 05-04+",
+        f"schema teardown: {_e} — bundestag_votes deleted",
         allow_module_level=True,
     )
 
@@ -128,12 +128,12 @@ class _FakeDB:
 
 
 # ---------------------------------------------------------------------------
-# CR-02: normalize() persists a non-null storage_ref.
+# normalize() persists a non-null storage_ref.
 # ---------------------------------------------------------------------------
 
 
 def test_normalize_sets_storage_ref(bundestag_vote_939: dict) -> None:
-    """CR-02: the persisted SourceItemRecord must carry a gs:// storage_ref."""
+    """the persisted SourceItemRecord must carry a gs:// storage_ref."""
     connector = BundestagVoteConnector(
         db=_FakeDB(),
         fetch_fn=lambda _vid: bundestag_vote_939,
@@ -153,12 +153,12 @@ def test_normalize_sets_storage_ref(bundestag_vote_939: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
-# CR-04: discover() honours the persisted high-water vote ID.
+# discover() honours the persisted high-water vote ID.
 # ---------------------------------------------------------------------------
 
 
 def test_discover_excludes_processed_ids() -> None:
-    """CR-04: discover() returns only IDs strictly greater than the watermark."""
+    """discover() returns only IDs strictly greater than the watermark."""
     db = _FakeDB()
     # Seed a watermark with last_external_id = 940.
     db.collection("ingestion_watermarks").document("bundestag_votes").set(
@@ -182,18 +182,18 @@ def test_discover_excludes_processed_ids() -> None:
 
 
 def test_discover_returns_all_on_first_run() -> None:
-    """CR-04: with no watermark, discover() returns all IDs sorted ascending."""
+    """with no watermark, discover() returns all IDs sorted ascending."""
     connector = BundestagVoteConnector(db=_FakeDB(), vote_ids=["941", "939", "940"])
     assert connector.discover(since=None) == ["939", "940", "941"]
 
 
 # ---------------------------------------------------------------------------
-# CR-03: watermark advances monotonically (never regresses).
+# watermark advances monotonically (never regresses).
 # ---------------------------------------------------------------------------
 
 
 def test_write_watermark_is_monotonic(bundestag_vote_939: dict) -> None:
-    """CR-03: writing an older vote ID must not move the watermark backwards."""
+    """writing an older vote ID must not move the watermark backwards."""
     db = _FakeDB()
     connector = BundestagVoteConnector(db=db, vote_ids=["939"])
 
@@ -213,12 +213,12 @@ def test_write_watermark_is_monotonic(bundestag_vote_939: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
-# WR-03: _parse_german_date raises (no epoch fallback).
+# _parse_german_date raises (no epoch fallback).
 # ---------------------------------------------------------------------------
 
 
 def test_parse_german_date_raises_on_garbage() -> None:
-    """WR-03: an unparseable date raises ValueError instead of returning 1970."""
+    """an unparseable date raises ValueError instead of returning 1970."""
     assert _parse_german_date("2025-03-21") == date(2025, 3, 21)
     assert _parse_german_date("21. März 2025") == date(2025, 3, 21)
     with pytest.raises(ValueError):
@@ -226,12 +226,12 @@ def test_parse_german_date_raises_on_garbage() -> None:
 
 
 # ---------------------------------------------------------------------------
-# CR-05: claim_pending_work re-claims "failed" items.
+# claim_pending_work re-claims "failed" items.
 # ---------------------------------------------------------------------------
 
 
 def test_claim_pending_work_reclaims_failed() -> None:
-    """CR-05: a retryable "failed" item must be re-claimed (flipped to embedding)."""
+    """a retryable "failed" item must be re-claimed (flipped to embedding)."""
     from src.ingestion.work_queue import claim_pending_work
 
     db = _FakeDB()
@@ -261,12 +261,12 @@ def test_claim_pending_work_reclaims_failed() -> None:
 
 
 # ---------------------------------------------------------------------------
-# CR-01: run.py's embedding_worker dispatch calls run_embedding_worker(db, qdrant).
+# run.py's embedding_worker dispatch calls run_embedding_worker(db, qdrant).
 # ---------------------------------------------------------------------------
 
 
 def test_run_module_dispatches_worker_with_clients(monkeypatch: pytest.MonkeyPatch) -> None:
-    """CR-01: the embedding_worker branch must pass db AND qdrant to the worker.
+    """the embedding_worker branch must pass db AND qdrant to the worker.
 
     Exercises the production wiring (build clients + call signature) that the
     original tests bypassed via injection seams.  Mocks the client factories so

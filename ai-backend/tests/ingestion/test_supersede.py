@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Supersede-delete integration tests (D-04) — fake Qdrant.
+Supersede-delete integration tests — fake Qdrant.
 
 When op ingests an aligned+proceedings speech, the op connector's post_upsert
-hook (B8 — the policy lives in the connector package, not the generic runner)
+hook (the policy lives in the connector package, not the generic runner)
 must graft the DIP twin's transcript PDF and issue a delete scoped to the
 twin's source_item_id AND source == "dip". Duplication is transient.
 """
@@ -48,7 +48,7 @@ _SPEECH_TEXT = (
 
 
 def test_supersede_deletes_dip_duplicate() -> None:
-    """D-04: op ingest deletes ONLY its text-matched DIP twin, by the twin's
+    """op ingest deletes ONLY its text-matched DIP twin, by the twin's
     source_item_id (never by the non-unique speech_key)."""
     speech_key = "de-20-101-mareike-lotte-wulf-top20"
     dip_point = types.SimpleNamespace(
@@ -76,7 +76,7 @@ def test_supersede_deletes_dip_duplicate() -> None:
 
 
 def test_supersede_grafts_with_real_uuid_source_item_id() -> None:
-    """B1 regression: ChunkRecord.source_item_id is a real uuid.UUID in production.
+    """Regression: ChunkRecord.source_item_id is a real uuid.UUID in production.
 
     The graft filter's MatchValue accepts only bool/int/str — a raw UUID raised a
     ValidationError AFTER the successful upsert, permanently disabling the op→DIP
@@ -114,7 +114,7 @@ def test_supersede_grafts_with_real_uuid_source_item_id() -> None:
 
 
 def test_supersede_keeps_distinct_dip_speech_sharing_the_key() -> None:
-    """HIGH-1: a DISTINCT DIP speech that merely shares the non-unique speech_key
+    """A DISTINCT DIP speech that merely shares the non-unique speech_key
     (different text — a speaker's second turn op never aligned) must NOT be deleted."""
     speech_key = "de-20-101-mareike-lotte-wulf-top20"
     # DIP row under the same key but a completely different speech → must survive.
@@ -140,7 +140,7 @@ def test_supersede_keeps_distinct_dip_speech_sharing_the_key() -> None:
 
 
 def test_supersede_multichunk_dip_twin_joined_in_chunk_order() -> None:
-    """C3 regression: a 2-chunk DIP twin served by scroll() in REVERSE chunk
+    """Regression: a 2-chunk DIP twin served by scroll() in REVERSE chunk
     order must still match (texts joined by chunk_index, not scroll order) —
     "B+A" vs "A+B" would score ≈0.5 and silently miss the supersede."""
     speech_key = "de-20-101-mareike-lotte-wulf-top20"
@@ -256,7 +256,7 @@ def test_supersede_grafts_dip_pdf_onto_op_before_delete() -> None:
 
 
 def test_op_connector_post_upsert_calls_supersede() -> None:
-    """B8: OpenParliamentTvConnector.post_upsert drives the supersede policy —
+    """OpenParliamentTvConnector.post_upsert drives the supersede policy —
     the generic runner only calls the neutral hook."""
     from src.ingestion.connectors.openparliament_tv.connector import (
         OpenParliamentTvConnector,
@@ -283,7 +283,7 @@ def test_op_connector_post_upsert_calls_supersede() -> None:
 
 
 def test_base_connector_post_upsert_is_noop() -> None:
-    """B8: every other connector inherits the no-op hook — no Qdrant calls."""
+    """Every other connector inherits the no-op hook — no Qdrant calls."""
     from src.ingestion.connector import BaseConnector
 
     class _Stub(BaseConnector):

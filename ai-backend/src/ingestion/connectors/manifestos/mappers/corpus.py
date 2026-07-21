@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# ManifestoMeta — source-owned meta for party_manifesto chunks (E8).
+# ManifestoMeta — source-owned meta for party_manifesto chunks.
 # ---------------------------------------------------------------------------
 
 
@@ -49,8 +49,7 @@ class ManifestoMeta(BaseModel):
 
     Mirrors the schemas.py convention (VoteMeta / SpeechMeta): extra="forbid"
     rejects typo'd keys at build time; None-valued fields are dropped via
-    ``model_dump(exclude_none=True)`` (reproducing the previous
-    build-dict-drop-None behavior).
+    ``model_dump(exclude_none=True)``.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -110,7 +109,7 @@ _MANIFESTO_PARTY_SLUG_MAP: dict[str, str] = {
     "die gerechtigkeitspartei - team todenhöfer": "gerechtigkeit",
     "bayernpartei": "bayernpartei",
     "pdr": "pdr",
-    # E3: labels present in the votes map (_AW_FRACTION_SLUG_MAP) — the two maps
+    # Labels present in the votes map (_AW_FRACTION_SLUG_MAP) — the two maps
     # must stay slug-identical for every shared label, otherwise tenant-filtered
     # manifesto retrieval misses the party (a cross-map parity test pins this).
     "ssw": "ssw",                   # Südschleswigscher Wählerverband
@@ -265,7 +264,7 @@ def region_for_period(period_label: str) -> str:
       - "<State> Wahl YYYY" -> "DE-<code>" using the German state map
       - Fallback -> "unbekannt" (quarantine) + WARNING
 
-    E4: the fallback is a QUARANTINE, not "DE" — an unrecognized label (new
+    The fallback is a QUARANTINE, not "DE" — an unrecognized label (new
     format, Kommunalwahl) stamped "DE" would MatchAny-match EVERY election
     context and could never be scoped. "unbekannt" matches no real region_path,
     so quarantined chunks are unreachable by retrieval until re-labeled — safe
@@ -353,7 +352,7 @@ def extract_main_text(html: str) -> str:
 
 def chunk_pages(
     pages: list[tuple[int, str]],
-    # E6: 1500 tokens keeps page spans tight so citation deep-links
+    # 1500 tokens keeps page spans tight so citation deep-links
     # (#page=<page_start>) land near the quoted passage (6000-token chunks put
     # them up to ~10 pages early) and keeps grounding prompts lean. Re-chunking
     # the existing corpus is an operator action via MANIFESTO_REFRESH.
@@ -400,7 +399,7 @@ def chunk_pages(
     if not all_tokens:
         return []
 
-    # E10: a token-boundary slice can split a multi-byte UTF-8 sequence, making
+    # A token-boundary slice can split a multi-byte UTF-8 sequence, making
     # enc.decode() emit U+FFFD replacement characters at the chunk EDGES. Strip
     # them (leading/trailing only — interior U+FFFD would be genuine source
     # data and is preserved).
@@ -441,8 +440,8 @@ def build_manifesto_records(
     None-valued meta keys are omitted (build dict, drop None).
 
     citation_url points directly at the original source (the AW ``file`` PDF URL
-    for pdf sources, or the link URI for link sources) — wahl.chat no longer
-    re-serves or duplicates the file, so the citation resolves to where the
+    for pdf sources, or the link URI for link sources) — wahl.chat does not
+    re-serve or duplicate the file, so the citation resolves to where the
     document actually lives.
 
     Args:
@@ -482,9 +481,9 @@ def build_manifesto_records(
 
     records: list[ChunkRecord] = []
     for chunk_index, (text, page_start, page_end) in enumerate(chunks):
-        # E8: typed meta builder (schemas convention that votes/speeches follow —
-        # extra="forbid" rejects typos at build time); exclude_none reproduces
-        # the previous build-dict-drop-None behavior.
+        # Typed meta builder (schemas convention that votes/speeches follow —
+        # extra="forbid" rejects typos at build time); exclude_none drops
+        # None-valued keys.
         meta: dict = ManifestoMeta(
             aw_program_id=program_id,
             parliament_period_id=parliament_period_id,

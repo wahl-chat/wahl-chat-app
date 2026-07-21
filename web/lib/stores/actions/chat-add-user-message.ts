@@ -100,7 +100,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
     const { tenant } = get();
 
     try {
-      // Firebase writes — NOT Socket.IO; must be preserved (PLAN.md must_haves).
+      // Firebase writes — NOT Socket.IO; must be preserved.
       if (messages.length < 2 && !isMessageResend) {
         await createChatSession(
           userId,
@@ -129,8 +129,8 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
         await addUserMessageToChatSession(safeSessionId, message);
       }
 
-      // Build chat_history for the stateless SSE request (Open Question 3
-      // resolution: client sends full history each request).
+      // Build chat_history for the stateless SSE request
+      // (client sends full history each request).
       const chatHistory = messages.flatMap((m) =>
         m.messages.map((innerMessage) => ({
           ...innerMessage,

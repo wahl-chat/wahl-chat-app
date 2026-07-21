@@ -1,17 +1,17 @@
-# CI pipeline — wahl.chat V2 (D-08, D-09, FOUND-05)
+# CI pipeline — wahl.chat V2
 #
 # Jobs:
 #   backend        — GDPR wall guard + uv ruff check + mypy + pytest (unit/integration, not smoke)
-#   frontend       — bun frozen install + bun audit (D-08 supply-chain gate) + lint + tsc + build
-#   firebase-rules — Firestore security-rules tests against the emulator (G2)
-#   smoke-test     — D-09 E2E SSE smoke test (needs: [backend, frontend])
+#   frontend       — bun frozen install + bun audit supply-chain gate + lint + tsc + build
+#   firebase-rules — Firestore security-rules tests against the emulator
+#   smoke-test     — E2E SSE smoke test (needs: [backend, frontend])
 #
 # Key constraints (CLAUDE.md):
 #   - uv sync --locked  everywhere (locked installs only — no version bumping)
 #   - bun install --frozen-lockfile  (never bare bun install in CI)
-#   - bun audit gate (D-08 supply-chain hardening)
+#   - bun audit supply-chain gate
 #
-# Smoke-test determinism (D-09 / plan 01-08 Task 1):
+# Smoke-test determinism:
 #   The smoke test uses in-process ASGI transport (httpx.ASGITransport) so
 #   monkeypatching works without a separately-running server.  The conftest
 #   patch_chat_io fixture patches the two primary external I/O calls:
@@ -63,7 +63,7 @@ jobs:
             exit 0
           fi
           # Push: proceed only when the branch has no open PR (else the PR run handles CI).
-          # Fail-open (G19): a transient GitHub API failure must not skip all of CI —
+          # Fail-open: a transient GitHub API failure must not skip all of CI —
           # treat an errored `gh pr list` as "no open PR" and proceed (worst case:
           # one duplicate pipeline run, never a silently skipped one).
           open_prs=$(gh pr list --repo "$GITHUB_REPOSITORY" \
@@ -97,13 +97,13 @@ jobs:
           python-version: "3.12"
 
       # Reproducible install — frozen lockfile only (CLAUDE.md).
-      # G9: sync WITH the dev group (ruff/mypy/pytest are dev deps) and pass
+      # Sync WITH the dev group (ruff/mypy/pytest are dev deps) and pass
       # --no-sync to every `uv run` below so it can neither re-sync (bypassing
       # --locked) nor silently change the installed set.
       - name: Install dependencies (locked, with dev)
         run: uv sync --locked
 
-      # A7/G1: GDPR Art. 9 wall — no Firestore users/ access in ingestion code.
+      # GDPR Art. 9 wall — no Firestore users/ access in ingestion code.
       # Stdlib-only script; runs from the repo root.
       - name: GDPR Art. 9 wall guard
         working-directory: .
@@ -147,19 +147,15 @@ jobs:
       - name: Install dependencies (frozen)
         run: bun install --frozen-lockfile
 
-      # D-08: supply-chain hardening gate (CLAUDE.md "bun audit as CI gate")
-      # HARD-BLOCKING at --audit-level high: there are currently 0 critical/high
-      # findings (Next.js bumped to 15.x >=15.2.3, fixing GHSA-f82v-jwr5-mffw;
-      # unused `swiper` removed, fixing the GHSA-hmx5-qpq5-p643 prototype-pollution
-      # critical). Any new high/critical fails CI.
+      # Supply-chain hardening gate (CLAUDE.md "bun audit as CI gate").
+      # HARD-BLOCKING at --audit-level high: any new high/critical finding fails CI.
       # Known remaining MODERATE findings are transitive and pinned upstream
-      # (held pins, D-07): jsondiffpatch + postcss via ai@4.x, uuid via
-      # firebase-admin. Tracked for a future dependency-update phase; they do not
+      # (jsondiffpatch + postcss via ai@4.x, uuid via firebase-admin); they do not
       # block the gate while it runs at `high`.
-      - name: Supply-chain audit (D-08)
+      - name: Supply-chain audit
         run: bun audit --audit-level=high
 
-      # G5: non-mutating lint (next lint + biome ci) — violations FAIL the job
+      # Non-mutating lint (next lint + biome ci) — violations FAIL the job
       # instead of being auto-fixed on the runner and silently building.
       - name: Lint
         run: bun run lint
@@ -171,7 +167,7 @@ jobs:
         run: bun run build
 
   # ---------------------------------------------------------------------------
-  # Firebase rules: Firestore security-rules tests against the emulator (G2)
+  # Firebase rules: Firestore security-rules tests against the emulator
   # Proves the GDPR Art. 9 consent gate + chat-message privacy rules in CI.
   # ---------------------------------------------------------------------------
   firebase-rules:
@@ -212,7 +208,7 @@ jobs:
             "cd tests && bun run test"
 
   # ---------------------------------------------------------------------------
-  # Smoke-test: D-09 E2E SSE smoke test (depends on backend + frontend passing)
+  # Smoke-test: E2E SSE smoke test (depends on backend + frontend passing)
   # ---------------------------------------------------------------------------
   smoke-test:
     needs: [backend, frontend]
@@ -242,9 +238,9 @@ jobs:
       - name: Install dependencies (locked, with dev)
         run: uv sync --locked
 
-      # D-09: E2E SSE smoke test — green CI means chat works.
+      # E2E SSE smoke test — green CI means chat works.
       # The test exercises the real FastAPI route, StreamingResponse SSE framing,
       # and Vercel AI SDK data-stream protocol (f/0/8/e/d/[DONE]) in-process.
       # Only the LLM stream and Qdrant search are patched (patch_chat_io fixture).
-      - name: SSE smoke test (D-09)
+      - name: SSE smoke test
         run: uv run --no-sync pytest tests/test_chat_sse.py -x -v

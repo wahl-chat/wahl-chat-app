@@ -159,13 +159,13 @@ def test_source_type_filter(temp_qdrant_collection) -> None:  # type: ignore[typ
     # Assertion: every returned payload must be vote_record.
     # ------------------------------------------------------------------
     assert len(results) > 0, (
-        "SC4: retrieve(source_type='vote_record') returned no results — "
+        "retrieve(source_type='vote_record') returned no results — "
         "expected 3 seeded vote_record chunks"
     )
 
     for payload in results:
         assert payload.get("source_type") == "vote_record", (
-            f"SC4/T-03-16: retrieve(source_type='vote_record') must return ONLY "
+            f"retrieve(source_type='vote_record') must return ONLY "
             f"vote_record payloads — got source_type={payload.get('source_type')!r}. "
             f"Full payload: {payload!r}"
         )
@@ -173,15 +173,15 @@ def test_source_type_filter(temp_qdrant_collection) -> None:  # type: ignore[typ
     # Confirm party_manifesto and qa_transcript are NOT present.
     returned_types = {p.get("source_type") for p in results}
     assert "party_manifesto" not in returned_types, (
-        "SC4: party_manifesto chunks must be excluded when source_type='vote_record'"
+        "party_manifesto chunks must be excluded when source_type='vote_record'"
     )
     assert "qa_transcript" not in returned_types, (
-        "SC4: qa_transcript chunks must be excluded when source_type='vote_record'"
+        "qa_transcript chunks must be excluded when source_type='vote_record'"
     )
 
     # Confirm all 3 vote_record chunks are returned (no false negatives).
     assert len(results) == 3, (
-        f"SC4: expected exactly 3 vote_record chunks, got {len(results)}"
+        f"expected exactly 3 vote_record chunks, got {len(results)}"
     )
 
 
@@ -242,7 +242,7 @@ def test_query_vector_skips_embed(temp_qdrant_collection) -> None:  # type: igno
 
     # If sentinel was called, RuntimeError would have surfaced above.
     assert len(results) >= 1, (
-        "FIX1: retrieve(query_vector=...) returned no results — "
+        "retrieve(query_vector=...) returned no results — "
         "expected at least 1 seeded vote_record chunk"
     )
 
@@ -339,7 +339,7 @@ def test_selective_source_type_allowed(temp_qdrant_collection) -> None:  # type:
         _retrieve_mod.COLLECTION_NAME = original_collection  # type: ignore[assignment]
 
     assert len(results) >= 1, (
-        "FIX5: retrieve(source_type='vote_record') returned no results — "
+        "retrieve(source_type='vote_record') returned no results — "
         "expected at least 1 seeded chunk"
     )
 
@@ -424,12 +424,12 @@ def test_legislature_period_id_filter(temp_qdrant_collection) -> None:  # type: 
         _retrieve_mod.COLLECTION_NAME = original_collection  # type: ignore[assignment]
 
     assert len(results) == 2, (
-        f"D-04: expected exactly 2 period-149 chunks; got {len(results)}. "
+        f"expected exactly 2 period-149 chunks; got {len(results)}. "
         "legislature_period_id filter is not narrowing results correctly."
     )
     for payload in results:
         assert payload.get("legislature_period_id") == 149, (
-            f"D-04: expected legislature_period_id=149, got {payload.get('legislature_period_id')!r}"
+            f"expected legislature_period_id=149, got {payload.get('legislature_period_id')!r}"
         )
 
 
@@ -480,7 +480,7 @@ def test_legislature_period_id_filter_absent_when_none(temp_qdrant_collection) -
         _retrieve_mod.COLLECTION_NAME = original_collection  # type: ignore[assignment]
 
     assert len(results) == 4, (
-        f"D-04: expected 4 chunks when legislature_period_id=None (no filter); got {len(results)}"
+        f"expected 4 chunks when legislature_period_id=None (no filter); got {len(results)}"
     )
 
 

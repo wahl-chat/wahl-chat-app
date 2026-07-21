@@ -10,10 +10,10 @@ export const maxDuration = 300;
  * (POST /api/v1/pro-con) and streams the response back to the browser.
  *
  * The pro-con flow is NOT a useChat turn — it is consumed via
- * fetch + ReadableStream in generate-pro-con-perspective.ts (D-05).
+ * fetch + ReadableStream in generate-pro-con-perspective.ts.
  *
  * Security: only forwards to the configured backend URL (env var); never
- * echoes an arbitrary upstream URL from the request (T-07-02).
+ * echoes an arbitrary upstream URL from the request.
  */
 export async function POST(request: NextRequest) {
   const backendUrl =
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Forward the caller's Firebase ID token so the backend can verify
-  // user_is_logged_in / premium claims (A3 contract). Absent when signed out.
+  // user_is_logged_in / premium claims. Absent when signed out.
   const authorization = request.headers.get('authorization');
 
   const upstream = await fetch(targetUrl, {

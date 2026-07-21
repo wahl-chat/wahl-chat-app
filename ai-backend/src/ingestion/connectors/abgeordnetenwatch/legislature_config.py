@@ -63,8 +63,7 @@ class LegislatureConfig:
 # ---------------------------------------------------------------------------
 LEGISLATURE_CONFIG: dict[int, LegislatureConfig] = {
     # -----------------------------------------------------------------------
-    # Bundestag — wahlperiode is the sole source of the Wahlperiode number
-    # (connector.py's former _LEGISLATURE_TO_WAHLPERIODE map is deleted).
+    # Bundestag — wahlperiode is the sole source of the Wahlperiode number.
     # Verified: AW API parliament-periods/{id} (2026-06-25)
     # -----------------------------------------------------------------------
     111: LegislatureConfig(111, "DE", "Bundestag 2017 - 2021", "2017-10-24", "2021-10-25", wahlperiode=19),
@@ -88,7 +87,7 @@ LEGISLATURE_CONFIG: dict[int, LegislatureConfig] = {
 
     # Baden-Württemberg (parliament_id=6)
     165: LegislatureConfig(165, "DE-BW", "Baden-Württemberg 2026 - 2031", "2026-05-12", "2031-05-20"),
-    # OUTGOING term (D6): the 2021–2026 legislature whose voting record voters want
+    # OUTGOING term: the 2021–2026 legislature whose voting record voters want
     # around the 2026 election. Retained ALONGSIDE 165 so the two-pass split can
     # separate them by publish_date. IDs/dates VERIFIED from AW v2 CC0 API
     # (GET /parliament-periods?parliament=6&type=legislature) 2026-07-09.
@@ -101,7 +100,7 @@ LEGISLATURE_CONFIG: dict[int, LegislatureConfig] = {
 
     # Rheinland-Pfalz (parliament_id=7)
     166: LegislatureConfig(166, "DE-RP", "Rheinland-Pfalz 2026 - 2031", "2026-05-18", "2031-05-31"),
-    # OUTGOING term (D6): the 2021–2026 legislature retained for pre/around-election
+    # OUTGOING term: the 2021–2026 legislature retained for pre/around-election
     # voting-record retrieval, alongside the post-election 166. IDs/dates VERIFIED
     # from AW v2 CC0 API (GET /parliament-periods?parliament=7&type=legislature) 2026-07-09.
     127: LegislatureConfig(127, "DE-RP", "Rheinland-Pfalz 2021 - 2026", "2021-03-12", "2026-05-18"),
@@ -143,7 +142,7 @@ LEGISLATURE_CONFIG: dict[int, LegislatureConfig] = {
 # ---------------------------------------------------------------------------
 # LANDTAG_LEGISLATURE_IDS — all Landtag parliament_period IDs.
 # Derived from LEGISLATURE_CONFIG: any entry with region != "DE" is a Landtag.
-# Includes the OUTGOING BW/RP 2021–2026 terms (126/127) added for D6 alongside
+# Includes the OUTGOING BW/RP 2021–2026 terms (126/127) alongside
 # the post-election 165/166 rows. Currently consumed by tests; an operator
 # ingesting all Landtage runs the connector once per id (AW_LEGISLATURE_ID).
 # ---------------------------------------------------------------------------
@@ -153,9 +152,9 @@ LANDTAG_LEGISLATURE_IDS: list[int] = [
 
 
 # ---------------------------------------------------------------------------
-# Term-window derivation (D5).
+# Term-window derivation.
 #
-# The two-pass temporal retrieval (09-01) needs a concrete [term_start, term_end]
+# The two-pass temporal retrieval needs a concrete [term_start, term_end]
 # window per chat context to split "current" (publish_date inside the window)
 # from "historic" (publish_date before it). State contexts carry a region_path
 # but NOT the window.
@@ -194,7 +193,7 @@ def term_window_for_context(
     legislature_period_id: Optional[int],
     election_date: Optional[date] = None,
 ) -> Optional[tuple[datetime, datetime]]:
-    """Derive the ``[term_start, term_end]`` window for a chat context (D5).
+    """Derive the ``[term_start, term_end]`` window for a chat context.
 
     Resolution order:
       1. If ``legislature_period_id`` names a row in :data:`LEGISLATURE_CONFIG`,
@@ -206,9 +205,9 @@ def term_window_for_context(
            - one   → use that row.
            - many  → deterministic tiebreak (see below).
 
-    Multi-period tiebreak (e.g. DE-BW / DE-RP after the D6 outgoing rows were
-    added, so a region has both the outgoing 2021–2026 term and the post-2026
-    term): pick the row whose ``[date_from, date_to]`` **contains**
+    Multi-period tiebreak (e.g. DE-BW / DE-RP, where a region has both the
+    outgoing 2021–2026 term and the post-2026 term): pick the row whose
+    ``[date_from, date_to]`` **contains**
     ``election_date``; else the **latest row ending on/before** ``election_date``;
     else (no ``election_date`` given, or none qualifies) the **latest row by
     date_to**. This deterministically prefers the OUTGOING term around an

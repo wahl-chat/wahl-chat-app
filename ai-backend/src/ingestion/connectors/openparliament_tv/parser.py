@@ -7,20 +7,20 @@
 Role analog: bundestag_speeches/parser.parse_speeches_from_xml (raw source →
 list-of-speech-dicts). Unlike the DIP parser this consumes JSON via the caller's
 ``json.loads`` (the OpTvClient already parsed it) — there is NO XML entity surface
-here, so no XML hardening layer is imported (11-RESEARCH Security Domain).
+here, so no XML hardening layer is imported.
 
-Applies the D-03 alignment gate: a speech is only usable when
+Applies the alignment gate: a speech is only usable when
 ``media.aligned`` is truthy AND it has a ``proceedings`` transcript. Rather than
 raise, each un-usable item is returned carrying a non-empty ``skip_reason`` marker
-(mirroring the bundestag_speeches fetch→normalize skip_reason envelope); 11-04's
-normalize() converts that marker into a ValueError-skip.
+(mirroring the bundestag_speeches fetch→normalize skip_reason envelope); the
+connector's normalize() converts that marker into a ValueError-skip.
 
 For a usable item the parser flattens
 ``textContents[type=proceedings].textBody[speakerstatus=main-speaker].sentences[]``
-into a timed ``sentence_map`` of ``{text, ts_start(float), ts_end(float)}`` (D-02a)
+into a timed ``sentence_map`` of ``{text, ts_start(float), ts_end(float)}``
 and joins the main-speaker text into ``whole_text``. A malformed ``timeStart`` /
 ``timeEnd`` skips-and-warns that one sentence and never crashes the parse
-(V5 input validation / T-11-06 DoS mitigation).
+(input-validation / DoS mitigation).
 
 Public API:
   parse_session_json(session: dict) -> list[dict]
@@ -100,7 +100,7 @@ def parse_session_json(session: dict) -> list[dict]:
     non-empty ``skip_reason`` and expose their id only under ``ext`` (never under
     ``origin_media_id``), so downstream consumers count exactly the usable speeches.
     Usable (aligned+proceedings) items carry ``origin_media_id``, ``whole_text``, a
-    timed ``sentence_map``, and the raw fields the 11-04 corpus mapper needs.
+    timed ``sentence_map``, and the raw fields the corpus mapper needs.
 
     Args:
         session: Parsed session JSON (JSON:API `{"meta": ..., "data": [...]}` shape).
@@ -123,7 +123,7 @@ def parse_session_json(session: dict) -> list[dict]:
         ep = electoral_period.get("number")
         session_number = session_info.get("number")
 
-        # --- D-03 gate: unaligned → skippable (re-evaluate in the lookback window). ---
+        # --- alignment gate: unaligned → skippable (re-evaluate in the lookback window). ---
         if not media.get("aligned"):
             speeches.append(
                 {
@@ -135,7 +135,7 @@ def parse_session_json(session: dict) -> list[dict]:
             )
             continue
 
-        # --- D-03 gate: no proceedings transcript (ASR-only 'generated') → skippable. ---
+        # --- alignment gate: no proceedings transcript (ASR-only 'generated') → skippable. ---
         proceedings = _first_proceedings(item.get("textContents", []))
         if proceedings is None:
             speeches.append(

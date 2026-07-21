@@ -3,7 +3,7 @@ import { generateUuid } from '@/lib/utils';
 
 // In the SSE model, there is no persistent socket connection to initialize.
 // Session state is stateless: the client sends the full chat_history with
-// each request (RESEARCH.md Open Question 3 resolution). This action becomes
+// each request. This action becomes
 // a no-op that only ensures a localPreliminaryChatSessionId is set.
 export const initializeChatSession: ChatStoreActionHandlerFor<
   'initializeChatSession'

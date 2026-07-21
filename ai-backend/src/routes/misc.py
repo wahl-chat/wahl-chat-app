@@ -148,9 +148,8 @@ async def text_to_speech(body: TextToSpeechRequestDto):
     """Generate TTS audio from message text (JSON response, not SSE).
 
     NOTE: In the SSE model the chat history is stateless (per-request). The frontend
-    must supply the text to synthesize in the request body. V1 looked up the message by ID
-    from the socket session; that session no longer exists. The frontend holds the message
-    content and can pass it directly.
+    must supply the text to synthesize in the request body — there is no server-side
+    session to look the message up by ID.
 
     COST EXPOSURE: this endpoint synthesizes arbitrary client-supplied text and
     is intentionally reachable without authentication (parity with anonymous

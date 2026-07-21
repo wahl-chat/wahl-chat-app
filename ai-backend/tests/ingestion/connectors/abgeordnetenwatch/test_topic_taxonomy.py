@@ -245,7 +245,7 @@ def test_all_levels_constant_matches_context_level_values() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 3. Short-form embedded-label aliases (D2)
+# 3. Short-form embedded-label aliases
 # ---------------------------------------------------------------------------
 
 
@@ -271,7 +271,7 @@ def test_all_aliases_match_their_canonical_levels() -> None:
 def test_golden_fixture_labels_resolve_without_all_levels_fallback(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """D2: every field_topics label in the golden poll fixtures must resolve via
+    """every field_topics label in the golden poll fixtures must resolve via
     the taxonomy (canonical key or alias) WITHOUT the unknown-label ALL_LEVELS
     fallback — the fallback would make the vote over-surface in state/municipal
     chats and defeat the down-rank."""
@@ -299,7 +299,7 @@ def test_golden_fixture_labels_resolve_without_all_levels_fallback(
 
 
 # ---------------------------------------------------------------------------
-# 4. Missing-topics warning gate (D14)
+# 4. Missing-topics warning gate
 # ---------------------------------------------------------------------------
 
 
@@ -319,7 +319,7 @@ def test_empty_topics_warning_suppressed_for_non_federal(
 def test_unknown_label_still_warns_with_suppressed_missing_topics(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Unknown-label warnings stay loud everywhere — the D14 gate only covers
+    """Unknown-label warnings stay loud everywhere — the gate only covers
     the empty-input case."""
     with caplog.at_level(logging.WARNING, logger=ttc.logger.name):
         result = get_relevance_levels(

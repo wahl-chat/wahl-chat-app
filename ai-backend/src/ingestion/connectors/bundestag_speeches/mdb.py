@@ -4,9 +4,8 @@
 
 """MdB-Stammdaten lookup — load speaker→party mapping from the Bundestag master file.
 
-Absorbed from ~/Downloads/bundestag_speeches/mdb.py.
-Security swap: xml.etree.ElementTree → defusedxml.ElementTree to block
-entity-expansion attacks when loading the 15 MB MdB-Stammdaten XML.
+Uses defusedxml.ElementTree to block entity-expansion attacks when loading
+the 15 MB MdB-Stammdaten XML.
 
 Public API:
   load_mdb_lookup(path) -> dict[str, dict]

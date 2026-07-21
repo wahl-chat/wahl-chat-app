@@ -186,8 +186,7 @@ async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequest
     """POST /api/v1/voting-behavior — streams votes + summary over SSE.
 
     Retrieves vote_record chunks from the single wahlchat_chunks_{ENV} store
-    via retrieve(source_type='vote_record') — no longer touches the EMPTY legacy
-    justified_voting_behavior_dev collection.
+    via retrieve(source_type='vote_record').
 
     V1 event map:
       voting_behavior_result        → 8 type=vote_result (per vote)

@@ -58,23 +58,23 @@ def test_chunk_record_valid():
     """ChunkRecord constructs from valid required fields."""
     chunk = ChunkRecord(**_valid_chunk_kwargs())
     assert chunk.chunk_index == 0, (
-        "DATA-02: ChunkRecord.chunk_index should be 0 as provided."
+        "ChunkRecord.chunk_index should be 0 as provided."
     )
 
 
 def test_chunk_record_no_region_path():
     """ChunkRecord must NOT have a region_path field."""
     assert "region_path" not in ChunkRecord.model_fields, (
-        "DATA-02/D-07: ChunkRecord must NOT contain region_path. "
+        "ChunkRecord must NOT contain region_path. "
         "Only the scalar 'region' field is allowed to prevent accidentally "
-        "storing user-browsing region arrays in Qdrant payload (T-02-03)."
+        "storing user-browsing region arrays in Qdrant payload."
     )
 
 
 def test_chunk_record_has_scalar_region():
     """ChunkRecord must have a scalar 'region' field."""
     assert "region" in ChunkRecord.model_fields, (
-        "DATA-02/D-07: ChunkRecord must have a scalar 'region' field for MatchAny filtering."
+        "ChunkRecord must have a scalar 'region' field for MatchAny filtering."
     )
 
 
@@ -113,7 +113,7 @@ def test_source_item_record_removed():
     """SourceItemRecord must not exist in ingestion.schemas."""
     import src.ingestion.schemas as s
     assert not hasattr(s, "SourceItemRecord"), (
-        "P5-DATA-02: SourceItemRecord must be deleted from schemas.py."
+        "SourceItemRecord must be deleted from schemas.py."
     )
 
 
@@ -121,5 +121,5 @@ def test_watermark_record_removed():
     """WatermarkRecord must not exist in ingestion.schemas."""
     import src.ingestion.schemas as s
     assert not hasattr(s, "WatermarkRecord"), (
-        "P5-DATA-02: WatermarkRecord must be deleted from schemas.py."
+        "WatermarkRecord must be deleted from schemas.py."
     )

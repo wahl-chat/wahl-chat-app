@@ -156,7 +156,7 @@ class TestNonMdbSpeaker:
 
 # ---------------------------------------------------------------------------
 # TestAgendaTopIdMapping — multi-TOP / ZP / outside-any-TOP agenda resolution
-# (C14a — parser-level coverage for the agenda map the speech_key depends on)
+# (parser-level coverage for the agenda map the speech_key depends on)
 # ---------------------------------------------------------------------------
 
 _MULTI_TOP_XML = """<?xml version="1.0" encoding="UTF-8"?>

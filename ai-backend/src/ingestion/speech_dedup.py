@@ -3,11 +3,10 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Shared speech-dedup constants and helpers (C11) — imported by BOTH speech
-connectors (``bundestag_speeches``, ``openparliament_tv``) and the op supersede
-module, NOT owned by either. Previously these were duplicated/triplicated
-across run.py, the DIP connector, the op connector, and the op bulk backfill —
-a drift in any copy would silently break cross-source dedup.
+Shared speech-dedup constants and helpers — imported by BOTH speech connectors
+(``bundestag_speeches``, ``openparliament_tv``) and the op supersede module, NOT
+owned by either. They live in one shared module so there is a SINGLE definition:
+a drift between copies would silently break cross-source dedup.
 """
 
 from __future__ import annotations

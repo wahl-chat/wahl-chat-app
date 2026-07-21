@@ -71,11 +71,11 @@ def test_build_vote_documents_federal_label() -> None:
     state_content = state_docs[0].page_content
 
     assert "Parlament: Bundestag (Bundesebene)" in federal_content, (
-        f"P8-LABEL-01: federal vote must include 'Parlament: Bundestag (Bundesebene)'. "
+        f"federal vote must include 'Parlament: Bundestag (Bundesebene)'. "
         f"Got: {federal_content!r}"
     )
     assert "Parlament: Landtag" in state_content, (
-        f"P8-LABEL-01: state vote must include 'Parlament: Landtag'. "
+        f"state vote must include 'Parlament: Landtag'. "
         f"Got: {state_content!r}"
     )
     # Bundesebene must NOT appear in state vote
@@ -93,12 +93,12 @@ def test_answer_guidelines_federal_note_state() -> None:
     """generate_streaming_chatbot_response accepts election_level parameter with default None."""
     sig = inspect.signature(generate_streaming_chatbot_response)
     assert "election_level" in sig.parameters, (
-        "P8-LABEL-03: generate_streaming_chatbot_response must accept 'election_level' parameter"
+        "generate_streaming_chatbot_response must accept 'election_level' parameter"
     )
     param = sig.parameters["election_level"]
     # Default must be None (backward-compat for callers that do not set it)
     assert param.default is None, (
-        f"P8-LABEL-03: election_level default must be None, got {param.default!r}"
+        f"election_level default must be None, got {param.default!r}"
     )
 
 
@@ -139,14 +139,14 @@ def test_both_response_paths_apply_federal_disclosure() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Phase 10 — _source_structure_note (D1/D2 four-section soft lead-ins,
-# D3 historic marking, D4/D5 coverage transparency)
+# _source_structure_note (four-section soft lead-ins,
+# historic marking, coverage transparency)
 # ---------------------------------------------------------------------------
 
 
 def test_source_structure_note_four_leadins() -> None:
-    """The note always carries the four D2 soft lead-in cues (illustrative, party
-    name interpolated) and explicitly forbids rigid form headers (D2 hybrid)."""
+    """The note always carries the four soft lead-in cues (illustrative, party
+    name interpolated) and explicitly forbids rigid form headers."""
     from src.chatbot_async import _source_structure_note
 
     note = _source_structure_note(
@@ -161,14 +161,14 @@ def test_source_structure_note_four_leadins() -> None:
     assert "In Reden betonte" in note, "missing Speeches (Konjunktiv) lead-in"
     assert "Historisch (aus früheren Jahren)" in note, "missing Historic cue"
     assert "SPD" in note, "party name must be interpolated into the cues"
-    # D2 hybrid: soft cues, NOT rigid form headers.
+    # soft cues, NOT rigid form headers.
     assert "KEINE starren Formular-Überschriften" in note, (
-        "note must forbid rigid form-like headers (D2 hybrid)"
+        "note must forbid rigid form-like headers"
     )
 
 
 def test_source_structure_note_historic_conditional() -> None:
-    """The strong 'render a marked historic section, placed last' instruction (D3)
+    """The strong 'render a marked historic section, placed last' instruction
     fires only when has_historic is True; never invents a historic section."""
     from src.chatbot_async import _source_structure_note
 
@@ -187,7 +187,7 @@ def test_source_structure_note_historic_conditional() -> None:
         speeches_present=True,
     )
     assert "immer als letzter Abschnitt" in with_hist, (
-        "has_historic=True must add the historic-section instruction (D3)"
+        "has_historic=True must add the historic-section instruction"
     )
     assert "immer als letzter Abschnitt" not in without_hist, (
         "has_historic=False must NOT add the historic-section instruction"
@@ -271,7 +271,7 @@ def test_source_structure_note_wired_into_single_party_generator() -> None:
 
 def test_comparison_generator_accepts_has_historic() -> None:
     """The comparison generator accepts has_historic (default False) and applies the
-    D3 historic-marking note (four-section + coverage transparency are single-party)."""
+    historic-marking note (four-section + coverage transparency are single-party)."""
     from src import chatbot_async as ca
 
     sig = inspect.signature(ca.generate_streaming_chatbot_comparing_response)
@@ -281,7 +281,7 @@ def test_comparison_generator_accepts_has_historic() -> None:
     )
     src = inspect.getsource(ca.generate_streaming_chatbot_comparing_response)
     assert "HISTORIC_SECTION_NOTE_DE" in src, (
-        "comparison generator must apply the D3 historic-marking note"
+        "comparison generator must apply the historic-marking note"
     )
     # Coverage transparency is single-party ONLY — must not leak into comparison.
     assert "_source_structure_note" not in src, (
@@ -290,7 +290,7 @@ def test_comparison_generator_accepts_has_historic() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Phase 10 — the structure note reaches the assembled SINGLE-PARTY system prompt
+# the structure note reaches the assembled SINGLE-PARTY system prompt
 # (deterministic, no-network: monkeypatch stream_answer_from_llms to capture the
 # SystemMessage content for a normal party — that branch makes no context/LLM call).
 # ---------------------------------------------------------------------------
@@ -342,7 +342,7 @@ def _run_single_party(**gen_kwargs) -> None:
 
 def test_system_prompt_includes_four_leadins(monkeypatch) -> None:
     """A normal party call (present_sources opted in) surfaces the four German
-    lead-in cues in the assembled system prompt (SC3)."""
+    lead-in cues in the assembled system prompt."""
     captured = _capture_system_prompt(monkeypatch)
     _run_single_party(present_sources=(True, True, True), has_historic=False)
     system_prompt = captured["system"]
@@ -352,7 +352,7 @@ def test_system_prompt_includes_four_leadins(monkeypatch) -> None:
 
 
 def test_system_prompt_historic_conditional(monkeypatch) -> None:
-    """has_historic=True adds the historic-section instruction; False omits it (SC4)."""
+    """has_historic=True adds the historic-section instruction; False omits it."""
     captured_true = _capture_system_prompt(monkeypatch)
     _run_single_party(present_sources=(True, True, True), has_historic=True)
     assert "immer als letzter Abschnitt" in captured_true["system"]

@@ -3,15 +3,15 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Resurrection-guard integration test (D-05) — fake Qdrant.
+Resurrection-guard integration test — fake Qdrant.
 
 The DIP connector must consult the shared indexed `speech_key` BEFORE inserting
 and skip any speech already superseded by op — durable even across a full DIP
 backfill / cursor reset (`since=None`). Otherwise a cursor reset would
 re-insert the very duplicates op just deleted.
 
-Wave-0 SCAFFOLD: the guard does not exist yet. This file collects cleanly and
-CAPABILITY-SKIPS until the guard lands (Wave 11-04/11-05), then runs the real
+The guard does not exist yet. This file collects cleanly and
+skips until the guard lands, then runs the real
 assertion against a fake Qdrant seeded with an op-superseded speech.
 """
 
@@ -57,14 +57,14 @@ def _guard_capability():
 
 
 def test_dip_skips_op_superseded_speech_even_on_cursor_reset() -> None:
-    """D-05: DIP skips inserting a speech whose speech_key is already op-owned.
+    """DIP skips inserting a speech whose speech_key is already op-owned.
 
     Simulate a cursor reset (`since=None`): even a full backfill must NOT
     resurrect the op-superseded speech.
     """
     guard = _guard_capability()
     if guard is None:
-        pytest.skip("DIP resurrection guard not yet implemented (11-04/05) — Wave-0 scaffold")
+        pytest.skip("DIP resurrection guard not yet implemented")
 
     superseded_key = "de-20-101-mareike-lotte-wulf-top20"
     qdrant = _SeededQdrant(superseded_key)
@@ -89,7 +89,7 @@ class _ConditionalQdrant:
 
     The op point carries the op speech's TEXT so the precise (text-matching)
     resurrection guard recognises it as the SAME speech as the DIP row being
-    inserted (a bare speech_key match is no longer sufficient — HIGH-1)."""
+    inserted (a bare speech_key match is no longer sufficient)."""
 
     def __init__(self, superseded_key: str, superseded_text: str) -> None:
         self._key = superseded_key
@@ -210,7 +210,7 @@ class _MultiChunkQdrant:
 
 
 def test_is_op_superseded_joins_multichunk_op_speech_in_chunk_order() -> None:
-    """C3 regression: a 2-chunk op speech scrolled in REVERSE chunk order must
+    """Regression: a 2-chunk op speech scrolled in REVERSE chunk order must
     still match the DIP twin's full text — joined by chunk_index, never scroll
     order ("B+A" vs "A+B" scores ≈0.5 < 0.85 → silent resurrection)."""
     from src.ingestion.connectors.bundestag_speeches.connector import is_op_superseded
@@ -228,7 +228,7 @@ def test_is_op_superseded_joins_multichunk_op_speech_in_chunk_order() -> None:
 
 
 def test_is_op_superseded_empty_folded_dip_text_inserts_fail_safe() -> None:
-    """C18: a dip_text that folds to EMPTY after normalization is unverifiable —
+    """A dip_text that folds to EMPTY after normalization is unverifiable —
     the guard must return False (insert; fail-safe), consistent with its posture
     everywhere else. Bare key existence is NOT proof of the same speech."""
     from src.ingestion.connectors.bundestag_speeches.connector import is_op_superseded
@@ -244,7 +244,7 @@ def test_is_op_superseded_empty_folded_dip_text_inserts_fail_safe() -> None:
 
 
 def test_normalize_returns_empty_when_all_speeches_op_superseded() -> None:
-    """C12: a protocol whose EVERY usable speech is op-superseded is a clean
+    """A protocol whose EVERY usable speech is op-superseded is a clean
     no-op — normalize() returns [] (and reports the skipped siids) instead of
     raising 'zero usable speeches' into failed_ids on every run for 60 days."""
     from src.ingestion.connectors.bundestag_speeches.connector import (
@@ -301,12 +301,12 @@ def test_normalize_returns_empty_when_all_speeches_op_superseded() -> None:
 
     assert records == [], "fully-op-covered protocol must be a clean no-op, not an error"
     assert len(conn.last_superseded_siids) == 1, (
-        "the skipped siid must be reported for the C9 stranded-twin cleanup"
+        "the skipped siid must be reported for the stranded-twin cleanup"
     )
 
 
 def test_is_op_superseded_precise_rejects_distinct_same_key_speech() -> None:
-    """HIGH-1: an op point under the key whose TEXT differs (a distinct speech a
+    """An op point under the key whose TEXT differs (a distinct speech a
     speaker gave under the same agenda item) must NOT mark this DIP speech as
     superseded — otherwise the DIP text of a speech op never aligned is lost."""
     from src.ingestion.connectors.bundestag_speeches.connector import is_op_superseded

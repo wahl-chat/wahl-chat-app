@@ -148,7 +148,7 @@ def ingest(
         # (no delete-before-embed loss window; mirrors run.py's ordering).
         vectors = _embed_texts(embed, [c.text for c in b])
 
-        # E5: rewrite semantics (mirrors run.py's footprint guard) — delete each
+        # Rewrite semantics (mirrors run.py's footprint guard) — delete each
         # program's EXISTING footprint by source_item_id before upserting, one
         # delete per program with wait=True, so a re-run against a shrunk PDF
         # (fewer chunks than stored) leaves no stale higher-index chunks
@@ -265,7 +265,7 @@ def ingest(
 # =============================================================================
 
 if __name__ == "__main__":
-    # Load ai-backend/.env if present (mirrors ingest_speeches.py pattern).
+    # Load ai-backend/.env if present.
     from pathlib import Path  # noqa: PLC0415
 
     from dotenv import load_dotenv  # noqa: PLC0415

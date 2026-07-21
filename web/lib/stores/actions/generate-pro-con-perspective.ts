@@ -18,7 +18,7 @@ export const generateProConPerspective: ChatStoreActionHandlerFor<
     if (!chatSessionId) return;
 
     // SSE model: no socket connectivity check needed — each request is a
-    // fresh HTTP POST to /api/pro-con (D-05).
+    // fresh HTTP POST to /api/pro-con.
 
     const indexOfProConPerspectiveMessage = messages.findIndex((m) =>
       m.messages.find((m) => m.id === message.id),
@@ -38,16 +38,16 @@ export const generateProConPerspective: ChatStoreActionHandlerFor<
     if (!lastUserMessageBeforeProConPerspective || !message.content) return;
 
     try {
-      // SSE replacement: use fetch + ReadableStream for the pro-con stream.
+      // Use fetch + ReadableStream for the pro-con stream.
       // Pro-con is NOT a useChat turn — it is a separate SSE stream consumed
-      // directly (RESEARCH.md Pattern, D-05).
+      // directly.
       const response = await fetch('/api/pro-con', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'text/event-stream',
           // Firebase ID token when signed in ({} otherwise) — the proxy route
-          // forwards it so the backend can verify auth claims (A3 contract).
+          // forwards it so the backend can verify auth claims.
           ...(await getAuthHeader()),
         },
         body: JSON.stringify({

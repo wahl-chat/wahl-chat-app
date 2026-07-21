@@ -36,7 +36,7 @@ def test_base_connector_abstract_methods():
     """BaseConnector exposes exactly 3 abstract lifecycle methods."""
     actual = set(BaseConnector.__abstractmethods__)
     assert actual == _EXPECTED_ABSTRACT_METHODS, (
-        f"P5-INGEST-01: BaseConnector must declare exactly 3 abstract methods.\n"
+        f"BaseConnector must declare exactly 3 abstract methods.\n"
         f"  Expected: {_EXPECTED_ABSTRACT_METHODS}\n"
         f"  Got:      {actual}\n"
         f"  Missing:  {_EXPECTED_ABSTRACT_METHODS - actual}\n"
@@ -48,5 +48,5 @@ def test_removed_methods_not_abstract():
     """Removed methods must not be abstract on BaseConnector."""
     still_abstract = _REMOVED_METHODS & set(BaseConnector.__abstractmethods__)
     assert not still_abstract, (
-        f"P5-INGEST-01: These methods should have been removed from BaseConnector: {still_abstract}"
+        f"These methods should have been removed from BaseConnector: {still_abstract}"
     )

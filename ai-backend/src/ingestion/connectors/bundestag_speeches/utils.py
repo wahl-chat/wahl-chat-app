@@ -4,10 +4,6 @@
 
 """Shared text-normalisation utilities for the bundestag_speeches connector.
 
-Absorbed from ~/Downloads/bundestag_speeches/utils.py.
-Deletions: load_json and write_jsonl removed — the JSONL-writing
-path is gone; bulk.py reads JSONL, it never writes it here.
-
 Public API:
   normalize_whitespace(text) -> str | None
   normalize_name_for_lookup(text) -> str

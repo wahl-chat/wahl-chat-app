@@ -204,7 +204,7 @@ class TestBuildChunkRecords:
         assert result[0].source_type == SourceType.PARLIAMENTARY_SPEECH
 
     def test_authority_tier_factual_record(self) -> None:
-        """authority_tier must be FACTUAL_RECORD (C17: unified with op — a plenary
+        """authority_tier must be FACTUAL_RECORD (unified with op — a plenary
         speech is a factual parliamentary record regardless of transport)."""
         result = build_chunk_records(_SAMPLE_SPEECH)
         assert result[0].authority_tier == AuthorityTier.FACTUAL_RECORD
@@ -305,7 +305,7 @@ class TestBuildChunkRecords:
 
 
 # ---------------------------------------------------------------------------
-# TestDipSpeechKeyAndSource — D-06/D-07/D-11 shared speech_key + source='dip'
+# TestDipSpeechKeyAndSource — shared speech_key + source='dip'
 # ---------------------------------------------------------------------------
 
 
@@ -313,12 +313,12 @@ class TestDipSpeechKeyAndSource:
     """DIP ChunkRecords carry source='dip' and a shared, op-parity speech_key."""
 
     def test_source_is_dip(self) -> None:
-        """Every DIP chunk carries source == 'dip' (D-11 discriminator)."""
+        """Every DIP chunk carries source == 'dip' (discriminator)."""
         for rec in build_chunk_records(_SAMPLE_SPEECH):
             assert rec.source == "dip"
 
     def test_authority_tier_matches_op(self) -> None:
-        """DIP authority_tier is FACTUAL_RECORD, matching the op mapper (C17)."""
+        """DIP authority_tier is FACTUAL_RECORD, matching the op mapper."""
         for rec in build_chunk_records(_SAMPLE_SPEECH):
             assert rec.authority_tier == AuthorityTier.FACTUAL_RECORD
 
@@ -334,7 +334,7 @@ class TestDipSpeechKeyAndSource:
         assert rec.speech_key == "de-21-99-olaf-scholz-top20"
 
     def test_op_dip_parity_via_mapper(self) -> None:
-        """D-06: DIP mapper key == op helper key for the SAME real speech.
+        """DIP mapper key == op helper key for the SAME real speech.
 
         DIP feeds a merged speaker_name with an academic title + a top-id; op feeds
         discrete firstname/lastname + an official agenda title. Both must derive the
@@ -373,7 +373,7 @@ class TestDipSpeechKeyAndSource:
 
 
 # ---------------------------------------------------------------------------
-# TestNormalizePartyCsu — CSU survives normalize_party as a distinct label (Task 1)
+# TestNormalizePartyCsu — CSU survives normalize_party as a distinct label
 # ---------------------------------------------------------------------------
 
 
@@ -546,7 +546,7 @@ def test_bulk_stamps_external_id_from_date() -> None:
         for point in upserted_points:
             payload = point.payload
             assert payload.get("external_id") == 20210915, (
-                f"FIX 2: bulk chunk must have external_id=20210915 (YYYYMMDD), "
+                f"bulk chunk must have external_id=20210915 (YYYYMMDD), "
                 f"got {payload.get('external_id')!r}"
             )
     finally:
@@ -558,13 +558,13 @@ def test_build_chunk_records_skips_missing_date() -> None:
     speech_no_date = {**_SAMPLE_SPEECH, "date": ""}
     result = build_chunk_records(speech_no_date)
     assert result == [], (
-        f"FIX 5: build_chunk_records must return [] for missing date, got {result!r}"
+        f"build_chunk_records must return [] for missing date, got {result!r}"
     )
 
     speech_bad_date = {**_SAMPLE_SPEECH, "date": "not-a-date"}
     result2 = build_chunk_records(speech_bad_date)
     assert result2 == [], (
-        f"FIX 5: build_chunk_records must return [] for unparseable date, got {result2!r}"
+        f"build_chunk_records must return [] for unparseable date, got {result2!r}"
     )
 
 
@@ -593,7 +593,7 @@ def test_dip_client_pages_stops_at_max_pages() -> None:
         pages = list(client.pages("/test-endpoint"))
 
     assert len(pages) == _MAX_PAGES, (
-        f"FIX 6: DipClient.pages() must stop after {_MAX_PAGES} pages, "
+        f"DipClient.pages() must stop after {_MAX_PAGES} pages, "
         f"got {len(pages)} pages"
     )
 

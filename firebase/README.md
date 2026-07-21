@@ -98,7 +98,7 @@ contexts/{context_id}
 ### Seeding with the Python Script (Recommended)
 
 The seed script only ever targets the **local Firestore emulator** — production
-seeding is intentionally blocked this milestone: the script hard-exits unless
+seeding is intentionally blocked: the script hard-exits unless
 `FIRESTORE_EMULATOR_HOST` is set.
 
 Run from the repo root:
@@ -239,10 +239,10 @@ Ensure all referenced assets (logos, PDFs, etc.) exist in the prod Firebase Stor
 
 ### 4. Seed production Firestore
 
-Production seeding is **intentionally blocked this milestone** — the seed
+Production seeding is **intentionally blocked** — the seed
 script hard-exits unless `FIRESTORE_EMULATOR_HOST` points at a local emulator,
 so it can never write to a real Firestore instance. Seeding production data is
-a manual operator step deferred to a later milestone (e.g. via
+a manual operator step deferred (e.g. via
 `firestore-import` with production credentials, as described above).
 
 ### 5. Deploy Qdrant vector store data

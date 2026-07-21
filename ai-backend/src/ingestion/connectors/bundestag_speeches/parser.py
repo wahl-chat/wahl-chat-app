@@ -4,9 +4,8 @@
 
 """parse_speeches_from_xml — XML→speech-dict transform, hardened via defusedxml.
 
-Absorbed from ~/Downloads/bundestag_speeches/parser.py.
-Security swap: xml.etree.ElementTree → defusedxml.ElementTree to block
-billion-laughs / entity-expansion attacks on remote protocol XML.
+Security: uses defusedxml.ElementTree to block billion-laughs /
+entity-expansion attacks on remote protocol XML.
 
 Public API:
   parse_speeches_from_xml(xml_text: str) -> list[dict]
@@ -99,7 +98,7 @@ def parse_speeches_from_xml(xml_text: str) -> list[dict]:
 
     agenda_top_id is the ``top-id`` of the enclosing <tagesordnungspunkt> for
     each <rede> (e.g. "20"), or None when a rede has no enclosing agenda item
-    (D-07 graceful no-agenda fallback). ElementTree exposes no parent pointers,
+    (graceful no-agenda fallback). ElementTree exposes no parent pointers,
     so the enclosing agenda is resolved by walking each <tagesordnungspunkt> and
     recording a rede_id → top_id map before the main <rede> loop.
 

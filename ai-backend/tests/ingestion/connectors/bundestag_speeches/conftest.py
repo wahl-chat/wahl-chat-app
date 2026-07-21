@@ -40,7 +40,7 @@ def protocol_xml() -> str:
       - One <rede> with a speaker ID starting with "999" (non-MdB, droppable)
       - A <kommentar> node inside a speech body (must be skipped by the parser)
 
-    Used by: test_parser.py (Wave 1).
+    Used by: test_parser.py.
     """
     return (_FIXTURES_DIR / "protocol_sample.xml").read_text(encoding="utf-8")
 
@@ -60,6 +60,6 @@ def mdb_xml_path() -> Path:
       - ID 11003444 (CDU/CSU): PARTEI_KURZ is empty; party only resolves via
         WAHLPERIODEN INSTITUTION with INSART_LANG="Fraktion/Gruppe" and WP=21
 
-    Used by: test_mdb.py (Wave 1).
+    Used by: test_mdb.py.
     """
     return _FIXTURES_DIR / "mdb_sample.xml"

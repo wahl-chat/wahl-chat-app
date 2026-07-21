@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Tests for openparliament_tv.parser (D-03 / D-03a aligned+proceedings gate).
+Tests for openparliament_tv.parser (aligned+proceedings gate).
 
-Wave-0 SCAFFOLD: the module-under-test does not exist yet. The top-level
+The module-under-test does not exist yet. The top-level
 `pytest.importorskip(...)` makes this whole file SKIP cleanly until the parser
-lands (later wave), at which point the real assertions run.
+lands, at which point the real assertions run.
 
 Covers:
   - test_skip_unaligned_and_asr: parser yields a usable speech ONLY for
@@ -19,10 +19,10 @@ from __future__ import annotations
 
 import pytest
 
-# Wave-0 guard: SKIP until src.ingestion.connectors.openparliament_tv.parser exists.
+# SKIP until src.ingestion.connectors.openparliament_tv.parser exists.
 parser = pytest.importorskip(
     "src.ingestion.connectors.openparliament_tv.parser",
-    reason="op parser not yet implemented (later wave) — Wave-0 scaffold",
+    reason="op parser not yet implemented",
 )
 
 
@@ -38,7 +38,7 @@ def _aligned_proceedings_media_ids(parsed: list[dict]) -> set[str]:
 
 
 def test_skip_unaligned_and_asr(session_json: dict) -> None:
-    """D-03: only aligned+proceedings speeches survive; unaligned + ASR-only are skipped.
+    """only aligned+proceedings speeches survive; unaligned + ASR-only are skipped.
 
     The trimmed fixture has 4 items:
       - originMediaID 7553315: aligned + proceedings  → KEEP
@@ -59,6 +59,6 @@ def test_skip_unaligned_and_asr(session_json: dict) -> None:
     assert "7553315" in kept
     assert "7553340" in kept
     # ... and neither the unaligned nor the ASR-only speech is kept.
-    assert "7553320" not in kept, "unaligned speech must be skipped (D-03)"
-    assert "7553330" not in kept, "ASR-only (generated) speech must be skipped (D-03)"
+    assert "7553320" not in kept, "unaligned speech must be skipped"
+    assert "7553330" not in kept, "ASR-only (generated) speech must be skipped"
     assert len(kept) == 2

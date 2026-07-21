@@ -10,8 +10,7 @@ Design goals:
     requests.get() against the AW host.
   - Fixed >=2s inter-request delay enforces the <=30 req/min fair-use ceiling
     (simple fixed-spacing pacing).
-  - Retrying session with exponential backoff on 429/5xx — mirrors the pattern
-    from bundestag_votes.py _get_session().
+  - Retrying session with exponential backoff on 429/5xx.
   - Absolute-index pagination: range_start/range_end are absolute position
     indices (verified from live API).
   - meta.status guard: any response with meta.status != 'ok' raises ValueError
@@ -60,7 +59,7 @@ _AW_BASE = "https://www.abgeordnetenwatch.de/api/v2"
 # Overridable via env var for testing/calibration; production default is 2.0s.
 _AW_REQUEST_DELAY_S = float(os.getenv("AW_REQUEST_DELAY_S", "2.0"))
 
-# Retry configuration — mirrors bundestag_votes.py _get_session() pattern.
+# Retry configuration.
 _MAX_RETRIES = 5
 
 # User-Agent identifying wahl.chat to the AW API (fair-use policy asks

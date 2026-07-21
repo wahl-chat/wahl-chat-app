@@ -9,9 +9,9 @@ Covers:
   - The top-level `contexts` collection, plus the `parties` and
     `proposed_questions` sub-collections under a seeded context, are each
     populated with at least one document after running seed_firestore.py.
-    Per Phase 5 (D-10) the seed script writes only these paths — the other
-    top-level V2 collections moved to the ingestion pipeline / Qdrant
-    ChunkRecords and are no longer seeded.
+    The seed script writes only these paths — the other top-level V2
+    collections moved to the ingestion pipeline / Qdrant ChunkRecords and
+    are no longer seeded.
   - wahl_swiper_theses / wahl_swiper_results V1 documents are NOT cleared
     or overwritten by the V2 seed (additive-only guarantee).
 
@@ -63,13 +63,13 @@ _PROJECT_ID = "demo-wahl-chat"
 
 # Top-level collection the seed script populates (`seed_contexts`). The
 # `parties` and `proposed_questions` sub-collections live under each seeded
-# context document (D-10 — the previously-asserted top-level V2 collections
+# context document (the previously-asserted top-level V2 collections
 # are no longer seeded).
 _CONTEXTS_COLLECTION = "contexts"
 
 # V1 collections that must be untouched by the V2 seed.
 _V1_SENTINEL_COLLECTION = "wahl_swiper_theses"
-_V1_SENTINEL_DOC = "sc5-sentinel"
+_V1_SENTINEL_DOC = "v1-sentinel"
 
 # ---------------------------------------------------------------------------
 # Firestore admin client helper (module-level, initialised once per session)
@@ -128,7 +128,7 @@ def test_seed_v2_collections():
 
     Runs seed_firestore.py as a subprocess with FIRESTORE_EMULATOR_HOST set,
     then uses the firebase-admin client to assert that what the seed script
-    actually writes today (per D-10) is non-empty:
+    actually writes today is non-empty:
       - the top-level `contexts` collection,
       - the `parties` sub-collection under a seeded context,
       - the `proposed_questions` sub-collection under a seeded context.
@@ -136,18 +136,18 @@ def test_seed_v2_collections():
     """
     result = _run_seed()
     assert result.returncode == 0, (
-        "seed_firestore.py exited non-zero — seeding failed (SC4). "
+        "seed_firestore.py exited non-zero — seeding failed. "
         f"stderr: {result.stderr[:1000]}\nstdout: {result.stdout[:1000]}"
     )
 
     db = _get_db()
 
-    # D-10 reconciliation: assert against the collections seed_firestore.py
-    # genuinely writes (contexts + parties/proposed_questions sub-collections),
-    # not the five top-level collections the script stopped seeding in Phase 5.
+    # Assert against the collections seed_firestore.py genuinely writes
+    # (contexts + parties/proposed_questions sub-collections), not the
+    # top-level collections the script no longer seeds.
     context_docs = list(db.collection(_CONTEXTS_COLLECTION).limit(1).stream())
     assert len(context_docs) >= 1, (
-        f"Collection '{_CONTEXTS_COLLECTION}' has no documents after seeding (SC4). "
+        f"Collection '{_CONTEXTS_COLLECTION}' has no documents after seeding. "
         f"Expected at least 1 context. Seed stdout tail: {result.stdout[-500:]}"
     )
     context_id = context_docs[0].id
@@ -161,7 +161,7 @@ def test_seed_v2_collections():
     )
     assert len(party_docs) >= 1, (
         f"Sub-collection 'contexts/{context_id}/parties' has no documents after "
-        f"seeding (SC4). Expected at least 1 party. "
+        f"seeding. Expected at least 1 party. "
         f"Seed stdout tail: {result.stdout[-500:]}"
     )
 
@@ -180,7 +180,7 @@ def test_seed_v2_collections():
     )
     assert len(proposed_question_docs) >= 1, (
         f"Sub-collection 'contexts/{context_id}/proposed_questions' has no "
-        f"documents after seeding (SC4). Expected at least 1 proposed question. "
+        f"documents after seeding. Expected at least 1 proposed question. "
         f"Seed stdout tail: {result.stdout[-500:]}"
     )
 
@@ -195,20 +195,20 @@ def test_v1_untouched():
     db = _get_db()
 
     # Write a sentinel document into the V1 collection BEFORE seeding.
-    sentinel_data = {"sentinel": True, "plan": "02-04", "sc": "SC5"}
+    sentinel_data = {"sentinel": True, "kind": "v1-guard"}
     db.collection(_V1_SENTINEL_COLLECTION).document(_V1_SENTINEL_DOC).set(sentinel_data)
 
     # Verify the sentinel was written successfully.
     before_snap = db.collection(_V1_SENTINEL_COLLECTION).document(_V1_SENTINEL_DOC).get()
     assert before_snap.exists, (
         f"Failed to write sentinel doc to {_V1_SENTINEL_COLLECTION}/{_V1_SENTINEL_DOC} "
-        "before seed run — emulator write issue, not a seed bug (SC5)"
+        "before seed run — emulator write issue, not a seed bug"
     )
 
     # Run the V2 seed.
     result = _run_seed()
     assert result.returncode == 0, (
-        "seed_firestore.py exited non-zero during SC5 run. "
+        "seed_firestore.py exited non-zero during the sentinel run. "
         f"stderr: {result.stderr[:1000]}\nstdout: {result.stdout[:1000]}"
     )
 
@@ -216,13 +216,13 @@ def test_v1_untouched():
     after_snap = db.collection(_V1_SENTINEL_COLLECTION).document(_V1_SENTINEL_DOC).get()
     assert after_snap.exists, (
         f"Sentinel document {_V1_SENTINEL_COLLECTION}/{_V1_SENTINEL_DOC} was deleted "
-        "or lost after the V2 seed run (SC5 — additive-only guarantee violated, T-02-12). "
+        "or lost after the V2 seed run (additive-only guarantee violated). "
         f"Seed stdout: {result.stdout[:500]}"
     )
 
     after_data = after_snap.to_dict()
     assert after_data == sentinel_data, (
-        f"Sentinel document data was modified by the V2 seed run (SC5, T-02-12). "
+        f"Sentinel document data was modified by the V2 seed run. "
         f"Before: {sentinel_data!r}  After: {after_data!r}. "
         f"Seed stdout: {result.stdout[:500]}"
     )

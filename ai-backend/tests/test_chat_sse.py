@@ -178,7 +178,7 @@ async def test_sse_headers(patch_chat_io, app):
 
 
 # ===========================================================================
-# GDPR cache-gate behavioral tests (A1/A2)
+# GDPR cache-gate behavioral tests
 # ===========================================================================
 
 _PROPOSED_QUESTION = "Was ist die Position der SPD zum Klimaschutz?"
@@ -247,7 +247,7 @@ async def test_first_turn_proposed_question_is_cached(
 ):
     """The legitimate first-turn proposed-question cache is preserved: a single
     proposed-question user turn IS curated, so the answer is written under the
-    proposed-question key (regression guard for the A1/A2 gate rework)."""
+    proposed-question key (regression guard for the cache gate rework)."""
     write_mock = AsyncMock()
     monkeypatch.setattr(
         "src.chat_service.aget_proposed_questions_for_party",
@@ -271,7 +271,7 @@ async def test_first_turn_proposed_question_is_cached(
 
 
 # ===========================================================================
-# Mid-stream error path (A10/A11): the client still receives a protocol-valid
+# Mid-stream error path: the client still receives a protocol-valid
 # stream — closed text block, error party_complete (generic message only),
 # finish events and the [DONE] terminator.
 # ===========================================================================

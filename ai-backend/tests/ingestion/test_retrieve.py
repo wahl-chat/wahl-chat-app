@@ -263,7 +263,7 @@ def test_no_downrank_manifesto() -> None:
     assert results[1]["source_type"] == "party_manifesto"
     # Scores must be in Qdrant order (no re-rank): first result must be point_a's payload.
     assert results[0].get("text", "").startswith("Mock chunk region=DE source_type=party_manifesto"), (
-        "CR-01: manifesto results must not be re-ranked by vote penalty logic"
+        "manifesto results must not be re-ranked by vote penalty logic"
     )
 
 
@@ -329,7 +329,7 @@ def test_penalty_tiers() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Task 1: publish_range passthrough on retrieve()
+# publish_range passthrough on retrieve()
 #
 # retrieve(publish_range=DatetimeRange(...)) must build a SINGLE publish_date
 # FieldCondition carrying that exact range (bounded [gte, lte] window or strict
@@ -437,13 +437,13 @@ def test_publish_range_none_preserves_publish_after() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Task 2: retrieve_two_pass() → {current, historic} buckets
+# retrieve_two_pass() → {current, historic} buckets
 #
 # current pass  = publish_date ∈ [term_start, term_end], flat, level-forwarded.
 # historic pass = publish_date < term_start, gated by a HIGH score_threshold,
 #                 legislature_period_id forced to None.
 # One query vector is embedded once and reused across both passes.
-# The Phase-8 level down-rank runs WITHIN each pass (ranked, not re-thresholded).
+# The level down-rank runs WITHIN each pass (ranked, not re-thresholded).
 # ---------------------------------------------------------------------------
 
 
@@ -618,7 +618,7 @@ def test_two_pass_single_embed_reuse() -> None:
 
 
 def test_two_pass_no_drop_combined_penalty() -> None:
-    """D2 REGRESSION: in the historic pass a federal-only vote above the HIGH historic
+    """REGRESSION: in the historic pass a federal-only vote above the HIGH historic
     threshold survives the LARGE level penalty — ranked below local, NOT dropped by
     re-thresholding the penalised score.
 
@@ -864,10 +864,10 @@ def test_two_pass_current_bucket_no_decay() -> None:
 
 
 # ---------------------------------------------------------------------------
-# test_prefer_op_dedup — post-fetch prefer-op dedup on shared speech_key (Q9/D-04)
+# test_prefer_op_dedup — post-fetch prefer-op dedup on shared speech_key
 #
-# Wave-0 SCAFFOLD: the dedup helper does not exist yet (11-05). This test
-# CAPABILITY-SKIPS until retrieve exposes `dedup_prefer_op` (or equivalent),
+# The dedup helper does not exist yet. This test
+# Skips until retrieve exposes `dedup_prefer_op` (or equivalent),
 # then asserts: dip+op sharing a speech_key collapse to the op member; a chunk
 # with a missing speech_key is always kept; the bucket does not shrink below
 # the number of distinct speeches.
@@ -900,14 +900,14 @@ def _speech_point(
 
 
 def test_prefer_op_dedup() -> None:
-    """Q9: post-fetch dedup keeps the op member on a shared speech_key; missing key = keep."""
+    """post-fetch dedup keeps the op member on a shared speech_key; missing key = keep."""
     import src.ingestion.retrieve as retrieve_mod
 
     dedup = getattr(retrieve_mod, "dedup_prefer_op", None) or getattr(
         retrieve_mod, "prefer_op_dedup", None
     )
     if dedup is None:
-        pytest.skip("prefer-op dedup helper not yet implemented (11-05) — Wave-0 scaffold")
+        pytest.skip("prefer-op dedup helper not yet implemented")
 
     shared = "de-20-101-mareike-lotte-wulf-top20"
     results = [
@@ -978,7 +978,7 @@ def test_prefer_op_dedup_grafts_transcript_pdf() -> None:
 
 
 def test_prefer_op_dedup_keeps_distinct_op_speeches_sharing_a_key() -> None:
-    """HIGH-1 regression: ``speech_key`` is not unique per speech (multi-chunk speech,
+    """Regression: ``speech_key`` is not unique per speech (multi-chunk speech,
     or a speaker speaking twice under the same agenda item). Two DISTINCT op members
     that share a key must BOTH survive — the old group-by-key collapse silently
     dropped ~7% of op speeches from retrieval."""
@@ -1033,7 +1033,7 @@ def test_prefer_op_dedup_multichunk_speech_collapses_by_source_item_id() -> None
 
 
 def test_prefer_op_dedup_ambiguous_group_keeps_dip_op_does_not_have() -> None:
-    """HIGH-1 core: two DISTINCT op speeches + one dip speech share a key. The dip
+    """Core: two DISTINCT op speeches + one dip speech share a key. The dip
     might be a distinct speech op did NOT align, so it must NOT be dropped (would
     be a grounding loss). Ambiguous group (2 distinct op) → keep everything."""
     import src.ingestion.retrieve as retrieve_mod

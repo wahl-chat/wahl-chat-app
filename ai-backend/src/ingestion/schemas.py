@@ -31,7 +31,7 @@ class SourceType(str, Enum):
     VOTE_RECORD = "vote_record"
     DRUCKSACHE = "drucksache"
     QA_TRANSCRIPT = "qa_transcript"
-    PARLIAMENTARY_SPEECH = "parliamentary_speech"  # Bundestag plenary speeches (ingest_speeches.py)
+    PARLIAMENTARY_SPEECH = "parliamentary_speech"  # Bundestag plenary speeches
 
 
 # =============================================================================
@@ -84,7 +84,7 @@ class VoteMeta(BaseModel):
 class SpeechMeta(BaseModel):
     """Source-owned nested metadata for parliamentary_speech chunks.
 
-    Instantiated by ingest_speeches.py and dumped into ChunkRecord.meta via
+    Dumped into ChunkRecord.meta via
     ``model_dump(mode="json", exclude_none=True)``.  Keeps speech-specific
     descriptive fields out of the shared envelope and off non-speech chunks.
     """
@@ -173,7 +173,7 @@ class ChunkRecord(BaseModel):
             "AW parliament_period ID for the legislature this vote belongs to. "
             "Globally unique integer, e.g. 161 for 21st Bundestag (2025-), "
             "149 for Bayern 2023-2028. Used for period-scoped retrieval. "
-            "None for legacy chunks ingested before Phase 7."
+            "None for older chunks that predate this field."
         ),
     )
     # Governance levels at which this vote is relevant. No Qdrant payload index —
@@ -189,23 +189,23 @@ class ChunkRecord(BaseModel):
     )
     # Cross-source speech dedup + source discriminator (INDEXED top-level, keyword).
     # Written by BOTH the op and DIP speech connectors. `source_type` stays
-    # `parliamentary_speech` for both — `source` is the NEW discriminator axis.
+    # `parliamentary_speech` for both — `source` is the discriminator axis.
     speech_key: Optional[str] = Field(
         None,
         description=(
             "Deterministic cross-source speech dedup identity "
             "`de-{ep}-{session}-{speaker_slug}-{agenda_slug}` (src/ingestion/speech_key.py). "
             "Written by BOTH the op and DIP connectors; the supersede-delete filter and the "
-            "DIP pre-insert resurrection-guard key (D-06/D-07). INDEXED keyword. "
-            "None on legacy chunks until the 11-07 migration stamps them."
+            "DIP pre-insert resurrection-guard key. INDEXED keyword. "
+            "None on older chunks that predate this field."
         ),
     )
     source: Optional[str] = Field(
         None,
         description=(
             "Connector discriminator, values 'dip' | 'op'. Drives the source-scoped cursor "
-            "(run.py::get_cursor) so op and DIP do not share a cursor (D-11). INDEXED keyword. "
-            "None on legacy chunks until the 11-07 migration stamps them."
+            "(run.py::get_cursor) so op and DIP do not share a cursor. INDEXED keyword. "
+            "None on older chunks that predate this field."
         ),
     )
     # Content hash for change-aware idempotent upserts. When a re-ingested item's

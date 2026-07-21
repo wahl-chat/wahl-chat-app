@@ -17,7 +17,7 @@ install-web:
 install-backend:
 	cd ai-backend && uv sync
 
-# --- Local data stores (LOCAL-04) ---
+# --- Local data stores ---
 
 stores-up:
 	docker compose up -d qdrant
@@ -74,26 +74,26 @@ test-smoke:
 	cd ai-backend && uv run pytest tests/test_chat_sse.py -x
 
 # test-local-mode: exercises the seed-script FIRESTORE_EMULATOR_HOST guard
-# end-to-end (G11). Deliberately NOT part of CI or test-backend — it needs
+# end-to-end. Deliberately NOT part of CI or test-backend — it needs
 # LIVE local stores: run `make stores-up` first.
 test-local-mode:
 	cd ai-backend && uv run pytest tests/test_local_mode.py -x
 
-# --- Ingestion connector local-run targets (Open Question 5 — Makefile is the local scheduler) ---
+# --- Ingestion connector local-run targets (Makefile is the local scheduler) ---
 # Cloud Scheduler stays IaC-only (infra/cloud_run_jobs.sh).
 # These targets invoke the same src.ingestion.run entrypoint against local Qdrant.
-# Requires: make stores-up first. Qdrant URL is wired automatically (D-10).
+# Requires: make stores-up first. Qdrant URL is wired automatically.
 
 run-abgeordnetenwatch-votes:
 	cd ai-backend && QDRANT_URL=http://localhost:6333 uv run python -m src.ingestion.run --connector abgeordnetenwatch_votes
 
-# run-all-landtage-votes: loops the connector over all 16 Landtag legislature IDs (D-05 run
+# run-all-landtage-votes: loops the connector over all 16 Landtag legislature IDs (run
 # selectivity).  IDs are sourced from LANDTAG_LEGISLATURE_IDS in legislature_config.py so the
 # list stays single-sourced in config — no hardcoded integers in the Makefile.
 # Each iteration passes AW_LEGISLATURE_ID=<id> to a subprocess so the connector's
 # module-level _DEFAULT_LEGISLATURE_ID reads the correct value at import time.
 # Requires: make stores-up first; AW_API_KEY in ai-backend/.env if rate-limited.
-# WR-02: each iteration runs in a subshell; a failure (e.g. D-06 zero-poll fail-fast
+# Each iteration runs in a subshell; a failure (e.g. zero-poll fail-fast
 # on a newly-constituted Landtag) is recorded but does NOT abort the remaining
 # legislatures. After the loop, failed IDs are summarised and the target exits
 # non-zero so CI / the operator sees the partial failure instead of it being

@@ -8,23 +8,21 @@ Shared deterministic speech-key helper — imported by BOTH speech connectors
 
 speech_key = ``de-{ep}-{session}-{speaker_slug}-{agenda_slug}``
 
-This is the cross-source dedup identity (D-06): the supersede-delete filter
-(D-04), the DIP pre-insert resurrection guard (D-05), and the migration
-backfill (11-07) all key on it. op derives it from discrete
-``firstname``/``lastname``; DIP derives it from a merged ``speaker_name``
-string (possibly carrying an academic title). The two MUST produce
-byte-identical keys for the same speech — hence ONE shared slugify function.
+This is the cross-source dedup identity: the supersede-delete filter, the DIP
+pre-insert resurrection guard, and the migration backfill all key on it. op
+derives it from discrete ``firstname``/``lastname``; DIP derives it from a
+merged ``speaker_name`` string (possibly carrying an academic title). The two
+MUST produce byte-identical keys for the same speech — hence ONE shared slugify
+function.
 
 Determinism doctrine (mirrors ids.py): the slug/key rules here MUST NOT change
 after the first production ingest. Any change shifts every speech_key and
 silently breaks dedup, the supersede filter, and the resurrection guard across
 already-stamped chunks. Treat this like the WAHL_CHAT_NS namespace: frozen.
 
-Rules frozen as of 2026-07-14. The 2026-07-14 rule changes (NFC pre-normalize,
-compound-academic-title tokens, name-particle stripping, opening→"" agenda
-fallback) were only safe because NO production ingest had happened before that
-date — every stored dev corpus is disposable and will be re-ingested. Any
-further change after a production ingest requires a full re-key migration.
+The current rules were only safe to establish because no production ingest has
+happened yet — every stored dev corpus is disposable and will be re-ingested.
+Any change after a production ingest requires a full re-key migration.
 """
 
 from __future__ import annotations
@@ -53,7 +51,7 @@ _UMLAUT_MAP = {
 # med; "Dr. jur." → jur; "Dr. rer. nat." → rer, nat; "Dr. rer. pol." → pol;
 # "Dr. habil." → habil; "Dr. E. h." → e, h. Without them a DIP merged name like
 # "Dr. h. c. Thomas Sattelberger" keeps stray h/c tokens and never matches op's
-# discrete firstname/lastname key — the twin is never superseded (C1).
+# discrete firstname/lastname key — the twin is never superseded.
 #
 # Single letters "e"/"h"/"c" could theoretically appear as hyphenated-name
 # fragments, but real MdB surnames never slugify to a bare single letter (the
@@ -66,7 +64,7 @@ _TITLE_TOKENS = frozenset(
 # Name-particle (nobiliary/preposition) tokens dropped from the speaker slug —
 # SOURCE-INDEPENDENT so DIP (whose parser never reads <namenszusatz>, yielding
 # "Beatrix Storch") and op (whose lastname includes the particle, "von Storch")
-# agree on one key (C2): both sides drop the particle → beatrix-storch.
+# agree on one key: both sides drop the particle → beatrix-storch.
 _PARTICLE_TOKENS = frozenset(
     {"von", "der", "van", "de", "zu", "graf", "freiherr", "freifrau", "baron", "prinz"}
 )
@@ -96,7 +94,7 @@ def slugify_speaker(
     ``full_name``. Steps (order matters for parity):
       1. NFC-normalize (a decomposed NFD ``o`` + combining diaeresis must become
          the composed ``ö`` BEFORE the umlaut expansion, else it silently folds
-         to a bare ``o`` — B6);
+         to a bare ``o``);
       2. expand umlauts ``ä→ae ö→oe ü→ue ß→ss`` BEFORE folding (never dropped);
       3. NFKD-fold remaining accents to ASCII;
       4. lowercase;
@@ -128,8 +126,8 @@ def slugify_speaker(
 # Agenda-item kind detection. Both sides MUST agree on kind AND number so the
 # op (official-title) path and the DIP (top-id) path produce byte-identical
 # slugs, while a Zusatzpunkt and a Tagesordnungspunkt with the same number stay
-# DISTINCT (otherwise supersede-delete could destroy an unrelated agenda item —
-# HIGH-01). Slug shape: ``{zp|top}{n}``. Number extraction is the SAME on both
+# DISTINCT (otherwise supersede-delete could destroy an unrelated agenda item).
+# Slug shape: ``{zp|top}{n}``. Number extraction is the SAME on both
 # sides: the FIRST integer found (tolerant of letter suffixes / combined items
 # like "20 a" or "5 und 6" — a single deterministic rule applied identically).
 _ZP_OFFICIAL_RE = re.compile(r"^\s*zusatzpunkt", re.IGNORECASE)
@@ -146,11 +144,11 @@ def agenda_slug_from_official(
     ``Zusatzpunkt`` → ``zp{n}``, otherwise ``top{n}`` — where ``{n}`` is the
     FIRST integer in the title (identical extraction to
     ``agenda_slug_from_top_id`` for byte-parity); anything else — including
-    ``agenda_type == "opening"`` — yields the empty string (the D-07 graceful
+    ``agenda_type == "opening"`` — yields the empty string (the graceful
     no-agenda fallback). Opening segments have NO DIP counterpart slug (DIP
     yields ``""`` for redes outside any <tagesordnungspunkt>), so an op-side
     ``"opening"`` slug would break cross-source dedup for opening-segment
-    speeches (C10). ``agenda_type`` is kept in the signature for call-site
+    speeches. ``agenda_type`` is kept in the signature for call-site
     compatibility but no longer influences the slug.
     """
     if official_title:

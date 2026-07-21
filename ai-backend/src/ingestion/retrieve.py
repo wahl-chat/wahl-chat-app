@@ -141,7 +141,7 @@ _VOTE_DOWNRANK_LARGE: float = 0.20   # broader-region vote whose relevance_level
 
 
 # ---------------------------------------------------------------------------
-# Speech prefer-op dedup over-fetch tuning (Q9 / D-11).
+# Speech prefer-op dedup over-fetch tuning.
 # During the transient DIP↔op overlap window a speech can appear as BOTH a
 # `dip` and an `op` parliamentary_speech chunk. We over-fetch the speech query
 # so the post-fetch dedup collapse (see dedup_prefer_op) does not shrink the
@@ -154,8 +154,8 @@ _SPEECH_CANDIDATE_FLOOR: int = 15
 def dedup_prefer_op(payloads: list[dict]) -> list[dict]:
     """Collapse a DIP twin into its op counterpart ONLY when the match is unambiguous.
 
-    Post-fetch, pure-Python dedup for ``parliamentary_speech`` payloads (Q9 /
-    D-11). The SAME real-world speech can surface as both a ``source=="dip"`` and
+    Post-fetch, pure-Python dedup for ``parliamentary_speech`` payloads. The SAME
+    real-world speech can surface as both a ``source=="dip"`` and
     a ``source=="op"`` chunk sharing one ``speech_key``. The op member carries the
     video AND the full speech text, so it is a complete substitute for its DIP
     twin — dropping a *matched* twin loses nothing.
@@ -168,7 +168,7 @@ def dedup_prefer_op(payloads: list[dict]) -> list[dict]:
     situations put several records under one key:
       * a long speech chunked into several records (shared key + source_item_id);
       * a speaker who speaks twice under the same agenda item — two DISTINCT
-        speeches with the same key but DIFFERENT ``source_item_id`` (HIGH-1).
+        speeches with the same key but DIFFERENT ``source_item_id``.
     Blindly dropping every DIP member whose key an op owns would delete a distinct
     DIP speech that op does NOT have — a grounding/coverage loss.
 
@@ -182,14 +182,13 @@ def dedup_prefer_op(payloads: list[dict]) -> list[dict]:
       * any other shape (≥2 distinct op or ≥2 distinct dip, or op-only, or
         dip-only) → keep EVERYTHING. Distinct speeches are never merged; at worst
         the rare true-collision group shows both an op and a dip record (both
-        correctly attributed). A missing / None ``speech_key`` is always kept
-        (threat T-11-18).
+        correctly attributed). A missing / None ``speech_key`` is always kept.
     First-seen order is preserved; only matched dip twins are removed.
 
     This is NEVER a Qdrant ``source`` filter — filtering the query on ``source``
-    would break the Phase-08 down-rank and Phase-09 two-pass and violate the
+    would break the vote-level down-rank and the two-pass retrieval and violate the
     tenant-only HNSW selective-filter rule. Dedup is post-fetch, exactly like the
-    Phase-08 down-rank.
+    vote-level down-rank.
 
     Args:
         payloads: Speech payload dicts as returned post-fetch (each may carry
@@ -566,7 +565,7 @@ def retrieve(
 
     # Speech prefer-op dedup is a post-fetch pass (see below) that only touches
     # source_type == "parliamentary_speech". Like the vote down-rank it never adds a
-    # Qdrant `source` filter — Phase 08/09 stay behaviorally unchanged.
+    # Qdrant `source` filter — the down-rank and two-pass paths stay unchanged.
     _speech_dedup_active = source_type == "parliamentary_speech"
 
     # Over-fetch when the re-rank is active so a genuinely-relevant local vote ranked
@@ -629,7 +628,7 @@ def retrieve(
 
     plain = [point for point in results.points if point.payload is not None]
 
-    # Post-fetch prefer-op dedup — ONLY for parliamentary_speech (Q9 / D-11).
+    # Post-fetch prefer-op dedup — ONLY for parliamentary_speech.
     # Collapse dip+op duplicates on speech_key (keep the video-bearing op member),
     # then truncate to `limit`. The over-fetch above kept the pool large enough that
     # the collapse does not shrink the bucket below `limit`. Runs per-bucket because
@@ -652,8 +651,7 @@ def retrieve(
 # retrieve_two_pass() — temporal current-vs-historic split over publish_date
 #
 # Runs two retrieve() passes keyed on the cross-source ``publish_date`` field and
-# returns labelled ``{"current": [...], "historic": [...]}`` buckets (design note
-# §3, decisions D1–D4):
+# returns labelled ``{"current": [...], "historic": [...]}`` buckets:
 #   - current pass  : publish_date ∈ [term_start, term_end], FLAT (no time
 #                     weighting inside the window — a term's whole record is
 #                     equally relevant). legislature_period_id is forwarded here.
@@ -664,8 +662,8 @@ def retrieve(
 #                     and empty the bucket).
 # The gte/lt boundary at term_start means current owns term_start and historic is
 # strictly before it — no overlap, no gap. ONE query vector is embedded once here
-# and reused across both passes (no extra embedding). The Phase-8 level down-rank
-# and the D2 no-re-threshold guarantee are INHERITED from retrieve() — this
+# and reused across both passes (no extra embedding). The level down-rank
+# and the no-re-threshold guarantee are INHERITED from retrieve() — this
 # function does NOT re-implement penalty logic.
 # ---------------------------------------------------------------------------
 
@@ -691,7 +689,7 @@ def retrieve_two_pass(
 ) -> dict[str, list[dict]]:
     """Two-pass temporal retrieval returning ``{"current", "historic"}`` buckets.
 
-    See the module comment above for the full D1–D4 rationale.
+    See the module comment above for the full rationale.
 
     Args:
         query:          Natural-language query string.
@@ -704,7 +702,7 @@ def retrieve_two_pass(
         party_id:       Tenant filter (see retrieve()). Selective.
         party_ids_contains: Vote membership filter (see retrieve()). Selective.
         region_path:    Election region path (MatchAny). Forwarded to both passes.
-        level:          Governance level; forwarded to both passes so the Phase-8
+        level:          Governance level; forwarded to both passes so the
                         vote-level down-rank composes WITHIN each pass.
         legislature_period_id: AW parliament_period ID. Forwarded to the CURRENT
                         pass ONLY; the historic pass receives None.
@@ -726,7 +724,7 @@ def retrieve_two_pass(
         ``{"current": [...payloads...], "historic": [...payloads...]}``.
     """
     # (1) Embed once and reuse across BOTH passes — single-embed reuse is mandatory
-    # (design note §3, "query vector reused, no extra embedding").
+    # (one query vector reused across both passes, no extra embedding).
     vec = query_vector if query_vector is not None else _embed_query(query, _embed_fn)
 
     # (2) current pass — bounded [term_start, term_end], flat, level + period forwarded.
@@ -778,7 +776,7 @@ def retrieve_two_pass(
         else:
             age_days = max(0, (term_start_date - pub_date).days)
             decay = 0.5 ** (age_days / _HISTORIC_DECAY_HALFLIFE_DAYS)
-        # B13: clamp at 0 — a vote-downranked NEGATIVE score times a small decay
+        # Clamp at 0 — a vote-downranked NEGATIVE score times a small decay
         # would rank an older item ABOVE a newer one (multiplying a negative by
         # <1 raises it), inverting the recency ordering.
         decayed.append((payload, max(score, 0.0) * decay))
@@ -786,7 +784,7 @@ def retrieve_two_pass(
     decayed.sort(key=lambda x: x[1], reverse=True)
     historic_results = [payload for payload, _ in decayed[:historic_limit]]
 
-    # (4) Labelled buckets. The level down-rank and the D2 no-re-threshold guarantee
+    # (4) Labelled buckets. The level down-rank and the no-re-threshold guarantee
     # are inherited from retrieve() — not re-implemented here. The current bucket stays
     # flat (no decay); only the historic bucket is recency-weighted.
     # current pass runs with_scores=False → list[dict]; narrow the union for the
@@ -846,7 +844,7 @@ class RetrieveSchema(BaseModel):
         None,
         description=(
             "Election region path list (e.g. ['EU', 'DE']). Chunks whose scalar "
-            "region is a member of this list are returned (VEC-03 MatchAny)."
+            "region is a member of this list are returned (MatchAny)."
         ),
     )
     authority_tier: Optional[AuthorityTierLiteral] = Field(

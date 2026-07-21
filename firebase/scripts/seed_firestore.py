@@ -2,7 +2,7 @@
 """
 Seed Firestore with contexts, parties, and proposed questions data.
 
-Phase 5 (D-10): source_items, questions, question_stance_pairs, topics,
+source_items, questions, question_stance_pairs, topics,
 claims, and ingestion_watermarks collections are no longer seeded — those
 data paths moved to Qdrant ChunkRecords.
 
@@ -12,7 +12,7 @@ Usage (from the firebase/ directory):
     FIRESTORE_EMULATOR_HOST=localhost:8081 make seed-local
 
 This script only ever seeds the LOCAL Firestore emulator. Production seeding
-is intentionally blocked this milestone: the FIRESTORE_EMULATOR_HOST guard
+is intentionally blocked: the FIRESTORE_EMULATOR_HOST guard
 below hard-exits when no emulator host is set, so the script can never write
 to a real Firestore instance.
 
@@ -40,7 +40,7 @@ from pathlib import Path
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-# --- Emulator guard (LOCAL-02 / RESEARCH.md Pitfall 7) ---
+# --- Emulator guard ---
 # Refuse to run unless the Firestore emulator host is explicitly set.
 # This prevents accidental writes to production Firestore during local dev.
 if not os.getenv("FIRESTORE_EMULATOR_HOST"):
@@ -70,7 +70,7 @@ def initialize_firebase():
     This script only ever runs against the emulator (the FIRESTORE_EMULATOR_HOST
     guard above hard-exits otherwise), so it initializes with anonymous
     credentials + an explicit project id and performs NO Application Default
-    Credentials lookup — the emulator needs no real credentials (LOCAL-02). This
+    Credentials lookup — the emulator needs no real credentials. This
     avoids failing when gcloud ADC is absent or expired.
     """
     import google.auth.credentials
@@ -161,7 +161,7 @@ def seed_proposed_questions(db) -> tuple[list, list]:
     """Seed proposed_questions sub-collections for each context.
 
     Returns (failed_files, failed_writes) so the caller can exit non-zero
-    when anything failed (G13).
+    when anything failed.
 
     File naming convention:
     - proposed_questions_{context_id}.json: Contains proposed questions for a specific context

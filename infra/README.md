@@ -1,21 +1,21 @@
 # infra/ — Cloud Run Jobs + Scheduler IaC
 
-## Status: AUTHORED, NOT APPLIED (D-01)
+## Status: AUTHORED, NOT APPLIED
 
 The scripts in this directory author the GCP Cloud Run Jobs and Cloud Scheduler
 configuration for the wahl.chat V2 ingestion pipeline. **They are NOT executed
-during this milestone.** The INGEST-01 acceptance criterion ("scheduled Cloud Run
-Jobs in an EU region") is satisfied by committing this authored configuration;
-actual deployment is deferred to a later milestone.
+yet.** The requirement of "scheduled Cloud Run
+Jobs in an EU region" is satisfied by committing this authored configuration;
+actual deployment is deferred.
 
-**Phase 5 (D-09/D-10):** Reconciled to the surviving connector
+**Current state:** Reconciled to the surviving connector
 (`abgeordnetenwatch_votes`). Obsolete connectors and all
 GCS/Firestore env wiring removed; connectors now require only `QDRANT_URL` +
 `OPENAI_API_KEY` (Qdrant-only single-store runtime).
 
 > **Note:** The actual `gcloud run jobs deploy` execution against
 > `europe-west1`/`europe-west3` is a manual operator IaC step out of this
-> repo's automated scope (CLAUDE.md EU-residency + Firebase 15-min cap). This
+> repo's automated scope (EU-residency + Firebase 15-min cap). This
 > directory only commits the authored deploy artifacts.
 
 ---
@@ -34,9 +34,9 @@ GCS/Firestore env wiring removed; connectors now require only `QDRANT_URL` +
 
 All Cloud Run Jobs and Cloud Scheduler triggers use `REGION=europe-west1`
 (Belgium, EU). This satisfies the GDPR Art. 9 EU data residency constraint
-in CLAUDE.md (`europe-west1`/`europe-west3`).
+(`europe-west1`/`europe-west3`).
 
-### Single Image, CONNECTOR_ID Selects (D-03)
+### Single Image, CONNECTOR_ID Selects
 
 The connector (`abgeordnetenwatch_votes`) runs from the **same
 Docker image** used for every ingestion connector. The `CONNECTOR_ID`
@@ -51,16 +51,16 @@ This is the same code path locally and in Cloud Run: locally you invoke
 `uv run python -m src.ingestion.run --connector <id>`; in Cloud Run the job spec
 sets the `CONNECTOR_ID` env var and the same entrypoint is the container CMD.
 
-### Per-connector Scheduling (D-03)
+### Per-connector Scheduling
 
 Each connector has its own Cloud Scheduler trigger pointing at its own Cloud Run Job.
 This allows independent schedules (e.g. `abgeordnetenwatch_votes` daily at 04:00)
 without coupling the connectors' run cadences.
 
-### Single Task per Job (D-04)
+### Single Task per Job
 
 `--tasks 1` — Cloud Run task-sharding (`task-count > 1`) is a future scaling lever
-and is explicitly deferred (D-04). Document `CLOUD_RUN_TASK_INDEX` as the future
+and is explicitly deferred. Document `CLOUD_RUN_TASK_INDEX` as the future
 shard-awareness hook; do NOT build it now.
 
 ### 1-Hour Task Timeout (not 15 minutes)
@@ -71,12 +71,12 @@ support up to 24 hours). Long connectors with a large backlog will stay within
 1 hour; if they need longer, bump the timeout — no architectural change is
 required.
 
-### Qdrant-only Runtime (Phase 5, D-09)
+### Qdrant-only Runtime
 
 Connectors pass only `QDRANT_URL` (and `OPENAI_API_KEY` via Secret Manager).
 All GCS bucket and Firestore emulator env vars removed — the old
-two-phase enqueue→worker GCS/Firestore data paths were deleted in Phase 5
-D-09/D-10. The job now writes directly to Qdrant via run_connector().
+two-phase enqueue→worker GCS/Firestore data paths were deleted.
+The job now writes directly to Qdrant via run_connector().
 
 ---
 
@@ -102,7 +102,7 @@ QDRANT_URL=http://localhost:6333 uv run python -m src.ingestion.run --connector 
 
 ---
 
-## How to Deploy (Future Milestone — Manual EU Operator Step)
+## How to Deploy (Manual EU Operator Step)
 
 When the team is ready to deploy to GCP:
 
@@ -133,4 +133,4 @@ When the team is ready to deploy to GCP:
 
 > **Never commit API keys, passwords, or service-account JSON to this directory.**
 > All sensitive values are passed via environment variables or referenced by
-> service-account email (T-03-15).
+> service-account email.

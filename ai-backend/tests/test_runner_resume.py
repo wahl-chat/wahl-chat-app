@@ -39,7 +39,7 @@ try:
     )
 except ImportError as _e:
     pytest.skip(
-        f"Phase-5 schema teardown: {_e} — runner tests not yet importable",
+        f"schema teardown: {_e} — runner tests not yet importable",
         allow_module_level=True,
     )
 
@@ -181,7 +181,7 @@ def test_run_connector_upserts_no_firestore() -> None:
 
     # Qdrant upsert must have been called for each item.
     assert mock_qdrant.upsert.call_count == 3, (
-        f"P5-INGEST-05: qdrant.upsert should be called 3 times (one per poll), "
+        f"qdrant.upsert should be called 3 times (one per poll), "
         f"got {mock_qdrant.upsert.call_count}"
     )
     assert report.processed == 3
@@ -206,7 +206,7 @@ def test_run_connector_dimension_guard_raises() -> None:
     # Return a wrong-dimension vector (10 instead of 3072).
     mock_embed = _make_mock_embed(dim=10)
 
-    with pytest.raises(ValueError, match="VEC-05"):
+    with pytest.raises(ValueError, match="embedding dim mismatch"):
         run_connector(connector, mock_qdrant, mock_embed, batch_size=10)
 
     # upsert must NOT have been called — dimension guard fires first.
@@ -360,7 +360,7 @@ def test_already_present_item_skips_embed() -> None:
 
 def test_new_item_upserts_without_delete() -> None:
     """A brand-new item (no stored footprint) must embed+upsert WITHOUT any
-    delete (B2: only orphan point ids — existing − new — are ever deleted;
+    delete (only orphan point ids — existing − new — are ever deleted;
     a new item has none).
 
     Setup: poll 1's chunk point IDs are NOT in Qdrant (scroll returns []).
@@ -388,7 +388,7 @@ def test_new_item_upserts_without_delete() -> None:
 
 
 def test_orphan_delete_uses_point_ids_after_embed() -> None:
-    """B2: an item with a stale extra point deletes ONLY that orphan id via
+    """an item with a stale extra point deletes ONLY that orphan id via
     PointIdsList — and only AFTER the embed succeeded (no loss window)."""
     poll_id = 42
     connector = StubConnector(poll_ids=[poll_id])
@@ -455,7 +455,7 @@ def test_orphan_cleanup_skipped_when_all_chunks_present() -> None:
 def test_content_hash_change_forces_reupsert() -> None:
     """When a re-ingested item's content_hash differs from the stored one, it is
     re-embedded and re-upserted so an upstream correction (e.g. a fixed vote tally)
-    actually propagates (H3)."""
+    actually propagates."""
     from src.ingestion.ids import compute_source_item_id, compute_chunk_id
 
     poll_id = 7

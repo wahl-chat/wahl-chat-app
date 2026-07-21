@@ -47,12 +47,12 @@ from src.ingestion.ids import compute_chunk_id
 
 
 # ---------------------------------------------------------------------------
-# DimensionMismatchError — VEC-05 coding invariant (B11)
+# DimensionMismatchError — embedding-dimension coding invariant
 # ---------------------------------------------------------------------------
 
 
 class DimensionMismatchError(ValueError):
-    """Embedding vector dimension != EMBEDDING_DIM (VEC-05).
+    """Embedding vector dimension != EMBEDDING_DIM.
 
     A coding/config invariant violation, not a data error: run_connector
     re-raises it (isinstance check, not string matching) instead of
@@ -121,7 +121,7 @@ def get_cursor(
     When *source* is provided, a second FieldCondition(key="source") is appended to
     the scroll filter so connectors that share one source_type (op and DIP both use
     "parliamentary_speech") derive INDEPENDENT max(external_id) cursors instead of
-    cross-pollinating one shared cursor (D-11/Q2). Connectors without a `source`
+    cross-pollinating one shared cursor. Connectors without a `source`
     attribute pass source=None → behaviour is byte-for-byte unchanged.
 
     Args:
@@ -161,7 +161,7 @@ def get_cursor(
     )
     if not points:
         return None
-    # LOW-01: coerce to int only for an int or digit-string external_id; anything
+    # Coerce to int only for an int or digit-string external_id; anything
     # else (missing / non-numeric / malformed) → None so the floor helpers treat
     # it as "no cursor" rather than letting a bad value under/over-shoot the run.
     val = points[0].payload.get("external_id")  # type: ignore[union-attr]
@@ -180,7 +180,7 @@ def get_cursor(
 
 
 def _cursor_source_scope(connector: BaseConnector) -> Optional[str]:
-    """Return the source scope for get_cursor (C6).
+    """Return the source scope for get_cursor.
 
     ``connector.cursor_source`` when the attribute exists (BaseConnector
     defaults it to ``source``; subclasses may override — e.g. the DIP
@@ -242,7 +242,7 @@ def _upsert_chunks(
     for chunk, vector in zip(chunks, vectors):
         if len(vector) != EMBEDDING_DIM:
             raise DimensionMismatchError(
-                f"VEC-05: embedding dim mismatch: expected {EMBEDDING_DIM}, "
+                f"embedding dim mismatch: expected {EMBEDDING_DIM}, "
                 f"got {len(vector)} for chunk {chunk.chunk_key!r}"
             )
         point_id = str(compute_chunk_id(chunk.source_item_id, chunk.chunk_index))
@@ -330,7 +330,6 @@ def run_connector(
             try:
                 chunks = connector.normalize(raw)
             except ValueError as exc:
-                # Keep the existing ValueError-specific normalize warning message wording.
                 print(
                     f"WARNING: skipping item {external_id}: normalize failed: {exc}",
                     file=sys.stderr,
@@ -338,7 +337,7 @@ def run_connector(
                 failed_ids.append(str(external_id))
                 continue
 
-            # C9 mitigation (concurrent DIP+op hazard): a connector may report the
+            # Concurrent DIP+op hazard: a connector may report the
             # source_item_ids its normalize() SKIPPED as already-superseded (the
             # DIP connector sets last_superseded_siids). Any stored points under
             # those siids are stranded twins from an interleaved concurrent run —
@@ -396,10 +395,10 @@ def run_connector(
                     ]
                 )
                 existing_hash_by_id: dict[str, Optional[str]] = {}
-                # C8: previously grafted DIP transcript PDFs (meta.transcript_pdf_url,
-                # written by the op supersede pass) per siid — must survive a rewrite,
-                # since the fresh mapper output never carries the graft and the DIP
-                # twin that donated it is already deleted.
+                # DIP transcript PDFs (meta.transcript_pdf_url, written by the op
+                # supersede pass) per siid — must survive a rewrite, since the fresh
+                # mapper output never carries the graft and the DIP twin that donated
+                # it is already deleted.
                 pdf_by_siid: dict[str, str] = {}
                 next_offset = None
                 while True:
@@ -441,7 +440,7 @@ def run_connector(
                 has_orphans = bool(existing_point_ids - new_point_ids)
 
                 if (not all_present) or content_changed or has_orphans:
-                    # B2 loss-window fix — order matters:
+                    # Loss-window fix — order matters:
                     #   1. EMBED first: the external call (5 tenacity retries) is
                     #      the failure-prone step. The old delete-before-embed
                     #      left the item ABSENT from the store when the embed
@@ -453,9 +452,9 @@ def run_connector(
                     #      item is never absent at any point in time.
                     #   3. Upsert (wait=True inside _upsert_chunks).
                     vectors = _embed_texts(embed, [c.text for c in chunks])
-                    # C8: re-apply a previously grafted transcript PDF to the new
-                    # payloads (only where the fresh mapper output lacks it) so an
-                    # op re-write cannot strip the merge result. content_hash is
+                    # Re-apply a grafted transcript PDF to the new payloads (only
+                    # where the fresh mapper output lacks it) so an op re-write
+                    # cannot strip the merge result. content_hash is
                     # computed by the mapper BEFORE this graft, so idempotency
                     # comparisons on later runs are unaffected.
                     if pdf_by_siid:
@@ -484,7 +483,7 @@ def run_connector(
                         )
                     _upsert_chunks(qdrant, collection_name, chunks, vectors)
                     chunks_upserted += len(chunks)
-                    # Post-upsert connector hook (B8): source-specific follow-up
+                    # Post-upsert connector hook: source-specific follow-up
                     # policy (e.g. the op connector's supersede-the-DIP-twin merge)
                     # lives on the connector, not in this generic runner. The
                     # BaseConnector default is a no-op returning 0.
@@ -565,7 +564,7 @@ if __name__ == "__main__":
             "Local usage:\n"
             "  QDRANT_URL=http://localhost:6333 uv run python -m src.ingestion.run --connector abgeordnetenwatch_votes\n"
             "\n"
-            "Cloud Run Job usage (D-03):\n"
+            "Cloud Run Job usage:\n"
             "  ENV: CONNECTOR_ID=abgeordnetenwatch_votes (set in job spec)\n"
         ),
     )

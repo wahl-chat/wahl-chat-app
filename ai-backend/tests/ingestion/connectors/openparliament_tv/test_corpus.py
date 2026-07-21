@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Tests for openparliament_tv.mappers.corpus (D-02 / D-02a / D-10 / Q6 / idempotency).
+Tests for openparliament_tv.mappers.corpus (idempotency).
 
-Wave-0 SCAFFOLD: the module-under-test does not exist yet. The top-level
+The module-under-test does not exist yet. The top-level
 `pytest.importorskip(...)` makes this whole file SKIP cleanly until the corpus
-mapper lands (later wave), at which point the real assertions run.
+mapper lands, at which point the real assertions run.
 
 Covers:
   - test_one_chunk_and_sentence_map: exactly ONE ChunkRecord per aligned speech;
@@ -21,10 +21,10 @@ from __future__ import annotations
 
 import pytest
 
-# Wave-0 guard: SKIP until the op corpus mapper exists.
+# SKIP until the op corpus mapper exists.
 corpus = pytest.importorskip(
     "src.ingestion.connectors.openparliament_tv.mappers.corpus",
-    reason="op corpus mapper not yet implemented (later wave) — Wave-0 scaffold",
+    reason="op corpus mapper not yet implemented",
 )
 
 
@@ -49,10 +49,10 @@ def _build(item: dict):
 
 
 def test_one_chunk_and_sentence_map(session_json: dict) -> None:
-    """D-02/D-02a: ONE chunk per aligned speech + a timed sentence_map in meta."""
+    """ONE chunk per aligned speech + a timed sentence_map in meta."""
     item = _aligned_proceedings_items(session_json)[0]
     records = _build(item)
-    assert len(records) == 1, "op ingests exactly ONE whole-speech chunk (D-02)"
+    assert len(records) == 1, "op ingests exactly ONE whole-speech chunk"
 
     meta = records[0].meta or {}
     sentence_map = meta.get("sentence_map")
@@ -66,7 +66,7 @@ def test_one_chunk_and_sentence_map(session_json: dict) -> None:
 
 
 def test_faction_map(session_json: dict) -> None:
-    """D-10/Q6: faction.wid → party slug, incl. the corrected BSW / Fraktionslos map.
+    """faction.wid → party slug, incl. the corrected BSW / Fraktionslos map.
 
     Empty faction.wid (ministers/president) must fall back to `unbekannt`
     (or an MdB match) — NEVER a real party.
@@ -83,7 +83,7 @@ def test_faction_map(session_json: dict) -> None:
 
 
 def test_content_hash_includes_party_slug(session_json: dict, monkeypatch) -> None:
-    """MED-02: a party correction (same faction_wid) must change content_hash.
+    """a party correction (same faction_wid) must change content_hash.
 
     The empty-faction MdB fallback / CSU refinement can change the resolved
     party_slug WITHOUT changing faction.wid. Since the runner's re-write guard
@@ -102,14 +102,14 @@ def test_content_hash_includes_party_slug(session_json: dict, monkeypatch) -> No
 
     assert rec_cdu.party_id == "cdu" and rec_csu.party_id == "csu"
     assert rec_cdu.content_hash != rec_csu.content_hash, (
-        "content_hash must change when the resolved party_slug changes (MED-02)"
+        "content_hash must change when the resolved party_slug changes"
     )
 
 
 def test_citation_url_falls_back_when_video_uri_absent(session_json: dict) -> None:
-    """MED-01: a None videoFileURI must NOT produce a literal 'None#t=...' url.
+    """a None videoFileURI must NOT produce a literal 'None#t=...' url.
 
-    The D-03 gate checks aligned/proceedings, not videoFileURI, so an aligned item
+    The alignment gate checks aligned/proceedings, not videoFileURI, so an aligned item
     can still carry videoFileURI=None. The citation_url must then fall back to the
     source page (or None) rather than the broken 'None#t=<ts>' string.
     """

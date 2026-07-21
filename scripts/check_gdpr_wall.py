@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Static GDPR Art. 9 wall guard (DATA-06).
+"""Static GDPR Art. 9 wall guard.
 
 Asserts that no file under ai-backend/src/ingestion/ references a `users/`
-Firestore path in live code (Phase 5: matcher/ deleted; only ingestion/ remains
-in scope). Political opinion data must never be read by corpus/ingestion code.
+Firestore path in live code (ingestion/ is the only in-scope tree). Political
+opinion data must never be read by corpus/ingestion code.
 
 Comments and docstrings that mention `users/` as security documentation are
 allowed — only actual Firestore collection access patterns are forbidden.
@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 
 # Pattern for ACTUAL Firestore users/ collection access (not docstring mentions).
-# Matches (A7 hardening):
+# Matches:
 #   - collection("users") / .collection('users')
 #   - .document("users/...") / .document('users/...')  — direct document-path access
 #   - collection_group(...)                            — ANY collection-group query
@@ -40,8 +40,7 @@ FORBIDDEN_PATTERN = re.compile(
 # and locally regardless of cwd — as long as cwd is the repo root.
 SCAN_GLOBS = [
     "ai-backend/src/ingestion/**/*.py",
-    # Phase 5 (D-10/A5): ai-backend/src/matcher/ deleted entirely — glob removed.
-    # ingestion/ is the only remaining concern for the GDPR Art. 9 wall.
+    # ingestion/ is the only tree in scope for the GDPR Art. 9 wall.
 ]
 
 

@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Tests for OpenParliamentTvConnector.normalize() — the skip-and-warn contract
-(C14c): a skip_reason payload and a zero-usable-speech session must both raise
+Tests for OpenParliamentTvConnector.normalize() — the skip-and-warn contract:
+a skip_reason payload and a zero-usable-speech session must both raise
 ValueError so run_connector skip-and-continues without advancing the cursor.
 """
 
@@ -14,7 +14,7 @@ import pytest
 
 connector_mod = pytest.importorskip(
     "src.ingestion.connectors.openparliament_tv.connector",
-    reason="op connector not yet implemented (later wave) — Wave-0 scaffold",
+    reason="op connector not yet implemented",
 )
 
 OpenParliamentTvConnector = getattr(connector_mod, "OpenParliamentTvConnector")
@@ -32,14 +32,14 @@ def test_normalize_raises_on_skip_reason() -> None:
 
 
 def test_normalize_raises_on_zero_usable_speeches() -> None:
-    """A session whose items are all unaligned / ASR-only / empty (D-03 gate)
+    """A session whose items are all unaligned / ASR-only / empty (alignment gate)
     yields zero ChunkRecords → ValueError so the cursor does NOT advance past
     the un-aligned session."""
     conn = _make_connector()
     raw = {
         "external_id": "20101-session.json",
         "items": [
-            # Unaligned item — the D-03 gate drops it inside build_chunk_records.
+            # Unaligned item — the alignment gate drops it inside build_chunk_records.
             {"media": {"aligned": False}, "textContents": []},
             # Aligned but ASR-only (no proceedings transcript).
             {

@@ -56,14 +56,14 @@ from src.ingestion.run import _embed_texts, _upsert_chunks
 from src.ingestion.schemas import ChunkRecord
 from src.ingestion.setup_collection import COLLECTION_NAME, EMBEDDING_MODEL
 
-# Shared speech-dedup helper (C11) — one definition for both speech connectors.
+# Shared speech-dedup helper — one definition for both speech connectors.
 from src.ingestion.speech_dedup import datum_to_external_id as _datum_to_external_id
 
 logger = logging.getLogger(__name__)
 
 
 class _OpSourceStub(BaseConnector):
-    """Minimal connector stand-in for the supersede op source-gate (C4).
+    """Minimal connector stand-in for the supersede op source-gate.
 
     ``supersede_dip_duplicates`` fires only for ``connector.source == "op"``;
     the backfill has no live connector instance, so this stub carries the gate.
@@ -107,7 +107,7 @@ def ingest(
     """Enumerate WP20+21 session files and upsert their aligned speeches in batches.
 
     Each raw session ``data[]`` item is passed through ``build_chunk_records`` (which
-    applies the D-03 alignment gate); usable speeches are stamped with
+    applies the alignment gate); usable speeches are stamped with
     ``external_id=YYYYMMDD(dateStart)`` so ``get_cursor`` picks up the backfill.
 
     Args:
@@ -129,7 +129,7 @@ def ingest(
             return 0
         vectors = _embed_texts(embed, [c.text for c in b])
         _upsert_chunks(qdrant, COLLECTION_NAME, b, vectors)
-        # C4: supersede each flushed batch's DIP twins immediately. Without this
+        # Supersede each flushed batch's DIP twins immediately. Without this
         # the entire historical overlap stays duplicated forever: later live runs
         # see the backfilled sessions as present-skips, so the post_upsert hook
         # never fires for them and the PDF graft never happens.
@@ -157,7 +157,7 @@ def ingest(
 
             records = build_chunk_records(item, mdb_lookup)
             if not records:
-                # Unaligned / ASR-only / empty-text item — D-03 skip (not counted).
+                # Unaligned / ASR-only / empty-text item — skip (not counted).
                 continue
 
             ext = _datum_to_external_id(item.get("dateStart"))

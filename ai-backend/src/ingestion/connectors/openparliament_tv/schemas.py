@@ -7,12 +7,12 @@
 `OpSpeechMeta` holds the video/audio/timestamp payload that is specific to op
 speeches (the sentence-level timed map + media deep-link URIs + Bundestag/ODbL
 attribution). It is dumped into `ChunkRecord.meta` via
-``model_dump(mode="json", exclude_none=True)`` by the corpus mapper in 11-04, so
+``model_dump(mode="json", exclude_none=True)`` by the corpus mapper, so
 absent fields never reach Qdrant as NULLs.
 
 Design mirrors ingestion.schemas.SpeechMeta:
   - ``model_config = ConfigDict(frozen=True, extra="forbid")`` — an unexpected key
-    raises a ValidationError (V5 input-validation / T-11-06 DoS mitigation: op JSON
+    raises a ValidationError (input-validation / DoS mitigation: op JSON
     is validated through this model rather than trusted blind).
   - All fields Optional with descriptions; the mapper populates what the source
     provides and lets ``exclude_none=True`` drop the rest.
@@ -34,7 +34,7 @@ class OpSpeechMeta(BaseModel):
 
     Carries the video deep-link payload and the timed sentence map that the
     second-pass citation locator (chat_service.py) uses to build
-    ``video_uri#t={ts_start}`` links (D-02b), plus Bundestag/ODbL attribution.
+    ``video_uri#t={ts_start}`` links, plus Bundestag/ODbL attribution.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -71,13 +71,13 @@ class OpSpeechMeta(BaseModel):
 
     # --- transcript provenance / alignment gate outcome ---
     transcript_type: Optional[str] = Field(
-        None, description="Transcript kind on the ingested chunk — always 'proceedings' this phase (D-03)"
+        None, description="Transcript kind on the ingested chunk — always 'proceedings'"
     )
     aligned: Optional[bool] = Field(
-        None, description="Video-alignment flag — always True on ingested chunks (D-03 gate)"
+        None, description="Video-alignment flag — always True on ingested chunks"
     )
 
-    # --- the timed sentence map (video deep-link source, D-02a) ---
+    # --- the timed sentence map (video deep-link source) ---
     sentence_map: Optional[list[dict]] = Field(
         None,
         description=(
@@ -86,7 +86,7 @@ class OpSpeechMeta(BaseModel):
         ),
     )
 
-    # --- attribution the app can later render (ODbL / Bundestag, Q8) ---
+    # --- attribution the app can later render (ODbL / Bundestag) ---
     creator: Optional[str] = Field(
         None, description="Content creator for attribution (e.g. 'Deutscher Bundestag')"
     )

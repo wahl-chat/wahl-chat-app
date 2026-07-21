@@ -5,8 +5,6 @@
 """
 Pure corpus mapper for the bundestag_speeches connector.
 
-Relocated from src/ingestion/ingest_speeches.py.
-
 Exports:
     build_chunk_records(speech)  — produces list[ChunkRecord] from a speech dict
     chunk_text(text, ...)        — splits text into token-bounded chunks
@@ -22,7 +20,7 @@ Security notes:
     - Unknown party labels default to "unbekannt" rather than propagating a raw
       label into the corpus.
 
-Behavioural change vs legacy ingest_speeches.py:
+external_id handling:
     external_id is NOT set explicitly in build_chunk_records. The ChunkRecord
     default (None) is preserved so the caller (connector.normalize()) can stamp
     YYYYMMDD via model_copy(update={"external_id": ...}) without the mapper
@@ -51,14 +49,14 @@ from src.ingestion.speech_key import (
 
 _corpus_logger = logging.getLogger(__name__)
 
-# Connector discriminator stamped on every DIP chunk (D-11). Drives the
+# Connector discriminator stamped on every DIP chunk. Drives the
 # source-scoped cursor (run.py::get_cursor) and the op supersede / DIP
 # resurrection-guard filters, both keyed on speech_key + source.
 _DIP_SOURCE = "dip"
 
 
 def compute_speech_key(speech: dict) -> Optional[str]:
-    """Compute the shared cross-source ``speech_key`` for a DIP speech dict (D-06/D-07).
+    """Compute the shared cross-source ``speech_key`` for a DIP speech dict.
 
     Uses the SAME ``src/ingestion/speech_key.py`` helper op uses so the two sources
     derive byte-identical keys for the same real speech:
@@ -67,7 +65,7 @@ def compute_speech_key(speech: dict) -> Optional[str]:
       - ``speaker_slug``  = ``slugify_speaker(full_name=speech["speaker_name"])``
       - ``agenda_slug``   = ``agenda_slug_from_top_id(speech["agenda_top_id"])``
 
-    Graceful degradation (D-07): a missing / unparseable agenda yields an empty
+    Graceful degradation: a missing / unparseable agenda yields an empty
     agenda component (no-agenda fallback) but still a valid key. When the
     wahlperiode or the session cannot be parsed, returns ``None`` rather than
     emitting a mismatched key that would silently break dedup / the supersede
@@ -141,7 +139,7 @@ _PARTY_SLUG_MAP: dict[str, str] = {
     "bsw": "bsw",
     # fraktionslos
     "fraktionslos": "fraktionslos",
-    # Explicit unknowns (legacy ingest_speeches.py mapped DSU → unbekannt)
+    # Explicit unknowns (DSU → unbekannt)
     "dsu": "unbekannt",
 }
 
@@ -253,7 +251,7 @@ def build_chunk_records(speech: dict) -> list[ChunkRecord]:
     in the envelope ``meta`` field. Top-level vote-specific fields are
     not set (defaults to None, excluded by exclude_none on upsert).
 
-    Behavioural note: ``external_id`` is NOT set explicitly here.
+    ``external_id`` is NOT set explicitly here.
     The ChunkRecord field default (None) is preserved so the connector's
     normalize() can stamp YYYYMMDD via model_copy(update={"external_id": ...})
     without the mapper carrying protocol-date knowledge.
@@ -277,10 +275,10 @@ def build_chunk_records(speech: dict) -> list[ChunkRecord]:
     speech_id = str(speech.get("id", ""))
     source_item_id = compute_source_item_id("parliamentary_speech", speech_id)
 
-    # Publish date — parse ISO YYYY-MM-DD; skip-and-warn on error.
-    # Previously fell back to date.today() which polluted the deterministic publish_date.
-    # Now: log a warning and return [] so the speech is skipped (consistent with the
-    # empty-text skip already in this function, and with programs.py/qa.py policy).
+    # Publish date — parse ISO YYYY-MM-DD; on error log a warning and return []
+    # so the speech is skipped (consistent with the empty-text skip already in
+    # this function, and with programs.py/qa.py policy). A date.today() fallback
+    # would pollute the deterministic publish_date.
     raw_date = speech.get("date") or ""
     try:
         publish_date = date_type.fromisoformat(raw_date)
@@ -318,7 +316,7 @@ def build_chunk_records(speech: dict) -> list[ChunkRecord]:
     meta_dict = speech_meta_obj.model_dump(mode="json", exclude_none=True)
     meta: Optional[dict] = meta_dict if meta_dict else None
 
-    # Shared cross-source dedup identity + source discriminator (D-06/D-07/D-11).
+    # Shared cross-source dedup identity + source discriminator.
     speech_key = compute_speech_key(speech)
 
     text_chunks = chunk_text(text)
@@ -351,7 +349,7 @@ def build_chunk_records(speech: dict) -> list[ChunkRecord]:
                 text=chunk_str,
                 party_id=party_slug,
                 region="DE",
-                # C17: a plenary speech is a factual parliamentary record
+                # A plenary speech is a factual parliamentary record
                 # regardless of transport — unified with the op mapper
                 # (FACTUAL_RECORD) so the surviving tier no longer depends on
                 # which connector won the dedup. Existing chunks keep the old
@@ -365,7 +363,7 @@ def build_chunk_records(speech: dict) -> list[ChunkRecord]:
                 # The connector's normalize() stamps YYYYMMDD via model_copy.
                 # Legislative period — stamped when available in source.
                 wahlperiode=wahlperiode,
-                # Cross-source dedup identity + discriminator (D-06/D-07/D-11).
+                # Cross-source dedup identity + discriminator.
                 speech_key=speech_key,
                 source=_DIP_SOURCE,
                 # Change-aware re-write guard (run.py).

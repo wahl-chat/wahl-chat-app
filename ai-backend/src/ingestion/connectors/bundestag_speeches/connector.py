@@ -30,7 +30,7 @@ Security notes:
     DIP XML fetched via absorbed fetch_text/defusedxml; the
     xml_url comes only from DIP responses, never from caller input.
 
-CONCURRENCY HAZARD (C9):
+CONCURRENCY HAZARD:
     The DIP and openparliament_tv schedules MUST be serialized — never run both
     connectors concurrently. The interleaving "DIP resurrection-guard passes →
     op ingests + supersedes → DIP commits" can strand a DIP twin that no later
@@ -63,8 +63,9 @@ from src.ingestion.ids import compute_source_item_id
 from src.ingestion.schemas import ChunkRecord, SourceType
 from src.ingestion.setup_collection import COLLECTION_NAME
 
-# Shared speech-dedup helpers (C11) — one definition for both speech connectors
-# and the op supersede module; drift in any copy silently broke cross-source dedup.
+# Shared speech-dedup helpers — one definition for both speech connectors
+# and the op supersede module; drift between copies would silently break
+# cross-source dedup.
 from src.ingestion.speech_dedup import (
     LOOKBACK_DAYS,  # noqa: F401 — re-export: docstrings/operators reference it here
     RESURRECTION_TEXT_MATCH_RATIO as _RESURRECTION_TEXT_MATCH_RATIO,
@@ -113,10 +114,9 @@ def _require_dip_key() -> str:
     return key
 
 
-# Lookback window + floor helper now live in src/ingestion/speech_dedup.py
-# (C11) — LOOKBACK_DAYS and _lookback_floor are imported above. The run.py
-# budget fix ensures already-present protocols inside the window do not stall
-# the batch.
+# LOOKBACK_DAYS and _lookback_floor are imported from src/ingestion/speech_dedup.py
+# above. run.py's batch budget ensures already-present protocols inside the
+# window do not stall the batch.
 
 
 def _yyyymmdd_int_to_iso(since: int) -> str:
@@ -151,7 +151,7 @@ def _is_non_mdb_speaker(speech: dict) -> bool:
 
 # A DIP speech is treated as op-superseded only when an op speech under the SAME
 # speech_key has matching text at/above _RESURRECTION_TEXT_MATCH_RATIO (shared
-# constant, speech_dedup.py — C11). speech_key is not unique per speech, so a
+# constant, speech_dedup.py). speech_key is not unique per speech, so a
 # bare "an op owns this key" test would skip a DISTINCT DIP speech a speaker
 # gave under the same agenda item that op never aligned. Same speech across
 # op/DIP scores ~0.99; a different speech scores far lower.
@@ -163,26 +163,25 @@ def is_op_superseded(
     speech_key: Optional[str],
     dip_text: Optional[str] = None,
 ) -> bool:
-    """Return True when op has already ingested THIS speech (D-05 guard).
+    """Return True when op has already ingested THIS speech.
 
     The DIP connector consults this BEFORE inserting a speech: if op already holds
     the SAME speech, the DIP duplicate must NOT be (re)inserted — even during a
     full backfill / cursor reset (``since=None``). Because it keys on the STORED op
     chunk rather than the incremental cursor, a cursor reset cannot resurrect the
-    op-superseded DIP duplicate (T-11-13 durability).
+    op-superseded DIP duplicate.
 
-    Precise match (HIGH-1): ``speech_key`` is NOT unique per speech, so "an op
+    Precise match: ``speech_key`` is NOT unique per speech, so "an op
     owns this key" is not enough — a speaker's second turn under the same agenda
     item shares the key but is a DISTINCT speech op may never have aligned.
     When ``dip_text`` is given we scroll the op speeches under the key and treat
     this DIP speech as superseded ONLY if some op speech's full text matches it
     (``ratio >= _RESURRECTION_TEXT_MATCH_RATIO``). A ``dip_text`` that folds to
-    EMPTY after normalization is unverifiable — return False (insert; fail-safe,
-    C18) rather than trusting bare key existence. Without ``dip_text`` (None)
-    the guard falls back to the coarse "any op under the key" test
-    (legacy callers/tests).
+    EMPTY after normalization is unverifiable — return False (insert; fail-safe)
+    rather than trusting bare key existence. Without ``dip_text`` (None)
+    the guard falls back to the coarse "any op under the key" test.
 
-    Fail-safe (T-11-14): when Qdrant is unreachable / the scroll raises, return
+    Fail-safe: when Qdrant is unreachable / the scroll raises, return
     False (do NOT skip → insert) so a transient outage cannot abort the run; the
     op supersede + retrieval prefer-op dedup still collapse any transient dup.
 
@@ -213,7 +212,7 @@ def is_op_superseded(
 
         # Precise path: collect op speeches (full text by source_item_id) under
         # the key. chunk_index is fetched so a multi-chunk speech joins in chunk
-        # order, not scroll order (C3) — an out-of-order "B+A" concatenation
+        # order, not scroll order — an out-of-order "B+A" concatenation
         # would score ~0.5 against the DIP "A+B" and silently miss the match.
         op_texts: dict[Any, list] = {}
         offset = None
@@ -236,7 +235,7 @@ def is_op_superseded(
     except Exception as exc:  # noqa: BLE001 — Qdrant unreachable → fail-safe insert
         logger.warning(
             "resurrection guard: Qdrant consult failed for speech_key %r (%s) — "
-            "inserting (fail-safe, T-11-14)",
+            "inserting (fail-safe)",
             speech_key,
             exc,
         )
@@ -247,13 +246,13 @@ def is_op_superseded(
     dip_norm = _norm_speech_text(dip_text)
     if not dip_norm:
         # No comparable text → cannot verify it is the SAME speech; fail safe
-        # and insert (C18): a bare "an op holds the key" existence test would
+        # and insert: a bare "an op holds the key" existence test would
         # skip a DISTINCT same-key DIP speech, consistent with the fail-safe
         # posture everywhere else in this guard. The op supersede pass and the
         # query-time prefer-op dedup collapse any transient duplicate.
         return False
     for texts in op_texts.values():
-        # C3: join in chunk_index order, never scroll order.
+        # Join in chunk_index order, never scroll order.
         op_norm = _norm_speech_text(
             " ".join(t for _idx, t in sorted(texts, key=lambda pair: pair[0]))
         )
@@ -271,14 +270,13 @@ def _build_speech_row(
 ) -> dict:
     """Build a speech row dict suitable for corpus_mapper.build_chunk_records.
 
-    Party resolution order (donated collector.build_speech_row logic):
+    Party resolution order:
       1. normalize_party(speech['party']) — from XML <fraktion>
       2. mdb_party_for_speech(speech, mdb_lookup) — MdB-Stammdaten fallback
 
-    person_id override (donated logic):
+    person_id override:
       If mdb_record_for_speaker_name resolves to a different non-empty id,
-      use the MdB record id (preserves SpeechMeta.person_id parity with
-      the donated path).
+      use the MdB record id.
 
     Args:
         protocol: Protocol metadata dict from DIP (keys: id, datum, wahlperiode, fundstelle).
@@ -380,11 +378,11 @@ class BundestagSpeechesConnector(BaseConnector):
     # Class attribute: used by runner.get_cursor() to scope the Qdrant scroll.
     source_type: str = SourceType.PARLIAMENTARY_SPEECH.value
 
-    # Connector discriminator (D-11): stamps chunks source="dip" and keeps the op
+    # Connector discriminator: stamps chunks source="dip" and keeps the op
     # supersede hook op-gated (fires only for source="op").
     source: str = "dip"
 
-    # C6: the DIP cursor must NOT be scoped to source="dip". op progressively
+    # The DIP cursor must NOT be scoped to source="dip". op progressively
     # supersede-DELETES dip points, so max(external_id, source="dip") walks
     # BACKWARD as coverage grows (worst case None → the run re-fetches and
     # re-parses the whole Wahlperiode every time). op external_ids are the same
@@ -400,7 +398,7 @@ class BundestagSpeechesConnector(BaseConnector):
         qdrant: Optional[Any] = None,
         collection_name: str = COLLECTION_NAME,
     ) -> None:
-        # C15: read DIP_WAHLPERIODE at CALL time, not import time — a default-arg
+        # Read DIP_WAHLPERIODE at CALL time, not import time — a default-arg
         # getenv freezes the value when the module is first imported, ignoring
         # any later environment change in the same process.
         if wahlperiode is None:
@@ -411,7 +409,7 @@ class BundestagSpeechesConnector(BaseConnector):
         self._protocols: dict[str, dict] = {}
         # MdB-Stammdaten lookup: loaded once per run in discover(), reused in fetch()/normalize()
         self._mdb_lookup: Optional[dict] = None
-        # Resurrection guard (D-05): a QdrantClient consulted before inserting each
+        # Resurrection guard: a QdrantClient consulted before inserting each
         # DIP speech. Injectable for tests; lazily built from QDRANT_URL on first use
         # in production. Kept optional so the guard degrades to fail-safe insert when
         # no client can be constructed.
@@ -422,7 +420,7 @@ class BundestagSpeechesConnector(BaseConnector):
         # via object.__new__) lack this flag → getattr default False → guard disabled
         # (fail-safe insert), so discover/normalize unit tests issue no Qdrant calls.
         self._qdrant_lazy_enabled: bool = qdrant is None
-        # C9 self-heal: siids normalize() skipped as op-superseded on the LAST
+        # Self-heal: siids normalize() skipped as op-superseded on the LAST
         # item. run_connector deletes any stored points under them (a stranded
         # DIP twin from an interleaved concurrent DIP+op run).
         self.last_superseded_siids: tuple[str, ...] = ()
@@ -432,7 +430,7 @@ class BundestagSpeechesConnector(BaseConnector):
 
         Uses an injected client when present (tests). In production, builds a
         QdrantClient from QDRANT_URL once and caches it. Any construction failure
-        returns None so the guard degrades to fail-safe insert (T-11-14) rather than
+        returns None so the guard degrades to fail-safe insert rather than
         aborting the run.
         """
         qdrant = getattr(self, "_qdrant", None)
@@ -450,7 +448,7 @@ class BundestagSpeechesConnector(BaseConnector):
         except Exception as exc:  # noqa: BLE001 — no client → fail-safe insert
             logger.warning(
                 "resurrection guard: could not construct QdrantClient (%s) — "
-                "guard disabled (fail-safe insert, T-11-14)",
+                "guard disabled (fail-safe insert)",
                 exc,
             )
             self._qdrant = None
@@ -492,8 +490,7 @@ class BundestagSpeechesConnector(BaseConnector):
         docs: list[dict] = []
         for page in self._client.pages("/plenarprotokoll", params):
             for doc in page.get("documents", []):
-                # Donated herausgeber=="BT" filter (collector.py::iter_speech_rows)
-                # Skip non-Bundestag protocols (e.g. Bundesrat).
+                # herausgeber == "BT" filter: skip non-Bundestag protocols (e.g. Bundesrat).
                 fundstelle = doc.get("fundstelle") or {}
                 herausgeber = fundstelle.get("herausgeber") or doc.get("herausgeber") or ""
                 if herausgeber and herausgeber != "BT":
@@ -587,7 +584,7 @@ class BundestagSpeechesConnector(BaseConnector):
             - If raw contains a "skip_reason" key, raises ValueError immediately.
             - If the protocol produces zero usable speeches (all dropped),
               raises ValueError so run_connector skip-and-continues — UNLESS ≥1
-              speech was skipped as op-superseded and none remain (C12): that is
+              speech was skipped as op-superseded and none remain: that is
               a fully-op-covered protocol, returned as [] (clean no-op).
 
         Party resolution (collector.build_speech_row logic):
@@ -625,7 +622,7 @@ class BundestagSpeechesConnector(BaseConnector):
                 continue
             rows.append(_build_speech_row(protocol, speech, mdb_lookup))
 
-        # Durable resurrection guard (D-05): before building/inserting a DIP chunk,
+        # Durable resurrection guard: before building/inserting a DIP chunk,
         # consult the indexed speech_key and SKIP any speech op has already
         # superseded (an op point with the same speech_key). This runs regardless of
         # the incremental cursor (full backfill / since=None included) so a cursor
@@ -635,7 +632,7 @@ class BundestagSpeechesConnector(BaseConnector):
 
         # Build ChunkRecord list via the relocated mapper. Skipped-as-superseded
         # siids are collected and exposed via last_superseded_siids so the runner
-        # can delete a stranded twin from an interleaved concurrent run (C9).
+        # can delete a stranded twin from an interleaved concurrent run.
         records: list[ChunkRecord] = []
         superseded_siids: list[str] = []
         for row in rows:
@@ -661,7 +658,7 @@ class BundestagSpeechesConnector(BaseConnector):
         # Per-item report (reset every normalize call; () when nothing skipped).
         self.last_superseded_siids = tuple(superseded_siids)
 
-        # Skip-and-warn: zero usable speeches → ValueError. EXCEPTION (C12): when
+        # Skip-and-warn: zero usable speeches → ValueError. EXCEPTION: when
         # ≥1 speech was skipped as op-superseded and none remain, the protocol is
         # FULLY covered by op — a clean no-op, not an error. Raising here would
         # re-surface the protocol into failed_ids on every run for the whole

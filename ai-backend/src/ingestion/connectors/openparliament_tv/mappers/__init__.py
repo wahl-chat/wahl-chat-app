@@ -7,5 +7,5 @@
 Mirrors connectors/bundestag_speeches/mappers/: pure transforms that turn a
 parsed source item into ``ChunkRecord`` instances (no embeddings, no I/O).
 
-  corpus.py — build_chunk_records, op_party_slug (11-04)
+  corpus.py — build_chunk_records, op_party_slug
 """

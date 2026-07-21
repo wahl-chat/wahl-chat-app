@@ -6,12 +6,12 @@
 Tests for legislature_config.py.
 
 Covers:
-  - LANDTAG_LEGISLATURE_IDS count = 16 states + outgoing D6 rows
+  - LANDTAG_LEGISLATURE_IDS count = 16 states + outgoing rows
   - Every Landtag entry has a DE-XX region code
   - Bundestag keys 111/132/161 are present with region 'DE'
   - Every Landtag region matches region_for_period(label) from the manifesto mapper
-  - Outgoing BW/RP 2021–2026 rows (D6) present with correct region/dates
-  - term_window_for_context() window derivation (D5)
+  - Outgoing BW/RP 2021–2026 rows present with correct region/dates
+  - term_window_for_context() window derivation
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ from src.ingestion.connectors.manifestos.mappers.corpus import region_for_period
 class TestLegislatureConfigShape:
     """LEGISLATURE_CONFIG structural assertions."""
 
-    # Outgoing-term rows added for D6 (retained alongside the post-2026-election
+    # Outgoing-term rows added (retained alongside the post-2026-election
     # rows so the two-pass split can separate them by publish_date).
     _OUTGOING_LANDTAG_IDS = (126, 127)  # BW 2021–2026, RP 2021–2026
     # Prior-term rows (pre-outgoing): votes land in the HISTORIC bucket of a 2026 chat.
@@ -80,7 +80,7 @@ class TestLegislatureConfigShape:
         assert window[1] == datetime(2026, 5, 11, tzinfo=timezone.utc)
 
     def test_outgoing_bw_rp_rows_present(self) -> None:
-        """The outgoing BW/RP 2021–2026 rows (D6) must be present with correct region/dates.
+        """The outgoing BW/RP 2021–2026 rows must be present with correct region/dates.
 
         Both terms coexist with the post-election 165/166 rows: outgoing 126/127
         carry the 2021–2026 voting record; 165/166 begin the 2026–2031 term.
@@ -174,7 +174,7 @@ class TestLegislatureConfigShape:
 
 
 class TestTermWindowForContext:
-    """term_window_for_context() term-window derivation (D5)."""
+    """term_window_for_context() term-window derivation."""
 
     def test_window_by_period_id(self) -> None:
         """An explicit legislature_period_id resolves that row's (date_from, date_to)."""
@@ -271,7 +271,7 @@ class TestTermWindowForContext:
 
 
 class TestWahlperiodeField:
-    """LegislatureConfig.wahlperiode (D7) — Bundestag rows carry the number,
+    """LegislatureConfig.wahlperiode — Bundestag rows carry the number,
     Landtag rows stay None (state Wahlperiode ints collide across states)."""
 
     def test_bundestag_rows_carry_wahlperiode(self) -> None:

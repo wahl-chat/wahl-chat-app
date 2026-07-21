@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-// SC3 / DATA-05: Prove the GDPR Art. 9 consent gate in Firestore rules.
+// Prove the GDPR Art. 9 consent gate in Firestore rules.
 //
-// Pitfall 4: Python firebase-admin bypasses security rules — this test MUST be JS/TS.
-// Pitfall 7: projectId must start with "demo-" for emulator-only isolation.
+// Python firebase-admin bypasses security rules — this test MUST be JS/TS.
+// projectId must start with "demo-" for emulator-only isolation.
 //
 // Requires Firestore emulator on port 8081 (avoids clash with FastAPI on 8080).
 
@@ -37,7 +37,7 @@ afterAll(async () => {
   await testEnv.cleanup();
 });
 
-describe("GDPR Art. 9 wall — users/{uid}/answers consent gate (SC3/DATA-05)", () => {
+describe("GDPR Art. 9 wall — users/{uid}/answers consent gate", () => {
   it("rejects answers write when consent.political_data is absent (assertFails)", async () => {
     // Seed a user doc WITHOUT consent using Admin-equivalent bypass
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
@@ -111,7 +111,7 @@ describe("GDPR Art. 9 wall — users/{uid}/answers consent gate (SC3/DATA-05)", 
     );
   });
 
-  // G15: answers are special-category data — no cross-user READ, ever.
+  // Answers are special-category data — no cross-user READ, ever.
   it("rejects a cross-user READ of another user's answer (assertFails)", async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await ctx
@@ -130,7 +130,7 @@ describe("GDPR Art. 9 wall — users/{uid}/answers consent gate (SC3/DATA-05)", 
     );
   });
 
-  // G15: consent explicitly WITHDRAWN (false) must deny create just like absent consent.
+  // Consent explicitly WITHDRAWN (false) must deny create just like absent consent.
   it("rejects answers create when consent.political_data === false (assertFails)", async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await ctx
@@ -240,7 +240,7 @@ describe("CR-03 — chat_sessions/{id}/messages access is scoped to owner/public
     );
   });
 
-  // G15: being AUTHENTICATED is not enough — only the session owner may write messages.
+  // Being AUTHENTICATED is not enough — only the session owner may write messages.
   it("rejects an authenticated non-owner writing to another user's session messages (assertFails)", async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await ctx

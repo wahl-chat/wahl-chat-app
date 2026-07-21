@@ -72,7 +72,7 @@ function SseChatProvider({ children }: Props) {
       api: '/api/chat',
       // Attach the Firebase ID token per request (async resolvable): the proxy
       // route forwards it so the backend can verify user_is_logged_in/premium
-      // (A3 contract). Resolves to {} when signed out / on token errors —
+      // Resolves to {} when signed out / on token errors —
       // the request degrades gracefully to unauthenticated.
       headers: () => getAuthHeader(),
     }),

@@ -20,12 +20,12 @@ import pytest
 # so the full suite stays green.
 _run_module = pytest.importorskip(
     "src.ingestion.run",
-    reason="get_cursor lands in Plan 05-02 — skipping in Wave 1",
+    reason="get_cursor is not yet defined in src.ingestion.run",
 )
 get_cursor = getattr(_run_module, "get_cursor", None)
 if get_cursor is None:
     pytest.skip(
-        "get_cursor not yet defined in src.ingestion.run (lands in Plan 05-02)",
+        "get_cursor not yet defined in src.ingestion.run",
         allow_module_level=True,
     )
 
@@ -45,12 +45,12 @@ def test_get_cursor_returns_max_external_id():
     result = get_cursor(qdrant, "wahlchat_chunks_dev", "vote_record")
 
     assert result == 3602, (
-        "P5-INGEST-02: get_cursor() must return the external_id from the first scroll result."
+        "get_cursor() must return the external_id from the first scroll result."
     )
 
 
 def test_get_cursor_coerces_digit_string_external_id():
-    """LOW-01: a stringified digit external_id is coerced to int."""
+    """a stringified digit external_id is coerced to int."""
     qdrant = MagicMock()
     qdrant.scroll.return_value = ([_make_mock_point("20240115")], None)
 
@@ -60,7 +60,7 @@ def test_get_cursor_coerces_digit_string_external_id():
 
 
 def test_get_cursor_returns_none_for_malformed_external_id():
-    """LOW-01: a non-numeric / None / bool external_id degrades to None (no under/over-shoot)."""
+    """a non-numeric / None / bool external_id degrades to None (no under/over-shoot)."""
     for bad in ("not-a-date", "", None, True, 3.5):
         qdrant = MagicMock()
         qdrant.scroll.return_value = ([_make_mock_point(bad)], None)
@@ -76,7 +76,7 @@ def test_get_cursor_returns_none_when_no_points():
     result = get_cursor(qdrant, "wahlchat_chunks_dev", "vote_record")
 
     assert result is None, (
-        "P5-INGEST-02: get_cursor() must return None when scroll returns no points."
+        "get_cursor() must return None when scroll returns no points."
     )
 
 
@@ -90,12 +90,12 @@ def test_get_cursor_passes_source_type_filter():
 
     call_kwargs = qdrant.scroll.call_args.kwargs
     scroll_filter = call_kwargs.get("scroll_filter")
-    assert scroll_filter is not None, "P5-INGEST-02: scroll_filter must be passed."
+    assert scroll_filter is not None, "scroll_filter must be passed."
     # Verify the filter contains a source_type MatchValue condition.
     must_conditions = scroll_filter.must
     keys = [c.key for c in must_conditions if hasattr(c, "key")]
     assert "source_type" in keys, (
-        "P5-INGEST-02: scroll_filter must include a source_type condition."
+        "scroll_filter must include a source_type condition."
     )
 
 
@@ -110,10 +110,10 @@ def test_get_cursor_uses_desc_order_by():
 
     call_kwargs = qdrant.scroll.call_args.kwargs
     order_by = call_kwargs.get("order_by")
-    assert order_by is not None, "P5-INGEST-02: order_by must be passed to scroll()."
+    assert order_by is not None, "order_by must be passed to scroll()."
     assert order_by.key == "external_id", (
-        "P5-INGEST-02: order_by must sort on 'external_id'."
+        "order_by must sort on 'external_id'."
     )
     assert order_by.direction == models.Direction.DESC, (
-        "P5-INGEST-02: order_by direction must be DESC to retrieve the maximum."
+        "order_by direction must be DESC to retrieve the maximum."
     )

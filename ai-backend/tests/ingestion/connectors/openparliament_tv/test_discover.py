@@ -4,10 +4,10 @@
 
 """
 Tests for OpenParliamentTvConnector.discover() — basename enumeration + lookback
-(D-01/D-08/Q3) and the C5 descending early stop.
+and the descending early stop.
 
 The client contract is basenames only (``YYYYY-session.json``) — the former
-int/direct-ext fast path served only test fakes and was deleted (C13); the
+int/direct-ext fast path served only test fakes and was deleted; the
 fakes here return basenames, matching OpTvClient.list_session_files().
 """
 
@@ -15,10 +15,10 @@ from __future__ import annotations
 
 import pytest
 
-# Wave-0 guard: SKIP until the op connector exists.
+# SKIP until the op connector exists.
 connector_mod = pytest.importorskip(
     "src.ingestion.connectors.openparliament_tv.connector",
-    reason="op connector not yet implemented (later wave) — Wave-0 scaffold",
+    reason="op connector not yet implemented",
 )
 
 OpenParliamentTvConnector = getattr(connector_mod, "OpenParliamentTvConnector")
@@ -28,7 +28,7 @@ class _FakeOpBasenameClient:
     """Op-bulk client stand-in enumerating basename session files.
 
     Mirrors OpTvClient: list_session_files() → basenames;
-    fetch_session_json(name) → JSON:API dict. Records fetches so the C5
+    fetch_session_json(name) → JSON:API dict. Records fetches so the
     early-stop can be asserted.
     """
 
@@ -56,7 +56,7 @@ def _make_connector(sessions: dict[str, dict]):
 
 
 def test_lookback_realigns() -> None:
-    """Q3/D-08: discover() re-scans below the prior cursor by the LOOKBACK window.
+    """discover() re-scans below the prior cursor by the LOOKBACK window.
 
     Prior op cursor advanced to 20230601 (a later-dated speech aligned first).
     An earlier session dated 2023-05-01 only just aligned — it sits BELOW the
@@ -80,7 +80,7 @@ def test_lookback_realigns() -> None:
 
 
 def test_discover_stops_fetching_below_the_floor() -> None:
-    """C5: discover() iterates basenames DESCENDING (basename order is monotone
+    """discover() iterates basenames DESCENDING (basename order is monotone
     in date) and stops fetching once a fetched session's ext < floor — the
     previous full-corpus scan fetched every WP20+21 session JSON per run."""
     sessions = {
@@ -109,7 +109,7 @@ def test_discover_stops_fetching_below_the_floor() -> None:
 
 
 def test_discover_since_none_fetches_all() -> None:
-    """C5: the full backfill (since=None) still fetches every session file."""
+    """the full backfill (since=None) still fetches every session file."""
     sessions = {
         "20001-session.json": _session("2023-01-10T09:00:00+01:00"),
         "20100-session.json": _session("2023-06-01T09:00:00+02:00"),

@@ -18,7 +18,7 @@ export const maxDuration = 300;
  * useChat can parse the stream correctly.
  *
  * Security: only forwards to the configured backend URL (env var); never
- * echoes an arbitrary upstream URL from the request (T-07-02).
+ * echoes an arbitrary upstream URL from the request.
  */
 
 type IncomingMessage = {
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
   };
 
   // Forward the caller's Firebase ID token so the backend can verify
-  // user_is_logged_in / premium claims (A3 contract). Absent when signed out.
+  // user_is_logged_in / premium claims. Absent when signed out.
   const authorization = request.headers.get('authorization');
 
   const upstream = await fetch(targetUrl, {

@@ -174,7 +174,7 @@ class TestDiscoverSetDifference:
 
 
 class TestManifestoRefresh:
-    """E1: MANIFESTO_REFRESH=1 skips the ingested-ids exclusion so run.py's
+    """MANIFESTO_REFRESH=1 skips the ingested-ids exclusion so run.py's
     content-hash rewrite + orphan cleanup can reconcile replaced PDFs."""
 
     def test_refresh_includes_already_ingested_programs(
@@ -235,7 +235,7 @@ class TestManifestoRefresh:
 
 
 class TestDetermineSource:
-    """E9: determine_source precedence — link[0].uri wins over file; both
+    """determine_source precedence — link[0].uri wins over file; both
     null raises; a non-dict link entry falls back to file."""
 
     def test_link_uri_wins_over_file(self) -> None:
@@ -277,7 +277,7 @@ class TestDetermineSource:
 
 
 class TestLoadProgramPagesHtmlFloor:
-    """E9: HTML sources shorter than 500 extracted chars are skipped (a
+    """HTML sources shorter than 500 extracted chars are skipped (a
     'download our program' landing page must not be embedded)."""
 
     class _FakeResponse:
@@ -312,7 +312,7 @@ class TestLoadProgramPagesHtmlFloor:
 
 
 class TestGetIngestedProgramIds:
-    """E9: _get_ingested_program_ids paginates the Qdrant scroll and filters
+    """_get_ingested_program_ids paginates the Qdrant scroll and filters
     non-int external_ids."""
 
     class _Point:

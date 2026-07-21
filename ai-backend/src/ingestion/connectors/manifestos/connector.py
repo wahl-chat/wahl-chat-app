@@ -308,7 +308,7 @@ class ManifestoConnector(BaseConnector):
         MANIFESTO_REFRESH=1 (same 1/true/yes parsing as the votes connector's
         AW_REFRESH) forces a full reconcile: the already-ingested exclusion is
         skipped so run.py's content-hash rewrite + orphan cleanup can propagate
-        replaced/corrected PDFs and shrunk programs (E1). Unchanged chunks are
+        replaced/corrected PDFs and shrunk programs. Unchanged chunks are
         cheaply skipped there without re-embedding.
 
         Args:
@@ -324,7 +324,7 @@ class ManifestoConnector(BaseConnector):
 
         all_programs = self._client.get_all("election-program", {})
 
-        # E1: MANIFESTO_REFRESH skips the ingested-ids exclusion so already
+        # MANIFESTO_REFRESH skips the ingested-ids exclusion so already
         # present programs flow through run.py's content-hash guard again.
         refresh = os.getenv("MANIFESTO_REFRESH", "").strip().lower() in ("1", "true", "yes")
         ingested_ids: set[int] = set() if refresh else self._get_ingested_program_ids()
@@ -414,8 +414,7 @@ class ManifestoConnector(BaseConnector):
 
         Raises:
             ValueError: If fetch() flagged a skip, the election_date is missing,
-                        or the program produces no text/records (run_connector
-                        skip-and-continues).
+                        or the program produces no text/records.
         """
         skip_reason = raw.get("skip_reason")
         if skip_reason:

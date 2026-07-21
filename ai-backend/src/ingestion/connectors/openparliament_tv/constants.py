@@ -5,7 +5,7 @@
 """Connector-level constants for the openparliament_tv package.
 
 Source: the keyless OpenParliamentTV-Data-DE GitHub bulk repository. The op
-`/search/media` HTTP API is deliberately NOT used this phase (D-01a/D-08) — the
+`/search/media` HTTP API is deliberately NOT used this phase — the
 GitHub `processed/` session files are BOTH the backfill and the incremental
 mechanism.
 
@@ -14,7 +14,7 @@ NEVER derived from a caller arg, a session-supplied URI, or any runtime input
 (mirrors bundestag_speeches/constants.BASE_URL and abgeordnetenwatch/_AW_BASE).
 The client fetches ONLY `RAW_BASE + validated-basename`; source-supplied media
 URIs (videoFileURI/audioFileURI/sourcePage) are stored as strings, never fetched
-during ingest (T-11-04 SSRF mitigation).
+during ingest (SSRF mitigation).
 """
 
 from __future__ import annotations
@@ -39,24 +39,24 @@ TREES_URL = (
 # outside `processed/`, so only pinned-shape basenames ever reach fetch_session_json.
 SESSION_FILE_RE = r"^processed/(2[01]\d{3})-session\.json$"
 
-# Lookback floor (days) for the incremental discover() re-scan (D-08 / Q3).
+# Lookback floor (days) for the incremental discover() re-scan.
 # op aligns speeches ~3–4 weeks after a session; 60 days comfortably exceeds that
 # backlog lag so a session that only *just* aligned below the prior cursor is
 # still re-picked instead of being stranded forever. Re-exported from the shared
-# speech-dedup module (C11) so the op and DIP windows can never drift apart.
+# speech-dedup module so the op and DIP windows can never drift apart.
 from src.ingestion.speech_dedup import LOOKBACK_DAYS  # noqa: E402, F401
 
 # Finite cap on the trees listing to bound memory / parse work on a hostile or
-# runaway response (T-11-06 DoS mitigation). The full DE repo is a few thousand
+# runaway response (DoS mitigation). The full DE repo is a few thousand
 # session files across two legislatures — 100k entries is provably generous.
 _MAX_TREE_ENTRIES = 100_000
 
-# CORRECTED Wikidata faction id → canonical party slug map (11-RESEARCH Q6 / D-10).
+# CORRECTED Wikidata faction id → canonical party slug map.
 # The public op source list mislabels two entries; this is the corrected mapping:
 #   Q4316268    → fraktionslos  (NOT "BSW", as the raw source list labelled it)
 #   Q127785176  → bsw           (the actual BSW group, WP21)
 # An EMPTY faction.wid (ministers / president) is intentionally absent — it must
-# fall back to an MdB match or `unbekannt` in the mapper (11-04), NEVER a real party.
+# fall back to an MdB match or `unbekannt` in the mapper, NEVER a real party.
 _OP_FACTION_SLUG_MAP: dict[str, str] = {
     "Q1023134": "cdu",
     "Q2207512": "spd",

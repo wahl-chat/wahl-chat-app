@@ -5,25 +5,25 @@
 """Pure corpus mapper for the openparliament_tv connector.
 
 Turns ONE raw op session ``data[]`` item (JSON:API shape) into exactly ONE
-whole-speech ``ChunkRecord`` (D-02): the timed sentence map, the video deep-link
+whole-speech ``ChunkRecord``: the timed sentence map, the video deep-link
 payload, the shared cross-source ``speech_key``, and a change-aware
 ``content_hash``.
 
 Structural analog: ``connectors/bundestag_speeches/mappers/corpus.py``. op keeps
 the same ``ChunkRecord`` envelope but differs on:
   - ``authority_tier = FACTUAL_RECORD`` (DIP uses ``SELF_REPORTED``);
-  - ``source = "op"`` (the D-11 discriminator; DIP writes ``"dip"``);
+  - ``source = "op"`` (the discriminator; DIP writes ``"dip"``);
   - a video-timestamped ``citation_url`` (``videoFileURI#t={ts_start}``);
   - its OWN ``source_item_id`` derived from ``originMediaID`` — DISTINCT point IDs
-    from DIP (coexist dedups on ``speech_key``, NOT shared point IDs — Q7);
+    from DIP (coexist dedups on ``speech_key``, NOT shared point IDs);
   - a ``content_hash`` over text + sentence_map + video_uri + aligned + faction so
-    a re-alignment / transcript correction re-writes the chunk (Q7).
+    a re-alignment / transcript correction re-writes the chunk.
 
 Chunking reuses the DIP ``chunk_text`` VERBATIM (imported, not re-implemented) so
-op and DIP share identical ≤6000-tok ``cl100k_base`` semantics (D-02). A normal
+op and DIP share identical ≤6000-tok ``cl100k_base`` semantics. A normal
 Bundestag speech is a single chunk.
 
-Party resolution (D-10 / Q6):
+Party resolution:
   - ``faction.wid`` → the CORRECTED ``_OP_FACTION_SLUG_MAP`` slug;
   - an EMPTY ``faction.wid`` (minister / president) → MdB-Stammdaten by-name
     fallback → ``party_to_slug`` → else ``"unbekannt"`` (NEVER empty → a real party);
@@ -64,12 +64,12 @@ from src.ingestion.speech_key import (
 
 _corpus_logger = logging.getLogger(__name__)
 
-# Connector discriminator stamped on every op chunk (D-11). Drives the
+# Connector discriminator stamped on every op chunk. Drives the
 # source-scoped cursor (run.py::get_cursor) and the op supersede /
 # DIP resurrection-guard filters, both keyed on speech_key + source.
 _OP_SOURCE = "op"
 
-# Data-source attribution label rendered by the app (Q8 / ODbL).
+# Data-source attribution label rendered by the app (ODbL).
 _OP_SOURCE_DATA = "openparliament.tv (ODbL)"
 
 # Empty MdB lookup shape so subscript access in mdb.py never KeyErrors when the
@@ -105,7 +105,7 @@ def _mdb_party_for_op_person(person: dict, mdb_lookup: dict) -> Optional[str]:
 
 
 def op_party_slug(person: dict, mdb_lookup: Optional[dict]) -> str:
-    """Resolve a canonical party slug for an op main-speaker person dict (D-10/Q6).
+    """Resolve a canonical party slug for an op main-speaker person dict.
 
     Order:
       1. non-empty ``faction.wid`` → ``_OP_FACTION_SLUG_MAP`` (CORRECTED map);
@@ -145,7 +145,7 @@ def _iso_date(date_start: Optional[str]) -> str:
 def build_chunk_records(item: dict, mdb_lookup: Optional[dict] = None) -> list[ChunkRecord]:
     """Build ChunkRecord(s) for ONE raw op session ``data[]`` item.
 
-    Applies the D-03 usability gate directly on the raw item: an unaligned item or
+    Applies the usability gate directly on the raw item: an unaligned item or
     one without a ``proceedings`` transcript yields ``[]`` (the connector treats an
     empty result as a skip). A usable item yields exactly one whole-speech chunk
     (or more only if the speech exceeds the shared ``chunk_text`` token budget).
@@ -161,7 +161,7 @@ def build_chunk_records(item: dict, mdb_lookup: Optional[dict] = None) -> list[C
     """
     media = item.get("media") or {}
 
-    # --- D-03 usability gate (mirrors parser.parse_session_json) ---
+    # --- usability gate (mirrors parser.parse_session_json) ---
     if not media.get("aligned"):
         return []
     proceedings = _first_proceedings(item.get("textContents", []))
@@ -235,9 +235,9 @@ def build_chunk_records(item: dict, mdb_lookup: Optional[dict] = None) -> list[C
     audio_uri = media.get("audioFileURI")
     source_page = media.get("sourcePage")
 
-    # --- citation: coarse video deep-link (second-pass locator refines later, D-02b) ---
+    # --- citation: coarse video deep-link (second-pass locator refines later) ---
     citation_title = f"{speaker_name}, {iso_date} (Video, {agenda_official})"
-    # MED-01: only build the #t= deep-link when video_uri is truthy. The D-03 gate
+    # Only build the #t= deep-link when video_uri is truthy. The alignment gate
     # checks aligned/proceedings, NOT videoFileURI, so video_uri may be None even
     # for an aligned item — an unguarded f-string would store the literal
     # "None#t=12.5" as the source url. Fall back to the source page instead.
@@ -264,7 +264,7 @@ def build_chunk_records(item: dict, mdb_lookup: Optional[dict] = None) -> list[C
         source_data=_OP_SOURCE_DATA,
     ).model_dump(mode="json", exclude_none=True)
 
-    # --- change-aware content_hash (Q7): re-alignment / correction re-writes the chunk ---
+    # --- change-aware content_hash: re-alignment / correction re-writes the chunk ---
     content_hash = hashlib.sha256(
         json.dumps(
             {
@@ -273,7 +273,7 @@ def build_chunk_records(item: dict, mdb_lookup: Optional[dict] = None) -> list[C
                 "video_uri": video_uri,
                 "aligned": True,
                 "faction_wid": faction_wid,
-                # MED-02: include the RESOLVED party slug (indexed tenant field).
+                # Include the RESOLVED party slug (indexed tenant field).
                 # The empty-faction MdB-by-name fallback and the CSU refinement can
                 # change party_id WITHOUT changing faction_wid; without this the
                 # content-hash re-write guard (run.py) would keep the stale tenant.

@@ -110,10 +110,10 @@ class DipClient:
         page_count = 0
 
         while True:
-            # Enforce a hard page cap (mirrors AW client's _MAX_PAGES=100).
-            # DipClient.pages() previously had no limit; a stuck/malformed cursor
-            # could loop indefinitely.  _MAX_PAGES (from constants.py) is generous
-            # enough for any full legislature's protocol list but provably finite.
+            # Enforce a hard page cap (mirrors the AW client's _MAX_PAGES) so a
+            # stuck/malformed cursor cannot loop indefinitely.  _MAX_PAGES (from
+            # constants.py) is generous enough for any full legislature's protocol
+            # list but provably finite.
             page_count += 1
             if page_count > _MAX_PAGES:
                 _client_logger.warning(

@@ -163,7 +163,7 @@ class TestRegionForPeriod:
             ("Sachsen Wahl 2024", "DE-SN"),
             # Regression: Sachsen-Anhalt must NOT match the shorter "sachsen" prefix (insertion-order bug)
             ("Sachsen-Anhalt Wahl 2021", "DE-ST"),
-            # E4: unrecognized labels are QUARANTINED, not stamped "DE" —
+            # unrecognized labels are QUARANTINED, not stamped "DE" —
             # region "DE" would MatchAny-match every context; "unbekannt"
             # matches none, so the chunk is unreachable until re-labeled.
             ("Kommunalwahl München 2026", "unbekannt"),
@@ -176,7 +176,7 @@ class TestRegionForPeriod:
     def test_unknown_label_quarantine_warns(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
-        """E4: the quarantine fallback must log a WARNING so the gap is visible."""
+        """the quarantine fallback must log a WARNING so the gap is visible."""
         import logging
 
         from src.ingestion.connectors.manifestos.mappers import corpus as corpus_mod
@@ -186,7 +186,7 @@ class TestRegionForPeriod:
         assert any("unbekannt" in r.message for r in caplog.records)
 
     def test_de_only_for_bundestag_labels(self) -> None:
-        """E4: 'DE' is reserved for labels starting with 'bundestag'."""
+        """'DE' is reserved for labels starting with 'bundestag'."""
         assert region_for_period("Bundestag Wahl 2029") == "DE"
         assert region_for_period("Irgendein Bundes-Gremium") == "unbekannt"
 
@@ -639,14 +639,14 @@ class TestBuildManifestoRecords:
 
 
 # ===========================================================================
-# E3: manifesto/votes slug-map parity
+# manifesto/votes slug-map parity
 # ===========================================================================
 
 
 class TestSlugMapParity:
     """The manifesto map and the AW votes map must be slug-identical for every
     shared label — otherwise manifesto party_id != vote slug != context
-    party_id and tenant-filtered manifesto retrieval returns nothing (E3)."""
+    party_id and tenant-filtered manifesto retrieval returns nothing."""
 
     def test_new_e3_entries_resolve(self) -> None:
         assert party_to_slug("Bürger in Wut") == "biw"
@@ -676,12 +676,12 @@ class TestSlugMapParity:
 
 
 # ===========================================================================
-# E6: chunk_pages default budget
+# chunk_pages default budget
 # ===========================================================================
 
 
 def test_chunk_pages_default_max_tokens_is_1500() -> None:
-    """E6: the default token budget is 1500 (tight page spans for citation
+    """the default token budget is 1500 (tight page spans for citation
     deep-links). ~2000 tokens must split under the default (one chunk under
     the old 6000 default)."""
     import inspect
@@ -695,7 +695,7 @@ def test_chunk_pages_default_max_tokens_is_1500() -> None:
 
 
 # ===========================================================================
-# E10: U+FFFD stripping at chunk edges
+# U+FFFD stripping at chunk edges
 # ===========================================================================
 
 
@@ -723,7 +723,7 @@ class TestChunkEdgeReplacementChars:
 
 
 # ===========================================================================
-# E8: ManifestoMeta typed builder
+# ManifestoMeta typed builder
 # ===========================================================================
 
 
@@ -753,7 +753,7 @@ class TestManifestoMeta:
 
 
 # ===========================================================================
-# E9: chunk_pages overlap > 0 behavior
+# chunk_pages overlap > 0 behavior
 # ===========================================================================
 
 

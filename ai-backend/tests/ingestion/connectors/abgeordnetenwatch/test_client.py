@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Unit tests for AWClient — covers Req 9 (rate ceiling) and core invariants.
+Unit tests for AWClient — covers the rate ceiling and core invariants.
 
 Tests defined here:
   - test_get_sleeps_before_request: get() sleeps >=2s before each call
@@ -12,7 +12,7 @@ Tests defined here:
     as absolute indices, advancing 100 at a time until meta.result.total
   - test_get_all_stops_at_total: get_all stops when start >= total (no infinite loop)
   - test_rate_ceiling_30_per_60s: 30 sequential get() calls accumulate >=58s of
-    mocked sleep (Req 9 assertion — <=30 req/60s ceiling)
+    mocked sleep (<=30 req/60s ceiling)
   - test_base_url_is_pinned_constant: _AW_BASE is the expected literal constant
   - test_get_votes_for_poll_uses_range_800: votes endpoint uses range_end=800
 
@@ -147,13 +147,13 @@ class TestGet:
 
 
 # ---------------------------------------------------------------------------
-# get_all() — absolute-index pagination (Pitfall 3)
+# get_all() — absolute-index pagination
 # ---------------------------------------------------------------------------
 
 
 class TestGetAll:
     def test_paginates_by_absolute_index(self) -> None:
-        """get_all() uses range_start/range_end as absolute indices (Pitfall 3)."""
+        """get_all() uses range_start/range_end as absolute indices."""
         # Simulate 150 total items: page 1 = 100 items, page 2 = 50 items
         page1_data = [{"id": i} for i in range(100)]
         page2_data = [{"id": i} for i in range(100, 150)]
@@ -278,7 +278,7 @@ class TestGetAll:
                 c.get_all("polls", {"field_legislature": 111})
 
     def test_get_all_uses_field_legislature_param(self) -> None:
-        """get_all() passes field_legislature (not parliament_period) — Pitfall 2 guard."""
+        """get_all() passes field_legislature (not parliament_period) guard."""
         received_params = []
 
         def fake_get(path: str, params: dict | None = None) -> dict:
@@ -297,11 +297,11 @@ class TestGetAll:
             c.get_all("polls", {"field_legislature": 111})
 
         assert received_params[0].get("field_legislature") == 111, (
-            "get_all must pass field_legislature (not parliament_period) — Pitfall 2"
+            "get_all must pass field_legislature (not parliament_period)"
         )
 
     def test_raises_on_under_delivered_page(self) -> None:
-        """D1: a page delivering fewer items than its window must raise, not skip.
+        """a page delivering fewer items than its window must raise, not skip.
 
         The server may cap items-per-response below _PAGE_SIZE. Advancing
         start += _PAGE_SIZE past a short page would silently and permanently
@@ -478,13 +478,13 @@ class TestGetVotesForPoll:
 
 
 # ---------------------------------------------------------------------------
-# Rate ceiling — Req 9
+# Rate ceiling
 # ---------------------------------------------------------------------------
 
 
 class TestRateCeiling:
     def test_30_calls_accumulate_at_least_58s(self) -> None:
-        """30 sequential get() calls must accumulate >=58s of sleep (Req 9: <=30 req/60s).
+        """30 sequential get() calls must accumulate >=58s of sleep (<=30 req/60s).
 
         Mocked-clock assertion: time.sleep is replaced with an accumulator.
         No live network call is made — requests.Session.get is also mocked.
@@ -504,7 +504,7 @@ class TestRateCeiling:
                 c.get("polls/3602")
 
         assert total_slept >= 58.0, (
-            f"30 get() calls must sleep >=58s in total (Req 9: <=30 req/60s ceiling). "
+            f"30 get() calls must sleep >=58s in total (<=30 req/60s ceiling). "
             f"Got: {total_slept:.1f}s. "
             f"Ensure AWClient sleeps >=2s per call (30 * 2.0 = 60.0s; 58.0s is the floor "
             f"allowing for minor float drift)."
@@ -512,7 +512,7 @@ class TestRateCeiling:
 
 
 # ---------------------------------------------------------------------------
-# User-Agent identification (D13)
+# User-Agent identification
 # ---------------------------------------------------------------------------
 
 

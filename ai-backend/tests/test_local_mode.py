@@ -53,7 +53,7 @@ async def test_no_prod_connection():
     """
     if not os.path.isfile(_SEED_SCRIPT):
         pytest.skip(
-            f"Seed script not found at {_SEED_SCRIPT} — will be added in plan 01-05"
+            f"Seed script not found at {_SEED_SCRIPT}"
         )
 
     try:
@@ -61,14 +61,14 @@ async def test_no_prod_connection():
     except subprocess.TimeoutExpired:
         pytest.fail(
             "Seed script did not exit within 5 seconds when FIRESTORE_EMULATOR_HOST "
-            "is unset. The guard (plan 01-05) should exit immediately with an error "
+            "is unset. The guard should exit immediately with an error "
             "message — it must NOT attempt network calls."
         )
 
     assert result.returncode != 0, (
         "Seed script must exit non-zero when FIRESTORE_EMULATOR_HOST is unset "
         "(guard prevents connecting to production Firestore). "
-        "Plan 01-05 adds the guard — see RESEARCH.md Pitfall 7 and D-10.\n"
+        "The guard should exit immediately with a clear error.\n"
         f"stdout: {result.stdout[:500]}\nstderr: {result.stderr[:500]}"
     )
 
