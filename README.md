@@ -6,7 +6,7 @@ SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 # wahl.chat
 
-A grounded, source-cited political-information chatbot for German elections — federal, state, and local.
+A grounded political information chatbot for German elections — federal, state, and local.
 
 **Application**: https://wahl.chat/
 **About**: https://wahl.chat/about-us
@@ -43,6 +43,10 @@ No production credentials needed. All data stores run locally.
 ```bash
 make install
 ```
+
+If you use an AI coding assistant, run `./scripts/setup-agent-docs.sh` once to
+symlink the provider-specific `CLAUDE.md` to the committed `AGENTS.md` (the
+symlink is git-ignored; `AGENTS.md` is the source of truth).
 
 ### 2. Configure environment variables
 
