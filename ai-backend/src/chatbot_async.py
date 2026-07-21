@@ -897,8 +897,7 @@ def _format_vote_summary(
         - Ja: {party_result.yes}
         - Nein: {party_result.no}
         - Enthaltungen: {party_result.abstain}
-        - Nicht abgestimmt: {party_result.not_voted}
-        - Begründung: {party_result.justification if party_result.justification else "Keine Begründung angegeben."}\n\n
+        - Nicht abgestimmt: {party_result.not_voted}\n\n
 """
 
 

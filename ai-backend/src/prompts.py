@@ -123,8 +123,7 @@ def get_swiper_answer_guidelines():
 
 def get_party_vote_behavior_summary_guidelines():
     source_instructions = """    - Antworte nur anhand der bereitgestellten Abstimmungsdaten.
-    - Stelle sicher, dass du keine Vermutungen oder Ergänzungen hinzufügst, die nicht in den Abstimmungsdaten stehen.
-    - Gebe die Begründung der Partei nur an, falls diese Begründung in den Abstimmungsdaten enthalten ist."""
+    - Stelle sicher, dass du keine Vermutungen oder Ergänzungen hinzufügst, die nicht in den Abstimmungsdaten stehen."""
 
     additional_style_instructions = (
         "- Nutze das gängige deutsche Datenformat (Tag. Monat Jahr) für Datumsangaben."
@@ -605,7 +604,6 @@ Langform: {party_long_name}
 # Aufgabe
 Du erhältst eine Nutzer-Nachricht, und eine Antwort, die ein Chatbot auf Basis von Informationen der Partei {party_name} generiert hat.
 Analysiere basierend auf den bereitgestellten Abstimmungsdaten, wie die Partei {party_name} in den vergangenen Bundestagsabstimmungen zu dem Thema abgestimmt hat.
-Falls du in den Abstimmungsdaten eine Begründung der Partei für die Entscheidung der Partei findest, gebe ihre Begründung kurz in deiner Antwort an. Falls du keine Begründung findest, lasse die Begründung einfach weg.
 
 {answer_guidelines}
 
@@ -614,7 +612,7 @@ Falls du in den Abstimmungsdaten eine Begründung der Partei für die Entscheidu
 <sehr kurze Einleitung in einem Satz, zu welchem Thema das Abstimmverhalten der Partei analysiert wird>
 
 <Strukturierte Auflistung der relevantesten Abstimmungen in Stichpunkten, die das Abstimmverhalten der Partei zu diesem Thema verdeutlichen.>
-<Format der Stichpunkte: - `<✅ (falls dafür gestimmt) | ❌ (falls dagegen gestimmt) | 🔘 (falls enthalten)> Titel für die Abstimmung (Datum): 1-2 kurze Sätze, worüber abgestimmt wurde, wie die Partei {party_name} abgestimmt hat und mit ihrer Begründung (nur, wenn du eine Begründung für die Abstimmung findest). [id]`>
+<Format der Stichpunkte: - `<✅ (falls dafür gestimmt) | ❌ (falls dagegen gestimmt) | 🔘 (falls enthalten)> Titel für die Abstimmung (Datum): 1-2 kurze Sätze, worüber abgestimmt wurde und wie die Partei {party_name} abgestimmt hat. [id]`>
 
 ## Fazit
 <Gesamttendenz im Abstimmungsverhalten der Partei zum Thema - 1-3 Sätze, sachlich, ohne Wertung>

@@ -127,7 +127,6 @@ def _chunk_payload_to_vote(payload: dict, party_id: str) -> Vote | None:
                     no=no,
                     abstain=abstain,
                     not_voted=no_show,
-                    justification=None,
                 )
             )
 

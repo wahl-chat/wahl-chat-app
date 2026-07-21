@@ -126,7 +126,6 @@ type VotingResult = {
     no: number;
     abstain: number;
     not_voted: number;
-    justification: string;
   }[];
 };
 
