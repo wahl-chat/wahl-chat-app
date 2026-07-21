@@ -626,9 +626,11 @@ class TestBuildManifestoRecords:
 
 
 class TestSlugMapParity:
-    """The manifesto map and the AW votes map must be slug-identical for every
-    shared label — otherwise manifesto party_id != vote slug != context
-    party_id and tenant-filtered manifesto retrieval returns nothing."""
+    """The same real party must resolve to the same slug across connectors —
+    otherwise manifesto party_id != vote slug != context party_id and
+    tenant-filtered retrieval returns nothing. The shared slug knowledge now
+    lives in one module (src/ingestion/party_slugs.py); these tests guard that
+    every connector map is built from it rather than a private copy."""
 
     def test_new_e3_entries_resolve(self) -> None:
         assert party_to_slug("Bürger in Wut") == "biw"
@@ -636,25 +638,45 @@ class TestSlugMapParity:
         assert party_to_slug("Die Basis") == "basis"
         assert party_to_slug("SSW") == "ssw"
 
-    def test_shared_labels_have_identical_slugs(self) -> None:
+    def test_canonical_core_is_shared_verbatim(self) -> None:
+        """The major-party core must appear identically in every connector map."""
+        from src.ingestion.connectors.abgeordnetenwatch.mappers.corpus import (
+            _AW_FRACTION_SLUG_MAP,
+        )
+        from src.ingestion.connectors.bundestag_speeches.mappers.corpus import (
+            _PARTY_SLUG_MAP as _SPEECH_SLUG_MAP,
+        )
+        from src.ingestion.connectors.manifestos.mappers.corpus import (
+            _MANIFESTO_PARTY_SLUG_MAP,
+        )
+        from src.ingestion.party_slugs import CANONICAL_PARTY_SLUGS
+
+        for name, m in {
+            "votes": _AW_FRACTION_SLUG_MAP,
+            "speeches": _SPEECH_SLUG_MAP,
+            "manifestos": _MANIFESTO_PARTY_SLUG_MAP,
+        }.items():
+            missing = {
+                label: slug
+                for label, slug in CANONICAL_PARTY_SLUGS.items()
+                if m.get(label) != slug
+            }
+            assert not missing, f"{name} map diverges from the canonical core: {missing!r}"
+
+    def test_votes_and_manifestos_share_the_state_party_layer(self) -> None:
+        """Votes and manifestos must agree on state/regional slugs (speeches
+        deliberately exclude these — Bundestag fractions only)."""
         from src.ingestion.connectors.abgeordnetenwatch.mappers.corpus import (
             _AW_FRACTION_SLUG_MAP,
         )
         from src.ingestion.connectors.manifestos.mappers.corpus import (
             _MANIFESTO_PARTY_SLUG_MAP,
         )
+        from src.ingestion.party_slugs import STATE_PARTY_SLUGS
 
-        shared = set(_AW_FRACTION_SLUG_MAP) & set(_MANIFESTO_PARTY_SLUG_MAP)
-        assert shared, "expected the two maps to share labels"
-        mismatches = {
-            label: (_AW_FRACTION_SLUG_MAP[label], _MANIFESTO_PARTY_SLUG_MAP[label])
-            for label in sorted(shared)
-            if _AW_FRACTION_SLUG_MAP[label] != _MANIFESTO_PARTY_SLUG_MAP[label]
-        }
-        assert not mismatches, (
-            "votes map and manifesto map diverge for shared labels "
-            f"(label: (votes_slug, manifesto_slug)): {mismatches!r}"
-        )
+        for label, slug in STATE_PARTY_SLUGS.items():
+            assert _AW_FRACTION_SLUG_MAP.get(label) == slug
+            assert _MANIFESTO_PARTY_SLUG_MAP.get(label) == slug
 
 
 # ===========================================================================

@@ -33,13 +33,17 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import re
 import sys
 from datetime import date as date_type
 from typing import Optional
 
 from src.ingestion.chunking import chunk_text
 from src.ingestion.ids import compute_source_item_id, make_chunk_key
+from src.ingestion.party_slugs import (
+    CANONICAL_PARTY_SLUGS,
+    PARTY_SLUG_QUARANTINE,
+    normalize_party_label,
+)
 from src.ingestion.schemas import AuthorityTier, ChunkRecord, SpeechMeta, SourceType
 from src.ingestion.speech_key import (
     agenda_slug_from_top_id,
@@ -104,55 +108,18 @@ def compute_speech_key(speech: dict) -> Optional[str]:
 # Unknown/missing party values default to "unbekannt".
 # ---------------------------------------------------------------------------
 
-# Invisible / zero-width formatting characters that may appear in party labels
-# (e.g. soft hyphen U+00AD in "BÜNDNIS 90/DIE GRÜNEN" from the AW connector).
-# Strip before lookup so the map key always matches cleanly.
-_INVISIBLE_CHARS_RE = re.compile("[­​‌‍⁠﻿]")
-
+# Speeches only ever carry Bundestag fraction labels, so the map is the shared
+# major-party core (incl. the CDU/CSU rule — see src/ingestion/party_slugs.py)
+# plus an explicit DSU→quarantine: a non-fraction party appearing in a speech
+# label should quarantine rather than mis-tenant.
 _PARTY_SLUG_MAP: dict[str, str] = {
-    # SPD
-    "spd": "spd",
-    # CDU/CSU family
-    # Canonical rule (aligned with abgeordnetenwatch/connector.py::_AW_FRACTION_SLUG_MAP
-    # and abgeordnetenwatch/mappers/corpus.py::_AW_FRACTION_SLUG_MAP):
-    #   standalone CSU speech label → "csu" (DISTINCT tenant)
-    #   joint "CDU/CSU" fraction label → "cdu" (Union fraction, not splittable from source)
-    # Do NOT change "csu" back to "cdu" — that would mis-tenant CSU speeches
-    # and break retrieval alignment with the AW connector and the csu manifesto tenant.
-    "cdu/csu": "cdu",
-    "cdu": "cdu",
-    "csu": "csu",
-    # Greens family
-    "bündnis 90/die grünen": "gruene",
-    "bündnis 90/die grüne": "gruene",
-    "die grünen": "gruene",
-    "grüne": "gruene",
-    # FDP
-    "fdp": "fdp",
-    # AfD
-    "afd": "afd",
-    # DIE LINKE family
-    "die linke": "linke",
-    "die linke.": "linke",
-    "linke": "linke",
-    # BSW
-    "bsw": "bsw",
-    # fraktionslos
-    "fraktionslos": "fraktionslos",
-    # Explicit unknowns (DSU → unbekannt)
-    "dsu": "unbekannt",
+    **CANONICAL_PARTY_SLUGS,
+    "dsu": PARTY_SLUG_QUARANTINE,
 }
 
 
-def _normalize_party_label(raw: str) -> str:
-    """Normalise a party label for slug lookup.
-
-    Strips invisible/zero-width formatting characters (notably U+00AD soft
-    hyphen), collapses internal whitespace, strips, and lowercases.
-    """
-    clean = _INVISIBLE_CHARS_RE.sub("", raw)
-    clean = re.sub(r"\s+", " ", clean)
-    return clean.strip().lower()
+# Shared normaliser (soft-hyphen strip + whitespace collapse + lowercase).
+_normalize_party_label = normalize_party_label
 
 
 def party_to_slug(party: Optional[str]) -> str:

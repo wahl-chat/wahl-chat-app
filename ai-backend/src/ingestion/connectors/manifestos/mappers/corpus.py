@@ -31,8 +31,11 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 from src.ingestion.chunking import chunk_pages  # noqa: F401 (re-exported for connector)
-from src.ingestion.connectors.abgeordnetenwatch.mappers.corpus import (
-    _normalize_fraction_label,
+from src.ingestion.party_slugs import (
+    CANONICAL_PARTY_SLUGS,
+    PARTY_SLUG_QUARANTINE,
+    STATE_PARTY_SLUGS,
+    normalize_party_label,
 )
 from src.ingestion.ids import compute_source_item_id, make_chunk_key
 from src.ingestion.schemas import AuthorityTier, ChunkRecord, SourceType
@@ -82,52 +85,26 @@ class ManifestoMeta(BaseModel):
 # Party slug map — for election-program party.label
 # ---------------------------------------------------------------------------
 
-# Comprehensive explicit map: normalized-AW-label -> canonical slug.
 # Keys are lowercased and invisible-char-stripped (as produced by
-# _normalize_fraction_label).  Slugs must match the chat's context slugs for
-# the major parties; minor/regional parties get clean derived slugs here so
-# that every one of the ~52 AW parties gets a stable, distinct slug rather than
-# falling through to "unbekannt".
+# normalize_party_label). The major-party core and the state/regional layer are
+# the shared source of truth in src/ingestion/party_slugs.py (so a party's
+# manifesto slug tenant-aligns with its vote slug); the entries below are the
+# manifesto-only long-tail parties (no votes/speeches counterpart). Any label
+# not here still gets a clean derived slug via _slugify — manifestos never
+# quarantine an unknown party the way votes/speeches do.
 _MANIFESTO_PARTY_SLUG_MAP: dict[str, str] = {
-    # Majors (must match chat context slugs exactly)
-    "spd": "spd",
-    "cdu": "cdu",
-    "cdu/csu": "cdu",
-    "csu": "csu",
-    "bündnis 90/die grünen": "gruene",
-    "bündnis 90/die grüne": "gruene",
-    "die grünen": "gruene",
-    "grüne": "gruene",
-    "fdp": "fdp",
-    "afd": "afd",
-    "die linke": "linke",
-    "die linke.": "linke",
-    "linke": "linke",
-    "bsw": "bsw",
-    "fraktionslos": "fraktionslos",
-    # Regional / smaller parties
-    "freie wähler": "fw",
-    "ödp": "oedp",
-    "volt": "volt",
-    "piraten": "piraten",
+    **CANONICAL_PARTY_SLUGS,
+    **STATE_PARTY_SLUGS,
     "die partei": "die-partei",
     "partei der humanisten": "pdh",
     "partei für verjüngungsforschung": "verjuengung",
     "tierschutzpartei": "tierschutzpartei",
-    "diebasis": "basis",
-    "die basis": "basis",           # spaced variant (matches the votes map)
     "bündnis c": "buendnis-c",
     "pdf": "pdf",
     "werteunion": "werteunion",
     "die gerechtigkeitspartei - team todenhöfer": "gerechtigkeit",
     "bayernpartei": "bayernpartei",
     "pdr": "pdr",
-    # Labels present in the votes map (_AW_FRACTION_SLUG_MAP) — the two maps
-    # must stay slug-identical for every shared label, otherwise tenant-filtered
-    # manifesto retrieval misses the party (a cross-map parity test pins this).
-    "ssw": "ssw",                   # Südschleswigscher Wählerverband
-    "bvb/freie wähler": "bvb-fw",  # BVB / Freie Wähler (Brandenburg)
-    "bürger in wut": "biw",        # Bürger in Wut (Bremen)
 }
 
 # ---------------------------------------------------------------------------
@@ -224,9 +201,9 @@ def party_to_slug(label: Optional[str]) -> str:
     """Map a party label from the AW election-program API to a canonical slug.
 
     Resolution order:
-      1. Normalise the label with ``_normalize_fraction_label`` (strips the
-         U+00AD soft hyphen / zero-width chars, collapses whitespace,
-         lowercases).  Empty/whitespace-only -> ``"unbekannt"`` immediately.
+      1. Normalise the label with ``normalize_party_label`` (strips the U+00AD
+         soft hyphen / zero-width chars, collapses whitespace, lowercases).
+         Empty/whitespace-only -> ``"unbekannt"`` immediately.
       2. Look up in the explicit ``_MANIFESTO_PARTY_SLUG_MAP``.  Major parties
          map to their chat-context slugs (e.g. ``"gruene"``).
       3. Fall back to ``_slugify(label)`` for long-tail parties — transliterates
@@ -244,15 +221,15 @@ def party_to_slug(label: Optional[str]) -> str:
         label that produces no ASCII characters.
     """
     if not label:
-        return "unbekannt"
-    normalised = _normalize_fraction_label(label)
+        return PARTY_SLUG_QUARANTINE
+    normalised = normalize_party_label(label)
     if not normalised:
-        return "unbekannt"
+        return PARTY_SLUG_QUARANTINE
     explicit = _MANIFESTO_PARTY_SLUG_MAP.get(normalised)
     if explicit is not None:
         return explicit
     # Derive a slug from the original label (preserves umlaut transliteration
-    # that _normalize_fraction_label strips away).
+    # that normalize_party_label strips away).
     return _slugify(label)
 
 

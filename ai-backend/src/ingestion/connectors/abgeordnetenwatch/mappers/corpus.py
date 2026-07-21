@@ -49,6 +49,12 @@ from src.ingestion.connectors.abgeordnetenwatch.mappers.stance import (
 from src.ingestion.connectors.abgeordnetenwatch.topic_taxonomy_config import (
     get_relevance_levels,
 )
+from src.ingestion.party_slugs import (
+    CANONICAL_PARTY_SLUGS,
+    PARTY_SLUG_QUARANTINE,
+    STATE_PARTY_SLUGS,
+    normalize_party_label,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -88,57 +94,29 @@ class SourceItemLike(Protocol):
 # top-level party_id is "_all" (the real per-party ids live in party_ids).
 _PARTY_ID_SENTINEL = "_all"
 
-# Quarantine slug for unmapped fraction names.
-_PARTY_SLUG_QUARANTINE = "unbekannt"
+# Quarantine slug for unmapped fraction names (shared source of truth).
+_PARTY_SLUG_QUARANTINE = PARTY_SLUG_QUARANTINE
 
-# Canonical party slug mapping from AW fraction label fragments.
-# Keys are the lowercased fraction name WITHOUT the parliament-period suffix.
-# The AW votes endpoint embeds fraction objects with a "label" like
-# "FDP (Bundestag 2017 - 2021)"; we strip the parenthetical before mapping.
+# AW fraction-label → canonical slug. The shared major-party core and the
+# state/regional layer live in src/ingestion/party_slugs.py (single source of
+# truth so vote slugs tenant-align with manifesto slugs); the only AW-specific
+# additions are the "(Gruppe)" fraction-label variants below. Keys are the
+# lowercased fraction name WITHOUT the parliament-period suffix — the AW votes
+# endpoint labels fractions like "FDP (Bundestag 2017 - 2021)", so
+# _PARENS_SUFFIX_RE strips the parenthetical before lookup.
 #
-# AW fraction labels use German parliamentary party names (verified from the
-# AW fractions endpoint).
-#
-# KNOWN LIMITATION (CDU/CSU): at the Bundestag, CDU and CSU sit as one joint fraction
-# "CDU/CSU", so a federal vote's Union tally is attributed to slug "cdu" only. CSU has no
-# separate federal fraction, so federal Union votes are addressable under "cdu" and NOT
-# under "csu" — a "csu" query returns no federal vote records. Standalone-CSU labels (rare)
-# still map to "csu". This is an intentional modeling choice, not a bug.
+# KNOWN LIMITATION (CDU/CSU): at the Bundestag, CDU and CSU sit as one joint
+# fraction "CDU/CSU", so a federal vote's Union tally is attributed to slug
+# "cdu" only. CSU has no separate federal fraction, so a "csu" query returns no
+# federal vote records; standalone-CSU labels still map to "csu". Intentional.
 _AW_FRACTION_SLUG_MAP: dict[str, str] = {
-    "spd": "spd",
-    "cdu/csu": "cdu",
-    "cdu": "cdu",
-    "csu": "csu",
-    "bündnis 90/die grünen": "gruene",
-    "bündnis 90/die grüne": "gruene",
-    "die grünen": "gruene",
-    "grüne": "gruene",
-    "fdp": "fdp",
-    "afd": "afd",
-    "die linke": "linke",
-    "die linke.": "linke",
-    "linke": "linke",
-    "bsw": "bsw",
+    **CANONICAL_PARTY_SLUGS,
+    **STATE_PARTY_SLUGS,
+    # "(Gruppe)" variants: below fraction strength a party sits as a Gruppe, and
+    # AW labels it "BSW (Gruppe)" / "Die Linke. (Gruppe)". Same tenant as the
+    # full fraction.
     "bsw (gruppe)": "bsw",
     "die linke. (gruppe)": "linke",
-    "fraktionslos": "fraktionslos",
-    # State-level parties (parenthetical suffix stripped before lookup).
-    # AW fraction labels include the parliament-period: "Freie Wähler (Bayern 2023 - 2028)".
-    # After _PARENS_SUFFIX_RE strips the parenthetical, the base name is looked up here.
-    # Slugs kept identical to manifestos/mappers/corpus.py so cross-source retrieval
-    # returns both vote_record and party_manifesto chunks for the same party.
-    "freie wähler": "fw",           # Bayern, Sachsen-Anhalt, multiple states
-    "ssw": "ssw",                   # Südschleswigscher Wählerverband (SH only)
-    "bvb/freie wähler": "bvb-fw",  # BVB / Freie Wähler Sachsen (Brandenburg)
-    "volt": "volt",                 # Volt Deutschland (multiple states)
-    "piraten": "piraten",           # Piratenpartei
-    "ödp": "oedp",                  # Ökologisch-Demokratische Partei
-    "die basis": "basis",           # dieBasis
-    "diebasis": "basis",            # dieBasis alternate label
-    "bürger in wut": "biw",        # Bürger in Wut (Bremen)
-    # Add further state-party labels after verifying live AW /fractions responses
-    # per Landtag. The "unbekannt" quarantine safely absorbs
-    # any unlisted fraction labels discovered at runtime.
 }
 
 # Regex to strip the parliament-period parenthetical from a fraction label.
@@ -146,25 +124,9 @@ _AW_FRACTION_SLUG_MAP: dict[str, str] = {
 # Only strips text inside the LAST pair of parentheses (defensive).
 _PARENS_SUFFIX_RE = re.compile(r"\s*\([^)]*\)\s*$")
 
-# Invisible / zero-width formatting characters that AW occasionally embeds in
-# fraction names. The 20th/21st Bundestag Greens arrive as
-# "BÜNDNIS 90/­DIE GRÜNEN" — a SOFT HYPHEN (U+00AD) sits between "90/" and
-# "DIE", so a naive lowercase+strip lookup misses the map key and the whole
-# Green fraction gets quarantined as "unbekannt" on every vote. Strip these
-# before lookup. NFKC does NOT remove U+00AD, so it must be done explicitly.
-_INVISIBLE_CHARS_RE = re.compile("[\u00ad\u200b\u200c\u200d\u2060\ufeff]")
-
-
-def _normalize_fraction_label(label: str) -> str:
-    """Normalise a fraction label for slug lookup.
-
-    Removes invisible/zero-width formatting characters (notably the U+00AD soft
-    hyphen AW puts in "BÜNDNIS 90/­DIE GRÜNEN"), then collapses internal
-    whitespace runs to single spaces, strips, and lowercases.
-    """
-    clean = _INVISIBLE_CHARS_RE.sub("", label)
-    clean = re.sub(r"\s+", " ", clean)
-    return clean.strip().lower()
+# Shared normaliser (strips the U+00AD soft hyphen AW embeds in the Greens'
+# fraction name, collapses whitespace, lowercases). Aliased for back-compat.
+_normalize_fraction_label = normalize_party_label
 
 
 # ---------------------------------------------------------------------------
