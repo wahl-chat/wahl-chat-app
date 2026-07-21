@@ -1,7 +1,16 @@
 # === Planning (local only) ===
 .planning/
-# Agent-local runtime state (worktrees, locks).
-.claude/
+# Agent-local runtime state only — committed assets under .claude/ (skills,
+# agents, settings.json) MUST remain tracked, so ignore the local runtime
+# files individually rather than the whole directory.
+.claude/settings.local.json
+.claude/*.local.json
+.claude/worktrees/
+.claude/todos/
+.claude/shell-snapshots/
+.claude/statsig/
+.claude/projects/
+.claude/history.jsonl
 
 # === Common ===
 .DS_Store
