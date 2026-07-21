@@ -24,7 +24,6 @@ Filter map (full indexed set, setup_collection.py):
     region_path           → FieldCondition(key="region",                match=MatchAny)
     authority_tier        → FieldCondition(key="authority_tier",        match=MatchValue)
     publish_after         → FieldCondition(key="publish_date",          match=DatetimeRange(gte=...))
-    wahlperiode           → FieldCondition(key="wahlperiode",           match=MatchValue)
     legislature_period_id → FieldCondition(key="legislature_period_id", match=MatchValue)
 """
 
@@ -302,7 +301,6 @@ def retrieve(
     region_path: Optional[list[str]] = None,
     authority_tier: Optional[AuthorityTierLiteral] = None,
     publish_after: Optional[datetime] = None,
-    wahlperiode: Optional[int] = None,
     legislature_period_id: Optional[int] = None,
     level: Optional[str] = None,
     limit: int = 5,
@@ -327,7 +325,6 @@ def retrieve(
                          Scalar region vs election_path list
         authority_tier → FieldCondition(key="authority_tier", match=MatchValue(value=...))
         publish_after  → FieldCondition(key="publish_date",   match=DatetimeRange(gte=...))
-        wahlperiode    → FieldCondition(key="wahlperiode",    match=MatchValue(value=...))
 
     Args:
         query:          Natural-language query string. Always required for context /
@@ -352,14 +349,11 @@ def retrieve(
                         NOT selective alone.
         publish_after:  Return only chunks published on or after this datetime.
                         NOT selective alone.
-        wahlperiode:    German legislative period number (e.g. 19 for 19th Bundestag).
-                        When set, restricts results to chunks stamped with this period.
-                        NOT selective alone.
         legislature_period_id: AW parliament_period ID (e.g. 161 for 21st Bundestag,
                         149 for Bayern 2023-2028). When set, restricts results to
                         chunks from that specific legislature. Globally unique integer
-                        unlike ``wahlperiode`` (which collides across states).
-                        NOT selective alone.
+                        (state Wahlperiode numbers collide across states, so this AW
+                        id is used instead). NOT selective alone.
         level:          Governance level of the election context
                         (``"federal"`` | ``"state"`` | ``"municipal"``).
                         When set to a NON-federal level AND
@@ -425,7 +419,7 @@ def retrieve(
     # CLAUDE.md "What NOT to Do"): there is NO global HNSW index, so an
     # unfiltered vector search degrades to a full O(n) brute-force scan.
     # Only party_id, party_ids_contains, and source_type count as selective —
-    # region_path / authority_tier / publish_after / wahlperiode alone are NOT
+    # region_path / authority_tier / publish_after alone are NOT
     # sufficient to avoid the global scan.
     _is_selective = (
         source_type is not None
@@ -511,14 +505,9 @@ def retrieve(
             )
         )
 
-    if wahlperiode is not None:
-        must.append(
-            FieldCondition(key="wahlperiode", match=MatchValue(value=wahlperiode))
-        )
-
     if legislature_period_id is not None:
         # AW parliament_period ID — narrows to a specific legislature.
-        # NOT selective alone (same constraint as wahlperiode).
+        # NOT selective alone (needs source_type / party_id / party_ids_contains).
         must.append(
             FieldCondition(
                 key="legislature_period_id",
@@ -804,8 +793,10 @@ class RetrieveSchema(BaseModel):
     function-calling tool.  All enum-constrained args are ``Literal[...]``
     (not Python Enum) to avoid langchain-google-genai issue #409.
 
-    This schema mirrors the ``retrieve()`` function signature exactly so the
-    tool can be bound and invoked without additional mapping.
+    Election-scope parameters the model cannot know or should not choose
+    (authority_tier, legislature_period_id, wahlperiode) are deliberately NOT
+    exposed here — the server supplies them from the election context. This is
+    therefore a curated subset of ``retrieve()``'s parameters, not a 1:1 mirror.
     """
 
     query: str = Field(..., description="Natural-language query to retrieve relevant chunks for.")
@@ -847,34 +838,11 @@ class RetrieveSchema(BaseModel):
             "region is a member of this list are returned (MatchAny)."
         ),
     )
-    authority_tier: Optional[AuthorityTierLiteral] = Field(
-        None,
-        description=(
-            "Trustworthiness tier filter. One of: authoritative, factual_record, "
-            "self_reported, promotional. Omit to search all tiers."
-        ),
-    )
     publish_after: Optional[str] = Field(
         None,
         description=(
             "ISO 8601 datetime string (e.g. '2024-01-01T00:00:00Z'). "
             "Only return chunks published on or after this datetime."
-        ),
-    )
-    wahlperiode: Optional[int] = Field(
-        None,
-        description=(
-            "German legislative period number (e.g. 19 for 19th Bundestag, "
-            "20 for 20th, 21 for 21st). Restricts results to chunks from that period."
-        ),
-    )
-    legislature_period_id: Optional[int] = Field(
-        None,
-        description=(
-            "AW parliament_period ID (e.g. 161 for 21st Bundestag, 149 for Bayern 2023-2028). "
-            "Restricts results to chunks from that specific legislature. "
-            "NOT selective alone — must be combined with source_type, party_id, or "
-            "party_ids_contains."
         ),
     )
     limit: int = Field(5, description="Maximum number of results to return (default 5).")
