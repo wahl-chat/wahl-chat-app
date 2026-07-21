@@ -423,6 +423,10 @@ async def test_voting_behavior_route_sse(app, monkeypatch):
         "src.routes.voting_behavior.get_improved_rag_query_voting_behavior",
         _rag_query,
     )
+    async def _ctx(context_id: str):
+        return None  # endpoint falls back to region ["DE"] / no period / no level
+
+    monkeypatch.setattr("src.routes.voting_behavior.aget_context_by_id", _ctx)
     monkeypatch.setattr("src.routes.voting_behavior.retrieve", _retrieve)
     monkeypatch.setattr(
         "src.routes.voting_behavior.generate_party_vote_behavior_summary",

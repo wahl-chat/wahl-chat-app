@@ -46,7 +46,7 @@ from src.chatbot_async import (
     generate_party_vote_behavior_summary,
 )
 from src.chat_service import with_heartbeat
-from src.firebase_service import aget_party_for_context
+from src.firebase_service import aget_context_by_id, aget_party_for_context
 from src.ingestion.retrieve import retrieve
 from src.models.context import DEFAULT_CONTEXT_ID
 from src.models.dtos import (
@@ -223,13 +223,28 @@ async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequest
                 party, body.last_user_message, body.last_assistant_message
             )
 
-            # Retrieve vote_record chunks from the single wahlchat_chunks store.
-            # source_type='vote_record' is the selective filter that keeps this cheap
-            # on the m=0 tenant-only HNSW (see module docstring re: full_scan_threshold).
+            # Scope retrieval to the election context AND to votes this party
+            # actually participated in. Without party_ids_contains, retrieve()
+            # returns the GLOBAL top-10 vote_records and _chunk_payload_to_vote
+            # then discards the ones the party didn't vote on — so a small party
+            # can end up with zero results while relevant votes sit just below
+            # the cut. region/legislature/level scoping also prevents mixing
+            # Bundestag and Landtag records.
+            ctx = await aget_context_by_id(context_id)
+            region_path = ctx.region_path if ctx is not None else ["DE"]
+            legislature_period_id = (
+                ctx.legislature_period_id if ctx is not None else None
+            )
+            election_level = ctx.level if ctx is not None else None
+
             vote_payloads: list[dict] = await asyncio.to_thread(
                 retrieve,
                 improved_rag_query,
                 source_type="vote_record",
+                party_ids_contains=party.party_id,
+                region_path=region_path,
+                legislature_period_id=legislature_period_id,
+                level=election_level,
                 limit=10,
             )
 
