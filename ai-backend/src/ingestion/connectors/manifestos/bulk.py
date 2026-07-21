@@ -56,6 +56,7 @@ from src.ingestion.connectors.manifestos.connector import (
     load_program_pages,
 )
 from src.ingestion.connectors.manifestos.mappers.corpus import (
+    SourceKind,
     build_manifesto_records,
     chunk_pages,
     party_to_slug,
@@ -204,7 +205,7 @@ def ingest(
 
         # Convert chunk_pages output to the format expected by build_manifesto_records.
         # For HTML source, null out page numbers per spec.
-        if source_kind == "link":
+        if source_kind == SourceKind.LINK:
             build_chunks: list[tuple[str, Optional[int], Optional[int]]] = [
                 (text, None, None) for text, _ps, _pe in chunk_tuples
             ]

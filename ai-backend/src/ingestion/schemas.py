@@ -34,6 +34,19 @@ class SourceType(str, Enum):
     PARLIAMENTARY_SPEECH = "parliamentary_speech"  # Bundestag plenary speeches
 
 
+class Stance(str, Enum):
+    """A fraction's derived position on a vote (locked ``derive_stance`` output).
+
+    ``NEUTRAL`` deliberately collapses two distinct cases (an exact top-two tie
+    and an abstain-largest plurality) — see ``mappers.stance.derive_stance``.
+    """
+
+    AGREE = "agree"
+    DISAGREE = "disagree"
+    NEUTRAL = "neutral"
+    ABSENT = "absent"
+
+
 # =============================================================================
 # Corpus models
 # =============================================================================
@@ -51,7 +64,7 @@ class VoteResult(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     party_id: str = Field(..., description="Canonical party slug, e.g. 'spd'")
-    stance: str = Field(..., description="agree | disagree | neutral | absent (derive_stance)")
+    stance: Stance = Field(..., description="Derived fraction position (derive_stance)")
     yes: int = Field(..., description="Count of 'yes' votes in the fraction")
     no: int = Field(..., description="Count of 'no' votes in the fraction")
     abstain: int = Field(..., description="Count of 'abstain' votes in the fraction")

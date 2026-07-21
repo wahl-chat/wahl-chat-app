@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from qdrant_client import QdrantClient
 from src.ingestion.connectors.abgeordnetenwatch.client import AWClient
 from src.ingestion.connectors.manifestos.mappers.corpus import (
+    SourceKind,
     build_manifesto_records,
     chunk_pages,
     extract_main_text,
@@ -87,7 +88,7 @@ def _fetch_period_date(
         return None
 
 
-def determine_source(program: dict) -> tuple[str, str]:
+def determine_source(program: dict) -> tuple[SourceKind, str]:
     """Resolve (source_kind, source_url) for an election-program record.
 
     Applies the locked source rule: a non-null first ``link`` URI wins (HTML
@@ -97,7 +98,7 @@ def determine_source(program: dict) -> tuple[str, str]:
         program: AW election-program dict.
 
     Returns:
-        ("link", uri) or ("pdf", file_url).
+        (SourceKind.LINK, uri) or (SourceKind.PDF, file_url).
 
     Raises:
         ValueError: If the program has neither a usable link nor a file.
@@ -112,13 +113,13 @@ def determine_source(program: dict) -> tuple[str, str]:
     file_url: Optional[str] = program.get("file") or None
 
     if link_uri:
-        return "link", link_uri
+        return SourceKind.LINK, link_uri
     if file_url:
-        return "pdf", file_url
+        return SourceKind.PDF, file_url
     raise ValueError("no link or file")
 
 
-def load_program_pages(source_kind: str, source_url: str) -> dict:
+def load_program_pages(source_kind: SourceKind, source_url: str) -> dict:
     """Download/scrape one program and return its page-annotated text (I/O).
 
     For ``link`` sources: GET the URI and extract the main article text via
@@ -144,7 +145,7 @@ def load_program_pages(source_kind: str, source_url: str) -> dict:
     """
     import requests as _requests  # noqa: PLC0415
 
-    if source_kind == "link":
+    if source_kind == SourceKind.LINK:
         try:
             resp = _requests.get(
                 source_url,
@@ -425,13 +426,13 @@ class ManifestoConnector(BaseConnector):
         if not period_date_iso:
             raise ValueError(f"program {program.get('id')} has no resolvable election_date")
 
-        source_kind: str = raw["source_kind"]
+        source_kind: SourceKind = raw["source_kind"]
         chunk_tuples = chunk_pages(raw["pages"])
         if not chunk_tuples:
             raise ValueError(f"program {program.get('id')} produced no text after chunking")
 
         # HTML sources carry no page numbers per spec.
-        if source_kind == "link":
+        if source_kind == SourceKind.LINK:
             build_chunks: list[tuple[str, Optional[int], Optional[int]]] = [
                 (text, None, None) for text, _ps, _pe in chunk_tuples
             ]

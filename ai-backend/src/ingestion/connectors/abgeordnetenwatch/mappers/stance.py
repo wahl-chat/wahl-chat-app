@@ -24,6 +24,9 @@ Security notes:
 from __future__ import annotations
 
 import logging
+from typing import Literal, TypedDict, cast
+
+from src.ingestion.schemas import Stance
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +39,22 @@ _PARTY_SLUG_QUARANTINE = "unbekannt"
 # The only vote tokens AW emits that contribute to a tally.  Any other token
 # (a new enum value, null, or a missing "vote" key) is skipped with a warning
 # rather than crashing the whole run.
-_VALID_VOTE_TOKENS = ("yes", "no", "abstain", "no_show")
+VoteToken = Literal["yes", "no", "abstain", "no_show"]
+_VALID_VOTE_TOKENS: tuple[VoteToken, ...] = ("yes", "no", "abstain", "no_show")
+
+
+class FractionTally(TypedDict):
+    """A single fraction's aggregated vote counts + its chosen fraction dict.
+
+    Runtime is a plain dict — the TypedDict only pins the shape for callers
+    (``corpus.py`` reads ``["yes"]``/``["fraction"]`` etc.).
+    """
+
+    yes: int
+    no: int
+    abstain: int
+    no_show: int
+    fraction: dict
 
 
 # ---------------------------------------------------------------------------
@@ -44,7 +62,7 @@ _VALID_VOTE_TOKENS = ("yes", "no", "abstain", "no_show")
 # ---------------------------------------------------------------------------
 
 
-def aggregate_fraction_tallies(votes: list[dict]) -> dict[int, dict]:
+def aggregate_fraction_tallies(votes: list[dict]) -> dict[int, FractionTally]:
     """Group per-mandate votes by fraction_id, summing yes/no/abstain/no_show.
 
     Degenerate-input guard:
@@ -75,7 +93,7 @@ def aggregate_fraction_tallies(votes: list[dict]) -> dict[int, dict]:
         ``yes``, ``no``, ``abstain``, ``no_show`` (int counts) and
         ``fraction`` (the deterministically selected fraction dict).
     """
-    tallies: dict[int, dict] = {}
+    tallies: dict[int, FractionTally] = {}
     for v in votes:
         frac = v.get("fraction")
         if not isinstance(frac, dict):
@@ -100,6 +118,9 @@ def aggregate_fraction_tallies(votes: list[dict]) -> dict[int, dict]:
                 _VALID_VOTE_TOKENS,
             )
             continue
+        # Membership above guarantees one of the four count keys; narrow it so the
+        # TypedDict increment below type-checks.
+        vote_token = cast(VoteToken, vote)
 
         if fid not in tallies:
             tallies[fid] = {
@@ -118,19 +139,20 @@ def aggregate_fraction_tallies(votes: list[dict]) -> dict[int, dict]:
             if new_label < stored_label:
                 tallies[fid]["fraction"] = frac
 
-        tallies[fid][vote] += 1
+        tallies[fid][vote_token] += 1
     return tallies
 
 
-def derive_stance(yes: int, no: int, abstain: int, no_show: int) -> str:
+def derive_stance(yes: int, no: int, abstain: int, no_show: int) -> Stance:
     """Derive the fraction's stance from its tally (locked rule).
 
     Rule:
     1. Find the bucket with the largest count.
-    2. If the top two buckets are tied, return ``"neutral"`` (tie-break guard —
-       prevents Python sort instability from making this non-deterministic).
+    2. If the top two buckets are tied, return ``Stance.NEUTRAL`` (tie-break
+       guard — prevents Python sort instability from making this
+       non-deterministic).
     3. Otherwise map the winning bucket:
-       yes -> "agree", no -> "disagree", abstain -> "neutral", no_show -> "absent".
+       yes -> AGREE, no -> DISAGREE, abstain -> NEUTRAL, no_show -> ABSENT.
 
     Args:
         yes: Count of "yes" votes in the fraction.
@@ -139,7 +161,7 @@ def derive_stance(yes: int, no: int, abstain: int, no_show: int) -> str:
         no_show: Count of "no_show" votes.
 
     Returns:
-        One of: "agree", "disagree", "neutral", "absent".
+        One of the :class:`Stance` members.
     """
     buckets = [
         ("yes", yes),
@@ -151,19 +173,19 @@ def derive_stance(yes: int, no: int, abstain: int, no_show: int) -> str:
 
     # Explicit tie check — do NOT rely on sort stability for tie resolution
     if buckets[0][1] == buckets[1][1]:
-        return "neutral"
+        return Stance.NEUTRAL
 
     # Intentional collapse (do NOT "fix"):
     # Per the locked stance rule, BOTH an exact top-two tie AND an
-    # abstain-largest plurality deliberately map to "neutral". These two
+    # abstain-largest plurality deliberately map to NEUTRAL. These two
     # semantically distinct cases ("no clear majority" vs. "deliberately
     # abstained") collapse to the same output by design — the deferred scoring
     # engine does not (yet) need to distinguish them. This is not a bug.
     stance_map = {
-        "yes": "agree",
-        "no": "disagree",
-        "abstain": "neutral",
-        "no_show": "absent",
+        "yes": Stance.AGREE,
+        "no": Stance.DISAGREE,
+        "abstain": Stance.NEUTRAL,
+        "no_show": Stance.ABSENT,
     }
     return stance_map[buckets[0][0]]
 

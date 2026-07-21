@@ -25,6 +25,7 @@ import json
 import logging
 import re
 from datetime import date as date_type
+from enum import StrEnum
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -44,6 +45,18 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
+class SourceKind(StrEnum):
+    """How an election-program's text was obtained (locked source rule).
+
+    ``LINK`` — HTML page scraped via trafilatura; ``PDF`` — file downloaded and
+    parsed. StrEnum so it stays a clean ``"link"``/``"pdf"`` string in logs and
+    in the stored chunk ``meta``.
+    """
+
+    LINK = "link"
+    PDF = "pdf"
+
+
 class ManifestoMeta(BaseModel):
     """Typed builder for the manifesto chunk ``meta`` dict.
 
@@ -57,7 +70,7 @@ class ManifestoMeta(BaseModel):
     aw_program_id: int
     parliament_period_id: Optional[int] = None
     parliament_period_label: Optional[str] = None
-    source_kind: Optional[str] = None
+    source_kind: Optional[SourceKind] = None
     source_url: Optional[str] = None
     total_pages: Optional[int] = None
     page_start: Optional[int] = None
@@ -347,7 +360,7 @@ def build_manifesto_records(
     program: dict,
     period_date_iso: str,
     chunks: list[tuple[str, Optional[int], Optional[int]]],
-    source_kind: str,
+    source_kind: SourceKind,
     source_url: Optional[str],
     total_pages: Optional[int] = None,
 ) -> list[ChunkRecord]:
@@ -411,7 +424,7 @@ def build_manifesto_records(
             page_start=page_start,
             page_end=page_end,
             raw_party_label=party_label if party_slug == "unbekannt" else None,
-        ).model_dump(exclude_none=True)
+        ).model_dump(mode="json", exclude_none=True)
 
         # Change-aware content_hash (mirrors the op mapper): per-chunk text so an
         # updated program text re-writes via run.py's guard; includes the resolved

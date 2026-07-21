@@ -313,7 +313,7 @@ def chunk_poll(
     topic_labels: list[str] = extract_topic_labels(poll)
 
     # Aggregate per-fraction tallies (skips degenerate fraction=[] entries)
-    tallies: dict[int, dict] = aggregate_fraction_tallies(votes)
+    tallies = aggregate_fraction_tallies(votes)
     if not tallies:
         # Zero usable tallies — let connector.normalize() raise.
         return []
