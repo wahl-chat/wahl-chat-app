@@ -2,7 +2,7 @@
 
 .PHONY: dev dev-web dev-backend install install-web install-backend \
         lint lint-web lint-backend test-backend test-smoke test-local-mode \
-        stores-up stores-down seed-local dev-local auth \
+        stores-up stores-down seed-local dev-local auth bootstrap-collection \
         run-abgeordnetenwatch-votes run-all-landtage-votes run-speeches \
         run-manifestos collect-speeches \
         update-speeches speeches-stats
@@ -22,6 +22,18 @@ install-backend:
 stores-up:
 	docker compose up -d qdrant
 	cd firebase && nohup firebase emulators:start --only firestore > ../firebase-emulators.log 2>&1 &
+	@echo "Waiting for Qdrant on localhost:6333 (max 30s) ..."
+	@for i in $$(seq 1 30); do \
+		if curl -sf http://localhost:6333/readyz > /dev/null 2>&1; then \
+			echo "Qdrant is ready."; \
+			break; \
+		fi; \
+		if [ $$i -eq 30 ]; then \
+			echo "ERROR: Qdrant not ready after 30s — see 'docker compose logs qdrant'" >&2; \
+			exit 1; \
+		fi; \
+		sleep 1; \
+	done
 	@echo "Waiting for the Firestore emulator on localhost:8081 (max 30s) ..."
 	@for i in $$(seq 1 30); do \
 		if curl -sf http://localhost:8081 > /dev/null 2>&1; then \
@@ -33,6 +45,13 @@ stores-up:
 	echo "ERROR: Firestore emulator not ready after 30s — see firebase-emulators.log" >&2; \
 	exit 1
 
+# bootstrap-collection: create the Qdrant collection (wahlchat_chunks_{ENV}) if
+# it does not exist. Idempotent — setup_collection is a no-op when the collection
+# already matches. A fresh Qdrant volume has no collection, so the runner's first
+# get_cursor() call 404s without this. Run after stores-up (Qdrant must be ready).
+bootstrap-collection:
+	cd ai-backend && QDRANT_URL=http://localhost:6333 uv run python -m src.ingestion.setup_collection
+
 stores-down:
 	docker compose down
 	pkill -f "firebase emulators" || true
@@ -41,7 +60,7 @@ seed-local:
 	@test -n "$(FIRESTORE_EMULATOR_HOST)" || (echo "ERROR: FIRESTORE_EMULATOR_HOST not set — set it to localhost:8081 before seeding" && exit 1)
 	cd ai-backend && FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) uv run python ../firebase/scripts/seed_firestore.py
 
-dev-local: stores-up
+dev-local: stores-up bootstrap-collection
 	$(MAKE) -j2 dev-web dev-backend
 
 # --- Development servers ---
@@ -84,7 +103,7 @@ test-local-mode:
 # These targets invoke the same src.ingestion.run entrypoint against local Qdrant.
 # Requires: make stores-up first. Qdrant URL is wired automatically.
 
-run-abgeordnetenwatch-votes:
+run-abgeordnetenwatch-votes: bootstrap-collection
 	cd ai-backend && QDRANT_URL=http://localhost:6333 uv run python -m src.ingestion.run --connector abgeordnetenwatch_votes
 
 # run-all-landtage-votes: loops the connector over all 16 Landtag legislature IDs (run
@@ -98,7 +117,7 @@ run-abgeordnetenwatch-votes:
 # legislatures. After the loop, failed IDs are summarised and the target exits
 # non-zero so CI / the operator sees the partial failure instead of it being
 # swallowed by the last iteration's exit status.
-run-all-landtage-votes:
+run-all-landtage-votes: bootstrap-collection
 	@failed=""; \
 	for id in $$(cd ai-backend && uv run python -c \
 	    "from src.ingestion.connectors.abgeordnetenwatch.legislature_config import LANDTAG_LEGISLATURE_IDS; print(*LANDTAG_LEGISLATURE_IDS)"); do \
@@ -120,7 +139,7 @@ run-all-landtage-votes:
 # --wahlperiode is NOT a run.py flag — set it via the DIP_WAHLPERIODE env var
 # (connector __init__ default 21).
 # Requires: a valid DIP_API_KEY in ai-backend/.env; make stores-up first.
-run-speeches:
+run-speeches: bootstrap-collection
 	cd ai-backend && QDRANT_URL=http://localhost:6333 ENV=dev \
 		uv run python -m src.ingestion.run --connector bundestag_speeches $(ARGS)
 
@@ -136,7 +155,7 @@ run-speeches:
 # parsed in-memory; HTML manifestos are scraped (main content only). Citations
 # point at the original source URL — nothing is stored or re-served, so no
 # Firestore is needed. Needs Qdrant only.
-run-manifestos:
+run-manifestos: bootstrap-collection
 	cd ai-backend && QDRANT_URL=http://localhost:6333 ENV=dev \
 		uv run python -m src.ingestion.connectors.manifestos.bulk $(ARGS)
 
@@ -148,7 +167,7 @@ run-manifestos:
 #   curl -L https://www.bundestag.de/resource/blob/472878/MdB-Stammdaten.xml \
 #        -o ai-backend/data/MDB_STAMMDATEN.XML
 # Requires: make stores-up first; OPENAI_API_KEY in ai-backend/.env.
-collect-speeches:
+collect-speeches: bootstrap-collection
 	cd ai-backend && QDRANT_URL=http://localhost:6333 ENV=dev \
 		uv run python -m src.ingestion.connectors.bundestag_speeches.bulk $(ARGS)
 
@@ -160,7 +179,7 @@ SPEECH_BATCH ?= 25
 
 # update-speeches: mirrors the scheduled Cloud Run incremental update Job for bundestag_speeches.
 # Scheduling deferred to infra/IaC, like AW. Requires: make stores-up; DIP_API_KEY in ai-backend/.env.
-update-speeches:
+update-speeches: bootstrap-collection
 	cd ai-backend && QDRANT_URL=http://localhost:6333 ENV=dev \
 		uv run python -m src.ingestion.run --connector bundestag_speeches --batch-size $(SPEECH_BATCH)
 
