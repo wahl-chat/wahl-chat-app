@@ -7,7 +7,8 @@ Pure corpus mapper for the bundestag_speeches connector.
 
 Exports:
     build_chunk_records(speech)  — produces list[ChunkRecord] from a speech dict
-    chunk_text(text, ...)        — splits text into token-bounded chunks
+    chunk_text(text, ...)        — shared boundary-aware character splitter
+                                   (re-exported from src.ingestion.chunking)
     party_to_slug(party)         — maps a raw party label to a canonical slug
 
 Security notes:
@@ -37,8 +38,7 @@ import sys
 from datetime import date as date_type
 from typing import Optional
 
-import tiktoken
-
+from src.ingestion.chunking import chunk_text
 from src.ingestion.ids import compute_source_item_id, make_chunk_key
 from src.ingestion.schemas import AuthorityTier, ChunkRecord, SpeechMeta, SourceType
 from src.ingestion.speech_key import (
@@ -180,60 +180,10 @@ def party_to_slug(party: Optional[str]) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Token chunking
+# Chunking is centralised: chunk_text is imported from src.ingestion.chunking
+# and re-exported here (the openparliament_tv mapper imports it from this
+# module). Speeches use the shared boundary-aware character defaults.
 # ---------------------------------------------------------------------------
-
-_ENC: Optional[tiktoken.Encoding] = None
-
-
-def _get_encoding() -> tiktoken.Encoding:
-    """Return (and cache) the cl100k_base tiktoken encoding."""
-    global _ENC
-    if _ENC is None:
-        _ENC = tiktoken.get_encoding("cl100k_base")
-    return _ENC
-
-
-def chunk_text(
-    text: str,
-    max_tokens: int = 6000,
-    overlap: int = 200,
-) -> list[str]:
-    """Split *text* into token-bounded chunks with a small overlap.
-
-    Target ≤ max_tokens tokens per chunk (well under the 8191-token
-    OpenAI embedding limit). Short texts that fit in a single chunk
-    are returned as-is (list of one string).
-
-    Args:
-        text:       Full speech text to chunk.
-        max_tokens: Maximum token count per chunk (default 6000).
-        overlap:    Number of tokens to repeat at the start of the next
-                    chunk for context continuity (default 200).
-
-    Returns:
-        List of string chunks. Empty-text input returns an empty list.
-    """
-    if not text or not text.strip():
-        return []
-
-    enc = _get_encoding()
-    tokens = enc.encode(text)
-
-    if len(tokens) <= max_tokens:
-        return [text]
-
-    chunks: list[str] = []
-    start = 0
-    while start < len(tokens):
-        end = min(start + max_tokens, len(tokens))
-        chunk_tokens = tokens[start:end]
-        chunks.append(enc.decode(chunk_tokens))
-        if end == len(tokens):
-            break
-        start = end - overlap  # slide back by overlap for context continuity
-
-    return chunks
 
 
 # ---------------------------------------------------------------------------

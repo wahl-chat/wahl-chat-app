@@ -275,7 +275,8 @@ class TestExtractMainText:
 
 
 class TestChunkPages:
-    """chunk_pages splits page-annotated text into token-bounded chunks."""
+    """chunk_pages splits each page independently (per-page char chunking) so a
+    chunk never straddles a page boundary and its #page= anchor stays accurate."""
 
     def test_empty_pages_returns_empty(self) -> None:
         assert chunk_pages([]) == []
@@ -283,54 +284,35 @@ class TestChunkPages:
     def test_single_page_short_text_one_chunk(self) -> None:
         result = chunk_pages([(1, "Dies ist ein kurzer Text.")])
         assert len(result) == 1
-        chunk_text, page_start, page_end = result[0]
-        assert "kurzer Text" in chunk_text
+        chunk, page_start, page_end = result[0]
+        assert "kurzer Text" in chunk
         assert page_start == 1
         assert page_end == 1
 
-    def test_html_single_block_page_1_1(self) -> None:
-        """HTML source passes pages=[(1, text)]; result must have page_start=page_end=1."""
-        text = "Ein langer HTML-Text " * 50
-        result = chunk_pages([(1, text)])
+    def test_html_single_block_page_1(self) -> None:
+        """HTML source passes pages=[(1, text)]; every chunk is attributed to page 1."""
+        text = "Ein langer HTML-Text. " * 200
+        result = chunk_pages([(1, text)], chunk_size=200, chunk_overlap=20)
         assert len(result) >= 1
         for _, ps, pe in result:
             assert ps == 1
             assert pe == 1
 
-    def test_multi_page_fits_in_one_chunk(self) -> None:
-        """Two short pages -> one chunk spanning page 1 to page 2."""
+    def test_each_page_chunked_independently(self) -> None:
+        """Two short pages -> one chunk each, each within its own page."""
         pages = [(1, "Seite eins Text."), (2, "Seite zwei Text.")]
         result = chunk_pages(pages)
-        assert len(result) == 1
-        _, page_start, page_end = result[0]
-        assert page_start == 1
-        assert page_end == 2
+        assert len(result) == 2
+        assert {(ps, pe) for _, ps, pe in result} == {(1, 1), (2, 2)}
 
-    def test_multi_page_over_max_tokens_splits(self) -> None:
-        """Many pages exceeding max_tokens must produce multiple chunks."""
-        # Create ~12000 tokens worth of text across 10 pages
-        # Each token is roughly one word; 'word ' is about 1 token
-        long_page_text = "wort " * 1500  # ~1500 tokens per page
-        pages = [(i, long_page_text) for i in range(1, 9)]
-        result = chunk_pages(pages, max_tokens=6000, overlap=200)
+    def test_long_page_splits_within_same_page(self) -> None:
+        """A page longer than the size limit splits into multiple chunks, all
+        attributed to that same page (page_start == page_end)."""
+        result = chunk_pages([(3, "Wort " * 500)], chunk_size=200, chunk_overlap=20)
         assert len(result) > 1
-
-    def test_chunk_page_spans_are_correct(self) -> None:
-        """page_start / page_end must accurately reflect which pages tokens came from."""
-        # Build pages such that page 1 and 2 fit in the first chunk,
-        # and page 3+ overflow into subsequent chunks.
-        page_text = "token " * 2500  # ~2500 tokens per page
-        pages = [(i, page_text) for i in range(1, 5)]  # 4 pages = ~10000 tokens
-        result = chunk_pages(pages, max_tokens=6000, overlap=0)
-        # First chunk should start on page 1
-        assert result[0][1] == 1
-        # Last chunk should end on page 4
-        assert result[-1][2] == 4
-        # Chunks should be contiguous (page_end of chunk N >= page_start of chunk N+1 - 1)
-        for i in range(len(result) - 1):
-            _, _, pe = result[i]
-            _, ps, _ = result[i + 1]
-            assert ps <= pe + 1, f"Gap between chunk {i} (end {pe}) and chunk {i+1} (start {ps})"
+        for _, ps, pe in result:
+            assert ps == 3
+            assert pe == 3
 
 
 # ===========================================================================
@@ -680,48 +662,6 @@ class TestSlugMapParity:
 # ===========================================================================
 
 
-def test_chunk_pages_default_max_tokens_is_1500() -> None:
-    """the default token budget is 1500 (tight page spans for citation
-    deep-links). ~2000 tokens must split under the default (one chunk under
-    the old 6000 default)."""
-    import inspect
-
-    sig = inspect.signature(chunk_pages)
-    assert sig.parameters["max_tokens"].default == 1500
-
-    pages = [(1, "wort " * 1000), (2, "wort " * 1000)]  # ~2000 tokens
-    result = chunk_pages(pages)
-    assert len(result) > 1, "~2000 tokens must split under the 1500 default"
-
-
-# ===========================================================================
-# U+FFFD stripping at chunk edges
-# ===========================================================================
-
-
-class TestChunkEdgeReplacementChars:
-    """A token-boundary slice can split a multi-byte UTF-8 sequence — decode
-    then yields U+FFFD at the chunk edges. Edges must be stripped; interior
-    replacement chars (genuine source data) are preserved."""
-
-    def test_edges_are_stripped(self) -> None:
-        # "🤖" encodes to 3 partial-byte tokens in cl100k_base; max_tokens=2
-        # guarantees a chunk boundary inside the character.
-        pages = [(1, "Anfang " + "🤖" * 4 + " Ende")]
-        chunks = chunk_pages(pages, max_tokens=2, overlap=0)
-        assert len(chunks) > 1
-        for text, _ps, _pe in chunks:
-            assert not text.startswith("�"), f"leading U+FFFD in {text!r}"
-            assert not text.endswith("�"), f"trailing U+FFFD in {text!r}"
-
-    def test_interior_replacement_char_preserved(self) -> None:
-        # A genuine U+FFFD inside the text must survive chunking untouched.
-        pages = [(1, "vorher � nachher")]
-        chunks = chunk_pages(pages)
-        assert len(chunks) == 1
-        assert "�" in chunks[0][0]
-
-
 # ===========================================================================
 # ManifestoMeta typed builder
 # ===========================================================================
@@ -757,46 +697,6 @@ class TestManifestoMeta:
 # ===========================================================================
 
 
-class TestChunkPagesOverlap:
-    """Overlap must duplicate the window tail into the next chunk AND the loop
-    must terminate (start advances by max_tokens - overlap each round)."""
-
-    def test_overlap_duplicates_window_tail(self) -> None:
-        from src.ingestion.connectors.manifestos.mappers.corpus import _get_encoding
-
-        enc = _get_encoding()
-        text = " ".join(f"w{i}" for i in range(60))  # ASCII → no FFFD stripping
-        all_tokens = enc.encode(text)
-        max_tokens, overlap = 20, 5
-
-        chunks = chunk_pages([(1, text)], max_tokens=max_tokens, overlap=overlap)
-
-        assert len(chunks) > 1
-        # Chunk k spans tokens [k*(max-o), k*(max-o)+max) — pin the exact spans.
-        step = max_tokens - overlap
-        for k, (chunk_text, _ps, _pe) in enumerate(chunks):
-            start = k * step
-            end = min(start + max_tokens, len(all_tokens))
-            assert chunk_text == enc.decode(all_tokens[start:end]), (
-                f"chunk {k} does not match token span [{start}:{end}]"
-            )
-        # The overlapped region is literally duplicated across neighbours.
-        for k in range(len(chunks) - 1):
-            start_next = (k + 1) * step
-            shared = enc.decode(all_tokens[start_next : start_next + overlap])
-            assert chunks[k][0].endswith(shared)
-            assert chunks[k + 1][0].startswith(shared)
-
-    def test_overlap_terminates_and_covers_all_tokens(self) -> None:
-        from src.ingestion.connectors.manifestos.mappers.corpus import _get_encoding
-
-        enc = _get_encoding()
-        text = " ".join(f"w{i}" for i in range(203))
-        chunks = chunk_pages([(1, text)], max_tokens=50, overlap=10)
-
-        # Terminates (no infinite loop) and the final chunk carries the true tail.
-        all_tokens = enc.encode(text)
-        assert chunks[-1][0].endswith(enc.decode(all_tokens[-5:]))
-        # Every chunk respects the token budget.
-        for chunk_text, _ps, _pe in chunks:
-            assert len(enc.encode(chunk_text)) <= 50
+# Chunker internals (char splitting, overlap, edge cases) are covered by the
+# shared tests/ingestion/test_chunking.py — the manifesto connector only relies
+# on the per-page (page_start, page_end) contract, exercised above.

@@ -119,33 +119,16 @@ class TestChunkText:
         assert chunk_text("   \n\t  ") == []
 
     def test_short_text_single_chunk(self) -> None:
-        """Text shorter than max_tokens yields a single chunk equal to the original."""
+        """Text under the size limit is returned as a single chunk equal to input."""
         text = "Hello world. This is a short speech."
-        result = chunk_text(text, max_tokens=6000, overlap=200)
-        assert len(result) == 1
-        assert result[0] == text
+        assert chunk_text(text) == [text]
 
-    def test_long_text_multiple_chunks(self) -> None:
-        """Text exceeding max_tokens is split into multiple chunks."""
-        words = " ".join([f"word{i}" for i in range(50)])
-        result = chunk_text(words, max_tokens=5, overlap=1)
-        assert len(result) > 1, (
-            f"Expected multiple chunks for 50-word text with max_tokens=5, got {len(result)}"
-        )
-
-    def test_each_chunk_is_nonempty(self) -> None:
-        """Every returned chunk must be a non-empty string."""
-        words = " ".join([f"tok{i}" for i in range(40)])
-        result = chunk_text(words, max_tokens=5, overlap=1)
-        for chunk in result:
-            assert chunk.strip(), "All chunks must be non-empty strings"
-
-    def test_overlap_produces_more_chunks_than_no_overlap(self) -> None:
-        """With overlap > 0, the effective stride is smaller so more chunks are produced."""
-        words = " ".join([f"t{i}" for i in range(60)])
-        no_overlap = chunk_text(words, max_tokens=10, overlap=0)
-        with_overlap = chunk_text(words, max_tokens=10, overlap=3)
-        assert len(with_overlap) >= len(no_overlap)
+    def test_long_text_splits_into_multiple_nonempty_chunks(self) -> None:
+        """Text over the character limit splits into multiple non-empty chunks."""
+        text = " ".join(f"Satz Nummer {i} mit etwas Inhalt." for i in range(300))
+        result = chunk_text(text, chunk_size=200, chunk_overlap=20)
+        assert len(result) > 1
+        assert all(c.strip() for c in result)
 
 
 # ---------------------------------------------------------------------------

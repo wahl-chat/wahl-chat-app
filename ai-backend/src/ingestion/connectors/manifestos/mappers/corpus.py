@@ -27,9 +27,9 @@ import re
 from datetime import date as date_type
 from typing import Optional
 
-import tiktoken
 from pydantic import BaseModel, ConfigDict
 
+from src.ingestion.chunking import chunk_pages  # noqa: F401 (re-exported for connector)
 from src.ingestion.connectors.abgeordnetenwatch.mappers.corpus import (
     _normalize_fraction_label,
 )
@@ -151,18 +151,6 @@ _BUNDESTAG_WAHLPERIODE: dict[str, int] = {
     "2025": 21,
 }
 
-# ---------------------------------------------------------------------------
-# tiktoken encoder (cached)
-# ---------------------------------------------------------------------------
-
-_ENC: Optional[tiktoken.Encoding] = None
-
-
-def _get_encoding() -> tiktoken.Encoding:
-    global _ENC
-    if _ENC is None:
-        _ENC = tiktoken.get_encoding("cl100k_base")
-    return _ENC
 
 
 # =============================================================================
@@ -350,80 +338,9 @@ def extract_main_text(html: str) -> str:
     return (extracted or "").strip()
 
 
-def chunk_pages(
-    pages: list[tuple[int, str]],
-    # 1500 tokens keeps page spans tight so citation deep-links
-    # (#page=<page_start>) land near the quoted passage (6000-token chunks put
-    # them up to ~10 pages early) and keeps grounding prompts lean. Re-chunking
-    # the existing corpus is an operator action via MANIFESTO_REFRESH.
-    max_tokens: int = 1500,
-    overlap: int = 200,
-) -> list[tuple[str, int, int]]:
-    """Split page-annotated text into token-bounded chunks with overlap.
-
-    Concatenates page texts sequentially, tracking which page numbers each
-    chunk spans. A chunk may span multiple pages if a single page's text
-    fits within the token budget alongside text from adjacent pages.
-
-    Args:
-        pages: List of (page_no, text) tuples (1-indexed page numbers).
-        max_tokens: Maximum tokens per chunk (default 1500 — tight page spans
-                    for citation deep-links; well under the 8191 embed limit).
-        overlap: Number of tokens to repeat at the start of each subsequent
-                 chunk for context continuity (default 200).
-
-    Returns:
-        List of (chunk_text, page_start, page_end) tuples. ``page_start`` and
-        ``page_end`` are the first/last page numbers whose text appears in the
-        chunk. For HTML (pages=[(1, text)]), returns [(text, 1, 1)] when text
-        fits in one chunk.
-    """
-    if not pages:
-        return []
-
-    enc = _get_encoding()
-
-    # Build a flat list of (token_ids, page_no) for every page
-    # We'll work with token spans and track page boundaries.
-    all_tokens: list[int] = []
-    # page_boundaries[i] = page_no for the token at position i
-    page_of_token: list[int] = []
-
-    for page_no, text in pages:
-        if not text:
-            continue
-        tok = enc.encode(text)
-        all_tokens.extend(tok)
-        page_of_token.extend([page_no] * len(tok))
-
-    if not all_tokens:
-        return []
-
-    # A token-boundary slice can split a multi-byte UTF-8 sequence, making
-    # enc.decode() emit U+FFFD replacement characters at the chunk EDGES. Strip
-    # them (leading/trailing only — interior U+FFFD would be genuine source
-    # data and is preserved).
-    def _decode(tokens: list[int]) -> str:
-        return enc.decode(tokens).strip("\ufffd")
-
-    if len(all_tokens) <= max_tokens:
-        page_start = page_of_token[0]
-        page_end = page_of_token[-1]
-        return [(_decode(all_tokens), page_start, page_end)]
-
-    chunks: list[tuple[str, int, int]] = []
-    start = 0
-    while start < len(all_tokens):
-        end = min(start + max_tokens, len(all_tokens))
-        chunk_tokens = all_tokens[start:end]
-        page_start = page_of_token[start]
-        page_end = page_of_token[end - 1]
-        chunks.append((_decode(chunk_tokens), page_start, page_end))
-        if end == len(all_tokens):
-            break
-        start = end - overlap
-
-    return chunks
+# chunk_pages is centralised in src.ingestion.chunking (imported above and
+# re-exported here for the manifesto connector). Manifestos split per page so
+# each chunk's citation #page= anchor lands on the page the passage is on.
 
 
 def build_manifesto_records(
