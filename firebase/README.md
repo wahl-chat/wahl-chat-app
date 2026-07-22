@@ -97,9 +97,17 @@ contexts/{context_id}
 
 ### Seeding with the Python Script (Recommended)
 
-The seed script only ever targets the **local Firestore emulator** — production
-seeding is intentionally blocked: the script hard-exits unless
-`FIRESTORE_EMULATOR_HOST` is set.
+The seed script's default target is the **local Firestore emulator**: with
+`SEED_TARGET` unset it hard-exits unless `FIRESTORE_EMULATOR_HOST` is set, so a
+local run can never accidentally write to a real project.
+
+**Seeding a real project (dev/prod)** is supported today by running the script
+locally with credentials and `SEED_TARGET=real` — guarded: it requires an
+explicit `GOOGLE_CLOUD_PROJECT`, refuses to run with `FIRESTORE_EMULATOR_HOST`
+set, and seeding prod (`wahl-chat`) additionally requires a matching
+`SEED_CONFIRM_PROJECT`. Automating this on merge via Workload Identity is
+envisioned and will land with the proper deployment (Terraform) workstream — see
+`infra/README.md`.
 
 Run from the repo root:
 
