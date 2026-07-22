@@ -4,7 +4,7 @@
         lint lint-web lint-backend test-backend test-smoke test-local-mode \
         stores-up stores-down seed-local dev-local auth bootstrap-collection \
         run-abgeordnetenwatch-votes run-all-landtage-votes run-speeches \
-        run-manifestos collect-speeches \
+        run-manifestos collect-speeches fetch-mdb-stammdaten \
         update-speeches speeches-stats
 
 # --- Install dependencies ---
@@ -134,12 +134,34 @@ run-all-landtage-votes: bootstrap-collection
 	fi; \
 	echo "=== run-all-landtage-votes: all legislatures completed ==="
 
+# fetch-mdb-stammdaten: download + extract the MdB-Stammdaten XML (speaker→party
+# lookup the speech connectors use). Bundestag ships it as a ZIP via OpenData;
+# ~15 MB extracted, gitignored. Idempotent — skips if already present (delete it
+# to refresh). Without it, speeches whose XML carries no inline <fraktion>
+# (ministers, president) attribute to "unbekannt".
+# If the URL 404s the blob was rotated — get the current link from
+# https://www.bundestag.de/services/opendata ("Stammdaten aller Abgeordneten").
+MDB_STAMMDATEN_URL ?= https://www.bundestag.de/resource/blob/472878/MdB-Stammdaten.zip
+MDB_STAMMDATEN_PATH := ai-backend/data/MDB_STAMMDATEN.XML
+fetch-mdb-stammdaten:
+	@if [ -f "$(MDB_STAMMDATEN_PATH)" ]; then \
+		echo "MdB-Stammdaten already present ($(MDB_STAMMDATEN_PATH)) — skipping."; \
+	else \
+		mkdir -p ai-backend/data; \
+		echo "Downloading + extracting MdB-Stammdaten (Bundestag OpenData ZIP) …"; \
+		tmp="$$(mktemp -t mdb-stammdaten.XXXXXX)" && \
+		curl -fsSL "$(MDB_STAMMDATEN_URL)" -o "$$tmp" && \
+		unzip -o -j "$$tmp" MDB_STAMMDATEN.XML -d ai-backend/data && \
+		rm -f "$$tmp" && \
+		echo "Saved $(MDB_STAMMDATEN_PATH)."; \
+	fi
+
 # Speeches: runs the live incremental BundestagSpeechesConnector via run.py.
 # --batch-size and --time-budget flow via ARGS (run.py flags).
 # --wahlperiode is NOT a run.py flag — set it via the DIP_WAHLPERIODE env var
 # (connector __init__ default 21).
 # Requires: a valid DIP_API_KEY in ai-backend/.env; make stores-up first.
-run-speeches: bootstrap-collection
+run-speeches: bootstrap-collection fetch-mdb-stammdaten
 	cd ai-backend && QDRANT_URL=http://localhost:6333 ENV=dev \
 		uv run python -m src.ingestion.run --connector bundestag_speeches $(ARGS)
 
@@ -163,11 +185,9 @@ run-manifestos: bootstrap-collection
 # through the relocated corpus mapper without hitting the DIP API.
 # JSONL path: positional arg > SPEECHES_JSONL env > repo-root speeches.jsonl.
 # No DIP_API_KEY required for the bulk path (JSONL → mapper → embed).
-# MdB-Stammdaten XML (required by the live connector, not this path):
-#   curl -L https://www.bundestag.de/resource/blob/472878/MdB-Stammdaten.xml \
-#        -o ai-backend/data/MDB_STAMMDATEN.XML
+# The MdB-Stammdaten XML is fetched by the fetch-mdb-stammdaten prereq below.
 # Requires: make stores-up first; OPENAI_API_KEY in ai-backend/.env.
-collect-speeches: bootstrap-collection
+collect-speeches: bootstrap-collection fetch-mdb-stammdaten
 	cd ai-backend && QDRANT_URL=http://localhost:6333 ENV=dev \
 		uv run python -m src.ingestion.connectors.bundestag_speeches.bulk $(ARGS)
 
@@ -179,7 +199,7 @@ SPEECH_BATCH ?= 25
 
 # update-speeches: mirrors the scheduled Cloud Run incremental update Job for bundestag_speeches.
 # Scheduling deferred to infra/IaC, like AW. Requires: make stores-up; DIP_API_KEY in ai-backend/.env.
-update-speeches: bootstrap-collection
+update-speeches: bootstrap-collection fetch-mdb-stammdaten
 	cd ai-backend && QDRANT_URL=http://localhost:6333 ENV=dev \
 		uv run python -m src.ingestion.run --connector bundestag_speeches --batch-size $(SPEECH_BATCH)
 
