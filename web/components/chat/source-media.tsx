@@ -29,8 +29,6 @@ export type ActiveMedia = {
   title: string;
   /** 1-based PDF page to open at (e.g. an AW Wahlprogramm page citation). */
   page?: number;
-  /** Verbatim phrase to jump to / highlight via the viewer's `#search=` param. */
-  search?: string;
 };
 
 /**
@@ -51,18 +49,10 @@ function openExternally(url: string): void {
 
 /**
  * PDF open-parameter fragment for native browser viewers: `#page=N` (exact, only
- * when N > 1) plus a best-effort `#search=<phrase>` that jumps to and highlights the
- * cited passage. Both degrade gracefully — an unsupported viewer just ignores them.
+ * when N > 1). Degrades gracefully — an unsupported viewer just ignores it.
  */
-function pdfFragment(page?: number, search?: string): string {
-  const params: string[] = [];
-  if (page && page > 1) {
-    params.push(`page=${page}`);
-  }
-  if (search) {
-    params.push(`search=${encodeURIComponent(search)}`);
-  }
-  return params.length > 0 ? `#${params.join('&')}` : '';
+function pdfFragment(page?: number): string {
+  return page && page > 1 ? `#page=${page}` : '';
 }
 
 /**
@@ -70,16 +60,16 @@ function pdfFragment(page?: number, search?: string): string {
  * carries its own `#` fragment (never clobber an existing anchor). Callers gate
  * on the target actually being a PDF; non-PDF links must not get PDF params.
  */
-function withPdfFragment(url: string, page?: number, search?: string): string {
+function withPdfFragment(url: string, page?: number): string {
   if (url.includes('#')) {
     return url;
   }
-  return `${url}${pdfFragment(page, search)}`;
+  return `${url}${pdfFragment(page)}`;
 }
 
-/** Same-origin proxied PDF URL to frame, deep-linked to `page`/`search` when known. */
-function pdfViewerSrc(url: string, page?: number, search?: string): string {
-  return `${pdfProxyUrl(url)}${pdfFragment(page, search)}`;
+/** Same-origin proxied PDF URL to frame, deep-linked to `page` when known. */
+function pdfViewerSrc(url: string, page?: number): string {
+  return `${pdfProxyUrl(url)}${pdfFragment(page)}`;
 }
 
 /**
@@ -103,14 +93,13 @@ function resolveMediaOpen(
         url: link.url,
         title,
         page: source.page,
-        search: source.snippet,
       },
     };
   }
-  // New tab (off-allowlist / touch): keep the page + highlight anchors on the
-  // raw URL. `link.kind` is 'pdf' here (video returned above), and
-  // withPdfFragment skips URLs that already carry a fragment.
-  return { newTab: withPdfFragment(link.url, source.page, source.snippet) };
+  // New tab (off-allowlist / touch): keep the page anchor on the raw URL.
+  // `link.kind` is 'pdf' here (video returned above), and withPdfFragment
+  // skips URLs that already carry a fragment.
+  return { newTab: withPdfFragment(link.url, source.page) };
 }
 
 /**
@@ -135,7 +124,7 @@ export function openSourceMedia(
     // only make sense on PDF targets; plain weblinks open unmodified.
     openExternally(
       isPdfUrl(source.url)
-        ? withPdfFragment(source.url, source.page, source.snippet)
+        ? withPdfFragment(source.url, source.page)
         : source.url,
     );
   }
@@ -170,9 +159,7 @@ export function SourceMediaViewer({
 
   // "Neuer Tab" opens the same anchored location as the in-page frame for PDFs.
   const externalHref =
-    media.kind === 'pdf'
-      ? withPdfFragment(media.url, media.page, media.search)
-      : media.url;
+    media.kind === 'pdf' ? withPdfFragment(media.url, media.page) : media.url;
 
   return (
     <div className="flex min-h-0 grow flex-col">
@@ -254,7 +241,7 @@ export function SourceMediaViewer({
               />
             ) : (
               <iframe
-                src={pdfViewerSrc(media.url, media.page, media.search)}
+                src={pdfViewerSrc(media.url, media.page)}
                 title={media.title}
                 // Deliberately NOT sandboxed: Chromium disables its built-in
                 // PDF viewer inside sandboxed iframes (any token set), which

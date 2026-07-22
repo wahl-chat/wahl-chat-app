@@ -1,17 +1,12 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Citation deep-link & PDF-highlight refinement (zero embeddings, never raises).
+Citation deep-link refinement (zero embeddings, never raises).
 
-After the LLM answers, a cited source can be sharpened so the user lands on the
-exact passage rather than a whole document:
-
-  * op video speeches — rewrite ``citation_url`` to ``video_uri#t={ts_start}`` so
-    the video opens at the cited phrase (``locate_deeplink`` / ``_speech_deeplink_url``
-    / ``_refine_speech_deeplinks``).
-  * PDF-backed sources (AW manifestos, DIP speech protocols) — attach a short
-    verbatim ``#search=`` snippet so the native viewer jumps to / highlights the
-    cited text (``_search_snippet`` / ``_refine_pdf_highlights``).
+After the LLM answers, a cited op video speech can be sharpened so the user lands
+on the exact passage rather than the whole speech: rewrite ``citation_url`` to
+``video_uri#t={ts_start}`` so the video opens at the cited phrase
+(``locate_deeplink`` / ``_speech_deeplink_url`` / ``_refine_speech_deeplinks``).
 
 Everything here is lexical (difflib ratios + content-word overlap), takes only
 already-fetched payloads, and is contractually non-raising: a malformed payload
@@ -276,105 +271,6 @@ def _refine_speech_deeplinks(
             sources[idx]["url"] = refined
             if _is_video_link(refined):
                 sources[idx]["video_url"] = refined
-            changed = True
-    return changed
-
-
-# A word this long is almost certainly a German compound the PDF will hyphenate at
-# a column line-break ("Weiterbildungs-\nförderung"), which breaks a native
-# `#search=` substring match — so a snippet window is penalised for containing one.
-_HYPHENATION_PRONE_LEN = 14
-
-
-def _search_snippet(
-    source_text: str, claim: str, *, max_words: int = 8
-) -> Optional[str]:
-    """Pick a short verbatim phrase from *source_text* to drive a PDF ``#search=``.
-
-    Best-effort in-document highlight: the native browser PDF viewer jumps to and
-    highlights the first occurrence of a ``#search=`` fragment. To make that land on
-    the CITED passage (not a merely topical one, and never the model's paraphrased
-    answer text — which is not verbatim in the PDF), lexically match the model's
-    asserted *claim* against the source chunk's own sentences, take the best sentence,
-    then return the contiguous window (≤ ``max_words``) that best balances two forces:
-
-      * **distinctiveness** — maximise shared content words with the claim, so the
-        phrase is specific enough to (a) land on the cited passage, not a merely
-        topical one, and (b) not collide with a different speaker's identical wording
-        earlier in a long Plenarprotokoll (the DIP grounding risk);
-      * **matchability** — avoid very long compound words, which the PDF hyphenates at
-        column line-breaks and which then defeat the native viewer's substring match.
-
-    Whitespace and soft-hyphens are normalised. Returns None when nothing usefully
-    overlaps, so the caller omits the fragment and the page anchor (AW) / page 1 (DIP)
-    is left unchanged. Never raises.
-    """
-    if not source_text or not claim:
-        return None
-    claim_tokens = _content_tokens(claim)
-    if not claim_tokens:
-        return None
-    # Best-matching source sentence (shared content words with the cited claim).
-    best_sentence = ""
-    best_score = 0
-    for sentence in re.split(r"(?<=[.!?])\s+", source_text):
-        score = len(claim_tokens & _content_tokens(sentence))
-        if score > best_score:
-            best_score = score
-            best_sentence = sentence
-    if best_score == 0:
-        return None
-    norm = re.sub(r"\s+", " ", best_sentence.replace("­", "")).strip()
-    words = norm.split(" ")
-
-    def _window_score(window: list[str]) -> int:
-        # Distinctiveness (weighted heaviest) minus a per-long-word matchability
-        # penalty. Longer overall phrase breaks ties toward the more specific span.
-        overlap = len(claim_tokens & _content_tokens(" ".join(window)))
-        hyphenation_prone = sum(
-            1 for w in window if len(w.strip(".,;:!?»«\"'()")) > _HYPHENATION_PRONE_LEN
-        )
-        return overlap * 4 - hyphenation_prone * 3 + len(window)
-
-    if len(words) <= max_words:
-        return norm or None
-    best_window = words[:max_words]
-    best_win_score = _window_score(best_window)
-    for start in range(1, len(words) - max_words + 1):
-        window = words[start : start + max_words]
-        score = _window_score(window)
-        if score > best_win_score:
-            best_win_score = score
-            best_window = window
-    return " ".join(best_window) or None
-
-
-def _refine_pdf_highlights(
-    sources: list[dict],
-    highlight_refs: list[tuple[int, str]],
-    answer: str,
-) -> bool:
-    """Attach a best-effort ``#search=`` snippet to each cited PDF-backed source.
-
-    Mutates *sources* in place: for each source recorded in *highlight_refs* as
-    ``(index_in_sources, verbatim_chunk_text)`` whose ``[index]`` the answer cites,
-    derive a short verbatim phrase from the passage the citation is about (see
-    ``_search_snippet``) and store it as ``sources[idx]["snippet"]``. The frontend
-    appends it as a native-viewer ``#search=`` fragment to jump to / highlight the
-    cited text — AW manifestos keep their exact ``#page=`` anchor as well, while
-    XML-ingested DIP speeches (no page map) rely on the snippet alone. Returns True
-    when any snippet was set (so the caller re-emits sources_ready). Never raises.
-    """
-    changed = False
-    for idx, source_text in highlight_refs:
-        if idx >= len(sources):
-            continue
-        claim = _cited_claim_for_index(answer, idx)
-        if not claim:
-            continue
-        snippet = _search_snippet(source_text, claim)
-        if snippet and snippet != sources[idx].get("snippet"):
-            sources[idx]["snippet"] = snippet
             changed = True
     return changed
 

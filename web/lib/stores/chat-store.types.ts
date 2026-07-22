@@ -23,9 +23,6 @@ export type Source = {
   // primary (video-first) link for back-compat.
   video_url?: string;
   pdf_url?: string;
-  // Best-effort verbatim phrase from the cited passage, appended to the PDF URL as a
-  // native-viewer `#search=` fragment to jump to / highlight the cited text in-page.
-  snippet?: string;
 };
 
 export type CurrentStreamingMessages = {

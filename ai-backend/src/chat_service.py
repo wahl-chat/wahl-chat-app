@@ -56,7 +56,6 @@ from src.chatbot_async import (
 )
 from src.deeplink import (
     _is_video_link,
-    _refine_pdf_highlights,
     _refine_speech_deeplinks,
     _speech_deeplink_url,
 )
@@ -493,9 +492,6 @@ async def fetch_party_response_stream(
     # (index_in_sources, op_payload) for op speeches whose video deep-link can be
     # refined from the model's actual cited claim once the answer exists.
     speech_refs: list[tuple[int, dict]] = []
-    # (index_in_sources, verbatim_chunk_text) for PDF-backed sources (manifestos +
-    # speeches) that can gain a best-effort `#search=` highlight from the cited claim.
-    highlight_refs: list[tuple[int, str]] = []
     # The id of the currently-open v5 text block (if any) — tracked so the
     # error handlers below can close it with a text-end part; a mid-stream
     # exception would otherwise leave the stream protocol-invalid (dangling
@@ -796,15 +792,6 @@ async def fetch_party_response_stream(
             def _append_manifesto_sources(payloads: list[dict]) -> None:
                 for manifesto_payload in payloads:
                     meta = manifesto_payload.get("meta") or {}
-                    # PDF-backed manifestos (meta.source_kind != "link") are
-                    # eligible for a `#search=` highlight on the cited passage
-                    # (in addition to the page anchor). HTML ("link"-kind)
-                    # manifestos are NOT PDF-backed — appending a PDF `#search=`
-                    # fragment to their HTML URL would break the link, so they
-                    # are excluded from highlight_refs.
-                    manifesto_text = manifesto_payload.get("text")
-                    if manifesto_text and meta.get("source_kind") != "link":
-                        highlight_refs.append((len(sources), manifesto_text))
                     sources.append(
                         {
                             "source": manifesto_payload.get("citation_title"),
@@ -850,12 +837,6 @@ async def fetch_party_response_stream(
                     # deep-link can be refined post-generation from the cited claim.
                     if speech_payload.get("source") == "op" and meta.get("sentence_map"):
                         speech_refs.append((len(sources), speech_payload))
-                    # A speech with a PDF transcript (DIP always; op when a transcript
-                    # was grafted) can gain a `#search=` highlight — DIP has no page map,
-                    # so the snippet is its only in-document anchor.
-                    speech_text = speech_payload.get("text")
-                    if speech_text and source_entry.get("pdf_url"):
-                        highlight_refs.append((len(sources), speech_text))
                     sources.append(source_entry)
 
             def _append_vote_sources(payloads: list[dict]) -> None:
@@ -1025,19 +1006,14 @@ async def fetch_party_response_stream(
         full_response_text = full_response.text if full_response else ""
         full_response_text = sanitize_references(full_response_text)
 
-        # Post-generation source refinement (now the answer exists): (1) re-point
-        # each cited op speech's video deep-link at the sentence the model actually
-        # asserted, not the pre-answer RAG-query guess; (2) attach a
-        # best-effort `#search=` highlight snippet to each cited PDF source from that
-        # same claim. Either mutation → re-emit sources_ready (the client overwrites
-        # the prior sources for this party).
+        # Post-generation source refinement (now the answer exists): re-point each
+        # cited op speech's video deep-link at the sentence the model actually
+        # asserted, not the pre-answer RAG-query guess. The mutation → re-emit
+        # sources_ready (the client overwrites the prior sources for this party).
         deeplinks_changed = _refine_speech_deeplinks(
             sources, speech_refs, full_response_text
         )
-        highlights_changed = _refine_pdf_highlights(
-            sources, highlight_refs, full_response_text
-        )
-        if deeplinks_changed or highlights_changed:
+        if deeplinks_changed:
             refined_dto = SourcesDto(
                 session_id=group_chat_session.session_id,
                 party_id=party.party_id,
