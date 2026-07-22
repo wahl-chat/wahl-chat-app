@@ -26,63 +26,22 @@
 name: CI
 
 on:
-  push:
   pull_request:
+  push:
+    branches: [develop, main]
 
-# A push to a branch that already has an open PR fires BOTH the `push` and the
-# `pull_request` events, double-running the pipeline. The `guard` job below lets
-# exactly one proceed: the push run when there is NO open PR for the branch, and
-# the pull_request run when a PR IS open (the push run then no-ops). Minimal token
-# scope — pull-requests:read for `gh pr list`, contents:read for checkout.
+# Runs on every PR (including drafts — open a draft PR to get CI on a feature
+# branch during development) and on pushes to the integration branches. A
+# feature-branch push with no open PR does not run. Scoping push to develop/main
+# also means a push never fires alongside pull_request, so no dedupe job is needed.
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # Guard: dedupe push-vs-PR runs so the pipeline never runs twice for one push
-  # ---------------------------------------------------------------------------
-  guard:
-    runs-on: ubuntu-latest
-    outputs:
-      should_run: ${{ steps.decide.outputs.should_run }}
-    steps:
-      - name: Decide whether this run should proceed
-        id: decide
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EVENT_NAME: ${{ github.event_name }}
-          # Via env (not inline ${{ }}) — branch names are attacker-controllable
-          # and would otherwise be a shell-injection vector in the run script.
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          # Non-push events (pull_request) always proceed.
-          if [ "$EVENT_NAME" != "push" ]; then
-            echo "$EVENT_NAME event → proceed"
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          # Push: proceed only when the branch has no open PR (else the PR run handles CI).
-          # Fail-open: a transient GitHub API failure must not skip all of CI —
-          # treat an errored `gh pr list` as "no open PR" and proceed (worst case:
-          # one duplicate pipeline run, never a silently skipped one).
-          open_prs=$(gh pr list --repo "$GITHUB_REPOSITORY" \
-            --head "$REF_NAME" --state open --json number --jq 'length' \
-            || echo "0")
-          if [ "$open_prs" = "0" ]; then
-            echo "push with no open PR for '$REF_NAME' → proceed"
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "push but $open_prs open PR(s) for '$REF_NAME' → skip (PR run handles CI)"
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-          fi
-
   # ---------------------------------------------------------------------------
   # Backend: ruff + mypy + pytest (excludes smoke test — that is in smoke-test job)
   # ---------------------------------------------------------------------------
   backend:
-    needs: guard
-    if: needs.guard.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     services:
       # Real Qdrant so the schema/index integration tests run for real in CI
@@ -154,8 +113,6 @@ jobs:
   # Frontend: bun frozen install + audit gate + lint + build
   # ---------------------------------------------------------------------------
   frontend:
-    needs: guard
-    if: needs.guard.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -200,8 +157,6 @@ jobs:
   # Proves the GDPR Art. 9 consent gate + chat-message privacy rules in CI.
   # ---------------------------------------------------------------------------
   firebase-rules:
-    needs: guard
-    if: needs.guard.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
