@@ -84,6 +84,14 @@ jobs:
     needs: guard
     if: needs.guard.outputs.should_run == 'true'
     runs-on: ubuntu-latest
+    services:
+      # Real Qdrant so the schema/index integration tests run for real in CI
+      # instead of skipping (tests/test_qdrant_schema.py hard-fails under CI when
+      # Qdrant is absent). Pinned to match docker-compose.yml.
+      qdrant:
+        image: qdrant/qdrant:v1.18.2
+        ports:
+          - 6333:6333
     defaults:
       run:
         working-directory: ai-backend
@@ -115,7 +123,28 @@ jobs:
       - name: Type-check — mypy
         run: uv run --no-sync mypy src/
 
+      # The Qdrant service container is up, but not necessarily accepting
+      # connections yet — poll /readyz before the schema tests depend on it.
+      - name: Wait for Qdrant
+        run: |
+          for _ in $(seq 1 30); do
+            if curl -sf http://localhost:6333/readyz > /dev/null; then
+              echo "Qdrant ready"; exit 0
+            fi
+            sleep 1
+          done
+          echo "Qdrant did not become ready in time" >&2; exit 1
+
+      # Create the collection + canonical payload indexes so the schema tests
+      # assert against a real, correctly-provisioned collection.
+      - name: Bootstrap Qdrant collection
+        env:
+          QDRANT_URL: http://localhost:6333
+        run: uv run --no-sync python -m src.ingestion.setup_collection
+
       - name: Unit / integration tests (excluding smoke test)
+        env:
+          QDRANT_URL: http://localhost:6333
         run: |
           uv run --no-sync pytest tests/ -x \
             --ignore=tests/test_chat_sse.py \

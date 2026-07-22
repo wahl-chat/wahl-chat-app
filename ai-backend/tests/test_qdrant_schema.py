@@ -10,24 +10,25 @@ These tests exercise the local Qdrant instance (started via
 
   - A single ``wahlchat_chunks_dev`` collection exists after
     calling ``setup_collection.setup()``.
-  - All eleven required payload indexes are present
-    (party_id, region, region_path, authority_tier, source_type,
-    publish_date, source_item_id, external_id, status, as_of_date, claim_id)
-    as returned by ``get_collection()``.
+  - Every payload index in the canonical ``_REQUIRED_INDEXES`` spec is
+    present, as returned by ``get_collection()``.
   - MatchAny filter on scalar ``region`` returns chunks
     whose region value is in the election's region_path list and
     EXCLUDES chunks whose region is NOT in that list.
   - Upserting the same ``compute_chunk_id``-derived UUID twice
     leaves the point count unchanged (overwrite, not duplicate).
 
-All tests skip gracefully when local Qdrant is not reachable — they
-require no live API keys, no Firebase service, and no real data.
+When local Qdrant is not reachable these tests skip during local runs but
+HARD-FAIL under CI (``CI`` env set), where a Qdrant service is always
+provisioned — so the schema is verified on every CI run, never silently
+skipped. They require no live API keys, no Firebase service, and no real data.
 
 Isolation: throwaway points are written to a uniquely-named
 temporary collection that is deleted in a ``finally`` block, preserving
 the guarantee that ``wahlchat_chunks_dev`` contains zero chunks.
 """
 
+import os
 import uuid
 from typing import Generator
 
@@ -84,11 +85,16 @@ def _qdrant_reachable() -> bool:
 
 
 if not _qdrant_reachable():
-    pytest.skip(
+    _unreachable_msg = (
         "local Qdrant not reachable — run `make stores-up` or "
-        "`docker compose up -d qdrant` before executing these tests",
-        allow_module_level=True,
+        "`docker compose up -d qdrant` before executing these tests"
     )
+    # CI provisions a Qdrant service, so unreachability there is a real failure
+    # to surface — not a reason to silently drop schema coverage. Locally (no CI
+    # env) keep skipping so `make test-backend` runs without stores up.
+    if os.getenv("CI"):
+        raise RuntimeError(f"{_unreachable_msg} (CI must provision Qdrant)")
+    pytest.skip(_unreachable_msg, allow_module_level=True)
 
 # Type alias used in annotations throughout — same interface as QdrantClient.
 QdrantClient = _RealQdrantClient
@@ -162,12 +168,12 @@ def test_collection_exists(qdrant: QdrantClient) -> None:
 
 
 def test_payload_indexes(qdrant: QdrantClient) -> None:
-    """all eleven required payload indexes must be present.
+    """Every canonical payload index (``_REQUIRED_INDEXES``) must be present.
 
-    The eleven indexes are: party_id, region, region_path, authority_tier,
-    source_type, publish_date, source_item_id, external_id, status,
-    as_of_date, claim_id.  Missing any breaks the per-tenant HNSW
-    optimisation, cross-level MatchAny queries, or the cursor.
+    Asserted against the single source of truth in ``setup_collection`` rather
+    than a hard-coded list, so the test can never drift from the schema. Missing
+    any index breaks the per-tenant HNSW optimisation, cross-level MatchAny
+    queries, or the cursor.
     """
     info = qdrant.get_collection(COLLECTION_NAME)
     indexed = set(info.payload_schema.keys())
@@ -306,23 +312,4 @@ def test_idempotent_upsert(qdrant: QdrantClient, temp_collection: str) -> None:
     assert fetched[0].payload.get("text") == "version-two", (
         "second upsert should have overwritten the payload with 'version-two'. "
         f"Actual payload: {fetched[0].payload!r}"
-    )
-
-
-def test_new_phase5_indexes_present(qdrant: QdrantClient) -> None:
-    """all four new payload indexes must be present after setup().
-
-    The four new indexes are: external_id (IntegerIndexParams with range=True),
-    status (keyword), as_of_date (datetime), claim_id (keyword).
-    Missing external_id range index breaks the order_by DESC cursor query.
-    """
-    _PHASE5_INDEXES = {"external_id", "status", "as_of_date", "claim_id"}
-
-    info = qdrant.get_collection(COLLECTION_NAME)
-    indexed = set(info.payload_schema.keys())
-    missing = _PHASE5_INDEXES - indexed
-    assert not missing, (
-        f"missing payload indexes in '{COLLECTION_NAME}': {missing!r}. "
-        "Re-run `uv run python -m src.ingestion.setup_collection` to add them. "
-        "Note: external_id must use IntegerIndexParams(range=True) for the cursor query."
     )
