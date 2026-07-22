@@ -43,9 +43,22 @@ class TestLegislatureConfigShape:
         """Every one of the 16 German states must have at least one Landtag row."""
         regions = {LEGISLATURE_CONFIG[lid].region for lid in LANDTAG_LEGISLATURE_IDS}
         expected = {
-            "DE-BW", "DE-BY", "DE-BE", "DE-BB", "DE-HB", "DE-HH", "DE-HE",
-            "DE-MV", "DE-NI", "DE-NW", "DE-RP", "DE-SL", "DE-SN", "DE-ST",
-            "DE-SH", "DE-TH",
+            "DE-BW",
+            "DE-BY",
+            "DE-BE",
+            "DE-BB",
+            "DE-HB",
+            "DE-HH",
+            "DE-HE",
+            "DE-MV",
+            "DE-NI",
+            "DE-NW",
+            "DE-RP",
+            "DE-SL",
+            "DE-SN",
+            "DE-ST",
+            "DE-SH",
+            "DE-TH",
         }
         assert regions == expected, (
             f"Landtag regions {regions!r} do not cover exactly the 16 states {expected!r}"
@@ -94,7 +107,9 @@ class TestLegislatureConfigShape:
                 f"Outgoing Landtag ID {lid} missing from LANDTAG_LEGISLATURE_IDS"
             )
             cfg = LEGISLATURE_CONFIG[lid]
-            assert cfg.region == region, f"ID {lid}: region {cfg.region!r} != {region!r}"
+            assert cfg.region == region, (
+                f"ID {lid}: region {cfg.region!r} != {region!r}"
+            )
             assert cfg.date_from == date_from, (
                 f"ID {lid}: date_from {cfg.date_from!r} != {date_from!r}"
             )
@@ -102,8 +117,12 @@ class TestLegislatureConfigShape:
                 f"ID {lid}: date_to {cfg.date_to!r} != {date_to!r}"
             )
             # Range sits within 2021–2026 (outgoing term voters want around the election).
-            assert cfg.date_from.startswith("2021"), f"ID {lid} outgoing term must start in 2021"
-            assert cfg.date_to.startswith("2026"), f"ID {lid} outgoing term must end in 2026"
+            assert cfg.date_from.startswith("2021"), (
+                f"ID {lid} outgoing term must start in 2021"
+            )
+            assert cfg.date_to.startswith("2026"), (
+                f"ID {lid} outgoing term must end in 2026"
+            )
 
         # Post-election rows must still be present alongside the outgoing ones.
         assert LEGISLATURE_CONFIG[165].date_from.startswith("2026")
@@ -161,13 +180,17 @@ class TestLegislatureConfigShape:
         cfg = LEGISLATURE_CONFIG[149]  # Bayern — guaranteed to exist
         try:
             cfg.region = "XX"  # type: ignore[misc]
-            raise AssertionError("LegislatureConfig.region must be read-only (frozen=True)")
+            raise AssertionError(
+                "LegislatureConfig.region must be read-only (frozen=True)"
+            )
         except (AttributeError, TypeError):
             pass  # expected: frozen dataclass raises on assignment
 
     def test_all_landtag_ids_in_legislature_config(self) -> None:
         """Every ID in LANDTAG_LEGISLATURE_IDS must be a key in LEGISLATURE_CONFIG."""
-        missing = [lid for lid in LANDTAG_LEGISLATURE_IDS if lid not in LEGISLATURE_CONFIG]
+        missing = [
+            lid for lid in LANDTAG_LEGISLATURE_IDS if lid not in LEGISLATURE_CONFIG
+        ]
         assert not missing, (
             f"LANDTAG_LEGISLATURE_IDS contains IDs not in LEGISLATURE_CONFIG: {missing!r}"
         )
@@ -178,9 +201,7 @@ class TestTermWindowForContext:
 
     def test_window_by_period_id(self) -> None:
         """An explicit legislature_period_id resolves that row's (date_from, date_to)."""
-        window = term_window_for_context(
-            region_path=["DE"], legislature_period_id=161
-        )
+        window = term_window_for_context(region_path=["DE"], legislature_period_id=161)
         assert window is not None
         start, end = window
         assert start == datetime(2025, 3, 25, tzinfo=timezone.utc)
@@ -230,22 +251,25 @@ class TestTermWindowForContext:
 
     def test_window_none_when_unresolved(self) -> None:
         """Unknown region / general context with no matching row returns None."""
-        assert term_window_for_context(
-            region_path=["DE", "DE-XX"], legislature_period_id=None
-        ) is None
-        assert term_window_for_context(
-            region_path=None, legislature_period_id=None
-        ) is None
+        assert (
+            term_window_for_context(
+                region_path=["DE", "DE-XX"], legislature_period_id=None
+            )
+            is None
+        )
+        assert (
+            term_window_for_context(region_path=None, legislature_period_id=None)
+            is None
+        )
         # Unknown period id with no region falls through to None.
-        assert term_window_for_context(
-            region_path=None, legislature_period_id=999999
-        ) is None
+        assert (
+            term_window_for_context(region_path=None, legislature_period_id=999999)
+            is None
+        )
 
     def test_window_datetimes_are_tz_aware(self) -> None:
         """Returned datetimes carry tzinfo=UTC; date_to=None maps to the sentinel."""
-        window = term_window_for_context(
-            region_path=["DE"], legislature_period_id=161
-        )
+        window = term_window_for_context(region_path=["DE"], legislature_period_id=161)
         assert window is not None
         start, end = window
         assert start.tzinfo == timezone.utc
@@ -258,7 +282,9 @@ class TestTermWindowForContext:
         monkeypatch.setitem(
             LEGISLATURE_CONFIG,
             900001,
-            LegislatureConfig(900001, "DE-ZZ", "Testland 2020 - open", "2020-01-01", None),
+            LegislatureConfig(
+                900001, "DE-ZZ", "Testland 2020 - open", "2020-01-01", None
+            ),
         )
         window = term_window_for_context(
             region_path=["DE", "DE-ZZ"], legislature_period_id=900001

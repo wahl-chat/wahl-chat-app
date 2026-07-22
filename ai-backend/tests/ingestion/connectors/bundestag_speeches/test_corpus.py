@@ -205,7 +205,9 @@ class TestBuildChunkRecords:
     def test_citation_url_set(self) -> None:
         """citation_url must equal speech pdf_url."""
         result = build_chunk_records(_SAMPLE_SPEECH)
-        assert result[0].citation_url == "https://dserver.bundestag.de/btp/21/2100099.pdf"
+        assert (
+            result[0].citation_url == "https://dserver.bundestag.de/btp/21/2100099.pdf"
+        )
 
     def test_citation_title_contains_speaker_and_date(self) -> None:
         """citation_title must include speaker_name, date, and protocol_id."""
@@ -399,9 +401,7 @@ class TestNormalizePartyCsu:
         """is_known_party('CDU') must return True."""
         from src.ingestion.connectors.bundestag_speeches.utils import is_known_party
 
-        assert is_known_party("CDU") is True, (
-            "is_known_party('CDU') must be True"
-        )
+        assert is_known_party("CDU") is True, "is_known_party('CDU') must be True"
 
     def test_is_known_party_joint_union(self) -> None:
         """is_known_party('CDU/CSU') must remain True (joint Union fraktion)."""
@@ -417,7 +417,10 @@ class TestNormalizePartyCsu:
     )
     def test_non_union_parties_still_known(self, party: str) -> None:
         """Non-Union parties must still be recognized after the CSU alias change."""
-        from src.ingestion.connectors.bundestag_speeches.utils import is_known_party, normalize_party
+        from src.ingestion.connectors.bundestag_speeches.utils import (
+            is_known_party,
+            normalize_party,
+        )
 
         assert is_known_party(party) is True, (
             f"is_known_party({party!r}) must still be True"
@@ -509,6 +512,7 @@ def test_bulk_stamps_external_id_from_date() -> None:
         # embed_documents must return a valid-dimension vector for _upsert_chunks.
         # Import EMBEDDING_DIM for correctness.
         from src.ingestion.setup_collection import EMBEDDING_DIM
+
         mock_embed.embed_documents.return_value = [[0.0] * EMBEDDING_DIM]
 
         # Capture the chunks passed to _upsert_chunks via the qdrant.upsert call.
@@ -576,8 +580,7 @@ def test_dip_client_pages_stops_at_max_pages() -> None:
         pages = list(client.pages("/test-endpoint"))
 
     assert len(pages) == _MAX_PAGES, (
-        f"DipClient.pages() must stop after {_MAX_PAGES} pages, "
-        f"got {len(pages)} pages"
+        f"DipClient.pages() must stop after {_MAX_PAGES} pages, got {len(pages)} pages"
     )
 
 

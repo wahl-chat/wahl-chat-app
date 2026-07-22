@@ -50,9 +50,7 @@ def test_defense_returns_federal_and_state() -> None:
 def test_federal_only_topic_returns_federal() -> None:
     """A federal-only topic must return only ['federal']."""
     result = get_relevance_levels(["Außenwirtschaft"])
-    assert result == ["federal"], (
-        f"Außenwirtschaft is federal-only, got {result!r}"
-    )
+    assert result == ["federal"], f"Außenwirtschaft is federal-only, got {result!r}"
 
 
 def test_union_of_multiple_topics() -> None:
@@ -146,61 +144,63 @@ def test_reclassified_topics_include_state() -> None:
 # ---------------------------------------------------------------------------
 
 # Exact label strings verified from the AW v2 /topics endpoint (2026-06-26).
-_EXPECTED_53_LABELS: frozenset[str] = frozenset({
-    "Verteidigung",
-    "Außenpolitik und internationale Beziehungen",
-    "Europapolitik und Europäische Union",
-    "Außenwirtschaft",
-    "Entwicklungspolitik",
-    "Humanitäre Hilfe",
-    "Menschenrechte",
-    "Arbeit und Beschäftigung",
-    "Soziale Sicherung",
-    "Gesundheit",
-    "Öffentliche Finanzen, Steuern und Abgaben",
-    "Finanzen",
-    "Haushalt",
-    "Wirtschaft",
-    "Energie",
-    "Klima",
-    "Umwelt",
-    "Naturschutz",
-    "Verkehr",
-    "Bildung und Erziehung",
-    "Raumordnung, Bau- und Wohnungswesen",
-    "Landwirtschaft und Ernährung",
-    "Migration und Aufenthaltsrecht",
-    "Innere Sicherheit",
-    "Innere Angelegenheiten",
-    "Staat und Verwaltung",
-    "Recht",
-    "Gesellschaftspolitik, soziale Gruppen",
-    "Familie",
-    "Frauen",
-    "Jugend",
-    "Senioren",
-    "Digitale Agenda",
-    "digitale Infrastruktur",
-    "Medien, Kommunikation und Informationstechnik",
-    "Medien",
-    "Kultur",
-    "Sport",
-    "Sport, Freizeit und Tourismus",
-    "Tourismus",
-    "Verbraucherschutz",
-    "Forschung",
-    "Wissenschaft, Forschung und Technologie",
-    "Reaktorsicherheit",
-    "Technologiefolgenabschätzung",
-    "Lobbyismus & Transparenz",
-    "Politisches Leben, Parteien",
-    "Bundestag",
-    "Geschäftsordnung",
-    "Immunität",
-    "Petitionen",
-    "Wahlprüfung",
-    "Deutsche Einheit / Innerdeutsche Beziehungen (bis 1990)",
-})
+_EXPECTED_53_LABELS: frozenset[str] = frozenset(
+    {
+        "Verteidigung",
+        "Außenpolitik und internationale Beziehungen",
+        "Europapolitik und Europäische Union",
+        "Außenwirtschaft",
+        "Entwicklungspolitik",
+        "Humanitäre Hilfe",
+        "Menschenrechte",
+        "Arbeit und Beschäftigung",
+        "Soziale Sicherung",
+        "Gesundheit",
+        "Öffentliche Finanzen, Steuern und Abgaben",
+        "Finanzen",
+        "Haushalt",
+        "Wirtschaft",
+        "Energie",
+        "Klima",
+        "Umwelt",
+        "Naturschutz",
+        "Verkehr",
+        "Bildung und Erziehung",
+        "Raumordnung, Bau- und Wohnungswesen",
+        "Landwirtschaft und Ernährung",
+        "Migration und Aufenthaltsrecht",
+        "Innere Sicherheit",
+        "Innere Angelegenheiten",
+        "Staat und Verwaltung",
+        "Recht",
+        "Gesellschaftspolitik, soziale Gruppen",
+        "Familie",
+        "Frauen",
+        "Jugend",
+        "Senioren",
+        "Digitale Agenda",
+        "digitale Infrastruktur",
+        "Medien, Kommunikation und Informationstechnik",
+        "Medien",
+        "Kultur",
+        "Sport",
+        "Sport, Freizeit und Tourismus",
+        "Tourismus",
+        "Verbraucherschutz",
+        "Forschung",
+        "Wissenschaft, Forschung und Technologie",
+        "Reaktorsicherheit",
+        "Technologiefolgenabschätzung",
+        "Lobbyismus & Transparenz",
+        "Politisches Leben, Parteien",
+        "Bundestag",
+        "Geschäftsordnung",
+        "Immunität",
+        "Petitionen",
+        "Wahlprüfung",
+        "Deutsche Einheit / Innerdeutsche Beziehungen (bis 1990)",
+    }
+)
 
 
 def test_taxonomy_has_exactly_53_entries() -> None:
@@ -216,12 +216,8 @@ def test_all_53_labels_are_present() -> None:
     taxonomy_keys = set(TOPIC_TAXONOMY.keys())
     missing = _EXPECTED_53_LABELS - taxonomy_keys
     extra = taxonomy_keys - _EXPECTED_53_LABELS
-    assert not missing, (
-        f"Labels missing from TOPIC_TAXONOMY: {missing!r}"
-    )
-    assert not extra, (
-        f"Unexpected extra labels in TOPIC_TAXONOMY: {extra!r}"
-    )
+    assert not missing, f"Labels missing from TOPIC_TAXONOMY: {missing!r}"
+    assert not extra, f"Unexpected extra labels in TOPIC_TAXONOMY: {extra!r}"
 
 
 def test_all_taxonomy_values_are_subsets_of_all_levels() -> None:
@@ -231,9 +227,7 @@ def test_all_taxonomy_values_are_subsets_of_all_levels() -> None:
         for label, levels in TOPIC_TAXONOMY.items()
         if not levels or not levels.issubset(ALL_LEVELS)
     }
-    assert not invalid, (
-        f"TOPIC_TAXONOMY entries with invalid level sets: {invalid!r}"
-    )
+    assert not invalid, f"TOPIC_TAXONOMY entries with invalid level sets: {invalid!r}"
 
 
 def test_all_levels_constant_matches_context_level_values() -> None:
@@ -293,9 +287,9 @@ def test_golden_fixture_labels_resolve_without_all_levels_fallback(
         with caplog.at_level(logging.WARNING, logger=ttc.logger.name):
             caplog.clear()
             get_relevance_levels([label])
-        assert not any(
-            "not in TOPIC_TAXONOMY" in r.message for r in caplog.records
-        ), f"Golden-fixture label {label!r} fell back to ALL_LEVELS (unmapped)"
+        assert not any("not in TOPIC_TAXONOMY" in r.message for r in caplog.records), (
+            f"Golden-fixture label {label!r} fell back to ALL_LEVELS (unmapped)"
+        )
 
 
 # ---------------------------------------------------------------------------

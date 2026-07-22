@@ -30,7 +30,11 @@ import pytest
 
 try:
     from src.ingestion.connector import BaseConnector
-    from src.ingestion.ids import compute_chunk_id, compute_source_item_id, make_chunk_key
+    from src.ingestion.ids import (
+        compute_chunk_id,
+        compute_source_item_id,
+        make_chunk_key,
+    )
     from src.ingestion.run import run_connector
     from src.ingestion.schemas import (
         AuthorityTier,
@@ -119,7 +123,11 @@ class HashStubConnector(StubConnector):
         self._content_hash = content_hash
 
     def normalize(self, raw: dict) -> list[ChunkRecord]:
-        return [_make_chunk(raw["poll_id"]).model_copy(update={"content_hash": self._content_hash})]
+        return [
+            _make_chunk(raw["poll_id"]).model_copy(
+                update={"content_hash": self._content_hash}
+            )
+        ]
 
 
 # ---------------------------------------------------------------------------
@@ -176,7 +184,10 @@ def test_run_connector_upserts_no_firestore() -> None:
     mock_embed = _make_mock_embed()
 
     # Patch firestore client construction — should never be called.
-    with patch("google.cloud.firestore.Client", side_effect=AssertionError("Firestore must not be touched")) as mock_firestore_cls:
+    with patch(
+        "google.cloud.firestore.Client",
+        side_effect=AssertionError("Firestore must not be touched"),
+    ) as mock_firestore_cls:
         report = run_connector(connector, mock_qdrant, mock_embed, batch_size=10)
 
     # Qdrant upsert must have been called for each item.
@@ -241,7 +252,9 @@ def test_time_budget_exits_early() -> None:
     mock_qdrant = _make_mock_qdrant()
     mock_embed = _make_mock_embed()
 
-    report = run_connector(connector, mock_qdrant, mock_embed, batch_size=10, time_budget_s=0.0)
+    report = run_connector(
+        connector, mock_qdrant, mock_embed, batch_size=10, time_budget_s=0.0
+    )
 
     # With time_budget_s=0, the monotonic check fires after the first item.
     assert report.processed >= 1, "At least one item must have been processed"
@@ -293,7 +306,9 @@ def test_already_present_item_skips_embed() -> None:
     mock_embed = _make_mock_embed()
 
     # Compute the point ID for the already-present poll's single chunk (chunk_index=0).
-    already_source_item_id = compute_source_item_id("vote_record", str(already_present_poll))
+    already_source_item_id = compute_source_item_id(
+        "vote_record", str(already_present_poll)
+    )
     already_point_id = str(compute_chunk_id(already_source_item_id, 0))
 
     # Footprint scroll side_effect: serve poll 1's stored point when its
@@ -400,8 +415,12 @@ def test_orphan_delete_uses_point_ids_after_embed() -> None:
     orphan_pid = str(compute_chunk_id(source_item_id, 1))  # stale higher-index chunk
     mock_qdrant.scroll.side_effect = _footprint_scroll(
         [
-            SimpleNamespace(id=kept_pid, payload={"source_item_id": str(source_item_id)}),
-            SimpleNamespace(id=orphan_pid, payload={"source_item_id": str(source_item_id)}),
+            SimpleNamespace(
+                id=kept_pid, payload={"source_item_id": str(source_item_id)}
+            ),
+            SimpleNamespace(
+                id=orphan_pid, payload={"source_item_id": str(source_item_id)}
+            ),
         ]
     )
 

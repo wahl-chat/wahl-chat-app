@@ -200,7 +200,9 @@ def ingest(
         # --- Chunk ---
         chunk_tuples = chunk_pages(pages_list)
         if not chunk_tuples:
-            print(f"  SKIP program {program_id} ({party_label}): no text after chunking")
+            print(
+                f"  SKIP program {program_id} ({party_label}): no text after chunking"
+            )
             continue
 
         # Convert chunk_pages output to the format expected by build_manifesto_records.
@@ -313,7 +315,10 @@ if __name__ == "__main__":
         try:
             specific_ids = [int(x.strip()) for x in args.ids.split(",") if x.strip()]
         except ValueError:
-            print("ERROR: --ids must be a comma-separated list of integers", file=sys.stderr)
+            print(
+                "ERROR: --ids must be a comma-separated list of integers",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
     qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")

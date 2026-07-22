@@ -81,6 +81,7 @@ class ManifestoMeta(BaseModel):
     # Only stamped when the party slug quarantines to "unbekannt".
     raw_party_label: Optional[str] = None
 
+
 # ---------------------------------------------------------------------------
 # Party slug map — for election-program party.label
 # ---------------------------------------------------------------------------
@@ -140,7 +141,6 @@ _BUNDESTAG_WAHLPERIODE: dict[str, int] = {
     "2021": 20,
     "2025": 21,
 }
-
 
 
 # =============================================================================

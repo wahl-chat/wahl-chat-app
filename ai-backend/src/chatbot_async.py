@@ -425,9 +425,7 @@ def build_vote_documents(
     docs: list[Document] = []
     for payload in vote_payloads:
         results = (payload.get("meta") or {}).get("vote_results") or []
-        party_result = next(
-            (r for r in results if r.get("party_id") == party_id), None
-        )
+        party_result = next((r for r in results if r.get("party_id") == party_id), None)
         if party_result is None:
             continue  # party did not participate in this vote — skip
 
@@ -576,7 +574,9 @@ async def generate_streaming_chatbot_response(
         # generate_streaming_chatbot_comparing_response).
         if present_sources is not None or has_historic:
             manifesto_present, votes_present, speeches_present = (
-                present_sources if present_sources is not None else (False, False, False)
+                present_sources
+                if present_sources is not None
+                else (False, False, False)
             )
             answer_guidelines += _source_structure_note(
                 party.name,

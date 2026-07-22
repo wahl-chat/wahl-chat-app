@@ -26,7 +26,12 @@ from pathlib import Path
 
 import defusedxml.ElementTree as ElementTree  # blocks entity-expansion / billion-laughs
 
-from .utils import normalize_name_for_lookup, normalize_party, normalize_whitespace, parse_int
+from .utils import (
+    normalize_name_for_lookup,
+    normalize_party,
+    normalize_whitespace,
+    parse_int,
+)
 
 
 def name_from_mdb_entry(name_entry) -> str | None:
@@ -39,7 +44,10 @@ def latest_fraction_party(mdb) -> str | None:
     for term in mdb.findall("WAHLPERIODEN/WAHLPERIODE"):
         term_number = parse_int(term.findtext("WP"))
         for institution in term.findall("INSTITUTIONEN/INSTITUTION"):
-            if normalize_whitespace(institution.findtext("INSART_LANG")) != "Fraktion/Gruppe":
+            if (
+                normalize_whitespace(institution.findtext("INSART_LANG"))
+                != "Fraktion/Gruppe"
+            ):
                 continue
             party = normalize_party(institution.findtext("INS_LANG"))
             if party:
@@ -52,7 +60,9 @@ def latest_fraction_party(mdb) -> str | None:
 
 def parse_mdb_record(mdb) -> dict:
     names = [name_from_mdb_entry(name) for name in mdb.findall("NAMEN/NAME")]
-    party = normalize_party(mdb.findtext("BIOGRAFISCHE_ANGABEN/PARTEI_KURZ")) or latest_fraction_party(mdb)
+    party = normalize_party(
+        mdb.findtext("BIOGRAFISCHE_ANGABEN/PARTEI_KURZ")
+    ) or latest_fraction_party(mdb)
     return {
         "id": normalize_whitespace(mdb.findtext("ID")),
         "names": [name for name in names if name],

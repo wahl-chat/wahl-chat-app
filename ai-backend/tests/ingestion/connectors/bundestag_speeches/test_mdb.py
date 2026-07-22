@@ -64,7 +64,9 @@ class TestLoadMdbLookup:
         assert "11003444" in result["by_id"], "Merz MdB record not found by ID"
         record = result["by_id"]["11003444"]
         # Party must be resolved from WAHLPERIODE WP=21 INSTITUTION INS_LANG=CDU/CSU
-        assert record["party"] is not None, "Party must resolve via WAHLPERIODEN fallback"
+        assert record["party"] is not None, (
+            "Party must resolve via WAHLPERIODEN fallback"
+        )
         assert "CDU" in record["party"] or record["party"] == "CDU/CSU"
 
     def test_missing_file_returns_empty_lookups(self, tmp_path: Path) -> None:

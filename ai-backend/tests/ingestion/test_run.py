@@ -49,7 +49,16 @@ class _CursorQdrant:
         self._by_source = by_source
         self.last_filter = None
 
-    def scroll(self, *, collection_name, scroll_filter, order_by, limit, with_payload, with_vectors):  # noqa: ANN001, ANN003
+    def scroll(
+        self,
+        *,
+        collection_name,
+        scroll_filter,
+        order_by,
+        limit,
+        with_payload,
+        with_vectors,
+    ):  # noqa: ANN001, ANN003
         self.last_filter = scroll_filter
         # Determine which source the filter scoped to, if any.
         source = None
@@ -67,8 +76,12 @@ def test_source_scoped_cursor() -> None:
     """op vs dip max(external_id) is isolated by the `source` param."""
     qdrant = _CursorQdrant({"op": 20230601, "dip": 20260615})
 
-    op_cursor = get_cursor(qdrant, "wahlchat_chunks_dev", "parliamentary_speech", source="op")
-    dip_cursor = get_cursor(qdrant, "wahlchat_chunks_dev", "parliamentary_speech", source="dip")
+    op_cursor = get_cursor(
+        qdrant, "wahlchat_chunks_dev", "parliamentary_speech", source="op"
+    )
+    dip_cursor = get_cursor(
+        qdrant, "wahlchat_chunks_dev", "parliamentary_speech", source="dip"
+    )
 
     assert op_cursor == 20230601, f"op cursor must be isolated; got {op_cursor}"
     assert dip_cursor == 20260615, f"dip cursor must be isolated; got {dip_cursor}"
@@ -167,7 +180,9 @@ def test_base_connector_declares_source_type_contract() -> None:
     assert not hasattr(BaseConnector, "source_type") or isinstance(
         BaseConnector.source_type, str
     ), "source_type must have NO non-str default on the ABC"
-    assert BaseConnector.source is None, "the optional source discriminator defaults to None"
+    assert BaseConnector.source is None, (
+        "the optional source discriminator defaults to None"
+    )
 
 
 class _ChunksStub(BaseConnector):
@@ -265,7 +280,9 @@ def test_all_present_first_batch_does_not_stall() -> None:
     assert len(qdrant.upserts) == 1, "the NEW item must be reached and upserted"
     assert report.chunks_upserted == 1
     assert report.processed == 1, "only the item that did work counts toward the budget"
-    assert report.present_skips == 2, "present-and-unchanged items are counted separately"
+    assert report.present_skips == 2, (
+        "present-and-unchanged items are counted separately"
+    )
     assert report.remaining == 0, "all discovered ids were consumed"
 
 
@@ -362,7 +379,9 @@ def test_shrink_in_place_removes_stale_chunk() -> None:
     assert len(qdrant.upserts) == 1, "the surviving 2 chunks must be re-upserted"
     assert report.chunks_upserted == 2
     assert report.processed == 1
-    assert report.present_skips == 0, "an orphaned footprint is NOT a clean present-skip"
+    assert report.present_skips == 0, (
+        "an orphaned footprint is NOT a clean present-skip"
+    )
 
 
 def test_rewrite_preserves_grafted_transcript_pdf_url() -> None:
@@ -475,7 +494,9 @@ def test_embed_failure_leaves_existing_footprint_intact() -> None:
     # Neutralize tenacity's exponential backoff so the test stays fast.
     from unittest.mock import patch
 
-    with patch("src.ingestion.run._embed_texts", side_effect=RuntimeError("OpenAI down")):
+    with patch(
+        "src.ingestion.run._embed_texts", side_effect=RuntimeError("OpenAI down")
+    ):
         report = run_connector(connector, qdrant, embed, batch_size=10)
 
     assert report.failed_ids == ("c1",), "the item is skip-and-warned, not lost"
@@ -513,7 +534,9 @@ def test_qdrant_api_key_plumbed_everywhere() -> None:
     import src.ingestion.run as run_mod
 
     needle = 'api_key=os.getenv("QDRANT_API_KEY")'
-    assert needle in inspect.getsource(run_mod), "run.py __main__ client must pass api_key"
+    assert needle in inspect.getsource(run_mod), (
+        "run.py __main__ client must pass api_key"
+    )
     assert needle in inspect.getsource(
         dip_mod.BundestagSpeechesConnector._get_qdrant
     ), "DIP resurrection-guard client must pass api_key"

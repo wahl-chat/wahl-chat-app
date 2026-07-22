@@ -59,7 +59,7 @@ def test_vote_sources_include_region() -> None:
     # Replicate the sources loop from chat_service.py.
     sources: list = []
     for vp in [vote_payload]:
-        meta_vp = (vp.get("meta") or {})
+        meta_vp = vp.get("meta") or {}
         results_vp = meta_vp.get("vote_results") or []
         party_result_vp = next(
             (r for r in results_vp if r.get("party_id") == party_id), None
@@ -73,15 +73,13 @@ def test_vote_sources_include_region() -> None:
                 "document_publish_date": vp.get("publish_date"),
                 "url": vp.get("citation_url"),
                 "source_document": vp.get("citation_title"),
-                "region": vp.get("region"),   # must be present
+                "region": vp.get("region"),  # must be present
             }
         )
 
     assert len(sources) == 1, "Expected 1 source entry for participating party"
     source_dict = sources[0]
-    assert "region" in source_dict, (
-        "vote source dict must include 'region' key"
-    )
+    assert "region" in source_dict, "vote source dict must include 'region' key"
     assert source_dict["region"] == "DE", (
         f"region must match payload region 'DE', got {source_dict['region']!r}"
     )
@@ -92,13 +90,16 @@ def test_vote_sources_region_de_payload() -> None:
     # This test verifies the actual chat_service.py sources loop contains the field.
     # We inspect the source code for the 'region' key assignment in the loop.
     import src.chat_service as cs_module
+
     source = inspect.getsource(cs_module)
 
-    # Must contain the region assignment in the vote sources loop
-    assert '"region": vote_payload.get("region")' in source or \
-           "'region': vote_payload.get('region')" in source, (
-        "chat_service.py sources loop must include "
-        "'\"region\": vote_payload.get(\"region\")'"
+    # Whitespace-insensitive so the check survives formatter line-wrapping (ruff
+    # may split the .get() call across lines): the vote sources loop must assign
+    # "region" from vote_payload.get("region") regardless of layout.
+    compact = "".join(source.split())
+    assert '"region":vote_payload.get("region")' in compact, (
+        'chat_service.py sources loop must assign "region" '
+        'from vote_payload.get("region")'
     )
 
 
@@ -148,6 +149,7 @@ def test_election_level_only_in_vote_retrieve() -> None:
     or speech retrieves.
     """
     import src.chat_service as cs_module
+
     source = inspect.getsource(cs_module)
 
     # Must contain the level=election_level kwarg (passed to vote retrieve)
@@ -210,6 +212,7 @@ def _wire_common_mocks(monkeypatch, capture: dict) -> None:
 
     Leaves retrieve / retrieve_two_pass for the individual test to set.
     """
+
     async def _mock_rag_query(*_a, **_k) -> str:
         return "improved q"
 
@@ -342,18 +345,22 @@ def test_current_first_merge_order(monkeypatch) -> None:
         st = kwargs.get("source_type")
         if st == "party_manifesto":
             return {
-                "current": [{
-                    "citation_title": "CUR-MANI",
-                    "publish_date": "2022-01-01",
-                    "citation_url": "u",
-                    "meta": {"page_start": 1},
-                }],
-                "historic": [{
-                    "citation_title": "HIST-MANI",
-                    "publish_date": "2018-01-01",
-                    "citation_url": "u",
-                    "meta": {"page_start": 1},
-                }],
+                "current": [
+                    {
+                        "citation_title": "CUR-MANI",
+                        "publish_date": "2022-01-01",
+                        "citation_url": "u",
+                        "meta": {"page_start": 1},
+                    }
+                ],
+                "historic": [
+                    {
+                        "citation_title": "HIST-MANI",
+                        "publish_date": "2018-01-01",
+                        "citation_url": "u",
+                        "meta": {"page_start": 1},
+                    }
+                ],
             }
         if st == "vote_record":
             return {
@@ -362,16 +369,20 @@ def test_current_first_merge_order(monkeypatch) -> None:
             }
         if st == "parliamentary_speech":
             return {
-                "current": [{
-                    "citation_title": "CUR-SPEECH",
-                    "publish_date": "2022-01-01",
-                    "citation_url": "u",
-                }],
-                "historic": [{
-                    "citation_title": "HIST-SPEECH",
-                    "publish_date": "2018-01-01",
-                    "citation_url": "u",
-                }],
+                "current": [
+                    {
+                        "citation_title": "CUR-SPEECH",
+                        "publish_date": "2022-01-01",
+                        "citation_url": "u",
+                    }
+                ],
+                "historic": [
+                    {
+                        "citation_title": "HIST-SPEECH",
+                        "publish_date": "2018-01-01",
+                        "citation_url": "u",
+                    }
+                ],
             }
         return {"current": [], "historic": []}
 
@@ -386,8 +397,12 @@ def test_current_first_merge_order(monkeypatch) -> None:
 
     titles = [d.metadata.get("document_name") for d in capture["combined_docs"]]
     assert titles == [
-        "CUR-MANI", "CUR-VOTE", "CUR-SPEECH",
-        "HIST-MANI", "HIST-VOTE", "HIST-SPEECH",
+        "CUR-MANI",
+        "CUR-VOTE",
+        "CUR-SPEECH",
+        "HIST-MANI",
+        "HIST-VOTE",
+        "HIST-SPEECH",
     ], (
         "combined_docs must be current-first, historic-after "
         "(manifesto→vote→speech per bucket) — not the old manifesto→speech order"
@@ -451,12 +466,14 @@ def test_speech_trimmed_when_official_present(monkeypatch) -> None:
         st = kwargs.get("source_type")
         if st == "party_manifesto":
             return {
-                "current": [{
-                    "citation_title": "MANI",
-                    "publish_date": "2022-01-01",
-                    "citation_url": "u",
-                    "meta": {"page_start": 1},
-                }],
+                "current": [
+                    {
+                        "citation_title": "MANI",
+                        "publish_date": "2022-01-01",
+                        "citation_url": "u",
+                        "meta": {"page_start": 1},
+                    }
+                ],
                 "historic": [],
             }
         if st == "vote_record":
@@ -510,7 +527,10 @@ def test_official_coverage_helper() -> None:
     # Votes empty, manifesto present.
     assert cs._official_coverage([], [{"citation_title": "M"}]) == (True, False)
     # Both present → neither absent.
-    assert cs._official_coverage([object()], [{"citation_title": "M"}]) == (False, False)
+    assert cs._official_coverage([object()], [{"citation_title": "M"}]) == (
+        False,
+        False,
+    )
 
 
 def test_single_pass_fallback_when_no_window(monkeypatch) -> None:
@@ -522,12 +542,14 @@ def test_single_pass_fallback_when_no_window(monkeypatch) -> None:
     def _mock_single(_query, **kwargs):
         called["single"] = True
         if kwargs.get("source_type") == "party_manifesto":
-            return [{
-                "citation_title": "SP-MANI",
-                "publish_date": "2022-01-01",
-                "citation_url": "u",
-                "meta": {"page_start": 1},
-            }]
+            return [
+                {
+                    "citation_title": "SP-MANI",
+                    "publish_date": "2022-01-01",
+                    "citation_url": "u",
+                    "meta": {"page_start": 1},
+                }
+            ]
         return []
 
     def _mock_two_pass_flag(_query, **kwargs):
@@ -540,10 +562,16 @@ def test_single_pass_fallback_when_no_window(monkeypatch) -> None:
 
     _drive_single_party(None)
 
-    assert called["single"] is True, "single-pass retrieve() must be used when no window"
-    assert called["two_pass"] is False, "retrieve_two_pass must NOT run without a window"
+    assert called["single"] is True, (
+        "single-pass retrieve() must be used when no window"
+    )
+    assert called["two_pass"] is False, (
+        "retrieve_two_pass must NOT run without a window"
+    )
     titles = [d.metadata.get("document_name") for d in capture["combined_docs"]]
-    assert titles == ["SP-MANI"], "fallback grounding must come from single-pass retrieve()"
+    assert titles == ["SP-MANI"], (
+        "fallback grounding must come from single-pass retrieve()"
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -289,7 +289,8 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
             # Plain string compare is valid for zero-padded YYYY-MM-DD dates.
             # Polls with a missing/empty field_poll_date are excluded when the floor is set.
             polls = [
-                p for p in polls
+                p
+                for p in polls
                 if (p.get("field_poll_date") or "") >= aw_poll_since
                 and (p.get("field_poll_date") or "") != ""
             ]
@@ -397,7 +398,7 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         chunks = corpus_mapper.chunk_poll(
             stub,
             raw,
-            wahlperiode=self._wahlperiode,          # None for Landtage
+            wahlperiode=self._wahlperiode,  # None for Landtage
             legislature_period_id=self._period_id,  # from LegislatureConfig
         )
 

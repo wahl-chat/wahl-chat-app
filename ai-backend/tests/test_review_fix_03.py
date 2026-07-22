@@ -79,7 +79,9 @@ class _FakeQuery:
 
     def where(self, filter: Any) -> "_FakeQuery":  # noqa: A002
         # Support FieldFilter("vector_status", "in", [...]) used by claim_pending_work.
-        field = getattr(filter, "field_path", None) or getattr(filter, "_field_path", None)
+        field = getattr(filter, "field_path", None) or getattr(
+            filter, "_field_path", None
+        )
         op = getattr(filter, "op_string", None) or getattr(filter, "_op_string", None)
         value = getattr(filter, "value", None)
         if value is None:
@@ -239,7 +241,9 @@ def test_claim_pending_work_reclaims_failed() -> None:
     items.document("p1").set({"source_item_id": "p1", "vector_status": "pending"})
     items.document("f1").set({"source_item_id": "f1", "vector_status": "failed"})
     items.document("done").set({"source_item_id": "done", "vector_status": "embedded"})
-    items.document("dead").set({"source_item_id": "dead", "vector_status": "embed_failed"})
+    items.document("dead").set(
+        {"source_item_id": "dead", "vector_status": "embed_failed"}
+    )
 
     claimed = claim_pending_work(db, limit=10)
     claimed_ids = {c["source_item_id"] for c in claimed}
@@ -265,7 +269,9 @@ def test_claim_pending_work_reclaims_failed() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_run_module_dispatches_worker_with_clients(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_module_dispatches_worker_with_clients(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """the embedding_worker branch must pass db AND qdrant to the worker.
 
     Exercises the production wiring (build clients + call signature) that the

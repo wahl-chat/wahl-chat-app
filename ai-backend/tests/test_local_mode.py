@@ -20,9 +20,7 @@ import sys
 import pytest
 
 # Absolute path to the seed script from the repo root
-_REPO_ROOT = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), "..", "..")
-)
+_REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
 _SEED_SCRIPT = os.path.join(_REPO_ROOT, "firebase", "scripts", "seed_firestore.py")
 
 
@@ -52,9 +50,7 @@ async def test_no_prod_connection():
        why it refused.
     """
     if not os.path.isfile(_SEED_SCRIPT):
-        pytest.skip(
-            f"Seed script not found at {_SEED_SCRIPT}"
-        )
+        pytest.skip(f"Seed script not found at {_SEED_SCRIPT}")
 
     try:
         result = _run_seed_script_no_emulator()

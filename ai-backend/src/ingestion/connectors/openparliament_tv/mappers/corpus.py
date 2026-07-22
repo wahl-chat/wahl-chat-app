@@ -142,7 +142,9 @@ def _iso_date(date_start: Optional[str]) -> str:
     return str(date_start or "")[:10]
 
 
-def build_chunk_records(item: dict, mdb_lookup: Optional[dict] = None) -> list[ChunkRecord]:
+def build_chunk_records(
+    item: dict, mdb_lookup: Optional[dict] = None
+) -> list[ChunkRecord]:
     """Build ChunkRecord(s) for ONE raw op session ``data[]`` item.
 
     Applies the usability gate directly on the raw item: an unaligned item or

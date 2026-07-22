@@ -124,8 +124,9 @@ _HISTORIC_LIMITS = {"vote": 2, "manifesto": 2, "speech": 1}
 #     sparse the fetched-at-ceiling speeches are kept so the answer isn't starved.
 _CURRENT_VOTE_LIMIT = 5
 _CURRENT_MANIFESTO_LIMIT = 4
-_CURRENT_SPEECH_LIMIT = 2          # normal cap (ranked last)
-_CURRENT_SPEECH_FALLBACK = 5       # adaptive ceiling when official data is sparse
+_CURRENT_SPEECH_LIMIT = 2  # normal cap (ranked last)
+_CURRENT_SPEECH_FALLBACK = 5  # adaptive ceiling when official data is sparse
+
 
 # ---------------------------------------------------------------------------
 # Payload → numbered-Document builders (shared by the single-party and
@@ -243,6 +244,7 @@ def _has_historic_docs(
             if published < term_start:
                 return True
     return False
+
 
 # Per-stream wall-clock budget (seconds).
 # Prevents a wedged LLM stream from keeping the SSE connection open forever —
@@ -447,8 +449,7 @@ async def yield_cached_party_response(
         {"type": "party_complete", **party_response_complete_dto.model_dump()},
     )
     logger.info(
-        f"Cached party response for {party.party_id} yielded "
-        f"(message_id={message_id})"
+        f"Cached party response for {party.party_id} yielded (message_id={message_id})"
     )
 
 
@@ -524,9 +525,9 @@ async def fetch_party_response_stream(
             logger.debug(
                 f"Checking cache for party {party.party_id} with key {cache_key}"
             )
-            existing_cached_answers: List[CachedResponse] = (
-                await aget_cached_answers_for_party(party.party_id, cache_key)
-            )
+            existing_cached_answers: List[
+                CachedResponse
+            ] = await aget_cached_answers_for_party(party.party_id, cache_key)
             cached_answer_limit = 1
             possible_answers: list = (
                 existing_cached_answers + [None]
@@ -536,9 +537,7 @@ async def fetch_party_response_stream(
             cached_answer_to_emit = random.choice(possible_answers)
 
         if cached_answer_to_emit is not None:
-            logger.info(
-                f"Serving cached response for party {party.party_id}"
-            )
+            logger.info(f"Serving cached response for party {party.party_id}")
             async for event in yield_cached_party_response(
                 party, group_chat_session, cached_answer_to_emit
             ):
@@ -649,7 +648,7 @@ async def fetch_party_response_stream(
                         historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
                         region_path=region_path,
                         legislature_period_id=legislature_period_id,
-                        level=election_level,   # NOT passed to manifesto/speech
+                        level=election_level,  # NOT passed to manifesto/speech
                     )
                     # legislature_period_id and level scope ONLY vote_record — never
                     # passed to manifesto/speech (those chunks lack the fields, so the
@@ -689,17 +688,22 @@ async def fetch_party_response_stream(
                         historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
                         region_path=region_path,
                     )
-                    vote_buckets, manifesto_buckets, speech_buckets = (
-                        await asyncio.gather(_vote_coro, _manifesto_coro, _speech_coro)
-                    )
+                    (
+                        vote_buckets,
+                        manifesto_buckets,
+                        speech_buckets,
+                    ) = await asyncio.gather(_vote_coro, _manifesto_coro, _speech_coro)
                     vote_current, vote_historic = (
-                        vote_buckets["current"], vote_buckets["historic"]
+                        vote_buckets["current"],
+                        vote_buckets["historic"],
                     )
                     manifesto_current, manifesto_historic = (
-                        manifesto_buckets["current"], manifesto_buckets["historic"]
+                        manifesto_buckets["current"],
+                        manifesto_buckets["historic"],
                     )
                     speech_current, speech_historic = (
-                        speech_buckets["current"], speech_buckets["historic"]
+                        speech_buckets["current"],
+                        speech_buckets["historic"],
                     )
                 else:
                     # SINGLE-PASS fallback — no window resolved. Byte-for-byte the
@@ -716,7 +720,7 @@ async def fetch_party_response_stream(
                         score_threshold=_CHAT_SCORE_THRESHOLD,
                         region_path=region_path,
                         legislature_period_id=legislature_period_id,
-                        level=election_level,   # NOT passed to manifesto/speech
+                        level=election_level,  # NOT passed to manifesto/speech
                     )
                     _manifesto_coro_sp = _safe_retrieve(
                         improved_rag_query,
@@ -738,10 +742,12 @@ async def fetch_party_response_stream(
                         score_threshold=_CHAT_SCORE_THRESHOLD,
                         region_path=region_path,
                     )
-                    vote_current, manifesto_current, speech_current = (
-                        await asyncio.gather(
-                            _vote_coro_sp, _manifesto_coro_sp, _speech_coro_sp
-                        )
+                    (
+                        vote_current,
+                        manifesto_current,
+                        speech_current,
+                    ) = await asyncio.gather(
+                        _vote_coro_sp, _manifesto_coro_sp, _speech_coro_sp
                     )
 
             # Document builders (_mk_manifesto_docs / _mk_speech_docs) are shared
@@ -763,9 +769,7 @@ async def fetch_party_response_stream(
             # at retrieval, so a non-empty raw historic payload means "cleared the
             # bar" — enough to instruct a marked historic section. Drives has_historic
             # threaded into generation below.
-            has_historic = bool(
-                manifesto_historic or speech_historic or vote_historic
-            )
+            has_historic = bool(manifesto_historic or speech_historic or vote_historic)
             if not votes_absent and not manifesto_absent:
                 speech_current = speech_current[:_CURRENT_SPEECH_LIMIT]
 
@@ -796,7 +800,9 @@ async def fetch_party_response_stream(
                         {
                             "source": manifesto_payload.get("citation_title"),
                             "page": meta.get("page_start"),
-                            "document_publish_date": manifesto_payload.get("publish_date"),
+                            "document_publish_date": manifesto_payload.get(
+                                "publish_date"
+                            ),
                             "url": manifesto_payload.get("citation_url"),
                             "source_document": manifesto_payload.get("citation_title"),
                         }
@@ -835,7 +841,9 @@ async def fetch_party_response_stream(
                     source_entry.update(_speech_attribution(speech_payload))
                     # Record op speeches with a timed sentence_map so their video
                     # deep-link can be refined post-generation from the cited claim.
-                    if speech_payload.get("source") == "op" and meta.get("sentence_map"):
+                    if speech_payload.get("source") == "op" and meta.get(
+                        "sentence_map"
+                    ):
                         speech_refs.append((len(sources), speech_payload))
                     sources.append(source_entry)
 
@@ -844,7 +852,7 @@ async def fetch_party_response_stream(
                 # filter build_vote_documents uses, so only participating votes get a
                 # sources[] entry and sources[N] stays aligned with combined_docs[N].
                 for vote_payload in payloads:
-                    meta_vp = (vote_payload.get("meta") or {})
+                    meta_vp = vote_payload.get("meta") or {}
                     results_vp = meta_vp.get("vote_results") or []
                     party_result_vp = next(
                         (r for r in results_vp if r.get("party_id") == party.party_id),
@@ -859,7 +867,9 @@ async def fetch_party_response_stream(
                             "document_publish_date": vote_payload.get("publish_date"),
                             "url": vote_payload.get("citation_url"),
                             "source_document": vote_payload.get("citation_title"),
-                            "region": vote_payload.get("region"),   # structural origin marker
+                            "region": vote_payload.get(
+                                "region"
+                            ),  # structural origin marker
                         }
                     )
 
@@ -1068,12 +1078,12 @@ async def fetch_party_response_stream(
                     [m for m in group_chat_session.chat_history if m.role == Role.USER]
                 ),
             )
-            await awrite_cached_answer_for_party(party.party_id, cache_key, cached_answer)
+            await awrite_cached_answer_for_party(
+                party.party_id, cache_key, cached_answer
+            )
 
     except openai.BadRequestError as e:
-        logger.error(
-            f"BadRequestError for party {party.party_id}: {e}", exc_info=True
-        )
+        logger.error(f"BadRequestError for party {party.party_id}: {e}", exc_info=True)
         if open_text_id is not None:
             # Close the dangling v5 text block so the stream stays protocol-valid.
             yield _text_end(open_text_id)
@@ -1142,9 +1152,7 @@ async def process_party(
         """Wrap retrieve() so a failure returns [] rather than raising."""
         try:
             # with_scores=False here → list[dict]; narrow retrieve()'s union return.
-            return cast(
-                list[dict], await asyncio.to_thread(retrieve, *args, **kwargs)
-            )
+            return cast(list[dict], await asyncio.to_thread(retrieve, *args, **kwargs))
         except Exception as _err:  # noqa: BLE001
             logger.warning(
                 "comparison retrieve() failed (source=%s party=%s): %s",
@@ -1200,7 +1208,7 @@ async def process_party(
                 historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
                 region_path=region_path,
                 legislature_period_id=legislature_period_id,
-                level=election_level,   # vote-only
+                level=election_level,  # vote-only
             )
             # legislature_period_id and level scope ONLY vote_record (see single-party path).
             # Manifesto pass uses the widened campaign-window start (see the
@@ -1239,13 +1247,16 @@ async def process_party(
                 _vote_coro, _manifesto_coro, _speech_coro
             )
             vote_current, vote_historic = (
-                vote_buckets["current"], vote_buckets["historic"]
+                vote_buckets["current"],
+                vote_buckets["historic"],
             )
             manifesto_current, manifesto_historic = (
-                manifesto_buckets["current"], manifesto_buckets["historic"]
+                manifesto_buckets["current"],
+                manifesto_buckets["historic"],
             )
             speech_current, speech_historic = (
-                speech_buckets["current"], speech_buckets["historic"]
+                speech_buckets["current"],
+                speech_buckets["historic"],
             )
         else:
             # SINGLE-PASS fallback — no window resolved. Unchanged pre-Phase-09
@@ -1261,7 +1272,7 @@ async def process_party(
                 score_threshold=_CHAT_SCORE_THRESHOLD,
                 region_path=region_path,
                 legislature_period_id=legislature_period_id,
-                level=election_level,   # vote-only
+                level=election_level,  # vote-only
             )
             _manifesto_coro_sp = _safe_retrieve_cmp(
                 improved_rag_query,
@@ -1436,7 +1447,9 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
     )
 
     # Build chat history from request body (stateless model)
-    from src.models.chat import GroupChatSession as _GroupChatSession  # local import avoids circular
+    from src.models.chat import (
+        GroupChatSession as _GroupChatSession,
+    )  # local import avoids circular
     from src.models.general import LLMSize
 
     chat_history: list[Message] = []
@@ -1468,7 +1481,9 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
         # Fetch context ONCE; derive region_path and legislature_period_id for
         # election-scoped retrieval. All retrieve() calls in both paths reuse these.
         _context = await aget_context_by_id(body.context_id)
-        region_path: List[str] = _context.region_path if _context is not None else ["DE"]
+        region_path: List[str] = (
+            _context.region_path if _context is not None else ["DE"]
+        )
         # AW parliament_period ID for period-scoped vote retrieval.
         # Passed ONLY to vote_record retrieve() calls. Manifesto/speech
         # chunks do not carry this field, so applying it as a MatchValue filter
@@ -1479,9 +1494,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
         # Governance level for the election context.
         # level is passed ONLY to vote_record retrieve() (via election_level).
         # Default None is treated as 'federal' by retrieve() post-fetch re-rank.
-        election_level: Optional[str] = (
-            _context.level if _context is not None else None
-        )
+        election_level: Optional[str] = _context.level if _context is not None else None
         # Derive the current-term window ONCE from the RAW context values,
         # BEFORE the federal-only nulling of legislature_period_id below — the raw
         # period id lets term_window_for_context resolve the exact legislature row
@@ -1511,7 +1524,9 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
             _ctx_date = _context.date if _context is not None else None
             if _ctx_date is not None:
                 manifesto_term_start = datetime(
-                    _ctx_date.year, _ctx_date.month, _ctx_date.day,
+                    _ctx_date.year,
+                    _ctx_date.month,
+                    _ctx_date.day,
                     tzinfo=timezone.utc,
                 ) - timedelta(days=30)
             else:
@@ -1534,9 +1549,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                 region_path,
             )
 
-        pre_selected_parties = [
-            p for p in all_parties if p.party_id in body.party_ids
-        ]
+        pre_selected_parties = [p for p in all_parties if p.party_id in body.party_ids]
         pre_selected_party_ids = [p.party_id for p in pre_selected_parties]
 
         chat_history_without_last = chat_history[:-1]
@@ -1591,9 +1604,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
             party_id_list = ["wahl-chat"]
 
         parties_to_respond = [
-            p
-            for p in all_parties + [WAHL_CHAT_PARTY]
-            if p.party_id in party_id_list
+            p for p in all_parties + [WAHL_CHAT_PARTY] if p.party_id in party_id_list
         ]
 
         responding_party_ids = (

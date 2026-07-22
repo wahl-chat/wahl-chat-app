@@ -68,7 +68,9 @@ class VoteResult(BaseModel):
     yes: int = Field(..., description="Count of 'yes' votes in the fraction")
     no: int = Field(..., description="Count of 'no' votes in the fraction")
     abstain: int = Field(..., description="Count of 'abstain' votes in the fraction")
-    no_show: int = Field(..., description="Count of 'no_show' (did not vote) in the fraction")
+    no_show: int = Field(
+        ..., description="Count of 'no_show' (did not vote) in the fraction"
+    )
 
 
 class VoteMeta(BaseModel):
@@ -106,9 +108,15 @@ class SpeechMeta(BaseModel):
 
     person_id: Optional[str] = Field(None, description="Speaker person identifier")
     speaker_name: Optional[str] = Field(None, description="Full name of the speaker")
-    xml_rede_id: Optional[str] = Field(None, description="XML Rede ID from the protocol")
-    protocol_id: Optional[str] = Field(None, description="Protocol identifier (e.g. '19/245')")
-    protocol_api_id: Optional[str] = Field(None, description="API-level protocol identifier")
+    xml_rede_id: Optional[str] = Field(
+        None, description="XML Rede ID from the protocol"
+    )
+    protocol_id: Optional[str] = Field(
+        None, description="Protocol identifier (e.g. '19/245')"
+    )
+    protocol_api_id: Optional[str] = Field(
+        None, description="API-level protocol identifier"
+    )
 
 
 class ChunkRecord(BaseModel):
@@ -144,15 +152,21 @@ class ChunkRecord(BaseModel):
         description="Human-readable '{source_item_id}:{chunk_index:04d}' — PAYLOAD only, not the point ID",
     )
     source_item_id: uuid.UUID = Field(..., description="Parent source item UUID")
-    chunk_index: int = Field(..., description="Zero-based chunk position within the item")
+    chunk_index: int = Field(
+        ..., description="Zero-based chunk position within the item"
+    )
     text: str = Field(..., description="Chunk text content")
     party_id: str = Field(..., description="Short party slug, e.g. 'spd'")
     region: str = Field(..., description="Scalar region for MatchAny filter")
     authority_tier: AuthorityTier = Field(..., description="Trustworthiness tier")
     source_type: SourceType = Field(..., description="Content category")
     publish_date: date_type = Field(..., description="Date the source was published")
-    citation_url: Optional[str] = Field(None, description="URL for SSE citation annotation")
-    citation_title: Optional[str] = Field(None, description="Title for SSE citation annotation")
+    citation_url: Optional[str] = Field(
+        None, description="URL for SSE citation annotation"
+    )
+    citation_title: Optional[str] = Field(
+        None, description="Title for SSE citation annotation"
+    )
     # Cursor field:
     external_id: Optional[int] = Field(
         None,

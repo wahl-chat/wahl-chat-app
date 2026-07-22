@@ -53,7 +53,13 @@ from src.models.dtos import (
     VotingBehaviorRequestDto,
     VotingBehaviorVoteDto,
 )
-from src.models.vote import Link, Vote, VotingResults, VotingResultsByParty, VotingResultsOverall
+from src.models.vote import (
+    Link,
+    Vote,
+    VotingResults,
+    VotingResultsByParty,
+    VotingResultsOverall,
+)
 from src.chat_service import MAX_RESPONSE_CHUNK_LENGTH
 from src.utils import GENERIC_ERROR_MESSAGE
 
@@ -307,7 +313,9 @@ async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequest
             yield "data: [DONE]\n\n"
 
         except Exception as e:
-            logger.error(f"Error processing voting behavior request: {e}", exc_info=True)
+            logger.error(
+                f"Error processing voting behavior request: {e}", exc_info=True
+            )
             # Generic client-facing message only — full detail is logged above.
             yield f"data: 8{json.dumps({'type': 'error', 'message': GENERIC_ERROR_MESSAGE})}\n\n"
             yield "data: [DONE]\n\n"

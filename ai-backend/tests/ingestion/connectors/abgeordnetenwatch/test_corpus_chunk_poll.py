@@ -60,7 +60,13 @@ def test_one_chunk_per_poll() -> None:
 def test_party_ids_lists_all_participants() -> None:
     chunk = _chunks()[0]
     assert set(chunk.party_ids or []) == {
-        "fdp", "spd", "linke", "afd", "cdu", "gruene", "fraktionslos"
+        "fdp",
+        "spd",
+        "linke",
+        "afd",
+        "cdu",
+        "gruene",
+        "fraktionslos",
     }
     # party_id (tenant key) is the _all sentinel — votes opt out of tenant grouping.
     assert chunk.party_id == "_all"
@@ -111,13 +117,21 @@ def test_vote_chunk_dump_has_no_speech_meta_keys() -> None:
     chunk = _chunks()[0]
     dumped = chunk.model_dump(mode="json", exclude_none=True)
     # SpeechMeta keys must not appear at the top level of a vote chunk.
-    for speech_key in ("person_id", "speaker_name", "xml_rede_id", "protocol_id", "protocol_api_id"):
+    for speech_key in (
+        "person_id",
+        "speaker_name",
+        "xml_rede_id",
+        "protocol_id",
+        "protocol_api_id",
+    ):
         assert speech_key not in dumped, (
             f"Vote chunk dump must not contain SpeechMeta key '{speech_key}'"
         )
     # vote_results and motion_outcome must NOT appear at top-level (they live in meta).
     assert "vote_results" not in dumped, "vote_results must live in meta, not top-level"
-    assert "motion_outcome" not in dumped, "motion_outcome must live in meta, not top-level"
+    assert "motion_outcome" not in dumped, (
+        "motion_outcome must live in meta, not top-level"
+    )
     # They must appear inside meta.
     assert "meta" in dumped, "Vote chunk must have a meta dict"
     assert "vote_results" in dumped["meta"], "meta must contain vote_results"
@@ -181,7 +195,10 @@ class TestStatePartySlugMap:
 
     def test_bvb_fw_resolves_to_bvb_fw(self) -> None:
         """'BVB/Freie Wähler (Brandenburg 2024 - 2029)' must resolve to 'bvb-fw'."""
-        assert _canonical_party_slug("BVB/Freie Wähler (Brandenburg 2024 - 2029)") == "bvb-fw"
+        assert (
+            _canonical_party_slug("BVB/Freie Wähler (Brandenburg 2024 - 2029)")
+            == "bvb-fw"
+        )
 
     def test_unknown_fraction_quarantined_as_unbekannt(self) -> None:
         """Unknown fraction labels must return the quarantine slug 'unbekannt'."""
@@ -231,7 +248,9 @@ def test_content_hash_changes_with_envelope_fields() -> None:
     so an AW_REFRESH reconcile run propagates envelope corrections."""
     raw = _load_raw_3602()
 
-    base = chunk_poll(_SourceItemStub(), raw, wahlperiode=19, legislature_period_id=111)[0]
+    base = chunk_poll(
+        _SourceItemStub(), raw, wahlperiode=19, legislature_period_id=111
+    )[0]
 
     different_period = chunk_poll(
         _SourceItemStub(), raw, wahlperiode=20, legislature_period_id=132
@@ -249,7 +268,9 @@ def test_content_hash_changes_with_envelope_fields() -> None:
         "changing region must change content_hash"
     )
 
-    repeat = chunk_poll(_SourceItemStub(), raw, wahlperiode=19, legislature_period_id=111)[0]
+    repeat = chunk_poll(
+        _SourceItemStub(), raw, wahlperiode=19, legislature_period_id=111
+    )[0]
     assert repeat.content_hash == base.content_hash, (
         "content_hash must stay deterministic for identical inputs"
     )

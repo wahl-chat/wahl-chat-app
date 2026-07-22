@@ -77,7 +77,10 @@ class TestAggregateFractionTallies:
         """Votes with fraction=[] (not a dict) are silently skipped."""
         votes = [
             {"fraction": [], "vote": "no_show"},
-            {"fraction": {"id": 22, "entity_type": "fraction", "label": "SPD"}, "vote": "yes"},
+            {
+                "fraction": {"id": 22, "entity_type": "fraction", "label": "SPD"},
+                "vote": "yes",
+            },
         ]
         tallies = aggregate_fraction_tallies(votes)
         assert 22 in tallies, "SPD fraction (id=22) should be tallied"
@@ -90,7 +93,10 @@ class TestAggregateFractionTallies:
         """Votes with fraction=None are also skipped without raising."""
         votes = [
             {"fraction": None, "vote": "abstain"},
-            {"fraction": {"id": 14, "entity_type": "fraction", "label": "FDP"}, "vote": "no"},
+            {
+                "fraction": {"id": 14, "entity_type": "fraction", "label": "FDP"},
+                "vote": "no",
+            },
         ]
         tallies = aggregate_fraction_tallies(votes)
         assert 14 in tallies
@@ -138,9 +144,9 @@ class TestAggregateFractionTallies:
         ]
         tallies = aggregate_fraction_tallies(votes)
         assert tallies[22]["yes"] == 1
-        assert sum(
-            tallies[22][k] for k in ("yes", "no", "abstain", "no_show")
-        ) == 1, "Only the single valid 'yes' vote should be counted"
+        assert sum(tallies[22][k] for k in ("yes", "no", "abstain", "no_show")) == 1, (
+            "Only the single valid 'yes' vote should be counted"
+        )
 
     def test_fraction_missing_id_is_skipped(self) -> None:
         """A fraction dict missing 'id' is skip-and-warned, not KeyError."""
@@ -210,23 +216,23 @@ class TestFractionToPartySlug:
 
 # Verified per-fraction stances from the live API (poll 3602)
 EXPECTED_3602_STANCES = {
-    14: "disagree",   # FDP: 0 yes, 75 no, 0 abstain, 5 no_show
-    22: "agree",      # SPD: 144 yes, 0 no, 0 abstain, 8 no_show
-    41: "disagree",   # DIE LINKE: 0 yes, 57 no, 0 abstain, 12 no_show
-    56: "disagree",   # AfD: 0 yes, 79 no, 0 abstain, 10 no_show
-    81: "agree",      # CDU/CSU: 225 yes, 0 no, 4 abstain, 17 no_show
-    153: "neutral",   # DIE GRÜNEN: 0 yes, 1 no, 59 abstain, 7 no_show
-    231: "absent",    # fraktionslos: 0 yes, 2 no, 0 abstain, 4 no_show
+    14: "disagree",  # FDP: 0 yes, 75 no, 0 abstain, 5 no_show
+    22: "agree",  # SPD: 144 yes, 0 no, 0 abstain, 8 no_show
+    41: "disagree",  # DIE LINKE: 0 yes, 57 no, 0 abstain, 12 no_show
+    56: "disagree",  # AfD: 0 yes, 79 no, 0 abstain, 10 no_show
+    81: "agree",  # CDU/CSU: 225 yes, 0 no, 4 abstain, 17 no_show
+    153: "neutral",  # DIE GRÜNEN: 0 yes, 1 no, 59 abstain, 7 no_show
+    231: "absent",  # fraktionslos: 0 yes, 2 no, 0 abstain, 4 no_show
 }
 
 EXPECTED_3602_TALLIES = {
-    14:  {"yes": 0,   "no": 75, "abstain": 0,  "no_show": 5},
-    22:  {"yes": 144, "no": 0,  "abstain": 0,  "no_show": 8},
-    41:  {"yes": 0,   "no": 57, "abstain": 0,  "no_show": 12},
-    56:  {"yes": 0,   "no": 79, "abstain": 0,  "no_show": 10},
-    81:  {"yes": 225, "no": 0,  "abstain": 4,  "no_show": 17},
-    153: {"yes": 0,   "no": 1,  "abstain": 59, "no_show": 7},
-    231: {"yes": 0,   "no": 2,  "abstain": 0,  "no_show": 4},
+    14: {"yes": 0, "no": 75, "abstain": 0, "no_show": 5},
+    22: {"yes": 144, "no": 0, "abstain": 0, "no_show": 8},
+    41: {"yes": 0, "no": 57, "abstain": 0, "no_show": 12},
+    56: {"yes": 0, "no": 79, "abstain": 0, "no_show": 10},
+    81: {"yes": 225, "no": 0, "abstain": 4, "no_show": 17},
+    153: {"yes": 0, "no": 1, "abstain": 59, "no_show": 7},
+    231: {"yes": 0, "no": 2, "abstain": 0, "no_show": 4},
 }
 
 
@@ -248,7 +254,9 @@ class TestGoldenRecord3602:
         """The fixture contains one fraction=[] vote; it must be silently skipped."""
         votes = aw_poll_3602_votes["data"]
         empty_fraction_votes = [v for v in votes if v.get("fraction") == []]
-        assert len(empty_fraction_votes) >= 1, "Fixture must contain at least one fraction=[] vote"
+        assert len(empty_fraction_votes) >= 1, (
+            "Fixture must contain at least one fraction=[] vote"
+        )
 
         tallies = aggregate_fraction_tallies(votes)
         # Only the 7 real fractions should appear — the empty-fraction vote must be absent

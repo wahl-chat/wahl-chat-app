@@ -60,7 +60,9 @@ def test_supersede_deletes_dip_duplicate() -> None:
         }
     )
     qdrant = _MergeRecordingQdrant([dip_point])
-    stub_connector = types.SimpleNamespace(source="op", source_type="parliamentary_speech")
+    stub_connector = types.SimpleNamespace(
+        source="op", source_type="parliamentary_speech"
+    )
 
     supersede_dip_duplicates(
         qdrant,
@@ -70,9 +72,9 @@ def test_supersede_deletes_dip_duplicate() -> None:
     )
 
     assert qdrant.deletes, "op ingest must delete the matched DIP twin"
-    assert any(
-        _filter_mentions(d, ("dip-1", "dip")) for d in qdrant.deletes
-    ), "delete must be scoped to the twin's source_item_id AND source == 'dip'"
+    assert any(_filter_mentions(d, ("dip-1", "dip")) for d in qdrant.deletes), (
+        "delete must be scoped to the twin's source_item_id AND source == 'dip'"
+    )
 
 
 def test_supersede_grafts_with_real_uuid_source_item_id() -> None:
@@ -94,7 +96,9 @@ def test_supersede_grafts_with_real_uuid_source_item_id() -> None:
         }
     )
     qdrant = _MergeRecordingQdrant([dip_point])
-    stub_connector = types.SimpleNamespace(source="op", source_type="parliamentary_speech")
+    stub_connector = types.SimpleNamespace(
+        source="op", source_type="parliamentary_speech"
+    )
 
     op_sid = uuid.uuid4()  # a REAL UUID, exactly as ChunkRecord carries it
     superseded = supersede_dip_duplicates(
@@ -127,7 +131,9 @@ def test_supersede_keeps_distinct_dip_speech_sharing_the_key() -> None:
         }
     )
     qdrant = _MergeRecordingQdrant([other])
-    stub_connector = types.SimpleNamespace(source="op", source_type="parliamentary_speech")
+    stub_connector = types.SimpleNamespace(
+        source="op", source_type="parliamentary_speech"
+    )
 
     superseded = supersede_dip_duplicates(
         qdrant,
@@ -170,7 +176,9 @@ def test_supersede_multichunk_dip_twin_joined_in_chunk_order() -> None:
         ),
     ]
     qdrant = _MergeRecordingQdrant(dip_points)
-    stub_connector = types.SimpleNamespace(source="op", source_type="parliamentary_speech")
+    stub_connector = types.SimpleNamespace(
+        source="op", source_type="parliamentary_speech"
+    )
 
     # The op side carries the same speech as TWO chunks, listed out of order too.
     op_chunks = [
@@ -246,7 +254,9 @@ def test_supersede_grafts_dip_pdf_onto_op_before_delete() -> None:
     # meta, durably (wait=True).
     assert qdrant.batch_updates, "must graft the DIP transcript PDF onto the op record"
     graft = qdrant.batch_updates[0]
-    assert graft.get("wait") is True, "graft must be durable before the destructive delete"
+    assert graft.get("wait") is True, (
+        "graft must be durable before the destructive delete"
+    )
     assert _filter_mentions(graft.get("update_operations"), (pdf_url, "op-1", "op")), (
         "graft must set transcript_pdf_url on the op source_item_id AND source == 'op'"
     )
@@ -320,7 +330,9 @@ def test_supersede_merge_end_to_end_in_memory() -> None:
     client = RealQdrantClient(":memory:")
     client.create_collection(
         "wahlchat_chunks_dev",
-        vectors_config={"dense": models.VectorParams(size=3, distance=models.Distance.COSINE)},
+        vectors_config={
+            "dense": models.VectorParams(size=3, distance=models.Distance.COSINE)
+        },
     )
     speech_key = "de-20-101-mareike-lotte-wulf-top20"
     pdf_url = "https://dserver.bundestag.de/btp/20/2000101.pdf"
@@ -356,7 +368,9 @@ def test_supersede_merge_end_to_end_in_memory() -> None:
         ],
     )
 
-    stub_connector = types.SimpleNamespace(source="op", source_type="parliamentary_speech")
+    stub_connector = types.SimpleNamespace(
+        source="op", source_type="parliamentary_speech"
+    )
     supersede_dip_duplicates(
         client,
         "wahlchat_chunks_dev",
@@ -368,7 +382,9 @@ def test_supersede_merge_end_to_end_in_memory() -> None:
     op_point = client.retrieve("wahlchat_chunks_dev", ids=[2], with_payload=True)[0]
     op_meta = op_point.payload["meta"]
     assert op_meta["transcript_pdf_url"] == pdf_url, "DIP PDF must be grafted onto op"
-    assert op_meta["video_uri"] == "https://cdn.example/clip.mp4", "video_uri must survive the graft"
+    assert op_meta["video_uri"] == "https://cdn.example/clip.mp4", (
+        "video_uri must survive the graft"
+    )
     assert op_meta["sentence_map"], "sentence_map must survive the graft"
 
     # The dip duplicate (id=1) is deleted → one merged record remains.

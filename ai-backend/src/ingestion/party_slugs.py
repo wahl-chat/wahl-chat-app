@@ -57,14 +57,14 @@ CANONICAL_PARTY_SLUGS: dict[str, str] = {
 # party's vote_record and its party_manifesto chunks under one tenant.
 STATE_PARTY_SLUGS: dict[str, str] = {
     "freie wähler": "fw",
-    "ssw": "ssw",                  # Südschleswigscher Wählerverband
+    "ssw": "ssw",  # Südschleswigscher Wählerverband
     "bvb/freie wähler": "bvb-fw",  # BVB / Freie Wähler (Brandenburg)
     "volt": "volt",
     "piraten": "piraten",
-    "ödp": "oedp",                 # Ökologisch-Demokratische Partei
-    "die basis": "basis",          # dieBasis
-    "diebasis": "basis",           # dieBasis alternate label
-    "bürger in wut": "biw",        # Bürger in Wut (Bremen)
+    "ödp": "oedp",  # Ökologisch-Demokratische Partei
+    "die basis": "basis",  # dieBasis
+    "diebasis": "basis",  # dieBasis alternate label
+    "bürger in wut": "biw",  # Bürger in Wut (Bremen)
 }
 
 # Invisible / zero-width formatting characters that sources occasionally embed in

@@ -47,7 +47,9 @@ def has_merged_name(value: str | None) -> bool:
 
 
 def has_suspicious_speaker_metadata(speaker: dict) -> bool:
-    return not is_known_party(speaker.get("party")) or has_merged_name(speaker.get("speaker_name"))
+    return not is_known_party(speaker.get("party")) or has_merged_name(
+        speaker.get("speaker_name")
+    )
 
 
 def parse_speaker(redner) -> dict:  # type: ignore[return]
@@ -55,14 +57,22 @@ def parse_speaker(redner) -> dict:  # type: ignore[return]
     if name is None:
         return {}
 
-    title = normalize_whitespace(" ".join(node.text or "" for node in name.findall("titel")))
-    first_name = normalize_whitespace(" ".join(node.text or "" for node in name.findall("vorname")))
-    last_name = normalize_whitespace(" ".join(node.text or "" for node in name.findall("nachname")))
+    title = normalize_whitespace(
+        " ".join(node.text or "" for node in name.findall("titel"))
+    )
+    first_name = normalize_whitespace(
+        " ".join(node.text or "" for node in name.findall("vorname"))
+    )
+    last_name = normalize_whitespace(
+        " ".join(node.text or "" for node in name.findall("nachname"))
+    )
     party = normalize_whitespace(name.findtext("fraktion"))
 
     speaker: dict = {
         "speaker_xml_id": redner.get("id"),
-        "speaker_name": " ".join(part for part in [title, first_name, last_name] if part),
+        "speaker_name": " ".join(
+            part for part in [title, first_name, last_name] if part
+        ),
         "party": party,
     }
 
@@ -160,7 +170,9 @@ def parse_speeches_from_xml(xml_text: str) -> list[dict]:
             {
                 "xml_rede_id": rede_id,
                 "text": "\n".join(paragraphs).strip() or None,
-                "agenda_top_id": agenda_top_id_by_rede.get(rede_id) if rede_id is not None else None,
+                "agenda_top_id": agenda_top_id_by_rede.get(rede_id)
+                if rede_id is not None
+                else None,
                 **speaker,
             }
         )

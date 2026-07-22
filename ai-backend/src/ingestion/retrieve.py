@@ -105,6 +105,7 @@ def _embed_query(query: str, embed_fn: Any = None) -> list[float]:
             f"got {type(resolved)!r}"
         )
 
+
 # ---------------------------------------------------------------------------
 # Source-type and authority-tier values as Literal types (issue #409).
 # Using Literal strings ensures clean JSON-schema generation for Gemini tools;
@@ -133,10 +134,14 @@ AuthorityTierLiteral = Literal[
 # Applied only when level is set AND source_type == "vote_record".
 # ---------------------------------------------------------------------------
 _VOTE_CANDIDATE_MULTIPLIER: int = 10  # over-fetch pool when re-ranking
-_VOTE_CANDIDATE_FLOOR: int = 40       # minimum candidate pool so local votes below the
-                                      # top-N raw cosine are not starved before the re-rank
-_VOTE_DOWNRANK_SMALL: float = 0.05   # broader-region vote whose relevance_levels include this level
-_VOTE_DOWNRANK_LARGE: float = 0.20   # broader-region vote whose relevance_levels exclude this level
+_VOTE_CANDIDATE_FLOOR: int = 40  # minimum candidate pool so local votes below the
+# top-N raw cosine are not starved before the re-rank
+_VOTE_DOWNRANK_SMALL: float = (
+    0.05  # broader-region vote whose relevance_levels include this level
+)
+_VOTE_DOWNRANK_LARGE: float = (
+    0.20  # broader-region vote whose relevance_levels exclude this level
+)
 
 
 # ---------------------------------------------------------------------------
@@ -447,9 +452,7 @@ def retrieve(
         )
 
     if party_id is not None:
-        must.append(
-            FieldCondition(key="party_id", match=MatchValue(value=party_id))
-        )
+        must.append(FieldCondition(key="party_id", match=MatchValue(value=party_id)))
 
     if party_ids_contains is not None:
         # Membership test on the party_ids array: a single MatchValue against an
@@ -464,9 +467,7 @@ def retrieve(
         # Chunks store a scalar ``region``; the election provides a
         # list of ancestor regions.  MatchAny returns chunks whose region is
         # a member of the election's region_path.
-        must.append(
-            FieldCondition(key="region", match=MatchAny(any=region_path))
-        )
+        must.append(FieldCondition(key="region", match=MatchAny(any=region_path)))
 
     if authority_tier is not None:
         must.append(
@@ -483,9 +484,7 @@ def retrieve(
                 "retrieve(): both publish_after and publish_range supplied — "
                 "publish_range wins, publish_after ignored."
             )
-        must.append(
-            FieldCondition(key="publish_date", range=publish_range)
-        )
+        must.append(FieldCondition(key="publish_date", range=publish_range))
     elif publish_after is not None:
         # The RetrieveSchema tool surface declares publish_after as an ISO string while
         # direct callers pass a datetime. Accept both — parse a string before the .tzinfo
@@ -600,7 +599,9 @@ def retrieve(
                 # get the small penalty at most (never buried entirely).
                 rel_levels = point.payload.get("relevance_levels") or sorted(ALL_LEVELS)
                 penalty = (
-                    _VOTE_DOWNRANK_SMALL if level in rel_levels else _VOTE_DOWNRANK_LARGE
+                    _VOTE_DOWNRANK_SMALL
+                    if level in rel_levels
+                    else _VOTE_DOWNRANK_LARGE
                 )
             # Penalise the RANKING score only. Do NOT re-apply score_threshold to the
             # penalised score: Qdrant already enforced the cutoff on the true cosine
@@ -626,7 +627,9 @@ def retrieve(
     # through attribute access — cast each payload back to dict.
     if _speech_dedup_active:
         score_by_id = {id(point.payload): point.score for point in plain}
-        deduped = dedup_prefer_op([cast(dict, point.payload) for point in plain])[:limit]
+        deduped = dedup_prefer_op([cast(dict, point.payload) for point in plain])[
+            :limit
+        ]
         if with_scores:
             return [(payload, score_by_id[id(payload)]) for payload in deduped]
         return deduped
@@ -799,7 +802,9 @@ class RetrieveSchema(BaseModel):
     therefore a curated subset of ``retrieve()``'s parameters, not a 1:1 mirror.
     """
 
-    query: str = Field(..., description="Natural-language query to retrieve relevant chunks for.")
+    query: str = Field(
+        ..., description="Natural-language query to retrieve relevant chunks for."
+    )
     source_type: Optional[SourceTypeLiteral] = Field(
         None,
         description=(
@@ -845,7 +850,9 @@ class RetrieveSchema(BaseModel):
             "Only return chunks published on or after this datetime."
         ),
     )
-    limit: int = Field(5, description="Maximum number of results to return (default 5).")
+    limit: int = Field(
+        5, description="Maximum number of results to return (default 5)."
+    )
 
 
 def get_gemini_tool_binding(llm: Any) -> Any:

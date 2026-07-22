@@ -50,8 +50,12 @@ from src.ingestion.connector import BaseConnector
 from src.ingestion.connectors.bundestag_speeches.constants import MDB_STAMMDATEN_FILE
 from src.ingestion.connectors.bundestag_speeches.mdb import load_mdb_lookup
 from src.ingestion.connectors.openparliament_tv.client import OpTvClient
-from src.ingestion.connectors.openparliament_tv.mappers.corpus import build_chunk_records
-from src.ingestion.connectors.openparliament_tv.supersede import supersede_dip_duplicates
+from src.ingestion.connectors.openparliament_tv.mappers.corpus import (
+    build_chunk_records,
+)
+from src.ingestion.connectors.openparliament_tv.supersede import (
+    supersede_dip_duplicates,
+)
 from src.ingestion.run import _embed_texts, _upsert_chunks
 from src.ingestion.schemas import ChunkRecord
 from src.ingestion.setup_collection import COLLECTION_NAME, EMBEDDING_MODEL
@@ -75,13 +79,19 @@ class _OpSourceStub(BaseConnector):
     source = "op"
 
     def discover(self, since):  # noqa: ANN001, ANN201 — never called
-        raise NotImplementedError("_OpSourceStub only carries the supersede source gate")
+        raise NotImplementedError(
+            "_OpSourceStub only carries the supersede source gate"
+        )
 
     def fetch(self, external_id):  # noqa: ANN001, ANN201 — never called
-        raise NotImplementedError("_OpSourceStub only carries the supersede source gate")
+        raise NotImplementedError(
+            "_OpSourceStub only carries the supersede source gate"
+        )
 
     def normalize(self, raw):  # noqa: ANN001, ANN201 — never called
-        raise NotImplementedError("_OpSourceStub only carries the supersede source gate")
+        raise NotImplementedError(
+            "_OpSourceStub only carries the supersede source gate"
+        )
 
 
 _OP_GATE = _OpSourceStub()
@@ -146,7 +156,9 @@ def ingest(
         try:
             session = client.fetch_session_json(name)
         except Exception as exc:  # noqa: BLE001 — a bad session file must not abort the backfill
-            logger.warning("op backfill: fetch failed for %s (%s) — skipping.", name, exc)
+            logger.warning(
+                "op backfill: fetch failed for %s (%s) — skipping.", name, exc
+            )
             continue
 
         for item in session.get("data") or []:
@@ -177,7 +189,11 @@ def ingest(
 
             if len(batch) >= _BATCH_SIZE:
                 flushed = _flush(batch)
-                logger.info("Flushed batch of %d chunks (total so far: %d)", flushed, chunks_total)
+                logger.info(
+                    "Flushed batch of %d chunks (total so far: %d)",
+                    flushed,
+                    chunks_total,
+                )
                 batch = []
 
     _flush(batch)
@@ -234,9 +250,13 @@ if __name__ == "__main__":
     _client = OpTvClient()
     _mdb_lookup = load_mdb_lookup(_MDB_PATH)
 
-    print(f"Backfilling openparliament.tv speeches from GitHub (limit={args.limit}) ...")
+    print(
+        f"Backfilling openparliament.tv speeches from GitHub (limit={args.limit}) ..."
+    )
     try:
-        processed, chunks = ingest(_client, _qdrant, _embed, _mdb_lookup, limit=args.limit)
+        processed, chunks = ingest(
+            _client, _qdrant, _embed, _mdb_lookup, limit=args.limit
+        )
     except Exception:  # noqa: BLE001
         import traceback  # noqa: PLC0415
 

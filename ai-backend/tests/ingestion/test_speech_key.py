@@ -77,7 +77,9 @@ def test_nfd_and_nfc_names_produce_identical_slug() -> None:
     slugify = getattr(speech_key, "slugify_speaker")
     nfc_name = unicodedata.normalize("NFC", "Körig")
     nfd_name = unicodedata.normalize("NFD", "Körig")
-    assert nfc_name != nfd_name, "sanity: the two normal forms must differ codepoint-wise"
+    assert nfc_name != nfd_name, (
+        "sanity: the two normal forms must differ codepoint-wise"
+    )
     assert slugify(full_name=nfd_name) == slugify(full_name=nfc_name) == "koerig"
 
 
@@ -90,13 +92,16 @@ def test_compound_title_dr_h_c_parity() -> None:
     """DIP 'Dr. h. c. Thomas Sattelberger' == op discrete names — the h/c
     fragments of the compound title must be dropped."""
     dip_key = _make_key(
-        ep=20, session=101,
+        ep=20,
+        session=101,
         speaker_name="Dr. h. c. Thomas Sattelberger",
         agenda="Tagesordnungspunkt 20",
     )
     op_key = _make_key(
-        ep=20, session=101,
-        firstname="Thomas", lastname="Sattelberger",
+        ep=20,
+        session=101,
+        firstname="Thomas",
+        lastname="Sattelberger",
         agenda="Tagesordnungspunkt 20",
     )
     assert dip_key == op_key == "de-20-101-thomas-sattelberger-top20"
@@ -105,13 +110,16 @@ def test_compound_title_dr_h_c_parity() -> None:
 def test_compound_title_dr_ing_parity() -> None:
     """DIP 'Dr.-Ing. Klara Beispiel' == op discrete names ('ing' dropped)."""
     dip_key = _make_key(
-        ep=21, session=5,
+        ep=21,
+        session=5,
         speaker_name="Dr.-Ing. Klara Beispiel",
         agenda="Tagesordnungspunkt 3",
     )
     op_key = _make_key(
-        ep=21, session=5,
-        firstname="Klara", lastname="Beispiel",
+        ep=21,
+        session=5,
+        firstname="Klara",
+        lastname="Beispiel",
         agenda="Tagesordnungspunkt 3",
     )
     assert dip_key == op_key == "de-21-5-klara-beispiel-top3"
@@ -127,13 +135,16 @@ def test_name_particle_von_parity() -> None:
     firstname='Beatrix' lastname='von Storch' must derive one identical key —
     the particle is dropped source-independently."""
     dip_key = _make_key(
-        ep=20, session=101,
+        ep=20,
+        session=101,
         speaker_name="Beatrix Storch",
         agenda="Tagesordnungspunkt 20",
     )
     op_key = _make_key(
-        ep=20, session=101,
-        firstname="Beatrix", lastname="von Storch",
+        ep=20,
+        session=101,
+        firstname="Beatrix",
+        lastname="von Storch",
         agenda="Tagesordnungspunkt 20",
     )
     assert dip_key == op_key == "de-20-101-beatrix-storch-top20"
@@ -153,11 +164,15 @@ def test_umlaut_and_eszett_parity_via_both_call_surfaces() -> None:
     assert slugify(full_name="Müller") == slugify(lastname="Müller") == "mueller"
 
     raw_key = _make_key(
-        ep=20, session=9, firstname="Jörg", lastname="Groß",
+        ep=20,
+        session=9,
+        firstname="Jörg",
+        lastname="Groß",
         agenda="Tagesordnungspunkt 2",
     )
     pre_key = _make_key(
-        ep=20, session=9,
+        ep=20,
+        session=9,
         speaker_slug=slugify(full_name="Jörg Groß"),
         agenda_slug="top2",
     )
@@ -169,12 +184,14 @@ def test_title_and_particle_parity_via_both_call_surfaces() -> None:
     DIP merged 'Dr. h. c. Beatrix Storch' == op pre-slugified 'von Storch'."""
     slugify = getattr(speech_key, "slugify_speaker")
     dip_key = _make_key(
-        ep=20, session=101,
+        ep=20,
+        session=101,
         speaker_name="Dr. h. c. Beatrix Storch",
         top_id="20",
     )
     op_key = _make_key(
-        ep=20, session=101,
+        ep=20,
+        session=101,
         speaker_slug=slugify(firstname="Beatrix", lastname="von Storch"),
         agenda_slug="top20",
     )
@@ -192,7 +209,11 @@ def test_opening_agenda_maps_to_empty_slug() -> None:
     _agenda = getattr(speech_key, "agenda_slug_from_official")
     assert _agenda(None, "opening") == ""
     op_key = _make_key(
-        ep=20, session=101, firstname="A", lastname="B", agenda=None,
+        ep=20,
+        session=101,
+        firstname="A",
+        lastname="B",
+        agenda=None,
         agenda_type="opening",
     )
     dip_key = _make_key(ep=20, session=101, speaker_name="A B", top_id=None)
@@ -213,8 +234,9 @@ def test_agenda_slug_zusatzpunkt_parity() -> None:
     assert _agenda_from_top_id("ZP5") == "zp5"
     assert _agenda_from_top_id("Z5") == "zp5"
     # And the full key agrees on both sides for the same Zusatzpunkt speech.
-    op_key = _make_key(ep=20, session=101, firstname="A", lastname="B",
-                       agenda="Zusatzpunkt 5")
+    op_key = _make_key(
+        ep=20, session=101, firstname="A", lastname="B", agenda="Zusatzpunkt 5"
+    )
     dip_key = _make_key(ep=20, session=101, speaker_name="A B", top_id="ZP5")
     assert op_key == dip_key == "de-20-101-a-b-zp5"
 
@@ -223,8 +245,9 @@ def test_agenda_slug_tagesordnungspunkt_parity() -> None:
     """``Tagesordnungspunkt 5`` (op) and ``5`` (DIP top-id) both → ``top5``."""
     assert _agenda_from_official("Tagesordnungspunkt 5") == "top5"
     assert _agenda_from_top_id("5") == "top5"
-    op_key = _make_key(ep=20, session=101, firstname="A", lastname="B",
-                       agenda="Tagesordnungspunkt 5")
+    op_key = _make_key(
+        ep=20, session=101, firstname="A", lastname="B", agenda="Tagesordnungspunkt 5"
+    )
     dip_key = _make_key(ep=20, session=101, speaker_name="A B", top_id="5")
     assert op_key == dip_key == "de-20-101-a-b-top5"
 
@@ -238,8 +261,13 @@ def test_agenda_slug_letter_suffix_parity() -> None:
     """
     assert _agenda_from_official("Tagesordnungspunkt 20 a") == "top20"
     assert _agenda_from_top_id("20a") == "top20"
-    op_key = _make_key(ep=20, session=101, firstname="A", lastname="B",
-                       agenda="Tagesordnungspunkt 20 a")
+    op_key = _make_key(
+        ep=20,
+        session=101,
+        firstname="A",
+        lastname="B",
+        agenda="Tagesordnungspunkt 20 a",
+    )
     dip_key = _make_key(ep=20, session=101, speaker_name="A B", top_id="20a")
     assert op_key == dip_key == "de-20-101-a-b-top20"
 

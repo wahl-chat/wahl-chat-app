@@ -41,8 +41,12 @@ from src.ingestion.connector import BaseConnector
 from src.ingestion.connectors.bundestag_speeches.constants import MDB_STAMMDATEN_FILE
 from src.ingestion.connectors.bundestag_speeches.mdb import load_mdb_lookup
 from src.ingestion.connectors.openparliament_tv.client import OpTvClient
-from src.ingestion.connectors.openparliament_tv.mappers.corpus import build_chunk_records
-from src.ingestion.connectors.openparliament_tv.supersede import supersede_dip_duplicates
+from src.ingestion.connectors.openparliament_tv.mappers.corpus import (
+    build_chunk_records,
+)
+from src.ingestion.connectors.openparliament_tv.supersede import (
+    supersede_dip_duplicates,
+)
 from src.ingestion.schemas import ChunkRecord, SourceType
 
 # Shared speech-dedup helpers — one definition for both speech connectors.
@@ -65,7 +69,11 @@ def _session_external_id(items: list[dict]) -> Optional[int]:
     """Derive a session's YYYYMMDD external_id from the earliest item ``dateStart``."""
     ext_ids = [
         e
-        for e in (_datum_to_external_id(it.get("dateStart")) for it in items if isinstance(it, dict))
+        for e in (
+            _datum_to_external_id(it.get("dateStart"))
+            for it in items
+            if isinstance(it, dict)
+        )
         if e is not None
     ]
     return min(ext_ids) if ext_ids else None
@@ -138,7 +146,9 @@ class OpenParliamentTvConnector(BaseConnector):
             cursor order stays oldest-first.
         """
         # De-duplicate + reverse-sort: newest session file first (see invariant above).
-        entries = sorted({str(e) for e in self._client.list_session_files()}, reverse=True)
+        entries = sorted(
+            {str(e) for e in self._client.list_session_files()}, reverse=True
+        )
         floor = _lookback_floor(since) if since is not None else None
 
         # Tolerate instances built via object.__new__ (unit tests bypass __init__).
@@ -152,7 +162,9 @@ class OpenParliamentTvConnector(BaseConnector):
             try:
                 session = self._client.fetch_session_json(name)
             except Exception as exc:  # noqa: BLE001 — a bad session file must not abort the run
-                logger.warning("op discover: fetch failed for %s (%s) — skipping.", name, exc)
+                logger.warning(
+                    "op discover: fetch failed for %s (%s) — skipping.", name, exc
+                )
                 continue
 
             items = [it for it in (session.get("data") or []) if isinstance(it, dict)]
@@ -258,7 +270,9 @@ class OpenParliamentTvConnector(BaseConnector):
     # 4. post_upsert — op-owned supersede policy
     # ------------------------------------------------------------------
 
-    def post_upsert(self, qdrant: Any, collection_name: str, chunks: list[ChunkRecord]) -> int:
+    def post_upsert(
+        self, qdrant: Any, collection_name: str, chunks: list[ChunkRecord]
+    ) -> int:
         """Supersede the just-upserted op speeches' DIP twins.
 
         Called by run_connector after each successful item upsert. Grafts each

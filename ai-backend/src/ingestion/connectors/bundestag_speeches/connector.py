@@ -195,8 +195,12 @@ def is_op_superseded(
 
         op_filter = models.Filter(
             must=[
-                models.FieldCondition(key="speech_key", match=models.MatchValue(value=speech_key)),
-                models.FieldCondition(key="source", match=models.MatchValue(value="op")),
+                models.FieldCondition(
+                    key="speech_key", match=models.MatchValue(value=speech_key)
+                ),
+                models.FieldCondition(
+                    key="source", match=models.MatchValue(value="op")
+                ),
             ]
         )
         if dip_text is None:
@@ -444,7 +448,9 @@ class BundestagSpeechesConnector(BaseConnector):
             from qdrant_client import QdrantClient  # noqa: PLC0415
 
             qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
-            self._qdrant = QdrantClient(url=qdrant_url, api_key=os.getenv("QDRANT_API_KEY"))
+            self._qdrant = QdrantClient(
+                url=qdrant_url, api_key=os.getenv("QDRANT_API_KEY")
+            )
         except Exception as exc:  # noqa: BLE001 — no client → fail-safe insert
             logger.warning(
                 "resurrection guard: could not construct QdrantClient (%s) — "
@@ -492,7 +498,9 @@ class BundestagSpeechesConnector(BaseConnector):
             for doc in page.get("documents", []):
                 # herausgeber == "BT" filter: skip non-Bundestag protocols (e.g. Bundesrat).
                 fundstelle = doc.get("fundstelle") or {}
-                herausgeber = fundstelle.get("herausgeber") or doc.get("herausgeber") or ""
+                herausgeber = (
+                    fundstelle.get("herausgeber") or doc.get("herausgeber") or ""
+                )
                 if herausgeber and herausgeber != "BT":
                     continue
                 docs.append(doc)
@@ -685,6 +693,8 @@ class BundestagSpeechesConnector(BaseConnector):
         wahlperiode = int(raw_wp) if raw_wp is not None else None
 
         return [
-            chunk.model_copy(update={"external_id": external_id, "wahlperiode": wahlperiode})
+            chunk.model_copy(
+                update={"external_id": external_id, "wahlperiode": wahlperiode}
+            )
             for chunk in records
         ]

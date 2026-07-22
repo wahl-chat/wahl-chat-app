@@ -46,7 +46,9 @@ from src.ingestion.connector import BaseConnector
 
 def _abgeordnetenwatch_votes_factory() -> BaseConnector:
     """Return an AbgeordnetenwatchVotesConnector instance (deferred import)."""
-    from src.ingestion.connectors.abgeordnetenwatch.connector import AbgeordnetenwatchVotesConnector  # noqa: PLC0415
+    from src.ingestion.connectors.abgeordnetenwatch.connector import (
+        AbgeordnetenwatchVotesConnector,
+    )  # noqa: PLC0415
 
     return AbgeordnetenwatchVotesConnector()
 
@@ -70,7 +72,9 @@ def _bundestag_speeches_factory() -> BaseConnector:
     The bespoke --from-jsonl backfill path lives in connectors.bundestag_speeches.bulk.
     Requires DIP_API_KEY to be set in the environment (raises RuntimeError otherwise).
     """
-    from src.ingestion.connectors.bundestag_speeches.connector import BundestagSpeechesConnector  # noqa: PLC0415
+    from src.ingestion.connectors.bundestag_speeches.connector import (
+        BundestagSpeechesConnector,
+    )  # noqa: PLC0415
 
     return BundestagSpeechesConnector()
 
@@ -84,7 +88,9 @@ def _openparliament_tv_factory() -> BaseConnector:
     speech_key. The bespoke --from-github backfill path lives in
     connectors.openparliament_tv.bulk. No API key required (keyless bulk path).
     """
-    from src.ingestion.connectors.openparliament_tv.connector import OpenParliamentTvConnector  # noqa: PLC0415
+    from src.ingestion.connectors.openparliament_tv.connector import (
+        OpenParliamentTvConnector,
+    )  # noqa: PLC0415
 
     return OpenParliamentTvConnector()
 

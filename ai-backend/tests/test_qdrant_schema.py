@@ -98,6 +98,7 @@ QdrantClient = _RealQdrantClient
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(scope="module")
 def qdrant() -> QdrantClient:
     """Module-scoped real Qdrant client for schema tests."""
@@ -122,7 +123,9 @@ def temp_collection(qdrant: QdrantClient) -> Generator[str, None, None]:
     name = f"_test_tmp_{uuid.uuid4().hex[:8]}"
     qdrant.create_collection(
         collection_name=name,
-        vectors_config={"dense": VectorParams(size=EMBEDDING_DIM, distance=Distance.COSINE)},
+        vectors_config={
+            "dense": VectorParams(size=EMBEDDING_DIM, distance=Distance.COSINE)
+        },
     )
     # Create the region index so MatchAny filter works in the temp collection.
     qdrant.create_payload_index(

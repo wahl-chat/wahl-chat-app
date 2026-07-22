@@ -205,6 +205,7 @@ def curl_get(url: str, accept: str = "*/*") -> str:
     result = subprocess.run(command, text=True, capture_output=True, timeout=90)
     if result.returncode != 0:
         raise OpTvChallengeError(
-            result.stderr.strip() or "curl could not fetch the pinned openparliament.tv URL"
+            result.stderr.strip()
+            or "curl could not fetch the pinned openparliament.tv URL"
         )
     return result.stdout

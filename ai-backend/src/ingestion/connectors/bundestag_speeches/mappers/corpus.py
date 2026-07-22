@@ -101,6 +101,7 @@ def compute_speech_key(speech: dict) -> Optional[str]:
         agenda_slug=agenda_slug_from_top_id(speech.get("agenda_top_id")),
     )
 
+
 # ---------------------------------------------------------------------------
 # Party slug map — normalised case-insensitively on the stripped party string.
 # Covers every distinct value produced by constants.PARTY_ALIASES:
@@ -220,7 +221,9 @@ def build_chunk_records(speech: dict) -> list[ChunkRecord]:
 
     # Wahlperiode — optional top-level indexed field.
     raw_wahlperiode = speech.get("wahlperiode")
-    wahlperiode: Optional[int] = int(raw_wahlperiode) if raw_wahlperiode is not None else None
+    wahlperiode: Optional[int] = (
+        int(raw_wahlperiode) if raw_wahlperiode is not None else None
+    )
 
     # Build source-owned SpeechMeta; omit None-valued fields.
     speech_meta_obj = SpeechMeta(

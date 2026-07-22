@@ -233,7 +233,9 @@ def _cited_claim_for_index(answer: str, idx: int) -> Optional[str]:
         return None
     claims: list[str] = []
     for match in _CITATION_MARKER_RE.finditer(answer):
-        indices = {int(tok) for tok in match.group(1).replace(" ", "").split(",") if tok}
+        indices = {
+            int(tok) for tok in match.group(1).replace(" ", "").split(",") if tok
+        }
         if idx not in indices:
             continue
         # The claim is the clause ending at this marker — walk back to the prior

@@ -73,7 +73,9 @@ _qdrant_patch.start()
 
 # Also patch QdrantVectorStore to avoid any further network calls at init time.
 _vector_store_mock = MagicMock()
-_qvs_patch = _patch("langchain_qdrant.QdrantVectorStore", return_value=_vector_store_mock)
+_qvs_patch = _patch(
+    "langchain_qdrant.QdrantVectorStore", return_value=_vector_store_mock
+)
 _qvs_patch.start()
 
 # ---------------------------------------------------------------------------
@@ -160,7 +162,9 @@ def _fake_retrieve_two_pass(query: str, **kwargs: Any) -> dict[str, list[dict]]:
     return {"current": [], "historic": []}
 
 
-async def _fake_stream_answer(*args: Any, **kwargs: Any) -> AsyncIterator[AIMessageChunk]:
+async def _fake_stream_answer(
+    *args: Any, **kwargs: Any
+) -> AsyncIterator[AIMessageChunk]:
     """Deterministic LLM stream replacement — no external LLM call."""
 
     async def _gen() -> AsyncIterator[AIMessageChunk]:
@@ -177,6 +181,7 @@ async def _fake_stream_answer(*args: Any, **kwargs: Any) -> AsyncIterator[AIMess
 
 async def _fake_aget_parties_for_context(context_id: str) -> list[Any]:
     from src.models.context import ContextParty
+
     return [ContextParty(**_FAKE_PARTY)]
 
 
@@ -377,7 +382,9 @@ def temp_qdrant_collection() -> "Generator[tuple, None, None]":
     name = f"_test_tmp_{uuid.uuid4().hex[:8]}"
     client.create_collection(
         collection_name=name,
-        vectors_config={"dense": VectorParams(size=EMBEDDING_DIM, distance=Distance.COSINE)},
+        vectors_config={
+            "dense": VectorParams(size=EMBEDDING_DIM, distance=Distance.COSINE)
+        },
     )
     try:
         yield client, name

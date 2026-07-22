@@ -18,7 +18,6 @@ Tests defined here:
 These tests run entirely in-process — no Qdrant or external API required.
 """
 
-
 from src.routes.voting_behavior import _chunk_payload_to_vote
 from src.models.vote import Vote
 
@@ -29,8 +28,22 @@ from src.models.vote import Vote
 # ---------------------------------------------------------------------------
 
 _VOTE_RESULTS_GOOD = [
-    {"party_id": "spd", "stance": "agree", "yes": 100, "no": 5, "abstain": 2, "no_show": 3},
-    {"party_id": "cdu", "stance": "disagree", "yes": 10, "no": 90, "abstain": 5, "no_show": 0},
+    {
+        "party_id": "spd",
+        "stance": "agree",
+        "yes": 100,
+        "no": 5,
+        "abstain": 2,
+        "no_show": 3,
+    },
+    {
+        "party_id": "cdu",
+        "stance": "disagree",
+        "yes": 10,
+        "no": 90,
+        "abstain": 5,
+        "no_show": 0,
+    },
 ]
 
 _GOOD_PAYLOAD = {
@@ -70,17 +83,16 @@ def test_chunk_payload_to_vote_maps_correctly() -> None:
     assert vote is not None, (
         "W2: _chunk_payload_to_vote returned None for a well-formed payload"
     )
-    assert isinstance(vote, Vote), (
-        f"W2: expected Vote instance, got {type(vote)!r}"
-    )
+    assert isinstance(vote, Vote), f"W2: expected Vote instance, got {type(vote)!r}"
 
     # Field mapping checks
     assert vote.title == "Abstimmung: Mindestlohn", (
         f"W2: title mismatch — got {vote.title!r}"
     )
-    assert vote.url == "https://www.abgeordnetenwatch.de/bundestag/abstimmungen/mindestlohn", (
-        f"W2: url mismatch — got {vote.url!r}"
-    )
+    assert (
+        vote.url
+        == "https://www.abgeordnetenwatch.de/bundestag/abstimmungen/mindestlohn"
+    ), f"W2: url mismatch — got {vote.url!r}"
     assert vote.date == "2024-03-15", (
         f"W2: date mismatch — got {vote.date!r} (expected YYYY-MM-DD)"
     )
@@ -93,9 +105,7 @@ def test_chunk_payload_to_vote_maps_correctly() -> None:
         "submitting_parties must be empty (no submitter metadata ingested), not "
         f"the participant list — got {vote.submitting_parties!r}"
     )
-    assert vote.id == "aw_poll:12345", (
-        f"W2: id mismatch — got {vote.id!r}"
-    )
+    assert vote.id == "aw_poll:12345", f"W2: id mismatch — got {vote.id!r}"
 
     # by_party checks
     party_ids_in_result = {bp.party for bp in vote.voting_results.by_party}
@@ -142,12 +152,15 @@ def test_chunk_payload_to_vote_malformed_returns_none() -> None:
     1. Call _chunk_payload_to_vote with a payload that has meta.vote_results=[].
     2. Assert None is returned (not a Vote, not a raised exception).
     """
-    payload = {**_GOOD_PAYLOAD, "meta": {"vote_results": [], "motion_outcome": "passed"}}
+    payload = {
+        **_GOOD_PAYLOAD,
+        "meta": {"vote_results": [], "motion_outcome": "passed"},
+    }
 
     vote = _chunk_payload_to_vote(payload, "spd")
 
-    assert vote is None, (
-        "W2: expected None for empty vote_results — got {!r}".format(vote)
+    assert vote is None, "W2: expected None for empty vote_results — got {!r}".format(
+        vote
     )
 
 

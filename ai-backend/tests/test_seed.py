@@ -54,9 +54,7 @@ if not _emulator_reachable():
 # Constants
 # ---------------------------------------------------------------------------
 
-_REPO_ROOT = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), "..", "..")
-)
+_REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
 _SEED_SCRIPT = os.path.join(_REPO_ROOT, "firebase", "scripts", "seed_firestore.py")
 _FIRESTORE_EMULATOR_HOST = f"{_EMULATOR_HOST}:{_EMULATOR_PORT}"
 _PROJECT_ID = "demo-wahl-chat"
@@ -199,7 +197,9 @@ def test_v1_untouched():
     db.collection(_V1_SENTINEL_COLLECTION).document(_V1_SENTINEL_DOC).set(sentinel_data)
 
     # Verify the sentinel was written successfully.
-    before_snap = db.collection(_V1_SENTINEL_COLLECTION).document(_V1_SENTINEL_DOC).get()
+    before_snap = (
+        db.collection(_V1_SENTINEL_COLLECTION).document(_V1_SENTINEL_DOC).get()
+    )
     assert before_snap.exists, (
         f"Failed to write sentinel doc to {_V1_SENTINEL_COLLECTION}/{_V1_SENTINEL_DOC} "
         "before seed run — emulator write issue, not a seed bug"

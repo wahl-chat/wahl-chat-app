@@ -57,4 +57,6 @@ def test_normalize_raises_on_empty_item_list() -> None:
     """An empty session (no items at all) is also a zero-usable ValueError."""
     conn = _make_connector()
     with pytest.raises(ValueError, match="zero usable"):
-        conn.normalize({"external_id": "20102-session.json", "items": [], "mdb_lookup": None})
+        conn.normalize(
+            {"external_id": "20102-session.json", "items": [], "mdb_lookup": None}
+        )

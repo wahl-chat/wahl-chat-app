@@ -57,9 +57,7 @@ def _valid_chunk_kwargs() -> dict:
 def test_chunk_record_valid():
     """ChunkRecord constructs from valid required fields."""
     chunk = ChunkRecord(**_valid_chunk_kwargs())
-    assert chunk.chunk_index == 0, (
-        "ChunkRecord.chunk_index should be 0 as provided."
-    )
+    assert chunk.chunk_index == 0, "ChunkRecord.chunk_index should be 0 as provided."
 
 
 def test_chunk_record_no_region_path():
@@ -112,6 +110,7 @@ def test_chunk_record_external_id_optional():
 def test_source_item_record_removed():
     """SourceItemRecord must not exist in ingestion.schemas."""
     import src.ingestion.schemas as s
+
     assert not hasattr(s, "SourceItemRecord"), (
         "SourceItemRecord must be deleted from schemas.py."
     )
@@ -120,6 +119,7 @@ def test_source_item_record_removed():
 def test_watermark_record_removed():
     """WatermarkRecord must not exist in ingestion.schemas."""
     import src.ingestion.schemas as s
+
     assert not hasattr(s, "WatermarkRecord"), (
         "WatermarkRecord must be deleted from schemas.py."
     )

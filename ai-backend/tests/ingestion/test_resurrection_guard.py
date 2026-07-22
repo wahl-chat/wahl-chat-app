@@ -30,14 +30,12 @@ class _SeededQdrant:
     def scroll(self, *a, **k):  # noqa: ANN002, ANN003, ANN201
         import types
 
-        point = types.SimpleNamespace(
-            payload={"speech_key": self._key, "source": "op"}
-        )
+        point = types.SimpleNamespace(payload={"speech_key": self._key, "source": "op"})
         return ([point], None)
 
     def upsert(self, *a, **k) -> None:  # noqa: ANN002, ANN003
         # Record any speech_key that reached upsert (a guard failure).
-        for p in (k.get("points") or (a[1] if len(a) > 1 else [])):
+        for p in k.get("points") or (a[1] if len(a) > 1 else []):
             payload = getattr(p, "payload", {}) or {}
             if payload.get("speech_key"):
                 self.upserted_keys.append(payload["speech_key"])
@@ -166,16 +164,34 @@ def test_dip_normalize_skips_op_superseded_speech() -> None:
     }
 
     # Sanity: the two speeches produce the expected shared keys.
-    assert corpus.compute_speech_key(
-        {"wahlperiode": 21, "protocol_id": "21/99", "speaker_name": "Superseded Speaker", "agenda_top_id": None}
-    ) == superseded_key
-    assert corpus.compute_speech_key(
-        {"wahlperiode": 21, "protocol_id": "21/99", "speaker_name": "Fresh Speaker", "agenda_top_id": None}
-    ) == keep_key
+    assert (
+        corpus.compute_speech_key(
+            {
+                "wahlperiode": 21,
+                "protocol_id": "21/99",
+                "speaker_name": "Superseded Speaker",
+                "agenda_top_id": None,
+            }
+        )
+        == superseded_key
+    )
+    assert (
+        corpus.compute_speech_key(
+            {
+                "wahlperiode": 21,
+                "protocol_id": "21/99",
+                "speaker_name": "Fresh Speaker",
+                "agenda_top_id": None,
+            }
+        )
+        == keep_key
+    )
 
     records = conn.normalize(raw)
     keys = {r.speech_key for r in records}
-    assert superseded_key not in keys, "op-superseded speech must be skipped by normalize()"
+    assert superseded_key not in keys, (
+        "op-superseded speech must be skipped by normalize()"
+    )
     assert keep_key in keys, "non-superseded DIP speech must still be inserted"
     assert all(r.source == "dip" for r in records)
 
@@ -222,7 +238,9 @@ def test_is_op_superseded_joins_multichunk_op_speech_in_chunk_order() -> None:
     qdrant = _MultiChunkQdrant(key, [(1, part_b), (0, part_a)])
 
     assert (
-        is_op_superseded(qdrant, "wahlchat_chunks_dev", key, dip_text=f"{part_a} {part_b}")
+        is_op_superseded(
+            qdrant, "wahlchat_chunks_dev", key, dip_text=f"{part_a} {part_b}"
+        )
         is True
     ), "in-order join must recognise the same speech despite scroll order"
 
@@ -299,7 +317,9 @@ def test_normalize_returns_empty_when_all_speeches_op_superseded() -> None:
 
     records = conn.normalize(raw)
 
-    assert records == [], "fully-op-covered protocol must be a clean no-op, not an error"
+    assert records == [], (
+        "fully-op-covered protocol must be a clean no-op, not an error"
+    )
     assert len(conn.last_superseded_siids) == 1, (
         "the skipped siid must be reported for the stranded-twin cleanup"
     )
@@ -313,11 +333,18 @@ def test_is_op_superseded_precise_rejects_distinct_same_key_speech() -> None:
 
     key = "de-20-101-mareike-lotte-wulf-top20"
     # op holds a DIFFERENT speech under the same (non-unique) key.
-    qdrant = _ConditionalQdrant(key, "Ein voellig anderer Redebeitrag zum Thema Verkehr.")
+    qdrant = _ConditionalQdrant(
+        key, "Ein voellig anderer Redebeitrag zum Thema Verkehr."
+    )
 
     # The DIP speech we're about to insert has different text → not superseded.
     assert (
-        is_op_superseded(qdrant, "wahlchat_chunks_dev", key, dip_text="Zur Kinderarmut in Deutschland.")
+        is_op_superseded(
+            qdrant,
+            "wahlchat_chunks_dev",
+            key,
+            dip_text="Zur Kinderarmut in Deutschland.",
+        )
         is False
     )
     # The same speech (matching text) IS superseded.

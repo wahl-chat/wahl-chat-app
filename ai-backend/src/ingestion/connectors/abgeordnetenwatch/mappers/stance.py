@@ -205,5 +205,3 @@ def fraction_to_party_slug(fraction_id: int, fraction_map: dict[int, str]) -> st
         The party slug, or ``"unbekannt"`` if the fraction_id is not in the map.
     """
     return fraction_map.get(fraction_id, _PARTY_SLUG_QUARANTINE)
-
-

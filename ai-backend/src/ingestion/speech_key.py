@@ -37,10 +37,14 @@ from typing import Optional
 # dropped. Both cases are mapped so the transform is order-independent w.r.t.
 # lowercasing.
 _UMLAUT_MAP = {
-    "ä": "ae", "Ä": "Ae",
-    "ö": "oe", "Ö": "Oe",
-    "ü": "ue", "Ü": "Ue",
-    "ß": "ss", "ẞ": "Ss",
+    "ä": "ae",
+    "Ä": "Ae",
+    "ö": "oe",
+    "Ö": "Oe",
+    "ü": "ue",
+    "Ü": "Ue",
+    "ß": "ss",
+    "ẞ": "Ss",
 }
 
 # Academic / role title tokens dropped from the speaker slug so DIP's merged
@@ -118,7 +122,9 @@ def slugify_speaker(
 
     tokens = [tok for tok in re.split(r"[^a-z0-9]+", raw) if tok]
     tokens = [
-        tok for tok in tokens if tok not in _TITLE_TOKENS and tok not in _PARTICLE_TOKENS
+        tok
+        for tok in tokens
+        if tok not in _TITLE_TOKENS and tok not in _PARTICLE_TOKENS
     ]
     return "-".join(tokens)
 

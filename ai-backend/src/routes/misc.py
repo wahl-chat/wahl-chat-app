@@ -140,7 +140,9 @@ async def chat_summary(body: RequestSummaryDto):
         return SummaryDto(
             chat_summary="Hier sollte eigentlich eine Zusammenfassung stehen...",
             # Generic client-facing message only — full detail is logged above.
-            status=Status(indicator=StatusIndicator.ERROR, message=GENERIC_ERROR_MESSAGE),
+            status=Status(
+                indicator=StatusIndicator.ERROR, message=GENERIC_ERROR_MESSAGE
+            ),
         ).model_dump()
 
 
@@ -187,12 +189,16 @@ async def text_to_speech(request: Request, body: TextToSpeechRequestDto):
             status=Status(indicator=StatusIndicator.SUCCESS, message="Success"),
         ).model_dump()
     except Exception as e:
-        logger.error(f"Error generating TTS for message {body.message_id}: {e}", exc_info=True)
+        logger.error(
+            f"Error generating TTS for message {body.message_id}: {e}", exc_info=True
+        )
         return TextToSpeechResponseDto(
             session_id=body.session_id,
             message_id=body.message_id,
             party_id=body.party_id,
             audio_base64="",
             # Generic client-facing message only — full detail is logged above.
-            status=Status(indicator=StatusIndicator.ERROR, message=GENERIC_ERROR_MESSAGE),
+            status=Status(
+                indicator=StatusIndicator.ERROR, message=GENERIC_ERROR_MESSAGE
+            ),
         ).model_dump()

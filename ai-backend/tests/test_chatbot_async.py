@@ -75,8 +75,7 @@ def test_build_vote_documents_federal_label() -> None:
         f"Got: {federal_content!r}"
     )
     assert "Parlament: Landtag" in state_content, (
-        f"state vote must include 'Parlament: Landtag'. "
-        f"Got: {state_content!r}"
+        f"state vote must include 'Parlament: Landtag'. Got: {state_content!r}"
     )
     # Bundesebene must NOT appear in state vote
     assert "Bundesebene" not in state_content, (
@@ -111,11 +110,15 @@ def test_federal_origin_disclosure_note_only_for_non_federal() -> None:
     from src.chatbot_async import _federal_origin_disclosure_note
 
     assert _federal_origin_disclosure_note(None) == "", "None (unset) must emit no note"
-    assert _federal_origin_disclosure_note("federal") == "", "Federal election must emit no note"
+    assert _federal_origin_disclosure_note("federal") == "", (
+        "Federal election must emit no note"
+    )
 
     for lvl in ("state", "municipal"):
         note = _federal_origin_disclosure_note(lvl)
-        assert "Bundestag" in note, f"{lvl}: note must reference Bundestag, got {note!r}"
+        assert "Bundestag" in note, (
+            f"{lvl}: note must reference Bundestag, got {note!r}"
+        )
         assert "Landtag" in note, f"{lvl}: note must reference Landtag, got {note!r}"
 
 
@@ -133,9 +136,12 @@ def test_both_response_paths_apply_federal_disclosure() -> None:
     assert "_federal_origin_disclosure_note" in comparing, (
         "comparison path must apply the federal-origin disclosure helper"
     )
-    assert "election_level" in inspect.signature(
-        ca.generate_streaming_chatbot_comparing_response
-    ).parameters, "comparison generator must accept election_level"
+    assert (
+        "election_level"
+        in inspect.signature(
+            ca.generate_streaming_chatbot_comparing_response
+        ).parameters
+    ), "comparison generator must accept election_level"
 
 
 # ---------------------------------------------------------------------------
@@ -275,7 +281,9 @@ def test_comparison_generator_accepts_has_historic() -> None:
     from src import chatbot_async as ca
 
     sig = inspect.signature(ca.generate_streaming_chatbot_comparing_response)
-    assert "has_historic" in sig.parameters, "comparison generator must accept has_historic"
+    assert "has_historic" in sig.parameters, (
+        "comparison generator must accept has_historic"
+    )
     assert sig.parameters["has_historic"].default is False, (
         "comparison has_historic default must be False"
     )
@@ -398,9 +406,7 @@ def test_chat_service_threads_coverage_and_has_historic() -> None:
 
     src = inspect.getsource(fetch_party_response_stream)
     assert "_official_coverage" in src, "must compute coverage via _official_coverage"
-    assert "present_sources=(" in src, (
-        "must pass present_sources=(...) into generation"
-    )
+    assert "present_sources=(" in src, "must pass present_sources=(...) into generation"
     assert "has_historic=has_historic" in src, (
         "must pass has_historic into the single-party generation call"
     )

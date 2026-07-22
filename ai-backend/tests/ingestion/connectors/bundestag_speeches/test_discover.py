@@ -70,7 +70,7 @@ _DESC_PAGE = {
     "documents": [
         {"id": "200", "datum": "2026-06-15"},  # newest
         {"id": "100", "datum": "2026-05-01"},  # older
-        {"id": "50", "datum": "2026-01-10"},   # oldest
+        {"id": "50", "datum": "2026-01-10"},  # oldest
     ]
 }
 
@@ -90,7 +90,12 @@ class TestDiscover:
         """DIP DESC input is re-sorted to ASC output (regression guard)."""
         # Provide two pages, each with DESC-ordered documents
         pages = [
-            {"documents": [{"id": "2", "datum": "2026-06-15"}, {"id": "1", "datum": "2026-05-01"}]},
+            {
+                "documents": [
+                    {"id": "2", "datum": "2026-06-15"},
+                    {"id": "1", "datum": "2026-05-01"},
+                ]
+            },
             {"documents": [{"id": "3", "datum": "2026-06-20"}]},
         ]
         conn = _make_connector_with_fake_client(pages)
@@ -132,7 +137,10 @@ class TestDiscover:
         pages = [
             {
                 "documents": [
-                    {"id": "900", "datum": "2026-06-01"},  # succeeded run 1 → cursor 20260601
+                    {
+                        "id": "900",
+                        "datum": "2026-06-01",
+                    },  # succeeded run 1 → cursor 20260601
                     {"id": "899", "datum": "2026-05-20"},  # transiently FAILED run 1
                 ]
             }
@@ -345,6 +353,6 @@ def test_empty_protocol_skips() -> None:
     with pytest.raises(ValueError, match="zero") as exc_info:
         conn.normalize(empty_raw)
 
-    assert "zero" in str(exc_info.value).lower() or "speech" in str(exc_info.value).lower(), (
-        "ValueError message must mention 'zero' or 'speech' to aid skip-and-warn logging"
-    )
+    assert (
+        "zero" in str(exc_info.value).lower() or "speech" in str(exc_info.value).lower()
+    ), "ValueError message must mention 'zero' or 'speech' to aid skip-and-warn logging"

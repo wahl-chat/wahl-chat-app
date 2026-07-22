@@ -589,7 +589,9 @@ class TestBuildManifestoRecords:
             source_kind="pdf",
             source_url="https://example.com/spd.pdf",
         )
-        assert records[0].citation_title == "Wahlprogramm SPD 2025 – Bundestag Wahl 2025"
+        assert (
+            records[0].citation_title == "Wahlprogramm SPD 2025 – Bundestag Wahl 2025"
+        )
 
     def test_content_hash_present_and_change_sensitive(self) -> None:
         """(d) Manifesto chunks stamp a per-chunk content_hash so an updated
@@ -661,7 +663,9 @@ class TestSlugMapParity:
                 for label, slug in CANONICAL_PARTY_SLUGS.items()
                 if m.get(label) != slug
             }
-            assert not missing, f"{name} map diverges from the canonical core: {missing!r}"
+            assert not missing, (
+                f"{name} map diverges from the canonical core: {missing!r}"
+            )
 
     def test_votes_and_manifestos_share_the_state_party_layer(self) -> None:
         """Votes and manifestos must agree on state/regional slugs (speeches

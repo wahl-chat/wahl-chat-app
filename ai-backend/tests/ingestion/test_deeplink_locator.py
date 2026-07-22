@@ -35,20 +35,32 @@ pytestmark = pytest.mark.skipif(
 _VIDEO = "https://cdn.example/7553315.mp4"
 _SENTENCE_MAP = [
     {"text": "Sehr geehrte Frau Präsidentin!", "ts_start": 1.0, "ts_end": 2.8},
-    {"text": "Wir stärken die Aus- und Weiterbildungsförderung.", "ts_start": 2.8, "ts_end": 6.4},
-    {"text": "Das ist ein wichtiger Schritt für die Fachkräftesicherung.", "ts_start": 6.4, "ts_end": 10.2},
+    {
+        "text": "Wir stärken die Aus- und Weiterbildungsförderung.",
+        "ts_start": 2.8,
+        "ts_end": 6.4,
+    },
+    {
+        "text": "Das ist ein wichtiger Schritt für die Fachkräftesicherung.",
+        "ts_start": 6.4,
+        "ts_end": 10.2,
+    },
 ]
 
 
 def test_verbatim_match_returns_that_sentence_ts() -> None:
     """A verbatim quote resolves to that sentence's ts_start."""
-    url = _locate("Wir stärken die Aus- und Weiterbildungsförderung.", _SENTENCE_MAP, _VIDEO)
+    url = _locate(
+        "Wir stärken die Aus- und Weiterbildungsförderung.", _SENTENCE_MAP, _VIDEO
+    )
     assert url == f"{_VIDEO}#t=2.8"
 
 
 def test_fuzzy_near_match_still_resolves() -> None:
     """A near (non-exact) match still resolves to the closest sentence's ts_start."""
-    url = _locate("Wir staerken die Aus und Weiterbildungsfoerderung", _SENTENCE_MAP, _VIDEO)
+    url = _locate(
+        "Wir staerken die Aus und Weiterbildungsfoerderung", _SENTENCE_MAP, _VIDEO
+    )
     assert url == f"{_VIDEO}#t=2.8"
 
 
@@ -96,9 +108,21 @@ _OP_PAYLOAD = {
     "meta": {
         "video_uri": _VIDEO,
         "sentence_map": [
-            {"text": "Frau Präsidentin! Meine Damen und Herren!", "ts_start": 1.0, "ts_end": 3.0},
-            {"text": "Fast jedes fünfte Kind in unserem Land lebt in Armut.", "ts_start": 45.2, "ts_end": 50.0},
-            {"text": "Wir investieren in Bildung und Chancengleichheit.", "ts_start": 70.5, "ts_end": 75.0},
+            {
+                "text": "Frau Präsidentin! Meine Damen und Herren!",
+                "ts_start": 1.0,
+                "ts_end": 3.0,
+            },
+            {
+                "text": "Fast jedes fünfte Kind in unserem Land lebt in Armut.",
+                "ts_start": 45.2,
+                "ts_end": 50.0,
+            },
+            {
+                "text": "Wir investieren in Bildung und Chancengleichheit.",
+                "ts_start": 70.5,
+                "ts_end": 75.0,
+            },
         ],
     },
 }
@@ -107,14 +131,25 @@ _OP_PAYLOAD = {
 @_relevance_skip
 def test_query_relevance_lands_on_topical_sentence() -> None:
     """A paraphrased query lands the deep-link on the most relevant sentence's ts."""
-    assert _deeplink_url(_OP_PAYLOAD, "Was sagt die Partei zu Kinderarmut und Armut von Kindern?") == f"{_VIDEO}#t=45.2"
-    assert _deeplink_url(_OP_PAYLOAD, "Position zu Bildung und Chancengleichheit") == f"{_VIDEO}#t=70.5"
+    assert (
+        _deeplink_url(
+            _OP_PAYLOAD, "Was sagt die Partei zu Kinderarmut und Armut von Kindern?"
+        )
+        == f"{_VIDEO}#t=45.2"
+    )
+    assert (
+        _deeplink_url(_OP_PAYLOAD, "Position zu Bildung und Chancengleichheit")
+        == f"{_VIDEO}#t=70.5"
+    )
 
 
 @_relevance_skip
 def test_query_relevance_falls_back_to_speech_start_when_no_overlap() -> None:
     """No content-word overlap → coarse speech-start link (never 0:00-crash)."""
-    assert _deeplink_url(_OP_PAYLOAD, "Außenpolitik Nato Verteidigung Panzer") == f"{_VIDEO}#t=1.0"
+    assert (
+        _deeplink_url(_OP_PAYLOAD, "Außenpolitik Nato Verteidigung Panzer")
+        == f"{_VIDEO}#t=1.0"
+    )
 
 
 @_relevance_skip

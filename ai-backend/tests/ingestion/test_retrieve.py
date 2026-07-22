@@ -208,7 +208,9 @@ def test_downrank_local_leads() -> None:
     point_local = _make_point(0.65, "DE-BY", ["federal", "state"])
     point_federal = _make_point(0.65, "DE", ["federal", "state"])
 
-    mock_client = _make_mock_client([point_federal, point_local])  # federal first in Qdrant
+    mock_client = _make_mock_client(
+        [point_federal, point_local]
+    )  # federal first in Qdrant
 
     results = retrieve(
         query="Haushalt Bayern",
@@ -262,9 +264,11 @@ def test_no_downrank_manifesto() -> None:
     assert results[0]["source_type"] == "party_manifesto"
     assert results[1]["source_type"] == "party_manifesto"
     # Scores must be in Qdrant order (no re-rank): first result must be point_a's payload.
-    assert results[0].get("text", "").startswith("Mock chunk region=DE source_type=party_manifesto"), (
-        "manifesto results must not be re-ranked by vote penalty logic"
-    )
+    assert (
+        results[0]
+        .get("text", "")
+        .startswith("Mock chunk region=DE source_type=party_manifesto")
+    ), "manifesto results must not be re-ranked by vote penalty logic"
 
 
 # ---------------------------------------------------------------------------
@@ -296,16 +300,21 @@ def test_penalty_tiers() -> None:
     point_tier3_untagged = _make_point(0.70, "DE", ["federal"])
     point_tier2_null = _make_point(0.70, "DE", None)  # None → small penalty
 
-    mock_client = _make_mock_client([
-        point_tier3_untagged,  # worst order in Qdrant
-        point_tier2_null,
-        point_tier2_tagged,
-    ])
+    mock_client = _make_mock_client(
+        [
+            point_tier3_untagged,  # worst order in Qdrant
+            point_tier2_null,
+            point_tier2_tagged,
+        ]
+    )
 
     results = retrieve(
         query="Haushalt",
         source_type="vote_record",
-        region_path=["DE", "DE-BY"],  # state election → local region DE-BY (all mocks are federal DE)
+        region_path=[
+            "DE",
+            "DE-BY",
+        ],  # state election → local region DE-BY (all mocks are federal DE)
         level="state",  # type: ignore[call-arg]
         query_vector=_ZERO_VECTOR,
         _client=mock_client,
@@ -360,7 +369,9 @@ def test_publish_range_bounded_window_builds_single_condition() -> None:
     )
 
     conds = _publish_date_conditions(mock_client)
-    assert len(conds) == 1, f"Expected exactly one publish_date condition, got {len(conds)}"
+    assert len(conds) == 1, (
+        f"Expected exactly one publish_date condition, got {len(conds)}"
+    )
     assert conds[0].range.gte == t0
     assert conds[0].range.lte == t1
     assert conds[0].range.lt is None
@@ -381,7 +392,9 @@ def test_publish_range_strict_cutoff_builds_lt_condition() -> None:
     )
 
     conds = _publish_date_conditions(mock_client)
-    assert len(conds) == 1, f"Expected exactly one publish_date condition, got {len(conds)}"
+    assert len(conds) == 1, (
+        f"Expected exactly one publish_date condition, got {len(conds)}"
+    )
     assert conds[0].range.lt == t0
     assert conds[0].range.gte is None
     assert conds[0].range.lte is None
@@ -710,7 +723,9 @@ def test_with_scores_true_downrank_branch_returns_effective_score() -> None:
     )
 
     _payload, score = res[0]
-    assert score == pytest.approx(0.50), "expected effective_score = 0.70 - 0.20 (LARGE penalty)"
+    assert score == pytest.approx(0.50), (
+        "expected effective_score = 0.70 - 0.20 (LARGE penalty)"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -781,7 +796,10 @@ def test_two_pass_historic_decay_monotonic_similarity_dominates() -> None:
         _client=mock_client,
     )
 
-    assert [p["party_id"] for p in buckets["historic"]] == ["old_strong", "recent_weak"], (
+    assert [p["party_id"] for p in buckets["historic"]] == [
+        "old_strong",
+        "recent_weak",
+    ], (
         "a much-higher-similarity older item must still outrank a slightly-lower recent item"
     )
 
@@ -807,8 +825,12 @@ def test_two_pass_historic_enlarged_pool_then_truncated() -> None:
     )
 
     _cur_call, hist_call = mock_client.query_points.call_args_list
-    assert hist_call.kwargs["limit"] > 2, "historic pass must over-fetch an enlarged pool"
-    assert hist_call.kwargs["limit"] == 20, "max(historic_limit * 10, 20) == 20 for limit=2"
+    assert hist_call.kwargs["limit"] > 2, (
+        "historic pass must over-fetch an enlarged pool"
+    )
+    assert hist_call.kwargs["limit"] == 20, (
+        "max(historic_limit * 10, 20) == 20 for limit=2"
+    )
     assert len(buckets["historic"]) == 2, "bucket must be truncated to historic_limit"
 
 
@@ -835,7 +857,9 @@ def test_two_pass_historic_missing_or_unparseable_date_decay_one() -> None:
     )
 
     parties = [p["party_id"] for p in buckets["historic"]]
-    assert parties[0] == "missing", "undated item keeps full score (decay 1.0) → ranks first"
+    assert parties[0] == "missing", (
+        "undated item keeps full score (decay 1.0) → ranks first"
+    )
     assert parties[1] == "garbage", "unparseable date keeps full score (decay 1.0)"
     assert parties[-1] == "old", "heavily-decayed old dated item ranks last"
 
@@ -843,7 +867,9 @@ def test_two_pass_historic_missing_or_unparseable_date_decay_one() -> None:
 def test_two_pass_current_bucket_no_decay() -> None:
     """The current bucket is NOT recency-weighted: in-window points with different
     publish_dates keep their original Qdrant order (flat)."""
-    older = _dated_point(0.70, "2021-06-14", party_id="older")  # in-window, listed first
+    older = _dated_point(
+        0.70, "2021-06-14", party_id="older"
+    )  # in-window, listed first
     recent = _dated_point(0.70, "2025-06-14", party_id="recent")  # in-window
     mock_client = _make_two_pass_client([older, recent], [])
 
@@ -919,8 +945,12 @@ def test_prefer_op_dedup() -> None:
 
     deduped = dedup(results)
 
-    sources_by_key = {p.get("speech_key"): p["source"] for p in deduped if p.get("speech_key")}
-    assert sources_by_key.get(shared) == "op", "shared speech_key must keep the op member"
+    sources_by_key = {
+        p.get("speech_key"): p["source"] for p in deduped if p.get("speech_key")
+    }
+    assert sources_by_key.get(shared) == "op", (
+        "shared speech_key must keep the op member"
+    )
 
     # Missing-key legacy chunk is never dropped.
     assert any(p["party_id"] == "legacy_no_key" for p in deduped), (
@@ -948,18 +978,14 @@ def test_prefer_op_dedup_grafts_transcript_pdf() -> None:
 
     # Order A — dip first, op second (incoming op replaces the dip slot).
     survivor_a = next(
-        p
-        for p in dedup([dict(dip), dict(op)])
-        if p.get("speech_key") == shared
+        p for p in dedup([dict(dip), dict(op)]) if p.get("speech_key") == shared
     )
     assert survivor_a["source"] == "op"
     assert (survivor_a.get("meta") or {}).get("transcript_pdf_url") == pdf
 
     # Order B — op first, dip second (existing op wins, dip still salvaged).
     survivor_b = next(
-        p
-        for p in dedup([dict(op), dict(dip)])
-        if p.get("speech_key") == shared
+        p for p in dedup([dict(op), dict(dip)]) if p.get("speech_key") == shared
     )
     assert survivor_b["source"] == "op"
     assert (survivor_b.get("meta") or {}).get("transcript_pdf_url") == pdf
@@ -974,7 +1000,9 @@ def test_prefer_op_dedup_grafts_transcript_pdf() -> None:
         for p in dedup([dict(op_with), dict(dip_other)])
         if p.get("speech_key") == shared
     )
-    assert survivor_c["meta"]["transcript_pdf_url"] == "https://existing.example/keep.pdf"
+    assert (
+        survivor_c["meta"]["transcript_pdf_url"] == "https://existing.example/keep.pdf"
+    )
 
 
 def test_prefer_op_dedup_keeps_distinct_op_speeches_sharing_a_key() -> None:
@@ -1022,7 +1050,9 @@ def test_prefer_op_dedup_multichunk_speech_collapses_by_source_item_id() -> None
     dedup = retrieve_mod.dedup_prefer_op
     key = "de-20-101-hubertus-heil-top20"
     op0 = _speech_point("op", key, "op", source_item_id="op-heil")
-    op1 = _speech_point("op", key, "op", source_item_id="op-heil")  # chunk 1, same speech
+    op1 = _speech_point(
+        "op", key, "op", source_item_id="op-heil"
+    )  # chunk 1, same speech
     dip0 = _speech_point("dip", key, "dip", source_item_id="dip-heil")
     dip1 = _speech_point("dip", key, "dip", source_item_id="dip-heil")
 

@@ -66,77 +66,104 @@ LEGISLATURE_CONFIG: dict[int, LegislatureConfig] = {
     # Bundestag — wahlperiode is the sole source of the Wahlperiode number.
     # Verified: AW API parliament-periods/{id} (2026-06-25)
     # -----------------------------------------------------------------------
-    111: LegislatureConfig(111, "DE", "Bundestag 2017 - 2021", "2017-10-24", "2021-10-25", wahlperiode=19),
-    132: LegislatureConfig(132, "DE", "Bundestag 2021 - 2025", "2021-10-26", "2025-03-24", wahlperiode=20),
-    161: LegislatureConfig(161, "DE", "Bundestag 2025 - 2029", "2025-03-25", "2029-02-22", wahlperiode=21),
-
+    111: LegislatureConfig(
+        111, "DE", "Bundestag 2017 - 2021", "2017-10-24", "2021-10-25", wahlperiode=19
+    ),
+    132: LegislatureConfig(
+        132, "DE", "Bundestag 2021 - 2025", "2021-10-26", "2025-03-24", wahlperiode=20
+    ),
+    161: LegislatureConfig(
+        161, "DE", "Bundestag 2025 - 2029", "2025-03-25", "2029-02-22", wahlperiode=21
+    ),
     # -----------------------------------------------------------------------
     # Landtage — current legislature period each (IDs VERIFIED from AW API, 2026-06-25).
     # region derived via region_for_period(label) from manifestos/mappers/corpus.py.
     # Sorted by AW parliament ID for readability.
     # -----------------------------------------------------------------------
-
     # Berlin (parliament_id=2)
-    133: LegislatureConfig(133, "DE-BE", "Berlin 2021 - 2026", "2021-10-04", "2026-10-25"),
-
+    133: LegislatureConfig(
+        133, "DE-BE", "Berlin 2021 - 2026", "2021-10-04", "2026-10-25"
+    ),
     # Hamburg (parliament_id=3)
-    162: LegislatureConfig(162, "DE-HH", "Hamburg 2025 - 2029", "2025-03-26", "2029-05-03"),
-
+    162: LegislatureConfig(
+        162, "DE-HH", "Hamburg 2025 - 2029", "2025-03-26", "2029-05-03"
+    ),
     # Nordrhein-Westfalen (parliament_id=4)
-    139: LegislatureConfig(139, "DE-NW", "Nordrhein-Westfalen 2022 - 2027", "2022-06-01", "2027-05-30"),
-
+    139: LegislatureConfig(
+        139, "DE-NW", "Nordrhein-Westfalen 2022 - 2027", "2022-06-01", "2027-05-30"
+    ),
     # Baden-Württemberg (parliament_id=6)
-    165: LegislatureConfig(165, "DE-BW", "Baden-Württemberg 2026 - 2031", "2026-05-12", "2031-05-20"),
+    165: LegislatureConfig(
+        165, "DE-BW", "Baden-Württemberg 2026 - 2031", "2026-05-12", "2031-05-20"
+    ),
     # OUTGOING term: the 2021–2026 legislature whose voting record voters want
     # around the 2026 election. Retained ALONGSIDE 165 so the two-pass split can
     # separate them by publish_date. IDs/dates VERIFIED from AW v2 CC0 API
     # (GET /parliament-periods?parliament=6&type=legislature) 2026-07-09.
-    126: LegislatureConfig(126, "DE-BW", "Baden-Württemberg 2021 - 2026", "2021-05-11", "2026-05-11"),
+    126: LegislatureConfig(
+        126, "DE-BW", "Baden-Württemberg 2021 - 2026", "2021-05-11", "2026-05-11"
+    ),
     # PRIOR term (pre-outgoing): votes here have publish_date < 2021-05-11, so they land
     # in the HISTORIC bucket of a 2026 BW chat (the election-date "containing" tiebreak
     # still resolves the CURRENT window to the outgoing 126 term). IDs/dates VERIFIED from
     # AW v2 CC0 API (GET /parliament-periods?parliament=6&type=legislature) 2026-07-09.
-    105: LegislatureConfig(105, "DE-BW", "Baden-Württemberg 2016 - 2021", "2016-05-11", "2021-05-10"),
-
+    105: LegislatureConfig(
+        105, "DE-BW", "Baden-Württemberg 2016 - 2021", "2016-05-11", "2021-05-10"
+    ),
     # Rheinland-Pfalz (parliament_id=7)
-    166: LegislatureConfig(166, "DE-RP", "Rheinland-Pfalz 2026 - 2031", "2026-05-18", "2031-05-31"),
+    166: LegislatureConfig(
+        166, "DE-RP", "Rheinland-Pfalz 2026 - 2031", "2026-05-18", "2031-05-31"
+    ),
     # OUTGOING term: the 2021–2026 legislature retained for pre/around-election
     # voting-record retrieval, alongside the post-election 166. IDs/dates VERIFIED
     # from AW v2 CC0 API (GET /parliament-periods?parliament=7&type=legislature) 2026-07-09.
-    127: LegislatureConfig(127, "DE-RP", "Rheinland-Pfalz 2021 - 2026", "2021-03-12", "2026-05-18"),
-
+    127: LegislatureConfig(
+        127, "DE-RP", "Rheinland-Pfalz 2021 - 2026", "2021-03-12", "2026-05-18"
+    ),
     # Sachsen-Anhalt (parliament_id=8)
-    131: LegislatureConfig(131, "DE-ST", "Sachsen-Anhalt 2021 - 2026", "2021-07-06", "2026-10-06"),
-
+    131: LegislatureConfig(
+        131, "DE-ST", "Sachsen-Anhalt 2021 - 2026", "2021-07-06", "2026-10-06"
+    ),
     # Mecklenburg-Vorpommern (parliament_id=9)
-    134: LegislatureConfig(134, "DE-MV", "Mecklenburg-Vorpommern 2021 - 2026", "2021-10-26", "2026-10-25"),
-
+    134: LegislatureConfig(
+        134, "DE-MV", "Mecklenburg-Vorpommern 2021 - 2026", "2021-10-26", "2026-10-25"
+    ),
     # Bremen (parliament_id=10)
-    146: LegislatureConfig(146, "DE-HB", "Bremen 2023 - 2027", "2023-06-29", "2027-06-01"),
-
+    146: LegislatureConfig(
+        146, "DE-HB", "Bremen 2023 - 2027", "2023-06-29", "2027-06-01"
+    ),
     # Hessen (parliament_id=11)
-    150: LegislatureConfig(150, "DE-HE", "Hessen 2024 - 2029", "2024-01-18", "2029-01-31"),
-
+    150: LegislatureConfig(
+        150, "DE-HE", "Hessen 2024 - 2029", "2024-01-18", "2029-01-31"
+    ),
     # Niedersachsen (parliament_id=12)
-    143: LegislatureConfig(143, "DE-NI", "Niedersachsen 2022 - 2027", "2022-11-08", "2027-11-18"),
-
+    143: LegislatureConfig(
+        143, "DE-NI", "Niedersachsen 2022 - 2027", "2022-11-08", "2027-11-18"
+    ),
     # Bayern (parliament_id=13) — empirical check confirmed ~149
-    149: LegislatureConfig(149, "DE-BY", "Bayern 2023 - 2028", "2023-10-26", "2028-10-31"),
-
+    149: LegislatureConfig(
+        149, "DE-BY", "Bayern 2023 - 2028", "2023-10-26", "2028-10-31"
+    ),
     # Saarland (parliament_id=14)
-    137: LegislatureConfig(137, "DE-SL", "Saarland 2022 - 2027", "2022-04-25", "2027-03-27"),
-
+    137: LegislatureConfig(
+        137, "DE-SL", "Saarland 2022 - 2027", "2022-04-25", "2027-03-27"
+    ),
     # Thüringen (parliament_id=15)
-    156: LegislatureConfig(156, "DE-TH", "Thüringen 2024 - 2029", "2024-09-26", "2029-09-30"),
-
+    156: LegislatureConfig(
+        156, "DE-TH", "Thüringen 2024 - 2029", "2024-09-26", "2029-09-30"
+    ),
     # Brandenburg (parliament_id=16)
-    158: LegislatureConfig(158, "DE-BB", "Brandenburg 2024 - 2029", "2024-10-17", "2029-10-22"),
-
+    158: LegislatureConfig(
+        158, "DE-BB", "Brandenburg 2024 - 2029", "2024-10-17", "2029-10-22"
+    ),
     # Sachsen (parliament_id=17)
-    157: LegislatureConfig(157, "DE-SN", "Sachsen 2024 - 2029", "2024-10-01", "2029-09-30"),
-
+    157: LegislatureConfig(
+        157, "DE-SN", "Sachsen 2024 - 2029", "2024-10-01", "2029-09-30"
+    ),
     # Schleswig-Holstein (parliament_id=18)
-    138: LegislatureConfig(138, "DE-SH", "Schleswig-Holstein 2022 - 2027", "2022-06-07", "2027-05-30"),
+    138: LegislatureConfig(
+        138, "DE-SH", "Schleswig-Holstein 2022 - 2027", "2022-06-07", "2027-05-30"
+    ),
 }
 
 # ---------------------------------------------------------------------------

@@ -62,7 +62,13 @@ def _make_zero_tally_raw() -> dict:
     }
     # All votes have fraction=[] — zero usable tallies (degenerate case)
     votes: list[dict[str, Any]] = [
-        {"id": i, "vote": "no_show", "fraction": [], "mandate": None, "poll": {"id": 9999}}
+        {
+            "id": i,
+            "vote": "no_show",
+            "fraction": [],
+            "mandate": None,
+            "poll": {"id": 9999},
+        }
         for i in range(5)
     ]
     return {"poll": poll, "votes": votes}
@@ -110,10 +116,16 @@ class TestGdprWall:
                 for lineno, line in enumerate(text.splitlines(), 1):
                     # Skip comment lines and docstring mentions
                     stripped = line.strip()
-                    if stripped.startswith("#") or stripped.startswith('"""') or stripped.startswith("'''"):
+                    if (
+                        stripped.startswith("#")
+                        or stripped.startswith('"""')
+                        or stripped.startswith("'''")
+                    ):
                         continue
                     if _USERS_CODE_PATTERN.search(line):
-                        found_violations.append(f"{fpath.relative_to(aw_src_dir)}:{lineno}: {line.strip()}")
+                        found_violations.append(
+                            f"{fpath.relative_to(aw_src_dir)}:{lineno}: {line.strip()}"
+                        )
 
         assert not found_violations, (
             "GDPR Art.9 wall violation — code accesses users/ collection in AW modules:\n"
@@ -164,9 +176,7 @@ class TestNormalize:
 
         result = connector.normalize(raw)
 
-        assert isinstance(result, list), (
-            "normalize() must return a list"
-        )
+        assert isinstance(result, list), "normalize() must return a list"
         assert len(result) >= 1, (
             "normalize() must return at least one ChunkRecord for poll 3602"
         )
@@ -299,7 +309,7 @@ def _make_stub_polls() -> list[dict[str, Any]]:
         {"id": 100, "field_poll_date": "2019-12-15"},  # before 2020 floor
         {"id": 200, "field_poll_date": "2020-01-01"},  # exactly at floor
         {"id": 300, "field_poll_date": "2021-06-15"},  # after floor
-        {"id": 400, "field_poll_date": ""},             # empty date — excluded when floor set
+        {"id": 400, "field_poll_date": ""},  # empty date — excluded when floor set
         {"id": 500, "field_poll_date": "2022-03-10"},  # after floor
     ]
 
@@ -390,7 +400,9 @@ class TestPollSinceFloor:
             f"Expected integer-id order ['100', '200', '300', '400', '500'], got {ids!r}"
         )
 
-    def test_floor_set_with_cursor_filters_both(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_floor_set_with_cursor_filters_both(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Floor + per-legislature cursor: only polls with id > leg_since AND date >= floor survive.
 
         discover() ignores the global `since` arg in favour of the per-legislature cursor
@@ -453,8 +465,8 @@ def _make_mixed_polls() -> list[dict]:
     """
     return [
         {"id": 9999, "field_poll_date": "2019-01-01"},  # large id, early date
-        {"id": 1,    "field_poll_date": "2023-12-31"},  # small id, late date
-        {"id": 500,  "field_poll_date": "2021-06-15"},  # middle id, middle date
+        {"id": 1, "field_poll_date": "2023-12-31"},  # small id, late date
+        {"id": 500, "field_poll_date": "2021-06-15"},  # middle id, middle date
     ]
 
 
@@ -470,9 +482,12 @@ class TestDiscoverSortByPollId:
         class _FakeClient:
             def get_all(self, endpoint: str, params: dict) -> list[dict]:  # type: ignore[override]
                 return _make_mixed_polls()
+
         connector._client = _FakeClient()  # type: ignore[assignment]
 
-    def test_sorts_by_integer_id_ascending(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_sorts_by_integer_id_ascending(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """discover() returns ids sorted ascending by integer poll id."""
         monkeypatch.delenv("AW_POLL_SINCE", raising=False)
         connector = self._make_connector()
@@ -538,7 +553,9 @@ class TestNormalizeLegislaturePeriodId:
 
         chunks = connector.normalize(raw)
 
-        assert len(chunks) >= 1, "normalize() must return at least one chunk for poll 3602"
+        assert len(chunks) >= 1, (
+            "normalize() must return at least one chunk for poll 3602"
+        )
         for chunk in chunks:
             assert chunk.legislature_period_id == 111, (
                 f"Every chunk must have legislature_period_id=111 for legislature 111, "
@@ -584,9 +601,7 @@ class TestPerLegislatureCursor:
 
         connector._client = _FakeBayernClient()  # type: ignore[assignment]
 
-    def test_per_legislature_cursor(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_per_legislature_cursor(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """discover(since=5000) for legislature 149 must still return Bayern polls.
 
         When the global cursor is 5000 (from high-ID Bundestag polls), a naive
@@ -646,7 +661,9 @@ class TestNormalizeRelevanceLevels:
         connector = AbgeordnetenwatchVotesConnector()
         chunks = connector.normalize(raw)
 
-        assert len(chunks) >= 1, "normalize() must return at least one chunk for poll 3602"
+        assert len(chunks) >= 1, (
+            "normalize() must return at least one chunk for poll 3602"
+        )
         for chunk in chunks:
             assert chunk.relevance_levels == ["federal", "state"], (
                 f"Poll with Verteidigung topic must yield relevance_levels=['federal','state'], "
@@ -744,7 +761,9 @@ class TestDiscoverFailFast:
         monkeypatch.setitem(
             LEGISLATURE_CONFIG,
             999001,
-            LegislatureConfig(999001, "DE-XX", "Testland 2026 - 2031", recent_start, None),
+            LegislatureConfig(
+                999001, "DE-XX", "Testland 2026 - 2031", recent_start, None
+            ),
         )
 
         connector = AbgeordnetenwatchVotesConnector(legislature_id=999001)

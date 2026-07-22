@@ -126,7 +126,9 @@ class BaseConnector(ABC):
         """
         ...
 
-    def post_upsert(self, qdrant, collection_name: str, chunks: list[ChunkRecord]) -> int:  # noqa: ANN001
+    def post_upsert(
+        self, qdrant, collection_name: str, chunks: list[ChunkRecord]
+    ) -> int:  # noqa: ANN001
         """Optional hook — called by the runner AFTER each successful item upsert.
 
         Source-specific follow-up policy belongs here, on the connector, not in

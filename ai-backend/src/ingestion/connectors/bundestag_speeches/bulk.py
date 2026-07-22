@@ -53,7 +53,9 @@ from qdrant_client import QdrantClient
 
 from datetime import date as _date_type
 
-from src.ingestion.connectors.bundestag_speeches.mappers.corpus import build_chunk_records
+from src.ingestion.connectors.bundestag_speeches.mappers.corpus import (
+    build_chunk_records,
+)
 from src.ingestion.run import _embed_texts, _upsert_chunks
 from src.ingestion.schemas import ChunkRecord
 from src.ingestion.setup_collection import COLLECTION_NAME, EMBEDDING_MODEL
@@ -129,7 +131,9 @@ def ingest(
             try:
                 parsed = _date_type.fromisoformat(raw_date)
                 yyyymmdd = int(parsed.strftime("%Y%m%d"))
-                records = [c.model_copy(update={"external_id": yyyymmdd}) for c in records]
+                records = [
+                    c.model_copy(update={"external_id": yyyymmdd}) for c in records
+                ]
             except (ValueError, TypeError):
                 # Defensive guard: build_chunk_records would have already skipped a bad
                 # date, but guard here to be safe — skip without stamping.
@@ -146,7 +150,11 @@ def ingest(
 
             if len(batch) >= _BATCH_SIZE:
                 flushed = _flush(batch)
-                logger.info("Flushed batch of %d chunks (total so far: %d)", flushed, chunks_total)
+                logger.info(
+                    "Flushed batch of %d chunks (total so far: %d)",
+                    flushed,
+                    chunks_total,
+                )
                 batch = []
 
     _flush(batch)

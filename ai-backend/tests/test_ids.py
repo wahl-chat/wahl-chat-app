@@ -41,12 +41,8 @@ def test_source_item_id_different_inputs_differ():
     a = compute_source_item_id("party_manifesto", "test-001")
     b = compute_source_item_id("vote_record", "test-001")
     c = compute_source_item_id("party_manifesto", "test-002")
-    assert a != b, (
-        "compute_source_item_id must differ when source_type differs."
-    )
-    assert a != c, (
-        "compute_source_item_id must differ when external_id differs."
-    )
+    assert a != b, "compute_source_item_id must differ when source_type differs."
+    assert a != c, "compute_source_item_id must differ when external_id differs."
 
 
 def test_chunk_id_returns_uuid():
@@ -85,9 +81,7 @@ def test_make_chunk_key_format():
     try:
         uuid.UUID(uuid_part)
     except ValueError:
-        pytest.fail(
-            f"make_chunk_key UUID portion is not a valid UUID: {uuid_part!r}"
-        )
+        pytest.fail(f"make_chunk_key UUID portion is not a valid UUID: {uuid_part!r}")
     # Validate zero-padded index
     assert index_part == "0003", (
         f"make_chunk_key must zero-pad the chunk index to 4 digits: "

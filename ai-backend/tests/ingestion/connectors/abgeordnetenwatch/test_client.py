@@ -95,8 +95,10 @@ class TestGet:
     def test_get_sleeps_before_request(self) -> None:
         """get() must call time.sleep() before each request (pacing)."""
         mock_resp = _make_ok_response({"id": 3602}, total=1, count=1)
-        with patch("time.sleep") as mock_sleep, \
-             patch("requests.Session.get", return_value=mock_resp):
+        with (
+            patch("time.sleep") as mock_sleep,
+            patch("requests.Session.get", return_value=mock_resp),
+        ):
             c = AWClient()
             c.get("polls/3602")
             assert mock_sleep.called, "time.sleep must be called before each get() call"
@@ -107,8 +109,7 @@ class TestGet:
     def test_get_returns_parsed_dict(self) -> None:
         """get() returns the full parsed JSON response dict."""
         mock_resp = _make_ok_response({"id": 3602}, total=1, count=1)
-        with patch("time.sleep"), \
-             patch("requests.Session.get", return_value=mock_resp):
+        with patch("time.sleep"), patch("requests.Session.get", return_value=mock_resp):
             c = AWClient()
             result = c.get("polls/3602")
         assert isinstance(result, dict)
@@ -118,8 +119,7 @@ class TestGet:
     def test_get_raises_on_error_status(self) -> None:
         """get() raises ValueError when meta.status != 'ok' (API error envelope guard)."""
         mock_resp = _make_error_response()
-        with patch("time.sleep"), \
-             patch("requests.Session.get", return_value=mock_resp):
+        with patch("time.sleep"), patch("requests.Session.get", return_value=mock_resp):
             c = AWClient()
             with pytest.raises(ValueError, match="AW API error"):
                 c.get("polls", params={"parliament_period": 132})
@@ -134,8 +134,10 @@ class TestGet:
             mock_resp.raise_for_status = MagicMock()
             return mock_resp
 
-        with patch("time.sleep"), \
-             patch("requests.Session.get", side_effect=capture_get):
+        with (
+            patch("time.sleep"),
+            patch("requests.Session.get", side_effect=capture_get),
+        ):
             c = AWClient()
             c.get("polls/3602")
 
@@ -211,12 +213,19 @@ class TestGetAll:
             nonlocal call_count
             call_count += 1
             if call_count > 5:
-                raise RuntimeError("get_all made too many calls — infinite loop detected")
+                raise RuntimeError(
+                    "get_all made too many calls — infinite loop detected"
+                )
             return {
                 "meta": {
                     "status": "ok",
                     "status_message": "",
-                    "result": {"count": 50, "total": 50, "range_start": 0, "range_end": 50},
+                    "result": {
+                        "count": 50,
+                        "total": 50,
+                        "range_start": 0,
+                        "range_end": 50,
+                    },
                 },
                 "data": data,
             }
@@ -280,7 +289,12 @@ class TestGetAll:
             return {
                 "meta": {
                     "status": "ok",
-                    "result": {"count": 0, "total": 0, "range_start": 0, "range_end": 100},
+                    "result": {
+                        "count": 0,
+                        "total": 0,
+                        "range_start": 0,
+                        "range_end": 100,
+                    },
                 }
             }  # no data key
 
@@ -299,7 +313,12 @@ class TestGetAll:
                 "meta": {
                     "status": "ok",
                     "status_message": "",
-                    "result": {"count": 0, "total": 0, "range_start": 0, "range_end": 100},
+                    "result": {
+                        "count": 0,
+                        "total": 0,
+                        "range_start": 0,
+                        "range_end": 100,
+                    },
                 },
                 "data": [],
             }
@@ -361,7 +380,12 @@ class TestGetAll:
                 "meta": {
                     "status": "ok",
                     "status_message": "",
-                    "result": {"count": len(data), "total": 130, "range_start": rs, "range_end": rs + 100},
+                    "result": {
+                        "count": len(data),
+                        "total": 130,
+                        "range_start": rs,
+                        "range_end": rs + 100,
+                    },
                 },
                 "data": data,
             }
@@ -388,9 +412,16 @@ class TestGetVotesForPoll:
                 "meta": {
                     "status": "ok",
                     "status_message": "",
-                    "result": {"count": 709, "total": 709, "range_start": 0, "range_end": 800},
+                    "result": {
+                        "count": 709,
+                        "total": 709,
+                        "range_start": 0,
+                        "range_end": 800,
+                    },
                 },
-                "data": [{"id": i, "vote": "yes", "fraction": {"id": 22}} for i in range(709)],
+                "data": [
+                    {"id": i, "vote": "yes", "fraction": {"id": 22}} for i in range(709)
+                ],
             }
 
         c = AWClient()
@@ -411,7 +442,12 @@ class TestGetVotesForPoll:
                 "meta": {
                     "status": "ok",
                     "status_message": "",
-                    "result": {"count": 1, "total": 1, "range_start": 0, "range_end": 800},
+                    "result": {
+                        "count": 1,
+                        "total": 1,
+                        "range_start": 0,
+                        "range_end": 800,
+                    },
                 },
                 "data": vote_data,
             }
@@ -431,9 +467,16 @@ class TestGetVotesForPoll:
                     "status": "ok",
                     "status_message": "",
                     # total exceeds the 800-vote single-call window.
-                    "result": {"count": 800, "total": 950, "range_start": 0, "range_end": 800},
+                    "result": {
+                        "count": 800,
+                        "total": 950,
+                        "range_start": 0,
+                        "range_end": 800,
+                    },
                 },
-                "data": [{"id": i, "vote": "yes", "fraction": {"id": 22}} for i in range(800)],
+                "data": [
+                    {"id": i, "vote": "yes", "fraction": {"id": 22}} for i in range(800)
+                ],
             }
 
         c = AWClient()
@@ -476,9 +519,16 @@ class TestGetVotesForPoll:
                 "meta": {
                     "status": "ok",
                     "status_message": "",
-                    "result": {"count": 100, "total": 709, "range_start": 0, "range_end": 800},
+                    "result": {
+                        "count": 100,
+                        "total": 709,
+                        "range_start": 0,
+                        "range_end": 800,
+                    },
                 },
-                "data": [{"id": i, "vote": "yes", "fraction": {"id": 22}} for i in range(100)],
+                "data": [
+                    {"id": i, "vote": "yes", "fraction": {"id": 22}} for i in range(100)
+                ],
             }
 
         c = AWClient()
@@ -521,8 +571,10 @@ class TestRateCeiling:
             nonlocal total_slept
             total_slept += seconds
 
-        with patch("time.sleep", side_effect=accumulate_sleep), \
-             patch("requests.Session.get", return_value=mock_resp):
+        with (
+            patch("time.sleep", side_effect=accumulate_sleep),
+            patch("requests.Session.get", return_value=mock_resp),
+        ):
             c = AWClient()
             for _ in range(30):
                 c.get("polls/3602")

@@ -128,11 +128,21 @@ def supersede_dip_duplicates(
             collection_name=collection_name,
             scroll_filter=models.Filter(
                 must=[
-                    models.FieldCondition(key="speech_key", match=models.MatchAny(any=keys)),
-                    models.FieldCondition(key="source", match=models.MatchValue(value="dip")),
+                    models.FieldCondition(
+                        key="speech_key", match=models.MatchAny(any=keys)
+                    ),
+                    models.FieldCondition(
+                        key="source", match=models.MatchValue(value="dip")
+                    ),
                 ]
             ),
-            with_payload=["speech_key", "source_item_id", "citation_url", "text", "chunk_index"],
+            with_payload=[
+                "speech_key",
+                "source_item_id",
+                "citation_url",
+                "text",
+                "chunk_index",
+            ],
             with_vectors=False,
             limit=256,
             offset=next_offset,
@@ -218,7 +228,9 @@ def supersede_dip_duplicates(
                     models.FieldCondition(
                         key="source_item_id", match=models.MatchAny(any=delete_dip_sids)
                     ),
-                    models.FieldCondition(key="source", match=models.MatchValue(value="dip")),
+                    models.FieldCondition(
+                        key="source", match=models.MatchValue(value="dip")
+                    ),
                 ]
             )
         ),

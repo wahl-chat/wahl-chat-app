@@ -325,7 +325,9 @@ def run_connector(
         # from any step causes a skip-and-warn rather than aborting the whole run.
         # Timeouts are enforced at the client layer (AW: timeout=30, DIP: timeout=60).
         try:
-            raw = connector.fetch(external_id)  # fetch timeouts enforced at client layer
+            raw = connector.fetch(
+                external_id
+            )  # fetch timeouts enforced at client layer
 
             try:
                 chunks = connector.normalize(raw)
@@ -381,7 +383,8 @@ def run_connector(
                 # silently skipped. Connectors that don't stamp content_hash keep plain
                 # point-id-existence idempotency (content_changed stays False for them).
                 point_ids = [
-                    str(compute_chunk_id(c.source_item_id, c.chunk_index)) for c in chunks
+                    str(compute_chunk_id(c.source_item_id, c.chunk_index))
+                    for c in chunks
                 ]
                 new_point_ids = set(point_ids)
                 # source_item_id is a UUID; stringify for the keyword-index MatchAny.

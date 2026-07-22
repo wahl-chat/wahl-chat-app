@@ -45,13 +45,17 @@ def test_get_json_fallback_includes_http_status(monkeypatch) -> None:
 
     # curl fallback also fails → raises OpTvChallengeError with only stderr.
     def _boom(url: str, accept: str = "*/*") -> str:
-        raise client_mod.OpTvChallengeError("curl: (22) The requested URL returned error")
+        raise client_mod.OpTvChallengeError(
+            "curl: (22) The requested URL returned error"
+        )
 
     monkeypatch.setattr(client_mod, "curl_get", _boom)
     monkeypatch.setattr(client_mod.time, "sleep", lambda *_: None)
 
     with pytest.raises(client_mod.OpTvChallengeError) as excinfo:
-        op._get_json("https://raw.githubusercontent.com/x/y/processed/20101-session.json")
+        op._get_json(
+            "https://raw.githubusercontent.com/x/y/processed/20101-session.json"
+        )
 
     msg = str(excinfo.value)
     assert "404" in msg, f"fallback error must carry the HTTP status; got {msg!r}"
@@ -63,9 +67,11 @@ def test_get_json_fallback_succeeds_when_curl_recovers(monkeypatch) -> None:
     op = client_mod.OpTvClient(sleep=0)
     op.session = _FakeSession(503)
 
-    monkeypatch.setattr(client_mod, "curl_get", lambda url, accept="*/*": '{"ok": true}')
+    monkeypatch.setattr(
+        client_mod, "curl_get", lambda url, accept="*/*": '{"ok": true}'
+    )
     monkeypatch.setattr(client_mod.time, "sleep", lambda *_: None)
 
-    assert op._get_json("https://raw.githubusercontent.com/x/y/processed/20101-session.json") == {
-        "ok": True
-    }
+    assert op._get_json(
+        "https://raw.githubusercontent.com/x/y/processed/20101-session.json"
+    ) == {"ok": True}

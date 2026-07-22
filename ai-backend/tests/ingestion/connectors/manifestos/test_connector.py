@@ -80,7 +80,9 @@ class TestFetchNormalize:
         # citation_url is the original source (AW file) URL, not a re-serve route.
         assert rec.citation_url == "https://example.com/spd-programm-2025.pdf"
 
-    def test_link_pages_have_no_page_numbers(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_link_pages_have_no_page_numbers(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         connector = ManifestoConnector()
         _seed(connector, _LINK_PROGRAM, "2023-09-10")
 
@@ -149,9 +151,7 @@ class TestDiscoverSetDifference:
         monkeypatch.setattr(
             conn_mod, "_fetch_period_date", lambda *a, **k: "2025-02-23"
         )
-        monkeypatch.setattr(
-            connector, "_get_ingested_program_ids", lambda: {598}
-        )
+        monkeypatch.setattr(connector, "_get_ingested_program_ids", lambda: {598})
 
         # Under the OLD watermark filter, since=598 would exclude 555 forever.
         ids = connector.discover(since=598)
@@ -213,8 +213,12 @@ class TestManifestoRefresh:
         ingested_program = dict(_PDF_PROGRAM, id=598)
 
         for value, expect_included in [
-            ("true", True), ("YES", True), ("1", True),
-            ("0", False), ("off", False), ("", False),
+            ("true", True),
+            ("YES", True),
+            ("1", True),
+            ("0", False),
+            ("off", False),
+            ("", False),
         ]:
             connector = ManifestoConnector()
             connector._client = TestDiscoverSetDifference._FakeAwClient(  # type: ignore[assignment]
@@ -223,13 +227,11 @@ class TestManifestoRefresh:
             monkeypatch.setattr(
                 conn_mod, "_fetch_period_date", lambda *a, **k: "2025-02-23"
             )
-            monkeypatch.setattr(
-                connector, "_get_ingested_program_ids", lambda: {598}
-            )
+            monkeypatch.setattr(connector, "_get_ingested_program_ids", lambda: {598})
             monkeypatch.setenv("MANIFESTO_REFRESH", value)
 
             ids = connector.discover(since=None)
-            assert (("598" in ids) is expect_included), (
+            assert ("598" in ids) is expect_included, (
                 f"MANIFESTO_REFRESH={value!r}: expected included={expect_included}, got {ids!r}"
             )
 
@@ -244,13 +246,15 @@ class TestDetermineSource:
             "file": "https://example.com/programm.pdf",
         }
         assert conn_mod.determine_source(program) == (
-            "link", "https://example.com/programm"
+            "link",
+            "https://example.com/programm",
         )
 
     def test_file_used_when_no_link(self) -> None:
         program = {"link": [], "file": "https://example.com/programm.pdf"}
         assert conn_mod.determine_source(program) == (
-            "pdf", "https://example.com/programm.pdf"
+            "pdf",
+            "https://example.com/programm.pdf",
         )
 
     def test_null_link_uri_falls_back_to_file(self) -> None:
@@ -259,7 +263,8 @@ class TestDetermineSource:
             "file": "https://example.com/programm.pdf",
         }
         assert conn_mod.determine_source(program) == (
-            "pdf", "https://example.com/programm.pdf"
+            "pdf",
+            "https://example.com/programm.pdf",
         )
 
     def test_non_dict_link_entry_falls_back_to_file(self) -> None:
@@ -268,7 +273,8 @@ class TestDetermineSource:
             "file": "https://example.com/programm.pdf",
         }
         assert conn_mod.determine_source(program) == (
-            "pdf", "https://example.com/programm.pdf"
+            "pdf",
+            "https://example.com/programm.pdf",
         )
 
     def test_both_null_raises(self) -> None:
@@ -298,11 +304,15 @@ class TestLoadProgramPagesHtmlFloor:
             conn_mod.load_program_pages("link", "https://example.com/landing")
 
     def test_long_html_passes_floor(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        paragraph = "<p>" + ("Wir fordern bezahlbaren Wohnraum für alle Menschen. " * 20) + "</p>"
-        html = f"<html><body><article><h1>Programm</h1>{paragraph}</article></body></html>"
-        monkeypatch.setattr(
-            "requests.get", lambda *a, **k: self._FakeResponse(html)
+        paragraph = (
+            "<p>"
+            + ("Wir fordern bezahlbaren Wohnraum für alle Menschen. " * 20)
+            + "</p>"
         )
+        html = (
+            f"<html><body><article><h1>Programm</h1>{paragraph}</article></body></html>"
+        )
+        monkeypatch.setattr("requests.get", lambda *a, **k: self._FakeResponse(html))
         result = conn_mod.load_program_pages("link", "https://example.com/programm")
         assert result["total_pages"] is None
         assert len(result["pages"]) == 1

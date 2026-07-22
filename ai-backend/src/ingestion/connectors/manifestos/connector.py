@@ -79,7 +79,9 @@ def _fetch_period_date(
     try:
         resp = client.get(f"parliament-periods/{period_id}")
         data = resp.get("data") or {}
-        date_str: Optional[str] = data.get("election_date") or data.get("start_date_period") or None
+        date_str: Optional[str] = (
+            data.get("election_date") or data.get("start_date_period") or None
+        )
         cache[period_id] = date_str
         return date_str
     except Exception as exc:  # noqa: BLE001
@@ -327,7 +329,11 @@ class ManifestoConnector(BaseConnector):
 
         # MANIFESTO_REFRESH skips the ingested-ids exclusion so already
         # present programs flow through run.py's content-hash guard again.
-        refresh = os.getenv("MANIFESTO_REFRESH", "").strip().lower() in ("1", "true", "yes")
+        refresh = os.getenv("MANIFESTO_REFRESH", "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+        )
         ingested_ids: set[int] = set() if refresh else self._get_ingested_program_ids()
 
         eligible: list[int] = []
@@ -339,7 +345,9 @@ class ManifestoConnector(BaseConnector):
             period_id = period_obj.get("id")
             if not period_id:
                 continue
-            date_iso = _fetch_period_date(self._client, int(period_id), self._period_date_cache)
+            date_iso = _fetch_period_date(
+                self._client, int(period_id), self._period_date_cache
+            )
             if not date_iso:
                 continue
             try:
@@ -384,13 +392,20 @@ class ManifestoConnector(BaseConnector):
         period_date_iso = self._period_dates.get(pid)
 
         if program is None:
-            return {"program": None, "skip_reason": f"program {pid} not in discover cache"}
+            return {
+                "program": None,
+                "skip_reason": f"program {pid} not in discover cache",
+            }
 
         try:
             source_kind, source_url = determine_source(program)
             content = load_program_pages(source_kind, source_url)
         except ValueError as exc:
-            return {"program": program, "period_date_iso": period_date_iso, "skip_reason": str(exc)}
+            return {
+                "program": program,
+                "period_date_iso": period_date_iso,
+                "skip_reason": str(exc),
+            }
 
         return {
             "program": program,
@@ -424,12 +439,16 @@ class ManifestoConnector(BaseConnector):
         program: dict = raw["program"]
         period_date_iso: Optional[str] = raw.get("period_date_iso")
         if not period_date_iso:
-            raise ValueError(f"program {program.get('id')} has no resolvable election_date")
+            raise ValueError(
+                f"program {program.get('id')} has no resolvable election_date"
+            )
 
         source_kind: SourceKind = raw["source_kind"]
         chunk_tuples = chunk_pages(raw["pages"])
         if not chunk_tuples:
-            raise ValueError(f"program {program.get('id')} produced no text after chunking")
+            raise ValueError(
+                f"program {program.get('id')} produced no text after chunking"
+            )
 
         # HTML sources carry no page numbers per spec.
         if source_kind == SourceKind.LINK:

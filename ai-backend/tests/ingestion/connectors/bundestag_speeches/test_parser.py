@@ -227,7 +227,7 @@ class TestDefusedXmlHardening:
         """A billion-laughs payload raises defusedxml.EntitiesForbidden, not OOM."""
         billion_laughs = (
             '<?xml version="1.0"?>'
-            '<!DOCTYPE lolz ['
+            "<!DOCTYPE lolz ["
             '  <!ENTITY lol "lol">'
             '  <!ENTITY lol2 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">'
             '  <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">'

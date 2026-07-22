@@ -82,9 +82,9 @@ async def test_chat_sse_smoke(patch_chat_io, app):
             assert "text/event-stream" in response.headers.get("content-type", ""), (
                 "Missing text/event-stream in Content-Type header"
             )
-            assert (
-                response.headers.get("x-vercel-ai-ui-message-stream") == "v1"
-            ), "Missing x-vercel-ai-ui-message-stream: v1 header"
+            assert response.headers.get("x-vercel-ai-ui-message-stream") == "v1", (
+                "Missing x-vercel-ai-ui-message-stream: v1 header"
+            )
             assert "no-cache" in response.headers.get("cache-control", ""), (
                 "Missing no-cache in Cache-Control header"
             )
@@ -166,9 +166,9 @@ async def test_sse_headers(patch_chat_io, app):
             assert "text/event-stream" in response.headers.get("content-type", ""), (
                 "Missing text/event-stream in Content-Type header"
             )
-            assert (
-                response.headers.get("x-vercel-ai-ui-message-stream") == "v1"
-            ), "Missing x-vercel-ai-ui-message-stream: v1 header"
+            assert response.headers.get("x-vercel-ai-ui-message-stream") == "v1", (
+                "Missing x-vercel-ai-ui-message-stream: v1 header"
+            )
             assert "no-cache" in response.headers.get("cache-control", ""), (
                 "Missing no-cache in Cache-Control header"
             )
@@ -224,9 +224,7 @@ async def test_proposed_question_with_free_text_history_not_cached(
         "src.chat_service.aget_proposed_questions_for_party",
         _fake_proposed_questions,
     )
-    monkeypatch.setattr(
-        "src.chat_service.awrite_cached_answer_for_party", write_mock
-    )
+    monkeypatch.setattr("src.chat_service.awrite_cached_answer_for_party", write_mock)
 
     body = dict(_CHAT_REQUEST_BODY)
     body["user_message"] = _PROPOSED_QUESTION
@@ -242,9 +240,7 @@ async def test_proposed_question_with_free_text_history_not_cached(
 
 
 @pytest.mark.asyncio
-async def test_first_turn_proposed_question_is_cached(
-    patch_chat_io, app, monkeypatch
-):
+async def test_first_turn_proposed_question_is_cached(patch_chat_io, app, monkeypatch):
     """The legitimate first-turn proposed-question cache is preserved: a single
     proposed-question user turn IS curated, so the answer is written under the
     proposed-question key (regression guard for the cache gate rework)."""
@@ -253,9 +249,7 @@ async def test_first_turn_proposed_question_is_cached(
         "src.chat_service.aget_proposed_questions_for_party",
         _fake_proposed_questions,
     )
-    monkeypatch.setattr(
-        "src.chat_service.awrite_cached_answer_for_party", write_mock
-    )
+    monkeypatch.setattr("src.chat_service.awrite_cached_answer_for_party", write_mock)
 
     body = dict(_CHAT_REQUEST_BODY)
     body["user_message"] = _PROPOSED_QUESTION
@@ -313,8 +307,7 @@ async def test_mid_stream_error_still_finishes(patch_chat_io, app, monkeypatch):
         and p.get("data", {}).get("type") == "party_complete"
     ]
     assert any(
-        (pc.get("status") or {}).get("indicator") == "error"
-        for pc in party_completes
+        (pc.get("status") or {}).get("indicator") == "error" for pc in party_completes
     ), "an error party_complete must be emitted"
     assert "finish-step" in types and "finish" in types, (
         "finish events must still be emitted after a mid-stream error"
@@ -370,9 +363,7 @@ async def test_pro_con_route_sse(app, monkeypatch):
         return Message(role="assistant", content="Pro: ... Contra: ...")
 
     monkeypatch.setattr("src.routes.pro_con.aget_party_for_context", _party)
-    monkeypatch.setattr(
-        "src.routes.pro_con.generate_pro_con_perspective", _pro_con
-    )
+    monkeypatch.setattr("src.routes.pro_con.generate_pro_con_perspective", _pro_con)
 
     headers, payloads = await _drain_sse(
         app,
@@ -423,6 +414,7 @@ async def test_voting_behavior_route_sse(app, monkeypatch):
         "src.routes.voting_behavior.get_improved_rag_query_voting_behavior",
         _rag_query,
     )
+
     async def _ctx(context_id: str):
         return None  # endpoint falls back to region ["DE"] / no period / no level
 
@@ -476,9 +468,7 @@ async def test_chat_request_rejects_unbounded_input(patch_chat_io, app):
         assert r.status_code == 422, r.text
 
         # too many parties (> 20)
-        over_parties = dict(
-            _CHAT_REQUEST_BODY, party_ids=[f"p{i}" for i in range(21)]
-        )
+        over_parties = dict(_CHAT_REQUEST_BODY, party_ids=[f"p{i}" for i in range(21)])
         r = await client.post("/api/v1/chat", json=over_parties)
         assert r.status_code == 422, r.text
 

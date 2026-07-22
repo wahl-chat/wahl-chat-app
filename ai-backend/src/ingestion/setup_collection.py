@@ -43,6 +43,7 @@ EMBEDDING_MODEL: str = "text-embedding-3-large"  # OpenAI embedding model
 ENV: str = os.getenv("ENV", "dev")
 COLLECTION_NAME: str = f"wahlchat_chunks_{ENV}"
 
+
 # ---------------------------------------------------------------------------
 # Client wiring — mirrors vector_store_helper.py lines 57-60, but LAZY:
 # this module is imported project-wide just for COLLECTION_NAME /
@@ -57,6 +58,7 @@ def _make_client() -> QdrantClient:
         url=os.getenv("QDRANT_URL", "http://localhost:6333"),
         api_key=os.getenv("QDRANT_API_KEY"),
     )
+
 
 # ---------------------------------------------------------------------------
 # Index specification list — ORDER MATTERS for readability; Qdrant accepts
@@ -86,7 +88,16 @@ def _make_client() -> QdrantClient:
 #                 cursor in discover(). lookup=True, range=False.
 #                 NOT indexed: meta.* (nested meta is intentionally un-indexed).
 # ---------------------------------------------------------------------------
-_INDEX_SPECS: list[tuple[str, models.PayloadSchemaType | models.KeywordIndexParams | models.DatetimeIndexParams | models.UuidIndexParams | models.IntegerIndexParams]] = [
+_INDEX_SPECS: list[
+    tuple[
+        str,
+        models.PayloadSchemaType
+        | models.KeywordIndexParams
+        | models.DatetimeIndexParams
+        | models.UuidIndexParams
+        | models.IntegerIndexParams,
+    ]
+] = [
     (
         "party_id",
         models.KeywordIndexParams(
@@ -98,11 +109,11 @@ _INDEX_SPECS: list[tuple[str, models.PayloadSchemaType | models.KeywordIndexPara
     # array index (NOT is_tenant) — a single MatchValue against the array tests
     # membership ("did party X vote on this motion"). A vote belongs to no single
     # party, so it does NOT use the is_tenant party_id key.
-    ("party_ids",      models.PayloadSchemaType.KEYWORD),
-    ("region",         models.PayloadSchemaType.KEYWORD),
-    ("region_path",    models.PayloadSchemaType.KEYWORD),
+    ("party_ids", models.PayloadSchemaType.KEYWORD),
+    ("region", models.PayloadSchemaType.KEYWORD),
+    ("region_path", models.PayloadSchemaType.KEYWORD),
     ("authority_tier", models.PayloadSchemaType.KEYWORD),
-    ("source_type",    models.PayloadSchemaType.KEYWORD),
+    ("source_type", models.PayloadSchemaType.KEYWORD),
     (
         "publish_date",
         models.DatetimeIndexParams(type=models.DatetimeIndexType.DATETIME),
@@ -116,24 +127,24 @@ _INDEX_SPECS: list[tuple[str, models.PayloadSchemaType | models.KeywordIndexPara
         "external_id",
         models.IntegerIndexParams(
             type=models.IntegerIndexType.INTEGER,
-            lookup=True,   # support MatchValue equality (dedup checks)
-            range=True,    # REQUIRED for order_by DESC cursor query
+            lookup=True,  # support MatchValue equality (dedup checks)
+            range=True,  # REQUIRED for order_by DESC cursor query
         ),
     ),
     (
         "wahlperiode",
         models.IntegerIndexParams(
             type=models.IntegerIndexType.INTEGER,
-            lookup=True,    # support MatchValue equality filter (retrieve() wahlperiode arg)
-            range=False,    # no range queries needed for legislative period
+            lookup=True,  # support MatchValue equality filter (retrieve() wahlperiode arg)
+            range=False,  # no range queries needed for legislative period
         ),
     ),
     (
         "legislature_period_id",
         models.IntegerIndexParams(
             type=models.IntegerIndexType.INTEGER,
-            lookup=True,    # support MatchValue equality filter (retrieve() + cursor)
-            range=False,    # no range queries needed for period filtering
+            lookup=True,  # support MatchValue equality filter (retrieve() + cursor)
+            range=False,  # no range queries needed for period filtering
         ),
     ),
     # Cross-source speech coexist fields:
@@ -141,7 +152,7 @@ _INDEX_SPECS: list[tuple[str, models.PayloadSchemaType | models.KeywordIndexPara
     #             + DIP pre-insert resurrection-guard lookup.
     # source:     "dip"|"op" discriminator — source-scoped cursor in run.py.
     ("speech_key", models.PayloadSchemaType.KEYWORD),
-    ("source",     models.PayloadSchemaType.KEYWORD),
+    ("source", models.PayloadSchemaType.KEYWORD),
 ]
 
 _REQUIRED_INDEXES: frozenset[str] = frozenset(field for field, _ in _INDEX_SPECS)
@@ -203,9 +214,7 @@ def setup(client: Optional[QdrantClient] = None) -> None:
     indexed = set(info.payload_schema.keys())
     missing = _REQUIRED_INDEXES - indexed
     if missing:
-        raise RuntimeError(
-            f"payload indexes missing after creation: {missing!r}"
-        )
+        raise RuntimeError(f"payload indexes missing after creation: {missing!r}")
     print(f"Collection verified: all {len(_REQUIRED_INDEXES)} payload indexes present")
 
 

@@ -115,7 +115,6 @@ TOPIC_TAXONOMY: dict[str, FrozenSet[str]] = {
     "Politisches Leben, Parteien": frozenset({FEDERAL}),
     # Art. 32 + 73(1) — auswärtige Angelegenheiten are exclusively federal.
     "Außenpolitik und internationale Beziehungen": frozenset({FEDERAL}),
-
     # -----------------------------------------------------------------------
     # FEDERAL + STATE.
     # -----------------------------------------------------------------------

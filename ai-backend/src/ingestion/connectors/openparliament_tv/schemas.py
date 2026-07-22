@@ -41,16 +41,19 @@ class OpSpeechMeta(BaseModel):
 
     # --- media deep-link payload (stored as strings; NEVER fetched during ingest) ---
     video_uri: Optional[str] = Field(
-        None, description="Source-supplied video file URI (media.videoFileURI); deep-link base"
+        None,
+        description="Source-supplied video file URI (media.videoFileURI); deep-link base",
     )
     audio_uri: Optional[str] = Field(
         None, description="Source-supplied audio file URI (media.audioFileURI)"
     )
     source_page: Optional[str] = Field(
-        None, description="Human-facing source page (media.sourcePage, e.g. dbtg.tv/fvid/...)"
+        None,
+        description="Human-facing source page (media.sourcePage, e.g. dbtg.tv/fvid/...)",
     )
     origin_media_id: Optional[str] = Field(
-        None, description="Bundestag origin media id (media.originMediaID); op's stable speech id"
+        None,
+        description="Bundestag origin media id (media.originMediaID); op's stable speech id",
     )
 
     # --- agenda context ---
@@ -58,7 +61,8 @@ class OpSpeechMeta(BaseModel):
         None, description="Human-readable agenda item title (agendaItem.title)"
     )
     agenda_item_official: Optional[str] = Field(
-        None, description="Official agenda item label (agendaItem.officialTitle, e.g. 'Tagesordnungspunkt 20')"
+        None,
+        description="Official agenda item label (agendaItem.officialTitle, e.g. 'Tagesordnungspunkt 20')",
     )
 
     # --- speaker identity ---
@@ -91,10 +95,12 @@ class OpSpeechMeta(BaseModel):
         None, description="Content creator for attribution (e.g. 'Deutscher Bundestag')"
     )
     license: Optional[str] = Field(
-        None, description="License string for attribution (e.g. Bundestag Nutzungsbedingungen)"
+        None,
+        description="License string for attribution (e.g. Bundestag Nutzungsbedingungen)",
     )
     source_data: Optional[str] = Field(
-        None, description="Data-source attribution label (e.g. 'openparliament.tv (ODbL)')"
+        None,
+        description="Data-source attribution label (e.g. 'openparliament.tv (ODbL)')",
     )
 
     # --- DIP transcript cross-link (grafted post-upsert, not set at ingest) ---

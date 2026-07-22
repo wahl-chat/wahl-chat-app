@@ -94,9 +94,7 @@ def test_get_cursor_passes_source_type_filter():
     # Verify the filter contains a source_type MatchValue condition.
     must_conditions = scroll_filter.must
     keys = [c.key for c in must_conditions if hasattr(c, "key")]
-    assert "source_type" in keys, (
-        "scroll_filter must include a source_type condition."
-    )
+    assert "source_type" in keys, "scroll_filter must include a source_type condition."
 
 
 def test_get_cursor_uses_desc_order_by():
@@ -111,9 +109,7 @@ def test_get_cursor_uses_desc_order_by():
     call_kwargs = qdrant.scroll.call_args.kwargs
     order_by = call_kwargs.get("order_by")
     assert order_by is not None, "order_by must be passed to scroll()."
-    assert order_by.key == "external_id", (
-        "order_by must sort on 'external_id'."
-    )
+    assert order_by.key == "external_id", "order_by must sort on 'external_id'."
     assert order_by.direction == models.Direction.DESC, (
         "order_by direction must be DESC to retrieve the maximum."
     )

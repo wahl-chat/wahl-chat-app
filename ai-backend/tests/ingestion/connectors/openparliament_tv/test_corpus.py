@@ -34,7 +34,9 @@ def _aligned_proceedings_items(session_json: dict) -> list[dict]:
     for item in session_json["data"]:
         if not item["media"].get("aligned"):
             continue
-        if not any(tc.get("type") == "proceedings" for tc in item.get("textContents", [])):
+        if not any(
+            tc.get("type") == "proceedings" for tc in item.get("textContents", [])
+        ):
             continue
         out.append(item)
     return out
@@ -56,7 +58,9 @@ def test_one_chunk_and_sentence_map(session_json: dict) -> None:
 
     meta = records[0].meta or {}
     sentence_map = meta.get("sentence_map")
-    assert isinstance(sentence_map, list) and sentence_map, "meta.sentence_map must be non-empty"
+    assert isinstance(sentence_map, list) and sentence_map, (
+        "meta.sentence_map must be non-empty"
+    )
     for s in sentence_map:
         assert set(s) >= {"text", "ts_start", "ts_end"}
         assert isinstance(s["ts_start"], float)
@@ -71,14 +75,18 @@ def test_faction_map(session_json: dict) -> None:
     Empty faction.wid (ministers/president) must fall back to `unbekannt`
     (or an MdB match) — NEVER a real party.
     """
-    slug_of = getattr(corpus, "op_party_slug", None) or getattr(corpus, "party_slug_for_faction")
+    slug_of = getattr(corpus, "op_party_slug", None) or getattr(
+        corpus, "party_slug_for_faction"
+    )
 
     def _slug(wid: str) -> str:
         return slug_of({"faction": {"wid": wid}}, {})
 
     assert _slug("Q1023134") == "cdu"
-    assert _slug("Q4316268") == "fraktionslos"  # CORRECTED (was labelled BSW in source list)
-    assert _slug("Q127785176") == "bsw"          # CORRECTED (BSW group, WP21)
+    assert (
+        _slug("Q4316268") == "fraktionslos"
+    )  # CORRECTED (was labelled BSW in source list)
+    assert _slug("Q127785176") == "bsw"  # CORRECTED (BSW group, WP21)
     assert _slug("") == "unbekannt", "empty faction must never map to a real party"
 
 
@@ -124,7 +132,9 @@ def test_citation_url_falls_back_when_video_uri_absent(session_json: dict) -> No
     assert rec.citation_url is None or not rec.citation_url.startswith("None"), (
         f"citation_url must not be a literal 'None#t=...' string; got {rec.citation_url!r}"
     )
-    assert "#t=" not in (rec.citation_url or ""), "no deep-link fragment without a video uri"
+    assert "#t=" not in (rec.citation_url or ""), (
+        "no deep-link fragment without a video uri"
+    )
     assert rec.citation_url == (source_page or None)
 
 
@@ -145,7 +155,9 @@ def test_idempotent_ids(session_json: dict) -> None:
     import copy
 
     mutated = copy.deepcopy(item)
-    proceedings = next(tc for tc in mutated["textContents"] if tc["type"] == "proceedings")
+    proceedings = next(
+        tc for tc in mutated["textContents"] if tc["type"] == "proceedings"
+    )
     proceedings["textBody"][0]["text"] += " Zusätzlicher, korrigierter Satz."
     rec_c = _build(mutated)[0]
     assert rec_c.content_hash != rec_a.content_hash, (
