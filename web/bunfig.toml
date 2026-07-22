@@ -5,6 +5,13 @@
 # of the bun default.
 minimumReleaseAge = 604800
 
+# Exempt specific, reviewed security patches from the cooldown. Security fixes are
+# newly published by nature, so the 7-day quarantine would otherwise force us to
+# keep known-vulnerable transitive versions (see the `overrides` in package.json).
+# Keep this list minimal and audited; entries become no-ops once the version ages
+# past the window.
+minimumReleaseAgeExcludes = ["fast-xml-parser", "fast-uri"]
+
 # Note: pnpm's blockExoticSubdeps (blocks sub-dependencies installed via a package
 # manager other than the lockfile's own) has NO bun equivalent. Bun's only analog is
 # the third-party Security Scanner API, which is deliberately NOT added here — this
