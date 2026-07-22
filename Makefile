@@ -99,7 +99,7 @@ test-local-mode:
 	cd ai-backend && uv run pytest tests/test_local_mode.py -x
 
 # --- Ingestion connector local-run targets (Makefile is the local scheduler) ---
-# Cloud Scheduler stays IaC-only (infra/cloud_run_jobs.sh).
+# Cloud Scheduler is deferred to a planned Terraform deployment workstream (infra/).
 # These targets invoke the same src.ingestion.run entrypoint against local Qdrant.
 # Requires: make stores-up first. Qdrant URL is wired automatically.
 

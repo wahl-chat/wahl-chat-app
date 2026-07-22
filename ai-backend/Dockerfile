@@ -33,6 +33,6 @@ USER appuser
 # Single image serves both roles; the entrypoint dispatches on CONNECTOR_ID:
 #   - unset  → FastAPI app (web service, the default)
 #   - set    → src.ingestion.run for that connector (Cloud Run ingestion Job)
-# So the ingestion Job only sets CONNECTOR_ID (see infra/cloud_run_jobs.sh) — no
+# So the ingestion Job only sets CONNECTOR_ID (see infra/README.md) — no
 # container-command override, and the job can never boot the API by mistake.
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

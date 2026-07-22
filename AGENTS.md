@@ -144,7 +144,7 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 | `ai-backend/src/models/` | Pydantic DTOs and domain models for the chat API. |
 | `ai-backend/tests/` | pytest suite (Qdrant/embeddings mocked in `conftest.py`). |
 | `firebase/` | Firestore rules (`firestore.rules`), Cloud Functions, seed script (`scripts/seed_firestore.py`), rules tests (`tests/`). |
-| `infra/` | IaC for Cloud Run Jobs (`cloud_run_jobs.sh`) — the scheduled-ingestion deployment target. |
+| `infra/` | Scheduled-ingestion deployment — planned Terraform workstream (Cloud Run Jobs + Scheduler); see `infra/README.md`. |
 | `scripts/` | Repo-root scripts: `check_gdpr_wall.py` (CI guard), `setup-agent-docs.sh`. |
 | `Makefile` | Developer convenience targets (install, stores, dev, test, lint, ingestion runs). |
 | `docker-compose.yml` | Local Qdrant service. |
@@ -212,7 +212,8 @@ make speeches-stats                       # read-only Qdrant verification
 ```
 
 In production the same `src.ingestion.run` code path runs as a Cloud Run Job
-with `CONNECTOR_ID` set in the job spec (scheduling is IaC-only, in `infra/`).
+with `CONNECTOR_ID` set in the job spec (deployment + scheduling is a planned
+Terraform workstream — see `infra/README.md`).
 Ingestion must tolerate the 15-minute scheduled-job cap: runs are
 batch-windowed and time-budgeted (`--batch-size`, `--time-budget`) and resume
 from the Qdrant-derived cursor on the next run.

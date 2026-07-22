@@ -4,9 +4,10 @@
 # guard validates the project (and requires an explicit confirmation for prod).
 #
 # Qdrant is NOT seeded here: the corpus is populated by the scheduled Cloud Run
-# ingestion jobs (infra/cloud_run_jobs.sh), with a one-time snapshot copy for the
-# initial backfill — see the runbook note in AGENTS.md. Firestore holds only the
-# small, version-controlled config; Qdrant holds the large ingested corpus.
+# ingestion jobs (deployment planned via Terraform — see infra/README.md), with a
+# one-time snapshot copy for the initial backfill — see the runbook note in
+# AGENTS.md. Firestore holds only the small, version-controlled config; Qdrant
+# holds the large ingested corpus.
 #
 # Required per-environment configuration (GitHub Environments "dev" / "prod"):
 #   vars.GCP_PROJECT               target project id (dev project / "wahl-chat")
