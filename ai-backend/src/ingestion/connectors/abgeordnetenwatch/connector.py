@@ -110,7 +110,6 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
             legislature_id = int(os.getenv("AW_LEGISLATURE_ID", "111"))
         self._legislature_id = legislature_id
 
-        # Validate legislature_id against LEGISLATURE_CONFIG; fail loudly on miss.
         cfg = LEGISLATURE_CONFIG.get(legislature_id)
         if cfg is None:
             raise ValueError(
