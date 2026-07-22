@@ -223,11 +223,11 @@ from the Qdrant-derived cursor on the next run.
 The two stores are seeded by different mechanisms, on purpose:
 
 - **Firestore config** (contexts / parties / proposed_questions) — small and
-  version-controlled. Seeded into a real project by the
-  `Seed Firestore (config)` GitHub workflow (`.github/workflows/seed-firestore.yml`),
-  which authenticates via Workload Identity (no service-account key) and runs
-  `seed_firestore.py` with `SEED_TARGET=real`. The script refuses a real target
-  without an explicit project, and refuses prod without `SEED_CONFIRM_PROJECT`.
+  version-controlled. Seeded into a real project by running `seed_firestore.py`
+  with `SEED_TARGET=real`; the script refuses a real target without an explicit
+  project, and refuses prod without `SEED_CONFIRM_PROJECT`. The CI workflow that
+  runs this via Workload Identity (no service-account key) on merge lands with the
+  deployment workstream (see `infra/README.md`).
 - **Qdrant corpus** — large and ingested, not version-controlled. Populated by
   the scheduled Cloud Run ingestion jobs; for the initial backfill, copy a Qdrant
   snapshot from the local/known-good store into the dev/prod store once (Qdrant

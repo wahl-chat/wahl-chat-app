@@ -34,7 +34,10 @@ run-abgeordnetenwatch-votes`, `make run-speeches`, …), which invoke the same
 - **Qdrant corpus** is populated by these scheduled jobs (regular incremental)
   plus a one-time snapshot copy (local → dev/prod) for the initial backfill.
   Qdrant is never seeded from CI (large ingested corpus, not version-controlled
-  config); Firestore config is seeded separately via the
-  `Seed Firestore (config)` workflow.
+  config).
+- **Firestore config** is seeded by `firebase/scripts/seed_firestore.py`
+  (`SEED_TARGET=real`). A CI workflow to run it on merge via Workload Identity is
+  part of this workstream — it needs the same WIF provider + service account +
+  GitHub Environments as the ingestion jobs, so it lands here, not before.
 
 > **Never commit API keys, passwords, or service-account JSON to this directory.**
