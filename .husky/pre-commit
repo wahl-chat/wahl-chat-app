@@ -1,1 +1,10 @@
-cd web && npx lint-staged
+set -e
+
+# Frontend (web/): ESLint + Biome on staged JS/TS.
+(cd web && npx lint-staged)
+
+# Backend (ai-backend/): ruff + mypy + hygiene hooks on staged files. Run from
+# the repo root (where .pre-commit-config.yaml lives); `uv run --project` is what
+# makes the pre-commit tool resolvable, since it's an ai-backend venv dependency,
+# not a repo-root one. The config self-scopes ruff/mypy to ai-backend/*.py.
+uv run --project ai-backend pre-commit run
