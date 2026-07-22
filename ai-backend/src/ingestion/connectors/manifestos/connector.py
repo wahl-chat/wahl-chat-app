@@ -32,7 +32,10 @@ from __future__ import annotations
 import logging
 import os
 from datetime import date as date_type
+from io import BytesIO
 from typing import TYPE_CHECKING, Optional
+
+import requests as _requests
 
 from src.ingestion.connector import BaseConnector
 
@@ -145,8 +148,6 @@ def load_program_pages(source_kind: SourceKind, source_url: str) -> dict:
                     PDF download failed, PDF parse failed) — the message is
                     suitable for a "SKIP program ...: {msg}" log line.
     """
-    import requests as _requests  # noqa: PLC0415
-
     if source_kind == SourceKind.LINK:
         try:
             resp = _requests.get(
@@ -163,8 +164,8 @@ def load_program_pages(source_kind: SourceKind, source_url: str) -> dict:
         return {"pages": [(1, text_content)], "total_pages": None}
 
     # source_kind == "pdf"
-    from io import BytesIO  # noqa: PLC0415
-
+    # pypdf stays function-local: it's a heavy PDF-parsing dep that only the pdf
+    # path needs, so a link-only ingestion run never imports it.
     import pypdf  # noqa: PLC0415
 
     try:
