@@ -1,10 +1,11 @@
 # CI pipeline — wahl.chat V2
 #
 # Jobs:
-#   backend        — GDPR wall guard + uv ruff check + mypy + pytest (unit/integration, not smoke)
+#   backend-lint   — GDPR wall guard + uv ruff check + mypy (no Qdrant)
+#   backend-test   — pytest (unit/integration, not smoke) against a real Qdrant service
 #   frontend       — bun frozen install + bun audit supply-chain gate + lint + tsc + build
 #   firebase-rules — Firestore security-rules tests against the emulator
-#   smoke-test     — E2E SSE smoke test (needs: [backend, frontend])
+#   smoke-test     — E2E SSE smoke test (needs: [backend-lint, backend-test, frontend])
 #
 # Key constraints (CLAUDE.md):
 #   - uv sync --locked  everywhere (locked installs only — no version bumping)
@@ -39,9 +40,47 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Backend: ruff + mypy + pytest (excludes smoke test — that is in smoke-test job)
+  # Backend lint — ruff + mypy + GDPR wall. No Qdrant needed, so it stays light
+  # and runs in parallel with backend-test.
   # ---------------------------------------------------------------------------
-  backend:
+  backend-lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.11.x"
+          python-version: "3.12"
+
+      # Reproducible install — frozen lockfile only (CLAUDE.md). Sync WITH the
+      # dev group (ruff/mypy are dev deps) and pass --no-sync to every `uv run`
+      # below so it can neither re-sync (bypassing --locked) nor silently change
+      # the installed set.
+      - name: Install dependencies (locked, with dev)
+        run: uv sync --locked
+
+      # GDPR Art. 9 wall — no Firestore users/ access in ingestion code.
+      # Stdlib-only script; runs from the repo root.
+      - name: GDPR Art. 9 wall guard
+        working-directory: .
+        run: python3 scripts/check_gdpr_wall.py
+
+      - name: Lint — ruff
+        run: uv run --no-sync ruff check src/
+
+      - name: Type-check — mypy
+        run: uv run --no-sync mypy src/
+
+  # ---------------------------------------------------------------------------
+  # Backend tests — pytest against a real Qdrant service (excludes smoke test,
+  # which is its own job).
+  # ---------------------------------------------------------------------------
+  backend-test:
     runs-on: ubuntu-latest
     services:
       # Real Qdrant so the schema/index integration tests run for real in CI
@@ -63,24 +102,8 @@ jobs:
           version: "0.11.x"
           python-version: "3.12"
 
-      # Reproducible install — frozen lockfile only (CLAUDE.md).
-      # Sync WITH the dev group (ruff/mypy/pytest are dev deps) and pass
-      # --no-sync to every `uv run` below so it can neither re-sync (bypassing
-      # --locked) nor silently change the installed set.
       - name: Install dependencies (locked, with dev)
         run: uv sync --locked
-
-      # GDPR Art. 9 wall — no Firestore users/ access in ingestion code.
-      # Stdlib-only script; runs from the repo root.
-      - name: GDPR Art. 9 wall guard
-        working-directory: .
-        run: python3 scripts/check_gdpr_wall.py
-
-      - name: Lint — ruff
-        run: uv run --no-sync ruff check src/
-
-      - name: Type-check — mypy
-        run: uv run --no-sync mypy src/
 
       # The Qdrant service container is up, but not necessarily accepting
       # connections yet — poll /readyz before the schema tests depend on it.
@@ -192,10 +215,10 @@ jobs:
             "cd tests && bun run test"
 
   # ---------------------------------------------------------------------------
-  # Smoke-test: E2E SSE smoke test (depends on backend + frontend passing)
+  # Smoke-test: E2E SSE smoke test (depends on backend-lint + backend-test + frontend passing)
   # ---------------------------------------------------------------------------
   smoke-test:
-    needs: [backend, frontend]
+    needs: [backend-lint, backend-test, frontend]
     runs-on: ubuntu-latest
     defaults:
       run:
