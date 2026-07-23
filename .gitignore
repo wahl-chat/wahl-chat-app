@@ -26,12 +26,9 @@ node_modules/
 !.env.example
 *firebase-adminsdk*.json
 
-# === Python runtime (repo-wide, intentionally not backend-only) ===
-# Python lives in several directories — ai-backend/ (the main package),
-# firebase/ (functions + seed script, incl. a local venv), scripts/ (CI guards),
-# and web/ tooling — so these artefacts can appear anywhere in the tree. A single
-# top-level rule covers them all rather than duplicating a Python .gitignore into
-# each dir. (ai-backend/.gitignore additionally scopes its backend-only ignores.)
+# === Python runtime (repo-wide, not backend-only) ===
+# Python lives in several dirs: ai-backend/, firebase/ (incl. a local venv),
+# scripts/, and web/ tooling.
 __pycache__/
 *.py[cod]
 *.pyo
