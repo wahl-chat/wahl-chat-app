@@ -112,9 +112,6 @@ class VotingBehaviorRequestDto(BaseModel):
         description="The LLM size to use for voting behavior summary generation",
         default=LLMSize.LARGE,
     )
-    user_is_logged_in: bool = Field(
-        description="Whether the user is logged in or not", default=False
-    )
 
 
 class ParliamentaryQuestionRequestDto(BaseModel):

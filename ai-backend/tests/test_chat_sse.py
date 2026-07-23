@@ -37,7 +37,6 @@ _CHAT_REQUEST_BODY = {
     "context_id": "bundestagswahl-2025",
     "user_message": "Was ist die Position der SPD zum Klimaschutz?",
     "party_ids": ["spd"],
-    "user_is_logged_in": False,
     "chat_history": [],
 }
 

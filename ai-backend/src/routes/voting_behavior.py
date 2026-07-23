@@ -206,13 +206,12 @@ async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequest
       voting_behavior_complete      → e / d / [DONE]
     Pydantic validates request body.
 
-    Auth: verification is OPTIONAL (no 401s), but the body's user_is_logged_in
-    flag (premium LLM selection for the summary) is honored only with a valid
-    `Authorization: Bearer <Firebase ID token>`.
+    Auth: verification is OPTIONAL (no 401s). Premium LLM selection for the
+    summary is derived server-side from the request's token (a valid,
+    non-anonymous `Authorization: Bearer <Firebase ID token>`) — never from the
+    client.
     """
-    body.user_is_logged_in = resolve_user_is_logged_in(
-        request, body.user_is_logged_in, "voting-behavior"
-    )
+    use_premium_llms = resolve_user_is_logged_in(request, "voting-behavior")
 
     async def stream():
         improved_rag_query = None
@@ -278,7 +277,7 @@ async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequest
                     body.last_assistant_message,
                     votes,
                     summary_llm_size=body.summary_llm_size,
-                    use_premium_llms=body.user_is_logged_in,
+                    use_premium_llms=use_premium_llms,
                 )
                 async for chunk in summary_stream:
                     chunk_content = chunk.text

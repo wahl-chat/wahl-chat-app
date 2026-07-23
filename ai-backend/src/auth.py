@@ -70,28 +70,25 @@ def _has_real_signin(claims: dict) -> bool:
     return bool(provider) and provider != "anonymous"
 
 
-def resolve_user_is_logged_in(request: Request, body_flag: bool, route: str) -> bool:
-    """Server-side truth for ``user_is_logged_in`` (premium LLM gating).
+def resolve_user_is_logged_in(request: Optional[Request], route: str) -> bool:
+    """Server-side truth for premium LLM gating.
 
-    The client-supplied body flag alone is NEVER trusted: it is honored only
-    when the request also carries a valid, NON-anonymous Firebase ID token
-    (every visitor is signed in anonymously, so an anonymous token — though
-    valid — must not unlock premium).
+    Derived SOLELY from the request's Firebase token — never from a
+    client-supplied flag. Returns True only when the request carries a valid,
+    NON-anonymous Firebase ID token (every visitor is signed in anonymously, so
+    an anonymous token — though valid — must not unlock premium). A missing
+    request (non-HTTP callers) is treated as anonymous.
     """
-    if not body_flag:
+    if request is None:
         return False
     claims = verify_optional_bearer_token(request)
     if claims is None:
-        logger.debug(
-            "%s: request body claims user_is_logged_in but presented no valid "
-            "Firebase ID token — ignoring the flag (treated as anonymous).",
-            route,
-        )
+        logger.debug("%s: no valid Firebase ID token — premium not granted.", route)
         return False
     if not _has_real_signin(claims):
         logger.debug(
             "%s: token is anonymous / lacks a real sign-in provider — premium "
-            "flag ignored (treated as anonymous).",
+            "not granted.",
             route,
         )
         return False

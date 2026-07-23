@@ -54,6 +54,7 @@ from src.chatbot_async import (
     generate_streaming_chatbot_comparing_response,
     build_vote_documents,
 )
+from src.auth import resolve_user_is_logged_in
 from src.deeplink import (
     _is_video_link,
     _refine_speech_deeplinks,
@@ -1434,6 +1435,10 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
     # Record wall-clock start time for per-stream budget enforcement.
     _stream_start = time.monotonic()
 
+    # Premium LLM selection is derived server-side from the request's token —
+    # never from the client (no request → anonymous → no premium).
+    use_premium_llms = resolve_user_is_logged_in(request, "chat")
+
     message_id = str(uuid.uuid4())
 
     # f: frame init
@@ -1675,7 +1680,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                         general_question,
                         group_chat_session,
                         all_available_parties=all_parties,
-                        use_premium_llms=body.user_is_logged_in,
+                        use_premium_llms=use_premium_llms,
                         is_proposed_question=is_proposed_question,
                         is_single_proposed_turn=is_single_proposed_turn,
                         is_cacheable_chat=group_chat_session.is_cacheable,
@@ -1727,7 +1732,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     user_message.content,
                     group_chat_session,
                     all_available_parties=all_parties,
-                    use_premium_llms=body.user_is_logged_in,
+                    use_premium_llms=use_premium_llms,
                     is_cacheable_chat=group_chat_session.is_cacheable,
                     relevant_docs=relevant_doc_dict,
                     parties_being_compared=parties_being_compared,

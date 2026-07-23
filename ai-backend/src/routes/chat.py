@@ -23,7 +23,6 @@ from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from src.auth import resolve_user_is_logged_in
 from src.chat_service import generate_chat_stream, with_heartbeat
 from src.models.chat import Message
 
@@ -60,7 +59,6 @@ class ChatRequestDto(BaseModel):
     context_id: str = Field(max_length=200)
     user_message: str = Field(max_length=_MAX_USER_MESSAGE_CHARS)
     party_ids: list[str] = Field(default_factory=list, max_length=_MAX_PARTY_IDS)
-    user_is_logged_in: bool = False
     chat_history: list[Message] = Field(
         default_factory=list, max_length=_MAX_HISTORY_MESSAGES
     )
@@ -75,13 +73,11 @@ async def chat_endpoint(request: Request, body: ChatRequestDto):
     Request body validated via Pydantic (FastAPI returns 422 on invalid input).
     The FastAPI Request is passed to generate_chat_stream for disconnect detection.
 
-    Auth: verification is OPTIONAL (anonymous users are served normally), but
-    the body's user_is_logged_in flag (premium LLM selection) is honored only
-    when the request carries a valid `Authorization: Bearer <Firebase ID token>`.
+    Auth: verification is OPTIONAL (anonymous users are served normally).
+    Premium LLM selection is derived server-side inside generate_chat_stream from
+    the request's token (a valid, non-anonymous `Authorization: Bearer <Firebase
+    ID token>`) — never from the client, so the request carries no such flag.
     """
-    body.user_is_logged_in = resolve_user_is_logged_in(
-        request, body.user_is_logged_in, "chat"
-    )
     return StreamingResponse(
         with_heartbeat(generate_chat_stream(body, request)),
         headers=_SSE_HEADERS,
