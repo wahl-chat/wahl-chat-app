@@ -18,9 +18,9 @@ carries a ``type`` discriminator:
   finish-step / finish           — step + message finished
   data: [DONE]                   — literal stream terminator
 
-The legacy v4 wire codes (f/0/8/e/d) survive ONLY as internal shorthand in
-``_frame()``, which translates them to the v5 parts above — they never reach
-the wire as code-prefixed frames on this endpoint.
+Each part is built by a small named helper (``_start_message``, ``_data_event``,
+``_text_start`` / ``_text_delta`` / ``_text_end``, ``_finish_step``, ``_finish``);
+the wire only ever carries these named v5 parts.
 
 Multi-party streaming: SERIALIZED (one party at a time).
 True concurrent multiplexed SSE would require an asyncio.Queue
@@ -269,38 +269,31 @@ def _sse(part: object) -> str:
     return f"data: {json.dumps(part)}\n\n"
 
 
-def _frame(event_type: str, payload: object) -> str:
-    """Map a legacy V1 event code to AI SDK v5 UI-message-stream part(s).
+def _start_message(message_id: str) -> str:
+    """v5 message-frame init: message ``start`` + open the first ``start-step``."""
+    return _sse({"type": "start", "messageId": message_id}) + _sse(
+        {"type": "start-step"}
+    )
 
-    The single-character codes (f/0/8/e/d) are NOT chosen here — they are the
-    event codes V1 already emitted over Socket.IO. Keeping them as the input
-    vocabulary let the many V1 call sites port to SSE unchanged; this function
-    is the single place that translates each to its real v5 part, so the codes
-    never reach the wire (clients only ever see named v5 parts):
-        f → start + start-step         e → finish-step
-        8 → data-chat_event (custom)   d → finish
-        0 → text-delta (bare fallback; prefer _text_start/_text_end)
-    All V1 named chat events ride inside the '8' ``data-chat_event`` part (the
-    frontend switches on ``data.type``).
+
+def _data_event(payload: object) -> str:
+    """Wrap a named chat event as a v5 ``data-chat_event`` part.
+
+    Every named chat event (responding_parties, sources_ready, party_chunk,
+    party_complete, quick_replies_title, error) rides inside this one part; the
+    frontend switches on ``data.type``.
     """
-    if event_type == "f":
-        msg_id = payload.get("messageId") if isinstance(payload, dict) else None
-        # message start + open the first step
-        return _sse({"type": "start", "messageId": msg_id}) + _sse(
-            {"type": "start-step"}
-        )
-    if event_type == "8":
-        return _sse({"type": "data-chat_event", "data": payload})
-    if event_type == "e":
-        return _sse({"type": "finish-step"})
-    if event_type == "d":
-        return _sse({"type": "finish"})
-    if event_type == "0":
-        # Bare text delta without an explicit text block (fallback id). Callers
-        # that stream a party answer should bracket with _text_start/_text_end.
-        return _sse({"type": "text-delta", "id": "txt", "delta": payload})
-    # Unknown legacy code — surface as a generic data part rather than break.
     return _sse({"type": "data-chat_event", "data": payload})
+
+
+def _finish_step() -> str:
+    """Close the current v5 step."""
+    return _sse({"type": "finish-step"})
+
+
+def _finish() -> str:
+    """Terminate the v5 message stream."""
+    return _sse({"type": "finish"})
 
 
 def _text_start(text_id: str) -> str:
@@ -327,8 +320,7 @@ def _party_chunk(session_id: str, party_id: str, chunk: str) -> str:
     stays valid while the incremental answer is also delivered via the named
     event that clients consume for live output.
     """
-    return _frame(
-        "8",
+    return _data_event(
         {
             "type": "party_chunk",
             "session_id": session_id,
@@ -408,8 +400,7 @@ async def yield_cached_party_response(
         party_id=party.party_id,
         rag_query=cached_response.rag_query,
     )
-    # 8: data annotation — sources_ready (replaces V1 socket_emit("sources_ready", ...))
-    yield _frame("8", {"type": "sources_ready", **sources_dto.model_dump()})
+    yield _data_event({"type": "sources_ready", **sources_dto.model_dump()})
 
     full_response = cached_response.content
     message_id = str(uuid.uuid4())
@@ -444,9 +435,7 @@ async def yield_cached_party_response(
         message_id=message_id,
         status=Status(indicator=StatusIndicator.SUCCESS, message="Success"),
     )
-    # 8: data annotation — party_complete (replaces V1 socket_emit("party_response_complete", ...))
-    yield _frame(
-        "8",
+    yield _data_event(
         {"type": "party_complete", **party_response_complete_dto.model_dump()},
     )
     logger.info(
@@ -906,8 +895,7 @@ async def fetch_party_response_stream(
                 rag_query=improved_rag_query_list,
                 sources=sources,
             )
-            # 8: sources_ready (replaces V1 socket_emit("sources_ready", ...))
-            yield _frame("8", {"type": "sources_ready", **sources_dto.model_dump()})
+            yield _data_event({"type": "sources_ready", **sources_dto.model_dump()})
 
         else:
             relevant_docs_dict = dict(relevant_docs) if relevant_docs else {}  # type: ignore[arg-type]
@@ -937,7 +925,7 @@ async def fetch_party_response_stream(
                 rag_query=improved_rag_query_list,
                 sources=sources,
             )
-            yield _frame("8", {"type": "sources_ready", **sources_dto.model_dump()})
+            yield _data_event({"type": "sources_ready", **sources_dto.model_dump()})
 
         # LLM streaming
         if not is_comparing_question:
@@ -1031,7 +1019,7 @@ async def fetch_party_response_stream(
                 rag_query=improved_rag_query_list,
                 sources=sources,
             )
-            yield _frame("8", {"type": "sources_ready", **refined_dto.model_dump()})
+            yield _data_event({"type": "sources_ready", **refined_dto.model_dump()})
 
         chatbot_message = Message(
             id=message_id,
@@ -1052,9 +1040,7 @@ async def fetch_party_response_stream(
             message_id=message_id,
             status=Status(indicator=StatusIndicator.SUCCESS, message="Success"),
         )
-        # 8: party_complete (replaces V1 socket_emit("party_response_complete", ...))
-        yield _frame(
-            "8",
+        yield _data_event(
             {"type": "party_complete", **party_response_complete_dto.model_dump()},
         )
         logger.info(
@@ -1089,8 +1075,7 @@ async def fetch_party_response_stream(
             # Close the dangling v5 text block so the stream stays protocol-valid.
             yield _text_end(open_text_id)
             open_text_id = None
-        yield _frame(
-            "8",
+        yield _data_event(
             {
                 "type": "party_complete",
                 "session_id": group_chat_session.session_id,
@@ -1108,8 +1093,7 @@ async def fetch_party_response_stream(
             # Close the dangling v5 text block so the stream stays protocol-valid.
             yield _text_end(open_text_id)
             open_text_id = None
-        yield _frame(
-            "8",
+        yield _data_event(
             {
                 "type": "party_complete",
                 "session_id": group_chat_session.session_id,
@@ -1441,8 +1425,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
 
     message_id = str(uuid.uuid4())
 
-    # f: frame init
-    yield _frame("f", {"messageId": message_id})
+    yield _start_message(message_id)
 
     # Reconstruct stateless GroupChatSession from request body
     user_message = Message(
@@ -1579,16 +1562,14 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
             party_id_list = [WAHL_CHAT_PARTY.party_id]
             general_question = user_message.content
             is_comparing_question = False
-            yield _frame(
-                "8",
+            yield _data_event(
                 {
                     "type": "responding_parties",
                     "session_id": body.session_id,
                     "party_ids": party_id_list,
                 },
             )
-            yield _frame(
-                "8",
+            yield _data_event(
                 {
                     "type": "party_complete",
                     "session_id": body.session_id,
@@ -1598,8 +1579,8 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     "status": {"indicator": "error", "message": GENERIC_ERROR_MESSAGE},
                 },
             )
-            yield _frame("e", {"finishReason": "stop", "usage": {}})
-            yield _frame("d", {"finishReason": "stop", "usage": {}})
+            yield _finish_step()
+            yield _finish()
             yield "data: [DONE]\n\n"
             return
 
@@ -1616,9 +1597,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
             party_id_list if not is_comparing_question else ["wahl-chat"]
         )
 
-        # 8: responding_parties (replaces V1 socket_emit("responding_parties_selected", ...))
-        yield _frame(
-            "8",
+        yield _data_event(
             {
                 "type": "responding_parties",
                 "session_id": body.session_id,
@@ -1720,8 +1699,8 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                 await asyncio.wait_for(asyncio.gather(*party_tasks), timeout=40)
             except asyncio.TimeoutError as e:
                 logger.error(f"Timeout fetching comparison docs: {e}")
-                yield _frame("e", {"finishReason": "stop", "usage": {}})
-                yield _frame("d", {"finishReason": "stop", "usage": {}})
+                yield _finish_step()
+                yield _finish()
                 yield "data: [DONE]\n\n"
                 return
 
@@ -1793,16 +1772,16 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     pass
                 # Terminate cleanly for the (still connected) client, skipping
                 # quick-replies/title generation (another live LLM call).
-                yield _frame("e", {"finishReason": "stop", "usage": {}})
-                yield _frame("d", {"finishReason": "stop", "usage": {}})
+                yield _finish_step()
+                yield _finish()
                 yield "data: [DONE]\n\n"
                 return
 
     except Exception as e:
         logger.error(f"Unexpected error in generate_chat_stream: {e}", exc_info=True)
-        yield _frame("8", {"type": "error", "message": GENERIC_ERROR_MESSAGE})
-        yield _frame("e", {"finishReason": "stop", "usage": {}})
-        yield _frame("d", {"finishReason": "stop", "usage": {}})
+        yield _data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE})
+        yield _finish_step()
+        yield _finish()
         yield "data: [DONE]\n\n"
         return
 
@@ -1828,9 +1807,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
             quick_replies=chat_title_and_qr.quick_replies,
             title=chat_title_and_qr.chat_title,
         )
-        # 8: quick_replies_title (replaces V1 socket_emit("quick_replies_and_title_ready", ...))
-        yield _frame(
-            "8",
+        yield _data_event(
             {"type": "quick_replies_title", **quick_replies_dto.model_dump()},
         )
         # Record what the server offered so the NEXT turn's cache gate is decided
@@ -1845,6 +1822,6 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
         logger.error(f"Error generating quick replies/title: {e}", exc_info=True)
 
     # Finish events (replaces V1 socket_emit("chat_response_complete", ...))
-    yield _frame("e", {"finishReason": "stop", "usage": {}})
-    yield _frame("d", {"finishReason": "stop", "usage": {}})
+    yield _finish_step()
+    yield _finish()
     yield "data: [DONE]\n\n"
