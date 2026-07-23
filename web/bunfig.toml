@@ -7,10 +7,24 @@ minimumReleaseAge = 604800
 
 # Exempt specific, reviewed security patches from the cooldown. Security fixes are
 # newly published by nature, so the 7-day quarantine would otherwise force us to
-# keep known-vulnerable transitive versions (see the `overrides` in package.json).
+# keep known-vulnerable versions (see also the `overrides` in package.json).
 # Keep this list minimal and audited; entries become no-ops once the version ages
-# past the window.
-minimumReleaseAgeExcludes = ["fast-xml-parser", "fast-uri"]
+# past the window. The @next/* entries are next's own pinned internals/SWC
+# binaries (versioned in lockstep with next) — bun matches names exactly, no globs.
+minimumReleaseAgeExcludes = [
+  "fast-xml-parser",
+  "fast-uri",
+  "next",
+  "@next/env",
+  "@next/swc-darwin-x64",
+  "@next/swc-darwin-arm64",
+  "@next/swc-linux-x64-gnu",
+  "@next/swc-linux-x64-musl",
+  "@next/swc-linux-arm64-gnu",
+  "@next/swc-linux-arm64-musl",
+  "@next/swc-win32-x64-msvc",
+  "@next/swc-win32-arm64-msvc",
+]
 
 # Note: pnpm's blockExoticSubdeps (blocks sub-dependencies installed via a package
 # manager other than the lockfile's own) has NO bun equivalent. Bun's only analog is

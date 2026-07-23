@@ -48,7 +48,7 @@
     "jspdf": "^4.2.1",
     "lucide-react": "^0.460.0",
     "motion": "^12.40.0",
-    "next": "^15.2.3",
+    "next": "^15.5.21",
     "next-themes": "^0.4.6",
     "react": "19.0.0",
     "react-dom": "19.0.0",
