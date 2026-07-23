@@ -3,10 +3,9 @@
 """
 SSE voting-behavior endpoint — POST /api/v1/voting-behavior.
 
-Streams:
-  8 type=vote_result — per-vote annotation (replaces V1 voting_behavior_result)
-  0                  — summary text deltas (replaces V1 voting_behavior_summary_chunk)
-  e / d / [DONE]    — finish events (replaces V1 voting_behavior_complete)
+Streams v5 UI-message-stream parts (framing in src.sse): a ``data-chat_event``
+per vote (inner type "vote_result"), text-delta parts for the summary, a final
+``data-chat_event`` (inner type "voting_behavior_complete"), then finish + [DONE].
 
 vote_record chunks are retrieved from the single wahlchat_chunks_{ENV} store
 via retrieve(source_type="vote_record", ...) — NOT the legacy empty
@@ -34,7 +33,6 @@ add party_ids_contains filter to stay within tenant HNSW.
 """
 
 import asyncio
-import json
 import logging
 
 from fastapi import APIRouter, Request
@@ -46,6 +44,7 @@ from src.chatbot_async import (
     generate_party_vote_behavior_summary,
 )
 from src.chat_service import with_heartbeat
+from src.sse import DONE, data_event, finish, finish_step, text_delta
 from src.firebase_service import aget_context_by_id, aget_party_for_context
 from src.ingestion.retrieve import retrieve
 from src.models.context import DEFAULT_CONTEXT_ID
@@ -67,17 +66,13 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1")
 
-# SSE headers
-# NOTE: StreamingResponse is used (not EventSourceResponse) because the generator
-# yields pre-framed "data: ...\n\n" strings; EventSourceResponse would double-wrap them.
-# NOTE: deliberately NO `x-vercel-ai-ui-message-stream: v1` header here — this
-# endpoint emits legacy code-prefixed frames (`data: 8{...}` / `data: 0"..."`)
-# that the frontend hand-parses; the header would falsely claim v5
-# UI-message-stream framing to any AI SDK consumer.
+# SSE headers. StreamingResponse (not EventSourceResponse) — the generator yields
+# pre-framed "data: ...\n\n" strings; EventSourceResponse would double-wrap them.
 _SSE_HEADERS = {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache, no-transform",
     "X-Accel-Buffering": "no",
+    "x-vercel-ai-ui-message-stream": "v1",
 }
 
 
@@ -200,10 +195,9 @@ async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequest
     Retrieves vote_record chunks from the single wahlchat_chunks_{ENV} store
     via retrieve(source_type='vote_record').
 
-    V1 event map:
-      voting_behavior_result        → 8 type=vote_result (per vote)
-      voting_behavior_summary_chunk → 0 text delta (summary chunks)
-      voting_behavior_complete      → e / d / [DONE]
+    Streams v5 parts: one ``data-chat_event`` (type=vote_result) per vote,
+    text-delta parts for the summary, a final ``data-chat_event``
+    (type=voting_behavior_complete), then finish + [DONE].
     Pydantic validates request body.
 
     Auth: verification is OPTIONAL (no 401s). Premium LLM selection for the
@@ -261,12 +255,11 @@ async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequest
 
                 votes.append(vote)
 
-                # 8: data annotation — vote_result (replaces V1 voting_behavior_result)
                 vote_dto = VotingBehaviorVoteDto(
                     request_id=body.request_id,
                     vote=vote,
                 )
-                yield f"data: 8{json.dumps({'type': 'vote_result', **vote_dto.model_dump()})}\n\n"
+                yield data_event({"type": "vote_result", **vote_dto.model_dump()})
 
             # Stream summary as text deltas (replaces V1 voting_behavior_summary_chunk)
             complete_message = ""
@@ -296,27 +289,31 @@ async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequest
                         if i > 0:
                             await asyncio.sleep(0.025)
                         split_chunk = text_content[i : i + MAX_RESPONSE_CHUNK_LENGTH]
-                        # 0: text delta
-                        yield f"data: 0{json.dumps(split_chunk)}\n\n"
+                        yield text_delta(body.request_id, split_chunk)
 
             # Emit voting_behavior_complete annotation before finish events.
             # The frontend (generate-voting-behavior-summary.ts) only finalizes on a
             # `voting_behavior_complete` annotation; without it, completeVotingBehavior()
             # is never called and the UI stays in a loading state forever.
             # votes are already serialized Vote models; model_dump gives JSON-safe shape.
-            yield f"data: 8{json.dumps({'type': 'voting_behavior_complete', 'request_id': body.request_id, 'votes': [v.model_dump(mode='json') for v in votes], 'message': complete_message})}\n\n"
-
-            # Finish events (replaces V1 voting_behavior_complete)
-            yield f"data: e{json.dumps({'finishReason': 'stop', 'usage': {}})}\n\n"
-            yield f"data: d{json.dumps({'finishReason': 'stop', 'usage': {}})}\n\n"
-            yield "data: [DONE]\n\n"
+            yield data_event(
+                {
+                    "type": "voting_behavior_complete",
+                    "request_id": body.request_id,
+                    "votes": [v.model_dump(mode="json") for v in votes],
+                    "message": complete_message,
+                }
+            )
+            yield finish_step()
+            yield finish()
+            yield DONE
 
         except Exception as e:
             logger.error(
                 f"Error processing voting behavior request: {e}", exc_info=True
             )
             # Generic client-facing message only — full detail is logged above.
-            yield f"data: 8{json.dumps({'type': 'error', 'message': GENERIC_ERROR_MESSAGE})}\n\n"
-            yield "data: [DONE]\n\n"
+            yield data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE})
+            yield DONE
 
     return StreamingResponse(with_heartbeat(stream()), headers=_SSE_HEADERS)

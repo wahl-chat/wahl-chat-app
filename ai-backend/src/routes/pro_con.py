@@ -3,13 +3,11 @@
 """
 SSE pro-con endpoint — POST /api/v1/pro-con.
 
-Streams a pro/con perspective as a Vercel AI SDK data annotation (type 8)
-with type "pro_con_result", then [DONE].
-
-On error: yields an error annotation (type "error") then [DONE].
+Streams a pro/con perspective as a v5 ``data-chat_event`` part (inner type
+"pro_con_result"), then finish + [DONE]. On error: a ``data-chat_event`` with
+inner type "error", then [DONE]. Framing helpers live in src.sse.
 """
 
-import json
 import logging
 
 from fastapi import APIRouter, Request
@@ -20,6 +18,7 @@ from typing import Optional
 from src.auth import verify_optional_bearer_token
 from src.chatbot_async import generate_pro_con_perspective
 from src.chat_service import with_heartbeat
+from src.sse import DONE, data_event, finish
 from src.utils import GENERIC_ERROR_MESSAGE
 from src.firebase_service import aget_party_for_context
 from src.models.chat import Message
@@ -34,17 +33,13 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1")
 
-# SSE headers
-# NOTE: StreamingResponse is used (not EventSourceResponse) because the generator
-# yields pre-framed "data: ...\n\n" strings; EventSourceResponse would double-wrap them.
-# NOTE: deliberately NO `x-vercel-ai-ui-message-stream: v1` header here — this
-# endpoint emits legacy code-prefixed frames (`data: 8{...}` / `data: d{...}`)
-# that the frontend hand-parses; the header would falsely claim v5
-# UI-message-stream framing to any AI SDK consumer.
+# SSE headers. StreamingResponse (not EventSourceResponse) — the generator yields
+# pre-framed "data: ...\n\n" strings; EventSourceResponse would double-wrap them.
 _SSE_HEADERS = {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache, no-transform",
     "X-Accel-Buffering": "no",
+    "x-vercel-ai-ui-message-stream": "v1",
 }
 
 
@@ -58,11 +53,9 @@ class ProConRequestDto(BaseModel):
 
 @router.post("/pro-con")
 async def pro_con_endpoint(request: Request, body: ProConRequestDto):
-    """POST /api/v1/pro-con — streams pro/con result as data annotation then [DONE].
+    """POST /api/v1/pro-con — streams the pro/con result as a v5 data part then [DONE].
 
-    V1 event map: pro_con_perspective_complete → 8 type=pro_con_result.
-    Error path: yields 8 type=error then [DONE] (matches V1 error DTO pattern).
-    Pydantic validates request body.
+    Pydantic validates the request body.
 
     Auth: verification is OPTIONAL (no 401s). This route currently carries no
     privileged body flag, but the optional Bearer token is verified for parity
@@ -97,20 +90,17 @@ async def pro_con_endpoint(request: Request, body: ProConRequestDto):
                 status=Status(indicator=StatusIndicator.SUCCESS, message="Success"),
             )
 
-            # 8: data annotation — pro_con_result
-            # (replaces V1 socket_emit("pro_con_perspective_complete", ...))
-            yield f"data: 8{json.dumps({'type': 'pro_con_result', **response_dto.model_dump()})}\n\n"
-            yield f"data: d{json.dumps({'finishReason': 'stop', 'usage': {}})}\n\n"
-            yield "data: [DONE]\n\n"
+            yield data_event({"type": "pro_con_result", **response_dto.model_dump()})
+            yield finish()
+            yield DONE
 
         except Exception as e:
             logger.error(
                 f"Error generating pro/con perspective for party {body.party_id}: {e}",
                 exc_info=True,
             )
-            # Error path: yield error annotation then [DONE] (V1 error pattern).
             # Generic client-facing message only — full detail is logged above.
-            yield f"data: 8{json.dumps({'type': 'error', 'message': GENERIC_ERROR_MESSAGE})}\n\n"
-            yield "data: [DONE]\n\n"
+            yield data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE})
+            yield DONE
 
     return StreamingResponse(with_heartbeat(stream()), headers=_SSE_HEADERS)

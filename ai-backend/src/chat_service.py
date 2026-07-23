@@ -31,7 +31,6 @@ No server-side session store.
 """
 
 import asyncio
-import json
 import time
 from datetime import datetime, timedelta, timezone
 import logging
@@ -55,6 +54,15 @@ from src.chatbot_async import (
     build_vote_documents,
 )
 from src.auth import resolve_user_is_logged_in
+from src.sse import (
+    data_event as _data_event,
+    finish as _finish,
+    finish_step as _finish_step,
+    start_message as _start_message,
+    text_delta as _text_delta,
+    text_end as _text_end,
+    text_start as _text_start,
+)
 from src.deeplink import (
     _is_video_link,
     _refine_speech_deeplinks,
@@ -260,57 +268,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Helper: data-stream event framing
 # ---------------------------------------------------------------------------
-def _sse(part: object) -> str:
-    """Serialize one AI SDK v5 UI-message-stream part as an SSE event.
-
-    v5 framing: ``data: <json>\n\n`` where <json> is a part object with a
-    ``type`` discriminator (start, text-delta, data-<name>, finish, ...).
-    """
-    return f"data: {json.dumps(part)}\n\n"
-
-
-def _start_message(message_id: str) -> str:
-    """v5 message-frame init: message ``start`` + open the first ``start-step``."""
-    return _sse({"type": "start", "messageId": message_id}) + _sse(
-        {"type": "start-step"}
-    )
-
-
-def _data_event(payload: object) -> str:
-    """Wrap a named chat event as a v5 ``data-chat_event`` part.
-
-    Every named chat event (responding_parties, sources_ready, party_chunk,
-    party_complete, quick_replies_title, error) rides inside this one part; the
-    frontend switches on ``data.type``.
-    """
-    return _sse({"type": "data-chat_event", "data": payload})
-
-
-def _finish_step() -> str:
-    """Close the current v5 step."""
-    return _sse({"type": "finish-step"})
-
-
-def _finish() -> str:
-    """Terminate the v5 message stream."""
-    return _sse({"type": "finish"})
-
-
-def _text_start(text_id: str) -> str:
-    """Open a v5 text block for one party answer."""
-    return _sse({"type": "text-start", "id": text_id})
-
-
-def _text_delta(text_id: str, token: str) -> str:
-    """Emit one v5 text-delta token within an open text block."""
-    return _sse({"type": "text-delta", "id": text_id, "delta": token})
-
-
-def _text_end(text_id: str) -> str:
-    """Close a v5 text block."""
-    return _sse({"type": "text-end", "id": text_id})
-
-
 def _party_chunk(session_id: str, party_id: str, chunk: str) -> str:
     """Emit one incremental answer chunk as a `party_chunk` data annotation.
 

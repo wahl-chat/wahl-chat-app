@@ -13,7 +13,6 @@ export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
     messages,
     contextId,
     getLLMSize,
-    isAnonymous,
     addVotingBehaviorResult,
     addVotingBehaviorSummaryChunk,
     completeVotingBehavior,
@@ -57,7 +56,6 @@ export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
           lastUserMessageBeforeVotingBehavior.messages[0].content,
         last_assistant_message: message.content,
         summary_llm_size: getLLMSize(),
-        user_is_logged_in: !isAnonymous,
       }),
     });
 
@@ -88,51 +86,52 @@ export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
         const payload = line.slice(5).trim();
         if (payload === '[DONE]') break;
 
-        if (payload.startsWith('8')) {
-          try {
-            const annotation = JSON.parse(payload.slice(1)) as Record<
-              string,
-              unknown
-            >;
+        // v5 UI-message-stream: named app events ride inside data-chat_event
+        // parts; the summary streams as text-delta parts. finish/finish-step
+        // parts are ignored.
+        let part: Record<string, unknown>;
+        try {
+          part = JSON.parse(payload) as Record<string, unknown>;
+        } catch {
+          continue; // malformed frame — skip
+        }
 
-            if (annotation.type === 'vote_result') {
-              addVotingBehaviorResult(
-                annotation.request_id as string,
-                annotation.vote as Vote,
-                annotation.is_end as boolean,
-              );
-            } else if (annotation.type === 'voting_behavior_complete') {
-              receivedComplete = true;
-              completeVotingBehavior(
-                annotation.request_id as string,
-                annotation.votes as Vote[],
-                annotation.message as string,
-              );
-            } else if (annotation.type === 'error') {
-              console.error(
-                '[voting-behavior] server error:',
-                annotation.message,
-              );
-              toast.error('Fehler beim Laden des Abstimmungsverhaltens.');
-              // Server-emitted error: stop the spinner and drop the
-              // half-populated stream state (only `catch` cleared the spinner
-              // before, so an HTTP-200 error left it spinning forever).
-              set((state) => {
-                state.loading.votingBehaviorSummary = undefined;
-                state.currentStreamedVotingBehavior = undefined;
-              });
-            }
-          } catch {
-            // Malformed annotation — skip
+        if (part.type === 'data-chat_event') {
+          const annotation = part.data as Record<string, unknown>;
+          if (annotation.type === 'vote_result') {
+            addVotingBehaviorResult(
+              annotation.request_id as string,
+              annotation.vote as Vote,
+              annotation.is_end as boolean,
+            );
+          } else if (annotation.type === 'voting_behavior_complete') {
+            receivedComplete = true;
+            completeVotingBehavior(
+              annotation.request_id as string,
+              annotation.votes as Vote[],
+              annotation.message as string,
+            );
+          } else if (annotation.type === 'error') {
+            console.error(
+              '[voting-behavior] server error:',
+              annotation.message,
+            );
+            toast.error('Fehler beim Laden des Abstimmungsverhaltens.');
+            // Server-emitted error: stop the spinner and drop the
+            // half-populated stream state (only `catch` cleared the spinner
+            // before, so an HTTP-200 error left it spinning forever).
+            set((state) => {
+              state.loading.votingBehaviorSummary = undefined;
+              state.currentStreamedVotingBehavior = undefined;
+            });
           }
-        } else if (payload.startsWith('0')) {
-          // Text delta for the voting behavior summary
-          try {
-            const chunk = JSON.parse(payload.slice(1)) as string;
-            addVotingBehaviorSummaryChunk(message.id, chunk, false);
-          } catch {
-            // Malformed — skip
-          }
+        } else if (part.type === 'text-delta') {
+          // Summary text delta.
+          addVotingBehaviorSummaryChunk(
+            message.id,
+            part.delta as string,
+            false,
+          );
         }
       }
     }

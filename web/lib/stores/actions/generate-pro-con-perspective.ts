@@ -86,31 +86,31 @@ export const generateProConPerspective: ChatStoreActionHandlerFor<
           const payload = line.slice(5).trim();
           if (payload === '[DONE]') break;
 
-          if (payload.startsWith('8')) {
-            try {
-              const annotation = JSON.parse(payload.slice(1)) as Record<
-                string,
-                unknown
-              >;
-              if (annotation.type === 'pro_con_result') {
-                // V1: 'pro_con_perspective_complete' → completeProConPerspective
-                receivedResult = true;
-                completeProConPerspective(
-                  annotation.request_id as string,
-                  annotation.message as MessageItem,
-                );
-              } else if (annotation.type === 'error') {
-                console.error('[pro-con] server error:', annotation.message);
-                toast.error('Fehler beim Laden der Pro/Contra-Perspektive.');
-                // Server-emitted error: stop the spinner (only `catch` cleared
-                // it before, so an HTTP-200 error left it spinning forever).
-                set((state) => {
-                  state.loading.proConPerspective = undefined;
-                });
-              }
-            } catch {
-              // Malformed annotation — skip
-            }
+          // v5 UI-message-stream: parse the part and act on data-chat_event
+          // parts (named app events ride inside `data`). finish/finish-step
+          // parts are ignored.
+          let part: Record<string, unknown>;
+          try {
+            part = JSON.parse(payload) as Record<string, unknown>;
+          } catch {
+            continue; // malformed frame — skip
+          }
+          if (part.type !== 'data-chat_event') continue;
+          const annotation = part.data as Record<string, unknown>;
+          if (annotation.type === 'pro_con_result') {
+            receivedResult = true;
+            completeProConPerspective(
+              annotation.request_id as string,
+              annotation.message as MessageItem,
+            );
+          } else if (annotation.type === 'error') {
+            console.error('[pro-con] server error:', annotation.message);
+            toast.error('Fehler beim Laden der Pro/Contra-Perspektive.');
+            // Server-emitted error: stop the spinner (only `catch` cleared it
+            // before, so an HTTP-200 error left it spinning forever).
+            set((state) => {
+              state.loading.proConPerspective = undefined;
+            });
           }
         }
       }

@@ -351,7 +351,7 @@ async def _drain_sse(app, path: str, body: dict):
 
 @pytest.mark.asyncio
 async def test_pro_con_route_sse(app, monkeypatch):
-    """/api/v1/pro-con: 200, text/event-stream, NO v1 stream header, ends [DONE]."""
+    """/api/v1/pro-con: 200, text/event-stream, v5 stream header, ends [DONE]."""
     from src.models.chat import Message
     from src.models.context import ContextParty
 
@@ -376,19 +376,19 @@ async def test_pro_con_route_sse(app, monkeypatch):
     )
 
     assert "text/event-stream" in headers.get("content-type", "")
-    assert "x-vercel-ai-ui-message-stream" not in headers, (
-        "pro-con emits legacy code-prefixed frames — it must NOT claim the v5 "
-        "UI-message-stream protocol"
-    )
+    assert headers.get("x-vercel-ai-ui-message-stream") == "v1"
     assert payloads[-1] == "[DONE]"
-    assert any(p.startswith("8") for p in payloads), (
-        "pro_con_result must be emitted as a legacy code-8 frame"
-    )
+    events = [json.loads(p) for p in payloads if p != "[DONE]"]
+    assert any(
+        e.get("type") == "data-chat_event"
+        and e.get("data", {}).get("type") == "pro_con_result"
+        for e in events
+    ), "pro_con_result must be emitted as a v5 data-chat_event part"
 
 
 @pytest.mark.asyncio
 async def test_voting_behavior_route_sse(app, monkeypatch):
-    """/api/v1/voting-behavior: 200, text/event-stream, NO v1 stream header,
+    """/api/v1/voting-behavior: 200, text/event-stream, v5 stream header,
     ends [DONE]."""
     from langchain_core.messages import AIMessageChunk
     from src.models.context import ContextParty
@@ -436,14 +436,14 @@ async def test_voting_behavior_route_sse(app, monkeypatch):
     )
 
     assert "text/event-stream" in headers.get("content-type", "")
-    assert "x-vercel-ai-ui-message-stream" not in headers, (
-        "voting-behavior emits legacy code-prefixed frames — it must NOT claim "
-        "the v5 UI-message-stream protocol"
-    )
+    assert headers.get("x-vercel-ai-ui-message-stream") == "v1"
     assert payloads[-1] == "[DONE]"
-    assert any(p.startswith("8") for p in payloads), (
-        "voting_behavior_complete must be emitted as a legacy code-8 frame"
-    )
+    events = [json.loads(p) for p in payloads if p != "[DONE]"]
+    assert any(
+        e.get("type") == "data-chat_event"
+        and e.get("data", {}).get("type") == "voting_behavior_complete"
+        for e in events
+    ), "voting_behavior_complete must be emitted as a v5 data-chat_event part"
 
 
 # ===========================================================================
