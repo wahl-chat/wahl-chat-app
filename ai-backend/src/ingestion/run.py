@@ -702,7 +702,9 @@ if __name__ == "__main__":
     try:
         qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
         _qdrant = QdrantClient(url=qdrant_url, api_key=os.getenv("QDRANT_API_KEY"))
-        _embed = get_embeddings()
+        # Corpus passages → RETRIEVAL_DOCUMENT (Gemini asymmetric doc/query space;
+        # ignored for OpenAI). Must match the RETRIEVAL_QUERY side in retrieve.py.
+        _embed = get_embeddings(task_type="RETRIEVAL_DOCUMENT")
 
         for connector_id in connector_ids:
             _connector = factories[connector_id]()

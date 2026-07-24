@@ -80,7 +80,10 @@ def _get_embed() -> Embeddings:
     """
     global _embed
     if _embed is None:
-        _embed = get_embeddings()
+        # Search query → RETRIEVAL_QUERY (the query side of Gemini's asymmetric
+        # doc/query space; must pair with RETRIEVAL_DOCUMENT at ingest). No-op for
+        # OpenAI.
+        _embed = get_embeddings(task_type="RETRIEVAL_QUERY")
     return _embed
 
 

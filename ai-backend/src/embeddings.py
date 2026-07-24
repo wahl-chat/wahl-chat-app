@@ -46,6 +46,7 @@ def get_embeddings(
     provider: Optional[str] = None,
     model: Optional[str] = None,
     output_dimensionality: Optional[int] = None,
+    task_type: Optional[str] = None,
 ) -> Embeddings:
     """Return a LangChain embeddings client selected by configuration.
 
@@ -58,6 +59,12 @@ def get_embeddings(
                   defaults to ``EMBEDDING_DIM``. Only meaningful for Gemini, where
                   it is forwarded as ``output_dimensionality`` so the produced
                   vectors match the collection width.
+        task_type: Gemini-only optimisation axis — how the embedding will be USED,
+                  not a data format. Corpus passages (the ingestion runner) should
+                  pass ``"RETRIEVAL_DOCUMENT"``; the search query (retrieve()) should
+                  pass ``"RETRIEVAL_QUERY"``. The asymmetric document/query spaces
+                  materially improve retrieval. Ignored for OpenAI (no such axis).
+                  Baked into the vectors → set it correctly BEFORE ingesting.
 
     Returns:
         An ``Embeddings`` instance for the resolved provider.
@@ -99,6 +106,7 @@ def get_embeddings(
             model=resolved_model,
             output_dimensionality=resolved_dim,
             google_api_key=api_key,
+            task_type=task_type,
         )
 
     raise ValueError(

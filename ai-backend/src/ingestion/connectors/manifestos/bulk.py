@@ -353,7 +353,9 @@ if __name__ == "__main__":
 
     qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
     _qdrant = QdrantClient(url=qdrant_url)
-    _embed = get_embeddings()
+    # Corpus passages → RETRIEVAL_DOCUMENT (matches the ingestion runner + the
+    # RETRIEVAL_QUERY side in retrieve.py; ignored for OpenAI).
+    _embed = get_embeddings(task_type="RETRIEVAL_DOCUMENT")
 
     print(
         f"Ingesting manifestos (dry_run={args.dry_run}, "

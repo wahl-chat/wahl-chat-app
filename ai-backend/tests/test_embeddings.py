@@ -66,6 +66,23 @@ def test_gemini_when_provider_is_gemini(
     assert client.kwargs["model"] == EMBEDDING_MODEL
     assert client.kwargs["output_dimensionality"] == EMBEDDING_DIM
     assert client.kwargs["google_api_key"] == "test-google-key"
+    # task_type defaults to None when the caller does not set it.
+    assert client.kwargs["task_type"] is None
+
+
+def test_gemini_task_type_forwarded(
+    monkeypatch: pytest.MonkeyPatch, patched_clients: None
+) -> None:
+    """task_type is forwarded to the Gemini client — the document/query asymmetry
+    (RETRIEVAL_DOCUMENT for corpus chunks, RETRIEVAL_QUERY for the search query)."""
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
+    monkeypatch.setenv("GOOGLE_API_KEY", "k")
+
+    doc = emb.get_embeddings(task_type="RETRIEVAL_DOCUMENT")
+    qry = emb.get_embeddings(task_type="RETRIEVAL_QUERY")
+
+    assert doc.kwargs["task_type"] == "RETRIEVAL_DOCUMENT"
+    assert qry.kwargs["task_type"] == "RETRIEVAL_QUERY"
 
 
 def test_gemini_provider_is_case_insensitive_and_trimmed(
