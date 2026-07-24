@@ -20,7 +20,9 @@ Source rule (locked design):
 In both cases citation_url is the original source URL — wahl.chat does not
 re-serve or store the files (no local storage, no Firestore source-doc).
 
-Scope: programs whose parliament_period ``election_date`` >= 2020-01-01.
+Scope: by default ALL programs are in scope. Set ``MANIFESTO_SINCE=YYYY-MM-DD``
+to floor ingestion at a parliament_period ``election_date`` (the operator chooses
+the window; the connector carries no built-in cut-off).
 
 This module also exposes the shared I/O helpers (``_fetch_period_date``,
 ``determine_source``, ``load_program_pages``) used by both this connector and the
@@ -52,8 +54,40 @@ from src.ingestion.schemas import ChunkRecord, SourceType
 
 logger = logging.getLogger(__name__)
 
-# Programs older than this election_date are out of scope.
-_CUTOFF = date_type.fromisoformat("2020-01-01")
+# Env var used to floor ingestion by parliament_period election_date.
+_SINCE_ENV = "MANIFESTO_SINCE"
+
+
+def resolve_since_floor(value: Optional[str] = None) -> Optional[date_type]:
+    """Resolve the optional election-date floor for manifesto ingestion.
+
+    The connector carries no built-in cut-off: with nothing configured every
+    program is in scope. An operator opts into a window via ``MANIFESTO_SINCE``
+    (or, for the bulk CLI, ``--since``) as an ISO ``YYYY-MM-DD`` date; programs
+    whose parliament_period election_date is strictly before it are skipped.
+
+    Args:
+        value: Explicit floor string (e.g. the bulk CLI ``--since`` arg). When
+               None the ``MANIFESTO_SINCE`` env var is read; an unset/empty env
+               means no floor.
+
+    Returns:
+        The parsed floor date, or None when no floor is configured.
+
+    Raises:
+        ValueError: If a value is supplied but is not a valid ISO date — a
+                    misconfiguration is surfaced loudly rather than silently
+                    ingesting the entire back-catalogue.
+    """
+    raw = value if value is not None else os.getenv(_SINCE_ENV)
+    if raw is None or not raw.strip():
+        return None
+    try:
+        return date_type.fromisoformat(raw.strip())
+    except ValueError as exc:
+        raise ValueError(
+            f"{_SINCE_ENV} must be an ISO date (YYYY-MM-DD), got {raw!r}"
+        ) from exc
 
 
 # =============================================================================
@@ -292,14 +326,16 @@ class ManifestoConnector(BaseConnector):
         return ingested
 
     # ------------------------------------------------------------------
-    # 1b. discover — 2020 floor + set-difference vs Qdrant, ascending by program_id
+    # 1b. discover — optional election-date floor + set-difference vs Qdrant,
+    #     ascending by program_id
     # ------------------------------------------------------------------
 
     def discover(self, since: Optional[int]) -> list[str]:
         """Return election-program ids to process, oldest first.
 
         Fetches all election-program records, resolves each program's
-        parliament-period election_date (cached), keeps those >= 2020-01-01, and
+        parliament-period election_date (cached), keeps those on or after the
+        configured MANIFESTO_SINCE floor (no floor by default → all kept), and
         includes a program only when its id is NOT yet present in Qdrant
         (set-difference — mirrors the AW votes connector). Caches the program
         records + resolved dates so fetch() needs no re-discovery.
@@ -325,6 +361,8 @@ class ManifestoConnector(BaseConnector):
         """
         self._programs = {}
         self._period_dates = {}
+
+        since_floor = resolve_since_floor()
 
         all_programs = self._client.get_all("election-program", {})
 
@@ -355,7 +393,7 @@ class ManifestoConnector(BaseConnector):
                 election_date = date_type.fromisoformat(date_iso)
             except (ValueError, TypeError):
                 continue
-            if election_date < _CUTOFF:
+            if since_floor is not None and election_date < since_floor:
                 continue
             if pid in ingested_ids:
                 continue

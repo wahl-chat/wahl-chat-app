@@ -22,12 +22,15 @@ Source rule (locked design):
 citation_url points at the original source URL in both cases — wahl.chat does
 not re-serve or store the files (no local storage, no Firestore source-doc).
 
-Scope: programs whose parliament_period ``election_date`` >= 2020-01-01.
+Scope: by default ALL programs are ingested. Pass ``--since YYYY-MM-DD`` (or set
+``MANIFESTO_SINCE``) to floor by parliament_period ``election_date``; the operator
+chooses the window and the CLI carries no built-in cut-off.
 
 Usage (local dev):
     cd ai-backend
     uv run python -m src.ingestion.connectors.manifestos.bulk --dry-run --limit 5
     uv run python -m src.ingestion.connectors.manifestos.bulk --ids 598,599,600
+    uv run python -m src.ingestion.connectors.manifestos.bulk --since 2020-01-01
     QDRANT_URL=http://localhost:6333 ENV=dev uv run python -m src.ingestion.connectors.manifestos.bulk
 
 Re-running REWRITES each processed program's footprint: the flush deletes the
@@ -54,6 +57,7 @@ from src.ingestion.connectors.manifestos.connector import (
     _fetch_period_date,
     determine_source,
     load_program_pages,
+    resolve_since_floor,
 )
 from src.ingestion.connectors.manifestos.mappers.corpus import (
     SourceKind,
@@ -81,16 +85,20 @@ def ingest(
     limit: Optional[int] = None,
     ids: Optional[list[int]] = None,
     dry_run: bool = False,
+    since: Optional[date_type] = None,
 ) -> tuple[int, int]:
     """Fetch manifesto programs from AW, embed, and upsert into Qdrant.
 
     Args:
         qdrant:  Initialised QdrantClient.
         embed:   Initialised OpenAIEmbeddings instance.
-        limit:   Max programs to process (None = all passing the 2020 filter).
+        limit:   Max programs to process (None = all passing the date filter).
         ids:     Specific AW program IDs to process (overrides limit).
         dry_run: If True, skip embed/upsert; fetch, parse, and print per-program
                  stats (party, period, source_kind, pages, chars, chunks).
+        since:   Optional election-date floor; programs whose parliament_period
+                 election_date is strictly before it are skipped. When None
+                 (default) NO floor is applied and every program is in scope.
 
     Returns:
         Tuple of (programs_processed, chunks_upserted).
@@ -110,9 +118,9 @@ def ingest(
         all_programs = [p for p in all_programs if p.get("id") in id_set]
         print(f"  After --ids filter: {len(all_programs)} programs")
 
-    # Resolve election_date per program and filter to >= 2020-01-01
-    cutoff = date_type.fromisoformat("2020-01-01")
-    programs_2020: list[tuple[dict, str]] = []  # (program, date_iso)
+    # Resolve election_date per program and apply the optional floor. With no
+    # floor (since is None) every program is kept — the CLI has no built-in cut-off.
+    eligible_programs: list[tuple[dict, str]] = []  # (program, date_iso)
 
     for program in all_programs:
         period_obj = program.get("parliament_period") or {}
@@ -126,14 +134,16 @@ def ingest(
             election_date = date_type.fromisoformat(date_iso)
         except (ValueError, TypeError):
             continue
-        if election_date >= cutoff:
-            programs_2020.append((program, date_iso))
+        if since is not None and election_date < since:
+            continue
+        eligible_programs.append((program, date_iso))
 
-    print(f"  After 2020 filter: {len(programs_2020)} programs")
+    _floor_label = f">= {since.isoformat()}" if since is not None else "no floor"
+    print(f"  After date filter ({_floor_label}): {len(eligible_programs)} programs")
 
     if limit is not None and not ids:
-        programs_2020 = programs_2020[:limit]
-        print(f"  After --limit {limit}: {len(programs_2020)} programs")
+        eligible_programs = eligible_programs[:limit]
+        print(f"  After --limit {limit}: {len(eligible_programs)} programs")
 
     programs_processed = 0
     chunks_total = 0
@@ -173,7 +183,7 @@ def ingest(
         _upsert_chunks(qdrant, COLLECTION_NAME, b, vectors)
         return len(b)
 
-    for program, period_date_iso in programs_2020:
+    for program, period_date_iso in eligible_programs:
         program_id: int = program["id"]
         party_label: str = (program.get("party") or {}).get("label") or ""
         period_label: str = (program.get("parliament_period") or {}).get("label") or ""
@@ -308,7 +318,26 @@ if __name__ == "__main__":
             "Prints per-program stats (party, period, source_kind, pages, chars, chunks)."
         ),
     )
+    parser.add_argument(
+        "--since",
+        type=str,
+        default=None,
+        metavar="YYYY-MM-DD",
+        help=(
+            "Only ingest programs whose parliament_period election_date is on or "
+            "after this ISO date. Overrides MANIFESTO_SINCE. Default: no floor "
+            "(ingest all)."
+        ),
+    )
     args = parser.parse_args()
+
+    # --since wins over MANIFESTO_SINCE; both default to no floor. An invalid
+    # value raises here (loud misconfiguration) before any AW/OpenAI work.
+    try:
+        since_floor = resolve_since_floor(args.since)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     specific_ids: Optional[list[int]] = None
     if args.ids:
@@ -327,7 +356,8 @@ if __name__ == "__main__":
 
     print(
         f"Ingesting manifestos (dry_run={args.dry_run}, "
-        f"limit={args.limit}, ids={specific_ids}) ..."
+        f"limit={args.limit}, ids={specific_ids}, "
+        f"since={since_floor.isoformat() if since_floor else None}) ..."
     )
     try:
         processed, chunks = ingest(
@@ -336,6 +366,7 @@ if __name__ == "__main__":
             limit=args.limit,
             ids=specific_ids,
             dry_run=args.dry_run,
+            since=since_floor,
         )
     except Exception:  # noqa: BLE001
         import traceback  # noqa: PLC0415

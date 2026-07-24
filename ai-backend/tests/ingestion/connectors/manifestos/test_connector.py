@@ -159,8 +159,13 @@ class TestDiscoverSetDifference:
         assert "555" in ids, "a failed-below-max program must be re-discovered"
         assert "598" not in ids, "already-ingested programs must be excluded"
 
-    def test_cutoff_date_filter_kept(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """The 2020 _CUTOFF election-date filter still applies with set-difference."""
+    def test_no_floor_by_default_includes_old_program(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """With MANIFESTO_SINCE unset there is NO built-in cut-off — an old
+        program (would-be-excluded under the former hardcoded 2020 floor) is
+        ingested."""
+        monkeypatch.delenv("MANIFESTO_SINCE", raising=False)
         old_program = dict(_PDF_PROGRAM, id=100)
 
         connector = ManifestoConnector()
@@ -170,7 +175,43 @@ class TestDiscoverSetDifference:
         )
         monkeypatch.setattr(connector, "_get_ingested_program_ids", lambda: set())
 
-        assert connector.discover(since=None) == []
+        assert connector.discover(since=None) == ["100"]
+
+    def test_manifesto_since_floors_out_older_programs(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """MANIFESTO_SINCE excludes programs whose election_date is before it,
+        and keeps those on or after it."""
+        # Distinct parliament_period ids so each maps to its own election_date.
+        old_program = dict(
+            _PDF_PROGRAM, id=100, parliament_period={"id": 900, "label": "old"}
+        )
+        new_program = dict(
+            _PDF_PROGRAM, id=101, parliament_period={"id": 901, "label": "new"}
+        )
+        dates = {900: "2017-09-24", 901: "2025-02-23"}
+
+        connector = ManifestoConnector()
+        connector._client = self._FakeAwClient([old_program, new_program])  # type: ignore[assignment]
+        monkeypatch.setattr(
+            conn_mod,
+            "_fetch_period_date",
+            lambda _client, period_id, _cache: dates[period_id],
+        )
+        monkeypatch.setattr(connector, "_get_ingested_program_ids", lambda: set())
+        monkeypatch.setenv("MANIFESTO_SINCE", "2020-01-01")
+
+        ids = connector.discover(since=None)
+        assert ids == ["101"], f"only the >= floor program is kept, got {ids!r}"
+
+    def test_invalid_manifesto_since_raises(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A malformed MANIFESTO_SINCE surfaces loudly rather than silently
+        ingesting everything."""
+        monkeypatch.setenv("MANIFESTO_SINCE", "not-a-date")
+        with pytest.raises(ValueError, match="MANIFESTO_SINCE must be an ISO date"):
+            conn_mod.resolve_since_floor()
 
 
 class TestManifestoRefresh:
