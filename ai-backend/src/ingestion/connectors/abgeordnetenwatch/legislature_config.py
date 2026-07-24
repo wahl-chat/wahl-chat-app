@@ -84,13 +84,28 @@ LEGISLATURE_CONFIG: dict[int, LegislatureConfig] = {
     133: LegislatureConfig(
         133, "DE-BE", "Berlin 2021 - 2026", "2021-10-04", "2026-10-25"
     ),
+    # Prior term. VERIFIED from AW v2 CC0 API
+    # (GET /parliament-periods?parliament=2&type=legislature) 2026-07-24.
+    107: LegislatureConfig(
+        107, "DE-BE", "Berlin 2016 - 2021", "2016-10-27", "2021-10-03"
+    ),
     # Hamburg (parliament_id=3)
     162: LegislatureConfig(
         162, "DE-HH", "Hamburg 2025 - 2029", "2025-03-26", "2029-05-03"
     ),
+    # Prior term. VERIFIED from AW v2 CC0 API
+    # (GET /parliament-periods?parliament=3&type=legislature) 2026-07-24.
+    122: LegislatureConfig(
+        122, "DE-HH", "Hamburg 2020 - 2025", "2020-03-18", "2025-03-25"
+    ),
     # Nordrhein-Westfalen (parliament_id=4)
     139: LegislatureConfig(
         139, "DE-NW", "Nordrhein-Westfalen 2022 - 2027", "2022-06-01", "2027-05-30"
+    ),
+    # Prior term. VERIFIED from AW v2 CC0 API
+    # (GET /parliament-periods?parliament=4&type=legislature) 2026-07-24.
+    109: LegislatureConfig(
+        109, "DE-NW", "Nordrhein-Westfalen 2017 - 2022", "2017-06-01", "2022-05-31"
     ),
     # Baden-Württemberg (parliament_id=6)
     165: LegislatureConfig(
@@ -124,45 +139,100 @@ LEGISLATURE_CONFIG: dict[int, LegislatureConfig] = {
     131: LegislatureConfig(
         131, "DE-ST", "Sachsen-Anhalt 2021 - 2026", "2021-07-06", "2026-10-06"
     ),
+    # Prior term. VERIFIED from AW v2 CC0 API
+    # (GET /parliament-periods?parliament=8&type=legislature) 2026-07-24.
+    114: LegislatureConfig(
+        114, "DE-ST", "Sachsen-Anhalt 2016 - 2021", "2016-04-12", "2021-07-05"
+    ),
     # Mecklenburg-Vorpommern (parliament_id=9)
     134: LegislatureConfig(
         134, "DE-MV", "Mecklenburg-Vorpommern 2021 - 2026", "2021-10-26", "2026-10-25"
+    ),
+    # Prior term. VERIFIED from AW v2 CC0 API
+    # (GET /parliament-periods?parliament=9&type=legislature) 2026-07-24.
+    108: LegislatureConfig(
+        108, "DE-MV", "Mecklenburg-Vorpommern 2016 - 2021", "2016-10-04", "2021-10-25"
     ),
     # Bremen (parliament_id=10)
     146: LegislatureConfig(
         146, "DE-HB", "Bremen 2023 - 2027", "2023-06-29", "2027-06-01"
     ),
+    # Prior term. VERIFIED from AW v2 CC0 API
+    # (GET /parliament-periods?parliament=10&type=legislature) 2026-07-24.
+    118: LegislatureConfig(
+        118, "DE-HB", "Bremen 2019 - 2023", "2019-07-03", "2023-06-28"
+    ),
     # Hessen (parliament_id=11)
     150: LegislatureConfig(
         150, "DE-HE", "Hessen 2024 - 2029", "2024-01-18", "2029-01-31"
+    ),
+    # Prior term. VERIFIED from AW v2 CC0 API
+    # (GET /parliament-periods?parliament=11&type=legislature) 2026-07-24.
+    116: LegislatureConfig(
+        116, "DE-HE", "Hessen 2019 - 2024", "2019-01-18", "2024-01-17"
     ),
     # Niedersachsen (parliament_id=12)
     143: LegislatureConfig(
         143, "DE-NI", "Niedersachsen 2022 - 2027", "2022-11-08", "2027-11-18"
     ),
+    # Prior term. VERIFIED from AW v2 CC0 API
+    # (GET /parliament-periods?parliament=12&type=legislature) 2026-07-24.
+    112: LegislatureConfig(
+        112, "DE-NI", "Niedersachsen 2017 - 2022", "2017-11-14", "2022-11-07"
+    ),
     # Bayern (parliament_id=13) — empirical check confirmed ~149
     149: LegislatureConfig(
         149, "DE-BY", "Bayern 2023 - 2028", "2023-10-26", "2028-10-31"
+    ),
+    # Prior term. VERIFIED from AW v2 CC0 API
+    # (GET /parliament-periods?parliament=13&type=legislature) 2026-07-24.
+    115: LegislatureConfig(
+        115, "DE-BY", "Bayern 2018 - 2023", "2018-11-02", "2023-10-25"
     ),
     # Saarland (parliament_id=14)
     137: LegislatureConfig(
         137, "DE-SL", "Saarland 2022 - 2027", "2022-04-25", "2027-03-27"
     ),
+    # Prior term. VERIFIED from AW v2 CC0 API
+    # (GET /parliament-periods?parliament=14&type=legislature) 2026-07-24.
+    113: LegislatureConfig(
+        113, "DE-SL", "Saarland 2017 - 2022", "2017-04-25", "2022-04-24"
+    ),
     # Thüringen (parliament_id=15)
     156: LegislatureConfig(
         156, "DE-TH", "Thüringen 2024 - 2029", "2024-09-26", "2029-09-30"
+    ),
+    # Prior term. VERIFIED from AW v2 CC0 API
+    # (GET /parliament-periods?parliament=15&type=legislature) 2026-07-24.
+    121: LegislatureConfig(
+        121, "DE-TH", "Thüringen 2019 - 2024", "2019-11-26", "2024-09-26"
     ),
     # Brandenburg (parliament_id=16)
     158: LegislatureConfig(
         158, "DE-BB", "Brandenburg 2024 - 2029", "2024-10-17", "2029-10-22"
     ),
+    # Prior term. VERIFIED from AW v2 CC0 API
+    # (GET /parliament-periods?parliament=16&type=legislature) 2026-07-24.
+    120: LegislatureConfig(
+        120, "DE-BB", "Brandenburg 2019 - 2024", "2019-09-02", "2024-10-16"
+    ),
     # Sachsen (parliament_id=17)
     157: LegislatureConfig(
         157, "DE-SN", "Sachsen 2024 - 2029", "2024-10-01", "2029-09-30"
     ),
+    # Prior term. VERIFIED from AW v2 CC0 API
+    # (GET /parliament-periods?parliament=17&type=legislature) 2026-07-24.
+    119: LegislatureConfig(
+        119, "DE-SN", "Sachsen 2019 - 2024", "2019-10-01", "2024-09-30"
+    ),
     # Schleswig-Holstein (parliament_id=18)
     138: LegislatureConfig(
         138, "DE-SH", "Schleswig-Holstein 2022 - 2027", "2022-06-07", "2027-05-30"
+    ),
+    # Prior term. VERIFIED from AW v2 CC0 API
+    # (GET /parliament-periods?parliament=18&type=legislature) 2026-07-24.
+    110: LegislatureConfig(
+        110, "DE-SH", "Schleswig-Holstein 2017 - 2022", "2017-06-06", "2022-06-06"
     ),
 }
 

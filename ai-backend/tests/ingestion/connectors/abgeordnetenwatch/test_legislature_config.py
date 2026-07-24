@@ -37,7 +37,25 @@ class TestLegislatureConfigShape:
     # rows so the two-pass split can separate them by publish_date).
     _OUTGOING_LANDTAG_IDS = (126, 127)  # BW 2021–2026, RP 2021–2026
     # Prior-term rows (pre-outgoing): votes land in the HISTORIC bucket of a 2026 chat.
-    _PRIOR_LANDTAG_IDS = (105,)  # BW 2016–2021
+    # Prior legislature terms per state ("current + 1 prior" ingestion depth);
+    # BW carries two extra rows (outgoing 126 + prior 105) around its 2026 election.
+    _PRIOR_LANDTAG_IDS = (
+        105,  # BW 2016–2021
+        107,  # BE 2016–2021
+        108,  # MV 2016–2021
+        109,  # NW 2017–2022
+        110,  # SH 2017–2022
+        112,  # NI 2017–2022
+        113,  # SL 2017–2022
+        114,  # ST 2016–2021
+        115,  # BY 2018–2023
+        116,  # HE 2019–2024
+        118,  # HB 2019–2023
+        119,  # SN 2019–2024
+        120,  # BB 2019–2024
+        121,  # TH 2019–2024
+        122,  # HH 2020–2025
+    )
 
     def test_all_16_states_represented(self) -> None:
         """Every one of the 16 German states must have at least one Landtag row."""
