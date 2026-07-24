@@ -184,6 +184,23 @@ def get_cursor(
 # ---------------------------------------------------------------------------
 
 
+def _parent_key(connector: BaseConnector, external_id: str) -> str:
+    """Stable per-parent identity for footprint reconciliation.
+
+    Every chunk produced by ONE ``fetch(external_id)`` shares this key — the
+    discover/fetch id IS the parent (a DIP protocol, an op session, an AW poll),
+    even when ``normalize()`` fans it out into many ``source_item_id``s. Scoped by
+    ``source_type`` + optional ``source`` (mirroring compute_source_item_id) so
+    two connectors sharing a source_type but drawing from independent id spaces
+    (dip/op) can never produce the same parent key for unrelated parents.
+    """
+    source = getattr(connector, "source", None)
+    prefix = (
+        f"{connector.source_type}:{source}" if source else str(connector.source_type)
+    )
+    return f"{prefix}:{external_id}"
+
+
 def _cursor_source_scope(connector: BaseConnector) -> Optional[str]:
     """Return the source scope for get_cursor.
 
@@ -345,6 +362,16 @@ def run_connector(
                 failed_ids.append(str(external_id))
                 continue
 
+            # Stamp the stable per-parent key (the discover/fetch id, source-scoped)
+            # onto every chunk so the footprint scroll below can reconcile EVERY child
+            # this parent ever produced — including a source_item_id this normalize()
+            # no longer emits. content_hash is computed by the mapper BEFORE this stamp,
+            # so idempotency comparisons on later runs are unaffected.
+            parent_key = _parent_key(connector, str(external_id))
+            chunks = [
+                c.model_copy(update={"source_parent_key": parent_key}) for c in chunks
+            ]
+
             # Concurrent DIP+op hazard: a connector may report the
             # source_item_ids its normalize() SKIPPED as already-superseded (the
             # DIP connector sets last_superseded_siids). Any stored points under
@@ -374,13 +401,15 @@ def run_connector(
                 # Already-present / orphan guard (cost optimisation + staleness fix):
                 # Compute deterministic point IDs for this item's chunks (same formula as
                 # _upsert_chunks) and compare against the FULL existing footprint of the
-                # item's source_item_ids in Qdrant.
+                # fetched PARENT in Qdrant.
                 #
-                # normalize() output may span MANY source_item_ids (DIP/op emit one per
-                # speech), so the footprint is collected per DISTINCT source_item_id via
-                # a MatchAny scroll — a plain retrieve(ids=new_point_ids) would miss
-                # stored points the new normalize no longer produces (orphans), letting
-                # a 3→2 chunk shrink leave the stale 3rd chunk retrievable forever.
+                # The footprint unions two scopes (see footprint_scopes below): the
+                # source_item_ids the new normalize() emits AND source_parent_key (the
+                # stable per-parent identity stamped above), so it returns EVERY child
+                # this parent ever produced — not only the ones the current output names.
+                # A source_item_id-only scope could never see a child that disappears
+                # entirely (a protocol that produced speeches A+B now producing only A),
+                # leaving its points retrievable forever.
                 #
                 # The guard keys on point ID (source_item_id + chunk_index) AND, when the
                 # connector stamps one, on content_hash — so an upstream CORRECTION that
@@ -395,46 +424,62 @@ def run_connector(
                 new_point_ids = set(point_ids)
                 # source_item_id is a UUID; stringify for the keyword-index MatchAny.
                 siids = sorted({str(c.source_item_id) for c in chunks})
-                footprint_filter = models.Filter(
-                    must=[
-                        models.FieldCondition(
-                            key="source_item_id",
-                            match=models.MatchAny(any=siids),
-                        )
-                    ]
-                )
                 existing_hash_by_id: dict[str, Optional[str]] = {}
                 # DIP transcript PDFs (meta.transcript_pdf_url, written by the op
                 # supersede pass) per siid — must survive a rewrite, since the fresh
                 # mapper output never carries the graft and the DIP twin that donated
                 # it is already deleted.
                 pdf_by_siid: dict[str, str] = {}
-                next_offset = None
-                while True:
-                    points, next_offset = qdrant.scroll(
-                        collection_name=collection_name,
-                        scroll_filter=footprint_filter,
-                        limit=1000,
-                        offset=next_offset,
-                        with_payload=[
-                            "source_item_id",
-                            "content_hash",
-                            "meta.transcript_pdf_url",
-                        ],
-                        with_vectors=False,
-                    )
-                    for p in points:
-                        payload = p.payload or {}
-                        existing_hash_by_id[str(p.id)] = payload.get("content_hash")
-                        grafted_pdf = (payload.get("meta") or {}).get(
-                            "transcript_pdf_url"
+                # Two scopes, unioned into one footprint:
+                #   1. source_item_id — the children the NEW normalize emits (also finds
+                #      points written before source_parent_key existed, on the transition
+                #      run before the corpus is re-ingested).
+                #   2. source_parent_key — the FULL parent footprint, so a child the new
+                #      normalize no longer emits at all (a protocol that produced speeches
+                #      A+B now producing only A) is still scanned and its orphaned points
+                #      deleted below. A source_item_id-only scope can only see children
+                #      the new output names, so it would leave a wholly-disappeared child
+                #      retrievable forever.
+                footprint_scopes = [
+                    models.FieldCondition(
+                        key="source_item_id", match=models.MatchAny(any=siids)
+                    ),
+                    models.FieldCondition(
+                        key="source_parent_key",
+                        match=models.MatchValue(value=parent_key),
+                    ),
+                ]
+                for scope in footprint_scopes:
+                    scope_filter = models.Filter(must=[scope])
+                    next_offset = None
+                    while True:
+                        points, next_offset = qdrant.scroll(
+                            collection_name=collection_name,
+                            scroll_filter=scope_filter,
+                            limit=1000,
+                            offset=next_offset,
+                            with_payload=[
+                                "source_item_id",
+                                "content_hash",
+                                "meta.transcript_pdf_url",
+                            ],
+                            with_vectors=False,
                         )
-                        if grafted_pdf and payload.get("source_item_id") is not None:
-                            pdf_by_siid.setdefault(
-                                str(payload["source_item_id"]), grafted_pdf
+                        for p in points:
+                            payload = p.payload or {}
+                            existing_hash_by_id[str(p.id)] = payload.get("content_hash")
+                            grafted_pdf = (payload.get("meta") or {}).get(
+                                "transcript_pdf_url"
                             )
-                    if next_offset is None:
-                        break
+                            if (
+                                grafted_pdf
+                                and payload.get("source_item_id") is not None
+                            ):
+                                pdf_by_siid.setdefault(
+                                    str(payload["source_item_id"]), grafted_pdf
+                                )
+                        if next_offset is None:
+                            break
 
                 existing_point_ids = set(existing_hash_by_id.keys())
                 all_present = new_point_ids.issubset(existing_point_ids)

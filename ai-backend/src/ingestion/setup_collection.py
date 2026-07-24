@@ -166,6 +166,9 @@ _INDEX_SPECS: list[
     # source:     "dip"|"op" discriminator — source-scoped cursor in run.py.
     ("speech_key", models.PayloadSchemaType.KEYWORD),
     ("source", models.PayloadSchemaType.KEYWORD),
+    # source_parent_key: stable per-parent identity — run.py scrolls the full
+    # parent footprint by it so a wholly-disappeared child is reconciled.
+    ("source_parent_key", models.PayloadSchemaType.KEYWORD),
 ]
 
 _REQUIRED_INDEXES: frozenset[str] = frozenset(field for field, _ in _INDEX_SPECS)

@@ -221,17 +221,22 @@ class _FootprintQdrant:
             return ([], None)  # get_cursor → no prior points → since=None
         flt = kwargs.get("scroll_filter")
         siids: set[str] = set()
+        parent_keys: set[str] = set()
         for cond in getattr(flt, "must", []) or []:
-            if getattr(cond, "key", None) == "source_item_id":
-                match = cond.match
+            key = getattr(cond, "key", None)
+            match = cond.match
+            if key == "source_item_id":
                 values = getattr(match, "any", None)
                 if values is None:
                     values = [getattr(match, "value", None)]
                 siids.update(str(v) for v in values)
+            elif key == "source_parent_key":
+                parent_keys.add(str(getattr(match, "value", None)))
         points = [
             types.SimpleNamespace(id=pid, payload=payload)
             for pid, payload in self.existing.items()
             if str(payload.get("source_item_id")) in siids
+            or str(payload.get("source_parent_key")) in parent_keys
         ]
         return (points, None)
 
@@ -345,6 +350,43 @@ def test_multi_source_item_id_orphan_delete() -> None:
     )
     assert len(qdrant.upserts) == 1
     assert report.chunks_upserted == 2
+
+
+def test_disappeared_child_reconciled_via_parent_footprint() -> None:
+    """(c) A child that vanishes ENTIRELY from a multi-child parent must be deleted.
+
+    Parent p1 previously produced speeches A+B; the new normalize() yields ONLY A.
+    B's source_item_id appears in no new chunk, so a source_item_id-only footprint
+    would never scan it and B would stay retrievable forever. The parent-scoped
+    scope (source_parent_key) sees the full old footprint and deletes B."""
+    chunk_a = _chunk("speech-A", 0, "Rede A", content_hash="h-a")
+    chunk_b = _chunk("speech-B", 0, "Rede B", content_hash="h-b")
+
+    # Prior run ingested BOTH A and B under parent p1 (runner stamps this key).
+    parent_key = "vote_record:p1"
+    existing = {}
+    for c in (chunk_a, chunk_b):
+        pid = str(compute_chunk_id(c.source_item_id, c.chunk_index))
+        existing[pid] = {
+            "source_item_id": str(c.source_item_id),
+            "content_hash": c.content_hash,
+            "source_parent_key": parent_key,
+        }
+
+    # New normalize for p1 emits ONLY A — B has disappeared upstream.
+    connector = _ChunksStub({"p1": [chunk_a]})
+    qdrant = _FootprintQdrant(existing)
+    embed = _mock_embed()
+
+    run_connector(connector, qdrant, embed, batch_size=10)
+
+    b_pid = str(compute_chunk_id(chunk_b.source_item_id, 0))
+    assert len(qdrant.deletes) == 1, (
+        "the vanished child must trigger exactly one delete"
+    )
+    assert _deleted_point_ids(qdrant.deletes[0]) == {b_pid}, (
+        "ONLY B's orphaned point may be deleted; A survives (overwritten in place)"
+    )
 
 
 def test_shrink_in_place_removes_stale_chunk() -> None:

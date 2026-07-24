@@ -235,6 +235,21 @@ class ChunkRecord(BaseModel):
             "None on older chunks that predate this field."
         ),
     )
+    # Stable per-parent identity for footprint reconciliation (INDEXED keyword).
+    # Stamped by the runner from the discover/fetch id, so every chunk produced by
+    # ONE fetch() shares it. run.py reconciles the FULL parent footprint by this key
+    # — a child source_item_id that a later normalize() no longer emits (a protocol
+    # that produced speeches A+B now producing only A) is still scanned and its
+    # orphaned points deleted, which a source_item_id-only footprint could never see.
+    source_parent_key: Optional[str] = Field(
+        None,
+        description=(
+            "Stable per-parent key '{source_type}[:{source}]:{external_id}' stamped by "
+            "the runner from the fetch id. Groups all chunks of one fetched parent so a "
+            "wholly-disappeared child is reconciled. INDEXED keyword. "
+            "None on older chunks that predate this field."
+        ),
+    )
     # Content hash for change-aware idempotent upserts. When a re-ingested item's
     # content_hash differs from the stored one, run.py re-embeds and re-writes the chunk
     # so upstream corrections (e.g. an AW vote tally fixed after first ingest) propagate;
