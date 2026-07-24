@@ -177,9 +177,6 @@ class ChatUserMessageDto(BaseModel):
     party_ids: List[str] = Field(
         ..., description="The IDs of the parties that are part of the chat session"
     )
-    user_is_logged_in: bool = Field(
-        description="Whether the user is logged in or not", default=False
-    )
     # Optional audio fields for voice messages
     audio_bytes: Optional[bytes] = Field(
         default=None, description="Raw binary audio data (webm) for voice messages"
