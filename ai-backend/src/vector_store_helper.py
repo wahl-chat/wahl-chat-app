@@ -5,14 +5,14 @@ from pathlib import Path
 from typing import Union
 import logging
 
-from langchain_openai import OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 from langchain_core.documents import Document
 from qdrant_client import QdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 from src.models.context import ContextParty
 
-from src.utils import load_env, safe_load_api_key
+from src.embeddings import get_embeddings
+from src.utils import load_env
 
 from src.chatbot_async import rerank_documents
 from functools import lru_cache
@@ -49,9 +49,10 @@ def get_context_collection_name(context_id: str) -> str:
     return f"context_{context_id}_party_docs{env_suffix}"
 
 
-embed = OpenAIEmbeddings(
-    model="text-embedding-3-large", openai_api_key=safe_load_api_key("OPENAI_API_KEY")
-)
+# Resolved via the provider factory (EMBEDDING_PROVIDER, default OpenAI
+# text-embedding-3-large @ 3072 — the previous behaviour unchanged). OpenAI reads
+# OPENAI_API_KEY from the environment, exactly as before.
+embed = get_embeddings()
 
 # Initialize Qdrant client
 qdrant_client = QdrantClient(

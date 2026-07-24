@@ -32,16 +32,16 @@ import sys
 import time
 from typing import NamedTuple, Optional
 
-from langchain_openai import OpenAIEmbeddings
+from langchain_core.embeddings import Embeddings
 from qdrant_client import QdrantClient, models
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from src.embeddings import get_embeddings
 from src.ingestion.connector import BaseConnector
 from src.ingestion.schemas import ChunkRecord
 from src.ingestion.setup_collection import (
     COLLECTION_NAME,
     EMBEDDING_DIM,
-    EMBEDDING_MODEL,
 )
 from src.ingestion.ids import compute_chunk_id
 
@@ -224,7 +224,7 @@ def _cursor_source_scope(connector: BaseConnector) -> Optional[str]:
     stop=stop_after_attempt(5),
     reraise=True,
 )
-def _embed_texts(embed: OpenAIEmbeddings, texts: list[str]) -> list[list[float]]:
+def _embed_texts(embed: Embeddings, texts: list[str]) -> list[list[float]]:
     """Embed a list of texts with bounded exponential backoff (tenacity).
 
     Retries up to 5 attempts: wait 1s → 2s → 4s → ... → max 30s.
@@ -286,7 +286,7 @@ def _upsert_chunks(
 def run_connector(
     connector: BaseConnector,
     qdrant: QdrantClient,
-    embed: OpenAIEmbeddings,
+    embed: Embeddings,
     collection_name: str = COLLECTION_NAME,
     *,
     batch_size: int = 50,
@@ -302,7 +302,7 @@ def run_connector(
     Args:
         connector:       Any BaseConnector implementation.
         qdrant:          Initialised QdrantClient.
-        embed:           Initialised OpenAIEmbeddings instance.
+        embed:           Initialised embeddings client (from get_embeddings()).
         collection_name: Qdrant collection to upsert into.
         batch_size:      Maximum number of items to process per run.
         time_budget_s:   Optional wall-clock budget in seconds.  If set and
@@ -702,7 +702,7 @@ if __name__ == "__main__":
     try:
         qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
         _qdrant = QdrantClient(url=qdrant_url, api_key=os.getenv("QDRANT_API_KEY"))
-        _embed = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+        _embed = get_embeddings()
 
         for connector_id in connector_ids:
             _connector = factories[connector_id]()

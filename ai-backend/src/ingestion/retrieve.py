@@ -34,7 +34,7 @@ import os
 from datetime import date, datetime, timezone
 from typing import Any, Literal, Optional, Union, cast
 
-from langchain_openai import OpenAIEmbeddings
+from langchain_core.embeddings import Embeddings
 from pydantic import BaseModel, Field
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
@@ -45,7 +45,8 @@ from qdrant_client.models import (
     MatchValue,
 )
 
-from src.ingestion.setup_collection import COLLECTION_NAME, EMBEDDING_MODEL
+from src.embeddings import get_embeddings
+from src.ingestion.setup_collection import COLLECTION_NAME
 from src.ingestion.levels import ALL_LEVELS
 
 logger = logging.getLogger(__name__)
@@ -55,7 +56,7 @@ logger = logging.getLogger(__name__)
 # Deferred to first use so importing this module never opens a network connection.
 # ---------------------------------------------------------------------------
 _qdrant: Optional[QdrantClient] = None
-_embed: Optional[OpenAIEmbeddings] = None
+_embed: Optional[Embeddings] = None
 
 
 def _get_qdrant() -> QdrantClient:
@@ -69,16 +70,17 @@ def _get_qdrant() -> QdrantClient:
     return _qdrant
 
 
-def _get_embed() -> OpenAIEmbeddings:
+def _get_embed() -> Embeddings:
     """Return the module-level embedding model, initializing on first call.
 
-    Deferred initialization avoids raising OpenAIError at import time when
-    OPENAI_API_KEY is not set (e.g. in CI or test environments that override
-    the embed callable via _embed_fn).
+    Deferred initialization avoids raising a provider error at import time when
+    the provider's API key is not set (e.g. in CI or test environments that
+    override the embed callable via _embed_fn). The concrete provider is resolved
+    by get_embeddings() from EMBEDDING_PROVIDER (default OpenAI — unchanged).
     """
     global _embed
     if _embed is None:
-        _embed = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+        _embed = get_embeddings()
     return _embed
 
 
