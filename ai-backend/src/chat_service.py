@@ -87,15 +87,23 @@ from src.models.dtos import (
     Status,
     StatusIndicator,
 )
+from src.embeddings import get_embeddings
 from src.models.context import ContextParty
 from src.models.party import WAHL_CHAT_PARTY
-from src.vector_store_helper import embed
 from src.utils import (
     GENERIC_ERROR_MESSAGE,
     build_chat_history_string,
     get_chat_history_hash_key,
     sanitize_references,
 )
+
+# Query-side embeddings client, resolved via the provider factory. RETRIEVAL_QUERY
+# mirrors retrieve.py: corpus passages are embedded as RETRIEVAL_DOCUMENT, so the
+# query must use the asymmetric query space (Gemini; no-op for OpenAI). Resolved
+# here directly — NOT via vector_store_helper, whose module-level vector stores
+# require the legacy V1 collections to exist in Qdrant (a fresh V2 store with only
+# wahlchat_chunks_{env} would fail at import).
+embed = get_embeddings(task_type="RETRIEVAL_QUERY")
 
 MAX_RESPONSE_CHUNK_LENGTH = 10  # preserved from V1 for cached-response replay
 
