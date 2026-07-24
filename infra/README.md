@@ -81,4 +81,29 @@ docker compose --profile ingestion run --rm \
   part of this workstream — it needs the same WIF provider + service account +
   GitHub Environments as the ingestion jobs, so it lands here, not before.
 
+## Rollout gate (implemented)
+
+The runtime must not be switched to corpus-grounded chat before the corpus is
+actually populated — scheduled ingestion and the one-time snapshot backfill are
+deferred to this workstream, so until a deployment has filled
+`wahlchat_chunks_{ENV}`, serving chat would ground every answer in an empty
+store.
+
+This is enforced by an **explicit, opt-in gate**: the backend reads
+`REQUIRE_CORPUS`. When it is truthy, the app checks the corpus collection on
+startup and **refuses to boot** if it is missing or empty
+(`enforce_corpus_rollout_gate` in `ai-backend/src/app.py`, backed by
+`corpus_point_count` in `setup_collection.py`). When unset — local dev, CI,
+tests — the gate is a no-op, so an empty local store still boots for
+development.
+
+- **Deployment dependency:** the corpus-cutover step (bottom of the stack) sets
+  `REQUIRE_CORPUS=true` in prod **only after** ingestion + bootstrap have run, so
+  a misconfigured deploy fails fast instead of silently serving nothing.
+- **Cutover switch (planned):** when a legacy retrieval path coexists with the
+  V2 corpus, a server-side `RETRIEVAL_CORPUS=legacy|v2` env var at the single
+  retrieval seam (never client-controllable) selects the source; rollback is a
+  config flip, no redeploy. Not built yet — there is no legacy path in this
+  codebase to switch away from.
+
 > **Never commit API keys, passwords, or service-account JSON to this directory.**

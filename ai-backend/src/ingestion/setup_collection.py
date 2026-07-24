@@ -60,6 +60,19 @@ def _make_client() -> QdrantClient:
     )
 
 
+def corpus_point_count(client: Optional[QdrantClient] = None) -> Optional[int]:
+    """Return the number of points in ``COLLECTION_NAME``, or None if it is absent.
+
+    Used by the app's rollout gate to distinguish a missing collection (None)
+    from an empty one (0) from a populated one (>0). Constructs its own client
+    when none is injected (tests inject a fake).
+    """
+    c = client or _make_client()
+    if not c.collection_exists(COLLECTION_NAME):
+        return None
+    return c.count(collection_name=COLLECTION_NAME, exact=True).count
+
+
 # ---------------------------------------------------------------------------
 # Index specification list — ORDER MATTERS for readability; Qdrant accepts
 # repeated create_payload_index calls for the same field (idempotent).

@@ -250,6 +250,12 @@ The two stores are seeded by different mechanisms, on purpose:
   the Firestore emulator; do not point local work at production stores while the
   data design is still settling. The seed script hard-requires
   `FIRESTORE_EMULATOR_HOST`.
+- **Corpus rollout gate.** The runtime must not serve corpus-grounded chat
+  before the corpus is populated (scheduled ingestion + snapshot backfill are
+  deferred — see `infra/README.md`). A deployment opts into enforcement with
+  `REQUIRE_CORPUS=true`: the app then refuses to boot if `wahlchat_chunks_{ENV}`
+  is missing/empty. Unset locally/in CI/tests, so an empty local store still
+  boots.
 - **The embedding model and vector store are locked.** Qdrant is the vector
   store; embeddings are OpenAI `text-embedding-3-large` at 3072 dimensions,
   COSINE distance. Do not mix models or dimensions — it breaks index parity.
