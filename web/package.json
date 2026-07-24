@@ -97,7 +97,8 @@
     "fast-xml-parser": "5.10.1",
     "fast-uri": "3.1.4",
     "sharp": "0.35.3",
-    "brace-expansion": "1.1.16"
+    "brace-expansion": "1.1.16",
+    "postcss": "^8.5.12"
   },
   "trustedDependencies": [
     "@biomejs/biome",
