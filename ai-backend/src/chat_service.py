@@ -31,7 +31,6 @@ No server-side session store.
 """
 
 import asyncio
-import os
 import time
 from datetime import datetime, timedelta, timezone
 import logging
@@ -451,28 +450,6 @@ async def _safe_two_pass(
         return {"current": [], "historic": []}
 
 
-# ---------------------------------------------------------------------------
-# Retrieval backend selection (server-side feature-flag seam).
-#
-# RETRIEVAL_BACKEND selects which retrieval implementation serves chat:
-#   "v2" (default) — the current single-collection bucket flow
-#                    (_retrieve_party_buckets → retrieve()/retrieve_two_pass over
-#                    wahlchat_chunks_{ENV}). Unchanged, and the only wired path.
-#   "v1"           — the legacy per-collection path in src/vector_store_helper.py
-#                    (identify_relevant_docs*, identify_relevant_votes,
-#                    identify_relevant_parliamentary_questions). NOT wired here —
-#                    see the guard in _retrieve_party_buckets and its TODO.
-# The default preserves today's behaviour exactly; the value is read per call so
-# it can be flipped without a process restart.
-# ---------------------------------------------------------------------------
-_DEFAULT_RETRIEVAL_BACKEND = "v2"
-
-
-def _resolve_retrieval_backend() -> str:
-    """Return the configured retrieval backend id (default "v2")."""
-    return os.getenv("RETRIEVAL_BACKEND", _DEFAULT_RETRIEVAL_BACKEND).strip().lower()
-
-
 async def _retrieve_party_buckets(
     *,
     party: ContextParty,
@@ -498,47 +475,7 @@ async def _retrieve_party_buckets(
     (manifesto publish_date == its period's election date). All three sources run
     concurrently and a single source failure degrades to empty. WAHL_CHAT_PARTY has no
     corpus data → all buckets empty. log_prefix labels the failure logs per caller.
-
-    The retrieval backend is selected by RETRIEVAL_BACKEND (default "v2", the flow
-    implemented below). A non-v2 value raises rather than silently falling back,
-    so a misconfiguration can never serve from an unintended store.
     """
-    backend = _resolve_retrieval_backend()
-    if backend != _DEFAULT_RETRIEVAL_BACKEND:
-        if backend == "v1":
-            # The legacy path is deliberately NOT force-wired: its functions have
-            # different signatures and return shapes (langchain Documents over the
-            # legacy per-context/per-namespace collections) than the v2 bucket flow,
-            # and switching the serving path needs behaviour verification with the
-            # maintainer before it can be trusted.
-            #
-            # TODO(gemini-migration): wire the v1 backend. Build a
-            # _RetrievedBuckets from src/vector_store_helper.py by mapping each v1
-            # function's list[Document] onto the payload-dict shape that
-            # process_party / fetch_party_response_stream consume (each Document ->
-            # {"text": doc.page_content, "citation_title"/"citation_url"/
-            # "publish_date"/"region"/"authority_tier"/"meta" from doc.metadata}):
-            #   - identify_relevant_docs_with_llm_based_reranking(party, query, ...)
-            #       -> manifesto_current   (manifesto docs; namespace=party_id)
-            #   - identify_relevant_votes(query, ...)
-            #       -> vote_current        (namespace="vote_summary")
-            #   - identify_relevant_parliamentary_questions(party, query, ...)
-            #       -> speech_current      (namespace f"{party}-parliamentary-questions")
-            # v1 has no temporal split, so the *_historic buckets stay empty; the
-            # v1 collections are context-scoped and do NOT honour region_path /
-            # legislature_period_id / election_level (confirm the maintainer accepts
-            # dropping those filters on the v1 path). See the migration plan.
-            raise NotImplementedError(
-                "RETRIEVAL_BACKEND='v1' (legacy vector_store_helper path) is not "
-                "wired yet — its Document return shape and per-collection filtering "
-                "differ from the v2 bucket flow and need maintainer verification "
-                "before serving. Use the default 'v2' backend."
-            )
-        raise NotImplementedError(
-            f"Unknown RETRIEVAL_BACKEND={backend!r}; supported: 'v2' (default), "
-            "'v1' (not yet wired)."
-        )
-
     if party.party_id == WAHL_CHAT_PARTY.party_id:
         return _RetrievedBuckets([], [], [], [], [], [])
 

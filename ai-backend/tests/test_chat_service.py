@@ -19,8 +19,6 @@ import inspect
 import json
 from datetime import datetime, timezone
 
-import pytest
-
 import src.chat_service as cs
 from src.chat_service import fetch_party_response_stream, process_party
 from src.models.chat import GroupChatSession, Message
@@ -735,55 +733,3 @@ def test_cache_eligibility_is_sticky_once_broken() -> None:
         )
         is False
     )
-
-
-# ---------------------------------------------------------------------------
-# RETRIEVAL_BACKEND feature-flag seam
-# ---------------------------------------------------------------------------
-
-
-def _empty_buckets_kwargs() -> dict:
-    """Minimal kwargs for _retrieve_party_buckets. Uses WAHL_CHAT_PARTY so the
-    v2 path returns immediately (no retrieve() call) after the backend seam."""
-    return dict(
-        party=cs.WAHL_CHAT_PARTY,
-        improved_rag_query="q",
-        rag_query_vector=[0.0] * 8,
-        region_path=["DE"],
-        legislature_period_id=None,
-        election_level=None,
-        term_window=None,
-        manifesto_term_start=None,
-    )
-
-
-def test_retrieval_backend_defaults_to_v2(monkeypatch) -> None:
-    """No env set → seam resolves to 'v2' and the v2 path runs (WAHL_CHAT_PARTY
-    returns empty buckets, proving the seam let execution through)."""
-    monkeypatch.delenv("RETRIEVAL_BACKEND", raising=False)
-    assert cs._resolve_retrieval_backend() == "v2"
-
-    buckets = asyncio.run(cs._retrieve_party_buckets(**_empty_buckets_kwargs()))
-    assert buckets == cs._RetrievedBuckets([], [], [], [], [], [])
-
-
-def test_retrieval_backend_v2_explicit_runs(monkeypatch) -> None:
-    """An explicit RETRIEVAL_BACKEND=v2 (case/space-insensitive) also runs."""
-    monkeypatch.setenv("RETRIEVAL_BACKEND", " V2 ")
-    buckets = asyncio.run(cs._retrieve_party_buckets(**_empty_buckets_kwargs()))
-    assert buckets == cs._RetrievedBuckets([], [], [], [], [], [])
-
-
-def test_retrieval_backend_v1_raises_not_implemented(monkeypatch) -> None:
-    """v1 is a recognised-but-unwired backend → NotImplementedError, never a
-    silent fallback to v2."""
-    monkeypatch.setenv("RETRIEVAL_BACKEND", "v1")
-    with pytest.raises(NotImplementedError, match="v1"):
-        asyncio.run(cs._retrieve_party_buckets(**_empty_buckets_kwargs()))
-
-
-def test_retrieval_backend_unknown_raises(monkeypatch) -> None:
-    """An unknown backend id is rejected loudly."""
-    monkeypatch.setenv("RETRIEVAL_BACKEND", "pinecone")
-    with pytest.raises(NotImplementedError, match="Unknown RETRIEVAL_BACKEND"):
-        asyncio.run(cs._retrieve_party_buckets(**_empty_buckets_kwargs()))
