@@ -479,10 +479,49 @@ async def test_chat_request_rejects_unbounded_input(patch_chat_io, app):
         r = await client.post("/api/v1/chat", json=over_history)
         assert r.status_code == 422, r.text
 
-        # malformed history entry (missing required Message fields)
+        # malformed history entry (missing required role/content)
         bad_history = dict(_CHAT_REQUEST_BODY, chat_history=[{"foo": "bar"}])
         r = await client.post("/api/v1/chat", json=bad_history)
         assert r.status_code == 422, r.text
+
+        # ONE oversized nested turn: the list length is fine (1 turn), but the
+        # turn's content exceeds the per-turn cap — capping only list length would
+        # let this through as an unbounded prompt.
+        over_turn = dict(
+            _CHAT_REQUEST_BODY,
+            chat_history=[{"role": "user", "content": "x" * 10_001}],
+        )
+        r = await client.post("/api/v1/chat", json=over_turn)
+        assert r.status_code == 422, r.text
+
+        # Aggregate history over the total budget while each turn stays under the
+        # per-turn cap and the turn count stays under the depth cap — isolates the
+        # total-content ceiling.
+        over_total = dict(
+            _CHAT_REQUEST_BODY,
+            chat_history=[{"role": "user", "content": "x" * 9_000}] * 40,
+        )
+        r = await client.post("/api/v1/chat", json=over_total)
+        assert r.status_code == 422, r.text
+
+        # Untrusted output-side fields on a turn are IGNORED, not rejected — a
+        # client still posting full Message objects keeps working (only
+        # role/content/party_id are kept, and content here is within bounds).
+        with_extra = dict(
+            _CHAT_REQUEST_BODY,
+            chat_history=[
+                {
+                    "role": "assistant",
+                    "content": "ok",
+                    "party_id": "spd",
+                    "sources": [{"huge": "x" * 50}],
+                    "quick_replies": ["a", "b"],
+                    "id": "msg-1",
+                }
+            ],
+        )
+        r = await client.post("/api/v1/chat", json=with_extra)
+        assert r.status_code == 200, r.text
 
 
 @pytest.mark.asyncio

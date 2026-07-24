@@ -19,12 +19,14 @@ Limitation: true concurrent multiplexed streaming is deferred.
 
 import logging
 
+from typing import Optional
+
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src.chat_service import generate_chat_stream, with_heartbeat
-from src.models.chat import Message
+from src.models.chat import Role
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +54,27 @@ _SSE_HEADERS = {
 _MAX_USER_MESSAGE_CHARS = 500
 _MAX_PARTY_IDS = 20  # largest seeded roster (Baden-Württemberg) is 19
 _MAX_HISTORY_MESSAGES = 100
+# Per-turn and aggregate content ceilings. Capping only the list length leaves a
+# history of 100 turns each carrying unbounded content — still an unbounded body
+# and an unbounded prompt. These are abuse guards (a hostile client cannot post a
+# multi-megabyte history), sized well above any real conversation, not UX limits.
+_MAX_HISTORY_TURN_CHARS = 10_000
+_MAX_HISTORY_TOTAL_CHARS = 300_000
+
+
+class ChatHistoryTurn(BaseModel):
+    """Route-specific history turn — ONLY the fields the pipeline actually reads
+    (role, content, party_id; see build_chat_history_string). The output-side
+    Message fields (sources, quick_replies, rag_query, id, current_chat_title) are
+    intentionally NOT modelled: they are server-generated, must not be trusted from
+    the client, and must never be re-fed into the prompt or allocated unbounded.
+    Unknown fields are ignored (Pydantic default) so a client that still posts full
+    Message objects keeps working — only these three are kept, and content is
+    bounded per turn."""
+
+    role: Role
+    content: str = Field(max_length=_MAX_HISTORY_TURN_CHARS)
+    party_id: Optional[str] = Field(default=None, max_length=200)
 
 
 class ChatRequestDto(BaseModel):
@@ -59,9 +82,24 @@ class ChatRequestDto(BaseModel):
     context_id: str = Field(max_length=200)
     user_message: str = Field(max_length=_MAX_USER_MESSAGE_CHARS)
     party_ids: list[str] = Field(default_factory=list, max_length=_MAX_PARTY_IDS)
-    chat_history: list[Message] = Field(
+    chat_history: list[ChatHistoryTurn] = Field(
         default_factory=list, max_length=_MAX_HISTORY_MESSAGES
     )
+
+    @field_validator("chat_history")
+    @classmethod
+    def _bound_total_history_chars(
+        cls, turns: list[ChatHistoryTurn]
+    ) -> list[ChatHistoryTurn]:
+        """Bound aggregate history content, not just per-turn — 100 turns each just
+        under the per-turn cap would otherwise still be a ~1 MB prompt."""
+        total = sum(len(t.content) for t in turns)
+        if total > _MAX_HISTORY_TOTAL_CHARS:
+            raise ValueError(
+                f"chat_history total content {total} exceeds "
+                f"{_MAX_HISTORY_TOTAL_CHARS} chars"
+            )
+        return turns
 
 
 @router.post("/chat")

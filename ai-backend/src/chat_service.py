@@ -1397,15 +1397,13 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
     )  # local import avoids circular
     from src.models.general import LLMSize
 
-    chat_history: list[Message] = []
-    for raw_msg in body.chat_history:
-        if isinstance(raw_msg, Message):
-            chat_history.append(raw_msg)
-        elif isinstance(raw_msg, dict):
-            try:
-                chat_history.append(Message(**raw_msg))
-            except Exception:
-                pass  # skip malformed history entries
+    # body.chat_history is the route-specific ChatHistoryTurn (role/content/party_id
+    # only, already validated + bounded by FastAPI). Rehydrate into the internal
+    # Message the pipeline expects; output-side fields stay server-owned (None).
+    chat_history: list[Message] = [
+        Message(role=turn.role, content=turn.content, party_id=turn.party_id)
+        for turn in body.chat_history
+    ]
 
     # Append current user message if not a duplicate
     if not chat_history or chat_history[-1].content != user_message.content:
