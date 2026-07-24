@@ -252,6 +252,29 @@ def _drive_single_party(term_window, **stream_kwargs) -> list[str]:
     return asyncio.run(_run())
 
 
+def _drive_comparison(term_window, **kwargs) -> dict:
+    """Run the comparison path (process_party) for one party; returns the filled
+    relevant_doc_dict. Mirrors _drive_single_party but for the no-emit path."""
+    relevant_doc_dict: dict = {}
+
+    async def _run() -> None:
+        await process_party(
+            _make_party(),
+            "conv",
+            "q?",
+            relevant_doc_dict,
+            asyncio.Lock(),
+            [],
+            "ctx",
+            region_path=["DE-BW"],
+            term_window=term_window,
+            **kwargs,
+        )
+
+    asyncio.run(_run())
+    return relevant_doc_dict
+
+
 def _sources_from_events(events: list[str]) -> list[dict]:
     for ev in events:
         if '"sources_ready"' in ev:
@@ -275,10 +298,39 @@ def test_two_pass_window_derived_before_nulling() -> None:
     assert "_context.date" in source
 
 
-def test_two_pass_used_in_both_paths() -> None:
-    """retrieve_two_pass is wired into BOTH the single-party and comparison paths."""
-    assert "retrieve_two_pass" in inspect.getsource(fetch_party_response_stream)
-    assert "retrieve_two_pass" in inspect.getsource(process_party)
+def test_two_pass_used_in_both_paths(monkeypatch) -> None:
+    """BOTH the single-party and comparison paths run the temporal two-pass
+    retrieval for all three sources when a term_window resolves — behavioural proof
+    that both delegate to the shared _retrieve_party_buckets, replacing a
+    source-text check that a refactor would silently break."""
+    tw = (
+        datetime(2021, 1, 1, tzinfo=timezone.utc),
+        datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+    expected = {"vote_record", "party_manifesto", "parliamentary_speech"}
+
+    def _make_recorder(store: dict):
+        def _rec(_query, **kwargs):
+            store[kwargs.get("source_type")] = kwargs
+            return {"current": [], "historic": []}
+
+        return _rec
+
+    _wire_common_mocks(monkeypatch, {})
+
+    single_party_calls: dict = {}
+    monkeypatch.setattr(cs, "retrieve_two_pass", _make_recorder(single_party_calls))
+    _drive_single_party(tw)
+    assert expected <= set(single_party_calls), (
+        "single-party path must two-pass all three sources"
+    )
+
+    comparison_calls: dict = {}
+    monkeypatch.setattr(cs, "retrieve_two_pass", _make_recorder(comparison_calls))
+    _drive_comparison(tw)
+    assert expected <= set(comparison_calls), (
+        "comparison path must two-pass all three sources"
+    )
 
 
 def test_historic_period_id_current_only(monkeypatch) -> None:

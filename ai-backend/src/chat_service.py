@@ -38,7 +38,7 @@ import random
 import uuid
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import AsyncGenerator, List, Dict, Optional, Union, cast
+from typing import AsyncGenerator, List, Dict, NamedTuple, Optional, Union, cast
 
 import openai
 from fastapi import Request as FastAPIRequest
@@ -403,6 +403,188 @@ async def yield_cached_party_response(
 # ---------------------------------------------------------------------------
 # Single-party response stream (replaces fetch_and_emit_party_response)
 # ---------------------------------------------------------------------------
+class _RetrievedBuckets(NamedTuple):
+    """Per-source current/historic payload buckets from one party's retrieval."""
+
+    vote_current: list[dict]
+    vote_historic: list[dict]
+    manifesto_current: list[dict]
+    manifesto_historic: list[dict]
+    speech_current: list[dict]
+    speech_historic: list[dict]
+
+
+async def _safe_retrieve(*args, _log_prefix: str = "retrieve", **kwargs) -> list[dict]:  # type: ignore[no-untyped-def]
+    """Run retrieve() off-thread; a failure returns [] so one source never kills
+    its siblings or the whole answer. with_scores is never set here → list[dict]."""
+    try:
+        return cast(list[dict], await asyncio.to_thread(retrieve, *args, **kwargs))
+    except Exception as _err:  # noqa: BLE001
+        logger.warning(
+            "%s() failed (source=%s party=%s): %s",
+            _log_prefix,
+            kwargs.get("source_type"),
+            kwargs.get("party_id") or kwargs.get("party_ids_contains"),
+            _err,
+            exc_info=True,
+        )
+        return []
+
+
+async def _safe_two_pass(
+    improved_rag_query: str, *, _log_prefix: str = "retrieve_two_pass", **kwargs
+) -> dict[str, list[dict]]:  # type: ignore[no-untyped-def]
+    """Run retrieve_two_pass() off-thread; a failure returns empty current/historic
+    buckets so a single source failure never kills the other two nor the answer."""
+    try:
+        return await asyncio.to_thread(retrieve_two_pass, improved_rag_query, **kwargs)
+    except Exception as _err:  # noqa: BLE001
+        logger.warning(
+            "%s() failed (source=%s party=%s): %s",
+            _log_prefix,
+            kwargs.get("source_type"),
+            kwargs.get("party_id") or kwargs.get("party_ids_contains"),
+            _err,
+            exc_info=True,
+        )
+        return {"current": [], "historic": []}
+
+
+async def _retrieve_party_buckets(
+    *,
+    party: ContextParty,
+    improved_rag_query: str,
+    rag_query_vector: list[float],
+    region_path: Optional[List[str]],
+    legislature_period_id: Optional[int],
+    election_level: Optional[str],
+    term_window: Optional[tuple[datetime, datetime]],
+    manifesto_term_start: Optional[datetime],
+    log_prefix: str = "retrieve",
+) -> _RetrievedBuckets:
+    """Retrieve vote + manifesto + speech payloads for ONE party into current/historic
+    buckets — the orchestration shared by the single-party and comparison paths.
+
+    Two-pass temporal split when a term_window resolves (current window
+    [term_start, term_end] with the per-source current limits, plus a small high-bar
+    historic pass); otherwise a single pass into the current buckets with the historic
+    buckets left empty — byte-for-byte the pre-temporal grounding. ONE query vector is
+    reused across all passes. legislature_period_id + election_level scope vote_record
+    ONLY (manifesto/speech chunks lack the fields, so the filter would strip their
+    grounding). The manifesto pass uses the widened campaign-window start
+    (manifesto publish_date == its period's election date). All three sources run
+    concurrently and a single source failure degrades to empty. WAHL_CHAT_PARTY has no
+    corpus data → all buckets empty. log_prefix labels the failure logs per caller.
+    """
+    if party.party_id == WAHL_CHAT_PARTY.party_id:
+        return _RetrievedBuckets([], [], [], [], [], [])
+
+    if term_window is not None:
+        term_start, term_end = term_window
+        vote_buckets, manifesto_buckets, speech_buckets = await asyncio.gather(
+            _safe_two_pass(
+                improved_rag_query,
+                _log_prefix=f"{log_prefix}_two_pass",
+                query_vector=rag_query_vector,
+                source_type="vote_record",
+                party_ids_contains=party.party_id,
+                term_start=term_start,
+                term_end=term_end,
+                current_limit=_CURRENT_VOTE_LIMIT,
+                historic_limit=_HISTORIC_LIMITS["vote"],
+                current_score_threshold=_CHAT_SCORE_THRESHOLD,
+                historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
+                region_path=region_path,
+                legislature_period_id=legislature_period_id,
+                level=election_level,  # vote-only
+            ),
+            _safe_two_pass(
+                improved_rag_query,
+                _log_prefix=f"{log_prefix}_two_pass",
+                query_vector=rag_query_vector,
+                source_type="party_manifesto",
+                party_id=party.party_id,
+                term_start=(
+                    manifesto_term_start
+                    if manifesto_term_start is not None
+                    else term_start
+                ),
+                term_end=term_end,
+                current_limit=_CURRENT_MANIFESTO_LIMIT,
+                historic_limit=_HISTORIC_LIMITS["manifesto"],
+                current_score_threshold=_CHAT_SCORE_THRESHOLD,
+                historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
+                region_path=region_path,
+            ),
+            _safe_two_pass(
+                improved_rag_query,
+                _log_prefix=f"{log_prefix}_two_pass",
+                query_vector=rag_query_vector,
+                source_type="parliamentary_speech",
+                party_id=party.party_id,
+                term_start=term_start,
+                term_end=term_end,
+                current_limit=_CURRENT_SPEECH_FALLBACK,
+                historic_limit=_HISTORIC_LIMITS["speech"],
+                current_score_threshold=_CHAT_SCORE_THRESHOLD,
+                historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
+                region_path=region_path,
+            ),
+        )
+        return _RetrievedBuckets(
+            vote_current=vote_buckets["current"],
+            vote_historic=vote_buckets["historic"],
+            manifesto_current=manifesto_buckets["current"],
+            manifesto_historic=manifesto_buckets["historic"],
+            speech_current=speech_buckets["current"],
+            speech_historic=speech_buckets["historic"],
+        )
+
+    # SINGLE-PASS fallback — no window resolved; historic buckets stay empty.
+    vote_current, manifesto_current, speech_current = await asyncio.gather(
+        _safe_retrieve(
+            improved_rag_query,
+            _log_prefix=log_prefix,
+            query_vector=rag_query_vector,
+            source_type="vote_record",
+            party_ids_contains=party.party_id,
+            limit=_CURRENT_VOTE_LIMIT,
+            score_threshold=_CHAT_SCORE_THRESHOLD,
+            region_path=region_path,
+            legislature_period_id=legislature_period_id,
+            level=election_level,  # vote-only
+        ),
+        _safe_retrieve(
+            improved_rag_query,
+            _log_prefix=log_prefix,
+            query_vector=rag_query_vector,
+            source_type="party_manifesto",
+            party_id=party.party_id,
+            limit=_CURRENT_MANIFESTO_LIMIT,
+            score_threshold=_CHAT_SCORE_THRESHOLD,
+            region_path=region_path,
+        ),
+        _safe_retrieve(
+            improved_rag_query,
+            _log_prefix=log_prefix,
+            query_vector=rag_query_vector,
+            source_type="parliamentary_speech",
+            party_id=party.party_id,
+            limit=_CURRENT_SPEECH_FALLBACK,
+            score_threshold=_CHAT_SCORE_THRESHOLD,
+            region_path=region_path,
+        ),
+    )
+    return _RetrievedBuckets(
+        vote_current=vote_current,
+        vote_historic=[],
+        manifesto_current=manifesto_current,
+        manifesto_historic=[],
+        speech_current=speech_current,
+        speech_historic=[],
+    )
+
+
 async def fetch_party_response_stream(
     party: ContextParty,
     conversation_history_str: str,
@@ -508,194 +690,27 @@ async def fetch_party_response_stream(
             relevant_docs_list = []  # always empty; canonical sources are fetched below
             improved_rag_query_list = [improved_rag_query]
 
-            # Run all three per-source retrieve() calls concurrently via
-            # asyncio.gather so they execute in parallel (Qdrant supports concurrent
-            # reads). return_exceptions=True ensures a failure in one source never
-            # kills the others; exceptions are coerced to [] with a warning below.
-            # The WAHL_CHAT_PARTY (wahl-chat assistant) has no party_ids and no
-            # party_manifesto / parliamentary_speech data — skip all three sources
-            # for it (it will have empty payloads and an empty answer context).
-            async def _safe_retrieve(*args, **kwargs) -> list[dict]:  # type: ignore[no-untyped-def]
-                """Wrap retrieve() so a failure returns [] rather than raising."""
-                try:
-                    # This wrapper only ever calls retrieve() with_scores=False, so the
-                    # result is a list[dict]; narrow retrieve()'s union return.
-                    return cast(
-                        list[dict], await asyncio.to_thread(retrieve, *args, **kwargs)
-                    )
-                except Exception as _err:  # noqa: BLE001
-                    logger.warning(
-                        "retrieve() failed (source=%s party=%s): %s",
-                        kwargs.get("source_type"),
-                        kwargs.get("party_id") or kwargs.get("party_ids_contains"),
-                        _err,
-                        exc_info=True,
-                    )
-                    return []
-
-            async def _safe_two_pass(**kwargs) -> dict[str, list[dict]]:  # type: ignore[no-untyped-def]
-                """Wrap retrieve_two_pass() so a failure returns empty buckets.
-
-                Mirrors _safe_retrieve but for the temporal two-pass mode: on any
-                exception it returns ``{"current": [], "historic": []}`` so a single
-                source failure never kills the other two nor the whole answer.
-                """
-                try:
-                    return await asyncio.to_thread(
-                        retrieve_two_pass, improved_rag_query, **kwargs
-                    )
-                except Exception as _err:  # noqa: BLE001
-                    logger.warning(
-                        "retrieve_two_pass() failed (source=%s party=%s): %s",
-                        kwargs.get("source_type"),
-                        kwargs.get("party_id") or kwargs.get("party_ids_contains"),
-                        _err,
-                        exc_info=True,
-                    )
-                    return {"current": [], "historic": []}
-
-            # Per-source current/historic payload buckets. When no term window
-            # resolves, everything lands in the *current* buckets via single-pass
-            # retrieve() and the historic buckets stay empty — preserving the
-            # single-pass grounding for federal-default and general contexts.
-            manifesto_current: list[dict] = []
-            speech_current: list[dict] = []
-            vote_current: list[dict] = []
-            manifesto_historic: list[dict] = []
-            speech_historic: list[dict] = []
-            vote_historic: list[dict] = []
-
-            if party.party_id != WAHL_CHAT_PARTY.party_id:
-                # Vote records: filtered via party_ids_contains (vote_record chunks
-                # have a party_ids ARRAY, no single tenant party_id).
-                # Manifesto records: filtered by party_id (tenant owner).
-                # Parliamentary speeches: filtered by party_id (tenant owner).
-                # region_path is the election scope — MatchAny on the chunk-level
-                # scalar `region` field.  Federal default = ["DE"].
-                if term_window is not None:
-                    # TWO-PASS temporal retrieval. A window
-                    # resolved, so each source is split into a current pass
-                    # (publish_date ∈ [term_start, term_end], EXISTING per-source
-                    # current limits) and a small high-bar historic pass
-                    # (publish_date < term_start). ONE query vector is reused across
-                    # all six passes (query_vector=rag_query_vector). legislature_period_id
-                    # + level are forwarded to the vote two-pass ONLY (vote-only rule);
-                    # retrieve_two_pass forwards level to both passes and
-                    # legislature_period_id to the current pass only.
-                    term_start, term_end = term_window
-                    _vote_coro = _safe_two_pass(
-                        query_vector=rag_query_vector,
-                        source_type="vote_record",
-                        party_ids_contains=party.party_id,
-                        term_start=term_start,
-                        term_end=term_end,
-                        current_limit=_CURRENT_VOTE_LIMIT,
-                        historic_limit=_HISTORIC_LIMITS["vote"],
-                        current_score_threshold=_CHAT_SCORE_THRESHOLD,
-                        historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
-                        region_path=region_path,
-                        legislature_period_id=legislature_period_id,
-                        level=election_level,  # NOT passed to manifesto/speech
-                    )
-                    # legislature_period_id and level scope ONLY vote_record — never
-                    # passed to manifesto/speech (those chunks lack the fields, so the
-                    # MatchValue filter would match nothing and strip their grounding).
-                    # Campaign-window semantics (manifesto pass ONLY): a manifesto's
-                    # publish_date is stamped as its period's ELECTION DATE, which
-                    # always precedes the term's constituent-session start — so the
-                    # caller supplies a widened manifesto_term_start; term_end stays.
-                    _manifesto_coro = _safe_two_pass(
-                        query_vector=rag_query_vector,
-                        source_type="party_manifesto",
-                        party_id=party.party_id,
-                        term_start=(
-                            manifesto_term_start
-                            if manifesto_term_start is not None
-                            else term_start
-                        ),
-                        term_end=term_end,
-                        current_limit=_CURRENT_MANIFESTO_LIMIT,
-                        historic_limit=_HISTORIC_LIMITS["manifesto"],
-                        current_score_threshold=_CHAT_SCORE_THRESHOLD,
-                        historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
-                        region_path=region_path,
-                    )
-                    # Speeches are fetched at the adaptive FALLBACK ceiling and
-                    # trimmed to _CURRENT_SPEECH_LIMIT after the gather ONLY when
-                    # official data (votes+manifesto) is present.
-                    _speech_coro = _safe_two_pass(
-                        query_vector=rag_query_vector,
-                        source_type="parliamentary_speech",
-                        party_id=party.party_id,
-                        term_start=term_start,
-                        term_end=term_end,
-                        current_limit=_CURRENT_SPEECH_FALLBACK,
-                        historic_limit=_HISTORIC_LIMITS["speech"],
-                        current_score_threshold=_CHAT_SCORE_THRESHOLD,
-                        historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
-                        region_path=region_path,
-                    )
-                    (
-                        vote_buckets,
-                        manifesto_buckets,
-                        speech_buckets,
-                    ) = await asyncio.gather(_vote_coro, _manifesto_coro, _speech_coro)
-                    vote_current, vote_historic = (
-                        vote_buckets["current"],
-                        vote_buckets["historic"],
-                    )
-                    manifesto_current, manifesto_historic = (
-                        manifesto_buckets["current"],
-                        manifesto_buckets["historic"],
-                    )
-                    speech_current, speech_historic = (
-                        speech_buckets["current"],
-                        speech_buckets["historic"],
-                    )
-                else:
-                    # SINGLE-PASS fallback — no window resolved. Byte-for-byte the
-                    # pre-Phase-09 grounding; historic buckets stay empty. Distinct
-                    # variable names from the two-pass branch above: these coroutines
-                    # return list[dict], the two-pass ones dict[str, list[dict]], and
-                    # reusing one name would make the types collide for the checker.
-                    _vote_coro_sp = _safe_retrieve(
-                        improved_rag_query,
-                        query_vector=rag_query_vector,
-                        source_type="vote_record",
-                        party_ids_contains=party.party_id,
-                        limit=_CURRENT_VOTE_LIMIT,
-                        score_threshold=_CHAT_SCORE_THRESHOLD,
-                        region_path=region_path,
-                        legislature_period_id=legislature_period_id,
-                        level=election_level,  # NOT passed to manifesto/speech
-                    )
-                    _manifesto_coro_sp = _safe_retrieve(
-                        improved_rag_query,
-                        query_vector=rag_query_vector,
-                        source_type="party_manifesto",
-                        party_id=party.party_id,
-                        limit=_CURRENT_MANIFESTO_LIMIT,
-                        score_threshold=_CHAT_SCORE_THRESHOLD,
-                        region_path=region_path,
-                    )
-                    # Fetch speeches at the adaptive FALLBACK ceiling; trimmed to
-                    # _CURRENT_SPEECH_LIMIT after the gather when official data is present.
-                    _speech_coro_sp = _safe_retrieve(
-                        improved_rag_query,
-                        query_vector=rag_query_vector,
-                        source_type="parliamentary_speech",
-                        party_id=party.party_id,
-                        limit=_CURRENT_SPEECH_FALLBACK,
-                        score_threshold=_CHAT_SCORE_THRESHOLD,
-                        region_path=region_path,
-                    )
-                    (
-                        vote_current,
-                        manifesto_current,
-                        speech_current,
-                    ) = await asyncio.gather(
-                        _vote_coro_sp, _manifesto_coro_sp, _speech_coro_sp
-                    )
+            # Retrieve vote + manifesto + speech into current/historic buckets. The
+            # orchestration (two-pass vs single-pass, per-source limits, vote-only
+            # scoping, WAHL_CHAT_PARTY skip) is shared with the comparison path via
+            # _retrieve_party_buckets so the two stay in lockstep.
+            _buckets = await _retrieve_party_buckets(
+                party=party,
+                improved_rag_query=improved_rag_query,
+                rag_query_vector=rag_query_vector,
+                region_path=region_path,
+                legislature_period_id=legislature_period_id,
+                election_level=election_level,
+                term_window=term_window,
+                manifesto_term_start=manifesto_term_start,
+                log_prefix="retrieve",
+            )
+            vote_current = _buckets.vote_current
+            vote_historic = _buckets.vote_historic
+            manifesto_current = _buckets.manifesto_current
+            manifesto_historic = _buckets.manifesto_historic
+            speech_current = _buckets.speech_current
+            speech_historic = _buckets.speech_historic
 
             # Document builders (_mk_manifesto_docs / _mk_speech_docs) are shared
             # module-level helpers so this single-party path and the comparison
@@ -1090,154 +1105,26 @@ async def process_party(
     # Embed once, reuse for all three sources (same pattern as single-party path).
     rag_query_vector = await embed.aembed_query(improved_rag_query)
 
-    async def _safe_retrieve_cmp(*args, **kwargs) -> list[dict]:  # type: ignore[no-untyped-def]
-        """Wrap retrieve() so a failure returns [] rather than raising."""
-        try:
-            # with_scores=False here → list[dict]; narrow retrieve()'s union return.
-            return cast(list[dict], await asyncio.to_thread(retrieve, *args, **kwargs))
-        except Exception as _err:  # noqa: BLE001
-            logger.warning(
-                "comparison retrieve() failed (source=%s party=%s): %s",
-                kwargs.get("source_type"),
-                kwargs.get("party_id") or kwargs.get("party_ids_contains"),
-                _err,
-                exc_info=True,
-            )
-            return []
-
-    async def _safe_two_pass_cmp(**kwargs) -> dict[str, list[dict]]:  # type: ignore[no-untyped-def]
-        """Wrap retrieve_two_pass() so a failure returns empty buckets."""
-        try:
-            return await asyncio.to_thread(
-                retrieve_two_pass, improved_rag_query, **kwargs
-            )
-        except Exception as _err:  # noqa: BLE001
-            logger.warning(
-                "comparison retrieve_two_pass() failed (source=%s party=%s): %s",
-                kwargs.get("source_type"),
-                kwargs.get("party_id") or kwargs.get("party_ids_contains"),
-                _err,
-                exc_info=True,
-            )
-            return {"current": [], "historic": []}
-
-    # Per-source current/historic buckets (mirrors the single-party path).
-    manifesto_current: list[dict] = []
-    speech_current: list[dict] = []
-    vote_current: list[dict] = []
-    manifesto_historic: list[dict] = []
-    speech_historic: list[dict] = []
-    vote_historic: list[dict] = []
-
-    if party.party_id != WAHL_CHAT_PARTY.party_id:
-        # Run all three source retrievals concurrently for this party.
-        if term_window is not None:
-            # TWO-PASS temporal retrieval — same wiring as the
-            # single-party path: current window [term_start, term_end] with the
-            # existing per-source limits, plus a small high-bar historic bucket.
-            # One query vector reused across all six passes; legislature_period_id
-            # + level forwarded to the vote two-pass ONLY.
-            term_start, term_end = term_window
-            _vote_coro = _safe_two_pass_cmp(
-                query_vector=rag_query_vector,
-                source_type="vote_record",
-                party_ids_contains=party.party_id,
-                term_start=term_start,
-                term_end=term_end,
-                current_limit=_CURRENT_VOTE_LIMIT,
-                historic_limit=_HISTORIC_LIMITS["vote"],
-                current_score_threshold=_CHAT_SCORE_THRESHOLD,
-                historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
-                region_path=region_path,
-                legislature_period_id=legislature_period_id,
-                level=election_level,  # vote-only
-            )
-            # legislature_period_id and level scope ONLY vote_record (see single-party path).
-            # Manifesto pass uses the widened campaign-window start (see the
-            # single-party path comment: manifesto publish_date == election date).
-            _manifesto_coro = _safe_two_pass_cmp(
-                query_vector=rag_query_vector,
-                source_type="party_manifesto",
-                party_id=party.party_id,
-                term_start=(
-                    manifesto_term_start
-                    if manifesto_term_start is not None
-                    else term_start
-                ),
-                term_end=term_end,
-                current_limit=_CURRENT_MANIFESTO_LIMIT,
-                historic_limit=_HISTORIC_LIMITS["manifesto"],
-                current_score_threshold=_CHAT_SCORE_THRESHOLD,
-                historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
-                region_path=region_path,
-            )
-            # Speeches fetched at the adaptive FALLBACK ceiling; trimmed below when
-            # official data is present (mirrors the single-party path).
-            _speech_coro = _safe_two_pass_cmp(
-                query_vector=rag_query_vector,
-                source_type="parliamentary_speech",
-                party_id=party.party_id,
-                term_start=term_start,
-                term_end=term_end,
-                current_limit=_CURRENT_SPEECH_FALLBACK,
-                historic_limit=_HISTORIC_LIMITS["speech"],
-                current_score_threshold=_CHAT_SCORE_THRESHOLD,
-                historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
-                region_path=region_path,
-            )
-            vote_buckets, manifesto_buckets, speech_buckets = await asyncio.gather(
-                _vote_coro, _manifesto_coro, _speech_coro
-            )
-            vote_current, vote_historic = (
-                vote_buckets["current"],
-                vote_buckets["historic"],
-            )
-            manifesto_current, manifesto_historic = (
-                manifesto_buckets["current"],
-                manifesto_buckets["historic"],
-            )
-            speech_current, speech_historic = (
-                speech_buckets["current"],
-                speech_buckets["historic"],
-            )
-        else:
-            # SINGLE-PASS fallback — no window resolved. Unchanged pre-Phase-09
-            # comparison grounding; historic buckets stay empty. Distinct variable
-            # names from the two-pass branch above: these coroutines return list[dict],
-            # the two-pass ones dict[str, list[dict]], so a shared name would collide.
-            _vote_coro_sp = _safe_retrieve_cmp(
-                improved_rag_query,
-                query_vector=rag_query_vector,
-                source_type="vote_record",
-                party_ids_contains=party.party_id,
-                limit=_CURRENT_VOTE_LIMIT,
-                score_threshold=_CHAT_SCORE_THRESHOLD,
-                region_path=region_path,
-                legislature_period_id=legislature_period_id,
-                level=election_level,  # vote-only
-            )
-            _manifesto_coro_sp = _safe_retrieve_cmp(
-                improved_rag_query,
-                query_vector=rag_query_vector,
-                source_type="party_manifesto",
-                party_id=party.party_id,
-                limit=_CURRENT_MANIFESTO_LIMIT,
-                score_threshold=_CHAT_SCORE_THRESHOLD,
-                region_path=region_path,
-            )
-            # Fetch speeches at the adaptive FALLBACK ceiling; trimmed below when present.
-            _speech_coro_sp = _safe_retrieve_cmp(
-                improved_rag_query,
-                query_vector=rag_query_vector,
-                source_type="parliamentary_speech",
-                party_id=party.party_id,
-                limit=_CURRENT_SPEECH_FALLBACK,
-                score_threshold=_CHAT_SCORE_THRESHOLD,
-                region_path=region_path,
-            )
-            vote_current, manifesto_current, speech_current = await asyncio.gather(
-                _vote_coro_sp, _manifesto_coro_sp, _speech_coro_sp
-            )
+    # Retrieve vote + manifesto + speech into current/historic buckets via the
+    # SAME orchestration as the single-party path (kept in lockstep). log_prefix
+    # labels the comparison-path failure logs.
+    _buckets = await _retrieve_party_buckets(
+        party=party,
+        improved_rag_query=improved_rag_query,
+        rag_query_vector=rag_query_vector,
+        region_path=region_path,
+        legislature_period_id=legislature_period_id,
+        election_level=election_level,
+        term_window=term_window,
+        manifesto_term_start=manifesto_term_start,
+        log_prefix="comparison retrieve",
+    )
+    vote_current = _buckets.vote_current
+    vote_historic = _buckets.vote_historic
+    manifesto_current = _buckets.manifesto_current
+    manifesto_historic = _buckets.manifesto_historic
+    speech_current = _buckets.speech_current
+    speech_historic = _buckets.speech_historic
 
     # Documents are built via the shared module-level _mk_manifesto_docs /
     # _mk_speech_docs helpers (identical to the single-party path).
