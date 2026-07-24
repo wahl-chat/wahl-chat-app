@@ -12,8 +12,6 @@ import logging
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
-from typing import Optional
 
 from src.auth import verify_optional_bearer_token
 from src.chatbot_async import generate_pro_con_perspective
@@ -25,6 +23,7 @@ from src.models.chat import Message
 from src.models.context import DEFAULT_CONTEXT_ID
 from src.models.dtos import (
     ProConPerspectiveDto,
+    ProConPerspectiveRequestDto,
     Status,
     StatusIndicator,
 )
@@ -43,16 +42,8 @@ _SSE_HEADERS = {
 }
 
 
-class ProConRequestDto(BaseModel):
-    request_id: str
-    party_id: str
-    last_assistant_message: str
-    last_user_message: str
-    context_id: Optional[str] = None
-
-
 @router.post("/pro-con")
-async def pro_con_endpoint(request: Request, body: ProConRequestDto):
+async def pro_con_endpoint(request: Request, body: ProConPerspectiveRequestDto):
     """POST /api/v1/pro-con — streams the pro/con result as a v5 data part then [DONE].
 
     Pydantic validates the request body.
