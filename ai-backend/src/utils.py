@@ -202,21 +202,3 @@ Diese Maßnahmen zielen darauf ab, die Arbeitsbedingungen und die soziale Absich
 
 def get_chat_history_hash_key(conversation_history_str: str) -> str:
     return xxhash.xxh64(conversation_history_str).hexdigest()
-
-
-def sanitize_text_for_speech(text: str) -> str:
-    """Remove markdown formatting and citations for TTS output."""
-    # Remove citations like [1], [1, 2, 3]
-    text = re.sub(r"\s*\[\d+(?:,\s*\d+)*\]", "", text)
-
-    # Remove markdown bold/italic
-    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)  # **bold** → bold
-    text = re.sub(r"\*(.+?)\*", r"\1", text)  # *italic* → italic
-
-    # Clean up extra whitespace
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    text = text.strip()
-
-    logger.debug(f"Sanitized text: {text}")
-
-    return text

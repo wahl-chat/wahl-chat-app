@@ -343,33 +343,3 @@ class VoiceTranscribedDto(BaseModel):
         default=None, description="Inner ID to correlate request with response"
     )
     transcribed_text: str = Field(..., description="The transcribed text from audio")
-
-
-class TextToSpeechRequestDto(BaseModel):
-    session_id: str = Field(..., description="The ID of the chat session")
-    message_id: str = Field(..., description="The ID of the message to synthesize")
-    party_id: str = Field(
-        ..., description="The ID of the party whose message to synthesize"
-    )
-    voice: str = Field(
-        default="nova",
-        description="OpenAI TTS voice: alloy, echo, fable, onyx, nova, shimmer",
-    )
-
-    @field_validator("session_id")
-    def session_id_must_not_be_empty(cls, value):
-        if not value.strip():
-            raise ValidationError("Session ID cannot be empty or whitespace.")
-        return value
-
-
-class TextToSpeechResponseDto(BaseModel):
-    session_id: str = Field(..., description="The ID of the chat session")
-    message_id: str = Field(
-        ..., description="The ID of the message that was synthesized"
-    )
-    party_id: str = Field(
-        ..., description="The ID of the party whose message was synthesized"
-    )
-    audio_base64: str = Field(..., description="Base64-encoded MP3 audio data")
-    status: Status = Field(..., description="The status of the event")

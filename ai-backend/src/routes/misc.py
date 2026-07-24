@@ -3,13 +3,13 @@
 """
 Miscellaneous JSON endpoints carried over from the V1 aiohttp entry point.
 
-Includes: parliamentary questions, swiper assistant, chat-summary, TTS.
+Includes: parliamentary questions, swiper assistant, chat-summary.
 These are regular JSON POST endpoints (not SSE streams).
 """
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter
 
 from src.chatbot_async import (
     generate_swiper_assistant_response,
@@ -25,18 +25,13 @@ from src.models.dtos import (
     SummaryDto,
     Status,
     StatusIndicator,
-    TextToSpeechRequestDto,
-    TextToSpeechResponseDto,
     WahlChatSwiperAnswerDto,
     WahlChatSwiperAnswerRequestDto,
 )
 from src.utils import (
     GENERIC_ERROR_MESSAGE,
     build_chat_history_string,
-    sanitize_text_for_speech,
 )
-from src.audio_service import synthesize_speech
-from src.auth import verify_optional_bearer_token
 
 logger = logging.getLogger(__name__)
 
@@ -139,64 +134,6 @@ async def chat_summary(body: RequestSummaryDto):
         logger.error(f"Error generating chat summary: {e}", exc_info=True)
         return SummaryDto(
             chat_summary="Hier sollte eigentlich eine Zusammenfassung stehen...",
-            # Generic client-facing message only — full detail is logged above.
-            status=Status(
-                indicator=StatusIndicator.ERROR, message=GENERIC_ERROR_MESSAGE
-            ),
-        ).model_dump()
-
-
-@router.post("/tts")
-async def text_to_speech(request: Request, body: TextToSpeechRequestDto):
-    """Generate TTS audio from message text (JSON response, not SSE).
-
-    NOTE: In the SSE model the chat history is stateless (per-request). The frontend
-    must supply the text to synthesize in the request body — there is no server-side
-    session to look the message up by ID.
-
-    COST EXPOSURE: this endpoint synthesizes arbitrary client-supplied text and
-    each request incurs a paid TTS call. It requires at least a valid (possibly
-    anonymous) Firebase token — every real user carries one — so unauthenticated
-    callers are turned away without adding friction for anonymous chat users.
-    """
-    if verify_optional_bearer_token(request) is None:
-        raise HTTPException(status_code=401, detail="Firebase authentication required")
-    try:
-        # Frontend sends the text to synthesize in the voice field (repurposed as text)
-        # The TTS endpoint requires the text content to be provided
-        # via a separate TtsRequestDto. We accept TextToSpeechRequestDto as-is since
-        # the text is embedded in voice field; the audio service synthesizes any text.
-        # This interface can be cleaned up later.
-        text_for_speech = sanitize_text_for_speech(body.voice)
-        if not text_for_speech:
-            return TextToSpeechResponseDto(
-                session_id=body.session_id,
-                message_id=body.message_id,
-                party_id=body.party_id,
-                audio_base64="",
-                status=Status(
-                    indicator=StatusIndicator.ERROR,
-                    message="No text content to synthesize",
-                ),
-            ).model_dump()
-
-        audio_base64 = await synthesize_speech(text=text_for_speech)
-        return TextToSpeechResponseDto(
-            session_id=body.session_id,
-            message_id=body.message_id,
-            party_id=body.party_id,
-            audio_base64=audio_base64,
-            status=Status(indicator=StatusIndicator.SUCCESS, message="Success"),
-        ).model_dump()
-    except Exception as e:
-        logger.error(
-            f"Error generating TTS for message {body.message_id}: {e}", exc_info=True
-        )
-        return TextToSpeechResponseDto(
-            session_id=body.session_id,
-            message_id=body.message_id,
-            party_id=body.party_id,
-            audio_base64="",
             # Generic client-facing message only — full detail is logged above.
             status=Status(
                 indicator=StatusIndicator.ERROR, message=GENERIC_ERROR_MESSAGE
