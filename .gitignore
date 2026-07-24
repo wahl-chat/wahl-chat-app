@@ -39,8 +39,24 @@ __pycache__/
 *.pyo
 .venv/
 *.egg-info/
-terraform/
+
+# === Terraform ===
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+
+# Public repo: never commit raw bulk-export output or generated import artifacts.
+# They can embed secrets, IAM policies, and a full map of the GCP attack surface.
+# Review and sanitize manually before un-ignoring anything specific.
+# raw gcloud bulk-export output
 terraform-export/
+# per-environment roots (main.tf, import.sh, state) — review before un-ignoring
+terraform/
+import_*.sh
+modules_*.tf
+
 # === Misc ===
 *.log
 .local
