@@ -47,13 +47,14 @@ def test_levels_module_matches_aw_taxonomy_definitions() -> None:
 
 
 def test_retrieve_imports_levels_from_shared_module() -> None:
-    """The framework retrieval module must not import a connector for levels."""
-    import inspect
-
+    """The framework retrieval module must use the SHARED levels objects, not a
+    connector-owned or locally re-defined copy. Asserted by object identity: a
+    re-defined ALL_LEVELS (or one sourced from a connector) would be a different
+    object and fail here."""
+    import src.ingestion.levels as levels
     import src.ingestion.retrieve as retrieve_mod
 
-    src_text = inspect.getsource(retrieve_mod)
-    assert "from src.ingestion.levels import" in src_text
-    assert "abgeordnetenwatch.topic_taxonomy_config" not in src_text, (
-        "retrieve.py (framework) must not import connector-owned modules"
+    assert retrieve_mod.ALL_LEVELS is levels.ALL_LEVELS, (
+        "retrieve.py must bind ALL_LEVELS from src.ingestion.levels, not a "
+        "connector-owned or locally re-defined copy"
     )

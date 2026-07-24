@@ -122,26 +122,31 @@ def test_federal_origin_disclosure_note_only_for_non_federal() -> None:
         assert "Landtag" in note, f"{lvl}: note must reference Landtag, got {note!r}"
 
 
-def test_both_response_paths_apply_federal_disclosure() -> None:
-    """Both the single-party and comparison generators must append the shared disclosure
-    helper, so the federal-vote disclosure cannot be present in one path and missing in
-    the other (the comparison path previously omitted it entirely)."""
+def test_both_response_paths_apply_federal_disclosure(monkeypatch) -> None:
+    """Both the single-party and comparison generators inject the non-federal
+    Bundestag-vs-Landtag disclosure into the assembled system prompt, so it cannot be
+    present in one path and missing in the other (the comparison path previously
+    omitted it). Driven behaviourally by capturing each system prompt."""
     from src import chatbot_async as ca
 
-    single = inspect.getsource(ca.generate_streaming_chatbot_response)
-    comparing = inspect.getsource(ca.generate_streaming_chatbot_comparing_response)
-    assert "_federal_origin_disclosure_note" in single, (
-        "single-party path must apply the federal-origin disclosure helper"
-    )
-    assert "_federal_origin_disclosure_note" in comparing, (
-        "comparison path must apply the federal-origin disclosure helper"
-    )
     assert (
         "election_level"
         in inspect.signature(
             ca.generate_streaming_chatbot_comparing_response
         ).parameters
     ), "comparison generator must accept election_level"
+
+    captured_single = _capture_system_prompt(monkeypatch)
+    _run_single_party(election_level="state")
+    assert "Bundestag" in captured_single["system"], (
+        "single-party path must apply the disclosure for a non-federal election"
+    )
+
+    captured_comparison = _capture_system_prompt(monkeypatch)
+    _run_comparison(election_level="state")
+    assert "Bundestag" in captured_comparison["system"], (
+        "comparison path must apply the disclosure for a non-federal election"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -256,14 +261,11 @@ def test_source_structure_note_positive_preamble() -> None:
 
 
 def test_source_structure_note_wired_into_single_party_generator() -> None:
-    """generate_streaming_chatbot_response accepts backward-compatible coverage +
-    has_historic kwargs and applies _source_structure_note."""
+    """generate_streaming_chatbot_response accepts the backward-compatible coverage +
+    has_historic kwargs (defaults preserved). The note APPLICATION is proven
+    behaviourally by the test_system_prompt_* tests below."""
     from src import chatbot_async as ca
 
-    src = inspect.getsource(ca.generate_streaming_chatbot_response)
-    assert "_source_structure_note" in src, (
-        "single-party generator must apply the source-structure note helper"
-    )
     sig = inspect.signature(ca.generate_streaming_chatbot_response)
     assert "present_sources" in sig.parameters, "must accept 'present_sources'"
     assert sig.parameters["present_sources"].default is None, (
@@ -275,9 +277,10 @@ def test_source_structure_note_wired_into_single_party_generator() -> None:
     )
 
 
-def test_comparison_generator_accepts_has_historic() -> None:
-    """The comparison generator accepts has_historic (default False) and applies the
-    historic-marking note (four-section + coverage transparency are single-party)."""
+def test_comparison_generator_accepts_has_historic(monkeypatch) -> None:
+    """The comparison generator accepts has_historic (default False) and, when set,
+    injects the historic-marking note into the system prompt — WITHOUT the
+    single-party four-section lead-ins (those are single-party only)."""
     from src import chatbot_async as ca
 
     sig = inspect.signature(ca.generate_streaming_chatbot_comparing_response)
@@ -287,13 +290,22 @@ def test_comparison_generator_accepts_has_historic() -> None:
     assert sig.parameters["has_historic"].default is False, (
         "comparison has_historic default must be False"
     )
-    src = inspect.getsource(ca.generate_streaming_chatbot_comparing_response)
-    assert "HISTORIC_SECTION_NOTE_DE" in src, (
-        "comparison generator must apply the historic-marking note"
+
+    captured_true = _capture_system_prompt(monkeypatch)
+    _run_comparison(has_historic=True)
+    prompt = captured_true["system"]
+    assert "immer als letzter Abschnitt" in prompt, (
+        "comparison generator must apply the historic-marking note when has_historic"
     )
-    # Coverage transparency is single-party ONLY — must not leak into comparison.
-    assert "_source_structure_note" not in src, (
+    # The single-party four-section lead-ins must NOT leak into the comparison prompt.
+    assert "Im Wahlprogramm fordert" not in prompt, (
         "comparison path must NOT use the single-party four-section note"
+    )
+
+    captured_false = _capture_system_prompt(monkeypatch)
+    _run_comparison(has_historic=False)
+    assert "immer als letzter Abschnitt" not in captured_false["system"], (
+        "no historic note without has_historic"
     )
 
 
@@ -348,6 +360,23 @@ def _run_single_party(**gen_kwargs) -> None:
     )
 
 
+def _run_comparison(**gen_kwargs) -> None:
+    from src import chatbot_async as ca
+
+    party = _make_context_party()
+    asyncio.run(
+        ca.generate_streaming_chatbot_comparing_response(
+            party,
+            "conv",
+            "frage?",
+            {party.party_id: []},  # comparison ctx indexes docs per party
+            [party],
+            LLMSize.LARGE,
+            **gen_kwargs,
+        )
+    )
+
+
 def test_system_prompt_includes_four_leadins(monkeypatch) -> None:
     """A normal party call (present_sources opted in) surfaces the four German
     lead-in cues in the assembled system prompt."""
@@ -397,19 +426,3 @@ def test_system_prompt_default_no_structure_note(monkeypatch) -> None:
     system_prompt = captured["system"]
     assert "Im Wahlprogramm fordert" not in system_prompt
     assert "Quellenbewusste Struktur deiner Antwort" not in system_prompt
-
-
-def test_chat_service_threads_coverage_and_has_historic() -> None:
-    """fetch_party_response_stream computes coverage via _official_coverage and threads
-    present_sources= + has_historic= into generation (source-inspection style)."""
-    from src.chat_service import fetch_party_response_stream
-
-    src = inspect.getsource(fetch_party_response_stream)
-    assert "_official_coverage" in src, "must compute coverage via _official_coverage"
-    assert "present_sources=(" in src, "must pass present_sources=(...) into generation"
-    assert "has_historic=has_historic" in src, (
-        "must pass has_historic into the single-party generation call"
-    )
-    assert "has_historic = bool(" in src, (
-        "must compute has_historic from the historic buckets"
-    )

@@ -19,15 +19,9 @@ from typing import Any
 
 import pytest
 
-try:
-    from src.ingestion.connectors.bundestag_speeches.connector import (  # noqa: F401
-        BundestagSpeechesConnector,
-    )
-except ImportError as _e:
-    pytest.skip(
-        f"connector.py not yet created — {_e}",
-        allow_module_level=True,
-    )
+from src.ingestion.connectors.bundestag_speeches.connector import (
+    BundestagSpeechesConnector,
+)
 
 
 # ---------------------------------------------------------------------------

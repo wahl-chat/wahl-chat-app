@@ -28,24 +28,18 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-try:
-    from src.ingestion.connector import BaseConnector
-    from src.ingestion.ids import (
-        compute_chunk_id,
-        compute_source_item_id,
-        make_chunk_key,
-    )
-    from src.ingestion.run import run_connector
-    from src.ingestion.schemas import (
-        AuthorityTier,
-        ChunkRecord,
-        SourceType,
-    )
-except ImportError as _e:
-    pytest.skip(
-        f"schema teardown: {_e} — runner tests not yet importable",
-        allow_module_level=True,
-    )
+from src.ingestion.connector import BaseConnector
+from src.ingestion.ids import (
+    compute_chunk_id,
+    compute_source_item_id,
+    make_chunk_key,
+)
+from src.ingestion.run import run_connector
+from src.ingestion.schemas import (
+    AuthorityTier,
+    ChunkRecord,
+    SourceType,
+)
 
 # ---------------------------------------------------------------------------
 # Constants

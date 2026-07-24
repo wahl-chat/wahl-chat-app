@@ -927,13 +927,7 @@ def _speech_point(
 
 def test_prefer_op_dedup() -> None:
     """post-fetch dedup keeps the op member on a shared speech_key; missing key = keep."""
-    import src.ingestion.retrieve as retrieve_mod
-
-    dedup = getattr(retrieve_mod, "dedup_prefer_op", None) or getattr(
-        retrieve_mod, "prefer_op_dedup", None
-    )
-    if dedup is None:
-        pytest.skip("prefer-op dedup helper not yet implemented")
+    from src.ingestion.retrieve import dedup_prefer_op as dedup
 
     shared = "de-20-101-mareike-lotte-wulf-top20"
     results = [
@@ -964,11 +958,7 @@ def test_prefer_op_dedup_grafts_transcript_pdf() -> None:
     """The prefer-op collapse salvages the dip duplicate's transcript PDF onto the
     surviving op record (query-time mirror of the ingest-time supersede graft), so a
     dual-format speech source works even for corpora ingested before the merge."""
-    import src.ingestion.retrieve as retrieve_mod
-
-    dedup = getattr(retrieve_mod, "dedup_prefer_op", None)
-    if dedup is None:
-        pytest.skip("prefer-op dedup helper not yet implemented")
+    from src.ingestion.retrieve import dedup_prefer_op as dedup
 
     shared = "de-20-101-mareike-lotte-wulf-top20"
     pdf = "https://dserver.bundestag.de/btp/20/2000101.pdf"

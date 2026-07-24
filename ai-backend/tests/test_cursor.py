@@ -7,27 +7,12 @@ get_cursor() unit tests.
 
 Tests the Qdrant max(external_id) cursor query with a mocked QdrantClient.
 No live Qdrant required — MagicMock stands in for the client.
-
-This file SKIPS (not ERRORS) via pytest.importorskip when get_cursor() is not
-yet defined in run.py, so the full suite stays green.
 """
 
 from unittest.mock import MagicMock
 
-import pytest
 
-# Guard: skip (not error) when get_cursor is not yet defined in run.py
-# so the full suite stays green.
-_run_module = pytest.importorskip(
-    "src.ingestion.run",
-    reason="get_cursor is not yet defined in src.ingestion.run",
-)
-get_cursor = getattr(_run_module, "get_cursor", None)
-if get_cursor is None:
-    pytest.skip(
-        "get_cursor not yet defined in src.ingestion.run",
-        allow_module_level=True,
-    )
+from src.ingestion.run import get_cursor
 
 
 def _make_mock_point(external_id_value):

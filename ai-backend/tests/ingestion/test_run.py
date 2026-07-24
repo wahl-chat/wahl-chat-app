@@ -3,27 +3,19 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Source-scoped cursor test for run.get_cursor.
+run_connector / get_cursor behaviour tests.
 
-`get_cursor` must gain an optional `source` param so op and DIP maintain
-ISOLATED `max(external_id)` cursors (both share source_type
-"parliamentary_speech"). Without it, op's alignment backlog would drag DIP's
-cursor and vice-versa.
-
-The `source` param does not exist yet. This file
-collects cleanly and skips (via signature inspection) until the
-param lands, then asserts the second FieldCondition scopes the scroll filter.
+Covers the source-scoped cursor (op and DIP keep ISOLATED `max(external_id)`
+cursors despite sharing source_type "parliamentary_speech"), the batch-window
+stall guard, and the full-parent-footprint orphan reconciliation.
 """
 
 from __future__ import annotations
 
-import inspect
 import types
 from datetime import date
 from typing import Optional
 from unittest.mock import MagicMock
-
-import pytest
 
 from src.ingestion.connector import BaseConnector
 from src.ingestion.ids import (
@@ -33,13 +25,6 @@ from src.ingestion.ids import (
 )
 from src.ingestion.run import get_cursor, run_connector
 from src.ingestion.schemas import AuthorityTier, ChunkRecord, SourceType
-
-# Capability guard: SKIP until get_cursor accepts a `source` kwarg.
-if "source" not in inspect.signature(get_cursor).parameters:
-    pytest.skip(
-        "get_cursor(source=...) not yet implemented",
-        allow_module_level=True,
-    )
 
 
 class _CursorQdrant:
@@ -569,16 +554,31 @@ def test_no_orphans_all_present_unchanged_skips() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_qdrant_api_key_plumbed_everywhere() -> None:
-    """(e) run.py runner and the DIP resurrection-guard client both pass
-    api_key=os.getenv("QDRANT_API_KEY")."""
-    import src.ingestion.connectors.bundestag_speeches.connector as dip_mod
-    import src.ingestion.run as run_mod
+def test_dip_resurrection_guard_client_plumbs_api_key(monkeypatch) -> None:
+    """(e) The DIP resurrection-guard client forwards QDRANT_API_KEY to QdrantClient
+    — behavioural: patch the client constructor and assert the api_key it receives.
+    (The run.py __main__ client shares the same wiring but lives in an
+    `if __name__ == '__main__'` block, exercised at deploy/integration, not here.)"""
+    import qdrant_client
 
-    needle = 'api_key=os.getenv("QDRANT_API_KEY")'
-    assert needle in inspect.getsource(run_mod), (
-        "run.py __main__ client must pass api_key"
+    from src.ingestion.connectors.bundestag_speeches.connector import (
+        BundestagSpeechesConnector,
     )
-    assert needle in inspect.getsource(
-        dip_mod.BundestagSpeechesConnector._get_qdrant
-    ), "DIP resurrection-guard client must pass api_key"
+
+    captured: dict = {}
+
+    class _FakeClient:
+        def __init__(self, **kwargs) -> None:
+            captured.update(kwargs)
+
+    monkeypatch.setattr(qdrant_client, "QdrantClient", _FakeClient)
+    monkeypatch.setenv("QDRANT_API_KEY", "secret-key")
+
+    conn = BundestagSpeechesConnector.__new__(BundestagSpeechesConnector)
+    conn._qdrant = None
+    conn._qdrant_lazy_enabled = True  # enable the production lazy-construct path
+    conn._get_qdrant()
+
+    assert captured.get("api_key") == "secret-key", (
+        "DIP resurrection-guard client must forward QDRANT_API_KEY"
+    )

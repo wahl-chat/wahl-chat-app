@@ -9,15 +9,9 @@ The DIP connector must consult the shared indexed `speech_key` BEFORE inserting
 and skip any speech already superseded by op — durable even across a full DIP
 backfill / cursor reset (`since=None`). Otherwise a cursor reset would
 re-insert the very duplicates op just deleted.
-
-The guard does not exist yet. This file collects cleanly and
-skips until the guard lands, then runs the real
-assertion against a fake Qdrant seeded with an op-superseded speech.
 """
 
 from __future__ import annotations
-
-import pytest
 
 
 class _SeededQdrant:
@@ -41,28 +35,15 @@ class _SeededQdrant:
                 self.upserted_keys.append(payload["speech_key"])
 
 
-def _guard_capability():
-    """Return the resurrection-guard callable once it exists, else None."""
-    try:
-        from src.ingestion.connectors.bundestag_speeches import connector as dip
-    except ImportError:
-        return None
-    for name in ("is_op_superseded", "skip_if_op_superseded", "op_superseded_keys"):
-        fn = getattr(dip, name, None)
-        if fn is not None:
-            return fn
-    return None
-
-
 def test_dip_skips_op_superseded_speech_even_on_cursor_reset() -> None:
     """DIP skips inserting a speech whose speech_key is already op-owned.
 
     Simulate a cursor reset (`since=None`): even a full backfill must NOT
     resurrect the op-superseded speech.
     """
-    guard = _guard_capability()
-    if guard is None:
-        pytest.skip("DIP resurrection guard not yet implemented")
+    from src.ingestion.connectors.bundestag_speeches.connector import (
+        is_op_superseded as guard,
+    )
 
     superseded_key = "de-20-101-mareike-lotte-wulf-top20"
     qdrant = _SeededQdrant(superseded_key)
