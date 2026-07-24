@@ -50,7 +50,7 @@ import sys
 from datetime import date as date_type
 from typing import Optional
 
-from langchain_openai import OpenAIEmbeddings
+from langchain_core.embeddings import Embeddings
 from qdrant_client import QdrantClient
 
 from src.ingestion.connectors.manifestos.connector import (
@@ -65,9 +65,10 @@ from src.ingestion.connectors.manifestos.mappers.corpus import (
     chunk_pages,
     party_to_slug,
 )
+from src.embeddings import get_embeddings
 from src.ingestion.run import _embed_texts, _upsert_chunks
 from src.ingestion.schemas import ChunkRecord
-from src.ingestion.setup_collection import COLLECTION_NAME, EMBEDDING_MODEL
+from src.ingestion.setup_collection import COLLECTION_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ _BATCH_SIZE = 100  # chunks per embed+upsert batch
 
 def ingest(
     qdrant: QdrantClient,
-    embed: OpenAIEmbeddings,
+    embed: Embeddings,
     limit: Optional[int] = None,
     ids: Optional[list[int]] = None,
     dry_run: bool = False,
@@ -91,7 +92,7 @@ def ingest(
 
     Args:
         qdrant:  Initialised QdrantClient.
-        embed:   Initialised OpenAIEmbeddings instance.
+        embed:   Initialised embeddings client (from get_embeddings()).
         limit:   Max programs to process (None = all passing the date filter).
         ids:     Specific AW program IDs to process (overrides limit).
         dry_run: If True, skip embed/upsert; fetch, parse, and print per-program
@@ -352,7 +353,7 @@ if __name__ == "__main__":
 
     qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
     _qdrant = QdrantClient(url=qdrant_url)
-    _embed = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+    _embed = get_embeddings()
 
     print(
         f"Ingesting manifestos (dry_run={args.dry_run}, "
