@@ -237,6 +237,12 @@ def _embed_texts(embed: Embeddings, texts: list[str]) -> list[list[float]]:
 # _upsert_chunks() — dimension guard + Qdrant upsert
 # ---------------------------------------------------------------------------
 
+# Points per upsert request. Qdrant rejects JSON request bodies over 32 MiB;
+# a 3072-dim float vector serialises to ~60 KB, so a single very long source
+# item (e.g. a plenary protocol with hundreds of chunks) can exceed the cap
+# in one call. 256 points ≈ 16 MB worst case — half the limit.
+_UPSERT_BATCH_POINTS = 256
+
 
 def _upsert_chunks(
     qdrant: QdrantClient,
@@ -275,7 +281,15 @@ def _upsert_chunks(
                 payload=chunk.model_dump(mode="json", exclude_none=True),
             )
         )
-    qdrant.upsert(collection_name=collection_name, points=points, wait=True)
+    # Sliced so one oversized item cannot exceed Qdrant's request-size cap.
+    # Deterministic point IDs keep a partially-applied item idempotent: the
+    # next run re-embeds and overwrites the same points.
+    for start in range(0, len(points), _UPSERT_BATCH_POINTS):
+        qdrant.upsert(
+            collection_name=collection_name,
+            points=points[start : start + _UPSERT_BATCH_POINTS],
+            wait=True,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -291,6 +305,7 @@ def run_connector(
     *,
     batch_size: int = 50,
     time_budget_s: Optional[float] = None,
+    since_override: Optional[int] = None,
 ) -> RunReport:
     """Drive *connector* through discover → fetch → normalize → embed → upsert.
 
@@ -308,17 +323,29 @@ def run_connector(
         time_budget_s:   Optional wall-clock budget in seconds.  If set and
                          exceeded mid-batch, the loop exits gracefully so the
                          next run re-processes the remaining items.
+        since_override:  Explicit cursor value passed to discover() instead of
+                         the Qdrant-derived max(external_id). The derived cursor
+                         only moves forward, so items below it are never
+                         re-discovered; an operator backfilling a window the
+                         cursor has already passed (e.g. an older Wahlperiode
+                         after a newer one advanced a shared cursor) supplies
+                         the window start here. Already-present items inside
+                         the window are content-hash skips — cheap, no re-embed.
 
     Returns:
         RunReport(processed=N, remaining=M, chunks_upserted=C) where N is the
         number of items fully upserted this run, M is the estimated remaining
         count, and C is the total number of ChunkRecord instances written.
     """
-    since = get_cursor(
-        qdrant,
-        collection_name,
-        connector.source_type,
-        source=_cursor_source_scope(connector),
+    since = (
+        since_override
+        if since_override is not None
+        else get_cursor(
+            qdrant,
+            collection_name,
+            connector.source_type,
+            source=_cursor_source_scope(connector),
+        )
     )
     ids = connector.discover(since)
 
@@ -649,6 +676,19 @@ if __name__ == "__main__":
         metavar="SECONDS",
         help="Wall-clock time budget; gracefully exits mid-batch when exceeded",
     )
+    parser.add_argument(
+        "--since",
+        type=int,
+        default=None,
+        metavar="EXTERNAL_ID",
+        help=(
+            "Override the Qdrant-derived cursor with an explicit external_id "
+            "floor (connector-specific format, e.g. YYYYMMDD for speeches). "
+            "Use to backfill a window the auto-advancing cursor has already "
+            "passed; already-present items are skipped without re-embedding. "
+            "Default: derive from the store."
+        ),
+    )
     args = parser.parse_args()
 
     # An explicit --connector arg wins over the CONNECTOR_ID env (matches the
@@ -723,6 +763,7 @@ if __name__ == "__main__":
                 _embed,
                 batch_size=args.batch_size,
                 time_budget_s=args.time_budget,
+                since_override=args.since,
             )
             _duration = time.monotonic() - _t0
 
