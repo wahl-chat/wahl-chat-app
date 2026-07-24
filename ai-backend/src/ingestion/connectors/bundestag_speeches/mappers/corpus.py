@@ -189,9 +189,13 @@ def build_chunk_records(speech: dict) -> list[ChunkRecord]:
     if not text.strip():
         return []
 
-    # Deterministic source_item_id from speech id string.
+    # Deterministic source_item_id from speech id string. source="dip" keeps the
+    # id space disjoint from op's (op and DIP share source_type but draw ids from
+    # different upstreams — see compute_source_item_id).
     speech_id = str(speech.get("id", ""))
-    source_item_id = compute_source_item_id("parliamentary_speech", speech_id)
+    source_item_id = compute_source_item_id(
+        "parliamentary_speech", speech_id, source="dip"
+    )
 
     # Publish date — parse ISO YYYY-MM-DD; on error log a warning and return []
     # so the speech is skipped (consistent with the empty-text skip already in

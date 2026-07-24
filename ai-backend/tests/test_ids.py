@@ -45,6 +45,25 @@ def test_source_item_id_different_inputs_differ():
     assert a != c, "compute_source_item_id must differ when external_id differs."
 
 
+def test_source_item_id_source_scope_prevents_collision():
+    """A shared source_type with the same raw external_id must NOT collide across
+    connector sources — the two parliamentary_speech producers (dip/op) draw ids
+    from independent upstreams, so the source scope must keep them disjoint."""
+    dip = compute_source_item_id("parliamentary_speech", "12345", source="dip")
+    op = compute_source_item_id("parliamentary_speech", "12345", source="op")
+    assert dip != op, (
+        "dip and op speeches with the same raw id must yield different UUIDs."
+    )
+
+
+def test_source_item_id_unscoped_is_backward_compatible():
+    """Omitting source keeps the id byte-identical to the pre-source form, so
+    existing vote_record / party_manifesto point IDs never shift."""
+    assert compute_source_item_id(
+        "vote_record", "bt-2025-001"
+    ) == compute_source_item_id("vote_record", "bt-2025-001", source=None)
+
+
 def test_chunk_id_returns_uuid():
     """compute_chunk_id must return uuid.UUID, not a string, for Qdrant point ID."""
     source_item_id = compute_source_item_id("vote_record", "bt-2025-001")

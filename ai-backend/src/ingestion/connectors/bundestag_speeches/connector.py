@@ -659,7 +659,9 @@ class BundestagSpeechesConnector(BaseConnector):
                     superseded_siids.append(
                         str(
                             compute_source_item_id(
-                                "parliamentary_speech", str(row.get("id") or "")
+                                "parliamentary_speech",
+                                str(row.get("id") or ""),
+                                source="dip",
                             )
                         )
                     )

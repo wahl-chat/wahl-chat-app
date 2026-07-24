@@ -286,8 +286,9 @@ def build_chunk_records(
         ).encode("utf-8")
     ).hexdigest()
 
-    # --- deterministic op-OWN point identity (distinct from DIP) ---
-    source_item_id = compute_source_item_id("parliamentary_speech", ext)
+    # --- deterministic op-OWN point identity (source="op" keeps it structurally
+    # distinct from the DIP twin, which shares source_type but not id space) ---
+    source_item_id = compute_source_item_id("parliamentary_speech", ext, source="op")
 
     wahlperiode: Optional[int] = int(ep) if ep is not None else None
 
