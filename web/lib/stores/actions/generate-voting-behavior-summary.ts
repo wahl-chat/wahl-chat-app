@@ -4,8 +4,6 @@ import type { Vote } from '@/lib/socket.types';
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
 import { toast } from 'sonner';
 
-// [Rule 3 - Blocking] generate-voting-behavior-summary: WebSocket removed;
-// replace with fetch + ReadableStream to the /api/voting-behavior proxy route.
 export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
   'generateVotingBehaviorSummary'
 > = (get, set) => async (partyId, message) => {
