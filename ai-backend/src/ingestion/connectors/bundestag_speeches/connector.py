@@ -53,7 +53,7 @@ from src.ingestion.connectors.bundestag_speeches.client import DipClient, fetch_
 from src.ingestion.connectors.bundestag_speeches.constants import MDB_STAMMDATEN_FILE
 from src.ingestion.connectors.bundestag_speeches.mappers import corpus as corpus_mapper
 from src.ingestion.connectors.bundestag_speeches.mdb import (
-    load_mdb_lookup,
+    ensure_mdb_lookup,
     mdb_party_for_speech,
     mdb_record_for_speaker_name,
 )
@@ -520,9 +520,11 @@ class BundestagSpeechesConnector(BaseConnector):
         # Populate per-run cache
         self._protocols = {str(d["id"]): d for d in docs}
 
-        # Load MdB-Stammdaten once per run (cached — never load per-fetch)
+        # Load MdB-Stammdaten once per run (cached — never load per-fetch).
+        # ensure_* fetches on a cache miss and fails loud if the master data is
+        # unavailable, rather than degrading every minister/president to "unbekannt".
         if self._mdb_lookup is None:
-            self._mdb_lookup = load_mdb_lookup(_MDB_PATH)
+            self._mdb_lookup = ensure_mdb_lookup(_MDB_PATH)
 
         return [str(d["id"]) for d in docs]
 

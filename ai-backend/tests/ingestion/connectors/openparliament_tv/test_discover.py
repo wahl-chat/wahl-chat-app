@@ -52,6 +52,10 @@ def _make_connector(sessions: dict[str, dict]):
     """Build an OpenParliamentTvConnector with __init__ bypassed (no network)."""
     conn = object.__new__(OpenParliamentTvConnector)
     conn._client = _FakeOpBasenameClient(sessions)  # type: ignore[attr-defined]
+    # Pre-seed an (empty) lookup so discover() skips ensure_mdb_lookup: these
+    # tests exercise basename enumeration, not party resolution, and must not
+    # hit the network.
+    conn._mdb_lookup = {"by_id": {}, "by_name": {}}  # type: ignore[attr-defined]
     return conn
 
 

@@ -39,7 +39,7 @@ from typing import Any, Optional
 
 from src.ingestion.connector import BaseConnector
 from src.ingestion.connectors.bundestag_speeches.constants import MDB_STAMMDATEN_FILE
-from src.ingestion.connectors.bundestag_speeches.mdb import load_mdb_lookup
+from src.ingestion.connectors.bundestag_speeches.mdb import ensure_mdb_lookup
 from src.ingestion.connectors.openparliament_tv.client import OpTvClient
 from src.ingestion.connectors.openparliament_tv.mappers.corpus import (
     build_chunk_records,
@@ -152,8 +152,10 @@ class OpenParliamentTvConnector(BaseConnector):
         floor = _lookback_floor(since) if since is not None else None
 
         # Tolerate instances built via object.__new__ (unit tests bypass __init__).
+        # ensure_* fetches on a cache miss and fails loud when the master data is
+        # unavailable (op shares DIP's minister/president → "unbekannt" degradation).
         if getattr(self, "_mdb_lookup", None) is None:
-            self._mdb_lookup = load_mdb_lookup(_MDB_PATH)
+            self._mdb_lookup = ensure_mdb_lookup(_MDB_PATH)
 
         self._sessions = {}
         discovered: list[tuple[int, str]] = []

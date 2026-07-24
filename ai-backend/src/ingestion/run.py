@@ -100,6 +100,11 @@ class RunReport(NamedTuple):
     chunks_upserted: int
     failed_ids: tuple[str, ...] = ()
     present_skips: int = 0
+    # Chunks whose party_id resolved to "unbekannt" among those upserted this
+    # run. For the speech connectors this is the master-data drift signal: a
+    # rising share means MdB-Stammdaten is stale or a speaker set went
+    # unresolved. ~0 for connectors that always carry a real party_id.
+    chunks_unbekannt: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -304,6 +309,7 @@ def run_connector(
     processed = 0
     present_skips = 0
     chunks_upserted = 0
+    chunks_unbekannt = 0
     failed_ids: list[str] = []
     consumed = 0  # discovered ids the loop has reached (drives the remaining estimate)
 
@@ -486,6 +492,9 @@ def run_connector(
                         )
                     _upsert_chunks(qdrant, collection_name, chunks, vectors)
                     chunks_upserted += len(chunks)
+                    chunks_unbekannt += sum(
+                        1 for c in chunks if getattr(c, "party_id", None) == "unbekannt"
+                    )
                     # Post-upsert connector hook: source-specific follow-up
                     # policy (e.g. the op connector's supersede-the-DIP-twin merge)
                     # lives on the connector, not in this generic runner. The
@@ -532,6 +541,7 @@ def run_connector(
         chunks_upserted=chunks_upserted,
         failed_ids=tuple(failed_ids),
         present_skips=present_skips,
+        chunks_unbekannt=chunks_unbekannt,
     )
 
 
@@ -564,17 +574,22 @@ if __name__ == "__main__":
         epilog=(
             "Connector IDs: abgeordnetenwatch_votes, manifestos, bundestag_speeches, openparliament_tv\n"
             "\n"
+            "A comma-separated value runs connectors sequentially in one process,\n"
+            "in order. The speech pair MUST be run this way so they never overlap:\n"
+            "  --connector bundestag_speeches,openparliament_tv\n"
+            "\n"
             "Local usage:\n"
             "  QDRANT_URL=http://localhost:6333 uv run python -m src.ingestion.run --connector abgeordnetenwatch_votes\n"
             "\n"
             "Cloud Run Job usage:\n"
-            "  ENV: CONNECTOR_ID=abgeordnetenwatch_votes (set in job spec)\n"
+            "  CONNECTOR_ID=abgeordnetenwatch_votes (set in job spec)\n"
         ),
     )
     parser.add_argument(
         "--connector",
-        metavar="CONNECTOR_ID",
-        help="Connector ID to run (overrides CONNECTOR_ID env var)",
+        metavar="CONNECTOR_ID[,CONNECTOR_ID...]",
+        help="Connector ID(s) to run, comma-separated for a sequential run "
+        "(overrides CONNECTOR_ID env var)",
     )
     parser.add_argument(
         "--batch-size",
@@ -595,15 +610,22 @@ if __name__ == "__main__":
     # argparse help text): the arg is the operator's deliberate local choice;
     # the env is the Cloud Run job-spec path — and run.py loads .env above, so
     # a stray CONNECTOR_ID= line must never override an explicit CLI arg.
-    connector_id = args.connector or os.getenv("CONNECTOR_ID")
+    raw_connectors = args.connector or os.getenv("CONNECTOR_ID")
 
-    if not connector_id:
+    if not raw_connectors:
         print(
             "ERROR: No connector specified. "
             "Set CONNECTOR_ID env var or pass --connector <id>.",
             file=sys.stderr,
         )
         sys.exit(1)
+
+    # A comma-separated value runs several connectors SEQUENTIALLY in one
+    # process, in the given order. This is how the coupled speech pair is
+    # scheduled — "bundestag_speeches,openparliament_tv" runs DIP then op
+    # back-to-back — making their must-never-overlap invariant structural
+    # (see openparliament_tv/supersede.py) instead of a scheduler concern.
+    connector_ids = [c.strip() for c in raw_connectors.split(",") if c.strip()]
 
     # -----------------------------------------------------------------------
     # Registry lookup — deferred import to avoid circular/missing-module errors
@@ -617,58 +639,73 @@ if __name__ == "__main__":
         print(f"ERROR: Could not import registry: {exc}", file=sys.stderr)
         sys.exit(1)
 
-    if connector_id not in factories:
+    unknown = [cid for cid in connector_ids if cid not in factories]
+    if unknown:
         print(
-            f"ERROR: Unknown connector '{connector_id}'. "
+            f"ERROR: Unknown connector(s): {', '.join(unknown)}. "
             f"Known IDs: {', '.join(sorted(factories))}",
             file=sys.stderr,
         )
         sys.exit(1)
 
     # -----------------------------------------------------------------------
-    # Build Qdrant client and OpenAI embeddings, then run the connector.
+    # Build Qdrant client and OpenAI embeddings ONCE, shared across the
+    # sequential connector runs; then run each connector in order. A failure in
+    # any connector aborts the job (loud); already-committed work is idempotent,
+    # so the next run safely re-processes only the tail.
     # -----------------------------------------------------------------------
     try:
         qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
         _qdrant = QdrantClient(url=qdrant_url, api_key=os.getenv("QDRANT_API_KEY"))
         _embed = OpenAIEmbeddings(model=EMBEDDING_MODEL)
 
-        _connector = factories[connector_id]()
+        for connector_id in connector_ids:
+            _connector = factories[connector_id]()
 
-        _cursor_before = get_cursor(
-            _qdrant,
-            COLLECTION_NAME,
-            _connector.source_type,
-            source=_cursor_source_scope(_connector),
-        )
+            _cursor_before = get_cursor(
+                _qdrant,
+                COLLECTION_NAME,
+                _connector.source_type,
+                source=_cursor_source_scope(_connector),
+            )
 
-        _t0 = time.monotonic()
-        _report = run_connector(
-            _connector,
-            _qdrant,
-            _embed,
-            batch_size=args.batch_size,
-            time_budget_s=args.time_budget,
-        )
-        _duration = time.monotonic() - _t0
+            _t0 = time.monotonic()
+            _report = run_connector(
+                _connector,
+                _qdrant,
+                _embed,
+                batch_size=args.batch_size,
+                time_budget_s=args.time_budget,
+            )
+            _duration = time.monotonic() - _t0
 
-        _cursor_after = get_cursor(
-            _qdrant,
-            COLLECTION_NAME,
-            _connector.source_type,
-            source=_cursor_source_scope(_connector),
-        )
+            _cursor_after = get_cursor(
+                _qdrant,
+                COLLECTION_NAME,
+                _connector.source_type,
+                source=_cursor_source_scope(_connector),
+            )
 
-        print(
-            f"\n=== ingestion run: {connector_id} ===\n"
-            f"cursor before : {_cursor_before}\n"
-            f"cursor after  : {_cursor_after}\n"
-            f"protocols/items processed : {_report.processed}\n"
-            f"already-present skips : {_report.present_skips}\n"
-            f"data points (chunks) upserted : {_report.chunks_upserted}\n"
-            f"remaining (est.) : {_report.remaining}\n"
-            f"duration : {_duration:.1f}s"
-        )
+            # Master-data drift signal: share of upserted chunks whose party
+            # stayed "unbekannt". Meaningful for the speech connectors; ~0 for
+            # connectors that always carry a real party_id.
+            _unbekannt_pct = (
+                f"{_report.chunks_unbekannt / _report.chunks_upserted:.1%}"
+                if _report.chunks_upserted
+                else "n/a"
+            )
+
+            print(
+                f"\n=== ingestion run: {connector_id} ===\n"
+                f"cursor before : {_cursor_before}\n"
+                f"cursor after  : {_cursor_after}\n"
+                f"protocols/items processed : {_report.processed}\n"
+                f"already-present skips : {_report.present_skips}\n"
+                f"data points (chunks) upserted : {_report.chunks_upserted}\n"
+                f"unresolved party (unbekannt) chunks : {_report.chunks_unbekannt} ({_unbekannt_pct})\n"
+                f"remaining (est.) : {_report.remaining}\n"
+                f"duration : {_duration:.1f}s"
+            )
     except Exception:  # noqa: BLE001
         # Emit the FULL traceback before exiting.
         import traceback  # noqa: PLC0415

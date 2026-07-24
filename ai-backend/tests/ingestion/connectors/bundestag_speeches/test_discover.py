@@ -57,7 +57,9 @@ def _make_connector_with_fake_client(pages: list[dict]) -> BundestagSpeechesConn
     conn._wahlperiode = 21  # type: ignore[attr-defined]
     conn._client = _FakeDipClient(pages)  # type: ignore[attr-defined]
     conn._protocols: dict = {}  # type: ignore[attr-defined]
-    conn._mdb_lookup = None  # type: ignore[attr-defined]
+    # Pre-seed an (empty) lookup so discover() skips ensure_mdb_lookup: these
+    # tests exercise cursor/sort, not party resolution, and must not hit the network.
+    conn._mdb_lookup = {"by_id": {}, "by_name": {}}  # type: ignore[attr-defined]
     return conn
 
 

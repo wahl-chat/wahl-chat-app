@@ -9,6 +9,11 @@
 set -eu
 
 if [ -n "${CONNECTOR_ID:-}" ]; then
+    # Ensure the collection + payload indexes exist before ingesting. Idempotent
+    # and existence-guarded, so a snapshot-recovered collection is left intact;
+    # this is what stops the runner's first get_cursor() from 404ing on a fresh
+    # store (no separate bootstrap step to remember before a scheduled Job runs).
+    python -m src.ingestion.setup_collection
     # Extra runner flags (e.g. --batch-size, --time-budget) may be passed as
     # container args; forward them.
     exec python -m src.ingestion.run "$@"

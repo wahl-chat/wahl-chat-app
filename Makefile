@@ -59,12 +59,25 @@ stores-up:
 	echo "ERROR: Firestore emulator not ready after 30s — see firebase-emulators.log" >&2; \
 	exit 1
 
+# --- Ingestion target store ---
+# Collection setup and every ingestion run default to the local Qdrant container.
+# Override these to target a deployed store (there is no scheduled orchestration
+# yet), e.g.:
+#   make run-speeches QDRANT_URL=https://<host>:6333 QDRANT_API_KEY=<key> ENV=prod
+# ENV scopes the collection name (wahlchat_chunks_{ENV}); dev and prod are isolated.
+QDRANT_URL ?= http://localhost:6333
+ENV ?= dev
+# QDRANT_API_KEY is unset by default (local Qdrant is unauthenticated) and is only
+# forwarded when non-empty, so an empty string never reaches the client as a bogus
+# credential. QDRANT_ENV is the env prefix every ingestion recipe runs under.
+QDRANT_ENV := QDRANT_URL=$(QDRANT_URL) ENV=$(ENV) $(if $(QDRANT_API_KEY),QDRANT_API_KEY=$(QDRANT_API_KEY))
+
 # bootstrap-collection: create the Qdrant collection (wahlchat_chunks_{ENV}) if
 # it does not exist. Idempotent — setup_collection is a no-op when the collection
 # already matches. A fresh Qdrant volume has no collection, so the runner's first
 # get_cursor() call 404s without this. Run after stores-up (Qdrant must be ready).
 bootstrap-collection:
-	cd ai-backend && QDRANT_URL=http://localhost:6333 uv run python -m src.ingestion.setup_collection
+	cd ai-backend && $(QDRANT_ENV) uv run python -m src.ingestion.setup_collection
 
 stores-down:
 	docker compose down
@@ -112,13 +125,15 @@ test-smoke:
 test-local-mode:
 	cd ai-backend && uv run pytest tests/test_local_mode.py -x
 
-# --- Ingestion connector local-run targets (Makefile is the local scheduler) ---
+# --- Ingestion connector run targets (Makefile is the interim scheduler) ---
 # Cloud Scheduler is deferred to a planned Terraform deployment workstream (infra/).
-# These targets invoke the same src.ingestion.run entrypoint against local Qdrant.
-# Requires: make stores-up first. Qdrant URL is wired automatically.
+# These targets invoke the same src.ingestion.run entrypoint; they default to the
+# local Qdrant container but target a deployed store when QDRANT_URL / QDRANT_API_KEY
+# / ENV are overridden (see the QDRANT_ENV block above).
+# Requires: make stores-up first for local runs.
 
 run-abgeordnetenwatch-votes: bootstrap-collection
-	cd ai-backend && QDRANT_URL=http://localhost:6333 uv run python -m src.ingestion.run --connector abgeordnetenwatch_votes
+	cd ai-backend && $(QDRANT_ENV) uv run python -m src.ingestion.run --connector abgeordnetenwatch_votes
 
 # run-all-landtage-votes: loops the connector over all 16 Landtag legislature IDs (run
 # selectivity).  IDs are sourced from LANDTAG_LEGISLATURE_IDS in legislature_config.py so the
@@ -136,7 +151,7 @@ run-all-landtage-votes: bootstrap-collection
 	for id in $$(cd ai-backend && uv run python -c \
 	    "from src.ingestion.connectors.abgeordnetenwatch.legislature_config import LANDTAG_LEGISLATURE_IDS; print(*LANDTAG_LEGISLATURE_IDS)"); do \
 	    echo "=== Landtag legislature_id=$$id ==="; \
-	    if ! (cd ai-backend && AW_LEGISLATURE_ID=$$id QDRANT_URL=http://localhost:6333 \
+	    if ! (cd ai-backend && AW_LEGISLATURE_ID=$$id $(QDRANT_ENV) \
 	        uv run python -m src.ingestion.run --connector abgeordnetenwatch_votes); then \
 	        echo "!!! Landtag legislature_id=$$id FAILED"; \
 	        failed="$$failed $$id"; \
@@ -148,27 +163,14 @@ run-all-landtage-votes: bootstrap-collection
 	fi; \
 	echo "=== run-all-landtage-votes: all legislatures completed ==="
 
-# fetch-mdb-stammdaten: download + extract the MdB-Stammdaten XML (speaker→party
-# lookup the speech connectors use). Bundestag ships it as a ZIP via OpenData;
-# ~15 MB extracted, gitignored. Idempotent — skips if already present (delete it
-# to refresh). Without it, speeches whose XML carries no inline <fraktion>
-# (ministers, president) attribute to "unbekannt".
-# If the URL 404s the blob was rotated — get the current link from
-# https://www.bundestag.de/services/opendata ("Stammdaten aller Abgeordneten").
-MDB_STAMMDATEN_URL ?= https://www.bundestag.de/resource/blob/472878/MdB-Stammdaten.zip
-MDB_STAMMDATEN_PATH := ai-backend/data/MDB_STAMMDATEN.XML
+# fetch-mdb-stammdaten: pre-fetch the MdB-Stammdaten XML (speaker→party lookup
+# the speech connectors use) for the host dev loop. The registry speech run
+# fetches it on demand at run time, so this target just warms the local cache —
+# and it is what the bulk/JSONL backfill paths (which use the tolerant loader)
+# rely on. Idempotent: skips if already present (delete it to refresh). The URL
+# and download logic live in one place (bundestag_speeches.constants / .mdb).
 fetch-mdb-stammdaten:
-	@if [ -f "$(MDB_STAMMDATEN_PATH)" ]; then \
-		echo "MdB-Stammdaten already present ($(MDB_STAMMDATEN_PATH)) — skipping."; \
-	else \
-		mkdir -p ai-backend/data; \
-		echo "Downloading + extracting MdB-Stammdaten (Bundestag OpenData ZIP) …"; \
-		tmp="$$(mktemp -t mdb-stammdaten.XXXXXX)" && \
-		curl -fsSL "$(MDB_STAMMDATEN_URL)" -o "$$tmp" && \
-		unzip -o -j "$$tmp" MDB_STAMMDATEN.XML -d ai-backend/data && \
-		rm -f "$$tmp" && \
-		echo "Saved $(MDB_STAMMDATEN_PATH)."; \
-	fi
+	cd ai-backend && uv run python -m src.ingestion.connectors.bundestag_speeches.mdb
 
 # Speeches: runs the live incremental BundestagSpeechesConnector via run.py.
 # --batch-size and --time-budget flow via ARGS (run.py flags).
@@ -176,7 +178,7 @@ fetch-mdb-stammdaten:
 # (connector __init__ default 21).
 # Requires: a valid DIP_API_KEY in ai-backend/.env; make stores-up first.
 run-speeches: bootstrap-collection fetch-mdb-stammdaten
-	cd ai-backend && QDRANT_URL=http://localhost:6333 ENV=dev \
+	cd ai-backend && $(QDRANT_ENV) \
 		uv run python -m src.ingestion.run --connector bundestag_speeches $(ARGS)
 
 # --- Standalone ingestion scripts (NOT registry connectors) ---
@@ -192,7 +194,7 @@ run-speeches: bootstrap-collection fetch-mdb-stammdaten
 # point at the original source URL — nothing is stored or re-served, so no
 # Firestore is needed. Needs Qdrant only.
 run-manifestos: bootstrap-collection
-	cd ai-backend && QDRANT_URL=http://localhost:6333 ENV=dev \
+	cd ai-backend && $(QDRANT_ENV) \
 		uv run python -m src.ingestion.connectors.manifestos.bulk $(ARGS)
 
 # collect-speeches: optional --from-jsonl backfill that replays speeches.jsonl
@@ -202,7 +204,7 @@ run-manifestos: bootstrap-collection
 # The MdB-Stammdaten XML is fetched by the fetch-mdb-stammdaten prereq below.
 # Requires: make stores-up first; OPENAI_API_KEY in ai-backend/.env.
 collect-speeches: bootstrap-collection fetch-mdb-stammdaten
-	cd ai-backend && QDRANT_URL=http://localhost:6333 ENV=dev \
+	cd ai-backend && $(QDRANT_ENV) \
 		uv run python -m src.ingestion.connectors.bundestag_speeches.bulk $(ARGS)
 
 # --- Scheduled-update emulation targets for bundestag_speeches (Cloud Run Job model) ---
@@ -214,18 +216,19 @@ SPEECH_BATCH ?= 25
 # update-speeches: mirrors the scheduled Cloud Run incremental update Job for bundestag_speeches.
 # Scheduling deferred to infra/IaC, like AW. Requires: make stores-up; DIP_API_KEY in ai-backend/.env.
 update-speeches: bootstrap-collection fetch-mdb-stammdaten
-	cd ai-backend && QDRANT_URL=http://localhost:6333 ENV=dev \
+	cd ai-backend && $(QDRANT_ENV) \
 		uv run python -m src.ingestion.run --connector bundestag_speeches --batch-size $(SPEECH_BATCH)
 
 # speeches-stats: quick read-only Qdrant verification for parliamentary_speech.
 # Prints total chunk count, count with external_id set, and current cursor (max external_id).
 speeches-stats:
-	cd ai-backend && QDRANT_URL=http://localhost:6333 ENV=dev \
+	cd ai-backend && $(QDRANT_ENV) \
 		uv run python -c "\
+import os; \
 from src.ingestion.setup_collection import COLLECTION_NAME; \
 from src.ingestion.run import get_cursor; \
 from qdrant_client import QdrantClient, models; \
-c = QdrantClient(url='http://localhost:6333'); \
+c = QdrantClient(url=os.environ.get('QDRANT_URL', 'http://localhost:6333'), api_key=os.environ.get('QDRANT_API_KEY')); \
 total = c.count(COLLECTION_NAME, count_filter=models.Filter(must=[models.FieldCondition(key='source_type', match=models.MatchValue(value='parliamentary_speech'))]), exact=True).count; \
 with_ext = c.count(COLLECTION_NAME, count_filter=models.Filter(must=[models.FieldCondition(key='source_type', match=models.MatchValue(value='parliamentary_speech'))], must_not=[models.IsNullCondition(is_null=models.PayloadField(key='external_id'))]), exact=True).count; \
 cursor = get_cursor(c, COLLECTION_NAME, 'parliamentary_speech'); \
