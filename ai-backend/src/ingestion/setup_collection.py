@@ -30,18 +30,26 @@ from typing import Optional
 from qdrant_client import QdrantClient, models
 
 # ---------------------------------------------------------------------------
-# Guard constants — NEVER change these after the first production run.
-# Changing EMBEDDING_DIM invalidates the whole HNSW index; changing
-# EMBEDDING_MODEL drifts embeddings and corrupts cosine-similarity scores.
+# Vector-space definition — the canonical source of truth for the corpus index.
+# For a GIVEN collection these are immutable after its first run: changing
+# EMBEDDING_DIM invalidates the whole HNSW index; changing EMBEDDING_MODEL drifts
+# embeddings and corrupts cosine-similarity scores.
+#
+# They are env-overridable so a SECOND collection with a different vector space
+# (e.g. a Gemini collection: EMBEDDING_PROVIDER=gemini, a Gemini EMBEDDING_MODEL,
+# a COLLECTION_NAME like wahlchat_chunks_gemini_dev) can be created ALONGSIDE the
+# existing one without editing code. With no env set the defaults are exactly the
+# locked OpenAI text-embedding-3-large @ 3072 space — unchanged behaviour.
 # ---------------------------------------------------------------------------
-EMBEDDING_DIM: int = 3072  # text-embedding-3-large output dimension
-EMBEDDING_MODEL: str = "text-embedding-3-large"  # OpenAI embedding model
+EMBEDDING_DIM: int = int(os.getenv("EMBEDDING_DIM", "3072"))
+EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "text-embedding-3-large")
 
 # ---------------------------------------------------------------------------
-# Collection name — env-scoped so dev/prod are isolated.
+# Collection name — env-scoped so dev/prod are isolated; COLLECTION_NAME may be
+# overridden outright (e.g. for a parallel Gemini collection).
 # ---------------------------------------------------------------------------
 ENV: str = os.getenv("ENV", "dev")
-COLLECTION_NAME: str = f"wahlchat_chunks_{ENV}"
+COLLECTION_NAME: str = os.getenv("COLLECTION_NAME", f"wahlchat_chunks_{ENV}")
 
 
 # ---------------------------------------------------------------------------
