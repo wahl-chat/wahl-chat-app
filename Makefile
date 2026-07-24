@@ -19,9 +19,23 @@ install-backend:
 
 # --- Local data stores ---
 
+# --project demo-wahl-chat: the emulator MUST run under the same project the web
+# app and seed script use (web/.env NEXT_PUBLIC_FIREBASE_PROJECT_ID). Otherwise
+# the emulator's configured project (.firebaserc default) differs from the app's;
+# the in-memory store serves both namespaces so seeding appears to work, but
+# export/import only covers the configured project and silently drops the app's
+# data. The demo- prefix is Firebase's offline-only demo-project convention.
+#
+# Data persists across restarts via --import/--export-on-exit: seeded fixtures
+# survive `stores-down`, so the Next.js server's first fetch sees real data
+# instead of an empty store. Export happens on clean shutdown (SIGTERM from
+# stores-down); a first run with no export metadata starts empty — Firebase
+# warns and continues.
+EMULATOR_PROJECT ?= demo-wahl-chat
 stores-up:
 	docker compose up -d qdrant
-	cd firebase && nohup firebase emulators:start --only firestore,auth > ../firebase-emulators.log 2>&1 &
+	mkdir -p firebase/.emulator-data
+	cd firebase && nohup firebase emulators:start --project $(EMULATOR_PROJECT) --only firestore,auth --import=.emulator-data --export-on-exit=.emulator-data > ../firebase-emulators.log 2>&1 &
 	@echo "Waiting for Qdrant on localhost:6333 (max 30s) ..."
 	@for i in $$(seq 1 30); do \
 		if curl -sf http://localhost:6333/readyz > /dev/null 2>&1; then \

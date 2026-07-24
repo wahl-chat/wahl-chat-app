@@ -74,3 +74,6 @@ node_modules/
 
 # macOS
 .DS_Store
+
+# Local emulator data persisted across restarts (--import/--export-on-exit)
+.emulator-data

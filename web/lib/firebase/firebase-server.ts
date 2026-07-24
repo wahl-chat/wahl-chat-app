@@ -27,7 +27,7 @@ import {
   query,
   where,
 } from 'firebase/firestore';
-import { unstable_cache as cache } from 'next/cache';
+import { unstable_cache } from 'next/cache';
 import { headers } from 'next/headers';
 import { firebaseConfig } from './firebase-config';
 import {
@@ -51,6 +51,22 @@ class ContextNotFoundError extends Error {
     super(`Context not found: ${contextId}`);
     this.name = 'ContextNotFoundError';
   }
+}
+
+// Persistent-data-cache wrapper. In production this is unstable_cache. Against
+// the local emulator it is a no-op passthrough: unstable_cache persists to
+// .next/cache and survives dev-server restarts, so a successful-but-empty fetch
+// (e.g. a read before the emulator is seeded) would otherwise stay pinned for
+// `revalidate` seconds and mask freshly-seeded data. Local reads must be live.
+function cache<A extends unknown[], R>(
+  fn: (...args: A) => Promise<R>,
+  keyParts?: string[],
+  options?: { revalidate?: number | false; tags?: string[] },
+): (...args: A) => Promise<R> {
+  if (firebaseEmulatorsEnabled()) {
+    return fn;
+  }
+  return unstable_cache(fn, keyParts, options);
 }
 
 async function getServerApp({
