@@ -30,21 +30,6 @@
     "region_path": ["DE", "DE-BW"],
     "level": "state"
   },
-  "kommunalwahl-muenchen-2026": {
-    "context_id": "kommunalwahl-muenchen-2026",
-    "name": "Kommunalwahl München 2026",
-    "short_name": "KW M 26",
-    "type": "election",
-    "date": "2026-03-08",
-    "location_name": "München",
-    "is_active": true,
-    "icon_url": null,
-    "supports_swiper": false,
-    "supports_voting_behavior": false,
-    "relevant_area": "München",
-    "region_path": ["DE", "DE-BY", "DE-BY-MUC"],
-    "level": "municipal"
-  },
   "landtagswahl-rheinland-pfalz-2026": {
     "context_id": "landtagswahl-rheinland-pfalz-2026",
     "name": "Landtagswahl Rheinland-Pfalz 2026",
