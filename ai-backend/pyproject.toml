@@ -2,45 +2,54 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-[tool.poetry]
+[project]
 name = "wahl-chat-backend"
 version = "1.0.0"
 description = "The wahl.chat backend implements a political information chatbot that enables users to engage in a contemporary way with the positions of political parties and to receive answers to individual questions that can be substantiated with sources."
-authors = ["wahl.chat <info@wahl.chat>"]
-license = "PolyForm-Noncommercial-1.0.0"
+authors = [{name = "wahl.chat", email = "info@wahl.chat"}]
+license = {text = "PolyForm-Noncommercial-1.0.0"}
 readme = "README.md"
-packages = [
-    {include = "src"}
+requires-python = ">=3.12,<3.13"
+
+dependencies = [
+    # HTTP framework + SSE streaming (replaces aiohttp/python-socketio)
+    "fastapi>=0.136.3",
+    "sse-starlette>=3.4.4",
+    "uvicorn>=0.34.0",
+    # Core runtime
+    "firebase-admin>=7.4.0,<7.5",
+    "langchain>=1.3.4",
+    "langchain-core>=1.4.0",
+    "langchain-google-genai>=4.2.0",
+    "langchain-openai>=1.2.0",
+    "langchain-qdrant>=1.1.0",
+    "openai>=2.41.0",
+    "pydantic>=2.10.0,<3.0",
+    "pypdf>=6.0.0,<7.0",
+    "python-dotenv>=1.0.1,<2.0",
+    "pyyaml>=6.0.2",
+    "xxhash>=3.5.0",
+    # qdrant-client tracks Qdrant server minor 1.18.x (pin held for index parity)
+    "qdrant-client>=1.18.0,<1.19",
+    "beautifulsoup4>=4.15.0",
+    "requests>=2.34.2",
+    "trafilatura>=2.1.0",
+    "defusedxml>=0.7.1",
+    "langchain-text-splitters>=1.1.2",
 ]
-repository = "https://github.com/wahl-chat/wahl-chat-app"
 
-[tool.poetry.dependencies]
-python = ">=3.11 <=3.12"
-aiohttp = "~3.9.5"
-aiohttp-cors = "~0.7.0"
-aiohttp-pydantic = "~2.4.0"
-firebase-admin = "~6.6.0"
-langchain = "^1.2.0"
-langchain-core = "^1.2.6"
-langchain-google-genai = "^4.1.3"
-langchain-openai = "^1.1.6"
-langchain-qdrant = "^1.1.0"
-openai = "^2.14.0"
-pydantic = "~2.10.0"
-pypdf = "~5.1.0"
-pytest = "~8.3.3"
-pytest-asyncio = "~0.24.0"
-python-dotenv = "~1.0.1"
-python-socketio = "~5.12.1"
-pyyaml = "~6.0.2"
-websocket-client = "1.8.0"
-xxhash = "^3.5.0"
-qdrant-client = "^1.15.1"
+[dependency-groups]
+dev = [
+    "mypy>=1.12.0",
+    "pre-commit>=4.0.0",
+    "ruff>=0.8.0",
+    "httpx>=0.27",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+]
 
-[tool.poetry.group.dev.dependencies]
-mypy = "~1.12.1"
-pre-commit = "~4.0.1"
-ruff = "~0.8.6"
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
 
 [tool.mypy]
 ignore_missing_imports = true
@@ -75,11 +84,13 @@ exclude = [
     "node_modules",
     "site-packages",
     "venv",
+    # Legacy V1 data-exploration notebooks (nbformat 5, not part of the V2 codebase).
+    "data/scripts",
 ]
 
 line-length = 88
 indent-width = 4
-target-version = "py310"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F"]
@@ -87,6 +98,11 @@ ignore = []
 fixable = ["ALL"]
 unfixable = []
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+# conftest deliberately imports AFTER installing env vars + Qdrant mocks, so its
+# module-level imports legitimately sit below that setup block.
+"tests/conftest.py" = ["E402"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -96,6 +112,9 @@ line-ending = "auto"
 docstring-code-format = false
 docstring-code-line-length = "dynamic"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
