@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Tiny MdB-Stammdaten XML test fixture — wave 0 scaffold.
+
+  Contains 3 MDB records:
+    1. MDB ID 11004870 (Olaf Scholz): party resolved via BIOGRAFISCHE_ANGABEN/PARTEI_KURZ = "SPD"
+    2. MDB ID 11004220 (Annalena Baerbock): party also resolved via PARTEI_KURZ = "BÜNDNIS 90/DIE GRÜNEN"
+    3. MDB ID 11003444 (Test member): PARTEI_KURZ is empty — party ONLY resolves via
+       WAHLPERIODEN/WAHLPERIODE/INSTITUTIONEN/INSTITUTION where INSART_LANG = "Fraktion/Gruppe"
+       and INS_LANG = "CDU/CSU" (tests latest_fraction_party fallback)
+
+  Source: hand-crafted for unit tests (not real MdB data, representative structure only).
+-->
+<DOCUMENT>
+  <MDB>
+    <ID>11004870</ID>
+    <NAMEN>
+      <NAME>
+        <VORNAME>Olaf</VORNAME>
+        <NACHNAME>Scholz</NACHNAME>
+      </NAME>
+    </NAMEN>
+    <BIOGRAFISCHE_ANGABEN>
+      <PARTEI_KURZ>SPD</PARTEI_KURZ>
+    </BIOGRAFISCHE_ANGABEN>
+    <WAHLPERIODEN>
+      <WAHLPERIODE>
+        <WP>21</WP>
+        <INSTITUTIONEN>
+          <INSTITUTION>
+            <INSART_LANG>Fraktion/Gruppe</INSART_LANG>
+            <INS_LANG>SPD</INS_LANG>
+          </INSTITUTION>
+        </INSTITUTIONEN>
+      </WAHLPERIODE>
+    </WAHLPERIODEN>
+  </MDB>
+  <MDB>
+    <ID>11004220</ID>
+    <NAMEN>
+      <NAME>
+        <VORNAME>Annalena</VORNAME>
+        <NACHNAME>Baerbock</NACHNAME>
+      </NAME>
+    </NAMEN>
+    <BIOGRAFISCHE_ANGABEN>
+      <PARTEI_KURZ>BÜNDNIS 90/DIE GRÜNEN</PARTEI_KURZ>
+    </BIOGRAFISCHE_ANGABEN>
+    <WAHLPERIODEN>
+      <WAHLPERIODE>
+        <WP>20</WP>
+        <INSTITUTIONEN>
+          <INSTITUTION>
+            <INSART_LANG>Fraktion/Gruppe</INSART_LANG>
+            <INS_LANG>BÜNDNIS 90/DIE GRÜNEN</INS_LANG>
+          </INSTITUTION>
+        </INSTITUTIONEN>
+      </WAHLPERIODE>
+    </WAHLPERIODEN>
+  </MDB>
+  <MDB>
+    <ID>11003444</ID>
+    <NAMEN>
+      <NAME>
+        <VORNAME>Friedrich</VORNAME>
+        <NACHNAME>Merz</NACHNAME>
+      </NAME>
+    </NAMEN>
+    <BIOGRAFISCHE_ANGABEN>
+      <PARTEI_KURZ></PARTEI_KURZ>
+    </BIOGRAFISCHE_ANGABEN>
+    <WAHLPERIODEN>
+      <WAHLPERIODE>
+        <WP>19</WP>
+        <INSTITUTIONEN>
+          <INSTITUTION>
+            <INSART_LANG>Ausschuss</INSART_LANG>
+            <INS_LANG>Haushaltsausschuss</INS_LANG>
+          </INSTITUTION>
+        </INSTITUTIONEN>
+      </WAHLPERIODE>
+      <WAHLPERIODE>
+        <WP>21</WP>
+        <INSTITUTIONEN>
+          <INSTITUTION>
+            <INSART_LANG>Fraktion/Gruppe</INSART_LANG>
+            <INS_LANG>CDU/CSU</INS_LANG>
+          </INSTITUTION>
+        </INSTITUTIONEN>
+      </WAHLPERIODE>
+    </WAHLPERIODEN>
+  </MDB>
+</DOCUMENT>
