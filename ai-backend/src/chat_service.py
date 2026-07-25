@@ -480,12 +480,24 @@ async def _retrieve_party_buckets(
     reused across all passes. legislature_period_id + election_level scope vote_record
     ONLY (manifesto/speech chunks lack the fields, so the filter would strip their
     grounding). The manifesto pass uses the widened campaign-window start
-    (manifesto publish_date == its period's election date). All three sources run
+    (manifesto publish_date == its period's election date) and the election's most
+    specific region only (level-exclusive, see below). All three sources run
     concurrently and a single source failure degrades to empty. WAHL_CHAT_PARTY has no
     corpus data → all buckets empty. log_prefix labels the failure logs per caller.
     """
     if party.party_id == WAHL_CHAT_PARTY.party_id:
         return _RetrievedBuckets([], [], [], [], [], [])
+
+    # Manifestos are exclusive to the election's own level: a chat grounds in the
+    # manifesto written FOR that election, never a parent level's — a state chat
+    # must not cite the federal program as the party's local platform (and a
+    # federal chat never sees state programs via its ["DE"] path anyway). Manifesto
+    # chunks carry their own election's region, so the most specific region alone
+    # selects exactly the local program, current and historic alike. Votes keep
+    # the full ancestry path on purpose (the relevance_levels down-rank keeps
+    # state-relevant federal votes visible); speeches are Bundestag-only content
+    # and also keep the full path.
+    manifesto_region_path = [region_path[-1]] if region_path else None
 
     if term_window is not None:
         term_start, term_end = term_window
@@ -522,7 +534,7 @@ async def _retrieve_party_buckets(
                 historic_limit=_HISTORIC_LIMITS["manifesto"],
                 current_score_threshold=_CHAT_SCORE_THRESHOLD,
                 historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
-                region_path=region_path,
+                region_path=manifesto_region_path,
             ),
             _safe_two_pass(
                 improved_rag_query,
@@ -570,7 +582,7 @@ async def _retrieve_party_buckets(
             party_id=party.party_id,
             limit=_CURRENT_MANIFESTO_LIMIT,
             score_threshold=_CHAT_SCORE_THRESHOLD,
-            region_path=region_path,
+            region_path=manifesto_region_path,
         ),
         _safe_retrieve(
             improved_rag_query,

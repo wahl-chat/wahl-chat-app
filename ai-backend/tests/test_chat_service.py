@@ -341,6 +341,51 @@ def test_historic_period_id_current_only(monkeypatch) -> None:
         assert "level" not in kw, f"{st} two-pass must NOT carry level"
 
 
+def test_manifesto_region_path_is_level_exclusive(monkeypatch) -> None:
+    """Manifesto retrieval is scoped to the election's OWN region — a state chat
+    grounds in the Landtagswahl program, never the federal one (and vice versa).
+    Votes and speeches keep the full ancestry path: votes rely on the
+    relevance_levels down-rank instead, speeches are Bundestag-only content."""
+    tw = (
+        datetime(2021, 1, 1, tzinfo=timezone.utc),
+        datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+
+    def _make_recorder(store: dict, result):
+        def _rec(_query, **kwargs):
+            store[kwargs.get("source_type")] = kwargs
+            return result
+
+        return _rec
+
+    async def _drive(term_window) -> None:
+        await cs._retrieve_party_buckets(
+            party=_make_party(),
+            improved_rag_query="q",
+            rag_query_vector=[0.0],
+            region_path=["DE", "DE-BW"],
+            legislature_period_id=None,
+            election_level="state",
+            term_window=term_window,
+            manifesto_term_start=None,
+        )
+
+    two_pass_calls: dict = {}
+    _two_pass_recorder = _make_recorder(two_pass_calls, {"current": [], "historic": []})
+    monkeypatch.setattr(cs, "retrieve_two_pass", _two_pass_recorder)
+    asyncio.run(_drive(tw))
+    assert two_pass_calls["party_manifesto"]["region_path"] == ["DE-BW"]
+    assert two_pass_calls["vote_record"]["region_path"] == ["DE", "DE-BW"]
+    assert two_pass_calls["parliamentary_speech"]["region_path"] == ["DE", "DE-BW"]
+
+    single_pass_calls: dict = {}
+    monkeypatch.setattr(cs, "retrieve", _make_recorder(single_pass_calls, []))
+    asyncio.run(_drive(None))
+    assert single_pass_calls["party_manifesto"]["region_path"] == ["DE-BW"]
+    assert single_pass_calls["vote_record"]["region_path"] == ["DE", "DE-BW"]
+    assert single_pass_calls["parliamentary_speech"]["region_path"] == ["DE", "DE-BW"]
+
+
 def _participating_vote_payload(title: str, publish_date: str) -> dict:
     """A vote_record payload where party 'spd' participated (so it survives the
     build_vote_documents participation filter and yields one Document)."""
