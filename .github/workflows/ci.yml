@@ -1,0 +1,253 @@
+# CI pipeline — wahl.chat V2
+#
+# Jobs:
+#   backend-lint   — GDPR wall guard + uv ruff check + mypy (no Qdrant)
+#   backend-test   — pytest (unit/integration, not smoke) against a real Qdrant service
+#   frontend       — bun frozen install + bun audit supply-chain gate + lint + tsc + build
+#   firebase-rules — Firestore security-rules tests against the emulator
+#   smoke-test     — E2E SSE smoke test (needs: [backend-lint, backend-test, frontend])
+#
+# Key constraints (CLAUDE.md):
+#   - uv sync --locked  everywhere (locked installs only — no version bumping)
+#   - bun install --frozen-lockfile  (never bare bun install in CI)
+#   - bun audit supply-chain gate
+#
+# Smoke-test determinism:
+#   The smoke test uses in-process ASGI transport (httpx.ASGITransport) so
+#   monkeypatching works without a separately-running server.  The conftest
+#   patch_chat_io fixture patches the two primary external I/O calls:
+#     - src.chat_service.identify_relevant_docs_with_llm_based_reranking (Qdrant)
+#     - src.chatbot_async.stream_answer_from_llms (LLM stream)
+#   Therefore NO live Qdrant service, NO OpenAI/Gemini key, and NO Firestore
+#   emulator or real Firestore credentials are needed in the smoke-test job.
+#   The conftest.py sets os.environ.setdefault() for all required env vars
+#   (API_NAME, dummy API keys, FIRESTORE_EMULATOR_HOST) so module-level
+#   client instantiation succeeds without real credentials.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+# Runs on every PR (including drafts — open a draft PR to get CI on a feature
+# branch during development) and on pushes to the integration branches. A
+# feature-branch push with no open PR does not run. Scoping push to develop/main
+# also means a push never fires alongside pull_request, so no dedupe job is needed.
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Backend lint — ruff + mypy + GDPR wall. No Qdrant needed, so it stays light
+  # and runs in parallel with backend-test.
+  # ---------------------------------------------------------------------------
+  backend-lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.11.x"
+          python-version: "3.12"
+
+      # Reproducible install — frozen lockfile only (CLAUDE.md). Sync WITH the
+      # dev group (ruff/mypy are dev deps) and pass --no-sync to every `uv run`
+      # below so it can neither re-sync (bypassing --locked) nor silently change
+      # the installed set.
+      - name: Install dependencies (locked, with dev)
+        run: uv sync --locked
+
+      # GDPR Art. 9 wall — no Firestore users/ access in ingestion code.
+      # Stdlib-only script; runs from the repo root.
+      - name: GDPR Art. 9 wall guard
+        working-directory: .
+        run: python3 scripts/check_gdpr_wall.py
+
+      - name: Lint — ruff
+        run: uv run --no-sync ruff check src/
+
+      - name: Type-check — mypy
+        run: uv run --no-sync mypy src/
+
+  # ---------------------------------------------------------------------------
+  # Backend tests — pytest against a real Qdrant service (excludes smoke test,
+  # which is its own job).
+  # ---------------------------------------------------------------------------
+  backend-test:
+    runs-on: ubuntu-latest
+    services:
+      # Real Qdrant so the schema/index integration tests run for real in CI
+      # instead of skipping (tests/test_qdrant_schema.py hard-fails under CI when
+      # Qdrant is absent). Pinned to match docker-compose.yml.
+      qdrant:
+        image: qdrant/qdrant:v1.18.2
+        ports:
+          - 6333:6333
+    defaults:
+      run:
+        working-directory: ai-backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.11.x"
+          python-version: "3.12"
+
+      - name: Install dependencies (locked, with dev)
+        run: uv sync --locked
+
+      # The Qdrant service container is up, but not necessarily accepting
+      # connections yet — poll /readyz before the schema tests depend on it.
+      - name: Wait for Qdrant
+        run: |
+          for _ in $(seq 1 30); do
+            if curl -sf http://localhost:6333/readyz > /dev/null; then
+              echo "Qdrant ready"; exit 0
+            fi
+            sleep 1
+          done
+          echo "Qdrant did not become ready in time" >&2; exit 1
+
+      # Create the collection + canonical payload indexes so the schema tests
+      # assert against a real, correctly-provisioned collection.
+      - name: Bootstrap Qdrant collection
+        env:
+          QDRANT_URL: http://localhost:6333
+        run: uv run --no-sync python -m src.ingestion.setup_collection
+
+      - name: Unit / integration tests (excluding smoke test)
+        env:
+          QDRANT_URL: http://localhost:6333
+        run: |
+          uv run --no-sync pytest tests/ -x \
+            --ignore=tests/test_chat_sse.py \
+            --ignore=tests/test_local_mode.py
+
+  # ---------------------------------------------------------------------------
+  # Frontend: bun frozen install + audit gate + lint + build
+  # ---------------------------------------------------------------------------
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Reproducible install — never bare bun install in CI (CLAUDE.md)
+      - name: Install dependencies (frozen)
+        run: bun install --frozen-lockfile
+
+      # Supply-chain hardening gate (CLAUDE.md "bun audit as CI gate").
+      # HARD-BLOCKING at --audit-level high: any new high/critical finding fails CI.
+      # Known remaining MODERATE findings are transitive and pinned upstream
+      # (jsondiffpatch + postcss via ai@4.x, uuid via firebase-admin); they do not
+      # block the gate while it runs at `high`.
+      - name: Supply-chain audit
+        run: bun audit --audit-level=high
+
+      # Non-mutating lint (next lint + biome ci) — violations FAIL the job
+      # instead of being auto-fixed on the runner and silently building.
+      - name: Lint
+        run: bun run lint
+
+      - name: Type-check — tsc
+        run: bun run typecheck
+
+      - name: Build
+        run: bun run build
+
+  # ---------------------------------------------------------------------------
+  # Firebase rules: Firestore security-rules tests against the emulator
+  # Proves the GDPR Art. 9 consent gate + chat-message privacy rules in CI.
+  # ---------------------------------------------------------------------------
+  firebase-rules:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      # The Firestore emulator needs a JVM; firebase-tools requires Java >= 21.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # Reproducible install — never bare bun install in CI (CLAUDE.md)
+      - name: Install rules-test dependencies (frozen)
+        working-directory: firebase/tests
+        run: bun install --frozen-lockfile
+
+      - name: Install firebase-tools
+        run: npm install -g firebase-tools
+
+      # firebase.json pins the Firestore emulator to port 8081; rules.test.ts
+      # connects to localhost:8081 with projectId "demo-wahl-chat" (demo- prefix
+      # keeps the emulator fully offline/isolated).
+      - name: Firestore rules tests (emulator)
+        run: |
+          firebase emulators:exec --only firestore --project demo-wahl-chat \
+            "cd tests && bun run test"
+
+  # ---------------------------------------------------------------------------
+  # Smoke-test: E2E SSE smoke test (depends on backend-lint + backend-test + frontend passing)
+  # ---------------------------------------------------------------------------
+  smoke-test:
+    needs: [backend-lint, backend-test, frontend]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-backend
+
+    # NOTE: No live Qdrant service container needed — the conftest.py mocks
+    # QdrantClient at import time and the patch_chat_io fixture patches
+    # identify_relevant_docs_with_llm_based_reranking + stream_answer_from_llms.
+    # No live LLM API keys or Firestore credentials needed.
+    # The conftest sets os.environ.setdefault() for all required env vars
+    # (using safe dummy values that allow module-level client instantiation).
+    # No "Start FastAPI backend" step needed — the test uses in-process ASGI
+    # transport (httpx.ASGITransport(app=app)) rather than a real HTTP server.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.11.x"
+          python-version: "3.12"
+
+      # Install all deps (including dev: pytest, httpx) for the smoke test
+      - name: Install dependencies (locked, with dev)
+        run: uv sync --locked
+
+      # E2E SSE smoke test — green CI means chat works.
+      # The test exercises the real FastAPI route, StreamingResponse SSE framing,
+      # and Vercel AI SDK data-stream protocol (f/0/8/e/d/[DONE]) in-process.
+      # Only the LLM stream and Qdrant search are patched (patch_chat_io fixture).
+      - name: SSE smoke test
+        run: uv run --no-sync pytest tests/test_chat_sse.py -x -v

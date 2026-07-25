@@ -97,25 +97,31 @@ contexts/{context_id}
 
 ### Seeding with the Python Script (Recommended)
 
-Run from the `firebase/` directory:
+The seed script's default target is the **local Firestore emulator**: with
+`SEED_TARGET` unset it hard-exits unless `FIRESTORE_EMULATOR_HOST` is set, so a
+local run can never accidentally write to a real project.
+
+**Seeding a real project (dev/prod)** is supported today by running the script
+locally with credentials and `SEED_TARGET=real` — guarded: it requires an
+explicit `GOOGLE_CLOUD_PROJECT`, refuses to run with `FIRESTORE_EMULATOR_HOST`
+set, and seeding prod (`wahl-chat`) additionally requires a matching
+`SEED_CONFIRM_PROJECT`. Automating this on merge via Workload Identity is
+envisioned and will land with the proper deployment (Terraform) workstream — see
+`infra/README.md`.
+
+Run from the repo root:
 
 ```bash
-python scripts/seed_firestore.py
-
-# For production:
-ENV=prod python scripts/seed_firestore.py
+FIRESTORE_EMULATOR_HOST=localhost:8081 make seed-local
 ```
 
-Or simply from the repo root:
+Or from the `firebase/` directory:
 
 ```bash
-make seed
-
-# For production:
-make seed-prod
+FIRESTORE_EMULATOR_HOST=localhost:8081 python scripts/seed_firestore.py
 ```
 
-The script requires `firebase-admin`. The `make seed` targets use the ai-backend's Poetry environment automatically. To run standalone:
+The script requires `firebase-admin`. The `make seed-local` target uses the ai-backend's uv environment automatically. To run standalone:
 
 ```bash
 cd firebase && python -m venv venv && source venv/bin/activate
@@ -138,12 +144,47 @@ firestore-import -a ../ai-backend/wahl-chat-dev-firebase-adminsdk.json \
   -b firestore_data/dev/parties_bundestagswahl-2025.json -y
 ```
 
-### Adding a New Context
+### Adding a New Context (e.g. a new election)
 
 1. Add the context to `firestore_data/dev/contexts.json`
 2. Create `firestore_data/dev/parties_{context_id}.json`
 3. Create `firestore_data/dev/proposed_questions_{context_id}.json`
-4. Run `python scripts/seed_firestore.py` from `firebase/`
+4. Run `FIRESTORE_EMULATOR_HOST=localhost:8081 make seed-local` from the repo root
+
+**Required retrieval-scoping fields on the context document** (the chat backend scopes
+RAG retrieval by these — see `ai-backend/src/models/context.py`):
+
+- `region_path` — **always set explicitly.** ISO 3166-2 ancestry path, most-general
+  first. Federal: `["DE"]`. Landtagswahl BW: `["DE", "DE-BW"]`. Municipal München:
+  `["DE", "DE-BY", "DE-BY-MUC"]`. If omitted it silently defaults to federal `["DE"]`
+  and the Land's own manifestos/votes become invisible to retrieval (the backend logs a
+  warning when the field is missing).
+- `legislature_period_id` — set for contexts with vote data: the abgeordnetenwatch
+  `parliament_period` id. Look it up (or add a new row) in
+  `ai-backend/src/ingestion/connectors/abgeordnetenwatch/legislature_config.py`, which
+  also drives the current-vs-historic term window.
+- `level` — `"federal"` | `"state"` | `"municipal"`; drives topic-relevance
+  down-ranking. Omitted = treated as federal.
+- `date` — election date; used to resolve the term window when a region has multiple
+  configured periods.
+
+Example (Landtagswahl) — abridged to the scoping fields:
+
+```json
+{
+  "context_id": "landtagswahl-bw-2026",
+  "type": "election",
+  "date": "2026-03-08",
+  "region_path": ["DE", "DE-BW"],
+  "legislature_period_id": 165,
+  "level": "state"
+}
+```
+
+Corpus side: make sure the election's votes are ingested (the AW connector is
+parameterized by `AW_LEGISLATURE_ID`; manifestos ingest all parliament periods since
+2020 automatically). Mirror the context into `firestore_data/prod/contexts.json` when it
+should exist in production.
 
 ## Managing Data
 
@@ -206,19 +247,21 @@ Ensure all referenced assets (logos, PDFs, etc.) exist in the prod Firebase Stor
 
 ### 4. Seed production Firestore
 
-```bash
-# From repo root:
-make seed-prod
+Production seeding is **intentionally blocked** — the seed
+script hard-exits unless `FIRESTORE_EMULATOR_HOST` points at a local emulator,
+so it can never write to a real Firestore instance. Seeding production data is
+a manual operator step deferred (e.g. via
+`firestore-import` with production credentials, as described above).
 
-# Or from firebase/:
-ENV=prod python scripts/seed_firestore.py
-```
+### 5. Ensure the Qdrant corpus covers the new region
 
-### 5. Deploy Qdrant vector store data
-
-The vector store collections are context-specific:
-- Dev: `context_{context_id}_party_docs_dev`
-- Prod: `context_{context_id}_party_docs`
+The Qdrant vector store is **not** part of Firestore seeding and is not
+documented here — it is a single shared corpus per environment filled by the
+ingestion pipeline, not per-context collections. See the repo-root `AGENTS.md`
+("Qdrant collection design" and "Running ingestion connectors") for the design
+and how the corpus is populated. Moving a context to prod creates no Qdrant
+collection; just confirm the ingestion jobs have populated chunks for the
+context's region (the region filter must match at query time).
 
 ### 6. Verify
 
