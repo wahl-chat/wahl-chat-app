@@ -1,6 +1,6 @@
-import type ChatSocket from '@/lib/chat-socket';
 import type { ChatSession, Tenant } from '@/lib/firebase/firebase.types';
 import type { PartyDetails } from '@/lib/party-details';
+import type { ProlificMetadata } from '@/lib/prolific-study/prolific-metadata';
 import type {
   LLMSize,
   PartyResponseChunkReadyPayload,
@@ -9,7 +9,6 @@ import type {
 } from '@/lib/socket.types';
 import type { Timestamp } from 'firebase/firestore';
 import type { WritableDraft } from 'immer';
-import {ProlificMetadata} from "@/lib/prolific-study/prolific-metadata";
 
 export type Source = {
   source: string;
@@ -18,6 +17,12 @@ export type Source = {
   source_document: string;
   document_publish_date: string;
   party_id?: string;
+  // Dual-format speech links (backend merges op video + DIP transcript into ONE
+  // source): when both are present the citation renders two quick-links — the
+  // video deep-link and the PDF transcript — for the same source. `url` stays the
+  // primary (video-first) link for back-compat.
+  video_url?: string;
+  pdf_url?: string;
 };
 
 export type CurrentStreamingMessages = {
@@ -84,10 +89,8 @@ export type ChatStoreState = {
     proConPerspective: string | undefined;
     votingBehaviorSummary: string | undefined;
     chatSession: boolean;
-    initializingChatSocketSession: boolean;
   };
   pendingStreamingMessageTimeoutHandler: {
-    interval?: NodeJS.Timeout;
     timeout?: NodeJS.Timeout;
   };
   error?: string;
@@ -96,12 +99,6 @@ export type ChatStoreState = {
   currentQuickReplies: string[];
   currentChatTitle?: string;
   chatSessionIsPublic?: boolean;
-  socket: {
-    io?: ChatSocket;
-    connected?: boolean;
-    error?: string;
-    isConnecting?: boolean;
-  };
   currentStreamingMessages?: CurrentStreamingMessages;
   currentStreamedVotingBehavior?: CurrentStreamedVotingBehavior;
   clickedProConButton?: boolean;
@@ -152,12 +149,9 @@ export type ChatStoreActions = {
   setChatSessionIsPublic: (isPublic: boolean) => Promise<void>;
   setMessageFeedback: (messageId: string, feedback: MessageFeedback) => void;
   setPreSelectedParties: (parties: PartyDetails[]) => void;
-  setSocket: (socket: ChatSocket) => void;
-  setSocketConnecting: (isConnecting: boolean) => void;
-  setSocketConnected: (connected: boolean) => void;
-  setSocketError: (error: string) => void;
+  // FIX 15: setSocket, setSocketConnecting, setSocketConnected, setSocketError removed.
+  // Action files deleted; Socket.IO is replaced by SSE.
   initializeChatSession: () => Promise<void>;
-  initializedChatSession: (sessionId: string) => void;
   selectRespondingParties: (sessionId: string, partyIds: string[]) => void;
   streamingMessageSourcesReady: (
     sessionId: string,
@@ -180,6 +174,7 @@ export type ChatStoreActions = {
     completeMessage: string,
   ) => void;
   startTimeoutForStreamingMessages: (streamingMessageId: string) => void;
+  resetStreamingMessageWatchdog: () => void;
   cancelStreamingMessages: (streamingMessageId?: string) => void;
   completeProConPerspective: (requestId: string, message: MessageItem) => void;
   generateSharingSnapshotLink: () => Promise<void>;

@@ -2,6 +2,7 @@ import { AnonymousAuthProvider } from '@/components/anonymous-auth';
 import { Toaster } from '@/components/ui/sonner';
 
 import AuthServiceWorkerProvider from '@/components/providers/auth-service-worker-provider';
+import { MediaViewerProvider } from '@/components/providers/media-viewer-provider';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Analytics } from '@vercel/analytics/react';
@@ -163,7 +164,7 @@ export default async function RootLayout({
                   enableSystem={!IS_EMBEDDED}
                   disableTransitionOnChange
                 >
-                  {children}
+                  <MediaViewerProvider>{children}</MediaViewerProvider>
                 </ThemeProvider>
                 <Toaster expand duration={1500} position="top-right" />
                 {/* <LoginReminderToast /> */}

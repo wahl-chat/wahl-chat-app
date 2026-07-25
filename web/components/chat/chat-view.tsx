@@ -1,3 +1,4 @@
+import ChatProlificWrapper from '@/components/chat/chat-prolific-wrapper';
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
 import LoadingSpinner from '@/components/loading-spinner';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
@@ -9,7 +10,6 @@ import { Suspense } from 'react';
 import ChatDynamicChatInput from './chat-dynamic-chat-input';
 import ChatScrollDownIndicator from './chat-scroll-down-indicator';
 import ChatViewSsr from './chat-view-ssr';
-import ChatProlificWrapper from "@/components/chat/chat-prolific-wrapper";
 
 type Props = {
   sessionId?: string;

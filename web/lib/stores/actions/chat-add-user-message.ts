@@ -1,14 +1,18 @@
+import { getSseChatAppend } from '@/components/providers/sse-chat-provider';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import {
   addUserMessageToChatSession,
   createChatSession,
 } from '@/lib/firebase/firebase';
+import {
+  incrementWahlChatSessionMessageCount,
+  isProlificStudy,
+} from '@/lib/prolific-study/prolific-metadata';
 import { chatViewScrollToBottom } from '@/lib/scroll-utils';
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
 import { generateUuid } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
-import {incrementWahlChatSessionMessageCount, isProlificStudy} from "@/lib/prolific-study/prolific-metadata";
 
 export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
   (get, set) =>
@@ -18,42 +22,46 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
       chatSessionId,
       contextId,
       localPreliminaryChatSessionId,
-      socket,
       partyIds,
-      initializeChatSession,
-      startTimeoutForStreamingMessages,
+      messages: currentMessages,
       prolificMetadata,
       incrementProlificMessageCount,
+      startTimeoutForStreamingMessages,
     } = get();
 
     const safeContextId = contextId ?? DEFAULT_CONTEXT_ID;
 
-    if (!socket.io?.connected) {
-      if (!fromInitialQuestion) toast.error('wahl.chat ist nicht verbunden.');
-      else
-        set((state) => {
-          state.initialQuestionError = message;
-        });
-
-      return;
-    }
-
-    if (chatSessionId !== localPreliminaryChatSessionId) {
-      initializeChatSession();
-    }
+    // SSE model: no socket connectivity check needed — each message is a fresh
+    // HTTP POST. There is no persistent connection to be "connected" to.
 
     chatViewScrollToBottom();
 
-    const safeSessionId =
-      get().chatSessionId ?? get().localPreliminaryChatSessionId;
+    const safeSessionId = chatSessionId ?? localPreliminaryChatSessionId;
 
     if (!safeSessionId) {
-      toast.error('Chat Session out of sync');
+      if (!fromInitialQuestion) {
+        toast.error('Chat Session out of sync');
+      } else {
+        set((state) => {
+          state.initialQuestionError = message;
+        });
+      }
 
       return;
     }
 
-    let messages = get().messages;
+    // SSE: the backend echoes `session_id` in every streamed event, and the
+    // store gates event handlers (selectRespondingParties, completeStreamingMessage,
+    // ...) on `chatSessionId === session_id`. We send `safeSessionId` (which falls
+    // back to localPreliminaryChatSessionId), but nothing in the SSE flow promotes
+    // it to `chatSessionId` (the old socket init did). Set it here so events match.
+    if (chatSessionId !== safeSessionId) {
+      set((state) => {
+        state.chatSessionId = safeSessionId;
+      });
+    }
+
+    let messages = currentMessages;
     const lastMessage = messages[messages.length - 1];
     const isMessageResend =
       messages.length > 0 &&
@@ -84,14 +92,15 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
     });
 
     if (!isMessageResend && isProlificStudy()) {
-        incrementWahlChatSessionMessageCount(); // increment in session storage
-        incrementProlificMessageCount(); // increment store for reactivity
+      incrementWahlChatSessionMessageCount(); // increment in session storage
+      incrementProlificMessageCount(); // increment store for reactivity
     }
 
     messages = get().messages;
     const { tenant } = get();
 
     try {
+      // Firebase writes — NOT Socket.IO; must be preserved.
       if (messages.length < 2 && !isMessageResend) {
         await createChatSession(
           userId,
@@ -120,13 +129,42 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
         await addUserMessageToChatSession(safeSessionId, message);
       }
 
-      socket.io?.addUserMessage({
-        session_id: safeSessionId,
-        context_id: safeContextId,
-        user_message: message,
-        party_ids: Array.from(partyIds),
-        user_is_logged_in: !isAnonymous,
-      });
+      // Build chat_history for the stateless SSE request
+      // (client sends full history each request).
+      const chatHistory = messages.flatMap((m) =>
+        m.messages.map((innerMessage) => ({
+          ...innerMessage,
+          role: innerMessage.role,
+          created_at: m.created_at,
+          quick_replies: m.quick_replies,
+        })),
+      );
+
+      // SSE replacement: call useChat append() exposed from
+      // sse-chat-provider via getSseChatAppend() (SSE-03).
+      const appendMessage = getSseChatAppend();
+      if (!appendMessage) {
+        // User-visible feedback via toast — the old `state.error` write was
+        // dead (no component renders it).
+        toast.error(
+          'Der Chat ist noch nicht bereit. Bitte lade die Seite neu.',
+        );
+        set((state) => {
+          state.loading.newMessage = false;
+        });
+        return;
+      }
+
+      appendMessage(
+        { role: 'user', content: message },
+        {
+          session_id: safeSessionId,
+          context_id: safeContextId,
+          party_ids: Array.from(partyIds),
+          user_is_logged_in: !isAnonymous,
+          chat_history: chatHistory,
+        },
+      );
 
       const currentStreamingMessageId = generateUuid();
 
@@ -146,9 +184,13 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
     } catch (error) {
       console.error(error);
 
+      // User-visible feedback via toast — the old `state.error` write was
+      // dead (no component renders it).
+      toast.error(
+        'Die Antwort konnte nicht geladen werden. Bitte versuche es erneut.',
+      );
       set((state) => {
         state.loading.newMessage = false;
-        state.error = 'Failed to get chat answer';
       });
     }
   };

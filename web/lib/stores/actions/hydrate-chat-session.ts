@@ -68,7 +68,6 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
           loading: {
             ...state.loading,
             chatSession: false,
-            initializingChatSession: false,
             newMessage: false,
           },
           sharingSnapshot: chatSession.sharing_snapshot
@@ -100,7 +99,6 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
         loading: {
           ...state.loading,
           chatSession: false,
-          initializingChatSession: false,
           newMessage: false,
         },
         sharingSnapshot: undefined,

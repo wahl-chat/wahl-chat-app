@@ -1,12 +1,12 @@
 'use client';
 
+import { useMediaViewer } from '@/components/providers/media-viewer-provider';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import type { Source } from '@/lib/stores/chat-store.types';
-import { buildPdfUrl } from '@/lib/utils';
 import Link from 'next/link';
 import { type JSX, memo, useMemo } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
@@ -98,6 +98,8 @@ function AgentChatMarkdownComponent({ content, sources }: Props) {
     [content, sourcesByParty, hasSources],
   );
 
+  const mediaViewer = useMediaViewer();
+
   const onReferenceClick = (partyId: string, partyIndex: number) => {
     const key: ReferenceKey = `${partyId}:${partyIndex}`;
     const mapping = referenceMapping.get(key);
@@ -105,10 +107,10 @@ function AgentChatMarkdownComponent({ content, sources }: Props) {
 
     if (!source) return;
 
-    const isPdfLink = source.url?.includes('.pdf');
-    if (isPdfLink) {
-      const url = buildPdfUrl(source);
-      window.open(url.toString(), '_blank');
+    // Open in the in-page media viewer (video/PDF), same as the "Quellen" list;
+    // falls back to a new tab only when no provider is mounted.
+    if (mediaViewer) {
+      mediaViewer.openSource(source);
     } else if (source.url) {
       window.open(source.url, '_blank');
     }

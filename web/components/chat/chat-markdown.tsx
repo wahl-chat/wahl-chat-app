@@ -1,8 +1,8 @@
 'use client';
 
 import { Markdown } from '@/components/markdown';
+import { useMediaViewer } from '@/components/providers/media-viewer-provider';
 import type { Source } from '@/lib/stores/chat-store.types';
-import { buildPdfUrl } from '@/lib/utils';
 
 type Props = {
   message: {
@@ -12,6 +12,8 @@ type Props = {
 };
 
 function ChatMarkdown({ message }: Props) {
+  const mediaViewer = useMediaViewer();
+
   const onReferenceClick = (number: number) => {
     if (!message.sources) {
       return;
@@ -22,14 +24,16 @@ function ChatMarkdown({ message }: Props) {
     }
 
     const source = message.sources[number];
-    const isPdfLink = source?.url.includes('.pdf');
-
-    if (source && isPdfLink && window) {
-      const url = buildPdfUrl(source);
-      return window.open(url.toString(), '_blank');
+    if (!source) {
+      return;
     }
-
-    window.open(source.url, '_blank');
+    // Open in the in-page media viewer (video/PDF), same as the "Quellen" list;
+    // falls back to a new tab only when no provider is mounted.
+    if (mediaViewer) {
+      mediaViewer.openSource(source);
+    } else if (source.url) {
+      window.open(source.url, '_blank');
+    }
   };
 
   const getReferenceTooltip = (number: number) => {
