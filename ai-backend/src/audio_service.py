@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Audio service module for voice-to-voice capabilities.
-Provides Whisper (STT) and TTS integration using OpenAI API.
+Audio service module for voice input.
+Provides Whisper (STT) transcription using the OpenAI API.
 """
 
-import base64
 import io
 import logging
 
@@ -65,36 +64,3 @@ async def transcribe_audio(
         f"Transcription complete: {response.text} {len(response.text)} characters"
     )
     return response.text
-
-
-async def synthesize_speech(
-    text: str,
-) -> str:
-    """
-    Generate speech from text using OpenAI TTS.
-
-    Args:
-        text: Text to generate
-
-    Returns:
-        Base64-encoded MP3 audio data
-    """
-    client = get_openai_client()
-
-    logger.info(f"Synthesizing speech ({len(text)} chars)")
-
-    response = await client.audio.speech.create(
-        model="gpt-4o-mini-tts",
-        voice="nova",
-        input=text,
-        response_format="mp3",
-    )
-
-    # Get audio bytes from response
-    audio_bytes = response.content
-
-    # Encode to base64
-    audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
-
-    logger.info(f"Speech synthesis complete: {len(audio_bytes)} bytes")
-    return audio_base64

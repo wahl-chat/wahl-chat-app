@@ -102,14 +102,15 @@ class VotingBehaviorRequestDto(BaseModel):
     party_id: str = Field(
         ..., description="The ID of the party the user is chatting with"
     )
+    context_id: Optional[str] = Field(
+        default=None,
+        description="Election context id; scopes party lookup and vote retrieval.",
+    )
     last_user_message: str = Field(..., description="The last user message")
     last_assistant_message: str = Field(..., description="The last assistant message")
     summary_llm_size: LLMSize = Field(
         description="The LLM size to use for voting behavior summary generation",
         default=LLMSize.LARGE,
-    )
-    user_is_logged_in: bool = Field(
-        description="Whether the user is logged in or not", default=False
     )
 
 
@@ -175,9 +176,6 @@ class ChatUserMessageDto(BaseModel):
     )
     party_ids: List[str] = Field(
         ..., description="The IDs of the parties that are part of the chat session"
-    )
-    user_is_logged_in: bool = Field(
-        description="Whether the user is logged in or not", default=False
     )
     # Optional audio fields for voice messages
     audio_bytes: Optional[bytes] = Field(
@@ -345,33 +343,3 @@ class VoiceTranscribedDto(BaseModel):
         default=None, description="Inner ID to correlate request with response"
     )
     transcribed_text: str = Field(..., description="The transcribed text from audio")
-
-
-class TextToSpeechRequestDto(BaseModel):
-    session_id: str = Field(..., description="The ID of the chat session")
-    message_id: str = Field(..., description="The ID of the message to synthesize")
-    party_id: str = Field(
-        ..., description="The ID of the party whose message to synthesize"
-    )
-    voice: str = Field(
-        default="nova",
-        description="OpenAI TTS voice: alloy, echo, fable, onyx, nova, shimmer",
-    )
-
-    @field_validator("session_id")
-    def session_id_must_not_be_empty(cls, value):
-        if not value.strip():
-            raise ValidationError("Session ID cannot be empty or whitespace.")
-        return value
-
-
-class TextToSpeechResponseDto(BaseModel):
-    session_id: str = Field(..., description="The ID of the chat session")
-    message_id: str = Field(
-        ..., description="The ID of the message that was synthesized"
-    )
-    party_id: str = Field(
-        ..., description="The ID of the party whose message was synthesized"
-    )
-    audio_base64: str = Field(..., description="Base64-encoded MP3 audio data")
-    status: Status = Field(..., description="The status of the event")
