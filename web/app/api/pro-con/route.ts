@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-// FIX 13: Prevent Vercel from truncating long SSE streams (default 10s too short).
+// Prevent Vercel from truncating long SSE streams (default 10s is too short).
 export const maxDuration = 300;
 
 /**

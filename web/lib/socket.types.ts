@@ -52,6 +52,9 @@ export type StreamingMessage = {
   sources?: Source[];
   party_id?: string;
   chunking_complete?: boolean;
+  // Terminal per-party failure (error-status party_complete): the responder is
+  // done, but its fallback text must NOT be persisted as a normal answer.
+  failed?: boolean;
   pro_con_perspective?: MessageItem;
   voting_behavior?: VotingBehavior;
   feedback?: MessageFeedback;

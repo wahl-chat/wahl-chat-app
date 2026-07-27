@@ -6,8 +6,17 @@ importScripts(
 const urlParams = new URLSearchParams(location.search);
 const config = Object.fromEntries(urlParams);
 
+// Local-emulator wiring: the page passes authEmulatorUrl when the app runs
+// against the Firebase emulators; without it the worker would sign into the
+// REAL project's Auth while the page uses the emulator.
+const authEmulatorUrl = config.authEmulatorUrl;
+delete config.authEmulatorUrl;
+
 // Initialize the Firebase app in the service worker script.
 firebase.initializeApp(config);
+if (authEmulatorUrl) {
+  firebase.auth().useEmulator(authEmulatorUrl);
+}
 
 /**
  * Returns a promise that resolves with an ID token if available.
@@ -90,8 +99,13 @@ self.addEventListener('fetch', (event) => {
       req.headers.forEach((val, key) => {
         headers.append(key, val);
       });
-      // Add ID token to header.
-      headers.append('Authorization', 'Bearer ' + idToken);
+      // Exactly ONE layer owns Authorization: when the page already attached
+      // a token (the SSE chat transport does), leave it — appending a second
+      // value serializes as "Bearer <a>, Bearer <b>", which fails backend
+      // verification and silently downgrades a verified user to anonymous.
+      if (!headers.has('Authorization')) {
+        headers.append('Authorization', 'Bearer ' + idToken);
+      }
       processRequestPromise = getBodyContent(req).then((body) => {
         try {
           req = new Request(req.url, {

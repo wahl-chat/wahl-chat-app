@@ -31,6 +31,15 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
 
     const safeContextId = contextId ?? DEFAULT_CONTEXT_ID;
 
+    // Reject concurrent sends: AI SDK v5 does not serialize a second
+    // sendMessage — it REPLACES the active response, so trailing events from
+    // the running turn would be aborted or applied to the wrong turn. The turn
+    // stays busy until the stream is terminal (onFinish / error paths).
+    if (get().loading.newMessage) {
+      toast.error('Bitte warte, bis die aktuelle Antwort abgeschlossen ist.');
+      return;
+    }
+
     // SSE model: no socket connectivity check needed — each message is a fresh
     // HTTP POST. There is no persistent connection to be "connected" to.
 

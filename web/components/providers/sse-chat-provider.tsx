@@ -54,6 +54,12 @@ function SseChatProvider({ children }: Props) {
   const completeStreamingMessage = useChatStore(
     (state) => state.completeStreamingMessage,
   );
+  const failStreamingMessage = useChatStore(
+    (state) => state.failStreamingMessage,
+  );
+  const finishStreamingTurn = useChatStore(
+    (state) => state.finishStreamingTurn,
+  );
   const completeProConPerspective = useChatStore(
     (state) => state.completeProConPerspective,
   );
@@ -64,7 +70,7 @@ function SseChatProvider({ children }: Props) {
     (state) => state.cancelStreamingMessages,
   );
 
-  const { sendMessage, stop } = useChat({
+  const { sendMessage, stop, messages } = useChat({
     // v5: transport replaces the `api`/`streamProtocol` options. The backend
     // emits the v5 UI-message-stream (data: <json> parts) so no protocol flag
     // is needed — useChat parses it natively.
@@ -74,8 +80,31 @@ function SseChatProvider({ children }: Props) {
       // route forwards it so the backend can verify user_is_logged_in/premium
       // Resolves to {} when signed out / on token errors —
       // the request degrades gracefully to unauthenticated.
+      // (The auth service worker defers to this header — it only injects its
+      // own token when a request carries none, so exactly ONE Bearer token
+      // reaches the backend.)
       headers: () => getAuthHeader(),
+      // The rendered/persisted history lives in the Zustand store and is sent
+      // explicitly as body.chat_history; the hook's internal UI messages are a
+      // SECOND, session-unscoped history (this provider survives navigation
+      // between sessions) that would otherwise ride along on every request.
+      // Send only the current user message — the proxy derives user_message
+      // from the last user entry and forwards the canonical body fields.
+      prepareSendMessagesRequest: ({ id, messages: sdkMessages, body }) => ({
+        body: {
+          id,
+          messages: sdkMessages.slice(-1),
+          ...body,
+        },
+      }),
     }),
+    // The turn is released ONLY on stream finish (or terminal error): a
+    // party_complete is party-scoped, and enabling the input earlier lets a
+    // second sendMessage REPLACE the still-active response (AI SDK v5 does
+    // not serialize sends), losing quick replies / title of the first turn.
+    onFinish: () => {
+      finishStreamingTurn();
+    },
     // v5 removed `message.annotations`. Our V1 named chat events arrive as
     // custom `data-chat_event` parts and are delivered here per-event as they
     // stream (more reliable than scraping message.parts in onFinish). The inner
@@ -112,12 +141,28 @@ function SseChatProvider({ children }: Props) {
           ann as Parameters<typeof mergeStreamingChunkPayloadForMessage>[2],
         );
       } else if (type === 'party_complete') {
-        // V1: 'party_response_complete' event → completeStreamingMessage
-        completeStreamingMessage(
-          ann.session_id as string,
-          ann.party_id as string,
-          ann.complete_message as string,
-        );
+        // V1: 'party_response_complete' event. Branch on the status BEFORE
+        // persisting: an error party_complete carries a fallback text that
+        // must not be serialized as a successful answer — the responder is
+        // terminally marked failed instead (mixed multi-party turns keep the
+        // successful answers, and no responder stays pending).
+        const status = ann.status as { indicator?: string } | undefined;
+        if (status?.indicator === 'error') {
+          console.error(
+            '[SseChatProvider] party_complete with error status:',
+            ann.party_id,
+          );
+          failStreamingMessage(
+            ann.session_id as string,
+            ann.party_id as string,
+          );
+        } else {
+          completeStreamingMessage(
+            ann.session_id as string,
+            ann.party_id as string,
+            ann.complete_message as string,
+          );
+        }
       } else if (type === 'quick_replies_title') {
         // V1: 'quick_replies_and_title_ready' event
         updateQuickRepliesAndTitleForCurrentStreamingMessage(
@@ -132,8 +177,8 @@ function SseChatProvider({ children }: Props) {
           ann.message as Parameters<typeof completeProConPerspective>[1],
         );
       } else if (type === 'error') {
-        // FIX 14: Surface mid-stream backend error parts instead of silently dropping.
-        // Backend emits type-8 error annotations from generate_chat_stream's except block.
+        // Surface mid-stream backend error parts instead of silently dropping
+        // them (generate_chat_stream emits them from its error paths).
         console.error('[SseChatProvider] backend stream error:', ann.message);
         toast.error('Es ist ein Fehler aufgetreten.');
         // Clear the streaming state so loading.newMessage does not stay stuck
@@ -153,6 +198,14 @@ function SseChatProvider({ children }: Props) {
       );
     },
   });
+
+  // Raw transport progress also feeds the inactivity watchdog: v5 text deltas
+  // update `messages` without emitting data-chat_event parts, so a long
+  // single-party answer would otherwise look "idle" to the onData-only reset
+  // and be aborted mid-stream by the watchdog.
+  useEffect(() => {
+    resetStreamingMessageWatchdog();
+  }, [messages, resetStreamingMessageWatchdog]);
 
   // Expose a stable append wrapper so store actions can send messages.
   const stableAppend = useCallback(

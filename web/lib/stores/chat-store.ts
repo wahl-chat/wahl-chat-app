@@ -9,6 +9,8 @@ import { chatAddUserMessage } from './actions/chat-add-user-message';
 import { completeProConPerspective } from './actions/complete-pro-con-perspective';
 import { completeStreamingMessage } from './actions/complete-streaming-message';
 import { completeVotingBehavior } from './actions/complete-voting-behavior';
+import { failStreamingMessage } from './actions/fail-streaming-message';
+import { finishStreamingTurn } from './actions/finish-streaming-turn';
 import { generateProConPerspective } from './actions/generate-pro-con-perspective';
 import { generateSharingSnapshotLink } from './actions/generate-sharing-snapshot-link';
 import { generateVotingBehaviorSummary } from './actions/generate-voting-behavior-summary';
@@ -24,7 +26,6 @@ import { setInput } from './actions/set-input';
 import { setMessageFeedback } from './actions/set-message-feedback';
 import { setPartyIds } from './actions/set-party-ids';
 import { setPreSelectedParties } from './actions/set-pre-selected-parties';
-// FIX 15: set-socket* action files removed (Socket.IO is gone; SSE replaces it).
 import {
   resetStreamingMessageWatchdog,
   startTimeoutForStreamingMessages,
@@ -83,7 +84,6 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
         setChatSessionIsPublic: setChatSessionIsPublic(get, set),
         setMessageFeedback: setMessageFeedback(get, set),
         setPreSelectedParties: setPreSelectedParties(get, set),
-        // FIX 15: setSocket*, setSocketConnecting, setSocketConnected, setSocketError removed.
         // Action files deleted; Socket.IO is replaced by SSE in this codebase.
         initializeChatSession: initializeChatSession(get, set),
         streamingMessageSourcesReady: streamingMessageSourcesReady(get, set),
@@ -92,6 +92,8 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
         updateQuickRepliesAndTitleForCurrentStreamingMessage:
           updateQuickRepliesAndTitleForCurrentStreamingMessage(get, set),
         completeStreamingMessage: completeStreamingMessage(get, set),
+        failStreamingMessage: failStreamingMessage(get, set),
+        finishStreamingTurn: finishStreamingTurn(get, set),
         cancelStreamingMessages: cancelStreamingMessages(get, set),
         startTimeoutForStreamingMessages: startTimeoutForStreamingMessages(
           get,

@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-// FIX 13: Prevent Vercel from truncating long SSE streams.
+// Prevent Vercel from truncating long SSE streams.
 // Default function timeout (10s) is far too short for multi-party chat generation.
 // 300s is the maximum allowed by Vercel Pro/Enterprise for the Node.js runtime.
 // The default runtime for App Router route handlers is already 'nodejs', so no

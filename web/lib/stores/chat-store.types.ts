@@ -149,7 +149,6 @@ export type ChatStoreActions = {
   setChatSessionIsPublic: (isPublic: boolean) => Promise<void>;
   setMessageFeedback: (messageId: string, feedback: MessageFeedback) => void;
   setPreSelectedParties: (parties: PartyDetails[]) => void;
-  // FIX 15: setSocket, setSocketConnecting, setSocketConnected, setSocketError removed.
   // Action files deleted; Socket.IO is replaced by SSE.
   initializeChatSession: () => Promise<void>;
   selectRespondingParties: (sessionId: string, partyIds: string[]) => void;
@@ -173,6 +172,8 @@ export type ChatStoreActions = {
     partyId: string,
     completeMessage: string,
   ) => void;
+  failStreamingMessage: (sessionId: string, partyId: string) => void;
+  finishStreamingTurn: () => void;
   startTimeoutForStreamingMessages: (streamingMessageId: string) => void;
   resetStreamingMessageWatchdog: () => void;
   cancelStreamingMessages: (streamingMessageId?: string) => void;
