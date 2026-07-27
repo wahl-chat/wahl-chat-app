@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+import hashlib
 import logging
 import os
 import sys
@@ -6,6 +7,7 @@ from typing import Optional
 import firebase_admin
 from firebase_admin import firestore, credentials, firestore_async
 import google.auth
+import google.auth.credentials
 import google.auth.transport.requests
 from google.auth.exceptions import RefreshError
 from pathlib import Path
@@ -24,10 +26,35 @@ credentials_path = (
     else "wahl-chat-dev-firebase-adminsdk.json"
 )
 
+# Local/CI runs talk to the Firestore emulator (FIRESTORE_EMULATOR_HOST set) and
+# must never require real credentials. In that mode, initialize with
+# anonymous credentials + an explicit project id so firebase_admin performs NO
+# Application Default Credentials lookup at all (ADC is absent in CI and would
+# otherwise raise DefaultCredentialsError when the Firestore client is built).
+emulator_mode = bool(os.getenv("FIRESTORE_EMULATOR_HOST"))
+
+
+class _EmulatorCredentials(credentials.Base):
+    """No-auth credential for the Firestore emulator — never contacts an IdP."""
+
+    def get_credential(self) -> google.auth.credentials.Credentials:
+        return google.auth.credentials.AnonymousCredentials()
+
+
 # If the credentials file does not exist, use the application default credentials
 if Path(credentials_path).exists():
     cred = credentials.Certificate(credentials_path)
     firebase_admin.initialize_app(cred)
+elif emulator_mode:
+    project_id = (
+        os.getenv("GOOGLE_CLOUD_PROJECT")
+        or os.getenv("GCLOUD_PROJECT")
+        or os.getenv("FIREBASE_PROJECT_ID")
+        or "demo-wahl-chat"
+    )
+    firebase_admin.initialize_app(
+        _EmulatorCredentials(), options={"projectId": project_id}
+    )
 else:
     firebase_admin.initialize_app()
 
@@ -44,6 +71,9 @@ def _validate_credentials():
     """
     if Path(credentials_path).exists():
         return  # Using service account JSON — no expiry issues
+
+    if emulator_mode:
+        return  # Firestore emulator — no ADC to validate
 
     try:
         adc_credentials, _ = google.auth.default()
@@ -85,11 +115,25 @@ async def aget_proposed_questions_for_party(party_id: str) -> list[str]:
     return [question.get("content") async for question in questions]
 
 
+def _sanitize_cache_key(cache_key: str) -> str:
+    """Make a cache key safe to use as a Firestore path segment.
+
+    Proposed-question cache keys are raw LLM/user-facing text; a ``/`` inside
+    that text would silently corrupt the Firestore collection path
+    (``cached_answers/{party_id}/{cache_key}``). When the key contains a ``/``
+    it is replaced by its sha256 hex digest. Applied identically on the read
+    AND write paths so lookups stay consistent.
+    """
+    if "/" in cache_key:
+        return hashlib.sha256(cache_key.encode("utf-8")).hexdigest()
+    return cache_key
+
+
 async def aget_cached_answers_for_party(
     party_id: str, cache_key: str
 ) -> list[CachedResponse]:
     cached_answers = async_db.collection(
-        f"cached_answers/{party_id}/{cache_key}"
+        f"cached_answers/{party_id}/{_sanitize_cache_key(cache_key)}"
     ).stream()
     return [
         CachedResponse(**cached_answer.to_dict())
@@ -101,7 +145,7 @@ async def awrite_cached_answer_for_party(
     party_id: str, cache_key: str, cached_answer: CachedResponse
 ) -> None:
     cached_answer_ref = async_db.collection(
-        f"cached_answers/{party_id}/{cache_key}"
+        f"cached_answers/{party_id}/{_sanitize_cache_key(cache_key)}"
     ).document()
     await cached_answer_ref.set(cached_answer.model_dump())
 

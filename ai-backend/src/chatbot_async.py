@@ -2,7 +2,7 @@
 
 import logging
 import os
-from typing import AsyncIterator, List, Tuple, Dict
+from typing import AsyncIterator, List, Tuple, Dict, Optional
 from datetime import datetime
 from openai import AsyncOpenAI  # for API format
 
@@ -69,6 +69,12 @@ from src.prompts import (
     swiper_assistant_user_prompt_template,
     generate_swiper_assistant_title_and_quick_replies_system_prompt,
     generate_swiper_assistant_title_and_quick_replies_user_prompt_str,
+    SOURCE_STRUCTURE_LEADINS_DE,
+    HISTORIC_SECTION_NOTE_DE,
+    SOURCE_COVERAGE_PREAMBLE_DE,
+    SOURCE_LABEL_MANIFESTO_DE,
+    SOURCE_LABEL_VOTES_DE,
+    SOURCE_LABEL_SPEECHES_DE,
 )
 
 from src.models.chat import Message
@@ -391,6 +397,74 @@ def get_rag_context(relevant_docs: List[Document]) -> str:
     return rag_context
 
 
+# German labels for the locked stance values (derive_stance output).
+_STANCE_DE = {
+    "agree": "überwiegend dafür gestimmt",
+    "disagree": "überwiegend dagegen gestimmt",
+    "neutral": "überwiegend enthalten / kein klares Votum",
+    "absent": "überwiegend nicht abgestimmt",
+}
+
+
+def build_vote_documents(
+    party_id: str, party_name: str, vote_payloads: List[dict]
+) -> List[Document]:
+    """Convert vote_record payloads into LangChain Documents for numbered citation.
+
+    Each participating vote becomes one Document whose ``page_content`` is a German
+    block with the motion subject, outcome, source, and that party's tally + stance.
+    Votes where the party did not participate (``party_result`` is None) are skipped.
+
+    The resulting Documents flow into ``combined_docs`` and are numbered
+    sequentially by ``get_rag_context``, so the LLM cites them as clean
+    ``[N]`` integer IDs like every other grounding source.
+
+    Returns an empty list when there are no participating votes.
+    """
+    docs: list[Document] = []
+    for payload in vote_payloads:
+        results = (payload.get("meta") or {}).get("vote_results") or []
+        party_result = next((r for r in results if r.get("party_id") == party_id), None)
+        if party_result is None:
+            continue  # party did not participate in this vote — skip
+
+        subject = payload.get("citation_title") or payload.get("text") or "Abstimmung"
+        outcome = (payload.get("meta") or {}).get("motion_outcome") or "unbekannt"
+        stance_de = _STANCE_DE.get(party_result.get("stance", ""), "unbekannt")
+
+        # Parliament-origin label from region payload field.
+        # Direct payload value — NOT LLM-generated (structural marker).
+        is_federal = payload.get("region") == "DE"
+        parlament_label = "Bundestag (Bundesebene)" if is_federal else "Landtag"
+
+        page_content = (
+            f"# Abstimmung: {subject}\n"
+            f"- Datum: {payload.get('publish_date', 'unbekannt')}\n"
+            f"- Parlament: {parlament_label}\n"
+            f"- Gesamtergebnis der Abstimmung: {outcome}\n"
+            f"- Quelle: {payload.get('citation_url', 'keine Quelle angegeben')}\n"
+            f"- Abstimmungsverhalten der Partei {party_name} ({stance_de}):\n"
+            f"    - Ja: {party_result.get('yes', 0)}\n"
+            f"    - Nein: {party_result.get('no', 0)}\n"
+            f"    - Enthaltungen: {party_result.get('abstain', 0)}\n"
+            f"    - Nicht abgestimmt: {party_result.get('no_show', 0)}\n"
+        )
+        docs.append(
+            Document(
+                page_content=page_content,
+                metadata={
+                    "document_name": subject,
+                    "document_publish_date": payload.get("publish_date"),
+                    "url": payload.get("citation_url"),
+                    "page": 1,
+                    "source_document": subject,
+                    "authority_tier": payload.get("authority_tier"),
+                },
+            )
+        )
+    return docs
+
+
 def get_rag_comparison_context(
     relevant_docs: Dict[str, List[Document]], relevant_parties: List[ContextParty]
 ) -> str:
@@ -446,7 +520,13 @@ async def generate_streaming_chatbot_response(
     chat_response_llm_size: LLMSize,
     context_id: str = DEFAULT_CONTEXT_ID,
     use_premium_llms: bool = False,
+    election_level: Optional[str] = None,
+    present_sources: Optional[tuple[bool, bool, bool]] = None,
+    has_historic: bool = False,
 ) -> AsyncIterator[BaseMessageChunk]:
+    # relevant_docs is combined_docs from chat_service.py (manifesto + vote +
+    # speech Documents); get_rag_context numbers them sequentially so the LLM
+    # cites every grounding source as a clean [N] integer ID.
     rag_context = get_rag_context(relevant_docs)
 
     now = datetime.now()
@@ -479,6 +559,30 @@ async def generate_streaming_chatbot_response(
         )
     else:
         answer_guidelines = get_chat_answer_guidelines(party.name, is_comparing=False)
+        # For non-federal elections, instruct the LLM to explicitly flag Bundestag-origin
+        # votes vs the local Landtag (additive to the structural region marker in sources[]).
+        answer_guidelines += _federal_origin_disclosure_note(election_level)
+        # Source-aware structure + positive coverage preamble: append the
+        # four-section structure guidance ONLY when a caller opts in
+        # (present_sources passed or has_historic set). With the
+        # backward-compatible defaults (present_sources=None, has_historic=False)
+        # no structure note is emitted, so untouched callers reproduce today's
+        # prompt byte-for-byte. Single-party path only — the comparison path keeps
+        # its own by-party structure (see
+        # generate_streaming_chatbot_comparing_response).
+        if present_sources is not None or has_historic:
+            manifesto_present, votes_present, speeches_present = (
+                present_sources
+                if present_sources is not None
+                else (False, False, False)
+            )
+            answer_guidelines += _source_structure_note(
+                party.name,
+                has_historic,
+                manifesto_present,
+                votes_present,
+                speeches_present,
+            )
         system_prompt = party_response_system_prompt_template.format(
             party_name=party.name,
             party_long_name=party.long_name,
@@ -509,6 +613,88 @@ async def generate_streaming_chatbot_response(
     )
 
 
+def _federal_origin_disclosure_note(election_level: Optional[str]) -> str:
+    """Guideline appended for non-federal elections so the model discloses that a cited
+    vote is a Bundestag (federal) vote, not a local Landtag vote.
+
+    Returns "" for federal elections and when election_level is unset, so the disclosure
+    only appears where a federal vote can be mistaken for a local one. Used by both the
+    single-party and comparison response paths so the disclosure cannot diverge.
+    """
+    if election_level is None or election_level == "federal":
+        return ""
+    return (
+        "\n- Wenn du Abstimmungsdaten aus dem Bundestag zitierst (erkennbar am Label "
+        "'Parlament: Bundestag (Bundesebene)'), weise explizit darauf hin, dass es sich "
+        "um eine Bundestagsabstimmung handelt — nicht um eine Abstimmung des lokalen "
+        "Landtags. Wähler:innen müssen klar erkennen können, auf welcher politischen "
+        "Ebene die Abstimmung stattgefunden hat."
+    )
+
+
+def _join_sources_de(labels: list[str]) -> str:
+    """Join German source labels into a natural ``a, b und c`` list.
+
+    One item → the item; two → ``a und b``; three+ → ``a, b und c``. Used to
+    render the positive coverage preamble's present-source list.
+    """
+    if len(labels) == 1:
+        return labels[0]
+    return ", ".join(labels[:-1]) + " und " + labels[-1]
+
+
+def _source_structure_note(
+    party_name: str,
+    has_historic: bool,
+    manifesto_present: bool,
+    votes_present: bool,
+    speeches_present: bool,
+) -> str:
+    """Guideline block appended to the SINGLE-PARTY answer's ``answer_guidelines``.
+
+    Mirrors ``_federal_origin_disclosure_note``: returns a string appended to
+    ``answer_guidelines``. It gives the German answer the four-section
+    shape with soft lead-in cues, a clearly-marked historic section when
+    the historic bucket is non-empty, and a POSITIVE coverage preamble that
+    names the source types actually grounding the answer. All German literals
+    live in ``prompts.py``; this helper only composes them conditionally.
+
+    - The four-section soft-lead-in guidance (``SOURCE_STRUCTURE_LEADINS_DE``) is
+      ALWAYS included — the four cues are illustrative examples of the prose
+      style, explicitly NOT rigid form headers.
+    - ``has_historic`` gates the strong "render a marked historic section, placed
+      last" instruction. When it is False no historic-section instruction is
+      emitted, so a section the (threshold-gated) grounding cannot support is
+      never invented.
+    - ``manifesto_present`` / ``votes_present`` / ``speeches_present`` drive the
+      positive coverage preamble: the model is told to open by naming the source
+      types it DOES have (Wahlprogramm / Abstimmungen / Reden), value-neutrally,
+      instead of flagging a missing type as a deficiency (customer feedback: the
+      old "no voting record found" framing made speeches read as lesser). When no
+      current source type is present no preamble is emitted.
+
+    Scope: the four-section shape + coverage preamble are single-party only. The
+    comparison path keeps its own by-party structure and receives only the
+    historic-marking instruction (see
+    ``generate_streaming_chatbot_comparing_response``).
+    """
+    note = SOURCE_STRUCTURE_LEADINS_DE.format(party_name=party_name)
+    if has_historic:
+        note += HISTORIC_SECTION_NOTE_DE
+    present_labels = []
+    if manifesto_present:
+        present_labels.append(SOURCE_LABEL_MANIFESTO_DE)
+    if votes_present:
+        present_labels.append(SOURCE_LABEL_VOTES_DE)
+    if speeches_present:
+        present_labels.append(SOURCE_LABEL_SPEECHES_DE)
+    if present_labels:
+        note += SOURCE_COVERAGE_PREAMBLE_DE.format(
+            present_sources=_join_sources_de(present_labels)
+        )
+    return note
+
+
 async def generate_streaming_chatbot_comparing_response(
     party: ContextParty,
     conversation_history: str,
@@ -517,12 +703,25 @@ async def generate_streaming_chatbot_comparing_response(
     relevant_parties: List[ContextParty],
     chat_response_llm_size: LLMSize,
     use_premium_llms: bool = False,
+    election_level: Optional[str] = None,
+    has_historic: bool = False,
 ) -> AsyncIterator[BaseMessageChunk]:
     rag_context = get_rag_comparison_context(relevant_docs, relevant_parties)
 
     now = datetime.now()
 
     answer_guidelines = get_chat_answer_guidelines(party.name, is_comparing=True)
+    # Same federal-vote disclosure as the single-party path: in a non-federal election,
+    # tell the model to flag Bundestag votes so a comparison can't present a federal vote
+    # as a party's local-election stance without disclosure.
+    answer_guidelines += _federal_origin_disclosure_note(election_level)
+    # The comparison keeps its own by-party structure, so the
+    # four-section shape + coverage transparency (single-party only) do NOT apply
+    # here. Only the historic-marking instruction is threaded: when historic
+    # material is present, tell the model to mark it as a prior legislature so a
+    # comparison never presents historic material as the current record.
+    if has_historic:
+        answer_guidelines += HISTORIC_SECTION_NOTE_DE
 
     parties_being_compared = [party.name for party in relevant_parties]
 
@@ -696,8 +895,7 @@ def _format_vote_summary(
         - Ja: {party_result.yes}
         - Nein: {party_result.no}
         - Enthaltungen: {party_result.abstain}
-        - Nicht abgestimmt: {party_result.not_voted}
-        - Begründung: {party_result.justification if party_result.justification else "Keine Begründung angegeben."}\n\n
+        - Nicht abgestimmt: {party_result.not_voted}\n\n
 """
 
 
