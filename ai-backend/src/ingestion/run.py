@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Generic run_connector() orchestrator for all wahl.chat V2 data source connectors.
+Generic run_connector() orchestrator for all wahl.chat data source connectors.
 
 A single synchronous fetch→normalize→embed→upsert pass.  The cursor (since) is
 derived from Qdrant max(external_id) for the connector's source_type — no
@@ -32,6 +32,23 @@ import sys
 import time
 from typing import NamedTuple, Optional
 
+# CLI startup ONLY: load ai-backend/.env BEFORE the imports below — embeddings
+# and setup_collection freeze EMBEDDING_MODEL / EMBEDDING_DIM / COLLECTION_NAME
+# from the environment at import time, so a load_dotenv() after them configures
+# nothing (e.g. a Gemini .env would still run with the frozen OpenAI model
+# name). Library imports (tests, other modules) are side-effect free — this
+# block runs only under `python -m src.ingestion.run`. override=False keeps
+# explicitly-exported env (e.g. CONNECTOR_ID, QDRANT_URL) authoritative;
+# Cloud Run has no .env file, so the job-spec env passes through untouched.
+if __name__ == "__main__":
+    from pathlib import Path
+
+    from dotenv import load_dotenv
+
+    _env_path = Path(__file__).resolve().parents[2] / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path, override=False)
+
 from langchain_core.embeddings import Embeddings
 from qdrant_client import QdrantClient, models
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -42,6 +59,7 @@ from src.ingestion.schemas import ChunkRecord
 from src.ingestion.setup_collection import (
     COLLECTION_NAME,
     EMBEDDING_DIM,
+    check_fingerprint,
 )
 from src.ingestion.ids import compute_chunk_id
 
@@ -266,8 +284,14 @@ def _upsert_chunks(
     """
     from qdrant_client.models import PointStruct  # noqa: PLC0415
 
+    if len(vectors) != len(chunks):
+        # A provider returning the wrong number of vectors is a coding/config
+        # invariant violation; a plain zip would silently drop the tail chunks.
+        raise DimensionMismatchError(
+            f"embedding count mismatch: {len(chunks)} chunks but {len(vectors)} vectors"
+        )
     points = []
-    for chunk, vector in zip(chunks, vectors):
+    for chunk, vector in zip(chunks, vectors, strict=True):
         if len(vector) != EMBEDDING_DIM:
             raise DimensionMismatchError(
                 f"embedding dim mismatch: expected {EMBEDDING_DIM}, "
@@ -290,6 +314,140 @@ def _upsert_chunks(
             points=points[start : start + _UPSERT_BATCH_POINTS],
             wait=True,
         )
+
+
+# ---------------------------------------------------------------------------
+# Per-item helpers for run_connector() — each stage of the reconcile-and-write
+# decision is its own function so the orchestrator reads as a flat sequence.
+# ---------------------------------------------------------------------------
+
+
+def _delete_superseded_twins(
+    qdrant: QdrantClient, collection_name: str, connector: BaseConnector
+) -> None:
+    """Delete stored points for source_item_ids the connector reports superseded.
+
+    Concurrent DIP+op hazard: a connector may report the source_item_ids its
+    normalize() SKIPPED as already-superseded (the DIP connector sets
+    last_superseded_siids). Any stored points under those siids are stranded
+    twins from an interleaved concurrent run — they appear in NO new-chunk or
+    orphan filter, so they are deleted here. No-op for every connector that
+    does not expose the attribute.
+    """
+    superseded_siids = [
+        str(s) for s in (getattr(connector, "last_superseded_siids", ()) or ())
+    ]
+    if not superseded_siids:
+        return
+    qdrant.delete(
+        collection_name=collection_name,
+        points_selector=models.FilterSelector(
+            filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="source_item_id",
+                        match=models.MatchAny(any=superseded_siids),
+                    )
+                ]
+            )
+        ),
+        wait=True,
+    )
+
+
+def _scan_parent_footprint(
+    qdrant: QdrantClient,
+    collection_name: str,
+    siids: list[str],
+    parent_key: str,
+) -> tuple[dict[str, Optional[str]], dict[str, str]]:
+    """Scroll the parent's FULL stored footprint.
+
+    Two scopes, unioned:
+      1. source_item_id — the children the NEW normalize emits (also finds
+         points written before source_parent_key existed, on the transition
+         run before the corpus is re-ingested). Skipped when *siids* is empty.
+      2. source_parent_key — the stable per-parent identity, so a child the
+         new normalize no longer emits at all (a protocol that produced
+         speeches A+B now producing only A, or nothing) is still scanned and
+         reconciled. A source_item_id-only scope can only see children the new
+         output names, so it would leave a wholly-disappeared child
+         retrievable forever.
+
+    Returns:
+        (existing_hash_by_id, pdf_by_siid) where existing_hash_by_id maps each
+        stored point id to its content_hash (None when the point carries none)
+        and pdf_by_siid maps source_item_id → grafted DIP transcript PDF URL
+        (meta.transcript_pdf_url, written by the op supersede pass) — the
+        graft must survive a rewrite, since fresh mapper output never carries
+        it and the DIP twin that donated it is already deleted.
+    """
+    existing_hash_by_id: dict[str, Optional[str]] = {}
+    pdf_by_siid: dict[str, str] = {}
+    footprint_scopes: list[models.FieldCondition] = []
+    if siids:
+        footprint_scopes.append(
+            models.FieldCondition(
+                key="source_item_id", match=models.MatchAny(any=siids)
+            )
+        )
+    footprint_scopes.append(
+        models.FieldCondition(
+            key="source_parent_key", match=models.MatchValue(value=parent_key)
+        )
+    )
+    for scope in footprint_scopes:
+        scope_filter = models.Filter(must=[scope])
+        next_offset = None
+        while True:
+            points, next_offset = qdrant.scroll(
+                collection_name=collection_name,
+                scroll_filter=scope_filter,
+                limit=1000,
+                offset=next_offset,
+                with_payload=[
+                    "source_item_id",
+                    "content_hash",
+                    "meta.transcript_pdf_url",
+                ],
+                with_vectors=False,
+            )
+            for p in points:
+                payload = p.payload or {}
+                existing_hash_by_id[str(p.id)] = payload.get("content_hash")
+                grafted_pdf = (payload.get("meta") or {}).get("transcript_pdf_url")
+                if grafted_pdf and payload.get("source_item_id") is not None:
+                    pdf_by_siid.setdefault(str(payload["source_item_id"]), grafted_pdf)
+            if next_offset is None:
+                break
+    return existing_hash_by_id, pdf_by_siid
+
+
+def _reapply_grafted_pdfs(
+    chunks: list[ChunkRecord], pdf_by_siid: dict[str, str]
+) -> list[ChunkRecord]:
+    """Re-apply grafted transcript PDFs to fresh mapper output.
+
+    Only where the fresh output lacks one, so an op re-write cannot strip the
+    supersede merge result. content_hash is computed by the mapper BEFORE this
+    graft, so idempotency comparisons on later runs are unaffected.
+    """
+    if not pdf_by_siid:
+        return chunks
+    return [
+        c.model_copy(
+            update={
+                "meta": {
+                    **(c.meta or {}),
+                    "transcript_pdf_url": pdf_by_siid[str(c.source_item_id)],
+                }
+            }
+        )
+        if str(c.source_item_id) in pdf_by_siid
+        and "transcript_pdf_url" not in (c.meta or {})
+        else c
+        for c in chunks
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -337,6 +495,11 @@ def run_connector(
         number of items fully upserted this run, M is the estimated remaining
         count, and C is the total number of ChunkRecord instances written.
     """
+    # Refuse to write into a collection whose stored embedding-space
+    # fingerprint contradicts the current configuration (soft-pass when the
+    # store predates fingerprints or the client cannot read points).
+    check_fingerprint(qdrant, collection_name)
+
     since = (
         since_override
         if since_override is not None
@@ -390,7 +553,7 @@ def run_connector(
                 continue
 
             # Stamp the stable per-parent key (the discover/fetch id, source-scoped)
-            # onto every chunk so the footprint scroll below can reconcile EVERY child
+            # onto every chunk so the footprint scan can reconcile EVERY child
             # this parent ever produced — including a source_item_id this normalize()
             # no longer emits. content_hash is computed by the mapper BEFORE this stamp,
             # so idempotency comparisons on later runs are unaffected.
@@ -399,116 +562,49 @@ def run_connector(
                 c.model_copy(update={"source_parent_key": parent_key}) for c in chunks
             ]
 
-            # Concurrent DIP+op hazard: a connector may report the
-            # source_item_ids its normalize() SKIPPED as already-superseded (the
-            # DIP connector sets last_superseded_siids). Any stored points under
-            # those siids are stranded twins from an interleaved concurrent run —
-            # they appear in NO new-chunk or orphan filter, so delete them here.
-            # No-op for every connector that does not expose the attribute.
-            superseded_siids = [
-                str(s) for s in (getattr(connector, "last_superseded_siids", ()) or ())
-            ]
-            if superseded_siids:
-                qdrant.delete(
-                    collection_name=collection_name,
-                    points_selector=models.FilterSelector(
-                        filter=models.Filter(
-                            must=[
-                                models.FieldCondition(
-                                    key="source_item_id",
-                                    match=models.MatchAny(any=superseded_siids),
-                                )
-                            ]
-                        )
-                    ),
-                    wait=True,
-                )
+            _delete_superseded_twins(qdrant, collection_name, connector)
 
-            if chunks:
-                # Already-present / orphan guard (cost optimisation + staleness fix):
-                # Compute deterministic point IDs for this item's chunks (same formula as
-                # _upsert_chunks) and compare against the FULL existing footprint of the
-                # fetched PARENT in Qdrant.
+            # source_item_id is a UUID; stringify for the keyword-index MatchAny.
+            siids = sorted({str(c.source_item_id) for c in chunks})
+            existing_hash_by_id, pdf_by_siid = _scan_parent_footprint(
+                qdrant, collection_name, siids, parent_key
+            )
+            existing_point_ids = set(existing_hash_by_id.keys())
+
+            if not chunks:
+                # Authoritative empty result: normalize() SUCCEEDED with zero
+                # chunks (failures raise and are skip-and-warned above), so the
+                # parent's footprint is now empty. Delete whatever it produced
+                # before — otherwise a parent that shrinks to nothing keeps its
+                # old chunks retrievable forever.
+                if existing_point_ids:
+                    qdrant.delete(
+                        collection_name=collection_name,
+                        points_selector=models.PointIdsList(
+                            points=sorted(existing_point_ids)
+                        ),
+                        wait=True,
+                    )
+                    did_work = True
+                else:
+                    present_skips += 1
+            else:
+                # Already-present / orphan guard (cost optimisation + staleness
+                # fix): compare deterministic point IDs (same formula as
+                # _upsert_chunks) against the parent's full stored footprint.
                 #
-                # The footprint unions two scopes (see footprint_scopes below): the
-                # source_item_ids the new normalize() emits AND source_parent_key (the
-                # stable per-parent identity stamped above), so it returns EVERY child
-                # this parent ever produced — not only the ones the current output names.
-                # A source_item_id-only scope could never see a child that disappears
-                # entirely (a protocol that produced speeches A+B now producing only A),
-                # leaving its points retrievable forever.
-                #
-                # The guard keys on point ID (source_item_id + chunk_index) AND, when the
-                # connector stamps one, on content_hash — so an upstream CORRECTION that
-                # reuses the same IDs but changes the content (e.g. a fixed AW vote tally,
-                # surfaced by an AW_REFRESH reconcile run) is re-written rather than
-                # silently skipped. Connectors that don't stamp content_hash keep plain
-                # point-id-existence idempotency (content_changed stays False for them).
+                # The guard keys on point ID (source_item_id + chunk_index) AND,
+                # when the connector stamps one, on content_hash — so an upstream
+                # CORRECTION that reuses the same IDs but changes the content
+                # (e.g. a fixed AW vote tally, surfaced by an AW_REFRESH reconcile
+                # run) is re-written rather than silently skipped. Connectors that
+                # don't stamp content_hash keep plain point-id-existence
+                # idempotency (content_changed stays False for them).
                 point_ids = [
                     str(compute_chunk_id(c.source_item_id, c.chunk_index))
                     for c in chunks
                 ]
                 new_point_ids = set(point_ids)
-                # source_item_id is a UUID; stringify for the keyword-index MatchAny.
-                siids = sorted({str(c.source_item_id) for c in chunks})
-                existing_hash_by_id: dict[str, Optional[str]] = {}
-                # DIP transcript PDFs (meta.transcript_pdf_url, written by the op
-                # supersede pass) per siid — must survive a rewrite, since the fresh
-                # mapper output never carries the graft and the DIP twin that donated
-                # it is already deleted.
-                pdf_by_siid: dict[str, str] = {}
-                # Two scopes, unioned into one footprint:
-                #   1. source_item_id — the children the NEW normalize emits (also finds
-                #      points written before source_parent_key existed, on the transition
-                #      run before the corpus is re-ingested).
-                #   2. source_parent_key — the FULL parent footprint, so a child the new
-                #      normalize no longer emits at all (a protocol that produced speeches
-                #      A+B now producing only A) is still scanned and its orphaned points
-                #      deleted below. A source_item_id-only scope can only see children
-                #      the new output names, so it would leave a wholly-disappeared child
-                #      retrievable forever.
-                footprint_scopes = [
-                    models.FieldCondition(
-                        key="source_item_id", match=models.MatchAny(any=siids)
-                    ),
-                    models.FieldCondition(
-                        key="source_parent_key",
-                        match=models.MatchValue(value=parent_key),
-                    ),
-                ]
-                for scope in footprint_scopes:
-                    scope_filter = models.Filter(must=[scope])
-                    next_offset = None
-                    while True:
-                        points, next_offset = qdrant.scroll(
-                            collection_name=collection_name,
-                            scroll_filter=scope_filter,
-                            limit=1000,
-                            offset=next_offset,
-                            with_payload=[
-                                "source_item_id",
-                                "content_hash",
-                                "meta.transcript_pdf_url",
-                            ],
-                            with_vectors=False,
-                        )
-                        for p in points:
-                            payload = p.payload or {}
-                            existing_hash_by_id[str(p.id)] = payload.get("content_hash")
-                            grafted_pdf = (payload.get("meta") or {}).get(
-                                "transcript_pdf_url"
-                            )
-                            if (
-                                grafted_pdf
-                                and payload.get("source_item_id") is not None
-                            ):
-                                pdf_by_siid.setdefault(
-                                    str(payload["source_item_id"]), grafted_pdf
-                                )
-                        if next_offset is None:
-                            break
-
-                existing_point_ids = set(existing_hash_by_id.keys())
                 all_present = new_point_ids.issubset(existing_point_ids)
                 content_changed = any(
                     c.content_hash is not None
@@ -533,28 +629,7 @@ def run_connector(
                     #      item is never absent at any point in time.
                     #   3. Upsert (wait=True inside _upsert_chunks).
                     vectors = _embed_texts(embed, [c.text for c in chunks])
-                    # Re-apply a grafted transcript PDF to the new payloads (only
-                    # where the fresh mapper output lacks it) so an op re-write
-                    # cannot strip the merge result. content_hash is
-                    # computed by the mapper BEFORE this graft, so idempotency
-                    # comparisons on later runs are unaffected.
-                    if pdf_by_siid:
-                        chunks = [
-                            c.model_copy(
-                                update={
-                                    "meta": {
-                                        **(c.meta or {}),
-                                        "transcript_pdf_url": pdf_by_siid[
-                                            str(c.source_item_id)
-                                        ],
-                                    }
-                                }
-                            )
-                            if str(c.source_item_id) in pdf_by_siid
-                            and "transcript_pdf_url" not in (c.meta or {})
-                            else c
-                            for c in chunks
-                        ]
+                    chunks = _reapply_grafted_pdfs(chunks, pdf_by_siid)
                     orphan_ids = sorted(existing_point_ids - new_point_ids)
                     if orphan_ids:
                         qdrant.delete(
@@ -623,25 +698,17 @@ def run_connector(
 
 
 if __name__ == "__main__":
-    # -----------------------------------------------------------------------
-    # Local-dev convenience: load ai-backend/.env if present so OPENAI_API_KEY
-    # (and any other local secrets) are available for the embed step. This is
-    # conditional on the file existing — Cloud Run Jobs have no .env, so env
-    # there continues to come from the job spec (do NOT use utils.load_env(),
-    # which hard-requires API_NAME and would crash the Cloud Run path).
-    # override=False keeps any explicitly-exported env (e.g. CONNECTOR_ID) authoritative.
-    from pathlib import Path  # noqa: PLC0415
-    from dotenv import load_dotenv  # noqa: PLC0415
-
-    _env_path = Path(__file__).resolve().parents[2] / ".env"
-    if _env_path.exists():
-        load_dotenv(_env_path, override=False)
+    # This CLI block is the PRODUCTION entrypoint (the Cloud Run Job runs
+    # `python -m src.ingestion.run` with CONNECTOR_ID in the job spec) — the
+    # only local-dev convenience is the .env loading at the top of the module
+    # (which must run before configuration imports freeze env-derived
+    # constants; Cloud Run has no .env, so its job-spec env passes through).
 
     # -----------------------------------------------------------------------
     # Parse connector_id from CONNECTOR_ID env or --connector arg.
     # -----------------------------------------------------------------------
     parser = argparse.ArgumentParser(
-        description="Run a wahl.chat V2 ingestion connector.",
+        description="Run a wahl.chat ingestion connector.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Connector IDs: abgeordnetenwatch_votes, manifestos, bundestag_speeches, openparliament_tv\n"

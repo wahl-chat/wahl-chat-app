@@ -8,10 +8,9 @@ Qdrant collection schema tests.
 These tests exercise the local Qdrant instance (started via
 ``docker compose up -d qdrant`` or ``make stores-up``) and verify:
 
-  - A single ``wahlchat_chunks_dev`` collection exists after
-    calling ``setup_collection.setup()``.
-  - Every payload index in the canonical ``_REQUIRED_INDEXES`` spec is
-    present, as returned by ``get_collection()``.
+  - ``setup_collection.setup()`` creates the collection, every payload index
+    in the canonical ``_REQUIRED_INDEXES`` spec, and the embedding-space
+    fingerprint; a re-run verifies instead of re-stamping.
   - MatchAny filter on scalar ``region`` returns chunks
     whose region value is in the election's region_path list and
     EXCLUDES chunks whose region is NOT in that list.
@@ -23,9 +22,10 @@ HARD-FAIL under CI (``CI`` env set), where a Qdrant service is always
 provisioned — so the schema is verified on every CI run, never silently
 skipped. They require no live API keys, no Firebase service, and no real data.
 
-Isolation: throwaway points are written to a uniquely-named
-temporary collection that is deleted in a ``finally`` block, preserving
-the guarantee that ``wahlchat_chunks_dev`` contains zero chunks.
+Isolation: EVERYTHING here runs against uniquely-named throwaway collections
+deleted afterwards — setup() included (COLLECTION_NAME is swapped for the
+module). A developer's local ``wahlchat_chunks_dev`` corpus is never read,
+written, or fingerprint-stamped by the test suite.
 """
 
 import os
@@ -59,11 +59,13 @@ from qdrant_client.models import (
     VectorParams,
 )
 
+import src.ingestion.setup_collection as setup_collection
 from src.ingestion.ids import compute_chunk_id, compute_source_item_id
 from src.ingestion.setup_collection import (
-    COLLECTION_NAME,
     EMBEDDING_DIM,
     _REQUIRED_INDEXES,
+    expected_fingerprint,
+    read_fingerprint,
     setup,
 )
 
@@ -112,9 +114,26 @@ def qdrant() -> QdrantClient:
 
 
 @pytest.fixture(scope="module", autouse=True)
-def ensure_collection(qdrant: QdrantClient) -> None:
-    """Ensure ``wahlchat_chunks_dev`` exists before any test runs."""
-    setup(client=qdrant)
+def schema_collection(qdrant: QdrantClient) -> Generator[str, None, None]:
+    """Run setup() against an ISOLATED throwaway collection.
+
+    COLLECTION_NAME is swapped for the whole module so setup() (and its
+    fingerprint stamping) never touches a developer's real local corpus —
+    a populated legacy store would otherwise be refused (no fingerprint) or,
+    worse, adopted with whatever env the test run happens to have.
+    """
+    name = f"_test_schema_{uuid.uuid4().hex[:8]}"
+    original = setup_collection.COLLECTION_NAME
+    setup_collection.COLLECTION_NAME = name
+    try:
+        setup(client=qdrant)
+        yield name
+    finally:
+        setup_collection.COLLECTION_NAME = original
+        try:
+            qdrant.delete_collection(name)
+        except Exception:  # noqa: BLE001
+            pass  # best-effort cleanup
 
 
 @pytest.fixture()
@@ -154,20 +173,45 @@ def temp_collection(qdrant: QdrantClient) -> Generator[str, None, None]:
 # ---------------------------------------------------------------------------
 
 
-def test_collection_exists(qdrant: QdrantClient) -> None:
-    """wahlchat_chunks_dev must exist after setup().
+def test_collection_exists(qdrant: QdrantClient, schema_collection: str) -> None:
+    """The collection must exist after setup().
 
     setup() is called by the autouse fixture before this test runs.
     """
     collection_names = [c.name for c in qdrant.get_collections().collections]
-    assert COLLECTION_NAME in collection_names, (
-        f"collection '{COLLECTION_NAME}' not found in Qdrant after "
+    assert schema_collection in collection_names, (
+        f"collection '{schema_collection}' not found in Qdrant after "
         f"calling setup(). Found: {collection_names!r}. "
         "Run `uv run python -m src.ingestion.setup_collection` to create it."
     )
 
 
-def test_payload_indexes(qdrant: QdrantClient) -> None:
+def test_fingerprint_stamped_and_stable(
+    qdrant: QdrantClient, schema_collection: str
+) -> None:
+    """setup() stamps the embedding-space fingerprint; a re-run verifies it.
+
+    The fingerprint records provider/model/dim so a config pointing at a
+    different vector space is refused instead of silently mixing embeddings.
+    """
+    stored = read_fingerprint(qdrant, schema_collection)
+    assert stored is not None, "setup() must stamp a fingerprint on creation"
+    expected = expected_fingerprint()
+    for key in ("embedding_provider", "embedding_model", "embedding_dim"):
+        assert stored.get(key) == expected[key], (
+            f"fingerprint field {key!r} mismatch: stored={stored.get(key)!r} "
+            f"expected={expected[key]!r}"
+        )
+    # Idempotent re-run: verifies the existing fingerprint, no error.
+    setup(client=qdrant)
+    # corpus_point_count must NOT count the fingerprint sentinel.
+    assert setup_collection.corpus_point_count(qdrant) == 0, (
+        "a collection holding only the fingerprint sentinel must read as empty "
+        "(the corpus rollout gate keys on corpus_point_count() > 0)"
+    )
+
+
+def test_payload_indexes(qdrant: QdrantClient, schema_collection: str) -> None:
     """Every canonical payload index (``_REQUIRED_INDEXES``) must be present.
 
     Asserted against the single source of truth in ``setup_collection`` rather
@@ -175,11 +219,11 @@ def test_payload_indexes(qdrant: QdrantClient) -> None:
     any index breaks the per-tenant HNSW optimisation, cross-level MatchAny
     queries, or the cursor.
     """
-    info = qdrant.get_collection(COLLECTION_NAME)
+    info = qdrant.get_collection(schema_collection)
     indexed = set(info.payload_schema.keys())
     missing = _REQUIRED_INDEXES - indexed
     assert not missing, (
-        f"missing payload indexes in '{COLLECTION_NAME}': {missing!r}. "
+        f"missing payload indexes in '{schema_collection}': {missing!r}. "
         "Expected all of: {_REQUIRED_INDEXES!r}. "
         "Re-run `uv run python -m src.ingestion.setup_collection` to add them."
     )

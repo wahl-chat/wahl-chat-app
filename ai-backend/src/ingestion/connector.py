@@ -27,7 +27,7 @@ from .schemas import ChunkRecord
 
 
 class BaseConnector(ABC):
-    """Abstract base for all wahl.chat V2 data source connectors.
+    """Abstract base for all wahl.chat data source connectors.
 
     Single synchronous embed path:
         discover(since) -> fetch -> normalize -> [runner embeds + upserts]

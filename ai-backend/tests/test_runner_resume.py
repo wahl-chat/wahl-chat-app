@@ -528,3 +528,105 @@ def test_content_hash_unchanged_skips_reupsert() -> None:
     assert report.processed == 0
     assert report.present_skips == 1
     assert report.chunks_upserted == 0
+
+
+# ---------------------------------------------------------------------------
+# Authoritative empty normalize — parent footprint reconciliation
+# ---------------------------------------------------------------------------
+
+
+class EmptyNormalizeStubConnector(StubConnector):
+    """normalize() SUCCEEDS with zero chunks — an authoritative empty parent."""
+
+    def normalize(self, raw: dict) -> list[ChunkRecord]:  # noqa: ARG002
+        return []
+
+
+def test_empty_normalize_deletes_parent_footprint() -> None:
+    """A parent that previously produced child A and now normalizes to []
+    must have its stored footprint DELETED — an authoritative empty result is
+    an empty footprint, not a no-op (failures raise and are skipped instead).
+    """
+    poll_id = 7
+    connector = EmptyNormalizeStubConnector(poll_ids=[poll_id])
+    mock_qdrant = _make_mock_qdrant()
+    mock_embed = _make_mock_embed()
+
+    stale_source_item_id = compute_source_item_id("vote_record", str(poll_id))
+    stale_point_id = str(compute_chunk_id(stale_source_item_id, 0))
+
+    # Only the parent-key footprint scope can serve points (normalize emitted
+    # zero source_item_ids, so there is no siid scope).
+    def _scroll(**kwargs: object) -> tuple:
+        if kwargs.get("order_by") is not None:
+            return ([], None)  # get_cursor
+        flt = kwargs.get("scroll_filter")
+        for cond in getattr(flt, "must", []) or []:
+            if getattr(cond, "key", None) == "source_parent_key":
+                return (
+                    [
+                        SimpleNamespace(
+                            id=stale_point_id,
+                            payload={"source_item_id": str(stale_source_item_id)},
+                        )
+                    ],
+                    None,
+                )
+        return ([], None)
+
+    mock_qdrant.scroll.side_effect = _scroll
+
+    report = run_connector(connector, mock_qdrant, mock_embed, batch_size=10)
+
+    # The stale child must be deleted; nothing is embedded or upserted.
+    assert mock_qdrant.delete.call_count == 1, (
+        f"expected exactly one delete of the stale footprint, "
+        f"got {mock_qdrant.delete.call_count}"
+    )
+    deleted = mock_qdrant.delete.call_args.kwargs["points_selector"]
+    assert stale_point_id in [str(p) for p in deleted.points], (
+        f"stale point {stale_point_id} must be in the delete selector, "
+        f"got {deleted.points!r}"
+    )
+    mock_embed.embed_documents.assert_not_called()
+    mock_qdrant.upsert.assert_not_called()
+    # Deleting the footprint IS work — it consumes batch budget.
+    assert report.processed == 1
+    assert report.chunks_upserted == 0
+
+
+def test_empty_normalize_with_no_footprint_is_cheap_skip() -> None:
+    """[] from normalize with NO stored footprint deletes nothing and does not
+    consume the batch budget (present-skip semantics)."""
+    connector = EmptyNormalizeStubConnector(poll_ids=[8])
+    mock_qdrant = _make_mock_qdrant()
+    mock_embed = _make_mock_embed()
+
+    report = run_connector(connector, mock_qdrant, mock_embed, batch_size=10)
+
+    mock_qdrant.delete.assert_not_called()
+    mock_qdrant.upsert.assert_not_called()
+    mock_embed.embed_documents.assert_not_called()
+    assert report.processed == 0
+    assert report.present_skips == 1
+
+
+# ---------------------------------------------------------------------------
+# Embedding count guard — provider returning the wrong number of vectors
+# ---------------------------------------------------------------------------
+
+
+def test_vector_count_mismatch_raises() -> None:
+    """A provider returning fewer vectors than chunks must raise (typed), not
+    silently drop the tail chunks via a short zip."""
+    from src.ingestion.run import DimensionMismatchError
+
+    connector = StubConnector(poll_ids=[1])
+    mock_qdrant = _make_mock_qdrant()
+    mock_embed = MagicMock()
+    mock_embed.embed_documents.return_value = []  # 1 chunk, 0 vectors
+
+    with pytest.raises(DimensionMismatchError, match="count mismatch"):
+        run_connector(connector, mock_qdrant, mock_embed, batch_size=10)
+
+    mock_qdrant.upsert.assert_not_called()

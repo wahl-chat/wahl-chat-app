@@ -5,26 +5,13 @@ Canonical party-slug knowledge shared across connectors.
 
 ``party_id`` is the corpus tenant key, so the same real party MUST resolve to
 the same slug no matter which connector produced the chunk — otherwise
-tenant-filtered retrieval returns a vote but not the matching manifesto (or vice
-versa). Historically each connector kept its own label→slug map and a parity
-test tried to keep them in sync by convention. This module is the single source
-of truth for the slugs that must agree; connectors compose their own map on top
-of these layers plus any source-specific labels.
-
-Two alignment layers:
-
-- ``CANONICAL_PARTY_SLUGS`` — the major parties that appear in every source
-  (votes, speeches, manifestos) and must tenant-align everywhere.
-- ``STATE_PARTY_SLUGS`` — state/regional parties shared by votes and manifestos
-  (plenary speeches only ever carry Bundestag fractions, so the speech connector
-  deliberately does NOT include these — an unexpected state party in a speech
-  label quarantines rather than silently mis-tenants).
+tenant-filtered retrieval returns a vote but not the matching manifesto (or
+vice versa). Connectors compose their own map on top of these shared layers
+plus any source-specific labels.
 
 The **CDU/CSU rule** (do NOT "simplify"): a joint ``"cdu/csu"`` fraction label
 maps to ``"cdu"`` (the Union fraction, not splittable from the source), while a
-standalone ``"csu"`` label maps to ``"csu"`` (a distinct tenant). Collapsing CSU
-into CDU would mis-tenant CSU speeches/manifestos and break cross-source
-alignment.
+standalone ``"csu"`` label maps to ``"csu"`` (a distinct tenant).
 """
 
 from __future__ import annotations

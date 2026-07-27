@@ -262,7 +262,7 @@ def test_empty_filter_rejected() -> None:
     Verification:
     1. Create a sentinel embed that raises RuntimeError if called.
     2. Create a fake client whose query_points raises RuntimeError if called.
-    3. Call retrieve(query, region_path=['DE']) — region alone is NOT selective (per CLAUDE.md).
+    3. Call retrieve(query, region_path=['DE']) — region alone is NOT selective.
     4. Assert ValueError is raised.
     5. Because ValueError is raised before any embed/query_points call, the sentinels
        are never triggered (both would surface as RuntimeError if hit, which would fail

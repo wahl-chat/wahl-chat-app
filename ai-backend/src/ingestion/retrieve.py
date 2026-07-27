@@ -46,8 +46,8 @@ from qdrant_client.models import (
 )
 
 from src.embeddings import get_embeddings
-from src.ingestion.setup_collection import COLLECTION_NAME
-from src.ingestion.levels import ALL_LEVELS
+from src.ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
+from src.ingestion.governance_levels import ALL_LEVELS
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +57,10 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 _qdrant: Optional[QdrantClient] = None
 _embed: Optional[Embeddings] = None
+
+# Clients whose collection fingerprint has been verified this process —
+# the check is one extra round-trip, so it runs once per client, not per query.
+_fingerprint_checked_clients: set[int] = set()
 
 
 def _get_qdrant() -> QdrantClient:
@@ -418,19 +422,28 @@ def retrieve(
 
     Raises:
         ValueError: If no selective filter (source_type, party_id, or
-                    party_ids_contains) is supplied. The collection uses a
-                    tenant-only HNSW (m=0, payload_m=16 — see CLAUDE.md
-                    "What NOT to Do"), so omitting all three selective filters
-                    produces Filter(must=[]) which brute-forces the entire
-                    corpus without an HNSW index — forbidden.
+                    party_ids_contains) is supplied. The collection has no
+                    global HNSW graph (m=0, payload_m=16): only a party_id
+                    filter reaches a tenant HNSW sub-graph. party_ids_contains
+                    and source_type restrict the candidate set through payload
+                    indexes to a bounded filtered scan (the vote_record path
+                    has no single tenant party, by design). Omitting all three
+                    produces Filter(must=[]) — an unbounded scan of the whole
+                    corpus, which is forbidden.
     """
     # Reject non-selective searches BEFORE embedding or touching the client.
-    # The collection's HNSW is configured m=0 / payload_m=16 (tenant-only, per
-    # CLAUDE.md "What NOT to Do"): there is NO global HNSW index, so an
-    # unfiltered vector search degrades to a full O(n) brute-force scan.
-    # Only party_id, party_ids_contains, and source_type count as selective —
-    # region_path / authority_tier / publish_after alone are NOT
-    # sufficient to avoid the global scan.
+    # There is NO global HNSW graph (m=0 / payload_m=16). What each accepted
+    # filter buys:
+    #   party_id           → tenant HNSW sub-graph (the fast path).
+    #   party_ids_contains → payload-index-filtered scan; the designed
+    #                        vote_record path (a vote has no single tenant
+    #                        party), bounded to one party's votes.
+    #   source_type        → payload-index-filtered scan bounded to one source
+    #                        type; acceptable for internal callers that scope
+    #                        further, NOT a tenant path.
+    # region_path / authority_tier / publish_after alone are NOT accepted —
+    # without one of the three filters above the search degrades to an
+    # unbounded brute-force scan over the entire corpus.
     _is_selective = (
         source_type is not None
         or party_id is not None
@@ -440,13 +453,20 @@ def retrieve(
         raise ValueError(
             "retrieve(): at least one selective filter is required — "
             "supply source_type, party_id, or party_ids_contains. "
-            "The collection uses a tenant-only HNSW (m=0 / payload_m=16) so "
-            "omitting all three selective filters produces an unfiltered "
-            "brute-force scan across the entire corpus (Filter(must=[])). "
-            "See CLAUDE.md 'What NOT to Do'."
+            "The collection has no global HNSW graph (m=0 / payload_m=16), "
+            "so omitting all three would brute-force the entire corpus "
+            "(Filter(must=[]))."
         )
 
     client = _client if _client is not None else _get_qdrant()
+
+    # Refuse to query a collection whose stored embedding-space fingerprint
+    # contradicts the current configuration — scores against a foreign vector
+    # space are garbage. Checked once per client per process (soft-pass for
+    # fingerprint-less legacy stores and limited test doubles).
+    if id(client) not in _fingerprint_checked_clients:
+        check_fingerprint(client, COLLECTION_NAME)
+        _fingerprint_checked_clients.add(id(client))
 
     # Build the filter must-clause list.
     must: list[FieldCondition] = []

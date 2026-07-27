@@ -4,7 +4,7 @@
 
 """
 Create ``wahlchat_chunks_{env}`` with HNSW m=0/payload_m=16, 3072-dim COSINE
-vectors, and all thirteen payload indexes — run BEFORE any upsert.
+vectors, and every payload index in ``_INDEX_SPECS`` — run BEFORE any upsert.
 
     uv run python -m src.ingestion.setup_collection
 
@@ -26,6 +26,21 @@ This script NEVER touches the legacy V1 collections
 import os
 import sys
 from typing import Optional
+
+# CLI startup ONLY: load ai-backend/.env BEFORE the constants below freeze
+# their env-derived values. Without this, `python -m src.ingestion.setup_collection`
+# (and `make bootstrap-collection`) resolves the built-in OpenAI defaults even
+# when .env configures Gemini — and would stamp/verify the WRONG
+# embedding-space fingerprint. Library imports stay side-effect free; exported
+# shell env keeps winning (override=False).
+if __name__ == "__main__":
+    from pathlib import Path
+
+    from dotenv import load_dotenv
+
+    _env_path = Path(__file__).resolve().parents[2] / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path, override=False)
 
 from qdrant_client import QdrantClient, models
 
@@ -50,6 +65,114 @@ EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "text-embedding-3-large")
 # ---------------------------------------------------------------------------
 ENV: str = os.getenv("ENV", "dev")
 COLLECTION_NAME: str = os.getenv("COLLECTION_NAME", f"wahlchat_chunks_{ENV}")
+
+# ---------------------------------------------------------------------------
+# Embedding-space fingerprint — guards against silently mixing vector spaces.
+#
+# A collection name alone cannot prove which provider/model produced its
+# vectors: an OpenAI collection and a Gemini collection can both be 3072-dim,
+# so the per-vector dimension guard passes while cosine scores are garbage.
+# The fingerprint is a single reserved point (fixed UUID, source_type
+# "corpus_fingerprint") whose payload records provider + model + dim. It is
+# invisible to retrieval (every query filters on real source_type / party
+# fields) and excluded from corpus_point_count().
+# ---------------------------------------------------------------------------
+FINGERPRINT_POINT_ID: str = "00000000-0000-4000-8000-00000000f19e"
+FINGERPRINT_SOURCE_TYPE: str = "corpus_fingerprint"
+
+
+def resolve_embedding_provider() -> str:
+    """Resolve EMBEDDING_PROVIDER the same way the embeddings factory does."""
+    return os.getenv("EMBEDDING_PROVIDER", "openai").strip().lower()
+
+
+def expected_fingerprint() -> dict:
+    """The fingerprint payload the current configuration should produce."""
+    return {
+        "source_type": FINGERPRINT_SOURCE_TYPE,
+        "embedding_provider": resolve_embedding_provider(),
+        "embedding_model": EMBEDDING_MODEL,
+        "embedding_dim": EMBEDDING_DIM,
+    }
+
+
+def read_fingerprint(client: QdrantClient, collection_name: str) -> Optional[dict]:
+    """Return the stored fingerprint payload, or None when absent."""
+    points = client.retrieve(
+        collection_name=collection_name,
+        ids=[FINGERPRINT_POINT_ID],
+        with_payload=True,
+        with_vectors=False,
+    )
+    if not points:
+        return None
+    return points[0].payload
+
+
+def write_fingerprint(client: QdrantClient, collection_name: str) -> None:
+    """Upsert the fingerprint point for the current configuration."""
+    # Non-zero unit-ish vector: some engines reject all-zero vectors under
+    # COSINE. The vector itself is never searched (no query matches this
+    # source_type), only the payload matters.
+    vector = [1.0] + [0.0] * (EMBEDDING_DIM - 1)
+    client.upsert(
+        collection_name=collection_name,
+        points=[
+            models.PointStruct(
+                id=FINGERPRINT_POINT_ID,
+                vector={"dense": vector},
+                payload=expected_fingerprint(),
+            )
+        ],
+        wait=True,
+    )
+
+
+def fingerprint_mismatch(stored: dict) -> Optional[str]:
+    """Compare a stored fingerprint to the current config; describe a mismatch.
+
+    Returns None when they agree, else a human-readable description.
+    """
+    expected = expected_fingerprint()
+    diffs = [
+        f"{key}: stored={stored.get(key)!r} configured={expected[key]!r}"
+        for key in ("embedding_provider", "embedding_model", "embedding_dim")
+        if stored.get(key) != expected[key]
+    ]
+    if not diffs:
+        return None
+    return "; ".join(diffs)
+
+
+def check_fingerprint(client: QdrantClient, collection_name: str) -> None:
+    """Best-effort fingerprint verification before writes/queries.
+
+    Raises RuntimeError when a stored fingerprint CONTRADICTS the current
+    configuration — that is the silent-vector-space-mix hazard. A missing
+    fingerprint (pre-fingerprint store) or an unreachable/limited client
+    (test fakes) only degrades to a pass: enforcement starts once setup()
+    has stamped the collection.
+    """
+    try:
+        stored = read_fingerprint(client, collection_name)
+    except Exception:  # noqa: BLE001 — fakes/legacy stores: nothing to verify
+        return
+    # Only a well-formed fingerprint payload counts — anything else (None,
+    # test doubles returning stand-in objects) means "nothing to verify".
+    if (
+        not isinstance(stored, dict)
+        or stored.get("source_type") != FINGERPRINT_SOURCE_TYPE
+    ):
+        return
+    mismatch = fingerprint_mismatch(stored)
+    if mismatch:
+        raise RuntimeError(
+            f"embedding-space fingerprint mismatch for collection "
+            f"'{collection_name}': {mismatch}. Refusing to proceed — mixing "
+            "vector spaces corrupts retrieval. Point the configuration at the "
+            "collection's original provider/model, or re-ingest into a fresh "
+            "collection (COLLECTION_NAME override) and cut over."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -78,7 +201,20 @@ def corpus_point_count(client: Optional[QdrantClient] = None) -> Optional[int]:
     c = client or _make_client()
     if not c.collection_exists(COLLECTION_NAME):
         return None
-    return c.count(collection_name=COLLECTION_NAME, exact=True).count
+    # Exclude the fingerprint sentinel: a collection holding ONLY the
+    # fingerprint must still read as empty (the rollout gate keys on >0).
+    return c.count(
+        collection_name=COLLECTION_NAME,
+        count_filter=models.Filter(
+            must_not=[
+                models.FieldCondition(
+                    key="source_type",
+                    match=models.MatchValue(value=FINGERPRINT_SOURCE_TYPE),
+                )
+            ]
+        ),
+        exact=True,
+    ).count
 
 
 # ---------------------------------------------------------------------------
@@ -183,7 +319,7 @@ _REQUIRED_INDEXES: frozenset[str] = frozenset(field for field, _ in _INDEX_SPECS
 
 
 def setup(client: Optional[QdrantClient] = None) -> None:
-    """Create ``COLLECTION_NAME`` and all thirteen payload indexes.
+    """Create ``COLLECTION_NAME`` and every payload index in ``_INDEX_SPECS``.
 
     Idempotent: safe to call multiple times; existence-guarded before
     ``create_collection``; ``create_payload_index(wait=True)`` is a no-op
@@ -220,7 +356,7 @@ def setup(client: Optional[QdrantClient] = None) -> None:
         print(f"Created collection '{COLLECTION_NAME}'.")
 
     # -----------------------------------------------------------------------
-    # Create / overwrite all thirteen payload indexes.
+    # Create / overwrite every payload index in _INDEX_SPECS.
     # -----------------------------------------------------------------------
     for field_name, field_schema in _INDEX_SPECS:
         client.create_payload_index(
@@ -240,6 +376,44 @@ def setup(client: Optional[QdrantClient] = None) -> None:
     if missing:
         raise RuntimeError(f"payload indexes missing after creation: {missing!r}")
     print(f"Collection verified: all {len(_REQUIRED_INDEXES)} payload indexes present")
+
+    # -----------------------------------------------------------------------
+    # Embedding-space fingerprint — stamp or verify.
+    #   stored + matching      → verified, nothing to do.
+    #   stored + mismatch      → RuntimeError (the OpenAI↔Gemini mix hazard).
+    #   absent + empty corpus  → stamp with the current configuration.
+    #   absent + populated     → refuse by default: the store's vector space is
+    #                            unproven. An operator who KNOWS the store
+    #                            matches the current configuration adopts it
+    #                            explicitly with CORPUS_FINGERPRINT_ADOPT=1.
+    # -----------------------------------------------------------------------
+    stored = read_fingerprint(client, COLLECTION_NAME)
+    if stored is not None:
+        mismatch = fingerprint_mismatch(stored)
+        if mismatch:
+            raise RuntimeError(
+                f"embedding-space fingerprint mismatch for collection "
+                f"'{COLLECTION_NAME}': {mismatch}. Refusing setup — mixing "
+                "vector spaces corrupts retrieval. Point the configuration at "
+                "the collection's original provider/model, or create a fresh "
+                "collection (COLLECTION_NAME override) and re-ingest."
+            )
+        print("Embedding-space fingerprint verified.")
+    else:
+        populated = corpus_point_count(client)
+        if populated and os.getenv("CORPUS_FINGERPRINT_ADOPT") != "1":
+            raise RuntimeError(
+                f"collection '{COLLECTION_NAME}' holds {populated} points but "
+                "no embedding-space fingerprint. Refusing to stamp it with the "
+                "current configuration blindly. If the store was ingested with "
+                "exactly this provider/model/dim, re-run with "
+                "CORPUS_FINGERPRINT_ADOPT=1 to adopt it."
+            )
+        write_fingerprint(client, COLLECTION_NAME)
+        print(
+            "Embedding-space fingerprint stamped: "
+            f"{resolve_embedding_provider()} / {EMBEDDING_MODEL} @ {EMBEDDING_DIM}"
+        )
 
 
 if __name__ == "__main__":
