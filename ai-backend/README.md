@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: 2025 2025 wahl.chat
+SPDX-FileCopyrightText: 2026 wahl.chat
 
 SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 -->
@@ -8,7 +8,9 @@ SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 Python AI/RAG backend for [wahl.chat](https://wahl.chat/).
 
-Built with aiohttp, Socket.IO, LangChain, and Qdrant.
+Built with FastAPI, sse-starlette (Server-Sent Events), LangChain, and Qdrant. Dependencies are managed with **uv**.
+
+The Pydantic models in `src/ingestion/schemas.py` are the single source of truth for the ingestion data contract (chunk payloads, source items, authority tiers).
 
 ## Localization
 
@@ -22,18 +24,11 @@ To adapt it for use in other countries, you will need to adjust the prompts and 
 ### 1. Install dependencies
 
 ```bash
-poetry install
-# With dev dependencies:
-poetry install --with dev
+uv sync            # all dependencies, including the dev group
+uv sync --no-dev   # runtime dependencies only
 ```
 
-### 2. Install pre-commit hooks
-
-```bash
-poetry run pre-commit install
-```
-
-### 3. Configure environment variables
+### 2. Configure environment variables
 
 ```bash
 cp .env.example .env
@@ -43,7 +38,7 @@ Fill in the values. For the LangChain API key (used for tracing on [smith.langch
 1. Set up your own project and API key, or
 2. Set `LANGCHAIN_TRACING_V2=false` to deactivate tracing.
 
-### 4. Authenticate with Firebase
+### 3. Authenticate with Firebase
 
 The recommended approach for local development is **Google Application Default Credentials (ADC)**:
 
@@ -64,13 +59,17 @@ make auth
 
 For CI/CD or Docker deployments, place a `wahl-chat-dev-firebase-adminsdk.json` file in this directory. Generate it at the [Firebase Console](https://console.firebase.google.com/u/0/project/wahl-chat-dev/settings/serviceaccounts/adminsdk). The backend auto-detects and uses it when present. Note that [Google recommends ADC over service account keys](https://cloud.google.com/docs/authentication#auth-decision-tree) for local development.
 
+> **Security:** never bake a service-account key into the container image. `COPY . /app` would capture it into the image layers permanently, so `.dockerignore` excludes `*-adminsdk-*.json` / `serviceAccount*.json` / ADC files. For deployed environments, supply credentials at runtime via a mounted secret or Workload Identity — not a key copied into the build context.
+
 ## Run
 
 ### Locally
 
 ```bash
-poetry run python -m src.aiohttp_app --debug
+uv run python -m src.app --debug
 ```
+
+Or run the full stack (web + backend) from the repo root with `make dev`.
 
 ### Docker
 
@@ -95,12 +94,15 @@ Set `ENV=prod` in `.env` and use `wahl-chat-firebase-adminsdk.json` for producti
 
 ## Test
 
-Prerequisite: run the backend locally.
+The suite mocks Qdrant/embeddings (see `tests/conftest.py`), so no running backend or live stores are required.
 
 ```bash
-# All websocket tests
-poetry run pytest tests/test_websocket_app.py -s
+# Whole suite
+uv run pytest
 
-# Specific test
-poetry run pytest tests/test_websocket_app.py -k test_get_chat_answer -s
+# The SSE chat-endpoint tests
+uv run pytest tests/test_chat_sse.py
+
+# A specific test
+uv run pytest tests/test_chat_sse.py -k test_get_chat_answer -s
 ```
