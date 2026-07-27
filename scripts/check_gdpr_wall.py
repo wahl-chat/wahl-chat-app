@@ -5,8 +5,11 @@ Asserts that no file under ai-backend/src/ingestion/ references a `users/`
 Firestore path in live code (ingestion/ is the only in-scope tree). Political
 opinion data must never be read by corpus/ingestion code.
 
-Comments and docstrings that mention `users/` as security documentation are
-allowed — only actual Firestore collection access patterns are forbidden.
+The scan walks the AST, so comments and docstrings that mention `users/` as
+security documentation never trigger it, and forbidden calls split across
+multiple lines are still caught. Files that fail to parse fall back to a
+whole-text regex scan (over-matching is acceptable for a guard; silently
+skipping a file is not).
 
 Run from the repo root:
 
@@ -15,25 +18,20 @@ Run from the repo root:
     uv run --project ai-backend python scripts/check_gdpr_wall.py
 """
 
+import ast
 import glob
 import re
 import sys
 from pathlib import Path
 
-# Pattern for ACTUAL Firestore users/ collection access (not docstring mentions).
-# Matches:
-#   - collection("users") / .collection('users')
-#   - .document("users/...") / .document('users/...')  — direct document-path access
-#   - collection_group(...)                            — ANY collection-group query
-#     (a collection-group query scans every subcollection with that name across
-#      all users, so it is forbidden in ingestion code regardless of argument)
-#   - db["users"] style access
-# Does NOT match bare 'users/' in security comments/docstrings.
-FORBIDDEN_PATTERN = re.compile(
-    r'collection\(["\']users["\']'
-    r'|\.document\(["\']users/'
+# Fallback pattern for files that do not parse as Python. Matches the same
+# access shapes as the AST scan, quote-anchored so prose mentions of users/
+# do not trigger it.
+FALLBACK_PATTERN = re.compile(
+    r'collection\(\s*["\']users["\'/]'
+    r'|\.document\(\s*["\']users/'
     r"|collection_group\("
-    r"|db\[.?users"
+    r'|db\[\s*["\']users["\'/]'
 )
 
 # Paths are relative to the repo root so the script runs identically from CI
@@ -44,19 +42,61 @@ SCAN_GLOBS = [
 ]
 
 
-def _is_code_line(line: str) -> bool:
-    """Return True if the line is executable code (not a comment or pure docstring line)."""
-    stripped = line.strip()
-    # Skip blank lines
-    if not stripped:
-        return False
-    # Skip comment lines
-    if stripped.startswith("#"):
-        return False
-    # Skip lines that are just a docstring delimiter or pure docstring text
-    if stripped.startswith('"""') or stripped.startswith("'''"):
-        return False
-    return True
+def _is_users_path(value: object) -> bool:
+    """True if a literal argument/key addresses the users collection tree."""
+    return isinstance(value, str) and (value == "users" or value.startswith("users/"))
+
+
+def _call_name(node: ast.Call) -> str:
+    """Bare name of the called function (`collection` for both f() and o.f())."""
+    func = node.func
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    if isinstance(func, ast.Name):
+        return func.id
+    return ""
+
+
+def _first_str_arg(node: ast.Call) -> object:
+    if node.args and isinstance(node.args[0], ast.Constant):
+        return node.args[0].value
+    return None
+
+
+def _find_violations(tree: ast.AST) -> list[tuple[int, str]]:
+    """Collect (lineno, reason) for every forbidden Firestore access shape.
+
+    Forbidden:
+      - collection("users") / collection("users/...")  — collection access
+      - document("users/...")                          — direct document path
+      - collection_group(...)                          — ANY collection-group
+        query (it scans every subcollection with that name across all users,
+        so it is forbidden in ingestion code regardless of argument)
+      - db["users"] / db["users/..."]                  — mapping-style access
+        on a name/attribute called `db`
+    """
+    violations: list[tuple[int, str]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            name = _call_name(node)
+            if name == "collection_group":
+                violations.append((node.lineno, "collection_group(...) query"))
+            elif name in ("collection", "document"):
+                if _is_users_path(_first_str_arg(node)):
+                    violations.append((node.lineno, f'{name}(...) on a users/ path'))
+        elif isinstance(node, ast.Subscript):
+            base = node.value
+            base_name = (
+                base.id
+                if isinstance(base, ast.Name)
+                else base.attr
+                if isinstance(base, ast.Attribute)
+                else ""
+            )
+            if base_name == "db" and isinstance(node.slice, ast.Constant):
+                if _is_users_path(node.slice.value):
+                    violations.append((node.lineno, 'db["users"] access'))
+    return violations
 
 
 def main() -> int:
@@ -71,12 +111,21 @@ def main() -> int:
             except OSError as exc:
                 print(f"WARN: could not read {path}: {exc}", file=sys.stderr)
                 continue
-            for lineno, line in enumerate(source.splitlines(), 1):
-                if _is_code_line(line) and FORBIDDEN_PATTERN.search(line):
-                    violations.append((path, lineno, line.strip()))
+            try:
+                tree = ast.parse(source, filename=path)
+            except SyntaxError:
+                # Unparseable file: regex over the raw text so nothing is
+                # silently skipped. Docstring false positives are acceptable
+                # here — a broken file should be fixed either way.
+                for lineno, line in enumerate(source.splitlines(), 1):
+                    if FALLBACK_PATTERN.search(line):
+                        violations.append((path, lineno, line.strip()))
+                continue
+            for lineno, reason in _find_violations(tree):
+                violations.append((path, lineno, reason))
 
-    # Non-vacuous guard (Pitfall 4): fail if the glob matched zero files.
-    # A zero-file scan would pass silently even if the glob pattern is broken.
+    # Non-vacuous guard: fail if the glob matched zero files. A zero-file scan
+    # would pass silently even if the glob pattern is broken.
     if not scanned:
         print(
             "FAIL: SCAN_GLOBS matched zero files — glob may be misconfigured "
@@ -93,8 +142,8 @@ def main() -> int:
             f"FAIL: {len(violations)} line(s) access the Firestore users/ collection "
             "in ingestion/ code:"
         )
-        for path, lineno, line in violations:
-            print(f"  {path}:{lineno}: {line}")
+        for path, lineno, detail in violations:
+            print(f"  {path}:{lineno}: {detail}")
         return 1
 
     print("PASS: no Firestore users/ collection access found in ingestion/")

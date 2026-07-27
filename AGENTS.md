@@ -1,10 +1,10 @@
 <!--
-SPDX-FileCopyrightText: 2025 wahl.chat
+SPDX-FileCopyrightText: 2026 wahl.chat
 
 SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 -->
 
-# AGENTS.md — wahl.chat V2
+# AGENTS.md — wahl.chat
 
 This is the source-of-truth guide for humans and AI assistants working in this
 repository: what the system is, how it is built, how to run it, how to treat
@@ -20,15 +20,15 @@ wahl.chat is a grounded political information chatbot for German elections
 (federal, state, and local). It answers questions about parties' positions and
 substantiates its answers with citations to primary sources.
 
-wahl.chat V2 forks the V1 application largely as-is and concentrates new work on
-the **data layer and ingestion pipeline**: one trustworthy, continuously-updated
-corpus that serves every election from a single store, ingested once per source
-and reused across elections. The goal is shared common ground — schema,
-contract, pipeline framework, and reference connectors — solid enough that
-connectors for new sources can be built in parallel without diverging.
+The heart of the system is the **data layer and ingestion pipeline**: one
+trustworthy, continuously-updated corpus that serves every election from a
+single store, ingested once per source and reused across elections. Schema,
+contract, pipeline framework, and reference connectors form shared common
+ground solid enough that connectors for new sources can be built in parallel
+without diverging.
 
-Later user-facing V2 features (party matcher scoring, profile/onboarding,
-proactive chat) are designed-for but out of scope on this branch.
+Planned user-facing features (party matcher scoring, profile/onboarding,
+proactive chat) are designed-for but not yet built.
 
 ## Architecture
 
@@ -282,6 +282,10 @@ The two stores are seeded by different mechanisms, on purpose:
   - narrate the development process or describe what changed "in this PR" —
     comments should be timeless and read correctly by someone seeing the code
     fresh.
+- **Prefer small, well-named functions over walls of comments.** When a long
+  function needs block comments to stay navigable (nested loops, multi-stage
+  logic), split it into smaller, meaningfully named functions instead — the
+  names carry the narration.
 - **No internal references, anywhere.** Internal planning/decision/tracking
   identifiers must never appear in the codebase — not in comments, and not in
   runtime strings (error messages, logs, `argparse` help, `Field(description=)`,
@@ -290,16 +294,6 @@ The two stores are seeded by different mechanisms, on purpose:
   (`plan 01-08`, `Task 2`), doc filenames (`RESEARCH.md`, `PLAN.md`), and
   code-review finding IDs (`HIGH-1`, `MED-02`). Write the reasoning or the
   user-facing message, never the paper trail.
-- **Package managers.** uv for `ai-backend`, bun for `web`. Add Python deps with
-  `uv add`; add Node deps with bun. CI always uses frozen/locked installs
-  (`uv sync --locked`, `bun install --frozen-lockfile`) — never bump versions
-  implicitly.
-- **Python.** 3.12 (`ai-backend/.python-version`). Format/lint with ruff
-  (line length 88, double quotes); type-check with mypy. Follow the ingestion
-  contract: connectors are pure `discover`/`fetch`/`normalize` transforms; the
-  runner owns embed + upsert.
-- **Frontend.** Lint/format with Biome + `next lint`; type-check with `tsc`.
-
 ## How to test / verify changes
 
 Local commands (mirror what CI runs):
@@ -340,5 +334,8 @@ CI (`.github/workflows/ci.yml`) runs four jobs on every push/PR:
 - **smoke-test** — the E2E SSE smoke test, in-process via `httpx.ASGITransport`
   (needs backend + frontend green first).
 
-Before opening a PR, run the lint / type-check / test commands for whichever
-side(s) you touched, plus the GDPR wall guard if you changed ingestion code.
+Verify changes with the relevant test suites — extend them with regression /
+integration coverage for what you changed rather than relying on lint output.
+Linting, formatting, and type-checking run automatically in the pre-commit
+hooks and CI, so they need no explicit step. Run the GDPR wall guard if you
+changed ingestion code.

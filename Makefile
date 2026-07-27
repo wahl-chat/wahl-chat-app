@@ -50,7 +50,7 @@ stores-up:
 	done
 	@echo "Waiting for the Firestore emulator on localhost:8081 (max 30s) ..."
 	@for i in $$(seq 1 30); do \
-		if curl -sf http://localhost:8081 > /dev/null 2>&1; then \
+		if curl -s -o /dev/null http://localhost:8081 2>/dev/null; then \
 			echo "Firestore emulator is ready."; \
 			exit 0; \
 		fi; \
@@ -62,15 +62,22 @@ stores-up:
 # --- Ingestion target store ---
 # Collection setup and every ingestion run default to the local Qdrant container.
 # Override these to target a deployed store (there is no scheduled orchestration
-# yet), e.g.:
-#   make run-speeches QDRANT_URL=https://<host>:6333 QDRANT_API_KEY=<key> ENV=prod
+# yet). Export the API key in the shell (e.g. from a secret file) rather than
+# writing it on the command line:
+#   export QDRANT_API_KEY=...   # or: set -a; source secrets.env; set +a
+#   make run-speeches QDRANT_URL=https://<host>:6333 ENV=prod
 # ENV scopes the collection name (wahlchat_chunks_{ENV}); dev and prod are isolated.
 QDRANT_URL ?= http://localhost:6333
 ENV ?= dev
-# QDRANT_API_KEY is unset by default (local Qdrant is unauthenticated) and is only
-# forwarded when non-empty, so an empty string never reaches the client as a bogus
-# credential. QDRANT_ENV is the env prefix every ingestion recipe runs under.
-QDRANT_ENV := QDRANT_URL=$(QDRANT_URL) ENV=$(ENV) $(if $(QDRANT_API_KEY),QDRANT_API_KEY=$(QDRANT_API_KEY))
+# QDRANT_API_KEY is unset by default (local Qdrant is unauthenticated) and is
+# exported into the recipe environment instead of being interpolated into the
+# recipe text: make echoes recipes (and `make -n` prints them), so a key in
+# QDRANT_ENV would leak into terminal/CI logs. Export only when non-empty, so
+# an empty string never reaches the client as a bogus credential.
+ifneq ($(QDRANT_API_KEY),)
+export QDRANT_API_KEY
+endif
+QDRANT_ENV := QDRANT_URL=$(QDRANT_URL) ENV=$(ENV)
 
 # bootstrap-collection: create the Qdrant collection (wahlchat_chunks_{ENV}) if
 # it does not exist. Idempotent — setup_collection is a no-op when the collection
