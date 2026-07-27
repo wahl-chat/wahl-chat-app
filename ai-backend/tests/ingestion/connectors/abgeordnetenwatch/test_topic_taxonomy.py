@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -207,7 +207,7 @@ def test_taxonomy_has_exactly_53_entries() -> None:
     """TOPIC_TAXONOMY must have exactly 53 entries."""
     assert len(TOPIC_TAXONOMY) == 53, (
         f"Expected 53 entries, got {len(TOPIC_TAXONOMY)}. "
-        "Missing: {_EXPECTED_53_LABELS - set(TOPIC_TAXONOMY)}"
+        f"Missing: {_EXPECTED_53_LABELS - set(TOPIC_TAXONOMY)}"
     )
 
 

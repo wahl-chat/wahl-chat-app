@@ -139,8 +139,27 @@ test-local-mode:
 # / ENV are overridden (see the QDRANT_ENV block above).
 # Requires: make stores-up first for local runs.
 
+# run-abgeordnetenwatch-votes: loops the connector over ALL configured federal
+# (Bundestag) legislature IDs — the connector requires an explicit
+# AW_LEGISLATURE_ID (no silent default period), and a federal run must cover
+# every configured period, not just the oldest. IDs come from
+# FEDERAL_LEGISLATURE_IDS in legislature_config.py (single-sourced).
 run-abgeordnetenwatch-votes: bootstrap-collection
-	cd ai-backend && $(QDRANT_ENV) uv run python -m src.ingestion.run --connector abgeordnetenwatch_votes
+	@failed=""; \
+	for id in $$(cd ai-backend && uv run python -c \
+	    "from src.ingestion.connectors.abgeordnetenwatch.legislature_config import FEDERAL_LEGISLATURE_IDS; print(*FEDERAL_LEGISLATURE_IDS)"); do \
+	    echo "=== Bundestag legislature_id=$$id ==="; \
+	    if ! (cd ai-backend && AW_LEGISLATURE_ID=$$id $(QDRANT_ENV) \
+	        uv run python -m src.ingestion.run --connector abgeordnetenwatch_votes $(ARGS)); then \
+	        echo "!!! Bundestag legislature_id=$$id FAILED"; \
+	        failed="$$failed $$id"; \
+	    fi; \
+	done; \
+	if [ -n "$$failed" ]; then \
+	    echo "=== run-abgeordnetenwatch-votes: FAILED legislature ids:$$failed ==="; \
+	    exit 1; \
+	fi; \
+	echo "=== run-abgeordnetenwatch-votes: all federal legislatures completed ==="
 
 # run-all-landtage-votes: loops the connector over all 16 Landtag legislature IDs (run
 # selectivity).  IDs are sourced from LANDTAG_LEGISLATURE_IDS in legislature_config.py so the
@@ -159,7 +178,7 @@ run-all-landtage-votes: bootstrap-collection
 	    "from src.ingestion.connectors.abgeordnetenwatch.legislature_config import LANDTAG_LEGISLATURE_IDS; print(*LANDTAG_LEGISLATURE_IDS)"); do \
 	    echo "=== Landtag legislature_id=$$id ==="; \
 	    if ! (cd ai-backend && AW_LEGISLATURE_ID=$$id $(QDRANT_ENV) \
-	        uv run python -m src.ingestion.run --connector abgeordnetenwatch_votes); then \
+	        uv run python -m src.ingestion.run --connector abgeordnetenwatch_votes $(ARGS)); then \
 	        echo "!!! Landtag legislature_id=$$id FAILED"; \
 	        failed="$$failed $$id"; \
 	    fi; \

@@ -58,6 +58,22 @@ class BaseConnector(ABC):
     # Optional discriminator within a shared source_type (see class docstring).
     source: Optional[str] = None
 
+    # Runner-bound store handle (see bind_store). None until the runner binds.
+    _store_client = None
+    _store_collection: Optional[str] = None
+
+    def bind_store(self, qdrant, collection_name: str) -> None:  # noqa: ANN001
+        """Hand the connector the runner's store handle before discover().
+
+        Store-aware discovery (e.g. set-difference against already-ingested
+        ids) must read the SAME client/collection the runner will upsert into;
+        a connector-constructed client can silently diverge under an injected
+        test client, a non-default collection, or a migration. Connectors that
+        never read the store simply ignore the stored references.
+        """
+        self._store_client = qdrant
+        self._store_collection = collection_name
+
     @property
     def cursor_source(self) -> Optional[str]:
         """Source scope for the runner's cursor read. Defaults to ``source``.

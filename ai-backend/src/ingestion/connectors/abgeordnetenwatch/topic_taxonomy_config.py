@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -42,10 +42,10 @@ import re
 from typing import FrozenSet
 
 # The governance-level constants are owned by the shared framework module
-# src/ingestion/levels.py (retrieve.py imports from there without touching a
+# src/ingestion/governance_levels.py (retrieve.py imports from there without touching a
 # connector). Re-exported here because the taxonomy dict below, the AW
 # connector, and the AW tests all reference them from this module.
-from src.ingestion.levels import (  # noqa: F401
+from src.ingestion.governance_levels import (  # noqa: F401
     ALL_LEVELS,
     FEDERAL,
     MUNICIPAL,
@@ -69,7 +69,7 @@ def _normalize_topic_label(label: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Governance level constants: re-exported from src.ingestion.levels above —
+# Governance level constants: re-exported from src.ingestion.governance_levels above —
 # do NOT re-introduce local definitions (a parity test in
 # tests/ingestion/test_enum_parity.py guards this).
 # ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -172,7 +173,7 @@ class TestNormalize:
         from src.ingestion.schemas import ChunkRecord
 
         raw = _load_poll_3602()
-        connector = AbgeordnetenwatchVotesConnector()
+        connector = AbgeordnetenwatchVotesConnector(legislature_id=111)
 
         result = connector.normalize(raw)
 
@@ -191,7 +192,7 @@ class TestNormalize:
         )
 
         raw = _load_poll_3602()
-        connector = AbgeordnetenwatchVotesConnector()
+        connector = AbgeordnetenwatchVotesConnector(legislature_id=111)
 
         chunks = connector.normalize(raw)
 
@@ -207,7 +208,7 @@ class TestNormalize:
         )
 
         raw = _make_zero_tally_raw()
-        connector = AbgeordnetenwatchVotesConnector()
+        connector = AbgeordnetenwatchVotesConnector(legislature_id=111)
 
         with pytest.raises(ValueError, match="zero usable tallies"):
             connector.normalize(raw)
@@ -339,7 +340,7 @@ class TestPollSinceFloor:
     """AW_POLL_SINCE optional date-floor in discover()."""
 
     def _make_connector(self) -> "AbgeordnetenwatchVotesConnector":
-        connector = AbgeordnetenwatchVotesConnector()
+        connector = AbgeordnetenwatchVotesConnector(legislature_id=111)
         return connector
 
     def _stub_client(self, connector: "AbgeordnetenwatchVotesConnector") -> None:
@@ -474,7 +475,7 @@ class TestDiscoverSortByPollId:
     """discover() must sort poll ids ascending by integer id, not by date."""
 
     def _make_connector(self) -> "AbgeordnetenwatchVotesConnector":
-        connector = AbgeordnetenwatchVotesConnector()
+        connector = AbgeordnetenwatchVotesConnector(legislature_id=111)
         connector._qdrant = _MockQdrantEmpty()  # type: ignore[assignment]
         return connector
 
@@ -524,7 +525,7 @@ class TestDiscoverSortByPollId:
 
     def test_normalize_raises_on_missing_date(self) -> None:
         """normalize() raises ValueError on unparseable/missing date instead of fabricating."""
-        connector = AbgeordnetenwatchVotesConnector()
+        connector = AbgeordnetenwatchVotesConnector(legislature_id=111)
 
         # Build a raw payload with a poll that has no date but has valid votes.
         raw = _load_poll_3602()
@@ -658,7 +659,7 @@ class TestNormalizeRelevanceLevels:
         raw["poll"] = dict(raw["poll"])  # shallow copy of poll dict
         raw["poll"]["field_topics"] = [{"id": 13, "label": "Verteidigung"}]
 
-        connector = AbgeordnetenwatchVotesConnector()
+        connector = AbgeordnetenwatchVotesConnector(legislature_id=111)
         chunks = connector.normalize(raw)
 
         assert len(chunks) >= 1, (
@@ -691,7 +692,7 @@ class TestNormalizeRelevanceLevels:
         raw["poll"] = dict(raw["poll"])  # shallow copy of poll dict
         raw["poll"]["field_topics"] = []  # no topics → max-recall default
 
-        connector = AbgeordnetenwatchVotesConnector()
+        connector = AbgeordnetenwatchVotesConnector(legislature_id=111)
 
         with caplog.at_level(logging.WARNING):
             chunks = connector.normalize(raw)
@@ -806,10 +807,115 @@ class TestDiscoverRefreshPath:
                 ]
 
         connector._client = _MalformedClient()  # type: ignore[assignment]
-        # AW_REFRESH skips the Qdrant set-difference — no Qdrant mock needed.
+        # AW_REFRESH reads the store for the inverse (prune) set-difference.
+        connector._qdrant = _MockQdrantEmpty()  # type: ignore[assignment]
 
         ids = connector.discover(since=None)
 
         assert ids == ["100", "200"], (
             f"Refresh discover must keep only int-id polls, got {ids!r}"
+        )
+
+    def test_refresh_surfaces_upstream_removed_polls(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A poll present in the store but gone upstream must be surfaced by the
+        refresh discover (after the live polls), short-circuited by fetch(), and
+        normalized to an authoritative [] so the runner deletes its footprint."""
+        monkeypatch.delenv("AW_POLL_SINCE", raising=False)
+        monkeypatch.setenv("AW_REFRESH", "1")
+
+        connector = AbgeordnetenwatchVotesConnector(legislature_id=111)
+
+        class _LiveClient:
+            def get_all(self, endpoint: str, params: dict) -> list:  # type: ignore[type-arg]
+                return [{"id": 100, "field_poll_date": "2020-05-14"}]
+
+        class _StoreWithRetractedPoll:
+            """Store contains polls 100 (still live) and 999 (retracted)."""
+
+            def scroll(self, **kwargs: object) -> tuple:
+                points = [
+                    SimpleNamespace(payload={"external_id": 100}),
+                    SimpleNamespace(payload={"external_id": 999}),
+                ]
+                return (points, None)
+
+        connector._client = _LiveClient()  # type: ignore[assignment]
+        connector._qdrant = _StoreWithRetractedPoll()  # type: ignore[assignment]
+
+        ids = connector.discover(since=None)
+        assert ids == ["100", "999"], (
+            f"refresh discover must surface the retracted poll LAST, got {ids!r}"
+        )
+
+        raw = connector.fetch("999")
+        assert raw.get("upstream_removed") is True, (
+            "fetch() must short-circuit a reconcile-discovered removal without "
+            f"hitting the API, got {raw!r}"
+        )
+        assert connector.normalize(raw) == [], (
+            "normalize() must map an upstream-removed poll to an authoritative "
+            "empty list (runner deletes the stored footprint)"
+        )
+
+
+class TestExplicitLegislatureRequired:
+    """No silent default period — the connector demands an explicit legislature."""
+
+    def test_missing_legislature_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("AW_LEGISLATURE_ID", raising=False)
+        with pytest.raises(ValueError, match="explicit"):
+            AbgeordnetenwatchVotesConnector()
+
+    def test_env_legislature_accepted(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("AW_LEGISLATURE_ID", "132")
+        connector = AbgeordnetenwatchVotesConnector()
+        assert connector._legislature_id == 132
+
+    def test_federal_ids_are_current_plus_prior(self) -> None:
+        """FEDERAL_LEGISLATURE_IDS (the Makefile loop source) is the CURRENT +
+        PRIOR Bundestag periods — the same depth policy as the Landtage. A
+        default run must not silently stop at one historical period, and it
+        must not backfill older periods (those stay explicit-run only)."""
+        from src.ingestion.connectors.abgeordnetenwatch.legislature_config import (
+            FEDERAL_LEGISLATURE_IDS,
+            LEGISLATURE_CONFIG,
+        )
+
+        expected = [
+            key
+            for key, _cfg in sorted(
+                ((k, c) for k, c in LEGISLATURE_CONFIG.items() if c.region == "DE"),
+                key=lambda kv: kv[1].date_from,
+            )[-2:]
+        ]
+        assert FEDERAL_LEGISLATURE_IDS == expected
+        assert FEDERAL_LEGISLATURE_IDS == [132, 161], (
+            "current+prior Bundestag = WP20 (132) + WP21 (161); the 19th "
+            "Bundestag (111) stays explicit-run only"
+        )
+
+
+class TestBindStore:
+    """The runner-bound store handle wins over the self-constructed client."""
+
+    def test_bound_client_and_collection_are_used(self) -> None:
+        connector = AbgeordnetenwatchVotesConnector(legislature_id=111)
+
+        seen: dict = {}
+
+        class _BoundStore:
+            def scroll(self, **kwargs: object) -> tuple:
+                seen["collection"] = kwargs.get("collection_name")
+                return ([], None)
+
+        bound = _BoundStore()
+        connector.bind_store(bound, "custom_collection")
+
+        assert connector._get_qdrant() is bound
+        connector._get_ingested_poll_ids()
+        assert seen["collection"] == "custom_collection", (
+            "set-difference discovery must scroll the RUNNER's collection, "
+            f"got {seen.get('collection')!r}"
         )

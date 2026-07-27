@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -11,8 +11,9 @@ Design goals:
   - Fixed >=2s inter-request delay enforces the <=30 req/min fair-use ceiling
     (simple fixed-spacing pacing).
   - Retrying session with exponential backoff on 429/5xx.
-  - Absolute-index pagination: range_start/range_end are absolute position
-    indices (verified from live API).
+  - Row-count pagination in get_all(): range_end is the NUMBER of rows to
+    return; range_start advances by the rows actually delivered (verified
+    against the live API).
   - meta.status guard: any response with meta.status != 'ok' raises ValueError
     so callers never silently process bad data.
 
@@ -66,7 +67,8 @@ _MAX_RETRIES = 5
 # consumers to identify themselves so they can be contacted about usage).
 _USER_AGENT = "wahl.chat-ingestion/2.0 (https://wahl.chat)"
 
-# Number of items requested per page in get_all() (absolute-index pagination).
+# Rows requested per page in get_all() — range_end is a row COUNT, so every
+# page asks for exactly this many rows (see get_all's pagination notes).
 _PAGE_SIZE = 100
 
 # Hard page cap for get_all().  meta.result.total is server-controlled;
@@ -95,7 +97,7 @@ class AWClient:
     - Fixed >=2s inter-request sleep before each call (<=30 req/min)
     - Retrying session with backoff on 429/5xx
     - meta.status guard — raises ValueError on API error envelopes
-    - Absolute-index pagination in get_all()
+    - Row-count pagination in get_all() (range_end = rows per page)
     - Pinned base URL (SSRF guard)
 
     Usage::

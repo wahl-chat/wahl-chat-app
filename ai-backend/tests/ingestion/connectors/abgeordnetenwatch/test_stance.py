@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -27,7 +27,11 @@ I/O-free (no firestore/requests/firebase imports).
 
 from __future__ import annotations
 
+import pytest
 
+from src.ingestion.connectors.abgeordnetenwatch.mappers.corpus import (
+    _canonical_party_slug,
+)
 from src.ingestion.connectors.abgeordnetenwatch.mappers.stance import (
     aggregate_fraction_tallies,
     derive_stance,
@@ -293,3 +297,55 @@ class TestGoldenRecord3602:
         # First topic is Gesundheit -> topic_id "aw:gesundheit"
         first_topic_url = poll["field_topics"][0]["abgeordnetenwatch_url"]
         assert first_topic_url.endswith("/gesundheit")
+
+
+class TestLandtagFractionAliases:
+    """Live Landtag fraction labels must resolve to real party slugs.
+
+    These exact label shapes exist in the live AW fraction catalogue for the
+    configured legislatures; an unmapped label quarantines to "unbekannt" and
+    the party's votes vanish from party-filtered retrieval.
+    """
+
+    @pytest.mark.parametrize(
+        ("label", "expected_slug"),
+        [
+            ("FDP/DVP (Baden-Württemberg 2021 - 2026)", "fdp"),
+            ("FDP (Gruppe) (Niedersachsen 2022 - 2027)", "fdp"),
+            ("FREIE WÄHLER (Gruppe) (Brandenburg 2019 - 2024)", "fw"),
+            ("BVB - Freie Wähler (Brandenburg 2024 - 2029)", "bvb-fw"),
+            ("BVB - Freie Wähler (Gruppe) (Brandenburg 2024 - 2029)", "bvb-fw"),
+            ("Die Linke (Gruppe) (Bundestag 2021 - 2025)", "linke"),
+            ("BSW (Gruppe) (Bundestag 2021 - 2025)", "bsw"),
+            ("CDU-Fraktion (Hamburg 2020 - 2025)", "cdu"),
+            ("SPD-Fraktion (Hamburg 2020 - 2025)", "spd"),
+            ("AfD-Fraktion (Hamburg 2020 - 2025)", "afd"),
+            ("Fraktion DIE LINKE (Hamburg 2020 - 2025)", "linke"),
+            ("Fraktion Bündnis 90/Die Grünen (Hamburg 2020 - 2025)", "gruene"),
+            ("Alternative für Deutschland (Sachsen 2024 - 2029)", "afd"),
+            ("Bündnis Sahra Wagenknecht (Sachsen 2024 - 2029)", "bsw"),
+            ("Bündnis Deutschland (Bremen 2023 - 2027)", "buendnis-deutschland"),
+        ],
+    )
+    def test_alias_resolves(self, label: str, expected_slug: str) -> None:
+        assert _canonical_party_slug(label) == expected_slug
+
+    def test_splinter_groups_do_not_merge_into_unbekannt(self) -> None:
+        """Distinct splinter fractions must keep DISTINCT slugs — merging several
+        unknowns into one "unbekannt" tally fabricates a combined vote count."""
+        slugs = {
+            _canonical_party_slug(
+                "Bürger für Mecklenburg-Vorpommern (M-V 2021 - 2026)"
+            ),
+            _canonical_party_slug(
+                "Wir für Brandenburg (Gruppe) (Brandenburg 2024 - 2029)"
+            ),
+            _canonical_party_slug("Saar-Linke (Saarland 2022 - 2027)"),
+        }
+        assert len(slugs) == 3
+        assert "unbekannt" not in slugs
+
+    def test_unknown_label_still_quarantines(self) -> None:
+        assert _canonical_party_slug("Völlig Unbekannte Liste (X 2020 - 2025)") == (
+            "unbekannt"
+        )

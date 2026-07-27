@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -115,10 +115,36 @@ _AW_FRACTION_SLUG_MAP: dict[str, str] = {
     **STATE_PARTY_SLUGS,
     # "(Gruppe)" variants: below fraction strength a party sits as a Gruppe, and
     # AW labels it "BSW (Gruppe)" / "Die Linke. (Gruppe)". Same tenant as the
-    # full fraction.
+    # full fraction. Only the LAST parenthetical (the parliament-period suffix)
+    # is stripped before lookup, so the "(Gruppe)" part survives into the key.
     "bsw (gruppe)": "bsw",
     "die linke. (gruppe)": "linke",
+    "die linke (gruppe)": "linke",
+    "fdp (gruppe)": "fdp",
+    "fdp (parlamentarische gruppe)": "fdp",
+    "freie wähler (gruppe)": "fw",
+    # Landtag state-party names and long forms from the live AW fraction
+    # catalogue that differ from the federal labels.
+    "fdp/dvp": "fdp",  # Baden-Württemberg: the FDP's state party is FDP/DVP
+    "bvb - freie wähler": "bvb-fw",  # dash variant of "BVB/Freie Wähler"
+    "bvb - freie wähler (gruppe)": "bvb-fw",
+    "alternative für deutschland": "afd",
+    "bündnis sahra wagenknecht": "bsw",
+    "bündnis deutschland": "buendnis-deutschland",
+    "liberal-konservative reformer": "lkr",
+    "fraktionlos": "fraktionslos",  # AW catalogue carries this typo variant
+    # Landtag splinter groups without a federal parent. Distinct slugs so their
+    # tallies stay attributable instead of merging into one "unbekannt" bucket.
+    "bürger für mecklenburg-vorpommern": "buerger-fuer-mv",
+    "bürger für thüringen": "buerger-fuer-thueringen",
+    "bürger für thüringen (parlamentarische gruppe)": "buerger-fuer-thueringen",
+    "wir für brandenburg (gruppe)": "wir-fuer-brandenburg",
+    "saar-linke": "saar-linke",
 }
+
+# Landtag full_names often wrap the party in a Fraktion affix ("CDU-Fraktion",
+# "Fraktion DIE LINKE"). Stripped for a second lookup when the direct one misses.
+_FRAKTION_AFFIX_RE = re.compile(r"^fraktion\s+|-fraktion$")
 
 # Regex to strip the parliament-period parenthetical from a fraction label.
 # Example: "FDP (Bundestag 2017 - 2021)" -> "FDP"
@@ -155,7 +181,13 @@ def _canonical_party_slug(fraction_label: str) -> str:
     # Strip parenthetical parliament-period suffix, then normalise away invisible
     # formatting characters (U+00AD soft hyphen in the Greens' fraction name).
     clean = _normalize_fraction_label(_PARENS_SUFFIX_RE.sub("", fraction_label))
-    return _AW_FRACTION_SLUG_MAP.get(clean, _PARTY_SLUG_QUARANTINE)
+    slug = _AW_FRACTION_SLUG_MAP.get(clean)
+    if slug is None:
+        # Retry once with the Fraktion affix stripped ("CDU-Fraktion" → "cdu").
+        stripped = _FRAKTION_AFFIX_RE.sub("", clean)
+        if stripped != clean:
+            slug = _AW_FRACTION_SLUG_MAP.get(stripped)
+    return slug if slug is not None else _PARTY_SLUG_QUARANTINE
 
 
 def _strip_html(html: Optional[str]) -> str:
@@ -333,9 +365,11 @@ def chunk_poll(
 
     # Stable hash of the correctness-bearing content (embed text + tallies/outcome
     # + participating parties) PLUS the stamped envelope fields (region,
-    # publish_date, relevance_levels, wahlperiode, legislature_period_id) — so an
-    # AW_REFRESH reconcile run re-writes chunks whose envelope changed (e.g. a
-    # re-classified topic), not only text/tally corrections.
+    # publish_date, relevance_levels, wahlperiode, legislature_period_id) AND the
+    # displayed citation — so an AW_REFRESH reconcile run re-writes chunks whose
+    # envelope OR citation changed (e.g. a re-classified topic or a corrected
+    # abgeordnetenwatch_url), not only text/tally corrections. A field the user
+    # sees but the hash ignores could never be refreshed.
     content_hash = hashlib.sha256(
         json.dumps(
             {
@@ -347,6 +381,8 @@ def chunk_poll(
                 "relevance_levels": relevance_levels,
                 "wahlperiode": wahlperiode,
                 "legislature_period_id": legislature_period_id,
+                "citation_url": poll.get("abgeordnetenwatch_url"),
+                "citation_title": poll_label,
             },
             sort_keys=True,
             ensure_ascii=False,

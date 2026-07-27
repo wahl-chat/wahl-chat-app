@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -10,8 +10,10 @@ This connector implements the 3-method synchronous ABC
 normalize() — no Firestore, no GCS, no work_queue, no matcher dual-write.
 
 The runner (run.py) owns embed + upsert; this connector is pure data-transform.
-The cursor (since) is derived by the runner from Qdrant max(external_id) for
-"vote_record" and passed to discover() — no watermark methods needed.
+The runner still passes its Qdrant-derived cursor to discover() (ABC contract),
+but discover() deliberately IGNORES it: discovery is a per-legislature
+set-difference against the store (see discover()), which re-surfaces failures
+a max(external_id) watermark would permanently skip.
 
 Security notes:
     GDPR Art. 9 wall: NO code path reads users/{uid}.  This invariant
@@ -93,7 +95,10 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
                         None (default) reads AW_LEGISLATURE_ID from the
                         environment at CONSTRUCTION time (not import time, so a
                         long-lived process can construct one connector per
-                        legislature), falling back to 111 (19th Bundestag).
+                        legislature). REQUIRED: when neither the argument nor
+                        the env var is set, construction fails — a silent
+                        default would quietly limit a production run to one
+                        historical period while newer periods never ingest.
     """
 
     # Class attribute: used by runner.get_cursor() to scope the Qdrant scroll.
@@ -107,7 +112,17 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         # would freeze the value for the process lifetime and force one process
         # invocation per legislature.
         if legislature_id is None:
-            legislature_id = int(os.getenv("AW_LEGISLATURE_ID", "111"))
+            raw_env = os.getenv("AW_LEGISLATURE_ID", "").strip()
+            if not raw_env:
+                raise ValueError(
+                    "AbgeordnetenwatchVotesConnector needs an explicit "
+                    "legislature: pass legislature_id or set AW_LEGISLATURE_ID. "
+                    "There is deliberately no default — every configured period "
+                    "must be run explicitly (the make targets "
+                    "run-abgeordnetenwatch-votes / run-all-landtage-votes loop "
+                    "over all federal / Landtag periods)."
+                )
+            legislature_id = int(raw_env)
         self._legislature_id = legislature_id
 
         cfg = LEGISLATURE_CONFIG.get(legislature_id)
@@ -132,16 +147,26 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         # Initialised on first call to _get_qdrant().
         self._qdrant: Optional[QdrantClient] = None
 
+        # Poll ids found in the store but no longer upstream (AW_REFRESH runs
+        # only). fetch() short-circuits these; normalize() maps them to an
+        # authoritative [] so the runner deletes their stored footprint.
+        self._upstream_removed_ids: set[int] = set()
+
     # ------------------------------------------------------------------
     # 1a. Qdrant lazy singleton (per-legislature cursor)
     # ------------------------------------------------------------------
 
     def _get_qdrant(self) -> QdrantClient:
-        """Return the per-instance Qdrant client, initializing on first call.
+        """Return the store client for discovery reads.
 
-        Mirrors the module-level singleton in retrieve.py (lines 52-65).
-        Kept as an instance method so tests can monkeypatch it per-connector.
+        The runner binds its own client via ``bind_store()`` before discover(),
+        so one run has ONE Qdrant contract (discovery reads the same store the
+        upserts target). The self-constructed client exists only for standalone
+        use outside the runner. Kept as an instance method so tests can
+        monkeypatch it per-connector.
         """
+        if self._store_client is not None:
+            return self._store_client
         if self._qdrant is None:
             self._qdrant = QdrantClient(
                 url=os.getenv("QDRANT_URL", "http://localhost:6333"),
@@ -165,6 +190,7 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         from src.ingestion.setup_collection import COLLECTION_NAME
 
         qdrant = self._get_qdrant()
+        collection_name = self._store_collection or COLLECTION_NAME
         ingested: set[int] = set()
         next_offset: Optional[qdrant_models.ExtendedPointId] = None
         scroll_filter = qdrant_models.Filter(
@@ -181,7 +207,7 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         )
         while True:
             points, next_offset = qdrant.scroll(
-                collection_name=COLLECTION_NAME,
+                collection_name=collection_name,
                 scroll_filter=scroll_filter,
                 limit=1000,
                 offset=next_offset,
@@ -277,10 +303,19 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         # AW_REFRESH=1 forces a full reconcile: return ALL polls so run.py's change-aware
         # upsert can re-write any whose content_hash changed (e.g. an AW tally corrected
         # after first ingest). Unchanged polls are skipped there without re-embedding.
+        # A full reconcile also PRUNES: a poll retracted upstream never appears
+        # in the API response again, so the inverse set-difference
+        # (store − source) finds parents whose stored footprint must be
+        # deleted. Those ids are surfaced at the END of the discover output;
+        # fetch()/normalize() turn them into an authoritative empty result.
         refresh = os.getenv("AW_REFRESH", "").strip().lower() in ("1", "true", "yes")
+        self._upstream_removed_ids = set()
         if not refresh:
             ingested_ids = self._get_ingested_poll_ids()
             polls = [p for p in polls if p["id"] not in ingested_ids]
+        else:
+            upstream_ids = {p["id"] for p in polls}
+            self._upstream_removed_ids = self._get_ingested_poll_ids() - upstream_ids
 
         # Optional date floor — read inside discover() so tests can monkeypatch per-call.
         aw_poll_since = os.getenv("AW_POLL_SINCE", "").strip()
@@ -300,7 +335,10 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
         # polls surface. Sorting by date could reorder the batch window run-to-run.
         # (ids are guaranteed int by the isinstance filter above.)
         polls_sorted = sorted(polls, key=lambda p: p["id"])
-        return [str(p["id"]) for p in polls_sorted]
+        ids = [str(p["id"]) for p in polls_sorted]
+        # Upstream-removed ids last, so live content wins the batch budget.
+        ids.extend(str(i) for i in sorted(self._upstream_removed_ids))
+        return ids
 
     # ------------------------------------------------------------------
     # 2. fetch
@@ -313,10 +351,25 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
             external_id: String poll id (e.g., "3602").
 
         Returns:
-            Dict with keys "poll" (single poll item) and "votes" (list of vote items).
+            Dict with keys "poll" (single poll item) and "votes" (list of vote
+            items) — or ``{"upstream_removed": True, ...}`` when the poll no
+            longer exists upstream (reconcile-discovered removal or a live
+            404), which normalize() turns into an authoritative empty result
+            so the runner deletes the stored footprint.
         """
+        import requests  # noqa: PLC0415
+
         poll_id = int(external_id)
-        poll_resp = self._client.get(f"polls/{poll_id}")
+        if poll_id in self._upstream_removed_ids:
+            return {"poll": None, "votes": [], "upstream_removed": True}
+        try:
+            poll_resp = self._client.get(f"polls/{poll_id}")
+        except requests.HTTPError as exc:
+            # ONLY an explicit 404 is proof of removal; any other status is a
+            # transient failure and must keep the skip-and-warn semantics.
+            if exc.response is not None and exc.response.status_code == 404:
+                return {"poll": None, "votes": [], "upstream_removed": True}
+            raise
         poll = poll_resp["data"]
         votes = self._client.get_votes_for_poll(poll_id)
         return {"poll": poll, "votes": votes}
@@ -353,6 +406,12 @@ class AbgeordnetenwatchVotesConnector(BaseConnector):
                 unparseable poll date, or belongs to a different legislature
                 than this connector is configured for.
         """
+        # A poll that vanished upstream (reconcile or live 404): return the
+        # authoritative empty list — the runner deletes the stored footprint.
+        # Distinct from the ValueError skips below, which leave the store as-is.
+        if raw.get("upstream_removed"):
+            return []
+
         poll: dict = raw["poll"]
 
         poll_id: int = poll["id"]

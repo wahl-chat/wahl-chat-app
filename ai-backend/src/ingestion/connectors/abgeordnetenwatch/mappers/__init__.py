@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -11,6 +11,5 @@ Modules:
   stance.py  — aggregate_fraction_tallies(votes) -> dict[int, FractionTally]
                derive_stance(yes, no, abstain, no_show) -> Stance
                fraction_to_party_slug(fraction_id, fraction_map) -> str
-               build_qsp(poll, fraction_id, tally, source_item_id, fraction_map) -> QuestionStancePair
   corpus.py  — chunk_poll(source_item, raw) -> list[ChunkRecord]
 """

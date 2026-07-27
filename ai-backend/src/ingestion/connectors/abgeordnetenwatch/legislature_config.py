@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -245,6 +245,24 @@ LEGISLATURE_CONFIG: dict[int, LegislatureConfig] = {
 # ---------------------------------------------------------------------------
 LANDTAG_LEGISLATURE_IDS: list[int] = [
     key for key, cfg in LEGISLATURE_CONFIG.items() if cfg.region != "DE"
+]
+
+# ---------------------------------------------------------------------------
+# FEDERAL_LEGISLATURE_IDS — the Bundestag periods the default ingestion loop
+# runs: CURRENT + PRIOR (the two newest region-"DE" rows by date_from),
+# matching the Landtag depth policy. Derived from LEGISLATURE_CONFIG so the
+# Makefile loop can never drift from the config; the connector requires an
+# explicit AW_LEGISLATURE_ID, so a silent lone-default period cannot recur.
+# Older configured periods (e.g. the 19th Bundestag row, which also anchors
+# the golden test fixtures) stay runnable via an explicit AW_LEGISLATURE_ID
+# but are NOT part of the default corpus.
+# ---------------------------------------------------------------------------
+FEDERAL_LEGISLATURE_IDS: list[int] = [
+    key
+    for key, _cfg in sorted(
+        ((k, c) for k, c in LEGISLATURE_CONFIG.items() if c.region == "DE"),
+        key=lambda kv: kv[1].date_from,
+    )[-2:]
 ]
 
 
