@@ -74,13 +74,32 @@ def get_cors_allowed_origins(env: Optional[str]) -> list[str]:
     app.py runs the CORS middleware with allow_credentials=True; a wildcard
     there makes Starlette reflect ANY Origin with credentials, so origins must
     always be an explicit list. CORS_EXTRA_ORIGINS (comma-separated) extends
-    the list per deployment (e.g. the Vercel URL of the deployed dev demo).
+    the list per deployment (e.g. the Vercel URL of the deployed dev demo) —
+    entries are VALIDATED at startup: a "*" (which would silently turn the
+    deployment into reflect-any-origin-with-credentials) or a non-http(s)
+    entry fails boot instead of weakening CORS via a config typo.
+
+    Raises:
+        ValueError: When CORS_EXTRA_ORIGINS contains a wildcard or an entry
+                    that is not an absolute http(s) origin.
     """
     extra_origins = [
         origin.strip()
         for origin in (os.getenv("CORS_EXTRA_ORIGINS") or "").split(",")
         if origin.strip()
     ]
+    for origin in extra_origins:
+        if "*" in origin:
+            raise ValueError(
+                f"CORS_EXTRA_ORIGINS entry {origin!r} contains a wildcard — "
+                "with allow_credentials=True this would reflect ANY origin. "
+                "List each allowed origin explicitly."
+            )
+        if not origin.startswith(("http://", "https://")):
+            raise ValueError(
+                f"CORS_EXTRA_ORIGINS entry {origin!r} is not an absolute "
+                "http(s) origin (expected e.g. https://demo.example.app)."
+            )
     if env == "dev":
         return [
             "http://localhost:3000",

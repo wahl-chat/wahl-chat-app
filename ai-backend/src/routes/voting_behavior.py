@@ -36,15 +36,22 @@ import asyncio
 import logging
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from sse_starlette.sse import EventSourceResponse
 
 from src.auth import resolve_user_is_logged_in
 from src.chatbot_async import (
     get_improved_rag_query_voting_behavior,
     generate_party_vote_behavior_summary,
 )
-from src.chat_service import with_heartbeat
-from src.sse import DONE, data_event, finish, finish_step, text_delta
+from src.sse import (
+    DONE,
+    data_event,
+    finish,
+    finish_step,
+    text_delta,
+    text_end,
+    text_start,
+)
 from src.firebase_service import aget_context_by_id, aget_party_for_context
 from src.ingestion.retrieve import retrieve
 from src.models.context import DEFAULT_CONTEXT_ID
@@ -66,14 +73,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1")
 
-# SSE headers. StreamingResponse (not EventSourceResponse) — the generator yields
-# pre-framed "data: ...\n\n" strings; EventSourceResponse would double-wrap them.
-_SSE_HEADERS = {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache, no-transform",
-    "X-Accel-Buffering": "no",
-    "x-vercel-ai-ui-message-stream": "v1",
-}
+# Protocol header on top of sse-starlette's own SSE headers.
+_STREAM_HEADERS = {"x-vercel-ai-ui-message-stream": "v1"}
+_SSE_PING_SECONDS = 15
 
 
 def _chunk_payload_to_vote(payload: dict, party_id: str) -> Vote | None:
@@ -261,8 +263,13 @@ async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequest
                 )
                 yield data_event({"type": "vote_result", **vote_dto.model_dump()})
 
-            # Stream summary as text deltas (replaces V1 voting_behavior_summary_chunk)
+            # Stream summary as a VALID v5 text block: the response advertises
+            # x-vercel-ai-ui-message-stream v1, and a standard AI SDK parser
+            # rejects a text-delta for a text block that was never opened — so
+            # the deltas are wrapped in text-start / text-end (keyed by
+            # request_id, matching the deltas).
             complete_message = ""
+            text_block_open = False
             if party:
                 summary_stream = await generate_party_vote_behavior_summary(
                     party,
@@ -289,7 +296,12 @@ async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequest
                         if i > 0:
                             await asyncio.sleep(0.025)
                         split_chunk = text_content[i : i + MAX_RESPONSE_CHUNK_LENGTH]
+                        if not text_block_open:
+                            yield text_start(body.request_id)
+                            text_block_open = True
                         yield text_delta(body.request_id, split_chunk)
+                if text_block_open:
+                    yield text_end(body.request_id)
 
             # Emit voting_behavior_complete annotation before finish events.
             # The frontend (generate-voting-behavior-summary.ts) only finalizes on a
@@ -316,4 +328,6 @@ async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequest
             yield data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE})
             yield DONE
 
-    return StreamingResponse(with_heartbeat(stream()), headers=_SSE_HEADERS)
+    return EventSourceResponse(
+        stream(), headers=_STREAM_HEADERS, ping=_SSE_PING_SECONDS
+    )

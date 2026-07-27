@@ -22,10 +22,9 @@ Tests:
 
   - test_sse_headers: the response carries Content-Type:
     text/event-stream, x-vercel-ai-ui-message-stream: v1, and
-    Cache-Control: no-cache, no-transform.
+    Cache-Control: no-store (sse-starlette).
 """
 
-import asyncio
 import json
 from unittest.mock import AsyncMock
 
@@ -84,11 +83,9 @@ async def test_chat_sse_smoke(patch_chat_io, app):
             assert response.headers.get("x-vercel-ai-ui-message-stream") == "v1", (
                 "Missing x-vercel-ai-ui-message-stream: v1 header"
             )
-            assert "no-cache" in response.headers.get("cache-control", ""), (
-                "Missing no-cache in Cache-Control header"
-            )
-            assert "no-transform" in response.headers.get("cache-control", ""), (
-                "Missing no-transform in Cache-Control header"
+            cache_control = response.headers.get("cache-control", "")
+            assert "no-store" in cache_control or "no-cache" in cache_control, (
+                "Missing no-store/no-cache in Cache-Control header"
             )
 
             has_text_delta = False
@@ -117,37 +114,28 @@ async def test_chat_sse_smoke(patch_chat_io, app):
 
 
 @pytest.mark.asyncio
-async def test_with_heartbeat_emits_keepalive_during_idle():
-    """with_heartbeat() interleaves an SSE comment keep-alive when the
-    wrapped generator is idle longer than `interval`, while preserving the real
-    data frames in order. Protects against corporate-proxy idle timeouts before
-    the first LLM token (the failure that motivated the move off WebSockets)."""
-    from src.chat_service import with_heartbeat
+async def test_sse_routes_use_event_source_response_with_ping():
+    """The SSE routes delegate framing + keep-alive to sse-starlette's
+    EventSourceResponse (ping comments protect against corporate-proxy idle
+    timeouts before the first LLM token — the failure that motivated the move
+    off WebSockets). No custom heartbeat code exists anymore."""
+    import inspect
 
-    async def slow_gen():
-        # Idle long enough (relative to interval) to force a heartbeat before the
-        # first frame, then emit two real frames back-to-back (no heartbeat).
-        await asyncio.sleep(0.06)
-        yield 'data: {"type":"text-delta","id":"m1","delta":"Hallo"}\n\n'
-        yield "data: [DONE]\n\n"
+    from src.routes import chat as chat_route
 
-    chunks = [chunk async for chunk in with_heartbeat(slow_gen(), interval=0.02)]
-
-    # Real frames preserved in order...
-    data_frames = [c for c in chunks if c.startswith("data:")]
-    assert data_frames == [
-        'data: {"type":"text-delta","id":"m1","delta":"Hallo"}\n\n',
-        "data: [DONE]\n\n",
-    ]
-    # ...and at least one keep-alive comment was interleaved during the idle gap.
-    assert any(c.startswith(":") for c in chunks), "no heartbeat emitted while idle"
+    assert not hasattr(
+        __import__("src.chat_service", fromlist=["chat_service"]), "with_heartbeat"
+    ), "custom heartbeat wrapper must be gone (EventSourceResponse ping owns it)"
+    source = inspect.getsource(chat_route)
+    assert "EventSourceResponse" in source
+    assert "ping=" in source
 
 
 @pytest.mark.asyncio
 async def test_sse_headers(patch_chat_io, app):
     """The chat endpoint response carries the required SSE
     anti-buffering headers: Content-Type: text/event-stream,
-    x-vercel-ai-ui-message-stream: v1, Cache-Control: no-cache, no-transform.
+    x-vercel-ai-ui-message-stream: v1, Cache-Control: no-store (sse-starlette).
 
     Uses the same in-process ASGI transport as test_chat_sse_smoke.
     """
@@ -168,11 +156,9 @@ async def test_sse_headers(patch_chat_io, app):
             assert response.headers.get("x-vercel-ai-ui-message-stream") == "v1", (
                 "Missing x-vercel-ai-ui-message-stream: v1 header"
             )
-            assert "no-cache" in response.headers.get("cache-control", ""), (
-                "Missing no-cache in Cache-Control header"
-            )
-            assert "no-transform" in response.headers.get("cache-control", ""), (
-                "Missing no-transform in Cache-Control header"
+            cache_control = response.headers.get("cache-control", "")
+            assert "no-store" in cache_control or "no-cache" in cache_control, (
+                "Missing no-store/no-cache in Cache-Control header"
             )
 
 

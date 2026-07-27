@@ -11,6 +11,19 @@ from src.models.vote import Vote
 from .chat import Message
 from .context import ContextParty
 
+# ---------------------------------------------------------------------------
+# Input bounds for PUBLIC (unauthenticated) request DTOs. Every field flows
+# into LLM prompts, so an unbounded body is a cost / context-overflow / memory
+# vector; Pydantic rejects oversized input with 422 BEFORE any retrieval or
+# provider call. Sized far above real usage — abuse guards, not UX limits.
+# Pydantic validates only after the body is parsed, so a raw request-body cap
+# at the proxy / ASGI edge is still required in deployment.
+# ---------------------------------------------------------------------------
+MAX_ID_CHARS = 128
+MAX_USER_MESSAGE_CHARS = 4_000
+MAX_ASSISTANT_MESSAGE_CHARS = 40_000
+MAX_HISTORY_MESSAGES = 100
+
 
 class CreateSessionRequest(BaseModel):
     party_id: str = Field(
@@ -76,14 +89,28 @@ class ChatSessionInitializedDto(BaseModel):
 
 
 class ProConPerspectiveRequestDto(BaseModel):
-    request_id: str = Field(..., description="The ID of the Pro/Con assessment request")
-    party_id: str = Field(
-        ..., description="The ID of the party the user is chatting with"
+    request_id: str = Field(
+        ...,
+        max_length=MAX_ID_CHARS,
+        description="The ID of the Pro/Con assessment request",
     )
-    last_user_message: str = Field(..., description="The last user message")
-    last_assistant_message: str = Field(..., description="The last assistant message")
+    party_id: str = Field(
+        ...,
+        max_length=MAX_ID_CHARS,
+        description="The ID of the party the user is chatting with",
+    )
+    last_user_message: str = Field(
+        ..., max_length=MAX_USER_MESSAGE_CHARS, description="The last user message"
+    )
+    last_assistant_message: str = Field(
+        ...,
+        max_length=MAX_ASSISTANT_MESSAGE_CHARS,
+        description="The last assistant message",
+    )
     context_id: Optional[str] = Field(
-        None, description="The context ID for the political context (e.g., election)"
+        None,
+        max_length=MAX_ID_CHARS,
+        description="The context ID for the political context (e.g., election)",
     )
 
 
@@ -98,16 +125,29 @@ class ProConPerspectiveDto(BaseModel):
 
 
 class VotingBehaviorRequestDto(BaseModel):
-    request_id: str = Field(..., description="The ID of the voting behavior request")
+    request_id: str = Field(
+        ...,
+        max_length=MAX_ID_CHARS,
+        description="The ID of the voting behavior request",
+    )
     party_id: str = Field(
-        ..., description="The ID of the party the user is chatting with"
+        ...,
+        max_length=MAX_ID_CHARS,
+        description="The ID of the party the user is chatting with",
     )
     context_id: Optional[str] = Field(
         default=None,
+        max_length=MAX_ID_CHARS,
         description="Election context id; scopes party lookup and vote retrieval.",
     )
-    last_user_message: str = Field(..., description="The last user message")
-    last_assistant_message: str = Field(..., description="The last assistant message")
+    last_user_message: str = Field(
+        ..., max_length=MAX_USER_MESSAGE_CHARS, description="The last user message"
+    )
+    last_assistant_message: str = Field(
+        ...,
+        max_length=MAX_ASSISTANT_MESSAGE_CHARS,
+        description="The last assistant message",
+    )
     summary_llm_size: LLMSize = Field(
         description="The LLM size to use for voting behavior summary generation",
         default=LLMSize.LARGE,
@@ -116,13 +156,23 @@ class VotingBehaviorRequestDto(BaseModel):
 
 class ParliamentaryQuestionRequestDto(BaseModel):
     request_id: str = Field(
-        ..., description="The ID of the parliamentary question request"
+        ...,
+        max_length=MAX_ID_CHARS,
+        description="The ID of the parliamentary question request",
     )
     party_id: str = Field(
-        ..., description="The ID of the party the user is chatting with"
+        ...,
+        max_length=MAX_ID_CHARS,
+        description="The ID of the party the user is chatting with",
     )
-    last_user_message: str = Field(..., description="The last user message")
-    last_assistant_message: str = Field(..., description="The last assistant message")
+    last_user_message: str = Field(
+        ..., max_length=MAX_USER_MESSAGE_CHARS, description="The last user message"
+    )
+    last_assistant_message: str = Field(
+        ...,
+        max_length=MAX_ASSISTANT_MESSAGE_CHARS,
+        description="The last assistant message",
+    )
 
 
 class VotingBehaviorVoteDto(BaseModel):
@@ -301,7 +351,9 @@ class QuickRepliesAndTitleDto(BaseModel):
 
 
 class RequestSummaryDto(BaseModel):
-    chat_history: List[Message] = Field(..., description="The chat history")
+    chat_history: List[Message] = Field(
+        ..., max_length=MAX_HISTORY_MESSAGES, description="The chat history"
+    )
 
 
 class SummaryDto(BaseModel):
@@ -310,13 +362,18 @@ class SummaryDto(BaseModel):
 
 
 class WahlChatSwiperAnswerRequestDto(BaseModel):
-    chat_history: List[Message] = Field(..., description="The chat history")
-    current_title: str = Field(..., description="The current chat title")
+    chat_history: List[Message] = Field(
+        ..., max_length=MAX_HISTORY_MESSAGES, description="The chat history"
+    )
+    current_title: str = Field(
+        ..., max_length=500, description="The current chat title"
+    )
     user_message: str = Field(
         ..., description="The user message to answer", max_length=500
     )
     current_political_question: str = Field(
         ...,
+        max_length=1_000,
         description="The current wahl.chat Swiper question which the user is answering",
     )
     chat_response_llm_size: LLMSize = Field(

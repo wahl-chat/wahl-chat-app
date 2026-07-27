@@ -22,7 +22,14 @@ class _FakeClient:
     def collection_exists(self, _name: str) -> bool:
         return self._exists
 
-    def count(self, collection_name: str, exact: bool = True) -> _FakeCount:
+    def count(
+        self,
+        collection_name: str,
+        count_filter: object = None,
+        exact: bool = True,
+    ) -> _FakeCount:
+        # count_filter excludes the fingerprint sentinel in production; the
+        # fake's configured count already represents the corpus-only total.
         return _FakeCount(self._count)
 
 

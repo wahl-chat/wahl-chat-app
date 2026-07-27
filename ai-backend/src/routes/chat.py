@@ -22,35 +22,30 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
+from sse_starlette.sse import EventSourceResponse
 
-from src.chat_service import generate_chat_stream, with_heartbeat
+from src.chat_service import generate_chat_stream
 from src.models.chat import Role
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1")
 
-# SSE response headers
-# NOTE: Using StreamingResponse (not EventSourceResponse) because generate_chat_stream
-# yields pre-framed SSE strings ("data: ...\n\n"). EventSourceResponse would wrap them
-# in an extra "data: " prefix, producing double-framed events that break SSE parsers.
-# We set X-Accel-Buffering: no manually (sse-starlette sets it automatically for
-# EventSourceResponse, but StreamingResponse does not — nginx/Cloudflare requires it).
-_SSE_HEADERS = {
-    "Content-Type": "text/event-stream",
-    "x-vercel-ai-ui-message-stream": "v1",
-    "Cache-Control": "no-cache, no-transform",
-    "X-Accel-Buffering": "no",
-}
+# Protocol header on top of sse-starlette's own SSE headers (Content-Type,
+# Cache-Control, X-Accel-Buffering are set by EventSourceResponse itself).
+_STREAM_HEADERS = {"x-vercel-ai-ui-message-stream": "v1"}
+
+# Keep-alive comment interval — proxies (nginx/Cloudflare) drop quiet
+# connections; retrieval and quick-reply generation can be silent this long.
+_SSE_PING_SECONDS = 15
 
 
 # Server-side bounds on the PUBLIC, unauthenticated chat endpoint. Every field
 # flows into LLM prompts, so an unbounded body is a cost / context-overflow /
-# memory vector. V1 enforced a 500-char user message (ChatUserMessageDto) that
-# the SSE migration dropped; restore it and bound the list inputs + history
-# depth. Invalid input is rejected by FastAPI with 422 before reaching the LLM.
+# memory vector. Invalid input is rejected by FastAPI with 422 before reaching
+# the LLM; a raw request-body cap at the proxy/ASGI edge is still required
+# (Pydantic only validates after the body is parsed).
 _MAX_USER_MESSAGE_CHARS = 500
 _MAX_PARTY_IDS = 20  # largest seeded roster (Baden-Württemberg) is 19
 _MAX_HISTORY_MESSAGES = 100
@@ -116,7 +111,11 @@ async def chat_endpoint(request: Request, body: ChatRequestDto):
     the request's token (a valid, non-anonymous `Authorization: Bearer <Firebase
     ID token>`) — never from the client, so the request carries no such flag.
     """
-    return StreamingResponse(
-        with_heartbeat(generate_chat_stream(body, request)),
-        headers=_SSE_HEADERS,
+    # EventSourceResponse frames each yielded payload as one SSE event and
+    # emits `: ping` comments during quiet periods (comments are ignored by
+    # the AI SDK parser) — no custom framing or heartbeat code.
+    return EventSourceResponse(
+        generate_chat_stream(body, request),
+        headers=_STREAM_HEADERS,
+        ping=_SSE_PING_SECONDS,
     )

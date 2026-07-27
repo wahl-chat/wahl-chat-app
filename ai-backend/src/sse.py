@@ -1,13 +1,16 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Shared Server-Sent-Events framing for the v5 UI-message-stream endpoints.
+"""Shared payload serialization for the v5 UI-message-stream endpoints.
 
 The chat, pro-con, and voting-behavior endpoints all stream Vercel AI SDK v5
-UI-message-stream parts — each SSE event is ``data: <json>\\n\\n`` where the JSON
-is a part object with a ``type`` discriminator (``start``, ``text-delta``,
-``data-<name>``, ``finish``, …). These primitives live here so the framing is
-defined once rather than duplicated per route. Endpoints using them should send
-the ``x-vercel-ai-ui-message-stream: v1`` response header.
+UI-message-stream parts — each part is a JSON object with a ``type``
+discriminator (``start``, ``text-delta``, ``data-<name>``, ``finish``, …).
+These primitives return BARE payload strings; the SSE wire framing
+(``data: <payload>`` lines, keep-alive comments) is owned by sse-starlette's
+``EventSourceResponse`` at the route layer, so no custom framing or heartbeat
+code exists here. Endpoints send the ``x-vercel-ai-ui-message-stream: v1``
+response header. A generator MUST yield one payload per event —
+``EventSourceResponse`` frames each yielded string as exactly one SSE event.
 
 Named application events (responding_parties, sources_ready, party_chunk,
 party_complete, quick_replies_title, vote_result, pro_con_result, error, …) ride
@@ -17,18 +20,25 @@ inside a single ``data-chat_event`` part; the frontend switches on the inner
 
 import json
 
-# Literal stream terminator every endpoint yields last.
-DONE = "data: [DONE]\n\n"
+# Stream terminator payload every endpoint yields last (the AI SDK v5 sentinel;
+# deliberately NOT JSON).
+DONE = "[DONE]"
 
 
 def sse(part: object) -> str:
-    """Serialize one v5 UI-message-stream part as an SSE event (``data: <json>``)."""
-    return f"data: {json.dumps(part)}\n\n"
+    """Serialize one v5 UI-message-stream part payload (bare JSON string)."""
+    return json.dumps(part)
 
 
-def start_message(message_id: str) -> str:
-    """v5 message-frame init: message ``start`` + open the first ``start-step``."""
-    return sse({"type": "start", "messageId": message_id}) + sse({"type": "start-step"})
+def start_message(message_id: str) -> list[str]:
+    """v5 message-frame init: message ``start`` + open the first ``start-step``.
+
+    Returns TWO payloads — yield each separately (one SSE event per part).
+    """
+    return [
+        sse({"type": "start", "messageId": message_id}),
+        sse({"type": "start-step"}),
+    ]
 
 
 def data_event(payload: object) -> str:

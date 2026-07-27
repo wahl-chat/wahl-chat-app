@@ -11,11 +11,10 @@ inner type "error", then [DONE]. Framing helpers live in src.sse.
 import logging
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from sse_starlette.sse import EventSourceResponse
 
 from src.auth import verify_optional_bearer_token
 from src.chatbot_async import generate_pro_con_perspective
-from src.chat_service import with_heartbeat
 from src.sse import DONE, data_event, finish
 from src.utils import GENERIC_ERROR_MESSAGE
 from src.firebase_service import aget_party_for_context
@@ -32,14 +31,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1")
 
-# SSE headers. StreamingResponse (not EventSourceResponse) — the generator yields
-# pre-framed "data: ...\n\n" strings; EventSourceResponse would double-wrap them.
-_SSE_HEADERS = {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache, no-transform",
-    "X-Accel-Buffering": "no",
-    "x-vercel-ai-ui-message-stream": "v1",
-}
+# Protocol header on top of sse-starlette's own SSE headers.
+_STREAM_HEADERS = {"x-vercel-ai-ui-message-stream": "v1"}
+_SSE_PING_SECONDS = 15
 
 
 @router.post("/pro-con")
@@ -94,4 +88,6 @@ async def pro_con_endpoint(request: Request, body: ProConPerspectiveRequestDto):
             yield data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE})
             yield DONE
 
-    return StreamingResponse(with_heartbeat(stream()), headers=_SSE_HEADERS)
+    return EventSourceResponse(
+        stream(), headers=_STREAM_HEADERS, ping=_SSE_PING_SECONDS
+    )

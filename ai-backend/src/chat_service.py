@@ -16,7 +16,7 @@ carries a ``type`` discriminator:
                                    quick_replies_title, error); the frontend
                                    switches on the inner ``data.type``
   finish-step / finish           — step + message finished
-  data: [DONE]                   — literal stream terminator
+  [DONE]                         — literal stream terminator payload
 
 Each part is built by a small named helper (``_start_message``, ``_data_event``,
 ``_text_start`` / ``_text_delta`` / ``_text_end``, ``_finish_step``, ``_finish``);
@@ -55,6 +55,7 @@ from src.chatbot_async import (
 )
 from src.auth import resolve_user_is_logged_in
 from src.sse import (
+    DONE as _DONE,
     data_event as _data_event,
     finish as _finish,
     finish_step as _finish_step,
@@ -152,6 +153,13 @@ _CURRENT_SPEECH_FALLBACK = 5  # adaptive ceiling when official data is sparse
 # build_document_string_for_context) and the LLM cites them as clean [N] integer
 # IDs. Kept at module level (not re-defined per call) so both paths stay in sync.
 # ---------------------------------------------------------------------------
+def _meta_dict(payload: dict) -> dict:
+    """The payload's ``meta`` as a dict — persisted meta is untrusted at this
+    boundary, so any non-dict shape degrades to {} instead of AttributeError."""
+    meta = payload.get("meta")
+    return meta if isinstance(meta, dict) else {}
+
+
 def _mk_manifesto_docs(payloads: list[dict]) -> list[Document]:
     return [
         Document(
@@ -160,7 +168,7 @@ def _mk_manifesto_docs(payloads: list[dict]) -> list[Document]:
                 "document_name": p.get("citation_title"),
                 "document_publish_date": p.get("publish_date"),
                 "url": p.get("citation_url"),
-                "page": (p.get("meta") or {}).get("page_start"),
+                "page": _meta_dict(p).get("page_start"),
                 "source_document": p.get("citation_title"),
                 "authority_tier": p.get("authority_tier"),
             },
@@ -171,7 +179,10 @@ def _mk_manifesto_docs(payloads: list[dict]) -> list[Document]:
 
 def _mk_speech_docs(payloads: list[dict], improved_rag_query: str) -> list[Document]:
     # op speeches carry a video deep-link (meta.sentence_map + video_uri);
-    # rewrite their url to video_uri#t={ts_start}. DIP unchanged.
+    # rewrite their url to video_uri#t={ts_start}. DIP unchanged. The raw
+    # payload rides along in metadata so the comparison path can serialize the
+    # SAME source-aware citation (video/pdf links, attribution, refinement) as
+    # the single-party path — Documents alone would strip that contract.
     return [
         Document(
             page_content=(p.get("text") or ""),
@@ -182,10 +193,56 @@ def _mk_speech_docs(payloads: list[dict], improved_rag_query: str) -> list[Docum
                 "page": 1,
                 "source_document": p.get("citation_title"),
                 "authority_tier": p.get("authority_tier"),
+                "_source_payload": p,
             },
         )
         for p in payloads
     ]
+
+
+def _append_document_source(
+    sources: list,
+    speech_refs: list,
+    source_doc: Document,
+    party_id: Optional[str] = None,
+) -> None:
+    """Serialize one numbered Document into a sources[] entry (typed, shared).
+
+    ONE citation builder for the single-party and comparison branches: the
+    Document builders already set 1-based pages (or the manifesto page_start),
+    so the page is taken AS-IS — a generic "+1" turned page 1 into page 2.
+    Speech Documents carry their raw payload in metadata, so the source-aware
+    contract survives the comparison path: op video/pdf dual links, ODbL
+    attribution, and registration for post-answer deep-link refinement.
+    """
+    md = source_doc.metadata
+    entry: dict = {
+        "source": md.get("document_name"),
+        "page": md.get("page") if md.get("page") is not None else 1,
+        "document_publish_date": md.get("document_publish_date"),
+        "url": md.get("url"),
+        "source_document": md.get("source_document"),
+    }
+    if party_id is not None:
+        entry["party_id"] = party_id
+
+    payload = md.get("_source_payload")
+    if isinstance(payload, dict):
+        primary_url = md.get("url")
+        meta = _meta_dict(payload)
+        if payload.get("source") == "op":
+            if _is_video_link(primary_url):
+                entry["video_url"] = primary_url
+            transcript_pdf = meta.get("transcript_pdf_url")
+            if transcript_pdf:
+                entry["pdf_url"] = transcript_pdf
+        elif payload.get("source") == "dip" and primary_url:
+            entry["pdf_url"] = primary_url
+        entry.update(_speech_attribution(payload))
+        if payload.get("source") == "op" and meta.get("sentence_map"):
+            speech_refs.append((len(sources), payload))
+
+    sources.append(entry)
 
 
 def _speech_attribution(payload: dict) -> dict:
@@ -195,13 +252,16 @@ def _speech_attribution(payload: dict) -> dict:
     (op speeches), else an empty dict (DIP speeches carry no such meta). The app
     CAN render these; frontend rendering itself is out of scope this phase.
     """
-    meta = payload.get("meta") or {}
-    attribution = {
+    meta = payload.get("meta")
+    if not isinstance(meta, dict):
+        # Persisted meta is untrusted at this boundary — a corrupt non-dict
+        # value must not break response assembly.
+        return {}
+    return {
         key: meta.get(key)
         for key in ("creator", "license", "source_data")
         if meta.get(key)
     }
-    return attribution
 
 
 def _official_coverage(
@@ -296,56 +356,6 @@ def _party_chunk(session_id: str, party_id: str, chunk: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Helper: SSE idle keep-alive (heartbeat / proxy survival)
-# ---------------------------------------------------------------------------
-# StreamingResponse (chosen to avoid EventSourceResponse double-framing) has no
-# automatic keep-alive. During idle gaps — chiefly the wait before the first LLM
-# token while sources are retrieved — a silent connection can be dropped by
-# corporate proxies on an idle timeout, the exact failure that motivated the move
-# off WebSockets. This wrapper interleaves an SSE comment line (": ...\n\n", which
-# Vercel-AI / EventSource parsers ignore) whenever the wrapped generator produces
-# nothing for `interval` seconds, keeping the connection warm without affecting
-# the data stream.
-async def with_heartbeat(
-    agen: AsyncGenerator[str, None], interval: float = 15.0
-) -> AsyncGenerator[str, None]:
-    aiter = agen.__aiter__()
-    pending: Optional[asyncio.Task] = None
-    try:
-        while True:
-            if pending is None:
-                pending = asyncio.ensure_future(aiter.__anext__())
-            done, _ = await asyncio.wait({pending}, timeout=interval)
-            if pending in done:
-                try:
-                    item = pending.result()
-                except StopAsyncIteration:
-                    return
-                finally:
-                    pending = None
-                yield item
-            else:
-                # No chunk within `interval`; keep the same pending task and ping.
-                yield ": keep-alive\n\n"
-    finally:
-        if pending is not None:
-            # Cancel then AWAIT the in-flight __anext__ task before closing the
-            # generator: calling agen.aclose() while __anext__ is still running
-            # raises "aclose(): asynchronous generator is already running".
-            pending.cancel()
-            try:
-                await pending
-            except (asyncio.CancelledError, StopAsyncIteration):
-                pass
-            except Exception:  # noqa: BLE001 — teardown must not mask the exit path
-                logger.debug(
-                    "with_heartbeat: pending task raised during teardown",
-                    exc_info=True,
-                )
-        await agen.aclose()
-
-
-# ---------------------------------------------------------------------------
 # Cached-response yielder (replaces emit_cached_party_response)
 # ---------------------------------------------------------------------------
 async def yield_cached_party_response(
@@ -422,9 +432,26 @@ class _RetrievedBuckets(NamedTuple):
     speech_historic: list[dict]
 
 
-async def _safe_retrieve(*args, _log_prefix: str = "retrieve", **kwargs) -> list[dict]:  # type: ignore[no-untyped-def]
+class RetrievalUnavailableError(RuntimeError):
+    """EVERY retrieval source for a party failed (corpus outage, not empty data).
+
+    A total failure must fail the turn: an LLM answer generated with zero
+    grounding would stream as a "successful" ungrounded answer (and could be
+    cached), indistinguishable from a legitimately empty result.
+    """
+
+
+async def _safe_retrieve(  # type: ignore[no-untyped-def]
+    *args,
+    _log_prefix: str = "retrieve",
+    _failures: Optional[list] = None,
+    **kwargs,
+) -> list[dict]:
     """Run retrieve() off-thread; a failure returns [] so one source never kills
-    its siblings or the whole answer. with_scores is never set here → list[dict]."""
+    its siblings. The failure is RECORDED in *_failures* (when given) so the
+    caller can distinguish "empty corpus" from "every source errored" — a total
+    outage must fail the turn, not stream an ungrounded answer.
+    with_scores is never set here → list[dict]."""
     try:
         return cast(list[dict], await asyncio.to_thread(retrieve, *args, **kwargs))
     except Exception as _err:  # noqa: BLE001
@@ -436,14 +463,21 @@ async def _safe_retrieve(*args, _log_prefix: str = "retrieve", **kwargs) -> list
             _err,
             exc_info=True,
         )
+        if _failures is not None:
+            _failures.append(kwargs.get("source_type"))
         return []
 
 
 async def _safe_two_pass(
-    improved_rag_query: str, *, _log_prefix: str = "retrieve_two_pass", **kwargs
+    improved_rag_query: str,
+    *,
+    _log_prefix: str = "retrieve_two_pass",
+    _failures: Optional[list] = None,
+    **kwargs,
 ) -> dict[str, list[dict]]:  # type: ignore[no-untyped-def]
     """Run retrieve_two_pass() off-thread; a failure returns empty current/historic
-    buckets so a single source failure never kills the other two nor the answer."""
+    buckets so a single source failure never kills the other two. The failure is
+    recorded in *_failures* (when given) — see _safe_retrieve."""
     try:
         return await asyncio.to_thread(retrieve_two_pass, improved_rag_query, **kwargs)
     except Exception as _err:  # noqa: BLE001
@@ -455,6 +489,8 @@ async def _safe_two_pass(
             _err,
             exc_info=True,
         )
+        if _failures is not None:
+            _failures.append(kwargs.get("source_type"))
         return {"current": [], "historic": []}
 
 
@@ -488,6 +524,11 @@ async def _retrieve_party_buckets(
     if party.party_id == WAHL_CHAT_PARTY.party_id:
         return _RetrievedBuckets([], [], [], [], [], [])
 
+    # Per-source failures recorded by the _safe_* helpers. Per-source
+    # degradation stays (a single failed source yields empty buckets), but
+    # when EVERY source failed the turn must fail — see RetrievalUnavailableError.
+    retrieval_failures: list = []
+
     # Manifestos are exclusive to the election's own level: a chat grounds in the
     # manifesto written FOR that election, never a parent level's — a state chat
     # must not cite the federal program as the party's local platform (and a
@@ -505,6 +546,7 @@ async def _retrieve_party_buckets(
             _safe_two_pass(
                 improved_rag_query,
                 _log_prefix=f"{log_prefix}_two_pass",
+                _failures=retrieval_failures,
                 query_vector=rag_query_vector,
                 source_type="vote_record",
                 party_ids_contains=party.party_id,
@@ -521,6 +563,7 @@ async def _retrieve_party_buckets(
             _safe_two_pass(
                 improved_rag_query,
                 _log_prefix=f"{log_prefix}_two_pass",
+                _failures=retrieval_failures,
                 query_vector=rag_query_vector,
                 source_type="party_manifesto",
                 party_id=party.party_id,
@@ -539,6 +582,7 @@ async def _retrieve_party_buckets(
             _safe_two_pass(
                 improved_rag_query,
                 _log_prefix=f"{log_prefix}_two_pass",
+                _failures=retrieval_failures,
                 query_vector=rag_query_vector,
                 source_type="parliamentary_speech",
                 party_id=party.party_id,
@@ -551,6 +595,11 @@ async def _retrieve_party_buckets(
                 region_path=region_path,
             ),
         )
+        if len(retrieval_failures) >= 3:
+            raise RetrievalUnavailableError(
+                f"all retrieval sources failed for party {party.party_id}: "
+                f"{retrieval_failures!r}"
+            )
         return _RetrievedBuckets(
             vote_current=vote_buckets["current"],
             vote_historic=vote_buckets["historic"],
@@ -565,6 +614,7 @@ async def _retrieve_party_buckets(
         _safe_retrieve(
             improved_rag_query,
             _log_prefix=log_prefix,
+            _failures=retrieval_failures,
             query_vector=rag_query_vector,
             source_type="vote_record",
             party_ids_contains=party.party_id,
@@ -577,6 +627,7 @@ async def _retrieve_party_buckets(
         _safe_retrieve(
             improved_rag_query,
             _log_prefix=log_prefix,
+            _failures=retrieval_failures,
             query_vector=rag_query_vector,
             source_type="party_manifesto",
             party_id=party.party_id,
@@ -587,6 +638,7 @@ async def _retrieve_party_buckets(
         _safe_retrieve(
             improved_rag_query,
             _log_prefix=log_prefix,
+            _failures=retrieval_failures,
             query_vector=rag_query_vector,
             source_type="parliamentary_speech",
             party_id=party.party_id,
@@ -595,6 +647,11 @@ async def _retrieve_party_buckets(
             region_path=region_path,
         ),
     )
+    if len(retrieval_failures) >= 3:
+        raise RetrievalUnavailableError(
+            f"all retrieval sources failed for party {party.party_id}: "
+            f"{retrieval_failures!r}"
+        )
     return _RetrievedBuckets(
         vote_current=vote_current,
         vote_historic=[],
@@ -777,7 +834,7 @@ async def fetch_party_response_stream(
             # within each bucket manifesto → vote → speech.
             def _append_manifesto_sources(payloads: list[dict]) -> None:
                 for manifesto_payload in payloads:
-                    meta = manifesto_payload.get("meta") or {}
+                    meta = _meta_dict(manifesto_payload)
                     sources.append(
                         {
                             "source": manifesto_payload.get("citation_title"),
@@ -811,7 +868,10 @@ async def fetch_party_response_stream(
                     # grafted from the superseded DIP record; dip → primary url is the
                     # PDF. `url` stays the primary (video-first) link for back-compat
                     # and [N] alignment; video_url / pdf_url are additive.
-                    meta = speech_payload.get("meta") or {}
+                    meta = speech_payload.get("meta")
+                    if not isinstance(meta, dict):
+                        # Untrusted persisted meta: degrade to a plain entry.
+                        meta = {}
                     if speech_payload.get("source") == "op":
                         if _is_video_link(primary_url):
                             source_entry["video_url"] = primary_url
@@ -834,7 +894,7 @@ async def fetch_party_response_stream(
                 # filter build_vote_documents uses, so only participating votes get a
                 # sources[] entry and sources[N] stays aligned with combined_docs[N].
                 for vote_payload in payloads:
-                    meta_vp = vote_payload.get("meta") or {}
+                    meta_vp = _meta_dict(vote_payload)
                     results_vp = meta_vp.get("vote_results") or []
                     party_result_vp = next(
                         (r for r in results_vp if r.get("party_id") == party.party_id),
@@ -857,19 +917,7 @@ async def fetch_party_response_stream(
 
             # relevant_docs_list is always empty; this loop is a defensive no-op.
             for source_doc in relevant_docs_list:
-                page_raw = source_doc.metadata.get("page", 0)
-                page_number = int(page_raw if page_raw is not None else 0) + 1
-                sources.append(
-                    {
-                        "source": source_doc.metadata.get("document_name"),
-                        "page": page_number,
-                        "document_publish_date": source_doc.metadata.get(
-                            "document_publish_date"
-                        ),
-                        "url": source_doc.metadata.get("url"),
-                        "source_document": source_doc.metadata.get("source_document"),
-                    }
-                )
+                _append_document_source(sources, speech_refs, source_doc)
 
             # CURRENT bucket sources (manifesto → vote → speech). speech_current is
             # the already-trimmed list, so sources[] stays aligned with combined_docs.
@@ -892,23 +940,18 @@ async def fetch_party_response_stream(
         else:
             relevant_docs_dict = dict(relevant_docs) if relevant_docs else {}  # type: ignore[arg-type]
             if parties_being_compared:
+                # SAME typed citation builder as the single-party branch: pages
+                # stay as built (no +1), op video/PDF links and attribution
+                # survive, and op speeches register for post-answer deep-link
+                # refinement — the comparison path previously flattened all of
+                # this into a generic entry with an off-by-one page.
                 for rel_party in parties_being_compared:
                     for source_doc in relevant_docs_dict.get(rel_party.party_id, []):
-                        page_raw = source_doc.metadata.get("page", 0)
-                        page_number = int(page_raw if page_raw is not None else 0) + 1
-                        sources.append(
-                            {
-                                "source": source_doc.metadata.get("document_name"),
-                                "page": page_number,
-                                "document_publish_date": source_doc.metadata.get(
-                                    "document_publish_date"
-                                ),
-                                "url": source_doc.metadata.get("url"),
-                                "source_document": source_doc.metadata.get(
-                                    "source_document"
-                                ),
-                                "party_id": rel_party.party_id,
-                            }
+                        _append_document_source(
+                            sources,
+                            speech_refs,
+                            source_doc,
+                            party_id=rel_party.party_id,
                         )
 
             sources_dto = SourcesDto(
@@ -1085,6 +1128,10 @@ async def fetch_party_response_stream(
             # Close the dangling v5 text block so the stream stays protocol-valid.
             yield _text_end(open_text_id)
             open_text_id = None
+        # Terminal ERROR contract: a generic error event first, then the error
+        # party_complete — a total retrieval outage (RetrievalUnavailableError)
+        # or any unexpected failure must never look like a successful answer.
+        yield _data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE})
         yield _data_event(
             {
                 "type": "party_complete",
@@ -1267,7 +1314,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                                     quick_replies_title, error)
       text-start/-delta/-end      — party answer text blocks
       finish-step / finish        — finish events
-      data: [DONE]                — stream terminator
+      [DONE]                      — stream terminator payload
 
     Multi-party: SERIALIZED — parties respond one at a time.
     Concurrent streaming could later multiplex via asyncio.Queue if required.
@@ -1289,7 +1336,8 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
 
     message_id = str(uuid.uuid4())
 
-    yield _start_message(message_id)
+    for part in _start_message(message_id):
+        yield part
 
     # Reconstruct stateless GroupChatSession from request body
     user_message = Message(
@@ -1443,7 +1491,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
             )
             yield _finish_step()
             yield _finish()
-            yield "data: [DONE]\n\n"
+            yield _DONE
             return
 
         if not party_id_list:
@@ -1561,9 +1609,26 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                 await asyncio.wait_for(asyncio.gather(*party_tasks), timeout=40)
             except asyncio.TimeoutError as e:
                 logger.error(f"Timeout fetching comparison docs: {e}")
+                # Terminal ERROR contract: responding_parties already told the
+                # client to expect an answer — a bare finish would leave the
+                # responder pending until the client-side watchdog fires.
+                yield _data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE})
+                yield _data_event(
+                    {
+                        "type": "party_complete",
+                        "session_id": body.session_id,
+                        "party_id": WAHL_CHAT_PARTY.party_id,
+                        "complete_message": GENERIC_ERROR_MESSAGE,
+                        "message_id": None,
+                        "status": {
+                            "indicator": "error",
+                            "message": GENERIC_ERROR_MESSAGE,
+                        },
+                    },
+                )
                 yield _finish_step()
                 yield _finish()
-                yield "data: [DONE]\n\n"
+                yield _DONE
                 return
 
             party_generators = [
@@ -1591,7 +1656,14 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
         # wall-clock budget bounds EVERY drain step via asyncio.wait_for, so
         # even a single hung party stream cannot outlive the budget (the 15s
         # heartbeat would otherwise keep the wire alive indefinitely).
-        for gen in party_generators:
+        # Pair each generator with its party so a budget timeout can emit an
+        # error party_complete for the responder the client is waiting on.
+        generator_parties = (
+            parties_to_respond
+            if (len(parties_to_respond) == 1 or not is_comparing_question)
+            else [WAHL_CHAT_PARTY]
+        )
+        for gen_party, gen in zip(generator_parties, party_generators):
             # The client is gone — return WITHOUT generating quick replies /
             # title (a live LLM call nobody would receive).
             if request is not None and await request.is_disconnected():
@@ -1627,16 +1699,34 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     "terminating stream",
                     _CHAT_STREAM_BUDGET_S,
                 )
-                # Best-effort close of the abandoned party generator.
+                # Best-effort close of the abandoned party generator (wait_for
+                # already cancelled the pending __anext__ task).
                 try:
                     await gen.aclose()
                 except Exception:  # noqa: BLE001
                     pass
-                # Terminate cleanly for the (still connected) client, skipping
-                # quick-replies/title generation (another live LLM call).
+                # Terminal ERROR contract: the client was told to expect this
+                # responder — emit a generic error plus an error party_complete
+                # so the UI clears the pending responder immediately instead of
+                # waiting for its watchdog. Quick-replies/title and cache
+                # writes are skipped (return below).
+                yield _data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE})
+                yield _data_event(
+                    {
+                        "type": "party_complete",
+                        "session_id": body.session_id,
+                        "party_id": gen_party.party_id,
+                        "complete_message": GENERIC_ERROR_MESSAGE,
+                        "message_id": None,
+                        "status": {
+                            "indicator": "error",
+                            "message": GENERIC_ERROR_MESSAGE,
+                        },
+                    },
+                )
                 yield _finish_step()
                 yield _finish()
-                yield "data: [DONE]\n\n"
+                yield _DONE
                 return
 
     except Exception as e:
@@ -1644,7 +1734,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
         yield _data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE})
         yield _finish_step()
         yield _finish()
-        yield "data: [DONE]\n\n"
+        yield _DONE
         return
 
     # Quick replies + title (replaces V1 socket_emit("quick_replies_and_title_ready", ...))
@@ -1686,4 +1776,4 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
     # Finish events (replaces V1 socket_emit("chat_response_complete", ...))
     yield _finish_step()
     yield _finish()
-    yield "data: [DONE]\n\n"
+    yield _DONE

@@ -416,9 +416,8 @@ def build_vote_documents(
     Votes where the party did not participate (``party_result`` is None) are skipped.
 
     The resulting Documents flow into ``combined_docs`` and are numbered
-    sequentially by ``get_rag_context``, so the LLM can cite them as clean
-    ``[N]`` integer IDs instead of the free-text ``[Abstimmungsverhalten]``
-    marker that appeared when votes were injected as a raw heading block.
+    sequentially by ``get_rag_context``, so the LLM cites them as clean
+    ``[N]`` integer IDs like every other grounding source.
 
     Returns an empty list when there are no participating votes.
     """
@@ -525,10 +524,9 @@ async def generate_streaming_chatbot_response(
     present_sources: Optional[tuple[bool, bool, bool]] = None,
     has_historic: bool = False,
 ) -> AsyncIterator[BaseMessageChunk]:
-    # relevant_docs now contains V1 docs + manifesto_docs + speech_docs + vote_docs
-    # (combined_docs from chat_service.py); get_rag_context numbers them sequentially
-    # so the LLM can cite ALL of them as clean [N] integer IDs.  No free-text context
-    # kwargs remain — every grounding source flows through the numbered Document list.
+    # relevant_docs is combined_docs from chat_service.py (manifesto + vote +
+    # speech Documents); get_rag_context numbers them sequentially so the LLM
+    # cites every grounding source as a clean [N] integer ID.
     rag_context = get_rag_context(relevant_docs)
 
     now = datetime.now()

@@ -268,9 +268,11 @@ def _drive_comparison(term_window, **kwargs) -> dict:
 
 
 def _sources_from_events(events: list[str]) -> list[dict]:
+    # Events are BARE v5 part payloads (EventSourceResponse adds the SSE
+    # framing at the route layer), so each event parses as JSON directly.
     for ev in events:
         if '"sources_ready"' in ev:
-            payload = json.loads(ev.split("data: ", 1)[1])
+            payload = json.loads(ev)
             return payload["data"]["sources"]
     return []
 
