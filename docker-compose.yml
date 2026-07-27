@@ -1,0 +1,37 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.18.2
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: 6334
+
+  # Ingestion runs the SAME image that deploys as a Cloud Run Job — the entrypoint
+  # dispatches on CONNECTOR_ID (see ai-backend/docker-entrypoint.sh), so running it
+  # here exercises the real artifact (locked deps, collection-bootstrap guard)
+  # rather than a host-only uv path. Profile-gated: NOT started by
+  # `docker compose up`. The coupled speech pair MUST run sequentially, never
+  # concurrently — pass them as one ordered CONNECTOR_ID, e.g.:
+  #   docker compose --profile ingestion run --rm -e CONNECTOR_ID=bundestag_speeches,openparliament_tv ingestion --batch-size 25
+  # Reaches the local qdrant service by default; override QDRANT_URL / QDRANT_API_KEY
+  # / ENV to target a deployed store. Requires ai-backend/.env for API keys; the
+  # speech connectors fetch MdB-Stammdaten on demand at run time (no pre-bake).
+  ingestion:
+    build:
+      context: ./ai-backend
+    profiles: ["ingestion"]
+    depends_on:
+      - qdrant
+    env_file:
+      - ai-backend/.env
+    environment:
+      # `environment` wins over env_file, so the in-container Qdrant URL is the
+      # compose service name (not the host's localhost from ai-backend/.env).
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      ENV: ${ENV:-dev}
+
+volumes:
+  qdrant_storage:

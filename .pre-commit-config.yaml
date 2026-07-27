@@ -1,32 +1,39 @@
-# SPDX-FileCopyrightText: 2025 2025 wahl.chat
+# SPDX-FileCopyrightText: 2025 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
+# The ruff/mypy hooks are `local` and invoke the project's uv-managed tools, so
+# pre-commit runs the EXACT versions CI uses (ai-backend/pyproject.toml dev
+# group). A pinned-rev config (ruff-pre-commit / mirrors-mypy) drifts from the
+# project — it previously ran ruff/mypy seven major versions behind the code and
+# reported false positives — so there is one source of truth for tool versions.
 repos:
-  # Ruff for formatting and linting (Python — ai-backend/)
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.6
+  - repo: local
     hooks:
-      - id: ruff
-        name: Ruff (linting)
-        args: ["--fix"]
+      - id: ruff-check
+        name: Ruff (lint)
+        entry: uv run --project ai-backend ruff check --fix
+        language: system
         files: ^ai-backend/.*\.py$
+        require_serial: true
       - id: ruff-format
-        name: Ruff (formatting)
+        name: Ruff (format)
+        entry: uv run --project ai-backend ruff format
+        language: system
         files: ^ai-backend/.*\.py$
-
-  # Mypy for type checking (Python — ai-backend/)
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.14.1
-    hooks:
+        require_serial: true
       - id: mypy
-        name: Mypy (type checking)
-        args: ["--config-file", "ai-backend/pyproject.toml"]
-        additional_dependencies:
-          - pydantic  # Ensure pydantic is available for the plugin
-        files: ^ai-backend/.*\.py$
+        name: Mypy
+        # mypy needs the whole package for import resolution, so it runs on src/
+        # (as CI does), not per-file. `cd ai-backend` so it finds the [tool.mypy]
+        # config in pyproject.toml; the src trigger avoids a run on test-only edits.
+        entry: bash -c 'cd ai-backend && uv run mypy src'
+        language: system
+        files: ^ai-backend/src/.*\.py$
+        pass_filenames: false
+        require_serial: true
 
-  # Additional best practices (all files)
+  # Hygiene hooks — pinned upstream (no project-tool equivalent).
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -38,4 +45,3 @@ repos:
         name: Validate YAML Files
       - id: check-added-large-files
         name: Prevent Adding Large Files
-        args: ["--maxkb=2500"]
