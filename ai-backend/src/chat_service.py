@@ -31,6 +31,7 @@ No server-side session store.
 """
 
 import asyncio
+import re
 import time
 from datetime import datetime, timedelta, timezone
 import logging
@@ -160,6 +161,22 @@ def _meta_dict(payload: dict) -> dict:
     return meta if isinstance(meta, dict) else {}
 
 
+_PDF_PAGE_ANCHOR_RE = re.compile(r"#page=(\d+)")
+
+
+def _pdf_page_from_url(url: Optional[str]) -> Optional[int]:
+    """Extract the ``#page=N`` anchor from a PDF citation URL.
+
+    The frontend's in-page PDF viewer frames documents through a same-origin
+    proxy and rebuilds the page fragment from the source entry's ``page``
+    field — a fragment living only inside the proxied URL's query string never
+    reaches the viewer. Speech transcript pages therefore have to travel as a
+    number, not just as a URL anchor.
+    """
+    match = _PDF_PAGE_ANCHOR_RE.search(url or "")
+    return int(match.group(1)) if match else None
+
+
 def _mk_manifesto_docs(payloads: list[dict]) -> list[Document]:
     return [
         Document(
@@ -236,8 +253,14 @@ def _append_document_source(
             transcript_pdf = meta.get("transcript_pdf_url")
             if transcript_pdf:
                 entry["pdf_url"] = transcript_pdf
+                pdf_page = _pdf_page_from_url(transcript_pdf)
+                if pdf_page is not None:
+                    entry["page"] = pdf_page
         elif payload.get("source") == "dip" and primary_url:
             entry["pdf_url"] = primary_url
+            pdf_page = _pdf_page_from_url(primary_url)
+            if pdf_page is not None:
+                entry["page"] = pdf_page
         entry.update(_speech_attribution(payload))
         if payload.get("source") == "op" and meta.get("sentence_map"):
             speech_refs.append((len(sources), payload))
@@ -857,6 +880,9 @@ async def fetch_party_response_stream(
                     )
                     source_entry = {
                         "source": speech_payload.get("citation_title"),
+                        # PDF page of the transcript (from the citation's
+                        # #page anchor) so the in-page viewer opens the cited
+                        # page; 1 when the record predates page coordinates.
                         "page": 1,
                         "document_publish_date": speech_payload.get("publish_date"),
                         "url": primary_url,
@@ -878,8 +904,14 @@ async def fetch_party_response_stream(
                         transcript_pdf = meta.get("transcript_pdf_url")
                         if transcript_pdf:
                             source_entry["pdf_url"] = transcript_pdf
+                            pdf_page = _pdf_page_from_url(transcript_pdf)
+                            if pdf_page is not None:
+                                source_entry["page"] = pdf_page
                     elif speech_payload.get("source") == "dip" and primary_url:
                         source_entry["pdf_url"] = primary_url
+                        pdf_page = _pdf_page_from_url(primary_url)
+                        if pdf_page is not None:
+                            source_entry["page"] = pdf_page
                     source_entry.update(_speech_attribution(speech_payload))
                     # Record op speeches with a timed sentence_map so their video
                     # deep-link can be refined post-generation from the cited claim.
