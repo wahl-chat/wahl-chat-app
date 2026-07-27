@@ -17,12 +17,7 @@ function ChatInput() {
   const quickReplies = useChatStore((state) => state.currentQuickReplies);
   const loading = useChatStore((state) => {
     const loading = state.loading;
-    return (
-      loading.general ||
-      loading.newMessage ||
-      loading.chatSession ||
-      loading.initializingChatSocketSession
-    );
+    return loading.general || loading.newMessage || loading.chatSession;
   });
 
   const handleSubmit = useCallback(

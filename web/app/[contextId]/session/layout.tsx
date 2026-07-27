@@ -2,7 +2,7 @@ import AnonymousUserChatStoreUpdater from '@/components/auth/anonymous-user-chat
 import ChatHeader from '@/components/chat/chat-header';
 import ChatSidebar from '@/components/chat/sidebar/chat-sidebar';
 import { ChatStoreProvider } from '@/components/providers/chat-store-provider';
-import SocketProvider from '@/components/providers/socket-provider';
+import SseChatProvider from '@/components/providers/sse-chat-provider';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
 type Props = {
@@ -18,7 +18,7 @@ async function SessionLayout({ children, params }: Props) {
   return (
     <ChatStoreProvider contextId={contextId}>
       <AnonymousUserChatStoreUpdater />
-      <SocketProvider>
+      <SseChatProvider>
         <SidebarProvider defaultOpen={true}>
           <ChatSidebar contextId={contextId} />
           <SidebarInset className="flex h-dvh flex-col overflow-hidden">
@@ -26,7 +26,7 @@ async function SessionLayout({ children, params }: Props) {
             {children}
           </SidebarInset>
         </SidebarProvider>
-      </SocketProvider>
+      </SseChatProvider>
     </ChatStoreProvider>
   );
 }

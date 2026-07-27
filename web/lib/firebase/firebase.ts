@@ -1,4 +1,5 @@
 import type { WahlChatUser } from '@/components/anonymous-auth';
+import type { ProlificMetadata } from '@/lib/prolific-study/prolific-metadata';
 import type {
   GroupedMessage,
   MessageFeedback,
@@ -9,12 +10,13 @@ import { firestoreTimestampToDate, generateUuid } from '@/lib/utils';
 import type { SwiperMessage } from '@/lib/wahl-swiper/wahl-swiper-store.types';
 import type { WahlSwiperResultHistory } from '@/lib/wahl-swiper/wahl-swiper.types';
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import {
   Timestamp,
   addDoc,
   arrayUnion,
   collection,
+  connectFirestoreEmulator,
   doc,
   getDoc,
   getDocs,
@@ -29,13 +31,47 @@ import {
   where,
 } from 'firebase/firestore';
 import { firebaseConfig } from './firebase-config';
+import {
+  FIREBASE_EMULATOR_HOST,
+  FIRESTORE_EMULATOR_PORT,
+  authEmulatorUrl,
+  firebaseEmulatorsEnabled,
+} from './firebase-emulators';
 import type { ChatSession, LlmSystemStatus } from './firebase.types';
-import type {ProlificMetadata} from "@/lib/prolific-study/prolific-metadata";
 
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 const db = getFirestore(app);
+
+// Route the browser SDKs at the local emulators when explicitly opted in, so a
+// local session never authenticates against — or writes to — the real project.
+// Must run before any auth/Firestore call; this module is a singleton so it runs
+// once.
+if (firebaseEmulatorsEnabled()) {
+  connectAuthEmulator(auth, authEmulatorUrl(), { disableWarnings: true });
+  connectFirestoreEmulator(db, FIREBASE_EMULATOR_HOST, FIRESTORE_EMULATOR_PORT);
+}
+
+/**
+ * Best-effort Firebase ID-token auth header for backend requests.
+ *
+ * Returns `{ Authorization: 'Bearer <idToken>' }` when a user is signed in,
+ * or `{}` when signed out or the token cannot be obtained — callers degrade
+ * gracefully to an unauthenticated request instead of failing. The backend
+ * honors `user_is_logged_in` / premium ONLY with a verified token; the body
+ * flag alone is ignored.
+ */
+export async function getAuthHeader(): Promise<Record<string, string>> {
+  try {
+    const user = auth.currentUser;
+    if (!user) return {};
+    const token = await user.getIdToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
 
 export async function createChatSession(
   userId: string,
