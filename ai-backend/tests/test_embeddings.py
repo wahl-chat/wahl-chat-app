@@ -119,3 +119,98 @@ def test_explicit_overrides_win_over_env(
     assert isinstance(client, _FakeGemini)
     assert client.kwargs["model"] == "custom-model"
     assert client.kwargs["output_dimensionality"] == 1536
+
+
+# ---------------------------------------------------------------------------
+# Vertex AI transport. The provider string stays "gemini" throughout — only the
+# backend the client is built against changes, so the Qdrant embedding-space
+# fingerprint is untouched and the existing corpus stays valid.
+# ---------------------------------------------------------------------------
+
+
+class _FakeCredentials:
+    project_id = "key-derived-project"
+
+
+@pytest.fixture()
+def vertex_credentials(monkeypatch: pytest.MonkeyPatch):
+    """Make get_vertex_credentials() return a fake key, bypassing the cache."""
+    from src import google_credentials as gc
+
+    gc.get_vertex_credentials.cache_clear()
+    monkeypatch.setattr(gc, "get_vertex_credentials", lambda: _FakeCredentials())
+    yield
+    # monkeypatch restores the original (still-cached) function itself; clearing
+    # the cache here would hit the lambda, which has no cache_clear.
+
+
+def test_gemini_routes_to_vertex_when_credentials_present(
+    monkeypatch: pytest.MonkeyPatch, patched_clients: None, vertex_credentials: None
+) -> None:
+    """With Vertex credentials configured the client is built against Vertex:
+    credentials + project + location, and NO api key."""
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
+    monkeypatch.setenv("GOOGLE_API_KEY", "test-google-key")
+    monkeypatch.setenv("VERTEX_PROJECT_ID", "billing-project")
+    monkeypatch.setenv("VERTEX_LOCATION", "europe-west4")
+
+    client = emb.get_embeddings(task_type="RETRIEVAL_QUERY")
+
+    assert isinstance(client, _FakeGemini)
+    assert isinstance(client.kwargs["credentials"], _FakeCredentials)
+    # Not auto-derived on the embeddings class — must be passed explicitly.
+    assert client.kwargs["project"] == "billing-project"
+    assert client.kwargs["location"] == "europe-west4"
+    assert "google_api_key" not in client.kwargs
+    # The vector space is unchanged; only transport moved.
+    assert client.kwargs["model"] == EMBEDDING_MODEL
+    assert client.kwargs["output_dimensionality"] == EMBEDDING_DIM
+    assert client.kwargs["task_type"] == "RETRIEVAL_QUERY"
+
+
+def test_project_falls_back_to_key_derived_value(
+    monkeypatch: pytest.MonkeyPatch, patched_clients: None, vertex_credentials: None
+) -> None:
+    """Without VERTEX_PROJECT_ID the project comes off the key itself."""
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
+    monkeypatch.delenv("VERTEX_PROJECT_ID", raising=False)
+
+    client = emb.get_embeddings()
+
+    assert client.kwargs["project"] == "key-derived-project"
+
+
+def test_embeddings_use_vertex_kill_switch(
+    monkeypatch: pytest.MonkeyPatch, patched_clients: None, vertex_credentials: None
+) -> None:
+    """EMBEDDINGS_USE_VERTEX=0 forces AI Studio even with credentials present."""
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
+    monkeypatch.setenv("GOOGLE_API_KEY", "test-google-key")
+    monkeypatch.setenv("VERTEX_PROJECT_ID", "billing-project")
+    monkeypatch.setenv("EMBEDDINGS_USE_VERTEX", "0")
+
+    client = emb.get_embeddings()
+
+    assert client.kwargs["google_api_key"] == "test-google-key"
+    assert "credentials" not in client.kwargs
+    # The safety pin that stops GOOGLE_GENAI_USE_VERTEXAI from hijacking it.
+    assert client.kwargs["vertexai"] is False
+
+
+def test_gemini_stays_on_ai_studio_without_credentials(
+    monkeypatch: pytest.MonkeyPatch, patched_clients: None
+) -> None:
+    """No Vertex credentials (CI, local dev without a key) → unchanged path."""
+    from src import google_credentials as gc
+
+    gc.get_vertex_credentials.cache_clear()
+    monkeypatch.delenv("VERTEX_SA_JSON", raising=False)
+    monkeypatch.delenv("VERTEX_SA_JSON_FILE", raising=False)
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
+    monkeypatch.setenv("GOOGLE_API_KEY", "test-google-key")
+
+    client = emb.get_embeddings()
+
+    assert client.kwargs["google_api_key"] == "test-google-key"
+    assert "credentials" not in client.kwargs
+    gc.get_vertex_credentials.cache_clear()
