@@ -13,6 +13,10 @@ import type { WritableDraft } from 'immer';
 export type Source = {
   source: string;
   page: number;
+  // Printed page number for DISPLAY (speech transcripts): the citation text
+  // cites the printed Wahlperiode-wide plenary page, while `page` is the
+  // physical PDF page the viewer jumps to — front matter shifts them apart.
+  page_label?: string;
   url: string;
   source_document: string;
   document_publish_date: string;

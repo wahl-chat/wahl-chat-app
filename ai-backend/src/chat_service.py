@@ -261,6 +261,13 @@ def _append_document_source(
             pdf_page = _pdf_page_from_url(primary_url)
             if pdf_page is not None:
                 entry["page"] = pdf_page
+        # Printed plenary page for DISPLAY: `page` is the physical PDF page the
+        # viewer jumps to, which differs from the printed Wahlperiode-wide
+        # number the citation text shows (front matter shifts them apart). The
+        # isdigit guard also excludes op records, whose source_page is a URL.
+        printed_page = meta.get("source_page")
+        if isinstance(printed_page, str) and printed_page.isdigit():
+            entry["page_label"] = printed_page
         entry.update(_speech_attribution(payload))
         if payload.get("source") == "op" and meta.get("sentence_map"):
             speech_refs.append((len(sources), payload))
@@ -912,6 +919,14 @@ async def fetch_party_response_stream(
                         pdf_page = _pdf_page_from_url(primary_url)
                         if pdf_page is not None:
                             source_entry["page"] = pdf_page
+                    # Printed plenary page for DISPLAY (see
+                    # _append_document_source): physical `page` drives the
+                    # viewer jump; the printed number matches the citation
+                    # text. The isdigit guard excludes op records, whose
+                    # source_page is a URL.
+                    printed_page = meta.get("source_page")
+                    if isinstance(printed_page, str) and printed_page.isdigit():
+                        source_entry["page_label"] = printed_page
                     source_entry.update(_speech_attribution(speech_payload))
                     # Record op speeches with a timed sentence_map so their video
                     # deep-link can be refined post-generation from the cited claim.
