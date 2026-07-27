@@ -1,0 +1,58 @@
+{
+  "meta": {
+    "abgeordnetenwatch_api": {
+      "version": "2.9.0",
+      "licence": "CC0 1.0",
+      "documentation": "https://www.abgeordnetenwatch.de/api/entitaeten/poll"
+    },
+    "status": "ok",
+    "status_message": "",
+    "result": {
+      "count": 1,
+      "total": 1,
+      "range_start": 0,
+      "range_end": 1
+    }
+  },
+  "data": {
+    "id": 3602,
+    "entity_type": "node",
+    "label": "Corona-Maßnahmen zum Schutz der Bevölkerung",
+    "api_url": "https://www.abgeordnetenwatch.de/api/v2/polls/3602",
+    "abgeordnetenwatch_url": "https://www.abgeordnetenwatch.de/bundestag/19/abstimmungen/corona-massnahmen-zum-schutz-der-bevoelkerung",
+    "field_legislature": {
+      "id": 111,
+      "entity_type": "parliament_period",
+      "label": "Bundestag 2017 - 2021",
+      "api_url": "https://www.abgeordnetenwatch.de/api/v2/parliament-periods/111"
+    },
+    "field_topics": [
+      {
+        "id": 28,
+        "entity_type": "taxonomy_term",
+        "label": "Gesundheit",
+        "api_url": "https://www.abgeordnetenwatch.de/api/v2/topics/28",
+        "abgeordnetenwatch_url": "https://www.abgeordnetenwatch.de/themen-dip21/gesundheit"
+      },
+      {
+        "id": 23,
+        "entity_type": "taxonomy_term",
+        "label": "Innere Sicherheit",
+        "api_url": "https://www.abgeordnetenwatch.de/api/v2/topics/23",
+        "abgeordnetenwatch_url": "https://www.abgeordnetenwatch.de/themen-dip21/innere-sicherheit"
+      },
+      {
+        "id": 22,
+        "entity_type": "taxonomy_term",
+        "label": "Öffentliche Finanzen",
+        "api_url": "https://www.abgeordnetenwatch.de/api/v2/topics/22",
+        "abgeordnetenwatch_url": "https://www.abgeordnetenwatch.de/themen-dip21/oeffentliche-finanzen-steuern-und-abgaben"
+      }
+    ],
+    "field_accepted": true,
+    "field_committees": null,
+    "field_intro": "<p>Am 14. Mai 2020 haben die Abgeordneten des Deutschen Bundestages über Corona-Maßnahmen zum Schutz der Bevölkerung abgestimmt.</p>",
+    "field_poll_date": "2020-05-14",
+    "field_related_links": []
+  }
+}

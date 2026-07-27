@@ -500,6 +500,12 @@ def run_connector(
     # store predates fingerprints or the client cannot read points).
     check_fingerprint(qdrant, collection_name)
 
+    # One run, one store contract: store-aware discovery must read the same
+    # client/collection this runner upserts into. hasattr-guarded so bare test
+    # stubs that don't subclass BaseConnector keep working.
+    if hasattr(connector, "bind_store"):
+        connector.bind_store(qdrant, collection_name)
+
     since = (
         since_override
         if since_override is not None
