@@ -26,6 +26,20 @@ from typing import Optional
 _DEEPLINK_FUZZY_THRESHOLD = 0.6
 
 
+def _sanitize_sentence_map(value: object) -> list[dict]:
+    """Coerce a persisted ``sentence_map`` to a list of dict entries.
+
+    Persisted payloads are UNTRUSTED at this boundary: a legacy or corrupt
+    point can carry a string, a non-list, or non-dict list entries — any of
+    which would raise inside the "never raises" locators and turn a whole
+    party answer into an error. Anything malformed degrades to ``[]`` (callers
+    then fall back to the stored citation_url / bare video URI).
+    """
+    if not isinstance(value, list):
+        return []
+    return [entry for entry in value if isinstance(entry, dict)]
+
+
 def locate_deeplink(quoted: str, sentence_map: list[dict], video_uri: str) -> str:
     """Map cited text to a phrase-level video deep-link (zero embeddings).
 
@@ -56,6 +70,7 @@ def locate_deeplink(quoted: str, sentence_map: list[dict], video_uri: str) -> st
         ``video_uri#t={ts_start}`` for the best sentence, or the coarse
         speech-start link, or ``video_uri`` unchanged when inputs are empty.
     """
+    sentence_map = _sanitize_sentence_map(sentence_map)
     if not sentence_map:
         return video_uri
     # A sentence may lack ts_start on legacy/corrupt payloads; `.get` keeps the
@@ -165,7 +180,7 @@ def _best_sentence_ts_by_relevance(
         return None
     best_ts: Optional[float] = None
     best_score = 0
-    for sentence in sentence_map:
+    for sentence in _sanitize_sentence_map(sentence_map):
         score = len(q_tokens & _content_tokens(sentence.get("text") or ""))
         if score > best_score:
             best_score = score
@@ -192,19 +207,24 @@ def _speech_deeplink_url(payload: dict, quoted: str) -> Optional[str]:
          the topically-relevant sentence rather than at 0:00.
     Never raises.
     """
-    meta = payload.get("meta") or {}
+    meta = payload.get("meta")
+    if not isinstance(meta, dict):
+        # A corrupt persisted meta (string, list, …) must degrade to the stored
+        # citation_url, never crash response assembly.
+        meta = {}
+    sentence_map = _sanitize_sentence_map(meta.get("sentence_map"))
+    video_uri = meta.get("video_uri")
     if (
         payload.get("source") == "op"
-        and meta.get("sentence_map")
-        and meta.get("video_uri")
+        and sentence_map
+        and isinstance(video_uri, str)
+        and video_uri
     ):
-        sentence_map = meta["sentence_map"]
-        video_uri = meta["video_uri"]
         url = locate_deeplink(quoted, sentence_map, video_uri)
         # locate_deeplink returned the coarse speech-start link → try relevance.
         # `.get` mirrors locate_deeplink's ts_start guard so a map whose first
         # sentence lacks ts_start compares equal (both fall back to bare uri).
-        first_ts = (sentence_map[0] or {}).get("ts_start")
+        first_ts = sentence_map[0].get("ts_start")
         coarse = f"{video_uri}#t={first_ts}" if first_ts is not None else video_uri
         if url == coarse:
             ts = _best_sentence_ts_by_relevance(quoted, sentence_map)

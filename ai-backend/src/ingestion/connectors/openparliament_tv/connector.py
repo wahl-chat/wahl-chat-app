@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -59,6 +59,10 @@ logger = logging.getLogger(__name__)
 # deep: src/ingestion/connectors/openparliament_tv/connector.py → parents[4] = ai-backend/.
 _MDB_PATH: Path = Path(__file__).resolve().parents[4] / MDB_STAMMDATEN_FILE
 
+# Session numbers at or above this are SPECIAL files (Sondersitzungen,
+# commemorative events) whose numbering is not chronological — see discover().
+_SPECIAL_SESSION_MIN = 800
+
 
 # ---------------------------------------------------------------------------
 # Module-level helpers
@@ -118,19 +122,23 @@ class OpenParliamentTvConnector(BaseConnector):
         """Return unique session basenames to process, floored at the lookback.
 
         Enumerates the bulk ``processed/*-session.json`` basenames via the client
-        and iterates them in DESCENDING date order, stopping the per-file fetches
-        as soon as a fetched session's derived YYYYMMDD external_id drops below
-        the ``since − LOOKBACK_DAYS`` floor. Without this early stop EVERY WP20+21
-        session JSON (~260+ multi-MB files, paced) would be fetched on each
-        incremental run — defeating the cursor and the 15-min job posture.
+        and fetches them newest-first, stopping as soon as a fetched session's
+        derived YYYYMMDD external_id drops below the ``since − LOOKBACK_DAYS``
+        floor. Without this early stop EVERY WP20+21 session JSON (~260+
+        multi-MB files, paced) would be fetched on each incremental run —
+        defeating the cursor and the 15-min job posture.
 
-        Descending-order invariant: the validated basename shape is
+        Early-stop soundness: the validated basename shape is
         ``{EP:2}{session:03}-session.json`` (SESSION_FILE_RE — e.g. ``20101`` =
-        EP 20, session 101). Session numbers are assigned chronologically within
-        an electoral period and zero-padded to three digits, so LEXICAL basename
-        order is monotone in the session date that ``_session_external_id``
-        derives from the earliest item ``dateStart`` — reverse-sorting the
-        basenames walks sessions newest-first.
+        EP 20, session 101). ONLY the regular sitting numbers (< 800) are
+        assigned chronologically within an electoral period, so lexical order is
+        monotone in the session date for them. The 8xx/9xx block holds SPECIAL
+        session files whose numbering is NOT chronological (the live tree has
+        e.g. ``21902`` dated months before ``21090``) — applying the early stop
+        across them made discover() return nothing while current sessions were
+        pending. Special files are therefore ALWAYS fetched (there are only a
+        handful) and floor-filtered individually, while the early stop applies
+        to the monotone regular sequence alone.
 
         ``since=None`` (full backfill) fetches ALL sessions — no floor, no early
         stop. Handles are the basenames themselves: unique per session even when
@@ -145,11 +153,18 @@ class OpenParliamentTvConnector(BaseConnector):
             Session basename strings sorted ascending by (YYYYMMDD ext, name) so
             cursor order stays oldest-first.
         """
-        # De-duplicate + reverse-sort: newest session file first (see invariant above).
-        entries = sorted(
-            {str(e) for e in self._client.list_session_files()}, reverse=True
-        )
+        entries = sorted({str(e) for e in self._client.list_session_files()})
         floor = _lookback_floor(since) if since is not None else None
+
+        # Partition: regular sittings (session number < 800, chronological
+        # numbering → lexical order is date order) vs special files (8xx/9xx,
+        # NON-chronological numbering → no order assumption is valid).
+        regular: list[str] = []
+        special: list[str] = []
+        for name in entries:
+            digits = name.split("-", 1)[0]
+            session_no = int(digits[2:]) if len(digits) == 5 and digits.isdigit() else 0
+            (special if session_no >= _SPECIAL_SESSION_MIN else regular).append(name)
 
         # Tolerate instances built via object.__new__ (unit tests bypass __init__).
         # ensure_* fetches on a cache miss and fails loud when the master data is
@@ -160,25 +175,32 @@ class OpenParliamentTvConnector(BaseConnector):
         self._sessions = {}
         discovered: list[tuple[int, str]] = []
 
-        for name in entries:
+        def _consider(name: str, *, allow_early_stop: bool) -> bool:
+            """Fetch one session; False = below-floor (caller may early-stop)."""
             try:
                 session = self._client.fetch_session_json(name)
             except Exception as exc:  # noqa: BLE001 — a bad session file must not abort the run
                 logger.warning(
                     "op discover: fetch failed for %s (%s) — skipping.", name, exc
                 )
-                continue
-
+                return True
             items = [it for it in (session.get("data") or []) if isinstance(it, dict)]
             ext = _session_external_id(items)
             if ext is None:
-                continue
+                return True
             if floor is not None and ext < floor:
-                # Descending scan: every remaining basename is older still —
-                # stop fetching entirely.
-                break
+                return not allow_early_stop
             self._sessions[name] = {"items": items, "basename": name, "ext": ext}
             discovered.append((ext, name))
+            return True
+
+        # Newest-first over the monotone regular sequence — early stop is sound.
+        for name in reversed(regular):
+            if not _consider(name, allow_early_stop=True):
+                break
+        # Special files: no order assumption — fetch and filter each one.
+        for name in special:
+            _consider(name, allow_early_stop=False)
 
         return [handle for _ext, handle in sorted(discovered)]
 

@@ -238,8 +238,13 @@ def is_op_superseded(
         op_norm = _norm_speech_text(
             " ".join(t for _idx, t in sorted(texts, key=lambda pair: pair[0]))
         )
-        if op_norm and difflib.SequenceMatcher(None, dip_norm, op_norm).ratio() >= (
-            _RESURRECTION_TEXT_MATCH_RATIO
+        # autojunk=False keeps this comparator symmetric with the op supersede
+        # pass: the default auto-junk heuristic marks frequent characters as
+        # junk on long normalized speech strings and misses real twins.
+        if (
+            op_norm
+            and difflib.SequenceMatcher(None, dip_norm, op_norm, autojunk=False).ratio()
+            >= _RESURRECTION_TEXT_MATCH_RATIO
         ):
             return True
     return False

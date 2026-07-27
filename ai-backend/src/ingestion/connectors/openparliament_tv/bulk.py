@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -30,8 +30,9 @@ Usage (local dev):
     QDRANT_URL=http://localhost:6333 ENV=dev \\
         uv run python -m src.ingestion.connectors.openparliament_tv.bulk --from-github
 
-Requires: make stores-up first (Qdrant running at QDRANT_URL).
-          OPENAI_API_KEY in ai-backend/.env (auto-loaded if present).
+Requires: make stores-up first (Qdrant running at QDRANT_URL) and the
+          configured embedding provider's API key in ai-backend/.env
+          (auto-loaded; exported shell env wins).
 """
 
 from __future__ import annotations
@@ -43,12 +44,24 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from langchain_openai import OpenAIEmbeddings
+# CLI startup ONLY: load ai-backend/.env BEFORE the imports below — embeddings
+# and setup_collection freeze EMBEDDING_MODEL / EMBEDDING_DIM / COLLECTION_NAME
+# from the environment at import time, so a later load_dotenv() configures
+# nothing. override=False keeps explicitly-exported shell env authoritative.
+if __name__ == "__main__":
+    from dotenv import load_dotenv
+
+    _bulk_env_path = Path(__file__).resolve().parents[4] / ".env"
+    if _bulk_env_path.exists():
+        load_dotenv(_bulk_env_path, override=False)
+
+from langchain_core.embeddings import Embeddings
 from qdrant_client import QdrantClient
 
+from src.embeddings import get_embeddings
 from src.ingestion.connector import BaseConnector
 from src.ingestion.connectors.bundestag_speeches.constants import MDB_STAMMDATEN_FILE
-from src.ingestion.connectors.bundestag_speeches.mdb import load_mdb_lookup
+from src.ingestion.connectors.bundestag_speeches.mdb import ensure_mdb_lookup
 from src.ingestion.connectors.openparliament_tv.client import OpTvClient
 from src.ingestion.connectors.openparliament_tv.mappers.corpus import (
     build_chunk_records,
@@ -56,9 +69,10 @@ from src.ingestion.connectors.openparliament_tv.mappers.corpus import (
 from src.ingestion.connectors.openparliament_tv.supersede import (
     supersede_dip_duplicates,
 )
+from src.ingestion.ids import compute_chunk_id
 from src.ingestion.run import _embed_texts, _upsert_chunks
 from src.ingestion.schemas import ChunkRecord
-from src.ingestion.setup_collection import COLLECTION_NAME, EMBEDDING_MODEL
+from src.ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
 
 # Shared speech-dedup helper — one definition for both speech connectors.
 from src.ingestion.speech_dedup import datum_to_external_id as _datum_to_external_id
@@ -110,7 +124,7 @@ _MDB_PATH: Path = Path(__file__).resolve().parents[4] / MDB_STAMMDATEN_FILE
 def ingest(
     client: OpTvClient,
     qdrant: QdrantClient,
-    embed: OpenAIEmbeddings,
+    embed: Embeddings,
     mdb_lookup: dict,
     limit: Optional[int] = None,
 ) -> tuple[int, int]:
@@ -123,7 +137,7 @@ def ingest(
     Args:
         client:     Initialised OpTvClient.
         qdrant:     Initialised QdrantClient.
-        embed:      Initialised OpenAIEmbeddings instance.
+        embed:      Embeddings client from ``get_embeddings()``.
         mdb_lookup: MdB-Stammdaten lookup for the empty-faction / CSU fallback.
         limit:      Maximum number of usable speeches to process (None = all).
 
@@ -137,8 +151,52 @@ def ingest(
     def _flush(b: list[ChunkRecord]) -> int:
         if not b:
             return 0
+        from qdrant_client import models as qdrant_models  # noqa: PLC0415
+
         vectors = _embed_texts(embed, [c.text for c in b])
         _upsert_chunks(qdrant, COLLECTION_NAME, b, vectors)
+        # Replacement safety: only AFTER the fresh chunks are durably written,
+        # delete stored points the new output no longer produces (a corrected
+        # speech that shrinks from two chunks to one must not keep the stale
+        # higher-index chunk retrievable). Speeches removed from the upstream
+        # dump entirely are out of scope for a backfill (no discover step) —
+        # the live connector's reconciliation owns those.
+        new_ids_by_siid: dict[str, set[str]] = {}
+        for c in b:
+            new_ids_by_siid.setdefault(str(c.source_item_id), set()).add(
+                str(compute_chunk_id(c.source_item_id, c.chunk_index))
+            )
+        orphans: list[str] = []
+        next_offset = None
+        scroll_filter = qdrant_models.Filter(
+            must=[
+                qdrant_models.FieldCondition(
+                    key="source_item_id",
+                    match=qdrant_models.MatchAny(any=sorted(new_ids_by_siid)),
+                )
+            ]
+        )
+        while True:
+            points, next_offset = qdrant.scroll(
+                collection_name=COLLECTION_NAME,
+                scroll_filter=scroll_filter,
+                limit=1000,
+                offset=next_offset,
+                with_payload=["source_item_id"],
+                with_vectors=False,
+            )
+            for p in points:
+                siid = str((p.payload or {}).get("source_item_id"))
+                if str(p.id) not in new_ids_by_siid.get(siid, set()):
+                    orphans.append(str(p.id))
+            if next_offset is None:
+                break
+        if orphans:
+            qdrant.delete(
+                collection_name=COLLECTION_NAME,
+                points_selector=qdrant_models.PointIdsList(points=sorted(orphans)),
+                wait=True,
+            )
         # Supersede each flushed batch's DIP twins immediately. Without this
         # the entire historical overlap stays duplicated forever: later live runs
         # see the backfilled sessions as present-skips, so the post_upsert hook
@@ -206,13 +264,6 @@ def ingest(
 # =============================================================================
 
 if __name__ == "__main__":
-    # Load ai-backend/.env if present. bulk.py is 4 levels deep → parents[4] = ai-backend/.
-    from dotenv import load_dotenv  # noqa: PLC0415
-
-    _env_path = Path(__file__).resolve().parents[4] / ".env"
-    if _env_path.exists():
-        load_dotenv(_env_path, override=False)
-
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     parser = argparse.ArgumentParser(
@@ -245,10 +296,18 @@ if __name__ == "__main__":
         sys.exit(2)
 
     qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
-    _qdrant = QdrantClient(url=qdrant_url)
-    _embed = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+    _qdrant = QdrantClient(url=qdrant_url, api_key=os.getenv("QDRANT_API_KEY"))
+    # Same provider factory + task type as run.py — the backfill must write
+    # vectors in the corpus's configured embedding space, not hardcoded OpenAI.
+    _embed = get_embeddings(task_type="RETRIEVAL_DOCUMENT")
+    # Refuse to write into a collection whose fingerprint contradicts the
+    # current provider/model configuration.
+    check_fingerprint(_qdrant, COLLECTION_NAME)
     _client = OpTvClient()
-    _mdb_lookup = load_mdb_lookup(_MDB_PATH)
+    # ensure_* downloads the MdB master on a clean checkout and FAILS LOUD when
+    # it cannot: silently continuing with an empty lookup mis-tenants every
+    # chair/minister speech as "unbekannt" and drops it from party retrieval.
+    _mdb_lookup = ensure_mdb_lookup(_MDB_PATH)
 
     print(
         f"Backfilling openparliament.tv speeches from GitHub (limit={args.limit}) ..."

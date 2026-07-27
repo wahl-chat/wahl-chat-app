@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -389,3 +389,57 @@ def test_supersede_merge_end_to_end_in_memory() -> None:
 
     # The dip duplicate (id=1) is deleted → one merged record remains.
     assert client.retrieve("wahlchat_chunks_dev", ids=[1], with_payload=True) == []
+
+
+def test_long_text_twins_clear_threshold_without_autojunk() -> None:
+    """Real-length near-identical transcripts must clear the 0.85 supersede
+    threshold. The default SequenceMatcher auto-junk heuristic marks frequent
+    characters as junk on long normalized strings and scored real twins from
+    official session data far below the bar (median ≈0.57); with
+    autojunk=False the same pairs score 0.92+."""
+    import difflib
+
+    from src.ingestion.speech_dedup import (
+        RESURRECTION_TEXT_MATCH_RATIO,
+        norm_speech_text,
+    )
+
+    # Build a realistic multi-thousand-character speech and a twin differing
+    # only by transcription artifacts (casing/punctuation differences survive
+    # normalization as small edits).
+    topics = (
+        "Klimaschutz",
+        "Digitalisierung",
+        "Bildung",
+        "Verkehr",
+        "Gesundheit",
+        "Wohnungsbau",
+        "Energie",
+        "Forschung",
+        "Landwirtschaft",
+        "Verteidigung",
+    )
+    base_sentences = [
+        f"Die Bundesregierung hat im Bereich {topic} im Jahr {2010 + i} "
+        f"insgesamt {i + 3} umfangreiche Massnahmen beschlossen und wird diese "
+        "im kommenden Haushaltsjahr konsequent umsetzen, meine sehr geehrten "
+        "Damen und Herren."
+        for i, topic in enumerate(topics * 4)
+    ]
+    dip_text = norm_speech_text(" ".join(base_sentences))
+    op_sentences = list(base_sentences)
+    op_sentences[3] = op_sentences[3].replace("konsequent", "zügig")
+    op_sentences[17] = op_sentences[17].replace("umfangreiche", "weitreichende")
+    op_text = norm_speech_text(" ".join(op_sentences))
+
+    assert len(dip_text) > 4000, "regression must use real-length text"
+
+    with_autojunk = difflib.SequenceMatcher(None, op_text, dip_text).ratio()
+    without = difflib.SequenceMatcher(None, op_text, dip_text, autojunk=False).ratio()
+
+    assert without >= RESURRECTION_TEXT_MATCH_RATIO, (
+        f"real twins must clear the threshold with autojunk=False, got {without:.3f}"
+    )
+    # Documents WHY autojunk=False is load-bearing: the default heuristic
+    # scores the same pair far lower on long strings.
+    assert without >= with_autojunk

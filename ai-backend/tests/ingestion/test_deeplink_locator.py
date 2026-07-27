@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -207,3 +207,50 @@ def test_refine_noop_when_source_not_cited() -> None:
     speech_refs = [(0, _OP_PAYLOAD)]
     assert _refine(sources, speech_refs, "Eine Antwort ganz ohne Belegmarker.") is False
     assert sources[0]["url"] == f"{_VIDEO}#t=1.0"
+
+
+class TestMalformedPersistedPayloads:
+    """Persisted meta is untrusted: corrupt shapes degrade, never raise."""
+
+    def test_sentence_map_as_string_degrades_to_stored_citation(self) -> None:
+        from src.deeplink import _speech_deeplink_url
+
+        payload = {
+            "source": "op",
+            "citation_url": "https://example.com/stored",
+            "meta": {"sentence_map": "corrupt", "video_uri": "https://v.example/x.mp4"},
+        }
+        assert _speech_deeplink_url(payload, "irgendein Zitat") == (
+            "https://example.com/stored"
+        )
+
+    def test_non_dict_entries_are_ignored(self) -> None:
+        from src.deeplink import locate_deeplink
+
+        sentence_map = [
+            "corrupt-entry",
+            None,
+            {"text": "Der Klimaschutz ist zentral.", "ts_start": 12.5},
+        ]
+        url = locate_deeplink(
+            "Der Klimaschutz ist zentral.", sentence_map, "https://v.example/x.mp4"
+        )
+        assert url == "https://v.example/x.mp4#t=12.5"
+
+    def test_meta_as_string_degrades_to_stored_citation(self) -> None:
+        from src.deeplink import _speech_deeplink_url
+
+        payload = {
+            "source": "op",
+            "citation_url": "https://example.com/stored",
+            "meta": "corrupt",
+        }
+        assert _speech_deeplink_url(payload, "Zitat") == "https://example.com/stored"
+
+    def test_all_corrupt_entries_yield_bare_video_uri(self) -> None:
+        from src.deeplink import locate_deeplink
+
+        assert (
+            locate_deeplink("Zitat", ["a", 1, None], "https://v.example/x.mp4")
+            == "https://v.example/x.mp4"
+        )

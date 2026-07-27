@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -175,3 +175,43 @@ def test_same_date_sessions_both_discovered_and_fetchable() -> None:
     assert titles == {"Sitzung 101", "Sitzung 102"}, (
         "each handle must resolve to ITS OWN session's speeches"
     )
+
+
+def test_special_session_files_do_not_stop_discovery() -> None:
+    """The live tree lists special files (8xx/9xx session numbers) whose lexical
+    order is NOT chronological — e.g. `21902` months older than `21090`. A
+    newest-first early-stop over the raw basename order previously hit the old
+    special file first, broke immediately, and returned [] while current
+    regular sessions were pending."""
+    sessions = {
+        # Old special session — lexically HIGHEST basename.
+        "21902-session.json": _session("2026-02-23T09:00:00+01:00"),
+        # Current regular sessions (newer than the special, lexically lower).
+        "21089-session.json": _session("2026-07-09T09:00:00+02:00"),
+        "21090-session.json": _session("2026-07-10T09:00:00+02:00"),
+    }
+    conn = _make_connector(sessions)
+
+    # Cursor at 2026-07-10: the floor (since − LOOKBACK) is ~2026-05-11 — the
+    # special file is below it, the regular sessions are not.
+    discovered = conn.discover(since=20260710)
+
+    assert "21090-session.json" in discovered and "21089-session.json" in discovered, (
+        "current regular sessions must be discovered even though an OLD special "
+        f"file sorts lexically above them; got {discovered!r}"
+    )
+    assert "21902-session.json" not in discovered, (
+        "the below-floor special file itself stays excluded"
+    )
+
+
+def test_recent_special_session_is_discovered() -> None:
+    """A special file INSIDE the window is picked up (specials are always
+    fetched and floor-filtered individually, never early-stopped)."""
+    sessions = {
+        "21900-session.json": _session("2026-07-01T10:00:00+02:00"),
+        "21090-session.json": _session("2026-07-10T09:00:00+02:00"),
+    }
+    conn = _make_connector(sessions)
+    discovered = conn.discover(since=20260710)
+    assert "21900-session.json" in discovered

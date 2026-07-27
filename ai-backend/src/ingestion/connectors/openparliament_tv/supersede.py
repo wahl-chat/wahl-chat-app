@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -179,7 +179,16 @@ def supersede_dip_duplicates(
             dip_norm = _norm_speech_text(_join_indexed_texts(dip["texts"]))
             if not dip_norm:
                 continue
-            ratio = difflib.SequenceMatcher(None, op_norm, dip_norm).ratio()
+            # autojunk=False is load-bearing: the default auto-junk heuristic
+            # treats characters occurring in >1% of a 200+-char sequence as
+            # junk, which on long normalized speech text collapses real twins
+            # to ratios far below the threshold (official 21/90 data: only
+            # 15/76 same-key pairs cleared 0.85 with autojunk on; all 76 score
+            # 0.92+ with it off). Must stay symmetric with the DIP
+            # resurrection guard's comparator.
+            ratio = difflib.SequenceMatcher(
+                None, op_norm, dip_norm, autojunk=False
+            ).ratio()
             if ratio >= _SUPERSEDE_TEXT_MATCH_RATIO:
                 if dip["citation_url"]:
                     # str() is load-bearing: MatchValue accepts only bool/int/str.

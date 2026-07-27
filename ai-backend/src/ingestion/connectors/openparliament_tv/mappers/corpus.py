@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -267,6 +267,13 @@ def build_chunk_records(
     ).model_dump(mode="json", exclude_none=True)
 
     # --- change-aware content_hash: re-alignment / correction re-writes the chunk ---
+    # Beyond text/timing/video, the hash covers the cross-source IDENTITY and the
+    # displayed citation/provenance: speech_key (the dedup key the supersede pass
+    # and resurrection guard filter on), speaker name/Wikidata id, agenda labels,
+    # source_page, and the emitted citation URL/title. A metadata-only upstream
+    # correction (fixed speaker attribution, renamed agenda item) must re-write
+    # the stored point — a field the user sees or dedup keys on that the hash
+    # ignores could never be refreshed.
     content_hash = hashlib.sha256(
         json.dumps(
             {
@@ -280,6 +287,14 @@ def build_chunk_records(
                 # change party_id WITHOUT changing faction_wid; without this the
                 # content-hash re-write guard (run.py) would keep the stale tenant.
                 "party_slug": party_slug,
+                "speech_key": speech_key,
+                "speaker_name": speaker_name,
+                "speaker_wid": speaker_wid,
+                "agenda_official": agenda_official,
+                "agenda_title": agenda_title,
+                "source_page": source_page,
+                "citation_url": citation_url,
+                "citation_title": citation_title,
             },
             sort_keys=True,
             ensure_ascii=False,
