@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -77,8 +77,9 @@ class TestFetchNormalize:
         assert rec.party_id == "spd"
         assert rec.source_type == SourceType.PARTY_MANIFESTO
         assert rec.external_id == 598
-        # citation_url is the original source (AW file) URL, not a re-serve route.
-        assert rec.citation_url == "https://example.com/spd-programm-2025.pdf"
+        # citation_url is the original source (AW file) URL — with a per-chunk
+        # #page anchor so the citation opens on the supporting page.
+        assert rec.citation_url == "https://example.com/spd-programm-2025.pdf#page=1"
 
     def test_link_pages_have_no_page_numbers(
         self, monkeypatch: pytest.MonkeyPatch
@@ -114,7 +115,9 @@ class TestFetchNormalize:
         monkeypatch.setattr(conn_mod, "load_program_pages", _boom)
 
         raw = connector.fetch("598")
-        assert raw["skip_reason"] == "PDF download failed: boom"
+        # Every candidate failed → the skip reason enumerates the attempts.
+        assert "PDF download failed: boom" in raw["skip_reason"]
+        assert raw["skip_reason"].startswith("all source candidates failed")
         with pytest.raises(ValueError, match="PDF download failed"):
             connector.normalize(raw)
 
@@ -400,4 +403,79 @@ class TestGetIngestedProgramIds:
         assert ids == {598, 700}, f"expected int-only ids across pages, got {ids!r}"
         assert fake.calls == [None, "page-2-offset"], (
             "scroll must be called once per page, chaining next_offset"
+        )
+
+
+class TestSourceFallback:
+    """A dead preferred HTML link falls back to the PDF instead of skipping."""
+
+    def test_html_failure_falls_back_to_pdf(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        program = {
+            "id": 129,
+            "label": "Programm",
+            "party": {"label": "SPD"},
+            "parliament_period": {"id": 50, "label": "Bundestag Wahl 2021"},
+            "link": [{"uri": "https://archive.example/dead-viewer"}],
+            "file": "https://example.com/program-129.pdf",
+        }
+        connector = ManifestoConnector()
+        _seed(connector, program, "2021-09-26")
+
+        def _fake_load(source_kind: object, source_url: str) -> dict:
+            if "dead-viewer" in source_url:
+                raise ValueError("HTML fetch failed: 404")
+            return {"pages": [(1, "PDF Inhalt " * 100)], "total_pages": 1}
+
+        monkeypatch.setattr(conn_mod, "load_program_pages", _fake_load)
+
+        raw = connector.fetch("129")
+        assert "skip_reason" not in raw, (
+            f"PDF fallback must rescue the program, got skip: {raw.get('skip_reason')}"
+        )
+        assert raw["source_url"] == "https://example.com/program-129.pdf"
+        records = connector.normalize(raw)
+        assert records, "the fallback-fetched program must normalize to chunks"
+
+
+class TestCompletenessAwareSetDifference:
+    """One stored chunk is NOT proof a program committed completely."""
+
+    class _Store:
+        """Fake store: program 600 has 2 of 3 chunks stored (partial commit),
+        program 700 has 2 of 2 (complete)."""
+
+        def scroll(self, **kwargs: object) -> tuple:
+            from types import SimpleNamespace
+
+            points = [
+                SimpleNamespace(
+                    id=f"p600-{i}",
+                    payload={
+                        "external_id": 600,
+                        "meta": {"total_chunks": 3},
+                    },
+                )
+                for i in range(2)
+            ] + [
+                SimpleNamespace(
+                    id=f"p700-{i}",
+                    payload={
+                        "external_id": 700,
+                        "meta": {"total_chunks": 2},
+                    },
+                )
+                for i in range(2)
+            ]
+            return (points, None)
+
+    def test_partial_program_is_rediscovered(self) -> None:
+        connector = ManifestoConnector()
+        connector.bind_store(self._Store(), "wahlchat_chunks_test")
+        ingested = connector._get_ingested_program_ids()
+        assert 700 in ingested, "a complete program counts as ingested"
+        assert 600 not in ingested, (
+            "a partially-committed program (2/3 chunks) must be re-discovered "
+            "so the runner's footprint comparison repairs the missing tail"
         )

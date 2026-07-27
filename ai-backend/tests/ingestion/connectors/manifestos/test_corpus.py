@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -372,11 +372,11 @@ def _link_chunks(n: int = 1) -> list[tuple[str, None, None]]:
 class TestBuildManifestoRecords:
     """build_manifesto_records produces correctly-shaped ChunkRecord instances."""
 
-    def test_pdf_program_citation_url_is_source_url(self) -> None:
-        """PDF program must have citation_url = the original source (AW file) URL.
-
-        wahl.chat no longer re-serves manifesto PDFs, so the citation points at
-        the document where it actually lives.
+    def test_pdf_program_citation_url_deep_links_to_page(self) -> None:
+        """PDF chunks cite the original source URL WITH a per-chunk #page=
+        anchor (page_start), so the citation opens on the supporting page
+        instead of the document start. wahl.chat still never re-serves the
+        file — the anchor is appended to where the document actually lives.
         """
         records = build_manifesto_records(
             program=_PDF_PROGRAM,
@@ -387,8 +387,25 @@ class TestBuildManifestoRecords:
             total_pages=5,
         )
         assert len(records) == 2
-        for rec in records:
-            assert rec.citation_url == "https://example.com/spd-programm-2025.pdf"
+        assert records[0].citation_url == (
+            "https://example.com/spd-programm-2025.pdf#page=1"
+        )
+        assert records[1].citation_url == (
+            "https://example.com/spd-programm-2025.pdf#page=2"
+        )
+        # A provenance-only page move must change content_hash (refreshable).
+        assert records[0].content_hash != records[1].content_hash
+
+    def test_pdf_source_url_with_existing_fragment_is_not_clobbered(self) -> None:
+        records = build_manifesto_records(
+            program=_PDF_PROGRAM,
+            period_date_iso="2025-02-23",
+            chunks=_simple_chunks(1),
+            source_kind="pdf",
+            source_url="https://example.com/spd.pdf#zoom=100",
+            total_pages=1,
+        )
+        assert records[0].citation_url == "https://example.com/spd.pdf#zoom=100"
 
     def test_pdf_program_source_type_and_authority(self) -> None:
         records = build_manifesto_records(

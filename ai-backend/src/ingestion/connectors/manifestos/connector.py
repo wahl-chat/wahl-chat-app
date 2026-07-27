@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -12,10 +12,13 @@ for "party_manifesto" and passed to discover().
 
 Source: the Abgeordnetenwatch ``election-program`` API (reuses ``AWClient``).
 
-Source rule (locked design):
+Source rule (locked design, with fallback):
   1. If ``link[0].uri`` is non-null  -> scrape HTML main content (trafilatura).
-  2. Elif ``file`` (PDF url) non-null -> download + parse the PDF in-memory.
-  3. Else skip the program.
+  2. If that fails (dead link, too-short extraction) or no link exists, and
+     ``file`` (PDF url) is non-null -> download + parse the PDF in-memory.
+  3. Only when EVERY candidate fails is the program skipped — the live
+     catalogue has programs whose archived HTML viewer 404s while the PDF
+     still resolves, so a single-source pick silently lost documents.
 
 In both cases citation_url is the original source URL — wahl.chat does not
 re-serve or store the files (no local storage, no Firestore source-doc).
@@ -127,35 +130,42 @@ def _fetch_period_date(
         return None
 
 
-def determine_source(program: dict) -> tuple[SourceKind, str]:
-    """Resolve (source_kind, source_url) for an election-program record.
+def determine_source_candidates(program: dict) -> list[tuple[SourceKind, str]]:
+    """Resolve the ORDERED source candidates for an election-program record.
 
-    Applies the locked source rule: a non-null first ``link`` URI wins (HTML
-    scrape); otherwise a non-null ``file`` (PDF download).
+    The preferred first ``link`` URI comes first (HTML scrape); the ``file``
+    PDF follows as fallback. Callers try each in order — a stale/404 HTML
+    viewer must not lose a program whose PDF still resolves (both-sourced
+    programs exist in the live catalogue with exactly that failure shape).
 
     Args:
         program: AW election-program dict.
 
     Returns:
-        (SourceKind.LINK, uri) or (SourceKind.PDF, file_url).
+        Non-empty ordered list of (source_kind, source_url) candidates.
 
     Raises:
         ValueError: If the program has neither a usable link nor a file.
     """
+    candidates: list[tuple[SourceKind, str]] = []
     links = program.get("link") or []
-    link_uri: Optional[str] = None
     if links and isinstance(links, list):
         first = links[0]
-        if isinstance(first, dict):
-            link_uri = first.get("uri") or None
+        if isinstance(first, dict) and first.get("uri"):
+            candidates.append((SourceKind.LINK, first["uri"]))
 
     file_url: Optional[str] = program.get("file") or None
-
-    if link_uri:
-        return SourceKind.LINK, link_uri
     if file_url:
-        return SourceKind.PDF, file_url
-    raise ValueError("no link or file")
+        candidates.append((SourceKind.PDF, file_url))
+
+    if not candidates:
+        raise ValueError("no link or file")
+    return candidates
+
+
+def determine_source(program: dict) -> tuple[SourceKind, str]:
+    """Return the PREFERRED source candidate (see determine_source_candidates)."""
+    return determine_source_candidates(program)[0]
 
 
 def load_program_pages(source_kind: SourceKind, source_url: str) -> dict:
@@ -265,11 +275,15 @@ class ManifestoConnector(BaseConnector):
     # ------------------------------------------------------------------
 
     def _get_qdrant(self) -> QdrantClient:
-        """Return the per-instance Qdrant client, initializing on first call.
+        """Return the store client for discovery reads.
 
-        Mirrors the AW connector's lazy singleton. Kept as an instance method so
-        tests can monkeypatch it (or _get_ingested_program_ids) per-connector.
+        The runner binds its own client via ``bind_store()`` before discover(),
+        so one run has ONE Qdrant contract. The self-constructed client exists
+        only for standalone use outside the runner. Kept as an instance method
+        so tests can monkeypatch it (or _get_ingested_program_ids).
         """
+        if self._store_client is not None:
+            return self._store_client
         if self._qdrant is None:
             from qdrant_client import QdrantClient  # noqa: PLC0415
 
@@ -280,25 +294,30 @@ class ManifestoConnector(BaseConnector):
         return self._qdrant
 
     def _get_ingested_program_ids(self) -> set[int]:
-        """Return the set of AW program ids already ingested as party_manifesto.
+        """Return the AW program ids whose manifesto footprint is COMPLETE.
 
-        Scrolls all party_manifesto chunks and collects their external_id (= AW
-        program id). Used for set-difference discovery.
+        Scrolls all party_manifesto chunks, counting stored chunks per
+        external_id (= AW program id) and reading the completed-parent marker
+        ``meta.total_chunks``. A program counts as ingested ONLY when its
+        stored count reaches that marker — one stored chunk is not proof the
+        whole program committed (a 317-chunk program spans multiple upsert
+        requests; a mid-write failure previously excluded it from discovery
+        forever, permanently truncated). Chunks written before the marker
+        existed count as complete (legacy tolerance; a MANIFESTO_REFRESH run
+        re-verifies them via content_hash).
 
         This replaces the max(external_id) high-water mark, which permanently lost
-        any program that was skipped/failed below the max on a prior run (the max
-        advanced past it and the strict ``pid <= since`` filter never re-surfaced
-        it). Set-difference is gap-free and self-healing: a program missing from
-        Qdrant is always re-attempted, and a permanently-unprocessable program
-        simply stays absent without blocking newer programs. It also removes the
-        manifesto batch-window stall (already-present programs no longer occupy
-        the discover window).
+        any program that was skipped/failed below the max on a prior run.
+        Set-difference is gap-free and self-healing: a missing or incomplete
+        program is always re-attempted without blocking newer programs.
         """
         from qdrant_client import models as qdrant_models  # noqa: PLC0415
         from src.ingestion.setup_collection import COLLECTION_NAME  # noqa: PLC0415
 
         qdrant = self._get_qdrant()
-        ingested: set[int] = set()
+        collection_name = self._store_collection or COLLECTION_NAME
+        stored_counts: dict[int, int] = {}
+        expected_totals: dict[int, Optional[int]] = {}
         next_offset: Optional[qdrant_models.ExtendedPointId] = None
         scroll_filter = qdrant_models.Filter(
             must=[
@@ -310,19 +329,32 @@ class ManifestoConnector(BaseConnector):
         )
         while True:
             points, next_offset = qdrant.scroll(
-                collection_name=COLLECTION_NAME,
+                collection_name=collection_name,
                 scroll_filter=scroll_filter,
                 limit=1000,
                 offset=next_offset,
-                with_payload=["external_id"],
+                with_payload=["external_id", "meta.total_chunks"],
                 with_vectors=False,
             )
             for p in points:
-                ext = p.payload.get("external_id") if p.payload else None
-                if isinstance(ext, int):
-                    ingested.add(ext)
+                payload = p.payload or {}
+                ext = payload.get("external_id")
+                if not isinstance(ext, int):
+                    continue
+                stored_counts[ext] = stored_counts.get(ext, 0) + 1
+                total = (payload.get("meta") or {}).get("total_chunks")
+                if isinstance(total, int):
+                    expected_totals[ext] = total
+                else:
+                    expected_totals.setdefault(ext, None)
             if next_offset is None:
                 break
+
+        ingested: set[int] = set()
+        for ext, count in stored_counts.items():
+            expected = expected_totals.get(ext)
+            if expected is None or count >= expected:
+                ingested.add(ext)
         return ingested
 
     # ------------------------------------------------------------------
@@ -437,8 +469,7 @@ class ManifestoConnector(BaseConnector):
             }
 
         try:
-            source_kind, source_url = determine_source(program)
-            content = load_program_pages(source_kind, source_url)
+            candidates = determine_source_candidates(program)
         except ValueError as exc:
             return {
                 "program": program,
@@ -446,12 +477,28 @@ class ManifestoConnector(BaseConnector):
                 "skip_reason": str(exc),
             }
 
+        # Ordered fallback: the preferred HTML link first, the PDF file second.
+        # A stale link (404 viewer, too-short extraction) must not lose a
+        # program whose PDF still resolves.
+        failures: list[str] = []
+        for source_kind, source_url in candidates:
+            try:
+                content = load_program_pages(source_kind, source_url)
+            except ValueError as exc:
+                failures.append(f"{source_kind}: {exc}")
+                continue
+            return {
+                "program": program,
+                "period_date_iso": period_date_iso,
+                "source_kind": source_kind,
+                "source_url": source_url,
+                **content,
+            }
+
         return {
             "program": program,
             "period_date_iso": period_date_iso,
-            "source_kind": source_kind,
-            "source_url": source_url,
-            **content,
+            "skip_reason": "all source candidates failed — " + "; ".join(failures),
         }
 
     # ------------------------------------------------------------------

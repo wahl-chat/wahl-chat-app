@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -78,6 +78,11 @@ class ManifestoMeta(BaseModel):
     total_pages: Optional[int] = None
     page_start: Optional[int] = None
     page_end: Optional[int] = None
+    # Completed-parent marker: how many chunks THIS normalize produced for the
+    # whole program. Discovery compares it against the stored count so a
+    # partially-committed multi-slice upsert is re-discovered and repaired
+    # instead of being treated as complete forever.
+    total_chunks: Optional[int] = None
     # Only stamped when the party slug quarantines to "unbekannt".
     raw_party_label: Optional[str] = None
 
@@ -359,8 +364,9 @@ def build_manifesto_records(
         chunks:          List of (text, page_start, page_end) tuples. page_start
                          and page_end may be None for HTML sources.
         source_kind:     ``"pdf"`` or ``"link"``.
-        source_url:      Provenance URL (PDF download URL or link URI). Used
-                         verbatim as the citation_url.
+        source_url:      Provenance URL (PDF download URL or link URI). PDF
+                         chunks cite it with a per-chunk ``#page=`` anchor;
+                         link chunks cite it verbatim.
         total_pages:     Total page count (pdf only; None for link sources).
 
     Returns:
@@ -379,15 +385,26 @@ def build_manifesto_records(
 
     sid = compute_source_item_id("party_manifesto", str(program_id))
 
-    # citation_url is the original source URL (external PDF or weblink).
-    citation_url = source_url
-
     citation_title = f"{program_label} – {period_label}"
 
     parliament_period_id = (program.get("parliament_period") or {}).get("id")
 
     records: list[ChunkRecord] = []
+    total_chunks = len(chunks)
     for chunk_index, (text, page_start, page_end) in enumerate(chunks):
+        # Chunk-specific citation: PDF chunks deep-link to the page the passage
+        # starts on (pypdf page numbers are 1-based physical PDF pages, so the
+        # anchor is exact). Never clobber an existing fragment; link sources
+        # keep the plain URI.
+        citation_url = source_url
+        if (
+            source_kind == SourceKind.PDF
+            and citation_url
+            and page_start
+            and "#" not in citation_url
+        ):
+            citation_url = f"{citation_url}#page={page_start}"
+
         # Typed meta builder (schemas convention that votes/speeches follow —
         # extra="forbid" rejects typos at build time); exclude_none drops
         # None-valued keys.
@@ -400,15 +417,19 @@ def build_manifesto_records(
             total_pages=total_pages,
             page_start=page_start,
             page_end=page_end,
+            total_chunks=total_chunks,
             raw_party_label=party_label if party_slug == "unbekannt" else None,
         ).model_dump(mode="json", exclude_none=True)
 
         # Change-aware content_hash (mirrors the op mapper): per-chunk text so an
         # updated program text re-writes via run.py's guard; includes the resolved
-        # party slug (indexed tenant field). NOTE: on the connector path the
-        # guard only sees already-present programs on MANIFESTO_REFRESH=1 runs
-        # (normal discover excludes them via set-difference); bulk.py rewrites
-        # each program's footprint unconditionally.
+        # party slug (indexed tenant field) AND the displayed citation/provenance
+        # (URL with page anchor, title, source, page window, publish date) — a
+        # provenance-only correction must be refreshable, not permanently stale.
+        # NOTE: on the connector path the guard only sees already-present
+        # programs on MANIFESTO_REFRESH=1 runs (normal discover excludes them
+        # via set-difference); bulk.py rewrites each program's footprint
+        # unconditionally.
         content_hash = hashlib.sha256(
             json.dumps(
                 {
@@ -417,6 +438,13 @@ def build_manifesto_records(
                     "region": region,
                     "wahlperiode": wahlperiode,
                     "program_id": program_id,
+                    "citation_url": citation_url,
+                    "citation_title": citation_title,
+                    "source_url": source_url,
+                    "page_start": page_start,
+                    "page_end": page_end,
+                    "total_pages": total_pages,
+                    "publish_date": period_date_iso,
                 },
                 sort_keys=True,
                 ensure_ascii=False,
