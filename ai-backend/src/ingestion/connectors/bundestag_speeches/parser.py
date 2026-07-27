@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -112,9 +112,17 @@ def parse_speeches_from_xml(xml_text: str) -> list[dict]:
     so the enclosing agenda is resolved by walking each <tagesordnungspunkt> and
     recording a rede_id → top_id map before the main <rede> loop.
 
+    Citation coordinates: the table of contents maps every rede to its printed
+    page and quadrant via ``<xref ref-type="rede" rid=… pnr=… div=…>``; each
+    speech dict carries them as ``source_page`` / ``page_quadrant`` (None when
+    the TOC has no entry). ``pdf_page`` is the 1-based page inside the protocol
+    PDF, derived from the root's ``start-seitennr`` (printed page of the PDF's
+    first page); None when that attribute is absent or unparseable — a citation
+    deep-link must not guess.
+
     Raises defusedxml.EntitiesForbidden on entity-expansion attacks.
-    Returns [] on malformed XML (ParseError is NOT caught here — callers
-    that need graceful degradation should catch ElementTree.ParseError).
+    Returns [] on malformed XML (ElementTree.ParseError is caught here and
+    mapped to an empty list — callers treat "no speeches" as the skip signal).
     """
     try:
         root = ElementTree.fromstring(xml_text.encode("utf-8"))
@@ -134,6 +142,23 @@ def parse_speeches_from_xml(xml_text: str) -> list[dict]:
             rede_id = rede_node.get("id")
             if rede_id is not None:
                 agenda_top_id_by_rede.setdefault(rede_id, top_id)
+
+    # Citation coordinates from the TOC xrefs: rede id → (printed page pnr,
+    # quadrant div). First entry wins (a speech spans pages; the TOC points at
+    # where it starts).
+    page_by_rede: dict[str, tuple[str, str | None]] = {}
+    for xref in root.findall(".//xref[@ref-type='rede']"):
+        rid = xref.get("rid")
+        pnr = xref.get("pnr")
+        if rid and pnr:
+            page_by_rede.setdefault(rid, (pnr, xref.get("div")))
+
+    # start-seitennr = printed page number of the PDF's first page; the offset
+    # (pnr − start + 1) turns a printed page into the PDF page for #page= links.
+    start_page: int | None = None
+    raw_start = root.get("start-seitennr")
+    if raw_start and raw_start.isdigit():
+        start_page = int(raw_start)
 
     speeches: list[dict] = []
 
@@ -166,6 +191,16 @@ def parse_speeches_from_xml(xml_text: str) -> list[dict]:
                 paragraphs.append(text)
 
         rede_id = speech_node.get("id")
+        source_page, page_quadrant = (
+            page_by_rede.get(rede_id, (None, None))
+            if rede_id is not None
+            else (None, None)
+        )
+        pdf_page: int | None = None
+        if source_page is not None and start_page is not None and source_page.isdigit():
+            candidate = int(source_page) - start_page + 1
+            if candidate >= 1:
+                pdf_page = candidate
         speeches.append(
             {
                 "xml_rede_id": rede_id,
@@ -173,6 +208,9 @@ def parse_speeches_from_xml(xml_text: str) -> list[dict]:
                 "agenda_top_id": agenda_top_id_by_rede.get(rede_id)
                 if rede_id is not None
                 else None,
+                "source_page": source_page,
+                "page_quadrant": page_quadrant,
+                "pdf_page": pdf_page,
                 **speaker,
             }
         )

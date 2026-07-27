@@ -117,6 +117,13 @@ class SpeechMeta(BaseModel):
     protocol_api_id: Optional[str] = Field(
         None, description="API-level protocol identifier"
     )
+    source_page: Optional[str] = Field(
+        None,
+        description="Printed page (Plenarprotokoll pagination) where the speech starts",
+    )
+    page_quadrant: Optional[str] = Field(
+        None, description="Page quadrant (A–D) of the speech start on source_page"
+    )
 
 
 class ChunkRecord(BaseModel):

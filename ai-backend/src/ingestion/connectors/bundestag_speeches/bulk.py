@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -8,18 +8,26 @@ JSONL dump into ``wahlchat_chunks_{ENV}`` via the relocated corpus mapper.
 
 This is the --from-jsonl backfill entrypoint that keeps the existing 99 MB
 ``speeches.jsonl`` replayable without re-fetching from the DIP API.  The
-live connector (``connector.py``) handles incremental runs via ``run.py``
-and the YYYYMMDD cursor; this script handles the one-shot historical backfill.
+live connector (``connector.py``) handles incremental runs via ``run.py``;
+this script handles the one-shot historical backfill.
 
 Design notes:
   - This is the ONLY file within the ``bundestag_speeches`` package permitted
     to call the runner ``_embed_texts`` / ``_upsert_chunks`` helpers directly.
     The connector never touches those helpers — ``run.py`` owns that path.
-  - Replayed rows pre-date the live connector, so ``build_chunk_records``
-    leaves ``external_id=None`` for the bulk path (the live connector stamps
-    YYYYMMDD in ``normalize()``; a future migration patches legacy rows).
+  - Embeddings come from the SAME factory as the runner
+    (``get_embeddings(task_type="RETRIEVAL_DOCUMENT")``), so the backfill
+    writes vectors in the configured provider/model space — a hardcoded
+    OpenAI client would silently corrupt a Gemini-configured corpus.
+  - Replacement-safe per speech: each speech's stored footprint (by
+    ``source_item_id``) is compared AFTER the new chunks are upserted, and
+    only orphaned higher-index chunk points are deleted — a corrected speech
+    that shrinks leaves no stale tail, and no window exists in which the
+    speech is absent. Speeches REMOVED from the dump are out of scope for a
+    per-row replay (no discover step) — the live connector's set-difference
+    reconciliation owns that.
   - The script is idempotent: deterministic chunk UUIDs (via ``compute_chunk_id``)
-    mean re-running upserts the same Qdrant point IDs, which is a no-op.
+    mean re-running upserts the same Qdrant point IDs.
 
 Usage (local dev):
     cd ai-backend
@@ -34,8 +42,9 @@ JSONL path resolution (CLI arg > SPEECHES_JSONL env > repo-root default):
     2. ``SPEECHES_JSONL`` environment variable.
     3. Repo root ``speeches.jsonl`` (three levels above ``ai-backend/``).
 
-Requires: make stores-up first (Qdrant running at QDRANT_URL).
-          OPENAI_API_KEY in ai-backend/.env (auto-loaded if present).
+Requires: make stores-up first (Qdrant running at QDRANT_URL) and the
+          configured embedding provider's API key in ai-backend/.env
+          (auto-loaded; exported shell env wins).
 """
 
 from __future__ import annotations
@@ -48,21 +57,89 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from langchain_openai import OpenAIEmbeddings
-from qdrant_client import QdrantClient
+# CLI startup ONLY: load ai-backend/.env BEFORE the imports below — embeddings
+# and setup_collection freeze EMBEDDING_MODEL / EMBEDDING_DIM / COLLECTION_NAME
+# from the environment at import time, so a later load_dotenv() configures
+# nothing. override=False keeps explicitly-exported shell env (QDRANT_URL,
+# ENV, …) authoritative — a make/CI invocation that targets a specific store
+# must never be silently redirected by a local .env.
+if __name__ == "__main__":
+    from dotenv import load_dotenv
+
+    _env_path = Path(__file__).resolve().parents[4] / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path, override=False)
+
+from langchain_core.embeddings import Embeddings
+from qdrant_client import QdrantClient, models
 
 from datetime import date as _date_type
 
+from src.embeddings import get_embeddings
 from src.ingestion.connectors.bundestag_speeches.mappers.corpus import (
     build_chunk_records,
 )
+from src.ingestion.ids import compute_chunk_id
 from src.ingestion.run import _embed_texts, _upsert_chunks
 from src.ingestion.schemas import ChunkRecord
-from src.ingestion.setup_collection import COLLECTION_NAME, EMBEDDING_MODEL
+from src.ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
 
 logger = logging.getLogger(__name__)
 
 _BATCH_SIZE = 100  # chunks per embed+upsert batch
+
+
+def _delete_shrunk_orphans(
+    qdrant: QdrantClient, collection_name: str, chunks: list[ChunkRecord]
+) -> int:
+    """Delete stored points a re-chunked speech no longer produces.
+
+    Runs AFTER the new chunks are durably upserted (no absence window): for
+    every source_item_id in *chunks*, scroll the stored footprint and delete
+    any point id the new output does not contain (a stale higher-index chunk
+    after a shrink).
+
+    Returns the number of deleted orphan points.
+    """
+    new_ids_by_siid: dict[str, set[str]] = {}
+    for c in chunks:
+        new_ids_by_siid.setdefault(str(c.source_item_id), set()).add(
+            str(compute_chunk_id(c.source_item_id, c.chunk_index))
+        )
+
+    orphans: list[str] = []
+    siids = sorted(new_ids_by_siid)
+    scroll_filter = models.Filter(
+        must=[
+            models.FieldCondition(
+                key="source_item_id", match=models.MatchAny(any=siids)
+            )
+        ]
+    )
+    next_offset = None
+    while True:
+        points, next_offset = qdrant.scroll(
+            collection_name=collection_name,
+            scroll_filter=scroll_filter,
+            limit=1000,
+            offset=next_offset,
+            with_payload=["source_item_id"],
+            with_vectors=False,
+        )
+        for p in points:
+            siid = str((p.payload or {}).get("source_item_id"))
+            if str(p.id) not in new_ids_by_siid.get(siid, set()):
+                orphans.append(str(p.id))
+        if next_offset is None:
+            break
+
+    if orphans:
+        qdrant.delete(
+            collection_name=collection_name,
+            points_selector=models.PointIdsList(points=sorted(orphans)),
+            wait=True,
+        )
+    return len(orphans)
 
 
 # =============================================================================
@@ -73,8 +150,9 @@ _BATCH_SIZE = 100  # chunks per embed+upsert batch
 def ingest(
     jsonl_path: Path,
     qdrant: QdrantClient,
-    embed: OpenAIEmbeddings,
+    embed: Embeddings,
     limit: Optional[int] = None,
+    collection_name: str = COLLECTION_NAME,
 ) -> tuple[int, int]:
     """Read speeches from *jsonl_path* and upsert into Qdrant in batches.
 
@@ -84,11 +162,15 @@ def ingest(
     ``get_cursor("parliamentary_speech")`` picks up the backfill and the
     first live incremental run does not re-embed everything.
 
+    Batch commit order: embed → upsert (wait=True) → delete shrunk orphans.
+    The old footprint is never removed before its replacement is durable.
+
     Args:
         jsonl_path:  Path to the speeches JSONL file (one JSON object per line).
         qdrant:      Initialised QdrantClient.
-        embed:       Initialised OpenAIEmbeddings instance.
+        embed:       Embeddings client from ``get_embeddings()``.
         limit:       Maximum number of speeches to process (None = all).
+        collection_name: Target collection (injectable for tests).
 
     Returns:
         Tuple of (speeches_processed, chunks_upserted).
@@ -101,7 +183,10 @@ def ingest(
         if not b:
             return 0
         vectors = _embed_texts(embed, [c.text for c in b])
-        _upsert_chunks(qdrant, COLLECTION_NAME, b, vectors)
+        _upsert_chunks(qdrant, collection_name, b, vectors)
+        # Only after the replacement is durably written: prune stale
+        # higher-index chunks of re-chunked speeches.
+        _delete_shrunk_orphans(qdrant, collection_name, b)
         return len(b)
 
     with jsonl_path.open(encoding="utf-8") as fh:
@@ -167,17 +252,6 @@ def ingest(
 # =============================================================================
 
 if __name__ == "__main__":
-    # Load ai-backend/.env if present.
-    # bulk.py sits at: ai-backend/src/ingestion/connectors/bundestag_speeches/bulk.py
-    # parents[4] = ai-backend/ (same depth as manifestos/bulk.py)
-    from dotenv import load_dotenv  # noqa: PLC0415
-
-    _env_path = Path(__file__).resolve().parents[4] / ".env"
-    if _env_path.exists():
-        # .env is the source of truth for local dev — let it win over any stale
-        # value inherited from the shell.
-        load_dotenv(_env_path, override=True)
-
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     parser = argparse.ArgumentParser(
@@ -230,8 +304,13 @@ if __name__ == "__main__":
         sys.exit(1)
 
     qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
-    _qdrant = QdrantClient(url=qdrant_url)
-    _embed = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+    _qdrant = QdrantClient(url=qdrant_url, api_key=os.getenv("QDRANT_API_KEY"))
+    # Same provider factory + task type as run.py — the backfill must write
+    # vectors in the corpus's configured embedding space.
+    _embed = get_embeddings(task_type="RETRIEVAL_DOCUMENT")
+    # Refuse to write into a collection whose fingerprint contradicts the
+    # current provider/model configuration.
+    check_fingerprint(_qdrant, COLLECTION_NAME)
 
     print(f"Replaying speeches from {resolved_path} (limit={args.limit}) ...")
     try:

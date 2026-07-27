@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -220,14 +220,32 @@ def build_chunk_records(speech: dict) -> list[ChunkRecord]:
 
     speaker_name = speech.get("speaker_name") or ""
     protocol_id = speech.get("protocol_id") or ""
-    citation_title = f"{speaker_name}, {raw_date} (Protokoll {protocol_id})"
+    source_page = str(speech.get("source_page") or "") or None
+    citation_title = f"{speaker_name}, {raw_date} (Protokoll {protocol_id}"
+    citation_title += f", S. {source_page})" if source_page else ")"
     citation_url: Optional[str] = speech.get("pdf_url") or None
+    # Deep-link into the protocol PDF when the parser could derive the PDF page
+    # safely (start-seitennr present). Only appended to a fragment-free URL —
+    # never clobber an existing anchor.
+    pdf_page = speech.get("pdf_page")
+    if citation_url and isinstance(pdf_page, int) and "#" not in citation_url:
+        citation_url = f"{citation_url}#page={pdf_page}"
 
-    # Wahlperiode — optional top-level indexed field.
+    # Wahlperiode — optional top-level indexed field. Tolerant coercion: bulk
+    # JSONL rows can carry it as a string (or garbage) — degrade to None like
+    # every other optional metadata field instead of aborting the speech.
     raw_wahlperiode = speech.get("wahlperiode")
-    wahlperiode: Optional[int] = (
-        int(raw_wahlperiode) if raw_wahlperiode is not None else None
-    )
+    wahlperiode: Optional[int] = None
+    if raw_wahlperiode is not None:
+        try:
+            wahlperiode = int(raw_wahlperiode)
+        except (TypeError, ValueError):
+            _corpus_logger.warning(
+                "build_chunk_records: speech %r has non-integer wahlperiode %r — "
+                "stamping None.",
+                speech_id,
+                raw_wahlperiode,
+            )
 
     # Build source-owned SpeechMeta; omit None-valued fields.
     speech_meta_obj = SpeechMeta(
@@ -236,6 +254,8 @@ def build_chunk_records(speech: dict) -> list[ChunkRecord]:
         xml_rede_id=speech.get("xml_rede_id") or None,
         protocol_id=speech.get("protocol_id") or None,
         protocol_api_id=speech.get("protocol_api_id") or None,
+        source_page=source_page,
+        page_quadrant=str(speech.get("page_quadrant") or "") or None,
     )
     meta_dict = speech_meta_obj.model_dump(mode="json", exclude_none=True)
     meta: Optional[dict] = meta_dict if meta_dict else None
@@ -251,7 +271,9 @@ def build_chunk_records(speech: dict) -> list[ChunkRecord]:
         # Change-aware content_hash (mirrors the op mapper): PER-CHUNK text so an
         # upstream re-chunk or correction re-writes via run.py's guard; includes
         # the resolved party slug (indexed tenant field) so a slug fix re-writes
-        # the stale tenant too.
+        # the stale tenant too, and the displayed citation (URL/title carry the
+        # page coordinates) so a citation correction is refreshable rather than
+        # permanently stale.
         content_hash = hashlib.sha256(
             json.dumps(
                 {
@@ -260,6 +282,8 @@ def build_chunk_records(speech: dict) -> list[ChunkRecord]:
                     "speech_key": speech_key,
                     "source": _DIP_SOURCE,
                     "protocol_id": protocol_id,
+                    "citation_url": citation_url,
+                    "citation_title": citation_title,
                 },
                 sort_keys=True,
                 ensure_ascii=False,

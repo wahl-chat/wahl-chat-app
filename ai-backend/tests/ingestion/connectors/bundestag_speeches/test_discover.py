@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -7,8 +7,11 @@ Tests for BundestagSpeechesConnector.discover() and the empty-protocol skip guar
 
 Covers:
   - discover(None): returns ALL protocol IDs sorted ascending (oldest-first)
-  - discover(since=20260601): applies f.datum.start floor; filters protocols before that date
+  - set-difference discovery: ingested protocols excluded, never-stored ones
+    re-surface regardless of age, the runner cursor is ignored
+  - update sweep: recently-`aktualisiert` ingested protocols re-surface
   - DIP DESC input → ascending output: regression guard
+  - government (999…) speakers kept with name-lookup / quarantine attribution
   - test_empty_protocol_skips: normalize() raises ValueError for a protocol with zero
     usable speeches so run_connector skip-and-continues without advancing cursor
 """
@@ -42,6 +45,25 @@ class _FakeDipClient:
 
     def pages(self, endpoint: str, params: dict) -> Any:  # noqa: ANN401
         yield from self._pages
+
+
+class _FakeStore:
+    """Fake Qdrant client serving stored DIP parent keys for set-difference tests."""
+
+    def __init__(self, ingested_protocol_ids: list[str]) -> None:
+        self._ids = ingested_protocol_ids
+
+    def scroll(self, **kwargs: object) -> tuple:
+        from types import SimpleNamespace
+
+        points = [
+            SimpleNamespace(
+                id=f"pt-{pid}",
+                payload={"source_parent_key": f"parliamentary_speech:dip:{pid}"},
+            )
+            for pid in self._ids
+        ]
+        return (points, None)
 
 
 def _make_connector_with_fake_client(pages: list[dict]) -> BundestagSpeechesConnector:
@@ -101,51 +123,66 @@ class TestDiscover:
             f"discover() must re-sort DIP DESC to ascending; got: {ids}"
         )
 
-    def test_discover_with_since_applies_lookback_floor(self) -> None:
-        """discover(since=20260601) floors at since − LOOKBACK_DAYS (2026-04-02),
-        NOT at the raw since date — a protocol that transiently failed below the
-        max-external_id watermark must be re-discoverable within the window.
-
-        With the fake page: id "200" (2026-06-15) and id "100" (2026-05-01, inside
-        the 60-day lookback) remain; id "50" (2026-01-10, outside) is filtered.
-        """
+    def test_discover_ignores_since_cursor(self) -> None:
+        """The runner-derived cursor must NOT filter discovery: a cross-source
+        or cross-Wahlperiode max(external_id) once starved DIP backfills (a
+        stored 2026-07 op cursor made a WP20 run discover nothing). With
+        set-difference, a high since value changes nothing."""
         conn = _make_connector_with_fake_client([_DESC_PAGE])
-        ids = conn.discover(since=20260601)
-        assert isinstance(ids, list)
-        assert "200" in ids
-        assert "100" in ids, (
-            "a protocol dated within the lookback window (since − LOOKBACK_DAYS) "
-            "must be re-discovered even though it is below the since watermark"
+        ids = conn.discover(since=20260710)
+        assert ids == ["50", "100", "200"], (
+            f"set-difference discovery must ignore since entirely, got: {ids}"
         )
-        assert "50" not in ids, "protocols outside the lookback window stay excluded"
-        # Every returned protocol respects the LOOKBACK floor of 2026-04-02.
-        for pid in ids:
-            protocol = conn._protocols.get(pid, {})  # type: ignore[attr-defined]
-            datum = protocol.get("datum", "")
-            if datum:
-                assert datum >= "2026-04-02", (
-                    f"Protocol {pid} with datum {datum!r} is before the lookback floor"
-                )
 
-    def test_lookback_re_discovers_failed_protocol(self) -> None:
-        """(a) Regression: a protocol that failed on run 1 (below the resulting
-        max external_id) is returned by discover() on run 2 via the lookback."""
+    def test_set_difference_excludes_ingested_and_re_surfaces_failures(self) -> None:
+        """Stored protocols drop out of discovery; a protocol that FAILED on an
+        earlier run (never stored) re-surfaces regardless of how old it is —
+        the failure mode of the old 60-day lookback was permanent loss."""
+        conn = _make_connector_with_fake_client([_DESC_PAGE])
+        conn.bind_store(
+            _FakeStore(ingested_protocol_ids=["200"]), "wahlchat_chunks_test"
+        )
+        ids = conn.discover(since=None)
+        assert "200" not in ids, "an ingested protocol must not be re-discovered"
+        assert "50" in ids and "100" in ids, (
+            "never-stored protocols must re-surface regardless of age "
+            f"(no lookback cutoff); got: {ids}"
+        )
+
+    def test_update_sweep_re_surfaces_recently_updated_protocol(self) -> None:
+        """An ingested protocol whose DIP `aktualisiert` timestamp is recent is
+        re-discovered so upstream corrections propagate; one updated long ago
+        stays excluded."""
+        from datetime import date, timedelta
+
+        recent = (date.today() - timedelta(days=3)).isoformat()
         pages = [
             {
                 "documents": [
                     {
-                        "id": "900",
-                        "datum": "2026-06-01",
-                    },  # succeeded run 1 → cursor 20260601
-                    {"id": "899", "datum": "2026-05-20"},  # transiently FAILED run 1
+                        "id": "700",
+                        "datum": "2026-01-15",
+                        "aktualisiert": f"{recent}T09:00:00+02:00",
+                    },
+                    {
+                        "id": "701",
+                        "datum": "2026-01-20",
+                        "aktualisiert": "2026-01-21T09:00:00+02:00",
+                    },
                 ]
             }
         ]
         conn = _make_connector_with_fake_client(pages)
-        ids = conn.discover(since=20260601)
-        assert "899" in ids, (
-            "a failed protocol dated within LOOKBACK_DAYS of the cursor must be "
-            "re-discovered on the next run"
+        conn.bind_store(
+            _FakeStore(ingested_protocol_ids=["700", "701"]), "wahlchat_chunks_test"
+        )
+        ids = conn.discover(since=None)
+        assert "700" in ids, (
+            "a recently-updated ingested protocol must be re-surfaced "
+            "(corrections sweep)"
+        )
+        assert "701" not in ids, (
+            "an ingested protocol without a recent update stays excluded"
         )
 
     def test_discover_caches_protocols(self) -> None:
@@ -352,3 +389,85 @@ def test_empty_protocol_skips() -> None:
     assert (
         "zero" in str(exc_info.value).lower() or "speech" in str(exc_info.value).lower()
     ), "ValueError message must mention 'zero' or 'speech' to aid skip-and-warn logging"
+
+
+class TestGovernmentSpeakersKept:
+    """Non-MdB speakers (999… ids) are real content — kept, never dropped.
+
+    The 999… range covers federal/state ministers, state secretaries,
+    Ministerpräsidenten, and Bundesrat members, not just procedural chairs;
+    dropping the range removed entire government speeches from the corpus.
+    """
+
+    def _make_raw(self, speeches: list[dict], mdb_lookup: dict) -> dict:
+        return {
+            "protocol": {
+                "id": "88888",
+                "datum": "2026-06-01",
+                "wahlperiode": 21,
+                "dokumentnummer": "21/88",
+            },
+            "speeches": speeches,
+            "mdb_lookup": mdb_lookup,
+        }
+
+    def test_minister_who_is_mdb_resolves_party_by_name(self) -> None:
+        """A minister speaking under a 999… id who IS an MdB resolves to their
+        real party via the name lookup."""
+        from src.ingestion.connectors.bundestag_speeches.utils import (
+            normalize_name_for_lookup,
+        )
+
+        conn = _make_connector_with_fake_client([])
+        name_key = normalize_name_for_lookup("Erika Beispiel")
+        mdb_lookup = {
+            "by_id": {},
+            "by_name": {
+                name_key: {
+                    "id": "11002222",
+                    "names": ["Erika Beispiel"],
+                    "party": "SPD",
+                }
+            },
+        }
+        conn._mdb_lookup = mdb_lookup  # type: ignore[attr-defined]
+        speeches = [
+            {
+                "speaker_xml_id": "99900123",
+                "speaker_name": "Erika Beispiel",
+                "party": None,  # government speakers carry no <fraktion>
+                "text": "Als Bundesministerin erkläre ich die Position der Regierung.",
+                "xml_rede_id": "ID88801",
+            }
+        ]
+        records = conn.normalize(self._make_raw(speeches, mdb_lookup))
+        assert len(records) >= 1, "a 999… government speech must be KEPT"
+        assert all(r.party_id == "spd" for r in records), (
+            f"minister who is an MdB must resolve via name lookup, "
+            f"got: {[r.party_id for r in records]}"
+        )
+
+    def test_non_mdb_government_speaker_quarantines_not_dropped(self) -> None:
+        """A genuinely non-MdB speaker (e.g. a Ministerpräsident) is kept with
+        party_id 'unbekannt' instead of being silently removed."""
+        conn = _make_connector_with_fake_client([])
+        mdb_lookup: dict = {"by_id": {}, "by_name": {}}
+        conn._mdb_lookup = mdb_lookup  # type: ignore[attr-defined]
+        speeches = [
+            {
+                "speaker_xml_id": "99900456",
+                "speaker_name": "Alexander Schweitzer",
+                "party": None,
+                "text": "Als Ministerpräsident von Rheinland-Pfalz möchte ich betonen, "
+                "dass die Länder eng eingebunden werden müssen.",
+                "xml_rede_id": "ID88802",
+            }
+        ]
+        records = conn.normalize(self._make_raw(speeches, mdb_lookup))
+        assert len(records) >= 1, (
+            "a non-MdB government speech must be KEPT (was previously dropped)"
+        )
+        assert all(r.party_id == "unbekannt" for r in records), (
+            "unresolvable government speakers quarantine as 'unbekannt' "
+            f"(drift signal), got: {[r.party_id for r in records]}"
+        )

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -238,3 +238,46 @@ class TestDefusedXmlHardening:
 
         with pytest.raises(defusedxml.EntitiesForbidden):
             parse_speeches_from_xml(billion_laughs)
+
+
+# ---------------------------------------------------------------------------
+# TestCitationCoordinates — TOC xref page map + PDF page derivation
+# ---------------------------------------------------------------------------
+
+
+class TestCitationCoordinates:
+    """Every rede with a TOC xref carries printed page, quadrant, and PDF page."""
+
+    def test_pages_and_quadrants_mapped(self, protocol_xml: str) -> None:
+        result = parse_speeches_from_xml(protocol_xml)
+        by_id = {s["xml_rede_id"]: s for s in result}
+        assert by_id["ID215000100"]["source_page"] == "12001"
+        assert by_id["ID215000100"]["page_quadrant"] == "A"
+        assert by_id["ID215000200"]["source_page"] == "12003"
+        assert by_id["ID215000200"]["page_quadrant"] == "C"
+
+    def test_pdf_page_derived_from_start_seitennr(self, protocol_xml: str) -> None:
+        """pdf_page = printed page − start-seitennr + 1 (root start-seitennr=12000)."""
+        result = parse_speeches_from_xml(protocol_xml)
+        by_id = {s["xml_rede_id"]: s for s in result}
+        assert by_id["ID215000100"]["pdf_page"] == 2
+        assert by_id["ID215000300"]["pdf_page"] == 6
+
+    def test_missing_start_seitennr_yields_no_pdf_page(self) -> None:
+        """Without start-seitennr the PDF offset is unknowable — pdf_page must
+        be None (a deep link must not guess), while the printed page stays."""
+        xml = (
+            "<dbtplenarprotokoll>"
+            "<vorspann><inhaltsverzeichnis>"
+            '<ivz-eintrag><xref ref-type="rede" rid="ID1" pnr="500" div="D"/></ivz-eintrag>'
+            "</inhaltsverzeichnis></vorspann>"
+            '<sitzungsverlauf><rede id="ID1">'
+            '<p klasse="redner"><redner id="11001111"><name>'
+            "<vorname>Test</vorname><nachname>Person</nachname>"
+            "<fraktion>SPD</fraktion></name></redner>Test Person (SPD):</p>"
+            '<p klasse="J">Inhalt der Rede.</p>'
+            "</rede></sitzungsverlauf></dbtplenarprotokoll>"
+        )
+        result = parse_speeches_from_xml(xml)
+        assert result[0]["source_page"] == "500"
+        assert result[0]["pdf_page"] is None

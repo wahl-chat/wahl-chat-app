@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -10,9 +10,14 @@ synchronous ABC (discover/fetch/normalize) and produces list[ChunkRecord]
 directly from normalize() — no Firestore, no GCS, no work_queue.
 
 The runner (run.py) owns embed + upsert; this connector is pure data-transform.
-The cursor (since) is a YYYYMMDD integer derived by the runner from Qdrant
-max(external_id) for "parliamentary_speech" — passed to discover() as the date
-floor.  No watermark methods needed.
+The runner still passes its Qdrant-derived cursor to discover() (ABC contract),
+but discover() deliberately IGNORES it: discovery is a per-Wahlperiode
+SET-DIFFERENCE against the store (protocols in DIP minus protocols with stored
+DIP chunks) plus a recent-update sweep over DIP's ``aktualisiert`` timestamp.
+A date-floor cursor was order-dependent (openparliament or a newer Wahlperiode
+advancing the shared max starved older DIP backfills) and permanently lost
+protocols that failed for longer than the lookback window; set-difference
+re-surfaces every gap and needs no watermark.
 
 Security notes:
     DIP_API_KEY fail-loud: _require_dip_key() raises RuntimeError
@@ -20,7 +25,7 @@ Security notes:
 
     DESC → ASC re-sort: DIP returns protocols newest-first.
     discover() re-sorts ascending by (datum, id) so run_connector processes
-    oldest-first and the YYYYMMDD cursor advances monotonically.
+    oldest-first.
 
     fetch() never raises: missing xml_url / parse failures return a
     skip_reason dict; normalize() raises ValueError → runner skip-and-warn.
@@ -45,6 +50,8 @@ from __future__ import annotations
 import difflib
 import logging
 import os
+from datetime import date as date_type
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Optional
 
@@ -67,11 +74,9 @@ from src.ingestion.setup_collection import COLLECTION_NAME
 # and the op supersede module; drift between copies would silently break
 # cross-source dedup.
 from src.ingestion.speech_dedup import (
-    LOOKBACK_DAYS,  # noqa: F401 — re-export: docstrings/operators reference it here
     RESURRECTION_TEXT_MATCH_RATIO as _RESURRECTION_TEXT_MATCH_RATIO,
 )
 from src.ingestion.speech_dedup import datum_to_external_id as _datum_to_external_id
-from src.ingestion.speech_dedup import lookback_floor as _lookback_floor
 from src.ingestion.speech_dedup import norm_speech_text as _norm_speech_text
 
 logger = logging.getLogger(__name__)
@@ -114,39 +119,12 @@ def _require_dip_key() -> str:
     return key
 
 
-# LOOKBACK_DAYS and _lookback_floor are imported from src/ingestion/speech_dedup.py
-# above. run.py's batch budget ensures already-present protocols inside the
-# window do not stall the batch.
-
-
-def _yyyymmdd_int_to_iso(since: int) -> str:
-    """Convert a YYYYMMDD integer cursor to an ISO date string.
-
-    Args:
-        since: Integer cursor e.g. 20260615.
-
-    Returns:
-        ISO date string e.g. "2026-06-15".
-    """
-    s = str(since)
-    return f"{s[0:4]}-{s[4:6]}-{s[6:8]}"
-
-
-def _is_non_mdb_speaker(speech: dict) -> bool:
-    """Return True when the speaker_xml_id is in the non-MdB 999… range.
-
-    These are parliamentary officials (Präsident/Vizepräsident etc.) who are
-    not party members; their 999… IDs are not in the MdB-Stammdaten and their
-    speeches are typically not party-attributed content.
-
-    Args:
-        speech: Speech dict from parse_speeches_from_xml.
-
-    Returns:
-        True when the ID starts with "999", False otherwise.
-    """
-    person_id = speech.get("speaker_xml_id") or ""
-    return str(person_id).startswith("999")
+# Recent-update sweep window: protocols whose DIP ``aktualisiert`` timestamp is
+# within this many days are re-surfaced even when already ingested, so upstream
+# transcript corrections propagate (content_hash makes unchanged ones cheap
+# skips). DIP publishes corrections shortly after a sitting; 30 days is well
+# beyond the observed correction latency.
+_UPDATE_SWEEP_DAYS = 30
 
 
 # A DIP speech is treated as op-superseded only when an op speech under the SAME
@@ -352,6 +330,10 @@ def _build_speech_row(
         "wahlperiode": protocol.get("wahlperiode"),
         # Enclosing <tagesordnungspunkt top-id> for the shared agenda-bearing speech_key.
         "agenda_top_id": speech.get("agenda_top_id"),
+        # Citation coordinates from the protocol TOC (parser xref map).
+        "source_page": speech.get("source_page"),
+        "page_quadrant": speech.get("page_quadrant"),
+        "pdf_page": speech.get("pdf_page"),
     }
 
 
@@ -366,9 +348,13 @@ class BundestagSpeechesConnector(BaseConnector):
     Live incremental connector:
         discover(since) → fetch → normalize → [runner embeds + upserts]
 
-    The cursor (since) is the max external_id (YYYYMMDD integer of the protocol
-    date) already committed to Qdrant for "parliamentary_speech", derived by the
-    runner via get_cursor().  No Firestore, no GCS, no work queue.
+    Discovery is a per-Wahlperiode SET-DIFFERENCE against the store (protocols
+    in DIP minus protocols whose DIP chunks are already stored), plus a
+    recent-update sweep over DIP's ``aktualisiert`` timestamp so transcript
+    corrections propagate. The runner's Qdrant-derived cursor is accepted (ABC
+    contract) but ignored — a date cursor was order-dependent (another source
+    or Wahlperiode advancing the shared max starved DIP backfills) and lost
+    protocols that failed longer than a lookback window.
 
     The connector fetches plenary protocols from the DIP Bundestag API (/plenarprotokoll),
     downloads and parses the XML for each protocol, and returns ChunkRecords with
@@ -386,14 +372,8 @@ class BundestagSpeechesConnector(BaseConnector):
     # supersede hook op-gated (fires only for source="op").
     source: str = "dip"
 
-    # The DIP cursor must NOT be scoped to source="dip". op progressively
-    # supersede-DELETES dip points, so max(external_id, source="dip") walks
-    # BACKWARD as coverage grows (worst case None → the run re-fetches and
-    # re-parses the whole Wahlperiode every time). op external_ids are the same
-    # YYYYMMDD scale and op only ever supersedes a dip twin that WAS ingested,
-    # so the cross-source max over parliamentary_speech is a valid,
-    # non-regressing floor; the lookback window still re-covers recent gaps.
-    # (op keeps its own source-scoped cursor via the BaseConnector default.)
+    # The runner still derives a cursor (ABC contract) even though discover()
+    # ignores it; unscoped so the derivation stays cheap and meaningful in logs.
     cursor_source = None
 
     def __init__(
@@ -461,37 +441,104 @@ class BundestagSpeechesConnector(BaseConnector):
         return self._qdrant
 
     # ------------------------------------------------------------------
-    # 1. discover — YYYYMMDD cursor → DIP date floor; re-sort ASC
+    # 1. discover — per-Wahlperiode set-difference + recent-update sweep
     # ------------------------------------------------------------------
+
+    def _get_ingested_protocol_ids(self) -> set[str]:
+        """Return protocol ids (DIP document ids) with stored DIP chunks for
+        this Wahlperiode.
+
+        Reads ``source_parent_key`` ("parliamentary_speech:dip:<protocol_id>",
+        stamped by the runner) from every dip point of the configured
+        Wahlperiode. Points written before parent keys existed are simply not
+        counted — their protocols are re-discovered and become cheap
+        content-hash present-skips.
+
+        Returns the empty set when no store client is available (standalone use
+        outside the runner): everything is then discovered, which is safe —
+        the runner's already-present guard keeps re-processing cheap.
+        """
+        from qdrant_client import models  # noqa: PLC0415
+
+        qdrant = (
+            self._store_client
+            if self._store_client is not None
+            else (self._get_qdrant())
+        )
+        if qdrant is None:
+            return set()
+        collection_name = self._store_collection or self._collection_name
+        ingested: set[str] = set()
+        scroll_filter = models.Filter(
+            must=[
+                models.FieldCondition(
+                    key="source_type",
+                    match=models.MatchValue(value=self.source_type),
+                ),
+                models.FieldCondition(
+                    key="source", match=models.MatchValue(value="dip")
+                ),
+                models.FieldCondition(
+                    key="wahlperiode",
+                    match=models.MatchValue(value=self._wahlperiode),
+                ),
+            ]
+        )
+        next_offset = None
+        try:
+            while True:
+                points, next_offset = qdrant.scroll(
+                    collection_name=collection_name,
+                    scroll_filter=scroll_filter,
+                    limit=1000,
+                    offset=next_offset,
+                    with_payload=["source_parent_key"],
+                    with_vectors=False,
+                )
+                for p in points:
+                    parent_key = (p.payload or {}).get("source_parent_key") or ""
+                    # "parliamentary_speech:dip:<protocol_id>" → protocol_id
+                    if parent_key:
+                        ingested.add(str(parent_key).rsplit(":", 1)[-1])
+                if next_offset is None:
+                    break
+        except Exception as exc:  # noqa: BLE001 — store unreachable → discover all
+            logger.warning(
+                "set-difference discovery: store scroll failed (%s) — "
+                "treating store as empty (already-present items skip cheaply)",
+                exc,
+            )
+            return set()
+        return ingested
 
     def discover(self, since: Optional[int]) -> list[str]:
         """Return protocol ids to process for the configured Wahlperiode.
 
-        Queries DIP /plenarprotokoll with f.wahlperiode and (when since is set)
-        f.datum.start floored at ``since − LOOKBACK_DAYS`` — an inclusive floor
-        at the raw since date would permanently exclude any earlier-dated
-        protocol that transiently failed on a prior run (the max external_id
-        advanced past it). The lookback keeps API cost bounded (no full WP-history
-        walk) while re-discovering recent failures; run.py's batch-budget fix
-        ensures already-present protocols inside the window do not stall.
-        Walks all cursor-pages.
-        Filters to Bundestagsprotokolle (herausgeber == "BT").
+        SET-DIFFERENCE + UPDATE SWEEP, no date cursor:
+          1. Enumerate ALL /plenarprotokoll metadata for f.wahlperiode
+             (cheap catalogue pages, no XML), filtered to herausgeber "BT".
+          2. Set-difference: keep protocols with no stored DIP chunks — this
+             re-surfaces every transient failure forever (a max(external_id)
+             watermark permanently lost anything that failed longer than a
+             lookback window) and is immune to another source or Wahlperiode
+             advancing a shared cursor.
+          3. Update sweep: ALSO keep already-ingested protocols whose DIP
+             ``aktualisiert`` timestamp is within _UPDATE_SWEEP_DAYS, so
+             upstream transcript corrections are re-fetched; the runner's
+             content_hash guard rewrites only real changes.
+
         Re-sorts ascending by (datum, id) — DIP returns DESC.
         Populates self._protocols (per-run cache).
         Loads self._mdb_lookup once per run.
 
         Args:
-            since: Max external_id (YYYYMMDD integer) already committed to
-                   Qdrant for "parliamentary_speech", or None on first run.
-                   Derived by the runner via get_cursor().
+            since: Runner-derived cursor, accepted for the ABC contract but
+                   IGNORED — set-difference supersedes it.
 
         Returns:
             List of protocol id strings sorted ascending by (datum, id).
         """
-        floor_int: Optional[int] = _lookback_floor(since) if since is not None else None
         params: dict = {"f.wahlperiode": self._wahlperiode}
-        if floor_int is not None:
-            params["f.datum.start"] = _yyyymmdd_int_to_iso(floor_int)
 
         docs: list[dict] = []
         for page in self._client.pages("/plenarprotokoll", params):
@@ -505,20 +552,29 @@ class BundestagSpeechesConnector(BaseConnector):
                     continue
                 docs.append(doc)
 
-        # Client-side floor filter: DIP server-side f.datum.start is an optimisation;
-        # post-filter here for correctness since the fake client (and early DIP responses)
-        # may return protocols before the floor. Uses the SAME lookback-adjusted floor
-        # as the server-side param so a failed-below-max protocol is re-discovered.
-        if floor_int is not None:
-            floor_iso = _yyyymmdd_int_to_iso(floor_int)
-            docs = [d for d in docs if (d.get("datum") or "") >= floor_iso]
+        ingested = self._get_ingested_protocol_ids()
+        sweep_floor = (
+            date_type.today() - timedelta(days=_UPDATE_SWEEP_DAYS)
+        ).isoformat()
+        selected: list[dict] = []
+        for doc in docs:
+            doc_id = str(doc.get("id") or "")
+            if doc_id not in ingested:
+                selected.append(doc)  # new or previously failed → ingest
+                continue
+            # Already ingested: re-surface only when DIP marked it updated
+            # recently (aktualisiert is an ISO timestamp; prefix compare on the
+            # date part is safe for ISO-8601).
+            aktualisiert = str(doc.get("aktualisiert") or "")
+            if aktualisiert and aktualisiert[:10] >= sweep_floor:
+                selected.append(doc)
 
-        # DIP sorts DESC; BaseConnector.discover contract (connector.py L49) wants ASC.
+        # DIP sorts DESC; BaseConnector.discover contract wants ASC.
         # Re-sort ascending by (datum, id) so run_connector processes oldest-first.
-        docs.sort(key=lambda d: (d.get("datum") or "", str(d.get("id") or "")))
+        selected.sort(key=lambda d: (d.get("datum") or "", str(d.get("id") or "")))
 
         # Populate per-run cache
-        self._protocols = {str(d["id"]): d for d in docs}
+        self._protocols = {str(d["id"]): d for d in selected}
 
         # Load MdB-Stammdaten once per run (cached — never load per-fetch).
         # ensure_* fetches on a cache miss and fails loud if the master data is
@@ -526,7 +582,7 @@ class BundestagSpeechesConnector(BaseConnector):
         if self._mdb_lookup is None:
             self._mdb_lookup = ensure_mdb_lookup(_MDB_PATH)
 
-        return [str(d["id"]) for d in docs]
+        return [str(d["id"]) for d in selected]
 
     # ------------------------------------------------------------------
     # 2. fetch — read from cache; return skip_reason dict on failure (never raises)
@@ -598,8 +654,15 @@ class BundestagSpeechesConnector(BaseConnector):
               a fully-op-covered protocol, returned as [] (clean no-op).
 
         Party resolution (collector.build_speech_row logic):
-            XML <fraktion> → normalize_party → MdB-Stammdaten fallback.
-            is_non_mdb_speaker (999…) speakers are dropped.
+            XML <fraktion> → normalize_party → MdB-Stammdaten fallback (by
+            speaker id, then by name). Non-MdB speakers (999… ids: federal /
+            state ministers, state secretaries, Ministerpräsidenten,
+            Bundesrat members) are KEPT — their speeches are real
+            parliamentary content. Ministers who are also MdBs resolve to
+            their party via the name lookup; genuinely party-less or
+            unresolvable speakers quarantine as "unbekannt" (surfaced in the
+            runner's chunks_unbekannt drift signal) rather than being
+            silently dropped from the corpus.
 
         External_id stamp:
             Every chunk gets external_id=YYYYMMDD(protocol.datum) via model_copy.
@@ -623,12 +686,13 @@ class BundestagSpeechesConnector(BaseConnector):
         speeches: list[dict] = raw.get("speeches", [])
         mdb_lookup: dict = raw.get("mdb_lookup") or {"by_id": {}, "by_name": {}}
 
-        # Build speech rows, dropping non-MdB speakers (999…) and empty-text speeches
+        # Build speech rows, skipping only empty-text speeches. Non-MdB
+        # speakers (999… ids) are kept — see the docstring's party-resolution
+        # policy; dropping them removed entire minister/Ministerpräsident
+        # speeches from the corpus.
         rows: list[dict] = []
         for speech in speeches:
             if not speech.get("text"):
-                continue
-            if _is_non_mdb_speaker(speech):
                 continue
             rows.append(_build_speech_row(protocol, speech, mdb_lookup))
 

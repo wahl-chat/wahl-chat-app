@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -508,6 +508,8 @@ def test_bulk_stamps_external_id_from_date() -> None:
     try:
         # Mock Qdrant and embeddings so we never touch the real services.
         mock_qdrant = MagicMock()
+        # The post-upsert orphan prune scrolls the footprint; nothing stored.
+        mock_qdrant.scroll.return_value = ([], None)
         mock_embed = MagicMock()
         # embed_documents must return a valid-dimension vector for _upsert_chunks.
         # Import EMBEDDING_DIM for correctness.
@@ -604,4 +606,115 @@ def test_dip_chunk_content_hash_present_and_change_sensitive() -> None:
     changed_records = build_chunk_records(changed_speech)
     assert changed_records[0].content_hash != records[0].content_hash, (
         "changing the chunk text must change content_hash"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Citation coordinates — page in title, #page anchor, provenance in hash
+# ---------------------------------------------------------------------------
+
+
+def _page_speech(**overrides: object) -> dict:
+    speech = {
+        "id": "IDPAGE1",
+        "text": "Eine Rede mit Seitenangabe im Protokoll.",
+        "date": "2026-06-15",
+        "party": "SPD",
+        "speaker_name": "Test Person",
+        "protocol_id": "21/99",
+        "protocol_api_id": "5555",
+        "pdf_url": "https://dserver.bundestag.de/btp/21/2199.pdf",
+        "wahlperiode": 21,
+        "xml_rede_id": "IDPAGE1",
+        "source_page": "12003",
+        "page_quadrant": "C",
+        "pdf_page": 4,
+    }
+    speech.update(overrides)
+    return speech
+
+
+def test_citation_carries_page_and_pdf_anchor() -> None:
+    """The printed page reaches the citation title, the PDF page reaches the
+    URL anchor, and both coordinates land in meta."""
+    records = build_chunk_records(_page_speech())
+    assert records, "expected at least one chunk"
+    rec = records[0]
+    assert rec.citation_title.endswith(", S. 12003)"), rec.citation_title
+    assert rec.citation_url == "https://dserver.bundestag.de/btp/21/2199.pdf#page=4"
+    assert rec.meta is not None
+    assert rec.meta.get("source_page") == "12003"
+    assert rec.meta.get("page_quadrant") == "C"
+
+
+def test_citation_without_pdf_page_keeps_plain_url() -> None:
+    """No derivable PDF page → no guessed anchor; printed page still cited."""
+    records = build_chunk_records(_page_speech(pdf_page=None))
+    rec = records[0]
+    assert rec.citation_url == "https://dserver.bundestag.de/btp/21/2199.pdf"
+    assert ", S. 12003)" in rec.citation_title
+
+
+def test_citation_change_changes_content_hash() -> None:
+    """A citation-only correction (page/URL) must change content_hash so a
+    refresh re-writes the stored point instead of keeping the stale citation."""
+    base = build_chunk_records(_page_speech())[0]
+    moved = build_chunk_records(_page_speech(source_page="12005", pdf_page=6))[0]
+    assert base.content_hash != moved.content_hash
+
+
+def test_string_wahlperiode_is_coerced_not_fatal() -> None:
+    """A bulk JSONL row can carry wahlperiode as a string — the mapper must
+    coerce it (and degrade garbage to None) instead of raising."""
+    ok = build_chunk_records(_page_speech(wahlperiode="21"))
+    assert ok and ok[0].wahlperiode == 21
+    degraded = build_chunk_records(_page_speech(wahlperiode="einundzwanzig"))
+    assert degraded and degraded[0].wahlperiode is None
+
+
+def test_bulk_prunes_shrunk_speech_orphans_after_upsert() -> None:
+    """A re-chunked speech that SHRINKS leaves no stale higher-index points:
+    the bulk flush deletes orphans only AFTER the replacement upsert."""
+    import json as _json
+    import tempfile
+    from pathlib import Path
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    from src.ingestion.connectors.bundestag_speeches.bulk import ingest
+    from src.ingestion.ids import compute_chunk_id, compute_source_item_id
+
+    speech = _page_speech(text="Kurze Rede nach der Korrektur.")
+    siid = compute_source_item_id(
+        "parliamentary_speech", str(speech["id"]), source="dip"
+    )
+    kept_id = str(compute_chunk_id(siid, 0))
+    stale_id = str(compute_chunk_id(siid, 1))  # from the longer pre-correction text
+
+    calls: list[str] = []
+    mock_qdrant = MagicMock()
+    mock_qdrant.upsert.side_effect = lambda **kw: calls.append("upsert")
+    mock_qdrant.scroll.return_value = (
+        [
+            SimpleNamespace(id=kept_id, payload={"source_item_id": str(siid)}),
+            SimpleNamespace(id=stale_id, payload={"source_item_id": str(siid)}),
+        ],
+        None,
+    )
+    mock_qdrant.delete.side_effect = lambda **kw: calls.append("delete")
+    mock_embed = MagicMock()
+    mock_embed.embed_documents.side_effect = lambda texts: [[0.0] * 3072 for _ in texts]
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "speeches.jsonl"
+        path.write_text(_json.dumps(speech) + "\n", encoding="utf-8")
+        processed, chunks = ingest(path, mock_qdrant, mock_embed)
+
+    assert processed == 1 and chunks == 1
+    assert calls == ["upsert", "delete"], (
+        f"orphan delete must happen AFTER the replacement upsert, got {calls}"
+    )
+    deleted = mock_qdrant.delete.call_args.kwargs["points_selector"].points
+    assert deleted == [stale_id], (
+        f"only the stale higher-index point may be deleted, got {deleted}"
     )

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -286,3 +286,17 @@ def test_zusatzpunkt_and_tagesordnungspunkt_do_not_collide() -> None:
     zp_key = _make_key(ep=20, session=101, speaker_name="A B", top_id="ZP5")
     top_key = _make_key(ep=20, session=101, speaker_name="A B", top_id="5")
     assert zp_key != top_key
+
+
+def test_opening_segment_never_gets_numeric_slug() -> None:
+    """agenda_type == "opening" must ALWAYS yield the empty slug, even when the
+    title contains a number ("Eröffnung der 90. Sitzung" must not become
+    top90): DIP yields "" for redes outside any <tagesordnungspunkt>, so any
+    op-side opening slug breaks cross-source dedup."""
+    from src.ingestion.speech_key import agenda_slug_from_official
+
+    assert agenda_slug_from_official("Eröffnung der 90. Sitzung", "opening") == ""
+    assert agenda_slug_from_official("Sitzungseröffnung", "opening") == ""
+    # Non-opening titles keep the numeric extraction.
+    assert agenda_slug_from_official("Tagesordnungspunkt 20", None) == "top20"
+    assert agenda_slug_from_official("Zusatzpunkt 5", "agenda_item") == "zp5"

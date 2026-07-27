@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -149,14 +149,16 @@ def agenda_slug_from_official(
     Rules: detect the item KIND — an official title starting with
     ``Zusatzpunkt`` → ``zp{n}``, otherwise ``top{n}`` — where ``{n}`` is the
     FIRST integer in the title (identical extraction to
-    ``agenda_slug_from_top_id`` for byte-parity); anything else — including
-    ``agenda_type == "opening"`` — yields the empty string (the graceful
-    no-agenda fallback). Opening segments have NO DIP counterpart slug (DIP
-    yields ``""`` for redes outside any <tagesordnungspunkt>), so an op-side
-    ``"opening"`` slug would break cross-source dedup for opening-segment
-    speeches. ``agenda_type`` is kept in the signature for call-site
-    compatibility but no longer influences the slug.
+    ``agenda_slug_from_top_id`` for byte-parity). ``agenda_type == "opening"``
+    ALWAYS yields the empty string, even when the title contains a number
+    (e.g. "Eröffnung der 90. Sitzung" must not become ``top90``): opening
+    segments have NO DIP counterpart slug (DIP yields ``""`` for redes outside
+    any <tagesordnungspunkt>), so any op-side opening slug would break
+    cross-source dedup for opening-segment speeches. Titles without an
+    integer also yield ``""`` (the graceful no-agenda fallback).
     """
+    if agenda_type == "opening":
+        return ""
     if official_title:
         match = _FIRST_INT_RE.search(official_title)
         if match:
