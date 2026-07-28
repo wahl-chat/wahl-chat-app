@@ -125,7 +125,14 @@ service cloud.firestore {
         && resource.data.user_id == request.auth.uid;
 
       match /messages/{message_id} {
-      	allow read, list, create, update: if true
+        // Mirror parent chat_sessions ownership/privacy (CR-03): a message body
+        // is user content and must not be world-readable/writable. The enclosing
+        // match binds {session_id}, so look up the parent session directly.
+        allow read, list: if (request.auth != null
+            && get(/databases/$(database)/documents/chat_sessions/$(session_id)).data.user_id == request.auth.uid)
+            || get(/databases/$(database)/documents/chat_sessions/$(session_id)).data.is_public == true;
+        allow create, update, delete: if request.auth != null
+            && get(/databases/$(database)/documents/chat_sessions/$(session_id)).data.user_id == request.auth.uid;
       }
     }
   }

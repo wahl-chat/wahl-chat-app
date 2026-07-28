@@ -2,11 +2,25 @@
 """
 Seed Firestore with contexts, parties, and proposed questions data.
 
-Usage (from the firebase/ directory):
-    python scripts/seed_firestore.py
+source_items, questions, question_stance_pairs, topics,
+claims, and ingestion_watermarks collections are no longer seeded — those
+data paths moved to Qdrant ChunkRecords.
 
-    # For production:
-    ENV=prod python scripts/seed_firestore.py
+Usage (from the firebase/ directory):
+    FIRESTORE_EMULATOR_HOST=localhost:8081 python scripts/seed_firestore.py
+    # or from the repo root:
+    FIRESTORE_EMULATOR_HOST=localhost:8081 make seed-local
+
+By default this script seeds ONLY the local Firestore emulator: with
+SEED_TARGET unset it hard-exits unless FIRESTORE_EMULATOR_HOST is set, so a
+local run can never write to a real project.
+
+Seeding a real project (dev/prod) is strictly opt-in via SEED_TARGET=real and is
+driven by the CI/CD pipeline, authenticated with Workload Identity (Application
+Default Credentials — no service-account key on disk). It seeds only the config
+collections here (contexts / parties / proposed_questions); the Qdrant corpus is
+NOT seeded from CI — it is populated by the scheduled ingestion jobs (plus a
+one-time snapshot copy for the initial backfill).
 
 This script:
 1. Imports all contexts from firestore_data/{env}/contexts.json
@@ -32,72 +46,102 @@ from pathlib import Path
 import firebase_admin
 from firebase_admin import credentials, firestore
 
+# --- Target guard ---
+# Default target is the local emulator; writing to a real project is strictly
+# opt-in via SEED_TARGET=real. Prod (wahl-chat) additionally requires a matching
+# SEED_CONFIRM_PROJECT so a misconfigured dev pipeline can never seed prod.
+_PROD_PROJECT = "wahl-chat"
+SEED_TARGET = os.getenv("SEED_TARGET", "emulator")
+
+if SEED_TARGET == "emulator":
+    # Refuse to run unless the Firestore emulator host is explicitly set — this
+    # prevents accidental writes to a real Firestore during local dev.
+    if not os.getenv("FIRESTORE_EMULATOR_HOST"):
+        print(
+            "\n"
+            "============================================================\n"
+            " ERROR: FIRESTORE_EMULATOR_HOST is not set.\n"
+            " Refusing to seed — this would write to production Firestore.\n"
+            "\n"
+            " To seed the local emulator, run:\n"
+            "   FIRESTORE_EMULATOR_HOST=localhost:8081 python seed_firestore.py\n"
+            " or use the Makefile target:\n"
+            "   make seed-local\n"
+            " (Real-project seeding is CI-only: SEED_TARGET=real.)\n"
+            "============================================================\n"
+        )
+        sys.exit(1)
+elif SEED_TARGET == "real":
+    # An emulator host must never silently redirect a "real" seed.
+    if os.getenv("FIRESTORE_EMULATOR_HOST"):
+        print(
+            "ERROR: SEED_TARGET=real but FIRESTORE_EMULATOR_HOST is set — "
+            "refusing (ambiguous target)."
+        )
+        sys.exit(1)
+    _REAL_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCLOUD_PROJECT")
+    if not _REAL_PROJECT:
+        print("ERROR: SEED_TARGET=real requires GOOGLE_CLOUD_PROJECT to be set.")
+        sys.exit(1)
+    if (
+        _REAL_PROJECT == _PROD_PROJECT
+        and os.getenv("SEED_CONFIRM_PROJECT") != _PROD_PROJECT
+    ):
+        print(
+            f"ERROR: seeding the prod project '{_PROD_PROJECT}' requires "
+            f"SEED_CONFIRM_PROJECT={_PROD_PROJECT} (explicit confirmation)."
+        )
+        sys.exit(1)
+else:
+    print(
+        f"ERROR: invalid SEED_TARGET={SEED_TARGET!r} — expected 'emulator' or 'real'."
+    )
+    sys.exit(1)
+
 # Configuration
 ENV = os.getenv("ENV", "dev")
 SCRIPT_DIR = Path(__file__).parent
 FIREBASE_DIR = SCRIPT_DIR.parent
-REPO_ROOT = FIREBASE_DIR.parent
 DATA_DIR = FIREBASE_DIR / "firestore_data" / ENV
 
-# Service account JSON file (looked up in ai-backend/ where it's typically placed)
-CREDENTIALS_FILE = (
-    "wahl-chat-firebase-adminsdk.json"
-    if ENV == "prod"
-    else "wahl-chat-dev-firebase-adminsdk.json"
-)
-
-
-def _find_credentials_file():
-    """Search for the service account JSON in common locations."""
-    search_paths = [
-        REPO_ROOT / "ai-backend" / CREDENTIALS_FILE,
-        REPO_ROOT / CREDENTIALS_FILE,
-        Path.cwd() / CREDENTIALS_FILE,
-    ]
-    for path in search_paths:
-        if path.exists():
-            return path
-    return None
-
-
-def _validate_adc():
-    """Validate Application Default Credentials and give a clear error if expired."""
-    try:
-        import google.auth
-        import google.auth.transport.requests
-        from google.auth.exceptions import RefreshError
-
-        adc_credentials, _ = google.auth.default()
-        adc_credentials.refresh(google.auth.transport.requests.Request())
-    except RefreshError:
-        print(
-            "\n"
-            "============================================================\n"
-            " Firebase credentials have expired.\n"
-            " Run 'make auth' or 'gcloud auth application-default login'\n"
-            " to re-authenticate.\n"
-            "============================================================\n"
-        )
-        sys.exit(1)
-    except ImportError:
-        pass  # google.auth not installed; let firebase_admin handle it
-    except Exception as e:
-        print(f"⚠️  Could not validate credentials: {e}")
-
-
 def initialize_firebase():
-    """Initialize Firebase Admin SDK."""
-    cred_path = _find_credentials_file()
+    """Initialize the Firebase Admin SDK for the guarded SEED_TARGET.
 
-    if cred_path:
-        print(f"Using credentials: {cred_path}")
-        cred = credentials.Certificate(str(cred_path))
-        firebase_admin.initialize_app(cred)
-    else:
-        print("Using Application Default Credentials (gcloud ADC)")
-        _validate_adc()
-        firebase_admin.initialize_app()
+    - ``emulator`` (default): anonymous credentials + an explicit project id, NO
+      Application Default Credentials lookup — the emulator needs no real
+      credentials, and this avoids failing when gcloud ADC is absent/expired.
+    - ``real``: Application Default Credentials (Workload Identity in CI) against
+      the real ``GOOGLE_CLOUD_PROJECT``. Reached only after the target guard
+      above has validated the project (and confirmed prod).
+    """
+    if SEED_TARGET == "real":
+        project_id = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCLOUD_PROJECT")
+        print(f"Connecting to REAL Firestore project: {project_id}")
+        # No credential arg → Application Default Credentials (WIF in CI).
+        firebase_admin.initialize_app(options={"projectId": project_id})
+        return firestore.client()
 
+    import google.auth.credentials
+
+    class _EmulatorCredentials(credentials.Base):
+        """No-auth credential for the Firestore emulator."""
+
+        def get_credential(self):
+            return google.auth.credentials.AnonymousCredentials()
+
+    project_id = (
+        os.getenv("GOOGLE_CLOUD_PROJECT")
+        or os.getenv("GCLOUD_PROJECT")
+        or os.getenv("FIREBASE_PROJECT_ID")
+        or "demo-wahl-chat"
+    )
+    print(
+        f"Connecting to Firestore emulator at "
+        f"{os.environ['FIRESTORE_EMULATOR_HOST']} (project: {project_id})"
+    )
+    firebase_admin.initialize_app(
+        _EmulatorCredentials(), options={"projectId": project_id}
+    )
     return firestore.client()
 
 
@@ -161,8 +205,11 @@ def seed_parties(db):
     print(f"\nTotal parties seeded: {total_parties}")
 
 
-def seed_proposed_questions(db):
+def seed_proposed_questions(db) -> tuple[list, list]:
     """Seed proposed_questions sub-collections for each context.
+
+    Returns (failed_files, failed_writes) so the caller can exit non-zero
+    when anything failed.
 
     File naming convention:
     - proposed_questions_{context_id}.json: Contains proposed questions for a specific context
@@ -177,7 +224,7 @@ def seed_proposed_questions(db):
 
     if not pq_files:
         print("\n⚠️  No proposed questions files found")
-        return
+        return [], []
 
     print(f"\n📁 Found {len(pq_files)} proposed questions files")
     print("-" * 60)
@@ -251,6 +298,8 @@ def seed_proposed_questions(db):
         for context_id, path, error in failed_writes:
             print(f"    - {context_id}/{path}: {error}")
 
+    return failed_files, failed_writes
+
 
 def main():
     print("=" * 60)
@@ -261,7 +310,7 @@ def main():
 
     if not DATA_DIR.exists():
         print(f"\n❌ Data directory not found: {DATA_DIR}")
-        return
+        sys.exit(1)
 
     db = initialize_firebase()
 
@@ -272,7 +321,16 @@ def main():
     seed_parties(db)
 
     # Seed proposed questions for each context
-    seed_proposed_questions(db)
+    failed_files, failed_writes = seed_proposed_questions(db)
+
+    if failed_files or failed_writes:
+        print("\n" + "=" * 60)
+        print(
+            f"❌ Seeding FAILED: {len(failed_files)} unparseable file(s), "
+            f"{len(failed_writes)} failed write(s)."
+        )
+        print("=" * 60)
+        sys.exit(1)
 
     print("\n" + "=" * 60)
     print("✅ Seeding complete!")
