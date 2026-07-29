@@ -19,6 +19,7 @@ Design:
     - Registered IDs:
         "abgeordnetenwatch_votes" → AbgeordnetenwatchVotesConnector
         "manifestos"              → ManifestoConnector (party_manifesto corpus)
+        "manifesto_uploads"       → ManifestoUploadsConnector (uploaded PDFs)
         "bundestag_speeches"      → BundestagSpeechesConnector
 
     - Factories use DEFERRED imports (import happens INSIDE the factory body,
@@ -65,6 +66,21 @@ def _manifestos_factory() -> BaseConnector:
     return ManifestoConnector()
 
 
+def _manifesto_uploads_factory() -> BaseConnector:
+    """Return a ManifestoUploadsConnector instance (deferred import).
+
+    Manifest-driven connector for party manifesto PDFs supplied to us directly
+    (elections with no AW coverage). Writes party_manifesto chunks with
+    source="upload", alongside the AW-sourced ones. The bespoke --dry-run / --check
+    CLI lives in connectors.manifesto_uploads.bulk.
+    """
+    from src.ingestion.connectors.manifesto_uploads.connector import (
+        ManifestoUploadsConnector,
+    )  # noqa: PLC0415
+
+    return ManifestoUploadsConnector()
+
+
 def _bundestag_speeches_factory() -> BaseConnector:
     """Return a BundestagSpeechesConnector instance (deferred import).
 
@@ -102,6 +118,7 @@ def _openparliament_tv_factory() -> BaseConnector:
 CONNECTOR_FACTORIES: dict[str, Callable] = {
     "abgeordnetenwatch_votes": _abgeordnetenwatch_votes_factory,
     "manifestos": _manifestos_factory,
+    "manifesto_uploads": _manifesto_uploads_factory,
     "bundestag_speeches": _bundestag_speeches_factory,
     "openparliament_tv": _openparliament_tv_factory,
 }

@@ -1,0 +1,311 @@
+# SPDX-FileCopyrightText: 2026 wahl.chat
+#
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+"""
+The uploaded-manifesto connector driven through the REAL runner.
+
+The connector deliberately owns no embed/upsert/cleanup logic of its own — it
+relies on run_connector for replacement-safe rewrites, content-hash skips and
+footprint reconciliation. These tests pin the three behaviours that depend on that
+wiring being right, which unit tests of the connector alone cannot show:
+
+  * a new document is embedded and upserted;
+  * an unchanged document is skipped without re-embedding (re-runs are cheap);
+  * a document removed from the manifest has its stored chunks DELETED, which is
+    what makes the manifest the single statement of what should exist.
+"""
+
+from __future__ import annotations
+
+import types
+from pathlib import Path
+from typing import Optional
+from unittest.mock import MagicMock
+
+import pytest
+
+from src.ingestion.connectors.manifesto_uploads.connector import (
+    ManifestoUploadsConnector,
+)
+from src.ingestion.ids import compute_chunk_id
+from src.ingestion.run import run_connector
+from src.ingestion.schemas import ChunkRecord
+from src.ingestion.setup_collection import EMBEDDING_DIM
+
+_CTX = "landtagswahl-sachsen-anhalt-2026"
+_SPD = f"public/{_CTX}/spd/Wahlprogramm-SPD_2026-06-01.pdf"
+_CDU = f"public/{_CTX}/cdu/Wahlprogramm-CDU_2026-03-24.pdf"
+
+_PAGES = {
+    _SPD: [(1, "Sozial und gerecht. " * 40), (2, "Arbeit und Industrie. " * 40)],
+    _CDU: [(1, "Sachsen-Anhalt staerker machen. " * 40)],
+}
+
+
+class _Qdrant:
+    """Fake store serving the cursor scroll, footprint scrolls, and recording writes."""
+
+    def __init__(self, existing: Optional[dict[str, dict]] = None) -> None:
+        self.existing: dict[str, dict] = dict(existing or {})
+        self.deletes: list[dict] = []
+        self.upserts: list[dict] = []
+
+    # -- reads ---------------------------------------------------------------
+
+    def scroll(self, **kwargs):  # noqa: ANN003, ANN201
+        if kwargs.get("order_by") is not None:
+            return ([], None)  # get_cursor: uploads carry no external_id
+
+        wanted_payload = kwargs.get("with_payload") or []
+        flt = kwargs.get("scroll_filter")
+        conditions = {
+            c.key: c.match
+            for c in getattr(flt, "must", []) or []
+            if hasattr(c, "match")
+        }
+
+        # discover()'s stored-object-path scan: source_type + source, no ids.
+        if "meta.storage_object_path" in wanted_payload:
+            return (
+                [
+                    types.SimpleNamespace(id=pid, payload=payload)
+                    for pid, payload in self.existing.items()
+                ],
+                None,
+            )
+
+        # run_connector's parent-footprint scan: by source_item_id or parent key.
+        siids: set[str] = set()
+        parent_keys: set[str] = set()
+        for key, match in conditions.items():
+            values = getattr(match, "any", None)
+            values = values if values is not None else [getattr(match, "value", None)]
+            if key == "source_item_id":
+                siids.update(str(v) for v in values)
+            elif key == "source_parent_key":
+                parent_keys.update(str(v) for v in values)
+        return (
+            [
+                types.SimpleNamespace(id=pid, payload=payload)
+                for pid, payload in self.existing.items()
+                if str(payload.get("source_item_id")) in siids
+                or str(payload.get("source_parent_key")) in parent_keys
+            ],
+            None,
+        )
+
+    def count(self, **kwargs):  # noqa: ANN003, ANN201
+        return types.SimpleNamespace(count=len(self.existing))
+
+    # -- writes --------------------------------------------------------------
+
+    def delete(self, **kwargs) -> None:  # noqa: ANN003
+        self.deletes.append(kwargs)
+        selector = kwargs.get("points_selector")
+        for pid in getattr(selector, "points", []) or []:
+            self.existing.pop(str(pid), None)
+
+    def upsert(self, **kwargs) -> None:  # noqa: ANN003
+        self.upserts.append(kwargs)
+
+
+def _embed() -> MagicMock:
+    mock = MagicMock()
+    mock.embed_documents.side_effect = lambda texts: [
+        [0.0] * EMBEDDING_DIM for _ in texts
+    ]
+    return mock
+
+
+def _stored(chunks: list[ChunkRecord], parent_key: str) -> dict[str, dict]:
+    """Render chunks the way a previous successful run would have left them."""
+    return {
+        str(compute_chunk_id(c.source_item_id, c.chunk_index)): {
+            "source_item_id": str(c.source_item_id),
+            "source_parent_key": parent_key,
+            "content_hash": c.content_hash,
+            "meta": {"storage_object_path": c.meta["storage_object_path"]},
+        }
+        for c in chunks
+    }
+
+
+@pytest.fixture()
+def connector_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Build a connector over a temp manifest, with PDF reads stubbed out."""
+
+    def _make(*entries: str) -> ManifestoUploadsConnector:
+        manifest = tmp_path / "dev.txt"
+        manifest.write_text("\n".join(entries) + "\n", encoding="utf-8")
+        connector = ManifestoUploadsConnector(manifest_path=manifest, env="dev")
+        monkeypatch.setattr(
+            "src.ingestion.connectors.manifesto_uploads.connector.load_pdf_pages",
+            lambda object_path, env=None: {
+                "pages": _PAGES[object_path],
+                "total_pages": len(_PAGES[object_path]),
+                "read_from": "test",
+            },
+        )
+        return connector
+
+    return _make
+
+
+@pytest.fixture(autouse=True)
+def _skip_fingerprint(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The fake store has no fingerprint point; the real check is tested elsewhere."""
+    monkeypatch.setattr("src.ingestion.run.check_fingerprint", lambda *a, **k: None)
+
+
+# ===========================================================================
+# New document
+# ===========================================================================
+
+
+def test_new_document_is_embedded_and_upserted(connector_factory) -> None:
+    connector = connector_factory(_SPD)
+    qdrant, embed = _Qdrant(), _embed()
+
+    report = run_connector(connector, qdrant, embed, "c")
+
+    assert report.processed == 1
+    assert report.chunks_upserted > 0
+    assert qdrant.upserts, "chunks must reach the store"
+    assert embed.embed_documents.called
+    # Nothing is deleted on a first ingest.
+    assert qdrant.deletes == []
+
+
+def test_upserted_payload_carries_the_retrieval_fields(connector_factory) -> None:
+    connector = connector_factory(_SPD)
+    qdrant = _Qdrant()
+
+    run_connector(connector, qdrant, _embed(), "c")
+
+    payloads = [p.payload for call in qdrant.upserts for p in call["points"]]
+    assert payloads
+    for payload in payloads:
+        assert payload["party_id"] == "spd"
+        assert payload["region"] == "DE-ST"
+        assert payload["source"] == "upload"
+        assert payload["source_type"] == "party_manifesto"
+        assert payload["publish_date"] == "2026-09-06"
+        assert payload["citation_url"].startswith("https://storage.googleapis.com/")
+        # The runner stamps the per-parent key used for footprint reconciliation.
+        assert payload["source_parent_key"] == f"party_manifesto:upload:{_SPD}"
+
+
+def test_two_documents_are_both_processed(connector_factory) -> None:
+    connector = connector_factory(_SPD, _CDU)
+    qdrant = _Qdrant()
+
+    report = run_connector(connector, qdrant, _embed(), "c")
+
+    assert report.processed == 2
+    parties = {p.payload["party_id"] for call in qdrant.upserts for p in call["points"]}
+    assert parties == {"spd", "cdu"}
+
+
+# ===========================================================================
+# Unchanged document — re-runs must be cheap
+# ===========================================================================
+
+
+def test_unchanged_document_is_skipped_without_re_embedding(
+    connector_factory,
+) -> None:
+    connector = connector_factory(_SPD)
+    first_qdrant = _Qdrant()
+    run_connector(connector, first_qdrant, _embed(), "c")
+    already_stored = {
+        str(p.id): {**p.payload, "source_item_id": p.payload["source_item_id"]}
+        for call in first_qdrant.upserts
+        for p in call["points"]
+    }
+
+    connector = connector_factory(_SPD)
+    qdrant, embed = _Qdrant(already_stored), _embed()
+    report = run_connector(connector, qdrant, embed, "c")
+
+    assert report.present_skips == 1
+    assert report.processed == 0
+    assert report.chunks_upserted == 0
+    embed.embed_documents.assert_not_called()
+    assert qdrant.deletes == []
+
+
+# ===========================================================================
+# Retirement — deleting a manifest line removes the chunks
+# ===========================================================================
+
+
+def test_document_dropped_from_the_manifest_is_deleted(connector_factory) -> None:
+    # Ingest both, then re-run with only one in the manifest.
+    connector = connector_factory(_SPD, _CDU)
+    seeded = _Qdrant()
+    run_connector(connector, seeded, _embed(), "c")
+    stored = {str(p.id): p.payload for call in seeded.upserts for p in call["points"]}
+    cdu_point_ids = {
+        pid for pid, payload in stored.items() if payload["party_id"] == "cdu"
+    }
+    assert cdu_point_ids
+
+    connector = connector_factory(_SPD)  # CDU line removed
+    qdrant = _Qdrant(stored)
+    report = run_connector(connector, qdrant, _embed(), "c")
+
+    # The retired document is reconciled: every one of its points is gone.
+    deleted = {
+        str(pid)
+        for call in qdrant.deletes
+        for pid in getattr(call.get("points_selector"), "points", []) or []
+    }
+    assert cdu_point_ids <= deleted, "removing a manifest line must retire its chunks"
+    assert not any(payload["party_id"] == "cdu" for payload in qdrant.existing.values())
+    # The surviving document is untouched (unchanged → cheap skip).
+    assert report.present_skips == 1
+
+
+def test_retirement_leaves_other_documents_alone(connector_factory) -> None:
+    connector = connector_factory(_SPD, _CDU)
+    seeded = _Qdrant()
+    run_connector(connector, seeded, _embed(), "c")
+    stored = {str(p.id): p.payload for call in seeded.upserts for p in call["points"]}
+    spd_point_ids = {
+        pid for pid, payload in stored.items() if payload["party_id"] == "spd"
+    }
+
+    connector = connector_factory(_SPD)
+    qdrant = _Qdrant(stored)
+    run_connector(connector, qdrant, _embed(), "c")
+
+    assert spd_point_ids <= set(qdrant.existing)
+
+
+def test_replaced_document_rewrites_instead_of_duplicating(
+    connector_factory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Re-uploading a corrected file under the same name refreshes the chunks."""
+    connector = connector_factory(_SPD)
+    seeded = _Qdrant()
+    run_connector(connector, seeded, _embed(), "c")
+    stored = {str(p.id): p.payload for call in seeded.upserts for p in call["points"]}
+
+    # Same object path, different content — the content hash must force a rewrite.
+    connector = connector_factory(_SPD)
+    monkeypatch.setattr(
+        "src.ingestion.connectors.manifesto_uploads.connector.load_pdf_pages",
+        lambda object_path, env=None: {
+            "pages": [(1, "Vollstaendig neuer Text. " * 40)],
+            "total_pages": 1,
+            "read_from": "test",
+        },
+    )
+    qdrant, embed = _Qdrant(stored), _embed()
+    report = run_connector(connector, qdrant, embed, "c")
+
+    assert report.processed == 1
+    assert embed.embed_documents.called
+    # The shrunk document's now-surplus points are deleted, not left behind.
+    assert qdrant.deletes

@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: 2026 wahl.chat
+#
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+# Uploaded party manifestos to ingest (dev).
+#
+# One document per line, as a bucket object path:
+#     public/{context_id}/{party_id}/{document-name}_{YYYY-MM-DD}.pdf
+# A public Storage URL, a gs:// URI or a firebase/storage_data/... staging path is
+# accepted too — all normalise to the same object path.
+#
+# The path carries the metadata: the election segment must be a context in
+# firebase/firestore_data/{ENV}/contexts.json (which supplies region, level and the
+# publish date) and the party segment must be one of that context's parties. The
+# date suffix is the document's own publication date.
+#
+# This file is the COMPLETE statement of what should exist: delete a line and the
+# next run removes that document's chunks from the corpus.
+
+# --- Landtagswahl Sachsen-Anhalt, 6 September 2026 -------------------------------
+# No Abgeordnetenwatch coverage: their catalogue has no Sachsen-Anhalt 2026 election
+# period, so every programme below was supplied to us directly by the party.
+public/landtagswahl-sachsen-anhalt-2026/spd/Wahlprogramm-SPD-Sachsen-Anhalt-2026_2026-06-01.pdf
+public/landtagswahl-sachsen-anhalt-2026/cdu/Regierungsprogramm-Entwurf-CDU-Sachsen-Anhalt-2026_2026-03-24.pdf
+public/landtagswahl-sachsen-anhalt-2026/afd/Regierungsprogramm-Entwurf-AfD-Sachsen-Anhalt-2026_2026-03-05.pdf
+public/landtagswahl-sachsen-anhalt-2026/gruene/Wahlprogramm-Gruene-Sachsen-Anhalt-2026_2026-05-21.pdf
+public/landtagswahl-sachsen-anhalt-2026/linke/Wahlprogramm-Linke-Sachsen-Anhalt-2026_2026-03-19.pdf
+public/landtagswahl-sachsen-anhalt-2026/fdp/Wahlprogramm-FDP-Sachsen-Anhalt-2026_2026-06-05.pdf
+public/landtagswahl-sachsen-anhalt-2026/bsw/Wahlprogramm-BSW-Sachsen-Anhalt-2026_2026-03-07.pdf
+public/landtagswahl-sachsen-anhalt-2026/fw/Wahlprogramm-Freie-Waehler-Sachsen-Anhalt-2026_2026-07-14.pdf
+public/landtagswahl-sachsen-anhalt-2026/basis/Wahlprogramm-dieBasis-Sachsen-Anhalt-2026_2026-07-08.pdf
+# The only documents these three parties provided are not election-specific:
+# federal Grundsatzprogramme, and for the Gartenpartei its party statutes.
+public/landtagswahl-sachsen-anhalt-2026/tierschutzpartei/Grundsatzprogramm-Tierschutzpartei_2026-02-07.pdf
+public/landtagswahl-sachsen-anhalt-2026/pdf/Grundsatzprogramm-PdF_2026-03-21.pdf
+public/landtagswahl-sachsen-anhalt-2026/gartenpartei/Satzung-Gartenpartei_2019-11-30.pdf

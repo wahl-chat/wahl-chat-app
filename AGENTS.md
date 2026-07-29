@@ -95,6 +95,10 @@ Connectors are registered in a closed `{connector_id: factory}` map
   coexists with and supersedes DIP twins, deduped on `speech_key`.
 - `manifestos` — party manifesto chunks (has its own local CLI in
   `connectors/manifestos/bulk.py`; also runnable via the registry).
+- `manifesto_uploads` — party manifesto PDFs supplied to us directly
+  (`source="upload"`), for elections Abgeordnetenwatch does not cover. Same
+  `party_manifesto` corpus as `manifestos`; once AW publishes the same programme
+  the AW copy supersedes the upload (`connectors/manifestos/supersede.py`).
 
 The **data contract** is the Pydantic model set in `src/ingestion/schemas.py`
 (`ChunkRecord` plus the `AuthorityTier` / `SourceType` enums and per-source
@@ -208,8 +212,37 @@ make run-abgeordnetenwatch-votes          # federal votes
 make run-all-landtage-votes               # loop over all 16 Landtag legislatures
 make run-speeches ARGS="--batch-size 25"  # live DIP speeches
 make run-manifestos ARGS="--dry-run"      # parse only, zero OpenAI cost
+make run-manifesto-uploads ARGS="--check" # validate uploaded-PDF metadata
 make speeches-stats                       # read-only Qdrant verification
 ```
+
+#### Adding a manifesto we received as a file
+
+Parties send us their Wahlprogramme directly for elections Abgeordnetenwatch has
+not catalogued (upcoming and communal ones). The upload path carries the metadata,
+so there is nothing to type twice:
+
+1. The election must exist in `firebase/firestore_data/{env}/contexts.json` with
+   `region_path` and `level` set, and the party must be a key in
+   `parties_{context_id}.json`. Both are required — see below.
+2. Name the file `{document-name}_{YYYY-MM-DD}.pdf` (the document's own
+   publication date; no underscore in the name part).
+3. Put it at `public/{context_id}/{party_id}/{file}.pdf`, staged under
+   `firebase/storage_data/` and/or uploaded to the Storage bucket.
+4. Add the object path to `ai-backend/data/manifesto_uploads/{env}.txt`.
+5. `make run-manifesto-uploads ARGS="--check"`, then drop `ARGS` to ingest.
+
+The manifest is the complete statement of what should exist: deleting a line
+retires that document's chunks on the next run.
+
+**Why step 1 is a hard gate.** `region` and `party_id` decide whether a chunk is
+ever retrievable — manifesto retrieval filters on the election's most specific
+region (`region_path[-1]`) and on `party_id` as the tenant key. A chunk stamped
+`DE-BY` for a `DE-BY-MUC` election, or `CSU` where the party doc is `csu`, is
+written successfully and then never returned, with no error anywhere. Both values
+are therefore derived from the seed fixtures rather than declared, and a context
+missing `region_path`/`level` refuses to ingest instead of quietly defaulting to
+federal scope.
 
 In production the same `src.ingestion.run` code path runs as a Cloud Run Job
 with `CONNECTOR_ID` set in the job spec (deployment + scheduling is a planned

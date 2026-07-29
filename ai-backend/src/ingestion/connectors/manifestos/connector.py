@@ -555,3 +555,23 @@ class ManifestoConnector(BaseConnector):
         if not records:
             raise ValueError(f"program {program.get('id')} produced no records")
         return records
+
+    # ------------------------------------------------------------------
+    # 4. post_upsert — retire a hand-uploaded copy of the same programme
+    # ------------------------------------------------------------------
+
+    def post_upsert(
+        self, qdrant, collection_name: str, chunks: list[ChunkRecord]
+    ) -> int:  # noqa: ANN001
+        """Delete the uploaded twin of the programme just written, if any.
+
+        Uploaded PDFs (``source="upload"``) exist to cover elections AW has not
+        catalogued yet; once AW publishes the programme, its copy is the citable
+        public source and the upload is redundant. Runs only after the AW chunks are
+        durably upserted, so the corpus is never without the programme.
+        """
+        from src.ingestion.connectors.manifestos.supersede import (  # noqa: PLC0415
+            supersede_uploaded_manifestos,
+        )
+
+        return supersede_uploaded_manifestos(qdrant, collection_name, chunks)

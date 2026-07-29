@@ -4,7 +4,7 @@
         lint lint-web lint-backend test-backend test-smoke test-local-mode \
         stores-up stores-down seed-local dev-local auth bootstrap-collection \
         run-abgeordnetenwatch-votes run-all-landtage-votes run-speeches \
-        run-manifestos collect-speeches fetch-mdb-stammdaten \
+        run-manifestos run-manifesto-uploads collect-speeches fetch-mdb-stammdaten \
         update-speeches speeches-stats
 
 # --- Install dependencies ---
@@ -222,6 +222,19 @@ run-speeches: bootstrap-collection fetch-mdb-stammdaten
 run-manifestos: bootstrap-collection
 	cd ai-backend && $(QDRANT_ENV) \
 		uv run python -m src.ingestion.connectors.manifestos.bulk $(ARGS)
+
+# Uploaded manifestos: party PDFs supplied to us directly, for elections with no
+# Abgeordnetenwatch coverage. Metadata comes from the upload path
+# (public/{context_id}/{party_id}/{name}_{date}.pdf) plus that election's Firestore
+# seed fixtures; bytes are read from firebase/storage_data/ when staged there, else
+# downloaded from the bucket. Citations point at the bucket copy with a #page anchor.
+#   make run-manifesto-uploads ARGS="--check"        # validate metadata, no reads
+#   make run-manifesto-uploads ARGS="--dry-run"      # parse + chunk, zero embed cost
+#   make run-manifesto-uploads ARGS="--only spd,cdu" # ingest two parties
+# Requires: make stores-up first. Needs Qdrant only (seed fixtures are read as files).
+run-manifesto-uploads: bootstrap-collection
+	cd ai-backend && $(QDRANT_ENV) \
+		uv run python -m src.ingestion.connectors.manifesto_uploads.bulk $(ARGS)
 
 # collect-speeches: optional --from-jsonl backfill that replays speeches.jsonl
 # through the relocated corpus mapper without hitting the DIP API.
