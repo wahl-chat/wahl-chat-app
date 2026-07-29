@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from datetime import date as date_type
 from pathlib import Path
 from typing import Optional
 
@@ -46,7 +47,9 @@ from src.ingestion.connectors.manifesto_uploads.connector import (
     ManifestoUploadsConnector,
     default_manifest_path,
     load_manifest,
+    in_scope,
     load_pdf_pages,
+    resolve_since_floor,
 )
 from src.ingestion.connectors.manifesto_uploads.election_fixtures import (
     FixtureLookupError,
@@ -148,7 +151,11 @@ def dry_run(paths: list[str], env: Optional[str] = None) -> int:
     return failures
 
 
-def ingest(env: Optional[str] = None, only: Optional[set[str]] = None) -> int:
+def ingest(
+    env: Optional[str] = None,
+    only: Optional[set[str]] = None,
+    since: Optional[date_type] = None,
+) -> int:
     """Embed and upsert via the shared runner. Returns a process exit code.
 
     Note that the runner is driven over the connector's OWN discover() output, not
@@ -178,7 +185,7 @@ def ingest(env: Optional[str] = None, only: Optional[set[str]] = None) -> int:
     embed = get_embeddings(task_type="RETRIEVAL_DOCUMENT")
     check_fingerprint(qdrant, COLLECTION_NAME)
 
-    connector = ManifestoUploadsConnector(env=env)
+    connector = ManifestoUploadsConnector(env=env, since=since)
     if only:
         original_discover = connector.discover
 
@@ -249,6 +256,19 @@ if __name__ == "__main__":
         help="Manifest file to use (default: data/manifesto_uploads/{ENV}.txt).",
     )
     parser.add_argument(
+        "--since",
+        type=str,
+        default=None,
+        metavar="YYYY-MM-DD",
+        help=(
+            "Only process documents whose ELECTION date is on or after this date "
+            "(a chunk's publish_date IS its election date). Overrides "
+            "MANIFESTO_UPLOADS_SINCE. Default: no floor. Use --since $(date +%%F) to "
+            "restrict a bucket-wide run to elections that have not happened yet. "
+            "Documents below the floor are neither ingested nor retired."
+        ),
+    )
+    parser.add_argument(
         "--env",
         type=str,
         default=None,
@@ -256,6 +276,13 @@ if __name__ == "__main__":
         help="Seed-data environment and Storage bucket to target (default: $ENV, else dev).",
     )
     args = parser.parse_args()
+
+    # An invalid floor is a loud misconfiguration, raised before any work.
+    try:
+        since_floor = resolve_since_floor(args.since)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     manifest_path = Path(args.manifest).expanduser() if args.manifest else None
     try:
@@ -270,6 +297,24 @@ if __name__ == "__main__":
             file=sys.stderr,
         )
         sys.exit(1)
+
+    # --check / --dry-run must show what would ACTUALLY be ingested, so the floor
+    # applies to them too. (ingest() re-derives scope inside the connector, where
+    # out-of-scope documents are also protected from retirement.)
+    if since_floor is not None:
+        in_window = [e for e in entries if in_scope(e, since_floor, args.env)]
+        if len(in_window) != len(entries):
+            print(
+                f"{len(entries) - len(in_window)} document(s) below the "
+                f"{since_floor} election-date floor — skipped\n"
+            )
+        entries = in_window
+        if not entries:
+            print(
+                f"No documents with an election on or after {since_floor}.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
     only = (
         {slug.strip().lower() for slug in args.only.split(",") if slug.strip()}
@@ -298,7 +343,7 @@ if __name__ == "__main__":
             )
             sys.exit(1)
         print()
-        sys.exit(ingest(args.env, only))
+        sys.exit(ingest(args.env, only, since_floor))
     except Exception:  # noqa: BLE001
         import traceback  # noqa: PLC0415
 

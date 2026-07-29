@@ -230,7 +230,22 @@ so there is nothing to type twice:
 3. Put it at `public/{context_id}/{party_id}/{file}.pdf`, staged under
    `firebase/storage_data/` and/or uploaded to the Storage bucket.
 4. Add the object path to `ai-backend/data/manifesto_uploads/{env}.txt`.
-5. `make run-manifesto-uploads ARGS="--check"`, then drop `ARGS` to ingest.
+5. `make upload-manifesto-uploads` to copy them to the bucket **and** grant public
+   read (both steps, or citations 403 — see below).
+6. `make run-manifesto-uploads ARGS="--check"`, then drop `ARGS` to ingest.
+
+`--since YYYY-MM-DD` (or `MANIFESTO_UPLOADS_SINCE`) floors by ELECTION date — which
+is the same thing as the chunk `publish_date`. Default is no floor;
+`--since $(date +%F)` narrows a bucket-wide run to elections still to come.
+Documents below the floor are neither ingested **nor retired**: the floor means "not
+now", not "should not exist", so setting one can never delete a past election's
+manifestos. An election that cannot be resolved at all counts as in-scope, so a
+broken path or unseeded context still fails loudly instead of being filtered away.
+
+Duplicate protection runs both ways. Before ingesting, an upload is skipped when AW
+already carries that party's programme for the same election; after AW ingests one,
+its connector deletes any uploaded copy. Both match on party + region + election
+date, so they agree on what "the same programme" means.
 
 The manifest is the complete statement of what should exist: deleting a line
 retires that document's chunks on the next run.

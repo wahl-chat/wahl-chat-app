@@ -26,12 +26,21 @@ by the runner — retiring a document is a one-line edit, not a manual cleanup.
 Citations always point at the bucket URL for the object, even on a local run that
 reads the staged copy: the staged file and the uploaded object are the same bytes,
 so the ``#page=`` anchor is exact either way.
+
+Two guards keep this half of ``party_manifesto`` from duplicating the AW half:
+  * before ingesting, an upload is SKIPPED when AW already carries that party's
+    programme for the same election (``_aw_copy_exists``);
+  * after AW ingests a programme, its connector deletes any uploaded copy
+    (``connectors/manifestos/supersede.py``).
+The first covers "AW was already in the corpus", the second "AW arrived later".
 """
 
 from __future__ import annotations
 
 import logging
 import os
+from datetime import date as date_type
+from datetime import datetime, time, timezone
 from io import BytesIO
 from pathlib import Path
 from typing import Optional
@@ -39,6 +48,7 @@ from typing import Optional
 from src.ingestion.chunking import chunk_pages
 from src.ingestion.connector import BaseConnector
 from src.ingestion.connectors.manifesto_uploads.election_fixtures import (
+    ElectionFixture,
     FixtureLookupError,
     load_election,
 )
@@ -62,6 +72,63 @@ _MANIFEST_ENV = "MANIFESTO_UPLOADS_MANIFEST"
 
 # Selects the work-list backend: "manifest" (default) or "bucket". See work_list.
 _SOURCE_ENV = "MANIFESTO_UPLOADS_SOURCE"
+
+# Optional election-date floor (ISO YYYY-MM-DD). See resolve_since_floor.
+_SINCE_ENV = "MANIFESTO_UPLOADS_SINCE"
+
+
+def resolve_since_floor(value: Optional[str] = None) -> Optional[date_type]:
+    """Resolve the optional election-date floor for uploaded manifestos.
+
+    A document is in scope when its election date is on or after the floor. Because
+    a chunk's ``publish_date`` IS its election date, this is exactly "only ingest
+    documents whose publish_date is not before X" — the same knob the AW manifesto
+    connector exposes as ``MANIFESTO_SINCE``.
+
+    Mainly useful for the bucket backend, whose work-list spans EVERY election in
+    the bucket: ``--since $(date +%F)`` narrows a run to elections that have not
+    happened yet.
+
+    Args:
+        value: Explicit floor (the CLI ``--since``). When None the
+               ``MANIFESTO_UPLOADS_SINCE`` env var is read; unset/empty means no
+               floor, so by default nothing is filtered.
+
+    Raises:
+        ValueError: If a value is given but is not an ISO date — a misconfigured
+            floor is surfaced loudly rather than silently scoping a run.
+    """
+    raw = value if value is not None else os.getenv(_SINCE_ENV)
+    if raw is None or not raw.strip():
+        return None
+    try:
+        return date_type.fromisoformat(raw.strip())
+    except ValueError as exc:
+        raise ValueError(
+            f"{_SINCE_ENV} must be an ISO date (YYYY-MM-DD), got {raw!r}"
+        ) from exc
+
+
+def in_scope(
+    object_path: str, since: Optional[date_type], env: Optional[str] = None
+) -> bool:
+    """Whether *object_path* passes the election-date floor *since*.
+
+    With no floor every document is in scope and no fixture is read.
+
+    A document whose election or party cannot be resolved counts as IN scope: the
+    floor must not become a way to silently swallow a broken path or an unseeded
+    election. Those flow through to normalize() and fail loudly there with the real
+    reason.
+    """
+    if since is None:
+        return True
+    try:
+        ref = parse_object_path(object_path)
+        fixture = load_election(ref.context_id, env)
+    except (UploadPathError, FixtureLookupError):
+        return True
+    return fixture.election_date >= since
 
 
 def default_manifest_path(env: Optional[str] = None) -> Path:
@@ -221,13 +288,25 @@ class ManifestoUploadsConnector(BaseConnector):
     source: str = UPLOAD_SOURCE
 
     def __init__(
-        self, manifest_path: Optional[Path] = None, env: Optional[str] = None
+        self,
+        manifest_path: Optional[Path] = None,
+        env: Optional[str] = None,
+        since: Optional[date_type] = None,
     ) -> None:
         self._manifest_path = manifest_path
         self._env = env
+        self._since = since if since is not None else resolve_since_floor()
         # The desired state resolved by the last discover(), whichever backend
         # produced it. fetch() reads it to tell a live document from a retired one.
         self._expected_paths: set[str] = set()
+
+    # ------------------------------------------------------------------
+    # Election-date scoping
+    # ------------------------------------------------------------------
+
+    def _in_scope(self, object_path: str) -> bool:
+        """Whether *object_path* passes this connector's election-date floor."""
+        return in_scope(object_path, self._since, self._env)
 
     # ------------------------------------------------------------------
     # discover — the work-list plus stored documents it no longer names
@@ -286,13 +365,36 @@ class ManifestoUploadsConnector(BaseConnector):
 
         Args:
             since: Accepted for the ABC contract and ignored (see class docstring).
+                   The election-date floor is a separate, connector-owned concept
+                   (``self._since``) — it scopes by election, not by a monotonic
+                   upstream cursor.
 
         Returns:
-            Sorted object paths. Documents present in the store but absent from the
-            work-list are included so ``normalize()`` can retire them.
+            Sorted object paths: everything in scope, plus stored documents the
+            work-list no longer names so ``normalize()`` can retire them.
         """
-        self._expected_paths = set(work_list(self._manifest_path, self._env))
-        retired = self._stored_object_paths() - self._expected_paths
+        named = set(work_list(self._manifest_path, self._env))
+        self._expected_paths = {p for p in named if self._in_scope(p)}
+
+        skipped = named - self._expected_paths
+        if skipped:
+            logger.info(
+                "%d document(s) below the %s election-date floor — not ingested, "
+                "and their stored chunks are left untouched: %s",
+                len(skipped),
+                self._since,
+                ", ".join(sorted(skipped)),
+            )
+
+        # Retire ONLY documents that are in scope yet no longer named. An
+        # out-of-scope document must never be retired: the floor is a "don't work on
+        # this now" filter, and treating it as "this should not exist" would delete a
+        # past election's manifestos from the corpus the moment a floor is set.
+        retired = {
+            p
+            for p in self._stored_object_paths()
+            if p not in named and self._in_scope(p)
+        }
         if retired:
             logger.info(
                 "%d uploaded document(s) no longer in the work-list — retiring: %s",
@@ -335,6 +437,83 @@ class ManifestoUploadsConnector(BaseConnector):
         return {"object_path": object_path, **content}
 
     # ------------------------------------------------------------------
+    # AW-already-has-it guard (the mirror of the AW connector's supersede)
+    # ------------------------------------------------------------------
+
+    def _aw_copy_exists(self, *, party_id: str, fixture: ElectionFixture) -> bool:
+        """Whether an AW-sourced manifesto already covers this party and election.
+
+        The AW manifesto connector deletes an uploaded copy when it ingests the same
+        programme (its ``post_upsert``). That only fires when AW ingestion RUNS, so
+        without this check the opposite order — AW already in the corpus, then an
+        upload ingested — would add a second copy of the same programme and leave the
+        chat citing both.
+
+        Matches on the same three fields as the supersede (party, region, election
+        date), so the two directions agree on what "the same programme" means.
+        Non-upload sources are counted, i.e. anything the AW connector wrote (it
+        stamps no ``source``).
+
+        Returns False when no store is bound or the count fails: an unavailable
+        store must not silently suppress an ingest.
+        """
+        qdrant = self._store_client
+        if qdrant is None:
+            return False
+
+        from qdrant_client import models as qdrant_models  # noqa: PLC0415
+
+        from src.ingestion.setup_collection import COLLECTION_NAME  # noqa: PLC0415
+
+        day_start = datetime.combine(
+            fixture.election_date, time.min, tzinfo=timezone.utc
+        )
+        day_end = datetime.combine(fixture.election_date, time.max, tzinfo=timezone.utc)
+        try:
+            found = qdrant.count(
+                collection_name=self._store_collection or COLLECTION_NAME,
+                count_filter=qdrant_models.Filter(
+                    must=[
+                        qdrant_models.FieldCondition(
+                            key="source_type",
+                            match=qdrant_models.MatchValue(value=self.source_type),
+                        ),
+                        qdrant_models.FieldCondition(
+                            key="party_id",
+                            match=qdrant_models.MatchValue(value=party_id),
+                        ),
+                        qdrant_models.FieldCondition(
+                            key="region",
+                            match=qdrant_models.MatchValue(value=fixture.region),
+                        ),
+                        qdrant_models.FieldCondition(
+                            key="publish_date",
+                            range=qdrant_models.DatetimeRange(
+                                gte=day_start, lte=day_end
+                            ),
+                        ),
+                    ],
+                    must_not=[
+                        qdrant_models.FieldCondition(
+                            key="source",
+                            match=qdrant_models.MatchValue(value=self.source),
+                        )
+                    ],
+                ),
+                exact=True,
+            ).count
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "could not check for an Abgeordnetenwatch copy of %s/%s: %s "
+                "— proceeding with the upload",
+                party_id,
+                fixture.context_id,
+                exc,
+            )
+            return False
+        return found > 0
+
+    # ------------------------------------------------------------------
     # normalize — validate against the fixtures, chunk, build records
     # ------------------------------------------------------------------
 
@@ -368,6 +547,15 @@ class ManifestoUploadsConnector(BaseConnector):
             fixture = load_election(ref.context_id, self._env)
         except (UploadPathError, FixtureLookupError) as exc:
             raise ValueError(str(exc)) from exc
+
+        if self._aw_copy_exists(party_id=ref.party_id, fixture=fixture):
+            raise ValueError(
+                f"{object_path}: Abgeordnetenwatch already carries this programme "
+                f"(party={ref.party_id} region={fixture.region} "
+                f"election={fixture.election_date}) — not ingesting the uploaded copy, "
+                "since the AW copy is the citable public source. Remove the entry once "
+                "you have confirmed the AW document covers the same programme"
+            )
 
         chunk_tuples = chunk_pages(raw["pages"])
         if not chunk_tuples:

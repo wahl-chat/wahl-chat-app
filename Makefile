@@ -4,7 +4,8 @@
         lint lint-web lint-backend test-backend test-smoke test-local-mode \
         stores-up stores-down seed-local dev-local auth bootstrap-collection \
         run-abgeordnetenwatch-votes run-all-landtage-votes run-speeches \
-        run-manifestos run-manifesto-uploads collect-speeches fetch-mdb-stammdaten \
+        run-manifestos run-manifesto-uploads upload-manifesto-uploads \
+        collect-speeches fetch-mdb-stammdaten \
         update-speeches speeches-stats
 
 # --- Install dependencies ---
@@ -235,6 +236,36 @@ run-manifestos: bootstrap-collection
 run-manifesto-uploads: bootstrap-collection
 	cd ai-backend && $(QDRANT_ENV) \
 		uv run python -m src.ingestion.connectors.manifesto_uploads.bulk $(ARGS)
+
+# Upload staged manifesto PDFs to the Storage bucket AND make them publicly
+# readable. Both steps matter: citations are plain GCS URLs
+# (storage.googleapis.com/{bucket}/{object}), which are governed by object ACLs —
+# NOT by firebase/storage.rules, which only covers the Firebase SDK path. An upload
+# without the ACL grant therefore yields citation links that 403, so the two are
+# deliberately one target and cannot be half-done.
+#   make upload-manifesto-uploads                              # everything staged
+#   make upload-manifesto-uploads ELECTION=landtagswahl-sachsen-anhalt-2026
+#   make upload-manifesto-uploads ENV=prod                     # the prod bucket
+# Requires the gcloud CLI, authenticated (gcloud auth login) with write access.
+UPLOAD_ENV ?= $(if $(ENV),$(ENV),dev)
+UPLOAD_BUCKET = $(if $(filter prod,$(UPLOAD_ENV)),wahl-chat.firebasestorage.app,wahl-chat-dev.firebasestorage.app)
+upload-manifesto-uploads:
+	@command -v gcloud >/dev/null || (echo "ERROR: gcloud CLI not found" && exit 1)
+	@test -d firebase/storage_data/public || (echo "ERROR: nothing staged in firebase/storage_data/public" && exit 1)
+	@if [ -n "$(ELECTION)" ]; then \
+	  test -d "firebase/storage_data/public/$(ELECTION)" || \
+	    (echo "ERROR: firebase/storage_data/public/$(ELECTION) does not exist" && exit 1); \
+	  SRC="firebase/storage_data/public/$(ELECTION)"; SCOPE="public/$(ELECTION)/**"; \
+	else \
+	  SRC="firebase/storage_data/public/*"; SCOPE="public/**"; \
+	fi; \
+	echo "Uploading $$SRC -> gs://$(UPLOAD_BUCKET)/public/ ..."; \
+	gcloud storage cp -r $$SRC "gs://$(UPLOAD_BUCKET)/public/" && \
+	echo "Granting public read on gs://$(UPLOAD_BUCKET)/$$SCOPE ..." && \
+	gcloud storage objects update "gs://$(UPLOAD_BUCKET)/$$SCOPE" \
+	  --add-acl-grant=entity=AllUsers,role=READER
+	@echo "Done. Verify a citation resolves, e.g.:"
+	@echo "  curl -sI 'https://storage.googleapis.com/$(UPLOAD_BUCKET)/public/$(if $(ELECTION),$(ELECTION)/,)…' | head -1"
 
 # collect-speeches: optional --from-jsonl backfill that replays speeches.jsonl
 # through the relocated corpus mapper without hitting the DIP API.

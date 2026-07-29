@@ -96,7 +96,26 @@ class _Qdrant:
         )
 
     def count(self, **kwargs):  # noqa: ANN003, ANN201
-        return types.SimpleNamespace(count=len(self.existing))
+        """Count stored payloads, honouring the filter's must_not clause.
+
+        The connector's AW-already-has-it guard counts NON-upload manifestos for a
+        party+region+election. Everything this fake stores was written by the upload
+        connector itself, so a filter excluding source="upload" must count zero —
+        returning a bare len(existing) would make the guard fire against our own
+        chunks and block every re-run.
+        """
+        flt = kwargs.get("count_filter")
+        excluded = {
+            (c.key, c.match.value)
+            for c in (getattr(flt, "must_not", None) or [])
+            if getattr(c, "match", None) is not None
+        }
+        matched = [
+            payload
+            for payload in self.existing.values()
+            if not any(payload.get(key) == value for key, value in excluded)
+        ]
+        return types.SimpleNamespace(count=len(matched))
 
     # -- writes --------------------------------------------------------------
 
