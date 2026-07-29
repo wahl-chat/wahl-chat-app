@@ -9,7 +9,8 @@ The two fields these tests protect (``region``, ``party_id``) decide whether a
 chunk is ever returned by a filtered query, and a wrong value produces NO error at
 ingest time. Every failure mode is therefore asserted to RAISE rather than default.
 
-Also pins the real repo fixtures for the Sachsen-Anhalt election, so a later edit
+Backend selection lives in load_election (files by default, live Firestore for the
+container). Also pins the real repo fixtures for the Sachsen-Anhalt election, so a later edit
 to contexts.json that drops region_path or level fails here instead of silently
 making that election's manifestos unreachable.
 """

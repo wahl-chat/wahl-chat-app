@@ -235,6 +235,16 @@ so there is nothing to type twice:
 The manifest is the complete statement of what should exist: deleting a line
 retires that document's chunks on the next run.
 
+The election lookup has two backends, chosen explicitly by
+`ELECTION_FIXTURES_SOURCE`. Unset (default) reads the seed files above — offline,
+no credentials, what a host run and CI use. The container image does **not** carry
+them (the Docker build context is `ai-backend/`), so a Cloud Run Job sets
+`ELECTION_FIXTURES_SOURCE=firestore` and reads `contexts/{id}` and its `parties`
+subcollection from the live database instead. There is deliberately no automatic
+fallback: a container that forgets the variable fails loudly with "seed file not
+found" rather than quietly switching which authority is trusted. Both backends
+funnel through one validation function, so the gate below is identical either way.
+
 **Why step 1 is a hard gate.** `region` and `party_id` decide whether a chunk is
 ever retrievable — manifesto retrieval filters on the election's most specific
 region (`region_path[-1]`) and on `party_id` as the tenant key. A chunk stamped

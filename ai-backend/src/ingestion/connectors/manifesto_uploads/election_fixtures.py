@@ -8,8 +8,14 @@ Election/party lookup for uploaded manifestos, read from the Firestore seed file
 ``firebase/firestore_data/{ENV}/contexts.json`` and ``parties_{context_id}.json``
 are the SAME files ``firebase/scripts/seed_firestore.py`` loads into Firestore, so
 reading them here means the ingestor and the running app agree on an election's
-region, level and party list without a second table to keep in sync. The lookup is
-pure file I/O — no credentials, no network, runs in CI.
+region, level and party list without a second table to keep in sync. That file
+lookup is the default: no credentials, no network, runs in CI.
+
+Those files are absent from the container image (the Docker build context is
+``ai-backend/``), so a Cloud Run Job sets ``ELECTION_FIXTURES_SOURCE=firestore`` and
+reads the live database instead — see ``load_election`` and ``firestore_fixtures``.
+Both backends funnel through ``build_fixture``, so the validation below is enforced
+identically whichever one is in use.
 
 Why this is a hard gate rather than a warning
 ---------------------------------------------
@@ -28,6 +34,7 @@ import json
 import os
 from dataclasses import dataclass
 from datetime import date as date_type
+from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional
@@ -36,6 +43,9 @@ from typing import Optional
 from src.ingestion.governance_levels import EU, FEDERAL, MUNICIPAL, STATE
 
 _VALID_LEVELS = frozenset({FEDERAL, STATE, MUNICIPAL, EU})
+
+# Selects the lookup backend: "files" (default) or "firestore". See load_election.
+_SOURCE_ENV = "ELECTION_FIXTURES_SOURCE"
 
 
 class FixtureLookupError(ValueError):
@@ -103,30 +113,30 @@ def _parties(env: Optional[str], context_id: str) -> dict:
     return _load_json(fixture_dir(env) / f"parties_{context_id}.json")
 
 
-def load_election(context_id: str, env: Optional[str] = None) -> ElectionFixture:
-    """Resolve one election's retrieval-critical metadata from the seed files.
+def build_fixture(
+    context_id: str,
+    ctx: dict,
+    party_ids: frozenset[str],
+    origin: str,
+) -> ElectionFixture:
+    """Validate one context's fields and build its ElectionFixture.
+
+    The single validation implementation, shared by BOTH backends — the file
+    reader and the Firestore reader. Keeping it in one place is the point: a
+    backend that skipped one of these checks would reintroduce exactly the silent
+    unreachable-chunk failure the gate exists to prevent.
 
     Args:
-        context_id: Firestore context doc id, e.g. ``"landtagswahl-sachsen-anhalt-2026"``.
-        env:        Seed-data environment; defaults to ``$ENV`` then ``"dev"``.
-
-    Returns:
-        The populated ElectionFixture.
+        context_id: Context doc id.
+        ctx:        The context's fields (JSON object or Firestore document dict).
+        party_ids:  Party ids configured for this election.
+        origin:     Human-readable source, quoted in error messages so an operator
+                    knows WHERE to fix a bad value.
 
     Raises:
-        FixtureLookupError: If the context is absent, or is missing
-            ``region_path`` / ``level`` / ``date``, or declares an unknown level,
-            or has no party file. Every one of these would otherwise yield chunks
-            that are silently unreachable, so none of them is defaulted.
+        FixtureLookupError: If ``region_path`` / ``level`` / ``date`` is missing or
+            unusable, or no parties are configured. Nothing is defaulted.
     """
-    contexts = _contexts(env)
-    ctx = contexts.get(context_id)
-    if ctx is None:
-        raise FixtureLookupError(
-            f"unknown election {context_id!r} — not in contexts.json "
-            f"(known: {', '.join(sorted(contexts)) or 'none'})"
-        )
-
     region_path = ctx.get("region_path")
     if not isinstance(region_path, list) or not region_path:
         raise FixtureLookupError(
@@ -148,21 +158,12 @@ def load_election(context_id: str, env: Optional[str] = None) -> ElectionFixture
             "treated as federal at query time"
         )
 
-    raw_date = ctx.get("date")
-    if not raw_date:
-        raise FixtureLookupError(
-            f"context {context_id!r} has no date — it is the chunk publish_date"
-        )
-    try:
-        election_date = date_type.fromisoformat(str(raw_date)[:10])
-    except ValueError as exc:
-        raise FixtureLookupError(
-            f"context {context_id!r} has an unparseable date {raw_date!r}"
-        ) from exc
+    election_date = _coerce_date(context_id, ctx.get("date"))
 
-    party_ids = frozenset(_parties(env, context_id))
     if not party_ids:
-        raise FixtureLookupError(f"parties_{context_id}.json declares no parties")
+        raise FixtureLookupError(
+            f"{origin} declares no parties for election {context_id!r}"
+        )
 
     return ElectionFixture(
         context_id=context_id,
@@ -171,6 +172,90 @@ def load_election(context_id: str, env: Optional[str] = None) -> ElectionFixture
         level=str(level),
         election_date=election_date,
         party_ids=party_ids,
+    )
+
+
+def _coerce_date(context_id: str, raw: object) -> date_type:
+    """Parse a context ``date`` into a ``date``.
+
+    Accepts the ISO string the seed files carry and the datetime a Firestore
+    timestamp deserialises to, so the same context is read identically from either
+    backend.
+
+    Raises:
+        FixtureLookupError: If the value is missing or unparseable — it becomes the
+            chunk publish_date, which both scopes retrieval and is shown to users.
+    """
+    if not raw:
+        raise FixtureLookupError(
+            f"context {context_id!r} has no date — it is the chunk publish_date"
+        )
+    if isinstance(raw, datetime):
+        return raw.date()
+    if isinstance(raw, date_type):
+        return raw
+    try:
+        return date_type.fromisoformat(str(raw)[:10])
+    except ValueError as exc:
+        raise FixtureLookupError(
+            f"context {context_id!r} has an unparseable date {raw!r}"
+        ) from exc
+
+
+def _load_from_files(context_id: str, env: Optional[str]) -> ElectionFixture:
+    """Resolve an election from the checked-in seed files."""
+    contexts = _contexts(env)
+    ctx = contexts.get(context_id)
+    if ctx is None:
+        raise FixtureLookupError(
+            f"unknown election {context_id!r} — not in contexts.json "
+            f"(known: {', '.join(sorted(contexts)) or 'none'})"
+        )
+    return build_fixture(
+        context_id,
+        ctx,
+        frozenset(_parties(env, context_id)),
+        origin=f"parties_{context_id}.json",
+    )
+
+
+def load_election(context_id: str, env: Optional[str] = None) -> ElectionFixture:
+    """Resolve one election's retrieval-critical metadata.
+
+    Backend is chosen by ``ELECTION_FIXTURES_SOURCE``:
+      * unset / ``"files"`` (default) — the checked-in seed files. Offline, no
+        credentials, runs in CI. What a local or host run uses.
+      * ``"firestore"`` — the live database. What the container uses, because the
+        seed files are not in the image (the build context is ai-backend/); there
+        the running Firestore is also the more accurate authority.
+
+    The switch is explicit on purpose: an automatic fallback would let a mistyped
+    path quietly change which authority is trusted. A container that forgets the
+    variable fails loudly with "seed file not found" instead.
+
+    Args:
+        context_id: Context doc id, e.g. ``"landtagswahl-sachsen-anhalt-2026"``.
+        env:        Seed-data environment for the file backend; defaults to ``$ENV``
+                    then ``"dev"``. Ignored by the Firestore backend, which reads
+                    whichever project its credentials point at.
+
+    Raises:
+        FixtureLookupError: If the election cannot be resolved, or is missing any
+            field that would leave its chunks unreachable. See build_fixture.
+    """
+    source = (os.getenv(_SOURCE_ENV) or "files").strip().lower()
+    if source == "files":
+        return _load_from_files(context_id, env)
+    if source == "firestore":
+        # Imported lazily: the file backend must not pull in a Firestore client
+        # (nor require credentials) just to read a JSON file.
+        from src.ingestion.connectors.manifesto_uploads.firestore_fixtures import (  # noqa: PLC0415
+            load_election_from_firestore,
+        )
+
+        return load_election_from_firestore(context_id)
+    raise FixtureLookupError(
+        f"{_SOURCE_ENV}={source!r} is not a known backend; expected 'files' or 'firestore'"
     )
 
 
