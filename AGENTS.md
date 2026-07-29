@@ -235,6 +235,17 @@ so there is nothing to type twice:
 The manifest is the complete statement of what should exist: deleting a line
 retires that document's chunks on the next run.
 
+`MANIFESTO_UPLOADS_SOURCE` selects where that statement comes from. Unset
+(default) reads the manifest — reviewable in a diff, no credentials. `bucket` lists
+`public/` in the Storage bucket instead, which is what a deployed run should use:
+the manifest ships inside the container image, so a scheduled Job reading it would
+not see a new upload until the next deploy. On the bucket backend, uploading a file
+ingests it and *deleting* it retires its chunks, with no manifest edit. Objects
+under `public/` that are not `{election}/{party}/{name}_{date}.pdf` (context icons,
+other assets) are logged and ignored, but a listing that fails — or that returns
+content with no recognisable manifestos — aborts the run rather than being treated
+as an empty work-list, which would retire every uploaded document.
+
 The election lookup has two backends, chosen explicitly by
 `ELECTION_FIXTURES_SOURCE`. Unset (default) reads the seed files above — offline,
 no credentials, what a host run and CI use. The container image does **not** carry

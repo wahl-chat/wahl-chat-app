@@ -60,6 +60,9 @@ logger = logging.getLogger(__name__)
 # Env var pointing at an alternative manifest (absolute or repo-relative).
 _MANIFEST_ENV = "MANIFESTO_UPLOADS_MANIFEST"
 
+# Selects the work-list backend: "manifest" (default) or "bucket". See work_list.
+_SOURCE_ENV = "MANIFESTO_UPLOADS_SOURCE"
+
 
 def default_manifest_path(env: Optional[str] = None) -> Path:
     """Return the manifest path for *env* (defaults to ``$ENV``, else dev)."""
@@ -107,6 +110,45 @@ def load_manifest(path: Optional[Path] = None, env: Optional[str] = None) -> lis
             raise UploadPathError(f"{manifest}:{lineno}: {exc}") from exc
         seen.setdefault(ref.object_path, None)
     return list(seen)
+
+
+def work_list(
+    manifest_path: Optional[Path] = None, env: Optional[str] = None
+) -> list[str]:
+    """Return the object paths that SHOULD exist in the corpus.
+
+    Backend is chosen by ``MANIFESTO_UPLOADS_SOURCE``:
+      * unset / ``"manifest"`` (default) — the checked-in list. Reviewable in a
+        diff, needs no credentials, and is what a local run uses.
+      * ``"bucket"`` — list the bucket prefix. The manifest ships inside the
+        container image, so a scheduled Job reading it would not see a new upload
+        until the next deploy; listing the bucket makes an upload or a deletion take
+        effect on the next run instead.
+
+    Either way the result is a complete desired-state statement, which is what lets
+    a document dropped from it be retired (see ManifestoUploadsConnector.discover).
+
+    Raises:
+        UploadPathError:     A malformed manifest line.
+        BucketListingError:  The bucket could not be listed (whole-run failure —
+                             never degraded to an empty list, which would read as
+                             "retire everything").
+        ValueError:          An unknown backend name.
+    """
+    source = (os.getenv(_SOURCE_ENV) or "manifest").strip().lower()
+    if source == "manifest":
+        return load_manifest(manifest_path, env)
+    if source == "bucket":
+        # Imported lazily so the manifest path never needs a Storage client.
+        from src.ingestion.connectors.manifesto_uploads.bucket_listing import (  # noqa: PLC0415
+            list_uploaded_objects,
+        )
+
+        return list_uploaded_objects(env)
+    raise ValueError(
+        f"{_SOURCE_ENV}={source!r} is not a known work-list backend; "
+        "expected 'manifest' or 'bucket'"
+    )
 
 
 def load_pdf_pages(object_path: str, env: Optional[str] = None) -> dict:
@@ -160,14 +202,19 @@ def load_pdf_pages(object_path: str, env: Optional[str] = None) -> dict:
 
 
 class ManifestoUploadsConnector(BaseConnector):
-    """Manifest-driven connector for operator-uploaded manifesto PDFs.
+    """Connector for operator-uploaded manifesto PDFs.
 
     discover(since) → fetch → normalize → [runner embeds + upserts]
 
-    ``since`` is ignored: the manifest is a complete statement of what should
+    ``since`` is ignored: the work-list is a complete statement of what should
     exist, so every entry is offered every run and the runner's content-hash guard
     skips the unchanged ones cheaply without consuming the batch budget. A cursor
     would only be able to hide entries.
+
+    The work-list comes from the manifest by default, or from a bucket listing when
+    ``MANIFESTO_UPLOADS_SOURCE=bucket`` (see ``work_list``). Everything downstream is
+    identical either way — including retirement, so on the bucket backend deleting
+    the object is what removes its chunks.
     """
 
     source_type: str = SourceType.PARTY_MANIFESTO.value
@@ -178,16 +225,18 @@ class ManifestoUploadsConnector(BaseConnector):
     ) -> None:
         self._manifest_path = manifest_path
         self._env = env
-        self._manifest_paths: set[str] = set()
+        # The desired state resolved by the last discover(), whichever backend
+        # produced it. fetch() reads it to tell a live document from a retired one.
+        self._expected_paths: set[str] = set()
 
     # ------------------------------------------------------------------
-    # discover — manifest entries plus stored documents the manifest dropped
+    # discover — the work-list plus stored documents it no longer names
     # ------------------------------------------------------------------
 
     def _stored_object_paths(self) -> set[str]:
         """Return object paths of uploaded documents already in the store.
 
-        Read so that a document removed from the manifest is still visited and can
+        Read so that a document dropped from the work-list is still visited and can
         be retired. Returns an empty set when no store is bound (the runner binds
         one before discover; a bare unit-test instance has none).
         """
@@ -233,24 +282,24 @@ class ManifestoUploadsConnector(BaseConnector):
         return found
 
     def discover(self, since: Optional[int]) -> list[str]:
-        """Return object paths to process: the manifest, plus retired leftovers.
+        """Return object paths to process: the work-list, plus retired leftovers.
 
         Args:
             since: Accepted for the ABC contract and ignored (see class docstring).
 
         Returns:
-            Sorted object paths. Entries present in the store but absent from the
-            manifest are included so ``normalize()`` can retire them.
+            Sorted object paths. Documents present in the store but absent from the
+            work-list are included so ``normalize()`` can retire them.
         """
-        self._manifest_paths = set(load_manifest(self._manifest_path, self._env))
-        retired = self._stored_object_paths() - self._manifest_paths
+        self._expected_paths = set(work_list(self._manifest_path, self._env))
+        retired = self._stored_object_paths() - self._expected_paths
         if retired:
             logger.info(
-                "%d uploaded document(s) no longer in the manifest — retiring: %s",
+                "%d uploaded document(s) no longer in the work-list — retiring: %s",
                 len(retired),
                 ", ".join(sorted(retired)),
             )
-        return sorted(self._manifest_paths | retired)
+        return sorted(self._expected_paths | retired)
 
     # ------------------------------------------------------------------
     # fetch — read + parse one document (never raises; defers to normalize)
@@ -272,9 +321,11 @@ class ManifestoUploadsConnector(BaseConnector):
         """
         object_path = external_id
 
-        # Not in the current manifest → retire it (normalize returns no chunks and
-        # the runner deletes the stored footprint).
-        if self._manifest_paths and object_path not in self._manifest_paths:
+        # Not in the current work-list → retire it (normalize returns no chunks and
+        # the runner deletes the stored footprint). Guarded on a non-empty work-list:
+        # an empty one means discovery found nothing to keep, and retiring the whole
+        # uploaded corpus off the back of that is never the intent.
+        if self._expected_paths and object_path not in self._expected_paths:
             return {"object_path": object_path, "retired": True}
 
         try:
