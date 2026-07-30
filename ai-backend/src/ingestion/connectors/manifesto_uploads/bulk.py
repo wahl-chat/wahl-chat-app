@@ -155,6 +155,7 @@ def ingest(
     env: Optional[str] = None,
     only: Optional[set[str]] = None,
     since: Optional[date_type] = None,
+    manifest_path: Optional[Path] = None,
 ) -> int:
     """Embed and upsert via the shared runner. Returns a process exit code.
 
@@ -185,7 +186,9 @@ def ingest(
     embed = get_embeddings(task_type="RETRIEVAL_DOCUMENT")
     check_fingerprint(qdrant, COLLECTION_NAME)
 
-    connector = ManifestoUploadsConnector(env=env, since=since)
+    connector = ManifestoUploadsConnector(
+        manifest_path=manifest_path, env=env, since=since
+    )
     if only:
         original_discover = connector.discover
 
@@ -343,7 +346,7 @@ if __name__ == "__main__":
             )
             sys.exit(1)
         print()
-        sys.exit(ingest(args.env, only, since_floor))
+        sys.exit(ingest(args.env, only, since_floor, manifest_path))
     except Exception:  # noqa: BLE001
         import traceback  # noqa: PLC0415
 

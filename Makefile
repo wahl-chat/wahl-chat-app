@@ -252,6 +252,10 @@ UPLOAD_BUCKET = $(if $(filter prod,$(UPLOAD_ENV)),wahl-chat.firebasestorage.app,
 upload-manifesto-uploads:
 	@command -v gcloud >/dev/null || (echo "ERROR: gcloud CLI not found" && exit 1)
 	@test -d firebase/storage_data/public || (echo "ERROR: nothing staged in firebase/storage_data/public" && exit 1)
+	@if [ "$(UPLOAD_ENV)" = "prod" ]; then \
+		read -r -p "This uploads to the PRODUCTION bucket (gs://$(UPLOAD_BUCKET)). Continue? [y/N] " confirm < /dev/tty; \
+		case "$$confirm" in [yY]|[yY][eE][sS]) ;; *) echo "Aborted." && exit 1;; esac; \
+	fi
 	@if [ -n "$(ELECTION)" ]; then \
 	  test -d "firebase/storage_data/public/$(ELECTION)" || \
 	    (echo "ERROR: firebase/storage_data/public/$(ELECTION) does not exist" && exit 1); \
