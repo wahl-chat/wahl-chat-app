@@ -165,6 +165,12 @@ RESPONSE_GENERATION_LLMS: list[LLM] = [
 # failover already in get_answer_from_llms / get_structured_output_from_llms /
 # stream_answer_from_llms tries Vertex first and falls through to the IDENTICAL
 # AI Studio model on any error. No change to those functions is required.
+#
+# gemini-2.0-flash is deliberately absent: it 404s on the billing project in
+# every location tested (global, europe-west3/4, us-central1). Registering it
+# would 404 on every request and silently fall through to AI Studio — the failure
+# mode that looks like "Vertex billing is mysteriously low" rather than an error.
+# Its AI Studio twin below still serves, so nothing is lost.
 if VERTEX_AVAILABLE:
     RESPONSE_GENERATION_LLMS = [
         LLM(
@@ -184,13 +190,6 @@ if VERTEX_AVAILABLE:
             model=_gemini("gemini-2.5-flash", vertex=True, thinking_budget=0),
             sizes=[LLMSize.SMALL, LLMSize.LARGE],
             priority=195,
-            is_at_rate_limit=False,
-        ),
-        LLM(
-            name="vertex-gemini-2.0-flash",
-            model=_gemini("gemini-2.0-flash", vertex=True),
-            sizes=[LLMSize.SMALL, LLMSize.LARGE],
-            priority=192,
             is_at_rate_limit=False,
         ),
     ] + RESPONSE_GENERATION_LLMS
@@ -246,7 +245,9 @@ PRE_AND_POST_PROCESSING_LLMS: list[LLM] = [
     ),
 ]
 
-# Vertex tier for pre/post-processing — same rationale as above.
+# Vertex tier for pre/post-processing — same rationale as above, and likewise
+# without gemini-2.0-flash. gemini-2.5-flash covers the LARGE size here so the
+# deterministic path is not left Vertex-less when a caller asks for it.
 if VERTEX_AVAILABLE:
     PRE_AND_POST_PROCESSING_LLMS = [
         LLM(
@@ -257,8 +258,8 @@ if VERTEX_AVAILABLE:
             is_at_rate_limit=False,
         ),
         LLM(
-            name="vertex-gemini-2.0-flash-det",
-            model=_gemini("gemini-2.0-flash", vertex=True, temperature=0.0),
+            name="vertex-gemini-2.5-flash-det",
+            model=_gemini("gemini-2.5-flash", vertex=True, temperature=0.0),
             sizes=[LLMSize.SMALL, LLMSize.LARGE],
             priority=195,
             is_at_rate_limit=False,

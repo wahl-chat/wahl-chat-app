@@ -74,9 +74,15 @@ def test_missing_file_path_degrades_to_none(
     assert gc.get_vertex_credentials() is None
 
 
-def test_location_defaults_to_eu(no_vertex_env: None) -> None:
-    """EU default matters for data residency, so pin it."""
-    assert gc.vertex_location() == "europe-west4"
+def test_location_defaults_to_global(no_vertex_env: None) -> None:
+    """The default is "global" and that is load-bearing, so pin it.
+
+    Regional endpoints on the billing project 404 on gemini-embedding-2 and on
+    every chat model except gemini-2.5-flash, and a 404 falls through to AI
+    Studio silently — so a well-meaning change to a regional value here would
+    quietly stop most traffic from being billed to Vertex at all.
+    """
+    assert gc.vertex_location() == "global"
 
 
 def test_location_env_override(
@@ -85,6 +91,21 @@ def test_location_env_override(
     monkeypatch.setenv("VERTEX_LOCATION", "us-central1")
 
     assert gc.vertex_location() == "us-central1"
+
+
+def test_blank_env_values_fall_back_to_defaults(
+    monkeypatch: pytest.MonkeyPatch, no_vertex_env: None
+) -> None:
+    """`VERTEX_LOCATION=` must not yield an empty region.
+
+    A blank value is easy to leave behind in a shell or a Cloud Run env spec, and
+    passing "" through to the client fails obscurely rather than loudly.
+    """
+    monkeypatch.setenv("VERTEX_LOCATION", "   ")
+    monkeypatch.setenv("VERTEX_PROJECT_ID", "  ")
+
+    assert gc.vertex_location() == "global"
+    assert gc.vertex_project() is None
 
 
 def test_project_env_wins_without_credentials(

@@ -14,6 +14,10 @@ firebase-debug.*.log*
 # Firebase cache
 .firebase/
 
+# Emulator import/export state — local scratch data (auth + Firestore dumps),
+# regenerated on every run and specific to one developer's session.
+.emulator-data/
+
 # Firebase config
 
 # Uncomment this if you'd like others to create their own Firebase project.

@@ -36,7 +36,14 @@ logger = logging.getLogger(__name__)
 # Vertex AI requires the broad cloud-platform scope; there is no narrower one.
 _SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
 
-_DEFAULT_LOCATION = "europe-west4"
+# "global" matches the status quo: Google AI Studio, which served all Gemini
+# traffic before this change, offers no regional pinning either — so this is not
+# a data-residency regression. It is also the only location on the billing
+# project where gemini-embedding-2 and the 2.5-lite / 3-preview chat models
+# resolve; regional endpoints (europe-west3/4, us-central1) 404 on all of them
+# and serve gemini-2.5-flash alone. Revisit if EU residency becomes a hard
+# requirement — that would mean europe-west3 plus a much narrower model set.
+_DEFAULT_LOCATION = "global"
 
 
 @lru_cache(maxsize=1)
@@ -90,7 +97,7 @@ def vertex_project() -> Optional[str]:
     credentials the way the chat class does, so callers must pass the result of
     this function explicitly.
     """
-    explicit = os.getenv("VERTEX_PROJECT_ID")
+    explicit = os.getenv("VERTEX_PROJECT_ID", "").strip()
     if explicit:
         return explicit
     credentials = get_vertex_credentials()
@@ -98,8 +105,14 @@ def vertex_project() -> Optional[str]:
 
 
 def vertex_location() -> str:
-    """Vertex region. Defaults to the EU for data residency."""
-    return os.getenv("VERTEX_LOCATION", _DEFAULT_LOCATION)
+    """Vertex location. Defaults to "global" — see _DEFAULT_LOCATION.
+
+    An empty or whitespace-only VERTEX_LOCATION falls back to the default rather
+    than being passed through: a blank region would otherwise reach the client
+    and fail obscurely, and `VERTEX_LOCATION=` is an easy thing to leave behind
+    in a shell or a Cloud Run env spec.
+    """
+    return os.getenv("VERTEX_LOCATION", "").strip() or _DEFAULT_LOCATION
 
 
 def vertex_enabled() -> bool:

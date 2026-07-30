@@ -59,7 +59,56 @@ make auth
 
 For CI/CD or Docker deployments, place a `wahl-chat-dev-firebase-adminsdk.json` file in this directory. Generate it at the [Firebase Console](https://console.firebase.google.com/u/0/project/wahl-chat-dev/settings/serviceaccounts/adminsdk). The backend auto-detects and uses it when present. Note that [Google recommends ADC over service account keys](https://cloud.google.com/docs/authentication#auth-decision-tree) for local development.
 
-> **Security:** never bake a service-account key into the container image. `COPY . /app` would capture it into the image layers permanently, so `.dockerignore` excludes `*-adminsdk-*.json` / `serviceAccount*.json` / ADC files. For deployed environments, supply credentials at runtime via a mounted secret or Workload Identity — not a key copied into the build context.
+> **Security:** never bake a service-account key into the container image. `COPY . /app` would capture it into the image layers permanently, so `.dockerignore` excludes `*-adminsdk-*.json` / `serviceAccount*.json` / `vertex-sa*.json` / ADC files. For deployed environments, supply credentials at runtime via a mounted secret or Workload Identity — not a key copied into the build context.
+
+### Vertex AI (optional): billing Gemini to a separate GCP project
+
+Gemini chat and embeddings can be routed through Vertex AI so the spend lands on a
+dedicated GCP project instead of the Google AI Studio `GOOGLE_API_KEY`. This is
+**opt-in and fully optional** — with none of the variables below set, the backend
+behaves exactly as it always has, which is the default for local development and
+CI.
+
+Auth is a service-account key rather than ADC/Workload Identity because the
+billing project enforces domain restricted sharing
+(`iam.allowedPolicyMemberDomains`): binding this service's runtime identity there
+is rejected, so an identity created *inside* the billing project is the only path.
+
+```bash
+# ai-backend/.env
+VERTEX_SA_JSON_FILE=vertex-sa.json      # gitignored; path is relative to your CWD
+VERTEX_PROJECT_ID=<billing-project-id>
+VERTEX_LOCATION=global                  # default; see note below
+```
+
+In Cloud Run the key arrives as raw JSON from Secret Manager instead
+(`--set-secrets="VERTEX_SA_JSON=vertex-sa-json:latest"`), which the code prefers
+over the file form. No Dockerfile or entrypoint change is needed.
+
+How it behaves:
+
+- Vertex models are registered **above** their AI Studio twins in
+  `RESPONSE_GENERATION_LLMS` / `PRE_AND_POST_PROCESSING_LLMS`, so the existing
+  priority-based failover in `src/llms.py` tries Vertex first and falls through to
+  the identical AI Studio model on any error. Missing or malformed credentials
+  simply mean the Vertex tier is never registered — nothing raises at import.
+- `EMBEDDINGS_USE_VERTEX=0` forces embeddings back to AI Studio while chat stays
+  on Vertex. It is a manual kill-switch: unlike chat, embeddings have no runtime
+  failover, because the client is bound once at module level.
+- `EMBEDDING_PROVIDER` stays `gemini` on both backends. It names the *vector
+  space*, which is identical across them (verified: same input → bit-identical
+  vectors), and it is stamped into the Qdrant embedding-space fingerprint that
+  `setup_collection.check_fingerprint` enforces. Changing it would reject the
+  existing corpus and force a re-ingest.
+
+> **`VERTEX_LOCATION=global` is load-bearing.** On the billing project, regional
+> endpoints (`europe-west3`/`-west4`, `us-central1`) serve `gemini-2.5-flash`
+> alone and 404 on `gemini-embedding-2`, `gemini-2.5-flash-lite` and
+> `gemini-3-flash-preview`. Because a 404 falls through to AI Studio silently,
+> switching to a regional value would quietly stop most traffic from being billed
+> to Vertex rather than producing a visible error. `gemini-2.0-flash` is
+> unavailable in every location tested and is deliberately not registered on the
+> Vertex tier at all.
 
 ## Run
 

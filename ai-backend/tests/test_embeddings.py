@@ -152,7 +152,7 @@ def test_gemini_routes_to_vertex_when_credentials_present(
     monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
     monkeypatch.setenv("GOOGLE_API_KEY", "test-google-key")
     monkeypatch.setenv("VERTEX_PROJECT_ID", "billing-project")
-    monkeypatch.setenv("VERTEX_LOCATION", "europe-west4")
+    monkeypatch.setenv("VERTEX_LOCATION", "europe-west3")
 
     client = emb.get_embeddings(task_type="RETRIEVAL_QUERY")
 
@@ -160,7 +160,7 @@ def test_gemini_routes_to_vertex_when_credentials_present(
     assert isinstance(client.kwargs["credentials"], _FakeCredentials)
     # Not auto-derived on the embeddings class — must be passed explicitly.
     assert client.kwargs["project"] == "billing-project"
-    assert client.kwargs["location"] == "europe-west4"
+    assert client.kwargs["location"] == "europe-west3"
     assert "google_api_key" not in client.kwargs
     # The vector space is unchanged; only transport moved.
     assert client.kwargs["model"] == EMBEDDING_MODEL
