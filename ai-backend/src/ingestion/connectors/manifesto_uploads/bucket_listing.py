@@ -3,28 +3,16 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Bucket-listing work-list for the uploaded-manifesto connector (deployed path).
+Bucket-listing work-list for the uploaded-manifesto connector (deployed path,
+``MANIFESTO_UPLOADS_SOURCE=bucket``; manifest stays the default — see
+``connector.work_list``).
 
-The manifest is baked into the container image, so a scheduled Job would only
-notice a newly uploaded PDF after a redeploy. Listing the bucket instead makes the
-BUCKET the statement of what should exist: a file that appears is ingested on the
-next run, and a file that is deleted is retired by the same reconcile that a
-removed manifest line triggers. That is the behaviour the old upload-triggered
-function had, without a second ingestion implementation.
+Makes the BUCKET the statement of what should exist: an upload is ingested on the
+next run, a deletion retires it — no second ingestion implementation.
 
-Selected explicitly via ``MANIFESTO_UPLOADS_SOURCE=bucket``; the manifest stays the
-default so local runs and CI need no bucket credentials. See
-``connector.work_list``.
-
-Non-conforming objects are SKIPPED, not fatal
----------------------------------------------
-``public/`` is a shared prefix — context icons and other public assets live there
-too, and it is readable by anyone. Anything that is not a
-``public/{election}/{party}/{name}_{YYYY-MM-DD}.pdf`` is therefore logged and
-ignored rather than failing the run, because an unrelated asset appearing in the
-bucket must not stop every manifesto from being ingested. A PDF sitting in the
-right shape but naming an unknown election or party still fails loudly later, in
-the per-document validation gate.
+Non-conforming objects (context icons, other ``public/`` assets) are skipped, not
+fatal. A PDF in the right shape but naming an unknown election/party still fails
+loudly later, in the per-document validation gate.
 """
 
 from __future__ import annotations
@@ -52,11 +40,9 @@ UPLOAD_PREFIX = "public/"
 class BucketListingError(RuntimeError):
     """The bucket could not be listed.
 
-    NOT a ValueError: this is a whole-run failure (no work-list could be built),
-    not a per-document data problem. Letting it surface unwrapped from discover()
-    aborts the run loudly instead of silently reconciling against an empty
-    work-list — which, since an empty list means "nothing should exist", would
-    retire every uploaded document in the corpus.
+    NOT a ValueError (a per-item skip signal) — this is a whole-run failure, left
+    unwrapped from discover() so the run aborts loudly instead of silently
+    reconciling against an empty work-list, which would retire every document.
     """
 
 
@@ -77,20 +63,9 @@ def list_uploaded_objects(
 ) -> list[str]:
     """List the uploaded manifesto PDFs in the bucket for *env*.
 
-    Args:
-        env:    Environment selecting the bucket; defaults to ``$ENV`` then dev.
-        client: Storage client override (tests).
-
-    Returns:
-        Sorted, de-duplicated object paths that parse as uploaded manifestos.
-
-    Raises:
-        BucketListingError: If the bucket cannot be listed, or if it contains
-            objects but none of them are manifestos. The second case is treated as
-            a failure rather than an empty work-list because "the bucket has
-            content but I recognised none of it" is far more likely a wrong bucket
-            or a changed layout than a deliberate removal of every document — and
-            an empty work-list would retire the entire uploaded corpus.
+    Raises BucketListingError if the bucket can't be listed, or has content but
+    none of it parses as a manifesto — more likely a wrong bucket than a
+    deliberate clear-out, and an empty work-list would retire the whole corpus.
     """
     bucket_name = bucket_for_env(env)
     storage_client = client if client is not None else _client(env)

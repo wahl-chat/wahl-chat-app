@@ -3,29 +3,17 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Election/party lookup for uploaded manifestos, read from the Firestore seed files.
+Election/party lookup for uploaded manifestos, read from the Firestore seed files
+(``firebase/firestore_data/{ENV}/contexts.json`` + ``parties_{context_id}.json`` —
+the same files that seed Firestore, so the ingestor agrees with the running app).
 
-``firebase/firestore_data/{ENV}/contexts.json`` and ``parties_{context_id}.json``
-are the SAME files ``firebase/scripts/seed_firestore.py`` loads into Firestore, so
-reading them here means the ingestor and the running app agree on an election's
-region, level and party list without a second table to keep in sync. That file
-lookup is the default: no credentials, no network, runs in CI.
+Not in the container image (build context is ``ai-backend/``), so a Cloud Run Job
+sets ``ELECTION_FIXTURES_SOURCE=firestore`` instead (see ``firestore_fixtures``);
+both backends funnel through ``build_fixture`` for identical validation.
 
-Those files are absent from the container image (the Docker build context is
-``ai-backend/``), so a Cloud Run Job sets ``ELECTION_FIXTURES_SOURCE=firestore`` and
-reads the live database instead — see ``load_election`` and ``firestore_fixtures``.
-Both backends funnel through ``build_fixture``, so the validation below is enforced
-identically whichever one is in use.
-
-Why this is a hard gate rather than a warning
----------------------------------------------
-``region`` and ``party_id`` are the two fields that decide whether a chunk is ever
-retrievable. Manifesto retrieval filters on the election's MOST SPECIFIC region
-only (``region_path[-1]``) and on ``party_id`` as the tenant key, so a chunk
-stamped ``DE-BY`` for a ``DE-BY-MUC`` election, or ``CSU`` where the context's
-party doc is ``csu``, is written successfully and then never returned — a silent
-coverage hole with no error anywhere. Both values are therefore derived from these
-fixtures, never typed by an operator, and anything unresolvable raises.
+This is a hard gate, not a warning: ``region``/``party_id`` decide whether a chunk
+is ever retrievable (retrieval filters on ``region_path[-1]`` + party as tenant
+key), so a wrong value here is a silent coverage hole with no error anywhere.
 """
 
 from __future__ import annotations
@@ -60,15 +48,9 @@ class FixtureLookupError(ValueError):
 class ElectionFixture:
     """Everything an uploaded manifesto needs from its election context.
 
-    Attributes:
-        context_id:    Firestore context doc id (== the upload path's election segment).
-        name:          Display name, used to build citation titles.
-        region:        The context's MOST SPECIFIC region (``region_path[-1]``) —
-                       the only region manifesto retrieval matches on.
-        level:         Governance level ("federal" | "state" | "municipal" | "eu").
-        election_date: The context's ``date``, stamped as chunk ``publish_date``.
-        party_ids:     Party doc ids configured for this context. Membership is
-                       required; an upload for any other slug is rejected.
+    ``region`` is already ``region_path[-1]`` (the only region retrieval matches
+    on); ``election_date`` becomes the chunk ``publish_date``; ``party_ids`` is the
+    membership list — an upload for any other slug is rejected.
     """
 
     context_id: str
@@ -82,9 +64,7 @@ class ElectionFixture:
 def fixture_dir(env: Optional[str] = None) -> Path:
     """Return the seed-data directory for *env* (defaults to ``$ENV``, else dev).
 
-    Resolved relative to this file so it works from any cwd. The path crosses out
-    of ai-backend into firebase/ because that is where the seed data lives; after
-    the ingestion tree moves to a repo-root package the two become siblings.
+    Resolved relative to this file so it works from any cwd.
     """
     resolved = (env or os.getenv("ENV") or "dev").strip().lower()
     repo_root = Path(__file__).resolve().parents[5]
@@ -121,21 +101,10 @@ def build_fixture(
 ) -> ElectionFixture:
     """Validate one context's fields and build its ElectionFixture.
 
-    The single validation implementation, shared by BOTH backends — the file
-    reader and the Firestore reader. Keeping it in one place is the point: a
-    backend that skipped one of these checks would reintroduce exactly the silent
-    unreachable-chunk failure the gate exists to prevent.
-
-    Args:
-        context_id: Context doc id.
-        ctx:        The context's fields (JSON object or Firestore document dict).
-        party_ids:  Party ids configured for this election.
-        origin:     Human-readable source, quoted in error messages so an operator
-                    knows WHERE to fix a bad value.
-
-    Raises:
-        FixtureLookupError: If ``region_path`` / ``level`` / ``date`` is missing or
-            unusable, or no parties are configured. Nothing is defaulted.
+    Shared by both backends (file + Firestore readers) so neither can skip a check
+    and reintroduce the silent unreachable-chunk failure this gate prevents.
+    ``origin`` is quoted in error messages so an operator knows where to fix a bad
+    value. Raises FixtureLookupError; nothing is defaulted.
     """
     region_path = ctx.get("region_path")
     if not isinstance(region_path, list) or not region_path:
@@ -176,15 +145,10 @@ def build_fixture(
 
 
 def _coerce_date(context_id: str, raw: object) -> date_type:
-    """Parse a context ``date`` into a ``date``.
+    """Parse a context ``date`` (ISO string or Firestore timestamp) into a ``date``.
 
-    Accepts the ISO string the seed files carry and the datetime a Firestore
-    timestamp deserialises to, so the same context is read identically from either
-    backend.
-
-    Raises:
-        FixtureLookupError: If the value is missing or unparseable — it becomes the
-            chunk publish_date, which both scopes retrieval and is shown to users.
+    Raises FixtureLookupError if missing/unparseable — it becomes the chunk
+    publish_date, which scopes retrieval and is shown to users.
     """
     if not raw:
         raise FixtureLookupError(
@@ -222,26 +186,11 @@ def _load_from_files(context_id: str, env: Optional[str]) -> ElectionFixture:
 def load_election(context_id: str, env: Optional[str] = None) -> ElectionFixture:
     """Resolve one election's retrieval-critical metadata.
 
-    Backend is chosen by ``ELECTION_FIXTURES_SOURCE``:
-      * unset / ``"files"`` (default) — the checked-in seed files. Offline, no
-        credentials, runs in CI. What a local or host run uses.
-      * ``"firestore"`` — the live database. What the container uses, because the
-        seed files are not in the image (the build context is ai-backend/); there
-        the running Firestore is also the more accurate authority.
-
-    The switch is explicit on purpose: an automatic fallback would let a mistyped
-    path quietly change which authority is trusted. A container that forgets the
-    variable fails loudly with "seed file not found" instead.
-
-    Args:
-        context_id: Context doc id, e.g. ``"landtagswahl-sachsen-anhalt-2026"``.
-        env:        Seed-data environment for the file backend; defaults to ``$ENV``
-                    then ``"dev"``. Ignored by the Firestore backend, which reads
-                    whichever project its credentials point at.
-
-    Raises:
-        FixtureLookupError: If the election cannot be resolved, or is missing any
-            field that would leave its chunks unreachable. See build_fixture.
+    Backend is ``ELECTION_FIXTURES_SOURCE``: unset/``"files"`` (default, local seed
+    files) or ``"firestore"`` (live database — what the container uses, since the
+    seed files aren't in the image). No auto-fallback: a container that forgets the
+    variable fails loudly with "seed file not found" instead of silently switching
+    authority.
     """
     source = (os.getenv(_SOURCE_ENV) or "files").strip().lower()
     if source == "files":

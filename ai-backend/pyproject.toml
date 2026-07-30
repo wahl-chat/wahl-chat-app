@@ -18,9 +18,8 @@ dependencies = [
     "uvicorn>=0.34.0",
     # Core runtime
     "firebase-admin>=7.4.0,<7.5",
-    # Bucket listing for the manifesto_uploads connector (MANIFESTO_UPLOADS_SOURCE=bucket).
-    # Otherwise only a transitive dependency of firebase-admin — declared explicitly
-    # so it cannot silently disappear on a firebase-admin upgrade.
+    # Otherwise only transitive via firebase-admin — declared so it can't silently
+    # disappear on an upgrade (used directly by manifesto_uploads/bucket_listing.py).
     "google-cloud-storage>=3.11.0,<4.0",
     "langchain>=1.3.4",
     "langchain-core>=1.4.0",

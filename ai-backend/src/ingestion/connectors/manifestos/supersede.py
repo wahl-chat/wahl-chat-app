@@ -5,25 +5,10 @@
 """
 Retire an uploaded manifesto once Abgeordnetenwatch publishes the same programme.
 
-Uploaded PDFs exist because AW's catalogue does not cover an election yet. AW does
-open a period before election day (they carry the 2026 Baden-Württemberg and
-Rheinland-Pfalz programmes already), so a document ingested from an upload is
-expected to be superseded by its AW twin later. When that happens the AW copy wins:
-it is the citable public source, and keeping both would let one answer cite the
-same programme twice.
-
-Match rule — deliberately narrow
---------------------------------
-An uploaded chunk is superseded only when the AW programme agrees on all three of
-``party_id``, ``region`` and ``publish_date``. All three are indexed already, so no
-new payload field and no corpus re-ingest is needed.
-
-``publish_date`` is the tie-breaker that makes this safe: both halves stamp it as
-the ELECTION date (AW from its parliament-period, uploads from the context doc), so
-agreement means "same party, same region, same election". If the two dates ever
-disagree the delete simply does not fire — the failure mode is a visible duplicate,
-never a wrongly removed document, which is the right way round for a destructive
-step driven by a fuzzy identity.
+Matches on ``party_id`` + ``region`` + ``publish_date`` (all indexed already; both
+sides stamp the ELECTION date, so agreement means "same programme"). If the dates
+ever disagree the delete simply doesn't fire — a visible duplicate, never a
+wrongly removed document.
 """
 
 from __future__ import annotations
@@ -49,8 +34,8 @@ def _upload_twin_filter(
 ) -> models.Filter:
     """Filter selecting uploaded chunks for one party+region+election date.
 
-    The date is matched as a single closed UTC day rather than an open range, so a
-    programme for a DIFFERENT election of the same party and region is never caught.
+    Matched as a single closed UTC day, not an open range, so a different election
+    of the same party+region is never caught.
     """
     day_start = datetime.combine(publish_date, time.min, tzinfo=timezone.utc)
     day_end = datetime.combine(publish_date, time.max, tzinfo=timezone.utc)
@@ -80,21 +65,11 @@ def supersede_uploaded_manifestos(
 ) -> int:
     """Delete uploaded manifesto chunks that the just-upserted AW chunks replace.
 
-    Called from the AW manifesto connector's ``post_upsert``, i.e. only after the
-    replacement is durably written — the corpus never lacks the programme at any
-    point in time.
-
-    Args:
-        qdrant:          Initialised QdrantClient.
-        collection_name: Collection the AW chunks were written to.
-        chunks:          The AW ChunkRecords just upserted (one programme).
-
-    Returns:
-        Number of (party, region, election-date) groups whose uploaded twin was
-        deleted. Zero when nothing matched, which is the normal case.
+    Called from post_upsert, i.e. only after the replacement is durably written —
+    the corpus never lacks the programme at any point in time. Returns the number
+    of (party, region, date) groups whose uploaded twin was deleted.
     """
-    # One programme's chunks all share these three values; de-duplicate anyway so a
-    # future multi-party batch cannot issue the same delete repeatedly.
+    # De-duplicate in case a future multi-party batch repeats the same triple.
     targets = {
         (c.party_id, c.region, c.publish_date)
         for c in chunks
@@ -117,8 +92,7 @@ def supersede_uploaded_manifestos(
             wait=True,
         )
         superseded += 1
-        # Logged loudly: this removes a document an operator uploaded by hand, so
-        # the replacement must be visible in the run output, not inferred.
+        # Loud on purpose — this removes an operator-uploaded document.
         logger.warning(
             "superseded uploaded manifesto with the Abgeordnetenwatch copy: "
             "party=%s region=%s election_date=%s (%d chunk(s) deleted)",

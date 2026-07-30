@@ -218,88 +218,30 @@ make speeches-stats                       # read-only Qdrant verification
 
 #### Adding a manifesto we received as a file
 
-Parties send us their Wahlprogramme directly for elections Abgeordnetenwatch has
-not catalogued (upcoming and communal ones). The upload path carries the metadata,
-so there is nothing to type twice:
+For elections Abgeordnetenwatch hasn't catalogued (upcoming/communal). The upload
+path carries the metadata — election and party must already exist in
+`firebase/firestore_data/{env}/contexts.json` (with `region_path` + `level`) and
+`parties_{context_id}.json`, since those decide whether a chunk is ever retrievable.
 
-1. The election must exist in `firebase/firestore_data/{env}/contexts.json` with
-   `region_path` and `level` set, and the party must be a key in
-   `parties_{context_id}.json`. Both are required — see below.
-2. Name the file `{document-name}_{YYYY-MM-DD}.pdf` (the document's own
-   publication date; no underscore in the name part).
-3. Put it at `public/{context_id}/{party_id}/{file}.pdf`, staged under
-   `firebase/storage_data/` and/or uploaded to the Storage bucket.
-4. Add the object path to `ai-backend/data/manifesto_uploads/{env}.txt`.
-5. `make upload-manifesto-uploads` to copy them to the bucket **and** grant public
-   read (both steps, or citations 403 — see below).
-6. `make run-manifesto-uploads ARGS="--check"`, then drop `ARGS` to ingest.
+1. Name the file `{document-name}_{YYYY-MM-DD}.pdf`, place at
+   `public/{context_id}/{party_id}/{file}.pdf` under `firebase/storage_data/`.
+2. Add the object path to `ai-backend/data/manifesto_uploads/{env}.txt`.
+3. `make upload-manifesto-uploads` (uploads + grants public read).
+4. `make run-manifesto-uploads ARGS="--check"`, then drop `ARGS` to ingest.
 
-`--since YYYY-MM-DD` (or `MANIFESTO_UPLOADS_SINCE`) floors by ELECTION date — which
-is the same thing as the chunk `publish_date`. Default is no floor;
-`--since $(date +%F)` narrows a bucket-wide run to elections still to come.
-Documents below the floor are neither ingested **nor retired**: the floor means "not
-now", not "should not exist", so setting one can never delete a past election's
-manifestos. An election that cannot be resolved at all counts as in-scope, so a
-broken path or unseeded context still fails loudly instead of being filtered away.
+`--since` (or `MANIFESTO_UPLOADS_SINCE`) floors by election date; documents below it
+are neither ingested nor retired. Removing a manifest line retires that document's
+chunks on the next run.
 
-Duplicate protection runs both ways, by two different mechanisms:
+De-dup with AW is two-way and party+region+date scoped: an upload is skipped if AW
+already has that party's programme; once AW ingests it, its `post_upsert` deletes
+the uploaded twin.
 
-| | Runs | Effect |
-|---|---|---|
-| pre-insert guard (`_aw_copy_exists`) | every upload run, per document | **raises** — the document is not ingested; anything already stored is left alone |
-| `post_upsert` supersede (AW connector) | after AW ingests a programme | **deletes** the uploaded copy by filter |
-
-So nothing is deleted at upload time. Both match on party + region + election date —
-per *party*, not per document. A party may have any number of files in its folder
-(each is an independent document with its own id, chunks and citation), so if a party
-splits its programme across files and AW later publishes one consolidated document,
-the supersede removes **all** of that party's uploaded files at once. Right when AW's
-document covers the same ground; a content loss when it is only a short version.
-
-**Pre-existing bucket content.** The bucket predates this connector, so a
-`MANIFESTO_UPLOADS_SOURCE=bucket` run also sees older uploads. They sort themselves
-out without configuration: Bundestagswahl-era files at `public/{party}/{file}.pdf`
-carry no election segment and are skipped by the path rule; `wahl-chat` voting
-explainers and official electoral notices fail the party gate (they are not party
-programmes and would be wrong as `party_manifesto`); Baden-Württemberg and
-Rheinland-Pfalz programmes are almost all blocked by the AW guard because AW already
-carries them; München's are ingested, since AW has no municipal coverage at all. That
-last case is the point of the connector — as is the occasional state party AW misses.
-Expect a run to report skips and failures for this legacy content; that is signal
-about what the bucket holds, not a fault.
-
-The manifest is the complete statement of what should exist: deleting a line
-retires that document's chunks on the next run.
-
-`MANIFESTO_UPLOADS_SOURCE` selects where that statement comes from. Unset
-(default) reads the manifest — reviewable in a diff, no credentials. `bucket` lists
-`public/` in the Storage bucket instead, which is what a deployed run should use:
-the manifest ships inside the container image, so a scheduled Job reading it would
-not see a new upload until the next deploy. On the bucket backend, uploading a file
-ingests it and *deleting* it retires its chunks, with no manifest edit. Objects
-under `public/` that are not `{election}/{party}/{name}_{date}.pdf` (context icons,
-other assets) are logged and ignored, but a listing that fails — or that returns
-content with no recognisable manifestos — aborts the run rather than being treated
-as an empty work-list, which would retire every uploaded document.
-
-The election lookup has two backends, chosen explicitly by
-`ELECTION_FIXTURES_SOURCE`. Unset (default) reads the seed files above — offline,
-no credentials, what a host run and CI use. The container image does **not** carry
-them (the Docker build context is `ai-backend/`), so a Cloud Run Job sets
-`ELECTION_FIXTURES_SOURCE=firestore` and reads `contexts/{id}` and its `parties`
-subcollection from the live database instead. There is deliberately no automatic
-fallback: a container that forgets the variable fails loudly with "seed file not
-found" rather than quietly switching which authority is trusted. Both backends
-funnel through one validation function, so the gate below is identical either way.
-
-**Why step 1 is a hard gate.** `region` and `party_id` decide whether a chunk is
-ever retrievable — manifesto retrieval filters on the election's most specific
-region (`region_path[-1]`) and on `party_id` as the tenant key. A chunk stamped
-`DE-BY` for a `DE-BY-MUC` election, or `CSU` where the party doc is `csu`, is
-written successfully and then never returned, with no error anywhere. Both values
-are therefore derived from the seed fixtures rather than declared, and a context
-missing `region_path`/`level` refuses to ingest instead of quietly defaulting to
-federal scope.
+Two backend switches, both explicit env vars (no auto-fallback):
+`MANIFESTO_UPLOADS_SOURCE=bucket` lists the live bucket instead of the manifest
+(what a deployed Job uses — the manifest ships inside the image);
+`ELECTION_FIXTURES_SOURCE=firestore` reads the live database instead of the seed
+files (also not in the image).
 
 In production the same `src.ingestion.run` code path runs as a Cloud Run Job
 with `CONNECTOR_ID` set in the job spec (deployment + scheduling is a planned

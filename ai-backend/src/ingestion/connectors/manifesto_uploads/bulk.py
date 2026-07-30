@@ -5,22 +5,8 @@
 """
 Local CLI for the uploaded-manifesto connector.
 
-Adds the checks and dry runs the generic runner cannot express, then delegates the
-actual ingest to ``run_connector`` so there is ONE embed/upsert/reconcile
-implementation (unlike the AW manifesto CLI, which predates that and carries its own
-flush logic).
-
-Usage (local dev):
-    cd ai-backend
-    uv run python -m src.ingestion.connectors.manifesto_uploads.bulk --check
-    uv run python -m src.ingestion.connectors.manifesto_uploads.bulk --dry-run
-    uv run python -m src.ingestion.connectors.manifesto_uploads.bulk --only spd,cdu
-    QDRANT_URL=http://localhost:6333 ENV=dev uv run python -m src.ingestion.connectors.manifesto_uploads.bulk
-
-``--check`` is the pre-ingest gate: it resolves every manifest entry against the
-Firestore seed fixtures and reports what each document WOULD be stamped with, so a
-wrong election/party/region is caught before anything is embedded rather than
-surfacing later as a document the chat never cites.
+Adds --check/--dry-run, then delegates the actual ingest to ``run_connector`` — one
+embed/upsert/reconcile implementation, unlike the AW manifesto CLI which predates it.
 """
 
 from __future__ import annotations
@@ -159,11 +145,8 @@ def ingest(
 ) -> int:
     """Embed and upsert via the shared runner. Returns a process exit code.
 
-    Note that the runner is driven over the connector's OWN discover() output, not
-    over a pre-filtered path list: discover() adds the documents that are stored but
-    no longer in the manifest, and those retirements must survive into the run —
-    pinning the run to the manifest entries alone would silently disable cleanup.
-    ``only`` narrows by PARTY, so a party's retirements are still processed.
+    Runs over the connector's own discover() output, not a pre-filtered path list —
+    that's what lets a document dropped from the manifest still get retired.
     """
     import os  # noqa: PLC0415
 
@@ -180,9 +163,6 @@ def ingest(
         url=os.getenv("QDRANT_URL", "http://localhost:6333"),
         api_key=os.getenv("QDRANT_API_KEY"),
     )
-    # Corpus passages → RETRIEVAL_DOCUMENT, pairing with RETRIEVAL_QUERY at query
-    # time (no-op for OpenAI). Refuse a collection whose fingerprint contradicts
-    # the configured embedding space.
     embed = get_embeddings(task_type="RETRIEVAL_DOCUMENT")
     check_fingerprint(qdrant, COLLECTION_NAME)
 
@@ -202,11 +182,7 @@ def ingest(
         qdrant,
         embed,
         COLLECTION_NAME,
-        # The manifest holds tens of documents, not thousands, and every one of them
-        # (plus any retirement) should be handled in a single run rather than
-        # trickling over several — this is an operator-triggered command, not a
-        # scheduled job working through a backlog.
-        batch_size=1000,
+        batch_size=1000,  # tens of documents, not thousands — handle all in one run
     )
     print(
         f"\n=== uploaded manifestos ===\n"

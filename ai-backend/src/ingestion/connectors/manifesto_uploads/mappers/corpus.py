@@ -5,20 +5,10 @@
 """
 Pure transforms: an uploaded manifesto PDF → party_manifesto ChunkRecord list.
 
-No I/O — deterministic and unit-testable. The connector supplies the parsed pages
-and the resolved election fixture; everything here is arithmetic on those.
-
-Shares ``source_type="party_manifesto"`` with the Abgeordnetenwatch connector but
-carries ``source="upload"``, which:
-  * folds into ``compute_source_item_id`` so an upload can never collide with an
-    AW program id (both would otherwise hash a bare integer-ish external id);
-  * gives the AW connector a precise filter for superseding an uploaded copy once
-    the same programme appears upstream.
-
-Page anchors are exact by construction: the pages are numbered by the parser that
-read the very file the citation points at, so there is no printed-vs-physical
-offset to correct (unlike plenary protocols, whose printed numbering is offset by
-unnumbered front matter).
+No I/O — deterministic, unit-testable. Shares ``source_type="party_manifesto"``
+with AW but carries ``source="upload"``, which keeps an upload's
+``compute_source_item_id`` from ever colliding with an AW program id, and gives AW
+a precise filter for superseding it later.
 """
 
 from __future__ import annotations
@@ -44,11 +34,9 @@ UPLOAD_SOURCE = "upload"
 
 
 class UploadManifestoMeta(BaseModel):
-    """Typed builder for the uploaded-manifesto chunk ``meta`` dict.
-
-    Mirrors the ManifestoMeta / VoteMeta / SpeechMeta convention: extra="forbid"
-    rejects typo'd keys at build time, and None-valued fields are dropped by
-    ``model_dump(exclude_none=True)`` so no NULL keys reach Qdrant.
+    """Typed builder for the uploaded-manifesto chunk ``meta`` dict (mirrors
+    ManifestoMeta/VoteMeta/SpeechMeta): extra="forbid" catches typo'd keys;
+    exclude_none drops null fields so no NULL keys reach Qdrant.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -56,16 +44,13 @@ class UploadManifestoMeta(BaseModel):
     context_id: str
     storage_object_path: str
     document_name: str
-    # The document's OWN date (from the filename). publish_date on the envelope is
-    # the election date instead, so both manifesto halves land in the same
-    # retrieval window — this keeps the real date available for display and audit.
+    # Document's own date (filename); publish_date is the election date instead.
     document_date: str
     election_level: Optional[str] = None
     total_pages: Optional[int] = None
     page_start: Optional[int] = None
     page_end: Optional[int] = None
-    # Completed-parent marker: how many chunks this document produced in total, so a
-    # partially-committed multi-slice upsert is detectable rather than looking whole.
+    # Completed-parent marker, so a partially-committed multi-slice upsert is detectable.
     total_chunks: Optional[int] = None
 
 
@@ -88,11 +73,8 @@ def _content_hash(
     page_end: Optional[int],
     total_pages: Optional[int],
 ) -> str:
-    """Stable hash over text + every displayed or filtered field.
-
-    Covers provenance as well as prose so that re-uploading a corrected file, or
-    fixing a document date, re-embeds instead of being skipped as unchanged by the
-    runner's content-hash guard.
+    """Stable hash over text + every displayed/filtered field, so a corrected file
+    or fixed document date re-embeds instead of being skipped as unchanged.
     """
     return hashlib.sha256(
         json.dumps(
@@ -124,26 +106,13 @@ def build_upload_manifesto_records(
 ) -> list[ChunkRecord]:
     """Build the ChunkRecord list for one uploaded manifesto (pure, no I/O).
 
-    Args:
-        ref:          Parsed upload reference (election, party, name, document date).
-        fixture:      Resolved election metadata (region, level, election date).
-        chunks:       ``(text, page_start, page_end)`` tuples from ``chunk_pages``.
-        citation_url: Public Storage URL of this document; each chunk appends its
-                      own ``#page=`` anchor.
-        total_pages:  Page count of the source PDF.
-
-    Returns:
-        One ChunkRecord per chunk.
-
-    Raises:
-        FixtureLookupError: If the party is not configured for this election.
+    Raises FixtureLookupError if the party isn't configured for this election.
     """
     party_id = require_party(fixture, ref.party_id)
     publish_date = fixture.election_date
     citation_title = build_citation_title(ref, fixture)
 
-    # source-scoped so an uploaded document and an AW program can never share a
-    # source_item_id even if their external ids coincide.
+    # source-scoped so an upload and an AW program never share a source_item_id.
     sid = compute_source_item_id(
         SourceType.PARTY_MANIFESTO.value, ref.object_path, source=UPLOAD_SOURCE
     )
@@ -151,8 +120,7 @@ def build_upload_manifesto_records(
     total_chunks = len(chunks)
     records: list[ChunkRecord] = []
     for chunk_index, (text, page_start, page_end) in enumerate(chunks):
-        # Deep-link to the page the passage starts on. Never clobber an existing
-        # fragment (a manifest entry may already carry one).
+        # Never clobber an existing #fragment a manifest entry may already carry.
         chunk_citation_url = citation_url
         if page_start and "#" not in chunk_citation_url:
             chunk_citation_url = f"{chunk_citation_url}#page={page_start}"

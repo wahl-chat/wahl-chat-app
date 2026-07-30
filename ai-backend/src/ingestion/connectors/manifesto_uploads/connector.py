@@ -3,36 +3,17 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-ManifestoUploadsConnector — party manifestos we received as files, not via an API.
+ManifestoUploadsConnector — party manifestos we received as files, not via AW.
 
-Parties send their programmes directly for upcoming elections, and communal
-elections often have no Abgeordnetenwatch coverage at all. Those PDFs are uploaded
-to the public Storage bucket under ``public/{context_id}/{party_id}/{name}_{date}.pdf``;
-a manifest lists which of them are live, and this connector ingests them into the
-same ``party_manifesto`` corpus as the AW catalogue, carrying ``source="upload"``.
+Ingests uploaded PDFs (``public/{context_id}/{party_id}/{name}_{date}.pdf``) into
+the same ``party_manifesto`` corpus as AW, tagged ``source="upload"``. Election +
+party come from the object path; region/level/publish_date are derived from the
+Firestore fixtures (hard-fail rather than default), since a wrong value would make
+a chunk silently unreachable at query time.
 
-Everything retrieval-critical is DERIVED, never declared:
-  * election + party come from the object path;
-  * region, level and publish_date come from the Firestore seed fixtures for that
-    election (``election_fixtures``), which hard-fail rather than default.
-
-Manifest semantics
-------------------
-The manifest is the full statement of what should exist. Each run discovers both
-the manifest entries AND the documents already stored, so a line REMOVED from the
-manifest is still visited, normalises to zero chunks, and has its footprint deleted
-by the runner — retiring a document is a one-line edit, not a manual cleanup.
-
-Citations always point at the bucket URL for the object, even on a local run that
-reads the staged copy: the staged file and the uploaded object are the same bytes,
-so the ``#page=`` anchor is exact either way.
-
-Two guards keep this half of ``party_manifesto`` from duplicating the AW half:
-  * before ingesting, an upload is SKIPPED when AW already carries that party's
-    programme for the same election (``_aw_copy_exists``);
-  * after AW ingests a programme, its connector deletes any uploaded copy
-    (``connectors/manifestos/supersede.py``).
-The first covers "AW was already in the corpus", the second "AW arrived later".
+De-duped against AW both ways: skipped here if AW already has the programme
+(``_aw_copy_exists``); deleted by AW's ``post_upsert`` once AW ingests it later
+(``connectors/manifestos/supersede.py``).
 """
 
 from __future__ import annotations
@@ -78,25 +59,10 @@ _SINCE_ENV = "MANIFESTO_UPLOADS_SINCE"
 
 
 def resolve_since_floor(value: Optional[str] = None) -> Optional[date_type]:
-    """Resolve the optional election-date floor for uploaded manifestos.
+    """Resolve the election-date floor (``value``, else ``MANIFESTO_UPLOADS_SINCE``).
 
-    A document is in scope when its election date is on or after the floor. Because
-    a chunk's ``publish_date`` IS its election date, this is exactly "only ingest
-    documents whose publish_date is not before X" — the same knob the AW manifesto
-    connector exposes as ``MANIFESTO_SINCE``.
-
-    Mainly useful for the bucket backend, whose work-list spans EVERY election in
-    the bucket: ``--since $(date +%F)`` narrows a run to elections that have not
-    happened yet.
-
-    Args:
-        value: Explicit floor (the CLI ``--since``). When None the
-               ``MANIFESTO_UPLOADS_SINCE`` env var is read; unset/empty means no
-               floor, so by default nothing is filtered.
-
-    Raises:
-        ValueError: If a value is given but is not an ISO date — a misconfigured
-            floor is surfaced loudly rather than silently scoping a run.
+    No floor by default. Raises ValueError on an unparseable date — a misconfigured
+    floor should fail loudly, not silently scope the run.
     """
     raw = value if value is not None else os.getenv(_SINCE_ENV)
     if raw is None or not raw.strip():
@@ -112,14 +78,11 @@ def resolve_since_floor(value: Optional[str] = None) -> Optional[date_type]:
 def in_scope(
     object_path: str, since: Optional[date_type], env: Optional[str] = None
 ) -> bool:
-    """Whether *object_path* passes the election-date floor *since*.
+    """Whether *object_path* is on/after *since* (no floor → always in scope).
 
-    With no floor every document is in scope and no fixture is read.
-
-    A document whose election or party cannot be resolved counts as IN scope: the
-    floor must not become a way to silently swallow a broken path or an unseeded
-    election. Those flow through to normalize() and fail loudly there with the real
-    reason.
+    An unresolvable election/party also counts as in scope: the floor must not
+    become a way to silently swallow a broken path — that fails loudly in
+    normalize() instead.
     """
     if since is None:
         return True
@@ -146,18 +109,11 @@ def default_manifest_path(env: Optional[str] = None) -> Path:
 
 
 def load_manifest(path: Optional[Path] = None, env: Optional[str] = None) -> list[str]:
-    """Read the manifest and return normalised object paths, de-duplicated.
+    """Read the manifest into normalised, de-duplicated object paths.
 
-    One entry per line; blank lines and ``#`` comments are ignored. An entry may be
-    a public URL, a ``gs://`` URI, a staging path or a bare object path — all
-    normalise to the same object path, so a line does not have to be rewritten when
-    the file moves from staging to the bucket.
-
-    A missing manifest is not an error (nothing to ingest yet); a malformed LINE is,
-    since silently skipping it would leave a document quietly un-ingested.
-
-    Raises:
-        UploadPathError: If a non-comment line cannot be normalised.
+    A missing manifest returns empty (nothing to ingest yet); a malformed line
+    raises UploadPathError — silently skipping it would leave a document
+    un-ingested with no signal.
     """
     manifest = path or default_manifest_path(env)
     if not manifest.exists():
@@ -182,25 +138,15 @@ def load_manifest(path: Optional[Path] = None, env: Optional[str] = None) -> lis
 def work_list(
     manifest_path: Optional[Path] = None, env: Optional[str] = None
 ) -> list[str]:
-    """Return the object paths that SHOULD exist in the corpus.
+    """Return the object paths that SHOULD exist, per ``MANIFESTO_UPLOADS_SOURCE``.
 
-    Backend is chosen by ``MANIFESTO_UPLOADS_SOURCE``:
-      * unset / ``"manifest"`` (default) — the checked-in list. Reviewable in a
-        diff, needs no credentials, and is what a local run uses.
-      * ``"bucket"`` — list the bucket prefix. The manifest ships inside the
-        container image, so a scheduled Job reading it would not see a new upload
-        until the next deploy; listing the bucket makes an upload or a deletion take
-        effect on the next run instead.
+    Default reads the checked-in manifest; ``"bucket"`` lists the live bucket
+    instead, since the manifest ships inside the image and wouldn't see a new
+    upload until redeploy. Either way this is a complete desired-state list, so a
+    document dropped from it gets retired (see ``discover()``).
 
-    Either way the result is a complete desired-state statement, which is what lets
-    a document dropped from it be retired (see ManifestoUploadsConnector.discover).
-
-    Raises:
-        UploadPathError:     A malformed manifest line.
-        BucketListingError:  The bucket could not be listed (whole-run failure —
-                             never degraded to an empty list, which would read as
-                             "retire everything").
-        ValueError:          An unknown backend name.
+    Raises BucketListingError on a bad bucket listing — never degrades to an empty
+    list, which would read as "retire everything".
     """
     source = (os.getenv(_SOURCE_ENV) or "manifest").strip().lower()
     if source == "manifest":
@@ -221,15 +167,9 @@ def work_list(
 def load_pdf_pages(object_path: str, env: Optional[str] = None) -> dict:
     """Read one PDF and return its page-annotated text.
 
-    Prefers the local staging copy (``firebase/storage_data/{object_path}``) so a
-    document can be ingested and reviewed before it is uploaded; falls back to
-    downloading the bucket object, which is the path a Cloud Run job takes.
-
-    Returns:
-        ``{"pages": [(page_no, text)], "total_pages": int, "read_from": str}``.
-
-    Raises:
-        ValueError: On any read/parse failure — the message is suitable for a skip log.
+    Prefers the local staging copy so a document can be reviewed before upload;
+    falls back to the bucket (the Cloud Run path). Raises ValueError on any
+    read/parse failure, with a message suitable for a skip log.
     """
     # pypdf is a heavy parser dep; keep the import local so importing this module
     # (e.g. for the registry) never pulls it in.
@@ -273,15 +213,9 @@ class ManifestoUploadsConnector(BaseConnector):
 
     discover(since) → fetch → normalize → [runner embeds + upserts]
 
-    ``since`` is ignored: the work-list is a complete statement of what should
-    exist, so every entry is offered every run and the runner's content-hash guard
-    skips the unchanged ones cheaply without consuming the batch budget. A cursor
-    would only be able to hide entries.
-
-    The work-list comes from the manifest by default, or from a bucket listing when
-    ``MANIFESTO_UPLOADS_SOURCE=bucket`` (see ``work_list``). Everything downstream is
-    identical either way — including retirement, so on the bucket backend deleting
-    the object is what removes its chunks.
+    ``since`` is ignored: the work-list (see ``work_list()``) is already a complete
+    statement of what should exist, so every entry is offered every run and the
+    content-hash guard skips unchanged ones cheaply.
     """
 
     source_type: str = SourceType.PARTY_MANIFESTO.value
@@ -313,11 +247,9 @@ class ManifestoUploadsConnector(BaseConnector):
     # ------------------------------------------------------------------
 
     def _stored_object_paths(self) -> set[str]:
-        """Return object paths of uploaded documents already in the store.
+        """Object paths of uploaded documents already stored (empty if no store bound).
 
-        Read so that a document dropped from the work-list is still visited and can
-        be retired. Returns an empty set when no store is bound (the runner binds
-        one before discover; a bare unit-test instance has none).
+        Lets a document dropped from the work-list still be visited and retired.
         """
         qdrant = self._store_client
         if qdrant is None:
@@ -363,15 +295,8 @@ class ManifestoUploadsConnector(BaseConnector):
     def discover(self, since: Optional[int]) -> list[str]:
         """Return object paths to process: the work-list, plus retired leftovers.
 
-        Args:
-            since: Accepted for the ABC contract and ignored (see class docstring).
-                   The election-date floor is a separate, connector-owned concept
-                   (``self._since``) — it scopes by election, not by a monotonic
-                   upstream cursor.
-
-        Returns:
-            Sorted object paths: everything in scope, plus stored documents the
-            work-list no longer names so ``normalize()`` can retire them.
+        ``since`` is accepted for the ABC contract and ignored (see class
+        docstring).
         """
         named = set(work_list(self._manifest_path, self._env))
         self._expected_paths = {p for p in named if self._in_scope(p)}
@@ -386,10 +311,8 @@ class ManifestoUploadsConnector(BaseConnector):
                 ", ".join(sorted(skipped)),
             )
 
-        # Retire ONLY documents that are in scope yet no longer named. An
-        # out-of-scope document must never be retired: the floor is a "don't work on
-        # this now" filter, and treating it as "this should not exist" would delete a
-        # past election's manifestos from the corpus the moment a floor is set.
+        # Retire only in-scope documents — an out-of-scope one is "not now", not
+        # "should not exist", and must never be deleted just because a floor is set.
         retired = {
             p
             for p in self._stored_object_paths()
@@ -410,23 +333,13 @@ class ManifestoUploadsConnector(BaseConnector):
     def fetch(self, external_id: str) -> dict:
         """Read and parse one uploaded PDF, or flag it retired/skipped.
 
-        Failures are returned as ``skip_reason`` rather than raised, mirroring the
-        manifesto connector: the runner does not wrap fetch(), so the skip is
-        surfaced from normalize() where run_connector skip-and-continues.
-
-        Args:
-            external_id: Bucket-relative object path (as returned by discover()).
-
-        Returns:
-            ``{"object_path", "pages", "total_pages", "read_from"}``, or a dict
-            carrying ``retired``/``skip_reason``.
+        Failures return as ``skip_reason`` rather than raising (the runner doesn't
+        wrap fetch(); normalize() surfaces the skip instead).
         """
         object_path = external_id
 
-        # Not in the current work-list → retire it (normalize returns no chunks and
-        # the runner deletes the stored footprint). Guarded on a non-empty work-list:
-        # an empty one means discovery found nothing to keep, and retiring the whole
-        # uploaded corpus off the back of that is never the intent.
+        # Not in the work-list → retire. Guarded on non-empty: an empty work-list
+        # means discovery found nothing, not "retire the whole uploaded corpus".
         if self._expected_paths and object_path not in self._expected_paths:
             return {"object_path": object_path, "retired": True}
 
@@ -443,19 +356,12 @@ class ManifestoUploadsConnector(BaseConnector):
     def _aw_copy_exists(self, *, party_id: str, fixture: ElectionFixture) -> bool:
         """Whether an AW-sourced manifesto already covers this party and election.
 
-        The AW manifesto connector deletes an uploaded copy when it ingests the same
-        programme (its ``post_upsert``). That only fires when AW ingestion RUNS, so
-        without this check the opposite order — AW already in the corpus, then an
-        upload ingested — would add a second copy of the same programme and leave the
-        chat citing both.
+        Covers the order AW's own post_upsert supersede doesn't: AW already in the
+        corpus, then an upload ingested. Matches the same three fields (party,
+        region, election date) so both directions agree on "same programme".
 
-        Matches on the same three fields as the supersede (party, region, election
-        date), so the two directions agree on what "the same programme" means.
-        Non-upload sources are counted, i.e. anything the AW connector wrote (it
-        stamps no ``source``).
-
-        Returns False when no store is bound or the count fails: an unavailable
-        store must not silently suppress an ingest.
+        Returns False (proceed with the upload) when no store is bound or the count
+        fails — an unavailable store must not silently suppress an ingest.
         """
         qdrant = self._store_client
         if qdrant is None:
@@ -518,20 +424,11 @@ class ManifestoUploadsConnector(BaseConnector):
     # ------------------------------------------------------------------
 
     def normalize(self, raw: dict) -> list[ChunkRecord]:
-        """Build ChunkRecords for one uploaded document.
+        """Build ChunkRecords for one uploaded document from fetch()'s output.
 
-        Args:
-            raw: Dict returned by fetch().
-
-        Returns:
-            One ChunkRecord per chunk; an EMPTY list for a retired document, which
-            the runner treats as an authoritative empty result and cleans up.
-
-        Raises:
-            ValueError: If fetch flagged a skip, the path or election/party cannot
-                        be resolved, or the document yields no text. Raising keeps
-                        the stored copy intact — only a deliberate retirement
-                        (empty list) removes chunks.
+        Empty list = retired (runner cleans up). Raises ValueError for anything
+        else that went wrong, which keeps the stored copy intact — only a
+        deliberate empty-list retirement removes chunks.
         """
         object_path: str = raw["object_path"]
 

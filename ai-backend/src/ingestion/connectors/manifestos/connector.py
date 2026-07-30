@@ -565,10 +565,8 @@ class ManifestoConnector(BaseConnector):
     ) -> int:  # noqa: ANN001
         """Delete the uploaded twin of the programme just written, if any.
 
-        Uploaded PDFs (``source="upload"``) exist to cover elections AW has not
-        catalogued yet; once AW publishes the programme, its copy is the citable
-        public source and the upload is redundant. Runs only after the AW chunks are
-        durably upserted, so the corpus is never without the programme.
+        Runs only after the AW chunks are durably upserted, so the corpus is never
+        without the programme.
         """
         from src.ingestion.connectors.manifestos.supersede import (  # noqa: PLC0415
             supersede_uploaded_manifestos,

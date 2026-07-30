@@ -5,22 +5,12 @@
 """
 The upload path IS the metadata: ``public/{context_id}/{party_id}/{name}_{date}.pdf``.
 
-Election and party are read off the path rather than declared anywhere, so the two
-retrieval-critical fields cannot disagree with the file's location in the bucket.
-The layout is the one the party-document upload flow has always used, so files
-already in Storage parse unchanged.
-
-Three things are derived here:
-  * ``context_id`` / ``party_id`` — path segments, validated against the seed
-    fixtures by ``election_fixtures``.
-  * ``document_date``  — the ``_YYYY-MM-DD`` suffix, the document's own date. It is
-    kept in ``meta`` and is NOT the chunk ``publish_date`` (that is the election
-    date, matching how AW-sourced manifestos are stamped so both halves of
-    ``party_manifesto`` sit in the same retrieval window).
-  * ``citation_url``   — always the public bucket URL for this object, even when the
-    bytes are read from the local staging copy. Citations must resolve to where the
-    document actually lives, and the page anchor is exact because the staged file
-    and the uploaded object are the same bytes.
+Election and party come from the path, not a declared field, so they can't disagree
+with where the file lives. ``document_date`` (the filename suffix) is kept in
+``meta`` — NOT the chunk ``publish_date``, which is the election date instead
+(matches AW-sourced manifestos, same retrieval window). ``citation_url`` always
+points at the bucket, even when bytes are read from the local staging copy (same
+bytes, so the page anchor is exact either way).
 """
 
 from __future__ import annotations
@@ -57,15 +47,7 @@ class UploadPathError(ValueError):
 
 @dataclass(frozen=True)
 class UploadRef:
-    """One uploaded manifesto, fully described by its object path.
-
-    Attributes:
-        object_path:   Bucket-relative path, ``public/{election}/{party}/{file}.pdf``.
-        context_id:    Election segment.
-        party_id:      Party segment (the corpus tenant key).
-        document_name: Filename stem before the date suffix, hyphens intact.
-        document_date: Date parsed from the filename suffix.
-    """
+    """One uploaded manifesto, fully described by its object path."""
 
     object_path: str
     context_id: str
@@ -106,14 +88,9 @@ def storage_url(object_path: str, env: Optional[str] = None) -> str:
 
 
 def to_object_path(value: str) -> str:
-    """Normalise a manifest entry to a bucket-relative object path.
-
-    Accepts a public Storage URL, a ``gs://bucket/...`` URI, a repo-relative
-    staging path (``firebase/storage_data/public/...``), or the object path itself
-    — so the same manifest line works before and after the file is uploaded.
-
-    Raises:
-        UploadPathError: If no ``public/...`` component can be found.
+    """Normalise a manifest entry (URL, ``gs://`` URI, staging path, or bare object
+    path) to a bucket-relative object path — so a line works before and after
+    upload. Raises UploadPathError if no ``public/...`` component is found.
     """
     raw = value.strip()
     if not raw:
@@ -140,12 +117,8 @@ def to_object_path(value: str) -> str:
 def parse_object_path(object_path: str) -> UploadRef:
     """Parse a bucket-relative object path into its metadata.
 
-    Raises:
-        UploadPathError: If the path does not match
-            ``public/{election}/{party}/{name}_{YYYY-MM-DD}.pdf``, or the date is
-            not a real calendar date. Both are rejected rather than guessed: the
-            date ends up on the source card users read, and a mis-segmented path
-            would put a filename where the party tenant key belongs.
+    Raises UploadPathError on a shape/date mismatch — rejected rather than guessed,
+    since a mis-segmented path would put a filename where the party key belongs.
     """
     match = _OBJECT_RE.match(object_path)
     if match is None:
@@ -182,9 +155,8 @@ def parse_upload(value: str) -> UploadRef:
 
 
 def staging_path(object_path: str) -> Path:
-    """Local staging location for an object path, under firebase/storage_data/.
+    """Local staging location for an object path (for reads before/without upload).
 
-    Used to read the PDF bytes before the file is uploaded (and for offline runs).
     Resolved relative to this file so cwd does not matter.
     """
     repo_root = Path(__file__).resolve().parents[5]

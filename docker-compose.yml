@@ -20,14 +20,9 @@ services:
   # / ENV to target a deployed store. Requires ai-backend/.env for API keys; the
   # speech connectors fetch MdB-Stammdaten on demand at run time (no pre-bake).
   #
-  # manifesto_uploads needs two extra env vars in a container, because both of its
-  # inputs live outside this build context and are therefore absent from the image:
-  #   MANIFESTO_UPLOADS_SOURCE=bucket    — list the Storage bucket instead of the
-  #     baked-in manifest, so uploads and deletions take effect without a redeploy.
-  #   ELECTION_FIXTURES_SOURCE=firestore — read election metadata from the live
-  #     database instead of firebase/firestore_data/.
-  # Both need credentials (ADC, or FIRESTORE_EMULATOR_HOST for the emulator).
-  # Omitting them does not corrupt anything: the run fails loudly instead.
+  # manifesto_uploads in a container also needs MANIFESTO_UPLOADS_SOURCE=bucket and
+  # ELECTION_FIXTURES_SOURCE=firestore — its manifest/seed-file inputs aren't in the
+  # image. Both need credentials (ADC or FIRESTORE_EMULATOR_HOST).
   ingestion:
     build:
       context: ./ai-backend

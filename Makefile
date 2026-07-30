@@ -224,15 +224,11 @@ run-manifestos: bootstrap-collection
 	cd ai-backend && $(QDRANT_ENV) \
 		uv run python -m src.ingestion.connectors.manifestos.bulk $(ARGS)
 
-# Uploaded manifestos: party PDFs supplied to us directly, for elections with no
-# Abgeordnetenwatch coverage. Metadata comes from the upload path
-# (public/{context_id}/{party_id}/{name}_{date}.pdf) plus that election's Firestore
-# seed fixtures; bytes are read from firebase/storage_data/ when staged there, else
-# downloaded from the bucket. Citations point at the bucket copy with a #page anchor.
-#   make run-manifesto-uploads ARGS="--check"        # validate metadata, no reads
-#   make run-manifesto-uploads ARGS="--dry-run"      # parse + chunk, zero embed cost
-#   make run-manifesto-uploads ARGS="--only spd,cdu" # ingest two parties
-# Requires: make stores-up first. Needs Qdrant only (seed fixtures are read as files).
+# Uploaded manifestos: party PDFs supplied directly, for elections with no AW
+# coverage. Metadata comes from the object path + Firestore seed fixtures.
+#   make run-manifesto-uploads ARGS="--check"    # validate metadata, no reads
+#   make run-manifesto-uploads ARGS="--dry-run"  # parse + chunk, zero embed cost
+# Requires: make stores-up first.
 run-manifesto-uploads: bootstrap-collection
 	@if [ "$(ENV)" = "prod" ]; then \
 		read -r -p "This embeds into the PRODUCTION Qdrant collection (wahlchat_chunks_prod). Continue? [y/N] " confirm < /dev/tty; \
@@ -241,16 +237,12 @@ run-manifesto-uploads: bootstrap-collection
 	cd ai-backend && $(QDRANT_ENV) \
 		uv run python -m src.ingestion.connectors.manifesto_uploads.bulk $(ARGS)
 
-# Upload staged manifesto PDFs to the Storage bucket AND make them publicly
-# readable. Both steps matter: citations are plain GCS URLs
-# (storage.googleapis.com/{bucket}/{object}), which are governed by object ACLs —
-# NOT by firebase/storage.rules, which only covers the Firebase SDK path. An upload
-# without the ACL grant therefore yields citation links that 403, so the two are
-# deliberately one target and cannot be half-done.
-#   make upload-manifesto-uploads                              # everything staged
-#   make upload-manifesto-uploads ELECTION=landtagswahl-sachsen-anhalt-2026
-#   make upload-manifesto-uploads ENV=prod                     # the prod bucket
-# Requires the gcloud CLI, authenticated (gcloud auth login) with write access.
+# Upload staged PDFs to the bucket AND grant public read — citations are plain
+# GCS URLs governed by object ACLs, not storage.rules, so skipping the ACL step
+# 403s every citation; the two steps are deliberately one target.
+#   make upload-manifesto-uploads ELECTION=<context_id>
+#   make upload-manifesto-uploads ENV=prod
+# Requires the gcloud CLI, authenticated with write access.
 UPLOAD_ENV ?= $(if $(ENV),$(ENV),dev)
 UPLOAD_BUCKET = $(if $(filter prod,$(UPLOAD_ENV)),wahl-chat.firebasestorage.app,wahl-chat-dev.firebasestorage.app)
 upload-manifesto-uploads:

@@ -69,10 +69,8 @@ def _manifestos_factory() -> BaseConnector:
 def _manifesto_uploads_factory() -> BaseConnector:
     """Return a ManifestoUploadsConnector instance (deferred import).
 
-    Manifest-driven connector for party manifesto PDFs supplied to us directly
-    (elections with no AW coverage). Writes party_manifesto chunks with
-    source="upload", alongside the AW-sourced ones. The bespoke --dry-run / --check
-    CLI lives in connectors.manifesto_uploads.bulk.
+    Party manifesto PDFs supplied directly (no AW coverage). The bespoke
+    --dry-run / --check CLI lives in connectors.manifesto_uploads.bulk.
     """
     from src.ingestion.connectors.manifesto_uploads.connector import (
         ManifestoUploadsConnector,
