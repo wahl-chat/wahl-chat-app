@@ -234,6 +234,10 @@ run-manifestos: bootstrap-collection
 #   make run-manifesto-uploads ARGS="--only spd,cdu" # ingest two parties
 # Requires: make stores-up first. Needs Qdrant only (seed fixtures are read as files).
 run-manifesto-uploads: bootstrap-collection
+	@if [ "$(ENV)" = "prod" ]; then \
+		read -r -p "This embeds into the PRODUCTION Qdrant collection (wahlchat_chunks_prod). Continue? [y/N] " confirm < /dev/tty; \
+		case "$$confirm" in [yY]|[yY][eE][sS]) ;; *) echo "Aborted." && exit 1;; esac; \
+	fi
 	cd ai-backend && $(QDRANT_ENV) \
 		uv run python -m src.ingestion.connectors.manifesto_uploads.bulk $(ARGS)
 
