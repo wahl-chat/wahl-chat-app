@@ -242,10 +242,31 @@ now", not "should not exist", so setting one can never delete a past election's
 manifestos. An election that cannot be resolved at all counts as in-scope, so a
 broken path or unseeded context still fails loudly instead of being filtered away.
 
-Duplicate protection runs both ways. Before ingesting, an upload is skipped when AW
-already carries that party's programme for the same election; after AW ingests one,
-its connector deletes any uploaded copy. Both match on party + region + election
-date, so they agree on what "the same programme" means.
+Duplicate protection runs both ways, by two different mechanisms:
+
+| | Runs | Effect |
+|---|---|---|
+| pre-insert guard (`_aw_copy_exists`) | every upload run, per document | **raises** — the document is not ingested; anything already stored is left alone |
+| `post_upsert` supersede (AW connector) | after AW ingests a programme | **deletes** the uploaded copy by filter |
+
+So nothing is deleted at upload time. Both match on party + region + election date —
+per *party*, not per document. A party may have any number of files in its folder
+(each is an independent document with its own id, chunks and citation), so if a party
+splits its programme across files and AW later publishes one consolidated document,
+the supersede removes **all** of that party's uploaded files at once. Right when AW's
+document covers the same ground; a content loss when it is only a short version.
+
+**Pre-existing bucket content.** The bucket predates this connector, so a
+`MANIFESTO_UPLOADS_SOURCE=bucket` run also sees older uploads. They sort themselves
+out without configuration: Bundestagswahl-era files at `public/{party}/{file}.pdf`
+carry no election segment and are skipped by the path rule; `wahl-chat` voting
+explainers and official electoral notices fail the party gate (they are not party
+programmes and would be wrong as `party_manifesto`); Baden-Württemberg and
+Rheinland-Pfalz programmes are almost all blocked by the AW guard because AW already
+carries them; München's are ingested, since AW has no municipal coverage at all. That
+last case is the point of the connector — as is the occasional state party AW misses.
+Expect a run to report skips and failures for this legacy content; that is signal
+about what the bucket holds, not a fault.
 
 The manifest is the complete statement of what should exist: deleting a line
 retires that document's chunks on the next run.
