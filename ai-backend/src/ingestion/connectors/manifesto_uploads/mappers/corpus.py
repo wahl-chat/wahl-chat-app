@@ -46,6 +46,8 @@ class UploadManifestoMeta(BaseModel):
     document_name: str
     # Document's own date (filename); publish_date is the election date instead.
     document_date: str
+    # "wahlprogramm" | "parteidokument" — from the object path's class folder.
+    document_type: str
     election_level: Optional[str] = None
     total_pages: Optional[int] = None
     page_start: Optional[int] = None
@@ -68,6 +70,7 @@ def _content_hash(
     citation_title: str,
     object_path: str,
     document_date: date_type,
+    document_type: str,
     publish_date: date_type,
     page_start: Optional[int],
     page_end: Optional[int],
@@ -86,6 +89,7 @@ def _content_hash(
                 "citation_title": citation_title,
                 "object_path": object_path,
                 "document_date": document_date.isoformat(),
+                "document_type": document_type,
                 "publish_date": publish_date.isoformat(),
                 "page_start": page_start,
                 "page_end": page_end,
@@ -130,6 +134,7 @@ def build_upload_manifesto_records(
             storage_object_path=ref.object_path,
             document_name=ref.document_name,
             document_date=ref.document_date.isoformat(),
+            document_type=ref.document_type,
             election_level=fixture.level,
             total_pages=total_pages,
             page_start=page_start,
@@ -159,6 +164,7 @@ def build_upload_manifesto_records(
                     citation_title=citation_title,
                     object_path=ref.object_path,
                     document_date=ref.document_date,
+                    document_type=ref.document_type,
                     publish_date=publish_date,
                     page_start=page_start,
                     page_end=page_end,

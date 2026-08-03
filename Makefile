@@ -237,9 +237,15 @@ run-manifesto-uploads: bootstrap-collection
 	cd ai-backend && $(QDRANT_ENV) \
 		uv run python -m src.ingestion.connectors.manifesto_uploads.bulk $(ARGS)
 
-# Upload staged PDFs to the bucket AND grant public read — citations are plain
-# GCS URLs governed by object ACLs, not storage.rules, so skipping the ACL step
-# 403s every citation; the two steps are deliberately one target.
+# Upload staged PDFs to the bucket with public read applied AS PART OF each copy —
+# citations are plain GCS URLs governed by object ACLs, not storage.rules. A
+# separate ACL pass after the copy is not safe: if it fails (permissions, auth,
+# glob mismatch) the objects already exist and every citation 403s, which is a
+# half-done upload rather than an obvious failure. --predefined-acl makes each
+# object public as it lands, and the target then fails unless a representative
+# citation actually resolves.
+# Requires the bucket to use object ACLs (NOT uniform bucket-level access), which
+# is what serving citations by plain GCS URL already implies.
 #   make upload-manifesto-uploads ELECTION=<context_id>
 #   make upload-manifesto-uploads ENV=prod
 # Requires the gcloud CLI, authenticated with write access.
@@ -255,17 +261,23 @@ upload-manifesto-uploads:
 	@if [ -n "$(ELECTION)" ]; then \
 	  test -d "firebase/storage_data/public/$(ELECTION)" || \
 	    (echo "ERROR: firebase/storage_data/public/$(ELECTION) does not exist" && exit 1); \
-	  SRC="firebase/storage_data/public/$(ELECTION)"; SCOPE="public/$(ELECTION)/**"; \
+	  SRC="firebase/storage_data/public/$(ELECTION)"; \
 	else \
-	  SRC="firebase/storage_data/public/*"; SCOPE="public/**"; \
+	  SRC="firebase/storage_data/public/*"; \
 	fi; \
-	echo "Uploading $$SRC -> gs://$(UPLOAD_BUCKET)/public/ ..."; \
-	gcloud storage cp -r $$SRC "gs://$(UPLOAD_BUCKET)/public/" && \
-	echo "Granting public read on gs://$(UPLOAD_BUCKET)/$$SCOPE ..." && \
-	gcloud storage objects update "gs://$(UPLOAD_BUCKET)/$$SCOPE" \
-	  --add-acl-grant=entity=AllUsers,role=READER
-	@echo "Done. Verify a citation resolves, e.g.:"
-	@echo "  curl -sI 'https://storage.googleapis.com/$(UPLOAD_BUCKET)/public/$(if $(ELECTION),$(ELECTION)/,)…' | head -1"
+	REL=$$(cd firebase/storage_data/public && \
+	  find $(if $(ELECTION),"$(ELECTION)",.) -type f -name '*.pdf' | head -1 | sed 's|^\./||'); \
+	test -n "$$REL" || (echo "ERROR: no staged PDF found to upload or verify" && exit 1); \
+	echo "Uploading $$SRC -> gs://$(UPLOAD_BUCKET)/public/ (public-read) ..."; \
+	gcloud storage cp -r --predefined-acl=publicRead $$SRC "gs://$(UPLOAD_BUCKET)/public/" || exit 1; \
+	URL="https://storage.googleapis.com/$(UPLOAD_BUCKET)/public/$$REL"; \
+	echo "Verifying a citation resolves publicly: $$URL"; \
+	CODE=$$(curl -s -o /dev/null -w '%{http_code}' -I "$$URL"); \
+	test "$$CODE" = "200" || (echo "ERROR: citation check failed with HTTP $$CODE for $$URL" && \
+	  echo "       Objects were uploaded but are NOT publicly readable — citations will 403." && \
+	  echo "       If the bucket uses uniform bucket-level access, grant public read at the" && \
+	  echo "       bucket level instead of per object." && exit 1); \
+	echo "Done. Citation verified (HTTP 200): $$URL"
 
 # collect-speeches: optional --from-jsonl backfill that replays speeches.jsonl
 # through the relocated corpus mapper without hitting the DIP API.

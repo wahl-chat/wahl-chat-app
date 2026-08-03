@@ -102,9 +102,9 @@ def list_uploaded_objects(
     if not found and blobs:
         raise BucketListingError(
             f"gs://{bucket_name}/{UPLOAD_PREFIX} holds {len(blobs)} object(s) but none "
-            "match 'public/{election}/{party}/{name}_YYYY-MM-DD.pdf'. Refusing to "
-            "treat this as an empty work-list, which would retire every uploaded "
-            "manifesto in the corpus"
+            "match 'public/{election}/{wahlprogramme|parteidokumente}/{party}/"
+            "{name}_YYYY-MM-DD.pdf'. Refusing to treat this as an empty work-list, "
+            "which would retire every uploaded manifesto in the corpus"
         )
 
     logger.info(

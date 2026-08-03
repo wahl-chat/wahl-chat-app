@@ -3,14 +3,20 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-The upload path IS the metadata: ``public/{context_id}/{party_id}/{name}_{date}.pdf``.
+The upload path IS the metadata:
+``public/{context_id}/{doc_folder}/{party_id}/{name}_{date}.pdf``.
 
-Election and party come from the path, not a declared field, so they can't disagree
-with where the file lives. ``document_date`` (the filename suffix) is kept in
-``meta`` — NOT the chunk ``publish_date``, which is the election date instead
-(matches AW-sourced manifestos, same retrieval window). ``citation_url`` always
-points at the bucket, even when bytes are read from the local staging copy (same
-bytes, so the page anchor is exact either way).
+Election, document class and party come from the path, not a declared field, so they
+can't disagree with where the file lives. ``document_date`` (the filename suffix) is
+kept in ``meta`` — NOT the chunk ``publish_date``, which is the ELECTION date
+instead, matching AW-sourced manifestos so both land in the same campaign retrieval
+window. ``citation_url`` always points at the bucket, even when bytes are read from
+the local staging copy (same bytes, so the page anchor is exact either way).
+
+The ``doc_folder`` segment exists to make the AW-overlap policy safe: only a
+Wahlprogramm is the kind of document Abgeordnetenwatch itself publishes, so only a
+Wahlprogramm may ever be retired because an AW copy appeared. Enforced in
+``connector.py``'s ``normalize()``, via ``UploadRef.is_wahlprogramm``.
 """
 
 from __future__ import annotations
@@ -31,9 +37,29 @@ _BUCKETS: dict[str, str] = {
 }
 _STORAGE_HOST = "https://storage.googleapis.com"
 
-# public/{context_id}/{party_id}/{name}_{YYYY-MM-DD}.pdf
+# Document classes. WAHLPROGRAMM is the election programme a party runs on — the
+# same class AW's election-program catalogue carries, and therefore the only class an
+# AW copy can supersede. PARTEIDOKUMENT is anything else we hold only BECAUSE a party
+# published no Wahlprogramm (a federal Grundsatzprogramm, a Satzung); it is never
+# retired automatically, since no AW document replaces it.
+WAHLPROGRAMM = "wahlprogramm"
+PARTEIDOKUMENT = "parteidokument"
+
+# Folder segment → document class. The folder is the plural collection name, the
+# stamped value is the singular class.
+_DOC_TYPE_BY_FOLDER: dict[str, str] = {
+    "wahlprogramme": WAHLPROGRAMM,
+    "parteidokumente": PARTEIDOKUMENT,
+}
+
+_LAYOUT = (
+    "public/{election}/{wahlprogramme|parteidokumente}/{party}/{name}_YYYY-MM-DD.pdf"
+)
+
+# public/{context_id}/{doc_folder}/{party_id}/{name}_{YYYY-MM-DD}.pdf
 _OBJECT_RE = re.compile(
-    r"^public/(?P<context_id>[^/]+)/(?P<party_id>[^/]+)/(?P<stem>.+)_(?P<date>\d{4}-\d{2}-\d{2})\.pdf$",
+    r"^public/(?P<context_id>[^/]+)/(?P<doc_folder>[^/]+)/(?P<party_id>[^/]+)/"
+    r"(?P<stem>.+)_(?P<date>\d{4}-\d{2}-\d{2})\.pdf$",
     re.IGNORECASE,
 )
 
@@ -54,11 +80,17 @@ class UploadRef:
     party_id: str
     document_name: str
     document_date: date_type
+    document_type: str
 
     @property
     def title(self) -> str:
         """Human-readable document title for citations ("Wahlprogramm SPD ...")."""
         return self.document_name.replace("-", " ").strip()
+
+    @property
+    def is_wahlprogramm(self) -> bool:
+        """Whether an AW election programme could replace this document."""
+        return self.document_type == WAHLPROGRAMM
 
     def citation_url(self, env: Optional[str] = None) -> str:
         """Public URL of this object in the *env* bucket (percent-encoded)."""
@@ -108,9 +140,7 @@ def to_object_path(value: str) -> str:
     raw = raw.replace("\\", "/")
     marker = raw.find("public/")
     if marker == -1:
-        raise UploadPathError(
-            f"{value!r} does not contain a 'public/{{election}}/{{party}}/...' component"
-        )
+        raise UploadPathError(f"{value!r} does not contain a '{_LAYOUT}' component")
     return raw[marker:]
 
 
@@ -123,9 +153,8 @@ def parse_object_path(object_path: str) -> UploadRef:
     match = _OBJECT_RE.match(object_path)
     if match is None:
         raise UploadPathError(
-            f"{object_path!r} does not match "
-            "'public/{election}/{party}/{name}_YYYY-MM-DD.pdf' — rename the file "
-            "to carry its publication date"
+            f"{object_path!r} does not match '{_LAYOUT}' — file it under the document "
+            "class folder and give it a date suffix"
         )
     try:
         document_date = date_type.fromisoformat(match.group("date"))
@@ -133,6 +162,17 @@ def parse_object_path(object_path: str) -> UploadRef:
         raise UploadPathError(
             f"{object_path!r} carries an invalid date {match.group('date')!r}"
         ) from exc
+
+    # Rejected rather than defaulted to Wahlprogramm: a typo'd folder would
+    # otherwise make a Satzung eligible for AW supersede.
+    doc_folder = match.group("doc_folder").lower()
+    try:
+        document_type = _DOC_TYPE_BY_FOLDER[doc_folder]
+    except KeyError:
+        raise UploadPathError(
+            f"{object_path!r} names an unknown document class folder {doc_folder!r}; "
+            f"expected one of {sorted(_DOC_TYPE_BY_FOLDER)}"
+        ) from None
 
     stem = match.group("stem")
     if "/" in stem:
@@ -146,6 +186,7 @@ def parse_object_path(object_path: str) -> UploadRef:
         party_id=match.group("party_id"),
         document_name=stem,
         document_date=document_date,
+        document_type=document_type,
     )
 
 

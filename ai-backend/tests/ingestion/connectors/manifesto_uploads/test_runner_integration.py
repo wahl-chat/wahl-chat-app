@@ -34,8 +34,8 @@ from src.ingestion.schemas import ChunkRecord
 from src.ingestion.setup_collection import EMBEDDING_DIM
 
 _CTX = "landtagswahl-sachsen-anhalt-2026"
-_SPD = f"public/{_CTX}/spd/Wahlprogramm-SPD_2026-06-01.pdf"
-_CDU = f"public/{_CTX}/cdu/Wahlprogramm-CDU_2026-03-24.pdf"
+_SPD = f"public/{_CTX}/wahlprogramme/spd/Wahlprogramm-SPD_2026-06-01.pdf"
+_CDU = f"public/{_CTX}/wahlprogramme/cdu/Wahlprogramm-CDU_2026-03-24.pdf"
 
 _PAGES = {
     _SPD: [(1, "Sozial und gerecht. " * 40), (2, "Arbeit und Industrie. " * 40)],
@@ -300,6 +300,112 @@ def test_retirement_leaves_other_documents_alone(connector_factory) -> None:
     run_connector(connector, qdrant, _embed(), "c")
 
     assert spd_point_ids <= set(qdrant.existing)
+
+
+def test_an_empty_work_list_retires_the_last_stored_upload(connector_factory) -> None:
+    """The desired-state contract at its edge: nothing named → nothing stored.
+
+    Retirement used to be guarded on a NON-EMPTY work-list, which left the FINAL
+    document un-retirable: fetch() fell through to the deleted PDF, returned a
+    skip_reason, and the runner preserved the old chunks forever.
+    """
+    connector = connector_factory(_SPD)
+    seeded = _Qdrant()
+    run_connector(connector, seeded, _embed(), "c")
+    stored = {str(p.id): p.payload for call in seeded.upserts for p in call["points"]}
+    assert stored, "precondition: the document is in the store"
+
+    connector = connector_factory()  # present-but-empty manifest
+    qdrant = _Qdrant(stored)
+    run_connector(connector, qdrant, _embed(), "c")
+
+    assert qdrant.existing == {}, "the last uploaded document must be retirable"
+
+
+def test_an_empty_bucket_retires_the_last_stored_upload(
+    connector_factory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The same edge on the DEPLOYED backend, where the bucket is the desired state.
+
+    A truly empty bucket is a legitimate empty work-list (a bucket with unparseable
+    content is refused upstream instead), so deleting the last object must retire it.
+    """
+    from src.ingestion.connectors.manifesto_uploads import bucket_listing
+
+    connector = connector_factory(_SPD)
+    seeded = _Qdrant()
+    run_connector(connector, seeded, _embed(), "c")
+    stored = {str(p.id): p.payload for call in seeded.upserts for p in call["points"]}
+    assert stored, "precondition: the document is in the store"
+
+    class _EmptyBucket:
+        def list_blobs(self, bucket_name: str, prefix: str = ""):  # noqa: ANN201
+            return []
+
+    monkeypatch.setenv("MANIFESTO_UPLOADS_SOURCE", "bucket")
+    monkeypatch.setattr(bucket_listing, "_client", lambda env=None: _EmptyBucket())
+
+    qdrant = _Qdrant(stored)
+    run_connector(ManifestoUploadsConnector(env="dev"), qdrant, _embed(), "c")
+
+    assert qdrant.existing == {}, "deleting the last object must retire its chunks"
+
+
+def test_an_aw_publication_retires_the_uploaded_wahlprogramm(connector_factory) -> None:
+    """End-to-end automatic cleanup, with the document still in the manifest.
+
+    Previously the delete lived in the AW connector's post_upsert — a one-shot side
+    effect that, if it failed, never ran again because the AW id was already complete.
+    Deciding it here, per document, on every uploads run makes it idempotent, and the
+    operator never has to remove chunks by hand.
+    """
+    connector = connector_factory(_SPD)
+    seeded = _Qdrant()
+    run_connector(connector, seeded, _embed(), "c")
+    stored = {str(p.id): p.payload for call in seeded.upserts for p in call["points"]}
+    assert stored, "precondition: the upload is in the store"
+
+    class _AwPresent(_Qdrant):
+        def count(self, **kwargs):  # noqa: ANN003, ANN201
+            return types.SimpleNamespace(count=214)  # AW now carries the programme
+
+    connector = connector_factory(_SPD)  # unchanged manifest — no operator step
+    qdrant = _AwPresent(stored)
+    run_connector(connector, qdrant, _embed(), "c")
+
+    assert qdrant.existing == {}, "the AW copy must retire the uploaded duplicate"
+
+
+def test_an_unavailable_overlap_check_writes_nothing_and_retries_next_run(
+    connector_factory,
+) -> None:
+    """A transient count failure must not leave a permanent duplicate.
+
+    Failing open wrote the upload while assuming "no AW copy"; the next healthy run
+    then detected the AW copy and normalize() deliberately preserved the stored
+    upload, so the duplicate could never be cleaned up.
+    """
+
+    class _BrokenCount(_Qdrant):
+        def count(self, **kwargs):  # noqa: ANN003, ANN201
+            raise RuntimeError("qdrant unavailable")
+
+    connector = connector_factory(_SPD)
+    broken = _BrokenCount()
+    first = run_connector(connector, broken, _embed(), "c")
+
+    assert broken.upserts == [], "nothing may be written while the AW check is unknown"
+    assert first.chunks_upserted == 0
+    assert first.failed_ids == (_SPD,), "the document is reported, to be retried"
+
+    # Store healthy again: the document is re-offered and ingested exactly once.
+    connector = connector_factory(_SPD)
+    healthy = _Qdrant()
+    second = run_connector(connector, healthy, _embed(), "c")
+
+    assert second.processed == 1
+    assert second.failed_ids == ()
+    assert healthy.upserts
 
 
 def test_replaced_document_rewrites_instead_of_duplicating(

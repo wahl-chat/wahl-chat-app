@@ -29,10 +29,10 @@ from src.ingestion.connectors.manifesto_uploads.storage_paths import parse_objec
 from src.ingestion.ids import compute_source_item_id
 from src.ingestion.schemas import AuthorityTier, SourceType
 
-_PATH = "public/landtagswahl-sachsen-anhalt-2026/spd/Wahlprogramm-SPD_2026-06-01.pdf"
+_PATH = "public/landtagswahl-sachsen-anhalt-2026/wahlprogramme/spd/Wahlprogramm-SPD_2026-06-01.pdf"
 _URL = (
     "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/"
-    "public/landtagswahl-sachsen-anhalt-2026/spd/Wahlprogramm-SPD_2026-06-01.pdf"
+    "public/landtagswahl-sachsen-anhalt-2026/wahlprogramme/spd/Wahlprogramm-SPD_2026-06-01.pdf"
 )
 
 FIXTURE = ElectionFixture(

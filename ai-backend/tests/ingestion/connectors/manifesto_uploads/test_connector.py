@@ -13,6 +13,7 @@ existing chunks rather than being silently dropped from the corpus.
 
 from __future__ import annotations
 
+import types
 from pathlib import Path
 from typing import Optional
 
@@ -20,13 +21,14 @@ import pytest
 
 from src.ingestion.connectors.manifesto_uploads.connector import (
     ManifestoUploadsConnector,
+    ManifestUnavailable,
     load_manifest,
 )
 from src.ingestion.connectors.manifesto_uploads.storage_paths import UploadPathError
 
 _CTX = "landtagswahl-sachsen-anhalt-2026"
-_SPD = f"public/{_CTX}/spd/Wahlprogramm-SPD_2026-06-01.pdf"
-_CDU = f"public/{_CTX}/cdu/Wahlprogramm-CDU_2026-03-24.pdf"
+_SPD = f"public/{_CTX}/wahlprogramme/spd/Wahlprogramm-SPD_2026-06-01.pdf"
+_CDU = f"public/{_CTX}/wahlprogramme/cdu/Wahlprogramm-CDU_2026-03-24.pdf"
 
 
 def _manifest(tmp_path: Path, *lines: str) -> Path:
@@ -68,12 +70,23 @@ class TestLoadManifest:
 
     def test_malformed_line_raises_with_line_number(self, tmp_path: Path) -> None:
         # Skipping it silently would leave a document un-ingested with no signal.
-        path = _manifest(tmp_path, _SPD, "public/e/spd/no-date.pdf")
+        path = _manifest(tmp_path, _SPD, "public/e/wahlprogramme/spd/no-date.pdf")
         with pytest.raises(UploadPathError, match="dev.txt:2"):
             load_manifest(path)
 
-    def test_absent_manifest_is_empty_not_an_error(self, tmp_path: Path) -> None:
-        assert load_manifest(tmp_path / "missing.txt") == []
+    def test_absent_manifest_raises_rather_than_reading_as_empty(
+        self, tmp_path: Path
+    ) -> None:
+        # An empty work-list retires the stored uploads, so a missing file must
+        # never produce one — that would let a bad deploy wipe the corpus.
+        with pytest.raises(ManifestUnavailable, match="refusing"):
+            load_manifest(tmp_path / "missing.txt")
+
+    def test_present_but_empty_manifest_is_a_valid_empty_work_list(
+        self, tmp_path: Path
+    ) -> None:
+        # The deliberate counterpart: the file exists and says "nothing".
+        assert load_manifest(_manifest(tmp_path)) == []
 
 
 # ===========================================================================
@@ -82,11 +95,20 @@ class TestLoadManifest:
 
 
 class _FakeQdrant:
-    """Serves the connector's stored-object-path scroll."""
+    """Serves the connector's stored-object-path scroll and AW-overlap count."""
 
     def __init__(self, stored_paths: list[str]) -> None:
         self._stored = stored_paths
         self.scroll_filters: list[object] = []
+
+    def count(self, **kwargs):  # noqa: ANN003, ANN201
+        """No AW-sourced copy of anything. Must be answered, not left to raise.
+
+        A store that cannot answer the overlap count now fails the item rather than
+        assuming "no AW copy" (see OverlapCheckUnavailable), so a fake without this
+        method would make every normalize() test fail for the wrong reason.
+        """
+        return types.SimpleNamespace(count=0)
 
     def scroll(self, **kwargs):  # noqa: ANN003, ANN201
         self.scroll_filters.append(kwargs.get("scroll_filter"))
@@ -176,7 +198,9 @@ class TestNormalizeErrors:
             connector.normalize(raw)
 
     def test_unknown_election_raises(self, tmp_path: Path) -> None:
-        bad = "public/landtagswahl-nowhere-2026/spd/Programm_2026-01-01.pdf"
+        bad = (
+            "public/landtagswahl-nowhere-2026/wahlprogramme/spd/Programm_2026-01-01.pdf"
+        )
         connector = _connector(_manifest(tmp_path, bad), stored=[])
         connector.discover(None)
         with pytest.raises(ValueError, match="unknown election"):
@@ -185,7 +209,7 @@ class TestNormalizeErrors:
             )
 
     def test_party_not_in_election_raises(self, tmp_path: Path) -> None:
-        bad = f"public/{_CTX}/nichtantretende-partei/Programm_2026-01-01.pdf"
+        bad = f"public/{_CTX}/wahlprogramme/nichtantretende-partei/Programm_2026-01-01.pdf"
         connector = _connector(_manifest(tmp_path, bad), stored=[])
         connector.discover(None)
         with pytest.raises(ValueError, match="not configured for election"):

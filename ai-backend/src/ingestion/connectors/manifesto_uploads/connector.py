@@ -5,15 +5,25 @@
 """
 ManifestoUploadsConnector — party manifestos we received as files, not via AW.
 
-Ingests uploaded PDFs (``public/{context_id}/{party_id}/{name}_{date}.pdf``) into
+Ingests uploaded PDFs
+(``public/{context_id}/{doc_class}/{party_id}/{name}_{date}.pdf``) into
 the same ``party_manifesto`` corpus as AW, tagged ``source="upload"``. Election +
 party come from the object path; region/level/publish_date are derived from the
 Firestore fixtures (hard-fail rather than default), since a wrong value would make
 a chunk silently unreachable at query time.
 
-De-duped against AW both ways: skipped here if AW already has the programme
-(``_aw_copy_exists``); deleted by AW's ``post_upsert`` once AW ingests it later
-(``connectors/manifestos/supersede.py``).
+AW overlap is ONE policy with TWO triggers, and only ``wahlprogramm`` documents are
+ever eligible — a Satzung or Grundsatzprogramm is not something AW publishes:
+
+  * here, per document, on every run: a Wahlprogramm whose AW copy exists normalises
+    to ``[]``, which the runner turns into a footprint delete. This covers the
+    upload-arrives-second order and is the idempotent backstop for the other.
+  * ``connectors/manifestos/supersede.py``, from AW's ``post_upsert``: retires the
+    same documents the moment AW publishes them, which is the common order (parties
+    send drafts before AW lists the final text) and avoids waiting a run.
+
+Both decide per document from its class folder, never from a party+region+date
+filter, so neither can remove a document the AW copy does not replace.
 """
 
 from __future__ import annotations
@@ -56,6 +66,27 @@ _SOURCE_ENV = "MANIFESTO_UPLOADS_SOURCE"
 
 # Optional election-date floor (ISO YYYY-MM-DD). See resolve_since_floor.
 _SINCE_ENV = "MANIFESTO_UPLOADS_SINCE"
+
+
+class ManifestUnavailable(RuntimeError):
+    """The manifest file backing the work-list does not exist.
+
+    Deliberately distinct from an EMPTY work-list: an absent file is a
+    misconfiguration (wrong ENV, manifest not shipped in the image), while an
+    empty-but-present manifest is a real "nothing should exist" that retires the
+    stored uploads. Conflating the two would let a bad deploy wipe the uploaded
+    corpus. Mirrors BucketListingError for the bucket backend.
+    """
+
+
+class OverlapCheckUnavailable(RuntimeError):
+    """The Abgeordnetenwatch-overlap check could not be completed.
+
+    Raised rather than assuming "no AW copy": failing open writes a duplicate that
+    no later run cleans up, because the next healthy run's guard fires and
+    normalize() then deliberately preserves the stored upload. Surfaced as a
+    per-item failure so the document is simply retried on the next run.
+    """
 
 
 def resolve_since_floor(value: Optional[str] = None) -> Optional[date_type]:
@@ -111,14 +142,19 @@ def default_manifest_path(env: Optional[str] = None) -> Path:
 def load_manifest(path: Optional[Path] = None, env: Optional[str] = None) -> list[str]:
     """Read the manifest into normalised, de-duplicated object paths.
 
-    A missing manifest returns empty (nothing to ingest yet); a malformed line
-    raises UploadPathError — silently skipping it would leave a document
-    un-ingested with no signal.
+    A missing manifest raises ManifestUnavailable (an empty result would be read as
+    "retire everything"); an empty-but-present one legitimately returns []. A
+    malformed line raises UploadPathError — silently skipping it would leave a
+    document un-ingested with no signal.
     """
     manifest = path or default_manifest_path(env)
     if not manifest.exists():
-        logger.warning("no upload manifest at %s — nothing to ingest", manifest)
-        return []
+        raise ManifestUnavailable(
+            f"no upload manifest at {manifest} — refusing to treat a missing file as "
+            "an empty work-list, which would retire every uploaded manifesto in the "
+            "corpus. Create the file (an empty one is a valid 'nothing should exist') "
+            "or set MANIFESTO_UPLOADS_SOURCE=bucket"
+        )
 
     seen: dict[str, None] = {}
     for lineno, raw in enumerate(
@@ -145,8 +181,8 @@ def work_list(
     upload until redeploy. Either way this is a complete desired-state list, so a
     document dropped from it gets retired (see ``discover()``).
 
-    Raises BucketListingError on a bad bucket listing — never degrades to an empty
-    list, which would read as "retire everything".
+    Raises ManifestUnavailable / BucketListingError when the backing store cannot be
+    read — never degrades to an empty list, which would read as "retire everything".
     """
     source = (os.getenv(_SOURCE_ENV) or "manifest").strip().lower()
     if source == "manifest":
@@ -233,6 +269,10 @@ class ManifestoUploadsConnector(BaseConnector):
         # The desired state resolved by the last discover(), whichever backend
         # produced it. fetch() reads it to tell a live document from a retired one.
         self._expected_paths: set[str] = set()
+        # An EMPTY _expected_paths is only meaningful as "retire everything" once
+        # discover() has actually resolved a work-list; before that it is just an
+        # un-initialised default, so fetch() must not read it as a retirement.
+        self._discovered = False
 
     # ------------------------------------------------------------------
     # Election-date scoping
@@ -300,6 +340,9 @@ class ManifestoUploadsConnector(BaseConnector):
         """
         named = set(work_list(self._manifest_path, self._env))
         self._expected_paths = {p for p in named if self._in_scope(p)}
+        # Set only after work_list() returned — a listing failure raises, leaving
+        # the flag False so no half-resolved state can drive a retirement.
+        self._discovered = True
 
         skipped = named - self._expected_paths
         if skipped:
@@ -338,9 +381,12 @@ class ManifestoUploadsConnector(BaseConnector):
         """
         object_path = external_id
 
-        # Not in the work-list → retire. Guarded on non-empty: an empty work-list
-        # means discovery found nothing, not "retire the whole uploaded corpus".
-        if self._expected_paths and object_path not in self._expected_paths:
+        # Not in the work-list → retire. Guarded on discover() having run rather
+        # than on a non-empty work-list: an empty desired state is a legitimate
+        # "nothing should exist", and is the only way the LAST stored upload can
+        # ever be retired. An empty bucket listing is already refused upstream
+        # (bucket_listing.list_uploaded_objects) unless the bucket is truly empty.
+        if self._discovered and object_path not in self._expected_paths:
             return {"object_path": object_path, "retired": True}
 
         try:
@@ -350,18 +396,20 @@ class ManifestoUploadsConnector(BaseConnector):
         return {"object_path": object_path, **content}
 
     # ------------------------------------------------------------------
-    # AW-already-has-it guard (the mirror of the AW connector's supersede)
+    # AW-already-has-it check — re-run every run, for Wahlprogramme only, so the
+    # retirement is idempotent instead of a one-shot event on the AW side
     # ------------------------------------------------------------------
 
     def _aw_copy_exists(self, *, party_id: str, fixture: ElectionFixture) -> bool:
         """Whether an AW-sourced manifesto already covers this party and election.
 
-        Covers the order AW's own post_upsert supersede doesn't: AW already in the
-        corpus, then an upload ingested. Matches the same three fields (party,
-        region, election date) so both directions agree on "same programme".
+        Only consulted for ``wahlprogramm`` documents (see normalize): party + region
+        + election date identifies a programme, so it says nothing about whether AW
+        replaces some other document of the same party.
 
-        Returns False (proceed with the upload) when no store is bound or the count
-        fails — an unavailable store must not silently suppress an ingest.
+        Returns False (proceed with the upload) when no store is bound — a dry run
+        has nothing to compare against. Raises OverlapCheckUnavailable if the count
+        itself fails, which must not be read as "no AW copy".
         """
         qdrant = self._store_client
         if qdrant is None:
@@ -409,14 +457,10 @@ class ManifestoUploadsConnector(BaseConnector):
                 exact=True,
             ).count
         except Exception as exc:  # noqa: BLE001
-            logger.warning(
-                "could not check for an Abgeordnetenwatch copy of %s/%s: %s "
-                "— proceeding with the upload",
-                party_id,
-                fixture.context_id,
-                exc,
-            )
-            return False
+            raise OverlapCheckUnavailable(
+                f"could not check for an Abgeordnetenwatch copy of "
+                f"{party_id}/{fixture.context_id}: {exc}"
+            ) from exc
         return found > 0
 
     # ------------------------------------------------------------------
@@ -445,14 +489,38 @@ class ManifestoUploadsConnector(BaseConnector):
         except (UploadPathError, FixtureLookupError) as exc:
             raise ValueError(str(exc)) from exc
 
-        if self._aw_copy_exists(party_id=ref.party_id, fixture=fixture):
-            raise ValueError(
-                f"{object_path}: Abgeordnetenwatch already carries this programme "
-                f"(party={ref.party_id} region={fixture.region} "
-                f"election={fixture.election_date}) — not ingesting the uploaded copy, "
-                "since the AW copy is the citable public source. Remove the entry once "
-                "you have confirmed the AW document covers the same programme"
-            )
+        # AW parity applies to Wahlprogramme ONLY. AW's catalogue carries election
+        # programmes, so nothing it publishes replaces a Satzung or a federal
+        # Grundsatzprogramm — those are ingested whatever AW holds for the party.
+        if ref.is_wahlprogramm:
+            # A failed overlap check is a retryable per-item failure, NOT a licence to
+            # write: the runner reports it and re-offers the document next run.
+            try:
+                aw_carries_it = self._aw_copy_exists(
+                    party_id=ref.party_id, fixture=fixture
+                )
+            except OverlapCheckUnavailable as exc:
+                raise ValueError(
+                    f"{object_path}: {exc} — not ingesting this run"
+                ) from exc
+
+            if aw_carries_it:
+                # Authoritative empty result: the runner retires exactly THIS
+                # document's footprint. Deciding per document, on every run, is what
+                # makes the cleanup automatic AND safe — it can never reach a sibling
+                # upload that the AW copy does not replace, which a filter keyed on
+                # party+region+election date would.
+                logger.warning(
+                    "retiring uploaded Wahlprogramm %s — Abgeordnetenwatch now carries "
+                    "this programme (party=%s region=%s election=%s) and is the citable "
+                    "public source. Drop the manifest line (or the bucket object) to "
+                    "stop re-checking it.",
+                    object_path,
+                    ref.party_id,
+                    fixture.region,
+                    fixture.election_date,
+                )
+                return []
 
         chunk_tuples = chunk_pages(raw["pages"])
         if not chunk_tuples:

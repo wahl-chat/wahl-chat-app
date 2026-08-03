@@ -97,8 +97,14 @@ Connectors are registered in a closed `{connector_id: factory}` map
   `connectors/manifestos/bulk.py`; also runnable via the registry).
 - `manifesto_uploads` — party manifesto PDFs supplied to us directly
   (`source="upload"`), for elections Abgeordnetenwatch does not cover. Same
-  `party_manifesto` corpus as `manifestos`; once AW publishes the same programme
-  the AW copy supersedes the upload (`connectors/manifestos/supersede.py`).
+  `party_manifesto` corpus as `manifestos`. An uploaded `wahlprogramm` is retired
+  automatically once AW carries the same programme (AW is the citable source); a
+  `parteidokument` never is. One policy, two triggers: AW's `post_upsert`
+  (`connectors/manifestos/supersede.py`) retires it immediately — the common order,
+  since parties send drafts before AW lists the final text — and this connector
+  re-decides the same thing per document on every run, which makes it idempotent if
+  that hook ever fails. Both read the class from the object path, so neither can
+  remove a document the AW copy does not replace.
 
 The **data contract** is the Pydantic model set in `src/ingestion/schemas.py`
 (`ChunkRecord` plus the `AuthorityTier` / `SourceType` enums and per-source
@@ -224,7 +230,10 @@ path carries the metadata — election and party must already exist in
 `parties_{context_id}.json`, since those decide whether a chunk is ever retrievable.
 
 1. Name the file `{document-name}_{YYYY-MM-DD}.pdf`, place at
-   `public/{context_id}/{party_id}/{file}.pdf` under `firebase/storage_data/`.
+   `public/{context_id}/{class}/{party_id}/{file}.pdf` under `firebase/storage_data/`,
+   where `{class}` is `wahlprogramme` (the programme the party runs on — AW may
+   later replace it) or `parteidokumente` (a Grundsatzprogramm or Satzung we hold
+   only because the party published no Wahlprogramm — never auto-retired).
 2. Add the object path to `ai-backend/data/manifesto_uploads/{env}.txt`.
 3. `make upload-manifesto-uploads` (uploads + grants public read).
 4. `make run-manifesto-uploads ARGS="--check"`, then drop `ARGS` to ingest.

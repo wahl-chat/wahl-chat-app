@@ -10,10 +10,11 @@ work-list", so a filter that merely narrows the work-list would, without care, m
 every past election's manifestos look retired and delete them. The tests below pin
 the safe behaviour: out-of-scope documents are neither ingested NOR retired.
 
-The AW guard is the missing direction of the overlap policy. The AW connector's
-post_upsert removes an uploaded copy when AW ingests the same programme, which only
-helps when AW ingestion runs AFTER the upload. This guard covers the other order —
-AW already in the corpus — where the upload would otherwise be a silent duplicate.
+The AW guard is this connector's half of the overlap policy: re-decided on every run,
+so it also backstops AW's post_upsert (tested in ../manifesto_uploads/test_supersede.py)
+if that hook ever fails. It is scoped to the document CLASS: a Wahlprogramm is retired
+once AW carries the same programme, while a Satzung or Grundsatzprogramm — which AW
+never publishes — is kept whatever AW holds for that party.
 """
 
 from __future__ import annotations
@@ -39,8 +40,8 @@ from src.ingestion.connectors.manifesto_uploads.connector import (
 # distinction these tests exist to make.
 _FUTURE_CTX = "landtagswahl-futureland-2026"
 _PAST_CTX = "landtagswahl-pastland-2026"
-_ST = f"public/{_FUTURE_CTX}/spd/Wahlprogramm-SPD_2026-06-01.pdf"
-_BW = f"public/{_PAST_CTX}/spd/Wahlprogramm-Past_2026-01-20.pdf"
+_ST = f"public/{_FUTURE_CTX}/wahlprogramme/spd/Wahlprogramm-SPD_2026-06-01.pdf"
+_BW = f"public/{_PAST_CTX}/wahlprogramme/spd/Wahlprogramm-Past_2026-01-20.pdf"
 
 
 @pytest.fixture(autouse=True)
@@ -144,14 +145,16 @@ class TestInScope:
     def test_document_date_is_irrelevant(self) -> None:
         # This document is from 2019 but its ELECTION is in 2026,
         # so a 2026 floor keeps it: the floor scopes elections, not documents.
-        gartenpartei = f"public/{_FUTURE_CTX}/gartenpartei/Satzung_2019-11-30.pdf"
+        gartenpartei = (
+            f"public/{_FUTURE_CTX}/parteidokumente/gartenpartei/Satzung_2019-11-30.pdf"
+        )
         assert in_scope(gartenpartei, date(2026, 7, 29), "dev") is True
 
     @pytest.mark.parametrize(
         "unresolvable",
         [
-            "public/landtagswahl-nowhere-2026/spd/Programm_2026-01-01.pdf",
-            f"public/{_FUTURE_CTX}/nichtantretende/P_2026-01-01.pdf",
+            "public/landtagswahl-nowhere-2026/wahlprogramme/spd/Programm_2026-01-01.pdf",
+            f"public/{_FUTURE_CTX}/wahlprogramme/nichtantretende/P_2026-01-01.pdf",
         ],
     )
     def test_unresolvable_documents_count_as_in_scope(self, unresolvable: str) -> None:
@@ -263,7 +266,7 @@ _PAGES = {"pages": [(1, "Aus dem Wahlprogramm. " * 40)], "total_pages": 1}
 
 
 class TestAwGuard:
-    """An upload is skipped when AW already carries that party's programme."""
+    """A Wahlprogramm is retired once AW carries it; other documents never are."""
 
     def test_ingests_normally_when_aw_has_nothing(self, tmp_path: Path) -> None:
         connector = _connector(tmp_path, [_ST], non_upload=0)
@@ -271,23 +274,34 @@ class TestAwGuard:
         records = connector.normalize({"object_path": _ST, **_PAGES})
         assert records and records[0].party_id == "spd"
 
-    def test_skips_when_an_aw_copy_exists(self, tmp_path: Path) -> None:
-        connector = _connector(tmp_path, [_ST], non_upload=214)
-        connector.discover(None)
-        with pytest.raises(ValueError, match="Abgeordnetenwatch already carries"):
-            connector.normalize({"object_path": _ST, **_PAGES})
+    def test_an_aw_copy_retires_the_uploaded_wahlprogramm(self, tmp_path: Path) -> None:
+        """Zero chunks is the authoritative "this should not exist".
 
-    def test_skipping_raises_rather_than_returning_no_chunks(
-        self, tmp_path: Path
-    ) -> None:
-        # Raising is a per-item SKIP: the runner leaves any stored chunks intact.
-        # Returning [] would be an authoritative "this should not exist" and delete
-        # them — removal is the AW connector's post_upsert job, not this guard's, so
-        # only one mechanism ever deletes.
+        The runner turns it into a footprint delete of exactly this document, so the
+        cleanup needs no operator step — and is re-decided every run rather than
+        firing once, from the AW side, after the AW chunks are already written.
+        """
         connector = _connector(tmp_path, [_ST], stored=[_ST], non_upload=214)
         connector.discover(None)
-        with pytest.raises(ValueError):
-            connector.normalize({"object_path": _ST, **_PAGES})
+        assert connector.normalize({"object_path": _ST, **_PAGES}) == []
+
+    def test_a_grundsatzprogramm_survives_an_aw_publication(
+        self, tmp_path: Path
+    ) -> None:
+        """The P1 regression, now settled by the document class.
+
+        AW publishing this party's Wahlprogramm makes the overlap count non-zero for
+        party+region+election date — but a Satzung or Grundsatzprogramm is not a
+        document AW carries, so it must be ingested and kept.
+        """
+        satzung = (
+            f"public/{_FUTURE_CTX}/parteidokumente/gartenpartei/Satzung_2019-11-30.pdf"
+        )
+        connector = _connector(tmp_path, [satzung], stored=[satzung], non_upload=214)
+        connector.discover(None)
+        records = connector.normalize({"object_path": satzung, **_PAGES})
+        assert records, "a non-Wahlprogramm must never be retired by an AW programme"
+        assert records[0].party_id == "gartenpartei"
 
     def test_guard_filter_excludes_our_own_uploads(self, tmp_path: Path) -> None:
         """The count must ignore source="upload", or a re-run blocks itself."""
@@ -325,8 +339,16 @@ class TestAwGuard:
         connector.discover(None)
         assert connector.normalize({"object_path": _ST, **_PAGES})
 
-    def test_a_failing_count_does_not_block_the_ingest(self, tmp_path: Path) -> None:
-        # An unavailable store must not silently suppress documents.
+    def test_a_failing_count_fails_the_item_instead_of_writing_a_duplicate(
+        self, tmp_path: Path
+    ) -> None:
+        """An unavailable overlap check must not be read as "no AW copy".
+
+        Failing open here writes a duplicate that no later run removes: the next
+        healthy run's guard fires, and normalize() then deliberately preserves the
+        stored upload. A per-item failure just retries on the next run.
+        """
+
         class _Broken(_Qdrant):
             def count(self, **kwargs):  # noqa: ANN003, ANN201
                 raise RuntimeError("unavailable")
@@ -336,4 +358,5 @@ class TestAwGuard:
         connector = ManifestoUploadsConnector(manifest_path=manifest, env="dev")
         connector.bind_store(_Broken([]), "c")
         connector.discover(None)
-        assert connector.normalize({"object_path": _ST, **_PAGES})
+        with pytest.raises(ValueError, match="could not check"):
+            connector.normalize({"object_path": _ST, **_PAGES})

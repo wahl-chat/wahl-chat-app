@@ -31,8 +31,8 @@ from src.ingestion.connectors.manifesto_uploads.bucket_listing import (
 from src.ingestion.connectors.manifesto_uploads.connector import work_list
 
 _CTX = "landtagswahl-sachsen-anhalt-2026"
-_SPD = f"public/{_CTX}/spd/Wahlprogramm-SPD_2026-06-01.pdf"
-_CDU = f"public/{_CTX}/cdu/Wahlprogramm-CDU_2026-03-24.pdf"
+_SPD = f"public/{_CTX}/wahlprogramme/spd/Wahlprogramm-SPD_2026-06-01.pdf"
+_CDU = f"public/{_CTX}/wahlprogramme/cdu/Wahlprogramm-CDU_2026-03-24.pdf"
 
 
 class _FakeStorage:
@@ -75,10 +75,12 @@ class TestListing:
         "junk",
         [
             "public/icons/spd.png",  # a context icon, not a manifesto
-            f"public/{_CTX}/spd/",  # directory placeholder
-            f"public/{_CTX}/spd/no-date.pdf",  # missing the date suffix
-            f"public/{_CTX}/spd/notes_2026-06-01.txt",  # not a PDF
-            f"public/{_CTX}/loose_2026-06-01.pdf",  # missing the party segment
+            f"public/{_CTX}/wahlprogramme/spd/",  # directory placeholder
+            f"public/{_CTX}/wahlprogramme/spd/no-date.pdf",  # missing the date suffix
+            f"public/{_CTX}/wahlprogramme/spd/notes_2026-06-01.txt",  # not a PDF
+            f"public/{_CTX}/wahlprogramme/loose_2026-06-01.pdf",  # no party segment
+            f"public/{_CTX}/spd/Programm_2026-06-01.pdf",  # no document class folder
+            f"public/{_CTX}/programme/spd/P_2026-06-01.pdf",  # unknown class folder
         ],
     )
     def test_non_manifesto_objects_are_ignored_not_fatal(self, junk: str) -> None:
@@ -163,6 +165,22 @@ class TestWorkListSwitch:
         monkeypatch.setenv("MANIFESTO_UPLOADS_SOURCE", "s3")
         with pytest.raises(ValueError, match="not a known work-list backend"):
             work_list(None, "dev")
+
+    def test_bucket_backend_starts_for_an_env_that_ships_no_manifest(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path
+    ) -> None:
+        """prod has no checked-in manifest, and the bucket backend must not need one.
+
+        The CLI used to preflight the manifest whatever backend was selected, so a
+        bucket-backed ENV=prod run exited before it ever listed the bucket.
+        """
+        monkeypatch.setenv("MANIFESTO_UPLOADS_SOURCE", "bucket")
+        monkeypatch.setattr(
+            bucket_listing, "_client", lambda env=None: _FakeStorage([_SPD])
+        )
+        # An explicitly-passed manifest path that does not exist is also irrelevant
+        # on this backend — the bucket is the desired state.
+        assert work_list(tmp_path / "prod.txt", "prod") == [_SPD]
 
 
 def test_bucket_deletion_retires_the_document(monkeypatch: pytest.MonkeyPatch) -> None:

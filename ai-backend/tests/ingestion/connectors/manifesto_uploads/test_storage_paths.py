@@ -28,7 +28,10 @@ from src.ingestion.connectors.manifesto_uploads.storage_paths import (
     to_object_path,
 )
 
-_ST = "public/landtagswahl-sachsen-anhalt-2026/spd/Wahlprogramm-SPD-Sachsen-Anhalt-2026_2026-06-01.pdf"
+_ST = (
+    "public/landtagswahl-sachsen-anhalt-2026/wahlprogramme/spd/"
+    "Wahlprogramm-SPD-Sachsen-Anhalt-2026_2026-06-01.pdf"
+)
 
 
 # ===========================================================================
@@ -51,19 +54,25 @@ class TestParseObjectPath:
         assert parse_object_path(_ST).title == "Wahlprogramm SPD Sachsen Anhalt 2026"
 
     def test_document_name_may_contain_dots_and_digits(self) -> None:
-        ref = parse_object_path("public/e/spd/Programm-Rev.1.0-2026_2026-03-05.pdf")
+        ref = parse_object_path(
+            "public/e/wahlprogramme/spd/Programm-Rev.1.0-2026_2026-03-05.pdf"
+        )
         assert ref.document_name == "Programm-Rev.1.0-2026"
         assert ref.document_date == date(2026, 3, 5)
 
     @pytest.mark.parametrize(
         "bad, why",
         [
-            ("public/e/spd/no-date.pdf", "missing date suffix"),
-            ("public/e/spd/doc_2026-6-1.pdf", "date not zero-padded ISO"),
-            ("public/e/doc_2026-06-01.pdf", "missing party segment"),
-            ("private/e/spd/doc_2026-06-01.pdf", "not under public/"),
-            ("public/e/spd/doc_2026-06-01.txt", "not a pdf"),
-            ("public/e/spd/doc_2026-06-01.pdf/x", "trailing segment"),
+            ("public/e/wahlprogramme/spd/no-date.pdf", "missing date suffix"),
+            ("public/e/wahlprogramme/spd/doc_2026-6-1.pdf", "date not zero-padded ISO"),
+            ("public/e/wahlprogramme/doc_2026-06-01.pdf", "missing party segment"),
+            ("private/e/wahlprogramme/spd/doc_2026-06-01.pdf", "not under public/"),
+            ("public/e/wahlprogramme/spd/doc_2026-06-01.txt", "not a pdf"),
+            ("public/e/wahlprogramme/spd/doc_2026-06-01.pdf/x", "trailing segment"),
+            # The class folder is mandatory: the pre-class 3-segment layout no
+            # longer parses, so a stale path can never be read as a Wahlprogramm.
+            ("public/e/spd/doc_2026-06-01.pdf", "no document class folder"),
+            ("public/e/programme/spd/doc_2026-06-01.pdf", "unknown class folder"),
         ],
     )
     def test_rejects_malformed_paths(self, bad: str, why: str) -> None:
@@ -74,7 +83,7 @@ class TestParseObjectPath:
         # Shape-valid but not a real date. Rejected rather than coerced, because
         # this date is shown to users on the source card.
         with pytest.raises(UploadPathError, match="invalid date"):
-            parse_object_path("public/e/spd/doc_2026-02-30.pdf")
+            parse_object_path("public/e/wahlprogramme/spd/doc_2026-02-30.pdf")
 
 
 # ===========================================================================
@@ -102,9 +111,12 @@ class TestToObjectPath:
     def test_percent_encoded_url_is_decoded(self) -> None:
         encoded = (
             "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/"
-            "public/e/spd/Programm%20A_2026-06-01.pdf"
+            "public/e/wahlprogramme/spd/Programm%20A_2026-06-01.pdf"
         )
-        assert to_object_path(encoded) == "public/e/spd/Programm A_2026-06-01.pdf"
+        assert (
+            to_object_path(encoded)
+            == "public/e/wahlprogramme/spd/Programm A_2026-06-01.pdf"
+        )
 
     def test_windows_separators_normalise(self) -> None:
         assert to_object_path(_ST.replace("/", "\\")) == _ST
@@ -140,8 +152,8 @@ class TestStorageUrl:
         )
 
     def test_slashes_survive_but_spaces_are_encoded(self) -> None:
-        url = storage_url("public/e/spd/Programm A_2026-06-01.pdf", "dev")
-        assert url.endswith("/public/e/spd/Programm%20A_2026-06-01.pdf")
+        url = storage_url("public/e/wahlprogramme/spd/Programm A_2026-06-01.pdf", "dev")
+        assert url.endswith("/public/e/wahlprogramme/spd/Programm%20A_2026-06-01.pdf")
 
     def test_unknown_env_is_rejected(self) -> None:
         with pytest.raises(UploadPathError, match="no Storage bucket"):
@@ -154,10 +166,11 @@ class TestStorageUrl:
 
 def test_staging_path_points_into_firebase_storage_data() -> None:
     path = staging_path(_ST)
-    assert path.parts[-5:] == (
+    assert path.parts[-6:] == (
         "storage_data",
         "public",
         "landtagswahl-sachsen-anhalt-2026",
+        "wahlprogramme",
         "spd",
         "Wahlprogramm-SPD-Sachsen-Anhalt-2026_2026-06-01.pdf",
     )

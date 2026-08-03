@@ -29,13 +29,17 @@ if __name__ == "__main__":
     if _env_path.exists():
         load_dotenv(_env_path, override=False)
 
+from src.ingestion.connectors.manifesto_uploads.bucket_listing import (
+    BucketListingError,
+)
 from src.ingestion.connectors.manifesto_uploads.connector import (
     ManifestoUploadsConnector,
+    ManifestUnavailable,
     default_manifest_path,
-    load_manifest,
     in_scope,
     load_pdf_pages,
     resolve_since_floor,
+    work_list,
 )
 from src.ingestion.connectors.manifesto_uploads.election_fixtures import (
     FixtureLookupError,
@@ -89,7 +93,8 @@ def check(paths: list[str], env: Optional[str] = None) -> int:
         staged = staging_path(path)
         where = "staged" if staged.exists() else "bucket only"
         print(
-            f"  OK    {ref.party_id:17s} region={fixture.region:9s} "
+            f"  OK    {ref.party_id:17s} {ref.document_type:15s} "
+            f"region={fixture.region:9s} "
             f"level={fixture.level:9s} publish={fixture.election_date} "
             f"doc={ref.document_date} [{where}]\n"
             f"          {build_citation_title(ref, fixture)}\n"
@@ -264,23 +269,45 @@ if __name__ == "__main__":
         sys.exit(1)
 
     manifest_path = Path(args.manifest).expanduser() if args.manifest else None
+    read_only = args.check or args.dry_run
+
+    # Preflight the work-list that will ACTUALLY be ingested, not the checked-in
+    # manifest: under MANIFESTO_UPLOADS_SOURCE=bucket the connector re-discovers
+    # from the bucket, so validating the manifest here would gate a different set
+    # of documents — and would refuse to start at all for an ENV that ships no
+    # manifest file.
     try:
-        entries = load_manifest(manifest_path, args.env)
-    except UploadPathError as exc:
+        entries = work_list(manifest_path, args.env)
+    except (
+        UploadPathError,
+        ManifestUnavailable,
+        BucketListingError,
+        ValueError,
+    ) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(1)
 
     if not entries:
         print(
-            f"No manifest entries found ({manifest_path or default_manifest_path(args.env)}).",
+            f"Work-list is empty (manifest: {manifest_path or default_manifest_path(args.env)}; "
+            "set MANIFESTO_UPLOADS_SOURCE=bucket to use the live bucket instead).",
             file=sys.stderr,
         )
-        sys.exit(1)
+        # An empty work-list is a valid complete desired state, so the ingest path
+        # must still run — that is what retires uploads no longer wanted, including
+        # the last one. Only the read-only modes have nothing left to show.
+        if read_only:
+            sys.exit(0)
+        print(
+            "Continuing: any uploaded manifesto still stored for an in-scope "
+            "election will be RETIRED from the corpus.",
+            file=sys.stderr,
+        )
 
     # --check / --dry-run must show what would ACTUALLY be ingested, so the floor
     # applies to them too. (ingest() re-derives scope inside the connector, where
     # out-of-scope documents are also protected from retirement.)
-    if since_floor is not None:
+    if since_floor is not None and entries:
         in_window = [e for e in entries if in_scope(e, since_floor, args.env)]
         if len(in_window) != len(entries):
             print(
@@ -293,19 +320,24 @@ if __name__ == "__main__":
                 f"No documents with an election on or after {since_floor}.",
                 file=sys.stderr,
             )
-            sys.exit(1)
+            if read_only:
+                sys.exit(0)
 
     only = (
         {slug.strip().lower() for slug in args.only.split(",") if slug.strip()}
         if args.only
         else None
     )
-    entries = _filter_by_party(entries, only)
-    if not entries:
-        print(
-            f"ERROR: --only {args.only!r} matched no manifest entries", file=sys.stderr
-        )
-        sys.exit(1)
+    if only:
+        entries = _filter_by_party(entries, only)
+        # An explicit --only that selects nothing is a user error, not a desired
+        # state — never let it read as "retire everything".
+        if not entries:
+            print(
+                f"ERROR: --only {args.only!r} matched no work-list entries",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
     print(f"{len(entries)} document(s) selected\n")
     try:
