@@ -142,5 +142,17 @@
     "background_color": "#ffffff",
     "logo_src": "",
     "is_small_party": true
+  },
+  "volt": {
+    "party_id": "volt",
+    "name": "Volt",
+    "long_name": "Volt Deutschland",
+    "manifesto_url": null,
+    "candidate": null,
+    "website_url": null,
+    "is_already_in_parliament": false,
+    "background_color": "#ffffff",
+    "logo_src": "",
+    "is_small_party": true
   }
 }

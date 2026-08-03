@@ -29,6 +29,7 @@ public/landtagswahl-sachsen-anhalt-2026/fdp/Wahlprogramm-FDP-Sachsen-Anhalt-2026
 public/landtagswahl-sachsen-anhalt-2026/bsw/Wahlprogramm-BSW-Sachsen-Anhalt-2026_2026-03-07.pdf
 public/landtagswahl-sachsen-anhalt-2026/fw/Wahlprogramm-Freie-Waehler-Sachsen-Anhalt-2026_2026-07-14.pdf
 public/landtagswahl-sachsen-anhalt-2026/basis/Wahlprogramm-dieBasis-Sachsen-Anhalt-2026_2026-07-08.pdf
+public/landtagswahl-sachsen-anhalt-2026/volt/Wahlprogramm-Volt-Sachsen-Anhalt-2026_2026-09-06.pdf
 # The only documents these three parties provided are not election-specific:
 # federal Grundsatzprogramme, and for the Gartenpartei its party statutes.
 public/landtagswahl-sachsen-anhalt-2026/tierschutzpartei/Grundsatzprogramm-Tierschutzpartei_2026-02-07.pdf
