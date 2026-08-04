@@ -34,11 +34,12 @@ __pycache__/
 *.pyo
 .venv/
 *.egg-info/
-
+terraform/
+terraform-export/
 # === Misc ===
 *.log
 .local
-
+ai-backend/vertex-sa.json
 # === Local data files ===
 speeches.jsonl
 
