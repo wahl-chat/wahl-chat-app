@@ -12,12 +12,16 @@ monkeypatched, so fetch()/normalize() are tested without I/O.
 
 from __future__ import annotations
 
+import types
+import uuid
+from datetime import date
+
 import pytest
 
 from src.ingestion.connector import BaseConnector
 from src.ingestion.connectors.manifestos import connector as conn_mod
 from src.ingestion.connectors.manifestos.connector import ManifestoConnector
-from src.ingestion.schemas import SourceType
+from src.ingestion.schemas import AuthorityTier, ChunkRecord, SourceType
 
 _PDF_PROGRAM = {
     "id": 598,
@@ -479,3 +483,68 @@ class TestCompletenessAwareSetDifference:
             "a partially-committed program (2/3 chunks) must be re-discovered "
             "so the runner's footprint comparison repairs the missing tail"
         )
+
+
+# ===========================================================================
+# post_upsert — retiring the uploaded copy AW just replaced
+# ===========================================================================
+
+
+class TestPostUpsertSupersede:
+    """Delegates to the supersede pass, and never fails the AW write."""
+
+    @staticmethod
+    def _aw_chunk() -> ChunkRecord:
+        sid = uuid.uuid5(uuid.NAMESPACE_DNS, "spd:DE-ST:2026-09-06")
+        return ChunkRecord(
+            chunk_key=f"{sid}:0000",
+            source_item_id=sid,
+            chunk_index=0,
+            text="Aus dem Wahlprogramm.",
+            party_id="spd",
+            region="DE-ST",
+            authority_tier=AuthorityTier.SELF_REPORTED,
+            source_type=SourceType.PARTY_MANIFESTO,
+            publish_date=date(2026, 9, 6),
+            external_id=598,
+        )
+
+    def test_an_uploaded_wahlprogramm_is_retired(self) -> None:
+        path = (
+            "public/landtagswahl-sachsen-anhalt-2026/wahlprogramme/spd/"
+            "Wahlprogramm-SPD_2026-06-01.pdf"
+        )
+
+        class _Qdrant:
+            def __init__(self) -> None:
+                self.deletes: list[dict] = []
+
+            def scroll(self, **kwargs):  # noqa: ANN003, ANN201
+                point = types.SimpleNamespace(
+                    id="1", payload={"meta": {"storage_object_path": path}}
+                )
+                return ([point], None)
+
+            def delete(self, **kwargs):  # noqa: ANN003, ANN201
+                self.deletes.append(kwargs)
+
+        qdrant = _Qdrant()
+        assert ManifestoConnector().post_upsert(qdrant, "c", [self._aw_chunk()]) == 1
+        assert len(qdrant.deletes) == 1
+
+    def test_a_failing_supersede_does_not_fail_the_already_written_aw_item(
+        self,
+    ) -> None:
+        """The one-shot-cleanup trap: the AW chunks are durably stored by this point.
+
+        Raising would mark a SUCCEEDED item as failed while the runner's completion
+        state already excludes it from the next discover(), so the follow-up would
+        never run again. Swallowing costs only latency — the uploads connector
+        re-decides the same retirement on every one of its runs.
+        """
+
+        class _Broken:
+            def scroll(self, **kwargs):  # noqa: ANN003, ANN201
+                raise RuntimeError("qdrant unavailable")
+
+        assert ManifestoConnector().post_upsert(_Broken(), "c", [self._aw_chunk()]) == 0

@@ -555,3 +555,35 @@ class ManifestoConnector(BaseConnector):
         if not records:
             raise ValueError(f"program {program.get('id')} produced no records")
         return records
+
+    # ------------------------------------------------------------------
+    # 4. post_upsert — retire an uploaded Wahlprogramm this programme replaces
+    # ------------------------------------------------------------------
+
+    def post_upsert(
+        self, qdrant, collection_name: str, chunks: list[ChunkRecord]
+    ) -> int:  # noqa: ANN001
+        """Retire uploaded Wahlprogramme the just-written AW programme replaces.
+
+        The common direction (parties send drafts before AW lists the final text), so
+        it is worth doing immediately rather than waiting for the next uploads run.
+
+        Errors are swallowed deliberately. The AW chunks are already durably upserted
+        here, so raising would mark a SUCCEEDED item as failed while the runner's
+        completion state already excludes it from the next discover() — the one-shot
+        cleanup trap. Nothing is lost: this only accelerates what the uploads
+        connector re-decides for the same documents on every one of its runs.
+        """
+        from src.ingestion.connectors.manifestos.supersede import (  # noqa: PLC0415
+            supersede_uploaded_wahlprogramme,
+        )
+
+        try:
+            return supersede_uploaded_wahlprogramme(qdrant, collection_name, chunks)
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "could not retire uploaded copies of the programme just written; "
+                "the uploads connector will retire them on its next run",
+                exc_info=True,
+            )
+            return 0

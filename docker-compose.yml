@@ -19,6 +19,10 @@ services:
   # Reaches the local qdrant service by default; override QDRANT_URL / QDRANT_API_KEY
   # / ENV to target a deployed store. Requires ai-backend/.env for API keys; the
   # speech connectors fetch MdB-Stammdaten on demand at run time (no pre-bake).
+  #
+  # manifesto_uploads in a container also needs MANIFESTO_UPLOADS_SOURCE=bucket and
+  # ELECTION_FIXTURES_SOURCE=firestore — its manifest/seed-file inputs aren't in the
+  # image. Both need credentials (ADC or FIRESTORE_EMULATOR_HOST).
   ingestion:
     build:
       context: ./ai-backend

@@ -95,6 +95,16 @@ Connectors are registered in a closed `{connector_id: factory}` map
   coexists with and supersedes DIP twins, deduped on `speech_key`.
 - `manifestos` — party manifesto chunks (has its own local CLI in
   `connectors/manifestos/bulk.py`; also runnable via the registry).
+- `manifesto_uploads` — party manifesto PDFs supplied to us directly
+  (`source="upload"`), for elections Abgeordnetenwatch does not cover. Same
+  `party_manifesto` corpus as `manifestos`. An uploaded `wahlprogramm` is retired
+  automatically once AW carries the same programme (AW is the citable source); a
+  `parteidokument` never is. One policy, two triggers: AW's `post_upsert`
+  (`connectors/manifestos/supersede.py`) retires it immediately — the common order,
+  since parties send drafts before AW lists the final text — and this connector
+  re-decides the same thing per document on every run, which makes it idempotent if
+  that hook ever fails. Both read the class from the object path, so neither can
+  remove a document the AW copy does not replace.
 
 The **data contract** is the Pydantic model set in `src/ingestion/schemas.py`
 (`ChunkRecord` plus the `AuthorityTier` / `SourceType` enums and per-source
@@ -208,8 +218,39 @@ make run-abgeordnetenwatch-votes          # federal votes
 make run-all-landtage-votes               # loop over all 16 Landtag legislatures
 make run-speeches ARGS="--batch-size 25"  # live DIP speeches
 make run-manifestos ARGS="--dry-run"      # parse only, zero OpenAI cost
+make run-manifesto-uploads ARGS="--check" # validate uploaded-PDF metadata
 make speeches-stats                       # read-only Qdrant verification
 ```
+
+#### Adding a manifesto we received as a file
+
+For elections Abgeordnetenwatch hasn't catalogued (upcoming/communal). The upload
+path carries the metadata — election and party must already exist in
+`firebase/firestore_data/{env}/contexts.json` (with `region_path` + `level`) and
+`parties_{context_id}.json`, since those decide whether a chunk is ever retrievable.
+
+1. Name the file `{document-name}_{YYYY-MM-DD}.pdf`, place at
+   `public/{context_id}/{class}/{party_id}/{file}.pdf` under `firebase/storage_data/`,
+   where `{class}` is `wahlprogramme` (the programme the party runs on — AW may
+   later replace it) or `parteidokumente` (a Grundsatzprogramm or Satzung we hold
+   only because the party published no Wahlprogramm — never auto-retired).
+2. Add the object path to `ai-backend/data/manifesto_uploads/{env}.txt`.
+3. `make upload-manifesto-uploads` (uploads + grants public read).
+4. `make run-manifesto-uploads ARGS="--check"`, then drop `ARGS` to ingest.
+
+`--since` (or `MANIFESTO_UPLOADS_SINCE`) floors by election date; documents below it
+are neither ingested nor retired. Removing a manifest line retires that document's
+chunks on the next run.
+
+De-dup with AW is two-way and party+region+date scoped: an upload is skipped if AW
+already has that party's programme; once AW ingests it, its `post_upsert` deletes
+the uploaded twin.
+
+Two backend switches, both explicit env vars (no auto-fallback):
+`MANIFESTO_UPLOADS_SOURCE=bucket` lists the live bucket instead of the manifest
+(what a deployed Job uses — the manifest ships inside the image);
+`ELECTION_FIXTURES_SOURCE=firestore` reads the live database instead of the seed
+files (also not in the image).
 
 In production the same `src.ingestion.run` code path runs as a Cloud Run Job
 with `CONNECTOR_ID` set in the job spec (deployment + scheduling is a planned

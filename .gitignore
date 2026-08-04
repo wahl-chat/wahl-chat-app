@@ -46,3 +46,7 @@ speeches.jsonl
 # AGENTS.md is the committed source of truth; CLAUDE.md is a provider-specific
 # symlink to it, created per-clone by ./scripts/setup-agent-docs.sh.
 CLAUDE.md
+
+# Party PDFs staged for upload to Firebase Storage (see firebase/storage_data/public/NOTE.md).
+# The documents themselves are not repo content — only the staging layout is.
+firebase/storage_data/public/**/*.pdf
