@@ -4,7 +4,8 @@
         lint lint-web lint-backend test-backend test-smoke test-local-mode \
         stores-up stores-down seed-local dev-local auth bootstrap-collection \
         run-abgeordnetenwatch-votes run-all-landtage-votes run-speeches \
-        run-manifestos collect-speeches fetch-mdb-stammdaten \
+        run-manifestos run-manifesto-uploads upload-manifesto-uploads \
+        collect-speeches fetch-mdb-stammdaten \
         update-speeches speeches-stats
 
 # --- Install dependencies ---
@@ -90,9 +91,14 @@ stores-down:
 	docker compose down
 	pkill -f "firebase emulators" || true
 
+# Needs no cloud credentials: FIRESTORE_EMULATOR_HOST makes the seed script use the
+# emulator with anonymous credentials. GOOGLE_CLOUD_PROJECT must match the project the
+# emulator runs under, or the data lands in a namespace the app never reads.
 seed-local:
 	@test -n "$(FIRESTORE_EMULATOR_HOST)" || (echo "ERROR: FIRESTORE_EMULATOR_HOST not set — set it to localhost:8081 before seeding" && exit 1)
-	cd ai-backend && FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) uv run python ../firebase/scripts/seed_firestore.py
+	cd ai-backend && FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
+		GOOGLE_CLOUD_PROJECT=$(EMULATOR_PROJECT) \
+		uv run python ../firebase/scripts/seed_firestore.py
 
 dev-local: stores-up bootstrap-collection
 	$(MAKE) -j2 dev-web dev-backend
@@ -222,6 +228,61 @@ run-speeches: bootstrap-collection fetch-mdb-stammdaten
 run-manifestos: bootstrap-collection
 	cd ai-backend && $(QDRANT_ENV) \
 		uv run python -m src.ingestion.connectors.manifestos.bulk $(ARGS)
+
+# Uploaded manifestos: party PDFs supplied directly, for elections with no AW
+# coverage. Metadata comes from the object path + Firestore seed fixtures.
+#   make run-manifesto-uploads ARGS="--check"    # validate metadata, no reads
+#   make run-manifesto-uploads ARGS="--dry-run"  # parse + chunk, zero embed cost
+# Requires: make stores-up first.
+run-manifesto-uploads: bootstrap-collection
+	@if [ "$(ENV)" = "prod" ]; then \
+		read -r -p "This embeds into the PRODUCTION Qdrant collection (wahlchat_chunks_prod). Continue? [y/N] " confirm < /dev/tty; \
+		case "$$confirm" in [yY]|[yY][eE][sS]) ;; *) echo "Aborted." && exit 1;; esac; \
+	fi
+	cd ai-backend && $(QDRANT_ENV) \
+		uv run python -m src.ingestion.connectors.manifesto_uploads.bulk $(ARGS)
+
+# Upload staged PDFs to the bucket with public read applied AS PART OF each copy —
+# citations are plain GCS URLs governed by object ACLs, not storage.rules. A
+# separate ACL pass after the copy is not safe: if it fails (permissions, auth,
+# glob mismatch) the objects already exist and every citation 403s, which is a
+# half-done upload rather than an obvious failure. --predefined-acl makes each
+# object public as it lands, and the target then fails unless a representative
+# citation actually resolves.
+# Requires the bucket to use object ACLs (NOT uniform bucket-level access), which
+# is what serving citations by plain GCS URL already implies.
+#   make upload-manifesto-uploads ELECTION=<context_id>
+#   make upload-manifesto-uploads ENV=prod
+# Requires the gcloud CLI, authenticated with write access.
+UPLOAD_ENV ?= $(if $(ENV),$(ENV),dev)
+UPLOAD_BUCKET = $(if $(filter prod,$(UPLOAD_ENV)),wahl-chat.firebasestorage.app,wahl-chat-dev.firebasestorage.app)
+upload-manifesto-uploads:
+	@command -v gcloud >/dev/null || (echo "ERROR: gcloud CLI not found" && exit 1)
+	@test -d firebase/storage_data/public || (echo "ERROR: nothing staged in firebase/storage_data/public" && exit 1)
+	@if [ "$(UPLOAD_ENV)" = "prod" ]; then \
+		read -r -p "This uploads to the PRODUCTION bucket (gs://$(UPLOAD_BUCKET)). Continue? [y/N] " confirm < /dev/tty; \
+		case "$$confirm" in [yY]|[yY][eE][sS]) ;; *) echo "Aborted." && exit 1;; esac; \
+	fi
+	@if [ -n "$(ELECTION)" ]; then \
+	  test -d "firebase/storage_data/public/$(ELECTION)" || \
+	    (echo "ERROR: firebase/storage_data/public/$(ELECTION) does not exist" && exit 1); \
+	  SRC="firebase/storage_data/public/$(ELECTION)"; \
+	else \
+	  SRC="firebase/storage_data/public/*"; \
+	fi; \
+	REL=$$(cd firebase/storage_data/public && \
+	  find $(if $(ELECTION),"$(ELECTION)",.) -type f -name '*.pdf' | head -1 | sed 's|^\./||'); \
+	test -n "$$REL" || (echo "ERROR: no staged PDF found to upload or verify" && exit 1); \
+	echo "Uploading $$SRC -> gs://$(UPLOAD_BUCKET)/public/ (public-read) ..."; \
+	gcloud storage cp -r --predefined-acl=publicRead $$SRC "gs://$(UPLOAD_BUCKET)/public/" || exit 1; \
+	URL="https://storage.googleapis.com/$(UPLOAD_BUCKET)/public/$$REL"; \
+	echo "Verifying a citation resolves publicly: $$URL"; \
+	CODE=$$(curl -s -o /dev/null -w '%{http_code}' -I "$$URL"); \
+	test "$$CODE" = "200" || (echo "ERROR: citation check failed with HTTP $$CODE for $$URL" && \
+	  echo "       Objects were uploaded but are NOT publicly readable — citations will 403." && \
+	  echo "       If the bucket uses uniform bucket-level access, grant public read at the" && \
+	  echo "       bucket level instead of per object." && exit 1); \
+	echo "Done. Citation verified (HTTP 200): $$URL"
 
 # collect-speeches: optional --from-jsonl backfill that replays speeches.jsonl
 # through the relocated corpus mapper without hitting the DIP API.

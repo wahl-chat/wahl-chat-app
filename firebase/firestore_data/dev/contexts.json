@@ -50,5 +50,24 @@
     "supports_swiper": false,
     "supports_voting_behavior": false,
     "relevant_area": "Rheinland-Pfalz"
+  },
+  "landtagswahl-sachsen-anhalt-2026": {
+    "context_id": "landtagswahl-sachsen-anhalt-2026",
+    "name": "Landtagswahl Sachsen-Anhalt 2026",
+    "short_name": "LTW ST 26",
+    "type": "election",
+    "date": "2026-09-06",
+    "location_name": "Sachsen-Anhalt",
+    "is_active": true,
+    "icon_url": null,
+    "supports_swiper": false,
+    "supports_voting_behavior": false,
+    "relevant_area": "Sachsen-Anhalt",
+    "region_path": [
+      "DE",
+      "DE-ST"
+    ],
+    "level": "state",
+    "legislature_period_id": 131
   }
 }
