@@ -47,6 +47,7 @@ from src.ingestion.connectors.manifesto_uploads.election_fixtures import (
     require_party,
 )
 from src.ingestion.connectors.manifesto_uploads.mappers.corpus import (
+    UPLOAD_SOURCE,
     build_citation_title,
 )
 from src.ingestion.connectors.manifesto_uploads.storage_paths import (
@@ -54,6 +55,7 @@ from src.ingestion.connectors.manifesto_uploads.storage_paths import (
     parse_object_path,
     staging_path,
 )
+from src.ingestion.schemas import SourceType
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +144,84 @@ def dry_run(paths: list[str], env: Optional[str] = None) -> int:
     return failures
 
 
+def verify_reachable(qdrant, collection_name: str) -> list[str]:  # noqa: ANN001
+    """Return the stored uploaded documents that vector search cannot reach.
+
+    Stored-but-unreachable is invisible to every count-based check we have: the runner
+    reports success, count() finds the chunks, the footprint scan agrees — and only an
+    approximate search comes back empty. The collection disables the global HNSW graph
+    (``m=0`` with tenant sub-indexes on ``party_id``), so a gap in one tenant's
+    sub-index removes its chunks from retrieval with no error anywhere. That is how an
+    uploaded 2026 Wahlprogramm can sit in the corpus while chat answers from a
+    four-year-old Abgeordnetenwatch copy.
+
+    Each document is probed with ONE OF ITS OWN stored vectors, filtered to its
+    ``party_id`` so the query traverses the same tenant sub-index a real search would.
+    A point that cannot retrieve itself is not reachable. No embedding call, and the
+    result is deterministic rather than dependent on some probe question.
+    """
+    from qdrant_client import models as qdrant_models  # noqa: PLC0415
+
+    scroll_filter = qdrant_models.Filter(
+        must=[
+            qdrant_models.FieldCondition(
+                key="source_type",
+                match=qdrant_models.MatchValue(value=SourceType.PARTY_MANIFESTO.value),
+            ),
+            qdrant_models.FieldCondition(
+                key="source", match=qdrant_models.MatchValue(value=UPLOAD_SOURCE)
+            ),
+        ]
+    )
+
+    # One representative point per stored document, with its vector.
+    probes: dict[str, tuple[str, list[float]]] = {}
+    next_offset = None
+    while True:
+        points, next_offset = qdrant.scroll(
+            collection_name=collection_name,
+            scroll_filter=scroll_filter,
+            limit=1000,
+            offset=next_offset,
+            with_payload=["meta.storage_object_path", "party_id"],
+            with_vectors=True,
+        )
+        for point in points:
+            payload = point.payload or {}
+            path = (payload.get("meta") or {}).get("storage_object_path")
+            party_id = payload.get("party_id")
+            vector = (point.vector or {}).get("dense")
+            if isinstance(path, str) and path and party_id and vector:
+                probes.setdefault(path, (party_id, vector))
+        if next_offset is None:
+            break
+
+    unreachable: list[str] = []
+    for path, (party_id, vector) in sorted(probes.items()):
+        hits = qdrant.query_points(
+            collection_name=collection_name,
+            query=vector,
+            # Named vector — the collection has no unnamed default.
+            using="dense",
+            query_filter=qdrant_models.Filter(
+                must=[
+                    qdrant_models.FieldCondition(
+                        key="party_id",
+                        match=qdrant_models.MatchValue(value=party_id),
+                    ),
+                    qdrant_models.FieldCondition(
+                        key="source",
+                        match=qdrant_models.MatchValue(value=UPLOAD_SOURCE),
+                    ),
+                ]
+            ),
+            limit=1,
+        ).points
+        if not hits:
+            unreachable.append(path)
+    return unreachable
+
+
 def ingest(
     env: Optional[str] = None,
     only: Optional[set[str]] = None,
@@ -189,17 +269,46 @@ def ingest(
         COLLECTION_NAME,
         batch_size=1000,  # tens of documents, not thousands — handle all in one run
     )
+    # Stored is not the same as retrievable — see verify_reachable. A flagged
+    # document is re-checked once after a short pause, so ordinary optimizer lag
+    # right after a write does not raise a false alarm.
+    unreachable = verify_reachable(qdrant, COLLECTION_NAME)
+    if unreachable:
+        import time  # noqa: PLC0415
+
+        time.sleep(5)
+        unreachable = [
+            p
+            for p in verify_reachable(qdrant, COLLECTION_NAME)
+            if p in set(unreachable)
+        ]
+
     print(
         f"\n=== uploaded manifestos ===\n"
         f"documents written      : {report.processed}\n"
         f"unchanged skips        : {report.present_skips}\n"
         f"chunks upserted        : {report.chunks_upserted}\n"
-        f"failed                 : {len(report.failed_ids)}"
+        f"failed                 : {len(report.failed_ids)}\n"
+        f"stored but unreachable : {len(unreachable)}"
     )
+    if unreachable:
+        print(
+            "\nWARNING: these documents are stored but NOT retrievable — chat will "
+            "silently fall back to other sources for them:",
+            file=sys.stderr,
+        )
+        for path in unreachable:
+            print(f"  {path}", file=sys.stderr)
+        print(
+            "Re-ingest them to rebuild their tenant sub-index, e.g.\n"
+            '  make run-manifesto-uploads ARGS="--only <party>"\n'
+            "after deleting their chunks; if it persists, the collection's m=0 "
+            "vector-index config is the reason a missing sub-index is silent.",
+            file=sys.stderr,
+        )
     if report.failed_ids:
         print(f"failed documents       : {', '.join(report.failed_ids)}")
-        return 1
-    return 0
+    return 1 if (report.failed_ids or unreachable) else 0
 
 
 if __name__ == "__main__":
