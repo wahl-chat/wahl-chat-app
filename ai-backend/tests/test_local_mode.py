@@ -50,7 +50,7 @@ def _load_seed_module(monkeypatch: pytest.MonkeyPatch, **env: str):
 def _emulator_reachable() -> bool:
     host, _, port = _EMULATOR_HOST.partition(":")
     try:
-        with socket.create_connection((host, int(port or 8080)), timeout=1):
+        with socket.create_connection((host, int(port or 8081)), timeout=1):
             return True
     except OSError:
         return False
