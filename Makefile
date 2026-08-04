@@ -91,9 +91,14 @@ stores-down:
 	docker compose down
 	pkill -f "firebase emulators" || true
 
+# Needs no cloud credentials: FIRESTORE_EMULATOR_HOST makes the seed script use the
+# emulator with anonymous credentials. GOOGLE_CLOUD_PROJECT must match the project the
+# emulator runs under, or the data lands in a namespace the app never reads.
 seed-local:
 	@test -n "$(FIRESTORE_EMULATOR_HOST)" || (echo "ERROR: FIRESTORE_EMULATOR_HOST not set — set it to localhost:8081 before seeding" && exit 1)
-	cd ai-backend && FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) uv run python ../firebase/scripts/seed_firestore.py
+	cd ai-backend && FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
+		GOOGLE_CLOUD_PROJECT=$(EMULATOR_PROJECT) \
+		uv run python ../firebase/scripts/seed_firestore.py
 
 dev-local: stores-up bootstrap-collection
 	$(MAKE) -j2 dev-web dev-backend

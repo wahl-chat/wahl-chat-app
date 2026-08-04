@@ -85,8 +85,47 @@ def _validate_adc():
         print(f"⚠️  Could not validate credentials: {e}")
 
 
+def _emulator_client():
+    """Firestore client for the local emulator — no credentials involved.
+
+    The emulator accepts any credential and verifies none, so requiring a real one
+    would gate local seeding on cloud access the run never uses (an expired ADC login
+    used to block `make seed-local` outright). Anonymous credentials are passed
+    explicitly rather than letting the SDK fall through to ADC, which would still try
+    to refresh that login.
+
+    The project id must be explicit: the emulator serves each project as its own
+    namespace, so inheriting a different one from gcloud config would seed a namespace
+    the app never reads. `make seed-local` passes EMULATOR_PROJECT through.
+    """
+    from google.auth.credentials import AnonymousCredentials  # noqa: PLC0415
+    from google.cloud import firestore as gcp_firestore  # noqa: PLC0415
+
+    host = os.getenv("FIRESTORE_EMULATOR_HOST")
+    project = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCLOUD_PROJECT")
+    if not project:
+        print(
+            "\n"
+            "============================================================\n"
+            " FIRESTORE_EMULATOR_HOST is set but no project id is.\n"
+            " Set GOOGLE_CLOUD_PROJECT to the project the emulator runs\n"
+            " under (see EMULATOR_PROJECT in the Makefile), or use\n"
+            " 'make seed-local', which passes it for you.\n"
+            "============================================================\n"
+        )
+        sys.exit(1)
+
+    print(f"Using the Firestore emulator at {host} (project {project}, no credentials)")
+    return gcp_firestore.Client(
+        project=project, credentials=AnonymousCredentials()
+    )
+
+
 def initialize_firebase():
-    """Initialize Firebase Admin SDK."""
+    """Initialize Firestore — emulator, service account, or ADC, in that order."""
+    if os.getenv("FIRESTORE_EMULATOR_HOST"):
+        return _emulator_client()
+
     cred_path = _find_credentials_file()
 
     if cred_path:
