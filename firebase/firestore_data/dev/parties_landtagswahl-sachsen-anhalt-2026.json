@@ -149,9 +149,9 @@
     "long_name": "Volt Deutschland",
     "manifesto_url": null,
     "candidate": null,
-    "website_url": null,
+    "website_url": "https://voltdeutschland.org/sachsen-anhalt",
     "is_already_in_parliament": false,
-    "background_color": "#ffffff",
+    "background_color": "#502379",
     "logo_src": "",
     "is_small_party": true
   }
