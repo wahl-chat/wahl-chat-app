@@ -183,6 +183,47 @@ SOURCE_LABEL_MANIFESTO_DE = "dem Wahlprogramm"
 SOURCE_LABEL_VOTES_DE = "namentlichen Abstimmungen"
 SOURCE_LABEL_SPEECHES_DE = "Reden"
 
+# =============================================================================
+# User-requested source-type filter (organic "zeig mir nur Videos/Abstimmungen/…")
+# =============================================================================
+# Nominative labels for the filter note's "nur nach: X, Y" list, keyed by the
+# SourceFilterLiteral values the intent classifier emits.
+SOURCE_FILTER_LABELS_DE = {
+    "manifesto": "das Wahlprogramm",
+    "votes": "namentliche Abstimmungen",
+    "speeches": "Reden",
+    "videos": "Videoaufnahmen von Reden",
+}
+
+# Appended to answer_guidelines when the user explicitly scoped the answer to
+# specific source types. The grounding is already retrieval-filtered; this note
+# makes the model own the scope instead of apologising for "missing" sections,
+# and mandates an honest no-fallback answer when the scoped retrieval is empty.
+SOURCE_FILTER_NOTE_DE = """
+- **Vom Nutzer gewählter Quellenfokus:** Der Nutzer hat ausdrücklich nur nach folgenden Quellenarten gefragt: {requested_sources}. Die bereitgestellten Ausschnitte wurden bewusst auf diese Quellenarten beschränkt. Beantworte die Frage ausschließlich auf dieser Basis; andere Quellenarten fehlen absichtlich — erwähne ihr Fehlen nicht als Mangel.
+- Wenn KEINE passenden Ausschnitte vorliegen, sage klar und ehrlich, dass zu diesem Thema keine Quellen der gewünschten Art vorliegen. Weiche NICHT auf andere Quellenarten aus und erfinde nichts. Biete stattdessen an, die Frage ohne diese Beschränkung zu beantworten.
+"""
+
+# Extra note when the filter includes video recordings: the cited op speeches
+# ARE the videos (the [N] citations deep-link into the recording), so the model
+# must never claim it has no access to video material.
+SOURCE_FILTER_VIDEO_NOTE_DE = """
+- **Videoaufnahmen:** Die bereitgestellten Reden-Ausschnitte stammen ausschließlich aus Reden mit Videoaufzeichnung. Die Quellenangaben [N] verlinken direkt auf die jeweilige Stelle in der Videoaufnahme. Sage NIEMALS, dass du keinen Zugriff auf Videoaufnahmen hast — weise stattdessen darauf hin, dass die zitierten Quellen die Videos direkt öffnen.
+"""
+
+# Appended to the RAG-query-improvement SYSTEM prompt when a source filter is
+# active. The retrieval is already hard-filtered to the requested source types,
+# so the query must target the TOPIC — a query containing the format words
+# ("Videoaufnahmen", "Abstimmungen") retrieves documents ABOUT videos/votes
+# (e.g. Videokonferenzen in der Justiz) instead of documents about the topic.
+RAG_QUERY_SOURCE_FILTER_NOTE_DE = """
+
+# Quellenfokus des Nutzers
+Der Nutzer möchte Ergebnisse ausschließlich aus folgenden Quellenarten: {requested_sources}. Die Suche ist bereits technisch auf diese Quellenarten gefiltert — deine Query darf das gewünschte Format daher NICHT erwähnen.
+Formuliere die Query ausschließlich nach dem inhaltlichen THEMA der Nutzerfrage. Wörter wie "Videoaufnahme", "Video", "Rede", "Abstimmung" oder "Wahlprogramm" dürfen nicht in der Query stehen, wenn sie nur das gewünschte Format beschreiben — sonst findet die Suche Dokumente ÜBER Videos oder Abstimmungen statt Dokumente zum eigentlichen Thema.
+Beispiel: "Habt ihr Videoaufnahmen zum Thema Lohnniveau?" → Query zu Lohnniveau, Mindestlohn und fairer Bezahlung — NICHT zu Videoaufnahmen.
+"""
+
 
 party_response_system_prompt_template_str = """
 # Rolle
@@ -475,6 +516,52 @@ determine_question_type_user_prompt_str = """
 
 determine_question_type_user_prompt = PromptTemplate.from_template(
     determine_question_type_user_prompt_str
+)
+
+determine_source_filter_system_prompt_str = """
+# Rolle
+Du analysierst eine Nachricht eines Nutzers an ein Chatsystem im Kontext des bisherigen Chatverlaufs und entscheidest, ob der Nutzer seine Antwort EXPLIZIT auf bestimmte Quellenarten beschränken möchte.
+
+# Verfügbare Quellenarten
+- "manifesto": Wahlprogramm der Partei. Synonyme: Programm, Parteiprogramm, Manifest, Wahlversprechen im Programm.
+- "votes": Namentliche Abstimmungen im Parlament. Synonyme: Abstimmungen, Abstimmungsverhalten, Voten, "wie hat ... abgestimmt".
+- "speeches": Reden im Bundestag. Synonyme: Plenarreden, Redebeiträge, Aussagen/Zitate aus Reden, "was wurde im Parlament gesagt".
+- "videos": Reden, zu denen eine Videoaufnahme existiert. Synonyme: Videos, Videoaufnahmen, Videoaufzeichnungen, Aufzeichnungen, Recordings, Clips, "etwas zum Anschauen".
+
+# Aufgabe
+Gib die Liste der Quellenarten zurück, auf die der Nutzer die Antwort ausdrücklich beschränken will. Mehrere Quellenarten sind möglich (z.B. "Abstimmungen und Reden zum Thema Infrastruktur" → ["votes", "speeches"]).
+
+# Wichtige Regeln
+- Standard ist die LEERE Liste: Die allermeisten Nachrichten fragen nach einem THEMA, nicht nach einer Quellenart. Gib nur dann Quellenarten an, wenn der Nutzer sie erkennbar verlangt.
+- Fragt der Nutzer nach Videos/Aufnahmen von Reden, gib NUR "videos" an (nicht zusätzlich "speeches"). "speeches" ist für Reden ohne Video-Bezug.
+- Ein Thema, das nur zufällig nach einer Quellenart klingt, ist KEINE Beschränkung: "Wie steht ihr zu Videoüberwachung?" oder "Was haltet ihr von Volksabstimmungen?" sind Themenfragen → leere Liste.
+- Kurze Nachfragen, die eine vorherige explizit quellenbeschränkte Frage fortführen, behalten die Beschränkung bei: Auf "Zeig mir Videoaufnahmen zum Thema Lohnniveau" folgt "und zum Thema Infrastruktur?" → ["videos"].
+- Stellt der Nutzer erkennbar eine neue, normale Frage ohne Quellenbezug, endet die Beschränkung → leere Liste.
+
+# Beispiele
+- "Zeigt mir Videoaufnahmen zum Thema Lohnniveau" → ["videos"]
+- "Wie habt ihr zur Infrastruktur abgestimmt?" → ["votes"]
+- "Was steht in eurem Wahlprogramm zur Bildung?" → ["manifesto"]
+- "Was wurde dazu in Reden im Bundestag gesagt?" → ["speeches"]
+- "Habt ihr Abstimmungen oder Reden zum Mindestlohn?" → ["votes", "speeches"]
+- "Was tut ihr gegen niedrige Löhne?" → []
+- "Wie steht ihr zur Vorratsdatenspeicherung von Videomaterial?" → []
+"""
+
+determine_source_filter_system_prompt = PromptTemplate.from_template(
+    determine_source_filter_system_prompt_str
+)
+
+determine_source_filter_user_prompt_str = """
+## Bisheriger Chatverlauf
+{previous_chat_history}
+
+## Nutzerfrage
+{user_message}
+"""
+
+determine_source_filter_user_prompt = PromptTemplate.from_template(
+    determine_source_filter_user_prompt_str
 )
 
 generate_chat_summary_system_prompt_str = """

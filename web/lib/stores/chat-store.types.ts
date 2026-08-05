@@ -17,6 +17,10 @@ export type Source = {
   source_document: string;
   document_publish_date: string;
   party_id?: string;
+  // Corpus source category ('party_manifesto' | 'vote_record' |
+  // 'parliamentary_speech') — lets the UI label/group sources by kind instead
+  // of sniffing URLs. Optional: absent on messages persisted before it shipped.
+  source_type?: string;
   // Dual-format speech links (backend merges op video + DIP transcript into ONE
   // source): when both are present the citation renders two quick-links — the
   // video deep-link and the PDF transcript — for the same source. `url` stays the

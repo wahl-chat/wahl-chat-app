@@ -52,6 +52,8 @@ from src.prompts import (
     determine_question_targets_user_prompt,
     determine_question_type_system_prompt,
     determine_question_type_user_prompt,
+    determine_source_filter_system_prompt,
+    determine_source_filter_user_prompt,
     generate_chat_summary_system_prompt,
     generate_chat_summary_user_prompt,
     generate_chat_title_and_quick_replies_system_prompt,
@@ -75,6 +77,10 @@ from src.prompts import (
     SOURCE_LABEL_MANIFESTO_DE,
     SOURCE_LABEL_VOTES_DE,
     SOURCE_LABEL_SPEECHES_DE,
+    SOURCE_FILTER_LABELS_DE,
+    SOURCE_FILTER_NOTE_DE,
+    SOURCE_FILTER_VIDEO_NOTE_DE,
+    RAG_QUERY_SOURCE_FILTER_NOTE_DE,
 )
 
 from src.models.chat import Message
@@ -83,6 +89,8 @@ from src.models.structured_outputs import (
     GroupChatTitleQuickReplyGenerator,
     QuestionTypeClassifier,
     RerankingOutput,
+    SOURCE_FILTER_VALUES,
+    SourceFilterClassifier,
     create_party_list_generator,
 )
 
@@ -261,11 +269,57 @@ async def get_question_targets_and_type(
     return (party_id_list, question_for_parties, is_comparing_question)
 
 
+def source_filter_labels_de(source_filter: List[str]) -> str:
+    """German ``a, b und c`` list of the requested source-type labels."""
+    labels = [
+        SOURCE_FILTER_LABELS_DE[value]
+        for value in SOURCE_FILTER_VALUES
+        if value in source_filter
+    ]
+    return _join_sources_de(labels)
+
+
+async def detect_source_filter(
+    user_message: str,
+    previous_chat_history: str,
+) -> List[str]:
+    """Classify whether the user explicitly scopes the answer to source types.
+
+    Returns the requested SourceFilterLiteral values ("manifesto" / "votes" /
+    "speeches" / "videos") in canonical order, or [] when no restriction was
+    requested. Fail-open: any classification error returns [] so a broken
+    classifier degrades to today's default-all retrieval, never a blocked turn.
+    """
+    messages = [
+        SystemMessage(content=determine_source_filter_system_prompt.format()),
+        HumanMessage(
+            content=determine_source_filter_user_prompt.format(
+                previous_chat_history=previous_chat_history,
+                user_message=user_message,
+            )
+        ),
+    ]
+    try:
+        response = await get_structured_output_from_llms(
+            PRE_AND_POST_PROCESSING_LLMS, messages, SourceFilterClassifier
+        )
+        requested = {
+            str(value)
+            for value in getattr(response, "requested_source_types", [])
+            if str(value) in SOURCE_FILTER_VALUES
+        }
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Source filter detection failed — defaulting to all: {e}")
+        return []
+    return [value for value in SOURCE_FILTER_VALUES if value in requested]
+
+
 async def generate_improvement_rag_query(
     party: ContextParty,
     conversation_history: str,
     last_user_message: str,
     context_id: str = DEFAULT_CONTEXT_ID,
+    source_filter: Optional[List[str]] = None,
 ) -> str:
     if party.party_id == WAHL_CHAT_PARTY.party_id:
         # Fetch context to get the context name for the template
@@ -276,6 +330,13 @@ async def generate_improvement_rag_query(
         )
     else:
         system_prompt = system_prompt_improvement_template.format(party_name=party.name)
+    if source_filter:
+        # Retrieval is already hard-filtered to the requested source types; the
+        # query must target the topic, never the media format (a query built
+        # around "Videoaufnahmen" retrieves documents ABOUT video technology).
+        system_prompt += RAG_QUERY_SOURCE_FILTER_NOTE_DE.format(
+            requested_sources=source_filter_labels_de(source_filter)
+        )
     user_prompt = user_prompt_improvement_template.format(
         conversation_history=conversation_history,
         last_user_message=last_user_message,
@@ -459,6 +520,7 @@ def build_vote_documents(
                     "page": 1,
                     "source_document": subject,
                     "authority_tier": payload.get("authority_tier"),
+                    "source_type": "vote_record",
                 },
             )
         )
@@ -523,6 +585,7 @@ async def generate_streaming_chatbot_response(
     election_level: Optional[str] = None,
     present_sources: Optional[tuple[bool, bool, bool]] = None,
     has_historic: bool = False,
+    source_filter: Optional[List[str]] = None,
 ) -> AsyncIterator[BaseMessageChunk]:
     # relevant_docs is combined_docs from chat_service.py (manifesto + vote +
     # speech Documents); get_rag_context numbers them sequentially so the LLM
@@ -583,6 +646,7 @@ async def generate_streaming_chatbot_response(
                 votes_present,
                 speeches_present,
             )
+        answer_guidelines += _source_filter_note(source_filter)
         system_prompt = party_response_system_prompt_template.format(
             party_name=party.name,
             party_long_name=party.long_name,
@@ -630,6 +694,26 @@ def _federal_origin_disclosure_note(election_level: Optional[str]) -> str:
         "Landtags. Wähler:innen müssen klar erkennen können, auf welcher politischen "
         "Ebene die Abstimmung stattgefunden hat."
     )
+
+
+def _source_filter_note(source_filter: Optional[List[str]]) -> str:
+    """Guideline block for a user-requested source-type filter.
+
+    Returns "" when no filter is active, so untouched callers reproduce today's
+    prompt byte-for-byte. Otherwise names the requested source types, mandates
+    the honest no-fallback empty answer, and — when video recordings were
+    requested — adds the "the [N] citations ARE the videos" instruction. Used by
+    both the single-party and comparison response paths so the scoping wording
+    cannot diverge.
+    """
+    if not source_filter:
+        return ""
+    note = SOURCE_FILTER_NOTE_DE.format(
+        requested_sources=source_filter_labels_de(source_filter)
+    )
+    if "videos" in source_filter:
+        note += SOURCE_FILTER_VIDEO_NOTE_DE
+    return note
 
 
 def _join_sources_de(labels: list[str]) -> str:
@@ -705,6 +789,7 @@ async def generate_streaming_chatbot_comparing_response(
     use_premium_llms: bool = False,
     election_level: Optional[str] = None,
     has_historic: bool = False,
+    source_filter: Optional[List[str]] = None,
 ) -> AsyncIterator[BaseMessageChunk]:
     rag_context = get_rag_comparison_context(relevant_docs, relevant_parties)
 
@@ -722,6 +807,7 @@ async def generate_streaming_chatbot_comparing_response(
     # comparison never presents historic material as the current record.
     if has_historic:
         answer_guidelines += HISTORIC_SECTION_NOTE_DE
+    answer_guidelines += _source_filter_note(source_filter)
 
     parties_being_compared = [party.name for party in relevant_parties]
 

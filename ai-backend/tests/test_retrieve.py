@@ -185,6 +185,62 @@ def test_source_type_filter(temp_qdrant_collection) -> None:  # type: ignore[typ
     )
 
 
+def test_source_provenance_filter(temp_qdrant_collection) -> None:  # type: ignore[type-arg]
+    """retrieve(source_type='parliamentary_speech', source='op') returns only
+    op (video-bearing) speeches — the user-facing "nur Videoaufnahmen" scope.
+    Omitting `source` keeps returning both provenances (default unchanged)."""
+    from qdrant_client.models import PointStruct
+
+    from src.ingestion.retrieve import retrieve
+
+    client, collection_name = temp_qdrant_collection
+
+    points = []
+    for i, source in enumerate(["op", "op", "dip", "dip", "dip"]):
+        payload = _make_payload("parliamentary_speech")
+        payload["source"] = source
+        # Distinct speech_keys so dedup_prefer_op never collapses anything.
+        payload["speech_key"] = f"de-20-1-speaker{i}-topic{i}"
+        points.append(
+            PointStruct(
+                id=str(uuid.uuid4()),
+                vector={"dense": _zero_vector()},
+                payload=payload,
+            )
+        )
+    client.upsert(collection_name=collection_name, points=points, wait=True)
+
+    import src.ingestion.retrieve as _retrieve_mod
+
+    original_collection = _retrieve_mod.COLLECTION_NAME
+    _retrieve_mod.COLLECTION_NAME = collection_name  # type: ignore[assignment]
+    try:
+        op_only = retrieve(
+            query="lohnniveau",
+            source_type="parliamentary_speech",
+            source="op",
+            limit=10,
+            _client=client,
+            _embed_fn=_fake_embed,
+        )
+        unfiltered = retrieve(
+            query="lohnniveau",
+            source_type="parliamentary_speech",
+            limit=10,
+            _client=client,
+            _embed_fn=_fake_embed,
+        )
+    finally:
+        _retrieve_mod.COLLECTION_NAME = original_collection  # type: ignore[assignment]
+
+    assert len(op_only) == 2, f"expected exactly the 2 op speeches, got {len(op_only)}"
+    assert all(p.get("source") == "op" for p in op_only)
+
+    assert {p.get("source") for p in unfiltered} == {"op", "dip"}, (
+        "omitting `source` must keep returning both provenances"
+    )
+
+
 # ---------------------------------------------------------------------------
 # test_query_vector_skips_embed
 # ---------------------------------------------------------------------------
