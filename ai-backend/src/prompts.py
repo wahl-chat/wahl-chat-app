@@ -211,6 +211,19 @@ SOURCE_FILTER_VIDEO_NOTE_DE = """
 - **Videoaufnahmen:** Die bereitgestellten Reden-Ausschnitte stammen ausschließlich aus Reden mit Videoaufzeichnung. Die Quellenangaben [N] verlinken direkt auf die jeweilige Stelle in der Videoaufnahme. Sage NIEMALS, dass du keinen Zugriff auf Videoaufnahmen hast — weise stattdessen darauf hin, dass die zitierten Quellen die Videos direkt öffnen.
 """
 
+# Appended (with _federal_origin_disclosure_note) for NON-federal elections:
+# the grounding legitimately mixes levels (Reden are Bundestag-only content,
+# the manifesto is the Land program, votes come from both parliaments), but the
+# ANSWER must not weave the levels into one storyline — customer feedback: a
+# Landtagswahl answer read "Auf Bundesebene lehnt die Partei X ab [Bund].
+# Stattdessen setzt sie auf Y [Land]", presenting a Land position as the
+# direct alternative to a federal one.
+LEVEL_SEPARATION_NOTE_DE = """
+- Deine Quellen stammen teils von der Bundesebene (Reden im Bundestag, Abstimmungen mit dem Label 'Parlament: Bundestag (Bundesebene)') und teils von der Landesebene (das Wahlprogramm zur Landtagswahl, Abstimmungen im Landtag). Mache bei JEDER Aussage erkennbar, von welcher Ebene sie stammt.
+- Gruppiere zusammengehörige Aussagen nach Ebene und leite jede Ebene explizit ein (z.B. „Auf Bundesebene …", „Auf Landesebene …" / „Für das Land …").
+- Verbinde NIEMALS eine Aussage der einen Ebene mit einer Aussage der anderen Ebene, als wären sie Teil desselben Vorhabens. Falsch wäre etwa: „Auf Bundesebene lehnt die Partei E-Fuels ab. Stattdessen setzt sie auf eine Transformationsmilliarde" — wenn das Erste aus dem Bundestag und das Zweite aus dem Landtagswahlprogramm stammt. Formuliere stattdessen einen expliziten Ebenenwechsel.
+"""
+
 # Appended to the RAG-query-improvement SYSTEM prompt when a source filter is
 # active. The retrieval is already hard-filtered to the requested source types,
 # so the query must target the TOPIC — a query containing the format words

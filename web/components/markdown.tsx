@@ -15,6 +15,7 @@ type Props = {
   onReferenceClick: (number: number) => void;
   getReferenceName?: (number: number) => string | null;
   getReferenceTooltip?: (number: number) => string | null;
+  getReferenceIsVideo?: (number: number) => boolean;
 };
 
 const NonMemoizedMarkdown = ({
@@ -22,6 +23,7 @@ const NonMemoizedMarkdown = ({
   onReferenceClick,
   getReferenceTooltip,
   getReferenceName,
+  getReferenceIsVideo,
 }: Props) => {
   // react-markdown v9 passes a 'node' prop to components which is not a valid DOM attribute
   // and causes TypeScript errors when spreading props to elements like Link or pre.
@@ -54,6 +56,7 @@ const NonMemoizedMarkdown = ({
                 onReferenceClick={onReferenceClick}
                 getReferenceTooltip={getReferenceTooltip}
                 getReferenceName={getReferenceName}
+                getReferenceIsVideo={getReferenceIsVideo}
               />
             );
           }

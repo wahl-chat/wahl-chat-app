@@ -3,6 +3,7 @@
 import { Markdown } from '@/components/markdown';
 import { useMediaViewer } from '@/components/providers/media-viewer-provider';
 import type { Source } from '@/lib/stores/chat-store.types';
+import { getSourceMediaLinks } from '@/lib/utils';
 
 type Props = {
   message: {
@@ -70,11 +71,22 @@ function ChatMarkdown({ message }: Props) {
     return `${number + 1}`;
   };
 
+  // Derived from getSourceMediaLinks (the same helper a click uses to decide
+  // how to open), so the video pill can never disagree with what a click does.
+  const getReferenceIsVideo = (number: number) => {
+    const source = message.sources?.[number];
+    if (!source) {
+      return false;
+    }
+    return getSourceMediaLinks(source).some((link) => link.kind === 'video');
+  };
+
   return (
     <Markdown
       onReferenceClick={onReferenceClick}
       getReferenceTooltip={getReferenceTooltip}
       getReferenceName={getReferenceName}
+      getReferenceIsVideo={getReferenceIsVideo}
     >
       {message.content ?? ''}
     </Markdown>

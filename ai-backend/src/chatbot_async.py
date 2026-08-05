@@ -81,6 +81,7 @@ from src.prompts import (
     SOURCE_FILTER_NOTE_DE,
     SOURCE_FILTER_VIDEO_NOTE_DE,
     RAG_QUERY_SOURCE_FILTER_NOTE_DE,
+    LEVEL_SEPARATION_NOTE_DE,
 )
 
 from src.models.chat import Message
@@ -692,7 +693,7 @@ def _federal_origin_disclosure_note(election_level: Optional[str]) -> str:
         "'Parlament: Bundestag (Bundesebene)'), weise explizit darauf hin, dass es sich "
         "um eine Bundestagsabstimmung handelt — nicht um eine Abstimmung des lokalen "
         "Landtags. Wähler:innen müssen klar erkennen können, auf welcher politischen "
-        "Ebene die Abstimmung stattgefunden hat."
+        "Ebene die Abstimmung stattgefunden hat." + LEVEL_SEPARATION_NOTE_DE
     )
 
 

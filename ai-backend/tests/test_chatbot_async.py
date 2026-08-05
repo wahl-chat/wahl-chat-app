@@ -120,6 +120,10 @@ def test_federal_origin_disclosure_note_only_for_non_federal() -> None:
             f"{lvl}: note must reference Bundestag, got {note!r}"
         )
         assert "Landtag" in note, f"{lvl}: note must reference Landtag, got {note!r}"
+        # Level-separation guidance: never weave a Bund statement and a Land
+        # statement into one storyline (customer feedback on a BW answer).
+        assert "Ebene" in note, f"{lvl}: note must carry the level-separation rule"
+        assert "NIEMALS" in note, f"{lvl}: note must forbid cross-level storyline joins"
 
 
 def test_both_response_paths_apply_federal_disclosure(monkeypatch) -> None:
