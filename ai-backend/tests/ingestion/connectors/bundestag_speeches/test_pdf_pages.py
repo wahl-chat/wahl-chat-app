@@ -14,7 +14,10 @@ numbers AND has a gap in its printed run.
 
 from __future__ import annotations
 
+from src.ingestion.connectors.bundestag_speeches import pdf_pages
+from src.ingestion.connectors.bundestag_speeches.client import DipChallengeError
 from src.ingestion.connectors.bundestag_speeches.pdf_pages import (
+    fetch_pdf_reader,
     front_matter_offset,
     offset_from_header_scan,
     offset_from_interior_label_run,
@@ -161,3 +164,79 @@ class TestResolvePageOffset:
         # Every mode validates against samples — none means no verdict.
         reader = _FakeReader(None, _protocol_pages(front=3, start_printed=50, count=10))
         assert resolve_page_offset(reader, []) is None
+
+
+class _FakeResponse:
+    def __init__(self, url: str, content: bytes) -> None:
+        self.url = url
+        self.content = content
+
+    def raise_for_status(self) -> None:
+        pass
+
+
+class TestFetchPdfReader:
+    """The .enodia/challenge WAF answers 200 with HTML, so raise_for_status()
+    cannot catch it — fetch_pdf_reader must fall back to curl like fetch_text."""
+
+    def test_challenge_redirect_falls_back_to_curl(self, monkeypatch) -> None:
+        monkeypatch.setattr(
+            pdf_pages.requests,
+            "get",
+            lambda url, timeout: _FakeResponse(
+                "https://www.bundestag.de/.enodia/challenge?uri=x", b"<html>"
+            ),
+        )
+        curl_args: dict = {}
+
+        def _fake_curl(url: str, accept: str = "*/*") -> bytes:
+            curl_args["call"] = (url, accept)
+            return b"%PDF-fake"
+
+        monkeypatch.setattr(pdf_pages, "curl_get_bytes", _fake_curl)
+        seen: dict = {}
+        monkeypatch.setattr(
+            pdf_pages, "PdfReader", lambda buf: seen.setdefault("bytes", buf.getvalue())
+        )
+
+        result = fetch_pdf_reader(
+            "https://dserver.bundestag.de/btp/21/21004.pdf#page=5"
+        )
+
+        assert result == b"%PDF-fake"  # the fake PdfReader echoes its input
+        assert seen["bytes"] == b"%PDF-fake"
+        assert curl_args["call"] == (
+            "https://dserver.bundestag.de/btp/21/21004.pdf",  # fragment stripped
+            "application/pdf",
+        )
+
+    def test_no_challenge_uses_response_content(self, monkeypatch) -> None:
+        monkeypatch.setattr(
+            pdf_pages.requests,
+            "get",
+            lambda url, timeout: _FakeResponse(url, b"%PDF-direct"),
+        )
+
+        def _fail_curl(url: str, accept: str = "*/*") -> bytes:
+            raise AssertionError("curl fallback must not run without a challenge")
+
+        monkeypatch.setattr(pdf_pages, "curl_get_bytes", _fail_curl)
+        monkeypatch.setattr(pdf_pages, "PdfReader", lambda buf: buf.getvalue())
+
+        result = fetch_pdf_reader("https://dserver.bundestag.de/btp/21/21004.pdf")
+        assert result == b"%PDF-direct"
+
+    def test_failed_curl_fallback_returns_none(self, monkeypatch) -> None:
+        monkeypatch.setattr(
+            pdf_pages.requests,
+            "get",
+            lambda url, timeout: _FakeResponse(
+                "https://www.bundestag.de/.enodia/challenge?uri=x", b"<html>"
+            ),
+        )
+
+        def _raise(url: str, accept: str = "*/*") -> bytes:
+            raise DipChallengeError("curl could not fetch")
+
+        monkeypatch.setattr(pdf_pages, "curl_get_bytes", _raise)
+        assert fetch_pdf_reader("https://dserver.bundestag.de/btp/21/21004.pdf") is None

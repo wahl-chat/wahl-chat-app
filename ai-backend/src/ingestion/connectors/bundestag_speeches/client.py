@@ -14,6 +14,7 @@ Public API:
   DipClient(api_key, sleep=0.2)  — paced session; .get(endpoint, params) and .pages(endpoint, params)
   fetch_text(url) -> str          — fetch XML text, curl fallback on challenge redirect
   curl_get(url, accept) -> str    — fixed-arg subprocess curl, no shell=True
+  curl_get_bytes(url, accept) -> bytes — binary twin (protocol PDFs)
 """
 
 from __future__ import annotations
@@ -201,5 +202,21 @@ def curl_get(url: str, accept: str = "*/*") -> str:
     if result.returncode != 0:
         raise DipChallengeError(
             result.stderr.strip() or "curl could not fetch the official Bundestag URL"
+        )
+    return result.stdout
+
+
+def curl_get_bytes(url: str, accept: str = "*/*") -> bytes:
+    """Binary twin of curl_get (protocol PDF downloads); same fixed-arg posture.
+
+    Raises:
+        DipChallengeError: if curl exits non-zero.
+    """
+    command = ["curl", "-sS", "-L", "--fail", "-H", f"Accept: {accept}", url]
+    result = subprocess.run(command, capture_output=True, timeout=90)
+    if result.returncode != 0:
+        raise DipChallengeError(
+            result.stderr.decode(errors="replace").strip()
+            or "curl could not fetch the official Bundestag URL"
         )
     return result.stdout

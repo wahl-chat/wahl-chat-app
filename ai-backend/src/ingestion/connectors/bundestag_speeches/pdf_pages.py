@@ -24,6 +24,8 @@ import logging
 import requests
 from pypdf import PdfReader
 
+from src.ingestion.connectors.bundestag_speeches.client import curl_get_bytes
+
 logger = logging.getLogger(__name__)
 
 _FETCH_TIMEOUT_S = 60
@@ -44,8 +46,14 @@ def fetch_pdf_reader(pdf_url: str) -> PdfReader | None:
     url = pdf_url.split("#", 1)[0]
     try:
         response = requests.get(url, timeout=_FETCH_TIMEOUT_S)
-        response.raise_for_status()
-        return PdfReader(io.BytesIO(response.content))
+        if ".enodia/challenge" in response.url:
+            # Same WAF fallback as client.fetch_text — the challenge redirect
+            # answers 200 with HTML, so raise_for_status() cannot catch it.
+            pdf_bytes = curl_get_bytes(url, accept="application/pdf")
+        else:
+            response.raise_for_status()
+            pdf_bytes = response.content
+        return PdfReader(io.BytesIO(pdf_bytes))
     except Exception as exc:  # noqa: BLE001
         logger.warning("could not fetch/read protocol PDF %s: %s", url, exc)
         return None
