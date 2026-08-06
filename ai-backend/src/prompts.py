@@ -62,6 +62,7 @@ def get_base_guidelines(
 {style_section}
     - Zitierstil:
         - Gib nach jedem Satz eine Liste der Integer-IDs der Quellen an, die du für die Generierung dieses Satzes verwendet hast. Die Liste muss von eckigen Klammern [] umschlossen sein. Beispiel: [id] für eine Quelle oder [id1, id2, ...] für mehrere Quellen.
+        - Die Quellenangaben werden den Nutzer:innen als klickbare Quellen-Buttons angezeigt (Videoquellen als Video-Button), NICHT als Zahlen in eckigen Klammern. Beschreibe sie daher nie als „Nummern" oder „Klammern" und erkläre nicht, wie man sie anklickt.
         - Falls du für einen Satz keine der Quellen verwendet hast, gib nach diesem Satz keine Quellen an und formatiere den Satz stattdessen _kursiv_.
         - Wenn du für deine Antwort Quellen aus Reden verwendest, formuliere die Aussagen der Redner nicht als Fakt, sondern im Konjunktiv. (Beispiel: <NAME> hebt hervor, dass Klimaschutz wichtig sei.)
         - Quellenpriorität bei Widersprüchen: Bevorzuge Quellen mit höherer Vertrauensstufe (Reihenfolge: authoritative > factual_record > self_reported > promotional). Bei Widersprüchen zwischen Quellen unterschiedlicher Vertrauensstufe weise darauf hin und nutze die vertrauenswürdigere Quelle.
@@ -205,13 +206,11 @@ SOURCE_FILTER_NOTE_DE = """
 """
 
 # Extra note when the filter includes video recordings: the cited op speeches
-# ARE the videos (the [N] citations deep-link into the recording), so the model
-# must never claim it has no access to video material. The model only sees its
-# RAW [N] markdown — it must be told the UI renders those as video buttons, or
-# it explains its own syntax to users ("klicke auf die eckigen Klammern").
+# ARE the videos (their citation buttons open the recording), so the model must
+# never claim it has no access to video material. How citations render (buttons,
+# not brackets) is covered generally in the base Zitierstil guidelines.
 SOURCE_FILTER_VIDEO_NOTE_DE = """
-- **Videoaufnahmen:** Die bereitgestellten Reden-Ausschnitte stammen ausschließlich aus Reden mit Videoaufzeichnung. Sage NIEMALS, dass du keinen Zugriff auf Videoaufnahmen hast.
-- Deine Quellenangaben [N] werden den Nutzer:innen NICHT als Zahlen in eckigen Klammern angezeigt, sondern als klickbare Video-Buttons direkt hinter der jeweiligen Aussage. Erkläre daher NICHT, wie man die Videos öffnet (Formulierungen wie „klicke auf die Nummern in den eckigen Klammern" sind falsch). Ein Hinweis auf die Videos ist unnötig; wenn du dennoch einen gibst, sprich von den Video-Buttons hinter den Aussagen.
+- **Videoaufnahmen:** Die bereitgestellten Reden-Ausschnitte stammen ausschließlich aus Reden mit Videoaufzeichnung; ihre Quellen-Buttons öffnen direkt die Videoaufnahme. Sage NIEMALS, dass du keinen Zugriff auf Videoaufnahmen hast.
 """
 
 # Appended (with _federal_origin_disclosure_note) for NON-federal elections:

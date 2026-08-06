@@ -250,11 +250,22 @@ def test_source_filter_note_composition() -> None:
 
     videos = _source_filter_note(["videos"])
     assert "Videoaufnahmen von Reden" in videos
-    # The video-specific instruction must be present: never claim no video
-    # access, and citations render as video BUTTONS — the model must not
-    # describe its raw [N] bracket syntax to users.
-    assert "Video-Buttons" in videos
-    assert "eckigen Klammern" in videos
+    # Video-specific instruction: never claim no video access; the citation
+    # buttons open the recording.
+    assert "NIEMALS" in videos
+    assert "öffnen direkt die Videoaufnahme" in videos
+
+
+def test_base_guidelines_describe_citation_rendering() -> None:
+    """The shared Zitierstil block must tell the model its [N] citations render
+    as clickable buttons — the model only sees its raw markdown and otherwise
+    explains its own bracket syntax to users ('klicke auf die eckigen
+    Klammern')."""
+    from src.prompts import get_chat_answer_guidelines
+
+    guidelines = get_chat_answer_guidelines("SPD")
+    assert "klickbare Quellen-Buttons" in guidelines
+    assert "Video-Button" in guidelines
 
 
 def test_source_filter_labels_are_canonically_ordered() -> None:
