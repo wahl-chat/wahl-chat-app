@@ -42,12 +42,36 @@ def test_ai_studio_clients_are_pinned_off_vertex() -> None:
     _determine_backend consults that env var before defaulting to AI Studio, so
     an unpinned fallback client would silently target Vertex and then fail for
     want of credentials — losing the fallback exactly when it is needed.
+
+    Asserted on `vertexai` (the explicit pin) as well as on the resolved
+    `_use_vertexai`: the resolved value would also read False with the kwarg
+    dropped and the env var absent, so it alone does not prove the pin is there.
     """
-    assert llms.google_gemini_2_flash._use_vertexai is False
-    assert llms.google_gemini_3_flash_preview._use_vertexai is False
-    assert llms.google_gemini_2_5_flash._use_vertexai is False
-    assert llms.google_gemini_2_5_flash_lite_det._use_vertexai is False
-    assert llms.google_gemini_2_flash_det._use_vertexai is False
+    for client in (
+        llms.google_gemini_2_flash,
+        llms.google_gemini_3_flash_preview,
+        llms.google_gemini_2_5_flash,
+        llms.google_gemini_2_5_flash_lite_det,
+        llms.google_gemini_2_flash_det,
+    ):
+        assert client.vertexai is False, client.model
+        assert client._use_vertexai is False, client.model
+
+
+def test_vertex_clients_are_pinned_on_vertex() -> None:
+    """The other half of the pin, and the one the review asked about.
+
+    Backend resolution puts GOOGLE_GENAI_USE_VERTEXAI *above* the "credentials
+    imply Vertex" inference, so GOOGLE_GENAI_USE_VERTEXAI=false would drop an
+    unpinned Vertex client onto AI Studio carrying no API key at all.
+
+    Built through the module's own helper rather than by re-importing with
+    credentials, which would need a real key.
+    """
+    client = llms._gemini("gemini-2.5-flash", vertex=True)
+
+    assert client.vertexai is True
+    assert client._use_vertexai is True
 
 
 def test_model_kwargs_survive_the_helper() -> None:

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from src.firebase_service import awrite_llm_status
 from src.google_credentials import (
     get_vertex_credentials,
+    vertex_enabled,
     vertex_location,
     vertex_project,
 )
@@ -26,29 +27,54 @@ logger = logging.getLogger(__name__)
 # so Gemini spend lands on that project. Absent credentials, VERTEX_AVAILABLE is
 # False and the LLM lists are exactly what they were before — that is the local
 # dev / CI path, and the reason nothing here may raise.
-_VERTEX_CREDS = get_vertex_credentials()
-_VERTEX_PROJECT = vertex_project()
-VERTEX_AVAILABLE = _VERTEX_CREDS is not None and _VERTEX_PROJECT is not None
+VERTEX_AVAILABLE = vertex_enabled()
+_VERTEX_CREDS = get_vertex_credentials() if VERTEX_AVAILABLE else None
+_VERTEX_PROJECT = vertex_project() if VERTEX_AVAILABLE else None
+
+# One line at import, so which backend a revision actually came up on is
+# answerable from the logs alone. Without it, the only symptom of a Vertex tier
+# that failed to register is billing that never moves.
+if VERTEX_AVAILABLE:
+    logger.info(
+        "Vertex AI enabled for Gemini: project=%s location=%s "
+        "(Google AI Studio remains registered as fallback).",
+        _VERTEX_PROJECT,
+        vertex_location(),
+    )
+else:
+    logger.warning(
+        "Vertex AI not configured; Gemini traffic will bill Google AI Studio."
+    )
 
 
 def _gemini(model: str, *, vertex: bool = False, **kwargs) -> ChatGoogleGenerativeAI:
     """Construct a Gemini client against either backend.
 
-    Both backends are the same class: langchain-google-genai routes to Vertex
-    when a ``credentials`` object is present (its _determine_backend treats that
-    as a hard signal), so no separate ChatVertexAI is involved and model kwargs
-    such as ``thinking_level`` / ``thinking_budget`` carry over unchanged.
+    Both backends are the same class: langchain-google-genai speaks Vertex and AI
+    Studio from one ChatGoogleGenerativeAI, so no separate ChatVertexAI is
+    involved and model kwargs such as ``thinking_level`` / ``thinking_budget``
+    carry over unchanged.
 
-    ``vertexai=False`` on the AI Studio path is a safety pin, not decoration:
-    backend detection consults GOOGLE_GENAI_USE_VERTEXAI *before* defaulting to
-    AI Studio, so if that variable ever leaked into the environment every
-    fallback client would silently flip to Vertex and then fail for want of
-    credentials — collapsing the fallback exactly when it is needed.
+    ``vertexai`` is pinned explicitly on BOTH paths, and that is load-bearing
+    rather than decorative. _determine_backend resolves the backend in priority
+    order: the explicit ``vertexai`` argument, then GOOGLE_GENAI_USE_VERTEXAI,
+    then the presence of ``credentials``, then ``project``, then AI Studio. The
+    env var therefore outranks credential-based inference in both directions:
+
+      - unpinned AI Studio client + GOOGLE_GENAI_USE_VERTEXAI=true  -> silently
+        targets Vertex and fails for want of credentials, collapsing the fallback
+        exactly when it is needed;
+      - unpinned Vertex client  + GOOGLE_GENAI_USE_VERTEXAI=false -> silently
+        drops to AI Studio carrying no API key at all.
+
+    Nothing in this repo sets that variable, which is the point: pinning both ends
+    means nothing outside the repo can repoint either tier either.
     """
     if vertex:
         return ChatGoogleGenerativeAI(
             model=model,
             max_retries=0,
+            vertexai=True,
             credentials=_VERTEX_CREDS,
             project=_VERTEX_PROJECT,
             location=vertex_location(),

@@ -138,23 +138,28 @@ def get_embeddings(
         # would reject the existing corpus and force a full re-ingest.
         from src.google_credentials import (  # noqa: PLC0415
             get_vertex_credentials,
+            vertex_enabled,
             vertex_location,
             vertex_project,
         )
 
-        credentials = (
-            get_vertex_credentials() if _vertex_embeddings_requested() else None
-        )
-        # NOTE: unlike the chat class, GoogleGenerativeAIEmbeddings does NOT
-        # derive `project` from the credentials object — it must be passed.
-        project = vertex_project() if credentials else None
-        if credentials is not None and project is not None:
+        # The kill-switch is checked FIRST and that ordering is load-bearing:
+        # short-circuiting means EMBEDDINGS_USE_VERTEX=0 never touches the
+        # credential resolver, so deliberately opting out cannot trip a
+        # misconfiguration warning — or, under VERTEX_REQUIRED, a raise.
+        if _vertex_embeddings_requested() and vertex_enabled():
             return GoogleGenerativeAIEmbeddings(
                 model=resolved_model,
                 output_dimensionality=resolved_dim,
                 task_type=task_type,
-                credentials=credentials,
-                project=project,
+                # Pinned on both paths — see _gemini() in src/llms.py for why
+                # leaving this to inference is not safe in either direction.
+                vertexai=True,
+                credentials=get_vertex_credentials(),
+                # NOTE: unlike the chat class, GoogleGenerativeAIEmbeddings does
+                # NOT derive `project` from the credentials object. vertex_enabled()
+                # has already established that this resolves to a real value.
+                project=vertex_project(),
                 location=vertex_location(),
             )
 

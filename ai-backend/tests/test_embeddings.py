@@ -158,6 +158,9 @@ def test_gemini_routes_to_vertex_when_credentials_present(
 
     assert isinstance(client, _FakeGemini)
     assert isinstance(client.kwargs["credentials"], _FakeCredentials)
+    # Pinned, not inferred from the credentials: GOOGLE_GENAI_USE_VERTEXAI outranks
+    # that inference, so =false would drop this client to AI Studio with no key.
+    assert client.kwargs["vertexai"] is True
     # Not auto-derived on the embeddings class — must be passed explicitly.
     assert client.kwargs["project"] == "billing-project"
     assert client.kwargs["location"] == "europe-west3"
@@ -213,4 +216,30 @@ def test_gemini_stays_on_ai_studio_without_credentials(
 
     assert client.kwargs["google_api_key"] == "test-google-key"
     assert "credentials" not in client.kwargs
+    gc.get_vertex_credentials.cache_clear()
+
+
+def test_kill_switch_short_circuits_before_the_credential_resolver(
+    monkeypatch: pytest.MonkeyPatch, patched_clients: None
+) -> None:
+    """EMBEDDINGS_USE_VERTEX=0 must be checked BEFORE credentials are resolved.
+
+    The ordering is load-bearing rather than stylistic. Here the Vertex config is
+    both broken AND strict, so touching the resolver at all would raise
+    VertexConfigError — but the operator has explicitly opted embeddings out, and
+    opting out cannot be allowed to fail on the config it is opting out of.
+    """
+    from src import google_credentials as gc
+
+    gc.get_vertex_credentials.cache_clear()
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
+    monkeypatch.setenv("GOOGLE_API_KEY", "test-google-key")
+    monkeypatch.setenv("EMBEDDINGS_USE_VERTEX", "0")
+    monkeypatch.setenv("VERTEX_SA_JSON_FILE", "/nonexistent/vertex-sa.json")
+    monkeypatch.setenv("VERTEX_REQUIRED", "1")
+
+    client = emb.get_embeddings()
+
+    assert client.kwargs["google_api_key"] == "test-google-key"
+    assert client.kwargs["vertexai"] is False
     gc.get_vertex_credentials.cache_clear()

@@ -90,8 +90,12 @@ How it behaves:
 - Vertex models are registered **above** their AI Studio twins in
   `RESPONSE_GENERATION_LLMS` / `PRE_AND_POST_PROCESSING_LLMS`, so the existing
   priority-based failover in `src/llms.py` tries Vertex first and falls through to
-  the identical AI Studio model on any error. Missing or malformed credentials
-  simply mean the Vertex tier is never registered — nothing raises at import.
+  the identical AI Studio model on any error.
+- `src/llms.py` logs one line at import saying which backend it came up on —
+  `Vertex AI enabled for Gemini: project=… location=…`, or a warning that Gemini
+  traffic will bill AI Studio. **That line is how you confirm a deploy took**;
+  without it the only symptom of a Vertex tier that failed to register is billing
+  that never moves.
 - `EMBEDDINGS_USE_VERTEX=0` forces embeddings back to AI Studio while chat stays
   on Vertex. It is a manual kill-switch: unlike chat, embeddings have no runtime
   failover, because the client is bound once at module level.
@@ -100,6 +104,34 @@ How it behaves:
   vectors), and it is stamped into the Qdrant embedding-space fingerprint that
   `setup_collection.check_fingerprint` enforces. Changing it would reject the
   existing corpus and force a re-ingest.
+
+#### When credentials are absent vs. broken
+
+These are treated differently on purpose, because only one of them is a mistake.
+
+- **Absent** — no `VERTEX_SA_JSON` / `VERTEX_SA_JSON_FILE` at all. The Vertex tier
+  is simply never registered, nothing is logged above DEBUG, and nothing raises.
+  This is the CI and local-dev path and it must stay quiet.
+- **Broken** — a source *was* supplied but is unusable: blank value, path that does
+  not exist, corrupt key, or a key whose project id cannot be resolved. Always
+  logs a WARNING naming the specific variable, and for the file form the resolved
+  **absolute** path (relative paths are read against the process working
+  directory, not the repo root — the usual cause). Vertex is still skipped, so the
+  service keeps answering.
+
+Set **`VERTEX_REQUIRED=1`** to escalate the broken case from a warning to a
+`VertexConfigError` at import. Do that on deployed revisions: quiet fallback is
+the worse failure there, because the service looks healthy while Gemini spend
+keeps landing on the project this feature exists to move it off. A failed
+revision is noticed in minutes; mis-billing is noticed at the end of the month.
+
+> **Do not set `VERTEX_REQUIRED=1` on a revision whose secret is not wired yet.**
+> It escalates *broken* config, not *absent* config — so an unset variable is
+> still safe — but a secret that exists and is empty counts as broken and will
+> fail the revision's import. Wire the secret, confirm the revision comes up with
+> the `Vertex AI enabled` log line, then turn it on.
+
+#### Location
 
 > **`VERTEX_LOCATION=global` is load-bearing.** On the billing project, regional
 > endpoints (`europe-west3`/`-west4`, `us-central1`) serve `gemini-2.5-flash`

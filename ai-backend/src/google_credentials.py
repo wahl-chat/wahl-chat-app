@@ -18,9 +18,23 @@ restricted sharing (``iam.allowedPolicyMemberDomains``), so binding this
 service's runtime identity there is rejected. A key minted inside the billing
 project is the remaining path.
 
-Nothing here raises. Absent or unusable credentials resolve to ``None`` so the
-caller silently falls back to Google AI Studio (``GOOGLE_API_KEY``) — see
-``src/llms.py`` and ``src/embeddings.py``.
+Two failure modes, deliberately treated differently:
+
+*Unconfigured* — no ``VERTEX_*`` credential source at all. The expected state in CI
+and local development. Resolves to ``None`` quietly, and the caller falls back to
+Google AI Studio (``GOOGLE_API_KEY``) — see ``src/llms.py`` and
+``src/embeddings.py``.
+
+*Misconfigured* — a source WAS supplied but is unusable (blank value, missing file,
+corrupt key, unresolvable project). That is operator error, and staying quiet about
+it is the worst outcome available: the service keeps answering while Gemini spend
+keeps landing on the project this module exists to move it off. So it always logs a
+warning, and under ``VERTEX_REQUIRED`` it raises ``VertexConfigError`` instead.
+
+``VERTEX_REQUIRED`` is off by default: an import-time raise takes ``src/llms.py``
+down and with it the whole service, which must not be the default for a key that is
+optional. It is meant for deployed revisions, where a failed revision is strictly
+better than invisible mis-billing.
 """
 
 from __future__ import annotations
@@ -45,6 +59,43 @@ _SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
 # requirement — that would mean europe-west3 plus a much narrower model set.
 _DEFAULT_LOCATION = "global"
 
+_TRUTHY = ("1", "true", "yes")
+
+
+class VertexConfigError(RuntimeError):
+    """A Vertex credential source was supplied but is unusable, under strict mode.
+
+    Only ever raised when ``VERTEX_REQUIRED`` is set. Absent that, the same
+    conditions produce a warning and a fall back to Google AI Studio.
+    """
+
+
+def _vertex_required() -> bool:
+    """Strict mode: escalate misconfiguration from a warning to a hard failure.
+
+    Off by default so CI and local development keep the degrade-quietly contract.
+    Set it on deployed revisions, where a revision that fails to start is easier
+    to notice — and cheaper — than one that quietly bills the wrong project.
+
+    Note that this escalates *broken* configuration only. With no credential
+    source configured at all there is nothing to be strict about, and setting
+    this alone must not take the service down.
+    """
+    return os.getenv("VERTEX_REQUIRED", "").strip().lower() in _TRUTHY
+
+
+def _misconfigured(reason: str, *, exc_info: bool = False) -> None:
+    """Report a supplied-but-unusable Vertex configuration. Never stays silent."""
+    if _vertex_required():
+        raise VertexConfigError(
+            f"VERTEX_REQUIRED is set but Vertex AI is unusable: {reason}"
+        )
+    logger.warning(
+        "Vertex AI disabled — %s Gemini traffic will bill Google AI Studio.",
+        reason,
+        exc_info=exc_info,
+    )
+
 
 @lru_cache(maxsize=1)
 def get_vertex_credentials() -> Optional[Any]:
@@ -60,33 +111,65 @@ def get_vertex_credentials() -> Optional[Any]:
     Tests that manipulate the VERTEX_* env vars must call
     ``get_vertex_credentials.cache_clear()``.
 
-    Never raises — a missing or malformed key degrades to AI Studio rather than
-    taking the process down at import time.
+    Returns None rather than raising when nothing is configured. When something
+    IS configured and is broken, that is reported via ``_misconfigured`` — a
+    warning by default, a ``VertexConfigError`` under ``VERTEX_REQUIRED``.
     """
-    raw = os.getenv("VERTEX_SA_JSON")
-    path = os.getenv("VERTEX_SA_JSON_FILE")
+    raw_env = os.getenv("VERTEX_SA_JSON")
+    raw = (raw_env or "").strip()
+    path = (os.getenv("VERTEX_SA_JSON_FILE") or "").strip()
+
+    # Each supplied source is inspected BEFORE anything is loaded, and outside the
+    # try below so these findings cannot be swallowed by its broad except. A
+    # set-but-empty value and a path that does not exist are the two cases that
+    # used to fall through both branches and return None with nothing logged.
+    usable_raw = bool(raw)
+    usable_path = bool(path) and os.path.exists(path)
+
+    problems: list[str] = []
+    if raw_env is not None and not raw:
+        problems.append("VERTEX_SA_JSON is set but empty.")
+    if path and not usable_path:
+        problems.append(
+            f"VERTEX_SA_JSON_FILE={path!r} does not exist (resolved to "
+            f"{os.path.abspath(path)}); relative paths are read against the "
+            "process working directory, not the repo root."
+        )
+
+    if not usable_raw and not usable_path:
+        if problems:
+            _misconfigured(" ".join(problems))
+        else:
+            logger.debug(
+                "No Vertex AI credentials configured (VERTEX_SA_JSON / "
+                "VERTEX_SA_JSON_FILE unset); using Google AI Studio."
+            )
+        return None
+
+    # A broken source next to a working one — e.g. a leftover `VERTEX_SA_JSON=`
+    # in .env while the file form is what is actually in use. Worth saying out
+    # loud, but NOT worth escalating: strict mode asks "is Vertex unusable?", and
+    # here it is usable, so raising would take the service down over a no-op.
+    for problem in problems:
+        logger.warning("Vertex AI configuration issue — %s", problem)
 
     try:
         from google.oauth2 import service_account  # noqa: PLC0415
 
-        if raw and raw.strip():
+        if usable_raw:
             info = json.loads(raw)
             return service_account.Credentials.from_service_account_info(
                 info, scopes=_SCOPES
             )
-        if path and os.path.exists(path):
-            return service_account.Credentials.from_service_account_file(
-                path, scopes=_SCOPES
-            )
-    except Exception:  # noqa: BLE001 — any failure means "no Vertex", not "crash"
-        logger.warning(
-            "Vertex AI service-account credentials could not be loaded; "
-            "falling back to Google AI Studio.",
+        return service_account.Credentials.from_service_account_file(
+            path, scopes=_SCOPES
+        )
+    except Exception as exc:  # noqa: BLE001 — degrade or escalate, never crash blindly
+        _misconfigured(
+            f"the supplied service-account key could not be loaded ({exc}).",
             exc_info=True,
         )
         return None
-
-    return None
 
 
 def vertex_project() -> Optional[str]:
@@ -116,5 +199,23 @@ def vertex_location() -> str:
 
 
 def vertex_enabled() -> bool:
-    """True when Vertex is fully configured (credentials AND a project)."""
-    return get_vertex_credentials() is not None and vertex_project() is not None
+    """True when Vertex is fully configured (credentials AND a project).
+
+    The single decision point for "is Vertex on" — ``src/llms.py`` and
+    ``src/embeddings.py`` both route through here rather than re-deriving the
+    two-part condition, so the semantics live in one place. Cheap to call: the
+    credential lookup is cached and the project lookup is an env read.
+
+    Also closes the last silent gap: credentials that load fine but yield no
+    project id (a key without ``project_id``, ``VERTEX_PROJECT_ID`` unset) used
+    to disable Vertex with nothing logged anywhere.
+    """
+    if get_vertex_credentials() is None:
+        return False  # already reported by the resolver, quietly or otherwise
+    if vertex_project() is None:
+        _misconfigured(
+            "a service-account key loaded but no project id could be resolved; "
+            "set VERTEX_PROJECT_ID, or use a key that carries project_id."
+        )
+        return False
+    return True
