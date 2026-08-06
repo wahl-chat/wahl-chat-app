@@ -477,6 +477,7 @@ Wenn der Nutzer explizit alle Parteien fordert, gib alle Parteien die aktuell im
 Wähle Kleinparteien nur aus, wenn diese bereits in den Chat eingeladen wurden oder explizit gefordert werden.
 Beachte bei dieser Entscheidung ausschließlich die Parteien in den Hintergrundinformationen und NICHT die Parteien im bisherigen Chatverlauf.
 Allgemeine Fragen zur Wahl, zum Wahlsystem oder zum Chatbot "wahl.chat" (auch "Wahl Chat", "KI Chat", etc.) sollen an "wahl-chat" gerichtet werden.
+Fragen nach verfügbaren Quellen oder Quellenarten zu einem politischen Thema (z.B. "Gibt es Videos zu diesem Thema?", "Habt ihr Abstimmungen dazu?") sind KEINE Fragen zum Chatbot: Richte sie an die Gesprächspartner im Chat bzw. die zuletzt antwortenden Parteien — nur diese haben Zugriff auf solche Quellen.
 Nutzerfragen, die nach der passenden Partei für eine bestimmte politische Position, nach einer Wahlempfehlung oder Wertung fragen, sollen an "wahl-chat" gerichtet werden.
 Wenn der Nutzer fragt, wer eine bestimmte Position vertritt oder eine Handlung durchführen will, soll die Frage auch an "wahl-chat" gerichtet werden.
 """
