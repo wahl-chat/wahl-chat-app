@@ -27,7 +27,10 @@ function ChatMessageReference({
   return (
     <span key={index} className="inline-flex flex-row flex-wrap gap-1">
       {numbers.map((number) => {
-        const refNumber = Number.parseInt(number);
+        const refNumber = Number.parseInt(number, 10);
+        if (Number.isNaN(refNumber)) {
+          return null;
+        }
 
         const name = getReferenceName?.(refNumber) ?? `Ref. ${number}`;
         const tooltip = getReferenceTooltip?.(refNumber) ?? name;
@@ -45,7 +48,7 @@ function ChatMessageReference({
                   isVideo &&
                     'gap-1 bg-primary/10 font-medium text-primary hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30',
                 )}
-                onClick={() => onReferenceClick(Number.parseInt(number))}
+                onClick={() => onReferenceClick(refNumber)}
               >
                 {isVideo ? (
                   <>

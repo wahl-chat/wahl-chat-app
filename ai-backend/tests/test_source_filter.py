@@ -25,6 +25,7 @@ live Qdrant.
 
 import asyncio
 import json
+from datetime import datetime, timezone
 
 import pytest
 
@@ -41,8 +42,6 @@ from src.models.chat import GroupChatSession, Message
 from src.models.context import ContextParty
 from src.models.general import LLMSize
 from src.models.structured_outputs import SourceFilterClassifier
-from datetime import datetime, timezone
-
 
 _TW = (
     datetime(2021, 1, 1, tzinfo=timezone.utc),
