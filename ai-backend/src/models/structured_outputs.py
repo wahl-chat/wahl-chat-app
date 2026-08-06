@@ -63,9 +63,8 @@ class QuestionTypeClassifier(BaseModel):
     )
 
 
-# User-facing source categories a chat answer can be explicitly scoped to.
-# "videos" is speeches WITH a video recording (source=="op"), not its own
-# corpus source_type — the retrieval layer maps it to a provenance filter.
+# User-facing source categories for scoping answers. "videos" is not a corpus
+# source_type — retrieval maps it to parliamentary_speech with source=="op".
 SourceFilterLiteral = Literal["manifesto", "votes", "speeches", "videos"]
 
 SOURCE_FILTER_VALUES: tuple[str, ...] = ("manifesto", "votes", "speeches", "videos")

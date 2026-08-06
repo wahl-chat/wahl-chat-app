@@ -12,8 +12,7 @@ type Props = {
   onReferenceClick: (number: number) => void;
   getReferenceTooltip?: (number: number) => string | null;
   getReferenceName?: (number: number) => string | null;
-  // True when the reference opens as a video (op speech recording) — rendered
-  // as a prominent call-to-action pill instead of a bare number.
+  // Video references render as a call-to-action pill instead of a bare number.
   getReferenceIsVideo?: (number: number) => boolean;
 };
 

@@ -187,8 +187,7 @@ SOURCE_LABEL_SPEECHES_DE = "Reden"
 # =============================================================================
 # User-requested source-type filter (organic "zeig mir nur Videos/Abstimmungen/…")
 # =============================================================================
-# Nominative labels for the filter note's "nur nach: X, Y" list, keyed by the
-# SourceFilterLiteral values the intent classifier emits.
+# Nominative labels, keyed by the classifier's SourceFilterLiteral values.
 SOURCE_FILTER_LABELS_DE = {
     "manifesto": "das Wahlprogramm",
     "votes": "namentliche Abstimmungen",
@@ -196,41 +195,28 @@ SOURCE_FILTER_LABELS_DE = {
     "videos": "Videoaufnahmen von Reden",
 }
 
-# Appended to answer_guidelines when the user explicitly scoped the answer to
-# specific source types. The grounding is already retrieval-filtered; this note
-# makes the model own the scope instead of apologising for "missing" sections,
-# and mandates an honest no-fallback answer when the scoped retrieval is empty.
+# Appended when the user scoped the answer: own the scope (don't apologise for
+# absent sections), honest no-fallback answer when the scoped retrieval is empty.
 SOURCE_FILTER_NOTE_DE = """
 - **Vom Nutzer gewählter Quellenfokus:** Der Nutzer hat ausdrücklich nur nach folgenden Quellenarten gefragt: {requested_sources}. Die bereitgestellten Ausschnitte wurden bewusst auf diese Quellenarten beschränkt. Beantworte die Frage ausschließlich auf dieser Basis; andere Quellenarten fehlen absichtlich — erwähne ihr Fehlen nicht als Mangel.
 - Wenn KEINE passenden Ausschnitte vorliegen, sage klar und ehrlich, dass zu diesem Thema keine Quellen der gewünschten Art vorliegen. Weiche NICHT auf andere Quellenarten aus und erfinde nichts. Biete stattdessen an, die Frage ohne diese Beschränkung zu beantworten.
 """
 
-# Extra note when the filter includes video recordings: the cited op speeches
-# ARE the videos (their citation buttons open the recording), so the model must
-# never claim it has no access to video material. How citations render (buttons,
-# not brackets) is covered generally in the base Zitierstil guidelines.
+# Videos filter: the cited op speeches ARE the videos — never claim no access.
 SOURCE_FILTER_VIDEO_NOTE_DE = """
 - **Videoaufnahmen:** Die bereitgestellten Reden-Ausschnitte stammen ausschließlich aus Reden mit Videoaufzeichnung; ihre Quellen-Buttons öffnen direkt die Videoaufnahme. Sage NIEMALS, dass du keinen Zugriff auf Videoaufnahmen hast.
 """
 
-# Appended (with _federal_origin_disclosure_note) for NON-federal elections:
-# the grounding legitimately mixes levels (Reden are Bundestag-only content,
-# the manifesto is the Land program, votes come from both parliaments), but the
-# ANSWER must not weave the levels into one storyline — customer feedback: a
-# Landtagswahl answer read "Auf Bundesebene lehnt die Partei X ab [Bund].
-# Stattdessen setzt sie auf Y [Land]", presenting a Land position as the
-# direct alternative to a federal one.
+# Non-federal elections: the grounding legitimately mixes Bund and Land sources,
+# but the answer must not weave the levels into one storyline (customer feedback).
 LEVEL_SEPARATION_NOTE_DE = """
 - Deine Quellen stammen teils von der Bundesebene (Reden im Bundestag, Abstimmungen mit dem Label 'Parlament: Bundestag (Bundesebene)') und teils von der Landesebene (das Wahlprogramm zur Landtagswahl, Abstimmungen im Landtag). Mache bei JEDER Aussage erkennbar, von welcher Ebene sie stammt.
 - Gruppiere zusammengehörige Aussagen nach Ebene und leite jede Ebene explizit ein (z.B. „Auf Bundesebene …", „Auf Landesebene …" / „Für das Land …").
 - Verbinde NIEMALS eine Aussage der einen Ebene mit einer Aussage der anderen Ebene, als wären sie Teil desselben Vorhabens. Falsch wäre etwa: „Auf Bundesebene lehnt die Partei E-Fuels ab. Stattdessen setzt sie auf eine Transformationsmilliarde" — wenn das Erste aus dem Bundestag und das Zweite aus dem Landtagswahlprogramm stammt. Formuliere stattdessen einen expliziten Ebenenwechsel.
 """
 
-# Appended to the RAG-query-improvement SYSTEM prompt when a source filter is
-# active. The retrieval is already hard-filtered to the requested source types,
-# so the query must target the TOPIC — a query containing the format words
-# ("Videoaufnahmen", "Abstimmungen") retrieves documents ABOUT videos/votes
-# (e.g. Videokonferenzen in der Justiz) instead of documents about the topic.
+# Query-improvement addition under a filter: query the TOPIC, never the format —
+# format words retrieve documents ABOUT videos/votes instead of about the topic.
 RAG_QUERY_SOURCE_FILTER_NOTE_DE = """
 
 # Quellenfokus des Nutzers

@@ -71,8 +71,7 @@ function ChatMarkdown({ message }: Props) {
     return `${number + 1}`;
   };
 
-  // Derived from getSourceMediaLinks (the same helper a click uses to decide
-  // how to open), so the video pill can never disagree with what a click does.
+  // Same helper the click handler uses, so the pill never disagrees with a click.
   const getReferenceIsVideo = (number: number) => {
     const source = message.sources?.[number];
     if (!source) {

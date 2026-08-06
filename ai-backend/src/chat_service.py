@@ -147,12 +147,8 @@ _CURRENT_MANIFESTO_LIMIT = 4
 _CURRENT_SPEECH_LIMIT = 2  # normal cap (ranked last)
 _CURRENT_SPEECH_FALLBACK = 5  # adaptive ceiling when official data is sparse
 
-# User-requested source-type filter (detect_source_filter): when the user
-# explicitly scopes the answer to specific source types, the requested sources
-# carry the WHOLE answer, so their current-bucket budgets are raised. The score
-# threshold is unchanged — the extra slots only fill with results that clear the
-# same relevance bar. The adaptive speech trim is skipped under a filter (an
-# explicitly requested source is never demoted to "supporting material").
+# Raised current-bucket budgets under a user source filter — the requested
+# sources carry the whole answer. Score threshold unchanged.
 _FILTERED_VOTE_LIMIT = 10
 _FILTERED_MANIFESTO_LIMIT = 8
 _FILTERED_SPEECH_LIMIT = 6
@@ -560,12 +556,10 @@ async def _retrieve_party_buckets(
     concurrently and a single source failure degrades to empty. WAHL_CHAT_PARTY has no
     corpus data → all buckets empty. log_prefix labels the failure logs per caller.
 
-    source_filter (detect_source_filter values) restricts retrieval to the
-    user-requested source types: only requested legs run (the others return empty
-    buckets untouched) and each requested leg gets the raised _FILTERED_* budget.
-    "videos" runs the speech leg with a Qdrant-level source=="op" provenance
-    filter so only video-bearing speeches return — a post-fetch filter would
-    starve videos whenever transcript-only speeches dominate the top-k.
+    source_filter restricts retrieval to the user-requested source types: only
+    requested legs run, each with the raised _FILTERED_* budget. "videos" adds a
+    Qdrant-level source=="op" filter — post-fetch filtering would starve videos
+    whenever transcript-only speeches dominate the top-k.
     """
     if party.party_id == WAHL_CHAT_PARTY.party_id:
         return _RetrievedBuckets([], [], [], [], [], [])
@@ -899,8 +893,8 @@ async def fetch_party_response_stream(
             # bar" — enough to instruct a marked historic section. Drives has_historic
             # threaded into generation below.
             has_historic = bool(manifesto_historic or speech_historic or vote_historic)
-            # Adaptive speech trim — skipped under a user source filter: an
-            # explicitly requested source keeps its raised (filtered) budget.
+            # Trim skipped under a source filter — requested speeches keep
+            # their raised budget.
             if not source_filter and not votes_absent and not manifesto_absent:
                 speech_current = speech_current[:_CURRENT_SPEECH_LIMIT]
 
@@ -1316,8 +1310,6 @@ async def process_party(
     votes_absent, manifesto_absent = _official_coverage(
         vote_docs_current, manifesto_current
     )
-    # Adaptive speech trim — skipped under a user source filter (mirrors the
-    # single-party path).
     if not source_filter and not votes_absent and not manifesto_absent:
         speech_current = speech_current[:_CURRENT_SPEECH_LIMIT]
 
@@ -1569,10 +1561,8 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
             chat_history_without_last, all_parties
         )
 
-        # Source-filter intent detection ("zeig mir nur Videos/Abstimmungen zu …")
-        # runs CONCURRENTLY with the target/type classification — both need only
-        # the message + history, so the extra LLM call adds no latency.
-        # detect_source_filter is fail-open: [] means no restriction (all sources).
+        # Source-filter detection runs concurrently with the target/type
+        # classification — no added latency. Fail-open: [] = all sources.
         source_filter_task = asyncio.create_task(
             detect_source_filter(user_message.content, chat_history_str)
         )
@@ -1687,10 +1677,8 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                 # quick_replies (forgeable). First turn uses the server-verified
                 # proposed-question check; follow-ups are gated against the
                 # quick_replies the server recorded last turn for this session.
-                # A source-filtered turn is never cacheable: the cache entry does
-                # not encode the (LLM-detected) filter, so a filtered answer
-                # could be replayed for a differently-classified turn. Curated
-                # proposed questions never carry a filter, so nothing is lost.
+                # Filtered turns are never cacheable — the cache entry doesn't
+                # encode the (non-deterministic) LLM-detected filter.
                 group_chat_session.is_cacheable = (
                     _evaluate_cache_eligibility(
                         body.session_id,

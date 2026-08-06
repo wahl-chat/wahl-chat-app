@@ -137,9 +137,7 @@ AuthorityTierLiteral = Literal[
     "promotional",
 ]
 
-# Provenance of a chunk within its source_type: op speeches carry video,
-# dip speeches only the transcript PDF, upload manifestos come from the
-# manifesto_uploads connector. Indexed keyword (setup_collection.py).
+# Chunk provenance within a source_type (op speeches carry video). Indexed keyword.
 SourceLiteral = Literal["op", "dip", "upload"]
 
 
@@ -388,14 +386,12 @@ def retrieve(
                         LARGE for federal-untagged), re-sorts and truncates to ``limit``.
                         Non-vote sources are unaffected.
         limit:          Maximum number of results (default 5).
-        source:         Keyword-only provenance filter within a source_type
-                        (``"op"`` | ``"dip"`` | ``"upload"``). Used for explicit
-                        user-driven scoping — e.g. ``source="op"`` returns only
-                        speeches that carry a video recording. Deliberately NOT
-                        part of ``RetrieveSchema`` and never set by the default
-                        chat path: the prefer-op dedup (``dedup_prefer_op``)
-                        stays a post-fetch pass so un-scoped retrieval keeps its
-                        dip fallback. NOT selective alone.
+        source:         Keyword-only provenance filter (e.g. ``"op"`` = only
+                        video-bearing speeches), for explicit user-driven
+                        scoping. NOT part of ``RetrieveSchema``, never set by
+                        the default chat path (prefer-op dedup stays post-fetch
+                        so un-scoped retrieval keeps its dip fallback). NOT
+                        selective alone.
         publish_range:  Keyword-only bounded/strict ``publish_date`` window as a
                         single ``DatetimeRange`` — e.g. ``DatetimeRange(gte=t0, lte=t1)``
                         for a closed window or ``DatetimeRange(lt=t0)`` for a strict
@@ -736,9 +732,7 @@ def retrieve_two_pass(
         source_type:    Content category filter (see retrieve()). Selective.
         party_id:       Tenant filter (see retrieve()). Selective.
         party_ids_contains: Vote membership filter (see retrieve()). Selective.
-        source:         Provenance filter (see retrieve()). Forwarded to both
-                        passes — an explicit "videos only" request scopes the
-                        historic bucket the same way as the current one.
+        source:         Provenance filter (see retrieve()); forwarded to both passes.
         region_path:    Election region path (MatchAny). Forwarded to both passes.
         level:          Governance level; forwarded to both passes so the
                         vote-level down-rank composes WITHIN each pass.

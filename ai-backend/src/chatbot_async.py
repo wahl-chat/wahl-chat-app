@@ -286,10 +286,8 @@ async def detect_source_filter(
 ) -> List[str]:
     """Classify whether the user explicitly scopes the answer to source types.
 
-    Returns the requested SourceFilterLiteral values ("manifesto" / "votes" /
-    "speeches" / "videos") in canonical order, or [] when no restriction was
-    requested. Fail-open: any classification error returns [] so a broken
-    classifier degrades to today's default-all retrieval, never a blocked turn.
+    Returns SourceFilterLiteral values in canonical order; [] = no restriction.
+    Fail-open: any error returns [], degrading to default-all retrieval.
     """
     messages = [
         SystemMessage(content=determine_source_filter_system_prompt.format()),
@@ -332,9 +330,6 @@ async def generate_improvement_rag_query(
     else:
         system_prompt = system_prompt_improvement_template.format(party_name=party.name)
     if source_filter:
-        # Retrieval is already hard-filtered to the requested source types; the
-        # query must target the topic, never the media format (a query built
-        # around "Videoaufnahmen" retrieves documents ABOUT video technology).
         system_prompt += RAG_QUERY_SOURCE_FILTER_NOTE_DE.format(
             requested_sources=source_filter_labels_de(source_filter)
         )
@@ -698,15 +693,8 @@ def _federal_origin_disclosure_note(election_level: Optional[str]) -> str:
 
 
 def _source_filter_note(source_filter: Optional[List[str]]) -> str:
-    """Guideline block for a user-requested source-type filter.
-
-    Returns "" when no filter is active, so untouched callers reproduce today's
-    prompt byte-for-byte. Otherwise names the requested source types, mandates
-    the honest no-fallback empty answer, and — when video recordings were
-    requested — adds the "the [N] citations ARE the videos" instruction. Used by
-    both the single-party and comparison response paths so the scoping wording
-    cannot diverge.
-    """
+    """Guideline block naming the user-requested source scope; "" when no filter
+    is active. Shared by the single-party and comparison paths."""
     if not source_filter:
         return ""
     note = SOURCE_FILTER_NOTE_DE.format(
