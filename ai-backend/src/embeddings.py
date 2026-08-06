@@ -27,6 +27,14 @@ they stay in lockstep with the collection the vectors are written to.
 Gemini reads its key from ``GOOGLE_API_KEY`` (falling back to ``GEMINI_API_KEY``)
 for AI Studio access; OpenAI reads ``OPENAI_API_KEY`` from the environment as it
 does today.
+
+Gemini transport (AI Studio vs Vertex AI) is chosen separately from the provider
+string. When a Vertex service-account key is configured (see
+``src/google_credentials.py``) the Gemini client is built against Vertex so the
+spend lands on the billing project; ``EMBEDDINGS_USE_VERTEX=0`` forces AI Studio.
+The provider string stays ``"gemini"`` either way — it names the vector space,
+which is identical across both backends, and it is stamped into the Qdrant
+embedding-space fingerprint that ``setup_collection.check_fingerprint`` enforces.
 """
 
 from __future__ import annotations
@@ -39,6 +47,22 @@ from langchain_core.embeddings import Embeddings
 from src.ingestion.setup_collection import EMBEDDING_DIM, EMBEDDING_MODEL
 
 _DEFAULT_PROVIDER = "openai"
+
+
+def _vertex_embeddings_requested() -> bool:
+    """Whether Gemini embeddings should be routed through Vertex AI.
+
+    Opt-out rather than opt-in: when Vertex credentials are configured at all,
+    embeddings follow chat onto the billing project. ``EMBEDDINGS_USE_VERTEX=0``
+    forces them back to AI Studio — the manual kill-switch, since embeddings have
+    no runtime failover (clients are bound once at module level in
+    ``src/chat_service.py`` and ``src/ingestion/retrieve.py``).
+    """
+    return os.getenv("EMBEDDINGS_USE_VERTEX", "1").strip().lower() not in (
+        "0",
+        "false",
+        "no",
+    )
 
 
 def get_embeddings(
@@ -97,9 +121,47 @@ def get_embeddings(
         # AI Studio access: GOOGLE_API_KEY is the primary name (matches llms.py);
         # GEMINI_API_KEY is accepted as an alias. output_dimensionality pins the
         # vector width to the collection so run.py's dimension guard passes.
+        #
+        # Imports stay INSIDE the branch: tests/test_embeddings.py patches
+        # GoogleGenerativeAIEmbeddings at its import source, which only works
+        # while this import is lazy.
         from langchain_google_genai import (  # noqa: PLC0415
             GoogleGenerativeAIEmbeddings,
         )
+
+        # Transport selection is deliberately INDEPENDENT of the provider string.
+        # "gemini" names the VECTOR SPACE, and that space is unchanged: Vertex and
+        # AI Studio serve the same model at the same dimension, only billing
+        # differs. The provider string is stamped into the Qdrant embedding-space
+        # fingerprint (setup_collection.expected_fingerprint) and
+        # check_fingerprint() raises on any mismatch — encoding transport in it
+        # would reject the existing corpus and force a full re-ingest.
+        from src.google_credentials import (  # noqa: PLC0415
+            get_vertex_credentials,
+            vertex_enabled,
+            vertex_location,
+            vertex_project,
+        )
+
+        # The kill-switch is checked FIRST and that ordering is load-bearing:
+        # short-circuiting means EMBEDDINGS_USE_VERTEX=0 never touches the
+        # credential resolver, so deliberately opting out cannot trip a
+        # misconfiguration warning — or, under VERTEX_REQUIRED, a raise.
+        if _vertex_embeddings_requested() and vertex_enabled():
+            return GoogleGenerativeAIEmbeddings(
+                model=resolved_model,
+                output_dimensionality=resolved_dim,
+                task_type=task_type,
+                # Pinned on both paths — see _gemini() in src/llms.py for why
+                # leaving this to inference is not safe in either direction.
+                vertexai=True,
+                credentials=get_vertex_credentials(),
+                # NOTE: unlike the chat class, GoogleGenerativeAIEmbeddings does
+                # NOT derive `project` from the credentials object. vertex_enabled()
+                # has already established that this resolves to a real value.
+                project=vertex_project(),
+                location=vertex_location(),
+            )
 
         api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
         return GoogleGenerativeAIEmbeddings(
@@ -107,6 +169,7 @@ def get_embeddings(
             output_dimensionality=resolved_dim,
             google_api_key=api_key,
             task_type=task_type,
+            vertexai=False,  # safety pin — see _gemini() in src/llms.py
         )
 
     raise ValueError(

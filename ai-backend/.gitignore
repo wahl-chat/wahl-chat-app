@@ -136,6 +136,7 @@ env.bak/
 venv.bak/
 wahl-chat-firebase-adminsdk-donoo-d3d80520ff.json
 
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -172,6 +173,10 @@ cython_debug/
 
 # SDK Key
 *firebase-adminsdk.json
+
+# Vertex AI service-account key (billing project). Runtime-provided only —
+# never committed, never baked into the image (see .dockerignore).
+vertex-sa*.json
 
 .virtualenv
 .idea/

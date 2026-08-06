@@ -25,6 +25,10 @@ node_modules/
 .env.*
 !.env.example
 *firebase-adminsdk*.json
+# Vertex AI service-account key (billing project) — runtime-provided only.
+vertex-sa*.json
+terraform/
+terraform-export/
 
 # === Python runtime (repo-wide, not backend-only) ===
 # Python lives in several dirs: ai-backend/, firebase/ (incl. a local venv),

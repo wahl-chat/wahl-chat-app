@@ -15,6 +15,7 @@ firebase/
 *-adminsdk-*.json
 serviceAccount*.json
 *service-account*.json
+vertex-sa*.json
 application_default_credentials.json
 # Test suite and tool caches are not needed in the image.
 tests/
