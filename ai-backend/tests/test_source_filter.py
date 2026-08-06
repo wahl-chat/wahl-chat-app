@@ -250,8 +250,11 @@ def test_source_filter_note_composition() -> None:
 
     videos = _source_filter_note(["videos"])
     assert "Videoaufnahmen von Reden" in videos
-    # The video-specific instruction (citations ARE the videos) must be present.
-    assert "verlinken direkt" in videos
+    # The video-specific instruction must be present: never claim no video
+    # access, and citations render as video BUTTONS — the model must not
+    # describe its raw [N] bracket syntax to users.
+    assert "Video-Buttons" in videos
+    assert "eckigen Klammern" in videos
 
 
 def test_source_filter_labels_are_canonically_ordered() -> None:

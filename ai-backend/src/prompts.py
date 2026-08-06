@@ -206,9 +206,12 @@ SOURCE_FILTER_NOTE_DE = """
 
 # Extra note when the filter includes video recordings: the cited op speeches
 # ARE the videos (the [N] citations deep-link into the recording), so the model
-# must never claim it has no access to video material.
+# must never claim it has no access to video material. The model only sees its
+# RAW [N] markdown — it must be told the UI renders those as video buttons, or
+# it explains its own syntax to users ("klicke auf die eckigen Klammern").
 SOURCE_FILTER_VIDEO_NOTE_DE = """
-- **Videoaufnahmen:** Die bereitgestellten Reden-Ausschnitte stammen ausschließlich aus Reden mit Videoaufzeichnung. Die Quellenangaben [N] verlinken direkt auf die jeweilige Stelle in der Videoaufnahme. Sage NIEMALS, dass du keinen Zugriff auf Videoaufnahmen hast — weise stattdessen darauf hin, dass die zitierten Quellen die Videos direkt öffnen.
+- **Videoaufnahmen:** Die bereitgestellten Reden-Ausschnitte stammen ausschließlich aus Reden mit Videoaufzeichnung. Sage NIEMALS, dass du keinen Zugriff auf Videoaufnahmen hast.
+- Deine Quellenangaben [N] werden den Nutzer:innen NICHT als Zahlen in eckigen Klammern angezeigt, sondern als klickbare Video-Buttons direkt hinter der jeweiligen Aussage. Erkläre daher NICHT, wie man die Videos öffnet (Formulierungen wie „klicke auf die Nummern in den eckigen Klammern" sind falsch). Ein Hinweis auf die Videos ist unnötig; wenn du dennoch einen gibst, sprich von den Video-Buttons hinter den Aussagen.
 """
 
 # Appended (with _federal_origin_disclosure_note) for NON-federal elections:
