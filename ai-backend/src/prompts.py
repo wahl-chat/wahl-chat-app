@@ -537,7 +537,7 @@ Gib die Liste der Quellenarten zurück, auf die der Nutzer die Antwort ausdrück
 ## Wichtige Hinweise zur Einstufung
 - Standard ist die LEERE Liste: Die allermeisten Nachrichten fragen nach einem THEMA, nicht nach einer Quellenart. Gib nur dann Quellenarten an, wenn der Nutzer sie erkennbar verlangt.
 - Nutzer verwenden beliebige eigene Formulierungen — auch Umschreibungen, Umgangssprache, Tippfehler oder englische Begriffe. Entscheide anhand der BEDEUTUNG der Nachricht, welche Quellenart gemeint ist; die Formulierungen in den Hintergrundinformationen sind nur Beispiele, keine vollständige Liste.
-- Fragt der Nutzer nach Videos/Aufnahmen von Reden, gib NUR "videos" an (nicht zusätzlich "speeches"). "speeches" ist für Reden ohne Video-Bezug.
+- "speeches" umfasst alle Reden, mit und ohne Videoaufnahme. Fragt der Nutzer nach Videos/Aufnahmen von Reden, gib NUR "videos" an (nicht zusätzlich "speeches").
 - Ein Thema, das nur zufällig nach einer Quellenart klingt, ist KEINE Beschränkung: "Wie steht ihr zu Videoüberwachung?" oder "Was haltet ihr von Volksabstimmungen?" sind Themenfragen → leere Liste.
 - Kurze Nachfragen, die eine vorherige explizit quellenbeschränkte Frage fortführen, behalten die Beschränkung bei: Auf "Zeig mir Videoaufnahmen zum Thema Lohnniveau" folgt "und zum Thema Infrastruktur?" → ["videos"].
 - Stellt der Nutzer erkennbar eine neue, normale Frage ohne Quellenbezug, endet die Beschränkung → leere Liste.
