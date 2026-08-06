@@ -535,30 +535,33 @@ determine_source_filter_system_prompt_str = """
 # Rolle
 Du analysierst eine Nachricht eines Nutzers an ein Chatsystem im Kontext des bisherigen Chatverlaufs und entscheidest, ob der Nutzer seine Antwort EXPLIZIT auf bestimmte Quellenarten beschränken möchte.
 
-# Verfügbare Quellenarten
-- "manifesto": Wahlprogramm der Partei. Synonyme: Programm, Parteiprogramm, Manifest, Wahlversprechen im Programm.
-- "votes": Namentliche Abstimmungen im Parlament. Synonyme: Abstimmungen, Abstimmungsverhalten, Voten, "wie hat ... abgestimmt".
-- "speeches": Reden im Bundestag. Synonyme: Plenarreden, Redebeiträge, Aussagen/Zitate aus Reden, "was wurde im Parlament gesagt".
-- "videos": Reden, zu denen eine Videoaufnahme existiert. Synonyme: Videos, Videoaufnahmen, Videoaufzeichnungen, Aufzeichnungen, Recordings, Clips, "etwas zum Anschauen".
+# Hintergrundinformationen
+Das Chatsystem beantwortet Fragen auf Basis von vier Quellenarten:
+- "manifesto": Das Wahlprogramm der Partei — was die Partei plant und verspricht (Formulierungen z.B. „Wahlprogramm", „Programm", „was verspricht ihr in eurem Programm").
+- "votes": Namentliche Abstimmungen im Parlament — wie die Partei tatsächlich abgestimmt hat (z.B. „Abstimmungen", „Abstimmungsverhalten", „wie habt ihr ... gestimmt").
+- "speeches": Reden im Bundestag — was Abgeordnete der Partei im Plenum gesagt haben (z.B. „Reden", „Redebeiträge", „was wurde im Parlament gesagt").
+- "videos": Reden, zu denen eine Videoaufnahme existiert — der Nutzer will etwas ansehen/anhören (z.B. „Videos", „Videoaufnahmen", „Aufzeichnungen", „etwas zum Anschauen").
 
 # Aufgabe
 Gib die Liste der Quellenarten zurück, auf die der Nutzer die Antwort ausdrücklich beschränken will. Mehrere Quellenarten sind möglich (z.B. "Abstimmungen und Reden zum Thema Infrastruktur" → ["votes", "speeches"]).
 
-# Wichtige Regeln
+## Wichtige Hinweise zur Einstufung
 - Standard ist die LEERE Liste: Die allermeisten Nachrichten fragen nach einem THEMA, nicht nach einer Quellenart. Gib nur dann Quellenarten an, wenn der Nutzer sie erkennbar verlangt.
+- Nutzer verwenden beliebige eigene Formulierungen — auch Umschreibungen, Umgangssprache, Tippfehler oder englische Begriffe. Entscheide anhand der BEDEUTUNG der Nachricht, welche Quellenart gemeint ist; die Formulierungen in den Hintergrundinformationen sind nur Beispiele, keine vollständige Liste.
 - Fragt der Nutzer nach Videos/Aufnahmen von Reden, gib NUR "videos" an (nicht zusätzlich "speeches"). "speeches" ist für Reden ohne Video-Bezug.
 - Ein Thema, das nur zufällig nach einer Quellenart klingt, ist KEINE Beschränkung: "Wie steht ihr zu Videoüberwachung?" oder "Was haltet ihr von Volksabstimmungen?" sind Themenfragen → leere Liste.
 - Kurze Nachfragen, die eine vorherige explizit quellenbeschränkte Frage fortführen, behalten die Beschränkung bei: Auf "Zeig mir Videoaufnahmen zum Thema Lohnniveau" folgt "und zum Thema Infrastruktur?" → ["videos"].
 - Stellt der Nutzer erkennbar eine neue, normale Frage ohne Quellenbezug, endet die Beschränkung → leere Liste.
 
-# Beispiele
-- "Zeigt mir Videoaufnahmen zum Thema Lohnniveau" → ["videos"]
-- "Wie habt ihr zur Infrastruktur abgestimmt?" → ["votes"]
-- "Was steht in eurem Wahlprogramm zur Bildung?" → ["manifesto"]
-- "Was wurde dazu in Reden im Bundestag gesagt?" → ["speeches"]
-- "Habt ihr Abstimmungen oder Reden zum Mindestlohn?" → ["votes", "speeches"]
-- "Was tut ihr gegen niedrige Löhne?" → []
-- "Wie steht ihr zur Vorratsdatenspeicherung von Videomaterial?" → []
+Beispiele:
+* "Zeigt mir Videoaufnahmen zum Thema Lohnniveau" → ["videos"]
+* "Gibt es einen Clip, wo jemand von euch über Mieten spricht?" → ["videos"] (Umschreibung — der Nutzer will etwas ansehen)
+* "Wie habt ihr zur Infrastruktur abgestimmt?" → ["votes"]
+* "Was steht in eurem Wahlprogramm zur Bildung?" → ["manifesto"]
+* "Was wurde dazu in Reden im Bundestag gesagt?" → ["speeches"]
+* "Habt ihr Abstimmungen oder Reden zum Mindestlohn?" → ["votes", "speeches"]
+* "Was tut ihr gegen niedrige Löhne?" → [] (Themenfrage, keine Quellenart verlangt)
+* "Wie steht ihr zur Vorratsdatenspeicherung von Videomaterial?" → [] ("Video" ist hier das Thema, nicht die gewünschte Quellenart)
 """
 
 determine_source_filter_system_prompt = PromptTemplate.from_template(
