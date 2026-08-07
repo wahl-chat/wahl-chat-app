@@ -37,10 +37,7 @@ export async function generateMetadata({
     return { title: 'Quellen' };
   }
 
-  return {
-    ...buildContextMetadata(context, 'Quellen'),
-    robots: 'noindex',
-  };
+  return buildContextMetadata(context, 'Quellen');
 }
 
 async function SourcesPage({ params }: Props) {

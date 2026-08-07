@@ -28,10 +28,11 @@ export async function generateMetadata({
   const context = await getContext(contextId);
 
   if (!context) {
-    return {};
+    // The page body redirects to the default context, so this URL must not be indexed.
+    return { robots: 'noindex, nofollow' };
   }
 
-  return buildContextMetadata(context, undefined, true);
+  return buildContextMetadata(context);
 }
 
 async function ContextLayout({ children, params }: Props) {

@@ -5,9 +5,10 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Wahl Agent | wahl.chat',
+  title: 'Wahl Agent',
   description:
     'Dein persönlicher Begleiter zur politischen Meinungsbildung. Diskutiere politische Themen mit dem Wahl Agent.',
+  robots: 'noindex, nofollow',
 };
 
 interface Props {

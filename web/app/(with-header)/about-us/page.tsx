@@ -9,7 +9,6 @@ export const metadata: Metadata = {
   title: 'Über uns',
   description:
     'Das Team hinter wahl.chat – wer wir sind und warum wir Politik interaktiv zugänglich machen.',
-  robots: 'noindex',
 };
 
 function AboutUs() {
