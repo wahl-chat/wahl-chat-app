@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   title: 'Beliebte Themen',
   description:
     'Entdecke beliebte politische Themen und Fragen – vergleiche die Positionen der Parteien bei wahl.chat.',
+  // Context-less and built around federal parties, so it is not tied to a
+  // current election and should not surface for election queries.
+  robots: 'noindex',
 };
 
 async function TopicsPage() {
