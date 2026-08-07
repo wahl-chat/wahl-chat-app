@@ -137,6 +137,9 @@ AuthorityTierLiteral = Literal[
     "promotional",
 ]
 
+# Chunk provenance within a source_type (op speeches carry video). Indexed keyword.
+SourceLiteral = Literal["op", "dip", "upload"]
+
 
 # ---------------------------------------------------------------------------
 # Vote-level re-rank tuning constants.
@@ -319,6 +322,7 @@ def retrieve(
     level: Optional[str] = None,
     limit: int = 5,
     *,
+    source: Optional[SourceLiteral] = None,
     publish_range: Optional[DatetimeRange] = None,
     query_vector: Optional[list[float]] = None,
     score_threshold: Optional[float] = None,
@@ -382,6 +386,12 @@ def retrieve(
                         LARGE for federal-untagged), re-sorts and truncates to ``limit``.
                         Non-vote sources are unaffected.
         limit:          Maximum number of results (default 5).
+        source:         Keyword-only provenance filter (e.g. ``"op"`` = only
+                        video-bearing speeches), for explicit user-driven
+                        scoping. NOT part of ``RetrieveSchema``, never set by
+                        the default chat path (prefer-op dedup stays post-fetch
+                        so un-scoped retrieval keeps its dip fallback). NOT
+                        selective alone.
         publish_range:  Keyword-only bounded/strict ``publish_date`` window as a
                         single ``DatetimeRange`` — e.g. ``DatetimeRange(gte=t0, lte=t1)``
                         for a closed window or ``DatetimeRange(lt=t0)`` for a strict
@@ -478,6 +488,9 @@ def retrieve(
 
     if party_id is not None:
         must.append(FieldCondition(key="party_id", match=MatchValue(value=party_id)))
+
+    if source is not None:
+        must.append(FieldCondition(key="source", match=MatchValue(value=source)))
 
     if party_ids_contains is not None:
         # Membership test on the party_ids array: a single MatchValue against an
@@ -693,6 +706,7 @@ def retrieve_two_pass(
     source_type: Optional[SourceTypeLiteral] = None,
     party_id: Optional[str] = None,
     party_ids_contains: Optional[str] = None,
+    source: Optional[SourceLiteral] = None,
     region_path: Optional[list[str]] = None,
     level: Optional[str] = None,
     legislature_period_id: Optional[int] = None,
@@ -718,6 +732,7 @@ def retrieve_two_pass(
         source_type:    Content category filter (see retrieve()). Selective.
         party_id:       Tenant filter (see retrieve()). Selective.
         party_ids_contains: Vote membership filter (see retrieve()). Selective.
+        source:         Provenance filter (see retrieve()); forwarded to both passes.
         region_path:    Election region path (MatchAny). Forwarded to both passes.
         level:          Governance level; forwarded to both passes so the
                         vote-level down-rank composes WITHIN each pass.
@@ -750,6 +765,7 @@ def retrieve_two_pass(
         source_type=source_type,
         party_id=party_id,
         party_ids_contains=party_ids_contains,
+        source=source,
         region_path=region_path,
         legislature_period_id=legislature_period_id,
         level=level,
@@ -772,6 +788,7 @@ def retrieve_two_pass(
         source_type=source_type,
         party_id=party_id,
         party_ids_contains=party_ids_contains,
+        source=source,
         region_path=region_path,
         legislature_period_id=None,
         level=level,

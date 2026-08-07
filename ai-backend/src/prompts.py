@@ -62,6 +62,7 @@ def get_base_guidelines(
 {style_section}
     - Zitierstil:
         - Gib nach jedem Satz eine Liste der Integer-IDs der Quellen an, die du für die Generierung dieses Satzes verwendet hast. Die Liste muss von eckigen Klammern [] umschlossen sein. Beispiel: [id] für eine Quelle oder [id1, id2, ...] für mehrere Quellen.
+        - Die Quellenangaben werden den Nutzer:innen als klickbare Quellen-Buttons angezeigt (Videoquellen als Video-Button), NICHT als Zahlen in eckigen Klammern. Beschreibe sie daher nie als „Nummern" oder „Klammern" und erkläre nicht, wie man sie anklickt.
         - Falls du für einen Satz keine der Quellen verwendet hast, gib nach diesem Satz keine Quellen an und formatiere den Satz stattdessen _kursiv_.
         - Wenn du für deine Antwort Quellen aus Reden verwendest, formuliere die Aussagen der Redner nicht als Fakt, sondern im Konjunktiv. (Beispiel: <NAME> hebt hervor, dass Klimaschutz wichtig sei.)
         - Quellenpriorität bei Widersprüchen: Bevorzuge Quellen mit höherer Vertrauensstufe (Reihenfolge: authoritative > factual_record > self_reported > promotional). Bei Widersprüchen zwischen Quellen unterschiedlicher Vertrauensstufe weise darauf hin und nutze die vertrauenswürdigere Quelle.
@@ -182,6 +183,47 @@ SOURCE_COVERAGE_PREAMBLE_DE = """
 SOURCE_LABEL_MANIFESTO_DE = "dem Wahlprogramm"
 SOURCE_LABEL_VOTES_DE = "namentlichen Abstimmungen"
 SOURCE_LABEL_SPEECHES_DE = "Reden"
+
+# =============================================================================
+# User-requested source-type filter (organic "zeig mir nur Videos/Abstimmungen/…")
+# =============================================================================
+# Nominative labels, keyed by the classifier's SourceFilterLiteral values.
+SOURCE_FILTER_LABELS_DE = {
+    "manifesto": "das Wahlprogramm",
+    "votes": "namentliche Abstimmungen",
+    "speeches": "Reden",
+    "videos": "Videoaufnahmen von Reden",
+}
+
+# Appended when the user scoped the answer: own the scope (don't apologise for
+# absent sections), honest no-fallback answer when the scoped retrieval is empty.
+SOURCE_FILTER_NOTE_DE = """
+- **Vom Nutzer gewählter Quellenfokus:** Der Nutzer hat ausdrücklich nur nach folgenden Quellenarten gefragt: {requested_sources}. Die bereitgestellten Ausschnitte wurden bewusst auf diese Quellenarten beschränkt. Beantworte die Frage ausschließlich auf dieser Basis; andere Quellenarten fehlen absichtlich — erwähne ihr Fehlen nicht als Mangel.
+- Wenn KEINE passenden Ausschnitte vorliegen, sage klar und ehrlich, dass zu diesem Thema keine Quellen der gewünschten Art vorliegen. Weiche NICHT auf andere Quellenarten aus und erfinde nichts. Biete stattdessen an, die Frage ohne diese Beschränkung zu beantworten.
+"""
+
+# Videos filter: the cited op speeches ARE the videos — never claim no access.
+SOURCE_FILTER_VIDEO_NOTE_DE = """
+- **Videoaufnahmen:** Die bereitgestellten Reden-Ausschnitte stammen ausschließlich aus Reden mit Videoaufzeichnung; ihre Quellen-Buttons öffnen direkt die Videoaufnahme. Sage NIEMALS, dass du keinen Zugriff auf Videoaufnahmen hast.
+"""
+
+# Non-federal elections: the grounding legitimately mixes Bund and Land sources,
+# but the answer must not weave the levels into one storyline (customer feedback).
+LEVEL_SEPARATION_NOTE_DE = """
+- Deine Quellen stammen teils von der Bundesebene (Reden im Bundestag, Abstimmungen mit dem Label 'Parlament: Bundestag (Bundesebene)') und teils von der Landesebene (das Wahlprogramm zur Landtagswahl, Abstimmungen im Landtag). Mache bei JEDER Aussage erkennbar, von welcher Ebene sie stammt.
+- Gruppiere zusammengehörige Aussagen nach Ebene und leite jede Ebene explizit ein (z.B. „Auf Bundesebene …", „Auf Landesebene …" / „Für das Land …").
+- Verbinde NIEMALS eine Aussage der einen Ebene mit einer Aussage der anderen Ebene, als wären sie Teil desselben Vorhabens. Falsch wäre etwa: „Auf Bundesebene lehnt die Partei E-Fuels ab. Stattdessen setzt sie auf eine Transformationsmilliarde" — wenn das Erste aus dem Bundestag und das Zweite aus dem Landtagswahlprogramm stammt. Formuliere stattdessen einen expliziten Ebenenwechsel.
+"""
+
+# Query-improvement addition under a filter: query the TOPIC, never the format —
+# format words retrieve documents ABOUT videos/votes instead of about the topic.
+RAG_QUERY_SOURCE_FILTER_NOTE_DE = """
+
+# Quellenfokus des Nutzers
+Der Nutzer möchte Ergebnisse ausschließlich aus folgenden Quellenarten: {requested_sources}. Die Suche ist bereits technisch auf diese Quellenarten gefiltert — deine Query darf das gewünschte Format daher NICHT erwähnen.
+Formuliere die Query ausschließlich nach dem inhaltlichen THEMA der Nutzerfrage. Wörter wie "Videoaufnahme", "Video", "Rede", "Abstimmung" oder "Wahlprogramm" dürfen nicht in der Query stehen, wenn sie nur das gewünschte Format beschreiben — sonst findet die Suche Dokumente ÜBER Videos oder Abstimmungen statt Dokumente zum eigentlichen Thema.
+Beispiel: "Habt ihr Videoaufnahmen zum Thema Lohnniveau?" → Query zu Lohnniveau, Mindestlohn und fairer Bezahlung — NICHT zu Videoaufnahmen.
+"""
 
 
 party_response_system_prompt_template_str = """
@@ -421,6 +463,7 @@ Wenn der Nutzer explizit alle Parteien fordert, gib alle Parteien die aktuell im
 Wähle Kleinparteien nur aus, wenn diese bereits in den Chat eingeladen wurden oder explizit gefordert werden.
 Beachte bei dieser Entscheidung ausschließlich die Parteien in den Hintergrundinformationen und NICHT die Parteien im bisherigen Chatverlauf.
 Allgemeine Fragen zur Wahl, zum Wahlsystem oder zum Chatbot "wahl.chat" (auch "Wahl Chat", "KI Chat", etc.) sollen an "wahl-chat" gerichtet werden.
+Fragen nach verfügbaren Quellen oder Quellenarten zu einem politischen Thema (z.B. "Gibt es Videos zu diesem Thema?", "Habt ihr Abstimmungen dazu?") sind KEINE Fragen zum Chatbot: Richte sie an die Gesprächspartner im Chat bzw. die zuletzt antwortenden Parteien — nur diese haben Zugriff auf solche Quellen.
 Nutzerfragen, die nach der passenden Partei für eine bestimmte politische Position, nach einer Wahlempfehlung oder Wertung fragen, sollen an "wahl-chat" gerichtet werden.
 Wenn der Nutzer fragt, wer eine bestimmte Position vertritt oder eine Handlung durchführen will, soll die Frage auch an "wahl-chat" gerichtet werden.
 """
@@ -475,6 +518,55 @@ determine_question_type_user_prompt_str = """
 
 determine_question_type_user_prompt = PromptTemplate.from_template(
     determine_question_type_user_prompt_str
+)
+
+determine_source_filter_system_prompt_str = """
+# Rolle
+Du analysierst eine Nachricht eines Nutzers an ein Chatsystem im Kontext des bisherigen Chatverlaufs und entscheidest, ob der Nutzer seine Antwort EXPLIZIT auf bestimmte Quellenarten beschränken möchte.
+
+# Hintergrundinformationen
+Das Chatsystem beantwortet Fragen auf Basis von vier Quellenarten:
+- "manifesto": Das Wahlprogramm der Partei — was die Partei plant und verspricht (Formulierungen z.B. „Wahlprogramm", „Programm", „was verspricht ihr in eurem Programm").
+- "votes": Namentliche Abstimmungen im Parlament — wie die Partei tatsächlich abgestimmt hat (z.B. „Abstimmungen", „Abstimmungsverhalten", „wie habt ihr ... gestimmt").
+- "speeches": Reden im Bundestag — was Abgeordnete der Partei im Plenum gesagt haben (z.B. „Reden", „Redebeiträge", „was wurde im Parlament gesagt").
+- "videos": Reden, zu denen eine Videoaufnahme existiert — der Nutzer will etwas ansehen/anhören (z.B. „Videos", „Videoaufnahmen", „Aufzeichnungen", „etwas zum Anschauen").
+
+# Aufgabe
+Gib die Liste der Quellenarten zurück, auf die der Nutzer die Antwort ausdrücklich beschränken will. Mehrere Quellenarten sind möglich (z.B. "Abstimmungen und Reden zum Thema Infrastruktur" → ["votes", "speeches"]).
+
+## Wichtige Hinweise zur Einstufung
+- Standard ist die LEERE Liste: Die allermeisten Nachrichten fragen nach einem THEMA, nicht nach einer Quellenart. Gib nur dann Quellenarten an, wenn der Nutzer sie erkennbar verlangt.
+- Nutzer verwenden beliebige eigene Formulierungen — auch Umschreibungen, Umgangssprache, Tippfehler oder englische Begriffe. Entscheide anhand der BEDEUTUNG der Nachricht, welche Quellenart gemeint ist; die Formulierungen in den Hintergrundinformationen sind nur Beispiele, keine vollständige Liste.
+- "speeches" umfasst alle Reden, mit und ohne Videoaufnahme. Fragt der Nutzer nach Videos/Aufnahmen von Reden, gib NUR "videos" an (nicht zusätzlich "speeches").
+- Ein Thema, das nur zufällig nach einer Quellenart klingt, ist KEINE Beschränkung: "Wie steht ihr zu Videoüberwachung?" oder "Was haltet ihr von Volksabstimmungen?" sind Themenfragen → leere Liste.
+- Kurze Nachfragen, die eine vorherige explizit quellenbeschränkte Frage fortführen, behalten die Beschränkung bei: Auf "Zeig mir Videoaufnahmen zum Thema Lohnniveau" folgt "und zum Thema Infrastruktur?" → ["videos"].
+- Stellt der Nutzer erkennbar eine neue, normale Frage ohne Quellenbezug, endet die Beschränkung → leere Liste.
+
+Beispiele:
+* "Zeigt mir Videoaufnahmen zum Thema Lohnniveau" → ["videos"]
+* "Gibt es einen Clip, wo jemand von euch über Mieten spricht?" → ["videos"] (Umschreibung — der Nutzer will etwas ansehen)
+* "Wie habt ihr zur Infrastruktur abgestimmt?" → ["votes"]
+* "Was steht in eurem Wahlprogramm zur Bildung?" → ["manifesto"]
+* "Was wurde dazu in Reden im Bundestag gesagt?" → ["speeches"]
+* "Habt ihr Abstimmungen oder Reden zum Mindestlohn?" → ["votes", "speeches"]
+* "Was tut ihr gegen niedrige Löhne?" → [] (Themenfrage, keine Quellenart verlangt)
+* "Wie steht ihr zur Vorratsdatenspeicherung von Videomaterial?" → [] ("Video" ist hier das Thema, nicht die gewünschte Quellenart)
+"""
+
+determine_source_filter_system_prompt = PromptTemplate.from_template(
+    determine_source_filter_system_prompt_str
+)
+
+determine_source_filter_user_prompt_str = """
+## Bisheriger Chatverlauf
+{previous_chat_history}
+
+## Nutzerfrage
+{user_message}
+"""
+
+determine_source_filter_user_prompt = PromptTemplate.from_template(
+    determine_source_filter_user_prompt_str
 )
 
 generate_chat_summary_system_prompt_str = """

@@ -49,6 +49,7 @@ from langchain_core.documents import Document
 from src.chatbot_async import (
     generate_chat_title_and_chick_replies,
     get_question_targets_and_type,
+    detect_source_filter,
     generate_improvement_rag_query,
     generate_streaming_chatbot_response,
     generate_streaming_chatbot_comparing_response,
@@ -146,6 +147,12 @@ _CURRENT_MANIFESTO_LIMIT = 4
 _CURRENT_SPEECH_LIMIT = 2  # normal cap (ranked last)
 _CURRENT_SPEECH_FALLBACK = 5  # adaptive ceiling when official data is sparse
 
+# Raised current-bucket budgets under a user source filter — the requested
+# sources carry the whole answer. Score threshold unchanged.
+_FILTERED_VOTE_LIMIT = 10
+_FILTERED_MANIFESTO_LIMIT = 8
+_FILTERED_SPEECH_LIMIT = 6
+
 
 # ---------------------------------------------------------------------------
 # Payload → numbered-Document builders (shared by the single-party and
@@ -188,6 +195,7 @@ def _mk_manifesto_docs(payloads: list[dict]) -> list[Document]:
                 "page": _meta_dict(p).get("page_start"),
                 "source_document": p.get("citation_title"),
                 "authority_tier": p.get("authority_tier"),
+                "source_type": "party_manifesto",
             },
         )
         for p in payloads
@@ -210,6 +218,7 @@ def _mk_speech_docs(payloads: list[dict], improved_rag_query: str) -> list[Docum
                 "page": 1,
                 "source_document": p.get("citation_title"),
                 "authority_tier": p.get("authority_tier"),
+                "source_type": "parliamentary_speech",
                 "_source_payload": p,
             },
         )
@@ -240,6 +249,8 @@ def _append_document_source(
         "url": md.get("url"),
         "source_document": md.get("source_document"),
     }
+    if md.get("source_type") is not None:
+        entry["source_type"] = md.get("source_type")
     if party_id is not None:
         entry["party_id"] = party_id
 
@@ -527,6 +538,7 @@ async def _retrieve_party_buckets(
     election_level: Optional[str],
     term_window: Optional[tuple[datetime, datetime]],
     manifesto_term_start: Optional[datetime],
+    source_filter: Optional[list[str]] = None,
     log_prefix: str = "retrieve",
 ) -> _RetrievedBuckets:
     """Retrieve vote + manifesto + speech payloads for ONE party into current/historic
@@ -543,14 +555,46 @@ async def _retrieve_party_buckets(
     specific region only (level-exclusive, see below). All three sources run
     concurrently and a single source failure degrades to empty. WAHL_CHAT_PARTY has no
     corpus data → all buckets empty. log_prefix labels the failure logs per caller.
+
+    source_filter restricts retrieval to the user-requested source types: only
+    requested legs run, each with the raised _FILTERED_* budget. "videos" adds a
+    Qdrant-level source=="op" filter — post-fetch filtering would starve videos
+    whenever transcript-only speeches dominate the top-k.
     """
     if party.party_id == WAHL_CHAT_PARTY.party_id:
         return _RetrievedBuckets([], [], [], [], [], [])
 
     # Per-source failures recorded by the _safe_* helpers. Per-source
     # degradation stays (a single failed source yields empty buckets), but
-    # when EVERY source failed the turn must fail — see RetrievalUnavailableError.
+    # when EVERY REQUESTED source failed the turn must fail — see
+    # RetrievalUnavailableError.
     retrieval_failures: list = []
+
+    filter_active = bool(source_filter)
+    _filter = source_filter or []
+    want_votes = not filter_active or "votes" in _filter
+    want_manifesto = not filter_active or "manifesto" in _filter
+    want_speeches = not filter_active or "speeches" in _filter or "videos" in _filter
+    # videos-only → hard provenance filter; "speeches" alongside "videos" keeps
+    # the unfiltered speech leg (op results already rank first via prefer-op dedup).
+    speech_source = (
+        "op"
+        if filter_active and "videos" in _filter and "speeches" not in _filter
+        else None
+    )
+    requested_count = sum([want_votes, want_manifesto, want_speeches])
+
+    vote_limit = _FILTERED_VOTE_LIMIT if filter_active else _CURRENT_VOTE_LIMIT
+    manifesto_limit = (
+        _FILTERED_MANIFESTO_LIMIT if filter_active else _CURRENT_MANIFESTO_LIMIT
+    )
+    speech_limit = _FILTERED_SPEECH_LIMIT if filter_active else _CURRENT_SPEECH_FALLBACK
+
+    async def _empty_two_pass() -> dict[str, list[dict]]:
+        return {"current": [], "historic": []}
+
+    async def _empty_single() -> list[dict]:
+        return []
 
     # Manifestos are exclusive to the election's own level: a chat grounds in the
     # manifesto written FOR that election, never a parent level's — a state chat
@@ -575,14 +619,16 @@ async def _retrieve_party_buckets(
                 party_ids_contains=party.party_id,
                 term_start=term_start,
                 term_end=term_end,
-                current_limit=_CURRENT_VOTE_LIMIT,
+                current_limit=vote_limit,
                 historic_limit=_HISTORIC_LIMITS["vote"],
                 current_score_threshold=_CHAT_SCORE_THRESHOLD,
                 historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
                 region_path=region_path,
                 legislature_period_id=legislature_period_id,
                 level=election_level,  # vote-only
-            ),
+            )
+            if want_votes
+            else _empty_two_pass(),
             _safe_two_pass(
                 improved_rag_query,
                 _log_prefix=f"{log_prefix}_two_pass",
@@ -596,12 +642,14 @@ async def _retrieve_party_buckets(
                     else term_start
                 ),
                 term_end=term_end,
-                current_limit=_CURRENT_MANIFESTO_LIMIT,
+                current_limit=manifesto_limit,
                 historic_limit=_HISTORIC_LIMITS["manifesto"],
                 current_score_threshold=_CHAT_SCORE_THRESHOLD,
                 historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
                 region_path=manifesto_region_path,
-            ),
+            )
+            if want_manifesto
+            else _empty_two_pass(),
             _safe_two_pass(
                 improved_rag_query,
                 _log_prefix=f"{log_prefix}_two_pass",
@@ -609,19 +657,22 @@ async def _retrieve_party_buckets(
                 query_vector=rag_query_vector,
                 source_type="parliamentary_speech",
                 party_id=party.party_id,
+                source=speech_source,
                 term_start=term_start,
                 term_end=term_end,
-                current_limit=_CURRENT_SPEECH_FALLBACK,
+                current_limit=speech_limit,
                 historic_limit=_HISTORIC_LIMITS["speech"],
                 current_score_threshold=_CHAT_SCORE_THRESHOLD,
                 historic_score_threshold=_HISTORIC_SCORE_THRESHOLD,
                 region_path=region_path,
-            ),
+            )
+            if want_speeches
+            else _empty_two_pass(),
         )
-        if len(retrieval_failures) >= 3:
+        if len(retrieval_failures) >= requested_count:
             raise RetrievalUnavailableError(
-                f"all retrieval sources failed for party {party.party_id}: "
-                f"{retrieval_failures!r}"
+                f"all requested retrieval sources failed for party "
+                f"{party.party_id}: {retrieval_failures!r}"
             )
         return _RetrievedBuckets(
             vote_current=vote_buckets["current"],
@@ -641,12 +692,14 @@ async def _retrieve_party_buckets(
             query_vector=rag_query_vector,
             source_type="vote_record",
             party_ids_contains=party.party_id,
-            limit=_CURRENT_VOTE_LIMIT,
+            limit=vote_limit,
             score_threshold=_CHAT_SCORE_THRESHOLD,
             region_path=region_path,
             legislature_period_id=legislature_period_id,
             level=election_level,  # vote-only
-        ),
+        )
+        if want_votes
+        else _empty_single(),
         _safe_retrieve(
             improved_rag_query,
             _log_prefix=log_prefix,
@@ -654,10 +707,12 @@ async def _retrieve_party_buckets(
             query_vector=rag_query_vector,
             source_type="party_manifesto",
             party_id=party.party_id,
-            limit=_CURRENT_MANIFESTO_LIMIT,
+            limit=manifesto_limit,
             score_threshold=_CHAT_SCORE_THRESHOLD,
             region_path=manifesto_region_path,
-        ),
+        )
+        if want_manifesto
+        else _empty_single(),
         _safe_retrieve(
             improved_rag_query,
             _log_prefix=log_prefix,
@@ -665,15 +720,18 @@ async def _retrieve_party_buckets(
             query_vector=rag_query_vector,
             source_type="parliamentary_speech",
             party_id=party.party_id,
-            limit=_CURRENT_SPEECH_FALLBACK,
+            source=speech_source,
+            limit=speech_limit,
             score_threshold=_CHAT_SCORE_THRESHOLD,
             region_path=region_path,
-        ),
+        )
+        if want_speeches
+        else _empty_single(),
     )
-    if len(retrieval_failures) >= 3:
+    if len(retrieval_failures) >= requested_count:
         raise RetrievalUnavailableError(
-            f"all retrieval sources failed for party {party.party_id}: "
-            f"{retrieval_failures!r}"
+            f"all requested retrieval sources failed for party "
+            f"{party.party_id}: {retrieval_failures!r}"
         )
     return _RetrievedBuckets(
         vote_current=vote_current,
@@ -704,6 +762,7 @@ async def fetch_party_response_stream(
     election_level: Optional[str] = None,
     term_window: Optional[tuple[datetime, datetime]] = None,
     manifesto_term_start: Optional[datetime] = None,
+    source_filter: Optional[list[str]] = None,
 ) -> AsyncGenerator[str, None]:
     """Yield SSE events for a single party's RAG response.
 
@@ -780,6 +839,7 @@ async def fetch_party_response_stream(
                 conversation_history_str,
                 question_for_party,
                 context_id=group_chat_session.context_id,
+                source_filter=source_filter,
             )
             # Embed the rag query ONCE and reuse the vector for all three
             # source retrievals (vote, manifesto, speech). This avoids three
@@ -803,6 +863,7 @@ async def fetch_party_response_stream(
                 election_level=election_level,
                 term_window=term_window,
                 manifesto_term_start=manifesto_term_start,
+                source_filter=source_filter,
                 log_prefix="retrieve",
             )
             vote_current = _buckets.vote_current
@@ -832,7 +893,9 @@ async def fetch_party_response_stream(
             # bar" — enough to instruct a marked historic section. Drives has_historic
             # threaded into generation below.
             has_historic = bool(manifesto_historic or speech_historic or vote_historic)
-            if not votes_absent and not manifesto_absent:
+            # Trim skipped under a source filter — requested speeches keep
+            # their raised budget.
+            if not source_filter and not votes_absent and not manifesto_absent:
                 speech_current = speech_current[:_CURRENT_SPEECH_LIMIT]
 
             # combined_docs is the single list passed to generate_streaming_chatbot_response.
@@ -867,6 +930,7 @@ async def fetch_party_response_stream(
                             ),
                             "url": manifesto_payload.get("citation_url"),
                             "source_document": manifesto_payload.get("citation_title"),
+                            "source_type": "party_manifesto",
                         }
                     )
 
@@ -887,6 +951,7 @@ async def fetch_party_response_stream(
                         "document_publish_date": speech_payload.get("publish_date"),
                         "url": primary_url,
                         "source_document": speech_payload.get("citation_title"),
+                        "source_type": "parliamentary_speech",
                     }
                     # Dual-format links (merge, not replace): a speech renders as ONE
                     # source exposing both the op video deep-link and the DIP
@@ -941,6 +1006,7 @@ async def fetch_party_response_stream(
                             "document_publish_date": vote_payload.get("publish_date"),
                             "url": vote_payload.get("citation_url"),
                             "source_document": vote_payload.get("citation_title"),
+                            "source_type": "vote_record",
                             "region": vote_payload.get(
                                 "region"
                             ),  # structural origin marker
@@ -1021,6 +1087,7 @@ async def fetch_party_response_stream(
                     len(speech_current) > 0,
                 ),
                 has_historic=has_historic,
+                source_filter=source_filter,
             )
         else:
             # Comparison keeps its own by-party structure; only the historic
@@ -1037,6 +1104,7 @@ async def fetch_party_response_stream(
                 use_premium_llms=use_premium_llms,
                 election_level=election_level,
                 has_historic=_has_historic_docs(relevant_docs_dict, term_window),
+                source_filter=source_filter,
             )
 
         # v5 text block — one id for the whole party answer's deltas.
@@ -1192,6 +1260,7 @@ async def process_party(
     election_level: Optional[str] = None,
     term_window: Optional[tuple[datetime, datetime]] = None,
     manifesto_term_start: Optional[datetime] = None,
+    source_filter: Optional[list[str]] = None,
 ) -> None:
     """Fetch relevant docs for one party in a comparison question (no emit).
 
@@ -1199,7 +1268,11 @@ async def process_party(
     documents from the single wahlchat_chunks store, mirroring the single-party path.
     """
     improved_rag_query = await generate_improvement_rag_query(
-        party, chat_history_str, general_question, context_id=context_id
+        party,
+        chat_history_str,
+        general_question,
+        context_id=context_id,
+        source_filter=source_filter,
     )
     # Embed once, reuse for all three sources (same pattern as single-party path).
     rag_query_vector = await embed.aembed_query(improved_rag_query)
@@ -1216,6 +1289,7 @@ async def process_party(
         election_level=election_level,
         term_window=term_window,
         manifesto_term_start=manifesto_term_start,
+        source_filter=source_filter,
         log_prefix="comparison retrieve",
     )
     vote_current = _buckets.vote_current
@@ -1236,7 +1310,7 @@ async def process_party(
     votes_absent, manifesto_absent = _official_coverage(
         vote_docs_current, manifesto_current
     )
-    if not votes_absent and not manifesto_absent:
+    if not source_filter and not votes_absent and not manifesto_absent:
         speech_current = speech_current[:_CURRENT_SPEECH_LIMIT]
 
     # Merge current-first, historic-after in manifesto → vote → speech order
@@ -1487,6 +1561,12 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
             chat_history_without_last, all_parties
         )
 
+        # Source-filter detection runs concurrently with the target/type
+        # classification — no added latency. Fail-open: [] = all sources.
+        source_filter_task = asyncio.create_task(
+            detect_source_filter(user_message.content, chat_history_str)
+        )
+
         try:
             (
                 party_id_list,
@@ -1499,6 +1579,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                 currently_selected_parties=pre_selected_parties,
             )
         except openai.BadRequestError as e:
+            source_filter_task.cancel()
             logger.error(f"Error identifying question targets: {e}", exc_info=True)
             # Fallback to wahl-chat
             party_id_list = [WAHL_CHAT_PARTY.party_id]
@@ -1525,6 +1606,14 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
             yield _finish()
             yield _DONE
             return
+
+        source_filter: list[str] = await source_filter_task
+        if source_filter:
+            logger.info(
+                "User source filter active for session %s: %r",
+                body.session_id,
+                source_filter,
+            )
 
         if not party_id_list:
             party_id_list = ["wahl-chat"]
@@ -1588,11 +1677,16 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                 # quick_replies (forgeable). First turn uses the server-verified
                 # proposed-question check; follow-ups are gated against the
                 # quick_replies the server recorded last turn for this session.
-                group_chat_session.is_cacheable = _evaluate_cache_eligibility(
-                    body.session_id,
-                    user_message.content,
-                    is_beginning_of_chat,
-                    is_proposed_question,
+                # Filtered turns are never cacheable — the cache entry doesn't
+                # encode the (non-deterministic) LLM-detected filter.
+                group_chat_session.is_cacheable = (
+                    _evaluate_cache_eligibility(
+                        body.session_id,
+                        user_message.content,
+                        is_beginning_of_chat,
+                        is_proposed_question,
+                    )
+                    and not source_filter
                 )
                 party_generators.append(
                     fetch_party_response_stream(
@@ -1610,6 +1704,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                         election_level=election_level,
                         term_window=term_window,
                         manifesto_term_start=manifesto_term_start,
+                        source_filter=source_filter,
                     )
                 )
         else:
@@ -1632,6 +1727,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     election_level=election_level,
                     term_window=term_window,
                     manifesto_term_start=manifesto_term_start,
+                    source_filter=source_filter,
                 )
                 for p in parties_being_compared
             ]
@@ -1680,6 +1776,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     legislature_period_id=legislature_period_id,
                     election_level=election_level,
                     term_window=term_window,
+                    source_filter=source_filter,
                 )
             ]
 

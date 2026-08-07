@@ -63,6 +63,25 @@ class QuestionTypeClassifier(BaseModel):
     )
 
 
+# User-facing source categories for scoping answers. "videos" is not a corpus
+# source_type — retrieval maps it to parliamentary_speech with source=="op".
+SourceFilterLiteral = Literal["manifesto", "votes", "speeches", "videos"]
+
+SOURCE_FILTER_VALUES: tuple[str, ...] = ("manifesto", "votes", "speeches", "videos")
+
+
+class SourceFilterClassifier(BaseModel):
+    """Output of the Source Filter Classifier."""
+
+    requested_source_types: list[SourceFilterLiteral] = Field(
+        description=(
+            "Quellenarten, auf die der Nutzer die Antwort EXPLIZIT beschränken "
+            "möchte. Leere Liste, wenn keine Beschränkung verlangt wird "
+            "(Standard: alle Quellenarten)."
+        )
+    )
+
+
 class ChatSummaryGenerator(BaseModel):
     """Output of the Chat Summary Generator."""
 
