@@ -94,7 +94,8 @@ export default async function Landing() {
 
         <section className="flex flex-col gap-3">
           <h1 className="text-center text-base font-semibold text-foreground">
-            Wähle eine Partei für den Chat
+            Frag wahl.chat nach den Parteipositionen vor Bundes- oder
+            Landtagswahlen
           </h1>
 
           {featuredElection && (

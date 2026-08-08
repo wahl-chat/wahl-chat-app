@@ -14,7 +14,7 @@ type Props = {
 };
 
 export function ElectionPartySelector({ contextId }: Props) {
-  const { context, partyCount, parties } = useElectionContext();
+  const { partyCount, parties } = useElectionContext();
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -43,8 +43,8 @@ export function ElectionPartySelector({ contextId }: Props) {
         className="flex flex-col gap-3"
         aria-labelledby="party-selection"
       >
-        {/* The page's only h1. Kept at the visual size of the old h2 — the tag
-            and the text are what carry the signal, not the type scale. */}
+        {/* The page's only h1, kept at the visual size of the h2 it replaced —
+            the tag is what carries the document outline, not the type scale. */}
         <h1
           id="party-selection"
           className="flex items-center justify-center gap-2 text-center text-base font-semibold text-foreground"
@@ -53,7 +53,7 @@ export function ElectionPartySelector({ contextId }: Props) {
             className="size-7 shrink-0"
             aria-hidden="true"
           />
-          {context.name} – wähle eine Partei für den Chat
+          Wähle eine Partei, um den Chat mit ihr zu starten
         </h1>
 
         {!parties || isLoading ? (
