@@ -20,6 +20,8 @@
 *.pem
 .next
 node_modules/
+.pnpm-store
+.claude/skills
 
 # === Environment / secrets ===
 .env
