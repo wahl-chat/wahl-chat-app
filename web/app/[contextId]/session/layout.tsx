@@ -4,6 +4,13 @@ import ChatSidebar from '@/components/chat/sidebar/chat-sidebar';
 import { ChatStoreProvider } from '@/components/providers/chat-store-provider';
 import SseChatProvider from '@/components/providers/sse-chat-provider';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import type { Metadata } from 'next';
+
+// Covers both /[contextId]/session and /[contextId]/session/[chatSessionId]: chat
+// sessions are user-generated and must never be indexed.
+export const metadata: Metadata = {
+  robots: 'noindex, nofollow',
+};
 
 type Props = {
   children: React.ReactNode;
