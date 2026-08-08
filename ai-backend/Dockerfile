@@ -1,26 +1,33 @@
-# SPDX-FileCopyrightText: 2025 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-FROM python:3.11.3-slim
-
-# Install Poetry
-RUN pip install poetry
-
-# Copy only the necessary files for Poetry (to leverage Docker layer caching)
-COPY pyproject.toml poetry.lock /app/
+FROM python:3.12-slim AS builder
+COPY --from=ghcr.io/astral-sh/uv:0.11.19 /uv /uvx /bin/
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
 WORKDIR /app
+# Layer 1: dependencies only
+COPY pyproject.toml uv.lock ./
+RUN uv sync --locked --no-dev --no-install-project
 
-# Install dependencies
-RUN poetry install --no-root
-
-# Copy the rest of the application code and optional Firebase credentials
-# This will include files like:
-# - wahl-chat-dev-firebase-adminsdk.json
-# - wahl-chat-firebase-adminsdk.json
-# if they are present in the project root.
-# If these files are absent, Google Application Default Credentials must be provided when running the container
+# Layer 2: the project itself
 COPY . /app
+RUN uv sync --locked --no-dev
+# Ensure the dispatch entrypoint is executable regardless of the host's mode bits.
+RUN chmod +x /app/docker-entrypoint.sh
 
-CMD ["poetry", "run", "python", "-m", "src.aiohttp_app", "--host", "0.0.0.0", "--port", "8080"]
+# Runtime stage — no uv, no build tools, non-root user.
+FROM python:3.12-slim AS runtime
+RUN useradd --create-home --uid 1000 appuser
+COPY --from=builder --chown=appuser:appuser /app /app
+WORKDIR /app
+ENV PATH="/app/.venv/bin:$PATH"
+USER appuser
+
+# Single image serves both roles; the entrypoint dispatches on CONNECTOR_ID:
+#   - unset  → FastAPI app (web service, the default)
+#   - set    → src.ingestion.run for that connector (Cloud Run ingestion Job)
+# So the ingestion Job only sets CONNECTOR_ID (see infra/README.md) — no
+# container-command override, and the job can never boot the API by mistake.
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -18,7 +18,11 @@ class Role(str, Enum):
 class Message(BaseModel):
     id: Optional[str] = Field(default=None, description="The unique ID of the message")
     role: Role = Field(..., description="The role of the message author")
-    content: str = Field(..., description="The message content")
+    # Bounded: Message rides inside PUBLIC request bodies (chat history,
+    # summary/swiper routes), so an unbounded content field would make every
+    # history-list cap ineffective (100 turns of unbounded content). Sized far
+    # above any real user or assistant message.
+    content: str = Field(..., max_length=40_000, description="The message content")
     sources: Optional[List[dict]] = Field(
         None, description="The sources the message content is based on"
     )

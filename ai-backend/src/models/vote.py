@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -38,9 +38,6 @@ class VotingResultsByParty(BaseModel):
     no: int = Field(..., description="The number of no votes")
     abstain: int = Field(..., description="The number of abstain votes")
     not_voted: int = Field(..., description="The number of not voted votes")
-    justification: str | None = Field(
-        description="The justification of the vote", default=None
-    )
 
 
 class VotingResults(BaseModel):

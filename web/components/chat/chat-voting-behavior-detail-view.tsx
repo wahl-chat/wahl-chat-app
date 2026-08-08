@@ -22,7 +22,6 @@ import { useState } from 'react';
 import ChatVoteChartsHeader from './chat-vote-charts-header';
 import ChatVoteDetailsHeader from './chat-vote-details-header';
 import ChatVoteDetailsSlideCounter from './chat-vote-details-slide-counter';
-import ChatVotingBehaviorDetailJustification from './chat-voting-behavior-detail-justification';
 import ChatVotingBehaviorSubmittingParties from './chat-voting-behavior-submitting-parties';
 
 type Props = {
@@ -71,8 +70,6 @@ function ChatVotingBehaviorDetailView({
                   <p className="text-sm text-muted-foreground">
                     {vote.short_description}
                   </p>
-
-                  <ChatVotingBehaviorDetailJustification vote={vote} />
 
                   <ChatVotingBehaviorSubmittingParties vote={vote} />
 

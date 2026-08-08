@@ -8,11 +8,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const contexts = (await getContexts()) ?? [];
   if (contexts.length === 0) {
     // Intentional fallback: if no contexts are available, the sitemap only includes static pages.
-    console.warn('sitemap(): getContexts() returned no contexts; generating sitemap with base URL only.');
+    console.warn(
+      'sitemap(): getContexts() returned no contexts; generating sitemap with static pages only.',
+    );
   }
 
+  // Only indexable pages belong here. /topics is deliberately excluded: it is
+  // context-less and not tied to a current election.
   const staticPages: MetadataRoute.Sitemap = [
     { url: baseUrl, lastModified: now, changeFrequency: 'daily', priority: 1 },
+    {
+      url: `${baseUrl}/how-to`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/about-us`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
   ];
 
   const contextPages: MetadataRoute.Sitemap = [];

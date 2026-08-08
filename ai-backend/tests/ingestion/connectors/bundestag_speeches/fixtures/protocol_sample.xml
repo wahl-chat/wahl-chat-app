@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Trimmed plenary protocol XML test fixture — wave 0 scaffold.
+
+  Contains:
+    - <rede id="ID215000100">: normal speaker (SPD, valid MdB ID) with body paragraphs
+      and an inline <kommentar> that must be skipped
+    - <rede id="ID215000200">: merged-name speaker whose structured <name> metadata
+      is suspicious (merged first+last names) but whose redner.tail label
+      "Annalena Baerbock (BÜNDNIS 90/DIE GRÜNEN)" is correct — parser uses tail
+    - <rede id="ID215000300">: non-MdB speaker with ID starting with "999" —
+      kept by the connector (government/Bundesrat speeches are real content);
+      party resolves via MdB name lookup or quarantines as "unbekannt"
+
+  Citation coordinates: the vorspann inhaltsverzeichnis carries one
+  <xref ref-type="rede"> per rede (printed page pnr + quadrant div), and the
+  root's start-seitennr anchors the printed→PDF page offset.
+
+  Protocol attributes (trimmed, non-authoritative — for unit tests only):
+    Datum: 2026-06-15
+    Wahlperiode: 21
+    Sitzungsnr: 99
+    Protokoll-ID: 21/99
+
+  Fixture notes:
+    - The SPD speech uses the real DIP XML pattern: visible label in redner.tail
+      (text after </redner> inside <p klasse="redner">).
+    - The Baerbock speech uses the merged-name pattern: <name> has suspicious
+      merged first+last names ("AnnalenaBarb" + "ock"), while the correct label
+      "Annalena Baerbock (BÜNDNIS 90/DIE GRÜNEN)" appears in redner.tail.
+-->
+<dbtplenarprotokoll wahlperiode="21" sitzung-nr="99" sitzung-datum="15.06.2026" start-seitennr="12000">
+<vorspann>
+  <inhaltsverzeichnis>
+    <ivz-eintrag><xref ref-type="rede" rid="ID215000100" pnr="12001" div="A"/></ivz-eintrag>
+    <ivz-eintrag><xref ref-type="rede" rid="ID215000200" pnr="12003" div="C"/></ivz-eintrag>
+    <ivz-eintrag><xref ref-type="rede" rid="ID215000300" pnr="12005" div="B"/></ivz-eintrag>
+  </inhaltsverzeichnis>
+</vorspann>
+<sitzungsverlauf>
+  <sitzungstitel>99. Sitzung des Deutschen Bundestages, 15. Juni 2026</sitzungstitel>
+  <rede id="ID215000100">
+    <p klasse="redner">
+      <redner id="11004870">
+        <name>
+          <vorname>Olaf</vorname>
+          <nachname>Scholz</nachname>
+          <fraktion>SPD</fraktion>
+        </name>
+      </redner>Olaf Scholz (SPD):</p>
+    <p klasse="J">
+      Sehr geehrte Damen und Herren, wir diskutieren heute über die Zukunft der
+      Energiewende in Deutschland. Erneuerbare Energien sind der Schlüssel zu
+      unserer Klimapolitik.
+    </p>
+    <kommentar>(Beifall bei der SPD)</kommentar>
+    <p klasse="J">
+      Wir müssen investieren und gemeinsam handeln. Nur so können wir die
+      Klimaziele bis 2030 erreichen.
+    </p>
+  </rede>
+  <rede id="ID215000200">
+    <p klasse="redner">
+      <redner id="11004220">
+        <name>
+          <vorname>AnnalenaBarb</vorname>
+          <nachname>ock</nachname>
+          <fraktion>BÜNDNIS 90/DIE GRÜNEN</fraktion>
+        </name>
+      </redner>Annalena Baerbock (BÜNDNIS 90/DIE GRÜNEN):</p>
+    <p klasse="J">
+      Vielen Dank, Herr Präsident. Die Klimakrise erfordert sofortiges Handeln.
+      Wir brauchen eine ambitionierte Klimapolitik, die auch soziale Gerechtigkeit
+      sicherstellt.
+    </p>
+    <kommentar>(Zurufe von der AfD)</kommentar>
+    <p klasse="J">
+      Deshalb setzen wir auf eine ökologische Transformation der Wirtschaft.
+    </p>
+  </rede>
+  <rede id="ID215000300">
+    <p klasse="redner">
+      <redner id="99900001">
+        <name>
+          <vorname>Gast</vorname>
+          <nachname>Redner</nachname>
+          <fraktion>fraktionslos</fraktion>
+        </name>
+      </redner>Gast Redner (fraktionslos):</p>
+    <p klasse="J">
+      Als Sachverständiger möchte ich auf die technischen Aspekte hinweisen.
+    </p>
+  </rede>
+</sitzungsverlauf>
+</dbtplenarprotokoll>

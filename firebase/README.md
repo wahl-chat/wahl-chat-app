@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: 2025 2025 wahl.chat
+SPDX-FileCopyrightText: 2025 wahl.chat
 
 SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 -->
@@ -149,7 +149,7 @@ firestore-import -a ../ai-backend/wahl-chat-dev-firebase-adminsdk.json \
 
 ### Importing party data from dev to prod
 
-1. Export parties: `firestore-export --accountCredentials ../ai-backend/wahl-chat-dev-firebase-adminsdk.json --backupFile firestore_data/dev/parties.json --nodePath parties -p`
+1. Export parties: `firestore-export --accountCredentials ../ai-backend/wahl-chat-dev-firebase-adminsdk.json --backupFile firestore_data/dev/parties.json --nodePath parties`
 2. Copy `firestore_data/dev/parties.json` to `firestore_data/prod/parties.json`
 3. **Important**: Replace dev storage URLs with prod URLs:
    - Find: `https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app`

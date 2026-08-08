@@ -1,0 +1,4 @@
+# Test fixtures are captured upstream-API responses, not hand-written code.
+# Mark them generated so GitHub collapses them in PR diffs and skips them in
+# language stats; reviewers can expand on demand.
+ai-backend/tests/**/fixtures/** linguist-generated=true

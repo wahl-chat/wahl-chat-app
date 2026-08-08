@@ -1,3 +1,17 @@
+# === Planning (local only) ===
+.planning/
+# Agent-local runtime state only — committed assets under .claude/ (skills,
+# agents, settings.json) MUST remain tracked, so ignore the local runtime
+# files individually rather than the whole directory.
+.claude/settings.local.json
+.claude/*.local.json
+.claude/worktrees/
+.claude/todos/
+.claude/shell-snapshots/
+.claude/statsig/
+.claude/projects/
+.claude/history.jsonl
+
 # === Common ===
 .DS_Store
 .idea/
@@ -5,14 +19,39 @@
 *.pem
 .next
 node_modules/
-.pnpm-store
 
 # === Environment / secrets ===
 .env
 .env.*
 !.env.example
 *firebase-adminsdk*.json
+# Vertex AI service-account key (billing project) — runtime-provided only.
+vertex-sa*.json
+terraform/
+terraform-export/
 
+# === Python runtime (repo-wide, not backend-only) ===
+# Python lives in several dirs: ai-backend/, firebase/ (incl. a local venv),
+# scripts/, and web/ tooling.
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+*.egg-info/
+terraform/
+terraform-export/
 # === Misc ===
 *.log
 .local
+ai-backend/vertex-sa.json
+# === Local data files ===
+speeches.jsonl
+
+# === Agent docs symlink (local only) ===
+# AGENTS.md is the committed source of truth; CLAUDE.md is a provider-specific
+# symlink to it, created per-clone by ./scripts/setup-agent-docs.sh.
+CLAUDE.md
+
+# Party PDFs staged for upload to Firebase Storage (see firebase/storage_data/public/NOTE.md).
+# The documents themselves are not repo content — only the staging layout is.
+firebase/storage_data/public/**/*.pdf

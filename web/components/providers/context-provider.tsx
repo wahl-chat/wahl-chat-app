@@ -73,7 +73,8 @@ export function useContexts() {
 }
 
 export function useContextParties(partyIds?: string[]) {
-  const { parties } = useElectionContext();
+  const electionContext = useElectionContext({ optional: true });
+  const parties = electionContext?.parties;
 
   return useMemo(() => {
     if (partyIds) {

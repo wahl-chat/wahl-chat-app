@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 import re
 import logging
 
@@ -19,6 +19,13 @@ from src.models.party import WAHL_CHAT_PARTY
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 EXPECTED_API_NAME = "wahl-chat-api"
+
+# Client-facing generic error text: internal exception details (str(e)) must
+# never reach the wire — they can leak stack/config/internal identifiers. Full
+# detail belongs in server logs only (logger.error with exc_info).
+GENERIC_ERROR_MESSAGE = (
+    "Es ist ein interner Fehler aufgetreten. Bitte versuche es später erneut."
+)
 
 logger = logging.getLogger(__name__)
 
@@ -61,18 +68,51 @@ def safe_load_api_key(api_key: str) -> Optional[SecretStr]:
     return SecretStr(key)
 
 
-def get_cors_allowed_origins(env: Optional[str]) -> Union[str, list[str]]:
+def get_cors_allowed_origins(env: Optional[str]) -> list[str]:
+    """Enumerated CORS origins — NEVER "*".
+
+    app.py runs the CORS middleware with allow_credentials=True; a wildcard
+    there makes Starlette reflect ANY Origin with credentials, so origins must
+    always be an explicit list. CORS_EXTRA_ORIGINS (comma-separated) extends
+    the list per deployment (e.g. the Vercel URL of the deployed dev demo) —
+    entries are VALIDATED at startup: a "*" (which would silently turn the
+    deployment into reflect-any-origin-with-credentials) or a non-http(s)
+    entry fails boot instead of weakening CORS via a config typo.
+
+    Raises:
+        ValueError: When CORS_EXTRA_ORIGINS contains a wildcard or an entry
+                    that is not an absolute http(s) origin.
+    """
+    extra_origins = [
+        origin.strip()
+        for origin in (os.getenv("CORS_EXTRA_ORIGINS") or "").split(",")
+        if origin.strip()
+    ]
+    for origin in extra_origins:
+        if "*" in origin:
+            raise ValueError(
+                f"CORS_EXTRA_ORIGINS entry {origin!r} contains a wildcard — "
+                "with allow_credentials=True this would reflect ANY origin. "
+                "List each allowed origin explicitly."
+            )
+        if not origin.startswith(("http://", "https://")):
+            raise ValueError(
+                f"CORS_EXTRA_ORIGINS entry {origin!r} is not an absolute "
+                "http(s) origin (expected e.g. https://demo.example.app)."
+            )
     if env == "dev":
-        return "*"
-    else:
         return [
-            "https://wahl.chat",
-            "https://embed.wahl.chat",
-            "https://pre-prod.wahl.chat",
-            "https://dev.wahl.chat",
             "http://localhost:3000",
-            "http://localhost:8080",
-        ]
+            "http://127.0.0.1:3000",
+        ] + extra_origins
+    return [
+        "https://wahl.chat",
+        "https://embed.wahl.chat",
+        "https://pre-prod.wahl.chat",
+        "https://dev.wahl.chat",
+        "http://localhost:3000",
+        "http://localhost:8080",
+    ] + extra_origins
 
 
 def build_chat_history_string(
@@ -101,10 +141,13 @@ def build_chat_history_string(
 def build_document_string_for_context(
     doc_num: int, doc: Document, doc_num_label="ID"
 ) -> str:
+    # Include authority_tier when present so the LLM can weigh source trust.
+    authority_tier = doc.metadata.get("authority_tier")
+    authority_line = f"- Vertrauensstufe: {authority_tier}\n" if authority_tier else ""
     return f"""{doc_num_label}: {doc_num}
 - Dokumentname: {doc.metadata.get("document_name", "unbekannt")}
 - Veröffentlichungsdatum: {doc.metadata.get("document_publish_date", "unbekannt")}
-- Inhalt: "{doc.page_content}"
+{authority_line}- Inhalt: "{doc.page_content}"
 """
 
 
@@ -178,21 +221,3 @@ Diese Maßnahmen zielen darauf ab, die Arbeitsbedingungen und die soziale Absich
 
 def get_chat_history_hash_key(conversation_history_str: str) -> str:
     return xxhash.xxh64(conversation_history_str).hexdigest()
-
-
-def sanitize_text_for_speech(text: str) -> str:
-    """Remove markdown formatting and citations for TTS output."""
-    # Remove citations like [1], [1, 2, 3]
-    text = re.sub(r"\s*\[\d+(?:,\s*\d+)*\]", "", text)
-
-    # Remove markdown bold/italic
-    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)  # **bold** → bold
-    text = re.sub(r"\*(.+?)\*", r"\1", text)  # *italic* → italic
-
-    # Clean up extra whitespace
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    text = text.strip()
-
-    logger.debug(f"Sanitized text: {text}")
-
-    return text

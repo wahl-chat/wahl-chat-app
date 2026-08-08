@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -60,6 +60,25 @@ class QuestionTypeClassifier(BaseModel):
     )
     is_comparing_question: bool = Field(
         description="True, wenn eine explizite Vergleichsfrage, sonst False."
+    )
+
+
+# User-facing source categories for scoping answers. "videos" is not a corpus
+# source_type — retrieval maps it to parliamentary_speech with source=="op".
+SourceFilterLiteral = Literal["manifesto", "votes", "speeches", "videos"]
+
+SOURCE_FILTER_VALUES: tuple[str, ...] = ("manifesto", "votes", "speeches", "videos")
+
+
+class SourceFilterClassifier(BaseModel):
+    """Output of the Source Filter Classifier."""
+
+    requested_source_types: list[SourceFilterLiteral] = Field(
+        description=(
+            "Quellenarten, auf die der Nutzer die Antwort EXPLIZIT beschränken "
+            "möchte. Leere Liste, wenn keine Beschränkung verlangt wird "
+            "(Standard: alle Quellenarten)."
+        )
     )
 
 

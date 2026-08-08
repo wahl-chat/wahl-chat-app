@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { stripe } from '@/lib/stripe/stripe';
+import { getStripe } from '@/lib/stripe/stripe';
 import { CircleCheckIcon, FrownIcon } from 'lucide-react';
 import Link from 'next/link';
 import type Stripe from 'stripe';
@@ -22,9 +22,12 @@ async function Page({
   }
 
   const checkoutSession: Stripe.Checkout.Session =
-    await stripe.checkout.sessions.retrieve(actualSearchParams.session_id, {
-      expand: ['line_items', 'payment_intent'],
-    });
+    await getStripe().checkout.sessions.retrieve(
+      actualSearchParams.session_id,
+      {
+        expand: ['line_items', 'payment_intent'],
+      },
+    );
 
   const paymentIntent = checkoutSession.payment_intent as Stripe.PaymentIntent;
 

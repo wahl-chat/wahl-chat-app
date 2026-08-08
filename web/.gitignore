@@ -34,6 +34,7 @@ next-env.d.ts
 .firebase
 .wrangler
 
-# lockfiles (bun.lockb is tracked)
+# lockfiles (bun.lock is tracked; package-lock.json, pnpm-lock.yaml, and bun.lockb are not)
 package-lock.json
 pnpm-lock.yaml
+bun.lockb
