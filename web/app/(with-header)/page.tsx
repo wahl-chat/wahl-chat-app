@@ -89,18 +89,21 @@ export default async function Landing() {
           <ElectionSelect
             contexts={contexts}
             currentContext={featuredElection}
-            label="Deine nächste Wahl:"
-            highlight
           />
         </section>
 
         <section className="flex flex-col gap-3">
-          <h1 className="flex items-center justify-center gap-2 text-center text-base font-semibold text-foreground">
-            Parteipositionen zur Bundestags-, Landtags- und Kommunalwahl im Chat
-            vergleichen
+          <h1 className="text-center text-base font-semibold text-foreground">
+            Wähle eine Partei für den Chat
           </h1>
 
-          <ElectionBlurCard className="mt-1" />
+          {featuredElection && (
+            <ElectionBlurCard
+              className="mt-1"
+              href={`/${featuredElection.context_id}`}
+              electionName={featuredElection.name}
+            />
+          )}
         </section>
       </div>
 
