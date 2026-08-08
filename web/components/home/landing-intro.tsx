@@ -46,8 +46,8 @@ function LandingIntro({ upcoming, past }: Props) {
         wahl.chat ist ein KI-Assistent, dem du deine Fragen zu den Positionen
         verschiedener Parteien stellen kannst. Statt dich durch hunderte Seiten
         Wahlprogramm oder Plenarprotokoll zu arbeiten, fragst du einfach nach
-        dem, was dich interessiert, Mieten, Bildung, Klima, Wirtschaft,
-        Migration, und bekommst eine Antwort zu genau dieser Frage. Du kannst
+        dem, was dich interessiert - Mieten, Bildung, Klima, Wirtschaft,
+        Migration - und bekommst eine Antwort zu genau dieser Frage. Du kannst
         mehrere Parteien gleichzeitig auswählen und ihre Positionen zum selben
         Thema direkt nebeneinander vergleichen.
       </p>
@@ -56,7 +56,7 @@ function LandingIntro({ upcoming, past }: Props) {
         Jede Antwort ist mit Quellen belegt: wahl.chat zitiert die Stellen aus
         den verfügbaren Dokumenten, auf denen sie beruht, und du kannst sie mit
         einem Klick im Original nachlesen. Anders als beim Wahl-O-Mat
-        beantwortest du keine vorgegebenen Thesen sondern fragst selbst, was
+        beantwortest du keine vorgegebenen Thesen, sondern fragst selbst, was
         dich interessiert und hakst nach, wenn dir etwas zu vage ist. Wie das
         funktioniert, erklärt die{' '}
         <Link href="/how-to" className="font-medium underline">
@@ -85,7 +85,7 @@ function LandingIntro({ upcoming, past }: Props) {
 
       <p>
         Die Antworten werden von einer künstlichen Intelligenz auf Basis
-        öffenticher Parteidokumente erzeugt und sind keine offiziellen Aussagen
+        öffentlicher Parteidokumente erzeugt und sind keine offiziellen Aussagen
         der Parteien. Deine Nachrichten werden gespeichert, um die Antworten zu
         erzeugen und dir deinen Chatverlauf anzuzeigen – Details dazu stehen in
         der{' '}
