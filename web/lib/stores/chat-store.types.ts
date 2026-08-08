@@ -25,6 +25,9 @@ export type Source = {
   // primary (video-first) link for back-compat.
   video_url?: string;
   pdf_url?: string;
+  // Leading excerpt of the cited chunk — the PDF viewer's highlight anchor.
+  // Absent on votes, Perplexity sources, and messages persisted before it shipped.
+  snippet?: string;
 };
 
 export type CurrentStreamingMessages = {

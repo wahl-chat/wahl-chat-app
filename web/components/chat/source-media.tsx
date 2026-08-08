@@ -9,8 +9,7 @@ import {
   formatGermanDate,
   getSourceMediaLinks,
   isPdfUrl,
-  isProxyablePdfHost,
-  pdfProxyUrl,
+  pdfViewerFileUrl,
   sourceBadgeLabel,
   videoTimestampSeconds,
 } from '@/lib/utils';
@@ -21,7 +20,13 @@ import {
   Loader2Icon,
   PlayIcon,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
+
+// pdf.js + worker only load when a PDF is actually opened.
+const PdfViewer = dynamic(() => import('@/components/chat/pdf-viewer'), {
+  ssr: false,
+});
 
 export type ActiveMedia = {
   kind: 'video' | 'pdf';
@@ -29,19 +34,9 @@ export type ActiveMedia = {
   title: string;
   /** 1-based PDF page to open at (e.g. an AW Wahlprogramm page citation). */
   page?: number;
+  /** Cited text to highlight in the PDF viewer (best effort). */
+  snippet?: string;
 };
-
-/**
- * True when the current device should view PDFs in-page (fine pointer / desktop).
- * On coarse-pointer (touch) devices in-page PDF <iframe>s are unreliable — iOS
- * Safari commonly renders them blank — so those open in a new tab instead.
- */
-function prefersInPagePdf(): boolean {
-  if (typeof window === 'undefined' || !window.matchMedia) {
-    return true;
-  }
-  return window.matchMedia('(pointer: fine)').matches;
-}
 
 function openExternally(url: string): void {
   window.open(url, '_blank', 'noopener,noreferrer');
@@ -67,16 +62,12 @@ function withPdfFragment(url: string, page?: number): string {
   return `${url}${pdfFragment(page)}`;
 }
 
-/** Same-origin proxied PDF URL to frame, deep-linked to `page` when known. */
-function pdfViewerSrc(url: string, page?: number): string {
-  return `${pdfProxyUrl(url)}${pdfFragment(page)}`;
-}
-
 /**
  * Decide how a source's format link opens: the in-page viewer (videos always;
- * PDFs on the proxy allowlist AND on a device where in-page PDFs are reliable)
- * or a new tab (off-allowlist PDFs, touch devices, plain weblinks). PDF page
- * citations carry their `page` through to both paths.
+ * PDFs the pdf.js viewer can fetch — our GCS buckets directly, allowlisted
+ * institution hosts via the proxy) or a new tab (everything else). The viewer
+ * renders with pdf.js on every device, so cited-page jumps and highlighting
+ * work on mobile too — native viewers ignore `#page=N` there.
  */
 function resolveMediaOpen(
   link: SourceMediaLink,
@@ -86,17 +77,18 @@ function resolveMediaOpen(
   if (link.kind === 'video') {
     return { viewer: { kind: 'video', url: link.url, title } };
   }
-  if (isProxyablePdfHost(link.url) && prefersInPagePdf()) {
+  if (pdfViewerFileUrl(link.url) !== null) {
     return {
       viewer: {
         kind: 'pdf',
         url: link.url,
         title,
         page: source.page,
+        snippet: source.snippet,
       },
     };
   }
-  // New tab (off-allowlist / touch): keep the page anchor on the raw URL.
+  // New tab (unfetchable host): keep the page anchor on the raw URL.
   // `link.kind` is 'pdf' here (video returned above), and withPdfFragment
   // skips URLs that already carry a fragment.
   return { newTab: withPdfFragment(link.url, source.page) };
@@ -133,9 +125,9 @@ export function openSourceMedia(
 /**
  * The in-page media view that replaces the sources list inside the "Quellen"
  * dialog: a native <video> for speech deep-links (seeks to the cited moment via
- * `#t=`) or an <iframe> of the same-origin PDF proxy for documents. A "Neuer Tab"
- * escape hatch is always available, and a load failure shows an explicit
- * fallback instead of a silent blank box.
+ * `#t=`) or the pdf.js viewer for documents. A "Neuer Tab" escape hatch is
+ * always available, and a load failure shows an explicit fallback instead of a
+ * silent blank box.
  */
 export function SourceMediaViewer({
   media,
@@ -195,10 +187,8 @@ export function SourceMediaViewer({
           </a>
         </Button>
       </div>
-      {/* Definite height (not just min-height): a percentage-height <iframe>
-          collapses without a resolved parent height, which rendered the PDF as a
-          thin broken strip. A <video> survives via its intrinsic size; the iframe
-          needs this. */}
+      {/* Definite height (not just min-height): the viewer sizes itself from
+          its parent, which needs a resolved height to size against. */}
       <div className="relative flex h-[72vh] items-center justify-center bg-muted">
         {failed ? (
           <div className="flex flex-col items-center gap-3 p-6 text-center">
@@ -240,18 +230,14 @@ export function SourceMediaViewer({
                 onError={() => setFailed(true)}
               />
             ) : (
-              <iframe
-                src={pdfViewerSrc(media.url, media.page)}
+              <PdfViewer
+                // Non-null: resolveMediaOpen only routes fetchable PDFs here.
+                fileUrl={pdfViewerFileUrl(media.url) as string}
+                initialPage={media.page}
+                snippet={media.snippet}
                 title={media.title}
-                // Deliberately NOT sandboxed: Chromium disables its built-in
-                // PDF viewer inside sandboxed iframes (any token set), which
-                // renders a blank frame after load. The frame only ever shows
-                // our own same-origin /api/pdf-proxy output (allowlisted host,
-                // per-hop redirect validation, PDF-only content-type, nosniff),
-                // so third-party content cannot reach this frame anyway.
-                className="size-full border-0"
-                onLoad={() => setLoaded(true)}
-                onError={() => setFailed(true)}
+                onReady={() => setLoaded(true)}
+                onFail={() => setFailed(true)}
               />
             )}
           </>

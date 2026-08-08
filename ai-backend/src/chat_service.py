@@ -184,6 +184,25 @@ def _pdf_page_from_url(url: Optional[str]) -> Optional[int]:
     return int(match.group(1)) if match else None
 
 
+_SNIPPET_MAX_CHARS = 600
+
+
+def _source_snippet(text: Optional[str]) -> Optional[str]:
+    """Leading excerpt of the cited chunk, for the PDF viewer's text highlight.
+
+    Whitespace-normalized and cut at a word boundary; the frontend anchors a
+    fuzzy match on the cited page with it and degrades to page-only when the
+    match fails, so this is best-effort by design. None when there is no text.
+    """
+    if not text:
+        return None
+    normalized = " ".join(text.split())
+    if len(normalized) <= _SNIPPET_MAX_CHARS:
+        return normalized
+    cut = normalized.rfind(" ", 0, _SNIPPET_MAX_CHARS)
+    return normalized[: cut if cut > 0 else _SNIPPET_MAX_CHARS]
+
+
 def _mk_manifesto_docs(payloads: list[dict]) -> list[Document]:
     return [
         Document(
@@ -253,6 +272,11 @@ def _append_document_source(
         entry["source_type"] = md.get("source_type")
     if party_id is not None:
         entry["party_id"] = party_id
+    # Highlight anchor for PDF-backed sources only; votes cite web pages.
+    if md.get("source_type") in ("party_manifesto", "parliamentary_speech"):
+        snippet = _source_snippet(source_doc.page_content)
+        if snippet:
+            entry["snippet"] = snippet
 
     payload = md.get("_source_payload")
     if isinstance(payload, dict):
@@ -921,18 +945,18 @@ async def fetch_party_response_stream(
             def _append_manifesto_sources(payloads: list[dict]) -> None:
                 for manifesto_payload in payloads:
                     meta = _meta_dict(manifesto_payload)
-                    sources.append(
-                        {
-                            "source": manifesto_payload.get("citation_title"),
-                            "page": meta.get("page_start"),
-                            "document_publish_date": manifesto_payload.get(
-                                "publish_date"
-                            ),
-                            "url": manifesto_payload.get("citation_url"),
-                            "source_document": manifesto_payload.get("citation_title"),
-                            "source_type": "party_manifesto",
-                        }
-                    )
+                    manifesto_entry = {
+                        "source": manifesto_payload.get("citation_title"),
+                        "page": meta.get("page_start"),
+                        "document_publish_date": manifesto_payload.get("publish_date"),
+                        "url": manifesto_payload.get("citation_url"),
+                        "source_document": manifesto_payload.get("citation_title"),
+                        "source_type": "party_manifesto",
+                    }
+                    snippet = _source_snippet(manifesto_payload.get("text"))
+                    if snippet:
+                        manifesto_entry["snippet"] = snippet
+                    sources.append(manifesto_entry)
 
             def _append_speech_sources(payloads: list[dict]) -> None:
                 for speech_payload in payloads:
@@ -977,6 +1001,9 @@ async def fetch_party_response_stream(
                         pdf_page = _pdf_page_from_url(primary_url)
                         if pdf_page is not None:
                             source_entry["page"] = pdf_page
+                    snippet = _source_snippet(speech_payload.get("text"))
+                    if snippet:
+                        source_entry["snippet"] = snippet
                     source_entry.update(_speech_attribution(speech_payload))
                     # Record op speeches with a timed sentence_map so their video
                     # deep-link can be refined post-generation from the cited claim.
