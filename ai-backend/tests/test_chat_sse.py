@@ -244,8 +244,10 @@ async def test_first_turn_proposed_question_is_cached(patch_chat_io, app, monkey
 
     assert payloads[-1] == "[DONE]"
     write_mock.assert_awaited_once()
-    # (party_id, cache_key, cached_answer) — the key is the question text.
-    _party_id, cache_key, _cached = write_mock.await_args.args
+    # (context_id, party_id, cache_key, cached_answer) — the key is the
+    # question text, scoped to the session's election.
+    context_id, _party_id, cache_key, _cached = write_mock.await_args.args
+    assert context_id == _CHAT_REQUEST_BODY["context_id"]
     assert cache_key == _PROPOSED_QUESTION
 
 

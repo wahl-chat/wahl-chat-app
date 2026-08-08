@@ -129,11 +129,20 @@ def _sanitize_cache_key(cache_key: str) -> str:
     return cache_key
 
 
+def _cache_party_doc_id(context_id: str, party_id: str) -> str:
+    """Party IDs are shared across elections (the same ``cdu`` runs federally
+    and in Sachsen-Anhalt), but cached answers are grounded in one election's
+    corpus and prompt — so the cache is scoped per (election, party).
+    """
+    return f"{context_id}__{party_id}"
+
+
 async def aget_cached_answers_for_party(
-    party_id: str, cache_key: str
+    context_id: str, party_id: str, cache_key: str
 ) -> list[CachedResponse]:
     cached_answers = async_db.collection(
-        f"cached_answers/{party_id}/{_sanitize_cache_key(cache_key)}"
+        f"cached_answers/{_cache_party_doc_id(context_id, party_id)}"
+        f"/{_sanitize_cache_key(cache_key)}"
     ).stream()
     return [
         CachedResponse(**cached_answer.to_dict())
@@ -142,10 +151,11 @@ async def aget_cached_answers_for_party(
 
 
 async def awrite_cached_answer_for_party(
-    party_id: str, cache_key: str, cached_answer: CachedResponse
+    context_id: str, party_id: str, cache_key: str, cached_answer: CachedResponse
 ) -> None:
     cached_answer_ref = async_db.collection(
-        f"cached_answers/{party_id}/{_sanitize_cache_key(cache_key)}"
+        f"cached_answers/{_cache_party_doc_id(context_id, party_id)}"
+        f"/{_sanitize_cache_key(cache_key)}"
     ).document()
     await cached_answer_ref.set(cached_answer.model_dump())
 

@@ -815,7 +815,9 @@ async def fetch_party_response_stream(
             )
             existing_cached_answers: List[
                 CachedResponse
-            ] = await aget_cached_answers_for_party(party.party_id, cache_key)
+            ] = await aget_cached_answers_for_party(
+                group_chat_session.context_id, party.party_id, cache_key
+            )
             cached_answer_limit = 1
             possible_answers: list = (
                 existing_cached_answers + [None]
@@ -1201,7 +1203,7 @@ async def fetch_party_response_stream(
                 ),
             )
             await awrite_cached_answer_for_party(
-                party.party_id, cache_key, cached_answer
+                group_chat_session.context_id, party.party_id, cache_key, cached_answer
             )
 
     except openai.BadRequestError as e:

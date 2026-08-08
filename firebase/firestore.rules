@@ -34,11 +34,9 @@ service cloud.firestore {
     	allow read;
     }
 
-    match /cached_answers/{party_id}/{hash}/{cached_answer_id} {
-    	allow read;
-    }
-
-    match /cached_answers/{context_id}/{party_id}/{hash}/{cached_answer_id} {
+    // Doc id is "{context_id}__{party_id}": cached answers are scoped per
+    // election because party ids repeat across elections.
+    match /cached_answers/{context_party_id}/{hash}/{cached_answer_id} {
     	allow read;
     }
 

@@ -189,7 +189,9 @@ async def _fake_aget_proposed_questions(party_id: str) -> list[str]:
     return []
 
 
-async def _fake_aget_cached_answers(party_id: str, cache_key: str) -> list[Any]:
+async def _fake_aget_cached_answers(
+    context_id: str, party_id: str, cache_key: str
+) -> list[Any]:
     return []
 
 
