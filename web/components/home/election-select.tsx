@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { splitElectionsByDate } from '@/lib/elections';
 import type { Context } from '@/lib/firebase/firebase.types';
-import { cn, formatGermanDate } from '@/lib/utils';
+import { formatGermanDate } from '@/lib/utils';
 import { CalendarIcon, CheckIcon, MapPinIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -86,17 +86,11 @@ type Props = {
   /** Falls back to the ContextProvider. Pass explicitly outside one, e.g. on /. */
   contexts?: Context[];
   currentContext?: Context;
-  /** Label above the trigger. Omitted on context pages, where the page itself says which election it is. */
-  label?: string;
-  /** Draws attention to the trigger when choosing an election is the page's main action. */
-  highlight?: boolean;
 };
 
 export function ElectionSelect({
   contexts: contextsProp,
   currentContext: currentContextProp,
-  label,
-  highlight,
 }: Props = {}) {
   const electionContext = useElectionContext({ optional: true });
   const router = useRouter();
@@ -135,17 +129,8 @@ export function ElectionSelect({
       value={currentContext.context_id}
       onValueChange={handleContextChange}
     >
-      {label && (
-        <span className="mb-1 block text-sm font-semibold text-foreground">
-          {label}
-        </span>
-      )}
       <SelectTrigger
-        className={cn(
-          'h-auto w-full border-border bg-muted/50 px-3 py-2 [&>svg]:size-4 [&>svg]:text-muted-foreground',
-          highlight &&
-            'border-primary/40 animate-election-select-pulse motion-reduce:animate-none',
-        )}
+        className="h-auto w-full border-border bg-muted/50 px-3 py-2 [&>svg]:size-4 [&>svg]:text-muted-foreground"
         aria-label={`Wahl auswählen. Aktuell ausgewählt: ${currentContext.name}`}
       >
         <CompactElectionContent context={currentContext} />

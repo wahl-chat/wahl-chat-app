@@ -1,8 +1,11 @@
 import { cn } from '@/lib/utils';
+import { MousePointerClickIcon } from 'lucide-react';
+import Link from 'next/link';
 
 /**
- * Soft, drifting colour field shown on the landing page where a context page
- * shows its party logos.
+ * Soft, drifting colour field standing in for the party logos on the landing
+ * page, and the page's primary call to action: it links into the election shown
+ * in the selector above it.
  *
  * The tints are deliberately faint. They should read as "there are parties
  * behind this" without being identifiable as any particular party's branding —
@@ -29,23 +32,31 @@ const BLOBS: Blob[] = [
 ];
 
 type Props = {
+  /** Election to open when the card is clicked. */
+  href: string;
+  /** Named in the accessible label, so the destination is not just "hier". */
+  electionName: string;
   className?: string;
 };
 
-function ElectionBlurCard({ className }: Props) {
+function ElectionBlurCard({ href, electionName, className }: Props) {
   return (
-    <div
-      aria-hidden="true"
+    <Link
+      href={href}
+      aria-label={`Chat zur ${electionName} starten`}
       className={cn(
-        'relative h-40 w-full overflow-hidden rounded-md border border-muted-foreground/20 md:h-48',
+        'group relative flex h-40 w-full items-center justify-center overflow-hidden rounded-md md:h-48',
+        'border border-muted-foreground/20 transition-colors hover:border-muted-foreground/40',
         'bg-gradient-to-br from-zinc-100 via-zinc-200 to-zinc-100',
         'dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         className,
       )}
     >
       {BLOBS.map((blob) => (
         <span
           key={blob.color}
+          aria-hidden="true"
           className="animate-blur-drift absolute rounded-full opacity-[0.10] blur-3xl dark:opacity-[0.16]"
           style={
             {
@@ -62,8 +73,19 @@ function ElectionBlurCard({ className }: Props) {
 
       {/* Silver sheen over the colour, so the card reads as metallic grey with
           hints of colour rather than as a rainbow. */}
-      <span className="absolute inset-0 bg-gradient-to-tr from-white/50 via-transparent to-white/30 dark:from-white/5 dark:to-white/10" />
-    </div>
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 bg-gradient-to-tr from-white/50 via-transparent to-white/30 dark:from-white/5 dark:to-white/10"
+      />
+
+      <span className="relative flex items-center gap-2 text-base font-semibold text-foreground">
+        <MousePointerClickIcon
+          className="size-7 shrink-0 transition-transform group-hover:scale-110"
+          aria-hidden="true"
+        />
+        Klick hier um zu starten
+      </span>
+    </Link>
   );
 }
 
