@@ -272,12 +272,16 @@ export function sourceBadgeLabel(source: {
   video_url?: string;
   pdf_url?: string;
   page: number;
+  page_label?: string;
 }): string {
   const primary = getSourceMediaLinks(source)[0];
   if (primary?.kind === 'video') {
     return primary.label;
   }
-  return `S. ${source.page}`;
+  // Prefer the printed page the citation text cites (speech transcripts);
+  // `page` is the physical PDF page for the viewer jump, which differs when
+  // the PDF has front matter.
+  return `S. ${source.page_label ?? source.page}`;
 }
 
 /** True when a URL is a playable video (a `#t=` deep-link or a `.mp4` file). */

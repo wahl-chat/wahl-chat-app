@@ -65,6 +65,10 @@ from src.ingestion.connectors.bundestag_speeches.mdb import (
     mdb_record_for_speaker_name,
 )
 from src.ingestion.connectors.bundestag_speeches.parser import parse_speeches_from_xml
+from src.ingestion.connectors.bundestag_speeches.pdf_pages import (
+    fetch_pdf_reader,
+    resolve_page_offset,
+)
 from src.ingestion.connectors.bundestag_speeches.utils import normalize_party
 from src.ingestion.ids import compute_source_item_id
 from src.ingestion.schemas import ChunkRecord, SourceType
@@ -80,6 +84,28 @@ from src.ingestion.speech_dedup import datum_to_external_id as _datum_to_externa
 from src.ingestion.speech_dedup import norm_speech_text as _norm_speech_text
 
 logger = logging.getLogger(__name__)
+
+
+def _page_offset_samples(speeches: list[dict], limit: int = 3) -> list[tuple[int, int]]:
+    """Up to *limit* (printed page, estimated pdf page) pairs with distinct
+    printed pages — the validation samples for ``resolve_page_offset``."""
+    samples: list[tuple[int, int]] = []
+    seen: set[int] = set()
+    for speech in speeches:
+        printed = speech.get("source_page")
+        estimate = speech.get("pdf_page")
+        if (
+            isinstance(printed, str)
+            and printed.isdigit()
+            and isinstance(estimate, int)
+            and int(printed) not in seen
+        ):
+            seen.add(int(printed))
+            samples.append((int(printed), estimate))
+            if len(samples) >= limit:
+                break
+    return samples
+
 
 # ---------------------------------------------------------------------------
 # Module-level path for MdB-Stammdaten XML
@@ -637,6 +663,29 @@ class BundestagSpeechesConnector(BaseConnector):
                 "speeches": [],
                 "skip_reason": f"xml parse failed for protocol {external_id}: {exc}",
             }
+
+        # The parser's pdf_page is an arithmetic estimate that ignores the PDF's
+        # unnumbered front matter (title + table of contents), so its deep links
+        # land short by that many pages. Resolve the protocol-wide offset from
+        # the PDF itself (one download per protocol, validated against sampled
+        # printed pages). Failures keep the estimates — a close-but-shifted
+        # deep link beats none, and a protocol is never skipped over citation
+        # polish.
+        pdf_url = fundstelle.get("pdf_url") or None
+        samples = _page_offset_samples(speeches)
+        if pdf_url and samples:
+            reader = fetch_pdf_reader(pdf_url)
+            offset = resolve_page_offset(reader, samples) if reader else None
+            if offset:
+                for speech in speeches:
+                    if isinstance(speech.get("pdf_page"), int):
+                        speech["pdf_page"] += offset
+            elif offset is None:
+                logger.warning(
+                    "protocol %s: front-matter offset undeterminable — "
+                    "keeping arithmetic pdf_page estimates",
+                    external_id,
+                )
 
         return {
             "protocol": protocol,
