@@ -363,8 +363,15 @@ python3 scripts/check_gdpr_wall.py
 cd web
 bun run lint                      # next lint + biome ci
 bun run typecheck                 # tsc --noEmit
-bun run build
+bun run test                      # bun test
+bun run build                     # stop the dev server first — see below
 ```
+
+`bun run build` and `next dev` share `web/.next`, so building while a dev server
+is running corrupts it: pages start failing with
+`Cannot find module './vendor-chunks/@firebase.js'`, or render with no stylesheet
+at all, which looks like the CSS was deleted. Stop the dev server before
+building, and recover with `rm -rf web/.next` before starting it again.
 
 The backend test suite mocks Qdrant and embeddings (`tests/conftest.py`), so no
 running services or live API keys are needed. `git` pre-commit hooks are wired
