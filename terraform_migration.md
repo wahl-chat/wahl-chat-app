@@ -1,5 +1,11 @@
 # Terraform Migration — wahl-chat (bulk-export from GCP)
 
+> **⚠️ SUPERSEDED.** This bulk-export approach was reconnaissance only — its output
+> (`terraform-export/` + `terraform/`) contains plaintext secrets and org-wide noise and is
+> **not** committed. The active, committed IaC is the hand-authored, example-modeled setup in
+> [`infra/`](infra/README.md). Keep this file for historical reference; follow `infra/README.md`
+> to run Terraform.
+
 Step-by-step runbook for exporting existing GCP infrastructure into Terraform using the
 `gcloud beta resource-config` bulk-export tooling (Gemini Cloud Assist tutorial). Execute the
 commands manually, in order. Notes and repo-specific values are filled in for you.
