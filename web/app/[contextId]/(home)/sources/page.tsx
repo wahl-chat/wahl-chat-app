@@ -1,4 +1,5 @@
 import Logo from '@/components/chat/logo';
+import JsonLd from '@/components/seo/json-ld';
 import { SourcesContextBadge } from '@/components/sources/sources-context-badge';
 import {
   Accordion,
@@ -13,7 +14,11 @@ import {
   getSourceDocumentsForContext,
 } from '@/lib/firebase/firebase-server';
 import type { SourceDocument } from '@/lib/firebase/firebase.types';
-import { buildContextMetadata } from '@/lib/seo';
+import {
+  buildContextCanonical,
+  buildContextJsonLd,
+  buildContextMetadata,
+} from '@/lib/seo';
 import { buildPartyImageUrl } from '@/lib/utils';
 import type { Metadata } from 'next';
 import Image from 'next/image';
@@ -37,7 +42,13 @@ export async function generateMetadata({
     return { title: 'Quellen' };
   }
 
-  return buildContextMetadata(context, 'Quellen');
+  return {
+    ...buildContextMetadata(context, {
+      pageSuffix: 'Quellen',
+      path: 'sources',
+    }),
+    ...buildContextCanonical(contextId, 'sources'),
+  };
 }
 
 async function SourcesPage({ params }: Props) {
@@ -60,6 +71,8 @@ async function SourcesPage({ params }: Props) {
 
   return (
     <article>
+      {context && <JsonLd data={buildContextJsonLd(context, 'sources')} />}
+
       <div className="mt-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
         <h1 className="text-xl font-bold md:text-2xl">
           <span className="underline">wahl.chat&apos;s</span> Quellen

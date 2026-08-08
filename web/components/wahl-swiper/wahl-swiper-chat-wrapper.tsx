@@ -7,6 +7,7 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from '@/components/chat/responsive-drawer-dialog';
+import AiDisclaimer from '@/components/legal/ai-disclaimer';
 import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
 import { Separator } from '@/components/ui/separator';
 import VisuallyHidden from '@/components/visually-hidden';
@@ -71,6 +72,10 @@ function WahlSwiperChatWrapper() {
           handleToggleExpand={handleToggleExpand}
           handleNewMessage={() => setChatIsExpanded(true)}
         />
+        {/* Sits on the sticky input rather than the one inside the dialog: this
+            is the input a first message is sent from, and the dialog input is
+            only reachable once this notice has already been on screen. */}
+        <AiDisclaimer />
       </div>
 
       <ResponsiveDialogContent className="flex h-[95dvh] w-full flex-col md:max-w-xl">

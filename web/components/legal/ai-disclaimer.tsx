@@ -5,12 +5,15 @@ import {
   ResponsiveDialogTitle,
   ResponsiveDialogTrigger,
 } from '@/components/chat/responsive-drawer-dialog';
+import { cn } from '@/lib/utils';
 import {
   AlertCircleIcon,
   AlertTriangleIcon,
   CpuIcon,
+  DatabaseIcon,
   GitBranch,
 } from 'lucide-react';
+import Link from 'next/link';
 
 function AiDisclaimerContent() {
   return (
@@ -62,6 +65,20 @@ function AiDisclaimerContent() {
             gelegentlich auftreten.
           </span>
         </li>
+        <li>
+          <DatabaseIcon className="mr-2 size-6 shrink-0" />
+          <span className="inline-block">
+            <span className="font-semibold">
+              Deine Nachrichten werden gespeichert
+            </span>
+            , um die Antworten zu erzeugen und dir deinen Chatverlauf
+            anzuzeigen. Mehr dazu in der{' '}
+            <Link href="/datenschutz" className="font-semibold underline">
+              Datenschutzerklärung
+            </Link>
+            .
+          </span>
+        </li>
       </ul>
 
       <p>
@@ -76,11 +93,22 @@ function AiDisclaimerContent() {
   );
 }
 
-function AiDisclaimer() {
+type Props = {
+  className?: string;
+};
+
+function AiDisclaimer({ className }: Props) {
   return (
     <ResponsiveDialog>
-      <p className="my-2 text-center text-xs text-muted-foreground">
-        wahl.chat kann Fehler machen.{' '}
+      {/* The storage fact is stated in the always-visible line, not only behind
+          the dialog: it has to be readable before the first message is sent. */}
+      <p
+        className={cn(
+          'my-2 text-center text-xs text-muted-foreground',
+          className,
+        )}
+      >
+        wahl.chat kann Fehler machen und speichert deine Nachrichten.{' '}
         <ResponsiveDialogTrigger className="font-semibold underline">
           Erfahre hier mehr.
         </ResponsiveDialogTrigger>
