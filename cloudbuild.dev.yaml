@@ -1,0 +1,83 @@
+# SPDX-FileCopyrightText: 2026 wahl.chat
+#
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+# Build, verify, and promote the backend deployed from develop. The candidate
+# receives no traffic until the FastAPI chat route is proven to exist.
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    dir: ai-backend
+    args: [build, --tag, "${_IMAGE}:${COMMIT_SHA}", .]
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: [push, "${_IMAGE}:${COMMIT_SHA}"]
+
+  - id: deploy-smoke-promote
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        gcloud run deploy "${_SERVICE}" \
+          --project="${PROJECT_ID}" \
+          --region="${_REGION}" \
+          --image="${_IMAGE}:${COMMIT_SHA}" \
+          --no-traffic \
+          --tag=candidate \
+          --update-labels="commit-sha=${COMMIT_SHA}" \
+          --quiet
+
+        gcloud run services describe "${_SERVICE}" \
+          --project="${PROJECT_ID}" \
+          --region="${_REGION}" \
+          --format=json > /workspace/service.json
+        candidate_url="$$(python3 -c '
+        import json, sys
+        traffic = json.load(sys.stdin)["status"]["traffic"]
+        print(next(item["url"] for item in traffic if item.get("tag") == "candidate"))
+        ' < /workspace/service.json)"
+        candidate_revision="$$(python3 -c '
+        import json, sys
+        traffic = json.load(sys.stdin)["status"]["traffic"]
+        print(next(item["revisionName"] for item in traffic if item.get("tag") == "candidate"))
+        ' < /workspace/service.json)"
+
+        curl --fail --silent --show-error \
+          --retry 12 --retry-delay 2 --retry-all-errors \
+          "$${candidate_url}/openapi.json" > /workspace/openapi.json
+        python3 -c '
+        import json
+        paths = json.load(open("/workspace/openapi.json", encoding="utf-8"))["paths"]
+        assert "post" in paths.get("/api/v1/chat", {}), "POST /api/v1/chat missing"
+        '
+
+        status="$$(curl --silent --show-error \
+          --output /workspace/chat-response.json \
+          --write-out "%{http_code}" \
+          --header "Content-Type: application/json" \
+          --request POST \
+          --data '{}' \
+          "$${candidate_url}/api/v1/chat")"
+        test "$${status}" = 422 || {
+          echo "Expected POST /api/v1/chat to return 422, got $${status}" >&2
+          exit 1
+        }
+
+        gcloud run services update-traffic "${_SERVICE}" \
+          --project="${PROJECT_ID}" \
+          --region="${_REGION}" \
+          --to-revisions="$${candidate_revision}=100" \
+          --remove-tags=candidate \
+          --quiet
+
+substitutions:
+  _IMAGE: gcr.io/wahl-chat-dev/github.com/wahl-chat/wahl-chat-app
+  _REGION: europe-west1
+  _SERVICE: wahl-chat-backend-dev
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1200s
