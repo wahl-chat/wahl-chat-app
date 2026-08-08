@@ -5,7 +5,7 @@ import {
   getContexts,
   getPartiesForContext,
 } from '@/lib/firebase/firebase-server';
-import { buildContextJsonLd, buildContextMetadata } from '@/lib/seo';
+import { buildContextMetadata } from '@/lib/seo';
 import { shuffleArray } from '@/lib/utils';
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
@@ -58,22 +58,17 @@ async function ContextLayout({ children, params }: Props) {
   // meaning all users see the same party order during that period.
   const shuffledParties = shuffleArray(parties);
 
-  const jsonLd = buildContextJsonLd(context);
-
+  // The WebPage node is emitted per page, not here: it carries a URL and an @id,
+  // and every route under this layout (/session, /swiper, /share, /sources) would
+  // otherwise declare the same node while living at a different URL.
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <ContextProvider
-        context={context}
-        contexts={contexts}
-        parties={shuffledParties}
-      >
-        {children}
-      </ContextProvider>
-    </>
+    <ContextProvider
+      context={context}
+      contexts={contexts}
+      parties={shuffledParties}
+    >
+      {children}
+    </ContextProvider>
   );
 }
 

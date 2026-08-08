@@ -10,9 +10,15 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import TenantProvider from '@/components/providers/tenant-provider';
 import { TENANT_ID_HEADER } from '@/lib/constants';
+import { socialMediaConfig } from '@/lib/contact-config';
 import { getTenant } from '@/lib/firebase/firebase-admin';
 import { getUser } from '@/lib/firebase/firebase-server';
-import { productionRobots } from '@/lib/seo';
+import {
+  BASE_URL,
+  ORGANIZATION_ID,
+  WEBSITE_ID,
+  productionRobots,
+} from '@/lib/seo';
 import { IS_EMBEDDED } from '@/lib/utils';
 import { LazyMotion, domAnimation } from 'motion/react';
 import { headers } from 'next/headers';
@@ -135,16 +141,29 @@ export default async function RootLayout({
               '@graph': [
                 {
                   '@type': 'Organization',
+                  '@id': ORGANIZATION_ID,
                   name: 'wahl.chat',
-                  url: 'https://wahl.chat',
+                  url: BASE_URL,
+                  logo: `${BASE_URL}/images/logo.webp`,
+                  email: socialMediaConfig.email.replace('mailto:', ''),
                   description:
                     'Politische Informationsplattform – Parteipositionen interaktiv vergleichen.',
+                  // sameAs is how a search engine resolves the brand to a single
+                  // entity, which is what decides exact-brand queries.
+                  sameAs: [
+                    socialMediaConfig.instagram,
+                    socialMediaConfig.linkedin,
+                    socialMediaConfig.x,
+                    'https://github.com/wahl-chat',
+                  ],
                 },
                 {
                   '@type': 'WebSite',
+                  '@id': WEBSITE_ID,
                   name: 'wahl.chat',
-                  url: 'https://wahl.chat',
+                  url: BASE_URL,
                   inLanguage: 'de',
+                  publisher: { '@id': ORGANIZATION_ID },
                   description:
                     'Verstehe die Positionen der Parteien zu Bundestags-, Landtags- und Kommunalwahlen.',
                 },
