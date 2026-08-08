@@ -2,17 +2,27 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-# Build, verify, and promote the backend deployed from develop. The candidate
-# receives no traffic until the FastAPI chat route is proven to exist.
+# Build, verify, and promote the backend deployed from develop or main. Each
+# trigger overrides _SERVICE for its environment. The candidate receives no
+# traffic until the FastAPI chat route is proven to exist.
+# Required trigger substitutions:
+#   develop: _SERVICE=wahl-chat-backend-dev
+#   main:    _SERVICE=wahl-chat-backend
 steps:
   - id: build
     name: gcr.io/cloud-builders/docker
     dir: ai-backend
-    args: [build, --tag, "${_IMAGE}:${COMMIT_SHA}", .]
+    args:
+      - build
+      - --tag
+      - gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-app:${COMMIT_SHA}
+      - .
 
   - id: push
     name: gcr.io/cloud-builders/docker
-    args: [push, "${_IMAGE}:${COMMIT_SHA}"]
+    args:
+      - push
+      - gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-app:${COMMIT_SHA}
 
   - id: deploy-smoke-promote
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -23,7 +33,7 @@ steps:
         gcloud run deploy "${_SERVICE}" \
           --project="${PROJECT_ID}" \
           --region="${_REGION}" \
-          --image="${_IMAGE}:${COMMIT_SHA}" \
+          --image="gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-app:${COMMIT_SHA}" \
           --no-traffic \
           --tag=candidate \
           --update-labels="commit-sha=${COMMIT_SHA}" \
@@ -73,9 +83,7 @@ steps:
           --quiet
 
 substitutions:
-  _IMAGE: gcr.io/wahl-chat-dev/github.com/wahl-chat/wahl-chat-app
   _REGION: europe-west1
-  _SERVICE: wahl-chat-backend-dev
 
 options:
   logging: CLOUD_LOGGING_ONLY
