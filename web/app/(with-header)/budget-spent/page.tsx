@@ -17,8 +17,8 @@ function BudgetSpent() {
       <BadgeEuroIcon className="size-12" />
       <h1 className="text-2xl font-bold">Budget aufgebraucht</h1>
       <p>
-        Da wir uns ausschließlich mit Spenden finanzieren, kann es dazu kommen,
-        dass unser budget aufgebraucht ist.
+        Da wir eine gemeinnützige Organisation sind, kann es dazu kommen, dass
+        unser Budget aufgebraucht ist.
       </p>
       <p>Wenn du uns unterstützen möchtest, kannst du uns gerne spenden.</p>
       <div className="flex justify-center gap-2">

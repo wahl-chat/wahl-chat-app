@@ -15,7 +15,7 @@ import {
   SelectTrigger,
 } from '@/components/ui/select';
 import type { Context } from '@/lib/firebase/firebase.types';
-import { formatGermanDate } from '@/lib/utils';
+import { formatGermanDate, splitContextsByElectionDate } from '@/lib/utils';
 import { CalendarIcon, CheckIcon, MapPinIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -96,28 +96,8 @@ export function ElectionSelect() {
   };
 
   // Separate contexts into upcoming and past elections
-  // Add a 5-day buffer before moving elections to past
-  const now = new Date();
-  const bufferDays = 5;
-  const cutoffDate = new Date(now.getTime() - bufferDays * 24 * 60 * 60 * 1000);
-
-  const upcomingElections = contexts
-    .filter((ctx) => {
-      if (!ctx.date) return true; // No date = show in upcoming
-      return new Date(ctx.date) >= cutoffDate;
-    })
-    .sort((a, b) => {
-      // Sort by date ascending (closest elections first)
-      if (!a.date && !b.date) return 0;
-      if (!a.date) return 1; // No date goes to end
-      if (!b.date) return -1;
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
-    });
-
-  const pastElections = contexts.filter((ctx) => {
-    if (!ctx.date) return false;
-    return new Date(ctx.date) < cutoffDate;
-  });
+  const { upcoming: upcomingElections, past: pastElections } =
+    splitContextsByElectionDate(contexts);
 
   // Don't show selector if there's only one context
   if (contexts.length <= 1) {
