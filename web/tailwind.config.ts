@@ -90,11 +90,20 @@ export default {
           '0%, 60%, 100%': { transform: 'translateY(0)' },
           '30%': { transform: 'translateY(-4px)' },
         },
+        // Breathes an always-present ring rather than expanding one out to
+        // nothing: a ping spends most of its cycle invisible, so a glance at the
+        // wrong moment shows no highlight at all.
+        'election-select-pulse': {
+          '0%, 100%': { boxShadow: '0 0 0 3px hsl(var(--primary) / 0.08)' },
+          '50%': { boxShadow: '0 0 0 6px hsl(var(--primary) / 0.22)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'typing-dot': 'typing-dot 1.4s ease-in-out infinite',
+        'election-select-pulse':
+          'election-select-pulse 2.4s ease-in-out infinite',
       },
     },
   },

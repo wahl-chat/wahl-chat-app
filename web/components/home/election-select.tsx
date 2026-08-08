@@ -1,10 +1,7 @@
 'use client';
 
 import { ContextIcon } from '@/components/context-icon';
-import {
-  useContexts,
-  useCurrentContext,
-} from '@/components/providers/context-provider';
+import { useElectionContext } from '@/components/providers/context-provider';
 import {
   Select,
   SelectContent,
@@ -16,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { splitElectionsByDate } from '@/lib/elections';
 import type { Context } from '@/lib/firebase/firebase.types';
-import { formatGermanDate } from '@/lib/utils';
+import { cn, formatGermanDate } from '@/lib/utils';
 import { CalendarIcon, CheckIcon, MapPinIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -85,13 +82,30 @@ function DropdownElectionContent({
   );
 }
 
-export function ElectionSelect() {
-  const currentContext = useCurrentContext();
-  const contexts = useContexts();
+type Props = {
+  /** Falls back to the ContextProvider. Pass explicitly outside one, e.g. on /. */
+  contexts?: Context[];
+  currentContext?: Context;
+  /** Label above the trigger. Omitted on context pages, where the page itself says which election it is. */
+  label?: string;
+  /** Draws attention to the trigger when choosing an election is the page's main action. */
+  highlight?: boolean;
+};
+
+export function ElectionSelect({
+  contexts: contextsProp,
+  currentContext: currentContextProp,
+  label,
+  highlight,
+}: Props = {}) {
+  const electionContext = useElectionContext({ optional: true });
   const router = useRouter();
 
+  const contexts = contextsProp ?? electionContext?.contexts ?? [];
+  const currentContext = currentContextProp ?? electionContext?.context;
+
   const handleContextChange = (contextId: string) => {
-    if (contextId !== currentContext.context_id) {
+    if (contextId !== currentContext?.context_id) {
       router.push(`/${contextId}`);
     }
   };
@@ -99,8 +113,12 @@ export function ElectionSelect() {
   const { upcoming: upcomingElections, past: pastElections } =
     splitElectionsByDate(contexts);
 
-  // Don't show selector if there's only one context
-  if (contexts.length <= 1) {
+  if (!currentContext) return null;
+
+  // A lone context is not a choice — render it as a status line instead. Only
+  // applies inside a provider: where the selector is the page's main action the
+  // dropdown has to stay operable.
+  if (contexts.length <= 1 && electionContext) {
     return (
       <div
         className="flex w-full items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2"
@@ -117,8 +135,17 @@ export function ElectionSelect() {
       value={currentContext.context_id}
       onValueChange={handleContextChange}
     >
+      {label && (
+        <span className="mb-1 block text-sm font-semibold text-foreground">
+          {label}
+        </span>
+      )}
       <SelectTrigger
-        className="h-auto w-full border-border bg-muted/50 px-3 py-2 [&>svg]:size-4 [&>svg]:text-muted-foreground"
+        className={cn(
+          'h-auto w-full border-border bg-muted/50 px-3 py-2 [&>svg]:size-4 [&>svg]:text-muted-foreground',
+          highlight &&
+            'border-primary/40 animate-election-select-pulse motion-reduce:animate-none',
+        )}
         aria-label={`Wahl auswählen. Aktuell ausgewählt: ${currentContext.name}`}
       >
         <CompactElectionContent context={currentContext} />

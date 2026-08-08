@@ -3,7 +3,6 @@ import type { NextRequest } from 'next/server';
 import {
   CONTEXT_ID_HEADER,
   DEFAULT_CONTEXT_ID,
-  REGION_TO_CONTEXT,
   TENANT_ID_HEADER,
 } from './lib/constants';
 
@@ -26,22 +25,6 @@ function isStaticPage(pathname: string): boolean {
   return STATIC_PAGES.some(
     (page) => pathname === page || pathname.startsWith(`${page}/`),
   );
-}
-
-// Get context ID from Vercel geo headers or fallback to default
-function getContextIdFromGeo(request: NextRequest): string {
-  // Only consider German regions for now
-  const country = request.headers.get('x-vercel-ip-country');
-  if (country !== 'DE') {
-    return DEFAULT_CONTEXT_ID;
-  }
-
-  const region = request.headers.get('x-vercel-ip-country-region');
-  if (region && REGION_TO_CONTEXT[region]) {
-    return REGION_TO_CONTEXT[region];
-  }
-
-  return DEFAULT_CONTEXT_ID;
 }
 
 // Known context ID patterns (will be validated against actual contexts)
@@ -103,12 +86,6 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // Root path: detect context from geo and redirect
-  if (pathname === '/') {
-    const contextId = getContextIdFromGeo(request);
-    return NextResponse.redirect(buildRedirectUrl(request, `/${contextId}`));
-  }
-
   // Legacy /session routes → redirect to /{contextId}/session
   if (pathname === '/session' || pathname.startsWith('/session/')) {
     const contextId = DEFAULT_CONTEXT_ID;
@@ -158,7 +135,9 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/',
+    // '/' is deliberately absent: it serves the landing page directly. Routing
+    // it by IP made crawlers and German visitors land on different elections,
+    // and pointed every inbound link at a redirect instead of a page.
     '/chat/:path*',
     '/session/:path*',
     '/swiper/:path*',
