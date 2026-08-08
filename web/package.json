@@ -9,6 +9,7 @@
     "lint": "next lint && biome ci .",
     "lint:fix": "next lint --fix && biome lint --write --unsafe .",
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
     "format": "biome format --write",
     "prepare": "cd .. && husky"
   },
@@ -71,6 +72,7 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@tailwindcss/typography": "^0.5.19",
+    "@types/bun": "^1.3.14",
     "@types/jspdf": "^1.3.3",
     "@types/node": "^20.19.42",
     "@types/react": "19.0.1",

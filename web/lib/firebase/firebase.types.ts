@@ -26,7 +26,9 @@ export type Context = {
   name: string;
   icon_url: string;
   type: 'election' | 'general';
-  date: string | null;
+  // Stored as a Firestore timestamp and mapped through firestoreTimestampToDate()
+  // in firebase-server.ts, so this is a Date once it reaches any consumer.
+  date: Date | null;
   location_name: string;
   is_active: boolean;
   supports_swiper: boolean;
