@@ -1,0 +1,34 @@
+# Template for an env root's terraform.tfvars (see envs/dev, envs/prod for filled-in ones).
+# Everything here is NON-SECRET by design — that is why tfvars can be committed. Secret
+# VALUES never appear in tfvars or HCL; they live in Secret Manager and are added out of
+# band with `gcloud secrets versions add` (see modules/app/secret_manager.tf and README).
+
+project_id = "FILL_IN-gcp-project-id"
+region     = "europe-west1"
+
+# New secrets (not yet in Secret Manager) to seed with a sentinel bootstrap version.
+bootstrap_secret_ids = [
+  # "my-service-some-api-key",
+]
+
+services = {
+  "my-service" = {
+    service_account = "FILL_IN-runtime-sa@FILL_IN-project.iam.gserviceaccount.com"
+    cpu             = "1"
+    memory          = "512Mi"
+    min_instances   = 0
+    max_instances   = 10
+    # health_check_path = "/healthz"   # omit for a TCP startup probe only
+
+    # Plain, reviewable config — visible in state and diffs.
+    env = {
+      SOME_FLAG = "true"
+      SOME_URL  = "https://example.invalid"
+    }
+
+    # env var name -> Secret Manager secret id (resolved at `latest`). No values here.
+    secret_env = {
+      SOME_API_KEY = "my-service-some-api-key"
+    }
+  }
+}
