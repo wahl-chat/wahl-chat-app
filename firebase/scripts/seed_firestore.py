@@ -14,6 +14,8 @@ This script:
    into contexts/{context_id}/parties sub-collection
 3. Imports proposed questions from firestore_data/{env}/proposed_questions_{context_id}.json
    into contexts/{context_id}/proposed_questions sub-collection
+4. Imports source documents from firestore_data/{env}/sources_{context_id}.json
+   into sources/{context_id}/parties/{party_id}/source_documents
 
 File naming convention:
 - contexts.json: Contains all context documents
@@ -22,11 +24,15 @@ File naming convention:
 - proposed_questions_{context_id}.json: Contains proposed questions for a specific context
   Example: proposed_questions_kommunalwahl-muenchen-2026.json
            -> contexts/kommunalwahl-muenchen-2026/proposed_questions/
+- sources_{context_id}.json: Contains the source documents shown on the sources page
+  Example: sources_landtagswahl-sachsen-anhalt-2026.json
+           -> sources/landtagswahl-sachsen-anhalt-2026/parties/{party_id}/source_documents/
 """
 
 import json
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import firebase_admin
@@ -291,6 +297,56 @@ def seed_proposed_questions(db):
             print(f"    - {context_id}/{path}: {error}")
 
 
+def seed_sources(db):
+    """Seed source documents for each context's sources page.
+
+    File structure: {party_id: {document_id: {name, storage_url, publish_date?}}}.
+    Documents land at sources/{context_id}/parties/{party_id}/source_documents/{document_id},
+    the path the web sources page reads. The storage-upload trigger writes the same shape
+    (PartySource), but documents uploaded under the five-segment layout bypass it, so
+    elections ingested via the ai-backend uploader are seeded from these files instead.
+    publish_date is optional because external entries (abgeordnetenwatch.de etc.) have none.
+    """
+    sources_files = list(DATA_DIR.glob("sources_*.json"))
+
+    if not sources_files:
+        print("\n⚠️  No sources files found")
+        return
+
+    print(f"\n📁 Found {len(sources_files)} sources files")
+    print("-" * 60)
+
+    total_documents = 0
+    for sources_file in sorted(sources_files):
+        context_id = sources_file.stem.replace("sources_", "")
+
+        with open(sources_file) as f:
+            parties = json.load(f)
+
+        print(f"\n  📂 {context_id} ({len(parties)} parties)")
+
+        for party_id, documents in parties.items():
+            for document_id, document in documents.items():
+                data = dict(document)
+                if "publish_date" in data:
+                    data["publish_date"] = datetime.strptime(
+                        data["publish_date"], "%Y-%m-%d"
+                    ).replace(tzinfo=timezone.utc)
+                (
+                    db.collection("sources")
+                    .document(context_id)
+                    .collection("parties")
+                    .document(party_id)
+                    .collection("source_documents")
+                    .document(document_id)
+                    .set(data)
+                )
+                total_documents += 1
+            print(f"    ✅ {party_id} ({len(documents)} documents)")
+
+    print(f"\nTotal source documents seeded: {total_documents}")
+
+
 def main():
     print("=" * 60)
     print("Firestore Seed Script")
@@ -312,6 +368,9 @@ def main():
 
     # Seed proposed questions for each context
     seed_proposed_questions(db)
+
+    # Seed source documents for each context's sources page
+    seed_sources(db)
 
     print("\n" + "=" * 60)
     print("✅ Seeding complete!")
