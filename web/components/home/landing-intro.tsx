@@ -43,22 +43,22 @@ function LandingIntro({ upcoming, past }: Props) {
       </h2>
 
       <p>
-        wahl.chat ist ein KI-Assistent, mit dem du den Parteien vor einer Wahl
-        deine eigenen Fragen stellen kannst. Statt dich durch hunderte Seiten
-        Wahlprogramm zu arbeiten, fragst du einfach nach dem, was dich
-        interessiert – Mieten, Bildung, Klima, Wirtschaft, Migration – und
-        bekommst eine Antwort zu genau dieser Frage. Du kannst mehrere Parteien
-        gleichzeitig auswählen und ihre Positionen zum selben Thema direkt
-        nebeneinander vergleichen.
+        wahl.chat ist ein KI-Assistent, dem du deine Fragen zu den Positionen
+        verschiedener Parteien stellen kannst. Statt dich durch hunderte Seiten
+        Wahlprogramm oder Plenarprotokoll zu arbeiten, fragst du einfach nach
+        dem, was dich interessiert, Mieten, Bildung, Klima, Wirtschaft,
+        Migration, und bekommst eine Antwort zu genau dieser Frage. Du kannst
+        mehrere Parteien gleichzeitig auswählen und ihre Positionen zum selben
+        Thema direkt nebeneinander vergleichen.
       </p>
 
       <p>
         Jede Antwort ist mit Quellen belegt: wahl.chat zitiert die Stellen aus
-        den Wahl- und Parteiprogrammen, auf denen sie beruht, und du kannst sie
-        mit einem Klick im Original nachlesen. Anders als beim Wahl-O-Mat
-        beantwortest du keine vorgegebenen Thesen – du bestimmst selbst, worüber
-        gesprochen wird, und kannst nachfragen, wenn dir etwas zu vage ist. Wie
-        das funktioniert, erklärt die{' '}
+        den verfügbaren Dokumenten, auf denen sie beruht, und du kannst sie mit
+        einem Klick im Original nachlesen. Anders als beim Wahl-O-Mat
+        beantwortest du keine vorgegebenen Thesen sondern fragst selbst, was
+        dich interessiert und hakst nach, wenn dir etwas zu vage ist. Wie das
+        funktioniert, erklärt die{' '}
         <Link href="/how-to" className="font-medium underline">
           Anleitung
         </Link>
@@ -84,10 +84,11 @@ function LandingIntro({ upcoming, past }: Props) {
       )}
 
       <p>
-        Die Antworten werden von einer künstlichen Intelligenz erzeugt und sind
-        keine offiziellen Aussagen der Parteien. Deine Nachrichten werden
-        gespeichert, um die Antworten zu erzeugen und dir deinen Chatverlauf
-        anzuzeigen – Details dazu stehen in der{' '}
+        Die Antworten werden von einer künstlichen Intelligenz auf Basis
+        öffenticher Parteidokumente erzeugt und sind keine offiziellen Aussagen
+        der Parteien. Deine Nachrichten werden gespeichert, um die Antworten zu
+        erzeugen und dir deinen Chatverlauf anzuzeigen – Details dazu stehen in
+        der{' '}
         <Link href="/datenschutz" className="font-medium underline">
           Datenschutzerklärung
         </Link>
