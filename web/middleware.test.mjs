@@ -64,3 +64,70 @@ describe('the landing page', () => {
     }
   });
 });
+
+describe('legacy context-less URLs', () => {
+  test('bare paths land permanently on /, so their link equity consolidates', async () => {
+    for (const path of ['/chat', '/session']) {
+      const response = await middleware(
+        requestFrom(`https://wahl.chat${path}`),
+      );
+
+      expect(response.headers.get('location')).toBe('https://wahl.chat/');
+      expect(response.status).toBe(308);
+    }
+  });
+
+  test('paths carrying a party or session keep a context, temporarily', async () => {
+    const party = await middleware(requestFrom('https://wahl.chat/chat/spd'));
+    expect(party.headers.get('location')).toBe(
+      `https://wahl.chat/${DEFAULT_CONTEXT_ID}/session?party_id=spd`,
+    );
+    expect(party.status).toBe(307);
+
+    const session = await middleware(
+      requestFrom('https://wahl.chat/session/abc'),
+    );
+    expect(session.headers.get('location')).toBe(
+      `https://wahl.chat/${DEFAULT_CONTEXT_ID}/session/abc`,
+    );
+  });
+
+  test('a path merely starting with the same letters is not a legacy /chat URL', async () => {
+    const response = await middleware(requestFrom('https://wahl.chat/chatfoo'));
+
+    expect(response.headers.get('location')).toBeNull();
+  });
+});
+
+describe('the budget kill switch', () => {
+  afterEach(() => {
+    delete process.env.BUDGET_SPENT;
+  });
+
+  test('sends the site to /budget-spent without redirecting it to itself', async () => {
+    process.env.BUDGET_SPENT = 'true';
+
+    const landing = await middleware(requestFrom('https://wahl.chat/'));
+    expect(landing.headers.get('location')).toBe(
+      'https://wahl.chat/budget-spent',
+    );
+
+    // /budget-spent is itself a static page: redirecting it here would loop.
+    const killSwitchPage = await middleware(
+      requestFrom('https://wahl.chat/budget-spent'),
+    );
+    expect(killSwitchPage.headers.get('location')).toBeNull();
+  });
+
+  test('never diverts the metadata routes', async () => {
+    process.env.BUDGET_SPENT = 'true';
+
+    for (const path of ['/sitemap.xml', '/robots.txt', '/manifest.json']) {
+      const response = await middleware(
+        requestFrom(`https://wahl.chat${path}`),
+      );
+
+      expect(response.headers.get('location')).toBeNull();
+    }
+  });
+});
