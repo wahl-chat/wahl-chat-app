@@ -11,6 +11,7 @@
 .claude/statsig/
 .claude/projects/
 .claude/history.jsonl
+.claude/skills
 
 # === Common ===
 .DS_Store
