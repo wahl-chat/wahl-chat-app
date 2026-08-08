@@ -22,6 +22,8 @@
 node_modules/
 data/pledge_results
 data/pledge_results_nobt
+.pnpm-store
+.claude/skills
 
 # === Environment / secrets ===
 .env
