@@ -1,17 +1,6 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  webpack: (config) => {
-    // pdf.js's default build assumes bleeding-edge engine features and crashes
-    // Safari during module evaluation ("Properties can only be defined on
-    // Objects"); the legacy build is transpiled for wider browser support.
-    // react-pdf imports bare 'pdfjs-dist', so the exact-match alias covers it.
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      'pdfjs-dist$': 'pdfjs-dist/legacy/build/pdf.mjs',
-    };
-    return config;
-  },
   images: {
     remotePatterns: [
       {
