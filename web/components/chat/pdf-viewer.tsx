@@ -9,9 +9,14 @@ import {
   ZoomInIcon,
   ZoomOutIcon,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/esm/Page/TextLayer.css';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -188,17 +193,27 @@ function PdfViewer({
 
   // TextItem vs TextMarkedContent: only real text items carry `str`; marked-
   // content entries still occupy indices, so keep positions aligned with ''.
+  // transform[5] is the item's y in PDF text space — the matcher uses it to
+  // keep visually distant matches (running footers) out of the passage cluster.
   const onTextSuccess = useCallback(
     (textContent: { items: unknown[] }) => {
       if (!snippet) {
         return;
       }
-      const strings = textContent.items.map((item) =>
-        typeof item === 'object' && item !== null && 'str' in item
-          ? String((item as { str: unknown }).str)
-          : '',
-      );
-      setHighlightItems(matchSnippetItems(strings, snippet));
+      const highlightInput = textContent.items.map((item) => {
+        if (typeof item !== 'object' || item === null || !('str' in item)) {
+          return { str: '', y: null };
+        }
+        const textItem = item as { str: unknown; transform?: unknown };
+        const y = Array.isArray(textItem.transform)
+          ? Number(textItem.transform[5])
+          : null;
+        return {
+          str: String(textItem.str),
+          y: Number.isFinite(y) ? y : null,
+        };
+      });
+      setHighlightItems(matchSnippetItems(highlightInput, snippet));
     },
     [snippet],
   );
@@ -218,26 +233,37 @@ function PdfViewer({
       return;
     }
     const scroller = scrollRef.current;
-    const mark = scroller?.querySelector('mark');
-    if (scroller && mark) {
-      autoScrolledToMark.current = true;
-      const markTop = mark.getBoundingClientRect().top;
-      const scrollerTop = scroller.getBoundingClientRect().top;
-      scroller.scrollTop += markTop - scrollerTop - scroller.clientHeight * 0.3;
+    const marks = scroller?.querySelectorAll('mark');
+    if (!scroller || !marks || marks.length === 0) {
+      return;
     }
+    autoScrolledToMark.current = true;
+    // Visually topmost mark, NOT the first in the DOM: pdf.js text layers
+    // follow the PDF content stream, which can put a footer before the body.
+    let markTop = Number.POSITIVE_INFINITY;
+    for (const mark of marks) {
+      markTop = Math.min(markTop, mark.getBoundingClientRect().top);
+    }
+    const scrollerTop = scroller.getBoundingClientRect().top;
+    scroller.scrollTop += markTop - scrollerTop - scroller.clientHeight * 0.3;
   }, []);
 
+  // Keep the reading position anchored across a zoom change. The scroll
+  // correction must land AFTER React commits the new page sizes — an rAF can
+  // fire before the re-render and then scale against the old layout.
+  const pendingZoomRatio = useRef<number | null>(null);
   const changeZoom = (nextIndex: number) => {
-    const scroller = scrollRef.current;
-    const ratio = ZOOM_STEPS[nextIndex] / ZOOM_STEPS[zoomIndex];
+    pendingZoomRatio.current = ZOOM_STEPS[nextIndex] / ZOOM_STEPS[zoomIndex];
     setZoomIndex(nextIndex);
-    // Keep the current reading position anchored across the resize.
-    if (scroller) {
-      requestAnimationFrame(() => {
-        scroller.scrollTop *= ratio;
-      });
-    }
   };
+  useLayoutEffect(() => {
+    const scroller = scrollRef.current;
+    const ratio = pendingZoomRatio.current;
+    if (scroller && ratio !== null) {
+      pendingZoomRatio.current = null;
+      scroller.scrollTop *= ratio;
+    }
+  }, [zoomIndex]);
 
   const pageNumbers = numPages
     ? Array.from({ length: numPages }, (_, i) => i + 1)
@@ -317,9 +343,13 @@ function PdfViewer({
               ? Math.abs(page - currentPage) <= RENDER_WINDOW
               : isCitedPage;
             return (
+              // mx-auto centers a zoomed-out page; wider than the viewport it
+              // degrades to left-anchored horizontal scrolling.
               <div
                 key={page}
+                className="mx-auto"
                 style={{
+                  width: pageWidth ?? undefined,
                   height: pageHeight ?? undefined,
                   marginBottom: PAGE_GAP,
                 }}
@@ -349,13 +379,7 @@ function PdfViewer({
                     aria-label={`${title} – Seite ${page}`}
                   />
                 ) : (
-                  <div
-                    className="mx-auto bg-background/50"
-                    style={{
-                      width: pageWidth ?? undefined,
-                      height: pageHeight ?? undefined,
-                    }}
-                  />
+                  <div className="size-full bg-background/50" />
                 )}
               </div>
             );
