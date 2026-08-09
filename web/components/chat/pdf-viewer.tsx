@@ -19,6 +19,12 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 const ZOOM_STEPS = [0.6, 0.8, 1, 1.25, 1.5, 2, 3];
+const PAGE_GAP = 8;
+// Pages rendered around the visible one; the rest are placeholders so an
+// 85-page manifesto stays cheap, especially on phones.
+const RENDER_WINDOW = 2;
+// A4 portrait, used until the real page size is known.
+const FALLBACK_ASPECT = Math.SQRT2;
 
 /**
  * Highlight style is inlined (not a class) because customTextRenderer output is
@@ -31,7 +37,7 @@ const MARK_HTML_OPEN =
 type PdfViewerProps = {
   /** Resolved fetchable URL (direct GCS or same-origin proxy). */
   fileUrl: string;
-  /** 1-based page to open at. */
+  /** 1-based page the citation points at. */
   initialPage?: number;
   /** Cited text to highlight (best effort — no match, no highlight). */
   snippet?: string;
@@ -44,11 +50,14 @@ type PdfViewerProps = {
 
 /**
  * In-page PDF viewer rendered with pdf.js instead of the browser's native
- * viewer, so cited-page jumps (and text highlighting) behave identically across
+ * viewer, so cited-page jumps and text highlighting behave identically across
  * browsers and devices — mobile browsers ignore `#page=N` open parameters and
  * iOS renders PDF iframes unreliably, which is exactly what this replaces.
- * Single-page view with page/zoom controls; the cited snippet is re-matched on
- * whatever page is shown, so it also survives manual navigation.
+ *
+ * Continuously scrollable like a native viewer: all pages are stacked, but only
+ * those near the viewport actually render (placeholders elsewhere). The view
+ * opens centered on the cited passage's highlight when the snippet matches,
+ * else at the top of the cited page.
  */
 function PdfViewer({
   fileUrl,
@@ -61,14 +70,24 @@ function PdfViewer({
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [numPages, setNumPages] = useState<number | null>(null);
-  const [pageNumber, setPageNumber] = useState(
+  const [currentPage, setCurrentPage] = useState(
     initialPage && initialPage > 0 ? initialPage : 1,
   );
   const [zoomIndex, setZoomIndex] = useState(2); // 1 = fit width
   const [containerWidth, setContainerWidth] = useState<number | null>(null);
+  const [pageAspect, setPageAspect] = useState<number | null>(null);
   const [highlightItems, setHighlightItems] = useState<Set<number>>(
     () => new Set(),
   );
+  // The page the citation targets — highlight matching only happens there.
+  const rawCitedPage = initialPage && initialPage > 0 ? initialPage : 1;
+  const citedPage = numPages ? Math.min(rawCitedPage, numPages) : rawCitedPage;
+  // Until the cited page has painted, it is the ONLY page mounted: five large
+  // canvases rendering at once starve the visible one and the viewer opens as
+  // a white void for seconds. Neighbors mount after the first paint.
+  const [citedPagePainted, setCitedPagePainted] = useState(false);
+  // Center the highlight exactly once; afterwards the user owns the scroll.
+  const autoScrolledToMark = useRef(false);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -85,14 +104,87 @@ function PdfViewer({
     return () => observer.disconnect();
   }, []);
 
-  const onDocumentLoad = useCallback(
-    ({ numPages: total }: { numPages: number }) => {
-      setNumPages(total);
-      setPageNumber((current) => Math.min(current, total));
-      onReady();
+  const zoom = ZOOM_STEPS[zoomIndex];
+  const pageWidth = containerWidth ? containerWidth * zoom : null;
+  const pageHeight = pageWidth
+    ? pageWidth * (pageAspect ?? FALLBACK_ASPECT)
+    : null;
+  const slotHeight = pageHeight ? pageHeight + PAGE_GAP : null;
+
+  const scrollToPage = useCallback(
+    (page: number) => {
+      if (scrollRef.current && slotHeight) {
+        scrollRef.current.scrollTop = (page - 1) * slotHeight;
+      }
     },
-    [onReady],
+    [slotHeight],
   );
+
+  const onDocumentLoad = useCallback(
+    (pdf: { numPages: number; getPage: (n: number) => Promise<unknown> }) => {
+      setNumPages(pdf.numPages);
+      const target = Math.min(citedPage, pdf.numPages);
+      setCurrentPage(target);
+      // Real page geometry for placeholder sizing and the initial jump.
+      pdf
+        .getPage(target)
+        .then((page) => {
+          const viewport = (
+            page as {
+              getViewport: (o: { scale: number }) => {
+                width: number;
+                height: number;
+              };
+            }
+          ).getViewport({ scale: 1 });
+          setPageAspect(viewport.height / viewport.width);
+        })
+        .catch(() => {
+          // Placeholder fallback aspect is fine; highlight scroll still refines.
+        });
+    },
+    [citedPage],
+  );
+
+  // The parent overlay drops when the cited page has actually PAINTED — after
+  // document load the canvas still needs seconds on big manifestos, and hiding
+  // the spinner then would show a white void.
+  const onCitedPageRendered = useCallback(() => {
+    setCitedPagePainted(true);
+    onReady();
+  }, [onReady]);
+
+  // Jump to the cited page as soon as slot geometry exists, and re-anchor when
+  // the aspect refines from fallback to real — both happen before first paint
+  // settles. Never re-run afterwards (zoom handles its own anchoring).
+  const initialJumpDone = useRef(false);
+  const lastJumpAspect = useRef<number | null>(null);
+  useEffect(() => {
+    if (!numPages || !slotHeight) {
+      return;
+    }
+    if (!initialJumpDone.current || lastJumpAspect.current !== pageAspect) {
+      initialJumpDone.current = true;
+      lastJumpAspect.current = pageAspect;
+      if (!autoScrolledToMark.current) {
+        scrollToPage(Math.min(citedPage, numPages));
+      }
+    }
+  }, [numPages, slotHeight, pageAspect, citedPage, scrollToPage]);
+
+  // Scroll-derived page indicator: the page under the viewport's midline.
+  const onScroll = useCallback(() => {
+    const scroller = scrollRef.current;
+    if (!scroller || !slotHeight || !numPages) {
+      return;
+    }
+    const midline = scroller.scrollTop + scroller.clientHeight / 2;
+    const page = Math.min(
+      numPages,
+      Math.max(1, Math.floor(midline / slotHeight) + 1),
+    );
+    setCurrentPage(page);
+  }, [slotHeight, numPages]);
 
   // TextItem vs TextMarkedContent: only real text items carry `str`; marked-
   // content entries still occupy indices, so keep positions aligned with ''.
@@ -119,25 +211,37 @@ function PdfViewer({
     [highlightItems],
   );
 
-  // Bring the highlight into view once the text layer of the cited page is up.
-  const onTextLayerRendered = useCallback(() => {
+  // Center the highlight once the cited page's text layer carries the marks.
+  // Runs after every text-layer render of that page, but only acts once.
+  const onCitedTextLayerRendered = useCallback(() => {
+    if (autoScrolledToMark.current) {
+      return;
+    }
     const scroller = scrollRef.current;
     const mark = scroller?.querySelector('mark');
     if (scroller && mark) {
+      autoScrolledToMark.current = true;
       const markTop = mark.getBoundingClientRect().top;
       const scrollerTop = scroller.getBoundingClientRect().top;
-      scroller.scrollTop +=
-        markTop - scrollerTop - scroller.clientHeight * 0.35;
+      scroller.scrollTop += markTop - scrollerTop - scroller.clientHeight * 0.3;
     }
   }, []);
 
-  const goTo = (page: number) => {
-    setHighlightItems(new Set());
-    setPageNumber(page);
+  const changeZoom = (nextIndex: number) => {
+    const scroller = scrollRef.current;
+    const ratio = ZOOM_STEPS[nextIndex] / ZOOM_STEPS[zoomIndex];
+    setZoomIndex(nextIndex);
+    // Keep the current reading position anchored across the resize.
+    if (scroller) {
+      requestAnimationFrame(() => {
+        scroller.scrollTop *= ratio;
+      });
+    }
   };
 
-  const zoom = ZOOM_STEPS[zoomIndex];
-  const pageWidth = containerWidth ? containerWidth * zoom : undefined;
+  const pageNumbers = numPages
+    ? Array.from({ length: numPages }, (_, i) => i + 1)
+    : [];
 
   return (
     <div ref={containerRef} className="flex size-full min-h-0 flex-col">
@@ -147,14 +251,14 @@ function PdfViewer({
           variant="ghost"
           size="sm"
           className="h-7 px-2"
-          disabled={pageNumber <= 1}
-          onClick={() => goTo(pageNumber - 1)}
+          disabled={currentPage <= 1}
+          onClick={() => scrollToPage(currentPage - 1)}
           aria-label="Vorherige Seite"
         >
           <ChevronLeftIcon className="size-4" />
         </Button>
         <span className="min-w-20 text-center text-xs tabular-nums text-muted-foreground">
-          Seite {pageNumber}
+          Seite {currentPage}
           {numPages ? ` / ${numPages}` : ''}
         </span>
         <Button
@@ -162,8 +266,8 @@ function PdfViewer({
           variant="ghost"
           size="sm"
           className="h-7 px-2"
-          disabled={numPages !== null && pageNumber >= numPages}
-          onClick={() => goTo(pageNumber + 1)}
+          disabled={numPages !== null && currentPage >= numPages}
+          onClick={() => scrollToPage(currentPage + 1)}
           aria-label="Nächste Seite"
         >
           <ChevronRightIcon className="size-4" />
@@ -175,7 +279,7 @@ function PdfViewer({
           size="sm"
           className="h-7 px-2"
           disabled={zoomIndex <= 0}
-          onClick={() => setZoomIndex(zoomIndex - 1)}
+          onClick={() => changeZoom(zoomIndex - 1)}
           aria-label="Verkleinern"
         >
           <ZoomOutIcon className="size-4" />
@@ -186,13 +290,17 @@ function PdfViewer({
           size="sm"
           className="h-7 px-2"
           disabled={zoomIndex >= ZOOM_STEPS.length - 1}
-          onClick={() => setZoomIndex(zoomIndex + 1)}
+          onClick={() => changeZoom(zoomIndex + 1)}
           aria-label="Vergrößern"
         >
           <ZoomInIcon className="size-4" />
         </Button>
       </div>
-      <div ref={scrollRef} className="min-h-0 grow overflow-auto">
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        className="min-h-0 grow overflow-auto"
+      >
         <Document
           file={fileUrl}
           onLoadSuccess={onDocumentLoad}
@@ -203,20 +311,55 @@ function PdfViewer({
           error={null}
           externalLinkTarget="_blank"
         >
-          <Page
-            pageNumber={pageNumber}
-            width={pageWidth}
-            customTextRenderer={textRenderer}
-            onGetTextSuccess={onTextSuccess}
-            onRenderTextLayerSuccess={onTextLayerRendered}
-            renderAnnotationLayer={false}
-            loading={
-              <div className="flex h-40 items-center justify-center text-muted-foreground">
-                <Loader2Icon className="size-6 animate-spin" />
+          {pageNumbers.map((page) => {
+            const isCitedPage = page === citedPage;
+            const isNearViewport = citedPagePainted
+              ? Math.abs(page - currentPage) <= RENDER_WINDOW
+              : isCitedPage;
+            return (
+              <div
+                key={page}
+                style={{
+                  height: pageHeight ?? undefined,
+                  marginBottom: PAGE_GAP,
+                }}
+              >
+                {isNearViewport && pageWidth ? (
+                  <Page
+                    pageNumber={page}
+                    width={pageWidth}
+                    customTextRenderer={isCitedPage ? textRenderer : undefined}
+                    onGetTextSuccess={isCitedPage ? onTextSuccess : undefined}
+                    onRenderTextLayerSuccess={
+                      isCitedPage ? onCitedTextLayerRendered : undefined
+                    }
+                    onRenderSuccess={
+                      isCitedPage ? onCitedPageRendered : undefined
+                    }
+                    onRenderError={isCitedPage ? onFail : undefined}
+                    renderAnnotationLayer={false}
+                    loading={
+                      <div
+                        className="flex items-center justify-center text-muted-foreground"
+                        style={{ height: pageHeight ?? 160 }}
+                      >
+                        <Loader2Icon className="size-6 animate-spin" />
+                      </div>
+                    }
+                    aria-label={`${title} – Seite ${page}`}
+                  />
+                ) : (
+                  <div
+                    className="mx-auto bg-background/50"
+                    style={{
+                      width: pageWidth ?? undefined,
+                      height: pageHeight ?? undefined,
+                    }}
+                  />
+                )}
               </div>
-            }
-            aria-label={title}
-          />
+            );
+          })}
         </Document>
       </div>
     </div>
