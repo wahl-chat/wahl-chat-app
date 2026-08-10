@@ -70,7 +70,23 @@ export function prettifiedShortSourceName(source: string): string {
 }
 
 export function generateUuid() {
-  return crypto.randomUUID();
+  // crypto.randomUUID exists only in secure contexts (https / localhost), so
+  // LAN dev on http://<ip> (phone testing) needs the getRandomValues fallback —
+  // same UUIDv4, available everywhere.
+  if (typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0'));
+  return [
+    hex.slice(0, 4).join(''),
+    hex.slice(4, 6).join(''),
+    hex.slice(6, 8).join(''),
+    hex.slice(8, 10).join(''),
+    hex.slice(10).join(''),
+  ].join('-');
 }
 
 export function firestoreTimestampToDate(
@@ -338,6 +354,33 @@ export function isProxyablePdfHost(url: string | undefined): boolean {
 /** Same-origin proxy URL that streams an allowlisted PDF for in-page framing. */
 export function pdfProxyUrl(url: string): string {
   return `/api/pdf-proxy?url=${encodeURIComponent(url)}`;
+}
+
+// Our own GCS buckets serve PDFs with permissive CORS (origin *, GET, range
+// requests), so the pdf.js viewer fetches them directly — no proxy hop, no
+// Vercel streaming cost. Institution hosts block cross-origin fetching and go
+// through the same-origin proxy instead.
+const DIRECT_FETCH_PDF_PREFIXES = [
+  'https://storage.googleapis.com/wahl-chat.firebasestorage.app/',
+  'https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/',
+];
+
+/**
+ * URL the in-page pdf.js viewer can fetch for this PDF, or null when the host
+ * is neither one of our buckets nor on the proxy allowlist (those open in a
+ * new tab instead).
+ */
+export function pdfViewerFileUrl(url: string | undefined): string | null {
+  if (!url || !isPdfUrl(url)) {
+    return null;
+  }
+  if (DIRECT_FETCH_PDF_PREFIXES.some((prefix) => url.startsWith(prefix))) {
+    return url;
+  }
+  if (isProxyablePdfHost(url)) {
+    return pdfProxyUrl(url);
+  }
+  return null;
 }
 
 export type SourceMediaKind = 'video' | 'pdf';
