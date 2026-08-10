@@ -191,10 +191,7 @@ function PdfViewer({
     setCurrentPage(page);
   }, [slotHeight, numPages]);
 
-  // Missing highlights are silent for users by design, but the two causes need
-  // to stay distinguishable for developers (a source without a snippet vs. a
-  // snippet the page no longer matches, e.g. after a corpus re-chunk). Logged
-  // once per viewer instance — the text layer re-renders on zoom/resize.
+  // Why-no-highlight debug, once per instance (text layer re-renders on zoom/resize).
   const highlightStateLogged = useRef(false);
   const debugHighlightState = useCallback(
     (message: string, detail?: Record<string, unknown>) => {
