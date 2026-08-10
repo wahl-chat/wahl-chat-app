@@ -191,6 +191,21 @@ function PdfViewer({
     setCurrentPage(page);
   }, [slotHeight, numPages]);
 
+  // Missing highlights are silent for users by design, but the two causes need
+  // to stay distinguishable for developers (a source without a snippet vs. a
+  // snippet the page no longer matches, e.g. after a corpus re-chunk). Logged
+  // once per viewer instance — the text layer re-renders on zoom/resize.
+  const highlightStateLogged = useRef(false);
+  const debugHighlightState = useCallback(
+    (message: string, detail?: Record<string, unknown>) => {
+      if (!highlightStateLogged.current) {
+        highlightStateLogged.current = true;
+        console.debug(`[PdfViewer] ${message}`, detail ?? '');
+      }
+    },
+    [],
+  );
+
   // TextItem vs TextMarkedContent: only real text items carry `str`; marked-
   // content entries still occupy indices, so keep positions aligned with ''.
   // transform[5] is the item's y in PDF text space — the matcher uses it to
@@ -198,6 +213,9 @@ function PdfViewer({
   const onTextSuccess = useCallback(
     (textContent: { items: unknown[] }) => {
       if (!snippet) {
+        debugHighlightState(
+          'source carries no snippet — nothing to highlight (message may predate snippet support)',
+        );
         return;
       }
       const highlightInput = textContent.items.map((item) => {
@@ -213,9 +231,16 @@ function PdfViewer({
           y: Number.isFinite(y) ? y : null,
         };
       });
-      setHighlightItems(matchSnippetItems(highlightInput, snippet));
+      const nextHighlightItems = matchSnippetItems(highlightInput, snippet);
+      if (nextHighlightItems.size === 0) {
+        debugHighlightState(
+          'snippet matched nothing on the cited page — document and corpus may be out of sync',
+          { citedPage, snippetStart: snippet.slice(0, 80) },
+        );
+      }
+      setHighlightItems(nextHighlightItems);
     },
-    [snippet],
+    [snippet, citedPage, debugHighlightState],
   );
 
   const textRenderer = useCallback(
