@@ -57,6 +57,42 @@ variable "bootstrap_secret_ids" {
   default     = []
 }
 
+# ── Cloud Run ingestion jobs ────────────────────────────────────────────────
+# Keyed by job name. Same env/secret_env contract as var.services. The image's
+# entrypoint dispatches on CONNECTOR_ID (ai-backend/docker-entrypoint.sh): set it in
+# `env` and the container runs `python -m src.ingestion.run`; `args` are forwarded to
+# the runner (e.g. --batch-size, --time-budget SECONDS). A non-null `schedule` (cron)
+# creates a Cloud Scheduler trigger that executes the job.
+variable "jobs" {
+  description = "Cloud Run jobs to manage, keyed by job name."
+  type = map(object({
+    service_account = string
+    image           = optional(string, "us-docker.pkg.dev/cloudrun/container/hello")
+    cpu             = optional(string, "1")
+    memory          = optional(string, "1Gi")
+    timeout_seconds = optional(number, 900) # per-execution cap; pair with a --time-budget arg below it
+    max_retries     = optional(number, 1)   # runs are cursor-resumable, so retries are cheap but rarely needed
+    args            = optional(list(string), [])
+    env             = optional(map(string), {})
+    secret_env      = optional(map(string), {})
+    schedule        = optional(string) # cron, or null for manually-executed only
+    time_zone       = optional(string, "Europe/Berlin")
+    paused          = optional(bool, false)
+  }))
+  default = {}
+}
+
+# The basic Editor role cannot create IAM bindings (no *.setIamPolicy), which blocks
+# google_secret_manager_secret_iam_member and the scheduler's job-invoker grant. Setting
+# this false lets an editor-only identity apply everything else; the grants land when the
+# Terraform runner SA (or an owner) applies with true. Only flip it while bootstrapping —
+# false in normal operation would DESTROY previously-applied grants.
+variable "manage_iam" {
+  description = "Whether this module manages IAM bindings (secret accessors, scheduler invoker)."
+  type        = bool
+  default     = true
+}
+
 variable "artifact_registry_repo_id" {
   description = "Artifact Registry Docker repository id CI builds/pushes into."
   type        = string
