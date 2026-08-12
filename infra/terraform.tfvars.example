@@ -32,3 +32,18 @@ services = {
     }
   }
 }
+
+# Set false while applying with editor-only credentials (no setIamPolicy) — defers the
+# secret-accessor and scheduler-invoker grants. See modules/app/variables.tf.
+# manage_iam = false
+
+# Scheduled ingestion jobs — same env/secret_env contract as services; a job only sets
+# CONNECTOR_ID (the image entrypoint dispatches on it). See envs/dev/terraform.tfvars
+# for the composed setup (shared plumbing + per-legislature vote-job generation).
+# jobs = {
+#   "ingest-something" = {
+#     service_account = "FILL_IN-runtime-sa@FILL_IN-project.iam.gserviceaccount.com"
+#     env             = { CONNECTOR_ID = "some_connector" }
+#     schedule        = "0 3 * * *" # cron, Europe/Berlin; omit for manual-execute only
+#   }
+# }

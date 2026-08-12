@@ -8,7 +8,8 @@ locals {
     "secretmanager.googleapis.com",
     "iam.googleapis.com",
     "cloudbuild.googleapis.com",
-    "compute.googleapis.com", # Cloud Build's default runtime SA lives here
+    "compute.googleapis.com",        # Cloud Build's default runtime SA lives here
+    "cloudscheduler.googleapis.com", # triggers the ingestion Cloud Run Jobs
   ]
 }
 
