@@ -1,7 +1,8 @@
 # wahl-chat infrastructure (Terraform)
 
 App-serving GCP infrastructure as code. Manages the **Cloud Run services, their env vars, and
-their secrets** (plus Artifact Registry and API enablement) for two environments that are
+their secrets** (plus Artifact Registry and API enablement) and the **scheduled data-ingestion
+Cloud Run Jobs with their Cloud Scheduler triggers**, for two environments that are
 **separate GCP projects**:
 
 | Env  | Project        | Region        | State bucket             |
@@ -78,6 +79,50 @@ Secret Manager — a revision that resolves `latest` with no version fails to st
 2. Ensure `some-secret-id` exists with a value (`gcloud secrets versions add …`, or list it in
    `bootstrap_secret_ids` for a sentinel).
 3. `terraform apply` — the new revision reads it via `secret_key_ref`.
+
+## Ingestion jobs (Cloud Run Jobs + Cloud Scheduler)
+
+One image serves both roles: `ai-backend/docker-entrypoint.sh` dispatches on `CONNECTOR_ID` —
+unset boots the FastAPI app, set runs `python -m src.ingestion.run` for that connector (after an
+idempotent Qdrant-collection bootstrap). So a job spec only sets `CONNECTOR_ID` in `env` plus
+runner flags in `args` (`--batch-size`, `--time-budget` seconds). Runs are batch-windowed and
+resume from a Qdrant-derived cursor: short scheduled executions that continue where they left
+off are the design — never raise timeouts to "finish" a backfill.
+
+Job specifics worth knowing (full rationale in `envs/dev/terraform.tfvars` comments):
+
+- `abgeordnetenwatch_votes` needs an explicit `AW_LEGISLATURE_ID` per process, so the env roots
+  generate **one job per legislature id** from `aw_daily_legislature_ids` (Bundestag, daily) and
+  `aw_weekly_legislature_ids` (Landtage, weekly, staggered). Keep both lists in sync with
+  `legislature_config.py`.
+- The speech pair runs as ONE sequential job (`CONNECTOR_ID = "bundestag_speeches,openparliament_tv"`)
+  — their must-never-overlap invariant is structural, do not split them into two schedules.
+- Deployed jobs set `ELECTION_FIXTURES_SOURCE=firestore` and (uploads only)
+  `MANIFESTO_UPLOADS_SOURCE=bucket`, because neither the Firestore fixtures nor the uploads
+  manifest ship in the image (Docker build context is `ai-backend/`).
+- **Image ownership matches the services**: Terraform creates jobs with a placeholder image and
+  ignores image changes; the deploy pipeline must `gcloud run jobs update <job> --image=…`
+  alongside the service deploy. Until the first CI-driven image update, a job execution runs the
+  placeholder and does nothing.
+- Prod schedules start `paused = true`; unpause only after the prod corpus is seeded and a manual
+  `gcloud run jobs execute <job> --wait` run has been verified per job.
+
+## Applying with editor-only credentials
+
+The basic Editor role cannot create IAM bindings (`*.setIamPolicy`). `manage_iam = false` (set in
+both tfvars right now) defers exactly the two binding types — per-secret accessor grants and the
+scheduler SA's `run.invoker` on each job — so an editor can apply everything else. The grants are
+applied later by an owner or the planned Terraform runner SA flipping `manage_iam = true`.
+Until then the runtime/scheduler identities work only if they hold project-level editor (true for
+the default compute SA today) — treat that as the bootstrap crutch it is, not the end state.
+
+Migrating a service's plaintext env keys to secret refs without a sentinel-value window:
+
+```sh
+terraform apply -target='module.app.google_secret_manager_secret.s'  # containers only
+echo -n "<value>" | gcloud secrets versions add <secret-id> --project=<project> --data-file=-  # per secret
+terraform apply   # flips the service revisions to secret_key_ref, resolving real values
+```
 
 ## Constraint: Vertex uses a static service-account secret
 
