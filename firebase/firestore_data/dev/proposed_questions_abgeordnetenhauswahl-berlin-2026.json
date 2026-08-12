@@ -1,0 +1,342 @@
+{
+  "proposed_questions/cdu/questions/question_1": {
+    "location": "chat",
+    "topic": "Wohnen",
+    "content": "Wie wollt ihr Mieten in Berlin bezahlbar halten?"
+  },
+  "proposed_questions/cdu/questions/question_2": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+  },
+  "proposed_questions/cdu/questions/question_3": {
+    "location": "chat",
+    "topic": "Verwaltung",
+    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+  },
+  "proposed_questions/cdu/questions/question_4": {
+    "location": "chat",
+    "topic": "Sicherheit",
+    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+  },
+  "proposed_questions/cdu/questions/question_5": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+  },
+  "proposed_questions/spd/questions/question_1": {
+    "location": "chat",
+    "topic": "Wohnen",
+    "content": "Wie wollt ihr Mieten in Berlin bezahlbar halten?"
+  },
+  "proposed_questions/spd/questions/question_2": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+  },
+  "proposed_questions/spd/questions/question_3": {
+    "location": "chat",
+    "topic": "Verwaltung",
+    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+  },
+  "proposed_questions/spd/questions/question_4": {
+    "location": "chat",
+    "topic": "Sicherheit",
+    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+  },
+  "proposed_questions/spd/questions/question_5": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+  },
+  "proposed_questions/gruene/questions/question_1": {
+    "location": "chat",
+    "topic": "Wohnen",
+    "content": "Wie wollt ihr Mieten in Berlin bezahlbar halten?"
+  },
+  "proposed_questions/gruene/questions/question_2": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+  },
+  "proposed_questions/gruene/questions/question_3": {
+    "location": "chat",
+    "topic": "Verwaltung",
+    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+  },
+  "proposed_questions/gruene/questions/question_4": {
+    "location": "chat",
+    "topic": "Sicherheit",
+    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+  },
+  "proposed_questions/gruene/questions/question_5": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+  },
+  "proposed_questions/linke/questions/question_1": {
+    "location": "chat",
+    "topic": "Wohnen",
+    "content": "Wie wollt ihr Mieten in Berlin bezahlbar halten?"
+  },
+  "proposed_questions/linke/questions/question_2": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+  },
+  "proposed_questions/linke/questions/question_3": {
+    "location": "chat",
+    "topic": "Verwaltung",
+    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+  },
+  "proposed_questions/linke/questions/question_4": {
+    "location": "chat",
+    "topic": "Sicherheit",
+    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+  },
+  "proposed_questions/linke/questions/question_5": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+  },
+  "proposed_questions/afd/questions/question_1": {
+    "location": "chat",
+    "topic": "Wohnen",
+    "content": "Wie wollt ihr Mieten in Berlin bezahlbar halten?"
+  },
+  "proposed_questions/afd/questions/question_2": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+  },
+  "proposed_questions/afd/questions/question_3": {
+    "location": "chat",
+    "topic": "Verwaltung",
+    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+  },
+  "proposed_questions/afd/questions/question_4": {
+    "location": "chat",
+    "topic": "Sicherheit",
+    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+  },
+  "proposed_questions/afd/questions/question_5": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+  },
+  "proposed_questions/fdp/questions/question_1": {
+    "location": "chat",
+    "topic": "Wohnen",
+    "content": "Wie wollt ihr Mieten in Berlin bezahlbar halten?"
+  },
+  "proposed_questions/fdp/questions/question_2": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+  },
+  "proposed_questions/fdp/questions/question_3": {
+    "location": "chat",
+    "topic": "Verwaltung",
+    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+  },
+  "proposed_questions/fdp/questions/question_4": {
+    "location": "chat",
+    "topic": "Sicherheit",
+    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+  },
+  "proposed_questions/fdp/questions/question_5": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+  },
+  "proposed_questions/bsw/questions/question_1": {
+    "location": "chat",
+    "topic": "Wohnen",
+    "content": "Wie wollt ihr Mieten in Berlin bezahlbar halten?"
+  },
+  "proposed_questions/bsw/questions/question_2": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+  },
+  "proposed_questions/bsw/questions/question_3": {
+    "location": "chat",
+    "topic": "Verwaltung",
+    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+  },
+  "proposed_questions/bsw/questions/question_4": {
+    "location": "chat",
+    "topic": "Sicherheit",
+    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+  },
+  "proposed_questions/bsw/questions/question_5": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+  },
+  "proposed_questions/volt/questions/question_1": {
+    "location": "chat",
+    "topic": "Wohnen",
+    "content": "Wie wollt ihr Mieten in Berlin bezahlbar halten?"
+  },
+  "proposed_questions/volt/questions/question_2": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+  },
+  "proposed_questions/volt/questions/question_3": {
+    "location": "chat",
+    "topic": "Verwaltung",
+    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+  },
+  "proposed_questions/volt/questions/question_4": {
+    "location": "chat",
+    "topic": "Sicherheit",
+    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+  },
+  "proposed_questions/volt/questions/question_5": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+  },
+  "proposed_questions/tierschutzpartei/questions/question_1": {
+    "location": "chat",
+    "topic": "Wohnen",
+    "content": "Wie wollt ihr Mieten in Berlin bezahlbar halten?"
+  },
+  "proposed_questions/tierschutzpartei/questions/question_2": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+  },
+  "proposed_questions/tierschutzpartei/questions/question_3": {
+    "location": "chat",
+    "topic": "Verwaltung",
+    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+  },
+  "proposed_questions/tierschutzpartei/questions/question_4": {
+    "location": "chat",
+    "topic": "Sicherheit",
+    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+  },
+  "proposed_questions/tierschutzpartei/questions/question_5": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+  },
+  "proposed_questions/oedp/questions/question_1": {
+    "location": "chat",
+    "topic": "Wohnen",
+    "content": "Wie wollt ihr Mieten in Berlin bezahlbar halten?"
+  },
+  "proposed_questions/oedp/questions/question_2": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+  },
+  "proposed_questions/oedp/questions/question_3": {
+    "location": "chat",
+    "topic": "Verwaltung",
+    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+  },
+  "proposed_questions/oedp/questions/question_4": {
+    "location": "chat",
+    "topic": "Sicherheit",
+    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+  },
+  "proposed_questions/oedp/questions/question_5": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+  },
+  "proposed_questions/die-partei/questions/question_1": {
+    "location": "chat",
+    "topic": "Wohnen",
+    "content": "Wie wollt ihr Mieten in Berlin bezahlbar halten?"
+  },
+  "proposed_questions/die-partei/questions/question_2": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+  },
+  "proposed_questions/die-partei/questions/question_3": {
+    "location": "chat",
+    "topic": "Verwaltung",
+    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+  },
+  "proposed_questions/die-partei/questions/question_4": {
+    "location": "chat",
+    "topic": "Sicherheit",
+    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+  },
+  "proposed_questions/die-partei/questions/question_5": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+  },
+  "proposed_questions/pdf/questions/question_1": {
+    "location": "chat",
+    "topic": "Wohnen",
+    "content": "Wie wollt ihr Mieten in Berlin bezahlbar halten?"
+  },
+  "proposed_questions/pdf/questions/question_2": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+  },
+  "proposed_questions/pdf/questions/question_3": {
+    "location": "chat",
+    "topic": "Verwaltung",
+    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+  },
+  "proposed_questions/pdf/questions/question_4": {
+    "location": "chat",
+    "topic": "Sicherheit",
+    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+  },
+  "proposed_questions/pdf/questions/question_5": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+  },
+  "proposed_questions/group/questions/question_1": {
+    "location": "chat",
+    "topic": "Wohnen",
+    "content": "Wie wollt ihr Mieten in Berlin bezahlbar halten?"
+  },
+  "proposed_questions/group/questions/question_2": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+  },
+  "proposed_questions/group/questions/question_3": {
+    "location": "chat",
+    "topic": "Verwaltung",
+    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+  },
+  "proposed_questions/group/questions/question_4": {
+    "location": "chat",
+    "topic": "Sicherheit",
+    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+  },
+  "proposed_questions/group/questions/question_5": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+  },
+  "proposed_questions/wahl-chat/questions/question_1": {
+    "topic": "wahl.chat",
+    "location": "chat",
+    "content": "Was kann ich fragen?"
+  },
+  "proposed_questions/wahl-chat/questions/question_2": {
+    "topic": "wahl.chat",
+    "location": "chat",
+    "content": "Kann ich mehrere Parteien miteinander vergleichen?"
+  },
+  "proposed_questions/wahl-chat/questions/question_3": {
+    "topic": "wahl.chat",
+    "location": "chat",
+    "content": "Wie entstehen die Antworten?"
+  }
+}
