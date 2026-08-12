@@ -49,3 +49,27 @@ public/landtagswahl-sachsen-anhalt-2026/wahlprogramme/volt/Wahlprogramm-Volt-Sac
 public/landtagswahl-sachsen-anhalt-2026/parteidokumente/tierschutzpartei/Grundsatzprogramm-Tierschutzpartei_2026-02-07.pdf
 public/landtagswahl-sachsen-anhalt-2026/parteidokumente/pdf/Grundsatzprogramm-PdF_2026-03-21.pdf
 public/landtagswahl-sachsen-anhalt-2026/parteidokumente/gartenpartei/Satzung-Gartenpartei_2019-11-30.pdf
+
+# --- Landtagswahl Mecklenburg-Vorpommern, 20 September 2026 -----------------------
+# No Abgeordnetenwatch coverage: verified 2026-08-12 against
+# /parliament-periods?parliament=9 — their newest MV election period is still 2021,
+# so nothing here is ever auto-retired. AW does hold the 2016/2021 MV programmes;
+# those carry their own election dates and fall outside this campaign window.
+public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/spd/Regierungsprogramm-SPD-Mecklenburg-Vorpommern-2026_2026-06-25.pdf
+public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/afd/Regierungsprogramm-AfD-Mecklenburg-Vorpommern-2026_2026-06-09.pdf
+public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/cdu/Wahlprogramm-CDU-Mecklenburg-Vorpommern-2026_2026-06-15.pdf
+public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/gruene/Wahlprogramm-Gruene-Mecklenburg-Vorpommern-2026_2026-07-31.pdf
+public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/fdp/Wahlprogramm-FDP-Mecklenburg-Vorpommern-2026_2026-06-19.pdf
+public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/fw/Wahlprogramm-Freie-Waehler-Mecklenburg-Vorpommern-2026_2026-06-22.pdf
+public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/volt/Wahlprogramm-Volt-Mecklenburg-Vorpommern-2026_2026-07-24.pdf
+public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/tierschutzpartei/Wahlprogramm-Tierschutzpartei-Mecklenburg-Vorpommern-2026_2026-08-03.pdf
+public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/piraten/Wahlprogramm-Piraten-Mecklenburg-Vorpommern-2026_2026-04-05.pdf
+public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/pdf/Wahlprogramm-PdF-Mecklenburg-Vorpommern-2026_2026-06-02.pdf
+public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/kpd/Wahlprogramm-KPD-Mecklenburg-Vorpommern-2026_2026-05-06.pdf
+public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/hpd/Wahlprogramm-10-Punkte-Handwerkerpartei-Mecklenburg-Vorpommern-2026_2026-05-08.pdf
+
+# --- Wahl zum Abgeordnetenhaus von Berlin, 20 September 2026 ----------------------
+# No Abgeordnetenwatch coverage either: verified 2026-08-12 against
+# /parliament-periods?parliament=2 — newest Berlin election period is the 2023
+# Wiederholungswahl. Documents are pending collection; lines land here as the
+# programmes arrive, one per party.
