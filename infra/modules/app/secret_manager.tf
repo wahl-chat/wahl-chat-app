@@ -12,19 +12,22 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 locals {
-  # Distinct secret ids referenced by any service's secret_env.
+  # Services and jobs share the secret_env contract; union them for secret handling.
+  secret_env_holders = concat(values(var.services), values(var.jobs))
+
+  # Distinct secret ids referenced by any service's or job's secret_env.
   referenced_secret_ids = toset(flatten([
-    for svc in values(var.services) : values(svc.secret_env)
+    for holder in local.secret_env_holders : values(holder.secret_env)
   ]))
 
-  # One accessor grant per DISTINCT (secret id, runtime SA) pair — two services
+  # One accessor grant per DISTINCT (secret id, runtime SA) pair — two workloads
   # sharing a secret under the same SA must not produce a duplicate map key.
   secret_accessors = {
     for pair in distinct(flatten([
-      for svc in values(var.services) : [
-        for secret_id in values(svc.secret_env) : {
+      for holder in local.secret_env_holders : [
+        for secret_id in values(holder.secret_env) : {
           secret_id = secret_id
-          sa        = svc.service_account
+          sa        = holder.service_account
         }
       ]
     ])) : "${pair.secret_id}::${pair.sa}" => pair
@@ -64,8 +67,9 @@ resource "google_secret_manager_secret_version" "bootstrap" {
 
 # Per-secret accessor grant, not a project-wide roles/secretmanager.secretAccessor.
 # Each runtime SA can read exactly the secrets its service references.
+# Gated on manage_iam: creating these needs setIamPolicy, which Editor lacks (see variables.tf).
 resource "google_secret_manager_secret_iam_member" "accessor" {
-  for_each = local.secret_accessors
+  for_each = var.manage_iam ? local.secret_accessors : {}
 
   project   = var.project_id
   secret_id = google_secret_manager_secret.s[each.value.secret_id].secret_id
