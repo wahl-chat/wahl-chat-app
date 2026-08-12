@@ -82,7 +82,7 @@ function AiDisclaimer() {
       <p className="my-2 text-center text-xs text-muted-foreground">
         wahl.chat Antwortet mit KI.{' '}
         <ResponsiveDialogTrigger className="font-semibold underline">
-          Erfahre hier mehr.
+          Mehr erfahren
         </ResponsiveDialogTrigger>
       </p>
       <ResponsiveDialogContent>

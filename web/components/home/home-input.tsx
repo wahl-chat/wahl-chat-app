@@ -1,6 +1,7 @@
 'use client';
 
 import DynamicRateLimitStickyInput from '@/components/dynamic-rate-limit-sticky-input';
+import AiDisclaimer from '@/components/legal/ai-disclaimer';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import type {
   LlmSystemStatus,
@@ -42,14 +43,16 @@ function HomeInput({
   };
 
   return (
-    <DynamicRateLimitStickyInput
-      isLoading={isLoading}
-      onSubmit={pushLink}
-      quickReplies={questions.map((question) => question.content)}
-      initialSystemStatus={initialSystemStatus}
-      hasValidServerUser={hasValidServerUser}
-      className={cn('mt-4', className)}
-    />
+    <div className={cn('mt-4', className)}>
+      <DynamicRateLimitStickyInput
+        isLoading={isLoading}
+        onSubmit={pushLink}
+        quickReplies={questions.map((question) => question.content)}
+        initialSystemStatus={initialSystemStatus}
+        hasValidServerUser={hasValidServerUser}
+      />
+      <AiDisclaimer />
+    </div>
   );
 }
 
