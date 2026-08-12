@@ -60,6 +60,7 @@ public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/afd/Regierungsprog
 public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/cdu/Wahlprogramm-CDU-Mecklenburg-Vorpommern-2026_2026-06-15.pdf
 public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/gruene/Wahlprogramm-Gruene-Mecklenburg-Vorpommern-2026_2026-07-31.pdf
 public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/fdp/Wahlprogramm-FDP-Mecklenburg-Vorpommern-2026_2026-06-19.pdf
+public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/bsw/Wahlprogramm-BSW-Mecklenburg-Vorpommern-2026_2026-04-08.pdf
 public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/fw/Wahlprogramm-Freie-Waehler-Mecklenburg-Vorpommern-2026_2026-06-22.pdf
 public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/volt/Wahlprogramm-Volt-Mecklenburg-Vorpommern-2026_2026-07-24.pdf
 public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/tierschutzpartei/Wahlprogramm-Tierschutzpartei-Mecklenburg-Vorpommern-2026_2026-08-03.pdf
@@ -71,5 +72,22 @@ public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/hpd/Wahlprogramm-1
 # --- Wahl zum Abgeordnetenhaus von Berlin, 20 September 2026 ----------------------
 # No Abgeordnetenwatch coverage either: verified 2026-08-12 against
 # /parliament-periods?parliament=2 — newest Berlin election period is the 2023
-# Wiederholungswahl. Documents are pending collection; lines land here as the
-# programmes arrive, one per party.
+# Wiederholungswahl, so nothing here is ever auto-retired.
+public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/cdu/Regierungsprogramm-CDU-Berlin-2026_2026-06-12.pdf
+public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/spd/Wahlprogramm-SPD-Berlin-2026_2026-05-21.pdf
+public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/gruene/Wahlprogramm-Gruene-Berlin-2026_2026-06-02.pdf
+public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/linke/Wahlprogramm-Linke-Berlin-2026_2026-07-30.pdf
+public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/afd/Wahlprogramm-AfD-Berlin-2026_2026-07-21.pdf
+public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/fdp/Wahlprogramm-FDP-Berlin-2026_2026-07-17.pdf
+public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/bsw/Wahlprogramm-BSW-Berlin-2026_2026-06-10.pdf
+public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/volt/Wahlprogramm-Volt-Berlin-2026_2026-08-05.pdf
+public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/tierschutzpartei/Wahlprogramm-Tierschutzpartei-Berlin-2026_2026-06-15.pdf
+# ÖDP ran on its Landespolitisches Programm rather than an election programme, and
+# PdF published none for Berlin — the federal Grundsatzprogramm already staged for
+# Sachsen-Anhalt stands in. Both are parteidokumente: AW never publishes these, so
+# they are never auto-retired.
+public/abgeordnetenhauswahl-berlin-2026/parteidokumente/oedp/Landesprogramm-OEDP-Berlin_2026-04-04.pdf
+public/abgeordnetenhauswahl-berlin-2026/parteidokumente/pdf/Grundsatzprogramm-PdF_2026-03-21.pdf
+# Still document-less, tracked by the team: Die PARTEI Berlin (web-only 10-point
+# programme) and Die Linke MV (web-only, beschlossen 2026-05-30). Both parties stay
+# in the fixtures so they appear in the UI; a line lands here when a PDF exists.

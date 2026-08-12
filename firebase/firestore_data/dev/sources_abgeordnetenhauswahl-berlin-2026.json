@@ -1,5 +1,10 @@
 {
   "cdu": {
+    "01-regierungsprogramm-cdu-berlin-2026-2026-06-12": {
+      "name": "Regierungsprogramm Abgeordnetenhauswahl 2026",
+      "publish_date": "2026-06-12",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/cdu/Regierungsprogramm-CDU-Berlin-2026_2026-06-12.pdf"
+    },
     "02-landtag-votes": {
       "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
       "storage_url": "https://www.abgeordnetenwatch.de/berlin"
@@ -18,6 +23,11 @@
     }
   },
   "spd": {
+    "01-wahlprogramm-spd-berlin-2026-2026-05-21": {
+      "name": "Wahlprogramm Abgeordnetenhauswahl 2026",
+      "publish_date": "2026-05-21",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/spd/Wahlprogramm-SPD-Berlin-2026_2026-05-21.pdf"
+    },
     "02-landtag-votes": {
       "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
       "storage_url": "https://www.abgeordnetenwatch.de/berlin"
@@ -36,6 +46,11 @@
     }
   },
   "gruene": {
+    "01-wahlprogramm-gruene-berlin-2026-2026-06-02": {
+      "name": "Wahlprogramm Abgeordnetenhauswahl 2026",
+      "publish_date": "2026-06-02",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/gruene/Wahlprogramm-Gruene-Berlin-2026_2026-06-02.pdf"
+    },
     "02-landtag-votes": {
       "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
       "storage_url": "https://www.abgeordnetenwatch.de/berlin"
@@ -54,6 +69,11 @@
     }
   },
   "linke": {
+    "01-wahlprogramm-linke-berlin-2026-2026-07-30": {
+      "name": "Wahlprogramm Abgeordnetenhauswahl 2026",
+      "publish_date": "2026-07-30",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/linke/Wahlprogramm-Linke-Berlin-2026_2026-07-30.pdf"
+    },
     "02-landtag-votes": {
       "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
       "storage_url": "https://www.abgeordnetenwatch.de/berlin"
@@ -72,6 +92,11 @@
     }
   },
   "afd": {
+    "01-wahlprogramm-afd-berlin-2026-2026-07-21": {
+      "name": "Wahlprogramm Abgeordnetenhauswahl 2026",
+      "publish_date": "2026-07-21",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/afd/Wahlprogramm-AfD-Berlin-2026_2026-07-21.pdf"
+    },
     "02-landtag-votes": {
       "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
       "storage_url": "https://www.abgeordnetenwatch.de/berlin"
@@ -90,6 +115,11 @@
     }
   },
   "fdp": {
+    "01-wahlprogramm-fdp-berlin-2026-2026-07-17": {
+      "name": "Wahlprogramm Abgeordnetenhauswahl 2026",
+      "publish_date": "2026-07-17",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/fdp/Wahlprogramm-FDP-Berlin-2026_2026-07-17.pdf"
+    },
     "02-landtag-votes": {
       "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
       "storage_url": "https://www.abgeordnetenwatch.de/berlin"
@@ -108,6 +138,11 @@
     }
   },
   "bsw": {
+    "01-wahlprogramm-bsw-berlin-2026-2026-06-10": {
+      "name": "Wahlprogramm Abgeordnetenhauswahl 2026",
+      "publish_date": "2026-06-10",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/bsw/Wahlprogramm-BSW-Berlin-2026_2026-06-10.pdf"
+    },
     "02-landtag-votes": {
       "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
       "storage_url": "https://www.abgeordnetenwatch.de/berlin"
@@ -126,6 +161,11 @@
     }
   },
   "volt": {
+    "01-wahlprogramm-volt-berlin-2026-2026-08-05": {
+      "name": "Wahlprogramm Abgeordnetenhauswahl 2026",
+      "publish_date": "2026-08-05",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/volt/Wahlprogramm-Volt-Berlin-2026_2026-08-05.pdf"
+    },
     "02-landtag-votes": {
       "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
       "storage_url": "https://www.abgeordnetenwatch.de/berlin"
@@ -144,6 +184,11 @@
     }
   },
   "tierschutzpartei": {
+    "01-wahlprogramm-tierschutzpartei-berlin-2026-2026-06-15": {
+      "name": "Wahlprogramm Abgeordnetenhauswahl 2026",
+      "publish_date": "2026-06-15",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/abgeordnetenhauswahl-berlin-2026/wahlprogramme/tierschutzpartei/Wahlprogramm-Tierschutzpartei-Berlin-2026_2026-06-15.pdf"
+    },
     "02-landtag-votes": {
       "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
       "storage_url": "https://www.abgeordnetenwatch.de/berlin"
@@ -162,6 +207,11 @@
     }
   },
   "oedp": {
+    "01-landesprogramm-oedp-berlin-2026-04-04": {
+      "name": "Landespolitisches Programm",
+      "publish_date": "2026-04-04",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/abgeordnetenhauswahl-berlin-2026/parteidokumente/oedp/Landesprogramm-OEDP-Berlin_2026-04-04.pdf"
+    },
     "02-landtag-votes": {
       "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
       "storage_url": "https://www.abgeordnetenwatch.de/berlin"
@@ -198,6 +248,11 @@
     }
   },
   "pdf": {
+    "01-grundsatzprogramm-pdf-2026-03-21": {
+      "name": "Grundsatzprogramm",
+      "publish_date": "2026-03-21",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/abgeordnetenhauswahl-berlin-2026/parteidokumente/pdf/Grundsatzprogramm-PdF_2026-03-21.pdf"
+    },
     "02-landtag-votes": {
       "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
       "storage_url": "https://www.abgeordnetenwatch.de/berlin"
