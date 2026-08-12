@@ -1,0 +1,314 @@
+{
+  "spd": {
+    "01-regierungsprogramm-spd-mecklenburg-vorpommern-2026-2026-06-25": {
+      "name": "Regierungsprogramm Landtagswahl 2026",
+      "publish_date": "2026-06-25",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/spd/Regierungsprogramm-SPD-Mecklenburg-Vorpommern-2026_2026-06-25.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Mecklenburg-Vorpommern (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/mecklenburg-vorpommern"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "afd": {
+    "01-regierungsprogramm-afd-mecklenburg-vorpommern-2026-2026-06-09": {
+      "name": "Regierungsprogramm Landtagswahl 2026",
+      "publish_date": "2026-06-09",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/afd/Regierungsprogramm-AfD-Mecklenburg-Vorpommern-2026_2026-06-09.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Mecklenburg-Vorpommern (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/mecklenburg-vorpommern"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "cdu": {
+    "01-wahlprogramm-cdu-mecklenburg-vorpommern-2026-2026-06-15": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-06-15",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/cdu/Wahlprogramm-CDU-Mecklenburg-Vorpommern-2026_2026-06-15.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Mecklenburg-Vorpommern (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/mecklenburg-vorpommern"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "linke": {
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Mecklenburg-Vorpommern (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/mecklenburg-vorpommern"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "gruene": {
+    "01-wahlprogramm-gruene-mecklenburg-vorpommern-2026-2026-07-31": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-07-31",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/gruene/Wahlprogramm-Gruene-Mecklenburg-Vorpommern-2026_2026-07-31.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Mecklenburg-Vorpommern (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/mecklenburg-vorpommern"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "fdp": {
+    "01-wahlprogramm-fdp-mecklenburg-vorpommern-2026-2026-06-19": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-06-19",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/fdp/Wahlprogramm-FDP-Mecklenburg-Vorpommern-2026_2026-06-19.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Mecklenburg-Vorpommern (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/mecklenburg-vorpommern"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "bsw": {
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Mecklenburg-Vorpommern (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/mecklenburg-vorpommern"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "fw": {
+    "01-wahlprogramm-freie-waehler-mecklenburg-vorpommern-2026-2026-06-22": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-06-22",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/fw/Wahlprogramm-Freie-Waehler-Mecklenburg-Vorpommern-2026_2026-06-22.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Mecklenburg-Vorpommern (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/mecklenburg-vorpommern"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "volt": {
+    "01-wahlprogramm-volt-mecklenburg-vorpommern-2026-2026-07-24": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-07-24",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/volt/Wahlprogramm-Volt-Mecklenburg-Vorpommern-2026_2026-07-24.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Mecklenburg-Vorpommern (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/mecklenburg-vorpommern"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "tierschutzpartei": {
+    "01-wahlprogramm-tierschutzpartei-mecklenburg-vorpommern-2026-2026-08-03": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-08-03",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/tierschutzpartei/Wahlprogramm-Tierschutzpartei-Mecklenburg-Vorpommern-2026_2026-08-03.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Mecklenburg-Vorpommern (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/mecklenburg-vorpommern"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "piraten": {
+    "01-wahlprogramm-piraten-mecklenburg-vorpommern-2026-2026-04-05": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-04-05",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/piraten/Wahlprogramm-Piraten-Mecklenburg-Vorpommern-2026_2026-04-05.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Mecklenburg-Vorpommern (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/mecklenburg-vorpommern"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "pdf": {
+    "01-wahlprogramm-pdf-mecklenburg-vorpommern-2026-2026-06-02": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-06-02",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/pdf/Wahlprogramm-PdF-Mecklenburg-Vorpommern-2026_2026-06-02.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Mecklenburg-Vorpommern (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/mecklenburg-vorpommern"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "hpd": {
+    "01-wahlprogramm-10-punkte-handwerkerpartei-mecklenburg-vorpommern-2026-2026-05-08": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-05-08",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/hpd/Wahlprogramm-10-Punkte-Handwerkerpartei-Mecklenburg-Vorpommern-2026_2026-05-08.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Mecklenburg-Vorpommern (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/mecklenburg-vorpommern"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "kpd": {
+    "01-wahlprogramm-kpd-mecklenburg-vorpommern-2026-2026-05-06": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-05-06",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-mecklenburg-vorpommern-2026/wahlprogramme/kpd/Wahlprogramm-KPD-Mecklenburg-Vorpommern-2026_2026-05-06.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Mecklenburg-Vorpommern (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/mecklenburg-vorpommern"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  }
+}

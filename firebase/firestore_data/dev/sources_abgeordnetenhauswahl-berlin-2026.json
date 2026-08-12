@@ -1,0 +1,218 @@
+{
+  "cdu": {
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/berlin"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "spd": {
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/berlin"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "gruene": {
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/berlin"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "linke": {
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/berlin"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "afd": {
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/berlin"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "fdp": {
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/berlin"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "bsw": {
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/berlin"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "volt": {
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/berlin"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "tierschutzpartei": {
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/berlin"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "oedp": {
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/berlin"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "die-partei": {
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/berlin"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "pdf": {
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Abgeordnetenhaus von Berlin (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/berlin"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  }
+}
