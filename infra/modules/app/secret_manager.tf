@@ -17,16 +17,17 @@ locals {
     for svc in values(var.services) : values(svc.secret_env)
   ]))
 
-  # One accessor grant per (secret id, runtime SA) pair actually in use.
+  # One accessor grant per DISTINCT (secret id, runtime SA) pair — two services
+  # sharing a secret under the same SA must not produce a duplicate map key.
   secret_accessors = {
-    for pair in flatten([
+    for pair in distinct(flatten([
       for svc in values(var.services) : [
         for secret_id in values(svc.secret_env) : {
           secret_id = secret_id
           sa        = svc.service_account
         }
       ]
-    ]) : "${pair.secret_id}::${pair.sa}" => pair
+    ])) : "${pair.secret_id}::${pair.sa}" => pair
   }
 }
 
