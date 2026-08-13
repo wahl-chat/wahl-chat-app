@@ -53,7 +53,8 @@ function ChatMessagesView({
       chatSessionId: sessionId,
       messages,
       preSelectedPartyIds: parties?.map((party) => party.party_id),
-      initialQuestion,
+      // Only auto-send the initial question the first time this component hydrates
+      initialQuestion: hasFetched.current ? undefined : initialQuestion,
       userId: user.uid,
       tenant,
     });

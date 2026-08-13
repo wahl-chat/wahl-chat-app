@@ -21,6 +21,7 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
       partyIds: currentPartyIds,
       loadChatSession,
       initializeChatSession,
+      addUserMessage,
     } = get();
 
     const partyIds = new Set(preSelectedPartyIds ?? []);
@@ -106,4 +107,8 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
     }
 
     initializeChatSession();
+
+    if (initialQuestion && userId) {
+      addUserMessage(userId, initialQuestion, true);
+    }
   };
