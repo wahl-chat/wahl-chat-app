@@ -80,7 +80,7 @@ function AiDisclaimer() {
   return (
     <ResponsiveDialog>
       <p className="my-2 text-center text-xs text-muted-foreground">
-        wahl.chat kann Fehler machen.{' '}
+        wahl.chat Antwortet mit KI.{' '}
         <ResponsiveDialogTrigger className="font-semibold underline">
           Erfahre hier mehr.
         </ResponsiveDialogTrigger>

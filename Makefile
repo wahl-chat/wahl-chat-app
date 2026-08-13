@@ -111,8 +111,11 @@ dev:
 dev-web:
 	cd web && bun run dev
 
+# BACKEND_HOST=0.0.0.0 exposes the backend on the LAN for phone testing.
+BACKEND_HOST ?= 127.0.0.1
+
 dev-backend:
-	cd ai-backend && uv run python -m src.app
+	cd ai-backend && uv run python -m src.app --host $(BACKEND_HOST)
 
 # --- Linting ---
 

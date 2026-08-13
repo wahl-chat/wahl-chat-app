@@ -150,6 +150,77 @@ def test_speech_sources_emit_dual_links(monkeypatch) -> None:
     assert "video_url" not in dip_src, "a dip speech has no video deep-link"
 
 
+def test_source_snippet_normalizes_and_truncates() -> None:
+    """_source_snippet is the PDF viewer's highlight anchor: whitespace collapses,
+    long text cuts at a word boundary under the cap, empty text yields None."""
+    from src.chat_service import _SNIPPET_MAX_CHARS, _source_snippet
+
+    assert _source_snippet(None) is None
+    assert _source_snippet("") is None
+    assert _source_snippet("Ein  Satz\n\tmit   Umbrüchen") == "Ein Satz mit Umbrüchen"
+
+    long_text = "Wort " * 300
+    snippet = _source_snippet(long_text)
+    assert snippet is not None
+    assert len(snippet) <= _SNIPPET_MAX_CHARS
+    assert not snippet.endswith(" ") and snippet.endswith("Wort")
+
+
+def test_pdf_sources_carry_snippet_votes_do_not(monkeypatch) -> None:
+    """Manifesto and speech sources carry a `snippet` (chunk-text excerpt) for the
+    PDF viewer's highlight; vote sources cite web pages and must not get one."""
+    manifesto_payload = {
+        "citation_title": "Wahlprogramm",
+        "citation_url": "https://storage.example/wahlprogramm.pdf",
+        "publish_date": "2026-06-01",
+        "text": "Wir  fordern\neine bessere Zukunft.",
+        "meta": {"page_start": 8},
+    }
+    vote_payload = {
+        "citation_title": "Abstimmung: Testgesetz",
+        "citation_url": "https://example.com/vote/1",
+        "publish_date": "2024-01-15",
+        "text": "vote text must not leak into a snippet",
+        "meta": {
+            "vote_results": [{"party_id": "spd", "stance": "yes", "yes": 1, "no": 0}]
+        },
+    }
+    speech_payload = {
+        "citation_title": "Rede C",
+        "citation_url": "https://dserver.example/btp/20/2000103.pdf",
+        "publish_date": "2024-01-16",
+        "source": "dip",
+        "text": "Sehr geehrte Damen und Herren, wir beraten heute.",
+        "meta": {},
+    }
+
+    def _retrieve(_query, **kwargs):
+        st = kwargs.get("source_type")
+        if st == "party_manifesto":
+            return [manifesto_payload]
+        if st == "vote_record":
+            return [vote_payload]
+        if st == "parliamentary_speech":
+            return [speech_payload]
+        return []
+
+    _wire_common_mocks(monkeypatch, {})
+    monkeypatch.setattr(cs, "retrieve", _retrieve)
+
+    sources = _sources_from_events(_drive_single_party(None))
+
+    manifesto_src = next(s for s in sources if s["source"] == "Wahlprogramm")
+    assert manifesto_src.get("snippet") == "Wir fordern eine bessere Zukunft."
+
+    speech_src = next(s for s in sources if s["source"] == "Rede C")
+    assert speech_src.get("snippet") == (
+        "Sehr geehrte Damen und Herren, wir beraten heute."
+    )
+
+    vote_src = next(s for s in sources if s["source"] == "Abstimmung: Testgesetz")
+    assert "snippet" not in vote_src
+
+
 # ---------------------------------------------------------------------------
 # election_level scoping (vote_record only) is proven behaviourally by
 # test_historic_period_id_current_only + test_single_pass_fallback_when_no_window.
