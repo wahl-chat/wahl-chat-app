@@ -76,9 +76,9 @@ services = {
 # ═══════════════════════════════════════════════════════════════════════════════
 # INGESTION JOBS (Cloud Run Jobs + Cloud Scheduler)
 # Mirrors dev (see envs/dev/terraform.tfvars for the full rationale per job).
-# ALL SCHEDULES START PAUSED (`paused = true` in the defaults): unpause only after
-# the prod corpus is seeded and each job has a verified manual `gcloud run jobs
-# execute` run — scheduled ingestion into an unseeded prod collection helps nobody.
+# ALL SCHEDULES START PAUSED (`paused = true` in the defaults): the prod corpus is
+# live, so unpause per job only after one verified manual `gcloud run jobs execute`
+# run — never let the scheduler be a job's first-ever execution against prod data.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 ingestion_job_defaults = {
@@ -108,10 +108,29 @@ ingestion_secret_env_common = {
   OPENAI_API_KEY = "wahl-chat-backend-openai-api-key"
 }
 
-# Keep in sync with legislature_config.py (see dev tfvars for the full rationale).
-aw_legislature_ids = [132, 161]
-
 jobs = {
+  # Sharded AW vote jobs — see dev tfvars for the full rationale (no legislature
+  # ids in infra; runtime sharding via AW_LEGISLATURE_SET + CLOUD_RUN_TASK_INDEX).
+  "ingest-aw-votes-bund" = {
+    env = {
+      CONNECTOR_ID       = "abgeordnetenwatch_votes"
+      AW_LEGISLATURE_SET = "federal"
+    }
+    task_count  = 4
+    parallelism = 2
+    schedule    = "0 4 * * *"
+  }
+
+  "ingest-aw-votes-laender" = {
+    env = {
+      CONNECTOR_ID       = "abgeordnetenwatch_votes"
+      AW_LEGISLATURE_SET = "landtag"
+    }
+    task_count  = 48
+    parallelism = 3
+    schedule    = "30 4 * * *"
+  }
+
   "ingest-speeches" = {
     env = {
       CONNECTOR_ID = "bundestag_speeches,openparliament_tv"

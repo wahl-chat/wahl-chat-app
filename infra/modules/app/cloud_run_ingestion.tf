@@ -13,11 +13,39 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 locals {
-  scheduled_jobs = { for name, job in var.jobs : name => job if job.schedule != null }
+  # Every job attribute and its fallback. Overridden by ingestion_job_defaults,
+  # then by the job entry itself (which must supply service_account if the
+  # defaults don't). AW vote jobs carry no legislature ids anywhere in infra:
+  # they shard at runtime via AW_LEGISLATURE_SET + CLOUD_RUN_TASK_INDEX
+  # (resolve_aw_legislature_shard in ai-backend/src/ingestion/run.py), so newly
+  # configured legislature periods are covered without an infra change.
+  job_base = {
+    image           = "us-docker.pkg.dev/cloudrun/container/hello"
+    cpu             = "1"
+    memory          = "1Gi"
+    timeout_seconds = 900 # per-TASK cap; pair with a --time-budget arg below it
+    max_retries     = 1   # runs are cursor-resumable, so retries are cheap but rarely needed
+    task_count      = 1   # sharded jobs: over-provision; spare tasks exit 0
+    parallelism     = null
+    args            = []
+    schedule        = null # cron, or null for manually-executed only
+    time_zone       = "Europe/Berlin"
+    paused          = false
+  }
+
+  jobs = {
+    for name, job in var.jobs :
+    name => merge(local.job_base, var.ingestion_job_defaults, job, {
+      env        = merge(var.ingestion_env_common, try(job.env, {}))
+      secret_env = merge(var.ingestion_secret_env_common, try(job.secret_env, {}))
+    })
+  }
+
+  scheduled_jobs = { for name, job in local.jobs : name => job if job.schedule != null }
 }
 
 resource "google_cloud_run_v2_job" "job" {
-  for_each = var.jobs
+  for_each = local.jobs
 
   project  = var.project_id
   name     = each.key
@@ -27,6 +55,9 @@ resource "google_cloud_run_v2_job" "job" {
   deletion_protection = false
 
   template {
+    task_count  = each.value.task_count
+    parallelism = each.value.parallelism
+
     template {
       service_account = each.value.service_account
       timeout         = "${each.value.timeout_seconds}s"
