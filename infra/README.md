@@ -18,12 +18,17 @@ Firestore-export / eventarc byproducts and are not managed here.
 
 ```text
 infra/
-  modules/app/     one reusable module, one file per concern
-  envs/dev/        thin root: provider + GCS backend + terraform.tfvars → module "app"
-  envs/prod/       same, for the prod project
+  modules/app/             one reusable module, one file per concern
+  modules/ingestion_jobs/  pure composition (no resources): tfvars → complete jobs map
+  envs/dev/                thin root: provider + GCS backend + terraform.tfvars → modules
+  envs/prod/               same, for the prod project
 ```
 
-Each env root has its own remote state, so an apply targets exactly one project.
+Each env root has its own remote state, so an apply targets exactly one project — prod
+cannot be touched from the dev directory, no flag pairing to get wrong. The roots contain
+**zero logic** and are file-identical apart from `backend.tf` and `terraform.tfvars`
+(verify with `diff envs/dev/main.tf envs/prod/main.tf`); everything envs share lives in
+the modules, so dev mirrors prod by construction and only values differ.
 
 ## The two rules that keep secrets out of the repo
 
