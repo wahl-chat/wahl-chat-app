@@ -155,10 +155,22 @@ def verify_reachable(qdrant, collection_name: str) -> list[str]:  # noqa: ANN001
     uploaded 2026 Wahlprogramm can sit in the corpus while chat answers from a
     four-year-old Abgeordnetenwatch copy.
 
-    Each document is probed with ONE OF ITS OWN stored vectors, filtered to its
-    ``party_id`` so the query traverses the same tenant sub-index a real search would.
-    A point that cannot retrieve itself is not reachable. No embedding call, and the
-    result is deterministic rather than dependent on some probe question.
+    Each document is probed with ONE OF ITS OWN stored vectors. A point that cannot
+    retrieve itself is not reachable. No embedding call, and the result is deterministic
+    rather than dependent on some probe question.
+
+    The probe filter MUST mirror the shape chat actually queries with
+    (``source_type`` + ``party_id`` + ``region``, see ``_retrieve_party_buckets``), not
+    merely identify the document. An earlier version filtered ``party_id`` + ``source``
+    — a combination nothing in the app uses — and reported every ``gruene`` upload as
+    unreachable while chat retrieved them fine. Cause: with ``m=0`` the only navigable
+    graph is the ``party_id`` tenant sub-graph, and ``source="upload"`` selects ~2% of
+    that tenant, a slice whose filtered subgraph was unreachable from the entry point.
+    Raising ``hnsw_ef`` did not help and ``exact=True`` scored 1.0, confirming the data
+    was present and only the ANN path was blind. ``full_scan_threshold`` did not rescue
+    it either: 1 415 matching points is far below the 10 000 threshold, but the planner
+    weighs it against the selected tenant sub-index instead. So a filter shape no query
+    uses can be silently unsearchable — probing with one is a false-alarm generator.
     """
     from qdrant_client import models as qdrant_models  # noqa: PLC0415
 
@@ -174,8 +186,9 @@ def verify_reachable(qdrant, collection_name: str) -> list[str]:  # noqa: ANN001
         ]
     )
 
-    # One representative point per stored document, with its vector.
-    probes: dict[str, tuple[str, list[float]]] = {}
+    # One representative point per stored document, with its vector and the payload
+    # fields the retrieval-shaped probe filter needs.
+    probes: dict[str, tuple[str, str, list[float], object]] = {}
     next_offset = None
     while True:
         points, next_offset = qdrant.scroll(
@@ -183,21 +196,22 @@ def verify_reachable(qdrant, collection_name: str) -> list[str]:  # noqa: ANN001
             scroll_filter=scroll_filter,
             limit=1000,
             offset=next_offset,
-            with_payload=["meta.storage_object_path", "party_id"],
+            with_payload=["meta.storage_object_path", "party_id", "region"],
             with_vectors=True,
         )
         for point in points:
             payload = point.payload or {}
             path = (payload.get("meta") or {}).get("storage_object_path")
             party_id = payload.get("party_id")
+            region = payload.get("region")
             vector = (point.vector or {}).get("dense")
-            if isinstance(path, str) and path and party_id and vector:
-                probes.setdefault(path, (party_id, vector))
+            if isinstance(path, str) and path and party_id and region and vector:
+                probes.setdefault(path, (party_id, region, vector, point.id))
         if next_offset is None:
             break
 
     unreachable: list[str] = []
-    for path, (party_id, vector) in sorted(probes.items()):
+    for path, (party_id, region, vector, point_id) in sorted(probes.items()):
         hits = qdrant.query_points(
             collection_name=collection_name,
             query=vector,
@@ -206,18 +220,27 @@ def verify_reachable(qdrant, collection_name: str) -> list[str]:  # noqa: ANN001
             query_filter=qdrant_models.Filter(
                 must=[
                     qdrant_models.FieldCondition(
+                        key="source_type",
+                        match=qdrant_models.MatchValue(
+                            value=SourceType.PARTY_MANIFESTO.value
+                        ),
+                    ),
+                    qdrant_models.FieldCondition(
                         key="party_id",
                         match=qdrant_models.MatchValue(value=party_id),
                     ),
                     qdrant_models.FieldCondition(
-                        key="source",
-                        match=qdrant_models.MatchValue(value=UPLOAD_SOURCE),
+                        key="region", match=qdrant_models.MatchValue(value=region)
                     ),
                 ]
             ),
-            limit=1,
+            # The filter now matches the party's whole manifesto set, AW copies
+            # included, so "something came back" is not the assertion — the probe
+            # point retrieving ITSELF is. Ask for a few and look for its own id,
+            # otherwise an unreachable upload would pass on a reachable AW twin.
+            limit=5,
         ).points
-        if not hits:
+        if not any(hit.id == point_id for hit in hits):
             unreachable.append(path)
     return unreachable
 
