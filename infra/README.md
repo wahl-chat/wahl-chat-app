@@ -96,19 +96,21 @@ off are the design — never raise timeouts to "finish" a backfill.
 
 Job specifics worth knowing (full rationale in `envs/dev/terraform.tfvars` comments):
 
-- `abgeordnetenwatch_votes` needs an explicit `AW_LEGISLATURE_ID` per process, so the env roots
-  generate **one job per legislature id** from `aw_daily_legislature_ids` (Bundestag, daily) and
-  `aw_weekly_legislature_ids` (Landtage, weekly, staggered). Keep both lists in sync with
-  `legislature_config.py`.
+- `abgeordnetenwatch_votes` reads exactly one `AW_LEGISLATURE_ID` per process, so
+  `modules/ingestion_jobs` generates one daily job per Bundestag id in `aw_legislature_ids`
+  (keep in sync with `FEDERAL_LEGISLATURE_IDS` in `legislature_config.py`). Landtag
+  legislatures are not scheduled — `make run-all-landtage-votes` on demand. Collapsing the
+  vote jobs into one requires app-side task sharding first (CLOUD_RUN_TASK_INDEX → id).
 - The speech pair runs as ONE sequential job (`CONNECTOR_ID = "bundestag_speeches,openparliament_tv"`)
   — their must-never-overlap invariant is structural, do not split them into two schedules.
 - Deployed jobs set `ELECTION_FIXTURES_SOURCE=firestore` and (uploads only)
   `MANIFESTO_UPLOADS_SOURCE=bucket`, because neither the Firestore fixtures nor the uploads
   manifest ship in the image (Docker build context is `ai-backend/`).
 - **Image ownership matches the services**: Terraform creates jobs with a placeholder image and
-  ignores image changes; the deploy pipeline must `gcloud run jobs update <job> --image=…`
-  alongside the service deploy. Until the first CI-driven image update, a job execution runs the
-  placeholder and does nothing.
+  ignores image changes; `cloudbuild.backend.yaml` updates every `ingest-*` job to the freshly
+  built image after promoting the service. Until that first build lands, a job execution runs
+  the placeholder and does nothing. (Terraform *could* own the image ECS-style instead — kept
+  with the pipeline so the existing canary/smoke-test deploy stays the single image authority.)
 - Prod schedules start `paused = true`; unpause only after the prod corpus is seeded and a manual
   `gcloud run jobs execute <job> --wait` run has been verified per job.
 

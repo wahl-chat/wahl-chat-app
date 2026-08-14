@@ -108,9 +108,8 @@ ingestion_secret_env_common = {
   OPENAI_API_KEY = "wahl-chat-backend-openai-api-key"
 }
 
-# Keep in sync with legislature_config.py (see dev tfvars for the sync rule).
-aw_daily_legislature_ids  = [132, 161]
-aw_weekly_legislature_ids = [133, 107, 162, 122, 139, 109, 165, 126, 105, 166, 127, 131, 114, 134, 108, 146, 118, 150, 116, 143, 112, 149, 115, 137, 113, 156, 121, 158, 120, 157, 119, 138, 110]
+# Keep in sync with legislature_config.py (see dev tfvars for the full rationale).
+aw_legislature_ids = [132, 161]
 
 jobs = {
   "ingest-speeches" = {

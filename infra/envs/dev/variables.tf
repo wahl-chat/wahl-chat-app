@@ -45,12 +45,7 @@ variable "ingestion_secret_env_common" {
   default = {}
 }
 
-variable "aw_daily_legislature_ids" {
-  type    = list(number)
-  default = []
-}
-
-variable "aw_weekly_legislature_ids" {
+variable "aw_legislature_ids" {
   type    = list(number)
   default = []
 }
