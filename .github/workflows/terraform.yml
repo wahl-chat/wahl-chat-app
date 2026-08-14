@@ -1,8 +1,14 @@
-# Terraform CI: plan on PRs, apply on merge — keyless via Workload Identity Federation.
+# Terraform CI: plan on PRs, MANUAL apply on merges — keyless via Workload Identity Federation.
 #
-#   PR into develop touching infra/**      -> fmt-check + validate + plan (dev)
-#   push to develop (merge) touching infra -> apply dev
-#   push to main touching infra            -> plan + apply prod
+#   PR into develop/main touching infra/**  -> fmt-check + validate + plan (no apply, ever)
+#   push to develop (merge)                 -> plan, then apply WAITS for approval (environment "dev")
+#   push to main (merge)                    -> plan, then apply WAITS for approval (environment "prod")
+#   push to any other branch                -> workflow does not run (see on.push.branches)
+#
+# The apply job applies the exact plan file produced by the plan job (artifact hand-off),
+# and only after a human approves it: one-time setup in Settings -> Environments ->
+# dev / prod -> Required reviewers. Without reviewers configured the environment does
+# not block — set them before relying on the gate.
 #
 # Auth: google-github-actions/auth with WIF; no service-account keys anywhere.
 # Requires repository VARIABLES (Settings -> Secrets and variables -> Actions -> Variables;
@@ -31,16 +37,16 @@ concurrency:
   group: terraform-${{ github.base_ref || github.ref_name }}
   cancel-in-progress: false
 
+env:
+  # main (or a PR into main) targets prod; everything else targets dev.
+  TF_ENV: ${{ (github.base_ref || github.ref_name) == 'main' && 'prod' || 'dev' }}
+
 jobs:
-  terraform:
+  plan:
     runs-on: ubuntu-latest
-    env:
-      # main (or a PR into main) targets prod; everything else targets dev.
-      TF_ENV: ${{ (github.base_ref || github.ref_name) == 'main' && 'prod' || 'dev' }}
     defaults:
       run:
         working-directory: infra/envs/${{ (github.base_ref || github.ref_name) == 'main' && 'prod' || 'dev' }}
-
     steps:
       - uses: actions/checkout@v4
 
@@ -66,6 +72,44 @@ jobs:
       - name: plan
         run: terraform plan -input=false -no-color -out=tfplan
 
-      - name: apply
+      # Hand the exact plan to the apply job — what gets approved is what gets applied.
+      - uses: actions/upload-artifact@v4
         if: github.event_name == 'push'
+        with:
+          name: tfplan-${{ env.TF_ENV }}-${{ github.sha }}
+          path: infra/envs/${{ env.TF_ENV }}/tfplan
+          retention-days: 3
+          if-no-files-found: error
+
+  apply:
+    # Merges only (never PRs), only after plan succeeded, and gated by the
+    # environment's required reviewers — GitHub's equivalent of a manual job.
+    if: github.event_name == 'push'
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+    defaults:
+      run:
+        working-directory: infra/envs/${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.8"
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.TF_ENV == 'prod' && vars.GCP_WIF_PROVIDER_PROD || vars.GCP_WIF_PROVIDER_DEV }}
+          service_account: ${{ env.TF_ENV == 'prod' && vars.GCP_TF_SA_PROD || vars.GCP_TF_SA_DEV }}
+
+      - name: init
+        run: terraform init -input=false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ env.TF_ENV }}-${{ github.sha }}
+          path: infra/envs/${{ env.TF_ENV }}
+
+      - name: apply
         run: terraform apply -input=false -no-color tfplan
