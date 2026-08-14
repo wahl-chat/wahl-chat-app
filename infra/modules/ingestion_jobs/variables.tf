@@ -28,18 +28,10 @@ variable "secret_env_common" {
   default     = {}
 }
 
-# The abgeordnetenwatch_votes connector requires an explicit AW_LEGISLATURE_ID per
-# process, so one job is generated per id. Keep both lists in sync with
-# FEDERAL_LEGISLATURE_IDS / LANDTAG_LEGISLATURE_IDS in
+# Keep in sync with FEDERAL_LEGISLATURE_IDS in
 # ai-backend/src/ingestion/connectors/abgeordnetenwatch/legislature_config.py.
-variable "aw_daily_legislature_ids" {
-  description = "Bundestag legislature ids ingested daily."
-  type        = list(number)
-  default     = []
-}
-
-variable "aw_weekly_legislature_ids" {
-  description = "Landtag legislature ids ingested weekly, staggered."
+variable "aw_legislature_ids" {
+  description = "Bundestag legislature ids ingested daily (one generated job per id — see main.tf)."
   type        = list(number)
   default     = []
 }

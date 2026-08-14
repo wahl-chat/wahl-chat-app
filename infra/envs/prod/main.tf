@@ -19,12 +19,11 @@ provider "google" {
 module "ingestion_jobs" {
   source = "../../modules/ingestion_jobs"
 
-  jobs                      = var.jobs
-  job_defaults              = var.ingestion_job_defaults
-  env_common                = var.ingestion_env_common
-  secret_env_common         = var.ingestion_secret_env_common
-  aw_daily_legislature_ids  = var.aw_daily_legislature_ids
-  aw_weekly_legislature_ids = var.aw_weekly_legislature_ids
+  jobs               = var.jobs
+  job_defaults       = var.ingestion_job_defaults
+  env_common         = var.ingestion_env_common
+  secret_env_common  = var.ingestion_secret_env_common
+  aw_legislature_ids = var.aw_legislature_ids
 }
 
 module "app" {
