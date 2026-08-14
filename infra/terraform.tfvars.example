@@ -38,8 +38,9 @@ services = {
 # manage_iam = false
 
 # Scheduled ingestion jobs — same env/secret_env contract as services; a job only sets
-# CONNECTOR_ID (the image entrypoint dispatches on it). See envs/dev/terraform.tfvars
-# for the composed setup (shared plumbing + per-legislature vote-job generation).
+# CONNECTOR_ID (the image entrypoint dispatches on it). Shared plumbing goes in
+# ingestion_job_defaults / ingestion_env_common / ingestion_secret_env_common and is
+# merged into every job by modules/app. See envs/dev/terraform.tfvars for a real setup.
 # jobs = {
 #   "ingest-something" = {
 #     service_account = "FILL_IN-runtime-sa@FILL_IN-project.iam.gserviceaccount.com"

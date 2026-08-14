@@ -14,25 +14,16 @@ provider "google" {
   region  = var.region
 }
 
-# Composes tfvars values into the full jobs map (per-legislature vote jobs,
-# shared plumbing) — pure transformation, no resources.
-module "ingestion_jobs" {
-  source = "../../modules/ingestion_jobs"
-
-  jobs               = var.jobs
-  job_defaults       = var.ingestion_job_defaults
-  env_common         = var.ingestion_env_common
-  secret_env_common  = var.ingestion_secret_env_common
-  aw_legislature_ids = var.aw_legislature_ids
-}
-
 module "app" {
   source = "../../modules/app"
 
-  project_id           = var.project_id
-  region               = var.region
-  services             = var.services
-  jobs                 = module.ingestion_jobs.jobs
-  bootstrap_secret_ids = var.bootstrap_secret_ids
-  manage_iam           = var.manage_iam
+  project_id                  = var.project_id
+  region                      = var.region
+  services                    = var.services
+  jobs                        = var.jobs
+  ingestion_job_defaults      = var.ingestion_job_defaults
+  ingestion_env_common        = var.ingestion_env_common
+  ingestion_secret_env_common = var.ingestion_secret_env_common
+  bootstrap_secret_ids        = var.bootstrap_secret_ids
+  manage_iam                  = var.manage_iam
 }

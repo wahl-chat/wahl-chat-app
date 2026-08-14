@@ -18,10 +18,12 @@ Firestore-export / eventarc byproducts and are not managed here.
 
 ```text
 infra/
-  modules/app/             one reusable module, one file per concern
-  modules/ingestion_jobs/  pure composition (no resources): tfvars → complete jobs map
-  envs/dev/                thin root: provider + GCS backend + terraform.tfvars → modules
-  envs/prod/               same, for the prod project
+  modules/app/     ONE reusable module, one file per concern (services in cloud_run_app.tf,
+                   jobs+scheduler in cloud_run_ingestion.tf, secrets, registry, APIs —
+                   jobs and services share secrets, so they deliberately live together;
+                   job composition = local.jobs in cloud_run_ingestion.tf)
+  envs/dev/        thin root: provider + GCS backend + terraform.tfvars → module "app"
+  envs/prod/       same, for the prod project
 ```
 
 Each env root has its own remote state, so an apply targets exactly one project — prod
@@ -96,11 +98,13 @@ off are the design — never raise timeouts to "finish" a backfill.
 
 Job specifics worth knowing (full rationale in `envs/dev/terraform.tfvars` comments):
 
-- `abgeordnetenwatch_votes` reads exactly one `AW_LEGISLATURE_ID` per process, so
-  `modules/ingestion_jobs` generates one daily job per Bundestag id in `aw_legislature_ids`
-  (keep in sync with `FEDERAL_LEGISLATURE_IDS` in `legislature_config.py`). Landtag
-  legislatures are not scheduled — `make run-all-landtage-votes` on demand. Collapsing the
-  vote jobs into one requires app-side task sharding first (CLOUD_RUN_TASK_INDEX → id).
+- `abgeordnetenwatch_votes` reads exactly one `AW_LEGISLATURE_ID` per process, so the two
+  vote jobs run **sharded**: N Cloud Run tasks per execution, each resolving its id at
+  runtime from `legislature_config.py` via `AW_LEGISLATURE_SET` (`federal`/`landtag`) +
+  `CLOUD_RUN_TASK_INDEX` (`resolve_aw_legislature_shard` in `run.py`). No legislature ids
+  live in infra — a newly configured period is covered on the next run. `task_count` is
+  over-provisioned (spare tasks exit 0); if the config outgrows it the last task logs a
+  loud ERROR — then raise `task_count` in tfvars. Keep `parallelism` low (shared AW API).
 - The speech pair runs as ONE sequential job (`CONNECTOR_ID = "bundestag_speeches,openparliament_tv"`)
   — their must-never-overlap invariant is structural, do not split them into two schedules.
 - Deployed jobs set `ELECTION_FIXTURES_SOURCE=firestore` and (uploads only)
@@ -111,8 +115,8 @@ Job specifics worth knowing (full rationale in `envs/dev/terraform.tfvars` comme
   built image after promoting the service. Until that first build lands, a job execution runs
   the placeholder and does nothing. (Terraform *could* own the image ECS-style instead — kept
   with the pipeline so the existing canary/smoke-test deploy stays the single image authority.)
-- Prod schedules start `paused = true`; unpause only after the prod corpus is seeded and a manual
-  `gcloud run jobs execute <job> --wait` run has been verified per job.
+- Prod schedules start `paused = true`; the prod corpus is live, so unpause per job only after
+  one verified manual `gcloud run jobs execute <job> --wait` run.
 
 ## Applying with editor-only credentials
 

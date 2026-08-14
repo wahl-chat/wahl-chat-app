@@ -131,16 +131,39 @@ ingestion_secret_env_common = {
   OPENAI_API_KEY = "wahl-chat-backend-dev-openai-api-key"
 }
 
-# Daily Bundestag vote jobs, one per legislature id (the connector reads exactly one
-# AW_LEGISLATURE_ID per process — see modules/ingestion_jobs/main.tf). Keep in sync
-# with FEDERAL_LEGISLATURE_IDS (current + prior term) in legislature_config.py.
-# Landtag legislatures are NOT scheduled; run `make run-all-landtage-votes` on demand.
-# AW_API_KEY is deliberately NOT wired: the connector runs keyless; add a real
-# key as a secret only if rate limiting bites (a bootstrap sentinel would be
-# sent as a credential and break requests).
-aw_legislature_ids = [132, 161]
-
 jobs = {
+  # AW votes run as SHARDED jobs: no legislature ids live in infra — each Cloud Run
+  # task resolves its AW_LEGISLATURE_ID from legislature_config.py at runtime
+  # (AW_LEGISLATURE_SET + CLOUD_RUN_TASK_INDEX, see run.py), so newly configured
+  # legislature periods are covered on the next scheduled run. task_count is
+  # over-provisioned (spare tasks exit 0 in seconds); if the config ever outgrows
+  # it, the last task logs a loud ERROR. parallelism stays low — the AW API is
+  # shared and rate-limited (the connector runs keyless; wire AW_API_KEY as a
+  # secret only if a real key exists — a bootstrap sentinel would be sent as a
+  # credential and break requests).
+
+  # Bundestag (current + prior term): daily.
+  "ingest-aw-votes-bund" = {
+    env = {
+      CONNECTOR_ID       = "abgeordnetenwatch_votes"
+      AW_LEGISLATURE_SET = "federal"
+    }
+    task_count  = 4
+    parallelism = 2
+    schedule    = "0 4 * * *"
+  }
+
+  # All configured Landtag legislatures: daily.
+  "ingest-aw-votes-laender" = {
+    env = {
+      CONNECTOR_ID       = "abgeordnetenwatch_votes"
+      AW_LEGISLATURE_SET = "landtag"
+    }
+    task_count  = 48
+    parallelism = 3
+    schedule    = "30 4 * * *"
+  }
+
   # DIP speeches then op.tv video speeches, sequentially in ONE process — their
   # must-never-overlap invariant is structural (run.py comma dispatch).
   "ingest-speeches" = {

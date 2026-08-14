@@ -7,13 +7,14 @@
 # the real value is added once, out of band, with `gcloud secrets versions add`. Existing
 # secrets are imported and their live versions are left untouched.
 #
-# Cloud Run resolves each secret at `version = "latest"` (see cloud_run.tf), so rotation
+# Cloud Run resolves each secret at `version = "latest"` (see cloud_run_app.tf), so rotation
 # is `gcloud secrets versions add` + redeploy — no Terraform run.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 locals {
   # Services and jobs share the secret_env contract; union them for secret handling.
-  secret_env_holders = concat(values(var.services), values(var.jobs))
+  # local.jobs (not var.jobs): the composed map including secret_env_common.
+  secret_env_holders = concat(values(var.services), values(local.jobs))
 
   # Distinct secret ids referenced by any service's or job's secret_env.
   referenced_secret_ids = toset(flatten([
