@@ -45,7 +45,3 @@ variable "ingestion_secret_env_common" {
   default = {}
 }
 
-variable "aw_legislature_ids" {
-  type    = list(number)
-  default = []
-}

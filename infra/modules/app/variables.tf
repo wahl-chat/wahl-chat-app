@@ -58,28 +58,40 @@ variable "bootstrap_secret_ids" {
 }
 
 # ── Cloud Run ingestion jobs ────────────────────────────────────────────────
-# Keyed by job name. Same env/secret_env contract as var.services. The image's
+# Keyed by job name; same env/secret_env contract as var.services. The image's
 # entrypoint dispatches on CONNECTOR_ID (ai-backend/docker-entrypoint.sh): set it in
 # `env` and the container runs `python -m src.ingestion.run`; `args` are forwarded to
 # the runner (e.g. --batch-size, --time-budget SECONDS). A non-null `schedule` (cron)
 # creates a Cloud Scheduler trigger that executes the job.
+#
+# Entries are composed with the ingestion_* variables below (tfvars is literal-only,
+# so the shared plumbing is merged here, once — see local.jobs in cloud_run_ingestion.tf,
+# where local.job_base documents every attribute and its fallback). Loosely typed on
+# purpose: a strict optional() schema would materialize its defaults BEFORE that merge
+# and silently override ingestion_job_defaults (e.g. a paused=true default would lose
+# to the type-level false).
 variable "jobs" {
-  description = "Cloud Run jobs to manage, keyed by job name."
-  type = map(object({
-    service_account = string
-    image           = optional(string, "us-docker.pkg.dev/cloudrun/container/hello")
-    cpu             = optional(string, "1")
-    memory          = optional(string, "1Gi")
-    timeout_seconds = optional(number, 900) # per-execution cap; pair with a --time-budget arg below it
-    max_retries     = optional(number, 1)   # runs are cursor-resumable, so retries are cheap but rarely needed
-    args            = optional(list(string), [])
-    env             = optional(map(string), {})
-    secret_env      = optional(map(string), {})
-    schedule        = optional(string) # cron, or null for manually-executed only
-    time_zone       = optional(string, "Europe/Berlin")
-    paused          = optional(bool, false)
-  }))
-  default = {}
+  description = "Cloud Run jobs to manage, keyed by job name; composed with ingestion_job_defaults/env_common/secret_env_common."
+  type        = any
+  default     = {}
+}
+
+variable "ingestion_job_defaults" {
+  description = "Shared job plumbing merged into every job: runtime SA, resources, runner args, paused. service_account must come from here or the job entry."
+  type        = any
+  default     = {}
+}
+
+variable "ingestion_env_common" {
+  description = "Env vars merged into every job's env (store + embedding config)."
+  type        = map(string)
+  default     = {}
+}
+
+variable "ingestion_secret_env_common" {
+  description = "Secret refs merged into every job's secret_env (store + embedding credentials)."
+  type        = map(string)
+  default     = {}
 }
 
 # The basic Editor role cannot create IAM bindings (no *.setIamPolicy), which blocks
