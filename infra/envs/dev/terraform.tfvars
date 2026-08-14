@@ -131,15 +131,14 @@ ingestion_secret_env_common = {
   OPENAI_API_KEY = "wahl-chat-backend-dev-openai-api-key"
 }
 
-# One vote job per legislature id (the connector requires an explicit
-# AW_LEGISLATURE_ID per process). Keep in sync with legislature_config.py:
-# daily = FEDERAL_LEGISLATURE_IDS (current + prior Bundestag),
-# weekly = LANDTAG_LEGISLATURE_IDS.
+# Daily Bundestag vote jobs, one per legislature id (the connector reads exactly one
+# AW_LEGISLATURE_ID per process — see modules/ingestion_jobs/main.tf). Keep in sync
+# with FEDERAL_LEGISLATURE_IDS (current + prior term) in legislature_config.py.
+# Landtag legislatures are NOT scheduled; run `make run-all-landtage-votes` on demand.
 # AW_API_KEY is deliberately NOT wired: the connector runs keyless; add a real
 # key as a secret only if rate limiting bites (a bootstrap sentinel would be
 # sent as a credential and break requests).
-aw_daily_legislature_ids  = [132, 161]
-aw_weekly_legislature_ids = [133, 107, 162, 122, 139, 109, 165, 126, 105, 166, 127, 131, 114, 134, 108, 146, 118, 150, 116, 143, 112, 149, 115, 137, 113, 156, 121, 158, 120, 157, 119, 138, 110]
+aw_legislature_ids = [132, 161]
 
 jobs = {
   # DIP speeches then op.tv video speeches, sequentially in ONE process — their
