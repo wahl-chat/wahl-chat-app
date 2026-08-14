@@ -6,23 +6,23 @@
   },
   "proposed_questions/cdu/questions/question_2": {
     "location": "chat",
-    "topic": "Verkehr",
-    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+    "topic": "Sicherheit",
+    "content": "Was wollt ihr gegen Gewaltkriminalität in Berlin tun?"
   },
   "proposed_questions/cdu/questions/question_3": {
     "location": "chat",
     "topic": "Verwaltung",
-    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+    "content": "Wie wollt ihr die Berliner Verwaltung schneller machen?"
   },
   "proposed_questions/cdu/questions/question_4": {
     "location": "chat",
-    "topic": "Sicherheit",
-    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+    "topic": "Verkehr",
+    "content": "Wie wollt ihr den ÖPNV in Berlin zuverlässiger machen?"
   },
   "proposed_questions/cdu/questions/question_5": {
     "location": "chat",
     "topic": "Bildung",
-    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+    "content": "Wie wollt ihr den Sanierungsstau an Berliner Schulen abbauen?"
   },
   "proposed_questions/spd/questions/question_1": {
     "location": "chat",
@@ -31,23 +31,23 @@
   },
   "proposed_questions/spd/questions/question_2": {
     "location": "chat",
-    "topic": "Verkehr",
-    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+    "topic": "Sicherheit",
+    "content": "Was wollt ihr gegen Gewaltkriminalität in Berlin tun?"
   },
   "proposed_questions/spd/questions/question_3": {
     "location": "chat",
     "topic": "Verwaltung",
-    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+    "content": "Wie wollt ihr die Berliner Verwaltung schneller machen?"
   },
   "proposed_questions/spd/questions/question_4": {
     "location": "chat",
-    "topic": "Sicherheit",
-    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+    "topic": "Verkehr",
+    "content": "Wie wollt ihr den ÖPNV in Berlin zuverlässiger machen?"
   },
   "proposed_questions/spd/questions/question_5": {
     "location": "chat",
     "topic": "Bildung",
-    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+    "content": "Wie wollt ihr den Sanierungsstau an Berliner Schulen abbauen?"
   },
   "proposed_questions/gruene/questions/question_1": {
     "location": "chat",
@@ -56,23 +56,23 @@
   },
   "proposed_questions/gruene/questions/question_2": {
     "location": "chat",
-    "topic": "Verkehr",
-    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+    "topic": "Sicherheit",
+    "content": "Was wollt ihr gegen Gewaltkriminalität in Berlin tun?"
   },
   "proposed_questions/gruene/questions/question_3": {
     "location": "chat",
     "topic": "Verwaltung",
-    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+    "content": "Wie wollt ihr die Berliner Verwaltung schneller machen?"
   },
   "proposed_questions/gruene/questions/question_4": {
     "location": "chat",
-    "topic": "Sicherheit",
-    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+    "topic": "Verkehr",
+    "content": "Wie wollt ihr den ÖPNV in Berlin zuverlässiger machen?"
   },
   "proposed_questions/gruene/questions/question_5": {
     "location": "chat",
     "topic": "Bildung",
-    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+    "content": "Wie wollt ihr den Sanierungsstau an Berliner Schulen abbauen?"
   },
   "proposed_questions/linke/questions/question_1": {
     "location": "chat",
@@ -81,23 +81,23 @@
   },
   "proposed_questions/linke/questions/question_2": {
     "location": "chat",
-    "topic": "Verkehr",
-    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+    "topic": "Sicherheit",
+    "content": "Was wollt ihr gegen Gewaltkriminalität in Berlin tun?"
   },
   "proposed_questions/linke/questions/question_3": {
     "location": "chat",
     "topic": "Verwaltung",
-    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+    "content": "Wie wollt ihr die Berliner Verwaltung schneller machen?"
   },
   "proposed_questions/linke/questions/question_4": {
     "location": "chat",
-    "topic": "Sicherheit",
-    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+    "topic": "Verkehr",
+    "content": "Wie wollt ihr den ÖPNV in Berlin zuverlässiger machen?"
   },
   "proposed_questions/linke/questions/question_5": {
     "location": "chat",
     "topic": "Bildung",
-    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+    "content": "Wie wollt ihr den Sanierungsstau an Berliner Schulen abbauen?"
   },
   "proposed_questions/afd/questions/question_1": {
     "location": "chat",
@@ -106,23 +106,23 @@
   },
   "proposed_questions/afd/questions/question_2": {
     "location": "chat",
-    "topic": "Verkehr",
-    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+    "topic": "Sicherheit",
+    "content": "Was wollt ihr gegen Gewaltkriminalität in Berlin tun?"
   },
   "proposed_questions/afd/questions/question_3": {
     "location": "chat",
     "topic": "Verwaltung",
-    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+    "content": "Wie wollt ihr die Berliner Verwaltung schneller machen?"
   },
   "proposed_questions/afd/questions/question_4": {
     "location": "chat",
-    "topic": "Sicherheit",
-    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+    "topic": "Verkehr",
+    "content": "Wie wollt ihr den ÖPNV in Berlin zuverlässiger machen?"
   },
   "proposed_questions/afd/questions/question_5": {
     "location": "chat",
     "topic": "Bildung",
-    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+    "content": "Wie wollt ihr den Sanierungsstau an Berliner Schulen abbauen?"
   },
   "proposed_questions/fdp/questions/question_1": {
     "location": "chat",
@@ -131,23 +131,23 @@
   },
   "proposed_questions/fdp/questions/question_2": {
     "location": "chat",
-    "topic": "Verkehr",
-    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+    "topic": "Sicherheit",
+    "content": "Was wollt ihr gegen Gewaltkriminalität in Berlin tun?"
   },
   "proposed_questions/fdp/questions/question_3": {
     "location": "chat",
     "topic": "Verwaltung",
-    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+    "content": "Wie wollt ihr die Berliner Verwaltung schneller machen?"
   },
   "proposed_questions/fdp/questions/question_4": {
     "location": "chat",
-    "topic": "Sicherheit",
-    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+    "topic": "Verkehr",
+    "content": "Wie wollt ihr den ÖPNV in Berlin zuverlässiger machen?"
   },
   "proposed_questions/fdp/questions/question_5": {
     "location": "chat",
     "topic": "Bildung",
-    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+    "content": "Wie wollt ihr den Sanierungsstau an Berliner Schulen abbauen?"
   },
   "proposed_questions/bsw/questions/question_1": {
     "location": "chat",
@@ -156,23 +156,23 @@
   },
   "proposed_questions/bsw/questions/question_2": {
     "location": "chat",
-    "topic": "Verkehr",
-    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+    "topic": "Sicherheit",
+    "content": "Was wollt ihr gegen Gewaltkriminalität in Berlin tun?"
   },
   "proposed_questions/bsw/questions/question_3": {
     "location": "chat",
     "topic": "Verwaltung",
-    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+    "content": "Wie wollt ihr die Berliner Verwaltung schneller machen?"
   },
   "proposed_questions/bsw/questions/question_4": {
     "location": "chat",
-    "topic": "Sicherheit",
-    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+    "topic": "Verkehr",
+    "content": "Wie wollt ihr den ÖPNV in Berlin zuverlässiger machen?"
   },
   "proposed_questions/bsw/questions/question_5": {
     "location": "chat",
     "topic": "Bildung",
-    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+    "content": "Wie wollt ihr den Sanierungsstau an Berliner Schulen abbauen?"
   },
   "proposed_questions/volt/questions/question_1": {
     "location": "chat",
@@ -181,23 +181,23 @@
   },
   "proposed_questions/volt/questions/question_2": {
     "location": "chat",
-    "topic": "Verkehr",
-    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+    "topic": "Sicherheit",
+    "content": "Was wollt ihr gegen Gewaltkriminalität in Berlin tun?"
   },
   "proposed_questions/volt/questions/question_3": {
     "location": "chat",
     "topic": "Verwaltung",
-    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+    "content": "Wie wollt ihr die Berliner Verwaltung schneller machen?"
   },
   "proposed_questions/volt/questions/question_4": {
     "location": "chat",
-    "topic": "Sicherheit",
-    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+    "topic": "Verkehr",
+    "content": "Wie wollt ihr den ÖPNV in Berlin zuverlässiger machen?"
   },
   "proposed_questions/volt/questions/question_5": {
     "location": "chat",
     "topic": "Bildung",
-    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+    "content": "Wie wollt ihr den Sanierungsstau an Berliner Schulen abbauen?"
   },
   "proposed_questions/tierschutzpartei/questions/question_1": {
     "location": "chat",
@@ -206,23 +206,23 @@
   },
   "proposed_questions/tierschutzpartei/questions/question_2": {
     "location": "chat",
-    "topic": "Verkehr",
-    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+    "topic": "Sicherheit",
+    "content": "Was wollt ihr gegen Gewaltkriminalität in Berlin tun?"
   },
   "proposed_questions/tierschutzpartei/questions/question_3": {
     "location": "chat",
     "topic": "Verwaltung",
-    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+    "content": "Wie wollt ihr die Berliner Verwaltung schneller machen?"
   },
   "proposed_questions/tierschutzpartei/questions/question_4": {
     "location": "chat",
-    "topic": "Sicherheit",
-    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+    "topic": "Verkehr",
+    "content": "Wie wollt ihr den ÖPNV in Berlin zuverlässiger machen?"
   },
   "proposed_questions/tierschutzpartei/questions/question_5": {
     "location": "chat",
     "topic": "Bildung",
-    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+    "content": "Wie wollt ihr den Sanierungsstau an Berliner Schulen abbauen?"
   },
   "proposed_questions/oedp/questions/question_1": {
     "location": "chat",
@@ -231,23 +231,23 @@
   },
   "proposed_questions/oedp/questions/question_2": {
     "location": "chat",
-    "topic": "Verkehr",
-    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+    "topic": "Sicherheit",
+    "content": "Was wollt ihr gegen Gewaltkriminalität in Berlin tun?"
   },
   "proposed_questions/oedp/questions/question_3": {
     "location": "chat",
     "topic": "Verwaltung",
-    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+    "content": "Wie wollt ihr die Berliner Verwaltung schneller machen?"
   },
   "proposed_questions/oedp/questions/question_4": {
     "location": "chat",
-    "topic": "Sicherheit",
-    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+    "topic": "Verkehr",
+    "content": "Wie wollt ihr den ÖPNV in Berlin zuverlässiger machen?"
   },
   "proposed_questions/oedp/questions/question_5": {
     "location": "chat",
     "topic": "Bildung",
-    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+    "content": "Wie wollt ihr den Sanierungsstau an Berliner Schulen abbauen?"
   },
   "proposed_questions/die-partei/questions/question_1": {
     "location": "chat",
@@ -256,23 +256,23 @@
   },
   "proposed_questions/die-partei/questions/question_2": {
     "location": "chat",
-    "topic": "Verkehr",
-    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+    "topic": "Sicherheit",
+    "content": "Was wollt ihr gegen Gewaltkriminalität in Berlin tun?"
   },
   "proposed_questions/die-partei/questions/question_3": {
     "location": "chat",
     "topic": "Verwaltung",
-    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+    "content": "Wie wollt ihr die Berliner Verwaltung schneller machen?"
   },
   "proposed_questions/die-partei/questions/question_4": {
     "location": "chat",
-    "topic": "Sicherheit",
-    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+    "topic": "Verkehr",
+    "content": "Wie wollt ihr den ÖPNV in Berlin zuverlässiger machen?"
   },
   "proposed_questions/die-partei/questions/question_5": {
     "location": "chat",
     "topic": "Bildung",
-    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+    "content": "Wie wollt ihr den Sanierungsstau an Berliner Schulen abbauen?"
   },
   "proposed_questions/pdf/questions/question_1": {
     "location": "chat",
@@ -281,23 +281,23 @@
   },
   "proposed_questions/pdf/questions/question_2": {
     "location": "chat",
-    "topic": "Verkehr",
-    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+    "topic": "Sicherheit",
+    "content": "Was wollt ihr gegen Gewaltkriminalität in Berlin tun?"
   },
   "proposed_questions/pdf/questions/question_3": {
     "location": "chat",
     "topic": "Verwaltung",
-    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+    "content": "Wie wollt ihr die Berliner Verwaltung schneller machen?"
   },
   "proposed_questions/pdf/questions/question_4": {
     "location": "chat",
-    "topic": "Sicherheit",
-    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+    "topic": "Verkehr",
+    "content": "Wie wollt ihr den ÖPNV in Berlin zuverlässiger machen?"
   },
   "proposed_questions/pdf/questions/question_5": {
     "location": "chat",
     "topic": "Bildung",
-    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+    "content": "Wie wollt ihr den Sanierungsstau an Berliner Schulen abbauen?"
   },
   "proposed_questions/group/questions/question_1": {
     "location": "chat",
@@ -306,23 +306,23 @@
   },
   "proposed_questions/group/questions/question_2": {
     "location": "chat",
-    "topic": "Verkehr",
-    "content": "Was sind eure Pläne für BVG, S-Bahn und Radverkehr in Berlin?"
+    "topic": "Sicherheit",
+    "content": "Was wollt ihr gegen Gewaltkriminalität in Berlin tun?"
   },
   "proposed_questions/group/questions/question_3": {
     "location": "chat",
     "topic": "Verwaltung",
-    "content": "Wie wollt ihr die Berliner Verwaltung und die Bürgerämter schneller machen?"
+    "content": "Wie wollt ihr die Berliner Verwaltung schneller machen?"
   },
   "proposed_questions/group/questions/question_4": {
     "location": "chat",
-    "topic": "Sicherheit",
-    "content": "Was ist eure Position zu innerer Sicherheit und Kriminalität in Berlin?"
+    "topic": "Verkehr",
+    "content": "Wie wollt ihr den ÖPNV in Berlin zuverlässiger machen?"
   },
   "proposed_questions/group/questions/question_5": {
     "location": "chat",
     "topic": "Bildung",
-    "content": "Wie wollt ihr Schulen und Kitas in Berlin verbessern?"
+    "content": "Wie wollt ihr den Sanierungsstau an Berliner Schulen abbauen?"
   },
   "proposed_questions/wahl-chat/questions/question_1": {
     "topic": "wahl.chat",
