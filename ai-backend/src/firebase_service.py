@@ -2,6 +2,7 @@
 import hashlib
 import logging
 import os
+import re
 import sys
 from typing import Optional
 import firebase_admin
@@ -115,18 +116,20 @@ async def aget_proposed_questions_for_party(party_id: str) -> list[str]:
     return [question.get("content") async for question in questions]
 
 
+_SHA256_HEX = re.compile(r"^[0-9a-f]{64}$")
+
+
 def _sanitize_cache_key(cache_key: str) -> str:
     """Make a cache key safe to use as a Firestore path segment.
 
-    Proposed-question cache keys are raw LLM/user-facing text; a ``/`` inside
-    that text would silently corrupt the Firestore collection path
-    (``cached_answers/{party_id}/{cache_key}``). When the key contains a ``/``
-    it is replaced by its sha256 hex digest. Applied identically on the read
+    Exact-match keys are already SHA-256 hex digests and pass through. Anything
+    else (legacy raw-text keys) is hashed so a slash cannot split the path
+    ``cached_answers/{party_id}/{cache_key}``. Applied identically on the read
     AND write paths so lookups stay consistent.
     """
-    if "/" in cache_key:
-        return hashlib.sha256(cache_key.encode("utf-8")).hexdigest()
-    return cache_key
+    if _SHA256_HEX.fullmatch(cache_key):
+        return cache_key
+    return hashlib.sha256(cache_key.encode("utf-8")).hexdigest()
 
 
 async def aget_cached_answers_for_party(

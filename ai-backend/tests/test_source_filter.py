@@ -342,7 +342,6 @@ def _drive_single_party(
             _make_session(),
             all_available_parties=[],
             use_premium_llms=False,
-            is_proposed_question=False,
             is_cacheable_chat=False,
             region_path=["DE"],
             term_window=term_window,

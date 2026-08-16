@@ -54,7 +54,11 @@ from src.chatbot_async import (
     generate_streaming_chatbot_response,
     generate_streaming_chatbot_comparing_response,
     build_vote_documents,
+    build_party_answer_guidelines,
+    get_rag_context,
+    chat_response_llms,
 )
+from src.answer_cache import build_answer_cache_key
 from src.auth import resolve_user_is_logged_in
 from src.sse import (
     DONE as _DONE,
@@ -93,10 +97,15 @@ from src.models.dtos import (
 from src.embeddings import get_embeddings
 from src.models.context import ContextParty
 from src.models.party import WAHL_CHAT_PARTY
+from src.prompts import (
+    get_wahl_chat_answer_guidelines,
+    party_response_system_prompt_template_str,
+    streaming_party_response_user_prompt_template_str,
+    wahl_chat_response_system_prompt_template_str,
+)
 from src.utils import (
     GENERIC_ERROR_MESSAGE,
     build_chat_history_string,
-    get_chat_history_hash_key,
     sanitize_references,
 )
 
@@ -476,6 +485,63 @@ async def yield_cached_party_response(
     )
 
 
+async def _lookup_cached_party_answer(
+    party: ContextParty,
+    question_for_party: str,
+    conversation_history_str: str,
+    group_chat_session: GroupChatSession,
+    combined_docs: List[Document],
+    *,
+    use_premium_llms: bool,
+    election_level: Optional[str],
+    present_sources: tuple[bool, bool, bool],
+    has_historic: bool,
+    source_filter: Optional[list[str]],
+) -> tuple[str, Optional[CachedResponse]]:
+    """Look up a cross-user cached answer keyed on the exact answer-LLM request.
+
+    Must run AFTER retrieval: ``rag_context`` is part of the key. A hit skips
+    the answer LLM, not RAG. Returns ``(cache_key, cached_or_none)``; ``None``
+    means miss (or the random fill-up slot when fewer than the limit exist).
+    """
+    if party.party_id == WAHL_CHAT_PARTY.party_id:
+        system_prompt_template = wahl_chat_response_system_prompt_template_str
+        answer_guidelines = get_wahl_chat_answer_guidelines()
+    else:
+        system_prompt_template = party_response_system_prompt_template_str
+        answer_guidelines = build_party_answer_guidelines(
+            party.name,
+            election_level=election_level,
+            present_sources=present_sources,
+            has_historic=has_historic,
+            source_filter=source_filter,
+        )
+    cache_key = build_answer_cache_key(
+        question=question_for_party,
+        conversation_history=conversation_history_str,
+        system_prompt_template=system_prompt_template,
+        user_prompt_template=streaming_party_response_user_prompt_template_str,
+        party=party,
+        context_id=group_chat_session.context_id,
+        answer_guidelines=answer_guidelines,
+        rag_context=get_rag_context(combined_docs),
+        llm_size=group_chat_session.chat_response_llm_size,
+        use_premium_llms=use_premium_llms,
+        llms=chat_response_llms,
+    )
+    logger.debug(f"Checking cache for party {party.party_id} with key {cache_key}")
+    existing_cached_answers: List[CachedResponse] = await aget_cached_answers_for_party(
+        party.party_id, cache_key
+    )
+    cached_answer_limit = 1
+    possible_answers: list = (
+        existing_cached_answers + [None]
+        if len(existing_cached_answers) < cached_answer_limit
+        else existing_cached_answers
+    )
+    return cache_key, random.choice(possible_answers)
+
+
 # ---------------------------------------------------------------------------
 # Single-party response stream (replaces fetch_and_emit_party_response)
 # ---------------------------------------------------------------------------
@@ -774,8 +840,6 @@ async def fetch_party_response_stream(
     group_chat_session: GroupChatSession,
     all_available_parties: List[ContextParty],
     use_premium_llms: bool,
-    is_proposed_question: bool = False,
-    is_single_proposed_turn: bool = False,
     is_cacheable_chat: bool = True,
     relevant_docs: Optional[Union[List[Document], Dict[str, List[Document]]]] = None,
     parties_being_compared: Optional[List[ContextParty]] = None,
@@ -819,42 +883,8 @@ async def fetch_party_response_stream(
         # conversation must never set a cache_key: the generated answer is
         # conditioned on user-authored history (special-category data) and
         # would otherwise be replayed cross-user from the party answer cache.
-        if is_cacheable_chat:
-            if is_proposed_question and is_single_proposed_turn:
-                # First-turn proposed question: the effective history is exactly
-                # the single wahl.chat-authored question (server-verified by the
-                # caller BEFORE any assistant turns were appended), so the answer
-                # may be cached under the question key and replayed to other
-                # first-turn users. Requiring the single-turn shape also blocks
-                # cache poisoning via fabricated assistant turns smuggled into
-                # chat_history (first write wins permanently otherwise).
-                cache_key = question_for_party
-            else:
-                # Curated multi-turn conversation: key by the full history hash
-                # so the cached answer only replays for the identical curated
-                # conversation — never under the bare proposed-question key.
-                cache_key = get_chat_history_hash_key(cache_conversation_history_str)
-            logger.debug(
-                f"Checking cache for party {party.party_id} with key {cache_key}"
-            )
-            existing_cached_answers: List[
-                CachedResponse
-            ] = await aget_cached_answers_for_party(party.party_id, cache_key)
-            cached_answer_limit = 1
-            possible_answers: list = (
-                existing_cached_answers + [None]
-                if len(existing_cached_answers) < cached_answer_limit
-                else existing_cached_answers
-            )
-            cached_answer_to_emit = random.choice(possible_answers)
-
-        if cached_answer_to_emit is not None:
-            logger.info(f"Serving cached response for party {party.party_id}")
-            async for event in yield_cached_party_response(
-                party, group_chat_session, cached_answer_to_emit
-            ):
-                yield event
-            return
+        # Lookup itself waits until after RAG: the key includes retrieved
+        # chunks, so a hit skips the answer LLM, not retrieval.
 
         # RAG retrieval
         if not is_comparing_question:
@@ -1054,6 +1084,32 @@ async def fetch_party_response_stream(
             _append_vote_sources(vote_historic)
             _append_speech_sources(speech_historic)
 
+            present_sources = (
+                not manifesto_absent,
+                not votes_absent,
+                len(speech_current) > 0,
+            )
+            if is_cacheable_chat:
+                cache_key, cached_answer_to_emit = await _lookup_cached_party_answer(
+                    party,
+                    question_for_party,
+                    conversation_history_str,
+                    group_chat_session,
+                    combined_docs,
+                    use_premium_llms=use_premium_llms,
+                    election_level=election_level,
+                    present_sources=present_sources,
+                    has_historic=has_historic,
+                    source_filter=source_filter,
+                )
+                if cached_answer_to_emit is not None:
+                    logger.info(f"Serving cached response for party {party.party_id}")
+                    async for event in yield_cached_party_response(
+                        party, group_chat_session, cached_answer_to_emit
+                    ):
+                        yield event
+                    return
+
             sources_dto = SourcesDto(
                 session_id=group_chat_session.session_id,
                 party_id=party.party_id,
@@ -1104,15 +1160,7 @@ async def fetch_party_response_stream(
                 context_id=group_chat_session.context_id,
                 use_premium_llms=use_premium_llms,
                 election_level=election_level,
-                # Positive coverage preamble: name the source types that DO ground
-                # the answer (manifesto / votes / speeches present). Presence mirrors
-                # the buckets that feed combined_docs above; speech_current is the
-                # already-trimmed list.
-                present_sources=(
-                    not manifesto_absent,
-                    not votes_absent,
-                    len(speech_current) > 0,
-                ),
+                present_sources=present_sources,
                 has_historic=has_historic,
                 source_filter=source_filter,
             )
@@ -1679,26 +1727,14 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     user_message.content in proposed_questions
                     or user_message.content in proposed_questions_group
                 )
-                # Server-verified single-turn shape for the proposed-question
-                # cache key: the effective history must be EXACTLY the one
-                # proposed-question user message. Evaluated EAGERLY here (before
-                # any party generator runs and appends assistant turns), so a
-                # client-fabricated history — e.g. [assistant(<injected>),
-                # user(<proposed>)] — can never poison the cross-user cache
-                # under the proposed-question key.
-                is_single_proposed_turn = (
-                    is_proposed_question
-                    and len(chat_history) == 1
-                    and chat_history[0].role == Role.USER
-                )
                 # GDPR cache gate: only curated conversations (proposed-question
                 # first turn + every follow-up chosen from the preceding
                 # assistant message's quick_replies) may be cached by
-                # chat-history hash. Free-text turns carry user-authored
-                # political opinions (GDPR Art. 9 special-category data) and
-                # must never be replayable cross-user. On a first-turn request
-                # this is equivalent to the old `is_beginning_of_chat and not
-                # is_proposed_question` gate; it additionally blocks
+                # exact-match LLM-request key. Free-text turns carry
+                # user-authored political opinions (GDPR Art. 9 special-category
+                # data) and must never be replayable cross-user. On a first-turn
+                # request this is equivalent to the old `is_beginning_of_chat
+                # and not is_proposed_question` gate; it additionally blocks
                 # non-curated follow-ups. Default: NOT cacheable.
                 # Server-authoritative — never trust the client's chat_history
                 # quick_replies (forgeable). First turn uses the server-verified
@@ -1723,8 +1759,6 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                         group_chat_session,
                         all_available_parties=all_parties,
                         use_premium_llms=use_premium_llms,
-                        is_proposed_question=is_proposed_question,
-                        is_single_proposed_turn=is_single_proposed_turn,
                         is_cacheable_chat=group_chat_session.is_cacheable,
                         region_path=region_path,
                         legislature_period_id=legislature_period_id,

@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 
 import src.chat_service as cs
 from src.chat_service import fetch_party_response_stream, process_party
-from src.models.chat import GroupChatSession, Message
+from src.models.chat import CachedResponse, GroupChatSession, Message
 from src.models.context import ContextParty
 from src.models.general import LLMSize
 
@@ -303,7 +303,6 @@ def _drive_single_party(term_window, **stream_kwargs) -> list[str]:
             _make_session(),
             all_available_parties=[],
             use_premium_llms=False,
-            is_proposed_question=False,
             is_cacheable_chat=False,
             region_path=["DE-BW"],
             term_window=term_window,
@@ -851,3 +850,71 @@ def test_cache_eligibility_is_sticky_once_broken() -> None:
         )
         is False
     )
+
+
+def test_cacheable_lookup_runs_after_retrieval(monkeypatch) -> None:
+    """Cache lookup must wait until combined_docs exist, and a hit skips the
+    answer LLM (not RAG)."""
+    order: list[str] = []
+    llm_called = {"n": 0}
+
+    def _rec_two_pass(_query, **_kwargs):
+        order.append("retrieve")
+        return {"current": [], "historic": []}
+
+    async def _get_cached(_party_id: str, _key: str):
+        order.append("cache_lookup")
+        return [
+            CachedResponse(
+                content="cached",
+                sources=[],
+                created_at=datetime.now(timezone.utc),
+            )
+        ]
+
+    async def _mock_llm(*_a, **_k):
+        llm_called["n"] += 1
+
+        async def _gen():
+            return
+            yield  # pragma: no cover
+
+        return _gen()
+
+    async def _cached_yielder(*_a, **_k):
+        order.append("cached_emit")
+        if False:  # pragma: no cover
+            yield ""
+
+    _wire_common_mocks(monkeypatch, {})
+    monkeypatch.setattr(cs, "generate_streaming_chatbot_response", _mock_llm)
+    monkeypatch.setattr(cs, "retrieve_two_pass", _rec_two_pass)
+    monkeypatch.setattr(cs, "aget_cached_answers_for_party", _get_cached)
+    monkeypatch.setattr(cs, "yield_cached_party_response", _cached_yielder)
+
+    tw = (
+        datetime(2021, 1, 1, tzinfo=timezone.utc),
+        datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+
+    async def _run() -> None:
+        async for _ev in fetch_party_response_stream(
+            _make_party(),
+            "conv",
+            "q?",
+            _make_session(),
+            all_available_parties=[],
+            use_premium_llms=False,
+            is_cacheable_chat=True,
+            region_path=["DE-BW"],
+            term_window=tw,
+        ):
+            pass
+
+    asyncio.run(_run())
+
+    assert "retrieve" in order
+    assert "cache_lookup" in order
+    assert order.index("retrieve") < order.index("cache_lookup")
+    assert "cached_emit" in order
+    assert llm_called["n"] == 0

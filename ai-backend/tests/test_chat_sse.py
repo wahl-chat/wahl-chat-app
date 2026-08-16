@@ -244,9 +244,12 @@ async def test_first_turn_proposed_question_is_cached(patch_chat_io, app, monkey
 
     assert payloads[-1] == "[DONE]"
     write_mock.assert_awaited_once()
-    # (party_id, cache_key, cached_answer) — the key is the question text.
+    # (party_id, cache_key, cached_answer) — exact-match SHA-256 of the
+    # answer-LLM request, never the raw question text.
     _party_id, cache_key, _cached = write_mock.await_args.args
-    assert cache_key == _PROPOSED_QUESTION
+    assert cache_key != _PROPOSED_QUESTION
+    assert len(cache_key) == 64
+    assert all(c in "0123456789abcdef" for c in cache_key)
 
 
 # ===========================================================================
