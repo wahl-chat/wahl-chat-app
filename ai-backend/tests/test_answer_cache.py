@@ -8,7 +8,13 @@ from __future__ import annotations
 
 import re
 
-from src.answer_cache import build_answer_cache_key, llm_generation_fingerprint
+from langchain_core.documents import Document
+
+from src.answer_cache import (
+    build_answer_cache_key,
+    canonicalize_rag_context,
+    llm_generation_fingerprint,
+)
 from src.llms import RESPONSE_GENERATION_LLMS, select_streaming_llms
 from src.models.context import ContextParty
 from src.models.general import LLMSize
@@ -103,6 +109,44 @@ def test_rag_context_changes_key() -> None:
     a = build_answer_cache_key(**_key_kwargs(rag_context="chunk-1"))
     b = build_answer_cache_key(**_key_kwargs(rag_context="chunk-2"))
     assert a != b
+
+
+def _chunk(
+    name: str, content: str, *, source_type: str = "party_manifesto"
+) -> Document:
+    return Document(
+        page_content=content,
+        metadata={
+            "document_name": name,
+            "document_publish_date": "2025-01-01",
+            "authority_tier": "authoritative",
+            "source_type": source_type,
+            "url": f"https://example.com/{name}",
+            "page": 1,
+        },
+    )
+
+
+def test_canonical_rag_context_is_order_independent() -> None:
+    """Same sources in a different retrieval rank must produce the same key."""
+    a = [
+        _chunk("prog", "Klimaschutz"),
+        _chunk("rede", "In der Rede", source_type="parliamentary_speech"),
+    ]
+    b = list(reversed(a))
+    assert canonicalize_rag_context(a) == canonicalize_rag_context(b)
+    assert build_answer_cache_key(
+        **_key_kwargs(rag_context=canonicalize_rag_context(a))
+    ) == build_answer_cache_key(**_key_kwargs(rag_context=canonicalize_rag_context(b)))
+
+
+def test_new_rag_source_changes_canonical_context() -> None:
+    """A newly ingested chunk must miss the cache so the answer is regenerated."""
+    previous = [_chunk("prog", "Klimaschutz")]
+    with_new = previous + [
+        _chunk("abstimmung", "Ja-Stimmen", source_type="vote_record")
+    ]
+    assert canonicalize_rag_context(previous) != canonicalize_rag_context(with_new)
 
 
 def test_guidelines_change_key() -> None:

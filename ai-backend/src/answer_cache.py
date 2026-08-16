@@ -10,14 +10,22 @@ retrieved RAG context, and the generation roster (model, temperature, …).
 The clock injected into the live system prompt (``{date}`` / ``{time}``) is
 deliberately omitted so two otherwise-identical requests a minute apart can
 still hit.
+
+Retrieved chunks are part of the key so a later ingestion — a new manifesto
+page, vote, or speech — produces a different key and a freshly generated
+answer, rather than replaying one grounded on a stale corpus snapshot.
+Chunk *order* is canonicalized (sorted by stable document identity) so a
+retrieval-rank reshuffle of the same set still hits.
 """
 
 from __future__ import annotations
 
 import hashlib
 
+from langchain_core.documents import Document
 from langchain_core.language_models.chat_models import BaseChatModel
 
+from src.chatbot_async import get_rag_context
 from src.llms import select_streaming_llms
 from src.models.context import ContextParty
 from src.models.general import LLM, LLMSize
@@ -60,6 +68,32 @@ def llm_generation_fingerprint(
     return "\n".join(parts)
 
 
+def _rag_doc_sort_key(doc: Document) -> tuple[str, ...]:
+    """Stable identity for one retrieved chunk — not retrieval rank."""
+    meta = doc.metadata or {}
+    page = meta.get("page")
+    return (
+        str(meta.get("source_type") or ""),
+        str(meta.get("document_name") or ""),
+        str(meta.get("document_publish_date") or ""),
+        "" if page is None else str(page),
+        str(meta.get("url") or ""),
+        str(meta.get("authority_tier") or ""),
+        doc.page_content,
+    )
+
+
+def canonicalize_rag_context(docs: list[Document]) -> str:
+    """Serialize retrieved chunks in a retrieval-order-independent form.
+
+    Same set of sources → same string, even if HNSW returned them in a
+    different rank order. A new or dropped source changes the set and
+    therefore the cache key, so the next user gets a freshly generated
+    answer grounded on the updated corpus.
+    """
+    return get_rag_context(sorted(docs, key=_rag_doc_sort_key))
+
+
 def build_answer_cache_key(
     *,
     question: str,
@@ -75,6 +109,10 @@ def build_answer_cache_key(
     llms: list[LLM],
 ) -> str:
     """SHA-256 hex digest of the answer-LLM request (clock excluded).
+
+    ``rag_context`` must already be the canonical (order-independent)
+    serialization from ``canonicalize_rag_context`` — included so newly
+    ingested sources miss the cache and get a fresh answer.
 
     Always 64 lowercase hex characters — safe as a Firestore path segment.
     """

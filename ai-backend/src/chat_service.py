@@ -55,10 +55,9 @@ from src.chatbot_async import (
     generate_streaming_chatbot_comparing_response,
     build_vote_documents,
     build_party_answer_guidelines,
-    get_rag_context,
     chat_response_llms,
 )
-from src.answer_cache import build_answer_cache_key
+from src.answer_cache import build_answer_cache_key, canonicalize_rag_context
 from src.auth import resolve_user_is_logged_in
 from src.sse import (
     DONE as _DONE,
@@ -500,9 +499,11 @@ async def _lookup_cached_party_answer(
 ) -> tuple[str, Optional[CachedResponse]]:
     """Look up a cross-user cached answer keyed on the exact answer-LLM request.
 
-    Must run AFTER retrieval: ``rag_context`` is part of the key. A hit skips
-    the answer LLM, not RAG. Returns ``(cache_key, cached_or_none)``; ``None``
-    means miss (or the random fill-up slot when fewer than the limit exist).
+    Must run AFTER retrieval: retrieved chunks are part of the key so a later
+    ingestion (new manifesto / vote / speech) misses and a fresh answer is
+    generated. A hit skips the answer LLM, not RAG. Returns
+    ``(cache_key, cached_or_none)``; ``None`` means miss (or the random
+    fill-up slot when fewer than the limit exist).
     """
     if party.party_id == WAHL_CHAT_PARTY.party_id:
         system_prompt_template = wahl_chat_response_system_prompt_template_str
@@ -524,7 +525,7 @@ async def _lookup_cached_party_answer(
         party=party,
         context_id=group_chat_session.context_id,
         answer_guidelines=answer_guidelines,
-        rag_context=get_rag_context(combined_docs),
+        rag_context=canonicalize_rag_context(combined_docs),
         llm_size=group_chat_session.chat_response_llm_size,
         use_premium_llms=use_premium_llms,
         llms=chat_response_llms,
@@ -883,8 +884,9 @@ async def fetch_party_response_stream(
         # conversation must never set a cache_key: the generated answer is
         # conditioned on user-authored history (special-category data) and
         # would otherwise be replayed cross-user from the party answer cache.
-        # Lookup itself waits until after RAG: the key includes retrieved
-        # chunks, so a hit skips the answer LLM, not retrieval.
+        # Lookup itself waits until after RAG: retrieved chunks are part of
+        # the key so newly ingested sources miss and get a fresh answer. A hit
+        # skips the answer LLM, not retrieval.
 
         # RAG retrieval
         if not is_comparing_question:
