@@ -270,6 +270,12 @@ def ingest(
     qdrant = QdrantClient(
         url=os.getenv("QDRANT_URL", "http://localhost:6333"),
         api_key=os.getenv("QDRANT_API_KEY"),
+        # qdrant-client defaults to httpx's 5s, which is ample against localhost and
+        # far too short for a remote store: one upsert of a few hundred 3072-dim
+        # vectors is multiple MB, and the client aborts mid-upload with "The write
+        # operation timed out". Bandwidth-bound, so it fails the same documents every
+        # run rather than looking flaky.
+        timeout=int(os.getenv("QDRANT_TIMEOUT", "120")),
     )
     embed = get_embeddings(task_type="RETRIEVAL_DOCUMENT")
     check_fingerprint(qdrant, COLLECTION_NAME)
