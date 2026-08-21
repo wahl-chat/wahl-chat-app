@@ -1,4 +1,11 @@
-import { afterEach, describe, expect, setSystemTime, test } from 'bun:test';
+import {
+  afterEach,
+  describe,
+  expect,
+  setSystemTime,
+  spyOn,
+  test,
+} from 'bun:test';
 import { NextRequest } from 'next/server';
 import { DEFAULT_CONTEXT_ID, REGION_CONTEXTS } from './lib/constants';
 import { middleware } from './middleware';
@@ -6,6 +13,38 @@ import { middleware } from './middleware';
 afterEach(() => setSystemTime());
 
 describe('geo routing', () => {
+  test('logs preview geo-routing decisions without request identifiers', async () => {
+    const vercelEnv = process.env.VERCEL_ENV;
+    const info = spyOn(console, 'info').mockImplementation(() => {});
+    process.env.VERCEL_ENV = 'preview';
+
+    try {
+      const request = new NextRequest('https://wahl.chat/', {
+        headers: {
+          'x-vercel-ip-country': 'DE',
+          'x-vercel-ip-country-region': 'BE',
+        },
+      });
+
+      await middleware(request);
+
+      expect(info.mock.calls).toEqual([
+        [
+          '[DEBUG-geo-routing]',
+          {
+            country: 'DE',
+            region: 'BE',
+            contextId: 'abgeordnetenhauswahl-berlin-2026',
+          },
+        ],
+      ]);
+    } finally {
+      info.mockRestore();
+      if (vercelEnv === undefined) delete process.env.VERCEL_ENV;
+      else process.env.VERCEL_ENV = vercelEnv;
+    }
+  });
+
   test('falls back for past elections and keeps upcoming regional contexts', async () => {
     setSystemTime(new Date('2026-08-21T00:00:00Z'));
 

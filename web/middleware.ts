@@ -38,19 +38,19 @@ function isElectionPast(electionDate: string): boolean {
 
 // Get context ID from Vercel geo headers or fallback to default
 function getContextIdFromGeo(request: NextRequest): string {
-  // Only consider German regions for now
   const country = request.headers.get('x-vercel-ip-country');
-  if (country === 'DE') {
-    const region = request.headers.get('x-vercel-ip-country-region');
-    if (region) {
-      const context = REGION_CONTEXTS[region];
-      if (context && !isElectionPast(context.electionDate)) {
-        return context.contextId;
-      }
-    }
+  const region = request.headers.get('x-vercel-ip-country-region');
+  const context = country === 'DE' && region ? REGION_CONTEXTS[region] : null;
+  const contextId =
+    context && !isElectionPast(context.electionDate)
+      ? context.contextId
+      : DEFAULT_CONTEXT_ID;
+
+  if (process.env.VERCEL_ENV === 'preview') {
+    console.info('[DEBUG-geo-routing]', { country, region, contextId });
   }
 
-  return DEFAULT_CONTEXT_ID;
+  return contextId;
 }
 
 // Known context ID patterns (will be validated against actual contexts)
