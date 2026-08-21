@@ -1,0 +1,392 @@
+{
+  "proposed_questions/spd/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Mecklenburg-Vorpommern sichern?"
+  },
+  "proposed_questions/spd/questions/question_2": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/spd/questions/question_3": {
+    "location": "chat",
+    "topic": "Energie",
+    "content": "Wie steht ihr zum Ausbau der Windkraft in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/spd/questions/question_4": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Was wollt ihr gegen den Lehrkräftemangel in Mecklenburg-Vorpommern tun?"
+  },
+  "proposed_questions/spd/questions/question_5": {
+    "location": "chat",
+    "topic": "Lebenshaltung",
+    "content": "Was tut ihr gegen steigende Lebenshaltungskosten in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/afd/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Mecklenburg-Vorpommern sichern?"
+  },
+  "proposed_questions/afd/questions/question_2": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/afd/questions/question_3": {
+    "location": "chat",
+    "topic": "Energie",
+    "content": "Wie steht ihr zum Ausbau der Windkraft in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/afd/questions/question_4": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Was wollt ihr gegen den Lehrkräftemangel in Mecklenburg-Vorpommern tun?"
+  },
+  "proposed_questions/afd/questions/question_5": {
+    "location": "chat",
+    "topic": "Lebenshaltung",
+    "content": "Was tut ihr gegen steigende Lebenshaltungskosten in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/cdu/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Mecklenburg-Vorpommern sichern?"
+  },
+  "proposed_questions/cdu/questions/question_2": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/cdu/questions/question_3": {
+    "location": "chat",
+    "topic": "Energie",
+    "content": "Wie steht ihr zum Ausbau der Windkraft in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/cdu/questions/question_4": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Was wollt ihr gegen den Lehrkräftemangel in Mecklenburg-Vorpommern tun?"
+  },
+  "proposed_questions/cdu/questions/question_5": {
+    "location": "chat",
+    "topic": "Lebenshaltung",
+    "content": "Was tut ihr gegen steigende Lebenshaltungskosten in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/linke/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Mecklenburg-Vorpommern sichern?"
+  },
+  "proposed_questions/linke/questions/question_2": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/linke/questions/question_3": {
+    "location": "chat",
+    "topic": "Energie",
+    "content": "Wie steht ihr zum Ausbau der Windkraft in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/linke/questions/question_4": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Was wollt ihr gegen den Lehrkräftemangel in Mecklenburg-Vorpommern tun?"
+  },
+  "proposed_questions/linke/questions/question_5": {
+    "location": "chat",
+    "topic": "Lebenshaltung",
+    "content": "Was tut ihr gegen steigende Lebenshaltungskosten in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/gruene/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Mecklenburg-Vorpommern sichern?"
+  },
+  "proposed_questions/gruene/questions/question_2": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/gruene/questions/question_3": {
+    "location": "chat",
+    "topic": "Energie",
+    "content": "Wie steht ihr zum Ausbau der Windkraft in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/gruene/questions/question_4": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Was wollt ihr gegen den Lehrkräftemangel in Mecklenburg-Vorpommern tun?"
+  },
+  "proposed_questions/gruene/questions/question_5": {
+    "location": "chat",
+    "topic": "Lebenshaltung",
+    "content": "Was tut ihr gegen steigende Lebenshaltungskosten in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/fdp/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Mecklenburg-Vorpommern sichern?"
+  },
+  "proposed_questions/fdp/questions/question_2": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/fdp/questions/question_3": {
+    "location": "chat",
+    "topic": "Energie",
+    "content": "Wie steht ihr zum Ausbau der Windkraft in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/fdp/questions/question_4": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Was wollt ihr gegen den Lehrkräftemangel in Mecklenburg-Vorpommern tun?"
+  },
+  "proposed_questions/fdp/questions/question_5": {
+    "location": "chat",
+    "topic": "Lebenshaltung",
+    "content": "Was tut ihr gegen steigende Lebenshaltungskosten in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/bsw/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Mecklenburg-Vorpommern sichern?"
+  },
+  "proposed_questions/bsw/questions/question_2": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/bsw/questions/question_3": {
+    "location": "chat",
+    "topic": "Energie",
+    "content": "Wie steht ihr zum Ausbau der Windkraft in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/bsw/questions/question_4": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Was wollt ihr gegen den Lehrkräftemangel in Mecklenburg-Vorpommern tun?"
+  },
+  "proposed_questions/bsw/questions/question_5": {
+    "location": "chat",
+    "topic": "Lebenshaltung",
+    "content": "Was tut ihr gegen steigende Lebenshaltungskosten in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/fw/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Mecklenburg-Vorpommern sichern?"
+  },
+  "proposed_questions/fw/questions/question_2": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/fw/questions/question_3": {
+    "location": "chat",
+    "topic": "Energie",
+    "content": "Wie steht ihr zum Ausbau der Windkraft in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/fw/questions/question_4": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Was wollt ihr gegen den Lehrkräftemangel in Mecklenburg-Vorpommern tun?"
+  },
+  "proposed_questions/fw/questions/question_5": {
+    "location": "chat",
+    "topic": "Lebenshaltung",
+    "content": "Was tut ihr gegen steigende Lebenshaltungskosten in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/volt/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Mecklenburg-Vorpommern sichern?"
+  },
+  "proposed_questions/volt/questions/question_2": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/volt/questions/question_3": {
+    "location": "chat",
+    "topic": "Energie",
+    "content": "Wie steht ihr zum Ausbau der Windkraft in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/volt/questions/question_4": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Was wollt ihr gegen den Lehrkräftemangel in Mecklenburg-Vorpommern tun?"
+  },
+  "proposed_questions/volt/questions/question_5": {
+    "location": "chat",
+    "topic": "Lebenshaltung",
+    "content": "Was tut ihr gegen steigende Lebenshaltungskosten in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/tierschutzpartei/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Mecklenburg-Vorpommern sichern?"
+  },
+  "proposed_questions/tierschutzpartei/questions/question_2": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/tierschutzpartei/questions/question_3": {
+    "location": "chat",
+    "topic": "Energie",
+    "content": "Wie steht ihr zum Ausbau der Windkraft in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/tierschutzpartei/questions/question_4": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Was wollt ihr gegen den Lehrkräftemangel in Mecklenburg-Vorpommern tun?"
+  },
+  "proposed_questions/tierschutzpartei/questions/question_5": {
+    "location": "chat",
+    "topic": "Lebenshaltung",
+    "content": "Was tut ihr gegen steigende Lebenshaltungskosten in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/piraten/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Mecklenburg-Vorpommern sichern?"
+  },
+  "proposed_questions/piraten/questions/question_2": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/piraten/questions/question_3": {
+    "location": "chat",
+    "topic": "Energie",
+    "content": "Wie steht ihr zum Ausbau der Windkraft in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/piraten/questions/question_4": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Was wollt ihr gegen den Lehrkräftemangel in Mecklenburg-Vorpommern tun?"
+  },
+  "proposed_questions/piraten/questions/question_5": {
+    "location": "chat",
+    "topic": "Lebenshaltung",
+    "content": "Was tut ihr gegen steigende Lebenshaltungskosten in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/pdf/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Mecklenburg-Vorpommern sichern?"
+  },
+  "proposed_questions/pdf/questions/question_2": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/pdf/questions/question_3": {
+    "location": "chat",
+    "topic": "Energie",
+    "content": "Wie steht ihr zum Ausbau der Windkraft in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/pdf/questions/question_4": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Was wollt ihr gegen den Lehrkräftemangel in Mecklenburg-Vorpommern tun?"
+  },
+  "proposed_questions/pdf/questions/question_5": {
+    "location": "chat",
+    "topic": "Lebenshaltung",
+    "content": "Was tut ihr gegen steigende Lebenshaltungskosten in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/hpd/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Mecklenburg-Vorpommern sichern?"
+  },
+  "proposed_questions/hpd/questions/question_2": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/hpd/questions/question_3": {
+    "location": "chat",
+    "topic": "Energie",
+    "content": "Wie steht ihr zum Ausbau der Windkraft in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/hpd/questions/question_4": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Was wollt ihr gegen den Lehrkräftemangel in Mecklenburg-Vorpommern tun?"
+  },
+  "proposed_questions/hpd/questions/question_5": {
+    "location": "chat",
+    "topic": "Lebenshaltung",
+    "content": "Was tut ihr gegen steigende Lebenshaltungskosten in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/kpd/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Mecklenburg-Vorpommern sichern?"
+  },
+  "proposed_questions/kpd/questions/question_2": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/kpd/questions/question_3": {
+    "location": "chat",
+    "topic": "Energie",
+    "content": "Wie steht ihr zum Ausbau der Windkraft in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/kpd/questions/question_4": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Was wollt ihr gegen den Lehrkräftemangel in Mecklenburg-Vorpommern tun?"
+  },
+  "proposed_questions/kpd/questions/question_5": {
+    "location": "chat",
+    "topic": "Lebenshaltung",
+    "content": "Was tut ihr gegen steigende Lebenshaltungskosten in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/group/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Mecklenburg-Vorpommern sichern?"
+  },
+  "proposed_questions/group/questions/question_2": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/group/questions/question_3": {
+    "location": "chat",
+    "topic": "Energie",
+    "content": "Wie steht ihr zum Ausbau der Windkraft in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/group/questions/question_4": {
+    "location": "chat",
+    "topic": "Bildung",
+    "content": "Was wollt ihr gegen den Lehrkräftemangel in Mecklenburg-Vorpommern tun?"
+  },
+  "proposed_questions/group/questions/question_5": {
+    "location": "chat",
+    "topic": "Lebenshaltung",
+    "content": "Was tut ihr gegen steigende Lebenshaltungskosten in Mecklenburg-Vorpommern?"
+  },
+  "proposed_questions/wahl-chat/questions/question_1": {
+    "topic": "wahl.chat",
+    "location": "chat",
+    "content": "Was kann ich fragen?"
+  },
+  "proposed_questions/wahl-chat/questions/question_2": {
+    "topic": "wahl.chat",
+    "location": "chat",
+    "content": "Kann ich mehrere Parteien miteinander vergleichen?"
+  },
+  "proposed_questions/wahl-chat/questions/question_3": {
+    "topic": "wahl.chat",
+    "location": "chat",
+    "content": "Wie entstehen die Antworten?"
+  }
+}

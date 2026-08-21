@@ -299,6 +299,31 @@
     "topic": "Migration",
     "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
   },
+  "proposed_questions/volt/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Sachsen-Anhalt sichern?"
+  },
+  "proposed_questions/volt/questions/question_2": {
+    "location": "chat",
+    "topic": "Löhne",
+    "content": "Was tut ihr gegen niedrige Löhne in Sachsen-Anhalt?"
+  },
+  "proposed_questions/volt/questions/question_3": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für Verkehr und ÖPNV im ländlichen Sachsen-Anhalt?"
+  },
+  "proposed_questions/volt/questions/question_4": {
+    "location": "chat",
+    "topic": "Digitalisierung",
+    "content": "Wie wollt ihr schnelles Internet und Mobilfunk in Sachsen-Anhalt ausbauen?"
+  },
+  "proposed_questions/volt/questions/question_5": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
+  },
   "proposed_questions/group/questions/question_1": {
     "location": "chat",
     "topic": "Wirtschaft",
