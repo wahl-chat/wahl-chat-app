@@ -15,8 +15,10 @@ export const DEFAULT_CONTEXT_ID =
 // DEFAULT_CONTEXT_ID in a single redirect, whereas mapping it to a missing
 // context costs an extra hop via /[contextId]'s redirect.
 export const REGION_TO_CONTEXT: Record<string, string> = {
+  BE: 'abgeordnetenhauswahl-berlin-2026', // Berlin
   BW: 'landtagswahl-baden-wuerttemberg-2026', // Baden-Württemberg
   BY: 'kommunalwahl-muenchen-2026', // Bayern
+  MV: 'landtagswahl-mecklenburg-vorpommern-2026', // Mecklenburg-Vorpommern
   RP: 'landtagswahl-rheinland-pfalz-2026', // Rheinland-Pfalz
   ST: 'landtagswahl-sachsen-anhalt-2026', // Sachsen-Anhalt
 };

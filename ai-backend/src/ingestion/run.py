@@ -814,7 +814,12 @@ if __name__ == "__main__":
     # -----------------------------------------------------------------------
     try:
         qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
-        _qdrant = QdrantClient(url=qdrant_url, api_key=os.getenv("QDRANT_API_KEY"))
+        # See bulk.py: the 5s httpx default aborts multi-MB upserts to a remote store.
+        _qdrant = QdrantClient(
+            url=qdrant_url,
+            api_key=os.getenv("QDRANT_API_KEY"),
+            timeout=int(os.getenv("QDRANT_TIMEOUT", "120")),
+        )
         # Corpus passages → RETRIEVAL_DOCUMENT (Gemini asymmetric doc/query space;
         # ignored for OpenAI). Must match the RETRIEVAL_QUERY side in retrieve.py.
         _embed = get_embeddings(task_type="RETRIEVAL_DOCUMENT")

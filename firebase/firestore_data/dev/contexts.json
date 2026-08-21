@@ -69,5 +69,43 @@
     ],
     "level": "state",
     "legislature_period_id": 131
+  },
+  "abgeordnetenhauswahl-berlin-2026": {
+    "context_id": "abgeordnetenhauswahl-berlin-2026",
+    "name": "Wahl zum Abgeordnetenhaus von Berlin 2026",
+    "short_name": "AGH BE 26",
+    "type": "election",
+    "date": "2026-09-20",
+    "location_name": "Berlin",
+    "is_active": true,
+    "icon_url": null,
+    "supports_swiper": false,
+    "supports_voting_behavior": false,
+    "relevant_area": "Berlin",
+    "region_path": [
+      "DE",
+      "DE-BE"
+    ],
+    "level": "state",
+    "legislature_period_id": 133
+  },
+  "landtagswahl-mecklenburg-vorpommern-2026": {
+    "context_id": "landtagswahl-mecklenburg-vorpommern-2026",
+    "name": "Landtagswahl Mecklenburg-Vorpommern 2026",
+    "short_name": "LTW MV 26",
+    "type": "election",
+    "date": "2026-09-20",
+    "location_name": "Mecklenburg-Vorpommern",
+    "is_active": true,
+    "icon_url": null,
+    "supports_swiper": false,
+    "supports_voting_behavior": false,
+    "relevant_area": "Mecklenburg-Vorpommern",
+    "region_path": [
+      "DE",
+      "DE-MV"
+    ],
+    "level": "state",
+    "legislature_period_id": 134
   }
 }
