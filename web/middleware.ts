@@ -38,7 +38,7 @@ function isElectionPast(electionDate: string): boolean {
 
 // Get context ID from Vercel geo headers or fallback to default
 function getContextIdFromGeo(request: NextRequest): string {
-  const ip = request.headers.get('x-vercel-forwarded-for');
+  const ip = request.headers.get('x-forwarded-for');
   const country = request.headers.get('x-vercel-ip-country');
   const region = request.headers.get('x-vercel-ip-country-region');
   const context = country === 'DE' && region ? REGION_CONTEXTS[region] : null;

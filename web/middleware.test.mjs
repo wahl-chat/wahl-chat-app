@@ -21,7 +21,7 @@ describe('geo routing', () => {
     try {
       const request = new NextRequest('https://wahl.chat/', {
         headers: {
-          'x-vercel-forwarded-for': '203.0.113.42',
+          'x-forwarded-for': '203.0.113.42',
           'x-vercel-ip-country': 'DE',
           'x-vercel-ip-country-region': 'BE',
         },
