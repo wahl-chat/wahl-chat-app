@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import {
-  CONTEXT_ELECTION_DATES,
   CONTEXT_ID_HEADER,
   DEFAULT_CONTEXT_ID,
-  REGION_TO_CONTEXT,
+  REGION_CONTEXTS,
   TENANT_ID_HEADER,
 } from './lib/constants';
 
@@ -31,10 +30,10 @@ function isStaticPage(pathname: string): boolean {
 
 const ELECTION_PAST_BUFFER_MS = 5 * 24 * 60 * 60 * 1000;
 
-function isElectionPast(contextId: string): boolean {
-  const date = CONTEXT_ELECTION_DATES[contextId];
-  if (!date) return false;
-  return new Date(date).getTime() < Date.now() - ELECTION_PAST_BUFFER_MS;
+function isElectionPast(electionDate: string): boolean {
+  return (
+    new Date(electionDate).getTime() < Date.now() - ELECTION_PAST_BUFFER_MS
+  );
 }
 
 // Get context ID from Vercel geo headers or fallback to default
@@ -43,10 +42,10 @@ function getContextIdFromGeo(request: NextRequest): string {
   const country = request.headers.get('x-vercel-ip-country');
   if (country === 'DE') {
     const region = request.headers.get('x-vercel-ip-country-region');
-    if (region && REGION_TO_CONTEXT[region]) {
-      const contextId = REGION_TO_CONTEXT[region];
-      if (!isElectionPast(contextId)) {
-        return contextId;
+    if (region) {
+      const context = REGION_CONTEXTS[region];
+      if (context && !isElectionPast(context.electionDate)) {
+        return context.contextId;
       }
     }
   }
