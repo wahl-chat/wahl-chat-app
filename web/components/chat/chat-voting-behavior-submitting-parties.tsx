@@ -17,6 +17,13 @@ function ChatVotingBehaviorSubmittingParties({ vote }: Props) {
       .filter((p) => p !== undefined);
   }, [vote.submitting_parties, parties]);
 
+  // No submitter metadata is ingested yet (party_ids is every participating
+  // faction, not the sponsor), so the backend sends an empty list — hide the
+  // section rather than render an empty "Einreichende Partei(en)" header.
+  if (vote.submitting_parties.length === 0) {
+    return null;
+  }
+
   return (
     <>
       <p className="pb-2 pt-4 text-sm font-bold">

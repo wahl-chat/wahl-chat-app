@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -10,6 +10,19 @@ from src.models.general import LLMSize
 from src.models.vote import Vote
 from .chat import Message
 from .context import ContextParty
+
+# ---------------------------------------------------------------------------
+# Input bounds for PUBLIC (unauthenticated) request DTOs. Every field flows
+# into LLM prompts, so an unbounded body is a cost / context-overflow / memory
+# vector; Pydantic rejects oversized input with 422 BEFORE any retrieval or
+# provider call. Sized far above real usage — abuse guards, not UX limits.
+# Pydantic validates only after the body is parsed, so a raw request-body cap
+# at the proxy / ASGI edge is still required in deployment.
+# ---------------------------------------------------------------------------
+MAX_ID_CHARS = 128
+MAX_USER_MESSAGE_CHARS = 4_000
+MAX_ASSISTANT_MESSAGE_CHARS = 40_000
+MAX_HISTORY_MESSAGES = 100
 
 
 class CreateSessionRequest(BaseModel):
@@ -76,14 +89,28 @@ class ChatSessionInitializedDto(BaseModel):
 
 
 class ProConPerspectiveRequestDto(BaseModel):
-    request_id: str = Field(..., description="The ID of the Pro/Con assessment request")
-    party_id: str = Field(
-        ..., description="The ID of the party the user is chatting with"
+    request_id: str = Field(
+        ...,
+        max_length=MAX_ID_CHARS,
+        description="The ID of the Pro/Con assessment request",
     )
-    last_user_message: str = Field(..., description="The last user message")
-    last_assistant_message: str = Field(..., description="The last assistant message")
+    party_id: str = Field(
+        ...,
+        max_length=MAX_ID_CHARS,
+        description="The ID of the party the user is chatting with",
+    )
+    last_user_message: str = Field(
+        ..., max_length=MAX_USER_MESSAGE_CHARS, description="The last user message"
+    )
+    last_assistant_message: str = Field(
+        ...,
+        max_length=MAX_ASSISTANT_MESSAGE_CHARS,
+        description="The last assistant message",
+    )
     context_id: Optional[str] = Field(
-        None, description="The context ID for the political context (e.g., election)"
+        None,
+        max_length=MAX_ID_CHARS,
+        description="The context ID for the political context (e.g., election)",
     )
 
 
@@ -98,30 +125,54 @@ class ProConPerspectiveDto(BaseModel):
 
 
 class VotingBehaviorRequestDto(BaseModel):
-    request_id: str = Field(..., description="The ID of the voting behavior request")
-    party_id: str = Field(
-        ..., description="The ID of the party the user is chatting with"
+    request_id: str = Field(
+        ...,
+        max_length=MAX_ID_CHARS,
+        description="The ID of the voting behavior request",
     )
-    last_user_message: str = Field(..., description="The last user message")
-    last_assistant_message: str = Field(..., description="The last assistant message")
+    party_id: str = Field(
+        ...,
+        max_length=MAX_ID_CHARS,
+        description="The ID of the party the user is chatting with",
+    )
+    context_id: Optional[str] = Field(
+        default=None,
+        max_length=MAX_ID_CHARS,
+        description="Election context id; scopes party lookup and vote retrieval.",
+    )
+    last_user_message: str = Field(
+        ..., max_length=MAX_USER_MESSAGE_CHARS, description="The last user message"
+    )
+    last_assistant_message: str = Field(
+        ...,
+        max_length=MAX_ASSISTANT_MESSAGE_CHARS,
+        description="The last assistant message",
+    )
     summary_llm_size: LLMSize = Field(
         description="The LLM size to use for voting behavior summary generation",
         default=LLMSize.LARGE,
-    )
-    user_is_logged_in: bool = Field(
-        description="Whether the user is logged in or not", default=False
     )
 
 
 class ParliamentaryQuestionRequestDto(BaseModel):
     request_id: str = Field(
-        ..., description="The ID of the parliamentary question request"
+        ...,
+        max_length=MAX_ID_CHARS,
+        description="The ID of the parliamentary question request",
     )
     party_id: str = Field(
-        ..., description="The ID of the party the user is chatting with"
+        ...,
+        max_length=MAX_ID_CHARS,
+        description="The ID of the party the user is chatting with",
     )
-    last_user_message: str = Field(..., description="The last user message")
-    last_assistant_message: str = Field(..., description="The last assistant message")
+    last_user_message: str = Field(
+        ..., max_length=MAX_USER_MESSAGE_CHARS, description="The last user message"
+    )
+    last_assistant_message: str = Field(
+        ...,
+        max_length=MAX_ASSISTANT_MESSAGE_CHARS,
+        description="The last assistant message",
+    )
 
 
 class VotingBehaviorVoteDto(BaseModel):
@@ -175,9 +226,6 @@ class ChatUserMessageDto(BaseModel):
     )
     party_ids: List[str] = Field(
         ..., description="The IDs of the parties that are part of the chat session"
-    )
-    user_is_logged_in: bool = Field(
-        description="Whether the user is logged in or not", default=False
     )
     # Optional audio fields for voice messages
     audio_bytes: Optional[bytes] = Field(
@@ -303,7 +351,9 @@ class QuickRepliesAndTitleDto(BaseModel):
 
 
 class RequestSummaryDto(BaseModel):
-    chat_history: List[Message] = Field(..., description="The chat history")
+    chat_history: List[Message] = Field(
+        ..., max_length=MAX_HISTORY_MESSAGES, description="The chat history"
+    )
 
 
 class SummaryDto(BaseModel):
@@ -312,13 +362,18 @@ class SummaryDto(BaseModel):
 
 
 class WahlChatSwiperAnswerRequestDto(BaseModel):
-    chat_history: List[Message] = Field(..., description="The chat history")
-    current_title: str = Field(..., description="The current chat title")
+    chat_history: List[Message] = Field(
+        ..., max_length=MAX_HISTORY_MESSAGES, description="The chat history"
+    )
+    current_title: str = Field(
+        ..., max_length=500, description="The current chat title"
+    )
     user_message: str = Field(
         ..., description="The user message to answer", max_length=500
     )
     current_political_question: str = Field(
         ...,
+        max_length=1_000,
         description="The current wahl.chat Swiper question which the user is answering",
     )
     chat_response_llm_size: LLMSize = Field(
@@ -345,33 +400,3 @@ class VoiceTranscribedDto(BaseModel):
         default=None, description="Inner ID to correlate request with response"
     )
     transcribed_text: str = Field(..., description="The transcribed text from audio")
-
-
-class TextToSpeechRequestDto(BaseModel):
-    session_id: str = Field(..., description="The ID of the chat session")
-    message_id: str = Field(..., description="The ID of the message to synthesize")
-    party_id: str = Field(
-        ..., description="The ID of the party whose message to synthesize"
-    )
-    voice: str = Field(
-        default="nova",
-        description="OpenAI TTS voice: alloy, echo, fable, onyx, nova, shimmer",
-    )
-
-    @field_validator("session_id")
-    def session_id_must_not_be_empty(cls, value):
-        if not value.strip():
-            raise ValidationError("Session ID cannot be empty or whitespace.")
-        return value
-
-
-class TextToSpeechResponseDto(BaseModel):
-    session_id: str = Field(..., description="The ID of the chat session")
-    message_id: str = Field(
-        ..., description="The ID of the message that was synthesized"
-    )
-    party_id: str = Field(
-        ..., description="The ID of the party whose message was synthesized"
-    )
-    audio_base64: str = Field(..., description="Base64-encoded MP3 audio data")
-    status: Status = Field(..., description="The status of the event")

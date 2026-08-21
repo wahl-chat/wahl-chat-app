@@ -1,0 +1,61 @@
+{
+  "id": "939",
+  "url": "https://www.bundestag.de/parlament/plenum/abstimmung/abstimmung?id=939",
+  "date": "2025-03-21",
+  "title": "Entwurf eines Gesetzes zur Modernisierung des Mindestlohngesetzes",
+  "subtitle": "Beschlussempfehlung und Bericht des Ausschusses für Arbeit und Soziales",
+  "detail_text": "Der Deutsche Bundestag hat am 21. März 2025 über den Entwurf eines Gesetzes zur Modernisierung des Mindestlohngesetzes abgestimmt. Die Koalitionsfraktionen stimmten mehrheitlich für den Gesetzentwurf.",
+  "links": [
+    "https://dip.bundestag.de/vorgang/modernisierung-des-mindestlohngesetzes/123456"
+  ],
+  "voting_results": {
+    "overall": {
+      "yes": 412,
+      "no": 205,
+      "abstain": 18,
+      "not_voted": 15
+    },
+    "by_party": [
+      {
+        "party": "SPD",
+        "members": 206,
+        "yes": 198,
+        "no": 0,
+        "abstain": 5,
+        "not_voted": 3
+      },
+      {
+        "party": "CDU/CSU",
+        "members": 197,
+        "yes": 190,
+        "no": 2,
+        "abstain": 3,
+        "not_voted": 2
+      },
+      {
+        "party": "Grüne",
+        "members": 118,
+        "yes": 24,
+        "no": 88,
+        "abstain": 4,
+        "not_voted": 2
+      },
+      {
+        "party": "FDP",
+        "members": 91,
+        "yes": 0,
+        "no": 88,
+        "abstain": 2,
+        "not_voted": 1
+      },
+      {
+        "party": "AfD",
+        "members": 78,
+        "yes": 0,
+        "no": 77,
+        "abstain": 0,
+        "not_voted": 1
+      }
+    ]
+  }
+}

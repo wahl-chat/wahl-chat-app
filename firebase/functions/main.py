@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 2025 wahl.chat
+# SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
@@ -89,6 +89,13 @@ def is_party_pdf_for_vector_store(
 
     Expected path format: public/{context_id}/{party_id}/{filename}
     Example: public/bundestagswahl-2025/spd/wahlprogramm_2025-01-01.pdf
+
+    NOTE: uploaded party manifestos moved to a five-segment layout that carries the
+    document class — public/{context_id}/{wahlprogramme|parteidokumente}/{party_id}/
+    {name}_{date}.pdf — and therefore no longer matches this trigger. That is
+    deliberate: those documents are ingested by the ai-backend manifesto_uploads
+    connector into Qdrant, the single vector store. Widen the length check here only
+    if this legacy path is still meant to index them too.
     """
     # Make sure the file is in the public subdirectory
     if not name.startswith("public/"):

@@ -1,0 +1,201 @@
+{
+  "spd": {
+    "01-wahlprogramm-spd-sachsen-anhalt-2026-2026-06-01": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-06-01",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-sachsen-anhalt-2026/wahlprogramme/spd/Wahlprogramm-SPD-Sachsen-Anhalt-2026_2026-06-01.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Sachsen-Anhalt (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/sachsen-anhalt"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "cdu": {
+    "01-regierungsprogramm-entwurf-cdu-sachsen-anhalt-2026-2026-03-24": {
+      "name": "Regierungsprogramm Landtagswahl 2026 (Entwurf)",
+      "publish_date": "2026-03-24",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-sachsen-anhalt-2026/wahlprogramme/cdu/Regierungsprogramm-Entwurf-CDU-Sachsen-Anhalt-2026_2026-03-24.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Sachsen-Anhalt (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/sachsen-anhalt"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "afd": {
+    "01-regierungsprogramm-entwurf-afd-sachsen-anhalt-2026-2026-03-05": {
+      "name": "Regierungsprogramm Landtagswahl 2026 (Entwurf)",
+      "publish_date": "2026-03-05",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-sachsen-anhalt-2026/wahlprogramme/afd/Regierungsprogramm-Entwurf-AfD-Sachsen-Anhalt-2026_2026-03-05.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Sachsen-Anhalt (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/sachsen-anhalt"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "gruene": {
+    "01-wahlprogramm-gruene-sachsen-anhalt-2026-2026-05-21": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-05-21",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-sachsen-anhalt-2026/wahlprogramme/gruene/Wahlprogramm-Gruene-Sachsen-Anhalt-2026_2026-05-21.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Sachsen-Anhalt (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/sachsen-anhalt"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "linke": {
+    "01-wahlprogramm-linke-sachsen-anhalt-2026-2026-03-19": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-03-19",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-sachsen-anhalt-2026/wahlprogramme/linke/Wahlprogramm-Linke-Sachsen-Anhalt-2026_2026-03-19.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Sachsen-Anhalt (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/sachsen-anhalt"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "fdp": {
+    "01-wahlprogramm-fdp-sachsen-anhalt-2026-2026-06-05": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-06-05",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-sachsen-anhalt-2026/wahlprogramme/fdp/Wahlprogramm-FDP-Sachsen-Anhalt-2026_2026-06-05.pdf"
+    },
+    "02-landtag-votes": {
+      "name": "Abstimmungen im Landtag von Sachsen-Anhalt (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/sachsen-anhalt"
+    },
+    "03-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "04-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "05-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "bsw": {
+    "01-wahlprogramm-bsw-sachsen-anhalt-2026-2026-03-07": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-03-07",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-sachsen-anhalt-2026/wahlprogramme/bsw/Wahlprogramm-BSW-Sachsen-Anhalt-2026_2026-03-07.pdf"
+    },
+    "02-bundestag-votes": {
+      "name": "Abstimmungen im Bundestag (abgeordnetenwatch.de)",
+      "storage_url": "https://www.abgeordnetenwatch.de/bundestag/abstimmungen"
+    },
+    "03-bundestag-speech-videos": {
+      "name": "Reden im Bundestag – Videoaufzeichnungen (openparliament.tv)",
+      "storage_url": "https://de.openparliament.tv"
+    },
+    "04-bundestag-speech-protocols": {
+      "name": "Reden im Bundestag – Plenarprotokolle (dip.bundestag.de)",
+      "storage_url": "https://dip.bundestag.de"
+    }
+  },
+  "fw": {
+    "01-wahlprogramm-freie-waehler-sachsen-anhalt-2026-2026-07-14": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-07-14",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-sachsen-anhalt-2026/wahlprogramme/fw/Wahlprogramm-Freie-Waehler-Sachsen-Anhalt-2026_2026-07-14.pdf"
+    }
+  },
+  "basis": {
+    "01-wahlprogramm-diebasis-sachsen-anhalt-2026-2026-07-08": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-07-08",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-sachsen-anhalt-2026/wahlprogramme/basis/Wahlprogramm-dieBasis-Sachsen-Anhalt-2026_2026-07-08.pdf"
+    }
+  },
+  "volt": {
+    "01-wahlprogramm-volt-sachsen-anhalt-2026-2026-09-06": {
+      "name": "Wahlprogramm Landtagswahl 2026",
+      "publish_date": "2026-09-06",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-sachsen-anhalt-2026/wahlprogramme/volt/Wahlprogramm-Volt-Sachsen-Anhalt-2026_2026-09-06.pdf"
+    }
+  },
+  "tierschutzpartei": {
+    "01-grundsatzprogramm-tierschutzpartei-2026-02-07": {
+      "name": "Grundsatzprogramm",
+      "publish_date": "2026-02-07",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-sachsen-anhalt-2026/parteidokumente/tierschutzpartei/Grundsatzprogramm-Tierschutzpartei_2026-02-07.pdf"
+    }
+  },
+  "pdf": {
+    "01-grundsatzprogramm-pdf-2026-03-21": {
+      "name": "Grundsatzprogramm",
+      "publish_date": "2026-03-21",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-sachsen-anhalt-2026/parteidokumente/pdf/Grundsatzprogramm-PdF_2026-03-21.pdf"
+    }
+  },
+  "gartenpartei": {
+    "01-satzung-gartenpartei-2019-11-30": {
+      "name": "Satzung",
+      "publish_date": "2019-11-30",
+      "storage_url": "https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/public/landtagswahl-sachsen-anhalt-2026/parteidokumente/gartenpartei/Satzung-Gartenpartei_2019-11-30.pdf"
+    }
+  }
+}

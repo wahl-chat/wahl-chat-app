@@ -29,17 +29,12 @@ function isStaticPage(pathname: string): boolean {
   );
 }
 
-// Check if a context's election date is in the past (with a 5-day buffer,
-// matching the same grace period used in the election selector UI)
-const ELECTION_PAST_BUFFER_DAYS = 5;
+const ELECTION_PAST_BUFFER_MS = 5 * 24 * 60 * 60 * 1000;
 
 function isElectionPast(contextId: string): boolean {
   const date = CONTEXT_ELECTION_DATES[contextId];
   if (!date) return false;
-  const electionDate = new Date(date);
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - ELECTION_PAST_BUFFER_DAYS);
-  return electionDate < cutoff;
+  return new Date(date).getTime() < Date.now() - ELECTION_PAST_BUFFER_MS;
 }
 
 // Get context ID from Vercel geo headers or fallback to default
@@ -50,14 +45,12 @@ function getContextIdFromGeo(request: NextRequest): string {
     const region = request.headers.get('x-vercel-ip-country-region');
     if (region && REGION_TO_CONTEXT[region]) {
       const contextId = REGION_TO_CONTEXT[region];
-      // Skip context if its election is already in the past
       if (!isElectionPast(contextId)) {
         return contextId;
       }
     }
   }
 
-  // Fall back to default context (may itself be overridden via env var)
   return DEFAULT_CONTEXT_ID;
 }
 

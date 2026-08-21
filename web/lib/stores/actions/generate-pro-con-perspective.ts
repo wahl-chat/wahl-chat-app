@@ -1,3 +1,4 @@
+import { getAuthHeader } from '@/lib/firebase/firebase';
 import { scrollMessageBottomInView } from '@/lib/scroll-utils';
 import type { StreamingMessage } from '@/lib/socket.types';
 import type {
@@ -11,15 +12,13 @@ export const generateProConPerspective: ChatStoreActionHandlerFor<
 > =
   (get, set) =>
   async (partyId: string, message: MessageItem | StreamingMessage) => {
-    const { chatSessionId, messages, socket } = get();
+    const { chatSessionId, messages, contextId, completeProConPerspective } =
+      get();
 
     if (!chatSessionId) return;
 
-    if (!socket.io?.connected) {
-      toast.error('Socket is not connected');
-
-      return;
-    }
+    // SSE model: no socket connectivity check needed — each request is a
+    // fresh HTTP POST to /api/pro-con.
 
     const indexOfProConPerspectiveMessage = messages.findIndex((m) =>
       m.messages.find((m) => m.id === message.id),
@@ -38,13 +37,100 @@ export const generateProConPerspective: ChatStoreActionHandlerFor<
 
     if (!lastUserMessageBeforeProConPerspective || !message.content) return;
 
-    socket.io?.generateProConPerspective({
-      request_id: message.id,
-      party_id: partyId,
-      last_assistant_message: message.content,
-      last_user_message:
-        lastUserMessageBeforeProConPerspective.messages[0].content,
-    });
+    try {
+      // Use fetch + ReadableStream for the pro-con stream.
+      // Pro-con is NOT a useChat turn — it is a separate SSE stream consumed
+      // directly.
+      const response = await fetch('/api/pro-con', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'text/event-stream',
+          // Firebase ID token when signed in ({} otherwise) — the proxy route
+          // forwards it so the backend can verify auth claims.
+          ...(await getAuthHeader()),
+        },
+        body: JSON.stringify({
+          request_id: message.id,
+          party_id: partyId,
+          last_assistant_message: message.content,
+          last_user_message:
+            lastUserMessageBeforeProConPerspective.messages[0].content,
+          context_id: contextId,
+        }),
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error(`Pro-con request failed: ${response.status}`);
+      }
+
+      // Parse the SSE response via ReadableStream.
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      // Track whether a result ever arrived: the backend error path is
+      // HTTP 200 + an `error` annotation, and a stream can also end without
+      // any result — both must clear the spinner (loading.proConPerspective).
+      let receivedResult = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (payload === '[DONE]') break;
+
+          // v5 UI-message-stream: parse the part and act on data-chat_event
+          // parts (named app events ride inside `data`). finish/finish-step
+          // parts are ignored.
+          let part: Record<string, unknown>;
+          try {
+            part = JSON.parse(payload) as Record<string, unknown>;
+          } catch {
+            continue; // malformed frame — skip
+          }
+          if (part.type !== 'data-chat_event') continue;
+          const annotation = part.data as Record<string, unknown>;
+          if (annotation.type === 'pro_con_result') {
+            receivedResult = true;
+            completeProConPerspective(
+              annotation.request_id as string,
+              annotation.message as MessageItem,
+            );
+          } else if (annotation.type === 'error') {
+            console.error('[pro-con] server error:', annotation.message);
+            toast.error('Fehler beim Laden der Pro/Contra-Perspektive.');
+            // Server-emitted error: stop the spinner (only `catch` cleared it
+            // before, so an HTTP-200 error left it spinning forever).
+            set((state) => {
+              state.loading.proConPerspective = undefined;
+            });
+          }
+        }
+      }
+
+      // Stream ended without a pro_con_result (and without an explicit error
+      // annotation): clear the spinner so it cannot spin forever.
+      if (!receivedResult) {
+        set((state) => {
+          state.loading.proConPerspective = undefined;
+        });
+      }
+    } catch (error) {
+      console.error('[generateProConPerspective] error:', error);
+      toast.error('Fehler beim Laden der Pro/Contra-Perspektive.');
+
+      set((state) => {
+        state.loading.proConPerspective = undefined;
+      });
+      return;
+    }
 
     await new Promise((resolve) => setTimeout(resolve, 10));
 

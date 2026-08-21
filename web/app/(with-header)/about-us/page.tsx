@@ -9,7 +9,6 @@ export const metadata: Metadata = {
   title: 'Über uns',
   description:
     'Das Team hinter wahl.chat – wer wir sind und warum wir Politik interaktiv zugänglich machen.',
-  robots: 'noindex',
 };
 
 function AboutUs() {
@@ -27,7 +26,7 @@ function AboutUs() {
       <section className="space-y-4">
         <p>
           <span className="font-bold [&_a]:underline">
-            Hinter <Link href="http://wahl.chat/">wahl.chat</Link> stehen:{' '}
+            Die Gründer von <Link href="http://wahl.chat/">wahl.chat</Link>:{' '}
             <a href="https://www.linkedin.com/in/sebmai/" target="_blank">
               Sebastian
             </a>
@@ -55,14 +54,44 @@ function AboutUs() {
         </p>
 
         <p>
-          Das Team von wahl.chat stammt aus München und hat sich ursprünglich in
-          Cambridge, UK zur gemeinsamen Forschung an KI zusammengefunden.
-          Mittlerweile sind wir über drei Länder verstreut aber haben weiterhin
-          ein gemeinsames Ziel: Mit wahl.chat möchten wir einen Beitrag zur
-          Demokratie leisten, indem wir Politik leichter zugänglich machen.
-          Basierend auf den Grundsatzprogrammen und Positionspapieren der
-          Parteien ermöglichen wir eine einfache, quellengestützte
-          Informationsmöglichkeit mit der wir politische Bildung neu denken.
+          Die Gründer von wahl.chat stammen aus München und haben sich
+          ursprünglich in Cambridge, UK zur gemeinsamen Forschung an KI
+          zusammengefunden. Mittlerweile sind wir über mehrere Länder verstreut,
+          aber haben weiterhin ein gemeinsames Ziel: Mit wahl.chat möchten wir
+          einen Beitrag zur Demokratie leisten, indem wir Politik leichter
+          zugänglich machen. Basierend auf den Wahlprogrammen, Plenarprotokollen
+          und dem Abstimmungsverhalten der Parteien ermöglichen wir eine
+          einfache, quellengestützte Informationsmöglichkeit mit der wir
+          politische Bildung neu denken.
+        </p>
+        <p>
+          Inzwischen werden wir in der technischen Weiterentwicklung von
+          wahl.chat auch tatkräftig von einem Team aus Studierenden des Vereins
+          <p className="[&_a]:underline">
+            <Link href="https://tum-socialaiclub.de">TUM Social AI</Link>{' '}
+            unterstützt:{' '}
+            <a
+              href="https://www.linkedin.com/in/annika-siefke-424655226/"
+              target="_blank"
+            >
+              Annika
+            </a>
+            ,{' '}
+            <a
+              href="https://www.linkedin.com/in/miquel-camprubi-bonet/"
+              target="_blank"
+            >
+              Miquel
+            </a>
+            ,{' '}
+            <a
+              href="https://www.linkedin.com/in/david-vogenauer/"
+              target="_blank"
+            >
+              David
+            </a>
+            , und Simone.
+          </p>
         </p>
         <p className="[&_a]:underline">
           Zudem bedanken wir uns für ihre Unterstützung bei:{' '}

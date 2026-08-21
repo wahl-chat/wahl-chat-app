@@ -19,5 +19,19 @@
   ],
   "storage": {
     "rules": "storage.rules"
+  },
+  "emulators": {
+    "firestore": {
+      "host": "0.0.0.0",
+      "port": 8081
+    },
+    "auth": {
+      "host": "0.0.0.0",
+      "port": 9099
+    },
+    "ui": {
+      "enabled": false
+    },
+    "singleProjectMode": true
   }
 }

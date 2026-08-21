@@ -1,7 +1,7 @@
 'use client';
 
-import type { Source } from '@/lib/stores/chat-store.types';
 import type { ProlificMetadata } from '@/lib/prolific-study/prolific-metadata';
+import type { Source } from '@/lib/stores/chat-store.types';
 import { generateUuid } from '@/lib/utils';
 import { createStore } from 'zustand/vanilla';
 

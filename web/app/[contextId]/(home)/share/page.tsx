@@ -11,6 +11,7 @@ import {
 import { InternalReferrers } from '@/lib/internal-referrers';
 import { cn, generateOgImageUrl } from '@/lib/utils';
 import { ArrowLeftIcon } from 'lucide-react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -24,13 +25,19 @@ type Props = {
   }>;
 };
 
-export async function generateMetadata({ searchParams }: Props) {
+export async function generateMetadata({
+  searchParams,
+}: Props): Promise<Metadata> {
+  // Shared chats are user-generated with an unbounded URL space, so every return
+  // path here must opt out of indexing.
+  const noIndex: Metadata = { robots: 'noindex, nofollow' };
+
   const { snapshot_id } = await searchParams;
 
   const snapshot = await getSnapshot(snapshot_id);
 
   if (snapshot.party_ids.length > 1) {
-    return {};
+    return noIndex;
   }
 
   const partyId = snapshot.party_ids[0];
@@ -38,10 +45,11 @@ export async function generateMetadata({ searchParams }: Props) {
   const image = await generateOgImageUrl(partyId);
 
   if (!image) {
-    return {};
+    return noIndex;
   }
 
   return {
+    ...noIndex,
     openGraph: {
       images: [image],
     },

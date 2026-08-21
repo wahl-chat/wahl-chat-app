@@ -2,11 +2,17 @@ import { AnonymousAuthProvider } from '@/components/anonymous-auth';
 import { Toaster } from '@/components/ui/sonner';
 
 import AuthServiceWorkerProvider from '@/components/providers/auth-service-worker-provider';
+import { MediaViewerProvider } from '@/components/providers/media-viewer-provider';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Analytics } from '@vercel/analytics/react';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+// pdf.js text-layer positioning for the citation PDF viewer. Imported here, NOT
+// in the dynamically imported viewer chunk: CSS imported only from a
+// next/dynamic(ssr:false) chunk is dropped in some dev/HMR paths, and without
+// it the text layer flows below the canvas instead of overlaying it.
+import 'react-pdf/dist/esm/Page/TextLayer.css';
 import TenantProvider from '@/components/providers/tenant-provider';
 import { TENANT_ID_HEADER } from '@/lib/constants';
 import { getTenant } from '@/lib/firebase/firebase-admin';
@@ -163,7 +169,7 @@ export default async function RootLayout({
                   enableSystem={!IS_EMBEDDED}
                   disableTransitionOnChange
                 >
-                  {children}
+                  <MediaViewerProvider>{children}</MediaViewerProvider>
                 </ThemeProvider>
                 <Toaster expand duration={1500} position="top-right" />
                 {/* <LoginReminderToast /> */}

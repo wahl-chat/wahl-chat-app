@@ -10,11 +10,11 @@ import {
 import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
 import { Separator } from '@/components/ui/separator';
 import VisuallyHidden from '@/components/visually-hidden';
+import { isProlificStudy } from '@/lib/prolific-study/prolific-metadata';
 import { cn } from '@/lib/utils';
 import { useEffect, useRef, useState } from 'react';
 import WahlSwiperChat from './wahl-swiper-chat';
 import WahlSwiperInput from './wahl-swiper-input';
-import {isProlificStudy} from "@/lib/prolific-study/prolific-metadata";
 
 function WahlSwiperChatWrapper() {
   const shouldShowChat = useWahlSwiperStore(

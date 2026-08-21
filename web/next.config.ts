@@ -17,13 +17,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config: { resolve: { alias: { [key: string]: boolean } } }) => {
-    config.resolve.alias.canvas = false;
-
-    return config;
-  },
 };
 
+// next.config.ts is loaded via Next's CJS shim, so require() is correct here; the
+// ESLint no-require-imports rule (which fires when this file is linted directly, e.g.
+// by lint-staged) does not apply.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 });

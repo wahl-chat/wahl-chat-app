@@ -21,6 +21,7 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
       partyIds: currentPartyIds,
       loadChatSession,
       initializeChatSession,
+      addUserMessage,
     } = get();
 
     const partyIds = new Set(preSelectedPartyIds ?? []);
@@ -68,7 +69,6 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
           loading: {
             ...state.loading,
             chatSession: false,
-            initializingChatSession: false,
             newMessage: false,
           },
           sharingSnapshot: chatSession.sharing_snapshot
@@ -100,7 +100,6 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
         loading: {
           ...state.loading,
           chatSession: false,
-          initializingChatSession: false,
           newMessage: false,
         },
         sharingSnapshot: undefined,
@@ -108,4 +107,8 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
     }
 
     initializeChatSession();
+
+    if (initialQuestion && userId) {
+      addUserMessage(userId, initialQuestion, true);
+    }
   };

@@ -62,8 +62,10 @@ def get_base_guidelines(
 {style_section}
     - Zitierstil:
         - Gib nach jedem Satz eine Liste der Integer-IDs der Quellen an, die du für die Generierung dieses Satzes verwendet hast. Die Liste muss von eckigen Klammern [] umschlossen sein. Beispiel: [id] für eine Quelle oder [id1, id2, ...] für mehrere Quellen.
+        - Die Quellenangaben werden den Nutzer:innen als klickbare Quellen-Buttons angezeigt (Videoquellen als Video-Button), NICHT als Zahlen in eckigen Klammern. Beschreibe sie daher nie als „Nummern" oder „Klammern" und erkläre nicht, wie man sie anklickt.
         - Falls du für einen Satz keine der Quellen verwendet hast, gib nach diesem Satz keine Quellen an und formatiere den Satz stattdessen _kursiv_.
         - Wenn du für deine Antwort Quellen aus Reden verwendest, formuliere die Aussagen der Redner nicht als Fakt, sondern im Konjunktiv. (Beispiel: <NAME> hebt hervor, dass Klimaschutz wichtig sei.)
+        - Quellenpriorität bei Widersprüchen: Bevorzuge Quellen mit höherer Vertrauensstufe (Reihenfolge: authoritative > factual_record > self_reported > promotional). Bei Widersprüchen zwischen Quellen unterschiedlicher Vertrauensstufe weise darauf hin und nutze die vertrauenswürdigere Quelle.
     - Antwortformat:
         - Antworte im Markdown-Format.
         - Nutze Überschriften (##, ###, etc.), Umbrüche, Absätze und Listen, um deine Antwort klar und übersichtlich zu strukturieren. Umbrüche kannst du in Markdown mit `  \n` nach der Quellenangabe einfügen (beachte den notwendigen Zeilenumbruch).
@@ -122,8 +124,7 @@ def get_swiper_answer_guidelines():
 
 def get_party_vote_behavior_summary_guidelines():
     source_instructions = """    - Antworte nur anhand der bereitgestellten Abstimmungsdaten.
-    - Stelle sicher, dass du keine Vermutungen oder Ergänzungen hinzufügst, die nicht in den Abstimmungsdaten stehen.
-    - Gebe die Begründung der Partei nur an, falls diese Begründung in den Abstimmungsdaten enthalten ist."""
+    - Stelle sicher, dass du keine Vermutungen oder Ergänzungen hinzufügst, die nicht in den Abstimmungsdaten stehen."""
 
     additional_style_instructions = (
         "- Nutze das gängige deutsche Datenformat (Tag. Monat Jahr) für Datumsangaben."
@@ -133,6 +134,96 @@ def get_party_vote_behavior_summary_guidelines():
         source_instructions=source_instructions,
         additional_style_instructions=additional_style_instructions,
     )
+
+
+# =============================================================================
+# Source-aware answer structuring
+# =============================================================================
+# Centralised German instruction fragments for the SINGLE-PARTY party answer's
+# four-section soft-lead-in shape, the always-when-present historic section, and
+# the conditional coverage-transparency line. These are
+# composed by chatbot_async._source_structure_note so ALL German wording lives
+# here in one reviewable place and is never hardcoded as answer text in
+# chat_service. Plain string constants (no PromptTemplate) — they are appended to
+# answer_guidelines, which is substituted as a literal value into the system
+# prompt (so the illustrative "[N]" citation markers are never re-parsed).
+#
+# SOURCE_STRUCTURE_LEADINS_DE carries a single "{party_name}" placeholder that
+# _source_structure_note fills via str.format; the historic + coverage fragments
+# carry no placeholders and are appended verbatim.
+
+SOURCE_STRUCTURE_LEADINS_DE = """
+- **Quellenbewusste Struktur deiner Antwort:** Gliedere deine Antwort — soweit die bereitgestellten Quellen es hergeben — gedanklich in dieser Reihenfolge: (1) Position aus dem Wahlprogramm, (2) Abstimmungsverhalten, (3) Aussagen aus Reden, (4) historischer Kontext. Lass Abschnitte weg, für die es keine Quellen gibt — erfinde nichts.
+- Nutze erkennbare, natürliche sprachliche Übergänge, KEINE starren Formular-Überschriften, damit der Text als fließende Prosa lesbar bleibt. Die folgenden Übergänge sind nur ILLUSTRATIV (Stilbeispiele, nicht wörtlich zu übernehmen):
+    - Position (Wahlprogramm): „Im Wahlprogramm fordert/betont die {party_name}, dass … [N]"
+    - Abstimmungsverhalten: „Bei namentlichen Abstimmungen stimmte die {party_name} … [N]"
+    - Aussagen/Reden (im Konjunktiv): „In Reden betonte die {party_name}, dass … sei [N]"
+    - Historischer Kontext: „Historisch (aus früheren Jahren) … [N]"
+- Formuliere die Übergänge frei und dem Thema angemessen; die Beispiele zeigen nur den Stil, nicht den Wortlaut. Gib Aussagen aus Reden stets im Konjunktiv wieder.
+"""
+
+HISTORIC_SECTION_NOTE_DE = """
+- **Historischer Kontext (immer als letzter Abschnitt):** Es liegt dir Material aus früheren Jahren (ggf. aus mehreren früheren Legislaturperioden) vor. Ordne es klar erkennbar als historisch bzw. aus früheren Jahren ein und stelle es an das ENDE deiner Antwort. Vermische es nicht mit dem aktuellen Stand — die Nutzer:innen müssen erkennen können, was aktuell und was historisch ist.
+"""
+
+# Positive coverage preamble. Names the source types that DO ground the answer
+# so the model opens with a transparent, value-neutral "based on X, Y and Z"
+# line. Rationale
+# (customer feedback): flagging a *missing* source type ("no voting record
+# found") implicitly frames speeches as a lesser source; a positive attribution
+# of what WAS found treats every source type as first-class. The present-source
+# list is composed by ``_source_structure_note`` from the SOURCE_LABEL_*_DE
+# fragments and interpolated into the single ``{present_sources}`` placeholder.
+SOURCE_COVERAGE_PREAMBLE_DE = """
+- **Transparenz zur Datenlage (Quellen-Vorspann):** Leite deine Antwort mit einem kurzen, natürlichen Satz ein, der offenlegt, auf welche Quellenarten sich die Einschätzung stützt: {present_sources}. Formuliere das positiv und wertneutral (etwa: „Zu diesem Thema liegen Informationen aus {present_sources} vor …"). Stelle KEINE Quellenart als minderwertig dar und weise NICHT tadelnd auf fehlende Quellenarten hin — Reden sind eine vollwertige, gleichwertige Quelle. Nenne nur Quellenarten, die dir tatsächlich vorliegen, und erfinde keine hinzu.
+"""
+
+# Dative-case labels for the coverage preamble's "aus {present_sources}" list.
+# Kept here so ALL German wording lives in prompts.py.
+SOURCE_LABEL_MANIFESTO_DE = "dem Wahlprogramm"
+SOURCE_LABEL_VOTES_DE = "namentlichen Abstimmungen"
+SOURCE_LABEL_SPEECHES_DE = "Reden"
+
+# =============================================================================
+# User-requested source-type filter (organic "zeig mir nur Videos/Abstimmungen/…")
+# =============================================================================
+# Nominative labels, keyed by the classifier's SourceFilterLiteral values.
+SOURCE_FILTER_LABELS_DE = {
+    "manifesto": "das Wahlprogramm",
+    "votes": "namentliche Abstimmungen",
+    "speeches": "Reden",
+    "videos": "Videoaufnahmen von Reden",
+}
+
+# Appended when the user scoped the answer: own the scope (don't apologise for
+# absent sections), honest no-fallback answer when the scoped retrieval is empty.
+SOURCE_FILTER_NOTE_DE = """
+- **Vom Nutzer gewählter Quellenfokus:** Der Nutzer hat ausdrücklich nur nach folgenden Quellenarten gefragt: {requested_sources}. Die bereitgestellten Ausschnitte wurden bewusst auf diese Quellenarten beschränkt. Beantworte die Frage ausschließlich auf dieser Basis; andere Quellenarten fehlen absichtlich — erwähne ihr Fehlen nicht als Mangel.
+- Wenn KEINE passenden Ausschnitte vorliegen, sage klar und ehrlich, dass zu diesem Thema keine Quellen der gewünschten Art vorliegen. Weiche NICHT auf andere Quellenarten aus und erfinde nichts. Biete stattdessen an, die Frage ohne diese Beschränkung zu beantworten.
+"""
+
+# Videos filter: the cited op speeches ARE the videos — never claim no access.
+SOURCE_FILTER_VIDEO_NOTE_DE = """
+- **Videoaufnahmen:** Die bereitgestellten Reden-Ausschnitte stammen ausschließlich aus Reden mit Videoaufzeichnung; ihre Quellen-Buttons öffnen direkt die Videoaufnahme. Sage NIEMALS, dass du keinen Zugriff auf Videoaufnahmen hast.
+"""
+
+# Non-federal elections: the grounding legitimately mixes Bund and Land sources,
+# but the answer must not weave the levels into one storyline (customer feedback).
+LEVEL_SEPARATION_NOTE_DE = """
+- Deine Quellen stammen teils von der Bundesebene (Reden im Bundestag, Abstimmungen mit dem Label 'Parlament: Bundestag (Bundesebene)') und teils von der Landesebene (das Wahlprogramm zur Landtagswahl, Abstimmungen im Landtag). Mache bei JEDER Aussage erkennbar, von welcher Ebene sie stammt.
+- Gruppiere zusammengehörige Aussagen nach Ebene und leite jede Ebene explizit ein (z.B. „Auf Bundesebene …", „Auf Landesebene …" / „Für das Land …").
+- Verbinde NIEMALS eine Aussage der einen Ebene mit einer Aussage der anderen Ebene, als wären sie Teil desselben Vorhabens. Falsch wäre etwa: „Auf Bundesebene lehnt die Partei E-Fuels ab. Stattdessen setzt sie auf eine Transformationsmilliarde" — wenn das Erste aus dem Bundestag und das Zweite aus dem Landtagswahlprogramm stammt. Formuliere stattdessen einen expliziten Ebenenwechsel.
+"""
+
+# Query-improvement addition under a filter: query the TOPIC, never the format —
+# format words retrieve documents ABOUT videos/votes instead of about the topic.
+RAG_QUERY_SOURCE_FILTER_NOTE_DE = """
+
+# Quellenfokus des Nutzers
+Der Nutzer möchte Ergebnisse ausschließlich aus folgenden Quellenarten: {requested_sources}. Die Suche ist bereits technisch auf diese Quellenarten gefiltert — deine Query darf das gewünschte Format daher NICHT erwähnen.
+Formuliere die Query ausschließlich nach dem inhaltlichen THEMA der Nutzerfrage. Wörter wie "Videoaufnahme", "Video", "Rede", "Abstimmung" oder "Wahlprogramm" dürfen nicht in der Query stehen, wenn sie nur das gewünschte Format beschreiben — sonst findet die Suche Dokumente ÜBER Videos oder Abstimmungen statt Dokumente zum eigentlichen Thema.
+Beispiel: "Habt ihr Videoaufnahmen zum Thema Lohnniveau?" → Query zu Lohnniveau, Mindestlohn und fairer Bezahlung — NICHT zu Videoaufnahmen.
+"""
 
 
 party_response_system_prompt_template_str = """
@@ -372,6 +463,7 @@ Wenn der Nutzer explizit alle Parteien fordert, gib alle Parteien die aktuell im
 Wähle Kleinparteien nur aus, wenn diese bereits in den Chat eingeladen wurden oder explizit gefordert werden.
 Beachte bei dieser Entscheidung ausschließlich die Parteien in den Hintergrundinformationen und NICHT die Parteien im bisherigen Chatverlauf.
 Allgemeine Fragen zur Wahl, zum Wahlsystem oder zum Chatbot "wahl.chat" (auch "Wahl Chat", "KI Chat", etc.) sollen an "wahl-chat" gerichtet werden.
+Fragen nach verfügbaren Quellen oder Quellenarten zu einem politischen Thema (z.B. "Gibt es Videos zu diesem Thema?", "Habt ihr Abstimmungen dazu?") sind KEINE Fragen zum Chatbot: Richte sie an die Gesprächspartner im Chat bzw. die zuletzt antwortenden Parteien — nur diese haben Zugriff auf solche Quellen.
 Nutzerfragen, die nach der passenden Partei für eine bestimmte politische Position, nach einer Wahlempfehlung oder Wertung fragen, sollen an "wahl-chat" gerichtet werden.
 Wenn der Nutzer fragt, wer eine bestimmte Position vertritt oder eine Handlung durchführen will, soll die Frage auch an "wahl-chat" gerichtet werden.
 """
@@ -426,6 +518,55 @@ determine_question_type_user_prompt_str = """
 
 determine_question_type_user_prompt = PromptTemplate.from_template(
     determine_question_type_user_prompt_str
+)
+
+determine_source_filter_system_prompt_str = """
+# Rolle
+Du analysierst eine Nachricht eines Nutzers an ein Chatsystem im Kontext des bisherigen Chatverlaufs und entscheidest, ob der Nutzer seine Antwort EXPLIZIT auf bestimmte Quellenarten beschränken möchte.
+
+# Hintergrundinformationen
+Das Chatsystem beantwortet Fragen auf Basis von vier Quellenarten:
+- "manifesto": Das Wahlprogramm der Partei — was die Partei plant und verspricht (Formulierungen z.B. „Wahlprogramm", „Programm", „was verspricht ihr in eurem Programm").
+- "votes": Namentliche Abstimmungen im Parlament — wie die Partei tatsächlich abgestimmt hat (z.B. „Abstimmungen", „Abstimmungsverhalten", „wie habt ihr ... gestimmt").
+- "speeches": Reden im Bundestag — was Abgeordnete der Partei im Plenum gesagt haben (z.B. „Reden", „Redebeiträge", „was wurde im Parlament gesagt").
+- "videos": Reden, zu denen eine Videoaufnahme existiert — der Nutzer will etwas ansehen/anhören (z.B. „Videos", „Videoaufnahmen", „Aufzeichnungen", „etwas zum Anschauen").
+
+# Aufgabe
+Gib die Liste der Quellenarten zurück, auf die der Nutzer die Antwort ausdrücklich beschränken will. Mehrere Quellenarten sind möglich (z.B. "Abstimmungen und Reden zum Thema Infrastruktur" → ["votes", "speeches"]).
+
+## Wichtige Hinweise zur Einstufung
+- Standard ist die LEERE Liste: Die allermeisten Nachrichten fragen nach einem THEMA, nicht nach einer Quellenart. Gib nur dann Quellenarten an, wenn der Nutzer sie erkennbar verlangt.
+- Nutzer verwenden beliebige eigene Formulierungen — auch Umschreibungen, Umgangssprache, Tippfehler oder englische Begriffe. Entscheide anhand der BEDEUTUNG der Nachricht, welche Quellenart gemeint ist; die Formulierungen in den Hintergrundinformationen sind nur Beispiele, keine vollständige Liste.
+- "speeches" umfasst alle Reden, mit und ohne Videoaufnahme. Fragt der Nutzer nach Videos/Aufnahmen von Reden, gib NUR "videos" an (nicht zusätzlich "speeches").
+- Ein Thema, das nur zufällig nach einer Quellenart klingt, ist KEINE Beschränkung: "Wie steht ihr zu Videoüberwachung?" oder "Was haltet ihr von Volksabstimmungen?" sind Themenfragen → leere Liste.
+- Kurze Nachfragen, die eine vorherige explizit quellenbeschränkte Frage fortführen, behalten die Beschränkung bei: Auf "Zeig mir Videoaufnahmen zum Thema Lohnniveau" folgt "und zum Thema Infrastruktur?" → ["videos"].
+- Stellt der Nutzer erkennbar eine neue, normale Frage ohne Quellenbezug, endet die Beschränkung → leere Liste.
+
+Beispiele:
+* "Zeigt mir Videoaufnahmen zum Thema Lohnniveau" → ["videos"]
+* "Gibt es einen Clip, wo jemand von euch über Mieten spricht?" → ["videos"] (Umschreibung — der Nutzer will etwas ansehen)
+* "Wie habt ihr zur Infrastruktur abgestimmt?" → ["votes"]
+* "Was steht in eurem Wahlprogramm zur Bildung?" → ["manifesto"]
+* "Was wurde dazu in Reden im Bundestag gesagt?" → ["speeches"]
+* "Habt ihr Abstimmungen oder Reden zum Mindestlohn?" → ["votes", "speeches"]
+* "Was tut ihr gegen niedrige Löhne?" → [] (Themenfrage, keine Quellenart verlangt)
+* "Wie steht ihr zur Vorratsdatenspeicherung von Videomaterial?" → [] ("Video" ist hier das Thema, nicht die gewünschte Quellenart)
+"""
+
+determine_source_filter_system_prompt = PromptTemplate.from_template(
+    determine_source_filter_system_prompt_str
+)
+
+determine_source_filter_user_prompt_str = """
+## Bisheriger Chatverlauf
+{previous_chat_history}
+
+## Nutzerfrage
+{user_message}
+"""
+
+determine_source_filter_user_prompt = PromptTemplate.from_template(
+    determine_source_filter_user_prompt_str
 )
 
 generate_chat_summary_system_prompt_str = """
@@ -555,7 +696,6 @@ Langform: {party_long_name}
 # Aufgabe
 Du erhältst eine Nutzer-Nachricht, und eine Antwort, die ein Chatbot auf Basis von Informationen der Partei {party_name} generiert hat.
 Analysiere basierend auf den bereitgestellten Abstimmungsdaten, wie die Partei {party_name} in den vergangenen Bundestagsabstimmungen zu dem Thema abgestimmt hat.
-Falls du in den Abstimmungsdaten eine Begründung der Partei für die Entscheidung der Partei findest, gebe ihre Begründung kurz in deiner Antwort an. Falls du keine Begründung findest, lasse die Begründung einfach weg.
 
 {answer_guidelines}
 
@@ -564,7 +704,7 @@ Falls du in den Abstimmungsdaten eine Begründung der Partei für die Entscheidu
 <sehr kurze Einleitung in einem Satz, zu welchem Thema das Abstimmverhalten der Partei analysiert wird>
 
 <Strukturierte Auflistung der relevantesten Abstimmungen in Stichpunkten, die das Abstimmverhalten der Partei zu diesem Thema verdeutlichen.>
-<Format der Stichpunkte: - `<✅ (falls dafür gestimmt) | ❌ (falls dagegen gestimmt) | 🔘 (falls enthalten)> Titel für die Abstimmung (Datum): 1-2 kurze Sätze, worüber abgestimmt wurde, wie die Partei {party_name} abgestimmt hat und mit ihrer Begründung (nur, wenn du eine Begründung für die Abstimmung findest). [id]`>
+<Format der Stichpunkte: - `<✅ (falls dafür gestimmt) | ❌ (falls dagegen gestimmt) | 🔘 (falls enthalten)> Titel für die Abstimmung (Datum): 1-2 kurze Sätze, worüber abgestimmt wurde und wie die Partei {party_name} abgestimmt hat. [id]`>
 
 ## Fazit
 <Gesamttendenz im Abstimmungsverhalten der Partei zum Thema - 1-3 Sätze, sachlich, ohne Wertung>

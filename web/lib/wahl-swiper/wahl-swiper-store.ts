@@ -58,8 +58,7 @@ export function createWahlOMatStore(initialState?: Partial<WahlSwiperStore>) {
         set({ showSkipDisclaimer: show }),
       setSkipDisclaimerShown: (shown: boolean) =>
         set({ skipDisclaimerShown: shown }),
-      setProlificMetadata: (prolificMetadata) =>
-          set({ prolificMetadata }),
+      setProlificMetadata: (prolificMetadata) => set({ prolificMetadata }),
     })),
   );
 }

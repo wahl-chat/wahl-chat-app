@@ -1,0 +1,367 @@
+{
+  "proposed_questions/spd/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Sachsen-Anhalt sichern?"
+  },
+  "proposed_questions/spd/questions/question_2": {
+    "location": "chat",
+    "topic": "Löhne",
+    "content": "Was tut ihr gegen niedrige Löhne in Sachsen-Anhalt?"
+  },
+  "proposed_questions/spd/questions/question_3": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für Verkehr und ÖPNV im ländlichen Sachsen-Anhalt?"
+  },
+  "proposed_questions/spd/questions/question_4": {
+    "location": "chat",
+    "topic": "Digitalisierung",
+    "content": "Wie wollt ihr schnelles Internet und Mobilfunk in Sachsen-Anhalt ausbauen?"
+  },
+  "proposed_questions/spd/questions/question_5": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
+  },
+  "proposed_questions/cdu/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Sachsen-Anhalt sichern?"
+  },
+  "proposed_questions/cdu/questions/question_2": {
+    "location": "chat",
+    "topic": "Löhne",
+    "content": "Was tut ihr gegen niedrige Löhne in Sachsen-Anhalt?"
+  },
+  "proposed_questions/cdu/questions/question_3": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für Verkehr und ÖPNV im ländlichen Sachsen-Anhalt?"
+  },
+  "proposed_questions/cdu/questions/question_4": {
+    "location": "chat",
+    "topic": "Digitalisierung",
+    "content": "Wie wollt ihr schnelles Internet und Mobilfunk in Sachsen-Anhalt ausbauen?"
+  },
+  "proposed_questions/cdu/questions/question_5": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
+  },
+  "proposed_questions/afd/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Sachsen-Anhalt sichern?"
+  },
+  "proposed_questions/afd/questions/question_2": {
+    "location": "chat",
+    "topic": "Löhne",
+    "content": "Was tut ihr gegen niedrige Löhne in Sachsen-Anhalt?"
+  },
+  "proposed_questions/afd/questions/question_3": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für Verkehr und ÖPNV im ländlichen Sachsen-Anhalt?"
+  },
+  "proposed_questions/afd/questions/question_4": {
+    "location": "chat",
+    "topic": "Digitalisierung",
+    "content": "Wie wollt ihr schnelles Internet und Mobilfunk in Sachsen-Anhalt ausbauen?"
+  },
+  "proposed_questions/afd/questions/question_5": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
+  },
+  "proposed_questions/gruene/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Sachsen-Anhalt sichern?"
+  },
+  "proposed_questions/gruene/questions/question_2": {
+    "location": "chat",
+    "topic": "Löhne",
+    "content": "Was tut ihr gegen niedrige Löhne in Sachsen-Anhalt?"
+  },
+  "proposed_questions/gruene/questions/question_3": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für Verkehr und ÖPNV im ländlichen Sachsen-Anhalt?"
+  },
+  "proposed_questions/gruene/questions/question_4": {
+    "location": "chat",
+    "topic": "Digitalisierung",
+    "content": "Wie wollt ihr schnelles Internet und Mobilfunk in Sachsen-Anhalt ausbauen?"
+  },
+  "proposed_questions/gruene/questions/question_5": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
+  },
+  "proposed_questions/linke/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Sachsen-Anhalt sichern?"
+  },
+  "proposed_questions/linke/questions/question_2": {
+    "location": "chat",
+    "topic": "Löhne",
+    "content": "Was tut ihr gegen niedrige Löhne in Sachsen-Anhalt?"
+  },
+  "proposed_questions/linke/questions/question_3": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für Verkehr und ÖPNV im ländlichen Sachsen-Anhalt?"
+  },
+  "proposed_questions/linke/questions/question_4": {
+    "location": "chat",
+    "topic": "Digitalisierung",
+    "content": "Wie wollt ihr schnelles Internet und Mobilfunk in Sachsen-Anhalt ausbauen?"
+  },
+  "proposed_questions/linke/questions/question_5": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
+  },
+  "proposed_questions/fdp/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Sachsen-Anhalt sichern?"
+  },
+  "proposed_questions/fdp/questions/question_2": {
+    "location": "chat",
+    "topic": "Löhne",
+    "content": "Was tut ihr gegen niedrige Löhne in Sachsen-Anhalt?"
+  },
+  "proposed_questions/fdp/questions/question_3": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für Verkehr und ÖPNV im ländlichen Sachsen-Anhalt?"
+  },
+  "proposed_questions/fdp/questions/question_4": {
+    "location": "chat",
+    "topic": "Digitalisierung",
+    "content": "Wie wollt ihr schnelles Internet und Mobilfunk in Sachsen-Anhalt ausbauen?"
+  },
+  "proposed_questions/fdp/questions/question_5": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
+  },
+  "proposed_questions/bsw/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Sachsen-Anhalt sichern?"
+  },
+  "proposed_questions/bsw/questions/question_2": {
+    "location": "chat",
+    "topic": "Löhne",
+    "content": "Was tut ihr gegen niedrige Löhne in Sachsen-Anhalt?"
+  },
+  "proposed_questions/bsw/questions/question_3": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für Verkehr und ÖPNV im ländlichen Sachsen-Anhalt?"
+  },
+  "proposed_questions/bsw/questions/question_4": {
+    "location": "chat",
+    "topic": "Digitalisierung",
+    "content": "Wie wollt ihr schnelles Internet und Mobilfunk in Sachsen-Anhalt ausbauen?"
+  },
+  "proposed_questions/bsw/questions/question_5": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
+  },
+  "proposed_questions/fw/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Sachsen-Anhalt sichern?"
+  },
+  "proposed_questions/fw/questions/question_2": {
+    "location": "chat",
+    "topic": "Löhne",
+    "content": "Was tut ihr gegen niedrige Löhne in Sachsen-Anhalt?"
+  },
+  "proposed_questions/fw/questions/question_3": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für Verkehr und ÖPNV im ländlichen Sachsen-Anhalt?"
+  },
+  "proposed_questions/fw/questions/question_4": {
+    "location": "chat",
+    "topic": "Digitalisierung",
+    "content": "Wie wollt ihr schnelles Internet und Mobilfunk in Sachsen-Anhalt ausbauen?"
+  },
+  "proposed_questions/fw/questions/question_5": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
+  },
+  "proposed_questions/basis/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Sachsen-Anhalt sichern?"
+  },
+  "proposed_questions/basis/questions/question_2": {
+    "location": "chat",
+    "topic": "Löhne",
+    "content": "Was tut ihr gegen niedrige Löhne in Sachsen-Anhalt?"
+  },
+  "proposed_questions/basis/questions/question_3": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für Verkehr und ÖPNV im ländlichen Sachsen-Anhalt?"
+  },
+  "proposed_questions/basis/questions/question_4": {
+    "location": "chat",
+    "topic": "Digitalisierung",
+    "content": "Wie wollt ihr schnelles Internet und Mobilfunk in Sachsen-Anhalt ausbauen?"
+  },
+  "proposed_questions/basis/questions/question_5": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
+  },
+  "proposed_questions/tierschutzpartei/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Sachsen-Anhalt sichern?"
+  },
+  "proposed_questions/tierschutzpartei/questions/question_2": {
+    "location": "chat",
+    "topic": "Löhne",
+    "content": "Was tut ihr gegen niedrige Löhne in Sachsen-Anhalt?"
+  },
+  "proposed_questions/tierschutzpartei/questions/question_3": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für Verkehr und ÖPNV im ländlichen Sachsen-Anhalt?"
+  },
+  "proposed_questions/tierschutzpartei/questions/question_4": {
+    "location": "chat",
+    "topic": "Digitalisierung",
+    "content": "Wie wollt ihr schnelles Internet und Mobilfunk in Sachsen-Anhalt ausbauen?"
+  },
+  "proposed_questions/tierschutzpartei/questions/question_5": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
+  },
+  "proposed_questions/pdf/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Sachsen-Anhalt sichern?"
+  },
+  "proposed_questions/pdf/questions/question_2": {
+    "location": "chat",
+    "topic": "Löhne",
+    "content": "Was tut ihr gegen niedrige Löhne in Sachsen-Anhalt?"
+  },
+  "proposed_questions/pdf/questions/question_3": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für Verkehr und ÖPNV im ländlichen Sachsen-Anhalt?"
+  },
+  "proposed_questions/pdf/questions/question_4": {
+    "location": "chat",
+    "topic": "Digitalisierung",
+    "content": "Wie wollt ihr schnelles Internet und Mobilfunk in Sachsen-Anhalt ausbauen?"
+  },
+  "proposed_questions/pdf/questions/question_5": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
+  },
+  "proposed_questions/gartenpartei/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Sachsen-Anhalt sichern?"
+  },
+  "proposed_questions/gartenpartei/questions/question_2": {
+    "location": "chat",
+    "topic": "Löhne",
+    "content": "Was tut ihr gegen niedrige Löhne in Sachsen-Anhalt?"
+  },
+  "proposed_questions/gartenpartei/questions/question_3": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für Verkehr und ÖPNV im ländlichen Sachsen-Anhalt?"
+  },
+  "proposed_questions/gartenpartei/questions/question_4": {
+    "location": "chat",
+    "topic": "Digitalisierung",
+    "content": "Wie wollt ihr schnelles Internet und Mobilfunk in Sachsen-Anhalt ausbauen?"
+  },
+  "proposed_questions/gartenpartei/questions/question_5": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
+  },
+  "proposed_questions/volt/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Sachsen-Anhalt sichern?"
+  },
+  "proposed_questions/volt/questions/question_2": {
+    "location": "chat",
+    "topic": "Löhne",
+    "content": "Was tut ihr gegen niedrige Löhne in Sachsen-Anhalt?"
+  },
+  "proposed_questions/volt/questions/question_3": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für Verkehr und ÖPNV im ländlichen Sachsen-Anhalt?"
+  },
+  "proposed_questions/volt/questions/question_4": {
+    "location": "chat",
+    "topic": "Digitalisierung",
+    "content": "Wie wollt ihr schnelles Internet und Mobilfunk in Sachsen-Anhalt ausbauen?"
+  },
+  "proposed_questions/volt/questions/question_5": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
+  },
+  "proposed_questions/group/questions/question_1": {
+    "location": "chat",
+    "topic": "Wirtschaft",
+    "content": "Wie wollt ihr Arbeitsplätze in Sachsen-Anhalt sichern?"
+  },
+  "proposed_questions/group/questions/question_2": {
+    "location": "chat",
+    "topic": "Löhne",
+    "content": "Was tut ihr gegen niedrige Löhne in Sachsen-Anhalt?"
+  },
+  "proposed_questions/group/questions/question_3": {
+    "location": "chat",
+    "topic": "Verkehr",
+    "content": "Was sind eure Pläne für Verkehr und ÖPNV im ländlichen Sachsen-Anhalt?"
+  },
+  "proposed_questions/group/questions/question_4": {
+    "location": "chat",
+    "topic": "Digitalisierung",
+    "content": "Wie wollt ihr schnelles Internet und Mobilfunk in Sachsen-Anhalt ausbauen?"
+  },
+  "proposed_questions/group/questions/question_5": {
+    "location": "chat",
+    "topic": "Migration",
+    "content": "Was ist eure Position zu Migration, Asyl und Zuwanderung in Sachsen-Anhalt?"
+  },
+  "proposed_questions/wahl-chat/questions/question_1": {
+    "topic": "wahl.chat",
+    "location": "chat",
+    "content": "Was kann ich fragen?"
+  },
+  "proposed_questions/wahl-chat/questions/question_2": {
+    "topic": "wahl.chat",
+    "location": "chat",
+    "content": "Kann ich mehrere Parteien miteinander vergleichen?"
+  },
+  "proposed_questions/wahl-chat/questions/question_3": {
+    "topic": "wahl.chat",
+    "location": "chat",
+    "content": "Wie entstehen die Antworten?"
+  }
+}

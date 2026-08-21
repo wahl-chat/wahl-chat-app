@@ -30,7 +30,6 @@ export const loadChatSession: ChatStoreActionHandlerFor<'loadChatSession'> =
         loading: {
           ...state.loading,
           chatSession: false,
-          initializingChatSession: false,
           newMessage: false,
         },
         sharingSnapshot: session.sharing_snapshot

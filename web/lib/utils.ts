@@ -1,6 +1,5 @@
 import type { SerializableFirebaseUser } from '@/components/anonymous-auth';
 import type { PartyDetails } from '@/lib/party-details';
-import type { Source } from '@/lib/stores/chat-store.types';
 import { type ClassValue, clsx } from 'clsx';
 import type { User } from 'firebase/auth';
 import type { Timestamp } from 'firebase/firestore';
@@ -71,7 +70,23 @@ export function prettifiedShortSourceName(source: string): string {
 }
 
 export function generateUuid() {
-  return crypto.randomUUID();
+  // crypto.randomUUID exists only in secure contexts (https / localhost), so
+  // LAN dev on http://<ip> (phone testing) needs the getRandomValues fallback —
+  // same UUIDv4, available everywhere.
+  if (typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0'));
+  return [
+    hex.slice(0, 4).join(''),
+    hex.slice(4, 6).join(''),
+    hex.slice(6, 8).join(''),
+    hex.slice(8, 10).join(''),
+    hex.slice(10).join(''),
+  ].join('-');
 }
 
 export function firestoreTimestampToDate(
@@ -142,15 +157,6 @@ export function formatGermanDate(
   };
 
   return new Intl.DateTimeFormat('de-DE', options).format(date);
-}
-
-export function buildPdfUrl(source: Source) {
-  return new URL(
-    `/pdf/view?page=${encodeURIComponent(
-      source.page,
-    )}&pdf=${encodeURIComponent(source.url)}`,
-    window.location.href,
-  );
 }
 
 export async function generateOgImageUrl(sessionType: string) {
@@ -241,4 +247,192 @@ export function makeFirebaseUserSerializable(
       lastSignInTime: user.metadata.lastSignInTime,
     },
   };
+}
+
+/**
+ * Parse the media-fragment start time (`#t=<seconds>`) from a source URL.
+ * Returns the seconds as a number, or null when the URL carries no timestamp
+ * (e.g. a manifesto PDF or a DIP protocol link).
+ */
+export function videoTimestampSeconds(url: string | undefined): number | null {
+  if (!url) {
+    return null;
+  }
+  const match = url.match(/#t=([\d.]+)/);
+  if (!match) {
+    return null;
+  }
+  const seconds = Number.parseFloat(match[1]);
+  return Number.isFinite(seconds) ? seconds : null;
+}
+
+/** Format seconds as `m:ss` (e.g. 87.5 -> "1:27"). */
+export function formatTimestamp(seconds: number): string {
+  const total = Math.max(0, Math.floor(seconds));
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Badge label for a source row: a video label (`▶ 1:27` / `▶ Video`) when the
+ * source actually OPENS as a video, otherwise the page label (`S. N`).
+ *
+ * Derived from `getSourceMediaLinks` (the same helper the row uses to decide how
+ * to open) so the badge can never disagree with what a click does — a video that
+ * lives in `video_url`, or a `.mp4` with no `#t=` fragment, no longer mislabels
+ * itself as "S. N".
+ */
+export function sourceBadgeLabel(source: {
+  url?: string;
+  video_url?: string;
+  pdf_url?: string;
+  page: number;
+}): string {
+  const primary = getSourceMediaLinks(source)[0];
+  if (primary?.kind === 'video') {
+    return primary.label;
+  }
+  return `S. ${source.page}`;
+}
+
+/** True when a URL is a playable video (a `#t=` deep-link or a `.mp4` file). */
+export function isVideoUrl(url: string | undefined): boolean {
+  if (!url) {
+    return false;
+  }
+  const lower = url.toLowerCase();
+  return (
+    url.includes('#t=') ||
+    lower.endsWith('.mp4') ||
+    lower.includes('.mp4#') ||
+    lower.includes('.mp4?')
+  );
+}
+
+/** True when a URL points at a PDF file (ignoring any query/hash). */
+export function isPdfUrl(url: string | undefined): boolean {
+  if (!url) {
+    return false;
+  }
+  const path = url.split(/[?#]/)[0].toLowerCase();
+  return path.endsWith('.pdf');
+}
+
+// Hosts we can safely fetch through the same-origin PDF proxy for in-page
+// viewing. Fixed allowlist of trusted public institutions (Bundestag document
+// server + abgeordnetenwatch). SINGLE source of truth — the /api/pdf-proxy route
+// imports this same Set, so the client-side "is proxyable" check and the
+// server-side allow decision can never drift. Any PDF whose host is not listed
+// falls back to opening in a new tab.
+export const PROXYABLE_PDF_HOSTS = new Set<string>([
+  'dserver.bundestag.de',
+  'www.abgeordnetenwatch.de',
+  'abgeordnetenwatch.de',
+]);
+
+/**
+ * True when a PDF URL's host is on the in-page-viewer proxy allowlist AND it is
+ * https. The proxy route rejects non-https URLs with a raw 400, so letting an
+ * `http://` source pass here would frame that raw English error instead of the
+ * German framed fallback — mirror the server's protocol check client-side.
+ */
+export function isProxyablePdfHost(url: string | undefined): boolean {
+  if (!url) {
+    return false;
+  }
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === 'https:' && PROXYABLE_PDF_HOSTS.has(parsed.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Same-origin proxy URL that streams an allowlisted PDF for in-page framing. */
+export function pdfProxyUrl(url: string): string {
+  return `/api/pdf-proxy?url=${encodeURIComponent(url)}`;
+}
+
+// Our own GCS buckets serve PDFs with permissive CORS (origin *, GET, range
+// requests), so the pdf.js viewer fetches them directly — no proxy hop, no
+// Vercel streaming cost. Institution hosts block cross-origin fetching and go
+// through the same-origin proxy instead.
+const DIRECT_FETCH_PDF_PREFIXES = [
+  'https://storage.googleapis.com/wahl-chat.firebasestorage.app/',
+  'https://storage.googleapis.com/wahl-chat-dev.firebasestorage.app/',
+];
+
+/**
+ * URL the in-page pdf.js viewer can fetch for this PDF, or null when the host
+ * is neither one of our buckets nor on the proxy allowlist (those open in a
+ * new tab instead).
+ */
+export function pdfViewerFileUrl(url: string | undefined): string | null {
+  if (!url || !isPdfUrl(url)) {
+    return null;
+  }
+  if (DIRECT_FETCH_PDF_PREFIXES.some((prefix) => url.startsWith(prefix))) {
+    return url;
+  }
+  if (isProxyablePdfHost(url)) {
+    return pdfProxyUrl(url);
+  }
+  return null;
+}
+
+export type SourceMediaKind = 'video' | 'pdf';
+export type SourceMediaLink = {
+  kind: SourceMediaKind;
+  url: string;
+  label: string;
+};
+
+type SourceLinkFields = {
+  url?: string;
+  video_url?: string;
+  pdf_url?: string;
+};
+
+/**
+ * The format links a source exposes, in display order (video first).
+ *
+ * A merged speech carries both `video_url` and `pdf_url` → two links (the dual
+ * quick-links). A source with neither explicit field falls back to classifying
+ * its single `url` (manifesto/DIP PDFs, op videos). A plain weblink yields no
+ * media link (the caller opens it in a new tab instead).
+ */
+export function getSourceMediaLinks(
+  source: SourceLinkFields,
+): SourceMediaLink[] {
+  const links: SourceMediaLink[] = [];
+  if (source.video_url) {
+    links.push({
+      kind: 'video',
+      url: source.video_url,
+      label: videoLinkLabel(source.video_url),
+    });
+  }
+  if (source.pdf_url) {
+    links.push({ kind: 'pdf', url: source.pdf_url, label: 'PDF' });
+  }
+  if (links.length === 0 && source.url) {
+    if (isVideoUrl(source.url)) {
+      links.push({
+        kind: 'video',
+        url: source.url,
+        label: videoLinkLabel(source.url),
+      });
+    } else if (isPdfUrl(source.url)) {
+      links.push({ kind: 'pdf', url: source.url, label: 'PDF' });
+    }
+  }
+  return links;
+}
+
+function videoLinkLabel(url: string): string {
+  const ts = videoTimestampSeconds(url);
+  return ts !== null ? `▶ ${formatTimestamp(ts)}` : '▶ Video';
 }

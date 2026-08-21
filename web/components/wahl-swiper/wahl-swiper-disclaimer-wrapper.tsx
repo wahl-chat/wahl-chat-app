@@ -1,28 +1,28 @@
 'use client';
 
+import WahlSwiperProlificDisclaimer from '@/components/wahl-swiper/wahl-swiper-prolific-disclaimer';
+import { isProlificStudy } from '@/lib/prolific-study/prolific-metadata';
 import { useEffect, useState } from 'react';
 import WahlSwiperExperimentalDisclaimer from './wahl-swiper-experimental-disclaimer';
-import {isProlificStudy} from "@/lib/prolific-study/prolific-metadata";
-import WahlSwiperProlificDisclaimer from "@/components/wahl-swiper/wahl-swiper-prolific-disclaimer";
 
 function WahlSwiperDisclaimerWrapper() {
-    const [isProlific, setIsProlific] = useState<boolean | null>(null);
+  const [isProlific, setIsProlific] = useState<boolean | null>(null);
 
-    // Check after mount to avoid hydration mismatch
-    useEffect(() => {
-        setIsProlific(isProlificStudy());
-    }, []);
+  // Check after mount to avoid hydration mismatch
+  useEffect(() => {
+    setIsProlific(isProlificStudy());
+  }, []);
 
-    // Don't render until we know which disclaimer to show
-    if (isProlific === null) {
-        return null;
-    }
+  // Don't render until we know which disclaimer to show
+  if (isProlific === null) {
+    return null;
+  }
 
-    if (isProlific) {
-        return <WahlSwiperProlificDisclaimer />;
-    }
+  if (isProlific) {
+    return <WahlSwiperProlificDisclaimer />;
+  }
 
-    return <WahlSwiperExperimentalDisclaimer />;
+  return <WahlSwiperExperimentalDisclaimer />;
 }
 
 export default WahlSwiperDisclaimerWrapper;

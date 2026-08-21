@@ -14,9 +14,10 @@ import {
 } from '@/lib/utils';
 import type { WahlSwiperQuestion } from '@/lib/wahl-swiper/wahl-swiper.types';
 import { initializeServerApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import {
   collection,
+  connectFirestoreEmulator,
   doc,
   getDoc,
   getDocs,
@@ -26,9 +27,15 @@ import {
   query,
   where,
 } from 'firebase/firestore';
-import { unstable_cache as cache } from 'next/cache';
+import { unstable_cache } from 'next/cache';
 import { headers } from 'next/headers';
 import { firebaseConfig } from './firebase-config';
+import {
+  FIREBASE_EMULATOR_HOST,
+  FIRESTORE_EMULATOR_PORT,
+  authEmulatorUrl,
+  firebaseEmulatorsEnabled,
+} from './firebase-emulators';
 import type {
   ChatSession,
   Context,
@@ -44,6 +51,22 @@ class ContextNotFoundError extends Error {
     super(`Context not found: ${contextId}`);
     this.name = 'ContextNotFoundError';
   }
+}
+
+// Persistent-data-cache wrapper. In production this is unstable_cache. Against
+// the local emulator it is a no-op passthrough: unstable_cache persists to
+// .next/cache and survives dev-server restarts, so a successful-but-empty fetch
+// (e.g. a read before the emulator is seeded) would otherwise stay pinned for
+// `revalidate` seconds and mask freshly-seeded data. Local reads must be live.
+function cache<A extends unknown[], R>(
+  fn: (...args: A) => Promise<R>,
+  keyParts?: string[],
+  options?: { revalidate?: number | false; tags?: string[] },
+): (...args: A) => Promise<R> {
+  if (firebaseEmulatorsEnabled()) {
+    return fn;
+  }
+  return unstable_cache(fn, keyParts, options);
 }
 
 async function getServerApp({
@@ -62,6 +85,15 @@ async function getServerApp({
 export async function getCurrentUser() {
   const serverApp = await getServerApp();
   const auth = getAuth(serverApp);
+  if (firebaseEmulatorsEnabled()) {
+    // A fresh server app per request; try/catch absorbs the "already connected"
+    // throw if this instance was reused.
+    try {
+      connectAuthEmulator(auth, authEmulatorUrl(), { disableWarnings: true });
+    } catch {
+      /* already connected for this app instance */
+    }
+  }
   await auth.authStateReady();
   if (!auth.currentUser) {
     return null;
@@ -74,7 +106,19 @@ async function getServerFirestore({
   useHeaders = true,
 }: { useHeaders?: boolean } = {}) {
   const serverApp = await getServerApp({ useHeaders });
-  return getFirestore(serverApp);
+  const db = getFirestore(serverApp);
+  if (firebaseEmulatorsEnabled()) {
+    try {
+      connectFirestoreEmulator(
+        db,
+        FIREBASE_EMULATOR_HOST,
+        FIRESTORE_EMULATOR_PORT,
+      );
+    } catch {
+      /* already connected for this app instance */
+    }
+  }
+  return db;
 }
 
 async function getPartiesImpl() {

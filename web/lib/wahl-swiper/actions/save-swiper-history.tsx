@@ -24,5 +24,10 @@ export const saveSwiperHistory: WahlSwiperStoreActionHandlerFor<
     {} as Record<string, SwiperMessage[]>,
   );
 
-  return saveWahlSwiperHistory(userId, history, normalizedMessageHistory, prolificMetadata);
+  return saveWahlSwiperHistory(
+    userId,
+    history,
+    normalizedMessageHistory,
+    prolificMetadata,
+  );
 };

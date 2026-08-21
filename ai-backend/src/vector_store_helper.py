@@ -5,14 +5,14 @@ from pathlib import Path
 from typing import Union
 import logging
 
-from langchain_openai import OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 from langchain_core.documents import Document
 from qdrant_client import QdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 from src.models.context import ContextParty
 
-from src.utils import load_env, safe_load_api_key
+from src.embeddings import get_embeddings
+from src.utils import load_env
 
 from src.chatbot_async import rerank_documents
 from functools import lru_cache
@@ -49,9 +49,10 @@ def get_context_collection_name(context_id: str) -> str:
     return f"context_{context_id}_party_docs{env_suffix}"
 
 
-embed = OpenAIEmbeddings(
-    model="text-embedding-3-large", openai_api_key=safe_load_api_key("OPENAI_API_KEY")
-)
+# Resolved via the provider factory (EMBEDDING_PROVIDER, default OpenAI
+# text-embedding-3-large @ 3072 — the previous behaviour unchanged). OpenAI reads
+# OPENAI_API_KEY from the environment, exactly as before.
+embed = get_embeddings()
 
 # Initialize Qdrant client
 qdrant_client = QdrantClient(
@@ -168,14 +169,15 @@ async def _identify_relevant_documents(
 
     # Search directly using Qdrant client to preserve all metadata
     # Note: Using sync client in async context - this might need optimization later
-    search_result = qdrant_client.search(
+    search_result = qdrant_client.query_points(
         collection_name=vector_store.collection_name,
-        query_vector=("dense", query_vector),
+        query=query_vector,
+        using="dense",
         limit=n_docs,
         with_payload=True,
         query_filter=filter_condition,
         score_threshold=score_threshold,
-    )
+    ).points
 
     return _search_results_to_documents(search_result)
 
@@ -308,14 +310,15 @@ async def identify_relevant_votes(
         must=[FieldCondition(key="namespace", match=MatchValue(value="vote_summary"))]
     )
 
-    search_result = qdrant_client.search(
+    search_result = qdrant_client.query_points(
         collection_name=voting_behavior_vector_store.collection_name,
-        query_vector=("dense", query_vector),
+        query=query_vector,
+        using="dense",
         limit=n_docs,
         with_payload=True,
         query_filter=filter_condition,
         score_threshold=score_threshold,
-    )
+    ).points
 
     return _search_results_to_documents(search_result)
 
@@ -340,13 +343,14 @@ async def identify_relevant_parliamentary_questions(
         must=[FieldCondition(key="namespace", match=MatchValue(value=namespace))]
     )
 
-    search_result = qdrant_client.search(
+    search_result = qdrant_client.query_points(
         collection_name=parliamentary_questions_vector_store.collection_name,
-        query_vector=("dense", query_vector),
+        query=query_vector,
+        using="dense",
         limit=n_docs,
         with_payload=True,
         query_filter=filter_condition,
         score_threshold=score_threshold,
-    )
+    ).points
 
     return _search_results_to_documents(search_result)
