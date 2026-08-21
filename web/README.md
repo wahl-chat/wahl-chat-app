@@ -29,9 +29,7 @@ Fill in the required values in `.env.local`:
 
 ### 3. Regional election contexts
 
-The app uses geo-detection to redirect users to their regional election context. The mapping is defined in `lib/constants.ts` under `REGION_TO_CONTEXT`.
-
-Each region code (e.g., `HH`) maps to a context ID (e.g., `hh2029`) that must exist in the Firestore `contexts` collection. If a context doesn't exist, users are redirected to the default context (`landtagswahl-baden-württemberg-2026`).
+The app uses geo-detection to redirect users to their regional election context. `REGION_CONTEXTS` in `lib/constants.ts` keeps each region's context ID and election date together. The context must exist in Firestore; unmapped regions and elections more than five days in the past fall back to `DEFAULT_CONTEXT_ID`.
 
 ## Development
 
