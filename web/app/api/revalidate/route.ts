@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // layout so a context root also busts the ISR page that embeds parties.
+    // layout if a path is sent (manual); seeds bust tags only.
     for (const path of paths) {
       revalidatePath(path, 'layout');
     }

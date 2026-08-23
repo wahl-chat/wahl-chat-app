@@ -64,7 +64,7 @@ def test_cloud_seed_without_secret_warns_and_continues(
     seed.revalidate_frontend_cache(["abgeordnetenhauswahl-berlin-2026"])
 
 
-def test_cloud_seed_posts_tags_and_context_paths(
+def test_cloud_seed_posts_per_context_tags(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     seed = _load_seed_module(
@@ -89,12 +89,24 @@ def test_cloud_seed_posts_tags_and_context_paths(
     headers = {k.lower(): v for k, v in captured["headers"].items()}  # type: ignore[union-attr]
     assert headers["authorization"] == "Bearer test-secret"
     body = captured["body"]
-    assert body["tags"] == list(seed.frontend_cache.SEED_CACHE_TAGS)
-    assert body["paths"] == [
-        "/",
-        "/abgeordnetenhauswahl-berlin-2026",
-        "/abgeordnetenhauswahl-berlin-2026/sources",
-    ]
+    assert "paths" not in body
+    assert body["tags"] == seed.frontend_cache.seed_cache_tags(
+        ["abgeordnetenhauswahl-berlin-2026"]
+    )
+    assert "contexts" in body["tags"]
+    assert "context:abgeordnetenhauswahl-berlin-2026:parties" in body["tags"]
+    assert "context:abgeordnetenhauswahl-berlin-2026:sources" in body["tags"]
+    assert "context:abgeordnetenhauswahl-berlin-2026:questions" in body["tags"]
+
+
+def test_seed_cache_tags_include_coarse_and_per_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seed = _load_seed_module(monkeypatch, ENV="prod")
+    tags = seed.frontend_cache.seed_cache_tags(["berlin-2026", "mv-2026"])
+    assert tags[:4] == list(seed.frontend_cache.COARSE_CACHE_TAGS)
+    assert "context:berlin-2026:parties" in tags
+    assert "context:mv-2026:sources" in tags
 
 
 def test_dev_env_defaults_to_dev_wahl_chat(
@@ -189,11 +201,9 @@ def test_standalone_script_posts_and_returns_zero(
         seed.frontend_cache.main(["--context", "abgeordnetenhauswahl-berlin-2026"]) == 0
     )
     body = captured["body"]
-    assert body["paths"] == [
-        "/",
-        "/abgeordnetenhauswahl-berlin-2026",
-        "/abgeordnetenhauswahl-berlin-2026/sources",
-    ]
+    assert body["tags"] == seed.frontend_cache.seed_cache_tags(
+        ["abgeordnetenhauswahl-berlin-2026"]
+    )
 
 
 def test_standalone_script_exits_on_network_error(

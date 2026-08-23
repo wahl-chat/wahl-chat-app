@@ -5,7 +5,7 @@ Seed Firestore with contexts, parties, and proposed questions data.
 Usage (from the firebase/ directory):
     python scripts/seed_firestore.py
 
-    # Optional: also bust that deployment's ISR cache (use that env's secret):
+    # Optional: also bust that deployment's data cache (use that env's secret):
     REVALIDATE_SECRET=... ENV=prod python scripts/seed_firestore.py
     REVALIDATE_SECRET=... ENV=dev python scripts/seed_firestore.py
     # Or seed first, then:

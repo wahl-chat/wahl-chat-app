@@ -2,10 +2,11 @@
 # SPDX-FileCopyrightText: 2026 wahl.chat
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-"""Bust the Next.js ISR cache for seeded Firestore data.
+"""Bust the Next.js data cache for seeded Firestore data.
 
-The live site caches contexts and parties for about an hour. After a
-real-project seed, call this so a newly added election does not stay empty.
+The hosted app caches election config (contexts, parties, sources,
+questions) by tag. After a real-project seed, call this so a newly added
+election does not stay empty.
 
 Usage (from the repo root or firebase/):
 
@@ -43,9 +44,9 @@ def _data_dir() -> Path:
     return FIREBASE_DIR / "firestore_data" / _env()
 
 
-# Tags the web app attaches to unstable_cache / ISR for the collections the
-# seed script writes.
-SEED_CACHE_TAGS = (
+# Coarse tags still attached on the web cache (covers entries written before
+# per-context tags). Also busted so a deploy mid-seed cannot leave both.
+COARSE_CACHE_TAGS = (
     "contexts",
     "context_parties",
     "proposed_questions",
@@ -78,12 +79,22 @@ def site_url() -> str | None:
     return DEFAULT_SITE_URLS.get(_env())
 
 
-def revalidate_payload(context_ids: list[str]) -> dict[str, list[str]]:
-    paths = ["/"]
+def seed_cache_tags(context_ids: list[str]) -> list[str]:
+    tags = list(COARSE_CACHE_TAGS)
     for context_id in context_ids:
-        paths.append(f"/{context_id}")
-        paths.append(f"/{context_id}/sources")
-    return {"tags": list(SEED_CACHE_TAGS), "paths": paths}
+        tags.extend(
+            [
+                f"context:{context_id}",
+                f"context:{context_id}:parties",
+                f"context:{context_id}:sources",
+                f"context:{context_id}:questions",
+            ]
+        )
+    return tags
+
+
+def revalidate_payload(context_ids: list[str]) -> dict[str, list[str]]:
+    return {"tags": seed_cache_tags(context_ids)}
 
 
 def context_ids_from_fixtures() -> list[str]:
@@ -135,7 +146,7 @@ def post_revalidate(context_ids: list[str]) -> str:
             f"Cache revalidation failed: {exc.reason}"
         ) from exc
 
-    print(f"  tags={payload['tags']} paths={len(payload['paths'])} ({body})")
+    print(f"  tags={len(payload['tags'])} ({body})")
     return body
 
 
@@ -144,9 +155,9 @@ def missing_secret_warning() -> str:
     return (
         "============================================================\n"
         " Frontend cache was not revalidated.\n"
-        " Firestore is written, but the live site may keep serving the\n"
-        " previous hour's cached pages — a newly added context can look\n"
-        " empty (no parties to select) until ISR expires.\n"
+        " Firestore is written, but the hosted app may keep a cached\n"
+        " empty party list until that tag is busted or the 24h safety\n"
+        " TTL expires.\n"
         "\n"
         " Bust the cache when you are ready:\n"
         f"   REVALIDATE_SECRET=... ENV={_env()} python {script}\n"
@@ -161,7 +172,7 @@ def missing_secret_warning() -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Bust the wahl.chat ISR cache for seeded Firestore data.",
+        description="Bust the hosted app's election-config data cache after a seed.",
     )
     parser.add_argument(
         "--context",
