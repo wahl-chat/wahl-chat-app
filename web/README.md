@@ -45,9 +45,18 @@ Deployed via the [Vercel Platform](https://vercel.com). See the [Next.js deploym
 
 ### Cache Revalidation
 
-The app caches Firestore data (sources, parties, contexts) for about an hour. A real-project `seed_firestore.py` run busts that cache itself: export `REVALIDATE_SECRET` (same value as this app) and, unless `ENV=prod`, `SITE_URL` or `REVALIDATE_URL`. The emulator path skips this.
+The app caches Firestore data (sources, parties, contexts) for about an hour. A real-project `seed_firestore.py` run busts that cache when `REVALIDATE_SECRET` is set. Use the secret of the matching Vercel deployment (Production for `ENV=prod` / [wahl.chat](https://wahl.chat), Preview or Development for `ENV=dev` / [dev.wahl.chat](https://dev.wahl.chat)) from [the Vercel env vars page](https://vercel.com/wahl-chat/web/settings/environment-variables). The secret is optional — without it the seed still writes Firestore and warns that ISR may stay stale. The emulator path skips this.
 
-To revalidate by hand:
+To revalidate separately (or after a seed that skipped it):
+
+```bash
+REVALIDATE_SECRET=... ENV=prod python firebase/scripts/revalidate_frontend_cache.py
+REVALIDATE_SECRET=... ENV=dev python firebase/scripts/revalidate_frontend_cache.py
+REVALIDATE_SECRET=... ENV=prod python firebase/scripts/revalidate_frontend_cache.py \
+  --context abgeordnetenhauswahl-berlin-2026
+```
+
+To revalidate by hand with curl:
 
 ```bash
 # One or more cache tags

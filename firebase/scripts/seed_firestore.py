@@ -5,8 +5,11 @@ Seed Firestore with contexts, parties, and proposed questions data.
 Usage (from the firebase/ directory):
     python scripts/seed_firestore.py
 
-    # For production (also busts the live site's ISR cache):
+    # Optional: also bust that deployment's ISR cache (use that env's secret):
     REVALIDATE_SECRET=... ENV=prod python scripts/seed_firestore.py
+    REVALIDATE_SECRET=... ENV=dev python scripts/seed_firestore.py
+    # Or seed first, then:
+    REVALIDATE_SECRET=... ENV=prod python scripts/revalidate_frontend_cache.py
 
 This script:
 1. Imports all contexts from firestore_data/{env}/contexts.json
@@ -32,8 +35,6 @@ File naming convention:
 import json
 import os
 import sys
-import urllib.error
-import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -46,6 +47,10 @@ SCRIPT_DIR = Path(__file__).parent
 FIREBASE_DIR = SCRIPT_DIR.parent
 REPO_ROOT = FIREBASE_DIR.parent
 DATA_DIR = FIREBASE_DIR / "firestore_data" / ENV
+
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+import revalidate_frontend_cache as frontend_cache  # noqa: E402
 
 # Service account JSON file (looked up in ai-backend/ where it's typically placed)
 CREDENTIALS_FILE = (
@@ -124,9 +129,7 @@ def _emulator_client():
         sys.exit(1)
 
     print(f"Using the Firestore emulator at {host} (project {project}, no credentials)")
-    return gcp_firestore.Client(
-        project=project, credentials=AnonymousCredentials()
-    )
+    return gcp_firestore.Client(project=project, credentials=AnonymousCredentials())
 
 
 def initialize_firebase():
@@ -349,96 +352,31 @@ def seed_sources(db):
     print(f"\nTotal source documents seeded: {total_documents}")
 
 
-# Tags the web app attaches to unstable_cache / ISR for the collections this
-# script writes. A real-project seed that skips this leaves wahl.chat serving
-# the previous hour's empty party list for a newly added context.
-SEED_CACHE_TAGS = (
-    "contexts",
-    "context_parties",
-    "proposed_questions",
-    "source_documents",
-)
-DEFAULT_PROD_SITE_URL = "https://wahl.chat"
-
-
-def _site_url():
-    """Public origin of the Next.js app whose cache we must bust.
-
-    REVALIDATE_URL / SITE_URL win; prod otherwise defaults to wahl.chat so a
-    typical production seed only needs REVALIDATE_SECRET.
-    """
-    explicit = os.getenv("REVALIDATE_URL") or os.getenv("SITE_URL")
-    if explicit:
-        return explicit.rstrip("/")
-    if ENV == "prod":
-        return DEFAULT_PROD_SITE_URL
-    return None
-
-
-def _revalidate_payload(context_ids):
-    paths = ["/"]
-    for context_id in context_ids:
-        paths.append(f"/{context_id}")
-        paths.append(f"/{context_id}/sources")
-    return {"tags": list(SEED_CACHE_TAGS), "paths": paths}
-
-
 def revalidate_frontend_cache(context_ids):
-    """Bust the live site's Firestore cache after a real-project seed.
+    """Optionally bust the live site's Firestore cache after a real-project seed.
 
     Local emulator reads skip Next's unstable_cache, so this is a no-op there.
-    A cloud seed without REVALIDATE_SECRET (and a site URL, unless ENV=prod)
-    exits: Firestore is already written, but the site will keep serving stale
-    ISR until someone remembers to curl /api/revalidate.
+    A missing REVALIDATE_SECRET only warns: Firestore is already written, and
+    `revalidate_frontend_cache.py` can be run afterwards.
     """
     if os.getenv("FIRESTORE_EMULATOR_HOST"):
         print("\nSkipping frontend cache revalidation (Firestore emulator).")
         return
 
-    # REVALIDATE_SECRET is the web app's Vercel env var:
-    # https://vercel.com/wahl-chat/web/settings/environment-variables
-    secret = os.getenv("REVALIDATE_SECRET")
-    site = _site_url()
-    if not secret or not site:
-        print(
-            "\n"
-            "============================================================\n"
-            " Frontend cache was not revalidated.\n"
-            " Set REVALIDATE_SECRET (same value as the web app) so the\n"
-            " next seed busts ISR automatically. For a non-prod site also\n"
-            " set SITE_URL or REVALIDATE_URL.\n"
-            " Copy it from:\n"
-            " https://vercel.com/wahl-chat/web/settings/environment-variables\n"
-            "============================================================\n"
-        )
-        sys.exit(1)
-
-    payload = _revalidate_payload(context_ids)
-    url = f"{site}/api/revalidate"
-    request = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode(),
-        headers={
-            "Authorization": f"Bearer {secret}",
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
-    print(f"\nRevalidating frontend cache at {url} ...")
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
-            body = response.read().decode()
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode(errors="replace")
-        print(f"\n❌ Cache revalidation failed ({exc.code}): {detail}")
-        sys.exit(1)
-    except urllib.error.URLError as exc:
-        print(f"\n❌ Cache revalidation failed: {exc.reason}")
-        sys.exit(1)
-
-    print(
-        f"  ✅ tags={payload['tags']} paths={len(payload['paths'])} ({body})"
-    )
+        print()
+        frontend_cache.post_revalidate(context_ids)
+    except frontend_cache.RevalidateConfigError:
+        print()
+        print(frontend_cache.missing_secret_warning())
+    except frontend_cache.RevalidateRequestError as exc:
+        print(f"\n⚠️  {exc}")
+        print(
+            " Seeding finished, but the live cache was not busted.\n"
+            " Retry with:\n"
+            f"   REVALIDATE_SECRET=... ENV={ENV} python "
+            "firebase/scripts/revalidate_frontend_cache.py\n"
+        )
 
 
 def main():
