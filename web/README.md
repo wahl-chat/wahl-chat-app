@@ -45,23 +45,25 @@ Deployed via the [Vercel Platform](https://vercel.com). See the [Next.js deploym
 
 ### Cache Revalidation
 
-The app caches Firestore data (sources, parties, contexts) for performance. To revalidate:
+The app caches Firestore data (sources, parties, contexts) for about an hour. A real-project `seed_firestore.py` run busts that cache itself: export `REVALIDATE_SECRET` (same value as this app) and, unless `ENV=prod`, `SITE_URL` or `REVALIDATE_URL`. The emulator path skips this.
+
+To revalidate by hand:
 
 ```bash
-# By cache tag
+# One or more cache tags
 curl -X POST https://wahl.chat/api/revalidate \
   -H "Authorization: Bearer <REVALIDATE_SECRET>" \
   -H "Content-Type: application/json" \
-  -d '{"tag": "source_documents"}'
+  -d '{"tags": ["context_parties", "contexts"]}'
 
-# By path
+# One or more paths (layout scope — a context root also busts nested pages)
 curl -X POST https://wahl.chat/api/revalidate \
   -H "Authorization: Bearer <REVALIDATE_SECRET>" \
   -H "Content-Type: application/json" \
-  -d '{"path": "/bundestagswahl-2025/sources"}'
+  -d '{"paths": ["/abgeordnetenhauswahl-berlin-2026"]}'
 ```
 
-Available cache tags (defined in `lib/cache-tags.ts`):
+Single `tag` / `path` keys still work. Available cache tags (defined in `lib/cache-tags.ts`):
 - `source_documents` — Source documents for the sources page
 - `parties` — Global party data
 - `contexts` — Election contexts

@@ -5,8 +5,8 @@ Seed Firestore with contexts, parties, and proposed questions data.
 Usage (from the firebase/ directory):
     python scripts/seed_firestore.py
 
-    # For production:
-    ENV=prod python scripts/seed_firestore.py
+    # For production (also busts the live site's ISR cache):
+    REVALIDATE_SECRET=... ENV=prod python scripts/seed_firestore.py
 
 This script:
 1. Imports all contexts from firestore_data/{env}/contexts.json
@@ -32,6 +32,8 @@ File naming convention:
 import json
 import os
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -347,6 +349,98 @@ def seed_sources(db):
     print(f"\nTotal source documents seeded: {total_documents}")
 
 
+# Tags the web app attaches to unstable_cache / ISR for the collections this
+# script writes. A real-project seed that skips this leaves wahl.chat serving
+# the previous hour's empty party list for a newly added context.
+SEED_CACHE_TAGS = (
+    "contexts",
+    "context_parties",
+    "proposed_questions",
+    "source_documents",
+)
+DEFAULT_PROD_SITE_URL = "https://wahl.chat"
+
+
+def _site_url():
+    """Public origin of the Next.js app whose cache we must bust.
+
+    REVALIDATE_URL / SITE_URL win; prod otherwise defaults to wahl.chat so a
+    typical production seed only needs REVALIDATE_SECRET.
+    """
+    explicit = os.getenv("REVALIDATE_URL") or os.getenv("SITE_URL")
+    if explicit:
+        return explicit.rstrip("/")
+    if ENV == "prod":
+        return DEFAULT_PROD_SITE_URL
+    return None
+
+
+def _revalidate_payload(context_ids):
+    paths = ["/"]
+    for context_id in context_ids:
+        paths.append(f"/{context_id}")
+        paths.append(f"/{context_id}/sources")
+    return {"tags": list(SEED_CACHE_TAGS), "paths": paths}
+
+
+def revalidate_frontend_cache(context_ids):
+    """Bust the live site's Firestore cache after a real-project seed.
+
+    Local emulator reads skip Next's unstable_cache, so this is a no-op there.
+    A cloud seed without REVALIDATE_SECRET (and a site URL, unless ENV=prod)
+    exits: Firestore is already written, but the site will keep serving stale
+    ISR until someone remembers to curl /api/revalidate.
+    """
+    if os.getenv("FIRESTORE_EMULATOR_HOST"):
+        print("\nSkipping frontend cache revalidation (Firestore emulator).")
+        return
+
+    # REVALIDATE_SECRET is the web app's Vercel env var:
+    # https://vercel.com/wahl-chat/web/settings/environment-variables
+    secret = os.getenv("REVALIDATE_SECRET")
+    site = _site_url()
+    if not secret or not site:
+        print(
+            "\n"
+            "============================================================\n"
+            " Frontend cache was not revalidated.\n"
+            " Set REVALIDATE_SECRET (same value as the web app) so the\n"
+            " next seed busts ISR automatically. For a non-prod site also\n"
+            " set SITE_URL or REVALIDATE_URL.\n"
+            " Copy it from:\n"
+            " https://vercel.com/wahl-chat/web/settings/environment-variables\n"
+            "============================================================\n"
+        )
+        sys.exit(1)
+
+    payload = _revalidate_payload(context_ids)
+    url = f"{site}/api/revalidate"
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode(),
+        headers={
+            "Authorization": f"Bearer {secret}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    print(f"\nRevalidating frontend cache at {url} ...")
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            body = response.read().decode()
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode(errors="replace")
+        print(f"\n❌ Cache revalidation failed ({exc.code}): {detail}")
+        sys.exit(1)
+    except urllib.error.URLError as exc:
+        print(f"\n❌ Cache revalidation failed: {exc.reason}")
+        sys.exit(1)
+
+    print(
+        f"  ✅ tags={payload['tags']} paths={len(payload['paths'])} ({body})"
+    )
+
+
 def main():
     print("=" * 60)
     print("Firestore Seed Script")
@@ -361,7 +455,7 @@ def main():
     db = initialize_firebase()
 
     # Seed contexts first
-    seed_contexts(db)
+    context_ids = seed_contexts(db)
 
     # Seed parties for each context
     seed_parties(db)
@@ -371,6 +465,8 @@ def main():
 
     # Seed source documents for each context's sources page
     seed_sources(db)
+
+    revalidate_frontend_cache(context_ids)
 
     print("\n" + "=" * 60)
     print("✅ Seeding complete!")

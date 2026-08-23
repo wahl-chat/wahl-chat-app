@@ -102,8 +102,8 @@ Run from the `firebase/` directory:
 ```bash
 python scripts/seed_firestore.py
 
-# For production:
-ENV=prod python scripts/seed_firestore.py
+# For production (set REVALIDATE_SECRET so the live site drops its ISR cache):
+REVALIDATE_SECRET=... ENV=prod python scripts/seed_firestore.py
 ```
 
 Or simply from the repo root:
@@ -143,7 +143,7 @@ firestore-import -a ../ai-backend/wahl-chat-dev-firebase-adminsdk.json \
 1. Add the context to `firestore_data/dev/contexts.json`
 2. Create `firestore_data/dev/parties_{context_id}.json`
 3. Create `firestore_data/dev/proposed_questions_{context_id}.json`
-4. Run `python scripts/seed_firestore.py` from `firebase/`
+4. Run `python scripts/seed_firestore.py` from `firebase/`. A real-project seed (not the emulator) then calls `/api/revalidate` so the site does not keep serving the previous hour's empty party list. Export `REVALIDATE_SECRET` (and `SITE_URL` unless this is `ENV=prod`).
 
 ## Managing Data
 
@@ -210,8 +210,8 @@ Ensure all referenced assets (logos, PDFs, etc.) exist in the prod Firebase Stor
 # From repo root:
 make seed-prod
 
-# Or from firebase/:
-ENV=prod python scripts/seed_firestore.py
+# Or from firebase/ (REVALIDATE_SECRET busts the live site's ISR cache):
+REVALIDATE_SECRET=... ENV=prod python scripts/seed_firestore.py
 ```
 
 ### 5. Deploy Qdrant vector store data
