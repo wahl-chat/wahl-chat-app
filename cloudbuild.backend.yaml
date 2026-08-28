@@ -9,11 +9,14 @@
 #   develop: _SERVICE=wahl-chat-backend-dev
 #   main:    _SERVICE=wahl-chat-backend
 steps:
+  # Build context is the repo root: the uv workspace lockfile and the ingestion
+  # member live outside ai-backend/, and the backend depends on that member.
   - id: build
     name: gcr.io/cloud-builders/docker
-    dir: ai-backend
     args:
       - build
+      - --file
+      - ai-backend/Dockerfile
       - --tag
       - gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-app:${COMMIT_SHA}
       - .

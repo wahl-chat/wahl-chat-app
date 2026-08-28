@@ -1,0 +1,66 @@
+# SPDX-FileCopyrightText: 2026 wahl.chat
+#
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+# Both images build from the REPO ROOT, because the uv workspace lockfile and
+# the ingestion member live outside ai-backend/:
+#   docker build -f ai-backend/Dockerfile .
+#   docker build -f ingestion/Dockerfile .
+# Docker reads the .dockerignore at the context root, so this one file governs
+# both. Everything the Python images do not need stays out of the context.
+
+# --- Other components ---
+web/
+firebase/
+scripts/
+.git/
+.github/
+.husky/
+.planning/
+.claude/
+
+# --- Virtualenvs and node deps ---
+.venv/
+**/.venv/
+node_modules/
+**/node_modules/
+
+# --- Large local artefacts (multi-GB) — never part of a build ---
+# Qdrant snapshot backups and the speeches export sit at the repo root during
+# local work. Without these the daemon would upload gigabytes per build.
+*.snapshot
+speeches.jsonl
+*.jsonl
+
+# --- Secrets ---
+# A secret copied into an image is baked into its layers forever. Provide
+# credentials at runtime instead (mounted secret / Workload Identity / ADC).
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+*firebase-adminsdk*.json
+*-adminsdk-*.json
+serviceAccount*.json
+*service-account*.json
+vertex-sa*.json
+**/vertex-sa*.json
+application_default_credentials.json
+
+# --- Test suites, local data, notebooks, tool caches ---
+ai-backend/tests/
+ingestion/tests/
+# Legacy V1 data-exploration notebooks.
+ai-backend/data/scripts/
+# MdB-Stammdaten (~15 MB) is gitignored, so it exists only on a dev machine.
+# Excluding it keeps local and CI builds identical — the speech connectors
+# fetch it on demand at run time (mdb.ensure_mdb_lookup), never pre-baked.
+ingestion/data/MDB_STAMMDATEN.*
+ingestion/.local_storage/
+ai-backend/.local_storage/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.mypy_cache/
+**/*.py[cod]

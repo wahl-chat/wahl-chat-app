@@ -71,8 +71,8 @@ from src.deeplink import (
     _refine_speech_deeplinks,
     _speech_deeplink_url,
 )
-from src.ingestion.retrieve import retrieve, retrieve_two_pass
-from src.ingestion.connectors.abgeordnetenwatch.legislature_config import (
+from src.retrieve import retrieve, retrieve_two_pass
+from ingestion.legislature_config import (
     term_window_for_context,
 )
 from src.firebase_service import (
@@ -90,7 +90,7 @@ from src.models.dtos import (
     Status,
     StatusIndicator,
 )
-from src.embeddings import get_embeddings
+from ingestion.embeddings import get_embeddings
 from src.models.context import ContextParty
 from src.models.party import WAHL_CHAT_PARTY
 from src.utils import (

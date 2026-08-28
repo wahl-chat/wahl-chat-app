@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 wahl.chat
+#
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+# Virtual uv workspace root: one lockfile (uv.lock) and one resolved environment
+# for the Python packages in this monorepo. `ingestion` is the corpus layer
+# (connectors, runner, collection setup, embeddings); `ai-backend` is the chat
+# service and depends on it — the dependency is strictly one-way.
+#
+# A single lock is what stops the two members drifting onto different
+# qdrant-client / langchain-openai versions, which would silently split the
+# vector space they share. Run `uv sync` here (or in either member) to install
+# both.
+[tool.uv.workspace]
+members = ["ai-backend", "ingestion"]

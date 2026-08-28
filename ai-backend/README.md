@@ -10,7 +10,11 @@ Python AI/RAG backend for [wahl.chat](https://wahl.chat/).
 
 Built with FastAPI, sse-starlette (Server-Sent Events), LangChain, and Qdrant. Dependencies are managed with **uv**.
 
-The Pydantic models in `src/ingestion/schemas.py` are the single source of truth for the ingestion data contract (chunk payloads, source items, authority tiers).
+The corpus layer lives in its own package, [`ingestion/`](../ingestion/README.md): connectors, the runner, Qdrant collection setup, and the embeddings factory. The Pydantic models in `ingestion/src/ingestion/schemas.py` are the single source of truth for the corpus data contract (chunk payloads, source items, authority tiers). This backend depends on that package — the dependency is one-way.
+
+Query-time retrieval stays here, in `src/retrieve.py`.
+
+Dependencies are installed by a single `uv sync` at the **repo root**, which is the uv workspace root for both members.
 
 ## Localization
 
