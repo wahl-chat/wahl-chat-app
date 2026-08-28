@@ -30,8 +30,14 @@ services:
     profiles: ["ingestion"]
     depends_on:
       - qdrant
+    # Mirrors the CLIs' own lookup: ingestion/.env wins where it exists, and a
+    # setup that keeps every key in ai-backend/.env still works. Both optional,
+    # so a missing file is not a hard compose error.
     env_file:
-      - ingestion/.env
+      - path: ai-backend/.env
+        required: false
+      - path: ingestion/.env
+        required: false
     environment:
       # `environment` wins over env_file, so the in-container Qdrant URL is the
       # compose service name (not the host's localhost from ai-backend/.env).
