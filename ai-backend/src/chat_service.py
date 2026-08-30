@@ -560,7 +560,7 @@ async def _lookup_cached_party_answer(
     )
     logger.debug(f"Checking cache for party {party.party_id} with key {cache_key}")
     existing_cached_answers: List[CachedResponse] = await aget_cached_answers_for_party(
-        party.party_id, cache_key
+        group_chat_session.context_id, party.party_id, cache_key
     )
     cached_answer_limit = 1
     possible_answers: list = (
@@ -903,7 +903,7 @@ async def _resolve_improved_rag_query(
         source_filter=source_filter,
         llms=prompt_improvement_llms,
     )
-    cached = await aget_cached_rag_query(party.party_id, cache_key)
+    cached = await aget_cached_rag_query(context_id, party.party_id, cache_key)
     if cached is not None:
         logger.info(f"Serving cached RAG query for party {party.party_id}")
         return cached
@@ -916,7 +916,7 @@ async def _resolve_improved_rag_query(
         source_filter=source_filter,
     )
     if query:
-        await awrite_cached_rag_query(party.party_id, cache_key, query)
+        await awrite_cached_rag_query(context_id, party.party_id, cache_key, query)
     return query
 
 
@@ -1360,7 +1360,10 @@ async def fetch_party_response_stream(
                 ),
             )
             await awrite_cached_answer_for_party(
-                party.party_id, cache_key, cached_answer
+                group_chat_session.context_id,
+                party.party_id,
+                cache_key,
+                cached_answer,
             )
 
     except openai.BadRequestError as e:

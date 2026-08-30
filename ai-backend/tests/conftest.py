@@ -189,7 +189,9 @@ async def _fake_aget_proposed_questions(context_id: str, party_id: str) -> list[
     return []
 
 
-async def _fake_aget_cached_answers(party_id: str, cache_key: str) -> list[Any]:
+async def _fake_aget_cached_answers(
+    context_id: str, party_id: str, cache_key: str
+) -> list[Any]:
     return []
 
 
@@ -197,7 +199,9 @@ async def _fake_awrite_cached_answer(*args: Any, **kwargs: Any) -> None:
     return None
 
 
-async def _fake_aget_cached_rag_query(party_id: str, cache_key: str) -> None:
+async def _fake_aget_cached_rag_query(
+    context_id: str, party_id: str, cache_key: str
+) -> None:
     return None
 
 

@@ -30,19 +30,15 @@ service cloud.firestore {
       }
     }
 
-    match /cached_answers/{id} {
-    	allow read;
-    }
-
-    match /cached_answers/{party_id}/{hash}/{cached_answer_id} {
-    	allow read;
-    }
-
-    match /cached_answers/{context_id}/{party_id}/{hash}/{cached_answer_id} {
+    match /cached_answers/{context_id}/{party_id}/{hash} {
     	allow read;
     }
 
     match /cached_answers/{document=**} {
+    	allow read;
+    }
+
+    match /cached_rag_queries/{context_id}/{party_id}/{hash} {
     	allow read;
     }
 

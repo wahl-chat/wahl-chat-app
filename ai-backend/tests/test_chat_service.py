@@ -288,7 +288,9 @@ def _wire_common_mocks(monkeypatch, capture: dict) -> None:
 
         return _gen()
 
-    async def _mock_get_rag_query_cache(_party_id: str, _key: str) -> None:
+    async def _mock_get_rag_query_cache(
+        _context_id: str, _party_id: str, _key: str
+    ) -> None:
         return None
 
     async def _mock_write_rag_query_cache(*_a, **_k) -> None:
@@ -869,7 +871,7 @@ def test_cacheable_lookup_runs_after_retrieval(monkeypatch) -> None:
         order.append("retrieve")
         return {"current": [], "historic": []}
 
-    async def _get_cached(_party_id: str, _key: str):
+    async def _get_cached(_context_id: str, _party_id: str, _key: str):
         order.append("cache_lookup")
         return [
             CachedResponse(
@@ -934,7 +936,7 @@ def _cacheable_term_window() -> tuple[datetime, datetime]:
     )
 
 
-async def _empty_cached_answers(_party_id: str, _key: str) -> list:
+async def _empty_cached_answers(_context_id: str, _party_id: str, _key: str) -> list:
     return []
 
 
@@ -951,7 +953,7 @@ def test_cacheable_reuses_cached_rag_query(monkeypatch) -> None:
         generated["n"] += 1
         return f"fresh-{generated['n']}"
 
-    async def _get_rag(_party_id: str, _key: str) -> str:
+    async def _get_rag(_context_id: str, _party_id: str, _key: str) -> str:
         return "cached rewrite"
 
     def _rec_two_pass(query, **_kwargs):
@@ -987,13 +989,13 @@ def test_cacheable_reuses_cached_rag_query(monkeypatch) -> None:
 
 
 def test_cacheable_writes_rag_query_on_miss(monkeypatch) -> None:
-    writes: list[tuple[str, str, str]] = []
+    writes: list[tuple[str, str, str, str]] = []
 
-    async def _get_rag(_party_id: str, _key: str) -> None:
+    async def _get_rag(_context_id: str, _party_id: str, _key: str) -> None:
         return None
 
-    async def _write_rag(party_id: str, key: str, query: str) -> None:
-        writes.append((party_id, key, query))
+    async def _write_rag(context_id: str, party_id: str, key: str, query: str) -> None:
+        writes.append((context_id, party_id, key, query))
 
     def _rec_two_pass(_query, **_kwargs):
         return {"current": [], "historic": []}
@@ -1022,7 +1024,8 @@ def test_cacheable_writes_rag_query_on_miss(monkeypatch) -> None:
     asyncio.run(_run())
 
     assert len(writes) == 1
-    party_id, key, query = writes[0]
+    context_id, party_id, key, query = writes[0]
+    assert context_id == "c1"
     assert party_id == "spd"
     assert len(key) == 64
     assert all(c in "0123456789abcdef" for c in key)
@@ -1039,10 +1042,12 @@ def test_cached_rag_query_stabilizes_answer_cache_key(monkeypatch) -> None:
         rewrite_n["n"] += 1
         return f"fresh-{rewrite_n['n']}"
 
-    async def _get_rag(_party_id: str, _key: str) -> str | None:
+    async def _get_rag(_context_id: str, _party_id: str, _key: str) -> str | None:
         return stored_query["q"]
 
-    async def _write_rag(_party_id: str, _key: str, query: str) -> None:
+    async def _write_rag(
+        _context_id: str, _party_id: str, _key: str, query: str
+    ) -> None:
         stored_query["q"] = query
 
     def _rec_two_pass(query, **kwargs):
@@ -1062,7 +1067,7 @@ def test_cached_rag_query_stabilizes_answer_cache_key(monkeypatch) -> None:
             "historic": [],
         }
 
-    async def _get_answers(_party_id: str, key: str) -> list:
+    async def _get_answers(_context_id: str, _party_id: str, key: str) -> list:
         answer_keys.append(key)
         return []
 
@@ -1101,7 +1106,7 @@ def test_non_cacheable_skips_rag_query_cache(monkeypatch) -> None:
     gets = {"n": 0}
     writes = {"n": 0}
 
-    async def _get_rag(_party_id: str, _key: str) -> None:
+    async def _get_rag(_context_id: str, _party_id: str, _key: str) -> None:
         gets["n"] += 1
         return None
 

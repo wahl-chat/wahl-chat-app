@@ -246,13 +246,17 @@ async def test_first_turn_proposed_question_is_cached(patch_chat_io, app, monkey
     assert payloads[-1] == "[DONE]"
     write_mock.assert_awaited_once()
     # cache_key is a SHA-256 hex digest, not the question text.
-    _party_id, cache_key, _cached = write_mock.await_args.args
+    context_id, _party_id, cache_key, _cached = write_mock.await_args.args
+    assert context_id == "bundestagswahl-2025"
     assert cache_key != _PROPOSED_QUESTION
     assert len(cache_key) == 64
     assert all(c in "0123456789abcdef" for c in cache_key)
 
     write_rag_mock.assert_awaited_once()
-    _rag_party_id, rag_cache_key, rag_query = write_rag_mock.await_args.args
+    rag_context_id, _rag_party_id, rag_cache_key, rag_query = (
+        write_rag_mock.await_args.args
+    )
+    assert rag_context_id == context_id
     assert _rag_party_id == _party_id
     assert rag_cache_key != cache_key
     assert len(rag_cache_key) == 64
