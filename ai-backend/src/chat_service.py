@@ -72,7 +72,7 @@ from src.deeplink import (
     _speech_deeplink_url,
 )
 from src.retrieve import retrieve, retrieve_two_pass
-from ingestion.legislature_config import (
+from src.legislature_config import (
     term_window_for_context,
 )
 from src.firebase_service import (
@@ -90,7 +90,7 @@ from src.models.dtos import (
     Status,
     StatusIndicator,
 )
-from ingestion.embeddings import get_embeddings
+from src.embeddings import get_embeddings
 from src.models.context import ContextParty
 from src.models.party import WAHL_CHAT_PARTY
 from src.utils import (
@@ -111,7 +111,7 @@ embed = get_embeddings(task_type="RETRIEVAL_QUERY")
 MAX_RESPONSE_CHUNK_LENGTH = 10  # preserved from V1 for cached-response replay
 
 # Minimum cosine similarity for a result to be included in chat retrieval.
-# V1 used 0.5; the collection uses text-embedding-3-large (cosine space, range [0,1]).
+# V1 used 0.5; the collection is a cosine space, range [0,1].
 # Empty results are gracefully tolerated — the LLM receives "Keine relevanten
 # Informationen" for that source type, producing a valid (possibly empty) context.
 _CHAT_SCORE_THRESHOLD = 0.5

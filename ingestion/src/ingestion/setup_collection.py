@@ -50,72 +50,52 @@ if __name__ == "__main__":
 from qdrant_client import QdrantClient, models
 
 # ---------------------------------------------------------------------------
-# Vector-space definition — the canonical source of truth for the corpus index.
-# For a GIVEN collection these are immutable after its first run: changing
-# EMBEDDING_DIM invalidates the whole HNSW index; changing EMBEDDING_MODEL drifts
-# embeddings and corrupts cosine-similarity scores.
-#
-# They are env-overridable so a SECOND collection with a different vector space
-# (e.g. a Gemini collection: EMBEDDING_PROVIDER=gemini, a Gemini EMBEDDING_MODEL,
-# a COLLECTION_NAME like wahlchat_chunks_gemini_dev) can be created ALONGSIDE the
-# existing one without editing code. With no env set the defaults are exactly the
-# locked OpenAI text-embedding-3-large @ 3072 space — unchanged behaviour.
+# The vector space, the collection name, and the fingerprint read/verify helpers
+# live in ingestion/corpus.py — duplicated verbatim in the backend, which has to
+# agree with them on every query. Only the WRITE side is here, and it is
+# re-exported so existing `from ingestion.setup_collection import ...` callers
+# (the runner, the connectors, the entrypoint) keep working unchanged.
 # ---------------------------------------------------------------------------
-EMBEDDING_DIM: int = int(os.getenv("EMBEDDING_DIM", "3072"))
-EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "text-embedding-3-large")
+from ingestion.corpus import (  # noqa: E402
+    COLLECTION_NAME,
+    EMBEDDING_DIM,
+    EMBEDDING_MODEL,
+    ENV,
+    FINGERPRINT_POINT_ID,
+    FINGERPRINT_SOURCE_TYPE,
+    _make_client,
+    check_fingerprint,
+    corpus_point_count,
+    expected_fingerprint,
+    fingerprint_mismatch,
+    read_fingerprint,
+    resolve_embedding_provider,
+)
 
-# ---------------------------------------------------------------------------
-# Collection name — env-scoped so dev/prod are isolated; COLLECTION_NAME may be
-# overridden outright (e.g. for a parallel Gemini collection).
-# ---------------------------------------------------------------------------
-ENV: str = os.getenv("ENV", "dev")
-COLLECTION_NAME: str = os.getenv("COLLECTION_NAME", f"wahlchat_chunks_{ENV}")
-
-# ---------------------------------------------------------------------------
-# Embedding-space fingerprint — guards against silently mixing vector spaces.
-#
-# A collection name alone cannot prove which provider/model produced its
-# vectors: an OpenAI collection and a Gemini collection can both be 3072-dim,
-# so the per-vector dimension guard passes while cosine scores are garbage.
-# The fingerprint is a single reserved point (fixed UUID, source_type
-# "corpus_fingerprint") whose payload records provider + model + dim. It is
-# invisible to retrieval (every query filters on real source_type / party
-# fields) and excluded from corpus_point_count().
-# ---------------------------------------------------------------------------
-FINGERPRINT_POINT_ID: str = "00000000-0000-4000-8000-00000000f19e"
-FINGERPRINT_SOURCE_TYPE: str = "corpus_fingerprint"
-
-
-def resolve_embedding_provider() -> str:
-    """Resolve EMBEDDING_PROVIDER the same way the embeddings factory does."""
-    return os.getenv("EMBEDDING_PROVIDER", "openai").strip().lower()
-
-
-def expected_fingerprint() -> dict:
-    """The fingerprint payload the current configuration should produce."""
-    return {
-        "source_type": FINGERPRINT_SOURCE_TYPE,
-        "embedding_provider": resolve_embedding_provider(),
-        "embedding_model": EMBEDDING_MODEL,
-        "embedding_dim": EMBEDDING_DIM,
-    }
-
-
-def read_fingerprint(client: QdrantClient, collection_name: str) -> Optional[dict]:
-    """Return the stored fingerprint payload, or None when absent."""
-    points = client.retrieve(
-        collection_name=collection_name,
-        ids=[FINGERPRINT_POINT_ID],
-        with_payload=True,
-        with_vectors=False,
-    )
-    if not points:
-        return None
-    return points[0].payload
+__all__ = [
+    "COLLECTION_NAME",
+    "EMBEDDING_DIM",
+    "EMBEDDING_MODEL",
+    "ENV",
+    "FINGERPRINT_POINT_ID",
+    "FINGERPRINT_SOURCE_TYPE",
+    "check_fingerprint",
+    "corpus_point_count",
+    "expected_fingerprint",
+    "fingerprint_mismatch",
+    "read_fingerprint",
+    "resolve_embedding_provider",
+    "setup",
+    "write_fingerprint",
+]
 
 
 def write_fingerprint(client: QdrantClient, collection_name: str) -> None:
-    """Upsert the fingerprint point for the current configuration."""
+    """Upsert the fingerprint point for the current configuration.
+
+    Write side only — the backend verifies fingerprints but never stamps them,
+    which is why this stays here rather than in the shared corpus module.
+    """
     # Non-zero unit-ish vector: some engines reject all-zero vectors under
     # COSINE. The vector itself is never searched (no query matches this
     # source_type), only the payload matters.
@@ -131,95 +111,6 @@ def write_fingerprint(client: QdrantClient, collection_name: str) -> None:
         ],
         wait=True,
     )
-
-
-def fingerprint_mismatch(stored: dict) -> Optional[str]:
-    """Compare a stored fingerprint to the current config; describe a mismatch.
-
-    Returns None when they agree, else a human-readable description.
-    """
-    expected = expected_fingerprint()
-    diffs = [
-        f"{key}: stored={stored.get(key)!r} configured={expected[key]!r}"
-        for key in ("embedding_provider", "embedding_model", "embedding_dim")
-        if stored.get(key) != expected[key]
-    ]
-    if not diffs:
-        return None
-    return "; ".join(diffs)
-
-
-def check_fingerprint(client: QdrantClient, collection_name: str) -> None:
-    """Best-effort fingerprint verification before writes/queries.
-
-    Raises RuntimeError when a stored fingerprint CONTRADICTS the current
-    configuration — that is the silent-vector-space-mix hazard. A missing
-    fingerprint (pre-fingerprint store) or an unreachable/limited client
-    (test fakes) only degrades to a pass: enforcement starts once setup()
-    has stamped the collection.
-    """
-    try:
-        stored = read_fingerprint(client, collection_name)
-    except Exception:  # noqa: BLE001 — fakes/legacy stores: nothing to verify
-        return
-    # Only a well-formed fingerprint payload counts — anything else (None,
-    # test doubles returning stand-in objects) means "nothing to verify".
-    if (
-        not isinstance(stored, dict)
-        or stored.get("source_type") != FINGERPRINT_SOURCE_TYPE
-    ):
-        return
-    mismatch = fingerprint_mismatch(stored)
-    if mismatch:
-        raise RuntimeError(
-            f"embedding-space fingerprint mismatch for collection "
-            f"'{collection_name}': {mismatch}. Refusing to proceed — mixing "
-            "vector spaces corrupts retrieval. Point the configuration at the "
-            "collection's original provider/model, or re-ingest into a fresh "
-            "collection (COLLECTION_NAME override) and cut over."
-        )
-
-
-# ---------------------------------------------------------------------------
-# Client wiring — mirrors vector_store_helper.py lines 57-60, but LAZY:
-# this module is imported project-wide just for COLLECTION_NAME /
-# EMBEDDING_MODEL, so a module-level QdrantClient would allocate an unused,
-# never-closed client in every importing process. The client is constructed
-# only inside setup() (when none is injected) / the __main__ path.
-# api_key is None in local dev; that is valid for an unauthenticated Qdrant.
-# ---------------------------------------------------------------------------
-def _make_client() -> QdrantClient:
-    """Construct the default QdrantClient from QDRANT_URL / QDRANT_API_KEY."""
-    return QdrantClient(
-        url=os.getenv("QDRANT_URL", "http://localhost:6333"),
-        api_key=os.getenv("QDRANT_API_KEY"),
-    )
-
-
-def corpus_point_count(client: Optional[QdrantClient] = None) -> Optional[int]:
-    """Return the number of points in ``COLLECTION_NAME``, or None if it is absent.
-
-    Used by the app's rollout gate to distinguish a missing collection (None)
-    from an empty one (0) from a populated one (>0). Constructs its own client
-    when none is injected (tests inject a fake).
-    """
-    c = client or _make_client()
-    if not c.collection_exists(COLLECTION_NAME):
-        return None
-    # Exclude the fingerprint sentinel: a collection holding ONLY the
-    # fingerprint must still read as empty (the rollout gate keys on >0).
-    return c.count(
-        collection_name=COLLECTION_NAME,
-        count_filter=models.Filter(
-            must_not=[
-                models.FieldCondition(
-                    key="source_type",
-                    match=models.MatchValue(value=FINGERPRINT_SOURCE_TYPE),
-                )
-            ]
-        ),
-        exact=True,
-    ).count
 
 
 # ---------------------------------------------------------------------------
@@ -405,7 +296,10 @@ def setup(client: Optional[QdrantClient] = None) -> None:
             )
         print("Embedding-space fingerprint verified.")
     else:
-        populated = corpus_point_count(client)
+        # Pass the name explicitly: this module can be retargeted at another
+        # collection (tests swap COLLECTION_NAME here), and corpus.py would
+        # otherwise count its own global — i.e. the real corpus.
+        populated = corpus_point_count(client, COLLECTION_NAME)
         if populated and os.getenv("CORPUS_FINGERPRINT_ADOPT") != "1":
             raise RuntimeError(
                 f"collection '{COLLECTION_NAME}' holds {populated} points but "

@@ -11,7 +11,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 from src.models.context import ContextParty
 
-from ingestion.embeddings import get_embeddings
+from src.embeddings import get_embeddings
 from src.utils import load_env
 
 from src.chatbot_async import rerank_documents
@@ -49,9 +49,7 @@ def get_context_collection_name(context_id: str) -> str:
     return f"context_{context_id}_party_docs{env_suffix}"
 
 
-# Resolved via the provider factory (EMBEDDING_PROVIDER, default OpenAI
-# text-embedding-3-large @ 3072 — the previous behaviour unchanged). OpenAI reads
-# OPENAI_API_KEY from the environment, exactly as before.
+# Provider from EMBEDDING_PROVIDER (default gemini-embedding-2 @ 3072).
 embed = get_embeddings()
 
 # Initialize Qdrant client

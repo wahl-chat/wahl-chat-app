@@ -130,7 +130,7 @@ async def _fake_identify_relevant_docs(*args: Any, **kwargs: Any) -> list[Docume
     return _FAKE_DOCS
 
 
-_FAKE_ZERO_VECTOR = [0.0] * 3072  # matches EMBEDDING_DIM (text-embedding-3-large)
+_FAKE_ZERO_VECTOR = [0.0] * 3072  # matches EMBEDDING_DIM
 
 
 def _fake_retrieve(*args: Any, **kwargs: Any) -> list[dict]:
@@ -370,7 +370,7 @@ def temp_qdrant_collection() -> "Generator[tuple, None, None]":
         from qdrant_client.qdrant_client import QdrantClient as _RealQdrantClient
         from qdrant_client.models import Distance, VectorParams
 
-        from ingestion.setup_collection import EMBEDDING_DIM
+        from src.corpus import EMBEDDING_DIM
 
         client = _RealQdrantClient(url="http://localhost:6333", api_key=None)
         # Quick reachability check — skip fixture if Qdrant is down.

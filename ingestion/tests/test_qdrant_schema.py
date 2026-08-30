@@ -206,7 +206,10 @@ def test_fingerprint_stamped_and_stable(
     # Idempotent re-run: verifies the existing fingerprint, no error.
     setup(client=qdrant)
     # corpus_point_count must NOT count the fingerprint sentinel.
-    assert setup_collection.corpus_point_count(qdrant) == 0, (
+    # Name passed explicitly — corpus_point_count lives in the shared corpus
+    # module and would otherwise count ITS global (the real corpus), not this
+    # throwaway collection.
+    assert setup_collection.corpus_point_count(qdrant, schema_collection) == 0, (
         "a collection holding only the fingerprint sentinel must read as empty "
         "(the corpus rollout gate keys on corpus_point_count() > 0)"
     )

@@ -6,10 +6,8 @@
 # member live outside ai-backend/:
 #   docker build -f ai-backend/Dockerfile .
 #
-# This image carries BOTH workspace members: the chat service imports the
-# corpus layer for the collection constants + fingerprint, the embeddings
-# factory, governance levels, and legislature term windows. The ingestion Job
-# image (ingestion/Dockerfile) carries only the corpus layer.
+# Chat service only: --package keeps the ingestion member (and its connector
+# dependency tree) out. corpus-contract.json is shared data, not code.
 FROM python:3.12-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.11.19 /uv /uvx /bin/
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
@@ -23,18 +21,17 @@ COPY pyproject.toml uv.lock ./
 COPY ai-backend/pyproject.toml ai-backend/pyproject.toml
 COPY ingestion/pyproject.toml ingestion/pyproject.toml
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev --no-install-workspace
+    uv sync --locked --no-dev --no-install-workspace --package wahl-chat-backend
 
 # Layer 2: the members themselves (re-runs only when sources change).
 # READMEs are copied because both pyprojects declare readme = "README.md",
 # which hatchling reads at build time. .dockerignore keeps .env*, tests/ and
 # caches out of the build context.
+COPY corpus-contract.json /app/corpus-contract.json
 COPY ai-backend/README.md ai-backend/README.md
-COPY ingestion/README.md ingestion/README.md
 COPY ai-backend/src /app/ai-backend/src
-COPY ingestion/src /app/ingestion/src
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev
+    uv sync --locked --no-dev --package wahl-chat-backend
 
 # Runtime stage — no uv, no build tools, non-root user.
 FROM python:3.12-slim AS runtime

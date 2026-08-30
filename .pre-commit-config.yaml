@@ -44,6 +44,17 @@ repos:
         files: ^ingestion/src/.*\.py$
         pass_filenames: false
         require_serial: true
+      - id: contract-parity
+        name: Corpus contract parity
+        # ai-backend and ingestion are independent packages, so a few modules are
+        # duplicated verbatim (marked GENERATED-PAIR). This catches an edit that
+        # landed in only one copy, or a malformed corpus-contract.json, at commit
+        # time — before the parity tests in either suite would have to.
+        entry: uv run python scripts/check_contract_parity.py
+        language: system
+        files: ^(ai-backend/src|ingestion/src/ingestion)/.*\.py$|^corpus-contract\.json$
+        pass_filenames: false
+        require_serial: true
 
   # Hygiene hooks — pinned upstream (no project-tool equivalent).
   - repo: https://github.com/pre-commit/pre-commit-hooks

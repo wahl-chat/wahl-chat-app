@@ -23,7 +23,7 @@ Two failure modes, deliberately treated differently:
 *Unconfigured* — no ``VERTEX_*`` credential source at all. The expected state in CI
 and local development. Resolves to ``None`` quietly, and the caller falls back to
 Google AI Studio (``GOOGLE_API_KEY``) — see ``src/llms.py`` and
-``ingestion/src/ingestion/embeddings.py``.
+``ai-backend/src/embeddings.py``.
 
 *Misconfigured* — a source WAS supplied but is unusable (blank value, missing file,
 corrupt key, unresolvable project). That is operator error, and staying quiet about
@@ -202,7 +202,7 @@ def vertex_enabled() -> bool:
     """True when Vertex is fully configured (credentials AND a project).
 
     The single decision point for "is Vertex on" — ``src/llms.py`` and
-    ``ingestion/src/ingestion/embeddings.py`` both route through here rather than re-deriving the
+    ``ai-backend/src/embeddings.py`` both route through here rather than re-deriving the
     two-part condition, so the semantics live in one place. Cheap to call: the
     credential lookup is cached and the project lookup is an env read.
 

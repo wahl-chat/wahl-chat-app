@@ -19,19 +19,29 @@ the corpus data contract (chunk payloads, source items, authority tiers).
 
 ## Relationship to `ai-backend/`
 
-The dependency is strictly one-way: **`ai-backend` imports `ingestion`, never the
-reverse.** The backend reads four things from here — `setup_collection`
-(collection name, embedding constants, fingerprint check), `embeddings`
-(`get_embeddings`), `governance_levels`, and `legislature_config` (term windows).
+**The two packages are independent: neither imports the other.** That keeps this
+package's connector dependencies (trafilatura, pypdf, beautifulsoup4,
+google-cloud-storage) out of the chat image, and keeps the backend's web stack out
+of the Job image.
 
 Query-time retrieval is *not* here: `retrieve()` is a backend concern and lives in
 `ai-backend/src/retrieve.py`.
 
-Both sides are held to one vector space by `setup_collection.py`. It defines
-`EMBEDDING_MODEL` / `EMBEDDING_DIM` exactly once, and writes them into the
-collection itself as a fingerprint point. Every write path and the backend's read
-path call `check_fingerprint()`, which raises rather than let a query run against
-vectors from a different model.
+What the two must agree on lives in `corpus-contract.json` at the repo root — the
+embedding space, collection name, governance levels, payload enums, and the 36 AW
+legislature periods. Both packages read it; both images copy it in. A few modules
+are duplicated verbatim and marked `GENERATED-PAIR` in their headers — edit both
+copies.
+
+Three layers stop the two drifting apart:
+
+1. **Parity tests** in each suite — each package's constants vs the contract.
+2. **`scripts/check_contract_parity.py`** in pre-commit — the duplicated modules
+   have not diverged.
+3. **`check_fingerprint()`** at runtime — `corpus.py` stamps the provider/model/dim
+   that produced the vectors into the collection itself, and the backend verifies
+   it on every query. Anything that slips past the first two still fails loudly
+   rather than returning cross-space garbage.
 
 ## Setup
 

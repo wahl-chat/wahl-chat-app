@@ -45,9 +45,9 @@ from qdrant_client.models import (
     MatchValue,
 )
 
-from ingestion.embeddings import get_embeddings
-from ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
-from ingestion.governance_levels import ALL_LEVELS
+from src.embeddings import get_embeddings
+from src.corpus import COLLECTION_NAME, check_fingerprint
+from src.governance_levels import ALL_LEVELS
 
 logger = logging.getLogger(__name__)
 

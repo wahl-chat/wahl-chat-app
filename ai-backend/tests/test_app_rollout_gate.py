@@ -6,7 +6,7 @@ REQUIRE_CORPUS is explicitly set — otherwise local dev / CI boot on empty."""
 import pytest
 
 from src import app as app_module
-from ingestion import setup_collection
+from src import corpus as setup_collection
 
 
 class _FakeCount:

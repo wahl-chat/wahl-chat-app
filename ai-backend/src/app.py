@@ -44,7 +44,7 @@ def enforce_corpus_rollout_gate() -> None:
         return
     # Deferred import: setup_collection allocates nothing at import time, but the
     # count call below constructs a QdrantClient we only want on the gated path.
-    from ingestion.setup_collection import COLLECTION_NAME, corpus_point_count
+    from src.corpus import COLLECTION_NAME, corpus_point_count
 
     count = corpus_point_count()
     if not count:

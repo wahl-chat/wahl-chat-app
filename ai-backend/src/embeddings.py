@@ -5,7 +5,7 @@
 """
 Embeddings provider factory — single construction site for the embedding client.
 
-Every place that needs an embeddings client (the ingestion runner, retrieve(),
+Every place that needs an embeddings client (retrieve(), chat_service,
 and the legacy vector_store_helper) resolves it through ``get_embeddings()`` so
 the provider can be swapped by configuration alone, without editing code.
 
@@ -21,7 +21,7 @@ EXACTLY — with no env set this returns ``gemini-embedding-2`` @ 3072):
                        per-vector dimension guard (_upsert_chunks).
 
 Model and dimension default to ``EMBEDDING_MODEL`` / ``EMBEDDING_DIM`` in
-``ingestion.corpus`` — the canonical vector-space definition — so
+``src.corpus`` — the canonical vector-space definition — so
 they stay in lockstep with the collection the vectors are written to.
 
 Gemini reads its key from ``GOOGLE_API_KEY`` (falling back to ``GEMINI_API_KEY``)
@@ -30,7 +30,7 @@ does today.
 
 Gemini transport (AI Studio vs Vertex AI) is chosen separately from the provider
 string. When a Vertex service-account key is configured (see
-``ingestion/src/ingestion/vertex_credentials.py``) the Gemini client is built against Vertex so the
+``src/vertex_credentials.py``) the Gemini client is built against Vertex so the
 spend lands on the billing project; ``EMBEDDINGS_USE_VERTEX=0`` forces AI Studio.
 The provider string stays ``"gemini"`` either way — it names the vector space,
 which is identical across both backends, and it is stamped into the Qdrant
@@ -44,7 +44,7 @@ from typing import Optional
 
 from langchain_core.embeddings import Embeddings
 
-from ingestion.corpus import EMBEDDING_DIM, EMBEDDING_MODEL
+from src.corpus import EMBEDDING_DIM, EMBEDDING_MODEL
 
 _DEFAULT_PROVIDER = "openai"
 
@@ -56,7 +56,7 @@ def _vertex_embeddings_requested() -> bool:
     embeddings follow chat onto the billing project. ``EMBEDDINGS_USE_VERTEX=0``
     forces them back to AI Studio — the manual kill-switch, since embeddings have
     no runtime failover (clients are bound once at module level in
-    ``src/chat_service.py`` and ``ingestion/src/ingestion/retrieve.py``).
+    ``src/chat_service.py`` and ``src/retrieve.py``).
     """
     return os.getenv("EMBEDDINGS_USE_VERTEX", "1").strip().lower() not in (
         "0",
@@ -84,8 +84,9 @@ def get_embeddings(
                   it is forwarded as ``output_dimensionality`` so the produced
                   vectors match the collection width.
         task_type: Gemini-only optimisation axis — how the embedding will be USED,
-                  not a data format. Corpus passages (the ingestion runner) should
-                  pass ``"RETRIEVAL_DOCUMENT"``; the search query (retrieve()) should
+                  not a data format. Corpus passages (written by the ingestion
+                  package) are embedded with ``"RETRIEVAL_DOCUMENT"``; the search
+                  query here (retrieve()) must
                   pass ``"RETRIEVAL_QUERY"``. The asymmetric document/query spaces
                   materially improve retrieval. Ignored for OpenAI (no such axis).
                   Baked into the vectors → set it correctly BEFORE ingesting.
@@ -136,7 +137,7 @@ def get_embeddings(
         # fingerprint (setup_collection.expected_fingerprint) and
         # check_fingerprint() raises on any mismatch — encoding transport in it
         # would reject the existing corpus and force a full re-ingest.
-        from ingestion.vertex_credentials import (  # noqa: PLC0415
+        from src.vertex_credentials import (  # noqa: PLC0415
             get_vertex_credentials,
             vertex_enabled,
             vertex_location,

@@ -1,0 +1,295 @@
+{
+  "_comment": "Single source of truth for the corpus contract shared by the ai-backend and ingestion packages. The two are INDEPENDENT Python packages (neither imports the other); this file is the only thing they share, and each Docker image copies it in. Edit here, never in one package only. Parity tests in both suites fail if a package's code drifts from it.",
+  "version": 1,
+  "embedding": {
+    "_comment": "Defaults matching the deployed corpus. EMBEDDING_PROVIDER / EMBEDDING_MODEL / EMBEDDING_DIM still override per deployment; check_fingerprint() raises if a reader disagrees with what the writer stored.",
+    "provider": "gemini",
+    "model": "gemini-embedding-2",
+    "dim": 3072
+  },
+  "collection": {
+    "name_template": "wahlchat_chunks_{env}",
+    "default_env": "dev",
+    "fingerprint_point_id": "00000000-0000-4000-8000-00000000f19e",
+    "fingerprint_source_type": "corpus_fingerprint"
+  },
+  "governance_levels": {
+    "federal": "federal",
+    "state": "state",
+    "municipal": "municipal",
+    "eu": "eu",
+    "_all_levels_comment": "EU deliberately excluded — AW carries no EU parliament data.",
+    "all_levels": [
+      "federal",
+      "municipal",
+      "state"
+    ]
+  },
+  "source_types": [
+    "party_manifesto",
+    "vote_record",
+    "drucksache",
+    "qa_transcript",
+    "parliamentary_speech"
+  ],
+  "authority_tiers": [
+    "authoritative",
+    "factual_record",
+    "self_reported",
+    "promotional"
+  ],
+  "legislature_periods": {
+    "105": {
+      "region": "DE-BW",
+      "label": "Baden-Württemberg 2016 - 2021",
+      "date_from": "2016-05-11",
+      "date_to": "2021-05-10",
+      "wahlperiode": null
+    },
+    "107": {
+      "region": "DE-BE",
+      "label": "Berlin 2016 - 2021",
+      "date_from": "2016-10-27",
+      "date_to": "2021-10-03",
+      "wahlperiode": null
+    },
+    "108": {
+      "region": "DE-MV",
+      "label": "Mecklenburg-Vorpommern 2016 - 2021",
+      "date_from": "2016-10-04",
+      "date_to": "2021-10-25",
+      "wahlperiode": null
+    },
+    "109": {
+      "region": "DE-NW",
+      "label": "Nordrhein-Westfalen 2017 - 2022",
+      "date_from": "2017-06-01",
+      "date_to": "2022-05-31",
+      "wahlperiode": null
+    },
+    "110": {
+      "region": "DE-SH",
+      "label": "Schleswig-Holstein 2017 - 2022",
+      "date_from": "2017-06-06",
+      "date_to": "2022-06-06",
+      "wahlperiode": null
+    },
+    "111": {
+      "region": "DE",
+      "label": "Bundestag 2017 - 2021",
+      "date_from": "2017-10-24",
+      "date_to": "2021-10-25",
+      "wahlperiode": 19
+    },
+    "112": {
+      "region": "DE-NI",
+      "label": "Niedersachsen 2017 - 2022",
+      "date_from": "2017-11-14",
+      "date_to": "2022-11-07",
+      "wahlperiode": null
+    },
+    "113": {
+      "region": "DE-SL",
+      "label": "Saarland 2017 - 2022",
+      "date_from": "2017-04-25",
+      "date_to": "2022-04-24",
+      "wahlperiode": null
+    },
+    "114": {
+      "region": "DE-ST",
+      "label": "Sachsen-Anhalt 2016 - 2021",
+      "date_from": "2016-04-12",
+      "date_to": "2021-07-05",
+      "wahlperiode": null
+    },
+    "115": {
+      "region": "DE-BY",
+      "label": "Bayern 2018 - 2023",
+      "date_from": "2018-11-02",
+      "date_to": "2023-10-25",
+      "wahlperiode": null
+    },
+    "116": {
+      "region": "DE-HE",
+      "label": "Hessen 2019 - 2024",
+      "date_from": "2019-01-18",
+      "date_to": "2024-01-17",
+      "wahlperiode": null
+    },
+    "118": {
+      "region": "DE-HB",
+      "label": "Bremen 2019 - 2023",
+      "date_from": "2019-07-03",
+      "date_to": "2023-06-28",
+      "wahlperiode": null
+    },
+    "119": {
+      "region": "DE-SN",
+      "label": "Sachsen 2019 - 2024",
+      "date_from": "2019-10-01",
+      "date_to": "2024-09-30",
+      "wahlperiode": null
+    },
+    "120": {
+      "region": "DE-BB",
+      "label": "Brandenburg 2019 - 2024",
+      "date_from": "2019-09-02",
+      "date_to": "2024-10-16",
+      "wahlperiode": null
+    },
+    "121": {
+      "region": "DE-TH",
+      "label": "Thüringen 2019 - 2024",
+      "date_from": "2019-11-26",
+      "date_to": "2024-09-26",
+      "wahlperiode": null
+    },
+    "122": {
+      "region": "DE-HH",
+      "label": "Hamburg 2020 - 2025",
+      "date_from": "2020-03-18",
+      "date_to": "2025-03-25",
+      "wahlperiode": null
+    },
+    "126": {
+      "region": "DE-BW",
+      "label": "Baden-Württemberg 2021 - 2026",
+      "date_from": "2021-05-11",
+      "date_to": "2026-05-11",
+      "wahlperiode": null
+    },
+    "127": {
+      "region": "DE-RP",
+      "label": "Rheinland-Pfalz 2021 - 2026",
+      "date_from": "2021-03-12",
+      "date_to": "2026-05-18",
+      "wahlperiode": null
+    },
+    "131": {
+      "region": "DE-ST",
+      "label": "Sachsen-Anhalt 2021 - 2026",
+      "date_from": "2021-07-06",
+      "date_to": "2026-10-06",
+      "wahlperiode": null
+    },
+    "132": {
+      "region": "DE",
+      "label": "Bundestag 2021 - 2025",
+      "date_from": "2021-10-26",
+      "date_to": "2025-03-24",
+      "wahlperiode": 20
+    },
+    "133": {
+      "region": "DE-BE",
+      "label": "Berlin 2021 - 2026",
+      "date_from": "2021-10-04",
+      "date_to": "2026-10-25",
+      "wahlperiode": null
+    },
+    "134": {
+      "region": "DE-MV",
+      "label": "Mecklenburg-Vorpommern 2021 - 2026",
+      "date_from": "2021-10-26",
+      "date_to": "2026-10-25",
+      "wahlperiode": null
+    },
+    "137": {
+      "region": "DE-SL",
+      "label": "Saarland 2022 - 2027",
+      "date_from": "2022-04-25",
+      "date_to": "2027-03-27",
+      "wahlperiode": null
+    },
+    "138": {
+      "region": "DE-SH",
+      "label": "Schleswig-Holstein 2022 - 2027",
+      "date_from": "2022-06-07",
+      "date_to": "2027-05-30",
+      "wahlperiode": null
+    },
+    "139": {
+      "region": "DE-NW",
+      "label": "Nordrhein-Westfalen 2022 - 2027",
+      "date_from": "2022-06-01",
+      "date_to": "2027-05-30",
+      "wahlperiode": null
+    },
+    "143": {
+      "region": "DE-NI",
+      "label": "Niedersachsen 2022 - 2027",
+      "date_from": "2022-11-08",
+      "date_to": "2027-11-18",
+      "wahlperiode": null
+    },
+    "146": {
+      "region": "DE-HB",
+      "label": "Bremen 2023 - 2027",
+      "date_from": "2023-06-29",
+      "date_to": "2027-06-01",
+      "wahlperiode": null
+    },
+    "149": {
+      "region": "DE-BY",
+      "label": "Bayern 2023 - 2028",
+      "date_from": "2023-10-26",
+      "date_to": "2028-10-31",
+      "wahlperiode": null
+    },
+    "150": {
+      "region": "DE-HE",
+      "label": "Hessen 2024 - 2029",
+      "date_from": "2024-01-18",
+      "date_to": "2029-01-31",
+      "wahlperiode": null
+    },
+    "156": {
+      "region": "DE-TH",
+      "label": "Thüringen 2024 - 2029",
+      "date_from": "2024-09-26",
+      "date_to": "2029-09-30",
+      "wahlperiode": null
+    },
+    "157": {
+      "region": "DE-SN",
+      "label": "Sachsen 2024 - 2029",
+      "date_from": "2024-10-01",
+      "date_to": "2029-09-30",
+      "wahlperiode": null
+    },
+    "158": {
+      "region": "DE-BB",
+      "label": "Brandenburg 2024 - 2029",
+      "date_from": "2024-10-17",
+      "date_to": "2029-10-22",
+      "wahlperiode": null
+    },
+    "161": {
+      "region": "DE",
+      "label": "Bundestag 2025 - 2029",
+      "date_from": "2025-03-25",
+      "date_to": "2029-02-22",
+      "wahlperiode": 21
+    },
+    "162": {
+      "region": "DE-HH",
+      "label": "Hamburg 2025 - 2029",
+      "date_from": "2025-03-26",
+      "date_to": "2029-05-03",
+      "wahlperiode": null
+    },
+    "165": {
+      "region": "DE-BW",
+      "label": "Baden-Württemberg 2026 - 2031",
+      "date_from": "2026-05-12",
+      "date_to": "2031-05-20",
+      "wahlperiode": null
+    },
+    "166": {
+      "region": "DE-RP",
+      "label": "Rheinland-Pfalz 2026 - 2031",
+      "date_from": "2026-05-18",
+      "date_to": "2031-05-31",
+      "wahlperiode": null
+    }
+  }
+}

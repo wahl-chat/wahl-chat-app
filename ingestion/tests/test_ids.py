@@ -9,7 +9,7 @@ Requirements covered:
   - compute_source_item_id determinism (same inputs → same UUID always)
   - compute_chunk_id returns uuid.UUID (not str) for Qdrant point-id compatibility
   - ID idempotency — re-runs with the same external ID never create duplicate points
-  - Embedding constants locked to text-embedding-3-large / 3072 dimensions
+  - Embedding constants locked to the corpus vector space (gemini-embedding-2 / 3072)
 
 These are pure unit tests; no live services required.
 """
@@ -118,7 +118,7 @@ def test_wahl_chat_ns_is_uuid():
 
 
 def test_embedding_guard():
-    """Embedding constants must be text-embedding-3-large / 3072 dimensions.
+    """Embedding constants must match the deployed corpus vector space.
 
     setup_collection.py exports EMBEDDING_DIM and EMBEDDING_MODEL.
     This test uses pytest.importorskip so it skips gracefully until the
@@ -130,9 +130,7 @@ def test_embedding_guard():
     )
     dim = getattr(setup, "EMBEDDING_DIM", None)
     model = getattr(setup, "EMBEDDING_MODEL", None)
-    assert dim == 3072, (
-        f"EMBEDDING_DIM must be 3072 for text-embedding-3-large: got {dim!r}."
-    )
-    assert model == "text-embedding-3-large", (
-        f"EMBEDDING_MODEL must be 'text-embedding-3-large': got {model!r}."
+    assert dim == 3072, f"EMBEDDING_DIM must be 3072: got {dim!r}."
+    assert model == "gemini-embedding-2", (
+        f"EMBEDDING_MODEL must be 'gemini-embedding-2': got {model!r}."
     )

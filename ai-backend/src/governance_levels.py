@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import FrozenSet
 
-from ingestion.corpus_contract import section
+from src.corpus_contract import section
 
 _LEVELS = section("governance_levels")
 

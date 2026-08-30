@@ -5,11 +5,10 @@
 # Build context is the REPO ROOT — the uv workspace lockfile lives there:
 #   docker build -f ingestion/Dockerfile .
 #
-# Corpus-layer image for the scheduled Cloud Run ingestion Jobs. It carries the
-# ingestion member ONLY: no fastapi/uvicorn/sse-starlette, no firebase-admin,
-# no chat-service code. ai-backend/pyproject.toml is copied because uv needs
-# every workspace member's manifest to resolve the shared lockfile, but
-# `--package ingestion` means the backend is never installed.
+# Corpus-layer image for the scheduled Cloud Run Jobs: no fastapi/uvicorn,
+# no firebase-admin, no chat-service code. ai-backend/pyproject.toml is copied
+# only because uv needs every member's manifest to resolve the shared lock;
+# --package keeps the backend uninstalled.
 FROM python:3.12-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.11.19 /uv /uvx /bin/
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
@@ -29,6 +28,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # README.md is copied because pyproject declares readme = "README.md", which
 # hatchling reads at build time. data/ carries the manifesto_uploads manifests;
 # MdB-Stammdaten is excluded by .dockerignore and fetched at run time.
+COPY corpus-contract.json /app/corpus-contract.json
 COPY ingestion/README.md ingestion/README.md
 COPY ingestion/src /app/ingestion/src
 COPY ingestion/data /app/ingestion/data

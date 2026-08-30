@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from typing import Optional
 
-from ingestion.corpus_contract import section
+from src.corpus_contract import section
 
 
 @dataclass(frozen=True)
