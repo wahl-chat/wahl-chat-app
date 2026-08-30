@@ -64,7 +64,6 @@ from src.answer_cache import (
     build_rag_query_cache_key,
     canonicalize_rag_context,
 )
-from src.auth import resolve_user_is_logged_in
 from src.sse import (
     DONE as _DONE,
     data_event as _data_event,
@@ -504,7 +503,6 @@ async def _lookup_cached_party_answer(
     group_chat_session: GroupChatSession,
     combined_docs: List[Document],
     *,
-    use_premium_llms: bool,
     election_level: Optional[str],
     present_sources: tuple[bool, bool, bool],
     has_historic: bool,
@@ -550,8 +548,6 @@ async def _lookup_cached_party_answer(
         context_id=group_chat_session.context_id,
         answer_guidelines=answer_guidelines,
         rag_context=canonicalize_rag_context(combined_docs),
-        llm_size=group_chat_session.chat_response_llm_size,
-        use_premium_llms=use_premium_llms,
         llms=chat_response_llms,
         context_name=context_name,
         context_date_info=context_date_info,
@@ -926,7 +922,6 @@ async def fetch_party_response_stream(
     question_for_party: str,
     group_chat_session: GroupChatSession,
     all_available_parties: List[ContextParty],
-    use_premium_llms: bool,
     is_cacheable_chat: bool = True,
     relevant_docs: Optional[Union[List[Document], Dict[str, List[Document]]]] = None,
     parties_being_compared: Optional[List[ContextParty]] = None,
@@ -1179,7 +1174,6 @@ async def fetch_party_response_stream(
                     conversation_history_str,
                     group_chat_session,
                     combined_docs,
-                    use_premium_llms=use_premium_llms,
                     election_level=election_level,
                     present_sources=present_sources,
                     has_historic=has_historic,
@@ -1240,9 +1234,7 @@ async def fetch_party_response_stream(
                 question_for_party,
                 combined_docs,
                 all_parties=all_available_parties,
-                chat_response_llm_size=group_chat_session.chat_response_llm_size,
                 context_id=group_chat_session.context_id,
-                use_premium_llms=use_premium_llms,
                 election_level=election_level,
                 present_sources=present_sources,
                 has_historic=has_historic,
@@ -1259,8 +1251,6 @@ async def fetch_party_response_stream(
                 question_for_party,
                 relevant_docs_dict or {},
                 parties_being_compared or [],
-                chat_response_llm_size=group_chat_session.chat_response_llm_size,
-                use_premium_llms=use_premium_llms,
                 election_level=election_level,
                 has_historic=_has_historic_docs(relevant_docs_dict, term_window),
                 source_filter=source_filter,
@@ -1583,10 +1573,6 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
     # Record wall-clock start time for per-stream budget enforcement.
     _stream_start = time.monotonic()
 
-    # Premium LLM selection is derived server-side from the request's token —
-    # never from the client (no request → anonymous → no premium).
-    use_premium_llms = resolve_user_is_logged_in(request, "chat")
-
     message_id = str(uuid.uuid4())
 
     for part in _start_message(message_id):
@@ -1603,7 +1589,6 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
     from src.models.chat import (
         GroupChatSession as _GroupChatSession,
     )  # local import avoids circular
-    from src.models.general import LLMSize
 
     # body.chat_history is the route-specific ChatHistoryTurn (role/content/party_id
     # only, already validated + bounded by FastAPI). Rehydrate into the internal
@@ -1621,7 +1606,6 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
         session_id=body.session_id,
         context_id=body.context_id,
         chat_history=chat_history,
-        chat_response_llm_size=LLMSize.LARGE,
     )
 
     # cacheable only for quick-reply-driven sessions
@@ -1819,7 +1803,6 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                         general_question,
                         group_chat_session,
                         all_available_parties=all_parties,
-                        use_premium_llms=use_premium_llms,
                         is_cacheable_chat=group_chat_session.is_cacheable,
                         region_path=region_path,
                         legislature_period_id=legislature_period_id,
@@ -1888,7 +1871,6 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     user_message.content,
                     group_chat_session,
                     all_available_parties=all_parties,
-                    use_premium_llms=use_premium_llms,
                     is_cacheable_chat=group_chat_session.is_cacheable,
                     relevant_docs=relevant_doc_dict,
                     parties_being_compared=parties_being_compared,

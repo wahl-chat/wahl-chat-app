@@ -902,16 +902,16 @@ def get_gemini_tool_binding(llm: Any) -> Any:
 
     Usage::
 
-        from src.llms import google_gemini_2_5_flash
+        from src.llms import google_gemini_3_6_flash
         from src.ingestion.retrieve import get_gemini_tool_binding
 
-        llm_with_tools = get_gemini_tool_binding(google_gemini_2_5_flash)
+        llm_with_tools = get_gemini_tool_binding(google_gemini_3_6_flash)
 
     The tool declaration is standalone — this does NOT import or modify
     chat_service or vector_store_helper.
 
     Args:
-        llm: A ChatGoogleGenerativeAI instance (e.g. ``google_gemini_2_5_flash``).
+        llm: A ChatGoogleGenerativeAI instance (e.g. ``google_gemini_3_6_flash``).
 
     Returns:
         The LLM with the ``retrieve`` tool bound via ``bind_tools([RetrieveSchema])``.

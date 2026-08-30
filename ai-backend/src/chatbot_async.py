@@ -15,7 +15,7 @@ from openai.types.chat.chat_completion_message_param import (
     ChatCompletionUserMessageParam,
 )
 
-from src.models.general import LLM, LLMSize
+from src.models.general import LLM
 from src.llms import (
     PRE_AND_POST_PROCESSING_LLMS,
     RESPONSE_GENERATION_LLMS,
@@ -98,6 +98,23 @@ from src.models.structured_outputs import (
 load_env()
 
 logger = logging.getLogger(__name__)
+
+
+def _message_text(response) -> str:
+    """Flatten an LLM reply to a string.
+
+    Gemini 3 returns ``content`` as a list of blocks (``type`` / ``text``, plus a
+    thought signature). Gemini 2.x returned a plain string. ``AIMessage.text``
+    handles both. Fall back to ``content`` for test doubles that only set that.
+    """
+    text = getattr(response, "text", None)
+    if isinstance(text, str):
+        return text
+    content = getattr(response, "content", "")
+    if isinstance(content, str):
+        return content
+    return str(content or "")
+
 
 chat_response_llms: list[LLM] = RESPONSE_GENERATION_LLMS
 
@@ -345,12 +362,7 @@ async def generate_improvement_rag_query(
 
     response = await get_answer_from_llms(prompt_improvement_llms, messages)
 
-    if isinstance(response.content, list):
-        if isinstance(response.content[0], str):
-            return response.content[0]
-        else:
-            return response.content[0]["content"]
-    return response.content
+    return _message_text(response)
 
 
 async def generate_pro_con_perspective(
@@ -566,7 +578,7 @@ async def get_improved_rag_query_voting_behavior(
 
     response = await get_answer_from_llms(prompt_improvement_llms, messages)
 
-    return getattr(response, "content", "")
+    return _message_text(response)
 
 
 async def generate_streaming_chatbot_response(
@@ -575,9 +587,7 @@ async def generate_streaming_chatbot_response(
     user_message: str,
     relevant_docs: List[Document],
     all_parties: list[ContextParty],
-    chat_response_llm_size: LLMSize,
     context_id: str = DEFAULT_CONTEXT_ID,
-    use_premium_llms: bool = False,
     election_level: Optional[str] = None,
     present_sources: Optional[tuple[bool, bool, bool]] = None,
     has_historic: bool = False,
@@ -642,8 +652,6 @@ async def generate_streaming_chatbot_response(
     return await stream_answer_from_llms(
         chat_response_llms,
         messages,
-        preferred_llm_size=chat_response_llm_size,
-        use_premium_llms=use_premium_llms,
     )
 
 
@@ -800,8 +808,6 @@ async def generate_streaming_chatbot_comparing_response(
     user_message: str,
     relevant_docs: Dict[str, List[Document]],
     relevant_parties: List[ContextParty],
-    chat_response_llm_size: LLMSize,
-    use_premium_llms: bool = False,
     election_level: Optional[str] = None,
     has_historic: bool = False,
     source_filter: Optional[List[str]] = None,
@@ -852,8 +858,6 @@ async def generate_streaming_chatbot_comparing_response(
     return await stream_answer_from_llms(
         chat_response_llms,
         messages,
-        preferred_llm_size=chat_response_llm_size,
-        use_premium_llms=use_premium_llms,
     )
 
 
@@ -912,8 +916,6 @@ async def generate_party_vote_behavior_summary(
     last_user_message: str,
     last_assistant_message: str,
     votes: List[Vote],
-    summary_llm_size: LLMSize,
-    use_premium_llms: bool = False,
 ) -> AsyncIterator[BaseMessageChunk]:
     votes_list = ""
     # sort votes by date (oldest first)
@@ -967,8 +969,6 @@ async def generate_party_vote_behavior_summary(
     return await stream_answer_from_llms(
         voting_behavior_summary_llms,
         messages,
-        preferred_llm_size=summary_llm_size,
-        use_premium_llms=use_premium_llms,
     )
 
 
@@ -1004,7 +1004,6 @@ async def generate_swiper_assistant_response(
     current_political_question: str,
     conversation_history: str,
     user_message: str,
-    chat_response_llm_size: LLMSize,
 ) -> Message:
     now = datetime.now()
     answer_guidelines = get_swiper_answer_guidelines()
@@ -1029,9 +1028,8 @@ async def generate_swiper_assistant_response(
     ]
 
     # perplexity chat completion without streaming
-    model = "sonar" if chat_response_llm_size == LLMSize.SMALL else "sonar-pro"
     response = await perplexity_client.chat.completions.create(
-        model=model,
+        model="sonar-pro",
         messages=messages,
     )
 

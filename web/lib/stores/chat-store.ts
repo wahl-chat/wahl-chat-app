@@ -1,4 +1,3 @@
-import { DEFAULT_LLM_SIZE } from '@/lib/firebase/firebase.types';
 import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { createStore } from 'zustand/vanilla';
@@ -107,7 +106,6 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
         addVotingBehaviorSummaryChunk: addVotingBehaviorSummaryChunk(get, set),
         completeVotingBehavior: completeVotingBehavior(get, set),
         setPartyIds: setPartyIds(get, set),
-        getLLMSize: () => get().tenant?.llm_size ?? DEFAULT_LLM_SIZE,
         setProlificMetadata: (prolificMetadata) => set({ prolificMetadata }),
         setProlificConfig: ({ minInteractions }) =>
           set({ prolificMinInteractions: minInteractions }),

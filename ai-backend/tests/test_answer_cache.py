@@ -29,7 +29,6 @@ from src.prompts import (
     user_prompt_improvement_template_str,
 )
 from src.models.context import ContextParty
-from src.models.general import LLMSize
 
 _SHA256_HEX = re.compile(r"^[0-9a-f]{64}$")
 
@@ -57,8 +56,6 @@ def _key_kwargs(**overrides: object) -> dict:
         context_id="bundestagswahl-2025",
         answer_guidelines="Leitlinien",
         rag_context="RAG-Kontext",
-        llm_size=LLMSize.LARGE,
-        use_premium_llms=False,
         llms=RESPONSE_GENERATION_LLMS,
     )
     kwargs.update(overrides)
@@ -235,18 +232,6 @@ def test_guidelines_change_key() -> None:
     assert a != b
 
 
-def test_premium_flag_changes_key() -> None:
-    a = build_answer_cache_key(**_key_kwargs(use_premium_llms=False))
-    b = build_answer_cache_key(**_key_kwargs(use_premium_llms=True))
-    assert a != b
-
-
-def test_llm_size_changes_key() -> None:
-    a = build_answer_cache_key(**_key_kwargs(llm_size=LLMSize.LARGE))
-    b = build_answer_cache_key(**_key_kwargs(llm_size=LLMSize.SMALL))
-    assert a != b
-
-
 def test_llm_roster_changes_key() -> None:
     """A shorter model list must change the key."""
     full = build_answer_cache_key(**_key_kwargs(llms=RESPONSE_GENERATION_LLMS))
@@ -256,26 +241,18 @@ def test_llm_roster_changes_key() -> None:
 
 def test_fingerprint_tracks_select_streaming_llms() -> None:
     """The fingerprint must follow the streamer roster order."""
-    fp = llm_generation_fingerprint(
-        RESPONSE_GENERATION_LLMS, LLMSize.LARGE, use_premium_llms=False
-    )
-    selected = select_streaming_llms(
-        RESPONSE_GENERATION_LLMS,
-        preferred_llm_size=LLMSize.LARGE,
-        use_premium_llms=False,
-    )
+    fp = llm_generation_fingerprint(RESPONSE_GENERATION_LLMS)
+    selected = select_streaming_llms(RESPONSE_GENERATION_LLMS)
     assert fp.split("\n")[0].startswith(selected[0].name)
-    for llm in selected:
-        assert llm.premium_only is False
+    assert selected == sorted(
+        RESPONSE_GENERATION_LLMS, key=lambda llm: llm.priority, reverse=True
+    )
 
 
-def test_select_streaming_llms_rejects_invalid_size() -> None:
-    try:
-        select_streaming_llms(RESPONSE_GENERATION_LLMS, preferred_llm_size="tiny")  # type: ignore[arg-type]
-    except ValueError as exc:
-        assert "Invalid preferred LLM size" in str(exc)
-    else:
-        raise AssertionError("expected ValueError")
+def test_select_streaming_llms_orders_by_priority() -> None:
+    selected = select_streaming_llms(RESPONSE_GENERATION_LLMS)
+    priorities = [llm.priority for llm in selected]
+    assert priorities == sorted(priorities, reverse=True)
 
 
 def _rag_key_kwargs(**overrides: object) -> dict:
