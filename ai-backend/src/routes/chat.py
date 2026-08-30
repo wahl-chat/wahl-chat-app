@@ -105,11 +105,6 @@ async def chat_endpoint(request: Request, body: ChatRequestDto):
     All V1 named chat events are preserved inside `data-chat_event` parts.
     Request body validated via Pydantic (FastAPI returns 422 on invalid input).
     The FastAPI Request is passed to generate_chat_stream for disconnect detection.
-
-    Auth: verification is OPTIONAL (anonymous users are served normally).
-    Premium LLM selection is derived server-side inside generate_chat_stream from
-    the request's token (a valid, non-anonymous `Authorization: Bearer <Firebase
-    ID token>`) — never from the client, so the request carries no such flag.
     """
     # EventSourceResponse frames each yielded payload as one SSE event and
     # emits `: ping` comments during quiet periods (comments are ignored by
