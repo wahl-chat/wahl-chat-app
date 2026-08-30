@@ -1,6 +1,12 @@
 'use client';
 
-import { exportHowToPDF } from '@/lib/how-to-pdf-export';
+import type { Context } from '@/lib/firebase/firebase.types';
+import {
+  type HowToAccordionContent,
+  type HowToAccordionItem,
+  exportHowToPDF,
+} from '@/lib/how-to-pdf-export';
+import { formatGermanDate, splitContextsByElectionDate } from '@/lib/utils';
 import {
   DownloadIcon,
   MessageCircleQuestionIcon,
@@ -11,10 +17,11 @@ import {
   WaypointsIcon,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import ChatActionButtonHighlight from './chat/chat-action-button-highlight';
 import { MAX_SELECTABLE_PARTIES } from './chat/chat-group-party-select-content';
 import ProConIcon from './chat/pro-con-icon';
+import { useElectionContext } from './providers/context-provider';
 import {
   Accordion,
   AccordionContent,
@@ -53,13 +60,76 @@ const INTRO_TEXT = {
 
 const PROCESS_STEPS = [
   'Du stellst eine Frage',
-  'wahl.chat durchsucht relevante Dokumente wie Wahl- und Grundsatzprogramme, um die passenden Informationen zu finden.',
-  'Die relevanten Informationen werden dann genutzt, um eine verständliche und quellenbasierte Antwort zu generieren.',
+  'wahl.chat durchsucht die relevanten Quellen: die Wahl- und Grundsatzprogramme der Parteien, die Plenarprotokolle des Bundestags, das Abstimmungsverhalten in den Parlamenten und die Videos der Debatten im Bundestag.',
+  'Die relevanten Informationen werden dann genutzt, um eine verständliche und quellenbasierte Antwort zu generieren. Über die Links in der Antwort kommst du direkt zur jeweiligen Quelle – also zur Stelle im Wahlprogramm, zur Abstimmung, zum Plenarprotokoll oder zum Video der Debatte.',
   'Du kannst dir nun die Position der Partei einordnen lassen, indem du auf den Knopf unter der Antwort klickst.',
   'Falls uns das Abstimmungsverhalten der Partei vorliegt, kannst du die Antwort auch mit passenden Gesetzesvorschlägen abgleichen.',
 ];
 
-const ACCORDION_CONTENT = [
+// Terms that are turned into links wherever they appear in the accordion copy.
+// SINGLE place where a source gets its URL, so the same term can be mentioned in
+// several answers without hardcoding a link per accordion item.
+const SOURCE_LINKS: Record<string, string> = {
+  'abgeordnetenwatch.de': 'https://www.abgeordnetenwatch.de',
+  'Dokumentations- und Informationssystem des Bundestags (DIP)':
+    'https://dip.bundestag.de',
+  OpenParliamentTV: 'https://de.openparliament.tv',
+  'Perplexity.ai': 'https://www.perplexity.ai',
+};
+
+const ELECTION_SECTION_TITLES = {
+  upcoming: 'Kommende Wahlen:',
+  past: 'Vergangene Wahlen:',
+  general: 'Zusätzliche Bereiche:',
+};
+
+/** `Name – Datum` for one context, or just the name when it carries no date. */
+function formatContextEntry(context: Context) {
+  const formattedDate = formatGermanDate(context.date, 'long');
+  return formattedDate ? `${context.name} – ${formattedDate}` : context.name;
+}
+
+/**
+ * The "Welche Wahlen werden unterstützt?" content, built from the contexts that
+ * are actually live instead of a hardcoded list that goes stale after every
+ * election day.
+ */
+function buildElectionsContent(contexts: Context[]): HowToAccordionContent {
+  const elections = contexts.filter((ctx) => ctx.type === 'election');
+  const { upcoming, past } = splitContextsByElectionDate(elections);
+  const generalContexts = contexts.filter((ctx) => ctx.type === 'general');
+
+  const sections = [
+    { subtitle: ELECTION_SECTION_TITLES.upcoming, list: upcoming },
+    { subtitle: ELECTION_SECTION_TITLES.past, list: past },
+    { subtitle: ELECTION_SECTION_TITLES.general, list: generalContexts },
+  ]
+    .filter(({ list }) => list.length > 0)
+    .map(({ subtitle, list }) => ({
+      subtitle,
+      list: list.map(formatContextEntry),
+    }));
+
+  const outro = [
+    past.length > 0 &&
+      'Vergangene Wahlen bleiben verfügbar, sodass du die damaligen Positionen der Parteien auch im Nachhinein nachlesen kannst.',
+    contexts.length > 1 &&
+      'Über die Wahlauswahl auf der Startseite kannst du jederzeit zwischen den Wahlen wechseln.',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return {
+    intro:
+      sections.length > 0
+        ? 'Welche Wahlen wir unterstützen, richtet sich nach dem Wahlkalender. Aktuell sind das:'
+        : 'Die kommenden Wahlen haben wir noch nicht integriert. Bis diese verfügbar sind, stöber doch bei den vergangenen Wahlen nach interessanten Inhalten.',
+    sections,
+    outro,
+  };
+}
+
+const ACCORDION_CONTENT: HowToAccordionItem[] = [
   {
     id: 'questions',
     title: 'Welche Fragen kann ich stellen?',
@@ -85,16 +155,8 @@ const ACCORDION_CONTENT = [
   {
     id: 'elections-supported',
     title: 'Welche Wahlen werden unterstützt?',
-    content: {
-      intro: 'Aktuell unterstützen wir folgende Wahlen:',
-      list: [
-        'Landtagswahl Baden-Württemberg - 8. März 2026',
-        'Landtagswahl Rheinland-Pfalz - 22. März 2026',
-        'Kommunalwahl München - 8. März 2026',
-      ],
-      outro:
-        'Zusätzlich können im Bereich **Bundesebene** allgemeine Informationen über die Positionen der Parteien beantwortet werden.',
-    },
+    // Filled in at render time from the live contexts (buildElectionsContent).
+    content: {},
   },
   {
     id: 'number-parties',
@@ -122,6 +184,7 @@ const ACCORDION_CONTENT = [
     content: {
       paragraphs: [
         'Mit dieser Funktion kannst du die Antwort einer Partei im Kontext vergangener Abstimmungen im Bundestag einordnen. Darüber hinaus kannst du durch einen Klick auf "Abstimmungen anzeigen" detaillierte Informationen zu den relevanten Abstimmungen anzeigen und visualisieren lassen. Dies ermöglicht es, die Pläne einer Partei laut ihrem Programm anhand ihres realpolitischen Verhaltens einzuordnen.',
+        'Unabhängig von diesem Button nutzen wir die Daten zum Abstimmungsverhalten von abgeordnetenwatch.de standardmäßig für die Antworten: Passt eine Abstimmung zu deiner Frage, fließt sie direkt in die Antwort ein. Über die Links in der Antwort kannst du die jeweilige Abstimmung im Detail nachlesen.',
       ],
     },
   },
@@ -132,8 +195,10 @@ const ACCORDION_CONTENT = [
       intro:
         'Um fundierte und quellenbasierte Antworten zu liefern, verwendet wahl.chat eine Vielzahl von Datenquellen:',
       orderedList: [
-        'Parteidokumente: Als Datenbasis werden Grundsatzprogramme, Wahlprogramme, Positionspapiere und weitere von den Parteien stammende Dokumente herangezogen, um ein umfassendes Bild der Parteipositionen zu erhalten.',
-        'Abstimmungsverhalten im Bundestag: Für die Analyse des Abstimmungsverhaltens nutzen wir Daten zu Bundestagsabstimmungen, die über abgeordnetenwatch.de bereitgestellt werden. Diese Daten ermöglichen es, Parteipositionen mit ihrem realpolitischen Verhalten abzugleichen.',
+        'Wahlprogramme und Parteidokumente: Als Datenbasis werden Wahlprogramme, Grundsatzprogramme, Positionspapiere und weitere von den Parteien stammende Dokumente herangezogen, um ein umfassendes Bild der Parteipositionen zu erhalten. Die Wahlprogramme beziehen wir – soweit dort verfügbar – über abgeordnetenwatch.de, ansonsten direkt von den Parteien.',
+        'Abstimmungsverhalten in den Parlamenten: Wie die Parteien tatsächlich abgestimmt haben, entnehmen wir den Abstimmungsdaten von abgeordnetenwatch.de. Diese Daten ermöglichen es, Parteipositionen mit ihrem realpolitischen Verhalten abzugleichen.',
+        'Plenarprotokolle des Bundestags: Reden und Debattenbeiträge stammen aus den Plenarprotokollen, die wir über das Dokumentations- und Informationssystem des Bundestags (DIP) beziehen.',
+        'Videos der Debatten im Bundestag: Zu vielen Redebeiträgen zeigen wir zusätzlich das passende Video aus der Debatte im Bundestag, das uns von OpenParliamentTV bereitgestellt wird.',
         'Internetquellen für die Einordnung von Positionen: Für die differenzierte Einordnung von Positionen nutzt wahl.chat den Dienst Perplexity.ai, der hochwertige Internetquellen wie Nachrichtenseiten verwendet.',
       ],
       outro:
@@ -157,8 +222,8 @@ const ACCORDION_CONTENT = [
     title: 'Nach welchen Kriterien werden die Parteien ausgewählt?',
     content: {
       paragraphs: [
-        'Die ursprüngliche Auswahl der Parteien für den bundesweiten Kontext erfolgte vor der Bundestagswahl 2025 und orientierte sich an der Veröffentlichung ihrer Wahlprogramme. Wir wollen nun nach und nach auch für die anderen unterstützten Wahlen eine möglichst vollständige Parteienauswahl anbieten und freuen uns dafür über deine Mithilfe.',
-        'Solltest du eine Partei vermissen, schreibe uns gerne eine E-Mail mit ihrem Wahl- oder Grundsatzprogramm oder anderen relevanten Dokumenten als PDF an info@wahl.chat, und wir werden sie so schnell wie möglich ergänzen.',
+        'Unser Ziel ist es, für jede unterstützte Wahl alle Parteien abzubilden, die zur Wahl stehen, vorausgesetzt, es liegen öffentlich zugängliche Informationen zu ihren Vorhaben vor, also zum Beispiel ein Wahlprogramm, ein Grundsatzprogramm oder vergleichbare Veröffentlichungen. Ohne eine solche Quelle können wir für eine Partei keine quellenbasierten Antworten geben und nehmen sie deshalb nicht auf.',
+        'Sollten wir eine Partei vergessen haben, schreibe uns gerne eine E-Mail mit ihrem Wahl- oder Grundsatzprogramm oder anderen relevanten Dokumenten als PDF an info@wahl.chat, und wir werden sie so schnell wie möglich ergänzen.',
       ],
     },
   },
@@ -182,7 +247,8 @@ const ACCORDION_CONTENT = [
       ],
       origin:
         'Ende November 2024 saß das Team in Cambridge beim Mittagessen zusammen. Beim Gespräch kam das Thema auf, dass der Opa des Deutschrappers Ski Aggu am Wahl-O-Mat gearbeitet hat. Es kam die Idee auf, einen neuen Wahl-O-Mat mit KI für die Einordnung der eigenen Meinung zu den Wahlkampfthemen zu bauen. Doch wäre es nicht noch spannender, den Spieß umzudrehen und mit den für einen selbst relevanten Parteien ausführlicher zu chatten? Und nicht nur eine Aussage zu vorgeschriebenen Thesen zu erhalten, sondern ganz individuelle Anliegen klären zu können? Und so war Ende November 2024 die Idee für wahl.chat geboren.',
-      outro: 'Weitere Infos können auch unter /about-us nachgelesen werden.',
+      outro:
+        'Weitere Infos über das heutige Team können auch unter /about-us nachgelesen werden.',
     },
   },
   {
@@ -244,10 +310,73 @@ const PROCESS_STEP_ICONS = [
   <TextSearchIcon key="icon2" className="absolute left-0 top-0" />,
   <MessageCircleReplyIcon key="icon3" className="absolute left-0 top-0" />,
   <WaypointsIcon key="icon4" className="absolute left-0 top-0" />,
+  <VoteIcon key="icon5" className="absolute left-0 top-0" />,
 ];
 
-function HowTo() {
+/** Renders `text`, turning every SOURCE_LINKS term it contains into a link. */
+function LinkedText({ text }: { text: string }) {
+  const nodes: React.ReactNode[] = [];
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    const nextTerm = Object.keys(SOURCE_LINKS)
+      .map((term) => ({ term, index: text.indexOf(term, cursor) }))
+      .filter(({ index }) => index >= 0)
+      .sort((a, b) => a.index - b.index)[0];
+
+    if (!nextTerm) {
+      nodes.push(text.slice(cursor));
+      break;
+    }
+
+    if (nextTerm.index > cursor) {
+      nodes.push(text.slice(cursor, nextTerm.index));
+    }
+    nodes.push(
+      <a
+        key={`${nextTerm.term}-${nextTerm.index}`}
+        href={SOURCE_LINKS[nextTerm.term]}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline"
+      >
+        {nextTerm.term}
+      </a>,
+    );
+    cursor = nextTerm.index + nextTerm.term.length;
+  }
+
+  return <>{nodes}</>;
+}
+
+type Props = {
+  /**
+   * The supported elections. Optional because inside a ContextProvider (the chat
+   * dialog) they come from the provider; the standalone /how-to page passes them
+   * in from the server.
+   */
+  contexts?: Context[];
+};
+
+// Stable identity so the accordion content memo does not recompute every render
+// when neither the prop nor the provider supplies contexts.
+const NO_CONTEXTS: Context[] = [];
+
+function HowTo({ contexts }: Props) {
   const [isExporting, setIsExporting] = useState(false);
+  const electionContext = useElectionContext({ optional: true });
+  const availableContexts =
+    contexts ?? electionContext?.contexts ?? NO_CONTEXTS;
+
+  const accordionContent = useMemo(
+    () =>
+      ACCORDION_CONTENT.map((item) =>
+        item.id === 'elections-supported'
+          ? { ...item, content: buildElectionsContent(availableContexts) }
+          : item,
+      ),
+    [availableContexts],
+  );
 
   const buildQuestionLink = (question: string) => {
     return `/session?q=${question}`;
@@ -259,7 +388,7 @@ function HowTo() {
       await exportHowToPDF({
         introText: INTRO_TEXT,
         processSteps: PROCESS_STEPS,
-        accordionContent: ACCORDION_CONTENT,
+        accordionContent,
       });
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -294,7 +423,7 @@ function HowTo() {
         </section>
 
         <section className="mt-6">
-          {ACCORDION_CONTENT.map((accordionItem) => (
+          {accordionContent.map((accordionItem) => (
             <AccordionItem key={accordionItem.id} value={accordionItem.id}>
               <AccordionTrigger className="font-bold">
                 {accordionItem.title}
@@ -331,15 +460,30 @@ function HowTo() {
                 {accordionItem.id === 'elections-supported' && (
                   <>
                     {accordionItem.content.intro}
-                    <ul className="list-outside list-disc py-2 pl-4 [&_li]:pt-1">
-                      {accordionItem.content.list?.map((item) => (
-                        <li key={item}>
-                          <span className="font-bold">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <br />
-                    {accordionItem.content.outro}
+                    {accordionItem.content.sections?.map((section) => (
+                      <div key={section.subtitle}>
+                        <span className="mt-2 inline-block font-bold">
+                          {section.subtitle}
+                        </span>
+                        <ul className="list-outside list-disc py-2 pl-4 [&_li]:pt-1">
+                          {section.list?.map((item) => {
+                            const [name, date] = item.split(' – ');
+                            return (
+                              <li key={item}>
+                                <span className="font-bold">{name}</span>
+                                {date && ` – ${date}`}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    ))}
+                    {accordionItem.content.outro && (
+                      <>
+                        <br />
+                        {accordionItem.content.outro}
+                      </>
+                    )}
                   </>
                 )}
 
@@ -384,7 +528,7 @@ function HowTo() {
                     </div>
                     {accordionItem.content.paragraphs?.map((para, idx) => (
                       <p key={para}>
-                        {para}
+                        <LinkedText text={para} />
                         {idx <
                           (accordionItem.content.paragraphs?.length || 0) -
                             1 && <br />}
@@ -409,7 +553,11 @@ function HowTo() {
                         <ChatActionButtonHighlight showHighlight />
                       </div>
                     </div>
-                    <p>{accordionItem.content.paragraphs?.[0]}</p>
+                    {accordionItem.content.paragraphs?.map((para, idx) => (
+                      <p key={para} className={idx > 0 ? 'mt-4' : undefined}>
+                        <LinkedText text={para} />
+                      </p>
+                    ))}
                   </>
                 )}
 
@@ -430,42 +578,11 @@ function HowTo() {
                     <ol className="list-outside list-decimal py-4 pl-4 [&_li]:pt-1">
                       {accordionItem.content.orderedList?.map((item) => {
                         const parts = item.split(':');
-                        const isAbstimmungsverhalten = parts[0].includes(
-                          'Abstimmungsverhalten',
-                        );
                         return (
                           <li key={item}>
                             <div className="pl-2">
-                              {isAbstimmungsverhalten ? (
-                                <>
-                                  <span className="font-bold">{parts[0]}:</span>{' '}
-                                  {(() => {
-                                    const text = parts.slice(1).join(':');
-                                    const linkParts = text.split(
-                                      'abgeordnetenwatch.de',
-                                    );
-                                    return (
-                                      <>
-                                        {linkParts[0]}
-                                        <a
-                                          href="https://www.abgeordnetenwatch.de"
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="underline"
-                                        >
-                                          abgeordnetenwatch.de
-                                        </a>
-                                        {linkParts[1]}
-                                      </>
-                                    );
-                                  })()}
-                                </>
-                              ) : (
-                                <>
-                                  <span className="font-bold">{parts[0]}:</span>{' '}
-                                  {parts.slice(1).join(':')}
-                                </>
-                              )}
+                              <span className="font-bold">{parts[0]}:</span>{' '}
+                              <LinkedText text={parts.slice(1).join(':')} />
                             </div>
                           </li>
                         );

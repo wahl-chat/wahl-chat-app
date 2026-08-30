@@ -1,4 +1,5 @@
 import type { SerializableFirebaseUser } from '@/components/anonymous-auth';
+import type { Context } from '@/lib/firebase/firebase.types';
 import type { PartyDetails } from '@/lib/party-details';
 import { type ClassValue, clsx } from 'clsx';
 import type { User } from 'firebase/auth';
@@ -157,6 +158,45 @@ export function formatGermanDate(
   };
 
   return new Intl.DateTimeFormat('de-DE', options).format(date);
+}
+
+// Days an election stays in the "upcoming" group after its date, so a freshly
+// held election does not disappear from the top of the list on election night.
+const PAST_ELECTION_BUFFER_DAYS = 5;
+
+/**
+ * Split contexts into upcoming and past elections, sorted by date (closest
+ * first). Contexts without a date count as upcoming. SINGLE source of truth for
+ * the buffer, so the election select and the how-to page can never disagree
+ * about whether a given election is already over.
+ */
+export function splitContextsByElectionDate(contexts: Context[]): {
+  upcoming: Context[];
+  past: Context[];
+} {
+  const cutoffDate = new Date(
+    Date.now() - PAST_ELECTION_BUFFER_DAYS * 24 * 60 * 60 * 1000,
+  );
+
+  const upcoming = contexts
+    .filter((ctx) => !ctx.date || new Date(ctx.date) >= cutoffDate)
+    .sort((a, b) => {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1; // No date goes to end
+      if (!b.date) return -1;
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
+
+  const past = contexts
+    .filter((ctx) => ctx.date && new Date(ctx.date) < cutoffDate)
+    .sort(
+      // Most recently held election first
+      (a, b) =>
+        new Date(b.date as string).getTime() -
+        new Date(a.date as string).getTime(),
+    );
+
+  return { upcoming, past };
 }
 
 export async function generateOgImageUrl(sessionType: string) {
