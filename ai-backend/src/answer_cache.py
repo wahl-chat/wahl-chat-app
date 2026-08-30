@@ -2,26 +2,12 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Exact-match cache keys for curated (proposed-question) party answers.
+"""Cache keys for proposed-question answers and RAG query rewrites.
 
-A cached answer is replayed only when every input to the answer LLM matches:
-question, preceding conversation, prompt templates and stable variables,
-retrieved RAG context, and the generation roster (model, temperature, …).
-The clock injected into the live system prompt (``{date}`` / ``{time}``) is
-deliberately omitted so two otherwise-identical requests a minute apart can
-still hit.
-
-Retrieved chunks are part of the answer key so a later ingestion — a new
-manifesto page, vote, or speech — produces a different key and a freshly
-generated answer, rather than replaying one grounded on a stale corpus
-snapshot. Chunk *order* is canonicalized (sorted by stable document
-identity) so a retrieval-rank reshuffle of the same set still hits.
-
-The RAG rewrite that *produces* those chunks is a separate LLM call and
-has its own key (``build_rag_query_cache_key``). Caching that rewrite
-keeps the retrieval query — and therefore the answer-key ``rag_context``
-— stable across otherwise-identical curated turns, and skips the rewrite
-cost on a hit.
+The answer key includes every input to the answer LLM except the clock.
+Retrieved chunks are in the key, so a new source causes a miss. Chunk
+order does not matter. The rewrite has its own key so a repeat uses the
+same query.
 """
 
 from __future__ import annotations
@@ -64,7 +50,7 @@ def llm_generation_fingerprint(
     preferred_llm_size: LLMSize,
     use_premium_llms: bool,
 ) -> str:
-    """Canonical snapshot of the roster ``stream_answer_from_llms`` would try."""
+    """Models ``stream_answer_from_llms`` will try, in order."""
     candidates = select_streaming_llms(
         llms,
         preferred_llm_size=preferred_llm_size,
@@ -74,11 +60,9 @@ def llm_generation_fingerprint(
 
 
 def llm_invoke_fingerprint(llms: list[LLM]) -> str:
-    """Canonical snapshot of the roster ``get_answer_from_llms`` would try.
+    """Models ``get_answer_from_llms`` will try, in priority order.
 
-    That helper has no size/premium filter: it walks every model by priority,
-    primaries first, then ``back_up_only``. A model swap or temperature change
-    on any candidate therefore invalidates the RAG-query cache.
+    Includes backup models. A model or temperature change must change the key.
     """
     ordered = sorted(llms, key=lambda llm: llm.priority, reverse=True)
     primaries = [llm for llm in ordered if not llm.back_up_only]
@@ -87,7 +71,7 @@ def llm_invoke_fingerprint(llms: list[LLM]) -> str:
 
 
 def _rag_doc_sort_key(doc: Document) -> tuple[str, ...]:
-    """Stable identity for one retrieved chunk — not retrieval rank."""
+    """Identity of one chunk. Used to sort, not to rank."""
     meta = doc.metadata or {}
     page = meta.get("page")
     return (
@@ -102,16 +86,10 @@ def _rag_doc_sort_key(doc: Document) -> tuple[str, ...]:
 
 
 def canonicalize_rag_context(docs: list[Document]) -> str:
-    """Serialize retrieved chunks in a retrieval-order-independent form.
+    """Serialize chunks so order does not change the string.
 
-    Same set of sources → same string, even if HNSW returned them in a
-    different rank order. A new or dropped source changes the set and
-    therefore the cache key, so the next user gets a freshly generated
-    answer grounded on the updated corpus.
-
-    Citation URL and page are hashed in addition to the excerpt the LLM
-    sees: a link or page-anchor change must miss even when the text is
-    unchanged, so a cached answer cannot keep pointing at a stale source.
+    Include URL and page. A link or page change must miss even if the
+    text is the same.
     """
     ordered = sorted(docs, key=_rag_doc_sort_key)
     citations: list[str] = []
@@ -123,12 +101,10 @@ def canonicalize_rag_context(docs: list[Document]) -> str:
 
 
 def _digest_fields(fields: list[tuple[str, str]]) -> str:
-    """SHA-256 of length-prefixed name/value pairs.
+    """SHA-256 of name/value pairs. Each value is prefixed with its byte length.
 
-    Joining with newlines is not injective: a value can contain ``\\n`` and
-    a prefix like ``hist:``, so two different requests can share a payload.
-    Framing each value by its UTF-8 byte length makes the encoding injective
-    regardless of what the fields contain.
+    A newline join is not safe: a value can contain a newline and look like
+    another field.
     """
     buf = bytearray()
     for name, value in fields:
@@ -156,19 +132,11 @@ def build_answer_cache_key(
     context_location: str = "",
     all_parties_list: str = "",
 ) -> str:
-    """SHA-256 hex digest of the answer-LLM request (clock excluded).
+    """SHA-256 of the answer LLM request. Date and time are not included.
 
-    ``rag_context`` must already be the canonical (order-independent)
-    serialization from ``canonicalize_rag_context`` — included so newly
-    ingested sources miss the cache and get a fresh answer.
-
-    The wahl.chat system prompt also injects ``context_name`` /
-    ``context_date_info`` / ``context_location`` / ``all_parties_list``.
-    Those are hashed here so a renamed election, moved date, or updated
-    party roster misses even when ``context_id`` is unchanged. The request
-    clock (``{date}`` / ``{time}``) stays out.
-
-    Always 64 lowercase hex characters — safe as a Firestore path segment.
+    ``rag_context`` must come from ``canonicalize_rag_context``.
+    wahl.chat also hashes context name, date text, location, and the party
+    list. The result is 64 lowercase hex characters.
     """
     return _digest_fields(
         [
@@ -210,16 +178,10 @@ def build_rag_query_cache_key(
     source_filter: list[str] | None,
     llms: list[LLM],
 ) -> str:
-    """SHA-256 hex digest of the RAG-rewrite LLM request.
+    """SHA-256 of the RAG rewrite request.
 
-    The rewrite is itself an LLM call: without this key the same curated
-    question can emit a different query string, retrieve a different chunk
-    set, and miss the answer cache. Caching the rewrite keeps retrieval
-    input stable (corpus changes still bust the answer key via
-    ``rag_context``) and skips the rewrite cost on a hit.
-
-    ``source_filter`` is canonicalized so ``None`` and ``[]`` collide.
-    Always 64 lowercase hex characters — safe as a Firestore path segment.
+    ``None`` and ``[]`` source filters share a key.
+    The result is 64 lowercase hex characters.
     """
     return _digest_fields(
         [

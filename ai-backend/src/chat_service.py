@@ -511,13 +511,11 @@ async def _lookup_cached_party_answer(
     source_filter: Optional[list[str]],
     all_available_parties: List[ContextParty],
 ) -> tuple[str, Optional[CachedResponse]]:
-    """Look up a cross-user cached answer keyed on the exact answer-LLM request.
+    """Look up a cached answer by the full answer LLM request.
 
-    Must run AFTER retrieval: retrieved chunks are part of the key so a later
-    ingestion (new manifesto / vote / speech) misses and a fresh answer is
-    generated. A hit skips the answer LLM, not RAG. Returns
-    ``(cache_key, cached_or_none)``; ``None`` means miss (or the random
-    fill-up slot when fewer than the limit exist).
+    Call after retrieval. Chunks are part of the key. A hit skips the
+    answer LLM. ``None`` is a miss, or the empty slot used to write a new
+    answer.
     """
     context_name = ""
     context_date_info = ""
@@ -873,11 +871,9 @@ async def _resolve_improved_rag_query(
     source_filter: Optional[list[str]],
     is_cacheable_chat: bool,
 ) -> str:
-    """Return the RAG rewrite, hitting the rewrite cache on curated turns.
+    """Return the RAG rewrite. Use the rewrite cache on curated turns.
 
-    Non-curated turns skip the cache entirely (GDPR Art. 9). A hit skips the
-    rewrite LLM so the same question retrieves the same chunks and the
-    answer-cache key stays stable.
+    Free-text turns do not use the cache. A hit skips the rewrite LLM.
     """
     if not is_cacheable_chat:
         return await generate_improvement_rag_query(
@@ -967,18 +963,10 @@ async def fetch_party_response_stream(
     open_text_id: Optional[str] = None
 
     try:
-        # GDPR cache gate (Art. 9): cache participation requires a CURATED
-        # conversation — the caller sets is_cacheable_chat from the
-        # server-authoritative _evaluate_cache_eligibility(). A proposed
-        # question clicked mid-way through a NON-curated (free-text)
-        # conversation must never set a cache_key: the generated answer is
-        # conditioned on user-authored history (special-category data) and
-        # would otherwise be replayed cross-user from the party answer cache.
-        # Lookup itself waits until after RAG: retrieved chunks are part of
-        # the key so newly ingested sources miss and get a fresh answer. A hit
-        # skips the answer LLM, not retrieval. The rewrite LLM that *produces*
-        # those chunks is cached separately first, so a curated repeat does
-        # not emit a different query and miss the answer key.
+        # Only curated chats set a cache_key. Free-text history is Art. 9 data
+        # and must not be replayed to other users. Look up the answer after
+        # RAG: chunks are in the key. Cache the rewrite first so a repeat
+        # uses the same query.
 
         # RAG retrieval
         if not is_comparing_question:
@@ -1503,27 +1491,16 @@ async def process_party(
 
 
 # ---------------------------------------------------------------------------
-# GDPR cache gate — SERVER-AUTHORITATIVE eligibility.
+# Cache eligibility. Server-side only.
 #
-# The cross-user party-answer cache may only ever hold curated conversations
-# (wahl.chat-authored questions), never user-authored political opinions (GDPR
-# Art. 9 special-category data). Whether a conversation is curated must NOT be
-# decided from the request's chat_history: a client can fabricate an assistant
-# turn whose quick_replies contain arbitrary text and echo it as the next user
-# turn, laundering free-text into the cache.
+# The cache may hold curated chats only, not user-authored political
+# opinions (Art. 9). Do not read eligibility from the request history: a
+# client can forge an assistant turn and replay its text.
 #
-# So eligibility is tracked server-side, mirroring V1's stateful
-# GroupChatSession.is_cacheable: a sticky, monotonic flag plus the quick_replies
-# the server ACTUALLY offered last turn, kept per session_id. A follow-up turn
-# is cacheable only if it matches those server-recorded replies; the stateless
-# request never gets a vote.
-#
-# In-memory (not Firestore) because losing state is safe: a missing entry (cold
-# start / different Cloud Run instance / LRU eviction) yields "not cacheable" —
-# a lost cache HIT, never a cross-user leak. Bounded by an LRU cap so the map
-# cannot grow without limit. A Firestore-backed store is the scale-out upgrade;
-# the interface here is unchanged. This store holds ONLY this best-effort
-# optimization signal — never anything an answer's correctness depends on.
+# Store the last server-offered quick replies per session_id. A follow-up
+# is cacheable only if it matches that list. A missing entry (new instance
+# or LRU eviction) is not cacheable: a lost hit, not a leak. The map has
+# a cap. This store is an optimization signal only.
 # ---------------------------------------------------------------------------
 @dataclass
 class _SessionCacheState:
@@ -1541,14 +1518,11 @@ def _evaluate_cache_eligibility(
     is_beginning_of_chat: bool,
     is_proposed_question: bool,
 ) -> bool:
-    """Server-authoritative eligibility for the chat-history-hash cache.
+    """Whether this turn may use the answer cache.
 
-    First turn: cacheable iff it is a curated proposed question (verified
-    upstream against server-loaded proposed_questions). Follow-up turn:
-    cacheable iff the prior turn was cacheable AND this message is one of the
-    quick_replies the SERVER offered last turn — read from the server-side
-    store, never from the client's chat_history. Missing state on a follow-up
-    → NOT cacheable (fail-safe).
+    First turn: a server-checked proposed question. Later turn: the prior
+    turn was cacheable and this message is a quick reply the server offered.
+    Missing state is not cacheable.
     """
     if is_beginning_of_chat:
         return is_proposed_question
@@ -1561,8 +1535,7 @@ def _evaluate_cache_eligibility(
 def _remember_session_quick_replies(
     session_id: str, *, is_cacheable: bool, quick_replies: List[str]
 ) -> None:
-    """Record the quick_replies the server just offered for this session and the
-    turn's final cache-eligibility, for the NEXT turn's server-side gate."""
+    """Store this turn's eligibility and offered quick replies for the next turn."""
     _session_cache_state[session_id] = _SessionCacheState(
         is_cacheable=is_cacheable,
         last_quick_replies=list(quick_replies or []),
@@ -1823,21 +1796,10 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     user_message.content in proposed_questions
                     or user_message.content in proposed_questions_group
                 )
-                # GDPR cache gate: only curated conversations (proposed-question
-                # first turn + every follow-up chosen from the preceding
-                # assistant message's quick_replies) may be cached by
-                # exact-match LLM-request key. Free-text turns carry
-                # user-authored political opinions (GDPR Art. 9 special-category
-                # data) and must never be replayable cross-user. On a first-turn
-                # request this is equivalent to the old `is_beginning_of_chat
-                # and not is_proposed_question` gate; it additionally blocks
-                # non-curated follow-ups. Default: NOT cacheable.
-                # Server-authoritative — never trust the client's chat_history
-                # quick_replies (forgeable). First turn uses the server-verified
-                # proposed-question check; follow-ups are gated against the
-                # quick_replies the server recorded last turn for this session.
-                # Filtered turns are never cacheable — the cache entry doesn't
-                # encode the (non-deterministic) LLM-detected filter.
+                # Cache only curated chats. Do not trust client history.
+                # First turn: server-checked proposed question. Later turns:
+                # a quick reply the server offered last turn. A source filter
+                # is not cacheable: the filter is not in the key.
                 group_chat_session.is_cacheable = (
                     _evaluate_cache_eligibility(
                         body.session_id,

@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Exact-match cache keys: answer LLM request, and RAG-rewrite LLM request."""
+"""Cache keys for the answer LLM request and the RAG rewrite request."""
 
 from __future__ import annotations
 
@@ -66,7 +66,7 @@ def _key_kwargs(**overrides: object) -> dict:
 
 
 def test_clock_is_not_a_key_input() -> None:
-    """The live system prompt injects date/time; those must not be key fields."""
+    """Date and time must not be key fields."""
     import inspect
 
     params = inspect.signature(build_answer_cache_key).parameters
@@ -120,8 +120,7 @@ def test_rag_context_changes_key() -> None:
 
 
 def test_key_encoding_is_injective_across_newlines() -> None:
-    """A newline plus a field prefix inside one value must not collide with
-    splitting that text across two fields."""
+    """A newline and a field name inside one value must not match two fields."""
     a = build_answer_cache_key(
         **_key_kwargs(question="foo\nhist:bar", conversation_history="")
     )
@@ -132,7 +131,7 @@ def test_key_encoding_is_injective_across_newlines() -> None:
 
 
 def test_party_field_separator_is_injective() -> None:
-    """Pipe characters inside party fields must not collide with another party."""
+    """A pipe in a party field must not match a split across two fields."""
     a = build_answer_cache_key(
         **_key_kwargs(party=_party(name="SPD", long_name="eins"))
     )
@@ -143,8 +142,7 @@ def test_party_field_separator_is_injective() -> None:
 
 
 def test_wahl_chat_prompt_variables_change_key() -> None:
-    """Context display fields and the party roster are hashed independently of
-    context_id, so an in-place election rename or roster edit misses."""
+    """A change to context name, date text, location, or party list must miss."""
     base = _key_kwargs(
         context_id="bundestagswahl-2025",
         context_name="Bundestagswahl 2025",
@@ -183,7 +181,7 @@ def _chunk(
 
 
 def test_canonical_rag_context_is_order_independent() -> None:
-    """Same sources in a different retrieval rank must produce the same key."""
+    """The same sources in a different order must produce the same key."""
     a = [
         _chunk("prog", "Klimaschutz"),
         _chunk("rede", "In der Rede", source_type="parliamentary_speech"),
@@ -196,7 +194,7 @@ def test_canonical_rag_context_is_order_independent() -> None:
 
 
 def test_new_rag_source_changes_canonical_context() -> None:
-    """A newly ingested chunk must miss the cache so the answer is regenerated."""
+    """A new source must change the canonical context."""
     previous = [_chunk("prog", "Klimaschutz")]
     with_new = previous + [
         _chunk("abstimmung", "Ja-Stimmen", source_type="vote_record")
@@ -205,7 +203,7 @@ def test_new_rag_source_changes_canonical_context() -> None:
 
 
 def test_canonical_rag_context_includes_url_and_page() -> None:
-    """A citation URL or page change must miss even when the excerpt is the same."""
+    """A URL or page change must miss even if the text is the same."""
     base = [_chunk("prog", "Klimaschutz")]
     new_url = [
         Document(
@@ -250,14 +248,14 @@ def test_llm_size_changes_key() -> None:
 
 
 def test_llm_roster_changes_key() -> None:
-    """Dropping a candidate (model swap / different temperature roster) busts the key."""
+    """A shorter model list must change the key."""
     full = build_answer_cache_key(**_key_kwargs(llms=RESPONSE_GENERATION_LLMS))
     truncated = build_answer_cache_key(**_key_kwargs(llms=RESPONSE_GENERATION_LLMS[1:]))
     assert full != truncated
 
 
 def test_fingerprint_tracks_select_streaming_llms() -> None:
-    """Fingerprint walks the same ordered roster the streamer will try."""
+    """The fingerprint must follow the streamer roster order."""
     fp = llm_generation_fingerprint(
         RESPONSE_GENERATION_LLMS, LLMSize.LARGE, use_premium_llms=False
     )
@@ -376,7 +374,7 @@ def test_rag_query_key_roster_changes() -> None:
 
 
 def test_invoke_fingerprint_follows_get_answer_priority() -> None:
-    """Highest-priority primary is first; back_up_only models trail."""
+    """The first line is the highest-priority primary model."""
     fp = llm_invoke_fingerprint(PRE_AND_POST_PROCESSING_LLMS)
     ordered = sorted(
         PRE_AND_POST_PROCESSING_LLMS, key=lambda llm: llm.priority, reverse=True

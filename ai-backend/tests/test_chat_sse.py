@@ -201,9 +201,7 @@ async def _drain_chat_stream(app, body: dict) -> list[str]:
 async def test_proposed_question_with_free_text_history_not_cached(
     patch_chat_io, app, monkeypatch
 ):
-    """GDPR cache gate (Art. 9): a proposed question sent MID a non-curated
-    (free-text) conversation performs NO cache write — the answer is
-    conditioned on user-authored history and must never replay cross-user."""
+    """A proposed question after free-text history must not write to the cache."""
     write_mock = AsyncMock()
     write_rag_mock = AsyncMock()
     monkeypatch.setattr(
@@ -229,9 +227,7 @@ async def test_proposed_question_with_free_text_history_not_cached(
 
 @pytest.mark.asyncio
 async def test_first_turn_proposed_question_is_cached(patch_chat_io, app, monkeypatch):
-    """The legitimate first-turn proposed-question cache is preserved: a single
-    proposed-question user turn IS curated, so the answer is written under the
-    proposed-question key (regression guard for the cache gate rework)."""
+    """A first-turn proposed question writes a hex cache key, not the question text."""
     write_mock = AsyncMock()
     write_rag_mock = AsyncMock()
     monkeypatch.setattr(
@@ -249,8 +245,7 @@ async def test_first_turn_proposed_question_is_cached(patch_chat_io, app, monkey
 
     assert payloads[-1] == "[DONE]"
     write_mock.assert_awaited_once()
-    # (party_id, cache_key, cached_answer) — exact-match SHA-256 of the
-    # answer-LLM request, never the raw question text.
+    # cache_key is a SHA-256 hex digest, not the question text.
     _party_id, cache_key, _cached = write_mock.await_args.args
     assert cache_key != _PROPOSED_QUESTION
     assert len(cache_key) == 64

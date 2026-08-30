@@ -861,8 +861,7 @@ def test_cache_eligibility_is_sticky_once_broken() -> None:
 
 
 def test_cacheable_lookup_runs_after_retrieval(monkeypatch) -> None:
-    """Cache lookup must wait until combined_docs exist, and a hit skips the
-    answer LLM (not RAG)."""
+    """Lookup runs after retrieval. A hit skips the answer LLM."""
     order: list[str] = []
     llm_called = {"n": 0}
 
@@ -944,8 +943,7 @@ async def _noop_async(*_a, **_k) -> None:
 
 
 def test_cacheable_reuses_cached_rag_query(monkeypatch) -> None:
-    """A cached rewrite must skip the rewrite LLM so retrieval — and the
-    answer-cache key — stay stable even if a fresh rewrite would differ."""
+    """A cached rewrite must skip the rewrite LLM and reuse the stored query."""
     generated = {"n": 0}
     retrieved_queries: list[str] = []
 
@@ -1032,8 +1030,7 @@ def test_cacheable_writes_rag_query_on_miss(monkeypatch) -> None:
 
 
 def test_cached_rag_query_stabilizes_answer_cache_key(monkeypatch) -> None:
-    """A non-deterministic rewrite would change retrieved chunks and miss the
-    answer cache; replaying the stored rewrite keeps the answer key stable."""
+    """A stored rewrite must keep the answer cache key the same on a repeat."""
     rewrite_n = {"n": 0}
     answer_keys: list[str] = []
     stored_query: dict[str, str | None] = {"q": None}

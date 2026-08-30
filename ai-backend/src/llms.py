@@ -367,11 +367,10 @@ def select_streaming_llms(
     preferred_llm_size: LLMSize = LLMSize.LARGE,
     use_premium_llms: bool = False,
 ) -> list[LLM]:
-    """Failover-ordered candidates ``stream_answer_from_llms`` will try.
+    """Models ``stream_answer_from_llms`` will try, in failover order.
 
-    Extracted so the answer-cache fingerprint walks the same roster (size,
-    premium filter, priority) the streamer uses. Changing model, temperature,
-    or thinking settings on any candidate therefore invalidates the cache.
+    The answer cache uses this list. A model or temperature change must
+    change the key.
     """
     if not use_premium_llms:
         llms = [llm for llm in llms if not llm.premium_only]

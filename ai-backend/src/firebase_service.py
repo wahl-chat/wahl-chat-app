@@ -120,12 +120,10 @@ _SHA256_HEX = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _sanitize_cache_key(cache_key: str) -> str:
-    """Make a cache key safe to use as a Firestore path segment.
+    """Make a cache key safe as a Firestore path segment.
 
-    Exact-match keys are already SHA-256 hex digests and pass through. Anything
-    else (legacy raw-text keys) is hashed so a slash cannot split the path
-    ``cached_answers/{party_id}/{cache_key}``. Applied identically on the read
-    AND write paths so lookups stay consistent.
+    SHA-256 hex keys pass through. Other keys are hashed so a slash cannot
+    split ``cached_answers/{party_id}/{cache_key}``.
     """
     if _SHA256_HEX.fullmatch(cache_key):
         return cache_key
@@ -154,7 +152,7 @@ async def awrite_cached_answer_for_party(
 
 
 async def aget_cached_rag_query(party_id: str, cache_key: str) -> Optional[str]:
-    """Return the cached RAG-rewrite string, or None on miss / empty payload."""
+    """Return the stored RAG rewrite, or None if missing."""
     snap = await (
         async_db.collection("cached_rag_queries")
         .document(party_id)
@@ -170,7 +168,7 @@ async def aget_cached_rag_query(party_id: str, cache_key: str) -> Optional[str]:
 
 
 async def awrite_cached_rag_query(party_id: str, cache_key: str, query: str) -> None:
-    """Idempotent write of one rewrite per key — deterministic document id."""
+    """Write one rewrite for this key. The document id is the key."""
     ref = (
         async_db.collection("cached_rag_queries")
         .document(party_id)

@@ -648,11 +648,7 @@ async def generate_streaming_chatbot_response(
 
 
 def format_wahl_chat_parties_list(all_parties: List[ContextParty]) -> str:
-    """The ``all_parties_list`` block injected into the wahl.chat system prompt.
-
-    Shared by generation and the answer-cache key so a roster or description
-    change cannot leave a stale cache entry keyed on a different string.
-    """
+    """Party list text for the wahl.chat system prompt and the answer cache key."""
     all_parties_list = ""
     for party in all_parties:
         all_parties_list += f"### {party.long_name}\n"
@@ -672,12 +668,9 @@ def build_party_answer_guidelines(
     has_historic: bool = False,
     source_filter: Optional[List[str]] = None,
 ) -> str:
-    """Assemble the single-party ``answer_guidelines`` block sent to the LLM.
+    """Single-party answer guidelines for the LLM and the cache key.
 
-    Shared by generation and the answer-cache key so a prompt-side guideline
-    change cannot leave a stale cache entry keyed on a different string.
-    Comparison answers keep their own assembly in
-    ``generate_streaming_chatbot_comparing_response`` (not cacheable).
+    Comparison answers build their own text and are not cached.
     """
     answer_guidelines = get_chat_answer_guidelines(party_name, is_comparing=False)
     # For non-federal elections, instruct the LLM to explicitly flag Bundestag-origin
