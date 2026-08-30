@@ -4,11 +4,9 @@
 Optional Firebase ID-token verification for backend routes.
 
 The backend routes are reachable without authentication by design (anonymous
-chat is a product requirement), but privileged request flags — currently
-``user_is_logged_in``, which selects premium LLMs — must never be trusted from
-the request body alone. Routes read an optional ``Authorization: Bearer
-<Firebase ID token>`` header and verify it server-side; the body flag is
-honored ONLY when a valid token is present.
+chat is a product requirement). Privileged request flags must never be trusted
+from the request body alone: callers read an optional ``Authorization: Bearer
+<Firebase ID token>`` header and verify it server-side.
 
 Verification never rejects a request: an absent/invalid token simply resolves
 to anonymous (no 401s). The web proxy routes forward the client's
@@ -36,8 +34,8 @@ def verify_optional_bearer_token(request: Request) -> Optional[dict]:
 
     Returns the decoded token claims when a valid token is present, else None.
     NEVER raises and NEVER rejects the request — anonymous access stays
-    allowed. Callers must only honor privileged flags (e.g. premium LLM
-    selection) when this returns non-None.
+    allowed. Callers must only honor privileged flags when this returns
+    non-None.
     """
     header = request.headers.get("Authorization", "")
     if not header.startswith("Bearer "):
@@ -59,9 +57,9 @@ def _has_real_signin(claims: dict) -> bool:
     visitor in anonymously, and an anonymous session yields a fully valid
     Firebase ID token. The provider lives at
     ``claims["firebase"]["sign_in_provider"]`` ("anonymous" for anon sessions;
-    "password"/"google.com"/… for real sign-ins). Premium requires an explicit
-    non-anonymous provider; anything else (anonymous, or an unexpected token
-    shape) is denied.
+    "password"/"google.com"/… for real sign-ins). A real sign-in requires an
+    explicit non-anonymous provider; anything else (anonymous, or an unexpected
+    token shape) is denied.
     """
     firebase_claims = claims.get("firebase")
     if not isinstance(firebase_claims, dict):
@@ -71,24 +69,23 @@ def _has_real_signin(claims: dict) -> bool:
 
 
 def resolve_user_is_logged_in(request: Optional[Request], route: str) -> bool:
-    """Server-side truth for premium LLM gating.
+    """Server-side truth for whether the caller has a real (non-anonymous) sign-in.
 
     Derived SOLELY from the request's Firebase token — never from a
     client-supplied flag. Returns True only when the request carries a valid,
     NON-anonymous Firebase ID token (every visitor is signed in anonymously, so
-    an anonymous token — though valid — must not unlock premium). A missing
+    an anonymous token — though valid — must not count as a real user). A missing
     request (non-HTTP callers) is treated as anonymous.
     """
     if request is None:
         return False
     claims = verify_optional_bearer_token(request)
     if claims is None:
-        logger.debug("%s: no valid Firebase ID token — premium not granted.", route)
+        logger.debug("%s: no valid Firebase ID token — not signed in.", route)
         return False
     if not _has_real_signin(claims):
         logger.debug(
-            "%s: token is anonymous / lacks a real sign-in provider — premium "
-            "not granted.",
+            "%s: token is anonymous / lacks a real sign-in provider.",
             route,
         )
         return False

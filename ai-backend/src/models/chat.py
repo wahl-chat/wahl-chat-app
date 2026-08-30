@@ -7,8 +7,6 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
 
-from src.models.general import LLMSize
-
 
 class Role(str, Enum):
     USER = "user"
@@ -68,9 +66,6 @@ class GroupChatSession(BaseModel):
     )
     chat_history: List[Message] = Field(..., description="The chat history")
     title: Optional[str] = Field(None, description="The chat title")
-    chat_response_llm_size: LLMSize = Field(
-        ..., description="The LLM size for the chat response"
-    )
     last_quick_replies: List[str] = Field(
         description="The last quick replies for the user", default=[]
     )

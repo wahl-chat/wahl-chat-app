@@ -23,7 +23,6 @@ import src.chat_service as cs
 from src.chat_service import fetch_party_response_stream, process_party
 from src.models.chat import CachedResponse, GroupChatSession, Message
 from src.models.context import ContextParty
-from src.models.general import LLMSize
 
 
 # ---------------------------------------------------------------------------
@@ -261,7 +260,6 @@ def _make_session() -> GroupChatSession:
         session_id="s1",
         context_id="c1",
         chat_history=[Message(id="m1", role="user", content="Frage?")],
-        chat_response_llm_size=LLMSize.LARGE,
     )
 
 
@@ -312,7 +310,6 @@ def _drive_single_party(term_window, **stream_kwargs) -> list[str]:
             "q?",
             _make_session(),
             all_available_parties=[],
-            use_premium_llms=False,
             is_cacheable_chat=False,
             region_path=["DE-BW"],
             term_window=term_window,
@@ -913,7 +910,6 @@ def test_cacheable_lookup_runs_after_retrieval(monkeypatch) -> None:
             "q?",
             _make_session(),
             all_available_parties=[],
-            use_premium_llms=False,
             is_cacheable_chat=True,
             region_path=["DE-BW"],
             term_window=tw,
@@ -974,7 +970,6 @@ def test_cacheable_reuses_cached_rag_query(monkeypatch) -> None:
             "q?",
             _make_session(),
             all_available_parties=[],
-            use_premium_llms=False,
             is_cacheable_chat=True,
             region_path=["DE-BW"],
             term_window=_cacheable_term_window(),
@@ -1014,7 +1009,6 @@ def test_cacheable_writes_rag_query_on_miss(monkeypatch) -> None:
             "q?",
             _make_session(),
             all_available_parties=[],
-            use_premium_llms=False,
             is_cacheable_chat=True,
             region_path=["DE-BW"],
             term_window=_cacheable_term_window(),
@@ -1086,7 +1080,6 @@ def test_cached_rag_query_stabilizes_answer_cache_key(monkeypatch) -> None:
             "q?",
             _make_session(),
             all_available_parties=[],
-            use_premium_llms=False,
             is_cacheable_chat=True,
             region_path=["DE-BW"],
             term_window=_cacheable_term_window(),

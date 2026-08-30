@@ -20,7 +20,6 @@ from src.chatbot_async import (
     generate_streaming_chatbot_response,
 )
 from src.models.context import ContextParty
-from src.models.general import LLMSize
 
 
 # ---------------------------------------------------------------------------
@@ -358,7 +357,6 @@ def _run_single_party(**gen_kwargs) -> None:
             "frage?",
             [],
             all_parties=[],
-            chat_response_llm_size=LLMSize.LARGE,
             **gen_kwargs,
         )
     )
@@ -375,7 +373,6 @@ def _run_comparison(**gen_kwargs) -> None:
             "frage?",
             {party.party_id: []},  # comparison ctx indexes docs per party
             [party],
-            LLMSize.LARGE,
             **gen_kwargs,
         )
     )

@@ -20,12 +20,12 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from src.chatbot_async import get_rag_context
 from src.llms import select_streaming_llms
 from src.models.context import ContextParty
-from src.models.general import LLM, LLMSize
+from src.models.general import LLM
 
 
 def _llm_model_id(model: BaseChatModel) -> str:
-    """Stable model identifier across Gemini / OpenAI / Azure client classes."""
-    for attr in ("model", "model_name", "deployment_name", "azure_deployment"):
+    """Stable model identifier across Gemini / OpenAI client classes."""
+    for attr in ("model", "model_name"):
         value = getattr(model, attr, None)
         if value:
             return str(value)
@@ -41,22 +41,14 @@ def _llm_line(llm: LLM) -> str:
             str(getattr(model, "temperature", "")),
             str(getattr(model, "thinking_level", "")),
             str(getattr(model, "thinking_budget", "")),
+            str(getattr(model, "reasoning_effort", "")),
         ]
     )
 
 
-def llm_generation_fingerprint(
-    llms: list[LLM],
-    preferred_llm_size: LLMSize,
-    use_premium_llms: bool,
-) -> str:
+def llm_generation_fingerprint(llms: list[LLM]) -> str:
     """Models ``stream_answer_from_llms`` will try, in order."""
-    candidates = select_streaming_llms(
-        llms,
-        preferred_llm_size=preferred_llm_size,
-        use_premium_llms=use_premium_llms,
-    )
-    return "\n".join(_llm_line(llm) for llm in candidates)
+    return "\n".join(_llm_line(llm) for llm in select_streaming_llms(llms))
 
 
 def llm_invoke_fingerprint(llms: list[LLM]) -> str:
@@ -124,8 +116,6 @@ def build_answer_cache_key(
     context_id: str,
     answer_guidelines: str,
     rag_context: str,
-    llm_size: LLMSize,
-    use_premium_llms: bool,
     llms: list[LLM],
     context_name: str = "",
     context_date_info: str = "",
@@ -157,11 +147,9 @@ def build_answer_cache_key(
             ("parties", all_parties_list),
             ("guidelines", answer_guidelines),
             ("rag", rag_context),
-            ("llm_size", llm_size.value),
-            ("premium", str(use_premium_llms)),
             (
                 "llm",
-                llm_generation_fingerprint(llms, llm_size, use_premium_llms),
+                llm_generation_fingerprint(llms),
             ),
         ]
     )

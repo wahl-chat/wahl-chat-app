@@ -23,10 +23,10 @@ also patched here because they are all "external I/O" in the same sense.
 The SSE generator, FastAPI route, EventSourceResponse framing, and
 data-stream protocol (f/0/8/e/d/[DONE]) all run live.
 
-IMPORTANT: The src.* modules instantiate clients at module level (QdrantClient,
-AzureChatOpenAI, firebase_admin, etc.). These require that certain env vars be
-set before import — see the os.environ.setdefault() calls at the top of this
-file which supply safe dummy values for CI.
+IMPORTANT: The src.* modules instantiate clients at module level (ChatOpenAI,
+ChatGoogleGenerativeAI, firebase_admin, etc.). These require that certain env
+vars be set before import — see the os.environ.setdefault() calls at the top of
+this file which supply safe dummy values for CI.
 
 The test uses httpx.AsyncASGITransport(app=app) to run in-process, which
 is the only reliable way to apply monkeypatching to a FastAPI SSE endpoint
@@ -47,11 +47,6 @@ from pathlib import Path
 os.environ.setdefault("API_NAME", "wahl-chat-api")
 os.environ.setdefault("FIRESTORE_EMULATOR_HOST", "localhost:8081")
 os.environ.setdefault("QDRANT_URL", "http://localhost:6333")
-# Dummy values to satisfy module-level LLM client constructors (AzureChatOpenAI
-# requires a non-None endpoint to initialise, even with dummy credentials).
-os.environ.setdefault("AZURE_OPENAI_ENDPOINT", "https://dummy.openai.azure.com")
-os.environ.setdefault("AZURE_OPENAI_API_KEY", "dummy-azure-key-for-ci")
-os.environ.setdefault("OPENAI_API_VERSION", "2024-02-01")
 os.environ.setdefault("OPENAI_API_KEY", "dummy-openai-key-for-ci")
 os.environ.setdefault("GOOGLE_API_KEY", "dummy-google-key-for-ci")
 
