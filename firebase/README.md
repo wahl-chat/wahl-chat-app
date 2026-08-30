@@ -115,7 +115,7 @@ make seed
 make seed-prod
 ```
 
-The script requires `firebase-admin`. The `make seed` targets use the ai-backend's Poetry environment automatically. To run standalone:
+The script requires `firebase-admin`. The seed targets use the uv workspace environment at the repo root automatically. To run standalone:
 
 ```bash
 cd firebase && python -m venv venv && source venv/bin/activate
