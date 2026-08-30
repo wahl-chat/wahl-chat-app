@@ -1,7 +1,13 @@
 'use server';
 
 import type { FullUser } from '@/components/anonymous-auth';
-import { CacheTags } from '@/lib/cache-tags';
+import {
+  CacheTags,
+  contextPartiesTag,
+  contextQuestionsTag,
+  contextSourcesTag,
+  contextTag,
+} from '@/lib/cache-tags';
 import { GROUP_PARTY_ID, WAHL_CHAT_PARTY_ID } from '@/lib/constants';
 import type { PartyDetails } from '@/lib/party-details';
 import type {
@@ -53,11 +59,31 @@ class ContextNotFoundError extends Error {
   }
 }
 
+// Thrown from inside unstable_cache so Next does not persist an empty list
+// (or a miss). The wrapper converts it back to [] / undefined for callers.
+class UncacheableEmptyError extends Error {
+  constructor() {
+    super('uncacheable empty');
+    this.name = 'UncacheableEmptyError';
+  }
+}
+
+// Safety net if on-demand revalidate is skipped. Election config is tag-busted
+// on seed; this is only so a forgotten bust still heals within a day.
+const SAFETY_REVALIDATE_SECONDS = 60 * 60 * 24;
+
+function rejectEmpty<T>(items: T[]): T[] {
+  if (items.length === 0) {
+    throw new UncacheableEmptyError();
+  }
+  return items;
+}
+
 // Persistent-data-cache wrapper. In production this is unstable_cache. Against
 // the local emulator it is a no-op passthrough: unstable_cache persists to
 // .next/cache and survives dev-server restarts, so a successful-but-empty fetch
-// (e.g. a read before the emulator is seeded) would otherwise stay pinned for
-// `revalidate` seconds and mask freshly-seeded data. Local reads must be live.
+// (e.g. a read before the emulator is seeded) would otherwise stay pinned and
+// mask freshly-seeded data. Local reads must be live.
 function cache<A extends unknown[], R>(
   fn: (...args: A) => Promise<R>,
   keyParts?: string[],
@@ -67,6 +93,33 @@ function cache<A extends unknown[], R>(
     return fn;
   }
   return unstable_cache(fn, keyParts, options);
+}
+
+function cachedRead<A extends unknown[], R>(
+  fn: (...args: A) => Promise<R>,
+  keyParts: string[],
+  tags: string[],
+): (...args: A) => Promise<R> {
+  return cache(fn, keyParts, {
+    revalidate: SAFETY_REVALIDATE_SECONDS,
+    tags,
+  });
+}
+
+async function uncachedFallback<T>(
+  read: () => Promise<T>,
+  fallback: T,
+  logLabel: string,
+): Promise<T> {
+  try {
+    return await read();
+  } catch (error) {
+    if (error instanceof UncacheableEmptyError) {
+      return fallback;
+    }
+    console.error(`[Firestore] ${logLabel}:`, error);
+    return fallback;
+  }
 }
 
 async function getServerApp({
@@ -156,158 +209,147 @@ export const getParty = cache(getPartyImpl, undefined, {
 
 // Context-related functions
 async function getContextsImpl() {
-  try {
-    console.log('[Firestore] Fetching contexts (where is_active == true)');
-    const serverDb = await getServerFirestore({ useHeaders: false });
-    const queryRef = query(
-      collection(serverDb, 'contexts'),
-      where('is_active', '==', true),
-    );
-    const snapshot = await getDocs(queryRef);
-    console.log(
-      '[Firestore] Successfully fetched contexts:',
-      snapshot.docs.length,
-    );
+  console.log('[Firestore] Fetching contexts (where is_active == true)');
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const queryRef = query(
+    collection(serverDb, 'contexts'),
+    where('is_active', '==', true),
+  );
+  const snapshot = await getDocs(queryRef);
+  console.log(
+    '[Firestore] Successfully fetched contexts:',
+    snapshot.docs.length,
+  );
 
-    return snapshot.docs.map((doc) => {
+  return rejectEmpty(
+    snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         ...data,
         context_id: doc.id,
         date: firestoreTimestampToDate(data.date),
       } as unknown as Context;
-    });
-  } catch (error) {
-    console.error('[Firestore] FAILED to fetch contexts:', error);
-    return [];
-  }
+    }),
+  );
 }
 
-export const getContexts = cache(getContextsImpl, ['getContexts', 'v2'], {
-  revalidate: 3600,
-  tags: [CacheTags.CONTEXTS],
-});
+export async function getContexts() {
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getContextsImpl,
+        ['getContexts', 'v3'],
+        [CacheTags.CONTEXTS],
+      )(),
+    [],
+    'FAILED to fetch contexts',
+  );
+}
 
 async function getContextImpl(contextId: string) {
-  try {
-    console.log(`[Firestore] Fetching context: /contexts/${contextId}`);
-    const serverDb = await getServerFirestore({ useHeaders: false });
-    const docRef = doc(serverDb, 'contexts', contextId);
-    const snapshot = await getDoc(docRef);
+  console.log(`[Firestore] Fetching context: /contexts/${contextId}`);
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const docRef = doc(serverDb, 'contexts', contextId);
+  const snapshot = await getDoc(docRef);
 
-    if (!snapshot.exists()) {
-      console.log(`[Firestore] Context not found: /contexts/${contextId}`);
-      return undefined;
-    }
-
-    console.log(
-      `[Firestore] Successfully fetched context: /contexts/${contextId}`,
-    );
-    const data = snapshot.data();
-    return {
-      ...data,
-      context_id: snapshot.id,
-      date: firestoreTimestampToDate(data?.date),
-    } as unknown as Context;
-  } catch (error) {
-    console.error(
-      `[Firestore] FAILED to fetch context "/contexts/${contextId}":`,
-      error,
-    );
-    throw error;
+  if (!snapshot.exists()) {
+    console.log(`[Firestore] Context not found: /contexts/${contextId}`);
+    throw new ContextNotFoundError(contextId);
   }
+
+  console.log(
+    `[Firestore] Successfully fetched context: /contexts/${contextId}`,
+  );
+  const data = snapshot.data();
+  return {
+    ...data,
+    context_id: snapshot.id,
+    date: firestoreTimestampToDate(data?.date),
+  } as unknown as Context;
 }
-
-const getContextCached = cache(
-  async (contextId: string) => {
-    const context = await getContextImpl(contextId);
-
-    if (!context) {
-      throw new ContextNotFoundError(contextId);
-    }
-
-    return context;
-  },
-  ['getContext', 'v3'],
-  {
-    revalidate: 3600,
-    tags: [CacheTags.CONTEXTS],
-  },
-);
 
 export async function getContext(contextId: string) {
   try {
-    return await getContextCached(contextId);
+    return await cachedRead(
+      getContextImpl,
+      ['getContext', 'v4', contextId],
+      [CacheTags.CONTEXTS, contextTag(contextId)],
+    )(contextId);
   } catch (error) {
     if (error instanceof ContextNotFoundError) {
       return undefined;
     }
-
-    return getContextImpl(contextId);
-  }
-}
-
-async function getPartiesForContextImpl(contextId: string) {
-  try {
-    console.log(`[Firestore] Fetching parties: /contexts/${contextId}/parties`);
-    const serverDb = await getServerFirestore({ useHeaders: false });
-    const queryRef = query(
-      collection(serverDb, 'contexts', contextId, 'parties'),
-    );
-    const snapshot = await getDocs(queryRef);
-    console.log(
-      `[Firestore] Successfully fetched parties for context: ${snapshot.docs.length} parties`,
-    );
-
-    return snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        ...data,
-        party_id: doc.id,
-      } as PartyDetails;
-    });
-  } catch (error) {
     console.error(
-      `[Firestore] FAILED to fetch parties "/contexts/${contextId}/parties":`,
-      error,
-    );
-    return [];
-  }
-}
-
-export const getPartiesForContext = cache(getPartiesForContextImpl, undefined, {
-  revalidate: 3600,
-  tags: [CacheTags.CONTEXT_PARTIES],
-});
-
-async function getPartyForContextImpl(contextId: string, partyId: string) {
-  try {
-    const serverDb = await getServerFirestore({ useHeaders: false });
-    const docRef = doc(serverDb, 'contexts', contextId, 'parties', partyId);
-    const snapshot = await getDoc(docRef);
-
-    if (!snapshot.exists()) {
-      return undefined;
-    }
-
-    const data = snapshot.data();
-    return {
-      ...data,
-      party_id: snapshot.id,
-    } as PartyDetails;
-  } catch (error) {
-    console.error(
-      `Failed to fetch party "${partyId}" for context "${contextId}":`,
+      `[Firestore] FAILED to fetch context "/contexts/${contextId}":`,
       error,
     );
     return undefined;
   }
 }
 
-export const getPartyForContext = cache(getPartyForContextImpl, undefined, {
-  revalidate: 3600,
-  tags: [CacheTags.CONTEXT_PARTIES],
-});
+async function getPartiesForContextImpl(contextId: string) {
+  console.log(`[Firestore] Fetching parties: /contexts/${contextId}/parties`);
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const queryRef = query(
+    collection(serverDb, 'contexts', contextId, 'parties'),
+  );
+  const snapshot = await getDocs(queryRef);
+  console.log(
+    `[Firestore] Successfully fetched parties for context: ${snapshot.docs.length} parties`,
+  );
+
+  return rejectEmpty(
+    snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        ...data,
+        party_id: doc.id,
+      } as PartyDetails;
+    }),
+  );
+}
+
+export async function getPartiesForContext(contextId: string) {
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getPartiesForContextImpl,
+        ['getPartiesForContext', 'v2', contextId],
+        [CacheTags.CONTEXT_PARTIES, contextPartiesTag(contextId)],
+      )(contextId),
+    [],
+    `FAILED to fetch parties "/contexts/${contextId}/parties"`,
+  );
+}
+
+async function getPartyForContextImpl(contextId: string, partyId: string) {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const docRef = doc(serverDb, 'contexts', contextId, 'parties', partyId);
+  const snapshot = await getDoc(docRef);
+
+  if (!snapshot.exists()) {
+    throw new UncacheableEmptyError();
+  }
+
+  const data = snapshot.data();
+  return {
+    ...data,
+    party_id: snapshot.id,
+  } as PartyDetails;
+}
+
+export async function getPartyForContext(contextId: string, partyId: string) {
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getPartyForContextImpl,
+        ['getPartyForContext', 'v2', contextId, partyId],
+        [CacheTags.CONTEXT_PARTIES, contextPartiesTag(contextId)],
+      )(contextId, partyId),
+    undefined,
+    `Failed to fetch party "${partyId}" for context "${contextId}"`,
+  );
+}
 
 export async function getPartiesForContextById(
   contextId: string,
@@ -446,50 +488,54 @@ async function getProposedQuestionsForContextImpl(
     : WAHL_CHAT_PARTY_ID;
 
   const path = `contexts/${contextId}/proposed_questions/${normalizedId}/questions`;
-  try {
-    console.log(`[Firestore] Fetching proposed questions: ${path}`);
-    const queryRef = query(
-      collection(
-        serverDb,
-        'contexts',
-        contextId,
-        'proposed_questions',
-        normalizedId,
-        'questions',
-      ),
-      where('location', '==', 'chat'),
-    );
-    const snapshot = await getDocs(queryRef);
-    console.log(
-      `[Firestore] Successfully fetched proposed questions: ${snapshot.docs.length} questions`,
-    );
+  console.log(`[Firestore] Fetching proposed questions: ${path}`);
+  const queryRef = query(
+    collection(
+      serverDb,
+      'contexts',
+      contextId,
+      'proposed_questions',
+      normalizedId,
+      'questions',
+    ),
+    where('location', '==', 'chat'),
+  );
+  const snapshot = await getDocs(queryRef);
+  console.log(
+    `[Firestore] Successfully fetched proposed questions: ${snapshot.docs.length} questions`,
+  );
 
-    const questions = snapshot.docs.map((doc) => {
-      return {
-        id: doc.id,
-        partyId: normalizedId,
-        ...doc.data(),
-      } as ProposedQuestion;
-    });
+  const questions = snapshot.docs.map((doc) => {
+    return {
+      id: doc.id,
+      partyId: normalizedId,
+      ...doc.data(),
+    } as ProposedQuestion;
+  });
 
-    return questions.sort(() => Math.random() - 0.5);
-  } catch (error) {
-    console.error(
-      `[Firestore] FAILED to fetch proposed questions "${path}":`,
-      error,
-    );
-    return [];
-  }
+  return questions.sort(() => Math.random() - 0.5);
 }
 
-export const getProposedQuestionsForContext = cache(
-  getProposedQuestionsForContextImpl,
-  undefined,
-  {
-    revalidate: 60 * 60 * 24,
-    tags: [CacheTags.PROPOSED_QUESTIONS],
-  },
-);
+export async function getProposedQuestionsForContext(
+  contextId: string,
+  partyIds?: string[],
+) {
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getProposedQuestionsForContextImpl,
+        [
+          'getProposedQuestionsForContext',
+          'v2',
+          contextId,
+          JSON.stringify(partyIds ?? null),
+        ],
+        [CacheTags.PROPOSED_QUESTIONS, contextQuestionsTag(contextId)],
+      )(contextId, partyIds),
+    [],
+    `FAILED to fetch proposed questions for context "${contextId}"`,
+  );
+}
 
 async function getHomeInputProposedQuestionsImpl() {
   // Home questions are global, not context-specific
@@ -609,14 +655,22 @@ async function getSourceDocumentsForContextImpl(contextId: string) {
   return sources.flat();
 }
 
-export const getSourceDocumentsForContext = cache(
-  getSourceDocumentsForContextImpl,
-  undefined,
-  {
-    revalidate: 60 * 60 * 24,
-    tags: [CacheTags.SOURCE_DOCUMENTS],
-  },
-);
+async function getSourceDocumentsForContextCached(contextId: string) {
+  return rejectEmpty(await getSourceDocumentsForContextImpl(contextId));
+}
+
+export async function getSourceDocumentsForContext(contextId: string) {
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getSourceDocumentsForContextCached,
+        ['getSourceDocumentsForContext', 'v2', contextId],
+        [CacheTags.SOURCE_DOCUMENTS, contextSourcesTag(contextId)],
+      )(contextId),
+    [],
+    `FAILED to fetch source documents for context "${contextId}"`,
+  );
+}
 
 async function getExampleQuestionsShareableChatSessionImpl() {
   const serverDb = await getServerFirestore({ useHeaders: false });

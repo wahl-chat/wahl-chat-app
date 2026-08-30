@@ -5,8 +5,11 @@ Seed Firestore with contexts, parties, and proposed questions data.
 Usage (from the firebase/ directory):
     python scripts/seed_firestore.py
 
-    # For production:
-    ENV=prod python scripts/seed_firestore.py
+    # Optional: also bust that deployment's data cache (use that env's secret):
+    REVALIDATE_SECRET=... ENV=prod python scripts/seed_firestore.py
+    REVALIDATE_SECRET=... ENV=dev python scripts/seed_firestore.py
+    # Or seed first, then:
+    REVALIDATE_SECRET=... ENV=prod python scripts/revalidate_frontend_cache.py
 
 This script:
 1. Imports all contexts from firestore_data/{env}/contexts.json
@@ -44,6 +47,10 @@ SCRIPT_DIR = Path(__file__).parent
 FIREBASE_DIR = SCRIPT_DIR.parent
 REPO_ROOT = FIREBASE_DIR.parent
 DATA_DIR = FIREBASE_DIR / "firestore_data" / ENV
+
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+import revalidate_frontend_cache as frontend_cache  # noqa: E402
 
 # Service account JSON file (looked up in ai-backend/ where it's typically placed)
 CREDENTIALS_FILE = (
@@ -122,9 +129,7 @@ def _emulator_client():
         sys.exit(1)
 
     print(f"Using the Firestore emulator at {host} (project {project}, no credentials)")
-    return gcp_firestore.Client(
-        project=project, credentials=AnonymousCredentials()
-    )
+    return gcp_firestore.Client(project=project, credentials=AnonymousCredentials())
 
 
 def initialize_firebase():
@@ -347,6 +352,46 @@ def seed_sources(db):
     print(f"\nTotal source documents seeded: {total_documents}")
 
 
+def revalidate_frontend_cache(context_ids, firestore_project=None):
+    """Optionally bust the live site's Firestore cache after a real-project seed.
+
+    Local emulator reads skip Next's unstable_cache, so this is a no-op there.
+    A missing REVALIDATE_SECRET only warns: Firestore is already written, and
+    `revalidate_frontend_cache.py` can be run afterwards. A project/ENV
+    mismatch (ADC wrote a different Firebase project than ENV selects)
+    also warns and skips, so the other deployment's cache is left alone.
+    """
+    if os.getenv("FIRESTORE_EMULATOR_HOST"):
+        print("\nSkipping frontend cache revalidation (Firestore emulator).")
+        return
+
+    try:
+        print()
+        frontend_cache.post_revalidate(
+            context_ids, firestore_project=firestore_project
+        )
+    except frontend_cache.RevalidateProjectMismatchError as exc:
+        print(f"\n⚠️  {exc}")
+        print(
+            " Seeding finished, but the live cache was not busted.\n"
+            " Point ADC / the service account at the project for this ENV,\n"
+            " then retry:\n"
+            f"   REVALIDATE_SECRET=... ENV={ENV} python "
+            "firebase/scripts/revalidate_frontend_cache.py\n"
+        )
+    except frontend_cache.RevalidateConfigError:
+        print()
+        print(frontend_cache.missing_secret_warning())
+    except frontend_cache.RevalidateRequestError as exc:
+        print(f"\n⚠️  {exc}")
+        print(
+            " Seeding finished, but the live cache was not busted.\n"
+            " Retry with:\n"
+            f"   REVALIDATE_SECRET=... ENV={ENV} python "
+            "firebase/scripts/revalidate_frontend_cache.py\n"
+        )
+
+
 def main():
     print("=" * 60)
     print("Firestore Seed Script")
@@ -361,7 +406,7 @@ def main():
     db = initialize_firebase()
 
     # Seed contexts first
-    seed_contexts(db)
+    context_ids = seed_contexts(db)
 
     # Seed parties for each context
     seed_parties(db)
@@ -371,6 +416,10 @@ def main():
 
     # Seed source documents for each context's sources page
     seed_sources(db)
+
+    revalidate_frontend_cache(
+        context_ids, firestore_project=getattr(db, "project", None)
+    )
 
     print("\n" + "=" * 60)
     print("✅ Seeding complete!")
