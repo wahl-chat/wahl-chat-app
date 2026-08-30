@@ -16,6 +16,7 @@ import asyncio
 import inspect
 
 from src.chatbot_async import (
+    _message_text,
     build_vote_documents,
     generate_streaming_chatbot_response,
 )
@@ -427,3 +428,17 @@ def test_system_prompt_default_no_structure_note(monkeypatch) -> None:
     system_prompt = captured["system"]
     assert "Im Wahlprogramm fordert" not in system_prompt
     assert "Quellenbewusste Struktur deiner Antwort" not in system_prompt
+
+
+def test_message_text_reads_gemini_3_content_blocks() -> None:
+    """Gemini 3 returns content as type/text blocks, not a 'content' key."""
+    from langchain_core.messages import AIMessage
+
+    blocks = [{"type": "text", "text": "Klimaschutz", "extras": {"signature": "s"}}]
+    assert _message_text(AIMessage(content=blocks)) == "Klimaschutz"
+    assert _message_text(AIMessage(content="plain")) == "plain"
+
+    class _Resp:
+        content = "mock-only"
+
+    assert _message_text(_Resp()) == "mock-only"

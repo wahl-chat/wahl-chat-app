@@ -99,6 +99,23 @@ load_env()
 
 logger = logging.getLogger(__name__)
 
+
+def _message_text(response) -> str:
+    """Flatten an LLM reply to a string.
+
+    Gemini 3 returns ``content`` as a list of blocks (``type`` / ``text``, plus a
+    thought signature). Gemini 2.x returned a plain string. ``AIMessage.text``
+    handles both. Fall back to ``content`` for test doubles that only set that.
+    """
+    text = getattr(response, "text", None)
+    if isinstance(text, str):
+        return text
+    content = getattr(response, "content", "")
+    if isinstance(content, str):
+        return content
+    return str(content or "")
+
+
 chat_response_llms: list[LLM] = RESPONSE_GENERATION_LLMS
 
 voting_behavior_summary_llms: list[LLM] = RESPONSE_GENERATION_LLMS
@@ -345,12 +362,7 @@ async def generate_improvement_rag_query(
 
     response = await get_answer_from_llms(prompt_improvement_llms, messages)
 
-    if isinstance(response.content, list):
-        if isinstance(response.content[0], str):
-            return response.content[0]
-        else:
-            return response.content[0]["content"]
-    return response.content
+    return _message_text(response)
 
 
 async def generate_pro_con_perspective(
@@ -566,7 +578,7 @@ async def get_improved_rag_query_voting_behavior(
 
     response = await get_answer_from_llms(prompt_improvement_llms, messages)
 
-    return getattr(response, "content", "")
+    return _message_text(response)
 
 
 async def generate_streaming_chatbot_response(
