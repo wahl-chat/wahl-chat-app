@@ -56,6 +56,12 @@ DEFAULT_SITE_URLS = {
     "prod": "https://wahl.chat",
     "dev": "https://dev.wahl.chat",
 }
+# Same aliases as firebase/.firebaserc. Used so a seed that wrote via ADC
+# cannot flush the other deployment's cache.
+EXPECTED_FIRESTORE_PROJECTS = {
+    "prod": "wahl-chat",
+    "dev": "wahl-chat-dev",
+}
 VERCEL_ENV_VARS_URL = "https://vercel.com/wahl-chat/web/settings/environment-variables"
 
 
@@ -63,8 +69,49 @@ class RevalidateConfigError(Exception):
     """Secret or site URL is missing — nothing was sent."""
 
 
+class RevalidateProjectMismatchError(RevalidateConfigError):
+    """Firestore project does not match ENV — refuse to flush the other site."""
+
+
 class RevalidateRequestError(Exception):
     """The /api/revalidate request failed."""
+
+
+def resolved_firestore_project(explicit: str | None = None) -> str | None:
+    """Project the seed just wrote to, if we can tell.
+
+    Prefer the Firestore client the caller already used. Fall back to the
+    initialized Firebase app — not GOOGLE_CLOUD_PROJECT, which is often
+    leftover from local `.env` / `gcloud config` and would block a
+    standalone flush of the other deployment.
+    """
+    if explicit:
+        return explicit
+    try:
+        import firebase_admin  # noqa: PLC0415
+
+        return firebase_admin.get_app().project_id or None
+    except (ImportError, ValueError):
+        return None
+
+
+def ensure_project_matches_env(firestore_project: str | None = None) -> None:
+    """Refuse to pick a site URL when the write went to a different project.
+
+    `ENV` selects both the fixture set and the default deployment
+    (wahl.chat vs dev.wahl.chat). ADC can point the Firestore client at
+    the other project, so a seed would flush the wrong cache.
+    """
+    actual = resolved_firestore_project(firestore_project)
+    expected = EXPECTED_FIRESTORE_PROJECTS.get(_env())
+    if actual is None or expected is None or actual == expected:
+        return
+    site = DEFAULT_SITE_URLS.get(_env()) or f"ENV={_env()}"
+    raise RevalidateProjectMismatchError(
+        f"Firestore project {actual!r} does not match ENV={_env()} "
+        f"(expected {expected!r}). Not revalidating {site} so a seed "
+        "cannot flush the other deployment."
+    )
 
 
 def site_url() -> str | None:
@@ -106,11 +153,14 @@ def context_ids_from_fixtures() -> list[str]:
     return list(contexts)
 
 
-def post_revalidate(context_ids: list[str]) -> str:
+def post_revalidate(
+    context_ids: list[str], firestore_project: str | None = None
+) -> str:
     """POST tags and context paths to /api/revalidate. Returns the response body."""
     # Use the REVALIDATE_SECRET of the matching Vercel deployment
     # (Production vs Preview/Development):
     # https://vercel.com/wahl-chat/web/settings/environment-variables
+    ensure_project_matches_env(firestore_project)
     secret = os.getenv("REVALIDATE_SECRET")
     site = site_url()
     if not secret or not site:

@@ -220,3 +220,80 @@ def test_standalone_script_exits_on_network_error(
 
     _patch_urlopen(seed, monkeypatch, _urlopen)
     assert seed.frontend_cache.main(["--context", "bundestagswahl-2025"]) == 1
+
+
+def test_mismatched_firestore_project_skips_revalidate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seed = _load_seed_module(
+        monkeypatch,
+        ENV="prod",
+        REVALIDATE_SECRET="test-secret",
+    )
+
+    def _fail(*_a: object, **_k: object) -> None:
+        raise AssertionError("must not flush the other deployment")
+
+    _patch_urlopen(seed, monkeypatch, _fail)
+    seed.revalidate_frontend_cache(
+        ["bundestagswahl-2025"], firestore_project="wahl-chat-dev"
+    )
+
+
+def test_matching_firestore_project_still_revalidates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seed = _load_seed_module(
+        monkeypatch,
+        ENV="prod",
+        REVALIDATE_SECRET="test-secret",
+    )
+    captured: dict[str, str] = {}
+
+    def _urlopen(request: object, timeout: int = 0) -> _FakeResponse:
+        captured["url"] = request.full_url  # type: ignore[attr-defined]
+        return _FakeResponse()
+
+    _patch_urlopen(seed, monkeypatch, _urlopen)
+    seed.revalidate_frontend_cache([], firestore_project="wahl-chat")
+    assert captured["url"] == "https://wahl.chat/api/revalidate"
+
+
+def test_standalone_script_ignores_ambient_google_cloud_project(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A leftover GOOGLE_CLOUD_PROJECT from local gcloud must not block a flush."""
+    seed = _load_seed_module(
+        monkeypatch,
+        ENV="prod",
+        REVALIDATE_SECRET="test-secret",
+        GOOGLE_CLOUD_PROJECT="wahl-chat-dev",
+    )
+    captured: dict[str, str] = {}
+
+    def _urlopen(request: object, timeout: int = 0) -> _FakeResponse:
+        captured["url"] = request.full_url  # type: ignore[attr-defined]
+        return _FakeResponse()
+
+    _patch_urlopen(seed, monkeypatch, _urlopen)
+    assert seed.frontend_cache.main(["--context", "bundestagswahl-2025"]) == 0
+    assert captured["url"] == "https://wahl.chat/api/revalidate"
+
+
+def test_post_revalidate_raises_on_project_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seed = _load_seed_module(
+        monkeypatch,
+        ENV="dev",
+        REVALIDATE_SECRET="test-secret",
+    )
+
+    def _fail(*_a: object, **_k: object) -> None:
+        raise AssertionError("must not flush the other deployment")
+
+    _patch_urlopen(seed, monkeypatch, _fail)
+    with pytest.raises(seed.frontend_cache.RevalidateProjectMismatchError):
+        seed.frontend_cache.post_revalidate(
+            ["bundestagswahl-2025"], firestore_project="wahl-chat"
+        )

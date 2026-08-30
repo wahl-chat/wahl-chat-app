@@ -352,12 +352,14 @@ def seed_sources(db):
     print(f"\nTotal source documents seeded: {total_documents}")
 
 
-def revalidate_frontend_cache(context_ids):
+def revalidate_frontend_cache(context_ids, firestore_project=None):
     """Optionally bust the live site's Firestore cache after a real-project seed.
 
     Local emulator reads skip Next's unstable_cache, so this is a no-op there.
     A missing REVALIDATE_SECRET only warns: Firestore is already written, and
-    `revalidate_frontend_cache.py` can be run afterwards.
+    `revalidate_frontend_cache.py` can be run afterwards. A project/ENV
+    mismatch (ADC wrote a different Firebase project than ENV selects)
+    also warns and skips, so the other deployment's cache is left alone.
     """
     if os.getenv("FIRESTORE_EMULATOR_HOST"):
         print("\nSkipping frontend cache revalidation (Firestore emulator).")
@@ -365,7 +367,18 @@ def revalidate_frontend_cache(context_ids):
 
     try:
         print()
-        frontend_cache.post_revalidate(context_ids)
+        frontend_cache.post_revalidate(
+            context_ids, firestore_project=firestore_project
+        )
+    except frontend_cache.RevalidateProjectMismatchError as exc:
+        print(f"\n⚠️  {exc}")
+        print(
+            " Seeding finished, but the live cache was not busted.\n"
+            " Point ADC / the service account at the project for this ENV,\n"
+            " then retry:\n"
+            f"   REVALIDATE_SECRET=... ENV={ENV} python "
+            "firebase/scripts/revalidate_frontend_cache.py\n"
+        )
     except frontend_cache.RevalidateConfigError:
         print()
         print(frontend_cache.missing_secret_warning())
@@ -404,7 +417,9 @@ def main():
     # Seed source documents for each context's sources page
     seed_sources(db)
 
-    revalidate_frontend_cache(context_ids)
+    revalidate_frontend_cache(
+        context_ids, firestore_project=getattr(db, "project", None)
+    )
 
     print("\n" + "=" * 60)
     print("✅ Seeding complete!")
