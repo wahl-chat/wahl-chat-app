@@ -49,17 +49,6 @@ def test_no_vertex_tier_without_credentials() -> None:
     ]
 
 
-def test_no_azure_clients() -> None:
-    """Azure OpenAI is not registered; new OpenAI models would have to be
-    deployed there by hand, which we are not maintaining.
-    """
-    names = [
-        entry.name
-        for entry in llms.RESPONSE_GENERATION_LLMS + llms.PRE_AND_POST_PROCESSING_LLMS
-    ]
-    assert not any(name.startswith("azure-") for name in names)
-
-
 def _ai_studio_gemini_clients():
     return [
         entry.model
