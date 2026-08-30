@@ -119,12 +119,13 @@ Or simply from the repo root:
 
 ```bash
 make seed
-
-# For production:
 make seed-prod
+REVALIDATE_SECRET=... make revalidate
+REVALIDATE_SECRET=... make revalidate ENV=prod
+REVALIDATE_SECRET=... make revalidate ARGS="--context abgeordnetenhauswahl-berlin-2026"
 ```
 
-The script requires `firebase-admin`. The `make seed` targets use the ai-backend's Poetry environment automatically. To run standalone:
+The script requires `firebase-admin`. The `make seed` / `make revalidate` targets use the ai-backend uv environment. To run standalone:
 
 ```bash
 cd firebase && python -m venv venv && source venv/bin/activate
@@ -218,6 +219,7 @@ Ensure all referenced assets (logos, PDFs, etc.) exist in the prod Firebase Stor
 ```bash
 # From repo root:
 make seed-prod
+REVALIDATE_SECRET=... make revalidate ENV=prod
 
 # Or from firebase/:
 ENV=prod python scripts/seed_firestore.py
