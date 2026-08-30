@@ -2,12 +2,14 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-# Build, verify, and promote the backend deployed from develop or main. Each
-# trigger overrides _SERVICE for its environment. The candidate receives no
-# traffic until the FastAPI chat route is proven to exist.
-# Required trigger substitutions:
-#   develop: _SERVICE=wahl-chat-backend-dev
-#   main:    _SERVICE=wahl-chat-backend
+# Build, verify, and shift traffic for a Cloud Run backend revision. The
+# candidate receives no traffic until POST /api/v1/chat is proven to exist.
+#
+# Attach this file only to the develop Cloud Build trigger
+# (_SERVICE=wahl-chat-backend-dev, or omit it — that is the default).
+# Production is a manual GitHub Action (Promote backend) that submits this
+# same pipeline against the wahl-chat project with _SERVICE=wahl-chat-backend.
+# Do not attach a push-to-main trigger to this file.
 steps:
   - id: build
     name: gcr.io/cloud-builders/docker
@@ -84,6 +86,7 @@ steps:
 
 substitutions:
   _REGION: europe-west1
+  _SERVICE: wahl-chat-backend-dev
 
 options:
   logging: CLOUD_LOGGING_ONLY
