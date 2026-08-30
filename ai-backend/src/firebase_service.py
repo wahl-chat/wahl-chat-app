@@ -2,6 +2,7 @@
 import hashlib
 import logging
 import os
+import re
 import sys
 from typing import Optional
 import firebase_admin
@@ -110,44 +111,90 @@ async def aget_party_by_id(party_id: str) -> Optional[ContextParty]:
     return None
 
 
-async def aget_proposed_questions_for_party(party_id: str) -> list[str]:
-    questions = async_db.collection(f"proposed_questions/{party_id}/questions").stream()
+async def aget_proposed_questions_for_context(
+    context_id: str, party_id: str
+) -> list[str]:
+    """Curated questions for one party in one election context."""
+    questions = (
+        async_db.collection("contexts")
+        .document(context_id)
+        .collection("proposed_questions")
+        .document(party_id)
+        .collection("questions")
+        .stream()
+    )
     return [question.get("content") async for question in questions]
 
 
-def _sanitize_cache_key(cache_key: str) -> str:
-    """Make a cache key safe to use as a Firestore path segment.
+_SHA256_HEX = re.compile(r"^[0-9a-f]{64}$")
 
-    Proposed-question cache keys are raw LLM/user-facing text; a ``/`` inside
-    that text would silently corrupt the Firestore collection path
-    (``cached_answers/{party_id}/{cache_key}``). When the key contains a ``/``
-    it is replaced by its sha256 hex digest. Applied identically on the read
-    AND write paths so lookups stay consistent.
+
+def _sanitize_cache_key(cache_key: str) -> str:
+    """Make a cache key safe as a Firestore path segment.
+
+    SHA-256 hex keys pass through. Other keys are hashed so a slash cannot
+    split ``cached_answers/{context_id}/{party_id}/{cache_key}``.
     """
-    if "/" in cache_key:
-        return hashlib.sha256(cache_key.encode("utf-8")).hexdigest()
-    return cache_key
+    if _SHA256_HEX.fullmatch(cache_key):
+        return cache_key
+    return hashlib.sha256(cache_key.encode("utf-8")).hexdigest()
+
+
+def _cached_answer_ref(context_id: str, party_id: str, cache_key: str):
+    """``cached_answers/{context_id}/{party_id}/{cache_key}`` — one doc per key."""
+    return (
+        async_db.collection("cached_answers")
+        .document(context_id)
+        .collection(party_id)
+        .document(_sanitize_cache_key(cache_key))
+    )
+
+
+def _cached_rag_query_ref(context_id: str, party_id: str, cache_key: str):
+    """``cached_rag_queries/{context_id}/{party_id}/{cache_key}`` — one doc per key."""
+    return (
+        async_db.collection("cached_rag_queries")
+        .document(context_id)
+        .collection(party_id)
+        .document(_sanitize_cache_key(cache_key))
+    )
 
 
 async def aget_cached_answers_for_party(
-    party_id: str, cache_key: str
+    context_id: str, party_id: str, cache_key: str
 ) -> list[CachedResponse]:
-    cached_answers = async_db.collection(
-        f"cached_answers/{party_id}/{_sanitize_cache_key(cache_key)}"
-    ).stream()
-    return [
-        CachedResponse(**cached_answer.to_dict())
-        async for cached_answer in cached_answers
-    ]
+    snap = await _cached_answer_ref(context_id, party_id, cache_key).get()
+    if not snap.exists:
+        return []
+    data = snap.to_dict() or {}
+    return [CachedResponse(**data)]
 
 
 async def awrite_cached_answer_for_party(
-    party_id: str, cache_key: str, cached_answer: CachedResponse
+    context_id: str, party_id: str, cache_key: str, cached_answer: CachedResponse
 ) -> None:
-    cached_answer_ref = async_db.collection(
-        f"cached_answers/{party_id}/{_sanitize_cache_key(cache_key)}"
-    ).document()
-    await cached_answer_ref.set(cached_answer.model_dump())
+    await _cached_answer_ref(context_id, party_id, cache_key).set(
+        cached_answer.model_dump()
+    )
+
+
+async def aget_cached_rag_query(
+    context_id: str, party_id: str, cache_key: str
+) -> Optional[str]:
+    """Return the stored RAG rewrite, or None if missing."""
+    snap = await _cached_rag_query_ref(context_id, party_id, cache_key).get()
+    if not snap.exists:
+        return None
+    data = snap.to_dict() or {}
+    query = data.get("query")
+    return query if isinstance(query, str) and query else None
+
+
+async def awrite_cached_rag_query(
+    context_id: str, party_id: str, cache_key: str, query: str
+) -> None:
+    """Write one rewrite for this key. The document id is the key."""
+    await _cached_rag_query_ref(context_id, party_id, cache_key).set({"query": query})
 
 
 async def awrite_llm_status(is_at_rate_limit: bool) -> None:

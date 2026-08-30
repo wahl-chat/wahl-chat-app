@@ -362,13 +362,16 @@ async def get_structured_output_from_llms(
     raise Exception("All LLMs are at rate limit.")
 
 
-async def stream_answer_from_llms(
+def select_streaming_llms(
     llms: list[LLM],
-    messages: list[BaseMessage],
     preferred_llm_size: LLMSize = LLMSize.LARGE,
     use_premium_llms: bool = False,
-) -> AsyncIterator[BaseMessageChunk]:
-    logger.debug(f"Preferred LLM size: {preferred_llm_size}")
+) -> list[LLM]:
+    """Models ``stream_answer_from_llms`` will try, in failover order.
+
+    The answer cache uses this list. A model or temperature change must
+    change the key.
+    """
     if not use_premium_llms:
         llms = [llm for llm in llms if not llm.premium_only]
     if preferred_llm_size == LLMSize.LARGE:
@@ -380,8 +383,8 @@ async def stream_answer_from_llms(
         ]
         large_llms = sorted(large_llms, key=lambda x: x.priority, reverse=True)
         small_llms = sorted(small_llms, key=lambda x: x.priority, reverse=True)
-        llms = large_llms + small_llms
-    elif preferred_llm_size == LLMSize.SMALL:
+        return large_llms + small_llms
+    if preferred_llm_size == LLMSize.SMALL:
         small_llms = [llm for llm in llms if LLMSize.SMALL in llm.sizes]
         large_llms = [
             llm
@@ -390,9 +393,22 @@ async def stream_answer_from_llms(
         ]
         large_llms = sorted(large_llms, key=lambda x: x.priority, reverse=True)
         small_llms = sorted(small_llms, key=lambda x: x.priority, reverse=True)
-        llms = small_llms + large_llms
-    else:
-        raise ValueError(f"Invalid preferred LLM size: {preferred_llm_size}")
+        return small_llms + large_llms
+    raise ValueError(f"Invalid preferred LLM size: {preferred_llm_size}")
+
+
+async def stream_answer_from_llms(
+    llms: list[LLM],
+    messages: list[BaseMessage],
+    preferred_llm_size: LLMSize = LLMSize.LARGE,
+    use_premium_llms: bool = False,
+) -> AsyncIterator[BaseMessageChunk]:
+    logger.debug(f"Preferred LLM size: {preferred_llm_size}")
+    llms = select_streaming_llms(
+        llms,
+        preferred_llm_size=preferred_llm_size,
+        use_premium_llms=use_premium_llms,
+    )
     for llm in llms:
         try:
             logger.debug(f"Invoking LLM {llm.name}...")

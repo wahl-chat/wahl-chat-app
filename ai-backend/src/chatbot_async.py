@@ -596,14 +596,7 @@ async def generate_streaming_chatbot_response(
         prompt_context = build_prompt_context(context) if context else {}
 
         answer_guidelines = get_wahl_chat_answer_guidelines()
-        all_parties_list = ""
-        for p in all_parties:
-            all_parties_list += f"### {p.long_name}\n"
-            all_parties_list += f"Abkürzung: {p.name}\n"
-            all_parties_list += f"Beschreibung: {p}\n"
-            all_parties_list += (
-                f"Spitzenkandidat*In für die Bundestagswahl 2025: {p.candidate}\n"
-            )
+        all_parties_list = format_wahl_chat_parties_list(all_parties)
         system_prompt = wahl_chat_response_system_prompt_template.format(
             context_name=prompt_context.get("context_name", "Bundestagswahl 2025"),
             context_date_info=prompt_context.get(
@@ -617,32 +610,13 @@ async def generate_streaming_chatbot_response(
             answer_guidelines=answer_guidelines,
         )
     else:
-        answer_guidelines = get_chat_answer_guidelines(party.name, is_comparing=False)
-        # For non-federal elections, instruct the LLM to explicitly flag Bundestag-origin
-        # votes vs the local Landtag (additive to the structural region marker in sources[]).
-        answer_guidelines += _federal_origin_disclosure_note(election_level)
-        # Source-aware structure + positive coverage preamble: append the
-        # four-section structure guidance ONLY when a caller opts in
-        # (present_sources passed or has_historic set). With the
-        # backward-compatible defaults (present_sources=None, has_historic=False)
-        # no structure note is emitted, so untouched callers reproduce today's
-        # prompt byte-for-byte. Single-party path only — the comparison path keeps
-        # its own by-party structure (see
-        # generate_streaming_chatbot_comparing_response).
-        if present_sources is not None or has_historic:
-            manifesto_present, votes_present, speeches_present = (
-                present_sources
-                if present_sources is not None
-                else (False, False, False)
-            )
-            answer_guidelines += _source_structure_note(
-                party.name,
-                has_historic,
-                manifesto_present,
-                votes_present,
-                speeches_present,
-            )
-        answer_guidelines += _source_filter_note(source_filter)
+        answer_guidelines = build_party_answer_guidelines(
+            party.name,
+            election_level=election_level,
+            present_sources=present_sources,
+            has_historic=has_historic,
+            source_filter=source_filter,
+        )
         system_prompt = party_response_system_prompt_template.format(
             party_name=party.name,
             party_long_name=party.long_name,
@@ -671,6 +645,58 @@ async def generate_streaming_chatbot_response(
         preferred_llm_size=chat_response_llm_size,
         use_premium_llms=use_premium_llms,
     )
+
+
+def format_wahl_chat_parties_list(all_parties: List[ContextParty]) -> str:
+    """Party list text for the wahl.chat system prompt and the answer cache key."""
+    all_parties_list = ""
+    for party in all_parties:
+        all_parties_list += f"### {party.long_name}\n"
+        all_parties_list += f"Abkürzung: {party.name}\n"
+        all_parties_list += f"Beschreibung: {party}\n"
+        all_parties_list += (
+            f"Spitzenkandidat*In für die Bundestagswahl 2025: {party.candidate}\n"
+        )
+    return all_parties_list
+
+
+def build_party_answer_guidelines(
+    party_name: str,
+    *,
+    election_level: Optional[str] = None,
+    present_sources: Optional[tuple[bool, bool, bool]] = None,
+    has_historic: bool = False,
+    source_filter: Optional[List[str]] = None,
+) -> str:
+    """Single-party answer guidelines for the LLM and the cache key.
+
+    Comparison answers build their own text and are not cached.
+    """
+    answer_guidelines = get_chat_answer_guidelines(party_name, is_comparing=False)
+    # For non-federal elections, instruct the LLM to explicitly flag Bundestag-origin
+    # votes vs the local Landtag (additive to the structural region marker in sources[]).
+    answer_guidelines += _federal_origin_disclosure_note(election_level)
+    # Source-aware structure + positive coverage preamble: append the
+    # four-section structure guidance ONLY when a caller opts in
+    # (present_sources passed or has_historic set). With the
+    # backward-compatible defaults (present_sources=None, has_historic=False)
+    # no structure note is emitted, so untouched callers reproduce today's
+    # prompt byte-for-byte. Single-party path only — the comparison path keeps
+    # its own by-party structure (see
+    # generate_streaming_chatbot_comparing_response).
+    if present_sources is not None or has_historic:
+        manifesto_present, votes_present, speeches_present = (
+            present_sources if present_sources is not None else (False, False, False)
+        )
+        answer_guidelines += _source_structure_note(
+            party_name,
+            has_historic,
+            manifesto_present,
+            votes_present,
+            speeches_present,
+        )
+    answer_guidelines += _source_filter_note(source_filter)
+    return answer_guidelines
 
 
 def _federal_origin_disclosure_note(election_level: Optional[str]) -> str:

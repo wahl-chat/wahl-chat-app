@@ -185,15 +185,27 @@ async def _fake_aget_parties_for_context(context_id: str) -> list[Any]:
     return [ContextParty(**_FAKE_PARTY)]
 
 
-async def _fake_aget_proposed_questions(party_id: str) -> list[str]:
+async def _fake_aget_proposed_questions(context_id: str, party_id: str) -> list[str]:
     return []
 
 
-async def _fake_aget_cached_answers(party_id: str, cache_key: str) -> list[Any]:
+async def _fake_aget_cached_answers(
+    context_id: str, party_id: str, cache_key: str
+) -> list[Any]:
     return []
 
 
 async def _fake_awrite_cached_answer(*args: Any, **kwargs: Any) -> None:
+    return None
+
+
+async def _fake_aget_cached_rag_query(
+    context_id: str, party_id: str, cache_key: str
+) -> None:
+    return None
+
+
+async def _fake_awrite_cached_rag_query(*args: Any, **kwargs: Any) -> None:
     return None
 
 
@@ -251,9 +263,11 @@ def patch_chat_io(monkeypatch: pytest.MonkeyPatch) -> None:
     Secondary patches (required because generate_chat_stream also calls
     these Firestore and LLM helpers; all are "external I/O"):
       - src.chat_service.aget_parties_for_context
-      - src.chat_service.aget_proposed_questions_for_party
+      - src.chat_service.aget_proposed_questions_for_context
       - src.chat_service.aget_cached_answers_for_party
       - src.chat_service.awrite_cached_answer_for_party
+      - src.chat_service.aget_cached_rag_query
+      - src.chat_service.awrite_cached_rag_query
       - src.llms.awrite_llm_status  (called by handle_rate_limit_hit)
       - src.chatbot_async.aget_context_by_id
       - src.chat_service.aget_context_by_id  (direct import for region_path fetch)
@@ -288,7 +302,7 @@ def patch_chat_io(monkeypatch: pytest.MonkeyPatch) -> None:
         _fake_aget_parties_for_context,
     )
     monkeypatch.setattr(
-        "src.chat_service.aget_proposed_questions_for_party",
+        "src.chat_service.aget_proposed_questions_for_context",
         _fake_aget_proposed_questions,
     )
     monkeypatch.setattr(
@@ -298,6 +312,14 @@ def patch_chat_io(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "src.chat_service.awrite_cached_answer_for_party",
         _fake_awrite_cached_answer,
+    )
+    monkeypatch.setattr(
+        "src.chat_service.aget_cached_rag_query",
+        _fake_aget_cached_rag_query,
+    )
+    monkeypatch.setattr(
+        "src.chat_service.awrite_cached_rag_query",
+        _fake_awrite_cached_rag_query,
     )
     monkeypatch.setattr(
         "src.llms.awrite_llm_status",
