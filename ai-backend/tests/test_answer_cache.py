@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Exact-match answer-cache key: every answer-LLM input except the clock."""
+"""Exact-match cache keys: answer LLM request, and RAG-rewrite LLM request."""
 
 from __future__ import annotations
 
@@ -12,16 +12,24 @@ from langchain_core.documents import Document
 
 from src.answer_cache import (
     build_answer_cache_key,
+    build_rag_query_cache_key,
     canonicalize_rag_context,
     llm_generation_fingerprint,
+    llm_invoke_fingerprint,
 )
-from src.llms import RESPONSE_GENERATION_LLMS, select_streaming_llms
-from src.models.context import ContextParty
-from src.models.general import LLMSize
+from src.llms import (
+    PRE_AND_POST_PROCESSING_LLMS,
+    RESPONSE_GENERATION_LLMS,
+    select_streaming_llms,
+)
 from src.prompts import (
     party_response_system_prompt_template_str,
     streaming_party_response_user_prompt_template_str,
+    system_prompt_improvement_template_str,
+    user_prompt_improvement_template_str,
 )
+from src.models.context import ContextParty
+from src.models.general import LLMSize
 
 _SHA256_HEX = re.compile(r"^[0-9a-f]{64}$")
 
@@ -196,3 +204,98 @@ def test_select_streaming_llms_rejects_invalid_size() -> None:
         assert "Invalid preferred LLM size" in str(exc)
     else:
         raise AssertionError("expected ValueError")
+
+
+def _rag_key_kwargs(**overrides: object) -> dict:
+    kwargs: dict = dict(
+        question="Was ist eure Klimapolitik?",
+        conversation_history="",
+        system_prompt_template=system_prompt_improvement_template_str,
+        user_prompt_template=user_prompt_improvement_template_str,
+        party=_party(),
+        context_id="bundestagswahl-2025",
+        source_filter=None,
+        llms=PRE_AND_POST_PROCESSING_LLMS,
+    )
+    kwargs.update(overrides)
+    return kwargs
+
+
+def test_rag_query_key_is_sha256_hex() -> None:
+    assert _SHA256_HEX.fullmatch(build_rag_query_cache_key(**_rag_key_kwargs()))
+
+
+def test_rag_query_key_question_changes() -> None:
+    a = build_rag_query_cache_key(**_rag_key_kwargs(question="A"))
+    b = build_rag_query_cache_key(**_rag_key_kwargs(question="B"))
+    assert a != b
+
+
+def test_rag_query_key_history_changes() -> None:
+    a = build_rag_query_cache_key(**_rag_key_kwargs(conversation_history=""))
+    b = build_rag_query_cache_key(
+        **_rag_key_kwargs(conversation_history='1. Nutzer: "Vorher"\n')
+    )
+    assert a != b
+
+
+def test_rag_query_key_context_changes() -> None:
+    a = build_rag_query_cache_key(**_rag_key_kwargs(context_id="bundestagswahl-2025"))
+    b = build_rag_query_cache_key(
+        **_rag_key_kwargs(context_id="landtagswahl-baden-wuerttemberg-2026")
+    )
+    assert a != b
+
+
+def test_rag_query_key_party_name_changes() -> None:
+    a = build_rag_query_cache_key(**_rag_key_kwargs(party=_party(name="SPD")))
+    b = build_rag_query_cache_key(**_rag_key_kwargs(party=_party(name="CDU")))
+    assert a != b
+
+
+def test_rag_query_key_none_and_empty_filter_collide() -> None:
+    a = build_rag_query_cache_key(**_rag_key_kwargs(source_filter=None))
+    b = build_rag_query_cache_key(**_rag_key_kwargs(source_filter=[]))
+    assert a == b
+
+
+def test_rag_query_key_filter_changes() -> None:
+    a = build_rag_query_cache_key(**_rag_key_kwargs(source_filter=None))
+    b = build_rag_query_cache_key(**_rag_key_kwargs(source_filter=["videos"]))
+    assert a != b
+
+
+def test_rag_query_key_filter_order_independent() -> None:
+    a = build_rag_query_cache_key(
+        **_rag_key_kwargs(source_filter=["videos", "manifesto"])
+    )
+    b = build_rag_query_cache_key(
+        **_rag_key_kwargs(source_filter=["manifesto", "videos"])
+    )
+    assert a == b
+
+
+def test_rag_query_key_prompt_template_changes() -> None:
+    a = build_rag_query_cache_key(**_rag_key_kwargs(system_prompt_template="SYS-A"))
+    b = build_rag_query_cache_key(**_rag_key_kwargs(system_prompt_template="SYS-B"))
+    assert a != b
+
+
+def test_rag_query_key_roster_changes() -> None:
+    full = build_rag_query_cache_key(
+        **_rag_key_kwargs(llms=PRE_AND_POST_PROCESSING_LLMS)
+    )
+    truncated = build_rag_query_cache_key(
+        **_rag_key_kwargs(llms=PRE_AND_POST_PROCESSING_LLMS[1:])
+    )
+    assert full != truncated
+
+
+def test_invoke_fingerprint_follows_get_answer_priority() -> None:
+    """Highest-priority primary is first; back_up_only models trail."""
+    fp = llm_invoke_fingerprint(PRE_AND_POST_PROCESSING_LLMS)
+    ordered = sorted(
+        PRE_AND_POST_PROCESSING_LLMS, key=lambda llm: llm.priority, reverse=True
+    )
+    primaries = [llm for llm in ordered if not llm.back_up_only]
+    assert fp.split("\n")[0].startswith(primaries[0].name)

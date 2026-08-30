@@ -56,8 +56,13 @@ from src.chatbot_async import (
     build_vote_documents,
     build_party_answer_guidelines,
     chat_response_llms,
+    prompt_improvement_llms,
 )
-from src.answer_cache import build_answer_cache_key, canonicalize_rag_context
+from src.answer_cache import (
+    build_answer_cache_key,
+    build_rag_query_cache_key,
+    canonicalize_rag_context,
+)
 from src.auth import resolve_user_is_logged_in
 from src.sse import (
     DONE as _DONE,
@@ -80,10 +85,12 @@ from src.ingestion.connectors.abgeordnetenwatch.legislature_config import (
 )
 from src.firebase_service import (
     aget_cached_answers_for_party,
+    aget_cached_rag_query,
     aget_context_by_id,
     aget_parties_for_context,
     aget_proposed_questions_for_party,
     awrite_cached_answer_for_party,
+    awrite_cached_rag_query,
 )
 from src.models.chat import CachedResponse, GroupChatSession, Message, Role
 from src.models.dtos import (
@@ -97,9 +104,13 @@ from src.embeddings import get_embeddings
 from src.models.context import ContextParty
 from src.models.party import WAHL_CHAT_PARTY
 from src.prompts import (
+    RAG_QUERY_SOURCE_FILTER_NOTE_DE,
     get_wahl_chat_answer_guidelines,
     party_response_system_prompt_template_str,
     streaming_party_response_user_prompt_template_str,
+    system_prompt_improve_general_chat_rag_query_template_str,
+    system_prompt_improvement_template_str,
+    user_prompt_improvement_template_str,
     wahl_chat_response_system_prompt_template_str,
 )
 from src.utils import (
@@ -834,6 +845,66 @@ async def _retrieve_party_buckets(
     )
 
 
+async def _resolve_improved_rag_query(
+    party: ContextParty,
+    conversation_history_str: str,
+    question_for_party: str,
+    *,
+    context_id: str,
+    source_filter: Optional[list[str]],
+    is_cacheable_chat: bool,
+) -> str:
+    """Return the RAG rewrite, hitting the rewrite cache on curated turns.
+
+    Non-curated turns skip the cache entirely (GDPR Art. 9). A hit skips the
+    rewrite LLM so the same question retrieves the same chunks and the
+    answer-cache key stays stable.
+    """
+    if not is_cacheable_chat:
+        return await generate_improvement_rag_query(
+            party,
+            conversation_history_str,
+            question_for_party,
+            context_id=context_id,
+            source_filter=source_filter,
+        )
+
+    if party.party_id == WAHL_CHAT_PARTY.party_id:
+        system_prompt_template = (
+            system_prompt_improve_general_chat_rag_query_template_str
+        )
+    else:
+        system_prompt_template = system_prompt_improvement_template_str
+    if source_filter:
+        system_prompt_template += RAG_QUERY_SOURCE_FILTER_NOTE_DE
+
+    cache_key = build_rag_query_cache_key(
+        question=question_for_party,
+        conversation_history=conversation_history_str,
+        system_prompt_template=system_prompt_template,
+        user_prompt_template=user_prompt_improvement_template_str,
+        party=party,
+        context_id=context_id,
+        source_filter=source_filter,
+        llms=prompt_improvement_llms,
+    )
+    cached = await aget_cached_rag_query(party.party_id, cache_key)
+    if cached is not None:
+        logger.info(f"Serving cached RAG query for party {party.party_id}")
+        return cached
+
+    query = await generate_improvement_rag_query(
+        party,
+        conversation_history_str,
+        question_for_party,
+        context_id=context_id,
+        source_filter=source_filter,
+    )
+    if query:
+        await awrite_cached_rag_query(party.party_id, cache_key, query)
+    return query
+
+
 async def fetch_party_response_stream(
     party: ContextParty,
     conversation_history_str: str,
@@ -886,16 +957,19 @@ async def fetch_party_response_stream(
         # would otherwise be replayed cross-user from the party answer cache.
         # Lookup itself waits until after RAG: retrieved chunks are part of
         # the key so newly ingested sources miss and get a fresh answer. A hit
-        # skips the answer LLM, not retrieval.
+        # skips the answer LLM, not retrieval. The rewrite LLM that *produces*
+        # those chunks is cached separately first, so a curated repeat does
+        # not emit a different query and miss the answer key.
 
         # RAG retrieval
         if not is_comparing_question:
-            improved_rag_query = await generate_improvement_rag_query(
+            improved_rag_query = await _resolve_improved_rag_query(
                 party,
                 conversation_history_str,
                 question_for_party,
                 context_id=group_chat_session.context_id,
                 source_filter=source_filter,
+                is_cacheable_chat=is_cacheable_chat,
             )
             # Embed the rag query ONCE and reuse the vector for all three
             # source retrievals (vote, manifesto, speech). This avoids three

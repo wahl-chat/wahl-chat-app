@@ -288,9 +288,17 @@ def _wire_common_mocks(monkeypatch, capture: dict) -> None:
 
         return _gen()
 
+    async def _mock_get_rag_query_cache(_party_id: str, _key: str) -> None:
+        return None
+
+    async def _mock_write_rag_query_cache(*_a, **_k) -> None:
+        return None
+
     monkeypatch.setattr(cs, "generate_improvement_rag_query", _mock_rag_query)
     monkeypatch.setattr(cs, "embed", _FakeEmbed())
     monkeypatch.setattr(cs, "generate_streaming_chatbot_response", _mock_llm)
+    monkeypatch.setattr(cs, "aget_cached_rag_query", _mock_get_rag_query_cache)
+    monkeypatch.setattr(cs, "awrite_cached_rag_query", _mock_write_rag_query_cache)
 
 
 def _drive_single_party(term_window, **stream_kwargs) -> list[str]:
@@ -918,3 +926,200 @@ def test_cacheable_lookup_runs_after_retrieval(monkeypatch) -> None:
     assert order.index("retrieve") < order.index("cache_lookup")
     assert "cached_emit" in order
     assert llm_called["n"] == 0
+
+
+def _cacheable_term_window() -> tuple[datetime, datetime]:
+    return (
+        datetime(2021, 1, 1, tzinfo=timezone.utc),
+        datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+
+
+async def _empty_cached_answers(_party_id: str, _key: str) -> list:
+    return []
+
+
+async def _noop_async(*_a, **_k) -> None:
+    return None
+
+
+def test_cacheable_reuses_cached_rag_query(monkeypatch) -> None:
+    """A cached rewrite must skip the rewrite LLM so retrieval — and the
+    answer-cache key — stay stable even if a fresh rewrite would differ."""
+    generated = {"n": 0}
+    retrieved_queries: list[str] = []
+
+    async def _mock_rag_query(*_a, **_k) -> str:
+        generated["n"] += 1
+        return f"fresh-{generated['n']}"
+
+    async def _get_rag(_party_id: str, _key: str) -> str:
+        return "cached rewrite"
+
+    def _rec_two_pass(query, **_kwargs):
+        retrieved_queries.append(query)
+        return {"current": [], "historic": []}
+
+    _wire_common_mocks(monkeypatch, {})
+    monkeypatch.setattr(cs, "generate_improvement_rag_query", _mock_rag_query)
+    monkeypatch.setattr(cs, "aget_cached_rag_query", _get_rag)
+    monkeypatch.setattr(cs, "retrieve_two_pass", _rec_two_pass)
+    monkeypatch.setattr(cs, "aget_cached_answers_for_party", _empty_cached_answers)
+    monkeypatch.setattr(cs, "awrite_cached_answer_for_party", _noop_async)
+
+    async def _run() -> None:
+        async for _ev in fetch_party_response_stream(
+            _make_party(),
+            "conv",
+            "q?",
+            _make_session(),
+            all_available_parties=[],
+            use_premium_llms=False,
+            is_cacheable_chat=True,
+            region_path=["DE-BW"],
+            term_window=_cacheable_term_window(),
+        ):
+            pass
+
+    asyncio.run(_run())
+
+    assert generated["n"] == 0
+    assert retrieved_queries
+    assert set(retrieved_queries) == {"cached rewrite"}
+
+
+def test_cacheable_writes_rag_query_on_miss(monkeypatch) -> None:
+    writes: list[tuple[str, str, str]] = []
+
+    async def _get_rag(_party_id: str, _key: str) -> None:
+        return None
+
+    async def _write_rag(party_id: str, key: str, query: str) -> None:
+        writes.append((party_id, key, query))
+
+    def _rec_two_pass(_query, **_kwargs):
+        return {"current": [], "historic": []}
+
+    _wire_common_mocks(monkeypatch, {})
+    monkeypatch.setattr(cs, "aget_cached_rag_query", _get_rag)
+    monkeypatch.setattr(cs, "awrite_cached_rag_query", _write_rag)
+    monkeypatch.setattr(cs, "retrieve_two_pass", _rec_two_pass)
+    monkeypatch.setattr(cs, "aget_cached_answers_for_party", _empty_cached_answers)
+    monkeypatch.setattr(cs, "awrite_cached_answer_for_party", _noop_async)
+
+    async def _run() -> None:
+        async for _ev in fetch_party_response_stream(
+            _make_party(),
+            "conv",
+            "q?",
+            _make_session(),
+            all_available_parties=[],
+            use_premium_llms=False,
+            is_cacheable_chat=True,
+            region_path=["DE-BW"],
+            term_window=_cacheable_term_window(),
+        ):
+            pass
+
+    asyncio.run(_run())
+
+    assert len(writes) == 1
+    party_id, key, query = writes[0]
+    assert party_id == "spd"
+    assert len(key) == 64
+    assert all(c in "0123456789abcdef" for c in key)
+    assert query == "improved q"
+
+
+def test_cached_rag_query_stabilizes_answer_cache_key(monkeypatch) -> None:
+    """A non-deterministic rewrite would change retrieved chunks and miss the
+    answer cache; replaying the stored rewrite keeps the answer key stable."""
+    rewrite_n = {"n": 0}
+    answer_keys: list[str] = []
+    stored_query: dict[str, str | None] = {"q": None}
+
+    async def _mock_rag_query(*_a, **_k) -> str:
+        rewrite_n["n"] += 1
+        return f"fresh-{rewrite_n['n']}"
+
+    async def _get_rag(_party_id: str, _key: str) -> str | None:
+        return stored_query["q"]
+
+    async def _write_rag(_party_id: str, _key: str, query: str) -> None:
+        stored_query["q"] = query
+
+    def _rec_two_pass(query, **kwargs):
+        if kwargs.get("source_type") != "party_manifesto":
+            return {"current": [], "historic": []}
+        return {
+            "current": [
+                {
+                    "citation_title": f"prog-{query}",
+                    "citation_url": f"https://example.com/{query}",
+                    "publish_date": "2025-01-01",
+                    "text": f"chunk for {query}",
+                    "authority_tier": "self_reported",
+                    "meta": {"page_start": 1},
+                }
+            ],
+            "historic": [],
+        }
+
+    async def _get_answers(_party_id: str, key: str) -> list:
+        answer_keys.append(key)
+        return []
+
+    _wire_common_mocks(monkeypatch, {})
+    monkeypatch.setattr(cs, "generate_improvement_rag_query", _mock_rag_query)
+    monkeypatch.setattr(cs, "aget_cached_rag_query", _get_rag)
+    monkeypatch.setattr(cs, "awrite_cached_rag_query", _write_rag)
+    monkeypatch.setattr(cs, "retrieve_two_pass", _rec_two_pass)
+    monkeypatch.setattr(cs, "aget_cached_answers_for_party", _get_answers)
+    monkeypatch.setattr(cs, "awrite_cached_answer_for_party", _noop_async)
+
+    async def _run() -> None:
+        async for _ev in fetch_party_response_stream(
+            _make_party(),
+            "conv",
+            "q?",
+            _make_session(),
+            all_available_parties=[],
+            use_premium_llms=False,
+            is_cacheable_chat=True,
+            region_path=["DE-BW"],
+            term_window=_cacheable_term_window(),
+        ):
+            pass
+
+    asyncio.run(_run())
+    asyncio.run(_run())
+
+    assert rewrite_n["n"] == 1
+    assert stored_query["q"] == "fresh-1"
+    assert len(answer_keys) == 2
+    assert answer_keys[0] == answer_keys[1]
+
+
+def test_non_cacheable_skips_rag_query_cache(monkeypatch) -> None:
+    gets = {"n": 0}
+    writes = {"n": 0}
+
+    async def _get_rag(_party_id: str, _key: str) -> None:
+        gets["n"] += 1
+        return None
+
+    async def _write_rag(*_a, **_k) -> None:
+        writes["n"] += 1
+
+    def _rec_two_pass(_query, **_kwargs):
+        return {"current": [], "historic": []}
+
+    _wire_common_mocks(monkeypatch, {})
+    monkeypatch.setattr(cs, "aget_cached_rag_query", _get_rag)
+    monkeypatch.setattr(cs, "awrite_cached_rag_query", _write_rag)
+    monkeypatch.setattr(cs, "retrieve_two_pass", _rec_two_pass)
+
+    _drive_single_party(_cacheable_term_window())
+
+    assert gets["n"] == 0
+    assert writes["n"] == 0

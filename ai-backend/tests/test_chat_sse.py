@@ -205,11 +205,13 @@ async def test_proposed_question_with_free_text_history_not_cached(
     (free-text) conversation performs NO cache write — the answer is
     conditioned on user-authored history and must never replay cross-user."""
     write_mock = AsyncMock()
+    write_rag_mock = AsyncMock()
     monkeypatch.setattr(
         "src.chat_service.aget_proposed_questions_for_party",
         _fake_proposed_questions,
     )
     monkeypatch.setattr("src.chat_service.awrite_cached_answer_for_party", write_mock)
+    monkeypatch.setattr("src.chat_service.awrite_cached_rag_query", write_rag_mock)
 
     body = dict(_CHAT_REQUEST_BODY)
     body["user_message"] = _PROPOSED_QUESTION
@@ -222,6 +224,7 @@ async def test_proposed_question_with_free_text_history_not_cached(
 
     assert payloads[-1] == "[DONE]", "stream must still terminate normally"
     write_mock.assert_not_awaited()
+    write_rag_mock.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -230,11 +233,13 @@ async def test_first_turn_proposed_question_is_cached(patch_chat_io, app, monkey
     proposed-question user turn IS curated, so the answer is written under the
     proposed-question key (regression guard for the cache gate rework)."""
     write_mock = AsyncMock()
+    write_rag_mock = AsyncMock()
     monkeypatch.setattr(
         "src.chat_service.aget_proposed_questions_for_party",
         _fake_proposed_questions,
     )
     monkeypatch.setattr("src.chat_service.awrite_cached_answer_for_party", write_mock)
+    monkeypatch.setattr("src.chat_service.awrite_cached_rag_query", write_rag_mock)
 
     body = dict(_CHAT_REQUEST_BODY)
     body["user_message"] = _PROPOSED_QUESTION
@@ -250,6 +255,14 @@ async def test_first_turn_proposed_question_is_cached(patch_chat_io, app, monkey
     assert cache_key != _PROPOSED_QUESTION
     assert len(cache_key) == 64
     assert all(c in "0123456789abcdef" for c in cache_key)
+
+    write_rag_mock.assert_awaited_once()
+    _rag_party_id, rag_cache_key, rag_query = write_rag_mock.await_args.args
+    assert _rag_party_id == _party_id
+    assert rag_cache_key != cache_key
+    assert len(rag_cache_key) == 64
+    assert all(c in "0123456789abcdef" for c in rag_cache_key)
+    assert rag_query == "SPD Klimaschutz Position"
 
 
 # ===========================================================================

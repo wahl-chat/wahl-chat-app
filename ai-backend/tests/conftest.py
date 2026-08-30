@@ -197,6 +197,14 @@ async def _fake_awrite_cached_answer(*args: Any, **kwargs: Any) -> None:
     return None
 
 
+async def _fake_aget_cached_rag_query(party_id: str, cache_key: str) -> None:
+    return None
+
+
+async def _fake_awrite_cached_rag_query(*args: Any, **kwargs: Any) -> None:
+    return None
+
+
 async def _fake_awrite_llm_status(*args: Any, **kwargs: Any) -> None:
     return None
 
@@ -254,6 +262,8 @@ def patch_chat_io(monkeypatch: pytest.MonkeyPatch) -> None:
       - src.chat_service.aget_proposed_questions_for_party
       - src.chat_service.aget_cached_answers_for_party
       - src.chat_service.awrite_cached_answer_for_party
+      - src.chat_service.aget_cached_rag_query
+      - src.chat_service.awrite_cached_rag_query
       - src.llms.awrite_llm_status  (called by handle_rate_limit_hit)
       - src.chatbot_async.aget_context_by_id
       - src.chat_service.aget_context_by_id  (direct import for region_path fetch)
@@ -298,6 +308,14 @@ def patch_chat_io(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "src.chat_service.awrite_cached_answer_for_party",
         _fake_awrite_cached_answer,
+    )
+    monkeypatch.setattr(
+        "src.chat_service.aget_cached_rag_query",
+        _fake_aget_cached_rag_query,
+    )
+    monkeypatch.setattr(
+        "src.chat_service.awrite_cached_rag_query",
+        _fake_awrite_cached_rag_query,
     )
     monkeypatch.setattr(
         "src.llms.awrite_llm_status",

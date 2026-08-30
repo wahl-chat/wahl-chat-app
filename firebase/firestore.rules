@@ -46,6 +46,10 @@ service cloud.firestore {
     	allow read;
     }
 
+    match /cached_rag_queries/{document=**} {
+    	allow read;
+    }
+
     match /shareable_chat_session_snapshots/{doc_id} {
     	allow read;
     }
