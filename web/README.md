@@ -41,7 +41,9 @@ Open http://localhost:3000.
 
 ## Deployment
 
-Deployed via the [Vercel Platform](https://vercel.com). See the [Next.js deployment docs](https://nextjs.org/docs/app/building-your-application/deploying) for details.
+Merges to `develop` auto-deploy to [dev.wahl.chat](https://dev.wahl.chat). Production ([wahl.chat](https://wahl.chat)) is a manual **Promote web** GitHub Action so it can ship independently of the backend. That workflow rebuilds the chosen SHA with Production env vars — do not promote a develop preview, because `NEXT_PUBLIC_*` is baked in at build time.
+
+`vercel.json` disables git deploys from `main`. Keep Vercel’s Production Branch set to `main` (unused for auto-deploy) and do not point it at `develop`. See the [root README](../README.md#deploying) and `.github/workflows/promote-web-prod.yml` for the secrets to set.
 
 ### Cache Revalidation
 
