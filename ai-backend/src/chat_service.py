@@ -89,7 +89,7 @@ from src.firebase_service import (
     aget_cached_rag_query,
     aget_context_by_id,
     aget_parties_for_context,
-    aget_proposed_questions_for_party,
+    aget_proposed_questions_for_context,
     awrite_cached_answer_for_party,
     awrite_cached_rag_query,
 )
@@ -1786,11 +1786,11 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
         if len(parties_to_respond) == 1 or not is_comparing_question:
             party_generators = []
             for party in parties_to_respond:
-                proposed_questions = await aget_proposed_questions_for_party(
-                    party.party_id
+                proposed_questions = await aget_proposed_questions_for_context(
+                    group_chat_session.context_id, party.party_id
                 )
-                proposed_questions_group = await aget_proposed_questions_for_party(
-                    "group"
+                proposed_questions_group = await aget_proposed_questions_for_context(
+                    group_chat_session.context_id, "group"
                 )
                 is_proposed_question = (
                     user_message.content in proposed_questions

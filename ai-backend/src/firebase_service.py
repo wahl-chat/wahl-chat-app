@@ -111,8 +111,18 @@ async def aget_party_by_id(party_id: str) -> Optional[ContextParty]:
     return None
 
 
-async def aget_proposed_questions_for_party(party_id: str) -> list[str]:
-    questions = async_db.collection(f"proposed_questions/{party_id}/questions").stream()
+async def aget_proposed_questions_for_context(
+    context_id: str, party_id: str
+) -> list[str]:
+    """Curated questions for one party in one election context."""
+    questions = (
+        async_db.collection("contexts")
+        .document(context_id)
+        .collection("proposed_questions")
+        .document(party_id)
+        .collection("questions")
+        .stream()
+    )
     return [question.get("content") async for question in questions]
 
 

@@ -169,7 +169,7 @@ async def test_sse_headers(patch_chat_io, app):
 _PROPOSED_QUESTION = "Was ist die Position der SPD zum Klimaschutz?"
 
 
-async def _fake_proposed_questions(party_id: str) -> list[str]:
+async def _fake_proposed_questions(context_id: str, party_id: str) -> list[str]:
     return [_PROPOSED_QUESTION]
 
 
@@ -205,7 +205,7 @@ async def test_proposed_question_with_free_text_history_not_cached(
     write_mock = AsyncMock()
     write_rag_mock = AsyncMock()
     monkeypatch.setattr(
-        "src.chat_service.aget_proposed_questions_for_party",
+        "src.chat_service.aget_proposed_questions_for_context",
         _fake_proposed_questions,
     )
     monkeypatch.setattr("src.chat_service.awrite_cached_answer_for_party", write_mock)
@@ -231,7 +231,7 @@ async def test_first_turn_proposed_question_is_cached(patch_chat_io, app, monkey
     write_mock = AsyncMock()
     write_rag_mock = AsyncMock()
     monkeypatch.setattr(
-        "src.chat_service.aget_proposed_questions_for_party",
+        "src.chat_service.aget_proposed_questions_for_context",
         _fake_proposed_questions,
     )
     monkeypatch.setattr("src.chat_service.awrite_cached_answer_for_party", write_mock)
@@ -258,6 +258,55 @@ async def test_first_turn_proposed_question_is_cached(patch_chat_io, app, monkey
     assert len(rag_cache_key) == 64
     assert all(c in "0123456789abcdef" for c in rag_cache_key)
     assert rag_query == "SPD Klimaschutz Position"
+
+
+@pytest.mark.asyncio
+async def test_proposed_question_lookup_uses_request_context(
+    patch_chat_io, app, monkeypatch
+):
+    """The cache gate reads questions for the request context, not the global list."""
+    lookup = AsyncMock(side_effect=_fake_proposed_questions)
+    monkeypatch.setattr("src.chat_service.aget_proposed_questions_for_context", lookup)
+    monkeypatch.setattr("src.chat_service.awrite_cached_answer_for_party", AsyncMock())
+    monkeypatch.setattr("src.chat_service.awrite_cached_rag_query", AsyncMock())
+
+    await _drain_chat_stream(app, dict(_CHAT_REQUEST_BODY))
+
+    assert lookup.await_args_list
+    assert {call.args[0] for call in lookup.await_args_list} == {"bundestagswahl-2025"}
+    assert {call.args[1] for call in lookup.await_args_list} <= {"spd", "group"}
+
+
+@pytest.mark.asyncio
+async def test_proposed_question_from_other_context_is_not_cached(
+    patch_chat_io, app, monkeypatch
+):
+    """A question curated for another election must not count as proposed here."""
+
+    async def _only_other_context(context_id: str, party_id: str) -> list[str]:
+        if context_id == "landtagswahl-baden-wuerttemberg-2026":
+            return [_PROPOSED_QUESTION]
+        return []
+
+    write_mock = AsyncMock()
+    write_rag_mock = AsyncMock()
+    monkeypatch.setattr(
+        "src.chat_service.aget_proposed_questions_for_context",
+        _only_other_context,
+    )
+    monkeypatch.setattr("src.chat_service.awrite_cached_answer_for_party", write_mock)
+    monkeypatch.setattr("src.chat_service.awrite_cached_rag_query", write_rag_mock)
+
+    body = dict(_CHAT_REQUEST_BODY)
+    body["context_id"] = "bundestagswahl-2025"
+    body["user_message"] = _PROPOSED_QUESTION
+    body["chat_history"] = []
+
+    payloads = await _drain_chat_stream(app, body)
+
+    assert payloads[-1] == "[DONE]"
+    write_mock.assert_not_awaited()
+    write_rag_mock.assert_not_awaited()
 
 
 # ===========================================================================
