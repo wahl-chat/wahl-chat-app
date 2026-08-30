@@ -26,8 +26,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse('Bad Request', { status: 400 });
   }
 
-  // Forward the caller's Firebase ID token so the backend can verify
-  // user_is_logged_in / premium claims. Absent when signed out.
+  // Forward the caller's Firebase ID token when present. Absent when signed out.
   const authorization = request.headers.get('authorization');
 
   const upstream = await fetch(targetUrl, {

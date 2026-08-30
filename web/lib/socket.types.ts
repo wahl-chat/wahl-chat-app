@@ -60,30 +60,6 @@ export type StreamingMessage = {
   feedback?: MessageFeedback;
 };
 
-export type LLMSize = 'small' | 'large';
-
-export type ChatSessionInitPayload = {
-  session_id: string;
-  context_id: string;
-  party_ids: string[];
-  chat_history: MessageItem[];
-  current_title: string;
-  chat_response_llm_size: LLMSize;
-  last_quick_replies: string[];
-};
-
-export type ChatSessionInitializedPayload = {
-  session_id: string;
-};
-
-export type AddUserMessagePayload = {
-  session_id: string;
-  context_id: string;
-  user_message: string;
-  party_ids: string[];
-  user_is_logged_in: boolean;
-};
-
 export type ProConPerspectiveRequestPayload = {
   request_id: string;
   party_id: string;
@@ -156,6 +132,4 @@ export type GenerateVotingBehaviorSummaryPayload = {
   party_id: string;
   last_user_message: string;
   last_assistant_message: string;
-  summary_llm_size: LLMSize;
-  user_is_logged_in: boolean;
 };

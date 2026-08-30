@@ -2,7 +2,6 @@ import type { ChatSession, Tenant } from '@/lib/firebase/firebase.types';
 import type { PartyDetails } from '@/lib/party-details';
 import type { ProlificMetadata } from '@/lib/prolific-study/prolific-metadata';
 import type {
-  LLMSize,
   PartyResponseChunkReadyPayload,
   StreamingMessage,
   Vote,
@@ -204,7 +203,6 @@ export type ChatStoreActions = {
     message: string,
   ) => void;
   setPartyIds: (partyIds: string[]) => void;
-  getLLMSize: () => LLMSize;
   setProlificMetadata: (metadata: ProlificMetadata) => void;
   setProlificConfig: (config: { minInteractions: number }) => void;
   setProlificDisclaimerDismissed: (dismissed: boolean) => void;
