@@ -596,14 +596,7 @@ async def generate_streaming_chatbot_response(
         prompt_context = build_prompt_context(context) if context else {}
 
         answer_guidelines = get_wahl_chat_answer_guidelines()
-        all_parties_list = ""
-        for p in all_parties:
-            all_parties_list += f"### {p.long_name}\n"
-            all_parties_list += f"Abkürzung: {p.name}\n"
-            all_parties_list += f"Beschreibung: {p}\n"
-            all_parties_list += (
-                f"Spitzenkandidat*In für die Bundestagswahl 2025: {p.candidate}\n"
-            )
+        all_parties_list = format_wahl_chat_parties_list(all_parties)
         system_prompt = wahl_chat_response_system_prompt_template.format(
             context_name=prompt_context.get("context_name", "Bundestagswahl 2025"),
             context_date_info=prompt_context.get(
@@ -652,6 +645,23 @@ async def generate_streaming_chatbot_response(
         preferred_llm_size=chat_response_llm_size,
         use_premium_llms=use_premium_llms,
     )
+
+
+def format_wahl_chat_parties_list(all_parties: List[ContextParty]) -> str:
+    """The ``all_parties_list`` block injected into the wahl.chat system prompt.
+
+    Shared by generation and the answer-cache key so a roster or description
+    change cannot leave a stale cache entry keyed on a different string.
+    """
+    all_parties_list = ""
+    for party in all_parties:
+        all_parties_list += f"### {party.long_name}\n"
+        all_parties_list += f"Abkürzung: {party.name}\n"
+        all_parties_list += f"Beschreibung: {party}\n"
+        all_parties_list += (
+            f"Spitzenkandidat*In für die Bundestagswahl 2025: {party.candidate}\n"
+        )
+    return all_parties_list
 
 
 def build_party_answer_guidelines(

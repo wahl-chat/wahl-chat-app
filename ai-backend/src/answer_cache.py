@@ -108,8 +108,34 @@ def canonicalize_rag_context(docs: list[Document]) -> str:
     different rank order. A new or dropped source changes the set and
     therefore the cache key, so the next user gets a freshly generated
     answer grounded on the updated corpus.
+
+    Citation URL and page are hashed in addition to the excerpt the LLM
+    sees: a link or page-anchor change must miss even when the text is
+    unchanged, so a cached answer cannot keep pointing at a stale source.
     """
-    return get_rag_context(sorted(docs, key=_rag_doc_sort_key))
+    ordered = sorted(docs, key=_rag_doc_sort_key)
+    citations: list[str] = []
+    for doc in ordered:
+        meta = doc.metadata or {}
+        page = meta.get("page")
+        citations.append(f"{meta.get('url') or ''}\t{'' if page is None else page}")
+    return get_rag_context(ordered) + "\n\x1e\n" + "\n".join(citations)
+
+
+def _digest_fields(fields: list[tuple[str, str]]) -> str:
+    """SHA-256 of length-prefixed name/value pairs.
+
+    Joining with newlines is not injective: a value can contain ``\\n`` and
+    a prefix like ``hist:``, so two different requests can share a payload.
+    Framing each value by its UTF-8 byte length makes the encoding injective
+    regardless of what the fields contain.
+    """
+    buf = bytearray()
+    for name, value in fields:
+        encoded = value.encode("utf-8")
+        buf.extend(f"{name}:{len(encoded)}:".encode("ascii"))
+        buf.extend(encoded)
+    return hashlib.sha256(buf).hexdigest()
 
 
 def build_answer_cache_key(
@@ -125,6 +151,10 @@ def build_answer_cache_key(
     llm_size: LLMSize,
     use_premium_llms: bool,
     llms: list[LLM],
+    context_name: str = "",
+    context_date_info: str = "",
+    context_location: str = "",
+    all_parties_list: str = "",
 ) -> str:
     """SHA-256 hex digest of the answer-LLM request (clock excluded).
 
@@ -132,28 +162,41 @@ def build_answer_cache_key(
     serialization from ``canonicalize_rag_context`` — included so newly
     ingested sources miss the cache and get a fresh answer.
 
+    The wahl.chat system prompt also injects ``context_name`` /
+    ``context_date_info`` / ``context_location`` / ``all_parties_list``.
+    Those are hashed here so a renamed election, moved date, or updated
+    party roster misses even when ``context_id`` is unchanged. The request
+    clock (``{date}`` / ``{time}``) stays out.
+
     Always 64 lowercase hex characters — safe as a Firestore path segment.
     """
-    payload = "\n".join(
+    return _digest_fields(
         [
-            f"q:{question}",
-            f"hist:{conversation_history}",
-            f"sys_tmpl:{system_prompt_template}",
-            f"user_tmpl:{user_prompt_template}",
+            ("q", question),
+            ("hist", conversation_history),
+            ("sys_tmpl", system_prompt_template),
+            ("user_tmpl", user_prompt_template),
+            ("party_id", party.party_id),
+            ("party_name", party.name),
+            ("party_long", party.long_name),
+            ("party_desc", party.description or ""),
+            ("party_cand", party.candidate or ""),
+            ("party_url", party.website_url),
+            ("ctx", context_id),
+            ("ctx_name", context_name),
+            ("ctx_date", context_date_info),
+            ("ctx_loc", context_location),
+            ("parties", all_parties_list),
+            ("guidelines", answer_guidelines),
+            ("rag", rag_context),
+            ("llm_size", llm_size.value),
+            ("premium", str(use_premium_llms)),
             (
-                f"party:{party.party_id}|{party.name}|{party.long_name}|"
-                f"{party.description or ''}|{party.candidate or ''}|"
-                f"{party.website_url}"
+                "llm",
+                llm_generation_fingerprint(llms, llm_size, use_premium_llms),
             ),
-            f"ctx:{context_id}",
-            f"guidelines:{answer_guidelines}",
-            f"rag:{rag_context}",
-            f"llm_size:{llm_size.value}",
-            f"premium:{use_premium_llms}",
-            f"llm:{llm_generation_fingerprint(llms, llm_size, use_premium_llms)}",
         ]
     )
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def build_rag_query_cache_key(
@@ -178,16 +221,16 @@ def build_rag_query_cache_key(
     ``source_filter`` is canonicalized so ``None`` and ``[]`` collide.
     Always 64 lowercase hex characters — safe as a Firestore path segment.
     """
-    payload = "\n".join(
+    return _digest_fields(
         [
-            f"q:{question}",
-            f"hist:{conversation_history}",
-            f"sys_tmpl:{system_prompt_template}",
-            f"user_tmpl:{user_prompt_template}",
-            f"party:{party.party_id}|{party.name}",
-            f"ctx:{context_id}",
-            f"filter:{','.join(sorted(source_filter or []))}",
-            f"llm:{llm_invoke_fingerprint(llms)}",
+            ("q", question),
+            ("hist", conversation_history),
+            ("sys_tmpl", system_prompt_template),
+            ("user_tmpl", user_prompt_template),
+            ("party_id", party.party_id),
+            ("party_name", party.name),
+            ("ctx", context_id),
+            ("filter", ",".join(sorted(source_filter or []))),
+            ("llm", llm_invoke_fingerprint(llms)),
         ]
     )
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()

@@ -119,6 +119,53 @@ def test_rag_context_changes_key() -> None:
     assert a != b
 
 
+def test_key_encoding_is_injective_across_newlines() -> None:
+    """A newline plus a field prefix inside one value must not collide with
+    splitting that text across two fields."""
+    a = build_answer_cache_key(
+        **_key_kwargs(question="foo\nhist:bar", conversation_history="")
+    )
+    b = build_answer_cache_key(
+        **_key_kwargs(question="foo", conversation_history="bar")
+    )
+    assert a != b
+
+
+def test_party_field_separator_is_injective() -> None:
+    """Pipe characters inside party fields must not collide with another party."""
+    a = build_answer_cache_key(
+        **_key_kwargs(party=_party(name="SPD", long_name="eins"))
+    )
+    b = build_answer_cache_key(
+        **_key_kwargs(party=_party(name="SPD|eins", long_name=""))
+    )
+    assert a != b
+
+
+def test_wahl_chat_prompt_variables_change_key() -> None:
+    """Context display fields and the party roster are hashed independently of
+    context_id, so an in-place election rename or roster edit misses."""
+    base = _key_kwargs(
+        context_id="bundestagswahl-2025",
+        context_name="Bundestagswahl 2025",
+        context_date_info="Findet statt am 23. Februar 2025",
+        context_location="Deutschland",
+        all_parties_list="### SPD\n",
+    )
+    assert build_answer_cache_key(**base) != build_answer_cache_key(
+        **{**base, "context_name": "Bundestagswahl 2029"}
+    )
+    assert build_answer_cache_key(**base) != build_answer_cache_key(
+        **{**base, "context_date_info": "Hat stattgefunden am 23. Februar 2025"}
+    )
+    assert build_answer_cache_key(**base) != build_answer_cache_key(
+        **{**base, "context_location": "Berlin"}
+    )
+    assert build_answer_cache_key(**base) != build_answer_cache_key(
+        **{**base, "all_parties_list": "### SPD\n### CDU\n"}
+    )
+
+
 def _chunk(
     name: str, content: str, *, source_type: str = "party_manifesto"
 ) -> Document:
@@ -155,6 +202,33 @@ def test_new_rag_source_changes_canonical_context() -> None:
         _chunk("abstimmung", "Ja-Stimmen", source_type="vote_record")
     ]
     assert canonicalize_rag_context(previous) != canonicalize_rag_context(with_new)
+
+
+def test_canonical_rag_context_includes_url_and_page() -> None:
+    """A citation URL or page change must miss even when the excerpt is the same."""
+    base = [_chunk("prog", "Klimaschutz")]
+    new_url = [
+        Document(
+            page_content="Klimaschutz",
+            metadata={
+                **base[0].metadata,
+                "url": "https://example.com/prog#updated",
+            },
+        )
+    ]
+    new_page = [
+        Document(
+            page_content="Klimaschutz",
+            metadata={**base[0].metadata, "page": 2},
+        )
+    ]
+    assert canonicalize_rag_context(base) != canonicalize_rag_context(new_url)
+    assert canonicalize_rag_context(base) != canonicalize_rag_context(new_page)
+    assert build_answer_cache_key(
+        **_key_kwargs(rag_context=canonicalize_rag_context(base))
+    ) != build_answer_cache_key(
+        **_key_kwargs(rag_context=canonicalize_rag_context(new_url))
+    )
 
 
 def test_guidelines_change_key() -> None:
@@ -228,6 +302,16 @@ def test_rag_query_key_is_sha256_hex() -> None:
 def test_rag_query_key_question_changes() -> None:
     a = build_rag_query_cache_key(**_rag_key_kwargs(question="A"))
     b = build_rag_query_cache_key(**_rag_key_kwargs(question="B"))
+    assert a != b
+
+
+def test_rag_query_key_encoding_is_injective_across_newlines() -> None:
+    a = build_rag_query_cache_key(
+        **_rag_key_kwargs(question="foo\nhist:bar", conversation_history="")
+    )
+    b = build_rag_query_cache_key(
+        **_rag_key_kwargs(question="foo", conversation_history="bar")
+    )
     assert a != b
 
 

@@ -56,6 +56,7 @@ from src.chatbot_async import (
     build_vote_documents,
     build_party_answer_guidelines,
     chat_response_llms,
+    format_wahl_chat_parties_list,
     prompt_improvement_llms,
 )
 from src.answer_cache import (
@@ -105,6 +106,7 @@ from src.models.context import ContextParty
 from src.models.party import WAHL_CHAT_PARTY
 from src.prompts import (
     RAG_QUERY_SOURCE_FILTER_NOTE_DE,
+    build_prompt_context,
     get_wahl_chat_answer_guidelines,
     party_response_system_prompt_template_str,
     streaming_party_response_user_prompt_template_str,
@@ -507,6 +509,7 @@ async def _lookup_cached_party_answer(
     present_sources: tuple[bool, bool, bool],
     has_historic: bool,
     source_filter: Optional[list[str]],
+    all_available_parties: List[ContextParty],
 ) -> tuple[str, Optional[CachedResponse]]:
     """Look up a cross-user cached answer keyed on the exact answer-LLM request.
 
@@ -516,9 +519,21 @@ async def _lookup_cached_party_answer(
     ``(cache_key, cached_or_none)``; ``None`` means miss (or the random
     fill-up slot when fewer than the limit exist).
     """
+    context_name = ""
+    context_date_info = ""
+    context_location = ""
+    all_parties_list = ""
     if party.party_id == WAHL_CHAT_PARTY.party_id:
         system_prompt_template = wahl_chat_response_system_prompt_template_str
         answer_guidelines = get_wahl_chat_answer_guidelines()
+        context = await aget_context_by_id(group_chat_session.context_id)
+        prompt_context = build_prompt_context(context) if context else {}
+        context_name = prompt_context.get("context_name", "Bundestagswahl 2025")
+        context_date_info = prompt_context.get(
+            "context_date_info", "Kein spezifisches Datum"
+        )
+        context_location = prompt_context.get("context_location", "Deutschland")
+        all_parties_list = format_wahl_chat_parties_list(all_available_parties)
     else:
         system_prompt_template = party_response_system_prompt_template_str
         answer_guidelines = build_party_answer_guidelines(
@@ -540,6 +555,10 @@ async def _lookup_cached_party_answer(
         llm_size=group_chat_session.chat_response_llm_size,
         use_premium_llms=use_premium_llms,
         llms=chat_response_llms,
+        context_name=context_name,
+        context_date_info=context_date_info,
+        context_location=context_location,
+        all_parties_list=all_parties_list,
     )
     logger.debug(f"Checking cache for party {party.party_id} with key {cache_key}")
     existing_cached_answers: List[CachedResponse] = await aget_cached_answers_for_party(
@@ -1177,6 +1196,7 @@ async def fetch_party_response_stream(
                     present_sources=present_sources,
                     has_historic=has_historic,
                     source_filter=source_filter,
+                    all_available_parties=all_available_parties,
                 )
                 if cached_answer_to_emit is not None:
                     logger.info(f"Serving cached response for party {party.party_id}")
