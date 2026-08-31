@@ -25,7 +25,7 @@ import importlib
 
 import pytest
 
-import ingestion.corpus as corpus
+import wahlchat_corpus.corpus as corpus
 import ingestion.setup_collection as sc
 
 

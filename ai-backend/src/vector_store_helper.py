@@ -11,7 +11,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 from src.models.context import ContextParty
 
-from src.embeddings import get_embeddings
+from wahlchat_corpus.embeddings import get_embeddings
 from src.utils import load_env
 
 from src.chatbot_async import rerank_documents

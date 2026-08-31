@@ -45,7 +45,7 @@ from typing import FrozenSet
 # ingestion/src/ingestion/governance_levels.py (retrieve.py imports from there without touching a
 # connector). Re-exported here because the taxonomy dict below, the AW
 # connector, and the AW tests all reference them from this module.
-from ingestion.governance_levels import (  # noqa: F401
+from wahlchat_corpus.governance_levels import (  # noqa: F401
     ALL_LEVELS,
     FEDERAL,
     MUNICIPAL,
@@ -69,7 +69,7 @@ def _normalize_topic_label(label: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Governance level constants: re-exported from ingestion.governance_levels above —
+# Governance level constants: re-exported from wahlchat_corpus.governance_levels above —
 # do NOT re-introduce local definitions (a parity test in
 # tests/ingestion/test_enum_parity.py guards this).
 # ---------------------------------------------------------------------------

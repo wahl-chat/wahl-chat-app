@@ -18,13 +18,13 @@ repos:
         name: Ruff (lint)
         entry: uv run ruff check --fix
         language: system
-        files: ^(ai-backend|ingestion)/.*\.py$
+        files: ^(ai-backend|ingestion|packages/wahlchat-corpus)/.*\.py$
         require_serial: true
       - id: ruff-format
         name: Ruff (format)
         entry: uv run ruff format
         language: system
-        files: ^(ai-backend|ingestion)/.*\.py$
+        files: ^(ai-backend|ingestion|packages/wahlchat-corpus)/.*\.py$
         require_serial: true
       - id: mypy
         name: Mypy (ai-backend)
@@ -44,15 +44,11 @@ repos:
         files: ^ingestion/src/.*\.py$
         pass_filenames: false
         require_serial: true
-      - id: contract-parity
-        name: Corpus contract parity
-        # ai-backend and ingestion are independent packages, so a few modules are
-        # duplicated verbatim (marked GENERATED-PAIR). This catches an edit that
-        # landed in only one copy, or a malformed corpus-contract.json, at commit
-        # time — before the parity tests in either suite would have to.
-        entry: uv run python scripts/check_contract_parity.py
+      - id: mypy-corpus
+        name: Mypy (wahlchat-corpus)
+        entry: bash -c 'cd packages/wahlchat-corpus && uv run mypy src'
         language: system
-        files: ^(ai-backend/src|ingestion/src/ingestion)/.*\.py$|^corpus-contract\.json$
+        files: ^packages/wahlchat-corpus/src/.*\.py$
         pass_filenames: false
         require_serial: true
 

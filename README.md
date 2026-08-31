@@ -23,6 +23,7 @@ The aim of wahl.chat is to enable users to engage in a contemporary way with the
 | [`web/`](web/) | Next.js frontend application | [README](web/README.md) |
 | [`ai-backend/`](ai-backend/) | Python AI/RAG backend (FastAPI + SSE + LangChain) | [README](ai-backend/README.md) |
 | [`ingestion/`](ingestion/) | Corpus layer: ingestion connectors, runner, and Qdrant collection setup | [README](ingestion/README.md) |
+| [`packages/wahlchat-corpus/`](packages/wahlchat-corpus/) | Shared corpus contract imported by both Python deployables | [README](packages/wahlchat-corpus/README.md) |
 | [`firebase/`](firebase/) | Firebase config, Cloud Functions, Firestore rules & seed data | [README](firebase/README.md) |
 
 ## Getting Started
@@ -102,16 +103,16 @@ make stores-down
 
 | Target | Description |
 |--------|-------------|
-| `make install` | Install all dependencies (web via bun; ai-backend + ingestion via one uv sync) |
+| `make install` | Install all dependencies (web via bun; Python members via one uv sync) |
 | `make stores-up` | Start Qdrant (Docker) and Firestore emulator (host process) |
 | `make stores-down` | Stop all local stores |
 | `make seed-local` | Load scrubbed fixtures into local stores (requires `FIRESTORE_EMULATOR_HOST`) |
 | `make dev-local` | Start stores + both dev servers |
 | `make dev` | Start both dev servers (assumes stores are already running) |
-| `make test-backend` | Run the chat-service and corpus-layer unit tests |
+| `make test-backend` | Run the Python unit tests (all three workspace members) |
 | `make test-smoke` | Run E2E SSE smoke test |
 | `make test-local-mode` | Run the seed-script emulator-guard tests (needs live local stores: `make stores-up` first) |
-| `make lint` | Lint web (biome) + both Python members (ruff) |
+| `make lint` | Lint web (biome) + all Python members (ruff) |
 
 ## Contributing
 

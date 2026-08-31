@@ -11,9 +11,10 @@ license = {text = "PolyForm-Noncommercial-1.0.0"}
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 
-# Deliberately does NOT depend on `ingestion` — that would pull its connector
-# dependency tree (trafilatura, pypdf, bs4, ...) into the chat image. See AGENTS.md.
+# Depends on wahlchat-corpus (the shared corpus contract), never on `ingestion` —
+# that would pull its connector tree (trafilatura, pypdf, bs4, ...) into the image.
 dependencies = [
+    "wahlchat-corpus",
     # HTTP framework + SSE streaming (replaces aiohttp/python-socketio)
     "fastapi>=0.136.3",
     "sse-starlette>=3.4.4",
@@ -38,6 +39,9 @@ dependencies = [
     # Test-client transport (AsyncASGITransport).
     "httpx>=0.27",
 ]
+
+[tool.uv.sources]
+wahlchat-corpus = { workspace = true }
 
 [dependency-groups]
 dev = [

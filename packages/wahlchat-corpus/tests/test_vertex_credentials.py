@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Unit tests for the Vertex AI credential resolver (ingestion/src/ingestion/vertex_credentials.py).
+Unit tests for the Vertex AI credential resolver (packages/wahlchat-corpus/src/wahlchat_corpus/vertex_credentials.py).
 
 Two contracts are under test, and the distinction between them is the whole
 design:
@@ -30,9 +30,9 @@ import logging
 
 import pytest
 
-from ingestion import vertex_credentials as gc
+from wahlchat_corpus import vertex_credentials as gc
 
-_LOGGER_NAME = "ingestion.vertex_credentials"
+_LOGGER_NAME = "wahlchat_corpus.vertex_credentials"
 
 
 @pytest.fixture(autouse=True)

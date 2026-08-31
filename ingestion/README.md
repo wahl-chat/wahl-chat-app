@@ -27,21 +27,15 @@ of the Job image.
 Query-time retrieval is *not* here: `retrieve()` is a backend concern and lives in
 `ai-backend/src/retrieve.py`.
 
-What the two must agree on lives in `corpus-contract.json` at the repo root — the
-embedding space, collection name, governance levels, payload enums, and the 36 AW
-legislature periods. Both packages read it; both images copy it in. A few modules
-are duplicated verbatim and marked `GENERATED-PAIR` in their headers — edit both
-copies.
+What the two must agree on lives in
+[`packages/wahlchat-corpus`](../packages/wahlchat-corpus/README.md), which both
+import: the vector space and collection identity, the embeddings factory, the
+payload enums, governance levels, the AW legislature periods, and Vertex
+credentials. Neither deployable imports the other.
 
-Three layers stop the two drifting apart:
-
-1. **Parity tests** in each suite — each package's constants vs the contract.
-2. **`scripts/check_contract_parity.py`** in pre-commit — the duplicated modules
-   have not diverged.
-3. **`check_fingerprint()`** at runtime — `corpus.py` stamps the provider/model/dim
-   that produced the vectors into the collection itself, and the backend verifies
-   it on every query. Anything that slips past the first two still fails loudly
-   rather than returning cross-space garbage.
+Sharing the code removes source drift. **Deployment** drift it cannot: the
+service and the Job get their env separately, so `check_fingerprint()` still
+verifies at runtime that the vector space in use matches what wrote the corpus.
 
 ## Setup
 

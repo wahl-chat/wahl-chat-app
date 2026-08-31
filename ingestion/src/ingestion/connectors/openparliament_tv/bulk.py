@@ -63,7 +63,7 @@ if __name__ == "__main__":
 from langchain_core.embeddings import Embeddings
 from qdrant_client import QdrantClient
 
-from ingestion.embeddings import get_embeddings
+from wahlchat_corpus.embeddings import get_embeddings
 from ingestion.connector import BaseConnector
 from ingestion.connectors.bundestag_speeches.constants import MDB_STAMMDATEN_FILE
 from ingestion.connectors.bundestag_speeches.mdb import ensure_mdb_lookup

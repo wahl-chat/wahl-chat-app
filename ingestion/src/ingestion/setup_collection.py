@@ -56,7 +56,7 @@ from qdrant_client import QdrantClient, models
 # re-exported so existing `from ingestion.setup_collection import ...` callers
 # (the runner, the connectors, the entrypoint) keep working unchanged.
 # ---------------------------------------------------------------------------
-from ingestion.corpus import (  # noqa: E402
+from wahlchat_corpus.corpus import (  # noqa: E402
     COLLECTION_NAME,
     EMBEDDING_DIM,
     EMBEDDING_MODEL,

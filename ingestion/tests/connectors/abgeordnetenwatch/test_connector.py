@@ -751,7 +751,7 @@ class TestDiscoverFailFast:
         from datetime import date, timedelta
 
         from ingestion.connectors.abgeordnetenwatch import connector as conn_mod
-        from ingestion.legislature_config import (
+        from wahlchat_corpus.legislature_config import (
             LEGISLATURE_CONFIG,
             LegislatureConfig,
         )
@@ -878,7 +878,7 @@ class TestExplicitLegislatureRequired:
         PRIOR Bundestag periods — the same depth policy as the Landtage. A
         default run must not silently stop at one historical period, and it
         must not backfill older periods (those stay explicit-run only)."""
-        from ingestion.legislature_config import (
+        from wahlchat_corpus.legislature_config import (
             FEDERAL_LEGISLATURE_IDS,
             LEGISLATURE_CONFIG,
         )

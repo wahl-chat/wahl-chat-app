@@ -51,6 +51,7 @@ application_default_credentials.json
 # --- Test suites, local data, notebooks, tool caches ---
 ai-backend/tests/
 ingestion/tests/
+packages/*/tests/
 # Legacy V1 data-exploration notebooks.
 ai-backend/data/scripts/
 # MdB-Stammdaten (~15 MB) is gitignored, so it exists only on a dev machine.

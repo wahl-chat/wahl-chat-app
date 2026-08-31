@@ -2,14 +2,11 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-# GENERATED-PAIR — duplicated in ai-backend/src/ and ingestion/src/ingestion/.
-# Edit both; scripts/check_contract_parity.py enforces it.
-
 """Which collection, which embedding space, and the fingerprint proving a reader
 and a writer agree about it.
 
-Defaults come from ``corpus-contract.json``; EMBEDDING_* / ENV / COLLECTION_NAME
-still override per deployment. ``setup_collection.py`` adds the write side.
+EMBEDDING_* / ENV / COLLECTION_NAME override per deployment. The write side
+(index specs, collection creation) is in ingestion's ``setup_collection.py``.
 """
 
 from __future__ import annotations
@@ -19,32 +16,30 @@ from typing import Optional
 
 from qdrant_client import QdrantClient, models
 
-from ingestion.corpus_contract import section
+# Defaults match the deployed corpus. Immutable for a given collection: changing
+# DIM invalidates the HNSW index, changing MODEL corrupts cosine similarity
+# against existing vectors.
+_DEFAULT_PROVIDER = "gemini"
+_DEFAULT_MODEL = "gemini-embedding-2"
+_DEFAULT_DIM = 3072
 
-_EMBEDDING = section("embedding")
-_COLLECTION = section("collection")
-
-# Immutable for a given collection: changing DIM invalidates the HNSW index,
-# changing MODEL corrupts cosine similarity against existing vectors.
-EMBEDDING_DIM: int = int(os.getenv("EMBEDDING_DIM", str(_EMBEDDING["dim"])))
-EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", _EMBEDDING["model"])
+EMBEDDING_DIM: int = int(os.getenv("EMBEDDING_DIM", str(_DEFAULT_DIM)))
+EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", _DEFAULT_MODEL)
 
 # Env-scoped so dev/prod are isolated; COLLECTION_NAME overrides outright.
-ENV: str = os.getenv("ENV", _COLLECTION["default_env"])
-COLLECTION_NAME: str = os.getenv(
-    "COLLECTION_NAME", _COLLECTION["name_template"].format(env=ENV)
-)
+ENV: str = os.getenv("ENV", "dev")
+COLLECTION_NAME: str = os.getenv("COLLECTION_NAME", f"wahlchat_chunks_{ENV}")
 
 # A reserved point recording provider+model+dim. Two different 3072-dim spaces
 # pass the dimension check while returning garbage, so the name alone is not
 # enough. Invisible to retrieval; excluded from corpus_point_count().
-FINGERPRINT_POINT_ID: str = _COLLECTION["fingerprint_point_id"]
-FINGERPRINT_SOURCE_TYPE: str = _COLLECTION["fingerprint_source_type"]
+FINGERPRINT_POINT_ID: str = "00000000-0000-4000-8000-00000000f19e"
+FINGERPRINT_SOURCE_TYPE: str = "corpus_fingerprint"
 
 
 def resolve_embedding_provider() -> str:
     """Resolve EMBEDDING_PROVIDER the same way the embeddings factory does."""
-    return os.getenv("EMBEDDING_PROVIDER", _EMBEDDING["provider"]).strip().lower()
+    return os.getenv("EMBEDDING_PROVIDER", _DEFAULT_PROVIDER).strip().lower()
 
 
 def expected_fingerprint() -> dict:

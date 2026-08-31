@@ -11,10 +11,11 @@ license = {text = "PolyForm-Noncommercial-1.0.0"}
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 
+# Depends on wahlchat-corpus (the shared corpus contract), never on `ai-backend`.
 # Deliberately free of every web-service dependency (fastapi, uvicorn,
-# sse-starlette, firebase-admin): this package must stay installable on its own
-# so the Cloud Run ingestion Job image carries no chat-service code.
+# sse-starlette, firebase-admin) so the Job image carries no chat-service code.
 dependencies = [
+    "wahlchat-corpus",
     "beautifulsoup4>=4.15.0",
     "defusedxml>=0.7.1",
     # Vertex service-account credentials (vertex_credentials.py) and the
@@ -41,6 +42,9 @@ dependencies = [
     # Imported directly (Retry config for the HTTP clients), not just via requests.
     "urllib3>=2.0",
 ]
+
+[tool.uv.sources]
+wahlchat-corpus = { workspace = true }
 
 [dependency-groups]
 dev = [

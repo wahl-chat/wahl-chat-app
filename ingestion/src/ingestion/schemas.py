@@ -9,29 +9,16 @@ from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from wahlchat_corpus.enums import AuthorityTier, SourceType
+
 
 # =============================================================================
 # Enums
 # =============================================================================
 
-
-class AuthorityTier(str, Enum):
-    """Trustworthiness tier for a data source item."""
-
-    AUTHORITATIVE = "authoritative"
-    FACTUAL_RECORD = "factual_record"
-    SELF_REPORTED = "self_reported"
-    PROMOTIONAL = "promotional"
-
-
-class SourceType(str, Enum):
-    """Content category of the source item."""
-
-    PARTY_MANIFESTO = "party_manifesto"
-    VOTE_RECORD = "vote_record"
-    DRUCKSACHE = "drucksache"
-    QA_TRANSCRIPT = "qa_transcript"
-    PARLIAMENTARY_SPEECH = "parliamentary_speech"  # Bundestag plenary speeches
+# AuthorityTier / SourceType live in wahlchat_corpus (the backend filters
+# retrieval on the same values this writes) and are imported above, so existing
+# `from ingestion.schemas import SourceType` callers keep working.
 
 
 class Stance(str, Enum):

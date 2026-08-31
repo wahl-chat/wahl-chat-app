@@ -58,7 +58,7 @@ from langchain_core.embeddings import Embeddings
 from qdrant_client import QdrantClient, models
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from ingestion.embeddings import get_embeddings
+from wahlchat_corpus.embeddings import get_embeddings
 from ingestion.connector import BaseConnector
 from ingestion.schemas import ChunkRecord
 from ingestion.setup_collection import (

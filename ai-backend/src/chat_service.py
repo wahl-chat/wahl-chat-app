@@ -72,7 +72,7 @@ from src.deeplink import (
     _speech_deeplink_url,
 )
 from src.retrieve import retrieve, retrieve_two_pass
-from src.legislature_config import (
+from wahlchat_corpus.legislature_config import (
     term_window_for_context,
 )
 from src.firebase_service import (
@@ -90,7 +90,7 @@ from src.models.dtos import (
     Status,
     StatusIndicator,
 )
-from src.embeddings import get_embeddings
+from wahlchat_corpus.embeddings import get_embeddings
 from src.models.context import ContextParty
 from src.models.party import WAHL_CHAT_PARTY
 from src.utils import (

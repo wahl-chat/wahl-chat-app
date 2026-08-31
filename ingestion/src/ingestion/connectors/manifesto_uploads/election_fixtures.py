@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Optional
 
 # Governance levels a context may declare. Mirrors Context.level.
-from ingestion.governance_levels import EU, FEDERAL, MUNICIPAL, STATE
+from wahlchat_corpus.governance_levels import EU, FEDERAL, MUNICIPAL, STATE
 
 _VALID_LEVELS = frozenset({FEDERAL, STATE, MUNICIPAL, EU})
 

@@ -44,25 +44,25 @@ Three deployable components (four images) plus two data stores:
   runner, Qdrant collection setup, the embeddings factory. Deploys as a separate
   image for the scheduled Cloud Run Jobs.
 
-**The two Python packages are INDEPENDENT: neither imports the other.** That
-keeps the connector dependency tree (trafilatura, pypdf, beautifulsoup4,
-google-cloud-storage) out of the chat image. The price is a handful of modules
-duplicated verbatim in both — `corpus.py`, `embeddings.py`, `vertex_credentials.py`,
-`governance_levels.py`, `legislature_config.py`, `corpus_contract.py`, each marked
-`GENERATED-PAIR` in its header.
+**The two deployables never import each other.** They share the corpus contract
+through a third package, `packages/wahlchat-corpus`:
 
-What they must not disagree about — the vector space, collection name, governance
-levels, payload enums and legislature periods — lives in **`corpus-contract.json`**
-at the repo root, read by both and copied into both images. Three layers keep them
-honest: parity tests in each suite (each package's constants vs the contract),
-`scripts/check_contract_parity.py` in pre-commit (the duplicated files have not
-diverged), and `check_fingerprint()` at runtime (the vector space that produced the
-corpus is stored in Qdrant and verified on every query). Test time, commit time,
-query time.
+    ai-backend  ->  wahlchat-corpus  <-  ingestion
 
-They remain uv workspace members purely to share ONE lockfile, so their
-third-party versions cannot drift apart. That is a build-time convenience, not a
-Python dependency — `--package` in each Dockerfile installs only that member.
+That package holds the vector space and collection identity, the embeddings
+factory, the payload enums, governance levels, the 36 AW legislature periods, and
+Vertex credential resolution. Every dependency it declares is already a direct
+dependency of both consumers, so it adds nothing to either image — keep it that
+way; anything heavier belongs in the package that needs it.
+
+Sharing the code removes source drift by construction. **Deployment** drift it
+cannot remove: the service and the Job get their env separately, so one could run
+a different `EMBEDDING_MODEL` than the other. That is what `check_fingerprint()`
+is for — the provider/model/dim that produced the vectors is stored in the
+collection and verified on read and on write.
+
+All three are uv workspace members sharing one lockfile. `--package` in each
+Dockerfile installs one deployable plus `wahlchat-corpus`, and nothing else.
 - **`firebase/`** — Firebase config, Cloud Functions, Firestore security rules,
   and seed data. Firestore holds application/session data (election contexts,
   parties, chat sessions); the Firestore emulator is used in local dev.
@@ -172,13 +172,13 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 |------|------------------|
 | `web/` | Next.js frontend (app router in `web/app/`, shared code in `web/lib/`). Package manager: bun. |
 | `pyproject.toml` (repo root) | uv workspace root: one lockfile (`uv.lock`) and one shared environment for the Python members `ai-backend` + `ingestion`. |
-| `ai-backend/` | Python chat backend (workspace member). Does NOT depend on `ingestion`. Package manager: uv. |
-| `corpus-contract.json` (repo root) | The only thing the two Python packages share: vector space, collection name, governance levels, payload enums, and the 36 AW legislature periods. Data, not code — edit here, never in one package. |
+| `ai-backend/` | Python chat backend. Depends on `wahlchat-corpus`, never on `ingestion`. Package manager: uv. |
+| `packages/wahlchat-corpus/` | Shared corpus contract, imported by both deployables: vector space + collection identity, embeddings factory, payload enums, governance levels, the 36 AW legislature periods, Vertex credentials. |
 | `ai-backend/src/app.py` | FastAPI entry point (uvicorn). |
 | `ai-backend/src/routes/` | HTTP routers: `chat` (SSE), `pro_con`, `voting_behavior`, `misc`. |
 | `ai-backend/src/chat_service.py`, `chatbot_async.py` | RAG chat pipeline + LLM streaming. |
 | `ai-backend/src/retrieve.py` | Query-time retrieval over the corpus: filtered vector search, two-pass term windows, vote re-rank, prefer-op dedup. |
-| `ingestion/` | Corpus layer (workspace member, import name `ingestion`). Ships its own image for the scheduled Jobs. Does NOT depend on `ai-backend`. |
+| `ingestion/` | Connectors + runner. Ships its own image for the scheduled Jobs. Depends on `wahlchat-corpus`, never on `ai-backend`. |
 | `ingestion/src/ingestion/` | Ingestion framework: `connector.py` (base class), `run.py` (runner), `registry.py`, `schemas.py` (data contract), `setup_collection.py`, `embeddings.py`, `vertex_credentials.py`, `governance_levels.py`, `legislature_config.py`, `ids.py`, `speech_key.py`, `speech_dedup.py`. |
 | `ingestion/src/ingestion/connectors/` | Per-source connectors: `abgeordnetenwatch/`, `bundestag_speeches/`, `openparliament_tv/`, `manifestos/`, `manifesto_uploads/`. Each has `connector.py`, a `client.py`, and `mappers/` that build `ChunkRecord`s. |
 | `ingestion/tests/` | pytest suite for the corpus layer (runner, schema, connectors). |
@@ -187,7 +187,7 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 | `ai-backend/tests/` | pytest suite for the chat service and retrieval (Qdrant/embeddings mocked in `conftest.py`). |
 | `firebase/` | Firestore rules (`firestore.rules`), Cloud Functions, seed script (`scripts/seed_firestore.py`), rules tests (`tests/`). |
 | `infra/` | Scheduled-ingestion deployment — planned Terraform workstream (Cloud Run Jobs + Scheduler); see `infra/README.md`. |
-| `scripts/` | Repo-root scripts: `check_gdpr_wall.py` (GDPR Art. 9 guard), `check_contract_parity.py` (duplicated-module guard), `setup-agent-docs.sh`. |
+| `scripts/` | Repo-root scripts: `check_gdpr_wall.py` (GDPR Art. 9 guard), `setup-agent-docs.sh`. |
 | `Makefile` | Developer convenience targets (install, stores, dev, test, lint, ingestion runs). |
 | `docker-compose.yml` | Local Qdrant service, plus a profile-gated ingestion runner that builds `ingestion/Dockerfile`. |
 | `.dockerignore` (repo root) | Governs BOTH images — they build from the repo root, since the workspace lockfile lives there. |
@@ -392,15 +392,16 @@ uv run pytest                     # chat + retrieval suite (Qdrant/embeddings mo
 cd ../ingestion
 uv run ruff check src/            # lint
 uv run mypy src/                  # type-check
-uv run pytest                     # corpus-layer suite
+uv run pytest                     # connector suite
+cd ../packages/wahlchat-corpus
+uv run pytest                     # shared-contract suite
 # From repo root:
-make test-backend                 # BOTH suites (excludes smoke + local-mode)
+make test-backend                 # all three suites (excludes smoke + local-mode)
 make test-smoke                   # E2E SSE smoke test (in-process ASGI)
 make test-local-mode              # seed-guard test — needs live stores (make stores-up)
 
-# Repo-root guards
-python3 scripts/check_gdpr_wall.py        # GDPR Art. 9 wall
-python3 scripts/check_contract_parity.py  # duplicated modules still identical
+# GDPR Art. 9 wall guard (repo root)
+python3 scripts/check_gdpr_wall.py
 
 # Frontend
 cd web

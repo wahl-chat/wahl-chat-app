@@ -129,13 +129,15 @@ lint-web:
 lint-backend:
 	cd ai-backend && uv run ruff check src/
 	cd ingestion && uv run ruff check src/
+	cd packages/wahlchat-corpus && uv run ruff check src/
 
 # --- Testing ---
 
-# Both workspace members: the chat service suite and the corpus-layer suite.
+# All three workspace members: chat service, corpus layer, shared contract.
 test-backend:
 	cd ai-backend && uv run pytest tests/ --ignore=tests/test_chat_sse.py --ignore=tests/test_local_mode.py
 	cd ingestion && uv run pytest tests/
+	cd packages/wahlchat-corpus && uv run pytest tests/
 
 test-smoke:
 	cd ai-backend && uv run pytest tests/test_chat_sse.py -x

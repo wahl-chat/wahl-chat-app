@@ -6,6 +6,7 @@ requires-python = "==3.12.*"
 members = [
     "ingestion",
     "wahl-chat-backend",
+    "wahlchat-corpus",
 ]
 
 [[package]]
@@ -641,6 +642,7 @@ dependencies = [
     { name = "tenacity" },
     { name = "trafilatura" },
     { name = "urllib3" },
+    { name = "wahlchat-corpus" },
 ]
 
 [package.dev-dependencies]
@@ -670,6 +672,7 @@ requires-dist = [
     { name = "tenacity", specifier = ">=8.2" },
     { name = "trafilatura", specifier = ">=2.1.0" },
     { name = "urllib3", specifier = ">=2.0" },
+    { name = "wahlchat-corpus", editable = "packages/wahlchat-corpus" },
 ]
 
 [package.metadata.requires-dev]
@@ -1756,6 +1759,7 @@ dependencies = [
     { name = "qdrant-client" },
     { name = "sse-starlette" },
     { name = "uvicorn" },
+    { name = "wahlchat-corpus" },
     { name = "xxhash" },
 ]
 
@@ -1786,6 +1790,7 @@ requires-dist = [
     { name = "qdrant-client", specifier = ">=1.18.0,<1.19" },
     { name = "sse-starlette", specifier = ">=3.4.4" },
     { name = "uvicorn", specifier = ">=0.34.0" },
+    { name = "wahlchat-corpus", editable = "packages/wahlchat-corpus" },
     { name = "xxhash", specifier = ">=3.5.0" },
 ]
 
@@ -1795,6 +1800,41 @@ dev = [
     { name = "pre-commit", specifier = ">=4.0.0" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-asyncio", specifier = ">=0.24" },
+    { name = "ruff", specifier = ">=0.8.0" },
+]
+
+[[package]]
+name = "wahlchat-corpus"
+version = "1.0.0"
+source = { editable = "packages/wahlchat-corpus" }
+dependencies = [
+    { name = "google-auth" },
+    { name = "langchain-core" },
+    { name = "langchain-google-genai" },
+    { name = "langchain-openai" },
+    { name = "qdrant-client" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "google-auth", specifier = ">=2.53.0" },
+    { name = "langchain-core", specifier = ">=1.4.0" },
+    { name = "langchain-google-genai", specifier = ">=4.2.0" },
+    { name = "langchain-openai", specifier = ">=1.2.0" },
+    { name = "qdrant-client", specifier = ">=1.18.0,<1.19" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=1.12.0" },
+    { name = "pytest", specifier = ">=8.3" },
     { name = "ruff", specifier = ">=0.8.0" },
 ]
 

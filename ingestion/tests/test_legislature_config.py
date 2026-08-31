@@ -20,7 +20,7 @@ from datetime import date, datetime, timezone
 
 import pytest
 
-from ingestion.legislature_config import (
+from wahlchat_corpus.legislature_config import (
     LANDTAG_LEGISLATURE_IDS,
     LEGISLATURE_CONFIG,
     TERM_END_SENTINEL,

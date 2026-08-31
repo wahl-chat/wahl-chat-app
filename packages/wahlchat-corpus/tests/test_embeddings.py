@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Unit tests for the embeddings provider factory (ingestion/src/ingestion/embeddings.py).
+Unit tests for the embeddings provider factory (packages/wahlchat-corpus/src/wahlchat_corpus/embeddings.py).
 
 The concrete provider clients are patched with recording fakes so no API key,
 network, or real model client is exercised — the tests assert only which client
@@ -16,8 +16,8 @@ from typing import Any
 
 import pytest
 
-from ingestion import embeddings as emb
-from ingestion.setup_collection import EMBEDDING_DIM, EMBEDDING_MODEL
+from wahlchat_corpus import embeddings as emb
+from wahlchat_corpus.corpus import EMBEDDING_DIM, EMBEDDING_MODEL
 
 
 class _FakeOpenAI:
@@ -135,7 +135,7 @@ class _FakeCredentials:
 @pytest.fixture()
 def vertex_credentials(monkeypatch: pytest.MonkeyPatch):
     """Make get_vertex_credentials() return a fake key, bypassing the cache."""
-    from ingestion import vertex_credentials as gc
+    from wahlchat_corpus import vertex_credentials as gc
 
     gc.get_vertex_credentials.cache_clear()
     monkeypatch.setattr(gc, "get_vertex_credentials", lambda: _FakeCredentials())
@@ -204,7 +204,7 @@ def test_gemini_stays_on_ai_studio_without_credentials(
     monkeypatch: pytest.MonkeyPatch, patched_clients: None
 ) -> None:
     """No Vertex credentials (CI, local dev without a key) → unchanged path."""
-    from ingestion import vertex_credentials as gc
+    from wahlchat_corpus import vertex_credentials as gc
 
     gc.get_vertex_credentials.cache_clear()
     monkeypatch.delenv("VERTEX_SA_JSON", raising=False)
@@ -229,7 +229,7 @@ def test_kill_switch_short_circuits_before_the_credential_resolver(
     VertexConfigError — but the operator has explicitly opted embeddings out, and
     opting out cannot be allowed to fail on the config it is opting out of.
     """
-    from ingestion import vertex_credentials as gc
+    from wahlchat_corpus import vertex_credentials as gc
 
     gc.get_vertex_credentials.cache_clear()
     monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
