@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 wahl.chat
+#
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+#
+# The ingestion package (and its workspace dependency wahlchat-common) is
+# installed from the wheels predeploy.sh builds into vendor/ — their own
+# dependency ranges (qdrant, langchain, pypdf, google-cloud clients) come along
+# transitively, so this codebase never restates them.
+firebase_functions~=0.5.0
+./vendor/ingestion-1.0.0-py3-none-any.whl
+./vendor/wahlchat_common-1.0.0-py3-none-any.whl
