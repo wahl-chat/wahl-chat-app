@@ -2,7 +2,8 @@
 
 .PHONY: dev dev-web dev-backend install install-web install-backend \
         lint lint-web lint-backend test-backend test-smoke test-local-mode \
-        stores-up stores-down seed-local dev-local auth bootstrap-collection \
+        stores-up stores-down seed seed-prod seed-local revalidate \
+        dev-local auth bootstrap-collection \
         run-abgeordnetenwatch-votes run-all-landtage-votes run-speeches \
         run-manifestos run-manifesto-uploads upload-manifesto-uploads \
         collect-speeches fetch-mdb-stammdaten \
@@ -93,6 +94,30 @@ stores-down:
 	docker compose down
 	pkill -f "firebase emulators" || true
 
+# REVALIDATE_SECRET is optional for seed (warns and continues) and required
+# for revalidate. Export rather than interpolate so `make -n` cannot leak it.
+ifneq ($(REVALIDATE_SECRET),)
+export REVALIDATE_SECRET
+endif
+
+# seed: write firestore_data/{ENV} into the matching real Firebase project
+# (wahl-chat-dev / wahl-chat) via ADC or the env's service-account JSON.
+# Refuses FIRESTORE_EMULATOR_HOST — that path is seed-local. After the write,
+# the script busts that ENV's Next.js cache when REVALIDATE_SECRET is set.
+#   make seed
+#   make seed ENV=prod
+#   REVALIDATE_SECRET=... make seed
+seed:
+	@test -z "$(FIRESTORE_EMULATOR_HOST)" || (echo "ERROR: FIRESTORE_EMULATOR_HOST is set — use 'make seed-local' for the emulator" && exit 1)
+	@if [ "$(ENV)" = "prod" ]; then \
+		read -r -p "This seeds PRODUCTION Firestore (project wahl-chat). Continue? [y/N] " confirm < /dev/tty; \
+		case "$$confirm" in [yY]|[yY][eE][sS]) ;; *) echo "Aborted." && exit 1;; esac; \
+	fi
+	cd ai-backend && ENV=$(ENV) uv run python ../firebase/scripts/seed_firestore.py
+
+seed-prod:
+	$(MAKE) seed ENV=prod
+
 # Needs no cloud credentials: FIRESTORE_EMULATOR_HOST makes the seed script use the
 # emulator with anonymous credentials. GOOGLE_CLOUD_PROJECT must match the project the
 # emulator runs under, or the data lands in a namespace the app never reads.
@@ -101,6 +126,15 @@ seed-local:
 	cd ai-backend && FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
 		GOOGLE_CLOUD_PROJECT=$(EMULATOR_PROJECT) \
 		uv run python ../firebase/scripts/seed_firestore.py
+
+# revalidate: bust the hosted app's election-config cache for ENV
+# (prod → wahl.chat, dev → dev.wahl.chat). Does not write Firestore.
+#   REVALIDATE_SECRET=... make revalidate
+#   REVALIDATE_SECRET=... make revalidate ENV=prod
+#   REVALIDATE_SECRET=... make revalidate ARGS="--context abgeordnetenhauswahl-berlin-2026"
+revalidate:
+	@test -n "$(REVALIDATE_SECRET)" || (echo "ERROR: REVALIDATE_SECRET is not set — copy it from https://vercel.com/wahl-chat/web/settings/environment-variables" && exit 1)
+	cd ai-backend && ENV=$(ENV) uv run python ../firebase/scripts/revalidate_frontend_cache.py $(ARGS)
 
 dev-local: stores-up bootstrap-collection
 	$(MAKE) -j2 dev-web dev-backend

@@ -35,10 +35,9 @@ add party_ids_contains filter to stay within tenant HNSW.
 import asyncio
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from sse_starlette.sse import EventSourceResponse
 
-from src.auth import resolve_user_is_logged_in
 from src.chatbot_async import (
     get_improved_rag_query_voting_behavior,
     generate_party_vote_behavior_summary,
@@ -191,7 +190,7 @@ def _chunk_payload_to_vote(payload: dict, party_id: str) -> Vote | None:
 
 
 @router.post("/voting-behavior")
-async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequestDto):
+async def voting_behavior_endpoint(body: VotingBehaviorRequestDto):
     """POST /api/v1/voting-behavior — streams votes + summary over SSE.
 
     Retrieves vote_record chunks from the single wahlchat_chunks_{ENV} store
@@ -201,13 +200,7 @@ async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequest
     text-delta parts for the summary, a final ``data-chat_event``
     (type=voting_behavior_complete), then finish + [DONE].
     Pydantic validates request body.
-
-    Auth: verification is OPTIONAL (no 401s). Premium LLM selection for the
-    summary is derived server-side from the request's token (a valid,
-    non-anonymous `Authorization: Bearer <Firebase ID token>`) — never from the
-    client.
     """
-    use_premium_llms = resolve_user_is_logged_in(request, "voting-behavior")
 
     async def stream():
         improved_rag_query = None
@@ -276,8 +269,6 @@ async def voting_behavior_endpoint(request: Request, body: VotingBehaviorRequest
                     body.last_user_message,
                     body.last_assistant_message,
                     votes,
-                    summary_llm_size=body.summary_llm_size,
-                    use_premium_llms=use_premium_llms,
                 )
                 async for chunk in summary_stream:
                     chunk_content = chunk.text

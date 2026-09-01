@@ -53,10 +53,10 @@ _SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
 # "global" matches the status quo: Google AI Studio, which served all Gemini
 # traffic before this change, offers no regional pinning either — so this is not
 # a data-residency regression. It is also the only location on the billing
-# project where gemini-embedding-2 and the 2.5-lite / 3-preview chat models
-# resolve; regional endpoints (europe-west3/4, us-central1) 404 on all of them
-# and serve gemini-2.5-flash alone. Revisit if EU residency becomes a hard
-# requirement — that would mean europe-west3 plus a much narrower model set.
+# project where gemini-embedding-2 and the current Flash / Flash-Lite chat
+# models resolve; regional endpoints (europe-west3/4, us-central1) 404 on most
+# of them. Revisit if EU residency becomes a hard requirement — that would mean
+# europe-west3 plus a much narrower model set.
 _DEFAULT_LOCATION = "global"
 
 _TRUTHY = ("1", "true", "yes")

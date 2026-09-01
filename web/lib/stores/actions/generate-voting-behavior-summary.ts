@@ -10,7 +10,6 @@ export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
   const {
     messages,
     contextId,
-    getLLMSize,
     addVotingBehaviorResult,
     addVotingBehaviorSummaryChunk,
     completeVotingBehavior,
@@ -53,7 +52,6 @@ export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
         last_user_message:
           lastUserMessageBeforeVotingBehavior.messages[0].content,
         last_assistant_message: message.content,
-        summary_llm_size: getLLMSize(),
       }),
     });
 

@@ -224,6 +224,12 @@ make stores-up
 # without FIRESTORE_EMULATOR_HOST, so it can never write to production)
 FIRESTORE_EMULATOR_HOST=localhost:8081 make seed-local
 
+# Real Firebase project (ENV=dev by default). Confirm before ENV=prod.
+# Optional REVALIDATE_SECRET busts that deployment's Next.js cache afterwards.
+make seed
+make seed-prod
+REVALIDATE_SECRET=... make revalidate
+
 # Dev servers: web on :3000, backend on :8080
 make dev            # assumes stores already up
 make dev-local      # stores + both servers

@@ -102,20 +102,30 @@ Run from the `firebase/` directory:
 ```bash
 python scripts/seed_firestore.py
 
-# For production:
+# Production or hosted dev. REVALIDATE_SECRET is optional; without it
+# the seed warns that that deployment may keep a cached empty party list.
+# Use the secret of the matching Vercel environment (Production vs
+# Preview/Development) from:
+# https://vercel.com/wahl-chat/web/settings/environment-variables
 ENV=prod python scripts/seed_firestore.py
+ENV=dev python scripts/seed_firestore.py
+
+# Bust the data cache separately (or after a seed that skipped it):
+REVALIDATE_SECRET=... ENV=prod python scripts/revalidate_frontend_cache.py
+REVALIDATE_SECRET=... ENV=dev python scripts/revalidate_frontend_cache.py
 ```
 
 Or simply from the repo root:
 
 ```bash
 make seed
-
-# For production:
 make seed-prod
+REVALIDATE_SECRET=... make revalidate
+REVALIDATE_SECRET=... make revalidate ENV=prod
+REVALIDATE_SECRET=... make revalidate ARGS="--context abgeordnetenhauswahl-berlin-2026"
 ```
 
-The script requires `firebase-admin`. The seed targets use the uv workspace environment at the repo root automatically. To run standalone:
+The script requires `firebase-admin`. The `make seed` / `make revalidate` targets use the uv workspace environment at the repo root automatically. To run standalone:
 
 ```bash
 cd firebase && python -m venv venv && source venv/bin/activate
@@ -143,7 +153,7 @@ firestore-import -a ../ai-backend/wahl-chat-dev-firebase-adminsdk.json \
 1. Add the context to `firestore_data/dev/contexts.json`
 2. Create `firestore_data/dev/parties_{context_id}.json`
 3. Create `firestore_data/dev/proposed_questions_{context_id}.json`
-4. Run `python scripts/seed_firestore.py` from `firebase/`
+4. Run `python scripts/seed_firestore.py` from `firebase/`. A real-project seed calls `/api/revalidate` when `REVALIDATE_SECRET` is set (`ENV=prod` → wahl.chat, `ENV=dev` → dev.wahl.chat) so that deployment drops the per-context data tags; without the secret it warns and continues. Use the secret of the matching Vercel environment. To bust the cache later: `REVALIDATE_SECRET=... ENV=dev python scripts/revalidate_frontend_cache.py`.
 
 ## Managing Data
 
@@ -209,9 +219,11 @@ Ensure all referenced assets (logos, PDFs, etc.) exist in the prod Firebase Stor
 ```bash
 # From repo root:
 make seed-prod
+REVALIDATE_SECRET=... make revalidate ENV=prod
 
 # Or from firebase/:
 ENV=prod python scripts/seed_firestore.py
+REVALIDATE_SECRET=... ENV=prod python scripts/revalidate_frontend_cache.py
 ```
 
 ### 5. Deploy Qdrant vector store data

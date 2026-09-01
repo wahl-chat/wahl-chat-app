@@ -6,7 +6,6 @@ import enum
 from pydantic import BaseModel, Field, field_validator, ValidationError
 from typing import List, Optional
 
-from src.models.general import LLMSize
 from src.models.vote import Vote
 from .chat import Message
 from .context import ContextParty
@@ -65,10 +64,6 @@ class InitChatSessionDto(BaseModel):
     session_id: str = Field(..., description="The ID of the chat session")
     chat_history: List[Message] = Field(..., description="The chat history")
     current_title: str = Field(..., description="The current chat title")
-    chat_response_llm_size: LLMSize = Field(
-        description="The size of the LLM model to use for chat response generation",
-        default=LLMSize.LARGE,
-    )
     last_quick_replies: List[str] = Field(
         description="The last quick replies that were shown to the user", default=[]
     )
@@ -147,10 +142,6 @@ class VotingBehaviorRequestDto(BaseModel):
         ...,
         max_length=MAX_ASSISTANT_MESSAGE_CHARS,
         description="The last assistant message",
-    )
-    summary_llm_size: LLMSize = Field(
-        description="The LLM size to use for voting behavior summary generation",
-        default=LLMSize.LARGE,
     )
 
 
@@ -375,10 +366,6 @@ class WahlChatSwiperAnswerRequestDto(BaseModel):
         ...,
         max_length=1_000,
         description="The current wahl.chat Swiper question which the user is answering",
-    )
-    chat_response_llm_size: LLMSize = Field(
-        description="The size of the LLM model to use for chat response generation",
-        default=LLMSize.LARGE,
     )
 
 

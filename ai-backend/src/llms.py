@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 import logging
-import os
 from typing import AsyncIterator
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_openai import AzureChatOpenAI, ChatOpenAI
+from langchain_openai import ChatOpenAI
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages.base import BaseMessage, BaseMessageChunk
 from pydantic import BaseModel
 from src.firebase_service import awrite_llm_status
@@ -14,7 +14,7 @@ from wahlchat_common.vertex_credentials import (
     vertex_location,
     vertex_project,
 )
-from src.models.general import LLM, LLMSize
+from src.models.general import LLM
 from src.utils import load_env, safe_load_api_key
 
 load_env()
@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 # billing project is configured, the Gemini models below are also constructed
 # against Vertex and registered at a HIGHER priority than their AI Studio twins,
 # so Gemini spend lands on that project. Absent credentials, VERTEX_AVAILABLE is
-# False and the LLM lists are exactly what they were before — that is the local
-# dev / CI path, and the reason nothing here may raise.
+# False and the LLM lists are exactly the AI Studio / OpenAI roster — that is the
+# local dev / CI path, and the reason nothing here may raise.
 VERTEX_AVAILABLE = vertex_enabled()
 _VERTEX_CREDS = get_vertex_credentials() if VERTEX_AVAILABLE else None
 _VERTEX_PROJECT = vertex_project() if VERTEX_AVAILABLE else None
@@ -91,204 +91,154 @@ def _gemini(model: str, *, vertex: bool = False, **kwargs) -> ChatGoogleGenerati
     )
 
 
-azure_gpt_4o = AzureChatOpenAI(
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    deployment_name="gpt-4o-2024-08-06",
-    openai_api_version=os.getenv("OPENAI_API_VERSION"),
-    api_key=safe_load_api_key("AZURE_OPENAI_API_KEY"),
-    max_retries=0,
+def _openai(model: str, **kwargs) -> ChatOpenAI:
+    return ChatOpenAI(
+        model=model,
+        api_key=safe_load_api_key("OPENAI_API_KEY"),
+        max_retries=0,
+        **kwargs,
+    )
+
+
+def _llm(name: str, model: BaseChatModel, priority: int) -> LLM:
+    return LLM(name=name, model=model, priority=priority)
+
+
+# ---------------------------------------------------------------------------
+# Response generation — temperature 1 on every model.
+# Gemini 3.6 Flash is the primary; 3.7 Flash does not support thinking_level
+# "minimal", so it uses "low". Gemini 2.5-era models are not on this roster.
+# ---------------------------------------------------------------------------
+google_gemini_3_6_flash = _gemini(
+    "gemini-3.6-flash", temperature=1.0, thinking_level="minimal"
 )
-
-azure_gpt_4o_mini = AzureChatOpenAI(
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    deployment_name="gpt-4o-mini-2024-07-18",
-    openai_api_version=os.getenv("OPENAI_API_VERSION"),
-    api_key=safe_load_api_key("AZURE_OPENAI_API_KEY"),
-    max_retries=0,
+google_gemini_3_7_flash = _gemini(
+    "gemini-3.7-flash", temperature=1.0, thinking_level="low"
 )
-
-google_gemini_2_flash = _gemini("gemini-2.0-flash")
-
 google_gemini_3_flash_preview = _gemini(
-    "gemini-3-flash-preview",
-    temperature=1.0,  # Explicitly set temperature to 1.0 based on Google's recommendation in https://ai.google.dev/gemini-api/docs/gemini-3#temperature,
-    thinking_level="low",  # Set thinking level to low for faster responses
+    "gemini-3-flash-preview", temperature=1.0, thinking_level="minimal"
 )
-
-google_gemini_2_5_flash = _gemini(
-    "gemini-2.5-flash",
-    thinking_budget=0,  # Disable thinking budget for faster responses
+google_gemini_3_5_flash = _gemini(
+    "gemini-3.5-flash", temperature=1.0, thinking_level="minimal"
 )
-
-openai_gpt_4o = ChatOpenAI(
-    model="gpt-4o-2024-08-06",
-    api_key=safe_load_api_key("OPENAI_API_KEY"),
-    max_retries=0,
-)
-
-openai_gpt_4o_mini = ChatOpenAI(
-    model="gpt-4o-mini",
-    api_key=safe_load_api_key("OPENAI_API_KEY"),
-    max_retries=0,
+openai_gpt_5_6_terra = _openai(
+    "gpt-5.6-terra", temperature=1.0, reasoning_effort="minimal"
 )
 
 RESPONSE_GENERATION_LLMS: list[LLM] = [
-    LLM(
-        name="google-gemini-3.0-flash-preview",
-        model=google_gemini_3_flash_preview,
-        sizes=[LLMSize.SMALL, LLMSize.LARGE],
-        priority=100,
-        is_at_rate_limit=False,
-    ),
-    LLM(
-        name="google-gemini-2.5-flash",
-        model=google_gemini_2_5_flash,
-        sizes=[LLMSize.SMALL, LLMSize.LARGE],
-        priority=95,
-        is_at_rate_limit=False,
-    ),
-    LLM(
-        name="google-gemini-2.0-flash",
-        model=google_gemini_2_flash,
-        sizes=[LLMSize.SMALL, LLMSize.LARGE],
-        priority=92,
-        is_at_rate_limit=False,
-    ),
-    LLM(
-        name="azure-gpt-4o",
-        model=azure_gpt_4o,
-        sizes=[LLMSize.LARGE],
-        priority=90,
-        is_at_rate_limit=False,
-        premium_only=True,
-    ),
-    LLM(
-        name="openai-gpt-4o",
-        model=openai_gpt_4o,
-        sizes=[LLMSize.LARGE],
-        priority=60,
-        is_at_rate_limit=False,
-        premium_only=False,
-    ),
-    LLM(
-        name="azure-gpt-4o-mini",
-        model=azure_gpt_4o_mini,
-        sizes=[LLMSize.SMALL],
-        priority=50,
-        is_at_rate_limit=False,
-    ),
-    LLM(
-        name="openai-gpt-4o-mini",
-        model=openai_gpt_4o_mini,
-        sizes=[LLMSize.SMALL],
-        priority=40,
-        is_at_rate_limit=False,
-    ),
+    _llm("google-gemini-3.6-flash", google_gemini_3_6_flash, 100),
+    _llm("openai-gpt-5.6-terra", openai_gpt_5_6_terra, 90),
+    _llm("google-gemini-3.7-flash", google_gemini_3_7_flash, 80),
+    _llm("google-gemini-3-flash-preview", google_gemini_3_flash_preview, 70),
+    _llm("google-gemini-3.5-flash", google_gemini_3_5_flash, 60),
 ]
 
 # Vertex tier — the same Gemini models, billed to the Vertex project. Priorities
-# sit above every AI Studio entry (highest existing: 100), so the priority-sorted
-# failover already in get_answer_from_llms / get_structured_output_from_llms /
-# stream_answer_from_llms tries Vertex first and falls through to the IDENTICAL
-# AI Studio model on any error. No change to those functions is required.
-#
-# gemini-2.0-flash is deliberately absent: it 404s on the billing project in
-# every location tested (global, europe-west3/4, us-central1). Registering it
-# would 404 on every request and silently fall through to AI Studio — the failure
-# mode that looks like "Vertex billing is mysteriously low" rather than an error.
-# Its AI Studio twin below still serves, so nothing is lost.
+# sit above every AI Studio / OpenAI entry (highest existing: 100), so the
+# priority-sorted failover already in get_answer_from_llms /
+# get_structured_output_from_llms / stream_answer_from_llms tries Vertex first
+# and falls through to the IDENTICAL AI Studio model on any error. No change to
+# those functions is required. OpenAI models have no Vertex twin.
 if VERTEX_AVAILABLE:
     RESPONSE_GENERATION_LLMS = [
-        LLM(
-            name="vertex-gemini-3.0-flash-preview",
-            model=_gemini(
-                "gemini-3-flash-preview",
+        _llm(
+            "vertex-gemini-3.6-flash",
+            _gemini(
+                "gemini-3.6-flash",
+                vertex=True,
+                temperature=1.0,
+                thinking_level="minimal",
+            ),
+            200,
+        ),
+        _llm(
+            "vertex-gemini-3.7-flash",
+            _gemini(
+                "gemini-3.7-flash",
                 vertex=True,
                 temperature=1.0,
                 thinking_level="low",
             ),
-            sizes=[LLMSize.SMALL, LLMSize.LARGE],
-            priority=200,
-            is_at_rate_limit=False,
+            190,
         ),
-        LLM(
-            name="vertex-gemini-2.5-flash",
-            model=_gemini("gemini-2.5-flash", vertex=True, thinking_budget=0),
-            sizes=[LLMSize.SMALL, LLMSize.LARGE],
-            priority=195,
-            is_at_rate_limit=False,
+        _llm(
+            "vertex-gemini-3-flash-preview",
+            _gemini(
+                "gemini-3-flash-preview",
+                vertex=True,
+                temperature=1.0,
+                thinking_level="minimal",
+            ),
+            180,
+        ),
+        _llm(
+            "vertex-gemini-3.5-flash",
+            _gemini(
+                "gemini-3.5-flash",
+                vertex=True,
+                temperature=1.0,
+                thinking_level="minimal",
+            ),
+            170,
         ),
     ] + RESPONSE_GENERATION_LLMS
 
-azure_gpt_4o_mini_det = AzureChatOpenAI(
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    deployment_name="gpt-4o-mini-2024-07-18",
-    openai_api_version=os.getenv("OPENAI_API_VERSION"),
-    api_key=safe_load_api_key("AZURE_OPENAI_API_KEY"),
-    temperature=0.0,
-    max_retries=0,
+# ---------------------------------------------------------------------------
+# Pre- and post-processing — temperature 1, minimal reasoning on every model.
+# Gemini 2.5 Flash-Lite has no thinking_level; thinking_budget=0 is the 2.5
+# equivalent of minimal/off thinking.
+# ---------------------------------------------------------------------------
+google_gemini_3_1_flash_lite = _gemini(
+    "gemini-3.1-flash-lite", temperature=1.0, thinking_level="minimal"
 )
-
-google_gemini_2_5_flash_lite_det = _gemini("gemini-2.5-flash-lite", temperature=0.0)
-
-google_gemini_2_flash_det = _gemini("gemini-2.0-flash", temperature=0.0)
-
-openai_gpt_4o_mini_det = ChatOpenAI(
-    model="gpt-4o-mini",
-    api_key=safe_load_api_key("OPENAI_API_KEY"),
-    temperature=0.0,
-    max_retries=0,
+google_gemini_2_5_flash_lite = _gemini(
+    "gemini-2.5-flash-lite", temperature=1.0, thinking_budget=0
+)
+google_gemini_3_5_flash_lite = _gemini(
+    "gemini-3.5-flash-lite", temperature=1.0, thinking_level="minimal"
+)
+openai_gpt_5_6_luna = _openai(
+    "gpt-5.6-luna", temperature=1.0, reasoning_effort="minimal"
 )
 
 PRE_AND_POST_PROCESSING_LLMS: list[LLM] = [
-    LLM(
-        name="google-gemini-2.5-flash-lite-det",
-        model=google_gemini_2_5_flash_lite_det,
-        sizes=[LLMSize.SMALL],
-        priority=100,
-        is_at_rate_limit=False,
-    ),
-    LLM(
-        name="google-gemini-2.0-flash-det",
-        model=google_gemini_2_flash_det,
-        sizes=[LLMSize.SMALL, LLMSize.LARGE],
-        priority=95,
-        is_at_rate_limit=False,
-    ),
-    LLM(
-        name="azure-gpt-4o-mini-det",
-        model=azure_gpt_4o_mini_det,
-        sizes=[LLMSize.SMALL],
-        priority=90,
-        is_at_rate_limit=False,
-    ),
-    LLM(
-        name="openai-gpt-4o-mini-det",
-        model=openai_gpt_4o_mini_det,
-        sizes=[LLMSize.SMALL],
-        priority=80,
-        is_at_rate_limit=False,
-    ),
+    _llm("google-gemini-3.1-flash-lite", google_gemini_3_1_flash_lite, 100),
+    _llm("openai-gpt-5.6-luna", openai_gpt_5_6_luna, 90),
+    _llm("google-gemini-2.5-flash-lite", google_gemini_2_5_flash_lite, 80),
+    _llm("google-gemini-3.5-flash-lite", google_gemini_3_5_flash_lite, 70),
 ]
 
-# Vertex tier for pre/post-processing — same rationale as above, and likewise
-# without gemini-2.0-flash. gemini-2.5-flash covers the LARGE size here so the
-# deterministic path is not left Vertex-less when a caller asks for it.
 if VERTEX_AVAILABLE:
     PRE_AND_POST_PROCESSING_LLMS = [
-        LLM(
-            name="vertex-gemini-2.5-flash-lite-det",
-            model=_gemini("gemini-2.5-flash-lite", vertex=True, temperature=0.0),
-            sizes=[LLMSize.SMALL],
-            priority=200,
-            is_at_rate_limit=False,
+        _llm(
+            "vertex-gemini-3.1-flash-lite",
+            _gemini(
+                "gemini-3.1-flash-lite",
+                vertex=True,
+                temperature=1.0,
+                thinking_level="minimal",
+            ),
+            200,
         ),
-        LLM(
-            name="vertex-gemini-2.5-flash-det",
-            model=_gemini("gemini-2.5-flash", vertex=True, temperature=0.0),
-            sizes=[LLMSize.SMALL, LLMSize.LARGE],
-            priority=195,
-            is_at_rate_limit=False,
+        _llm(
+            "vertex-gemini-2.5-flash-lite",
+            _gemini(
+                "gemini-2.5-flash-lite",
+                vertex=True,
+                temperature=1.0,
+                thinking_budget=0,
+            ),
+            190,
+        ),
+        _llm(
+            "vertex-gemini-3.5-flash-lite",
+            _gemini(
+                "gemini-3.5-flash-lite",
+                vertex=True,
+                temperature=1.0,
+                thinking_level="minimal",
+            ),
+            180,
         ),
     ] + PRE_AND_POST_PROCESSING_LLMS
 
@@ -306,12 +256,9 @@ async def get_answer_from_llms(
     for llm in llms:
         try:
             logger.debug(f"Invoking LLM {llm.name}...")
-            response = await llm.model.ainvoke(messages)
-            llm.is_at_rate_limit = False
-            return response
+            return await llm.model.ainvoke(messages)
         except Exception as e:
             logger.warning(f"Error invoking LLM {llm.name}: {e}")
-            llm.is_at_rate_limit = True
             continue
 
     await handle_rate_limit_hit_for_all_llms()
@@ -319,13 +266,10 @@ async def get_answer_from_llms(
     for llm in back_up_llms:
         try:
             logger.debug(f"Invoking LLM {llm.name}...")
-            response = await llm.model.ainvoke(messages)
-            llm.is_at_rate_limit = False
-            return response
+            return await llm.model.ainvoke(messages)
         except Exception as e:
             logger.warning(f"Error invoking LLM {llm.name}: {e}")
-            llm.is_at_rate_limit = True
-    raise Exception("All LLMs are at rate limit.")
+    raise Exception("All LLMs failed.")
 
 
 async def get_structured_output_from_llms(
@@ -338,13 +282,9 @@ async def get_structured_output_from_llms(
         try:
             logger.debug(f"Invoking LLM {llm.name}...")
             prepared_model = llm.model.with_structured_output(schema)
-            response = await prepared_model.ainvoke(messages)
-            llm.is_at_rate_limit = False
-            return response
+            return await prepared_model.ainvoke(messages)
         except Exception as e:
             logger.warning(f"Error invoking LLM {llm.name}: {e}")
-            llm.is_at_rate_limit = True
-            # TODO: consider writing to Firestore that this LLM now is at rate limit
             continue
 
     await handle_rate_limit_hit_for_all_llms()
@@ -353,55 +293,32 @@ async def get_structured_output_from_llms(
         try:
             logger.debug(f"Invoking LLM {llm.name}...")
             prepared_model = llm.model.with_structured_output(schema)
-            response = await prepared_model.ainvoke(messages)
-            llm.is_at_rate_limit = False
-            return response
+            return await prepared_model.ainvoke(messages)
         except Exception as e:
             logger.warning(f"Error invoking LLM {llm.name}: {e}")
-            llm.is_at_rate_limit = True
-    raise Exception("All LLMs are at rate limit.")
+    raise Exception("All LLMs failed.")
+
+
+def select_streaming_llms(llms: list[LLM]) -> list[LLM]:
+    """Models ``stream_answer_from_llms`` will try, in failover order.
+
+    The answer cache uses this list. A model or temperature change must
+    change the key.
+    """
+    return sorted(llms, key=lambda x: x.priority, reverse=True)
 
 
 async def stream_answer_from_llms(
     llms: list[LLM],
     messages: list[BaseMessage],
-    preferred_llm_size: LLMSize = LLMSize.LARGE,
-    use_premium_llms: bool = False,
 ) -> AsyncIterator[BaseMessageChunk]:
-    logger.debug(f"Preferred LLM size: {preferred_llm_size}")
-    if not use_premium_llms:
-        llms = [llm for llm in llms if not llm.premium_only]
-    if preferred_llm_size == LLMSize.LARGE:
-        large_llms = [llm for llm in llms if LLMSize.LARGE in llm.sizes]
-        small_llms = [
-            llm
-            for llm in llms
-            if LLMSize.SMALL in llm.sizes and LLMSize.LARGE not in llm.sizes
-        ]
-        large_llms = sorted(large_llms, key=lambda x: x.priority, reverse=True)
-        small_llms = sorted(small_llms, key=lambda x: x.priority, reverse=True)
-        llms = large_llms + small_llms
-    elif preferred_llm_size == LLMSize.SMALL:
-        small_llms = [llm for llm in llms if LLMSize.SMALL in llm.sizes]
-        large_llms = [
-            llm
-            for llm in llms
-            if LLMSize.LARGE in llm.sizes and LLMSize.SMALL not in llm.sizes
-        ]
-        large_llms = sorted(large_llms, key=lambda x: x.priority, reverse=True)
-        small_llms = sorted(small_llms, key=lambda x: x.priority, reverse=True)
-        llms = small_llms + large_llms
-    else:
-        raise ValueError(f"Invalid preferred LLM size: {preferred_llm_size}")
+    llms = select_streaming_llms(llms)
     for llm in llms:
         try:
             logger.debug(f"Invoking LLM {llm.name}...")
-            response = llm.model.astream(messages)
-            llm.is_at_rate_limit = False
-            return response
+            return llm.model.astream(messages)
         except Exception as e:
             logger.warning(f"Error invoking LLM {llm.name}: {e}")
-            llm.is_at_rate_limit = True
             continue
 
     return await handle_rate_limit_hit_for_all_llms()

@@ -45,25 +45,31 @@ Deployed via the [Vercel Platform](https://vercel.com). See the [Next.js deploym
 
 ### Cache Revalidation
 
-The app caches Firestore data (sources, parties, contexts) for performance. To revalidate:
+Election pages are rendered on request. Firestore election config (contexts, parties, sources, questions) is cached by tag, with a 24h safety TTL. Empty lists and failed reads are not cached, so a context published before its parties does not stay blank. A real-project `seed_firestore.py` run busts those tags when `REVALIDATE_SECRET` is set. Use the secret of the matching Vercel deployment (Production for `ENV=prod` / [wahl.chat](https://wahl.chat), Preview or Development for `ENV=dev` / [dev.wahl.chat](https://dev.wahl.chat)) from [the Vercel env vars page](https://vercel.com/wahl-chat/web/settings/environment-variables). The secret is optional — without it the seed still writes Firestore and warns. The emulator path skips the cache entirely.
+
+To revalidate separately (or after a seed that skipped it):
 
 ```bash
-# By cache tag
-curl -X POST https://wahl.chat/api/revalidate \
-  -H "Authorization: Bearer <REVALIDATE_SECRET>" \
-  -H "Content-Type: application/json" \
-  -d '{"tag": "source_documents"}'
-
-# By path
-curl -X POST https://wahl.chat/api/revalidate \
-  -H "Authorization: Bearer <REVALIDATE_SECRET>" \
-  -H "Content-Type: application/json" \
-  -d '{"path": "/bundestagswahl-2025/sources"}'
+REVALIDATE_SECRET=... ENV=prod python firebase/scripts/revalidate_frontend_cache.py
+REVALIDATE_SECRET=... ENV=dev python firebase/scripts/revalidate_frontend_cache.py
+REVALIDATE_SECRET=... ENV=prod python firebase/scripts/revalidate_frontend_cache.py \
+  --context abgeordnetenhauswahl-berlin-2026
 ```
 
-Available cache tags (defined in `lib/cache-tags.ts`):
-- `source_documents` — Source documents for the sources page
-- `parties` — Global party data
-- `contexts` — Election contexts
-- `context_parties` — Parties per context
-- `proposed_questions` — Suggested questions
+To revalidate by hand with curl:
+
+```bash
+# Tags (preferred — one election, or the coarse tag for every election)
+curl -X POST https://wahl.chat/api/revalidate \
+  -H "Authorization: Bearer <REVALIDATE_SECRET>" \
+  -H "Content-Type: application/json" \
+  -d '{"tags": ["contexts", "context:abgeordnetenhauswahl-berlin-2026:parties"]}'
+```
+
+Single `tag` / `path` keys still work. Tags (defined in `lib/cache-tags.ts`):
+- `contexts` — Active election list
+- `context:{id}` — One election document
+- `context:{id}:parties` / `context_parties` — Parties for one / every election
+- `context:{id}:sources` / `source_documents` — Sources for one / every election
+- `context:{id}:questions` / `proposed_questions` — Suggested questions
+- `parties` — Global party collection (not the per-context list)

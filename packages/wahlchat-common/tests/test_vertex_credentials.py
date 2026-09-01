@@ -267,7 +267,7 @@ def test_location_defaults_to_global(no_vertex_env: None) -> None:
     """The default is "global" and that is load-bearing, so pin it.
 
     Regional endpoints on the billing project 404 on gemini-embedding-2 and on
-    every chat model except gemini-2.5-flash, and a 404 falls through to AI
+    most Flash / Flash-Lite chat models, and a 404 falls through to AI
     Studio silently — so a well-meaning change to a regional value here would
     quietly stop most traffic from being billed to Vertex at all.
     """

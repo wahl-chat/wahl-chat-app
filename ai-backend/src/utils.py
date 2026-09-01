@@ -11,7 +11,6 @@ from pydantic import SecretStr
 from langchain_core.documents import Document
 
 from openai.types.chat import ChatCompletion
-import xxhash
 
 from src.models.chat import Message, Role
 from src.models.context import ContextParty
@@ -217,7 +216,3 @@ Diese Maßnahmen zielen darauf ab, die Arbeitsbedingungen und die soziale Absich
 """
     sanitized_text = sanitize_references(text)
     print(sanitized_text)
-
-
-def get_chat_history_hash_key(conversation_history_str: str) -> str:
-    return xxhash.xxh64(conversation_history_str).hexdigest()

@@ -140,13 +140,10 @@ revision is noticed in minutes; mis-billing is noticed at the end of the month.
 #### Location
 
 > **`VERTEX_LOCATION=global` is load-bearing.** On the billing project, regional
-> endpoints (`europe-west3`/`-west4`, `us-central1`) serve `gemini-2.5-flash`
-> alone and 404 on `gemini-embedding-2`, `gemini-2.5-flash-lite` and
-> `gemini-3-flash-preview`. Because a 404 falls through to AI Studio silently,
-> switching to a regional value would quietly stop most traffic from being billed
-> to Vertex rather than producing a visible error. `gemini-2.0-flash` is
-> unavailable in every location tested and is deliberately not registered on the
-> Vertex tier at all.
+> endpoints (`europe-west3`/`-west4`, `us-central1`) 404 on `gemini-embedding-2`
+> and on most Flash / Flash-Lite chat models. Because a 404 falls through to AI
+> Studio silently, switching to a regional value would quietly stop most traffic
+> from being billed to Vertex rather than producing a visible error.
 
 ## Run
 

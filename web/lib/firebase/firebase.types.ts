@@ -1,6 +1,5 @@
 import type { Topic } from '@/components/topics/topics.data';
 import type { ProlificMetadata } from '@/lib/prolific-study/prolific-metadata';
-import type { LLMSize } from '@/lib/socket.types';
 import type { GroupedMessage } from '@/lib/stores/chat-store.types';
 import type { WahlSwiperResultHistory } from '@/lib/wahl-swiper/wahl-swiper.types';
 
@@ -60,12 +59,9 @@ export type SourceDocument = {
   party_id: string;
 };
 
-export const DEFAULT_LLM_SIZE: LLMSize = 'large';
-
 export type Tenant = {
   id: string;
   name: string;
-  llm_size?: LLMSize;
 };
 
 export type ExampleQuestionShareableChatSession = {

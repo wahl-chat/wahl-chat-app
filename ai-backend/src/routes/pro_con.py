@@ -10,10 +10,9 @@ inner type "error", then [DONE]. Framing helpers live in src.sse.
 
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from sse_starlette.sse import EventSourceResponse
 
-from src.auth import verify_optional_bearer_token
 from src.chatbot_async import generate_pro_con_perspective
 from src.sse import DONE, data_event, finish
 from src.utils import GENERIC_ERROR_MESSAGE
@@ -37,18 +36,11 @@ _SSE_PING_SECONDS = 15
 
 
 @router.post("/pro-con")
-async def pro_con_endpoint(request: Request, body: ProConPerspectiveRequestDto):
+async def pro_con_endpoint(body: ProConPerspectiveRequestDto):
     """POST /api/v1/pro-con — streams the pro/con result as a v5 data part then [DONE].
 
     Pydantic validates the request body.
-
-    Auth: verification is OPTIONAL (no 401s). This route currently carries no
-    privileged body flag, but the optional Bearer token is verified for parity
-    with /chat and /voting-behavior so future premium gating inherits it.
     """
-    # Verified claims (or None for anonymous) — no privileged flag consumes
-    # them yet; kept so the auth contract is uniform across the SSE routes.
-    _ = verify_optional_bearer_token(request)
 
     async def stream():
         try:

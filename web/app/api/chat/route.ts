@@ -32,7 +32,6 @@ type IncomingPayload = {
   session_id?: string;
   context_id?: string;
   party_ids?: string[];
-  user_is_logged_in?: boolean;
   chat_history?: unknown[];
 };
 
@@ -84,12 +83,10 @@ export async function POST(request: NextRequest) {
     context_id: payload.context_id,
     user_message: userMessage,
     party_ids: payload.party_ids,
-    user_is_logged_in: payload.user_is_logged_in ?? false,
     chat_history: payload.chat_history ?? [],
   };
 
-  // Forward the caller's Firebase ID token so the backend can verify
-  // user_is_logged_in / premium claims. Absent when signed out.
+  // Forward the caller's Firebase ID token when present. Absent when signed out.
   const authorization = request.headers.get('authorization');
 
   const upstream = await fetch(targetUrl, {

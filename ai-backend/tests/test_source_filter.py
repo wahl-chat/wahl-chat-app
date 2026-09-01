@@ -40,7 +40,6 @@ from src.chatbot_async import (
 )
 from src.models.chat import GroupChatSession, Message
 from src.models.context import ContextParty
-from src.models.general import LLMSize
 from src.models.structured_outputs import SourceFilterClassifier
 
 _TW = (
@@ -63,7 +62,6 @@ def _make_session() -> GroupChatSession:
         session_id="s1",
         context_id="c1",
         chat_history=[Message(id="m1", role="user", content="Frage?")],
-        chat_response_llm_size=LLMSize.LARGE,
     )
 
 
@@ -341,8 +339,6 @@ def _drive_single_party(
             "q?",
             _make_session(),
             all_available_parties=[],
-            use_premium_llms=False,
-            is_proposed_question=False,
             is_cacheable_chat=False,
             region_path=["DE"],
             term_window=term_window,
