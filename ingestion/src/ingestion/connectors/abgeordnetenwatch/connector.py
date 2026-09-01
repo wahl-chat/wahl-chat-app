@@ -40,7 +40,7 @@ from qdrant_client import QdrantClient
 
 from ingestion.connector import BaseConnector
 from ingestion.connectors.abgeordnetenwatch.client import AWClient
-from wahlchat_corpus.legislature_config import (
+from wahlchat_common.legislature_config import (
     LEGISLATURE_CONFIG,
 )
 from ingestion.connectors.abgeordnetenwatch.mappers import corpus as corpus_mapper

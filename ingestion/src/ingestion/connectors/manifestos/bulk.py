@@ -86,7 +86,7 @@ from ingestion.connectors.manifestos.mappers.corpus import (
     chunk_pages,
     party_to_slug,
 )
-from wahlchat_corpus.embeddings import get_embeddings
+from wahlchat_common.embeddings import get_embeddings
 from ingestion.ids import compute_chunk_id
 from ingestion.run import _embed_texts, _upsert_chunks
 from ingestion.schemas import ChunkRecord

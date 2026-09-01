@@ -4,10 +4,12 @@ SPDX-FileCopyrightText: 2026 wahl.chat
 SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 -->
 
-# wahlchat-corpus
+# wahlchat-common
 
-The contract `ai-backend` and `ingestion` share about the Qdrant corpus. Both
-depend on this package; **neither depends on the other**.
+Code shared by the Python components. `ai-backend` and `ingestion` both depend on
+it; **neither depends on the other**.
+
+Today that is the corpus contract plus Vertex credentials:
 
 | Module | What it holds |
 |---|---|
@@ -18,9 +20,15 @@ depend on this package; **neither depends on the other**.
 | `legislature_config.py` | the 36 AW parliament periods + term-window derivation |
 | `vertex_credentials.py` | Vertex service-account resolution |
 
-Every dependency here is already a direct dependency of both consumers, so this
-package adds nothing to either Docker image. Keep it that way — anything heavier
-belongs in the package that needs it.
+Anything else the components come to share belongs here too — the Firebase
+functions are Python and could become a third consumer.
+
+## The one rule
+
+Every dependency declared here is already a direct dependency of both consumers,
+so this package adds nothing to either Docker image. **Keep it that way.** A heavy
+dependency added for one consumer lands in every image that installs this package
+— which is the cost the split exists to avoid.
 
 The write side (collection creation, index specs, `write_fingerprint`) stays in
 `ingestion/setup_collection.py`; query-time retrieval stays in

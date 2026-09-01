@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Guards on this package's use of the shared wahlchat_corpus contract."""
+"""Guards on this package's use of the shared wahlchat_common contract."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ def test_schemas_reexports_shared_enums() -> None:
     """Connectors import the enums from ingestion.schemas; those must BE the
     shared ones, or chunks would be stamped with values retrieval never filters
     on."""
-    from wahlchat_corpus.enums import AuthorityTier, SourceType
+    from wahlchat_common.enums import AuthorityTier, SourceType
 
     from ingestion import schemas
 
@@ -24,7 +24,7 @@ def test_schemas_reexports_shared_enums() -> None:
 def test_aw_taxonomy_reexports_shared_levels() -> None:
     """Identity, not equality: a re-introduced local frozenset in
     topic_taxonomy_config.py would compare equal but not be the same object."""
-    import wahlchat_corpus.governance_levels as levels
+    import wahlchat_common.governance_levels as levels
 
     from ingestion.connectors.abgeordnetenwatch import topic_taxonomy_config as aw
 
@@ -35,7 +35,7 @@ def test_aw_taxonomy_reexports_shared_levels() -> None:
 def test_setup_collection_reexports_shared_corpus() -> None:
     """Redefining these would let the write side stamp a fingerprint the read
     side never matches."""
-    from wahlchat_corpus import corpus
+    from wahlchat_common import corpus
 
     from ingestion import setup_collection
 

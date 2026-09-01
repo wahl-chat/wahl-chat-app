@@ -12,7 +12,7 @@ Built with FastAPI, sse-starlette (Server-Sent Events), LangChain, and Qdrant. D
 
 The corpus is filled by a separate package, [`ingestion/`](../ingestion/README.md). This backend does **not** depend on it: keeping them independent keeps the connector dependency tree (trafilatura, pypdf, beautifulsoup4) out of the chat image.
 
-What the two must agree on — the embedding space, collection identity, payload enums, governance levels and legislature periods — lives in [`packages/wahlchat-corpus`](../packages/wahlchat-corpus/README.md), which both import. Neither imports the other.
+What the two must agree on — the embedding space, collection identity, payload enums, governance levels and legislature periods — lives in [`packages/wahlchat-common`](../packages/wahlchat-common/README.md), which both import. Neither imports the other.
 
 Query-time retrieval lives here, in `src/retrieve.py`. It verifies the corpus fingerprint on every query, so a vector-space mismatch between writer and reader raises instead of returning cross-space garbage.
 

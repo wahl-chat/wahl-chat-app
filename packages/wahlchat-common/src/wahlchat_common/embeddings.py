@@ -44,7 +44,7 @@ from typing import Optional
 
 from langchain_core.embeddings import Embeddings
 
-from wahlchat_corpus.corpus import EMBEDDING_DIM, EMBEDDING_MODEL
+from wahlchat_common.corpus import EMBEDDING_DIM, EMBEDDING_MODEL
 
 _DEFAULT_PROVIDER = "openai"
 
@@ -137,7 +137,7 @@ def get_embeddings(
         # fingerprint (setup_collection.expected_fingerprint) and
         # check_fingerprint() raises on any mismatch — encoding transport in it
         # would reject the existing corpus and force a full re-ingest.
-        from wahlchat_corpus.vertex_credentials import (  # noqa: PLC0415
+        from wahlchat_common.vertex_credentials import (  # noqa: PLC0415
             get_vertex_credentials,
             vertex_enabled,
             vertex_location,

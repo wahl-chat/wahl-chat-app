@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Guards on this package's use of the shared wahlchat_corpus contract."""
+"""Guards on this package's use of the shared wahlchat_common contract."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from typing import get_args
 def test_source_type_literal_matches_enum() -> None:
     """retrieve.py mirrors the enum as a Literal — a Python Enum in a Gemini tool
     declaration trips a langchain-google-genai bug — so the two must be pinned."""
-    from wahlchat_corpus.enums import SourceType
+    from wahlchat_common.enums import SourceType
 
     from src.retrieve import SourceTypeLiteral
 
@@ -21,7 +21,7 @@ def test_source_type_literal_matches_enum() -> None:
 
 
 def test_authority_tier_literal_matches_enum() -> None:
-    from wahlchat_corpus.enums import AuthorityTier
+    from wahlchat_common.enums import AuthorityTier
 
     from src.retrieve import AuthorityTierLiteral
 
@@ -31,7 +31,7 @@ def test_authority_tier_literal_matches_enum() -> None:
 def test_retrieve_binds_shared_levels() -> None:
     """Identity, not equality: a locally re-defined frozenset would compare equal
     but not be the same object."""
-    import wahlchat_corpus.governance_levels as levels
+    import wahlchat_common.governance_levels as levels
 
     import src.retrieve as retrieve_mod
 
@@ -39,7 +39,7 @@ def test_retrieve_binds_shared_levels() -> None:
 
 
 def test_backend_does_not_import_ingestion() -> None:
-    """The two deployables share wahlchat_corpus, never each other — an ingestion
+    """The two deployables share wahlchat_common, never each other — an ingestion
     import would drag its connector tree into the chat image."""
     root = Path(__file__).resolve().parents[1]
     offenders = [

@@ -6,7 +6,7 @@ requires-python = "==3.12.*"
 members = [
     "ingestion",
     "wahl-chat-backend",
-    "wahlchat-corpus",
+    "wahlchat-common",
 ]
 
 [[package]]
@@ -642,7 +642,7 @@ dependencies = [
     { name = "tenacity" },
     { name = "trafilatura" },
     { name = "urllib3" },
-    { name = "wahlchat-corpus" },
+    { name = "wahlchat-common" },
 ]
 
 [package.dev-dependencies]
@@ -672,7 +672,7 @@ requires-dist = [
     { name = "tenacity", specifier = ">=8.2" },
     { name = "trafilatura", specifier = ">=2.1.0" },
     { name = "urllib3", specifier = ">=2.0" },
-    { name = "wahlchat-corpus", editable = "packages/wahlchat-corpus" },
+    { name = "wahlchat-common", editable = "packages/wahlchat-common" },
 ]
 
 [package.metadata.requires-dev]
@@ -1759,7 +1759,7 @@ dependencies = [
     { name = "qdrant-client" },
     { name = "sse-starlette" },
     { name = "uvicorn" },
-    { name = "wahlchat-corpus" },
+    { name = "wahlchat-common" },
     { name = "xxhash" },
 ]
 
@@ -1790,7 +1790,7 @@ requires-dist = [
     { name = "qdrant-client", specifier = ">=1.18.0,<1.19" },
     { name = "sse-starlette", specifier = ">=3.4.4" },
     { name = "uvicorn", specifier = ">=0.34.0" },
-    { name = "wahlchat-corpus", editable = "packages/wahlchat-corpus" },
+    { name = "wahlchat-common", editable = "packages/wahlchat-common" },
     { name = "xxhash", specifier = ">=3.5.0" },
 ]
 
@@ -1804,9 +1804,9 @@ dev = [
 ]
 
 [[package]]
-name = "wahlchat-corpus"
+name = "wahlchat-common"
 version = "1.0.0"
-source = { editable = "packages/wahlchat-corpus" }
+source = { editable = "packages/wahlchat-common" }
 dependencies = [
     { name = "google-auth" },
     { name = "langchain-core" },

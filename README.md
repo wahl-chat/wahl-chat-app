@@ -23,7 +23,7 @@ The aim of wahl.chat is to enable users to engage in a contemporary way with the
 | [`web/`](web/) | Next.js frontend application | [README](web/README.md) |
 | [`ai-backend/`](ai-backend/) | Python AI/RAG backend (FastAPI + SSE + LangChain) | [README](ai-backend/README.md) |
 | [`ingestion/`](ingestion/) | Corpus layer: ingestion connectors, runner, and Qdrant collection setup | [README](ingestion/README.md) |
-| [`packages/wahlchat-corpus/`](packages/wahlchat-corpus/) | Shared corpus contract imported by both Python deployables | [README](packages/wahlchat-corpus/README.md) |
+| [`packages/wahlchat-common/`](packages/wahlchat-common/) | Code shared by the Python components | [README](packages/wahlchat-common/README.md) |
 | [`firebase/`](firebase/) | Firebase config, Cloud Functions, Firestore rules & seed data | [README](firebase/README.md) |
 
 ## Getting Started

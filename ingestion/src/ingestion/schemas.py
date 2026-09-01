@@ -9,14 +9,14 @@ from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from wahlchat_corpus.enums import AuthorityTier, SourceType
+from wahlchat_common.enums import AuthorityTier, SourceType
 
 
 # =============================================================================
 # Enums
 # =============================================================================
 
-# AuthorityTier / SourceType live in wahlchat_corpus (the backend filters
+# AuthorityTier / SourceType live in wahlchat_common (the backend filters
 # retrieval on the same values this writes) and are imported above, so existing
 # `from ingestion.schemas import SourceType` callers keep working.
 

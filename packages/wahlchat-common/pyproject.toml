@@ -3,17 +3,17 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 [project]
-name = "wahlchat-corpus"
+name = "wahlchat-common"
 version = "1.0.0"
-description = "Shared corpus contract for wahl.chat: vector space and collection identity, the embeddings factory, payload enums, governance levels, and AW legislature periods."
+description = "Code shared between the wahl.chat Python components: corpus vector space and collection identity, the embeddings factory, payload enums, governance levels, AW legislature periods, and Vertex credentials."
 authors = [{name = "wahl.chat", email = "info@wahl.chat"}]
 license = {text = "PolyForm-Noncommercial-1.0.0"}
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 
 # Every dependency here is already a direct dependency of BOTH ai-backend and
-# ingestion, so depending on this package adds nothing to either image.
-# Keep it that way: anything heavier belongs in the package that needs it.
+# ingestion, so depending on this package adds nothing to either image. Keep it
+# that way — a heavy dependency added for one consumer lands in every image.
 dependencies = [
     "google-auth>=2.53.0",
     "langchain-core>=1.4.0",
@@ -55,7 +55,7 @@ docstring-code-format = false
 docstring-code-line-length = "dynamic"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/wahlchat_corpus"]
+packages = ["src/wahlchat_common"]
 
 [build-system]
 requires = ["hatchling"]

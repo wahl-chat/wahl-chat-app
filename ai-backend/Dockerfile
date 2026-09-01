@@ -6,7 +6,7 @@
 # member live outside ai-backend/:
 #   docker build -f ai-backend/Dockerfile .
 #
-# Chat service only: --package installs this member plus wahlchat-corpus, and
+# Chat service only: --package installs this member plus wahlchat-common, and
 # leaves the ingestion member (and its connector tree) out.
 FROM python:3.12-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.11.19 /uv /uvx /bin/
@@ -20,7 +20,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 COPY ai-backend/pyproject.toml ai-backend/pyproject.toml
 COPY ingestion/pyproject.toml ingestion/pyproject.toml
-COPY packages/wahlchat-corpus/pyproject.toml packages/wahlchat-corpus/pyproject.toml
+COPY packages/wahlchat-common/pyproject.toml packages/wahlchat-common/pyproject.toml
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-install-workspace --package wahl-chat-backend
 
@@ -29,9 +29,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # which hatchling reads at build time. .dockerignore keeps .env*, tests/ and
 # caches out of the build context.
 COPY ai-backend/README.md ai-backend/README.md
-COPY packages/wahlchat-corpus/README.md packages/wahlchat-corpus/README.md
+COPY packages/wahlchat-common/README.md packages/wahlchat-common/README.md
 COPY ai-backend/src /app/ai-backend/src
-COPY packages/wahlchat-corpus/src /app/packages/wahlchat-corpus/src
+COPY packages/wahlchat-common/src /app/packages/wahlchat-common/src
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --package wahl-chat-backend
 

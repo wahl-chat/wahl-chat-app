@@ -18,13 +18,13 @@ repos:
         name: Ruff (lint)
         entry: uv run ruff check --fix
         language: system
-        files: ^(ai-backend|ingestion|packages/wahlchat-corpus)/.*\.py$
+        files: ^(ai-backend|ingestion|packages/wahlchat-common)/.*\.py$
         require_serial: true
       - id: ruff-format
         name: Ruff (format)
         entry: uv run ruff format
         language: system
-        files: ^(ai-backend|ingestion|packages/wahlchat-corpus)/.*\.py$
+        files: ^(ai-backend|ingestion|packages/wahlchat-common)/.*\.py$
         require_serial: true
       - id: mypy
         name: Mypy (ai-backend)
@@ -45,10 +45,10 @@ repos:
         pass_filenames: false
         require_serial: true
       - id: mypy-corpus
-        name: Mypy (wahlchat-corpus)
-        entry: bash -c 'cd packages/wahlchat-corpus && uv run mypy src'
+        name: Mypy (wahlchat-common)
+        entry: bash -c 'cd packages/wahlchat-common && uv run mypy src'
         language: system
-        files: ^packages/wahlchat-corpus/src/.*\.py$
+        files: ^packages/wahlchat-common/src/.*\.py$
         pass_filenames: false
         require_serial: true
 

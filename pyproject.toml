@@ -4,10 +4,10 @@
 
 # Virtual uv workspace root: one lockfile, one resolved environment.
 #
-#   ai-backend  ->  wahlchat-corpus  <-  ingestion
+#   ai-backend  ->  wahlchat-common  <-  ingestion
 #
-# The two deployables never import each other; they share the corpus contract
-# through wahlchat-corpus. Each Dockerfile installs one deployable with
+# The two deployables never import each other; whatever they share lives in
+# wahlchat-common. Each Dockerfile installs one deployable with
 # `--package`, so only that member's own dependencies land in its image.
 [tool.uv.workspace]
-members = ["ai-backend", "ingestion", "packages/wahlchat-corpus"]
+members = ["ai-backend", "ingestion", "packages/wahlchat-common"]

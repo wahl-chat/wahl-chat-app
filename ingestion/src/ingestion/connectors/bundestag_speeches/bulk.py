@@ -80,7 +80,7 @@ from qdrant_client import QdrantClient, models
 
 from datetime import date as _date_type
 
-from wahlchat_corpus.embeddings import get_embeddings
+from wahlchat_common.embeddings import get_embeddings
 from ingestion.connectors.bundestag_speeches.mappers.corpus import (
     build_chunk_records,
 )

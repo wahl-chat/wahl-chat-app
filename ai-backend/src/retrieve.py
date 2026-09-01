@@ -45,9 +45,9 @@ from qdrant_client.models import (
     MatchValue,
 )
 
-from wahlchat_corpus.embeddings import get_embeddings
-from wahlchat_corpus.corpus import COLLECTION_NAME, check_fingerprint
-from wahlchat_corpus.governance_levels import ALL_LEVELS
+from wahlchat_common.embeddings import get_embeddings
+from wahlchat_common.corpus import COLLECTION_NAME, check_fingerprint
+from wahlchat_common.governance_levels import ALL_LEVELS
 
 logger = logging.getLogger(__name__)
 

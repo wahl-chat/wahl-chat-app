@@ -28,7 +28,7 @@ Query-time retrieval is *not* here: `retrieve()` is a backend concern and lives 
 `ai-backend/src/retrieve.py`.
 
 What the two must agree on lives in
-[`packages/wahlchat-corpus`](../packages/wahlchat-corpus/README.md), which both
+[`packages/wahlchat-common`](../packages/wahlchat-common/README.md), which both
 import: the vector space and collection identity, the embeddings factory, the
 payload enums, governance levels, the AW legislature periods, and Vertex
 credentials. Neither deployable imports the other.

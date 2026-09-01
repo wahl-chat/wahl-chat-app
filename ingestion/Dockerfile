@@ -8,7 +8,7 @@
 # Corpus-layer image for the scheduled Cloud Run Jobs: no fastapi/uvicorn,
 # no firebase-admin, no chat-service code. ai-backend/pyproject.toml is copied
 # only because uv needs every member's manifest to resolve the shared lock;
-# --package installs this member plus wahlchat-corpus, never the backend.
+# --package installs this member plus wahlchat-common, never the backend.
 FROM python:3.12-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.11.19 /uv /uvx /bin/
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
@@ -21,7 +21,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 COPY ai-backend/pyproject.toml ai-backend/pyproject.toml
 COPY ingestion/pyproject.toml ingestion/pyproject.toml
-COPY packages/wahlchat-corpus/pyproject.toml packages/wahlchat-corpus/pyproject.toml
+COPY packages/wahlchat-common/pyproject.toml packages/wahlchat-common/pyproject.toml
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-install-workspace --package ingestion
 
@@ -30,9 +30,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # hatchling reads at build time. data/ carries the manifesto_uploads manifests;
 # MdB-Stammdaten is excluded by .dockerignore and fetched at run time.
 COPY ingestion/README.md ingestion/README.md
-COPY packages/wahlchat-corpus/README.md packages/wahlchat-corpus/README.md
+COPY packages/wahlchat-common/README.md packages/wahlchat-common/README.md
 COPY ingestion/src /app/ingestion/src
-COPY packages/wahlchat-corpus/src /app/packages/wahlchat-corpus/src
+COPY packages/wahlchat-common/src /app/packages/wahlchat-common/src
 COPY ingestion/data /app/ingestion/data
 COPY ingestion/docker-entrypoint.sh /app/ingestion/docker-entrypoint.sh
 RUN --mount=type=cache,target=/root/.cache/uv \
