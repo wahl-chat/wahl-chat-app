@@ -95,6 +95,16 @@ contexts/{context_id}
     └── content, ...
 ```
 
+
+#### `pledges/` (PledgeTracker)
+
+Top-level collection `pledges/{pledge_id}` holds full PledgeTracker records
+(claim, party, region scope, source provenance, evidence timeline) written by
+the admin-SDK ingestion runner (`make run-pledgetracker`) — Firestore is the
+source of truth; Qdrant only carries one retrieval vector per pledge. Public
+read-only via `firestore.rules`; there is no seed file — records come from
+ingestion against the emulator (or prod with `ENV=prod`).
+
 ### Seeding with the Python Script (Recommended)
 
 Run from the `firebase/` directory:

@@ -105,6 +105,7 @@ make stores-down
 | `make seed-local` | Load scrubbed fixtures into local stores (requires `FIRESTORE_EMULATOR_HOST`) |
 | `make dev-local` | Start stores + both dev servers |
 | `make dev` | Start both dev servers (assumes stores are already running) |
+| `make run-pledgetracker` | Ingest PledgeTracker pledges (Cambridge queue API; stub fixture by default) |
 | `make test-backend` | Run backend unit tests |
 | `make test-smoke` | Run E2E SSE smoke test |
 | `make test-local-mode` | Run the seed-script emulator-guard tests (needs live local stores: `make stores-up` first) |
