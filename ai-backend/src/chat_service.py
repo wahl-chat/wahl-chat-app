@@ -103,6 +103,7 @@ from src.models.dtos import (
 from src.embeddings import get_embeddings
 from src.models.context import ContextParty
 from src.models.party import WAHL_CHAT_PARTY
+from src.pledge_tracker_service import aretrieve_pledge_tracker_suggestions
 from src.prompts import (
     RAG_QUERY_SOURCE_FILTER_NOTE_DE,
     build_prompt_context,
@@ -434,6 +435,39 @@ def _party_chunk(session_id: str, party_id: str, chunk: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# PledgeTracker lookup (best-effort side payload on party_complete)
+# ---------------------------------------------------------------------------
+async def _safe_pledge_tracker_payload(
+    *,
+    party: ContextParty,
+    context_id: str,
+    query: str,
+    query_vector: Optional[list[float]] = None,
+):
+    """Best-effort PledgeTracker lookup; failures must never break chat answers."""
+    if party.party_id == WAHL_CHAT_PARTY.party_id:
+        return None
+
+    try:
+        return await aretrieve_pledge_tracker_suggestions(
+            query=query,
+            party_id=party.party_id,
+            context_id=context_id,
+            query_vector=query_vector,
+            limit=3,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "PledgeTracker lookup failed (party=%s context=%s): %s",
+            party.party_id,
+            context_id,
+            exc,
+            exc_info=True,
+        )
+        return None
+
+
+# ---------------------------------------------------------------------------
 # Cached-response yielder (replaces emit_cached_party_response)
 # ---------------------------------------------------------------------------
 async def yield_cached_party_response(
@@ -481,12 +515,22 @@ async def yield_cached_party_response(
     )
     group_chat_session.chat_history.append(chatbot_message)
 
+    # Cached replays recompute pledge suggestions: pledge payloads are never
+    # answer-cached, so timelines stay as fresh as the pledge store.
+    pledge_query = " ".join(cached_response.rag_query or []) or full_response[:500]
+    pledge_tracker = await _safe_pledge_tracker_payload(
+        party=party,
+        context_id=group_chat_session.context_id,
+        query=pledge_query,
+    )
+
     party_response_complete_dto = PartyResponseCompleteDto(
         session_id=group_chat_session.session_id,
         party_id=party.party_id,
         complete_message=full_response,
         message_id=message_id,
         status=Status(indicator=StatusIndicator.SUCCESS, message="Success"),
+        pledge_tracker=pledge_tracker,
     )
     yield _data_event(
         {"type": "party_complete", **party_response_complete_dto.model_dump()},
@@ -1317,12 +1361,28 @@ async def fetch_party_response_stream(
         )
         group_chat_session.chat_history.append(chatbot_message)
 
+        # Best-effort pledge suggestions, reusing the answer's RAG query (and
+        # its already-computed embedding when this is not a comparison turn).
+        pledge_tracker = None
+        if not is_comparing_question:
+            pledge_tracker = await _safe_pledge_tracker_payload(
+                party=party,
+                context_id=group_chat_session.context_id,
+                query=(
+                    improved_rag_query_list[0]
+                    if improved_rag_query_list
+                    else question_for_party
+                ),
+                query_vector=rag_query_vector,
+            )
+
         party_response_complete_dto = PartyResponseCompleteDto(
             session_id=group_chat_session.session_id,
             party_id=party.party_id,
             complete_message=full_response_text,
             message_id=message_id,
             status=Status(indicator=StatusIndicator.SUCCESS, message="Success"),
+            pledge_tracker=pledge_tracker,
         )
         yield _data_event(
             {"type": "party_complete", **party_response_complete_dto.model_dump()},
