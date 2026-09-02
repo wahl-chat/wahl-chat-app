@@ -107,3 +107,25 @@ class RerankingOutput(BaseModel):
     reranked_doc_indices: list[int] = Field(
         description="Absteigend nach Nützlichkeit sortierte Liste der Indices der Dokumente"
     )
+
+
+class PledgeEventHeadlines(BaseModel):
+    """Output of the PledgeTracker event-headline generator (ingestion time)."""
+
+    headlines: list[str] = Field(
+        description=(
+            "Eine kurze deutsche Schlagzeile pro Ereignis, in derselben "
+            "Reihenfolge wie die Ereignisse."
+        )
+    )
+
+
+class PledgeRelevanceOutput(BaseModel):
+    """Output of the PledgeTracker relevance gate (chat time)."""
+
+    relevant_indices: list[int] = Field(
+        description=(
+            "Nummern (1-basiert) der Kandidaten, die klar dasselbe Thema "
+            "behandeln wie das Nutzerthema. Leere Liste, wenn keiner passt."
+        )
+    )
