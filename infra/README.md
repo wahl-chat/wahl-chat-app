@@ -89,12 +89,18 @@ Secret Manager — a revision that resolves `latest` with no version fails to st
 
 ## Ingestion jobs (Cloud Run Jobs + Cloud Scheduler)
 
-One image serves both roles: `ai-backend/docker-entrypoint.sh` dispatches on `CONNECTOR_ID` —
-unset boots the FastAPI app, set runs `python -m src.ingestion.run` for that connector (after an
-idempotent Qdrant-collection bootstrap). So a job spec only sets `CONNECTOR_ID` in `env` plus
-runner flags in `args` (`--batch-size`, `--time-budget` seconds). Runs are batch-windowed and
-resume from a Qdrant-derived cursor: short scheduled executions that continue where they left
-off are the design — never raise timeouts to "finish" a backfill.
+Jobs run the dedicated ingestion image (`ingestion/Dockerfile`, built from the repo root — no
+chat-service code since the package split): `ingestion/docker-entrypoint.sh` runs
+`python -m ingestion.run` for the connector named by `CONNECTOR_ID`, after an idempotent
+Qdrant-collection bootstrap. So a job spec only sets `CONNECTOR_ID` in `env` plus runner flags
+in `args` (`--batch-size`, `--time-budget` seconds). Runs are batch-windowed and resume from a
+Qdrant-derived cursor: short scheduled executions that continue where they left off are the
+design — never raise timeouts to "finish" a backfill.
+
+Cadence is **weekly** (staggered Sunday mornings): the sources change slowly, and uploaded
+party PDFs are ingested per storage event by the Firebase `ingest` functions
+(`firebase/ingest_functions/`) — the `ingest-manifesto-uploads` job is their reconciling
+backstop (dropped events, backfills), not the primary path.
 
 Job specifics worth knowing (full rationale in `envs/dev/terraform.tfvars` comments):
 
@@ -108,8 +114,8 @@ Job specifics worth knowing (full rationale in `envs/dev/terraform.tfvars` comme
 - The speech pair runs as ONE sequential job (`CONNECTOR_ID = "bundestag_speeches,openparliament_tv"`)
   — their must-never-overlap invariant is structural, do not split them into two schedules.
 - Deployed jobs set `ELECTION_FIXTURES_SOURCE=firestore` and (uploads only)
-  `MANIFESTO_UPLOADS_SOURCE=bucket`, because neither the Firestore fixtures nor the uploads
-  manifest ship in the image (Docker build context is `ai-backend/`).
+  `MANIFESTO_UPLOADS_SOURCE=bucket`, because the Firestore fixtures don't ship in the
+  ingestion image and the bucket, not a committed manifest, is the desired-state authority.
 - **Image ownership matches the services**: Terraform creates jobs with a placeholder image and
   ignores image changes; `cloudbuild.backend.yaml` updates every `ingest-*` job to the freshly
   built image after promoting the service. Until that first build lands, a job execution runs

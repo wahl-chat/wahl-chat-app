@@ -27,6 +27,24 @@ steps:
       - push
       - gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-app:${COMMIT_SHA}
 
+  # Since the ingestion split the jobs run their OWN image (no fastapi, no
+  # chat-service code) — same repo-root build context for the workspace lock.
+  - id: build-ingestion
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file
+      - ingestion/Dockerfile
+      - --tag
+      - gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-ingestion:${COMMIT_SHA}
+      - .
+
+  - id: push-ingestion
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-ingestion:${COMMIT_SHA}
+
   - id: deploy-smoke-promote
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
@@ -85,10 +103,10 @@ steps:
           --remove-tags=candidate \
           --quiet
 
-  # Ingestion jobs run the same image (entrypoint dispatches on CONNECTOR_ID).
-  # Terraform owns the job specs but ignores the image; this step is the image
-  # authority for jobs, exactly as deploy-smoke-promote is for the service.
-  # No-op until Terraform has created the ingest-* jobs.
+  # Ingestion jobs run the ingestion image (a job sets CONNECTOR_ID; the
+  # entrypoint dispatches). Terraform owns the job specs but ignores the image;
+  # this step is the image authority for jobs, exactly as deploy-smoke-promote
+  # is for the service. No-op until Terraform has created the ingest-* jobs.
   - id: update-ingestion-job-images
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
@@ -105,7 +123,7 @@ steps:
           gcloud run jobs update "$${job}" \
             --project="${PROJECT_ID}" \
             --region="${_REGION}" \
-            --image="gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-app:${COMMIT_SHA}" \
+            --image="gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-ingestion:${COMMIT_SHA}" \
             --quiet
         done
 

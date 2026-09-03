@@ -98,8 +98,13 @@ services = {
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # INGESTION JOBS (Cloud Run Jobs + Cloud Scheduler)
-# One image serves API + jobs; a job only sets CONNECTOR_ID (entrypoint dispatch).
-# Runs are cursor-resumable: 15-minute executions that continue where they left off.
+# Jobs run the ingestion image (own image since the package split; CI is the
+# image authority — cloudbuild.backend.yaml builds it and updates the jobs). A job
+# only sets CONNECTOR_ID (entrypoint dispatch). Runs are cursor-resumable:
+# 15-minute executions that continue where they left off. WEEKLY cadence: the
+# sources change slowly, and uploaded PDFs are ingested per storage event by the
+# Firebase 'ingest' functions — these runs are the reconciling sweep, not the
+# primary path. Backfills are manual `gcloud run jobs execute` runs either way.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Shared plumbing merged into every job by envs/dev/main.tf.
@@ -142,7 +147,7 @@ jobs = {
   # secret only if a real key exists — a bootstrap sentinel would be sent as a
   # credential and break requests).
 
-  # Bundestag (current + prior term): daily.
+  # Bundestag (current + prior term): weekly.
   "ingest-aw-votes-bund" = {
     env = {
       CONNECTOR_ID       = "abgeordnetenwatch_votes"
@@ -150,10 +155,10 @@ jobs = {
     }
     task_count  = 4
     parallelism = 2
-    schedule    = "0 4 * * *"
+    schedule    = "0 4 * * 0"
   }
 
-  # All configured Landtag legislatures: daily.
+  # All configured Landtag legislatures: weekly.
   "ingest-aw-votes-laender" = {
     env = {
       CONNECTOR_ID       = "abgeordnetenwatch_votes"
@@ -161,7 +166,7 @@ jobs = {
     }
     task_count  = 48
     parallelism = 3
-    schedule    = "30 4 * * *"
+    schedule    = "30 4 * * 0"
   }
 
   # DIP speeches then op.tv video speeches, sequentially in ONE process — their
@@ -173,7 +178,7 @@ jobs = {
     secret_env = {
       DIP_API_KEY = "dip-api-key"
     }
-    schedule = "0 3 * * *"
+    schedule = "0 3 * * 0"
   }
 
   # AW election-programme catalogue.
@@ -182,18 +187,18 @@ jobs = {
       CONNECTOR_ID             = "manifestos"
       ELECTION_FIXTURES_SOURCE = "firestore" # read contexts/parties from the live DB, not committed fixtures
     }
-    schedule = "0 5 * * *"
+    schedule = "0 5 * * 0"
   }
 
-  # Uploaded party PDFs: reconciles the live GCS bucket against the corpus daily
-  # (new objects ingested, vanished objects retired). CI can additionally
-  # `gcloud run jobs execute` this right after an upload for instant ingestion.
+  # Uploaded party PDFs: the Firebase storage triggers (firebase/ingest_functions)
+  # ingest/retire per event; this weekly reconcile of the live bucket heals dropped
+  # events and covers backfills (objects already in the bucket never fire events).
   "ingest-manifesto-uploads" = {
     env = {
       CONNECTOR_ID             = "manifesto_uploads"
       ELECTION_FIXTURES_SOURCE = "firestore"
       MANIFESTO_UPLOADS_SOURCE = "bucket" # list the live bucket, not the committed manifest
     }
-    schedule = "30 5 * * *"
+    schedule = "30 5 * * 0"
   }
 }
