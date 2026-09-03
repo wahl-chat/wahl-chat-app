@@ -118,7 +118,7 @@ jobs = {
     }
     task_count  = 4
     parallelism = 2
-    schedule    = "0 4 * * *"
+    schedule    = "0 4 * * 0"
   }
 
   "ingest-aw-votes-laender" = {
@@ -128,7 +128,7 @@ jobs = {
     }
     task_count  = 48
     parallelism = 3
-    schedule    = "30 4 * * *"
+    schedule    = "30 4 * * 0"
   }
 
   "ingest-speeches" = {
@@ -138,7 +138,7 @@ jobs = {
     secret_env = {
       DIP_API_KEY = "dip-api-key"
     }
-    schedule = "0 3 * * *"
+    schedule = "0 3 * * 0"
   }
 
   "ingest-manifestos" = {
@@ -146,7 +146,7 @@ jobs = {
       CONNECTOR_ID             = "manifestos"
       ELECTION_FIXTURES_SOURCE = "firestore"
     }
-    schedule = "0 5 * * *"
+    schedule = "0 5 * * 0"
   }
 
   "ingest-manifesto-uploads" = {
@@ -155,6 +155,6 @@ jobs = {
       ELECTION_FIXTURES_SOURCE = "firestore"
       MANIFESTO_UPLOADS_SOURCE = "bucket"
     }
-    schedule = "30 5 * * *"
+    schedule = "30 5 * * 0"
   }
 }

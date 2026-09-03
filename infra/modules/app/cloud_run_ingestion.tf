@@ -1,8 +1,9 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # CLOUD RUN JOBS — scheduled data-ingestion connectors
 #
-# One image serves both roles (see ai-backend/docker-entrypoint.sh): a job sets
-# CONNECTOR_ID and the entrypoint runs `python -m src.ingestion.run` after an
+# Jobs run the dedicated ingestion image (see ingestion/docker-entrypoint.sh —
+# own image since the ingestion package split; no chat-service code): a job sets
+# CONNECTOR_ID and the entrypoint runs `python -m ingestion.run` after an
 # idempotent collection bootstrap; container `args` are forwarded to the runner.
 # Runs are batch-windowed and time-budgeted, resuming from a Qdrant-derived
 # cursor — an execution that runs out of budget simply continues next run, so
@@ -17,7 +18,7 @@ locals {
   # then by the job entry itself (which must supply service_account if the
   # defaults don't). AW vote jobs carry no legislature ids anywhere in infra:
   # they shard at runtime via AW_LEGISLATURE_SET + CLOUD_RUN_TASK_INDEX
-  # (resolve_aw_legislature_shard in ai-backend/src/ingestion/run.py), so newly
+  # (resolve_aw_legislature_shard in ingestion/src/ingestion/run.py), so newly
   # configured legislature periods are covered without an infra change.
   job_base = {
     image           = "us-docker.pkg.dev/cloudrun/container/hello"
