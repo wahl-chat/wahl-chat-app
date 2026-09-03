@@ -59,7 +59,7 @@ variable "bootstrap_secret_ids" {
 
 # ── Cloud Run ingestion jobs ────────────────────────────────────────────────
 # Keyed by job name; same env/secret_env contract as var.services. The image's
-# entrypoint dispatches on CONNECTOR_ID (ai-backend/docker-entrypoint.sh): set it in
+# entrypoint dispatches on CONNECTOR_ID (ingestion/docker-entrypoint.sh): set it in
 # `env` and the container runs `python -m src.ingestion.run`; `args` are forwarded to
 # the runner (e.g. --batch-size, --time-budget SECONDS). A non-null `schedule` (cron)
 # creates a Cloud Scheduler trigger that executes the job.
