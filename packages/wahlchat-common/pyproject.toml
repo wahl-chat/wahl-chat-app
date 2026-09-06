@@ -1,0 +1,62 @@
+# SPDX-FileCopyrightText: 2026 wahl.chat
+#
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+[project]
+name = "wahlchat-common"
+version = "1.0.0"
+description = "Code shared between the wahl.chat Python components: corpus vector space and collection identity, the embeddings factory, payload enums, governance levels, AW legislature periods, and Vertex credentials."
+authors = [{name = "wahl.chat", email = "info@wahl.chat"}]
+license = {text = "PolyForm-Noncommercial-1.0.0"}
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+
+# Every dependency here is already a direct dependency of BOTH ai-backend and
+# ingestion, so depending on this package adds nothing to either image. Keep it
+# that way — a heavy dependency added for one consumer lands in every image.
+dependencies = [
+    "google-auth>=2.53.0",
+    "langchain-core>=1.4.0",
+    "langchain-google-genai>=4.2.0",
+    "langchain-openai>=1.2.0",
+    # qdrant-client tracks Qdrant server minor 1.18.x (pin held for index parity)
+    "qdrant-client>=1.18.0,<1.19",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.12.0",
+    "ruff>=0.8.0",
+    "pytest>=8.3",
+]
+
+[tool.mypy]
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+ignore = []
+fixable = ["ALL"]
+unfixable = []
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = false
+docstring-code-line-length = "dynamic"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/wahlchat_common"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

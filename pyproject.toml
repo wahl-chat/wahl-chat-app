@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 wahl.chat
+#
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+# Virtual uv workspace root: one lockfile, one resolved environment.
+#
+#   ai-backend  ->  wahlchat-common  <-  ingestion
+#
+# The two deployables never import each other; whatever they share lives in
+# wahlchat-common. Each Dockerfile installs one deployable with
+# `--package`, so only that member's own dependencies land in its image.
+[tool.uv.workspace]
+members = ["ai-backend", "ingestion", "packages/wahlchat-common"]

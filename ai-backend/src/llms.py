@@ -8,7 +8,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages.base import BaseMessage, BaseMessageChunk
 from pydantic import BaseModel
 from src.firebase_service import awrite_llm_status
-from src.google_credentials import (
+from wahlchat_common.vertex_credentials import (
     get_vertex_credentials,
     vertex_enabled,
     vertex_location,

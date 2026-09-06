@@ -52,7 +52,7 @@ from src.sse import (
     text_start,
 )
 from src.firebase_service import aget_context_by_id, aget_party_for_context
-from src.ingestion.retrieve import retrieve
+from src.retrieve import retrieve
 from src.models.context import DEFAULT_CONTEXT_ID
 from src.models.dtos import (
     VotingBehaviorRequestDto,
