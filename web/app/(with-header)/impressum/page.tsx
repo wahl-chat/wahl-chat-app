@@ -10,11 +10,12 @@ export const metadata: Metadata = {
 function Impressum() {
   const markdown = `
 # Impressum
-        
+
 ## Adresse
-*Robin Frasch*  
-An der Verbindungsbahn 7 
-20146 Hamburg  
+**Center for Tech-Enabled Citizenship (CTEC) gUG (haftungsbeschränkt)**\\
+Geschäftsführer: Robin Frasch\\
+An der Verbindungsbahn 7\\
+20146 Hamburg\\
 Deutschland
 
 ## Kontakt
