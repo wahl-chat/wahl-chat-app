@@ -56,7 +56,9 @@ describe('the landing page', () => {
     setSystemTime(new Date('2026-08-21T00:00:00Z'));
 
     for (const region of [undefined, ...Object.keys(REGION_CONTEXTS)]) {
-      const response = await middleware(requestFrom('https://wahl.chat/', region));
+      const response = await middleware(
+        requestFrom('https://wahl.chat/', region),
+      );
 
       expect(response.headers.get('location')).toBeNull();
     }

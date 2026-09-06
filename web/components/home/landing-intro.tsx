@@ -46,8 +46,8 @@ function LandingIntro({ upcoming, past }: Props) {
         wahl.chat ist ein KI-Assistent, dem du deine Fragen zu den Positionen
         verschiedener Parteien stellen kannst. Statt dich durch hunderte Seiten
         Wahlprogramm oder Plenarprotokoll zu arbeiten, fragst du einfach nach
-        dem, was dich interessiert - Mieten, Bildung, Klima, Wirtschaft,
-        Migration - und bekommst eine Antwort zu genau dieser Frage. Du kannst
+        dem, was dich interessiert – Mieten, Bildung, Klima, Wirtschaft,
+        Migration – und bekommst eine Antwort zu genau dieser Frage. Du kannst
         mehrere Parteien gleichzeitig auswählen und ihre Positionen zum selben
         Thema direkt nebeneinander vergleichen.
       </p>
