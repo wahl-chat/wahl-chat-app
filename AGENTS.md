@@ -44,8 +44,10 @@ Three deployable components plus two data stores:
   parties, chat sessions); the Firestore emulator is used in local dev.
 - **Qdrant** — the single vector store for the corpus (one collection per
   environment).
-- **OpenAI + Google Gemini** — OpenAI `text-embedding-3-large` for embeddings;
-  Gemini (via `langchain-google-genai`) for answer generation.
+- **Google Gemini** — `gemini-embedding-2` for embeddings and Gemini (via
+  `langchain-google-genai`) for answer generation. The embeddings factory can
+  also build an OpenAI client, but no environment runs it; see the locked-model
+  note under "How to treat data".
 
 ### Data flow
 
@@ -54,7 +56,7 @@ source APIs / documents
         │  (ingestion connectors: discover → fetch → normalize)
         ▼
    ChunkRecord[]  (Pydantic contract, src/ingestion/schemas.py)
-        │  (runner: embed with text-embedding-3-large → upsert)
+        │  (runner: embed with gemini-embedding-2 → upsert)
         ▼
    Qdrant  wahlchat_chunks_{env}   ← single corpus collection
         │  (retrieval: filtered vector search, retrieve.py)
@@ -223,7 +225,7 @@ the common cases (Qdrant URL is wired to local automatically). They require
 make run-abgeordnetenwatch-votes          # federal votes
 make run-all-landtage-votes               # loop over all 16 Landtag legislatures
 make run-speeches ARGS="--batch-size 25"  # live DIP speeches
-make run-manifestos ARGS="--dry-run"      # parse only, zero OpenAI cost
+make run-manifestos ARGS="--dry-run"      # parse only, zero embedding cost
 make run-manifesto-uploads ARGS="--check" # validate uploaded-PDF metadata
 make speeches-stats                       # read-only Qdrant verification
 ```
@@ -304,10 +306,22 @@ The two stores are seeded by different mechanisms, on purpose:
   is missing/empty. Unset locally/in CI/tests, so an empty local store still
   boots.
 - **The embedding model and vector store are locked.** Qdrant is the vector
-  store; embeddings are OpenAI `text-embedding-3-large` at 3072 dimensions,
-  COSINE distance. Do not mix models or dimensions — it breaks index parity.
-  Treat `EMBEDDING_DIM` / `EMBEDDING_MODEL` in `setup_collection.py` as
-  immutable after the first run.
+  store; embeddings are Gemini `gemini-embedding-2` at 3072 dimensions, COSINE
+  distance. Do not mix models or dimensions — it breaks index parity. Treat
+  `EMBEDDING_DIM` / `EMBEDDING_MODEL` in `setup_collection.py` as immutable
+  after the first run.
+
+  A collection name cannot prove which model produced its vectors, and OpenAI's
+  `text-embedding-3-large` is also 3072-dimensional, so the dimension guard
+  alone would pass on a mixed store. Every read and write therefore calls
+  `setup_collection.check_fingerprint()`, which compares the collection's
+  recorded provider/model/dim against the running configuration and raises on a
+  mismatch.
+
+  Note that `get_embeddings()` still falls back to OpenAI when
+  `EMBEDDING_PROVIDER` is unset, so `ai-backend/.env` must set it — copy
+  `.env.example`. Without it, ingestion and retrieval fail at the fingerprint
+  check rather than reading the corpus.
 - **The corpus is source-cited.** Chunks carry `citation_url` / `citation_title`
   and an `authority_tier` (`authoritative` | `factual_record` | `self_reported`
   | `promotional`). Preserve citations end-to-end; answers are grounded in
