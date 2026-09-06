@@ -1,43 +1,29 @@
+import Logo from '@/components/chat/logo';
 import { ContextIcon } from '@/components/context-icon';
 import BrandBlurBackdrop from '@/components/home/brand-blur-backdrop';
-import ContactCard from '@/components/home/contact-card';
 import ElectionSwitchLink from '@/components/home/election-switch-link';
-import GitHubCard from '@/components/home/github-card';
-import HomeInput from '@/components/home/home-input';
-import HowToCard from '@/components/home/how-to-card';
-import KnownFrom from '@/components/home/known-from';
-import LandingIntro from '@/components/home/landing-intro';
-import OpenCallCard, {
-  getAvailableOpenCallUrl,
-} from '@/components/home/open-call-card';
-import SupportUsCard from '@/components/home/support-us-card';
-import AiDisclaimer from '@/components/legal/ai-disclaimer';
 import JsonLd from '@/components/seo/json-ld';
 import { Button } from '@/components/ui/button';
 import { isUpcomingElection, splitElectionsByDate } from '@/lib/elections';
-import {
-  getContexts,
-  getHomeInputProposedQuestions,
-  getSystemStatus,
-  getUser,
-} from '@/lib/firebase/firebase-server';
+import { getContexts } from '@/lib/firebase/firebase-server';
 import { BASE_URL, WEBSITE_ID, productionRobots } from '@/lib/seo';
-import { IS_EMBEDDED, formatGermanDate } from '@/lib/utils';
+import { formatGermanDate } from '@/lib/utils';
 import { ArrowRightIcon, CalendarIcon } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-// The featured election is derived from election dates, so it rolls over on its
-// own once the current one concludes, and the output does not depend on the
+// The featured election is derived from the context dates, so it rolls over on
+// its own once the current one concludes, and the output does not depend on the
 // requester — crawlers and visitors get the same page, which the geo redirect
 // this replaced could not promise. Freshness comes from the context read, which
 // is cached and busted by tag on seed; a page-level revalidate would pin an
 // empty list into a shell instead.
 export const dynamic = 'force-dynamic';
 
-const TITLE = 'wahl.chat – Parteipositionen zur Wahl im Chat vergleichen';
+const TITLE =
+  'wahl.chat – Parteipositionen zur Wahl im Chat vergleichen, mit Quellen';
 const DESCRIPTION =
-  'Stelle den Parteien deine eigenen Fragen und vergleiche ihre Positionen zu Bundestags-, Landtags- und Kommunalwahlen – mit Quellen aus den Parteidokumenten.';
+  'Stelle den Parteien deine eigenen Fragen und vergleiche ihre Positionen zu Bundestags-, Landtags- und Kommunalwahlen – belegt durch Plenarprotokolle, namentliche Abstimmungen und Wahlprogramme.';
 
 export const metadata: Metadata = {
   title: {
@@ -59,16 +45,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function Landing() {
-  const [contexts, wahlChatQuestions, systemStatus, user, openCallUrl] =
-    await Promise.all([
-      getContexts(),
-      getHomeInputProposedQuestions(),
-      getSystemStatus(),
-      getUser(),
-      getAvailableOpenCallUrl(),
-    ]);
+// Everything a visitor still needs to reach from a page with no footer.
+// Impressum and Datenschutz are not optional: German law requires them to stay
+// one click away from every page.
+const PANEL_LINKS = [
+  { href: '/how-to', label: 'Anleitung' },
+  { href: '/about-us', label: 'Über uns' },
+  { href: '/impressum', label: 'Impressum' },
+  { href: '/datenschutz', label: 'Datenschutz' },
+];
 
+export default async function Landing() {
+  const contexts = await getContexts();
   const { upcoming, past } = splitElectionsByDate(contexts);
 
   // Between elections there is nothing upcoming; fall back to the most recent
@@ -85,8 +73,8 @@ export default async function Landing() {
     isPartOf: { '@id': WEBSITE_ID },
   };
 
-  // / is the site's hub for every election, so it says so in structured data
-  // rather than leaving the relationship to be inferred from the link list.
+  // / is the site's hub for every election and links only the featured one, so
+  // the full set has to be discoverable here rather than left to the sitemap.
   const orderedElections = [...upcoming, ...past];
   const electionList = {
     '@type': 'ItemList',
@@ -110,25 +98,29 @@ export default async function Landing() {
     <>
       <JsonLd data={jsonLd} />
 
-      {/* Breaks out of main's max-w-xl column: 36rem + 2×6rem is exactly
-          max-w-3xl, and below md the -mx-4 cancels main's own padding so the
-          colour field reaches the screen edges. */}
-      <section className="relative -mx-4 mt-4 overflow-hidden md:-mx-24 md:rounded-lg">
+      {/* One full-viewport panel. dvh rather than vh so the mobile browser
+          chrome collapsing does not leave the panel taller than the screen. */}
+      <section className="relative flex min-h-dvh w-full flex-col overflow-hidden">
         <BrandBlurBackdrop />
 
-        <div className="relative mx-auto flex max-w-2xl flex-col items-center gap-4 px-4 py-12 text-center md:py-16">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl lg:text-5xl">
-            Parteipositionen zur Wahl vergleichen – im Chat, mit Quellen
-          </h1>
+        <div className="relative flex flex-1 flex-col items-center justify-center gap-6 px-5 py-14 text-center">
+          <Logo variant="large" className="h-8 w-auto md:h-10" />
 
-          <p className="text-base text-muted-foreground md:text-lg">
-            Stelle den Parteien deine eigenen Fragen – zu Mieten, Bildung, Klima
-            oder Migration. Jede Antwort ist mit Quellen aus den
-            Parteidokumenten belegt.
-          </p>
+          <div className="flex max-w-3xl flex-col gap-4">
+            <h1 className="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
+              Mit wahl.chat Parteipositionen zur Wahl vergleichen: im Chat mit
+              Quellen aus offiziellen Dokumenten.
+            </h1>
+
+            <p className="text-pretty text-sm text-muted-foreground sm:text-base md:text-lg">
+              Individuelle Fragen, individuelle Antworten, belegt durch
+              Plenarprotokolle, Mitschnitte aus dem Bundestag, namentliche
+              Abstimmungen und Wahlprogramme.
+            </p>
+          </div>
 
           {featuredElection && (
-            <div className="mt-2 flex w-full flex-col items-center gap-2">
+            <div className="flex w-full flex-col items-center gap-2">
               <Button
                 asChild
                 size="lg"
@@ -164,45 +156,18 @@ export default async function Landing() {
             </div>
           )}
         </div>
+
+        <nav
+          aria-label="Weitere Seiten"
+          className="relative flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-5 pb-8 text-xs text-muted-foreground"
+        >
+          {PANEL_LINKS.map((link) => (
+            <Link key={link.href} href={link.href} className="hover:underline">
+              {link.label}
+            </Link>
+          ))}
+        </nav>
       </section>
-
-      {featuredElection && (
-        <>
-          <HomeInput
-            className="hidden md:block"
-            questions={wahlChatQuestions}
-            initialSystemStatus={systemStatus}
-            hasValidServerUser={!user?.isAnonymous}
-            contextId={featuredElection.context_id}
-          />
-          <AiDisclaimer className="hidden md:block" />
-        </>
-      )}
-
-      {!IS_EMBEDDED && <KnownFrom />}
-
-      <section className="grid w-full grid-cols-1 flex-wrap gap-2 md:grid-cols-2 md:gap-2">
-        <SupportUsCard />
-        <ContactCard />
-        <GitHubCard fullWidth={!openCallUrl} />
-        {openCallUrl && <OpenCallCard url={openCallUrl} />}
-        <HowToCard />
-      </section>
-
-      {featuredElection && (
-        <>
-          <HomeInput
-            className="md:hidden"
-            questions={wahlChatQuestions}
-            initialSystemStatus={systemStatus}
-            hasValidServerUser={!user?.isAnonymous}
-            contextId={featuredElection.context_id}
-          />
-          <AiDisclaimer className="md:hidden" />
-        </>
-      )}
-
-      <LandingIntro upcoming={upcoming} past={past} />
     </>
   );
 }
