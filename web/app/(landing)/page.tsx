@@ -1,7 +1,7 @@
 import Logo from '@/components/chat/logo';
 import { ContextIcon } from '@/components/context-icon';
 import BrandBlurBackdrop from '@/components/home/brand-blur-backdrop';
-import ElectionSwitchLink from '@/components/home/election-switch-link';
+import ElectionLinks from '@/components/home/election-links';
 import JsonLd from '@/components/seo/json-ld';
 import { Button } from '@/components/ui/button';
 import { isUpcomingElection, splitElectionsByDate } from '@/lib/elections';
@@ -73,8 +73,8 @@ export default async function Landing() {
     isPartOf: { '@id': WEBSITE_ID },
   };
 
-  // / is the site's hub for every election and links only the featured one, so
-  // the full set has to be discoverable here rather than left to the sitemap.
+  // Mirrors the links in the panel: same set, same order, so the structured
+  // data and the crawlable markup cannot drift apart.
   const orderedElections = [...upcoming, ...past];
   const electionList = {
     '@type': 'ItemList',
@@ -103,7 +103,7 @@ export default async function Landing() {
       <section className="relative flex min-h-dvh w-full flex-col overflow-hidden">
         <BrandBlurBackdrop />
 
-        <div className="relative flex flex-1 flex-col items-center justify-center gap-6 px-5 py-14 text-center">
+        <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-5 py-8 text-center md:gap-6 md:py-14">
           <Logo variant="large" className="h-8 w-auto md:h-10" />
 
           <div className="flex max-w-3xl flex-col gap-4">
@@ -148,18 +148,19 @@ export default async function Landing() {
                   {featuredDate}
                 </p>
               )}
-
-              <ElectionSwitchLink
-                contexts={contexts}
-                selectedId={featuredElection.context_id}
-              />
             </div>
           )}
+
+          <ElectionLinks
+            upcoming={upcoming}
+            past={past}
+            featuredId={featuredElection?.context_id}
+          />
         </div>
 
         <nav
           aria-label="Weitere Seiten"
-          className="relative flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-5 pb-8 text-xs text-muted-foreground"
+          className="relative flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-5 pb-6 text-xs md:pb-8 text-muted-foreground"
         >
           {PANEL_LINKS.map((link) => (
             <Link key={link.href} href={link.href} className="hover:underline">
