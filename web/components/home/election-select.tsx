@@ -1,23 +1,15 @@
 'use client';
 
 import { ContextIcon } from '@/components/context-icon';
+import ElectionSelectItems from '@/components/home/election-select-items';
 import {
   useContexts,
   useCurrentContext,
 } from '@/components/providers/context-provider';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectSeparator,
-  SelectTrigger,
-} from '@/components/ui/select';
-import { splitElectionsByDate } from '@/lib/elections';
+import { Select, SelectContent, SelectTrigger } from '@/components/ui/select';
 import type { Context } from '@/lib/firebase/firebase.types';
 import { formatGermanDate } from '@/lib/utils';
-import { CalendarIcon, CheckIcon, MapPinIcon } from 'lucide-react';
+import { CalendarIcon, MapPinIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 function CompactElectionContent({ context }: { context: Context }) {
@@ -47,44 +39,6 @@ function CompactElectionContent({ context }: { context: Context }) {
   );
 }
 
-function DropdownElectionContent({
-  context,
-  isSelected,
-}: {
-  context: Context;
-  isSelected?: boolean;
-}) {
-  const formattedDate = formatGermanDate(context.date, 'long');
-
-  return (
-    <div className="flex w-full items-start gap-3 py-1">
-      <ContextIcon context={context} className="mt-0.5 size-8 shrink-0" />
-      <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
-        <span className="text-sm font-medium leading-tight text-foreground">
-          {context.name}
-        </span>
-        <div className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
-          {formattedDate && (
-            <span className="flex items-center gap-1">
-              <CalendarIcon className="size-3 shrink-0" />
-              <span className="leading-none">{formattedDate}</span>
-            </span>
-          )}
-          {context.location_name && (
-            <span className="flex items-center gap-1">
-              <MapPinIcon className="size-3 shrink-0" />
-              <span className="leading-none">{context.location_name}</span>
-            </span>
-          )}
-        </div>
-      </div>
-      {isSelected && (
-        <CheckIcon className="mt-0.5 size-4 shrink-0 text-primary" />
-      )}
-    </div>
-  );
-}
-
 export function ElectionSelect() {
   const currentContext = useCurrentContext();
   const contexts = useContexts();
@@ -96,10 +50,7 @@ export function ElectionSelect() {
     }
   };
 
-  const { upcoming: upcomingElections, past: pastElections } =
-    splitElectionsByDate(contexts);
-
-  // Don't show selector if there's only one context
+  // A lone context is not a choice — render it as a status line instead.
   if (contexts.length <= 1) {
     return (
       <div
@@ -127,52 +78,10 @@ export function ElectionSelect() {
         className="max-w-[calc(100vw-2rem)]"
         aria-label="Verfügbare Wahlen"
       >
-        {upcomingElections.map((ctx) => {
-          const isSelected = ctx.context_id === currentContext.context_id;
-          const formattedDate = formatGermanDate(ctx.date, 'long');
-          const ariaLabel = `${ctx.name}${formattedDate ? `, ${formattedDate}` : ''}${ctx.location_name ? `, ${ctx.location_name}` : ''}${isSelected ? ' (ausgewählt)' : ''}`;
-
-          return (
-            <SelectItem
-              key={ctx.context_id}
-              value={ctx.context_id}
-              className="block w-full cursor-pointer px-3 py-2 [&>span:first-child]:hidden [&>span]:whitespace-normal"
-              aria-label={ariaLabel}
-            >
-              <DropdownElectionContent context={ctx} isSelected={isSelected} />
-            </SelectItem>
-          );
-        })}
-
-        {pastElections.length > 0 && (
-          <>
-            <SelectSeparator className="bg-border/50" />
-            <SelectGroup>
-              <SelectLabel className="pl-3 text-xs font-normal text-muted-foreground/70">
-                Vergangene Wahlen
-              </SelectLabel>
-              {pastElections.map((ctx) => {
-                const isSelected = ctx.context_id === currentContext.context_id;
-                const formattedDate = formatGermanDate(ctx.date, 'long');
-                const ariaLabel = `${ctx.name}${formattedDate ? `, ${formattedDate}` : ''}${ctx.location_name ? `, ${ctx.location_name}` : ''}${isSelected ? ' (ausgewählt)' : ''}`;
-
-                return (
-                  <SelectItem
-                    key={ctx.context_id}
-                    value={ctx.context_id}
-                    className="block w-full cursor-pointer px-3 py-2 [&>span:first-child]:hidden [&>span]:whitespace-normal"
-                    aria-label={ariaLabel}
-                  >
-                    <DropdownElectionContent
-                      context={ctx}
-                      isSelected={isSelected}
-                    />
-                  </SelectItem>
-                );
-              })}
-            </SelectGroup>
-          </>
-        )}
+        <ElectionSelectItems
+          contexts={contexts}
+          selectedId={currentContext.context_id}
+        />
       </SelectContent>
     </Select>
   );

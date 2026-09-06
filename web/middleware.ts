@@ -36,7 +36,10 @@ function isElectionPast(electionDate: string): boolean {
   );
 }
 
-// Get context ID from Vercel geo headers or fallback to default
+// Election a context-less legacy link should land on. Region-derived rather
+// than fixed so these links keep resolving as elections conclude. Only these
+// redirects may vary by requester: / must serve identical content to crawlers
+// and visitors, so it never consults this.
 function getContextIdFromGeo(request: NextRequest): string {
   const country = request.headers.get('x-vercel-ip-country');
   const region = request.headers.get('x-vercel-ip-country-region');
@@ -96,7 +99,7 @@ export async function middleware(request: NextRequest) {
 
   // Handle legacy /chat routes → redirect to /session with party_id
   if (pathname.startsWith('/chat')) {
-    const contextId = DEFAULT_CONTEXT_ID;
+    const contextId = getContextIdFromGeo(request);
     if (pathname === '/chat') {
       return NextResponse.redirect(buildRedirectUrl(request, `/${contextId}`));
     }
@@ -106,15 +109,9 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // Root path: detect context from geo and redirect
-  if (pathname === '/') {
-    const contextId = getContextIdFromGeo(request);
-    return NextResponse.redirect(buildRedirectUrl(request, `/${contextId}`));
-  }
-
   // Legacy /session routes → redirect to /{contextId}/session
   if (pathname === '/session' || pathname.startsWith('/session/')) {
-    const contextId = DEFAULT_CONTEXT_ID;
+    const contextId = getContextIdFromGeo(request);
     const restPath = pathname.replace('/session', '');
     return NextResponse.redirect(
       buildRedirectUrl(request, `/${contextId}/session${restPath}`),
@@ -123,7 +120,7 @@ export async function middleware(request: NextRequest) {
 
   // Legacy /swiper routes → redirect to /{contextId}/swiper
   if (pathname === '/swiper' || pathname.startsWith('/swiper/')) {
-    const contextId = DEFAULT_CONTEXT_ID;
+    const contextId = getContextIdFromGeo(request);
     const restPath = pathname.replace('/swiper', '');
     return NextResponse.redirect(
       buildRedirectUrl(request, `/${contextId}/swiper${restPath}`),
@@ -132,7 +129,7 @@ export async function middleware(request: NextRequest) {
 
   // Legacy /share → redirect to /{contextId}/share
   if (pathname === '/share') {
-    const contextId = DEFAULT_CONTEXT_ID;
+    const contextId = getContextIdFromGeo(request);
     return NextResponse.redirect(
       buildRedirectUrl(request, `/${contextId}/share`),
     );
@@ -140,7 +137,7 @@ export async function middleware(request: NextRequest) {
 
   // Legacy /sources → redirect to /{contextId}/sources
   if (pathname === '/sources') {
-    const contextId = DEFAULT_CONTEXT_ID;
+    const contextId = getContextIdFromGeo(request);
     return NextResponse.redirect(
       buildRedirectUrl(request, `/${contextId}/sources`),
     );
@@ -161,6 +158,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    // / serves the landing page and is never redirected. It stays matched so
+    // the tenant header and the budget kill switch still reach it.
     '/',
     '/chat/:path*',
     '/session/:path*',
