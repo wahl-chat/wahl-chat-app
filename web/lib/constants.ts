@@ -10,13 +10,35 @@ export const DEFAULT_CONTEXT_ID =
   process.env.NEXT_PUBLIC_DEFAULT_CONTEXT_ID ??
   'landtagswahl-sachsen-anhalt-2026';
 
-// Region to context ID mapping for geo-IP detection. Only regions with a context
-// that actually exists belong here — an unmapped region falls through to
-// DEFAULT_CONTEXT_ID in a single redirect, whereas mapping it to a missing
-// context costs an extra hop via /[contextId]'s redirect.
-export const REGION_TO_CONTEXT: Record<string, string> = {
-  BW: 'landtagswahl-baden-wuerttemberg-2026', // Baden-Württemberg
-  BY: 'kommunalwahl-muenchen-2026', // Bayern
-  RP: 'landtagswahl-rheinland-pfalz-2026', // Rheinland-Pfalz
-  ST: 'landtagswahl-sachsen-anhalt-2026', // Sachsen-Anhalt
+// Geo-IP routing cannot query Firestore while choosing the first redirect.
+// Only regions with an existing context belong here; a missing context costs
+// an extra redirect via /[contextId].
+export const REGION_CONTEXTS: Record<
+  string,
+  { contextId: string; electionDate: string }
+> = {
+  BE: {
+    contextId: 'abgeordnetenhauswahl-berlin-2026',
+    electionDate: '2026-09-20',
+  },
+  BW: {
+    contextId: 'landtagswahl-baden-wuerttemberg-2026',
+    electionDate: '2026-03-08',
+  },
+  BY: {
+    contextId: 'kommunalwahl-muenchen-2026',
+    electionDate: '2026-03-08',
+  },
+  MV: {
+    contextId: 'landtagswahl-mecklenburg-vorpommern-2026',
+    electionDate: '2026-09-20',
+  },
+  RP: {
+    contextId: 'landtagswahl-rheinland-pfalz-2026',
+    electionDate: '2026-03-22',
+  },
+  ST: {
+    contextId: 'landtagswahl-sachsen-anhalt-2026',
+    electionDate: '2026-09-06',
+  },
 };

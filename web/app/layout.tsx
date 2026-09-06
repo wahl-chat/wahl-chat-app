@@ -8,6 +8,11 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Analytics } from '@vercel/analytics/react';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+// pdf.js text-layer positioning for the citation PDF viewer. Imported here, NOT
+// in the dynamically imported viewer chunk: CSS imported only from a
+// next/dynamic(ssr:false) chunk is dropped in some dev/HMR paths, and without
+// it the text layer flows below the canvas instead of overlaying it.
+import 'react-pdf/dist/esm/Page/TextLayer.css';
 import TenantProvider from '@/components/providers/tenant-provider';
 import { TENANT_ID_HEADER } from '@/lib/constants';
 import { socialMediaConfig } from '@/lib/contact-config';

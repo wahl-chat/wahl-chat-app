@@ -10,7 +10,9 @@ import { shuffleArray } from '@/lib/utils';
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 
-export const revalidate = 3600;
+// Page is not the photocopy: election config is cached in unstable_cache and
+// busted by tag on seed. ISR here would snapshot empty party lists again.
+export const dynamic = 'force-dynamic';
 
 type Props = {
   children: React.ReactNode;
@@ -53,9 +55,8 @@ async function ContextLayout({ children, params }: Props) {
     redirect(`/${DEFAULT_CONTEXT_ID}`);
   }
 
-  // Shuffle parties randomly for fair display order.
-  // Note: With ISR (revalidate = 3600), this shuffle is cached for ~1 hour,
-  // meaning all users see the same party order during that period.
+  // Shuffle per request for fair display order. The party *list* is cached;
+  // the order is not.
   const shuffledParties = shuffleArray(parties);
 
   // The WebPage node is emitted per page, not here: it carries a URL and an @id,

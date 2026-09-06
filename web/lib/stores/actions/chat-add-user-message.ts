@@ -18,7 +18,6 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
   (get, set) =>
   async (userId: string, message: string, fromInitialQuestion?: boolean) => {
     const {
-      isAnonymous,
       chatSessionId,
       contextId,
       localPreliminaryChatSessionId,
@@ -170,7 +169,6 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
           session_id: safeSessionId,
           context_id: safeContextId,
           party_ids: Array.from(partyIds),
-          user_is_logged_in: !isAnonymous,
           chat_history: chatHistory,
         },
       );

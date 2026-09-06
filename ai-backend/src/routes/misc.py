@@ -98,7 +98,6 @@ async def answer_wahl_chat_swiper_question(body: WahlChatSwiperAnswerRequestDto)
         current_political_question=body.current_political_question,
         conversation_history=chat_history_str,
         user_message=body.user_message,
-        chat_response_llm_size=body.chat_response_llm_size,
     )
 
     chat_history = body.chat_history

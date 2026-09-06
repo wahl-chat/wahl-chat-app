@@ -15,7 +15,6 @@ type AppendBody = {
   session_id: string;
   context_id: string;
   party_ids: string[];
-  user_is_logged_in: boolean;
   chat_history?: unknown[];
 };
 
@@ -76,10 +75,9 @@ function SseChatProvider({ children }: Props) {
     // is needed — useChat parses it natively.
     transport: new DefaultChatTransport({
       api: '/api/chat',
-      // Attach the Firebase ID token per request (async resolvable): the proxy
-      // route forwards it so the backend can verify user_is_logged_in/premium
-      // Resolves to {} when signed out / on token errors —
-      // the request degrades gracefully to unauthenticated.
+      // Attach the Firebase ID token per request (async resolvable). Resolves
+      // to {} when signed out / on token errors — the request degrades
+      // gracefully to unauthenticated.
       // (The auth service worker defers to this header — it only injects its
       // own token when a request carries none, so exactly ONE Bearer token
       // reaches the backend.)

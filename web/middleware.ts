@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import {
   CONTEXT_ID_HEADER,
   DEFAULT_CONTEXT_ID,
-  REGION_TO_CONTEXT,
+  REGION_CONTEXTS,
   TENANT_ID_HEADER,
 } from './lib/constants';
 
@@ -28,20 +28,23 @@ function isStaticPage(pathname: string): boolean {
   );
 }
 
+const ELECTION_PAST_BUFFER_MS = 5 * 24 * 60 * 60 * 1000;
+
+function isElectionPast(electionDate: string): boolean {
+  return (
+    new Date(electionDate).getTime() < Date.now() - ELECTION_PAST_BUFFER_MS
+  );
+}
+
 // Get context ID from Vercel geo headers or fallback to default
 function getContextIdFromGeo(request: NextRequest): string {
-  // Only consider German regions for now
   const country = request.headers.get('x-vercel-ip-country');
-  if (country !== 'DE') {
-    return DEFAULT_CONTEXT_ID;
-  }
-
   const region = request.headers.get('x-vercel-ip-country-region');
-  if (region && REGION_TO_CONTEXT[region]) {
-    return REGION_TO_CONTEXT[region];
-  }
+  const context = country === 'DE' && region ? REGION_CONTEXTS[region] : null;
 
-  return DEFAULT_CONTEXT_ID;
+  return context && !isElectionPast(context.electionDate)
+    ? context.contextId
+    : DEFAULT_CONTEXT_ID;
 }
 
 // Known context ID patterns (will be validated against actual contexts)

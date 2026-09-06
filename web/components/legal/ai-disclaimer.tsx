@@ -100,15 +100,8 @@ type Props = {
 function AiDisclaimer({ className }: Props) {
   return (
     <ResponsiveDialog>
-      {/* The storage fact is stated in the always-visible line, not only behind
-          the dialog: it has to be readable before the first message is sent. */}
-      <p
-        className={cn(
-          'my-2 text-center text-xs text-muted-foreground',
-          className,
-        )}
-      >
-        wahl.chat kann Fehler machen und speichert deine Nachrichten.{' '}
+      <p className="my-2 text-center text-xs text-muted-foreground">
+        wahl.chat Antwortet mit KI.{' '}
         <ResponsiveDialogTrigger className="font-semibold underline">
           Erfahre hier mehr.
         </ResponsiveDialogTrigger>
