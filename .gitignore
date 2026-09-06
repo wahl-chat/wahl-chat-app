@@ -13,6 +13,8 @@
 .claude/history.jsonl
 .claude/skills
 
+infra-example-export
+
 # === Common ===
 .DS_Store
 .idea/
@@ -20,6 +22,8 @@
 *.pem
 .next
 node_modules/
+.pnpm-store
+.claude/skills
 
 # === Environment / secrets ===
 .env
@@ -28,8 +32,6 @@ node_modules/
 *firebase-adminsdk*.json
 # Vertex AI service-account key (billing project) — runtime-provided only.
 vertex-sa*.json
-terraform/
-terraform-export/
 
 # === Python runtime (repo-wide, not backend-only) ===
 # Python lives in several dirs: ai-backend/, firebase/ (incl. a local venv),
@@ -39,8 +41,32 @@ __pycache__/
 *.pyo
 .venv/
 *.egg-info/
+
+# === Terraform ===
+# infra/ (the clean, example-modeled IaC) IS committed. The old bulk-export dirs are
+# reference-only and stay fully ignored — they contain plaintext secrets + local state:
 terraform/
 terraform-export/
+# Within committed roots, ignore local state, plugin cache and plans — but NOT the
+# *.tf sources or the committed .terraform.lock.hcl:
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+# Saved `terraform plan` / import output can contain plaintext secret values — never commit:
+plan*.txt
+*.plan.txt
+import*.log
+# Local-only operator handoff — describes in-progress migration state / current exposure.
+# Keep on the operator's machine; do NOT push to the public repo.
+terraform_next_steps.md
+# Local-only, one-time operator scripts (brownfield import + secret migration). They
+# narrate the current migration state, so keep them off the public repo.
+infra/envs/*/import.sh
+infra/envs/*/migrate-secrets.sh
+
 # === Misc ===
 *.log
 .local
