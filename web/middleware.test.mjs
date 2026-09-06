@@ -100,8 +100,11 @@ describe('legacy context-less URLs', () => {
 });
 
 describe('the budget kill switch', () => {
+  const configuredBudgetSpent = process.env.BUDGET_SPENT;
+
   afterEach(() => {
-    delete process.env.BUDGET_SPENT;
+    // Empty reads as "not spent": the switch only trips on the exact string.
+    process.env.BUDGET_SPENT = configuredBudgetSpent ?? '';
   });
 
   test('sends the site to /budget-spent without redirecting it to itself', async () => {
