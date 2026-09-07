@@ -103,9 +103,7 @@ function ChatPledgeTracker({ message, open, onOpenChange }: Props) {
           {/* Keyed so expand/collapse state resets when switching pledges. */}
           <PledgeTimeline key={activePledge.pledge_id} pledge={activePledge} />
 
-          <p className="mt-1 rounded-lg bg-muted/40 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
-            {PLEDGE_TRACKER_BRAND.infoText}
-          </p>
+          <PledgeDisclaimer />
         </div>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
@@ -182,6 +180,8 @@ function PledgeTimeline({ pledge }: { pledge: PledgeRecord }) {
       key={`${event.date}-${event.url ?? index}`}
       event={event}
       isLast={index === events.length - 1}
+      number={events.length - index}
+      isNewest={index === 0}
     />
   );
 
@@ -193,11 +193,11 @@ function PledgeTimeline({ pledge }: { pledge: PledgeRecord }) {
   return (
     <ol className="relative">
       {events.slice(0, 2).map(renderEvent)}
-      <li className="relative pb-6 pl-7">
+      <li className="relative pb-6 pl-8">
         {/* Continuous spine through the collapsed gap. */}
         <span
           aria-hidden
-          className="absolute inset-y-0 left-[5px] w-px bg-border"
+          className="absolute inset-y-0 left-2 w-px bg-border"
         />
         <button
           type="button"
@@ -216,9 +216,14 @@ function PledgeTimeline({ pledge }: { pledge: PledgeRecord }) {
 function TimelineEvent({
   event,
   isLast,
+  number,
+  isNewest,
 }: {
   event: PledgeTimelineEvent;
   isLast: boolean;
+  /** Chronological position: 1 = oldest event, highest = newest (shown on top). */
+  number: number;
+  isNewest: boolean;
 }) {
   const [showFullText, setShowFullText] = useState(false);
   const date = formatPledgeDate(event.date);
@@ -226,18 +231,26 @@ function TimelineEvent({
   const hasShortTitle = Boolean(shortTitle) && shortTitle !== event.event;
 
   return (
-    <li className={cn('relative pl-7', !isLast && 'pb-6')}>
+    <li className={cn('relative pl-8', !isLast && 'pb-6')}>
       {/* Spine: drawn per item so the last event has no trailing line. */}
       {!isLast && (
         <span
           aria-hidden
-          className="absolute bottom-0 left-[5px] top-4 w-px bg-border"
+          className="absolute bottom-0 left-2 top-5 w-px bg-border"
         />
       )}
       <span
         aria-hidden
-        className="absolute left-0 top-[5px] size-[11px] rounded-full bg-zinc-400 dark:bg-zinc-600"
-      />
+        className={cn(
+          'absolute left-0 top-0.5 flex size-4 items-center justify-center rounded-full border bg-background text-[10px] font-medium leading-none',
+          isNewest
+            ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+            : 'border-border text-muted-foreground',
+        )}
+      >
+        {number}
+      </span>
+      {isNewest && <span className="sr-only">Neuestes Ereignis</span>}
 
       {date && (
         <time className="text-xs font-medium text-muted-foreground">
@@ -286,6 +299,32 @@ function TimelineEvent({
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * Research-context note: one-line tagline with the details behind "Mehr" —
+ * the AiDisclaimer pattern, expanded inline instead of nesting a second
+ * dialog/drawer inside the popup.
+ */
+function PledgeDisclaimer() {
+  const [showDetails, setShowDetails] = useState(false);
+
+  return (
+    <div className="mt-1 text-xs leading-relaxed text-muted-foreground">
+      <p>
+        {PLEDGE_TRACKER_BRAND.taglineText}{' '}
+        <button
+          type="button"
+          aria-expanded={showDetails}
+          onClick={() => setShowDetails((v) => !v)}
+          className="font-medium underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {showDetails ? 'Weniger' : 'Mehr'}
+        </button>
+      </p>
+      {showDetails && <p className="mt-1">{PLEDGE_TRACKER_BRAND.detailText}</p>}
+    </div>
   );
 }
 
