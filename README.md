@@ -110,6 +110,20 @@ make stores-down
 | `make test-local-mode` | Run the seed-script emulator-guard tests (needs live local stores: `make stores-up` first) |
 | `make lint` | Lint web (biome) + backend (ruff) |
 
+## Deploying
+
+Merges to `develop` deploy the **dev** environment automatically: Vercel → [dev.wahl.chat](https://dev.wahl.chat), Cloud Build → `wahl-chat-backend-dev`.
+
+Production is a manual promote of a git SHA (defaults to the tip of `develop`), so backend and web can ship independently and in either order:
+
+1. GitHub → Actions → **Promote backend** or **Promote web**
+2. Leave the SHA empty to promote `develop`, or paste a full commit SHA
+3. Approve the `prod-backend` / `prod-web` environment if reviewers are configured
+
+Do not merge to `main` to ship. After this is in place, disable the Cloud Build trigger that fires on `main`, and keep Vercel’s Production Branch as `main` (git deploys from `main` are turned off in `web/vercel.json`).
+
+Required one-time secrets and environment variables are listed in the workflow files under `.github/workflows/`.
+
 ## Contributing
 
 We appreciate contributions from our community. Please take a look at the open issues if you are interested.

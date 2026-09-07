@@ -156,6 +156,7 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 | `firebase/` | Firestore rules (`firestore.rules`), Cloud Functions, seed script (`scripts/seed_firestore.py`), rules tests (`tests/`). |
 | `infra/` | Scheduled-ingestion deployment — planned Terraform workstream (Cloud Run Jobs + Scheduler); see `infra/README.md`. |
 | `scripts/` | Repo-root scripts: `check_gdpr_wall.py` (CI guard), `setup-agent-docs.sh`. |
+| `.github/workflows/` | Manual prod promotes (`promote-backend-prod.yml`, `promote-web-prod.yml`). |
 | `Makefile` | Developer convenience targets (install, stores, dev, test, lint, ingestion runs). |
 | `docker-compose.yml` | Local Qdrant service. |
 
@@ -203,6 +204,16 @@ Run individual services directly if you prefer:
 cd web && bun run dev                       # frontend
 cd ai-backend && uv run python -m src.app   # backend (add --debug for verbose logs)
 ```
+
+### Deploying
+
+`develop` auto-deploys the **dev** environment (Vercel `dev.wahl.chat`, Cloud Run
+`wahl-chat-backend-dev`). Production is two independent manual GitHub Actions —
+**Promote backend** and **Promote web** — each taking an optional SHA (default:
+tip of `develop`). They are the only prod path; a merge to `main` must not ship.
+Backend promote submits `cloudbuild.backend.yaml` against the `wahl-chat`
+project. Web promote rebuilds on Vercel with Production env vars (never promote
+a develop preview: `NEXT_PUBLIC_*` is compile-time).
 
 ### Running ingestion connectors
 
