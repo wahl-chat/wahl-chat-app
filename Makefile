@@ -266,6 +266,18 @@ run-manifestos: bootstrap-collection
 	cd ai-backend && $(QDRANT_ENV) \
 		uv run python -m src.ingestion.connectors.manifestos.bulk $(ARGS)
 
+# PledgeTracker: stub mode ingests the packaged fixture. Live mode (set
+# PLEDGETRACKER_ENABLE_LIVE=true + PLEDGETRACKER_API_KEY in ai-backend/.env)
+# submits registry pledges to the Cambridge queue API (~3 min GPU time per
+# pledge, one at a time). Requires FIRESTORE_EMULATOR_HOST unless ENV=prod.
+# Examples:
+#   FIRESTORE_EMULATOR_HOST=localhost:8081 make run-pledgetracker ARGS="--dry-run"
+#   FIRESTORE_EMULATOR_HOST=localhost:8081 PLEDGETRACKER_ENABLE_LIVE=true \
+#     make run-pledgetracker ARGS="--registry data/pledges/sachsen_anhalt_pledges.jsonl --batch-size 2"
+run-pledgetracker: bootstrap-collection
+	cd ai-backend && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
+		uv run python -m src.ingestion.connectors.pledgetracker.bulk $(ARGS)
+
 # Uploaded manifestos: party PDFs supplied directly, for elections with no AW
 # coverage. Metadata comes from the object path + Firestore seed fixtures.
 #   make run-manifesto-uploads ARGS="--check"    # validate metadata, no reads

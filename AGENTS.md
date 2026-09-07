@@ -106,6 +106,16 @@ Connectors are registered in a closed `{connector_id: factory}` map
   that hook ever fails. Both read the class from the object path, so neither can
   remove a document the AW copy does not replace.
 
+Outside the registry (bespoke runner, like the manifesto bulk CLIs):
+
+- `pledgetracker` — evidence timelines for political pledges from the Cambridge
+  PledgeTracker research project (EMNLP 2025 demo,
+  https://aclanthology.org/2025.emnlp-demos.64/). Not in `CONNECTOR_FACTORIES`:
+  pledges have no monotonic cursor and the runner dual-writes Firestore
+  (`pledges/{pledge_id}`, the source of truth incl. timelines) + Qdrant (one
+  `pledge_record` vector per pledge, timelines never embedded). Runner:
+  `connectors/pledgetracker/bulk.py` (see "Running PledgeTracker ingestion").
+
 The **data contract** is the Pydantic model set in `src/ingestion/schemas.py`
 (`ChunkRecord` plus the `AuthorityTier` / `SourceType` enums and per-source
 `meta` builders `VoteMeta` / `SpeechMeta`). It is the single source of truth for
@@ -247,6 +257,37 @@ path carries the metadata — election and party must already exist in
 `--since` (or `MANIFESTO_UPLOADS_SINCE`) floors by election date; documents below it
 are neither ingested nor retired. Removing a manifest line retires that document's
 chunks on the next run.
+
+#### Running PledgeTracker ingestion
+
+The Cambridge queue API is an async job queue in front of a single GPU: one job
+at a time, ~3 minutes per pledge, results stored server-side. We own the pledge
+list (`ai-backend/data/pledges/*.jsonl`: claim, `pledge_date`, `pledge_author`,
+optional `bundesland`/`party_id`/source metadata). Bundesländer map to ISO
+3166-2 region codes (`DE-ST`), which must match the context seeds' `region_path`
+elements. The runner is incremental: a freshness watermark skips pledges checked
+within `--freshness-days` (default 7), interrupted runs resume via the job id
+persisted on the Firestore doc, and `--batch-size` (default 3) bounds each
+invocation — sized for the 15-minute scheduled-job cap.
+
+Requires `PLEDGETRACKER_API_KEY` in `ai-backend/.env` (gitignored — never commit
+it) and `PLEDGETRACKER_ENABLE_LIVE=true`; without them the runner ingests the
+packaged demo fixture offline. `FIRESTORE_EMULATOR_HOST` is mandatory unless
+`ENV=prod` (accidental-prod-write guard).
+
+```bash
+FIRESTORE_EMULATOR_HOST=localhost:8081 make run-pledgetracker ARGS="--dry-run"
+FIRESTORE_EMULATOR_HOST=localhost:8081 PLEDGETRACKER_ENABLE_LIVE=true \
+  make run-pledgetracker ARGS="--registry data/pledges/sachsen_anhalt_pledges.jsonl --batch-size 2"
+# Backfill short event headlines only (LLM calls, no queue jobs / Qdrant writes):
+FIRESTORE_EMULATOR_HOST=localhost:8081 make run-pledgetracker ARGS="--backfill-titles"
+```
+
+Data-handling invariants: Cambridge's per-event `Ja`/`Nein` label maps to
+`is_relevant_for_tracking` (useful evidence), never a fulfilled/broken verdict —
+UI copy says "Ziele", not "Versprechen"; the events' full source text is never
+stored (`url`/`title` suffice); the chat-side lookup is best-effort and may
+return nothing (the UI then shows no PledgeTracker entry point).
 
 De-dup with AW is two-way and party+region+date scoped: an upload is skipped if AW
 already has that party's programme; once AW ingests it, its `post_upsert` deletes

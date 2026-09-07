@@ -1,6 +1,7 @@
 'use client';
 
 import { getAuthHeader } from '@/lib/firebase/firebase';
+import type { PledgeTrackerSuggestions } from '@/lib/stores/chat-store.types';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useCallback, useEffect } from 'react';
@@ -159,6 +160,7 @@ function SseChatProvider({ children }: Props) {
             ann.session_id as string,
             ann.party_id as string,
             ann.complete_message as string,
+            ann.pledge_tracker as PledgeTrackerSuggestions | undefined,
           );
         }
       } else if (type === 'quick_replies_title') {

@@ -313,6 +313,20 @@ _INDEX_SPECS: list[
     # source_parent_key: stable per-parent identity — run.py scrolls the full
     # parent footprint by it so a wholly-disappeared child is reconciled.
     ("source_parent_key", models.PayloadSchemaType.KEYWORD),
+    # Pledge-record indexes (pledge_record chunks only; Firestore pledges/{id}
+    # holds the full record — these support filtered retrieval and hydration):
+    # status: pledge machine-status filtering; as_of_date: recency scoping;
+    # claim_id: cross-party claim lookup; pledge_id: Firestore doc lookup;
+    # policy_area: display faceting; context_id: provenance scoping.
+    ("status", models.PayloadSchemaType.KEYWORD),
+    (
+        "as_of_date",
+        models.DatetimeIndexParams(type=models.DatetimeIndexType.DATETIME),
+    ),
+    ("claim_id", models.PayloadSchemaType.KEYWORD),
+    ("pledge_id", models.PayloadSchemaType.KEYWORD),
+    ("policy_area", models.PayloadSchemaType.KEYWORD),
+    ("context_id", models.PayloadSchemaType.KEYWORD),
 ]
 
 _REQUIRED_INDEXES: frozenset[str] = frozenset(field for field, _ in _INDEX_SPECS)

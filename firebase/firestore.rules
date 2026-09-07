@@ -14,6 +14,12 @@ service cloud.firestore {
     	allow read;
     }
 
+    // PledgeTracker records (full pledge + timeline; written only by the
+    // admin-SDK ingestion runner, which bypasses rules).
+    match /pledges/{pledge_id} {
+      allow read;
+    }
+
     match /parties/{document=**} {
       allow read;
     }

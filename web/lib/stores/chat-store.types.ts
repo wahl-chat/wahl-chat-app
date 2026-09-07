@@ -38,6 +38,47 @@ export type CurrentStreamingMessages = {
   responding_party_ids?: string[];
 };
 
+export type PledgeTimelineEvent = {
+  date: string;
+  publication_date?: string | null;
+  event: string;
+  event_short?: string | null;
+  url?: string | null;
+  title?: string | null;
+  bundesland?: string | null;
+  source?: string | null;
+  party?: string | null;
+  actor_type?: string | null;
+  is_relevant_for_tracking?: boolean | null;
+  raw_label?: string | null;
+  confidence?: number | null;
+};
+
+export type PledgeRecord = {
+  pledge_id: string;
+  party_id: string;
+  claim: string;
+  normalized_summary: string;
+  region_path: string[];
+  region: string;
+  context_id?: string | null;
+  policy_area?: string | null;
+  pledge_date?: string | null;
+  pledge_source_title?: string | null;
+  pledge_source_url?: string | null;
+  pledge_source_locator?: string | null;
+  timeline_events: PledgeTimelineEvent[];
+  last_checked_at?: string | null;
+  tracker_status?: string | null;
+  tracker_status_label?: string | null;
+  tracker_step?: string | null;
+};
+
+export type PledgeTrackerSuggestions = {
+  party_id: string;
+  pledges: PledgeRecord[];
+};
+
 export type MessageItem = {
   id: string;
   content: string;
@@ -48,6 +89,7 @@ export type MessageItem = {
   feedback?: MessageFeedback;
   created_at?: Timestamp;
   voting_behavior?: VotingBehavior;
+  pledge_tracker?: PledgeTrackerSuggestions;
 };
 
 export type CurrentStreamedVotingBehavior = {
@@ -175,6 +217,7 @@ export type ChatStoreActions = {
     sessionId: string,
     partyId: string,
     completeMessage: string,
+    pledgeTracker?: PledgeTrackerSuggestions,
   ) => void;
   failStreamingMessage: (sessionId: string, partyId: string) => void;
   finishStreamingTurn: () => void;
