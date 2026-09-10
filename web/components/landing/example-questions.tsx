@@ -172,14 +172,30 @@ function ElectionQuestions({ group }: { group: QuestionGroup }) {
   );
 
   return (
-    <li className="flex w-[85vw] shrink-0 snap-start flex-col gap-4 rounded-md border border-border bg-background p-4 md:w-auto md:shrink md:p-5">
-      <h3 className="text-pretty font-bold text-foreground">
+    <li className="relative flex w-[85vw] shrink-0 snap-start flex-col gap-4 overflow-hidden rounded-md border border-border bg-background p-4 md:w-auto md:shrink md:p-5">
+      {/* The state's coat of arms as a watermark, so a card is recognisable as
+          its election before the name is read. Decorative, and faint enough
+          that the question cards above it stay legible. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+      >
+        <Image
+          src={context.icon_url || `/images/${context.context_id}.webp`}
+          alt=""
+          width={240}
+          height={240}
+          className="size-2/3 object-contain opacity-[0.16] dark:opacity-[0.22]"
+        />
+      </div>
+
+      <h3 className="relative text-pretty font-bold text-foreground">
         <Link href={`/${context.context_id}`} className="hover:underline">
           {context.name}
         </Link>
       </h3>
 
-      <ul className="flex flex-col gap-4">
+      <ul className="relative flex flex-col gap-4">
         {visibleQuestions.map((question, index) => {
           const parties = partiesByQuestion[index];
 
@@ -196,7 +212,7 @@ function ElectionQuestions({ group }: { group: QuestionGroup }) {
                 // these as the section scrolls into view would render a chat
                 // per question for nothing.
                 prefetch={false}
-                className="group flex h-full flex-col gap-1.5 rounded-md border border-border bg-background p-3 pt-6 ring-offset-background transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="group flex h-full flex-col gap-1.5 rounded-md border border-border bg-background/75 p-3 pt-6 ring-offset-background transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 {question.topic && (
                   <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
