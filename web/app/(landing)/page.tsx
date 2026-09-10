@@ -1,5 +1,3 @@
-import Logo from '@/components/chat/logo';
-import { ContextIcon } from '@/components/context-icon';
 import ContactCard from '@/components/home/contact-card';
 import GitHubCard from '@/components/home/github-card';
 import KnownFrom from '@/components/home/known-from';
@@ -11,13 +9,14 @@ import ElectionLinks from '@/components/landing/election-links';
 import ExampleQuestions, {
   type QuestionGroup,
 } from '@/components/landing/example-questions';
+import HeroCta from '@/components/landing/hero-cta';
+import HeroLogo from '@/components/landing/hero-logo';
 import LandingFaq from '@/components/landing/landing-faq';
 import LandingSection from '@/components/landing/landing-section';
 import LandingStats from '@/components/landing/landing-stats';
 import ScreenshotWheel from '@/components/landing/screenshot-wheel';
 import ScrollCue from '@/components/landing/scroll-cue';
 import JsonLd from '@/components/seo/json-ld';
-import { Button } from '@/components/ui/button';
 import { isUpcomingElection, splitElectionsByDate } from '@/lib/elections';
 import {
   getContexts,
@@ -35,9 +34,8 @@ import {
   productionRobots,
 } from '@/lib/seo';
 import { IS_EMBEDDED, formatGermanDate } from '@/lib/utils';
-import { ArrowRightIcon, CalendarIcon } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 
 // The featured election is derived from the context dates, so it rolls over on
 // its own once the current one concludes, and the output does not depend on the
@@ -200,10 +198,7 @@ export default async function Landing() {
             so md: collapses the text and the button back into one centred
             group while the mark stays in its own top row. */}
         <div className="relative flex flex-1 flex-col px-5 py-6 md:py-14">
-          <Logo
-            variant="large"
-            className="h-8 w-auto shrink-0 self-start md:h-10"
-          />
+          <HeroLogo />
 
           <div className="flex flex-1 flex-col items-center gap-6 text-center">
             <div className="my-auto flex max-w-3xl flex-col gap-4 md:mb-0 md:mt-auto">
@@ -217,7 +212,7 @@ export default async function Landing() {
                   line carries the page's keywords and reads as the hero's
                   subhead. Styled down to the supporting sentence it is — the
                   page still has exactly one h1, directly above it. */}
-              <h2 className="text-pretty text-md font-normal text-muted-foreground sm:text-base md:text-lg">
+              <h2 className="text-pretty text-base font-normal text-muted-foreground md:text-lg">
                 Welche Partei passt zu dir? Vergleiche Parteien, belegt durch
                 Plenarprotokolle, namentliche Abstimmungen und Wahlprogramme.
               </h2>
@@ -242,27 +237,9 @@ export default async function Landing() {
                   </p>
                 )}
 
-                <Button
-                  asChild
-                  size="lg"
-                  className="mt-2 h-auto w-full max-w-md whitespace-normal rounded-full px-6 py-4 text-base"
-                >
-                  {/* The visible label is deliberately short, so the link
-                      carries the election in its accessible name — "Jetzt
-                      informieren" on its own tells a screen-reader user
-                      navigating by links nothing about where it goes. */}
-                  <Link
-                    href={`/${featuredElection.context_id}`}
-                    aria-label={`Jetzt zur ${featuredElection.name} informieren`}
-                  >
-                    <ContextIcon
-                      context={featuredElection}
-                      className="size-6 shrink-0"
-                    />
-                    <span>Jetzt informieren</span>
-                    <ArrowRightIcon aria-hidden="true" />
-                  </Link>
-                </Button>
+                <div className="mt-2 flex w-full justify-center">
+                  <HeroCta context={featuredElection} />
+                </div>
               </div>
             )}
           </div>
