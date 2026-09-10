@@ -12,3 +12,11 @@ export const PINNED_TOP = 12;
 export const PINNED_INSET = 20;
 /** The height both settle at. */
 export const PINNED_HEIGHT = 48;
+
+/**
+ * The call to action's height in the hero, before it slims down.
+ *
+ * Set on its placeholder in CSS rather than measured and written back, so the
+ * measurement stays honest across a resize — see useScrollMorph.
+ */
+export const HERO_CTA_HEIGHT = 56;

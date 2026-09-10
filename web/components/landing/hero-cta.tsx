@@ -1,25 +1,25 @@
 'use client';
 
 import { ContextIcon } from '@/components/context-icon';
+import {
+  HERO_CTA_HEIGHT,
+  PINNED_HEIGHT,
+  PINNED_INSET,
+  PINNED_TOP,
+} from '@/components/landing/pinned-layout';
 import { Button } from '@/components/ui/button';
 import type { Context } from '@/lib/firebase/firebase.types';
 import { lerp, useScrollMorph } from '@/lib/hooks/use-scroll-morph';
-import { cn } from '@/lib/utils';
 import { ArrowRightIcon } from 'lucide-react';
-import { m, useTransform } from 'motion/react';
+import { m, useMotionValue } from 'motion/react';
 import Link from 'next/link';
 
 /**
  * The hero call to action, which shrinks and pins itself to the top right as
  * it scrolls out of the hero. See useScrollMorph for why this tracks the
- * scroll position rather than flipping at a threshold.
+ * scroll position rather than flipping at a threshold, and why the values are
+ * written in onUpdate rather than derived.
  */
-
-import {
-  PINNED_HEIGHT,
-  PINNED_INSET,
-  PINNED_TOP,
-} from '@/components/landing/pinned-layout';
 
 /** Wide enough for the label at its natural size; verified against wrapping. */
 const PINNED_WIDTH = 250;
@@ -27,41 +27,36 @@ const PINNED_WIDTH = 250;
 const MORPH_START_TOP = 140;
 
 function HeroCta({ context }: { context: Context }) {
-  const { placeholderRef, boxRef, isReady, progress, restTop } = useScrollMorph(
-    { startTop: MORPH_START_TOP, pinnedTop: PINNED_TOP },
-  );
+  const top = useMotionValue(0);
+  const left = useMotionValue(0);
+  const width = useMotionValue(0);
+  const height = useMotionValue(0);
 
-  const top = useTransform(restTop, (value) => Math.max(value, PINNED_TOP));
-  // useTransform evaluates during render, including on the server, so the
-  // viewport width has to be guarded — there is no window there.
-  const left = useTransform(progress, (p) =>
-    typeof window === 'undefined'
-      ? 0
-      : lerp(
-          boxRef.current?.left ?? 0,
+  const { placeholderRef, isReady } = useScrollMorph({
+    pinnedTop: PINNED_TOP,
+    startTop: MORPH_START_TOP,
+    onUpdate: ({ progress, restTop, box }) => {
+      top.set(Math.max(restTop, PINNED_TOP));
+      // Read at update time, not render time: on a resize this is the only
+      // thing that has changed, and it has to reach the pinned position.
+      left.set(
+        lerp(
+          box.left,
           window.innerWidth - PINNED_WIDTH - PINNED_INSET,
-          p,
+          progress,
         ),
-  );
-  const width = useTransform(progress, (p) =>
-    lerp(boxRef.current?.width ?? 0, PINNED_WIDTH, p),
-  );
-  // Comes down from its natural 56px to meet the mark's pinned height.
-  const height = useTransform(progress, (p) =>
-    lerp(boxRef.current?.height ?? 0, PINNED_HEIGHT, p),
-  );
+      );
+      width.set(lerp(box.width, PINNED_WIDTH, progress));
+      // Comes down from its hero height to meet the mark's pinned height.
+      height.set(lerp(box.height, PINNED_HEIGHT, progress));
+    },
+  });
 
-  // Two variants rather than one: in flow the button sizes itself from its
-  // padding, while pinned it fills the wrapper whose height is being animated.
-  // At progress 0 the wrapper is exactly the natural height, so they coincide.
-  const button = (fillsWrapper: boolean) => (
+  const button = (
     <Button
       asChild
       size="lg"
-      className={cn(
-        'w-full whitespace-nowrap rounded-full px-6 text-base shadow-lg',
-        fillsWrapper ? 'h-full py-0' : 'h-auto py-4',
-      )}
+      className="size-full whitespace-nowrap rounded-full px-6 py-0 text-base shadow-lg"
     >
       {/* The visible label is deliberately short, so the link carries the
           election in its accessible name — "Jetzt informieren" on its own
@@ -79,17 +74,19 @@ function HeroCta({ context }: { context: Context }) {
   );
 
   return (
+    // Sized in CSS so it keeps reserving the right space and keeps measuring
+    // honestly, whatever the viewport does.
     <div
       ref={placeholderRef}
       className="w-full max-w-md"
-      style={isReady ? { height: boxRef.current?.height } : undefined}
+      style={{ height: HERO_CTA_HEIGHT }}
     >
       {isReady ? (
         <m.div className="fixed z-50" style={{ top, left, width, height }}>
-          {button(true)}
+          {button}
         </m.div>
       ) : (
-        button(false)
+        button
       )}
     </div>
   );

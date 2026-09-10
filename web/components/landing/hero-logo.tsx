@@ -11,7 +11,7 @@ import {
   lerp,
   useScrollMorph,
 } from '@/lib/hooks/use-scroll-morph';
-import { m, useTransform } from 'motion/react';
+import { m, useMotionValue } from 'motion/react';
 
 /**
  * The wordmark in the hero, which reduces to its C-and-tick glyph and pins
@@ -29,7 +29,7 @@ import { m, useTransform } from 'motion/react';
  * lands exactly on it — the constants below are that measurement, not taste.
  *
  * See useScrollMorph for why this tracks the scroll rather than flipping at a
- * threshold.
+ * threshold, and why the values are written in onUpdate rather than derived.
  */
 
 /** The C-and-tick glyph inside the large wordmark, as fractions of its width. */
@@ -46,82 +46,75 @@ const MORPH_DISTANCE = 180;
 const SLIDE_ENDS_AT = 0.55;
 
 function HeroLogo() {
-  const { placeholderRef, boxRef, isReady, progress } = useScrollMorph({
+  const top = useMotionValue(0);
+  const left = useMotionValue(0);
+  const scale = useMotionValue(1);
+  const clipPath = useMotionValue('inset(0 0% 0 0%)');
+  // A fixed element resolves percentages against the viewport, so the
+  // artwork's own box has to be carried over explicitly — and re-set on every
+  // update, which is what keeps it right across the md breakpoint.
+  const width = useMotionValue(0);
+  const height = useMotionValue(0);
+
+  const { placeholderRef, isReady } = useScrollMorph({
     pinnedTop: PINNED_TOP,
     morphDistance: MORPH_DISTANCE,
+    onUpdate: ({ progress, box }) => {
+      const slide = clampProgress(progress / SLIDE_ENDS_AT);
+      const retract = clampProgress(
+        (progress - SLIDE_ENDS_AT) / (1 - SLIDE_ENDS_AT),
+      );
+
+      // Scaled so the glyph itself ends at the shared pinned height.
+      const glyphScale =
+        box.height === 0
+          ? 1
+          : lerp(
+              1,
+              PINNED_HEIGHT / (box.height * GLYPH_HEIGHT_FRACTION),
+              slide,
+            );
+
+      // Positioned by where the *glyph* should land, so the clipped mark
+      // travels to the corner rather than the artwork's invisible left edge.
+      const glyphAtRest = box.left + GLYPH_LEFT_FRACTION * box.width;
+      const glyphTarget = lerp(glyphAtRest, PINNED_INSET, slide);
+      const elementLeft =
+        glyphTarget - glyphScale * GLYPH_LEFT_FRACTION * box.width;
+
+      // The clip's left edge tracks the page gutter, so the wordmark slides
+      // out past it instead of being cut at an arbitrary point. It lands
+      // exactly on the glyph once the slide is done.
+      const scaledWidth = box.width * glyphScale;
+      const clipLeft =
+        scaledWidth === 0
+          ? 0
+          : clampProgress((PINNED_INSET - elementLeft) / scaledWidth) * 100;
+      const clipRight = lerp(0, (1 - GLYPH_RIGHT_FRACTION) * 100, retract);
+
+      top.set(lerp(box.top, PINNED_TOP, slide));
+      left.set(elementLeft);
+      width.set(box.width);
+      height.set(box.height);
+      scale.set(glyphScale);
+      clipPath.set(`inset(0 ${clipRight}% 0 ${clipLeft}%)`);
+    },
   });
 
-  // Every value derives from the one progress track, as plain functions rather
-  // than chained motion values: a transform with several sources did not
-  // re-evaluate reliably when only one of them changed, which left the mark
-  // stuck at the top after scrolling back up.
-  const slide = (p: number) => clampProgress(p / SLIDE_ENDS_AT);
-  const retract = (p: number) =>
-    clampProgress((p - SLIDE_ENDS_AT) / (1 - SLIDE_ENDS_AT));
-
-  /** Scaled so the glyph itself ends at the shared pinned height. */
-  const glyphScale = (p: number) => {
-    const height = boxRef.current?.height ?? 0;
-    return height === 0
-      ? 1
-      : lerp(1, PINNED_HEIGHT / (height * GLYPH_HEIGHT_FRACTION), slide(p));
-  };
-
-  /** Viewport x of the artwork's left edge — usually off-screen while sliding. */
-  const elementLeft = (p: number) => {
-    const box = boxRef.current;
-    if (!box) return 0;
-
-    const glyphAtRest = box.left + GLYPH_LEFT_FRACTION * box.width;
-    const glyphTarget = lerp(glyphAtRest, PINNED_INSET, slide(p));
-    return glyphTarget - glyphScale(p) * GLYPH_LEFT_FRACTION * box.width;
-  };
-
-  const clipPath = useTransform(progress, (p) => {
-    const box = boxRef.current;
-    const scaledWidth = (box?.width ?? 0) * glyphScale(p);
-
-    // The left edge tracks the page gutter, so the wordmark slides out past it
-    // instead of being cut at an arbitrary point. It lands exactly on the
-    // glyph once the slide is done.
-    const left =
-      scaledWidth === 0
-        ? 0
-        : clampProgress((PINNED_INSET - elementLeft(p)) / scaledWidth) * 100;
-    const right = lerp(0, (1 - GLYPH_RIGHT_FRACTION) * 100, retract(p));
-
-    return `inset(0 ${right}% 0 ${left}%)`;
-  });
-
-  const scale = useTransform(progress, glyphScale);
-  const left = useTransform(progress, elementLeft);
-
-  // Driven by the morph rather than the raw scroll: the wordmark sits only
-  // ~44px above its pinned position, so tracking the scroll would slam it
-  // against the top long before it had finished sliding.
-  const top = useTransform(progress, (p) =>
-    lerp(boxRef.current?.top ?? PINNED_TOP, PINNED_TOP, slide(p)),
-  );
-
-  const logo = <Logo variant="large" className="h-8 w-auto md:h-10" />;
+  const logo = <Logo variant="large" className="size-full" />;
 
   return (
+    // Sized in CSS from the artwork's own aspect ratio, so it keeps measuring
+    // honestly across the md breakpoint instead of reading back a stale inline
+    // height written from an earlier measurement.
     <div
       ref={placeholderRef}
-      className="shrink-0 self-start"
-      style={
-        isReady
-          ? {
-              height: boxRef.current?.height,
-              width: boxRef.current?.width,
-            }
-          : undefined
-      }
+      className="aspect-[880/114] h-8 shrink-0 self-start md:h-10"
     >
       {isReady ? (
         <m.div
           className="fixed z-50 origin-top-left"
-          style={{ top, left, scale, clipPath }}
+          style={{ top, left, scale, clipPath, width, height }}
         >
           {logo}
         </m.div>
