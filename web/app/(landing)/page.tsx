@@ -49,12 +49,11 @@ import Link from 'next/link';
 // headers(), which already opts every route out of static generation.
 export const dynamic = 'force-dynamic';
 
-// Keywords front-loaded, brand last, under 60 characters — the shape a SERP
-// title needs. The description stays inside 140–155 so it is not truncated,
-// and ends on a CTA.
-const TITLE = 'Parteipositionen mit Quellen vergleichen – wahl.chat';
+// Under 60 characters so the SERP title is not truncated; the description
+// stays inside 140–155 for the same reason and ends on a CTA.
+const TITLE = 'Mit wahl.chat Politik verstehen – dein KI Chat vor der Wahl';
 const DESCRIPTION =
-  'Dein verlässlicher Zugang zu Wahlprogrammen, Plenarprotokollen und Abstimmungen vor den kommenden Wahlen. Jetzt chatten und informiert wählen!';
+  'Die KI-basierte Ergänzung zum Wahl-O-Mat: Verstehe Parteien anhand von Plenarprotokollen, Abstimmungen und Wahlprogrammen. Jetzt informiert wählen!';
 
 const ELECTIONS_ANCHOR = 'andere-wahlen';
 const QUESTIONS_ANCHOR = 'beispielfragen';
@@ -208,35 +207,30 @@ export default async function Landing() {
 
           <div className="flex flex-1 flex-col items-center gap-6 text-center">
             <div className="my-auto flex max-w-3xl flex-col gap-4 md:mb-0 md:mt-auto">
-              <h1 className="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
-                Vorbereitet in die nächste Wahl: Deine Fragen, tausende Quellen
-                zu Parteipositionen und eine verlässliche Antwort.
+              <h1 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
+                <span className="block">Fragen stellen.</span>
+                <span className="block">Politik verstehen.</span>
+                <span className="block">Informiert wählen.</span>
               </h1>
 
-              {/* Stays a <p>: the page carries exactly one h1, and demoting the
-                headline would leave it with none. */}
-              <p className="text-pretty text-sm text-muted-foreground sm:text-base md:text-lg">
+              {/* An h2 rather than a p: now that the h1 is a short claim, this
+                  line carries the page's keywords and reads as the hero's
+                  subhead. Styled down to the supporting sentence it is — the
+                  page still has exactly one h1, directly above it. */}
+              <h2 className="text-pretty text-md font-normal text-muted-foreground sm:text-base md:text-lg">
                 Welche Partei passt zu dir? Vergleiche Parteien, belegt durch
                 Plenarprotokolle, namentliche Abstimmungen und Wahlprogramme.
-              </p>
+              </h2>
             </div>
 
             {featuredElection && (
               <div className="flex w-full flex-col items-center gap-2 md:mb-auto">
-                <Button
-                  asChild
-                  size="lg"
-                  className="h-auto w-full max-w-md whitespace-normal px-6 py-4 text-base"
-                >
-                  <Link href={`/${featuredElection.context_id}`}>
-                    <ContextIcon
-                      context={featuredElection}
-                      className="size-6 shrink-0"
-                    />
-                    <span>Zur {featuredElection.name}</span>
-                    <ArrowRightIcon aria-hidden="true" />
-                  </Link>
-                </Button>
+                <p className="text-balance font-medium text-foreground">
+                  {isUpcomingElection(featuredElection)
+                    ? 'Nächste Wahl'
+                    : 'Letzte Wahl'}
+                  : {featuredElection.name}
+                </p>
 
                 {featuredDate && (
                   <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -244,12 +238,31 @@ export default async function Landing() {
                       className="size-4 shrink-0"
                       aria-hidden="true"
                     />
-                    {isUpcomingElection(featuredElection)
-                      ? 'Wahl am'
-                      : 'Wahl vom'}{' '}
                     {featuredDate}
                   </p>
                 )}
+
+                <Button
+                  asChild
+                  size="lg"
+                  className="mt-2 h-auto w-full max-w-md whitespace-normal rounded-full px-6 py-4 text-base"
+                >
+                  {/* The visible label is deliberately short, so the link
+                      carries the election in its accessible name — "Jetzt
+                      informieren" on its own tells a screen-reader user
+                      navigating by links nothing about where it goes. */}
+                  <Link
+                    href={`/${featuredElection.context_id}`}
+                    aria-label={`Jetzt zur ${featuredElection.name} informieren`}
+                  >
+                    <ContextIcon
+                      context={featuredElection}
+                      className="size-6 shrink-0"
+                    />
+                    <span>Jetzt informieren</span>
+                    <ArrowRightIcon aria-hidden="true" />
+                  </Link>
+                </Button>
               </div>
             )}
           </div>

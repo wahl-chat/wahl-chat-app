@@ -1,10 +1,5 @@
 import type { Context } from '@/lib/firebase/firebase.types';
 
-// An election stays "upcoming" for a few days past its date: results are the
-// most-searched thing immediately after polls close, so demoting the context on
-// election night would be wrong.
-const PAST_ELECTION_BUFFER_DAYS = 5;
-
 // Context.date is declared `string | null` but firebase-server.ts maps it
 // through firestoreTimestampToDate(), so it is a Date at runtime. Accept both
 // rather than trusting either — this is the one place that does real date
@@ -18,16 +13,21 @@ function toDate(date: ContextDate): Date | undefined {
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
-function bufferCutoff(now: Date): Date {
-  return new Date(
-    now.getTime() - PAST_ELECTION_BUFFER_DAYS * 24 * 60 * 60 * 1000,
-  );
+function startOfDay(date: Date): Date {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  return start;
 }
 
 /**
- * A context counts as upcoming while its election is still ahead (plus the
- * buffer). Contexts without a date are always upcoming — they are standing
- * topics rather than a dated election.
+ * A context counts as upcoming while its election is still ahead. Contexts
+ * without a date are always upcoming — they are standing topics rather than a
+ * dated election.
+ *
+ * The comparison is against the start of today rather than the current moment,
+ * so an election stays upcoming through its own polling day: context dates are
+ * midnight, and comparing against the clock would demote an election at 00:01
+ * on the morning people are voting in it.
  */
 export function isUpcomingElection(
   context: Context,
@@ -36,7 +36,7 @@ export function isUpcomingElection(
   const date = toDate(context.date);
   if (!date) return true;
 
-  return date >= bufferCutoff(now);
+  return date >= startOfDay(now);
 }
 
 function compareByDateAscending(a: Context, b: Context): number {
