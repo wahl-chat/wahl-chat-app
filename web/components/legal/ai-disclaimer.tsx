@@ -5,7 +5,6 @@ import {
   ResponsiveDialogTitle,
   ResponsiveDialogTrigger,
 } from '@/components/chat/responsive-drawer-dialog';
-import { cn } from '@/lib/utils';
 import {
   AlertCircleIcon,
   AlertTriangleIcon,
