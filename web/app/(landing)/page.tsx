@@ -13,6 +13,7 @@ import ExampleQuestions, {
 } from '@/components/landing/example-questions';
 import LandingFaq from '@/components/landing/landing-faq';
 import LandingSection from '@/components/landing/landing-section';
+import ScreenshotWheel from '@/components/landing/screenshot-wheel';
 import ScrollCue from '@/components/landing/scroll-cue';
 import JsonLd from '@/components/seo/json-ld';
 import { Button } from '@/components/ui/button';
@@ -186,6 +187,7 @@ export default async function Landing() {
           child. */}
       <section className="relative flex min-h-svh w-full flex-col overflow-hidden">
         <BrandBlurBackdrop />
+        <ScreenshotWheel />
 
         <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-5 pt-8 text-center md:gap-6 md:pt-14">
           <Logo variant="large" className="h-8 w-auto md:h-10" />

@@ -149,3 +149,27 @@ body {
     animation: none;
   }
 }
+
+/* Landing-page hero wheel. Lives here for the same reason as blur-drift: each
+   row runs at its own duration via --marquee-duration, and Tailwind only emits
+   keyframes for animations reached through a utility class. The track is
+   rendered twice in the markup, so translating by exactly half of it loops
+   seamlessly. */
+@keyframes screenshot-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-screenshot-marquee {
+  animation: screenshot-marquee var(--marquee-duration) linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-screenshot-marquee {
+    animation: none;
+  }
+}
