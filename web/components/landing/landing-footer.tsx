@@ -1,4 +1,5 @@
 import Logo from '@/components/chat/logo';
+import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
 import HomeSocialMediaIcon from '@/components/icons/home-social-media-icon';
 import { Separator } from '@/components/ui/separator';
 import { getNextUpcomingElection } from '@/lib/elections';
@@ -97,9 +98,16 @@ async function LandingFooter() {
 
         <Separator />
 
-        <p className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()} wahl.chat
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} wahl.chat
+          </p>
+
+          {/* The landing page has no header, so this is the only place a
+              visitor can change the theme — the shared footer carries it on
+              every other page. */}
+          <ThemeModeToggle align="end" />
+        </div>
       </div>
     </footer>
   );
