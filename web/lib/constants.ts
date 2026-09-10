@@ -1,6 +1,11 @@
 export const WAHL_CHAT_PARTY_ID = 'wahl-chat';
 export const GROUP_PARTY_ID = 'group';
 
+// How many parties a group chat can be started with. Lives here rather than
+// in the party-select component so server-side content can quote it without
+// pulling a client component into the server graph.
+export const MAX_SELECTABLE_PARTIES = 7;
+
 export const TENANT_ID_HEADER = 'x-tenant-id';
 export const CONTEXT_ID_HEADER = 'x-context-id';
 

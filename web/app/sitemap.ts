@@ -3,6 +3,12 @@ import { getContexts } from '@/lib/firebase/firebase-server';
 import { BASE_URL } from '@/lib/seo';
 import type { MetadataRoute } from 'next';
 
+// Without this the route is prerendered at build time (confirmed: the build
+// marks /sitemap.xml as Static), so a newly seeded election would not appear
+// until the next deploy. getContexts() reads no dynamic API of its own, so
+// nothing else opts this route out.
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date().toISOString();
 

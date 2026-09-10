@@ -13,6 +13,7 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
     messages,
     preSelectedPartyIds,
     initialQuestion,
+    prefilledQuestion,
     userId,
     tenant,
   }) => {
@@ -45,9 +46,17 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
       state.tenant = tenant;
     });
 
-    if (initialQuestion && typeof window !== 'undefined') {
+    // A prefilled question is only ever offered, never sent, so it loses to an
+    // initialQuestion if both somehow arrive.
+    const effectivePrefill = initialQuestion ? undefined : prefilledQuestion;
+
+    if (
+      (initialQuestion || effectivePrefill) &&
+      typeof window !== 'undefined'
+    ) {
       const url = new URL(window.location.href);
       url.searchParams.delete('q');
+      url.searchParams.delete('prefill');
       window.history.replaceState({}, '', url.toString());
     }
 
@@ -110,5 +119,11 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
 
     if (initialQuestion && userId) {
       addUserMessage(userId, initialQuestion, true);
+    } else if (effectivePrefill) {
+      // Written after the branches above so a session load cannot clobber it.
+      // Nothing is sent: the question sits in the input until the user submits.
+      set((state) => {
+        state.input = effectivePrefill;
+      });
     }
   };

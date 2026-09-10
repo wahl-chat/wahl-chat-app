@@ -1,6 +1,6 @@
 'use client';
 
-import { PRESS_LINK } from '@/lib/contact-config';
+import { SITE_LINKS, sourcesLink } from '@/lib/site-links';
 import Link from 'next/link';
 import Logo from './chat/logo';
 import { ThemeModeToggle } from './chat/theme-mode-toggle';
@@ -9,25 +9,29 @@ import { useCurrentContext } from './providers/context-provider';
 
 function Footer() {
   const context = useCurrentContext({ optional: true });
-  const sourcesHref = context ? `/${context.context_id}/sources` : '/sources';
+  // Outside a ContextProvider there is no election to point at; middleware
+  // resolves the bare path by region.
+  const sources = context
+    ? sourcesLink(context.context_id)
+    : { href: '/sources', label: 'Quellen' };
 
   return (
     <footer className="flex h-footer w-full flex-col items-center justify-center gap-4 border-t p-4 text-xs text-muted-foreground md:flex-row">
       <Logo className="size-5" variant="small" />
 
       <section className="flex grow flex-wrap items-center justify-center gap-2 underline md:justify-end">
-        <Link href="/how-to">Anleitung</Link>
-        <Link href="/donate">Spenden</Link>
-        <Link href="/about-us">Über uns</Link>
-        <Link href={sourcesHref}>Quellen</Link>
-        <Link href={PRESS_LINK} target="_blank">
-          Presse
+        <Link href={SITE_LINKS.howTo.href}>{SITE_LINKS.howTo.label}</Link>
+        <Link href={SITE_LINKS.donate.href}>{SITE_LINKS.donate.label}</Link>
+        <Link href={SITE_LINKS.aboutUs.href}>{SITE_LINKS.aboutUs.label}</Link>
+        <Link href={sources.href}>{sources.label}</Link>
+        <Link href={SITE_LINKS.press.href} target="_blank">
+          {SITE_LINKS.press.label}
         </Link>
         <FeedbackDialog>
           <button type="button">Feedback</button>
         </FeedbackDialog>
-        <Link href="/impressum">Impressum</Link>
-        <Link href="/datenschutz">Datenschutz</Link>
+        <Link href={SITE_LINKS.imprint.href}>{SITE_LINKS.imprint.label}</Link>
+        <Link href={SITE_LINKS.privacy.href}>{SITE_LINKS.privacy.label}</Link>
       </section>
 
       <ThemeModeToggle />

@@ -537,6 +537,62 @@ export async function getProposedQuestionsForContext(
   );
 }
 
+/**
+ * The election-specific example questions for a context — the `group` slot.
+ *
+ * getProposedQuestionsForContext() with no partyIds resolves to
+ * WAHL_CHAT_PARTY_ID, which holds meta questions about the product ("Wer steht
+ * hinter wahl.chat?"). Questions about the election itself live under
+ * GROUP_PARTY_ID; reaching them by passing a throwaway two-element partyIds
+ * array would only work by accident of the normalisation, so this asks for the
+ * slot directly.
+ *
+ * Order is deterministic, unlike getProposedQuestionsForContextImpl: this feeds
+ * server-rendered HTML on the site's most-crawled page, so the same election
+ * must always produce the same markup and the same set of outbound links.
+ */
+async function getGroupProposedQuestionsForContextImpl(contextId: string) {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+
+  const queryRef = query(
+    collection(
+      serverDb,
+      'contexts',
+      contextId,
+      'proposed_questions',
+      GROUP_PARTY_ID,
+      'questions',
+    ),
+    where('location', '==', 'chat'),
+  );
+  const snapshot = await getDocs(queryRef);
+
+  const questions = snapshot.docs.map((doc) => {
+    return {
+      id: doc.id,
+      partyId: GROUP_PARTY_ID,
+      ...doc.data(),
+    } as ProposedQuestion;
+  });
+
+  // rejectEmpty so a context seeded without a group doc is never pinned into
+  // the data cache; seeding it later then heals on the next request.
+  return rejectEmpty(questions.sort((a, b) => a.id.localeCompare(b.id)));
+}
+
+export async function getGroupProposedQuestionsForContext(contextId: string) {
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getGroupProposedQuestionsForContextImpl,
+        ['getGroupProposedQuestionsForContext', 'v1', contextId],
+        [CacheTags.PROPOSED_QUESTIONS, contextQuestionsTag(contextId)],
+      )(contextId),
+    [],
+    `FAILED to fetch group proposed questions for context "${contextId}"`,
+  );
+}
+
 async function getHomeInputProposedQuestionsImpl() {
   // Home questions are global, not context-specific
   // Read from /proposed_questions/wahl-chat/questions
