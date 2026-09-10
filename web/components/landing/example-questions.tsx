@@ -172,7 +172,7 @@ function ElectionQuestions({ group }: { group: QuestionGroup }) {
   );
 
   return (
-    <li className="flex flex-col gap-4 rounded-md border border-border p-4 md:p-5">
+    <li className="flex w-[85vw] shrink-0 snap-start flex-col gap-4 rounded-md border border-border bg-background p-4 md:w-auto md:shrink md:p-5">
       <h3 className="text-pretty font-bold text-foreground">
         <Link href={`/${context.context_id}`} className="hover:underline">
           {context.name}
@@ -222,7 +222,12 @@ function ExampleQuestions({ groups }: { groups: QuestionGroup[] }) {
   if (groups.length === 0) return null;
 
   return (
-    <ul className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
+    // Mobile: one card per election, swiped sideways, with the next one
+    // peeking so it is obvious there is more. The negative margin lets the row
+    // bleed to the screen edge while the padding keeps the first and last card
+    // aligned with the rest of the page. Desktop has the width for a grid, so
+    // the scroller collapses into one.
+    <ul className="-mx-5 flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto px-5 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-2 md:items-start md:overflow-x-visible md:px-0 md:pb-0 lg:grid-cols-3 [&::-webkit-scrollbar]:hidden">
       {groups.map((group) => (
         <ElectionQuestions key={group.context.context_id} group={group} />
       ))}

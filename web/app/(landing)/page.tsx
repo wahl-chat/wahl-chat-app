@@ -13,6 +13,7 @@ import ExampleQuestions, {
 } from '@/components/landing/example-questions';
 import LandingFaq from '@/components/landing/landing-faq';
 import LandingSection from '@/components/landing/landing-section';
+import LandingStats from '@/components/landing/landing-stats';
 import ScreenshotWheel from '@/components/landing/screenshot-wheel';
 import ScrollCue from '@/components/landing/scroll-cue';
 import JsonLd from '@/components/seo/json-ld';
@@ -189,54 +190,69 @@ export default async function Landing() {
         <BrandBlurBackdrop />
         <ScreenshotWheel />
 
-        <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-5 pt-8 text-center md:gap-6 md:pt-14">
-          <Logo variant="large" className="h-8 w-auto md:h-10" />
+        {/* Mobile-first three-part hero: the mark sits top-left where a site
+            logo belongs, the headline takes the middle, and the call to action
+            is pinned to the bottom of the panel where a thumb reaches it.
+            The auto margins do that rather than justify-*, so each part can be
+            placed independently.
 
-          <div className="flex max-w-3xl flex-col gap-4">
-            <h1 className="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
-              Vorbereitet in die nächste Wahl: Deine Fragen, tausende Quellen zu
-              Parteipositionen und eine verlässliche Antwort.
-            </h1>
+            On desktop there is no thumb to reach with, and a button stranded
+            at the foot of a tall viewport reads as unrelated to the headline —
+            so md: collapses the text and the button back into one centred
+            group while the mark stays in its own top row. */}
+        <div className="relative flex flex-1 flex-col px-5 py-6 md:py-14">
+          <Logo
+            variant="large"
+            className="h-8 w-auto shrink-0 self-start md:h-10"
+          />
 
-            {/* Stays a <p>: the page carries exactly one h1, and demoting the
+          <div className="flex flex-1 flex-col items-center gap-6 text-center">
+            <div className="my-auto flex max-w-3xl flex-col gap-4 md:mb-0 md:mt-auto">
+              <h1 className="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
+                Vorbereitet in die nächste Wahl: Deine Fragen, tausende Quellen
+                zu Parteipositionen und eine verlässliche Antwort.
+              </h1>
+
+              {/* Stays a <p>: the page carries exactly one h1, and demoting the
                 headline would leave it with none. */}
-            <p className="text-pretty text-sm text-muted-foreground sm:text-base md:text-lg">
-              Welche Partei passt zu dir? Vergleiche Parteien, belegt durch
-              Plenarprotokolle, namentliche Abstimmungen und Wahlprogramme.
-            </p>
-          </div>
-
-          {featuredElection && (
-            <div className="flex w-full flex-col items-center gap-2">
-              <Button
-                asChild
-                size="lg"
-                className="h-auto w-full max-w-md whitespace-normal px-6 py-4 text-base"
-              >
-                <Link href={`/${featuredElection.context_id}`}>
-                  <ContextIcon
-                    context={featuredElection}
-                    className="size-6 shrink-0"
-                  />
-                  <span>Zur {featuredElection.name}</span>
-                  <ArrowRightIcon aria-hidden="true" />
-                </Link>
-              </Button>
-
-              {featuredDate && (
-                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <CalendarIcon
-                    className="size-4 shrink-0"
-                    aria-hidden="true"
-                  />
-                  {isUpcomingElection(featuredElection)
-                    ? 'Wahl am'
-                    : 'Wahl vom'}{' '}
-                  {featuredDate}
-                </p>
-              )}
+              <p className="text-pretty text-sm text-muted-foreground sm:text-base md:text-lg">
+                Welche Partei passt zu dir? Vergleiche Parteien, belegt durch
+                Plenarprotokolle, namentliche Abstimmungen und Wahlprogramme.
+              </p>
             </div>
-          )}
+
+            {featuredElection && (
+              <div className="flex w-full flex-col items-center gap-2 md:mb-auto">
+                <Button
+                  asChild
+                  size="lg"
+                  className="h-auto w-full max-w-md whitespace-normal px-6 py-4 text-base"
+                >
+                  <Link href={`/${featuredElection.context_id}`}>
+                    <ContextIcon
+                      context={featuredElection}
+                      className="size-6 shrink-0"
+                    />
+                    <span>Zur {featuredElection.name}</span>
+                    <ArrowRightIcon aria-hidden="true" />
+                  </Link>
+                </Button>
+
+                {featuredDate && (
+                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <CalendarIcon
+                      className="size-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                    {isUpcomingElection(featuredElection)
+                      ? 'Wahl am'
+                      : 'Wahl vom'}{' '}
+                    {featuredDate}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <ScrollCue href={`#${firstSectionAnchor}`} />
@@ -253,8 +269,9 @@ export default async function Landing() {
 
       {!IS_EMBEDDED && (
         <LandingSection className="py-8 md:py-10">
-          <div className="mx-auto max-w-3xl">
+          <div className="mx-auto flex max-w-3xl flex-col gap-10">
             <KnownFrom />
+            <LandingStats electionCount={contexts.length} />
           </div>
         </LandingSection>
       )}
