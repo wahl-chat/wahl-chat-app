@@ -22,11 +22,17 @@ import { m, useMotionValue } from 'motion/react';
  * in place. Only then does the tail retract from the right, until the C is all
  * that is left.
  *
- * It clips the one large logo rather than cross-fading it into the standalone
+ * It masks the one large logo rather than cross-fading it into the standalone
  * icon: a cross-fade cannot make the mark *retract*, and it would put two
  * copies of it in the DOM. The glyph's position inside the artwork was
- * measured from the SVG (x 449.4–562.6 of an 880-wide viewBox), so the clip
+ * measured from the SVG (x 449.4–562.6 of an 880-wide viewBox), so the mask
  * lands exactly on it — the constants below are that measurement, not taste.
+ *
+ * A gradient mask rather than clip-path or a scrim: both cuts run through
+ * letterforms, and slicing a glyph down its middle reads as a rendering fault.
+ * A scrim would have to match whatever is behind it, and behind this sit the
+ * drifting blur blobs and the screenshot wheel — nothing a flat overlay can
+ * match. Masking the mark itself is independent of all of that.
  *
  * See useScrollMorph for why this tracks the scroll rather than flipping at a
  * threshold, and why the values are written in onUpdate rather than derived.
@@ -45,11 +51,19 @@ const MORPH_DISTANCE = 180;
 /** Where the slide ends and the retract begins. */
 const SLIDE_ENDS_AT = 0.55;
 
+/** How far a moving edge dissolves over, as a % of the artwork's width. */
+const EDGE_FADE = 7;
+
+const percent = (value: number) => `${value.toFixed(2)}%`;
+
+/** No fade and nothing hidden — the state before the first measurement. */
+const FULLY_OPAQUE_MASK = 'linear-gradient(to right, #000 0%, #000 100%)';
+
 function HeroLogo() {
   const top = useMotionValue(0);
   const left = useMotionValue(0);
   const scale = useMotionValue(1);
-  const clipPath = useMotionValue('inset(0 0% 0 0%)');
+  const maskImage = useMotionValue(FULLY_OPAQUE_MASK);
   // A fixed element resolves percentages against the viewport, so the
   // artwork's own box has to be carried over explicitly — and re-set on every
   // update, which is what keeps it right across the md breakpoint.
@@ -82,22 +96,43 @@ function HeroLogo() {
       const elementLeft =
         glyphTarget - glyphScale * GLYPH_LEFT_FRACTION * box.width;
 
-      // The clip's left edge tracks the page gutter, so the wordmark slides
+      // The mask's left edge tracks the page gutter, so the wordmark slides
       // out past it instead of being cut at an arbitrary point. It lands
       // exactly on the glyph once the slide is done.
       const scaledWidth = box.width * glyphScale;
-      const clipLeft =
+      const hiddenLeft =
         scaledWidth === 0
           ? 0
           : clampProgress((PINNED_INSET - elementLeft) / scaledWidth) * 100;
-      const clipRight = lerp(0, (1 - GLYPH_RIGHT_FRACTION) * 100, retract);
+      const hiddenRight = lerp(0, (1 - GLYPH_RIGHT_FRACTION) * 100, retract);
+      const visibleRight = 100 - hiddenRight;
+
+      // Each edge fades in from nothing as its cut starts to move and back to
+      // nothing as the cut arrives at the glyph. So the mark at rest and the
+      // pinned C are both exactly as crisp as an unmasked logo, and only the
+      // part on its way out is ever soft — a fade across the C's own edge
+      // would just make the pinned logo look out of focus.
+      const leftFade = Math.max(
+        0,
+        Math.min(EDGE_FADE, hiddenLeft, GLYPH_LEFT_FRACTION * 100 - hiddenLeft),
+      );
+      const rightFade = Math.max(
+        0,
+        Math.min(
+          EDGE_FADE,
+          hiddenRight,
+          visibleRight - GLYPH_RIGHT_FRACTION * 100,
+        ),
+      );
 
       top.set(lerp(box.top, PINNED_TOP, slide));
       left.set(elementLeft);
       width.set(box.width);
       height.set(box.height);
       scale.set(glyphScale);
-      clipPath.set(`inset(0 ${clipRight}% 0 ${clipLeft}%)`);
+      maskImage.set(
+        `linear-gradient(to right, transparent ${percent(hiddenLeft)}, #000 ${percent(hiddenLeft + leftFade)}, #000 ${percent(visibleRight - rightFade)}, transparent ${percent(visibleRight)})`,
+      );
     },
   });
 
@@ -113,8 +148,18 @@ function HeroLogo() {
     >
       {isReady ? (
         <m.div
-          className="fixed z-50 origin-top-left"
-          style={{ top, left, scale, clipPath, width, height }}
+          // pointer-events-none because a mask, unlike clip-path, leaves the
+          // masked-away box still hit-testable.
+          className="pointer-events-none fixed z-50 origin-top-left"
+          style={{
+            top,
+            left,
+            scale,
+            width,
+            height,
+            maskImage,
+            WebkitMaskImage: maskImage,
+          }}
         >
           {logo}
         </m.div>
