@@ -251,16 +251,26 @@ export default async function Landing() {
       {hasOtherElections && (
         <LandingSection
           id={ELECTIONS_ANCHOR}
-          title="Andere Wahlen auf wahl.chat"
+          title="Weitere Wahlen auf wahl.chat"
         >
           <ElectionLinks upcoming={otherUpcoming} past={otherPast} />
         </LandingSection>
       )}
 
+      {/* Press coverage and usage figures are the same claim from two sides —
+          how wahl.chat has been received — so they share one heading. Each band
+          keeps its own labelled divider under it. KnownFrom's own margins are
+          dropped here: the h2 already provides the gap above "Bekannt aus:",
+          and the two together left a hole big enough to read as a missing
+          heading. */}
       {!IS_EMBEDDED && (
-        <LandingSection className="py-8 md:py-10">
-          <div className="mx-auto flex max-w-3xl flex-col gap-10">
-            <KnownFrom />
+        <LandingSection
+          title="Rezeption"
+          className="py-8 md:py-10"
+          contentClassName="max-w-3xl"
+        >
+          <div className="flex flex-col gap-10">
+            <KnownFrom className="my-0 md:mt-0" trailingSeparator={false} />
             <LandingStats electionCount={contexts.length} />
           </div>
         </LandingSection>

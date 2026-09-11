@@ -1,3 +1,4 @@
+import LabeledDivider from '@/components/labeled-divider';
 import { cn } from '@/lib/utils';
 
 /**
@@ -15,7 +16,7 @@ import { cn } from '@/lib/utils';
 
 // Last reviewed: 10 September 2026.
 const USAGE_STATS = [
-  { value: '400.000+', label: 'Nutzerinnen und Nutzer' },
+  { value: '400.000+', label: 'Nutzer:innen' },
   { value: '1 Mio.+', label: 'beantwortete Fragen' },
 ];
 
@@ -35,26 +36,30 @@ function LandingStats({ electionCount }: Props) {
       : USAGE_STATS;
 
   return (
-    <dl
-      className={cn(
-        'grid gap-4 text-center',
-        stats.length === 3 ? 'grid-cols-3' : 'grid-cols-2',
-      )}
-    >
-      {stats.map((stat) => (
-        <div key={stat.label} className="flex flex-col gap-1">
-          <dt className="sr-only">{stat.label}</dt>
-          <dd className="flex flex-col gap-1">
-            <span className="text-xl font-bold tracking-tight text-foreground sm:text-2xl md:text-3xl">
-              {stat.value}
-            </span>
-            <span className="text-pretty text-xs text-muted-foreground sm:text-sm">
-              {stat.label}
-            </span>
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <div className="flex w-full flex-col items-center gap-4">
+      <LabeledDivider>Zahlen und Fakten:</LabeledDivider>
+
+      <dl
+        className={cn(
+          'grid w-full gap-4 text-center',
+          stats.length === 3 ? 'grid-cols-3' : 'grid-cols-2',
+        )}
+      >
+        {stats.map((stat) => (
+          <div key={stat.label} className="flex flex-col gap-1">
+            <dt className="sr-only">{stat.label}</dt>
+            <dd className="flex flex-col gap-1">
+              <span className="text-xl font-bold tracking-tight text-foreground sm:text-2xl md:text-3xl">
+                {stat.value}
+              </span>
+              <span className="text-pretty text-xs text-muted-foreground sm:text-sm">
+                {stat.label}
+              </span>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
 

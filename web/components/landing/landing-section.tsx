@@ -8,6 +8,11 @@ type Props = {
    */
   title?: string;
   className?: string;
+  /**
+   * Narrows the band. Applied to the same element as the heading so the two
+   * cannot end up on different left edges.
+   */
+  contentClassName?: string;
   children: React.ReactNode;
 };
 
@@ -18,10 +23,16 @@ type Props = {
  * sections cannot drift apart, and so the page keeps exactly one h2 per
  * section under its single h1.
  */
-function LandingSection({ id, title, className, children }: Props) {
+function LandingSection({
+  id,
+  title,
+  className,
+  contentClassName,
+  children,
+}: Props) {
   return (
     <section id={id} className={cn('w-full px-5 py-14 md:py-20', className)}>
-      <div className="mx-auto w-full max-w-5xl">
+      <div className={cn('mx-auto w-full max-w-5xl', contentClassName)}>
         {title && (
           <h2 className="mb-8 text-balance text-2xl font-bold tracking-tight text-foreground md:text-3xl">
             {title}
