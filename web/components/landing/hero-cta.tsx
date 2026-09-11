@@ -10,15 +10,21 @@ import {
 import { Button } from '@/components/ui/button';
 import type { Context } from '@/lib/firebase/firebase.types';
 import { lerp, useScrollMorph } from '@/lib/hooks/use-scroll-morph';
+import { cn } from '@/lib/utils';
 import { ArrowRightIcon } from 'lucide-react';
 import { m, useMotionValue } from 'motion/react';
 import Link from 'next/link';
 
 /**
  * The hero call to action, which shrinks and pins itself to the top right as
- * it scrolls out of the hero. See useScrollMorph for why this tracks the
- * scroll position rather than flipping at a threshold, and why the values are
- * written in onUpdate rather than derived.
+ * it scrolls out of the hero.
+ *
+ * Nothing here positions the button vertically while it is on its way up: it
+ * rides inside its placeholder, in the document flow, and the browser moves it.
+ * Only the horizontal travel and the size are driven from the scroll, and only
+ * once it has arrived does it go `fixed` at a constant top. See useScrollMorph
+ * for why — in short, a `fixed` element positioned from `scrollY` is always a
+ * frame behind the page, and that shows up as a wobble under a flick.
  */
 
 /** Wide enough for the label at its natural size; verified against wrapping. */
@@ -27,25 +33,22 @@ const PINNED_WIDTH = 250;
 const MORPH_START_TOP = 140;
 
 function HeroCta({ context }: { context: Context }) {
-  const top = useMotionValue(0);
-  const left = useMotionValue(0);
-  const width = useMotionValue(0);
-  const height = useMotionValue(0);
+  // Horizontal offset from the placeholder, not an absolute left: in flow the
+  // button is placed by its parent, and a transform moves it from there
+  // without disturbing anything around it.
+  const x = useMotionValue(0);
+  const width = useMotionValue<number | string>('100%');
+  const height = useMotionValue<number | string>('100%');
 
-  const { placeholderRef, isReady } = useScrollMorph({
+  const { placeholderRef, isReady, isPinned } = useScrollMorph({
     pinnedTop: PINNED_TOP,
     startTop: MORPH_START_TOP,
-    onUpdate: ({ progress, restTop, box }) => {
-      top.set(Math.max(restTop, PINNED_TOP));
+    onUpdate: ({ progress, box }) => {
       // Read at update time, not render time: on a resize this is the only
       // thing that has changed, and it has to reach the pinned position.
-      left.set(
-        lerp(
-          box.left,
-          window.innerWidth - PINNED_WIDTH - PINNED_INSET,
-          progress,
-        ),
-      );
+      const pinnedLeft = window.innerWidth - PINNED_WIDTH - PINNED_INSET;
+
+      x.set(lerp(0, pinnedLeft - box.left, progress));
       width.set(lerp(box.width, PINNED_WIDTH, progress));
       // Comes down from its hero height to meet the mark's pinned height.
       height.set(lerp(box.height, PINNED_HEIGHT, progress));
@@ -78,11 +81,21 @@ function HeroCta({ context }: { context: Context }) {
     // honestly, whatever the viewport does.
     <div
       ref={placeholderRef}
-      className="w-full max-w-md"
+      className="relative w-full max-w-md"
       style={{ height: HERO_CTA_HEIGHT }}
     >
       {isReady ? (
-        <m.div className="fixed z-50" style={{ top, left, width, height }}>
+        // One element across both phases, never two branches: swapping the
+        // tree here would unmount and remount the link, dropping its DOM node
+        // (and any focus on it) mid-scroll.
+        <m.div
+          className={cn('z-50', isPinned ? 'fixed' : 'absolute left-0 top-0')}
+          style={
+            isPinned
+              ? { top: PINNED_TOP, right: PINNED_INSET, width, height }
+              : { x, width, height }
+          }
+        >
           {button}
         </m.div>
       ) : (

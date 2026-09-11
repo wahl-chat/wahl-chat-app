@@ -21,12 +21,24 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * every value is recomputed whenever either input moves.
  *
  * The caller keeps an empty placeholder in the document flow (attach `ref`) to
- * hold the space open, and renders the real element `fixed` once `isReady` is
- * true. Before that it should render in normal flow, which is what the server
- * sends and what a visitor without JavaScript keeps. That placeholder must be
- * sized in CSS, not from a measurement written back as an inline style — the
- * measurement would then only ever read back its own stale value and could not
- * follow a breakpoint.
+ * hold the space open. That placeholder must be sized in CSS, not from a
+ * measurement written back as an inline style — the measurement would then only
+ * ever read back its own stale value and could not follow a breakpoint.
+ *
+ * `isPinned` is the important part of the contract. The element must stay
+ * inside that placeholder, positioned by the browser, until it is pinned, and
+ * only then go `fixed` at a constant top. It must NOT be `fixed` at a
+ * JS-computed top on the way there, however tempting: the page scrolls on the
+ * compositor thread and is painted before the scroll event reaches the main
+ * thread, so anything we position from `scrollY` lands exactly one frame late.
+ * At a steady speed that is an invisible constant offset, but under a trackpad
+ * flick the per-frame delta swings from a few pixels to ~70 and back, and the
+ * element visibly wobbles against the page. Measured: the position error
+ * tracked the per-frame scroll delta 1:1, every frame.
+ *
+ * So a caller may drive horizontal and size values from progress — drift there
+ * is imperceptible against a vertically scrolling page — but never the vertical
+ * position.
  */
 
 export type MorphBox = {
@@ -75,6 +87,10 @@ export function useScrollMorph({
   const placeholderRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<MorphBox | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
+  // Mirrored in a ref so the scroll handler can skip setState on the frames
+  // where nothing changed, which is all but two of them.
+  const isPinnedRef = useRef(false);
 
   const { scrollY } = useScroll();
 
@@ -94,6 +110,12 @@ export function useScrollMorph({
         : clampProgress(
             ((startTop ?? 0) - restTop) / ((startTop ?? 0) - pinnedTop),
           );
+
+      const pinned = restTop <= pinnedTop;
+      if (isPinnedRef.current !== pinned) {
+        isPinnedRef.current = pinned;
+        setIsPinned(pinned);
+      }
 
       onUpdateRef.current({ progress, restTop, box });
     },
@@ -137,5 +159,5 @@ export function useScrollMorph({
 
   useMotionValueEvent(scrollY, 'change', apply);
 
-  return { placeholderRef, isReady };
+  return { placeholderRef, isReady, isPinned };
 }
