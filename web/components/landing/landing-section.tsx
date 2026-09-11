@@ -9,8 +9,8 @@ type Props = {
   title?: string;
   className?: string;
   /**
-   * Narrows the band. Applied to the same element as the heading so the two
-   * cannot end up on different left edges.
+   * Narrows the band. Sits on the same element as the heading, so a narrowed
+   * section keeps its heading and its content on one axis.
    */
   contentClassName?: string;
   children: React.ReactNode;
@@ -33,8 +33,12 @@ function LandingSection({
   return (
     <section id={id} className={cn('w-full px-5 py-14 md:py-20', className)}>
       <div className={cn('mx-auto w-full max-w-5xl', contentClassName)}>
+        {/* Left on mobile, centred from md up. Decided here rather than per
+            section so every band's heading sits on the same axis: the sections
+            differ in how wide their content is, and a left-aligned heading
+            then starts at a different x in each one. */}
         {title && (
-          <h2 className="mb-8 text-balance text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+          <h2 className="mb-8 text-balance text-left text-2xl font-bold tracking-tight text-foreground md:text-center md:text-3xl">
             {title}
           </h2>
         )}

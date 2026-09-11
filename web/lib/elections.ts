@@ -39,6 +39,26 @@ export function isUpcomingElection(
   return date >= startOfDay(now);
 }
 
+/**
+ * Breaks ties between elections held on the same day, nearest-first.
+ *
+ * Berlin and Mecklenburg-Vorpommern both vote on 20 September 2026, so the
+ * date alone cannot say which one the landing page should lead with — without
+ * this the winner is whichever order Firestore happened to return them in,
+ * which is not a decision anyone made. Ids listed here sort ahead of any other
+ * election sharing their day; everything else keeps the order it arrived in,
+ * because Array.prototype.sort is stable.
+ *
+ * This only ever reorders elections that tie. It cannot promote one past an
+ * election that is genuinely sooner.
+ */
+const SAME_DAY_ORDER = ['landtagswahl-mecklenburg-vorpommern-2026'];
+
+function sameDayRank(context: Context): number {
+  const index = SAME_DAY_ORDER.indexOf(context.context_id);
+  return index === -1 ? SAME_DAY_ORDER.length : index;
+}
+
 function compareByDateAscending(a: Context, b: Context): number {
   const dateA = toDate(a.date);
   const dateB = toDate(b.date);
@@ -48,7 +68,13 @@ function compareByDateAscending(a: Context, b: Context): number {
   if (!dateA) return 1;
   if (!dateB) return -1;
 
-  return dateA.getTime() - dateB.getTime();
+  // Compared by day, not by instant, so two elections on the same date reach
+  // the tie-break even if their timestamps differ by hours.
+  const dayA = startOfDay(dateA).getTime();
+  const dayB = startOfDay(dateB).getTime();
+  if (dayA !== dayB) return dayA - dayB;
+
+  return sameDayRank(a) - sameDayRank(b);
 }
 
 /**
