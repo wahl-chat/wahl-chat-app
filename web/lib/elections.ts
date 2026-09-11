@@ -1,10 +1,10 @@
 import type { Context } from '@/lib/firebase/firebase.types';
 
-// Context.date is declared `string | null` but firebase-server.ts maps it
-// through firestoreTimestampToDate(), so it is a Date at runtime. Accept both
-// rather than trusting either — this is the one place that does real date
-// arithmetic on it.
-type ContextDate = Context['date'] | Date | undefined;
+// Context.date is a Date by the time it reaches a consumer, but the value comes
+// out of Firestore, so a hand-seeded string can still arrive. Accept both rather
+// than trusting either — this is the one place that does real date arithmetic
+// on it.
+type ContextDate = Context['date'] | string | undefined;
 
 function toDate(date: ContextDate): Date | undefined {
   if (!date) return undefined;

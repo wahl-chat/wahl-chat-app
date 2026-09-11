@@ -7,7 +7,6 @@ import LoadingPartyCards from '@/components/home/loading-party-cards';
 import { useElectionContext } from '@/components/providers/context-provider';
 import { Button } from '@/components/ui/button';
 import { GitCompareIcon, MousePointerClickIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
 
 type Props = {
   contextId: string;
@@ -16,13 +15,9 @@ type Props = {
 export function ElectionPartySelector({ contextId }: Props) {
   const { partyCount, parties } = useElectionContext();
 
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-  }, []);
+  // Parties come from the server layout, so there is nothing to wait for; the
+  // skeleton only covers the case where they are genuinely absent.
+  const isLoading = !parties;
 
   return (
     <div
@@ -56,7 +51,7 @@ export function ElectionPartySelector({ contextId }: Props) {
           Wähle eine Partei, um den Chat mit ihr zu starten
         </h1>
 
-        {!parties || isLoading ? (
+        {isLoading ? (
           <LoadingPartyCards
             partyCount={Math.min(partyCount || 0, 8)}
             className="mt-1"

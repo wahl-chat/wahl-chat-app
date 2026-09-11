@@ -141,14 +141,16 @@ export function prettyDate(
 }
 
 export function formatGermanDate(
-  dateString: string | null | undefined,
+  value: Date | string | null | undefined,
   format: 'full' | 'long' | 'medium' | 'short' = 'long',
 ): string | null {
-  if (!dateString || dateString.length === 0) return null;
+  if (!value) return null;
 
-  const date = new Date(dateString);
+  const date = value instanceof Date ? value : new Date(value);
 
-  if (!date) {
+  // new Date() never returns null for a bad input — it returns an Invalid Date,
+  // which Intl would throw on.
+  if (Number.isNaN(date.getTime())) {
     return null;
   }
 
