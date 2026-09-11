@@ -1,11 +1,20 @@
 import HomeSocialMediaIcon from '@/components/icons/home-social-media-icon';
 
-function ContactCard() {
+/**
+ * Cards render an h2 by default, which is right on the election home page
+ * where each card is a top-level block. Under a section heading on the
+ * landing page they must be h3 so the outline does not flatten.
+ */
+type CardTitleProps = {
+  titleAs?: 'h2' | 'h3';
+};
+
+function ContactCard({ titleAs: Title = 'h2' }: CardTitleProps) {
   return (
     <div className="flex flex-col rounded-md border border-border">
       <div className="flex grow flex-col justify-between p-4">
         <div>
-          <h2 className="font-bold">Bleibe up to date</h2>
+          <Title className="font-bold">Bleibe up to date</Title>
           <p className="text-sm text-muted-foreground">
             Finde uns auf Social Media oder kontaktiere uns per E-Mail.
           </p>

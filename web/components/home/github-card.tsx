@@ -2,7 +2,14 @@ import GithubIcon from '@/components/icons/github-icon';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-function GitHubCard({ fullWidth = false }: { fullWidth?: boolean }) {
+function GitHubCard({
+  fullWidth = false,
+  titleAs: Title = 'h2',
+}: {
+  fullWidth?: boolean;
+  /** h3 under a landing-page section heading; h2 as a top-level card. */
+  titleAs?: 'h2' | 'h3';
+}) {
   return (
     <div
       className={`flex flex-col rounded-md border border-border${
@@ -11,9 +18,9 @@ function GitHubCard({ fullWidth = false }: { fullWidth?: boolean }) {
     >
       <div className="flex grow flex-col justify-between p-4">
         <div>
-          <h2 className="font-bold">
+          <Title className="font-bold">
             Der Code hinter <span className="underline">wahl.chat</span>
-          </h2>
+          </Title>
           <p className="mb-4 text-sm text-muted-foreground">
             Du willst wissen wie <span className="underline">wahl.chat</span>{' '}
             funktioniert oder sogar selbst mitentwickeln? Der gesamte Code ist

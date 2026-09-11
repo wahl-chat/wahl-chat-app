@@ -13,7 +13,14 @@ type Props = {
   searchParams: Promise<{
     session_id?: string;
     party_id: string[] | string | undefined;
+    /** Sent as soon as the chat hydrates. */
     q?: string;
+    /**
+     * Put into the input for the user to send themselves. Entry points that a
+     * crawler can reach — the landing page's example questions — use this, so
+     * following the link never triggers a generation.
+     */
+    prefill?: string;
   }>;
 };
 
@@ -69,7 +76,7 @@ export async function generateMetadata({
 
 async function SessionPage({ params, searchParams }: Props) {
   const { contextId } = await params;
-  const { party_id, q, session_id } = await searchParams;
+  const { party_id, q, prefill, session_id } = await searchParams;
   const parties = await getPartiesForContext(contextId);
 
   if (session_id) {
@@ -90,6 +97,7 @@ async function SessionPage({ params, searchParams }: Props) {
     <ChatView
       partyIds={normalizedPartyIds}
       initialQuestion={q}
+      prefilledQuestion={prefill}
       contextId={contextId}
     />
   );

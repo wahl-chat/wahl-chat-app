@@ -127,3 +127,49 @@ body {
 .animate-scroll:hover {
   animation-play-state: paused;
 }
+
+/* Landing-page colour field. Lives here rather than in the Tailwind config
+   because each blob runs at its own duration via --blur-duration, and Tailwind
+   only emits keyframes for animations reached through a utility class. */
+@keyframes blur-drift {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(18%, -14%) scale(1.35);
+  }
+}
+
+.animate-blur-drift {
+  animation: blur-drift var(--blur-duration) ease-in-out alternate infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-blur-drift {
+    animation: none;
+  }
+}
+
+/* Landing-page hero wheel. Lives here for the same reason as blur-drift: each
+   row runs at its own duration via --marquee-duration, and Tailwind only emits
+   keyframes for animations reached through a utility class. The track is
+   rendered twice in the markup, so translating by exactly half of it loops
+   seamlessly. */
+@keyframes screenshot-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-screenshot-marquee {
+  animation: screenshot-marquee var(--marquee-duration) linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-screenshot-marquee {
+    animation: none;
+  }
+}

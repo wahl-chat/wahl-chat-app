@@ -100,7 +100,12 @@ type Props = {
 function AiDisclaimer({ className }: Props) {
   return (
     <ResponsiveDialog>
-      <p className="my-2 text-center text-xs text-muted-foreground">
+      <p
+        className={cn(
+          'my-2 text-center text-xs text-muted-foreground',
+          className,
+        )}
+      >
         wahl.chat Antwortet mit KI.{' '}
         <ResponsiveDialogTrigger className="font-semibold underline">
           Erfahre hier mehr.

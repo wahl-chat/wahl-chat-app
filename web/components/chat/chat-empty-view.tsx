@@ -59,7 +59,7 @@ function ChatEmptyView({ parties, proposedQuestions }: Props) {
       </div>
       {party ? (
         <p className="text-center">
-          Stelle dem Wahlprogramm der Partei{' '}
+          Stelle den Dokumenten der Partei{' '}
           <span className="font-semibold">{party.name}</span> deine Fragen und
           vergleiche ihre Antworten mit denen anderer Parteien.
         </p>

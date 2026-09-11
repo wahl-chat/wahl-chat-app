@@ -103,3 +103,29 @@ export function buildContextJsonLd(context: Context, path?: string) {
     isPartOf: { '@id': WEBSITE_ID },
   };
 }
+
+/**
+ * FAQPage mainEntity nodes.
+ *
+ * Worth stating plainly: Google restricted FAQ rich results to authoritative
+ * government and health sites in August 2023, so this will not produce a rich
+ * snippet for wahl.chat. It is kept as entity data — Bing still renders it,
+ * and answer engines consume it. The reason the FAQ earns its place on / is
+ * that the answers are real crawlable text, not this markup.
+ *
+ * The text passed in must be the text the page actually shows: structured data
+ * describing hidden content is a policy violation, which is also why the FAQ
+ * uses <details> rather than an accordion that unmounts closed answers.
+ */
+export function buildFaqPageMainEntity(
+  items: { question: string; answer: string }[],
+) {
+  return items.map(({ question, answer }) => ({
+    '@type': 'Question',
+    name: question,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: answer,
+    },
+  }));
+}

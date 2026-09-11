@@ -14,6 +14,7 @@ type Props = {
   chatSessionId?: string;
   partyIds?: string[];
   initialQuestion?: string;
+  prefilledQuestion?: string;
   contextId?: string;
 };
 
@@ -50,6 +51,7 @@ async function ChatViewSsr({
   chatSessionId,
   partyIds,
   initialQuestion,
+  prefilledQuestion,
   contextId = DEFAULT_CONTEXT_ID,
 }: Props) {
   const chatSession = chatSessionId
@@ -82,6 +84,7 @@ async function ChatViewSsr({
       messages={messages}
       proposedQuestions={proposedQuestions}
       initialQuestion={initialQuestion}
+      prefilledQuestion={prefilledQuestion}
     />
   );
 }
