@@ -3,25 +3,24 @@ import GitHubCard from '@/components/home/github-card';
 import KnownFrom from '@/components/home/known-from';
 import SupportUsCard from '@/components/home/support-us-card';
 import HowToIntro from '@/components/how-to-intro';
-import BrandBlurBackdrop from '@/components/landing/brand-blur-backdrop';
 import DataSources from '@/components/landing/data-sources';
 import ElectionLinks from '@/components/landing/election-links';
 import ExampleQuestions, {
   type QuestionGroup,
 } from '@/components/landing/example-questions';
-import HeroCta from '@/components/landing/hero-cta';
-import HeroLogo from '@/components/landing/hero-logo';
+import LandingChatHero from '@/components/landing/landing-chat-hero';
 import LandingFaq from '@/components/landing/landing-faq';
 import LandingSection from '@/components/landing/landing-section';
 import LandingStats from '@/components/landing/landing-stats';
-import ScreenshotWheel from '@/components/landing/screenshot-wheel';
-import ScrollCue from '@/components/landing/scroll-cue';
 import JsonLd from '@/components/seo/json-ld';
-import { isUpcomingElection, splitElectionsByDate } from '@/lib/elections';
+import { splitElectionsByDate } from '@/lib/elections';
 import {
   getContexts,
   getGroupProposedQuestionsForContext,
+  getHomeInputProposedQuestions,
   getPartiesForContext,
+  getSystemStatus,
+  getUser,
 } from '@/lib/firebase/firebase-server';
 import {
   flattenAccordionContentToText,
@@ -33,8 +32,7 @@ import {
   buildFaqPageMainEntity,
   productionRobots,
 } from '@/lib/seo';
-import { IS_EMBEDDED, formatGermanDate } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
+import { IS_EMBEDDED, shuffleArray } from '@/lib/utils';
 import type { Metadata } from 'next';
 
 // The featured election is derived from the context dates, so it rolls over on
@@ -86,7 +84,6 @@ export default async function Landing() {
   // Between elections there is nothing upcoming; fall back to the most recent
   // one so the page still leads somewhere rather than dead-ending.
   const featuredElection = upcoming[0] ?? past[0];
-  const featuredDate = formatGermanDate(featuredElection?.date);
 
   // Sample questions for every live election, not just the featured one.
   // Between elections there is nothing upcoming, so fall back to the most
@@ -96,35 +93,48 @@ export default async function Landing() {
   // of these are cached reads issued in parallel, so it is a handful of data
   // cache hits rather than a fan-out of Firestore round trips.
   const questionElections = upcoming.length > 0 ? upcoming : past.slice(0, 1);
-  const questionGroups: QuestionGroup[] = (
-    await Promise.all(
-      questionElections.map(async (context) => {
-        const [questions, parties] = await Promise.all([
-          getGroupProposedQuestionsForContext(context.context_id),
-          getPartiesForContext(context.context_id),
-        ]);
+  const [homeQuestions, systemStatus, user, electionContent] =
+    await Promise.all([
+      getHomeInputProposedQuestions(),
+      getSystemStatus(),
+      getUser(),
+      Promise.all(
+        contexts.map(async (context) => {
+          const [questions, parties] = await Promise.all([
+            getGroupProposedQuestionsForContext(context.context_id),
+            getPartiesForContext(context.context_id),
+          ]);
 
-        return { context, questions, parties };
-      }),
-    )
-  ).filter((group) => group.questions.length > 0);
+          return { context, questions, parties };
+        }),
+      ),
+    ]);
 
-  // The elections section lists the ones the hero does not already lead with.
-  const otherUpcoming = upcoming.filter(
-    (context) => context.context_id !== featuredElection?.context_id,
+  const electionContentById = new Map(
+    electionContent.map((content) => [content.context.context_id, content]),
   );
-  const otherPast = past.filter(
-    (context) => context.context_id !== featuredElection?.context_id,
+  const questionGroups: QuestionGroup[] = questionElections
+    .map((context) => electionContentById.get(context.context_id))
+    .filter((group): group is QuestionGroup =>
+      Boolean(group?.questions.length),
+    );
+  const partiesByContext = Object.fromEntries(
+    electionContent.map(({ context, parties }) => [
+      context.context_id,
+      shuffleArray(parties),
+    ]),
   );
-  const hasOtherElections = otherUpcoming.length > 0 || otherPast.length > 0;
+  const questionsByContext = Object.fromEntries(
+    electionContent.map(({ context, questions }) => [
+      context.context_id,
+      questions,
+    ]),
+  );
 
-  // The cue points at whatever section actually comes first, so it never lands
-  // on an anchor that an empty election list has removed.
-  const firstSectionAnchor = hasOtherElections
-    ? ELECTIONS_ANCHOR
-    : questionGroups.length > 0
-      ? QUESTIONS_ANCHOR
-      : ABOUT_ANCHOR;
+  // The selector is interactive rather than a set of links. Keep every
+  // election in this server-rendered list so the crawlable markup and the
+  // structured ItemList continue to describe the same destinations.
+  const hasElections = upcoming.length > 0 || past.length > 0;
 
   const faqItems = getLandingFaqItems();
 
@@ -146,10 +156,9 @@ export default async function Landing() {
     ),
   };
 
-  // Every election the page links to — the hero's featured one plus the
-  // section listing the rest — so the structured data and the crawlable markup
-  // cannot drift apart. Each item points at the @id the context page declares
-  // for itself, so the graph resolves rather than repeating a bare URL.
+  // Every election the page links to, so the structured data and crawlable
+  // markup cannot drift apart. Each item points at the @id the context page
+  // declares for itself, so the graph resolves rather than repeating a bare URL.
   const orderedElections = [...upcoming, ...past];
   const electionList = {
     '@type': 'ItemList',
@@ -174,86 +183,30 @@ export default async function Landing() {
     <>
       <JsonLd data={jsonLd} />
 
-      {/* The hero fills the viewport but is no longer the whole page. svh
-          rather than dvh: dvh tracks the mobile URL bar collapsing mid-scroll,
-          which would resize the hero and shift every section below it.
+      {featuredElection ? (
+        <LandingChatHero
+          contexts={contexts}
+          initialContextId={featuredElection.context_id}
+          partiesByContext={partiesByContext}
+          fallbackQuestions={homeQuestions}
+          questionsByContext={questionsByContext}
+          initialSystemStatus={systemStatus}
+          hasValidServerUser={!user?.isAnonymous}
+        />
+      ) : (
+        <section className="px-5 py-16 text-center">
+          <h1 className="text-3xl font-bold">
+            Politik verstehen mit wahl.chat
+          </h1>
+          <p className="mt-3 text-muted-foreground">
+            Aktuell ist keine Wahl verfügbar.
+          </p>
+        </section>
+      )}
 
-          This section is also the clip boundary for BrandBlurBackdrop — the
-          blobs are positioned in % of their container and drift past its edge,
-          so overflow-hidden here is what keeps them off the rest of the
-          document. Every other section is a sibling of this one, never a
-          child. */}
-      <section className="relative flex min-h-svh w-full flex-col overflow-hidden">
-        <BrandBlurBackdrop />
-        <ScreenshotWheel />
-
-        {/* Mobile-first three-part hero: the mark sits top-left where a site
-            logo belongs, the headline takes the middle, and the call to action
-            is pinned to the bottom of the panel where a thumb reaches it.
-            The auto margins do that rather than justify-*, so each part can be
-            placed independently.
-
-            On desktop there is no thumb to reach with, and a button stranded
-            at the foot of a tall viewport reads as unrelated to the headline —
-            so md: collapses the text and the button back into one centred
-            group while the mark stays in its own top row. */}
-        <div className="relative flex flex-1 flex-col px-5 py-6 md:py-14">
-          <HeroLogo />
-
-          <div className="flex flex-1 flex-col items-center gap-6 text-center">
-            <div className="my-auto flex max-w-3xl flex-col gap-4 md:mb-0 md:mt-auto">
-              <h1 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
-                <span className="block">Fragen stellen.</span>
-                <span className="block">Politik verstehen.</span>
-                <span className="block">Informiert wählen.</span>
-              </h1>
-
-              {/* An h2 rather than a p: now that the h1 is a short claim, this
-                  line carries the page's keywords and reads as the hero's
-                  subhead. Styled down to the supporting sentence it is — the
-                  page still has exactly one h1, directly above it. */}
-              <h2 className="text-pretty text-base font-normal text-muted-foreground md:text-lg">
-                Welche Partei passt zu dir? Vergleiche Parteien, belegt durch
-                Plenarprotokolle, namentliche Abstimmungen und Wahlprogramme.
-              </h2>
-            </div>
-
-            {featuredElection && (
-              <div className="flex w-full flex-col items-center gap-2 md:mb-auto">
-                <p className="text-balance font-medium text-foreground">
-                  {isUpcomingElection(featuredElection)
-                    ? 'Nächste Wahl'
-                    : 'Letzte Wahl'}
-                  : {featuredElection.name}
-                </p>
-
-                {featuredDate && (
-                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <CalendarIcon
-                      className="size-4 shrink-0"
-                      aria-hidden="true"
-                    />
-                    {featuredDate}
-                  </p>
-                )}
-
-                <div className="mt-2 flex w-full justify-center">
-                  <HeroCta context={featuredElection} />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <ScrollCue href={`#${firstSectionAnchor}`} />
-      </section>
-
-      {hasOtherElections && (
-        <LandingSection
-          id={ELECTIONS_ANCHOR}
-          title="Weitere Wahlen auf wahl.chat"
-        >
-          <ElectionLinks upcoming={otherUpcoming} past={otherPast} />
+      {hasElections && (
+        <LandingSection id={ELECTIONS_ANCHOR} title="Wahlen auf wahl.chat">
+          <ElectionLinks upcoming={upcoming} past={past} />
         </LandingSection>
       )}
 

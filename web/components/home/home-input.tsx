@@ -1,6 +1,8 @@
 'use client';
 
 import DynamicRateLimitStickyInput from '@/components/dynamic-rate-limit-sticky-input';
+import type { StickyInputAppearance } from '@/components/sticky-input';
+import { buildChatSessionUrl } from '@/lib/chat-route';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import type {
   LlmSystemStatus,
@@ -17,6 +19,9 @@ type Props = {
   initialSystemStatus: LlmSystemStatus;
   hasValidServerUser?: boolean;
   contextId?: string;
+  appearance?: StickyInputAppearance;
+  headerActions?: React.ReactNode;
+  footerActions?: React.ReactNode;
 };
 
 function HomeInput({
@@ -25,6 +30,9 @@ function HomeInput({
   initialSystemStatus,
   hasValidServerUser,
   contextId = DEFAULT_CONTEXT_ID,
+  appearance,
+  headerActions,
+  footerActions,
 }: Props) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +46,7 @@ function HomeInput({
       question,
       context: contextId,
     });
-    router.push(`/${contextId}/session?q=${question}`);
+    router.push(buildChatSessionUrl({ contextId, question }));
   };
 
   return (
@@ -49,6 +57,9 @@ function HomeInput({
       initialSystemStatus={initialSystemStatus}
       hasValidServerUser={hasValidServerUser}
       className={cn('mt-4', className)}
+      appearance={appearance}
+      headerActions={headerActions}
+      footerActions={footerActions}
     />
   );
 }

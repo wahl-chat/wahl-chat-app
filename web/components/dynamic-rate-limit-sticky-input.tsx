@@ -4,7 +4,7 @@ import { listenToSystemStatus } from '@/lib/firebase/firebase';
 import type { LlmSystemStatus } from '@/lib/firebase/firebase.types';
 import { useEffect, useState } from 'react';
 import { useAnonymousAuth } from './anonymous-auth';
-import StickyInput from './sticky-input';
+import StickyInput, { type StickyInputAppearance } from './sticky-input';
 import StickyInputRateLimit from './sticky-input-rate-limit';
 
 type Props = {
@@ -14,6 +14,9 @@ type Props = {
   className?: string;
   initialSystemStatus: LlmSystemStatus;
   hasValidServerUser?: boolean;
+  appearance?: StickyInputAppearance;
+  headerActions?: React.ReactNode;
+  footerActions?: React.ReactNode;
 };
 
 function DynamicRateLimitStickyInput({
@@ -23,6 +26,9 @@ function DynamicRateLimitStickyInput({
   className,
   initialSystemStatus,
   hasValidServerUser,
+  appearance,
+  headerActions,
+  footerActions,
 }: Props) {
   const { user } = useAnonymousAuth();
   const [isAtRateLimit, setIsAtRateLimit] = useState(
@@ -48,6 +54,7 @@ function DynamicRateLimitStickyInput({
         onSubmit={onSubmit}
         quickReplies={quickReplies}
         className={className}
+        appearance={appearance}
       />
     );
   }
@@ -58,6 +65,9 @@ function DynamicRateLimitStickyInput({
       onSubmit={onSubmit}
       quickReplies={quickReplies}
       className={className}
+      appearance={appearance}
+      headerActions={headerActions}
+      footerActions={footerActions}
     />
   );
 }
