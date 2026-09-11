@@ -100,9 +100,6 @@ type Props = {
 function AiDisclaimer({ className }: Props) {
   return (
     <ResponsiveDialog>
-      {/* The caller decides which breakpoint this belongs to — the page renders
-          one instance for desktop and one for mobile, so dropping className
-          here shows both at once. */}
       <p
         className={cn(
           'my-2 text-center text-xs text-muted-foreground',
