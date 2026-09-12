@@ -12,10 +12,14 @@ Firebase configuration for [wahl.chat](https://wahl.chat/) — Firestore rules, 
 
 ```
 firebase/
-├── functions/           # Cloud Functions (Python 3.11)
-│   ├── main.py          # Function handlers (PDF processing, vector store indexing)
+├── functions/           # LEGACY Cloud Functions (Python 3.11, codebase "default")
+│   ├── main.py          # V1 handlers — per-context collections, four-segment paths
 │   ├── models.py        # Data models
 │   └── requirements.txt # Python dependencies
+├── ingest_functions/    # Cloud Functions (Python 3.12, codebase "ingest")
+│   ├── main.py          # Storage triggers: ingest/retire uploaded party PDFs
+│   ├── predeploy.sh     # Builds the ingestion + wahlchat-common wheels into vendor/
+│   └── requirements.txt # firebase_functions + the vendored wheels
 ├── firestore_data/      # Seed data for Firestore
 │   ├── dev/             # Development environment data
 │   └── prod/            # Production environment data
@@ -63,9 +67,35 @@ Then deploy:
 firebase deploy --only firestore:rules      # Firestore security rules
 firebase deploy --only firestore:indexes     # Firestore indexes
 firebase deploy --only storage               # Storage security rules
-firebase deploy --only functions             # All Cloud Functions
+firebase deploy --only functions             # All Cloud Functions (both codebases)
+firebase deploy --only functions:ingest      # Only the upload-ingestion codebase
 firebase deploy --only functions:FUNC_NAME   # A specific function
 ```
+
+## Upload-Ingestion Functions (`ingest_functions/`)
+
+Event-driven ingestion of uploaded party PDFs
+(`public/{context_id}/{wahlprogramme|parteidokumente}/{party_id}/{name}_{date}.pdf`):
+`ingest_uploaded_pdf` chunks/embeds a finalized PDF into `wahlchat_chunks_{ENV}`
+and `retire_uploaded_pdf` deletes a removed PDF's chunks — one document per
+event, like the V1 triggers. There is no duplicated pipeline: the codebase
+installs the **`ingestion` package itself** plus its `wahlchat-common`
+workspace dependency (wheels `predeploy.sh` builds into `vendor/` on every
+deploy, wired via `firebase.json`), and each event runs the
+real `manifesto_uploads` connector through the real runner via
+`ingestion.connectors.manifesto_uploads.single` (`ingest_one` / `retire_one`,
+tested in `ingestion/tests/connectors/manifesto_uploads/test_single.py`). The
+daily `ingest-manifesto-uploads` Cloud Run job remains the reconciling backstop
+— same code, so their writes are idempotent against each other. Deploying needs
+`uv` on the machine (the predeploy build step).
+
+Configuration params (prompted at deploy, stored in `ingest_functions/.env.<project>`):
+`ENV`, `QDRANT_URL`, `QDRANT_API_KEY`, `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`,
+`EMBEDDING_DIM`, and per provider `OPENAI_API_KEY` or `GOOGLE_API_KEY` /
+`VERTEX_SA_JSON` (+ `VERTEX_PROJECT_ID`) — the same names and values the
+ingestion jobs use; the collection's embedding-space fingerprint rejects a
+mismatched configuration before any write. The function's service account needs
+Firestore read access and Storage read + ACL access on the default bucket.
 
 ## Seeding Data
 
