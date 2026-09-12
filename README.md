@@ -22,6 +22,8 @@ The aim of wahl.chat is to enable users to engage in a contemporary way with the
 |---|---|---|
 | [`web/`](web/) | Next.js frontend application | [README](web/README.md) |
 | [`ai-backend/`](ai-backend/) | Python AI/RAG backend (FastAPI + SSE + LangChain) | [README](ai-backend/README.md) |
+| [`ingestion/`](ingestion/) | Corpus layer: ingestion connectors, runner, and Qdrant collection setup | [README](ingestion/README.md) |
+| [`packages/wahlchat-common/`](packages/wahlchat-common/) | Code shared by the Python components | [README](packages/wahlchat-common/README.md) |
 | [`firebase/`](firebase/) | Firebase config, Cloud Functions, Firestore rules & seed data | [README](firebase/README.md) |
 
 ## Getting Started
@@ -53,6 +55,8 @@ symlink is git-ignored; `AGENTS.md` is the source of truth).
 ```bash
 cp ai-backend/.env.example ai-backend/.env
 cp web/.env.example web/.env.local
+# Only if you run ingestion connectors; otherwise they fall back to ai-backend/.env
+cp ingestion/.env.example ingestion/.env
 ```
 
 The `.env.example` files are pre-configured for local mode (`QDRANT_URL=http://localhost:6333`, `FIRESTORE_EMULATOR_HOST=localhost:8081`). You only need to fill in LLM API keys (`OPENAI_API_KEY`, `GOOGLE_API_KEY`) for the chat to work.
@@ -99,16 +103,16 @@ make stores-down
 
 | Target | Description |
 |--------|-------------|
-| `make install` | Install all dependencies (web + backend) |
+| `make install` | Install all dependencies (web via bun; Python members via one uv sync) |
 | `make stores-up` | Start Qdrant (Docker) and Firestore emulator (host process) |
 | `make stores-down` | Stop all local stores |
 | `make seed-local` | Load scrubbed fixtures into local stores (requires `FIRESTORE_EMULATOR_HOST`) |
 | `make dev-local` | Start stores + both dev servers |
 | `make dev` | Start both dev servers (assumes stores are already running) |
-| `make test-backend` | Run backend unit tests |
+| `make test-backend` | Run the Python unit tests (all three workspace members) |
 | `make test-smoke` | Run E2E SSE smoke test |
 | `make test-local-mode` | Run the seed-script emulator-guard tests (needs live local stores: `make stores-up` first) |
-| `make lint` | Lint web (biome) + backend (ruff) |
+| `make lint` | Lint web (biome) + all Python members (ruff) |
 
 ## Contributing
 

@@ -1,0 +1,90 @@
+# SPDX-FileCopyrightText: 2026 wahl.chat
+#
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+[project]
+name = "ingestion"
+version = "1.0.0"
+description = "wahl.chat corpus layer: ingestion connectors and runner, Qdrant collection setup, and the embedding factory that defines the corpus vector space."
+authors = [{name = "wahl.chat", email = "info@wahl.chat"}]
+license = {text = "PolyForm-Noncommercial-1.0.0"}
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+
+# Depends on wahlchat-common (shared code), never on `ai-backend`.
+# Deliberately free of every web-service dependency (fastapi, uvicorn,
+# sse-starlette, firebase-admin) so the Job image carries no chat-service code.
+dependencies = [
+    "wahlchat-common",
+    "beautifulsoup4>=4.15.0",
+    "defusedxml>=0.7.1",
+    # Vertex service-account credentials (vertex_credentials.py) and the
+    # Firestore emulator's AnonymousCredentials.
+    "google-auth>=2.53.0",
+    # Election fixtures + manifesto uploads read Firestore and GCS directly.
+    # Declared explicitly: without firebase-admin in this package they are no
+    # longer available transitively.
+    "google-cloud-firestore>=2.27.0,<3.0",
+    "google-cloud-storage>=3.11.0,<4.0",
+    "httpx>=0.27",
+    "langchain-core>=1.4.0",
+    "langchain-google-genai>=4.2.0",
+    "langchain-openai>=1.2.0",
+    "langchain-text-splitters>=1.1.2",
+    "pydantic>=2.10.0,<3.0",
+    "pypdf>=6.0.0,<7.0",
+    "python-dotenv>=1.0.1,<2.0",
+    # qdrant-client tracks Qdrant server minor 1.18.x (pin held for index parity)
+    "qdrant-client>=1.18.0,<1.19",
+    "requests>=2.34.2",
+    "tenacity>=8.2",
+    "trafilatura>=2.1.0",
+    # Imported directly (Retry config for the HTTP clients), not just via requests.
+    "urllib3>=2.0",
+]
+
+[tool.uv.sources]
+wahlchat-common = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "mypy>=1.12.0",
+    "ruff>=0.8.0",
+    "pytest>=8.3",
+]
+
+[tool.mypy]
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+ignore = []
+fixable = ["ALL"]
+unfixable = []
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+# conftest deliberately imports AFTER installing env vars + the Qdrant mock, so
+# its module-level imports legitimately sit below that setup block.
+"tests/conftest.py" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = false
+docstring-code-line-length = "dynamic"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ingestion"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
