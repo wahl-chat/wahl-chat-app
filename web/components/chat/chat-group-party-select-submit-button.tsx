@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { buildChatSessionUrl } from '@/lib/chat-route';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
@@ -20,12 +21,7 @@ function ChatGroupPartySelectSubmitButton({
   const router = useRouter();
 
   const navigateUrl = useMemo(() => {
-    const searchParams = new URLSearchParams();
-    selectedPartyIds.forEach((partyId) => {
-      searchParams.append('party_id', partyId);
-    });
-
-    return `/${contextId}/session?${searchParams.toString()}`;
+    return buildChatSessionUrl({ contextId, partyIds: selectedPartyIds });
   }, [selectedPartyIds, contextId]);
 
   const handleSubmit = () => {

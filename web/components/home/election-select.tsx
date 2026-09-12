@@ -18,7 +18,7 @@ function CompactElectionContent({ context }: { context: Context }) {
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
       <ContextIcon context={context} />
-      <span className="truncate text-sm font-medium text-foreground">
+      <span className="line-clamp-2 text-left text-sm font-medium leading-tight text-foreground">
         {context.name}
       </span>
       <span className="hidden shrink-0 items-center gap-3 text-xs text-muted-foreground sm:flex">
@@ -39,15 +39,24 @@ function CompactElectionContent({ context }: { context: Context }) {
   );
 }
 
-export function ElectionSelect() {
+type Props = {
+  onContextChange?: (contextId: string) => void;
+};
+
+export function ElectionSelect({ onContextChange }: Props = {}) {
   const currentContext = useCurrentContext();
   const contexts = useContexts();
   const router = useRouter();
 
   const handleContextChange = (contextId: string) => {
-    if (contextId !== currentContext.context_id) {
-      router.push(`/${contextId}`);
+    if (contextId === currentContext.context_id) return;
+
+    if (onContextChange) {
+      onContextChange(contextId);
+      return;
     }
+
+    router.push(`/${contextId}`);
   };
 
   // A lone context is not a choice — render it as a status line instead.

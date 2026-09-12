@@ -14,6 +14,8 @@ type Props = {
   selectedPartyIdsInStore?: string[];
   addPartiesToChat?: boolean;
   contextId?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 function ChatGroupPartySelect({
@@ -22,9 +24,11 @@ function ChatGroupPartySelect({
   selectedPartyIdsInStore,
   addPartiesToChat,
   contextId,
+  open,
+  onOpenChange,
 }: Props) {
   return (
-    <ResponsiveDialog>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader className="text-left">
