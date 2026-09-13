@@ -1,17 +1,10 @@
-import ContactCard from '@/components/home/contact-card';
-import GitHubCard from '@/components/home/github-card';
 import KnownFrom from '@/components/home/known-from';
-import SupportUsCard from '@/components/home/support-us-card';
-import HowToIntro from '@/components/how-to-intro';
-import DataSources from '@/components/landing/data-sources';
 import ElectionLinks from '@/components/landing/election-links';
-import ExampleQuestions, {
-  type QuestionGroup,
-} from '@/components/landing/example-questions';
 import LandingChatHero from '@/components/landing/landing-chat-hero';
-import LandingFaq from '@/components/landing/landing-faq';
+import LandingCommunity from '@/components/landing/landing-community';
+import { LandingComposerProvider } from '@/components/landing/landing-composer-provider';
+import LandingExplainer from '@/components/landing/landing-explainer';
 import LandingSection from '@/components/landing/landing-section';
-import LandingStats from '@/components/landing/landing-stats';
 import JsonLd from '@/components/seo/json-ld';
 import { splitElectionsByDate } from '@/lib/elections';
 import {
@@ -52,10 +45,6 @@ const DESCRIPTION =
   'Die KI-basierte Ergänzung zum Wahl-O-Mat: Verstehe Parteien anhand von Plenarprotokollen, Abstimmungen und Wahlprogrammen. Jetzt informiert wählen!';
 
 const ELECTIONS_ANCHOR = 'andere-wahlen';
-const QUESTIONS_ANCHOR = 'beispielfragen';
-// Always rendered, so it is the scroll cue's last resort when neither of the
-// election-dependent sections above it has anything to show.
-const ABOUT_ANCHOR = 'was-ist-wahl-chat';
 
 export const metadata: Metadata = {
   title: {
@@ -85,14 +74,6 @@ export default async function Landing() {
   // one so the page still leads somewhere rather than dead-ending.
   const featuredElection = upcoming[0] ?? past[0];
 
-  // Sample questions for every live election, not just the featured one.
-  // Between elections there is nothing upcoming, so fall back to the most
-  // recent past one rather than dropping the section entirely.
-  //
-  // Necessarily serial after getContexts(), which is what decides the set. All
-  // of these are cached reads issued in parallel, so it is a handful of data
-  // cache hits rather than a fan-out of Firestore round trips.
-  const questionElections = upcoming.length > 0 ? upcoming : past.slice(0, 1);
   const [homeQuestions, systemStatus, user, electionContent] =
     await Promise.all([
       getHomeInputProposedQuestions(),
@@ -110,14 +91,6 @@ export default async function Landing() {
       ),
     ]);
 
-  const electionContentById = new Map(
-    electionContent.map((content) => [content.context.context_id, content]),
-  );
-  const questionGroups: QuestionGroup[] = questionElections
-    .map((context) => electionContentById.get(context.context_id))
-    .filter((group): group is QuestionGroup =>
-      Boolean(group?.questions.length),
-    );
   const partiesByContext = Object.fromEntries(
     electionContent.map(({ context, parties }) => [
       context.context_id,
@@ -180,18 +153,19 @@ export default async function Landing() {
   };
 
   return (
-    <>
+    <LandingComposerProvider
+      initialContextId={featuredElection?.context_id ?? ''}
+    >
       <JsonLd data={jsonLd} />
 
       {featuredElection ? (
         <LandingChatHero
           contexts={contexts}
-          initialContextId={featuredElection.context_id}
           partiesByContext={partiesByContext}
           fallbackQuestions={homeQuestions}
           questionsByContext={questionsByContext}
           initialSystemStatus={systemStatus}
-          hasValidServerUser={!user?.isAnonymous}
+          hasValidServerUser={Boolean(user && !user.isAnonymous)}
         />
       ) : (
         <section className="px-5 py-16 text-center">
@@ -204,74 +178,40 @@ export default async function Landing() {
         </section>
       )}
 
+      <LandingExplainer
+        sourcesHref={
+          featuredElection
+            ? `/${featuredElection.context_id}/sources`
+            : undefined
+        }
+      />
+
       {hasElections && (
-        <LandingSection id={ELECTIONS_ANCHOR} title="Wahlen auf wahl.chat">
-          <ElectionLinks upcoming={upcoming} past={past} />
-        </LandingSection>
-      )}
-
-      {/* Press coverage and usage figures are the same claim from two sides —
-          how wahl.chat has been received — so they share one heading. Each band
-          keeps its own labelled divider under it. KnownFrom's own margins are
-          dropped here: the h2 already provides the gap above "Bekannt aus:",
-          and the two together left a hole big enough to read as a missing
-          heading. */}
-      {!IS_EMBEDDED && (
         <LandingSection
-          title="Rezeption"
-          className="py-8 md:py-10"
-          contentClassName="max-w-3xl"
+          id={ELECTIONS_ANCHOR}
+          eyebrow="Deine Wahl, deine Themen"
+          title="Was bewegt dich vor der Wahl?"
+          description="Entdecke die Parteien und Themen deiner Wahl. Eine Frageidee hilft dir beim Einstieg – oder du stellst deine eigene Frage."
         >
-          <div className="flex flex-col gap-10">
-            <KnownFrom className="my-0 md:mt-0" trailingSeparator={false} />
-            <LandingStats electionCount={contexts.length} />
-          </div>
-        </LandingSection>
-      )}
-
-      {questionGroups.length > 0 && (
-        <LandingSection
-          id={QUESTIONS_ANCHOR}
-          title="Beispielfragen an die Parteien"
-        >
-          <ExampleQuestions groups={questionGroups} />
-        </LandingSection>
-      )}
-
-      <LandingSection
-        id={ABOUT_ANCHOR}
-        title="Was ist wahl.chat?"
-        className="bg-muted/30"
-      >
-        <div className="text-muted-foreground">
-          <HowToIntro />
-        </div>
-      </LandingSection>
-
-      {featuredElection && (
-        <LandingSection
-          title="Welche Daten werden verwendet?"
-          className="bg-muted/30"
-        >
-          <DataSources
-            sourcesHref={`/${featuredElection.context_id}/sources`}
+          <ElectionLinks
+            upcoming={upcoming}
+            past={past}
+            questionsByContext={questionsByContext}
           />
         </LandingSection>
       )}
-
-      <LandingSection title="Häufige Fragen">
-        <LandingFaq />
-      </LandingSection>
-
       {!IS_EMBEDDED && (
-        <LandingSection title="wahl.chat unterstützen">
-          <div className="grid gap-4 md:grid-cols-3">
-            <SupportUsCard titleAs="h3" />
-            <GitHubCard titleAs="h3" />
-            <ContactCard titleAs="h3" />
+        <>
+          <LandingCommunity electionCount={contexts.length} />
+          <div className="px-6 pb-12 pt-5 md:pb-14 md:pt-8">
+            <KnownFrom
+              compact
+              className="my-0 md:mt-0"
+              trailingSeparator={false}
+            />
           </div>
-        </LandingSection>
+        </>
       )}
-    </>
+    </LandingComposerProvider>
   );
 }

@@ -9,6 +9,7 @@ type Props = {
   selectedPartyIds: string[];
   onSubmit: () => void;
   addPartiesToChat?: boolean;
+  selectionOnly?: boolean;
   contextId?: string;
 };
 
@@ -16,6 +17,7 @@ function ChatGroupPartySelectSubmitButton({
   selectedPartyIds,
   onSubmit,
   addPartiesToChat,
+  selectionOnly = false,
   contextId = DEFAULT_CONTEXT_ID,
 }: Props) {
   const router = useRouter();
@@ -26,17 +28,21 @@ function ChatGroupPartySelectSubmitButton({
 
   const handleSubmit = () => {
     onSubmit();
-    if (!addPartiesToChat) router.push(navigateUrl);
+    if (!addPartiesToChat && !selectionOnly) router.push(navigateUrl);
   };
 
   useEffect(() => {
-    if (!addPartiesToChat) router.prefetch(navigateUrl);
-  }, [navigateUrl, addPartiesToChat, router]);
+    if (!addPartiesToChat && !selectionOnly) router.prefetch(navigateUrl);
+  }, [navigateUrl, addPartiesToChat, selectionOnly, router]);
 
   return (
     <ResponsiveDialogClose asChild>
       <Button className="w-full" onClick={handleSubmit}>
-        {addPartiesToChat ? 'Parteien ändern' : 'Vergleichschat starten'}
+        {selectionOnly
+          ? 'Auswahl übernehmen'
+          : addPartiesToChat
+            ? 'Parteien ändern'
+            : 'Vergleichschat starten'}
       </Button>
     </ResponsiveDialogClose>
   );

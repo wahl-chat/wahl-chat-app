@@ -38,6 +38,7 @@ const PRESS_MENTIONS = [
 
 type Props = {
   className?: string;
+  compact?: boolean;
   /**
    * Closes the band off at the bottom. Wanted on the context home page, where
    * the cards follow straight after; dropped on the landing page, where the
@@ -46,7 +47,11 @@ type Props = {
   trailingSeparator?: boolean;
 };
 
-function KnownFrom({ className, trailingSeparator = true }: Props) {
+function KnownFrom({
+  className,
+  trailingSeparator = true,
+  compact = false,
+}: Props) {
   // The hover state is driven from the link rather than the mark itself, so
   // the whole cell reacts and not just the glyphs the pointer happens to be on.
   const iconClassNames =
@@ -59,9 +64,23 @@ function KnownFrom({ className, trailingSeparator = true }: Props) {
         className,
       )}
     >
-      <LabeledDivider>Bekannt aus:</LabeledDivider>
-      <nav aria-label="Presseberichte über wahl.chat">
-        <ul className="grid h-16 w-full grid-cols-4 items-center justify-center gap-8">
+      {compact ? (
+        <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+          Bekannt aus
+        </p>
+      ) : (
+        <LabeledDivider>Bekannt aus:</LabeledDivider>
+      )}
+      <nav
+        aria-label="Presseberichte über wahl.chat"
+        className={compact ? 'w-full max-w-xl' : undefined}
+      >
+        <ul
+          className={cn(
+            'grid w-full grid-cols-4 items-center justify-center gap-8',
+            compact ? 'h-8 gap-5 sm:h-9 sm:gap-10' : 'h-16',
+          )}
+        >
           {PRESS_MENTIONS.map(({ name, Icon, href }) => (
             <li key={name} className="flex h-full items-center justify-center">
               <a

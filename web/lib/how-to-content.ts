@@ -283,13 +283,7 @@ export function getAccordionItem(id: string): HowToAccordionItem | undefined {
  * while Firestore has seven, and the landing page renders the real list.
  * 'data' is excluded too — it carries the data-sources section instead.
  */
-const LANDING_FAQ_IDS = [
-  'wahl-o-mat-difference',
-  'data-privacy',
-  'guidelines',
-  'party-selection',
-  'contribute',
-];
+const LANDING_FAQ_IDS = ['wahl-o-mat-difference', 'data-privacy'];
 
 export function getLandingFaqItems(): HowToAccordionItem[] {
   return LANDING_FAQ_IDS.flatMap((id) => {

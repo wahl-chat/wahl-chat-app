@@ -7,7 +7,7 @@ import type { HowToAccordionItem } from '@/lib/how-to-pdf-export';
 import { ChevronDownIcon } from 'lucide-react';
 
 /**
- * The five how-to answers a first-time visitor arrives with, as native
+ * The how-to answers a first-time visitor arrives with, as native
  * disclosures.
  *
  * Native <details> rather than the Radix accordion for the same reason
@@ -20,7 +20,7 @@ function FaqAnswer({ item }: { item: HowToAccordionItem }) {
   const { intro, orderedList, paragraphs } = item.content;
 
   return (
-    <div className="flex flex-col gap-3 pb-4 text-sm text-muted-foreground">
+    <div className="flex flex-col gap-3 pb-6 text-sm leading-relaxed text-muted-foreground">
       {intro && <p>{intro}</p>}
 
       {orderedList && orderedList.length > 0 && (
@@ -69,9 +69,9 @@ function LandingFaq() {
   return (
     <div className="flex flex-col">
       {items.map((item) => (
-        <details key={item.id} className="group border-b border-border">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 [&::-webkit-details-marker]:hidden">
-            <h3 className="text-left font-bold text-foreground">
+        <details key={item.id} className="group border-t border-border/70">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 [&::-webkit-details-marker]:hidden">
+            <h3 className="text-left text-sm font-medium text-foreground">
               {item.title}
             </h3>
             <ChevronDownIcon

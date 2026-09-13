@@ -3,7 +3,8 @@
 import ChatGroupPartySelect from '@/components/chat/chat-group-party-select';
 import ElectionSelect from '@/components/home/election-select';
 import HomeInput from '@/components/home/home-input';
-import AiDisclaimer from '@/components/legal/ai-disclaimer';
+import { useLandingComposer } from '@/components/landing/landing-composer-provider';
+import LandingHeadline from '@/components/landing/landing-headline';
 import { ContextProvider } from '@/components/providers/context-provider';
 import { Button } from '@/components/ui/button';
 import type {
@@ -12,13 +13,13 @@ import type {
   ProposedQuestion,
 } from '@/lib/firebase/firebase.types';
 import type { PartyDetails } from '@/lib/party-details';
-import { ChevronDownIcon, GitCompareIcon } from 'lucide-react';
-import Link from 'next/link';
+import { buildPartyImageUrl } from '@/lib/utils';
+import { ChevronDownIcon, PlusIcon } from 'lucide-react';
+import Image from 'next/image';
 import { useMemo, useState } from 'react';
 
 type Props = {
   contexts: Context[];
-  initialContextId: string;
   partiesByContext: Record<string, PartyDetails[]>;
   fallbackQuestions: ProposedQuestion[];
   questionsByContext: Record<string, ProposedQuestion[]>;
@@ -28,14 +29,14 @@ type Props = {
 
 function LandingChatHero({
   contexts,
-  initialContextId,
   partiesByContext,
   fallbackQuestions,
   questionsByContext,
   initialSystemStatus,
   hasValidServerUser,
 }: Props) {
-  const [selectedContextId, setSelectedContextId] = useState(initialContextId);
+  const { state, dispatch } = useLandingComposer();
+  const selectedContextId = state.contextId;
   const [isPartySelectOpen, setIsPartySelectOpen] = useState(false);
   const selectedContext = useMemo(
     () =>
@@ -53,57 +54,84 @@ function LandingChatHero({
 
   const handleContextChange = (contextId: string) => {
     setIsPartySelectOpen(false);
-    setSelectedContextId(contextId);
+    dispatch({ type: 'context', contextId });
   };
 
   const headerActions = (
-    <>
-      <Button
-        asChild
-        variant="secondary"
-        size="sm"
-        className="h-7 shrink-0 rounded-full px-2 text-xs font-normal"
-      >
-        <Link href="/how-to">Was kann ich fragen?</Link>
-      </Button>
-      <Button
-        asChild
-        variant="secondary"
-        size="sm"
-        className="h-7 shrink-0 rounded-full px-2 text-xs font-normal"
-      >
-        <Link href={`/${selectedContext.context_id}/sources`}>
-          Wie entstehen die Antworten?
-        </Link>
-      </Button>
-      <Button
-        variant="secondary"
-        size="sm"
-        className="h-7 shrink-0 rounded-full px-2 text-xs font-normal"
-        type="button"
-        onClick={() => setIsPartySelectOpen(true)}
-      >
-        Kann ich mehrere Parteien fragen?
-      </Button>
-    </>
+    <div className="flex min-w-0 flex-1 items-center gap-3">
+      <ElectionSelect onContextChange={handleContextChange} appearance="hero" />
+    </div>
   );
+  const selectedParties = state.partyIds.map((id) => {
+    const party = partiesByContext[selectedContext.context_id]?.find(
+      (party) => party.party_id === id,
+    );
+    return {
+      id,
+      name: party?.name ?? id,
+      backgroundColor: party?.background_color ?? '#e4e4e8',
+    };
+  });
   const partySelector = (
     <ChatGroupPartySelect
+      key={selectedContext.context_id}
       contextId={selectedContext.context_id}
+      selectedPartyIdsInStore={state.partyIds}
+      onApplySelection={(partyIds) => dispatch({ type: 'parties', partyIds })}
       open={isPartySelectOpen}
       onOpenChange={setIsPartySelectOpen}
     >
       <Button
         id="party-selection"
-        variant="secondary"
-        className="mt-2 w-full border border-border font-normal"
+        variant="ghost"
+        className="h-8 gap-1.5 rounded-full border border-border/60 bg-muted/30 px-2.5 py-1 text-left text-xs font-medium text-muted-foreground transition-colors hover:border-border hover:bg-muted/70 hover:text-foreground"
         type="button"
-        aria-label="Parteien zum Vergleichen auswählen, optional"
+        title={
+          selectedParties.length
+            ? selectedParties.map((party) => party.name).join(', ')
+            : 'Optional: Parteien für deine Frage auswählen'
+        }
+        aria-label={
+          state.partyIds.length
+            ? `${state.partyIds.length} ${state.partyIds.length === 1 ? 'Partei' : 'Parteien'} ausgewählt, Auswahl ändern`
+            : 'Parteien zum Vergleichen auswählen, optional'
+        }
       >
-        <GitCompareIcon aria-hidden="true" />
-        <span>Parteien zum Vergleichen auswählen</span>
-        <span className="text-xs text-muted-foreground">optional</span>
-        <ChevronDownIcon className="ml-auto" aria-hidden="true" />
+        {selectedParties.length ? (
+          <span className="mr-1 flex shrink-0 -space-x-1" aria-hidden="true">
+            {selectedParties.slice(0, 3).map((party) => (
+              <span
+                key={party.id}
+                className="relative size-[18px] overflow-hidden rounded-full ring-1 ring-chat-input"
+                style={{ backgroundColor: party.backgroundColor }}
+              >
+                <Image
+                  src={buildPartyImageUrl(party.id)}
+                  alt=""
+                  fill
+                  sizes="18px"
+                  className="object-contain p-0.5"
+                />
+              </span>
+            ))}
+            {selectedParties.length > 3 && (
+              <span className="relative flex size-[18px] items-center justify-center rounded-full bg-muted text-[9px] font-medium text-foreground ring-1 ring-chat-input">
+                +{selectedParties.length - 3}
+              </span>
+            )}
+          </span>
+        ) : (
+          <PlusIcon className="size-3.5 shrink-0" aria-hidden="true" />
+        )}
+        <span>
+          {state.partyIds.length
+            ? `${state.partyIds.length} ${state.partyIds.length === 1 ? 'Partei' : 'Parteien'}`
+            : 'Parteien auswählen'}
+        </span>
+        <ChevronDownIcon
+          className="size-3 shrink-0 opacity-60"
+          aria-hidden="true"
+        />
       </Button>
     </ChatGroupPartySelect>
   );
@@ -114,45 +142,34 @@ function LandingChatHero({
       contexts={contexts}
       parties={partiesByContext[selectedContext.context_id]}
     >
-      <section className="px-4 pb-12 pt-9 md:px-6 md:pb-16 md:pt-14">
-        <div className="mx-auto flex w-full max-w-3xl flex-col">
-          <p className="mb-4 flex items-center gap-2 text-sm font-medium">
-            <span
-              className="size-1.5 rounded-full bg-muted-foreground"
-              aria-hidden="true"
-            />
-            Weniger suchen. Mehr verstehen.
+      <section
+        id="frage-stellen"
+        className="px-4 pb-8 pt-10 sm:px-6 md:pb-12 md:pt-16"
+      >
+        <div className="mx-auto flex w-full max-w-3xl flex-col items-center text-center">
+          <LandingHeadline isEditing={Boolean(state.question)} />
+          <p className="mt-5 max-w-lg text-pretty text-base leading-relaxed text-muted-foreground md:text-lg">
+            Was dich bewegt. Was Parteien dazu sagen.
+            <br className="hidden sm:block" /> Finde es heraus – im Gespräch,
+            mit Quellen.
           </p>
-
-          <h1 className="max-w-3xl text-balance text-4xl font-bold leading-[0.98] tracking-tight sm:text-5xl md:text-6xl">
-            Was möchtest du politisch verstehen
-            <span className="text-[#ED3833]">?</span>
-          </h1>
-
-          <p className="mt-4 max-w-xl text-pretty text-base text-muted-foreground md:text-lg">
-            Deine Fragen. Die Wahlprogramme. Ein Gespräch, das Klarheit schafft.
-          </p>
-
-          <div className="mt-7">
-            <ElectionSelect onContextChange={handleContextChange} />
-          </div>
 
           <HomeInput
+            className="mt-8 w-full text-left md:mt-10"
             questions={questions}
             initialSystemStatus={initialSystemStatus}
             hasValidServerUser={hasValidServerUser}
             contextId={selectedContext.context_id}
             appearance="hero"
+            value={state.question}
+            onValueChange={(question) =>
+              dispatch({ type: 'question', question })
+            }
+            focusRequest={state.focusRequest}
+            partyIds={state.partyIds}
             headerActions={headerActions}
             footerActions={partySelector}
           />
-
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-            <p>Einfach losfragen. Keine Parteiauswahl nötig.</p>
-            <p className="hidden sm:block">⌘ / Strg + Enter zum Senden</p>
-          </div>
-
-          <AiDisclaimer className="text-left" />
         </div>
       </section>
     </ContextProvider>

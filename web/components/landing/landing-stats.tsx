@@ -1,4 +1,3 @@
-import LabeledDivider from '@/components/labeled-divider';
 import { cn } from '@/lib/utils';
 
 /**
@@ -36,30 +35,26 @@ function LandingStats({ electionCount }: Props) {
       : USAGE_STATS;
 
   return (
-    <div className="flex w-full flex-col items-center gap-4">
-      <LabeledDivider>Zahlen und Fakten:</LabeledDivider>
-
-      <dl
-        className={cn(
-          'grid w-full gap-4 text-center',
-          stats.length === 3 ? 'grid-cols-3' : 'grid-cols-2',
-        )}
-      >
-        {stats.map((stat) => (
-          <div key={stat.label} className="flex flex-col gap-1">
-            <dt className="sr-only">{stat.label}</dt>
-            <dd className="flex flex-col gap-1">
-              <span className="text-xl font-bold tracking-tight text-foreground sm:text-2xl md:text-3xl">
-                {stat.value}
-              </span>
-              <span className="text-pretty text-xs text-muted-foreground sm:text-sm">
-                {stat.label}
-              </span>
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </div>
+    <dl
+      className={cn(
+        'grid w-full gap-0 px-5 pb-6 pt-2 sm:px-6 sm:pb-10 sm:pt-4',
+        stats.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2',
+      )}
+    >
+      {stats.map((stat) => (
+        <div
+          key={stat.label}
+          className="flex items-center justify-between gap-4 border-b border-border/70 py-5 last:border-b-0 sm:flex-col sm:justify-center sm:gap-3 sm:border-b-0 sm:border-l sm:border-border sm:py-4 sm:first:border-l-0"
+        >
+          <dt className="order-2 text-right text-sm text-muted-foreground sm:text-center">
+            {stat.label}
+          </dt>
+          <dd className="text-2xl font-semibold tracking-[-0.035em] text-foreground sm:text-3xl md:text-4xl">
+            {stat.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 

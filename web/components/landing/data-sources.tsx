@@ -29,19 +29,23 @@ function DataSources({ sourcesHref }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-muted-foreground">{item.content.intro}</p>
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        {item.content.intro}
+      </p>
 
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <ul className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
         {sources.map((source) => {
           const { label, text } = parseLabeledListItem(source);
 
           return (
             <li
               key={source}
-              className="flex flex-col gap-2 rounded-md border border-border p-4"
+              className="flex flex-col gap-2 border-t border-border pt-4"
             >
-              <span className="font-bold text-foreground">{label}</span>
-              <p className="text-sm text-muted-foreground">
+              <span className="text-sm font-medium text-foreground">
+                {label}
+              </span>
+              <p className="text-sm leading-relaxed text-muted-foreground">
                 {splitOnSourceDomains(text).map((segment) =>
                   segment.href ? (
                     <a
@@ -63,7 +67,7 @@ function DataSources({ sourcesHref }: Props) {
         })}
       </ul>
 
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm leading-relaxed text-muted-foreground">
         Welche Dokumente dahinterstehen, findest du auf der{' '}
         <Link href={sourcesHref} className="font-medium underline">
           Quellenseite

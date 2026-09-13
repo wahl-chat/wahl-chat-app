@@ -10,6 +10,7 @@ import {
 
 type Props = {
   children: React.ReactNode;
+  onApplySelection?: (partyIds: string[]) => void;
   onNewChat?: (partyIds: string[]) => void;
   selectedPartyIdsInStore?: string[];
   addPartiesToChat?: boolean;
@@ -21,6 +22,7 @@ type Props = {
 function ChatGroupPartySelect({
   children,
   onNewChat,
+  onApplySelection,
   selectedPartyIdsInStore,
   addPartiesToChat,
   contextId,
@@ -34,14 +36,17 @@ function ChatGroupPartySelect({
         <ResponsiveDialogHeader className="text-left">
           <ResponsiveDialogTitle>Parteiauswahl</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            {addPartiesToChat
-              ? 'Ändere die ausgewählten Parteien.'
-              : 'Wähle bis zu sieben Parteien, mit denen du den Chat starten möchtest.'}
+            {onApplySelection
+              ? 'Wähle bis zu sieben Parteien für deine Frage. Du kannst die Auswahl jederzeit ändern.'
+              : addPartiesToChat
+                ? 'Ändere die ausgewählten Parteien.'
+                : 'Wähle bis zu sieben Parteien, mit denen du den Chat starten möchtest.'}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <ChatGroupPartySelectContent
           selectedPartyIdsInStore={selectedPartyIdsInStore}
           onNewChat={onNewChat}
+          onApplySelection={onApplySelection}
           addPartiesToChat={addPartiesToChat}
           contextId={contextId}
         />
