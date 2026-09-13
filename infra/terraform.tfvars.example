@@ -1,0 +1,50 @@
+# Template for an env root's terraform.tfvars (see envs/dev, envs/prod for filled-in ones).
+# Everything here is NON-SECRET by design — that is why tfvars can be committed. Secret
+# VALUES never appear in tfvars or HCL; they live in Secret Manager and are added out of
+# band with `gcloud secrets versions add` (see modules/app/secret_manager.tf and README).
+
+project_id = "FILL_IN-gcp-project-id"
+region     = "europe-west1"
+
+# New secrets (not yet in Secret Manager) to seed with a sentinel bootstrap version.
+bootstrap_secret_ids = [
+  # "my-service-some-api-key",
+]
+
+services = {
+  "my-service" = {
+    service_account = "FILL_IN-runtime-sa@FILL_IN-project.iam.gserviceaccount.com"
+    cpu             = "1"
+    memory          = "512Mi"
+    min_instances   = 0
+    max_instances   = 10
+    # health_check_path = "/healthz"   # omit for a TCP startup probe only
+
+    # Plain, reviewable config — visible in state and diffs.
+    env = {
+      SOME_FLAG = "true"
+      SOME_URL  = "https://example.invalid"
+    }
+
+    # env var name -> Secret Manager secret id (resolved at `latest`). No values here.
+    secret_env = {
+      SOME_API_KEY = "my-service-some-api-key"
+    }
+  }
+}
+
+# Set false while applying with editor-only credentials (no setIamPolicy) — defers the
+# secret-accessor and scheduler-invoker grants. See modules/app/variables.tf.
+# manage_iam = false
+
+# Scheduled ingestion jobs — same env/secret_env contract as services; a job only sets
+# CONNECTOR_ID (the image entrypoint dispatches on it). Shared plumbing goes in
+# ingestion_job_defaults / ingestion_env_common / ingestion_secret_env_common and is
+# merged into every job by modules/app. See envs/dev/terraform.tfvars for a real setup.
+# jobs = {
+#   "ingest-something" = {
+#     service_account = "FILL_IN-runtime-sa@FILL_IN-project.iam.gserviceaccount.com"
+#     env             = { CONNECTOR_ID = "some_connector" }
+#     schedule        = "0 3 * * *" # cron, Europe/Berlin; omit for manual-execute only
+#   }
+# }

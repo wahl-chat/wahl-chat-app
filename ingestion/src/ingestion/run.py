@@ -704,6 +704,74 @@ def run_connector(
 
 
 # ---------------------------------------------------------------------------
+# Cloud Run task sharding — abgeordnetenwatch_votes
+# ---------------------------------------------------------------------------
+
+
+def resolve_aw_legislature_shard() -> bool:
+    """Map this Cloud Run task to one legislature id via AW_LEGISLATURE_SET.
+
+    The AW connector reads exactly one AW_LEGISLATURE_ID per process (frozen at
+    connector-module import), so a scheduled job covers many legislatures by
+    running as N tasks of the same container: AW_LEGISLATURE_SET selects the id
+    list from legislature_config (single source of truth — the job spec carries
+    no ids, so a newly configured legislature period is covered on the next
+    scheduled run) and CLOUD_RUN_TASK_INDEX picks this task's id. Task counts
+    are over-provisioned; a task beyond the list is a cheap no-op buffer.
+
+    Returns False when this task has nothing to serve (caller exits 0). On True
+    the process runs normally (AW_LEGISLATURE_ID exported when sharding).
+    """
+    shard_set = os.getenv("AW_LEGISLATURE_SET")
+    if not shard_set:
+        return True  # unsharded: explicit AW_LEGISLATURE_ID (local dev / Makefile)
+
+    from src.ingestion.connectors.abgeordnetenwatch.legislature_config import (  # noqa: PLC0415
+        FEDERAL_LEGISLATURE_IDS,
+        LANDTAG_LEGISLATURE_IDS,
+    )
+
+    id_sets = {
+        "federal": FEDERAL_LEGISLATURE_IDS,
+        "landtag": LANDTAG_LEGISLATURE_IDS,
+        "all": FEDERAL_LEGISLATURE_IDS + LANDTAG_LEGISLATURE_IDS,
+    }
+    if shard_set not in id_sets:
+        print(
+            f"ERROR: AW_LEGISLATURE_SET must be one of {sorted(id_sets)}, got {shard_set!r}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    ids = id_sets[shard_set]
+
+    try:
+        task_index = int(os.environ["CLOUD_RUN_TASK_INDEX"])
+        task_count = int(os.environ["CLOUD_RUN_TASK_COUNT"])
+    except KeyError as exc:
+        print(
+            f"ERROR: AW_LEGISLATURE_SET requires the Cloud Run task env var {exc} "
+            "(for local runs set AW_LEGISLATURE_ID directly instead)",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    if task_count < len(ids) and task_index == task_count - 1:
+        # Loud but non-fatal: raise the job's task_count in infra/ to restore coverage.
+        print(
+            f"ERROR: task_count {task_count} < {len(ids)} configured legislatures — "
+            f"ids {ids[task_count:]} are NOT covered",
+            file=sys.stderr,
+        )
+    if task_index >= len(ids):
+        print(f"shard {task_index}: buffer task, no legislature to serve — exiting 0")
+        return False
+
+    os.environ["AW_LEGISLATURE_ID"] = str(ids[task_index])
+    print(f"shard {task_index}/{task_count}: AW_LEGISLATURE_ID={ids[task_index]} ({shard_set})")
+    return True
+
+
+# ---------------------------------------------------------------------------
 # __main__ — CLI dispatch on CONNECTOR_ID / --connector arg
 # ---------------------------------------------------------------------------
 
@@ -789,6 +857,19 @@ if __name__ == "__main__":
     # back-to-back — making their must-never-overlap invariant structural
     # (see openparliament_tv/supersede.py) instead of a scheduler concern.
     connector_ids = [c.strip() for c in raw_connectors.split(",") if c.strip()]
+
+    # Sharded vote jobs must run the votes connector alone: a buffer task exits
+    # before any other connector in the list would get its turn.
+    if os.getenv("AW_LEGISLATURE_SET") and connector_ids != ["abgeordnetenwatch_votes"]:
+        print(
+            "ERROR: AW_LEGISLATURE_SET sharding requires CONNECTOR_ID=abgeordnetenwatch_votes alone",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    # Resolve this task's AW_LEGISLATURE_ID BEFORE any factory import freezes it.
+    if not resolve_aw_legislature_shard():
+        sys.exit(0)
 
     # -----------------------------------------------------------------------
     # Registry lookup — deferred import to avoid circular/missing-module errors
