@@ -16,8 +16,10 @@ install: install-web install-backend
 install-web:
 	cd web && bun install
 
+# uv workspace: one `uv sync` at the repo root installs both Python members
+# (ai-backend + ingestion) into the shared workspace environment.
 install-backend:
-	cd ai-backend && uv sync
+	uv sync
 
 # --- Local data stores ---
 
@@ -86,7 +88,7 @@ QDRANT_ENV := QDRANT_URL=$(QDRANT_URL) ENV=$(ENV)
 # already matches. A fresh Qdrant volume has no collection, so the runner's first
 # get_cursor() call 404s without this. Run after stores-up (Qdrant must be ready).
 bootstrap-collection:
-	cd ai-backend && $(QDRANT_ENV) uv run python -m src.ingestion.setup_collection
+	cd ingestion && $(QDRANT_ENV) uv run python -m ingestion.setup_collection
 
 stores-down:
 	docker compose down
@@ -160,11 +162,16 @@ lint-web:
 
 lint-backend:
 	cd ai-backend && uv run ruff check src/
+	cd ingestion && uv run ruff check src/
+	cd packages/wahlchat-common && uv run ruff check src/
 
 # --- Testing ---
 
+# All three workspace members: chat service, corpus layer, shared contract.
 test-backend:
 	cd ai-backend && uv run pytest tests/ --ignore=tests/test_chat_sse.py --ignore=tests/test_local_mode.py
+	cd ingestion && uv run pytest tests/
+	cd packages/wahlchat-common && uv run pytest tests/
 
 test-smoke:
 	cd ai-backend && uv run pytest tests/test_chat_sse.py -x
@@ -177,7 +184,7 @@ test-local-mode:
 
 # --- Ingestion connector run targets (Makefile is the interim scheduler) ---
 # Cloud Scheduler is deferred to a planned Terraform deployment workstream (infra/).
-# These targets invoke the same src.ingestion.run entrypoint; they default to the
+# These targets invoke the same ingestion.run entrypoint; they default to the
 # local Qdrant container but target a deployed store when QDRANT_URL / QDRANT_API_KEY
 # / ENV are overridden (see the QDRANT_ENV block above).
 # Requires: make stores-up first for local runs.
@@ -189,11 +196,11 @@ test-local-mode:
 # FEDERAL_LEGISLATURE_IDS in legislature_config.py (single-sourced).
 run-abgeordnetenwatch-votes: bootstrap-collection
 	@failed=""; \
-	for id in $$(cd ai-backend && uv run python -c \
-	    "from src.ingestion.connectors.abgeordnetenwatch.legislature_config import FEDERAL_LEGISLATURE_IDS; print(*FEDERAL_LEGISLATURE_IDS)"); do \
+	for id in $$(cd ingestion && uv run python -c \
+	    "from ingestion.legislature_config import FEDERAL_LEGISLATURE_IDS; print(*FEDERAL_LEGISLATURE_IDS)"); do \
 	    echo "=== Bundestag legislature_id=$$id ==="; \
-	    if ! (cd ai-backend && AW_LEGISLATURE_ID=$$id $(QDRANT_ENV) \
-	        uv run python -m src.ingestion.run --connector abgeordnetenwatch_votes $(ARGS)); then \
+	    if ! (cd ingestion && AW_LEGISLATURE_ID=$$id $(QDRANT_ENV) \
+	        uv run python -m ingestion.run --connector abgeordnetenwatch_votes $(ARGS)); then \
 	        echo "!!! Bundestag legislature_id=$$id FAILED"; \
 	        failed="$$failed $$id"; \
 	    fi; \
@@ -209,7 +216,7 @@ run-abgeordnetenwatch-votes: bootstrap-collection
 # list stays single-sourced in config — no hardcoded integers in the Makefile.
 # Each iteration passes AW_LEGISLATURE_ID=<id> to a subprocess so the connector's
 # module-level _DEFAULT_LEGISLATURE_ID reads the correct value at import time.
-# Requires: make stores-up first; AW_API_KEY in ai-backend/.env if rate-limited.
+# Requires: make stores-up first; AW_API_KEY in ingestion/.env if rate-limited.
 # Each iteration runs in a subshell; a failure (e.g. zero-poll fail-fast
 # on a newly-constituted Landtag) is recorded but does NOT abort the remaining
 # legislatures. After the loop, failed IDs are summarised and the target exits
@@ -217,11 +224,11 @@ run-abgeordnetenwatch-votes: bootstrap-collection
 # swallowed by the last iteration's exit status.
 run-all-landtage-votes: bootstrap-collection
 	@failed=""; \
-	for id in $$(cd ai-backend && uv run python -c \
-	    "from src.ingestion.connectors.abgeordnetenwatch.legislature_config import LANDTAG_LEGISLATURE_IDS; print(*LANDTAG_LEGISLATURE_IDS)"); do \
+	for id in $$(cd ingestion && uv run python -c \
+	    "from ingestion.legislature_config import LANDTAG_LEGISLATURE_IDS; print(*LANDTAG_LEGISLATURE_IDS)"); do \
 	    echo "=== Landtag legislature_id=$$id ==="; \
-	    if ! (cd ai-backend && AW_LEGISLATURE_ID=$$id $(QDRANT_ENV) \
-	        uv run python -m src.ingestion.run --connector abgeordnetenwatch_votes $(ARGS)); then \
+	    if ! (cd ingestion && AW_LEGISLATURE_ID=$$id $(QDRANT_ENV) \
+	        uv run python -m ingestion.run --connector abgeordnetenwatch_votes $(ARGS)); then \
 	        echo "!!! Landtag legislature_id=$$id FAILED"; \
 	        failed="$$failed $$id"; \
 	    fi; \
@@ -239,20 +246,21 @@ run-all-landtage-votes: bootstrap-collection
 # rely on. Idempotent: skips if already present (delete it to refresh). The URL
 # and download logic live in one place (bundestag_speeches.constants / .mdb).
 fetch-mdb-stammdaten:
-	cd ai-backend && uv run python -m src.ingestion.connectors.bundestag_speeches.mdb
+	cd ingestion && uv run python -m ingestion.connectors.bundestag_speeches.mdb
 
 # Speeches: runs the live incremental BundestagSpeechesConnector via run.py.
 # --batch-size and --time-budget flow via ARGS (run.py flags).
 # --wahlperiode is NOT a run.py flag — set it via the DIP_WAHLPERIODE env var
 # (connector __init__ default 21).
-# Requires: a valid DIP_API_KEY in ai-backend/.env; make stores-up first.
+# Requires: a valid DIP_API_KEY in ingestion/.env; make stores-up first.
 run-speeches: bootstrap-collection fetch-mdb-stammdaten
-	cd ai-backend && $(QDRANT_ENV) \
-		uv run python -m src.ingestion.run --connector bundestag_speeches $(ARGS)
+	cd ingestion && $(QDRANT_ENV) \
+		uv run python -m ingestion.run --connector bundestag_speeches $(ARGS)
 
 # --- Standalone ingestion scripts (NOT registry connectors) ---
 # Manifestos run as their own module (own argparse) — NOT a --connector ID in run.py.
-# Self-loads ai-backend/.env (OPENAI_API_KEY) and defaults QDRANT_URL to local.
+# Self-loads ingestion/.env (falling back to ai-backend/.env) and defaults
+# QDRANT_URL to local.
 # Pass script flags via ARGS, e.g.:
 #   make run-manifestos ARGS="--ids 367 --limit 1"   # smoke one program
 #   make run-manifestos ARGS="--dry-run"             # parse only, zero OpenAI cost
@@ -263,8 +271,8 @@ run-speeches: bootstrap-collection fetch-mdb-stammdaten
 # point at the original source URL — nothing is stored or re-served, so no
 # Firestore is needed. Needs Qdrant only.
 run-manifestos: bootstrap-collection
-	cd ai-backend && $(QDRANT_ENV) \
-		uv run python -m src.ingestion.connectors.manifestos.bulk $(ARGS)
+	cd ingestion && $(QDRANT_ENV) \
+		uv run python -m ingestion.connectors.manifestos.bulk $(ARGS)
 
 # Uploaded manifestos: party PDFs supplied directly, for elections with no AW
 # coverage. Metadata comes from the object path + Firestore seed fixtures.
@@ -276,8 +284,8 @@ run-manifesto-uploads: bootstrap-collection
 		read -r -p "This embeds into the PRODUCTION Qdrant collection (wahlchat_chunks_prod). Continue? [y/N] " confirm < /dev/tty; \
 		case "$$confirm" in [yY]|[yY][eE][sS]) ;; *) echo "Aborted." && exit 1;; esac; \
 	fi
-	cd ai-backend && $(QDRANT_ENV) \
-		uv run python -m src.ingestion.connectors.manifesto_uploads.bulk $(ARGS)
+	cd ingestion && $(QDRANT_ENV) \
+		uv run python -m ingestion.connectors.manifesto_uploads.bulk $(ARGS)
 
 # Upload staged PDFs to the bucket with public read applied AS PART OF each copy —
 # citations are plain GCS URLs governed by object ACLs, not storage.rules. A
@@ -326,10 +334,10 @@ upload-manifesto-uploads:
 # JSONL path: positional arg > SPEECHES_JSONL env > repo-root speeches.jsonl.
 # No DIP_API_KEY required for the bulk path (JSONL → mapper → embed).
 # The MdB-Stammdaten XML is fetched by the fetch-mdb-stammdaten prereq below.
-# Requires: make stores-up first; OPENAI_API_KEY in ai-backend/.env.
+# Requires: make stores-up first; OPENAI_API_KEY in ingestion/.env.
 collect-speeches: bootstrap-collection fetch-mdb-stammdaten
-	cd ai-backend && $(QDRANT_ENV) \
-		uv run python -m src.ingestion.connectors.bundestag_speeches.bulk $(ARGS)
+	cd ingestion && $(QDRANT_ENV) \
+		uv run python -m ingestion.connectors.bundestag_speeches.bulk $(ARGS)
 
 # --- Scheduled-update emulation targets for bundestag_speeches (Cloud Run Job model) ---
 # scheduling deferred to infra/IaC (like AW); run these locally to emulate the daily/weekly Cloud Run incremental update Job.
@@ -338,19 +346,19 @@ collect-speeches: bootstrap-collection fetch-mdb-stammdaten
 SPEECH_BATCH ?= 25
 
 # update-speeches: mirrors the scheduled Cloud Run incremental update Job for bundestag_speeches.
-# Scheduling deferred to infra/IaC, like AW. Requires: make stores-up; DIP_API_KEY in ai-backend/.env.
+# Scheduling deferred to infra/IaC, like AW. Requires: make stores-up; DIP_API_KEY in ingestion/.env.
 update-speeches: bootstrap-collection fetch-mdb-stammdaten
-	cd ai-backend && $(QDRANT_ENV) \
-		uv run python -m src.ingestion.run --connector bundestag_speeches --batch-size $(SPEECH_BATCH)
+	cd ingestion && $(QDRANT_ENV) \
+		uv run python -m ingestion.run --connector bundestag_speeches --batch-size $(SPEECH_BATCH)
 
 # speeches-stats: quick read-only Qdrant verification for parliamentary_speech.
 # Prints total chunk count, count with external_id set, and current cursor (max external_id).
 speeches-stats:
-	cd ai-backend && $(QDRANT_ENV) \
+	cd ingestion && $(QDRANT_ENV) \
 		uv run python -c "\
 import os; \
-from src.ingestion.setup_collection import COLLECTION_NAME; \
-from src.ingestion.run import get_cursor; \
+from ingestion.setup_collection import COLLECTION_NAME; \
+from ingestion.run import get_cursor; \
 from qdrant_client import QdrantClient, models; \
 c = QdrantClient(url=os.environ.get('QDRANT_URL', 'http://localhost:6333'), api_key=os.environ.get('QDRANT_API_KEY')); \
 total = c.count(COLLECTION_NAME, count_filter=models.Filter(must=[models.FieldCondition(key='source_type', match=models.MatchValue(value='parliamentary_speech'))]), exact=True).count; \

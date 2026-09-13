@@ -32,19 +32,46 @@ proactive chat) are designed-for but not yet built.
 
 ## Architecture
 
-Three deployable components plus two data stores:
+Three deployable components (four images) plus two data stores:
 
 - **`web/`** — Next.js 15 / React 19 frontend. Chat UI streams tokens and
   citations from the backend over SSE using the Vercel AI SDK v5
   (`@ai-sdk/react` `useChat`).
 - **`ai-backend/`** — Python FastAPI service (ASGI, uvicorn). Serves the chat
-  RAG pipeline over Server-Sent Events and hosts the ingestion pipeline.
+  RAG pipeline over Server-Sent Events, including query-time retrieval
+  (`src/retrieve.py`).
+- **`ingestion/`** — the corpus layer as its own Python package: connectors and
+  runner, Qdrant collection setup, the embeddings factory. Deploys as a separate
+  image for the scheduled Cloud Run Jobs.
+
+**The two deployables never import each other.** Whatever they share lives in a
+third package, `packages/wahlchat-common`:
+
+    ai-backend  ->  wahlchat-common  <-  ingestion
+
+Today that is the corpus contract — vector space and collection identity, the
+embeddings factory, payload enums, governance levels, the 36 AW legislature
+periods — plus Vertex credential resolution. Anything else the components come to
+share belongs here too (the Firebase functions are Python and could join).
+
+Every dependency it declares is already a direct dependency of both consumers, so
+it adds nothing to either image. Keep it that way: a heavy dependency added for
+one consumer lands in every image.
+
+Sharing the code removes source drift by construction. **Deployment** drift it
+cannot remove: the service and the Job get their env separately, so one could run
+a different `EMBEDDING_MODEL` than the other. That is what `check_fingerprint()`
+is for — the provider/model/dim that produced the vectors is stored in the
+collection and verified on read and on write.
+
+All three are uv workspace members sharing one lockfile. `--package` in each
+Dockerfile installs one deployable plus `wahlchat-common`, and nothing else.
 - **`firebase/`** — Firebase config, Cloud Functions, Firestore security rules,
   and seed data. Firestore holds application/session data (election contexts,
   parties, chat sessions); the Firestore emulator is used in local dev.
 - **Qdrant** — the single vector store for the corpus (one collection per
   environment).
-- **OpenAI + Google Gemini** — OpenAI `text-embedding-3-large` for embeddings;
+- **Google Gemini + OpenAI** — Gemini `gemini-embedding-2` @ 3072 for embeddings;
   Gemini (via `langchain-google-genai`) for answer generation.
 
 ### Data flow
@@ -53,11 +80,11 @@ Three deployable components plus two data stores:
 source APIs / documents
         │  (ingestion connectors: discover → fetch → normalize)
         ▼
-   ChunkRecord[]  (Pydantic contract, src/ingestion/schemas.py)
-        │  (runner: embed with text-embedding-3-large → upsert)
+   ChunkRecord[]  (Pydantic contract, ingestion/src/ingestion/schemas.py)
+        │  (runner: embed with gemini-embedding-2 → upsert)
         ▼
    Qdrant  wahlchat_chunks_{env}   ← single corpus collection
-        │  (retrieval: filtered vector search, retrieve.py)
+        │  (retrieval: filtered vector search, ai-backend/src/retrieve.py)
         ▼
    chat_service / chatbot_async  (Gemini generation, grounded + cited)
         │  (SSE, Vercel AI SDK v5 UI-message-stream)
@@ -65,8 +92,9 @@ source APIs / documents
    web useChat  →  streamed answer + citations
 ```
 
-**Ingestion** is a synchronous single-pass pipeline (`src/ingestion/run.py`).
-Every connector subclasses `BaseConnector` (`src/ingestion/connector.py`) and
+**Ingestion** is a synchronous single-pass pipeline
+(`ingestion/src/ingestion/run.py`). Every connector subclasses `BaseConnector`
+(`ingestion/src/ingestion/connector.py`) and
 implements three pure data-transform methods:
 
 - `discover(since)` — list upstream external IDs to fetch, filtered by the
@@ -85,7 +113,7 @@ items are cheaply skipped. Connectors that need store-side follow-up override
 `post_upsert()`.
 
 Connectors are registered in a closed `{connector_id: factory}` map
-(`src/ingestion/registry.py`). Registered IDs:
+(`ingestion/src/ingestion/registry.py`). Registered IDs:
 
 - `abgeordnetenwatch_votes` — Abgeordnetenwatch vote records (the canonical
   `vote_record` producer; federal + all 16 Landtage).
@@ -106,7 +134,8 @@ Connectors are registered in a closed `{connector_id: factory}` map
   that hook ever fails. Both read the class from the object path, so neither can
   remove a document the AW copy does not replace.
 
-The **data contract** is the Pydantic model set in `src/ingestion/schemas.py`
+The **data contract** is the Pydantic model set in
+`ingestion/src/ingestion/schemas.py`
 (`ChunkRecord` plus the `AuthorityTier` / `SourceType` enums and per-source
 `meta` builders `VoteMeta` / `SpeechMeta`). It is the single source of truth for
 what a corpus chunk looks like; connectors produce `ChunkRecord`s and the runner
@@ -115,7 +144,7 @@ stores them.
 ### Qdrant collection design
 
 One collection per environment: `wahlchat_chunks_{ENV}` (created by
-`src/ingestion/setup_collection.py`). Rationale and invariants:
+`ingestion/src/ingestion/setup_collection.py`). Rationale and invariants:
 
 - **Single collection, payload filtering** — not one collection per election or
   per party. Cross-election shared documents are stored once; queries filter by
@@ -145,19 +174,26 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 | Path | What lives there |
 |------|------------------|
 | `web/` | Next.js frontend (app router in `web/app/`, shared code in `web/lib/`). Package manager: bun. |
-| `ai-backend/` | Python backend. Package manager: uv. |
+| `pyproject.toml` (repo root) | uv workspace root: one lockfile (`uv.lock`) and one shared environment for the Python members `ai-backend` + `ingestion`. |
+| `ai-backend/` | Python chat backend. Depends on `wahlchat-common`, never on `ingestion`. Package manager: uv. |
+| `packages/wahlchat-common/` | Code shared by the Python components: corpus vector space + collection identity, embeddings factory, payload enums, governance levels, the 36 AW legislature periods, Vertex credentials. |
 | `ai-backend/src/app.py` | FastAPI entry point (uvicorn). |
 | `ai-backend/src/routes/` | HTTP routers: `chat` (SSE), `pro_con`, `voting_behavior`, `misc`. |
 | `ai-backend/src/chat_service.py`, `chatbot_async.py` | RAG chat pipeline + LLM streaming. |
-| `ai-backend/src/ingestion/` | Ingestion framework: `connector.py` (base class), `run.py` (runner), `registry.py`, `schemas.py` (data contract), `setup_collection.py`, `retrieve.py`, `ids.py`, `speech_key.py`, `speech_dedup.py`. |
-| `ai-backend/src/ingestion/connectors/` | Per-source connectors: `abgeordnetenwatch/`, `bundestag_speeches/`, `openparliament_tv/`, `manifestos/`. Each has `connector.py`, a `client.py`, and `mappers/` that build `ChunkRecord`s. |
+| `ai-backend/src/retrieve.py` | Query-time retrieval over the corpus: filtered vector search, two-pass term windows, vote re-rank, prefer-op dedup. |
+| `ingestion/` | Connectors + runner. Ships its own image for the scheduled Jobs. Depends on `wahlchat-common`, never on `ai-backend`. |
+| `ingestion/src/ingestion/` | Ingestion framework: `connector.py` (base class), `run.py` (runner), `registry.py`, `schemas.py` (data contract), `setup_collection.py`, `embeddings.py`, `vertex_credentials.py`, `governance_levels.py`, `legislature_config.py`, `ids.py`, `speech_key.py`, `speech_dedup.py`. |
+| `ingestion/src/ingestion/connectors/` | Per-source connectors: `abgeordnetenwatch/`, `bundestag_speeches/`, `openparliament_tv/`, `manifestos/`, `manifesto_uploads/`. Each has `connector.py`, a `client.py`, and `mappers/` that build `ChunkRecord`s. |
+| `ingestion/tests/` | pytest suite for the corpus layer (runner, schema, connectors). |
+| `ingestion/data/` | Connector inputs: `manifesto_uploads/{env}.txt` manifests; MdB-Stammdaten XML (gitignored, fetched on demand). |
 | `ai-backend/src/models/` | Pydantic DTOs and domain models for the chat API. |
-| `ai-backend/tests/` | pytest suite (Qdrant/embeddings mocked in `conftest.py`). |
+| `ai-backend/tests/` | pytest suite for the chat service and retrieval (Qdrant/embeddings mocked in `conftest.py`). |
 | `firebase/` | Firestore rules (`firestore.rules`), Cloud Functions, seed script (`scripts/seed_firestore.py`), rules tests (`tests/`). |
 | `infra/` | Scheduled-ingestion deployment — planned Terraform workstream (Cloud Run Jobs + Scheduler); see `infra/README.md`. |
-| `scripts/` | Repo-root scripts: `check_gdpr_wall.py` (CI guard), `setup-agent-docs.sh`. |
+| `scripts/` | Repo-root scripts: `check_gdpr_wall.py` (GDPR Art. 9 guard), `setup-agent-docs.sh`. |
 | `Makefile` | Developer convenience targets (install, stores, dev, test, lint, ingestion runs). |
-| `docker-compose.yml` | Local Qdrant service. |
+| `docker-compose.yml` | Local Qdrant service, plus a profile-gated ingestion runner that builds `ingestion/Dockerfile`. |
+| `.dockerignore` (repo root) | Governs BOTH images — they build from the repo root, since the workspace lockfile lives there. |
 
 ## How to run it
 
@@ -171,12 +207,15 @@ The `Makefile` at the repo root is the entry point for most workflows.
 # One-time: link CLAUDE.md → AGENTS.md for AI assistants (optional)
 ./scripts/setup-agent-docs.sh
 
-# Install all dependencies (web via bun, ai-backend via uv)
+# Install all dependencies (web via bun; ai-backend + ingestion via one uv sync)
 make install
 
 # Configure env (pre-filled for local mode; add LLM keys for chat)
 cp ai-backend/.env.example ai-backend/.env
 cp web/.env.example web/.env.local
+# Only if you run ingestion connectors (needs OPENAI_API_KEY, DIP_API_KEY);
+# omit it and the CLIs fall back to ai-backend/.env.
+cp ingestion/.env.example ingestion/.env
 
 # Start local stores: Qdrant (Docker) + Firestore emulator (port 8081)
 make stores-up
@@ -209,15 +248,16 @@ cd ai-backend && uv run python -m src.app   # backend (add --debug for verbose l
 Before any ingestion, create the collection once (idempotent):
 
 ```bash
-cd ai-backend && QDRANT_URL=http://localhost:6333 uv run python -m src.ingestion.setup_collection
+cd ingestion && QDRANT_URL=http://localhost:6333 uv run python -m ingestion.setup_collection
 ```
 
 Then run a connector. All connectors go through the same
-`python -m src.ingestion.run --connector <id>` entrypoint; the `Makefile` wraps
+`python -m ingestion.run --connector <id>` entrypoint; the `Makefile` wraps
 the common cases (Qdrant URL is wired to local automatically). They require
-`make stores-up` first and the relevant API keys in `ai-backend/.env`
+`make stores-up` first and the relevant API keys in `ingestion/.env`
 (`OPENAI_API_KEY` always, plus `DIP_API_KEY` for speeches, optionally
-`AW_API_KEY`).
+`AW_API_KEY`). Setups that keep every key in `ai-backend/.env` still work — the
+ingestion CLIs fall back to it when `ingestion/.env` does not exist.
 
 ```bash
 make run-abgeordnetenwatch-votes          # federal votes
@@ -258,7 +298,8 @@ Two backend switches, both explicit env vars (no auto-fallback):
 `ELECTION_FIXTURES_SOURCE=firestore` reads the live database instead of the seed
 files (also not in the image).
 
-In production the same `src.ingestion.run` code path runs as a Cloud Run Job
+In production the same `ingestion.run` code path runs as a Cloud Run Job
+(image: `ingestion/Dockerfile`)
 with `CONNECTOR_ID` set in the job spec (deployment + scheduling is a planned
 Terraform workstream — see `infra/README.md`).
 Ingestion must tolerate the 15-minute scheduled-job cap: runs are
@@ -304,10 +345,15 @@ The two stores are seeded by different mechanisms, on purpose:
   is missing/empty. Unset locally/in CI/tests, so an empty local store still
   boots.
 - **The embedding model and vector store are locked.** Qdrant is the vector
-  store; embeddings are OpenAI `text-embedding-3-large` at 3072 dimensions,
+  store; embeddings are Gemini `gemini-embedding-2` at 3072 dimensions,
   COSINE distance. Do not mix models or dimensions — it breaks index parity.
   Treat `EMBEDDING_DIM` / `EMBEDDING_MODEL` in `setup_collection.py` as
-  immutable after the first run.
+  immutable after the first run. They are defined there exactly once and
+  stamped into the collection as a fingerprint point; every write path and the
+  backend's `retrieve()` call `check_fingerprint()`, which raises rather than
+  let a query run against vectors from a different model. That guard is what
+  keeps the two packages honest across the split — it lives in the corpus, not
+  in either codebase.
 - **The corpus is source-cited.** Chunks carry `citation_url` / `citation_title`
   and an `authority_tier` (`authoritative` | `factual_record` | `self_reported`
   | `promotional`). Preserve citations end-to-end; answers are grounded in
@@ -346,13 +392,20 @@ The two stores are seeded by different mechanisms, on purpose:
 Local commands (mirror what CI runs):
 
 ```bash
-# Backend
+# Python — run per workspace member (chat service + corpus layer).
+# `uv sync` once at the repo root installs both into one environment.
 cd ai-backend
 uv run ruff check src/            # lint
 uv run mypy src/                  # type-check
-uv run pytest                     # full suite (Qdrant/embeddings mocked)
+uv run pytest                     # chat + retrieval suite (Qdrant/embeddings mocked)
+cd ../ingestion
+uv run ruff check src/            # lint
+uv run mypy src/                  # type-check
+uv run pytest                     # connector suite
+cd ../packages/wahlchat-common
+uv run pytest                     # shared-contract suite
 # From repo root:
-make test-backend                 # unit/integration (excludes smoke + local-mode)
+make test-backend                 # all three suites (excludes smoke + local-mode)
 make test-smoke                   # E2E SSE smoke test (in-process ASGI)
 make test-local-mode              # seed-guard test — needs live stores (make stores-up)
 

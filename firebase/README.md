@@ -125,7 +125,7 @@ REVALIDATE_SECRET=... make revalidate ENV=prod
 REVALIDATE_SECRET=... make revalidate ARGS="--context abgeordnetenhauswahl-berlin-2026"
 ```
 
-The script requires `firebase-admin`. The `make seed` / `make revalidate` targets use the ai-backend uv environment. To run standalone:
+The script requires `firebase-admin`. The `make seed` / `make revalidate` targets use the uv workspace environment at the repo root automatically. To run standalone:
 
 ```bash
 cd firebase && python -m venv venv && source venv/bin/activate

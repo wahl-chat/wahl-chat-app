@@ -10,7 +10,13 @@ Python AI/RAG backend for [wahl.chat](https://wahl.chat/).
 
 Built with FastAPI, sse-starlette (Server-Sent Events), LangChain, and Qdrant. Dependencies are managed with **uv**.
 
-The Pydantic models in `src/ingestion/schemas.py` are the single source of truth for the ingestion data contract (chunk payloads, source items, authority tiers).
+The corpus is filled by a separate package, [`ingestion/`](../ingestion/README.md). This backend does **not** depend on it: keeping them independent keeps the connector dependency tree (trafilatura, pypdf, beautifulsoup4) out of the chat image.
+
+What the two must agree on — the embedding space, collection identity, payload enums, governance levels and legislature periods — lives in [`packages/wahlchat-common`](../packages/wahlchat-common/README.md), which both import. Neither imports the other.
+
+Query-time retrieval lives here, in `src/retrieve.py`. It verifies the corpus fingerprint on every query, so a vector-space mismatch between writer and reader raises instead of returning cross-space garbage.
+
+Dependencies are installed by a single `uv sync` at the **repo root** — the two packages share one lockfile so their third-party versions cannot drift, which is a build-time convenience, not an import dependency.
 
 ## Localization
 
