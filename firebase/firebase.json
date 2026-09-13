@@ -15,6 +15,19 @@
         "firebase-debug.*.log",
         "*.local"
       ]
+    },
+    {
+      "source": "ingest_functions",
+      "codebase": "ingest",
+      "runtime": "python312",
+      "predeploy": ["./ingest_functions/predeploy.sh"],
+      "ignore": [
+        "venv",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
     }
   ],
   "storage": {
