@@ -36,12 +36,12 @@ function LandingCommunity({ electionCount }: { electionCount: number }) {
           <Link
             key={href}
             href={href}
-            className="group flex flex-col gap-2 border-b border-border/70 py-4 last:border-0 md:border-b-0 md:px-4 md:first:pl-0 md:last:pr-0"
+            className="group flex flex-col gap-2 border-b border-border/70 py-4 text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground last:border-0 md:border-b-0 md:px-4 md:first:pl-0 md:last:pr-0"
           >
             <span className="flex items-start justify-between gap-3 text-sm font-medium">
               {label}
               <ArrowUpRightIcon
-                className="size-4 shrink-0 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                className="size-4 shrink-0 opacity-40 transition-[transform,opacity] duration-300 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100 group-focus-visible:-translate-y-0.5 group-focus-visible:translate-x-0.5 group-focus-visible:opacity-100 motion-reduce:transform-none motion-reduce:transition-none"
                 aria-hidden="true"
               />
             </span>

@@ -149,7 +149,7 @@ function LandingChatHero({
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 -top-28 bottom-0 -z-10 dark:[--glow-center:0.12] dark:[--glow-edge:0.05]"
+          className="pointer-events-none absolute inset-x-0 -top-28 bottom-0 -z-10 dark:[--glow-center:0.04] dark:[--glow-edge:0.015]"
         >
           <span className={`${glowStyles.layer} ${glowStyles.coral}`} />
           <span className={`${glowStyles.layer} ${glowStyles.purple}`} />
