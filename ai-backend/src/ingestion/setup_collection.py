@@ -25,7 +25,7 @@ This script NEVER touches the legacy V1 collections
 
 import os
 import sys
-from typing import Optional
+from typing import Any, Optional
 
 # CLI startup ONLY: load ai-backend/.env BEFORE the constants below freeze
 # their env-derived values. Without this, `python -m src.ingestion.setup_collection`
@@ -96,17 +96,34 @@ def expected_fingerprint() -> dict:
     }
 
 
+def _fingerprint_payload(points: Any) -> Optional[dict]:
+    """Unwrap a retrieve() result into the fingerprint payload, or None."""
+    if not points:
+        return None
+    return points[0].payload
+
+
 def read_fingerprint(client: QdrantClient, collection_name: str) -> Optional[dict]:
     """Return the stored fingerprint payload, or None when absent."""
-    points = client.retrieve(
+    return _fingerprint_payload(
+        client.retrieve(
+            collection_name=collection_name,
+            ids=[FINGERPRINT_POINT_ID],
+            with_payload=True,
+            with_vectors=False,
+        )
+    )
+
+
+async def aread_fingerprint(client: Any, collection_name: str) -> Optional[dict]:
+    """Return the stored fingerprint payload, or None when absent."""
+    points = await client.retrieve(
         collection_name=collection_name,
         ids=[FINGERPRINT_POINT_ID],
         with_payload=True,
         with_vectors=False,
     )
-    if not points:
-        return None
-    return points[0].payload
+    return _fingerprint_payload(points)
 
 
 def write_fingerprint(client: QdrantClient, collection_name: str) -> None:
@@ -144,21 +161,12 @@ def fingerprint_mismatch(stored: dict) -> Optional[str]:
     return "; ".join(diffs)
 
 
-def check_fingerprint(client: QdrantClient, collection_name: str) -> None:
-    """Best-effort fingerprint verification before writes/queries.
+def _enforce_fingerprint(stored: Any, collection_name: str) -> None:
+    """Raise when a well-formed stored fingerprint contradicts this process.
 
-    Raises RuntimeError when a stored fingerprint CONTRADICTS the current
-    configuration — that is the silent-vector-space-mix hazard. A missing
-    fingerprint (pre-fingerprint store) or an unreachable/limited client
-    (test fakes) only degrades to a pass: enforcement starts once setup()
-    has stamped the collection.
+    Only a well-formed fingerprint payload counts — anything else (None,
+    test doubles returning stand-in objects) means "nothing to verify".
     """
-    try:
-        stored = read_fingerprint(client, collection_name)
-    except Exception:  # noqa: BLE001 — fakes/legacy stores: nothing to verify
-        return
-    # Only a well-formed fingerprint payload counts — anything else (None,
-    # test doubles returning stand-in objects) means "nothing to verify".
     if (
         not isinstance(stored, dict)
         or stored.get("source_type") != FINGERPRINT_SOURCE_TYPE
@@ -175,13 +183,38 @@ def check_fingerprint(client: QdrantClient, collection_name: str) -> None:
         )
 
 
+def check_fingerprint(client: QdrantClient, collection_name: str) -> None:
+    """Best-effort fingerprint verification before writes/queries.
+
+    Raises RuntimeError when a stored fingerprint CONTRADICTS the current
+    configuration — that is the silent-vector-space-mix hazard. A missing
+    fingerprint (pre-fingerprint store) or an unreachable/limited client
+    (test fakes) only degrades to a pass: enforcement starts once setup()
+    has stamped the collection.
+    """
+    try:
+        stored = read_fingerprint(client, collection_name)
+    except Exception:  # noqa: BLE001 — fakes/legacy stores: nothing to verify
+        return
+    _enforce_fingerprint(stored, collection_name)
+
+
+async def acheck_fingerprint(client: Any, collection_name: str) -> None:
+    """Async counterpart of ``check_fingerprint`` for the chat retrieval path."""
+    try:
+        stored = await aread_fingerprint(client, collection_name)
+    except Exception:  # noqa: BLE001 — fakes/legacy stores: nothing to verify
+        return
+    _enforce_fingerprint(stored, collection_name)
+
+
 # ---------------------------------------------------------------------------
-# Client wiring — mirrors vector_store_helper.py lines 57-60, but LAZY:
-# this module is imported project-wide just for COLLECTION_NAME /
-# EMBEDDING_MODEL, so a module-level QdrantClient would allocate an unused,
-# never-closed client in every importing process. The client is constructed
-# only inside setup() (when none is injected) / the __main__ path.
-# api_key is None in local dev; that is valid for an unauthenticated Qdrant.
+# Client wiring is lazy: this module is imported project-wide just for
+# COLLECTION_NAME / EMBEDDING_MODEL, so a module-level QdrantClient would
+# allocate an unused, never-closed client in every importing process. The
+# client is constructed only inside setup() (when none is injected) / the
+# __main__ path. api_key is None in local dev; that is valid for an
+# unauthenticated Qdrant.
 # ---------------------------------------------------------------------------
 def _make_client() -> QdrantClient:
     """Construct the default QdrantClient from QDRANT_URL / QDRANT_API_KEY."""
@@ -336,9 +369,6 @@ def setup(client: Optional[QdrantClient] = None) -> None:
     """
     if client is None:
         client = _make_client()
-    # -----------------------------------------------------------------------
-    # Existence guard — mirrors vector_store_helper.py lines 148-155.
-    # -----------------------------------------------------------------------
     existing = [c.name for c in client.get_collections().collections]
     if COLLECTION_NAME in existing:
         print(f"Collection '{COLLECTION_NAME}' already exists — skipping creation.")

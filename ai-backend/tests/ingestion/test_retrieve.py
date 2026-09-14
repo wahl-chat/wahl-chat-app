@@ -13,16 +13,16 @@ Test coverage:
     NOT apply the re-rank (source_type != "vote_record").
   - test_penalty_tiers: three penalty tiers produce the correct effective ordering.
 
-All tests use mocked QdrantClient (no live Qdrant required) via `_client` injection
-and `query_vector` injection (no embedding API call).  Qdrant point objects are
-simulated via types.SimpleNamespace.
+All tests use a mocked AsyncQdrantClient (no live Qdrant required) via `_client`
+injection and `query_vector` injection (no embedding API call). Qdrant point
+objects are simulated via types.SimpleNamespace.
 """
 
 from __future__ import annotations
 
 import types
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from qdrant_client.models import DatetimeRange
@@ -68,15 +68,33 @@ def _make_point(
 
 
 def _make_mock_client(points: list[types.SimpleNamespace]) -> MagicMock:
-    """Return a mock QdrantClient whose query_points returns the given points."""
+    """Return a mock AsyncQdrantClient whose query_points returns the given points."""
     mock_client = MagicMock()
     query_result = MagicMock()
     query_result.points = points
-    mock_client.query_points.return_value = query_result
+    mock_client.query_points = AsyncMock(return_value=query_result)
+    mock_client.retrieve = AsyncMock(return_value=[])
     return mock_client
 
 
 _ZERO_VECTOR = [0.0] * 3072  # matches EMBEDDING_DIM
+
+
+async def test_retrieve_awaits_async_query_points() -> None:
+    """Chat retrieval must await an async Qdrant client rather than blocking."""
+    mock_client = MagicMock()
+    query_result = MagicMock()
+    query_result.points = []
+    mock_client.query_points = AsyncMock(return_value=query_result)
+
+    await retrieve(
+        query="async client",
+        source_type="vote_record",
+        query_vector=_ZERO_VECTOR,
+        _client=mock_client,
+    )
+
+    mock_client.query_points.assert_awaited()
 
 
 # ---------------------------------------------------------------------------
@@ -95,7 +113,7 @@ _ZERO_VECTOR = [0.0] * 3072  # matches EMBEDDING_DIM
 # ---------------------------------------------------------------------------
 
 
-def test_downrank_defense_state_election() -> None:
+async def test_downrank_defense_state_election() -> None:
     """Defense-tagged federal vote ranks above non-state-tagged federal vote.
 
     Mock three Qdrant points with scores 0.72/0.70/0.68.
@@ -111,7 +129,7 @@ def test_downrank_defense_state_election() -> None:
 
     mock_client = _make_mock_client([point_a, point_b, point_c])
 
-    results = retrieve(
+    results = await retrieve(
         query="Verteidigung Bayern",
         source_type="vote_record",
         region_path=["DE", "DE-BY"],  # Bavarian state election → local region DE-BY
@@ -133,7 +151,7 @@ def test_downrank_defense_state_election() -> None:
     )
 
 
-def test_no_downrank_federal_election() -> None:
+async def test_no_downrank_federal_election() -> None:
     """A federal election (level="federal") applies NO penalty.
 
     Federal votes are the primary content of a federal election, so the re-rank
@@ -145,7 +163,7 @@ def test_no_downrank_federal_election() -> None:
     point_b = _make_point(0.70, "DE", ["federal", "state"])
     mock_client = _make_mock_client([point_b, point_a])
 
-    results = retrieve(
+    results = await retrieve(
         query="Verteidigung",
         source_type="vote_record",
         level="federal",
@@ -161,7 +179,7 @@ def test_no_downrank_federal_election() -> None:
     )
 
 
-def test_downrank_keeps_federal_vote_above_threshold_in_state_election() -> None:
+async def test_downrank_keeps_federal_vote_above_threshold_in_state_election() -> None:
     """In a STATE election, a federal vote just above score_threshold must be KEPT
     (ranked below the local vote), NOT dropped by re-thresholding the penalised score.
 
@@ -173,7 +191,7 @@ def test_downrank_keeps_federal_vote_above_threshold_in_state_election() -> None
     point_federal = _make_point(0.52, "DE", ["federal"])  # federal-only → LARGE penalty
     mock_client = _make_mock_client([point_local, point_federal])
 
-    results = retrieve(
+    results = await retrieve(
         query="Außenpolitik",
         source_type="vote_record",
         region_path=["DE", "DE-BY"],
@@ -199,7 +217,7 @@ def test_downrank_keeps_federal_vote_above_threshold_in_state_election() -> None
 # ---------------------------------------------------------------------------
 
 
-def test_downrank_local_leads() -> None:
+async def test_downrank_local_leads() -> None:
     """Same cosine score: local-region chunk must outrank federal chunk (penalty 0.0 < 0.05).
 
     Verifies that the penalty tiebreaker works when cosine scores are equal.
@@ -212,7 +230,7 @@ def test_downrank_local_leads() -> None:
         [point_federal, point_local]
     )  # federal first in Qdrant
 
-    results = retrieve(
+    results = await retrieve(
         query="Haushalt Bayern",
         source_type="vote_record",
         region_path=["DE", "DE-BY"],  # Bavarian state election → local region DE-BY
@@ -236,7 +254,7 @@ def test_downrank_local_leads() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_no_downrank_manifesto() -> None:
+async def test_no_downrank_manifesto() -> None:
     """Manifesto retrieve with level set must not trigger vote re-rank.
 
     Qdrant returns manifesto points in order [A, B].
@@ -248,7 +266,7 @@ def test_no_downrank_manifesto() -> None:
 
     mock_client = _make_mock_client([point_a, point_b])
 
-    results = retrieve(
+    results = await retrieve(
         query="Bildungspolitik",
         source_type="party_manifesto",
         level="state",  # type: ignore[call-arg]
@@ -284,7 +302,7 @@ def test_no_downrank_manifesto() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_penalty_tiers() -> None:
+async def test_penalty_tiers() -> None:
     """Three penalty tiers: local=0.0, federal-tagged=SMALL, federal-untagged=LARGE.
 
     Mock federal DE votes with:
@@ -308,7 +326,7 @@ def test_penalty_tiers() -> None:
         ]
     )
 
-    results = retrieve(
+    results = await retrieve(
         query="Haushalt",
         source_type="vote_record",
         region_path=[
@@ -354,13 +372,13 @@ def _publish_date_conditions(mock_client: MagicMock) -> list:
     return [c for c in query_filter.must if getattr(c, "key", None) == "publish_date"]
 
 
-def test_publish_range_bounded_window_builds_single_condition() -> None:
+async def test_publish_range_bounded_window_builds_single_condition() -> None:
     """publish_range=DatetimeRange(gte, lte) → one publish_date condition, exact bounds."""
     t0 = datetime(2021, 3, 14, tzinfo=timezone.utc)
     t1 = datetime(2026, 3, 14, tzinfo=timezone.utc)
     mock_client = _make_mock_client([])
 
-    retrieve(
+    await retrieve(
         query="Haushalt",
         source_type="vote_record",
         publish_range=DatetimeRange(gte=t0, lte=t1),
@@ -378,12 +396,12 @@ def test_publish_range_bounded_window_builds_single_condition() -> None:
     assert conds[0].range.gt is None
 
 
-def test_publish_range_strict_cutoff_builds_lt_condition() -> None:
+async def test_publish_range_strict_cutoff_builds_lt_condition() -> None:
     """publish_range=DatetimeRange(lt) → a strict lower-cutoff publish_date condition."""
     t0 = datetime(2021, 3, 14, tzinfo=timezone.utc)
     mock_client = _make_mock_client([])
 
-    retrieve(
+    await retrieve(
         query="Haushalt",
         source_type="vote_record",
         publish_range=DatetimeRange(lt=t0),
@@ -400,7 +418,7 @@ def test_publish_range_strict_cutoff_builds_lt_condition() -> None:
     assert conds[0].range.lte is None
 
 
-def test_publish_range_wins_over_publish_after() -> None:
+async def test_publish_range_wins_over_publish_after() -> None:
     """When both are supplied, publish_range wins and publish_after is ignored.
 
     Only ONE publish_date condition is emitted and it carries the publish_range
@@ -411,7 +429,7 @@ def test_publish_range_wins_over_publish_after() -> None:
     t1 = datetime(2026, 3, 14, tzinfo=timezone.utc)
     mock_client = _make_mock_client([])
 
-    retrieve(
+    await retrieve(
         query="Haushalt",
         source_type="vote_record",
         publish_after=after,
@@ -428,12 +446,12 @@ def test_publish_range_wins_over_publish_after() -> None:
     assert conds[0].range.lte == t1
 
 
-def test_publish_range_none_preserves_publish_after() -> None:
+async def test_publish_range_none_preserves_publish_after() -> None:
     """publish_range=None leaves the existing publish_after gte path unchanged."""
     after = datetime(2024, 1, 1, tzinfo=timezone.utc)
     mock_client = _make_mock_client([])
 
-    retrieve(
+    await retrieve(
         query="Haushalt",
         source_type="vote_record",
         publish_after=after,
@@ -474,7 +492,8 @@ def _make_two_pass_client(
     cur_result.points = current_points
     hist_result = MagicMock()
     hist_result.points = historic_points
-    mock_client.query_points.side_effect = [cur_result, hist_result]
+    mock_client.query_points = AsyncMock(side_effect=[cur_result, hist_result])
+    mock_client.retrieve = AsyncMock(return_value=[])
     return mock_client
 
 
@@ -495,7 +514,7 @@ def _publish_date_range(call):
     return None
 
 
-def test_two_pass_split_by_publish_date() -> None:
+async def test_two_pass_split_by_publish_date() -> None:
     """current bucket = in-window points; historic bucket = pre-window points.
 
     Also verifies each pass builds the correct publish_date window: current is a
@@ -505,7 +524,7 @@ def test_two_pass_split_by_publish_date() -> None:
     pre_window = _make_point(0.65, "DE-BY", ["state"], party_id="pre")
     mock_client = _make_two_pass_client([in_window], [pre_window])
 
-    buckets = retrieve_two_pass(
+    buckets = await retrieve_two_pass(
         "Haushalt",
         term_start=_TERM_START,
         term_end=_TERM_END,
@@ -529,14 +548,14 @@ def test_two_pass_split_by_publish_date() -> None:
     assert hist_range.gte is None and hist_range.lte is None
 
 
-def test_two_pass_current_is_flat() -> None:
+async def test_two_pass_current_is_flat() -> None:
     """current pass applies NO recency weighting: equal-cosine, equal-region points
     keep their original Qdrant order."""
     first = _make_point(0.70, "DE-BY", ["state"], party_id="first")
     second = _make_point(0.70, "DE-BY", ["state"], party_id="second")
     mock_client = _make_two_pass_client([first, second], [])
 
-    buckets = retrieve_two_pass(
+    buckets = await retrieve_two_pass(
         "Haushalt",
         term_start=_TERM_START,
         term_end=_TERM_END,
@@ -552,12 +571,12 @@ def test_two_pass_current_is_flat() -> None:
     )
 
 
-def test_two_pass_historic_high_threshold() -> None:
+async def test_two_pass_historic_high_threshold() -> None:
     """current_score_threshold forwards to the current pass; historic_score_threshold
     forwards to the historic pass."""
     mock_client = _make_two_pass_client([], [])
 
-    retrieve_two_pass(
+    await retrieve_two_pass(
         "Haushalt",
         term_start=_TERM_START,
         term_end=_TERM_END,
@@ -574,12 +593,12 @@ def test_two_pass_historic_high_threshold() -> None:
     assert hist_call.kwargs["score_threshold"] == 0.60
 
 
-def test_two_pass_historic_omits_legislature_period_id() -> None:
+async def test_two_pass_historic_omits_legislature_period_id() -> None:
     """legislature_period_id is forwarded to the CURRENT pass only; the historic pass
     receives None (so a single-period filter can't empty the historic bucket)."""
     mock_client = _make_two_pass_client([], [])
 
-    retrieve_two_pass(
+    await retrieve_two_pass(
         "Haushalt",
         term_start=_TERM_START,
         term_end=_TERM_END,
@@ -600,7 +619,7 @@ def test_two_pass_historic_omits_legislature_period_id() -> None:
     )
 
 
-def test_two_pass_single_embed_reuse() -> None:
+async def test_two_pass_single_embed_reuse() -> None:
     """When query_vector is None, embed exactly once and reuse the SAME vector for
     both passes."""
     calls = {"n": 0}
@@ -611,7 +630,7 @@ def test_two_pass_single_embed_reuse() -> None:
 
     mock_client = _make_two_pass_client([], [])
 
-    retrieve_two_pass(
+    await retrieve_two_pass(
         "Haushalt",
         term_start=_TERM_START,
         term_end=_TERM_END,
@@ -630,7 +649,7 @@ def test_two_pass_single_embed_reuse() -> None:
     )
 
 
-def test_two_pass_no_drop_combined_penalty() -> None:
+async def test_two_pass_no_drop_combined_penalty() -> None:
     """REGRESSION: in the historic pass a federal-only vote above the HIGH historic
     threshold survives the LARGE level penalty — ranked below local, NOT dropped by
     re-thresholding the penalised score.
@@ -643,7 +662,7 @@ def test_two_pass_no_drop_combined_penalty() -> None:
     federal = _make_point(0.62, "DE", ["federal"])  # federal-only → LARGE penalty
     mock_client = _make_two_pass_client([], [local, federal])
 
-    buckets = retrieve_two_pass(
+    buckets = await retrieve_two_pass(
         "Außenpolitik",
         term_start=_TERM_START,
         term_end=_TERM_END,
@@ -668,12 +687,12 @@ def test_two_pass_no_drop_combined_penalty() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_with_scores_true_returns_payload_score_tuples() -> None:
+async def test_with_scores_true_returns_payload_score_tuples() -> None:
     """with_scores=True → list[(payload, score)] using the plain-branch point.score."""
     point = _make_point(0.71, "DE-BY", ["state"])
     mock_client = _make_mock_client([point])
 
-    res = retrieve(
+    res = await retrieve(
         "Haushalt",
         source_type="vote_record",
         region_path=["DE", "DE-BY"],
@@ -688,12 +707,12 @@ def test_with_scores_true_returns_payload_score_tuples() -> None:
     assert score == pytest.approx(0.71)
 
 
-def test_with_scores_false_default_returns_payloads() -> None:
+async def test_with_scores_false_default_returns_payloads() -> None:
     """Default with_scores=False is unchanged — a plain list of payload dicts."""
     point = _make_point(0.71, "DE-BY", ["state"])
     mock_client = _make_mock_client([point])
 
-    res = retrieve(
+    res = await retrieve(
         "Haushalt",
         source_type="vote_record",
         region_path=["DE", "DE-BY"],
@@ -705,14 +724,14 @@ def test_with_scores_false_default_returns_payloads() -> None:
     assert res[0]["region"] == "DE-BY"
 
 
-def test_with_scores_true_downrank_branch_returns_effective_score() -> None:
+async def test_with_scores_true_downrank_branch_returns_effective_score() -> None:
     """In the level down-rank branch, with_scores=True returns the effective_score
     (cosine minus penalty), NOT the raw cosine."""
     # Federal-only vote in a state election → LARGE penalty 0.20 → effective 0.50.
     federal = _make_point(0.70, "DE", ["federal"])
     mock_client = _make_mock_client([federal])
 
-    res = retrieve(
+    res = await retrieve(
         "Außenpolitik",
         source_type="vote_record",
         region_path=["DE", "DE-BY"],
@@ -752,7 +771,7 @@ def _dated_point(
     return point
 
 
-def test_two_pass_historic_recency_decay_equal_cosine() -> None:
+async def test_two_pass_historic_recency_decay_equal_cosine() -> None:
     """Two historic candidates with EQUAL cosine but different publish_date: the more
     recent one (closer to term_start) ranks first after decay."""
     # Passed in the WRONG order (older first) to prove decay re-orders the bucket.
@@ -760,7 +779,7 @@ def test_two_pass_historic_recency_decay_equal_cosine() -> None:
     recent = _dated_point(0.70, "2020-06-14", party_id="recent")
     mock_client = _make_two_pass_client([], [older, recent])
 
-    buckets = retrieve_two_pass(
+    buckets = await retrieve_two_pass(
         "Haushalt",
         term_start=_TERM_START,
         term_end=_TERM_END,
@@ -777,14 +796,14 @@ def test_two_pass_historic_recency_decay_equal_cosine() -> None:
     )
 
 
-def test_two_pass_historic_decay_monotonic_similarity_dominates() -> None:
+async def test_two_pass_historic_decay_monotonic_similarity_dominates() -> None:
     """A much-higher-similarity OLDER item still beats a slightly-lower-similarity
     recent item — decay lowers but does not invert a large cosine gap."""
     old_strong = _dated_point(0.95, "2019-03-14", party_id="old_strong")
     recent_weak = _dated_point(0.70, "2021-01-14", party_id="recent_weak")
     mock_client = _make_two_pass_client([], [recent_weak, old_strong])
 
-    buckets = retrieve_two_pass(
+    buckets = await retrieve_two_pass(
         "Haushalt",
         term_start=_TERM_START,
         term_end=_TERM_END,
@@ -804,7 +823,7 @@ def test_two_pass_historic_decay_monotonic_similarity_dominates() -> None:
     )
 
 
-def test_two_pass_historic_enlarged_pool_then_truncated() -> None:
+async def test_two_pass_historic_enlarged_pool_then_truncated() -> None:
     """The historic pass over-fetches an enlarged pool (limit > historic_limit) and
     then truncates to historic_limit after the decay re-rank."""
     hist = [
@@ -812,7 +831,7 @@ def test_two_pass_historic_enlarged_pool_then_truncated() -> None:
     ]  # 5 candidates
     mock_client = _make_two_pass_client([], hist)
 
-    buckets = retrieve_two_pass(
+    buckets = await retrieve_two_pass(
         "Haushalt",
         term_start=_TERM_START,
         term_end=_TERM_END,
@@ -834,7 +853,7 @@ def test_two_pass_historic_enlarged_pool_then_truncated() -> None:
     assert len(buckets["historic"]) == 2, "bucket must be truncated to historic_limit"
 
 
-def test_two_pass_historic_missing_or_unparseable_date_decay_one() -> None:
+async def test_two_pass_historic_missing_or_unparseable_date_decay_one() -> None:
     """Missing / unparseable publish_date → decay 1.0 (no penalty), no crash. The
     full-score undated items therefore outrank a heavily-decayed old dated item."""
     missing = _make_point(0.66, "DE-BY", ["state"], party_id="missing")
@@ -844,7 +863,7 @@ def test_two_pass_historic_missing_or_unparseable_date_decay_one() -> None:
     old = _dated_point(0.62, "2012-06-14", party_id="old")  # heavily decayed
     mock_client = _make_two_pass_client([], [old, missing, garbage])
 
-    buckets = retrieve_two_pass(
+    buckets = await retrieve_two_pass(
         "Haushalt",
         term_start=_TERM_START,
         term_end=_TERM_END,
@@ -864,7 +883,7 @@ def test_two_pass_historic_missing_or_unparseable_date_decay_one() -> None:
     assert parties[-1] == "old", "heavily-decayed old dated item ranks last"
 
 
-def test_two_pass_current_bucket_no_decay() -> None:
+async def test_two_pass_current_bucket_no_decay() -> None:
     """The current bucket is NOT recency-weighted: in-window points with different
     publish_dates keep their original Qdrant order (flat)."""
     older = _dated_point(
@@ -873,7 +892,7 @@ def test_two_pass_current_bucket_no_decay() -> None:
     recent = _dated_point(0.70, "2025-06-14", party_id="recent")  # in-window
     mock_client = _make_two_pass_client([older, recent], [])
 
-    buckets = retrieve_two_pass(
+    buckets = await retrieve_two_pass(
         "Haushalt",
         term_start=_TERM_START,
         term_end=_TERM_END,

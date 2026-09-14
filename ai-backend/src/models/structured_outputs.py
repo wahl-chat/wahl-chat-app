@@ -99,11 +99,3 @@ class GroupChatTitleQuickReplyGenerator(BaseModel):
     quick_replies: list[str] = Field(
         description="Liste der drei Quick Replies als Strings."
     )
-
-
-class RerankingOutput(BaseModel):
-    """Output of the Reranking Model."""
-
-    reranked_doc_indices: list[int] = Field(
-        description="Absteigend nach Nützlichkeit sortierte Liste der Indices der Dokumente"
-    )

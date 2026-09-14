@@ -5,9 +5,9 @@
 """
 Embeddings provider factory — single construction site for the embedding client.
 
-Every place that needs an embeddings client (the ingestion runner, retrieve(),
-and the legacy vector_store_helper) resolves it through ``get_embeddings()`` so
-the provider can be swapped by configuration alone, without editing code.
+Every place that needs an embeddings client (the ingestion runner and
+retrieve()) resolves it through ``get_embeddings()`` so the provider can be
+swapped by configuration alone, without editing code.
 
 Configuration (all optional; the defaults reproduce the current behaviour
 EXACTLY — with no env set this returns OpenAI ``text-embedding-3-large`` @ 3072):

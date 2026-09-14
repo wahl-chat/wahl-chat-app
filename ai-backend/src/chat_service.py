@@ -122,10 +122,7 @@ from src.utils import (
 
 # Query-side embeddings client, resolved via the provider factory. RETRIEVAL_QUERY
 # mirrors retrieve.py: corpus passages are embedded as RETRIEVAL_DOCUMENT, so the
-# query must use the asymmetric query space (Gemini; no-op for OpenAI). Resolved
-# here directly — NOT via vector_store_helper, whose module-level vector stores
-# require the legacy V1 collections to exist in Qdrant (a fresh V2 store with only
-# wahlchat_chunks_{env} would fail at import).
+# query must use the asymmetric query space (Gemini; no-op for OpenAI).
 embed = get_embeddings(task_type="RETRIEVAL_QUERY")
 
 MAX_RESPONSE_CHUNK_LENGTH = 10  # preserved from V1 for cached-response replay
@@ -596,13 +593,13 @@ async def _safe_retrieve(  # type: ignore[no-untyped-def]
     _failures: Optional[list] = None,
     **kwargs,
 ) -> list[dict]:
-    """Run retrieve() off-thread; a failure returns [] so one source never kills
+    """Await retrieve(); a failure returns [] so one source never kills
     its siblings. The failure is RECORDED in *_failures* (when given) so the
     caller can distinguish "empty corpus" from "every source errored" — a total
     outage must fail the turn, not stream an ungrounded answer.
     with_scores is never set here → list[dict]."""
     try:
-        return cast(list[dict], await asyncio.to_thread(retrieve, *args, **kwargs))
+        return cast(list[dict], await retrieve(*args, **kwargs))
     except Exception as _err:  # noqa: BLE001
         logger.warning(
             "%s() failed (source=%s party=%s): %s",
@@ -624,11 +621,11 @@ async def _safe_two_pass(
     _failures: Optional[list] = None,
     **kwargs,
 ) -> dict[str, list[dict]]:  # type: ignore[no-untyped-def]
-    """Run retrieve_two_pass() off-thread; a failure returns empty current/historic
+    """Await retrieve_two_pass(); a failure returns empty current/historic
     buckets so a single source failure never kills the other two. The failure is
     recorded in *_failures* (when given) — see _safe_retrieve."""
     try:
-        return await asyncio.to_thread(retrieve_two_pass, improved_rag_query, **kwargs)
+        return await retrieve_two_pass(improved_rag_query, **kwargs)
     except Exception as _err:  # noqa: BLE001
         logger.warning(
             "%s() failed (source=%s party=%s): %s",

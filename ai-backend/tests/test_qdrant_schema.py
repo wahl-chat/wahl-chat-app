@@ -38,9 +38,9 @@ import pytest
 # Module-level Qdrant reachability guard.
 #
 # IMPORTANT: conftest.py patches ``qdrant_client.QdrantClient`` at module
-# level so that src.vector_store_helper can be imported without hitting a
-# live Qdrant server.  That patch is applied BEFORE this test module is
-# imported — which would cause the fixture-created client to be a MagicMock.
+# level so imports never hit a live Qdrant server. That patch is applied
+# BEFORE this test module is imported — which would cause the
+# fixture-created client to be a MagicMock.
 #
 # We work around this by capturing the real QdrantClient class from the
 # ``qdrant_client._client`` submodule BEFORE conftest's patch can shadow the

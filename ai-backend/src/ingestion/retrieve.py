@@ -3,14 +3,11 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-retrieve() capability over the single wahlchat_chunks_{ENV} collection.
+Filtered retrieval over ``wahlchat_chunks_{ENV}`` by source_type, party_id
+(tenant), region (MatchAny), authority_tier, and publish_date.
 
-Filtered retrieval by source_type, party_id (tenant), region (MatchAny),
-authority_tier, and publish_date over the single Qdrant collection.
-
-This module is STANDALONE — it does NOT import chat_service or vector_store_helper.
-The V1 retrieval path is untouched. Retrieval is testable without a live Gemini
-call (call retrieve() directly with a mocked embed).
+Standalone: does not import chat_service. Call ``retrieve()`` with a mocked
+embed to test without a live Gemini call.
 
 Gemini tool declaration:
     Use ``retrieve_schema`` (a Pydantic BaseModel with Literal-typed args) to
@@ -36,7 +33,7 @@ from typing import Any, Literal, Optional, Union, cast
 
 from langchain_core.embeddings import Embeddings
 from pydantic import BaseModel, Field
-from qdrant_client import QdrantClient
+from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import (
     DatetimeRange,
     FieldCondition,
@@ -46,16 +43,16 @@ from qdrant_client.models import (
 )
 
 from src.embeddings import get_embeddings
-from src.ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
+from src.ingestion.setup_collection import COLLECTION_NAME, acheck_fingerprint
 from src.ingestion.governance_levels import ALL_LEVELS
 
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Qdrant client — lazy singleton, mirrors setup_collection.py wiring.
-# Deferred to first use so importing this module never opens a network connection.
+# Qdrant client — lazy singleton. Importing this module must not open a
+# network connection.
 # ---------------------------------------------------------------------------
-_qdrant: Optional[QdrantClient] = None
+_qdrant: Optional[AsyncQdrantClient] = None
 _embed: Optional[Embeddings] = None
 
 # Clients whose collection fingerprint has been verified this process —
@@ -63,11 +60,11 @@ _embed: Optional[Embeddings] = None
 _fingerprint_checked_clients: set[int] = set()
 
 
-def _get_qdrant() -> QdrantClient:
-    """Return the module-level Qdrant client, initializing on first call."""
+def _get_qdrant() -> AsyncQdrantClient:
+    """Return the module-level async Qdrant client, initializing on first call."""
     global _qdrant
     if _qdrant is None:
-        _qdrant = QdrantClient(
+        _qdrant = AsyncQdrantClient(
             url=os.getenv("QDRANT_URL", "http://localhost:6333"),
             api_key=os.getenv("QDRANT_API_KEY"),
         )
@@ -91,28 +88,17 @@ def _get_embed() -> Embeddings:
     return _embed
 
 
-def _embed_query(query: str, embed_fn: Any = None) -> list[float]:
-    """Embed a query string into a dense vector using the locked embedding model.
-
-    Branches on the ``embed_query`` interface FIRST (covers OpenAIEmbeddings and any
-    LangChain embeddings — these are NOT callable), then falls back to treating
-    ``embed_fn`` as a plain callable (a bare function mock in tests). A
-    ``callable()``-first gate would make OpenAIEmbeddings (non-callable) skip the
-    embed_query path entirely, which is contradictory.
-
-    Shared by retrieve() and retrieve_two_pass() so the two-pass path embeds ONCE
-    and reuses the resulting vector across both passes.
-    """
+async def _aembed_query(query: str, embed_fn: Any = None) -> list[float]:
+    """Return the locked-model embedding of ``query``. ``_embed_fn`` injects a test double."""
     resolved = embed_fn if embed_fn is not None else _get_embed()
-    if hasattr(resolved, "embed_query"):
-        return resolved.embed_query(query)
-    elif callable(resolved):
+    if hasattr(resolved, "aembed_query"):
+        return await resolved.aembed_query(query)
+    if callable(resolved):
         return resolved(query)
-    else:
-        raise TypeError(
-            "retrieve(): embed_fn must expose .embed_query() or be callable; "
-            f"got {type(resolved)!r}"
-        )
+    raise TypeError(
+        "retrieve(): embed_fn must expose .aembed_query() or be callable; "
+        f"got {type(resolved)!r}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -310,7 +296,7 @@ def _parse_publish_date(value: Any) -> Optional[date]:
 # ---------------------------------------------------------------------------
 
 
-def retrieve(
+async def retrieve(
     query: str,
     source_type: Optional[SourceTypeLiteral] = None,
     party_id: Optional[str] = None,
@@ -327,7 +313,7 @@ def retrieve(
     query_vector: Optional[list[float]] = None,
     score_threshold: Optional[float] = None,
     with_scores: bool = False,
-    _client: Optional[QdrantClient] = None,
+    _client: Optional[AsyncQdrantClient] = None,
     _embed_fn: Any = None,
 ) -> Union[list[dict], list[tuple[dict, float]]]:
     """Query the single Qdrant collection with the full indexed filter set.
@@ -422,7 +408,7 @@ def retrieve(
                         ``point.score`` in the plain branch. Used by
                         ``retrieve_two_pass`` to apply recency decay on top of the
                         retrieve() ranking score.
-        _client:        Optional QdrantClient override (for tests).
+        _client:        Optional AsyncQdrantClient override (for tests).
         _embed_fn:      Optional embed callable override (for tests without
                         a real OpenAI API key). Ignored when ``query_vector`` is
                         supplied.
@@ -475,7 +461,7 @@ def retrieve(
     # space are garbage. Checked once per client per process (soft-pass for
     # fingerprint-less legacy stores and limited test doubles).
     if id(client) not in _fingerprint_checked_clients:
-        check_fingerprint(client, COLLECTION_NAME)
+        await acheck_fingerprint(client, COLLECTION_NAME)
         _fingerprint_checked_clients.add(id(client))
 
     # Build the filter must-clause list.
@@ -563,7 +549,7 @@ def retrieve(
         vec = query_vector
     else:
         # Embed the query using the locked embedding model (shared helper).
-        vec = _embed_query(query, _embed_fn)
+        vec = await _aembed_query(query, _embed_fn)
 
     # Pass score_threshold to query_points only when not None.
     # When None (default), Qdrant returns results without a cutoff so existing
@@ -607,7 +593,7 @@ def retrieve(
         fetch_limit = limit
 
     # query_points with named vector "dense" (REQUIRED — collection uses named vectors).
-    results = client.query_points(
+    results = await client.query_points(
         collection_name=COLLECTION_NAME,
         query=vec,
         using="dense",
@@ -698,7 +684,7 @@ def retrieve(
 # ---------------------------------------------------------------------------
 
 
-def retrieve_two_pass(
+async def retrieve_two_pass(
     query: str,
     *,
     term_start: datetime,
@@ -715,7 +701,7 @@ def retrieve_two_pass(
     current_score_threshold: Optional[float] = None,
     historic_score_threshold: float,
     query_vector: Optional[list[float]] = None,
-    _client: Optional[QdrantClient] = None,
+    _client: Optional[AsyncQdrantClient] = None,
     _embed_fn: Any = None,
 ) -> dict[str, list[dict]]:
     """Two-pass temporal retrieval returning ``{"current", "historic"}`` buckets.
@@ -749,7 +735,7 @@ def retrieve_two_pass(
                         pass — the "only super-relevant facts make it" knob.
         query_vector:   Pre-computed embedding. When None, the query is embedded
                         ONCE here and the same vector is passed to both passes.
-        _client:        Optional QdrantClient override (for tests).
+        _client:        Optional AsyncQdrantClient override (for tests).
         _embed_fn:      Optional embed callable override (for tests).
 
     Returns:
@@ -757,10 +743,14 @@ def retrieve_two_pass(
     """
     # (1) Embed once and reuse across BOTH passes — single-embed reuse is mandatory
     # (one query vector reused across both passes, no extra embedding).
-    vec = query_vector if query_vector is not None else _embed_query(query, _embed_fn)
+    vec = (
+        query_vector
+        if query_vector is not None
+        else await _aembed_query(query, _embed_fn)
+    )
 
     # (2) current pass — bounded [term_start, term_end], flat, level + period forwarded.
-    current_results = retrieve(
+    current_results = await retrieve(
         query,
         source_type=source_type,
         party_id=party_id,
@@ -783,7 +773,7 @@ def retrieve_two_pass(
     # decay is a ranking device only, never a relevance cutoff. We over-fetch an enlarged
     # pool, decay-re-rank it, then truncate to historic_limit.
     historic_pool_limit = max(historic_limit * 10, 20)
-    historic_scored = retrieve(
+    historic_scored = await retrieve(
         query,
         source_type=source_type,
         party_id=party_id,
@@ -908,7 +898,7 @@ def get_gemini_tool_binding(llm: Any) -> Any:
         llm_with_tools = get_gemini_tool_binding(google_gemini_3_6_flash)
 
     The tool declaration is standalone — this does NOT import or modify
-    chat_service or vector_store_helper.
+    chat_service.
 
     Args:
         llm: A ChatGoogleGenerativeAI instance (e.g. ``google_gemini_3_6_flash``).

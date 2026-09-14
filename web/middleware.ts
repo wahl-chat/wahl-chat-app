@@ -18,13 +18,27 @@ const STATIC_PAGES = [
   '/donate',
   '/topics',
   '/api',
-  '/pdf',
+];
+
+// File-based metadata routes. The '/:contextId' matcher catches these, and they
+// must be served whatever else is going on — a sitemap or robots.txt answering
+// with a redirect is worse than one answering with stale content.
+const METADATA_ROUTES = [
+  '/sitemap.xml',
+  '/robots.txt',
+  '/manifest.json',
+  '/icon.png',
+  '/icon.svg',
+  '/apple-icon.png',
 ];
 
 // Check if the pathname is a static page
 function isStaticPage(pathname: string): boolean {
-  return STATIC_PAGES.some(
-    (page) => pathname === page || pathname.startsWith(`${page}/`),
+  return (
+    METADATA_ROUTES.includes(pathname) ||
+    STATIC_PAGES.some(
+      (page) => pathname === page || pathname.startsWith(`${page}/`),
+    )
   );
 }
 
@@ -36,7 +50,10 @@ function isElectionPast(electionDate: string): boolean {
   );
 }
 
-// Get context ID from Vercel geo headers or fallback to default
+// Election a context-less legacy link should land on. Region-derived rather
+// than fixed so these links keep resolving as elections conclude. Only these
+// redirects may vary by requester: / must serve identical content to crawlers
+// and visitors, so it never consults this.
 function getContextIdFromGeo(request: NextRequest): string {
   const country = request.headers.get('x-vercel-ip-country');
   const region = request.headers.get('x-vercel-ip-country-region');
@@ -71,12 +88,6 @@ function buildRedirectUrl(
 }
 
 export async function middleware(request: NextRequest) {
-  const budgetSpent = process.env.BUDGET_SPENT === 'true';
-
-  if (budgetSpent) {
-    return NextResponse.redirect(new URL('/budget-spent', request.url));
-  }
-
   const pathname = request.nextUrl.pathname;
 
   // Handle tenant ID from search params
@@ -87,62 +98,74 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set(TENANT_ID_HEADER, tenantIdSearchParam);
   }
 
-  // Skip middleware for static pages
+  // Skip middleware for static pages. This has to run before the BUDGET_SPENT
+  // check: /budget-spent is itself a static page, so checking the flag first
+  // redirected the kill-switch landing page to itself forever, and sent
+  // /sitemap.xml, /robots.txt and /manifest.json there too.
   if (isStaticPage(pathname)) {
     return NextResponse.next({
       request: { headers: requestHeaders },
     });
   }
 
-  // Handle legacy /chat routes → redirect to /session with party_id
-  if (pathname.startsWith('/chat')) {
-    const contextId = DEFAULT_CONTEXT_ID;
-    if (pathname === '/chat') {
-      return NextResponse.redirect(buildRedirectUrl(request, `/${contextId}`));
-    }
+  if (process.env.BUDGET_SPENT === 'true') {
+    return NextResponse.redirect(new URL('/budget-spent', request.url));
+  }
+
+  // Legacy context-less URLs. Bare paths go to /, which is stable and lets the
+  // visitor pick their own election — so those can be permanent (308) and
+  // consolidate their link equity. Paths carrying a party or session still need
+  // a context, and middleware can only guess one from the request's region, so
+  // those stay temporary (307).
+  if (pathname === '/chat') {
+    return NextResponse.redirect(buildRedirectUrl(request, '/'), 308);
+  }
+
+  if (pathname.startsWith('/chat/')) {
     const partyId = pathname.split('/')[2];
     return NextResponse.redirect(
-      buildRedirectUrl(request, `/${contextId}/session?party_id=${partyId}`),
+      buildRedirectUrl(
+        request,
+        `/${getContextIdFromGeo(request)}/session?party_id=${partyId}`,
+      ),
     );
   }
 
-  // Root path: detect context from geo and redirect
-  if (pathname === '/') {
-    const contextId = getContextIdFromGeo(request);
-    return NextResponse.redirect(buildRedirectUrl(request, `/${contextId}`));
+  if (pathname === '/session') {
+    return NextResponse.redirect(buildRedirectUrl(request, '/'), 308);
   }
 
-  // Legacy /session routes → redirect to /{contextId}/session
-  if (pathname === '/session' || pathname.startsWith('/session/')) {
-    const contextId = DEFAULT_CONTEXT_ID;
+  if (pathname.startsWith('/session/')) {
     const restPath = pathname.replace('/session', '');
     return NextResponse.redirect(
-      buildRedirectUrl(request, `/${contextId}/session${restPath}`),
+      buildRedirectUrl(
+        request,
+        `/${getContextIdFromGeo(request)}/session${restPath}`,
+      ),
     );
   }
 
-  // Legacy /swiper routes → redirect to /{contextId}/swiper
   if (pathname === '/swiper' || pathname.startsWith('/swiper/')) {
-    const contextId = DEFAULT_CONTEXT_ID;
     const restPath = pathname.replace('/swiper', '');
     return NextResponse.redirect(
-      buildRedirectUrl(request, `/${contextId}/swiper${restPath}`),
+      buildRedirectUrl(
+        request,
+        `/${getContextIdFromGeo(request)}/swiper${restPath}`,
+      ),
     );
   }
 
-  // Legacy /share → redirect to /{contextId}/share
   if (pathname === '/share') {
-    const contextId = DEFAULT_CONTEXT_ID;
     return NextResponse.redirect(
-      buildRedirectUrl(request, `/${contextId}/share`),
+      buildRedirectUrl(request, `/${getContextIdFromGeo(request)}/share`),
     );
   }
 
-  // Legacy /sources → redirect to /{contextId}/sources
+  // Not sent to /, which has no source list — a context's sources page is a far
+  // better answer to /sources than the landing page.
   if (pathname === '/sources') {
-    const contextId = DEFAULT_CONTEXT_ID;
     return NextResponse.redirect(
-      buildRedirectUrl(request, `/${contextId}/sources`),
+      buildRedirectUrl(request, `/${getContextIdFromGeo(request)}/sources`),
     );
   }
 
@@ -161,6 +184,10 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    // / is matched for the tenant header and the BUDGET_SPENT kill switch, not
+    // for routing: it serves the landing page. It must never be redirected —
+    // varying it by IP sends crawlers and German visitors to different
+    // elections and points every inbound link at a redirect instead of a page.
     '/',
     '/chat/:path*',
     '/session/:path*',

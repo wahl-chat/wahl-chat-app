@@ -449,7 +449,7 @@ async def test_voting_behavior_route_sse(app, monkeypatch):
     async def _rag_query(*args, **kwargs):
         return "verbesserte Anfrage"
 
-    def _retrieve(*args, **kwargs):
+    async def _retrieve(*args, **kwargs):
         return []
 
     async def _summary(*args, **kwargs):

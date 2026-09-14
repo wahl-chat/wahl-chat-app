@@ -50,6 +50,15 @@ if not _QDRANT_UP:
 _EMBEDDING_DIM = 3072  # must match setup_collection.EMBEDDING_DIM
 
 
+def _async_client():
+    """Real AsyncQdrantClient, bypassing conftest's MagicMock patch."""
+    from qdrant_client.async_qdrant_client import (
+        AsyncQdrantClient as _RealAsyncQdrantClient,
+    )
+
+    return _RealAsyncQdrantClient(url="http://localhost:6333", api_key=None)
+
+
 def _zero_vector() -> list[float]:
     """Return a deterministic all-zero embedding vector for seeding test points.
 
@@ -87,7 +96,7 @@ def _make_payload(source_type: str, party_id: str = "spd") -> dict:
 # ---------------------------------------------------------------------------
 
 
-def test_source_type_filter(temp_qdrant_collection) -> None:  # type: ignore[type-arg]
+async def test_source_type_filter(temp_qdrant_collection) -> None:  # type: ignore[type-arg]
     """retrieve(query, source_type='vote_record') returns only vote_record payloads.
 
     Verification:
@@ -145,11 +154,11 @@ def test_source_type_filter(temp_qdrant_collection) -> None:  # type: ignore[typ
     _retrieve_mod.COLLECTION_NAME = collection_name  # type: ignore[assignment]
 
     try:
-        results = retrieve(
+        results = await retrieve(
             query="mindestlohn vote record",
             source_type="vote_record",
             limit=10,
-            _client=client,
+            _client=_async_client(),
             _embed_fn=_fake_embed,
         )
     finally:
@@ -185,7 +194,7 @@ def test_source_type_filter(temp_qdrant_collection) -> None:  # type: ignore[typ
     )
 
 
-def test_source_provenance_filter(temp_qdrant_collection) -> None:  # type: ignore[type-arg]
+async def test_source_provenance_filter(temp_qdrant_collection) -> None:  # type: ignore[type-arg]
     """retrieve(source_type='parliamentary_speech', source='op') returns only
     op (video-bearing) speeches — the user-facing "nur Videoaufnahmen" scope.
     Omitting `source` keeps returning both provenances (default unchanged)."""
@@ -215,19 +224,19 @@ def test_source_provenance_filter(temp_qdrant_collection) -> None:  # type: igno
     original_collection = _retrieve_mod.COLLECTION_NAME
     _retrieve_mod.COLLECTION_NAME = collection_name  # type: ignore[assignment]
     try:
-        op_only = retrieve(
+        op_only = await retrieve(
             query="lohnniveau",
             source_type="parliamentary_speech",
             source="op",
             limit=10,
-            _client=client,
+            _client=_async_client(),
             _embed_fn=_fake_embed,
         )
-        unfiltered = retrieve(
+        unfiltered = await retrieve(
             query="lohnniveau",
             source_type="parliamentary_speech",
             limit=10,
-            _client=client,
+            _client=_async_client(),
             _embed_fn=_fake_embed,
         )
     finally:
@@ -246,7 +255,7 @@ def test_source_provenance_filter(temp_qdrant_collection) -> None:  # type: igno
 # ---------------------------------------------------------------------------
 
 
-def test_query_vector_skips_embed(temp_qdrant_collection) -> None:  # type: ignore[type-arg]
+async def test_query_vector_skips_embed(temp_qdrant_collection) -> None:  # type: ignore[type-arg]
     """When query_vector is supplied, retrieve() must NOT call the embed function.
 
     Verification:
@@ -285,12 +294,12 @@ def test_query_vector_skips_embed(temp_qdrant_collection) -> None:  # type: igno
     _retrieve_mod.COLLECTION_NAME = collection_name  # type: ignore[assignment]
 
     try:
-        results = retrieve(
+        results = await retrieve(
             query="any query — should be ignored",
             query_vector=_zero_vector(),
             source_type="vote_record",
             limit=5,
-            _client=client,
+            _client=_async_client(),
             _embed_fn=_sentinel_embed,  # Would raise if called
         )
     finally:
@@ -308,7 +317,7 @@ def test_query_vector_skips_embed(temp_qdrant_collection) -> None:  # type: igno
 # ---------------------------------------------------------------------------
 
 
-def test_empty_filter_rejected() -> None:
+async def test_empty_filter_rejected() -> None:
     """retrieve() with no selective filter (no party_id, party_ids_contains, source_type)
     must raise ValueError BEFORE calling the embed function or query_points.
 
@@ -337,7 +346,7 @@ def test_empty_filter_rejected() -> None:
     import pytest as _pytest
 
     with _pytest.raises(ValueError, match="selective"):
-        retrieve(
+        await retrieve(
             query="test query",
             region_path=["DE"],
             _client=_SentinelClient(),  # type: ignore[arg-type]
@@ -350,7 +359,7 @@ def test_empty_filter_rejected() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_selective_source_type_allowed(temp_qdrant_collection) -> None:  # type: ignore[type-arg]
+async def test_selective_source_type_allowed(temp_qdrant_collection) -> None:  # type: ignore[type-arg]
     """source_type alone IS a selective filter — must NOT raise ValueError.
 
     Verification:
@@ -384,11 +393,11 @@ def test_selective_source_type_allowed(temp_qdrant_collection) -> None:  # type:
 
     try:
         # Must NOT raise — selective source_type is always valid.
-        results = retrieve(
+        results = await retrieve(
             query="any query",
             source_type="vote_record",
             limit=5,
-            _client=client,
+            _client=_async_client(),
             _embed_fn=_fake_embed,
         )
     finally:
@@ -430,7 +439,7 @@ def _make_payload_with_period(
     return base
 
 
-def test_legislature_period_id_filter(temp_qdrant_collection) -> None:  # type: ignore[type-arg]
+async def test_legislature_period_id_filter(temp_qdrant_collection) -> None:  # type: ignore[type-arg]
     """retrieve(legislature_period_id=149) returns only chunks matching that period.
 
     Verification:
@@ -467,13 +476,13 @@ def test_legislature_period_id_filter(temp_qdrant_collection) -> None:  # type: 
     original_collection = _retrieve_mod.COLLECTION_NAME
     _retrieve_mod.COLLECTION_NAME = collection_name  # type: ignore[assignment]
     try:
-        results = retrieve(
+        results = await retrieve(
             query="Bayern vote",
             source_type="vote_record",
             party_ids_contains="csu",
             legislature_period_id=149,
             limit=10,
-            _client=client,
+            _client=_async_client(),
             _embed_fn=_fake_embed,
         )
     finally:
@@ -489,7 +498,9 @@ def test_legislature_period_id_filter(temp_qdrant_collection) -> None:  # type: 
         )
 
 
-def test_legislature_period_id_filter_absent_when_none(temp_qdrant_collection) -> None:  # type: ignore[type-arg]
+async def test_legislature_period_id_filter_absent_when_none(
+    temp_qdrant_collection,
+) -> None:  # type: ignore[type-arg]
     """retrieve(legislature_period_id=None) adds no period filter — all periods returned.
 
     Verification:
@@ -523,13 +534,13 @@ def test_legislature_period_id_filter_absent_when_none(temp_qdrant_collection) -
     original_collection = _retrieve_mod.COLLECTION_NAME
     _retrieve_mod.COLLECTION_NAME = collection_name  # type: ignore[assignment]
     try:
-        results = retrieve(
+        results = await retrieve(
             query="Bayern vote",
             source_type="vote_record",
             party_ids_contains="csu",
             legislature_period_id=None,
             limit=10,
-            _client=client,
+            _client=_async_client(),
             _embed_fn=_fake_embed,
         )
     finally:
@@ -540,7 +551,7 @@ def test_legislature_period_id_filter_absent_when_none(temp_qdrant_collection) -
     )
 
 
-def test_legislature_period_id_alone_rejected_as_non_selective() -> None:
+async def test_legislature_period_id_alone_rejected_as_non_selective() -> None:
     """legislature_period_id alone must NOT satisfy selectivity.
 
     A retrieve() call with only legislature_period_id (no source_type, party_id,
@@ -563,7 +574,7 @@ def test_legislature_period_id_alone_rejected_as_non_selective() -> None:
     import pytest as _pytest
 
     with _pytest.raises(ValueError, match="selective"):
-        retrieve(
+        await retrieve(
             query="test query",
             legislature_period_id=161,
             _client=_SentinelClient(),  # type: ignore[arg-type]

@@ -123,7 +123,7 @@ def test_speech_sources_emit_dual_links(monkeypatch) -> None:
         "meta": {},
     }
 
-    def _retrieve(_query, **kwargs):
+    async def _retrieve(_query, **kwargs):
         if kwargs.get("source_type") == "parliamentary_speech":
             return [op_payload, dip_payload]
         return []
@@ -193,7 +193,7 @@ def test_pdf_sources_carry_snippet_votes_do_not(monkeypatch) -> None:
         "meta": {},
     }
 
-    def _retrieve(_query, **kwargs):
+    async def _retrieve(_query, **kwargs):
         st = kwargs.get("source_type")
         if st == "party_manifesto":
             return [manifesto_payload]
@@ -366,7 +366,7 @@ def test_two_pass_used_in_both_paths(monkeypatch) -> None:
     expected = {"vote_record", "party_manifesto", "parliamentary_speech"}
 
     def _make_recorder(store: dict):
-        def _rec(_query, **kwargs):
+        async def _rec(_query, **kwargs):
             store[kwargs.get("source_type")] = kwargs
             return {"current": [], "historic": []}
 
@@ -395,7 +395,7 @@ def test_historic_period_id_current_only(monkeypatch) -> None:
     capture: dict = {}
     calls: dict = {}
 
-    def _rec_two_pass(_query, **kwargs):
+    async def _rec_two_pass(_query, **kwargs):
         calls[kwargs.get("source_type")] = kwargs
         return {"current": [], "historic": []}
 
@@ -431,7 +431,7 @@ def test_manifesto_region_path_is_level_exclusive(monkeypatch) -> None:
     )
 
     def _make_recorder(store: dict, result):
-        def _rec(_query, **kwargs):
+        async def _rec(_query, **kwargs):
             store[kwargs.get("source_type")] = kwargs
             return result
 
@@ -494,7 +494,7 @@ def test_current_first_merge_order(monkeypatch) -> None:
     each bucket) and sources[] mirror the identical order for [N] alignment."""
     capture: dict = {}
 
-    def _mock_two_pass(_query, **kwargs):
+    async def _mock_two_pass(_query, **kwargs):
         st = kwargs.get("source_type")
         if st == "party_manifesto":
             return {
@@ -572,7 +572,7 @@ def test_adaptive_speech_fallback_when_official_sparse(monkeypatch) -> None:
     capture: dict = {}
     n_speeches = cs._CURRENT_SPEECH_LIMIT + 2  # strictly above the normal cap
 
-    def _mock_two_pass(_query, **kwargs):
+    async def _mock_two_pass(_query, **kwargs):
         st = kwargs.get("source_type")
         if st == "parliamentary_speech":
             return {
@@ -615,7 +615,7 @@ def test_speech_trimmed_when_official_present(monkeypatch) -> None:
     capture: dict = {}
     n_speeches = cs._CURRENT_SPEECH_LIMIT + 2
 
-    def _mock_two_pass(_query, **kwargs):
+    async def _mock_two_pass(_query, **kwargs):
         st = kwargs.get("source_type")
         if st == "party_manifesto":
             return {
@@ -693,7 +693,7 @@ def test_single_pass_fallback_when_no_window(monkeypatch) -> None:
     calls: dict = {}
     called = {"single": False, "two_pass": False}
 
-    def _mock_single(_query, **kwargs):
+    async def _mock_single(_query, **kwargs):
         called["single"] = True
         calls[kwargs.get("source_type")] = kwargs
         if kwargs.get("source_type") == "party_manifesto":
@@ -707,7 +707,7 @@ def test_single_pass_fallback_when_no_window(monkeypatch) -> None:
             ]
         return []
 
-    def _mock_two_pass_flag(_query, **kwargs):
+    async def _mock_two_pass_flag(_query, **kwargs):
         called["two_pass"] = True
         return {"current": [], "historic": []}
 
@@ -754,7 +754,7 @@ def test_coverage_and_has_historic_threaded_into_generation(monkeypatch) -> None
 
         return _gen()
 
-    def _retrieve(_query, **kwargs):
+    async def _retrieve(_query, **kwargs):
         if kwargs.get("source_type") == "party_manifesto":
             return [
                 {
@@ -864,7 +864,7 @@ def test_cacheable_lookup_runs_after_retrieval(monkeypatch) -> None:
     order: list[str] = []
     llm_called = {"n": 0}
 
-    def _rec_two_pass(_query, **_kwargs):
+    async def _rec_two_pass(_query, **_kwargs):
         order.append("retrieve")
         return {"current": [], "historic": []}
 
@@ -952,7 +952,7 @@ def test_cacheable_reuses_cached_rag_query(monkeypatch) -> None:
     async def _get_rag(_context_id: str, _party_id: str, _key: str) -> str:
         return "cached rewrite"
 
-    def _rec_two_pass(query, **_kwargs):
+    async def _rec_two_pass(query, **_kwargs):
         retrieved_queries.append(query)
         return {"current": [], "historic": []}
 
@@ -992,7 +992,7 @@ def test_cacheable_writes_rag_query_on_miss(monkeypatch) -> None:
     async def _write_rag(context_id: str, party_id: str, key: str, query: str) -> None:
         writes.append((context_id, party_id, key, query))
 
-    def _rec_two_pass(_query, **_kwargs):
+    async def _rec_two_pass(_query, **_kwargs):
         return {"current": [], "historic": []}
 
     _wire_common_mocks(monkeypatch, {})
@@ -1044,7 +1044,7 @@ def test_cached_rag_query_stabilizes_answer_cache_key(monkeypatch) -> None:
     ) -> None:
         stored_query["q"] = query
 
-    def _rec_two_pass(query, **kwargs):
+    async def _rec_two_pass(query, **kwargs):
         if kwargs.get("source_type") != "party_manifesto":
             return {"current": [], "historic": []}
         return {
@@ -1106,7 +1106,7 @@ def test_non_cacheable_skips_rag_query_cache(monkeypatch) -> None:
     async def _write_rag(*_a, **_k) -> None:
         writes["n"] += 1
 
-    def _rec_two_pass(_query, **_kwargs):
+    async def _rec_two_pass(_query, **_kwargs):
         return {"current": [], "historic": []}
 
     _wire_common_mocks(monkeypatch, {})

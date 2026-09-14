@@ -230,8 +230,7 @@ async def voting_behavior_endpoint(body: VotingBehaviorRequestDto):
             )
             election_level = ctx.level if ctx is not None else None
 
-            vote_payloads: list[dict] = await asyncio.to_thread(
-                retrieve,
+            vote_payloads: list[dict] = await retrieve(
                 improved_rag_query,
                 source_type="vote_record",
                 party_ids_contains=party.party_id,

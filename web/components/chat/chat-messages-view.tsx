@@ -24,6 +24,7 @@ type Props = {
   allParties?: PartyDetails[];
   proposedQuestions?: ProposedQuestion[];
   initialQuestion?: string;
+  prefilledQuestion?: string;
 };
 
 function ChatMessagesView({
@@ -34,6 +35,7 @@ function ChatMessagesView({
   allParties,
   proposedQuestions,
   initialQuestion,
+  prefilledQuestion,
 }: Props) {
   const hasFetched = useRef(false);
   const storeMessages = useChatStore((state) => state.messages);
@@ -55,6 +57,9 @@ function ChatMessagesView({
       preSelectedPartyIds: parties?.map((party) => party.party_id),
       // Only auto-send the initial question the first time this component hydrates
       initialQuestion: hasFetched.current ? undefined : initialQuestion,
+      // Same guard: re-prefilling on a later hydration would overwrite whatever
+      // the user has since typed.
+      prefilledQuestion: hasFetched.current ? undefined : prefilledQuestion,
       userId: user.uid,
       tenant,
     });
@@ -68,6 +73,7 @@ function ChatMessagesView({
     messages,
     parties,
     initialQuestion,
+    prefilledQuestion,
     tenant,
   ]);
 

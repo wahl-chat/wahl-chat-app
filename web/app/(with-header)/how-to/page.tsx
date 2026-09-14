@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: 'So funktioniert wahl.chat',
   description:
     'Erfahre, wie du wahl.chat nutzen kannst – Parteien vergleichen, Fragen stellen und quellengestützte Antworten erhalten.',
+  alternates: {
+    canonical: '/how-to',
+  },
 };
 
 function HowToPage() {

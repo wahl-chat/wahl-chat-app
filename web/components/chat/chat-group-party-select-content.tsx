@@ -2,7 +2,7 @@
 
 import PartyCards from '@/components/party-cards';
 import { useCurrentContext } from '@/components/providers/context-provider';
-import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
+import { DEFAULT_CONTEXT_ID, MAX_SELECTABLE_PARTIES } from '@/lib/constants';
 import { track } from '@vercel/analytics/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -15,8 +15,6 @@ type Props = {
   addPartiesToChat?: boolean;
   contextId?: string;
 };
-
-export const MAX_SELECTABLE_PARTIES = 7;
 
 function ChatGroupPartySelectContent({
   selectedPartyIdsInStore,

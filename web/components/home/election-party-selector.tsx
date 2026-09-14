@@ -7,7 +7,6 @@ import LoadingPartyCards from '@/components/home/loading-party-cards';
 import { useElectionContext } from '@/components/providers/context-provider';
 import { Button } from '@/components/ui/button';
 import { GitCompareIcon, MousePointerClickIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
 
 type Props = {
   contextId: string;
@@ -16,13 +15,9 @@ type Props = {
 export function ElectionPartySelector({ contextId }: Props) {
   const { partyCount, parties } = useElectionContext();
 
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-  }, []);
+  // Parties come from the server layout, so there is nothing to wait for; the
+  // skeleton only covers the case where they are genuinely absent.
+  const isLoading = !parties;
 
   return (
     <div
@@ -43,7 +38,9 @@ export function ElectionPartySelector({ contextId }: Props) {
         className="flex flex-col gap-3"
         aria-labelledby="party-selection"
       >
-        <h2
+        {/* The page's only h1, kept at the visual size of the h2 it replaced —
+            the tag is what carries the document outline, not the type scale. */}
+        <h1
           id="party-selection"
           className="flex items-center justify-center gap-2 text-center text-base font-semibold text-foreground"
         >
@@ -52,9 +49,9 @@ export function ElectionPartySelector({ contextId }: Props) {
             aria-hidden="true"
           />
           Wähle eine Partei, um den Chat mit ihr zu starten
-        </h2>
+        </h1>
 
-        {!parties || isLoading ? (
+        {isLoading ? (
           <LoadingPartyCards
             partyCount={Math.min(partyCount || 0, 8)}
             className="mt-1"

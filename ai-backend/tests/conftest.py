@@ -10,9 +10,8 @@ external I/O calls in the chat stream so the smoke test requires no live API
 keys, no Qdrant service, and no Firestore data.
 
 Primary patches:
-  1. src.chat_service.identify_relevant_docs_with_llm_based_reranking
-       Replaces the Qdrant similarity search (embed.aembed_query +
-       qdrant_client.search) with a deterministic list of Documents.
+  1. src.chat_service.embed / retrieve / retrieve_two_pass
+       Replaces embeddings and Qdrant retrieval with deterministic fakes.
 
   2. src.chatbot_async.stream_answer_from_llms
        Replaces the LLM token stream (llm.model.astream) with a deterministic
@@ -51,11 +50,9 @@ os.environ.setdefault("OPENAI_API_KEY", "dummy-openai-key-for-ci")
 os.environ.setdefault("GOOGLE_API_KEY", "dummy-google-key-for-ci")
 
 # ---------------------------------------------------------------------------
-# Patch QdrantClient BEFORE src.vector_store_helper is imported.
-# vector_store_helper.py creates QdrantVectorStore instances at module level;
-# the QdrantVectorStore constructor calls qdrant_client.get_collection() which
-# makes an HTTP request.  We replace the entire QdrantClient class so module-
-# level instantiation produces a MagicMock that never touches the network.
+# Patch Qdrant clients before src.* imports so accidental construction during
+# import never hits a live server. Tests that need a real client capture the
+# concrete class from qdrant_client.qdrant_client / async_qdrant_client.
 # ---------------------------------------------------------------------------
 from unittest.mock import MagicMock, AsyncMock, patch as _patch
 
@@ -66,12 +63,16 @@ _qdrant_client_mock.search.return_value = []
 _qdrant_patch = _patch("qdrant_client.QdrantClient", return_value=_qdrant_client_mock)
 _qdrant_patch.start()
 
-# Also patch QdrantVectorStore to avoid any further network calls at init time.
-_vector_store_mock = MagicMock()
-_qvs_patch = _patch(
-    "langchain_qdrant.QdrantVectorStore", return_value=_vector_store_mock
+_async_qdrant_client_mock = MagicMock()
+_async_qdrant_client_mock.get_collections = AsyncMock(
+    return_value=MagicMock(collections=[])
 )
-_qvs_patch.start()
+_async_qdrant_client_mock.query_points = AsyncMock(return_value=MagicMock(points=[]))
+_async_qdrant_client_mock.retrieve = AsyncMock(return_value=[])
+_async_qdrant_patch = _patch(
+    "qdrant_client.AsyncQdrantClient", return_value=_async_qdrant_client_mock
+)
+_async_qdrant_patch.start()
 
 # ---------------------------------------------------------------------------
 # Standard imports (after env vars and patches are in place)
@@ -82,26 +83,12 @@ from typing import Any, Generator
 import pytest
 from collections.abc import AsyncIterator
 
-from langchain_core.documents import Document
 from langchain_core.messages import AIMessageChunk
 
 
 # ---------------------------------------------------------------------------
 # Deterministic fake returns for the two primary external I/O calls
 # ---------------------------------------------------------------------------
-
-_FAKE_DOCS = [
-    Document(
-        page_content="Die SPD setzt sich für ambitionierten Klimaschutz ein.",
-        metadata={
-            "document_name": "SPD Wahlprogramm 2025",
-            "page": 0,
-            "document_publish_date": "2025-01-01",
-            "url": "https://www.spd.de/wahlprogramm",
-            "source_document": "spd_wahlprogramm_2025.pdf",
-        },
-    ),
-]
 
 _FAKE_TOKENS = ["Hallo", " Welt"]
 
@@ -120,15 +107,10 @@ _FAKE_PARTY = {
 }
 
 
-async def _fake_identify_relevant_docs(*args: Any, **kwargs: Any) -> list[Document]:
-    """Deterministic Qdrant replacement — no embed or search calls."""
-    return _FAKE_DOCS
-
-
 _FAKE_ZERO_VECTOR = [0.0] * 3072  # matches EMBEDDING_DIM (text-embedding-3-large)
 
 
-def _fake_retrieve(*args: Any, **kwargs: Any) -> list[dict]:
+async def _fake_retrieve(*args: Any, **kwargs: Any) -> list[dict]:
     """Deterministic retrieve() replacement — returns empty payload list."""
     return []
 
@@ -143,7 +125,7 @@ _FAKE_MANIFESTO_PAYLOAD = {
 }
 
 
-def _fake_retrieve_two_pass(query: str, **kwargs: Any) -> dict[str, list[dict]]:
+async def _fake_retrieve_two_pass(query: str, **kwargs: Any) -> dict[str, list[dict]]:
     """Deterministic retrieve_two_pass() replacement.
 
     The default context resolves a term window (region ["DE"]), so the chat
@@ -246,8 +228,6 @@ def patch_chat_io(monkeypatch: pytest.MonkeyPatch) -> None:
 
     Primary patches (embed-once + retrieve() path):
       - src.chat_service.embed → mock with aembed_query returning a zero vector
-          (identify_relevant_docs_with_llm_based_reranking was replaced with
-          embed.aembed_query + retrieve(); this patch eliminates the OpenAI call)
       - src.chat_service.retrieve → returns [] (empty payloads; no Qdrant call)
       - src.chat_service.retrieve_two_pass → deterministic manifesto-only
           current bucket (the default context resolves a term window, so the
@@ -273,10 +253,7 @@ def patch_chat_io(monkeypatch: pytest.MonkeyPatch) -> None:
     Nothing in src/routes/chat.py, EventSourceResponse, or _frame() is
     touched — the real SSE generator, route, and framing run live.
     """
-    # Primary patches — replace embed-once + retrieve() calls in chat_service.
-    # The V1 identify_relevant_docs_with_llm_based_reranking call was removed;
-    # the single-party path now calls embed.aembed_query() then asyncio.to_thread(retrieve, ...).
-    # We patch both so the SSE smoke test requires no live OpenAI key or Qdrant.
+    # Primary patches — embed.aembed_query() then await retrieve() / retrieve_two_pass.
     _fake_embed_mock = MagicMock()
     _fake_embed_mock.aembed_query = AsyncMock(return_value=_FAKE_ZERO_VECTOR)
     monkeypatch.setattr("src.chat_service.embed", _fake_embed_mock)

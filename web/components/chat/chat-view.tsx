@@ -15,6 +15,7 @@ type Props = {
   sessionId?: string;
   partyIds?: string[];
   initialQuestion?: string;
+  prefilledQuestion?: string;
   contextId?: string;
 };
 
@@ -22,6 +23,7 @@ async function ChatView({
   sessionId,
   partyIds,
   initialQuestion,
+  prefilledQuestion,
   contextId = DEFAULT_CONTEXT_ID,
 }: Props) {
   const systemStatus = await getSystemStatus();
@@ -43,6 +45,7 @@ async function ChatView({
           chatSessionId={sessionId}
           partyIds={partyIds}
           initialQuestion={initialQuestion}
+          prefilledQuestion={prefilledQuestion}
           contextId={contextId}
         />
       </Suspense>

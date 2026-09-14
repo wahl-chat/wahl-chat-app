@@ -87,7 +87,7 @@ def _drive_buckets(term_window, source_filter) -> None:
 
 
 def _recorder(store: dict, result):
-    def _rec(_query, **kwargs):
+    async def _rec(_query, **kwargs):
         store[kwargs.get("source_type")] = kwargs
         return result
 
@@ -185,7 +185,7 @@ def test_requested_source_failure_fails_turn(monkeypatch) -> None:
     filter a single vote-leg outage is a total outage (the pre-filter literal 3
     would stream an ungrounded 'successful' answer instead)."""
 
-    def _boom(_query, **_kwargs):
+    async def _boom(_query, **_kwargs):
         raise RuntimeError("qdrant down")
 
     monkeypatch.setattr(cs, "retrieve_two_pass", _boom)
@@ -197,7 +197,7 @@ def test_one_of_two_requested_sources_may_fail(monkeypatch) -> None:
     """With two requested sources, one failing leg degrades to empty buckets
     (per-source degradation) instead of failing the turn."""
 
-    def _vote_fails(_query, **kwargs):
+    async def _vote_fails(_query, **kwargs):
         if kwargs.get("source_type") == "vote_record":
             raise RuntimeError("vote leg down")
         return {"current": [], "historic": []}
@@ -405,7 +405,7 @@ def test_sources_carry_source_type(monkeypatch) -> None:
     """Every emitted sources[] entry names its corpus source category so the
     client can label/group by kind instead of sniffing URLs."""
 
-    def _retrieve(_query, **kwargs):
+    async def _retrieve(_query, **kwargs):
         st = kwargs.get("source_type")
         if st == "party_manifesto":
             return [_manifesto_payload("Programm")]
@@ -429,7 +429,7 @@ def test_speech_trim_skipped_under_filter(monkeypatch) -> None:
     raised budget."""
     n_speeches = cs._CURRENT_SPEECH_LIMIT + 2
 
-    def _retrieve(_query, **kwargs):
+    async def _retrieve(_query, **kwargs):
         st = kwargs.get("source_type")
         if st == "party_manifesto":
             return [_manifesto_payload("Programm")]

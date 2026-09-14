@@ -65,8 +65,6 @@ from src.prompts import (
     system_prompt_improvement_rag_template_vote_behavior_summary,
     user_prompt_improvement_rag_template_vote_behavior_summary,
     wahl_chat_response_system_prompt_template,
-    reranking_system_prompt_template,
-    reranking_user_prompt_template,
     swiper_assistant_system_prompt_template,
     swiper_assistant_user_prompt_template,
     generate_swiper_assistant_title_and_quick_replies_system_prompt,
@@ -89,7 +87,6 @@ from src.models.structured_outputs import (
     ChatSummaryGenerator,
     GroupChatTitleQuickReplyGenerator,
     QuestionTypeClassifier,
-    RerankingOutput,
     SOURCE_FILTER_VALUES,
     SourceFilterClassifier,
     create_party_list_generator,
@@ -132,50 +129,9 @@ generate_chat_summary_llms: list[LLM] = PRE_AND_POST_PROCESSING_LLMS
 
 generate_chat_title_and_quick_replies_llms: list[LLM] = PRE_AND_POST_PROCESSING_LLMS
 
-reranking_llms = PRE_AND_POST_PROCESSING_LLMS
-
 perplexity_client = AsyncOpenAI(
     api_key=os.getenv("PERPLEXITY_API_KEY"), base_url="https://api.perplexity.ai"
 )
-
-
-async def rerank_documents(
-    relevant_docs: List[Document], user_message: str, chat_history: str
-) -> List[Document]:
-    # get the context and the relevant documents
-    docs = [
-        build_document_string_for_context(index, doc, doc_num_label="Index")
-        for index, doc in enumerate(relevant_docs)
-    ]
-    sources_str = "\n".join(docs)
-    # build messages for the reranking model
-    system_prompt = reranking_system_prompt_template.format(sources=sources_str)
-    user_prompt = reranking_user_prompt_template.format(
-        conversation_history=chat_history, user_message=user_message
-    )
-    messages = [
-        SystemMessage(content=system_prompt),
-        HumanMessage(content=user_prompt),
-    ]
-    # rerank the documents
-    response = await get_structured_output_from_llms(
-        reranking_llms, messages, RerankingOutput
-    )
-
-    # get the reranked document indices
-    reranked_doc_indices = getattr(response, "reranked_doc_indices", [])
-    logger.debug(f"Reranked document indices: {reranked_doc_indices}")
-    try:
-        # only take first 5 elements of relevant indices
-        relevant_indices = reranked_doc_indices[:5]
-        reranked_relevant_docs = [relevant_docs[i] for i in relevant_indices]
-        logger.debug(f"Reranked document indices: {relevant_indices}")
-        return reranked_relevant_docs
-    except Exception as e:
-        logger.error(f"Error extracting reranked documents: {e}")
-        logger.warning("Returning top-5 of original relevant documents.")
-        relevant_docs = relevant_docs[:5]
-        return relevant_docs
 
 
 async def get_question_targets_and_type(
