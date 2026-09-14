@@ -1,7 +1,6 @@
 import Logo from '@/components/chat/logo';
 import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
 import HomeSocialMediaIcon from '@/components/icons/home-social-media-icon';
-import { Separator } from '@/components/ui/separator';
 import { getNextUpcomingElection } from '@/lib/elections';
 import { getContexts } from '@/lib/firebase/firebase-server';
 import { SITE_LINKS, type SiteLink, sourcesLink } from '@/lib/site-links';
@@ -30,16 +29,16 @@ function FooterColumn({
   if (links.length === 0) return null;
 
   return (
-    <nav aria-label={label} className="flex flex-col gap-2">
+    <nav aria-label={label} className="flex min-w-0 flex-col gap-3">
       {/* A <p>, not a heading: the footer should not add h2s that compete with
           the page's content sections. The labelled nav names it for AT. */}
-      <p className="text-sm font-semibold text-foreground">{label}</p>
+      <p className="mb-1 text-sm font-medium text-foreground">{label}</p>
 
       {links.map((link) => (
         <Link
           key={link.href}
           href={link.href}
-          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="w-fit text-sm leading-relaxed text-muted-foreground transition-colors hover:text-foreground"
           {...(link.external && {
             target: '_blank',
             rel: 'noopener noreferrer',
@@ -72,22 +71,25 @@ async function LandingFooter() {
   ];
 
   return (
-    <footer className="w-full border-t border-border px-5 py-12 md:py-16">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-10">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex flex-col gap-4">
-            <Logo variant="small" className="size-6" />
-
-            {!IS_EMBEDDED && (
-              <div className="flex items-center gap-3">
-                <HomeSocialMediaIcon type="instagram" className="size-5" />
-                <HomeSocialMediaIcon type="linkedin" className="size-5" />
-                <HomeSocialMediaIcon type="x" className="size-5" />
-                <HomeSocialMediaIcon type="email" className="size-5" />
-              </div>
-            )}
-          </div>
-
+    <footer className="relative isolate w-full overflow-hidden border-t border-border/50 bg-muted/20 px-5 pb-6 pt-12 md:pt-16">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-3 left-1/2 -z-10 w-[115%] -translate-x-1/2 select-none opacity-[0.045] dark:opacity-[0.06]"
+      >
+        <Logo
+          variant="large"
+          className="h-auto w-full text-foreground [&_path]:fill-current"
+        />
+      </div>
+      <div className="mx-auto w-full max-w-5xl">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-[0.6fr_1.4fr_1fr_1fr] md:gap-10">
+          <Link
+            href="/"
+            aria-label="wahl.chat Startseite"
+            className="col-span-2 w-fit self-start rounded-lg md:col-span-1"
+          >
+            <Logo variant="small" className="size-10" />
+          </Link>
           <FooterColumn label="Produkt" links={productLinks} />
           <FooterColumn label="Über uns" links={aboutLinks} />
           <FooterColumn
@@ -96,17 +98,21 @@ async function LandingFooter() {
           />
         </div>
 
-        <Separator />
-
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="mt-24 flex flex-wrap items-center justify-between gap-4 md:mt-40">
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} wahl.chat
           </p>
-
-          {/* The landing page has no header, so this is the only place a
-              visitor can change the theme — the shared footer carries it on
-              every other page. */}
-          <ThemeModeToggle align="end" />
+          <div className="flex items-center gap-5">
+            {!IS_EMBEDDED && (
+              <div className="flex items-center gap-3">
+                <HomeSocialMediaIcon type="instagram" className="size-4" />
+                <HomeSocialMediaIcon type="linkedin" className="size-4" />
+                <HomeSocialMediaIcon type="x" className="size-4" />
+                <HomeSocialMediaIcon type="email" className="size-4" />
+              </div>
+            )}
+            <ThemeModeToggle align="end" />
+          </div>
         </div>
       </div>
     </footer>

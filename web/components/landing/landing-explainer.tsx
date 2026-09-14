@@ -3,6 +3,7 @@ import LandingFaq from '@/components/landing/landing-faq';
 import { INTRO_TEXT } from '@/lib/how-to-content';
 import { ArrowUpRightIcon, ChevronDownIcon } from 'lucide-react';
 import Link from 'next/link';
+import InfoCard from './info-card';
 
 const STEPS = [
   {
@@ -33,7 +34,7 @@ function LandingExplainer({ sourcesHref }: Props) {
       aria-labelledby="explainer-heading"
       className="w-full px-5 pb-6 md:pb-8"
     >
-      <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-border/70 bg-muted/20">
+      <InfoCard>
         <div className="grid gap-4 p-5 sm:p-6 md:grid-cols-2 md:gap-8">
           <div>
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
@@ -101,7 +102,7 @@ function LandingExplainer({ sourcesHref }: Props) {
           )}
           <LandingFaq />
         </div>
-      </div>
+      </InfoCard>
     </section>
   );
 }

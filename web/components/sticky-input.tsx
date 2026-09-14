@@ -129,7 +129,7 @@ function StickyInput({
         className={cn(
           'relative shadow-2xl transition-shadow duration-300 max-w-xl mx-auto w-full grid overflow-hidden rounded-[20px] border border-input dark:focus-within:border-zinc-700 focus-within:border-zinc-300 bg-chat-input ease-out md:shadow-none',
           isHero &&
-            'max-w-none rounded-3xl border-border/80 shadow-[0_8px_40px_-16px_rgba(0,0,0,0.12)] focus-within:border-foreground/30 focus-within:ring-4 focus-within:ring-foreground/5 md:shadow-[0_8px_40px_-16px_rgba(0,0,0,0.12)]',
+            'max-w-none rounded-3xl border-white/80 bg-white/50 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_rgba(255,255,255,0.65),0_12px_40px_-16px_rgba(70,30,30,0.16)] focus-within:border-white focus-within:ring-4 focus-within:ring-foreground/5 md:shadow-[inset_0_1px_0_rgba(255,255,255,0.65),0_12px_40px_-16px_rgba(70,30,30,0.16)] dark:border-white/15 dark:bg-zinc-950/50 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_40px_-16px_rgba(0,0,0,0.4)] dark:focus-within:border-white/25',
           !isHero && !isSticky && 'shadow-none',
         )}
       >
@@ -167,12 +167,12 @@ function StickyInput({
               >
                 <Logo
                   variant="small"
-                  className="size-7 rounded-full border border-border/70 bg-background p-1"
+                  className="size-7 rounded-full border border-border/40 bg-background/50 p-1"
                 />
               </span>
               <textarea
                 ref={textareaRef}
-                className="block max-h-48 min-h-16 w-full resize-none bg-chat-input py-5 pl-12 pr-3 text-base leading-6 [field-sizing:content] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed"
+                className="block max-h-48 min-h-16 w-full resize-none bg-transparent py-5 pl-12 pr-3 text-base leading-6 [field-sizing:content] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed"
                 name="question"
                 aria-label="Deine politische Frage"
                 placeholder={
@@ -231,7 +231,7 @@ function StickyInput({
             </Button>
           )}
           {isHero && headerActions && (
-            <div className="flex min-w-0 items-center border-t border-border/60 bg-muted/40 px-3 py-1.5">
+            <div className="flex min-w-0 items-center border-t border-border/30 bg-white/20 px-3 py-1.5 dark:bg-white/[0.03]">
               {headerActions}
             </div>
           )}

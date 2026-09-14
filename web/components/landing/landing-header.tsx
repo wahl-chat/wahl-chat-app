@@ -29,8 +29,10 @@ function LandingHeader({ contextId }: Props) {
   return (
     <header
       className={cn(
-        'sticky top-0 z-40 border-b bg-background/80 px-4 backdrop-blur-xl transition-[padding,border-color] duration-300 ease-out motion-reduce:transition-none md:px-6',
-        isCompact ? 'border-border/30 py-2' : 'border-transparent py-6 md:py-8',
+        'sticky top-0 z-40 border-b px-4 transition-[padding,border-color,background-color,backdrop-filter] duration-300 ease-out motion-reduce:transition-none md:px-6',
+        isCompact
+          ? 'border-border/30 bg-background/80 py-2 backdrop-blur-xl'
+          : 'border-transparent bg-transparent py-6 md:py-8',
       )}
     >
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4">

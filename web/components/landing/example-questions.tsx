@@ -51,7 +51,7 @@ function ExampleQuestions({ contextId, questions }: Props) {
               />
               <span className="flex-1">{question.content}</span>
               <ArrowUpRightIcon
-                className="mt-1 size-4 shrink-0 opacity-40 group-hover/question:opacity-100"
+                className="mt-1 size-4 shrink-0 opacity-40 transition-[transform,opacity] duration-300 ease-out group-hover/question:-translate-y-0.5 group-hover/question:translate-x-0.5 group-hover/question:opacity-100 group-focus-visible/question:-translate-y-0.5 group-focus-visible/question:translate-x-0.5 group-focus-visible/question:opacity-100 motion-reduce:transform-none motion-reduce:transition-none"
                 aria-hidden="true"
               />
             </Link>

@@ -25,6 +25,7 @@ const WAYS_TO_HELP = [
 function LandingCommunity({ electionCount }: { electionCount: number }) {
   return (
     <LandingSection
+      gridPosition="top-right"
       eyebrow="Gemeinsam möglich"
       title="Viele Fragen. Eine offene Idee."
       description="wahl.chat ist ein Open-Source-Projekt für alle, die Politik besser verstehen möchten. Unser Code ist öffentlich. Mit deiner Unterstützung können wir das Angebot weiterentwickeln."
