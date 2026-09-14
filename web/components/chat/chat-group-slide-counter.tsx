@@ -6,12 +6,22 @@ import { buildPartyImageUrl, cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+export type PartySlideStatus = {
+  chunking_complete?: boolean;
+  failed?: boolean;
+};
+
 type Props = {
   parties: PartyDetails[];
   containerId: string;
+  statusByPartyId?: Record<string, PartySlideStatus>;
 };
 
-function ChatGroupSlideCounter({ parties, containerId }: Props) {
+function ChatGroupSlideCounter({
+  parties,
+  containerId,
+  statusByPartyId,
+}: Props) {
   const { api } = useCarousel();
   const firstRender = useRef(true);
 
@@ -50,29 +60,38 @@ function ChatGroupSlideCounter({ parties, containerId }: Props) {
 
   return (
     <div className="flex flex-row items-center justify-center gap-2">
-      {parties.map((party, index) => (
-        <Button
-          key={party.party_id}
-          className={cn(
-            'size-5 rounded-full bg-zinc-300 overflow-hidden flex items-center justify-center hover:bg-zinc-300 transition-all duration-300 relative',
-            selectedIndex === index &&
-              'ring-2 ring-zinc-900 dark:ring-zinc-100 ring-offset-2',
-          )}
-          style={{
-            background: party.background_color,
-          }}
-          onClick={() => scrollTo(index)}
-          size="icon"
-        >
-          <Image
-            src={buildPartyImageUrl(party.party_id)}
-            alt={party.name}
-            sizes="20px"
-            fill
-            className="object-contain"
-          />
-        </Button>
-      ))}
+      {parties.map((party, index) => {
+        const status = statusByPartyId?.[party.party_id];
+        const isStreaming =
+          status !== undefined && !status.chunking_complete && !status.failed;
+        const isFailed = Boolean(status?.failed);
+
+        return (
+          <Button
+            key={party.party_id}
+            className={cn(
+              'size-5 rounded-full bg-zinc-300 overflow-hidden flex items-center justify-center hover:bg-zinc-300 transition-all duration-300 relative',
+              selectedIndex === index &&
+                'ring-2 ring-zinc-900 dark:ring-zinc-100 ring-offset-2',
+              isStreaming && 'animate-pulse',
+              isFailed && 'opacity-40',
+            )}
+            style={{
+              background: party.background_color,
+            }}
+            onClick={() => scrollTo(index)}
+            size="icon"
+          >
+            <Image
+              src={buildPartyImageUrl(party.party_id)}
+              alt={party.name}
+              sizes="20px"
+              fill
+              className="object-contain"
+            />
+          </Button>
+        );
+      })}
     </div>
   );
 }
