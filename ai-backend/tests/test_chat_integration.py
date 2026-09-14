@@ -19,11 +19,15 @@ tokens, Firestore is faked). Covered:
 
 from __future__ import annotations
 
+import asyncio
 import json
+import time
+from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
 import pytest
+from langchain_core.messages import AIMessageChunk
 
 _CONTEXT_ID = "bundestagswahl-2025"
 
@@ -155,10 +159,11 @@ async def test_multi_party_responses_non_empty_history(patch_chat_io, app, monke
     responding = _chat_events(events, "responding_parties")
     assert responding and responding[0]["party_ids"] == ["spd", "cdu"]
     completes = _chat_events(events, "party_complete")
-    assert [c["party_id"] for c in completes] == ["spd", "cdu"], (
-        "SERIALIZED multi-party: one successful party_complete per responder in order"
+    assert {c["party_id"] for c in completes} == {"spd", "cdu"}, (
+        "one successful party_complete per responder (completion order is free)"
     )
     assert all(c["status"]["indicator"] == "success" for c in completes)
+    _assert_text_blocks_valid(events)
     # Both parties emit their own citations.
     assert len(_chat_events(events, "sources_ready")) >= 2
     assert events[-1] == "[DONE]"
@@ -253,4 +258,188 @@ async def test_comparison_response(patch_chat_io, app, monkeypatch):
         f"comparison pages must be taken as built (no off-by-one), got "
         f"{[s.get('page') for s in sources]!r}"
     )
+    _assert_text_blocks_valid(events)
     assert events[-1] == "[DONE]"
+
+
+def _assert_text_blocks_valid(events: list[Any]) -> None:
+    """Every text-start id has a matching text-end; no delta is unopened or closed."""
+    open_ids: set[str] = set()
+    closed_ids: set[str] = set()
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        kind = event.get("type")
+        text_id = event.get("id")
+        if kind == "text-start":
+            assert isinstance(text_id, str)
+            assert text_id not in open_ids
+            open_ids.add(text_id)
+        elif kind == "text-delta":
+            assert isinstance(text_id, str)
+            assert text_id in open_ids, f"delta for unopened or closed id {text_id}"
+            assert text_id not in closed_ids
+        elif kind == "text-end":
+            assert isinstance(text_id, str)
+            assert text_id in open_ids
+            open_ids.remove(text_id)
+            closed_ids.add(text_id)
+    assert not open_ids, f"unclosed text blocks: {open_ids}"
+
+
+def _install_two_parties(monkeypatch: pytest.MonkeyPatch, *, comparing: bool = False):
+    from src.models.context import ContextParty
+    from tests.conftest import _FAKE_PARTY
+
+    cdu = dict(_FAKE_PARTY, party_id="cdu", name="CDU", long_name="CDU Deutschlands")
+
+    async def _two_parties(context_id: str) -> list[ContextParty]:
+        return [ContextParty(**_FAKE_PARTY), ContextParty(**cdu)]
+
+    async def _two_targets(*args: Any, **kwargs: Any):
+        question = (
+            "Vergleiche die Klimapositionen von SPD und CDU."
+            if comparing
+            else "Was ist eure Position zum Klimaschutz?"
+        )
+        return (["spd", "cdu"], question, comparing)
+
+    monkeypatch.setattr("src.chat_service.aget_parties_for_context", _two_parties)
+    monkeypatch.setattr("src.chat_service.get_question_targets_and_type", _two_targets)
+
+
+def _party_aware_stream(
+    *,
+    tokens_per_party: int = 5,
+    sleep_s: float = 0.0,
+    yield_sleep: bool = True,
+    fail_party_id: str | None = None,
+):
+    """Return a generate_streaming_chatbot_response fake keyed by party_id."""
+
+    async def _fake(
+        party: Any, *args: Any, **kwargs: Any
+    ) -> AsyncIterator[AIMessageChunk]:
+        if fail_party_id is not None and party.party_id == fail_party_id:
+            raise RuntimeError(f"{fail_party_id} boom")
+
+        async def _gen() -> AsyncIterator[AIMessageChunk]:
+            if sleep_s:
+                await asyncio.sleep(sleep_s)
+            for i in range(tokens_per_party):
+                if yield_sleep:
+                    await asyncio.sleep(0)
+                yield AIMessageChunk(content=f"{party.party_id}{i}")
+
+        return _gen()
+
+    return _fake
+
+
+@pytest.mark.asyncio
+async def test_multi_party_chunks_interleave(patch_chat_io, app, monkeypatch):
+    """Concurrent pumps must interleave party_chunk events, not emit one block after another."""
+    _install_two_parties(monkeypatch)
+    monkeypatch.setattr(
+        "src.chat_service.generate_streaming_chatbot_response",
+        _party_aware_stream(tokens_per_party=6, yield_sleep=True),
+    )
+
+    events = await _drain(
+        app,
+        "/api/v1/chat",
+        _chat_body(party_ids=["spd", "cdu"], chat_history=_HISTORY),
+    )
+
+    chunks = _chat_events(events, "party_chunk")
+    party_order = [c["party_id"] for c in chunks]
+    assert set(party_order) == {"spd", "cdu"}
+    # A serialized drain would emit all of one party, then all of the other.
+    first_run = party_order[0]
+    first_block_len = 0
+    for party_id in party_order:
+        if party_id != first_run:
+            break
+        first_block_len += 1
+    assert first_block_len < len(party_order), (
+        f"party_chunk events did not interleave: {party_order}"
+    )
+    _assert_text_blocks_valid(events)
+    assert events[-1] == "[DONE]"
+
+
+@pytest.mark.asyncio
+async def test_multi_party_latency_is_max_not_sum(patch_chat_io, app, monkeypatch):
+    """Two 0.3s party streams must finish near the max, not the serial sum."""
+    _install_two_parties(monkeypatch)
+    monkeypatch.setattr(
+        "src.chat_service.generate_streaming_chatbot_response",
+        _party_aware_stream(tokens_per_party=1, sleep_s=0.3, yield_sleep=False),
+    )
+
+    started = time.monotonic()
+    events = await _drain(
+        app,
+        "/api/v1/chat",
+        _chat_body(party_ids=["spd", "cdu"], chat_history=_HISTORY),
+    )
+    elapsed = time.monotonic() - started
+
+    completes = _chat_events(events, "party_complete")
+    assert {c["party_id"] for c in completes} == {"spd", "cdu"}
+    assert all(c["status"]["indicator"] == "success" for c in completes)
+    assert elapsed < 0.55, (
+        f"multi-party wall clock {elapsed:.2f}s looks serialized (expected ~0.3s)"
+    )
+    assert events[-1] == "[DONE]"
+
+
+@pytest.mark.asyncio
+async def test_multi_party_partial_failure(patch_chat_io, app, monkeypatch):
+    """One party's generator raising must not prevent the other from completing."""
+    _install_two_parties(monkeypatch)
+    monkeypatch.setattr(
+        "src.chat_service.generate_streaming_chatbot_response",
+        _party_aware_stream(tokens_per_party=2, fail_party_id="cdu"),
+    )
+
+    events = await _drain(
+        app,
+        "/api/v1/chat",
+        _chat_body(party_ids=["spd", "cdu"], chat_history=_HISTORY),
+    )
+
+    completes = _chat_events(events, "party_complete")
+    by_party = {c["party_id"]: c for c in completes}
+    assert set(by_party) == {"spd", "cdu"}
+    assert by_party["spd"]["status"]["indicator"] == "success"
+    assert by_party["cdu"]["status"]["indicator"] == "error"
+    _assert_text_blocks_valid(events)
+    assert events[-1] == "[DONE]"
+
+
+@pytest.mark.asyncio
+async def test_multi_party_budget_exhaustion_completes_unfinished(
+    patch_chat_io, app, monkeypatch
+):
+    """Budget expiry emits an error party_complete for every unfinished responder."""
+    _install_two_parties(monkeypatch)
+    monkeypatch.setattr("src.chat_service._CHAT_STREAM_BUDGET_S", 0.05)
+    monkeypatch.setattr(
+        "src.chat_service.generate_streaming_chatbot_response",
+        _party_aware_stream(tokens_per_party=1, sleep_s=2.0, yield_sleep=False),
+    )
+
+    events = await _drain(
+        app,
+        "/api/v1/chat",
+        _chat_body(party_ids=["spd", "cdu"], chat_history=_HISTORY),
+    )
+
+    completes = _chat_events(events, "party_complete")
+    assert {c["party_id"] for c in completes} >= {"spd", "cdu"}
+    assert all(c["status"]["indicator"] == "error" for c in completes)
+    types = [e.get("type") for e in events if isinstance(e, dict)]
+    assert "finish-step" in types and "finish" in types
+    assert events[-1] == "[DONE]"
+    _assert_text_blocks_valid(events)

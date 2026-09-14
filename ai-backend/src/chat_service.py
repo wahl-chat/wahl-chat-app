@@ -22,15 +22,18 @@ Each part is built by a small named helper (``_start_message``, ``_data_event``,
 ``_text_start`` / ``_text_delta`` / ``_text_end``, ``_finish_step``, ``_finish``);
 the wire only ever carries these named v5 parts.
 
-Multi-party streaming: SERIALIZED (one party at a time).
-True concurrent multiplexed SSE would require an asyncio.Queue
-dispatcher — deferred for now.
+Multi-party streaming: concurrent fan-in over one SSE stream.
+Each party's generator is pumped by its own task into a bounded
+``asyncio.Queue``; the consumer yields events as they arrive so
+parties interleave. Comparison questions still emit one wahl-chat
+answer (N=1 through the same multiplexer).
 
 Session state: STATELESS. The client sends full chat_history per request.
 No server-side session store.
 """
 
 import asyncio
+import json
 import re
 import time
 from datetime import datetime, timedelta, timezone
@@ -405,7 +408,21 @@ def _has_historic_docs(
 # 180s is generous for even the slowest multi-party comparison answer.
 _CHAT_STREAM_BUDGET_S = 180
 
+# Fan-in queue: a fast party cannot buffer a whole answer while the socket
+# is slow — backpressure blocks only that party's pump.
+_MUX_QUEUE_MAXSIZE = 32
+_MUX_DISCONNECT_POLL_S = 1.0
+_MUX_SENTINEL = object()
+
 logger = logging.getLogger(__name__)
+
+
+class _ClientDisconnected(Exception):
+    """The client is gone — stop without finish events or quick-replies."""
+
+
+class _StreamBudgetExceeded(Exception):
+    """The per-stream wall-clock budget ran out after error party_completes."""
 
 
 # ---------------------------------------------------------------------------
@@ -430,6 +447,156 @@ def _party_chunk(session_id: str, party_id: str, chunk: str) -> str:
     )
 
 
+def _error_party_complete(
+    session_id: str,
+    party_id: str,
+    complete_message: str = GENERIC_ERROR_MESSAGE,
+) -> str:
+    """Terminal error ``party_complete`` so the client never leaves a responder pending."""
+    return _data_event(
+        {
+            "type": "party_complete",
+            "session_id": session_id,
+            "party_id": party_id,
+            "complete_message": complete_message,
+            "message_id": None,
+            "status": {"indicator": "error", "message": GENERIC_ERROR_MESSAGE},
+        },
+    )
+
+
+def _party_id_if_complete(event: str) -> Optional[str]:
+    """Return the party_id if *event* is a ``party_complete`` data-chat_event."""
+    try:
+        part = json.loads(event)
+    except json.JSONDecodeError:
+        return None
+    if part.get("type") != "data-chat_event":
+        return None
+    data = part.get("data")
+    if not isinstance(data, dict) or data.get("type") != "party_complete":
+        return None
+    party_id = data.get("party_id")
+    return party_id if isinstance(party_id, str) else None
+
+
+async def _multiplex_party_streams(
+    party_streams: list[tuple[ContextParty, AsyncGenerator[str, None]]],
+    *,
+    session_id: str,
+    deadline: float,
+    request: Optional[FastAPIRequest] = None,
+) -> AsyncGenerator[str, None]:
+    """Fan-in concurrent party generators onto one SSE stream.
+
+    Each party's generator is pumped by its own task into a bounded
+    ``asyncio.Queue``. The consumer yields events as they arrive so parties
+    interleave instead of completing one after another. A slow socket
+    back-pressures only the pump that is putting, not the others.
+    """
+    if not party_streams:
+        return
+
+    queue: asyncio.Queue[object] = asyncio.Queue(maxsize=_MUX_QUEUE_MAXSIZE)
+
+    async def _pump(idx: int, gen: AsyncGenerator[str, None]) -> None:
+        party_id = party_streams[idx][0].party_id
+        try:
+            async for event in gen:
+                await queue.put((idx, event))
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.error("Party stream %s failed: %s", party_id, exc, exc_info=True)
+            await queue.put(
+                (idx, _data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE}))
+            )
+            await queue.put((idx, _error_party_complete(session_id, party_id)))
+
+    pumps = [
+        asyncio.create_task(_pump(i, gen), name=f"party-pump-{party.party_id}")
+        for i, (party, gen) in enumerate(party_streams)
+    ]
+
+    async def _shepherd() -> None:
+        await asyncio.gather(*pumps, return_exceptions=True)
+        await queue.put(_MUX_SENTINEL)
+
+    shepherd = asyncio.create_task(_shepherd(), name="party-stream-shepherd")
+    completed_party_ids: set[str] = set()
+    open_text_ids: set[str] = set()
+
+    def _track_yielded(event: str) -> Optional[str]:
+        try:
+            part = json.loads(event)
+        except json.JSONDecodeError:
+            return _party_id_if_complete(event)
+        kind = part.get("type")
+        text_id = part.get("id")
+        if kind == "text-start" and isinstance(text_id, str):
+            open_text_ids.add(text_id)
+        elif kind == "text-end" and isinstance(text_id, str):
+            open_text_ids.discard(text_id)
+        return _party_id_if_complete(event)
+
+    try:
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                while True:
+                    try:
+                        item = queue.get_nowait()
+                    except asyncio.QueueEmpty:
+                        break
+                    if item is _MUX_SENTINEL:
+                        break
+                    _idx, event = cast(tuple[int, str], item)
+                    yield event
+                    pid = _track_yielded(event)
+                    if pid:
+                        completed_party_ids.add(pid)
+                # Close dangling v5 text blocks so a budget cut cannot leave
+                # the stream protocol-invalid for useChat.
+                for text_id in list(open_text_ids):
+                    yield _text_end(text_id)
+                    open_text_ids.discard(text_id)
+                yield _data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE})
+                for party, _gen in party_streams:
+                    if party.party_id not in completed_party_ids:
+                        yield _error_party_complete(session_id, party.party_id)
+                raise _StreamBudgetExceeded()
+
+            timeout = min(remaining, _MUX_DISCONNECT_POLL_S)
+            try:
+                item = await asyncio.wait_for(queue.get(), timeout=timeout)
+            except asyncio.TimeoutError:
+                if request is not None and await request.is_disconnected():
+                    logger.info(
+                        "generate_chat_stream: client disconnected — stopping generation"
+                    )
+                    raise _ClientDisconnected() from None
+                continue
+
+            if item is _MUX_SENTINEL:
+                return
+
+            _idx, event = cast(tuple[int, str], item)
+            yield event
+            pid = _track_yielded(event)
+            if pid:
+                completed_party_ids.add(pid)
+    finally:
+        shepherd.cancel()
+        for task in pumps:
+            task.cancel()
+        await asyncio.gather(shepherd, *pumps, return_exceptions=True)
+        for _party, gen in party_streams:
+            try:
+                await gen.aclose()
+            except Exception:  # noqa: BLE001
+                pass
+
+
 # ---------------------------------------------------------------------------
 # Cached-response yielder (replaces emit_cached_party_response)
 # ---------------------------------------------------------------------------
@@ -437,6 +604,7 @@ async def yield_cached_party_response(
     party: ContextParty,
     group_chat_session: GroupChatSession,
     cached_response: CachedResponse,
+    history_out: Optional[List[Message]] = None,
 ) -> AsyncGenerator[str, None]:
     """Yield SSE events for a cached party response (simulated streaming).
 
@@ -476,7 +644,9 @@ async def yield_cached_party_response(
         quick_replies=[],
         rag_query=cached_response.rag_query,
     )
-    group_chat_session.chat_history.append(chatbot_message)
+    (
+        history_out if history_out is not None else group_chat_session.chat_history
+    ).append(chatbot_message)
 
     party_response_complete_dto = PartyResponseCompleteDto(
         session_id=group_chat_session.session_id,
@@ -930,11 +1100,14 @@ async def fetch_party_response_stream(
     term_window: Optional[tuple[datetime, datetime]] = None,
     manifesto_term_start: Optional[datetime] = None,
     source_filter: Optional[list[str]] = None,
+    history_out: Optional[List[Message]] = None,
 ) -> AsyncGenerator[str, None]:
     """Yield SSE events for a single party's RAG response.
 
     Replaces V1's fetch_and_emit_party_response (which emitted to socketio).
-    Multi-party callers iterate parties SEQUENTIALLY.
+    Multi-party callers fan-in these generators concurrently; pass
+    ``history_out`` so the orchestrator can splice answers back in
+    ``parties_to_respond`` order after the fan-in.
     """
     relevant_docs_list: Optional[List[Document]] = None
     relevant_docs_dict: Optional[Dict[str, List[Document]]] = None
@@ -1180,7 +1353,10 @@ async def fetch_party_response_stream(
                 if cached_answer_to_emit is not None:
                     logger.info(f"Serving cached response for party {party.party_id}")
                     async for event in yield_cached_party_response(
-                        party, group_chat_session, cached_answer_to_emit
+                        party,
+                        group_chat_session,
+                        cached_answer_to_emit,
+                        history_out=history_out,
                     ):
                         yield event
                     return
@@ -1312,7 +1488,9 @@ async def fetch_party_response_stream(
             quick_replies=[],
             rag_query=improved_rag_query_list,
         )
-        group_chat_session.chat_history.append(chatbot_message)
+        (
+            history_out if history_out is not None else group_chat_session.chat_history
+        ).append(chatbot_message)
 
         party_response_complete_dto = PartyResponseCompleteDto(
             session_id=group_chat_session.session_id,
@@ -1341,7 +1519,8 @@ async def fetch_party_response_stream(
                 rag_query=improved_rag_query_list,
                 created_at=datetime.now(),
                 cached_conversation_history=cache_conversation_history_str,
-                depth=len(group_chat_session.chat_history),
+                depth=len(group_chat_session.chat_history)
+                + (1 if history_out is not None else 0),
                 user_message_depth=len(
                     [m for m in group_chat_session.chat_history if m.role == Role.USER]
                 ),
@@ -1359,15 +1538,10 @@ async def fetch_party_response_stream(
             # Close the dangling v5 text block so the stream stays protocol-valid.
             yield _text_end(open_text_id)
             open_text_id = None
-        yield _data_event(
-            {
-                "type": "party_complete",
-                "session_id": group_chat_session.session_id,
-                "party_id": party.party_id,
-                "complete_message": "Diese Frage kann ich leider nicht beantworten.",
-                "message_id": None,
-                "status": {"indicator": "error", "message": GENERIC_ERROR_MESSAGE},
-            },
+        yield _error_party_complete(
+            group_chat_session.session_id,
+            party.party_id,
+            "Diese Frage kann ich leider nicht beantworten.",
         )
     except Exception as e:
         logger.error(
@@ -1381,15 +1555,10 @@ async def fetch_party_response_stream(
         # party_complete — a total retrieval outage (RetrievalUnavailableError)
         # or any unexpected failure must never look like a successful answer.
         yield _data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE})
-        yield _data_event(
-            {
-                "type": "party_complete",
-                "session_id": group_chat_session.session_id,
-                "party_id": party.party_id,
-                "complete_message": "Es tut mir Leid, leider ist ein Fehler aufgetreten. Bitte versuche es später erneut.",
-                "message_id": None,
-                "status": {"indicator": "error", "message": GENERIC_ERROR_MESSAGE},
-            },
+        yield _error_party_complete(
+            group_chat_session.session_id,
+            party.party_id,
+            "Es tut mir Leid, leider ist ein Fehler aufgetreten. Bitte versuche es später erneut.",
         )
 
 
@@ -1556,16 +1725,16 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
       finish-step / finish        — finish events
       [DONE]                      — stream terminator payload
 
-    Multi-party: SERIALIZED — parties respond one at a time.
-    Concurrent streaming could later multiplex via asyncio.Queue if required.
+    Multi-party: concurrent fan-in — each party's generator is pumped
+    into a bounded asyncio.Queue and events interleave on the one SSE
+    stream. Comparison questions still emit one wahl-chat answer.
 
     Args:
         body:    ChatRequestDto from the route handler.
         request: Optional FastAPI Request for disconnect detection.
-                 When supplied, generation stops BETWEEN parties when the
-                 client has disconnected (disconnect is NOT checked per
-                 delta); quick-replies/title generation is skipped entirely
-                 after a disconnect.
+                 When supplied, disconnect is polled during the fan-in
+                 (not only between parties); quick-replies/title
+                 generation is skipped entirely after a disconnect.
     """
     # Record wall-clock start time for per-stream budget enforcement.
     _stream_start = time.monotonic()
@@ -1720,15 +1889,10 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     "party_ids": party_id_list,
                 },
             )
-            yield _data_event(
-                {
-                    "type": "party_complete",
-                    "session_id": body.session_id,
-                    "party_id": WAHL_CHAT_PARTY.party_id,
-                    "complete_message": "Diese Frage kann ich leider nicht beantworten.",
-                    "message_id": None,
-                    "status": {"indicator": "error", "message": GENERIC_ERROR_MESSAGE},
-                },
+            yield _error_party_complete(
+                body.session_id,
+                WAHL_CHAT_PARTY.party_id,
+                "Diese Frage kann ich leider nicht beantworten.",
             )
             yield _finish_step()
             yield _finish()
@@ -1764,18 +1928,25 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
             },
         )
 
-        # Collect party generators to iterate SEQUENTIALLY.
-        # NOTE: parties respond one at a time.
-        # A future asyncio.Queue could multiplex concurrent streams.
+        # Collect party generators. Each is pumped concurrently by
+        # _multiplex_party_streams so parties interleave on the wire.
+        party_history: dict[str, list[Message]] = {}
         if len(parties_to_respond) == 1 or not is_comparing_question:
+            proposed_questions_group = await aget_proposed_questions_for_context(
+                group_chat_session.context_id, "group"
+            )
+            per_party_questions = await asyncio.gather(
+                *[
+                    aget_proposed_questions_for_context(
+                        group_chat_session.context_id, party.party_id
+                    )
+                    for party in parties_to_respond
+                ]
+            )
             party_generators = []
-            for party in parties_to_respond:
-                proposed_questions = await aget_proposed_questions_for_context(
-                    group_chat_session.context_id, party.party_id
-                )
-                proposed_questions_group = await aget_proposed_questions_for_context(
-                    group_chat_session.context_id, "group"
-                )
+            for party, proposed_questions in zip(
+                parties_to_respond, per_party_questions
+            ):
                 is_proposed_question = (
                     user_message.content in proposed_questions
                     or user_message.content in proposed_questions_group
@@ -1793,6 +1964,8 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     )
                     and not source_filter
                 )
+                collector: list[Message] = []
+                party_history[party.party_id] = collector
                 party_generators.append(
                     fetch_party_response_stream(
                         party,
@@ -1807,6 +1980,7 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                         term_window=term_window,
                         manifesto_term_start=manifesto_term_start,
                         source_filter=source_filter,
+                        history_out=collector,
                     )
                 )
         else:
@@ -1834,8 +2008,9 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                 for p in parties_being_compared
             ]
             try:
-                # Parallel RAG doc fetch for comparison questions (NOT streaming output).
-                # The SSE stream output is SERIALIZED below.
+                # Parallel RAG doc fetch for comparison questions (NOT streaming
+                # output). The single wahl-chat answer still goes through the
+                # multiplexer below (N=1).
                 await asyncio.wait_for(asyncio.gather(*party_tasks), timeout=40)
             except asyncio.TimeoutError as e:
                 logger.error(f"Timeout fetching comparison docs: {e}")
@@ -1843,24 +2018,14 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                 # client to expect an answer — a bare finish would leave the
                 # responder pending until the client-side watchdog fires.
                 yield _data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE})
-                yield _data_event(
-                    {
-                        "type": "party_complete",
-                        "session_id": body.session_id,
-                        "party_id": WAHL_CHAT_PARTY.party_id,
-                        "complete_message": GENERIC_ERROR_MESSAGE,
-                        "message_id": None,
-                        "status": {
-                            "indicator": "error",
-                            "message": GENERIC_ERROR_MESSAGE,
-                        },
-                    },
-                )
+                yield _error_party_complete(body.session_id, WAHL_CHAT_PARTY.party_id)
                 yield _finish_step()
                 yield _finish()
                 yield _DONE
                 return
 
+            comparison_collector: list[Message] = []
+            party_history[WAHL_CHAT_PARTY.party_id] = comparison_collector
             party_generators = [
                 fetch_party_response_stream(
                     WAHL_CHAT_PARTY,
@@ -1878,86 +2043,43 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
                     election_level=election_level,
                     term_window=term_window,
                     source_filter=source_filter,
+                    history_out=comparison_collector,
                 )
             ]
 
-        # SERIALIZED multi-party iteration (see module docstring).
-        # Client disconnect is checked BETWEEN parties (not per delta); the
-        # wall-clock budget bounds EVERY drain step via asyncio.wait_for, so
-        # even a single hung party stream cannot outlive the budget (the 15s
-        # heartbeat would otherwise keep the wire alive indefinitely).
-        # Pair each generator with its party so a budget timeout can emit an
-        # error party_complete for the responder the client is waiting on.
         generator_parties = (
             parties_to_respond
             if (len(parties_to_respond) == 1 or not is_comparing_question)
             else [WAHL_CHAT_PARTY]
         )
-        for gen_party, gen in zip(generator_parties, party_generators):
-            # The client is gone — return WITHOUT generating quick replies /
-            # title (a live LLM call nobody would receive).
-            if request is not None and await request.is_disconnected():
-                logger.info(
-                    "generate_chat_stream: client disconnected — stopping generation"
-                )
-                return
+        try:
+            async for event in _multiplex_party_streams(
+                list(zip(generator_parties, party_generators)),
+                session_id=body.session_id,
+                deadline=_stream_start + _CHAT_STREAM_BUDGET_S,
+                request=request,
+            ):
+                yield event
+        except _ClientDisconnected:
+            return
+        except _StreamBudgetExceeded:
+            logger.warning(
+                "generate_chat_stream: per-stream budget of %ds exceeded — "
+                "terminating stream",
+                _CHAT_STREAM_BUDGET_S,
+            )
+            yield _finish_step()
+            yield _finish()
+            yield _DONE
+            return
 
-            gen_iter = gen.__aiter__()
-            try:
-                while True:
-                    remaining = _CHAT_STREAM_BUDGET_S - (
-                        time.monotonic() - _stream_start
-                    )
-                    if remaining <= 0:
-                        raise asyncio.TimeoutError(
-                            f"per-stream budget of {_CHAT_STREAM_BUDGET_S}s exceeded"
-                        )
-                    try:
-                        # wait_for wraps __anext__ in its own task and cancels
-                        # it on timeout — this is what actually bounds a hung
-                        # single-party stream (asyncio.timeout around the loop
-                        # would target the wrong task across yield suspensions).
-                        event = await asyncio.wait_for(
-                            gen_iter.__anext__(), timeout=remaining
-                        )
-                    except StopAsyncIteration:
-                        break
-                    yield event
-            except asyncio.TimeoutError:
-                logger.warning(
-                    "generate_chat_stream: per-stream budget of %ds exceeded — "
-                    "terminating stream",
-                    _CHAT_STREAM_BUDGET_S,
-                )
-                # Best-effort close of the abandoned party generator (wait_for
-                # already cancelled the pending __anext__ task).
-                try:
-                    await gen.aclose()
-                except Exception:  # noqa: BLE001
-                    pass
-                # Terminal ERROR contract: the client was told to expect this
-                # responder — emit a generic error plus an error party_complete
-                # so the UI clears the pending responder immediately instead of
-                # waiting for its watchdog. Quick-replies/title and cache
-                # writes are skipped (return below).
-                yield _data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE})
-                yield _data_event(
-                    {
-                        "type": "party_complete",
-                        "session_id": body.session_id,
-                        "party_id": gen_party.party_id,
-                        "complete_message": GENERIC_ERROR_MESSAGE,
-                        "message_id": None,
-                        "status": {
-                            "indicator": "error",
-                            "message": GENERIC_ERROR_MESSAGE,
-                        },
-                    },
-                )
-                yield _finish_step()
-                yield _finish()
-                yield _DONE
-                return
+        # Splice answers back in parties_to_respond order so the
+        # quick-replies prompt is deterministic regardless of completion
+        # order.
+        for party in generator_parties:
+            group_chat_session.chat_history.extend(
+                party_history.get(party.party_id, [])
+            )
 
     except Exception as e:
         logger.error(f"Unexpected error in generate_chat_stream: {e}", exc_info=True)
