@@ -13,6 +13,8 @@ import { useEffect, useState } from 'react';
 
 function SurveyBanner() {
   const sessionId = useChatStore((state) => state.chatSessionId);
+  const studyEnabled = useChatStore((state) => state.studyEnabled);
+  const studyConsent = useChatStore((state) => state.studyConsent);
   const [open, setOpen] = useState(false);
   const { user, updateUser, loading } = useAnonymousAuth();
   const showSurveyBanner = useChatStore(
@@ -77,6 +79,18 @@ function SurveyBanner() {
   }, [showSurveyBanner]);
 
   if (!optimisticShowSurveyBanner) return null;
+
+  // PledgeTracker study: a participant must only ever be asked to fill in the
+  // study questionnaire. Two surveys competing for the same goodwill depress
+  // the response rate on the one the study depends on.
+  //
+  // The predicate deliberately ignores the cohort, so control and experimental
+  // are exposed identically (differential survey exposure would confound the
+  // experiment), and it is tied to the kill switch rather than to consent
+  // alone, so the banner returns for everyone the moment the study is switched
+  // off instead of staying muted forever for past participants. Users who
+  // declined keep the normal product throughout.
+  if (studyEnabled && studyConsent === 'accepted') return null;
 
   return (
     <div className="flex flex-col gap-2 rounded-lg bg-muted p-4 group-data-[has-message-background]:mx-4 group-data-[has-message-background]:mb-4 group-data-[has-message-background]:bg-zinc-200 group-data-[has-message-background]:dark:bg-zinc-800">

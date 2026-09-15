@@ -1,5 +1,6 @@
 'use client';
 
+import { useChatStore } from '@/components/providers/chat-store-provider';
 import { BorderTrail } from '@/components/ui/border-trail';
 import {
   formatPledgeDate,
@@ -83,6 +84,7 @@ function ChatPledgeTrackerButton({
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const impressionFiredRef = useRef(false);
+  const recordStudyEvent = useChatStore((state) => state.recordStudyEvent);
 
   // Claim the impression exactly once per message: sessionStorage dedupes
   // across reloads and re-mounts; the ref covers storage-less browsers.
@@ -101,7 +103,10 @@ function ChatPledgeTrackerButton({
       message_id: message.id,
       pledges,
     });
-  }, [message.id, partyId, pledges]);
+    // Study exposure log (no-op for non-participants): the researchers need
+    // per-participant "treated vs merely assigned" — this is that signal.
+    void recordStudyEvent('pledge_shown');
+  }, [message.id, partyId, pledges, recordStudyEvent]);
 
   // Exposure = >=50% visible held for the dwell period. An inactive carousel
   // slide or an off-screen message reports ratio 0 (CarouselContent clips

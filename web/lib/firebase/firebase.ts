@@ -41,7 +41,13 @@ import {
   authEmulatorUrl,
   firebaseEmulatorsEnabled,
 } from './firebase-emulators';
-import type { ChatSession, LlmSystemStatus } from './firebase.types';
+import type {
+  ChatSession,
+  LlmSystemStatus,
+  StudyParticipant,
+  StudyParticipantEvent,
+  StudyStatus,
+} from './firebase.types';
 
 const app = initializeApp(firebaseConfig);
 
@@ -147,6 +153,7 @@ export async function createChatSession(
   tenantId?: string,
   contextId?: string,
   prolificMetadata?: ProlificMetadata,
+  studyGroup?: 'control' | 'experimental',
 ): Promise<void> {
   const visitId = getCurrentVisitId();
   await setDoc(doc(db, 'chat_sessions', sessionId), {
@@ -159,6 +166,9 @@ export async function createChatSession(
     ...(prolificMetadata
       ? { prolific_metadata: prolificMetadata, is_prolific_study: true }
       : {}),
+    // PledgeTracker study: cohort stamp so chat data joins to the study
+    // without an extra lookup (mirrors the prolific metadata pattern).
+    ...(studyGroup ? { study_group: studyGroup, is_pledge_study: true } : {}),
     ...(visitId ? { visit_id: visitId } : {}),
   });
   if (visitId) {
@@ -225,6 +235,49 @@ export function listenToSystemStatus(
   );
 
   return unsubscribe;
+}
+
+/**
+ * Kill switch for the PledgeTracker study: system_status/pledge_study
+ * {enabled: true}. A missing doc, a missing field, or a listener error all
+ * mean "study off" — the safe default. Flipping the flag is a console edit,
+ * no deploy.
+ */
+export function listenToStudyStatus(callback: (status: StudyStatus) => void) {
+  const unsubscribe = onSnapshot(
+    doc(db, 'system_status', 'pledge_study'),
+    (snapshot) => {
+      callback({ enabled: snapshot.data()?.enabled === true });
+    },
+    () => callback({ enabled: false }),
+  );
+
+  return unsubscribe;
+}
+
+export async function getStudyParticipant(uid: string) {
+  const snapshot = await getDoc(doc(db, 'study_participants', uid));
+  return snapshot.exists() ? (snapshot.data() as StudyParticipant) : null;
+}
+
+export async function setStudyParticipant(
+  uid: string,
+  data: Partial<StudyParticipant>,
+) {
+  await setDoc(doc(db, 'study_participants', uid), data, { merge: true });
+}
+
+/** Append one interaction-log event (plus optional scalar merges). */
+export async function appendStudyParticipantEvent(
+  uid: string,
+  event: StudyParticipantEvent,
+  extra?: Partial<StudyParticipant>,
+) {
+  await setDoc(
+    doc(db, 'study_participants', uid),
+    { ...extra, events: arrayUnion(event) },
+    { merge: true },
+  );
 }
 
 export async function getChatSession(sessionId: string) {

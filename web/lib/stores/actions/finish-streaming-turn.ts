@@ -18,4 +18,16 @@ export const finishStreamingTurn: ChatStoreActionHandlerFor<
     state.loading.newMessage = false;
     state.pendingStreamingMessageTimeoutHandler.timeout = undefined;
   });
+
+  // Study: stamp the FIRST completed answer of the session (arms the
+  // questionnaire timer for both cohorts — control symmetry). Only when an
+  // assistant answer actually landed: an all-failed turn arms nothing.
+  const { firstAnswerCompletedAt, messages } = get();
+  if (
+    firstAnswerCompletedAt === undefined &&
+    messages.some((message) => message.role === 'assistant')
+  ) {
+    set({ firstAnswerCompletedAt: Date.now() });
+    void get().recordStudyEvent('first_answer_completed');
+  }
 };

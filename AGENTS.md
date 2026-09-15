@@ -299,6 +299,69 @@ UI copy says "Ziele", not "Versprechen"; the events' full source text is never
 stored (`url`/`title` suffice); the chat-side lookup is best-effort and may
 return nothing (the UI then shows no PledgeTracker entry point).
 
+#### The PledgeTracker study (consent, cohorts, questionnaire)
+
+An in-app experiment with the Vlachos group (University of Cambridge): does
+PledgeTracker change users' willingness to engage in political debate?
+
+- **Scope**: only `abgeordnetenhauswahl-berlin-2026` and
+  `landtagswahl-mecklenburg-vorpommern-2026` — `STUDY_CONTEXT_IDS` in
+  `web/lib/pledge-study/study-config.ts`, which also holds the prompt-timing
+  constants, the cohort hash, and the Typeform URL builder.
+- **Kill switch**: Firestore doc `system_status/pledge_study` `{enabled: true}`.
+  Missing doc/field/error = off (the safe default); flipping it is a console
+  edit, no deploy (locally: create the doc in the emulator UI). The
+  The questionnaire form id is COMMITTED (`STUDY_QUESTIONNAIRE_FORM_ID` in
+  `web/lib/pledge-study/study-config.ts`), like every other Fillout form here,
+  so a fresh checkout and both deployments work with no env setup;
+  `NEXT_PUBLIC_STUDY_QUESTIONNAIRE_URL` only overrides it for a test form.
+- **Flow**: fresh chat in a study context → two-stage consent (short ask, then
+  the Einverständniserklärung). A „Nein" is permanent per uid, and dismissing
+  the dialog (Escape, overlay click, drawer swipe) is recorded as that same
+  „Nein" — only an explicit „Ja" enrols, and everyone who was asked leaves a
+  record, so the consent denominator is complete. A „Ja" assigns the cohort —
+  deterministic hash(uid+salt), p=0.5 — and persists `study_participants/{uid}`
+  (the analysis source of truth). NEVER change the salt while the study runs.
+  Both answers also record `context_id` and `party_ids` (the parties selected
+  when the ask appeared), so non-response can be modelled rather than just
+  counted — refusal by election, and by the party the user came to chat with.
+- **Gate** (`web/lib/pledge-study/gate.ts`): in a study context with the study
+  on, ONLY consented experimental participants see PledgeTracker. Control and
+  non-consented users see nothing — pre-exposure would contaminate a later
+  control assignment. Outside the study contexts the product is unchanged.
+- **Telemetry** (consent-gated, `recordStudyEvent`): append-only `events` on
+  the participant doc — `first_message`, `first_answer_completed`,
+  `pledge_shown` (viewport exposure), `pledge_modal_open`/`_close`,
+  `prompt_shown`/`prompt_dismissed` (with trigger), `questionnaire_clicked`.
+  Counts and firsts are derived from the log at analysis time.
+- **Questionnaire prompts** (identical for both cohorts — control symmetry):
+  a timer 15s after the FIRST completed answer (fires only while idle), an
+  immediate prompt on pledge-modal close, and a 90s longstop inside a modal;
+  max 2 prompts ever, cap survives reloads. The form opens IN-APP via
+  `FilloutPopupEmbed` (same pattern as `survey-banner.tsx`), carrying
+  `user_id` + `chat_session_id` as parameters; trigger/context stay in the
+  event log, and the cohort is never passed (no self-unblinding). While the
+  study is on, consented participants are shown NO other survey — the general
+  feedback banner suppresses itself (`survey-banner.tsx`) so two prompts never
+  compete; the suppression ignores the cohort, so both arms stay identical.
+- **Analysis joins**: `study_participants/{uid}` ↔ `chat_sessions.user_id`
+  (sessions are also stamped `study_group` + `is_pledge_study`) ↔
+  `page_visits.user_id`/`chat_session_ids` (dwell time) ↔ the questionnaire's
+  `user_id` + `chat_session_id` answers. The uid is the Firebase anonymous uid
+  throughout.
+- **Dev tooling**: `ChatStudyDevBar` (mounted in `app/[contextId]/session/layout.tsx`)
+  shows the live gate inputs and flips the cohort. Local dev only — gated on
+  `NODE_ENV === 'development'` at both the mount and inside the component, so
+  it can never render on a deployment (the module is still bundled: a
+  `'use client'` import is a client reference and survives tree-shaking).
+  Client-side only — the override lives in localStorage and
+  `study_participants` is never written, so it cannot corrupt a real
+  assignment. Reset drops the override and restores the hashed one.
+- Known simplifications: the idle predicate tracks streaming and the pledge
+  modal (not every uncontrolled dialog); the kill switch is client-read only
+  (default-off hides everything until the snapshot arrives); a second device
+  is a new participant (anonymous auth — accepted trade-off).
+
 De-dup with AW is two-way and party+region+date scoped: an upload is skipped if AW
 already has that party's programme; once AW ingests it, its `post_upsert` deletes
 the uploaded twin.

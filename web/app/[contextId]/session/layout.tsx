@@ -1,5 +1,6 @@
 import AnonymousUserChatStoreUpdater from '@/components/auth/anonymous-user-chat-store-updater';
 import ChatHeader from '@/components/chat/chat-header';
+import ChatStudyDevBar from '@/components/chat/chat-study-dev-bar';
 import ChatSidebar from '@/components/chat/sidebar/chat-sidebar';
 import { ChatStoreProvider } from '@/components/providers/chat-store-provider';
 import SseChatProvider from '@/components/providers/sse-chat-provider';
@@ -30,6 +31,12 @@ async function SessionLayout({ children, params }: Props) {
           <ChatSidebar contextId={contextId} />
           <SidebarInset className="flex h-dvh flex-col overflow-hidden">
             <ChatHeader contextId={contextId} />
+            {/* Outer gate; the component checks STUDY_DEV_TOOLS again. The
+                bar can therefore never render outside local dev — but note the
+                module is still emitted into the client bundle, because a
+                'use client' import from a server component becomes a client
+                reference that survives tree-shaking. ~1KB of inert code. */}
+            {process.env.NODE_ENV === 'development' && <ChatStudyDevBar />}
             {children}
           </SidebarInset>
         </SidebarProvider>

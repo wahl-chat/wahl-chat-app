@@ -86,6 +86,13 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == user_id;
     }
 
+    // PledgeTracker study participants (consent, cohort, interaction log).
+    // Doc id IS the uid — each participant reads/writes only their own record;
+    // researchers read via the admin SDK, which bypasses rules.
+    match /study_participants/{user_id} {
+      allow read, write: if request.auth != null && request.auth.uid == user_id;
+    }
+
     match /page_visits/{visit_id} {
       // 7 days in ms — same cap as PAGE_VISIT_MAX_VISIBLE_MS on the client.
       function pageVisitVisibleMsOk() {

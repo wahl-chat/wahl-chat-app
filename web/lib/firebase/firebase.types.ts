@@ -2,10 +2,14 @@ import type { Topic } from '@/components/topics/topics.data';
 import type { ProlificMetadata } from '@/lib/prolific-study/prolific-metadata';
 import type { GroupedMessage } from '@/lib/stores/chat-store.types';
 import type { WahlSwiperResultHistory } from '@/lib/wahl-swiper/wahl-swiper.types';
+import type { Timestamp } from 'firebase/firestore';
 
 export type ChatSession = {
   id: string;
   user_id: string;
+  /** PledgeTracker study: cohort stamp for joining chat data to the study. */
+  study_group?: 'control' | 'experimental';
+  is_pledge_study?: boolean;
   party_id?: string;
   is_public?: boolean;
   title?: string;
@@ -89,6 +93,40 @@ export type ExampleQuestionShareableChatSession = {
 
 export type LlmSystemStatus = {
   is_at_rate_limit: boolean;
+};
+
+/** Kill switch for the PledgeTracker study (system_status/pledge_study). */
+export type StudyStatus = {
+  enabled: boolean;
+};
+
+/** One interaction-log entry on a study participant (timestamped by client). */
+export type StudyParticipantEvent = {
+  type: string;
+  trigger?: string;
+  at: Timestamp;
+};
+
+/**
+ * study_participants/{uid} — consent-gated per-participant record for the
+ * PledgeTracker study. Counts and firsts are DERIVED from `events` at
+ * analysis time (min/count per type), so the doc stays append-mostly.
+ */
+export type StudyParticipant = {
+  consent_answer: 'accepted' | 'declined';
+  consent_at: Timestamp;
+  group?: 'control' | 'experimental';
+  /** Election context the consent was answered in — set on accept AND decline. */
+  context_id?: string;
+  /**
+   * Parties selected when the consent was answered, sorted. Recorded for both
+   * answers so refusal can be modelled against party choice (the hypothesis:
+   * users who came to chat with one specific party opt in less often). `[]`
+   * means no party was selected yet; absent means a pre-2026-09 record.
+   */
+  party_ids?: string[];
+  questionnaire_clicked_at?: Timestamp;
+  events?: StudyParticipantEvent[];
 };
 
 export type FirebaseWahlSwiperResult = {
