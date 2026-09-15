@@ -1,0 +1,99 @@
+# SPDX-FileCopyrightText: 2026 wahl.chat
+#
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+# Promote a commit to the production Vercel deployment (wahl.chat).
+#
+# develop keeps auto-deploying to dev.wahl.chat via the Vercel git integration.
+# This workflow is the only prod path: it rebuilds the chosen SHA with
+# Production env vars (do not "promote" a develop preview — NEXT_PUBLIC_* is
+# baked in at build time and would keep pointing at the dev backend).
+#
+# One-time GitHub setup (Settings → Environments → prod-web):
+#   Required reviewers — without this the button is not a gate.
+#   secrets.VERCEL_TOKEN
+#   vars.VERCEL_ORG_ID       team id (team_…) from vercel.com/wahl-chat/~/settings
+#   vars.VERCEL_PROJECT_ID   project id from vercel.com/wahl-chat/web/settings
+#
+# One-time Vercel setup: keep the Production Branch as main, and do not attach
+# develop to Production. web/vercel.json disables git deploys from main, so a
+# merge to main no longer ships wahl.chat.
+
+name: Promote web
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Full git SHA to promote (empty = tip of develop)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: promote-web-prod
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: prod-web
+    timeout-minutes: 20
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Resolve commit
+        id: resolve
+        working-directory: .
+        env:
+          SHA_INPUT: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "${SHA_INPUT}" ]; then
+            git fetch --depth=1 origin "${SHA_INPUT}"
+            sha="$(git rev-parse --verify "${SHA_INPUT}^{commit}")"
+          else
+            sha="$(git rev-parse --verify 'origin/develop^{commit}')"
+          fi
+          echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
+          echo "Promoting ${sha}"
+
+      - name: Check out commit to promote
+        working-directory: .
+        run: git checkout --detach "${{ steps.resolve.outputs.sha }}"
+
+      - name: Check required configuration
+        working-directory: .
+        run: |
+          set -euo pipefail
+          test -n "${VERCEL_TOKEN}" || { echo "Set secrets.VERCEL_TOKEN on the prod-web environment" >&2; exit 1; }
+          test -n "${VERCEL_ORG_ID}" || { echo "Set vars.VERCEL_ORG_ID on the prod-web environment" >&2; exit 1; }
+          test -n "${VERCEL_PROJECT_ID}" || { echo "Set vars.VERCEL_PROJECT_ID on the prod-web environment" >&2; exit 1; }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@59
+
+      - name: Pull production environment
+        run: vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
+
+      - name: Build
+        run: vercel build --prod --token="${VERCEL_TOKEN}"
+
+      - name: Deploy
+        run: vercel deploy --prebuilt --prod --token="${VERCEL_TOKEN}"

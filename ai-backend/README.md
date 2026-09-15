@@ -170,6 +170,8 @@ docker run --env-file .env \
 
 Set `ENV=prod` in `.env` and use `wahl-chat-firebase-adminsdk.json` for production deployments.
 
+Hosted Cloud Run: merges to `develop` auto-deploy `wahl-chat-backend-dev`. Production (`wahl-chat-backend`) is the manual **Promote backend** GitHub Action — see the [root README](../README.md#deploying).
+
 ## Test
 
 The suite mocks Qdrant/embeddings (see `tests/conftest.py`), so no running backend or live stores are required.
