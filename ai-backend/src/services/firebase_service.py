@@ -15,7 +15,7 @@ from pathlib import Path
 
 from src.models.chat import CachedResponse
 from src.models.context import Context, ContextParty, DEFAULT_CONTEXT_ID
-from src.utils import load_env
+from src.core.utils import load_env
 
 load_env()
 

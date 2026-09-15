@@ -29,10 +29,13 @@ from datetime import datetime, timezone
 
 import pytest
 
-import src.chat_service as cs
-import src.chatbot_async as ca
-from src.chat_service import RetrievalUnavailableError, fetch_party_response_stream
-from src.chatbot_async import (
+import src.services.chat.service as cs
+import src.services.chat.chatbot_async as ca
+from src.services.chat.service import (
+    RetrievalUnavailableError,
+    fetch_party_response_stream,
+)
+from src.services.chat.chatbot_async import (
     _source_filter_note,
     detect_source_filter,
     generate_improvement_rag_query,
@@ -258,7 +261,7 @@ def test_base_guidelines_describe_citation_rendering() -> None:
     as clickable buttons — the model only sees its raw markdown and otherwise
     explains its own bracket syntax to users ('klicke auf die eckigen
     Klammern')."""
-    from src.prompts import get_chat_answer_guidelines
+    from src.core.prompts import get_chat_answer_guidelines
 
     guidelines = get_chat_answer_guidelines("SPD")
     assert "klickbare Quellen-Buttons" in guidelines

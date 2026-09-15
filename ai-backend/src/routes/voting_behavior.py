@@ -3,7 +3,7 @@
 """
 SSE voting-behavior endpoint — POST /api/v1/voting-behavior.
 
-Streams v5 UI-message-stream parts (framing in src.sse): a ``data-chat_event``
+Streams v5 UI-message-stream parts (framing in src.core.sse): a ``data-chat_event``
 per vote (inner type "vote_result"), text-delta parts for the summary, a final
 ``data-chat_event`` (inner type "voting_behavior_complete"), then finish + [DONE].
 
@@ -38,11 +38,11 @@ import logging
 from fastapi import APIRouter
 from sse_starlette.sse import EventSourceResponse
 
-from src.chatbot_async import (
+from src.services.chat.chatbot_async import (
     get_improved_rag_query_voting_behavior,
     generate_party_vote_behavior_summary,
 )
-from src.sse import (
+from src.core.sse import (
     DONE,
     data_event,
     finish,
@@ -51,7 +51,7 @@ from src.sse import (
     text_end,
     text_start,
 )
-from src.firebase_service import aget_context_by_id, aget_party_for_context
+from src.services.firebase_service import aget_context_by_id, aget_party_for_context
 from src.ingestion.retrieve import retrieve
 from src.models.context import DEFAULT_CONTEXT_ID
 from src.models.dtos import (
@@ -65,8 +65,8 @@ from src.models.vote import (
     VotingResultsByParty,
     VotingResultsOverall,
 )
-from src.chat_service import MAX_RESPONSE_CHUNK_LENGTH
-from src.utils import GENERIC_ERROR_MESSAGE
+from src.services.chat.service import MAX_RESPONSE_CHUNK_LENGTH
+from src.core.utils import GENERIC_ERROR_MESSAGE
 
 logger = logging.getLogger(__name__)
 

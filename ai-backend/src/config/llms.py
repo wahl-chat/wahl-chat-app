@@ -7,15 +7,15 @@ from langchain_openai import ChatOpenAI
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages.base import BaseMessage, BaseMessageChunk
 from pydantic import BaseModel
-from src.firebase_service import awrite_llm_status
-from src.google_credentials import (
+from src.services.firebase_service import awrite_llm_status
+from src.config.google_credentials import (
     get_vertex_credentials,
     vertex_enabled,
     vertex_location,
     vertex_project,
 )
 from src.models.general import LLM
-from src.utils import load_env, safe_load_api_key
+from src.core.utils import load_env, safe_load_api_key
 
 load_env()
 

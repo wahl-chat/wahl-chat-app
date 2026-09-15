@@ -81,7 +81,7 @@ from src.ingestion.connectors.manifestos.mappers.corpus import (
     chunk_pages,
     party_to_slug,
 )
-from src.embeddings import get_embeddings
+from src.config.embeddings import get_embeddings
 from src.ingestion.ids import compute_chunk_id
 from src.ingestion.run import _embed_texts, _upsert_chunks
 from src.ingestion.schemas import ChunkRecord

@@ -56,7 +56,7 @@ def _vertex_embeddings_requested() -> bool:
     embeddings follow chat onto the billing project. ``EMBEDDINGS_USE_VERTEX=0``
     forces them back to AI Studio — the manual kill-switch, since embeddings have
     no runtime failover (clients are bound once at module level in
-    ``src/chat_service.py`` and ``src/ingestion/retrieve.py``).
+    ``src/services/chat/service.py`` and ``src/ingestion/retrieve.py``).
     """
     return os.getenv("EMBEDDINGS_USE_VERTEX", "1").strip().lower() not in (
         "0",
@@ -136,7 +136,7 @@ def get_embeddings(
         # fingerprint (setup_collection.expected_fingerprint) and
         # check_fingerprint() raises on any mismatch — encoding transport in it
         # would reject the existing corpus and force a full re-ingest.
-        from src.google_credentials import (  # noqa: PLC0415
+        from src.config.google_credentials import (  # noqa: PLC0415
             get_vertex_credentials,
             vertex_enabled,
             vertex_location,

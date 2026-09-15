@@ -53,7 +53,7 @@ from langchain_core.embeddings import Embeddings
 from qdrant_client import QdrantClient, models
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from src.embeddings import get_embeddings
+from src.config.embeddings import get_embeddings
 from src.ingestion.connector import BaseConnector
 from src.ingestion.schemas import ChunkRecord
 from src.ingestion.setup_collection import (

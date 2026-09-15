@@ -13,7 +13,7 @@ GDPR Art. 9 wall: reads ``contexts/{id}`` + its ``parties`` subcollection ONLY â
 never ``users/`` (special-category political-opinion data), never a
 ``collection_group`` query. Enforced by ``scripts/check_gdpr_wall.py`` in CI.
 
-Client construction is independent of ``src.firebase_service``, which can
+Client construction is independent of ``src.services.firebase_service``, which can
 ``sys.exit(1)`` on bad credentials â€” fine for the API server, not for an ingestion
 run that must fail as a normal per-item error.
 """

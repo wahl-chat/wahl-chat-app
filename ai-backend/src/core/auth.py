@@ -24,7 +24,7 @@ from firebase_admin import auth as firebase_auth
 # (including the emulator/anonymous-credential handling) before any
 # verify_id_token call. verify_id_token itself honors
 # FIREBASE_AUTH_EMULATOR_HOST for local/emulator runs.
-import src.firebase_service  # noqa: F401
+import src.services.firebase_service  # noqa: F401
 
 logger = logging.getLogger(__name__)
 

@@ -16,25 +16,25 @@ from openai.types.chat.chat_completion_message_param import (
 )
 
 from src.models.general import LLM
-from src.llms import (
+from src.config.llms import (
     PRE_AND_POST_PROCESSING_LLMS,
     RESPONSE_GENERATION_LLMS,
     get_answer_from_llms,
     get_structured_output_from_llms,
     stream_answer_from_llms,
 )
-from src.firebase_service import aget_context_by_id
+from src.services.firebase_service import aget_context_by_id
 from src.models.context import DEFAULT_CONTEXT_ID
 from src.models.context import ContextParty
 from src.models.party import WAHL_CHAT_PARTY
 from src.models.vote import Vote, VotingResultsByParty
-from src.utils import (
+from src.core.utils import (
     build_document_string_for_context,
     build_message_from_perplexity_response,
     build_party_str,
     load_env,
 )
-from src.prompts import (
+from src.core.prompts import (
     build_prompt_context,
     get_chat_answer_guidelines,
     get_wahl_chat_answer_guidelines,

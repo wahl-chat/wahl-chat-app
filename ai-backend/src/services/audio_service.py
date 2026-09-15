@@ -10,7 +10,7 @@ import logging
 
 from openai import AsyncOpenAI
 
-from src.utils import safe_load_api_key
+from src.core.utils import safe_load_api_key
 
 logger = logging.getLogger(__name__)
 

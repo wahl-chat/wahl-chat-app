@@ -58,7 +58,7 @@ if __name__ == "__main__":
 from langchain_core.embeddings import Embeddings
 from qdrant_client import QdrantClient
 
-from src.embeddings import get_embeddings
+from src.config.embeddings import get_embeddings
 from src.ingestion.connector import BaseConnector
 from src.ingestion.connectors.bundestag_speeches.constants import MDB_STAMMDATEN_FILE
 from src.ingestion.connectors.bundestag_speeches.mdb import ensure_mdb_lookup

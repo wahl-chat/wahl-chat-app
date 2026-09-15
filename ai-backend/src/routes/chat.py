@@ -25,7 +25,7 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field, field_validator
 from sse_starlette.sse import EventSourceResponse
 
-from src.chat_service import generate_chat_stream
+from src.services.chat.service import generate_chat_stream
 from src.models.chat import Role
 
 logger = logging.getLogger(__name__)

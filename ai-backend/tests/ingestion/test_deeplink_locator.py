@@ -10,7 +10,7 @@ matching the model's quoted text and builds `video_uri#t={ts_start}`. Verbatim
 substring match wins; a fuzzy near-match still resolves; a no-match falls back
 to `sentence_map[0]["ts_start"]` and NEVER raises.
 
-The citation-refinement helpers live in `src.deeplink`. The top-level
+The citation-refinement helpers live in `src.services.chat.deeplink`. The top-level
 `pytest.importorskip(...)` makes this file SKIP cleanly if that module fails to
 import, then runs the real assertions.
 """
@@ -20,15 +20,15 @@ from __future__ import annotations
 import pytest
 
 deeplink = pytest.importorskip(
-    "src.deeplink",
-    reason="src.deeplink import failed",
+    "src.services.chat.deeplink",
+    reason="src.services.chat.deeplink import failed",
 )
 
 _locate = getattr(deeplink, "locate_deeplink", None)
 
 pytestmark = pytest.mark.skipif(
     _locate is None,
-    reason="locate_deeplink not present in src.deeplink",
+    reason="locate_deeplink not present in src.services.chat.deeplink",
 )
 
 
@@ -213,7 +213,7 @@ class TestMalformedPersistedPayloads:
     """Persisted meta is untrusted: corrupt shapes degrade, never raise."""
 
     def test_sentence_map_as_string_degrades_to_stored_citation(self) -> None:
-        from src.deeplink import _speech_deeplink_url
+        from src.services.chat.deeplink import _speech_deeplink_url
 
         payload = {
             "source": "op",
@@ -225,7 +225,7 @@ class TestMalformedPersistedPayloads:
         )
 
     def test_non_dict_entries_are_ignored(self) -> None:
-        from src.deeplink import locate_deeplink
+        from src.services.chat.deeplink import locate_deeplink
 
         sentence_map = [
             "corrupt-entry",
@@ -238,7 +238,7 @@ class TestMalformedPersistedPayloads:
         assert url == "https://v.example/x.mp4#t=12.5"
 
     def test_meta_as_string_degrades_to_stored_citation(self) -> None:
-        from src.deeplink import _speech_deeplink_url
+        from src.services.chat.deeplink import _speech_deeplink_url
 
         payload = {
             "source": "op",
@@ -248,7 +248,7 @@ class TestMalformedPersistedPayloads:
         assert _speech_deeplink_url(payload, "Zitat") == "https://example.com/stored"
 
     def test_all_corrupt_entries_yield_bare_video_uri(self) -> None:
-        from src.deeplink import locate_deeplink
+        from src.services.chat.deeplink import locate_deeplink
 
         assert (
             locate_deeplink("Zitat", ["a", 1, None], "https://v.example/x.mp4")

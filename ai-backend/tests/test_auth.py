@@ -10,7 +10,7 @@ non-anonymous sign-in provider, not merely a verifiable token.
 
 from unittest.mock import patch
 
-from src.auth import resolve_user_is_logged_in
+from src.core.auth import resolve_user_is_logged_in
 
 
 class _Req:
@@ -31,24 +31,26 @@ def test_none_request_is_not_premium():
 
 
 def test_no_valid_token_is_not_premium():
-    with patch("src.auth.verify_optional_bearer_token", return_value=None):
+    with patch("src.core.auth.verify_optional_bearer_token", return_value=None):
         assert resolve_user_is_logged_in(_Req("Bearer x"), "test") is False
 
 
 def test_anonymous_token_is_not_premium():
     anon = {"uid": "abc", "firebase": {"sign_in_provider": "anonymous"}}
-    with patch("src.auth.verify_optional_bearer_token", return_value=anon):
+    with patch("src.core.auth.verify_optional_bearer_token", return_value=anon):
         assert resolve_user_is_logged_in(_Req("Bearer anon"), "test") is False
 
 
 def test_missing_firebase_block_is_not_premium():
     # Defensive: a token without a firebase sign-in block cannot be confirmed
     # as a real sign-in, so it must NOT unlock premium.
-    with patch("src.auth.verify_optional_bearer_token", return_value={"uid": "abc"}):
+    with patch(
+        "src.core.auth.verify_optional_bearer_token", return_value={"uid": "abc"}
+    ):
         assert resolve_user_is_logged_in(_Req("Bearer x"), "test") is False
 
 
 def test_real_provider_token_unlocks_premium():
     real = {"uid": "abc", "firebase": {"sign_in_provider": "password"}}
-    with patch("src.auth.verify_optional_bearer_token", return_value=real):
+    with patch("src.core.auth.verify_optional_bearer_token", return_value=real):
         assert resolve_user_is_logged_in(_Req("Bearer real"), "test") is True

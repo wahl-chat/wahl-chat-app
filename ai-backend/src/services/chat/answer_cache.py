@@ -17,8 +17,8 @@ import hashlib
 from langchain_core.documents import Document
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from src.chatbot_async import get_rag_context
-from src.llms import select_streaming_llms
+from src.services.chat.chatbot_async import get_rag_context
+from src.config.llms import select_streaming_llms
 from src.models.context import ContextParty
 from src.models.general import LLM
 

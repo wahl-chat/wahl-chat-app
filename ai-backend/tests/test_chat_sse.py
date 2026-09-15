@@ -124,7 +124,8 @@ async def test_sse_routes_use_event_source_response_with_ping():
     from src.routes import chat as chat_route
 
     assert not hasattr(
-        __import__("src.chat_service", fromlist=["chat_service"]), "with_heartbeat"
+        __import__("src.services.chat.service", fromlist=["chat_service"]),
+        "with_heartbeat",
     ), "custom heartbeat wrapper must be gone (EventSourceResponse ping owns it)"
     source = inspect.getsource(chat_route)
     assert "EventSourceResponse" in source
@@ -205,11 +206,15 @@ async def test_proposed_question_with_free_text_history_not_cached(
     write_mock = AsyncMock()
     write_rag_mock = AsyncMock()
     monkeypatch.setattr(
-        "src.chat_service.aget_proposed_questions_for_context",
+        "src.services.chat.service.aget_proposed_questions_for_context",
         _fake_proposed_questions,
     )
-    monkeypatch.setattr("src.chat_service.awrite_cached_answer_for_party", write_mock)
-    monkeypatch.setattr("src.chat_service.awrite_cached_rag_query", write_rag_mock)
+    monkeypatch.setattr(
+        "src.services.chat.service.awrite_cached_answer_for_party", write_mock
+    )
+    monkeypatch.setattr(
+        "src.services.chat.service.awrite_cached_rag_query", write_rag_mock
+    )
 
     body = dict(_CHAT_REQUEST_BODY)
     body["user_message"] = _PROPOSED_QUESTION
@@ -231,11 +236,15 @@ async def test_first_turn_proposed_question_is_cached(patch_chat_io, app, monkey
     write_mock = AsyncMock()
     write_rag_mock = AsyncMock()
     monkeypatch.setattr(
-        "src.chat_service.aget_proposed_questions_for_context",
+        "src.services.chat.service.aget_proposed_questions_for_context",
         _fake_proposed_questions,
     )
-    monkeypatch.setattr("src.chat_service.awrite_cached_answer_for_party", write_mock)
-    monkeypatch.setattr("src.chat_service.awrite_cached_rag_query", write_rag_mock)
+    monkeypatch.setattr(
+        "src.services.chat.service.awrite_cached_answer_for_party", write_mock
+    )
+    monkeypatch.setattr(
+        "src.services.chat.service.awrite_cached_rag_query", write_rag_mock
+    )
 
     body = dict(_CHAT_REQUEST_BODY)
     body["user_message"] = _PROPOSED_QUESTION
@@ -270,9 +279,15 @@ async def test_proposed_question_lookup_uses_request_context(
 ):
     """The cache gate reads questions for the request context, not the global list."""
     lookup = AsyncMock(side_effect=_fake_proposed_questions)
-    monkeypatch.setattr("src.chat_service.aget_proposed_questions_for_context", lookup)
-    monkeypatch.setattr("src.chat_service.awrite_cached_answer_for_party", AsyncMock())
-    monkeypatch.setattr("src.chat_service.awrite_cached_rag_query", AsyncMock())
+    monkeypatch.setattr(
+        "src.services.chat.service.aget_proposed_questions_for_context", lookup
+    )
+    monkeypatch.setattr(
+        "src.services.chat.service.awrite_cached_answer_for_party", AsyncMock()
+    )
+    monkeypatch.setattr(
+        "src.services.chat.service.awrite_cached_rag_query", AsyncMock()
+    )
 
     await _drain_chat_stream(app, dict(_CHAT_REQUEST_BODY))
 
@@ -295,11 +310,15 @@ async def test_proposed_question_from_other_context_is_not_cached(
     write_mock = AsyncMock()
     write_rag_mock = AsyncMock()
     monkeypatch.setattr(
-        "src.chat_service.aget_proposed_questions_for_context",
+        "src.services.chat.service.aget_proposed_questions_for_context",
         _only_other_context,
     )
-    monkeypatch.setattr("src.chat_service.awrite_cached_answer_for_party", write_mock)
-    monkeypatch.setattr("src.chat_service.awrite_cached_rag_query", write_rag_mock)
+    monkeypatch.setattr(
+        "src.services.chat.service.awrite_cached_answer_for_party", write_mock
+    )
+    monkeypatch.setattr(
+        "src.services.chat.service.awrite_cached_rag_query", write_rag_mock
+    )
 
     body = dict(_CHAT_REQUEST_BODY)
     body["context_id"] = "bundestagswahl-2025"
@@ -334,7 +353,9 @@ async def test_mid_stream_error_still_finishes(patch_chat_io, app, monkeypatch):
 
         return _gen()
 
-    monkeypatch.setattr("src.chatbot_async.stream_answer_from_llms", _err_stream)
+    monkeypatch.setattr(
+        "src.services.chat.chatbot_async.stream_answer_from_llms", _err_stream
+    )
 
     payloads = await _drain_chat_stream(app, dict(_CHAT_REQUEST_BODY))
 
@@ -441,6 +462,7 @@ async def test_voting_behavior_route_sse(app, monkeypatch):
     """/api/v1/voting-behavior: 200, text/event-stream, v5 stream header,
     ends [DONE]."""
     from langchain_core.messages import AIMessageChunk
+
     from src.models.context import ContextParty
 
     async def _party(context_id: str, party_id: str):

@@ -42,7 +42,7 @@ from qdrant_client.models import (
     MatchValue,
 )
 
-from src.embeddings import get_embeddings
+from src.config.embeddings import get_embeddings
 from src.ingestion.setup_collection import COLLECTION_NAME, acheck_fingerprint
 from src.ingestion.governance_levels import ALL_LEVELS
 
@@ -892,7 +892,7 @@ def get_gemini_tool_binding(llm: Any) -> Any:
 
     Usage::
 
-        from src.llms import google_gemini_3_6_flash
+        from src.config.llms import google_gemini_3_6_flash
         from src.ingestion.retrieve import get_gemini_tool_binding
 
         llm_with_tools = get_gemini_tool_binding(google_gemini_3_6_flash)

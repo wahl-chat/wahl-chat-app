@@ -260,7 +260,7 @@ def ingest(
 
     from qdrant_client import QdrantClient  # noqa: PLC0415
 
-    from src.embeddings import get_embeddings  # noqa: PLC0415
+    from src.config.embeddings import get_embeddings  # noqa: PLC0415
     from src.ingestion.run import run_connector  # noqa: PLC0415
     from src.ingestion.setup_collection import (  # noqa: PLC0415
         COLLECTION_NAME,

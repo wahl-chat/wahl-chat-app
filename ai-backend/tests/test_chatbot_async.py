@@ -15,7 +15,7 @@ network, no Qdrant connections required.
 import asyncio
 import inspect
 
-from src.chatbot_async import (
+from src.services.chat.chatbot_async import (
     _message_text,
     build_vote_documents,
     generate_streaming_chatbot_response,
@@ -107,7 +107,7 @@ def test_federal_origin_disclosure_note_only_for_non_federal() -> None:
     Behavioural test of the shared helper used by BOTH the single-party and comparison
     paths: empty for federal/None, and a Bundestag-vs-Landtag note for state/municipal.
     """
-    from src.chatbot_async import _federal_origin_disclosure_note
+    from src.services.chat.chatbot_async import _federal_origin_disclosure_note
 
     assert _federal_origin_disclosure_note(None) == "", "None (unset) must emit no note"
     assert _federal_origin_disclosure_note("federal") == "", (
@@ -131,7 +131,7 @@ def test_both_response_paths_apply_federal_disclosure(monkeypatch) -> None:
     Bundestag-vs-Landtag disclosure into the assembled system prompt, so it cannot be
     present in one path and missing in the other (the comparison path previously
     omitted it). Driven behaviourally by capturing each system prompt."""
-    from src import chatbot_async as ca
+    from src.services.chat import chatbot_async as ca
 
     assert (
         "election_level"
@@ -162,7 +162,7 @@ def test_both_response_paths_apply_federal_disclosure(monkeypatch) -> None:
 def test_source_structure_note_four_leadins() -> None:
     """The note always carries the four soft lead-in cues (illustrative, party
     name interpolated) and explicitly forbids rigid form headers."""
-    from src.chatbot_async import _source_structure_note
+    from src.services.chat.chatbot_async import _source_structure_note
 
     note = _source_structure_note(
         "SPD",
@@ -185,7 +185,7 @@ def test_source_structure_note_four_leadins() -> None:
 def test_source_structure_note_historic_conditional() -> None:
     """The strong 'render a marked historic section, placed last' instruction
     fires only when has_historic is True; never invents a historic section."""
-    from src.chatbot_async import _source_structure_note
+    from src.services.chat.chatbot_async import _source_structure_note
 
     with_hist = _source_structure_note(
         "SPD",
@@ -213,7 +213,7 @@ def test_source_structure_note_positive_preamble() -> None:
     """The coverage preamble names only the source types that ARE present, in a
     positive/value-neutral frame, and never flags a missing type as a deficiency.
     Speeches-only must read as a first-class source, not a fallback."""
-    from src.chatbot_async import _source_structure_note
+    from src.services.chat.chatbot_async import _source_structure_note
 
     all_three = _source_structure_note(
         "SPD",
@@ -268,7 +268,7 @@ def test_source_structure_note_wired_into_single_party_generator() -> None:
     """generate_streaming_chatbot_response accepts the backward-compatible coverage +
     has_historic kwargs (defaults preserved). The note APPLICATION is proven
     behaviourally by the test_system_prompt_* tests below."""
-    from src import chatbot_async as ca
+    from src.services.chat import chatbot_async as ca
 
     sig = inspect.signature(ca.generate_streaming_chatbot_response)
     assert "present_sources" in sig.parameters, "must accept 'present_sources'"
@@ -285,7 +285,7 @@ def test_comparison_generator_accepts_has_historic(monkeypatch) -> None:
     """The comparison generator accepts has_historic (default False) and, when set,
     injects the historic-marking note into the system prompt — WITHOUT the
     single-party four-section lead-ins (those are single-party only)."""
-    from src import chatbot_async as ca
+    from src.services.chat import chatbot_async as ca
 
     sig = inspect.signature(ca.generate_streaming_chatbot_comparing_response)
     assert "has_historic" in sig.parameters, (
@@ -331,7 +331,7 @@ def _make_context_party(pid: str = "spd") -> ContextParty:
 
 def _capture_system_prompt(monkeypatch) -> dict:
     """Patch chatbot_async.stream_answer_from_llms to record the system prompt."""
-    from src import chatbot_async as ca
+    from src.services.chat import chatbot_async as ca
 
     captured: dict = {}
 
@@ -349,7 +349,7 @@ def _capture_system_prompt(monkeypatch) -> dict:
 
 
 def _run_single_party(**gen_kwargs) -> None:
-    from src import chatbot_async as ca
+    from src.services.chat import chatbot_async as ca
 
     asyncio.run(
         ca.generate_streaming_chatbot_response(
@@ -364,7 +364,7 @@ def _run_single_party(**gen_kwargs) -> None:
 
 
 def _run_comparison(**gen_kwargs) -> None:
-    from src import chatbot_async as ca
+    from src.services.chat import chatbot_async as ca
 
     party = _make_context_party()
     asyncio.run(

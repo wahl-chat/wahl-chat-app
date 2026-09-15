@@ -16,7 +16,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.routes import chat, pro_con, voting_behavior, misc
-from src.utils import get_cors_allowed_origins
+from src.core.utils import get_cors_allowed_origins
 
 LOGGING_FORMAT = (
     "%(asctime)s - %(name)s - %(filename)s - %(lineno)d - %(levelname)s - %(message)s"

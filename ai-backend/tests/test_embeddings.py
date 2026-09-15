@@ -16,7 +16,7 @@ from typing import Any
 
 import pytest
 
-from src import embeddings as emb
+from src.config import embeddings as emb
 from src.ingestion.setup_collection import EMBEDDING_DIM, EMBEDDING_MODEL
 
 
@@ -135,7 +135,7 @@ class _FakeCredentials:
 @pytest.fixture()
 def vertex_credentials(monkeypatch: pytest.MonkeyPatch):
     """Make get_vertex_credentials() return a fake key, bypassing the cache."""
-    from src import google_credentials as gc
+    from src.config import google_credentials as gc
 
     gc.get_vertex_credentials.cache_clear()
     monkeypatch.setattr(gc, "get_vertex_credentials", lambda: _FakeCredentials())
@@ -204,7 +204,7 @@ def test_gemini_stays_on_ai_studio_without_credentials(
     monkeypatch: pytest.MonkeyPatch, patched_clients: None
 ) -> None:
     """No Vertex credentials (CI, local dev without a key) → unchanged path."""
-    from src import google_credentials as gc
+    from src.config import google_credentials as gc
 
     gc.get_vertex_credentials.cache_clear()
     monkeypatch.delenv("VERTEX_SA_JSON", raising=False)
@@ -229,7 +229,7 @@ def test_kill_switch_short_circuits_before_the_credential_resolver(
     VertexConfigError — but the operator has explicitly opted embeddings out, and
     opting out cannot be allowed to fail on the config it is opting out of.
     """
-    from src import google_credentials as gc
+    from src.config import google_credentials as gc
 
     gc.get_vertex_credentials.cache_clear()
     monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")

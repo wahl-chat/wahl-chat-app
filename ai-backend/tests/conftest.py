@@ -10,10 +10,10 @@ external I/O calls in the chat stream so the smoke test requires no live API
 keys, no Qdrant service, and no Firestore data.
 
 Primary patches:
-  1. src.chat_service.embed / retrieve / retrieve_two_pass
+  1. src.services.chat.service.embed / retrieve / retrieve_two_pass
        Replaces embeddings and Qdrant retrieval with deterministic fakes.
 
-  2. src.chatbot_async.stream_answer_from_llms
+  2. src.services.chat.chatbot_async.stream_answer_from_llms
        Replaces the LLM token stream (llm.model.astream) with a deterministic
        async generator yielding two AIMessageChunk objects.
 
@@ -54,7 +54,8 @@ os.environ.setdefault("GOOGLE_API_KEY", "dummy-google-key-for-ci")
 # import never hits a live server. Tests that need a real client capture the
 # concrete class from qdrant_client.qdrant_client / async_qdrant_client.
 # ---------------------------------------------------------------------------
-from unittest.mock import MagicMock, AsyncMock, patch as _patch
+from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import patch as _patch
 
 _qdrant_client_mock = MagicMock()
 _qdrant_client_mock.get_collections.return_value = MagicMock(collections=[])
@@ -78,13 +79,11 @@ _async_qdrant_patch.start()
 # Standard imports (after env vars and patches are in place)
 # ---------------------------------------------------------------------------
 import uuid
+from collections.abc import AsyncIterator
 from typing import Any, Generator
 
 import pytest
-from collections.abc import AsyncIterator
-
 from langchain_core.messages import AIMessageChunk
-
 
 # ---------------------------------------------------------------------------
 # Deterministic fake returns for the two primary external I/O calls
@@ -227,28 +226,28 @@ def patch_chat_io(monkeypatch: pytest.MonkeyPatch) -> None:
     """Patch all external I/O calls in the chat stream.
 
     Primary patches (embed-once + retrieve() path):
-      - src.chat_service.embed → mock with aembed_query returning a zero vector
-      - src.chat_service.retrieve → returns [] (empty payloads; no Qdrant call)
-      - src.chat_service.retrieve_two_pass → deterministic manifesto-only
+      - src.services.chat.service.embed → mock with aembed_query returning a zero vector
+      - src.services.chat.service.retrieve → returns [] (empty payloads; no Qdrant call)
+      - src.services.chat.service.retrieve_two_pass → deterministic manifesto-only
           current bucket (the default context resolves a term window, so the
           chat stream takes the two-pass path)
-      - src.chatbot_async.stream_answer_from_llms → deterministic token stream
+      - src.services.chat.chatbot_async.stream_answer_from_llms → deterministic token stream
           (eliminates live LLM / OpenAI / Gemini astream call)
 
     Secondary patches (required because generate_chat_stream also calls
     these Firestore and LLM helpers; all are "external I/O"):
-      - src.chat_service.aget_parties_for_context
-      - src.chat_service.aget_proposed_questions_for_context
-      - src.chat_service.aget_cached_answers_for_party
-      - src.chat_service.awrite_cached_answer_for_party
-      - src.chat_service.aget_cached_rag_query
-      - src.chat_service.awrite_cached_rag_query
-      - src.llms.awrite_llm_status  (called by handle_rate_limit_hit)
-      - src.chatbot_async.aget_context_by_id
-      - src.chat_service.aget_context_by_id  (direct import for region_path fetch)
-      - src.chatbot_async.get_question_targets_and_type
-      - src.chatbot_async.generate_improvement_rag_query
-      - src.chatbot_async.generate_chat_title_and_chick_replies
+      - src.services.chat.service.aget_parties_for_context
+      - src.services.chat.service.aget_proposed_questions_for_context
+      - src.services.chat.service.aget_cached_answers_for_party
+      - src.services.chat.service.awrite_cached_answer_for_party
+      - src.services.chat.service.aget_cached_rag_query
+      - src.services.chat.service.awrite_cached_rag_query
+      - src.config.llms.awrite_llm_status  (called by handle_rate_limit_hit)
+      - src.services.chat.chatbot_async.aget_context_by_id
+      - src.services.chat.service.aget_context_by_id  (direct import for region_path fetch)
+      - src.services.chat.chatbot_async.get_question_targets_and_type
+      - src.services.chat.chatbot_async.generate_improvement_rag_query
+      - src.services.chat.chatbot_async.generate_chat_title_and_chick_replies
 
     Nothing in src/routes/chat.py, EventSourceResponse, or _frame() is
     touched — the real SSE generator, route, and framing run live.
@@ -256,67 +255,69 @@ def patch_chat_io(monkeypatch: pytest.MonkeyPatch) -> None:
     # Primary patches — embed.aembed_query() then await retrieve() / retrieve_two_pass.
     _fake_embed_mock = MagicMock()
     _fake_embed_mock.aembed_query = AsyncMock(return_value=_FAKE_ZERO_VECTOR)
-    monkeypatch.setattr("src.chat_service.embed", _fake_embed_mock)
-    monkeypatch.setattr("src.chat_service.retrieve", _fake_retrieve)
+    monkeypatch.setattr("src.services.chat.service.embed", _fake_embed_mock)
+    monkeypatch.setattr("src.services.chat.service.retrieve", _fake_retrieve)
     # Both retrieval entry points must be patched: contexts that resolve a term
     # window use retrieve_two_pass, all others use retrieve. Patching only
     # retrieve would leave the two-pass path exercising the Qdrant mock via
     # _safe_two_pass's exception fallback instead of real framing.
-    monkeypatch.setattr("src.chat_service.retrieve_two_pass", _fake_retrieve_two_pass)
     monkeypatch.setattr(
-        "src.chatbot_async.stream_answer_from_llms",
+        "src.services.chat.service.retrieve_two_pass", _fake_retrieve_two_pass
+    )
+    monkeypatch.setattr(
+        "src.services.chat.chatbot_async.stream_answer_from_llms",
         _fake_stream_answer,
     )
 
     # Firestore patches (secondary — no live Firestore)
     monkeypatch.setattr(
-        "src.chat_service.aget_parties_for_context",
+        "src.services.chat.service.aget_parties_for_context",
         _fake_aget_parties_for_context,
     )
     monkeypatch.setattr(
-        "src.chat_service.aget_proposed_questions_for_context",
+        "src.services.chat.service.aget_proposed_questions_for_context",
         _fake_aget_proposed_questions,
     )
     monkeypatch.setattr(
-        "src.chat_service.aget_cached_answers_for_party",
+        "src.services.chat.service.aget_cached_answers_for_party",
         _fake_aget_cached_answers,
     )
     monkeypatch.setattr(
-        "src.chat_service.awrite_cached_answer_for_party",
+        "src.services.chat.service.awrite_cached_answer_for_party",
         _fake_awrite_cached_answer,
     )
     monkeypatch.setattr(
-        "src.chat_service.aget_cached_rag_query",
+        "src.services.chat.service.aget_cached_rag_query",
         _fake_aget_cached_rag_query,
     )
     monkeypatch.setattr(
-        "src.chat_service.awrite_cached_rag_query",
+        "src.services.chat.service.awrite_cached_rag_query",
         _fake_awrite_cached_rag_query,
     )
     monkeypatch.setattr(
-        "src.llms.awrite_llm_status",
+        "src.config.llms.awrite_llm_status",
         _fake_awrite_llm_status,
     )
 
     # LLM helper patches — patched at USE SITE in chat_service (not at definition
     # site in chatbot_async) because chat_service imports the names directly:
-    #   from src.chatbot_async import get_question_targets_and_type, ...
+    #   from src.services.chat.chatbot_async import get_question_targets_and_type, ...
     monkeypatch.setattr(
-        "src.chat_service.get_question_targets_and_type",
+        "src.services.chat.service.get_question_targets_and_type",
         _fake_get_question_targets,
     )
     monkeypatch.setattr(
-        "src.chat_service.generate_improvement_rag_query",
+        "src.services.chat.service.generate_improvement_rag_query",
         _fake_generate_improvement_rag_query,
     )
     monkeypatch.setattr(
-        "src.chat_service.generate_chat_title_and_chick_replies",
+        "src.services.chat.service.generate_chat_title_and_chick_replies",
         _fake_generate_chat_title_and_quick_replies,
     )
     # aget_context_by_id is called inside chatbot_async.generate_improvement_rag_query
     # and generate_streaming_chatbot_response — patching the importers:
     monkeypatch.setattr(
-        "src.chatbot_async.aget_context_by_id",
+        "src.services.chat.chatbot_async.aget_context_by_id",
         _fake_aget_context_by_id,
     )
     # chat_service imports aget_context_by_id directly (region_path fetch at the
@@ -324,7 +325,7 @@ def patch_chat_io(monkeypatch: pytest.MonkeyPatch) -> None:
     # makes a live Firestore call, which times out (~300s) in CI where no
     # emulator listens on FIRESTORE_EMULATOR_HOST.
     monkeypatch.setattr(
-        "src.chat_service.aget_context_by_id",
+        "src.services.chat.service.aget_context_by_id",
         _fake_aget_context_by_id,
     )
 
@@ -361,8 +362,8 @@ def temp_qdrant_collection() -> "Generator[tuple, None, None]":
     conftest's module-level MagicMock patch.
     """
     try:
-        from qdrant_client.qdrant_client import QdrantClient as _RealQdrantClient
         from qdrant_client.models import Distance, VectorParams
+        from qdrant_client.qdrant_client import QdrantClient as _RealQdrantClient
 
         from src.ingestion.setup_collection import EMBEDDING_DIM
 

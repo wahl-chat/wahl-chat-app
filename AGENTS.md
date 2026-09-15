@@ -150,7 +150,7 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 | `ai-backend/` | Python backend. Package manager: uv. |
 | `ai-backend/src/app.py` | FastAPI entry point (uvicorn). |
 | `ai-backend/src/routes/` | HTTP routers: `chat` (SSE), `pro_con`, `voting_behavior`, `misc`. |
-| `ai-backend/src/chat_service.py`, `chatbot_async.py` | RAG chat pipeline + LLM streaming. |
+| `ai-backend/src/services/chat/service.py`, `chatbot_async.py` | RAG chat pipeline + LLM streaming. |
 | `ai-backend/src/ingestion/` | Ingestion framework: `connector.py` (base class), `run.py` (runner), `registry.py`, `schemas.py` (data contract), `setup_collection.py`, `retrieve.py`, `ids.py`, `speech_key.py`, `speech_dedup.py`. |
 | `ai-backend/src/ingestion/connectors/` | Per-source connectors: `abgeordnetenwatch/`, `bundestag_speeches/`, `openparliament_tv/`, `manifestos/`. Each has `connector.py`, a `client.py`, and `mappers/` that build `ChunkRecord`s. |
 | `ai-backend/src/models/` | Pydantic DTOs and domain models for the chat API. |

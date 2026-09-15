@@ -75,7 +75,7 @@ from qdrant_client import QdrantClient, models
 
 from datetime import date as _date_type
 
-from src.embeddings import get_embeddings
+from src.config.embeddings import get_embeddings
 from src.ingestion.connectors.bundestag_speeches.mappers.corpus import (
     build_chunk_records,
 )

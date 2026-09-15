@@ -46,7 +46,7 @@ from fastapi import Request as FastAPIRequest
 from langchain_core.messages import BaseMessageChunk
 from langchain_core.documents import Document
 
-from src.chatbot_async import (
+from src.services.chat.chatbot_async import (
     generate_chat_title_and_chick_replies,
     get_question_targets_and_type,
     detect_source_filter,
@@ -59,12 +59,12 @@ from src.chatbot_async import (
     format_wahl_chat_parties_list,
     prompt_improvement_llms,
 )
-from src.answer_cache import (
+from src.services.chat.answer_cache import (
     build_answer_cache_key,
     build_rag_query_cache_key,
     canonicalize_rag_context,
 )
-from src.sse import (
+from src.core.sse import (
     DONE as _DONE,
     data_event as _data_event,
     finish as _finish,
@@ -74,7 +74,7 @@ from src.sse import (
     text_end as _text_end,
     text_start as _text_start,
 )
-from src.deeplink import (
+from src.services.chat.deeplink import (
     _is_video_link,
     _refine_speech_deeplinks,
     _speech_deeplink_url,
@@ -83,7 +83,7 @@ from src.ingestion.retrieve import retrieve, retrieve_two_pass
 from src.ingestion.connectors.abgeordnetenwatch.legislature_config import (
     term_window_for_context,
 )
-from src.firebase_service import (
+from src.services.firebase_service import (
     aget_cached_answers_for_party,
     aget_cached_rag_query,
     aget_context_by_id,
@@ -100,10 +100,10 @@ from src.models.dtos import (
     Status,
     StatusIndicator,
 )
-from src.embeddings import get_embeddings
+from src.config.embeddings import get_embeddings
 from src.models.context import ContextParty
 from src.models.party import WAHL_CHAT_PARTY
-from src.prompts import (
+from src.core.prompts import (
     RAG_QUERY_SOURCE_FILTER_NOTE_DE,
     build_prompt_context,
     get_wahl_chat_answer_guidelines,
@@ -114,7 +114,7 @@ from src.prompts import (
     user_prompt_improvement_template_str,
     wahl_chat_response_system_prompt_template_str,
 )
-from src.utils import (
+from src.core.utils import (
     GENERIC_ERROR_MESSAGE,
     build_chat_history_string,
     sanitize_references,

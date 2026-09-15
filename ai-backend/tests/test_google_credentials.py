@@ -30,9 +30,9 @@ import logging
 
 import pytest
 
-from src import google_credentials as gc
+from src.config import google_credentials as gc
 
-_LOGGER_NAME = "src.google_credentials"
+_LOGGER_NAME = "src.config.google_credentials"
 
 
 @pytest.fixture(autouse=True)

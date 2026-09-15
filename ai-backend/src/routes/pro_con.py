@@ -5,7 +5,7 @@ SSE pro-con endpoint — POST /api/v1/pro-con.
 
 Streams a pro/con perspective as a v5 ``data-chat_event`` part (inner type
 "pro_con_result"), then finish + [DONE]. On error: a ``data-chat_event`` with
-inner type "error", then [DONE]. Framing helpers live in src.sse.
+inner type "error", then [DONE]. Framing helpers live in src.core.sse.
 """
 
 import logging
@@ -13,10 +13,10 @@ import logging
 from fastapi import APIRouter
 from sse_starlette.sse import EventSourceResponse
 
-from src.chatbot_async import generate_pro_con_perspective
-from src.sse import DONE, data_event, finish
-from src.utils import GENERIC_ERROR_MESSAGE
-from src.firebase_service import aget_party_for_context
+from src.services.chat.chatbot_async import generate_pro_con_perspective
+from src.core.sse import DONE, data_event, finish
+from src.core.utils import GENERIC_ERROR_MESSAGE
+from src.services.firebase_service import aget_party_for_context
 from src.models.chat import Message
 from src.models.context import DEFAULT_CONTEXT_ID
 from src.models.dtos import (
