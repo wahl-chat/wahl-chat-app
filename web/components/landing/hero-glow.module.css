@@ -1,0 +1,51 @@
+.layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse at 42% 38%,
+    rgba(var(--glow-color), var(--glow-center, 0.045)) 0%,
+    rgba(var(--glow-color), var(--glow-edge, 0.018)) 35%,
+    transparent 70%
+  );
+  animation: glow-crossfade 32s ease-in-out infinite;
+}
+
+.coral {
+  --glow-color: 237, 56, 51;
+  opacity: 1;
+}
+
+/* The secondary colors match the chat input's loading trail. */
+.purple {
+  --glow-color: 147, 51, 234;
+  animation-delay: -24s;
+}
+
+.blue {
+  --glow-color: 59, 130, 246;
+  animation-delay: -16s;
+}
+
+.pink {
+  --glow-color: 236, 72, 153;
+  animation-delay: -8s;
+}
+
+@keyframes glow-crossfade {
+  0%,
+  10%,
+  100% {
+    opacity: 1;
+  }
+  25%,
+  85% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer {
+    animation: none;
+  }
+}

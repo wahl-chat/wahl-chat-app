@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { buildChatSessionUrl } from '@/lib/chat-route';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
@@ -8,6 +9,7 @@ type Props = {
   selectedPartyIds: string[];
   onSubmit: () => void;
   addPartiesToChat?: boolean;
+  selectionOnly?: boolean;
   contextId?: string;
 };
 
@@ -15,32 +17,32 @@ function ChatGroupPartySelectSubmitButton({
   selectedPartyIds,
   onSubmit,
   addPartiesToChat,
+  selectionOnly = false,
   contextId = DEFAULT_CONTEXT_ID,
 }: Props) {
   const router = useRouter();
 
   const navigateUrl = useMemo(() => {
-    const searchParams = new URLSearchParams();
-    selectedPartyIds.forEach((partyId) => {
-      searchParams.append('party_id', partyId);
-    });
-
-    return `/${contextId}/session?${searchParams.toString()}`;
+    return buildChatSessionUrl({ contextId, partyIds: selectedPartyIds });
   }, [selectedPartyIds, contextId]);
 
   const handleSubmit = () => {
     onSubmit();
-    if (!addPartiesToChat) router.push(navigateUrl);
+    if (!addPartiesToChat && !selectionOnly) router.push(navigateUrl);
   };
 
   useEffect(() => {
-    if (!addPartiesToChat) router.prefetch(navigateUrl);
-  }, [navigateUrl, addPartiesToChat, router]);
+    if (!addPartiesToChat && !selectionOnly) router.prefetch(navigateUrl);
+  }, [navigateUrl, addPartiesToChat, selectionOnly, router]);
 
   return (
     <ResponsiveDialogClose asChild>
       <Button className="w-full" onClick={handleSubmit}>
-        {addPartiesToChat ? 'Parteien ändern' : 'Vergleichschat starten'}
+        {selectionOnly
+          ? 'Auswahl übernehmen'
+          : addPartiesToChat
+            ? 'Parteien ändern'
+            : 'Vergleichschat starten'}
       </Button>
     </ResponsiveDialogClose>
   );

@@ -1,50 +1,51 @@
 import { cn } from '@/lib/utils';
+import InfoCard, { type GridPosition } from './info-card';
 
 type Props = {
   id?: string;
-  /**
-   * The section's single h2. Omitted for sections that carry their own label,
-   * such as the press strip's "Bekannt aus:".
-   */
-  title?: string;
-  className?: string;
-  /**
-   * Narrows the band. Sits on the same element as the heading, so a narrowed
-   * section keeps its heading and its content on one axis.
-   */
-  contentClassName?: string;
+  title: string;
+  eyebrow?: string;
+  description?: string;
+  gridPosition?: GridPosition;
   children: React.ReactNode;
 };
 
-/**
- * One band of the landing page.
- *
- * Owns the side gutter, the vertical rhythm and the heading level so the eight
- * sections cannot drift apart, and so the page keeps exactly one h2 per
- * section under its single h1.
- */
+/** Shared card geometry keeps the landing page's sections on one visual axis. */
 function LandingSection({
   id,
   title,
-  className,
-  contentClassName,
+  eyebrow,
+  description,
+  gridPosition = 'top-center',
   children,
 }: Props) {
   return (
-    <section id={id} className={cn('w-full px-5 py-14 md:py-20', className)}>
-      <div className={cn('mx-auto w-full max-w-5xl', contentClassName)}>
-        {/* Left on mobile, centred from md up. Decided here rather than per
-            section so every band's heading sits on the same axis: the sections
-            differ in how wide their content is, and a left-aligned heading
-            then starts at a different x in each one. */}
-        {title && (
-          <h2 className="mb-8 text-balance text-left text-2xl font-bold tracking-tight text-foreground md:text-center md:text-3xl">
-            {title}
-          </h2>
-        )}
-
+    <section id={id} className="w-full px-5 pb-6 md:pb-8">
+      <InfoCard gridPosition={gridPosition}>
+        <div
+          className={cn(
+            'p-5 sm:p-6',
+            description && 'grid gap-4 md:grid-cols-2 md:gap-8',
+          )}
+        >
+          <div>
+            {eyebrow && (
+              <p className="mb-4 text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                {eyebrow}
+              </p>
+            )}
+            <h2 className="text-balance text-3xl font-semibold leading-tight tracking-[-0.035em] md:text-4xl">
+              {title}
+            </h2>
+          </div>
+          {description && (
+            <p className="self-end text-sm leading-relaxed text-muted-foreground">
+              {description}
+            </p>
+          )}
+        </div>
         {children}
-      </div>
+      </InfoCard>
     </section>
   );
 }

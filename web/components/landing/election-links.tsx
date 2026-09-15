@@ -1,6 +1,7 @@
 import { ContextIcon } from '@/components/context-icon';
-import type { Context } from '@/lib/firebase/firebase.types';
-import { formatGermanDate } from '@/lib/utils';
+import ExampleQuestions from '@/components/landing/example-questions';
+import type { Context, ProposedQuestion } from '@/lib/firebase/firebase.types';
+import { cn, formatGermanDate } from '@/lib/utils';
 import { ChevronDownIcon } from 'lucide-react';
 import Link from 'next/link';
 
@@ -26,31 +27,37 @@ import Link from 'next/link';
 type Props = {
   upcoming: Context[];
   past: Context[];
+  questionsByContext: Record<string, ProposedQuestion[]>;
 };
 
 function ElectionCard({
   context,
   concluded,
+  questions = [],
 }: {
   context: Context;
   concluded?: boolean;
+  questions?: ProposedQuestion[];
 }) {
   const date = formatGermanDate(context.date, 'medium');
 
   return (
-    <li>
+    <li
+      className={cn(
+        'min-w-0',
+        !concluded && 'md:grid md:grid-cols-2 md:items-start md:gap-8',
+      )}
+    >
       <Link
         href={`/${context.context_id}`}
-        className="group flex h-full items-center gap-3 rounded-md border border-border p-3 ring-offset-background transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="flex items-center gap-3 rounded-xl p-3 ring-offset-background transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         <ContextIcon context={context} className="size-8 shrink-0 rounded-sm" />
 
         <span className="flex min-w-0 flex-col">
           {/* Wraps rather than truncating: election names are long enough that
               an ellipsis hides which election a card is for. */}
-          <span className="text-pretty font-medium group-hover:underline">
-            {context.name}
-          </span>
+          <span className="text-pretty font-medium">{context.name}</span>
 
           {date && (
             <span className="text-xs text-muted-foreground">
@@ -59,25 +66,38 @@ function ElectionCard({
           )}
         </span>
       </Link>
+      {!concluded && (
+        <ExampleQuestions
+          contextId={context.context_id}
+          questions={questions}
+        />
+      )}
     </li>
   );
 }
 
-function ElectionLinks({ upcoming, past }: Props) {
+function ElectionLinks({ upcoming, past, questionsByContext }: Props) {
   if (upcoming.length === 0 && past.length === 0) return null;
 
   return (
-    <nav aria-label="Alle Wahlen" className="flex flex-col gap-4">
+    <nav
+      aria-label="Alle Wahlen"
+      className="flex flex-col gap-4 px-5 pb-5 sm:px-6 sm:pb-6"
+    >
       {upcoming.length > 0 && (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-4 divide-y divide-border/70 [&>li:not(:first-child)]:pt-4">
           {upcoming.map((context) => (
-            <ElectionCard key={context.context_id} context={context} />
+            <ElectionCard
+              key={context.context_id}
+              context={context}
+              questions={questionsByContext[context.context_id]}
+            />
           ))}
         </ul>
       )}
 
       {past.length > 0 && (
-        <details className="group">
+        <details className="group border-t border-border/70 pt-5">
           <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
             Vergangene Wahlen anzeigen
             <ChevronDownIcon

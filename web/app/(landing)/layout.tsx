@@ -1,4 +1,7 @@
 import LandingFooter from '@/components/landing/landing-footer';
+import LandingHeader from '@/components/landing/landing-header';
+import { getNextUpcomingElection } from '@/lib/elections';
+import { getContexts } from '@/lib/firebase/firebase-server';
 
 type Props = {
   children: React.ReactNode;
@@ -7,16 +10,17 @@ type Props = {
 /**
  * Shell for the landing page.
  *
- * / deliberately does not use the shared header: the hero fills the viewport
- * and carries the site logo itself, so a bar above it would only compete with
- * the call to action. It does get a footer, outside <main> so it is a real
- * contentinfo landmark — the page is a long scrolling document now, and the
- * links a visitor still needs belong at the end of it rather than crammed
- * under the hero.
+ * / uses its own compact header and footer around the server-rendered landing
+ * content. The shared application header depends on an election context, while
+ * this page lets the visitor choose that context before entering the chat.
  */
-function LandingLayout({ children }: Props) {
+async function LandingLayout({ children }: Props) {
+  const contexts = await getContexts();
+  const featured = getNextUpcomingElection(contexts) ?? contexts[0];
+
   return (
     <>
+      <LandingHeader contextId={featured?.context_id} />
       <main className="flex w-full flex-col">{children}</main>
       <LandingFooter />
     </>

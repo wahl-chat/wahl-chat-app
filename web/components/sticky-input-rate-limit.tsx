@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useEffect, useRef, useState } from 'react';
 import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
+import type { StickyInputAppearance } from './sticky-input';
 
 type Props = {
   isLoading: boolean;
   onSubmit: (message: string) => void;
   quickReplies?: string[];
   className?: string;
+  appearance?: StickyInputAppearance;
 };
 
 function StickyInputRateLimit({
@@ -17,6 +19,7 @@ function StickyInputRateLimit({
   onSubmit,
   quickReplies,
   className,
+  appearance = 'default',
 }: Props) {
   const [isSticky, setIsSticky] = useState(true);
   const ref = useRef<HTMLDivElement>(null);
@@ -42,8 +45,9 @@ function StickyInputRateLimit({
     <div
       ref={ref}
       className={cn(
-        'sticky bottom-[-1px] -mx-2 md:pb-2 pb-4 z-40 transition-all duration-300 ease-out',
-        !isSticky && 'mx-0',
+        appearance === 'default' &&
+          'sticky bottom-[-1px] -mx-2 z-40 pb-4 transition-all duration-300 ease-out md:pb-2',
+        appearance === 'default' && !isSticky && 'mx-0',
         className,
       )}
     >
@@ -51,7 +55,8 @@ function StickyInputRateLimit({
         className={cn(
           'relative w-full overflow-hidden rounded-lg border border-input bg-muted py-3 md:py-4',
           'shadow-2xl transition-shadow',
-          !isSticky && 'shadow-none',
+          appearance === 'hero' && 'rounded-[20px] shadow-none',
+          appearance === 'default' && !isSticky && 'shadow-none',
         )}
       >
         {quickReplies && quickReplies.length > 0 && (

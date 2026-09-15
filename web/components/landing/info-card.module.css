@@ -1,0 +1,53 @@
+.card {
+  --card-active-border: color-mix(
+    in srgb,
+    hsl(var(--border) / 0.7) 95%,
+    hsl(var(--foreground)) 5%
+  );
+  position: relative;
+  isolation: isolate;
+  --grid-x: 10%;
+  transition: border-color 250ms ease;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.055;
+  background-image: linear-gradient(to right, currentColor 1px, transparent 1px),
+    linear-gradient(to bottom, currentColor 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(
+    circle 320px at var(--grid-x) 0%,
+    black 0%,
+    transparent 100%
+  );
+}
+
+.card[data-grid-position="top-center"] {
+  --grid-x: 50%;
+}
+
+.card[data-grid-position="top-right"] {
+  --grid-x: 90%;
+}
+
+@media (hover: hover) {
+  .card:hover {
+    border-color: var(--card-active-border);
+  }
+}
+
+.card:focus-within {
+  border-color: var(--card-active-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card::before {
+    transition: none;
+  }
+}

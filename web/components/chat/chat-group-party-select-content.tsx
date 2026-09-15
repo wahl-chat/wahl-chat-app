@@ -11,6 +11,7 @@ import { ResponsiveDialogFooter } from './responsive-drawer-dialog';
 
 type Props = {
   selectedPartyIdsInStore?: string[];
+  onApplySelection?: (partyIds: string[]) => void;
   onNewChat?: (partyIds: string[]) => void;
   addPartiesToChat?: boolean;
   contextId?: string;
@@ -19,6 +20,7 @@ type Props = {
 function ChatGroupPartySelectContent({
   selectedPartyIdsInStore,
   onNewChat,
+  onApplySelection,
   addPartiesToChat,
   contextId: propContextId,
 }: Props) {
@@ -58,7 +60,8 @@ function ChatGroupPartySelectContent({
       party_ids: selectedPartyIds.join(','),
       context: contextId,
     });
-    onNewChat?.(selectedPartyIds);
+    if (onApplySelection) onApplySelection(selectedPartyIds);
+    else onNewChat?.(selectedPartyIds);
   };
 
   return (
@@ -73,6 +76,7 @@ function ChatGroupPartySelectContent({
         <ChatGroupPartySelectSubmitButton
           selectedPartyIds={selectedPartyIds}
           onSubmit={handleNewChat}
+          selectionOnly={Boolean(onApplySelection)}
           addPartiesToChat={addPartiesToChat}
           contextId={contextId}
         />
