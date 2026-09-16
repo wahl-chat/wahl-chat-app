@@ -92,8 +92,15 @@ export const STUDY_QUESTIONNAIRE_FORM_ID = 's9muKGX2zcus';
  * `https://forms.fillout.com/t/<id>`; a bare id works too), otherwise the
  * default above.
  *
- * `user_id` and `chat_session_id` are passed to the embed as parameters. The
- * cohort is NEVER passed, so participants cannot unblind themselves.
+ * `user_id`, `chat_session_id` and `cohort` are passed to the embed as
+ * parameters, matching the hidden fields on the form, so an export is
+ * self-contained. Passing the cohort is a deliberate reversal of the original
+ * "never unblind" rule: it does put the arm in the iframe URL where a curious
+ * participant could read it. The arm is already inferable from whether
+ * PledgeTracker rendered, and the analysis join on `user_id` remains the
+ * authoritative source — `study_participants/{uid}.cohort`, which alone
+ * carries `assignment_source` and so distinguishes real participants from
+ * ?sg= testers.
  */
 export function questionnaireFormId(): string {
   const configured = process.env.NEXT_PUBLIC_STUDY_QUESTIONNAIRE_URL?.trim();

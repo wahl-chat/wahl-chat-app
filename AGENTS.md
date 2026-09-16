@@ -358,8 +358,13 @@ PledgeTracker change users' willingness to engage in political debate?
   rather than reused so the two regimes stay distinguishable in `events`.
   The form opens IN-APP via
   `FilloutPopupEmbed` (same pattern as `survey-banner.tsx`), carrying
-  `user_id` + `chat_session_id` as parameters; trigger/context stay in the
-  event log, and the cohort is never passed (no self-unblinding). While the
+  `user_id` + `chat_session_id` + `cohort` as parameters (matching the form's
+  hidden fields); trigger/context stay in the event log. Passing the cohort
+  reverses the original no-self-unblinding rule — it is readable in the iframe
+  URL — and it is a CONVENIENCE COPY only: `study_participants/{uid}` stays
+  authoritative, because it alone carries `assignment_source` and so tells a
+  real participant from a `?sg=` tester. A Fillout row's `cohort` cannot do
+  that on its own. While the
   study is on, the study questionnaire is the ONLY thing anyone is asked for,
   app-wide: `StudyStatusProvider` holds one kill-switch subscription and
   `useStudyRunning()` suppresses the general feedback banner, the newsletter

@@ -51,6 +51,7 @@ type Props = {
  */
 function ChatStudyQuestionnairePrompt({ userId }: Props) {
   const studyConsent = useChatStore((state) => state.studyConsent);
+  const studyCohort = useChatStore((state) => state.studyCohort);
   // The Firestore chat_sessions doc id (promoted from safeSessionId on the
   // first send), so a response joins to the chat and, through
   // page_visits.chat_session_ids, to that visit's dwell time.
@@ -200,6 +201,13 @@ function ChatStudyQuestionnairePrompt({ userId }: Props) {
           parameters={{
             user_id: userId,
             chat_session_id: chatSessionId,
+            // Hidden `cohort` field on the Fillout form, so an export carries
+            // the arm without a Firestore join. Note this puts the arm in the
+            // iframe URL, where a determined participant can read it — the
+            // blind is only as strong as the address bar. Fillout skips falsy
+            // values, so an unassigned cohort omits the param rather than
+            // recording the string "undefined".
+            cohort: studyCohort,
           }}
           onClose={() => setFormOpen(false)}
           inheritParameters
