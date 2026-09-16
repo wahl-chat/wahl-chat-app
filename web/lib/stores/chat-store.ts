@@ -76,6 +76,7 @@ const defaultState: ChatStoreState = {
   studyQuestionnaireClicked: false,
   pledgeModalOpen: false,
   firstAnswerCompletedAt: undefined,
+  secondAnswerCompletedAt: undefined,
 };
 
 export function createChatStore(initialState?: Partial<ChatStore>) {

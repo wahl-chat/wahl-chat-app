@@ -186,10 +186,21 @@ export type ChatStoreState = {
   /** Questionnaire prompts shown so far (mirror of the persisted event log). */
   studyPromptCount: number;
   studyQuestionnaireClicked?: boolean;
-  /** The PledgeTracker popup is open (drives questionnaire trigger timing). */
+  /**
+   * The PledgeTracker popup is open. Written for its own sake only — the
+   * questionnaire deliberately ignores it, so that prompting cannot depend on
+   * a surface just one arm can see. Modal open/close is still captured as
+   * telemetry (pledge_modal_open / _close) by chat-single-message.
+   */
   pledgeModalOpen: boolean;
   /** Epoch ms when the FIRST answer of this session finished streaming. */
   firstAnswerCompletedAt?: number;
+  /**
+   * Epoch ms when the SECOND answer finished streaming — the primary
+   * questionnaire trigger, i.e. the first moment the user has demonstrably
+   * engaged rather than merely arrived.
+   */
+  secondAnswerCompletedAt?: number;
 };
 
 export type ChatStoreActions = {

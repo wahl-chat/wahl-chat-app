@@ -12,9 +12,10 @@ import {
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Button } from '@/components/ui/button';
 import {
-  MAX_PROMPTS,
-  MODAL_LONGSTOP_MS,
-  QUESTIONNAIRE_DELAY_MS,
+  absoluteFallbackRemainingMs,
+  isPromptEligible,
+} from '@/lib/pledge-study/prompt-triggers';
+import {
   type QuestionnaireTrigger,
   questionnaireFormId,
 } from '@/lib/pledge-study/study-config';
@@ -29,20 +30,24 @@ type Props = {
 /**
  * Shows the questionnaire prompt.
  *
- * Both cohorts use the same rules. Seeing a pledge card is not a condition.
+ * Both cohorts use identical rules, and nothing here reads PledgeTracker
+ * state. That is the whole point: every earlier modal-driven trigger could
+ * only fire for the manipulation arm, so the two arms were prompted on
+ * different paths — a difference inside the instrument measuring the outcome.
  *
- * Three triggers can show the prompt:
+ * Two triggers, whichever comes first:
  *
- * 1. timer: fires QUESTIONNAIRE_DELAY_MS after the first answer completes.
- *    That is when the user starts reading. An open pledge modal delays it.
- *    This trigger fires only once.
- * 2. modal_close: fires when the user closes the pledge modal. This is the
- *    only trigger that can show a second prompt.
- * 3. longstop: fires if the pledge modal stays open for MODAL_LONGSTOP_MS.
- *    It catches a tab that the user left open.
+ * 1. second_answer: the SECOND answer of the session finishes. The intended
+ *    path — the user has read one answer and asked again, so the
+ *    questionnaire reaches someone who has something to say about the
+ *    product rather than someone who has merely arrived.
+ * 2. absolute_timer: ABSOLUTE_FALLBACK_MS after the FIRST answer completes,
+ *    and only while nothing has prompted yet. It catches the user who never
+ *    sends a second message, so being asked at all does not depend on depth
+ *    of engagement.
  *
- * MAX_PROMPTS is the hard limit. The count comes from the stored event log,
- * so it survives a reload.
+ * Each trigger fires at most once per mount. MAX_PROMPTS is the hard cap and
+ * is derived from the stored event log, so it survives a reload.
  */
 function ChatStudyQuestionnairePrompt({ userId }: Props) {
   const studyConsent = useChatStore((state) => state.studyConsent);
@@ -53,7 +58,9 @@ function ChatStudyQuestionnairePrompt({ userId }: Props) {
   const firstAnswerCompletedAt = useChatStore(
     (state) => state.firstAnswerCompletedAt,
   );
-  const pledgeModalOpen = useChatStore((state) => state.pledgeModalOpen);
+  const secondAnswerCompletedAt = useChatStore(
+    (state) => state.secondAnswerCompletedAt,
+  );
   const studyPromptCount = useChatStore((state) => state.studyPromptCount);
   const studyQuestionnaireClicked = useChatStore(
     (state) => state.studyQuestionnaireClicked,
@@ -70,17 +77,21 @@ function ChatStudyQuestionnairePrompt({ userId }: Props) {
     trigger: QuestionnaireTrigger;
   } | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const prevModalOpenRef = useRef(false);
+  // One shot per trigger: `eligible` turns true again after a dismissal, and
+  // a still-satisfied condition would otherwise re-prompt on the next render.
+  const secondAnswerFiredRef = useRef(false);
+  const absoluteFiredRef = useRef(false);
 
   // Always resolves: the default form id is committed, and the env var only
   // overrides it. Turning the questionnaire off is the kill switch's job.
   const formId = questionnaireFormId();
 
-  const eligible =
-    studyConsent === 'accepted' &&
-    !studyQuestionnaireClicked &&
-    studyPromptCount < MAX_PROMPTS &&
-    activePrompt === null;
+  const eligible = isPromptEligible({
+    consent: studyConsent,
+    questionnaireClicked: Boolean(studyQuestionnaireClicked),
+    promptCount: studyPromptCount,
+    promptShowing: activePrompt !== null,
+  });
 
   const showPrompt = useCallback(
     (trigger: QuestionnaireTrigger) => {
@@ -91,51 +102,40 @@ function ChatStudyQuestionnairePrompt({ userId }: Props) {
     [incrementStudyPromptCount, recordStudyEvent],
   );
 
-  // timer: first prompt only. An open pledge modal delays it; a follow-up
-  // answer that is still streaming does not. Waiting for the stream to finish
-  // used to push the prompt past its delay, so it then fired instantly at the
-  // next idle moment, which interrupts more than a scheduled prompt does.
+  // second_answer — the primary trigger, fired the moment the second answer
+  // of the session lands. No delay: the user has just finished a round trip,
+  // which is the point at which they have an opinion to give.
   useEffect(() => {
-    if (!eligible || studyPromptCount > 0) {
+    if (!eligible || secondAnswerFiredRef.current) {
       return;
     }
-    if (firstAnswerCompletedAt === undefined || pledgeModalOpen) {
+    if (secondAnswerCompletedAt === undefined) {
       return;
     }
-    const remaining = Math.max(
-      0,
-      QUESTIONNAIRE_DELAY_MS - (Date.now() - firstAnswerCompletedAt),
-    );
-    const timer = window.setTimeout(() => showPrompt('timer'), remaining);
-    return () => window.clearTimeout(timer);
-  }, [
-    eligible,
-    studyPromptCount,
-    firstAnswerCompletedAt,
-    pledgeModalOpen,
-    showPrompt,
-  ]);
+    secondAnswerFiredRef.current = true;
+    showPrompt('second_answer');
+  }, [eligible, secondAnswerCompletedAt, showPrompt]);
 
-  // modal_close — prompt on the open→closed transition.
+  // absolute_timer — the safeguard, counted from the first completed answer.
+  // The studyPromptCount check keeps it a fallback: once anything has asked,
+  // this must not tap the same user again a few seconds later.
   useEffect(() => {
-    const wasOpen = prevModalOpenRef.current;
-    prevModalOpenRef.current = pledgeModalOpen;
-    if (wasOpen && !pledgeModalOpen && eligible) {
-      showPrompt('modal_close');
-    }
-  }, [pledgeModalOpen, eligible, showPrompt]);
-
-  // longstop — a modal held open past the cap prompts anyway.
-  useEffect(() => {
-    if (!eligible || !pledgeModalOpen) {
+    if (!eligible || absoluteFiredRef.current || studyPromptCount > 0) {
       return;
     }
-    const timer = window.setTimeout(
-      () => showPrompt('longstop'),
-      MODAL_LONGSTOP_MS,
+    if (firstAnswerCompletedAt === undefined) {
+      return;
+    }
+    const remaining = absoluteFallbackRemainingMs(
+      firstAnswerCompletedAt,
+      Date.now(),
     );
+    const timer = window.setTimeout(() => {
+      absoluteFiredRef.current = true;
+      showPrompt('absolute_timer');
+    }, remaining);
     return () => window.clearTimeout(timer);
-  }, [eligible, pledgeModalOpen, showPrompt]);
+  }, [eligible, studyPromptCount, firstAnswerCompletedAt, showPrompt]);
 
   const dismiss = () => {
     if (!activePrompt) {

@@ -20,7 +20,7 @@ export const STUDY_CONTEXT_IDS = [
   'landtagswahl-mecklenburg-vorpommern-2026',
 ] as const;
 
-export type QuestionnaireTrigger = 'timer' | 'modal_close' | 'longstop';
+export type QuestionnaireTrigger = 'second_answer' | 'absolute_timer';
 
 // The data vocabulary lives in ./types (a non-client module, because the
 // Firestore documents it describes are read by server code too).
@@ -32,8 +32,18 @@ export type {
 
 // Questionnaire prompt timing — named constants so the researchers can tune
 // without a code hunt (see the study runbook in AGENTS.md).
-export const QUESTIONNAIRE_DELAY_MS = 15_000; // after the first answer completes
-export const MODAL_LONGSTOP_MS = 90_000; // catches a never-closed pledge modal
+//
+// Nothing about the prompt depends on PledgeTracker any more. Both triggers
+// are reachable by BOTH arms, which is what finally makes the "identical for
+// both cohorts" claim true: the modal-based triggers this replaced could only
+// ever fire for the manipulation arm, so the users who saw the feature were
+// prompted on paths a control user could never reach — differential prompt
+// exposure by arm, in the one instrument measuring the outcome.
+//
+// The absolute fallback is anchored to the FIRST completed answer and only
+// fires if nothing has prompted yet: it exists so a user who never reaches a
+// second message is still asked once, not to re-tap someone already asked.
+export const ABSOLUTE_FALLBACK_MS = 60_000;
 export const MAX_PROMPTS = 2; // hard cap, persisted — never nag past this
 
 // Changing the salt reshuffles ALL assignments — never change it while the

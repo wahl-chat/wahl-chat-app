@@ -339,14 +339,24 @@ PledgeTracker change users' willingness to engage in political debate?
   control assignment. Outside the study contexts the product is unchanged.
 - **Telemetry** (consent-gated, `recordStudyEvent`): append-only `events` on
   the participant doc — `first_message`, `first_answer_completed`,
-  `pledge_shown` (viewport exposure), `pledge_modal_open`/`_close`,
+  `second_answer_completed`, `pledge_shown` (viewport exposure),
+  `pledge_modal_open`/`_close`,
   `prompt_shown`/`prompt_dismissed` (with trigger), `questionnaire_clicked`.
   Counts and firsts are derived from the log at analysis time.
-- **Questionnaire prompts** (identical for both cohorts — control symmetry):
-  a timer 15s after the FIRST completed answer (an open pledge modal delays
-  it; a streaming follow-up does not), an immediate prompt on pledge-modal
-  close, and a 90s longstop inside a modal;
-  max 2 prompts ever, cap survives reloads. The form opens IN-APP via
+- **Questionnaire prompts** (identical for both cohorts — control symmetry,
+  and now genuinely so): `second_answer` fires when the SECOND answer of the
+  session completes; `absolute_timer` fires `ABSOLUTE_FALLBACK_MS` (60s)
+  after the FIRST completed answer and only while nothing has prompted yet,
+  so a user who never sends a second message is still asked once. Whichever
+  comes first wins; each fires at most once; max 2 prompts ever, cap survives
+  reloads. **Nothing about prompting reads PledgeTracker state.** The former
+  `modal_close` and `longstop` triggers did, and since only the manipulation
+  arm can open a pledge modal, that arm had prompt paths control could never
+  reach — differential prompt exposure inside the instrument measuring the
+  outcome. Rows written before this change carry the retired
+  `timer`/`modal_close`/`longstop` trigger values; the vocabulary was renamed
+  rather than reused so the two regimes stay distinguishable in `events`.
+  The form opens IN-APP via
   `FilloutPopupEmbed` (same pattern as `survey-banner.tsx`), carrying
   `user_id` + `chat_session_id` as parameters; trigger/context stay in the
   event log, and the cohort is never passed (no self-unblinding). While the
@@ -378,8 +388,9 @@ PledgeTracker change users' willingness to engage in political debate?
   participant out of the study. Two caveats: an override link bypasses the kill
   switch, and variants a/b can submit the real questionnaire, which Fillout
   records without the flag (cross-reference on `user_id` to exclude).
-- Known simplifications: the idle predicate tracks streaming and the pledge
-  modal (not every uncontrolled dialog); the kill switch is client-read only
+- Known simplifications: a prompt can land while another dialog is open (the
+  triggers are time- and turn-based, not idle-based); the kill switch is
+  client-read only
   (default-off hides everything until the snapshot arrives); a second device
   is a new participant (anonymous auth — accepted trade-off).
 
