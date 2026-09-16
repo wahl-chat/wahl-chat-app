@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import {
   absoluteFallbackRemainingMs,
   isPromptEligible,
+  secondAnswerDelayRemainingMs,
 } from '@/lib/pledge-study/prompt-triggers';
 import {
   type QuestionnaireTrigger,
@@ -37,17 +38,20 @@ type Props = {
  *
  * Two triggers, whichever comes first:
  *
- * 1. second_answer: the SECOND answer of the session finishes. The intended
- *    path — the user has read one answer and asked again, so the
- *    questionnaire reaches someone who has something to say about the
- *    product rather than someone who has merely arrived.
- * 2. absolute_timer: ABSOLUTE_FALLBACK_MS after the FIRST answer completes,
- *    and only while nothing has prompted yet. It catches the user who never
- *    sends a second message, so being asked at all does not depend on depth
- *    of engagement.
+ * 1. second_answer: the participant's SECOND answer finishes, then a short
+ *    SECOND_ANSWER_DELAY_MS pause so the prompt does not pounce the moment
+ *    the text stops streaming. The intended path — the user has read one
+ *    answer and asked again, so the questionnaire reaches someone with
+ *    something to say rather than someone who has merely arrived. The count
+ *    spans chats: a second question asked in a fresh chat still counts.
+ * 2. absolute_timer: ABSOLUTE_FALLBACK_MS after the first answer of this
+ *    chat completes. It catches the user who never sends a second message,
+ *    so being asked at all does not depend on depth of engagement.
  *
- * Each trigger fires at most once per mount. MAX_PROMPTS is the hard cap and
- * is derived from the stored event log, so it survives a reload.
+ * Both require that nothing has prompted yet, so whichever comes first wins
+ * and the other stands down — otherwise a second answer landing just before
+ * the fallback deadline would produce two prompts seconds apart. MAX_PROMPTS
+ * remains the outer backstop, derived from the stored event log.
  */
 function ChatStudyQuestionnairePrompt({ userId }: Props) {
   const studyConsent = useChatStore((state) => state.studyConsent);
@@ -103,19 +107,25 @@ function ChatStudyQuestionnairePrompt({ userId }: Props) {
     [incrementStudyPromptCount, recordStudyEvent],
   );
 
-  // second_answer — the primary trigger, fired the moment the second answer
-  // of the session lands. No delay: the user has just finished a round trip,
-  // which is the point at which they have an opinion to give.
+  // second_answer — the primary trigger. Waits out the settle delay from the
+  // stamp, so switching chats mid-wait does not restart the countdown.
   useEffect(() => {
-    if (!eligible || secondAnswerFiredRef.current) {
+    if (!eligible || secondAnswerFiredRef.current || studyPromptCount > 0) {
       return;
     }
     if (secondAnswerCompletedAt === undefined) {
       return;
     }
-    secondAnswerFiredRef.current = true;
-    showPrompt('second_answer');
-  }, [eligible, secondAnswerCompletedAt, showPrompt]);
+    const remaining = secondAnswerDelayRemainingMs(
+      secondAnswerCompletedAt,
+      Date.now(),
+    );
+    const timer = window.setTimeout(() => {
+      secondAnswerFiredRef.current = true;
+      showPrompt('second_answer');
+    }, remaining);
+    return () => window.clearTimeout(timer);
+  }, [eligible, studyPromptCount, secondAnswerCompletedAt, showPrompt]);
 
   // absolute_timer — the safeguard, counted from the first completed answer.
   // The studyPromptCount check keeps it a fallback: once anything has asked,

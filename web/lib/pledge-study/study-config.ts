@@ -43,7 +43,10 @@ export type {
 // The absolute fallback is anchored to the FIRST completed answer and only
 // fires if nothing has prompted yet: it exists so a user who never reaches a
 // second message is still asked once, not to re-tap someone already asked.
-export const ABSOLUTE_FALLBACK_MS = 60_000;
+export const ABSOLUTE_FALLBACK_MS = 90_000;
+// Breathing room after the second answer lands, so the prompt does not pounce
+// the instant the text stops streaming.
+export const SECOND_ANSWER_DELAY_MS = 10_000;
 export const MAX_PROMPTS = 2; // hard cap, persisted — never nag past this
 
 // Changing the salt reshuffles ALL assignments — never change it while the

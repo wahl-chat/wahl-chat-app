@@ -193,14 +193,30 @@ export type ChatStoreState = {
    * telemetry (pledge_modal_open / _close) by chat-single-message.
    */
   pledgeModalOpen: boolean;
-  /** Epoch ms when the FIRST answer of this session finished streaming. */
+  /**
+   * Epoch ms when the first answer of THIS chat finished streaming — the
+   * anchor for the absolute fallback.
+   */
   firstAnswerCompletedAt?: number;
   /**
-   * Epoch ms when the SECOND answer finished streaming — the primary
-   * questionnaire trigger, i.e. the first moment the user has demonstrably
-   * engaged rather than merely arrived.
+   * Epoch ms when the PARTICIPANT's second answer finished streaming — the
+   * primary questionnaire trigger, i.e. the first moment they have
+   * demonstrably engaged rather than merely arrived.
    */
   secondAnswerCompletedAt?: number;
+  /**
+   * Answers this PARTICIPANT has completed, across chats and reloads: seeded
+   * from the persisted event log at hydration and carried through newChat.
+   * The per-chat message list cannot do this job — starting a second chat
+   * empties it, so a second question asked in a fresh chat went uncounted and
+   * never reached the questionnaire.
+   */
+  studyAnswersCompleted: number;
+  /**
+   * How many of the CURRENT chat's answers are already in the count above.
+   * Reset by newChat, so every chat contributes its answers exactly once.
+   */
+  sessionAnswersCounted: number;
 };
 
 export type ChatStoreActions = {

@@ -2,8 +2,13 @@ import { describe, expect, it } from 'bun:test';
 import {
   absoluteFallbackRemainingMs,
   isPromptEligible,
+  secondAnswerDelayRemainingMs,
 } from './prompt-triggers';
-import { ABSOLUTE_FALLBACK_MS, MAX_PROMPTS } from './study-config';
+import {
+  ABSOLUTE_FALLBACK_MS,
+  MAX_PROMPTS,
+  SECOND_ANSWER_DELAY_MS,
+} from './study-config';
 
 const eligible = {
   consent: 'accepted' as const,
@@ -66,7 +71,36 @@ describe('absoluteFallbackRemainingMs', () => {
     expect(absoluteFallbackRemainingMs(1_000, 1_000 + 60 * 60_000)).toBe(0);
   });
 
-  it('is one minute, the agreed safeguard', () => {
-    expect(ABSOLUTE_FALLBACK_MS).toBe(60_000);
+  it('is 90 seconds, the agreed safeguard', () => {
+    expect(ABSOLUTE_FALLBACK_MS).toBe(90_000);
+  });
+});
+
+describe('secondAnswerDelayRemainingMs', () => {
+  it('waits the settle delay after the second answer lands', () => {
+    expect(secondAnswerDelayRemainingMs(1_000, 1_000)).toBe(
+      SECOND_ANSWER_DELAY_MS,
+    );
+  });
+
+  it('counts down from the stamp, so switching chats does not restart it', () => {
+    expect(secondAnswerDelayRemainingMs(1_000, 1_000 + 4_000)).toBe(
+      SECOND_ANSWER_DELAY_MS - 4_000,
+    );
+  });
+
+  it('clamps to zero once the delay has passed', () => {
+    expect(
+      secondAnswerDelayRemainingMs(1_000, 1_000 + SECOND_ANSWER_DELAY_MS),
+    ).toBe(0);
+    expect(secondAnswerDelayRemainingMs(1_000, 1_000 + 600_000)).toBe(0);
+  });
+
+  it('is 10 seconds', () => {
+    expect(SECOND_ANSWER_DELAY_MS).toBe(10_000);
+  });
+
+  it('settles well before the fallback, so the primary trigger wins', () => {
+    expect(SECOND_ANSWER_DELAY_MS).toBeLessThan(ABSOLUTE_FALLBACK_MS);
   });
 });

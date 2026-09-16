@@ -344,12 +344,16 @@ PledgeTracker change users' willingness to engage in political debate?
   `prompt_shown`/`prompt_dismissed` (with trigger), `questionnaire_clicked`.
   Counts and firsts are derived from the log at analysis time.
 - **Questionnaire prompts** (identical for both cohorts — control symmetry,
-  and now genuinely so): `second_answer` fires when the SECOND answer of the
-  session completes; `absolute_timer` fires `ABSOLUTE_FALLBACK_MS` (60s)
-  after the FIRST completed answer and only while nothing has prompted yet,
-  so a user who never sends a second message is still asked once. Whichever
-  comes first wins; each fires at most once; max 2 prompts ever, cap survives
-  reloads. **Nothing about prompting reads PledgeTracker state.** The former
+  and now genuinely so): `second_answer` fires `SECOND_ANSWER_DELAY_MS` (10s)
+  after the PARTICIPANT's second answer completes; `absolute_timer` fires
+  `ABSOLUTE_FALLBACK_MS` (90s) after the first completed answer of the chat,
+  so a user who never sends a second message is still asked once. Both stand
+  down once anything has prompted, so whichever comes first wins and two
+  prompts cannot land seconds apart. Max 2 prompts ever, cap survives reloads.
+  The answer count is per PARTICIPANT, not per chat: it is seeded from the
+  event log at hydration and carried through `newChat`, because `newChat`
+  empties `messages` and a per-chat count would silently miss a second
+  question asked in a fresh chat. **Nothing about prompting reads PledgeTracker state.** The former
   `modal_close` and `longstop` triggers did, and since only the manipulation
   arm can open a pledge modal, that arm had prompt paths control could never
   reach — differential prompt exposure inside the instrument measuring the

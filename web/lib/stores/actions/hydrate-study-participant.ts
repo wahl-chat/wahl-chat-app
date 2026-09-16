@@ -22,14 +22,26 @@ export const hydrateStudyParticipant: ChatStoreActionHandlerFor<
 
   try {
     const participant = await getStudyParticipant(userId);
-    const promptCount =
-      participant?.events?.filter((event) => event.type === 'prompt_shown')
-        .length ?? 0;
+    const events = participant?.events ?? [];
+    const promptCount = events.filter(
+      (event) => event.type === 'prompt_shown',
+    ).length;
+    // Answers already completed by this participant, so a second question
+    // asked after a reload or in a new tab still counts as the second one.
+    // Each of these events is logged once per participant, never per chat.
+    const answersCompleted =
+      (events.some((event) => event.type === 'first_answer_completed')
+        ? 1
+        : 0) +
+      (events.some((event) => event.type === 'second_answer_completed')
+        ? 1
+        : 0);
     set({
       studyHydrated: true,
       studyConsent: override?.consent ?? participant?.consent_answer,
       studyCohort: override?.cohort ?? participant?.cohort,
       studyPromptCount: promptCount,
+      studyAnswersCompleted: answersCompleted,
       studyQuestionnaireClicked: Boolean(participant?.questionnaire_clicked_at),
     });
   } catch (error) {

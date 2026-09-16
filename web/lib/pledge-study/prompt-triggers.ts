@@ -1,4 +1,8 @@
-import { ABSOLUTE_FALLBACK_MS, MAX_PROMPTS } from './study-config';
+import {
+  ABSOLUTE_FALLBACK_MS,
+  MAX_PROMPTS,
+  SECOND_ANSWER_DELAY_MS,
+} from './study-config';
 import type { StudyConsentAnswer } from './types';
 
 /**
@@ -43,4 +47,16 @@ export function absoluteFallbackRemainingMs(
   now: number,
 ): number {
   return Math.max(0, ABSOLUTE_FALLBACK_MS - (now - firstAnswerCompletedAt));
+}
+
+/**
+ * Milliseconds still to wait after the second answer landed. Same clamping
+ * rule as above, and anchored to the stamp rather than to when the effect
+ * mounted, so switching chats mid-wait does not restart the countdown.
+ */
+export function secondAnswerDelayRemainingMs(
+  secondAnswerCompletedAt: number,
+  now: number,
+): number {
+  return Math.max(0, SECOND_ANSWER_DELAY_MS - (now - secondAnswerCompletedAt));
 }
