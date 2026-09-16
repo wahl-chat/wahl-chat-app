@@ -47,8 +47,8 @@ Nutzerthema: {query}
 Kandidaten:
 {candidates}
 
-Gib die Nummern der Kandidaten zurück, die KLAR dasselbe Thema behandeln wie das \
-Nutzerthema. Im Zweifel einen Kandidaten NICHT aufnehmen. Es geht nur um die \
+Gib die Nummern der Kandidaten zurück, die ein ähnliches Thema behandeln wie das \
+Nutzerthema. Nimm einen Kandidaten nur dann NICHT auf, wenn er für einen Nutzer klar nicht relevant ist. Es geht nur um die \
 thematische Passung — nicht darum, ob ein Ziel erfüllt wurde. Wenn kein Kandidat \
 passt, gib eine leere Liste zurück.
 """
