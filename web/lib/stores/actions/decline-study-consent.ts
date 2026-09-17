@@ -13,16 +13,24 @@ import { Timestamp } from 'firebase/firestore';
  * Context and party selection ARE recorded, for both answers, so non-response
  * can be modelled rather than just counted: refusal rates per election, and
  * per party the user came to chat with.
+ *
+ * `stage` and `reason` record WHERE and HOW the refusal happened, because all
+ * four paths (a "Nein" on either screen, a dismissal of either screen) land
+ * here and used to be indistinguishable in the data. Refusing the one-line ask
+ * is a different act from reading the Einverständniserklärung and backing out,
+ * and a dismissal is not an answer at all.
  */
 export const declineStudyConsent: ChatStoreActionHandlerFor<
   'declineStudyConsent'
-> = (_get, set) => async (userId, contextId, partyIds) => {
+> = (_get, set) => async (userId, contextId, partyIds, decline) => {
   set({ studyConsent: 'declined' });
   try {
     await setStudyParticipant(userId, {
       consent_answer: 'declined',
       consent_at: Timestamp.now(),
       participation: participationFor('declined'),
+      consent_stage: decline.stage,
+      decline_reason: decline.reason,
       context_id: contextId,
       party_ids: partyIds,
     });

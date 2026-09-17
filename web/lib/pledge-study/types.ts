@@ -22,6 +22,24 @@ export type StudyCohort = 'control' | 'manipulation';
 export type StudyConsentAnswer = 'accepted' | 'declined';
 
 /**
+ * Which of the two consent screens the answer was given on. The dialog asks
+ * twice: a short 'ask' ("Machst du mit?"), then, only after a "Ja", the full
+ * 'consent' Einverständniserklärung. An acceptance can only happen on
+ * 'consent'; a decline can happen on either, and the two mean very different
+ * things — refusing the one-line ask is not the same as reading the formal
+ * text and backing out.
+ */
+export type StudyConsentStage = 'ask' | 'consent';
+
+/**
+ * How a decline was expressed: 'explicit' is a "Nein" button, 'dismissed' is
+ * Escape / overlay click / drawer swipe, which the dialog also persists as a
+ * decline. Kept apart so a non-answer is not read as a refusal in the
+ * analysis. Note that closing the tab leaves no record at all.
+ */
+export type StudyDeclineReason = 'explicit' | 'dismissed';
+
+/**
  * How a participant's cohort was decided. 'hash' is the real deterministic
  * 50:50 assignment; 'override' means a ?sg= link forced it, and those rows
  * must be excluded from analysis. Absent on records written before this

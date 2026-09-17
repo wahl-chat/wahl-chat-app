@@ -27,6 +27,8 @@ export type QuestionnaireTrigger = 'second_answer' | 'absolute_timer';
 export type {
   StudyCohort,
   StudyConsentAnswer,
+  StudyConsentStage,
+  StudyDeclineReason,
   StudyParticipation,
 } from './types';
 

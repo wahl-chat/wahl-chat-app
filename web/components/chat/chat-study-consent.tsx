@@ -10,6 +10,7 @@ import {
 } from '@/components/chat/responsive-drawer-dialog';
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Button } from '@/components/ui/button';
+import type { StudyDeclineReason } from '@/lib/pledge-study/study-config';
 import { useRef, useState } from 'react';
 
 type Props = {
@@ -25,6 +26,12 @@ type Props = {
  * non-answer is recorded as a decline instead of being re-asked next visit.
  * That also keeps the consent denominator complete for the analysis: every
  * participant who was asked leaves a record.
+ *
+ * Each decline records the stage it happened on and whether it was a "Nein"
+ * or a dismissal, so the two screens can be told apart afterwards: refusing
+ * the short ask, abandoning it, refusing after reading the
+ * Einverständniserklärung, and abandoning that are four different behaviours
+ * that would otherwise arrive as one number.
  * The reviewed German copy is verbatim from the research team.
  */
 function ChatStudyConsent({ userId, contextId }: Props) {
@@ -49,12 +56,18 @@ function ChatStudyConsent({ userId, contextId }: Props) {
   const open =
     studyConsent === undefined && messagesCount === 0 && !loadingChatSession;
 
-  const decline = () => {
+  // `step` is read from the current render, so the stage recorded is the
+  // screen the user was actually looking at — including in the dismissal
+  // handler, which re-closes over the new step after „Ja".
+  const decline = (reason: StudyDeclineReason) => {
     if (answered.current) {
       return;
     }
     answered.current = true;
-    void declineStudyConsent(userId, contextId, [...partyIds].sort());
+    void declineStudyConsent(userId, contextId, [...partyIds].sort(), {
+      stage: step,
+      reason,
+    });
   };
   const accept = () => {
     if (answered.current) {
@@ -68,9 +81,10 @@ function ChatStudyConsent({ userId, contextId }: Props) {
     <ResponsiveDialog
       open={open}
       onOpenChange={(nextOpen) => {
-        // Dismissing without answering counts as declining participation.
+        // Dismissing without answering counts as declining participation,
+        // but is recorded as a dismissal rather than a refusal.
         if (!nextOpen) {
-          decline();
+          decline('dismissed');
         }
       }}
     >
@@ -94,7 +108,11 @@ function ChatStudyConsent({ userId, contextId }: Props) {
             </div>
             <ResponsiveDialogFooter>
               <div className="flex w-full flex-col gap-2 sm:flex-row">
-                <Button variant="outline" className="w-full" onClick={decline}>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => decline('explicit')}
+                >
                   Nein
                 </Button>
                 <Button className="w-full" onClick={() => setStep('consent')}>
@@ -159,7 +177,11 @@ function ChatStudyConsent({ userId, contextId }: Props) {
             </div>
             <ResponsiveDialogFooter>
               <div className="flex w-full flex-col gap-2 sm:flex-row">
-                <Button variant="outline" className="w-full" onClick={decline}>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => decline('explicit')}
+                >
                   Nein
                 </Button>
                 <Button className="w-full" onClick={accept}>
