@@ -13,7 +13,6 @@ import './globals.css';
 // next/dynamic(ssr:false) chunk is dropped in some dev/HMR paths, and without
 // it the text layer flows below the canvas instead of overlaying it.
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import GoogleAdsTag from '@/components/google-ads-tag';
 import PageVisitProvider from '@/components/providers/page-visit-provider';
 import StudyStatusProvider from '@/components/providers/study-status-provider';
 import TenantProvider from '@/components/providers/tenant-provider';
@@ -200,7 +199,6 @@ export default async function RootLayout({
                 {/* TODO: implement again when problems are fixed <IframeChecker /> */}
                 <PageVisitProvider embedded={IS_EMBEDDED} />
                 <Analytics />
-                <GoogleAdsTag />
               </LazyMotion>
             </body>
           </TenantProvider>
