@@ -35,16 +35,19 @@ function ChatStudyWrapper() {
   const inStudyContext = isStudyContext(contextId);
 
   // The kill switch is subscribed once, app-wide, by StudyStatusProvider.
-  // Mirror it into the store only once it is actually known: leaving
-  // studyEnabled undefined until then is what stops a control-group user
-  // seeing a flash of PledgeTracker (see gate.ts).
+  // Mirror it into the store in EVERY context, not just the study ones: the
+  // switch gates the feature everywhere now, so a non-study election needs the
+  // value too — gate.ts reads an unknown switch as off, so without this its
+  // pledge cards would stay hidden for good. Still only once it is actually
+  // known: leaving studyEnabled undefined until then is what stops a
+  // control-group user seeing a flash of PledgeTracker (see gate.ts).
   const studyRunning = useStudyRunning();
   useEffect(() => {
-    if (!inStudyContext || studyRunning === undefined) {
+    if (studyRunning === undefined) {
       return;
     }
     setStudyEnabled(studyRunning);
-  }, [inStudyContext, studyRunning, setStudyEnabled]);
+  }, [studyRunning, setStudyEnabled]);
 
   // Load the participant record once per uid (consent stickiness).
   useEffect(() => {

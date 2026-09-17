@@ -315,7 +315,13 @@ PledgeTracker change users' willingness to engage in political debate?
   never means "sees the feature".
 - **Kill switch**: Firestore doc `system_status/pledge_study` `{enabled: true}`.
   Missing doc/field/error = off (the safe default); flipping it is a console
-  edit, no deploy. The local emulator UI is disabled, so write the doc over
+  edit, no deploy. **Off means PledgeTracker is hidden in EVERY context, not
+  just the study ones** — the feature is new and only ships inside a study for
+  now, so switching the study off must not silently roll the feature out to
+  every election. Turning it ON is therefore what NARROWS visibility, to the
+  manipulation arm inside a study context. It follows that non-study elections
+  need the switch value too, which is why `ChatStudyWrapper` mirrors it into
+  the store in every context. The local emulator UI is disabled, so write the doc over
   REST instead, with `-H 'Authorization: Bearer owner'` (plain writes are
   refused by the rules).
   The questionnaire form id is COMMITTED (`STUDY_QUESTIONNAIRE_FORM_ID` in
@@ -333,10 +339,12 @@ PledgeTracker change users' willingness to engage in political debate?
   Both answers also record `context_id` and `party_ids` (the parties selected
   when the ask appeared), so non-response can be modelled rather than just
   counted — refusal by election, and by the party the user came to chat with.
-- **Gate** (`web/lib/pledge-study/gate.ts`): in a study context with the study
-  on, ONLY consented participants in the `manipulation` arm see PledgeTracker.
-  Control and non-consented users see nothing — pre-exposure would contaminate a later
-  control assignment. Outside the study contexts the product is unchanged.
+- **Gate** (`web/lib/pledge-study/gate.ts`): the switch is checked FIRST — off
+  or not-yet-known hides PledgeTracker everywhere. With it on, a study context
+  admits ONLY consented participants in the `manipulation` arm; control and
+  non-consented users see nothing, because pre-exposure would contaminate a
+  later control assignment. Any other context is the ordinary product and
+  shows the feature to everyone. Covered by `gate.test.ts`.
 - **Telemetry** (consent-gated, `recordStudyEvent`): append-only `events` on
   the participant doc — `first_message`, `first_answer_completed`,
   `second_answer_completed`, `pledge_shown` (viewport exposure),

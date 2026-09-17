@@ -3,16 +3,21 @@ import type { StudyCohort, StudyConsentAnswer } from './types';
 /**
  * THE scientific core of the study: who sees PledgeTracker.
  *
- * Outside a study context, or while the study is switched off, the product is
- * unchanged. Inside a study context with the study on, ONLY consented
- * participants in the manipulation arm see the feature: control sees nothing
- * (that is the comparison), and non-consented/declined users see nothing
- * either — anyone pre-exposed who later consents into the control group would
- * be contaminated.
+ * The kill switch (system_status/pledge_study) is the OUTERMOST gate and
+ * governs the feature, not merely the experiment: while it is off, nobody sees
+ * PledgeTracker in any context. PledgeTracker is new and is only meant to ship
+ * inside a study for now, so "off" has to mean off everywhere — it must never
+ * quietly become a full rollout to every election.
  *
- * While the kill-switch state is still unknown (undefined) in a study
- * context, the feature stays hidden: a brief flash of the pledge card for a
- * user who then lands in control would be exposure that cannot be undone.
+ * With the switch on, a study context admits ONLY consented participants in
+ * the manipulation arm: control sees nothing (that is the comparison), and
+ * non-consented/declined users see nothing either — anyone pre-exposed who
+ * later consents into the control group would be contaminated. Any other
+ * context is the ordinary product and shows the feature to everyone.
+ *
+ * An unknown switch state (undefined) is folded in with off on purpose: a
+ * brief flash of the pledge card for a user who then lands in control would
+ * be exposure that cannot be undone.
  */
 export function isPledgeTrackerAllowed({
   inStudyContext,
@@ -25,13 +30,10 @@ export function isPledgeTrackerAllowed({
   consent: StudyConsentAnswer | undefined;
   cohort: StudyCohort | undefined;
 }): boolean {
-  if (!inStudyContext) {
-    return true;
-  }
-  if (studyEnabled === undefined) {
+  if (!studyEnabled) {
     return false;
   }
-  if (!studyEnabled) {
+  if (!inStudyContext) {
     return true;
   }
   return consent === 'accepted' && cohort === 'manipulation';
