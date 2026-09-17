@@ -3,6 +3,8 @@ import type {
   StudyAssignmentSource,
   StudyCohort,
   StudyConsentAnswer,
+  StudyConsentStage,
+  StudyDeclineReason,
   StudyParticipation,
 } from '@/lib/pledge-study/types';
 import type { ProlificMetadata } from '@/lib/prolific-study/prolific-metadata';
@@ -121,6 +123,16 @@ export type StudyParticipantEvent = {
 export type StudyParticipant = {
   consent_answer: StudyConsentAnswer;
   consent_at: Timestamp;
+  /**
+   * Which of the two consent screens the answer came from. Acceptances are
+   * always 'consent'; declines split into "refused the short ask" and "read
+   * the Einverständniserklärung, then refused", which is the whole point of
+   * recording it. Absent means a pre-2026-09-17 record, written when both
+   * screens shared one undifferentiated decline.
+   */
+  consent_stage?: StudyConsentStage;
+  /** Only on declines: a "Nein" button ('explicit') vs a dismissal. */
+  decline_reason?: StudyDeclineReason;
   /** Derived from consent_answer; stored so queries need not infer it. */
   participation?: StudyParticipation;
   /** Only participants have an arm. */

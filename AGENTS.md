@@ -339,6 +339,13 @@ PledgeTracker change users' willingness to engage in political debate?
   Both answers also record `context_id` and `party_ids` (the parties selected
   when the ask appeared), so non-response can be modelled rather than just
   counted — refusal by election, and by the party the user came to chat with.
+  Every answer also records `consent_stage` (`ask` | `consent`) and, on a
+  decline, `decline_reason` (`explicit` | `dismissed`): all four refusal paths
+  land in the same action, and without these the short ask and the formal
+  Einverständniserklärung are one undifferentiated number. Acceptances are
+  always `consent_stage: 'consent'`. Rows written before 2026-09-17 have
+  neither field — that is what "stage unknown" means in the analysis. Note
+  that closing the TAB still leaves no record at all, at either stage.
 - **Gate** (`web/lib/pledge-study/gate.ts`): the switch is checked FIRST — off
   or not-yet-known hides PledgeTracker everywhere. With it on, a study context
   admits ONLY consented participants in the `manipulation` arm; control and

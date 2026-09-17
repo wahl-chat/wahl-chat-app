@@ -7,6 +7,8 @@ import type { PartyDetails } from '@/lib/party-details';
 import type {
   StudyCohort,
   StudyConsentAnswer,
+  StudyConsentStage,
+  StudyDeclineReason,
 } from '@/lib/pledge-study/study-config';
 import type { StudyOverride } from '@/lib/pledge-study/variant-override';
 import type { ProlificMetadata } from '@/lib/prolific-study/prolific-metadata';
@@ -329,6 +331,7 @@ export type ChatStoreActions = {
     userId: string,
     contextId: string,
     partyIds: string[],
+    decline: { stage: StudyConsentStage; reason: StudyDeclineReason },
   ) => Promise<void>;
   recordStudyEvent: (
     type: string,

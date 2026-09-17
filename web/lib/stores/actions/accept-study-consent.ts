@@ -23,6 +23,10 @@ export const acceptStudyConsent: ChatStoreActionHandlerFor<
       consent_answer: 'accepted',
       consent_at: Timestamp.now(),
       participation: participationFor('accepted'),
+      // Always 'consent': the accept button only exists on the second screen.
+      // Stamped anyway so every new row carries the field and the funnel can
+      // be read from one query.
+      consent_stage: 'consent',
       cohort,
       assignment_source: override ? 'override' : 'hash',
       context_id: contextId,
