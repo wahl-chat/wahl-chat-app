@@ -9,7 +9,7 @@
 // the same LAN (http://<mac-ip>:3000) reaches the emulators on the Mac instead
 // of itself; on the server 127.0.0.1 stays correct.
 export const FIREBASE_EMULATOR_HOST =
-  typeof window === 'undefined' ? '127.0.0.1' : window.location.hostname;
+  typeof window === 'undefined' ? 'localhost' : window.location.hostname;
 export const FIRESTORE_EMULATOR_PORT = 8081;
 export const AUTH_EMULATOR_PORT = 9099;
 

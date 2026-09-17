@@ -4,14 +4,21 @@ import type {
   ChatStoreActionHandlerFor,
   GroupedMessage,
   MessageItem,
+  PledgeTrackerSuggestions,
 } from '@/lib/stores/chat-store.types';
 import { generateUuid } from '@/lib/utils';
+import { track } from '@vercel/analytics';
 import { Timestamp } from 'firebase/firestore';
 
 const buildNewMessage = (
   message: StreamingMessage,
   completeMessage?: string,
+  pledgeTracker?: PledgeTrackerSuggestions,
 ) => {
+  // The pledge payload rides through the streaming message so the shared
+  // finalize step persists it too — otherwise pledges would render live but
+  // vanish on reload.
+  const effectivePledgeTracker = pledgeTracker ?? message.pledge_tracker;
   return {
     id: message.id,
     content: completeMessage ?? message.content ?? '',
@@ -19,6 +26,9 @@ const buildNewMessage = (
     party_id: message.party_id,
     created_at: Timestamp.now(),
     role: 'assistant',
+    ...(effectivePledgeTracker
+      ? { pledge_tracker: effectivePledgeTracker }
+      : {}),
   } satisfies MessageItem;
 };
 
@@ -71,29 +81,46 @@ export const finalizeStreamingMessagesIfComplete = (
 
 export const completeStreamingMessage: ChatStoreActionHandlerFor<
   'completeStreamingMessage'
-> = (get, set) => async (sessionId, partyId, completeMessage) => {
-  const { currentStreamingMessages, chatSessionId } = get();
+> =
+  (get, set) => async (sessionId, partyId, completeMessage, pledgeTracker) => {
+    const { currentStreamingMessages, chatSessionId } = get();
 
-  if (!chatSessionId) return;
-  if (chatSessionId !== sessionId) return;
+    if (!chatSessionId) return;
+    if (chatSessionId !== sessionId) return;
 
-  const currentStreamingMessage = currentStreamingMessages?.messages[partyId];
+    const currentStreamingMessage = currentStreamingMessages?.messages[partyId];
 
-  if (!currentStreamingMessages || !currentStreamingMessage) return;
+    if (!currentStreamingMessages || !currentStreamingMessage) return;
 
-  set((state) => {
-    if (!state.currentStreamingMessages) return;
-    state.currentStreamingMessages.messages[partyId].chunking_complete = true;
-    state.currentStreamingMessages.messages[partyId].content = completeMessage;
-  });
+    set((state) => {
+      if (!state.currentStreamingMessages) return;
+      state.currentStreamingMessages.messages[partyId].chunking_complete = true;
+      state.currentStreamingMessages.messages[partyId].content =
+        completeMessage;
+      if (pledgeTracker) {
+        state.currentStreamingMessages.messages[partyId].pledge_tracker =
+          pledgeTracker;
+      }
+    });
 
-  const safeGroupedMessageId = currentStreamingMessages.id ?? generateUuid();
+    // "The feature had something to show for this answer": exact and DOM-free
+    // (once per live party_complete, never for rehydrated history). Real
+    // exposure is measured separately by the card's viewport impression.
+    if (pledgeTracker?.pledges?.length) {
+      track('pledge_tracker_offered', {
+        party: partyId,
+        message_id: currentStreamingMessage.id,
+        pledges: pledgeTracker.pledges.length,
+      });
+    }
 
-  finalizeStreamingMessagesIfComplete(get, set);
+    const safeGroupedMessageId = currentStreamingMessages.id ?? generateUuid();
 
-  await addMessageToGroupedMessageOfChatSession(
-    chatSessionId,
-    safeGroupedMessageId,
-    buildNewMessage(currentStreamingMessage, completeMessage),
-  );
-};
+    finalizeStreamingMessagesIfComplete(get, set);
+
+    await addMessageToGroupedMessageOfChatSession(
+      chatSessionId,
+      safeGroupedMessageId,
+      buildNewMessage(currentStreamingMessage, completeMessage, pledgeTracker),
+    );
+  };

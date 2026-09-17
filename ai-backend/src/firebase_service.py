@@ -15,6 +15,7 @@ from pathlib import Path
 
 from src.models.chat import CachedResponse
 from src.models.context import Context, ContextParty, DEFAULT_CONTEXT_ID
+from src.models.pledge_tracker import PledgeRecord
 from src.utils import load_env
 
 load_env()
@@ -257,3 +258,19 @@ async def aget_party_for_context(
     if party.exists:
         return ContextParty(**party.to_dict())
     return None
+
+
+async def aget_pledges_by_ids(pledge_ids: list[str]) -> list[PledgeRecord]:
+    """Fetch PledgeTracker records from the top-level source-of-truth collection.
+
+    Order follows ``pledge_ids`` (the retrieval similarity order); missing docs
+    are skipped silently — retrieval hits without a hydrated record are stale
+    Qdrant points, not an error.
+    """
+    records: list[PledgeRecord] = []
+    for pledge_id in pledge_ids:
+        snapshot = await async_db.collection("pledges").document(pledge_id).get()
+        if snapshot.exists:
+            data = snapshot.to_dict() or {}
+            records.append(PledgeRecord(**data))
+    return records

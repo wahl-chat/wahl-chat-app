@@ -105,11 +105,13 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
     }
 
     messages = get().messages;
-    const { tenant } = get();
+    const { tenant, studyConsent, studyCohort } = get();
 
     try {
       // Firebase writes — NOT Socket.IO; must be preserved.
       if (messages.length < 2 && !isMessageResend) {
+        // Study telemetry: the first message of a session (participants only).
+        void get().recordStudyEvent('first_message');
         await createChatSession(
           userId,
           [...partyIds],
@@ -117,6 +119,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
           tenant?.id,
           safeContextId,
           prolificMetadata,
+          studyConsent === 'accepted' ? studyCohort : undefined,
         );
 
         if (typeof window !== 'undefined') {

@@ -32,6 +32,7 @@ class SourceType(str, Enum):
     DRUCKSACHE = "drucksache"
     QA_TRANSCRIPT = "qa_transcript"
     PARLIAMENTARY_SPEECH = "parliamentary_speech"  # Bundestag plenary speeches
+    PLEDGE_RECORD = "pledge_record"  # PledgeTracker pledges (one vector per pledge)
 
 
 class Stance(str, Enum):
@@ -45,6 +46,22 @@ class Stance(str, Enum):
     DISAGREE = "disagree"
     NEUTRAL = "neutral"
     ABSENT = "absent"
+
+
+class PledgeStatus(str, Enum):
+    """Machine status of a tracked political pledge (pledge_record chunks).
+
+    Values are intentionally stable — the Cambridge PledgeTracker pipeline may
+    use equivalent but differently-named categories; map on ingestion. The UI
+    deliberately never derives a fulfilled/broken verdict from this field.
+    """
+
+    FULFILLED = "fulfilled"
+    PARTIALLY_FULFILLED = "partially_fulfilled"
+    IN_PROGRESS = "in_progress"
+    BROKEN = "broken"
+    STALLED = "stalled"
+    NOT_YET_STARTED = "not_yet_started"
 
 
 # =============================================================================
@@ -142,6 +159,8 @@ class ChunkRecord(BaseModel):
         authority_tier, source_type, publish_date, citation_url, citation_title,
         external_id, party_ids, wahlperiode,
         speech_key, source, meta.
+    pledge_record fields (top-level, indexed): status, as_of_date, claim_id,
+        pledge_id, policy_area, context_id.
 
     vote_record meta (VoteMeta): vote_results, motion_outcome.
     parliamentary_speech meta (SpeechMeta): person_id, speaker_name,
@@ -269,6 +288,34 @@ class ChunkRecord(BaseModel):
             "payload). Lets re-ingestion detect and apply upstream corrections. "
             "None when the connector does not compute it."
         ),
+    )
+    # Pledge-record fields (INDEXED top-level — pledge_record chunks only).
+    # Firestore (pledges/{pledge_id}) is the source of truth for the full pledge
+    # including its timeline; the chunk carries only what retrieval and Firestore
+    # hydration need. Timelines are never embedded.
+    status: Optional[str] = Field(
+        None,
+        description="Pledge machine status (PledgeStatus value) — pledge_record only",
+    )
+    as_of_date: Optional[date_type] = Field(
+        None,
+        description="Date the pledge was last checked upstream — pledge_record only",
+    )
+    claim_id: Optional[str] = Field(
+        None,
+        description="Pledge claim identifier for cross-party lookup — pledge_record only",
+    )
+    pledge_id: Optional[str] = Field(
+        None,
+        description="Firestore pledge document ID — pledge_record only",
+    )
+    policy_area: Optional[str] = Field(
+        None,
+        description="Policy area for pledge display and optional faceting",
+    )
+    context_id: Optional[str] = Field(
+        None,
+        description="Election/context provenance for source-scoped pledge chunks",
     )
     # Source-owned nested metadata (NOT indexed — descriptive fields only):
     meta: Optional[dict[str, Any]] = Field(

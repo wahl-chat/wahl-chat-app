@@ -6,6 +6,7 @@ import {
 } from '@/components/chat/responsive-drawer-dialog';
 import GithubIcon from '@/components/icons/github-icon';
 import GoogleIcon from '@/components/icons/google-icon';
+import { useStudyRunning } from '@/components/providers/study-status-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,6 +36,7 @@ type Props = {
 
 function LoginForm({ onSuccess }: Props) {
   const { refreshUser } = useAnonymousAuth();
+  const studyRunning = useStudyRunning();
   const [isRegister, setIsRegister] = useState(false);
   const [isResetPassword, setIsResetPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +49,10 @@ function LoginForm({ onSuccess }: Props) {
     if (uid) {
       const user = await getUser(uid);
 
-      if (user?.newsletter_allowed === undefined) {
+      // While the PledgeTracker study runs, its questionnaire is the only
+      // thing we ask anyone for; skip the newsletter step rather than hiding
+      // it, so the login flow still completes.
+      if (user?.newsletter_allowed === undefined && !studyRunning) {
         setAllowNewsletter(true);
         return;
       }

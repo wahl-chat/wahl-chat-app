@@ -11,9 +11,12 @@ import Logo from './logo';
 type Props = {
   partyId?: string;
   party?: PartyDetails;
+  /** 'circle' (default) for chat avatars; 'tile' matches the app's rounded
+   *  rectangular party tiles (used by the PledgeTracker popup). */
+  shape?: 'circle' | 'tile';
 };
 
-export function ChatMessageIcon({ partyId, party }: Props) {
+export function ChatMessageIcon({ partyId, party, shape = 'circle' }: Props) {
   const clientParty = useContextParty(partyId ?? '');
 
   const normalizedParty = clientParty ?? party;
@@ -22,7 +25,8 @@ export function ChatMessageIcon({ partyId, party }: Props) {
     <div
       style={{ backgroundColor: normalizedParty?.background_color }}
       className={cn(
-        'relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-border',
+        'relative flex size-8 shrink-0 items-center justify-center overflow-hidden ring-1 ring-border',
+        shape === 'tile' ? 'rounded-md' : 'rounded-full',
         party && 'dark:bg-slate-200',
       )}
     >

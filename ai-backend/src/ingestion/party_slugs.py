@@ -48,10 +48,13 @@ STATE_PARTY_SLUGS: dict[str, str] = {
     "bvb/freie wähler": "bvb-fw",  # BVB / Freie Wähler (Brandenburg)
     "volt": "volt",
     "piraten": "piraten",
+    "piratenpartei": "piraten",  # long-form label (PledgeTracker registries)
     "ödp": "oedp",  # Ökologisch-Demokratische Partei
     "die basis": "basis",  # dieBasis
     "diebasis": "basis",  # dieBasis alternate label
     "bürger in wut": "biw",  # Bürger in Wut (Bremen)
+    "die partei": "die-partei",  # Die PARTEI
+    "partei der humanisten": "pdh",  # PdH
 }
 
 # Invisible / zero-width formatting characters that sources occasionally embed in

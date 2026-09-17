@@ -1,9 +1,13 @@
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Separator } from '@/components/ui/separator';
 import { WAHL_CHAT_PARTY_ID } from '@/lib/constants';
+import { isPledgeTrackerAllowed } from '@/lib/pledge-study/gate';
+import { isStudyContext } from '@/lib/pledge-study/study-config';
+import { getVisiblePledges } from '@/lib/pledge-tracker/pledges';
 import type { StreamingMessage } from '@/lib/socket.types';
 import type { MessageItem } from '@/lib/stores/chat-store.types';
 import ChatMessageLikeDislikeButtons from './chat-message-like-dislike-buttons';
+import ChatPledgeTrackerButton from './chat-pledge-tracker-button';
 import ChatProConButton from './chat-pro-con-button';
 import ChatVotingBehaviorSummaryButton from './chat-voting-behavior-summary-button';
 import CopyButton from './copy-button';
@@ -15,6 +19,8 @@ type Props = {
   showMessageActions?: boolean;
   partyId?: string;
   isGroupChat?: boolean;
+  pledgeRevealed?: boolean;
+  onTogglePledgeTracker?: () => void;
 };
 
 function ChatSingleMessageActions({
@@ -22,6 +28,8 @@ function ChatSingleMessageActions({
   message,
   showMessageActions,
   partyId,
+  pledgeRevealed,
+  onTogglePledgeTracker,
 }: Props) {
   const isLoadingProConPerspective = useChatStore(
     (state) => state.loading.proConPerspective === message.id,
@@ -29,8 +37,21 @@ function ChatSingleMessageActions({
   const isLoadingVotingBehaviorSummary = useChatStore(
     (state) => state.loading.votingBehaviorSummary === message.id,
   );
+  const contextId = useChatStore((state) => state.contextId);
+  const studyEnabled = useChatStore((state) => state.studyEnabled);
+  const studyConsent = useChatStore((state) => state.studyConsent);
+  const studyCohort = useChatStore((state) => state.studyCohort);
 
   if (!showMessageActions) return null;
+
+  // Study gate: in a study context only consented experimental participants
+  // may see PledgeTracker (see lib/pledge-study/gate.ts).
+  const pledgeTrackerAllowed = isPledgeTrackerAllowed({
+    inStudyContext: isStudyContext(contextId),
+    studyEnabled,
+    consent: studyConsent,
+    cohort: studyCohort,
+  });
 
   const isWahlChatMessage = partyId === WAHL_CHAT_PARTY_ID;
 
@@ -46,10 +67,29 @@ function ChatSingleMessageActions({
     !isLoadingVotingBehaviorSummary &&
     !isWahlChatMessage;
 
+  // Same filter as the popup, so the button never opens an empty timeline.
+  const showPledgeTrackerButton =
+    partyId &&
+    pledgeTrackerAllowed &&
+    getVisiblePledges(message.pledge_tracker).length > 0 &&
+    !isWahlChatMessage;
+
   const showSeparator = showProConButton || showVotingBehaviorSummaryButton;
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
+      {/* Full-width pledge card (basis-full): its own line between the answer
+          text and the action pills. */}
+      {showPledgeTrackerButton && (
+        <ChatPledgeTrackerButton
+          partyId={partyId}
+          message={message}
+          revealed={pledgeRevealed}
+          onToggle={onTogglePledgeTracker}
+          isLastMessage={isLastMessage}
+        />
+      )}
+
       <SourcesButton
         sources={message.sources ?? []}
         messageContent={message.content ?? ''}

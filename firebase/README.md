@@ -95,6 +95,18 @@ contexts/{context_id}
     └── content, ...
 ```
 
+
+#### `pledges/` (PledgeTracker)
+
+Top-level collection `pledges/{pledge_id}` holds full PledgeTracker records
+(claim, party, region scope, source provenance, evidence timeline) written by
+the admin-SDK ingestion runner (`make run-pledgetracker`) — Firestore is the
+source of truth; Qdrant only carries one retrieval vector per pledge. No client
+read rule: the browser receives pledges over the chat SSE stream, and the
+records also carry ingestion bookkeeping (including upstream error text) that
+has no reason to be world-readable. There is no seed file — records come from
+ingestion against the emulator (or prod with `ENV=prod`).
+
 ### Seeding with the Python Script (Recommended)
 
 Run from the `firebase/` directory:

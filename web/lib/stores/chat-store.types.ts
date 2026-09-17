@@ -1,5 +1,14 @@
-import type { ChatSession, Tenant } from '@/lib/firebase/firebase.types';
+import type {
+  ChatSession,
+  StudyParticipant,
+  Tenant,
+} from '@/lib/firebase/firebase.types';
 import type { PartyDetails } from '@/lib/party-details';
+import type {
+  StudyCohort,
+  StudyConsentAnswer,
+} from '@/lib/pledge-study/study-config';
+import type { StudyOverride } from '@/lib/pledge-study/variant-override';
 import type { ProlificMetadata } from '@/lib/prolific-study/prolific-metadata';
 import type {
   PartyResponseChunkReadyPayload,
@@ -38,6 +47,47 @@ export type CurrentStreamingMessages = {
   responding_party_ids?: string[];
 };
 
+export type PledgeTimelineEvent = {
+  date: string;
+  publication_date?: string | null;
+  event: string;
+  event_short?: string | null;
+  url?: string | null;
+  title?: string | null;
+  bundesland?: string | null;
+  source?: string | null;
+  party?: string | null;
+  actor_type?: string | null;
+  is_relevant_for_tracking?: boolean | null;
+  raw_label?: string | null;
+  confidence?: number | null;
+};
+
+export type PledgeRecord = {
+  pledge_id: string;
+  party_id: string;
+  claim: string;
+  normalized_summary: string;
+  region_path: string[];
+  region: string;
+  context_id?: string | null;
+  policy_area?: string | null;
+  pledge_date?: string | null;
+  pledge_source_title?: string | null;
+  pledge_source_url?: string | null;
+  pledge_source_locator?: string | null;
+  timeline_events: PledgeTimelineEvent[];
+  last_checked_at?: string | null;
+  tracker_status?: string | null;
+  tracker_status_label?: string | null;
+  tracker_step?: string | null;
+};
+
+export type PledgeTrackerSuggestions = {
+  party_id: string;
+  pledges: PledgeRecord[];
+};
+
 export type MessageItem = {
   id: string;
   content: string;
@@ -48,6 +98,7 @@ export type MessageItem = {
   feedback?: MessageFeedback;
   created_at?: Timestamp;
   voting_behavior?: VotingBehavior;
+  pledge_tracker?: PledgeTrackerSuggestions;
 };
 
 export type CurrentStreamedVotingBehavior = {
@@ -116,6 +167,56 @@ export type ChatStoreState = {
   prolificMinInteractions?: number;
   prolificDisclaimerDismissed?: boolean;
   prolificMessageCount: number;
+  // --- PledgeTracker study (consent, cohort, questionnaire) ---
+  /** Kill-switch snapshot (system_status/pledge_study); undefined = unknown. */
+  studyEnabled?: boolean;
+  /** undefined = not answered yet (the consent dialog may show). */
+  studyConsent?: StudyConsentAnswer;
+  studyCohort?: StudyCohort;
+  /**
+   * Forced variant from a ?sg= link. Seeded once at store construction and
+   * never mutated, so no writer can race it. Must NOT be read by any render
+   * path: it is absent on the server and present on the client, which would
+   * be a hydration mismatch. Everything visible flows through studyConsent /
+   * studyCohort / studyEnabled instead.
+   */
+  studyOverride?: StudyOverride;
+  /** study_participants/{uid} has been read for the current uid. */
+  studyHydrated?: boolean;
+  /** Questionnaire prompts shown so far (mirror of the persisted event log). */
+  studyPromptCount: number;
+  studyQuestionnaireClicked?: boolean;
+  /**
+   * The PledgeTracker popup is open. Written for its own sake only — the
+   * questionnaire deliberately ignores it, so that prompting cannot depend on
+   * a surface just one arm can see. Modal open/close is still captured as
+   * telemetry (pledge_modal_open / _close) by chat-single-message.
+   */
+  pledgeModalOpen: boolean;
+  /**
+   * Epoch ms when the first answer of THIS chat finished streaming — the
+   * anchor for the absolute fallback.
+   */
+  firstAnswerCompletedAt?: number;
+  /**
+   * Epoch ms when the PARTICIPANT's second answer finished streaming — the
+   * primary questionnaire trigger, i.e. the first moment they have
+   * demonstrably engaged rather than merely arrived.
+   */
+  secondAnswerCompletedAt?: number;
+  /**
+   * Answers this PARTICIPANT has completed, across chats and reloads: seeded
+   * from the persisted event log at hydration and carried through newChat.
+   * The per-chat message list cannot do this job — starting a second chat
+   * empties it, so a second question asked in a fresh chat went uncounted and
+   * never reached the questionnaire.
+   */
+  studyAnswersCompleted: number;
+  /**
+   * How many of the CURRENT chat's answers are already in the count above.
+   * Reset by newChat, so every chat contributes its answers exactly once.
+   */
+  sessionAnswersCounted: number;
 };
 
 export type ChatStoreActions = {
@@ -182,6 +283,7 @@ export type ChatStoreActions = {
     sessionId: string,
     partyId: string,
     completeMessage: string,
+    pledgeTracker?: PledgeTrackerSuggestions,
   ) => void;
   failStreamingMessage: (sessionId: string, partyId: string) => void;
   finishStreamingTurn: () => void;
@@ -215,6 +317,25 @@ export type ChatStoreActions = {
   setProlificDisclaimerDismissed: (dismissed: boolean) => void;
   incrementProlificMessageCount: () => void;
   setProlificMessageCount: (count: number) => void;
+  setStudyEnabled: (enabled: boolean) => void;
+  setPledgeModalOpen: (open: boolean) => void;
+  hydrateStudyParticipant: (userId: string) => Promise<void>;
+  acceptStudyConsent: (
+    userId: string,
+    contextId: string,
+    partyIds: string[],
+  ) => Promise<void>;
+  declineStudyConsent: (
+    userId: string,
+    contextId: string,
+    partyIds: string[],
+  ) => Promise<void>;
+  recordStudyEvent: (
+    type: string,
+    options?: { trigger?: string; merge?: Partial<StudyParticipant> },
+  ) => Promise<void>;
+  incrementStudyPromptCount: () => void;
+  setStudyQuestionnaireClicked: (clicked: boolean) => void;
 };
 
 export type ChatStore = ChatStoreState & ChatStoreActions;

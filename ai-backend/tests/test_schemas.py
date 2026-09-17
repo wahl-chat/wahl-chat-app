@@ -103,6 +103,44 @@ def test_chunk_record_external_id_optional():
 
 
 # =============================================================================
+# pledge_record fields
+# =============================================================================
+
+
+def test_chunk_record_pledge_fields_default_none():
+    """The six pledge envelope fields are optional and default to None."""
+    chunk = ChunkRecord(**_valid_chunk_kwargs())
+    assert chunk.status is None
+    assert chunk.as_of_date is None
+    assert chunk.claim_id is None
+    assert chunk.pledge_id is None
+    assert chunk.policy_area is None
+    assert chunk.context_id is None
+
+
+def test_chunk_record_accepts_pledge_fields():
+    """A pledge_record chunk carries its indexed pledge payload fields."""
+    chunk = ChunkRecord(
+        **{
+            **_valid_chunk_kwargs(),
+            "source_type": SourceType.PLEDGE_RECORD,
+            "status": "in_progress",
+            "as_of_date": _TODAY,
+            "claim_id": "spd-mindestlohn-12-euro",
+            "pledge_id": "spd-mindestlohn-12-euro",
+            "policy_area": "Arbeit und Soziales",
+            "context_id": "landtagswahl-sachsen-anhalt-2026",
+        }
+    )
+    assert chunk.source_type == SourceType.PLEDGE_RECORD
+    assert chunk.pledge_id == "spd-mindestlohn-12-euro"
+    # exclude_none dumps must keep pledge fields when set
+    dumped = chunk.model_dump(mode="json", exclude_none=True)
+    assert dumped["status"] == "in_progress"
+    assert dumped["context_id"] == "landtagswahl-sachsen-anhalt-2026"
+
+
+# =============================================================================
 # removed models must not be importable from schemas
 # =============================================================================
 

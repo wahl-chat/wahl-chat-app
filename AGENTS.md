@@ -108,6 +108,16 @@ Connectors are registered in a closed `{connector_id: factory}` map
   that hook ever fails. Both read the class from the object path, so neither can
   remove a document the AW copy does not replace.
 
+Outside the registry (bespoke runner, like the manifesto bulk CLIs):
+
+- `pledgetracker` — evidence timelines for political pledges from the Cambridge
+  PledgeTracker research project (EMNLP 2025 demo,
+  https://aclanthology.org/2025.emnlp-demos.64/). Not in `CONNECTOR_FACTORIES`:
+  pledges have no monotonic cursor and the runner dual-writes Firestore
+  (`pledges/{pledge_id}`, the source of truth incl. timelines) + Qdrant (one
+  `pledge_record` vector per pledge, timelines never embedded). Runner:
+  `connectors/pledgetracker/bulk.py` (see "Running PledgeTracker ingestion").
+
 The **data contract** is the Pydantic model set in `src/ingestion/schemas.py`
 (`ChunkRecord` plus the `AuthorityTier` / `SourceType` enums and per-source
 `meta` builders `VoteMeta` / `SpeechMeta`). It is the single source of truth for
@@ -249,6 +259,157 @@ path carries the metadata — election and party must already exist in
 `--since` (or `MANIFESTO_UPLOADS_SINCE`) floors by election date; documents below it
 are neither ingested nor retired. Removing a manifest line retires that document's
 chunks on the next run.
+
+#### Running PledgeTracker ingestion
+
+The Cambridge queue API is an async job queue in front of a single GPU: one job
+at a time, ~3 minutes per pledge, results stored server-side. We own the pledge
+list (`ai-backend/data/pledges/*.jsonl`: claim, `pledge_date`, `pledge_author`,
+optional `bundesland`/`party_id`/source metadata). Bundesländer map to ISO
+3166-2 region codes (`DE-ST`), which must match the context seeds' `region_path`
+elements. The runner is incremental: a freshness watermark skips pledges checked
+within `--freshness-days` (default 7), interrupted runs resume via the job id
+persisted on the Firestore doc, and `--batch-size` (default 3) bounds each
+invocation — sized for the 15-minute scheduled-job cap. Pledge identity is
+`party_id:claim:region:pledge_date`, so NEVER reword a claim in place — a live
+run ends with a reconcile that retires store pledges no longer in the registry
+(edited claims, removed rows), scoped to the registry's own regions
+(`--skip-reconcile` opts out).
+
+Requires `PLEDGETRACKER_API_KEY` in `ai-backend/.env` (gitignored — never commit
+it) and `PLEDGETRACKER_ENABLE_LIVE=true`; without them the runner ingests the
+packaged demo fixture offline. `FIRESTORE_EMULATOR_HOST` is mandatory unless
+`ENV=prod` (accidental-write guard); pass `--allow-remote` to deliberately
+ingest into the deployed dev environment without an emulator. The flag unsets
+the emulator host even if `.env` still has it (local mode sets it by default).
+
+```bash
+FIRESTORE_EMULATOR_HOST=localhost:8081 make run-pledgetracker ARGS="--dry-run"
+FIRESTORE_EMULATOR_HOST=localhost:8081 PLEDGETRACKER_ENABLE_LIVE=true \
+  make run-pledgetracker ARGS="--registry data/pledges/sachsen_anhalt_pledges.jsonl --batch-size 2"
+# Deployed dev Firestore (wahl-chat-dev), not the emulator:
+make run-pledgetracker ARGS="--allow-remote --registry data/pledges/sachsen_anhalt_pledges.jsonl --batch-size 2"
+# Backfill short event headlines only (LLM calls, no queue jobs / Qdrant writes):
+FIRESTORE_EMULATOR_HOST=localhost:8081 make run-pledgetracker ARGS="--backfill-titles"
+```
+
+Data-handling invariants: Cambridge's per-event `Ja`/`Nein` label maps to
+`is_relevant_for_tracking` (useful evidence), never a fulfilled/broken verdict —
+UI copy says "Ziele", not "Versprechen"; the events' full source text is never
+stored (`url`/`title` suffice); the chat-side lookup is best-effort and may
+return nothing (the UI then shows no PledgeTracker entry point).
+
+#### The PledgeTracker study (consent, cohorts, questionnaire)
+
+An in-app experiment with the Vlachos group (University of Cambridge): does
+PledgeTracker change users' willingness to engage in political debate?
+
+- **Scope**: only `abgeordnetenhauswahl-berlin-2026` and
+  `landtagswahl-mecklenburg-vorpommern-2026` — `STUDY_CONTEXT_IDS` in
+  `web/lib/pledge-study/study-config.ts`, which also holds the prompt-timing
+  constants, the cohort hash, and the questionnaire form id. The shared
+  vocabulary (`StudyParticipation`, `StudyCohort`) lives in
+  `web/lib/pledge-study/types.ts`: **participation** says whether a user takes
+  part at all (`experimental` / `regular`), **cohort** says which arm a
+  participant is in (`control` / `manipulation`). "experimental" therefore
+  never means "sees the feature".
+- **Kill switch**: Firestore doc `system_status/pledge_study` `{enabled: true}`.
+  Missing doc/field/error = off (the safe default); flipping it is a console
+  edit, no deploy. **Off means PledgeTracker is hidden in EVERY context, not
+  just the study ones** — the feature is new and only ships inside a study for
+  now, so switching the study off must not silently roll the feature out to
+  every election. Turning it ON is therefore what NARROWS visibility, to the
+  manipulation arm inside a study context. It follows that non-study elections
+  need the switch value too, which is why `ChatStudyWrapper` mirrors it into
+  the store in every context. The local emulator UI is disabled, so write the doc over
+  REST instead, with `-H 'Authorization: Bearer owner'` (plain writes are
+  refused by the rules).
+  The questionnaire form id is COMMITTED (`STUDY_QUESTIONNAIRE_FORM_ID` in
+  `web/lib/pledge-study/study-config.ts`), like every other Fillout form here,
+  so a fresh checkout and both deployments work with no env setup;
+  `NEXT_PUBLIC_STUDY_QUESTIONNAIRE_URL` only overrides it for a test form.
+- **Flow**: fresh chat in a study context → two-stage consent (short ask, then
+  the Einverständniserklärung). A „Nein" is permanent per uid, and dismissing
+  the dialog (Escape, overlay click, drawer swipe) is recorded as that same
+  „Nein" — only an explicit „Ja" enrols, and everyone who was asked leaves a
+  record, so the consent denominator is complete. A „Ja" assigns the cohort —
+  deterministic hash(uid+salt), p=0.5 — and persists `study_participants/{uid}`
+  with `participation`, `cohort` and `assignment_source` (the analysis source
+  of truth). NEVER change the salt while the study runs.
+  Both answers also record `context_id` and `party_ids` (the parties selected
+  when the ask appeared), so non-response can be modelled rather than just
+  counted — refusal by election, and by the party the user came to chat with.
+- **Gate** (`web/lib/pledge-study/gate.ts`): the switch is checked FIRST — off
+  or not-yet-known hides PledgeTracker everywhere. With it on, a study context
+  admits ONLY consented participants in the `manipulation` arm; control and
+  non-consented users see nothing, because pre-exposure would contaminate a
+  later control assignment. Any other context is the ordinary product and
+  shows the feature to everyone. Covered by `gate.test.ts`.
+- **Telemetry** (consent-gated, `recordStudyEvent`): append-only `events` on
+  the participant doc — `first_message`, `first_answer_completed`,
+  `second_answer_completed`, `pledge_shown` (viewport exposure),
+  `pledge_modal_open`/`_close`,
+  `prompt_shown`/`prompt_dismissed` (with trigger), `questionnaire_clicked`.
+  Counts and firsts are derived from the log at analysis time.
+- **Questionnaire prompts** (identical for both cohorts — control symmetry,
+  and now genuinely so): `second_answer` fires `SECOND_ANSWER_DELAY_MS` (10s)
+  after the PARTICIPANT's second answer completes; `absolute_timer` fires
+  `ABSOLUTE_FALLBACK_MS` (90s) after the first completed answer of the chat,
+  so a user who never sends a second message is still asked once. Both stand
+  down once anything has prompted, so whichever comes first wins and two
+  prompts cannot land seconds apart. Max 2 prompts ever, cap survives reloads.
+  The answer count is per PARTICIPANT, not per chat: it is seeded from the
+  event log at hydration and carried through `newChat`, because `newChat`
+  empties `messages` and a per-chat count would silently miss a second
+  question asked in a fresh chat. **Nothing about prompting reads PledgeTracker state.** The former
+  `modal_close` and `longstop` triggers did, and since only the manipulation
+  arm can open a pledge modal, that arm had prompt paths control could never
+  reach — differential prompt exposure inside the instrument measuring the
+  outcome. Rows written before this change carry the retired
+  `timer`/`modal_close`/`longstop` trigger values; the vocabulary was renamed
+  rather than reused so the two regimes stay distinguishable in `events`.
+  The form opens IN-APP via
+  `FilloutPopupEmbed` (same pattern as `survey-banner.tsx`), carrying
+  `user_id` + `chat_session_id` + `cohort` as parameters (matching the form's
+  hidden fields); trigger/context stay in the event log. Passing the cohort
+  reverses the original no-self-unblinding rule — it is readable in the iframe
+  URL — and it is a CONVENIENCE COPY only: `study_participants/{uid}` stays
+  authoritative, because it alone carries `assignment_source` and so tells a
+  real participant from a `?sg=` tester. A Fillout row's `cohort` cannot do
+  that on its own. While the
+  study is on, the study questionnaire is the ONLY thing anyone is asked for,
+  app-wide: `StudyStatusProvider` holds one kill-switch subscription and
+  `useStudyRunning()` suppresses the general feedback banner, the newsletter
+  step after login, and the Wahl-Swiper feedback card. The rule ignores the
+  cohort and consent, so no arm is exposed differently, and everything returns
+  the moment the kill switch goes off.
+- **Analysis joins**: `study_participants/{uid}` ↔ `chat_sessions.user_id`
+  (sessions are also stamped `study_cohort` + `is_pledge_study`) ↔
+  `page_visits.user_id`/`chat_session_ids` (dwell time) ↔ the questionnaire's
+  `user_id` + `chat_session_id` answers. The uid is the Firebase anonymous uid
+  throughout.
+- **Forcing a variant** (`web/lib/pledge-study/variant-override.ts`): append
+  `?sg=a` (consented control), `?sg=b` (consented manipulation), `?sg=x`
+  (declined) in a study context; `?sg=off` clears it. Works in dev AND prod,
+  including before launch — an override also forces the study on for that
+  browser, client-side only, so the prod kill switch being off does not block
+  testing. The values are opaque so a participant cannot read their arm off the
+  URL; there is deliberately no signing or validation, since the repo is public
+  and the bundle is inspectable. Persisted per tab in sessionStorage, ignored
+  for Prolific participants.
+  **Forced rows are flagged** `assignment_source: 'override'` (plus
+  `override_variant`, `override_at`) and MUST be excluded from analysis. The
+  flag write touches marker fields ONLY, never `consent_answer`/`cohort`, so
+  it cannot destroy a real record — but **use a fresh browser profile**: an
+  override link opened in a genuine participant's profile flags that
+  participant out of the study. Two caveats: an override link bypasses the kill
+  switch, and variants a/b can submit the real questionnaire, which Fillout
+  records without the flag (cross-reference on `user_id` to exclude).
+- Known simplifications: a prompt can land while another dialog is open (the
+  triggers are time- and turn-based, not idle-based); the kill switch is
+  client-read only
+  (default-off hides everything until the snapshot arrives); a second device
+  is a new participant (anonymous auth — accepted trade-off).
 
 De-dup with AW is two-way and party+region+date scoped: an upload is skipped if AW
 already has that party's programme; once AW ingests it, its `post_upsert` deletes

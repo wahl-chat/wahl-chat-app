@@ -12,11 +12,11 @@ import Link from 'next/link';
  * a listbox of router pushes is not something a crawler can follow. Rendered
  * on the server for the same reason.
  *
- * Upcoming elections are cards; concluded ones sit behind a collapsed
- * <details>, since nobody searches for an election that is over. It is a
- * native disclosure rather than a JS toggle on purpose: conditionally
- * rendered links never reach the server HTML, and being followable is the
- * whole point of listing them here.
+ * Upcoming elections are cards; concluded ones sit in a <details> that starts
+ * open so the full list is visible, and can be folded away. It is a native
+ * disclosure rather than a JS toggle on purpose: conditionally rendered
+ * links never reach the server HTML, and being followable is the whole point
+ * of listing them here.
  *
  * The hero already leads with the featured election, so the caller passes the
  * others; between them the page still links every election, which is what the
@@ -38,7 +38,7 @@ function ElectionCard({
   const date = formatGermanDate(context.date, 'medium');
 
   return (
-    <li>
+    <li className="w-full sm:w-80">
       <Link
         href={`/${context.context_id}`}
         className="group flex h-full items-center gap-3 rounded-md border border-border p-3 ring-offset-background transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -67,9 +67,9 @@ function ElectionLinks({ upcoming, past }: Props) {
   if (upcoming.length === 0 && past.length === 0) return null;
 
   return (
-    <nav aria-label="Alle Wahlen" className="flex flex-col gap-4">
+    <nav aria-label="Alle Wahlen" className="flex flex-col items-center gap-4">
       {upcoming.length > 0 && (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="flex w-full flex-wrap justify-center gap-3">
           {upcoming.map((context) => (
             <ElectionCard key={context.context_id} context={context} />
           ))}
@@ -77,8 +77,8 @@ function ElectionLinks({ upcoming, past }: Props) {
       )}
 
       {past.length > 0 && (
-        <details className="group">
-          <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
+        <details className="group w-full" open>
+          <summary className="mx-auto flex w-fit cursor-pointer list-none items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
             Vergangene Wahlen anzeigen
             <ChevronDownIcon
               className="size-3 transition-transform group-open:rotate-180"
@@ -86,7 +86,7 @@ function ElectionLinks({ upcoming, past }: Props) {
             />
           </summary>
 
-          <ul className="grid gap-3 pt-3 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="flex w-full flex-wrap justify-center gap-3 pt-3">
             {past.map((context) => (
               <ElectionCard
                 key={context.context_id}

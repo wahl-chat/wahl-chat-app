@@ -114,6 +114,7 @@ SourceTypeLiteral = Literal[
     "drucksache",
     "qa_transcript",
     "parliamentary_speech",
+    "pledge_record",
 ]
 
 AuthorityTierLiteral = Literal[

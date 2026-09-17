@@ -172,7 +172,7 @@ function ElectionQuestions({ group }: { group: QuestionGroup }) {
   );
 
   return (
-    <li className="relative flex w-[85vw] shrink-0 snap-start flex-col gap-4 overflow-hidden rounded-md border border-border bg-background p-4 md:w-auto md:shrink md:p-5">
+    <li className="relative flex w-[85vw] shrink-0 snap-start flex-col gap-4 overflow-hidden rounded-md border border-border bg-background p-4 md:w-80 md:p-5">
       {/* The state's coat of arms as a watermark, so a card is recognisable as
           its election before the name is read. Decorative, and faint enough
           that the question cards above it stay legible. */}
@@ -241,9 +241,9 @@ function ExampleQuestions({ groups }: { groups: QuestionGroup[] }) {
     // Mobile: one card per election, swiped sideways, with the next one
     // peeking so it is obvious there is more. The negative margin lets the row
     // bleed to the screen edge while the padding keeps the first and last card
-    // aligned with the rest of the page. Desktop has the width for a grid, so
-    // the scroller collapses into one.
-    <ul className="-mx-5 flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto px-5 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-2 md:items-start md:overflow-x-visible md:px-0 md:pb-0 lg:grid-cols-3 [&::-webkit-scrollbar]:hidden">
+    // aligned with the rest of the page. Desktop wraps the same cards and
+    // centres the group, so one or two elections do not sit against the left.
+    <ul className="-mx-5 flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto px-5 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] md:mx-0 md:flex-wrap md:justify-center md:overflow-x-visible md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden">
       {groups.map((group) => (
         <ElectionQuestions key={group.context.context_id} group={group} />
       ))}
