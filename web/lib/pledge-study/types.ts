@@ -6,17 +6,24 @@
  *
  * Two separate ideas, kept separate so neither word does double duty:
  *
- * - participation — does this user take part in the study at all?
- * - cohort        — for a participant, which arm are they in?
+ * - participation — did this user consent to the research instruments?
+ * - cohort        — which version of the product do they get?
  *
- * "experimental" therefore means "in the experiment", never "sees the
- * feature". The arm that sees PledgeTracker is 'manipulation'.
+ * They are genuinely independent: a 'regular' user (one who declined) still
+ * has an arm, and half of them see PledgeTracker. "experimental" therefore
+ * means "consented to the research", never "sees the feature". The arm that
+ * sees PledgeTracker is 'manipulation'.
  */
 
-/** Does the user take part in the study? Mirrors the consent answer. */
+/** Did the user consent to the research instruments? Mirrors the answer. */
 export type StudyParticipation = 'experimental' | 'regular';
 
-/** Which arm a participant is in. Only participants have one. */
+/**
+ * Which arm a user is in. EVERYONE who answers the consent dialog gets one,
+ * including those who decline: consent governs the research instruments, the
+ * arm governs which version of the product is served. Only a user who was
+ * never asked has no arm.
+ */
 export type StudyCohort = 'control' | 'manipulation';
 
 export type StudyConsentAnswer = 'accepted' | 'declined';

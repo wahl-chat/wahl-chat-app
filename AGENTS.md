@@ -309,10 +309,12 @@ PledgeTracker change users' willingness to engage in political debate?
   `web/lib/pledge-study/study-config.ts`, which also holds the prompt-timing
   constants, the cohort hash, and the questionnaire form id. The shared
   vocabulary (`StudyParticipation`, `StudyCohort`) lives in
-  `web/lib/pledge-study/types.ts`: **participation** says whether a user takes
-  part at all (`experimental` / `regular`), **cohort** says which arm a
-  participant is in (`control` / `manipulation`). "experimental" therefore
-  never means "sees the feature".
+  `web/lib/pledge-study/types.ts`: **participation** says whether a user
+  consented to the research instruments (`experimental` / `regular`), **cohort**
+  says which version of the product they get (`control` / `manipulation`). The
+  two are INDEPENDENT: everyone who answers the dialog is assigned an arm,
+  declines included, so a `regular` user can be in `manipulation` and see the
+  feature. "experimental" therefore never means "sees the feature".
 - **Kill switch**: Firestore doc `system_status/pledge_study` `{enabled: true}`.
   Missing doc/field/error = off (the safe default); flipping it is a console
   edit, no deploy. **Off means PledgeTracker is hidden in EVERY context, not
@@ -346,14 +348,28 @@ PledgeTracker change users' willingness to engage in political debate?
   always `consent_stage: 'consent'`. Rows written before 2026-09-17 have
   neither field — that is what "stage unknown" means in the analysis. Note
   that closing the TAB still leaves no record at all, at either stage.
+  BOTH answers also assign and persist a `cohort`, from the same
+  `hash(uid+salt)`, so a uid's arm never depends on the answer it gave. Rows
+  written before 2026-09-18 have no cohort on the decline side; a returning
+  user is never re-asked, so those uids stay arm-less unless backfilled.
+  The `?sg=x` ("declined") override is the one decline that stays arm-less on
+  purpose — it demonstrates that experience — and the decline action honours
+  that absence instead of hashing an arm in.
 - **Gate** (`web/lib/pledge-study/gate.ts`): the switch is checked FIRST — off
   or not-yet-known hides PledgeTracker everywhere. With it on, a study context
-  admits ONLY consented participants in the `manipulation` arm; control and
-  non-consented users see nothing, because pre-exposure would contaminate a
-  later control assignment. Any other context is the ordinary product and
+  admits the `manipulation` arm and nobody else. **THE ARM DECIDES, NOT THE
+  CONSENT ANSWER** (changed 2026-09-18): consent governs the research
+  instruments, the arm governs which build of the product is served, and
+  requiring both left the manipulation arm in single digits. Control sees
+  nothing — that is the comparison — and a user who was never asked has no arm
+  and sees nothing either. Pre-exposure cannot contaminate anyone: the arm is a
+  deterministic `hash(uid+salt)`, identical whenever it is computed, so there is
+  no later assignment to spoil. Any other context is the ordinary product and
   shows the feature to everyone. Covered by `gate.test.ts`.
-- **Telemetry** (consent-gated, `recordStudyEvent`): append-only `events` on
-  the participant doc — `first_message`, `first_answer_completed`,
+- **Telemetry** (`recordStudyEvent`, written for EVERYONE who answered the
+  dialog — both arms and both answers; a user who was never asked has no row
+  and is a strict no-op, or the consent denominator would be destroyed):
+  append-only `events` on the participant doc — `first_message`, `first_answer_completed`,
   `second_answer_completed`, `pledge_shown` (viewport exposure),
   `pledge_modal_open`/`_close`,
   `prompt_shown`/`prompt_dismissed` (with trigger), `questionnaire_clicked`.

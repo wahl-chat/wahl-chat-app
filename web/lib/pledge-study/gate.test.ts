@@ -4,7 +4,6 @@ import { isPledgeTrackerAllowed } from './gate';
 const on = {
   inStudyContext: true,
   studyEnabled: true,
-  consent: 'accepted' as const,
   cohort: 'manipulation' as const,
 };
 
@@ -45,7 +44,6 @@ describe('isPledgeTrackerAllowed', () => {
         isPledgeTrackerAllowed({
           inStudyContext: false,
           studyEnabled: true,
-          consent: undefined,
           cohort: undefined,
         }),
       ).toBe(true);
@@ -61,21 +59,19 @@ describe('isPledgeTrackerAllowed', () => {
       expect(isPledgeTrackerAllowed({ ...on, cohort: 'control' })).toBe(false);
     });
 
-    it('hides it from anyone who has not consented', () => {
-      // Pre-exposure would contaminate a later control assignment.
-      expect(
-        isPledgeTrackerAllowed({
-          ...on,
-          consent: undefined,
-          cohort: undefined,
-        }),
-      ).toBe(false);
-      expect(isPledgeTrackerAllowed({ ...on, consent: 'declined' })).toBe(
-        false,
+    it('shows it to the manipulation arm even after a decline', () => {
+      // The arm decides, not the answer: consent governs the questionnaire,
+      // and gating exposure on it too left the arm in single digits.
+      expect(isPledgeTrackerAllowed({ ...on, cohort: 'manipulation' })).toBe(
+        true,
       );
     });
 
-    it('needs the arm as well as consent, never consent alone', () => {
+    it('still hides it from control after a decline', () => {
+      expect(isPledgeTrackerAllowed({ ...on, cohort: 'control' })).toBe(false);
+    });
+
+    it('hides it from anyone who was never asked, who has no arm', () => {
       expect(isPledgeTrackerAllowed({ ...on, cohort: undefined })).toBe(false);
     });
   });

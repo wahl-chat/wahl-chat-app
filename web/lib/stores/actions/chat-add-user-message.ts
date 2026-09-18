@@ -105,12 +105,13 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
     }
 
     messages = get().messages;
-    const { tenant, studyConsent, studyCohort } = get();
+    const { tenant, studyCohort } = get();
 
     try {
       // Firebase writes — NOT Socket.IO; must be preserved.
       if (messages.length < 2 && !isMessageResend) {
-        // Study telemetry: the first message of a session (participants only).
+        // Study telemetry: the first message of a session, for anyone who
+        // answered the consent dialog either way.
         void get().recordStudyEvent('first_message');
         await createChatSession(
           userId,
@@ -119,7 +120,9 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
           tenant?.id,
           safeContextId,
           prolificMetadata,
-          studyConsent === 'accepted' ? studyCohort : undefined,
+          // Stamped from the arm alone: declined users have one too, and the
+          // cohort comparison is only as wide as the sessions carrying it.
+          studyCohort,
         );
 
         if (typeof window !== 'undefined') {

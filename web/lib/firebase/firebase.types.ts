@@ -135,7 +135,11 @@ export type StudyParticipant = {
   decline_reason?: StudyDeclineReason;
   /** Derived from consent_answer; stored so queries need not infer it. */
   participation?: StudyParticipation;
-  /** Only participants have an arm. */
+  /**
+   * Set for BOTH answers: a decline is still assigned an arm, so the
+   * comparison is not limited to the few who consent. Absent only on rows
+   * written before 2026-09-18, when declines carried no arm.
+   */
   cohort?: StudyCohort;
   /**
    * 'override' marks a row whose arm was forced by a ?sg= link. EXCLUDE these
