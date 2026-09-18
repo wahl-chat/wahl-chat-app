@@ -39,17 +39,15 @@ function ChatSingleMessageActions({
   );
   const contextId = useChatStore((state) => state.contextId);
   const studyEnabled = useChatStore((state) => state.studyEnabled);
-  const studyConsent = useChatStore((state) => state.studyConsent);
   const studyCohort = useChatStore((state) => state.studyCohort);
 
   if (!showMessageActions) return null;
 
-  // Study gate: in a study context only consented experimental participants
-  // may see PledgeTracker (see lib/pledge-study/gate.ts).
+  // Study gate: in a study context only the manipulation arm may see
+  // PledgeTracker, consent answer relates to the questionnaire (see lib/pledge-study/gate.ts).
   const pledgeTrackerAllowed = isPledgeTrackerAllowed({
     inStudyContext: isStudyContext(contextId),
     studyEnabled,
-    consent: studyConsent,
     cohort: studyCohort,
   });
 

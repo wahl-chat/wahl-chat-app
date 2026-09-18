@@ -31,7 +31,12 @@ export type StudyOverride = {
   variant: StudyOverrideVariant;
   participation: StudyParticipation;
   consent: StudyConsentAnswer;
-  /** Absent for the declined variant — non-participants have no arm. */
+  /**
+   * Absent for the 'declined' variant ONLY, which exists to demonstrate the
+   * arm-less experience. Genuine declines are assigned an arm like everyone
+   * else; this override deliberately is not, and decline-study-consent.ts
+   * honours that absence instead of hashing one in.
+   */
   cohort?: StudyCohort;
 };
 

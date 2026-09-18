@@ -3,15 +3,18 @@ import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
 import { Timestamp } from 'firebase/firestore';
 
 /**
- * Consent-gated interaction log on study_participants/{uid}: a strict no-op
- * for non-participants (control AND experimental participants are logged —
- * the analysis needs both sides), and it never throws — telemetry must not
- * break chat. Counts/firsts are derived from the event log at analysis time.
+ * Interaction log on study_participants/{uid}, written for everyone who has
+ * ANSWERED the consent dialog — both arms and both answers, because both arms
+ * now contain declined users and the analysis needs every side. A user who was
+ * never asked (no answer, hence no row) is a strict no-op: logging them would
+ * mint participant rows for people the dialog never reached and destroy the
+ * consent denominator. Never throws — telemetry must not break chat.
+ * Counts/firsts are derived from the event log at analysis time.
  */
 export const recordStudyEvent: ChatStoreActionHandlerFor<'recordStudyEvent'> =
   (get) => async (type, options) => {
     const { userId, studyConsent } = get();
-    if (!userId || studyConsent !== 'accepted') {
+    if (!userId || !studyConsent) {
       return;
     }
     try {
