@@ -44,7 +44,7 @@ function ChatSingleMessageActions({
   if (!showMessageActions) return null;
 
   // Study gate: in a study context only the manipulation arm may see
-  // PledgeTracker, whatever the consent answer (see lib/pledge-study/gate.ts).
+  // PledgeTracker, consent answer relates to the questionnaire (see lib/pledge-study/gate.ts).
   const pledgeTrackerAllowed = isPledgeTrackerAllowed({
     inStudyContext: isStudyContext(contextId),
     studyEnabled,

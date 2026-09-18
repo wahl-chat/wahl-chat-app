@@ -60,8 +60,7 @@ describe('isPledgeTrackerAllowed', () => {
     });
 
     it('shows it to the manipulation arm even after a decline', () => {
-      // The arm decides, not the answer: consent governs the questionnaire,
-      // and gating exposure on it too left the arm in single digits.
+      // The arm decides, not the answer: consent governs the questionnaire.
       expect(isPledgeTrackerAllowed({ ...on, cohort: 'manipulation' })).toBe(
         true,
       );

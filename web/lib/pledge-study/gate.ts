@@ -14,8 +14,7 @@ import type { StudyCohort } from './types';
  * answers the dialog is assigned an arm, including those who decline, because
  * consent governs the research instruments (the questionnaire) while the arm
  * governs which version of the product a user gets, and both arms are ordinary
- * product experiences. Gating exposure on consent as well left the manipulation
- * arm in single digits, which is no comparison at all.
+ * product experiences.
  *
  * Pre-exposure cannot contaminate anyone here: the arm is a deterministic
  * hash(uid+salt), so a given uid's arm is the same whenever it is computed and
