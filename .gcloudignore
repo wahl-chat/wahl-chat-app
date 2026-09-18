@@ -1,0 +1,10 @@
+# Cloud Build only needs this config and the backend image context.
+# Keep the upload small so the manual prod promote is not shipping web/ or
+# firebase/ to the source bucket.
+/*
+!cloudbuild.backend.yaml
+!ai-backend/
+ai-backend/.venv/
+ai-backend/.env
+ai-backend/*-adminsdk-*.json
+ai-backend/vertex-sa*.json
