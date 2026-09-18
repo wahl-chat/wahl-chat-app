@@ -349,9 +349,13 @@ PledgeTracker change users' willingness to engage in political debate?
   neither field — that is what "stage unknown" means in the analysis. Note
   that closing the TAB still leaves no record at all, at either stage.
   BOTH answers also assign and persist a `cohort`, from the same
-  `hash(uid+salt)`, so a uid's arm never depends on the answer it gave. Rows
-  written before 2026-09-18 have no cohort on the decline side; a returning
-  user is never re-asked, so those uids stay arm-less unless backfilled.
+  `hash(uid+salt)`, so a uid's arm never depends on the answer it gave. The 76
+  declines written before 2026-09-18 have no cohort, and are **deliberately
+  left that way — do NOT backfill them**. A missing cohort on a declined row
+  is the marker for the old regime: those users were never exposed to the
+  feature, so pooling them with post-2026-09-18 declines would mix the
+  unexposed in with the A/B sample. They are never re-asked either (consent is
+  sticky), so they stay arm-less for good, by choice.
   The `?sg=x` ("declined") override is the one decline that stays arm-less on
   purpose — it demonstrates that experience — and the decline action honours
   that absence instead of hashing an arm in.
