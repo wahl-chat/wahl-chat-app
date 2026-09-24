@@ -49,6 +49,10 @@ terraform-export/
 ai-backend/vertex-sa.json
 # === Local data files ===
 speeches.jsonl
+# Default home of the local Qdrant corpus snapshots (src/data_analysis), several
+# GB each. In a plain clone it lands at the repo root; in a bare + worktree
+# layout it sits outside every worktree and this rule is simply never hit.
+/local/
 
 # === Agent docs symlink (local only) ===
 # AGENTS.md is the committed source of truth; CLAUDE.md is a provider-specific
