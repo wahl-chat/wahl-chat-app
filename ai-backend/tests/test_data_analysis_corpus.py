@@ -16,7 +16,13 @@ from typing import Any
 import numpy as np
 import pytest
 
-from src.data_analysis import corpus
+# pandas and pyarrow live in the opt-in `analysis` dependency group, which the
+# default sync (and so the regular backend suite) does not install. Without this
+# guard the missing import would abort collection of the whole test run.
+pytest.importorskip("pandas")
+pytest.importorskip("pyarrow")
+
+from src.data_analysis import corpus  # noqa: E402
 
 DIM = 4
 COLLECTION = "wahlchat_chunks_test"
@@ -145,3 +151,61 @@ def test_misaligned_corpus_fails_at_construction(fake_env):
     with pytest.raises(ValueError):
         corpus.Corpus(meta=good.meta.iloc[:2], vectors=good.vectors, ids=good.ids,
                       manifest=good.manifest, path=path)
+
+
+def _no_staging_left(root: Path) -> bool:
+    return not any((root / COLLECTION).glob(".*.partial"))
+
+
+def test_collection_growing_mid_scroll_is_rejected(fake_env):
+    # the file is sized on the first count: a collection that grows while the
+    # scroll runs would overflow it, which must fail instead of being truncated
+    client, root = fake_env
+    counts = iter([len(client.points) - 2, len(client.points)])
+    client.count = lambda *_, **__: SimpleNamespace(count=next(counts))
+    with pytest.raises(corpus.FetchingError, match="grew during the fetching"):
+        corpus._fetch_export(collection=COLLECTION, scroll_limit=3)
+    assert _no_staging_left(root)
+
+
+def test_failed_validation_removes_the_staging_folder(fake_env):
+    client, root = fake_env
+    client.points.append(client.points[0])
+    client.count = lambda *_, **__: SimpleNamespace(count=len(client.points))
+    with pytest.raises(corpus.FetchingError, match="duplicated point ids"):
+        corpus._fetch_export(collection=COLLECTION)
+    assert _no_staging_left(root)
+    assert not any((root / COLLECTION).glob("*/" + corpus.MANIFEST))
+
+
+def test_non_finite_vectors_are_rejected(fake_env):
+    client, root = fake_env
+    client.points[3].vector["dense"][1] = float("nan")
+    with pytest.raises(corpus.FetchingError, match="non-finite"):
+        corpus._fetch_export(collection=COLLECTION)
+    assert _no_staging_left(root)
+
+
+def test_snapshot_vectors_match_the_scrolled_points(fake_env):
+    # rows written page by page into the memory map must land in scroll order
+    client, _ = fake_env
+    path = corpus._fetch_export(collection=COLLECTION, scroll_limit=3)
+    expected = np.asarray([p.vector["dense"] for p in client.points], dtype=np.float32)
+    np.testing.assert_array_equal(corpus.load_corpus(path).vectors, expected)
+
+
+def test_project_root_is_the_repository_not_git_internals(monkeypatch, tmp_path):
+    # started from outside the repository, as a notebook opened elsewhere would be
+    monkeypatch.chdir(tmp_path)
+    root = corpus.project_root()
+    assert root.name not in {".git", ".bare"}
+    assert Path(corpus.__file__).resolve().is_relative_to(root)
+
+
+def test_vector_of_the_wrong_dimension_is_rejected(fake_env):
+    # a length-1 vector would broadcast across the whole preallocated row
+    client, root = fake_env
+    client.points[4].vector["dense"] = [0.5]
+    with pytest.raises(corpus.FetchingError, match="4-dimensional"):
+        corpus._fetch_export(collection=COLLECTION, scroll_limit=3)
+    assert _no_staging_left(root)

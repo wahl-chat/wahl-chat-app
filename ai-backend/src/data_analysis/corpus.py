@@ -48,6 +48,7 @@ from qdrant_client import QdrantClient, models
 import shutil
 import json
 import subprocess
+import warnings
 
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -110,13 +111,16 @@ class Manifest:
 
 def _save_corpus(
     corpus: "Corpus",
-    dest: Path
+    dest: Path,
+    staging: Path | None = None
 ) -> Path:
-    
-    staging = dest.with_suffix(".partial")
-    staging.mkdir(parents=True, exist_ok=True)
-
-    np.save(staging / VECTORS, corpus.vectors)   # vectors
+    '''
+    When `staging` is given, the vectors were already streamed into it by `_fetch_export()` and are not written a second time: only ids, payloads and the manifest are added before the rename.
+    '''
+    if staging is None:
+        staging = dest.with_suffix(".partial")
+        staging.mkdir(parents=True, exist_ok=True)
+        np.save(staging / VECTORS, corpus.vectors)   # vectors
 
     np.save(staging / IDS, corpus.ids)           # ids
     corpus.meta.to_parquet(staging / PAYLOADS)   # payloads od data
@@ -128,9 +132,10 @@ def _save_corpus(
 
 def save_corpus(
     corpus: "Corpus",
-    dest: Path
+    dest: Path,
+    staging: Path | None = None
 ) -> Path:
-    return _save_corpus(corpus, dest)
+    return _save_corpus(corpus, dest, staging)
 
 def _load_corpus(
     cls, 
@@ -225,7 +230,7 @@ class Corpus:
     ##
     
     def cached(self, name:str):
-        pass
+        raise NotImplementedError
     ##
 ##
 
@@ -252,7 +257,7 @@ def _validate_export(corpus: "Corpus") -> None:
         raise FetchingError("duplicated point ids: the scroll returned the same point more than once")
     if FINGERPRINT_POINT_ID in set(corpus.ids.tolist()):
         raise FetchingError("the fingerprint sentinel leaked into the corpus: its synthetic vector is not a chunk")
-    if not np.isfinite(corpus.vectors).all():
+    if not (np.isfinite(corpus.vectors.min()) and np.isfinite(corpus.vectors.max())):
         raise FetchingError("non-finite values among the downloaded vectors")
 ##
 
@@ -285,12 +290,12 @@ def project_root() -> Path:
     The other hypothesis in this retrieval is that a `git bare` repository was instantiated if and only if `.bare` is found in the parent folder . Also this one seems like a rather mild assumption, but can maybe generate some bugs with undisciplined users.
     '''
     path = Path(__file__).resolve()
-
-    # for cand in reversed(path.parents):
     PATH = subprocess.check_output(
-        ['git', 'rev-parse', '--path-format=absolute', '--git-common-dir']).decode("utf-8").split("\n"
-    )[0]
-    if PATH: return Path(PATH)
+        ['git', 'rev-parse', '--path-format=absolute', '--git-common-dir'],
+        cwd=path.parent,
+    ).decode("utf-8").split("\n")[0]
+    if PATH:
+        return Path(PATH).parent
     raise FileNotFoundError('Impossible to retrieve the project origin, neither .git or .bare anchors were found')
 ##
 
@@ -422,7 +427,7 @@ def _snapshot_versions(collection_dir: Path) -> list[Path]:
 
 def last_export(
         collection: str = DEFAULT_PROD_DATABASE,
-        check_for_new_updates: bool = True
+        check_for_new_updates: bool = False    # NOT IMPLEMENTED, but default shall be `True`
 ) -> Corpus:
     '''
     Returns the very last acquired snapshot of the database. It works by retrieving the path corresponding to a given folder representing a snapshot of the DB, then calls load_export() for consistency
@@ -438,7 +443,7 @@ def last_export(
     
     ## TODO: add the routine for the new version check via call
     if check_for_new_updates:
-        ... 
+        warnings.warn('Auto-updating is not implemented yet, flag `check_for_new_updates` is ignored.')
 
     versions = _snapshot_versions(path)
     if not versions:
@@ -453,25 +458,30 @@ def last_export(
 def _fetch_export(
         collection: str = DEFAULT_PROD_DATABASE,
         keep_as_only: bool = False,
-        scroll_limit: int = 20000,
+        scroll_limit: int = 2000,
 ) -> Path:
     '''
-    Retrieve the full corpus and store it to the selected local folder. Returns `True` if the export happens to be successful.
+    Retrieve the full corpus and store it to the selected local folder. Returns the path of the committed snapshot.
+
+    The vectors never live in RAM as a whole: each scrolled page is converted to `float32` and written straight into the final `.npy` file through a memory map, so the peak memory is one page of points rather than the whole corpus.
 
     Params
     ------
     - collection: str,
     Name of the collection to retrieve from Qdrant.
 
-    - keep_as_only_copy: bool
+    - keep_as_only: bool
     Boolean flag, if set to `True`, cancels all the other snapshots after the download has been successfully completed.
+
+    - scroll_limit: int
+    Points per scroll page. This is the memory knob, not a throughput one: a page is decoded by the client into Python floats (~96 KB per 3072-dim vector) before it is written, so 2000 points cost ~190 MB transiently and 20000 cost ~1.9 GB.
     '''
     ## LADDER:
     ## check for different folders/snapshots in the repo containing different shards.
     ## store those in an array/tuple/iterable
     ## fetches + saving in a coherent format
     ## cancels the files previously elim
-    
+
     QDRANT_URL = os.getenv("QDRANT_URL")
     API_KEY = os.getenv("QDRANT_API_KEY")
     client = QdrantClient(
@@ -482,13 +492,6 @@ def _fetch_export(
 
     if not client.collection_exists(collection):
         raise FileNotFoundError(f"collection '{collection}' does not exist in the qdrant cloud env provided")
-        
-    # download and save data to disk 
-    # Any: each name starts as a list and is rebound to its array/DataFrame form below
-    vectors: Any = []
-    payloads: Any = []
-    ids: Any = []
-    offset = None
 
     METADATA: dict | None = read_fingerprint(client, collection)
     if METADATA is None:
@@ -497,68 +500,150 @@ def _fetch_export(
             "no way to record which vector space this snapshot belongs to"
         )
 
-    # TODO: strenghten this loop cycle in order for it to be robust to server-side-changes
-    while True:
-        points, offset = client.scroll(
-            collection_name=collection,
-            offset=offset,
-            limit=scroll_limit,
-            scroll_filter=WITHOUT_FINGERPRINT,
-            with_vectors=True,
-            with_payload=True
-        )
+    point_count_begin = client.count(
+        collection,
+        count_filter=WITHOUT_FINGERPRINT,
+        exact=True
+    ).count
+    if point_count_begin == 0:
+        raise FetchingError(f"collection '{collection}' holds no points to export")
 
-        for point in points:
-            if not isinstance(point.vector, dict):
-                raise FetchingError(f"point {point.id} has no named vectors: expected a 'dense' entry")
-            ids.append(str(point.id))
-            vectors.append(point.vector['dense'])   # that's a list
-            #TODO: other saving modes possibly include a different dict name (such as 'sparse' instead of 'dense'). This should be checked for consistency. Can this be retrieved from the collection property?
-            payloads.append(point.payload)
-
-        if offset is None:
-            break
-    ##
-
-    vectors = np.asarray(vectors, dtype=np.float32)
-    ids = np.asarray(ids, dtype=str)
-    content_hashes = [(payload or {}).get("content_hash", "") for payload in payloads]
-
-    payloads = pd.DataFrame(payloads)       # TODO: understanding the indexing
-    if METADATA['embedding_dim'] != vectors.shape[-1]:
-        raise FetchingError(
-            f"collection '{collection}' declares {METADATA['embedding_dim']}-dimensional "
-            f"vectors, {vectors.shape[-1]} were downloaded"
-        )
-
-    hashing = snapshot_hash(
-        pairs = ((i, hsh) for i, hsh in zip(ids.tolist(), content_hashes)),
-        payload_cols=sorted(payloads.columns)
-    )
+    # The final folder is named after the snapshot hash, which is only known once
+    # every point has been seen, while the memory map has to exist before the
+    # first one arrives. The vectors therefore go into a neutrally named staging
+    # folder next to the snapshots (same filesystem, so the final rename stays
+    # atomic), which `_snapshot_versions()` ignores since it holds no manifest.
     NOW = Datetime.now()
-    PATH = qdrant_root() / collection / f"{str(NOW)}_{hashing}"
+    staging = qdrant_root() / collection / f".{NOW}.partial"
+    staging.mkdir(parents=True, exist_ok=True)
 
-    manifest = Manifest(
-        schema_version=SCHEMA_VERSION,
-        collection=collection,
-        exported_at=str(NOW),
-        snapshot_hash=hashing,
-        point_count=client.count(collection, count_filter=WITHOUT_FINGERPRINT, exact=True).count,
-        embedding=METADATA,
-        n_rows=len(vectors),
-        n_dims=vectors.shape[-1],
-        payload_columns=sorted(payloads.columns),
-    )
+    try:
+        ids: Any = []
+        payloads: Any = []
 
-    corpus = Corpus(
-        meta=payloads,
-        vectors=vectors,
-        ids=ids,
-        manifest=manifest,
-        path = PATH
-    )
-    _validate_export(corpus)
-    save_corpus(corpus, PATH)
+        # shape must be known now: the count taken above is the file's capacity.
+        # memmap is chosen to lower the peak memory usage while fetching
+        vectors = np.lib.format.open_memmap(
+            staging / VECTORS,
+            mode="w+",
+            dtype=np.float32,
+            shape=(point_count_begin, METADATA["embedding_dim"]),
+        )
+        n_written = 0
+        offset = None
+
+        # One buffer for the whole scroll, reused page after page. Its length is
+        # only a capacity: a page can hold fewer points (always the last one), so
+        # the rows actually filled are `n_page`, and only `page[:n_page]` is
+        # meaningful: the rest is left over from earlier pages or uninitialised.
+        page = np.empty(shape=(scroll_limit, METADATA["embedding_dim"]), dtype=np.float32)
+
+        while True:
+            points, offset = client.scroll(
+                collection_name=collection,
+                offset=offset,
+                limit=scroll_limit,
+                scroll_filter=WITHOUT_FINGERPRINT,
+                with_vectors=True,
+                with_payload=True
+            )
+            n_page = len(points)
+
+            for i,point in enumerate(points):
+                if not isinstance(point.vector, dict):
+                    raise FetchingError(f"point {point.id} has no named vectors: expected a 'dense' entry")
+                dense = point.vector['dense']
+
+                # a named vector may also be sparse (indices + values) or a
+                # multivector; only a flat list of floats fits a row of the file
+                if not isinstance(dense, list):
+                    raise FetchingError(
+                        f"point {point.id}: 'dense' is a {type(dense).__name__}, not a flat vector"
+                    )
+                # checked explicitly: a length-1 vector would otherwise broadcast
+                # silently across the whole row instead of failing
+                if len(dense) != METADATA['embedding_dim']:
+                    raise FetchingError(
+                        f"collection '{collection}' declares {METADATA['embedding_dim']}-dimensional "
+                        f"vectors, point {point.id} has {len(dense)}"
+                    )
+                
+                ids.append(str(point.id))
+                page[i] = dense
+                # TODO: understand whether retrieving by indexing just `sparse` can lead to bugs
+                payloads.append(point.payload)
+
+            if n_page:
+                if n_written + n_page > point_count_begin:
+                    raise FetchingError(
+                        f"collection '{collection}' grew during the fetching: it held "
+                        f"{point_count_begin} points when the download started"
+                    )
+
+                vectors[n_written:n_written + n_page] = page[:n_page]
+                n_written += n_page
+
+            if offset is None:
+                break
+        ##
+
+        point_count_end = client.count(
+            collection,
+            count_filter=WITHOUT_FINGERPRINT,
+            exact=True
+        ).count
+
+        if point_count_end != point_count_begin:
+            raise FetchingError('The collection was overwritten during the fetching')
+
+        if n_written != point_count_begin:
+            raise FetchingError(
+                f"incomplete export of '{collection}': the collection holds "
+                f"{point_count_begin} points, {n_written} were downloaded"
+            )
+
+        # Every dirty page has to reach the file before the manifest declares the
+        # snapshot complete; the writable map is then dropped and the file reopened
+        # read-only, exactly as a user will later see it.
+        vectors.flush()
+        del vectors
+        vectors = np.load(staging / VECTORS, mmap_mode="r")
+
+        ids = np.asarray(ids, dtype=str)
+        content_hashes = [(payload or {}).get("content_hash", "") for payload in payloads]
+        payloads = pd.DataFrame(payloads)
+
+        hashing = snapshot_hash(
+            pairs = ((i, hsh) for i, hsh in zip(ids.tolist(), content_hashes)),
+            payload_cols=sorted(payloads.columns)
+        )
+        PATH = qdrant_root() / collection / f"{str(NOW)}_{hashing}"
+
+        manifest = Manifest(
+            schema_version=SCHEMA_VERSION,
+            collection=collection,
+            exported_at=str(NOW),
+            snapshot_hash=hashing,
+            point_count=point_count_end,
+            embedding=METADATA,
+            n_rows=len(vectors),
+            n_dims=vectors.shape[-1],
+            payload_columns=sorted(payloads.columns),
+        )
+
+        corpus = Corpus(
+            meta=payloads,
+            vectors=vectors,
+            ids=ids,
+            manifest=manifest,
+            path = PATH
+        )
+        _validate_export(corpus)
+        save_corpus(corpus, PATH, staging=staging)
+    except BaseException:
+        # a failed download must not leave gigabytes of half-written vectors behind
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
 
     ## FINAL CLEANING of the old folders if asked
     if keep_as_only:
