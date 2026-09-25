@@ -25,30 +25,32 @@ Opening a snapshot that is already on disk needs neither variable, nor network a
 
 ## Usage
 
-```python
-from src.data_analysis.corpus import last_export
+`load_last_export()` is the entry point to use by default; the other functions below are for specific cases.
 
-corpus = last_export()                        # default: "wahlchat_chunks_prod"
-corpus = last_export("some_other_collection") # any collection on the cluster
+```python
+from src.data_analysis.corpus import load_last_export
+
+corpus = load_last_export()                        # default: "wahlchat_chunks_prod"
+corpus = load_last_export("some_other_collection") # any collection on the cluster
 ```
 
-`last_export()` returns the most recent local snapshot of the collection. If there is none — no folder yet, or only the leftovers of an interrupted download — it downloads one first and then returns it. When a snapshot already exists, it **does not contact the cloud at all**: it will happily hand you an old snapshot. Checking for newer versions is your job for now (see [Freshness](#freshness)).
+`load_last_export()` returns the most recent local snapshot of the collection. If there is none — no folder yet, or only the leftovers of an interrupted download — it downloads one first and then returns it. When a snapshot already exists, it **does not contact the cloud at all**: it will happily hand you an old snapshot. Checking for newer versions is your job for now (see [Freshness](#freshness)).
 
 A specific snapshot, e.g. an older one kept for comparison, is opened by path:
 
 ```python
-from src.data_analysis.corpus import load_corpus, qdrant_root
+from src.data_analysis.corpus import Corpus, qdrant_root
 
-corpus = load_corpus(qdrant_root() / "wahlchat_chunks_prod" / "20260923T224500_<hash>")
+corpus = Corpus.load(qdrant_root() / "wahlchat_chunks_prod" / "20260923T224500_<hash>")
 ```
 
 Forcing a fresh download currently goes through the private function `_fetch_export()`:
 
 ```python
-from src.data_analysis.corpus import _fetch_export, load_corpus
+from src.data_analysis.corpus import Corpus, _fetch_export
 
 path = _fetch_export("wahlchat_chunks_prod", keep_as_only=True)  # also deletes older snapshots
-corpus = load_corpus(path)
+corpus = Corpus.load(path)
 ```
 
 `keep_as_only=True` removes every older committed snapshot of that collection after the new one is safely written, **including any files you added inside them**. A production snapshot is roughly 5.5 GB (≈300k vectors as of September 2026), so keeping one copy per collection is recommended.
@@ -103,7 +105,7 @@ The root is resolved by `qdrant_root()`:
 - if `WAHLCHAT_CORPUS_DIR` is set, it **is** the root, i.e. the folder that directly contains one sub-folder per collection (see `.env.example`);
 - otherwise it is `<project root>/local/qdrant`, where the project root is the repository root, or the folder holding `.bare` in a bare-repository + worktree setup. In that setup every worktree therefore already resolves to the same shared folder. `/local/` is git-ignored.
 
-Version folders are named `<UTC export time>_<snapshot hash>`. The time comes first and has a fixed width, so **alphabetical order is chronological order**: that is how `last_export()` finds the newest snapshot. Do not rename these folders.
+Version folders are named `<UTC export time>_<snapshot hash>`. The time comes first and has a fixed width, so **alphabetical order is chronological order**: that is how `load_last_export()` finds the newest snapshot. Do not rename these folders.
 
 A download is written into a hidden staging folder `.<timestamp>.partial` inside the collection folder and renamed to its final name only at the end; `manifest.json` is written last and its presence is what marks a folder as a complete snapshot. Folders without a manifest are ignored when looking for versions.
 
@@ -182,7 +184,7 @@ Implemented and tested: download with streaming to disk, atomic commit, timestam
 
 Declared but not implemented yet:
 
-- `last_export(check_for_new_updates=True)` is ignored with a warning; the intended default is to check for and fetch a newer version automatically.
+- `load_last_export(check_for_new_updates=True)` is ignored with a warning; the intended default is to check for and fetch a newer version automatically.
 - `Corpus.subset()` and `Corpus.cached()` raise `NotImplementedError`.
 - `_add_symlink_to_local()` (linking a worktree to a shared `local/` folder) raises `NotImplementedError`.
 - There is no public function to force a new download (use `_fetch_export()`), no retry on a failed scroll request, and an interrupted download restarts from zero.

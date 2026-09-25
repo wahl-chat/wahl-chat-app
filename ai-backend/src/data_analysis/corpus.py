@@ -5,12 +5,12 @@ I set up the script in order to allow for maximum flexibility. Therefore:
 - any DB can be retrieved, even though the main one is likely to be the one to be interested in, hence set as default in various different methods
 - different versions of the same DB can be stored at once, if one is ever interested in having a comparison. As of 19-09-26, the `prod` database contains ~300.000 vectors + metadata, that translate to roughly 5.5GB of local files, and that's not likely to diminish in the future. Therefore, keeping only one copy at a time is suggested.
 
-Concerning how the files are organized: I tried to make the code as self-contained as possible. Ideally, one should be able to access the files by just calling the method `last_export()`, and the whole logic imposes some discipline in the handling of the hierarchical structure. 
+Concerning how the files are organized: I tried to make the code as self-contained as possible. The intended entry point is the method `load_last_export()`, and the whole logic imposes some discipline in the handling of the hierarchical structure. 
 
 The rule is pretty simple: don't touch anything inside the `qdrant` folder, except the actual folders of the version you're using. Those are, the deepest folders in the hierarchy. Inside of those, you're free to add other files, possibly numpy snapshots, or specific values that are dataset-specific and can therefore being recycled. A classical example: computing the mean over the whole corpus can be pretty expensive, so one can also decide to store it.
 
 ```python
-corpus = last_export(COLLECTION_NAME)
+corpus = load_last_export(COLLECTION_NAME)
 
 try:
     mean = np.load(corpus.path / "mean.npy")
@@ -30,7 +30,7 @@ qdrant
 │   └── 20260924T091200_<snapshot-hash>
 └── name-collection-2
 
-Version folders are named after the UTC export time followed by the snapshot hash. The time comes first and is fixed width on purpose: sorting the folder names alphabetically is what `last_export()` uses to find the most recent snapshot. `manifest.json` is written last, and its presence is what marks a folder as a complete snapshot rather than an interrupted download.
+Version folders are named after the UTC export time followed by the snapshot hash. The time comes first and is fixed width on purpose: sorting the folder names alphabetically is what `load_last_export()` uses to find the most recent snapshot. `manifest.json` is written last, and its presence is what marks a folder as a complete snapshot rather than an interrupted download.
 
 The `qdrant` folder can be placed anywhere in your laptop, given a variable that shall be added to your .env file. However this might also be skipped, since the code automatically fallbacks to the repository root, which is the most logical place in which such data shall live, that being `<project_root>/local/qdrant`. Ideally, other shared files that are external to the repository could live inside `<project_root>/local`. This procedure also makes some checks less buggy, I'll work on the implementation for more freedom in the next commits.
 
@@ -437,12 +437,12 @@ def _snapshot_versions(collection_dir: Path) -> list[Path]:
 ##
 
 
-def last_export(
+def load_last_export(
         collection: str = DEFAULT_PROD_DATABASE,
         check_for_new_updates: bool = False    # NOT IMPLEMENTED, but default shall be `True`
 ) -> Corpus:
     '''
-    Returns the very last acquired snapshot of the database. It works by retrieving the path corresponding to a given folder representing a snapshot of the DB, then calls load_corpus() for consistency
+    Preferred entry point. Returns the very last acquired snapshot of the database. It works by retrieving the path corresponding to a given folder representing a snapshot of the DB, then calls load_corpus() for consistency. If no local snapshot exists, downloads one first (several GB for the production collection).
     '''
     path = qdrant_root() / collection
 

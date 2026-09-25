@@ -116,13 +116,13 @@ def test_local_hash_matches_remote_hash(fake_env):
     assert corpus.is_stale(client, COLLECTION, manifest, level="exact") is False
 
 
-def test_round_trip_and_last_export(fake_env):
+def test_round_trip_and_load_last_export(fake_env):
     client, root = fake_env
     path = corpus._fetch_export(collection=COLLECTION, scroll_limit=3)
     # an interrupted later download must not be mistaken for the newest version
     (root / COLLECTION / "29990101T000000_ffff.partial").mkdir()
 
-    loaded = corpus.last_export(COLLECTION)
+    loaded = corpus.load_last_export(COLLECTION)
     assert loaded.path == path
     assert isinstance(loaded.vectors, np.memmap)
     assert loaded.vectors.shape == (len(client.points), DIM)
