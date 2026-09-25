@@ -57,6 +57,7 @@ from typing import Any, Iterable, Literal
 
 import numpy as np
 import pandas as pd
+from tqdm.auto import tqdm
 
 from src.ingestion.setup_collection import (
     read_fingerprint,
@@ -517,6 +518,8 @@ def _fetch_export(
     staging = qdrant_root() / collection / f".{NOW}.partial"
     staging.mkdir(parents=True, exist_ok=True)
 
+    print(f"Fetching {point_count_begin:,} vectors ({METADATA['embedding_dim']}d) from '{collection}', caching temporary files at {staging}")
+
     try:
         ids: Any = []
         payloads: Any = []
@@ -538,53 +541,64 @@ def _fetch_export(
         # meaningful: the rest is left over from earlier pages or uninitialised.
         page = np.empty(shape=(scroll_limit, METADATA["embedding_dim"]), dtype=np.float32)
 
-        while True:
-            points, offset = client.scroll(
-                collection_name=collection,
-                offset=offset,
-                limit=scroll_limit,
-                scroll_filter=WITHOUT_FINGERPRINT,
-                with_vectors=True,
-                with_payload=True
-            )
-            n_page = len(points)
+        with tqdm(
+            total= point_count_begin,
+            leave=True,
+            desc=collection,
+            unit="vec",
+            unit_scale=True,
+        ) as bar:
 
-            for i,point in enumerate(points):
-                if not isinstance(point.vector, dict):
-                    raise FetchingError(f"point {point.id} has no named vectors: expected a 'dense' entry")
-                dense = point.vector['dense']
+            while True:
+                points, offset = client.scroll(
+                    collection_name=collection,
+                    offset=offset,
+                    limit=scroll_limit,
+                    scroll_filter=WITHOUT_FINGERPRINT,
+                    with_vectors=True,
+                    with_payload=True
+                )
+                n_page = len(points)
 
-                # a named vector may also be sparse (indices + values) or a
-                # multivector; only a flat list of floats fits a row of the file
-                if not isinstance(dense, list):
-                    raise FetchingError(
-                        f"point {point.id}: 'dense' is a {type(dense).__name__}, not a flat vector"
-                    )
-                # checked explicitly: a length-1 vector would otherwise broadcast
-                # silently across the whole row instead of failing
-                if len(dense) != METADATA['embedding_dim']:
-                    raise FetchingError(
-                        f"collection '{collection}' declares {METADATA['embedding_dim']}-dimensional "
-                        f"vectors, point {point.id} has {len(dense)}"
-                    )
-                
-                ids.append(str(point.id))
-                page[i] = dense
-                # TODO: understand whether retrieving by indexing just `sparse` can lead to bugs
-                payloads.append(point.payload)
+                for i,point in enumerate(points):
+                    if not isinstance(point.vector, dict):
+                        raise FetchingError(f"point {point.id} has no named vectors: expected a 'dense' entry")
+                    dense = point.vector['dense']
 
-            if n_page:
-                if n_written + n_page > point_count_begin:
-                    raise FetchingError(
-                        f"collection '{collection}' grew during the fetching: it held "
-                        f"{point_count_begin} points when the download started"
-                    )
+                    # a named vector may also be sparse (indices + values) or a
+                    # multivector; only a flat list of floats fits a row of the file
+                    if not isinstance(dense, list):
+                        raise FetchingError(
+                            f"point {point.id}: 'dense' is a {type(dense).__name__}, not a flat vector"
+                        )
+                    # checked explicitly: a length-1 vector would otherwise broadcast
+                    # silently across the whole row instead of failing
+                    if len(dense) != METADATA['embedding_dim']:
+                        raise FetchingError(
+                            f"collection '{collection}' declares {METADATA['embedding_dim']}-dimensional "
+                            f"vectors, point {point.id} has {len(dense)}"
+                        )
+                    
+                    ids.append(str(point.id))
+                    page[i] = dense
+                    # TODO: understand whether retrieving by indexing just `sparse` can lead to bugs
+                    payloads.append(point.payload)
 
-                vectors[n_written:n_written + n_page] = page[:n_page]
-                n_written += n_page
+                if n_page:
+                    if n_written + n_page > point_count_begin:
+                        raise FetchingError(
+                            f"collection '{collection}' grew during the fetching: it held "
+                            f"{point_count_begin} points when the download started"
+                        )
 
-            if offset is None:
-                break
+                    vectors[n_written:n_written + n_page] = page[:n_page]
+                    n_written += n_page
+
+                bar.update(n_page)
+
+                if offset is None:
+                    break
+            ##
         ##
 
         point_count_end = client.count(
@@ -605,6 +619,7 @@ def _fetch_export(
         # Every dirty page has to reach the file before the manifest declares the
         # snapshot complete; the writable map is then dropped and the file reopened
         # read-only, exactly as a user will later see it.
+        print("Creating the corpus object...", end="", flush=True)
         vectors.flush()
         del vectors
         vectors = np.load(staging / VECTORS, mmap_mode="r")
@@ -638,17 +653,29 @@ def _fetch_export(
             manifest=manifest,
             path = PATH
         )
+        print("done!")
+
+        print("Executing sanity checks on the fetched collection...", end="", flush=True)
         _validate_export(corpus)
+        print("done!")
+
+        print(f"Saving the snapshot to {PATH}...", end="", flush=True)
         save_corpus(corpus, PATH, staging=staging)
+        print("done!")
+
     except BaseException:
         # a failed download must not leave gigabytes of half-written vectors behind
+        print(f"Removing cached files from temporary folder at {staging}...", end="", flush=True)
         shutil.rmtree(staging, ignore_errors=True)
+        print("done!")
         raise
 
     ## FINAL CLEANING of the old folders if asked
     if keep_as_only:
+        print(f"Removing older snapshots of '{collection}' from {PATH.parent}...", end="", flush=True)
         for version in _snapshot_versions(PATH.parent)[:-1]:  # committed snapshots only, oldest first
             shutil.rmtree(version)
+        print("done!")
 
     return PATH
 ##
