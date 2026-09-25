@@ -175,12 +175,11 @@ class Corpus:
 
     Attributes
     ----------
-    - meta: pd.Dataframe containing the metadata associated within each sample
-    - vectors: the actual embeddings
-    - manifest: ...
-    - path: ...
-    [...]
-    #TODO: complete docstring
+    - meta: pd.Dataframe containing the metadata associated within each sample, i.e. the Qdrant payloads
+    - vectors: the actual embeddings, `float32` array of shape `(n_rows, n_dims)`, memory-mapped read-only
+    - ids: the Qdrant point ids, as strings
+    - manifest: `Manifest` describing the snapshot (collection, export time, snapshot hash, counts, embedding space)
+    - path: folder of the snapshot on disk
 
     Usage
     -----
@@ -217,6 +216,9 @@ class Corpus:
 
     @classmethod
     def load(cls, path: Path) -> "Corpus":
+        '''
+        Opens a committed snapshot folder. Vectors and ids are read-only memory maps, so nothing is read until accessed; raises `ValueError` if the snapshot was written with a different `SCHEMA_VERSION`.
+        '''
         return _load_corpus(Corpus, path)
     ##
 
@@ -285,9 +287,9 @@ class Datetime(datetime):
 
 def project_root() -> Path:
     '''
-    Needed to understand what kind of repository we're navigating through. Supposes that the folder uses `git`, which seems a really mild hypothesis to me. The files that I listed should indeed be the only ones that are somewhat unique.
+    Needed to understand what kind of repository we're navigating through. Supposes that the folder uses `git`, which seems a really mild hypothesis to me. The root is asked directly to `git` as the parent of the common git directory, shared by every worktree.
 
-    The other hypothesis in this retrieval is that a `git bare` repository was instantiated if and only if `.bare` is found in the parent folder . Also this one seems like a rather mild assumption, but can maybe generate some bugs with undisciplined users.
+    In a plain clone this is the parent of `.git`, i.e. the repository root. In a `git bare` + worktree setup it is the parent of the bare repository (e.g. `.bare`), i.e. the folder holding every worktree.
     '''
     path = Path(__file__).resolve()
     PATH = subprocess.check_output(
@@ -317,13 +319,13 @@ def _is_setup_worktree():
 
 def qdrant_root(redirect_to_default: bool = True) -> Path: 
     '''
-    Retrieves the local folder in which the dataset is meant to be stored. `redirect_to_default` is used as a commodity, sets up a top level `local` folder that is where I would personally store the files.
+    Retrieves the local folder in which the dataset is meant to be stored. `redirect_to_default` is used as a commodity, sets up a top level `local/qdrant` folder inside the project root, that is where I would personally store the files.
 
-    Since this method is inherently called by all the scrapers below, the environment is also set up via mkdir + eventual symlinks.
+    Since this method is inherently called by all the scrapers below, the environment is also set up via mkdir. Symlinks are not handled yet, see `_add_symlink_to_local()`.
 
     Attributes
     ----------
-    *redirect_to_default*: `bool`, *default* = `False`, if the .env files misses the `WAHLCHAT_CORPUS_DIR` var, then pivots to default, and adjust current environment var accordingly.
+    *redirect_to_default*: `bool`, *default* = `True`, if the .env files misses the `WAHLCHAT_CORPUS_DIR` var, then pivots to default, otherwise raises `EnvironmentError`.
     '''
 
     env = os.getenv("WAHLCHAT_CORPUS_DIR")
@@ -354,7 +356,7 @@ def snapshot_hash(
     payload_cols: Iterable[str]
 ) -> str:
     '''
-    SHA-256 executed on id-hash pair of points, helper for `remote_snapshot_hash()`
+    SHA-256 executed on id-hash pair of points and on the payload column names, helper for `remote_snapshot_hash()`
     '''
     payload_cols = sorted(payload_cols)         # sorting happens to avoid scroll-dependent discrepancy
     gen = hashlib.sha256()
@@ -430,7 +432,7 @@ def last_export(
         check_for_new_updates: bool = False    # NOT IMPLEMENTED, but default shall be `True`
 ) -> Corpus:
     '''
-    Returns the very last acquired snapshot of the database. It works by retrieving the path corresponding to a given folder representing a snapshot of the DB, then calls load_export() for consistency
+    Returns the very last acquired snapshot of the database. It works by retrieving the path corresponding to a given folder representing a snapshot of the DB, then calls load_corpus() for consistency
     '''
     path = qdrant_root() / collection
 
