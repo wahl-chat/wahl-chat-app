@@ -43,6 +43,8 @@ import os
 import hashlib
 
 from qdrant_client import QdrantClient, models
+from qdrant_client.http.exceptions import ResponseHandlingException
+import httpx
 
 import shutil
 import json
@@ -405,15 +407,23 @@ def is_stale(
 
     Returns `True` when the local snapshot is provably out of date, `False` when it is provably current, and `None` when the check cannot tell. The cheap `count` level can only ever answer `True` or `None`: an unchanged number of points says nothing about the content, since a corrected chunk is re-upserted under the same id.
     '''
-    if level == "count":
-        remote_count = client.count(collection, count_filter=WITHOUT_FINGERPRINT, exact=True).count
-        if remote_count != local_manifest.point_count:
-            return True
-        return None
-    elif level == "exact":
-        return remote_snapshot_hash(client, collection) != local_manifest.snapshot_hash
-    else:
-        raise TypeError("Invalid argument passed for `level`: current version supports values in ['count', 'exact']")
+    try:
+        if level == "count":
+            remote_count = client.count(collection, count_filter=WITHOUT_FINGERPRINT, exact=True).count
+            if remote_count != local_manifest.point_count:
+                return True
+            return None
+        elif level == "exact":
+            return remote_snapshot_hash(client, collection) != local_manifest.snapshot_hash
+        else:
+            raise TypeError("Invalid argument passed for `level`: current version supports values in ['count', 'exact']")
+    # handle offline moments: if the user tries to access the corpus while offline it should not be a problem
+    except ResponseHandlingException as exc:
+        if isinstance(exc.source, httpx.TransportError) and not isinstance(exc.source, (httpx.LocalProtocolError, httpx.UnsupportedProtocol)):
+            warnings.warn("Unable to connect with the server, no checks were performed with the ground truth collection.")
+            return None
+        else:
+            raise
 ##
 
 

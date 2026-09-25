@@ -13,8 +13,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import httpx
 import numpy as np
 import pytest
+from qdrant_client.http.exceptions import ResponseHandlingException
 
 # pandas and pyarrow live in the opt-in `analysis` dependency group, which the
 # default sync (and so the regular backend suite) does not install. Without this
@@ -209,3 +211,43 @@ def test_vector_of_the_wrong_dimension_is_rejected(fake_env):
     with pytest.raises(corpus.FetchingError, match="4-dimensional"):
         corpus._fetch_export(collection=COLLECTION, scroll_limit=3)
     assert _no_staging_left(root)
+
+
+def _unreachable(cause: Exception):
+    def fail(*_, **__):
+        raise ResponseHandlingException(cause)
+    return fail
+
+
+@pytest.mark.parametrize("level", ["count", "exact"])
+@pytest.mark.parametrize(
+    "cause",
+    [httpx.ConnectError("nodename nor servname provided"), httpx.ConnectTimeout("timed out")],
+    ids=["connect-error", "connect-timeout"],
+)
+def test_unreachable_server_makes_the_check_answer_none(fake_env, cause, level):
+    # offline, the freshness check must warn and answer "cannot tell", not raise
+    client, _ = fake_env
+    manifest = corpus.load_corpus(corpus._fetch_export(collection=COLLECTION)).manifest
+    client.count = client.scroll = _unreachable(cause)
+    with pytest.warns(UserWarning, match="Unable to connect"):
+        assert corpus.is_stale(client, COLLECTION, manifest, level=level) is None
+
+
+@pytest.mark.parametrize(
+    "cause",
+    [
+        ValueError("malformed response"),
+        httpx.LocalProtocolError("invalid request"),
+        httpx.UnsupportedProtocol("no scheme"),
+    ],
+    ids=["validation", "local-protocol", "unsupported-protocol"],
+)
+def test_non_network_failure_of_the_check_still_raises(fake_env, cause):
+    # the same wrapper also carries unparsable responses, client-side bugs and a
+    # malformed QDRANT_URL: none of them means being offline
+    client, _ = fake_env
+    manifest = corpus.load_corpus(corpus._fetch_export(collection=COLLECTION)).manifest
+    client.count = _unreachable(cause)
+    with pytest.raises(ResponseHandlingException):
+        corpus.is_stale(client, COLLECTION, manifest)
