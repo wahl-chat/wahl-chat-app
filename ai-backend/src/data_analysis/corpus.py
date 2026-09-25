@@ -5,37 +5,36 @@ I set up the script in order to allow for maximum flexibility. Therefore:
 - any DB can be retrieved, even though the main one is likely to be the one to be interested in, hence set as default in various different methods
 - different versions of the same DB can be stored at once, if one is ever interested in having a comparison. As of 19-09-26, the `prod` database contains ~300.000 vectors + metadata, that translate to roughly 5.5GB of local files, and that's not likely to diminish in the future. Therefore, keeping only one copy at a time is suggested.
 
-Concerning how the files are organized: I tried to make the code as self-contained as possible. Ideally, one should be able to access the files by just calling the method `last_export()`, and the whole logic assumes some discipline in the handling of the hierarchical structure. 
+Concerning how the files are organized: I tried to make the code as self-contained as possible. Ideally, one should be able to access the files by just calling the method `last_export()`, and the whole logic imposes some discipline in the handling of the hierarchical structure. 
 
-The rule is pretty simple: don't touch anything inside the `local/qdrant` folder, except the actual folders of the version you're using. Those are, the deepest folders in the hierarchy. Inside of those, you're free to add other files, possibly numpy snapshots, or specific values that are dataset-specific and can therefore being recycled. A classical example: computing the mean over the whole corpus can be pretty expensive, so one can also decide to store it.
+The rule is pretty simple: don't touch anything inside the `qdrant` folder, except the actual folders of the version you're using. Those are, the deepest folders in the hierarchy. Inside of those, you're free to add other files, possibly numpy snapshots, or specific values that are dataset-specific and can therefore being recycled. A classical example: computing the mean over the whole corpus can be pretty expensive, so one can also decide to store it.
 
 ```python
 corpus = last_export(COLLECTION_NAME)
 
 try:
-    mean = np.load(corpus.path / "mean.py")
+    mean = np.load(corpus.path / "mean.npy")
 except:
     mean = corpus.vectors.mean()
-    np.save(mean, corpus.path / "mean.py")
+    np.save(corpus.path / "mean.npy", mean)
 ```
 
 The hierarchy logic is as follows: 
-local
-└── qdrant
-    ├── name-collection-1
-    │   ├── 20260923T224500_<snapshot-hash>
-    │   │   ├── vectors.npy
-    │   │   ├── ids.npy
-    │   │   ├── payloads.parquet
-    │   │   └── manifest.json
-    │   └── 20260924T091200_<snapshot-hash>
-    └── name-collection-2
+qdrant
+├── name-collection-1
+│   ├── 20260923T224500_<snapshot-hash>
+│   │   ├── vectors.npy
+│   │   ├── ids.npy
+│   │   ├── payloads.parquet
+│   │   └── manifest.json
+│   └── 20260924T091200_<snapshot-hash>
+└── name-collection-2
 
 Version folders are named after the UTC export time followed by the snapshot hash. The time comes first and is fixed width on purpose: sorting the folder names alphabetically is what `last_export()` uses to find the most recent snapshot. `manifest.json` is written last, and its presence is what marks a folder as a complete snapshot rather than an interrupted download.
 
-The `local/qdrant` folder can be placed anywhere in your laptop, given a variable that shall be added to your .env file. The env key "WAHLCHAT_CORPUS_DIR" refers to PATH to the `local` folder in where to  which means that the fallback retrieved in following methods is "your-project/local". However this might also be skipped, since the code automatically fallbacks to the repository root, which is the most logical place in which such data shall live. This procedure also makes some checks less buggy, I'll work on the implementation of more freedom in the next commits.
+The `qdrant` folder can be placed anywhere in your laptop, given a variable that shall be added to your .env file. However this might also be skipped, since the code automatically fallbacks to the repository root, which is the most logical place in which such data shall live, that being `<project_root>/local/qdrant`. Ideally, other shared files that are external to the repository could live inside `<project_root>/local`. This procedure also makes some checks less buggy, I'll work on the implementation for more freedom in the next commits.
 
-If you're using `git worktree`, I please you to add a symlink and behave as the files were inside the worktree you're performing analysis on. This is for consistency with other that might use a different setup. The current setup aims to do such.
+If you're using `git worktree`, I please you to add a symlink and behave as the files were inside the worktree you're performing analysis on. This is for consistency with other that might use a different setup. Future commits will also add support to handle such automatically.
 '''
 
 from __future__ import annotations
@@ -231,7 +230,7 @@ class Corpus:
     ##
     
     def cached(self, name:str):
-        raise NotImplementedError
+        raise NotImplementedError('To implement in future commits: ease cache objects obtained from the corpus if they require heavy computation.')
     ##
 ##
 
