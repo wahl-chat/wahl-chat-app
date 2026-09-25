@@ -50,6 +50,18 @@ dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
 ]
+analysis = [
+    # Local corpus snapshots for exploratory analysis (src/data_analysis). Kept out
+    # of the runtime deps so the server image (`uv sync --no-dev`) stays lean;
+    # numpy is otherwise only transitive via qdrant-client, pyarrow backs parquet.
+    "numpy>=2.4.6",
+    "pandas>=3.0.6",
+    "pyarrow>=25.0.1",
+    # tqdm draws the download progress bar; ipywidgets lets `tqdm.auto` render it
+    # as a notebook widget instead of reprinting a text line on every refresh.
+    "tqdm>=4.68.1",
+    "ipywidgets>=8.1.9",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
