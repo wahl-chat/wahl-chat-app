@@ -1,6 +1,6 @@
 # Stimmt's? — daily vote-guessing puzzle
 
-Working notes from the brainstorm of 2026-09-30. Nothing here is built yet.
+Working notes from the brainstorms of 2026-09-30. Nothing here is built yet.
 This is a scratch document: trim it into a proper design note (or move it out
 of the repo) before opening a PR.
 
@@ -10,129 +10,211 @@ of the repo) before opening a PR.
   A daily puzzle gives people a reason to come back in quiet periods.
 - It moves the product towards "learn about politics regularly" without a
   large architectural change.
-- It doubles as a funnel: every solved puzzle ends with a door into the chat.
+- It doubles as a funnel: every puzzle ends with a door into the chat.
 - The result can be shared, so it also brings in new visitors.
 
 ## The game (decided)
 
-- One real parliamentary vote per day, on **federal level (Bundestag)**.
-  Regional (Landtag) editions are a later idea.
-- The player sees a plain-language line about what was voted on, then sets
-  each parliamentary party to **Ja / Nein / Enthaltung**.
-- Feedback in the Wordle style: correct tiles turn green, wrong ones grey.
-  A few attempts per puzzle (exact number still open, see below).
-- After the puzzle: a reveal card with the real result and a short,
-  neutral, sourced summary of each party's stated reasons, plus a
-  **"Mehr erfahren"** button that opens a wahl.chat conversation with the
-  question preloaded.
-- **Everyone gets the same puzzle on the same day.** A day is defined by
-  midnight Europe/Berlin. Puzzles are drawn from a pre-generated list.
-- **Streak** and **puzzle number** (#47). No difficulty levels.
-- **Countdown to tomorrow's puzzle** on the result screen.
-- Lives on the landing page (a card that opens the puzzle).
-- Working title: **Stimmt's?** ("Stimme" = vote, "stimmt's?" = is that right?).
+One real Bundestag vote per day (**federal level**; Landtag editions are a
+later idea). Working title: **Stimmt's?** ("Stimme" = vote, "stimmt's?" = is
+that right?). Everyone gets the same puzzle on the same day: a day is defined
+by midnight Europe/Berlin, and the puzzle is drawn from a pre-generated list.
 
-## Content plan for the first month
+### The flow
 
-- **30 puzzles**, one per day, so we can test whether people care before
-  investing further.
-- Votes from **2026 onwards**, the closer to today the better.
-- We pick the votes ourselves, by importance. Write the selection criteria
-  down *before* picking, so the choice can be defended as neutral:
-  public attention, spread across policy areas, and a mix of motions from
-  government and opposition parties.
-- Reasons per party are drafted with an LLM but must be **grounded in a
-  verifiable source** (see the rules below). A human reviews every one.
-- If it works, optimise the pipeline after the first 30 days.
+1. **Entry.** A card on the landing page opens today's puzzle.
+2. **Briefing ("Antrag des Tages").** Title, date and a short neutral
+   description of what was voted on. It must not reveal the result (see
+   "Spoiler-free briefing").
+3. **The hemicycle.** The parties appear as seats in party colours, in the
+   order they sit in the Bundestag, left to right. One party at a time, the
+   player answers **"Wie hat die Partei abgestimmt?"** with Ja / Nein /
+   Enthaltung. One shot per party: no correcting, then on to the next seat,
+   until the outermost right one.
+4. **The reveal.** The player flips the seats over one by one and sees what
+   each party really did (green = right, red = wrong, with the party's
+   actual numbers). An "alle aufdecken" shortcut for the impatient.
+5. **Score and share.** Score 0 to 5, the streak updates, a share button and a
+   countdown to tomorrow's puzzle.
+6. **"Mehr erfahren" (big button).** The reasons each party gave, taken from
+   the plenary debate, with sources.
+7. **Ask more.** From there, a link into a wahl.chat conversation about this
+   vote (see "Chat handoff").
 
-## Rules for the reason summaries
+Design decisions that follow from this flow:
 
-The reveal card is the riskiest part: an invented motive attributed to a real
-party is a trust problem for a product whose value is being trustworthy.
+- **No retries and no attempts counter.** It replaces the Wordle-style
+  multiple attempts. Each answer is committed on tap and saved immediately, so
+  refreshing the page cannot be used to change an answer.
+- **No difficulty levels.**
+- **Predictions only.** The question is what the party did, never what the
+  player thinks. Do not ask for the user's own position: that would be
+  political-opinion data (see Constraints).
+- **Streak = days played**, not days won, so a bad score never breaks it.
+  Tiles are labelled and iconised, not colour-only, and animation respects
+  reduced-motion settings.
+- The whole loop should take 60 to 90 seconds. The reasons are a separate,
+  optional step so the core loop stays short.
+- Plan for roughly five seats, one per Bundestag faction (CDU/CSU as a single
+  tile). The set comes from the vote's own party list.
 
-1. Every reason cites a concrete source: an excerpt from a plenary speech in
-   the debate on that motion, a motion document, or a party statement.
+## Spoiler-free briefing
+
+The official text of a vote usually gives the answer away. Example from the
+first candidate (Tankrabatt, 25 Sept 2026): "hat zugestimmt", the vote tally
+(434 Ja, 128 Nein, keine Enthaltung), and "CDU/CSU und SPD begründen die
+Maßnahme…" all reveal results or party positions. It is also a rider added to
+an unrelated insurance-supervision law (VSAAG), so the formal title would
+confuse players as well.
+
+So each puzzle has two texts:
+
+- **Before the guess:** a short, neutral "worum geht es?" that states the
+  scope precisely (which articles, what the change would do) and says nothing
+  about outcome, tally, or who argued for it.
+- **After the reveal:** the full picture, with the official result and a link
+  to the original source.
+
+The neutral text is drafted with an LLM from the official text and approved by
+a human. Also check who owns the source text and whether it may be reused
+(Abgeordnetenwatch data vs the Bundestag's own pages): a link to the original
+plus our own wording is the safe route.
+
+## Choosing the votes
+
+- **30 puzzles for the first month**, one per day, to test whether people
+  care before investing more.
+- Votes from **2026 onwards**, closer to today is better.
+- We pick them ourselves, by importance. Write the selection criteria down
+  *before* picking so the choice is defensible as neutral: public attention,
+  spread across policy areas, and a mix of motions from government and
+  opposition.
+- **Mix predictable and surprising votes.** Many votes follow the
+  government-versus-opposition line and are easy. The moments people share are
+  the surprises (a party voting against its usual side, unexpected agreement
+  between opposites). Aim for a healthy share of those.
+- Supply caveat: per-party results exist for **roll-call votes**
+  (namentliche Abstimmungen), which are only a subset of all votes. There may
+  be fewer than 30 in 2026 so far; the window may have to reach back into late
+  2025.
+
+## Content rules for the reasons
+
+The reveal is the riskiest part: an invented motive attributed to a real party
+is a trust problem for a product whose value is being trustworthy.
+
+1. Reasons come from the **plenary debate** on that motion (our corpus holds
+   Bundestag speeches). Every reason cites a concrete source: a speech
+   excerpt, a motion document, or a party statement.
 2. Phrase it as attribution, not inference: "Die Linke begründete ihr Nein in
    der Debatte mit …", never "Die Linke lehnt ab, weil …".
-3. If no source exists for a party, say so on the card instead of guessing.
+3. Some votes have no debate. Then the card says so, instead of guessing.
 4. A human reads all of them before they go live (30 votes x 5 parties is
    about 150 short texts, a few hours of work).
 5. Same length and tone for every party.
+6. Reasons are generated **offline in advance**, not at runtime. That is
+   cheaper, safer and reviewable.
+
+## The puzzle record (content contract)
+
+Everything the game needs for one day, prepared and reviewed ahead of time:
+
+- puzzle number, date it runs, review status
+- source vote id, date of the vote, topic label (from the existing taxonomy)
+- neutral title and spoiler-free briefing text
+- official result: overall outcome and totals
+- per party: seat position, the answer (Ja / Nein / Enthaltung), the counts,
+  unity share
+- per party: reason text, source link, short quote
+- link to the original source
+- the question used to open the chat
+
+Stored as static content or a small Firestore collection with public read;
+decide once the data check is done.
 
 ## Data check (do this first)
 
 The game is only as good as its supply of clean votes. Before any UI, run a
 throwaway check on the ~40 candidate votes:
 
-- Per party, do we have the yes / no / abstain / no-show counts?
+- Do we have yes / no / abstain / no-show counts per party?
 - Is each party unified enough to give one clear answer? Working rule: at
-  least ~80% of the party's votes went one way, otherwise the vote is
-  ambiguous and either dropped or handled separately.
+  least ~80% of the party's votes went one way. Otherwise the vote is
+  ambiguous and is dropped.
 - Can the motion be described in one neutral line?
-- Does a source for each party's reasoning exist (speech, document)?
+- Does a source for each party's reasoning exist (a speech in that debate)?
+- How many roll-call votes exist since January 2026?
 
 Existing pieces to reuse: the vote data model (`VoteMeta` / `VoteResult` in
-`ai-backend/src/ingestion/schemas.py`: per-party counts, derived stance, and
-the motion outcome), the Abgeordnetenwatch client under
-`ai-backend/src/ingestion/connectors/abgeordnetenwatch/`, and its 53-label
-topic taxonomy.
+`ai-backend/src/ingestion/schemas.py`), the Abgeordnetenwatch client under
+`ai-backend/src/ingestion/connectors/abgeordnetenwatch/`, its 53-label topic
+taxonomy, and the existing voting-behaviour feature. Outcome: a table with a
+verdict per vote and a go/no-go on whether 30 usable puzzles exist.
 
-Outcome: a table of votes with a verdict per vote, and a go/no-go on whether
-30 usable puzzles exist.
+## Chat handoff
 
-## Making it fun (still open, keep brainstorming)
+The chat should open on this vote with the question preloaded, for example
+"Wie haben die Parteien beim Tankrabatt abgestimmt und warum?". Preferred
+approach: prefill the question and let the normal retrieval find the vote and
+the speeches, since both are already in the corpus. Injecting a long context
+block is the alternative but easier to get wrong. Open points to verify:
 
-- Tiles arranged as the Bundestag **hemicycle** in party colours; tiles flip
-  one by one on submit for suspense.
-- Share text with the puzzle number, attempts and an emoji grid that shows
-  only correctness, never the answers (must not reveal political leanings):
+- which chat context and which parties to open (a federal context, and
+  whether it is available for chat between elections)
+- reuse the mechanism the topic question cards already use to preload a
+  question
+- the Berlin / MV study contexts must not be the target
+
+## Making it fun (keep brainstorming)
+
+- Seats flipping one by one with a short delay for suspense; a small, tasteful
+  celebration on a perfect score.
+- Share text with the puzzle number, the topic and an emoji grid in seat
+  order that shows only correctness, never the answers:
 
   ```
-  Stimmt's? #47 · 2/3
-  🟩🟥🟩🟩🟥
+  Stimmt's? #47 · Tankrabatt · 4/5
+  🟩🟥🟩🟩🟩
   wahl.chat/…
   ```
 
-- A shareable image / link preview (OG image) carrying the puzzle number.
+- A shareable image / link preview (OG image) carrying the hemicycle and the
+  puzzle number. The share link must land on something playable without login.
 - Crowd stat on the result ("62 % hatten alle richtig"): needs server-side
   counters, so later.
-- Optional warm-up: "Wurde der Antrag angenommen?" before the party tiles.
-- Friendly perfect-score wording; light animation, no anxiety mechanics
-  around the streak.
-- Undecided: number of attempts (three is friendly, two gives real failure)
-  and whether the motion's outcome is shown up front.
+- A short "Wusstest du?" line on the reveal.
 
 ## Later ideas
 
 - Other modes: "Welche Partei?" with progressive clues, civic trivia,
   coalition builder.
+- An archive of past puzzles for catching up.
 - Regional (Landtag) editions.
 - Topic tags on puzzles as the first interest signal for personalization.
-  Storing a per-user interest profile needs the explicit consent gate first
-  (political opinions are special-category data, see `AGENTS.md`).
-- Reminders through the installed app / push, once there is something to
-  come back for.
+  Storing a per-user interest profile needs the explicit consent gate first.
+- Reminders through the installed app / push.
 - Upgrading the anonymous user to a login so streaks survive a cleared
   browser (the uid stays the same).
 
 ## Constraints
 
 - **Neutrality**: facts with sources only; no loaded framing.
-- **Privacy**: the streak and the puzzle state live on the device for now.
-  Nothing political about the user is stored on the server.
-- **Study**: keep the puzzle out of the Berlin / MV chat contexts and respect
+- **Privacy**: streak and puzzle state live on the device for now. Nothing
+  political about the user is stored on the server. Predictions are not
+  opinions; the player's own stance is never asked (political opinions are
+  special-category data, see `AGENTS.md`).
+- **Study**: keep the game out of the Berlin / MV chat contexts and respect
   the "only the study questionnaire asks anything" rule while the study is
   running (`useStudyRunning`).
 - **Same puzzle for everyone**: puzzle N is a function of the Berlin date.
   Answers ship to the browser in v1 (acceptable for a casual game).
-- The share link must land on something playable without a login.
 
 ## Rough phases
 
 1. Data check on the candidate votes.
-2. Content: 30 approved puzzles (votes, results, sourced reasons).
-3. Minimal game: card on the landing page, puzzle screen, reveal card,
-   local streak, share button, deep link into the chat.
-4. Polish for sharing: hemicycle layout, share image, countdown.
-5. After 30 days: look at return rate, streak lengths, shares, and click-through
+2. Content: 30 approved puzzles (briefings, results, sourced reasons).
+3. Minimal game: landing card, briefing, hemicycle answers, reveal, score,
+   local streak, share button, chat handoff.
+4. Polish for sharing: share image, countdown, animations.
+5. After 30 days: look at return rate, streak lengths, shares and click-through
    into the chat; decide what to build next.
