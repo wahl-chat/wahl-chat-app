@@ -124,7 +124,10 @@ check serves as a cross-check that the stored tallies match.
 ## The puzzle contract
 
 Everything the game needs for one day, prepared and reviewed ahead of time.
-One file per puzzle, plus one schedule file.
+All puzzles live in one `puzzles.json` (a list, so the export script can
+regenerate it and a swap is an in-place edit), plus one `schedule.json`. Both
+are checked when loaded (`validate.ts`), and the tests fail if a file breaks
+the contract.
 
 - id, `review_status`, date of the vote, source vote id, topic label
 - neutral title, spoiler-free briefing, "Ja bedeutet …" line
