@@ -17,6 +17,7 @@ const STATIC_PAGES = [
   '/login',
   '/donate',
   '/topics',
+  '/aktuell',
   '/api',
 ];
 

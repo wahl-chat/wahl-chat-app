@@ -14,6 +14,12 @@ service cloud.firestore {
     	allow read;
     }
 
+    // Public parliament digests for the /aktuell feed. Written only by the
+    // backend digest builder via the admin SDK, which bypasses rules.
+    match /daily_digests/{digest_id} {
+      allow read;
+    }
+
     match /parties/{document=**} {
       allow read;
     }

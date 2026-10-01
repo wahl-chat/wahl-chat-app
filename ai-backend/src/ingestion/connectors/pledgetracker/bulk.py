@@ -45,6 +45,7 @@ from typing import NamedTuple, Optional
 
 from qdrant_client import QdrantClient, models
 
+from src.firestore_guard import guard_firestore_target
 from src.ingestion.connectors.pledgetracker.client import PledgeQueueClient
 from src.ingestion.connectors.pledgetracker.connector import PledgeTrackerConnector
 from src.ingestion.connectors.pledgetracker.registry import (
@@ -71,35 +72,7 @@ class LiveRunReport(NamedTuple):
 
 
 def _guard_firestore_target(allow_remote: bool = False) -> None:
-    """Prevent ACCIDENTAL non-emulator writes outside prod.
-
-    ENV=prod targets real Firestore as before. Every other ENV requires the
-    emulator unless ``--allow-remote`` is passed explicitly — the deliberate
-    path for ingesting pledges into the deployed ENV Firebase project
-    (typically the hosted dev environment).
-
-    ``--allow-remote`` unsets ``FIRESTORE_EMULATOR_HOST``: local ``.env`` and
-    the Makefile routinely set it for emulator-mode development, and
-    ``firebase_service`` keys off that variable at import time. Leaving it in
-    place would make the flag a no-op and keep writing to the emulator.
-    """
-    if allow_remote:
-        os.environ.pop("FIRESTORE_EMULATOR_HOST", None)
-    env = os.getenv("ENV", "dev")
-    if env == "prod" or os.getenv("FIRESTORE_EMULATOR_HOST"):
-        return
-    if allow_remote:
-        logger.warning(
-            "PledgeTracker ingestion writing to REMOTE Firestore with ENV=%s "
-            "(--allow-remote).",
-            env,
-        )
-        return
-    raise RuntimeError(
-        "FIRESTORE_EMULATOR_HOST is required for PledgeTracker ingestion when "
-        "ENV is not prod. Set it to localhost:8081 for local runs, or pass "
-        "--allow-remote to ingest into a deployed dev environment on purpose."
-    )
+    guard_firestore_target("PledgeTracker ingestion", allow_remote=allow_remote)
 
 
 def _write_pledge_record(db, record: PledgeRecord) -> None:  # type: ignore[no-untyped-def]

@@ -45,6 +45,8 @@ import {
 import type {
   ChatSession,
   Context,
+  DailyDigest,
+  DigestParliamentId,
   ExampleQuestionShareableChatSession,
   FirebaseWahlSwiperResult,
   LlmSystemStatus,
@@ -755,6 +757,50 @@ export const getExampleQuestionsShareableChatSession = cache(
     tags: [CacheTags.EXAMPLE_QUESTIONS_SHAREABLE_CHAT_SESSIONS],
   },
 );
+
+// Enough to cover a 14-day window even when a parliament sits every day.
+const DIGESTS_PER_PARLIAMENT = 20;
+
+async function getDailyDigestsImpl(parliament: DigestParliamentId) {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const queryRef = query(
+    collection(serverDb, 'daily_digests'),
+    where('parliament', '==', parliament),
+    orderBy('date', 'desc'),
+    limit(DIGESTS_PER_PARLIAMENT),
+  );
+  const snapshot = await getDocs(queryRef);
+  return rejectEmpty(
+    snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        parliament: data.parliament,
+        parliament_name: data.parliament_name,
+        region: data.region,
+        date: data.date,
+        votes: data.votes ?? [],
+        session: data.session ?? null,
+      } as DailyDigest;
+    }),
+  );
+}
+
+/** Latest digests per parliament, newest first. */
+export async function getDailyDigests(
+  parliament: DigestParliamentId,
+): Promise<DailyDigest[]> {
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getDailyDigestsImpl,
+        ['getDailyDigests', 'v1', parliament],
+        [CacheTags.DAILY_DIGESTS],
+      )(parliament),
+    [],
+    `FAILED to fetch daily digests for "${parliament}"`,
+  );
+}
 
 export async function getSystemStatus() {
   const path = '/system_status/llm_status';

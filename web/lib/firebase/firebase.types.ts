@@ -171,3 +171,56 @@ export type FirebaseWahlSwiperResult = {
   is_prolific_study?: boolean;
   prolific_metadata?: ProlificMetadata;
 };
+
+/** Firestore `daily_digests/{parliament}_{YYYY-MM-DD}`, written by the backend
+ * digest builder (`ai-backend/src/daily_digest/models.py`). */
+export type DigestParliamentId = 'bundestag' | 'landtag_st' | 'landtag_bw';
+
+export type DigestVoteParty = {
+  party_id: string;
+  name: string;
+  color: string;
+  yes: number;
+  no: number;
+  abstain: number;
+  no_show: number;
+};
+
+export type DigestVote = {
+  poll_id: number;
+  title: string;
+  short_title: string;
+  summary: string | null;
+  topics: string[];
+  outcome: 'angenommen' | 'abgelehnt' | null;
+  citation_url: string | null;
+  parties: DigestVoteParty[];
+};
+
+export type DigestCitation = { title: string; url: string };
+
+export type DigestSessionSection = {
+  topic: string;
+  headline: string;
+  summary: string;
+  agenda_items: string[];
+  citations: DigestCitation[];
+  video_url: string | null;
+};
+
+export type DigestSession = {
+  protocols: { protocol_id: string; pdf_url: string | null }[];
+  sections: DigestSessionSection[];
+  other_topics: string[];
+};
+
+export type DailyDigest = {
+  id: string;
+  parliament: DigestParliamentId;
+  parliament_name: string;
+  region: string;
+  /** ISO day, `YYYY-MM-DD`. */
+  date: string;
+  votes: DigestVote[];
+  session: DigestSession | null;
+};
