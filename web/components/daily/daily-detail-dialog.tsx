@@ -7,26 +7,31 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from '@/components/chat/responsive-drawer-dialog';
-import { Button } from '@/components/ui/button';
 import { formatFeedDay } from '@/lib/daily/feed';
-import { sortBySeating } from '@/lib/daily/seating-order';
+import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
+import { isCloseVote } from '@/lib/daily/hemicycle';
 import {
   otherTopicsSentence,
   splitSections,
   topicTitle,
 } from '@/lib/daily/topics';
 import type { DigestSession, DigestVote } from '@/lib/firebase/firebase.types';
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ExternalLinkIcon,
-  FileTextIcon,
-} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ChevronLeftIcon, ChevronRightIcon, FileTextIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { INK_LABEL, MUTED_TEXT, PRESSABLE } from './card-styles';
 import type { DetailItem } from './detail-items';
-import { Hemicycle, SeatLegend } from './hemicycle';
+import { Hemicycle, VoteTally } from './hemicycle';
+import { OtherTopicsQuote } from './plenary-card';
 import TopicChip from './topic-chip';
-import { OutcomeBadge, PartyKey, VoteTotalsLine } from './vote-card';
+import { CloseVoteSticker, OutcomeBadge, VoteTotalsLine } from './vote-card';
+import { PartyVoteTable, SourceLink } from './vote-panels';
+
+// A small brutalist key for in-dialog actions.
+const KEY_BUTTON = cn(
+  PRESSABLE,
+  'inline-flex h-9 items-center gap-1 rounded-[4px] border-2 border-[var(--daily-ink)] bg-[var(--daily-surface)] px-3 text-xs font-bold shadow-[3px_3px_0_0_var(--daily-ink)] disabled:pointer-events-none disabled:opacity-35 disabled:shadow-none',
+);
 
 type Props = {
   items: DetailItem[];
@@ -65,15 +70,22 @@ export function DailyDetailDialog({
       open={item !== undefined}
       onOpenChange={(open) => !open && onIndexChange(null)}
     >
-      <ResponsiveDialogContent className="flex max-h-[90dvh] flex-col md:max-w-2xl">
+      <ResponsiveDialogContent
+        className={cn(
+          DAILY_THEME_CLASSES,
+          'flex max-h-[90dvh] flex-col border-2 border-[var(--daily-ink)] bg-[var(--daily-canvas)] md:max-w-2xl md:rounded-md md:shadow-[6px_6px_0_0_var(--daily-ink)]',
+        )}
+      >
         {item && (
           <>
-            <ResponsiveDialogHeader className="text-left">
-              <ResponsiveDialogDescription>
+            <ResponsiveDialogHeader className="gap-2 text-left">
+              <ResponsiveDialogDescription
+                className={cn(INK_LABEL, 'text-[var(--daily-canvas)]')}
+              >
                 {item.digest.parliament_name} ·{' '}
                 {formatFeedDay(item.digest.date)}
               </ResponsiveDialogDescription>
-              <ResponsiveDialogTitle className="leading-snug">
+              <ResponsiveDialogTitle className="font-display text-2xl font-black leading-tight md:text-3xl">
                 {item.kind === 'vote'
                   ? item.vote.short_title
                   : 'Plenarsitzung: die Themen'}
@@ -95,28 +107,28 @@ export function DailyDetailDialog({
             </div>
 
             <nav
-              className="flex items-center justify-between gap-2 border-t border-border px-4 py-3 md:px-0 md:pb-0"
+              className="flex items-center justify-between gap-2 border-t-2 border-[var(--daily-ink)] px-4 py-3 md:px-0 md:pb-0"
               aria-label="Zwischen den Inhalten dieses Tages wechseln"
             >
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
+                type="button"
+                className={KEY_BUTTON}
                 disabled={!canPrev}
                 onClick={() => canPrev && onIndexChange(index - 1)}
               >
-                <ChevronLeftIcon /> Zurück
-              </Button>
-              <span className="text-xs tabular-nums text-muted-foreground">
+                <ChevronLeftIcon className="size-4" /> Zurück
+              </button>
+              <span className="font-display text-lg font-black tabular-nums">
                 {(index ?? 0) + 1} / {items.length}
               </span>
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
+                type="button"
+                className={KEY_BUTTON}
                 disabled={!canNext}
                 onClick={() => canNext && onIndexChange(index + 1)}
               >
-                Weiter <ChevronRightIcon />
-              </Button>
+                Weiter <ChevronRightIcon className="size-4" />
+              </button>
             </nav>
           </>
         )}
@@ -127,53 +139,31 @@ export function DailyDetailDialog({
 
 function VoteDetail({ vote }: { vote: DigestVote }) {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-1.5">
+    <div className="flex flex-col gap-5 pt-2">
+      <div className="flex flex-wrap items-center gap-2">
         {vote.topics.map((topic) => (
           <TopicChip key={topic} topic={topic} />
         ))}
-        <span className="ml-auto">
+        <span className="ml-auto flex items-center gap-2">
+          {isCloseVote(vote.parties) && <CloseVoteSticker />}
           <OutcomeBadge outcome={vote.outcome} />
         </span>
       </div>
-      {vote.summary && <p className="text-sm">{vote.summary}</p>}
-      <div className="flex flex-col items-center gap-2">
+      {vote.summary && (
+        <p className="text-base leading-relaxed">{vote.summary}</p>
+      )}
+      {vote.description && (
+        <p className={cn('text-sm leading-relaxed', MUTED_TEXT)}>
+          {vote.description}
+        </p>
+      )}
+      <div className="flex flex-col items-center gap-3">
         <Hemicycle parties={vote.parties} className="max-w-md" />
+        <VoteTally parties={vote.parties} />
         <VoteTotalsLine vote={vote} />
-        <SeatLegend />
-        <PartyKey vote={vote} />
       </div>
-      <table className="w-full text-sm tabular-nums">
-        <thead className="text-xs text-muted-foreground">
-          <tr className="border-b border-border">
-            <th className="py-1.5 text-left font-medium">Fraktion</th>
-            <th className="py-1.5 text-right font-medium">Ja</th>
-            <th className="py-1.5 text-right font-medium">Nein</th>
-            <th className="py-1.5 text-right font-medium">Enth.</th>
-            <th className="py-1.5 text-right font-medium">Abw.</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortBySeating(vote.parties).map((party) => (
-            <tr key={party.party_id} className="border-b border-border/60">
-              <td className="flex items-center gap-2 py-1.5">
-                <span
-                  className="inline-block size-2.5 rounded-full border border-border"
-                  style={{ backgroundColor: party.color }}
-                />
-                {party.name}
-              </td>
-              <td className="py-1.5 text-right">{party.yes}</td>
-              <td className="py-1.5 text-right">{party.no}</td>
-              <td className="py-1.5 text-right">{party.abstain}</td>
-              <td className="py-1.5 text-right">{party.no_show}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="text-xs text-muted-foreground">
-        Originaltitel: {vote.title}
-      </p>
+      <PartyVoteTable vote={vote} />
+      <p className={cn('text-xs', MUTED_TEXT)}>Originaltitel: {vote.title}</p>
       {vote.citation_url && (
         <SourceLink href={vote.citation_url}>
           Abstimmung auf abgeordnetenwatch.de
@@ -197,55 +187,61 @@ function SessionDetail({
   );
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-7 pt-2">
       {visible.map((section, i) => (
         <section
           key={`${i}:${section.headline}`}
-          className="flex flex-col gap-1.5"
+          className="grid grid-cols-[auto_1fr] gap-x-4"
         >
-          <TopicChip topic={section.topic} />
-          <h4 className="font-semibold leading-snug">{section.headline}</h4>
-          <p className="text-sm">{section.summary}</p>
-          {section.video_url && (
-            <video
-              controls
-              // Metadata plus a media fragment makes the browser decode one
-              // frame to show as the thumbnail; with preload="none" the player
-              // stays an empty grey box until it is started.
-              preload="metadata"
-              src={`${section.video_url.split('#')[0]}#t=0.5`}
-              className="mt-1 aspect-video w-full rounded-md bg-black"
-            />
-          )}
-          <p className="text-xs text-muted-foreground">
-            {section.agenda_items.join(' · ')}
-          </p>
-          <ul className="flex flex-col gap-0.5">
-            {section.citations.map((citation) => (
-              <li key={citation.url}>
-                <SourceLink href={citation.url}>{citation.title}</SourceLink>
-              </li>
-            ))}
-          </ul>
+          <span className="font-display text-4xl font-black leading-none">
+            {String(i + 1).padStart(2, '0')}
+          </span>
+          <div className="flex min-w-0 flex-col gap-2">
+            <TopicChip topic={section.topic} />
+            <h4 className="font-display text-xl font-extrabold leading-tight">
+              {section.headline}
+            </h4>
+            <p className="text-[15px] leading-relaxed">{section.summary}</p>
+            {section.video_url && (
+              <video
+                controls
+                // Metadata plus a media fragment makes the browser decode one
+                // frame to show as the thumbnail; with preload="none" the player
+                // stays an empty grey box until it is started.
+                preload="metadata"
+                src={`${section.video_url.split('#')[0]}#t=0.5`}
+                className="mt-1 aspect-video w-full rounded-[4px] border-2 border-[var(--daily-ink)] bg-black shadow-[4px_4px_0_0_var(--daily-ink)]"
+              />
+            )}
+            <p className={cn('text-xs font-medium', MUTED_TEXT)}>
+              {section.agenda_items.join(' · ')}
+            </p>
+            <ul className="flex flex-col gap-0.5">
+              {section.citations.map((citation) => (
+                <li key={citation.url}>
+                  <SourceLink href={citation.url}>{citation.title}</SourceLink>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
       ))}
 
-      <p className="text-sm text-muted-foreground">
+      <OtherTopicsQuote>
         {otherTopicsSentence(hidden, session.other_topics)}
-      </p>
+      </OtherTopicsQuote>
       {hidden.length > 0 && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-fit"
+        <button
+          type="button"
+          className={cn(KEY_BUTTON, 'h-auto w-fit py-2 text-left')}
           onClick={() => setShowAll(true)}
         >
           Alle Themen anzeigen (
           {[...new Set(hidden.map((s) => topicTitle(s.topic)))].join(', ')})
-        </Button>
+        </button>
       )}
 
-      <div className="flex flex-col gap-1 border-t border-border pt-3">
+      <div className="flex flex-col gap-1.5 border-t-2 border-[var(--daily-ink)] pt-3">
         {session.protocols.map((protocol) =>
           protocol.pdf_url ? (
             <SourceLink key={protocol.protocol_id} href={protocol.pdf_url}>
@@ -255,37 +251,17 @@ function SessionDetail({
           ) : (
             <span
               key={protocol.protocol_id}
-              className="text-xs text-muted-foreground"
+              className={cn('text-xs', MUTED_TEXT)}
             >
               Plenarprotokoll {protocol.protocol_id}
             </span>
           ),
         )}
-        <p className="text-xs text-muted-foreground">
+        <p className={cn('text-xs', MUTED_TEXT)}>
           Automatisch aus den Redebeiträgen zusammengefasst. Maßgeblich ist das
           Protokoll.
         </p>
       </div>
     </div>
-  );
-}
-
-function SourceLink({
-  href,
-  children,
-}: {
-  href: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 text-xs font-medium underline-offset-2 hover:underline"
-    >
-      {children}
-      <ExternalLinkIcon className="size-3" />
-    </a>
   );
 }

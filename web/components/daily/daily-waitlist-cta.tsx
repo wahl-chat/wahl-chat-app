@@ -7,7 +7,12 @@ import { Input } from '@/components/ui/input';
 import type { StateSelection } from '@/lib/daily/region';
 import { cn } from '@/lib/utils';
 import { track } from '@vercel/analytics/react';
-import { CheckCircle2Icon, SmartphoneIcon } from 'lucide-react';
+import {
+  CheckCircle2Icon,
+  ChevronDownIcon,
+  SmartphoneIcon,
+} from 'lucide-react';
+import { useId, useState } from 'react';
 import { toast } from 'sonner';
 import { CARD_SURFACE } from './card-styles';
 
@@ -21,6 +26,11 @@ function DailyWaitlistCta({ state }: Props) {
   // the app asks anyone for; `undefined` (not known yet) counts as running.
   const studyRunning = useStudyRunning();
   const onWaitlist = Boolean(user?.daily_digest_waitlist?.email);
+  // Mobile only: collapsed to its title row so it does not push the feed
+  // down. From md up the body is always shown and the toggle is hidden.
+  const [expanded, setExpanded] = useState(false);
+  const bodyId = useId();
+  const body = cn(expanded ? 'flex' : 'hidden', 'md:flex');
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -48,17 +58,39 @@ function DailyWaitlistCta({ state }: Props) {
   };
 
   return (
+    // Saffron stays light in both themes, so the text inside is fixed ink.
     <div
       className={cn(
         CARD_SURFACE,
-        'flex flex-col gap-3 p-4 md:flex-row md:items-center md:gap-6',
+        'relative flex flex-col gap-4 border-[#1A1A1A] bg-[#E9C46A] p-4 text-[#1A1A1A] md:flex-row md:items-center md:gap-8 md:p-6',
       )}
     >
-      <div className="flex items-start gap-3 md:flex-1">
-        <SmartphoneIcon className="mt-0.5 size-5 shrink-0" />
-        <div className="flex flex-col gap-0.5">
-          <h2 className="font-bold">Tägliche Updates aufs Handy</h2>
-          <p className="text-sm text-muted-foreground">
+      <div className="flex items-start gap-4 md:flex-1">
+        <span className="flex size-11 shrink-0 -rotate-6 items-center justify-center border-2 border-[#1A1A1A] bg-white shadow-[2px_2px_0_0_#1A1A1A]">
+          <SmartphoneIcon className="size-5" />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-display text-xl font-black leading-tight md:text-2xl">
+              Tägliche Updates aufs Handy
+            </h2>
+            <button
+              type="button"
+              aria-expanded={expanded}
+              aria-controls={bodyId}
+              aria-label={expanded ? 'Weniger anzeigen' : 'Mehr anzeigen'}
+              onClick={() => setExpanded((open) => !open)}
+              className="flex size-9 shrink-0 items-center justify-center rounded-[4px] border-2 border-[#1A1A1A] bg-white shadow-[2px_2px_0_0_#1A1A1A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none md:hidden"
+            >
+              <ChevronDownIcon
+                className={cn(
+                  'size-5 transition-transform motion-reduce:transition-none',
+                  expanded && 'rotate-180',
+                )}
+              />
+            </button>
+          </div>
+          <p id={bodyId} className={cn(body, 'text-sm font-medium')}>
             Bald gibt es einen persönlichen Newsletter: jeden Tag kurz, was in
             deinem Parlament entschieden wurde, zu den Themen, die dich
             interessieren.
@@ -67,18 +99,23 @@ function DailyWaitlistCta({ state }: Props) {
       </div>
 
       {onWaitlist ? (
-        <p className="flex items-center gap-2 text-sm font-medium">
-          <CheckCircle2Icon className="size-4 text-green-600" />
+        <p className={cn(body, 'items-center gap-2 text-sm font-bold')}>
+          <CheckCircle2Icon className="size-4" />
           Du stehst auf der Warteliste.
         </p>
       ) : studyRunning !== false ? (
-        <p className="text-sm font-medium text-muted-foreground">
-          Bald verfügbar.
+        <p
+          className={cn(
+            body,
+            'w-fit rotate-2 border-2 border-[#1A1A1A] bg-white px-2 py-1 text-xs font-black uppercase tracking-[0.14em]',
+          )}
+        >
+          Bald verfügbar
         </p>
       ) : (
         <form
           onSubmit={handleSubmit}
-          className="flex flex-col gap-2 md:w-96 md:flex-row"
+          className={cn(body, 'flex-col gap-3 md:w-[26rem] md:flex-row')}
         >
           <Input
             name="email"
@@ -89,8 +126,13 @@ function DailyWaitlistCta({ state }: Props) {
             spellCheck="false"
             aria-label="E-Mail-Adresse für die Warteliste"
             required
+            className="h-11 rounded-[4px] border-2 border-[#1A1A1A] bg-white text-[#1A1A1A] placeholder:text-[#5C5850] focus-visible:ring-[#1A1A1A]"
           />
-          <Button type="submit" disabled={!user}>
+          <Button
+            type="submit"
+            disabled={!user}
+            className="h-11 rounded-[4px] border-2 border-[#1A1A1A] bg-[#1A1A1A] font-bold text-white shadow-[3px_3px_0_0_#FBF9F4] transition-[transform,box-shadow] hover:-translate-x-px hover:-translate-y-px hover:bg-[#1A1A1A] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none motion-reduce:transform-none"
+          >
             Auf die Warteliste
           </Button>
         </form>

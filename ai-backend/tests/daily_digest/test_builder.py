@@ -12,6 +12,7 @@ from src.daily_digest.builder import (
     build_digests,
     compute_input_hash,
     session_from_draft,
+    vote_description,
 )
 from src.daily_digest.parliaments import PARLIAMENTS, PartyDisplay
 from src.daily_digest.prompts import (
@@ -234,3 +235,23 @@ def test_agenda_ids_never_leak_into_reader_text() -> None:
     assert session.sections[0].headline == "Mehr Wohnungen"
     assert session.sections[0].summary == "Die SPD fordert mehr Wohnungsbau."
     assert session.other_topics == ["Kindergeld", "Fragestunde"]
+
+
+def test_vote_description_takes_the_source_intro() -> None:
+    assert vote_description(
+        "Antrag 1\n\nThemen: Haushalt\n\nKontext: Worum es geht."
+    ) == ("Worum es geht.")
+    assert vote_description("Antrag ohne Kontext") is None
+
+
+def test_vote_description_cuts_long_intros_at_a_sentence() -> None:
+    intro = "Ein Satz. " * 400
+    described = vote_description(f"Antrag\n\nKontext: {intro}")
+    assert described is not None
+    assert described.endswith(". …")
+    assert len(described) <= 1503
+
+
+def test_digests_carry_the_vote_description(fake_llm: FakeLLM) -> None:
+    [digest], _ = _build(fake_llm)
+    assert digest.votes[0].description == "Worum es geht."

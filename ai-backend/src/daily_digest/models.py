@@ -37,6 +37,10 @@ class DigestVote(BaseModel):
     title: str
     short_title: str
     summary: Optional[str] = None
+    description: Optional[str] = Field(
+        None,
+        description="The source's own account of the motion (abgeordnetenwatch intro).",
+    )
     topics: list[DigestTopic] = Field(min_length=1)
     outcome: Optional[str] = Field(
         None,

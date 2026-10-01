@@ -6,6 +6,8 @@ export type SeatVote = 'yes' | 'abstain' | 'no' | 'absent';
 export type Seat = {
   x: number;
   y: number;
+  /** Polar angle of the seat (π = far left, 0 = far right). */
+  angle: number;
   partyId: string;
   vote: SeatVote;
 };
@@ -25,8 +27,9 @@ export type HemicycleLayout = {
   seatRadius: number;
 };
 
-/** Inner radius of the half ring, as a fraction of the outer radius. */
-const INNER_RADIUS = 0.35;
+/** Inner radius of the half ring, as a fraction of the outer radius. Wide
+ * enough that the seat legend fits in the hollow centre. */
+export const INNER_RADIUS = 0.5;
 
 /** Order of the vote blocks inside each party wedge, left to right. */
 const VOTE_ORDER: SeatVote[] = ['yes', 'abstain', 'no', 'absent'];
@@ -112,7 +115,7 @@ function seatPositions(totalSeats: number): {
   return { positions, rowWidth: rows ? (1 - INNER_RADIUS) / rows : 0 };
 }
 
-function votesInOrder(party: DigestVoteParty): SeatVote[] {
+export function votesInOrder(party: DigestVoteParty): SeatVote[] {
   const counts: Record<SeatVote, number> = {
     yes: party.yes,
     abstain: party.abstain,
@@ -146,6 +149,7 @@ export function layoutHemicycle(
       seats.push({
         x: position.x,
         y: position.y,
+        angle: position.angle,
         partyId: party.party_id,
         vote: votes[i],
       });
@@ -175,4 +179,98 @@ export function voteTotals(parties: readonly DigestVoteParty[]): VoteTotals {
   }
   totals.total = totals.yes + totals.abstain + totals.no + totals.absent;
   return totals;
+}
+
+/** Margin under which a vote counts as close: Ja and Nein within 5% of the
+ * votes cast for either (at 10%, ordinary coalition majorities qualified).
+ * Abstentions and absences are ignored. */
+const CLOSE_VOTE_MARGIN = 0.05;
+
+export function isCloseVote(parties: readonly DigestVoteParty[]): boolean {
+  const { yes, no } = voteTotals(parties);
+  const decided = yes + no;
+  return decided > 0 && Math.abs(yes - no) / decided < CLOSE_VOTE_MARGIN;
+}
+
+export type ArcLabel = {
+  partyId: string;
+  name: string;
+  /** Angular extent of the label text (startAngle > endAngle, like arcs). */
+  startAngle: number;
+  endAngle: number;
+};
+
+type LabelOptions = {
+  radius: number;
+  fontSize: number;
+  /** Average glyph advance as a fraction of the font size. */
+  charWidth?: number;
+  /** Minimum angular gap between neighbouring labels. */
+  gap?: number;
+  /** How far past the chamber's ends (in radians) a label may run. */
+  overhang?: number;
+};
+
+/**
+ * Place each party's name along the outside of the chamber, centred over its
+ * block where there is room. Small blocks (a handful of fraktionslose seats)
+ * get labels wider than themselves, so neighbours are pushed apart along the
+ * arc: one sweep left to right resolves overlaps, a second right to left pulls
+ * labels back inside the chamber's end.
+ */
+export function layoutArcLabels(
+  arcs: readonly PartyArc[],
+  {
+    radius,
+    fontSize,
+    charWidth = 0.56,
+    gap = 0.03,
+    overhang = 0.12,
+  }: LabelOptions,
+): ArcLabel[] {
+  // Work in "distance from the left end" (0 … π), which grows left to right.
+  const items = arcs.map((arc) => {
+    const width = (arc.name.length * fontSize * charWidth) / radius;
+    const centre = Math.PI - (arc.startAngle + arc.endAngle) / 2;
+    return { arc, width, left: centre - width / 2 };
+  });
+  items.sort((a, b) => a.left + a.width / 2 - (b.left + b.width / 2));
+
+  const minLeft = -overhang;
+  const maxRight = Math.PI + overhang;
+  let previousRight = Number.NEGATIVE_INFINITY;
+  for (const item of items) {
+    item.left = Math.max(item.left, previousRight + gap, minLeft);
+    previousRight = item.left + item.width;
+  }
+  let nextLeft = Number.POSITIVE_INFINITY;
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i];
+    const right = Math.min(item.left + item.width, nextLeft - gap, maxRight);
+    item.left = right - item.width;
+    nextLeft = item.left;
+  }
+
+  return items.map(({ arc, width, left }) => ({
+    partyId: arc.partyId,
+    name: arc.name,
+    startAngle: Math.PI - left,
+    endAngle: Math.PI - (left + width),
+  }));
+}
+
+/** Members without a Fraktion. They have no block in the chamber, so they are
+ * drawn as a separate row instead of a wedge. */
+const UNAFFILIATED = new Set(['fraktionslos', 'fraktionslose']);
+
+export function splitUnaffiliated(parties: readonly DigestVoteParty[]): {
+  seated: DigestVoteParty[];
+  unaffiliated: DigestVoteParty[];
+} {
+  const seated: DigestVoteParty[] = [];
+  const unaffiliated: DigestVoteParty[] = [];
+  for (const party of parties) {
+    (UNAFFILIATED.has(party.party_id) ? unaffiliated : seated).push(party);
+  }
+  return { seated, unaffiliated };
 }

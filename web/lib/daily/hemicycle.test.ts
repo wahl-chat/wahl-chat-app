@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'bun:test';
 import type { DigestVoteParty } from '@/lib/firebase/firebase.types';
 import {
+  isCloseVote,
+  layoutArcLabels,
   layoutHemicycle,
   rowCount,
   seatsPerRow,
+  splitUnaffiliated,
   voteTotals,
+  votesInOrder,
 } from './hemicycle';
 
 function party(
@@ -94,5 +98,70 @@ describe('layoutHemicycle', () => {
     expect(
       layoutHemicycle([party('spd', 1, 0), party('x', 0, 0)]).arcs,
     ).toHaveLength(1);
+  });
+});
+
+describe('isCloseVote', () => {
+  it('flags ties and narrow margins', () => {
+    expect(isCloseVote([party('a', 50, 50)])).toBe(true);
+    expect(isCloseVote([party('a', 51, 49)])).toBe(true);
+  });
+
+  it('ignores clear results and empty votes', () => {
+    expect(isCloseVote([party('a', 318, 284)])).toBe(false);
+    expect(isCloseVote([party('a', 400, 100)])).toBe(false);
+    expect(isCloseVote([party('a', 0, 0, 3, 2)])).toBe(false);
+  });
+
+  it('only weighs Ja against Nein', () => {
+    expect(isCloseVote([party('a', 51, 49, 300, 200)])).toBe(true);
+  });
+});
+
+describe('layoutArcLabels', () => {
+  const options = { radius: 1.15, fontSize: 0.07 };
+
+  function labels(parties: DigestVoteParty[]) {
+    return layoutArcLabels(layoutHemicycle(parties).arcs, options);
+  }
+
+  it('centres a label over its block when there is room', () => {
+    const [label] = labels([party('spd', 100, 0)]);
+    const mid = (label.startAngle + label.endAngle) / 2;
+    expect(mid).toBeCloseTo(Math.PI / 2, 2);
+  });
+
+  it('never lets neighbouring labels overlap, even for tiny blocks', () => {
+    const placed = labels(BUNDESTAG);
+    // Left to right means descending angles.
+    for (let i = 1; i < placed.length; i++) {
+      expect(placed[i].startAngle).toBeLessThanOrEqual(placed[i - 1].endAngle);
+    }
+  });
+
+  it('keeps labels close to the chamber ends', () => {
+    for (const label of labels(BUNDESTAG)) {
+      expect(label.startAngle).toBeLessThanOrEqual(Math.PI + 0.12 + 1e-9);
+      expect(label.endAngle).toBeGreaterThanOrEqual(-0.12 - 1e-9);
+    }
+  });
+});
+
+describe('splitUnaffiliated', () => {
+  it('takes fraktionslose members out of the chamber', () => {
+    const { seated, unaffiliated } = splitUnaffiliated(BUNDESTAG);
+    expect(unaffiliated.map((p) => p.party_id)).toEqual(['fraktionslos']);
+    expect(seated.some((p) => p.party_id === 'fraktionslos')).toBe(false);
+    expect(seated).toHaveLength(BUNDESTAG.length - 1);
+  });
+
+  it('lists their votes in the chamber order', () => {
+    expect(votesInOrder(party('fraktionslos', 1, 2, 1, 1))).toEqual([
+      'yes',
+      'abstain',
+      'no',
+      'no',
+      'absent',
+    ]);
   });
 });

@@ -1,5 +1,6 @@
 'use client';
 
+import Logo from '@/components/chat/logo';
 import { buildFeed } from '@/lib/daily/feed';
 import {
   STATE_PARAM,
@@ -13,7 +14,7 @@ import type {
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { useCallback, useMemo, useState } from 'react';
-import { CARD_PLACEHOLDER } from './card-styles';
+import { CARD_PLACEHOLDER, INK_LABEL, MUTED_TEXT } from './card-styles';
 import DailyDaySection from './daily-day-section';
 import { DailyDetailDialog } from './daily-detail-dialog';
 import DailyFilters from './daily-filters';
@@ -37,6 +38,22 @@ function syncUrl(state: StateSelection, topics: string[]) {
     url.searchParams.delete(TOPICS_PARAM);
   }
   window.history.replaceState(null, '', url);
+}
+
+/** Playful sticker beside the page title, so the brand is visible on the
+ * feed without a hero. */
+function PresentedBy() {
+  return (
+    <span className="inline-flex -rotate-3 items-center gap-2 rounded-[4px] border-2 border-[var(--daily-ink)] bg-[var(--daily-surface)] px-2.5 py-1 shadow-[3px_3px_0_0_var(--daily-ink)]">
+      <span className="font-display text-sm font-bold italic">
+        präsentiert von
+      </span>
+      <Logo variant="small" className="size-5 text-[var(--daily-ink)]" />
+      <span className="font-display text-base font-black tracking-tight">
+        wahl.chat
+      </span>
+    </span>
+  );
 }
 
 function DailyFeed({ digests, initialState, initialTopics }: Props) {
@@ -79,14 +96,24 @@ function DailyFeed({ digests, initialState, initialTopics }: Props) {
   );
 
   return (
-    <div className="flex flex-col gap-6 pt-6">
+    <div className="flex flex-col gap-10 pt-8">
       <DailyWaitlistCta state={state} />
 
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold">Was im Parlament passiert ist</h1>
-        <p className="text-sm text-muted-foreground">
-          Abstimmungen und Debatten der letzten zwei Wochen aus Bundestag und
-          Landtag. Tippe auf eine Karte für Details und Quellen.
+      <header className="flex flex-col gap-3 pt-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+          <h1
+            className={cn(
+              INK_LABEL,
+              'px-3 py-1.5 text-lg tracking-[0.16em] md:px-4 md:py-2 md:text-2xl',
+            )}
+          >
+            Dein Parlament kompakt
+          </h1>
+          <PresentedBy />
+        </div>
+        <p className={cn('max-w-2xl text-base', MUTED_TEXT)}>
+          Abstimmungen und Debatten aus Bundestag und Landtag. Tippe auf eine
+          Karte für mehr Details und Quellen.
         </p>
       </header>
 
@@ -98,12 +125,7 @@ function DailyFeed({ digests, initialState, initialTopics }: Props) {
       />
 
       {dayViews.length === 0 ? (
-        <p
-          className={cn(
-            CARD_PLACEHOLDER,
-            'p-6 text-center text-sm text-muted-foreground',
-          )}
-        >
+        <p className={cn(CARD_PLACEHOLDER, 'p-6 text-center text-sm')}>
           Noch keine Inhalte verfügbar. Schau bald wieder vorbei.
         </p>
       ) : (

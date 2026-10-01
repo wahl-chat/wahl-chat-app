@@ -55,6 +55,12 @@ _SPEECHES_PER_AGENDA_ITEM = 8
 _SESSION_PROMPT_CHARS = 90_000
 _CITATIONS_PER_SECTION = 3
 _NO_AGENDA_LABEL = "Sonstige Wortbeiträge"
+_DESCRIPTION_CHARS = 1500
+# Part of every input_hash next to PROMPT_VERSION: bump it when the stored doc
+# gains or changes a field, so existing days are rebuilt in the new shape.
+DIGEST_FORMAT_VERSION = "2"
+# The vote connector writes the embed text as "<label>\n\nThemen: …\n\nKontext: <intro>".
+_CONTEXT_MARKER = "Kontext: "
 
 # (messages, schema, long_form) -> parsed schema instance. long_form selects
 # the answer-generation roster over the cheaper pre/post-processing one.
@@ -252,6 +258,19 @@ def session_from_draft(
     )
 
 
+def vote_description(text: str) -> Optional[str]:
+    """The poll's intro from the vote chunk text, cut at a sentence end."""
+    _, marker, context = text.partition(_CONTEXT_MARKER)
+    context = context.strip()
+    if not marker or not context:
+        return None
+    if len(context) <= _DESCRIPTION_CHARS:
+        return context
+    cut = context[:_DESCRIPTION_CHARS]
+    sentence_end = cut.rfind(". ")
+    return (cut[: sentence_end + 1] if sentence_end > 0 else cut.rstrip()) + " …"
+
+
 def vote_from_payload(
     payload: dict, text: VoteText, display: dict[str, PartyDisplay]
 ) -> DigestVote:
@@ -275,6 +294,7 @@ def vote_from_payload(
         title=text.title,
         short_title=text.short_title,
         summary=text.summary,
+        description=vote_description(str(payload.get("text") or "")),
         topics=text.topics,
         outcome=(payload.get("meta") or {}).get("motion_outcome"),
         citation_url=payload.get("citation_url"),
@@ -287,7 +307,12 @@ def compute_input_hash(vote_payloads: list[dict], sitting: Optional[SittingDay])
     speech_hashes = sitting.content_hashes if sitting else []
     return hashlib.sha256(
         json.dumps(
-            {"prompt": PROMPT_VERSION, "votes": hashes, "speeches": speech_hashes},
+            {
+                "prompt": PROMPT_VERSION,
+                "format": DIGEST_FORMAT_VERSION,
+                "votes": hashes,
+                "speeches": speech_hashes,
+            },
             sort_keys=True,
         ).encode("utf-8")
     ).hexdigest()

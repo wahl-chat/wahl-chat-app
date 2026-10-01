@@ -1,19 +1,14 @@
 import { TOPIC_TITLES } from '@/components/topics/topics.data';
 import type { DigestSessionSection } from '@/lib/firebase/firebase.types';
 
-type TopicStyle = (typeof TOPIC_TITLES)[keyof typeof TOPIC_TITLES];
-
-/** The site's topic chips plus `other`, which the digest builder uses for
- * items no topic fits (kept in sync by a backend test). */
-export const DAILY_TOPICS: Record<string, TopicStyle> = {
-  ...TOPIC_TITLES,
-  other: {
-    title: 'Weitere Themen',
-    normal: 'bg-zinc-500/20 text-zinc-500 border-zinc-500/30',
-    hover: 'hover:bg-zinc-500/40 hover:text-zinc-600 hover:border-zinc-500/40',
-    active:
-      'bg-zinc-500 text-white border-zinc-700 hover:bg-zinc-500/80 hover:text-white hover:border-zinc-700',
-  },
+/** The site's topic keys and titles plus `other`, which the digest builder
+ * uses for items no topic fits (kept in sync by a backend test). Colours come
+ * from the feed's own palette (`palette.ts`), not the site's chip classes. */
+export const DAILY_TOPICS: Record<string, { title: string }> = {
+  ...Object.fromEntries(
+    Object.entries(TOPIC_TITLES).map(([key, { title }]) => [key, { title }]),
+  ),
+  other: { title: 'Weitere Themen' },
 };
 
 export const DAILY_TOPIC_KEYS = Object.keys(DAILY_TOPICS);

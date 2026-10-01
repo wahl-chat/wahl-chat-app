@@ -11,6 +11,10 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        // Only resolves inside the (wide) route group, which loads the font.
+        display: ['var(--font-daily-display)', 'Georgia', 'serif'],
+      },
       height: {
         'chat-header': 'var(--chat-header-height)',
         header: 'var(--header-height)',
