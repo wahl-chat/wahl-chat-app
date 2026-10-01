@@ -177,3 +177,30 @@ body {
     animation: none;
   }
 }
+
+/* Editorial theme of the /aktuell parliament feed, scoped to its route group.
+   Borders and hard offset shadows both use --daily-ink, so in dark mode the
+   frame and shadow flip to cream together. */
+.daily-theme {
+  --daily-canvas: #fbf9f4;
+  --daily-surface: #ffffff;
+  --daily-ink: #1a1a1a;
+  --daily-muted: #5c5850;
+  /* Colours that must shift with the theme to stay legible: the Union's
+     near-black and the stamp inks. */
+  --daily-party-cdu: #2e2e2e;
+  --daily-stamp-yes: #3f8f5f;
+  --daily-stamp-no: #d1495b;
+  color: var(--daily-ink);
+  font-family: var(--font-daily-body), Arial, Helvetica, sans-serif;
+}
+
+.dark .daily-theme {
+  --daily-canvas: #1c1b19;
+  --daily-surface: #26241f;
+  --daily-ink: #f4f1e8;
+  --daily-muted: #b8b2a5;
+  --daily-party-cdu: #9a968d;
+  --daily-stamp-yes: #7cc796;
+  --daily-stamp-no: #f07a88;
+}

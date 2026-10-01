@@ -113,14 +113,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/budget-spent', request.url));
   }
 
-  // Legacy context-less URLs. Bare paths go to /, which is stable and lets the
-  // visitor pick their own election — so those can be permanent (308) and
-  // consolidate their link equity. Paths carrying a party or session still need
-  // a context, and middleware can only guess one from the request's region, so
-  // those stay temporary (307).
-  if (pathname === '/chat') {
-    return NextResponse.redirect(buildRedirectUrl(request, '/'), 308);
-  }
+  // Legacy context-less URLs. Bare paths go to /, which is stable — so those
+  // can be permanent (308) and consolidate their link equity. Paths carrying a
+  // party or session still need a context, and middleware can only guess one
+  // from the request's region, so those stay temporary (307). Bare /chat is
+  // not legacy: it is the chat landing page.
 
   if (pathname.startsWith('/chat/')) {
     const partyId = pathname.split('/')[2];

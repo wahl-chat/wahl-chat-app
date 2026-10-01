@@ -21,6 +21,10 @@ function MobileNavbarItems({ userDetails, mobileClose }: Props) {
       label: 'Anleitung',
       href: '/how-to',
     },
+    {
+      label: 'Chat',
+      href: '/chat',
+    },
     // {
     //   label: 'Wahl Swiper',
     //   href: '/swiper',

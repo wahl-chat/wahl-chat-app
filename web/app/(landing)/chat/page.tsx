@@ -53,6 +53,9 @@ const TITLE = 'Mit wahl.chat Politik verstehen – dein KI Chat vor der Wahl';
 const DESCRIPTION =
   'Die KI-basierte Ergänzung zum Wahl-O-Mat: Verstehe Parteien anhand von Plenarprotokollen, Abstimmungen und Wahlprogrammen. Jetzt informiert wählen!';
 
+// The chat landing page; / is the daily parliament feed.
+const CHAT_URL = `${BASE_URL}/chat`;
+
 const ELECTIONS_ANCHOR = 'andere-wahlen';
 const QUESTIONS_ANCHOR = 'beispielfragen';
 // Always rendered, so it is the scroll cue's last resort when neither of the
@@ -66,12 +69,12 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   robots: productionRobots,
   alternates: {
-    canonical: '/',
+    canonical: '/chat',
   },
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,
-    url: BASE_URL,
+    url: CHAT_URL,
   },
   twitter: {
     title: TITLE,
@@ -128,13 +131,13 @@ export default async function Landing() {
   const faqItems = getLandingFaqItems();
 
   // One node for one URL: FAQPage is a WebPage subtype, so a second node
-  // claiming BASE_URL would read as a duplicate page entity.
+  // claiming CHAT_URL would read as a duplicate page entity.
   const webPage = {
     '@type': ['WebPage', 'FAQPage'],
-    '@id': `${BASE_URL}/#webpage`,
+    '@id': `${CHAT_URL}#webpage`,
     name: TITLE,
     description: DESCRIPTION,
-    url: BASE_URL,
+    url: CHAT_URL,
     inLanguage: 'de',
     isPartOf: { '@id': WEBSITE_ID },
     mainEntity: buildFaqPageMainEntity(
@@ -152,7 +155,7 @@ export default async function Landing() {
   const orderedElections = [...upcoming, ...past];
   const electionList = {
     '@type': 'ItemList',
-    '@id': `${BASE_URL}/#elections`,
+    '@id': `${CHAT_URL}#elections`,
     name: 'Wahlen auf wahl.chat',
     numberOfItems: orderedElections.length,
     itemListElement: orderedElections.map((context, index) => ({

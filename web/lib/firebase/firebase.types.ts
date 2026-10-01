@@ -191,6 +191,8 @@ export type DigestVote = {
   title: string;
   short_title: string;
   summary: string | null;
+  /** The source's own account of the motion; absent on older digests. */
+  description?: string | null;
   topics: string[];
   outcome: 'angenommen' | 'abgelehnt' | null;
   citation_url: string | null;
