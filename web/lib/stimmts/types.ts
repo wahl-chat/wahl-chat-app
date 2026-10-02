@@ -56,6 +56,9 @@ export type Puzzle = {
   chatQuestion: string;
 };
 
+/** A player's answers so far, by party slug. */
+export type Guesses = Record<string, VoteAnswer>;
+
 /** Which puzzle runs on which day: the puzzle number is the day count. */
 export type Schedule = {
   /** Berlin date of puzzle #1 (YYYY-MM-DD). */
