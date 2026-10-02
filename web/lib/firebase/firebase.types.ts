@@ -199,12 +199,41 @@ export type DigestVote = {
   parties: DigestVoteParty[];
 };
 
-export type DigestCitation = { title: string; url: string };
+export type DigestCitation = {
+  title: string;
+  url: string;
+  /** Set on speech citations; absent on older digests. */
+  speaker?: string | null;
+  party_id?: string | null;
+  party_name?: string | null;
+  color?: string | null;
+  /** The speech's own video file, when one exists. */
+  video_url?: string | null;
+};
+
+export type DigestSpeaker = {
+  name: string;
+  /** The speech in the Plenarprotokoll PDF, at its page when known. */
+  url: string | null;
+  /** The speech's own video, and a link to it; absent on older digests. */
+  video_url?: string | null;
+  video_link?: string | null;
+};
+
+export type DigestPartyPosition = {
+  party_id: string;
+  party_name: string;
+  color: string;
+  speakers: DigestSpeaker[];
+  position: string;
+};
 
 export type DigestSessionSection = {
   topic: string;
   headline: string;
   summary: string;
+  /** One entry per Fraktion that spoke; absent on older digests. */
+  positions?: DigestPartyPosition[];
   agenda_items: string[];
   citations: DigestCitation[];
   video_url: string | null;

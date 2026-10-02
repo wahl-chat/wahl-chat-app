@@ -31,6 +31,7 @@ from qdrant_client import QdrantClient
 from src.daily_digest.builder import DigestBuilder, build_digests
 from src.daily_digest.models import DailyDigest
 from src.daily_digest.parliaments import PARLIAMENTS, Parliament, load_party_display
+from src.daily_digest.protocol_pages import attach_protocol_pages
 from src.daily_digest.reader import (
     SPEECH_SOURCE_TYPE,
     VOTE_SOURCE_TYPE,
@@ -94,6 +95,11 @@ def build_for_parliament(
             window_filter(SPEECH_SOURCE_TYPE, parliament.region, start, end),
         )
         sitting_days = group_sitting_days(assemble_speeches(speech_payloads))
+        for sitting in sitting_days.values():
+            attached = attach_protocol_pages(sitting)
+            logger.info(
+                "%s: %d speeches linked to their protocol page", sitting.day, attached
+            )
 
     digests, unchanged = build_digests(
         parliament,

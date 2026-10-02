@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from src.daily_digest.topics import DigestTopic, topic_legend
 
 # Part of every digest's input_hash: bumping it regenerates all stored days.
-PROMPT_VERSION = "2"
+PROMPT_VERSION = "4"
 
 
 class VoteEnrichment(BaseModel):
@@ -31,14 +31,30 @@ class VoteEnrichmentBatch(BaseModel):
     votes: list[VoteEnrichment]
 
 
+class PartyPositionDraft(BaseModel):
+    party_id: str = Field(
+        description="Partei-Kennung genau wie in den Auszügen in Klammern, z. B. 'spd'."
+    )
+    speakers: list[str] = Field(
+        description="Namen der Redner:innen dieser Fraktion, genau wie in den Auszügen."
+    )
+    position: str = Field(
+        description=(
+            "Ein neutraler Satz zur Position der Fraktion, ohne Subjekt und mit "
+            "dem Verb im Plural, z. B. 'Wenden sich gegen Einsparungen bei …'."
+        )
+    )
+
+
 class SessionSectionDraft(BaseModel):
     topic: DigestTopic
     headline: str = Field(description="Kurze Überschrift, höchstens 10 Wörter.")
     summary: str = Field(
-        description=(
-            "2 bis 3 neutrale Sätze: worum ging es, welche Positionen vertraten "
-            "die Fraktionen."
-        )
+        description="1 bis 2 neutrale Sätze: worum ging es in der Debatte."
+    )
+    positions: list[PartyPositionDraft] = Field(
+        default_factory=list,
+        description="Je Fraktion, die zu diesem Thema gesprochen hat, ein Eintrag.",
     )
     agenda_refs: list[str] = Field(
         description="Kennungen der zugrunde liegenden Tagesordnungspunkte, z. B. ['A2', 'A5']."
@@ -83,6 +99,13 @@ Regeln:
 - Jeder Abschnitt nennt in agenda_refs die Kennungen der Tagesordnungspunkte, \
 auf denen er beruht. Erfinde nichts, was nicht in den Auszügen steht.
 - Neutral bleiben: Positionen den Fraktionen zuschreiben, nicht bewerten.
+- In summary nur, worum es ging. Die Positionen gehören in positions: für \
+jede Fraktion, die zu dem Thema gesprochen hat, ein Eintrag mit ihren \
+Redner:innen und einem Satz zu ihrer Position. Partei-Kennungen und Namen \
+exakt so übernehmen, wie sie in den Auszügen stehen.
+- Der Positionssatz steht direkt hinter dem Parteinamen: ohne Subjekt, mit \
+dem Verb im Plural ("Wenden sich gegen …", "Fordern …", "Begrüßen …"), nicht \
+"Die Fraktion kritisierte …".
 - Kleinere Punkte ohne eigenen Abschnitt als kurze Stichworte in other_topics.
 - Die Kennungen (A1, A2, …) gehören NUR in agenda_refs, nie in Überschriften, \
 Zusammenfassungen oder other_topics.

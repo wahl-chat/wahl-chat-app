@@ -146,6 +146,11 @@ class Speech:
     protocol_id: Optional[str]
     pdf_url: Optional[str]
     session_key: Optional[tuple[int, int]]
+    speech_key: Optional[str] = None
+    # The protocol PDF opened at this speech's page. DIP speeches carry it in
+    # their citation; for the others protocol_pages.attach_protocol_pages
+    # looks it up in the protocol XML.
+    protocol_page_url: Optional[str] = None
     content_hashes: list[str] = field(default_factory=list)
 
 
@@ -217,6 +222,12 @@ def _speech_from_chunks(chunks: list[dict]) -> Optional[Speech]:
         if is_dip
         else meta.get("transcript_pdf_url"),
         session_key=session_key,
+        speech_key=head.get("speech_key"),
+        protocol_page_url=(
+            head.get("citation_url")
+            if is_dip and "#page=" in str(head.get("citation_url") or "")
+            else None
+        ),
         content_hashes=[str(c.get("content_hash") or "") for c in chunks],
     )
 

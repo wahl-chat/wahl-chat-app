@@ -16,6 +16,7 @@ from src.daily_digest.builder import (
 )
 from src.daily_digest.parliaments import PARLIAMENTS, PartyDisplay
 from src.daily_digest.prompts import (
+    PartyPositionDraft,
     SessionSectionDraft,
     SessionSummaryDraft,
     VoteEnrichment,
@@ -178,6 +179,13 @@ def test_session_sections_are_grounded_in_real_agenda_items(fake_llm: FakeLLM) -
     assert section.agenda_items == ["Wohnungsbau"]
     assert section.video_url == "https://video/1.mp4"
     assert section.citations[0].url == "https://video/1.mp4#t=3"
+    citation = section.citations[0]
+    assert (citation.speaker, citation.party_id, citation.party_name) == (
+        "Anna",
+        "spd",
+        "SPD",
+    )
+    assert citation.video_url == "https://video/1.mp4"
 
 
 def test_vote_llm_failure_falls_back_and_leaves_the_day_retryable() -> None:
@@ -255,3 +263,92 @@ def test_vote_description_cuts_long_intros_at_a_sentence() -> None:
 def test_digests_carry_the_vote_description(fake_llm: FakeLLM) -> None:
     [digest], _ = _build(fake_llm)
     assert digest.votes[0].description == "Worum es geht."
+
+
+def test_positions_keep_only_parties_and_speakers_who_spoke() -> None:
+    sitting = _sitting_days()[date(2026, 9, 24)]
+    refs = {"A1": sitting.agenda_items[0]}
+    draft = SessionSummaryDraft(
+        sections=[
+            SessionSectionDraft(
+                topic="housing_rent",
+                headline="Mehr Wohnungen",
+                summary="Es ging um Wohnungsbau.",
+                agenda_refs=["A1"],
+                positions=[
+                    PartyPositionDraft(
+                        party_id="SPD",
+                        speakers=["anna", "Erfundene Person"],
+                        position="Die SPD will mehr bauen (A1).",
+                    ),
+                    PartyPositionDraft(
+                        party_id="spd",
+                        speakers=["Anna"],
+                        position="Doppelter Eintrag.",
+                    ),
+                    PartyPositionDraft(
+                        party_id="afd",
+                        speakers=["Niemand"],
+                        position="Hat in dieser Debatte nicht gesprochen.",
+                    ),
+                ],
+            )
+        ],
+        other_topics=[],
+    )
+    session = session_from_draft(draft, refs, sitting, DISPLAY)
+    [position] = session.sections[0].positions
+    assert position.party_id == "spd"
+    assert position.party_name == "SPD"
+    assert position.position == "Die SPD will mehr bauen."
+    # Names link to the protocol (none known for this op-only speech), the
+    # video link to the speech's moment in its video.
+    assert [(s.name, s.url, s.video_link) for s in position.speakers] == [
+        ("Anna", None, "https://video/1.mp4#t=3")
+    ]
+    assert position.speakers[0].video_url == "https://video/1.mp4"
+
+
+def test_positions_merge_parties_that_share_a_fraktion() -> None:
+    payloads = [
+        {
+            "source_item_id": sid,
+            "source": "dip",
+            "speech_key": f"de-21-45-{sid}-top1",
+            "text": "Rede",
+            "chunk_index": 0,
+            "publish_date": "2026-09-24",
+            "party_id": party,
+            "citation_url": f"https://pdf/{sid}",
+            "citation_title": sid,
+            "content_hash": sid,
+            "meta": {"speaker_name": name},
+        }
+        for sid, party, name in [("a", "cdu", "Anna"), ("b", "csu", "Bernd")]
+    ]
+    sitting = group_sitting_days(assemble_speeches(payloads))[date(2026, 9, 24)]
+    refs = {"A1": sitting.agenda_items[0]}
+    draft = SessionSummaryDraft(
+        sections=[
+            SessionSectionDraft(
+                topic="other",
+                headline="Debatte",
+                summary="Worum es ging.",
+                agenda_refs=["A1"],
+                positions=[
+                    PartyPositionDraft(
+                        party_id="cdu", speakers=["Anna"], position="Dafür."
+                    ),
+                    PartyPositionDraft(
+                        party_id="csu", speakers=["Bernd"], position="Auch dafür."
+                    ),
+                ],
+            )
+        ],
+        other_topics=[],
+    )
+    session = session_from_draft(draft, refs, sitting, DISPLAY, {"csu": "cdu"})
+    [position] = session.sections[0].positions
+    assert position.party_name == "CDU/CSU"
+    assert position.position == "Dafür."
+    assert [s.name for s in position.speakers] == ["Anna", "Bernd"]

@@ -27,9 +27,11 @@ from pydantic import BaseModel
 from src.daily_digest.models import (
     DailyDigest,
     DigestCitation,
+    DigestPartyPosition,
     DigestProtocol,
     DigestSession,
     DigestSessionSection,
+    DigestSpeaker,
     DigestVote,
     DigestVoteParty,
     digest_doc_id,
@@ -37,13 +39,14 @@ from src.daily_digest.models import (
 from src.daily_digest.parliaments import Parliament, PartyDisplay, party_display_for
 from src.daily_digest.prompts import (
     PROMPT_VERSION,
+    PartyPositionDraft,
     SessionSummaryDraft,
     VoteEnrichment,
     VoteEnrichmentBatch,
     format_session_prompt,
     format_vote_prompt,
 )
-from src.daily_digest.reader import AgendaItem, SittingDay, parse_day
+from src.daily_digest.reader import AgendaItem, SittingDay, Speech, parse_day
 from src.daily_digest.topics import DigestTopic
 
 logger = logging.getLogger(__name__)
@@ -58,7 +61,7 @@ _NO_AGENDA_LABEL = "Sonstige Wortbeiträge"
 _DESCRIPTION_CHARS = 1500
 # Part of every input_hash next to PROMPT_VERSION: bump it when the stored doc
 # gains or changes a field, so existing days are rebuilt in the new shape.
-DIGEST_FORMAT_VERSION = "2"
+DIGEST_FORMAT_VERSION = "5"
 # The vote connector writes the embed text as "<label>\n\nThemen: …\n\nKontext: <intro>".
 _CONTEXT_MARKER = "Kontext: "
 
@@ -153,7 +156,10 @@ class DigestBuilder:
             return {}
 
     def summarize_day(
-        self, parliament: Parliament, sitting: SittingDay
+        self,
+        parliament: Parliament,
+        sitting: SittingDay,
+        display: dict[str, PartyDisplay],
     ) -> Optional[DigestSession]:
         refs = {f"A{i + 1}": item for i, item in enumerate(sitting.agenda_items)}
         prompt = format_session_prompt(
@@ -168,7 +174,9 @@ class DigestBuilder:
                 "Session summary failed for %s %s: %s", parliament.id, sitting.day, exc
             )
             return None
-        return session_from_draft(draft, refs, sitting)
+        return session_from_draft(
+            draft, refs, sitting, display, dict(parliament.party_aliases)
+        )
 
 
 def _agenda_block(refs: dict[str, AgendaItem]) -> str:
@@ -190,7 +198,11 @@ def _agenda_block(refs: dict[str, AgendaItem]) -> str:
     return "\n\n".join(parts)
 
 
-def _citations(items: list[AgendaItem]) -> list[DigestCitation]:
+def _citations(
+    items: list[AgendaItem],
+    display: dict[str, PartyDisplay],
+    aliases: dict[str, str],
+) -> list[DigestCitation]:
     citations: list[DigestCitation] = []
     seen: set[str] = set()
     for item in items:
@@ -198,10 +210,20 @@ def _citations(items: list[AgendaItem]) -> list[DigestCitation]:
             if not speech.citation_url or speech.citation_url in seen:
                 continue
             seen.add(speech.citation_url)
+            # The logo is the speaker's own party (CSU, not the Union), the
+            # colour falls back to the Fraktion's when the party has none.
+            party = display.get(speech.party_id) or party_display_for(
+                aliases.get(speech.party_id, speech.party_id), display
+            )
             citations.append(
                 DigestCitation(
                     title=speech.citation_title or speech.speaker or item.label,
                     url=speech.citation_url,
+                    speaker=speech.speaker or None,
+                    party_id=speech.party_id,
+                    party_name=party.name,
+                    color=party.color,
+                    video_url=speech.video_uri,
                 )
             )
             if len(citations) == _CITATIONS_PER_SECTION:
@@ -218,8 +240,72 @@ def _strip_agenda_refs(text: str) -> str:
     return _AGENDA_REF_RE.sub("", text).strip(" ,;:-")
 
 
+def _normalize_name(name: str) -> str:
+    return " ".join(name.casefold().split())
+
+
+def ground_positions(
+    drafted: list[PartyPositionDraft],
+    items: list[AgendaItem],
+    display: dict[str, PartyDisplay],
+    aliases: Optional[dict[str, str]] = None,
+) -> list[DigestPartyPosition]:
+    """Keep only parties that spoke in these agenda items, and only speakers
+    who actually spoke for them; link each speaker to their speech. Parties
+    that share a Fraktion (``aliases``) are merged into one entry."""
+    aliases = aliases or {}
+
+    def fraktion(party_id: str) -> str:
+        party_id = party_id.strip().lower()
+        return aliases.get(party_id, party_id)
+
+    speeches_by_party: dict[str, list[Speech]] = {}
+    for item in items:
+        for speech in item.speeches:
+            speeches_by_party.setdefault(fraktion(speech.party_id), []).append(speech)
+
+    positions: dict[str, DigestPartyPosition] = {}
+    for position in drafted:
+        party_id = fraktion(position.party_id)
+        party_speeches = speeches_by_party.get(party_id)
+        text = _strip_agenda_refs(position.position)
+        if not party_speeches or not text:
+            continue
+        by_name = {_normalize_name(s.speaker): s for s in party_speeches if s.speaker}
+        speakers = [
+            DigestSpeaker(
+                name=match.speaker,
+                url=match.protocol_page_url or match.pdf_url,
+                video_url=match.video_uri,
+                video_link=match.citation_url if match.video_uri else None,
+            )
+            for name in dict.fromkeys(position.speakers)
+            if (match := by_name.get(_normalize_name(name))) is not None
+        ]
+        existing = positions.get(party_id)
+        if existing is not None:
+            # A second entry for the same Fraktion (e.g. CSU next to CDU)
+            # only contributes its speakers; the first position text stands.
+            known = {s.name for s in existing.speakers}
+            existing.speakers.extend(s for s in speakers if s.name not in known)
+            continue
+        party = party_display_for(party_id, display)
+        positions[party_id] = DigestPartyPosition(
+            party_id=party_id,
+            party_name=party.name,
+            color=party.color,
+            speakers=speakers,
+            position=text,
+        )
+    return list(positions.values())
+
+
 def session_from_draft(
-    draft: SessionSummaryDraft, refs: dict[str, AgendaItem], sitting: SittingDay
+    draft: SessionSummaryDraft,
+    refs: dict[str, AgendaItem],
+    sitting: SittingDay,
+    display: Optional[dict[str, PartyDisplay]] = None,
+    aliases: Optional[dict[str, str]] = None,
 ) -> DigestSession:
     """Ground the model's sections in real agenda items; drop any it invented."""
     sections: list[DigestSessionSection] = []
@@ -234,8 +320,11 @@ def session_from_draft(
                 topic=drafted.topic,
                 headline=_strip_agenda_refs(drafted.headline),
                 summary=_strip_agenda_refs(drafted.summary),
+                positions=ground_positions(
+                    drafted.positions, items, display or {}, aliases
+                ),
                 agenda_items=[item.label for item in items],
-                citations=_citations(items),
+                citations=_citations(items, display or {}, aliases or {}),
                 video_url=next((i.video_url for i in items if i.video_url), None),
             )
         )
@@ -358,7 +447,9 @@ def build_digests(
             continue
 
         texts, fallen_back = builder.enrich_votes(parliament, day_votes)
-        session = builder.summarize_day(parliament, sitting) if sitting else None
+        session = (
+            builder.summarize_day(parliament, sitting, display) if sitting else None
+        )
         complete = not fallen_back and (sitting is None or session is not None)
 
         digests.append(

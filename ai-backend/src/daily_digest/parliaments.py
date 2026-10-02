@@ -42,6 +42,9 @@ class Parliament:
     # Party slugs whose display name differs in this parliament (the Union sits
     # as one Bundestag fraction that the vote connector attributes to "cdu").
     name_overrides: tuple[tuple[str, str], ...] = ()
+    # Party slugs that sit in another party's Fraktion here (the CSU in the
+    # Union's Bundestag Fraktion); speeches are attributed to the Fraktion.
+    party_aliases: tuple[tuple[str, str], ...] = ()
 
 
 PARLIAMENTS: dict[str, Parliament] = {
@@ -52,6 +55,7 @@ PARLIAMENTS: dict[str, Parliament] = {
         party_context_id="bundestagswahl-2025",
         has_speeches=True,
         name_overrides=(("cdu", "CDU/CSU"),),
+        party_aliases=(("csu", "cdu"),),
     ),
     "landtag_st": Parliament(
         id="landtag_st",

@@ -22,7 +22,9 @@ import { useEffect, useState } from 'react';
 import { INK_LABEL, MUTED_TEXT, PRESSABLE } from './card-styles';
 import type { DetailItem } from './detail-items';
 import { Hemicycle, VoteTally } from './hemicycle';
+import { PartyPositions } from './party-positions';
 import { OtherTopicsQuote } from './plenary-card';
+import { SpeechMedia } from './speech-videos';
 import TopicChip from './topic-chip';
 import { CloseVoteSticker, OutcomeBadge, VoteTotalsLine } from './vote-card';
 import { PartyVoteTable, SourceLink } from './vote-panels';
@@ -202,27 +204,13 @@ function SessionDetail({
               {section.headline}
             </h4>
             <p className="text-[15px] leading-relaxed">{section.summary}</p>
-            {section.video_url && (
-              <video
-                controls
-                // Metadata plus a media fragment makes the browser decode one
-                // frame to show as the thumbnail; with preload="none" the player
-                // stays an empty grey box until it is started.
-                preload="metadata"
-                src={`${section.video_url.split('#')[0]}#t=0.5`}
-                className="mt-1 aspect-video w-full rounded-[4px] border-2 border-[var(--daily-ink)] bg-black shadow-[4px_4px_0_0_var(--daily-ink)]"
-              />
+            {section.positions && section.positions.length > 0 && (
+              <PartyPositions positions={section.positions} />
             )}
             <p className={cn('text-xs font-medium', MUTED_TEXT)}>
               {section.agenda_items.join(' · ')}
             </p>
-            <ul className="flex flex-col gap-0.5">
-              {section.citations.map((citation) => (
-                <li key={citation.url}>
-                  <SourceLink href={citation.url}>{citation.title}</SourceLink>
-                </li>
-              ))}
-            </ul>
+            <SpeechMedia section={section} />
           </div>
         </section>
       ))}
