@@ -55,6 +55,34 @@ class DigestCitation(BaseModel):
 
     title: str
     url: str
+    # Set when the citation is a speech: who gave it, for which party, and
+    # the speech's own video file when openparliament.tv has aligned it.
+    speaker: Optional[str] = None
+    party_id: Optional[str] = None
+    party_name: Optional[str] = None
+    color: Optional[str] = None
+    video_url: Optional[str] = None
+
+
+class DigestSpeaker(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    # The speech in the Plenarprotokoll PDF, opened at its page when known.
+    url: Optional[str] = None
+    # The speech's own video file, and the link to it at the speech's start.
+    video_url: Optional[str] = None
+    video_link: Optional[str] = None
+
+
+class DigestPartyPosition(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    party_id: str
+    party_name: str
+    color: str
+    speakers: list[DigestSpeaker]
+    position: str
 
 
 class DigestSessionSection(BaseModel):
@@ -63,6 +91,7 @@ class DigestSessionSection(BaseModel):
     topic: DigestTopic
     headline: str
     summary: str
+    positions: list[DigestPartyPosition] = Field(default_factory=list)
     agenda_items: list[str]
     citations: list[DigestCitation]
     video_url: Optional[str] = None

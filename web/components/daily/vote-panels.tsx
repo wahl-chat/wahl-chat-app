@@ -5,8 +5,8 @@ import { sortBySeating } from '@/lib/daily/seating-order';
 import type { DigestVote } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { ArrowRightIcon, ExternalLinkIcon } from 'lucide-react';
-import { useRef, useState } from 'react';
 import { CARD_SURFACE, INK_LABEL, MUTED_TEXT } from './card-styles';
+import { CarouselDots, useSnapCarousel } from './carousel';
 import { SeatLegend } from './hemicycle';
 import TopicChip from './topic-chip';
 import VoteCard, { VoteTotalsLine } from './vote-card';
@@ -152,33 +152,12 @@ export function VoteCarousel({
   vote: DigestVote;
   onOpen: () => void;
 }) {
-  const scroller = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(0);
-
-  const onScroll = () => {
-    const el = scroller.current;
-    const first = el?.firstElementChild as HTMLElement | null;
-    if (!el || !first) {
-      return;
-    }
-    // Card width plus the gap between cards.
-    const step = first.offsetWidth + 16;
-    setActive(Math.round(el.scrollLeft / step));
-  };
-
-  const goTo = (index: number) => {
-    const card = scroller.current?.children[index] as HTMLElement | undefined;
-    card?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'start',
-    });
-  };
+  const { ref, active, onScroll, goTo } = useSnapCarousel(16);
 
   return (
     <div className="flex flex-col gap-2">
       <div
-        ref={scroller}
+        ref={ref}
         onScroll={onScroll}
         // Padding keeps the stamps (above) and the offset shadows (right,
         // bottom) inside the scroll box, which would otherwise clip them.
@@ -194,21 +173,12 @@ export function VoteCarousel({
           <VoteTablePanel vote={vote} onOpen={onOpen} />
         </div>
       </div>
-      <div className="flex items-center justify-center gap-2 md:hidden">
-        {PANEL_LABELS.map((label, i) => (
-          <button
-            key={label}
-            type="button"
-            aria-label={`${label} anzeigen`}
-            aria-current={active === i}
-            onClick={() => goTo(i)}
-            className={cn(
-              'h-2.5 rounded-full border-2 border-[var(--daily-ink)] transition-[width] motion-reduce:transition-none',
-              active === i ? 'w-6 bg-[var(--daily-ink)]' : 'w-2.5',
-            )}
-          />
-        ))}
-      </div>
+      <CarouselDots
+        labels={PANEL_LABELS}
+        active={active}
+        onSelect={goTo}
+        className="md:hidden"
+      />
     </div>
   );
 }

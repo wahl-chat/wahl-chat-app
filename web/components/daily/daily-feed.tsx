@@ -12,12 +12,13 @@ import type {
   DailyDigest,
   DigestParliamentId,
 } from '@/lib/firebase/firebase.types';
-import { cn } from '@/lib/utils';
+import { IS_EMBEDDED, cn } from '@/lib/utils';
 import { useCallback, useMemo, useState } from 'react';
 import { CARD_PLACEHOLDER, INK_LABEL, MUTED_TEXT } from './card-styles';
 import DailyDaySection from './daily-day-section';
 import { DailyDetailDialog } from './daily-detail-dialog';
 import DailyFilters from './daily-filters';
+import DailySocialCard from './daily-social-card';
 import DailyWaitlistCta from './daily-waitlist-cta';
 import { detailItems, viewDay } from './detail-items';
 
@@ -97,7 +98,15 @@ function DailyFeed({ digests, initialState, initialTopics }: Props) {
 
   return (
     <div className="flex flex-col gap-10 pt-8">
-      <DailyWaitlistCta state={state} />
+      {/* Embedded deployments carry no social links, as on the landing page. */}
+      {IS_EMBEDDED ? (
+        <DailyWaitlistCta state={state} />
+      ) : (
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[minmax(0,1fr)_auto]">
+          <DailyWaitlistCta state={state} />
+          <DailySocialCard />
+        </div>
+      )}
 
       <header className="flex flex-col gap-3 pt-2">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
