@@ -1,4 +1,5 @@
 import { safeExternalUrl } from '@/lib/pledge-tracker/pledges';
+import { isIsoDate } from './berlin-time';
 import type {
   PartyReason,
   PartyResult,
@@ -17,7 +18,6 @@ import type {
 export const MIN_PARTY_UNITY = 0.8;
 
 const ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 type Json = Record<string, unknown>;
 
@@ -32,7 +32,7 @@ function isRecord(value: unknown): value is Json {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isVoteAnswer(value: string): value is VoteAnswer {
+export function isVoteAnswer(value: string): value is VoteAnswer {
   return value === 'yes' || value === 'no' || value === 'abstain';
 }
 
@@ -62,7 +62,7 @@ function readCount(record: Json, key: string, id: string): number {
 
 function readDate(record: Json, key: string, id: string): string {
   const value = readString(record, key, id);
-  if (!DATE_PATTERN.test(value) || Number.isNaN(Date.parse(value))) {
+  if (!isIsoDate(value)) {
     fail(id, `"${key}" must be a date like 2026-07-10`);
   }
   return value;

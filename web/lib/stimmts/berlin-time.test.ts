@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'bun:test';
-import { addDays, berlinDate, daysBetween, nextPuzzleAt } from './berlin-time';
+import {
+  addDays,
+  berlinDate,
+  daysBetween,
+  isIsoDate,
+  nextPuzzleAt,
+} from './berlin-time';
 
 const at = (iso: string) => new Date(iso);
 
@@ -18,6 +24,29 @@ describe('berlinDate', () => {
     // 20:30 in New York (UTC-4) is 02:30 the next day in Berlin.
     expect(berlinDate(at('2026-10-15T00:30:00-04:00'))).toBe('2026-10-15');
     expect(berlinDate(at('2026-10-14T20:30:00-04:00'))).toBe('2026-10-15');
+  });
+});
+
+describe('isIsoDate', () => {
+  it('accepts real calendar dates', () => {
+    expect(isIsoDate('2026-11-01')).toBe(true);
+    expect(isIsoDate('2028-02-29')).toBe(true);
+  });
+
+  it('rejects impossible days, other formats and non-strings', () => {
+    for (const value of [
+      '2026-02-31',
+      '2027-02-29',
+      '2026-13-01',
+      '2026-1-1',
+      '01.11.2026',
+      '2026-11-01T10:00:00Z',
+      '',
+      null,
+      20261101,
+    ]) {
+      expect(isIsoDate(value)).toBe(false);
+    }
   });
 });
 

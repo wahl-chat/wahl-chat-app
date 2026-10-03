@@ -22,6 +22,22 @@ export function berlinDate(now: Date): string {
   return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
+/**
+ * Whether the value is a real calendar date written as YYYY-MM-DD. The
+ * round trip through Date rejects impossible days such as 2026-02-31, which
+ * some JavaScript engines would otherwise quietly roll over into March.
+ */
+export function isIsoDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+  const parsed = Date.parse(value);
+  return (
+    !Number.isNaN(parsed) &&
+    new Date(parsed).toISOString().slice(0, 10) === value
+  );
+}
+
 // Dates are plain YYYY-MM-DD strings, so counting days between them is done
 // at UTC midnight, where a day is always exactly 24 hours (no daylight-saving
 // surprises).
