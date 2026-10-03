@@ -4,6 +4,7 @@ import {
   type Progress,
   parseProgress,
   recordAnswer,
+  removeGame,
 } from './progress';
 import type { Puzzle, VoteAnswer } from './types';
 
@@ -21,6 +22,8 @@ export type ProgressState = {
    */
   hydrated: boolean;
   hydrate: () => void;
+  /** Preview mode only: forget one puzzle's answers, keep the streak. */
+  resetGame: (puzzleId: string) => void;
   answer: (
     puzzle: Puzzle,
     partyId: string,
@@ -72,6 +75,17 @@ export function createProgressStore(storage: StorageLike | null) {
         return;
       }
       set({ progress: load(storage), hydrated: true });
+    },
+
+    resetGame: (puzzleId) => {
+      get().hydrate();
+      const before = get().progress;
+      const after = removeGame(before, puzzleId);
+      if (after === before) {
+        return;
+      }
+      set({ progress: after });
+      save(storage, after);
     },
 
     answer: (puzzle, partyId, answer, today) => {

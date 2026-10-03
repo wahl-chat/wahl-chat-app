@@ -6,6 +6,7 @@ import {
   getGame,
   parseProgress,
   recordAnswer,
+  removeGame,
 } from './progress';
 import type { VoteAnswer } from './types';
 
@@ -154,5 +155,35 @@ describe('parseProgress', () => {
     });
     expect(Object.keys(progress.games)).toEqual(['good']);
     expect(progress.streak).toEqual({ current: 0, best: 0, lastPlayed: null });
+  });
+});
+
+describe('removeGame', () => {
+  it('forgets one puzzle and keeps the other puzzles and the streak', () => {
+    let progress = answerAll(EMPTY_PROGRESS, first, '2026-11-01');
+    progress = answerAll(progress, second, '2026-11-02');
+
+    const after = removeGame(progress, second.id);
+    expect(getGame(after, second.id)).toEqual({
+      guesses: {},
+      finishedOn: null,
+    });
+    expect(getGame(after, first.id).finishedOn).toBe('2026-11-01');
+    expect(after.streak).toEqual(progress.streak);
+    expect(progress.games[second.id]).toBeDefined(); // the old state is untouched
+  });
+
+  it('lets a puzzle be replayed without counting its day twice', () => {
+    let progress = answerAll(EMPTY_PROGRESS, first, '2026-11-01');
+    progress = answerAll(progress, second, '2026-11-02');
+    expect(progress.streak.current).toBe(2);
+
+    progress = removeGame(progress, second.id);
+    progress = answerAll(progress, second, '2026-11-02');
+    expect(progress.streak.current).toBe(2);
+  });
+
+  it('returns the same object for a puzzle that was never played', () => {
+    expect(removeGame(EMPTY_PROGRESS, first.id)).toBe(EMPTY_PROGRESS);
   });
 });

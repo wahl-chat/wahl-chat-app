@@ -69,6 +69,24 @@ export function recordAnswer(
   };
 }
 
+/**
+ * Forgets one puzzle's answers and keeps everything else, the streak included.
+ * Only the preview mode uses it, to replay a puzzle without losing the days
+ * played before it. Replaying the same day cannot count twice, because the
+ * streak already holds that day.
+ */
+export function removeGame(progress: Progress, puzzleId: string): Progress {
+  if (!(puzzleId in progress.games)) {
+    return progress;
+  }
+  return {
+    ...progress,
+    games: Object.fromEntries(
+      Object.entries(progress.games).filter(([id]) => id !== puzzleId),
+    ),
+  };
+}
+
 // Saved data comes from the browser's storage, where it can be stale, hand
 // edited or corrupt. Be strict about its shape, but forgiving about losing it:
 // anything unreadable is dropped instead of breaking the game.

@@ -2,57 +2,62 @@ import { describe, expect, it } from 'bun:test';
 import { PUZZLES } from './content';
 import { scorePuzzle } from './score';
 import { buildShareText } from './share';
+import type { Guesses } from './types';
 
 const puzzle = PUZZLES[0]; // real answers, in seating order: no, yes, no, yes, no
+const RIGHT: Guesses = {
+  linke: 'no',
+  spd: 'yes',
+  gruene: 'no',
+  cdu: 'yes',
+  afd: 'no',
+};
 
-const share = (guesses: Parameters<typeof scorePuzzle>[1]) =>
+const share = (guesses: Guesses) =>
   buildShareText({
     puzzleNumber: 47,
-    topic: puzzle.topic,
     score: scorePuzzle(puzzle, guesses),
     url: 'https://wahl.chat/stimmts',
   });
 
 describe('buildShareText', () => {
-  it('shows the puzzle number, topic, score and a grid in seating order', () => {
-    const text = share({
-      linke: 'no',
-      spd: 'no', // wrong
-      gruene: 'no',
-      cdu: 'yes',
-      afd: 'yes', // wrong
-    });
+  it('shows the puzzle number, the score and an invitation with the link', () => {
+    const text = share({ ...RIGHT, spd: 'no', afd: 'yes' }); // 3 of 5 right
     expect(text).toBe(
       [
-        "Stimmt's? #47 · Energie · 3/5",
-        '🟩🟥🟩🟩🟥',
+        "Stimmt's? #47 · 3/5 🟩🟩🟩⬜⬜",
+        '',
+        'Schlag meinen Score im neuen Spiel von wahl.chat: Wie haben die Parteien im Bundestag abgestimmt?',
         'https://wahl.chat/stimmts',
       ].join('\n'),
     );
   });
 
-  it('marks a perfect game with only green squares', () => {
-    const text = share({
-      linke: 'no',
-      spd: 'yes',
-      gruene: 'no',
-      cdu: 'yes',
-      afd: 'no',
-    });
-    expect(text).toContain('5/5\n🟩🟩🟩🟩🟩\n');
+  it('fills the squares from the left, one per correct answer', () => {
+    expect(share(RIGHT)).toContain('5/5 🟩🟩🟩🟩🟩');
+    expect(
+      share({ linke: 'yes', spd: 'no', gruene: 'yes', cdu: 'no', afd: 'yes' }),
+    ).toContain('0/5 ⬜⬜⬜⬜⬜');
   });
 
-  it('never reveals the answers, only whether they were right', () => {
-    const text = share({
-      linke: 'yes',
-      spd: 'no',
+  it('is identical for any two games with the same score, so it leaks nothing', () => {
+    // 3 of 5 right, but different parties wrong each time.
+    const wrongSpdAndAfd = share({ ...RIGHT, spd: 'no', afd: 'yes' });
+    const wrongLinkeAndCdu = share({ ...RIGHT, linke: 'yes', cdu: 'no' });
+    const wrongGrueneAndCdu = share({
+      ...RIGHT,
       gruene: 'yes',
-      cdu: 'no',
-      afd: 'yes',
+      cdu: 'abstain',
     });
-    expect(text).toContain('0/5\n🟥🟥🟥🟥🟥\n');
-    for (const word of ['Ja', 'Nein', 'Enthaltung', 'yes', 'no', 'abstain']) {
-      expect(text).not.toContain(word);
+    expect(wrongLinkeAndCdu).toBe(wrongSpdAndAfd);
+    expect(wrongGrueneAndCdu).toBe(wrongSpdAndAfd);
+  });
+
+  it('never contains an answer or a party name', () => {
+    const text = share(RIGHT);
+    expect(text).not.toMatch(/\b(Ja|Nein|Enthaltung|yes|no|abstain)\b/);
+    for (const party of ['Linke', 'SPD', 'Grünen', 'CDU', 'CSU', 'AfD']) {
+      expect(text).not.toContain(party);
     }
   });
 });
