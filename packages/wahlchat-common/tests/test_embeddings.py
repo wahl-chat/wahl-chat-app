@@ -163,8 +163,10 @@ def test_gemini_routes_to_vertex_when_credentials_present(
     monkeypatch.setenv("VERTEX_PROJECT_ID", "billing-project")
     monkeypatch.setenv("VERTEX_LOCATION", "europe-west3")
 
-    client = emb.get_embeddings(task_type="RETRIEVAL_QUERY")
+    wrapper = emb.get_embeddings(task_type="RETRIEVAL_QUERY")
 
+    assert isinstance(wrapper, emb._OneContentPerRequest)
+    client = wrapper.client
     assert isinstance(client, _FakeGemini)
     assert isinstance(client.kwargs["credentials"], _FakeCredentials)
     # Pinned, not inferred from the credentials: GOOGLE_GENAI_USE_VERTEXAI outranks
@@ -187,7 +189,7 @@ def test_project_falls_back_to_key_derived_value(
     monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
     monkeypatch.delenv("VERTEX_PROJECT_ID", raising=False)
 
-    client = emb.get_embeddings()
+    client = emb.get_embeddings().client
 
     assert client.kwargs["project"] == "key-derived-project"
 
@@ -252,3 +254,52 @@ def test_kill_switch_short_circuits_before_the_credential_resolver(
     assert client.kwargs["google_api_key"] == "test-google-key"
     assert client.kwargs["vertexai"] is False
     gc.get_vertex_credentials.cache_clear()
+
+
+def test_vertex_batch_capable_model_is_not_wrapped(
+    monkeypatch: pytest.MonkeyPatch, patched_clients: None, vertex_credentials: None
+) -> None:
+    """gemini-embedding-001 takes batches on Vertex, so it keeps the plain client."""
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
+
+    client = emb.get_embeddings(model="gemini-embedding-001")
+
+    assert isinstance(client, _FakeGemini)
+
+
+class _RecordingEmbeddings:
+    """Returns [index] vectors and records the size of every request."""
+
+    def __init__(self) -> None:
+        self.request_sizes: list[int] = []
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        self.request_sizes.append(len(texts))
+        return [[float(text.removeprefix("t"))] for text in texts]
+
+    def embed_query(self, text: str) -> list[float]:
+        return [-1.0]
+
+    async def aembed_query(self, text: str) -> list[float]:
+        return [-2.0]
+
+
+def test_one_content_per_request_keeps_order() -> None:
+    inner = _RecordingEmbeddings()
+    wrapper = emb._OneContentPerRequest(inner, max_parallel=4)  # type: ignore[arg-type]
+    texts = [f"t{i}" for i in range(25)]
+
+    vectors = wrapper.embed_documents(texts)
+
+    assert vectors == [[float(i)] for i in range(25)]
+    assert inner.request_sizes == [1] * 25
+
+
+def test_one_content_per_request_delegates_queries() -> None:
+    import asyncio
+
+    wrapper = emb._OneContentPerRequest(_RecordingEmbeddings(), max_parallel=4)  # type: ignore[arg-type]
+
+    assert wrapper.embed_query("q") == [-1.0]
+    assert asyncio.run(wrapper.aembed_query("q")) == [-2.0]
+    assert wrapper.embed_documents([]) == []
