@@ -725,7 +725,7 @@ def resolve_aw_legislature_shard() -> bool:
     if not shard_set:
         return True  # unsharded: explicit AW_LEGISLATURE_ID (local dev / Makefile)
 
-    from src.ingestion.connectors.abgeordnetenwatch.legislature_config import (  # noqa: PLC0415
+    from wahlchat_common.legislature_config import (  # noqa: PLC0415
         FEDERAL_LEGISLATURE_IDS,
         LANDTAG_LEGISLATURE_IDS,
     )
