@@ -12,10 +12,6 @@ Firebase configuration for [wahl.chat](https://wahl.chat/) — Firestore rules, 
 
 ```
 firebase/
-├── functions/           # LEGACY Cloud Functions (Python 3.11, codebase "default")
-│   ├── main.py          # V1 handlers — per-context collections, four-segment paths
-│   ├── models.py        # Data models
-│   └── requirements.txt # Python dependencies
 ├── ingest_functions/    # Cloud Functions (Python 3.12, codebase "ingest")
 │   ├── main.py          # Storage triggers: ingest/retire uploaded party PDFs
 │   ├── predeploy.sh     # Builds the ingestion + wahlchat-common wheels into vendor/
@@ -40,19 +36,6 @@ firebase login
 npm install -g node-firestore-import-export
 ```
 
-## Cloud Functions Setup
-
-The Cloud Functions are written in Python 3.11 and handle PDF document processing (splitting, embedding via OpenAI, indexing into Qdrant).
-
-Dependencies are managed via `functions/requirements.txt`. To install locally for development:
-
-```bash
-cd functions
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
 ## Deploying Firebase Changes
 
 First select your target environment:
@@ -67,9 +50,7 @@ Then deploy:
 firebase deploy --only firestore:rules      # Firestore security rules
 firebase deploy --only firestore:indexes     # Firestore indexes
 firebase deploy --only storage               # Storage security rules
-firebase deploy --only functions             # All Cloud Functions (both codebases)
-firebase deploy --only functions:ingest      # Only the upload-ingestion codebase
-firebase deploy --only functions:FUNC_NAME   # A specific function
+firebase deploy --only functions:ingest --force  # Upload-ingestion functions
 ```
 
 ## Upload-Ingestion Functions (`ingest_functions/`)
@@ -89,13 +70,18 @@ daily `ingest-manifesto-uploads` Cloud Run job remains the reconciling backstop
 — same code, so their writes are idempotent against each other. Deploying needs
 `uv` on the machine (the predeploy build step).
 
+`--force` lets the deploy delete functions that were removed from the codebase.
+
 Configuration params (prompted at deploy, stored in `ingest_functions/.env.<project>`):
-`ENV`, `QDRANT_URL`, `QDRANT_API_KEY`, `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`,
-`EMBEDDING_DIM`, and per provider `OPENAI_API_KEY` or `GOOGLE_API_KEY` /
-`VERTEX_SA_JSON` (+ `VERTEX_PROJECT_ID`) — the same names and values the
-ingestion jobs use; the collection's embedding-space fingerprint rejects a
-mismatched configuration before any write. The function's service account needs
-Firestore read access and Storage read + ACL access on the default bucket.
+`ENV`, `QDRANT_URL`, `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`, `EMBEDDING_DIM`,
+`VERTEX_PROJECT_ID`, `VERTEX_LOCATION` — the same names and values the ingestion
+jobs use; the collection's embedding-space fingerprint rejects a mismatched
+configuration before any write. `QDRANT_API_KEY` and `VERTEX_SA_JSON` are Secret
+Manager secrets of the same name: the deploy prompts for a value when the secret
+does not exist yet and grants the function's service account access. Deploying
+therefore needs Secret Manager admin rights in the target project. The function's
+service account needs Firestore read access and Storage read + ACL access on the
+default bucket.
 
 ## Seeding Data
 

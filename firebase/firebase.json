@@ -5,18 +5,6 @@
   },
   "functions": [
     {
-      "source": "functions",
-      "codebase": "default",
-      "runtime": "python311",
-      "ignore": [
-        "venv",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ]
-    },
-    {
       "source": "ingest_functions",
       "codebase": "ingest",
       "runtime": "python312",
