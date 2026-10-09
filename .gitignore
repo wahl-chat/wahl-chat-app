@@ -45,8 +45,8 @@ __pycache__/
 *.egg-info/
 
 # === Terraform ===
-# infra/ (the clean, example-modeled IaC) IS committed. The old bulk-export dirs are
-# reference-only and stay fully ignored — they contain plaintext secrets + local state:
+# infra/ is committed. Local bulk-export output stays fully ignored — it contains
+# plaintext secrets + local state:
 terraform/
 terraform-export/
 # Within committed roots, ignore local state, plugin cache and plans — but NOT the
@@ -61,11 +61,9 @@ crash.*.log
 plan*.txt
 *.plan.txt
 import*.log
-# Local-only operator handoff — describes in-progress migration state / current exposure.
-# Keep on the operator's machine; do NOT push to the public repo.
+# Local operator notes and one-time import / secret scripts hold environment-specific
+# state; keep them off the public repo.
 terraform_next_steps.md
-# Local-only, one-time operator scripts (brownfield import + secret migration). They
-# narrate the current migration state, so keep them off the public repo.
 infra/envs/*/import.sh
 infra/envs/*/migrate-secrets.sh
 

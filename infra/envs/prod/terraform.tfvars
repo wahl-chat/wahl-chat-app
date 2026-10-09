@@ -5,7 +5,8 @@
 project_id = "wahl-chat"
 region     = "europe-west1"
 
-# dip-api-key is brand-new (the old DIP key expired); sentinel until a real key exists.
+# dip-api-key gets a sentinel version so an apply never depends on a real key;
+# the value is added out of band.
 bootstrap_secret_ids = ["dip-api-key"]
 
 # FALSE until the applying identity can create IAM bindings (Editor cannot).

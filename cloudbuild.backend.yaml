@@ -29,8 +29,8 @@ steps:
       - push
       - gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-app:${COMMIT_SHA}
 
-  # Since the ingestion split the jobs run their OWN image (no fastapi, no
-  # chat-service code) — same repo-root build context for the workspace lock.
+  # The jobs run their own image (no fastapi, no chat-service code), built from
+  # the repo root like the backend because the workspace lockfile lives there.
   - id: build-ingestion
     name: gcr.io/cloud-builders/docker
     args:
