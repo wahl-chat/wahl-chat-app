@@ -57,10 +57,19 @@ variable "bootstrap_secret_ids" {
   default     = []
 }
 
+# Dropping a secret id from every secret_env would destroy its container: prevent_destroy
+# only guards keys still in the for_each. Listing it here keeps that guard, e.g. for a
+# renamed secret that live revisions still read until the next apply.
+variable "retained_secret_ids" {
+  description = "Secret ids no workload references any more whose containers must not be destroyed."
+  type        = set(string)
+  default     = []
+}
+
 # ── Cloud Run ingestion jobs ────────────────────────────────────────────────
 # Keyed by job name; same env/secret_env contract as var.services. The image's
 # entrypoint dispatches on CONNECTOR_ID (ingestion/docker-entrypoint.sh): set it in
-# `env` and the container runs `python -m src.ingestion.run`; `args` are forwarded to
+# `env` and the container runs `python -m ingestion.run`; `args` are forwarded to
 # the runner (e.g. --batch-size, --time-budget SECONDS). A non-null `schedule` (cron)
 # creates a Cloud Scheduler trigger that executes the job.
 #

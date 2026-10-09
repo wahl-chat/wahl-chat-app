@@ -94,7 +94,7 @@ VERTEX_LOCATION=global                  # default; see note below
 ```
 
 In Cloud Run the key arrives as raw JSON from Secret Manager instead
-(`--set-secrets="VERTEX_SA_JSON=vertex-sa-json:latest"`), which the code prefers
+(`--set-secrets="VERTEX_SA_JSON=VERTEX_SA_JSON:latest"`), which the code prefers
 over the file form. No Dockerfile or entrypoint change is needed.
 
 How it behaves:

@@ -8,6 +8,8 @@ region     = "europe-west1"
 # dip-api-key is brand-new (no live plaintext value to migrate — the old DIP key
 # expired); the sentinel keeps applies self-contained until a real key is added.
 bootstrap_secret_ids = ["dip-api-key"]
+# Renamed to VERTEX_SA_JSON; kept until every revision reads the new name (README: renaming).
+retained_secret_ids = ["vertex-sa-json"]
 
 # FALSE until the applying identity can create IAM bindings (Editor cannot).
 # Flip to true when the Terraform runner SA / an owner applies — see modules/app/variables.tf.
@@ -33,7 +35,7 @@ services = {
     }
 
     secret_env = {
-      QDRANT_API_KEY = "qdrant-api-key"
+      QDRANT_API_KEY = "QDRANT_API_KEY"
       GOOGLE_API_KEY = "wahl-chat-app-google-api-key"
       OPENAI_API_KEY = "wahl-chat-app-openai-api-key"
     }
@@ -67,8 +69,8 @@ services = {
     }
 
     secret_env = {
-      VERTEX_SA_JSON       = "vertex-sa-json"
-      QDRANT_API_KEY       = "qdrant-api-key"
+      VERTEX_SA_JSON       = "VERTEX_SA_JSON"
+      QDRANT_API_KEY       = "QDRANT_API_KEY"
       LANGCHAIN_API_KEY    = "wahl-chat-backend-dev-langchain-api-key"
       OPENAI_API_KEY       = "wahl-chat-backend-dev-openai-api-key"
       PERPLEXITY_API_KEY   = "wahl-chat-backend-dev-perplexity-api-key"
@@ -131,8 +133,8 @@ ingestion_env_common = {
 }
 
 ingestion_secret_env_common = {
-  QDRANT_API_KEY = "qdrant-api-key"
-  VERTEX_SA_JSON = "vertex-sa-json"
+  QDRANT_API_KEY = "QDRANT_API_KEY"
+  VERTEX_SA_JSON = "VERTEX_SA_JSON"
   OPENAI_API_KEY = "wahl-chat-backend-dev-openai-api-key"
 }
 

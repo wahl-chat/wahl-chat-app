@@ -17,9 +17,9 @@ locals {
   secret_env_holders = concat(values(var.services), values(local.jobs))
 
   # Distinct secret ids referenced by any service's or job's secret_env.
-  referenced_secret_ids = toset(flatten([
+  referenced_secret_ids = setunion(toset(flatten([
     for holder in local.secret_env_holders : values(holder.secret_env)
-  ]))
+  ])), var.retained_secret_ids)
 
   # One accessor grant per DISTINCT (secret id, runtime SA) pair — two workloads
   # sharing a secret under the same SA must not produce a duplicate map key.

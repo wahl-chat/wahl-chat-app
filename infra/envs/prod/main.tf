@@ -25,5 +25,6 @@ module "app" {
   ingestion_env_common        = var.ingestion_env_common
   ingestion_secret_env_common = var.ingestion_secret_env_common
   bootstrap_secret_ids        = var.bootstrap_secret_ids
+  retained_secret_ids         = var.retained_secret_ids
   manage_iam                  = var.manage_iam
 }
