@@ -5,10 +5,11 @@
 project_id = "wahl-chat-dev"
 region     = "europe-west1"
 
-# dip-api-key is brand-new (no live plaintext value to migrate — the old DIP key
-# expired); the sentinel keeps applies self-contained until a real key is added.
+# dip-api-key gets a sentinel version so an apply never depends on a real key;
+# the value is added out of band.
 bootstrap_secret_ids = ["dip-api-key"]
-# Renamed to VERTEX_SA_JSON; kept until every revision reads the new name (README: renaming).
+# Superseded by VERTEX_SA_JSON; kept under prevent_destroy while revisions still read it
+# (README: renaming).
 retained_secret_ids = ["vertex-sa-json"]
 
 # FALSE until the applying identity can create IAM bindings (Editor cannot).
@@ -100,13 +101,11 @@ services = {
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # INGESTION JOBS (Cloud Run Jobs + Cloud Scheduler)
-# Jobs run the ingestion image (own image since the package split; CI is the
-# image authority — cloudbuild.backend.yaml builds it and updates the jobs). A job
-# only sets CONNECTOR_ID (entrypoint dispatch). Runs are cursor-resumable:
-# 15-minute executions that continue where they left off. WEEKLY cadence: the
-# sources change slowly, and uploaded PDFs are ingested per storage event by the
-# Firebase 'ingest' functions — these runs are the reconciling sweep, not the
-# primary path. Backfills are manual `gcloud run jobs execute` runs either way.
+# Jobs run the ingestion image (CI is the image authority — cloudbuild.backend.yaml
+# builds it and updates the jobs). A job only sets CONNECTOR_ID (entrypoint
+# dispatch). Runs are cursor-resumable: 15-minute executions that continue where
+# they left off. Weekly, because the sources change slowly. Backfills are manual
+# `gcloud run jobs execute` runs.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Shared plumbing merged into every job by envs/dev/main.tf.
@@ -192,9 +191,8 @@ jobs = {
     schedule = "0 5 * * 0"
   }
 
-  # Uploaded party PDFs: the Firebase storage triggers (firebase/ingest_functions)
-  # ingest/retire per event; this weekly reconcile of the live bucket heals dropped
-  # events and covers backfills (objects already in the bucket never fire events).
+  # Uploaded party PDFs: a full run over the live bucket covers dropped storage
+  # events and objects that were in the bucket before any event fired.
   "ingest-manifesto-uploads" = {
     env = {
       CONNECTOR_ID             = "manifesto_uploads"

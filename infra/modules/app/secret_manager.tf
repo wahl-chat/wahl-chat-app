@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-# SECRETS — the pattern (see infra-example-export/infra/secret_manager.tf)
+# SECRETS
 #
 # Terraform manages the secret CONTAINER and a per-secret accessor grant to the runtime
 # SA that reads it. It never holds the real value: for brand-new secrets it seeds an

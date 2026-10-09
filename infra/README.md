@@ -92,18 +92,17 @@ Secret Manager — a revision that resolves `latest` with no version fails to st
 
 ## Ingestion jobs (Cloud Run Jobs + Cloud Scheduler)
 
-Jobs run the dedicated ingestion image (`ingestion/Dockerfile`, built from the repo root — no
-chat-service code since the package split): `ingestion/docker-entrypoint.sh` runs
+Jobs run the dedicated ingestion image (`ingestion/Dockerfile`, built from the repo root, no
+chat-service code): `ingestion/docker-entrypoint.sh` runs
 `python -m ingestion.run` for the connector named by `CONNECTOR_ID`, after an idempotent
 Qdrant-collection bootstrap. So a job spec only sets `CONNECTOR_ID` in `env` plus runner flags
 in `args` (`--batch-size`, `--time-budget` seconds). Runs are batch-windowed and resume from a
 Qdrant-derived cursor: short scheduled executions that continue where they left off are the
 design — never raise timeouts to "finish" a backfill.
 
-Cadence is **weekly** (staggered Sunday mornings): the sources change slowly, and uploaded
-party PDFs are ingested per storage event by the Firebase `ingest` functions
-(`firebase/ingest_functions/`) — the `ingest-manifesto-uploads` job is their reconciling
-backstop (dropped events, backfills), not the primary path.
+Each job's `schedule` lives in the tfvars. A full `manifesto_uploads` run covers whatever the
+storage-event path misses: objects already in the bucket never fire an event, and an event can
+be dropped.
 
 Job specifics worth knowing (full rationale in `envs/dev/terraform.tfvars` comments):
 
@@ -129,12 +128,12 @@ Job specifics worth knowing (full rationale in `envs/dev/terraform.tfvars` comme
 
 ## Applying with editor-only credentials
 
-The basic Editor role cannot create IAM bindings (`*.setIamPolicy`). `manage_iam = false` (set in
-both tfvars right now) defers exactly the two binding types — per-secret accessor grants and the
-scheduler SA's `run.invoker` on each job — so an editor can apply everything else. The grants are
-applied later by an owner or the planned Terraform runner SA flipping `manage_iam = true`.
-Until then the runtime/scheduler identities work only if they hold project-level editor (true for
-the default compute SA today) — treat that as the bootstrap crutch it is, not the end state.
+The basic Editor role cannot create IAM bindings (`*.setIamPolicy`). `manage_iam = false` defers
+exactly the two binding types — per-secret accessor grants and the scheduler SA's `run.invoker` on
+each job — so an editor can apply everything else; an identity that can create bindings (an owner,
+or the Terraform runner SA) applies them with `manage_iam = true`. While it is false, the
+runtime/scheduler identities work only if they hold project-level editor, as the default compute
+SA does.
 
 Migrating a service's plaintext env keys to secret refs without a sentinel-value window:
 
