@@ -25,6 +25,11 @@ variable "bootstrap_secret_ids" {
   default = []
 }
 
+variable "retained_secret_ids" {
+  type    = set(string)
+  default = []
+}
+
 variable "manage_iam" {
   type    = bool
   default = true
