@@ -86,7 +86,10 @@ jobs use; the collection's embedding-space fingerprint rejects a mismatched
 configuration before any write. `QDRANT_API_KEY` and `VERTEX_SA_JSON` are Secret
 Manager secrets of the same name: the deploy prompts for a value when the secret
 does not exist yet and grants the function's service account access. Deploying
-therefore needs Secret Manager admin rights in the target project. The function's
+therefore needs Secret Manager admin rights in the target project. The deploy pins
+each secret to its latest version at that moment, so a rotated key (a new version
+via `firebase functions:secrets:set` or `gcloud secrets versions add`) only
+reaches the functions with the next deploy. The function's
 service account needs Firestore read access and Storage read + ACL access on the
 default bucket.
 
