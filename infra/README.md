@@ -90,6 +90,10 @@ Secret Manager — a revision that resolves `latest` with no version fails to st
    `bootstrap_secret_ids` for a sentinel).
 3. `terraform apply` — the new revision reads it via `secret_key_ref`.
 
+Rotating a value is `gcloud secrets versions add`: Cloud Run resolves `latest`, but the
+Firebase `ingest` functions pin the version at deploy, so rotating `QDRANT_API_KEY` or
+`VERTEX_SA_JSON` also needs `firebase deploy --only functions:ingest` (see `firebase/README.md`).
+
 ## Ingestion jobs (Cloud Run Jobs + Cloud Scheduler)
 
 Jobs run the dedicated ingestion image (`ingestion/Dockerfile`, built from the repo root, no
