@@ -1,0 +1,132 @@
+# Firebase "ingest" functions CI: check on PRs, deploy on merges — keyless via Workload Identity Federation.
+#
+#   PR into develop/main touching the function or the code it bundles -> wheels + tests + import check
+#   push to develop (merge)                                            -> deploy to wahl-chat-dev
+#   push to main (merge)                                               -> deploy to wahl-chat
+#
+# The function installs the ingestion + wahlchat-common wheels, so a change to either
+# package changes the deployed function: the path filter covers both, or the function
+# would drift from the ingestion jobs that run the same code.
+#
+# `--force` deletes functions removed from the codebase; it never touches other codebases.
+# Non-secret params come from the committed firebase/ingest_functions/.env.<project-id>;
+# QDRANT_API_KEY and VERTEX_SA_JSON must already exist in Secret Manager (a non-interactive
+# deploy cannot prompt for them).
+#
+# Auth reuses the Terraform runner SA and repository variables (see terraform.yml). On top of
+# the roles .planning/bootstrap-terraform-runner-sa.sh grants, a functions deploy needs:
+#   roles/cloudfunctions.developer   create/update the functions
+#   roles/cloudbuild.builds.editor   the functions' source build
+#   roles/eventarc.developer         the storage triggers
+#   roles/firebase.viewer            the CLI's project lookup
+#   roles/iam.securityReviewer       the CLI reads the project IAM policy to check the
+#                                    storage service agent's Pub/Sub grant
+
+name: ingest-functions
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - "firebase/ingest_functions/**"
+      - "firebase/firebase.json"
+      - "ingestion/**"
+      - "packages/wahlchat-common/**"
+      - "uv.lock"
+      - ".github/workflows/ingest-functions.yml"
+  push:
+    branches: [develop, main]
+    paths:
+      - "firebase/ingest_functions/**"
+      - "firebase/firebase.json"
+      - "ingestion/**"
+      - "packages/wahlchat-common/**"
+      - "uv.lock"
+      - ".github/workflows/ingest-functions.yml"
+
+permissions:
+  contents: read
+  id-token: write # WIF token exchange
+
+# A deploy is never cancelled halfway; a newer merge waits for the running one.
+concurrency:
+  group: ingest-functions-${{ github.base_ref || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  # main (or a PR into main) targets prod; everything else targets dev.
+  TARGET: ${{ (github.base_ref || github.ref_name) == 'main' && 'prod' || 'dev' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.3"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: upload-connector tests
+        working-directory: ingestion
+        run: |
+          uv sync --locked --package ingestion
+          uv run pytest -q tests/connectors/manifesto_uploads
+
+      - name: build wheels + venv
+        working-directory: firebase/ingest_functions
+        run: |
+          ./predeploy.sh
+          python3.12 -m venv venv
+          venv/bin/pip install -q -r requirements.txt
+
+      # The same module load the Firebase CLI does to discover the functions.
+      - name: import check
+        working-directory: firebase/ingest_functions
+        env:
+          FIREBASE_CONFIG: '{"projectId":"wahl-chat-dev","storageBucket":"wahl-chat-dev.firebasestorage.app"}'
+          GCLOUD_PROJECT: wahl-chat-dev
+        run: venv/bin/python -c "import main; print(main.ingest_uploaded_pdf.__firebase_endpoint__.secretEnvironmentVariables)"
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.3"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.TARGET == 'prod' && vars.GCP_WIF_PROVIDER_PROD || vars.GCP_WIF_PROVIDER_DEV }}
+          service_account: ${{ env.TARGET == 'prod' && vars.GCP_TF_SA_PROD || vars.GCP_TF_SA_DEV }}
+
+      # firebase deploy runs predeploy.sh itself; the wheels are built here first only
+      # because the venv the CLI loads the functions from installs them.
+      - name: venv
+        working-directory: firebase/ingest_functions
+        run: |
+          ./predeploy.sh
+          python3.12 -m venv venv
+          venv/bin/pip install -q -r requirements.txt
+
+      - name: deploy
+        working-directory: firebase
+        run: |
+          npm install -g firebase-tools@15.18.0
+          firebase deploy --only functions:ingest --force --non-interactive --project "${TARGET}"

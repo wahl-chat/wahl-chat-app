@@ -78,8 +78,10 @@ cd .. && firebase deploy --only functions:ingest --force --project dev
 ```
 
 `--force` lets the deploy delete functions that were removed from the codebase.
+Merges to `develop` / `main` deploy to dev / prod automatically
+(`.github/workflows/ingest-functions.yml`); a manual deploy is for testing a branch.
 
-Configuration params (prompted at deploy, stored in `ingest_functions/.env.<project>`):
+Configuration params are committed in `ingest_functions/.env.<project-id>`:
 `ENV`, `QDRANT_URL`, `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`, `EMBEDDING_DIM`,
 `VERTEX_PROJECT_ID`, `VERTEX_LOCATION` — the same names and values the ingestion
 jobs use; the collection's embedding-space fingerprint rejects a mismatched

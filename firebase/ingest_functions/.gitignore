@@ -1,6 +1,9 @@
 venv
 *.local
 .env*
+# Committed: non-secret params the CI deploy reads.
+!.env.wahl-chat-dev
+!.env.wahl-chat
 __pycache__
 # predeploy.sh build artifacts
 vendor/
