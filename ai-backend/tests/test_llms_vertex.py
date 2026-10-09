@@ -89,12 +89,42 @@ def test_vertex_clients_are_pinned_on_vertex() -> None:
     assert client._use_vertexai is True
 
 
+def _generation_config(client) -> dict:
+    """Fields that would be sent as generationConfig, with empty thinking keys gone."""
+    config = client._build_base_generation_config(None)
+    thinking = config.get("thinking_config")
+    if thinking is not None:
+        config = {
+            **config,
+            "thinking_config": thinking.model_dump(exclude_none=True),
+        }
+    return config
+
+
+def _thinking_level(config: dict) -> str:
+    level = config["thinking_config"]["thinking_level"]
+    return str(getattr(level, "value", level)).lower()
+
+
 def test_model_kwargs_survive_the_helper() -> None:
-    """The thinking_* and temperature settings are behavioural, not cosmetic."""
-    assert llms.google_gemini_3_6_flash.temperature == 1.0
-    assert llms.google_gemini_3_6_flash.thinking_level == "minimal"
-    assert llms.google_gemini_3_7_flash.temperature == 1.0
-    assert llms.google_gemini_3_7_flash.thinking_level == "low"
+    """The thinking_* and temperature settings are behavioural, not cosmetic.
+
+    Gemini 3.6 and later, and 3.5 Flash-Lite, must not carry sampling parameters
+    or thinking_budget — those requests are rejected. Earlier models still do.
+    """
+    for client, level in (
+        (llms.google_gemini_3_6_flash, "minimal"),
+        (llms.google_gemini_3_7_flash, "low"),
+        (llms.google_gemini_3_5_flash_lite, "minimal"),
+    ):
+        config = _generation_config(client)
+        assert "temperature" not in config, client.model
+        assert "top_p" not in config, client.model
+        assert "top_k" not in config, client.model
+        assert _thinking_level(config) == level
+        assert "thinking_budget" not in config["thinking_config"]
+        assert client.thinking_budget is None
+
     assert llms.google_gemini_3_flash_preview.temperature == 1.0
     assert llms.google_gemini_3_flash_preview.thinking_level == "minimal"
     assert llms.google_gemini_3_5_flash.temperature == 1.0
@@ -104,12 +134,34 @@ def test_model_kwargs_survive_the_helper() -> None:
 
     assert llms.google_gemini_3_1_flash_lite.temperature == 1.0
     assert llms.google_gemini_3_1_flash_lite.thinking_level == "minimal"
-    assert llms.google_gemini_2_5_flash_lite.temperature == 1.0
-    assert llms.google_gemini_2_5_flash_lite.thinking_budget == 0
-    assert llms.google_gemini_3_5_flash_lite.temperature == 1.0
-    assert llms.google_gemini_3_5_flash_lite.thinking_level == "minimal"
+    flash_lite = _generation_config(llms.google_gemini_2_5_flash_lite)
+    assert flash_lite["temperature"] == 1.0
+    assert flash_lite["thinking_config"]["thinking_budget"] == 0
+    assert "thinking_level" not in flash_lite["thinking_config"]
     assert llms.openai_gpt_5_6_luna.temperature == 1.0
     assert llms.openai_gpt_5_6_luna.reasoning_effort == "minimal"
+
+
+def test_deprecated_params_are_stripped_before_the_client_is_built() -> None:
+    """A caller that still passes the old kwargs must not put them on the request.
+
+    langchain-google-genai only strips sampling for an allowlist that does not
+    include Gemini 3.7, so the drop has to happen in our constructor.
+    """
+    client = llms._gemini(
+        "gemini-3.7-flash",
+        temperature=1.0,
+        top_p=0.9,
+        top_k=40,
+        thinking_budget=128,
+        thinking_level="low",
+    )
+    config = _generation_config(client)
+    assert "temperature" not in config
+    assert "top_p" not in config
+    assert "top_k" not in config
+    assert _thinking_level(config) == "low"
+    assert "thinking_budget" not in config["thinking_config"]
 
 
 def test_vertex_entries_would_outrank_ai_studio() -> None:

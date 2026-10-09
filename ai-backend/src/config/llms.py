@@ -8,6 +8,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages.base import BaseMessage, BaseMessageChunk
 from pydantic import BaseModel
 from src.services.firebase_service import awrite_llm_status
+from wahlchat_common.gemini_params import without_deprecated_generation_params
 from wahlchat_common.vertex_credentials import (
     get_vertex_credentials,
     vertex_enabled,
@@ -52,8 +53,7 @@ def _gemini(model: str, *, vertex: bool = False, **kwargs) -> ChatGoogleGenerati
 
     Both backends are the same class: langchain-google-genai speaks Vertex and AI
     Studio from one ChatGoogleGenerativeAI, so no separate ChatVertexAI is
-    involved and model kwargs such as ``thinking_level`` / ``thinking_budget``
-    carry over unchanged.
+    involved and model kwargs such as ``thinking_level`` carry over to both.
 
     ``vertexai`` is pinned explicitly on BOTH paths, and that is load-bearing
     rather than decorative. _determine_backend resolves the backend in priority
@@ -69,7 +69,12 @@ def _gemini(model: str, *, vertex: bool = False, **kwargs) -> ChatGoogleGenerati
 
     Nothing in this repo sets that variable, which is the point: pinning both ends
     means nothing outside the repo can repoint either tier either.
+
+    Gemini 3.6 and later (and 3.5 Flash-Lite) reject ``temperature``, ``top_p``,
+    ``top_k``, and ``thinking_budget``. Those kwargs are removed here, before the
+    client is built, so a caller cannot put them on the request.
     """
+    kwargs = without_deprecated_generation_params(model, kwargs)
     if vertex:
         return ChatGoogleGenerativeAI(
             model=model,
@@ -105,16 +110,13 @@ def _llm(name: str, model: BaseChatModel, priority: int) -> LLM:
 
 
 # ---------------------------------------------------------------------------
-# Response generation — temperature 1 on every model.
-# Gemini 3.6 Flash is the primary; 3.7 Flash does not support thinking_level
-# "minimal", so it uses "low". Gemini 2.5-era models are not on this roster.
+# Response generation.
+# Gemini 3.6 and later reject custom sampling and thinking_budget; they are
+# steered with thinking_level only. 3.7 Flash has no "minimal" level, so it
+# uses "low". Earlier models on this roster still take temperature 1.
 # ---------------------------------------------------------------------------
-google_gemini_3_6_flash = _gemini(
-    "gemini-3.6-flash", temperature=1.0, thinking_level="minimal"
-)
-google_gemini_3_7_flash = _gemini(
-    "gemini-3.7-flash", temperature=1.0, thinking_level="low"
-)
+google_gemini_3_6_flash = _gemini("gemini-3.6-flash", thinking_level="minimal")
+google_gemini_3_7_flash = _gemini("gemini-3.7-flash", thinking_level="low")
 google_gemini_3_flash_preview = _gemini(
     "gemini-3-flash-preview", temperature=1.0, thinking_level="minimal"
 )
@@ -146,7 +148,6 @@ if VERTEX_AVAILABLE:
             _gemini(
                 "gemini-3.6-flash",
                 vertex=True,
-                temperature=1.0,
                 thinking_level="minimal",
             ),
             200,
@@ -156,7 +157,6 @@ if VERTEX_AVAILABLE:
             _gemini(
                 "gemini-3.7-flash",
                 vertex=True,
-                temperature=1.0,
                 thinking_level="low",
             ),
             190,
@@ -184,9 +184,11 @@ if VERTEX_AVAILABLE:
     ] + RESPONSE_GENERATION_LLMS
 
 # ---------------------------------------------------------------------------
-# Pre- and post-processing — temperature 1, minimal reasoning on every model.
-# Gemini 2.5 Flash-Lite has no thinking_level; thinking_budget=0 is the 2.5
-# equivalent of minimal/off thinking.
+# Pre- and post-processing — minimal reasoning on every model.
+# Gemini 3.5 Flash-Lite uses the same fixed sampling as 3.6, so it takes
+# thinking_level only. Gemini 2.5 Flash-Lite has no thinking_level;
+# thinking_budget=0 is the 2.5 equivalent of minimal thinking. The other
+# models still take temperature 1.
 # ---------------------------------------------------------------------------
 google_gemini_3_1_flash_lite = _gemini(
     "gemini-3.1-flash-lite", temperature=1.0, thinking_level="minimal"
@@ -195,7 +197,7 @@ google_gemini_2_5_flash_lite = _gemini(
     "gemini-2.5-flash-lite", temperature=1.0, thinking_budget=0
 )
 google_gemini_3_5_flash_lite = _gemini(
-    "gemini-3.5-flash-lite", temperature=1.0, thinking_level="minimal"
+    "gemini-3.5-flash-lite", thinking_level="minimal"
 )
 openai_gpt_5_6_luna = _openai(
     "gpt-5.6-luna", temperature=1.0, reasoning_effort="minimal"
@@ -235,7 +237,6 @@ if VERTEX_AVAILABLE:
             _gemini(
                 "gemini-3.5-flash-lite",
                 vertex=True,
-                temperature=1.0,
                 thinking_level="minimal",
             ),
             180,

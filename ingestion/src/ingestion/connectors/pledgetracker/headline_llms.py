@@ -5,8 +5,8 @@
 """Pre/post-processing LLM failover for pledge headline generation.
 
 Ingestion cannot import the chat service, but short titles must use the same
-roster the chat pre/post step uses: the same models, the same temperatures and
-thinking settings, Vertex first when it is configured, and the same
+roster the chat pre/post step uses: the same models, the same generation
+settings, Vertex first when it is configured, and the same
 ``system_status/llm_status`` flag when every primary model fails. This module
 is that roster. It is not the chat answer path.
 """
@@ -21,6 +21,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from pydantic import SecretStr
 
+from wahlchat_common.gemini_params import without_deprecated_generation_params
 from wahlchat_common.vertex_credentials import (
     get_vertex_credentials,
     vertex_enabled,
@@ -51,8 +52,13 @@ def _gemini(model: str, *, vertex: bool = False, **kwargs: Any) -> Any:
     An unpinned client follows ``GOOGLE_GENAI_USE_VERTEXAI``, which would
     send the AI Studio fallback at Vertex (no credentials) or drop the Vertex
     tier onto AI Studio (no API key).
+
+    Gemini 3.6 and later, and 3.5 Flash-Lite, reject sampling parameters and
+    ``thinking_budget``. Those kwargs are removed before the client is built.
     """
     from langchain_google_genai import ChatGoogleGenerativeAI
+
+    kwargs = without_deprecated_generation_params(model, kwargs)
 
     if vertex:
         return ChatGoogleGenerativeAI(
@@ -105,7 +111,7 @@ def _build_pre_post_llms() -> list[_LLM]:
         ),
         _LLM(
             "google-gemini-3.5-flash-lite",
-            _gemini("gemini-3.5-flash-lite", temperature=1.0, thinking_level="minimal"),
+            _gemini("gemini-3.5-flash-lite", thinking_level="minimal"),
             70,
         ),
     ]
@@ -146,7 +152,6 @@ def _build_pre_post_llms() -> list[_LLM]:
             _gemini(
                 "gemini-3.5-flash-lite",
                 vertex=True,
-                temperature=1.0,
                 thinking_level="minimal",
             ),
             180,
