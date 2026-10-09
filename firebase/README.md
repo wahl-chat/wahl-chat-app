@@ -67,8 +67,16 @@ real `manifesto_uploads` connector through the real runner via
 `ingestion.connectors.manifesto_uploads.single` (`ingest_one` / `retire_one`,
 tested in `ingestion/tests/connectors/manifesto_uploads/test_single.py`). The
 daily `ingest-manifesto-uploads` Cloud Run job remains the reconciling backstop
-— same code, so their writes are idempotent against each other. Deploying needs
-`uv` on the machine (the predeploy build step).
+— same code, so their writes are idempotent against each other.
+
+Deploying needs `uv` (the predeploy build step) and a `venv` the Firebase CLI
+loads the functions from:
+
+```bash
+cd firebase/ingest_functions
+./predeploy.sh && python3.12 -m venv venv && venv/bin/pip install -r requirements.txt
+cd .. && firebase deploy --only functions:ingest --force --project dev
+```
 
 `--force` lets the deploy delete functions that were removed from the codebase.
 
