@@ -3,15 +3,12 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Storage-triggered ingestion for uploaded party PDFs — the event-driven
-complement to the daily ``ingest-manifesto-uploads`` Cloud Run reconcile job.
+Storage-triggered ingestion for uploaded party PDFs, one document per event.
 
-Same orchestration as the legacy V1 triggers (one function per event, one
-document per invocation), but ZERO duplicated pipeline: the ``ingestion`` and
-``wahlchat-common`` packages are installed from wheels built at deploy time
-(see ``predeploy.sh``),
-and each event runs the real ``manifesto_uploads`` connector through the real
-runner via ``ingestion.connectors.manifesto_uploads.single``.
+The ``ingestion`` and ``wahlchat-common`` packages are installed from wheels
+built at deploy time (see ``predeploy.sh``), so each event runs the
+``manifesto_uploads`` connector through the shared runner via
+``ingestion.connectors.manifesto_uploads.single`` instead of a pipeline of its own.
 
 Config: firebase params (deploy-time prompts / .env.<project> files) and
 Secret Manager secrets are copied into os.environ before any ingestion import happens — the package freezes
@@ -39,7 +36,7 @@ VERTEX_PROJECT_ID = StringParam("VERTEX_PROJECT_ID", default="")
 VERTEX_LOCATION = StringParam("VERTEX_LOCATION", default="")
 
 # The trigger must live where the bucket lives: the prod Firebase bucket is
-# US-hosted (same reason the legacy triggers deploy to US_EAST1), dev is EU.
+# US-hosted, the dev bucket is EU.
 _is_prod = (
     os.getenv("ENV", "dev") == "prod"
     or os.getenv("GCLOUD_PROJECT", os.getenv("GCP_PROJECT", "")) == "wahl-chat"
@@ -72,7 +69,7 @@ def _export_params() -> None:
 
 def _parse_or_skip(name: str):  # noqa: ANN202
     """Parse the object path, or return None for objects this codebase ignores
-    (context icons, legacy four-segment uploads, non-PDFs) — an event for a
+    (context icons, four-segment paths, non-PDFs) — an event for a
     foreign object is routine, not an error. Called after _export_params()."""
     from ingestion.connectors.manifesto_uploads.storage_paths import (  # noqa: PLC0415
         UploadPathError,
@@ -102,8 +99,8 @@ def _ensure_public(bucket_name: str, object_path: str) -> None:
 
 def _report_or_raise(kind: str, name: str, report) -> None:  # noqa: ANN001
     """Log the RunReport; a per-item failure must fail the function loudly
-    (run_connector only warns), so the error is visible and the event retried
-    by the daily reconcile at the latest."""
+    (run_connector only warns), so the error is visible; a full connector run
+    picks the document up again."""
     if report.failed_ids:
         raise RuntimeError(f"{kind} {name} failed: {report.failed_ids}")
     logger.info(
@@ -119,14 +116,13 @@ def _report_or_raise(kind: str, name: str, report) -> None:  # noqa: ANN001
     timeout_sec=540,
     memory=MemoryOption.GB_1,
     # Bounds concurrent embedding spend when a whole election's PDFs land at
-    # once; the queue drains serially and the daily job reconciles any event
-    # that expires undelivered.
+    # once; a full connector run picks up any event that expires undelivered.
     max_instances=3,
 )
 def ingest_uploaded_pdf(
     event: storage_fn.CloudEvent[storage_fn.StorageObjectData],
 ) -> None:
-    """Chunk, embed and index one uploaded party PDF into the V2 corpus."""
+    """Chunk, embed and index one uploaded party PDF into the corpus."""
     _export_params()
     name = event.data.name or ""
     if _parse_or_skip(name) is None:
@@ -153,7 +149,7 @@ def ingest_uploaded_pdf(
 def retire_uploaded_pdf(
     event: storage_fn.CloudEvent[storage_fn.StorageObjectData],
 ) -> None:
-    """Retire one deleted party PDF's chunks from the V2 corpus."""
+    """Retire one deleted party PDF's chunks from the corpus."""
     _export_params()
     name = event.data.name or ""
     if _parse_or_skip(name) is None:

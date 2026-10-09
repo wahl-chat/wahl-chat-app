@@ -58,16 +58,15 @@ firebase deploy --only functions:ingest --force  # Upload-ingestion functions
 Event-driven ingestion of uploaded party PDFs
 (`public/{context_id}/{wahlprogramme|parteidokumente}/{party_id}/{name}_{date}.pdf`):
 `ingest_uploaded_pdf` chunks/embeds a finalized PDF into `wahlchat_chunks_{ENV}`
-and `retire_uploaded_pdf` deletes a removed PDF's chunks — one document per
-event, like the V1 triggers. There is no duplicated pipeline: the codebase
-installs the **`ingestion` package itself** plus its `wahlchat-common`
-workspace dependency (wheels `predeploy.sh` builds into `vendor/` on every
-deploy, wired via `firebase.json`), and each event runs the
-real `manifesto_uploads` connector through the real runner via
+and `retire_uploaded_pdf` deletes a removed PDF's chunks, one document per
+event. The codebase installs the **`ingestion` package itself** plus its
+`wahlchat-common` workspace dependency (wheels `predeploy.sh` builds into
+`vendor/` on every deploy, wired via `firebase.json`), and each event runs the
+`manifesto_uploads` connector through the shared runner via
 `ingestion.connectors.manifesto_uploads.single` (`ingest_one` / `retire_one`,
-tested in `ingestion/tests/connectors/manifesto_uploads/test_single.py`). The
-daily `ingest-manifesto-uploads` Cloud Run job remains the reconciling backstop
-— same code, so their writes are idempotent against each other.
+tested in `ingestion/tests/connectors/manifesto_uploads/test_single.py`). A full
+connector run writes the same chunks, so it covers dropped events and backfills
+idempotently.
 
 Deploying needs `uv` (the predeploy build step) and a `venv` the Firebase CLI
 loads the functions from:

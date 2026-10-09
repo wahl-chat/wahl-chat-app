@@ -103,7 +103,7 @@ def test_ingest_one_is_a_cheap_skip_when_unchanged() -> None:
 
 def test_ingest_one_never_touches_other_documents() -> None:
     # A stored CDU document must survive an SPD event untouched — the whole
-    # point of the event-scoped discover() versus a full reconcile.
+    # point of the event-scoped discover() versus a full run.
     ref = parse_object_path(_CDU)
     fixture = load_election(ref.context_id, "dev")
     from ingestion.chunking import chunk_pages
@@ -149,7 +149,7 @@ def test_retire_one_on_unknown_document_is_a_noop() -> None:
 
 def test_below_floor_event_is_a_noop(monkeypatch: pytest.MonkeyPatch) -> None:
     # Floor after the election date → the document is out of scope: neither
-    # ingested nor retired, exactly like the reconcile run's semantics.
+    # ingested nor retired, exactly like a full run.
     monkeypatch.setenv("MANIFESTO_UPLOADS_SINCE", "2030-01-01")
     chunks = _spd_chunks()
     qdrant = _Qdrant(existing=_seeded(chunks, f"party_manifesto:upload:{_SPD}"))

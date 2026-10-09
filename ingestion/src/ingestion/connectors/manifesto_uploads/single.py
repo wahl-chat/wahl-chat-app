@@ -12,9 +12,8 @@ footprint retire, embed backoff, fingerprint guard — is the ordinary connector
 driven through the ordinary ``run_connector``; the only change is that
 ``discover()`` returns the event's path instead of a bucket/manifest work-list.
 
-The daily ``ingest-manifesto-uploads`` reconcile job remains the correctness
-backstop for dropped or failed events: both paths run the same code, so their
-writes are byte-identical and idempotent against each other.
+A full connector run covers dropped or failed events: both paths run the same
+code, so their writes are byte-identical and idempotent against each other.
 """
 
 from __future__ import annotations
