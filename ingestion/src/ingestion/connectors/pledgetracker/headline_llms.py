@@ -52,12 +52,11 @@ def _gemini(model: str, *, vertex: bool = False, **kwargs: Any) -> Any:
     An unpinned client follows ``GOOGLE_GENAI_USE_VERTEXAI``, which would
     send the AI Studio fallback at Vertex (no credentials) or drop the Vertex
     tier onto AI Studio (no API key).
-
-    Gemini 3.6 and later, and 3.5 Flash-Lite, reject sampling parameters and
-    ``thinking_budget``. Those kwargs are removed before the client is built.
     """
     from langchain_google_genai import ChatGoogleGenerativeAI
 
+    # The API rejects these fields on Gemini 3.6 and later.
+    # LangChain does not remove them for every affected model.
     kwargs = without_deprecated_generation_params(model, kwargs)
 
     if vertex:

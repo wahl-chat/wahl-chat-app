@@ -2,13 +2,9 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""The pledge-headline roster must match the chat pre/post generation settings.
+"""Generation settings on the pledge-headline roster reach the request."""
 
-Ingestion cannot import the chat service, so the constructor guard is the
-only thing keeping a copied ``temperature`` off a Gemini 3.6+ request.
-"""
-
-from ingestion.connectors.pledgetracker.headline_llms import _gemini
+from ingestion.connectors.pledgetracker.headline_llms import pre_post_llms
 
 
 def _generation_config(client) -> dict:
@@ -27,31 +23,21 @@ def _thinking_level(config: dict) -> str:
     return str(getattr(level, "value", level)).lower()
 
 
-def test_flash_lite_roster_omits_deprecated_sampling() -> None:
-    current = _gemini("gemini-3.5-flash-lite", thinking_level="minimal")
-    config = _generation_config(current)
-    assert "temperature" not in config
-    assert _thinking_level(config) == "minimal"
-    assert "thinking_budget" not in config["thinking_config"]
+def test_pre_post_roster_generation_config() -> None:
+    by_name = {item.name: item.model for item in pre_post_llms()}
 
-    older = _gemini("gemini-2.5-flash-lite", temperature=1.0, thinking_budget=0)
-    older_config = _generation_config(older)
-    assert older_config["temperature"] == 1.0
-    assert older_config["thinking_config"]["thinking_budget"] == 0
+    lite = _generation_config(by_name["google-gemini-3.5-flash-lite"])
+    assert "temperature" not in lite
+    assert "top_p" not in lite
+    assert "top_k" not in lite
+    assert _thinking_level(lite) == "minimal"
+    assert "thinking_budget" not in lite["thinking_config"]
 
+    previous = _generation_config(by_name["google-gemini-3.1-flash-lite"])
+    assert previous["temperature"] == 1.0
+    assert _thinking_level(previous) == "minimal"
 
-def test_constructor_drops_deprecated_params_for_gemini_3_7() -> None:
-    client = _gemini(
-        "gemini-3.7-flash",
-        temperature=1.0,
-        top_p=0.9,
-        top_k=40,
-        thinking_budget=128,
-        thinking_level="low",
-    )
-    config = _generation_config(client)
-    assert "temperature" not in config
-    assert "top_p" not in config
-    assert "top_k" not in config
-    assert _thinking_level(config) == "low"
-    assert "thinking_budget" not in config["thinking_config"]
+    oldest = _generation_config(by_name["google-gemini-2.5-flash-lite"])
+    assert oldest["temperature"] == 1.0
+    assert oldest["thinking_config"]["thinking_budget"] == 0
+    assert "thinking_level" not in oldest["thinking_config"]

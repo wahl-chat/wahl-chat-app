@@ -69,11 +69,9 @@ def _gemini(model: str, *, vertex: bool = False, **kwargs) -> ChatGoogleGenerati
 
     Nothing in this repo sets that variable, which is the point: pinning both ends
     means nothing outside the repo can repoint either tier either.
-
-    Gemini 3.6 and later (and 3.5 Flash-Lite) reject ``temperature``, ``top_p``,
-    ``top_k``, and ``thinking_budget``. Those kwargs are removed here, before the
-    client is built, so a caller cannot put them on the request.
     """
+    # The API rejects these fields on Gemini 3.6 and later.
+    # LangChain does not remove them for every affected model.
     kwargs = without_deprecated_generation_params(model, kwargs)
     if vertex:
         return ChatGoogleGenerativeAI(
@@ -111,9 +109,9 @@ def _llm(name: str, model: BaseChatModel, priority: int) -> LLM:
 
 # ---------------------------------------------------------------------------
 # Response generation.
-# Gemini 3.6 and later reject custom sampling and thinking_budget; they are
-# steered with thinking_level only. 3.7 Flash has no "minimal" level, so it
-# uses "low". Earlier models on this roster still take temperature 1.
+# Gemini 3.6 and later reject temperature, top_p, top_k, and thinking_budget.
+# Set thinking_level. Gemini 3.7 Flash does not accept "minimal". Use "low".
+# Models before 3.6 use temperature 1.
 # ---------------------------------------------------------------------------
 google_gemini_3_6_flash = _gemini("gemini-3.6-flash", thinking_level="minimal")
 google_gemini_3_7_flash = _gemini("gemini-3.7-flash", thinking_level="low")
@@ -184,11 +182,10 @@ if VERTEX_AVAILABLE:
     ] + RESPONSE_GENERATION_LLMS
 
 # ---------------------------------------------------------------------------
-# Pre- and post-processing — minimal reasoning on every model.
-# Gemini 3.5 Flash-Lite uses the same fixed sampling as 3.6, so it takes
-# thinking_level only. Gemini 2.5 Flash-Lite has no thinking_level;
-# thinking_budget=0 is the 2.5 equivalent of minimal thinking. The other
-# models still take temperature 1.
+# Pre- and post-processing. Use the lowest thinking setting.
+# Gemini 3.5 Flash-Lite rejects temperature. Set thinking_level.
+# Gemini 2.5 Flash-Lite has no thinking_level. Set thinking_budget to 0.
+# The other models use temperature 1.
 # ---------------------------------------------------------------------------
 google_gemini_3_1_flash_lite = _gemini(
     "gemini-3.1-flash-lite", temperature=1.0, thinking_level="minimal"
