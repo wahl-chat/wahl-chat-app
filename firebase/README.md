@@ -15,7 +15,7 @@ firebase/
 ├── ingest_functions/    # Cloud Functions (Python 3.12, codebase "ingest")
 │   ├── main.py          # Storage triggers: ingest/retire uploaded party PDFs
 │   ├── predeploy.sh     # Builds the ingestion + wahlchat-common wheels into vendor/
-│   └── requirements.txt # firebase_functions + the vendored wheels
+│   └── requirements.in  # firebase_functions + the vendored wheels; predeploy.sh renders requirements.txt
 ├── firestore_data/      # Seed data for Firestore
 │   ├── dev/             # Development environment data
 │   └── prod/            # Production environment data

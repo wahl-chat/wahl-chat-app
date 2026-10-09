@@ -10,5 +10,3 @@
 firebase_functions~=0.5.0
 ./vendor/ingestion-1.0.0-py3-none-any.whl
 ./vendor/wahlchat_common-1.0.0-py3-none-any.whl
--c ./vendor/constraints.txt
-# vendored wheels + constraints: b40e33946acedaf3183f7b48597b5ee09bda2e954909817f44091320c1beceb5

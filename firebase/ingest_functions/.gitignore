@@ -4,3 +4,4 @@ venv
 __pycache__
 # predeploy.sh build artifacts
 vendor/
+requirements.txt
