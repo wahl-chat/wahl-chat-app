@@ -197,7 +197,7 @@ test-local-mode:
 run-abgeordnetenwatch-votes: bootstrap-collection
 	@failed=""; \
 	for id in $$(cd ingestion && uv run python -c \
-	    "from ingestion.legislature_config import FEDERAL_LEGISLATURE_IDS; print(*FEDERAL_LEGISLATURE_IDS)"); do \
+	    "from wahlchat_common.legislature_config import FEDERAL_LEGISLATURE_IDS; print(*FEDERAL_LEGISLATURE_IDS)"); do \
 	    echo "=== Bundestag legislature_id=$$id ==="; \
 	    if ! (cd ingestion && AW_LEGISLATURE_ID=$$id $(QDRANT_ENV) \
 	        uv run python -m ingestion.run --connector abgeordnetenwatch_votes $(ARGS)); then \
@@ -225,7 +225,7 @@ run-abgeordnetenwatch-votes: bootstrap-collection
 run-all-landtage-votes: bootstrap-collection
 	@failed=""; \
 	for id in $$(cd ingestion && uv run python -c \
-	    "from ingestion.legislature_config import LANDTAG_LEGISLATURE_IDS; print(*LANDTAG_LEGISLATURE_IDS)"); do \
+	    "from wahlchat_common.legislature_config import LANDTAG_LEGISLATURE_IDS; print(*LANDTAG_LEGISLATURE_IDS)"); do \
 	    echo "=== Landtag legislature_id=$$id ==="; \
 	    if ! (cd ingestion && AW_LEGISLATURE_ID=$$id $(QDRANT_ENV) \
 	        uv run python -m ingestion.run --connector abgeordnetenwatch_votes $(ARGS)); then \

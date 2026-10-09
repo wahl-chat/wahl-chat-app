@@ -34,6 +34,7 @@ The provider string stays ``gemini`` on both transports.
 from __future__ import annotations
 
 import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
 from langchain_core.embeddings import Embeddings
@@ -43,6 +44,39 @@ from wahlchat_common.corpus import (
     EMBEDDING_MODEL,
     resolve_embedding_provider,
 )
+
+
+# On Vertex, every Gemini embedding model except gemini-embedding-001 is served by
+# embedContent, which takes one content per request: google-genai rejects a batch
+# before sending it. AI Studio accepts batches for the same models.
+_VERTEX_BATCH_CAPABLE_MODELS = frozenset({"gemini-embedding-001"})
+# Parallel requests per embed_documents call — enough to keep a long manifesto well
+# inside a function timeout, far below the Vertex per-minute quota.
+_VERTEX_MAX_PARALLEL_REQUESTS = 8
+
+
+class _OneContentPerRequest(Embeddings):
+    """Embeds each document in its own request, a bounded number in parallel."""
+
+    def __init__(self, client: Embeddings, max_parallel: int) -> None:
+        self.client = client
+        self._max_parallel = max_parallel
+
+    def _embed_one(self, text: str) -> list[float]:
+        return self.client.embed_documents([text])[0]
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        if len(texts) <= 1:
+            return self.client.embed_documents(texts)
+        workers = min(self._max_parallel, len(texts))
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            return list(pool.map(self._embed_one, texts))
+
+    def embed_query(self, text: str) -> list[float]:
+        return self.client.embed_query(text)
+
+    async def aembed_query(self, text: str) -> list[float]:
+        return await self.client.aembed_query(text)
 
 
 def _vertex_embeddings_requested() -> bool:
@@ -126,7 +160,7 @@ def get_embeddings(
         # EMBEDDINGS_USE_VERTEX=0 must not call the credential resolver.
         # A call would log a misconfiguration, or raise when VERTEX_REQUIRED is set.
         if _vertex_embeddings_requested() and vertex_enabled():
-            return GoogleGenerativeAIEmbeddings(
+            vertex_client = GoogleGenerativeAIEmbeddings(
                 model=resolved_model,
                 output_dimensionality=resolved_dim,
                 task_type=task_type,
@@ -141,6 +175,9 @@ def get_embeddings(
                 project=vertex_project(),
                 location=vertex_location(),
             )
+            if resolved_model in _VERTEX_BATCH_CAPABLE_MODELS:
+                return vertex_client
+            return _OneContentPerRequest(vertex_client, _VERTEX_MAX_PARALLEL_REQUESTS)
 
         api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
         return GoogleGenerativeAIEmbeddings(

@@ -307,9 +307,8 @@ def seed_sources(db):
 
     File structure: {party_id: {document_id: {name, storage_url, publish_date?}}}.
     Documents land at sources/{context_id}/parties/{party_id}/source_documents/{document_id},
-    the path the web sources page reads. The storage-upload trigger writes the same shape
-    (PartySource), but documents uploaded under the five-segment layout bypass it, so
-    elections ingested via the ai-backend uploader are seeded from these files instead.
+    the path the web sources page reads. The upload triggers only index the corpus, so
+    these files are the sole writer of that path.
     publish_date is optional because external entries (abgeordnetenwatch.de etc.) have none.
     """
     sources_files = list(DATA_DIR.glob("sources_*.json"))

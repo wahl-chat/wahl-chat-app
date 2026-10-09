@@ -12,10 +12,10 @@ Firebase configuration for [wahl.chat](https://wahl.chat/) — Firestore rules, 
 
 ```
 firebase/
-├── functions/           # Cloud Functions (Python 3.11)
-│   ├── main.py          # Function handlers (PDF processing, vector store indexing)
-│   ├── models.py        # Data models
-│   └── requirements.txt # Python dependencies
+├── ingest_functions/    # Cloud Functions (Python 3.12, codebase "ingest")
+│   ├── main.py          # Storage triggers: ingest/retire uploaded party PDFs
+│   ├── predeploy.sh     # Builds the ingestion + wahlchat-common wheels into vendor/
+│   └── requirements.in  # firebase_functions + the vendored wheels; predeploy.sh renders requirements.txt
 ├── firestore_data/      # Seed data for Firestore
 │   ├── dev/             # Development environment data
 │   └── prod/            # Production environment data
@@ -36,19 +36,6 @@ firebase login
 npm install -g node-firestore-import-export
 ```
 
-## Cloud Functions Setup
-
-The Cloud Functions are written in Python 3.11 and handle PDF document processing (splitting, embedding via OpenAI, indexing into Qdrant).
-
-Dependencies are managed via `functions/requirements.txt`. To install locally for development:
-
-```bash
-cd functions
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
 ## Deploying Firebase Changes
 
 First select your target environment:
@@ -63,9 +50,48 @@ Then deploy:
 firebase deploy --only firestore:rules      # Firestore security rules
 firebase deploy --only firestore:indexes     # Firestore indexes
 firebase deploy --only storage               # Storage security rules
-firebase deploy --only functions             # All Cloud Functions
-firebase deploy --only functions:FUNC_NAME   # A specific function
+firebase deploy --only functions:ingest --force  # Upload-ingestion functions
 ```
+
+## Upload-Ingestion Functions (`ingest_functions/`)
+
+Event-driven ingestion of uploaded party PDFs
+(`public/{context_id}/{wahlprogramme|parteidokumente}/{party_id}/{name}_{date}.pdf`):
+`ingest_uploaded_pdf` chunks/embeds a finalized PDF into `wahlchat_chunks_{ENV}`
+and `retire_uploaded_pdf` deletes a removed PDF's chunks, one document per
+event. The codebase installs the **`ingestion` package itself** plus its
+`wahlchat-common` workspace dependency (wheels `predeploy.sh` builds into
+`vendor/` on every deploy, wired via `firebase.json`), and each event runs the
+`manifesto_uploads` connector through the shared runner via
+`ingestion.connectors.manifesto_uploads.single` (`ingest_one` / `retire_one`,
+tested in `ingestion/tests/connectors/manifesto_uploads/test_single.py`). A full
+connector run writes the same chunks, so it covers dropped events and backfills
+idempotently.
+
+Deploying needs `uv` (the predeploy build step) and a `venv` the Firebase CLI
+loads the functions from:
+
+```bash
+cd firebase/ingest_functions
+./predeploy.sh && python3.12 -m venv venv && venv/bin/pip install -r requirements.txt
+cd .. && firebase deploy --only functions:ingest --force --project dev
+```
+
+`--force` lets the deploy delete functions that were removed from the codebase.
+
+Configuration params (prompted at deploy, stored in `ingest_functions/.env.<project>`):
+`ENV`, `QDRANT_URL`, `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`, `EMBEDDING_DIM`,
+`VERTEX_PROJECT_ID`, `VERTEX_LOCATION` — the same names and values the ingestion
+jobs use; the collection's embedding-space fingerprint rejects a mismatched
+configuration before any write. `QDRANT_API_KEY` and `VERTEX_SA_JSON` are Secret
+Manager secrets of the same name: the deploy prompts for a value when the secret
+does not exist yet and grants the function's service account access. Deploying
+therefore needs Secret Manager admin rights in the target project. The deploy pins
+each secret to its latest version at that moment, so a rotated key (a new version
+via `firebase functions:secrets:set` or `gcloud secrets versions add`) only
+reaches the functions with the next deploy. The function's
+service account needs Firestore read access and Storage read + ACL access on the
+default bucket.
 
 ## Seeding Data
 
