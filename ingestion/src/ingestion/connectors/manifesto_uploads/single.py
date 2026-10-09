@@ -52,9 +52,7 @@ class _SingleUploadConnector(ManifestoUploadsConnector):
             self._expected_paths = set()
             self._discovered = True
             return []
-        self._expected_paths = (
-            {self._single_path} if self._single_expected else set()
-        )
+        self._expected_paths = {self._single_path} if self._single_expected else set()
         self._discovered = True
         return [self._single_path]
 
@@ -92,9 +90,7 @@ def _run(
         embed = embed if embed is not None else default_embed
 
     connector = _SingleUploadConnector(object_path, expected=expected, env=env)
-    return run_connector(
-        connector, qdrant, embed, collection_name or COLLECTION_NAME
-    )
+    return run_connector(connector, qdrant, embed, collection_name or COLLECTION_NAME)
 
 
 def ingest_one(
