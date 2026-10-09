@@ -146,9 +146,12 @@ terraform apply   # flips the service revisions to secret_key_ref, resolving rea
 
 ### Renaming `vertex-sa-json` / `qdrant-api-key` (one-time, per project)
 
-The tfvars reference `VERTEX_SA_JSON` and `QDRANT_API_KEY`. A secret id is immutable, so the
-new secrets are created out of band and imported. The first manual deploy of the `ingest`
-functions may already have created them; skip `create` + `versions add` for any that exist.
+Do this BEFORE the first `terraform apply` in each project. The tfvars reference
+`VERTEX_SA_JSON` and `QDRANT_API_KEY`; a secret id is immutable, so the new secrets are created
+out of band and adopted by the `import` blocks in `envs/*/imports.tf`. Those blocks make the
+plan fail while either secret is missing, so the apply cannot run first. The first manual
+deploy of the `ingest` functions may already have created them; skip `create` +
+`versions add` for any that exist.
 If `qdrant-api-key` never existed (the services still carry the key as a plain env var), add
 the value to `QDRANT_API_KEY` directly.
 
@@ -160,9 +163,7 @@ for pair in vertex-sa-json:VERTEX_SA_JSON qdrant-api-key:QDRANT_API_KEY; do
   gcloud secrets versions access latest --secret="$old" --project=$P \
     | gcloud secrets versions add "$new" --data-file=- --project=$P
 done
-terraform import 'module.app.google_secret_manager_secret.s["VERTEX_SA_JSON"]' projects/$P/secrets/VERTEX_SA_JSON
-terraform import 'module.app.google_secret_manager_secret.s["QDRANT_API_KEY"]' projects/$P/secrets/QDRANT_API_KEY
-terraform apply   # every revision now reads the new names
+terraform apply   # imports both secrets; every revision now reads the new names
 ```
 
 dev already manages `vertex-sa-json`, which `retained_secret_ids` keeps under
