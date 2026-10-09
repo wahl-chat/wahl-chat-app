@@ -73,8 +73,8 @@ addresses look like:
 ```sh
 terraform import 'module.app.google_cloud_run_v2_service.svc["wahl-chat-app"]' \
   projects/wahl-chat-dev/locations/europe-west1/services/wahl-chat-app
-terraform import 'module.app.google_secret_manager_secret.s["vertex-sa-json"]' \
-  projects/wahl-chat-dev/secrets/vertex-sa-json
+terraform import 'module.app.google_secret_manager_secret.s["VERTEX_SA_JSON"]' \
+  projects/wahl-chat-dev/secrets/VERTEX_SA_JSON
 ```
 
 Before `terraform apply`, make sure every secret referenced in `secret_env` has a version in
@@ -82,8 +82,11 @@ Secret Manager — a revision that resolves `latest` with no version fails to st
 
 ## Adding or changing a secret
 
-1. Add `SOME_KEY = "some-secret-id"` under the service's `secret_env` in its `terraform.tfvars`.
-2. Ensure `some-secret-id` exists with a value (`gcloud secrets versions add …`, or list it in
+1. Add `SOME_KEY = "SOME_KEY"` under the service's `secret_env` in its `terraform.tfvars`.
+   A secret the Firebase `ingest` functions also read must be named exactly like its env
+   var: the Firebase CLI only accepts `UPPER_SNAKE_CASE` secret names, and one secret per
+   key is shared by the functions, the jobs and the services.
+2. Ensure `SOME_KEY` exists with a value (`gcloud secrets versions add …`, or list it in
    `bootstrap_secret_ids` for a sentinel).
 3. `terraform apply` — the new revision reads it via `secret_key_ref`.
 
@@ -141,9 +144,40 @@ echo -n "<value>" | gcloud secrets versions add <secret-id> --project=<project> 
 terraform apply   # flips the service revisions to secret_key_ref, resolving real values
 ```
 
+### Renaming `vertex-sa-json` / `qdrant-api-key` (one-time, per project)
+
+The tfvars reference `VERTEX_SA_JSON` and `QDRANT_API_KEY`. A secret id is immutable, so the
+new secrets are created out of band and imported. The first manual deploy of the `ingest`
+functions may already have created them; skip `create` + `versions add` for any that exist.
+If `qdrant-api-key` never existed (the services still carry the key as a plain env var), add
+the value to `QDRANT_API_KEY` directly.
+
+```sh
+P=wahl-chat-dev   # then wahl-chat
+for pair in vertex-sa-json:VERTEX_SA_JSON qdrant-api-key:QDRANT_API_KEY; do
+  old=${pair%%:*}; new=${pair##*:}
+  gcloud secrets create "$new" --replication-policy=automatic --project=$P
+  gcloud secrets versions access latest --secret="$old" --project=$P \
+    | gcloud secrets versions add "$new" --data-file=- --project=$P
+done
+terraform import 'module.app.google_secret_manager_secret.s["VERTEX_SA_JSON"]' projects/$P/secrets/VERTEX_SA_JSON
+terraform import 'module.app.google_secret_manager_secret.s["QDRANT_API_KEY"]' projects/$P/secrets/QDRANT_API_KEY
+terraform apply   # every revision now reads the new names
+```
+
+dev already manages `vertex-sa-json`, which `retained_secret_ids` keeps under
+`prevent_destroy` — without it, the plan would delete the secret the live backend still
+reads. Once the apply has moved every revision, retire it:
+
+```sh
+terraform state rm 'module.app.google_secret_manager_secret.s["vertex-sa-json"]'
+# drop it from retained_secret_ids in envs/dev/terraform.tfvars
+gcloud secrets delete vertex-sa-json --project=$P   # and qdrant-api-key, if it existed
+```
+
 ## Constraint: Vertex uses a static service-account secret
 
-`VERTEX_SA_JSON` authenticates via the static `vertex-sa-json` secret rather than ADC /
+`VERTEX_SA_JSON` authenticates via the static `VERTEX_SA_JSON` secret rather than ADC /
 workload identity, because the target Vertex project does not permit our identities to use ADC.
 Keep it as a normal Secret Manager secret; do not convert it to a role-based identity.
 

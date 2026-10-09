@@ -40,8 +40,8 @@ services = {
     }
 
     secret_env = {
-      VERTEX_SA_JSON       = "vertex-sa-json"
-      QDRANT_API_KEY       = "qdrant-api-key"
+      VERTEX_SA_JSON       = "VERTEX_SA_JSON"
+      QDRANT_API_KEY       = "QDRANT_API_KEY"
       LANGCHAIN_API_KEY    = "wahl-chat-backend-langchain-api-key"
       PERPLEXITY_API_KEY   = "wahl-chat-backend-perplexity-api-key"
       AZURE_OPENAI_API_KEY = "wahl-chat-backend-azure-openai-api-key"
@@ -103,8 +103,8 @@ ingestion_env_common = {
 }
 
 ingestion_secret_env_common = {
-  QDRANT_API_KEY = "qdrant-api-key"
-  VERTEX_SA_JSON = "vertex-sa-json"
+  QDRANT_API_KEY = "QDRANT_API_KEY"
+  VERTEX_SA_JSON = "VERTEX_SA_JSON"
   OPENAI_API_KEY = "wahl-chat-backend-openai-api-key"
 }
 
