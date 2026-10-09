@@ -11,12 +11,10 @@ document per invocation), but ZERO duplicated pipeline: the ``ingestion`` and
 ``wahlchat-common`` packages are installed from wheels built at deploy time
 (see ``predeploy.sh``),
 and each event runs the real ``manifesto_uploads`` connector through the real
-runner via ``ingestion.connectors.manifesto_uploads.single``. The legacy
-codebase in ``functions/`` targets the retired per-context collections and
-skips the five-segment layout on purpose.
+runner via ``ingestion.connectors.manifesto_uploads.single``.
 
-Config: firebase params (deploy-time prompts / .env.<project> files) are copied
-into os.environ before any ingestion import happens — the package freezes
+Config: firebase params (deploy-time prompts / .env.<project> files) and
+Secret Manager secrets are copied into os.environ before any ingestion import happens — the package freezes
 EMBEDDING_MODEL/DIM/COLLECTION_NAME from the environment at import time, which
 is why every ingestion import below sits inside a handler, after
 ``_export_params()``.
@@ -26,17 +24,17 @@ import os
 
 from firebase_functions import logger, storage_fn
 from firebase_functions.options import MemoryOption, SupportedRegion
-from firebase_functions.params import StringParam
+from firebase_functions.params import SecretParam, StringParam
 
 ENV = StringParam("ENV")  # "dev" or "prod"
 QDRANT_URL = StringParam("QDRANT_URL")
-QDRANT_API_KEY = StringParam("QDRANT_API_KEY")
+QDRANT_API_KEY = SecretParam("QDRANT_API_KEY")
 EMBEDDING_PROVIDER = StringParam("EMBEDDING_PROVIDER", default="")
 EMBEDDING_MODEL = StringParam("EMBEDDING_MODEL", default="")
 EMBEDDING_DIM = StringParam("EMBEDDING_DIM", default="")
-OPENAI_API_KEY = StringParam("OPENAI_API_KEY", default="")
-GOOGLE_API_KEY = StringParam("GOOGLE_API_KEY", default="")
-VERTEX_SA_JSON = StringParam("VERTEX_SA_JSON", default="")
+# Deployed embeddings go through Vertex only; the AI Studio / OpenAI key fallbacks
+# are local-development paths and deliberately not wired here.
+VERTEX_SA_JSON = SecretParam("VERTEX_SA_JSON")
 VERTEX_PROJECT_ID = StringParam("VERTEX_PROJECT_ID", default="")
 VERTEX_LOCATION = StringParam("VERTEX_LOCATION", default="")
 
@@ -47,12 +45,13 @@ _is_prod = (
     or os.getenv("GCLOUD_PROJECT", os.getenv("GCP_PROJECT", "")) == "wahl-chat"
 )
 _REGION = SupportedRegion.US_EAST1 if _is_prod else SupportedRegion.EUROPE_WEST1
+_SECRETS = [QDRANT_API_KEY, VERTEX_SA_JSON]
 
 
 def _export_params() -> None:
-    """Copy resolved params into os.environ for the ingestion package (and the
-    SDK clients that self-read, e.g. OPENAI_API_KEY). Empty values are skipped
-    so an unused optional param never shadows a real ambient variable."""
+    """Copy resolved params into os.environ for the ingestion package. Empty
+    values are skipped so an unused optional param never shadows a real ambient
+    variable."""
     for key, param in (
         ("ENV", ENV),
         ("QDRANT_URL", QDRANT_URL),
@@ -60,8 +59,6 @@ def _export_params() -> None:
         ("EMBEDDING_PROVIDER", EMBEDDING_PROVIDER),
         ("EMBEDDING_MODEL", EMBEDDING_MODEL),
         ("EMBEDDING_DIM", EMBEDDING_DIM),
-        ("OPENAI_API_KEY", OPENAI_API_KEY),
-        ("GOOGLE_API_KEY", GOOGLE_API_KEY),
         ("VERTEX_SA_JSON", VERTEX_SA_JSON),
         ("VERTEX_PROJECT_ID", VERTEX_PROJECT_ID),
         ("VERTEX_LOCATION", VERTEX_LOCATION),
@@ -118,6 +115,7 @@ def _report_or_raise(kind: str, name: str, report) -> None:  # noqa: ANN001
 
 @storage_fn.on_object_finalized(
     region=_REGION,
+    secrets=_SECRETS,
     timeout_sec=540,
     memory=MemoryOption.GB_1,
     # Bounds concurrent embedding spend when a whole election's PDFs land at
@@ -148,6 +146,7 @@ def ingest_uploaded_pdf(
 
 @storage_fn.on_object_deleted(
     region=_REGION,
+    secrets=_SECRETS,
     timeout_sec=300,
     memory=MemoryOption.MB_512,
 )
