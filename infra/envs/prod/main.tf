@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.5.0"
+  required_version = ">= 1.7.0" # import blocks with for_each
 
   required_providers {
     google = {

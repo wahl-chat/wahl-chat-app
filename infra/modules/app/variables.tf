@@ -28,20 +28,21 @@ variable "enable_apis" {
 variable "services" {
   description = "Cloud Run services to manage, keyed by service name."
   type = map(object({
-    service_account      = string
-    image                = optional(string, "us-docker.pkg.dev/cloudrun/container/hello")
-    cpu                  = optional(string, "1")
-    memory               = optional(string, "512Mi")
-    min_instances        = optional(number, 0)
-    max_instances        = optional(number, 100)
-    concurrency          = optional(number, 80)
-    timeout_seconds      = optional(number, 300)
-    startup_cpu_boost    = optional(bool, true)
-    ingress              = optional(string, "INGRESS_TRAFFIC_ALL")
-    invoker_iam_disabled = optional(bool, true)
-    health_check_path    = optional(string) # httpGet liveness path, or null for a TCP startup probe only
-    env                  = optional(map(string), {})
-    secret_env           = optional(map(string), {})
+    service_account       = string
+    image                 = optional(string, "us-docker.pkg.dev/cloudrun/container/hello")
+    cpu                   = optional(string, "1000m") # millicores: the form the API stores
+    memory                = optional(string, "512Mi")
+    min_instances         = optional(number, 0)
+    service_min_instances = optional(number, 0) # service-level floor, across all revisions
+    max_instances         = optional(number, 100)
+    concurrency           = optional(number, 80)
+    timeout_seconds       = optional(number, 300)
+    startup_cpu_boost     = optional(bool, true)
+    ingress               = optional(string, "INGRESS_TRAFFIC_ALL")
+    invoker_iam_disabled  = optional(bool, true)
+    health_check_path     = optional(string) # httpGet liveness path, or null for a TCP startup probe only
+    env                   = optional(map(string), {})
+    secret_env            = optional(map(string), {})
   }))
   default = {}
 }

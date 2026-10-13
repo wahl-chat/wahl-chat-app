@@ -85,8 +85,8 @@ secrets and the Artifact Registry repo carry `deletion_protection` / `prevent_de
 addresses look like:
 
 ```sh
-terraform import 'module.app.google_cloud_run_v2_service.svc["wahl-chat-app"]' \
-  projects/wahl-chat-dev/locations/europe-west1/services/wahl-chat-app
+terraform import 'module.app.google_cloud_run_v2_service.svc["wahl-chat-backend-dev"]' \
+  projects/wahl-chat-dev/locations/europe-west1/services/wahl-chat-backend-dev
 terraform import 'module.app.google_secret_manager_secret.s["VERTEX_SA_JSON"]' \
   projects/wahl-chat-dev/secrets/VERTEX_SA_JSON
 ```
