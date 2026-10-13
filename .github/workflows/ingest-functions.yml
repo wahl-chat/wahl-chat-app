@@ -13,14 +13,9 @@
 # QDRANT_API_KEY and VERTEX_SA_JSON must already exist in Secret Manager (a non-interactive
 # deploy cannot prompt for them).
 #
-# Auth reuses the Terraform runner SA and repository variables (see terraform.yml). On top of
-# the roles .planning/bootstrap-terraform-runner-sa.sh grants, a functions deploy needs:
-#   roles/cloudfunctions.developer   create/update the functions
-#   roles/cloudbuild.builds.editor   the functions' source build
-#   roles/eventarc.developer         the storage triggers
-#   roles/firebase.viewer            the CLI's project lookup
-#   roles/iam.securityReviewer       the CLI reads the project IAM policy to check the
-#                                    storage service agent's Pub/Sub grant
+# Auth reuses the Terraform deployer SA and repository variables (see terraform.yml); the
+# bootstrap grants it the functions-deploy roles too (Cloud Functions, Cloud Build, Eventarc,
+# and an IAM-policy read the CLI uses to check the storage service agent's Pub/Sub grant).
 
 name: ingest-functions
 
@@ -113,8 +108,8 @@ jobs:
 
       - uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ env.TARGET == 'prod' && vars.GCP_WIF_PROVIDER_PROD || vars.GCP_WIF_PROVIDER_DEV }}
-          service_account: ${{ env.TARGET == 'prod' && vars.GCP_TF_SA_PROD || vars.GCP_TF_SA_DEV }}
+          workload_identity_provider: ${{ env.TARGET == 'prod' && vars.WORKLOAD_IDENTITY_PROVIDER_PROD || vars.WORKLOAD_IDENTITY_PROVIDER_DEV }}
+          service_account: ${{ env.TARGET == 'prod' && vars.DEPLOYER_SERVICE_ACCOUNT_PROD || vars.DEPLOYER_SERVICE_ACCOUNT_DEV }}
 
       # firebase deploy runs predeploy.sh itself; the wheels are built here first only
       # because the venv the CLI loads the functions from installs them.
