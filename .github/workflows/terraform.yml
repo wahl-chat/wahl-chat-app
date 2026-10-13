@@ -5,10 +5,9 @@
 #   push to main (merge)                    -> plan, then apply WAITS for approval (environment "prod")
 #   push to any other branch                -> workflow does not run (see on.push.branches)
 #
-# Public repo: logs are world-readable and the plan file holds the prior state, so the log
-# only shows WHICH resources change (address + action), never attribute values, and the plan
-# file is handed to the apply job through the private state bucket, not a GitHub artifact.
-# Review the full diff locally: `terraform plan` in infra/envs/<env>.
+# Public repo: the plan log is world-readable, so no live service may hold a secret in a plain
+# env var (the plan would print it). The plan file holds the full prior state, so it reaches
+# the apply job through the private state bucket, not a GitHub artifact.
 #
 # The apply job applies the exact plan file produced by the plan job (state-bucket hand-off),
 # and only after a human approves it: one-time setup in Settings -> Environments ->
@@ -64,7 +63,7 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.15.8"
-          # The wrapper echoes stdout into the log; the plan output must not reach it.
+          # The wrapper only adds step outputs, which nothing here reads.
           terraform_wrapper: false
 
       - uses: google-github-actions/auth@v2
@@ -88,15 +87,7 @@ jobs:
 
       - name: plan
         # The planner can only read the state bucket, so PR plans skip the lock.
-        # stdout carries attribute values (live env vars included): discard it.
-        run: terraform plan -input=false -no-color -lock=${{ github.event_name != 'pull_request' }} -out=tfplan > /dev/null
-
-      - name: plan summary (addresses and actions only)
-        run: |
-          terraform show -json tfplan \
-            | jq -r '.resource_changes[]? | select(.change.actions != ["no-op"])
-                     | "\(.change.actions | join("/"))\t\(.address)"' \
-            | tee -a "$GITHUB_STEP_SUMMARY"
+        run: terraform plan -input=false -no-color -lock=${{ github.event_name != 'pull_request' }} -out=tfplan
 
       # Hand the exact plan to the apply job — what gets approved is what gets applied.
       - name: stash plan
@@ -119,7 +110,7 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.15.8"
-          # The wrapper echoes stdout into the log; the plan output must not reach it.
+          # The wrapper only adds step outputs, which nothing here reads.
           terraform_wrapper: false
 
       - uses: google-github-actions/auth@v2
