@@ -23,6 +23,10 @@ resource "google_cloud_run_v2_service" "svc" {
   # Existing services — imported, not created. Block accidental teardown.
   deletion_protection = true
 
+  scaling {
+    min_instance_count = each.value.service_min_instances
+  }
+
   template {
     service_account                  = each.value.service_account
     max_instance_request_concurrency = each.value.concurrency
@@ -46,6 +50,9 @@ resource "google_cloud_run_v2_service" "svc" {
           memory = each.value.memory
         }
         startup_cpu_boost = each.value.startup_cpu_boost
+        # CPU only during requests. Must be explicit once `resources` is set, else the
+        # provider sends unset and the service switches to always-allocated CPU.
+        cpu_idle = true
       }
 
       # ── Plain env vars (non-secret, reviewable) ─────────────────────────────
@@ -85,7 +92,6 @@ resource "google_cloud_run_v2_service" "svc" {
   lifecycle {
     # image: owned by the CI deploy step. client/client_version/launch_stage and the
     # gcb-* labels/annotations churn on every deploy — ignore so plans stay clean.
-    # (Refine this list against real `terraform plan` output during import.)
     ignore_changes = [
       template[0].containers[0].image,
       client,
@@ -94,6 +100,10 @@ resource "google_cloud_run_v2_service" "svc" {
       labels,
       template[0].labels,
       template[0].annotations,
+      # Set by each `gcloud run deploy` (source build, container name, revision name).
+      build_config,
+      template[0].containers[0].name,
+      template[0].revision,
     ]
   }
 
