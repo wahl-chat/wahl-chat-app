@@ -63,6 +63,20 @@ image tag (`ignore_changes = [..image..]`), Terraform owns everything else.
    separate from `gcloud auth login`).
 3. `cd envs/dev && terraform init`.
 
+## CI (GitHub Actions)
+
+`.github/workflows/terraform.yml` plans on PRs and applies merges after an environment approval.
+It authenticates through Workload Identity Federation with one of two service accounts per project:
+
+| SA                   | Who can use it                                | Can do                                    |
+|----------------------|-----------------------------------------------|-------------------------------------------|
+| `terraform-planner`  | any workflow run of this repo (PR plans)      | read the managed resources and the state  |
+| `terraform-deployer` | only runs on the project's deploy branch      | plan with lock, apply, deploy the `ingest` functions |
+
+The branch check lives in GCP (the deployer's `workloadIdentityUser` binding matches GitHub's
+`ref` claim), so editing a workflow in a PR cannot reach the deployer. Fork PRs get no token at
+all. What reaches the deploy branch is guarded by branch protection.
+
 ## Bringing existing resources under management
 
 The GCP resources already exist, so `terraform import` them rather than creating duplicates,
@@ -135,7 +149,7 @@ Job specifics worth knowing (full rationale in `envs/dev/terraform.tfvars` comme
 The basic Editor role cannot create IAM bindings (`*.setIamPolicy`). `manage_iam = false` defers
 exactly the two binding types — per-secret accessor grants and the scheduler SA's `run.invoker` on
 each job — so an editor can apply everything else; an identity that can create bindings (an owner,
-or the Terraform runner SA) applies them with `manage_iam = true`. While it is false, the
+or the Terraform deployer SA) applies them with `manage_iam = true`. While it is false, the
 runtime/scheduler identities work only if they hold project-level editor, as the default compute
 SA does.
 
