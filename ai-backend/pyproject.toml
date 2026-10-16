@@ -24,11 +24,11 @@ dependencies = [
     # Used directly by firebase_service.py (google.auth for ADC + ID tokens);
     # declared so it can't disappear on a firebase-admin upgrade.
     "google-auth>=2.53.0",
-    "langchain>=1.3.4",
-    "langchain-core>=1.4.0",
-    "langchain-google-genai>=4.2.0",
-    "langchain-openai>=1.2.0",
-    "openai>=2.41.0",
+    "langchain>=1.4.4",
+    "langchain-core>=1.6.9",
+    "langchain-google-genai>=4.4.0",
+    "langchain-openai>=1.7.0",
+    "openai>=2.45.0",
     "pydantic>=2.10.0,<3.0",
     "python-dotenv>=1.0.1,<2.0",
     "pyyaml>=6.0.2",

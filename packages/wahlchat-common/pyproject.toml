@@ -16,12 +16,12 @@ requires-python = ">=3.12,<3.13"
 # that way — a heavy dependency added for one consumer lands in every image.
 dependencies = [
     "google-auth>=2.53.0",
-    "langchain-core>=1.4.0",
+    "langchain-core>=1.6.9",
     # PledgeRecord is shared: ingestion writes it, the chat service reads it.
     # pydantic is already a direct dependency of both consumers.
     "pydantic>=2.10.0,<3.0",
-    "langchain-google-genai>=4.2.0",
-    "langchain-openai>=1.2.0",
+    "langchain-google-genai>=4.4.0",
+    "langchain-openai>=1.7.0",
     # qdrant-client tracks Qdrant server minor 1.18.x (pin held for index parity)
     "qdrant-client>=1.18.0,<1.19",
 ]
