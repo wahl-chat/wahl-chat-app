@@ -1,13 +1,12 @@
-import { isCloseVote, voteTotals } from '@/lib/daily/hemicycle';
-import { STAMP_COLORS } from '@/lib/daily/palette';
+import type { VoteItem } from '@/lib/daily/items';
 import type { DigestVote } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
-import { VoteIcon } from 'lucide-react';
-import { CARD_INTERACTIVE, MUTED_TEXT } from './card-styles';
-import { Hemicycle, VoteTally } from './hemicycle';
-import TopicChip from './topic-chip';
+import { CheckIcon, ChevronRightIcon, XIcon } from 'lucide-react';
+import { CARD_SURFACE, FOCUS_RING } from './card-styles';
+import { Hemicycle, SeatLegend, VoteGauge } from './hemicycle';
+import InterestFeedback from './interest-feedback';
+import { TopicMeta } from './topic-chip';
 
-/** Rubber-stamp look: double frame in the outcome colour, slightly askew. */
 export function OutcomeBadge({
   outcome,
   className,
@@ -18,80 +17,84 @@ export function OutcomeBadge({
   if (!outcome) {
     return null;
   }
-  const color = STAMP_COLORS[outcome];
+  const passed = outcome === 'angenommen';
+  const Icon = passed ? CheckIcon : XIcon;
   return (
     <span
       className={cn(
-        '-rotate-3 rounded-[3px] border-4 border-double bg-[var(--daily-surface)] px-2 py-0.5 font-display text-sm font-black uppercase tracking-[0.12em] opacity-95',
+        'inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold',
+        passed
+          ? 'bg-[var(--daily-yes-bg)] text-[var(--daily-yes)]'
+          : 'bg-[var(--daily-no-bg)] text-[var(--daily-no)]',
         className,
       )}
-      style={{ borderColor: color, color }}
     >
-      {outcome === 'angenommen' ? 'Angenommen' : 'Abgelehnt'}
+      <Icon className="size-3.5" strokeWidth={3} aria-hidden />
+      {passed ? 'Angenommen' : 'Abgelehnt'}
     </span>
   );
 }
 
-export function CloseVoteSticker({ className }: { className?: string }) {
-  return (
-    <span
-      className={cn(
-        'rotate-2 border-2 border-[#1A1A1A] px-1.5 py-0.5 text-[11px] font-black uppercase tracking-wider text-[#1A1A1A] shadow-[2px_2px_0_0_#1A1A1A]',
-        className,
-      )}
-      style={{ backgroundColor: STAMP_COLORS.close }}
-    >
-      Knapp!
-    </span>
-  );
-}
-
-export function VoteTotalsLine({ vote }: { vote: DigestVote }) {
-  const totals = voteTotals(vote.parties);
-  return (
-    <p className={cn('text-xs font-medium tabular-nums', MUTED_TEXT)}>
-      {totals.yes} Ja · {totals.no} Nein · {totals.abstain} Enthalten ·{' '}
-      {totals.absent} Abwesend
-    </p>
-  );
-}
-
-type Props = {
-  vote: DigestVote;
+/** "Mehr erfahren ›": the whole card opens the detail, this is its label. */
+export function MoreLink({
+  onOpen,
+  label,
+}: {
   onOpen: () => void;
-};
-
-function VoteCard({ vote, onOpen }: Props) {
-  const close = isCloseVote(vote.parties);
+  label: string;
+}) {
   return (
     <button
       type="button"
       onClick={onOpen}
-      className={cn(CARD_INTERACTIVE, 'relative flex h-full w-full flex-col')}
+      aria-label={`Mehr erfahren: ${label}`}
+      className={cn(
+        FOCUS_RING,
+        'flex min-h-10 shrink-0 items-center gap-1 rounded-md text-[15px] font-semibold',
+      )}
     >
-      {/* Same masthead strip as the plenary card; the stamps sit on top of it. */}
-      <div className="flex items-center gap-1.5 rounded-t-[4px] bg-[var(--daily-ink)] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--daily-canvas)]">
-        <VoteIcon className="size-3.5" />
-        Abstimmung
-      </div>
-      <div className="absolute -top-3.5 right-3 flex items-start gap-2">
-        {close && <CloseVoteSticker className="mt-1" />}
+      Mehr erfahren <ChevronRightIcon className="size-4" aria-hidden />
+    </button>
+  );
+}
+
+type Props = {
+  item: VoteItem;
+  onOpen: () => void;
+  /** "Passende Abstimmung": no chart, only the score. */
+  compact?: boolean;
+};
+
+function VoteCard({ item, onOpen, compact = false }: Props) {
+  const { vote } = item;
+  return (
+    <article
+      data-item-key={item.key}
+      className={cn(CARD_SURFACE, 'flex flex-col gap-3 p-4')}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <TopicMeta topics={vote.topics} short />
         <OutcomeBadge outcome={vote.outcome} />
       </div>
-      <div className="flex flex-col gap-3 p-5">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {vote.topics.map((topic) => (
-            <TopicChip key={topic} topic={topic} />
-          ))}
+      <h3 className="hyphens-auto break-words text-[19px] font-bold leading-snug">
+        {vote.short_title}
+      </h3>
+      {compact ? (
+        <div className="flex items-end justify-between gap-3">
+          <VoteGauge parties={vote.parties} />
+          <MoreLink onOpen={onOpen} label={vote.short_title} />
         </div>
-        <h4 className="font-display text-xl font-extrabold leading-tight">
-          {vote.short_title}
-        </h4>
-        <Hemicycle parties={vote.parties} className="mx-auto max-w-96" />
-        <VoteTally parties={vote.parties} />
-        <VoteTotalsLine vote={vote} />
-      </div>
-    </button>
+      ) : (
+        <>
+          <Hemicycle parties={vote.parties} className="mx-auto max-w-sm" />
+          <SeatLegend parties={vote.parties} />
+          <div className="flex items-center gap-2 border-t border-[var(--daily-border)] pt-3">
+            <MoreLink onOpen={onOpen} label={vote.short_title} />
+            <InterestFeedback itemKey={item.key} grouped className="flex-1" />
+          </div>
+        </>
+      )}
+    </article>
   );
 }
 

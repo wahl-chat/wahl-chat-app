@@ -14,8 +14,10 @@ from src.daily_digest.builder import (
     session_from_draft,
     vote_description,
 )
+from src.daily_digest.models import DigestSessionSection
 from src.daily_digest.parliaments import PARLIAMENTS, PartyDisplay
 from src.daily_digest.prompts import (
+    OpeningQuoteDraft,
     PartyPositionDraft,
     SessionSectionDraft,
     SessionSummaryDraft,
@@ -108,6 +110,14 @@ class FakeLLM:
                         ],
                         short_title=f"Kurz {ref}",
                         summary="Ein Satz.",
+                        suggested_questions=[
+                            "Was heißt das für mich?",
+                            " ",
+                            "Was heißt das für mich?",
+                            "Wer war dagegen?",
+                            "Was kostet das?",
+                            "Eine vierte?",
+                        ],
                     )
                     for ref in refs
                 ]
@@ -352,3 +362,110 @@ def test_positions_merge_parties_that_share_a_fraktion() -> None:
     assert position.party_name == "CDU/CSU"
     assert position.position == "Dafür."
     assert [s.name for s in position.speakers] == ["Anna", "Bernd"]
+
+
+def _section_draft(**overrides: Any) -> SessionSummaryDraft:
+    fields: dict[str, Any] = {
+        "topic": "housing_rent",
+        "headline": "Mehr Wohnungen",
+        "summary": "Es ging um Wohnungsbau.",
+        "agenda_refs": ["A1"],
+    }
+    fields.update(overrides)
+    return SessionSummaryDraft(
+        sections=[SessionSectionDraft(**fields)], other_topics=[]
+    )
+
+
+def _one_section(draft: SessionSummaryDraft) -> DigestSessionSection:
+    sitting = _sitting_days()[date(2026, 9, 24)]
+    session = session_from_draft(
+        draft, {"A1": sitting.agenda_items[0]}, sitting, DISPLAY
+    )
+    return session.sections[0]
+
+
+def test_opening_quote_is_kept_only_when_it_is_verbatim() -> None:
+    section = _one_section(
+        _section_draft(
+            opening_quote=OpeningQuoteDraft(
+                speaker="anna", quote="„Wir brauchen  mehr Wohnungen.“"
+            )
+        )
+    )
+    assert section.opening_quote is not None
+    assert section.opening_quote.text == "Wir brauchen mehr Wohnungen."
+    assert section.opening_quote.speaker == "Anna"
+    assert section.opening_quote.party_name == "SPD"
+
+    paraphrase = _one_section(
+        _section_draft(
+            opening_quote=OpeningQuoteDraft(
+                speaker="Anna", quote="Wir müssen viel mehr bauen."
+            )
+        )
+    )
+    assert paraphrase.opening_quote is None
+
+    wrong_speaker = _one_section(
+        _section_draft(
+            opening_quote=OpeningQuoteDraft(
+                speaker="Bernd", quote="Wir brauchen mehr Wohnungen."
+            )
+        )
+    )
+    assert wrong_speaker.opening_quote is None
+
+
+def test_heat_is_clamped_and_key_points_need_exactly_three() -> None:
+    hot = _one_section(_section_draft(heat=9, key_points=["a", "b", "c"]))
+    assert hot.heat == 5
+    assert hot.key_points == ["a", "b", "c"]
+
+    cold = _one_section(_section_draft(heat=0, key_points=["a", "b"]))
+    assert cold.heat == 1
+    assert cold.key_points == []
+
+    assert _one_section(_section_draft()).heat is None
+
+
+def test_debate_minutes_are_estimated_from_the_speech_text() -> None:
+    # Four words of speech round up to the one-minute floor.
+    assert _one_section(_section_draft()).debate_minutes == 1
+
+
+def test_suggested_questions_are_deduplicated_and_capped(fake_llm: FakeLLM) -> None:
+    digests, _ = _build(fake_llm)
+    assert digests[0].votes[0].suggested_questions == [
+        "Was heißt das für mich?",
+        "Wer war dagegen?",
+        "Was kostet das?",
+    ]
+
+
+def test_opening_quote_matches_a_speaker_copied_with_the_party_suffix() -> None:
+    # The excerpts read "Anna (spd): …"; the model copies that format.
+    section = _one_section(
+        _section_draft(
+            opening_quote=OpeningQuoteDraft(
+                speaker="Anna (spd)", quote="Wir brauchen mehr Wohnungen."
+            )
+        )
+    )
+    assert section.opening_quote is not None
+    assert section.opening_quote.speaker == "Anna"
+
+
+def test_opening_quote_too_long_for_a_card_is_dropped() -> None:
+    section = _one_section(
+        _section_draft(
+            opening_quote=OpeningQuoteDraft(
+                speaker="Anna", quote=" ".join(["Wohnungen"] * 41)
+            )
+        )
+    )
+    assert section.opening_quote is None
+
+
+def test_sections_record_the_fraktion_that_opened_the_debate() -> None:
+    assert _one_section(_section_draft()).opened_by == "spd"

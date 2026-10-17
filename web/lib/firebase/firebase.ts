@@ -283,6 +283,22 @@ export async function appendStudyParticipantEvent(
   );
 }
 
+export type FeedInterest = 'yes' | 'no';
+
+/** One answer per user and feed item; a changed mind overwrites it. */
+export async function setFeedInterest(
+  uid: string,
+  itemId: string,
+  value: FeedInterest,
+) {
+  await setDoc(doc(db, 'feed_interest', `${uid}_${itemId}`), {
+    user_id: uid,
+    item_id: itemId,
+    value,
+    at: serverTimestamp(),
+  });
+}
+
 export async function getChatSession(sessionId: string) {
   const session = await getDoc(doc(db, 'chat_sessions', sessionId));
   return {

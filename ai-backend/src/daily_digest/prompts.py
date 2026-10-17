@@ -6,12 +6,20 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 from src.daily_digest.topics import DigestTopic, topic_legend
 
 # Part of every digest's input_hash: bumping it regenerates all stored days.
-PROMPT_VERSION = "4"
+PROMPT_VERSION = "6"
+
+
+_QUESTIONS_DESCRIPTION = (
+    "Genau 3 kurze Fragen (höchstens 8 Wörter) aus Sicht einer Bürgerin, "
+    "die man dazu stellen würde, z. B. 'Was heißt das für mich?'."
+)
 
 
 class VoteEnrichment(BaseModel):
@@ -23,7 +31,10 @@ class VoteEnrichment(BaseModel):
         description="Verständlicher Titel, höchstens 12 Wörter, ohne Drucksachennummern."
     )
     summary: str = Field(
-        description="Ein neutraler Satz: worüber wurde abgestimmt und was bedeutet es."
+        description="Höchstens 2 neutrale Sätze: worüber wurde abgestimmt und was ändert sich."
+    )
+    suggested_questions: list[str] = Field(
+        default_factory=list, description=_QUESTIONS_DESCRIPTION
     )
 
 
@@ -46,6 +57,15 @@ class PartyPositionDraft(BaseModel):
     )
 
 
+class OpeningQuoteDraft(BaseModel):
+    speaker: str = Field(
+        description="Nur der Name der ersten Redner:in, ohne Partei, genau wie in den Auszügen."
+    )
+    quote: str = Field(
+        description="Ein kurzer, wörtlich übernommener Kernsatz (höchstens 25 Wörter) aus dieser ersten Rede, unverändert."
+    )
+
+
 class SessionSectionDraft(BaseModel):
     topic: DigestTopic
     headline: str = Field(description="Kurze Überschrift, höchstens 10 Wörter.")
@@ -58,6 +78,24 @@ class SessionSectionDraft(BaseModel):
     )
     agenda_refs: list[str] = Field(
         description="Kennungen der zugrunde liegenden Tagesordnungspunkte, z. B. ['A2', 'A5']."
+    )
+    key_points: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Genau 3 Stichpunkte, je ein kurzer Satz: was vorgelegt wurde, "
+            "worüber am meisten gestritten wurde, wie es weitergeht."
+        ),
+    )
+    heat: Optional[int] = Field(
+        None,
+        description=(
+            "Hitzigkeit 1 bis 5 IM VERGLEICH zu den anderen Abschnitten dieser "
+            "Sitzung: der hitzigste Abschnitt bekommt 5."
+        ),
+    )
+    opening_quote: Optional[OpeningQuoteDraft] = None
+    suggested_questions: list[str] = Field(
+        default_factory=list, description=_QUESTIONS_DESCRIPTION
     )
 
 
@@ -76,8 +114,9 @@ Ordne jeder Abstimmung 1 bis 2 Themen aus dieser Liste zu (nur die Schlüssel \
 verwenden; 'other' nur, wenn nichts passt):
 {topics}
 
-Formuliere außerdem einen verständlichen Kurztitel und einen neutralen Satz, \
-worum es geht. Keine Wertung, keine Empfehlung, keine Spekulation über Motive. \
+Formuliere außerdem einen verständlichen Kurztitel, höchstens zwei neutrale \
+Sätze, worum es geht, und drei kurze Fragen, die Bürgerinnen und Bürger dazu \
+stellen würden. Keine Wertung, keine Empfehlung, keine Spekulation über Motive. \
 Gib für JEDE Abstimmung genau einen Eintrag mit ihrer Kennung zurück.
 
 Abstimmungen:
@@ -106,6 +145,15 @@ exakt so übernehmen, wie sie in den Auszügen stehen.
 - Der Positionssatz steht direkt hinter dem Parteinamen: ohne Subjekt, mit \
 dem Verb im Plural ("Wenden sich gegen …", "Fordern …", "Begrüßen …"), nicht \
 "Die Fraktion kritisierte …".
+- key_points: genau drei kurze Sätze (was vorgelegt wurde, worüber am meisten \
+gestritten wurde, wie es weitergeht).
+- heat: vergleiche die Abschnitte DIESER Sitzung miteinander (Zwischenrufe, \
+Schärfe, gegensätzliche Positionen). Der hitzigste bekommt 5, die anderen \
+entsprechend weniger. Keine absolute Skala.
+- opening_quote: ein kurzer wörtlicher Satz (höchstens 25 Wörter) aus der \
+ersten Rede des Abschnitts, Zeichen für Zeichen aus dem Auszug kopiert; als \
+speaker nur den Namen, ohne die Partei in Klammern.
+- suggested_questions: drei kurze Fragen aus Sicht von Bürgerinnen und Bürgern.
 - Kleinere Punkte ohne eigenen Abschnitt als kurze Stichworte in other_topics.
 - Die Kennungen (A1, A2, …) gehören NUR in agenda_refs, nie in Überschriften, \
 Zusammenfassungen oder other_topics.

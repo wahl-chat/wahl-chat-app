@@ -1,0 +1,3114 @@
+[
+  {
+    "id": "bundestag_2026-07-10",
+    "parliament": "bundestag",
+    "parliament_name": "Bundestag",
+    "region": "DE",
+    "date": "2026-07-10",
+    "votes": [
+      {
+        "poll_id": 6601,
+        "title": "GKV-Reform",
+        "short_title": "Reform zur Stabilisierung der gesetzlichen Krankenversicherungsbeiträge",
+        "summary": "Das Gesetz soll die Finanzen der gesetzlichen Krankenversicherung durch Einsparungen bei Leistungserbringern und Verwaltung entlasten. Zudem werden Zuzahlungen für Versicherte angepasst, um drohende Beitragserhöhungen zu begrenzen.",
+        "description": "In der letzten Sitzungswoche vor der Sommerpause hat der Bundestag über das GKV-Beitragssatzstabilisierungsgesetz abgestimmt. Ziel des Gesetzes ist es, die Finanzlage der gesetzlichen Krankenversicherung (GKV) zu verbessern und einen weiteren Anstieg der Krankenkassenbeiträge zu begrenzen. Nach Angaben der Bundesregierung droht der GKV ab 2027 eine Finanzierungslücke von mehr als 15 Milliarden Euro. Zur Stabilisierung der Beiträge sieht das Gesetz Einsparungen bei Krankenhäusern, Arztpraxen und Arzneimitteln vor. Außerdem sollen die Verwaltungsausgaben der Krankenkassen begrenzt und der Bund stärker an den Gesundheitskosten von Bürgergeldempfänger:innen beteiligt werden. Für Versicherte gibt es ebenfalls Änderungen: Die beitragsfreie Familienversicherung für Ehe- und Lebenspartner:innen wird in bestimmten Fällen eingeschränkt, Zuzahlungen werden erhöht und Zuschüsse beim Zahnersatz reduziert. Mit diesen Maßnahmen sollen die gesetzlichen Krankenkassen in den kommenden Jahren finanziell entlastet werden. In einer entsprechenden Beschlussempfehlung des Gesundheitsausschusses wird die Annahme des Gesetzentwurfes mit umfassenden Änderungen empfohlen. Außerdem hat der Haushaltssausschuss zu dem Gesetzentwurf der Bundesregierung einen Bericht zur Finanzierbarkeit vorgelegt. Das GKV-Beitragsstabilisierungsgesetz wurde in der vom Gesundheitsausschuss geänderten Fassung mit 318 Ja-Stimmen angenommen . …",
+        "topics": [
+          "health_care",
+          "economy_finance"
+        ],
+        "outcome": "angenommen",
+        "citation_url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/gkv-reform",
+        "parties": [
+          {
+            "party_id": "afd",
+            "name": "AfD",
+            "color": "#019EE0",
+            "yes": 0,
+            "no": 141,
+            "abstain": 0,
+            "no_show": 9
+          },
+          {
+            "party_id": "cdu",
+            "name": "CDU/CSU",
+            "color": "#52B7C1",
+            "yes": 207,
+            "no": 1,
+            "abstain": 0,
+            "no_show": 0
+          },
+          {
+            "party_id": "fraktionslos",
+            "name": "Fraktionslos",
+            "color": "#9CA3AF",
+            "yes": 0,
+            "no": 2,
+            "abstain": 0,
+            "no_show": 1
+          },
+          {
+            "party_id": "gruene",
+            "name": "Die Grünen",
+            "color": "#005438",
+            "yes": 0,
+            "no": 81,
+            "abstain": 0,
+            "no_show": 4
+          },
+          {
+            "party_id": "linke",
+            "name": "Die Linke",
+            "color": "#FF0000",
+            "yes": 0,
+            "no": 56,
+            "abstain": 0,
+            "no_show": 8
+          },
+          {
+            "party_id": "spd",
+            "name": "SPD",
+            "color": "#E4001B",
+            "yes": 111,
+            "no": 3,
+            "abstain": 4,
+            "no_show": 2
+          }
+        ],
+        "suggested_questions": [
+          "Wie ändern sich meine Beiträge?",
+          "Was kosten Arztbesuche künftig?",
+          "Gilt das für alle Versicherten?"
+        ]
+      },
+      {
+        "poll_id": 6605,
+        "title": "Gebäudemodernisierungsgesetz",
+        "short_title": "Anpassung der Vorgaben für neue Heizungssysteme",
+        "summary": "Die verpflichtende Nutzung von 65 Prozent erneuerbarer Energien für neue Heizungen entfällt. Eigentümer können wieder frei zwischen verschiedenen Heizsystemen wählen, müssen jedoch eine schrittweise Umstellung auf klimafreundlichere Brennstoffe beachten.",
+        "description": "Der Bundestag hat über das Gebäudemodernisierungsgesetz abgestimmt. Mit dem Gesetz werden zentrale Regelungen des bisherigen Heizungsgesetzes (Gebäudeenergiegesetz) geändert. Die bisherige Pflicht, dass neue Heizungen zu mindestens 65 Prozent mit erneuerbaren Energien betrieben werden müssen, entfällt. Stattdessen können Eigentümer:innen künftig selbst entscheiden, ob sie beispielsweise eine Wärmepumpe, eine Gasheizung, eine Ölheizung oder andere Heizsysteme einbauen. Neue Gas- und Ölheizungen müssen jedoch künftig schrittweise mit klimafreundlicheren Brennstoffen betrieben werden. Außerdem werden die kommunale Wärmeplanung sowie die staatliche Förderung für den Einbau klimafreundlicher Heizungen und für energetische Sanierungen fortgeführt. Bei der namentlichen Abstimmung stimmten 323 Abgeordnete für den Gesetzentwurf der Bundesregierung, 271 dagegen. Es gab keine Enthaltungen.",
+        "topics": [
+          "climate_environment",
+          "housing_rent"
+        ],
+        "outcome": "angenommen",
+        "citation_url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/gebaeudemodernisierungsgesetz",
+        "parties": [
+          {
+            "party_id": "afd",
+            "name": "AfD",
+            "color": "#019EE0",
+            "yes": 0,
+            "no": 136,
+            "abstain": 0,
+            "no_show": 14
+          },
+          {
+            "party_id": "cdu",
+            "name": "CDU/CSU",
+            "color": "#52B7C1",
+            "yes": 207,
+            "no": 0,
+            "abstain": 0,
+            "no_show": 1
+          },
+          {
+            "party_id": "fraktionslos",
+            "name": "Fraktionslos",
+            "color": "#9CA3AF",
+            "yes": 0,
+            "no": 2,
+            "abstain": 0,
+            "no_show": 1
+          },
+          {
+            "party_id": "gruene",
+            "name": "Die Grünen",
+            "color": "#005438",
+            "yes": 0,
+            "no": 79,
+            "abstain": 0,
+            "no_show": 6
+          },
+          {
+            "party_id": "linke",
+            "name": "Die Linke",
+            "color": "#FF0000",
+            "yes": 0,
+            "no": 54,
+            "abstain": 0,
+            "no_show": 10
+          },
+          {
+            "party_id": "spd",
+            "name": "SPD",
+            "color": "#E4001B",
+            "yes": 116,
+            "no": 0,
+            "abstain": 0,
+            "no_show": 4
+          }
+        ],
+        "suggested_questions": [
+          "Welche Heizung darf ich einbauen?",
+          "Ändern sich meine Förderchancen?",
+          "Was passiert mit alten Anlagen?"
+        ]
+      },
+      {
+        "poll_id": 6606,
+        "title": "Sportfördergesetz",
+        "short_title": "Neuregelung der staatlichen Spitzensportförderung",
+        "summary": "Durch die Gründung einer unabhängigen Agentur wird die staatliche Förderung des Spitzensports neu strukturiert. Ziel ist es, die Vergabe von Finanzmitteln transparenter und effizienter zu gestalten.",
+        "description": "Der Bundestag hat über das Sportfördergesetz abgestimmt. Mit dem Gesetz wird die Förderung des Spitzensports in Deutschland erstmals in einem eigenen Gesetz geregelt. Ziel ist es, die Sportförderung transparenter, effizienter und weniger bürokratisch zu gestalten sowie Athlet:innen gezielter zu unterstützen. Kern des Gesetzes ist die Gründung einer unabhängigen Spitzensport-Agentur. Sie soll künftig die Fördermittel des Bundes vergeben und die sportfachliche Steuerung der Spitzensportförderung übernehmen. Zudem sollen die Förderungen stärker an den Bedürfnissen der Athlet:innen sowie an sportlichem Potenzial und Leistung ausgerichtet werden. Der Gesetzentwurf wurde in einer vom Ausschuss für Sport und Ehrenamt geänderten Fassung mit 519 Ja-Stimmen bei 43 Nein-Stimmen angenommen . Es gab keine Enthaltungen.",
+        "topics": [
+          "other"
+        ],
+        "outcome": "angenommen",
+        "citation_url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/sportfoerdergesetz",
+        "parties": [
+          {
+            "party_id": "afd",
+            "name": "AfD",
+            "color": "#019EE0",
+            "yes": 124,
+            "no": 0,
+            "abstain": 0,
+            "no_show": 26
+          },
+          {
+            "party_id": "cdu",
+            "name": "CDU/CSU",
+            "color": "#52B7C1",
+            "yes": 202,
+            "no": 0,
+            "abstain": 0,
+            "no_show": 6
+          },
+          {
+            "party_id": "fraktionslos",
+            "name": "Fraktionslos",
+            "color": "#9CA3AF",
+            "yes": 2,
+            "no": 0,
+            "abstain": 0,
+            "no_show": 1
+          },
+          {
+            "party_id": "gruene",
+            "name": "Die Grünen",
+            "color": "#005438",
+            "yes": 76,
+            "no": 0,
+            "abstain": 0,
+            "no_show": 9
+          },
+          {
+            "party_id": "linke",
+            "name": "Die Linke",
+            "color": "#FF0000",
+            "yes": 0,
+            "no": 43,
+            "abstain": 0,
+            "no_show": 21
+          },
+          {
+            "party_id": "spd",
+            "name": "SPD",
+            "color": "#E4001B",
+            "yes": 115,
+            "no": 0,
+            "abstain": 0,
+            "no_show": 5
+          }
+        ],
+        "suggested_questions": [
+          "Wie profitieren Athleten davon?",
+          "Wer steuert die neue Agentur?",
+          "Ändert sich die Sportförderung grundlegend?"
+        ]
+      }
+    ],
+    "session": {
+      "protocols": [
+        {
+          "protocol_id": "21/90",
+          "pdf_url": "https://dserver.bundestag.de/btp/21/21090.pdf"
+        }
+      ],
+      "sections": [
+        {
+          "topic": "health_care",
+          "headline": "Streit um Krankenkassenbeiträge und Neuregelungen bei Krankschreibungen",
+          "summary": "Das Parlament verhandelte über das GKV-Beitragssatzstabilisierungsgesetz zur Bewältigung des Milliardendefizits in der gesetzlichen Krankenversicherung. Zudem debattierte der Bundestag in einer Aktuellen Stunde über die geplante Abschaffung der telefonischen Krankschreibung.",
+          "positions": [
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Dagmar Schmidt",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=8",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655738/7655738_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655738/7655738_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Christos Pantazis",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=24",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655749/7655749_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655749/7655749_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Lina Seitzl",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=15",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655743/7655743_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655743/7655743_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Verteidigen die Maßnahmen als notwendigen Schritt zur Verlässlichkeit und finanziellen Konsolidierung der Krankenversicherung."
+            },
+            {
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "speakers": [
+                {
+                  "name": "Britta Haßelmann",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=9",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655739/7655739_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655739/7655739_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Janosch Dahmen",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=17",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655744/7655744_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655744/7655744_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Felix Banaszak",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=128",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655865/7655865_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655865/7655865_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Ricarda Lang",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=117",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655856/7655856_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655856/7655856_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Omid Nouripour",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655863/7655863_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655863/7655863_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Kritisieren eine soziale Kälte, Belastungen für Beitragszahlende sowie Generalverdacht gegen Arbeitnehmer durch Wegfall der telefonischen Krankschreibung."
+            },
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Nina Warken",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=12",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655741/7655741_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655741/7655741_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Simone Borchardt",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=119",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655857/7655857_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655857/7655857_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Befürworten den eingeleiteten Paradigmenwechsel im Gesundheitswesen und die Rückkehr zu verlässlichen Normalzuständen bei Krankschreibungen."
+            },
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "Ates Gürpinar",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=19",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655745/7655745_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655745/7655745_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Julia-Christina Stange",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=123",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655861/7655861_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655861/7655861_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Warnen vor den negativen Folgen für Betroffene sowie Pflegekräfte und wenden sich gegen Kontrollwahn und Misstrauen."
+            },
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Martin Sichert",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=120",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655858/7655858_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655858/7655858_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Hans-Jürgen Goßner",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=130",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655867/7655867_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655867/7655867_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Peter Bohnhof",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=127",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655864/7655864_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655864/7655864_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Lehnen das Gesetz ab und warnen vor Überlastung der Arztpraxen sowie Grundlos-Schuldzuweisungen an Arbeitnehmer."
+            }
+          ],
+          "agenda_items": [
+            "GKV-Beitragssatzstabilisierungsgesetz",
+            "Aktuelle Stunde: Verschärfungen bei Krankschreibungen"
+          ],
+          "citations": [
+            {
+              "title": "Dagmar Schmidt, 2026-07-10 (Video, Tagesordnungspunkt 22)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655738/7655738_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Dagmar Schmidt",
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655738/7655738_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Britta Haßelmann, 2026-07-10 (Video, Tagesordnungspunkt 22)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655739/7655739_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Britta Haßelmann",
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655739/7655739_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Nina Warken, 2026-07-10 (Video, Tagesordnungspunkt 22)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655741/7655741_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Nina Warken",
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655741/7655741_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655738/7655738_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Vorgelegt wurde ein Gesetz zur Bewältigung des Milliarden-Defizits der GKV sowie Vorschläge zur Einschränkung der telefonischen Krankschreibung.",
+            "Heftig umstritten waren Belastungen für Versicherte, drohende Beitragssteigerungen und das Misstrauen gegenüber kranken Beschäftigten.",
+            "Das Gesetz wurde nach langen Ausschussberatungen zur Beschlussfassung eingebracht."
+          ],
+          "heat": 5,
+          "debate_minutes": 176,
+          "opening_quote": {
+            "text": "Dieses Gesetz löst ein Problem, mit dem sich alle, egal wer regiert, beschäftigen müssten: nämlich ein Defizit in der gesetzlichen Krankenversicherung von 18,5 Milliarden Euro.",
+            "speaker": "Dagmar Schmidt",
+            "party_id": "spd",
+            "party_name": "SPD"
+          },
+          "opened_by": "spd",
+          "suggested_questions": [
+            "Steigen meine Krankenkassenbeiträge jetzt weiter an?",
+            "Muss ich künftig am ersten Krankheitstag zum Arzt?",
+            "Wie werden Arztpraxen vor Überlastung geschützt?"
+          ]
+        },
+        {
+          "topic": "climate_environment",
+          "headline": "Neues Gebäudemodernisierungsgesetz löst bisherige Heizungsregeln ab",
+          "summary": "Im Mittelpunkt stand die Novellierung des Gebäudeenergiegesetzes hin zu einem neuen Gebäudemodernisierungsgesetz. Die Abgeordneten diskutierten über Wahlfreiheit beim Heizungskauf, den Ausstieg aus fossilen Energien und die Umsetzung europäischer Vorgaben.",
+          "positions": [
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Lars Rohwer",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=72",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655791/7655791_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655791/7655791_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Sepp Müller",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=56",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655781/7655781_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655781/7655781_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Andreas Lenz",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=70",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655788/7655788_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655788/7655788_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Begrüßen die neue Wahlfreiheit beim Heizungstausch und die jährliche Entlastung von Bürgern und Wirtschaft."
+            },
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Helmut Kleebank",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=63",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655784/7655784_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655784/7655784_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Betonen die Notwendigkeit des Neustarts der Wärmewende zur Senkung der CO2-Emissionen und Importabhängigkeiten."
+            },
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "Bodo Ramelow",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655783/7655783_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655783/7655783_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Jörg Cezanne",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=69",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655787/7655787_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655787/7655787_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Warnen vor dramatischen Kostenfallen durch weiter genutzte Öl- und Gasheizungen."
+            },
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Malte Kaufmann",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=71",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655789/7655789_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655789/7655789_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Bezeichnen den Entwurf als weiteren Eingriff in die Freiheit der Bürger unter neuem Gewand."
+            },
+            {
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "speakers": [
+                {
+                  "name": "Julia Verlinden",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=68",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655786/7655786_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655786/7655786_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Kritisieren das Gesetz als Versäumnis beim Klimaschutz, welches Deutschland weiter von fossilen Importen abhängig mache."
+            }
+          ],
+          "agenda_items": [
+            "Gebäudeenergiegesetz"
+          ],
+          "citations": [
+            {
+              "title": "Lars Rohwer, 2026-07-10 (Video, Zusatzpunkt 28)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655791/7655791_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Lars Rohwer",
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655791/7655791_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Helmut Kleebank, 2026-07-10 (Video, Zusatzpunkt 28)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655784/7655784_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Helmut Kleebank",
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655784/7655784_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Andreas Lenz, 2026-07-10 (Video, Zusatzpunkt 28)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655788/7655788_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Andreas Lenz",
+              "party_id": "csu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655788/7655788_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655791/7655791_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Vorgelegt wurde das Gebäudemodernisierungsgesetz zur Umsetzung der EU-Gebäuderichtlinie und Neuausrichtung der Wärmewende.",
+            "Heftig gestritten wurde über Vorwürfe der Kostenfalle beim Einbau fossiler Heizungen im Vergleich zur Bezahlbarkeit und Technologieoffenheit.",
+            "Der Gesetzentwurf stand nach Parlamentsberatungen zur Abstimmung."
+          ],
+          "heat": 4,
+          "debate_minutes": 60,
+          "opening_quote": {
+            "text": "Wir tun heute mit einer einzigen Abstimmung drei Dinge.",
+            "speaker": "Lars Rohwer",
+            "party_id": "cdu",
+            "party_name": "CDU/CSU"
+          },
+          "opened_by": "cdu",
+          "suggested_questions": [
+            "Welche Heizung darf ich künftig einbauen?",
+            "Entstehen durch neue Regeln zusätzliche Kosten für mich?",
+            "Wie werden die Klimaziele im Gebäudesektor erreicht?"
+          ]
+        },
+        {
+          "topic": "security_justice",
+          "headline": "Neuausrichtung und Modernisierung des Bundespolizeigesetzes",
+          "summary": "Der Bundestag beriet über die Reform des Bundespolizeigesetzes nach mehr als 30 Jahren. Es ging um neue Befugnisse zur Kriminalitätsbekämpfung, den Einsatz moderner Technologien und den Schutz von Grundrechten.",
+          "positions": [
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Alexander Throm",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=101",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655834/7655834_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655834/7655834_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Josef Oster",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=108",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655842/7655842_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655842/7655842_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Alexander Dobrindt",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=106",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655839/7655839_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655839/7655839_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Befürworten moderne Ermittlungsinstrumente und verlangen mehr Unterstützung für die Sicherheitskräfte."
+            },
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Christopher Drößler",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=102",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655835/7655835_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655835/7655835_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Verweisen auf veränderte Bedrohungslagen im Land und fordern harte Maßnahmen gegen Kriminalität."
+            },
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Sebastian Fiedler",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=103",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655836/7655836_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655836/7655836_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Ingo Vogel",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=107",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655840/7655840_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655840/7655840_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Stellen sich an die Seite der Einsatzkräfte und heben den Schutz vor Kriminalität an Bahnhöfen hervor."
+            },
+            {
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "speakers": [
+                {
+                  "name": "Irene Mihalic",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=104",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655837/7655837_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655837/7655837_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Kritisieren ein hektisches parlamentarisches Verfahren kurz vor der Sommerpause."
+            },
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "Clara Bünger",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=106",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655838/7655838_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655838/7655838_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Warnen vor Überwachungsstaat, Grundrechtseingriffen und der Gefahr von Racial Profiling."
+            }
+          ],
+          "agenda_items": [
+            "Modernisierung des Bundespolizeigesetzes"
+          ],
+          "citations": [
+            {
+              "title": "Alexander Throm, 2026-07-10 (Video, Zusatzpunkt 21)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655834/7655834_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Alexander Throm",
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655834/7655834_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Christopher Drößler, 2026-07-10 (Video, Zusatzpunkt 21)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655835/7655835_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Christopher Drößler",
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655835/7655835_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Sebastian Fiedler, 2026-07-10 (Video, Zusatzpunkt 21)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655836/7655836_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Sebastian Fiedler",
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655836/7655836_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655834/7655834_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Vorgelegt wurden umfassende Gesetzesänderungen mit erweiterten Ermittlungsbefugnissen für die Bundespolizei.",
+            "Gestritten wurde über den Ausgleich zwischen Sicherheitsgewinn und dem Schutz von Bürger- und Grundrechten.",
+            "Das Verfahren soll mit den eingebrachten Änderungsanträgen im Plenum abgeschlossen werden."
+          ],
+          "heat": 3,
+          "debate_minutes": 41,
+          "opening_quote": {
+            "text": "Nach über 30 Jahren modernisieren wir endlich das Bundespolizeigesetz.",
+            "speaker": "Alexander Throm",
+            "party_id": "cdu",
+            "party_name": "CDU/CSU"
+          },
+          "opened_by": "cdu",
+          "suggested_questions": [
+            "Welche neuen Befugnisse erhält die Polizei?",
+            "Wie wird mein Datenschutz bei Kontrollen gewahrt?",
+            "Werden Bahnhöfe und Züge dadurch sicherer?"
+          ]
+        },
+        {
+          "topic": "education_research",
+          "headline": "Debatte über Sportfördergesetz und Förderung von Kultur und Sport",
+          "summary": "Gegenstand der Beratungen waren das neue Sportfördergesetz zur Unterstützung des Spitzensports sowie Anträge zur Verankerung von Kultur und Sport als Staatsziel und zur Absicherung von Bildungsprogrammen.",
+          "positions": [
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Aydan Özoğuz",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655803/7655803_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655803/7655803_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Martin Rabanus",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655798/7655798_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655798/7655798_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Josephine Ortleb",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655801/7655801_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655801/7655801_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Bettina Lugk",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=112",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655847/7655847_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655847/7655847_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Befürworten das Sportfördergesetz mit Stärkung der Athletenrechte und unterstützen grundsätzlich kulturelle Bildungsangebote."
+            },
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Gereon Bollmann",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655797/7655797_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655797/7655797_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Sven Wendorf",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655802/7655802_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655802/7655802_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Jörn König",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=116",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655852/7655852_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655852/7655852_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Lars Schieske",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=111",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655846/7655846_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655846/7655846_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Thomas Korell",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=115",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655850/7655850_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655850/7655850_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Kritisieren bürokratische Aufsichtsstrukturen im Sportfördergesetz sowie die Stoßrichtung von Kulturförderanträgen."
+            },
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Stephan Mayer",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=110",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655845/7655845_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655845/7655845_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Michael Hose",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655796/7655796_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655796/7655796_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Jens Lehmann",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=115",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655851/7655851_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655851/7655851_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Loben die neue gesetzliche Grundlage für den Spitzensport und lehnen Staatsziel-Ergänzungen im Grundgesetz ab."
+            },
+            {
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "speakers": [
+                {
+                  "name": "Claudia Roth",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655804/7655804_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655804/7655804_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Sven Lehmann",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655799/7655799_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655799/7655799_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Tina Winklmann",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=113",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655848/7655848_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655848/7655848_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Kritisieren Kürzungen bei Förderprogrammen wie Lesestart oder kulturweit und begrüßen die Sportförderung."
+            },
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "David Schliesing",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655795/7655795_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655795/7655795_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Jorrit Bosch",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=114",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655849/7655849_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655849/7655849_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Fordern einen dauerhaften Ausbau von Breitenkultur und Sport sowie stärkere Verankerung im Grundgesetz."
+            }
+          ],
+          "agenda_items": [
+            "Tagesordnungspunkt 25",
+            "Förderung kultureller Bildung und des Sports",
+            "Sportfördergesetz"
+          ],
+          "citations": [
+            {
+              "title": "Aydan Özoğuz, 2026-07-10 (Protokoll 21/90)",
+              "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+              "speaker": "Aydan Özoğuz",
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "video_url": null
+            },
+            {
+              "title": "David Schliesing, 2026-07-10 (Video, Zusatzpunkt 20)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655795/7655795_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "David Schliesing",
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655795/7655795_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Josephine Ortleb, 2026-07-10 (Video, Zusatzpunkt 20)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655801/7655801_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Josephine Ortleb",
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655801/7655801_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655795/7655795_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Vorgelegt wurden der Entwurf für ein erstes Sportfördergesetz sowie Oppositionsanträge zur Kultur- und Sportförderung.",
+            "Gestritten wurde über Kürzungspläne bei Förderprogrammen, Mitspracherechte für Athleten und Grundgesetzänderungen.",
+            "Das Sportfördergesetz passierte das parlamentarische Verfahren in zweiter und dritter Lesung."
+          ],
+          "heat": 3,
+          "debate_minutes": 121,
+          "opening_quote": {
+            "text": "Es wurde schon gesagt: Diese Koalition bringt den Sport in Deutschland richtig voran, und es lohnt sich wirklich, das noch mal zu sagen.",
+            "speaker": "Aydan Özoğuz",
+            "party_id": "spd",
+            "party_name": "SPD"
+          },
+          "opened_by": "spd",
+          "suggested_questions": [
+            "Wie werden Nachwuchs- und Spitzensportler unterstützt?",
+            "Werden Förderprogramme für Kinder und Jugendliche gekürzt?",
+            "Sollen Kultur und Sport im Grundgesetz stehen?"
+          ]
+        },
+        {
+          "topic": "economy_finance",
+          "headline": "Kontroverse über Maßnahmen zur Stärkung des Wirtschaftsstandorts",
+          "summary": "Die Abgeordneten debattierten über Wege aus der wirtschaftlichen Krise. Schwerpunkte waren die Lage der Automobilindustrie, die Zukunft der Energieversorgung und bürokratische Hürden für Unternehmen.",
+          "positions": [
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "Bodo Ramelow",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655761/7655761_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655761/7655761_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Sehen die Ursache der Automobilkrise in fehlender Zukunftsfähigkeit statt in Berichterstattungsregeln."
+            },
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Sebastian Roloff",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=32",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655762/7655762_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655762/7655762_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Weisen Vorschläge der AfD als unrealistisch zurück und betonen die Notwendigkeit seriöser Industriepolitik."
+            },
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Nicklas Kappe",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=50",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655776/7655776_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655776/7655776_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Klaus Wiener",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=29",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655758/7655758_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655758/7655758_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Warnen vor Schwarzmalerei und fordern zielgerichtete Deregulierung statt Rückschritt im Europarecht."
+            },
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Enrico Komning",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf#page=38",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655766/7655766_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655766/7655766_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Verteidigen eigene Anträge zur Entlastung der Industrie von Energieabgaben und Bürokratie."
+            }
+          ],
+          "agenda_items": [
+            "Wirtschaftsstandort Deutschland"
+          ],
+          "citations": [
+            {
+              "title": "Bodo Ramelow, 2026-07-10 (Video, Zusatzpunkt 18)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655771/7655771_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Bodo Ramelow",
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655771/7655771_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Sebastian Roloff, 2026-07-10 (Video, Zusatzpunkt 18)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655762/7655762_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Sebastian Roloff",
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655762/7655762_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Bodo Ramelow, 2026-07-10 (Video, Zusatzpunkt 18)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655759/7655759_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Bodo Ramelow",
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655759/7655759_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655771/7655771_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Vorgelegt wurden Oppositionsanträge und Regierungsinitiativen zur Belebung der schleppenden Konjunktur.",
+            "Stark umstritten waren Forderungen nach Rückkehr zu Kernkraft und Kohle im Vergleich zum Ausbau erneuerbarer Energien.",
+            "Die Initiativen wurden nach der Aussprache in die Fachausschüsse überwiesen."
+          ],
+          "heat": 2,
+          "debate_minutes": 124,
+          "opening_quote": {
+            "text": "Wir alle wissen, dass sich die deutsche Wirtschaft aktuell in einer Krise befindet.",
+            "speaker": "Bodo Ramelow",
+            "party_id": "linke",
+            "party_name": "Die Linke"
+          },
+          "opened_by": "linke",
+          "suggested_questions": [
+            "Wie soll der Industriestandort gesichert werden?",
+            "Welche Energiequellen sichern künftig die Wirtschaft?",
+            "Werden Unternehmen von Bürokratie entlastet?"
+          ]
+        },
+        {
+          "topic": "other",
+          "headline": "Aussetzung der Diätenerhöhung und Einführung digitaler Anwesenheit",
+          "summary": "Der Bundestag beriet über Änderungen des Abgeordnetengesetzes. Beschlossen werden sollten das Aussetzen der automatischen Anpassung der Abgeordnetenentschädigung für dieses Jahr sowie die Einführung digitaler Anwesenheitserfassung.",
+          "positions": [
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Andrea Lindholz",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655819/7655819_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655819/7655819_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Reinhard Brandl",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655813/7655813_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655813/7655813_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Hendrik Hoppenstedt",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655808/7655808_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655808/7655808_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Betonen den Bürokratieabbau durch Digitalisierung und verweisen auf den Symbolcharakter der Diäten-Aussetzung."
+            },
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "Ina Latendorf",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655812/7655812_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655812/7655812_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Kritisieren den Verzicht auf Erhöhung als reine PR-Maßnahme angesichts der Belastungen für einkommensschwache Bürger."
+            },
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Stephan Brandner",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655809/7655809_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655809/7655809_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Jörn König",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655816/7655816_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655816/7655816_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Kritisieren Spätfolgeentscheidungen der Altparteien und mahnen Missbrauchssicherheit beim digitalen System an."
+            },
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Tim Klüssendorf",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655815/7655815_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655815/7655815_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Johannes Fechner",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655810/7655810_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655810/7655810_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Verteidigen das Aussetzen der Diätenanpassung als solidarisches und gebotenes Signal in harten Zeiten."
+            },
+            {
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "speakers": [
+                {
+                  "name": "Helge Limburg",
+                  "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655811/7655811_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655811/7655811_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Weisen Vorwürfe der AfD zurück und verweisen auf transparente Verhaltensregeln im Parlament."
+            }
+          ],
+          "agenda_items": [
+            "Tagesordnungspunkt 24",
+            "Aussetzung der Anpassung der Abgeordnetenentschädigung"
+          ],
+          "citations": [
+            {
+              "title": "Andrea Lindholz, 2026-07-10 (Protokoll 21/90)",
+              "url": "https://dserver.bundestag.de/btp/21/21090.pdf",
+              "speaker": "Andrea Lindholz",
+              "party_id": "csu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": null
+            },
+            {
+              "title": "Reinhard Brandl, 2026-07-10 (Video, Zusatzpunkt 19)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655813/7655813_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Reinhard Brandl",
+              "party_id": "csu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655813/7655813_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Jörn König, 2026-07-10 (Video, Zusatzpunkt 19)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655816/7655816_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Jörn König",
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655816/7655816_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655813/7655813_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Vorgelegt wurden Gesetzentwürfe zur Aussetzung der Diätenerhöhung und zur Umstellung auf elektronische Anwesenheitskontrolle.",
+            "Gestritten wurde über die Signalwirkung der Maßnahme angesichts allgemeiner Preis- und Sparbelastungen.",
+            "Die gesetzlichen Änderungen wurden im Plenum verabschiedet."
+          ],
+          "heat": 2,
+          "debate_minutes": 79,
+          "opening_quote": {
+            "text": "Es ist schön, dass wir heute im Rahmen der Änderung des Abgeordnetengesetzes und der Geschäftsordnung auch die Möglichkeit der digitalen Anwesenheitserfassung für uns Abgeordnete schaffen.",
+            "speaker": "Andrea Lindholz",
+            "party_id": "cdu",
+            "party_name": "CDU/CSU"
+          },
+          "opened_by": "cdu",
+          "suggested_questions": [
+            "Warum wird die Diätenerhöhung der Abgeordneten ausgesetzt?",
+            "Wie funktioniert die neue digitale Anwesenheitserfassung?",
+            "Steigen die Diäten im nächsten Jahr automatisch wieder?"
+          ]
+        }
+      ],
+      "other_topics": [
+        "Geschäftsordnungsdebatte zur Aufsetzung des Gebäudeenergiegesetzes",
+        "Persönliche Erklärungen zu Abstimmungen im Gesundheitsbereich"
+      ]
+    },
+    "input_hash": "1c6e6214c9a6ceda3cafd857c369f2f29d04f8f4c34b9c488092873ce37b1238",
+    "generated_at": "2026-10-17T13:33:02.717304Z"
+  },
+  {
+    "id": "bundestag_2026-07-09",
+    "parliament": "bundestag",
+    "parliament_name": "Bundestag",
+    "region": "DE",
+    "date": "2026-07-09",
+    "votes": [
+      {
+        "poll_id": 6600,
+        "title": "Einführung eines allgemeinen Tempolimits",
+        "short_title": "Einführung eines allgemeinen Tempolimits auf Autobahnen",
+        "summary": "Der Bundestag lehnte die Einführung einer allgemeinen Höchstgeschwindigkeit von 130 km/h auf Autobahnen ab. Ziel des Vorhabens war es, Energie zu sparen, den CO2-Ausstoß zu reduzieren und die Verkehrssicherheit zu erhöhen.",
+        "description": "Der Bundestag hat einen Gesetzentwurf der Fraktion Bündnis 90/Die Grünen abgelehnt, welcher vorsieht, auf Autobahnen und ähnlichen mehrspurigen Straßen ein allgemeines Tempolimit von 130 km/h einzuführen. Dafür hätten das Straßenverkehrsgesetz und die Straßenverkehrs-Ordnung geändert werden müssen. Auf Landstraßen außerhalb geschlossener Ortschaften sollte weiterhin grundsätzlich eine Höchstgeschwindigkeit von 100 km/h gelten. Außerdem sollte die Bundesregierung dem Bundestag spätestens fünf Monate nach Einführung der Regelung einen Bericht vorlegen. Darin sollten unter anderem die Auswirkungen auf den Kraftstoffverbrauch, die Energiepreise, den CO₂-Ausstoß, die Luftqualität sowie die Zahl der Verkehrstoten und Schwerverletzten untersucht werden. Nach Ansicht der Grünen würde ein Tempolimit den Kraftstoffverbrauch senken und so die Belastung durch hohe Energiepreise verringern. Außerdem könnte es das Klima und die Luftqualität schützen sowie die Verkehrssicherheit verbessern. Sie begründen dies damit, dass höhere Geschwindigkeiten mehr Kraftstoff verbrauchen, mehr CO₂ verursachen und das Risiko schwerer Verkehrsunfälle erhöhen. Zu dem Gesetzentwurf lag eine Beschlussempfehlung des Verkehrsausschusses vor, worin die Ablehnung empfohlen wird. Der Gesetzentwurf wurde der Beschlussempfehlung folgend mit 467 Gegenstimmen abgelehnt . 137 Abgeordente stimmten dafür, es gab keine Enthaltungen.",
+        "topics": [
+          "transport_infrastructure",
+          "climate_environment"
+        ],
+        "outcome": "abgelehnt",
+        "citation_url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/einfuehrung-eines-allgemeinen-tempolimits",
+        "parties": [
+          {
+            "party_id": "afd",
+            "name": "AfD",
+            "color": "#019EE0",
+            "yes": 0,
+            "no": 142,
+            "abstain": 0,
+            "no_show": 8
+          },
+          {
+            "party_id": "cdu",
+            "name": "CDU/CSU",
+            "color": "#52B7C1",
+            "yes": 0,
+            "no": 207,
+            "abstain": 0,
+            "no_show": 1
+          },
+          {
+            "party_id": "fraktionslos",
+            "name": "Fraktionslos",
+            "color": "#9CA3AF",
+            "yes": 1,
+            "no": 2,
+            "abstain": 0,
+            "no_show": 0
+          },
+          {
+            "party_id": "gruene",
+            "name": "Die Grünen",
+            "color": "#005438",
+            "yes": 79,
+            "no": 0,
+            "abstain": 0,
+            "no_show": 6
+          },
+          {
+            "party_id": "linke",
+            "name": "Die Linke",
+            "color": "#FF0000",
+            "yes": 57,
+            "no": 0,
+            "abstain": 0,
+            "no_show": 7
+          },
+          {
+            "party_id": "spd",
+            "name": "SPD",
+            "color": "#E4001B",
+            "yes": 0,
+            "no": 116,
+            "abstain": 0,
+            "no_show": 4
+          }
+        ],
+        "suggested_questions": [
+          "Was bedeutet das für meinen Arbeitsweg?",
+          "Sinkt dadurch wirklich der CO2-Ausstoß?",
+          "Erhöht sich meine Sicherheit im Straßenverkehr?"
+        ]
+      }
+    ],
+    "session": {
+      "protocols": [
+        {
+          "protocol_id": "21/89",
+          "pdf_url": "https://dserver.bundestag.de/btp/21/21089.pdf"
+        }
+      ],
+      "sections": [
+        {
+          "topic": "foreign_policy_europe",
+          "headline": "Regierungserklärung und Bilanz des NATO-Gipfels",
+          "summary": "Der Bundeskanzler und die Abgeordneten zogen Bilanz nach 14 Monaten Regierungsarbeit und bewerteten den jüngsten NATO-Gipfel. Während die Koalition die Beschlüsse als Erfolg für die Sicherheit und Bündnistreue verteidigte, übte die Opposition scharfe Kritik an hohen Ausgaben und politischer Kursausrichtung.",
+          "positions": [
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Friedrich Merz",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=2",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655462/7655462_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655462/7655462_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Catarina dos Santos-Wintz",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=27",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655474/7655474_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655474/7655474_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Jürgen Hardt",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=29",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655476/7655476_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655476/7655476_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Jens Spahn",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=17",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655466/7655466_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655466/7655466_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Alexander Hoffmann",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=24",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655471/7655471_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655471/7655471_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Heben die Erfolge des NATO-Gipfels sowie den Neustrukturierungskurs der Bundesregierung zur Sicherung von Wohlstand und Verteidigungsfähigkeit hervor."
+            },
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Tino Chrupalla",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=8",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655463/7655463_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655463/7655463_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Kritisieren die Regierungserklärung scharf und werfen der Bundesregierung vor, mit steigenden Staatsausgaben das Land zu ruinieren."
+            },
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "Ines Schwerdtner",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=25",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655472/7655472_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655472/7655472_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Wenden sich gegen Milliardeninvestitionen in die Aufrüstung zu Lasten der sozialen Absicherung der Bevölkerung."
+            },
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Wiebke Esdar",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=21",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655469/7655469_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655469/7655469_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Betonen die Notwendigkeit von Investitionen in Verteidigung und Preisstabilität zur Bewältigung der Krisen der letzten Jahre."
+            }
+          ],
+          "agenda_items": [
+            "Regierungserklärung zur aktuellen politischen Lage"
+          ],
+          "citations": [
+            {
+              "title": "Friedrich Merz, 2026-07-09 (Video, Zusatzpunkt 3)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655462/7655462_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Friedrich Merz",
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655462/7655462_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Tino Chrupalla, 2026-07-09 (Video, Zusatzpunkt 3)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655463/7655463_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Tino Chrupalla",
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655463/7655463_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Catarina dos Santos-Wintz, 2026-07-09 (Video, Zusatzpunkt 3)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655474/7655474_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Catarina dos Santos-Wintz",
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655474/7655474_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655462/7655462_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Regierungserklärung zur politischen Lage und den Beschlüssen des NATO-Gipfels vorgelegt.",
+            "Stark gestritten wurde über Verteidigungsausgaben, Militarisierung und die allgemeine Wirtschaftslage.",
+            "Der Ausbau der Bündnisverteidigung und der eingeschlagene Kurs der Koalitionsregierung werden fortgesetzt."
+          ],
+          "heat": 5,
+          "debate_minutes": 159,
+          "opening_quote": {
+            "text": "Die Bundesregierung aus CDU, CSU und SPD ist vor 14 Monaten angetreten, um aus der Mitte der Gesellschaft unser Land zu gestalten",
+            "speaker": "Friedrich Merz",
+            "party_id": "cdu",
+            "party_name": "CDU/CSU"
+          },
+          "opened_by": "cdu",
+          "suggested_questions": [
+            "Welche NATO-Beschlüsse betreffen Deutschland direkt?",
+            "Wie wird die Aufrüstung künftig finanziert?",
+            "Welche Auswirkungen hat die Regierungspolitik auf Bürger?"
+          ]
+        },
+        {
+          "topic": "economy_finance",
+          "headline": "Gesetz zur Sicherung der Stromversorgung verabschiedet",
+          "summary": "Im Plenum wurde über ein neues Gesetz zur Schließung künftiger Stromversorgungslücken debattiert, das vor allem auf den Bau wasserstofffähiger Gaskraftwerke setzt. Während die Befürworter die Notwendigkeit für den Wirtschaftsstandort unterstrichen, kritisierten Umwelt- und Oppositionspolitiker hohe Kosten sowie verpasste Chancen beim Einsatz erneuerbarer Energien und Speicher.",
+          "positions": [
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Dr. Klaus Wiener",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=116",
+                  "video_url": null,
+                  "video_link": null
+                },
+                {
+                  "name": "Sepp Müller",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655577/7655577_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655577/7655577_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Dr. Andreas Lenz",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=113",
+                  "video_url": null,
+                  "video_link": null
+                }
+              ],
+              "position": "Loben das Gesetz als wichtigen Schritt zur Abwendung von Stromlücken und zum Erhalt der Wettbewerbsfähigkeit."
+            },
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Martin Kröber",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655587/7655587_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655587/7655587_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Dr. Nina Scheer",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=110",
+                  "video_url": null,
+                  "video_link": null
+                }
+              ],
+              "position": "Befürworten die Regelung als Garant gegen Dunkelflauten und achten auf Abstimmung mit EU-Vorgaben."
+            },
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Steffen Kotré",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655578/7655578_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655578/7655578_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Bernd Schattner",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655584/7655584_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655584/7655584_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Dr. Paul Schmidt",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=115",
+                  "video_url": null,
+                  "video_link": null
+                },
+                {
+                  "name": "Paul Schmidt",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655586/7655586_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655586/7655586_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Kritisieren hohe Kosten der Energiewende, fordern Atomkraft und bemängeln die Streichung des Südbonus."
+            },
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "Jörg Cezanne",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655582/7655582_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655582/7655582_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Lehnen den Entwurf ab und fordern stattdessen stärkere Stromspeicher und Flexibilisierung."
+            },
+            {
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "speakers": [
+                {
+                  "name": "Katrin Uhlig",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655581/7655581_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655581/7655581_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Kritisieren die lange Nutzung fossilen Erdgases und fordern striktere Ausrichtung auf Klimaneutralität."
+            }
+          ],
+          "agenda_items": [
+            "Tagesordnungspunkt 7",
+            "Sicherung der Stromversorgung"
+          ],
+          "citations": [
+            {
+              "title": "Dr. Klaus Wiener, 2026-07-09 (Protokoll 21/89)",
+              "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+              "speaker": "Dr. Klaus Wiener",
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": null
+            },
+            {
+              "title": "Jörg Cezanne, 2026-07-09 (Video, Zusatzpunkt 9)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655582/7655582_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Jörg Cezanne",
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655582/7655582_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Sepp Müller, 2026-07-09 (Video, Zusatzpunkt 9)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655577/7655577_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Sepp Müller",
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655577/7655577_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655582/7655582_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Vorgelegt wurde ein Gesetz zur Sicherung der Stromversorgung durch neue Kraftwerkskapazitäten.",
+            "Gestiegen wurde vor allem über Milliardenkosten, fossile Abhängigkeiten und den verringerten Anreiz für erneuerbare Energien.",
+            "Das Gesetz wird mit den Stimmen der Regierungsfraktionen auf den Weg gebracht."
+          ],
+          "heat": 4,
+          "debate_minutes": 89,
+          "opening_quote": {
+            "text": "Heute ist in der Tat ein guter Tag hier im Parlament; denn wir verabschieden ein Gesetz, mit dem wir eine absehbare Lücke in der Stromversorgung abwenden.",
+            "speaker": "Dr. Klaus Wiener",
+            "party_id": "cdu",
+            "party_name": "CDU/CSU"
+          },
+          "opened_by": "cdu",
+          "suggested_questions": [
+            "Bleibt der Strom für Verbraucher weiterhin bezahlbar?",
+            "Sind Blackouts in Zukunft wirklich ausgeschlossen?",
+            "Wann stellen die neuen Kraftwerke auf Wasserstoff um?"
+          ]
+        },
+        {
+          "topic": "transport_infrastructure",
+          "headline": "Debatte über Automobilbranche, Tempolimit und Schieneninfrastruktur",
+          "summary": "Das Parlament diskutierte die Krise der deutschen Autoindustrie sowie Forderungen nach einem generellen Tempolimit und mehr Schieneninvestitionen. Die Fraktionen stritten über ideologische Weichenstellungen in der Mobilität und Wege zur Gewährleistung der Wettbewerbsfähigkeit.",
+          "positions": [
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Maximilian Kneller",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655494/7655494_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655494/7655494_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Lars Haise",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655484/7655484_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655484/7655484_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Wolfgang Wiehle",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655482/7655482_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655482/7655482_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Adam Balten",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=103",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655570/7655570_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655570/7655570_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Mathias Weiser",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=98",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655566/7655566_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655566/7655566_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Lehnen Tempolimits sowie grüne Verkehrspolitik ab und machen die Koalition für den Niedergang der Autoindustrie verantwortlich."
+            },
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "Lorenz Gösta Beutin",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655492/7655492_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655492/7655492_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Bodo Ramelow",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655501/7655501_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655501/7655501_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Cem Ince",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=96",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655564/7655564_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655564/7655564_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Fordern ein allgemeines Tempolimit aus Sicherheitsgründen und verlangen Schutz der Beschäftigten im Automobilsektor."
+            },
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Martin Kröber",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655489/7655489_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655489/7655489_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Isabel Cademartori",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655483/7655483_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655483/7655483_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Sebastian Roloff",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=93",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655562/7655562_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655562/7655562_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Verteidigen Investitionen in den ÖPNV und verweisen bei der Autoindustrie auf globale Marktveränderungen."
+            },
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Harald Orthey",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655493/7655493_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655493/7655493_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Michael Donth",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655481/7655481_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655481/7655481_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Alexander Jordan",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655502/7655502_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655502/7655502_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Tilman Kuban",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=97",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655565/7655565_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655565/7655565_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Lars Rohwer",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=107",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655574/7655574_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655574/7655574_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Dr. Jonas Geissler",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=35",
+                  "video_url": null,
+                  "video_link": null
+                },
+                {
+                  "name": "Günter Baumgartner",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655499/7655499_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655499/7655499_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Hans Koller",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=102",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655569/7655569_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655569/7655569_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Setzen auf den Hochlauf der Elektromobilität ohne Verbote und betonen die Chancen des Automobilstandorts."
+            },
+            {
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "speakers": [
+                {
+                  "name": "Julia Verlinden",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655479/7655479_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655479/7655479_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Sandra Detzer",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=95",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655563/7655563_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655563/7655563_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Dringen auf klare Schritte zur Verkehrswende, besseren Hitzeschutz und zügige Transformation der Industrie."
+            }
+          ],
+          "agenda_items": [
+            "Tagesordnungspunkt 8",
+            "Bahnpolitik, Tempolimit, Verkehrspolitik",
+            "Aktuelle Stunde: Zukunft deutscher Automobilindustrie"
+          ],
+          "citations": [
+            {
+              "title": "Maximilian Kneller, 2026-07-09 (Protokoll 21/89)",
+              "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+              "speaker": "Maximilian Kneller",
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "video_url": null
+            },
+            {
+              "title": "Lars Haise, 2026-07-09 (Video, Zusatzpunkt 4)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655500/7655500_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Lars Haise",
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655500/7655500_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Julia Verlinden, 2026-07-09 (Video, Zusatzpunkt 4)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655479/7655479_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Julia Verlinden",
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655479/7655479_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655500/7655500_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Debattiert wurden Oppositionsanträge zu Tempolimit und Infrastruktur sowie eine Aktuelle Stunde zur Automobilindustrie.",
+            "Heftig gestritten wurde über den Nutzen eines Tempolimits für den Klimaschutz und Vorwürfe der Misswirtschaft in der Branche.",
+            "Die Anträge der Opposition zum Tempolimit wurden abgelehnt; Beratungen zur Autobranche dauern an."
+          ],
+          "heat": 4,
+          "debate_minutes": 275,
+          "opening_quote": {
+            "text": "Hitze zerstört Verkehrsinfrastruktur. Liebe Grüne, ich dachte immer, das wären Sie.",
+            "speaker": "Maximilian Kneller",
+            "party_id": "afd",
+            "party_name": "AfD"
+          },
+          "opened_by": "afd",
+          "suggested_questions": [
+            "Kommt ein generelles Tempolimit auf deutschen Autobahnen?",
+            "Wie sicher sind die Arbeitsplätze in der Automobilindustrie?",
+            "Was wird gegen verfallende Straßen und Schienen getan?"
+          ]
+        },
+        {
+          "topic": "social_labor",
+          "headline": "Einführung des antragslosen Kindergeldes ab dem zweiten Kind",
+          "summary": "Der Bundestag beriet über die Vereinfachung des Kindergeldbezugs, der ab dem zweiten Kind künftig ohne separaten Antrag erfolgen soll. Das Vorhaben stieß prinzipiell auf Zustimmung, wurde jedoch bezüglich des Umfangs und weiterer Familienleistungen differenziert diskutiert.",
+          "positions": [
+            {
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "speakers": [
+                {
+                  "name": "Katharina Beck",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=59",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655519/7655519_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655519/7655519_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Moritz Heuberger",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=52",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655511/7655511_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655511/7655511_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Begrüßen die Vereinfachung, fordern aber eine schnellere Einbeziehung von Erstgeborenen und Adoptivkindern."
+            },
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Parsa Marvi",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=48",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655507/7655507_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655507/7655507_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Frauke Heiligenstadt",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=61",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655523/7655523_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655523/7655523_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Truels Reichardt",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=54",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655514/7655514_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655514/7655514_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Loben den Abbau von Bürokratie als Meilenstein auf dem Weg zu einem modernen, familienfreundlichen Staat."
+            },
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "Doris Achelwilm",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=53",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655513/7655513_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655513/7655513_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Mareike Hermeier",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=61",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655520/7655520_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655520/7655520_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Kritisieren die Maßnahme als unzureichend angesichts hoher Kinderarmut und Kürzungen im Sozialbereich."
+            },
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Matthias Hiller",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=65",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655525/7655525_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655525/7655525_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Heben den Gesetzentwurf als gelungenes Beispiel für gelungene Digitalisierung und Verwaltungsvereinfachung hervor."
+            }
+          ],
+          "agenda_items": [
+            "Antragsloses Kindergeld"
+          ],
+          "citations": [
+            {
+              "title": "Katharina Beck, 2026-07-09 (Video, Tagesordnungspunkt 9)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655519/7655519_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Katharina Beck",
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655519/7655519_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Parsa Marvi, 2026-07-09 (Video, Tagesordnungspunkt 9)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655507/7655507_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Parsa Marvi",
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655507/7655507_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Moritz Heuberger, 2026-07-09 (Video, Tagesordnungspunkt 9)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655511/7655511_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Moritz Heuberger",
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655511/7655511_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655519/7655519_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Der Gesetzentwurf zur automatisierten Auszahlung des Kindergeldes ab dem zweiten Kind wurde vorgelegt.",
+            "Strikten Streit gab es um die Ausgrenzung von Erstgeborenen und geforderte weitergehende Entlastungen für Familien.",
+            "Das Gesetz zur Entlastung der Eltern von Bürokratie soll zügig verabschiedet werden."
+          ],
+          "heat": 2,
+          "debate_minutes": 104,
+          "opening_quote": {
+            "text": "Dass man beim zweiten Kind nun bürokratiearm das Kindergeld bekommen kann: Meine Güte!",
+            "speaker": "Katharina Beck",
+            "party_id": "gruene",
+            "party_name": "Die Grünen"
+          },
+          "opened_by": "gruene",
+          "suggested_questions": [
+            "Gilt das antraglose Kindergeld auch für das erste Kind?",
+            "Wie erfahren Eltern von der automatischen Auszahlung?",
+            "Welche Bürokratiehürden für Familien werden als Nächstes abgebaut?"
+          ]
+        },
+        {
+          "topic": "housing_rent",
+          "headline": "Reform des Mietrechts zum Schutz vor Preissprüngen",
+          "summary": "Vorlagen zur Regulierung von Indexmieten, möbliertem Wohnen und Kurzzeitvermietung standen im Mittelpunkt der Wohnungsdebatte. Während die Regierungsfraktionen das größte Reformpaket seit 20 Jahren lobten, forderten Teilen der Opposition weitergehende Maßnahmen oder warnten vor Vermietungsbremsen.",
+          "positions": [
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Susanne Hierl",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=127",
+                  "video_url": null,
+                  "video_link": null
+                },
+                {
+                  "name": "Dr. Jan-Marco Luczak",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=131",
+                  "video_url": null,
+                  "video_link": null
+                }
+              ],
+              "position": "Befürworten gezielten Mieterschutz, warnen aber vor Überregulierung zum Schaden von Kleinvermietern."
+            },
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Thomas Fetsch",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=126",
+                  "video_url": null,
+                  "video_link": null
+                },
+                {
+                  "name": "Rainer Galla",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=130",
+                  "video_url": null,
+                  "video_link": null
+                }
+              ],
+              "position": "Kritisieren die Vorlagen als ideologische Verschärfung, die die Wohnungsnot verschlimmern werde."
+            },
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Hakan Demir",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=130",
+                  "video_url": null,
+                  "video_link": null
+                }
+              ],
+              "position": "Verteidigen das Mietpaket als wirksame Ausbremsung von Preissteigerungen bei Index- und Möblierungsmieten."
+            },
+            {
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "speakers": [
+                {
+                  "name": "Dr. Till Steffen",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=128",
+                  "video_url": null,
+                  "video_link": null
+                }
+              ],
+              "position": "Betonen, dass reiner Wohnungsbau ohne strengeres Mietrecht die Preisspirale in Städten nicht stoppen kann."
+            },
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "Caren Lay",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=129",
+                  "video_url": null,
+                  "video_link": null
+                }
+              ],
+              "position": "Bezeichnen die Maßnahmen als unzureichend und fordern einen bundesweiten Mietendeckel."
+            }
+          ],
+          "agenda_items": [
+            "Tagesordnungspunkt 11"
+          ],
+          "citations": [
+            {
+              "title": "Susanne Hierl, 2026-07-09 (Protokoll 21/89)",
+              "url": "https://dserver.bundestag.de/btp/21/21089.pdf",
+              "speaker": "Susanne Hierl",
+              "party_id": "csu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": null
+            }
+          ],
+          "video_url": null,
+          "key_points": [
+            "Ein Regierungspaket zur Begrenzung von Mieten bei Indexverträgen und möbliertem Wohnen wurde diskutiert.",
+            "Debattiert wurde über den Ausgleich zwischen Mieterschutz und den Interessen privater Kleinvermieter.",
+            "Der Gesetzentwurf geht zur weiteren Beratung in die zuständigen Ausschüsse."
+          ],
+          "heat": 3,
+          "debate_minutes": 32,
+          "opening_quote": {
+            "text": "Bezahlbares Wohnen, das ist eine der zentralen sozialen Fragen unserer Zeit.",
+            "speaker": "Susanne Hierl",
+            "party_id": "cdu",
+            "party_name": "CDU/CSU"
+          },
+          "opened_by": "cdu",
+          "suggested_questions": [
+            "Wie werden Abzocken bei möblierten Wohnungen künftig verhindert?",
+            "Gilt die neue Renten- beziehungsweise Indexmietengrenze überall?",
+            "Werden durch die Regeln weniger Mietwohnungen gebaut?"
+          ]
+        },
+        {
+          "topic": "education_research",
+          "headline": "Streit um Arbeitsbedingungen im Wissenschaftsbetrieb",
+          "summary": "Der Bundestag verhandelte über Anträge zur Reform der Beschäftigungsverhältnisse an Hochschulen und Forschungseinrichtungen. Die Fraktionen debattierten über Befristungspraktiken, die Verlässlichkeit von Karrieren und die verfassungsrechtliche Freiheit der Wissenschaft.",
+          "positions": [
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Carolin Wagner",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=121",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655596/7655596_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655596/7655596_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Lina Seitzl",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=125",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655601/7655601_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655601/7655601_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Setzen sich für verlässliche Perspektiven und die Reform des Wissenschaftszeitvertragsgesetzes ein."
+            },
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Frederik Bouffier",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=119",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655593/7655593_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655593/7655593_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Adrian Grasse",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=123",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655598/7655598_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655598/7655598_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Lehnen staatliche Überregulierung im Wissenschaftsbetrieb ab und betonen den Wert von Freiheit und Leistungswettbewerb."
+            },
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Ingo Hahn",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=120",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655595/7655595_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655595/7655595_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Christoph Birghan",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=124",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655599/7655599_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655599/7655599_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Wenden sich gegen Versorgungsansprüche im Mittelbau und warnen vor finanziellen Belastungen für Steuerzahler."
+            },
+            {
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "speakers": [
+                {
+                  "name": "Ayse Asar",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=122",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655597/7655597_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655597/7655597_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Beklagen Befristungsketten am Campus und fordern ein Ende struktureller Hürden für wissenschaftliche Talente."
+            },
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "Nicole Gohlke",
+                  "url": "https://dserver.bundestag.de/btp/21/21089.pdf#page=119",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655592/7655592_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655592/7655592_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Prangern prekäre Arbeitsverhältnisse an Universitäten an und verlangen Dauerstellen für Daueraufgaben."
+            }
+          ],
+          "agenda_items": [
+            "Arbeitsbedingungen in der Wissenschaft"
+          ],
+          "citations": [
+            {
+              "title": "Carolin Wagner, 2026-07-09 (Video, Tagesordnungspunkt 12)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655596/7655596_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Carolin Wagner",
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655596/7655596_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Frederik Bouffier, 2026-07-09 (Video, Tagesordnungspunkt 12)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655593/7655593_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Frederik Bouffier",
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655593/7655593_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Ingo Hahn, 2026-07-09 (Video, Tagesordnungspunkt 12)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655595/7655595_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Ingo Hahn",
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655595/7655595_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655596/7655596_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Anträge zur Verbesserung der Arbeitsbedingungen für Nachwuchswissenschaftler lagen vor.",
+            "Gestiegen wurde über starre Vertragsvorgaben versus die Autonomie von Hochschulen.",
+            "Eine Einigung bezüglich des Wissenschaftszeitvertragsgesetzes wird weiter angestrebt."
+          ],
+          "heat": 3,
+          "debate_minutes": 35,
+          "opening_quote": {
+            "text": "Im technologischen Fortschritt liegt die Zukunftsfähigkeit dieses Landes. Dafür braucht es kluge Köpfe, und wir wollen die besten Talente heben und fördern.",
+            "speaker": "Carolin Wagner",
+            "party_id": "spd",
+            "party_name": "SPD"
+          },
+          "opened_by": "spd",
+          "suggested_questions": [
+            "Soll es künftig weniger befristete Verträge an Unis geben?",
+            "Wie verändern sich die Chancen für Nachwuchsforscher?",
+            "Besteht die Gefahr von Bürokratieaufbau in der Forschung?"
+          ]
+        }
+      ],
+      "other_topics": [
+        "Umsetzung der EU-Richtlinie zu Industrieemissionen",
+        "Änderung des Vereinsgesetzes bezüglich Ausländervereinsregister",
+        "Verhinderung von Zwangsverheiratung und Kinderehen",
+        "AfD-Antrag zur Enquete-Kommission Zukunft der Medienordnung"
+      ]
+    },
+    "input_hash": "954aad187df28f21dcebd31d2afa2f7b3e5e28c3cc46d7389adb20bfa657262d",
+    "generated_at": "2026-10-17T13:33:02.717304Z"
+  },
+  {
+    "id": "bundestag_2026-07-08",
+    "parliament": "bundestag",
+    "parliament_name": "Bundestag",
+    "region": "DE",
+    "date": "2026-07-08",
+    "votes": [
+      {
+        "poll_id": 6598,
+        "title": "Ukraine zusätzlich militärisch und humanitär unterstützen",
+        "short_title": "Zusätzliche Unterstützung für die Ukraine",
+        "summary": "Der Bundestag stimmte über einen Antrag zur verstärkten militärischen und humanitären Unterstützung der Ukraine sowie zur Aufrechterhaltung von Sanktionen gegen Russland ab. Der Antrag wurde mehrheitlich abgelehnt.",
+        "description": "Der Bundestag stimmt über einen Antrag der Fraktion Bündnis 90/Die Grünen mit dem Titel „Den russischen Krieg gegen die Ukraine beenden – Die Ukraine jetzt zusätzlich militärisch und humanitär stärken“ ab. Der Antrag fordert die Bundesregierung unter anderem auf, die militärische Unterstützung der Ukraine auszuweiten, die Luftverteidigung und Munitionsversorgung zu stärken, die humanitäre Hilfe fortzuführen sowie den politischen und wirtschaftlichen Druck auf Russland durch Sanktionen und internationale Zusammenarbeit aufrechtzuerhalten. Zudem spricht sich der Antrag für den weiteren Wiederaufbau der Ukraine und ihre Annäherung an die Europäische Union aus. Der Antrag der Grünen wurde mit 510 Nein-Stimmen zu 79 Ja-Stimmen und einer Enthaltung von Corinna Rüffer abgelehnt .",
+        "topics": [
+          "foreign_policy_europe",
+          "security_justice"
+        ],
+        "outcome": "abgelehnt",
+        "citation_url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/ukraine-zusaetzlich-militaerisch-und-humanitaer-unterstuetzen",
+        "parties": [
+          {
+            "party_id": "afd",
+            "name": "AfD",
+            "color": "#019EE0",
+            "yes": 0,
+            "no": 140,
+            "abstain": 0,
+            "no_show": 10
+          },
+          {
+            "party_id": "cdu",
+            "name": "CDU/CSU",
+            "color": "#52B7C1",
+            "yes": 0,
+            "no": 198,
+            "abstain": 0,
+            "no_show": 10
+          },
+          {
+            "party_id": "fraktionslos",
+            "name": "Fraktionslos",
+            "color": "#9CA3AF",
+            "yes": 1,
+            "no": 2,
+            "abstain": 0,
+            "no_show": 0
+          },
+          {
+            "party_id": "gruene",
+            "name": "Die Grünen",
+            "color": "#005438",
+            "yes": 78,
+            "no": 0,
+            "abstain": 1,
+            "no_show": 6
+          },
+          {
+            "party_id": "linke",
+            "name": "Die Linke",
+            "color": "#FF0000",
+            "yes": 0,
+            "no": 55,
+            "abstain": 0,
+            "no_show": 9
+          },
+          {
+            "party_id": "spd",
+            "name": "SPD",
+            "color": "#E4001B",
+            "yes": 0,
+            "no": 115,
+            "abstain": 0,
+            "no_show": 5
+          }
+        ],
+        "suggested_questions": [
+          "Was bedeutet die Entscheidung für Deutschland?",
+          "Wie wird die Ukraine weiter unterstützt?",
+          "Welche Auswirkungen hat das auf Russland?"
+        ]
+      }
+    ],
+    "session": {
+      "protocols": [
+        {
+          "protocol_id": "21/88",
+          "pdf_url": "https://dserver.bundestag.de/btp/21/21088.pdf"
+        }
+      ],
+      "sections": [
+        {
+          "topic": "security_justice",
+          "headline": "Debatte über digitale Ermittlungsbefugnisse der Sicherheitsbehörden",
+          "summary": "Der Bundestag debattierte über Gesetzentwürfe zur Erweiterung digitaler Ermittlungsbefugnisse für die Polizei und zur Änderung der Strafprozessordnung. Im Mittelpunkt standen der automatisierte Abgleich von Gesichtern und Stimmen im Internet sowie das Verhältnis von Freiheit und Sicherheit.",
+          "positions": [
+            {
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "speakers": [
+                {
+                  "name": "Dr. Konstantin von Notz",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=82",
+                  "video_url": null,
+                  "video_link": null
+                },
+                {
+                  "name": "Konstantin von Notz",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655433/7655433_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655433/7655433_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Mahnung zur Einhaltung rechtsstaatlicher Grundsätze und des Gleichgewichts zwischen Freiheit und Sicherheit bei neuen Überwachungsbefugnissen."
+            },
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Frederik Bouffier",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655438/7655438_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655438/7655438_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Christoph de Vries",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=81",
+                  "video_url": null,
+                  "video_link": null
+                },
+                {
+                  "name": "Axel Müller",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655441/7655441_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655441/7655441_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Begrüßen die Vorlagen als notwendige Modernisierung der Polizeiarbeit und Stärkung der inneren Sicherheit im digitalen Zeitalter."
+            },
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Johannes Schätzl",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655436/7655436_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655436/7655436_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Betonen die Notwendigkeit des Abwägens zwischen dem Schutz der Bürgerinnen und Bürger und rechtsstaatlichen Grenzen staatlichen Handelns."
+            },
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Fabian Jacobi",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655431/7655431_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655431/7655431_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Steffen Janich",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655437/7655437_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655437/7655437_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Kritisieren das Scheitern eines sinnvollen Ausgleichs zwischen Freiheit und Sicherheit, befürworten aber prinzipiell die Ermittlung von Straftätern."
+            },
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "Clara Bünger",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655434/7655434_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655434/7655434_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Bodo Ramelow",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655435/7655435_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655435/7655435_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Kritisieren die Entwürfe als verfassungs- und europarechtswidrig und fordern deren Rücknahme."
+            }
+          ],
+          "agenda_items": [
+            "Tagesordnungspunkt 5",
+            "Strafprozessordnung, Digitale Ermittlungsbefugnisse"
+          ],
+          "citations": [
+            {
+              "title": "Dr. Konstantin von Notz, 2026-07-08 (Protokoll 21/88)",
+              "url": "https://dserver.bundestag.de/btp/21/21088.pdf",
+              "speaker": "Dr. Konstantin von Notz",
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "video_url": null
+            },
+            {
+              "title": "Fabian Jacobi, 2026-07-08 (Video, Zusatzpunkt 2)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655431/7655431_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Fabian Jacobi",
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655431/7655431_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Stefanie Hubig, 2026-07-08 (Video, Zusatzpunkt 2)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655430/7655430_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Stefanie Hubig",
+              "party_id": "unbekannt",
+              "party_name": "Unbekannt",
+              "color": "#9CA3AF",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655430/7655430_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655431/7655431_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Vorgelegt wurden Gesetzentwürfe zur Stärkung digitaler Ermittlungsbefugnisse und zur Änderung der Strafprozessordnung.",
+            "Am heftigsten gestritten wurde über die Verfassungsmäßigkeit der biometrischen Erfassung im Internet im Vergleich zur Notwendigkeit effektiver Strafverfolgung.",
+            "Die Entwürfe wurden zur weiteren Beratung in die zuständigen Fachausschüsse überwiesen."
+          ],
+          "heat": 5,
+          "debate_minutes": 71,
+          "opening_quote": {
+            "text": "Die Frage ist nicht, ob unsere Polizei digital arbeiten soll – natürlich soll sie das –, die Frage ist, ob sie das rechtsstaatlich tut",
+            "speaker": "Dr. Konstantin von Notz",
+            "party_id": "gruene",
+            "party_name": "Die Grünen"
+          },
+          "opened_by": "gruene",
+          "suggested_questions": [
+            "Werden meine privaten Internetfotos künftig automatisch überwacht?",
+            "Bringt die biometrische Fahndung mehr persönliche Sicherheit?",
+            "Wie wird der Datenschutz bei KI-Ermittlungen garantiert?"
+          ]
+        },
+        {
+          "topic": "foreign_policy_europe",
+          "headline": "Kontroverse Debatten über Ukraine-Unterstützung und US-Jubiläum",
+          "summary": "Gegenstand der Beratungen waren die fortgesetzte Unterstützung der Ukraine gegen den russischen Angriffskrieg sowie das 250-jährige Jubiläum der Unabhängigkeitserklärung der USA. Es wurden Grundsatzfragen zu transatlantischen Beziehungen und militärischen Hilfen diskutiert.",
+          "positions": [
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Beatrix von Storch",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=64",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655406/7655406_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655406/7655406_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Anna Rathert",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=67",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655411/7655411_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655411/7655411_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Markus Frohnmaier",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=71",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655420/7655420_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655420/7655420_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Sprechen sich gegen weitere Hilfsgelder an die Ukraine aus und fordern ein transatlantisches Bündnis rein auf Basis nationaler Interessen."
+            },
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Peter Beyer",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=69",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655413/7655413_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655413/7655413_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Jürgen Hardt",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=67",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655410/7655410_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655410/7655410_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Knut Abraham",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=70",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655418/7655418_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655418/7655418_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Jan-Wilhelm Pohlmann",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=78",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655427/7655427_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655427/7655427_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Florian Hahn",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=63",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655405/7655405_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655405/7655405_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Tobias Winkler",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=76",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655423/7655423_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655423/7655423_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Unterstreichen die historische Bedeutung der USA für Deutschland und fordern eine entschlossene Unterstützung der Ukraine gegen die russische Aggression."
+            },
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Metin Hakverdi",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=65",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655407/7655407_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655407/7655407_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Ralf Stegner",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=73",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655421/7655421_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655421/7655421_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Johannes Schraps",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=78",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655426/7655426_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655426/7655426_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Betonen das gemeinsamen Demokratieverständnis mit den USA und sichern der Ukraine langfristige und verlässliche Hilfe zu."
+            },
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "Janina Böttger",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=66",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655409/7655409_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655409/7655409_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Lea Reisner",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=75",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655422/7655422_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655422/7655422_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Warnen vor der Verklärung der US-Geschichte und fordern verstärkte diplomatische Verhandlungsinitiativen im Ukraine-Krieg."
+            },
+            {
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "speakers": [
+                {
+                  "name": "Deborah Düring",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=65",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655408/7655408_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655408/7655408_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Robin Wagener",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=69",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655417/7655417_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655417/7655417_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Fordern einen dringenden Ausbau der Unterstützung für die Ukraine zur Abwehr russischer Angriffe auf die Zivilbevölkerung."
+            }
+          ],
+          "agenda_items": [
+            "250 Jahre USA",
+            "Beendigung des russischen Krieges gegen die Ukraine"
+          ],
+          "citations": [
+            {
+              "title": "Beatrix von Storch, 2026-07-08 (Video, Tagesordnungspunkt 3)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655406/7655406_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Beatrix von Storch",
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655406/7655406_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Peter Beyer, 2026-07-08 (Video, Tagesordnungspunkt 3)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655413/7655413_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Peter Beyer",
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655413/7655413_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Anna Rathert, 2026-07-08 (Video, Tagesordnungspunkt 3)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655411/7655411_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Anna Rathert",
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655411/7655411_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655406/7655406_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Vorgelegt wurden Anträge zur weiteren politischen, militärischen und finanziellen Unterstützung der Ukraine sowie Würdigungen zum US-Jubiläum.",
+            "Gestritten wurde über den Vorwurf fehlender Verhaltensaussichten und die genauen Ursachen und Verantwortlichkeiten des Konflikts.",
+            "Die Anträge und Beratungen wurden gemäß der Tagesordnung in den Prozess des Parlaments eingebracht."
+          ],
+          "heat": 4,
+          "debate_minutes": 81,
+          "opening_quote": {
+            "text": "Wir wollen ein Bündnis mit den USA. Das beruht auf nationalen Interessen und den gemeinsamen kulturellen Wurzeln",
+            "speaker": "Beatrix von Storch",
+            "party_id": "afd",
+            "party_name": "AfD"
+          },
+          "opened_by": "afd",
+          "suggested_questions": [
+            "Wie lange unterstützt Deutschland die Ukraine noch?",
+            "Welche Folgen hat die US-Wahl für uns?",
+            "Gibt es Aussichten auf friedliche Verhandlungen?"
+          ]
+        },
+        {
+          "topic": "migration_integration",
+          "headline": "Streit über Entwicklungszusammenarbeit und das BMZ",
+          "summary": "Im Mittelpunkt stand ein Antrag auf Auflösung des Bundesministeriums für wirtschaftliche Zusammenarbeit und Entwicklung (BMZ) sowie eine drastische Kürzung der Entwicklungshilfe. Die Debatte berührte globale Verpflichtungen und Fluchtursachen.",
+          "positions": [
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Thomas Rachel",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=96",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655451/7655451_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655451/7655451_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Carl-Philipp Sassenrath",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=91",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655445/7655445_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655445/7655445_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Wolfgang Stefinger",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=98",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655454/7655454_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655454/7655454_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Verteidigen die Entwicklungszusammenarbeit als wirksames Instrument im deutschen Eigeninteresse zur Vermeidung globaler Krisen."
+            },
+            {
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "speakers": [
+                {
+                  "name": "Claudia Roth",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=92",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655446/7655446_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655446/7655446_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Werfen den Antragstellern vor, Deutschland aus der weltweiten Verantwortung zur Bekämpfung von Not und Klimawandel zurückziehen zu wollen."
+            },
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Rocco Kever",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=90",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655444/7655444_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655444/7655444_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Kritisieren hohe Ausgaben im Ausland bei gleichzeitigem Verfall der heimischen Infrastruktur und fordern die Einstellung der Zahlungen."
+            },
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Serdar Yüksel",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=93",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655447/7655447_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655447/7655447_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Betonen die ethische und wirtschaftliche Verantwortung Deutschlands in der Welt und weisen Vorwürfe der Verschwendung zurück."
+            },
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "Charlotte Antonia Neuhäuser",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=95",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655450/7655450_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655450/7655450_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Werfen der AfD soziale Kälte und die Missachtung historischer und menschlicher Verantwortung vor."
+            }
+          ],
+          "agenda_items": [
+            "Auflösung des BMZ, Transparenz in der Entwicklungshilfe"
+          ],
+          "citations": [
+            {
+              "title": "Thomas Rachel, 2026-07-08 (Video, Tagesordnungspunkt 6)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655451/7655451_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Thomas Rachel",
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655451/7655451_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Claudia Roth, 2026-07-08 (Video, Tagesordnungspunkt 6)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655446/7655446_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Claudia Roth",
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655446/7655446_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Rocco Kever, 2026-07-08 (Video, Tagesordnungspunkt 6)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655444/7655444_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Rocco Kever",
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655444/7655444_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655451/7655451_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Vorgelegt wurden Anträge der AfD-Fraktion zur Auflösung des BMZ und Kürzung der Mittel um 80 Prozent.",
+            "Heftig gestritten wurde über Sinn und Nutzen von Ausgaben im Ausland gegenüber Investitionen im Inland.",
+            "Die Anträge wurden nach der Aussprache zur weiteren Beratung überwiesen."
+          ],
+          "heat": 3,
+          "debate_minutes": 48,
+          "opening_quote": {
+            "text": "Mit ihren beiden Anträgen geht es der AfD-Fraktion nicht um konstruktive Reformen. Nein, Sie wollen das Bundesministerium für wirtschaftliche Zusammenarbeit und Entwicklung komplett abschaffen.",
+            "speaker": "Thomas Rachel",
+            "party_id": "cdu",
+            "party_name": "CDU/CSU"
+          },
+          "opened_by": "cdu",
+          "suggested_questions": [
+            "Warum zahlt Deutschland Entwicklungshilfe im Ausland?",
+            "Werden durch Hilfen Fluchtursachen effektiv bekämpft?",
+            "Wieviel Geld fließt in internationale Hilfsprojekte?"
+          ]
+        },
+        {
+          "topic": "other",
+          "headline": "Aktuelle Stunde zu Pressefreiheit und Vorfällen in Erfurt",
+          "summary": "Die Abgeordneten debattierten in einer Aktuellen Stunde über mutmaßliche Angriffe auf Journalisten am Rande von Demonstrationen in Erfurt. Dabei standen die Pressefreiheit und Gewalt von politischen Rändern zur Diskussion.",
+          "positions": [
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Stephan Brandner",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=61",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655401/7655401_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655401/7655401_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Matthias Helferich",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=57",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655394/7655394_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655394/7655394_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Ronald Gläser",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=54",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655392/7655392_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655392/7655392_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Kritisieren linke Ausschreitungen und werfen anderen Parteien doppelten Standard beim Schutz von Journalisten vor."
+            },
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Rasha Nasr",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=56",
+                  "video_url": null,
+                  "video_link": null
+                },
+                {
+                  "name": "Helge Lindh",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=49",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655385/7655385_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655385/7655385_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Verurteilen jede Gewalt gegen Medienschaffende uneingeschränkt als Angriff auf das Fundament der Demokratie."
+            },
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Caroline Bosbach",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=45",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655381/7655381_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655381/7655381_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                },
+                {
+                  "name": "Ottilie Klein",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=62",
+                  "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655402/7655402_h264_1280_720_3000kb_baseline_de_3000.mp4",
+                  "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655402/7655402_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0"
+                }
+              ],
+              "position": "Fordern die konsequente Bekämpfung jeglicher politisch motivierten Gewalt und heben die Bedeutung freier Berichterstattung hervor."
+            }
+          ],
+          "agenda_items": [
+            "Aktuelle Stunde zu mutmaßlichen Angriffen gegen Journalisten in Erfurt"
+          ],
+          "citations": [
+            {
+              "title": "Stephan Brandner, 2026-07-08 (Video, Zusatzpunkt 1)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655401/7655401_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Stephan Brandner",
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655401/7655401_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Rasha Nasr, 2026-07-08 (Video, Zusatzpunkt 1)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655393/7655393_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Rasha Nasr",
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655393/7655393_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Caroline Bosbach, 2026-07-08 (Video, Zusatzpunkt 1)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655381/7655381_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Caroline Bosbach",
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655381/7655381_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655401/7655401_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Vorgelegt wurde eine Aktuelle Stunde zu Vorfällen gegen Journalisten in Erfurt.",
+            "Gestritten wurde über Vorwürfe doppelter Standards bei der Verurteilung linker und rechter Gewalt sowie staatliche Eingriffe in Medien.",
+            "Die Aktuelle Stunde schloss ohne parlamentarische Abstimmung ab."
+          ],
+          "heat": 3,
+          "debate_minutes": 106,
+          "opening_quote": {
+            "text": "Erfurt ist am vergangenen Wochenende nur knapp an einer Katastrophe vorbeigeschrammt.",
+            "speaker": "Stephan Brandner",
+            "party_id": "afd",
+            "party_name": "AfD"
+          },
+          "opened_by": "afd",
+          "suggested_questions": [
+            "Wie schützt der Staat die Pressefreiheit?",
+            "Nimmt die Gewalt gegen Journalisten zu?",
+            "Wie geht die Polizei gegen Krawalle vor?"
+          ]
+        },
+        {
+          "topic": "climate_environment",
+          "headline": "Befragung zu Klimaanpassung und Umweltpolitik",
+          "summary": "In der Regierungsbefragung ging es um Maßnahmen zur Klimaanpassung, die Grüne Infrastruktur, die Refinanzierung über den Haushalt sowie gesetzliche Vorgaben bei Biomethan.",
+          "positions": [
+            {
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "speakers": [
+                {
+                  "name": "Harald Ebner",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=21",
+                  "video_url": null,
+                  "video_link": null
+                },
+                {
+                  "name": "Dr. Jan-Niclas Gesenhues",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=17",
+                  "video_url": null,
+                  "video_link": null
+                }
+              ],
+              "position": "Drängen auf die schnelle Einbringung des Gesetzes zur Stärkung der Natürlichen Infrastruktur und hinterfragen Kabinettsabläufe."
+            },
+            {
+              "party_id": "spd",
+              "party_name": "SPD",
+              "color": "#E4001B",
+              "speakers": [
+                {
+                  "name": "Carsten Schneider",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=11",
+                  "video_url": null,
+                  "video_link": null
+                }
+              ],
+              "position": "Verweisen auf das Gesamtdeckungsprinzip im Bundeshaushalt zur Finanzierung von Klimaschutzmaßnahmen."
+            },
+            {
+              "party_id": "linke",
+              "party_name": "Die Linke",
+              "color": "#FF0000",
+              "speakers": [
+                {
+                  "name": "Lorenz Gösta Beutin",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=18",
+                  "video_url": null,
+                  "video_link": null
+                }
+              ],
+              "position": "Kritisieren die Belastung einkommensschwacher Haushalte durch den CO2-Preis und fordern Entlastungen aus dem KTF."
+            },
+            {
+              "party_id": "afd",
+              "party_name": "AfD",
+              "color": "#019EE0",
+              "speakers": [
+                {
+                  "name": "Andreas Bleck",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=22",
+                  "video_url": null,
+                  "video_link": null
+                },
+                {
+                  "name": "Dr. Paul Schmidt",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=17",
+                  "video_url": null,
+                  "video_link": null
+                }
+              ],
+              "position": "Hinterfragen die Umsetzbarkeit erforderlicher Mehrheiten für Klimaanpassungen und warnen vor Hürden bei der Erzeugung von Biomethan."
+            },
+            {
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "speakers": [
+                {
+                  "name": "Christian Moser",
+                  "url": "https://dserver.bundestag.de/btp/21/21088.pdf#page=19",
+                  "video_url": null,
+                  "video_link": null
+                }
+              ],
+              "position": "Erkundigen sich nach den Schwerpunkten bei der Vermögensabschöpfung im Rahmen des Aktionsplans gegen Organisierte Kriminalität."
+            }
+          ],
+          "agenda_items": [
+            "Befragung der Bundesregierung (BMJV und BMUKN)"
+          ],
+          "citations": [
+            {
+              "title": "Harald Ebner, 2026-07-08 (Protokoll 21/88)",
+              "url": "https://dserver.bundestag.de/btp/21/21088.pdf",
+              "speaker": "Harald Ebner",
+              "party_id": "gruene",
+              "party_name": "Die Grünen",
+              "color": "#005438",
+              "video_url": null
+            },
+            {
+              "title": "Julia Klöckner, 2026-07-08 (Video, Tagesordnungspunkt 1)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655363/7655363_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Julia Klöckner",
+              "party_id": "cdu",
+              "party_name": "CDU/CSU",
+              "color": "#52B7C1",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655363/7655363_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            },
+            {
+              "title": "Stefanie Hubig, 2026-07-08 (Video, Tagesordnungspunkt 1)",
+              "url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655364/7655364_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
+              "speaker": "Stefanie Hubig",
+              "party_id": "unbekannt",
+              "party_name": "Unbekannt",
+              "color": "#9CA3AF",
+              "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655364/7655364_h264_1280_720_3000kb_baseline_de_3000.mp4"
+            }
+          ],
+          "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655363/7655363_h264_1280_720_3000kb_baseline_de_3000.mp4",
+          "key_points": [
+            "Vorgelegt wurden Fragen der Abgeordneten an Vertreter der Bundesregierung im Rahmen der Befragung.",
+            "Gestritten wurde über den Zeitplan für das Gesetz zur Stärkung Natürlicher Infrastruktur und die Finanzierung aus dem KTF.",
+            "Die Bundesregierung beantwortete die Fragen im Rahmen der Fragestunde."
+          ],
+          "heat": 2,
+          "debate_minutes": 81,
+          "opening_quote": {
+            "text": "Herr Minister, für eine gute Klimaanpassung brauchen wir auch eine möglichst intakte natürliche Infrastruktur.",
+            "speaker": "Harald Ebner",
+            "party_id": "gruene",
+            "party_name": "Die Grünen"
+          },
+          "opened_by": "gruene",
+          "suggested_questions": [
+            "Wann werde ich bei CO2-Kosten entlastet?",
+            "Was bewirkt das Gesetz zur Klimaanpassung?",
+            "Wie verhält sich die Bundesregierung in Brüssel?"
+          ]
+        }
+      ],
+      "other_topics": [
+        "Gemeinsame Agrarpolitik (GAP) nach 2027 und Unterstützung für den Generationenwechsel",
+        "Geschäftsordnungsdebatte zu Beratungszeiten von Gesundheitsgesetzen"
+      ]
+    },
+    "input_hash": "4e638fcea53aaeeb316a030ca6b59e6710cbb83f695f34feee8278b6295a6618",
+    "generated_at": "2026-10-17T13:33:02.717304Z"
+  }
+]

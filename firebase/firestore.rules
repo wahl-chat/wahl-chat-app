@@ -155,6 +155,30 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // "Interessant? Ja/Nein" on parliament feed items: one doc per user and
+    // item, id `{uid}_{item_id}`, so a changed answer overwrites instead of
+    // piling up. Write-only for clients; analysis reads via the admin SDK.
+    match /feed_interest/{doc_id} {
+      function feedInterestOk() {
+        let data = request.resource.data;
+        return request.auth != null
+          && data.keys().hasOnly(['user_id', 'item_id', 'value', 'at'])
+          && data.keys().hasAll(['user_id', 'item_id', 'value', 'at'])
+          && data.user_id == request.auth.uid
+          && data.item_id is string
+          && data.item_id.size() > 0
+          && data.item_id.size() <= 120
+          && doc_id == request.auth.uid + '_' + data.item_id
+          && data.value in ['yes', 'no']
+          && data.at == request.time;
+      }
+
+      allow read, list, delete: if false;
+      allow create: if feedInterestOk();
+      allow update: if feedInterestOk()
+        && resource.data.user_id == request.auth.uid;
+    }
+
     match /wahl_swiper_results/{result_id} {
       allow read: if true;
       allow list: if false;

@@ -1,160 +1,183 @@
 'use client';
 
-import Logo from '@/components/chat/logo';
-import { buildFeed } from '@/lib/daily/feed';
+import { buildFeed, feedLists, rankFeed } from '@/lib/daily/feed';
+import { type DetailItem, findItem } from '@/lib/daily/items';
 import {
+  DEFAULT_SELECTION,
   STATE_PARAM,
+  STATE_STORAGE_KEY,
   type StateSelection,
   parliamentsFor,
+  parseStateParam,
 } from '@/lib/daily/region';
 import { TOPICS_PARAM } from '@/lib/daily/topics';
 import type {
   DailyDigest,
   DigestParliamentId,
 } from '@/lib/firebase/firebase.types';
-import { IS_EMBEDDED, cn } from '@/lib/utils';
-import { useCallback, useMemo, useState } from 'react';
-import { CARD_PLACEHOLDER, INK_LABEL, MUTED_TEXT } from './card-styles';
+import { cn } from '@/lib/utils';
+import { useEffect, useMemo, useState } from 'react';
+import { MUTED_TEXT } from './card-styles';
 import DailyDaySection from './daily-day-section';
-import { DailyDetailDialog } from './daily-detail-dialog';
-import DailyFilters from './daily-filters';
-import DailySocialCard from './daily-social-card';
-import DailyWaitlistCta from './daily-waitlist-cta';
-import { detailItems, viewDay } from './detail-items';
+import { AskPanel, DailyDetailDialog } from './daily-detail-dialog';
+import { ParliamentSelector, TopicPills } from './daily-filters';
+
+const ITEM_PARAM = 'item';
 
 type Props = {
   digests: Record<DigestParliamentId, DailyDigest[]>;
-  initialState: StateSelection;
+  /** Local dev previews, see `lib/daily/local-preview.ts`. */
+  previewDigests?: DailyDigest[];
+  /** From the URL; `undefined` lets the stored choice decide. */
+  initialStates: StateSelection | undefined;
   initialTopics: string[];
+  initialItem: string | undefined;
 };
 
-/** Mirror the filters into the URL without a server round-trip, so a
- * shared link reproduces the view. */
-function syncUrl(state: StateSelection, topics: string[]) {
+/** Mirror the view into the URL without a server round-trip, so a shared
+ * link reproduces it, down to an opened item. */
+function syncUrl(
+  states: StateSelection,
+  topics: string[],
+  item: string | null,
+) {
   const url = new URL(window.location.href);
-  url.searchParams.set(STATE_PARAM, state.toLowerCase());
-  if (topics.length > 0) {
-    url.searchParams.set(TOPICS_PARAM, topics.join(','));
-  } else {
-    url.searchParams.delete(TOPICS_PARAM);
-  }
+  const set = (key: string, value: string | null) =>
+    value ? url.searchParams.set(key, value) : url.searchParams.delete(key);
+  set(STATE_PARAM, states.join(',').toLowerCase() || null);
+  set(TOPICS_PARAM, topics.join(',') || null);
+  set(ITEM_PARAM, item);
   window.history.replaceState(null, '', url);
 }
 
-/** Playful sticker beside the page title, so the brand is visible on the
- * feed without a hero. */
-function PresentedBy() {
-  return (
-    <span className="inline-flex -rotate-3 items-center gap-2 rounded-[4px] border-2 border-[var(--daily-ink)] bg-[var(--daily-surface)] px-2.5 py-1 shadow-[3px_3px_0_0_var(--daily-ink)]">
-      <span className="font-display text-sm font-bold italic">
-        präsentiert von
-      </span>
-      <Logo variant="small" className="size-5 text-[var(--daily-ink)]" />
-      <span className="font-display text-base font-black tracking-tight">
-        wahl.chat
-      </span>
-    </span>
-  );
+function storedStates(): StateSelection {
+  try {
+    return (
+      parseStateParam(window.localStorage.getItem(STATE_STORAGE_KEY)) ??
+      DEFAULT_SELECTION
+    );
+  } catch {
+    return DEFAULT_SELECTION;
+  }
 }
 
-function DailyFeed({ digests, initialState, initialTopics }: Props) {
-  const [state, setState] = useState(initialState);
+function storeStates(states: StateSelection) {
+  try {
+    window.localStorage.setItem(STATE_STORAGE_KEY, states.join(','));
+  } catch {
+    // Storage blocked: the choice still holds for this visit via the URL.
+  }
+}
+
+/** The card most in view, so the floating input asks about what is read. */
+function useItemInView(deps: unknown): string | null {
+  const [key, setKey] = useState<string | null>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.find((e) => e.isIntersecting);
+        if (visible) {
+          setKey((visible.target as HTMLElement).dataset.itemKey ?? null);
+        }
+      },
+      { rootMargin: '-40% 0px -40% 0px' },
+    );
+    for (const el of document.querySelectorAll('[data-item-key]')) {
+      observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, [deps]);
+  return key;
+}
+
+function DailyFeed({
+  digests,
+  previewDigests,
+  initialStates,
+  initialTopics,
+  initialItem,
+}: Props) {
+  const [states, setStates] = useState<StateSelection>(
+    initialStates ?? DEFAULT_SELECTION,
+  );
   const [topics, setTopics] = useState(initialTopics);
-  const [open, setOpen] = useState<{ date: string; index: number } | null>(
-    null,
-  );
+  const [openKey, setOpenKey] = useState<string | null>(initialItem ?? null);
 
+  // A link's land param wins; otherwise restore this device's last choice.
+  useEffect(() => {
+    if (initialStates === undefined) {
+      setStates(storedStates());
+    }
+  }, [initialStates]);
+
+  const lists = useMemo(
+    () => feedLists(digests, parliamentsFor(states), previewDigests),
+    [digests, previewDigests, states],
+  );
   const days = useMemo(
-    () => buildFeed(parliamentsFor(state).map((p) => digests[p])),
-    [digests, state],
+    () => rankFeed(buildFeed(lists), topics),
+    [lists, topics],
   );
-  const dayViews = useMemo(
-    () =>
-      days.map((day) => {
-        const views = viewDay(day, topics);
-        return { day, views, items: detailItems(views) };
-      }),
-    [days, topics],
-  );
-  const openDay = dayViews.find((d) => d.day.date === open?.date);
 
-  const changeState = (next: StateSelection) => {
-    setState(next);
-    setOpen(null);
-    syncUrl(next, topics);
+  const allDigests = useMemo(() => lists.flat(), [lists]);
+  const openItem = openKey ? (findItem(allDigests, openKey) ?? null) : null;
+  const openHeat = days
+    .map((d) => (openKey ? d.heat.get(openKey) : undefined))
+    .find((h) => h !== undefined);
+
+  const inViewKey = useItemInView(days);
+  const askItem: DetailItem | null =
+    (inViewKey && findItem(allDigests, inViewKey)) ||
+    days.find((d) => d.hot)?.hot ||
+    null;
+
+  const changeStates = (next: StateSelection) => {
+    setStates(next);
+    storeStates(next);
+    syncUrl(next, topics, openKey);
   };
   const changeTopics = (next: string[]) => {
     setTopics(next);
-    setOpen(null);
-    syncUrl(state, next);
+    syncUrl(states, next, openKey);
   };
-  const changeIndex = useCallback(
-    (index: number | null) =>
-      setOpen((current) =>
-        current && index !== null ? { ...current, index } : null,
-      ),
-    [],
-  );
+  const open = (key: string | null) => {
+    setOpenKey(key);
+    syncUrl(states, topics, key);
+  };
 
   return (
-    <div className="flex flex-col gap-10 pt-8">
-      {/* Embedded deployments carry no social links, as on the landing page. */}
-      {IS_EMBEDDED ? (
-        <DailyWaitlistCta state={state} />
-      ) : (
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[minmax(0,1fr)_auto]">
-          <DailyWaitlistCta state={state} />
-          <DailySocialCard />
-        </div>
-      )}
+    <div className="flex flex-col gap-4 pt-4">
+      <ParliamentSelector states={states} onChange={changeStates} />
+      <TopicPills topics={topics} onChange={changeTopics} />
 
-      <header className="flex flex-col gap-3 pt-2">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-          <h1
-            className={cn(
-              INK_LABEL,
-              'px-3 py-1.5 text-lg tracking-[0.16em] md:px-4 md:py-2 md:text-2xl',
-            )}
-          >
-            Dein Parlament kompakt
-          </h1>
-          <PresentedBy />
-        </div>
-        <p className={cn('max-w-2xl text-base', MUTED_TEXT)}>
-          Abstimmungen und Debatten aus Bundestag und Landtag. Tippe auf eine
-          Karte für mehr Details und Quellen.
-        </p>
-      </header>
+      <div className="flex flex-col gap-12 pt-2">
+        {days.length === 0 ? (
+          <p className={cn('py-12 text-center text-[15px]', MUTED_TEXT)}>
+            Noch keine Inhalte zu deiner Auswahl. Schau bald wieder vorbei.
+          </p>
+        ) : (
+          days.map((day) => (
+            <DailyDaySection
+              key={day.date}
+              day={day}
+              onOpen={(item) => open(item.key)}
+            />
+          ))
+        )}
+      </div>
 
-      <DailyFilters
-        state={state}
-        onStateChange={changeState}
-        topics={topics}
-        onTopicsChange={changeTopics}
-      />
-
-      {dayViews.length === 0 ? (
-        <p className={cn(CARD_PLACEHOLDER, 'p-6 text-center text-sm')}>
-          Noch keine Inhalte verfügbar. Schau bald wieder vorbei.
-        </p>
-      ) : (
-        dayViews.map(({ day, views, items }) => (
-          <DailyDaySection
-            key={day.date}
-            day={day}
-            views={views}
-            items={items}
-            selectedTopics={topics}
-            onOpen={(index) => setOpen({ date: day.date, index })}
-          />
-        ))
+      {askItem && (
+        <AskPanel
+          item={askItem}
+          withSuggestions={false}
+          className="sticky bottom-0 z-30 -mx-2 mt-4"
+        />
       )}
 
       <DailyDetailDialog
-        items={openDay?.items ?? []}
-        index={openDay ? (open?.index ?? null) : null}
-        selectedTopics={topics}
-        onIndexChange={changeIndex}
+        item={openItem}
+        heat={openHeat}
+        onClose={() => open(null)}
       />
     </div>
   );

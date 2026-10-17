@@ -194,7 +194,10 @@ cp web/.env.example web/.env.local
 make stores-up
 
 # Seed scrubbed fixtures into the Firestore emulator (guarded — refuses to run
-# without FIRESTORE_EMULATOR_HOST, so it can never write to production)
+# without FIRESTORE_EMULATOR_HOST, so it can never write to production). This
+# includes three real Bundestag sitting days for the parliament feed on `/`
+# (firebase/firestore_data/emulator/daily_digests.json, emulator only), so the
+# feed works without corpus access or LLM keys.
 FIRESTORE_EMULATOR_HOST=localhost:8081 make seed-local
 
 # Real Firebase project (ENV=dev by default). Confirm before ENV=prod.
@@ -483,6 +486,12 @@ The two stores are seeded by different mechanisms, on purpose:
   political answers is **not** on this branch: it returns with the party-matcher
   feature (the first thing that stores those answers), which must ship with a
   real affirmative opt-in — consent cannot be implied from app usage.
+- **Feed interest signals.** The parliament feed's "Interessant? Ja/Nein"
+  answers go to `feed_interest/{uid}_{item_id}` (`{user_id, item_id, value,
+  at}`), keyed by the anonymous uid. They are a ranking signal, not a stance on
+  the item, but they sit close to political opinion: keep them out of the
+  corpus and out of anything user-facing. The rules make the collection
+  write-only for clients; analysis reads via the admin SDK.
 - **Local-only stores during this milestone.** Develop against local Qdrant and
   the Firestore emulator; do not point local work at production stores while the
   data design is still settling. The seed script hard-requires
