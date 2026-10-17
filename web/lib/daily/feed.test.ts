@@ -2,9 +2,17 @@ import { describe, expect, it } from 'bun:test';
 import type {
   DailyDigest,
   DigestParliamentId,
+  DigestSessionSection,
+  DigestVote,
 } from '@/lib/firebase/firebase.types';
-import { buildFeed, windowedDigests } from './feed';
-import { parliamentsFor, parseStateParam, stateFromGeo } from './region';
+import {
+  buildFeed,
+  dayHeat,
+  feedLists,
+  rankFeed,
+  windowedDigests,
+} from './feed';
+import { parliamentsFor, parseStateParam } from './region';
 
 function digest(parliament: DigestParliamentId, date: string): DailyDigest {
   return {
@@ -44,23 +52,171 @@ describe('buildFeed', () => {
 });
 
 describe('region', () => {
-  it('maps Vercel geo headers to a covered state', () => {
-    expect(stateFromGeo('DE', 'ST')).toBe('ST');
-    expect(stateFromGeo('DE', 'bw')).toBe('BW');
-    expect(stateFromGeo('DE', 'BY')).toBe('none');
-    expect(stateFromGeo('AT', 'ST')).toBe('none');
-    expect(stateFromGeo(null, null)).toBe('none');
+  it('parses a comma-separated land param, keeping selectable codes only', () => {
+    expect(parseStateParam('de,st,BW,by,xx')).toEqual(['DE', 'ST', 'BW']);
+    expect(parseStateParam('st,st')).toEqual(['ST']);
   });
 
-  it('parses the land param and leaves unknown values to geo', () => {
-    expect(parseStateParam('st')).toBe('ST');
-    expect(parseStateParam('none')).toBe('none');
-    expect(parseStateParam('BY')).toBeUndefined();
+  it('leaves an empty or unusable param to the stored choice or default', () => {
+    expect(parseStateParam('')).toBeUndefined();
+    expect(parseStateParam('by')).toBeUndefined();
     expect(parseStateParam(undefined)).toBeUndefined();
   });
 
-  it('always includes the Bundestag', () => {
-    expect(parliamentsFor('none')).toEqual(['bundestag']);
-    expect(parliamentsFor('BW')).toEqual(['bundestag', 'landtag_bw']);
+  it('shows only the selected parliaments, Bundestag first', () => {
+    expect(parliamentsFor(['DE'])).toEqual(['bundestag']);
+    expect(parliamentsFor(['BW', 'DE'])).toEqual(['bundestag', 'landtag_bw']);
+    expect(parliamentsFor(['ST'])).toEqual(['landtag_st']);
+  });
+});
+
+function section(
+  topic: string,
+  heat: number | null,
+  minutes: number | null,
+): DigestSessionSection {
+  return {
+    topic,
+    headline: `${topic} ${heat}`,
+    summary: '',
+    agenda_items: [],
+    citations: [],
+    video_url: null,
+    heat,
+    debate_minutes: minutes,
+  };
+}
+
+function vote(pollId: number, topics: string[]): DigestVote {
+  return {
+    poll_id: pollId,
+    title: '',
+    short_title: `Vote ${pollId}`,
+    summary: null,
+    topics,
+    outcome: 'angenommen',
+    citation_url: null,
+    parties: [],
+  };
+}
+
+function sitting(
+  parliament: DigestParliamentId,
+  date: string,
+  sections: DigestSessionSection[],
+  votes: DigestVote[] = [],
+): DailyDigest {
+  return {
+    ...digest(parliament, date),
+    votes,
+    session: { protocols: [], sections, other_topics: [] },
+  };
+}
+
+describe('dayHeat', () => {
+  it('rescales against the hottest section of the day, across parliaments', () => {
+    // Each protocol rated itself: the Landtag's 5 and the Bundestag's 4 are
+    // its own maxima; pooled, only the overall hottest keeps 5.
+    const [day] = rankFeed(
+      buildFeed([
+        [sitting('bundestag', '2026-09-08', [section('health_care', 4, 60)])],
+        [sitting('landtag_st', '2026-09-08', [section('housing_rent', 5, 10)])],
+      ]),
+      [],
+    );
+    expect([...day.heat.values()].sort()).toEqual([4, 5]);
+  });
+
+  it('is empty when no section carries a rating', () => {
+    expect(dayHeat([]).size).toBe(0);
+  });
+});
+
+describe('rankFeed', () => {
+  const days = buildFeed([
+    [
+      sitting(
+        'bundestag',
+        '2026-09-08',
+        [
+          section('housing_rent', 2, 30),
+          section('economy_finance', 5, 90),
+          section('climate_environment', 4, 60),
+        ],
+        [vote(1, ['health_care']), vote(2, ['climate_environment'])],
+      ),
+      sitting(
+        'bundestag',
+        '2026-09-03',
+        [section('health_care', 5, 200)],
+        [vote(3, ['economy_finance'])],
+      ),
+    ],
+  ]);
+
+  it('leads each day with its own most heated debate', () => {
+    const [latest, earlier] = rankFeed(days, []);
+    expect(latest.hot?.section.topic).toBe('economy_finance');
+    // A hotter, longer debate from an earlier day does not cross days.
+    expect(earlier.hot?.section.topic).toBe('health_care');
+  });
+
+  it('sorts the rest of the day by prior and leaves the hot one out', () => {
+    const [latest] = rankFeed(days, []);
+    expect(latest.blocks[0].sections.map((s) => s.section.topic)).toEqual([
+      'climate_environment',
+      'housing_rent',
+    ]);
+  });
+
+  it('matches a vote on the hot topic from an earlier day when needed', () => {
+    const [latest] = rankFeed(days, []);
+    expect(latest.match?.vote.poll_id).toBe(3);
+    // An earlier-day match stays in its own day's group as well.
+    expect(latest.blocks[0].votes.map((v) => v.vote.poll_id)).toEqual([1, 2]);
+  });
+
+  it('prefers a same-day match and does not show it twice', () => {
+    const [latest] = rankFeed(days, ['climate_environment']);
+    expect(latest.hot?.section.topic).toBe('climate_environment');
+    expect(latest.match?.vote.poll_id).toBe(2);
+    expect(latest.blocks).toEqual([]);
+  });
+});
+
+describe('feedLists', () => {
+  const stored = {
+    bundestag: [
+      digest('bundestag', '2026-07-10'),
+      digest('bundestag', '2026-07-09'),
+    ],
+    landtag_st: [digest('landtag_st', '2026-07-08')],
+    landtag_bw: [],
+  };
+
+  it('keeps stored days in the feed when a preview is weeks newer', () => {
+    const days = buildFeed(
+      feedLists(stored, ['bundestag'], [digest('bundestag', '2026-09-08')]),
+    );
+    expect(days.map((d) => d.date)).toEqual([
+      '2026-09-08',
+      '2026-07-10',
+      '2026-07-09',
+    ]);
+  });
+
+  it('replaces the stored digest a preview shares an id with', () => {
+    const preview = { ...digest('bundestag', '2026-07-10'), votes: [] };
+    const days = buildFeed(feedLists(stored, ['bundestag'], [preview]));
+    expect(days[0].digests).toEqual([preview]);
+  });
+
+  it('leaves out previews of parliaments not shown', () => {
+    const lists = feedLists(
+      stored,
+      ['bundestag'],
+      [digest('landtag_st', '2026-09-08')],
+    );
+    expect(lists.flat().map((d) => d.parliament)).not.toContain('landtag_st');
   });
 });

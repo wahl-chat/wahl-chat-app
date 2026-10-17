@@ -178,29 +178,31 @@ body {
   }
 }
 
-/* Editorial theme of the /aktuell parliament feed, scoped to its route group.
-   Borders and hard offset shadows both use --daily-ink, so in dark mode the
-   frame and shadow flip to cream together. */
+/* Theme of the parliament feed, scoped to its route group: wahl.chat's white
+   and zinc. Ink and muted text keep AA contrast on the canvas in both modes. */
 .daily-theme {
-  --daily-canvas: #fbf9f4;
-  --daily-surface: #ffffff;
-  --daily-ink: #1a1a1a;
-  --daily-muted: #5c5850;
-  /* Colours that must shift with the theme to stay legible: the Union's
-     near-black and the stamp inks. */
-  --daily-party-cdu: #2e2e2e;
-  --daily-stamp-yes: #3f8f5f;
-  --daily-stamp-no: #d1495b;
+  --daily-canvas: #ffffff;
+  --daily-surface: #f4f4f5;
+  --daily-border: #e4e4e7;
+  --daily-ink: #18181b;
+  --daily-muted: #71717a;
+  --daily-yes: #1c6b40;
+  --daily-yes-bg: #e7f4ec;
+  --daily-no: #a3323d;
+  --daily-no-bg: #fbeaec;
   color: var(--daily-ink);
+  background: var(--daily-canvas);
   font-family: var(--font-daily-body), Arial, Helvetica, sans-serif;
 }
 
 .dark .daily-theme {
-  --daily-canvas: #1c1b19;
-  --daily-surface: #26241f;
-  --daily-ink: #f4f1e8;
-  --daily-muted: #b8b2a5;
-  --daily-party-cdu: #9a968d;
-  --daily-stamp-yes: #7cc796;
-  --daily-stamp-no: #f07a88;
+  --daily-canvas: #09090b;
+  --daily-surface: #27272a;
+  --daily-border: #3f3f46;
+  --daily-ink: #fafafa;
+  --daily-muted: #a1a1aa;
+  --daily-yes: #7cc796;
+  --daily-yes-bg: #13291c;
+  --daily-no: #f07a88;
+  --daily-no-bg: #2e1418;
 }

@@ -1,23 +1,23 @@
-// Neo-brutalist frames for the /aktuell feed. Everything keys off the
-// .daily-theme variables, so light and dark mode share one set of recipes.
+// Shared recipes of the parliament feed. Everything keys off the .daily-theme
+// variables, so light and dark mode share one set of classes.
 
-export const INK_BORDER = 'border-2 border-[var(--daily-ink)]';
+export const CARD_SURFACE =
+  'rounded-xl border border-[var(--daily-border)] bg-[var(--daily-canvas)]';
 
-export const CARD_SURFACE = `${INK_BORDER} rounded-md bg-[var(--daily-surface)] shadow-[4px_4px_0_0_var(--daily-ink)]`;
+export const FOCUS_RING =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--daily-ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--daily-canvas)]';
 
-// Lifts on hover and presses flat on click, like a physical key.
-export const PRESSABLE =
-  'transition-[transform,box-shadow] duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--daily-ink)] active:translate-x-1 active:translate-y-1 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--daily-ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--daily-canvas)] motion-reduce:transform-none motion-reduce:transition-none';
+/** Grey pill: topic filters, suggested questions, Ja/Nein feedback. */
+export const PILL =
+  'inline-flex min-h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-[var(--daily-surface)] px-4 text-[15px] transition-colors hover:bg-[var(--daily-border)]';
 
-export const CARD_INTERACTIVE = `${CARD_SURFACE} ${PRESSABLE} text-left`;
+export const PILL_ACTIVE =
+  'bg-[var(--daily-ink)] text-[var(--daily-canvas)] hover:bg-[var(--daily-ink)]';
 
-// Tailwind's /40 opacity modifier cannot reach into a hex-valued CSS variable,
-// hence color-mix.
-export const CARD_PLACEHOLDER =
-  'rounded-md border-2 border-dashed border-[color-mix(in_srgb,var(--daily-ink)_40%,transparent)] text-[var(--daily-muted)]';
-
-/** Inverted label strip: ink background, canvas text. */
-export const INK_LABEL =
-  'inline-flex w-fit items-center gap-1.5 bg-[var(--daily-ink)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--daily-canvas)]';
+/** Small muted meta line: "Plenarsitzung · Protokoll 21/91". */
+export const META_TEXT = 'text-[13px] text-[var(--daily-muted)]';
 
 export const MUTED_TEXT = 'text-[var(--daily-muted)]';
+
+/** Section label inside cards and detail pages: "Kurz gesagt". */
+export const SECTION_LABEL = 'text-sm font-semibold text-[var(--daily-muted)]';

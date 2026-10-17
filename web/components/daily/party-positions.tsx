@@ -5,20 +5,20 @@ import type { DigestPartyPosition } from '@/lib/firebase/firebase.types';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useState } from 'react';
-import { MUTED_TEXT } from './card-styles';
 
 /**
- * Party logo on the party's own background colour, as on the rest of the
- * site: the logo files are transparent and often white-lettered (the AfD's is
- * white on nothing), so they only read on their brand colour. A missing logo
- * leaves the plain colour tile.
+ * Party logo on the party's own background colour, as everywhere on the site:
+ * the logo files are transparent and often white-lettered, so they only read
+ * on their brand colour. Falls back to the name when there is no logo.
  */
-export function PartyMark({
+export function PartyLogo({
   partyId,
+  name,
   color,
   className,
 }: {
   partyId: string;
+  name: string;
   color: string;
   className?: string;
 }) {
@@ -26,18 +26,22 @@ export function PartyMark({
   return (
     <span
       className={cn(
-        'flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[4px] border-2 border-[var(--daily-ink)] p-1',
+        'flex h-8 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md px-1',
         className,
       )}
       style={{ backgroundColor: color }}
     >
-      {!missing && (
+      {missing ? (
+        <span className="truncate text-[11px] font-bold text-white">
+          {name}
+        </span>
+      ) : (
         <Image
           src={buildPartyImageUrl(partyId)}
-          alt=""
-          width={28}
+          alt={name}
+          width={52}
           height={28}
-          className="size-full object-contain"
+          className="h-6 w-full object-contain"
           onError={() => setMissing(true)}
         />
       )}
@@ -45,50 +49,51 @@ export function PartyMark({
   );
 }
 
-/** One bullet per Fraktion: logo, party, its speakers, its position. */
+/** The Fraktion that brought the debate first, then everyone else in
+ * seating order. */
+function ordered(
+  positions: DigestPartyPosition[],
+  openedBy: string | null | undefined,
+): DigestPartyPosition[] {
+  const seated = sortBySeating(positions);
+  const opener = seated.find((p) => p.party_id === openedBy);
+  return opener ? [opener, ...seated.filter((p) => p !== opener)] : seated;
+}
+
+/** "Wer sagt was": one line per Fraktion, marked by its logo. */
 export function PartyPositions({
   positions,
+  openedBy,
+  limit,
+  clamp = false,
 }: {
   positions: DigestPartyPosition[];
+  openedBy?: string | null;
+  limit?: number;
+  /** Cards show the gist; the detail view shows each position in full. */
+  clamp?: boolean;
 }) {
   return (
-    <ul className="flex flex-col gap-3">
-      {sortBySeating(positions).map((position) => (
-        <li
-          key={position.party_id}
-          className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3"
-        >
-          <PartyMark partyId={position.party_id} color={position.color} />
-          <div className="flex flex-col gap-0.5">
-            <p className="text-sm leading-snug">
-              <span className="font-bold">{position.party_name}</span>
-              {position.speakers.length > 0 && (
-                <span className={cn('text-xs', MUTED_TEXT)}>
-                  {' · '}
-                  {position.speakers.map((speaker, i) => (
-                    <span key={speaker.name}>
-                      {i > 0 && ', '}
-                      {speaker.url ? (
-                        <a
-                          href={speaker.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline decoration-1 underline-offset-2 hover:decoration-2"
-                        >
-                          {speaker.name}
-                        </a>
-                      ) : (
-                        speaker.name
-                      )}
-                    </span>
-                  ))}
-                </span>
-              )}
-            </p>
-            <p className="text-[15px] leading-relaxed">{position.position}</p>
+    <dl className="divide-y divide-[var(--daily-border)] border-t border-[var(--daily-border)]">
+      {ordered(positions, openedBy)
+        .slice(0, limit)
+        .map((position) => (
+          <div
+            key={position.party_id}
+            className="flex items-start gap-3 py-3 text-[15px] leading-snug"
+          >
+            <dt>
+              <PartyLogo
+                partyId={position.party_id}
+                name={position.party_name}
+                color={position.color}
+              />
+            </dt>
+            <dd className={cn('min-w-0 pt-1', clamp && 'line-clamp-2')}>
+              {position.position}
+            </dd>
           </div>
-        </li>
-      ))}
-    </ul>
+        ))}
+    </dl>
   );
 }

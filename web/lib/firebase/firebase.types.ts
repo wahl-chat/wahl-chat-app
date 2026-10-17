@@ -197,6 +197,8 @@ export type DigestVote = {
   outcome: 'angenommen' | 'abgelehnt' | null;
   citation_url: string | null;
   parties: DigestVoteParty[];
+  /** Absent on digests built before the feed's chat handoff. */
+  suggested_questions?: string[];
 };
 
 export type DigestCitation = {
@@ -228,6 +230,20 @@ export type DigestPartyPosition = {
   position: string;
 };
 
+export type DigestAudioSummary = {
+  title: string;
+  url: string;
+  /** Lets the player show the length before the file's metadata loads. */
+  duration_seconds?: number | null;
+};
+
+export type DigestQuote = {
+  text: string;
+  speaker: string;
+  party_id: string;
+  party_name: string;
+};
+
 export type DigestSessionSection = {
   topic: string;
   headline: string;
@@ -237,6 +253,18 @@ export type DigestSessionSection = {
   agenda_items: string[];
   citations: DigestCitation[];
   video_url: string | null;
+  /** A spoken summary of the section; the digest builder does not write one. */
+  audio?: DigestAudioSummary | null;
+  /** Fields below are absent on older digests. Exactly three bullets. */
+  key_points?: string[];
+  /** 1–5, relative to the other sections of the same sitting only. */
+  heat?: number | null;
+  /** Estimated from the speeches' word count. */
+  debate_minutes?: number | null;
+  opening_quote?: DigestQuote | null;
+  /** Fraktion of the debate's first speaker. */
+  opened_by?: string | null;
+  suggested_questions?: string[];
 };
 
 export type DigestSession = {

@@ -48,6 +48,7 @@ class DigestVote(BaseModel):
     )
     citation_url: Optional[str] = None
     parties: list[DigestVoteParty]
+    suggested_questions: list[str] = Field(default_factory=list)
 
 
 class DigestCitation(BaseModel):
@@ -85,6 +86,15 @@ class DigestPartyPosition(BaseModel):
     position: str
 
 
+class DigestQuote(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text: str
+    speaker: str
+    party_id: str
+    party_name: str
+
+
 class DigestSessionSection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -95,6 +105,23 @@ class DigestSessionSection(BaseModel):
     agenda_items: list[str]
     citations: list[DigestCitation]
     video_url: Optional[str] = None
+    key_points: list[str] = Field(
+        default_factory=list, description="Exactly three bullets, or none."
+    )
+    heat: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="How heated the debate was, relative to this sitting's other sections.",
+    )
+    debate_minutes: Optional[int] = Field(
+        None, description="Estimated from the speeches' word count."
+    )
+    opening_quote: Optional[DigestQuote] = None
+    opened_by: Optional[str] = Field(
+        None, description="Fraktion (party id) of the debate's first speaker."
+    )
+    suggested_questions: list[str] = Field(default_factory=list)
 
 
 class DigestProtocol(BaseModel):

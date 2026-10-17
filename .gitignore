@@ -58,3 +58,7 @@ CLAUDE.md
 # Party PDFs staged for upload to Firebase Storage (see firebase/storage_data/public/NOTE.md).
 # The documents themselves are not repo content — only the staging layout is.
 firebase/storage_data/public/**/*.pdf
+
+# Hand-made feed digests and media for the local dev server (web/lib/daily/local-preview.ts).
+web/public/local-preview/
+design/

@@ -17,7 +17,7 @@ import hashlib
 import json
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from typing import Any, Callable, Coroutine, Optional
 
@@ -29,6 +29,7 @@ from src.daily_digest.models import (
     DigestCitation,
     DigestPartyPosition,
     DigestProtocol,
+    DigestQuote,
     DigestSession,
     DigestSessionSection,
     DigestSpeaker,
@@ -39,6 +40,7 @@ from src.daily_digest.models import (
 from src.daily_digest.parliaments import Parliament, PartyDisplay, party_display_for
 from src.daily_digest.prompts import (
     PROMPT_VERSION,
+    OpeningQuoteDraft,
     PartyPositionDraft,
     SessionSummaryDraft,
     VoteEnrichment,
@@ -59,9 +61,20 @@ _SESSION_PROMPT_CHARS = 90_000
 _CITATIONS_PER_SECTION = 3
 _NO_AGENDA_LABEL = "Sonstige Wortbeiträge"
 _DESCRIPTION_CHARS = 1500
+# Typical Bundestag speaking pace; the debate length is an estimate from the
+# protocol text, which carries no timestamps.
+_WORDS_PER_MINUTE = 120
+_SUGGESTED_QUESTIONS = 3
+# A quote is shown whole on a card; longer sentences are dropped, not cut,
+# because a cut quote is no longer verbatim.
+_QUOTE_MAX_WORDS = 40
+# The speech excerpts in the prompt read "Name (party): …", and the model
+# tends to copy the suffix into the speaker field.
+_PARTY_SUFFIX_RE = re.compile(r"\s*\([^)]*\)\s*$")
+_KEY_POINTS = 3
 # Part of every input_hash next to PROMPT_VERSION: bump it when the stored doc
 # gains or changes a field, so existing days are rebuilt in the new shape.
-DIGEST_FORMAT_VERSION = "5"
+DIGEST_FORMAT_VERSION = "6"
 # The vote connector writes the embed text as "<label>\n\nThemen: …\n\nKontext: <intro>".
 _CONTEXT_MARKER = "Kontext: "
 
@@ -91,6 +104,7 @@ class VoteText:
     short_title: str
     summary: Optional[str]
     topics: list[DigestTopic]
+    suggested_questions: list[str] = field(default_factory=list)
 
 
 class DigestBuilder:
@@ -136,6 +150,7 @@ class DigestBuilder:
                     short_title=item.short_title.strip() or title,
                     summary=item.summary.strip() or None,
                     topics=list(dict.fromkeys(item.topics))[:2] or ["other"],
+                    suggested_questions=clean_questions(item.suggested_questions),
                 )
         return texts, fallen_back
 
@@ -300,6 +315,73 @@ def ground_positions(
     return list(positions.values())
 
 
+def clean_questions(questions: list[str]) -> list[str]:
+    cleaned = [q.strip() for q in questions if q.strip()]
+    return list(dict.fromkeys(cleaned))[:_SUGGESTED_QUESTIONS]
+
+
+def clean_key_points(points: list[str]) -> list[str]:
+    """The card layout has room for exactly three bullets; any other count is
+    dropped rather than padded or cut, so a bullet never goes missing silently."""
+    cleaned = [_strip_agenda_refs(p) for p in points if p.strip()]
+    return cleaned if len(cleaned) == _KEY_POINTS else []
+
+
+def clamp_heat(heat: Optional[int]) -> Optional[int]:
+    return None if heat is None else max(1, min(5, heat))
+
+
+def debate_minutes(items: list[AgendaItem]) -> Optional[int]:
+    words = sum(len(s.text.split()) for item in items for s in item.speeches)
+    return max(1, round(words / _WORDS_PER_MINUTE)) if words else None
+
+
+def _normalize_text(text: str) -> str:
+    return " ".join(text.split()).strip(" \"'„“”‚‘’»«").casefold()
+
+
+def ground_quote(
+    drafted: Optional[OpeningQuoteDraft],
+    items: list[AgendaItem],
+    display: dict[str, PartyDisplay],
+    aliases: Optional[dict[str, str]] = None,
+) -> Optional[DigestQuote]:
+    """Keep the quote only if it appears verbatim in that speaker's speech
+    here, so a paraphrase is never presented as a citation."""
+    if drafted is None:
+        return None
+    quote = _normalize_text(drafted.quote)
+    speaker = _normalize_name(_PARTY_SUFFIX_RE.sub("", drafted.speaker))
+    if not quote or len(quote.split()) > _QUOTE_MAX_WORDS:
+        return None
+    for item in items:
+        for speech in item.speeches:
+            if _normalize_name(speech.speaker or "") != speaker:
+                continue
+            if quote not in _normalize_text(speech.text):
+                continue
+            party_id = (aliases or {}).get(speech.party_id, speech.party_id)
+            return DigestQuote(
+                text=" ".join(drafted.quote.split()).strip(" \"'„“”‚‘’»«"),
+                speaker=speech.speaker,
+                party_id=party_id,
+                party_name=party_display_for(party_id, display).name,
+            )
+    return None
+
+
+def opening_party(
+    items: list[AgendaItem], aliases: Optional[dict[str, str]] = None
+) -> Optional[str]:
+    """The Fraktion of the debate's first speaker, which is usually the one
+    that brought the item onto the agenda."""
+    first = next((s for item in items for s in item.speeches), None)
+    if first is None or not first.party_id:
+        return None
+    party_id = first.party_id.strip().lower()
+    return (aliases or {}).get(party_id, party_id)
+
+
 def session_from_draft(
     draft: SessionSummaryDraft,
     refs: dict[str, AgendaItem],
@@ -326,6 +408,14 @@ def session_from_draft(
                 agenda_items=[item.label for item in items],
                 citations=_citations(items, display or {}, aliases or {}),
                 video_url=next((i.video_url for i in items if i.video_url), None),
+                key_points=clean_key_points(drafted.key_points),
+                heat=clamp_heat(drafted.heat),
+                debate_minutes=debate_minutes(items),
+                opened_by=opening_party(items, aliases),
+                opening_quote=ground_quote(
+                    drafted.opening_quote, items, display or {}, aliases
+                ),
+                suggested_questions=clean_questions(drafted.suggested_questions),
             )
         )
 
@@ -388,6 +478,7 @@ def vote_from_payload(
         outcome=(payload.get("meta") or {}).get("motion_outcome"),
         citation_url=payload.get("citation_url"),
         parties=parties,
+        suggested_questions=text.suggested_questions,
     )
 
 
