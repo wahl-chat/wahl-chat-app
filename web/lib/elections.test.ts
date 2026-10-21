@@ -95,18 +95,13 @@ describe('splitElectionsByDate', () => {
       NOW,
     );
 
-    expect(upcoming[0].context_id).toBe(
-      'landtagswahl-mecklenburg-vorpommern-2026',
-    );
+    expect(upcoming[0].context_id).toBe('abgeordnetenhauswahl-berlin-2026');
   });
 
   it('cannot promote a pinned election past one that is genuinely sooner', () => {
     const { upcoming } = splitElectionsByDate(
       [
-        election(
-          'landtagswahl-mecklenburg-vorpommern-2026',
-          new Date('2026-09-20'),
-        ),
+        election('abgeordnetenhauswahl-berlin-2026', new Date('2026-09-20')),
         election('sooner', new Date('2026-09-06')),
       ],
       NOW,

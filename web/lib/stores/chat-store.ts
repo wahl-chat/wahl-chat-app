@@ -1,6 +1,7 @@
 import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { createStore } from 'zustand/vanilla';
+import { acceptStudyConsent } from './actions/accept-study-consent';
 import { addVotingBehaviorResult } from './actions/add-voting-behavior-result';
 import { addVotingBehaviorSummaryChunk } from './actions/add-voting-behavior-summary-chunk';
 import { cancelStreamingMessages } from './actions/cancel-streaming-messages';
@@ -8,16 +9,19 @@ import { chatAddUserMessage } from './actions/chat-add-user-message';
 import { completeProConPerspective } from './actions/complete-pro-con-perspective';
 import { completeStreamingMessage } from './actions/complete-streaming-message';
 import { completeVotingBehavior } from './actions/complete-voting-behavior';
+import { declineStudyConsent } from './actions/decline-study-consent';
 import { failStreamingMessage } from './actions/fail-streaming-message';
 import { finishStreamingTurn } from './actions/finish-streaming-turn';
 import { generateProConPerspective } from './actions/generate-pro-con-perspective';
 import { generateSharingSnapshotLink } from './actions/generate-sharing-snapshot-link';
 import { generateVotingBehaviorSummary } from './actions/generate-voting-behavior-summary';
 import { hydrateChatSession } from './actions/hydrate-chat-session';
+import { hydrateStudyParticipant } from './actions/hydrate-study-participant';
 import { initializeChatSession } from './actions/initialize-chat-session';
 import { loadChatSession } from './actions/load-chat-session';
 import { mergeStreamingChunkPayloadForMessage } from './actions/merge-streaming-chunk-payload-for-message';
 import { newChat } from './actions/new-chat';
+import { recordStudyEvent } from './actions/record-study-event';
 import { selectRespondingParties } from './actions/select-responding-parties';
 import { setChatSessionId } from './actions/set-chat-session-id';
 import { setChatSessionIsPublic } from './actions/set-chat-session-is-public';
@@ -63,6 +67,18 @@ const defaultState: ChatStoreState = {
   prolificMinInteractions: undefined,
   prolificDisclaimerDismissed: false,
   prolificMessageCount: 0,
+  studyEnabled: undefined,
+  studyConsent: undefined,
+  studyCohort: undefined,
+  studyOverride: undefined,
+  studyHydrated: false,
+  studyPromptCount: 0,
+  studyQuestionnaireClicked: false,
+  pledgeModalOpen: false,
+  firstAnswerCompletedAt: undefined,
+  secondAnswerCompletedAt: undefined,
+  studyAnswersCompleted: 0,
+  sessionAnswersCounted: 0,
 };
 
 export function createChatStore(initialState?: Partial<ChatStore>) {
@@ -117,6 +133,23 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
           }),
         setProlificMessageCount: (prolificMessageCount) =>
           set({ prolificMessageCount }),
+        // A forced session ignores the kill switch: without this, the
+        // Firestore snapshot would arrive and switch the study back off.
+        setStudyEnabled: (studyEnabled) =>
+          set((state) => {
+            state.studyEnabled = state.studyOverride ? true : studyEnabled;
+          }),
+        setPledgeModalOpen: (pledgeModalOpen) => set({ pledgeModalOpen }),
+        incrementStudyPromptCount: () =>
+          set((state) => {
+            state.studyPromptCount = state.studyPromptCount + 1;
+          }),
+        setStudyQuestionnaireClicked: (studyQuestionnaireClicked) =>
+          set({ studyQuestionnaireClicked }),
+        hydrateStudyParticipant: hydrateStudyParticipant(get, set),
+        acceptStudyConsent: acceptStudyConsent(get, set),
+        declineStudyConsent: declineStudyConsent(get, set),
+        recordStudyEvent: recordStudyEvent(get, set),
       })),
     ),
   );

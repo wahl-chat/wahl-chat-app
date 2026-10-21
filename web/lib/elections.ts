@@ -52,7 +52,7 @@ export function isUpcomingElection(
  * This only ever reorders elections that tie. It cannot promote one past an
  * election that is genuinely sooner.
  */
-const SAME_DAY_ORDER = ['landtagswahl-mecklenburg-vorpommern-2026'];
+const SAME_DAY_ORDER = ['abgeordnetenhauswahl-berlin-2026'];
 
 function sameDayRank(context: Context): number {
   const index = SAME_DAY_ORDER.indexOf(context.context_id);

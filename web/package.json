@@ -62,6 +62,7 @@
     "react-window": "^1.8.10",
     "recharts": "^2.15.4",
     "remark-gfm": "^4.0.1",
+    "server-only": "^0.0.1",
     "sonner": "^1.7.4",
     "stripe": "^17.7.0",
     "tailwind-merge": "^2.6.1",

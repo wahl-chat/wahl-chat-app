@@ -1,4 +1,5 @@
 import ChatProlificWrapper from '@/components/chat/chat-prolific-wrapper';
+import ChatStudyWrapper from '@/components/chat/chat-study-wrapper';
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
 import LoadingSpinner from '@/components/loading-spinner';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
@@ -52,6 +53,7 @@ async function ChatView({
 
       <div className="relative px-3 md:px-4">
         <ChatProlificWrapper />
+        <ChatStudyWrapper />
         <ChatScrollDownIndicator />
         <ChatDynamicChatInput
           initialSystemStatus={systemStatus}

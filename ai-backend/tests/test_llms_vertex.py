@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Tests for the Vertex AI tier in src/llms.py.
+Tests for the Vertex AI tier of the LLM client.
 
 Two properties matter and neither needs a network or a real key:
 
@@ -14,7 +14,7 @@ Two properties matter and neither needs a network or a real key:
      existing priority-sorted failover in get_answer_from_llms and friends tries
      Vertex first and falls through to the identical AI Studio model on error.
 
-The conftest sets no VERTEX_* variables, so importing src.llms here exercises
+The conftest sets no VERTEX_* variables, so the import below exercises
 case (1) directly. Case (2) is asserted against the module's own construction
 helper rather than by re-importing with credentials, which would require a real
 key to build a client.
@@ -22,7 +22,7 @@ key to build a client.
 
 from __future__ import annotations
 
-from src import llms
+from src.config import llms
 
 
 def test_no_vertex_tier_without_credentials() -> None:
@@ -44,7 +44,6 @@ def test_no_vertex_tier_without_credentials() -> None:
     assert prepost == [
         "google-gemini-3.1-flash-lite",
         "openai-gpt-5.6-luna",
-        "google-gemini-2.5-flash-lite",
         "google-gemini-3.5-flash-lite",
     ]
 
@@ -89,12 +88,37 @@ def test_vertex_clients_are_pinned_on_vertex() -> None:
     assert client._use_vertexai is True
 
 
+def _generation_config(client) -> dict:
+    config = client._build_base_generation_config(None)
+    thinking = config.get("thinking_config")
+    if thinking is not None:
+        config = {
+            **config,
+            "thinking_config": thinking.model_dump(exclude_none=True),
+        }
+    return config
+
+
+def _thinking_level(config: dict) -> str:
+    level = config["thinking_config"]["thinking_level"]
+    return str(getattr(level, "value", level)).lower()
+
+
 def test_model_kwargs_survive_the_helper() -> None:
-    """The thinking_* and temperature settings are behavioural, not cosmetic."""
-    assert llms.google_gemini_3_6_flash.temperature == 1.0
-    assert llms.google_gemini_3_6_flash.thinking_level == "minimal"
-    assert llms.google_gemini_3_7_flash.temperature == 1.0
-    assert llms.google_gemini_3_7_flash.thinking_level == "low"
+    """Generation settings on the live roster reach the request."""
+    for client, level in (
+        (llms.google_gemini_3_6_flash, "minimal"),
+        (llms.google_gemini_3_7_flash, "low"),
+        (llms.google_gemini_3_5_flash_lite, "minimal"),
+    ):
+        config = _generation_config(client)
+        assert "temperature" not in config, client.model
+        assert "top_p" not in config, client.model
+        assert "top_k" not in config, client.model
+        assert _thinking_level(config) == level
+        assert "thinking_budget" not in config["thinking_config"]
+        assert client.thinking_budget is None
+
     assert llms.google_gemini_3_flash_preview.temperature == 1.0
     assert llms.google_gemini_3_flash_preview.thinking_level == "minimal"
     assert llms.google_gemini_3_5_flash.temperature == 1.0
@@ -104,10 +128,6 @@ def test_model_kwargs_survive_the_helper() -> None:
 
     assert llms.google_gemini_3_1_flash_lite.temperature == 1.0
     assert llms.google_gemini_3_1_flash_lite.thinking_level == "minimal"
-    assert llms.google_gemini_2_5_flash_lite.temperature == 1.0
-    assert llms.google_gemini_2_5_flash_lite.thinking_budget == 0
-    assert llms.google_gemini_3_5_flash_lite.temperature == 1.0
-    assert llms.google_gemini_3_5_flash_lite.thinking_level == "minimal"
     assert llms.openai_gpt_5_6_luna.temperature == 1.0
     assert llms.openai_gpt_5_6_luna.reasoning_effort == "minimal"
 

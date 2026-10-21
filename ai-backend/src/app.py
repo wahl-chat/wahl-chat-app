@@ -16,7 +16,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.routes import chat, pro_con, voting_behavior, misc
-from src.utils import get_cors_allowed_origins
+from src.core.utils import get_cors_allowed_origins
 
 LOGGING_FORMAT = (
     "%(asctime)s - %(name)s - %(filename)s - %(lineno)d - %(levelname)s - %(message)s"
@@ -44,7 +44,7 @@ def enforce_corpus_rollout_gate() -> None:
         return
     # Deferred import: setup_collection allocates nothing at import time, but the
     # count call below constructs a QdrantClient we only want on the gated path.
-    from src.ingestion.setup_collection import COLLECTION_NAME, corpus_point_count
+    from wahlchat_common.corpus import COLLECTION_NAME, corpus_point_count
 
     count = corpus_point_count()
     if not count:

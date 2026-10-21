@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 """
-Unit tests for additions to chat_service:
+Unit tests for the chat service:
   - Vote sources[] dict carries a structural 'region' marker
   - election_level / level kwarg is passed ONLY to vote_record
     _safe_retrieve calls, never to manifesto/speech calls.
@@ -19,8 +19,8 @@ import inspect
 import json
 from datetime import datetime, timezone
 
-import src.chat_service as cs
-from src.chat_service import fetch_party_response_stream, process_party
+import src.services.chat.service as cs
+from src.services.chat.service import fetch_party_response_stream, process_party
 from src.models.chat import CachedResponse, GroupChatSession, Message
 from src.models.context import ContextParty
 
@@ -33,7 +33,7 @@ from src.models.context import ContextParty
 def test_vote_sources_include_region() -> None:
     """The vote sources loop must append 'region' from the vote payload.
 
-    We replicate the sources-loop logic from chat_service.py and verify that
+    We replicate the vote-sources loop and verify that
     the appended dict carries a 'region' key sourced from vote_payload.get('region').
     """
     party_id = "spd"
@@ -56,7 +56,7 @@ def test_vote_sources_include_region() -> None:
         },
     }
 
-    # Replicate the sources loop from chat_service.py.
+    # Replicate the vote-sources loop.
     sources: list = []
     for vp in [vote_payload]:
         meta_vp = vp.get("meta") or {}
@@ -89,7 +89,7 @@ def test_is_video_link() -> None:
     """_is_video_link recognises op video deep-links (#t= fragment / .mp4) and
     rejects PDFs, dbtg.tv pages, and empty urls — so `video_url` is only set for a
     genuinely playable video."""
-    from src.chat_service import _is_video_link
+    from src.services.chat.service import _is_video_link
 
     assert _is_video_link("https://cdn.example/clip.mp4#t=87.5")
     assert _is_video_link("https://cdn.example/clip.mp4")
@@ -152,7 +152,7 @@ def test_speech_sources_emit_dual_links(monkeypatch) -> None:
 def test_source_snippet_normalizes_and_truncates() -> None:
     """_source_snippet is the PDF viewer's highlight anchor: whitespace collapses,
     long text cuts at a word boundary under the cap, empty text yields None."""
-    from src.chat_service import _SNIPPET_MAX_CHARS, _source_snippet
+    from src.services.chat.service import _SNIPPET_MAX_CHARS, _source_snippet
 
     assert _source_snippet(None) is None
     assert _source_snippet("") is None

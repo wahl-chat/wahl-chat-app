@@ -1,4 +1,9 @@
 import type { WahlChatUser } from '@/components/anonymous-auth';
+import {
+  getCurrentVisitId,
+  getOrLoadPageVisitSnapshot,
+} from '@/lib/page-visit/page-visit';
+import type { StudyCohort } from '@/lib/pledge-study/types';
 import type { ProlificMetadata } from '@/lib/prolific-study/prolific-metadata';
 import type {
   GroupedMessage,
@@ -37,7 +42,13 @@ import {
   authEmulatorUrl,
   firebaseEmulatorsEnabled,
 } from './firebase-emulators';
-import type { ChatSession, LlmSystemStatus } from './firebase.types';
+import type {
+  ChatSession,
+  LlmSystemStatus,
+  StudyParticipant,
+  StudyParticipantEvent,
+  StudyStatus,
+} from './firebase.types';
 
 const app = initializeApp(firebaseConfig);
 
@@ -71,6 +82,71 @@ export async function getAuthHeader(): Promise<Record<string, string>> {
   }
 }
 
+export async function upsertPageVisit(payload: {
+  visitId: string;
+  userId: string;
+  visibleMs: number;
+  startedAtMs: number;
+  landingPath: string;
+  lastPath: string;
+  contextId?: string;
+  tenantId?: string;
+  embedded?: boolean;
+  chatSessionId?: string;
+  includeCreateFields?: boolean;
+}): Promise<void> {
+  const data: Record<string, unknown> = {
+    user_id: payload.userId,
+    last_seen_at: Timestamp.now(),
+    visible_ms: payload.visibleMs,
+    last_path: payload.lastPath,
+  };
+  if (payload.includeCreateFields) {
+    data.started_at = Timestamp.fromMillis(payload.startedAtMs);
+    data.landing_path = payload.landingPath;
+    if (payload.embedded) {
+      data.embedded = true;
+    }
+  }
+  if (payload.contextId) {
+    data.context_id = payload.contextId;
+  }
+  if (payload.tenantId) {
+    data.tenant_id = payload.tenantId;
+  }
+  if (payload.chatSessionId) {
+    data.chat_session_ids = arrayUnion(payload.chatSessionId);
+  }
+  await setDoc(doc(db, 'page_visits', payload.visitId), data, { merge: true });
+}
+
+export async function attachChatSessionToPageVisit(
+  visitId: string,
+  sessionId: string,
+  userId: string,
+): Promise<void> {
+  const snapshot = getOrLoadPageVisitSnapshot();
+  const ref = doc(db, 'page_visits', visitId);
+  const existing = await getDoc(ref);
+  if (existing.exists()) {
+    // Do not rewrite visible_ms — a heartbeat may already have flushed a
+    // higher value, and the rules reject a decrease.
+    await updateDoc(ref, {
+      last_seen_at: Timestamp.now(),
+      chat_session_ids: arrayUnion(sessionId),
+    });
+    return;
+  }
+  await setDoc(ref, {
+    user_id: userId,
+    last_seen_at: Timestamp.now(),
+    chat_session_ids: arrayUnion(sessionId),
+    started_at: Timestamp.fromMillis(snapshot.startedAtMs),
+    visible_ms: snapshot.visibleMs,
+    landing_path: snapshot.landingPath,
+  });
+}
+
 export async function createChatSession(
   userId: string,
   partyIds: string[],
@@ -78,7 +154,9 @@ export async function createChatSession(
   tenantId?: string,
   contextId?: string,
   prolificMetadata?: ProlificMetadata,
+  studyCohort?: StudyCohort,
 ): Promise<void> {
+  const visitId = getCurrentVisitId();
   await setDoc(doc(db, 'chat_sessions', sessionId), {
     user_id: userId,
     party_ids: partyIds,
@@ -89,7 +167,20 @@ export async function createChatSession(
     ...(prolificMetadata
       ? { prolific_metadata: prolificMetadata, is_prolific_study: true }
       : {}),
+    // PledgeTracker study: cohort stamp so chat data joins to the study
+    // without an extra lookup (mirrors the prolific metadata pattern).
+    ...(studyCohort
+      ? { study_cohort: studyCohort, is_pledge_study: true }
+      : {}),
+    ...(visitId ? { visit_id: visitId } : {}),
   });
+  if (visitId) {
+    void attachChatSessionToPageVisit(visitId, sessionId, userId).catch(
+      (error) => {
+        console.error('Failed to attach chat session to page visit', error);
+      },
+    );
+  }
 }
 
 export async function getUsersChatHistory(uid: string): Promise<ChatSession[]> {
@@ -147,6 +238,49 @@ export function listenToSystemStatus(
   );
 
   return unsubscribe;
+}
+
+/**
+ * Kill switch for the PledgeTracker study: system_status/pledge_study
+ * {enabled: true}. A missing doc, a missing field, or a listener error all
+ * mean "study off" — the safe default. Flipping the flag is a console edit,
+ * no deploy.
+ */
+export function listenToStudyStatus(callback: (status: StudyStatus) => void) {
+  const unsubscribe = onSnapshot(
+    doc(db, 'system_status', 'pledge_study'),
+    (snapshot) => {
+      callback({ enabled: snapshot.data()?.enabled === true });
+    },
+    () => callback({ enabled: false }),
+  );
+
+  return unsubscribe;
+}
+
+export async function getStudyParticipant(uid: string) {
+  const snapshot = await getDoc(doc(db, 'study_participants', uid));
+  return snapshot.exists() ? (snapshot.data() as StudyParticipant) : null;
+}
+
+export async function setStudyParticipant(
+  uid: string,
+  data: Partial<StudyParticipant>,
+) {
+  await setDoc(doc(db, 'study_participants', uid), data, { merge: true });
+}
+
+/** Append one interaction-log event (plus optional scalar merges). */
+export async function appendStudyParticipantEvent(
+  uid: string,
+  event: StudyParticipantEvent,
+  extra?: Partial<StudyParticipant>,
+) {
+  await setDoc(
+    doc(db, 'study_participants', uid),
+    { ...extra, events: arrayUnion(event) },
+    { merge: true },
+  );
 }
 
 export async function getChatSession(sessionId: string) {

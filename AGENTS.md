@@ -32,13 +32,36 @@ proactive chat) are designed-for but not yet built.
 
 ## Architecture
 
-Three deployable components plus two data stores:
+Three deployable components (four images) plus two data stores:
 
 - **`web/`** — Next.js 15 / React 19 frontend. Chat UI streams tokens and
   citations from the backend over SSE using the Vercel AI SDK v5
   (`@ai-sdk/react` `useChat`).
 - **`ai-backend/`** — Python FastAPI service (ASGI, uvicorn). Serves the chat
-  RAG pipeline over Server-Sent Events and hosts the ingestion pipeline.
+  RAG pipeline over Server-Sent Events, including query-time retrieval
+  (`src/retrieve.py`).
+- **`ingestion/`** — connectors, the runner, and Qdrant collection setup.
+  This package is a separate image for the scheduled Cloud Run Jobs.
+
+**The two deployables do not import each other.** Shared code is in
+`packages/wahlchat-common`:
+
+    ai-backend  ->  wahlchat-common  <-  ingestion
+
+The package holds the corpus contract: vector space, collection name, the
+embedding factory, payload enums, governance levels, the 36 AW legislature
+periods, PledgeTracker record types, and Vertex credentials.
+Put further shared code in this package.
+
+Every dependency of the package is already a direct dependency of both images.
+A new dependency here is installed in both images.
+
+The chat service and the ingestion Job receive environment variables separately.
+`check_fingerprint()` compares the stored provider, model, and dimension with
+the running process. The comparison runs on read and on write.
+
+All three are uv workspace members sharing one lockfile. `--package` in each
+Dockerfile installs one deployable plus `wahlchat-common`, and nothing else.
 - **`firebase/`** — Firebase config, Cloud Functions, Firestore security rules,
   and seed data. Firestore holds application/session data (election contexts,
   parties, chat sessions); the Firestore emulator is used in local dev.
@@ -55,20 +78,21 @@ Three deployable components plus two data stores:
 source APIs / documents
         │  (ingestion connectors: discover → fetch → normalize)
         ▼
-   ChunkRecord[]  (Pydantic contract, src/ingestion/schemas.py)
+   ChunkRecord[]  (Pydantic contract, ingestion/src/ingestion/schemas.py)
         │  (runner: embed with gemini-embedding-2 → upsert)
         ▼
    Qdrant  wahlchat_chunks_{env}   ← single corpus collection
-        │  (retrieval: filtered vector search, retrieve.py)
+        │  (retrieval: filtered vector search, ai-backend/src/retrieve.py)
         ▼
-   chat_service / chatbot_async  (Gemini generation, grounded + cited)
+   services/chat  (Gemini generation, grounded + cited)
         │  (SSE, Vercel AI SDK v5 UI-message-stream)
         ▼
    web useChat  →  streamed answer + citations
 ```
 
-**Ingestion** is a synchronous single-pass pipeline (`src/ingestion/run.py`).
-Every connector subclasses `BaseConnector` (`src/ingestion/connector.py`) and
+**Ingestion** is a synchronous single-pass pipeline
+(`ingestion/src/ingestion/run.py`). Every connector subclasses `BaseConnector`
+(`ingestion/src/ingestion/connector.py`) and
 implements three pure data-transform methods:
 
 - `discover(since)` — list upstream external IDs to fetch, filtered by the
@@ -87,7 +111,7 @@ items are cheaply skipped. Connectors that need store-side follow-up override
 `post_upsert()`.
 
 Connectors are registered in a closed `{connector_id: factory}` map
-(`src/ingestion/registry.py`). Registered IDs:
+(`ingestion/src/ingestion/registry.py`). Registered IDs:
 
 - `abgeordnetenwatch_votes` — Abgeordnetenwatch vote records (the canonical
   `vote_record` producer; federal + all 16 Landtage).
@@ -108,16 +132,28 @@ Connectors are registered in a closed `{connector_id: factory}` map
   that hook ever fails. Both read the class from the object path, so neither can
   remove a document the AW copy does not replace.
 
-The **data contract** is the Pydantic model set in `src/ingestion/schemas.py`
-(`ChunkRecord` plus the `AuthorityTier` / `SourceType` enums and per-source
-`meta` builders `VoteMeta` / `SpeechMeta`). It is the single source of truth for
-what a corpus chunk looks like; connectors produce `ChunkRecord`s and the runner
-stores them.
+Outside the registry (bespoke runner, like the manifesto bulk CLIs):
+
+- `pledgetracker` — evidence timelines for political pledges from the Cambridge
+  PledgeTracker research project (EMNLP 2025 demo,
+  https://aclanthology.org/2025.emnlp-demos.64/). Not in `CONNECTOR_FACTORIES`:
+  pledges have no monotonic cursor and the runner dual-writes Firestore
+  (`pledges/{pledge_id}`, the source of truth incl. timelines) + Qdrant (one
+  `pledge_record` vector per pledge, timelines never embedded). Runner:
+  `ingestion/src/ingestion/connectors/pledgetracker/bulk.py` (see "Running
+  PledgeTracker ingestion").
+
+The **data contract** for a corpus chunk is `ChunkRecord` and the per-source
+`meta` builders (`VoteMeta`, `SpeechMeta`) in
+`ingestion/src/ingestion/schemas.py`.
+`AuthorityTier` and `SourceType` are defined in `wahlchat_common.enums`.
+`schemas.py` re-exports them.
+Connectors produce `ChunkRecord`s. The runner stores them.
 
 ### Qdrant collection design
 
 One collection per environment: `wahlchat_chunks_{ENV}` (created by
-`src/ingestion/setup_collection.py`). Rationale and invariants:
+`ingestion/src/ingestion/setup_collection.py`). Rationale and invariants:
 
 - **Single collection, payload filtering** — not one collection per election or
   per party. Cross-election shared documents are stored once; queries filter by
@@ -147,19 +183,28 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 | Path | What lives there |
 |------|------------------|
 | `web/` | Next.js frontend (app router in `web/app/`, shared code in `web/lib/`). Package manager: bun. |
-| `ai-backend/` | Python backend. Package manager: uv. |
+| `pyproject.toml` (repo root) | uv workspace root: one lockfile (`uv.lock`) and one shared environment for the Python members `ai-backend` + `ingestion`. |
+| `ai-backend/` | Python chat backend. Depends on `wahlchat-common`, never on `ingestion`. Package manager: uv. |
+| `packages/wahlchat-common/` | Code shared by the Python components: corpus vector space + collection identity, embeddings factory, payload enums, governance levels, the 36 AW legislature periods, Vertex credentials. |
 | `ai-backend/src/app.py` | FastAPI entry point (uvicorn). |
 | `ai-backend/src/routes/` | HTTP routers: `chat` (SSE), `pro_con`, `voting_behavior`, `misc`. |
-| `ai-backend/src/chat_service.py`, `chatbot_async.py` | RAG chat pipeline + LLM streaming. |
-| `ai-backend/src/ingestion/` | Ingestion framework: `connector.py` (base class), `run.py` (runner), `registry.py`, `schemas.py` (data contract), `setup_collection.py`, `retrieve.py`, `ids.py`, `speech_key.py`, `speech_dedup.py`. |
-| `ai-backend/src/ingestion/connectors/` | Per-source connectors: `abgeordnetenwatch/`, `bundestag_speeches/`, `openparliament_tv/`, `manifestos/`. Each has `connector.py`, a `client.py`, and `mappers/` that build `ChunkRecord`s. |
+| `ai-backend/src/config/` | LLM client setup (`llms.py`). |
+| `ai-backend/src/core/` | Cross-cutting helpers: auth, prompts, SSE framing, utils. |
+| `ai-backend/src/services/chat/service.py`, `chatbot_async.py` | RAG chat pipeline + LLM streaming. |
+| `ai-backend/src/retrieve.py` | Query-time retrieval over the corpus: filtered vector search, two-pass term windows, vote re-rank, prefer-op dedup. |
+| `ingestion/` | Connectors + runner. Ships its own image for the scheduled Jobs. Depends on `wahlchat-common`, never on `ai-backend`. |
+| `ingestion/src/ingestion/` | Ingestion framework: `connector.py` (base class), `run.py` (runner), `registry.py`, `schemas.py` (data contract), `setup_collection.py`, `embeddings.py`, `vertex_credentials.py`, `governance_levels.py`, `legislature_config.py`, `ids.py`, `speech_key.py`, `speech_dedup.py`. |
+| `ingestion/src/ingestion/connectors/` | Per-source connectors: `abgeordnetenwatch/`, `bundestag_speeches/`, `openparliament_tv/`, `manifestos/`, `manifesto_uploads/`. Each has `connector.py`, a `client.py`, and `mappers/` that build `ChunkRecord`s. |
+| `ingestion/tests/` | pytest suite for the corpus layer (runner, schema, connectors). |
+| `ingestion/data/` | Connector inputs: `manifesto_uploads/{env}.txt` manifests; MdB-Stammdaten XML (gitignored, fetched on demand). |
 | `ai-backend/src/models/` | Pydantic DTOs and domain models for the chat API. |
-| `ai-backend/tests/` | pytest suite (Qdrant/embeddings mocked in `conftest.py`). |
+| `ai-backend/tests/` | pytest suite for the chat service and retrieval (Qdrant/embeddings mocked in `conftest.py`). |
 | `firebase/` | Firestore rules (`firestore.rules`), Cloud Functions, seed script (`scripts/seed_firestore.py`), rules tests (`tests/`). |
 | `infra/` | Scheduled-ingestion deployment — planned Terraform workstream (Cloud Run Jobs + Scheduler); see `infra/README.md`. |
-| `scripts/` | Repo-root scripts: `check_gdpr_wall.py` (CI guard), `setup-agent-docs.sh`. |
+| `scripts/` | Repo-root scripts: `check_gdpr_wall.py` (GDPR Art. 9 guard), `setup-agent-docs.sh`. |
 | `Makefile` | Developer convenience targets (install, stores, dev, test, lint, ingestion runs). |
-| `docker-compose.yml` | Local Qdrant service. |
+| `docker-compose.yml` | Local Qdrant service, plus a profile-gated ingestion runner that builds `ingestion/Dockerfile`. |
+| `.dockerignore` (repo root) | Governs BOTH images — they build from the repo root, since the workspace lockfile lives there. |
 
 ## How to run it
 
@@ -173,12 +218,15 @@ The `Makefile` at the repo root is the entry point for most workflows.
 # One-time: link CLAUDE.md → AGENTS.md for AI assistants (optional)
 ./scripts/setup-agent-docs.sh
 
-# Install all dependencies (web via bun, ai-backend via uv)
+# Install all dependencies (web via bun; ai-backend + ingestion via one uv sync)
 make install
 
 # Configure env (pre-filled for local mode; add LLM keys for chat)
 cp ai-backend/.env.example ai-backend/.env
 cp web/.env.example web/.env.local
+# Only if you run ingestion connectors (needs OPENAI_API_KEY, DIP_API_KEY);
+# omit it and the CLIs fall back to ai-backend/.env.
+cp ingestion/.env.example ingestion/.env
 
 # Start local stores: Qdrant (Docker) + Firestore emulator (port 8081)
 make stores-up
@@ -211,15 +259,16 @@ cd ai-backend && uv run python -m src.app   # backend (add --debug for verbose l
 Before any ingestion, create the collection once (idempotent):
 
 ```bash
-cd ai-backend && QDRANT_URL=http://localhost:6333 uv run python -m src.ingestion.setup_collection
+cd ingestion && QDRANT_URL=http://localhost:6333 uv run python -m ingestion.setup_collection
 ```
 
 Then run a connector. All connectors go through the same
-`python -m src.ingestion.run --connector <id>` entrypoint; the `Makefile` wraps
+`python -m ingestion.run --connector <id>` entrypoint; the `Makefile` wraps
 the common cases (Qdrant URL is wired to local automatically). They require
-`make stores-up` first and the relevant API keys in `ai-backend/.env`
+`make stores-up` first and the relevant API keys in `ingestion/.env`
 (`OPENAI_API_KEY` always, plus `DIP_API_KEY` for speeches, optionally
-`AW_API_KEY`).
+`AW_API_KEY`). Setups that keep every key in `ai-backend/.env` still work — the
+ingestion CLIs fall back to it when `ingestion/.env` does not exist.
 
 ```bash
 make run-abgeordnetenwatch-votes          # federal votes
@@ -242,13 +291,192 @@ path carries the metadata — election and party must already exist in
    where `{class}` is `wahlprogramme` (the programme the party runs on — AW may
    later replace it) or `parteidokumente` (a Grundsatzprogramm or Satzung we hold
    only because the party published no Wahlprogramm — never auto-retired).
-2. Add the object path to `ai-backend/data/manifesto_uploads/{env}.txt`.
+2. Add the object path to `ingestion/data/manifesto_uploads/{env}.txt`.
 3. `make upload-manifesto-uploads` (uploads + grants public read).
 4. `make run-manifesto-uploads ARGS="--check"`, then drop `ARGS` to ingest.
 
 `--since` (or `MANIFESTO_UPLOADS_SINCE`) floors by election date; documents below it
 are neither ingested nor retired. Removing a manifest line retires that document's
 chunks on the next run.
+
+#### Running PledgeTracker ingestion
+
+The Cambridge queue API is an async job queue in front of a single GPU: one job
+at a time, ~3 minutes per pledge, results stored server-side. We own the pledge
+list (`ingestion/data/pledges/*.jsonl`: claim, `pledge_date`, `pledge_author`,
+optional `bundesland`/`party_id`/source metadata). Bundesländer map to ISO
+3166-2 region codes (`DE-ST`), which must match the context seeds' `region_path`
+elements. The runner is incremental: a freshness watermark skips pledges checked
+within `--freshness-days` (default 7), interrupted runs resume via the job id
+persisted on the Firestore doc, and `--batch-size` (default 3) bounds each
+invocation — sized for the 15-minute scheduled-job cap. Pledge identity is
+`party_id:claim:region:pledge_date`, so NEVER reword a claim in place — a live
+run ends with a reconcile that retires store pledges no longer in the registry
+(edited claims, removed rows), scoped to the registry's own regions
+(`--skip-reconcile` opts out).
+
+Requires `PLEDGETRACKER_API_KEY` in `ingestion/.env` (falling back to
+`ai-backend/.env`; gitignored — never commit
+it) and `PLEDGETRACKER_ENABLE_LIVE=true`; without them the runner ingests the
+packaged demo fixture offline. `FIRESTORE_EMULATOR_HOST` is mandatory unless
+`ENV=prod` (accidental-write guard); pass `--allow-remote` to deliberately
+ingest into the deployed dev environment without an emulator. The flag unsets
+the emulator host even if `.env` still has it (local mode sets it by default).
+
+```bash
+FIRESTORE_EMULATOR_HOST=localhost:8081 make run-pledgetracker ARGS="--dry-run"
+FIRESTORE_EMULATOR_HOST=localhost:8081 PLEDGETRACKER_ENABLE_LIVE=true \
+  make run-pledgetracker ARGS="--registry data/pledges/sachsen_anhalt_pledges.jsonl --batch-size 2"
+# Deployed dev Firestore (wahl-chat-dev), not the emulator:
+make run-pledgetracker ARGS="--allow-remote --registry data/pledges/sachsen_anhalt_pledges.jsonl --batch-size 2"
+# Backfill short event headlines only (LLM calls, no queue jobs / Qdrant writes):
+FIRESTORE_EMULATOR_HOST=localhost:8081 make run-pledgetracker ARGS="--backfill-titles"
+```
+
+Data-handling invariants: Cambridge's per-event `Ja`/`Nein` label maps to
+`is_relevant_for_tracking` (useful evidence), never a fulfilled/broken verdict —
+UI copy says "Ziele", not "Versprechen"; the events' full source text is never
+stored (`url`/`title` suffice); the chat-side lookup is best-effort and may
+return nothing (the UI then shows no PledgeTracker entry point).
+
+#### The PledgeTracker study (consent, cohorts, questionnaire)
+
+An in-app experiment with the Vlachos group (University of Cambridge): does
+PledgeTracker change users' willingness to engage in political debate?
+
+- **Scope**: only `abgeordnetenhauswahl-berlin-2026` and
+  `landtagswahl-mecklenburg-vorpommern-2026` — `STUDY_CONTEXT_IDS` in
+  `web/lib/pledge-study/study-config.ts`, which also holds the prompt-timing
+  constants, the cohort hash, and the questionnaire form id. The shared
+  vocabulary (`StudyParticipation`, `StudyCohort`) lives in
+  `web/lib/pledge-study/types.ts`: **participation** says whether a user
+  consented to the research instruments (`experimental` / `regular`), **cohort**
+  says which version of the product they get (`control` / `manipulation`). The
+  two are INDEPENDENT: everyone who answers the dialog is assigned an arm,
+  declines included, so a `regular` user can be in `manipulation` and see the
+  feature. "experimental" therefore never means "sees the feature".
+- **Kill switch**: Firestore doc `system_status/pledge_study` `{enabled: true}`.
+  Missing doc/field/error = off (the safe default); flipping it is a console
+  edit, no deploy. **Off means PledgeTracker is hidden in EVERY context, not
+  just the study ones** — the feature is new and only ships inside a study for
+  now, so switching the study off must not silently roll the feature out to
+  every election. Turning it ON is therefore what NARROWS visibility, to the
+  manipulation arm inside a study context. It follows that non-study elections
+  need the switch value too, which is why `ChatStudyWrapper` mirrors it into
+  the store in every context. The local emulator UI is disabled, so write the doc over
+  REST instead, with `-H 'Authorization: Bearer owner'` (plain writes are
+  refused by the rules).
+  The questionnaire form id is COMMITTED (`STUDY_QUESTIONNAIRE_FORM_ID` in
+  `web/lib/pledge-study/study-config.ts`), like every other Fillout form here,
+  so a fresh checkout and both deployments work with no env setup;
+  `NEXT_PUBLIC_STUDY_QUESTIONNAIRE_URL` only overrides it for a test form.
+- **Flow**: fresh chat in a study context → two-stage consent (short ask, then
+  the Einverständniserklärung). A „Nein" is permanent per uid, and dismissing
+  the dialog (Escape, overlay click, drawer swipe) is recorded as that same
+  „Nein" — only an explicit „Ja" enrols, and everyone who was asked leaves a
+  record, so the consent denominator is complete. A „Ja" assigns the cohort —
+  deterministic hash(uid+salt), p=0.5 — and persists `study_participants/{uid}`
+  with `participation`, `cohort` and `assignment_source` (the analysis source
+  of truth). NEVER change the salt while the study runs.
+  Both answers also record `context_id` and `party_ids` (the parties selected
+  when the ask appeared), so non-response can be modelled rather than just
+  counted — refusal by election, and by the party the user came to chat with.
+  Every answer also records `consent_stage` (`ask` | `consent`) and, on a
+  decline, `decline_reason` (`explicit` | `dismissed`): all four refusal paths
+  land in the same action, and without these the short ask and the formal
+  Einverständniserklärung are one undifferentiated number. Acceptances are
+  always `consent_stage: 'consent'`. Rows written before 2026-09-17 have
+  neither field — that is what "stage unknown" means in the analysis. Note
+  that closing the TAB still leaves no record at all, at either stage.
+  BOTH answers also assign and persist a `cohort`, from the same
+  `hash(uid+salt)`, so a uid's arm never depends on the answer it gave. The 76
+  declines written before 2026-09-18 have no cohort, and are **deliberately
+  left that way — do NOT backfill them**. A missing cohort on a declined row
+  is the marker for the old regime: those users were never exposed to the
+  feature, so pooling them with post-2026-09-18 declines would mix the
+  unexposed in with the A/B sample. They are never re-asked either (consent is
+  sticky), so they stay arm-less for good, by choice.
+  The `?sg=x` ("declined") override is the one decline that stays arm-less on
+  purpose — it demonstrates that experience — and the decline action honours
+  that absence instead of hashing an arm in.
+- **Gate** (`web/lib/pledge-study/gate.ts`): the switch is checked FIRST — off
+  or not-yet-known hides PledgeTracker everywhere. With it on, a study context
+  admits the `manipulation` arm and nobody else. **THE ARM DECIDES, NOT THE
+  CONSENT ANSWER** (changed 2026-09-18): consent governs the research
+  instruments, the arm governs which build of the product is served, and
+  requiring both left the manipulation arm in single digits. Control sees
+  nothing — that is the comparison — and a user who was never asked has no arm
+  and sees nothing either. Pre-exposure cannot contaminate anyone: the arm is a
+  deterministic `hash(uid+salt)`, identical whenever it is computed, so there is
+  no later assignment to spoil. Any other context is the ordinary product and
+  shows the feature to everyone. Covered by `gate.test.ts`.
+- **Telemetry** (`recordStudyEvent`, written for EVERYONE who answered the
+  dialog — both arms and both answers; a user who was never asked has no row
+  and is a strict no-op, or the consent denominator would be destroyed):
+  append-only `events` on the participant doc — `first_message`, `first_answer_completed`,
+  `second_answer_completed`, `pledge_shown` (viewport exposure),
+  `pledge_modal_open`/`_close`,
+  `prompt_shown`/`prompt_dismissed` (with trigger), `questionnaire_clicked`.
+  Counts and firsts are derived from the log at analysis time.
+- **Questionnaire prompts** (identical for both cohorts — control symmetry,
+  and now genuinely so): `second_answer` fires `SECOND_ANSWER_DELAY_MS` (10s)
+  after the PARTICIPANT's second answer completes; `absolute_timer` fires
+  `ABSOLUTE_FALLBACK_MS` (90s) after the first completed answer of the chat,
+  so a user who never sends a second message is still asked once. Both stand
+  down once anything has prompted, so whichever comes first wins and two
+  prompts cannot land seconds apart. Max 2 prompts ever, cap survives reloads.
+  The answer count is per PARTICIPANT, not per chat: it is seeded from the
+  event log at hydration and carried through `newChat`, because `newChat`
+  empties `messages` and a per-chat count would silently miss a second
+  question asked in a fresh chat. **Nothing about prompting reads PledgeTracker state.** The former
+  `modal_close` and `longstop` triggers did, and since only the manipulation
+  arm can open a pledge modal, that arm had prompt paths control could never
+  reach — differential prompt exposure inside the instrument measuring the
+  outcome. Rows written before this change carry the retired
+  `timer`/`modal_close`/`longstop` trigger values; the vocabulary was renamed
+  rather than reused so the two regimes stay distinguishable in `events`.
+  The form opens IN-APP via
+  `FilloutPopupEmbed` (same pattern as `survey-banner.tsx`), carrying
+  `user_id` + `chat_session_id` + `cohort` as parameters (matching the form's
+  hidden fields); trigger/context stay in the event log. Passing the cohort
+  reverses the original no-self-unblinding rule — it is readable in the iframe
+  URL — and it is a CONVENIENCE COPY only: `study_participants/{uid}` stays
+  authoritative, because it alone carries `assignment_source` and so tells a
+  real participant from a `?sg=` tester. A Fillout row's `cohort` cannot do
+  that on its own. While the
+  study is on, the study questionnaire is the ONLY thing anyone is asked for,
+  app-wide: `StudyStatusProvider` holds one kill-switch subscription and
+  `useStudyRunning()` suppresses the general feedback banner, the newsletter
+  step after login, and the Wahl-Swiper feedback card. The rule ignores the
+  cohort and consent, so no arm is exposed differently, and everything returns
+  the moment the kill switch goes off.
+- **Analysis joins**: `study_participants/{uid}` ↔ `chat_sessions.user_id`
+  (sessions are also stamped `study_cohort` + `is_pledge_study`) ↔
+  `page_visits.user_id`/`chat_session_ids` (dwell time) ↔ the questionnaire's
+  `user_id` + `chat_session_id` answers. The uid is the Firebase anonymous uid
+  throughout.
+- **Forcing a variant** (`web/lib/pledge-study/variant-override.ts`): append
+  `?sg=a` (consented control), `?sg=b` (consented manipulation), `?sg=x`
+  (declined) in a study context; `?sg=off` clears it. Works in dev AND prod,
+  including before launch — an override also forces the study on for that
+  browser, client-side only, so the prod kill switch being off does not block
+  testing. The values are opaque so a participant cannot read their arm off the
+  URL; there is deliberately no signing or validation, since the repo is public
+  and the bundle is inspectable. Persisted per tab in sessionStorage, ignored
+  for Prolific participants.
+  **Forced rows are flagged** `assignment_source: 'override'` (plus
+  `override_variant`, `override_at`) and MUST be excluded from analysis. The
+  flag write touches marker fields ONLY, never `consent_answer`/`cohort`, so
+  it cannot destroy a real record — but **use a fresh browser profile**: an
+  override link opened in a genuine participant's profile flags that
+  participant out of the study. Two caveats: an override link bypasses the kill
+  switch, and variants a/b can submit the real questionnaire, which Fillout
+  records without the flag (cross-reference on `user_id` to exclude).
+- Known simplifications: a prompt can land while another dialog is open (the
+  triggers are time- and turn-based, not idle-based); the kill switch is
+  client-read only
+  (default-off hides everything until the snapshot arrives); a second device
+  is a new participant (anonymous auth — accepted trade-off).
 
 De-dup with AW is two-way and party+region+date scoped: an upload is skipped if AW
 already has that party's programme; once AW ingests it, its `post_upsert` deletes
@@ -260,7 +488,8 @@ Two backend switches, both explicit env vars (no auto-fallback):
 `ELECTION_FIXTURES_SOURCE=firestore` reads the live database instead of the seed
 files (also not in the image).
 
-In production the same `src.ingestion.run` code path runs as a Cloud Run Job
+In production the same `ingestion.run` code path runs as a Cloud Run Job
+(image: `ingestion/Dockerfile`)
 with `CONNECTOR_ID` set in the job spec (deployment + scheduling is a planned
 Terraform workstream — see `infra/README.md`).
 Ingestion must tolerate the 15-minute scheduled-job cap: runs are
@@ -308,20 +537,19 @@ The two stores are seeded by different mechanisms, on purpose:
 - **The embedding model and vector store are locked.** Qdrant is the vector
   store; embeddings are Gemini `gemini-embedding-2` at 3072 dimensions, COSINE
   distance. Do not mix models or dimensions — it breaks index parity. Treat
-  `EMBEDDING_DIM` / `EMBEDDING_MODEL` in `setup_collection.py` as immutable
-  after the first run.
+  `EMBEDDING_DIM` / `EMBEDDING_MODEL` in `wahlchat_common.corpus` (re-exported
+  by `setup_collection.py`) as immutable after the first run.
 
-  A collection name cannot prove which model produced its vectors, and OpenAI's
-  `text-embedding-3-large` is also 3072-dimensional, so the dimension guard
-  alone would pass on a mixed store. Every read and write therefore calls
-  `setup_collection.check_fingerprint()`, which compares the collection's
-  recorded provider/model/dim against the running configuration and raises on a
-  mismatch.
-
-  Note that `get_embeddings()` still falls back to OpenAI when
-  `EMBEDDING_PROVIDER` is unset, so `ai-backend/.env` must set it — copy
-  `.env.example`. Without it, ingestion and retrieval fail at the fingerprint
-  check rather than reading the corpus.
+  A collection name does not record which model produced its vectors.
+  OpenAI `text-embedding-3-large` is also 3072-dimensional.
+  The dimension check accepts both spaces.
+  Every read and every write calls `check_fingerprint()`
+  (`acheck_fingerprint()` on the chat path).
+  The check compares the stored provider, model, and dimension with the running
+  process and raises on a mismatch.
+  The check lives in `wahlchat_common.corpus`.
+  The default provider is `gemini` and the default model is `gemini-embedding-2`.
+  Set `EMBEDDING_PROVIDER=openai` only for a collection that was written with OpenAI.
 - **The corpus is source-cited.** Chunks carry `citation_url` / `citation_title`
   and an `authority_tier` (`authoritative` | `factual_record` | `self_reported`
   | `promotional`). Preserve citations end-to-end; answers are grounded in
@@ -360,13 +588,20 @@ The two stores are seeded by different mechanisms, on purpose:
 Local commands (mirror what CI runs):
 
 ```bash
-# Backend
+# Python — run per workspace member (chat service + corpus layer).
+# `uv sync` once at the repo root installs both into one environment.
 cd ai-backend
 uv run ruff check src/            # lint
 uv run mypy src/                  # type-check
-uv run pytest                     # full suite (Qdrant/embeddings mocked)
+uv run pytest                     # chat + retrieval suite (Qdrant/embeddings mocked)
+cd ../ingestion
+uv run ruff check src/            # lint
+uv run mypy src/                  # type-check
+uv run pytest                     # connector suite
+cd ../packages/wahlchat-common
+uv run pytest                     # shared-contract suite
 # From repo root:
-make test-backend                 # unit/integration (excludes smoke + local-mode)
+make test-backend                 # all three suites (excludes smoke + local-mode)
 make test-smoke                   # E2E SSE smoke test (in-process ASGI)
 make test-local-mode              # seed-guard test — needs live stores (make stores-up)
 

@@ -3,8 +3,10 @@ import type { PartyDetails } from '@/lib/party-details';
 import { isProlificStudy } from '@/lib/prolific-study/prolific-metadata';
 import type { MessageItem } from '@/lib/stores/chat-store.types';
 import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
 import ChatMarkdown from './chat-markdown';
 import { ChatMessageIcon } from './chat-message-icon';
+import ChatPledgeTracker from './chat-pledge-tracker';
 import ChatProConExpandable from './chat-pro-con-expandable';
 import ChatSingleMessageActions from './chat-single-message-actions';
 import ChatSingleUserMessage from './chat-single-user-message';
@@ -36,6 +38,25 @@ function ChatSingleMessage({
       state.loading.proConPerspective === message.id ||
       state.loading.votingBehaviorSummary === message.id,
   );
+
+  // PledgeTracker opens as a popup (dialog/drawer), not an in-message
+  // expandable — deliberately NOT part of shouldHaveBackground.
+  const [pledgeOpen, setPledgeOpen] = useState(false);
+  const setPledgeModalOpen = useChatStore((state) => state.setPledgeModalOpen);
+  const recordStudyEvent = useChatStore((state) => state.recordStudyEvent);
+
+  // The popup's open state also feeds the store: the study's questionnaire
+  // prompt must never fire while the modal is open (and fires on its close),
+  // and open/close pairs belong to the participant's interaction log.
+  const handlePledgeOpenChange = (open: boolean) => {
+    setPledgeOpen(open);
+    setPledgeModalOpen(open);
+    void recordStudyEvent(open ? 'pledge_modal_open' : 'pledge_modal_close');
+  };
+
+  // Unmounting while open must not leave the store flag stuck (only one
+  // popup can be open at a time, so clearing on unmount is always safe).
+  useEffect(() => () => setPledgeModalOpen(false), [setPledgeModalOpen]);
 
   const shouldHaveBackground =
     message.pro_con_perspective ||
@@ -83,6 +104,8 @@ function ChatSingleMessage({
               partyId={partyId}
               showMessageActions={showMessageActions}
               isGroupChat={isGroupChat}
+              pledgeRevealed={pledgeOpen}
+              onTogglePledgeTracker={() => handlePledgeOpenChange(!pledgeOpen)}
             />
           </div>
         </div>
@@ -90,6 +113,11 @@ function ChatSingleMessage({
         <ChatVotingBehaviorExpandable
           message={message}
           isGroupChat={isGroupChat}
+        />
+        <ChatPledgeTracker
+          message={message}
+          open={pledgeOpen}
+          onOpenChange={handlePledgeOpenChange}
         />
         {isLoadingAnyAction && !isGroupChat && <MessageLoadingBorderTrail />}
       </article>

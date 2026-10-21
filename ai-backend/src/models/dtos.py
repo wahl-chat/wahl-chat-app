@@ -6,6 +6,7 @@ import enum
 from pydantic import BaseModel, Field, field_validator, ValidationError
 from typing import List, Optional
 
+from src.models.pledge_tracker import PledgeTrackerSuggestions
 from src.models.vote import Vote
 from .chat import Message
 from .context import ContextParty
@@ -295,6 +296,13 @@ class PartyResponseCompleteDto(BaseModel):
         default=None, description="The unique ID of the assistant message"
     )
     status: Status = Field(..., description="The status of the event")
+    pledge_tracker: Optional[PledgeTrackerSuggestions] = Field(
+        default=None,
+        description=(
+            "Optional PledgeTracker suggestions for this answer (best-effort; "
+            "None when the lookup found nothing or failed)"
+        ),
+    )
 
 
 class ChatResponseCompleteDto(BaseModel):

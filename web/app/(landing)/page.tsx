@@ -9,7 +9,8 @@ import ElectionLinks from '@/components/landing/election-links';
 import ExampleQuestions, {
   type QuestionGroup,
 } from '@/components/landing/example-questions';
-import HeroCta from '@/components/landing/hero-cta';
+import HeaderFade from '@/components/landing/header-fade';
+import HeroElection from '@/components/landing/hero-election';
 import HeroLogo from '@/components/landing/hero-logo';
 import LandingFaq from '@/components/landing/landing-faq';
 import LandingSection from '@/components/landing/landing-section';
@@ -17,7 +18,7 @@ import LandingStats from '@/components/landing/landing-stats';
 import ScreenshotWheel from '@/components/landing/screenshot-wheel';
 import ScrollCue from '@/components/landing/scroll-cue';
 import JsonLd from '@/components/seo/json-ld';
-import { isUpcomingElection, splitElectionsByDate } from '@/lib/elections';
+import { splitElectionsByDate } from '@/lib/elections';
 import {
   getContexts,
   getGroupProposedQuestionsForContext,
@@ -33,8 +34,7 @@ import {
   buildFaqPageMainEntity,
   productionRobots,
 } from '@/lib/seo';
-import { IS_EMBEDDED, formatGermanDate } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
+import { IS_EMBEDDED } from '@/lib/utils';
 import type { Metadata } from 'next';
 
 // The featured election is derived from the context dates, so it rolls over on
@@ -86,7 +86,6 @@ export default async function Landing() {
   // Between elections there is nothing upcoming; fall back to the most recent
   // one so the page still leads somewhere rather than dead-ending.
   const featuredElection = upcoming[0] ?? past[0];
-  const featuredDate = formatGermanDate(featuredElection?.date);
 
   // Sample questions for every live election, not just the featured one.
   // Between elections there is nothing upcoming, so fall back to the most
@@ -173,6 +172,7 @@ export default async function Landing() {
   return (
     <>
       <JsonLd data={jsonLd} />
+      <HeaderFade />
 
       {/* The hero fills the viewport but is no longer the whole page. svh
           rather than dvh: dvh tracks the mobile URL bar collapsing mid-scroll,
@@ -197,7 +197,9 @@ export default async function Landing() {
             at the foot of a tall viewport reads as unrelated to the headline —
             so md: collapses the text and the button back into one centred
             group while the mark stays in its own top row. */}
-        <div className="relative flex flex-1 flex-col px-5 py-6 md:py-14">
+        {/* Top padding has to clear the fixed header mark (12px + 40px)
+            now that the wordmark is no longer in this column's flow. */}
+        <div className="relative flex flex-1 flex-col px-5 pt-14 pb-6 md:pt-16 md:pb-14">
           <HeroLogo />
 
           <div className="flex flex-1 flex-col items-center gap-6 text-center">
@@ -219,28 +221,7 @@ export default async function Landing() {
             </div>
 
             {featuredElection && (
-              <div className="flex w-full flex-col items-center gap-2 md:mb-auto">
-                <p className="text-balance font-medium text-foreground">
-                  {isUpcomingElection(featuredElection)
-                    ? 'Nächste Wahl'
-                    : 'Letzte Wahl'}
-                  : {featuredElection.name}
-                </p>
-
-                {featuredDate && (
-                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <CalendarIcon
-                      className="size-4 shrink-0"
-                      aria-hidden="true"
-                    />
-                    {featuredDate}
-                  </p>
-                )}
-
-                <div className="mt-2 flex w-full justify-center">
-                  <HeroCta context={featuredElection} />
-                </div>
-              </div>
+              <HeroElection featured={featuredElection} contexts={contexts} />
             )}
           </div>
         </div>

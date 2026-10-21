@@ -2,6 +2,7 @@
 
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import LoginButton from '@/components/auth/login-button';
+import { useStudyRunning } from '@/components/providers/study-status-provider';
 import { Button } from '@/components/ui/button';
 import type { UserDetails } from '@/lib/utils';
 import { FilloutPopupEmbed } from '@fillout/react';
@@ -18,6 +19,7 @@ function WahlSwiperSurveyLoginCard({ resultId, userDetails }: Props) {
   const [open, setOpen] = useState(false);
   const [userClosedSurvey, setUserClosedSurvey] = useState(false);
   const { user } = useAnonymousAuth();
+  const studyRunning = useStudyRunning();
 
   const handleCloseSurvey = () => {
     setOpen(false);
@@ -31,6 +33,12 @@ function WahlSwiperSurveyLoginCard({ resultId, userDetails }: Props) {
       : false;
 
   if (userClosedSurvey && hasValidUser) {
+    return null;
+  }
+
+  // While the PledgeTracker study runs, its questionnaire is the only survey
+  // we put in front of anyone.
+  if (studyRunning) {
     return null;
   }
 

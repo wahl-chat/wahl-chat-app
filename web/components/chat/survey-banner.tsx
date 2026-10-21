@@ -3,6 +3,7 @@
 import '@fillout/react/style.css';
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import { useChatStore } from '@/components/providers/chat-store-provider';
+import { useStudyRunning } from '@/components/providers/study-status-provider';
 import { Button } from '@/components/ui/button';
 import { SURVEY_BANNER_MIN_MESSAGE_COUNT } from '@/lib/stores/chat-store';
 import { FilloutPopupEmbed } from '@fillout/react';
@@ -13,6 +14,7 @@ import { useEffect, useState } from 'react';
 
 function SurveyBanner() {
   const sessionId = useChatStore((state) => state.chatSessionId);
+  const studyRunning = useStudyRunning();
   const [open, setOpen] = useState(false);
   const { user, updateUser, loading } = useAnonymousAuth();
   const showSurveyBanner = useChatStore(
@@ -77,6 +79,17 @@ function SurveyBanner() {
   }, [showSurveyBanner]);
 
   if (!optimisticShowSurveyBanner) return null;
+
+  // While the study runs, the study questionnaire is the only thing we ask
+  // for. Two surveys competing for the same goodwill depress the response rate
+  // on the one the study depends on.
+  //
+  // Suppressed for everyone, not only consenters: someone who declines is
+  // still a study subject whose session should look like everyone else's. The
+  // rule ignores the cohort, so both arms are treated identically, and it is
+  // tied to the kill switch, so the banner returns for everyone the moment the
+  // study ends.
+  if (studyRunning) return null;
 
   return (
     <div className="flex flex-col gap-2 rounded-lg bg-muted p-4 group-data-[has-message-background]:mx-4 group-data-[has-message-background]:mb-4 group-data-[has-message-background]:bg-zinc-200 group-data-[has-message-background]:dark:bg-zinc-800">

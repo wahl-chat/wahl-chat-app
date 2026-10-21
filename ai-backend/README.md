@@ -10,7 +10,19 @@ Python AI/RAG backend for [wahl.chat](https://wahl.chat/).
 
 Built with FastAPI, sse-starlette (Server-Sent Events), LangChain, and Qdrant. Dependencies are managed with **uv**.
 
-The Pydantic models in `src/ingestion/schemas.py` are the single source of truth for the ingestion data contract (chunk payloads, source items, authority tiers).
+The corpus is filled by [`ingestion/`](../ingestion/README.md).
+This service does not import that package.
+Connector libraries stay out of the chat image.
+
+Shared code is in [`packages/wahlchat-common`](../packages/wahlchat-common/README.md):
+embedding space, collection name, payload enums, governance levels, and legislature periods.
+
+Query-time retrieval is `src/retrieve.py`.
+Each query checks the corpus fingerprint.
+A provider, model, or dimension mismatch raises an error.
+
+Install dependencies with `uv sync` at the repo root.
+The workspace has one lockfile.
 
 ## Localization
 
@@ -89,9 +101,9 @@ How it behaves:
 
 - Vertex models are registered **above** their AI Studio twins in
   `RESPONSE_GENERATION_LLMS` / `PRE_AND_POST_PROCESSING_LLMS`, so the existing
-  priority-based failover in `src/llms.py` tries Vertex first and falls through to
+  priority-based failover in `src/config/llms.py` tries Vertex first and falls through to
   the identical AI Studio model on any error.
-- `src/llms.py` logs one line at import saying which backend it came up on —
+- `src/config/llms.py` logs one line at import saying which backend it came up on —
   `Vertex AI enabled for Gemini: project=… location=…`, or a warning that Gemini
   traffic will bill AI Studio. **That line is how you confirm a deploy took**;
   without it the only symptom of a Vertex tier that failed to register is billing
@@ -99,11 +111,10 @@ How it behaves:
 - `EMBEDDINGS_USE_VERTEX=0` forces embeddings back to AI Studio while chat stays
   on Vertex. It is a manual kill-switch: unlike chat, embeddings have no runtime
   failover, because the client is bound once at module level.
-- `EMBEDDING_PROVIDER` stays `gemini` on both backends. It names the *vector
-  space*, which is identical across them (verified: same input → bit-identical
-  vectors), and it is stamped into the Qdrant embedding-space fingerprint that
-  `setup_collection.check_fingerprint` enforces. Changing it would reject the
-  existing corpus and force a re-ingest.
+- `EMBEDDING_PROVIDER` stays `gemini` for Vertex and for AI Studio.
+  The value names the vector space. Both transports return the same vectors.
+  `wahlchat_common.corpus.check_fingerprint` stores that value.
+  A different provider rejects the existing collection.
 
 #### When credentials are absent vs. broken
 

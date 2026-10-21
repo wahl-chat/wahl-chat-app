@@ -3,33 +3,52 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 # The ruff/mypy hooks are `local` and invoke the project's uv-managed tools, so
-# pre-commit runs the EXACT versions CI uses (ai-backend/pyproject.toml dev
-# group). A pinned-rev config (ruff-pre-commit / mirrors-mypy) drifts from the
+# pre-commit runs the EXACT versions CI uses (the dev groups of the uv workspace
+# members). A pinned-rev config (ruff-pre-commit / mirrors-mypy) drifts from the
 # project — it previously ran ruff/mypy seven major versions behind the code and
 # reported false positives — so there is one source of truth for tool versions.
+#
+# `uv run` executes at the workspace root, whose single environment holds both
+# members' dev tools. mypy still runs per member, because each member has its
+# own [tool.mypy] config and its own import graph to resolve.
 repos:
   - repo: local
     hooks:
       - id: ruff-check
         name: Ruff (lint)
-        entry: uv run --project ai-backend ruff check --fix
+        entry: uv run ruff check --fix
         language: system
-        files: ^ai-backend/.*\.py$
+        files: ^(ai-backend|ingestion|packages/wahlchat-common)/.*\.py$
         require_serial: true
       - id: ruff-format
         name: Ruff (format)
-        entry: uv run --project ai-backend ruff format
+        entry: uv run ruff format
         language: system
-        files: ^ai-backend/.*\.py$
+        files: ^(ai-backend|ingestion|packages/wahlchat-common)/.*\.py$
         require_serial: true
       - id: mypy
-        name: Mypy
+        name: Mypy (ai-backend)
         # mypy needs the whole package for import resolution, so it runs on src/
-        # (as CI does), not per-file. `cd ai-backend` so it finds the [tool.mypy]
-        # config in pyproject.toml; the src trigger avoids a run on test-only edits.
+        # (as CI does), not per-file. `cd` into the member so it finds that
+        # member's [tool.mypy] config; the src trigger avoids a run on
+        # test-only edits.
         entry: bash -c 'cd ai-backend && uv run mypy src'
         language: system
         files: ^ai-backend/src/.*\.py$
+        pass_filenames: false
+        require_serial: true
+      - id: mypy-ingestion
+        name: Mypy (ingestion)
+        entry: bash -c 'cd ingestion && uv run mypy src'
+        language: system
+        files: ^ingestion/src/.*\.py$
+        pass_filenames: false
+        require_serial: true
+      - id: mypy-corpus
+        name: Mypy (wahlchat-common)
+        entry: bash -c 'cd packages/wahlchat-common && uv run mypy src'
+        language: system
+        files: ^packages/wahlchat-common/src/.*\.py$
         pass_filenames: false
         require_serial: true
 

@@ -20,6 +20,8 @@
 *.pem
 .next
 node_modules/
+data/pledge_results
+data/pledge_results_nobt
 
 # === Environment / secrets ===
 .env

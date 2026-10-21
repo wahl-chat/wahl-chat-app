@@ -136,7 +136,6 @@ async def test_single_party_with_citations_non_empty_history(patch_chat_io, app)
 @pytest.mark.asyncio
 async def test_multi_party_responses_non_empty_history(patch_chat_io, app, monkeypatch):
     from src.models.context import ContextParty
-
     from tests.conftest import _FAKE_PARTY
 
     cdu = dict(_FAKE_PARTY, party_id="cdu", name="CDU", long_name="CDU Deutschlands")
@@ -147,8 +146,12 @@ async def test_multi_party_responses_non_empty_history(patch_chat_io, app, monke
     async def _two_targets(*args: Any, **kwargs: Any):
         return (["spd", "cdu"], "Was ist eure Position zum Klimaschutz?", False)
 
-    monkeypatch.setattr("src.chat_service.aget_parties_for_context", _two_parties)
-    monkeypatch.setattr("src.chat_service.get_question_targets_and_type", _two_targets)
+    monkeypatch.setattr(
+        "src.services.chat.service.aget_parties_for_context", _two_parties
+    )
+    monkeypatch.setattr(
+        "src.services.chat.service.get_question_targets_and_type", _two_targets
+    )
 
     events = await _drain(
         app,
@@ -172,9 +175,8 @@ async def test_multi_party_responses_non_empty_history(patch_chat_io, app, monke
 @pytest.mark.asyncio
 async def test_pro_con_after_multi_party_turn(patch_chat_io, app, monkeypatch):
     from src.models.chat import Message
-    from tests.conftest import _FAKE_PARTY
-
     from src.models.context import ContextParty
+    from tests.conftest import _FAKE_PARTY
 
     async def _party(context_id: str, party_id: str) -> ContextParty:
         return ContextParty(**_FAKE_PARTY)
@@ -226,9 +228,11 @@ async def test_comparison_response(patch_chat_io, app, monkeypatch):
     async def _comparison_targets(*args: Any, **kwargs: Any):
         return (["spd", "cdu"], "Vergleiche die Klimapositionen von SPD und CDU.", True)
 
-    monkeypatch.setattr("src.chat_service.aget_parties_for_context", _two_parties)
     monkeypatch.setattr(
-        "src.chat_service.get_question_targets_and_type", _comparison_targets
+        "src.services.chat.service.aget_parties_for_context", _two_parties
+    )
+    monkeypatch.setattr(
+        "src.services.chat.service.get_question_targets_and_type", _comparison_targets
     )
 
     events = await _drain(
@@ -304,8 +308,12 @@ def _install_two_parties(monkeypatch: pytest.MonkeyPatch, *, comparing: bool = F
         )
         return (["spd", "cdu"], question, comparing)
 
-    monkeypatch.setattr("src.chat_service.aget_parties_for_context", _two_parties)
-    monkeypatch.setattr("src.chat_service.get_question_targets_and_type", _two_targets)
+    monkeypatch.setattr(
+        "src.services.chat.service.aget_parties_for_context", _two_parties
+    )
+    monkeypatch.setattr(
+        "src.services.chat.service.get_question_targets_and_type", _two_targets
+    )
 
 
 def _party_aware_stream(
@@ -341,7 +349,7 @@ async def test_multi_party_chunks_interleave(patch_chat_io, app, monkeypatch):
     """Concurrent pumps must interleave party_chunk events, not emit one block after another."""
     _install_two_parties(monkeypatch)
     monkeypatch.setattr(
-        "src.chat_service.generate_streaming_chatbot_response",
+        "src.services.chat.service.generate_streaming_chatbot_response",
         _party_aware_stream(tokens_per_party=6, yield_sleep=True),
     )
 
@@ -373,7 +381,7 @@ async def test_multi_party_latency_is_max_not_sum(patch_chat_io, app, monkeypatc
     """Two 0.3s party streams must finish near the max, not the serial sum."""
     _install_two_parties(monkeypatch)
     monkeypatch.setattr(
-        "src.chat_service.generate_streaming_chatbot_response",
+        "src.services.chat.service.generate_streaming_chatbot_response",
         _party_aware_stream(tokens_per_party=1, sleep_s=0.3, yield_sleep=False),
     )
 
@@ -399,7 +407,7 @@ async def test_multi_party_partial_failure(patch_chat_io, app, monkeypatch):
     """One party's generator raising must not prevent the other from completing."""
     _install_two_parties(monkeypatch)
     monkeypatch.setattr(
-        "src.chat_service.generate_streaming_chatbot_response",
+        "src.services.chat.service.generate_streaming_chatbot_response",
         _party_aware_stream(tokens_per_party=2, fail_party_id="cdu"),
     )
 
@@ -424,9 +432,9 @@ async def test_multi_party_budget_exhaustion_completes_unfinished(
 ):
     """Budget expiry emits an error party_complete for every unfinished responder."""
     _install_two_parties(monkeypatch)
-    monkeypatch.setattr("src.chat_service._CHAT_STREAM_BUDGET_S", 0.05)
+    monkeypatch.setattr("src.services.chat.service._CHAT_STREAM_BUDGET_S", 0.05)
     monkeypatch.setattr(
-        "src.chat_service.generate_streaming_chatbot_response",
+        "src.services.chat.service.generate_streaming_chatbot_response",
         _party_aware_stream(tokens_per_party=1, sleep_s=2.0, yield_sleep=False),
     )
 

@@ -1,6 +1,7 @@
 import type {
   MessageFeedback,
   MessageItem,
+  PledgeTrackerSuggestions,
   Source,
   VotingBehavior,
 } from './stores/chat-store.types';
@@ -24,6 +25,7 @@ export type PartyResponseCompletePayload = {
   session_id: string;
   party_id: string;
   complete_message: string;
+  pledge_tracker?: PledgeTrackerSuggestions;
 };
 
 export type QuickRepliesAndTitleReadyPayload = {
@@ -58,6 +60,7 @@ export type StreamingMessage = {
   pro_con_perspective?: MessageItem;
   voting_behavior?: VotingBehavior;
   feedback?: MessageFeedback;
+  pledge_tracker?: PledgeTrackerSuggestions;
 };
 
 export type ProConPerspectiveRequestPayload = {

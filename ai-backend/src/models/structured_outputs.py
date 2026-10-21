@@ -99,3 +99,14 @@ class GroupChatTitleQuickReplyGenerator(BaseModel):
     quick_replies: list[str] = Field(
         description="Liste der drei Quick Replies als Strings."
     )
+
+
+class PledgeRelevanceOutput(BaseModel):
+    """Output of the PledgeTracker relevance gate (chat time)."""
+
+    relevant_indices: list[int] = Field(
+        description=(
+            "Nummern (1-basiert) der Kandidaten, die klar dasselbe Thema "
+            "behandeln wie das Nutzerthema. Leere Liste, wenn keiner passt."
+        )
+    )

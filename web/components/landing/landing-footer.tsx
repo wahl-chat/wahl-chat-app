@@ -89,7 +89,7 @@ async function LandingFooter() {
           </div>
 
           <FooterColumn label="Produkt" links={productLinks} />
-          <FooterColumn label="Über uns" links={aboutLinks} />
+          <FooterColumn label="Über wahl.chat" links={aboutLinks} />
           <FooterColumn
             label="Rechtliches"
             links={[SITE_LINKS.imprint, SITE_LINKS.privacy]}

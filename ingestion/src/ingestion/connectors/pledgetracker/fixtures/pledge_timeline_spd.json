@@ -1,0 +1,53 @@
+{
+  "pledge_id": "spd-mindestlohn-12-euro-de-2021",
+  "party_id": "spd",
+  "claim": "Wir werden den gesetzlichen Mindestlohn in einer einmaligen Anpassung auf 12 Euro pro Stunde erhöhen.",
+  "normalized_summary": "Einmalige Erhöhung des gesetzlichen Mindestlohns auf 12 Euro pro Stunde.",
+  "region_path": ["DE"],
+  "region": "DE",
+  "context_id": "bundestagswahl-2025",
+  "policy_area": "Arbeit und Soziales",
+  "pledge_date": "2021-11-24",
+  "pledge_source_title": "Koalitionsvertrag 2021–2025: Mehr Fortschritt wagen",
+  "pledge_source_url": "https://www.spd.de/fileadmin/Dokumente/Koalitionsvertrag/Koalitionsvertrag_2021-2025.pdf",
+  "pledge_source_locator": "Mindestlohn-Abschnitt, ca. S. 54",
+  "last_checked_at": "2026-06-18_19-48-08",
+  "events": [
+    {
+      "date": "2026-02-27",
+      "event date (publication date if different)": "2026-02-27",
+      "event": "Der gesetzliche Mindestlohn wurde im Januar 2026 auf 13,90 Euro pro Stunde angehoben.",
+      "url": "https://dserver.bundestag.de/btd/21/044/2104440.pdf",
+      "bundesland": null,
+      "quelle": "BT-Drucksache",
+      "partei": "['CDU/CSU', 'SPD']",
+      "urheber_typ": "government",
+      "label": "Ja",
+      "confident": -0.1365782171487808
+    },
+    {
+      "date": "2026-02-12",
+      "event date (publication date if different)": "2026-02-12",
+      "event": "Zum 1. Januar 2026 wurde der gesetzliche Mindestlohn auf 13,90 Euro pro Stunde angehoben.",
+      "url": "https://dserver.bundestag.de/btd/21/044/2104126.pdf",
+      "bundesland": null,
+      "quelle": "BT-Drucksache",
+      "partei": "['LINKE']",
+      "urheber_typ": "faction",
+      "label": "Nein",
+      "confident": -0.2014234662055969
+    },
+    {
+      "date": "2023-06-01",
+      "event date (publication date if different)": "2023-06-01 (2025-08-13)",
+      "event": "Der gesetzliche Mindestlohn wurde auf 12 Euro pro Stunde erhöht.",
+      "url": "https://dserver.bundestag.de/btd/21/012/2101220.pdf",
+      "bundesland": null,
+      "quelle": "BT-Drucksache",
+      "partei": "['LINKE']",
+      "urheber_typ": "faction",
+      "label": "Ja",
+      "confident": -0.00000222007497541199
+    }
+  ]
+}
