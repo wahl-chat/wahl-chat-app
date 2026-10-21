@@ -135,6 +135,7 @@ ENV/
 env.bak/
 venv.bak/
 wahl-chat-firebase-adminsdk-donoo-d3d80520ff.json
+vertex-sa.json
 
 
 # Spyder project settings
