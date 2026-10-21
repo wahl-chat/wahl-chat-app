@@ -16,10 +16,10 @@ type WatchdogSet = Parameters<
 >[1];
 
 // Inactivity watchdog: arms (or re-arms) a single timeout bound to a specific
-// streaming message id. V2 serializes multi-party answers over one SSE stream
-// (backend budget 180s), so the deadline must be per-event inactivity, not a
-// hard once-per-send cap — resetStreamingMessageWatchdog re-arms this on every
-// received stream event.
+// streaming message id. Multi-party answers share one SSE stream (backend
+// budget 180s) and interleave per-party events, so the deadline must be
+// per-event inactivity, not a hard once-per-send cap —
+// resetStreamingMessageWatchdog re-arms this on every received stream event.
 const armStreamingMessageWatchdog = (
   get: WatchdogGet,
   set: WatchdogSet,
