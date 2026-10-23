@@ -140,6 +140,11 @@ export default {
           '0%, 60%, 100%': { transform: 'translateY(0)' },
           '30%': { transform: 'translateY(-4px)' },
         },
+        // Screens swap with a short fade-and-rise.
+        'stimmts-screen': {
+          from: { opacity: '0', transform: 'translateY(6px)' },
+          to: { opacity: '1', transform: 'none' },
+        },
         // The score lands on the Stimmkarte like a rubber stamp.
         'stimmts-stamp': {
           from: { opacity: '0', transform: 'rotate(-6deg) scale(1.8)' },
@@ -150,6 +155,7 @@ export default {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'typing-dot': 'typing-dot 1.4s ease-in-out infinite',
+        'stimmts-screen': 'stimmts-screen 0.25s ease both',
         'stimmts-stamp':
           'stimmts-stamp 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) 0.25s both',
       },

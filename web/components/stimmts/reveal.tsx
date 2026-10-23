@@ -1,146 +1,119 @@
 import { Button } from '@/components/ui/button';
-import { BASE_URL } from '@/lib/seo';
-import { PUZZLES, SCHEDULE } from '@/lib/stimmts/content';
-import {
-  ANSWER_LABELS,
-  OUTCOME_LABELS,
-  partyLabel,
-} from '@/lib/stimmts/labels';
-import { dayRecords } from '@/lib/stimmts/period';
+import { partyLabel } from '@/lib/stimmts/labels';
 import { scorePuzzle } from '@/lib/stimmts/score';
-import { buildShareText } from '@/lib/stimmts/share';
-import { streakOf } from '@/lib/stimmts/streak';
 import type { Guesses, Puzzle } from '@/lib/stimmts/types';
-import { useProgress } from '@/lib/stimmts/use-progress';
-import { useMemo, useState } from 'react';
-import Countdown from './countdown';
-import ShareButton from './share-button';
-
-const dayCount = (days: number) => `${days} ${days === 1 ? 'Tag' : 'Tage'}`;
+import OutcomeLine from './outcome-line';
+import PartyTile from './party-tile';
+import { Verdict, VotePill } from './vote-pill';
+import YesMeans from './yes-means';
 
 type Props = {
-  number: number;
   puzzle: Puzzle;
   guesses: Guesses;
-  /** True when the game was already finished before the page opened. */
-  startRevealed: boolean;
+  revealed: ReadonlySet<string>;
+  onReveal: (partyId: string) => void;
+  onRevealAll: () => void;
+  onShowResult: () => void;
 };
 
-function Reveal({ number, puzzle, guesses, startRevealed }: Props) {
+/**
+ * Under the chamber during the reveal: what "Ja" meant, then, once every
+ * party is turned over, what the Bundestag decided, and "Deine Tipps", the
+ * player's tip beside the real vote for each party.
+ */
+function Reveal({
+  puzzle,
+  guesses,
+  revealed,
+  onReveal,
+  onRevealAll,
+  onShowResult,
+}: Props) {
   const score = scorePuzzle(puzzle, guesses);
-  const progress = useProgress((state) => state.progress);
-  const streak = useMemo(
-    () =>
-      streakOf(
-        dayRecords({
-          schedule: SCHEDULE,
-          puzzles: PUZZLES,
-          progress,
-          throughNumber: number,
-        }),
-        number,
-      ),
-    [progress, number],
-  );
-
-  const [revealed, setRevealed] = useState<Set<string>>(
-    () =>
-      new Set(
-        startRevealed ? puzzle.parties.map((party) => party.partyId) : [],
-      ),
-  );
   const allRevealed = revealed.size === puzzle.parties.length;
 
-  const reveal = (partyId: string) =>
-    setRevealed((previous) => new Set(previous).add(partyId));
-  const revealAll = () =>
-    setRevealed(new Set(puzzle.parties.map((party) => party.partyId)));
-
   return (
-    <section className="flex flex-col gap-4">
-      <p className="text-sm font-medium">{puzzle.yesMeans}</p>
+    <div className="flex flex-col gap-4">
+      <YesMeans yesMeans={puzzle.yesMeans} />
+      {allRevealed && <OutcomeLine puzzle={puzzle} />}
 
-      <ul className="flex flex-col gap-3">
-        {score.parties.map((entry, index) => {
-          const votes = puzzle.parties[index];
-          const isRevealed = revealed.has(entry.partyId);
-          return (
-            <li key={entry.partyId} className="rounded-lg border p-4">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="font-semibold">{partyLabel(entry.partyId)}</h2>
-                {isRevealed ? (
-                  <span
-                    className={
-                      entry.correct
-                        ? 'text-sm font-medium text-green-600'
-                        : 'text-sm font-medium text-red-600'
-                    }
-                  >
-                    {entry.correct ? '✓ Richtig' : '✗ Falsch'}
+      <section aria-labelledby="deine-tipps" className="flex flex-col gap-2">
+        <h2 id="deine-tipps" className="mt-2 text-lg font-bold">
+          Deine Tipps
+        </h2>
+        {!allRevealed && (
+          <p className="text-sm text-muted-foreground">
+            Tippe auf ein Logo im Halbkreis oder auf „Aufdecken“.
+          </p>
+        )}
+        <ul className="flex flex-col gap-2">
+          {score.parties.map((entry, index) => {
+            const votes = puzzle.parties[index];
+            const isRevealed = revealed.has(entry.partyId);
+            return (
+              <li
+                key={entry.partyId}
+                className="grid grid-cols-[auto_1fr_auto] items-start gap-3 rounded-lg border bg-card p-3"
+              >
+                <PartyTile partyId={entry.partyId} size="sm" />
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-sm font-semibold">
+                    {partyLabel(entry.partyId)}
                   </span>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => reveal(entry.partyId)}
-                  >
-                    Aufdecken
-                  </Button>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Dein Tipp: {entry.guess ? ANSWER_LABELS[entry.guess] : '–'}
-              </p>
-              {isRevealed && (
-                <>
-                  <p className="mt-1 font-medium">
-                    Tatsächlich: {ANSWER_LABELS[entry.actual]}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {votes.yes} Ja · {votes.no} Nein · {votes.abstain}{' '}
-                    Enthaltung · {votes.noShow} nicht abgestimmt
-                  </p>
-                </>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-
-      {!allRevealed && (
-        <Button variant="ghost" onClick={revealAll}>
-          Alle aufdecken
-        </Button>
-      )}
+                  <div className="mt-0.5 flex flex-wrap gap-x-4 gap-y-1">
+                    <span className="flex flex-col gap-0.5">
+                      <span className="text-xs text-muted-foreground">
+                        Dein Tipp
+                      </span>
+                      <VotePill vote={entry.guess} kind="tip" />
+                    </span>
+                    <span className="flex flex-col gap-0.5">
+                      <span className="text-xs text-muted-foreground">
+                        Abgestimmt
+                      </span>
+                      <VotePill
+                        vote={isRevealed ? entry.actual : null}
+                        kind="vote"
+                      />
+                    </span>
+                  </div>
+                  {isRevealed && (
+                    <p className="text-xs tabular-nums text-muted-foreground">
+                      {votes.yes} Ja · {votes.no} Nein · {votes.abstain}{' '}
+                      Enthaltung · {votes.noShow} nicht abgestimmt
+                    </p>
+                  )}
+                </div>
+                <div className="mt-0.5">
+                  {isRevealed ? (
+                    <Verdict correct={entry.correct} />
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onReveal(entry.partyId)}
+                    >
+                      Aufdecken
+                    </Button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        {!allRevealed && (
+          <Button variant="ghost" onClick={onRevealAll}>
+            Alle aufdecken
+          </Button>
+        )}
+      </section>
 
       {allRevealed && (
-        <div className="flex flex-col gap-2 rounded-lg bg-muted p-4">
-          <p className="text-lg font-semibold">
-            {score.correct} von {score.total} richtig
-          </p>
-          <p>Der Antrag wurde {OUTCOME_LABELS[puzzle.outcome]}.</p>
-          <p className="text-sm text-muted-foreground">
-            Serie: {dayCount(streak.current)} · Rekord: {dayCount(streak.best)}
-          </p>
-          <ShareButton
-            text={buildShareText({
-              puzzleNumber: number,
-              score,
-              url: `${BASE_URL}/stimmts`,
-            })}
-          />
-          <Countdown />
-          <a
-            className="text-sm underline"
-            href={puzzle.source.url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Quelle: {puzzle.source.label}
-          </a>
-        </div>
+        <Button size="lg" className="w-full" onClick={onShowResult}>
+          Zum Ergebnis
+        </Button>
       )}
-    </section>
+    </div>
   );
 }
 
