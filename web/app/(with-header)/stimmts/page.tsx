@@ -1,4 +1,5 @@
 import StimmtsGame from '@/components/stimmts/stimmts-game';
+import { STIMMTS_FONT_CLASSES } from '@/lib/stimmts/fonts';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -10,7 +11,11 @@ export const metadata: Metadata = {
 };
 
 function StimmtsPage() {
-  return <StimmtsGame />;
+  return (
+    <div className={STIMMTS_FONT_CLASSES}>
+      <StimmtsGame />
+    </div>
+  );
 }
 
 export default StimmtsPage;

@@ -2,12 +2,17 @@ import typography from '@tailwindcss/typography';
 import type { Config } from 'tailwindcss';
 import animate from 'tailwindcss-animate';
 
+/** A colour stored as RGB channels in globals.css, with opacity support. */
+const rgb = (name: string) => `rgb(var(--${name}) / <alpha-value>)`;
+
 export default {
   darkMode: ['class'],
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
+    // Class names that the game picks per party or per state.
+    './lib/stimmts/**/*.ts',
   ],
   theme: {
     extend: {
@@ -71,6 +76,51 @@ export default {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
         },
+        // Stimmt's? (see globals.css). Vote colours live on seats and dots,
+        // party colours only on bands and logo tiles, the tally tones only on
+        // the player's Wahlperiode.
+        'brand-red': rgb('brand-red'),
+        seat: {
+          yes: rgb('seat-yes'),
+          no: rgb('seat-no'),
+          abstain: rgb('seat-abstain'),
+          'absent-ring': rgb('seat-absent-ring'),
+          unaffiliated: rgb('seat-unaffiliated'),
+          pending: rgb('seat-pending'),
+        },
+        tally: {
+          low: rgb('tally-low'),
+          mid: rgb('tally-mid'),
+          top: rgb('tally-top'),
+        },
+        result: {
+          correct: rgb('result-correct'),
+          wrong: rgb('result-wrong'),
+        },
+        party: {
+          linke: rgb('party-linke'),
+          spd: rgb('party-spd'),
+          gruene: rgb('party-gruene'),
+          cdu: rgb('party-cdu'),
+          afd: rgb('party-afd'),
+        },
+        paper: {
+          DEFAULT: rgb('paper'),
+          ink: rgb('paper-ink'),
+          muted: rgb('paper-muted'),
+          rule: rgb('paper-rule'),
+        },
+      },
+      fontFamily: {
+        // Set on the game's root by lib/stimmts/fonts.ts; the fallbacks keep
+        // the metrics close when the variables are missing.
+        display: ['var(--font-stimmts-display)', 'Arial', 'sans-serif'],
+        document: [
+          'var(--font-stimmts-document)',
+          '"Times New Roman"',
+          'Times',
+          'serif',
+        ],
       },
       borderRadius: {
         lg: 'var(--radius)',
