@@ -145,6 +145,40 @@ export default {
           from: { opacity: '0', transform: 'translateY(6px)' },
           to: { opacity: '1', transform: 'none' },
         },
+        // The castable Stimmkarte nudges now and then, asking to be tapped.
+        'stimmts-nudge': {
+          '0%, 82%, 100%': { transform: 'none' },
+          '88%': { transform: 'translateY(3px)' },
+          '94%': { transform: 'translateY(-1px)' },
+        },
+        // Lift, shrink towards the urn's slot (the drop is measured into
+        // --drop), then slip in: the bottom edge vanishes first.
+        'stimmts-cast': {
+          '0%': { transform: 'none', clipPath: 'inset(0 0 0 0)' },
+          '22%': {
+            transform: 'translateY(-10px) scale(0.97)',
+            clipPath: 'inset(0 0 0 0)',
+          },
+          '68%': {
+            transform:
+              'translateY(calc(var(--drop, 200px) - 34px)) scale(0.42)',
+            clipPath: 'inset(0 0 0 0)',
+          },
+          '100%': {
+            transform:
+              'translateY(calc(var(--drop, 200px) + 30px)) scale(0.42)',
+            clipPath: 'inset(0 0 100% 0)',
+          },
+        },
+        // Today's seat pops into the Wahlperiode once the card is in.
+        'stimmts-seat-pop': {
+          from: { transform: 'scale(0)' },
+          to: { transform: 'scale(1)' },
+        },
+        // Today's seat breathes while the card is still in hand.
+        'stimmts-breathe': {
+          '50%': { opacity: '0.35' },
+        },
         // The score lands on the Stimmkarte like a rubber stamp.
         'stimmts-stamp': {
           from: { opacity: '0', transform: 'rotate(-6deg) scale(1.8)' },
@@ -156,6 +190,12 @@ export default {
         'accordion-up': 'accordion-up 0.2s ease-out',
         'typing-dot': 'typing-dot 1.4s ease-in-out infinite',
         'stimmts-screen': 'stimmts-screen 0.25s ease both',
+        'stimmts-nudge': 'stimmts-nudge 2.6s ease-in-out 1.4s infinite',
+        'stimmts-cast':
+          'stimmts-cast 0.82s cubic-bezier(0.45, 0, 0.6, 1) forwards',
+        'stimmts-seat-pop':
+          'stimmts-seat-pop 0.6s cubic-bezier(0.2, 1.6, 0.4, 1) 0.05s both',
+        'stimmts-breathe': 'stimmts-breathe 1.8s ease-in-out infinite',
         'stimmts-stamp':
           'stimmts-stamp 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) 0.25s both',
       },

@@ -48,6 +48,15 @@ function PuzzleGame({ number, puzzle, today }: Props) {
       ),
   );
 
+  // The score is stamped on with a bounce once, not on every return from
+  // "Abstimmung ansehen" or after a reload.
+  const stamped = useRef(alreadyFinished);
+  useEffect(() => {
+    if (showResult) {
+      stamped.current = true;
+    }
+  });
+
   const finished = game.finishedOn !== null;
   const hasAnswers = Object.keys(game.guesses).length > 0;
   const phase: Phase = finished
@@ -101,8 +110,9 @@ function PuzzleGame({ number, puzzle, today }: Props) {
       <div className="py-6">
         <Result
           number={number}
+          playDate={today}
           puzzle={puzzle}
-          guesses={game.guesses}
+          stamping={!stamped.current}
           onReview={() => {
             setShowResult(false);
             goTop();
