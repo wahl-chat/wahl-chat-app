@@ -1,6 +1,8 @@
 import { Button } from '@/components/ui/button';
+import { seatCount } from '@/lib/stimmts/hemicycle';
 import { formatDate } from '@/lib/stimmts/labels';
 import type { Puzzle } from '@/lib/stimmts/types';
+import Hemicycle from './hemicycle';
 
 type Props = {
   puzzle: Puzzle;
@@ -22,6 +24,18 @@ function Briefing({ puzzle, onStart }: Props) {
         sie im Plenarsaal sitzen. Wie hat jede von ihnen abgestimmt? Einmal
         getippt, lässt sich eine Antwort nicht mehr ändern.
       </p>
+      <Hemicycle
+        parties={puzzle.parties}
+        unaffiliated={puzzle.unaffiliated}
+        states={{}}
+        center={{
+          big: String(
+            puzzle.parties.reduce((sum, party) => sum + seatCount(party), 0) +
+              puzzle.unaffiliated,
+          ),
+          small: 'Sitze',
+        }}
+      />
       <Button size="lg" onClick={onStart}>
         Los geht&apos;s
       </Button>
