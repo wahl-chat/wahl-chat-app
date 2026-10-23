@@ -102,6 +102,8 @@ confirm with the product owner.
   position. Political opinions are special-category data (see `AGENTS.md`),
   and a prediction is not an opinion.
 - The streak counts days played, not days won, so a bad score never breaks it.
+  It is worked out from the saved games, like the player's Wahlperiode (one
+  seat per day, 30 days), so the two can never disagree.
 - Pilot: 30 puzzles, one a day, picked by hand against written criteria.
   Proposed launch: 1 November 2026, as puzzle number 1.
 
@@ -195,7 +197,7 @@ flowchart LR
 | --- | --- |
 | Contract and content | `web/lib/stimmts/types.ts`, `validate.ts`, `content.ts`, `content/puzzles.json`, `content/schedule.json` |
 | Time and schedule | `berlin-time.ts`, `schedule.ts`, `preview.ts` |
-| Game rules | `score.ts`, `streak.ts`, `progress.ts` |
+| Game rules | `score.ts`, `progress.ts`, `period.ts` (the Wahlperiode), `streak.ts` |
 | State | `progress-store.ts`, `use-progress.ts` |
 | Sharing | `share.ts`, `share-action.ts`, `countdown.ts` |
 | Wording | `labels.ts` |
@@ -219,6 +221,10 @@ the real puzzle of the day.
 Each puzzle is prepared and reviewed ahead of time:
 
 - id, review status, date of the vote, topic label
+- the number of members without a Fraktion, so the chamber shows every seat
+- optionally the bill's Drucksache (type, number, date, who submitted it, the
+  full official title, the PDF, and the version voted on), copied exactly and
+  checked by a person; without it the briefing shows the plain layout
 - neutral title, spoiler-free briefing, "Ja bedeutet …" line
 - the overall outcome
 - per party, in seating order: the answer (Ja, Nein or Enthaltung) and the

@@ -35,6 +35,42 @@ export type PartyReason = {
   source: SourceLink;
 };
 
+/** The Drucksache version the Bundestag actually voted on, when it differs. */
+export type VotedInDocument = {
+  /** "Beschlussempfehlung des Ausschusses für Wirtschaft und Energie" */
+  label: string;
+  /** "21/7009" */
+  number: string;
+  url: string;
+};
+
+/**
+ * Who submitted the bill, as the Drucksache prints it: either one line
+ * ("der Bundesregierung") or a Fraktion with the members who signed it.
+ */
+export type DocumentSubmitter =
+  | { initiator: string }
+  | { fraktion: string; members: string[] };
+
+/**
+ * The bill behind the vote, copied exactly from its Drucksache. Only real
+ * metadata goes here; a puzzle without a verified document shows the plain
+ * briefing instead of the bill sheet.
+ */
+export type BillDocument = DocumentSubmitter & {
+  /** "Gesetzentwurf", "Antrag", "Beschlussempfehlung und Bericht" */
+  type: string;
+  /** Wahlperiode and number, "21/6278". */
+  number: string;
+  /** The Drucksache's own date (YYYY-MM-DD), not the vote's. */
+  date: string;
+  /** The full official title, never shortened. */
+  title: string;
+  /** The PDF. */
+  url: string;
+  votedIn?: VotedInDocument;
+};
+
 export type Puzzle = {
   /** Stable slug; the schedule refers to puzzles by it. */
   id: string;
@@ -50,6 +86,12 @@ export type Puzzle = {
   outcome: PuzzleOutcome;
   /** In seating order, left to right. */
   parties: PartyResult[];
+  /**
+   * Members without a Fraktion. They are not part of the puzzle, but the
+   * chamber draws them so it shows every seat.
+   */
+  unaffiliated: number;
+  document?: BillDocument;
   reasons: PartyReason[];
   source: SourceLink;
   /** Opens the chat on this vote. */

@@ -3,6 +3,7 @@ import { PUZZLES } from './content';
 import {
   EMPTY_PROGRESS,
   type Progress,
+  castCard,
   getGame,
   parseProgress,
   recordAnswer,
@@ -39,18 +40,14 @@ describe('recordAnswer', () => {
     expect(getGame(progress, first.id)).toEqual({
       guesses: { linke: 'no', spd: 'yes' },
       finishedOn: null,
+      cast: false,
     });
-    expect(progress.streak.current).toBe(0);
   });
 
-  it('finishes with the last answer and counts the day for the streak', () => {
+  it('finishes with the last answer, the card still in hand', () => {
     const progress = answerAll(EMPTY_PROGRESS, first, '2026-11-01');
     expect(getGame(progress, first.id).finishedOn).toBe('2026-11-01');
-    expect(progress.streak).toEqual({
-      current: 1,
-      best: 1,
-      lastPlayed: '2026-11-01',
-    });
+    expect(getGame(progress, first.id).cast).toBe(false);
   });
 
   it('treats answers as final', () => {
@@ -103,20 +100,36 @@ describe('recordAnswer', () => {
     expect(getGame(afterFirst, second.id).guesses).toEqual({});
     expect(EMPTY_PROGRESS.games).toEqual({});
   });
+});
 
-  it('extends the streak across days but counts a day only once', () => {
-    let progress = answerAll(EMPTY_PROGRESS, first, '2026-11-01');
-    progress = answerAll(progress, second, '2026-11-02');
-    expect(progress.streak.current).toBe(2);
+describe('castCard', () => {
+  it('casts the card of a finished game, once', () => {
+    const finished = answerAll(EMPTY_PROGRESS, first, '2026-11-01');
+    const cast = castCard(finished, first.id);
+    expect(getGame(cast, first.id).cast).toBe(true);
+    expect(getGame(finished, first.id).cast).toBe(false); // not mutated
+    expect(castCard(cast, first.id)).toBe(cast);
+  });
 
-    const sameDay = answerAll(progress, PUZZLES[2], '2026-11-02');
-    expect(sameDay.streak.current).toBe(2);
+  it('has no card to cast while the game is open', () => {
+    const open = recordAnswer(
+      EMPTY_PROGRESS,
+      first,
+      'linke',
+      'no',
+      '2026-11-01',
+    );
+    expect(castCard(open, first.id)).toBe(open);
+    expect(castCard(EMPTY_PROGRESS, first.id)).toBe(EMPTY_PROGRESS);
   });
 });
 
 describe('parseProgress', () => {
-  it('round-trips what recordAnswer produces', () => {
-    const progress = answerAll(EMPTY_PROGRESS, first, '2026-11-01');
+  it('round-trips what recordAnswer and castCard produce', () => {
+    const progress = castCard(
+      answerAll(EMPTY_PROGRESS, first, '2026-11-01'),
+      first.id,
+    );
     expect(parseProgress(JSON.parse(JSON.stringify(progress)))).toEqual(
       progress,
     );
@@ -137,29 +150,39 @@ describe('parseProgress', () => {
         badDate: { guesses: {}, finishedOn: '2026-02-31' },
         notAnObject: 7,
       },
-      streak: { current: 2, best: 3, lastPlayed: '2026-11-02' },
     });
     expect(Object.keys(progress.games)).toEqual(['good']);
-    expect(progress.streak).toEqual({
-      current: 2,
-      best: 3,
-      lastPlayed: '2026-11-02',
+  });
+
+  it('reads saves from before the Stimmkarte, with no cast flag', () => {
+    const progress = parseProgress({
+      version: 1,
+      games: { old: { guesses: { linke: 'no' }, finishedOn: '2026-11-01' } },
+      streak: { current: 1, best: 1, lastPlayed: '2026-11-01' },
+    });
+    expect(progress).toEqual({
+      version: 1,
+      games: {
+        old: {
+          guesses: { linke: 'no' },
+          finishedOn: '2026-11-01',
+          cast: false,
+        },
+      },
     });
   });
 
-  it('resets only the streak when just the streak is damaged', () => {
+  it('never treats an open game as cast', () => {
     const progress = parseProgress({
       version: 1,
-      games: { good: { guesses: {}, finishedOn: null } },
-      streak: { current: 'many', best: 1, lastPlayed: null },
+      games: { open: { guesses: {}, finishedOn: null, cast: true } },
     });
-    expect(Object.keys(progress.games)).toEqual(['good']);
-    expect(progress.streak).toEqual({ current: 0, best: 0, lastPlayed: null });
+    expect(getGame(progress, 'open').cast).toBe(false);
   });
 });
 
 describe('removeGame', () => {
-  it('forgets one puzzle and keeps the other puzzles and the streak', () => {
+  it('forgets one puzzle and keeps the other puzzles', () => {
     let progress = answerAll(EMPTY_PROGRESS, first, '2026-11-01');
     progress = answerAll(progress, second, '2026-11-02');
 
@@ -167,20 +190,10 @@ describe('removeGame', () => {
     expect(getGame(after, second.id)).toEqual({
       guesses: {},
       finishedOn: null,
+      cast: false,
     });
     expect(getGame(after, first.id).finishedOn).toBe('2026-11-01');
-    expect(after.streak).toEqual(progress.streak);
     expect(progress.games[second.id]).toBeDefined(); // the old state is untouched
-  });
-
-  it('lets a puzzle be replayed without counting its day twice', () => {
-    let progress = answerAll(EMPTY_PROGRESS, first, '2026-11-01');
-    progress = answerAll(progress, second, '2026-11-02');
-    expect(progress.streak.current).toBe(2);
-
-    progress = removeGame(progress, second.id);
-    progress = answerAll(progress, second, '2026-11-02');
-    expect(progress.streak.current).toBe(2);
   });
 
   it('returns the same object for a puzzle that was never played', () => {

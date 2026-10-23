@@ -33,8 +33,8 @@ function PreviewBar({
   const resetGame = useProgress((state) => state.resetGame);
   const day = daysBetween(SCHEDULE.startDate, berlinDate(clock.now)) + 1;
 
-  // Replays this puzzle and keeps the streak, so streaks across several days
-  // can be tested without starting over.
+  // Replays this puzzle and keeps the other days, so the streak and the
+  // Wahlperiode across several days can be tested without starting over.
   const resetPuzzle = () => {
     if (puzzleId) {
       resetGame(puzzleId);

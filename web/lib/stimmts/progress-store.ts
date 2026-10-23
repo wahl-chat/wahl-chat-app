@@ -2,6 +2,7 @@ import { createStore } from 'zustand/vanilla';
 import {
   EMPTY_PROGRESS,
   type Progress,
+  castCard,
   parseProgress,
   recordAnswer,
   removeGame,
@@ -22,8 +23,10 @@ export type ProgressState = {
    */
   hydrated: boolean;
   hydrate: () => void;
-  /** Preview mode only: forget one puzzle's answers, keep the streak. */
+  /** Preview mode only: forget one puzzle's answers, keep the other days. */
   resetGame: (puzzleId: string) => void;
+  /** Casts a finished game's Stimmkarte into the urn. */
+  cast: (puzzleId: string) => void;
   answer: (
     puzzle: Puzzle,
     partyId: string,
@@ -66,40 +69,40 @@ export function browserStorage(): StorageLike | null {
 }
 
 export function createProgressStore(storage: StorageLike | null) {
-  return createStore<ProgressState>()((set, get) => ({
-    progress: EMPTY_PROGRESS,
-    hydrated: false,
-
-    hydrate: () => {
-      if (get().hydrated) {
-        return;
-      }
-      set({ progress: load(storage), hydrated: true });
-    },
-
-    resetGame: (puzzleId) => {
-      get().hydrate();
-      const before = get().progress;
-      const after = removeGame(before, puzzleId);
-      if (after === before) {
-        return;
-      }
-      set({ progress: after });
-      save(storage, after);
-    },
-
-    answer: (puzzle, partyId, answer, today) => {
-      // Never write before reading: an answer given too early would otherwise
+  return createStore<ProgressState>()((set, get) => {
+    const update = (change: (before: Progress) => Progress) => {
+      // Never write before reading: a change made too early would otherwise
       // replace the saved progress with a nearly empty copy.
       get().hydrate();
       const before = get().progress;
-      const after = recordAnswer(before, puzzle, partyId, answer, today);
+      const after = change(before);
       if (after === before) {
         return;
       }
-      // Saved the moment it is tapped, so a reload cannot undo an answer.
       set({ progress: after });
       save(storage, after);
-    },
-  }));
+    };
+
+    return {
+      progress: EMPTY_PROGRESS,
+      hydrated: false,
+
+      hydrate: () => {
+        if (get().hydrated) {
+          return;
+        }
+        set({ progress: load(storage), hydrated: true });
+      },
+
+      resetGame: (puzzleId) => update((before) => removeGame(before, puzzleId)),
+
+      cast: (puzzleId) => update((before) => castCard(before, puzzleId)),
+
+      // Saved the moment it is tapped, so a reload cannot undo an answer.
+      answer: (puzzle, partyId, answer, today) =>
+        update((before) =>
+          recordAnswer(before, puzzle, partyId, answer, today),
+        ),
+    };
+  });
 }

@@ -1,6 +1,8 @@
 import { safeExternalUrl } from '@/lib/pledge-tracker/pledges';
 import { isIsoDate } from './berlin-time';
 import type {
+  BillDocument,
+  DocumentSubmitter,
   PartyReason,
   PartyResult,
   Puzzle,
@@ -9,6 +11,7 @@ import type {
   Schedule,
   SourceLink,
   VoteAnswer,
+  VotedInDocument,
 } from './types';
 
 /**
@@ -18,6 +21,9 @@ import type {
 export const MIN_PARTY_UNITY = 0.8;
 
 const ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/** A Drucksache number: Wahlperiode, slash, number ("21/6278"). */
+const DRUCKSACHE_PATTERN = /^[1-9]\d*\/[1-9]\d*$/;
 
 type Json = Record<string, unknown>;
 
@@ -68,15 +74,81 @@ function readDate(record: Json, key: string, id: string): string {
   return value;
 }
 
+function readUrl(record: Json, key: string, what: string, id: string): string {
+  const url = safeExternalUrl(readString(record, key, id));
+  if (!url) {
+    return fail(id, `${what} needs an http(s) url`);
+  }
+  return url;
+}
+
 function readLink(value: unknown, what: string, id: string): SourceLink {
   if (!isRecord(value)) {
     return fail(id, `${what} must be an object`);
   }
-  const url = safeExternalUrl(readString(value, 'url', id));
-  if (!url) {
-    return fail(id, `${what} needs an http(s) url`);
+  return {
+    label: readString(value, 'label', id),
+    url: readUrl(value, 'url', what, id),
+  };
+}
+
+function readDrucksache(record: Json, key: string, id: string): string {
+  const value = readString(record, key, id);
+  if (!DRUCKSACHE_PATTERN.test(value)) {
+    fail(id, `"${key}" must be a Drucksache number like 21/6278`);
   }
-  return { label: readString(value, 'label', id), url };
+  return value;
+}
+
+function readSubmitter(record: Json, id: string): DocumentSubmitter {
+  const hasInitiator = record.initiator !== undefined;
+  const hasFraktion = record.fraktion !== undefined;
+  if (hasInitiator === hasFraktion) {
+    return fail(
+      id,
+      'a document needs either an "initiator" or a "fraktion" with "members"',
+    );
+  }
+  if (hasInitiator) {
+    return { initiator: readString(record, 'initiator', id) };
+  }
+  const members = record.members;
+  if (
+    !Array.isArray(members) ||
+    members.length === 0 ||
+    !members.every((name) => typeof name === 'string' && name.trim() !== '')
+  ) {
+    return fail(id, '"members" must list the names of the members who signed');
+  }
+  return { fraktion: readString(record, 'fraktion', id), members };
+}
+
+function readVotedIn(value: unknown, id: string): VotedInDocument {
+  if (!isRecord(value)) {
+    return fail(id, '"votedIn" must be an object');
+  }
+  return {
+    label: readString(value, 'label', id),
+    number: readDrucksache(value, 'number', id),
+    url: readUrl(value, 'url', '"votedIn"', id),
+  };
+}
+
+function readDocument(value: unknown, id: string): BillDocument {
+  if (!isRecord(value)) {
+    return fail(id, '"document" must be an object');
+  }
+  return {
+    ...readSubmitter(value, id),
+    type: readString(value, 'type', id),
+    number: readDrucksache(value, 'number', id),
+    date: readDate(value, 'date', id),
+    title: readString(value, 'title', id),
+    url: readUrl(value, 'url', 'the document', id),
+    ...(value.votedIn === undefined
+      ? {}
+      : { votedIn: readVotedIn(value.votedIn, id) }),
+  };
 }
 
 function readParty(value: unknown, id: string): PartyResult {
@@ -177,6 +249,10 @@ export function validatePuzzle(data: unknown): Puzzle {
     yesMeans: readString(data, 'yesMeans', id),
     outcome,
     parties,
+    unaffiliated: readCount(data, 'unaffiliated', id),
+    ...(data.document === undefined
+      ? {}
+      : { document: readDocument(data.document, id) }),
     reasons,
     source: readLink(data.source, 'source', id),
     chatQuestion: readString(data, 'chatQuestion', id),

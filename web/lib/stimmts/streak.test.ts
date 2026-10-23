@@ -1,63 +1,44 @@
 import { describe, expect, it } from 'bun:test';
-import {
-  EMPTY_STREAK,
-  type StreakState,
-  activeStreak,
-  recordPlay,
-} from './streak';
+import type { DayRecord } from './period';
+import { streakOf } from './streak';
 
-describe('recordPlay', () => {
-  it('starts a streak with the first puzzle', () => {
-    expect(recordPlay(EMPTY_STREAK, '2026-10-15')).toEqual({
-      current: 1,
-      best: 1,
-      lastPlayed: '2026-10-15',
-    });
+/** Day records from a pattern: P for a played day, x for a missed one. */
+function days(pattern: string): DayRecord[] {
+  return [...pattern].map((mark, index) =>
+    mark === 'P'
+      ? {
+          kind: 'played',
+          number: index + 1,
+          playDate: '2026-11-01',
+          topic: 'Energie',
+          score: 3,
+        }
+      : { kind: 'missed', number: index + 1, playDate: '2026-11-01' },
+  );
+}
+
+describe('streakOf', () => {
+  it('is zero before anything was played', () => {
+    expect(streakOf([], 1)).toEqual({ current: 0, best: 0 });
+    expect(streakOf(days('x'), 1)).toEqual({ current: 0, best: 0 });
   });
 
-  it('extends the streak on consecutive days', () => {
-    let state = recordPlay(EMPTY_STREAK, '2026-10-15');
-    state = recordPlay(state, '2026-10-16');
-    state = recordPlay(state, '2026-10-17');
-    expect(state).toEqual({ current: 3, best: 3, lastPlayed: '2026-10-17' });
+  it('counts the days played in a row up to today', () => {
+    expect(streakOf(days('PPP'), 3)).toEqual({ current: 3, best: 3 });
   });
 
-  it('counts a day only once, however often the puzzle is finished', () => {
-    const once = recordPlay(EMPTY_STREAK, '2026-10-15');
-    expect(recordPlay(once, '2026-10-15')).toBe(once);
+  it('stays alive while today is still open', () => {
+    // Days 1 and 2 played, day 3 (today) not yet.
+    expect(streakOf(days('PPx'), 3)).toEqual({ current: 2, best: 2 });
   });
 
-  it('restarts after a missed day but remembers the best run', () => {
-    let state = recordPlay(EMPTY_STREAK, '2026-10-15');
-    state = recordPlay(state, '2026-10-16');
-    state = recordPlay(state, '2026-10-18'); // 17th skipped
-    expect(state).toEqual({ current: 1, best: 2, lastPlayed: '2026-10-18' });
+  it('breaks after a missed day but remembers the best run', () => {
+    expect(streakOf(days('PPPxP'), 5)).toEqual({ current: 1, best: 3 });
+    expect(streakOf(days('PPPxx'), 5)).toEqual({ current: 0, best: 3 });
   });
 
-  it('continues across month and year boundaries', () => {
-    let state = recordPlay(EMPTY_STREAK, '2026-12-31');
-    state = recordPlay(state, '2027-01-01');
-    expect(state.current).toBe(2);
-  });
-});
-
-describe('activeStreak', () => {
-  const state: StreakState = {
-    current: 4,
-    best: 6,
-    lastPlayed: '2026-10-15',
-  };
-
-  it('shows the streak on the day it was played and the day after', () => {
-    expect(activeStreak(state, '2026-10-15')).toBe(4);
-    expect(activeStreak(state, '2026-10-16')).toBe(4);
-  });
-
-  it('shows zero once a whole day has been missed', () => {
-    expect(activeStreak(state, '2026-10-17')).toBe(0);
-  });
-
-  it('shows zero for a player who never played', () => {
-    expect(activeStreak(EMPTY_STREAK, '2026-10-15')).toBe(0);
+  it('counts days played, not days won', () => {
+    const lowScores = days('PP').map((record) => ({ ...record, score: 0 }));
+    expect(streakOf(lowScores, 2)).toEqual({ current: 2, best: 2 });
   });
 });

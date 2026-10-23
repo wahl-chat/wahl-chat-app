@@ -1,6 +1,5 @@
 import { isIsoDate } from './berlin-time';
 import { isComplete } from './score';
-import { EMPTY_STREAK, type StreakState, recordPlay } from './streak';
 import type { Guesses, Puzzle, VoteAnswer } from './types';
 import { isVoteAnswer } from './validate';
 
@@ -11,23 +10,30 @@ export type GameProgress = {
   guesses: Guesses;
   /** Berlin date the last answer was given; null while the game is open. */
   finishedOn: string | null;
+  /**
+   * True once the player has cast the day's Stimmkarte into the urn. A reload
+   * then opens on the Wahlperiode and the countdown instead of the card.
+   */
+  cast: boolean;
 };
 
-/** Everything saved on the player's device. */
+/**
+ * Everything saved on the player's device. The streak and the Wahlperiode are
+ * worked out from the finished games (see period.ts), so they can never
+ * disagree with the seats the player sees.
+ */
 export type Progress = {
   version: typeof PROGRESS_VERSION;
   /** By puzzle id, so earlier puzzles stay available for an archive later. */
   games: Record<string, GameProgress>;
-  streak: StreakState;
 };
 
 export const EMPTY_PROGRESS: Progress = {
   version: PROGRESS_VERSION,
   games: {},
-  streak: EMPTY_STREAK,
 };
 
-const NEW_GAME: GameProgress = { guesses: {}, finishedOn: null };
+const NEW_GAME: GameProgress = { guesses: {}, finishedOn: null, cast: false };
 
 export function getGame(progress: Progress, puzzleId: string): GameProgress {
   return progress.games[puzzleId] ?? NEW_GAME;
@@ -38,7 +44,7 @@ export function getGame(progress: Progress, puzzleId: string): GameProgress {
  * the game is finished, nothing changes, so reloading the page cannot be used
  * to take an answer back. Returns the same object when nothing changed.
  *
- * Giving the last answer finishes the game and counts the day for the streak.
+ * Giving the last answer finishes the game.
  */
 export function recordAnswer(
   progress: Progress,
@@ -63,17 +69,33 @@ export function recordAnswer(
     ...progress,
     games: {
       ...progress.games,
-      [puzzle.id]: { guesses, finishedOn: finished ? today : null },
+      [puzzle.id]: {
+        guesses,
+        finishedOn: finished ? today : null,
+        cast: false,
+      },
     },
-    streak: finished ? recordPlay(progress.streak, today) : progress.streak,
   };
 }
 
 /**
- * Forgets one puzzle's answers and keeps everything else, the streak included.
- * Only the preview mode uses it, to replay a puzzle without losing the days
- * played before it. Replaying the same day cannot count twice, because the
- * streak already holds that day.
+ * Marks a finished game's Stimmkarte as cast. An open game has no card to
+ * cast yet, and casting twice changes nothing; both return the same object.
+ */
+export function castCard(progress: Progress, puzzleId: string): Progress {
+  const game = progress.games[puzzleId];
+  if (!game || game.finishedOn === null || game.cast) {
+    return progress;
+  }
+  return {
+    ...progress,
+    games: { ...progress.games, [puzzleId]: { ...game, cast: true } },
+  };
+}
+
+/**
+ * Forgets one puzzle's answers and keeps every other day. Only the preview
+ * mode uses it, to replay a puzzle without losing the days played before it.
  */
 export function removeGame(progress: Progress, puzzleId: string): Progress {
   if (!(puzzleId in progress.games)) {
@@ -118,23 +140,9 @@ function parseGame(raw: unknown): GameProgress | null {
   if (!guesses || !(finishedOn === null || isIsoDate(finishedOn))) {
     return null;
   }
-  return { guesses, finishedOn };
-}
-
-function parseStreak(raw: unknown): StreakState {
-  if (
-    !isRecord(raw) ||
-    !Number.isInteger(raw.current) ||
-    !Number.isInteger(raw.best) ||
-    !(raw.lastPlayed === null || isIsoDate(raw.lastPlayed))
-  ) {
-    return EMPTY_STREAK;
-  }
-  return {
-    current: raw.current as number,
-    best: raw.best as number,
-    lastPlayed: raw.lastPlayed,
-  };
+  // Saves from before the Stimmkarte have no flag: their card was never cast.
+  const cast = raw.cast === true && finishedOn !== null;
+  return { guesses, finishedOn, cast };
 }
 
 export function parseProgress(raw: unknown): Progress {
@@ -150,9 +158,7 @@ export function parseProgress(raw: unknown): Progress {
       }
     }
   }
-  return {
-    version: PROGRESS_VERSION,
-    games,
-    streak: parseStreak(raw.streak),
-  };
+  // Older saves also carry a stored streak; it is derived from the games now,
+  // so it is left behind on the next save.
+  return { version: PROGRESS_VERSION, games };
 }

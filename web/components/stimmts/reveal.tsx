@@ -1,16 +1,18 @@
 import { Button } from '@/components/ui/button';
 import { BASE_URL } from '@/lib/seo';
+import { PUZZLES, SCHEDULE } from '@/lib/stimmts/content';
 import {
   ANSWER_LABELS,
   OUTCOME_LABELS,
   partyLabel,
 } from '@/lib/stimmts/labels';
+import { dayRecords } from '@/lib/stimmts/period';
 import { scorePuzzle } from '@/lib/stimmts/score';
 import { buildShareText } from '@/lib/stimmts/share';
-import { activeStreak } from '@/lib/stimmts/streak';
+import { streakOf } from '@/lib/stimmts/streak';
 import type { Guesses, Puzzle } from '@/lib/stimmts/types';
 import { useProgress } from '@/lib/stimmts/use-progress';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Countdown from './countdown';
 import ShareButton from './share-button';
 
@@ -20,17 +22,26 @@ type Props = {
   number: number;
   puzzle: Puzzle;
   guesses: Guesses;
-  today: string;
   /** True when the game was already finished before the page opened. */
   startRevealed: boolean;
 };
 
-function Reveal({ number, puzzle, guesses, today, startRevealed }: Props) {
+function Reveal({ number, puzzle, guesses, startRevealed }: Props) {
   const score = scorePuzzle(puzzle, guesses);
-  const streak = useProgress((state) =>
-    activeStreak(state.progress.streak, today),
+  const progress = useProgress((state) => state.progress);
+  const streak = useMemo(
+    () =>
+      streakOf(
+        dayRecords({
+          schedule: SCHEDULE,
+          puzzles: PUZZLES,
+          progress,
+          throughNumber: number,
+        }),
+        number,
+      ),
+    [progress, number],
   );
-  const bestStreak = useProgress((state) => state.progress.streak.best);
 
   const [revealed, setRevealed] = useState<Set<string>>(
     () =>
@@ -109,7 +120,7 @@ function Reveal({ number, puzzle, guesses, today, startRevealed }: Props) {
           </p>
           <p>Der Antrag wurde {OUTCOME_LABELS[puzzle.outcome]}.</p>
           <p className="text-sm text-muted-foreground">
-            Serie: {dayCount(streak)} · Rekord: {dayCount(bestStreak)}
+            Serie: {dayCount(streak.current)} · Rekord: {dayCount(streak.best)}
           </p>
           <ShareButton
             text={buildShareText({

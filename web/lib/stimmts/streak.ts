@@ -1,43 +1,32 @@
-import { addDays } from './berlin-time';
+import type { DayRecord } from './period';
 
-export type StreakState = {
-  /** Consecutive days played, as of the last day played. */
+export type Streak = {
+  /** Days played in a row, up to today or, before today is played, yesterday. */
   current: number;
+  /** The longest run of days played. */
   best: number;
-  /** Berlin date (YYYY-MM-DD) of the last finished puzzle. */
-  lastPlayed: string | null;
-};
-
-export const EMPTY_STREAK: StreakState = {
-  current: 0,
-  best: 0,
-  lastPlayed: null,
 };
 
 /**
- * Counts a finished puzzle. The streak is days played, not days won, so a bad
- * score never breaks it; only skipping a whole day does.
+ * Worked out from the day records (see period.ts). The streak is days played,
+ * not days won, so a bad score never breaks it; only a missed day does. An
+ * unplayed today does not break it yet: the player still has until midnight.
  */
-export function recordPlay(state: StreakState, today: string): StreakState {
-  if (state.lastPlayed === today) {
-    return state;
+export function streakOf(records: DayRecord[], todayNumber: number): Streak {
+  let best = 0;
+  let run = 0;
+  for (const record of records) {
+    run = record.kind === 'played' ? run + 1 : 0;
+    best = Math.max(best, run);
   }
-  const continues = state.lastPlayed === addDays(today, -1);
-  const current = continues ? state.current + 1 : 1;
-  return {
-    current,
-    best: Math.max(state.best, current),
-    lastPlayed: today,
-  };
-}
 
-/**
- * The streak to show today. `current` is only updated when a puzzle is
- * finished, so after a missed day the stored value is out of date: the streak
- * is alive only if the player finished a puzzle today or yesterday.
- */
-export function activeStreak(state: StreakState, today: string): number {
-  const alive =
-    state.lastPlayed === today || state.lastPlayed === addDays(today, -1);
-  return alive ? state.current : 0;
+  const played = (number: number) =>
+    records.find((record) => record.number === number)?.kind === 'played';
+  let day = played(todayNumber) ? todayNumber : todayNumber - 1;
+  let current = 0;
+  while (day >= 1 && played(day)) {
+    current += 1;
+    day -= 1;
+  }
+  return { current, best };
 }

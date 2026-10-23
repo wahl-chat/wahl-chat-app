@@ -50,6 +50,20 @@
         "noShow": 14
       }
     ],
+    "unaffiliated": 3,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/6278",
+      "date": "2026-06-08",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Gesetzes zur Änderung des Gebäudeenergiegesetzes, zur Änderung des Gebäude-Elektromobilitätsinfrastruktur-Gesetzes und zur Änderung weiterer Vorschriften im Wärmebereich",
+      "url": "https://dserver.bundestag.de/btd/21/062/2106278.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Ausschusses für Wirtschaft und Energie",
+        "number": "21/7009",
+        "url": "https://dserver.bundestag.de/btd/21/070/2107009.pdf"
+      }
+    },
     "reasons": [],
     "source": {
       "label": "Abgeordnetenwatch",
@@ -108,6 +122,7 @@
         "noShow": 10
       }
     ],
+    "unaffiliated": 3,
     "reasons": [],
     "source": {
       "label": "Abgeordnetenwatch",
@@ -166,6 +181,7 @@
         "noShow": 18
       }
     ],
+    "unaffiliated": 3,
     "reasons": [],
     "source": {
       "label": "Abgeordnetenwatch",

@@ -11,7 +11,7 @@ import Reveal from './reveal';
 type Props = {
   number: number;
   puzzle: Puzzle;
-  /** Today's Berlin date, for the streak. */
+  /** Today's Berlin date, the day an answer is recorded on. */
   today: string;
 };
 
@@ -47,7 +47,6 @@ function PuzzleGame({ number, puzzle, today }: Props) {
           number={number}
           puzzle={puzzle}
           guesses={game.guesses}
-          today={today}
           startRevealed={alreadyFinished}
         />
       ) : started || hasAnswers ? (

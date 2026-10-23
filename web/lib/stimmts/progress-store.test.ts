@@ -109,46 +109,35 @@ describe('createProgressStore', () => {
   });
 });
 
-describe('the streak across days', () => {
-  const PARTIES = ['linke', 'spd', 'gruene', 'cdu', 'afd'];
-  const finish = (
-    store: ReturnType<typeof createProgressStore>,
-    index: number,
-    day: string,
-  ) => {
-    for (const partyId of PARTIES) {
-      store.getState().answer(PUZZLES[index], partyId, 'yes', day);
+describe('casting the Stimmkarte', () => {
+  const finish = (store: ReturnType<typeof createProgressStore>) => {
+    for (const party of puzzle.parties) {
+      store.getState().answer(puzzle, party.partyId, 'yes', TODAY);
     }
   };
 
-  it('grows from one day to the next, even across a reload', () => {
-    const { storage } = fakeStorage();
-    finish(createProgressStore(storage), 0, '2026-11-01');
-
-    const reloaded = createProgressStore(storage); // a new page load
-    finish(reloaded, 1, '2026-11-02');
-    expect(reloaded.getState().progress.streak).toEqual({
-      current: 2,
-      best: 2,
-      lastPlayed: '2026-11-02',
-    });
-  });
-
-  it('survives resetting one puzzle, which is how a preview replays a day', () => {
+  it('keeps the card in the urn across a reload', () => {
     const { storage } = fakeStorage();
     const store = createProgressStore(storage);
-    finish(store, 0, '2026-11-01');
-    finish(store, 1, '2026-11-02');
+    finish(store);
+    store.getState().cast(puzzle.id);
+
+    const reloaded = createProgressStore(storage);
+    reloaded.getState().hydrate();
+    expect(getGame(reloaded.getState().progress, puzzle.id).cast).toBe(true);
+  });
+
+  it('keeps the other days when a preview resets one puzzle', () => {
+    const { storage } = fakeStorage();
+    const store = createProgressStore(storage);
+    finish(store);
+    store.getState().answer(PUZZLES[1], 'linke', 'no', '2026-11-02');
 
     store.getState().resetGame(PUZZLES[1].id);
     const reloaded = createProgressStore(storage);
     reloaded.getState().hydrate();
-    expect(
-      getGame(reloaded.getState().progress, PUZZLES[1].id).guesses,
-    ).toEqual({});
-    expect(reloaded.getState().progress.streak.current).toBe(2);
-
-    finish(reloaded, 1, '2026-11-02');
-    expect(reloaded.getState().progress.streak.current).toBe(2);
+    const { progress } = reloaded.getState();
+    expect(getGame(progress, PUZZLES[1].id).guesses).toEqual({});
+    expect(getGame(progress, puzzle.id).finishedOn).toBe(TODAY);
   });
 });
