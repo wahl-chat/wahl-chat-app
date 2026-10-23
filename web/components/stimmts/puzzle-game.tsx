@@ -11,7 +11,7 @@ import Reveal from './reveal';
 type Props = {
   number: number;
   puzzle: Puzzle;
-  /** Today's Berlin date, the day an answer is recorded on. */
+  /** Today's Berlin date: the puzzle's day, and the day answers are saved on. */
   today: string;
 };
 
@@ -28,6 +28,19 @@ function PuzzleGame({ number, puzzle, today }: Props) {
 
   const finished = game.finishedOn !== null;
   const hasAnswers = Object.keys(game.guesses).length > 0;
+
+  if (!finished && !started && !hasAnswers) {
+    return (
+      <div className="py-6">
+        <Briefing
+          number={number}
+          playDate={today}
+          puzzle={puzzle}
+          onStart={() => setStarted(true)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 py-6">
@@ -49,10 +62,8 @@ function PuzzleGame({ number, puzzle, today }: Props) {
           guesses={game.guesses}
           startRevealed={alreadyFinished}
         />
-      ) : started || hasAnswers ? (
-        <GuessStep puzzle={puzzle} guesses={game.guesses} today={today} />
       ) : (
-        <Briefing puzzle={puzzle} onStart={() => setStarted(true)} />
+        <GuessStep puzzle={puzzle} guesses={game.guesses} today={today} />
       )}
     </div>
   );

@@ -140,11 +140,18 @@ export default {
           '0%, 60%, 100%': { transform: 'translateY(0)' },
           '30%': { transform: 'translateY(-4px)' },
         },
+        // The score lands on the Stimmkarte like a rubber stamp.
+        'stimmts-stamp': {
+          from: { opacity: '0', transform: 'rotate(-6deg) scale(1.8)' },
+          to: { opacity: '1', transform: 'rotate(-6deg) scale(1)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'typing-dot': 'typing-dot 1.4s ease-in-out infinite',
+        'stimmts-stamp':
+          'stimmts-stamp 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) 0.25s both',
       },
     },
   },
