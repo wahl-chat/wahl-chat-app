@@ -4,10 +4,11 @@ A daily puzzle for wahl.chat: players guess how each party in the Bundestag
 voted on one real roll-call vote, see what happened, keep a streak, share the
 score, and can ask the chat why.
 
-Status: the playable game is built and runs on a hidden page, with the
-mechanics first and plain styling on purpose. Real content, the visual look and
-the launch wiring are still ahead, and the link into the chat is postponed. See
-[Status and rollout](#status-and-rollout).
+Status: the playable game runs on a hidden page in its designed look (the
+Stimmt's? design system: the chamber as the board, the Stimmkarte, the bill
+sheet, the urn and the player's Wahlperiode, and a share image). Real content
+and the launch wiring are still ahead, and the link into the chat is postponed.
+See [Status and rollout](#status-and-rollout).
 
 ## Why it exists
 
@@ -67,10 +68,10 @@ stateDiagram-v2
 | Not started | the start date | nothing | before the schedule's start date |
 | Unavailable | "noch nicht freigegeben" | nothing | today's puzzle is not approved |
 | Finished | "alle bisherigen Rätsel gespielt" | nothing | after the last scheduled puzzle |
-| Briefing | puzzle number, topic, title, vote date, the neutral description, "Ja bedeutet …", the rules in one sentence | taps "Los geht's" | a new puzzle with no answers yet |
-| Answering | the title, the description (collapsed), "Ja bedeutet …", "Partei n von 5", the party's name, three buttons | answers Ja, Nein or Enthaltung; each answer is final, with a short pause before the next party | after the start, until the fifth answer; also after a reload mid-game |
-| Reveal | all five parties with the player's tip | turns parties over one by one, or all at once | after the fifth answer; after a reload of a finished game everything is already turned over |
-| Result | "x von 5 richtig", angenommen or abgelehnt, streak and record, the share button, the countdown, the source | shares, then waits for tomorrow | once every party is turned over |
+| Briefing | the Stimmkarte (title, topic, number, day), the bill sheet (the Drucksache's cover, our neutral summary, the vote's date, what "Ja" means, the original PDF), the empty chamber | taps "Los geht's" | a new puzzle with no answers yet |
+| Answering | the chamber, the party card: "Partei n von 5", the party's logo and name, three buttons, "Ja bedeutet …" | answers Ja, Nein or Enthaltung (or keys 1 to 3); each answer is final, with a short pause before the next party, and paints the party's wedge as rings | after the start, until the fifth answer; also after a reload mid-game |
+| Reveal | the chamber with its legend, "Ja bedeutet …", "Deine Tipps": the tip beside the real vote | turns parties over from their logo on the chamber or one by one, or all at once | after the fifth answer |
+| Result | the stamped Stimmkarte, the player's Wahlperiode with the streak and record, "x von 5 richtig" with a verdict per party, the outcome, the share button, the source | casts the card into the urn (the countdown then appears under the Wahlperiode), shares, taps a past day's seat to see its card | once every party is turned over; straight away after a reload of a finished game |
 
 ### Open mechanics questions
 
@@ -113,9 +114,15 @@ confirm with the product owner.
   nothing else: no per-party grid, no topic. A per-party grid hints at the
   answers to anyone who has not played yet. A test shows that two games with
   the same score produce identical text.
-- On phones the button opens the system share sheet, so the apps offered are
-  whatever the phone has installed. Elsewhere it copies to the clipboard, and
-  if even that fails it shows the text to copy by hand.
+- On phones the button opens the system share sheet with the text and the
+  share image together, so the apps offered are whatever the phone has
+  installed. Elsewhere it copies the text to the clipboard and offers the image
+  to save, and if even copying fails it shows the text to copy by hand.
+- The share image (`/stimmts/share`, square, story and link preview) is drawn
+  from its URL alone: the number, the score and the player's period as one
+  character per day. Nothing is stored on a server. Like the text, it never
+  shows the topic, the title or anything per party. The shared link carries
+  the number and the score, so its preview shows them.
 
 **Content**
 
@@ -199,10 +206,11 @@ flowchart LR
 | Time and schedule | `berlin-time.ts`, `schedule.ts`, `preview.ts` |
 | Game rules | `score.ts`, `progress.ts`, `period.ts` (the Wahlperiode), `streak.ts` |
 | State | `progress-store.ts`, `use-progress.ts` |
-| Sharing | `share.ts`, `share-action.ts`, `countdown.ts` |
+| Sharing | `share.ts`, `share-action.ts`, `share-image.ts`, `countdown.ts` |
+| Look | `fonts.ts`, `parties.ts`, `hemicycle.ts`, `chamber-state.ts`, `game-view.ts`, `logo.ts` |
 | Wording | `labels.ts` |
-| Screens | `web/components/stimmts/`: `stimmts-game` (clock, store, states), `puzzle-game` (which screen), `briefing`, `guess-step`, `reveal`, `share-button`, `countdown` |
-| Route | `web/app/(with-header)/stimmts/page.tsx` (not indexed until release); `/stimmts` is registered as a static page in `web/middleware.ts` |
+| Screens | `web/components/stimmts/`: `stimmts-game` (clock, store, states), `puzzle-game` (which screen), `briefing`, `guess-step`, `reveal`, `result`, and their parts (`hemicycle`, `stimmkarte`, `bill-sheet`, `wahlperiode`, `share-image`, …) |
+| Routes | `web/app/(with-header)/stimmts/page.tsx` (not indexed until release) and the share image at `web/app/stimmts/share/route.tsx`; `/stimmts` is registered as a static page in `web/middleware.ts` |
 
 ### Preview mode
 
@@ -348,9 +356,9 @@ countdown.
 1. *Real content.* Load the current term's votes locally, export draft
    puzzles, write and approve the briefings, find and review the sourced
    reasons, fill and schedule the 30 puzzles.
-2. *Look and feel.* Hemicycle with party colours, seat-flip animation,
-   accessibility (labels as well as colour, reduced motion), a share image and
-   link preview. Waits for the landing page work.
+2. *Look and feel.* Done on the game page. The landing page entry (the game
+   as one row, the player's Wahlperiode once played) waits for the landing
+   page work, whose hemicycle layout the game should then share.
 3. *Release.* Landing page card, a kill switch modelled on the study one,
    analytics (started, finished, shared), remove the
    noindex, and a launch checklist.

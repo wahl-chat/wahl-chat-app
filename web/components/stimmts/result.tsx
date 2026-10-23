@@ -2,10 +2,15 @@ import { Button } from '@/components/ui/button';
 import { BASE_URL } from '@/lib/seo';
 import { PUZZLES, SCHEDULE } from '@/lib/stimmts/content';
 import { partyLabel } from '@/lib/stimmts/labels';
-import { currentWahlperiode, dayRecords } from '@/lib/stimmts/period';
+import {
+  currentWahlperiode,
+  dayRecords,
+  encodePeriod,
+} from '@/lib/stimmts/period';
 import { getGame } from '@/lib/stimmts/progress';
 import { scorePuzzle } from '@/lib/stimmts/score';
 import { buildShareText } from '@/lib/stimmts/share';
+import { shareImagePath, sharedResultPath } from '@/lib/stimmts/share-image';
 import { streakOf } from '@/lib/stimmts/streak';
 import type { Puzzle } from '@/lib/stimmts/types';
 import { useProgress } from '@/lib/stimmts/use-progress';
@@ -46,7 +51,7 @@ function Result({ number, playDate, puzzle, stamping, onReview }: Props) {
   const game = getGame(progress, puzzle.id);
   const score = scorePuzzle(puzzle, game.guesses);
 
-  const { period, streak } = useMemo(() => {
+  const { period, streak, sharedPeriod } = useMemo(() => {
     const records = dayRecords({
       schedule: SCHEDULE,
       puzzles: PUZZLES,
@@ -56,6 +61,10 @@ function Result({ number, playDate, puzzle, stamping, onReview }: Props) {
     return {
       period: currentWahlperiode(records, number, game.cast),
       streak: streakOf(records, number),
+      // The image shows today in its seat whether or not the card is cast.
+      sharedPeriod: encodePeriod(
+        currentWahlperiode(records, number, true).days,
+      ),
     };
   }, [progress, number, game.cast]);
 
@@ -153,8 +162,15 @@ function Result({ number, playDate, puzzle, stamping, onReview }: Props) {
         text={buildShareText({
           puzzleNumber: number,
           score,
-          url: `${BASE_URL}/stimmts`,
+          url: `${BASE_URL}${sharedResultPath(number, score.correct)}`,
         })}
+        imagePath={shareImagePath({
+          format: 'square',
+          number,
+          score: score.correct,
+          period: sharedPeriod,
+        })}
+        imageName={`stimmts-${number}.png`}
       />
       <p className="text-center text-sm">
         <Button

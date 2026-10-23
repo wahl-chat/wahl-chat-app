@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import {
   type ShareOutcome,
   browserShareEnv,
+  fetchShareImage,
   shareText,
 } from '@/lib/stimmts/share-action';
 import { useEffect, useRef, useState } from 'react';
@@ -10,19 +11,41 @@ const COPIED_MESSAGE_MS = 2500;
 
 type Props = {
   text: string;
+  /** The square share image (see the /stimmts/share route). */
+  imagePath: string;
+  imageName: string;
 };
 
-function ShareButton({ text }: Props) {
+/**
+ * "Ergebnis teilen": on phones the share sheet gets the text and the image
+ * together; elsewhere the text is copied and the image can be saved.
+ */
+function ShareButton({ text, imagePath, imageName }: Props) {
   const [outcome, setOutcome] = useState<ShareOutcome | null>(null);
+  const [canShare, setCanShare] = useState(false);
+  const image = useRef<File | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
   useEffect(() => () => clearTimeout(resetTimer.current), []);
 
-  const canShare = typeof navigator !== 'undefined' && 'share' in navigator;
+  // Fetched ahead of the tap: a share sheet only opens straight from a tap,
+  // and waiting for the image first would use the tap up.
+  useEffect(() => {
+    setCanShare('share' in navigator);
+    let current = true;
+    fetchShareImage(imagePath, imageName).then((file) => {
+      if (current) {
+        image.current = file;
+      }
+    });
+    return () => {
+      current = false;
+    };
+  }, [imagePath, imageName]);
 
   const handleClick = async () => {
-    const result = await shareText(text, browserShareEnv());
+    const result = await shareText(text, browserShareEnv(), image.current);
     setOutcome(result);
     clearTimeout(resetTimer.current);
     if (result === 'copied') {
@@ -35,13 +58,22 @@ function ShareButton({ text }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
-      <Button size="lg" onClick={handleClick}>
+      <Button size="lg" className="w-full" onClick={handleClick}>
         {outcome === 'copied'
           ? 'Kopiert ✓'
           : canShare
             ? 'Ergebnis teilen'
             : 'Ergebnis kopieren'}
       </Button>
+      {!canShare && (
+        <a
+          href={imagePath}
+          download={imageName}
+          className="text-center text-sm text-muted-foreground underline underline-offset-[3px]"
+        >
+          Bild zum Teilen speichern
+        </a>
+      )}
       {outcome === 'failed' && (
         <>
           <p className="text-sm text-muted-foreground">

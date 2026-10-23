@@ -7,17 +7,24 @@ const TEXT = "Stimmt's? #1 · Energie · 3/5";
 function fakeEnv(options: {
   share?: 'ok' | 'abort' | 'blocked' | 'missing';
   clipboard?: 'ok' | 'denied' | 'missing';
+  /** Whether the share sheet takes files, or refuses them when sent. */
+  files?: 'ok' | 'unsupported' | 'refused';
 }) {
-  const calls: { shared: string[]; copied: string[] } = {
+  const calls: { shared: string[]; copied: string[]; files: number[] } = {
     shared: [],
     copied: [],
+    files: [],
   };
   const env: ShareEnv = {};
   const share = options.share ?? 'missing';
   const clipboard = options.clipboard ?? 'missing';
 
   if (share !== 'missing') {
-    env.share = async ({ text }) => {
+    env.canShare = ({ files }) => !files || options.files !== 'unsupported';
+    env.share = async ({ text, files }) => {
+      if (files && options.files === 'refused') {
+        throw new DOMException('not allowed', 'NotAllowedError');
+      }
       if (share === 'abort') {
         throw new DOMException('cancelled', 'AbortError');
       }
@@ -25,6 +32,7 @@ function fakeEnv(options: {
         throw new DOMException('not allowed', 'NotAllowedError');
       }
       calls.shared.push(text);
+      calls.files.push(files?.length ?? 0);
     };
   }
   if (clipboard !== 'missing') {
@@ -75,5 +83,34 @@ describe('shareText', () => {
         fakeEnv({ share: 'blocked', clipboard: 'denied' }).env,
       ),
     ).toBe('failed');
+  });
+});
+
+describe('shareText with the share image', () => {
+  const IMAGE = new File(['png'], 'stimmts.png', { type: 'image/png' });
+
+  it('sends the image with the text where the share sheet takes files', async () => {
+    const { env, calls } = fakeEnv({ share: 'ok', files: 'ok' });
+    expect(await shareText(TEXT, env, IMAGE)).toBe('shared');
+    expect(calls.shared).toEqual([TEXT]);
+    expect(calls.files).toEqual([1]);
+  });
+
+  it('sends the text alone where files cannot be shared', async () => {
+    const { env, calls } = fakeEnv({ share: 'ok', files: 'unsupported' });
+    expect(await shareText(TEXT, env, IMAGE)).toBe('shared');
+    expect(calls.files).toEqual([0]);
+  });
+
+  it('tries the text alone when the image is refused', async () => {
+    const { env, calls } = fakeEnv({ share: 'ok', files: 'refused' });
+    expect(await shareText(TEXT, env, IMAGE)).toBe('shared');
+    expect(calls.files).toEqual([0]);
+  });
+
+  it('shares the text when the image could not be loaded', async () => {
+    const { env, calls } = fakeEnv({ share: 'ok', files: 'ok' });
+    expect(await shareText(TEXT, env, null)).toBe('shared');
+    expect(calls.files).toEqual([0]);
   });
 });
