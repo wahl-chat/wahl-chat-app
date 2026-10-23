@@ -6,7 +6,8 @@ score, and can ask the chat why.
 
 Status: the playable game runs on a hidden page in its designed look (the
 Stimmt's? design system: the chamber as the board, the Stimmkarte, the bill
-sheet, the urn and the player's Wahlperiode, and a share image). Real content
+sheet, the urn holding the player's cards of the Wahlperiode, and a share
+image). Real content
 and the launch wiring are still ahead, and the link into the chat is postponed.
 See [Status and rollout](#status-and-rollout).
 
@@ -71,7 +72,7 @@ stateDiagram-v2
 | Briefing | the Stimmkarte (title, topic, number, day), the bill sheet (the Drucksache's cover, our neutral summary, the vote's date, what "Ja" means, the original PDF), the empty chamber | taps "Los geht's" | a new puzzle with no answers yet |
 | Answering | the chamber, the party card: "Partei n von 5", the party's logo and name, three buttons, "Ja bedeutet …" | answers Ja, Nein or Enthaltung (or keys 1 to 3); each answer is final, with a short pause before the next party, and paints the party's wedge as rings | after the start, until the fifth answer; also after a reload mid-game |
 | Reveal | the chamber with its legend, "Ja bedeutet …", "Deine Tipps": the tip beside the real vote | turns parties over from their logo on the chamber or one by one, or all at once | after the fifth answer |
-| Result | the stamped Stimmkarte, the player's Wahlperiode with the streak and record, "x von 5 richtig" with a verdict per party, the outcome, the share button, the source | casts the card into the urn (the countdown then appears under the Wahlperiode), shares, taps a past day's seat to see its card | once every party is turned over; straight away after a reload of a finished game |
+| Result | the stamped Stimmkarte (headed by the Stimmt's? logo) above a glass urn holding this Wahlperiode's cards, a hint to tap the card that shows for a moment, "x von 5 richtig" with a verdict per party, the outcome, the share button, the source | casts the card into the urn, after which the card count ("3/30") and the countdown appear under the urn; shares | once every party is turned over; straight away after a reload of a finished game |
 
 ### Open mechanics questions
 

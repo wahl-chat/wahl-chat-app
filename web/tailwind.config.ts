@@ -151,8 +151,8 @@ export default {
           '88%': { transform: 'translateY(3px)' },
           '94%': { transform: 'translateY(-1px)' },
         },
-        // Lift, shrink towards the urn's slot (the drop is measured into
-        // --drop), then slip in: the bottom edge vanishes first.
+        // Lift, shrink to the width of the urn's slot (the drop is measured
+        // into --drop), then slip in: the bottom edge vanishes first.
         'stimmts-cast': {
           '0%': { transform: 'none', clipPath: 'inset(0 0 0 0)' },
           '22%': {
@@ -161,23 +161,26 @@ export default {
           },
           '68%': {
             transform:
-              'translateY(calc(var(--drop, 200px) - 34px)) scale(0.42)',
+              'translateY(calc(var(--drop, 200px) - 34px)) scale(0.25)',
             clipPath: 'inset(0 0 0 0)',
           },
           '100%': {
             transform:
-              'translateY(calc(var(--drop, 200px) + 30px)) scale(0.42)',
+              'translateY(calc(var(--drop, 200px) + 30px)) scale(0.25)',
             clipPath: 'inset(0 0 100% 0)',
           },
         },
-        // Today's seat pops into the Wahlperiode once the card is in.
-        'stimmts-seat-pop': {
-          from: { transform: 'scale(0)' },
-          to: { transform: 'scale(1)' },
+        // The cast card drops onto the pile inside the urn.
+        'stimmts-card-drop': {
+          from: { opacity: '0', transform: 'translateY(-110px)' },
+          '30%': { opacity: '1' },
+          to: { opacity: '1', transform: 'none' },
         },
-        // Today's seat breathes while the card is still in hand.
-        'stimmts-breathe': {
-          '50%': { opacity: '0.35' },
+        // "Tippe auf deine Stimmkarte" appears for a moment, then fades away.
+        'stimmts-hint': {
+          '0%': { opacity: '0' },
+          '15%, 75%': { opacity: '1' },
+          '100%': { opacity: '0' },
         },
         // The score lands on the Stimmkarte like a rubber stamp.
         'stimmts-stamp': {
@@ -193,9 +196,9 @@ export default {
         'stimmts-nudge': 'stimmts-nudge 2.6s ease-in-out 1.4s infinite',
         'stimmts-cast':
           'stimmts-cast 0.82s cubic-bezier(0.45, 0, 0.6, 1) forwards',
-        'stimmts-seat-pop':
-          'stimmts-seat-pop 0.6s cubic-bezier(0.2, 1.6, 0.4, 1) 0.05s both',
-        'stimmts-breathe': 'stimmts-breathe 1.8s ease-in-out infinite',
+        'stimmts-card-drop':
+          'stimmts-card-drop 0.5s cubic-bezier(0.3, 0, 0.5, 1) both',
+        'stimmts-hint': 'stimmts-hint 3s ease 1s both',
         'stimmts-stamp':
           'stimmts-stamp 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) 0.25s both',
       },

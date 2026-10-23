@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 /**
  * Counts down to the next Berlin midnight, when tomorrow's puzzle opens. It
- * sits large right under the player's Wahlperiode, once today's card is in.
+ * sits under the urn's card count, once today's card is in.
  */
 function Countdown() {
   // The target is worked out once; the clock only refreshes the display.
@@ -26,7 +26,7 @@ function Countdown() {
       <span
         role="timer"
         translate="no"
-        className="font-display text-[44px] font-extrabold tabular-nums leading-[48px] tracking-[-0.02em]"
+        className="font-display text-[28px] font-extrabold tabular-nums leading-8 tracking-[-0.02em]"
       >
         {formatCountdown(remaining)}
       </span>

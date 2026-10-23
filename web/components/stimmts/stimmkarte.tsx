@@ -1,7 +1,7 @@
-import Logo from '@/components/chat/logo';
 import { formatDate, shortDay } from '@/lib/stimmts/labels';
 import { cn } from '@/lib/utils';
 import type { Ref } from 'react';
+import StimmtsLogo from './stimmts-logo';
 
 // The small caps of a printed card form: "STIMMKARTE", "THEMA".
 const FORM_LABEL =
@@ -26,8 +26,8 @@ type Props = {
 /**
  * The player's Stimmkarte. In a namentliche Abstimmung every MP drops a
  * personal card into the urn; the player gets one for their prediction. The
- * wahl.chat wordmark stands where a real card prints "Deutscher Bundestag",
- * and the card is ink, never the blue, red or white of a real vote, so it can
+ * game's own logo stands where a real card prints "Deutscher Bundestag", and
+ * the card is ink, never the blue, red or white of a real vote, so it can
  * never pass for an official one.
  */
 function Stimmkarte({
@@ -56,7 +56,7 @@ function Stimmkarte({
         className="pointer-events-none absolute inset-1.5 rounded-md border border-muted-foreground"
       />
       <span className="relative flex items-center justify-between">
-        <Logo variant="large" className="w-[84px] text-current" />
+        <StimmtsLogo className="text-[17px]" />
         <span aria-hidden className={FORM_LABEL}>
           Stimmkarte
         </span>

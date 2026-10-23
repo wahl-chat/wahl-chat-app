@@ -3,6 +3,7 @@ import { BASE_URL } from '@/lib/seo';
 import { PUZZLES, SCHEDULE } from '@/lib/stimmts/content';
 import { partyLabel } from '@/lib/stimmts/labels';
 import {
+  PERIOD_LENGTH,
   currentWahlperiode,
   dayRecords,
   encodePeriod,
@@ -11,18 +12,18 @@ import { getGame } from '@/lib/stimmts/progress';
 import { scorePuzzle } from '@/lib/stimmts/score';
 import { buildShareText } from '@/lib/stimmts/share';
 import { shareImagePath, sharedResultPath } from '@/lib/stimmts/share-image';
-import { streakOf } from '@/lib/stimmts/streak';
 import type { Puzzle } from '@/lib/stimmts/types';
 import { useProgress } from '@/lib/stimmts/use-progress';
 import { cn } from '@/lib/utils';
 import { useReducedMotion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Countdown from './countdown';
 import OutcomeLine from './outcome-line';
 import PartyTile from './party-tile';
 import ShareButton from './share-button';
 import Stimmkarte from './stimmkarte';
+import Urn from './urn';
 import { Verdict } from './vote-pill';
-import Wahlperiode from './wahlperiode';
 
 /** How long the Stimmkarte takes to fly into the urn (see stimmts-cast). */
 const CAST_MS = 820;
@@ -38,9 +39,10 @@ type Props = {
 
 /**
  * The end of the day's puzzle, top to bottom: the stamped Stimmkarte, which
- * the player casts into the urn, the player's Wahlperiode, "Dein Ergebnis",
- * the outcome, sharing and the links back. Once the card is in, it is gone
- * and the Wahlperiode, with the countdown, opens the screen.
+ * the player casts into the urn, the urn with this Wahlperiode's cards,
+ * "Dein Ergebnis", the outcome, sharing and the links back. Once the card is
+ * in, it is gone, and the urn opens the screen with the card count and the
+ * countdown under it.
  */
 function Result({ number, playDate, puzzle, stamping, onReview }: Props) {
   const progress = useProgress((state) => state.progress);
@@ -51,16 +53,16 @@ function Result({ number, playDate, puzzle, stamping, onReview }: Props) {
   const game = getGame(progress, puzzle.id);
   const score = scorePuzzle(puzzle, game.guesses);
 
-  const { period, streak, sharedPeriod } = useMemo(() => {
+  const { cards, sharedPeriod } = useMemo(() => {
     const records = dayRecords({
       schedule: SCHEDULE,
       puzzles: PUZZLES,
       progress,
       throughNumber: number,
     });
+    const { days } = currentWahlperiode(records, number, game.cast);
     return {
-      period: currentWahlperiode(records, number, game.cast),
-      streak: streakOf(records, number),
+      cards: days.filter((day) => day.kind === 'played').length,
       // The image shows today in its seat whether or not the card is cast.
       sharedPeriod: encodePeriod(
         currentWahlperiode(records, number, true).days,
@@ -69,7 +71,7 @@ function Result({ number, playDate, puzzle, stamping, onReview }: Props) {
   }, [progress, number, game.cast]);
 
   const cardRef = useRef<HTMLElement>(null);
-  const slotRef = useRef<HTMLSpanElement>(null);
+  const slotRef = useRef<SVGPolygonElement>(null);
   const [casting, setCasting] = useState(false);
   const [justCast, setJustCast] = useState(false);
   const castTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -101,34 +103,55 @@ function Result({ number, playDate, puzzle, stamping, onReview }: Props) {
   return (
     <div className="flex flex-col gap-4">
       {!game.cast && (
-        <>
-          <Stimmkarte
-            ref={cardRef}
-            number={number}
-            playDate={playDate}
-            title={puzzle.title}
-            topic={puzzle.topic}
-            score={score.correct}
-            stamping={stampOnMount && !reduceMotion}
-            onCast={cast}
-            className={cn(
-              casting
-                ? 'pointer-events-none z-[5] animate-stimmts-cast'
-                : 'origin-bottom animate-stimmts-nudge motion-reduce:animate-none',
-            )}
-          />
-          <p className="text-center text-sm text-muted-foreground">
-            Tippe auf deine Stimmkarte, um sie in die Urne zu werfen.
-          </p>
-        </>
+        <Stimmkarte
+          ref={cardRef}
+          number={number}
+          playDate={playDate}
+          title={puzzle.title}
+          topic={puzzle.topic}
+          score={score.correct}
+          stamping={stampOnMount && !reduceMotion}
+          onCast={cast}
+          className={cn(
+            casting
+              ? 'pointer-events-none z-[5] animate-stimmts-cast'
+              : 'origin-bottom animate-stimmts-nudge motion-reduce:animate-none',
+          )}
+        />
       )}
 
-      <Wahlperiode
-        period={period}
-        streak={streak}
-        slotRef={slotRef}
-        justCast={justCast}
-      />
+      <div className="relative">
+        {!game.cast && !casting && (
+          // Shown for a moment, then gone: the nudging card keeps asking.
+          <p className="pointer-events-none absolute inset-x-0 -top-1 z-10 flex animate-stimmts-hint justify-center">
+            <span className="rounded-full bg-foreground px-3 py-1.5 text-sm font-medium text-background shadow-sm">
+              Tippe auf deine Stimmkarte
+            </span>
+          </p>
+        )}
+        <Urn cards={cards} freshCard={justCast} slotRef={slotRef} />
+      </div>
+
+      {game.cast && (
+        <div className="flex flex-col items-center">
+          <p
+            className={cn(
+              'font-display text-5xl font-extrabold leading-[52px] tracking-[-0.02em] tabular-nums',
+              justCast &&
+                'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
+            )}
+          >
+            <span aria-hidden>
+              {cards}/{PERIOD_LENGTH}
+            </span>
+            <span className="sr-only">
+              {cards} von {PERIOD_LENGTH} Stimmkarten dieser Wahlperiode in der
+              Urne
+            </span>
+          </p>
+          <Countdown />
+        </div>
+      )}
 
       <section aria-live="polite" className="flex flex-col gap-4">
         <div className="flex flex-col items-center">
