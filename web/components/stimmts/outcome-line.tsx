@@ -2,6 +2,7 @@ import { voteTotals } from '@/lib/stimmts/game-view';
 import { OUTCOME_LABELS } from '@/lib/stimmts/labels';
 import type { Puzzle } from '@/lib/stimmts/types';
 import { ArrowUpRight, ChevronRight } from 'lucide-react';
+import Image from 'next/image';
 
 /**
  * What the Bundestag decided, in one plain line. It is what the Bundestag
@@ -91,14 +92,51 @@ export function OutcomeCard({
         rel="noopener noreferrer"
         className="flex items-center justify-between gap-3 border-t px-4 py-3 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
-        <span>
-          Quelle:{' '}
-          <span className="font-medium text-foreground">
-            {puzzle.source.label}
-          </span>
+        <span className="flex items-center gap-2">
+          Quelle
+          {isAbgeordnetenwatch(puzzle.source.url) ? (
+            <AbgeordnetenwatchLogo />
+          ) : (
+            <span className="font-medium text-foreground">
+              {puzzle.source.label}
+            </span>
+          )}
         </span>
         <ArrowUpRight aria-hidden className="size-4 flex-none" />
       </a>
     </div>
+  );
+}
+
+function isAbgeordnetenwatch(url: string): boolean {
+  const { hostname } = new URL(url);
+  return (
+    hostname === 'abgeordnetenwatch.de' ||
+    hostname.endsWith('.abgeordnetenwatch.de')
+  );
+}
+
+/**
+ * Abgeordnetenwatch's logo from its press kit. Its letters are cut out, so
+ * the purple version reads on the light card and the white one on the dark.
+ */
+function AbgeordnetenwatchLogo() {
+  return (
+    <>
+      <Image
+        alt="Abgeordnetenwatch"
+        width={56}
+        height={32}
+        src="/images/stimmts/abgeordnetenwatch.png"
+        className="h-8 w-auto dark:hidden"
+      />
+      <Image
+        alt="Abgeordnetenwatch"
+        width={56}
+        height={32}
+        src="/images/stimmts/abgeordnetenwatch-dark.png"
+        className="hidden h-8 w-auto dark:block"
+      />
+    </>
   );
 }
