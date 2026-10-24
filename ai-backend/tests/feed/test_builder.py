@@ -7,16 +7,16 @@ from typing import Any, Iterator
 
 import pytest
 
-from src.daily_digest.builder import (
+from src.feed.builder import (
     DigestBuilder,
     build_digests,
     compute_input_hash,
     session_from_draft,
     vote_description,
 )
-from src.daily_digest.models import DigestSessionSection
-from src.daily_digest.parliaments import PARLIAMENTS, PartyDisplay
-from src.daily_digest.prompts import (
+from src.feed.models import DigestSessionSection
+from src.feed.parliaments import PARLIAMENTS, PartyDisplay
+from src.feed.prompts import (
     OpeningQuoteDraft,
     PartyPositionDraft,
     SessionSectionDraft,
@@ -24,7 +24,7 @@ from src.daily_digest.prompts import (
     VoteEnrichment,
     VoteEnrichmentBatch,
 )
-from src.daily_digest.reader import assemble_speeches, group_sitting_days
+from src.feed.reader import assemble_speeches, group_sitting_days
 
 NOW = datetime(2026, 10, 1, tzinfo=timezone.utc)
 BUNDESTAG = PARLIAMENTS["bundestag"]
@@ -86,10 +86,13 @@ class FakeLLM:
     def __init__(self, fail_votes: bool = False, fail_session: bool = False) -> None:
         self.fail_votes = fail_votes
         self.fail_session = fail_session
-        self.calls: list[tuple[type, bool]] = []
+        self.calls: list[type] = []
 
-    async def __call__(self, messages: list, schema: type, long_form: bool) -> Any:
-        self.calls.append((schema, long_form))
+    async def __call__(self, messages: list, schema: type) -> tuple[Any, str]:
+        self.calls.append(schema)
+        return self._answer(messages, schema), "fake-model"
+
+    def _answer(self, messages: list, schema: type) -> Any:
         if schema is VoteEnrichmentBatch:
             if self.fail_votes:
                 raise RuntimeError("quota")

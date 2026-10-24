@@ -6,21 +6,26 @@ import type { DailyDigest } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { META_TEXT } from './card-styles';
 import { useSnapCarousel } from './carousel';
+import { useFeedLocale } from './feed-locale';
 import { PlenaryCard } from './plenary-card';
 import VoteCard from './vote-card';
 
-const dayFormat = new Intl.DateTimeFormat('de-DE', {
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-  timeZone: 'UTC',
-});
+function dayFormat(intl: string) {
+  return new Intl.DateTimeFormat(intl, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  });
+}
 
-const shortDayFormat = new Intl.DateTimeFormat('de-DE', {
-  day: 'numeric',
-  month: 'short',
-  timeZone: 'UTC',
-});
+function shortDayFormat(intl: string) {
+  return new Intl.DateTimeFormat(intl, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  });
+}
 
 function utcDay(isoDay: string): Date {
   return new Date(`${isoDay}T00:00:00Z`);
@@ -32,15 +37,16 @@ function GroupHeader({
   digest,
   count,
 }: {
-  kind: 'Plenarsitzung' | 'Abstimmung';
+  kind: 'sitting' | 'vote';
   digest: DailyDigest;
   count?: string;
 }) {
+  const { t, intl } = useFeedLocale();
   const protocol = protocolLabel(digest);
   const meta = [
-    kind,
+    kind === 'sitting' ? t.plenarySitting : t.vote,
     digest.parliament !== 'bundestag' && digest.parliament_name,
-    protocol && `Protokoll ${protocol}`,
+    protocol && t.protocol(protocol),
   ]
     .filter(Boolean)
     .join(' · ');
@@ -49,7 +55,7 @@ function GroupHeader({
       <div>
         <p className={META_TEXT}>{meta}</p>
         <h3 className="text-[19px] font-bold">
-          {dayFormat.format(utcDay(digest.date))}
+          {dayFormat(intl).format(utcDay(digest.date))}
         </h3>
       </div>
       {count && <span className={cn(META_TEXT, 'tabular-nums')}>{count}</span>}
@@ -73,7 +79,7 @@ function PlenaryRow({
   return (
     <div className="flex flex-col gap-3">
       <GroupHeader
-        kind="Plenarsitzung"
+        kind="sitting"
         digest={digest}
         count={items.length > 1 ? `${active + 1} / ${items.length}` : undefined}
       />
@@ -113,21 +119,22 @@ type Props = {
  * on the same topic, then the rest per parliament.
  */
 function DailyDaySection({ day, onOpen }: Props) {
+  const { t, intl } = useFeedLocale();
   const { hot, match } = day;
   return (
     <section
       className="flex flex-col gap-8"
-      aria-label={dayFormat.format(utcDay(day.date))}
+      aria-label={dayFormat(intl).format(utcDay(day.date))}
     >
       {hot && (
         <div className="flex flex-col gap-3">
           <header className="flex items-baseline justify-between gap-3">
-            <h2 className="text-lg font-bold">Thema des Tages</h2>
+            <h2 className="text-lg font-bold">{t.topicOfDay}</h2>
             <span className={META_TEXT}>
               {hot.digest.parliament === 'bundestag'
-                ? 'Plenarsitzung'
+                ? t.plenarySitting
                 : hot.digest.parliament_name}{' '}
-              · {shortDayFormat.format(utcDay(day.date))}
+              · {shortDayFormat(intl).format(utcDay(day.date))}
             </span>
           </header>
           <PlenaryCard
@@ -139,8 +146,8 @@ function DailyDaySection({ day, onOpen }: Props) {
           {match && (
             <div className="flex flex-col gap-2 pt-3">
               <h3 className={META_TEXT}>
-                Passende Abstimmung ·{' '}
-                {shortDayFormat.format(utcDay(match.digest.date))}
+                {t.matchingVote} ·{' '}
+                {shortDayFormat(intl).format(utcDay(match.digest.date))}
               </h3>
               <VoteCard item={match} onOpen={() => onOpen(match)} compact />
             </div>
@@ -160,7 +167,7 @@ function DailyDaySection({ day, onOpen }: Props) {
           )}
           {votes.length > 0 && (
             <div className="flex flex-col gap-3">
-              <GroupHeader kind="Abstimmung" digest={digest} />
+              <GroupHeader kind="vote" digest={digest} />
               {votes.map((vote) => (
                 <VoteCard
                   key={vote.key}

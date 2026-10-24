@@ -186,6 +186,7 @@ body {
   --daily-border: #e4e4e7;
   --daily-ink: #18181b;
   --daily-muted: #71717a;
+  --daily-body: #3f3f46;
   --daily-yes: #1c6b40;
   --daily-yes-bg: #e7f4ec;
   --daily-no: #a3323d;
@@ -201,6 +202,7 @@ body {
   --daily-border: #3f3f46;
   --daily-ink: #fafafa;
   --daily-muted: #a1a1aa;
+  --daily-body: #d4d4d8;
   --daily-yes: #7cc796;
   --daily-yes-bg: #13291c;
   --daily-no: #f07a88;

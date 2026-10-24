@@ -8,6 +8,10 @@ LLM failure policy: a failed step never aborts the run. Votes fall back to
 their source title under the ``other`` topic, a failed session summary leaves
 ``session`` empty, and either case stores ``input_hash=None`` so the next run
 retries that day instead of skipping it as unchanged.
+
+Every text here is generated once and reused by every surface that shows it,
+so all calls go to the publication roster (high reasoning) and each result
+records which roster entry wrote it.
 """
 
 from __future__ import annotations
@@ -24,7 +28,7 @@ from typing import Any, Callable, Coroutine, Optional
 from langchain_core.messages import BaseMessage, HumanMessage
 from pydantic import BaseModel
 
-from src.daily_digest.models import (
+from src.feed.models import (
     DailyDigest,
     DigestCitation,
     DigestPartyPosition,
@@ -37,8 +41,8 @@ from src.daily_digest.models import (
     DigestVoteParty,
     digest_doc_id,
 )
-from src.daily_digest.parliaments import Parliament, PartyDisplay, party_display_for
-from src.daily_digest.prompts import (
+from src.feed.parliaments import Parliament, PartyDisplay, party_display_for
+from src.feed.prompts import (
     PROMPT_VERSION,
     OpeningQuoteDraft,
     PartyPositionDraft,
@@ -48,12 +52,13 @@ from src.daily_digest.prompts import (
     format_session_prompt,
     format_vote_prompt,
 )
-from src.daily_digest.reader import AgendaItem, SittingDay, Speech, parse_day
-from src.daily_digest.topics import DigestTopic
+from src.feed.reader import AgendaItem, SittingDay, Speech, parse_day
+from src.feed.topics import DigestTopic
 
 logger = logging.getLogger(__name__)
 
-_VOTE_BATCH = 12
+# Small enough that each vote gets its share of the reasoning budget.
+_VOTE_BATCH = 6
 _VOTE_CONTEXT_CHARS = 1200
 _SPEECH_EXCERPT_CHARS = 900
 _SPEECHES_PER_AGENDA_ITEM = 8
@@ -78,24 +83,23 @@ DIGEST_FORMAT_VERSION = "6"
 # The vote connector writes the embed text as "<label>\n\nThemen: …\n\nKontext: <intro>".
 _CONTEXT_MARKER = "Kontext: "
 
-# (messages, schema, long_form) -> parsed schema instance. long_form selects
-# the answer-generation roster over the cheaper pre/post-processing one.
+# (messages, schema) -> (parsed schema instance, name of the model that wrote it).
 StructuredOutputFn = Callable[
-    [list[BaseMessage], type[BaseModel], bool], Coroutine[Any, Any, Any]
+    [list[BaseMessage], type[BaseModel]], Coroutine[Any, Any, tuple[Any, str]]
 ]
 
 
 async def _default_structured_output(
-    messages: list[BaseMessage], schema: type[BaseModel], long_form: bool
-) -> Any:
+    messages: list[BaseMessage], schema: type[BaseModel]
+) -> tuple[Any, str]:
     from src.llms import (  # noqa: PLC0415
-        PRE_AND_POST_PROCESSING_LLMS,
-        RESPONSE_GENERATION_LLMS,
-        get_structured_output_from_llms,
+        PUBLICATION_LLMS,
+        get_structured_output_with_source,
     )
 
-    roster = RESPONSE_GENERATION_LLMS if long_form else PRE_AND_POST_PROCESSING_LLMS
-    return await get_structured_output_from_llms(roster, messages, schema)
+    return await get_structured_output_with_source(
+        PUBLICATION_LLMS, messages, schema, report_rate_limit=False
+    )
 
 
 @dataclass
@@ -105,6 +109,7 @@ class VoteText:
     summary: Optional[str]
     topics: list[DigestTopic]
     suggested_questions: list[str] = field(default_factory=list)
+    generated_by: Optional[str] = None
 
 
 class DigestBuilder:
@@ -122,10 +127,9 @@ class DigestBuilder:
     def close(self) -> None:
         self._runner.close()
 
-    def _call(self, prompt: str, schema: type[BaseModel], long_form: bool) -> Any:
-        return self._runner.run(
-            self._fn([HumanMessage(content=prompt)], schema, long_form)
-        )
+    def call(self, prompt: str, schema: type[BaseModel]) -> tuple[Any, str]:
+        """One structured-output call: the parsed result and its model."""
+        return self._runner.run(self._fn([HumanMessage(content=prompt)], schema))
 
     def enrich_votes(
         self, parliament: Parliament, payloads: list[dict]
@@ -136,7 +140,7 @@ class DigestBuilder:
         for start in range(0, len(payloads), _VOTE_BATCH):
             batch = payloads[start : start + _VOTE_BATCH]
             refs = {f"V{i + 1}": p for i, p in enumerate(batch)}
-            enriched = self._enrich_vote_batch(parliament, refs)
+            enriched, model = self._enrich_vote_batch(parliament, refs)
             for ref, payload in refs.items():
                 poll_id = int(payload["external_id"])
                 title = str(payload.get("citation_title") or "Abstimmung")
@@ -151,24 +155,25 @@ class DigestBuilder:
                     summary=item.summary.strip() or None,
                     topics=list(dict.fromkeys(item.topics))[:2] or ["other"],
                     suggested_questions=clean_questions(item.suggested_questions),
+                    generated_by=model,
                 )
         return texts, fallen_back
 
     def _enrich_vote_batch(
         self, parliament: Parliament, refs: dict[str, dict]
-    ) -> dict[str, VoteEnrichment]:
+    ) -> tuple[dict[str, VoteEnrichment], Optional[str]]:
         block = "\n\n".join(
             f"[{ref}] {str(p.get('text') or '')[:_VOTE_CONTEXT_CHARS]}"
             for ref, p in refs.items()
         )
         try:
-            result = self._call(
-                format_vote_prompt(parliament.name, block), VoteEnrichmentBatch, False
+            result, model = self.call(
+                format_vote_prompt(parliament.name, block), VoteEnrichmentBatch
             )
-            return {v.ref: v for v in result.votes if v.ref in refs}
+            return {v.ref: v for v in result.votes if v.ref in refs}, model
         except Exception as exc:  # noqa: BLE001
             logger.warning("Vote enrichment failed for %s: %s", parliament.id, exc)
-            return {}
+            return {}, None
 
     def summarize_day(
         self,
@@ -183,15 +188,17 @@ class DigestBuilder:
             _agenda_block(refs),
         )
         try:
-            draft = self._call(prompt, SessionSummaryDraft, True)
+            draft, model = self.call(prompt, SessionSummaryDraft)
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "Session summary failed for %s %s: %s", parliament.id, sitting.day, exc
             )
             return None
-        return session_from_draft(
+        session = session_from_draft(
             draft, refs, sitting, display, dict(parliament.party_aliases)
         )
+        session.generated_by = model
+        return session
 
 
 def _agenda_block(refs: dict[str, AgendaItem]) -> str:
@@ -246,13 +253,22 @@ def _citations(
     return citations
 
 
-# The model sometimes echoes the agenda ids it was given ("Kindergeld (A3)",
-# "[A3, A5]") into free text; they mean nothing to a reader.
-_AGENDA_REF_RE = re.compile(r"\s*[\[(]?\bA\d+(?:\s*[,;/]\s*A\d+)*\b[\])]?")
+def _ref_re(prefix: str) -> re.Pattern[str]:
+    return re.compile(rf"\s*[\[(]?\b{prefix}\d+(?:\s*[,;/]\s*{prefix}\d+)*\b[\])]?")
+
+
+# The model sometimes echoes the ids it was given ("Kindergeld (A3)",
+# "[A3, A5]") into free text; they mean nothing to a reader. Agenda items are
+# A-refs, segments handed to the translation S-refs.
+_REF_RES = {prefix: _ref_re(prefix) for prefix in ("A", "S")}
+
+
+def strip_refs(text: str, prefix: str = "A") -> str:
+    return _REF_RES[prefix].sub("", text).strip(" ,;:-")
 
 
 def _strip_agenda_refs(text: str) -> str:
-    return _AGENDA_REF_RE.sub("", text).strip(" ,;:-")
+    return strip_refs(text, "A")
 
 
 def _normalize_name(name: str) -> str:
@@ -479,6 +495,7 @@ def vote_from_payload(
         citation_url=payload.get("citation_url"),
         parties=parties,
         suggested_questions=text.suggested_questions,
+        generated_by=text.generated_by,
     )
 
 

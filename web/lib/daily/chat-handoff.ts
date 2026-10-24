@@ -5,7 +5,7 @@ import { type DetailItem, itemTitle, protocolLabel } from './items';
 import { sortBySeating } from './seating-order';
 
 /** The chat context whose parties sit in each parliament (mirrors
- * `party_context_id` in the backend's `daily_digest/parliaments.py`). */
+ * `party_context_id` in the backend's `feed/parliaments.py`). */
 const CHAT_CONTEXTS: Record<DigestParliamentId, string> = {
   bundestag: 'bundestagswahl-2025',
   landtag_st: 'landtagswahl-sachsen-anhalt-2026',

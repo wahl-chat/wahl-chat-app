@@ -45,11 +45,13 @@ import {
 import type {
   ChatSession,
   Context,
-  DailyDigest,
   DigestParliamentId,
   ExampleQuestionShareableChatSession,
+  FeedEdition,
+  FeedItem,
   FirebaseWahlSwiperResult,
   LlmSystemStatus,
+  ParliamentFeed,
   ProposedQuestion,
   SourceDocument,
 } from './firebase.types';
@@ -759,46 +761,47 @@ export const getExampleQuestionsShareableChatSession = cache(
 );
 
 // Enough to cover a 14-day window even when a parliament sits every day.
-const DIGESTS_PER_PARLIAMENT = 20;
+const EDITIONS_PER_PARLIAMENT = 20;
+// Up to six debates plus a day's votes per edition.
+const ITEMS_PER_PARLIAMENT = EDITIONS_PER_PARLIAMENT * 25;
 
-async function getDailyDigestsImpl(parliament: DigestParliamentId) {
+async function getParliamentFeedImpl(
+  parliament: DigestParliamentId,
+): Promise<ParliamentFeed> {
   const serverDb = await getServerFirestore({ useHeaders: false });
-  const queryRef = query(
-    collection(serverDb, 'daily_digests'),
-    where('parliament', '==', parliament),
-    orderBy('date', 'desc'),
-    limit(DIGESTS_PER_PARLIAMENT),
-  );
-  const snapshot = await getDocs(queryRef);
-  return rejectEmpty(
-    snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        parliament: data.parliament,
-        parliament_name: data.parliament_name,
-        region: data.region,
-        date: data.date,
-        votes: data.votes ?? [],
-        session: data.session ?? null,
-      } as DailyDigest;
-    }),
-  );
+  const recent = (name: string, count: number) =>
+    getDocs(
+      query(
+        collection(serverDb, name),
+        where('parliament', '==', parliament),
+        orderBy('date', 'desc'),
+        limit(count),
+      ),
+    );
+  const [editions, items] = await Promise.all([
+    recent('feed_editions', EDITIONS_PER_PARLIAMENT),
+    recent('feed_items', ITEMS_PER_PARLIAMENT),
+  ]);
+  return {
+    editions: rejectEmpty(editions.docs.map((d) => d.data() as FeedEdition)),
+    items: items.docs.map((d) => d.data() as FeedItem),
+  };
 }
 
-/** Latest digests per parliament, newest first. */
-export async function getDailyDigests(
+/** Latest editions per parliament with their items, newest first. Both
+ * languages come along, so switching language needs no round-trip. */
+export async function getParliamentFeed(
   parliament: DigestParliamentId,
-): Promise<DailyDigest[]> {
+): Promise<ParliamentFeed> {
   return uncachedFallback(
     () =>
       cachedRead(
-        getDailyDigestsImpl,
-        ['getDailyDigests', 'v1', parliament],
-        [CacheTags.DAILY_DIGESTS],
+        getParliamentFeedImpl,
+        ['getParliamentFeed', 'v1', parliament],
+        [CacheTags.FEED],
       )(parliament),
-    [],
-    `FAILED to fetch daily digests for "${parliament}"`,
+    { editions: [], items: [] },
+    `FAILED to fetch the feed for "${parliament}"`,
   );
 }
 

@@ -11,13 +11,9 @@ import { SEAT_FILLS } from '@/lib/daily/palette';
 import type { DigestVoteParty } from '@/lib/firebase/firebase.types';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
 import { useMemo, useState } from 'react';
+import { useFeedLocale } from './feed-locale';
 
-export const SEAT_LABELS: Record<SeatVote, string> = {
-  yes: 'Ja',
-  no: 'Nein',
-  abstain: 'Enthalten',
-  absent: 'Abwesend',
-};
+const SEAT_ORDER: SeatVote[] = ['yes', 'no', 'abstain', 'absent'];
 
 const ABSENT_RING = '#A1A1AA';
 
@@ -96,9 +92,10 @@ export function Hemicycle({ parties, className }: Props) {
   const layout = useMemo(() => layoutHemicycle(parties), [parties]);
   const totals = useMemo(() => voteTotals(parties), [parties]);
   const r = layout.seatRadius;
+  const { t } = useFeedLocale();
 
-  const label = `Abstimmungsergebnis: ${totals.yes} Ja, ${totals.no} Nein, ${totals.abstain} Enthaltungen, ${totals.absent} abwesend. ${layout.arcs
-    .map((a) => `${a.name}: ${a.seats} Sitze`)
+  const label = `${t.voteResult(totals.yes, totals.no, totals.abstain, totals.absent)} ${layout.arcs
+    .map((a) => t.seats(a.name, a.seats))
     .join(', ')}.`;
 
   return (
@@ -144,7 +141,7 @@ export function Hemicycle({ parties, className }: Props) {
           fontSize={SCORE_SUB_FONT}
           style={{ fill: 'var(--daily-muted)' }}
         >
-          Ja : Nein
+          {t.yesNo}
         </text>
       </g>
     </svg>
@@ -160,6 +157,7 @@ export function SeatLegend({
   className?: string;
 }) {
   const totals = voteTotals(parties);
+  const { t } = useFeedLocale();
   return (
     <ul
       className={cn(
@@ -167,7 +165,7 @@ export function SeatLegend({
         className,
       )}
     >
-      {(Object.keys(SEAT_LABELS) as SeatVote[]).map((vote) => (
+      {SEAT_ORDER.map((vote) => (
         <li key={vote} className="flex items-center gap-1.5">
           <span
             aria-hidden
@@ -178,7 +176,7 @@ export function SeatLegend({
                 : { backgroundColor: SEAT_FILLS[vote] }
             }
           />
-          {totals[vote]} {SEAT_LABELS[vote]}
+          {totals[vote]} {t.seat[vote]}
         </li>
       ))}
     </ul>
@@ -203,6 +201,7 @@ function gaugeArc(from: number, to: number): string {
  */
 export function VoteGauge({ parties }: { parties: DigestVoteParty[] }) {
   const { yes, no } = voteTotals(parties);
+  const { t } = useFeedLocale();
   const decided = yes + no;
   const split = decided > 0 ? Math.PI * (1 - yes / decided) : Math.PI / 2;
   const gap = yes > 0 && no > 0 ? GAUGE_GAP : 0;
@@ -213,7 +212,7 @@ export function VoteGauge({ parties }: { parties: DigestVoteParty[] }) {
         viewBox={`${-extent} ${-extent} ${2 * extent} ${extent}`}
         className="w-full"
         role="img"
-        aria-label={`${yes} Ja, ${no} Nein`}
+        aria-label={`${yes} ${t.seat.yes}, ${no} ${t.seat.no}`}
       >
         {yes > 0 && (
           <path
@@ -236,8 +235,12 @@ export function VoteGauge({ parties }: { parties: DigestVoteParty[] }) {
         aria-hidden
         className="flex w-full justify-between whitespace-nowrap text-[13px] font-semibold tabular-nums"
       >
-        <span className="text-[var(--daily-yes)]">{yes} Ja</span>
-        <span className="text-[var(--daily-no)]">{no} Nein</span>
+        <span className="text-[var(--daily-yes)]">
+          {yes} {t.seat.yes}
+        </span>
+        <span className="text-[var(--daily-no)]">
+          {no} {t.seat.no}
+        </span>
       </figcaption>
     </figure>
   );

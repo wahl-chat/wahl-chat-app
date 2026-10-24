@@ -172,8 +172,9 @@ export type FirebaseWahlSwiperResult = {
   prolific_metadata?: ProlificMetadata;
 };
 
-/** Firestore `daily_digests/{parliament}_{YYYY-MM-DD}`, written by the backend
- * digest builder (`ai-backend/src/daily_digest/models.py`). */
+/** The feed's view of one parliament's sitting day. Built on the client from
+ * `FeedEdition` + `FeedItem`s (see `lib/daily/editions.ts`) in the reader's
+ * language, or read as-is from a local preview file. */
 export type DigestParliamentId = 'bundestag' | 'landtag_st' | 'landtag_bw';
 
 export type DigestVoteParty = {
@@ -199,6 +200,9 @@ export type DigestVote = {
   parties: DigestVoteParty[];
   /** Absent on digests built before the feed's chat handoff. */
   suggested_questions?: string[];
+  /** The `FeedItem` it came from; absent on local previews. */
+  item_id?: string;
+  legacy_keys?: string[];
 };
 
 export type DigestCitation = {
@@ -265,6 +269,9 @@ export type DigestSessionSection = {
   /** Fraktion of the debate's first speaker. */
   opened_by?: string | null;
   suggested_questions?: string[];
+  /** The `FeedItem` it came from; absent on local previews. */
+  item_id?: string;
+  legacy_keys?: string[];
 };
 
 export type DigestSession = {
@@ -283,3 +290,84 @@ export type DailyDigest = {
   votes: DigestVote[];
   session: DigestSession | null;
 };
+
+// Firestore `feed_editions/{edition_id}` and `feed_items/{item_id}`, written
+// by the backend feed builder (`ai-backend/src/feed/models.py`).
+
+export type FeedLocale = 'de' | 'en';
+
+export type LocalizedPosition = { party_id: string; text: string };
+
+export type LocalizedContent = {
+  headline: string;
+  teaser: string | null;
+  key_points: string[];
+  positions: LocalizedPosition[];
+  suggested_questions: string[];
+  /** Other locales only: the verbatim German quote stays in `debate`. */
+  quote_translation: string | null;
+  origin: 'generated' | 'translated';
+};
+
+export type DebateFacts = {
+  protocols: { protocol_id: string; pdf_url: string | null }[];
+  agenda_items: string[];
+  citations: DigestCitation[];
+  /** Same order as `positions` in every locale's content. */
+  parties: {
+    party_id: string;
+    party_name: string;
+    color: string;
+    speakers: DigestSpeaker[];
+  }[];
+  video_url: string | null;
+  heat: number | null;
+  debate_minutes: number | null;
+  opened_by: string | null;
+  opening_quote: DigestQuote | null;
+};
+
+export type VoteFacts = {
+  poll_id: number;
+  official_title: string;
+  outcome: 'angenommen' | 'abgelehnt' | null;
+  citation_url: string | null;
+  description: string | null;
+  parties: DigestVoteParty[];
+};
+
+export type FeedItem = {
+  id: string;
+  kind: 'debate' | 'vote';
+  edition_id: string;
+  parliament: DigestParliamentId;
+  parliament_name: string;
+  region: string;
+  /** ISO day, `YYYY-MM-DD`. */
+  date: string;
+  rank: number;
+  topics: string[];
+  status: 'published' | 'retracted';
+  debate: DebateFacts | null;
+  vote: VoteFacts | null;
+  /** German always; other locales once translated. */
+  content: { de: LocalizedContent } & Partial<
+    Record<FeedLocale, LocalizedContent>
+  >;
+  legacy_keys: string[];
+};
+
+export type FeedEdition = {
+  id: string;
+  parliament: DigestParliamentId;
+  parliament_name: string;
+  region: string;
+  /** ISO day, `YYYY-MM-DD`. */
+  date: string;
+  protocols: { protocol_id: string; pdf_url: string | null }[];
+  item_ids: string[];
+  other_topics: string[];
+};
+
+/** One parliament's recent editions and their items. */
+export type ParliamentFeed = { editions: FeedEdition[]; items: FeedItem[] };

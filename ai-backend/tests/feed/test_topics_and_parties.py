@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from src.daily_digest.parliaments import PARLIAMENTS, load_party_display
-from src.daily_digest.topics import DIGEST_TOPICS, TOPIC_LABELS_DE
+from src.feed.parliaments import PARLIAMENTS, load_party_display
+from src.feed.topics import DIGEST_TOPICS, TOPIC_LABELS_DE
 from src.firestore_guard import guard_firestore_target
 
 _WEB_TOPICS = (

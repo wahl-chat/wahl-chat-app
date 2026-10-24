@@ -1,10 +1,12 @@
 'use client';
 
+import type { FeedStrings } from '@/lib/daily/i18n';
 import { sortBySeating } from '@/lib/daily/seating-order';
 import type { DigestSessionSection } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { PlayIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { useFeedLocale } from './feed-locale';
 
 // The same speech can sit in the feed and in the open detail at once; starting
 // one pauses the other rather than playing both over each other.
@@ -33,10 +35,14 @@ function videoSrc(videoUrl: string, link: string | null | undefined): string {
   return `${videoUrl.split('#')[0]}#t=${Number.isFinite(start) && start > 0.5 ? start : 0.5}`;
 }
 
-function startCaption(speaker: string, link: string | null | undefined) {
+function startCaption(
+  speaker: string,
+  link: string | null | undefined,
+  t: FeedStrings,
+) {
   const start = Number((link ?? '').split('#t=')[1]);
   return Number.isFinite(start) && start > 0
-    ? `${speaker} · ab ${formatTime(start)}`
+    ? t.from(speaker, formatTime(start))
     : speaker;
 }
 
@@ -45,7 +51,10 @@ function startCaption(speaker: string, link: string | null | undefined) {
  * the opening statement quotes it; otherwise the first Fraktion's in seating
  * order that has video, then any cited speech video, then the agenda item's.
  */
-export function sectionMedia(section: DigestSessionSection): Media | null {
+export function sectionMedia(
+  section: DigestSessionSection,
+  t: FeedStrings,
+): Media | null {
   if (section.audio) {
     const { duration_seconds: duration } = section.audio;
     return {
@@ -71,6 +80,7 @@ export function sectionMedia(section: DigestSessionSection): Media | null {
       caption: startCaption(
         `${speaker.name} (${speaker.party})`,
         speaker.video_link,
+        t,
       ),
     };
   }
@@ -105,6 +115,7 @@ export function SectionMediaFrame({
 }) {
   const ref = useRef<HTMLMediaElement | null>(null);
   const [started, setStarted] = useState(false);
+  const { t } = useFeedLocale();
 
   const play = () => {
     setStarted(true);
@@ -158,9 +169,7 @@ export function SectionMediaFrame({
           <button
             type="button"
             onClick={play}
-            aria-label={
-              media.kind === 'video' ? 'Rede abspielen' : 'Audio abspielen'
-            }
+            aria-label={media.kind === 'video' ? t.playSpeech : t.playAudio}
             className={cn(
               'absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-800',
               small ? 'size-10' : 'size-14',
