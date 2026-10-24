@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button';
 import { BASE_URL } from '@/lib/seo';
 import { PUZZLES, SCHEDULE } from '@/lib/stimmts/content';
 import { partyLabel } from '@/lib/stimmts/labels';
@@ -19,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { useReducedMotion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Countdown from './countdown';
-import OutcomeLine from './outcome-line';
+import { OutcomeCard } from './outcome-line';
 import PartyTile from './party-tile';
 import PeriodChamber from './period-chamber';
 import ShareButton from './share-button';
@@ -37,6 +36,7 @@ type Props = {
   puzzle: Puzzle;
   /** Stamp the score on with a little bounce (the first time only). */
   stamping: boolean;
+  /** Opens the vote: the chamber with every member's vote, without tips. */
   onReview: () => void;
   /** Opens a past day of this Wahlperiode, already turned over. */
   onOpenDay: (number: number) => void;
@@ -116,7 +116,9 @@ function Result({
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    // Each block of the screen gets room of its own; inside a block, its
+    // parts stay close.
+    <div className="flex flex-col gap-10">
       {!game.cast && (
         <Stimmkarte
           ref={cardRef}
@@ -136,42 +138,43 @@ function Result({
       )}
 
       {game.cast && (
-        <>
+        <div className="flex flex-col items-center gap-4">
           {/* Once the card, which carries it, is in the urn. */}
-          <StimmtsLogo className="self-center text-[26px]" />
+          <StimmtsLogo className="text-[26px]" />
           <Countdown />
-        </>
+        </div>
       )}
 
-      <div className="relative">
-        {!game.cast && !casting && (
-          // Shown for a moment, then gone: the nudging card keeps asking.
-          <p className="pointer-events-none absolute inset-x-0 -top-1 z-10 flex animate-stimmts-hint justify-center">
-            <span className="rounded-full bg-foreground px-3 py-1.5 text-sm font-medium text-background shadow-sm">
-              Tippe auf deine Stimmkarte
-            </span>
+      <div className="flex flex-col gap-4">
+        <div className="relative">
+          {!game.cast && !casting && (
+            // Shown for a moment, then gone: the nudging card keeps asking.
+            <p className="pointer-events-none absolute inset-x-0 -top-1 z-10 flex animate-stimmts-hint justify-center">
+              <span className="rounded-full bg-foreground px-3 py-1.5 text-sm font-medium text-background shadow-sm">
+                Tippe auf deine Stimmkarte
+              </span>
+            </p>
+          )}
+          <Urn cards={cards} freshCard={justCast} slotRef={slotRef} />
+        </div>
+        {game.cast && (
+          <p
+            className={cn(
+              'text-center text-sm text-muted-foreground',
+              justCast &&
+                'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
+            )}
+          >
+            <span className="font-display text-2xl font-extrabold tabular-nums text-foreground">
+              {cards}/{PERIOD_LENGTH}
+            </span>{' '}
+            Stimmkarten abgegeben
           </p>
         )}
-        <Urn cards={cards} freshCard={justCast} slotRef={slotRef} />
       </div>
 
-      {game.cast && (
-        <p
-          className={cn(
-            'text-center text-sm text-muted-foreground',
-            justCast &&
-              'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
-          )}
-        >
-          <span className="font-display text-2xl font-extrabold tabular-nums text-foreground">
-            {cards}/{PERIOD_LENGTH}
-          </span>{' '}
-          Stimmkarten abgegeben
-        </p>
-      )}
-
-      <section aria-live="polite" className="flex flex-col gap-4">
-        <div className="flex flex-col items-center">
+      <section aria-live="polite" className="flex flex-col gap-5">
+        <div className="flex flex-col items-center gap-1">
           <span className="text-sm text-muted-foreground">Dein Ergebnis</span>
           <p className="font-display text-5xl font-extrabold tabular-nums leading-[52px] tracking-[-0.02em]">
             {score.correct} von {score.total}
@@ -195,8 +198,9 @@ function Result({
             </li>
           ))}
         </ul>
-        <OutcomeLine puzzle={puzzle} />
       </section>
+
+      <OutcomeCard puzzle={puzzle} onOpen={onReview} />
 
       <div className="relative px-6">
         <PeriodChamber
@@ -217,38 +221,30 @@ function Result({
         </div>
       </div>
 
-      <ShareButton
-        text={buildShareText({
-          puzzleNumber: number,
-          score,
-          url: `${BASE_URL}${sharedResultPath(number, score.correct)}`,
-        })}
-        imagePath={shareImagePath({
-          format: 'square',
-          number,
-          score: score.correct,
-          period: sharedPeriod,
-        })}
-        imageName={`stimmts-${number}.png`}
-      />
-      <p className="text-center text-sm">
-        <Button
-          variant="link"
-          onClick={onReview}
-          className="h-auto p-0 text-foreground underline underline-offset-[3px]"
-        >
-          Abstimmung ansehen
-        </Button>
-        {' · '}
+      <div className="flex flex-col items-center gap-4">
+        <ShareButton
+          text={buildShareText({
+            puzzleNumber: number,
+            score,
+            url: `${BASE_URL}${sharedResultPath(number, score.correct)}`,
+          })}
+          imagePath={shareImagePath({
+            format: 'square',
+            number,
+            score: score.correct,
+            period: sharedPeriod,
+          })}
+          imageName={`stimmts-${number}.png`}
+        />
         <a
-          className="underline underline-offset-[3px]"
+          className="text-sm text-muted-foreground underline underline-offset-[3px]"
           href={puzzle.source.url}
           target="_blank"
           rel="noopener noreferrer"
         >
           Quelle: {puzzle.source.label}
         </a>
-      </p>
+      </div>
     </div>
   );
 }

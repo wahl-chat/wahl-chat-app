@@ -115,7 +115,7 @@ function Reveal({
 
       {allRevealed && onShowResult && (
         <Button size="lg" className="w-full" onClick={onShowResult}>
-          Zum Ergebnis
+          {played ? 'Zum Ergebnis' : 'Zurück zum Ergebnis'}
         </Button>
       )}
     </div>

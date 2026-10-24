@@ -43,6 +43,8 @@ function PuzzleGame({ number, puzzle, today, onOpenDay, canOpenDay }: Props) {
   // straight away instead of replaying the reveal.
   const [alreadyFinished] = useState(game.finishedOn !== null);
   const [showResult, setShowResult] = useState(alreadyFinished);
+  // Opened from the result's outcome card: the vote itself, without tips.
+  const [votesOnly, setVotesOnly] = useState(false);
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(
     () =>
       new Set(
@@ -118,6 +120,8 @@ function PuzzleGame({ number, puzzle, today, onOpenDay, canOpenDay }: Props) {
           onOpenDay={onOpenDay}
           canOpenDay={canOpenDay}
           onReview={() => {
+            setRevealed(new Set(puzzle.parties.map((party) => party.partyId)));
+            setVotesOnly(true);
             setShowResult(false);
             goTop();
           }}
@@ -126,13 +130,15 @@ function PuzzleGame({ number, puzzle, today, onOpenDay, canOpenDay }: Props) {
     );
   }
 
+  const tips = votesOnly ? {} : game.guesses;
+
   return (
     <div className="flex flex-col gap-4 py-6">
       <Hemicycle
         parties={puzzle.parties}
         unaffiliated={puzzle.unaffiliated}
-        states={chamberStates(puzzle, phase, game.guesses, revealed)}
-        center={chamberCenter(puzzle, phase, game.guesses, revealed)}
+        states={chamberStates(puzzle, phase, tips, revealed)}
+        center={chamberCenter(puzzle, phase, tips, revealed)}
         onPartyClick={phase === 'reveal' ? reveal : undefined}
       />
       {phase === 'reveal' && (
@@ -150,12 +156,13 @@ function PuzzleGame({ number, puzzle, today, onOpenDay, canOpenDay }: Props) {
         ) : (
           <Reveal
             puzzle={puzzle}
-            guesses={game.guesses}
+            guesses={tips}
             revealed={revealed}
             onReveal={reveal}
             onRevealAll={revealAll}
             onShowResult={() => {
               setShowResult(true);
+              setVotesOnly(false);
               goTop();
             }}
           />
