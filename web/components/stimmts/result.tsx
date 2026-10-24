@@ -221,30 +221,20 @@ function Result({
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-4">
-        <ShareButton
-          text={buildShareText({
-            puzzleNumber: number,
-            score,
-            url: `${BASE_URL}${sharedResultPath(number, score.correct)}`,
-          })}
-          imagePath={shareImagePath({
-            format: 'square',
-            number,
-            score: score.correct,
-            period: sharedPeriod,
-          })}
-          imageName={`stimmts-${number}.png`}
-        />
-        <a
-          className="text-sm text-muted-foreground underline underline-offset-[3px]"
-          href={puzzle.source.url}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Quelle: {puzzle.source.label}
-        </a>
-      </div>
+      <ShareButton
+        text={buildShareText({
+          puzzleNumber: number,
+          score,
+          url: `${BASE_URL}${sharedResultPath(number, score.correct)}`,
+        })}
+        imagePath={shareImagePath({
+          format: 'square',
+          number,
+          score: score.correct,
+          period: sharedPeriod,
+        })}
+        imageName={`stimmts-${number}.png`}
+      />
     </div>
   );
 }
