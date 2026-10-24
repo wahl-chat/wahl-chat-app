@@ -5,6 +5,7 @@ import {
   type Progress,
   castCard,
   getGame,
+  mergeProgress,
   parseProgress,
   recordAnswer,
   removeGame,
@@ -198,5 +199,33 @@ describe('removeGame', () => {
 
   it('returns the same object for a puzzle that was never played', () => {
     expect(removeGame(EMPTY_PROGRESS, first.id)).toBe(EMPTY_PROGRESS);
+  });
+});
+
+describe('mergeProgress', () => {
+  it('lets the saved copy win for every game it holds', () => {
+    const saved = answerAll(EMPTY_PROGRESS, first, '2026-11-01', 'no');
+    const stale = recordAnswer(
+      EMPTY_PROGRESS,
+      first,
+      'linke',
+      'yes',
+      '2026-11-01',
+    );
+    expect(mergeProgress(saved, stale)).toBe(saved);
+  });
+
+  it('keeps games only this page knows about', () => {
+    const saved = answerAll(EMPTY_PROGRESS, first, '2026-11-01');
+    const current = recordAnswer(
+      EMPTY_PROGRESS,
+      second,
+      'linke',
+      'no',
+      '2026-11-02',
+    );
+    const merged = mergeProgress(saved, current);
+    expect(getGame(merged, first.id).finishedOn).toBe('2026-11-01');
+    expect(getGame(merged, second.id).guesses).toEqual({ linke: 'no' });
   });
 });

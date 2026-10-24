@@ -3,6 +3,7 @@ import {
   EMPTY_PROGRESS,
   type Progress,
   castCard,
+  mergeProgress,
   parseProgress,
   recordAnswer,
   removeGame,
@@ -23,6 +24,11 @@ export type ProgressState = {
    */
   hydrated: boolean;
   hydrate: () => void;
+  /**
+   * Catches up with what is saved. Called when the page comes back into
+   * view, since another tab, or a newer copy of this page, may have played.
+   */
+  refresh: () => void;
   /** Preview mode only: forget one puzzle's answers, keep the other days. */
   resetGame: (puzzleId: string) => void;
   /** Casts a finished game's Stimmkarte into the urn. */
@@ -70,17 +76,26 @@ export function browserStorage(): StorageLike | null {
 
 export function createProgressStore(storage: StorageLike | null) {
   return createStore<ProgressState>()((set, get) => {
-    const update = (change: (before: Progress) => Progress) => {
-      // Never write before reading: a change made too early would otherwise
-      // replace the saved progress with a nearly empty copy.
-      get().hydrate();
-      const before = get().progress;
-      const after = change(before);
-      if (after === before) {
-        return;
+    const current = () => mergeProgress(load(storage), get().progress);
+    // Reading storage yields a fresh object each time; only a real change
+    // should reach the components.
+    const setIfChanged = (next: Progress) => {
+      if (JSON.stringify(next) !== JSON.stringify(get().progress)) {
+        set({ progress: next });
       }
-      set({ progress: after });
-      save(storage, after);
+    };
+
+    const update = (change: (before: Progress) => Progress) => {
+      // Always start from what is saved, never from this page's memory
+      // alone: an older copy of the page would otherwise overwrite answers
+      // given since, and answers are final.
+      get().hydrate();
+      const before = current();
+      const after = change(before);
+      setIfChanged(after);
+      if (after !== before) {
+        save(storage, after);
+      }
     };
 
     return {
@@ -92,6 +107,13 @@ export function createProgressStore(storage: StorageLike | null) {
           return;
         }
         set({ progress: load(storage), hydrated: true });
+      },
+
+      refresh: () => {
+        if (!get().hydrated) {
+          return;
+        }
+        setIfChanged(current());
       },
 
       resetGame: (puzzleId) => update((before) => removeGame(before, puzzleId)),

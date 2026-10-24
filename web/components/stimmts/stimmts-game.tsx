@@ -75,6 +75,7 @@ function PreviewBar({
 function StimmtsGame() {
   const hydrate = useProgress((state) => state.hydrate);
   const hydrated = useProgress((state) => state.hydrated);
+  const refresh = useProgress((state) => state.refresh);
   const progress = useProgress((state) => state.progress);
   const [clock, setClock] = useState<Clock | null>(null);
   // A past day of the Wahlperiode the player is looking at, if any.
@@ -98,6 +99,27 @@ function StimmtsGame() {
     hydrate();
     refreshClock();
   }, [hydrate, refreshClock]);
+
+  // The page may be an older copy: a tab left open, or one the browser
+  // restores on "back". Whenever it comes back into view it catches up with
+  // what was played since, so it never shows (or accepts) stale answers.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        refresh();
+      }
+    };
+    window.addEventListener('pageshow', refresh);
+    window.addEventListener('focus', refresh);
+    window.addEventListener('storage', refresh);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('pageshow', refresh);
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('storage', refresh);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [refresh]);
 
   // A page left open past Berlin midnight switches to the new day's puzzle by
   // itself. The extra second keeps the timer from firing just before the day

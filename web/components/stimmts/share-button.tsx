@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button';
 import {
   type ShareOutcome,
   browserShareEnv,
@@ -7,6 +6,7 @@ import {
 } from '@/lib/stimmts/share-action';
 import { Share } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import PillButton from './pill-button';
 
 const COPIED_MESSAGE_MS = 2500;
 
@@ -59,12 +59,7 @@ function ShareButton({ text, imagePath, imageName }: Props) {
 
   return (
     <div className="flex flex-col items-center gap-2">
-      {/* Sized to its label, not the column, and a pill like "Los geht's":
-          the game opens and closes on the same shape. */}
-      <Button
-        onClick={handleClick}
-        className="h-12 gap-2.5 rounded-full px-6 font-display text-lg font-bold tracking-[-0.01em] shadow-sm transition-transform active:scale-[0.97] motion-reduce:active:scale-100 [&_svg]:size-5"
-      >
+      <PillButton onClick={handleClick}>
         {outcome === 'copied' ? (
           'Kopiert ✓'
         ) : (
@@ -73,7 +68,7 @@ function ShareButton({ text, imagePath, imageName }: Props) {
             {canShare ? 'Ergebnis teilen' : 'Ergebnis kopieren'}
           </>
         )}
-      </Button>
+      </PillButton>
       {!canShare && (
         <a
           href={imagePath}

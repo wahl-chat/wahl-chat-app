@@ -141,3 +141,65 @@ describe('casting the Stimmkarte', () => {
     expect(getGame(progress, puzzle.id).finishedOn).toBe(TODAY);
   });
 });
+
+describe('an older copy of the page', () => {
+  const finish = (
+    store: ReturnType<typeof createProgressStore>,
+    answer: 'yes' | 'no',
+  ) => {
+    for (const party of puzzle.parties) {
+      store.getState().answer(puzzle, party.partyId, answer, TODAY);
+    }
+  };
+
+  // A tab left open, or a page the browser restores on "back", still holds
+  // the progress from before the game was played.
+  it('cannot change answers given since in a newer copy', () => {
+    const { storage } = fakeStorage();
+    const older = createProgressStore(storage);
+    older.getState().hydrate();
+
+    const newer = createProgressStore(storage);
+    finish(newer, 'no');
+
+    finish(older, 'yes');
+    const reloaded = createProgressStore(storage);
+    reloaded.getState().hydrate();
+    const { guesses } = getGame(reloaded.getState().progress, puzzle.id);
+    expect(Object.values(guesses).every((answer) => answer === 'no')).toBe(
+      true,
+    );
+    // The older copy now shows the real, finished game too.
+    expect(getGame(older.getState().progress, puzzle.id).finishedOn).toBe(
+      TODAY,
+    );
+  });
+
+  it('catches up on refresh, without anything being answered', () => {
+    const { storage } = fakeStorage();
+    const older = createProgressStore(storage);
+    older.getState().hydrate();
+    finish(createProgressStore(storage), 'no');
+
+    older.getState().refresh();
+    expect(getGame(older.getState().progress, puzzle.id).finishedOn).toBe(
+      TODAY,
+    );
+  });
+
+  it('keeps what this visit played when the storage could not save it', () => {
+    const storage: StorageLike = {
+      getItem: () => null,
+      setItem: () => {
+        throw new Error('QuotaExceededError');
+      },
+    };
+    const store = createProgressStore(storage);
+    store.getState().answer(puzzle, 'linke', 'no', TODAY);
+    store.getState().answer(puzzle, 'spd', 'yes', TODAY);
+    expect(getGame(store.getState().progress, puzzle.id).guesses).toEqual({
+      linke: 'no',
+      spd: 'yes',
+    });
+  });
+});

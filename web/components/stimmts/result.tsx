@@ -15,10 +15,11 @@ import { shareImagePath, sharedResultPath } from '@/lib/stimmts/share-image';
 import type { Puzzle } from '@/lib/stimmts/types';
 import { useProgress } from '@/lib/stimmts/use-progress';
 import { cn } from '@/lib/utils';
+import { Pointer } from 'lucide-react';
 import { useReducedMotion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Countdown from './countdown';
-import { OutcomeCard } from './outcome-line';
+import OutcomeCard from './outcome-card';
 import PartyTile from './party-tile';
 import PeriodChamber from './period-chamber';
 import ShareButton from './share-button';
@@ -27,8 +28,19 @@ import StimmtsLogo from './stimmts-logo';
 import Urn from './urn';
 import { Verdict } from './vote-pill';
 
-/** How long the Stimmkarte takes to fly into the urn (see stimmts-cast). */
-const CAST_MS = 820;
+/**
+ * The cast, step by step (see the stimmts-fly, -insert and -fall animations):
+ * the card flies to the slot, slides through it, falls onto the pile, and
+ * the space it took on the page closes.
+ */
+const CAST_STEPS = [
+  { step: 'flying', ms: 650 },
+  { step: 'inserting', ms: 380 },
+  { step: 'falling', ms: 600 },
+  { step: 'closing', ms: 300 },
+] as const;
+
+type CastStep = (typeof CAST_STEPS)[number]['step'] | null;
 
 type Props = {
   number: number;
@@ -87,54 +99,94 @@ function Result({
 
   const cardRef = useRef<HTMLElement>(null);
   const slotRef = useRef<SVGPolygonElement>(null);
-  const [casting, setCasting] = useState(false);
+  const [castStep, setCastStep] = useState<CastStep>(null);
   const [justCast, setJustCast] = useState(false);
-  const castTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(castTimer.current), []);
+  const castTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => castTimers.current.forEach(clearTimeout), []);
 
   const finishCast = () => {
     castCard(puzzle.id);
+    setCastStep(null);
     setJustCast(true);
   };
   const cast = () => {
     const card = cardRef.current;
     const slot = slotRef.current;
-    if (casting) {
+    if (castStep) {
       return;
     }
     if (reduceMotion || !card || !slot) {
       finishCast();
       return;
     }
-    // The drop is measured, so the card lands wherever the layout puts the urn.
+    // Measured, so the card lands on the slot wherever the layout puts it:
+    // shrunk to the slot's width, its bottom edge resting just above it.
     const from = card.getBoundingClientRect();
     const to = slot.getBoundingClientRect();
-    const drop = to.top + to.height / 2 - (from.top + from.height / 2);
-    card.style.setProperty('--drop', `${Math.round(drop)}px`);
-    setCasting(true);
-    castTimer.current = setTimeout(finishCast, CAST_MS);
+    const scale = to.width / from.width;
+    const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+    const dy =
+      to.top - 2 - (from.height * scale) / 2 - (from.top + from.height / 2);
+    card.style.setProperty('--dx', `${Math.round(dx)}px`);
+    card.style.setProperty('--dy', `${Math.round(dy)}px`);
+    card.style.setProperty('--s', scale.toFixed(4));
+
+    let elapsed = 0;
+    castTimers.current = CAST_STEPS.map(({ step, ms }) => {
+      const timer = setTimeout(() => setCastStep(step), elapsed);
+      elapsed += ms;
+      return timer;
+    });
+    castTimers.current.push(setTimeout(finishCast, elapsed));
   };
+  // From the moment it goes through the slot, today's card is in the urn.
+  const cardsInUrn = castStep && castStep !== 'flying' ? cards + 1 : cards;
 
   return (
     // Each block of the screen gets room of its own; inside a block, its
     // parts stay close.
     <div className="flex flex-col gap-10">
       {!game.cast && (
-        <Stimmkarte
-          ref={cardRef}
-          number={number}
-          playDate={playDate}
-          title={puzzle.title}
-          topic={puzzle.topic}
-          score={score.correct}
-          stamping={stampOnMount && !reduceMotion}
-          onCast={cast}
+        // The card's space closes once it is in the urn, so the urn rises
+        // into its place instead of jumping.
+        <div
           className={cn(
-            casting
-              ? 'pointer-events-none z-[5] animate-stimmts-cast'
-              : 'origin-bottom animate-stimmts-nudge motion-reduce:animate-none',
+            'grid transition-[grid-template-rows,margin] duration-300 ease-out',
+            castStep === 'closing'
+              ? '-mb-10 grid-rows-[0fr]'
+              : 'grid-rows-[1fr]',
           )}
-        />
+        >
+          <div
+            className={cn(
+              'relative min-h-0',
+              castStep === 'closing' && 'overflow-hidden',
+            )}
+          >
+            {!castStep && (
+              // Ripples out from the card while it waits to be cast.
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 animate-stimmts-pulse rounded-[10px] border-2 border-foreground motion-reduce:hidden"
+              />
+            )}
+            <Stimmkarte
+              ref={cardRef}
+              number={number}
+              playDate={playDate}
+              title={puzzle.title}
+              topic={puzzle.topic}
+              score={score.correct}
+              stamping={stampOnMount && !reduceMotion}
+              onCast={cast}
+              className={cn(
+                castStep === 'flying' &&
+                  'pointer-events-none z-[5] animate-stimmts-fly',
+                castStep && castStep !== 'flying' && 'invisible',
+              )}
+            />
+          </div>
+        </div>
       )}
 
       {game.cast && (
@@ -147,15 +199,16 @@ function Result({
 
       <div className="flex flex-col gap-4">
         <div className="relative">
-          {!game.cast && !casting && (
-            // Shown for a moment, then gone: the nudging card keeps asking.
-            <p className="pointer-events-none absolute inset-x-0 -top-1 z-10 flex animate-stimmts-hint justify-center">
-              <span className="rounded-full bg-foreground px-3 py-1.5 text-sm font-medium text-background shadow-sm">
-                Tippe auf deine Stimmkarte
-              </span>
-            </p>
-          )}
-          <Urn cards={cards} freshCard={justCast} slotRef={slotRef} />
+          {!game.cast && !castStep && <CastHint />}
+          <Urn
+            cards={cardsInUrn}
+            casting={
+              castStep === 'inserting' || castStep === 'falling'
+                ? castStep
+                : null
+            }
+            slotRef={slotRef}
+          />
         </div>
         {game.cast && (
           <p
@@ -236,6 +289,32 @@ function Result({
         imageName={`stimmts-${number}.png`}
       />
     </div>
+  );
+}
+
+/**
+ * Asks for the tap, once: it pops in under the card with a tapping finger,
+ * points up at it, and fades after a few seconds, leaving the card's ripple
+ * to keep asking.
+ */
+function CastHint() {
+  return (
+    <p
+      aria-hidden
+      className="pointer-events-none absolute inset-x-0 top-[-46px] z-10 flex animate-stimmts-hint justify-center"
+    >
+      <span className="relative flex items-center gap-2.5 rounded-full bg-foreground py-2.5 pl-3 pr-5 font-display text-[17px] font-bold text-background shadow-lg">
+        {/* The bubble's tail, pointing up at the card. */}
+        <span className="absolute -top-1.5 left-1/2 size-3 -translate-x-1/2 rotate-45 rounded-[2px] bg-foreground" />
+        <span className="flex size-8 items-center justify-center rounded-full bg-background/15">
+          <Pointer
+            strokeWidth={2.25}
+            className="size-5 animate-stimmts-tap motion-reduce:animate-none"
+          />
+        </span>
+        Tippe auf deine Stimmkarte
+      </span>
+    </p>
   );
 }
 

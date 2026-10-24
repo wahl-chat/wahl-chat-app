@@ -1,9 +1,16 @@
 import { PERIOD_LENGTH } from '@/lib/stimmts/period';
 import { cn } from '@/lib/utils';
-import type { Ref } from 'react';
+import { type CSSProperties, type Ref, useId } from 'react';
 
 const CARD_WIDTH = 40;
 const CARD_HEIGHT = 24;
+
+// The slot in the lid, in the drawing's own coordinates (before it is
+// shifted to centre the box on the page).
+const SLOT_CENTRE_X = 135;
+const SLOT_TOP = 53.5;
+/** Just under the lid: where a card that went through starts to fall. */
+const FALL_START_Y = 76;
 
 /** Columns on the urn's floor, filled from the middle outwards. */
 const COLUMNS = [2, 3, 1, 4, 0, 5];
@@ -26,11 +33,14 @@ function cardSpot(index: number) {
 }
 
 type Props = {
-  /** Stimmkarten cast in this Wahlperiode so far. */
+  /** Stimmkarten in the urn, including one that is falling in. */
   cards: number;
-  /** The last card was just cast: it drops onto the pile. */
-  freshCard?: boolean;
-  /** The slot in the lid, which the cast card flies into. */
+  /**
+   * Where the card being cast is: sliding through the slot, or falling
+   * inside onto the pile (it is then the last of `cards`).
+   */
+  casting?: 'inserting' | 'falling' | null;
+  /** The slot in the lid, which the cast card flies to. */
   slotRef?: Ref<SVGPolygonElement>;
 };
 
@@ -39,8 +49,9 @@ type Props = {
  * current Wahlperiode lying inside. The cards are drawn in the Stimmkarte's
  * own ink, so they read as the cards the player cast.
  */
-function Urn({ cards, freshCard = false, slotRef }: Props) {
+function Urn({ cards, casting = null, slotRef }: Props) {
   const shown = Math.min(cards, PERIOD_LENGTH);
+  const lidClip = useId();
   return (
     <svg
       viewBox="0 36 240 182"
@@ -61,7 +72,7 @@ function Urn({ cards, freshCard = false, slotRef }: Props) {
         />
         {Array.from({ length: shown }, (_, index) => {
           const { x, y, angle } = cardSpot(index);
-          const dropping = freshCard && index === shown - 1;
+          const falling = casting === 'falling' && index === shown - 1;
           return (
             <g
               // biome-ignore lint/suspicious/noArrayIndexKey: a card's place is its index.
@@ -69,10 +80,12 @@ function Urn({ cards, freshCard = false, slotRef }: Props) {
               transform={`translate(${x} ${y})`}
             >
               <g
-                className={cn(
-                  dropping &&
-                    'animate-stimmts-card-drop motion-reduce:animate-none',
-                )}
+                className={cn(falling && 'animate-stimmts-fall')}
+                style={
+                  falling
+                    ? ({ '--fall': `${FALL_START_Y - y}px` } as CSSProperties)
+                    : undefined
+                }
               >
                 <rect
                   x={-CARD_WIDTH / 2}
@@ -97,6 +110,28 @@ function Urn({ cards, freshCard = false, slotRef }: Props) {
           strokeLinecap="round"
           className="stroke-foreground"
         />
+        {casting === 'inserting' && (
+          // The cast card slides down through the slot; the lid hides the
+          // part that has gone through.
+          <>
+            <defs>
+              <clipPath id={lidClip}>
+                <rect x={0} y={-60} width={260} height={SLOT_TOP + 62} />
+              </clipPath>
+            </defs>
+            <g clipPath={`url(#${lidClip})`}>
+              <rect
+                x={SLOT_CENTRE_X - 23}
+                y={SLOT_TOP - 28}
+                width={46}
+                height={26}
+                rx={3}
+                strokeWidth={1.5}
+                className="animate-stimmts-insert fill-foreground stroke-background"
+              />
+            </g>
+          </>
+        )}
         {/* A narrow slit in the middle of the lid. */}
         <polygon
           ref={slotRef}

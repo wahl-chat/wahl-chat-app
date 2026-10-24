@@ -1,9 +1,10 @@
 import { Button } from '@/components/ui/button';
-import { partyLabel } from '@/lib/stimmts/labels';
+import { OUTCOME_LABELS, partyLabel } from '@/lib/stimmts/labels';
 import { scorePuzzle } from '@/lib/stimmts/score';
 import type { Guesses, Puzzle } from '@/lib/stimmts/types';
-import OutcomeLine from './outcome-line';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import PartyTile from './party-tile';
+import PillButton from './pill-button';
 import { Verdict, VotePill } from './vote-pill';
 import YesMeans from './yes-means';
 
@@ -38,7 +39,12 @@ function Reveal({
   return (
     <div className="flex flex-col gap-4">
       <YesMeans yesMeans={puzzle.yesMeans} />
-      {allRevealed && <OutcomeLine puzzle={puzzle} />}
+      {allRevealed && (
+        // On screen, the chamber's centre already says it.
+        <p className="sr-only">
+          Der Bundestag hat {OUTCOME_LABELS[puzzle.outcome]}.
+        </p>
+      )}
 
       <section aria-labelledby="deine-tipps" className="flex flex-col gap-2">
         <h2 id="deine-tipps" className="mt-2 text-lg font-bold">
@@ -114,9 +120,19 @@ function Reveal({
       </section>
 
       {allRevealed && onShowResult && (
-        <Button size="lg" className="w-full" onClick={onShowResult}>
-          {played ? 'Zum Ergebnis' : 'Zurück zum Ergebnis'}
-        </Button>
+        <PillButton onClick={onShowResult} className="mt-2">
+          {played ? (
+            <>
+              Zum Ergebnis
+              <ArrowRight aria-hidden strokeWidth={2.25} />
+            </>
+          ) : (
+            <>
+              <ArrowLeft aria-hidden strokeWidth={2.25} />
+              Zurück zum Ergebnis
+            </>
+          )}
+        </PillButton>
       )}
     </div>
   );

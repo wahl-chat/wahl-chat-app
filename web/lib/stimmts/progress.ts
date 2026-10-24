@@ -109,6 +109,26 @@ export function removeGame(progress: Progress, puzzleId: string): Progress {
   };
 }
 
+/**
+ * The saved progress, with anything only this page knows about added. The
+ * saved copy wins for every game it holds: an older copy of the page (a tab
+ * left open, or one the browser restores on "back") must never rewrite
+ * answers that were given since. Games the saved copy lacks are kept, so a
+ * visit whose writes failed (storage full or blocked) loses nothing.
+ */
+export function mergeProgress(saved: Progress, current: Progress): Progress {
+  const missing = Object.entries(current.games).filter(
+    ([puzzleId]) => !(puzzleId in saved.games),
+  );
+  if (missing.length === 0) {
+    return saved;
+  }
+  return {
+    ...saved,
+    games: { ...saved.games, ...Object.fromEntries(missing) },
+  };
+}
+
 // Saved data comes from the browser's storage, where it can be stale, hand
 // edited or corrupt. Be strict about its shape, but forgiving about losing it:
 // anything unreadable is dropped instead of breaking the game.
