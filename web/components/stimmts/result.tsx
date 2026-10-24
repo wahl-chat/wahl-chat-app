@@ -24,6 +24,7 @@ import PartyTile from './party-tile';
 import PeriodChamber from './period-chamber';
 import ShareButton from './share-button';
 import Stimmkarte from './stimmkarte';
+import StimmtsLogo from './stimmts-logo';
 import Urn from './urn';
 import { Verdict } from './vote-pill';
 
@@ -134,7 +135,13 @@ function Result({
         />
       )}
 
-      {game.cast && <Countdown />}
+      {game.cast && (
+        <>
+          {/* Once the card, which carries it, is in the urn. */}
+          <StimmtsLogo className="self-center text-[15px]" />
+          <Countdown />
+        </>
+      )}
 
       <div className="relative">
         {!game.cast && !casting && (
@@ -194,6 +201,25 @@ function Result({
         <OutcomeLine puzzle={puzzle} />
       </section>
 
+      <div className="relative px-6">
+        <PeriodChamber
+          seats={periodSeats(period.days, false)}
+          complete={period.complete}
+          today={number}
+          onOpen={onOpenDay}
+          canOpen={canOpenDay}
+          className="mx-auto max-w-[300px]"
+        />
+        <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 flex-col items-center whitespace-nowrap">
+          <span className="font-display text-[30px] font-extrabold tabular-nums leading-[34px] tracking-[-0.02em]">
+            Tag {period.day}
+          </span>
+          <span className="text-xs font-medium text-muted-foreground">
+            von {PERIOD_LENGTH}
+          </span>
+        </div>
+      </div>
+
       <ShareButton
         text={buildShareText({
           puzzleNumber: number,
@@ -226,40 +252,6 @@ function Result({
           Quelle: {puzzle.source.label}
         </a>
       </p>
-
-      <section
-        aria-labelledby="deine-wahlperiode"
-        className="mt-4 flex flex-col gap-2 border-t pt-6"
-      >
-        <h2
-          id="deine-wahlperiode"
-          className="text-center text-sm text-muted-foreground"
-        >
-          Deine Wahlperiode
-        </h2>
-        <div className="relative px-6">
-          <PeriodChamber
-            seats={periodSeats(period.days, false)}
-            complete={period.complete}
-            today={number}
-            onOpen={onOpenDay}
-            canOpen={canOpenDay}
-          />
-          <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 flex-col items-center whitespace-nowrap">
-            <span className="font-display text-[30px] font-extrabold tabular-nums leading-[34px] tracking-[-0.02em]">
-              Tag {period.day}
-            </span>
-            <span className="text-xs font-medium text-muted-foreground">
-              von {PERIOD_LENGTH}
-            </span>
-          </div>
-        </div>
-        {period.day > 1 && (
-          <p className="text-center text-xs text-muted-foreground">
-            Tippe auf einen Tag, um sein Rätsel anzusehen.
-          </p>
-        )}
-      </section>
     </div>
   );
 }

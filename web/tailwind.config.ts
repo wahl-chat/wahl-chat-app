@@ -161,12 +161,12 @@ export default {
           },
           '68%': {
             transform:
-              'translateY(calc(var(--drop, 200px) - 34px)) scale(0.25)',
+              'translateY(calc(var(--drop, 200px) - 34px)) scale(0.13)',
             clipPath: 'inset(0 0 0 0)',
           },
           '100%': {
             transform:
-              'translateY(calc(var(--drop, 200px) + 30px)) scale(0.25)',
+              'translateY(calc(var(--drop, 200px) + 30px)) scale(0.13)',
             clipPath: 'inset(0 0 100% 0)',
           },
         },
