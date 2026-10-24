@@ -153,7 +153,10 @@ type MarkerProps = {
 /** A party's band and logo tile; a button when the party can be revealed. */
 function PartyMarker({ band, state, onClick }: MarkerProps) {
   const { partyId } = band;
-  const tappable = state.mode === 'guessed' && !!state.tappable && !!onClick;
+  const tappable =
+    (state.mode === 'guessed' || state.mode === 'revealed') &&
+    !!state.tappable &&
+    !!onClick;
   const active = state.mode === 'active';
   const dim = state.mode === 'pending' && !!state.dim;
   const { x, y } = tileOrigin(band);
@@ -182,7 +185,10 @@ function PartyMarker({ band, state, onClick }: MarkerProps) {
         ? {
             role: 'button',
             tabIndex: 0,
-            'aria-label': `${partyLabel(partyId)} aufdecken`,
+            'aria-label':
+              state.mode === 'revealed'
+                ? `${partyLabel(partyId)}: Stimmen anzeigen`
+                : `${partyLabel(partyId)} aufdecken`,
             onClick: activate,
             onKeyDown,
           }

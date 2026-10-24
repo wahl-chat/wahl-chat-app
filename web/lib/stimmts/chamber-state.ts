@@ -14,8 +14,8 @@ export type PartyState =
   | { mode: 'active' }
   /** Answered: rings in the guessed vote's colour. */
   | { mode: 'guessed'; guess: VoteAnswer; tappable?: boolean }
-  /** Turned over: filled with the real split. */
-  | { mode: 'revealed' };
+  /** Turned over: filled with the real split; tapping opens its counts. */
+  | { mode: 'revealed'; tappable?: boolean };
 
 export type SeatLook =
   | 'pending'

@@ -4,6 +4,7 @@ import {
   chamberCenter,
   chamberStates,
   currentPartyIndex,
+  selectParty,
   voteTotals,
 } from './game-view';
 
@@ -50,7 +51,7 @@ describe('chamberStates', () => {
       ALL_ANSWERS,
       new Set(['linke']),
     );
-    expect(states.linke).toEqual({ mode: 'revealed' });
+    expect(states.linke).toEqual({ mode: 'revealed', tappable: true });
     expect(states.spd).toEqual({
       mode: 'guessed',
       guess: 'yes',
@@ -81,5 +82,26 @@ describe('chamberCenter', () => {
       small: 'angenommen',
     });
     expect(voteTotals(puzzle)).toEqual({ yes: 323, no: 269 });
+  });
+});
+
+describe('selectParty', () => {
+  const none = { revealed: new Set<string>(), open: null };
+
+  it('turns a party over and opens its counts on the first tap', () => {
+    const after = selectParty(none, 'spd');
+    expect([...after.revealed]).toEqual(['spd']);
+    expect(after.open).toBe('spd');
+  });
+
+  it('opens and closes the counts on later taps, one party at a time', () => {
+    const spdOpen = selectParty(none, 'spd');
+    const closed = selectParty(spdOpen, 'spd');
+    expect(closed.open).toBeNull();
+    expect([...closed.revealed]).toEqual(['spd']);
+
+    const linkeOpen = selectParty(spdOpen, 'linke');
+    expect(linkeOpen.open).toBe('linke');
+    expect([...linkeOpen.revealed].sort()).toEqual(['linke', 'spd']);
   });
 });

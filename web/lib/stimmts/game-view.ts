@@ -32,7 +32,10 @@ export function chamberStates(
         return [party.partyId, { mode: 'pending' }];
       }
       if (revealed.has(party.partyId)) {
-        return [party.partyId, { mode: 'revealed' }];
+        return [
+          party.partyId,
+          { mode: 'revealed', tappable: phase === 'reveal' },
+        ];
       }
       if (guess) {
         return [
@@ -88,4 +91,25 @@ export function voteTotals(puzzle: Puzzle): { yes: number; no: number } {
     }),
     { yes: 0, no: 0 },
   );
+}
+
+export type RevealSelection = {
+  revealed: ReadonlySet<string>;
+  /** The party whose counts are open under its row; one at a time. */
+  open: string | null;
+};
+
+/**
+ * A tap on a party, in "Deine Tipps" or on its logo in the chamber: the
+ * first tap turns it over and opens its counts, later taps open and close
+ * them. Opening one party closes any other.
+ */
+export function selectParty(
+  { revealed, open }: RevealSelection,
+  partyId: string,
+): RevealSelection {
+  if (!revealed.has(partyId)) {
+    return { revealed: new Set(revealed).add(partyId), open: partyId };
+  }
+  return { revealed, open: open === partyId ? null : partyId };
 }

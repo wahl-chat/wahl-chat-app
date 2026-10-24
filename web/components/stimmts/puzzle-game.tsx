@@ -4,6 +4,7 @@ import {
   type Phase,
   chamberCenter,
   chamberStates,
+  selectParty,
 } from '@/lib/stimmts/game-view';
 import { getGame } from '@/lib/stimmts/progress';
 import type { Puzzle } from '@/lib/stimmts/types';
@@ -79,6 +80,14 @@ function PuzzleGame({ number, puzzle, today, onOpenDay, canOpenDay }: Props) {
     setRevealed((previous) => new Set(previous).add(partyId));
   }, []);
 
+  // The party whose counts are open under its row in "Deine Tipps".
+  const [openParty, setOpenParty] = useState<string | null>(null);
+  const select = (partyId: string) => {
+    const next = selectParty({ revealed, open: openParty }, partyId);
+    setRevealed(next.revealed);
+    setOpenParty(next.open);
+  };
+
   const revealTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   useEffect(() => () => revealTimers.current.forEach(clearTimeout), []);
   const revealAll = () => {
@@ -121,6 +130,7 @@ function PuzzleGame({ number, puzzle, today, onOpenDay, canOpenDay }: Props) {
           canOpenDay={canOpenDay}
           onReview={() => {
             setRevealed(new Set(puzzle.parties.map((party) => party.partyId)));
+            setOpenParty(null);
             setVotesOnly(true);
             setShowResult(false);
             goTop();
@@ -139,7 +149,7 @@ function PuzzleGame({ number, puzzle, today, onOpenDay, canOpenDay }: Props) {
         unaffiliated={puzzle.unaffiliated}
         states={chamberStates(puzzle, phase, tips, revealed)}
         center={chamberCenter(puzzle, phase, tips, revealed)}
-        onPartyClick={phase === 'reveal' ? reveal : undefined}
+        onPartyClick={phase === 'reveal' ? select : undefined}
       />
       {phase === 'reveal' && (
         <ChamberLegend
@@ -158,7 +168,8 @@ function PuzzleGame({ number, puzzle, today, onOpenDay, canOpenDay }: Props) {
             puzzle={puzzle}
             guesses={tips}
             revealed={revealed}
-            onReveal={reveal}
+            open={openParty}
+            onSelect={select}
             onRevealAll={revealAll}
             onShowResult={() => {
               setShowResult(true);

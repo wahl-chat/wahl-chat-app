@@ -186,6 +186,11 @@ export default {
           '88%': { transform: 'translateY(-4px)' },
           '100%': { transform: 'translateY(0)' },
         },
+        // A party's real vote and verdict flip into view on its reveal.
+        'stimmts-flip': {
+          from: { opacity: '0', transform: 'rotateX(90deg) scale(0.9)' },
+          to: { opacity: '1', transform: 'none' },
+        },
         // The score lands on the Stimmkarte like a rubber stamp.
         'stimmts-stamp': {
           from: { opacity: '0', transform: 'rotate(-6deg) scale(1.8)' },
@@ -205,6 +210,8 @@ export default {
         'stimmts-insert':
           'stimmts-insert 0.38s cubic-bezier(0.5, 0, 1, 1) forwards',
         'stimmts-fall': 'stimmts-fall 0.6s cubic-bezier(0.55, 0, 1, 0.45) both',
+        'stimmts-flip':
+          'stimmts-flip 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both',
         'stimmts-stamp':
           'stimmts-stamp 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) 0.25s both',
       },

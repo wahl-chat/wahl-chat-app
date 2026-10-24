@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { chamberCenter, chamberStates } from '@/lib/stimmts/game-view';
 import { scorePuzzle } from '@/lib/stimmts/score';
 import type { Guesses, Puzzle } from '@/lib/stimmts/types';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { BriefingSheet } from './briefing';
 import ChamberLegend from './chamber-legend';
 import Hemicycle from './hemicycle';
@@ -29,6 +29,10 @@ function PastPuzzle({ number, playDate, puzzle, guesses, onBack }: Props) {
     [puzzle],
   );
   const tips = guesses ?? {};
+  // Every party is already turned over; a tap opens or closes its counts.
+  const [open, setOpen] = useState<string | null>(null);
+  const select = (partyId: string) =>
+    setOpen((current) => (current === partyId ? null : partyId));
 
   return (
     <div className="flex flex-col gap-4 py-6">
@@ -58,9 +62,16 @@ function PastPuzzle({ number, playDate, puzzle, guesses, onBack }: Props) {
         unaffiliated={puzzle.unaffiliated}
         states={chamberStates(puzzle, 'reveal', tips, all)}
         center={chamberCenter(puzzle, 'reveal', tips, all)}
+        onPartyClick={select}
       />
       <ChamberLegend kind="votes" unaffiliated={puzzle.unaffiliated} />
-      <Reveal puzzle={puzzle} guesses={tips} revealed={all} />
+      <Reveal
+        puzzle={puzzle}
+        guesses={tips}
+        revealed={all}
+        open={open}
+        onSelect={select}
+      />
       <Button variant="outline" size="lg" className="w-full" onClick={onBack}>
         Zurück zu heute
       </Button>

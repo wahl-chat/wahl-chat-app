@@ -1,41 +1,4 @@
-import { ANSWER_LABELS } from '@/lib/stimmts/labels';
-import type { VoteAnswer } from '@/lib/stimmts/types';
 import { cn } from '@/lib/utils';
-import VoteDot from './vote-dot';
-
-type VotePillProps = {
-  /** Null while the real vote is still hidden. */
-  vote: VoteAnswer | null;
-  /** A tip carries a ring, a real vote a filled dot. */
-  kind: 'tip' | 'vote';
-};
-
-/**
- * A vote as a small bordered label. Only the dot carries the vote colour, so
- * a vote never looks like a verdict.
- */
-export function VotePill({ vote, kind }: VotePillProps) {
-  const base =
-    'inline-flex h-6 items-center gap-1.5 self-start whitespace-nowrap rounded-full border px-2 text-[13px] font-medium leading-4';
-  if (!vote) {
-    return (
-      <span
-        className={cn(
-          base,
-          'min-w-10 justify-center border-dashed text-muted-foreground',
-        )}
-      >
-        ?
-      </span>
-    );
-  }
-  return (
-    <span className={base}>
-      <VoteDot kind={vote} ring={kind === 'tip'} />
-      {ANSWER_LABELS[vote]}
-    </span>
-  );
-}
 
 type VerdictProps = {
   correct: boolean;
