@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 
 /**
  * Counts down to the next Berlin midnight, when tomorrow's puzzle opens. It
- * sits large above the urn, once today's card is in.
+ * spans the column above the urn, once today's card is in.
  */
 function Countdown() {
   const [remaining, setRemaining] = useState(
@@ -21,15 +21,16 @@ function Countdown() {
 
   return (
     <p className="flex animate-stimmts-screen flex-col items-center motion-reduce:animate-none">
-      <span className="text-xs font-medium text-muted-foreground">
+      <span className="text-sm font-medium text-muted-foreground">
         Nächstes Rätsel in
       </span>
       {/* translate="no": a browser that auto-translates the page rewrites the
-          text in place, which leaves the old time next to the new one. */}
+          text in place, which leaves the old time next to the new one. The
+          size follows the screen, so the clock spans the column on a phone. */}
       <span
         role="timer"
         translate="no"
-        className="font-display text-[44px] font-extrabold tabular-nums leading-[48px] tracking-[-0.02em]"
+        className="font-display text-[min(21vw,7rem)] font-extrabold tabular-nums leading-none tracking-[-0.03em]"
       >
         {formatCountdown(remaining)}
       </span>

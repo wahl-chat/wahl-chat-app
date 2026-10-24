@@ -5,6 +5,7 @@ import {
   fetchShareImage,
   shareText,
 } from '@/lib/stimmts/share-action';
+import { Share } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 const COPIED_MESSAGE_MS = 2500;
@@ -57,13 +58,21 @@ function ShareButton({ text, imagePath, imageName }: Props) {
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <Button size="lg" className="w-full" onClick={handleClick}>
-        {outcome === 'copied'
-          ? 'Kopiert ✓'
-          : canShare
-            ? 'Ergebnis teilen'
-            : 'Ergebnis kopieren'}
+    <div className="flex flex-col items-center gap-2">
+      {/* Sized to its label, not the column, and a pill like "Los geht's":
+          the game opens and closes on the same shape. */}
+      <Button
+        onClick={handleClick}
+        className="h-12 gap-2.5 rounded-full px-6 font-display text-lg font-bold tracking-[-0.01em] shadow-sm transition-transform active:scale-[0.97] motion-reduce:active:scale-100 [&_svg]:size-5"
+      >
+        {outcome === 'copied' ? (
+          'Kopiert ✓'
+        ) : (
+          <>
+            <Share aria-hidden strokeWidth={2.25} />
+            {canShare ? 'Ergebnis teilen' : 'Ergebnis kopieren'}
+          </>
+        )}
       </Button>
       {!canShare && (
         <a

@@ -158,18 +158,15 @@ function Result({
       {game.cast && (
         <p
           className={cn(
-            'text-center font-display text-5xl font-extrabold leading-[52px] tracking-[-0.02em] tabular-nums',
+            'text-center text-sm text-muted-foreground',
             justCast &&
               'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
           )}
         >
-          <span aria-hidden>
+          <span className="font-display text-2xl font-extrabold tabular-nums text-foreground">
             {cards}/{PERIOD_LENGTH}
-          </span>
-          <span className="sr-only">
-            {cards} von {PERIOD_LENGTH} Stimmkarten dieser Wahlperiode in der
-            Urne
-          </span>
+          </span>{' '}
+          Stimmkarten abgegeben
         </p>
       )}
 
