@@ -138,7 +138,7 @@ function Result({
       {game.cast && (
         <>
           {/* Once the card, which carries it, is in the urn. */}
-          <StimmtsLogo className="self-center text-[15px]" />
+          <StimmtsLogo className="self-center text-[26px]" />
           <Countdown />
         </>
       )}
