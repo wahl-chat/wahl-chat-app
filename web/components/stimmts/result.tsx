@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { BASE_URL } from '@/lib/seo';
 import { PUZZLES, SCHEDULE } from '@/lib/stimmts/content';
 import { partyLabel } from '@/lib/stimmts/labels';
+import { periodSeats } from '@/lib/stimmts/logo';
 import {
   PERIOD_LENGTH,
   currentWahlperiode,
@@ -20,6 +21,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Countdown from './countdown';
 import OutcomeLine from './outcome-line';
 import PartyTile from './party-tile';
+import PeriodChamber from './period-chamber';
 import ShareButton from './share-button';
 import Stimmkarte from './stimmkarte';
 import Urn from './urn';
@@ -35,6 +37,10 @@ type Props = {
   /** Stamp the score on with a little bounce (the first time only). */
   stamping: boolean;
   onReview: () => void;
+  /** Opens a past day of this Wahlperiode, already turned over. */
+  onOpenDay: (number: number) => void;
+  /** Whether a past day's puzzle can be shown (it may not be released). */
+  canOpenDay: (number: number) => boolean;
 };
 
 /**
@@ -44,7 +50,15 @@ type Props = {
  * in, it is gone, and the urn opens the screen with the card count and the
  * countdown under it.
  */
-function Result({ number, playDate, puzzle, stamping, onReview }: Props) {
+function Result({
+  number,
+  playDate,
+  puzzle,
+  stamping,
+  onReview,
+  onOpenDay,
+  canOpenDay,
+}: Props) {
   const progress = useProgress((state) => state.progress);
   const castCard = useProgress((state) => state.cast);
   const reduceMotion = useReducedMotion() ?? false;
@@ -53,7 +67,7 @@ function Result({ number, playDate, puzzle, stamping, onReview }: Props) {
   const game = getGame(progress, puzzle.id);
   const score = scorePuzzle(puzzle, game.guesses);
 
-  const { cards, sharedPeriod } = useMemo(() => {
+  const { cards, period, sharedPeriod } = useMemo(() => {
     const records = dayRecords({
       schedule: SCHEDULE,
       puzzles: PUZZLES,
@@ -61,12 +75,12 @@ function Result({ number, playDate, puzzle, stamping, onReview }: Props) {
       throughNumber: number,
     });
     const { days } = currentWahlperiode(records, number, game.cast);
+    // The calendar and the image show today in its seat, cast or not.
+    const throughToday = currentWahlperiode(records, number, true);
     return {
       cards: days.filter((day) => day.kind === 'played').length,
-      // The image shows today in its seat whether or not the card is cast.
-      sharedPeriod: encodePeriod(
-        currentWahlperiode(records, number, true).days,
-      ),
+      period: throughToday,
+      sharedPeriod: encodePeriod(throughToday.days),
     };
   }, [progress, number, game.cast]);
 
@@ -120,6 +134,8 @@ function Result({ number, playDate, puzzle, stamping, onReview }: Props) {
         />
       )}
 
+      {game.cast && <Countdown />}
+
       <div className="relative">
         {!game.cast && !casting && (
           // Shown for a moment, then gone: the nudging card keeps asking.
@@ -133,24 +149,21 @@ function Result({ number, playDate, puzzle, stamping, onReview }: Props) {
       </div>
 
       {game.cast && (
-        <div className="flex flex-col items-center">
-          <p
-            className={cn(
-              'font-display text-5xl font-extrabold leading-[52px] tracking-[-0.02em] tabular-nums',
-              justCast &&
-                'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
-            )}
-          >
-            <span aria-hidden>
-              {cards}/{PERIOD_LENGTH}
-            </span>
-            <span className="sr-only">
-              {cards} von {PERIOD_LENGTH} Stimmkarten dieser Wahlperiode in der
-              Urne
-            </span>
-          </p>
-          <Countdown />
-        </div>
+        <p
+          className={cn(
+            'text-center font-display text-5xl font-extrabold leading-[52px] tracking-[-0.02em] tabular-nums',
+            justCast &&
+              'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
+          )}
+        >
+          <span aria-hidden>
+            {cards}/{PERIOD_LENGTH}
+          </span>
+          <span className="sr-only">
+            {cards} von {PERIOD_LENGTH} Stimmkarten dieser Wahlperiode in der
+            Urne
+          </span>
+        </p>
       )}
 
       <section aria-live="polite" className="flex flex-col gap-4">
@@ -213,6 +226,40 @@ function Result({ number, playDate, puzzle, stamping, onReview }: Props) {
           Quelle: {puzzle.source.label}
         </a>
       </p>
+
+      <section
+        aria-labelledby="deine-wahlperiode"
+        className="mt-4 flex flex-col gap-2 border-t pt-6"
+      >
+        <h2
+          id="deine-wahlperiode"
+          className="text-center text-sm text-muted-foreground"
+        >
+          Deine Wahlperiode
+        </h2>
+        <div className="relative px-6">
+          <PeriodChamber
+            seats={periodSeats(period.days, false)}
+            complete={period.complete}
+            today={number}
+            onOpen={onOpenDay}
+            canOpen={canOpenDay}
+          />
+          <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 flex-col items-center whitespace-nowrap">
+            <span className="font-display text-[30px] font-extrabold tabular-nums leading-[34px] tracking-[-0.02em]">
+              Tag {period.day}
+            </span>
+            <span className="text-xs font-medium text-muted-foreground">
+              von {PERIOD_LENGTH}
+            </span>
+          </div>
+        </div>
+        {period.day > 1 && (
+          <p className="text-center text-xs text-muted-foreground">
+            Tippe auf einen Tag, um sein Rätsel anzusehen.
+          </p>
+        )}
+      </section>
     </div>
   );
 }

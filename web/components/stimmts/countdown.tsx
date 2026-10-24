@@ -1,23 +1,26 @@
-import { nextPuzzleAt } from '@/lib/stimmts/berlin-time';
-import { formatCountdown } from '@/lib/stimmts/countdown';
+import { countdownTarget, formatCountdown } from '@/lib/stimmts/countdown';
 import { useEffect, useState } from 'react';
 
 /**
  * Counts down to the next Berlin midnight, when tomorrow's puzzle opens. It
- * sits under the urn's card count, once today's card is in.
+ * sits large above the urn, once today's card is in.
  */
 function Countdown() {
-  // The target is worked out once; the clock only refreshes the display.
-  const [target] = useState(() => nextPuzzleAt(new Date()).getTime());
-  const [remaining, setRemaining] = useState(() => target - Date.now());
+  const [remaining, setRemaining] = useState(
+    () => countdownTarget(new Date(), null) - Date.now(),
+  );
 
   useEffect(() => {
-    const timer = setInterval(() => setRemaining(target - Date.now()), 1000);
+    let target: number | null = null;
+    const timer = setInterval(() => {
+      target = countdownTarget(new Date(), target);
+      setRemaining(target - Date.now());
+    }, 1000);
     return () => clearInterval(timer);
-  }, [target]);
+  }, []);
 
   return (
-    <p className="mt-1 flex animate-stimmts-screen flex-col items-center motion-reduce:animate-none">
+    <p className="flex animate-stimmts-screen flex-col items-center motion-reduce:animate-none">
       <span className="text-xs font-medium text-muted-foreground">
         Nächstes Rätsel in
       </span>
@@ -26,7 +29,7 @@ function Countdown() {
       <span
         role="timer"
         translate="no"
-        className="font-display text-[28px] font-extrabold tabular-nums leading-8 tracking-[-0.02em]"
+        className="font-display text-[44px] font-extrabold tabular-nums leading-[48px] tracking-[-0.02em]"
       >
         {formatCountdown(remaining)}
       </span>

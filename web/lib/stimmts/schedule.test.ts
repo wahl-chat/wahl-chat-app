@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { PUZZLES } from './content';
-import { getTodaysPuzzle } from './schedule';
+import { getTodaysPuzzle, puzzleForDay } from './schedule';
 import type { Puzzle, Schedule } from './types';
 
 const approved: Puzzle[] = PUZZLES.map((puzzle) => ({
@@ -59,5 +59,27 @@ describe('getTodaysPuzzle', () => {
     expect(
       getTodaysPuzzle({ schedule, puzzles: drafts, now, allowDrafts: true }),
     ).toMatchObject({ status: 'active', number: 1 });
+  });
+});
+
+describe('puzzleForDay', () => {
+  it('finds the puzzle that ran on a day', () => {
+    expect(puzzleForDay({ schedule, puzzles: approved, number: 2 })?.id).toBe(
+      approved[1].id,
+    );
+  });
+
+  it('has nothing outside the schedule', () => {
+    for (const number of [0, approved.length + 1]) {
+      expect(puzzleForDay({ schedule, puzzles: approved, number })).toBeNull();
+    }
+  });
+
+  it('shows drafts only where drafts are allowed', () => {
+    const args = { schedule, puzzles: PUZZLES, number: 1 };
+    expect(puzzleForDay(args)).toBeNull();
+    expect(puzzleForDay({ ...args, allowDrafts: true })?.id).toBe(
+      PUZZLES[0].id,
+    );
   });
 });

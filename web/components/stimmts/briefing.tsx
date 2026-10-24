@@ -33,17 +33,7 @@ function Briefing({ number, playDate, puzzle, onStart }: Props) {
         title={puzzle.title}
         topic={puzzle.topic}
       />
-      {puzzle.document ? (
-        <BillSheet
-          document={puzzle.document}
-          briefing={puzzle.briefing}
-          voteDate={puzzle.voteDate}
-          playDate={playDate}
-          yesMeans={puzzle.yesMeans}
-        />
-      ) : (
-        <PlainBriefing puzzle={puzzle} playDate={playDate} />
-      )}
+      <BriefingSheet puzzle={puzzle} playDate={playDate} />
       <Hemicycle
         parties={puzzle.parties}
         unaffiliated={puzzle.unaffiliated}
@@ -52,6 +42,27 @@ function Briefing({ number, playDate, puzzle, onStart }: Props) {
       />
       <StartButton onStart={onStart} />
     </div>
+  );
+}
+
+/** What the vote is about: the bill sheet, or the plain layout without one. */
+export function BriefingSheet({
+  puzzle,
+  playDate,
+}: {
+  puzzle: Puzzle;
+  playDate: string;
+}) {
+  return puzzle.document ? (
+    <BillSheet
+      document={puzzle.document}
+      briefing={puzzle.briefing}
+      voteDate={puzzle.voteDate}
+      playDate={playDate}
+      yesMeans={puzzle.yesMeans}
+    />
+  ) : (
+    <PlainBriefing puzzle={puzzle} playDate={playDate} />
   );
 }
 

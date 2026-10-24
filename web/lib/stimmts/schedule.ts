@@ -32,14 +32,40 @@ export function getTodaysPuzzle({
     return { status: 'not-started', startsOn: schedule.startDate };
   }
 
-  const id = schedule.puzzleIds[number - 1];
-  if (id === undefined) {
+  if (number > schedule.puzzleIds.length) {
     return { status: 'finished' };
   }
 
-  const puzzle = puzzles.find((candidate) => candidate.id === id);
-  if (!puzzle || (puzzle.reviewStatus !== 'approved' && !allowDrafts)) {
+  const puzzle = puzzleForDay({ schedule, puzzles, number, allowDrafts });
+  if (!puzzle) {
     return { status: 'unavailable', number };
   }
   return { status: 'active', number, puzzle };
+}
+
+type DayOptions = {
+  schedule: Schedule;
+  puzzles: Puzzle[];
+  /** The day of the schedule, which is also the puzzle number. */
+  number: number;
+  /** Development only: also serve puzzles that are still drafts. */
+  allowDrafts?: boolean;
+};
+
+/**
+ * The puzzle that ran (or runs) on a given day, or null where that day has
+ * no puzzle a player may see.
+ */
+export function puzzleForDay({
+  schedule,
+  puzzles,
+  number,
+  allowDrafts = false,
+}: DayOptions): Puzzle | null {
+  const id = schedule.puzzleIds[number - 1];
+  const puzzle = puzzles.find((candidate) => candidate.id === id);
+  if (!puzzle || (puzzle.reviewStatus !== 'approved' && !allowDrafts)) {
+    return null;
+  }
+  return puzzle;
 }

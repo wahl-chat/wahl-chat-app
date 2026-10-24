@@ -25,6 +25,8 @@ type Props = {
   puzzle: Puzzle;
   /** Today's Berlin date: the puzzle's day, and the day answers are saved on. */
   today: string;
+  onOpenDay: (number: number) => void;
+  canOpenDay: (number: number) => boolean;
 };
 
 /**
@@ -33,7 +35,7 @@ type Props = {
  * The chamber is the board: it stays on top while the player answers and
  * while the parties are turned over.
  */
-function PuzzleGame({ number, puzzle, today }: Props) {
+function PuzzleGame({ number, puzzle, today, onOpenDay, canOpenDay }: Props) {
   const game = useProgress((state) => getGame(state.progress, puzzle.id));
   const reduceMotion = useReducedMotion() ?? false;
   const [started, setStarted] = useState(false);
@@ -113,6 +115,8 @@ function PuzzleGame({ number, puzzle, today }: Props) {
           playDate={today}
           puzzle={puzzle}
           stamping={!stamped.current}
+          onOpenDay={onOpenDay}
+          canOpenDay={canOpenDay}
           onReview={() => {
             setShowResult(false);
             goTop();

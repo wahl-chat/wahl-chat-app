@@ -9,11 +9,13 @@ import YesMeans from './yes-means';
 
 type Props = {
   puzzle: Puzzle;
+  /** Empty for a day the player missed: then only the real votes show. */
   guesses: Guesses;
   revealed: ReadonlySet<string>;
-  onReveal: (partyId: string) => void;
-  onRevealAll: () => void;
-  onShowResult: () => void;
+  onReveal?: (partyId: string) => void;
+  onRevealAll?: () => void;
+  /** Absent when looking back at a past day, which has no result to go to. */
+  onShowResult?: () => void;
 };
 
 /**
@@ -31,6 +33,7 @@ function Reveal({
 }: Props) {
   const score = scorePuzzle(puzzle, guesses);
   const allRevealed = revealed.size === puzzle.parties.length;
+  const played = Object.keys(guesses).length > 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -39,7 +42,7 @@ function Reveal({
 
       <section aria-labelledby="deine-tipps" className="flex flex-col gap-2">
         <h2 id="deine-tipps" className="mt-2 text-lg font-bold">
-          Deine Tipps
+          {played ? 'Deine Tipps' : 'So wurde abgestimmt'}
         </h2>
         {!allRevealed && (
           <p className="text-sm text-muted-foreground">
@@ -61,12 +64,14 @@ function Reveal({
                     {partyLabel(entry.partyId)}
                   </span>
                   <div className="mt-0.5 flex flex-wrap gap-x-4 gap-y-1">
-                    <span className="flex flex-col gap-0.5">
-                      <span className="text-xs text-muted-foreground">
-                        Dein Tipp
+                    {played && (
+                      <span className="flex flex-col gap-0.5">
+                        <span className="text-xs text-muted-foreground">
+                          Dein Tipp
+                        </span>
+                        <VotePill vote={entry.guess} kind="tip" />
                       </span>
-                      <VotePill vote={entry.guess} kind="tip" />
-                    </span>
+                    )}
                     <span className="flex flex-col gap-0.5">
                       <span className="text-xs text-muted-foreground">
                         Abgestimmt
@@ -86,12 +91,12 @@ function Reveal({
                 </div>
                 <div className="mt-0.5">
                   {isRevealed ? (
-                    <Verdict correct={entry.correct} />
+                    played && <Verdict correct={entry.correct} />
                   ) : (
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => onReveal(entry.partyId)}
+                      onClick={() => onReveal?.(entry.partyId)}
                     >
                       Aufdecken
                     </Button>
@@ -108,7 +113,7 @@ function Reveal({
         )}
       </section>
 
-      {allRevealed && (
+      {allRevealed && onShowResult && (
         <Button size="lg" className="w-full" onClick={onShowResult}>
           Zum Ergebnis
         </Button>

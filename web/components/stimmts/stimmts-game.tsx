@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import {
+  addDays,
   berlinDate,
   daysBetween,
   nextPuzzleAt,
@@ -13,10 +14,12 @@ import {
   isPreviewEnabled,
   resolveClock,
 } from '@/lib/stimmts/preview';
+import { getGame } from '@/lib/stimmts/progress';
 import { STORAGE_KEY } from '@/lib/stimmts/progress-store';
-import { getTodaysPuzzle } from '@/lib/stimmts/schedule';
+import { getTodaysPuzzle, puzzleForDay } from '@/lib/stimmts/schedule';
 import { useProgress } from '@/lib/stimmts/use-progress';
 import { useCallback, useEffect, useState } from 'react';
+import PastPuzzle from './past-puzzle';
 import PuzzleGame from './puzzle-game';
 
 function Message({ children }: { children: React.ReactNode }) {
@@ -72,7 +75,10 @@ function PreviewBar({
 function StimmtsGame() {
   const hydrate = useProgress((state) => state.hydrate);
   const hydrated = useProgress((state) => state.hydrated);
+  const progress = useProgress((state) => state.progress);
   const [clock, setClock] = useState<Clock | null>(null);
+  // A past day of the Wahlperiode the player is looking at, if any.
+  const [pastDay, setPastDay] = useState<number | null>(null);
 
   const refreshClock = useCallback(() => {
     setClock(
@@ -115,6 +121,31 @@ function StimmtsGame() {
     now: clock.now,
     allowDrafts: clock.allowDrafts,
   });
+  const dayPuzzle = (number: number) =>
+    puzzleForDay({
+      schedule: SCHEDULE,
+      puzzles: PUZZLES,
+      number,
+      allowDrafts: clock.allowDrafts,
+    });
+  const scrollTop = () => window.scrollTo({ top: 0 });
+
+  const past = pastDay === null ? null : dayPuzzle(pastDay);
+  if (pastDay !== null && past) {
+    const game = getGame(progress, past.id);
+    return (
+      <PastPuzzle
+        number={pastDay}
+        playDate={addDays(SCHEDULE.startDate, pastDay - 1)}
+        puzzle={past}
+        guesses={game.finishedOn === null ? null : game.guesses}
+        onBack={() => {
+          setPastDay(null);
+          scrollTop();
+        }}
+      />
+    );
+  }
 
   return (
     <>
@@ -126,6 +157,11 @@ function StimmtsGame() {
           number={today.number}
           puzzle={today.puzzle}
           today={berlinDate(clock.now)}
+          onOpenDay={(number) => {
+            setPastDay(number);
+            scrollTop();
+          }}
+          canOpenDay={(number) => dayPuzzle(number) !== null}
         />
       )}
       {today.status === 'not-started' && (

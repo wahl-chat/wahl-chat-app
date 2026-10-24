@@ -10,16 +10,18 @@ const COLUMNS = [2, 3, 1, 4, 0, 5];
 
 /**
  * Where the n-th card lies on the urn's floor: six to a layer, from the
- * middle out, each layer a little higher and shifted, each card turned its
- * own way. Fixed per index, so the pile looks the same on every visit.
+ * middle out, each layer a little higher, each card nudged and turned its own
+ * way so the pile looks thrown in rather than stacked. Fixed per index (a
+ * small hash, not chance), so the pile looks the same on every visit.
  */
 function cardSpot(index: number) {
   const layer = Math.floor(index / COLUMNS.length);
   const column = COLUMNS[index % COLUMNS.length];
+  const hash = (index * 2_654_435_761) % 1000;
   return {
-    x: 70 + column * 21 + (layer % 2) * 10,
-    y: 186 - layer * 12 + ((column * 7) % 5),
-    angle: ((index * 53) % 40) - 20,
+    x: 68 + column * 20 + (layer % 2) * 6 + ((hash % 9) - 4),
+    y: 188 - layer * 11 + (hash % 6),
+    angle: (hash % 56) - 28,
   };
 }
 
@@ -41,7 +43,7 @@ function Urn({ cards, freshCard = false, slotRef }: Props) {
   const shown = Math.min(cards, PERIOD_LENGTH);
   return (
     <svg
-      viewBox="0 0 240 230"
+      viewBox="0 36 240 182"
       aria-hidden
       className="mx-auto block w-56 overflow-visible text-foreground"
     >
@@ -94,7 +96,7 @@ function Urn({ cards, freshCard = false, slotRef }: Props) {
       />
       <polygon
         ref={slotRef}
-        points="76,61 88,49 164,49 152,61"
+        points="70,57.5 74,53.5 170,53.5 166,57.5"
         className="fill-foreground"
       />
     </svg>
