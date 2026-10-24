@@ -40,7 +40,16 @@ const CAST_STEPS = [
   { step: 'closing', ms: 300 },
 ] as const;
 
-type CastStep = (typeof CAST_STEPS)[number]['step'] | null;
+/**
+ * With reduced motion the cast still shows, without anything travelling or
+ * zooming: the card fades from the page as it fades into the urn.
+ */
+const CALM_CAST_STEPS = [{ step: 'fading', ms: 450 }] as const;
+
+type CastStep =
+  | (typeof CAST_STEPS)[number]['step']
+  | (typeof CALM_CAST_STEPS)[number]['step']
+  | null;
 
 type Props = {
   number: number;
@@ -115,8 +124,23 @@ function Result({
     if (castStep) {
       return;
     }
-    if (reduceMotion || !card || !slot) {
+    const play = (
+      steps: readonly { step: Exclude<CastStep, null>; ms: number }[],
+    ) => {
+      let elapsed = 0;
+      castTimers.current = steps.map(({ step, ms }) => {
+        const timer = setTimeout(() => setCastStep(step), elapsed);
+        elapsed += ms;
+        return timer;
+      });
+      castTimers.current.push(setTimeout(finishCast, elapsed));
+    };
+    if (!card || !slot) {
       finishCast();
+      return;
+    }
+    if (reduceMotion) {
+      play(CALM_CAST_STEPS);
       return;
     }
     // Measured, so the card lands on the slot wherever the layout puts it:
@@ -130,14 +154,7 @@ function Result({
     card.style.setProperty('--dx', `${Math.round(dx)}px`);
     card.style.setProperty('--dy', `${Math.round(dy)}px`);
     card.style.setProperty('--s', scale.toFixed(4));
-
-    let elapsed = 0;
-    castTimers.current = CAST_STEPS.map(({ step, ms }) => {
-      const timer = setTimeout(() => setCastStep(step), elapsed);
-      elapsed += ms;
-      return timer;
-    });
-    castTimers.current.push(setTimeout(finishCast, elapsed));
+    play(CAST_STEPS);
   };
   // From the moment it goes through the slot, today's card is in the urn.
   const cardsInUrn = castStep && castStep !== 'flying' ? cards + 1 : cards;
@@ -182,7 +199,12 @@ function Result({
               className={cn(
                 castStep === 'flying' &&
                   'pointer-events-none z-[5] animate-stimmts-fly',
-                castStep && castStep !== 'flying' && 'invisible',
+                castStep === 'fading' &&
+                  'pointer-events-none opacity-0 transition-opacity duration-300',
+                castStep &&
+                  castStep !== 'flying' &&
+                  castStep !== 'fading' &&
+                  'invisible',
               )}
             />
           </div>
@@ -198,14 +220,18 @@ function Result({
       )}
 
       <div className="flex flex-col gap-4">
-        <div className="relative">
+        {/* While the card waits, the urn sits a little lower, leaving the
+            hint room between the two. */}
+        <div className={cn('relative', !game.cast && 'mt-8')}>
           {!game.cast && !castStep && <CastHint />}
           <Urn
             cards={cardsInUrn}
             casting={
               castStep === 'inserting' || castStep === 'falling'
                 ? castStep
-                : null
+                : castStep === 'fading'
+                  ? 'appearing'
+                  : null
             }
             slotRef={slotRef}
           />
@@ -301,7 +327,7 @@ function CastHint() {
   return (
     <p
       aria-hidden
-      className="pointer-events-none absolute inset-x-0 top-[-46px] z-10 flex animate-stimmts-hint justify-center"
+      className="pointer-events-none absolute inset-x-0 top-[-54px] z-10 flex animate-stimmts-hint justify-center"
     >
       <span className="relative flex items-center gap-2.5 rounded-full bg-foreground py-2.5 pl-3 pr-5 font-display text-[17px] font-bold text-background shadow-lg">
         {/* The bubble's tail, pointing up at the card. */}

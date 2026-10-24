@@ -37,9 +37,10 @@ type Props = {
   cards: number;
   /**
    * Where the card being cast is: sliding through the slot, or falling
-   * inside onto the pile (it is then the last of `cards`).
+   * inside onto the pile, or, with reduced motion, simply appearing on it
+   * (it is then the last of `cards`).
    */
-  casting?: 'inserting' | 'falling' | null;
+  casting?: 'inserting' | 'falling' | 'appearing' | null;
   /** The slot in the lid, which the cast card flies to. */
   slotRef?: Ref<SVGPolygonElement>;
 };
@@ -72,7 +73,9 @@ function Urn({ cards, casting = null, slotRef }: Props) {
         />
         {Array.from({ length: shown }, (_, index) => {
           const { x, y, angle } = cardSpot(index);
-          const falling = casting === 'falling' && index === shown - 1;
+          const last = index === shown - 1;
+          const falling = casting === 'falling' && last;
+          const appearing = casting === 'appearing' && last;
           return (
             <g
               // biome-ignore lint/suspicious/noArrayIndexKey: a card's place is its index.
@@ -80,7 +83,10 @@ function Urn({ cards, casting = null, slotRef }: Props) {
               transform={`translate(${x} ${y})`}
             >
               <g
-                className={cn(falling && 'animate-stimmts-fall')}
+                className={cn(
+                  falling && 'animate-stimmts-fall',
+                  appearing && 'duration-500 animate-in fade-in',
+                )}
                 style={
                   falling
                     ? ({ '--fall': `${FALL_START_Y - y}px` } as CSSProperties)
