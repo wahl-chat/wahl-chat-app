@@ -1,7 +1,9 @@
 import { topicColor } from '@/lib/daily/palette';
 import { topicShortTitle, topicTitle } from '@/lib/daily/topics';
 import { cn } from '@/lib/utils';
+import type { ReactNode } from 'react';
 import { FOCUS_RING, META_TEXT, PILL, PILL_ACTIVE } from './card-styles';
+import { useFeedLocale } from './feed-locale';
 
 export function TopicDot({ topic }: { topic: string }) {
   return (
@@ -17,15 +19,20 @@ export function TopicDot({ topic }: { topic: string }) {
 export function TopicMeta({
   topics,
   suffix,
+  trailing,
   short = false,
   className,
 }: {
   topics: string[];
   suffix?: string | null;
+  /** Non-text meta after the line, e.g. the heat dots; never truncated. */
+  trailing?: ReactNode;
   short?: boolean;
   className?: string;
 }) {
-  const title = short ? topicShortTitle : topicTitle;
+  const { locale } = useFeedLocale();
+  const title = (topic: string) =>
+    short ? topicShortTitle(topic, locale) : topicTitle(topic, locale);
   return (
     <p
       className={cn(META_TEXT, 'flex min-w-0 items-center gap-1.5', className)}
@@ -38,6 +45,12 @@ export function TopicMeta({
       <span className="min-w-0 truncate">
         {[...topics.map(title), suffix].filter(Boolean).join(' · ')}
       </span>
+      {trailing && (
+        <>
+          <span aria-hidden>·</span>
+          <span className="flex shrink-0 items-center">{trailing}</span>
+        </>
+      )}
     </p>
   );
 }
@@ -49,6 +62,7 @@ type Props = {
 };
 
 function TopicChip({ topic, active, onClick }: Props) {
+  const { locale } = useFeedLocale();
   return (
     <button
       type="button"
@@ -57,7 +71,7 @@ function TopicChip({ topic, active, onClick }: Props) {
       className={cn(PILL, FOCUS_RING, active && PILL_ACTIVE)}
     >
       <TopicDot topic={topic} />
-      {topicShortTitle(topic)}
+      {topicShortTitle(topic, locale)}
     </button>
   );
 }

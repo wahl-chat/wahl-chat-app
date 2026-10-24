@@ -5,12 +5,12 @@
 from datetime import date
 from pathlib import Path
 
-from src.daily_digest.protocol_pages import (
+from src.feed.protocol_pages import (
     attach_protocol_pages,
     page_index,
     protocol_xml_url,
 )
-from src.daily_digest.reader import assemble_speeches, group_sitting_days
+from src.feed.reader import assemble_speeches, group_sitting_days
 
 _FIXTURE = (
     Path(__file__).resolve().parents[1]

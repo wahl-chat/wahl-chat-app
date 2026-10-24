@@ -17,12 +17,13 @@ export type DetailItem =
 export type SectionItem = Extract<DetailItem, { kind: 'section' }>;
 export type VoteItem = Extract<DetailItem, { kind: 'vote' }>;
 
-// `~` never occurs in digest ids (`{parliament}_{YYYY-MM-DD}`), so keys split
-// back unambiguously and stay readable in a shared `?item=` link.
+// Feed items carry their own stable id. A local preview has none, so its key
+// is derived; `~` never occurs in digest ids, so such a key stays readable in a
+// shared `?item=` link.
 export function sectionItems(digest: DailyDigest): SectionItem[] {
   return (digest.session?.sections ?? []).map((section, i) => ({
     kind: 'section',
-    key: `${digest.id}~s${i}`,
+    key: section.item_id ?? `${digest.id}~s${i}`,
     digest,
     section,
   }));
@@ -31,20 +32,35 @@ export function sectionItems(digest: DailyDigest): SectionItem[] {
 export function voteItems(digest: DailyDigest): VoteItem[] {
   return digest.votes.map((vote) => ({
     kind: 'vote',
-    key: `${digest.id}~v${vote.poll_id}`,
+    key: vote.item_id ?? `${digest.id}~v${vote.poll_id}`,
     digest,
     vote,
   }));
+}
+
+/** Keys the item had before the feed was split into items: links shared and
+ * interest recorded back then use these. */
+export function legacyKeys(item: DetailItem): string[] {
+  return (
+    (item.kind === 'section'
+      ? item.section.legacy_keys
+      : item.vote.legacy_keys) ?? []
+  );
 }
 
 export function findItem(
   digests: readonly DailyDigest[],
   key: string,
 ): DetailItem | undefined {
-  const digest = digests.find((d) => d.id === key.split('~')[0]);
-  return digest
-    ? [...sectionItems(digest), ...voteItems(digest)].find((i) => i.key === key)
-    : undefined;
+  for (const digest of digests) {
+    const found = [...sectionItems(digest), ...voteItems(digest)].find(
+      (i) => i.key === key || legacyKeys(i).includes(key),
+    );
+    if (found) {
+      return found;
+    }
+  }
+  return undefined;
 }
 
 /** "21/91", or "21/90, 21/91" when a sitting day spans two protocols. A vote
@@ -72,6 +88,14 @@ export function itemTitle(item: DetailItem): string {
   return item.kind === 'section'
     ? item.section.headline
     : item.vote.short_title;
+}
+
+/** The card's two-line teaser. A vote without its own summary falls back to
+ * the source's account of the motion. */
+export function itemTeaser(item: DetailItem): string | null {
+  return item.kind === 'section'
+    ? item.section.summary || null
+    : (item.vote.summary ?? item.vote.description ?? null);
 }
 
 export function suggestedQuestions(item: DetailItem): string[] {

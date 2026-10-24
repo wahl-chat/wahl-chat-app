@@ -2,7 +2,12 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Prompts and structured-output schemas for the digest's two LLM steps."""
+"""Prompts and structured-output schemas for the feed's LLM steps.
+
+Every prompt draws its editorial rules from the constants below, so the
+generation and the translation of a text are held to the same standard of
+neutrality, grounding and attribution.
+"""
 
 from __future__ import annotations
 
@@ -10,16 +15,36 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from src.daily_digest.topics import DigestTopic, topic_legend
+from src.feed.topics import DigestTopic, topic_legend
 
 # Part of every digest's input_hash: bumping it regenerates all stored days.
 PROMPT_VERSION = "6"
+# Stored on each translation: bumping it re-translates, never regenerates.
+TRANSLATION_PROMPT_VERSION = "1"
 
-
-_QUESTIONS_DESCRIPTION = (
-    "Genau 3 kurze Fragen (höchstens 8 Wörter) aus Sicht einer Bürgerin, "
-    "die man dazu stellen würde, z. B. 'Was heißt das für mich?'."
+# The shared rulebook.
+_AUDIENCE = "eine tägliche, neutrale Übersicht"
+_NEUTRALITY_RULE = "Keine Wertung, keine Empfehlung, keine Spekulation über Motive."
+_GROUNDING_RULE = "Erfinde nichts, was nicht in den Auszügen steht."
+_ATTRIBUTION_RULE = (
+    "Neutral bleiben: Positionen den Fraktionen zuschreiben, nicht bewerten."
 )
+_POSITION_SENTENCE_RULE = (
+    "Der Positionssatz steht direkt hinter dem Parteinamen: ohne Subjekt, mit "
+    'dem Verb im Plural ("Wenden sich gegen …", "Fordern …", "Begrüßen …"), nicht '
+    '"Die Fraktion kritisierte …".'
+)
+_QUESTION_STYLE = (
+    "kurze Fragen (höchstens 8 Wörter) aus Sicht einer Bürgerin, "
+    "die man dazu stellen würde"
+)
+
+
+def _refs_only_rule(examples: str, field: str, elsewhere: str) -> str:
+    return f"Die Kennungen ({examples}) gehören NUR in {field}, nie in {elsewhere}."
+
+
+_QUESTIONS_DESCRIPTION = f"Genau 3 {_QUESTION_STYLE}, z. B. 'Was heißt das für mich?'."
 
 
 class VoteEnrichment(BaseModel):
@@ -106,45 +131,52 @@ class SessionSummaryDraft(BaseModel):
     )
 
 
-VOTE_ENRICHMENT_PROMPT = """\
-Du bereitest Abstimmungen aus dem {parliament} für eine tägliche, neutrale \
-Übersicht für Bürgerinnen und Bürger auf.
+class TranslatedSegment(BaseModel):
+    ref: str = Field(description="Die Kennung des Abschnitts, z. B. 'S3'.")
+    text: str = Field(description="Der Abschnitt auf Englisch, und nur dieser.")
+
+
+class TranslationBatch(BaseModel):
+    segments: list[TranslatedSegment]
+
+
+VOTE_ENRICHMENT_PROMPT = f"""\
+Du bereitest Abstimmungen aus dem {{parliament}} für {_AUDIENCE} \
+für Bürgerinnen und Bürger auf.
 
 Ordne jeder Abstimmung 1 bis 2 Themen aus dieser Liste zu (nur die Schlüssel \
 verwenden; 'other' nur, wenn nichts passt):
-{topics}
+{{topics}}
 
 Formuliere außerdem einen verständlichen Kurztitel, höchstens zwei neutrale \
 Sätze, worum es geht, und drei kurze Fragen, die Bürgerinnen und Bürger dazu \
-stellen würden. Keine Wertung, keine Empfehlung, keine Spekulation über Motive. \
+stellen würden. {_NEUTRALITY_RULE} \
 Gib für JEDE Abstimmung genau einen Eintrag mit ihrer Kennung zurück.
 
 Abstimmungen:
-{votes}
+{{votes}}
 """
 
-SESSION_SUMMARY_PROMPT = """\
-Du fasst die Plenarsitzung des {parliament} vom {day} für eine tägliche, \
-neutrale Übersicht zusammen. Grundlage sind ausschließlich die folgenden \
+SESSION_SUMMARY_PROMPT = f"""\
+Du fasst die Plenarsitzung des {{parliament}} vom {{day}} für {_AUDIENCE} \
+zusammen. Grundlage sind ausschließlich die folgenden \
 Redeauszüge, gruppiert nach Tagesordnungspunkten.
 
 Gliedere die Zusammenfassung nach Themen aus dieser Liste (nur die Schlüssel \
 verwenden):
-{topics}
+{{topics}}
 
 Regeln:
 - Ein Abschnitt pro Thema; fasse Tagesordnungspunkte zum selben Thema zusammen.
 - Höchstens 6 Abschnitte, die wichtigsten Debatten zuerst.
 - Jeder Abschnitt nennt in agenda_refs die Kennungen der Tagesordnungspunkte, \
-auf denen er beruht. Erfinde nichts, was nicht in den Auszügen steht.
-- Neutral bleiben: Positionen den Fraktionen zuschreiben, nicht bewerten.
+auf denen er beruht. {_GROUNDING_RULE}
+- {_ATTRIBUTION_RULE}
 - In summary nur, worum es ging. Die Positionen gehören in positions: für \
 jede Fraktion, die zu dem Thema gesprochen hat, ein Eintrag mit ihren \
 Redner:innen und einem Satz zu ihrer Position. Partei-Kennungen und Namen \
 exakt so übernehmen, wie sie in den Auszügen stehen.
-- Der Positionssatz steht direkt hinter dem Parteinamen: ohne Subjekt, mit \
-dem Verb im Plural ("Wenden sich gegen …", "Fordern …", "Begrüßen …"), nicht \
-"Die Fraktion kritisierte …".
+- {_POSITION_SENTENCE_RULE}
 - key_points: genau drei kurze Sätze (was vorgelegt wurde, worüber am meisten \
 gestritten wurde, wie es weitergeht).
 - heat: vergleiche die Abschnitte DIESER Sitzung miteinander (Zwischenrufe, \
@@ -155,11 +187,43 @@ ersten Rede des Abschnitts, Zeichen für Zeichen aus dem Auszug kopiert; als \
 speaker nur den Namen, ohne die Partei in Klammern.
 - suggested_questions: drei kurze Fragen aus Sicht von Bürgerinnen und Bürgern.
 - Kleinere Punkte ohne eigenen Abschnitt als kurze Stichworte in other_topics.
-- Die Kennungen (A1, A2, …) gehören NUR in agenda_refs, nie in Überschriften, \
-Zusammenfassungen oder other_topics.
+- {_refs_only_rule("A1, A2, …", "agenda_refs", "Überschriften, Zusammenfassungen oder other_topics")}
 
 Tagesordnungspunkte:
-{agenda}
+{{agenda}}
+"""
+
+# Segment by segment, not field by field inside one JSON object: asked to
+# translate a whole entry, the model runs past the end of a paragraph into
+# the footers of web translation tools and never closes the JSON string.
+TRANSLATION_PROMPT = f"""\
+Du übersetzt Einträge aus dem {{parliament}} für {_AUDIENCE} \
+für Bürgerinnen und Bürger ins Englische. Grundlage sind ausschließlich die \
+folgenden deutschen Auszüge; sie sind bereits geprüft und veröffentlicht. \
+Jeder Auszug ist in nummerierte Abschnitte geteilt: Überschrift, \
+Zusammenfassung, Stichpunkte, Positionssätze der Fraktionen, Fragen und \
+wörtliche Zitate.
+
+Regeln:
+- Übersetze treu: nichts hinzufügen, nichts weglassen, nichts abschwächen \
+oder zuspitzen. {_GROUNDING_RULE}
+- {_NEUTRALITY_RULE}
+- {_ATTRIBUTION_RULE}
+- {_POSITION_SENTENCE_RULE} Im Englischen ebenso: "Oppose …", "Call for …", \
+"Welcome …", nicht "The parliamentary group criticised …".
+- Zahlen, Namen, Partei-Kennungen, Drucksachen- und Protokollnummern \
+unverändert übernehmen.
+- Eigennamen deutscher Institutionen und Gesetze (z. B. Bundestag, \
+Bundesrat) dürfen deutsch bleiben, wenn es keine übliche englische \
+Bezeichnung gibt.
+- Wörtliche Zitate (in „…“) sinngetreu übersetzen, nicht umschreiben oder \
+kürzen.
+- Jeder Abschnitt wird für sich übersetzt: genau ein Eintrag je Abschnitt, \
+mit seiner Kennung, und nur der übersetzte Abschnitt, ohne Anmerkungen.
+- {_refs_only_rule("S1, S2, …", "ref", "den übersetzten Texten")}
+
+Abschnitte:
+{{segments}}
 """
 
 
@@ -173,3 +237,7 @@ def format_session_prompt(parliament: str, day: str, agenda_block: str) -> str:
     return SESSION_SUMMARY_PROMPT.format(
         parliament=parliament, day=day, topics=topic_legend(), agenda=agenda_block
     )
+
+
+def format_translation_prompt(parliament: str, segments_block: str) -> str:
+    return TRANSLATION_PROMPT.format(parliament=parliament, segments=segments_block)

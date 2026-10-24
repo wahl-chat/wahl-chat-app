@@ -13,7 +13,7 @@ target.
 
 Usage:
     export PROD_QDRANT_URL=https://<host>:6333 PROD_QDRANT_API_KEY=...
-    uv run python -m src.daily_digest.export_prod_slice --days 45
+    uv run python -m src.feed.export_prod_slice --days 45
 """
 
 from __future__ import annotations
@@ -27,8 +27,8 @@ from typing import Optional
 
 from qdrant_client import QdrantClient, models
 
-from src.daily_digest.parliaments import PARLIAMENTS
-from src.daily_digest.reader import SPEECH_SOURCE_TYPE, VOTE_SOURCE_TYPE
+from src.feed.parliaments import PARLIAMENTS
+from src.feed.reader import SPEECH_SOURCE_TYPE, VOTE_SOURCE_TYPE
 from src.ingestion.setup_collection import COLLECTION_NAME, check_fingerprint, setup
 
 logger = logging.getLogger(__name__)

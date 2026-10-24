@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.daily_digest.reader import (
+from src.feed.reader import (
     assemble_speeches,
     compute_window,
     group_sitting_days,

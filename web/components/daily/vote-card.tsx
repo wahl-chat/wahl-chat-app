@@ -1,10 +1,11 @@
-import type { VoteItem } from '@/lib/daily/items';
+import { type VoteItem, itemTeaser } from '@/lib/daily/items';
 import type { DigestVote } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
-import { CheckIcon, ChevronRightIcon, XIcon } from 'lucide-react';
-import { CARD_SURFACE, FOCUS_RING } from './card-styles';
+import { CheckIcon, XIcon } from 'lucide-react';
+import { CardFooter, ItemTeaser } from './card-footer';
+import { CARD_SURFACE } from './card-styles';
+import { useFeedLocale } from './feed-locale';
 import { Hemicycle, SeatLegend, VoteGauge } from './hemicycle';
-import InterestFeedback from './interest-feedback';
 import { TopicMeta } from './topic-chip';
 
 export function OutcomeBadge({
@@ -14,6 +15,7 @@ export function OutcomeBadge({
   outcome: DigestVote['outcome'];
   className?: string;
 }) {
+  const { t } = useFeedLocale();
   if (!outcome) {
     return null;
   }
@@ -30,38 +32,15 @@ export function OutcomeBadge({
       )}
     >
       <Icon className="size-3.5" strokeWidth={3} aria-hidden />
-      {passed ? 'Angenommen' : 'Abgelehnt'}
+      {passed ? t.passed : t.rejected}
     </span>
-  );
-}
-
-/** "Mehr erfahren ›": the whole card opens the detail, this is its label. */
-export function MoreLink({
-  onOpen,
-  label,
-}: {
-  onOpen: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      aria-label={`Mehr erfahren: ${label}`}
-      className={cn(
-        FOCUS_RING,
-        'flex min-h-10 shrink-0 items-center gap-1 rounded-md text-[15px] font-semibold',
-      )}
-    >
-      Mehr erfahren <ChevronRightIcon className="size-4" aria-hidden />
-    </button>
   );
 }
 
 type Props = {
   item: VoteItem;
   onOpen: () => void;
-  /** "Passende Abstimmung": no chart, only the score. */
+  /** "Passende Abstimmung": the score as a gauge instead of the seat chart. */
   compact?: boolean;
 };
 
@@ -70,30 +49,35 @@ function VoteCard({ item, onOpen, compact = false }: Props) {
   return (
     <article
       data-item-key={item.key}
-      className={cn(CARD_SURFACE, 'flex flex-col gap-3 p-4')}
+      className={cn(CARD_SURFACE, 'flex flex-col gap-3 px-4 pb-2 pt-4')}
     >
       <div className="flex items-center justify-between gap-3">
         <TopicMeta topics={vote.topics} short />
         <OutcomeBadge outcome={vote.outcome} />
       </div>
       <h3 className="hyphens-auto break-words text-[19px] font-bold leading-snug">
-        {vote.short_title}
+        <button
+          type="button"
+          onClick={onOpen}
+          className="text-left focus-visible:underline focus-visible:outline-none"
+        >
+          {vote.short_title}
+        </button>
       </h3>
       {compact ? (
-        <div className="flex items-end justify-between gap-3">
-          <VoteGauge parties={vote.parties} />
-          <MoreLink onOpen={onOpen} label={vote.short_title} />
-        </div>
+        <VoteGauge parties={vote.parties} />
       ) : (
         <>
           <Hemicycle parties={vote.parties} className="mx-auto max-w-sm" />
           <SeatLegend parties={vote.parties} />
-          <div className="flex items-center gap-2 border-t border-[var(--daily-border)] pt-3">
-            <MoreLink onOpen={onOpen} label={vote.short_title} />
-            <InterestFeedback itemKey={item.key} grouped className="flex-1" />
-          </div>
         </>
       )}
+      <ItemTeaser
+        text={itemTeaser(item)}
+        label={vote.short_title}
+        onOpen={onOpen}
+      />
+      <CardFooter item={item} />
     </article>
   );
 }

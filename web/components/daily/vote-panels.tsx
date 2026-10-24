@@ -7,15 +7,16 @@ import type {
 import { cn } from '@/lib/utils';
 import { ArrowUpRightIcon } from 'lucide-react';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
+import { useFeedLocale } from './feed-locale';
 
-type Majority = 'Ja' | 'Nein' | 'Enthalten';
+type Majority = 'yes' | 'no' | 'abstain';
 
 /** How most of a Fraktion's present members voted; null if nobody voted. */
 export function majority(party: DigestVoteParty): Majority | null {
   const counts: [Majority, number][] = [
-    ['Ja', party.yes],
-    ['Nein', party.no],
-    ['Enthalten', party.abstain],
+    ['yes', party.yes],
+    ['no', party.no],
+    ['abstain', party.abstain],
   ];
   const [label, count] = counts.reduce((best, c) =>
     c[1] > best[1] ? c : best,
@@ -24,13 +25,14 @@ export function majority(party: DigestVoteParty): Majority | null {
 }
 
 const MAJORITY_CLASS: Record<Majority, string> = {
-  Ja: 'text-[var(--daily-yes)]',
-  Nein: 'text-[var(--daily-no)]',
-  Enthalten: MUTED_TEXT,
+  yes: 'text-[var(--daily-yes)]',
+  no: 'text-[var(--daily-no)]',
+  abstain: MUTED_TEXT,
 };
 
 /** "So haben die Fraktionen gestimmt": two columns of Fraktion and majority. */
 export function PartyVoteTable({ vote }: { vote: DigestVote }) {
+  const { t } = useFeedLocale();
   return (
     <dl className="grid grid-cols-2 gap-x-8">
       {sortBySeating(vote.parties)
@@ -49,7 +51,7 @@ export function PartyVoteTable({ vote }: { vote: DigestVote }) {
                   verdict && MAJORITY_CLASS[verdict],
                 )}
               >
-                {verdict ?? '–'}
+                {verdict ? t.seat[verdict] : '–'}
               </dd>
             </div>
           );

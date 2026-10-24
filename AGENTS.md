@@ -162,6 +162,7 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 | `ai-backend/src/routes/` | HTTP routers: `chat` (SSE), `pro_con`, `voting_behavior`, `misc`. |
 | `ai-backend/src/chat_service.py`, `chatbot_async.py` | RAG chat pipeline + LLM streaming. |
 | `ai-backend/src/ingestion/` | Ingestion framework: `connector.py` (base class), `run.py` (runner), `registry.py`, `schemas.py` (data contract), `setup_collection.py`, `retrieve.py`, `ids.py`, `speech_key.py`, `speech_dedup.py`. |
+| `ai-backend/src/feed/` | The parliament feed: builds feed items from the corpus, translates and indexes them (see "The parliament feed"). |
 | `ai-backend/src/ingestion/connectors/` | Per-source connectors: `abgeordnetenwatch/`, `bundestag_speeches/`, `openparliament_tv/`, `manifestos/`. Each has `connector.py`, a `client.py`, and `mappers/` that build `ChunkRecord`s. |
 | `ai-backend/src/models/` | Pydantic DTOs and domain models for the chat API. |
 | `ai-backend/tests/` | pytest suite (Qdrant/embeddings mocked in `conftest.py`). |
@@ -196,8 +197,8 @@ make stores-up
 # Seed scrubbed fixtures into the Firestore emulator (guarded — refuses to run
 # without FIRESTORE_EMULATOR_HOST, so it can never write to production). This
 # includes three real Bundestag sitting days for the parliament feed on `/`
-# (firebase/firestore_data/emulator/daily_digests.json, emulator only), so the
-# feed works without corpus access or LLM keys.
+# (firebase/firestore_data/emulator/feed.json, German + English, emulator
+# only), so the feed works without corpus access or LLM keys.
 FIRESTORE_EMULATOR_HOST=localhost:8081 make seed-local
 
 # Real Firebase project (ENV=dev by default). Confirm before ENV=prod.
@@ -457,6 +458,47 @@ Terraform workstream — see `infra/README.md`).
 Ingestion must tolerate the 15-minute scheduled-job cap: runs are
 batch-windowed and time-budgeted (`--batch-size`, `--time-budget`) and resume
 from the Qdrant-derived cursor on the next run.
+
+### The parliament feed
+
+The feed on `/` follows COPE (create once, publish everywhere): every debate
+(one section of a Plenarprotokoll) and every vote becomes one **feed item**,
+generated, checked and translated once, then reused as is by every surface:
+the feed, later personalised briefings (curated from items, never written
+anew) and social posts (rendered from an item's headline and facts).
+
+- **Stores.** Firestore `feed_items/{item_id}` is the source of truth;
+  `feed_editions/{parliament}_{YYYY-MM-DD}` lists a sitting day's items in
+  order. Qdrant `wahlchat_feed_{ENV}` only finds items (ids and filter fields,
+  no text; `search_feed()` in `src/feed/index.py`). It is deliberately not the
+  corpus collection: feed items span parties (the corpus is tuned for
+  per-party tenancy), and they are our own summaries, which the chat must
+  never cite as sources. Same locked vector space and fingerprint guard.
+- **Facts vs. content.** `facts` (citations, speakers, vote counts, the
+  verbatim quote) come from the source and are identical in every language.
+  `content.{locale}` holds the texts. German is generated from the German
+  protocols; English is a translation pass over the German only, current
+  while its `source_hash` and `TRANSLATION_PROMPT_VERSION` match. Adding a
+  language means a translation pass, never a regeneration. A translation that
+  loses a number, a party or a field is not published: the reader sees German.
+- **Stable ids.** `{edition}_v{poll_id}` for votes, `{edition}_d{hash of the
+  agenda labels}` for debates, so a rebuild keeps ids and `feed_interest` rows
+  valid. An item that vanishes from a rebuilt day is marked `retracted`, never
+  deleted. `legacy_keys` keeps the pre-split keys (`…~s0`) resolvable.
+- **Models and prompts.** Every one-time text runs on `PUBLICATION_LLMS`
+  (`src/llms.py`, high reasoning) without touching the chat's rate-limit
+  status. All prompts share the editorial rules in `src/feed/prompts.py`
+  (neutrality, grounding, attribution); edit the constants, not copies.
+  Translation is segment by segment: asked for whole entries, the model runs
+  past a paragraph into translation-tool footers.
+- **Running it.** `make setup-feed-collection` once, then `make build-feed`
+  (see the Makefile for `--dry-run`, `--force`, `--translate-backfill`).
+  Unchanged days are skipped without LLM calls, so it is safe to schedule
+  daily after the speech and vote ingestion jobs. `make migrate-feed` moves
+  stored `daily_digests` to the item shape without regenerating German.
+- **Cutover order.** The web reads `feed_*` only; run `migrate-feed` against
+  a deployment before its web build switches over. `daily_digests` stays
+  readable until no deployed web reads it.
 
 ### Seeding dev/prod
 

@@ -1,8 +1,9 @@
 import DailyFeed from '@/components/daily/daily-feed';
+import { parseLocaleParam } from '@/lib/daily/i18n';
 import { getLocalPreviewDigests } from '@/lib/daily/local-preview';
 import { parseStateParam } from '@/lib/daily/region';
 import { parseTopicsParam } from '@/lib/daily/topics';
-import { getDailyDigests } from '@/lib/firebase/firebase-server';
+import { getParliamentFeed } from '@/lib/firebase/firebase-server';
 import { BASE_URL, productionRobots } from '@/lib/seo';
 import type { Metadata } from 'next';
 
@@ -37,15 +38,15 @@ async function HomePage({ searchParams }: Props) {
 
   // All three parliaments are small, so switching the state stays client-side.
   const [bundestag, landtagSt, landtagBw, previewDigests] = await Promise.all([
-    getDailyDigests('bundestag'),
-    getDailyDigests('landtag_st'),
-    getDailyDigests('landtag_bw'),
+    getParliamentFeed('bundestag'),
+    getParliamentFeed('landtag_st'),
+    getParliamentFeed('landtag_bw'),
     getLocalPreviewDigests(),
   ]);
 
   return (
     <DailyFeed
-      digests={{
+      feeds={{
         bundestag,
         landtag_st: landtagSt,
         landtag_bw: landtagBw,
@@ -54,6 +55,7 @@ async function HomePage({ searchParams }: Props) {
       initialStates={parseStateParam(params.land)}
       initialTopics={parseTopicsParam(params.themen)}
       initialItem={typeof params.item === 'string' ? params.item : undefined}
+      initialLocale={parseLocaleParam(params.lang)}
     />
   );
 }

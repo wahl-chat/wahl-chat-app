@@ -17,7 +17,7 @@ import logging
 import re
 from typing import Callable, Optional
 
-from src.daily_digest.reader import SittingDay
+from src.feed.reader import SittingDay
 from src.ingestion.connectors.bundestag_speeches.client import fetch_text
 from src.ingestion.connectors.bundestag_speeches.parser import parse_speeches_from_xml
 from src.ingestion.speech_key import make_speech_key

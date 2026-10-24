@@ -242,6 +242,75 @@ if VERTEX_AVAILABLE:
         ),
     ] + PRE_AND_POST_PROCESSING_LLMS
 
+# ---------------------------------------------------------------------------
+# Publication — the parliament feed's one-time texts (summaries, headlines,
+# party positions, translations). Each is generated once and then reused by
+# every surface, so correctness on the first try outweighs latency and cost:
+# the strongest flash models with high reasoning, and a timeout long enough for
+# a full sitting day's prompt. No flash-lite here.
+# ---------------------------------------------------------------------------
+PUBLICATION_THINKING = "high"
+_PUBLICATION_TIMEOUT_S = 300
+
+PUBLICATION_LLMS: list[LLM] = [
+    _llm(
+        "google-gemini-3.6-flash-high",
+        _gemini(
+            "gemini-3.6-flash",
+            temperature=1.0,
+            thinking_level=PUBLICATION_THINKING,
+            timeout=_PUBLICATION_TIMEOUT_S,
+        ),
+        100,
+    ),
+    _llm(
+        "openai-gpt-5.6-terra-high",
+        _openai(
+            "gpt-5.6-terra",
+            temperature=1.0,
+            reasoning_effort=PUBLICATION_THINKING,
+            timeout=_PUBLICATION_TIMEOUT_S,
+        ),
+        90,
+    ),
+    _llm(
+        "google-gemini-3.7-flash-high",
+        _gemini(
+            "gemini-3.7-flash",
+            temperature=1.0,
+            thinking_level=PUBLICATION_THINKING,
+            timeout=_PUBLICATION_TIMEOUT_S,
+        ),
+        80,
+    ),
+]
+
+if VERTEX_AVAILABLE:
+    PUBLICATION_LLMS = [
+        _llm(
+            "vertex-gemini-3.6-flash-high",
+            _gemini(
+                "gemini-3.6-flash",
+                vertex=True,
+                temperature=1.0,
+                thinking_level=PUBLICATION_THINKING,
+                timeout=_PUBLICATION_TIMEOUT_S,
+            ),
+            200,
+        ),
+        _llm(
+            "vertex-gemini-3.7-flash-high",
+            _gemini(
+                "gemini-3.7-flash",
+                vertex=True,
+                temperature=1.0,
+                thinking_level=PUBLICATION_THINKING,
+                timeout=_PUBLICATION_TIMEOUT_S,
+            ),
+            190,
+        ),
+    ] + PUBLICATION_LLMS
+
 
 async def handle_rate_limit_hit_for_all_llms():
     await awrite_llm_status(is_at_rate_limit=True)
@@ -275,6 +344,23 @@ async def get_answer_from_llms(
 async def get_structured_output_from_llms(
     llms: list[LLM], messages: list[BaseMessage], schema: dict | type
 ) -> dict | BaseModel:
+    result, _ = await get_structured_output_with_source(llms, messages, schema)
+    return result
+
+
+async def get_structured_output_with_source(
+    llms: list[LLM],
+    messages: list[BaseMessage],
+    schema: dict | type,
+    *,
+    report_rate_limit: bool = True,
+) -> tuple[dict | BaseModel, str]:
+    """The parsed output and the name of the roster entry that produced it.
+
+    ``report_rate_limit=False`` keeps a batch job's failures out of the live
+    chat's LLM status: that flag tells chat users the service is degraded, and
+    an offline run exhausting its roster says nothing about the chat's.
+    """
     llms = sorted(llms, key=lambda x: x.priority, reverse=True)
     back_up_llms = [llm for llm in llms if llm.back_up_only]
     llms = [llm for llm in llms if not llm.back_up_only]
@@ -282,18 +368,19 @@ async def get_structured_output_from_llms(
         try:
             logger.debug(f"Invoking LLM {llm.name}...")
             prepared_model = llm.model.with_structured_output(schema)
-            return await prepared_model.ainvoke(messages)
+            return await prepared_model.ainvoke(messages), llm.name
         except Exception as e:
             logger.warning(f"Error invoking LLM {llm.name}: {e}")
             continue
 
-    await handle_rate_limit_hit_for_all_llms()
+    if report_rate_limit:
+        await handle_rate_limit_hit_for_all_llms()
 
     for llm in back_up_llms:
         try:
             logger.debug(f"Invoking LLM {llm.name}...")
             prepared_model = llm.model.with_structured_output(schema)
-            return await prepared_model.ainvoke(messages)
+            return await prepared_model.ainvoke(messages), llm.name
         except Exception as e:
             logger.warning(f"Error invoking LLM {llm.name}: {e}")
     raise Exception("All LLMs failed.")
