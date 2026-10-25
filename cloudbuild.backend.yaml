@@ -71,11 +71,6 @@ steps:
         traffic = json.load(sys.stdin)["status"]["traffic"]
         print(next(item["url"] for item in traffic if item.get("tag") == "candidate"))
         ' < /workspace/service.json)"
-        candidate_revision="$$(python3 -c '
-        import json, sys
-        traffic = json.load(sys.stdin)["status"]["traffic"]
-        print(next(item["revisionName"] for item in traffic if item.get("tag") == "candidate"))
-        ' < /workspace/service.json)"
 
         curl --fail --silent --show-error \
           --retry 12 --retry-delay 2 --retry-all-errors \
@@ -98,10 +93,13 @@ steps:
           exit 1
         }
 
+        # Back to latest-revision mode. Pinning 100% to this revision by
+        # name would leave every later revision, including ones Terraform
+        # creates for config changes, serving nothing.
         gcloud run services update-traffic "${_SERVICE}" \
           --project="${PROJECT_ID}" \
           --region="${_REGION}" \
-          --to-revisions="$${candidate_revision}=100" \
+          --to-latest \
           --remove-tags=candidate \
           --quiet
 
