@@ -13,8 +13,12 @@ steps:
   # The lockfile and the workspace members are outside ai-backend/.
   # This image installs the chat service and wahlchat-common.
   # It does not install the ingestion package.
+  # The Cloud Build docker builder leaves BuildKit off. Both Dockerfiles use
+  # RUN --mount for the uv cache, which that builder rejects without it.
   - id: build
     name: gcr.io/cloud-builders/docker
+    env:
+      - DOCKER_BUILDKIT=1
     args:
       - build
       - --file
@@ -33,6 +37,8 @@ steps:
   # the repo root like the backend because the workspace lockfile lives there.
   - id: build-ingestion
     name: gcr.io/cloud-builders/docker
+    env:
+      - DOCKER_BUILDKIT=1
     args:
       - build
       - --file
