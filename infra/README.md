@@ -153,14 +153,6 @@ or the Terraform deployer SA) applies them with `manage_iam = true`. While it is
 runtime/scheduler identities work only if they hold project-level editor, as the default compute
 SA does.
 
-Migrating a service's plaintext env keys to secret refs without a sentinel-value window:
-
-```sh
-terraform apply -target='module.app.google_secret_manager_secret.s'  # containers only
-echo -n "<value>" | gcloud secrets versions add <secret-id> --project=<project> --data-file=-  # per secret
-terraform apply   # flips the service revisions to secret_key_ref, resolving real values
-```
-
 ### Renaming `vertex-sa-json` / `qdrant-api-key` (one-time, per project)
 
 Do this BEFORE the first `terraform apply` in each project. The tfvars reference
@@ -181,16 +173,6 @@ for pair in vertex-sa-json:VERTEX_SA_JSON qdrant-api-key:QDRANT_API_KEY; do
     | gcloud secrets versions add "$new" --data-file=- --project=$P
 done
 terraform apply   # imports both secrets; every revision now reads the new names
-```
-
-dev already manages `vertex-sa-json`, which `retained_secret_ids` keeps under
-`prevent_destroy` — without it, the plan would delete the secret the live backend still
-reads. Once the apply has moved every revision, retire it:
-
-```sh
-terraform state rm 'module.app.google_secret_manager_secret.s["vertex-sa-json"]'
-# drop it from retained_secret_ids in envs/dev/terraform.tfvars
-gcloud secrets delete vertex-sa-json --project=$P   # and qdrant-api-key, if it existed
 ```
 
 ## Constraint: Vertex uses a static service-account secret

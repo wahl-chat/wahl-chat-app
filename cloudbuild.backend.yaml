@@ -108,7 +108,7 @@ steps:
   # Ingestion jobs run the ingestion image (a job sets CONNECTOR_ID; the
   # entrypoint dispatches). Terraform owns the job specs but ignores the image;
   # this step is the image authority for jobs, exactly as deploy-smoke-promote
-  # is for the service. No-op until Terraform has created the ingest-* jobs.
+  # is for the service.
   - id: update-ingestion-job-images
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash

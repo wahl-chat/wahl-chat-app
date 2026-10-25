@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-# CLOUD RUN SERVICES  (see infra-example-export/infra/cloud_run.tf)
+# CLOUD RUN SERVICES
 #
 # 1. TERRAFORM AND THE DEPLOY PIPELINE SPLIT OWNERSHIP. CI's `gcloud run deploy` owns the
 #    image tag; Terraform owns env vars, secret refs, scaling, resources and the runtime

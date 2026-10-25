@@ -55,15 +55,6 @@ terraform-export/
 *.tfplan
 crash.log
 crash.*.log
-# Saved `terraform plan` / import output can contain plaintext secret values — never commit:
-plan*.txt
-*.plan.txt
-import*.log
-# Local operator notes and one-time import / secret scripts hold environment-specific
-# state; keep them off the public repo.
-terraform_next_steps.md
-infra/envs/*/import.sh
-infra/envs/*/migrate-secrets.sh
 
 # === Misc ===
 *.log
