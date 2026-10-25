@@ -9,9 +9,9 @@ region     = "europe-west1"
 # the value is added out of band.
 bootstrap_secret_ids = ["dip-api-key"]
 
-# FALSE until the applying identity can create IAM bindings (Editor cannot).
-# Flip to true when the Terraform runner SA / an owner applies — see modules/app/variables.tf.
-manage_iam = false
+# The prod deployer creates the per-secret accessor grants and the scheduler
+# service account's run.invoker bindings. Turning this off removes those grants.
+manage_iam = true
 
 services = {
   # ── wahl-chat-backend ───────────────────────────────────────────────────────
