@@ -12,9 +12,9 @@ bootstrap_secret_ids = ["dip-api-key"]
 # (README: renaming).
 retained_secret_ids = ["vertex-sa-json"]
 
-# FALSE until the applying identity can create IAM bindings (Editor cannot).
-# Flip to true when the Terraform runner SA / an owner applies — see modules/app/variables.tf.
-manage_iam = false
+# The dev deployer creates the per-secret accessor grants and the scheduler
+# service account's run.invoker bindings. Editor cannot; CI applies as the deployer.
+manage_iam = true
 
 services = {
   # ── wahl-chat-backend-dev ───────────────────────────────────────────────────
