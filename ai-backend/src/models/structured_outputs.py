@@ -101,17 +101,6 @@ class GroupChatTitleQuickReplyGenerator(BaseModel):
     )
 
 
-class PledgeEventHeadlines(BaseModel):
-    """Output of the PledgeTracker event-headline generator (ingestion time)."""
-
-    headlines: list[str] = Field(
-        description=(
-            "Eine kurze deutsche Schlagzeile pro Ereignis, in derselben "
-            "Reihenfolge wie die Ereignisse."
-        )
-    )
-
-
 class PledgeRelevanceOutput(BaseModel):
     """Output of the PledgeTracker relevance gate (chat time)."""
 

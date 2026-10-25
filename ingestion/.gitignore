@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: 2026 wahl.chat
+#
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+.env
+.env.*
+!.env.example
+
+# Vertex AI service-account key (see .env.example / vertex_credentials.py).
+vertex-sa*.json
+
+# MdB-Stammdaten data files (~15 MB XML + DTD) — fetched, never committed.
+# Get them with `make fetch-mdb-stammdaten` (downloads + extracts the Bundestag
+# OpenData ZIP from https://www.bundestag.de/services/opendata).
+data/MDB_STAMMDATEN.XML
+data/MDB_STAMMDATEN.DTD
+
+# Local manifesto PDF storage — never commit PDFs.
+.local_storage/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/

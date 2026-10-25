@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import pytest
 
-import src.pledge_tracker_service as service
+import src.services.pledge_tracker_service as service
 from src.models.pledge_tracker import PledgeRecord
 from src.models.structured_outputs import PledgeRelevanceOutput
 

@@ -280,6 +280,31 @@ def test_standalone_script_ignores_ambient_google_cloud_project(
     assert captured["url"] == "https://wahl.chat/api/revalidate"
 
 
+def test_chat_emulator_app_does_not_block_a_flush(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The chat service initializes the emulator app at import.
+
+    A flush with no project argument must still run.
+    """
+    import src.services.firebase_service  # noqa: F401
+
+    seed = _load_seed_module(
+        monkeypatch,
+        ENV="prod",
+        REVALIDATE_SECRET="test-secret",
+    )
+    captured: dict[str, str] = {}
+
+    def _urlopen(request: object, timeout: int = 0) -> _FakeResponse:
+        captured["url"] = request.full_url  # type: ignore[attr-defined]
+        return _FakeResponse()
+
+    _patch_urlopen(seed, monkeypatch, _urlopen)
+    assert seed.frontend_cache.main(["--context", "bundestagswahl-2025"]) == 0
+    assert captured["url"] == "https://wahl.chat/api/revalidate"
+
+
 def test_post_revalidate_raises_on_project_mismatch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

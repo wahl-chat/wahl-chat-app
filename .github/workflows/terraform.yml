@@ -1,0 +1,129 @@
+# Terraform CI: plan on PRs, apply on merges after the dev/prod environment approval.
+# Keyless via Workload Identity Federation. No service-account keys.
+#
+#   PR into develop/main touching infra/**  -> fmt-check + validate + plan (no apply)
+#   push to develop                         -> plan, then apply after environment "dev"
+#   push to main                            -> plan, then apply after environment "prod"
+#
+# Public repo: logs are world-readable and a plan holds prior state, so the log
+# shows only which resources change (address + action). The plan file goes to the
+# state bucket for the apply job, not to a GitHub artifact. Review the full diff
+# locally: `terraform plan` in infra/envs/<env>.
+#
+# PR plans use the read-only planner (no state lock). The merge plan and the apply
+# use the deployer, which GCP only allows from the deploy branch.
+
+name: terraform
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths: ["infra/**", ".github/workflows/terraform.yml"]
+  push:
+    branches: [develop, main]
+    paths: ["infra/**", ".github/workflows/terraform.yml"]
+
+permissions:
+  contents: read
+  id-token: write # WIF token exchange
+
+# Never run two applies (or an apply and a plan holding the lock) concurrently per env.
+concurrency:
+  group: terraform-${{ github.base_ref || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  # main (or a PR into main) targets prod; everything else targets dev.
+  TF_ENV: ${{ (github.base_ref || github.ref_name) == 'main' && 'prod' || 'dev' }}
+  # The env's state bucket (backend.tf); also holds the plan file between plan and apply.
+  TF_STATE_BUCKET: ${{ (github.base_ref || github.ref_name) == 'main' && 'wahl-chat-tfstate' || 'wahl-chat-dev-tfstate' }}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/envs/${{ (github.base_ref || github.ref_name) == 'main' && 'prod' || 'dev' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.8"
+          # The wrapper echoes stdout into the log; the plan output must not reach it.
+          terraform_wrapper: false
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.TF_ENV == 'prod' && vars.WORKLOAD_IDENTITY_PROVIDER_PROD || vars.WORKLOAD_IDENTITY_PROVIDER_DEV }}
+          # PRs get the read-only planner; the deployer only authenticates on the deploy branch.
+          service_account: >-
+            ${{ github.event_name == 'pull_request'
+            && (env.TF_ENV == 'prod' && vars.PLANNER_SERVICE_ACCOUNT_PROD || vars.PLANNER_SERVICE_ACCOUNT_DEV)
+            || (env.TF_ENV == 'prod' && vars.DEPLOYER_SERVICE_ACCOUNT_PROD || vars.DEPLOYER_SERVICE_ACCOUNT_DEV) }}
+
+      - name: fmt check
+        working-directory: infra
+        run: terraform fmt -check -recursive -diff
+
+      - name: init
+        # The planner can read state but cannot create the lock object.
+        # A pull-request init must not lock; the deployer still locks on the deploy branch.
+        run: terraform init -input=false -lock=${{ github.event_name != 'pull_request' }}
+
+      - name: validate
+        run: terraform validate -no-color
+
+      - name: plan
+        # The planner can only read the state bucket, so PR plans skip the lock.
+        # stdout carries attribute values (live env vars included): discard it.
+        run: terraform plan -input=false -no-color -lock=${{ github.event_name != 'pull_request' }} -out=tfplan > /dev/null
+
+      - name: plan summary (addresses and actions only)
+        run: |
+          terraform show -json tfplan \
+            | jq -r '.resource_changes[]? | select(.change.actions != ["no-op"])
+                     | "\(.change.actions | join("/"))\t\(.address)"' \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # Hand the exact plan to the apply job — what gets approved is what gets applied.
+      - name: stash plan
+        if: github.event_name == 'push'
+        run: gcloud storage cp tfplan "gs://${TF_STATE_BUCKET}/plans/${GITHUB_SHA}.tfplan"
+
+  apply:
+    # Merges only (never PRs), only after plan succeeded, and gated by the
+    # environment's required reviewers — GitHub's equivalent of a manual job.
+    if: github.event_name == 'push'
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+    defaults:
+      run:
+        working-directory: infra/envs/${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.8"
+          # The wrapper echoes stdout into the log; the plan output must not reach it.
+          terraform_wrapper: false
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.TF_ENV == 'prod' && vars.WORKLOAD_IDENTITY_PROVIDER_PROD || vars.WORKLOAD_IDENTITY_PROVIDER_DEV }}
+          service_account: ${{ env.TF_ENV == 'prod' && vars.DEPLOYER_SERVICE_ACCOUNT_PROD || vars.DEPLOYER_SERVICE_ACCOUNT_DEV }}
+
+      - name: init
+        run: terraform init -input=false
+
+      - name: fetch plan
+        run: gcloud storage cp "gs://${TF_STATE_BUCKET}/plans/${GITHUB_SHA}.tfplan" tfplan
+
+      - name: apply
+        run: terraform apply -input=false -no-color tfplan
+
+      - name: drop plan
+        if: always()
+        run: gcloud storage rm "gs://${TF_STATE_BUCKET}/plans/${GITHUB_SHA}.tfplan" || true
