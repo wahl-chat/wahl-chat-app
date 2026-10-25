@@ -67,7 +67,9 @@ jobs:
         run: terraform fmt -check -recursive -diff
 
       - name: init
-        run: terraform init -input=false
+        # The planner can read state but cannot create the lock object.
+        # A pull-request init must not lock; the deployer still locks on the deploy branch.
+        run: terraform init -input=false -lock=${{ github.event_name != 'pull_request' }}
 
       - name: validate
         run: terraform validate -no-color
