@@ -17,3 +17,16 @@ import {
   to       = module.app.google_secret_manager_secret.s[each.key]
   id       = "projects/${var.project_id}/secrets/${each.key}"
 }
+
+# The services and the source-deploy repo already exist. Importing them keeps
+# the first plan from trying to create a second copy.
+import {
+  for_each = var.services
+  to       = module.app.google_cloud_run_v2_service.svc[each.key]
+  id       = "projects/${var.project_id}/locations/${var.region}/services/${each.key}"
+}
+
+import {
+  to = module.app.google_artifact_registry_repository.cloud_run_source_deploy
+  id = "projects/${var.project_id}/locations/${var.region}/repositories/cloud-run-source-deploy"
+}
