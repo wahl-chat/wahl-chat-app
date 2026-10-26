@@ -8,7 +8,7 @@
         run-manifestos run-manifesto-uploads upload-manifesto-uploads \
         collect-speeches fetch-mdb-stammdaten \
         update-speeches speeches-stats export-prod-slice build-daily-digests \
-        build-feed setup-feed-collection migrate-feed
+        build-feed setup-feed-collection migrate-feed translate-messages
 
 # --- Install dependencies ---
 
@@ -309,6 +309,14 @@ migrate-feed:
 	cd ai-backend && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
 		GOOGLE_CLOUD_PROJECT=$(EMULATOR_PROJECT) \
 		uv run python -m src.feed.migrate_digests $(ARGS)
+
+# UI translations (web/messages): fill a language's catalogs from German. Only
+# missing or changed messages go to the model; see AGENTS.md "Adding a language".
+#   make translate-messages LOCALE=fr ARGS="--dry-run"
+#   make translate-messages LOCALE=fr
+translate-messages:
+	@test -n "$(LOCALE)" || (echo "ERROR: set LOCALE, e.g. make translate-messages LOCALE=fr" && exit 1)
+	cd ai-backend && uv run python -m src.i18n_catalog.translate_messages --locale $(LOCALE) $(ARGS)
 
 # Uploaded manifestos: party PDFs supplied directly, for elections with no AW
 # coverage. Metadata comes from the object path + Firestore seed fixtures.
