@@ -38,6 +38,16 @@ export interface HowToAccordionItem {
   content: HowToAccordionContent;
 }
 
+/** The parliament feed on the start page, explained first: it is what a
+ * visitor sees before anything else. */
+export interface HowToFeedIntro {
+  title: string;
+  paragraphs: string[];
+  list: string[];
+  /** Link text to the feed itself. */
+  link: string;
+}
+
 export interface HowToIntroText {
   main: string;
   sources: string;
@@ -68,6 +78,7 @@ export interface HowToLabels {
 }
 
 export interface HowToContent {
+  feedIntro: HowToFeedIntro;
   introText: HowToIntroText;
   processSteps: string[];
   accordionContent: HowToAccordionItem[];

@@ -80,6 +80,12 @@ export async function exportHowToPDF(data: HowToContent): Promise<void> {
   addText(data.labels.pdfTitle, 18, true, true);
   yPosition += 5;
 
+  // Parliament feed
+  addText(data.feedIntro.title, 14, true);
+  data.feedIntro.paragraphs.forEach((paragraph) => addText(paragraph, 11));
+  data.feedIntro.list.forEach((item) => addText(`• ${item}`, 11));
+  yPosition += 5;
+
   // Introduction
   addText(data.introText.main, 11);
   addText(data.introText.sources, 11);
