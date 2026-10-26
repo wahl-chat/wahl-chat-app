@@ -1,1 +1,14 @@
-{}
+{
+  "teamImageAlt": "Das Team von wahl.chat",
+  "founders": "Die Gründer von <link>wahl.chat</link>:",
+  "foundersCaption": "(im Bild von links nach rechts)",
+  "story": "Die Gründer von wahl.chat stammen aus München und haben sich ursprünglich in Cambridge, UK zur gemeinsamen Forschung an KI zusammengefunden. Mittlerweile sind wir über mehrere Länder verstreut, aber haben weiterhin ein gemeinsames Ziel: Mit wahl.chat möchten wir einen Beitrag zur Demokratie leisten, indem wir Politik leichter zugänglich machen. Basierend auf den Wahlprogrammen, Plenarprotokollen und dem Abstimmungsverhalten der Parteien ermöglichen wir eine einfache, quellengestützte Informationsmöglichkeit mit der wir politische Bildung neu denken.",
+  "studentTeam": "Inzwischen werden wir in der technischen Weiterentwicklung von wahl.chat auch tatkräftig von einem Team aus Studierenden des Vereins <link>TUM Social AI</link> unterstützt:",
+  "lastName": "und {name}",
+  "thanks": "Zudem bedanken wir uns für ihre Unterstützung bei:",
+  "joinTeam": "Wenn du uns helfen möchtest, kannst du gerne Teil des <link>wahl.chat</link> Teams werden. Melde dich einfach unter: <email>info@wahl.chat</email>",
+  "thesis": "Es besteht auch die Möglichkeit, eine Bachelor- oder Masterarbeit bei uns zu schreiben. Melde dich hierfür am besten mit einem Themenvorschlag direkt bei <email>robin@wahl.chat</email>",
+  "supportTitle": "Unterstütze uns",
+  "supportDescription": "Hilf uns, laufende Kosten für die KI zu decken!",
+  "donate": "Spenden"
+}

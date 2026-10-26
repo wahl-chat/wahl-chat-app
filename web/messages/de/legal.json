@@ -1,1 +1,12 @@
-{}
+{
+  "translationNotice": "Dies ist eine Übersetzung zur Information. Rechtlich verbindlich ist nur die deutsche Fassung.",
+  "readGermanVersion": "Zur deutschen Fassung",
+  "impressum": {
+    "title": "Impressum",
+    "description": "Impressum und Kontaktdaten von wahl.chat."
+  },
+  "datenschutz": {
+    "title": "Datenschutz",
+    "description": "Datenschutzerklärung von wahl.chat – Informationen zur Verarbeitung personenbezogener Daten."
+  }
+}

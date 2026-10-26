@@ -10,6 +10,7 @@ import { useCurrentContext } from './providers/context-provider';
 
 function Footer() {
   const t = useTranslations('nav');
+  const tFooter = useTranslations('footer');
   const context = useCurrentContext({ optional: true });
   // Outside a ContextProvider there is no election to point at; middleware
   // resolves the bare path by region.
@@ -32,7 +33,7 @@ function Footer() {
           {t(SITE_LINKS.press.label)}
         </Link>
         <FeedbackDialog>
-          <button type="button">Feedback</button>
+          <button type="button">{tFooter('feedback')}</button>
         </FeedbackDialog>
         <Link href={SITE_LINKS.imprint.href}>
           {t(SITE_LINKS.imprint.label)}

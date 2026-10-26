@@ -16,6 +16,7 @@ import {
 } from '@/lib/agent/conversation-storage';
 import type { Source } from '@/lib/stores/chat-store.types';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { use, useEffect, useState } from 'react';
 
 interface PageProps {
@@ -39,6 +40,7 @@ const flattenSources = (sourcesPayload: SourcesReadyPayload[]): Source[] => {
 export default function ConversationPage({ params }: PageProps) {
   const { conversationId } = use(params);
   const router = useRouter();
+  const t = useTranslations('agent.chat');
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +109,7 @@ export default function ConversationPage({ params }: PageProps) {
       <div className="flex h-full flex-col items-center justify-center gap-3">
         <Loader2 className="size-8 animate-spin text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
-          Unterhaltung wird geladen...
+          {t('loadingConversation')}
         </p>
       </div>
     );
@@ -117,7 +119,7 @@ export default function ConversationPage({ params }: PageProps) {
     // This will briefly show before redirect
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3">
-        <p className="text-sm text-muted-foreground">Weiterleitung...</p>
+        <p className="text-sm text-muted-foreground">{t('redirecting')}</p>
       </div>
     );
   }

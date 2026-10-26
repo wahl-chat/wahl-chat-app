@@ -1,1 +1,226 @@
-{}
+{
+  "dislikeFeedback": {
+    "title": "Give feedback",
+    "description": "What don't you like about this answer?",
+    "placeholder": "Please enter your feedback here. (optional)",
+    "submit": "Give feedback"
+  },
+  "header": {
+    "openMenu": "Open menu"
+  },
+  "emptyView": {
+    "party": "Ask your questions to the documents of <bold>{party}</bold> and compare its answers with those of other parties.",
+    "general": "Ask questions on any topic around the <bold>{election}</bold>, or ask the parties directly about the positions in their manifestos.",
+    "groupIntro": "Start your comparison chat with the following parties:"
+  },
+  "partySelect": {
+    "title": "Choose parties",
+    "descriptionChange": "Change the selected parties.",
+    "descriptionStart": "Choose up to seven parties to start the chat with.",
+    "maxReached": "You can select at most {max} parties",
+    "submitChange": "Change parties",
+    "submitStart": "Start comparison chat"
+  },
+  "rateLimit": {
+    "title": "Servers are busy right now!",
+    "description": "Keep chatting with the suggested questions or <bold>sign in</bold> to ask your own.",
+    "login": "Sign in"
+  },
+  "input": {
+    "placeholder": "Write a message..."
+  },
+  "markdown": {
+    "referenceTooltip": "{source} - Page: {page}",
+    "referenceFallback": "Ref. {number}",
+    "videoReference": "Video {name}"
+  },
+  "messageIcon": {
+    "noParty": "No party selected"
+  },
+  "pledgeTracker": {
+    "dialogDescription": "Timelines of political goals, compiled by PledgeTracker.",
+    "matchCount": "{count, plural, one {# matching goal} other {# matching goals}} for this conversation",
+    "pledgeTab": "Goal {number}",
+    "pledgeDate": "Goal from {date}",
+    "status": "Status: <value>{status}</value>",
+    "showMoreEvents": "Show {count} more events",
+    "newestEvent": "Most recent event",
+    "more": "More",
+    "less": "Less",
+    "source": "Source",
+    "tagline": "PledgeTracker is a project of Prof. Andreas Vlachos's research group at the University of Cambridge.",
+    "detail": "It builds timelines of political goals from public sources. The feature is still in development and the results may be incomplete.",
+    "evidenceCount": "{count, plural, one {# piece of evidence} other {# pieces of evidence}}",
+    "latest": "latest {date}",
+    "otherPledges": "{count, plural, one {+# more goal} other {+# more goals}}",
+    "buttonSubtitle": "Goals over time",
+    "quotedClaim": "“{claim}”",
+    "fallbackTitle": "Matching goals of the party",
+    "cta": "See progress"
+  },
+  "proCon": {
+    "buttonTooltip": "Assess the position's pros and cons",
+    "button": "Put position into context",
+    "loading": {
+      "understand": "Understanding the topic...",
+      "feasibility": "Analysing feasibility...",
+      "shortTerm": "Identifying short-term effects...",
+      "longTerm": "Identifying long-term effects...",
+      "finish": "Finishing the analysis..."
+    },
+    "collapsedHint": "This message contains a <bold>position put into context</bold>.",
+    "poweredBy": "Powered by Perplexity",
+    "hide": "Hide",
+    "show": "Show"
+  },
+  "userMessage": {
+    "reloadToResend": "Please reload the page to resend a message.",
+    "resend": "Resend"
+  },
+  "view": {
+    "loading": "Loading chat session...",
+    "answerLanguageNote": "Answers are currently given in German."
+  },
+  "votes": {
+    "yes": "Yes",
+    "no": "No",
+    "abstain": "Abstained",
+    "notVoted": "Did not vote",
+    "votesLabel": "Votes",
+    "noValidVotes": "No valid votes cast",
+    "noResults": "No results could be determined",
+    "outcome": "Motion was <bold>{outcome, select, accepted {Accepted.} rejected {Rejected.} other {Tied.}}</bold>",
+    "outcomePercentage": "{outcome, select, tie {Motion was tied with {percentage}% of the votes each.} accepted {Motion was accepted with {percentage}% of the votes.} other {Motion was rejected with {percentage}% of the votes.}}",
+    "nonAttached": "Independents",
+    "selectParty": "Choose a party",
+    "members": "Members"
+  },
+  "votingBehavior": {
+    "showVotes": "Show votes",
+    "detailTitle": "Voting behaviour",
+    "detailDescription": "This message contains further information on the party's voting behaviour.",
+    "description": "Description",
+    "toSource": "Go to source",
+    "furtherLinks": "Further links",
+    "loading": {
+      "motions": "Searching Bundestag motions...",
+      "protocols": "Searching voting records...",
+      "submitters": "Analysing information on the submitters...",
+      "compare": "Comparing information...",
+      "summarize": "Summarising results..."
+    },
+    "referenceName": "Vote {id}",
+    "collapsedHint": "This message contains further information on the party's <bold>voting behaviour</bold>.",
+    "hide": "Hide",
+    "show": "Show",
+    "submittingParties": "{count, plural, one {Submitting party} other {Submitting parties}}",
+    "buttonTooltip": "Analyse the party's voting behaviour",
+    "button": "Voting behaviour"
+  },
+  "copy": {
+    "copied": "Text copied to clipboard",
+    "label": "Copy"
+  },
+  "newChat": {
+    "tooltip": "Start a new chat",
+    "title": "New chat",
+    "description": "Start a new chat."
+  },
+  "partyDetails": {
+    "candidate": "Lead candidate: <bold>{name}</bold>",
+    "website": "Learn more about the party at <link>{url}</link>",
+    "manifesto": "Or read the <link>manifesto</link>"
+  },
+  "theme": {
+    "toggle": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "thinking": {
+    "findSources": "Finding relevant sources...",
+    "analyseSources": "Analysing sources...",
+    "processData": "Processing data...",
+    "generateResults": "Generating results...",
+    "finish": "Finishing..."
+  },
+  "survey": {
+    "title": "👆🏼 Help us improve wahl.chat!",
+    "description": "We'd be really happy if you shared your feedback on this chat and our platform.",
+    "close": "Close",
+    "start": "Start survey"
+  },
+  "sidebar": {
+    "mobileDescription": "Start a new chat or pick up a previous conversation.",
+    "home": "Home",
+    "newChat": "New chat",
+    "support": "Support wahl.chat",
+    "login": "Sign in",
+    "account": "Account",
+    "donate": "Donate",
+    "feedback": "Feedback",
+    "loadingHistory": "Loading history...",
+    "information": "Information",
+    "about": "About wahl.chat",
+    "howTo": "How does wahl.chat work?",
+    "sources": "Sources",
+    "imprint": "Imprint",
+    "privacy": "Privacy",
+    "history": "History",
+    "compareParties": "Compare parties",
+    "swiperTeaser": {
+      "description": "Find the party that suits you.",
+      "cta": "Wahl Swiper"
+    },
+    "tvTeaser": {
+      "missed": "Missed the Quadrell?",
+      "compare": "Compare the topics with us.",
+      "cta": "Current topics"
+    }
+  },
+  "iframe": {
+    "title": "Permission to embed required",
+    "description": "To use wahl.chat in an iFrame, please get in touch with us at <email>info@wahl.chat</email>.",
+    "close": "Close",
+    "contact": "Contact us"
+  },
+  "stickyInput": {
+    "placeholder": "Ask the parties...",
+    "submit": "Send question"
+  },
+  "partyCards": {
+    "selected": "{name} (selected)",
+    "startChatWith": "Start chat with {name}",
+    "selectable": "Parties to choose from",
+    "available": "Available parties",
+    "showFewer": "Show fewer parties",
+    "showMore": "Show more parties",
+    "fewerParties": "Fewer parties",
+    "moreParties": "More parties",
+    "furtherParties": "More parties"
+  },
+  "metadata": {
+    "partyTitle": "Chat with {party} – {election}",
+    "title": "Chat – {election}",
+    "partyDescription": "Ask {party} about its positions and topics for the {election}. Source-based answers on wahl.chat.",
+    "description": "Compare party positions on the {election} in a chat. Source-based answers on wahl.chat."
+  },
+  "error": {
+    "oops": "Oops!",
+    "title": "Something went wrong.",
+    "retry": "Try again"
+  },
+  "store": {
+    "proConFailed": "Couldn't load the pro/contra perspective.",
+    "waitForAnswer": "Please wait until the current answer is complete.",
+    "sessionOutOfSync": "Chat session out of sync",
+    "chatNotReady": "The chat isn't ready yet. Please reload the page.",
+    "answerFailed": "The answer couldn't be loaded. Please try again.",
+    "timeout": "Timed out — the answer was cancelled.",
+    "streamFailed": "An answer couldn't be loaded.",
+    "sessionLoading": "Loading chat session...",
+    "sessionLoaded": "Chat session loaded!",
+    "sessionLoadFailed": "Failed to load chat session",
+    "votingBehaviorFailed": "Couldn't load the voting behaviour."
+  }
+}

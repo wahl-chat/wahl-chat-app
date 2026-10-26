@@ -14,81 +14,45 @@ import {
   DatabaseIcon,
   GitBranch,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+
+const bold = (chunks: React.ReactNode) => (
+  <span className="font-semibold">{chunks}</span>
+);
+
+const privacyLink = (chunks: React.ReactNode) => (
+  <Link href="/datenschutz" className="font-semibold underline">
+    {chunks}
+  </Link>
+);
+
+const POINTS = [
+  { key: 'automated', Icon: CpuIcon },
+  { key: 'notOfficial', Icon: AlertCircleIcon },
+  { key: 'nuance', Icon: GitBranch },
+  { key: 'inaccuracies', Icon: AlertTriangleIcon },
+  { key: 'storage', Icon: DatabaseIcon },
+] as const;
 
 function AiDisclaimerContent() {
+  const t = useTranslations('disclaimer');
+
   return (
     <div className="px-4 pb-4 text-sm text-foreground md:px-0 md:pb-0">
-      <p>
-        Die Antworten auf wahl.chat werden von einer{' '}
-        <span className="font-semibold">künstlichen Intelligenz</span>{' '}
-        generiert. Sie basieren auf Informationen, die aus{' '}
-        <span className="font-semibold">öffentlich zugänglichen Partei-</span>{' '}
-        und <span className="font-semibold">Wahlprogrammen</span> extrahiert
-        wurden. Während wahl.chat bestrebt ist, genaue Informationen über
-        Parteipositionen und -werte zu liefern, gilt:
-      </p>
+      <p>{t.rich('intro', { b: bold })}</p>
 
       <ul className="flex list-inside flex-col gap-4 py-4 *:flex *:items-center *:gap-2">
-        <li>
-          <CpuIcon className="mr-2 size-6 shrink-0" />
-          <span className="inline-block">
-            Die{' '}
-            <span className="font-semibold">Verarbeitung und Generierung</span>{' '}
-            aller Inhalte erfolgt{' '}
-            <span className="font-semibold">automatisiert.</span>
-          </span>
-        </li>
-        <li>
-          <AlertCircleIcon className="mr-2 size-6 shrink-0" />
-          <span className="inline-block">
-            Die Antworten sind{' '}
-            <span className="font-semibold">
-              nicht als offizielle Parteiaussagen
-            </span>{' '}
-            zu verstehen.
-          </span>
-        </li>
-        <li>
-          <GitBranch className="mr-2 size-6 shrink-0" />
-          <span className="inline-block">
-            <span className="font-semibold">
-              Komplexe politische Positionen
-            </span>{' '}
-            können eventuell nicht in allen Nuancen erfasst werden.
-          </span>
-        </li>
-        <li>
-          <AlertTriangleIcon className="mr-2 size-6 shrink-0" />
-          <span className="inline-block">
-            <span className="font-semibold">Ungenauigkeiten</span> oder{' '}
-            <span className="font-semibold">Fehlinterpretationen</span> können
-            gelegentlich auftreten.
-          </span>
-        </li>
-        <li>
-          <DatabaseIcon className="mr-2 size-6 shrink-0" />
-          <span className="inline-block">
-            <span className="font-semibold">
-              Deine Nachrichten werden gespeichert
+        {POINTS.map(({ key, Icon }) => (
+          <li key={key}>
+            <Icon className="mr-2 size-6 shrink-0" />
+            <span className="inline-block">
+              {t.rich(key, { b: bold, link: privacyLink })}
             </span>
-            , um die Antworten zu erzeugen und dir deinen Chatverlauf
-            anzuzeigen. Mehr dazu in der{' '}
-            <Link href="/datenschutz" className="font-semibold underline">
-              Datenschutzerklärung
-            </Link>
-            .
-          </span>
-        </li>
+          </li>
+        ))}
       </ul>
 
-      <p>
-        Dieser KI-Chat dient als{' '}
-        <span className="font-semibold">Bildungswerkzeug</span>, um verschiedene
-        politische Positionen kennenzulernen. Für{' '}
-        <span className="font-semibold">verbindliche Informationen</span> nutzen
-        Sie bitte die{' '}
-        <span className="font-semibold">offiziellen Parteiquellen</span>.
-      </p>
+      <p>{t.rich('outro', { b: bold })}</p>
     </div>
   );
 }
@@ -98,6 +62,8 @@ type Props = {
 };
 
 function AiDisclaimer({ className }: Props) {
+  const t = useTranslations('disclaimer');
+
   return (
     <ResponsiveDialog>
       <p
@@ -106,14 +72,14 @@ function AiDisclaimer({ className }: Props) {
           className,
         )}
       >
-        wahl.chat Antwortet mit KI.{' '}
+        {t('notice')}{' '}
         <ResponsiveDialogTrigger className="font-semibold underline">
-          Erfahre hier mehr.
+          {t('learnMore')}
         </ResponsiveDialogTrigger>
       </p>
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>KI Hinweis</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>{t('title')}</ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
         <AiDisclaimerContent />
       </ResponsiveDialogContent>

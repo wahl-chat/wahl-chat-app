@@ -9,10 +9,21 @@ import type {
   WahlSwiperStore,
   WahlSwiperStoreState,
 } from './wahl-swiper-store.types';
-export const SWIPER_DEFAULT_QUICK_REPLIES = [
-  'Wie ist die aktuelle Lage?',
-  'Was sind Vor- und Nachteile davon?',
-  'Was sind alternative Lösungen?',
+
+/** Message keys under `swiper.input.defaultQuickReplies`. */
+export const SWIPER_DEFAULT_QUICK_REPLY_KEYS = [
+  'currentSituation',
+  'prosAndCons',
+  'alternatives',
+] as const;
+
+/**
+ * Placeholder for a thesis's quick replies until the backend sends its own.
+ * The store cannot translate, so the input recognises this exact array by
+ * reference and renders the localised suggestions in its place.
+ */
+export const SWIPER_DEFAULT_QUICK_REPLIES: string[] = [
+  ...SWIPER_DEFAULT_QUICK_REPLY_KEYS,
 ];
 
 const defaultState: WahlSwiperStoreState = {

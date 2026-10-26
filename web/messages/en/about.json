@@ -1,1 +1,14 @@
-{}
+{
+  "teamImageAlt": "The wahl.chat team",
+  "founders": "The founders of <link>wahl.chat</link>:",
+  "foundersCaption": "(pictured from left to right)",
+  "story": "The founders of wahl.chat are from Munich and originally came together in Cambridge, UK, to do joint research on AI. We're now spread across several countries, but we still share one goal: with wahl.chat, we want to contribute to democracy by making politics more accessible. Based on the parties' manifestos, plenary records and voting behaviour, we offer a simple, source-backed way to get informed – and rethink political education along the way.",
+  "studentTeam": "We're now also getting hands-on support with the technical development of wahl.chat from a team of students from the <link>TUM Social AI</link> club:",
+  "lastName": "and {name}",
+  "thanks": "We'd also like to thank the following people for their support:",
+  "joinTeam": "If you'd like to help, you're very welcome to join the <link>wahl.chat</link> team. Just get in touch at: <email>info@wahl.chat</email>",
+  "thesis": "You can also write a bachelor's or master's thesis with us. The best way is to get in touch with a topic suggestion directly at <email>robin@wahl.chat</email>",
+  "supportTitle": "Support us",
+  "supportDescription": "Help us cover the running costs of the AI!",
+  "donate": "Donate"
+}

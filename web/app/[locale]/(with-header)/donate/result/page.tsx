@@ -8,6 +8,7 @@ import {
 import { Link } from '@/i18n/navigation';
 import { getStripe } from '@/lib/stripe/stripe';
 import { CircleCheckIcon, FrownIcon } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import type Stripe from 'stripe';
 
 async function Page({
@@ -16,6 +17,7 @@ async function Page({
   searchParams: Promise<{ session_id: string }>;
 }) {
   const actualSearchParams = await searchParams;
+  const t = await getTranslations('donate.result');
 
   if (!actualSearchParams.session_id) {
     return <PaymentFailed />;
@@ -39,39 +41,35 @@ async function Page({
     <>
       <CardHeader className="flex flex-col items-center justify-center">
         <CircleCheckIcon className="size-16" />
-        <CardTitle className="pt-4 text-center">
-          Deine Spende war erfolgreich!
-        </CardTitle>
+        <CardTitle className="pt-4 text-center">{t('successTitle')}</CardTitle>
         <CardDescription className="pt-2 text-center">
-          Vielen Dank für deine Unterstützung! Wir werden deine Spende
-          verwenden, um die neutrale und unabhängige Informationen zu
-          ermöglichen.
+          {t('successDescription')}
         </CardDescription>
       </CardHeader>
       <CardFooter>
         <Button className="w-full" asChild>
-          <Link href="/">Zurück zur Startseite</Link>
+          <Link href="/">{t('backHome')}</Link>
         </Button>
       </CardFooter>
     </>
   );
 }
 
-function PaymentFailed() {
+async function PaymentFailed() {
+  const t = await getTranslations('donate.result');
+
   return (
     <>
       <CardHeader className="flex flex-col items-center justify-center">
         <FrownIcon className="size-16" />
-        <CardTitle className="pt-4 text-center">
-          Deine Spende war leider nicht erfolgreich.
-        </CardTitle>
+        <CardTitle className="pt-4 text-center">{t('failedTitle')}</CardTitle>
         <CardDescription className="pt-2 text-center">
-          Bitte versuche es erneut.
+          {t('failedDescription')}
         </CardDescription>
       </CardHeader>
       <CardFooter>
         <Button className="w-full" asChild>
-          <Link href="/donate">Zurück zur Spendenseite</Link>
+          <Link href="/donate">{t('backToDonate')}</Link>
         </Button>
       </CardFooter>
     </>

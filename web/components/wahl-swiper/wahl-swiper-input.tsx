@@ -4,13 +4,17 @@ import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-pro
 import { Button } from '@/components/ui/button';
 import { useIsDesktop } from '@/lib/hooks/use-is-desktop';
 import { cn } from '@/lib/utils';
-import { SWIPER_DEFAULT_QUICK_REPLIES } from '@/lib/wahl-swiper/wahl-swiper-store';
+import {
+  SWIPER_DEFAULT_QUICK_REPLIES,
+  SWIPER_DEFAULT_QUICK_REPLY_KEYS,
+} from '@/lib/wahl-swiper/wahl-swiper-store';
 import {
   ArrowUp,
   ChevronDown,
   MessageCircleMoreIcon,
   XIcon,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   isSticky: boolean;
@@ -23,6 +27,7 @@ function WahlSwiperInput({
   handleToggleExpand,
   handleNewMessage,
 }: Props) {
+  const t = useTranslations('swiper.input');
   const setInput = useWahlSwiperStore((state) => state.setSwiperInput);
   const input = useWahlSwiperStore((state) => {
     const currentThesis = state.getCurrentThesis();
@@ -44,12 +49,18 @@ function WahlSwiperInput({
   });
   const chatIsExpanded = useWahlSwiperStore((state) => state.chatIsExpanded);
   const isDesktop = useIsDesktop();
-  const currentQuickReplies = useWahlSwiperStore((state) => {
+  const storedQuickReplies = useWahlSwiperStore((state) => {
     const currentThesis = state.getCurrentThesis();
     if (!currentThesis) return SWIPER_DEFAULT_QUICK_REPLIES;
 
     return state.currentQuickReplies[currentThesis.id];
   });
+  const currentQuickReplies =
+    storedQuickReplies === SWIPER_DEFAULT_QUICK_REPLIES
+      ? SWIPER_DEFAULT_QUICK_REPLY_KEYS.map((key) =>
+          t(`defaultQuickReplies.${key}`),
+        )
+      : storedQuickReplies;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -95,7 +106,7 @@ function WahlSwiperInput({
               <MessageCircleMoreIcon className="size-3" />
             )}
             <span className="text-xs">
-              Chat {chatIsExpanded ? 'schließen' : 'öffnen'}
+              {chatIsExpanded ? t('closeChat') : t('openChat')}
             </span>
           </button>
         )}
@@ -123,7 +134,7 @@ function WahlSwiperInput({
       <input
         className="w-full bg-chat-input px-12 py-3 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed"
         name="question"
-        placeholder="Frage wahl.chat..."
+        placeholder={t('placeholder')}
         value={input}
         type="text"
         onChange={(e) => setInput(e.target.value)}

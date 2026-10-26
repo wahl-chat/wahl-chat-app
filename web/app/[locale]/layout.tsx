@@ -16,6 +16,7 @@ import 'react-pdf/dist/esm/Page/TextLayer.css';
 import PageVisitProvider from '@/components/providers/page-visit-provider';
 import StudyStatusProvider from '@/components/providers/study-status-provider';
 import TenantProvider from '@/components/providers/tenant-provider';
+import { LOCALES, LOCALE_INFO } from '@/i18n/locales';
 import { routing } from '@/i18n/routing';
 import { TENANT_ID_HEADER } from '@/lib/constants';
 import { socialMediaConfig } from '@/lib/contact-config';
@@ -25,82 +26,62 @@ import {
   BASE_URL,
   ORGANIZATION_ID,
   WEBSITE_ID,
+  localizedUrl,
   productionRobots,
+  resolveLocale,
 } from '@/lib/seo';
 import { IS_EMBEDDED } from '@/lib/utils';
 import { LazyMotion, domAnimation } from 'motion/react';
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
-export const metadata: Metadata = {
-  metadataBase: new URL('https://wahl.chat'),
-  title: {
-    default: 'wahl.chat - Politik interaktiv verstehen',
-    template: '%s | wahl.chat',
-  },
-  description:
-    'Verstehe die Positionen der Parteien zu Bundestags-, Landtags- und Kommunalwahlen. Unterhalte dich bei wahl.chat mit den Programmen der Parteien, stelle Fragen zu deinen Themen und lass Parteipositionen kritisch einordnen.',
-  applicationName: 'wahl.chat',
-  keywords: [
-    'Wahl Chat',
-    'Wahl',
-    'Chat',
-    'AI Wahl Chat',
-    'AI Wahlprogramm',
-    'KI Chat',
-    'KI Wahlprogramm',
-    'Wahlprogramm',
-    'Parteien',
-    'Politik',
-    'Politik verstehen',
-    'Bundestagswahl',
-    'Bundestagswahl 2025',
-    'Landtagswahl',
-    'Kommunalwahl',
-    'Landtagswahl 2026',
-    'Kommunalwahl 2026',
-    'AI',
-    'KI',
-    'Künstliche Intelligenz',
-    'Chatbot',
-    'Chat',
-    'Deutschland',
-    'Deutschlandpolitik',
-    'KI Wahlhilfe',
-    'KI Wahl',
-    'Wahl KI',
-    'Wahlentscheidung Hilfe',
-    'Wahl informieren',
-    'Wahlcheck',
-    'Wahl-o-Mat',
-    'Wahl-o-Mat Alternative',
-  ],
-  robots: productionRobots,
-  openGraph: {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).locale);
+  const t = await getTranslations({ locale, namespace: 'meta' });
+  const title = t('title');
+  const description = t('description');
+
+  return {
+    metadataBase: new URL('https://wahl.chat'),
     title: {
-      default: 'wahl.chat - Politik interaktiv verstehen',
-      template: '%s | wahl.chat - Politik interaktiv verstehen',
+      default: title,
+      template: '%s | wahl.chat',
     },
-    description:
-      'Verstehe die Positionen der Parteien zu Bundestags-, Landtags- und Kommunalwahlen. Unterhalte dich bei wahl.chat mit den Programmen der Parteien, stelle Fragen zu deinen Themen und lass Parteipositionen kritisch einordnen.',
-    images: ['https://wahl.chat/images/logo.webp'],
-    url: 'https://wahl.chat',
-    siteName: 'wahl.chat',
-    locale: 'de-DE',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    site: '@wahl_chat',
-    creator: '@wahl_chat',
-    title: 'wahl.chat - Politik interaktiv verstehen',
-    description:
-      'Verstehe die Positionen der Parteien zu Bundestags-, Landtags- und Kommunalwahlen. Unterhalte dich bei wahl.chat mit den Programmen der Parteien, stelle Fragen zu deinen Themen und lass Parteipositionen kritisch einordnen.',
-    images: ['https://wahl.chat/images/logo.webp'],
-  },
-};
+    description,
+    applicationName: 'wahl.chat',
+    keywords: t('keywords').split(', '),
+    robots: productionRobots,
+    openGraph: {
+      title: {
+        default: title,
+        template: `%s | ${title}`,
+      },
+      description,
+      images: ['https://wahl.chat/images/logo.webp'],
+      url: localizedUrl('/', locale),
+      siteName: 'wahl.chat',
+      locale: LOCALE_INFO[locale].openGraph,
+      alternateLocale: LOCALES.filter((l) => l !== locale).map(
+        (l) => LOCALE_INFO[l].openGraph,
+      ),
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      site: '@wahl_chat',
+      creator: '@wahl_chat',
+      title,
+      description,
+      images: ['https://wahl.chat/images/logo.webp'],
+    },
+  };
+}
 
 export const viewport: Viewport = {
   maximumScale: 1, // Disable auto-zoom on mobile Safari
@@ -142,6 +123,7 @@ export default async function RootLayout({
     notFound();
   }
   setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: 'meta' });
   const headersList = await headers();
   const tenantId = headersList.get(TENANT_ID_HEADER);
   const tenant = await getTenant(tenantId);
@@ -168,8 +150,7 @@ export default async function RootLayout({
                   url: BASE_URL,
                   logo: `${BASE_URL}/images/logo.webp`,
                   email: socialMediaConfig.email.replace('mailto:', ''),
-                  description:
-                    'Politische Informationsplattform – Parteipositionen interaktiv vergleichen.',
+                  description: t('organizationDescription'),
                   // sameAs is how a search engine resolves the brand to a single
                   // entity, which is what decides exact-brand queries.
                   sameAs: [
@@ -186,8 +167,7 @@ export default async function RootLayout({
                   url: BASE_URL,
                   inLanguage: locale,
                   publisher: { '@id': ORGANIZATION_ID },
-                  description:
-                    'Verstehe die Positionen der Parteien zu Bundestags-, Landtags- und Kommunalwahlen.',
+                  description: t('websiteDescription'),
                 },
               ],
             }),

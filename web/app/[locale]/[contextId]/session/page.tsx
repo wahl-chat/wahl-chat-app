@@ -4,7 +4,9 @@ import {
   getContext,
   getPartiesForContext,
 } from '@/lib/firebase/firebase-server';
+import { resolveLocale } from '@/lib/seo';
 import { generateOgImageUrl } from '@/lib/utils';
+import { getTranslations } from 'next-intl/server';
 
 type Props = {
   params: Promise<{
@@ -28,14 +30,18 @@ export async function generateMetadata({
   params,
   searchParams,
 }: {
-  params: Promise<{ contextId: string }>;
+  params: Promise<{ locale: string; contextId: string }>;
   searchParams: Promise<{
     party_id: string[];
     q?: string;
   }>;
 }) {
-  const { contextId } = await params;
+  const { locale, contextId } = await params;
   const { party_id } = await searchParams;
+  const t = await getTranslations({
+    locale: resolveLocale(locale),
+    namespace: 'chat.metadata',
+  });
 
   const [context, parties] = await Promise.all([
     getContext(contextId),
@@ -55,12 +61,12 @@ export async function generateMetadata({
     : undefined;
 
   const title = party
-    ? `Chat mit ${party.name} – ${contextName}`
-    : `Chat – ${contextName}`;
+    ? t('partyTitle', { party: party.name, election: contextName })
+    : t('title', { election: contextName });
 
   const description = party
-    ? `Frage ${party.name} zu Positionen und Themen der ${contextName}. Quellengestützte Antworten bei wahl.chat.`
-    : `Vergleiche Parteipositionen über die ${contextName} im Chat. Quellengestützte Antworten bei wahl.chat.`;
+    ? t('partyDescription', { party: party.name, election: contextName })
+    : t('description', { election: contextName });
 
   const ogImage = partyId ? await generateOgImageUrl(partyId) : undefined;
 

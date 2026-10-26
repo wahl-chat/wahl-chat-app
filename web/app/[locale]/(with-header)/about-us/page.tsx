@@ -1,26 +1,47 @@
 import DonationDialog from '@/components/donation-dialog';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
+import { localeAlternates, resolveLocale } from '@/lib/seo';
 import { HeartHandshakeIcon } from 'lucide-react';
 import type { Metadata } from 'next';
+import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
 
-export const metadata: Metadata = {
-  title: 'Über uns',
-  description:
-    'Das Team hinter wahl.chat – wer wir sind und warum wir Politik interaktiv zugänglich machen.',
-  alternates: {
-    canonical: '/about-us',
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).locale);
+  const t = await getTranslations({ locale, namespace: 'meta.aboutUs' });
+  return {
+    title: t('title'),
+    description: t('description'),
+    alternates: localeAlternates('/about-us', locale),
+  };
+}
+
+const siteLink = (chunks: React.ReactNode) => (
+  <Link href="http://wahl.chat/">{chunks}</Link>
+);
+
+/** The address is also the link text, so the message carries it once. */
+function emailLink(address: string) {
+  return function EmailLink(chunks: React.ReactNode) {
+    return <a href={`mailto:${address}`}>{chunks}</a>;
+  };
+}
 
 function AboutUs() {
+  const t = useTranslations('about');
+
   return (
     <div className="mx-auto flex max-w-xl flex-col items-center justify-center space-y-6 pt-4">
       <div className="relative aspect-[4/3] w-full">
         <Image
           src="/images/team.webp"
-          alt="About Us"
+          alt={t('teamImageAlt')}
           fill
           sizes="(max-width: 768px) 100vw, 75vw"
           className="object-cover"
@@ -29,7 +50,7 @@ function AboutUs() {
       <section className="space-y-4">
         <p>
           <span className="font-bold [&_a]:underline">
-            Die Gründer von <Link href="http://wahl.chat/">wahl.chat</Link>:{' '}
+            {t.rich('founders', { link: siteLink })}{' '}
             <a href="https://www.linkedin.com/in/sebmai/" target="_blank">
               Sebastian
             </a>
@@ -53,51 +74,40 @@ function AboutUs() {
               Roman
             </a>{' '}
           </span>
-          (im Bild von links nach rechts)
+          {t('foundersCaption')}
         </p>
 
-        <p>
-          Die Gründer von wahl.chat stammen aus München und haben sich
-          ursprünglich in Cambridge, UK zur gemeinsamen Forschung an KI
-          zusammengefunden. Mittlerweile sind wir über mehrere Länder verstreut,
-          aber haben weiterhin ein gemeinsames Ziel: Mit wahl.chat möchten wir
-          einen Beitrag zur Demokratie leisten, indem wir Politik leichter
-          zugänglich machen. Basierend auf den Wahlprogrammen, Plenarprotokollen
-          und dem Abstimmungsverhalten der Parteien ermöglichen wir eine
-          einfache, quellengestützte Informationsmöglichkeit mit der wir
-          politische Bildung neu denken.
-        </p>
-        <p>
-          Inzwischen werden wir in der technischen Weiterentwicklung von
-          wahl.chat auch tatkräftig von einem Team aus Studierenden des Vereins
-          <p className="[&_a]:underline">
-            <Link href="https://tum-socialaiclub.de">TUM Social AI</Link>{' '}
-            unterstützt:{' '}
-            <a
-              href="https://www.linkedin.com/in/annika-siefke-424655226/"
-              target="_blank"
-            >
-              Annika
-            </a>
-            ,{' '}
-            <a
-              href="https://www.linkedin.com/in/miquel-camprubi-bonet/"
-              target="_blank"
-            >
-              Miquel
-            </a>
-            ,{' '}
-            <a
-              href="https://www.linkedin.com/in/david-vogenauer/"
-              target="_blank"
-            >
-              David
-            </a>
-            , und Simone.
-          </p>
+        <p>{t('story')}</p>
+        <p className="[&_a]:underline">
+          {t.rich('studentTeam', {
+            link: (chunks) => (
+              <Link href="https://tum-socialaiclub.de">{chunks}</Link>
+            ),
+          })}{' '}
+          <a
+            href="https://www.linkedin.com/in/annika-siefke-424655226/"
+            target="_blank"
+          >
+            Annika
+          </a>
+          ,{' '}
+          <a
+            href="https://www.linkedin.com/in/miquel-camprubi-bonet/"
+            target="_blank"
+          >
+            Miquel
+          </a>
+          ,{' '}
+          <a
+            href="https://www.linkedin.com/in/david-vogenauer/"
+            target="_blank"
+          >
+            David
+          </a>
+          , {t('lastName', { name: 'Simone' })}.
         </p>
         <p className="[&_a]:underline">
-          Zudem bedanken wir uns für ihre Unterstützung bei:{' '}
+          {t('thanks')}{' '}
           <a target="_blank" href="https://www.linkedin.com/in/simonkaran/">
             Simon
           </a>
@@ -133,29 +143,27 @@ function AboutUs() {
           , Mai
         </p>
         <p className="[&_a]:underline">
-          Wenn du uns helfen möchtest, kannst du gerne Teil des{' '}
-          <Link href="http://wahl.chat/">wahl.chat</Link> Teams werden. Melde
-          dich einfach unter: <a href="mailto:info@wahl.chat">info@wahl.chat</a>
+          {t.rich('joinTeam', {
+            link: siteLink,
+            email: emailLink('info@wahl.chat'),
+          })}
         </p>
         <p className="[&_a]:underline">
-          Es besteht auch die Möglichkeit, eine Bachelor- oder Masterarbeit bei
-          uns zu schreiben. Melde dich hierfür am besten mit einem
-          Themenvorschlag direkt bei{' '}
-          <a href="mailto:robin@wahl.chat">robin@wahl.chat</a>
+          {t.rich('thesis', { email: emailLink('robin@wahl.chat') })}
         </p>
 
         <div className="flex items-center justify-between gap-4 rounded-md border border-border p-4">
           <div className="flex flex-col">
-            <h2 className="font-bold">Unterstütze uns</h2>
+            <h2 className="font-bold">{t('supportTitle')}</h2>
             <p className="text-sm text-muted-foreground">
-              Hilf uns, laufende Kosten für die KI zu decken!
+              {t('supportDescription')}
             </p>
           </div>
 
           <DonationDialog>
             <Button>
               <HeartHandshakeIcon />
-              Spenden
+              {t('donate')}
             </Button>
           </DonationDialog>
         </div>

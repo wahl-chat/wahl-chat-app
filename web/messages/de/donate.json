@@ -1,1 +1,30 @@
-{}
+{
+  "dialog": {
+    "title": "Spenden",
+    "description": "Halte wahl.chat mit deiner Spende am Leben!"
+  },
+  "form": {
+    "title": "Halte <link>wahl.chat</link> mit deiner Spende am Leben!",
+    "description": "Wir finanzieren <link>wahl.chat</link> derzeit noch vollständig aus eigener Tasche. Deine Spende hilft uns, dieses Projekt weiter zu betreiben und die Kosten für Server und KI zu decken.",
+    "amount": "<amount></amount> <currency>€</currency>",
+    "oneTime": "einmalige Spende",
+    "peopleInformed": "Menschen informiert",
+    "other": "Andere",
+    "submit": "Jetzt spenden"
+  },
+  "result": {
+    "successTitle": "Deine Spende war erfolgreich!",
+    "successDescription": "Vielen Dank für deine Unterstützung! Wir werden deine Spende verwenden, um die neutrale und unabhängige Informationen zu ermöglichen.",
+    "backHome": "Zurück zur Startseite",
+    "failedTitle": "Deine Spende war leider nicht erfolgreich.",
+    "failedDescription": "Bitte versuche es erneut.",
+    "backToDonate": "Zurück zur Spendenseite"
+  },
+  "budgetSpent": {
+    "title": "Budget aufgebraucht",
+    "explanation": "Da wir uns ausschließlich mit Spenden finanzieren, kann es dazu kommen, dass unser budget aufgebraucht ist.",
+    "invitation": "Wenn du uns unterstützen möchtest, kannst du uns gerne spenden.",
+    "supportUs": "Unterstütze uns"
+  },
+  "productName": "wahl.chat Spende"
+}

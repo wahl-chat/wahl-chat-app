@@ -1,7 +1,30 @@
+import { LOCALES } from '@/i18n/locales';
 import { isUpcomingElection } from '@/lib/elections';
 import { getContexts } from '@/lib/firebase/firebase-server';
-import { BASE_URL } from '@/lib/seo';
+import { localizedUrl } from '@/lib/seo';
 import type { MetadataRoute } from 'next';
+
+type SitemapEntry = MetadataRoute.Sitemap[number];
+type PageEntry = Omit<SitemapEntry, 'url' | 'alternates'> & { path: string };
+
+/**
+ * One entry per language version, each listing every version (itself
+ * included) as an alternate — the shape search engines expect for hreflang in
+ * a sitemap.
+ */
+function withLanguageVersions({
+  path,
+  ...rest
+}: PageEntry): MetadataRoute.Sitemap {
+  const languages = Object.fromEntries(
+    LOCALES.map((locale) => [locale, localizedUrl(path, locale)]),
+  );
+  return LOCALES.map((locale) => ({
+    ...rest,
+    url: localizedUrl(path, locale),
+    alternates: { languages },
+  }));
+}
 
 // Without this the route is prerendered at build time (confirmed: the build
 // marks /sitemap.xml as Static), so a newly seeded election would not appear
@@ -23,29 +46,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Only indexable pages belong here. /topics is deliberately excluded: it is
   // context-less and not tied to a current election. The swiper, session, share
   // and agent routes are noindex by design and must never be listed.
-  const staticPages: MetadataRoute.Sitemap = [
-    { url: BASE_URL, lastModified: now, changeFrequency: 'daily', priority: 1 },
+  const staticPages: PageEntry[] = [
+    { path: '/', lastModified: now, changeFrequency: 'daily', priority: 1 },
     {
-      url: `${BASE_URL}/chat`,
+      path: '/chat',
       lastModified: now,
       changeFrequency: 'daily',
       priority: 0.9,
     },
     {
-      url: `${BASE_URL}/how-to`,
+      path: '/how-to',
       lastModified: now,
       changeFrequency: 'monthly',
       priority: 0.6,
     },
     {
-      url: `${BASE_URL}/about-us`,
+      path: '/about-us',
       lastModified: now,
       changeFrequency: 'monthly',
       priority: 0.5,
     },
   ];
 
-  const contextPages: MetadataRoute.Sitemap = [];
+  const contextPages: PageEntry[] = [];
 
   for (const context of contexts) {
     const id = context.context_id;
@@ -57,19 +80,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const priority = isUpcoming ? 0.9 : 0.4;
 
     contextPages.push({
-      url: `${BASE_URL}/${id}`,
+      path: `/${id}`,
       lastModified: now,
       changeFrequency,
       priority,
     });
 
     contextPages.push({
-      url: `${BASE_URL}/${id}/sources`,
+      path: `/${id}/sources`,
       lastModified: now,
       changeFrequency: isUpcoming ? 'weekly' : 'yearly',
       priority: isUpcoming ? 0.7 : 0.3,
     });
   }
 
-  return [...staticPages, ...contextPages];
+  return [...staticPages, ...contextPages].flatMap(withLanguageVersions);
 }

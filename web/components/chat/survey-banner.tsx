@@ -10,9 +10,11 @@ import { FilloutPopupEmbed } from '@fillout/react';
 import { track } from '@vercel/analytics/react';
 import { Timestamp } from 'firebase/firestore';
 import { MessageCircleHeartIcon, XIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 function SurveyBanner() {
+  const t = useTranslations('chat.survey');
   const sessionId = useChatStore((state) => state.chatSessionId);
   const studyRunning = useStudyRunning();
   const [open, setOpen] = useState(false);
@@ -94,26 +96,22 @@ function SurveyBanner() {
   return (
     <div className="flex flex-col gap-2 rounded-lg bg-muted p-4 group-data-[has-message-background]:mx-4 group-data-[has-message-background]:mb-4 group-data-[has-message-background]:bg-zinc-200 group-data-[has-message-background]:dark:bg-zinc-800">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold">
-          👆🏼 Hilf uns, wahl.chat zu verbessern!
-        </h2>
+        <h2 className="text-sm font-bold">{t('title')}</h2>
 
         <Button
           size="icon"
           variant="ghost"
           className="size-6"
           onClick={handleForceCloseSurvey}
+          aria-label={t('close')}
         >
           <XIcon />
         </Button>
       </div>
-      <p className="text-sm text-muted-foreground">
-        Wir würden uns sehr freuen, wenn du uns dein Feedback zu diesem Chat und
-        unserer Plattform teilst.
-      </p>
+      <p className="text-sm text-muted-foreground">{t('description')}</p>
       <Button size="sm" variant="default" onClick={() => setOpen(true)}>
         <MessageCircleHeartIcon />
-        Umfrage starten
+        {t('start')}
       </Button>
       {open && (
         <FilloutPopupEmbed

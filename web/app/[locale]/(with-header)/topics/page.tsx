@@ -1,5 +1,6 @@
 import TopicsFilterableList from '@/components/topics/topics-filterable-list';
 import { Button } from '@/components/ui/button';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { Link } from '@/i18n/navigation';
 import {
   getExampleQuestionsShareableChatSession,
@@ -8,18 +9,29 @@ import {
 import { buildPartyImageUrl } from '@/lib/utils';
 import { ArrowLeftIcon } from 'lucide-react';
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
 
-export const metadata: Metadata = {
-  title: 'Beliebte Themen',
-  description:
-    'Entdecke beliebte politische Themen und Fragen – vergleiche die Positionen der Parteien bei wahl.chat.',
-  // Context-less and built around federal parties, so it is not tied to a
-  // current election and should not surface for election queries.
-  robots: 'noindex',
+type Props = {
+  params: Promise<{ locale: string }>;
 };
 
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale: requested } = await params;
+  const locale = isLocale(requested) ? requested : DEFAULT_LOCALE;
+  const t = await getTranslations({ locale, namespace: 'topicsPage' });
+
+  return {
+    title: t('meta.title'),
+    description: t('meta.description'),
+    // Context-less and built around federal parties, so it is not tied to a
+    // current election and should not surface for election queries.
+    robots: 'noindex',
+  };
+}
+
 async function TopicsPage() {
+  const t = await getTranslations('topicsPage');
   const exampleQuestionsShareableChatSessions =
     await getExampleQuestionsShareableChatSession();
   const allParties = await getParties();
@@ -33,7 +45,7 @@ async function TopicsPage() {
       <Button variant="link" asChild className="mt-4 px-0">
         <Link href="/">
           <ArrowLeftIcon className="size-4" />
-          Zur Startseite
+          {t('backToHome')}
         </Link>
       </Button>
 
@@ -57,11 +69,8 @@ async function TopicsPage() {
         ))}
       </div>
 
-      <h1 className="mt-4 text-2xl font-bold">Fragen zu beliebten Themen</h1>
-      <p className="text-sm text-muted-foreground">
-        Hier findest du Fragen zu den beliebten Themen der Parteien. Klicke auf
-        eine Frage um Details zu sehen.
-      </p>
+      <h1 className="mt-4 text-2xl font-bold">{t('heading')}</h1>
+      <p className="text-sm text-muted-foreground">{t('description')}</p>
 
       <TopicsFilterableList
         exampleQuestionsShareableChatSessions={

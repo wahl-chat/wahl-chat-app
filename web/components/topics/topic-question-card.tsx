@@ -3,14 +3,6 @@ import type { ExampleQuestionShareableChatSession } from '@/lib/firebase/firebas
 import { InternalReferrers } from '@/lib/internal-referrers';
 import { useMemo } from 'react';
 import TopicTag from './topic-tag';
-import type { Topic } from './topics.data';
-
-export type Question = {
-  id: string;
-  question: string;
-  title: string;
-  topic: Topic;
-};
 
 type Props = {
   exampleQuestionShareableChatSession: ExampleQuestionShareableChatSession;

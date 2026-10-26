@@ -9,5 +9,10 @@
   "imprint": "Legal notice",
   "privacy": "Privacy policy",
   "sources": "Sources",
-  "toElection": "Go to {name}"
+  "toElection": "Go to {name}",
+  "supportUs": "Support us",
+  "login": "Log in",
+  "openMenu": "Open menu",
+  "menuTitle": "Menu",
+  "menuDescription": "wahl.chat navigation"
 }

@@ -19,9 +19,11 @@ import {
   buildContextCanonical,
   buildContextJsonLd,
   buildContextMetadata,
+  resolveLocale,
 } from '@/lib/seo';
 import { buildPartyImageUrl } from '@/lib/utils';
 import type { Metadata } from 'next';
+import { getLocale, getTranslations } from 'next-intl/server';
 import Image from 'next/image';
 
 type Props = {
@@ -33,26 +35,31 @@ type Props = {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ contextId: string }>;
+  params: Promise<{ locale: string; contextId: string }>;
 }): Promise<Metadata> {
-  const { contextId } = await params;
+  const { locale: localeParam, contextId } = await params;
+  const locale = resolveLocale(localeParam);
+  const t = await getTranslations({ locale, namespace: 'sources.page' });
   const context = await getContext(contextId);
 
   if (!context) {
-    return { title: 'Quellen' };
+    return { title: t('metaTitle') };
   }
 
   return {
     ...buildContextMetadata(context, {
-      pageSuffix: 'Quellen',
+      pageSuffix: t('metaTitle'),
       path: 'sources',
+      locale,
     }),
-    ...buildContextCanonical(contextId, 'sources'),
+    ...buildContextCanonical(contextId, 'sources', locale),
   };
 }
 
 async function SourcesPage({ params }: Props) {
   const { contextId } = await params;
+  const t = await getTranslations('sources.page');
+  const locale = resolveLocale(await getLocale());
 
   const [sources, parties, context] = await Promise.all([
     getSourceDocumentsForContext(contextId),
@@ -71,20 +78,19 @@ async function SourcesPage({ params }: Props) {
 
   return (
     <article>
-      {context && <JsonLd data={buildContextJsonLd(context, 'sources')} />}
+      {context && (
+        <JsonLd data={buildContextJsonLd(context, 'sources', locale)} />
+      )}
 
       <div className="mt-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
         <h1 className="text-xl font-bold md:text-2xl">
-          <span className="underline">wahl.chat&apos;s</span> Quellen
-          {context ? ' für:' : ''}
+          {t.rich(context ? 'titleForContext' : 'title', {
+            u: (chunks) => <span className="underline">{chunks}</span>,
+          })}
         </h1>
         {context && <SourcesContextBadge context={context} />}
       </div>
-      <p className="mb-2 mt-4 text-sm text-muted-foreground">
-        Diese Quellen nutzt unsere KI für die allgemeinen Antworten. Für das
-        Einordnen von Positionen verwenden wir Perplexity.ai, welches sich auf
-        aktuelle Informationen aus dem Internet stützt.
-      </p>
+      <p className="mb-2 mt-4 text-sm text-muted-foreground">{t('intro')}</p>
       <Accordion type="single" collapsible asChild>
         <section>
           {Object.entries(sourcesByPartyId).map(([partyId, sources]) => {

@@ -1,12 +1,21 @@
 import { Card } from '@/components/ui/card';
+import { resolveLocale } from '@/lib/seo';
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 
-export const metadata: Metadata = {
-  title: 'Spenden',
-  description:
-    'Unterstütze wahl.chat mit einer Spende – hilf uns, laufende Kosten für die KI zu decken.',
-  robots: 'noindex',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).locale);
+  const t = await getTranslations({ locale, namespace: 'meta.donate' });
+  return {
+    title: t('title'),
+    description: t('description'),
+    robots: 'noindex',
+  };
+}
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (

@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
 import { GraduationCapIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 const OPEN_CALL_PATH =
   'public/additional_documents/hiring/WahlChatOpenCall.pdf';
@@ -38,20 +39,21 @@ export async function getAvailableOpenCallUrl(): Promise<string | null> {
 }
 
 function OpenCallCard({ url }: { url: string }) {
+  const t = useTranslations('home.openCallCard');
+
   return (
     <div className="flex flex-col rounded-md border border-border">
       <div className="flex grow flex-col justify-between p-4">
         <div>
-          <h2 className="font-bold">Masterarbeiten mit Impact</h2>
+          <h2 className="font-bold">{t('title')}</h2>
           <p className="mb-4 text-sm text-muted-foreground">
-            Erforsche politische Transparenz und Fact-Checking zusammen mit Open
-            Parliament TV und der University of Cambridge. Bewirb dich jetzt!
+            {t('description')}
           </p>
         </div>
         <Button asChild variant="secondary" className="w-full">
           <Link href={url} target="_blank" rel="noopener noreferrer">
             <GraduationCapIcon className="size-5" />
-            Open Call
+            {t('button')}
           </Link>
         </Button>
       </div>

@@ -11,6 +11,7 @@ import {
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { IS_EMBEDDED } from '@/lib/utils';
 import { HelpCircleIcon } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import ChatEmbedHeader from './chat-embed-header';
 import ChatHeaderTitleDescription from './chat-header-title-description';
 import ChatShareButton from './chat-share-button';
@@ -25,6 +26,8 @@ async function ChatHeader({ contextId = DEFAULT_CONTEXT_ID }: Props) {
     return <ChatEmbedHeader />;
   }
 
+  const t = await getTranslations('chat.header');
+
   return (
     <header className="relative z-10 flex min-h-chat-header w-full flex-col">
       <div className="flex h-chat-header w-full gap-1 border-b border-b-muted bg-background px-4">
@@ -33,7 +36,7 @@ async function ChatHeader({ contextId = DEFAULT_CONTEXT_ID }: Props) {
             <TooltipTrigger asChild>
               <SidebarTrigger />
             </TooltipTrigger>
-            <TooltipContent>Menü öffnen</TooltipContent>
+            <TooltipContent>{t('openMenu')}</TooltipContent>
           </Tooltip>
           <ChatHeaderTitleDescription />
         </div>

@@ -6,7 +6,7 @@ import {
   getContexts,
   getPartiesForContext,
 } from '@/lib/firebase/firebase-server';
-import { buildContextMetadata } from '@/lib/seo';
+import { buildContextMetadata, resolveLocale } from '@/lib/seo';
 import { shuffleArray } from '@/lib/utils';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -25,9 +25,9 @@ type Props = {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ contextId: string }>;
+  params: Promise<{ locale: string; contextId: string }>;
 }): Promise<Metadata> {
-  const { contextId } = await params;
+  const { locale, contextId } = await params;
   const context = await getContext(contextId);
 
   if (!context) {
@@ -35,7 +35,7 @@ export async function generateMetadata({
     return { robots: 'noindex, nofollow' };
   }
 
-  return buildContextMetadata(context);
+  return buildContextMetadata(context, { locale: resolveLocale(locale) });
 }
 
 async function ContextLayout({ children, params }: Props) {

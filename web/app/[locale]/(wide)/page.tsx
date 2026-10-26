@@ -3,30 +3,41 @@ import { getLocalPreviewDigests } from '@/lib/daily/local-preview';
 import { parseStateParam } from '@/lib/daily/region';
 import { parseTopicsParam } from '@/lib/daily/topics';
 import { getParliamentFeed } from '@/lib/firebase/firebase-server';
-import { BASE_URL, productionRobots } from '@/lib/seo';
+import {
+  localeAlternates,
+  localizedUrl,
+  productionRobots,
+  resolveLocale,
+} from '@/lib/seo';
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 
-const TITLE = 'Dein Parlament kompakt – wahl.chat';
-const DESCRIPTION =
-  'Abstimmungen und Debatten aus Bundestag und Landtag, Tag für Tag und nach Themen gefiltert. Mit Quellen, präsentiert von wahl.chat.';
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).locale);
+  const t = await getTranslations({ locale, namespace: 'meta.feed' });
+  const title = t('title');
+  const description = t('description');
 
-export const metadata: Metadata = {
-  title: { absolute: TITLE },
-  description: DESCRIPTION,
-  robots: productionRobots,
-  alternates: {
-    canonical: '/',
-  },
-  openGraph: {
-    title: TITLE,
-    description: DESCRIPTION,
-    url: BASE_URL,
-  },
-  twitter: {
-    title: TITLE,
-    description: DESCRIPTION,
-  },
-};
+  return {
+    title: { absolute: title },
+    description,
+    robots: productionRobots,
+    alternates: localeAlternates('/', locale),
+    openGraph: {
+      title,
+      description,
+      url: localizedUrl('/', locale),
+    },
+    twitter: {
+      title,
+      description,
+    },
+  };
+}
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

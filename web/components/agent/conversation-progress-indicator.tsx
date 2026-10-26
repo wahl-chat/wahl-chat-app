@@ -9,9 +9,26 @@ import {
 import {
   CONVERSATION_STAGES,
   type ConversationStage,
-  STAGE_LABELS,
 } from '@/lib/stores/agent-store';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
+
+// Stage ids are the backend's snake_case values; message keys are camelCase.
+const STAGE_MESSAGE_KEYS = {
+  start: 'start',
+  active_listening: 'activeListening',
+  party_positioning: 'partyPositioning',
+  perspective_taking: 'perspectiveTaking',
+  deliberation: 'deliberation',
+  party_matching: 'partyMatching',
+  end: 'end',
+} as const satisfies Record<ConversationStage, string>;
+
+const STATUS_MESSAGE_KEYS = {
+  completed: 'statusCompleted',
+  current: 'statusCurrent',
+  upcoming: 'statusUpcoming',
+} as const;
 
 function getStageStatus(
   stage: ConversationStage,
@@ -26,6 +43,7 @@ function getStageStatus(
 }
 
 export default function ConversationProgressIndicator() {
+  const t = useTranslations('agent.progress');
   const conversationId = useAgentStore((state) => state.conversationId);
   const conversationStage = useAgentStore((state) => state.conversationStage);
 
@@ -33,22 +51,20 @@ export default function ConversationProgressIndicator() {
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <span className="text-xs text-muted-foreground">Fortschritt</span>
+      <span className="text-xs text-muted-foreground">{t('label')}</span>
       <div className="flex items-center gap-1.5">
         {CONVERSATION_STAGES.map((stage) => {
           const status = getStageStatus(stage, conversationStage);
-          const statusLabel =
-            status === 'completed'
-              ? 'abgeschlossen'
-              : status === 'current'
-                ? 'aktuell'
-                : 'bevorstehend';
+          const stageLabel = t(`stages.${STAGE_MESSAGE_KEYS[stage]}`);
           return (
             <Tooltip key={stage}>
               <TooltipTrigger asChild>
                 <div
                   role="status"
-                  aria-label={`${STAGE_LABELS[stage]} - ${statusLabel}`}
+                  aria-label={t('stageStatus', {
+                    stage: stageLabel,
+                    status: t(STATUS_MESSAGE_KEYS[status]),
+                  })}
                   className={cn(
                     'h-2 w-4 rounded-full transition-all duration-300',
                     status === 'completed' && 'bg-primary',
@@ -59,7 +75,7 @@ export default function ConversationProgressIndicator() {
                 />
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
-                {STAGE_LABELS[stage]}
+                {stageLabel}
               </TooltipContent>
             </Tooltip>
           );

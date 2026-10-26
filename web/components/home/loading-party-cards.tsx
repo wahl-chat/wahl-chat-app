@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   partyCount: number;
@@ -7,13 +8,15 @@ type Props = {
 };
 
 function LoadingPartyCards({ partyCount, className, gridColumns }: Props) {
+  const t = useTranslations('home');
+
   return (
     <section
       className={cn('grid w-full gap-2', className)}
       style={{
         gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
       }}
-      aria-label="Parteien werden geladen"
+      aria-label={t('loadingParties')}
       aria-busy="true"
     >
       {Array.from({ length: partyCount }).map((_, index) => (

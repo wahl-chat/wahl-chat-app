@@ -1,1 +1,30 @@
-{}
+{
+  "dialog": {
+    "title": "Donate",
+    "description": "Keep wahl.chat alive with your donation!"
+  },
+  "form": {
+    "title": "Keep <link>wahl.chat</link> alive with your donation!",
+    "description": "We currently still fund <link>wahl.chat</link> entirely out of our own pockets. Your donation helps us keep this project running and cover the costs of servers and AI.",
+    "amount": "<currency>€</currency><amount></amount>",
+    "oneTime": "one-off donation",
+    "peopleInformed": "people informed",
+    "other": "Other",
+    "submit": "Donate now"
+  },
+  "result": {
+    "successTitle": "Your donation was successful!",
+    "successDescription": "Thank you so much for your support! We'll use your donation to keep providing neutral and independent information.",
+    "backHome": "Back to the home page",
+    "failedTitle": "Unfortunately, your donation didn't go through.",
+    "failedDescription": "Please try again.",
+    "backToDonate": "Back to the donation page"
+  },
+  "budgetSpent": {
+    "title": "Budget used up",
+    "explanation": "As we're funded entirely by donations, our budget can sometimes run out.",
+    "invitation": "If you'd like to support us, you're very welcome to donate.",
+    "supportUs": "Support us"
+  },
+  "productName": "wahl.chat donation"
+}

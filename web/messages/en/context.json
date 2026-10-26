@@ -1,1 +1,9 @@
-{}
+{
+  "switcher": {
+    "title": "Switch election?",
+    "descriptionWithTarget": "You're switching to <name>{election}</name>. {area, select, swiper {This will leave the current Wahl-Swiper and take you to the Wahl-Swiper for that election.} other {This will leave the current chat and take you to the home page.}}",
+    "description": "{area, select, swiper {This will leave the current Wahl-Swiper and take you to the Wahl-Swiper for that election.} other {This will leave the current chat and take you to the home page.}}",
+    "cancel": "Cancel",
+    "confirm": "Switch election"
+  }
+}

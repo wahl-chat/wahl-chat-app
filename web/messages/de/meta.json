@@ -1,1 +1,34 @@
-{}
+{
+  "title": "wahl.chat - Politik interaktiv verstehen",
+  "description": "Verstehe die Positionen der Parteien zu Bundestags-, Landtags- und Kommunalwahlen. Unterhalte dich bei wahl.chat mit den Programmen der Parteien, stelle Fragen zu deinen Themen und lass Parteipositionen kritisch einordnen.",
+  "keywords": "Wahl Chat, Wahl, Chat, AI Wahl Chat, AI Wahlprogramm, KI Chat, KI Wahlprogramm, Wahlprogramm, Parteien, Politik, Politik verstehen, Bundestagswahl, Bundestagswahl 2025, Landtagswahl, Kommunalwahl, Landtagswahl 2026, Kommunalwahl 2026, AI, KI, Künstliche Intelligenz, Chatbot, Chat, Deutschland, Deutschlandpolitik, KI Wahlhilfe, KI Wahl, Wahl KI, Wahlentscheidung Hilfe, Wahl informieren, Wahlcheck, Wahl-o-Mat, Wahl-o-Mat Alternative",
+  "organizationDescription": "Politische Informationsplattform – Parteipositionen interaktiv vergleichen.",
+  "websiteDescription": "Verstehe die Positionen der Parteien zu Bundestags-, Landtags- und Kommunalwahlen.",
+  "feed": {
+    "title": "Dein Parlament kompakt – wahl.chat",
+    "description": "Abstimmungen und Debatten aus Bundestag und Landtag, Tag für Tag und nach Themen gefiltert. Mit Quellen, präsentiert von wahl.chat."
+  },
+  "context": {
+    "title": "{name} – Parteipositionen im Chat vergleichen",
+    "pageTitle": "{page} – {name}",
+    "descriptionWithDate": "Vergleiche die Positionen der Parteien zur {name} am {date}. Stelle Fragen und erhalte quellengestützte Antworten.",
+    "descriptionWithoutDate": "Vergleiche die Positionen der Parteien in {location}. Stelle Fragen zu politischen Themen und erhalte quellengestützte Antworten.",
+    "jsonLdDescriptionWithDate": "Parteipositionen für {name} in {location} am {date} vergleichen.",
+    "jsonLdDescriptionWithoutDate": "Parteipositionen in {location} vergleichen."
+  },
+  "login": {
+    "title": "Login"
+  },
+  "donate": {
+    "title": "Spenden",
+    "description": "Unterstütze wahl.chat mit einer Spende – hilf uns, laufende Kosten für die KI zu decken."
+  },
+  "budgetSpent": {
+    "title": "Budget aufgebraucht",
+    "description": "Das Budget von wahl.chat ist derzeit aufgebraucht. Unterstütze uns mit einer Spende."
+  },
+  "aboutUs": {
+    "title": "Über uns",
+    "description": "Das Team hinter wahl.chat – wer wir sind und warum wir Politik interaktiv zugänglich machen."
+  }
+}

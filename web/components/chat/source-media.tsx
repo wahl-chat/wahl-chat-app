@@ -6,11 +6,10 @@ import type { Source } from '@/lib/stores/chat-store.types';
 import {
   type SourceMediaLink,
   cn,
-  formatGermanDate,
+  formatDate,
   getSourceMediaLinks,
   isPdfUrl,
   pdfViewerFileUrl,
-  sourceBadgeLabel,
   videoTimestampSeconds,
 } from '@/lib/utils';
 import {
@@ -20,6 +19,7 @@ import {
   Loader2Icon,
   PlayIcon,
 } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 
@@ -136,6 +136,7 @@ export function SourceMediaViewer({
   media: ActiveMedia;
   onBack: () => void;
 }) {
+  const t = useTranslations('sources.viewer');
   const backRef = useRef<HTMLButtonElement>(null);
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -166,7 +167,7 @@ export function SourceMediaViewer({
           onClick={onBack}
         >
           <ArrowLeftIcon className="size-4" />
-          Zurück
+          {t('back')}
         </Button>
         <span
           title={media.title}
@@ -183,7 +184,7 @@ export function SourceMediaViewer({
         >
           <a href={externalHref} target="_blank" rel="noopener noreferrer">
             <ExternalLinkIcon className="size-4" />
-            <span className="hidden sm:inline">Neuer Tab</span>
+            <span className="hidden sm:inline">{t('newTab')}</span>
           </a>
         </Button>
       </div>
@@ -192,13 +193,11 @@ export function SourceMediaViewer({
       <div className="relative flex h-[72vh] items-center justify-center bg-muted">
         {failed ? (
           <div className="flex flex-col items-center gap-3 p-6 text-center">
-            <p className="text-sm text-foreground">
-              Dieser Beleg konnte hier nicht geladen werden.
-            </p>
+            <p className="text-sm text-foreground">{t('loadFailed')}</p>
             <Button asChild type="button" variant="default" size="sm">
               <a href={externalHref} target="_blank" rel="noopener noreferrer">
                 <ExternalLinkIcon className="mr-1 size-4" />
-                In neuem Tab öffnen
+                {t('openInNewTab')}
               </a>
             </Button>
           </div>
@@ -210,7 +209,7 @@ export function SourceMediaViewer({
             {!loaded && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
                 <Loader2Icon className="size-6 animate-spin" />
-                <span className="text-sm">Beleg wird geladen …</span>
+                <span className="text-sm">{t('loading')}</span>
               </div>
             )}
             {media.kind === 'video' ? (
@@ -264,7 +263,14 @@ export function SourceRow({
   badgeClassName?: string;
   onOpenMedia: (media: ActiveMedia) => void;
 }) {
+  const t = useTranslations('sources.row');
+  const locale = useLocale();
   const links = getSourceMediaLinks(source);
+  // A video's badge is its timestamp label; everything else cites a page.
+  const badgeLabel =
+    links[0]?.kind === 'video'
+      ? links[0].label
+      : t('pageBadge', { page: source.page });
 
   const open = (link: SourceMediaLink) => {
     const resolved = resolveMediaOpen(link, source);
@@ -298,10 +304,10 @@ export function SourceRow({
       </div>
       {source.document_publish_date && (
         <span className="text-left text-xs text-muted-foreground">
-          Veröffentlicht am:{' '}
-          <span className="font-bold">
-            {formatGermanDate(source.document_publish_date)}
-          </span>
+          {t.rich('publishedOn', {
+            date: formatDate(source.document_publish_date, locale) ?? '',
+            bold: (chunks) => <span className="font-bold">{chunks}</span>,
+          })}
         </span>
       )}
     </div>
@@ -331,12 +337,12 @@ export function SourceRow({
               onClick={() => open(link)}
               aria-label={
                 link.kind === 'video'
-                  ? `Video ansehen${
-                      videoTimestampSeconds(link.url) !== null
-                        ? ` ab ${link.label.replace('▶ ', '')}`
-                        : ''
-                    }`
-                  : 'PDF-Transkript ansehen'
+                  ? videoTimestampSeconds(link.url) !== null
+                    ? t('watchVideoFrom', {
+                        time: link.label.replace('▶ ', ''),
+                      })
+                    : t('watchVideo')
+                  : t('viewTranscript')
               }
             >
               {link.kind === 'video' ? (
@@ -365,7 +371,7 @@ export function SourceRow({
       {titleBlock}
       <div className="flex shrink-0 items-center gap-1.5">
         <span className="flex h-8 items-center justify-center whitespace-nowrap rounded-md bg-muted px-2 text-xs font-medium text-foreground">
-          {sourceBadgeLabel(source)}
+          {badgeLabel}
         </span>
         {source.party_id && <ChatMessageIcon partyId={source.party_id} />}
       </div>

@@ -6,12 +6,14 @@ import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-pro
 import { useRouter } from '@/i18n/navigation';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { captureProlificParams } from '@/lib/prolific-study/prolific-metadata';
+import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import SwipingCards from './swiping-cards';
 
 function WahlSwiper() {
+  const t = useTranslations('swiper.swiper');
   const [isLoading, setIsLoading] = useState(false);
   const finished = useWahlSwiperStore(
     (state) => state.thesesStack.length === 0,
@@ -37,10 +39,7 @@ function WahlSwiper() {
   }, []);
 
   const handleFinished = useCallback(async () => {
-    const errorToast = () =>
-      toast.error(
-        'Fehler beim Berechnen deiner Ergebnisse. Bitte lade die Seite neu.',
-      );
+    const errorToast = () => toast.error(t('resultsError'));
 
     if (!user) {
       errorToast();
@@ -59,7 +58,7 @@ function WahlSwiper() {
       errorToast();
       setIsLoading(false);
     }
-  }, [user, router, saveSwiperHistory, contextId]);
+  }, [user, router, saveSwiperHistory, contextId, t]);
 
   useEffect(() => {
     if (finished) {
@@ -75,9 +74,7 @@ function WahlSwiper() {
     return (
       <div className="mx-auto mt-8 flex min-h-[calc(100vh-var(--header-height)-var(--footer-height))] w-full grow flex-col items-center justify-center gap-2">
         <LoadingSpinner />
-        <p className="text-muted-foreground">
-          Wir berechnen deine Ergebnisse...
-        </p>
+        <p className="text-muted-foreground">{t('calculating')}</p>
       </div>
     );
   }

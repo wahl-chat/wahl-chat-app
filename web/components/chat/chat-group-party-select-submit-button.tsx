@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { useRouter } from '@/i18n/navigation';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
+import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
 import { ResponsiveDialogClose } from './responsive-drawer-dialog';
 
@@ -17,6 +18,7 @@ function ChatGroupPartySelectSubmitButton({
   addPartiesToChat,
   contextId = DEFAULT_CONTEXT_ID,
 }: Props) {
+  const t = useTranslations('chat.partySelect');
   const router = useRouter();
 
   const navigateUrl = useMemo(() => {
@@ -40,7 +42,7 @@ function ChatGroupPartySelectSubmitButton({
   return (
     <ResponsiveDialogClose asChild>
       <Button className="w-full" onClick={handleSubmit}>
-        {addPartiesToChat ? 'Parteien ändern' : 'Vergleichschat starten'}
+        {addPartiesToChat ? t('submitChange') : t('submitStart')}
       </Button>
     </ResponsiveDialogClose>
   );

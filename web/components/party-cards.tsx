@@ -5,6 +5,7 @@ import { useElectionContext } from '@/components/providers/context-provider';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { CircleXIcon, EllipsisIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import Logo from './chat/logo';
 import { Button } from './ui/button';
@@ -35,6 +36,7 @@ function PartyCards({
   showWahlChatButton = false,
   contextId,
 }: Props) {
+  const t = useTranslations('chat.partyCards');
   const { parties } = useElectionContext();
 
   // Sort parties: parliament parties first, then non-parliament
@@ -69,9 +71,7 @@ function PartyCards({
     return null;
   }
 
-  const sectionLabel = selectable
-    ? 'Parteien zur Auswahl'
-    : 'Verfügbare Parteien';
+  const sectionLabel = selectable ? t('selectable') : t('available');
 
   return (
     <Collapsible open={showMore} onOpenChange={setShowMore} asChild>
@@ -96,7 +96,7 @@ function PartyCards({
             <Link
               href={`/${contextId}/session`}
               onClick={() => onPartyClicked?.('wahl.chat')}
-              aria-label="Chat mit wahl.chat starten"
+              aria-label={t('startChatWith', { name: 'wahl.chat' })}
             >
               <Logo className="!size-10" aria-hidden="true" />
             </Link>
@@ -125,11 +125,7 @@ function PartyCards({
                   'text-xs md:text-sm gap-1 md:gap-2',
                 )}
                 aria-expanded={showMore}
-                aria-label={
-                  showMore
-                    ? 'Weniger Parteien anzeigen'
-                    : 'Mehr Parteien anzeigen'
-                }
+                aria-label={showMore ? t('showFewer') : t('showMore')}
               >
                 {showMore ? (
                   <CircleXIcon className="size-4" aria-hidden="true" />
@@ -137,7 +133,7 @@ function PartyCards({
                   <EllipsisIcon className="size-4" aria-hidden="true" />
                 )}
                 {gridColumns >= 4 &&
-                  `${showMore ? 'Weniger' : 'Mehr'} Parteien`}
+                  (showMore ? t('fewerParties') : t('moreParties'))}
               </Button>
             </CollapsibleTrigger>
 
@@ -149,7 +145,7 @@ function PartyCards({
                   gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
                 }}
                 role="group"
-                aria-label="Weitere Parteien"
+                aria-label={t('furtherParties')}
               >
                 {remainingParties.map((party) => (
                   <PartyCard

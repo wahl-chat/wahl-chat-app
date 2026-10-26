@@ -13,6 +13,7 @@ import {
 import { saveConversationId } from '@/lib/agent/conversation-storage';
 import type { Source } from '@/lib/stores/chat-store.types';
 import { CheckCircle2, Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import AgentChatInput from './agent-chat-input';
 import AgentChatMessage from './agent-chat-message';
@@ -26,6 +27,7 @@ const AgentChatMessages = memo(
     scrollRef: React.RefObject<HTMLDivElement | null>;
     isLoading: boolean;
   }) => {
+    const t = useTranslations('agent.chat');
     const messages = useAgentStore((state) => state.messages);
     const isStreaming = useAgentStore((state) => state.isStreaming);
 
@@ -42,7 +44,7 @@ const AgentChatMessages = memo(
           <div className="flex h-full flex-col items-center justify-center gap-3">
             <Loader2 className="size-8 animate-spin text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              Der Assistent formuliert die erste Nachricht...
+              {t('firstMessageLoading')}
             </p>
           </div>
         ) : (
@@ -74,13 +76,14 @@ const AgentStreamingIndicator = memo(
   }: {
     progressMessage: string | null;
   }) => {
+    const t = useTranslations('agent.chat');
     const isStreaming = useAgentStore((state) => state.isStreaming);
 
     return (
       <div className="h-8 shrink-0 px-4">
         {isStreaming && (
           <p className="text-center text-sm text-muted-foreground">
-            {progressMessage ?? 'Der Wahl Agent denkt nach'}
+            {progressMessage ?? t('thinking')}
             <span className="ml-0.5 inline-flex gap-0.5 align-baseline">
               <span
                 className="inline-block size-1 animate-typing-dot rounded-full bg-muted-foreground"
@@ -113,6 +116,7 @@ const AgentChatFooter = memo(
     onSubmit: (message: string) => Promise<void>;
     onComplete: () => void;
   }) => {
+    const t = useTranslations('agent.chat');
     const conversationStage = useAgentStore((state) => state.conversationStage);
     const isConversationEnded = conversationStage === 'end';
 
@@ -121,7 +125,7 @@ const AgentChatFooter = memo(
         {isConversationEnded ? (
           <Button onClick={onComplete} className="w-full gap-2" size="lg">
             <CheckCircle2 className="size-4" />
-            Gespräch abschließen
+            {t('complete')}
           </Button>
         ) : (
           <AgentChatInput onSubmit={onSubmit} />
@@ -135,6 +139,7 @@ const AgentChatFooter = memo(
 AgentChatFooter.displayName = 'AgentChatFooter';
 
 export default function AgentChatView() {
+  const t = useTranslations('agent.chat');
   const router = useRouter();
 
   const topic = useAgentStore((state) => state.topic);
@@ -234,8 +239,7 @@ export default function AgentChatView() {
         console.error('Error streaming response:', error);
         addMessage({
           role: 'assistant',
-          content:
-            'Es tut mir leid, es ist ein Fehler aufgetreten. Bitte versuche es erneut.',
+          content: t('streamError'),
         });
       } finally {
         setIsStreaming(false);
@@ -248,6 +252,7 @@ export default function AgentChatView() {
       updateLastAssistantMessage,
       updateLastAssistantSources,
       fetchConversationStage,
+      t,
     ],
   );
 
@@ -281,8 +286,7 @@ export default function AgentChatView() {
         console.error('Error initializing conversation:', error);
         addMessage({
           role: 'assistant',
-          content:
-            'Es tut mir leid, die Konversation konnte nicht gestartet werden. Bitte lade die Seite neu.',
+          content: t('startError'),
         });
       } finally {
         isInitializingRef.current = false;
@@ -300,6 +304,7 @@ export default function AgentChatView() {
     addMessage,
     streamAssistantResponse,
     router,
+    t,
   ]);
 
   // Handle user message submission

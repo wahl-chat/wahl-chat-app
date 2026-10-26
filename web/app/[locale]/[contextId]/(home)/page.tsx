@@ -18,12 +18,17 @@ import {
   getSystemStatus,
   getUser,
 } from '@/lib/firebase/firebase-server';
-import { buildContextCanonical, buildContextJsonLd } from '@/lib/seo';
+import {
+  buildContextCanonical,
+  buildContextJsonLd,
+  resolveLocale,
+} from '@/lib/seo';
 import { IS_EMBEDDED } from '@/lib/utils';
 import type { Metadata } from 'next';
 
 type Props = {
   params: Promise<{
+    locale: string;
     contextId: string;
   }>;
 };
@@ -32,12 +37,12 @@ type Props = {
 // come from app/[contextId]/layout.tsx. See buildContextCanonical for why the
 // canonical must not be set at layout level.
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { contextId } = await params;
-  return buildContextCanonical(contextId);
+  const { contextId, locale } = await params;
+  return buildContextCanonical(contextId, undefined, resolveLocale(locale));
 }
 
 export default async function ContextHome({ params }: Props) {
-  const { contextId } = await params;
+  const { contextId, locale } = await params;
 
   // getContext and getPartiesForContext are cached and already resolved by the
   // layout in this render, so these are reads from the same cache entry.
@@ -53,7 +58,11 @@ export default async function ContextHome({ params }: Props) {
 
   return (
     <>
-      {context && <JsonLd data={buildContextJsonLd(context)} />}
+      {context && (
+        <JsonLd
+          data={buildContextJsonLd(context, undefined, resolveLocale(locale))}
+        />
+      )}
 
       <div className="mt-4 w-full">
         <ElectionPartySelector contextId={contextId} />

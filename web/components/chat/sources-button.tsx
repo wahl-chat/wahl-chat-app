@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import type { Source } from '@/lib/stores/chat-store.types';
 import { BookMarkedIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { type NumberedSource, SourcesDialog } from './sources-dialog';
 
@@ -10,6 +11,7 @@ type Props = {
 };
 
 function SourcesButton({ sources, messageContent }: Props) {
+  const t = useTranslations('sources.dialog');
   const [sourcesReferenced, sourcesNotReferenced] = useMemo(() => {
     const regex = /\[(\d+(?:\s*,\s*\d+)*)\]/g;
     const matches = messageContent.match(regex);
@@ -61,7 +63,7 @@ function SourcesButton({ sources, messageContent }: Props) {
           className="h-8 px-2 text-xs group-data-[has-message-background]:bg-zinc-100 group-data-[has-message-background]:hover:bg-zinc-200 group-data-[has-message-background]:dark:bg-zinc-900 group-data-[has-message-background]:dark:hover:bg-zinc-800"
         >
           <BookMarkedIcon />
-          Quellen
+          {t('button')}
         </Button>
       }
     />

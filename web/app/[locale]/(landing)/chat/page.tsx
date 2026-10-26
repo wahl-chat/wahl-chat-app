@@ -18,6 +18,7 @@ import LandingStats from '@/components/landing/landing-stats';
 import ScreenshotWheel from '@/components/landing/screenshot-wheel';
 import ScrollCue from '@/components/landing/scroll-cue';
 import JsonLd from '@/components/seo/json-ld';
+import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
 import { splitElectionsByDate } from '@/lib/elections';
 import {
   getContexts,
@@ -32,10 +33,13 @@ import {
   BASE_URL,
   WEBSITE_ID,
   buildFaqPageMainEntity,
+  localeAlternates,
+  localizedPath,
   productionRobots,
 } from '@/lib/seo';
 import { IS_EMBEDDED } from '@/lib/utils';
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 
 // The featured election is derived from the context dates, so it rolls over on
 // its own once the current one concludes, and the output does not depend on the
@@ -47,14 +51,17 @@ import type { Metadata } from 'next';
 // headers(), which already opts every route out of static generation.
 export const dynamic = 'force-dynamic';
 
-// Under 60 characters so the SERP title is not truncated; the description
-// stays inside 140–155 for the same reason and ends on a CTA.
-const TITLE = 'Mit wahl.chat Politik verstehen – dein KI Chat vor der Wahl';
-const DESCRIPTION =
-  'Die KI-basierte Ergänzung zum Wahl-O-Mat: Verstehe Parteien anhand von Plenarprotokollen, Abstimmungen und Wahlprogrammen. Jetzt informiert wählen!';
-
 // The chat landing page; / is the daily parliament feed.
-const CHAT_URL = `${BASE_URL}/chat`;
+const CHAT_PATH = '/chat';
+
+type Props = {
+  params: Promise<{ locale: string }>;
+};
+
+async function resolveLocale(params: Props['params']): Promise<Locale> {
+  const { locale } = await params;
+  return isLocale(locale) ? locale : DEFAULT_LOCALE;
+}
 
 const ELECTIONS_ANCHOR = 'andere-wahlen';
 const QUESTIONS_ANCHOR = 'beispielfragen';
@@ -62,27 +69,39 @@ const QUESTIONS_ANCHOR = 'beispielfragen';
 // election-dependent sections above it has anything to show.
 const ABOUT_ANCHOR = 'was-ist-wahl-chat';
 
-export const metadata: Metadata = {
-  title: {
-    absolute: TITLE,
-  },
-  description: DESCRIPTION,
-  robots: productionRobots,
-  alternates: {
-    canonical: '/chat',
-  },
-  openGraph: {
-    title: TITLE,
-    description: DESCRIPTION,
-    url: CHAT_URL,
-  },
-  twitter: {
-    title: TITLE,
-    description: DESCRIPTION,
-  },
-};
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const locale = await resolveLocale(params);
+  const t = await getTranslations({ locale, namespace: 'landing' });
+  // Under 60 characters so the SERP title is not truncated; the description
+  // stays inside 140–155 for the same reason and ends on a CTA.
+  const title = t('meta.title');
+  const description = t('meta.description');
+  const path = localizedPath(CHAT_PATH, locale);
 
-export default async function Landing() {
+  return {
+    title: {
+      absolute: title,
+    },
+    description,
+    robots: productionRobots,
+    alternates: localeAlternates(CHAT_PATH, locale),
+    openGraph: {
+      title,
+      description,
+      url: `${BASE_URL}${path}`,
+    },
+    twitter: {
+      title,
+      description,
+    },
+  };
+}
+
+export default async function Landing({ params }: Props) {
+  const locale = await resolveLocale(params);
+  const t = await getTranslations({ locale, namespace: 'landing' });
+  const chatUrl = `${BASE_URL}${localizedPath(CHAT_PATH, locale)}`;
+
   const contexts = await getContexts();
   const { upcoming, past } = splitElectionsByDate(contexts);
 
@@ -128,17 +147,17 @@ export default async function Landing() {
       ? QUESTIONS_ANCHOR
       : ABOUT_ANCHOR;
 
-  const faqItems = getLandingFaqItems();
+  const faqItems = getLandingFaqItems(locale);
 
   // One node for one URL: FAQPage is a WebPage subtype, so a second node
-  // claiming CHAT_URL would read as a duplicate page entity.
+  // claiming the same URL would read as a duplicate page entity.
   const webPage = {
     '@type': ['WebPage', 'FAQPage'],
-    '@id': `${CHAT_URL}#webpage`,
-    name: TITLE,
-    description: DESCRIPTION,
-    url: CHAT_URL,
-    inLanguage: 'de',
+    '@id': `${chatUrl}#webpage`,
+    name: t('meta.title'),
+    description: t('meta.description'),
+    url: chatUrl,
+    inLanguage: locale,
     isPartOf: { '@id': WEBSITE_ID },
     mainEntity: buildFaqPageMainEntity(
       faqItems.map((item) => ({
@@ -155,8 +174,8 @@ export default async function Landing() {
   const orderedElections = [...upcoming, ...past];
   const electionList = {
     '@type': 'ItemList',
-    '@id': `${CHAT_URL}#elections`,
-    name: 'Wahlen auf wahl.chat',
+    '@id': `${chatUrl}#elections`,
+    name: t('jsonLd.electionListName'),
     numberOfItems: orderedElections.length,
     itemListElement: orderedElections.map((context, index) => ({
       '@type': 'ListItem',
@@ -208,9 +227,9 @@ export default async function Landing() {
           <div className="flex flex-1 flex-col items-center gap-6 text-center">
             <div className="my-auto flex max-w-3xl flex-col gap-4 md:mb-0 md:mt-auto">
               <h1 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
-                <span className="block">Fragen stellen.</span>
-                <span className="block">Politik verstehen.</span>
-                <span className="block">Informiert wählen.</span>
+                <span className="block">{t('hero.askQuestions')}</span>
+                <span className="block">{t('hero.understandPolitics')}</span>
+                <span className="block">{t('hero.voteInformed')}</span>
               </h1>
 
               {/* An h2 rather than a p: now that the h1 is a short claim, this
@@ -218,8 +237,7 @@ export default async function Landing() {
                   subhead. Styled down to the supporting sentence it is — the
                   page still has exactly one h1, directly above it. */}
               <h2 className="text-pretty text-base font-normal text-muted-foreground md:text-lg">
-                Welche Partei passt zu dir? Vergleiche Parteien, belegt durch
-                Plenarprotokolle, namentliche Abstimmungen und Wahlprogramme.
+                {t('hero.subhead')}
               </h2>
             </div>
 
@@ -235,7 +253,7 @@ export default async function Landing() {
       {hasOtherElections && (
         <LandingSection
           id={ELECTIONS_ANCHOR}
-          title="Weitere Wahlen auf wahl.chat"
+          title={t('sections.otherElections')}
         >
           <ElectionLinks upcoming={otherUpcoming} past={otherPast} />
         </LandingSection>
@@ -249,7 +267,7 @@ export default async function Landing() {
           heading. */}
       {!IS_EMBEDDED && (
         <LandingSection
-          title="Rezeption"
+          title={t('sections.reception')}
           className="py-8 md:py-10"
           contentClassName="max-w-3xl"
         >
@@ -263,7 +281,7 @@ export default async function Landing() {
       {questionGroups.length > 0 && (
         <LandingSection
           id={QUESTIONS_ANCHOR}
-          title="Beispielfragen an die Parteien"
+          title={t('sections.exampleQuestions')}
         >
           <ExampleQuestions groups={questionGroups} />
         </LandingSection>
@@ -271,7 +289,7 @@ export default async function Landing() {
 
       <LandingSection
         id={ABOUT_ANCHOR}
-        title="Was ist wahl.chat?"
+        title={t('sections.about')}
         className="bg-muted/30"
       >
         <div className="text-muted-foreground">
@@ -280,22 +298,19 @@ export default async function Landing() {
       </LandingSection>
 
       {featuredElection && (
-        <LandingSection
-          title="Welche Daten werden verwendet?"
-          className="bg-muted/30"
-        >
+        <LandingSection title={t('sections.data')} className="bg-muted/30">
           <DataSources
             sourcesHref={`/${featuredElection.context_id}/sources`}
           />
         </LandingSection>
       )}
 
-      <LandingSection title="Häufige Fragen">
+      <LandingSection title={t('sections.faq')}>
         <LandingFaq />
       </LandingSection>
 
       {!IS_EMBEDDED && (
-        <LandingSection title="wahl.chat unterstützen">
+        <LandingSection title={t('sections.support')}>
           <div className="grid gap-4 md:grid-cols-3">
             <SupportUsCard titleAs="h3" />
             <GitHubCard titleAs="h3" />

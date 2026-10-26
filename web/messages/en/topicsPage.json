@@ -1,1 +1,9 @@
-{}
+{
+  "meta": {
+    "title": "Popular topics",
+    "description": "Discover popular political topics and questions – compare the parties' positions on wahl.chat."
+  },
+  "backToHome": "Back to home",
+  "heading": "Questions on popular topics",
+  "description": "Here you'll find questions on the parties' most popular topics. Click a question to see the details."
+}

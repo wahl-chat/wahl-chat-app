@@ -4,8 +4,10 @@ import { useCurrentContext } from '@/components/providers/context-provider';
 import { Link } from '@/i18n/navigation';
 import { usePathname } from '@/i18n/navigation';
 import { ArrowRightIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 function WahlSwiperTeaserTag() {
+  const t = useTranslations('swiper');
   const pathname = usePathname();
   const context = useCurrentContext({ optional: true });
 
@@ -24,7 +26,7 @@ function WahlSwiperTeaserTag() {
         <span className="absolute inline-flex size-full animate-ping rounded-full bg-indigo-600 opacity-75" />
         <span className="relative inline-flex size-2 rounded-full bg-indigo-600" />
       </span>
-      Wahl Swiper
+      {t('teaserTag')}
       <ArrowRightIcon className="size-3" />
     </Link>
   );

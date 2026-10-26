@@ -7,12 +7,14 @@ import {
 import { Separator } from '@/components/ui/separator';
 import type { PartyDetails } from '@/lib/party-details';
 import { UserIcon, UsersIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   parties: PartyDetails[];
 };
 
 function PartyDetailPopover({ parties }: Props) {
+  const t = useTranslations('chat.partyDetails');
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -33,24 +35,37 @@ function PartyDetailPopover({ parties }: Props) {
             <p className="text-muted-foreground">{party.description}</p>
             <Separator className="my-2" />
             <p>
-              Spitzenkandidat*in:{' '}
-              <span className="font-bold">{party.candidate}</span>
+              {t.rich('candidate', {
+                name: party.candidate ?? '',
+                bold: (chunks) => <span className="font-bold">{chunks}</span>,
+              })}
             </p>
             <p>
-              Lerne mehr über die Partei auf{' '}
-              <a href={party.website_url} target="_blank" className="underline">
-                {party.website_url}
-              </a>
+              {t.rich('website', {
+                url: party.website_url,
+                link: (chunks) => (
+                  <a
+                    href={party.website_url}
+                    target="_blank"
+                    className="underline"
+                  >
+                    {chunks}
+                  </a>
+                ),
+              })}
             </p>
             <p>
-              Oder lese das{' '}
-              <a
-                href={party.election_manifesto_url}
-                target="_blank"
-                className="underline"
-              >
-                Wahlprogramm
-              </a>
+              {t.rich('manifesto', {
+                link: (chunks) => (
+                  <a
+                    href={party.election_manifesto_url}
+                    target="_blank"
+                    className="underline"
+                  >
+                    {chunks}
+                  </a>
+                ),
+              })}
             </p>
             {index < parties.length - 1 && <Separator className="my-2" />}
           </div>

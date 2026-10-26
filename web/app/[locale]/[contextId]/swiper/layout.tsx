@@ -1,34 +1,42 @@
 import Footer from '@/components/footer';
 import WahlSwiperHeader from '@/components/wahl-swiper/wahl-swiper-header';
+import type { Locale } from '@/i18n/locales';
 import { getContext } from '@/lib/firebase/firebase-server';
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ contextId: string }>;
+  params: Promise<{ locale: string; contextId: string }>;
 }): Promise<Metadata> {
-  const { contextId } = await params;
+  const { locale, contextId } = await params;
+  // The root layout has already rejected unknown locales with a 404.
+  const t = await getTranslations({
+    locale: locale as Locale,
+    namespace: 'swiper.meta',
+  });
   const context = await getContext(contextId);
 
   if (!context) {
-    return { title: 'Wahl-Swiper' };
+    return { title: t('fallbackTitle') };
   }
 
-  const description = `Wahl-Swiper für ${context.name} – Finde heraus, welche Partei zu dir passt.`;
+  const title = t('title', { context: context.name });
+  const description = t('description', { context: context.name });
 
   return {
-    title: `Wahl-Swiper – ${context.name}`,
+    title,
     description,
     robots: 'noindex',
     openGraph: {
-      title: `Wahl-Swiper – ${context.name}`,
+      title,
       description,
       url: `https://wahl.chat/${contextId}/swiper`,
     },
     twitter: {
       card: 'summary_large_image',
-      title: `Wahl-Swiper – ${context.name}`,
+      title,
       description,
     },
   };

@@ -1,1 +1,16 @@
-{}
+{
+  "dialog": {
+    "shareSession": "Chat Session teilen",
+    "shareApp": "wahl.chat teilen",
+    "sessionDescription": "Jeder, der diesen Link hat, kann diese Chat Session sehen.",
+    "appDescription": "Teile wahl.chat mit Freunden und Familie.",
+    "linkLabel": "Link",
+    "nativeShare": "Teilen"
+  },
+  "input": {
+    "error": "Es ist ein Fehler aufgetreten. Bitte versuche es erneut oder lade die Seite neu."
+  },
+  "page": {
+    "backToTopics": "Zurück zur Themenübersicht"
+  }
+}

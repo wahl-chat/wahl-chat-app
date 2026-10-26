@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { SwipeType } from '@/lib/wahl-swiper/wahl-swiper.types';
 import { ChevronsRightIcon, HeartIcon, XIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import WahlSwiperSkipButton from './wahl-swiper-skip-button';
 
@@ -18,6 +19,7 @@ export type WahlSwiperButtonVariant = {
 };
 
 function WahlSwiperButton({ type, onClick }: Props) {
+  const t = useTranslations('swiper.cards');
   const [clicked, setClicked] = useState(false);
 
   const variants: Record<SwipeType, WahlSwiperButtonVariant> = {
@@ -41,7 +43,7 @@ function WahlSwiperButton({ type, onClick }: Props) {
         'md:hover:bg-gray-500/10 md:hover:border-gray-500/20 hover:bg-transparent border size-10',
       normal:
         'bg-gray-500/20 border-gray-500 hover:bg-gray-500/20 border scale-100 hover:scale-100 md:hover:scale-100',
-      tooltip: 'Überspringen',
+      tooltip: t('skip'),
     },
   };
 

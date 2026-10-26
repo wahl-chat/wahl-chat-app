@@ -9,6 +9,7 @@ import { getContexts } from '@/lib/firebase/firebase-server';
 import { SITE_LINKS, type SiteLink, sourcesLink } from '@/lib/site-links';
 import { IS_EMBEDDED } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 
 /**
  * The landing page's footer.
@@ -18,8 +19,8 @@ import { useTranslations } from 'next-intl';
  * to the bare /sources geo-redirect. Labels and hrefs come from site-links.ts
  * so the two cannot drift.
  *
- * Impressum und Datenschutz sind nicht optional: sie müssen von jeder Seite
- * einen Klick entfernt sein. They live in the Rechtliches column, which is
+ * Impressum and Datenschutz are not optional: they must be one click away
+ * from every page. They live in the legal column, which is
  * why the hero no longer carries its own link row.
  */
 function FooterColumn({
@@ -56,6 +57,7 @@ function FooterColumn({
 }
 
 async function LandingFooter() {
+  const t = await getTranslations('landing.footer');
   const contexts = await getContexts();
   const featured = getNextUpcomingElection(contexts) ?? contexts[0];
 
@@ -97,10 +99,10 @@ async function LandingFooter() {
             )}
           </div>
 
-          <FooterColumn label="Produkt" links={productLinks} />
-          <FooterColumn label="Über wahl.chat" links={aboutLinks} />
+          <FooterColumn label={t('product')} links={productLinks} />
+          <FooterColumn label={t('about')} links={aboutLinks} />
           <FooterColumn
-            label="Rechtliches"
+            label={t('legal')}
             links={[SITE_LINKS.imprint, SITE_LINKS.privacy]}
           />
         </div>

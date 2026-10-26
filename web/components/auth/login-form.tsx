@@ -23,6 +23,7 @@ import {
   signInWithCredential,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import PasswordResetForm from './password-reset-form';
@@ -35,6 +36,8 @@ type Props = {
 };
 
 function LoginForm({ onSuccess }: Props) {
+  const t = useTranslations('auth');
+  const tErrors = useTranslations('errors');
   const { refreshUser } = useAnonymousAuth();
   const studyRunning = useStudyRunning();
   const [isRegister, setIsRegister] = useState(false);
@@ -65,7 +68,7 @@ function LoginForm({ onSuccess }: Props) {
   const handleAuthError = (error: unknown, provider: AuthProvider) => {
     if (error instanceof FirebaseError) {
       if (error.code === 'auth/invalid-credential') {
-        return toast.error('Die eingegebenen Daten sind ungültig.');
+        return toast.error(t('loginForm.invalidCredentials'));
       }
       if (error.code === 'auth/credential-already-in-use') {
         return handleCredentialAlreadyInUse(error, provider);
@@ -198,13 +201,11 @@ function LoginForm({ onSuccess }: Props) {
   };
 
   const showErrorReloadToast = () => {
-    toast.error(
-      'Es ist ein Fehler aufgetreten. Bitte lade die Seite neu und versuche es erneut.',
-    );
+    toast.error(tErrors('reloadAndRetry'));
   };
 
   const showSuccessToast = () => {
-    toast.success('Erfolgreich angemeldet');
+    toast.success(t('loginForm.success'));
   };
 
   const handleResetPassword = async () => {
@@ -232,29 +233,29 @@ function LoginForm({ onSuccess }: Props) {
       />
       <div className="mb-4">
         <ResponsiveDialogTitle className="text-center text-2xl font-bold md:text-left">
-          {isRegister ? 'Registrieren' : 'Anmelden'}
+          {isRegister ? t('register') : t('login')}
         </ResponsiveDialogTitle>
         <ResponsiveDialogDescription className="text-center text-sm text-muted-foreground md:text-left">
           {isRegister
-            ? 'Du kannst dich bei wahl.chat registrieren um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.'
-            : 'Du kannst dich bei wahl.chat anmelden um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.'}
+            ? t('loginForm.registerDescription')
+            : t('loginForm.loginDescription')}
         </ResponsiveDialogDescription>
       </div>
 
       <div className="flex flex-col">
         <div className="mt-4 grid gap-1">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t('emailLabel')}</Label>
           <Input
             id="email"
             name="email"
             type="email"
-            placeholder="max@mustermann.de"
+            placeholder={t('emailPlaceholder')}
             required
           />
         </div>
         <div className="my-4 grid gap-1">
           <div className="flex items-center">
-            <Label htmlFor="password">Passwort</Label>
+            <Label htmlFor="password">{t('passwordLabel')}</Label>
             <Button
               variant="link"
               className="ml-auto inline-block h-fit p-0 text-sm underline-offset-4 hover:underline"
@@ -262,7 +263,7 @@ function LoginForm({ onSuccess }: Props) {
               size="sm"
               type="button"
             >
-              Passwort vergessen?
+              {t('forgotPassword')}
             </Button>
           </div>
           <Input
@@ -276,20 +277,30 @@ function LoginForm({ onSuccess }: Props) {
         </div>
         <div className="flex flex-col gap-2">
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isRegister ? 'Registrieren' : 'Anmelden'}
+            {isRegister ? t('register') : t('login')}
           </Button>
           <p className="text-center text-xs text-muted-foreground">
-            Mit deinem Klick auf {isRegister ? 'Registrieren' : 'Anmelden'}{' '}
-            akzeptierst du unsere{' '}
-            <Link href="/datenschutz" target="_blank" className="underline">
-              Datenschutzerklärung
-            </Link>
-            .
+            {t.rich(
+              isRegister
+                ? 'loginForm.registerConsent'
+                : 'loginForm.loginConsent',
+              {
+                link: (chunks) => (
+                  <Link
+                    href="/datenschutz"
+                    target="_blank"
+                    className="underline"
+                  >
+                    {chunks}
+                  </Link>
+                ),
+              },
+            )}
           </p>
 
           <div className="relative my-4 text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
             <span className="relative z-10 bg-background px-2 text-muted-foreground">
-              Oder nutze einen der folgenden Anbieter
+              {t('loginForm.otherProviders')}
             </span>
           </div>
 
@@ -302,7 +313,7 @@ function LoginForm({ onSuccess }: Props) {
               type="button"
             >
               <GoogleIcon className="!size-3" />
-              Mit Google anmelden
+              {t('loginForm.google')}
             </Button>
             <Button
               variant="outline"
@@ -312,13 +323,13 @@ function LoginForm({ onSuccess }: Props) {
               onClick={handleGithubLogin}
             >
               <GithubIcon className="!size-3" />
-              Mit Github anmelden
+              {t('loginForm.github')}
             </Button>
           </div>
         </div>
       </div>
       <div className="mt-4 text-center text-sm">
-        {isRegister ? 'Hast du schon einen Account?' : 'Noch keinen Account?'}{' '}
+        {isRegister ? t('hasAccount') : t('noAccount')}{' '}
         <Button
           size="sm"
           type="button"
@@ -327,7 +338,7 @@ function LoginForm({ onSuccess }: Props) {
           className="p-0 underline underline-offset-4"
           disabled={isLoading}
         >
-          {isRegister ? 'Anmelden' : 'Registrieren'}
+          {isRegister ? t('login') : t('register')}
         </Button>
       </div>
     </form>

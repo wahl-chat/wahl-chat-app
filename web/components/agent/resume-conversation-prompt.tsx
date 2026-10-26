@@ -9,6 +9,7 @@ import {
 import { useRouter } from '@/i18n/navigation';
 import { clearStoredConversation } from '@/lib/agent/conversation-storage';
 import { History, MessageSquarePlus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 
 interface ResumeConversationPromptProps {
@@ -20,6 +21,7 @@ export default function ResumeConversationPrompt({
   conversationId,
   onStartNew,
 }: ResumeConversationPromptProps) {
+  const t = useTranslations('agent.resumePrompt');
   const router = useRouter();
 
   const handleResume = useCallback(() => {
@@ -38,12 +40,8 @@ export default function ResumeConversationPrompt({
           <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
             <History className="size-8 text-muted-foreground" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Du hast eine laufende Unterhaltung
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            Möchtest du diese fortsetzen oder eine neue starten?
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="mt-2 text-muted-foreground">{t('subtitle')}</p>
         </div>
 
         <Card
@@ -64,10 +62,8 @@ export default function ResumeConversationPrompt({
                 <History className="size-6" />
               </div>
               <div>
-                <CardTitle className="text-lg">Fortfahren</CardTitle>
-                <CardDescription>
-                  Setze deine bestehende Unterhaltung fort
-                </CardDescription>
+                <CardTitle className="text-lg">{t('continueTitle')}</CardTitle>
+                <CardDescription>{t('continueDescription')}</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -91,12 +87,8 @@ export default function ResumeConversationPrompt({
                 <MessageSquarePlus className="size-6" />
               </div>
               <div>
-                <CardTitle className="text-lg">
-                  Neue Unterhaltung starten
-                </CardTitle>
-                <CardDescription>
-                  Beginne ein neues Gespräch mit dem Wahl Agent
-                </CardDescription>
+                <CardTitle className="text-lg">{t('newTitle')}</CardTitle>
+                <CardDescription>{t('newDescription')}</CardDescription>
               </div>
             </div>
           </CardHeader>

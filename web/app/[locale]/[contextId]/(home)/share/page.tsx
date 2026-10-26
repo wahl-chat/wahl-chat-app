@@ -14,6 +14,7 @@ import { InternalReferrers } from '@/lib/internal-referrers';
 import { cn, generateOgImageUrl } from '@/lib/utils';
 import { ArrowLeftIcon } from 'lucide-react';
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 
 type Props = {
   params: Promise<{
@@ -69,6 +70,7 @@ async function SharePage({ params, searchParams }: Props) {
   const isFromTopics = ref === InternalReferrers.TOPICS;
   const systemStatus = await getSystemStatus();
   const user = await getCurrentUser();
+  const t = await getTranslations('share.page');
 
   return (
     <div className="relative flex h-full min-h-[calc(100vh-var(--header-height)-16px)] flex-col gap-4">
@@ -77,7 +79,7 @@ async function SharePage({ params, searchParams }: Props) {
         <Button variant="link" asChild className="mt-4 w-fit px-0">
           <Link href="/topics">
             <ArrowLeftIcon className="size-4" />
-            Zurück zur Themenübersicht
+            {t('backToTopics')}
           </Link>
         </Button>
       )}

@@ -23,9 +23,11 @@ import {
 } from '@/components/ui/tooltip';
 import { Link } from '@/i18n/navigation';
 import { CheckIcon, CopyIcon, HomeIcon, Info } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 export default function AgentSidebar() {
+  const t = useTranslations('agent.sidebar');
   const conversationId = useAgentStore((state) => state.conversationId);
   const [copied, setCopied] = useState(false);
 
@@ -38,8 +40,8 @@ export default function AgentSidebar() {
 
   return (
     <Sidebar
-      mobileVisuallyHiddenTitle="Wahl Agent"
-      mobileVisuallyHiddenDescription="Einstellungen und Informationen zum Wahl Agent."
+      mobileVisuallyHiddenTitle={t('title')}
+      mobileVisuallyHiddenDescription={t('description')}
     >
       <SidebarHeader className="flex h-[65px] flex-row items-center justify-between border-b border-b-muted pl-4 pr-2">
         <Link href="/" className="flex items-center gap-4">
@@ -52,7 +54,7 @@ export default function AgentSidebar() {
             size="icon"
             asChild
             className="size-8"
-            tooltip="Startseite"
+            tooltip={t('home')}
           >
             <Link href="/">
               <HomeIcon className="size-4" />
@@ -64,14 +66,13 @@ export default function AgentSidebar() {
         {conversationId && (
           <SidebarGroup>
             <SidebarGroupLabel className="flex items-center gap-1.5">
-              <span>Conversation ID</span>
+              <span>{t('conversationId')}</span>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Info className="size-3 text-muted-foreground cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent side="right" className="max-w-[200px] text-xs">
-                  Speichere diese ID, um die Konversation auf einem anderen
-                  Gerät oder zu einem späteren Zeitpunkt fortzusetzen.
+                  {t('conversationIdHint')}
                 </TooltipContent>
               </Tooltip>
             </SidebarGroupLabel>
@@ -87,7 +88,7 @@ export default function AgentSidebar() {
                       size="icon"
                       className="size-6 shrink-0"
                       onClick={handleCopy}
-                      tooltip={copied ? 'Kopiert!' : 'ID kopieren'}
+                      tooltip={copied ? t('copied') : t('copyId')}
                     >
                       {copied ? (
                         <CheckIcon className="size-3.5" />
@@ -103,22 +104,22 @@ export default function AgentSidebar() {
         )}
 
         <SidebarGroup>
-          <SidebarGroupLabel>Informationen</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('information')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href="/about-us">Über wahl.chat</Link>
+                  <Link href="/about-us">{t('about')}</Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href="/impressum">Impressum</Link>
+                  <Link href="/impressum">{t('imprint')}</Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href="/datenschutz">Datenschutz</Link>
+                  <Link href="/datenschutz">{t('privacy')}</Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

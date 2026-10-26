@@ -1,1 +1,12 @@
-{}
+{
+  "translationNotice": "This is a courtesy translation. Only the German version is legally binding.",
+  "readGermanVersion": "Read the German version",
+  "impressum": {
+    "title": "Legal Notice",
+    "description": "Legal notice and contact details of wahl.chat."
+  },
+  "datenschutz": {
+    "title": "Privacy Policy",
+    "description": "Privacy policy of wahl.chat – information on the processing of personal data."
+  }
+}

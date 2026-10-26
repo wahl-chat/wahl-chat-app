@@ -9,5 +9,10 @@
   "imprint": "Impressum",
   "privacy": "Datenschutz",
   "sources": "Quellen",
-  "toElection": "Zur {name}"
+  "toElection": "Zur {name}",
+  "supportUs": "Unterstütze uns",
+  "login": "Anmelden",
+  "openMenu": "Menü öffnen",
+  "menuTitle": "Menü",
+  "menuDescription": "Navigation von wahl.chat"
 }

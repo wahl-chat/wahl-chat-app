@@ -1,1 +1,118 @@
-{}
+{
+  "meta": {
+    "title": "Wahl Agent",
+    "description": "Your personal companion for forming political opinions. Discuss political topics with the Wahl Agent."
+  },
+  "header": {
+    "openMenu": "Open menu",
+    "title": "Wahl Agent"
+  },
+  "sidebar": {
+    "title": "Wahl Agent",
+    "description": "Settings and information about the Wahl Agent.",
+    "home": "Home",
+    "conversationId": "Conversation ID",
+    "conversationIdHint": "Save this ID to continue the conversation on another device or at a later time.",
+    "copied": "Copied!",
+    "copyId": "Copy ID",
+    "information": "Information",
+    "about": "About wahl.chat",
+    "imprint": "Legal notice",
+    "privacy": "Privacy"
+  },
+  "progress": {
+    "label": "Progress",
+    "stageStatus": "{stage} - {status}",
+    "statusCompleted": "completed",
+    "statusCurrent": "current",
+    "statusUpcoming": "upcoming",
+    "stages": {
+      "start": "Start",
+      "activeListening": "Active listening",
+      "partyPositioning": "Party positions",
+      "perspectiveTaking": "Perspective-taking",
+      "deliberation": "Deliberation",
+      "partyMatching": "Party matching",
+      "end": "Wrap-up"
+    }
+  },
+  "consent": {
+    "title": "Welcome to the Wahl Agent",
+    "subtitle": "Your personal companion for forming political opinions",
+    "infoTitle": "Important information before you start",
+    "contribution": "By taking part in this research study, you're doing your bit for a healthy democracy in Germany. <strong>Thank you!</strong>",
+    "purpose": "Politics is a complex and often emotional subject. That's exactly why it matters to form a well-founded opinion. In the following conversation, the Wahl Agent will help you describe your concerns and put your ideal solution into words, so you can find the party that suits you best.",
+    "privacyTitle": "Privacy & anonymisation",
+    "privacyAnonymised": "All answers are anonymised",
+    "privacyResearchOnly": "Your information is used solely for scientific research",
+    "privacyConfidential": "The conversation is confidential and won't be passed on to third parties",
+    "notice": "By clicking \"I agree\", you confirm that you consent to taking part in this research study.",
+    "agree": "I agree"
+  },
+  "choice": {
+    "title": "How would you like to continue?",
+    "newTitle": "Start a new conversation",
+    "newDescription": "Get to know the Wahl Agent",
+    "resumeTitle": "Continue a conversation",
+    "resumeDescription": "Continue an existing conversation using its Conversation ID",
+    "back": "Back",
+    "resumeSubtitle": "Enter your Conversation ID to continue.",
+    "conversationIdLabel": "Conversation ID",
+    "conversationIdPlaceholder": "e.g. abc123-def456-...",
+    "notFound": "We couldn't find that conversation. Please check the ID.",
+    "loading": "Loading...",
+    "resume": "Continue",
+    "whereToFindId": "You'll find your Conversation ID in the sidebar during an active conversation."
+  },
+  "resumePrompt": {
+    "title": "You have a conversation in progress",
+    "subtitle": "Would you like to continue it or start a new one?",
+    "continueTitle": "Continue",
+    "continueDescription": "Pick up your existing conversation",
+    "newTitle": "Start a new conversation",
+    "newDescription": "Begin a new conversation with the Wahl Agent"
+  },
+  "topicSelection": {
+    "title": "Choose a topic",
+    "subtitle": "Choose what you'd like to talk about with the Wahl Agent",
+    "info": "For this study, we've prepared a few topics that come up especially often in political debate.",
+    "listLabel": "Choose your topic:",
+    "selected": "Selected topic: <strong>{topic}</strong>",
+    "pleaseSelect": "Please choose a topic to continue.",
+    "continue": "Continue to the discussion",
+    "topics": {
+      "migration": {
+        "label": "Migration",
+        "description": "Asylum policy, integration, immigration and social cohesion"
+      },
+      "economy": {
+        "label": "Economy",
+        "description": "Taxes, the labour market, support for businesses and economic stability"
+      },
+      "environment": {
+        "label": "Environment and climate",
+        "description": "Climate protection, renewable energy, sustainability and environmental policy"
+      }
+    }
+  },
+  "chat": {
+    "firstMessageLoading": "The assistant is writing its first message...",
+    "thinking": "The Wahl Agent is thinking",
+    "complete": "Finish conversation",
+    "streamError": "I'm sorry, something went wrong. Please try again.",
+    "startError": "I'm sorry, the conversation couldn't be started. Please reload the page.",
+    "inputPlaceholder": "Type your message here...",
+    "sources": "Sources",
+    "referenceTooltip": "{source} - Page: {page}",
+    "loadingConversation": "Loading conversation...",
+    "redirecting": "Redirecting..."
+  },
+  "completion": {
+    "title": "Thank you for taking part!",
+    "thanks": "Thank you for taking the time to take part in this conversation!",
+    "research": "Your contributions are valuable for our research into how political discussions and opinions take shape.",
+    "confidential": "All your answers are treated confidentially and used for scientific purposes only.",
+    "closeWindow": "You can close this window now.",
+    "appreciation": "Your contribution makes a difference for democracy"
+  }
+}

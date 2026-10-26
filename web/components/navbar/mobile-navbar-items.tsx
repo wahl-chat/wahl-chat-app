@@ -3,6 +3,7 @@ import UserAvatar from '@/components/auth/user-avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type UserDetails, cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 import type { NavbarItemDetails } from './navbar-item';
 import NavbarItem from './navbar-item';
 
@@ -12,17 +13,18 @@ type Props = {
 };
 
 function MobileNavbarItems({ userDetails, mobileClose }: Props) {
+  const t = useTranslations('nav');
   const tabs: NavbarItemDetails[] = [
     {
-      label: 'Startseite',
+      label: t('home'),
       href: '/',
     },
     {
-      label: 'Anleitung',
+      label: t('howTo'),
       href: '/how-to',
     },
     {
-      label: 'Chat',
+      label: t('chat'),
       href: '/chat',
     },
     // {
@@ -32,11 +34,11 @@ function MobileNavbarItems({ userDetails, mobileClose }: Props) {
     //   icon: <SparklesIcon className="size-3" />,
     // },
     {
-      label: 'Unterstütze uns',
+      label: t('supportUs'),
       href: '/donate',
     },
     {
-      label: 'Über uns',
+      label: t('aboutUs'),
       href: '/about-us',
     },
   ];
@@ -56,7 +58,7 @@ function MobileNavbarItems({ userDetails, mobileClose }: Props) {
         userDetails={userDetails}
         noUserChildren={
           <Button variant="default" size="sm">
-            Anmelden
+            {t('login')}
           </Button>
         }
         userChildren={<UserAvatar details={userDetails} />}

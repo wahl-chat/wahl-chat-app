@@ -22,6 +22,7 @@ import {
 } from '@/lib/pledge-study/study-config';
 import { FilloutPopupEmbed } from '@fillout/react';
 import { Timestamp } from 'firebase/firestore';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Props = {
@@ -54,6 +55,7 @@ type Props = {
  * remains the outer backstop, derived from the stored event log.
  */
 function ChatStudyQuestionnairePrompt({ userId }: Props) {
+  const t = useTranslations('study.questionnaire');
   const studyConsent = useChatStore((state) => state.studyConsent);
   const studyCohort = useChatStore((state) => state.studyCohort);
   // The Firestore chat_sessions doc id (promoted from safeSessionId on the
@@ -179,27 +181,21 @@ function ChatStudyQuestionnairePrompt({ userId }: Props) {
       >
         <ResponsiveDialogContent>
           <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>
-              Deine Rückmeldung zählt
-            </ResponsiveDialogTitle>
+            <ResponsiveDialogTitle>{t('title')}</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              Kurzer Fragebogen zur Studie
+              {t('description')}
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           <div className="px-4 text-sm md:px-0">
-            <p>
-              Danke, dass du bei unserer Studie mitmachst! Wir würden dir gern
-              ein paar kurze Fragen zu deinem heutigen Besuch stellen, es dauert
-              höchstens 2 Minuten.
-            </p>
+            <p>{t('body')}</p>
           </div>
           <ResponsiveDialogFooter>
             <div className="flex w-full flex-col gap-2 sm:flex-row">
               <Button variant="outline" className="w-full" onClick={dismiss}>
-                Später
+                {t('later')}
               </Button>
               <Button className="w-full" onClick={openQuestionnaire}>
-                Zum Fragebogen
+                {t('open')}
               </Button>
             </div>
           </ResponsiveDialogFooter>

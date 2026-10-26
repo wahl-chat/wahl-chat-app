@@ -1,1 +1,16 @@
-{}
+{
+  "openWebsite": "Zu wahl.chat",
+  "feedbackDialog": {
+    "title": "Feedback!",
+    "description": "Wir freuen uns über Feedback zu wahl.chat.",
+    "email": "Schreibe uns eine E-Mail",
+    "form": "Fülle unser Feedback-Formular aus"
+  },
+  "prolific": {
+    "thanks": "Danke für deine Teilnahme!",
+    "instructions": "Bitte kopiere den folgenden Code, um mit der Studie auf Prolific fortzufahren:",
+    "codeUnavailable": "Der Abschlusscode konnte nicht geladen werden.",
+    "copyCode": "Code kopieren",
+    "copied": "Code in die Zwischenablage kopiert!"
+  }
+}

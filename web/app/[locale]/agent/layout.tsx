@@ -2,14 +2,28 @@ import AgentHeader from '@/components/agent/agent-header';
 import AgentSidebar from '@/components/agent/agent-sidebar';
 import { AgentStoreProvider } from '@/components/providers/agent-store-provider';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import type { Locale } from '@/i18n/locales';
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 
-export const metadata: Metadata = {
-  title: 'Wahl Agent',
-  description:
-    'Dein persönlicher Begleiter zur politischen Meinungsbildung. Diskutiere politische Themen mit dem Wahl Agent.',
-  robots: 'noindex, nofollow',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  // The root layout has already rejected unknown locales with a 404.
+  const t = await getTranslations({
+    locale: locale as Locale,
+    namespace: 'agent.meta',
+  });
+
+  return {
+    title: t('title'),
+    description: t('description'),
+    robots: 'noindex, nofollow',
+  };
+}
 
 interface Props {
   children: React.ReactNode;
