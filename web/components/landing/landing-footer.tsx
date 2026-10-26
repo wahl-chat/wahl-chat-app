@@ -8,6 +8,7 @@ import { getNextUpcomingElection } from '@/lib/elections';
 import { getContexts } from '@/lib/firebase/firebase-server';
 import { SITE_LINKS, type SiteLink, sourcesLink } from '@/lib/site-links';
 import { IS_EMBEDDED } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 /**
  * The landing page's footer.
@@ -28,6 +29,7 @@ function FooterColumn({
   label: string;
   links: SiteLink[];
 }) {
+  const t = useTranslations('nav');
   if (links.length === 0) return null;
 
   return (
@@ -46,7 +48,7 @@ function FooterColumn({
             rel: 'noopener noreferrer',
           })}
         >
-          {link.label}
+          {t(link.label, link.values)}
         </Link>
       ))}
     </nav>
@@ -61,7 +63,13 @@ async function LandingFooter() {
     SITE_LINKS.howTo,
     ...(featured ? [sourcesLink(featured.context_id)] : []),
     ...(featured
-      ? [{ href: `/${featured.context_id}`, label: `Zur ${featured.name}` }]
+      ? [
+          {
+            href: `/${featured.context_id}`,
+            label: 'toElection' as const,
+            values: { name: featured.name },
+          },
+        ]
       : []),
   ];
 

@@ -1,4 +1,4 @@
-import type de from '../messages/de.json';
+import type de from '../messages/de';
 import type { Locale } from './locales';
 
 // German is the source catalog: every key used with `t()` must exist there,

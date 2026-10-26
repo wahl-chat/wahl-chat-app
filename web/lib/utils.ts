@@ -1,4 +1,5 @@
 import type { SerializableFirebaseUser } from '@/components/anonymous-auth';
+import { LOCALE_INFO, type Locale } from '@/i18n/locales';
 import type { PartyDetails } from '@/lib/party-details';
 import { type ClassValue, clsx } from 'clsx';
 import type { User } from 'firebase/auth';
@@ -140,8 +141,10 @@ export function prettyDate(
   return new Intl.DateTimeFormat('en-DE', options).format(date);
 }
 
-export function formatGermanDate(
+/** A date in the reader's language (`useLocale()` / `getLocale()`). */
+export function formatDate(
   value: Date | string | null | undefined,
+  locale: Locale,
   format: 'full' | 'long' | 'medium' | 'short' = 'long',
 ): string | null {
   if (!value) return null;
@@ -158,7 +161,17 @@ export function formatGermanDate(
     dateStyle: format,
   };
 
-  return new Intl.DateTimeFormat('de-DE', options).format(date);
+  return new Intl.DateTimeFormat(LOCALE_INFO[locale].intl, options).format(
+    date,
+  );
+}
+
+/** @deprecated Use `formatDate(value, locale)`. */
+export function formatGermanDate(
+  value: Date | string | null | undefined,
+  format: 'full' | 'long' | 'medium' | 'short' = 'long',
+): string | null {
+  return formatDate(value, 'de', format);
 }
 
 export async function generateOgImageUrl(sessionType: string) {

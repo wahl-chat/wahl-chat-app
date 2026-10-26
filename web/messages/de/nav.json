@@ -1,0 +1,13 @@
+{
+  "home": "Startseite",
+  "howTo": "Anleitung",
+  "chat": "Chat",
+  "donate": "Spenden",
+  "aboutUs": "Über uns",
+  "github": "GitHub",
+  "press": "Presse",
+  "imprint": "Impressum",
+  "privacy": "Datenschutz",
+  "sources": "Quellen",
+  "toElection": "Zur {name}"
+}

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import type { FeedItem, ParliamentFeed } from '@/lib/firebase/firebase.types';
 import feedFixture from '../../../firebase/firestore_data/emulator/feed.json';
-import de from '../../messages/de.json';
-import en from '../../messages/en.json';
+import de from '../../messages/de';
+import en from '../../messages/en';
 import { feedToDigests } from './editions';
 import { buildFeed, rankFeed } from './feed';
 import { findItem, sectionItems, voteItems } from './items';

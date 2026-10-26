@@ -13,6 +13,7 @@ import { FOCUS_RING, MUTED_TEXT } from './card-styles';
  */
 function DailyHeader() {
   const t = useTranslations('header');
+  const tNav = useTranslations('nav');
   return (
     <header className="sticky top-0 z-30 h-header border-b border-[var(--daily-border)] bg-[var(--daily-canvas)]">
       <div className="mx-auto flex size-full max-w-screen-sm items-center justify-between gap-3 px-4 sm:gap-4">
@@ -34,7 +35,7 @@ function DailyHeader() {
                 MUTED_TEXT,
               )}
             >
-              {t('guide')}
+              {tNav('howTo')}
             </Link>
             <LocaleSwitcher
               className={cn(
@@ -50,7 +51,7 @@ function DailyHeader() {
               )}
             >
               <HeartIcon className="size-4" aria-hidden />
-              {t('donate')}
+              {tNav('donate')}
             </Link>
           </nav>
         )}
