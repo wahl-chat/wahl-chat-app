@@ -2,9 +2,9 @@
 
 import PartyCard from '@/components/party-card';
 import { useElectionContext } from '@/components/providers/context-provider';
+import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { CircleXIcon, EllipsisIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import Logo from './chat/logo';
 import { Button } from './ui/button';

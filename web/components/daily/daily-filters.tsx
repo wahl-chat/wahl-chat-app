@@ -18,6 +18,7 @@ import {
 import { DAILY_TOPIC_KEYS } from '@/lib/daily/topics';
 import { cn } from '@/lib/utils';
 import { ChevronDownIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, PILL, PILL_ACTIVE } from './card-styles';
@@ -82,6 +83,7 @@ export function ParliamentSelector({
   states: StateSelection;
   onChange: (states: StateSelection) => void;
 }) {
+  const t = useTranslations('feed');
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(states);
 
@@ -106,7 +108,9 @@ export function ParliamentSelector({
         />
       )}
       <PopoverTrigger
-        aria-label={`Parlament wählen, gewählt: ${states.map(selectionName).join(', ')}`}
+        aria-label={t('chooseParliamentChosen', {
+          names: states.map(selectionName).join(', '),
+        })}
         className={cn(
           FOCUS_RING,
           'relative z-[25] flex h-14 w-full items-center gap-3 rounded-[10px] border bg-[var(--daily-canvas)] px-4 text-left',
@@ -115,7 +119,9 @@ export function ParliamentSelector({
       >
         <SelectionSummary states={states} />
         <span className={cn('ml-auto shrink-0 text-[15px]', MUTED_TEXT)}>
-          {open ? `${draft.length} gewählt` : 'Parlament wählen'}
+          {open
+            ? t('chosenCount', { count: draft.length })
+            : t('chooseParliament')}
         </span>
         <ChevronDownIcon
           aria-hidden
@@ -144,13 +150,13 @@ export function ParliamentSelector({
             Bundestag
           </label>
           <span className="rounded-full bg-[var(--daily-surface)] px-2.5 py-0.5 text-[13px]">
-            Standard
+            {t('defaultChoice')}
           </span>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           <fieldset className="py-2">
             <legend className={cn('px-4 pb-1 pt-2 text-[13px]', MUTED_TEXT)}>
-              Landtage
+              {t('landtage')}
             </legend>
             {Object.entries(DAILY_STATES).map(([code, state]) => {
               const covered = state.parliament !== undefined;
@@ -174,7 +180,7 @@ export function ParliamentSelector({
                   >
                     {state.name}
                     {!covered && (
-                      <span className="ml-auto text-[13px]">bald</span>
+                      <span className="ml-auto text-[13px]">{t('soon')}</span>
                     )}
                   </label>
                 </div>
@@ -192,11 +198,11 @@ export function ParliamentSelector({
               MUTED_TEXT,
             )}
           >
-            Zurücksetzen
+            {t('reset')}
           </button>
           {draft.length === 0 && (
             <span className={cn('text-[13px]', MUTED_TEXT)}>
-              Mindestens eins wählen
+              {t('pickOne')}
             </span>
           )}
           <button
@@ -211,7 +217,7 @@ export function ParliamentSelector({
               'min-h-11 rounded-lg bg-[var(--daily-ink)] px-5 text-[15px] font-semibold text-[var(--daily-canvas)] disabled:opacity-40',
             )}
           >
-            Fertig
+            {t('done')}
           </button>
         </div>
       </PopoverContent>
@@ -227,6 +233,7 @@ export function TopicPills({
   topics: string[];
   onChange: (topics: string[]) => void;
 }) {
+  const t = useTranslations('feed');
   const toggle = (topic: string) =>
     onChange(
       topics.includes(topic)
@@ -236,14 +243,14 @@ export function TopicPills({
 
   return (
     <fieldset className="relative -mx-4 flex min-w-0 gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <legend className="sr-only">Themen</legend>
+      <legend className="sr-only">{t('topics')}</legend>
       <button
         type="button"
         aria-pressed={topics.length === 0}
         onClick={() => onChange([])}
         className={cn(PILL, FOCUS_RING, topics.length === 0 && PILL_ACTIVE)}
       >
-        Alle Themen
+        {t('allTopics')}
       </button>
       {DAILY_TOPIC_KEYS.map((topic) => (
         <TopicChip

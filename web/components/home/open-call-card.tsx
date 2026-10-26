@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
 import { GraduationCapIcon } from 'lucide-react';
-import Link from 'next/link';
 
 const OPEN_CALL_PATH =
   'public/additional_documents/hiring/WahlChatOpenCall.pdf';

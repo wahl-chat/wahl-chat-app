@@ -1,7 +1,7 @@
 'use client';
 
+import { Link } from '@/i18n/navigation';
 import { SITE_LINKS, sourcesLink } from '@/lib/site-links';
-import Link from 'next/link';
 import Logo from './chat/logo';
 import { ThemeModeToggle } from './chat/theme-mode-toggle';
 import FeedbackDialog from './feedback-dialog';

@@ -1,5 +1,6 @@
 'use client';
 
+import type { Locale } from '@/i18n/locales';
 import { feedToDigests } from '@/lib/daily/editions';
 import { buildFeed, feedLists, rankFeed } from '@/lib/daily/feed';
 import { type DetailItem, findItem } from '@/lib/daily/items';
@@ -18,6 +19,7 @@ import type {
   ParliamentFeed,
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { MUTED_TEXT } from './card-styles';
 import DailyDaySection from './daily-day-section';
@@ -96,11 +98,12 @@ function useItemInView(deps: unknown): string | null {
 
 function digestsIn(
   feeds: Props['feeds'],
+  locale: Locale,
 ): Record<DigestParliamentId, DailyDigest[]> {
   return {
-    bundestag: feedToDigests(feeds.bundestag),
-    landtag_st: feedToDigests(feeds.landtag_st),
-    landtag_bw: feedToDigests(feeds.landtag_bw),
+    bundestag: feedToDigests(feeds.bundestag, locale),
+    landtag_st: feedToDigests(feeds.landtag_st, locale),
+    landtag_bw: feedToDigests(feeds.landtag_bw, locale),
   };
 }
 
@@ -124,7 +127,10 @@ function DailyFeed({
     }
   }, [initialStates]);
 
-  const digests = useMemo(() => digestsIn(feeds), [feeds]);
+  // Both languages are loaded with the feed; the page's locale picks one.
+  const locale = useLocale();
+  const t = useTranslations('feed');
+  const digests = useMemo(() => digestsIn(feeds, locale), [feeds, locale]);
   const lists = useMemo(
     () => feedLists(digests, parliamentsFor(states), previewDigests),
     [digests, previewDigests, states],
@@ -170,7 +176,7 @@ function DailyFeed({
       <div className="flex flex-col gap-12 pt-2">
         {days.length === 0 ? (
           <p className={cn('py-12 text-center text-[15px]', MUTED_TEXT)}>
-            Noch keine Inhalte zu deiner Auswahl. Schau bald wieder vorbei.
+            {t('empty')}
           </p>
         ) : (
           days.map((day) => (

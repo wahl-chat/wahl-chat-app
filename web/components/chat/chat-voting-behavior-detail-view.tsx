@@ -14,10 +14,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Link } from '@/i18n/navigation';
 import type { Vote } from '@/lib/socket.types';
 import { prettifiedUrlName } from '@/lib/utils';
 import { ArrowUpRightIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useState } from 'react';
 import ChatVoteChartsHeader from './chat-vote-charts-header';
 import ChatVoteDetailsHeader from './chat-vote-details-header';

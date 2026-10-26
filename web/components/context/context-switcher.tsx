@@ -22,10 +22,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useRouter } from '@/i18n/navigation';
 import type { Context } from '@/lib/firebase/firebase.types';
 import { formatGermanDate } from '@/lib/utils';
 import { CheckIcon, ChevronDownIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 type ContextSwitcherProps = {

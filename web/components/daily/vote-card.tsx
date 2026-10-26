@@ -2,6 +2,7 @@ import { type VoteItem, itemTeaser } from '@/lib/daily/items';
 import type { DigestVote } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { CheckIcon, XIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { CardFooter, ItemTeaser } from './card-footer';
 import { CARD_SURFACE } from './card-styles';
 import { Hemicycle, SeatLegend, VoteGauge } from './hemicycle';
@@ -14,6 +15,7 @@ export function OutcomeBadge({
   outcome: DigestVote['outcome'];
   className?: string;
 }) {
+  const t = useTranslations('feed');
   if (!outcome) {
     return null;
   }
@@ -30,7 +32,7 @@ export function OutcomeBadge({
       )}
     >
       <Icon className="size-3.5" strokeWidth={3} aria-hidden />
-      {passed ? 'Angenommen' : 'Abgelehnt'}
+      {passed ? t('passed') : t('rejected')}
     </span>
   );
 }

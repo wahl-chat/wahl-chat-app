@@ -1,7 +1,7 @@
+import { Link } from '@/i18n/navigation';
 import type { Context } from '@/lib/firebase/firebase.types';
 import type { PartyDetails } from '@/lib/party-details';
 import { formatGermanDate } from '@/lib/utils';
-import Link from 'next/link';
 
 type Props = {
   context: Context;

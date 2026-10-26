@@ -1,10 +1,10 @@
 'use client';
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import DynamicRateLimitStickyInput from '@/components/dynamic-rate-limit-sticky-input';
+import { useRouter } from '@/i18n/navigation';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { copySharedChatSession } from '@/lib/firebase/firebase-admin';
 import type { LlmSystemStatus } from '@/lib/firebase/firebase.types';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 

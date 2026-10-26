@@ -1,9 +1,9 @@
 'use client';
 
 import { useCurrentContext } from '@/components/providers/context-provider';
+import { Link } from '@/i18n/navigation';
+import { usePathname } from '@/i18n/navigation';
 import { ArrowRightIcon } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 
 function WahlSwiperTeaserTag() {
   const pathname = usePathname();

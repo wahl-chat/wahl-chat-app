@@ -1,6 +1,7 @@
 import { topicColor } from '@/lib/daily/palette';
-import { topicShortTitle } from '@/lib/daily/topics';
+import { topicKey } from '@/lib/daily/topics';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { FOCUS_RING, META_TEXT, PILL, PILL_ACTIVE } from './card-styles';
 
@@ -29,7 +30,8 @@ export function TopicMeta({
   trailing?: ReactNode;
   className?: string;
 }) {
-  const title = (topic: string) => topicShortTitle(topic);
+  const t = useTranslations('topics');
+  const title = (topic: string) => t(`${topicKey(topic)}.short`);
   return (
     <p
       className={cn(META_TEXT, 'flex min-w-0 items-center gap-1.5', className)}
@@ -59,6 +61,7 @@ type Props = {
 };
 
 function TopicChip({ topic, active, onClick }: Props) {
+  const t = useTranslations('topics');
   return (
     <button
       type="button"
@@ -67,7 +70,7 @@ function TopicChip({ topic, active, onClick }: Props) {
       className={cn(PILL, FOCUS_RING, active && PILL_ACTIVE)}
     >
       <TopicDot topic={topic} />
-      {topicShortTitle(topic)}
+      {t(`${topicKey(topic)}.short`)}
     </button>
   );
 }

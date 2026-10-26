@@ -1,5 +1,5 @@
+import { Link } from '@/i18n/navigation';
 import { MailIcon, MessageSquareHeart } from 'lucide-react';
-import Link from 'next/link';
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,

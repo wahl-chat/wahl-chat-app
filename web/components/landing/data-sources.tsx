@@ -1,10 +1,10 @@
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
+import { Link } from '@/i18n/navigation';
 import {
   getAccordionItem,
   parseLabeledListItem,
   splitOnSourceDomains,
 } from '@/lib/how-to-content';
-import Link from 'next/link';
 import { Fragment } from 'react';
 
 type Props = {

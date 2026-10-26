@@ -21,7 +21,7 @@ function MobileNavbar({ userDetails }: Props) {
     <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
       <Dialog.Trigger asChild>
         <button
-          className="group absolute inset-y-0 right-0 my-auto flex size-8 flex-col items-end justify-center gap-1 rounded-md p-2 transition-colors hover:bg-muted md:hidden"
+          className="group flex size-8 flex-col items-end justify-center gap-1 rounded-md p-2 transition-colors hover:bg-muted md:hidden"
           type="button"
           aria-label="Open menu"
         >

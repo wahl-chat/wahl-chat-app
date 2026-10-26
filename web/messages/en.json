@@ -1,0 +1,114 @@
+{
+  "header": {
+    "home": "wahl.chat home page",
+    "guide": "Guide",
+    "donate": "Donate"
+  },
+  "locale": {
+    "label": "Language",
+    "current": "Language: {language}"
+  },
+  "feed": {
+    "interesting": "Interesting?",
+    "interestYes": "Interesting",
+    "interestNo": "Not interesting",
+    "more": "Show more",
+    "moreAbout": "Show more: {title}",
+    "share": "Share",
+    "linkCopied": "Link copied",
+    "passed": "Passed",
+    "rejected": "Rejected",
+    "topicOfDay": "Topic of the day",
+    "matchingVote": "Related vote",
+    "plenarySitting": "Plenary sitting",
+    "vote": "Vote",
+    "protocol": "Plenary record {id}",
+    "heatOutOf": "Intensity {heat} of {max}",
+    "heatShort": "Intensity {heat}/5",
+    "empty": "Nothing for your selection yet. Check back soon.",
+    "backToFeed": "Back to the feed",
+    "inShort": "In short",
+    "whoSaysWhat": "Who said what",
+    "source": "Source: plenary record {id} (German)",
+    "whatAbout": "What was it about?",
+    "howGroupsVoted": "How the parliamentary groups voted",
+    "originalTitle": "Original German title: {title}",
+    "voteOnAw": "The vote on abgeordnetenwatch.de (German)",
+    "askMore": "Want to know more? Ask.",
+    "askVote": "Ask about this vote …",
+    "askDebate": "Ask about this debate …",
+    "seat": {
+      "yes": "Yes",
+      "no": "No",
+      "abstain": "Abstained",
+      "absent": "Absent"
+    },
+    "yesNo": "Yes : No",
+    "voteResult": "Result: {yes} yes, {no} no, {abstain} abstentions, {absent} absent.",
+    "seats": "{name}: {seats} seats",
+    "chooseParliament": "Choose parliament",
+    "chooseParliamentChosen": "Choose parliament, selected: {names}",
+    "chosenCount": "{count} selected",
+    "defaultChoice": "Default",
+    "landtage": "State parliaments",
+    "soon": "soon",
+    "reset": "Reset",
+    "pickOne": "Pick at least one",
+    "done": "Done",
+    "topics": "Topics",
+    "allTopics": "All topics",
+    "playSpeech": "Play speech",
+    "playAudio": "Play audio",
+    "startsAt": "{speaker} · from {time}"
+  },
+  "topics": {
+    "economy_finance": {
+      "title": "Economy and finance",
+      "short": "Economy"
+    },
+    "social_labor": {
+      "title": "Social affairs and labour",
+      "short": "Social"
+    },
+    "education_research": {
+      "title": "Education and research",
+      "short": "Education"
+    },
+    "climate_environment": {
+      "title": "Climate and environment",
+      "short": "Climate"
+    },
+    "health_care": {
+      "title": "Health and care",
+      "short": "Health"
+    },
+    "digitalization_tech": {
+      "title": "Digital and technology",
+      "short": "Digital"
+    },
+    "migration_integration": {
+      "title": "Migration and integration",
+      "short": "Migration"
+    },
+    "security_justice": {
+      "title": "Security and justice",
+      "short": "Security"
+    },
+    "foreign_policy_europe": {
+      "title": "Foreign policy and Europe",
+      "short": "Foreign policy"
+    },
+    "transport_infrastructure": {
+      "title": "Transport and infrastructure",
+      "short": "Transport"
+    },
+    "housing_rent": {
+      "title": "Housing and rent",
+      "short": "Housing"
+    },
+    "other": {
+      "title": "Other topics",
+      "short": "Other"
+    }
+  }
+}

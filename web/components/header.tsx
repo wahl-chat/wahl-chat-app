@@ -1,7 +1,8 @@
 import Logo from '@/components/chat/logo';
+import { LocaleSwitcher } from '@/components/locale/locale-switcher';
+import { Link } from '@/i18n/navigation';
 import { getCurrentUser } from '@/lib/firebase/firebase-server';
 import { IS_EMBEDDED, getUserDetailsFromUser } from '@/lib/utils';
-import Link from 'next/link';
 import MobileNavbar from './navbar/mobile-navbar';
 import NavBar from './navbar/navbar';
 
@@ -16,8 +17,11 @@ async function Header() {
           <Logo className="size-12 md:size-16" />
         </Link>
 
-        {!IS_EMBEDDED && <MobileNavbar userDetails={userDetails} />}
-        <NavBar className="hidden md:flex" />
+        <div className="flex items-center gap-2">
+          {!IS_EMBEDDED && <LocaleSwitcher className="h-9" />}
+          {!IS_EMBEDDED && <MobileNavbar userDetails={userDetails} />}
+          <NavBar className="hidden md:flex" />
+        </div>
       </div>
     </header>
   );

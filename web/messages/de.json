@@ -1,0 +1,114 @@
+{
+  "header": {
+    "home": "wahl.chat Startseite",
+    "guide": "Anleitung",
+    "donate": "Spenden"
+  },
+  "locale": {
+    "label": "Sprache",
+    "current": "Sprache: {language}"
+  },
+  "feed": {
+    "interesting": "Interessant?",
+    "interestYes": "Interessant",
+    "interestNo": "Nicht interessant",
+    "more": "Mehr anzeigen",
+    "moreAbout": "Mehr anzeigen: {title}",
+    "share": "Teilen",
+    "linkCopied": "Link kopiert",
+    "passed": "Angenommen",
+    "rejected": "Abgelehnt",
+    "topicOfDay": "Thema des Tages",
+    "matchingVote": "Passende Abstimmung",
+    "plenarySitting": "Plenarsitzung",
+    "vote": "Abstimmung",
+    "protocol": "Protokoll {id}",
+    "heatOutOf": "Hitzigkeit {heat} von {max}",
+    "heatShort": "Hitzigkeit {heat}/5",
+    "empty": "Noch keine Inhalte zu deiner Auswahl. Schau bald wieder vorbei.",
+    "backToFeed": "Zurück zum Feed",
+    "inShort": "Kurz gesagt",
+    "whoSaysWhat": "Wer sagt was",
+    "source": "Quelle: Plenarprotokoll {id}",
+    "whatAbout": "Worum ging es?",
+    "howGroupsVoted": "So haben die Fraktionen gestimmt",
+    "originalTitle": "Originaltitel: {title}",
+    "voteOnAw": "Abstimmung auf abgeordnetenwatch.de",
+    "askMore": "Mehr wissen? Frag nach.",
+    "askVote": "Frag zu dieser Abstimmung …",
+    "askDebate": "Frag zu dieser Debatte …",
+    "seat": {
+      "yes": "Ja",
+      "no": "Nein",
+      "abstain": "Enthalten",
+      "absent": "Abwesend"
+    },
+    "yesNo": "Ja : Nein",
+    "voteResult": "Abstimmungsergebnis: {yes} Ja, {no} Nein, {abstain} Enthaltungen, {absent} abwesend.",
+    "seats": "{name}: {seats} Sitze",
+    "chooseParliament": "Parlament wählen",
+    "chooseParliamentChosen": "Parlament wählen, gewählt: {names}",
+    "chosenCount": "{count} gewählt",
+    "defaultChoice": "Standard",
+    "landtage": "Landtage",
+    "soon": "bald",
+    "reset": "Zurücksetzen",
+    "pickOne": "Mindestens eins wählen",
+    "done": "Fertig",
+    "topics": "Themen",
+    "allTopics": "Alle Themen",
+    "playSpeech": "Rede abspielen",
+    "playAudio": "Audio abspielen",
+    "startsAt": "{speaker} · ab {time}"
+  },
+  "topics": {
+    "economy_finance": {
+      "title": "Wirtschaft und Finanzen",
+      "short": "Wirtschaft"
+    },
+    "social_labor": {
+      "title": "Soziales und Arbeit",
+      "short": "Soziales"
+    },
+    "education_research": {
+      "title": "Bildung und Forschung",
+      "short": "Bildung"
+    },
+    "climate_environment": {
+      "title": "Klimaschutz und Umwelt",
+      "short": "Klima"
+    },
+    "health_care": {
+      "title": "Gesundheit und Pflege",
+      "short": "Gesundheit"
+    },
+    "digitalization_tech": {
+      "title": "Digitalisierung und Technologie",
+      "short": "Digitales"
+    },
+    "migration_integration": {
+      "title": "Migration und Integration",
+      "short": "Migration"
+    },
+    "security_justice": {
+      "title": "Innere Sicherheit und Justiz",
+      "short": "Sicherheit"
+    },
+    "foreign_policy_europe": {
+      "title": "Außenpolitik und Europa",
+      "short": "Außenpolitik"
+    },
+    "transport_infrastructure": {
+      "title": "Verkehr und Infrastruktur",
+      "short": "Verkehr"
+    },
+    "housing_rent": {
+      "title": "Wohnungsbau und Mieten",
+      "short": "Wohnen"
+    },
+    "other": {
+      "title": "Weitere Themen",
+      "short": "Weitere"
+    }
+  }
+}

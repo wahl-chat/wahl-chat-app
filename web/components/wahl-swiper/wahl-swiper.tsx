@@ -3,9 +3,10 @@
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import LoadingSpinner from '@/components/loading-spinner';
 import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
+import { useRouter } from '@/i18n/navigation';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { captureProlificParams } from '@/lib/prolific-study/prolific-metadata';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import SwipingCards from './swiping-cards';

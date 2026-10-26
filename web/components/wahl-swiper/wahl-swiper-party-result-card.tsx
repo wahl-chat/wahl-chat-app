@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Link } from '@/i18n/navigation';
 import type { PartyDetails } from '@/lib/party-details';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
 import type {
@@ -21,7 +22,6 @@ import type {
 } from '@/lib/wahl-swiper/wahl-swiper.types';
 import { CheckIcon, MessageSquareIcon, XIcon } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 
 const WAHL_SWIPER_PARTY_IDS = [
   'afd',

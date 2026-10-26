@@ -1,12 +1,13 @@
 import Logo from '@/components/chat/logo';
 import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
 import HomeSocialMediaIcon from '@/components/icons/home-social-media-icon';
+import { LocaleSwitcher } from '@/components/locale/locale-switcher';
 import { Separator } from '@/components/ui/separator';
+import { Link } from '@/i18n/navigation';
 import { getNextUpcomingElection } from '@/lib/elections';
 import { getContexts } from '@/lib/firebase/firebase-server';
 import { SITE_LINKS, type SiteLink, sourcesLink } from '@/lib/site-links';
 import { IS_EMBEDDED } from '@/lib/utils';
-import Link from 'next/link';
 
 /**
  * The landing page's footer.
@@ -104,9 +105,12 @@ async function LandingFooter() {
           </p>
 
           {/* The landing page has no header, so this is the only place a
-              visitor can change the theme — the shared footer carries it on
-              every other page. */}
-          <ThemeModeToggle align="end" />
+              visitor can change the language or theme — elsewhere the header
+              and the shared footer carry them. */}
+          <div className="flex items-center gap-1">
+            <LocaleSwitcher align="end" className="h-8 gap-1.5 px-2 text-sm" />
+            <ThemeModeToggle align="end" />
+          </div>
         </div>
       </div>
     </footer>

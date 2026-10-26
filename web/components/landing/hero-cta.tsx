@@ -8,12 +8,12 @@ import {
   PINNED_TOP,
 } from '@/components/landing/pinned-layout';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
 import type { Context } from '@/lib/firebase/firebase.types';
 import { lerp, useScrollMorph } from '@/lib/hooks/use-scroll-morph';
 import { cn } from '@/lib/utils';
 import { ArrowRightIcon } from 'lucide-react';
 import { m, useMotionValue } from 'motion/react';
-import Link from 'next/link';
 
 /**
  * The hero call to action, which shrinks and pins itself to the top right as

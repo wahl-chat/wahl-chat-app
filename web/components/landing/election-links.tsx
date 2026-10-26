@@ -1,8 +1,8 @@
 import { ContextIcon } from '@/components/context-icon';
+import { Link } from '@/i18n/navigation';
 import type { Context } from '@/lib/firebase/firebase.types';
 import { formatGermanDate } from '@/lib/utils';
 import { ChevronDownIcon } from 'lucide-react';
-import Link from 'next/link';
 
 /**
  * Every election the site covers, as real links.

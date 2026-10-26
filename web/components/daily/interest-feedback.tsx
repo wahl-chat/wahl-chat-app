@@ -5,12 +5,17 @@ import { readInterest, recordInterest } from '@/lib/daily/interest';
 import type { FeedInterest } from '@/lib/firebase/firebase';
 import { cn } from '@/lib/utils';
 import { type LucideIcon, ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Fragment, useEffect, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 
-const OPTIONS: { value: FeedInterest; label: string; Icon: LucideIcon }[] = [
-  { value: 'yes', label: 'Interessant', Icon: ThumbsUpIcon },
-  { value: 'no', label: 'Nicht interessant', Icon: ThumbsDownIcon },
+const OPTIONS: {
+  value: FeedInterest;
+  label: 'interestYes' | 'interestNo';
+  Icon: LucideIcon;
+}[] = [
+  { value: 'yes', label: 'interestYes', Icon: ThumbsUpIcon },
+  { value: 'no', label: 'interestNo', Icon: ThumbsDownIcon },
 ];
 
 /** "Interessant?" over 👍 | 👎, bottom left of every card. */
@@ -24,6 +29,7 @@ function InterestFeedback({
   legacyKeys?: string[];
   className?: string;
 }) {
+  const t = useTranslations('feed');
   const { user } = useAnonymousAuth();
   const [answer, setAnswer] = useState<FeedInterest | null>(null);
 
@@ -49,9 +55,9 @@ function InterestFeedback({
         className,
       )}
     >
-      <legend className="sr-only">Interessant?</legend>
+      <legend className="sr-only">{t('interesting')}</legend>
       <span aria-hidden className={cn('text-[13px]', MUTED_TEXT)}>
-        Interessant?
+        {t('interesting')}
       </span>
       {/* Pulled left so the first icon lines up with the label above. */}
       <div className="-ml-2.5 flex items-center">
@@ -67,7 +73,7 @@ function InterestFeedback({
               )}
               <button
                 type="button"
-                aria-label={label}
+                aria-label={t(label)}
                 aria-pressed={pressed}
                 onClick={() => choose(value)}
                 className={cn(

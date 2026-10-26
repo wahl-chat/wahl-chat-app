@@ -12,13 +12,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { Link } from '@/i18n/navigation';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { listenToHistory } from '@/lib/firebase/firebase';
 import type { ChatSession } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { VoteIcon } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 type Props = {

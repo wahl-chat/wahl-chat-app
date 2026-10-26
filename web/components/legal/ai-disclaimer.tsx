@@ -5,6 +5,7 @@ import {
   ResponsiveDialogTitle,
   ResponsiveDialogTrigger,
 } from '@/components/chat/responsive-drawer-dialog';
+import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import {
   AlertCircleIcon,
@@ -13,7 +14,6 @@ import {
   DatabaseIcon,
   GitBranch,
 } from 'lucide-react';
-import Link from 'next/link';
 
 function AiDisclaimerContent() {
   return (

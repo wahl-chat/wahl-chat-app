@@ -2,7 +2,7 @@
 
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { useContextParties } from '@/components/providers/context-provider';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Logo from './logo';
 import PartyDetailPopover from './party-detail-popover';
 

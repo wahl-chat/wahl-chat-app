@@ -1,5 +1,6 @@
 'use client';
 
+import { Link } from '@/i18n/navigation';
 import {
   ACCORDION_CONTENT,
   FEED_INTRO,
@@ -11,7 +12,6 @@ import {
 } from '@/lib/how-to-content';
 import { exportHowToPDF } from '@/lib/how-to-pdf-export';
 import { DownloadIcon, PlusIcon, VoteIcon } from 'lucide-react';
-import Link from 'next/link';
 import { Fragment, useState } from 'react';
 import ChatActionButtonHighlight from './chat/chat-action-button-highlight';
 import ProConIcon from './chat/pro-con-icon';

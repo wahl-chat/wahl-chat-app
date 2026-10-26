@@ -1,7 +1,7 @@
 import Logo from '@/components/chat/logo';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
 import { ArrowRightIcon } from 'lucide-react';
-import Link from 'next/link';
 
 type Props = {
   contextId: string;

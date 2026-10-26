@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useRouter } from '@/i18n/navigation';
 import {
   getConversationMessages,
   getConversationStage,
@@ -23,7 +24,6 @@ import {
   Loader2,
   MessageSquarePlus,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 
 type Screen = 'choice' | 'resume';

@@ -1,9 +1,9 @@
 import Logo from '@/components/chat/logo';
 import RtlIcon from '@/components/icons/rtl-icon';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
 import { LibraryBigIcon, XIcon } from 'lucide-react';
 import { getImageProps } from 'next/image';
-import Link from 'next/link';
 
 function TvTeaserCard() {
   const imageProps = {

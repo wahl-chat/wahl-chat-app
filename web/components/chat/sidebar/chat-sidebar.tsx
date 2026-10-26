@@ -17,6 +17,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@/components/ui/sidebar';
+import { Link } from '@/i18n/navigation';
 import { getCurrentUser } from '@/lib/firebase/firebase-server';
 import { IS_EMBEDDED, getUserDetailsFromUser } from '@/lib/utils';
 import {
@@ -25,12 +26,12 @@ import {
   MessageCircleIcon,
   UserIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { Suspense } from 'react';
 import ChatSidebarGroupSelect from './chat-sidebar-group-select';
 import SidebarHistorySr from './sidebar-history-sr';
 import SidebarNewChatButtons from './sidebar-new-chat-buttons';
 
+import { LocaleSwitcher } from '@/components/locale/locale-switcher';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 
 type Props = {
@@ -52,6 +53,10 @@ async function ChatSidebar({ contextId = DEFAULT_CONTEXT_ID }: Props) {
           <Logo variant="small" className="size-6" />
         </Link>
         <div className="flex flex-row items-center gap-1">
+          <LocaleSwitcher
+            align="start"
+            className="h-8 gap-1.5 border-0 px-2 text-sm"
+          />
           <ThemeModeToggle />
           <Button
             variant="ghost"

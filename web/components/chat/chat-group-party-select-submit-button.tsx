@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
+import { useRouter } from '@/i18n/navigation';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
-import { useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
 import { ResponsiveDialogClose } from './responsive-drawer-dialog';
 

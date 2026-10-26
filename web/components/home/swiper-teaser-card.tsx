@@ -1,8 +1,8 @@
 import Logo from '@/components/chat/logo';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { ArrowRightIcon } from 'lucide-react';
-import Link from 'next/link';
 import WahlSwiperTeaserVector from './wahl-swiper-teaser-vector';
 
 type Props = {

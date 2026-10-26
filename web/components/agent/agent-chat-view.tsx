@@ -3,6 +3,7 @@
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
 import { useAgentStore } from '@/components/providers/agent-store-provider';
 import { Button } from '@/components/ui/button';
+import { useRouter } from '@/i18n/navigation';
 import {
   type SourcesReadyPayload,
   createConversation,
@@ -12,7 +13,6 @@ import {
 import { saveConversationId } from '@/lib/agent/conversation-storage';
 import type { Source } from '@/lib/stores/chat-store.types';
 import { CheckCircle2, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import AgentChatInput from './agent-chat-input';
 import AgentChatMessage from './agent-chat-message';

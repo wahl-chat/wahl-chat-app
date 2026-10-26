@@ -7,10 +7,10 @@ import {
   useCurrentContext,
 } from '@/components/providers/context-provider';
 import { Select, SelectContent, SelectTrigger } from '@/components/ui/select';
+import { useRouter } from '@/i18n/navigation';
 import type { Context } from '@/lib/firebase/firebase.types';
 import { formatGermanDate } from '@/lib/utils';
 import { CalendarIcon, MapPinIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 function CompactElectionContent({ context }: { context: Context }) {
   const formattedDate = formatGermanDate(context.date, 'short');

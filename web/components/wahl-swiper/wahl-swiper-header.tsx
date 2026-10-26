@@ -1,6 +1,6 @@
 import Logo from '@/components/chat/logo';
 import { Separator } from '@/components/ui/separator';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import WahlSwiperContextSelector from './wahl-swiper-context-selector';
 
 type Props = {

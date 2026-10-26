@@ -1,6 +1,6 @@
 import GithubIcon from '@/components/icons/github-icon';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 
 function GitHubCard({
   fullWidth = false,

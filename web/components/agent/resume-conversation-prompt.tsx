@@ -6,9 +6,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { useRouter } from '@/i18n/navigation';
 import { clearStoredConversation } from '@/lib/agent/conversation-storage';
 import { History, MessageSquarePlus } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 
 interface ResumeConversationPromptProps {

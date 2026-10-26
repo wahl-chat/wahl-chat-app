@@ -1,7 +1,7 @@
 import DonationDialog from '@/components/donation-dialog';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
 import { HeartHandshakeIcon, UsersRoundIcon } from 'lucide-react';
-import Link from 'next/link';
 
 /**
  * Cards render an h2 by default, which is right on the election home page

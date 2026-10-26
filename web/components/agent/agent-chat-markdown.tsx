@@ -6,8 +6,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Link } from '@/i18n/navigation';
 import type { Source } from '@/lib/stores/chat-store.types';
-import Link from 'next/link';
 import { type JSX, memo, useMemo } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';

@@ -13,9 +13,9 @@ import { toast } from 'sonner';
 import LoginForm from './login-form';
 import '@fillout/react/style.css';
 import Logo from '@/components/chat/logo';
+import { usePathname } from '@/i18n/navigation';
 import { firestoreTimestampToDate } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
-import { usePathname } from 'next/navigation';
 
 const LOGIN_REMINDER_TOAST_ID = 'login-reminder-toast';
 

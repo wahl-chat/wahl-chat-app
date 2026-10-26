@@ -1,12 +1,12 @@
 'use client';
 
+import { Link } from '@/i18n/navigation';
 import { createCheckoutSession } from '@/lib/server-actions/stripe-create-session';
 import { formatAmountForDisplay } from '@/lib/stripe/stripe-helpers';
 import { cn } from '@/lib/utils';
 import NumberFlow from '@number-flow/react';
 import { track } from '@vercel/analytics/react';
 import { EqualIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useState } from 'react';
 import { DonateSubmitButton } from './donate-submit-button';
 import { Button } from './ui/button';
