@@ -130,13 +130,13 @@ class FakeLLM:
         return SessionSummaryDraft(
             sections=[
                 SessionSectionDraft(
-                    topic="housing_rent",
+                    topics=["housing_rent"],
                     headline="Mehr Wohnungen",
                     summary="Die SPD fordert mehr Wohnungsbau.",
                     agenda_refs=["A1"],
                 ),
                 SessionSectionDraft(
-                    topic="health_care",
+                    topics=["health_care"],
                     headline="Erfunden",
                     summary="Nicht in den Auszügen.",
                     agenda_refs=["A99"],
@@ -244,7 +244,7 @@ def test_agenda_ids_never_leak_into_reader_text() -> None:
     draft = SessionSummaryDraft(
         sections=[
             SessionSectionDraft(
-                topic="housing_rent",
+                topics=["housing_rent"],
                 headline="Mehr Wohnungen (A1)",
                 summary="Die SPD fordert mehr Wohnungsbau [A1].",
                 agenda_refs=["A1"],
@@ -284,7 +284,7 @@ def test_positions_keep_only_parties_and_speakers_who_spoke() -> None:
     draft = SessionSummaryDraft(
         sections=[
             SessionSectionDraft(
-                topic="housing_rent",
+                topics=["housing_rent"],
                 headline="Mehr Wohnungen",
                 summary="Es ging um Wohnungsbau.",
                 agenda_refs=["A1"],
@@ -344,7 +344,7 @@ def test_positions_merge_parties_that_share_a_fraktion() -> None:
     draft = SessionSummaryDraft(
         sections=[
             SessionSectionDraft(
-                topic="other",
+                topics=["other"],
                 headline="Debatte",
                 summary="Worum es ging.",
                 agenda_refs=["A1"],
@@ -369,7 +369,7 @@ def test_positions_merge_parties_that_share_a_fraktion() -> None:
 
 def _section_draft(**overrides: Any) -> SessionSummaryDraft:
     fields: dict[str, Any] = {
-        "topic": "housing_rent",
+        "topics": ["housing_rent"],
         "headline": "Mehr Wohnungen",
         "summary": "Es ging um Wohnungsbau.",
         "agenda_refs": ["A1"],
@@ -472,3 +472,37 @@ def test_opening_quote_too_long_for_a_card_is_dropped() -> None:
 
 def test_sections_record_the_fraktion_that_opened_the_debate() -> None:
     assert _one_section(_section_draft()).opened_by == "spd"
+
+
+def test_debates_carry_up_to_two_distinct_topics_primary_first() -> None:
+    sitting = _sitting_days()[date(2026, 9, 24)]
+    refs = {"A1": sitting.agenda_items[0]}
+    draft = SessionSummaryDraft(
+        sections=[
+            SessionSectionDraft(
+                topics=["housing_rent", "housing_rent", "social_labor", "other"],
+                headline="Mehr Wohnungen",
+                summary="Es ging um Wohnungsbau.",
+                agenda_refs=["A1"],
+            )
+        ],
+        other_topics=[],
+    )
+    [section] = session_from_draft(draft, refs, sitting).sections
+    assert section.topic == "housing_rent"
+    assert section.topics == ["housing_rent", "social_labor"]
+
+
+def test_a_debate_without_topics_falls_back_to_other() -> None:
+    sitting = _sitting_days()[date(2026, 9, 24)]
+    refs = {"A1": sitting.agenda_items[0]}
+    draft = SessionSummaryDraft(
+        sections=[
+            SessionSectionDraft(
+                topics=[], headline="X", summary="Y.", agenda_refs=["A1"]
+            )
+        ],
+        other_topics=[],
+    )
+    [section] = session_from_draft(draft, refs, sitting).sections
+    assert (section.topic, section.topics) == ("other", ["other"])

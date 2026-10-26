@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import type { FeedItem, ParliamentFeed } from '@/lib/firebase/firebase.types';
 import feedFixture from '../../../firebase/firestore_data/emulator/feed.json';
 import { feedToDigests } from './editions';
+import { buildFeed, rankFeed } from './feed';
 import { parseLocaleParam } from './i18n';
 import { findItem, sectionItems, voteItems } from './items';
 import { topicShortTitle, topicTitle } from './topics';
@@ -64,6 +65,28 @@ describe('feedToDigests', () => {
     const digests = feedToDigests(FEED, 'de');
     const item = FEED.items[0];
     expect(findItem(digests, item.legacy_keys[0])?.key).toBe(item.id);
+  });
+});
+
+describe('debate topics', () => {
+  it('lists a debate under each of its topics', () => {
+    const id = FEED.editions[0].item_ids[0];
+    const feed: ParliamentFeed = {
+      editions: FEED.editions,
+      items: FEED.items.map((i) =>
+        i.id === id ? { ...i, topics: ['health_care', 'economy_finance'] } : i,
+      ),
+    };
+    const shown = (topic: string) =>
+      rankFeed(buildFeed([feedToDigests(feed, 'de')], 3650), [topic]).flatMap(
+        (day) => [
+          day.hot?.key,
+          ...day.blocks.flatMap((b) => b.sections.map((s) => s.key)),
+        ],
+      );
+    expect(shown('health_care')).toContain(id);
+    expect(shown('economy_finance')).toContain(id);
+    expect(shown('housing_rent')).not.toContain(id);
   });
 });
 

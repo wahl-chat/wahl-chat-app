@@ -1,5 +1,5 @@
 import { topicColor } from '@/lib/daily/palette';
-import { topicShortTitle, topicTitle } from '@/lib/daily/topics';
+import { topicShortTitle } from '@/lib/daily/topics';
 import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
 import { FOCUS_RING, META_TEXT, PILL, PILL_ACTIVE } from './card-styles';
@@ -15,24 +15,23 @@ export function TopicDot({ topic }: { topic: string }) {
   );
 }
 
-/** "● ● Gesundheit · Wirtschaft", optionally followed by more meta. */
+/** "● ● Gesundheit · Wirtschaft", optionally followed by more meta. Each
+ * topic carries the label of its filter pill, so a card names exactly the
+ * filters it appears under. */
 export function TopicMeta({
   topics,
   suffix,
   trailing,
-  short = false,
   className,
 }: {
   topics: string[];
   suffix?: string | null;
   /** Non-text meta after the line, e.g. the heat dots; never truncated. */
   trailing?: ReactNode;
-  short?: boolean;
   className?: string;
 }) {
   const { locale } = useFeedLocale();
-  const title = (topic: string) =>
-    short ? topicShortTitle(topic, locale) : topicTitle(topic, locale);
+  const title = (topic: string) => topicShortTitle(topic, locale);
   return (
     <p
       className={cn(META_TEXT, 'flex min-w-0 items-center gap-1.5', className)}

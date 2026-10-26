@@ -79,7 +79,7 @@ _PARTY_SUFFIX_RE = re.compile(r"\s*\([^)]*\)\s*$")
 _KEY_POINTS = 3
 # Part of every input_hash next to PROMPT_VERSION: bump it when the stored doc
 # gains or changes a field, so existing days are rebuilt in the new shape.
-DIGEST_FORMAT_VERSION = "6"
+DIGEST_FORMAT_VERSION = "7"
 # The vote connector writes the embed text as "<label>\n\nThemen: …\n\nKontext: <intro>".
 _CONTEXT_MARKER = "Kontext: "
 
@@ -153,7 +153,7 @@ class DigestBuilder:
                     title=title,
                     short_title=item.short_title.strip() or title,
                     summary=item.summary.strip() or None,
-                    topics=list(dict.fromkeys(item.topics))[:2] or ["other"],
+                    topics=clean_topics(item.topics),
                     suggested_questions=clean_questions(item.suggested_questions),
                     generated_by=model,
                 )
@@ -343,6 +343,11 @@ def clean_key_points(points: list[str]) -> list[str]:
     return cleaned if len(cleaned) == _KEY_POINTS else []
 
 
+def clean_topics(topics: list[DigestTopic]) -> list[DigestTopic]:
+    """At most two distinct topics, primary first; ``other`` when none fit."""
+    return list(dict.fromkeys(topics))[:2] or ["other"]
+
+
 def clamp_heat(heat: Optional[int]) -> Optional[int]:
     return None if heat is None else max(1, min(5, heat))
 
@@ -413,9 +418,11 @@ def session_from_draft(
         if not items:
             continue
         used.update(r for r in drafted.agenda_refs if r in refs)
+        topics = clean_topics(drafted.topics)
         sections.append(
             DigestSessionSection(
-                topic=drafted.topic,
+                topic=topics[0],
+                topics=topics,
                 headline=_strip_agenda_refs(drafted.headline),
                 summary=_strip_agenda_refs(drafted.summary),
                 positions=ground_positions(

@@ -86,3 +86,14 @@ def test_duplicate_agenda_sets_do_not_overwrite_each_other() -> None:
     _, items = split_digest(digest)
     ids = [i.id for i in items]
     assert len(ids) == len(set(ids))
+
+
+def test_a_debate_item_carries_both_topics_and_older_ones_their_single_topic() -> None:
+    digest = _digests()[0]
+    assert digest.session is not None
+    first = digest.session.sections[0]
+    assert first.topics == []  # stored before debates had two
+    first.topics = [first.topic, "economy_finance"]
+    _, items = split_digest(digest)
+    assert items[0].topics == [first.topic, "economy_finance"]
+    assert items[1].topics == [digest.session.sections[1].topic]

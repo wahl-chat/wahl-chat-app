@@ -84,6 +84,11 @@ export function openingParty(section: DigestSessionSection): string | null {
   return party ? (FRAKTION_OF[party] ?? party) : null;
 }
 
+/** A debate's topics, primary first; filters match on any of them. */
+export function sectionTopics(section: DigestSessionSection): string[] {
+  return section.topics?.length ? section.topics : [section.topic];
+}
+
 export function itemTitle(item: DetailItem): string {
   return item.kind === 'section'
     ? item.section.headline

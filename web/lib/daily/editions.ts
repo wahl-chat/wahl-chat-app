@@ -26,6 +26,7 @@ function toSection(
   const text = new Map(content.positions.map((p) => [p.party_id, p.text]));
   return {
     topic: item.topics[0],
+    topics: item.topics,
     headline: content.headline,
     summary: content.teaser ?? '',
     positions: facts.parties.flatMap((party) => {

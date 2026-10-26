@@ -249,7 +249,10 @@ export type DigestQuote = {
 };
 
 export type DigestSessionSection = {
+  /** The primary topic; `topics` holds it plus an optional second one. */
   topic: string;
+  /** Absent on local previews and digests built with one topic only. */
+  topics?: string[];
   headline: string;
   summary: string;
   /** One entry per Fraktion that spoke; absent on older digests. */

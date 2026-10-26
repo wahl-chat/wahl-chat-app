@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 from src.feed.topics import DigestTopic, topic_legend
 
 # Part of every digest's input_hash: bumping it regenerates all stored days.
-PROMPT_VERSION = "6"
+PROMPT_VERSION = "7"
 # Stored on each translation: bumping it re-translates, never regenerates.
 TRANSLATION_PROMPT_VERSION = "1"
 
@@ -40,6 +40,11 @@ _QUESTION_STYLE = (
 )
 
 
+# Votes and debates are tagged alike, so both land under the same filters.
+_TOPICS_DESCRIPTION = "1 bis 2 Themen-Schlüssel, das wichtigste zuerst."
+_TOPIC_KEYS_RULE = "(nur die Schlüssel verwenden; 'other' nur, wenn nichts passt)"
+
+
 def _refs_only_rule(examples: str, field: str, elsewhere: str) -> str:
     return f"Die Kennungen ({examples}) gehören NUR in {field}, nie in {elsewhere}."
 
@@ -49,9 +54,7 @@ _QUESTIONS_DESCRIPTION = f"Genau 3 {_QUESTION_STYLE}, z. B. 'Was heißt das für
 
 class VoteEnrichment(BaseModel):
     ref: str = Field(description="Die Kennung der Abstimmung, z. B. 'V3'.")
-    topics: list[DigestTopic] = Field(
-        description="1 bis 2 Themen-Schlüssel, das wichtigste zuerst."
-    )
+    topics: list[DigestTopic] = Field(description=_TOPICS_DESCRIPTION)
     short_title: str = Field(
         description="Verständlicher Titel, höchstens 12 Wörter, ohne Drucksachennummern."
     )
@@ -92,7 +95,7 @@ class OpeningQuoteDraft(BaseModel):
 
 
 class SessionSectionDraft(BaseModel):
-    topic: DigestTopic
+    topics: list[DigestTopic] = Field(description=_TOPICS_DESCRIPTION)
     headline: str = Field(description="Kurze Überschrift, höchstens 10 Wörter.")
     summary: str = Field(
         description="1 bis 2 neutrale Sätze: worum ging es in der Debatte."
@@ -144,8 +147,7 @@ VOTE_ENRICHMENT_PROMPT = f"""\
 Du bereitest Abstimmungen aus dem {{parliament}} für {_AUDIENCE} \
 für Bürgerinnen und Bürger auf.
 
-Ordne jeder Abstimmung 1 bis 2 Themen aus dieser Liste zu (nur die Schlüssel \
-verwenden; 'other' nur, wenn nichts passt):
+Ordne jeder Abstimmung 1 bis 2 Themen aus dieser Liste zu {_TOPIC_KEYS_RULE}:
 {{topics}}
 
 Formuliere außerdem einen verständlichen Kurztitel, höchstens zwei neutrale \
@@ -162,12 +164,14 @@ Du fasst die Plenarsitzung des {{parliament}} vom {{day}} für {_AUDIENCE} \
 zusammen. Grundlage sind ausschließlich die folgenden \
 Redeauszüge, gruppiert nach Tagesordnungspunkten.
 
-Gliedere die Zusammenfassung nach Themen aus dieser Liste (nur die Schlüssel \
-verwenden):
+Gliedere die Zusammenfassung nach Themen aus dieser Liste {_TOPIC_KEYS_RULE}:
 {{topics}}
 
 Regeln:
-- Ein Abschnitt pro Thema; fasse Tagesordnungspunkte zum selben Thema zusammen.
+- Ein Abschnitt pro Hauptthema; fasse Tagesordnungspunkte zum selben \
+Hauptthema zusammen.
+- topics: 1 bis 2 Themen je Abschnitt, das Hauptthema zuerst; ein zweites \
+nur, wenn die Debatte es wesentlich berührt.
 - Höchstens 6 Abschnitte, die wichtigsten Debatten zuerst.
 - Jeder Abschnitt nennt in agenda_refs die Kennungen der Tagesordnungspunkte, \
 auf denen er beruht. {_GROUNDING_RULE}

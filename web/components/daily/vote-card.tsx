@@ -52,7 +52,7 @@ function VoteCard({ item, onOpen, compact = false }: Props) {
       className={cn(CARD_SURFACE, 'flex flex-col gap-3 px-4 pb-2 pt-4')}
     >
       <div className="flex items-center justify-between gap-3">
-        <TopicMeta topics={vote.topics} short />
+        <TopicMeta topics={vote.topics} />
         <OutcomeBadge outcome={vote.outcome} />
       </div>
       <h3 className="hyphens-auto break-words text-[19px] font-bold leading-snug">

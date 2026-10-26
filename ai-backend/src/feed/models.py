@@ -104,7 +104,12 @@ class DigestQuote(BaseModel):
 class DigestSessionSection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    # The primary topic; ``topics`` holds it plus an optional second one.
     topic: DigestTopic
+    topics: list[DigestTopic] = Field(
+        default_factory=list,
+        description="1 to 2, primary first; empty on digests built with one topic only.",
+    )
     headline: str
     summary: str
     positions: list[DigestPartyPosition] = Field(default_factory=list)

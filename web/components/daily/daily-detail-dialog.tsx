@@ -10,10 +10,10 @@ import {
   type VoteItem,
   openingParty,
   protocolLabel,
+  sectionTopics,
   suggestedQuestions,
 } from '@/lib/daily/items';
 import { shareItem } from '@/lib/daily/share';
-import { topicTitle } from '@/lib/daily/topics';
 import { cn } from '@/lib/utils';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ChevronLeftIcon, ShareIcon } from 'lucide-react';
@@ -23,7 +23,7 @@ import { useFeedLocale } from './feed-locale';
 import { Hemicycle, SeatLegend } from './hemicycle';
 import { PartyPositions } from './party-positions';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
-import { TopicDot, TopicMeta } from './topic-chip';
+import { TopicMeta } from './topic-chip';
 import { OutcomeBadge } from './vote-card';
 import { PartyVoteTable, SourceLink } from './vote-panels';
 
@@ -89,7 +89,7 @@ function SectionDetail({
   item: SectionItem;
   heat: number | undefined;
 }) {
-  const { t, locale } = useFeedLocale();
+  const { t } = useFeedLocale();
   const { section, digest } = item;
   const media = sectionMedia(section, t);
   const protocol = digest.session?.protocols[0];
@@ -98,11 +98,10 @@ function SectionDetail({
     <>
       {media && <SectionMediaFrame media={media} />}
       <div className="flex flex-col gap-4 px-4 pt-4">
-        <p className={cn('flex items-center gap-1.5 text-[13px]', MUTED_TEXT)}>
-          <TopicDot topic={section.topic} />
-          {topicTitle(section.topic, locale)}
-          {heat ? ` · ${t.heatShort(heat)}` : ''}
-        </p>
+        <TopicMeta
+          topics={sectionTopics(section)}
+          suffix={heat ? t.heatShort(heat) : null}
+        />
         <DialogPrimitive.Title className="hyphens-auto break-words text-[22px] font-bold leading-snug">
           {section.headline}
         </DialogPrimitive.Title>
@@ -152,7 +151,6 @@ function VoteDetail({ item }: { item: VoteItem }) {
       <div className="flex items-center justify-between gap-3">
         <TopicMeta
           topics={vote.topics}
-          short
           suffix={protocol ? t.protocol(protocol) : null}
         />
         <OutcomeBadge outcome={vote.outcome} />

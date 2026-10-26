@@ -105,7 +105,7 @@ def _debate_item(
         region=digest.region,
         date=digest.date,
         rank=rank,
-        topics=[section.topic],
+        topics=section.topics or [section.topic],
         debate=DebateFacts(
             protocols=digest.session.protocols,
             agenda_items=section.agenda_items,

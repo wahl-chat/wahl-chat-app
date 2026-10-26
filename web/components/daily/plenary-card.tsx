@@ -1,4 +1,9 @@
-import { type SectionItem, itemTeaser, protocolLabel } from '@/lib/daily/items';
+import {
+  type SectionItem,
+  itemTeaser,
+  protocolLabel,
+  sectionTopics,
+} from '@/lib/daily/items';
 import { cn } from '@/lib/utils';
 import { CardFooter, ItemTeaser } from './card-footer';
 import { CARD_SURFACE } from './card-styles';
@@ -57,7 +62,7 @@ export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
       {media && <SectionMediaFrame media={media} small={!hot} />}
       <div className="flex flex-1 flex-col gap-2 px-4 pb-2 pt-4">
         <TopicMeta
-          topics={[section.topic]}
+          topics={sectionTopics(section)}
           suffix={hot && protocol ? t.protocol(protocol) : null}
           trailing={hot && heat ? <HeatDots heat={heat} /> : null}
         />

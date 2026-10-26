@@ -6,6 +6,7 @@ import {
   type SectionItem,
   type VoteItem,
   sectionItems,
+  sectionTopics,
   voteItems,
 } from './items';
 import { matchesTopics } from './topics';
@@ -154,7 +155,7 @@ export function rankFeed(
   return days.map((day, dayIndex) => {
     const sections = day.digests.flatMap((digest) =>
       sectionItems(digest).filter((s) =>
-        matchesTopics([s.section.topic], topics),
+        matchesTopics(sectionTopics(s.section), topics),
       ),
     );
     const heat = dayHeat(sections);
