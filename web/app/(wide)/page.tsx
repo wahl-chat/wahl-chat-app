@@ -1,5 +1,4 @@
 import DailyFeed from '@/components/daily/daily-feed';
-import { parseLocaleParam } from '@/lib/daily/i18n';
 import { getLocalPreviewDigests } from '@/lib/daily/local-preview';
 import { parseStateParam } from '@/lib/daily/region';
 import { parseTopicsParam } from '@/lib/daily/topics';
@@ -55,7 +54,6 @@ async function HomePage({ searchParams }: Props) {
       initialStates={parseStateParam(params.land)}
       initialTopics={parseTopicsParam(params.themen)}
       initialItem={typeof params.item === 'string' ? params.item : undefined}
-      initialLocale={parseLocaleParam(params.lang)}
     />
   );
 }

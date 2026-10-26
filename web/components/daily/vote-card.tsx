@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils';
 import { CheckIcon, XIcon } from 'lucide-react';
 import { CardFooter, ItemTeaser } from './card-footer';
 import { CARD_SURFACE } from './card-styles';
-import { useFeedLocale } from './feed-locale';
 import { Hemicycle, SeatLegend, VoteGauge } from './hemicycle';
 import { TopicMeta } from './topic-chip';
 
@@ -15,7 +14,6 @@ export function OutcomeBadge({
   outcome: DigestVote['outcome'];
   className?: string;
 }) {
-  const { t } = useFeedLocale();
   if (!outcome) {
     return null;
   }
@@ -32,7 +30,7 @@ export function OutcomeBadge({
       )}
     >
       <Icon className="size-3.5" strokeWidth={3} aria-hidden />
-      {passed ? t.passed : t.rejected}
+      {passed ? 'Angenommen' : 'Abgelehnt'}
     </span>
   );
 }

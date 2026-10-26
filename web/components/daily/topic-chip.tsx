@@ -3,7 +3,6 @@ import { topicShortTitle } from '@/lib/daily/topics';
 import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
 import { FOCUS_RING, META_TEXT, PILL, PILL_ACTIVE } from './card-styles';
-import { useFeedLocale } from './feed-locale';
 
 export function TopicDot({ topic }: { topic: string }) {
   return (
@@ -30,8 +29,7 @@ export function TopicMeta({
   trailing?: ReactNode;
   className?: string;
 }) {
-  const { locale } = useFeedLocale();
-  const title = (topic: string) => topicShortTitle(topic, locale);
+  const title = (topic: string) => topicShortTitle(topic);
   return (
     <p
       className={cn(META_TEXT, 'flex min-w-0 items-center gap-1.5', className)}
@@ -61,7 +59,6 @@ type Props = {
 };
 
 function TopicChip({ topic, active, onClick }: Props) {
-  const { locale } = useFeedLocale();
   return (
     <button
       type="button"
@@ -70,7 +67,7 @@ function TopicChip({ topic, active, onClick }: Props) {
       className={cn(PILL, FOCUS_RING, active && PILL_ACTIVE)}
     >
       <TopicDot topic={topic} />
-      {topicShortTitle(topic, locale)}
+      {topicShortTitle(topic)}
     </button>
   );
 }

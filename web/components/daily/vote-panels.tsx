@@ -7,7 +7,6 @@ import type {
 import { cn } from '@/lib/utils';
 import { ArrowUpRightIcon } from 'lucide-react';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
-import { useFeedLocale } from './feed-locale';
 
 type Majority = 'yes' | 'no' | 'abstain';
 
@@ -24,6 +23,12 @@ export function majority(party: DigestVoteParty): Majority | null {
   return count > 0 ? label : null;
 }
 
+const MAJORITY_LABEL: Record<Majority, string> = {
+  yes: 'Ja',
+  no: 'Nein',
+  abstain: 'Enthalten',
+};
+
 const MAJORITY_CLASS: Record<Majority, string> = {
   yes: 'text-[var(--daily-yes)]',
   no: 'text-[var(--daily-no)]',
@@ -32,7 +37,6 @@ const MAJORITY_CLASS: Record<Majority, string> = {
 
 /** "So haben die Fraktionen gestimmt": two columns of Fraktion and majority. */
 export function PartyVoteTable({ vote }: { vote: DigestVote }) {
-  const { t } = useFeedLocale();
   return (
     <dl className="grid grid-cols-2 gap-x-8">
       {sortBySeating(vote.parties)
@@ -51,7 +55,7 @@ export function PartyVoteTable({ vote }: { vote: DigestVote }) {
                   verdict && MAJORITY_CLASS[verdict],
                 )}
               >
-                {verdict ? t.seat[verdict] : '–'}
+                {verdict ? MAJORITY_LABEL[verdict] : '–'}
               </dd>
             </div>
           );

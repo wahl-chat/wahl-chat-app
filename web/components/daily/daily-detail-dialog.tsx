@@ -3,7 +3,6 @@
 import StickyInput from '@/components/sticky-input';
 import { feedChatHref } from '@/lib/daily/chat-handoff';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
-import type { FeedStrings } from '@/lib/daily/i18n';
 import {
   type DetailItem,
   type SectionItem,
@@ -19,7 +18,6 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ChevronLeftIcon, ShareIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
-import { useFeedLocale } from './feed-locale';
 import { Hemicycle, SeatLegend } from './hemicycle';
 import { PartyPositions } from './party-positions';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
@@ -27,22 +25,22 @@ import { TopicMeta } from './topic-chip';
 import { OutcomeBadge } from './vote-card';
 import { PartyVoteTable, SourceLink } from './vote-panels';
 
-function longDayFormat(intl: string) {
-  return new Intl.DateTimeFormat(intl, {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
-}
+const longDayFormat = new Intl.DateTimeFormat('de-DE', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
 
 const ICON_BUTTON = cn(
   FOCUS_RING,
   'flex size-11 items-center justify-center rounded-full hover:bg-[var(--daily-surface)]',
 );
 
-function placeholderFor(item: DetailItem, t: FeedStrings): string {
-  return item.kind === 'vote' ? t.askVote : t.askDebate;
+function placeholderFor(item: DetailItem): string {
+  return item.kind === 'vote'
+    ? 'Frag zu dieser Abstimmung …'
+    : 'Frag zu dieser Debatte …';
 }
 
 /**
@@ -59,7 +57,6 @@ export function AskPanel({
   className?: string;
 }) {
   const router = useRouter();
-  const { t } = useFeedLocale();
   const ask = (question: string) => {
     if (question.trim()) {
       router.push(feedChatHref(item, question));
@@ -69,13 +66,15 @@ export function AskPanel({
   return (
     <div className={className}>
       {suggestions.length > 0 && (
-        <p className="px-4 pb-2 pt-3 text-[15px] font-semibold">{t.askMore}</p>
+        <p className="px-4 pb-2 pt-3 text-[15px] font-semibold">
+          Mehr wissen? Frag nach.
+        </p>
       )}
       <StickyInput
         isLoading={false}
         onSubmit={ask}
         quickReplies={suggestions}
-        placeholder={placeholderFor(item, t)}
+        placeholder={placeholderFor(item)}
         className="static mx-2 pb-3 md:pb-3"
       />
     </div>
@@ -89,9 +88,8 @@ function SectionDetail({
   item: SectionItem;
   heat: number | undefined;
 }) {
-  const { t } = useFeedLocale();
   const { section, digest } = item;
-  const media = sectionMedia(section, t);
+  const media = sectionMedia(section);
   const protocol = digest.session?.protocols[0];
   const points = section.key_points ?? [];
   return (
@@ -100,13 +98,13 @@ function SectionDetail({
       <div className="flex flex-col gap-4 px-4 pt-4">
         <TopicMeta
           topics={sectionTopics(section)}
-          suffix={heat ? t.heatShort(heat) : null}
+          suffix={heat ? `Hitzigkeit ${heat}/5` : null}
         />
         <DialogPrimitive.Title className="hyphens-auto break-words text-[22px] font-bold leading-snug">
           {section.headline}
         </DialogPrimitive.Title>
         <section className="flex flex-col gap-1.5">
-          <h3 className={SECTION_LABEL}>{t.inShort}</h3>
+          <h3 className={SECTION_LABEL}>Kurz gesagt</h3>
           {points.length > 0 ? (
             <ul className="list-disc space-y-1.5 pl-5 text-[15px] leading-relaxed">
               {points.map((point) => (
@@ -119,7 +117,7 @@ function SectionDetail({
         </section>
         {section.positions && section.positions.length > 0 && (
           <section className="flex flex-col gap-1.5">
-            <h3 className={SECTION_LABEL}>{t.whoSaysWhat}</h3>
+            <h3 className={SECTION_LABEL}>Wer sagt was</h3>
             <PartyPositions
               positions={section.positions}
               openedBy={openingParty(section)}
@@ -129,11 +127,11 @@ function SectionDetail({
         {protocol &&
           (protocol.pdf_url ? (
             <SourceLink href={protocol.pdf_url}>
-              {t.source(protocolLabel(digest) ?? '')}
+              Quelle: Plenarprotokoll {protocolLabel(digest)}
             </SourceLink>
           ) : (
             <p className={cn('text-[15px]', MUTED_TEXT)}>
-              {t.source(protocolLabel(digest) ?? '')}
+              Quelle: Plenarprotokoll {protocolLabel(digest)}
             </p>
           ))}
       </div>
@@ -142,7 +140,6 @@ function SectionDetail({
 }
 
 function VoteDetail({ item }: { item: VoteItem }) {
-  const { t } = useFeedLocale();
   const { vote, digest } = item;
   const protocol = protocolLabel(digest);
   const about = vote.summary ?? vote.description;
@@ -151,7 +148,7 @@ function VoteDetail({ item }: { item: VoteItem }) {
       <div className="flex items-center justify-between gap-3">
         <TopicMeta
           topics={vote.topics}
-          suffix={protocol ? t.protocol(protocol) : null}
+          suffix={protocol ? `Protokoll ${protocol}` : null}
         />
         <OutcomeBadge outcome={vote.outcome} />
       </div>
@@ -162,19 +159,21 @@ function VoteDetail({ item }: { item: VoteItem }) {
       <SeatLegend parties={vote.parties} />
       {about && (
         <section className="rounded-xl bg-[var(--daily-surface)] p-4">
-          <h3 className={SECTION_LABEL}>{t.whatAbout}</h3>
+          <h3 className={SECTION_LABEL}>Worum ging es?</h3>
           <p className="mt-1 text-[15px] leading-relaxed">{about}</p>
         </section>
       )}
       <section className="flex flex-col gap-1">
-        <h3 className={SECTION_LABEL}>{t.howGroupsVoted}</h3>
+        <h3 className={SECTION_LABEL}>So haben die Fraktionen gestimmt</h3>
         <PartyVoteTable vote={vote} />
       </section>
       <p className={cn('text-[13px]', MUTED_TEXT)}>
-        {t.originalTitle(vote.title)}
+        Originaltitel: {vote.title}
       </p>
       {vote.citation_url && (
-        <SourceLink href={vote.citation_url}>{t.voteOnAw}</SourceLink>
+        <SourceLink href={vote.citation_url}>
+          Abstimmung auf abgeordnetenwatch.de
+        </SourceLink>
       )}
     </div>
   );
@@ -192,9 +191,8 @@ type Props = {
  * Full screen on phones, a centred column from md up.
  */
 export function DailyDetailDialog({ item, heat, onClose }: Props) {
-  const { t, intl, locale } = useFeedLocale();
   const context = item
-    ? `${item.kind === 'vote' ? t.vote : t.plenarySitting} · ${longDayFormat(intl).format(new Date(`${item.digest.date}T00:00:00Z`))}`
+    ? `${item.kind === 'vote' ? 'Abstimmung' : 'Plenarsitzung'} · ${longDayFormat.format(new Date(`${item.digest.date}T00:00:00Z`))}`
     : '';
 
   return (
@@ -205,7 +203,6 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40" />
         <DialogPrimitive.Content
-          lang={locale}
           className={cn(
             DAILY_THEME_CLASSES,
             'fixed inset-0 z-50 flex flex-col bg-[var(--daily-canvas)] focus:outline-none md:inset-auto md:left-1/2 md:top-1/2 md:h-[90dvh] md:w-full md:max-w-screen-sm md:-translate-x-1/2 md:-translate-y-1/2 md:overflow-hidden md:rounded-xl',
@@ -215,7 +212,7 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
             <>
               <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--daily-border)] px-2 py-1.5">
                 <DialogPrimitive.Close
-                  aria-label={t.backToFeed}
+                  aria-label="Zurück zum Feed"
                   className={ICON_BUTTON}
                 >
                   <ChevronLeftIcon className="size-6" />
@@ -227,8 +224,8 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
                 </DialogPrimitive.Description>
                 <button
                   type="button"
-                  aria-label={t.share}
-                  onClick={() => shareItem(item, t.linkCopied)}
+                  aria-label="Teilen"
+                  onClick={() => shareItem(item)}
                   className={ICON_BUTTON}
                 >
                   <ShareIcon className="size-5" />

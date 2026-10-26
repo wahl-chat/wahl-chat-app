@@ -21,7 +21,6 @@ import { ChevronDownIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, PILL, PILL_ACTIVE } from './card-styles';
-import { useFeedLocale } from './feed-locale';
 import TopicChip from './topic-chip';
 
 const CHECKBOX =
@@ -83,7 +82,6 @@ export function ParliamentSelector({
   states: StateSelection;
   onChange: (states: StateSelection) => void;
 }) {
-  const { t } = useFeedLocale();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(states);
 
@@ -108,9 +106,7 @@ export function ParliamentSelector({
         />
       )}
       <PopoverTrigger
-        aria-label={t.chooseParliamentChosen(
-          states.map(selectionName).join(', '),
-        )}
+        aria-label={`Parlament wählen, gewählt: ${states.map(selectionName).join(', ')}`}
         className={cn(
           FOCUS_RING,
           'relative z-[25] flex h-14 w-full items-center gap-3 rounded-[10px] border bg-[var(--daily-canvas)] px-4 text-left',
@@ -118,23 +114,12 @@ export function ParliamentSelector({
         )}
       >
         <SelectionSummary states={states} />
-        {/* Visual hint only (the trigger's label says it); on phones the
-            language toggle shares the row and the parliament name needs it. */}
-        <span
-          aria-hidden
-          className={cn(
-            'ml-auto hidden shrink-0 text-[15px] min-[480px]:inline',
-            MUTED_TEXT,
-          )}
-        >
-          {open ? t.chosenCount(draft.length) : t.chooseParliament}
+        <span className={cn('ml-auto shrink-0 text-[15px]', MUTED_TEXT)}>
+          {open ? `${draft.length} gewählt` : 'Parlament wählen'}
         </span>
         <ChevronDownIcon
           aria-hidden
-          className={cn(
-            'ml-auto size-4 shrink-0 transition-transform min-[480px]:ml-0',
-            open && 'rotate-180',
-          )}
+          className={cn('size-4 transition-transform', open && 'rotate-180')}
         />
       </PopoverTrigger>
       <PopoverContent
@@ -159,13 +144,13 @@ export function ParliamentSelector({
             Bundestag
           </label>
           <span className="rounded-full bg-[var(--daily-surface)] px-2.5 py-0.5 text-[13px]">
-            {t.defaultChoice}
+            Standard
           </span>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           <fieldset className="py-2">
             <legend className={cn('px-4 pb-1 pt-2 text-[13px]', MUTED_TEXT)}>
-              {t.landtage}
+              Landtage
             </legend>
             {Object.entries(DAILY_STATES).map(([code, state]) => {
               const covered = state.parliament !== undefined;
@@ -189,7 +174,7 @@ export function ParliamentSelector({
                   >
                     {state.name}
                     {!covered && (
-                      <span className="ml-auto text-[13px]">{t.soon}</span>
+                      <span className="ml-auto text-[13px]">bald</span>
                     )}
                   </label>
                 </div>
@@ -207,10 +192,12 @@ export function ParliamentSelector({
               MUTED_TEXT,
             )}
           >
-            {t.reset}
+            Zurücksetzen
           </button>
           {draft.length === 0 && (
-            <span className={cn('text-[13px]', MUTED_TEXT)}>{t.pickOne}</span>
+            <span className={cn('text-[13px]', MUTED_TEXT)}>
+              Mindestens eins wählen
+            </span>
           )}
           <button
             type="button"
@@ -224,7 +211,7 @@ export function ParliamentSelector({
               'min-h-11 rounded-lg bg-[var(--daily-ink)] px-5 text-[15px] font-semibold text-[var(--daily-canvas)] disabled:opacity-40',
             )}
           >
-            {t.done}
+            Fertig
           </button>
         </div>
       </PopoverContent>
@@ -240,7 +227,6 @@ export function TopicPills({
   topics: string[];
   onChange: (topics: string[]) => void;
 }) {
-  const { t } = useFeedLocale();
   const toggle = (topic: string) =>
     onChange(
       topics.includes(topic)
@@ -250,14 +236,14 @@ export function TopicPills({
 
   return (
     <fieldset className="relative -mx-4 flex min-w-0 gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <legend className="sr-only">{t.topics}</legend>
+      <legend className="sr-only">Themen</legend>
       <button
         type="button"
         aria-pressed={topics.length === 0}
         onClick={() => onChange([])}
         className={cn(PILL, FOCUS_RING, topics.length === 0 && PILL_ACTIVE)}
       >
-        {t.allTopics}
+        Alle Themen
       </button>
       {DAILY_TOPIC_KEYS.map((topic) => (
         <TopicChip

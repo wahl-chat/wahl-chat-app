@@ -2,13 +2,6 @@
 
 import { feedToDigests } from '@/lib/daily/editions';
 import { buildFeed, feedLists, rankFeed } from '@/lib/daily/feed';
-import {
-  DEFAULT_LOCALE,
-  FEED_STRINGS,
-  LOCALE_PARAM,
-  LOCALE_STORAGE_KEY,
-  parseLocaleParam,
-} from '@/lib/daily/i18n';
 import { type DetailItem, findItem } from '@/lib/daily/items';
 import {
   DEFAULT_SELECTION,
@@ -22,7 +15,6 @@ import { TOPICS_PARAM } from '@/lib/daily/topics';
 import type {
   DailyDigest,
   DigestParliamentId,
-  FeedLocale,
   ParliamentFeed,
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
@@ -31,7 +23,6 @@ import { MUTED_TEXT } from './card-styles';
 import DailyDaySection from './daily-day-section';
 import { AskPanel, DailyDetailDialog } from './daily-detail-dialog';
 import { ParliamentSelector, TopicPills } from './daily-filters';
-import { FeedLocaleProvider, LanguageToggle } from './feed-locale';
 
 const ITEM_PARAM = 'item';
 
@@ -43,47 +34,24 @@ type Props = {
   initialStates: StateSelection | undefined;
   initialTopics: string[];
   initialItem: string | undefined;
-  /** From the URL; `undefined` lets the stored choice decide. */
-  initialLocale: FeedLocale | undefined;
 };
 
 type View = {
   states: StateSelection;
   topics: string[];
   item: string | null;
-  locale: FeedLocale;
 };
 
 /** Mirror the view into the URL without a server round-trip, so a shared
  * link reproduces it, down to an opened item. */
-function syncUrl({ states, topics, item, locale }: View) {
+function syncUrl({ states, topics, item }: View) {
   const url = new URL(window.location.href);
   const set = (key: string, value: string | null) =>
     value ? url.searchParams.set(key, value) : url.searchParams.delete(key);
   set(STATE_PARAM, states.join(',').toLowerCase() || null);
   set(TOPICS_PARAM, topics.join(',') || null);
   set(ITEM_PARAM, item);
-  set(LOCALE_PARAM, locale === DEFAULT_LOCALE ? null : locale);
   window.history.replaceState(null, '', url);
-}
-
-function storedLocale(): FeedLocale {
-  try {
-    return (
-      parseLocaleParam(window.localStorage.getItem(LOCALE_STORAGE_KEY)) ??
-      DEFAULT_LOCALE
-    );
-  } catch {
-    return DEFAULT_LOCALE;
-  }
-}
-
-function storeLocale(locale: FeedLocale) {
-  try {
-    window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
-  } catch {
-    // Storage blocked: the choice still holds for this visit via the URL.
-  }
 }
 
 function storedStates(): StateSelection {
@@ -128,12 +96,11 @@ function useItemInView(deps: unknown): string | null {
 
 function digestsIn(
   feeds: Props['feeds'],
-  locale: FeedLocale,
 ): Record<DigestParliamentId, DailyDigest[]> {
   return {
-    bundestag: feedToDigests(feeds.bundestag, locale),
-    landtag_st: feedToDigests(feeds.landtag_st, locale),
-    landtag_bw: feedToDigests(feeds.landtag_bw, locale),
+    bundestag: feedToDigests(feeds.bundestag),
+    landtag_st: feedToDigests(feeds.landtag_st),
+    landtag_bw: feedToDigests(feeds.landtag_bw),
   };
 }
 
@@ -143,31 +110,21 @@ function DailyFeed({
   initialStates,
   initialTopics,
   initialItem,
-  initialLocale,
 }: Props) {
   const [states, setStates] = useState<StateSelection>(
     initialStates ?? DEFAULT_SELECTION,
   );
   const [topics, setTopics] = useState(initialTopics);
   const [openKey, setOpenKey] = useState<string | null>(initialItem ?? null);
-  const [locale, setLocale] = useState<FeedLocale>(
-    initialLocale ?? DEFAULT_LOCALE,
-  );
 
-  // A link's params win; otherwise restore this device's last choices.
+  // A link's land param wins; otherwise restore this device's last choice.
   useEffect(() => {
     if (initialStates === undefined) {
       setStates(storedStates());
     }
   }, [initialStates]);
-  useEffect(() => {
-    if (initialLocale === undefined) {
-      setLocale(storedLocale());
-    }
-  }, [initialLocale]);
 
-  // Both languages are already loaded, so switching costs no round-trip.
-  const digests = useMemo(() => digestsIn(feeds, locale), [feeds, locale]);
+  const digests = useMemo(() => digestsIn(feeds), [feeds]);
   const lists = useMemo(
     () => feedLists(digests, parliamentsFor(states), previewDigests),
     [digests, previewDigests, states],
@@ -190,7 +147,7 @@ function DailyFeed({
     days.find((d) => d.hot)?.hot ||
     null;
 
-  const view: View = { states, topics, item: openKey, locale };
+  const view: View = { states, topics, item: openKey };
   const changeStates = (next: StateSelection) => {
     setStates(next);
     storeStates(next);
@@ -204,54 +161,42 @@ function DailyFeed({
     setOpenKey(key);
     syncUrl({ ...view, item: key });
   };
-  const changeLocale = (next: FeedLocale) => {
-    setLocale(next);
-    storeLocale(next);
-    syncUrl({ ...view, locale: next });
-  };
 
   return (
-    <FeedLocaleProvider locale={locale}>
-      <div lang={locale} className="flex flex-col gap-4 pt-4">
-        <div className="flex gap-2">
-          <div className="min-w-0 flex-1">
-            <ParliamentSelector states={states} onChange={changeStates} />
-          </div>
-          <LanguageToggle onChange={changeLocale} />
-        </div>
-        <TopicPills topics={topics} onChange={changeTopics} />
+    <div className="flex flex-col gap-4 pt-4">
+      <ParliamentSelector states={states} onChange={changeStates} />
+      <TopicPills topics={topics} onChange={changeTopics} />
 
-        <div className="flex flex-col gap-12 pt-2">
-          {days.length === 0 ? (
-            <p className={cn('py-12 text-center text-[15px]', MUTED_TEXT)}>
-              {FEED_STRINGS[locale].empty}
-            </p>
-          ) : (
-            days.map((day) => (
-              <DailyDaySection
-                key={day.date}
-                day={day}
-                onOpen={(item) => open(item.key)}
-              />
-            ))
-          )}
-        </div>
-
-        {askItem && (
-          <AskPanel
-            item={askItem}
-            withSuggestions={false}
-            className="sticky bottom-0 z-30 -mx-2 mt-4"
-          />
+      <div className="flex flex-col gap-12 pt-2">
+        {days.length === 0 ? (
+          <p className={cn('py-12 text-center text-[15px]', MUTED_TEXT)}>
+            Noch keine Inhalte zu deiner Auswahl. Schau bald wieder vorbei.
+          </p>
+        ) : (
+          days.map((day) => (
+            <DailyDaySection
+              key={day.date}
+              day={day}
+              onOpen={(item) => open(item.key)}
+            />
+          ))
         )}
-
-        <DailyDetailDialog
-          item={openItem}
-          heat={openHeat}
-          onClose={() => open(null)}
-        />
       </div>
-    </FeedLocaleProvider>
+
+      {askItem && (
+        <AskPanel
+          item={askItem}
+          withSuggestions={false}
+          className="sticky bottom-0 z-30 -mx-2 mt-4"
+        />
+      )}
+
+      <DailyDetailDialog
+        item={openItem}
+        heat={openHeat}
+        onClose={() => open(null)}
+      />
+    </div>
   );
 }
 

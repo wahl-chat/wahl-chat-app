@@ -7,18 +7,16 @@ import {
 import { cn } from '@/lib/utils';
 import { CardFooter, ItemTeaser } from './card-footer';
 import { CARD_SURFACE } from './card-styles';
-import { useFeedLocale } from './feed-locale';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
 import { TopicMeta } from './topic-chip';
 
 const HEAT_DOTS = 5;
 
 export function HeatDots({ heat }: { heat: number }) {
-  const { t } = useFeedLocale();
   return (
     <span
       role="img"
-      aria-label={t.heatOutOf(heat, HEAT_DOTS)}
+      aria-label={`Hitzigkeit ${heat} von ${HEAT_DOTS}`}
       className="inline-flex gap-0.5"
     >
       {Array.from({ length: HEAT_DOTS }, (_, i) => (
@@ -48,9 +46,8 @@ type Props = {
  * sits in the day's swipe row; both are the same card at different sizes.
  */
 export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
-  const { t } = useFeedLocale();
   const { section, digest } = item;
-  const media = sectionMedia(section, t);
+  const media = sectionMedia(section);
   const hot = variant === 'hot';
   const protocol = protocolLabel(digest);
 
@@ -63,7 +60,7 @@ export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
       <div className="flex flex-1 flex-col gap-2 px-4 pb-2 pt-4">
         <TopicMeta
           topics={sectionTopics(section)}
-          suffix={hot && protocol ? t.protocol(protocol) : null}
+          suffix={hot && protocol ? `Protokoll ${protocol}` : null}
           trailing={hot && heat ? <HeatDots heat={heat} /> : null}
         />
         <h3

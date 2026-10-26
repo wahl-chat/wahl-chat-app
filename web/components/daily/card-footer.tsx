@@ -5,7 +5,6 @@ import { shareItem } from '@/lib/daily/share';
 import { cn } from '@/lib/utils';
 import { Share2Icon } from 'lucide-react';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
-import { useFeedLocale } from './feed-locale';
 import InterestFeedback from './interest-feedback';
 
 /** Teaser text, cut after two lines, and the way into the detail. */
@@ -19,7 +18,6 @@ export function ItemTeaser({
   label: string;
   onOpen: () => void;
 }) {
-  const { t } = useFeedLocale();
   return (
     <div>
       {text && (
@@ -30,14 +28,14 @@ export function ItemTeaser({
       <button
         type="button"
         onClick={onOpen}
-        aria-label={t.moreAbout(label)}
+        aria-label={`Mehr anzeigen: ${label}`}
         className={cn(
           FOCUS_RING,
           'flex min-h-8 items-center rounded-md text-[15px] hover:text-[var(--daily-ink)]',
           MUTED_TEXT,
         )}
       >
-        {t.more}
+        Mehr anzeigen
       </button>
     </div>
   );
@@ -45,14 +43,13 @@ export function ItemTeaser({
 
 /** "Interessant?" bottom left, share bottom right. */
 export function CardFooter({ item }: { item: DetailItem }) {
-  const { t } = useFeedLocale();
   return (
     <div className="mt-auto flex items-end justify-between gap-3">
       <InterestFeedback itemKey={item.key} legacyKeys={legacyKeys(item)} />
       <button
         type="button"
-        aria-label={t.share}
-        onClick={() => shareItem(item, t.linkCopied)}
+        aria-label="Teilen"
+        onClick={() => shareItem(item)}
         className={cn(
           FOCUS_RING,
           'flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--daily-surface)] hover:text-[var(--daily-ink)]',

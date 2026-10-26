@@ -3,15 +3,14 @@ import type { FeedItem, ParliamentFeed } from '@/lib/firebase/firebase.types';
 import feedFixture from '../../../firebase/firestore_data/emulator/feed.json';
 import { feedToDigests } from './editions';
 import { buildFeed, rankFeed } from './feed';
-import { parseLocaleParam } from './i18n';
 import { findItem, sectionItems, voteItems } from './items';
-import { topicShortTitle, topicTitle } from './topics';
+import { topicShortTitle } from './topics';
 
 const FEED = feedFixture as unknown as ParliamentFeed;
 
 describe('feedToDigests', () => {
   it('lays out every edition in its own order, keyed by item id', () => {
-    const digests = feedToDigests(FEED, 'de');
+    const digests = feedToDigests(FEED);
     expect(digests.map((d) => d.id)).toEqual(FEED.editions.map((e) => e.id));
     for (const [i, digest] of digests.entries()) {
       const keys = [...sectionItems(digest), ...voteItems(digest)].map(
@@ -21,32 +20,14 @@ describe('feedToDigests', () => {
     }
   });
 
-  it('shows the chosen language and keeps facts identical', () => {
-    const [de] = feedToDigests(FEED, 'de');
-    const [en] = feedToDigests(FEED, 'en');
+  it('shows the German text and keeps the facts', () => {
+    const [digest] = feedToDigests(FEED);
     const item = FEED.items.find(
       (i) => i.id === FEED.editions[0].item_ids[0],
     ) as FeedItem;
-    const [deSection] = de.session?.sections ?? [];
-    const [enSection] = en.session?.sections ?? [];
-    expect(deSection.headline).toBe(item.content.de.headline);
-    expect(enSection.headline).toBe(item.content.en?.headline as string);
-    expect(enSection.citations).toEqual(deSection.citations);
-    expect(enSection.positions?.map((p) => p.party_id)).toEqual(
-      deSection.positions?.map((p) => p.party_id),
-    );
-  });
-
-  it('falls back to German where an item has no translation yet', () => {
-    const untranslated: ParliamentFeed = {
-      editions: FEED.editions,
-      items: FEED.items.map((i) => ({ ...i, content: { de: i.content.de } })),
-    };
-    const [en] = feedToDigests(untranslated, 'en');
-    expect(en.session?.sections[0].headline).toBe(
-      FEED.items.find((i) => i.id === FEED.editions[0].item_ids[0])?.content.de
-        .headline as string,
-    );
+    const [section] = digest.session?.sections ?? [];
+    expect(section.headline).toBe(item.content.de.headline);
+    expect(section.citations).toEqual(item.debate?.citations ?? []);
   });
 
   it('leaves retracted items out of the feed', () => {
@@ -57,12 +38,12 @@ describe('feedToDigests', () => {
         i.id === gone ? { ...i, status: 'retracted' } : i,
       ),
     };
-    const digests = feedToDigests(feed, 'de');
+    const digests = feedToDigests(feed);
     expect(findItem(digests, gone)).toBeUndefined();
   });
 
   it('still opens a link shared before the split', () => {
-    const digests = feedToDigests(FEED, 'de');
+    const digests = feedToDigests(FEED);
     const item = FEED.items[0];
     expect(findItem(digests, item.legacy_keys[0])?.key).toBe(item.id);
   });
@@ -78,7 +59,7 @@ describe('debate topics', () => {
       ),
     };
     const shown = (topic: string) =>
-      rankFeed(buildFeed([feedToDigests(feed, 'de')], 3650), [topic]).flatMap(
+      rankFeed(buildFeed([feedToDigests(feed)], 3650), [topic]).flatMap(
         (day) => [
           day.hot?.key,
           ...day.blocks.flatMap((b) => b.sections.map((s) => s.key)),
@@ -90,18 +71,8 @@ describe('debate topics', () => {
   });
 });
 
-describe('feed locale', () => {
-  it('accepts only supported languages', () => {
-    expect(parseLocaleParam('en')).toBe('en');
-    expect(parseLocaleParam('EN')).toBe('en');
-    expect(parseLocaleParam('fr')).toBeUndefined();
-    expect(parseLocaleParam(undefined)).toBeUndefined();
-  });
-
-  it('names topics in the reader language', () => {
-    expect(topicTitle('health_care', 'en')).toBe('Health and care');
-    expect(topicShortTitle('health_care', 'en')).toBe('Health');
+describe('topic labels', () => {
+  it('match the filter pills', () => {
     expect(topicShortTitle('health_care')).toBe('Gesundheit');
-    expect(topicTitle('unknown', 'en')).toBe('Other topics');
   });
 });

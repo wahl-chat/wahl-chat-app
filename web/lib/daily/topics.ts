@@ -1,5 +1,4 @@
 import { TOPIC_TITLES } from '@/components/topics/topics.data';
-import type { FeedLocale } from '@/lib/firebase/firebase.types';
 
 /** The site's topic keys and titles plus `other`, which the digest builder
  * uses for items no topic fits (kept in sync by a backend test). Colours come
@@ -13,25 +12,7 @@ export const DAILY_TOPICS: Record<string, { title: string }> = {
 
 export const DAILY_TOPIC_KEYS = Object.keys(DAILY_TOPICS);
 
-const TITLES_EN: Record<string, string> = {
-  economy_finance: 'Economy and finance',
-  social_labor: 'Social affairs and labour',
-  education_research: 'Education and research',
-  climate_environment: 'Climate and environment',
-  health_care: 'Health and care',
-  digitalization_tech: 'Digital and technology',
-  migration_integration: 'Migration and integration',
-  security_justice: 'Security and justice',
-  foreign_policy_europe: 'Foreign policy and Europe',
-  transport_infrastructure: 'Transport and infrastructure',
-  housing_rent: 'Housing and rent',
-  other: 'Other topics',
-};
-
-export function topicTitle(topic: string, locale: FeedLocale = 'de'): string {
-  if (locale === 'en') {
-    return TITLES_EN[topic] ?? TITLES_EN.other;
-  }
+export function topicTitle(topic: string): string {
   return DAILY_TOPICS[topic]?.title ?? DAILY_TOPICS.other.title;
 }
 
@@ -51,27 +32,8 @@ const SHORT_TITLES: Record<string, string> = {
   other: 'Weitere',
 };
 
-const SHORT_TITLES_EN: Record<string, string> = {
-  economy_finance: 'Economy',
-  social_labor: 'Social',
-  education_research: 'Education',
-  climate_environment: 'Climate',
-  health_care: 'Health',
-  digitalization_tech: 'Digital',
-  migration_integration: 'Migration',
-  security_justice: 'Security',
-  foreign_policy_europe: 'Foreign policy',
-  transport_infrastructure: 'Transport',
-  housing_rent: 'Housing',
-  other: 'Other',
-};
-
-export function topicShortTitle(
-  topic: string,
-  locale: FeedLocale = 'de',
-): string {
-  const short = locale === 'en' ? SHORT_TITLES_EN : SHORT_TITLES;
-  return short[topic] ?? topicTitle(topic, locale);
+export function topicShortTitle(topic: string): string {
+  return SHORT_TITLES[topic] ?? topicTitle(topic);
 }
 
 /** No selection means "everything". */
