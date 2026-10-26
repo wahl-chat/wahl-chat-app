@@ -27,14 +27,13 @@ export const HOW_TO_DE: HowToContent = {
     title: 'Der Parlaments-Feed',
     paragraphs: [
       'Auf der Startseite fasst wahl.chat jeden Sitzungstag für dich zusammen: worüber im Plenum debattiert wurde und wie die Fraktionen abgestimmt haben. Grundlage sind die Plenarprotokolle und Videos der Sitzungen sowie die Ergebnisse der namentlichen Abstimmungen.',
-      'Die Zusammenfassungen schreibt eine KI auf Grundlage dieser Quellen. Positionen werden einer Fraktion nur zugeordnet, wenn ihre Redner:innen in der Debatte tatsächlich gesprochen haben, und Zitate nur übernommen, wenn sie wörtlich im Protokoll stehen.',
+      'Die Zusammenfassungen werden auf Grundlage dieser Quellen mit Hilfe von KI erstellt. Positionen werden einer Fraktion nur zugeordnet, wenn ihre Redner:innen in der Debatte tatsächlich gesprochen haben, und Zitate nur übernommen, wenn sie wörtlich im Protokoll stehen.',
     ],
     list: [
       'Oben wählst du die Parlamente (den Bundestag und ausgewählte Landtage) und die Themen, die dich interessieren.',
-      'Jeder Tag beginnt mit dem Thema des Tages, der hitzigsten Debatte, und wenn vorhanden mit einer passenden Abstimmung zum selben Thema.',
       'Mit „Mehr anzeigen“ öffnest du die Kurzfassung: die wichtigsten Punkte, wer was gesagt hat und die Quelle im Plenarprotokoll.',
-      'Über das Eingabefeld stellst du direkt Fragen zur Debatte oder Abstimmung; der Chat bekommt den Zusammenhang mit.',
-      'Mit dem Daumen bei „Interessant?“ sagst du uns, was dich interessiert. Das hilft uns, den Feed zu verbessern.',
+      'Über das Eingabefeld stellst du direkt Fragen zur Debatte oder Abstimmung.',
+      'Mit dem Daumen bei „Interessant?“ sagst du uns, was dich interessiert. Das hilft uns, deinen Feed für dich zu verbessern.',
     ],
     link: 'Zum Parlaments-Feed',
   },
@@ -69,14 +68,13 @@ export const HOW_TO_DE: HowToContent = {
       title: 'Wie entsteht die Hitzigkeit im Feed?',
       content: {
         intro:
-          'Die Punkte neben einer Debatte zeigen, wie hitzig sie im Vergleich zu den anderen Debatten desselben Tages war. Sie entstehen in drei Schritten:',
+          'Die Punkte neben einer Debatte zeigen, wie hitzig sie im Vergleich zu den anderen Debatten desselben Tages war. Sie entstehen wie folgt:',
         orderedList: [
-          'Einordnung pro Sitzung: Eine KI vergleicht die Debatten einer Sitzung miteinander, anhand der Zwischenrufe, der Schärfe des Tons und wie gegensätzlich die Positionen der Fraktionen sind. Die hitzigste Debatte bekommt 5 Punkte, die anderen entsprechend weniger. Es gibt keine absolute Skala: 5 Punkte heißt „die hitzigste Debatte dieser Sitzung“.',
-          'Vergleich im Feed: Für die Parlamente und Themen, die du ausgewählt hast, werden die Werte eines Tages so umgerechnet, dass die hitzigste angezeigte Debatte wieder 5 Punkte hat.',
-          'Thema des Tages: Ganz oben steht die Debatte mit dem höchsten Wert aus Hitzigkeit mal Debattenlänge. Die Länge schätzen wir aus dem Umfang der Reden im Protokoll (etwa 120 Wörter pro Minute). So steht eine lange, kontroverse Debatte vor einem kurzen Schlagabtausch. Verglichen wird immer nur innerhalb eines Tages.',
+          'Einordnung pro Sitzung: Eine KI vergleicht die Debatten einer Sitzung miteinander, anhand der Zwischenrufe, der Schärfe des Tons und wie gegensätzlich die Positionen der Fraktionen sind. Die hitzigste Debatte bekommt 5 Punkte, die anderen entsprechend weniger.',
+          'Thema des Tages: Ganz oben steht die Debatte mit dem höchsten Wert aus Hitzigkeit mal Debattenlänge, basierend auf einer Schätzung der gesprochenen Worte pro Minute.',
         ],
         outro:
-          'Die Hitzigkeit sagt nichts darüber, welche Seite recht hat oder wie wichtig ein Thema ist. Sie beschreibt nur, wie kontrovers die Debatte im Plenum geführt wurde.',
+          'Die Hitzigkeit sagt nichts darüber, wie wichtig ein Thema ist. Sie beschreibt nur, wie kontrovers die Debatte im Plenum geführt wurde.',
       },
     },
     {

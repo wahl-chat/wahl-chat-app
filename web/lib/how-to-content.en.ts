@@ -27,14 +27,13 @@ export const HOW_TO_EN: HowToContent = {
     title: 'The parliament feed',
     paragraphs: [
       'On the start page, wahl.chat sums up every sitting day for you: what was debated in the chamber and how the parliamentary groups voted. It is based on the plenary records and videos of the sittings and the results of the roll-call votes.',
-      'An AI writes the summaries from these sources. A position is attributed to a parliamentary group only if its speakers actually spoke in the debate, and quotes are used only if they appear word for word in the record.',
+      'The summaries are created with the help of AI, based on these sources. A position is attributed to a parliamentary group only if its speakers actually spoke in the debate, and quotes are used only if they appear word for word in the record.',
     ],
     list: [
       'At the top, you choose the parliaments (the Bundestag and selected state parliaments) and the topics you are interested in.',
-      'Each day starts with the topic of the day, the most heated debate, and, where there is one, a related vote on the same topic.',
       '“Show more” opens the summary: the key points, who said what and the source in the plenary record.',
-      'Use the input field to ask questions about the debate or vote straight away; the chat gets the context.',
-      'Use the thumbs under “Interesting?” to tell us what you find interesting. It helps us improve the feed.',
+      'Use the input field to ask questions about the debate or vote straight away.',
+      'Use the thumbs under “Interesting?” to tell us what you find interesting. It helps us improve your feed for you.',
     ],
     link: 'Go to the parliament feed',
   },
@@ -69,14 +68,13 @@ export const HOW_TO_EN: HowToContent = {
       title: "How is a debate's intensity measured in the feed?",
       content: {
         intro:
-          'The dots next to a debate show how heated it was compared with the other debates of the same day. They are worked out in three steps:',
+          'The dots next to a debate show how heated it was compared with the other debates of the same day. They are worked out as follows:',
         orderedList: [
-          "Per sitting: An AI compares the debates of a sitting with each other, looking at interjections, how sharp the tone is and how opposed the parliamentary groups' positions are. The most heated debate gets 5 dots, the others fewer. There is no absolute scale: 5 dots means “the most heated debate of this sitting”.",
-          "Within the feed: For the parliaments and topics you have selected, a day's values are rescaled so that the most heated debate shown again has 5 dots.",
-          'Topic of the day: The debate at the top has the highest score of intensity times debate length. We estimate the length from how much was said in the record (about 120 words per minute). So a long, contested debate ranks above a short exchange. Debates are only ever compared within one day.',
+          "Per sitting: An AI compares the debates of a sitting with each other, looking at interjections, how sharp the tone is and how opposed the parliamentary groups' positions are. The most heated debate gets 5 dots, the others fewer.",
+          'Topic of the day: The debate at the top has the highest score of intensity times debate length, based on an estimate of the words spoken per minute.',
         ],
         outro:
-          'Intensity says nothing about which side is right or how important a topic is. It only describes how contested the debate in the chamber was.',
+          'Intensity says nothing about how important a topic is. It only describes how contested the debate in the chamber was.',
       },
     },
     {
