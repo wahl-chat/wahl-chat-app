@@ -9,6 +9,7 @@ import {
   contextTag,
 } from '@/lib/cache-tags';
 import { GROUP_PARTY_ID, WAHL_CHAT_PARTY_ID } from '@/lib/constants';
+import { pageStart } from '@/lib/daily/window';
 import type { PartyDetails } from '@/lib/party-details';
 import type {
   GroupedMessage,
@@ -22,6 +23,7 @@ import type { WahlSwiperQuestion } from '@/lib/wahl-swiper/wahl-swiper.types';
 import { initializeServerApp } from 'firebase/app';
 import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import {
+  type QueryConstraint,
   collection,
   connectFirestoreEmulator,
   doc,
@@ -49,9 +51,9 @@ import type {
   ExampleQuestionShareableChatSession,
   FeedEdition,
   FeedItem,
+  FeedPage,
   FirebaseWahlSwiperResult,
   LlmSystemStatus,
-  ParliamentFeed,
   ProposedQuestion,
   SourceDocument,
 } from './firebase.types';
@@ -760,48 +762,104 @@ export const getExampleQuestionsShareableChatSession = cache(
   },
 );
 
-// Enough to cover a 14-day window even when a parliament sits every day.
-const EDITIONS_PER_PARLIAMENT = 20;
-// Up to six debates plus a day's votes per edition.
-const ITEMS_PER_PARLIAMENT = EDITIONS_PER_PARLIAMENT * 25;
+const DIGEST_PARLIAMENTS: readonly DigestParliamentId[] = [
+  'bundestag',
+  'landtag_st',
+  'landtag_bw',
+];
+// A safety cap only: two weeks of one parliament are far fewer items.
+const ITEMS_PER_PAGE = 500;
 
-async function getParliamentFeedImpl(
+/**
+ * The slice of one parliament's feed that ends on its newest edition before
+ * `before` (or its newest overall): `FEED_WINDOW_DAYS` days back from there.
+ * Anchoring on an edition, not the calendar, skips recesses, so an older
+ * slice is never empty while `hasOlder` is true.
+ */
+async function getFeedPageImpl(
   parliament: DigestParliamentId,
-): Promise<ParliamentFeed> {
+  before: string | null,
+): Promise<FeedPage> {
   const serverDb = await getServerFirestore({ useHeaders: false });
-  const recent = (name: string, count: number) =>
+  const ofParliament = (name: string, ...constraints: QueryConstraint[]) =>
     getDocs(
       query(
         collection(serverDb, name),
         where('parliament', '==', parliament),
+        ...(before ? [where('date', '<', before)] : []),
+        ...constraints,
         orderBy('date', 'desc'),
-        limit(count),
       ),
     );
-  const [editions, items] = await Promise.all([
-    recent('feed_editions', EDITIONS_PER_PARLIAMENT),
-    recent('feed_items', ITEMS_PER_PARLIAMENT),
+
+  const newest = await ofParliament('feed_editions', limit(1));
+  const anchor = newest.docs[0]?.data().date as string | undefined;
+  if (!anchor) {
+    throw new UncacheableEmptyError();
+  }
+  const from = pageStart(anchor);
+  const [editions, items, older] = await Promise.all([
+    ofParliament('feed_editions', where('date', '>=', from)),
+    ofParliament(
+      'feed_items',
+      where('date', '>=', from),
+      limit(ITEMS_PER_PAGE),
+    ),
+    ofParliament('feed_editions', where('date', '<', from), limit(1)),
   ]);
   return {
     editions: rejectEmpty(editions.docs.map((d) => d.data() as FeedEdition)),
     items: items.docs.map((d) => d.data() as FeedItem),
+    from,
+    hasOlder: !older.empty,
   };
 }
 
-/** Latest editions per parliament with their items, newest first. Both
+const EMPTY_PAGE: FeedPage = {
+  editions: [],
+  items: [],
+  from: null,
+  hasOlder: false,
+};
+
+/** The latest slice per parliament with its items, newest first. Both
  * languages come along, so switching language needs no round-trip. */
 export async function getParliamentFeed(
   parliament: DigestParliamentId,
-): Promise<ParliamentFeed> {
+): Promise<FeedPage> {
   return uncachedFallback(
     () =>
       cachedRead(
-        getParliamentFeedImpl,
-        ['getParliamentFeed', 'v1', parliament],
+        getFeedPageImpl,
+        ['getParliamentFeed', 'v2', parliament],
         [CacheTags.FEED],
-      )(parliament),
-    { editions: [], items: [] },
+      )(parliament, null),
+    EMPTY_PAGE,
     `FAILED to fetch the feed for "${parliament}"`,
+  );
+}
+
+/** The next older slice, for "Ältere Tage anzeigen". Called from the
+ * browser, so both arguments are checked before they reach a query. */
+export async function getOlderParliamentFeed(
+  parliament: DigestParliamentId,
+  before: string,
+): Promise<FeedPage> {
+  if (
+    !DIGEST_PARLIAMENTS.includes(parliament) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(before)
+  ) {
+    return EMPTY_PAGE;
+  }
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getFeedPageImpl,
+        ['getOlderParliamentFeed', 'v1', parliament, before],
+        [CacheTags.FEED],
+      )(parliament, before),
+    EMPTY_PAGE,
+    `FAILED to fetch older feed for "${parliament}" before ${before}`,
   );
 }
 

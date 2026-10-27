@@ -1,7 +1,12 @@
 'use client';
 
 import { feedToDigests } from '@/lib/daily/editions';
-import { buildFeed, feedLists, rankFeed } from '@/lib/daily/feed';
+import {
+  buildFeed,
+  feedLists,
+  rankFeed,
+  windowedDigests,
+} from '@/lib/daily/feed';
 import { type DetailItem, findItem } from '@/lib/daily/items';
 import {
   DEFAULT_SELECTION,
@@ -12,22 +17,27 @@ import {
   parseStateParam,
 } from '@/lib/daily/region';
 import { TOPICS_PARAM } from '@/lib/daily/topics';
+import { getOlderParliamentFeed } from '@/lib/firebase/firebase-server';
 import type {
   DailyDigest,
   DigestParliamentId,
-  ParliamentFeed,
+  FeedPage,
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
-import { MUTED_TEXT } from './card-styles';
+import { toast } from 'sonner';
+import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 import DailyDaySection from './daily-day-section';
 import { AskPanel, DailyDetailDialog } from './daily-detail-dialog';
 import { ParliamentSelector, TopicPills } from './daily-filters';
 
 const ITEM_PARAM = 'item';
 
+type Pages = Record<DigestParliamentId, FeedPage[]>;
+
 type Props = {
-  feeds: Record<DigestParliamentId, ParliamentFeed>;
+  /** Each parliament's latest slice; older ones load on request. */
+  feeds: Record<DigestParliamentId, FeedPage>;
   /** Local dev previews, see `lib/daily/local-preview.ts`. */
   previewDigests?: DailyDigest[];
   /** From the URL; `undefined` lets the stored choice decide. */
@@ -94,14 +104,30 @@ function useItemInView(deps: unknown): string | null {
   return key;
 }
 
-function digestsIn(
-  feeds: Props['feeds'],
-): Record<DigestParliamentId, DailyDigest[]> {
+function digestsOf(pages: FeedPage[]): DailyDigest[] {
+  return feedToDigests({
+    editions: pages.flatMap((p) => p.editions),
+    items: pages.flatMap((p) => p.items),
+  });
+}
+
+function digestsIn(pages: Pages): Record<DigestParliamentId, DailyDigest[]> {
   return {
-    bundestag: feedToDigests(feeds.bundestag),
-    landtag_st: feedToDigests(feeds.landtag_st),
-    landtag_bw: feedToDigests(feeds.landtag_bw),
+    bundestag: digestsOf(pages.bundestag),
+    landtag_st: digestsOf(pages.landtag_st),
+    landtag_bw: digestsOf(pages.landtag_bw),
   };
+}
+
+/** The selected parliaments that have an older slice, with its cursor. */
+function olderCursors(
+  pages: Pages,
+  parliaments: readonly DigestParliamentId[],
+): [DigestParliamentId, string][] {
+  return parliaments.flatMap((parliament) => {
+    const last = pages[parliament].at(-1);
+    return last?.hasOlder && last.from ? [[parliament, last.from]] : [];
+  }) as [DigestParliamentId, string][];
 }
 
 function DailyFeed({
@@ -116,6 +142,12 @@ function DailyFeed({
   );
   const [topics, setTopics] = useState(initialTopics);
   const [openKey, setOpenKey] = useState<string | null>(initialItem ?? null);
+  const [pages, setPages] = useState<Pages>(() => ({
+    bundestag: [feeds.bundestag],
+    landtag_st: [feeds.landtag_st],
+    landtag_bw: [feeds.landtag_bw],
+  }));
+  const [loadingOlder, setLoadingOlder] = useState(false);
 
   // A link's land param wins; otherwise restore this device's last choice.
   useEffect(() => {
@@ -124,15 +156,44 @@ function DailyFeed({
     }
   }, [initialStates]);
 
-  const digests = useMemo(() => digestsIn(feeds), [feeds]);
+  const digests = useMemo(() => digestsIn(pages), [pages]);
+  // The server already cut the stored slices; only previews need a window.
   const lists = useMemo(
-    () => feedLists(digests, parliamentsFor(states), previewDigests),
+    () =>
+      feedLists(
+        digests,
+        parliamentsFor(states),
+        windowedDigests(previewDigests ?? []),
+      ),
     [digests, previewDigests, states],
   );
   const days = useMemo(
-    () => rankFeed(buildFeed(lists), topics),
+    () => rankFeed(buildFeed(lists, null), topics),
     [lists, topics],
   );
+  const older = olderCursors(pages, parliamentsFor(states));
+
+  const loadOlder = async () => {
+    setLoadingOlder(true);
+    try {
+      const loaded = await Promise.all(
+        older.map(([parliament, from]) =>
+          getOlderParliamentFeed(parliament, from),
+        ),
+      );
+      setPages((current) => {
+        const next = { ...current };
+        older.forEach(([parliament], i) => {
+          next[parliament] = [...current[parliament], loaded[i]];
+        });
+        return next;
+      });
+    } catch {
+      toast.error('Ältere Tage konnten nicht geladen werden.');
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
 
   const allDigests = useMemo(() => lists.flat(), [lists]);
   const openItem = openKey ? (findItem(allDigests, openKey) ?? null) : null;
@@ -180,6 +241,20 @@ function DailyFeed({
               onOpen={(item) => open(item.key)}
             />
           ))
+        )}
+        {older.length > 0 && (
+          <button
+            type="button"
+            onClick={loadOlder}
+            disabled={loadingOlder}
+            className={cn(
+              'mx-auto h-10 rounded-lg border border-[var(--daily-border)] px-4 text-[15px] transition-colors hover:bg-[var(--daily-surface)] disabled:opacity-60',
+              MUTED_TEXT,
+              FOCUS_RING,
+            )}
+          >
+            {loadingOlder ? 'Lädt …' : 'Ältere Tage anzeigen'}
+          </button>
         )}
       </div>
 

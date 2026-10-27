@@ -13,6 +13,7 @@ import {
   windowedDigests,
 } from './feed';
 import { parliamentsFor, parseStateParam } from './region';
+import { pageStart } from './window';
 
 function digest(parliament: DigestParliamentId, date: string): DailyDigest {
   return {
@@ -48,6 +49,21 @@ describe('buildFeed', () => {
       'bundestag',
       'landtag_bw',
     ]);
+  });
+
+  it('keeps every digest of a server-cut list, older slices included', () => {
+    const feed = buildFeed(
+      [[digest('bundestag', '2026-10-23'), digest('bundestag', '2026-09-03')]],
+      null,
+    );
+    expect(feed.map((d) => d.date)).toEqual(['2026-10-23', '2026-09-03']);
+  });
+});
+
+describe('pageStart', () => {
+  it('spans fourteen days ending on the anchor edition', () => {
+    expect(pageStart('2026-10-23')).toBe('2026-10-10');
+    expect(pageStart('2026-03-01')).toBe('2026-02-16');
   });
 });
 
