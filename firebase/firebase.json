@@ -5,9 +5,10 @@
   },
   "functions": [
     {
-      "source": "functions",
-      "codebase": "default",
-      "runtime": "python311",
+      "source": "ingest_functions",
+      "codebase": "ingest",
+      "runtime": "python312",
+      "predeploy": ["./ingest_functions/predeploy.sh"],
       "ignore": [
         "venv",
         ".git",

@@ -11,12 +11,12 @@ import logging
 
 from fastapi import APIRouter
 
-from src.chatbot_async import (
+from src.services.chat.chatbot_async import (
     generate_swiper_assistant_response,
     generate_swiper_assistant_title_and_chick_replies,
     generate_chat_summary,
 )
-from src.firebase_service import aget_party_by_id
+from src.services.firebase_service import aget_party_by_id
 from src.models.chat import Message, Role
 from src.models.dtos import (
     ParliamentaryQuestionDto,
@@ -28,7 +28,7 @@ from src.models.dtos import (
     WahlChatSwiperAnswerDto,
     WahlChatSwiperAnswerRequestDto,
 )
-from src.utils import (
+from src.core.utils import (
     GENERIC_ERROR_MESSAGE,
     build_chat_history_string,
 )

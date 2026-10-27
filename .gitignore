@@ -11,7 +11,8 @@
 .claude/statsig/
 .claude/projects/
 .claude/history.jsonl
-.claude/skills
+
+infra-example-export
 
 # === Common ===
 .DS_Store
@@ -22,6 +23,7 @@
 node_modules/
 data/pledge_results
 data/pledge_results_nobt
+.pnpm-store
 
 # === Environment / secrets ===
 .env
@@ -30,8 +32,6 @@ data/pledge_results_nobt
 *firebase-adminsdk*.json
 # Vertex AI service-account key (billing project) — runtime-provided only.
 vertex-sa*.json
-terraform/
-terraform-export/
 
 # === Python runtime (repo-wide, not backend-only) ===
 # Python lives in several dirs: ai-backend/, firebase/ (incl. a local venv),
@@ -41,8 +41,21 @@ __pycache__/
 *.pyo
 .venv/
 *.egg-info/
+
+# === Terraform ===
+# infra/ is committed. Local bulk-export output stays fully ignored — it contains
+# plaintext secrets + local state:
 terraform/
 terraform-export/
+# Within committed roots, ignore local state, plugin cache and plans — but NOT the
+# *.tf sources or the committed .terraform.lock.hcl:
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+
 # === Misc ===
 *.log
 .local

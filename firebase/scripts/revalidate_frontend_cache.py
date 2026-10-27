@@ -78,21 +78,12 @@ class RevalidateRequestError(Exception):
 
 
 def resolved_firestore_project(explicit: str | None = None) -> str | None:
-    """Project the seed just wrote to, if we can tell.
+    """Project the caller says it wrote to.
 
-    Prefer the Firestore client the caller already used. Fall back to the
-    initialized Firebase app — not GOOGLE_CLOUD_PROJECT, which is often
-    leftover from local `.env` / `gcloud config` and would block a
-    standalone flush of the other deployment.
+    Use only that value. The chat service keeps a default Firebase app for
+    the emulator. Reading it blocks a flush that did not name a project.
     """
-    if explicit:
-        return explicit
-    try:
-        import firebase_admin  # noqa: PLC0415
-
-        return firebase_admin.get_app().project_id or None
-    except (ImportError, ValueError):
-        return None
+    return explicit or None
 
 
 def ensure_project_matches_env(firestore_project: str | None = None) -> None:

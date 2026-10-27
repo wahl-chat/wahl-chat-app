@@ -193,8 +193,5 @@ vertex-sa*.json
 # Local manifesto PDF storage (ingest_manifestos.py) — never commit PDFs
 .local_storage/
 
-# MdB-Stammdaten data files (~15 MB XML + DTD) — fetched, never committed.
-# Get them with `make fetch-mdb-stammdaten` (downloads + extracts the Bundestag
-# OpenData ZIP from https://www.bundestag.de/services/opendata).
-data/MDB_STAMMDATEN.XML
-data/MDB_STAMMDATEN.DTD
+# MdB-Stammdaten now lives with the connectors that fetch it — see
+# ingestion/.gitignore.
