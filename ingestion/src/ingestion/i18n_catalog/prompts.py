@@ -12,7 +12,7 @@ text into translation-tool footers.
 from __future__ import annotations
 
 # The same editorial rule the feed's prompts use, so UI text is held to it too.
-from src.feed.prompts import _NEUTRALITY_RULE
+from ingestion.feed.prompts import _NEUTRALITY_RULE
 
 # Stored per translated key: bumping it re-translates on the next run.
 CATALOG_PROMPT_VERSION = "1"

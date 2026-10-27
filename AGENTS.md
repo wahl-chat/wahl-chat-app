@@ -669,7 +669,7 @@ The site speaks German and English. German is the default and keeps its URLs
 4. Translate the per-locale prose modules (`*.de.ts` siblings) and decide on the
    legal pages.
 5. For the feed, add the code to `TRANSLATED_LOCALES` in
-   `ai-backend/src/feed/models.py` and run `make build-feed` with translation.
+   `ingestion/src/ingestion/feed/models.py` and run `make build-feed` with translation.
 
 Hand-written catalogs are recorded as current with
 `make translate-messages LOCALE=xx ARGS="--adopt"`, so later runs only touch

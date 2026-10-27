@@ -7,9 +7,9 @@ import re
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from src.feed.builder import DigestBuilder
-from src.feed.prompts import TranslatedSegment, TranslationBatch
-from src.i18n_catalog.translate_messages import (
+from ingestion.feed.builder import DigestBuilder
+from ingestion.feed.prompts import TranslatedSegment, TranslationBatch
+from ingestion.i18n_catalog.translate_messages import (
     flatten,
     message_problems,
     read_catalog,

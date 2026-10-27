@@ -13,12 +13,27 @@ its German message; anything else is reported and left for the next run.
 
 Usage:
     make translate-messages LOCALE=fr
-    uv run python -m src.i18n_catalog.translate_messages --locale fr --dry-run
+    uv run python -m ingestion.i18n_catalog.translate_messages --locale fr --dry-run
     # Record hand-written translations as current, without any LLM call:
-    uv run python -m src.i18n_catalog.translate_messages --locale en --adopt
+    uv run python -m ingestion.i18n_catalog.translate_messages --locale en --adopt
 """
 
 from __future__ import annotations
+
+# Load the env file before the imports below (the LLM roster reads its keys
+# and Vertex settings from the environment). override=False keeps exported
+# variables in force.
+if __name__ == "__main__":
+    from pathlib import Path as _Path
+
+    from dotenv import load_dotenv
+
+    _env_path = _Path(__file__).resolve().parents[3] / ".env"
+    # Use ai-backend/.env when ingestion/.env does not exist.
+    if not _env_path.exists():
+        _env_path = _env_path.parents[1] / "ai-backend" / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path, override=False)
 
 import hashlib
 import json
@@ -31,14 +46,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
-from src.feed.builder import DigestBuilder, strip_refs
-from src.feed.prompts import TranslationBatch
-from src.i18n_catalog.prompts import CATALOG_PROMPT_VERSION, format_catalog_prompt
+from ingestion.feed.builder import DigestBuilder, strip_refs
+from ingestion.feed.prompts import TranslationBatch
+from ingestion.i18n_catalog.prompts import CATALOG_PROMPT_VERSION, format_catalog_prompt
 
 logger = logging.getLogger(__name__)
 
 SOURCE_LOCALE = "de"
-DEFAULT_MESSAGES_DIR = Path(__file__).resolve().parents[3] / "web" / "messages"
+DEFAULT_MESSAGES_DIR = Path(__file__).resolve().parents[4] / "web" / "messages"
 _BATCH = 40
 
 _ARGUMENT_RE = re.compile(r"\{\s*([A-Za-z_]\w*)\s*[,}]")
@@ -271,11 +286,6 @@ def run(
 def main(argv: Optional[list[str]] = None) -> int:
     import argparse
 
-    from dotenv import load_dotenv
-
-    env_path = Path(__file__).resolve().parents[2] / ".env"
-    if env_path.exists():
-        load_dotenv(env_path, override=False)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     parser = argparse.ArgumentParser(
