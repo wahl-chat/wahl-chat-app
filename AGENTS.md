@@ -538,9 +538,14 @@ anew) and social posts (rendered from an item's headline and facts).
   past a paragraph into translation-tool footers.
 - **Running it.** `make setup-feed-collection` once, then `make build-feed`
   (see the Makefile for `--dry-run`, `--force`, `--translate-backfill`).
-  Unchanged days are skipped without LLM calls, so it is safe to schedule
-  daily after the speech and vote ingestion jobs. `make migrate-feed` moves
-  stored `daily_digests` to the item shape without regenerating German.
+  Deployed, it is the weekly Cloud Run Job `ingest-feed`
+  (`CONNECTOR_ID=feed`), on Sunday mornings after the speech and vote jobs.
+  Each day is published as soon as it is built, `--time-budget` stops the run
+  between days before the job's 15-minute cap, and the job runs several times
+  in a row so a long week finishes the same morning. Unchanged days are
+  skipped without LLM calls, so the extra runs cost nothing. `make
+  migrate-feed` moves stored `daily_digests` to the item shape without
+  regenerating German.
 - **Cutover order.** The web reads `feed_*` only; run `migrate-feed` against
   a deployment before its web build switches over. `daily_digests` stays
   readable until no deployed web reads it.

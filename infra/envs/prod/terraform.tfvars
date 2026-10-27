@@ -158,4 +158,13 @@ jobs = {
     }
     schedule = "30 5 * * 0"
   }
+
+  "ingest-feed" = {
+    env = {
+      CONNECTOR_ID             = "feed"
+      ELECTION_FIXTURES_SOURCE = "firestore"
+    }
+    args     = ["--days", "14", "--time-budget", "780"]
+    schedule = "*/30 6-7 * * 0"
+  }
 }

@@ -10,6 +10,7 @@ import pytest
 from ingestion.feed.builder import (
     DigestBuilder,
     build_digests,
+    iter_digests,
     compute_input_hash,
     session_from_draft,
     vote_description,
@@ -163,6 +164,27 @@ def _build(llm: FakeLLM, **kwargs: Any) -> tuple[list, int]:
             now=NOW,
             **kwargs,
         )
+    finally:
+        builder.close()
+
+
+def test_days_are_built_newest_first_and_only_on_demand(fake_llm: FakeLLM) -> None:
+    builder = DigestBuilder(fake_llm)
+    try:
+        days = iter_digests(
+            BUNDESTAG,
+            [_vote(1, "2026-09-24"), _vote(2, "2026-09-25")],
+            {},
+            DISPLAY,
+            builder,
+            now=NOW,
+        )
+        newest = next(days)
+        assert newest is not None and newest.id == "bundestag_2026-09-25"
+        assert len(fake_llm.calls) == 1
+        older = next(days)
+        assert older is not None and older.id == "bundestag_2026-09-24"
+        assert len(fake_llm.calls) == 2
     finally:
         builder.close()
 

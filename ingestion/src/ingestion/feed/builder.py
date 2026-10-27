@@ -23,7 +23,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
-from typing import Any, Callable, Coroutine, Optional
+from typing import Any, Callable, Coroutine, Iterator, Optional
 
 from langchain_core.messages import BaseMessage, HumanMessage
 from pydantic import BaseModel
@@ -531,6 +531,58 @@ def votes_by_day(vote_payloads: list[dict]) -> dict[date, list[dict]]:
     return by_day
 
 
+def iter_digests(
+    parliament: Parliament,
+    vote_payloads: list[dict],
+    sitting_days: dict[date, SittingDay],
+    display: dict[str, PartyDisplay],
+    builder: DigestBuilder,
+    *,
+    existing_hashes: Optional[dict[str, Optional[str]]] = None,
+    force: bool = False,
+    now: Optional[datetime] = None,
+) -> Iterator[Optional[DailyDigest]]:
+    """One entry per day with votes or a sitting, newest first.
+
+    ``None`` marks a day whose sources are unchanged since the stored edition.
+    The LLM calls for a day run only when the caller asks for it, so a caller
+    can publish each day as it arrives and stop between days.
+    """
+    existing_hashes = existing_hashes or {}
+    generated_at = now or datetime.now(timezone.utc)
+    by_day = votes_by_day(vote_payloads)
+
+    for day in sorted(set(by_day) | set(sitting_days), reverse=True):
+        day_votes = by_day.get(day, [])
+        sitting = sitting_days.get(day)
+        doc_id = digest_doc_id(parliament.id, day)
+        input_hash = compute_input_hash(day_votes, sitting)
+        if not force and existing_hashes.get(doc_id) == input_hash:
+            yield None
+            continue
+
+        texts, fallen_back = builder.enrich_votes(parliament, day_votes)
+        session = (
+            builder.summarize_day(parliament, sitting, display) if sitting else None
+        )
+        complete = not fallen_back and (sitting is None or session is not None)
+
+        yield DailyDigest(
+            id=doc_id,
+            parliament=parliament.id,
+            parliament_name=parliament.name,
+            region=parliament.region,
+            date=day,
+            votes=[
+                vote_from_payload(p, texts[int(p["external_id"])], display)
+                for p in day_votes
+            ],
+            session=session,
+            input_hash=input_hash if complete else None,
+            generated_at=generated_at,
+        )
+
+
 def build_digests(
     parliament: Parliament,
     vote_payloads: list[dict],
@@ -543,41 +595,20 @@ def build_digests(
     now: Optional[datetime] = None,
 ) -> tuple[list[DailyDigest], int]:
     """Digests for every day with votes or a sitting, and how many were unchanged."""
-    existing_hashes = existing_hashes or {}
-    generated_at = now or datetime.now(timezone.utc)
-    by_day = votes_by_day(vote_payloads)
     digests: list[DailyDigest] = []
     unchanged = 0
-
-    for day in sorted(set(by_day) | set(sitting_days), reverse=True):
-        day_votes = by_day.get(day, [])
-        sitting = sitting_days.get(day)
-        doc_id = digest_doc_id(parliament.id, day)
-        input_hash = compute_input_hash(day_votes, sitting)
-        if not force and existing_hashes.get(doc_id) == input_hash:
+    for digest in iter_digests(
+        parliament,
+        vote_payloads,
+        sitting_days,
+        display,
+        builder,
+        existing_hashes=existing_hashes,
+        force=force,
+        now=now,
+    ):
+        if digest is None:
             unchanged += 1
-            continue
-
-        texts, fallen_back = builder.enrich_votes(parliament, day_votes)
-        session = (
-            builder.summarize_day(parliament, sitting, display) if sitting else None
-        )
-        complete = not fallen_back and (sitting is None or session is not None)
-
-        digests.append(
-            DailyDigest(
-                id=doc_id,
-                parliament=parliament.id,
-                parliament_name=parliament.name,
-                region=parliament.region,
-                date=day,
-                votes=[
-                    vote_from_payload(p, texts[int(p["external_id"])], display)
-                    for p in day_votes
-                ],
-                session=session,
-                input_hash=input_hash if complete else None,
-                generated_at=generated_at,
-            )
-        )
+        else:
+            digests.append(digest)
     return digests, unchanged

@@ -174,4 +174,18 @@ jobs = {
     }
     schedule = "30 5 * * 0"
   }
+
+  # Parliament feed on the web's start page, built from the speeches and votes
+  # above (CONNECTOR_ID=feed hands over to the feed runner in the entrypoint).
+  # Every half hour from 06:00 to 07:30: each run publishes day by day and stops
+  # before the cap, the next one continues, and once the week is done a run
+  # skips every day without LLM calls.
+  "ingest-feed" = {
+    env = {
+      CONNECTOR_ID             = "feed"
+      ELECTION_FIXTURES_SOURCE = "firestore" # party names + colours from the live DB
+    }
+    args     = ["--days", "14", "--time-budget", "780"]
+    schedule = "*/30 6-7 * * 0"
+  }
 }
