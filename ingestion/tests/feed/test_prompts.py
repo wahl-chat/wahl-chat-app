@@ -4,7 +4,7 @@
 
 import hashlib
 
-from src.feed.prompts import (
+from ingestion.feed.prompts import (
     _ATTRIBUTION_RULE,
     _GROUNDING_RULE,
     _NEUTRALITY_RULE,
@@ -48,7 +48,7 @@ def test_translation_is_held_to_the_same_editorial_rules() -> None:
 
 
 def test_votes_and_debates_are_tagged_alike() -> None:
-    from src.feed.prompts import SessionSectionDraft, VoteEnrichment
+    from ingestion.feed.prompts import SessionSectionDraft, VoteEnrichment
 
     vote = VoteEnrichment.model_fields["topics"].description
     debate = SessionSectionDraft.model_fields["topics"].description

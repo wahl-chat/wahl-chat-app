@@ -19,7 +19,7 @@ from typing import Any, Optional
 
 from qdrant_client import QdrantClient, models
 
-from src.ingestion.retrieve import dedup_prefer_op
+from wahlchat_common.speech_dedup import dedup_prefer_op
 
 VOTE_SOURCE_TYPE = "vote_record"
 SPEECH_SOURCE_TYPE = "parliamentary_speech"

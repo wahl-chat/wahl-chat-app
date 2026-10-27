@@ -195,6 +195,7 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 | `ingestion/` | Connectors + runner. Ships its own image for the scheduled Jobs. Depends on `wahlchat-common`, never on `ai-backend`. |
 | `ingestion/src/ingestion/` | Ingestion framework: `connector.py` (base class), `run.py` (runner), `registry.py`, `schemas.py` (data contract), `setup_collection.py`, `embeddings.py`, `vertex_credentials.py`, `governance_levels.py`, `legislature_config.py`, `ids.py`, `speech_key.py`, `speech_dedup.py`. |
 | `ingestion/src/ingestion/connectors/` | Per-source connectors: `abgeordnetenwatch/`, `bundestag_speeches/`, `openparliament_tv/`, `manifestos/`, `manifesto_uploads/`. Each has `connector.py`, a `client.py`, and `mappers/` that build `ChunkRecord`s. |
+| `ingestion/src/ingestion/feed/` | The parliament feed: builds feed items from the corpus, translates and indexes them (see "The parliament feed"). |
 | `ingestion/tests/` | pytest suite for the corpus layer (runner, schema, connectors). |
 | `ingestion/data/` | Connector inputs: `manifesto_uploads/{env}.txt` manifests; MdB-Stammdaten XML (gitignored, fetched on demand). |
 | `ai-backend/src/models/` | Pydantic DTOs and domain models for the chat API. |
@@ -510,7 +511,7 @@ anew) and social posts (rendered from an item's headline and facts).
 - **Stores.** Firestore `feed_items/{item_id}` is the source of truth;
   `feed_editions/{parliament}_{YYYY-MM-DD}` lists a sitting day's items in
   order. Qdrant `wahlchat_feed_{ENV}` only finds items (ids and filter fields,
-  no text; `search_feed()` in `src/feed/index.py`). It is deliberately not the
+  no text; `search_feed()` in `ingestion/src/ingestion/feed/index.py`). It is deliberately not the
   corpus collection: feed items span parties (the corpus is tuned for
   per-party tenancy), and they are our own summaries, which the chat must
   never cite as sources. Same locked vector space and fingerprint guard.
@@ -525,9 +526,13 @@ anew) and social posts (rendered from an item's headline and facts).
   agenda labels}` for debates, so a rebuild keeps ids and `feed_interest` rows
   valid. An item that vanishes from a rebuilt day is marked `retracted`, never
   deleted. `legacy_keys` keeps the pre-split keys (`…~s0`) resolvable.
-- **Models and prompts.** Every one-time text runs on `PUBLICATION_LLMS`
-  (`src/llms.py`, high reasoning) without touching the chat's rate-limit
-  status. All prompts share the editorial rules in `src/feed/prompts.py`
+- **Where it lives.** `ingestion/src/ingestion/feed/`: it runs as a
+  scheduled job and reads the corpus, so it ships in the ingestion image and
+  never imports `ai-backend`. Like PledgeTracker it is a bespoke runner, not a
+  registry connector: it builds from the corpus rather than filling it.
+- **Models and prompts.** Every one-time text runs on the publication roster
+  (`feed/publication_llms.py`, high reasoning), which never touches the chat's
+  rate-limit status. All prompts share the editorial rules in `feed/prompts.py`
   (neutrality, grounding, attribution); edit the constants, not copies.
   Translation is segment by segment: asked for whole entries, the model runs
   past a paragraph into translation-tool footers.

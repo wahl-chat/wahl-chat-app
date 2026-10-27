@@ -21,10 +21,10 @@ def guard_firestore_target(job_name: str, allow_remote: bool = False) -> None:
     environment).
 
     ``allow_remote`` unsets ``FIRESTORE_EMULATOR_HOST``: local ``.env`` and the
-    Makefile routinely set it for emulator-mode development, and
-    ``firebase_service`` keys off that variable at import time. Leaving it in
-    place would make the flag a no-op and keep writing to the emulator. Call
-    this BEFORE importing ``src.firebase_service``.
+    Makefile routinely set it for emulator-mode development, and the Firestore
+    client reads that variable when it is constructed. Leaving it in place
+    would make the flag a no-op and keep writing to the emulator. Call this
+    before constructing the client.
     """
     if allow_remote:
         os.environ.pop("FIRESTORE_EMULATOR_HOST", None)

@@ -2,15 +2,15 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Firestore client for the PledgeTracker runner.
+"""Firestore client for the runners that write Firestore directly.
 
-Same credential order as the API server: a service-account JSON in the
+Used by the PledgeTracker runner and the parliament feed. Same credential order as the API server: a service-account JSON in the
 working directory wins, then anonymous credentials when
 ``FIRESTORE_EMULATOR_HOST`` is set, otherwise Application Default Credentials.
 Built with ``google-cloud-firestore`` rather than ``firebase_admin`` so the
 job image does not carry the chat service's admin SDK. The document API
 (``collection`` / ``document`` / ``get`` / ``set(merge=True)`` / ``stream`` /
-``delete``) is the same one the runner was written against.
+``delete``) is the same one the runners were written against.
 """
 
 from __future__ import annotations

@@ -16,10 +16,25 @@ item Firestore does not have yet; the next run rewrites both.
 
 Usage (local):
     FIRESTORE_EMULATOR_HOST=localhost:8081 \
-        uv run python -m src.feed.bulk --days 14 --dry-run --out /tmp/feed.json
+        uv run python -m ingestion.feed.bulk --days 14 --dry-run --out /tmp/feed.json
 """
 
 from __future__ import annotations
+
+# Load the env file before the imports below: COLLECTION_NAME and the
+# embedding settings are read at import time. override=False keeps exported
+# variables (make, CI, the job spec) in force; Cloud Run has no .env.
+if __name__ == "__main__":
+    from pathlib import Path as _Path
+
+    from dotenv import load_dotenv
+
+    _env_path = _Path(__file__).resolve().parents[3] / ".env"
+    # Use ai-backend/.env when ingestion/.env does not exist.
+    if not _env_path.exists():
+        _env_path = _env_path.parents[1] / "ai-backend" / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path, override=False)
 
 import json
 import logging
@@ -32,13 +47,13 @@ from typing import Any, Optional
 import httpx
 from qdrant_client import QdrantClient
 
-from src.feed.builder import DigestBuilder, build_digests
-from src.feed.index import FEED_COLLECTION_NAME, IndexReport, index_items
-from src.feed.items import split_digest
-from src.feed.models import DailyDigest, FeedEdition, FeedItem
-from src.feed.parliaments import PARLIAMENTS, Parliament, load_party_display
-from src.feed.protocol_pages import attach_protocol_pages
-from src.feed.reader import (
+from ingestion.feed.builder import DigestBuilder, build_digests
+from ingestion.feed.index import FEED_COLLECTION_NAME, IndexReport, index_items
+from ingestion.feed.items import split_digest
+from ingestion.feed.models import DailyDigest, FeedEdition, FeedItem
+from ingestion.feed.parliaments import PARLIAMENTS, Parliament, load_party_display
+from ingestion.feed.protocol_pages import attach_protocol_pages
+from ingestion.feed.reader import (
     SPEECH_SOURCE_TYPE,
     VOTE_SOURCE_TYPE,
     assemble_speeches,
@@ -48,7 +63,7 @@ from src.feed.reader import (
     scroll_payloads,
     window_filter,
 )
-from src.feed.store import (
+from ingestion.feed.store import (
     carry_over_translations,
     read_edition_hashes,
     read_editions,
@@ -57,9 +72,9 @@ from src.feed.store import (
     vanished_items,
     write_feed,
 )
-from src.feed.translate import TranslationReport, translate_items
-from src.firestore_guard import guard_firestore_target
-from src.ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
+from ingestion.feed.translate import TranslationReport, translate_items
+from ingestion.firestore_guard import guard_firestore_target
+from ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -213,7 +228,7 @@ def _firestore_client() -> Any:
 
     Against the emulator this is an anonymous client for the project the web
     reads (``GOOGLE_CLOUD_PROJECT``, default ``demo-wahl-chat`` like the
-    Makefile's EMULATOR_PROJECT). ``firebase_service`` would instead take the
+    Makefile's EMULATOR_PROJECT). The shared client would instead take the
     project from whichever admin-SDK key file sits in the working directory,
     and the emulator keeps every project apart, so the page would read an empty
     collection.
@@ -226,11 +241,9 @@ def _firestore_client() -> Any:
             project=os.getenv("GOOGLE_CLOUD_PROJECT") or "demo-wahl-chat",
             credentials=AnonymousCredentials(),
         )
-    # Imported lazily so firebase_admin never initializes against real
-    # Firestore unless the guard allowed it.
-    from src.firebase_service import db  # noqa: PLC0415
+    from ingestion.firestore_client import firestore_client  # noqa: PLC0415
 
-    return db
+    return firestore_client()
 
 
 def post_revalidate(env: str) -> None:
@@ -271,7 +284,7 @@ def _summary_line(run: ParliamentRun, published: Published) -> str:
 
 
 def _embeddings() -> Any:
-    from src.embeddings import get_embeddings  # noqa: PLC0415
+    from wahlchat_common.embeddings import get_embeddings  # noqa: PLC0415
 
     return get_embeddings(task_type="RETRIEVAL_DOCUMENT")
 
@@ -279,11 +292,6 @@ def _embeddings() -> Any:
 def main(argv: Optional[list[str]] = None) -> int:
     import argparse
 
-    from dotenv import load_dotenv
-
-    env_path = Path(__file__).resolve().parents[2] / ".env"
-    if env_path.exists():
-        load_dotenv(env_path, override=False)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     parser = argparse.ArgumentParser(

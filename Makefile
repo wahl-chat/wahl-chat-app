@@ -7,7 +7,7 @@
         run-abgeordnetenwatch-votes run-all-landtage-votes run-speeches \
         run-manifestos run-manifesto-uploads upload-manifesto-uploads \
         collect-speeches fetch-mdb-stammdaten \
-        update-speeches speeches-stats export-prod-slice build-daily-digests \
+        update-speeches speeches-stats export-prod-slice \
         build-feed setup-feed-collection migrate-feed
 
 # --- Install dependencies ---
@@ -302,22 +302,20 @@ run-pledgetracker: bootstrap-collection
 # export-prod-slice reads PROD_QDRANT_URL / PROD_QDRANT_API_KEY from the shell
 # and only ever scrolls prod; the write target is the local QDRANT_URL.
 export-prod-slice:
-	cd ai-backend && $(QDRANT_ENV) uv run python -m src.feed.export_prod_slice $(ARGS)
+	cd ingestion && $(QDRANT_ENV) uv run python -m ingestion.feed.export_prod_slice $(ARGS)
 
 setup-feed-collection:
-	cd ai-backend && $(QDRANT_ENV) uv run python -m src.feed.index
+	cd ingestion && $(QDRANT_ENV) uv run python -m ingestion.feed.index
 
 build-feed:
-	cd ai-backend && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
+	cd ingestion && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
 		GOOGLE_CLOUD_PROJECT=$(EMULATOR_PROJECT) \
-		uv run python -m src.feed.bulk $(ARGS)
-
-build-daily-digests: build-feed
+		uv run python -m ingestion.feed.bulk $(ARGS)
 
 migrate-feed:
-	cd ai-backend && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
+	cd ingestion && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
 		GOOGLE_CLOUD_PROJECT=$(EMULATOR_PROJECT) \
-		uv run python -m src.feed.migrate_digests $(ARGS)
+		uv run python -m ingestion.feed.migrate_digests $(ARGS)
 
 # Uploaded manifestos: party PDFs supplied directly, for elections with no AW
 # coverage. Metadata comes from the object path + Firestore seed fixtures.

@@ -8,17 +8,20 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Optional
+
+from ingestion.connectors.manifesto_uploads.election_fixtures import fixture_dir
 
 logger = logging.getLogger(__name__)
 
 ParliamentId = Literal["bundestag", "landtag_st", "landtag_bw"]
 
-_FIRESTORE_DATA_DIR = (
-    Path(__file__).resolve().parents[3] / "firebase" / "firestore_data"
-)
+# Same switch as the manifesto uploads: the seed files are not in the job
+# image, so a deployed job reads the parties from the live database.
+_SOURCE_ENV = "ELECTION_FIXTURES_SOURCE"
 
 # Used when a party is missing from the context's seed parties (fraktionslose
 # members, splinter groups, a party that left the parliament).
@@ -93,21 +96,52 @@ def _party_rows(raw: object) -> list[dict]:
     return []
 
 
+def _seed_party_rows(
+    parliament: Parliament, env: str, data_dir: Optional[Path]
+) -> list[dict]:
+    folder = data_dir / env if data_dir is not None else fixture_dir(env)
+    path = folder / f"parties_{parliament.party_context_id}.json"
+    try:
+        return _party_rows(json.loads(path.read_text(encoding="utf-8")))
+    except (OSError, ValueError) as exc:
+        logger.warning("No party seed for %s (%s): %s", parliament.id, path, exc)
+        return []
+
+
+def _firestore_party_rows(parliament: Parliament) -> list[dict]:
+    from ingestion.firestore_client import firestore_client  # noqa: PLC0415
+
+    context = parliament.party_context_id
+    try:
+        docs = (
+            firestore_client()
+            .collection("contexts")
+            .document(context)
+            .collection("parties")
+            .stream()
+        )
+        return [{"party_id": doc.id, **(doc.to_dict() or {})} for doc in docs]
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "No parties in Firestore for %s (%s): %s", parliament.id, context, exc
+        )
+        return []
+
+
 def load_party_display(
     parliament: Parliament, env: str, data_dir: Optional[Path] = None
 ) -> dict[str, PartyDisplay]:
-    """Display name + colour per party slug, from the context's seed parties."""
-    path = (
-        (data_dir or _FIRESTORE_DATA_DIR)
-        / env
-        / f"parties_{parliament.party_context_id}.json"
-    )
+    """Display name + colour per party slug, from the context's parties.
+
+    A missing source only costs colours and long names (the fallbacks below),
+    never the run.
+    """
+    source = (os.getenv(_SOURCE_ENV) or "files").strip().lower()
+    if source == "firestore":
+        rows = _firestore_party_rows(parliament)
+    else:
+        rows = _seed_party_rows(parliament, env, data_dir)
     display: dict[str, PartyDisplay] = {}
-    try:
-        rows = _party_rows(json.loads(path.read_text(encoding="utf-8")))
-    except (OSError, ValueError) as exc:
-        logger.warning("No party seed for %s (%s): %s", parliament.id, path, exc)
-        rows = []
     for row in rows:
         party_id = row.get("party_id")
         if not party_id:

@@ -8,8 +8,9 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
-import src.llms as llms
-from src.feed import builder as builder_module
+from ingestion import llm_clients
+from ingestion.feed import builder as builder_module
+from ingestion.feed import publication_llms
 
 
 class Answer(BaseModel):
@@ -22,26 +23,27 @@ def test_feed_texts_go_to_the_publication_roster_without_chat_side_effects(
     seen: dict[str, Any] = {}
 
     async def fake(
-        roster: list, messages: list, schema: type, *, report_rate_limit: bool
+        roster: list, messages: list, schema: type, **kwargs: Any
     ) -> tuple[Any, str]:
-        seen.update(roster=roster, report_rate_limit=report_rate_limit)
+        seen.update(roster=roster, kwargs=kwargs)
         return Answer(text="ok"), "entry"
 
-    monkeypatch.setattr(llms, "get_structured_output_with_source", fake)
+    monkeypatch.setattr(publication_llms, "structured_output_with_failover", fake)
     result, model = asyncio.run(builder_module._default_structured_output([], Answer))
     assert (result.text, model) == ("ok", "entry")
-    assert seen["roster"] is llms.PUBLICATION_LLMS
-    assert seen["report_rate_limit"] is False
+    assert seen["roster"] is publication_llms.publication_llms()
+    assert seen["kwargs"] == {}
 
 
 def test_the_publication_roster_reasons_at_length() -> None:
-    assert llms.PUBLICATION_LLMS
-    for entry in llms.PUBLICATION_LLMS:
+    roster = publication_llms.publication_llms()
+    assert roster
+    for entry in roster:
         assert "lite" not in entry.name
         effort = getattr(entry.model, "thinking_level", None) or getattr(
             entry.model, "reasoning_effort", None
         )
-        assert effort == llms.PUBLICATION_THINKING == "high"
+        assert effort == publication_llms.PUBLICATION_THINKING == "high"
 
 
 class _Failing:
@@ -55,24 +57,19 @@ class _Failing:
 def test_an_exhausted_batch_roster_does_not_flag_the_chat(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    roster = [llm_clients.RosterLLM(name="x", model=_Failing(), priority=1)]  # type: ignore[arg-type]
+    monkeypatch.setattr(publication_llms, "publication_llms", lambda: roster)
     flagged: list[bool] = []
 
-    async def flag() -> None:
-        flagged.append(True)
-
-    monkeypatch.setattr(llms, "handle_rate_limit_hit_for_all_llms", flag)
-    roster = [
-        llms.LLM.model_construct(
-            name="x", model=_Failing(), priority=1, back_up_only=False
-        )
-    ]
     with pytest.raises(Exception, match="All LLMs failed"):
         asyncio.run(
-            llms.get_structured_output_with_source(
-                roster, [], Answer, report_rate_limit=False
-            )
+            publication_llms.structured_output_from_publication_llms([], Answer)
         )
     assert flagged == []
     with pytest.raises(Exception, match="All LLMs failed"):
-        asyncio.run(llms.get_structured_output_with_source(roster, [], Answer))
+        asyncio.run(
+            llm_clients.structured_output_with_failover(
+                roster, [], Answer, on_primaries_exhausted=lambda: flagged.append(True)
+            )
+        )
     assert flagged == [True]

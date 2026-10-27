@@ -16,7 +16,7 @@ from typing import Any, Iterable
 
 from google.cloud.firestore_v1.base_query import FieldFilter
 
-from src.feed.models import (
+from ingestion.feed.models import (
     CANONICAL_LOCALE,
     TRANSLATED_LOCALES,
     FeedEdition,

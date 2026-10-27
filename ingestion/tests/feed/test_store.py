@@ -5,10 +5,10 @@
 import json
 from pathlib import Path
 
-from src.feed.items import split_digest
-from src.feed.models import DailyDigest, FeedItem, LocalizedContent
-from src.feed.prompts import TRANSLATION_PROMPT_VERSION
-from src.feed.store import carry_over_translations, vanished_items
+from ingestion.feed.items import split_digest
+from ingestion.feed.models import DailyDigest, FeedItem, LocalizedContent
+from ingestion.feed.prompts import TRANSLATION_PROMPT_VERSION
+from ingestion.feed.store import carry_over_translations, vanished_items
 
 LEGACY_FIXTURE = Path(__file__).parent / "fixtures" / "legacy_daily_digests.json"
 

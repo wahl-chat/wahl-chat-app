@@ -17,10 +17,10 @@ import logging
 import re
 from typing import Callable, Optional
 
-from src.feed.reader import SittingDay
-from src.ingestion.connectors.bundestag_speeches.client import fetch_text
-from src.ingestion.connectors.bundestag_speeches.parser import parse_speeches_from_xml
-from src.ingestion.speech_key import make_speech_key
+from ingestion.feed.reader import SittingDay
+from ingestion.connectors.bundestag_speeches.client import fetch_text
+from ingestion.connectors.bundestag_speeches.parser import parse_speeches_from_xml
+from ingestion.speech_key import make_speech_key
 
 logger = logging.getLogger(__name__)
 

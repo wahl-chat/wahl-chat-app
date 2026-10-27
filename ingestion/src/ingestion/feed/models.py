@@ -17,8 +17,8 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.feed.parliaments import ParliamentId
-from src.feed.topics import DigestTopic
+from ingestion.feed.parliaments import ParliamentId
+from ingestion.feed.topics import DigestTopic
 
 
 class DigestVoteParty(BaseModel):

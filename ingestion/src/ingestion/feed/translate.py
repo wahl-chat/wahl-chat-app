@@ -22,15 +22,15 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Literal, Optional
 
-from src.feed.builder import DigestBuilder, strip_refs
-from src.feed.models import (
+from ingestion.feed.builder import DigestBuilder, strip_refs
+from ingestion.feed.models import (
     CANONICAL_LOCALE,
     FeedItem,
     Locale,
     LocalizedContent,
     LocalizedPosition,
 )
-from src.feed.prompts import (
+from ingestion.feed.prompts import (
     TRANSLATION_PROMPT_VERSION,
     TranslationBatch,
     format_translation_prompt,

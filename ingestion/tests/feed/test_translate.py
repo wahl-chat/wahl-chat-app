@@ -8,15 +8,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from src.feed.builder import DigestBuilder
-from src.feed.items import split_digest
-from src.feed.models import DailyDigest, FeedItem
-from src.feed.prompts import (
+from ingestion.feed.builder import DigestBuilder
+from ingestion.feed.items import split_digest
+from ingestion.feed.models import DailyDigest, FeedItem
+from ingestion.feed.prompts import (
     TRANSLATION_PROMPT_VERSION,
     TranslatedSegment,
     TranslationBatch,
 )
-from src.feed.translate import needs_translation, translate_items
+from ingestion.feed.translate import needs_translation, translate_items
 
 NOW = datetime(2026, 10, 24, tzinfo=timezone.utc)
 LEGACY_FIXTURE = Path(__file__).parent / "fixtures" / "legacy_daily_digests.json"

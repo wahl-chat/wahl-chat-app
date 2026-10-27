@@ -8,16 +8,16 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from src.feed.index import (
+from ingestion.feed.index import (
     embed_text,
     feed_point_id,
     index_items,
     item_payload,
     search_filter,
 )
-from src.feed.items import split_digest
-from src.feed.models import DailyDigest, FeedItem
-from src.ingestion.setup_collection import EMBEDDING_DIM
+from ingestion.feed.items import split_digest
+from ingestion.feed.models import DailyDigest, FeedItem
+from ingestion.setup_collection import EMBEDDING_DIM
 
 LEGACY_FIXTURE = Path(__file__).parent / "fixtures" / "legacy_daily_digests.json"
 

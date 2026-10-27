@@ -20,6 +20,21 @@ embedding model is multilingual, so queries in other languages match too.
 
 from __future__ import annotations
 
+# Load the env file before the imports below: COLLECTION_NAME and the
+# embedding settings are read at import time. override=False keeps exported
+# variables (make, CI, the job spec) in force; Cloud Run has no .env.
+if __name__ == "__main__":
+    from pathlib import Path as _Path
+
+    from dotenv import load_dotenv
+
+    _env_path = _Path(__file__).resolve().parents[3] / ".env"
+    # Use ai-backend/.env when ingestion/.env does not exist.
+    if not _env_path.exists():
+        _env_path = _env_path.parents[1] / "ai-backend" / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path, override=False)
+
 import os
 import uuid
 from dataclasses import dataclass
@@ -29,11 +44,11 @@ from typing import Any, Optional
 from langchain_core.embeddings import Embeddings
 from qdrant_client import QdrantClient, models
 
-from src.feed.items import content_hash
-from src.feed.models import CANONICAL_LOCALE, FeedItem
-from src.ingestion.ids import WAHL_CHAT_NS
-from src.ingestion.run import DimensionMismatchError, _embed_texts
-from src.ingestion.setup_collection import (
+from ingestion.feed.items import content_hash
+from ingestion.feed.models import CANONICAL_LOCALE, FeedItem
+from ingestion.ids import WAHL_CHAT_NS
+from ingestion.run import DimensionMismatchError, _embed_texts
+from ingestion.setup_collection import (
     EMBEDDING_DIM,
     ENV,
     check_fingerprint,
@@ -274,9 +289,6 @@ def search_feed(
 
 
 if __name__ == "__main__":
-    from dotenv import load_dotenv
-
-    load_dotenv(override=False)
     setup_feed_collection(
         QdrantClient(
             url=os.getenv("QDRANT_URL", "http://localhost:6333"),

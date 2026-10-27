@@ -16,7 +16,7 @@ import json
 from datetime import datetime
 from typing import Optional
 
-from src.feed.models import (
+from ingestion.feed.models import (
     CANONICAL_LOCALE,
     DailyDigest,
     DebateFacts,
@@ -29,7 +29,7 @@ from src.feed.models import (
     LocalizedPosition,
     VoteFacts,
 )
-from src.feed.prompts import PROMPT_VERSION
+from ingestion.feed.prompts import PROMPT_VERSION
 
 _HASHED_FIELDS = (
     "headline",

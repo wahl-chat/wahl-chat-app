@@ -15,7 +15,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from src.feed.topics import DigestTopic, topic_legend
+from ingestion.feed.topics import DigestTopic, topic_legend
 
 # Part of every digest's input_hash: bumping it regenerates all stored days.
 PROMPT_VERSION = "7"

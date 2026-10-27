@@ -5,8 +5,8 @@
 import json
 from pathlib import Path
 
-from src.feed.items import content_hash, debate_item_id, split_digest
-from src.feed.models import DailyDigest
+from ingestion.feed.items import content_hash, debate_item_id, split_digest
+from ingestion.feed.models import DailyDigest
 
 LEGACY_FIXTURE = Path(__file__).parent / "fixtures" / "legacy_daily_digests.json"
 

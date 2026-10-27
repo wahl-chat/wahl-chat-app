@@ -11,13 +11,28 @@ left untouched, so the web that still reads it keeps working until it is
 switched over.
 
 Usage (local):
-    FIRESTORE_EMULATOR_HOST=localhost:8081 uv run python -m src.feed.migrate_digests
-    uv run python -m src.feed.migrate_digests \
+    FIRESTORE_EMULATOR_HOST=localhost:8081 uv run python -m ingestion.feed.migrate_digests
+    uv run python -m ingestion.feed.migrate_digests \
         --from-json ../firebase/firestore_data/emulator/daily_digests.json \
         --dry-run --out /tmp/feed.json
 """
 
 from __future__ import annotations
+
+# Load the env file before the imports below: COLLECTION_NAME and the
+# embedding settings are read at import time. override=False keeps exported
+# variables (make, CI, the job spec) in force; Cloud Run has no .env.
+if __name__ == "__main__":
+    from pathlib import Path as _Path
+
+    from dotenv import load_dotenv
+
+    _env_path = _Path(__file__).resolve().parents[3] / ".env"
+    # Use ai-backend/.env when ingestion/.env does not exist.
+    if not _env_path.exists():
+        _env_path = _env_path.parents[1] / "ai-backend" / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path, override=False)
 
 import json
 import logging
@@ -26,10 +41,10 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from src.feed.bulk import _embeddings, _firestore_client, publish
-from src.feed.builder import DigestBuilder
-from src.feed.models import DailyDigest
-from src.firestore_guard import guard_firestore_target
+from ingestion.feed.bulk import _embeddings, _firestore_client, publish
+from ingestion.feed.builder import DigestBuilder
+from ingestion.feed.models import DailyDigest
+from ingestion.firestore_guard import guard_firestore_target
 
 logger = logging.getLogger(__name__)
 
@@ -46,11 +61,6 @@ def read_legacy_digests(db: Any) -> list[DailyDigest]:
 def main(argv: Optional[list[str]] = None) -> int:
     import argparse
 
-    from dotenv import load_dotenv
-
-    env_path = Path(__file__).resolve().parents[2] / ".env"
-    if env_path.exists():
-        load_dotenv(env_path, override=False)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     parser = argparse.ArgumentParser(

@@ -5,16 +5,15 @@
 from datetime import date
 from pathlib import Path
 
-from src.feed.protocol_pages import (
+from ingestion.feed.protocol_pages import (
     attach_protocol_pages,
     page_index,
     protocol_xml_url,
 )
-from src.feed.reader import assemble_speeches, group_sitting_days
+from ingestion.feed.reader import assemble_speeches, group_sitting_days
 
 _FIXTURE = (
     Path(__file__).resolve().parents[1]
-    / "ingestion"
     / "connectors"
     / "bundestag_speeches"
     / "fixtures"

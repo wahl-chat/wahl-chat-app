@@ -28,7 +28,7 @@ from typing import Any, Callable, Coroutine, Optional
 from langchain_core.messages import BaseMessage, HumanMessage
 from pydantic import BaseModel
 
-from src.feed.models import (
+from ingestion.feed.models import (
     DailyDigest,
     DigestCitation,
     DigestPartyPosition,
@@ -41,8 +41,8 @@ from src.feed.models import (
     DigestVoteParty,
     digest_doc_id,
 )
-from src.feed.parliaments import Parliament, PartyDisplay, party_display_for
-from src.feed.prompts import (
+from ingestion.feed.parliaments import Parliament, PartyDisplay, party_display_for
+from ingestion.feed.prompts import (
     PROMPT_VERSION,
     OpeningQuoteDraft,
     PartyPositionDraft,
@@ -52,8 +52,8 @@ from src.feed.prompts import (
     format_session_prompt,
     format_vote_prompt,
 )
-from src.feed.reader import AgendaItem, SittingDay, Speech, parse_day
-from src.feed.topics import DigestTopic
+from ingestion.feed.reader import AgendaItem, SittingDay, Speech, parse_day
+from ingestion.feed.topics import DigestTopic
 
 logger = logging.getLogger(__name__)
 
@@ -92,14 +92,11 @@ StructuredOutputFn = Callable[
 async def _default_structured_output(
     messages: list[BaseMessage], schema: type[BaseModel]
 ) -> tuple[Any, str]:
-    from src.llms import (  # noqa: PLC0415
-        PUBLICATION_LLMS,
-        get_structured_output_with_source,
+    from ingestion.feed.publication_llms import (  # noqa: PLC0415
+        structured_output_from_publication_llms,
     )
 
-    return await get_structured_output_with_source(
-        PUBLICATION_LLMS, messages, schema, report_rate_limit=False
-    )
+    return await structured_output_from_publication_llms(messages, schema)
 
 
 @dataclass

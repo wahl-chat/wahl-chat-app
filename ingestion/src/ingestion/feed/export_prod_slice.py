@@ -13,23 +13,37 @@ target.
 
 Usage:
     export PROD_QDRANT_URL=https://<host>:6333 PROD_QDRANT_API_KEY=...
-    uv run python -m src.feed.export_prod_slice --days 45
+    uv run python -m ingestion.feed.export_prod_slice --days 45
 """
 
 from __future__ import annotations
+
+# Load the env file before the imports below: COLLECTION_NAME and the
+# embedding settings are read at import time. override=False keeps exported
+# variables (make, CI, the job spec) in force; Cloud Run has no .env.
+if __name__ == "__main__":
+    from pathlib import Path as _Path
+
+    from dotenv import load_dotenv
+
+    _env_path = _Path(__file__).resolve().parents[3] / ".env"
+    # Use ai-backend/.env when ingestion/.env does not exist.
+    if not _env_path.exists():
+        _env_path = _env_path.parents[1] / "ai-backend" / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path, override=False)
 
 import logging
 import os
 import sys
 from datetime import date, datetime, time, timedelta, timezone
-from pathlib import Path
 from typing import Optional
 
 from qdrant_client import QdrantClient, models
 
-from src.feed.parliaments import PARLIAMENTS
-from src.feed.reader import SPEECH_SOURCE_TYPE, VOTE_SOURCE_TYPE
-from src.ingestion.setup_collection import COLLECTION_NAME, check_fingerprint, setup
+from ingestion.feed.parliaments import PARLIAMENTS
+from ingestion.feed.reader import SPEECH_SOURCE_TYPE, VOTE_SOURCE_TYPE
+from ingestion.setup_collection import COLLECTION_NAME, check_fingerprint, setup
 
 logger = logging.getLogger(__name__)
 
@@ -95,11 +109,6 @@ def copy_slice(
 def main(argv: Optional[list[str]] = None) -> int:
     import argparse
 
-    from dotenv import load_dotenv
-
-    env_path = Path(__file__).resolve().parents[2] / ".env"
-    if env_path.exists():
-        load_dotenv(env_path, override=False)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     parser = argparse.ArgumentParser(

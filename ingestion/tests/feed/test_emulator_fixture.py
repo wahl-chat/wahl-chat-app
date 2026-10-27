@@ -5,8 +5,8 @@
 import json
 from pathlib import Path
 
-from src.feed.models import FeedEdition, FeedItem
-from src.feed.translate import needs_translation
+from ingestion.feed.models import FeedEdition, FeedItem
+from ingestion.feed.translate import needs_translation
 
 FIXTURE = (
     Path(__file__).resolve().parents[3]

@@ -7,16 +7,16 @@ from typing import Any, Iterator
 
 import pytest
 
-from src.feed.builder import (
+from ingestion.feed.builder import (
     DigestBuilder,
     build_digests,
     compute_input_hash,
     session_from_draft,
     vote_description,
 )
-from src.feed.models import DigestSessionSection
-from src.feed.parliaments import PARLIAMENTS, PartyDisplay
-from src.feed.prompts import (
+from ingestion.feed.models import DigestSessionSection
+from ingestion.feed.parliaments import PARLIAMENTS, PartyDisplay
+from ingestion.feed.prompts import (
     OpeningQuoteDraft,
     PartyPositionDraft,
     SessionSectionDraft,
@@ -24,7 +24,7 @@ from src.feed.prompts import (
     VoteEnrichment,
     VoteEnrichmentBatch,
 )
-from src.feed.reader import assemble_speeches, group_sitting_days
+from ingestion.feed.reader import assemble_speeches, group_sitting_days
 
 NOW = datetime(2026, 10, 1, tzinfo=timezone.utc)
 BUNDESTAG = PARLIAMENTS["bundestag"]
