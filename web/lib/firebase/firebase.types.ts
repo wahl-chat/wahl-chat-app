@@ -374,3 +374,11 @@ export type FeedEdition = {
 
 /** One parliament's recent editions and their items. */
 export type ParliamentFeed = { editions: FeedEdition[]; items: FeedItem[] };
+
+/** A slice of one parliament's feed: the editions from `from` on, newest
+ * first. `from` is the cursor for the next older slice; `hasOlder` says
+ * whether there is one. */
+export type FeedPage = ParliamentFeed & {
+  from: string | null;
+  hasOlder: boolean;
+};

@@ -10,8 +10,9 @@ import {
   voteItems,
 } from './items';
 import { matchesTopics } from './topics';
+import { FEED_WINDOW_DAYS, pageStart } from './window';
 
-export const FEED_WINDOW_DAYS = 14;
+export { FEED_WINDOW_DAYS };
 
 const PARLIAMENT_ORDER: DigestParliamentId[] = [
   'bundestag',
@@ -23,12 +24,6 @@ export type FeedDay = {
   date: string;
   digests: DailyDigest[];
 };
-
-function shiftDay(isoDay: string, days: number): string {
-  const date = new Date(`${isoDay}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
 
 /**
  * Each parliament's window ends on ITS latest digest, not today: Landtage sit
@@ -46,18 +41,21 @@ export function windowedDigests(
     (max, d) => (d.date > max ? d.date : max),
     digests[0].date,
   );
-  const earliest = shiftDay(latest, -(windowDays - 1));
+  const earliest = pageStart(latest, windowDays);
   return digests.filter((d) => d.date >= earliest);
 }
 
-/** Merge per-parliament digests into days, newest first; Bundestag first. */
+/** Merge per-parliament digests into days, newest first; Bundestag first.
+ * `windowDays: null` keeps every digest, for lists the server already cut. */
 export function buildFeed(
   perParliament: readonly (readonly DailyDigest[])[],
-  windowDays: number = FEED_WINDOW_DAYS,
+  windowDays: number | null = FEED_WINDOW_DAYS,
 ): FeedDay[] {
   const byDate = new Map<string, DailyDigest[]>();
   for (const digests of perParliament) {
-    for (const digest of windowedDigests(digests, windowDays)) {
+    const shown =
+      windowDays === null ? digests : windowedDigests(digests, windowDays);
+    for (const digest of shown) {
       const day = byDate.get(digest.date) ?? [];
       day.push(digest);
       byDate.set(digest.date, day);

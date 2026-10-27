@@ -62,6 +62,7 @@ from ingestion.feed.protocol_pages import attach_protocol_pages
 from ingestion.feed.reader import (
     SPEECH_SOURCE_TYPE,
     VOTE_SOURCE_TYPE,
+    SittingDay,
     assemble_speeches,
     compute_window,
     group_sitting_days,
@@ -135,6 +136,50 @@ def parliament_window(
     return compute_window(latest, days)
 
 
+@dataclass
+class WindowSources:
+    window: tuple[Any, Any]
+    votes: list[dict]
+    sitting_days: dict[Any, SittingDay]
+
+
+def load_sources(
+    qdrant: QdrantClient,
+    parliament: Parliament,
+    days: int,
+    *,
+    attach_pages: bool = True,
+) -> Optional[WindowSources]:
+    """The window's vote payloads and sitting days, or None without corpus data.
+
+    ``attach_pages`` fetches the Bundestag's protocol XML to link speeches to
+    their page; a day's input hash does not depend on it.
+    """
+    window = parliament_window(qdrant, parliament, days)
+    if window is None:
+        return None
+    start, end = window
+    votes = scroll_payloads(
+        qdrant,
+        COLLECTION_NAME,
+        window_filter(VOTE_SOURCE_TYPE, parliament.region, start, end),
+    )
+    sitting_days: dict[Any, SittingDay] = {}
+    if parliament.has_speeches:
+        speech_payloads = scroll_payloads(
+            qdrant,
+            COLLECTION_NAME,
+            window_filter(SPEECH_SOURCE_TYPE, parliament.region, start, end),
+        )
+        sitting_days = group_sitting_days(assemble_speeches(speech_payloads))
+        for sitting in sitting_days.values() if attach_pages else ():
+            attached = attach_protocol_pages(sitting)
+            logger.info(
+                "%s: %d speeches linked to their protocol page", sitting.day, attached
+            )
+    return WindowSources(window, votes, sitting_days)
+
+
 def build_for_parliament(
     qdrant: QdrantClient,
     parliament: Parliament,
@@ -152,30 +197,12 @@ def build_for_parliament(
     Stops between days once ``out_of_time()`` says so; a finished day is
     already stored, so the next run skips it.
     """
-    window = parliament_window(qdrant, parliament, days)
-    if window is None:
+    sources = load_sources(qdrant, parliament, days)
+    if sources is None:
         return ParliamentRun(parliament, None, [], 0)
-    start, end = window
-    votes = scroll_payloads(
-        qdrant,
-        COLLECTION_NAME,
-        window_filter(VOTE_SOURCE_TYPE, parliament.region, start, end),
-    )
-    sitting_days = {}
-    if parliament.has_speeches:
-        speech_payloads = scroll_payloads(
-            qdrant,
-            COLLECTION_NAME,
-            window_filter(SPEECH_SOURCE_TYPE, parliament.region, start, end),
-        )
-        sitting_days = group_sitting_days(assemble_speeches(speech_payloads))
-        for sitting in sitting_days.values():
-            attached = attach_protocol_pages(sitting)
-            logger.info(
-                "%s: %d speeches linked to their protocol page", sitting.day, attached
-            )
+    votes, sitting_days = sources.votes, sources.sitting_days
 
-    run = ParliamentRun(parliament, window, [], 0)
+    run = ParliamentRun(parliament, sources.window, [], 0)
     for digest in iter_digests(
         parliament,
         votes,
@@ -319,6 +346,61 @@ def _summary_line(run: ParliamentRun, published: Published) -> str:
     )
 
 
+def build_and_publish(
+    qdrant: QdrantClient,
+    db: Any,
+    builder: DigestBuilder,
+    parliaments: list[Parliament],
+    *,
+    days: int,
+    env: str,
+    force: bool = False,
+    translate: bool = True,
+    index: bool = True,
+    out_of_time: Callable[[], bool] = lambda: False,
+) -> list[tuple[ParliamentRun, Published]]:
+    """Every parliament's window, day by day; prints one summary line each.
+
+    ``db=None`` is a dry run (nothing read back or written).
+    """
+    existing = read_edition_hashes(db, [p.id for p in parliaments]) if db else {}
+    index_to = qdrant if index and db is not None else None
+    embed = _embeddings() if index_to is not None else None
+    runs: list[tuple[ParliamentRun, Published]] = []
+    for parliament in parliaments:
+        if out_of_time():
+            print(f"{parliament.id:>10}  skipped: time budget spent")
+            continue
+        published = Published()
+
+        def publish_day(digest: DailyDigest, into: Published = published) -> None:
+            into.add(
+                publish(
+                    [digest],
+                    db=db,
+                    builder=builder,
+                    qdrant=index_to,
+                    embed=embed,
+                    translate=translate,
+                )
+            )
+
+        run = build_for_parliament(
+            qdrant,
+            parliament,
+            builder,
+            days=days,
+            env=env,
+            existing_hashes=existing,
+            force=force,
+            publish_day=publish_day,
+            out_of_time=out_of_time,
+        )
+        runs.append((run, published))
+        print(_summary_line(run, published))
+    return runs
+
+
 def _embeddings() -> Any:
     from wahlchat_common.embeddings import get_embeddings  # noqa: PLC0415
 
@@ -425,41 +507,18 @@ def main(argv: Optional[list[str]] = None) -> int:
             )
             return 0
 
-        existing = read_edition_hashes(db, [p.id for p in parliaments]) if db else {}
-        index_to = None if args.dry_run or args.skip_index else qdrant
-        embed = _embeddings() if index_to is not None else None
-        runs: list[tuple[ParliamentRun, Published]] = []
-        for parliament in parliaments:
-            if out_of_time():
-                print(f"{parliament.id:>10}  skipped: time budget spent")
-                continue
-            published = Published()
-
-            def publish_day(digest: DailyDigest, into: Published = published) -> None:
-                into.add(
-                    publish(
-                        [digest],
-                        db=db,
-                        builder=builder,
-                        qdrant=index_to,
-                        embed=embed,
-                        translate=not args.skip_translate,
-                    )
-                )
-
-            run = build_for_parliament(
-                qdrant,
-                parliament,
-                builder,
-                days=args.days,
-                env=env,
-                existing_hashes=existing,
-                force=args.force,
-                publish_day=publish_day,
-                out_of_time=out_of_time,
-            )
-            runs.append((run, published))
-            print(_summary_line(run, published))
+        runs = build_and_publish(
+            qdrant,
+            db,
+            builder,
+            parliaments,
+            days=args.days,
+            env=env,
+            force=args.force,
+            translate=not args.skip_translate,
+            index=not (args.dry_run or args.skip_index),
+            out_of_time=out_of_time,
+        )
     finally:
         builder.close()
 

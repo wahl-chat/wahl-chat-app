@@ -8,7 +8,8 @@
         run-manifestos run-manifesto-uploads upload-manifesto-uploads \
         collect-speeches fetch-mdb-stammdaten \
         update-speeches speeches-stats export-prod-slice \
-        build-feed setup-feed-collection migrate-feed translate-messages
+        build-feed setup-feed-collection migrate-feed backfill-feed \
+        translate-messages
 
 # --- Install dependencies ---
 
@@ -311,6 +312,16 @@ build-feed:
 	cd ingestion && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
 		GOOGLE_CLOUD_PROJECT=$(EMULATOR_PROJECT) \
 		uv run python -m ingestion.feed.bulk $(ARGS)
+
+# One-time backfill of a deployed feed (8 weeks by default), before the merge
+# that ships the feed to that environment. Needs its Qdrant exported and its
+# admin-SDK key in ingestion/ or ai-backend/ (or gcloud ADC):
+#   QDRANT_URL=... QDRANT_API_KEY=... make backfill-feed TARGET=dev ARGS="--plan"
+#   QDRANT_URL=... QDRANT_API_KEY=... make backfill-feed TARGET=dev
+backfill-feed:
+	@test -n "$(TARGET)" || (echo "ERROR: set TARGET=dev or TARGET=prod" && exit 1)
+	cd ingestion && ENV=$(TARGET) FIRESTORE_EMULATOR_HOST= \
+		uv run python -m ingestion.feed.backfill --env $(TARGET) $(ARGS)
 
 migrate-feed:
 	cd ingestion && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
