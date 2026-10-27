@@ -85,7 +85,7 @@ class Context(BaseModel):
         description=(
             "Governance level for the election context. "
             "Values: 'federal' | 'state' | 'municipal'. "
-            "Default None is treated as 'federal' by chat_service.py. "
+            "Default None is treated as 'federal'. "
             "Backward compat: existing Firestore docs without field deserialize to None."
         ),
     )

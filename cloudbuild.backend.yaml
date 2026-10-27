@@ -9,11 +9,20 @@
 #   develop: _SERVICE=wahl-chat-backend-dev
 #   main:    _SERVICE=wahl-chat-backend
 steps:
+  # Build context is the repo root.
+  # The lockfile and the workspace members are outside ai-backend/.
+  # This image installs the chat service and wahlchat-common.
+  # It does not install the ingestion package.
+  # The Cloud Build docker builder leaves BuildKit off. Both Dockerfiles use
+  # RUN --mount for the uv cache, which that builder rejects without it.
   - id: build
     name: gcr.io/cloud-builders/docker
-    dir: ai-backend
+    env:
+      - DOCKER_BUILDKIT=1
     args:
       - build
+      - --file
+      - ai-backend/Dockerfile
       - --tag
       - gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-app:${COMMIT_SHA}
       - .
@@ -23,6 +32,26 @@ steps:
     args:
       - push
       - gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-app:${COMMIT_SHA}
+
+  # The jobs run their own image (no fastapi, no chat-service code), built from
+  # the repo root like the backend because the workspace lockfile lives there.
+  - id: build-ingestion
+    name: gcr.io/cloud-builders/docker
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - --file
+      - ingestion/Dockerfile
+      - --tag
+      - gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-ingestion:${COMMIT_SHA}
+      - .
+
+  - id: push-ingestion
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-ingestion:${COMMIT_SHA}
 
   - id: deploy-smoke-promote
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -48,11 +77,6 @@ steps:
         traffic = json.load(sys.stdin)["status"]["traffic"]
         print(next(item["url"] for item in traffic if item.get("tag") == "candidate"))
         ' < /workspace/service.json)"
-        candidate_revision="$$(python3 -c '
-        import json, sys
-        traffic = json.load(sys.stdin)["status"]["traffic"]
-        print(next(item["revisionName"] for item in traffic if item.get("tag") == "candidate"))
-        ' < /workspace/service.json)"
 
         curl --fail --silent --show-error \
           --retry 12 --retry-delay 2 --retry-all-errors \
@@ -75,12 +99,39 @@ steps:
           exit 1
         }
 
+        # Back to latest-revision mode. Pinning 100% to this revision by
+        # name would leave every later revision, including ones Terraform
+        # creates for config changes, serving nothing.
         gcloud run services update-traffic "${_SERVICE}" \
           --project="${PROJECT_ID}" \
           --region="${_REGION}" \
-          --to-revisions="$${candidate_revision}=100" \
+          --to-latest \
           --remove-tags=candidate \
           --quiet
+
+  # Ingestion jobs run the ingestion image (a job sets CONNECTOR_ID; the
+  # entrypoint dispatches). Terraform owns the job specs but ignores the image;
+  # this step is the image authority for jobs, exactly as deploy-smoke-promote
+  # is for the service.
+  - id: update-ingestion-job-images
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        jobs="$$(gcloud run jobs list \
+          --project="${PROJECT_ID}" \
+          --region="${_REGION}" \
+          --filter="metadata.name~^ingest-" \
+          --format="value(metadata.name)")"
+        [ -z "$${jobs}" ] && { echo "No ingest-* jobs yet — skipping."; exit 0; }
+        for job in $${jobs}; do
+          gcloud run jobs update "$${job}" \
+            --project="${PROJECT_ID}" \
+            --region="${_REGION}" \
+            --image="gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-ingestion:${COMMIT_SHA}" \
+            --quiet
+        done
 
 substitutions:
   _REGION: europe-west1

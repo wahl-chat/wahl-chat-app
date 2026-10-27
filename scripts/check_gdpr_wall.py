@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Static GDPR Art. 9 wall guard.
 
-Asserts that no file under ai-backend/src/ingestion/ references a `users/`
-Firestore path in live code (ingestion/ is the only in-scope tree). Political
+Asserts that no file under ingestion/src/ references a `users/` Firestore path
+in live code (the ingestion package is the only in-scope tree). Political
 opinion data must never be read by corpus/ingestion code.
 
 The scan walks the AST, so comments and docstrings that mention `users/` as
@@ -15,7 +15,7 @@ Run from the repo root:
 
     python scripts/check_gdpr_wall.py
     # or via uv:
-    uv run --project ai-backend python scripts/check_gdpr_wall.py
+    uv run python scripts/check_gdpr_wall.py
 """
 
 import ast
@@ -37,8 +37,10 @@ FALLBACK_PATTERN = re.compile(
 # Paths are relative to the repo root so the script runs identically from CI
 # and locally regardless of cwd — as long as cwd is the repo root.
 SCAN_GLOBS = [
-    "ai-backend/src/ingestion/**/*.py",
-    # ingestion/ is the only tree in scope for the GDPR Art. 9 wall.
+    "ingestion/src/ingestion/**/*.py",
+    # The ingestion package is the only tree in scope for the GDPR Art. 9 wall.
+    # retrieve.py lives in ai-backend/ and is a READ path over the corpus, which
+    # never touches users/ — the wall is about what corpus code may read.
 ]
 
 
@@ -129,7 +131,7 @@ def main() -> int:
     if not scanned:
         print(
             "FAIL: SCAN_GLOBS matched zero files — glob may be misconfigured "
-            f"(patterns: {SCAN_GLOBS}). Check that ai-backend/src/ingestion/ exists "
+            f"(patterns: {SCAN_GLOBS}). Check that ingestion/src/ingestion/ exists "
             "and the pattern is correct.",
             file=sys.stderr,
         )

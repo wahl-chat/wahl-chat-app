@@ -132,7 +132,6 @@ async def test_single_party_with_citations_non_empty_history(patch_chat_io, app)
 @pytest.mark.asyncio
 async def test_multi_party_responses_non_empty_history(patch_chat_io, app, monkeypatch):
     from src.models.context import ContextParty
-
     from tests.conftest import _FAKE_PARTY
 
     cdu = dict(_FAKE_PARTY, party_id="cdu", name="CDU", long_name="CDU Deutschlands")
@@ -143,8 +142,12 @@ async def test_multi_party_responses_non_empty_history(patch_chat_io, app, monke
     async def _two_targets(*args: Any, **kwargs: Any):
         return (["spd", "cdu"], "Was ist eure Position zum Klimaschutz?", False)
 
-    monkeypatch.setattr("src.chat_service.aget_parties_for_context", _two_parties)
-    monkeypatch.setattr("src.chat_service.get_question_targets_and_type", _two_targets)
+    monkeypatch.setattr(
+        "src.services.chat.service.aget_parties_for_context", _two_parties
+    )
+    monkeypatch.setattr(
+        "src.services.chat.service.get_question_targets_and_type", _two_targets
+    )
 
     events = await _drain(
         app,
@@ -167,9 +170,8 @@ async def test_multi_party_responses_non_empty_history(patch_chat_io, app, monke
 @pytest.mark.asyncio
 async def test_pro_con_after_multi_party_turn(patch_chat_io, app, monkeypatch):
     from src.models.chat import Message
-    from tests.conftest import _FAKE_PARTY
-
     from src.models.context import ContextParty
+    from tests.conftest import _FAKE_PARTY
 
     async def _party(context_id: str, party_id: str) -> ContextParty:
         return ContextParty(**_FAKE_PARTY)
@@ -221,9 +223,11 @@ async def test_comparison_response(patch_chat_io, app, monkeypatch):
     async def _comparison_targets(*args: Any, **kwargs: Any):
         return (["spd", "cdu"], "Vergleiche die Klimapositionen von SPD und CDU.", True)
 
-    monkeypatch.setattr("src.chat_service.aget_parties_for_context", _two_parties)
     monkeypatch.setattr(
-        "src.chat_service.get_question_targets_and_type", _comparison_targets
+        "src.services.chat.service.aget_parties_for_context", _two_parties
+    )
+    monkeypatch.setattr(
+        "src.services.chat.service.get_question_targets_and_type", _comparison_targets
     )
 
     events = await _drain(
