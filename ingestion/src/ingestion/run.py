@@ -782,6 +782,16 @@ if __name__ == "__main__":
     # (which must run before configuration imports freeze env-derived
     # constants; Cloud Run has no .env, so its job-spec env passes through).
 
+    # Connectors report progress through logging; without a handler, Python drops INFO.
+    import logging
+
+    logging.basicConfig(
+        level=logging.INFO, format="%(levelname)s %(name)s: %(message)s"
+    )
+    # HTTP clients log request URLs at INFO, and the DIP key travels in the query string.
+    for _noisy in ("httpx", "httpcore", "urllib3", "requests"):
+        logging.getLogger(_noisy).setLevel(logging.WARNING)
+
     # -----------------------------------------------------------------------
     # Parse connector_id from CONNECTOR_ID env or --connector arg.
     # -----------------------------------------------------------------------
