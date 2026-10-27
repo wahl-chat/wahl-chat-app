@@ -23,6 +23,7 @@ import type {
   DailyDigest,
   DigestParliamentId,
   FeedPage,
+  ParliamentFeed,
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { useLocale, useTranslations } from 'next-intl';
@@ -46,6 +47,8 @@ type Props = {
   initialStates: StateSelection | undefined;
   initialTopics: string[];
   initialItem: string | undefined;
+  /** The day of a shared item, which may be older than the first slice. */
+  linkedDay?: ParliamentFeed | null;
 };
 
 type View = {
@@ -144,6 +147,7 @@ function DailyFeed({
   initialStates,
   initialTopics,
   initialItem,
+  linkedDay,
 }: Props) {
   const [states, setStates] = useState<StateSelection>(
     initialStates ?? DEFAULT_SELECTION,
@@ -207,9 +211,19 @@ function DailyFeed({
   };
 
   const allDigests = useMemo(() => lists.flat(), [lists]);
-  const openItem = openKey ? (findItem(allDigests, openKey) ?? null) : null;
+  // Only for opening a shared item the loaded slices do not reach; the feed
+  // itself never shows it out of order.
+  const linkedDigests = useMemo(
+    () => (linkedDay ? feedToDigests(linkedDay, locale) : []),
+    [linkedDay, locale],
+  );
+  const openItem = openKey
+    ? (findItem(allDigests, openKey) ??
+      findItem(linkedDigests, openKey) ??
+      null)
+    : null;
   // An old link may name the item by a legacy key; heat is keyed by its id.
-  const openHeat = days
+  const openHeat = [...days, ...rankFeed(buildFeed([linkedDigests], null), [])]
     .map((d) => (openItem ? d.heat.get(openItem.key) : undefined))
     .find((h) => h !== undefined);
 
