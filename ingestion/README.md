@@ -109,7 +109,9 @@ FIRESTORE_EMULATOR_HOST=localhost:8081 make build-feed
 ```
 
 Unchanged days are skipped without LLM calls, so reruns are cheap. Writing to a
-deployed dev Firestore needs `--allow-remote`. The design notes are in the
+deployed dev Firestore needs `--allow-remote`. A new environment gets its first
+8 weeks once with `make backfill-feed TARGET=<dev|prod>` (`ARGS="--plan"`
+first); the weekly `ingest-feed` job keeps the latest two weeks current. The design notes are in the
 repo's `AGENTS.md` ("The parliament feed").
 
 ## Tests

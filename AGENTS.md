@@ -546,9 +546,25 @@ anew) and social posts (rendered from an item's headline and facts).
   skipped without LLM calls, so the extra runs cost nothing. `make
   migrate-feed` moves stored `daily_digests` to the item shape without
   regenerating German.
-- **Cutover order.** The web reads `feed_*` only; run `migrate-feed` against
-  a deployment before its web build switches over. `daily_digests` stays
-  readable until no deployed web reads it.
+- **What the page loads.** The first visit gets each parliament's latest 14
+  days (anchored on its newest edition, so recesses never show an empty
+  feed); "Ältere Tage anzeigen" loads the 14 days before the oldest shown, per
+  parliament, through the `getOlderParliamentFeed` server action. Every item
+  travels in both languages, so the first load stays small on purpose.
+- **Deploying to an environment** (dev, then prod), before the merge that
+  ships the feed's web there:
+  1. `cd firebase && firebase deploy --only firestore:rules,firestore:indexes
+     --project <dev|prod>` (the web's feed queries need the two `feed_*`
+     indexes).
+  2. `make backfill-feed TARGET=<dev|prod> ARGS="--plan"` with that
+     environment's `QDRANT_URL` / `QDRANT_API_KEY` exported: lists per week
+     which sitting days the corpus has and which are missing, no LLM calls.
+  3. The same without `--plan` builds the last 8 weeks (prod asks for the
+     project id). It is resumable: rerun until it reports nothing to build.
+  4. After the merge, `terraform apply` creates `ingest-feed`; prod starts
+     paused, so unpause it after one verified `gcloud run jobs execute`.
+  `daily_digests` is never read by this web; `migrate-feed` only matters for
+  a deployment that still has it.
 
 ### Seeding dev/prod
 
