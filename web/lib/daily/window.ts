@@ -14,3 +14,13 @@ export function pageStart(
 ): string {
   return shiftDay(anchor, -(windowDays - 1));
 }
+
+// Item keys, new (`bundestag_2026-07-10_v123`) and legacy
+// (`bundestag_2026-07-10~s0`), all start with their edition's id.
+const EDITION_OF_KEY =
+  /^((?:bundestag|landtag_st|landtag_bw)_\d{4}-\d{2}-\d{2})(?:[_~]|$)/;
+
+/** The edition (sitting day) an item key belongs to, or null. */
+export function editionIdOf(itemKey: string): string | null {
+  return EDITION_OF_KEY.exec(itemKey)?.[1] ?? null;
+}

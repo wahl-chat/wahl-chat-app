@@ -9,7 +9,7 @@ import {
   contextTag,
 } from '@/lib/cache-tags';
 import { GROUP_PARTY_ID, WAHL_CHAT_PARTY_ID } from '@/lib/constants';
-import { pageStart } from '@/lib/daily/window';
+import { editionIdOf, pageStart } from '@/lib/daily/window';
 import type { PartyDetails } from '@/lib/party-details';
 import type {
   GroupedMessage,
@@ -54,6 +54,7 @@ import type {
   FeedPage,
   FirebaseWahlSwiperResult,
   LlmSystemStatus,
+  ParliamentFeed,
   ProposedQuestion,
   SourceDocument,
 } from './firebase.types';
@@ -836,6 +837,47 @@ export async function getParliamentFeed(
       )(parliament, null),
     EMPTY_PAGE,
     `FAILED to fetch the feed for "${parliament}"`,
+  );
+}
+
+async function getFeedDayImpl(editionId: string): Promise<ParliamentFeed> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const edition = await getDoc(doc(serverDb, 'feed_editions', editionId));
+  if (!edition.exists()) {
+    throw new UncacheableEmptyError();
+  }
+  const data = edition.data() as FeedEdition;
+  const items = await getDocs(
+    query(
+      collection(serverDb, 'feed_items'),
+      where('parliament', '==', data.parliament),
+      where('date', '==', data.date),
+    ),
+  );
+  return {
+    editions: [data],
+    items: items.docs.map((d) => d.data() as FeedItem),
+  };
+}
+
+/** The sitting day of a shared item, so a link to an item older than the
+ * first slice still opens it. Null when the key names no stored day. */
+export async function getLinkedFeedDay(
+  itemKey: string,
+): Promise<ParliamentFeed | null> {
+  const editionId = editionIdOf(itemKey);
+  if (!editionId) {
+    return null;
+  }
+  return uncachedFallback<ParliamentFeed | null>(
+    () =>
+      cachedRead(
+        getFeedDayImpl,
+        ['getLinkedFeedDay', 'v1', editionId],
+        [CacheTags.FEED],
+      )(editionId),
+    null,
+    `FAILED to fetch the feed day "${editionId}"`,
   );
 }
 

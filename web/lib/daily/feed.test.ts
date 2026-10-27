@@ -13,7 +13,7 @@ import {
   windowedDigests,
 } from './feed';
 import { parliamentsFor, parseStateParam } from './region';
-import { pageStart } from './window';
+import { editionIdOf, pageStart } from './window';
 
 function digest(parliament: DigestParliamentId, date: string): DailyDigest {
   return {
@@ -234,5 +234,23 @@ describe('feedLists', () => {
       [digest('landtag_st', '2026-09-08')],
     );
     expect(lists.flat().map((d) => d.parliament)).not.toContain('landtag_st');
+  });
+});
+
+describe('editionIdOf', () => {
+  it('finds the sitting day of new and legacy item keys', () => {
+    expect(editionIdOf('bundestag_2026-07-10_v6421')).toBe(
+      'bundestag_2026-07-10',
+    );
+    expect(editionIdOf('landtag_st_2026-06-18_d3f9a1c2')).toBe(
+      'landtag_st_2026-06-18',
+    );
+    expect(editionIdOf('bundestag_2026-07-10~s0')).toBe('bundestag_2026-07-10');
+  });
+
+  it('rejects keys that name no edition', () => {
+    expect(editionIdOf('bundestag_2026-07-1')).toBeNull();
+    expect(editionIdOf('../feed_items/x')).toBeNull();
+    expect(editionIdOf('landtag_by_2026-07-10_v1')).toBeNull();
   });
 });

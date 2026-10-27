@@ -2,7 +2,10 @@ import DailyFeed from '@/components/daily/daily-feed';
 import { getLocalPreviewDigests } from '@/lib/daily/local-preview';
 import { parseStateParam } from '@/lib/daily/region';
 import { parseTopicsParam } from '@/lib/daily/topics';
-import { getParliamentFeed } from '@/lib/firebase/firebase-server';
+import {
+  getLinkedFeedDay,
+  getParliamentFeed,
+} from '@/lib/firebase/firebase-server';
 import { BASE_URL, productionRobots } from '@/lib/seo';
 import type { Metadata } from 'next';
 
@@ -36,12 +39,15 @@ async function HomePage({ searchParams }: Props) {
   const params = await searchParams;
 
   // All three parliaments are small, so switching the state stays client-side.
-  const [bundestag, landtagSt, landtagBw, previewDigests] = await Promise.all([
-    getParliamentFeed('bundestag'),
-    getParliamentFeed('landtag_st'),
-    getParliamentFeed('landtag_bw'),
-    getLocalPreviewDigests(),
-  ]);
+  const item = typeof params.item === 'string' ? params.item : undefined;
+  const [bundestag, landtagSt, landtagBw, previewDigests, linkedDay] =
+    await Promise.all([
+      getParliamentFeed('bundestag'),
+      getParliamentFeed('landtag_st'),
+      getParliamentFeed('landtag_bw'),
+      getLocalPreviewDigests(),
+      item ? getLinkedFeedDay(item) : null,
+    ]);
 
   return (
     <DailyFeed
@@ -53,7 +59,8 @@ async function HomePage({ searchParams }: Props) {
       previewDigests={previewDigests}
       initialStates={parseStateParam(params.land)}
       initialTopics={parseTopicsParam(params.themen)}
-      initialItem={typeof params.item === 'string' ? params.item : undefined}
+      initialItem={item}
+      linkedDay={linkedDay}
     />
   );
 }
