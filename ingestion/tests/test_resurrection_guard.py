@@ -304,6 +304,7 @@ def test_normalize_returns_empty_when_all_speeches_op_superseded() -> None:
     assert len(conn.last_superseded_siids) == 1, (
         "the skipped siid must be reported for the stranded-twin cleanup"
     )
+    assert conn.last_fully_op_covered is True
 
 
 def test_is_op_superseded_precise_rejects_distinct_same_key_speech() -> None:

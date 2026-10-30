@@ -120,13 +120,17 @@ def _require_dip_key() -> str:
 
 
 # Recent-update sweep window for protocols whose points carry no checked
-# revision yet, and for settling op-covered protocols. DIP publishes corrections
-# shortly after a sitting; 30 days is well beyond the observed correction latency.
+# revision yet. DIP publishes corrections shortly after a sitting; 30 days is
+# well beyond the observed correction latency.
 _UPDATE_SWEEP_DAYS = 30
 
 # Payload key holding the DIP ``aktualisiert`` a protocol's points were last
 # checked against; a protocol is re-fetched only when DIP's value differs.
 _CHECKED_REVISION_KEY = "dip_aktualisiert"
+
+# Payload object on op points mapping protocol id → DIP ``aktualisiert`` checked
+# when op covered every speech, so no DIP point exists to carry the revision.
+_OP_CHECKED_KEY = "dip_checked"
 
 
 # A DIP speech is treated as op-superseded only when an op speech under the SAME
@@ -415,6 +419,8 @@ class BundestagSpeechesConnector(BaseConnector):
         # item. run_connector deletes any stored points under them (a stranded
         # DIP twin from an interleaved concurrent DIP+op run).
         self.last_superseded_siids: tuple[str, ...] = ()
+        # True when the LAST normalize() found every speech op-superseded.
+        self.last_fully_op_covered: bool = False
 
     def _get_qdrant(self) -> Optional[Any]:
         """Return the QdrantClient for the resurrection guard, lazily constructed.
@@ -528,12 +534,13 @@ class BundestagSpeechesConnector(BaseConnector):
             return {}
         return ingested
 
-    def _get_op_covered_dates(self, dates: set[int]) -> set[int]:
-        """Return the sitting dates (YYYYMMDD) for which op holds speeches.
+    def _get_op_checked_revisions(self, dates: set[int]) -> dict[int, dict[str, str]]:
+        """Map each sitting date (YYYYMMDD) op holds speeches for to the
+        ``dip_checked`` object on its op points (protocol id → revision).
 
-        DIP and op stamp external_id with the same sitting date, so one
-        existence check per date tells whether op covers that protocol.
-        Store unreachable → empty set (nothing counts as covered).
+        post_item() stamps every op point of the date alike, so one point is
+        read per date; a point an op re-ingest rewrote reads as unchecked.
+        Store unreachable → empty dict (every protocol is re-checked).
         """
         from qdrant_client import models  # noqa: PLC0415
 
@@ -543,9 +550,9 @@ class BundestagSpeechesConnector(BaseConnector):
             else (self._get_qdrant())
         )
         if qdrant is None or not dates:
-            return set()
+            return {}
         collection_name = self._store_collection or self._collection_name
-        covered: set[int] = set()
+        checked: dict[int, dict[str, str]] = {}
         try:
             for day in sorted(dates):
                 points, _ = qdrant.scroll(
@@ -565,19 +572,19 @@ class BundestagSpeechesConnector(BaseConnector):
                         ]
                     ),
                     limit=1,
-                    with_payload=False,
+                    with_payload=[_OP_CHECKED_KEY],
                     with_vectors=False,
                 )
                 if points:
-                    covered.add(day)
+                    checked[day] = (points[0].payload or {}).get(_OP_CHECKED_KEY) or {}
         except Exception as exc:  # noqa: BLE001 — store unreachable → re-check all
             logger.warning(
                 "set-difference discovery: op coverage lookup failed (%s) — "
                 "re-checking every protocol without DIP chunks",
                 exc,
             )
-            return set()
-        return covered
+            return {}
+        return checked
 
     def discover(self, since: Optional[int]) -> list[str]:
         """Return protocol ids to process for the configured Wahlperiode.
@@ -596,11 +603,11 @@ class BundestagSpeechesConnector(BaseConnector):
              the runner's content_hash guard rewrites only real changes.
              Protocols without a stored revision fall back to the
              _UPDATE_SWEEP_DAYS window.
-          4. Settled op coverage: drop a protocol without DIP chunks when op
-             holds its sitting and DIP has not changed it within
-             _UPDATE_SWEEP_DAYS. The resurrection guard skips every DIP speech
-             op covers, so such a protocol never gets DIP chunks and would
-             otherwise be re-fetched as a no-op on every run.
+          4. Op coverage: drop a protocol without DIP chunks when its sitting's
+             op points record DIP's current ``aktualisiert`` for it. The
+             resurrection guard skips every DIP speech op covers, so such a
+             protocol never gets DIP chunks and would otherwise be re-fetched
+             as a no-op on every run.
 
         Never-ingested protocols come first, then the sweep, each ascending by
         (datum, id) — DIP returns DESC — so new sittings are reached before the
@@ -648,24 +655,26 @@ class BundestagSpeechesConnector(BaseConnector):
                 return _recently_changed(doc)
             return str(revision) != checked
 
-        missing = [d for d in docs if str(d.get("id") or "") not in ingested]
-        settled_dates = {
+        missing_dates = {
             day
-            for d in missing
-            if not _recently_changed(d)
+            for d in docs
+            if str(d.get("id") or "") not in ingested
+            and d.get("aktualisiert")
             and (day := _datum_to_external_id(d.get("datum"))) is not None
         }
-        op_covered = self._get_op_covered_dates(settled_dates)
+        op_checked = self._get_op_checked_revisions(missing_dates)
 
         new_docs: list[dict] = []
         sweep_docs: list[dict] = []
         for doc in docs:
             doc_id = str(doc.get("id") or "")
             if doc_id not in ingested:
-                if _datum_to_external_id(
-                    doc.get("datum")
-                ) in op_covered and not _recently_changed(doc):
-                    continue  # settled op coverage → nothing for DIP to add
+                day = _datum_to_external_id(doc.get("datum"))
+                checked = op_checked.get(day, {}) if day is not None else {}
+                if doc.get("aktualisiert") and checked.get(doc_id) == str(
+                    doc["aktualisiert"]
+                ):
+                    continue  # op covers it at this revision → nothing for DIP to add
                 new_docs.append(doc)  # new or previously failed → ingest
             elif _needs_recheck(doc, ingested[doc_id]):
                 sweep_docs.append(doc)
@@ -691,26 +700,58 @@ class BundestagSpeechesConnector(BaseConnector):
     def post_item(
         self, qdrant, collection_name: str, external_id: str, parent_key: str
     ) -> None:  # noqa: ANN001
-        """Stamp the DIP revision just checked onto the protocol's points, so
+        """Stamp the DIP revision just checked onto the protocol's points — or,
+        when op covered every speech, onto the sitting's op points — so
         discover() skips it until DIP changes it again."""
         from qdrant_client import models  # noqa: PLC0415
 
-        revision = (self._protocols.get(external_id) or {}).get("aktualisiert")
+        protocol = self._protocols.get(external_id) or {}
+        revision = protocol.get("aktualisiert")
         if not revision:
             return
-        qdrant.set_payload(
-            collection_name=collection_name,
-            payload={_CHECKED_REVISION_KEY: str(revision)},
-            points=models.Filter(
-                must=[
-                    models.FieldCondition(
-                        key="source_parent_key",
-                        match=models.MatchValue(value=parent_key),
-                    )
-                ]
-            ),
-            wait=True,
-        )
+        try:
+            if getattr(self, "last_fully_op_covered", False):
+                day = _datum_to_external_id(protocol.get("datum"))
+                if day is None:
+                    return
+                qdrant.set_payload(
+                    collection_name=collection_name,
+                    payload={external_id: str(revision)},
+                    key=_OP_CHECKED_KEY,
+                    points=models.Filter(
+                        must=[
+                            models.FieldCondition(
+                                key="source_type",
+                                match=models.MatchValue(value=self.source_type),
+                            ),
+                            models.FieldCondition(
+                                key="source", match=models.MatchValue(value="op")
+                            ),
+                            models.FieldCondition(
+                                key="external_id", match=models.MatchValue(value=day)
+                            ),
+                        ]
+                    ),
+                    wait=True,
+                )
+                return
+            qdrant.set_payload(
+                collection_name=collection_name,
+                payload={_CHECKED_REVISION_KEY: str(revision)},
+                points=models.Filter(
+                    must=[
+                        models.FieldCondition(
+                            key="source_parent_key",
+                            match=models.MatchValue(value=parent_key),
+                        )
+                    ]
+                ),
+                wait=True,
+            )
+        except Exception as exc:  # noqa: BLE001 — unstamped → discover re-checks it
+            logger.warning(
+                "protocol %s: stamping checked revision failed (%s)", external_id, exc
+            )
 
     # ------------------------------------------------------------------
     # 2. fetch — read from cache; return skip_reason dict on failure (never raises)
@@ -861,6 +902,7 @@ class BundestagSpeechesConnector(BaseConnector):
             records.extend(corpus_mapper.build_chunk_records(row))
         # Per-item report (reset every normalize call; () when nothing skipped).
         self.last_superseded_siids = tuple(superseded_siids)
+        self.last_fully_op_covered = not records and bool(superseded_siids)
 
         # Skip-and-warn: zero usable speeches → ValueError. EXCEPTION: when
         # ≥1 speech was skipped as op-superseded and none remain, the protocol is
