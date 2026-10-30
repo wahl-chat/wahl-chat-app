@@ -42,7 +42,13 @@ from ingestion.connectors.bundestag_speeches.client import DipClient
 from .drucksachen import document, number_from_url
 from .report import selection_report
 from .selection import PICKS, SPARES
-from .votes import drucksache_urls, intro_text, tally_parties, vote_problems
+from .votes import (
+    drucksache_urls,
+    intro_text,
+    outcome_problem,
+    tally_parties,
+    vote_problems,
+)
 
 INGESTION = Path(__file__).resolve().parents[2]
 REPO = INGESTION.parent
@@ -169,6 +175,9 @@ def committed_differences(draft: dict, committed: dict) -> list[str]:
 
 def draft_puzzle(poll: dict, why: str, dip: dict | None, committed: dict | None):
     notes = vote_problems(poll["parties"], poll["unaffiliated"])
+    outcome = outcome_problem(poll["parties"], poll["accepted"])
+    if outcome:
+        notes.append(outcome)
     numbers = [n for n in map(number_from_url, poll["drucksachen"]) if n]
     draft: dict = {
         "id": committed["id"] if committed else slugify(poll["title"]),

@@ -12,7 +12,12 @@ from stimmts.drucksachen import (  # noqa: E402
     submitter,
 )
 from stimmts.export import slugify  # noqa: E402
-from stimmts.votes import pattern, tally_parties, vote_problems  # noqa: E402
+from stimmts.votes import (  # noqa: E402
+    outcome_problem,
+    pattern,
+    tally_parties,
+    vote_problems,
+)
 
 FRACTIONS = {
     "linke": {"id": 1, "label": "Die Linke (Bundestag 2025 - 2029)"},
@@ -69,6 +74,11 @@ class TestTallyParties:
     def test_finds_the_greens_despite_the_soft_hyphen(self):
         parties, _ = tally_parties(votes(gruene={"yes": 3}))
         assert parties[2]["yes"] == 3
+
+    def test_flags_an_outcome_the_counts_contradict(self):
+        parties, _ = tally_parties(votes(linke={"yes": 3}, cdu={"no": 9}))
+        assert outcome_problem(parties, accepted=False) is None
+        assert "check the outcome" in outcome_problem(parties, accepted=True)
 
     def test_flags_a_split_party_and_a_short_chamber(self):
         parties, unaffiliated = tally_parties(votes(spd={"yes": 6, "no": 4}))

@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from collections import Counter
 
-from .votes import MIN_PARTY_UNITY, pattern
+from .votes import MIN_PARTY_UNITY, outcome_problem, pattern
 
 # A title that reads as a negation or a committee decision: "Ja" then means
 # rejecting something, which needs a careful "Ja bedeutet …" line.
@@ -22,7 +22,11 @@ def _topic(poll: dict) -> str:
 
 
 def _outcome(poll: dict) -> str:
-    return "angenommen" if poll["accepted"] else "abgelehnt"
+    said = "angenommen" if poll["accepted"] else "abgelehnt"
+    # Marked when Abgeordnetenwatch's outcome contradicts the counts.
+    if outcome_problem(poll["parties"], poll["accepted"]):
+        return f"{said} (?)"
+    return said
 
 
 def _cell(text: str, width: int) -> str:

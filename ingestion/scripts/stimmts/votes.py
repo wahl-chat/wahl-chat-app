@@ -77,6 +77,24 @@ def vote_problems(parties: list[dict], unaffiliated: int) -> list[str]:
     return problems
 
 
+def outcome_problem(parties: list[dict], accepted: bool | None) -> str | None:
+    """Abgeordnetenwatch's outcome, when the counts contradict it.
+
+    Its `field_accepted` has been wrong before. The counts leave out the
+    members without a Fraktion, and some votes need more than a simple
+    majority, so a mismatch is a note to check, not a correction.
+    """
+    yes = sum(party["yes"] for party in parties)
+    no = sum(party["no"] for party in parties)
+    if (yes > no) == bool(accepted):
+        return None
+    said = "accepted" if accepted else "rejected"
+    return (
+        f"Abgeordnetenwatch says {said}, but the Fraktionen voted {yes} Ja "
+        f"to {no} Nein: check the outcome"
+    )
+
+
 def pattern(parties: list[dict]) -> str:
     """'NJNJN': each party's answer in seating order (J = Ja, E = Enthaltung)."""
     letters = {"yes": "J", "no": "N", "abstain": "E", None: "-"}

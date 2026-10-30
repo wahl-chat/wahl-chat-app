@@ -12,7 +12,7 @@ The picks in numbers: 17 topics, 17 from 2026, 23 accepted and 7 rejected, 7 wit
 |---|---|---|---|---|---|---|---|
 | 2026-10-16 | 6733 | Änderung des Brennstoffemissionshandelsgesetzes (CO₂-Preis) | Energie | angenommen | EJNJN | selten | Climate and fuel prices; Die Linke abstains |
 | 2026-10-15 | 6730 | Verlängerung des Bundeswehreinsatzes im Roten Meer (EUNAVFOR ASPIDES) | Außenpolitik und internat… | angenommen | NJEJJ | selten, Cl.2 | Bundeswehr missions need parliament; the Greens abstain |
-| 2026-10-08 | 6724 | Dritter Gesetzentwurf: Steuerfreiheit für Kryptogewinne nach einem Jahr abschaf… | Öffentliche Finanzen, Ste… | angenommen | JNJNN | Cl.7 | Tax on crypto gains; young audience |
+| 2026-10-08 | 6724 | Dritter Gesetzentwurf: Steuerfreiheit für Kryptogewinne nach einem Jahr abschaf… | Öffentliche Finanzen, Ste… | angenommen (?) | JNJNN | Cl.7 | Tax on crypto gains; young audience |
 | 2026-09-25 | 6682 | Tankrabatt für Benzin und Diesel | Energie | angenommen | NJNJJ | Cl.2 | Headline topic; AfD votes with the coalition |
 | 2026-09-25 | 6683 | Einführung einer Übergewinnsteuer | Energie | abgelehnt | JNJNN | Cl.2 | Profits from high energy prices (keep apart from the Tankrabatt) |
 | 2026-09-25 | 6662 | Modernisierung des Bundespolizeigesetzes | Innere Sicherheit | angenommen | NJNJE | selten | Police powers; AfD abstains |
