@@ -274,8 +274,8 @@ function Result({
               className="flex flex-col items-center gap-1.5"
             >
               <PartyTile partyId={entry.partyId} size="sm" />
-              <Verdict correct={entry.correct} />
               <span className="sr-only">{partyLabel(entry.partyId)}</span>
+              <Verdict correct={entry.correct} />
             </li>
           ))}
         </ul>

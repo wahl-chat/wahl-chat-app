@@ -17,6 +17,10 @@ const TIER_CLASSES: Record<ScoreTier, string> = {
   top: 'fill-tally-top',
 };
 
+// What a tap may land on around a seat: about 30 px across on a 300 px wide
+// chamber, short of the next row, which starts 0.225 away.
+const HIT_RADIUS = 0.11;
+
 const LOGO_CLASSES: Record<MarkTone, string> = {
   no: 'fill-seat-no',
   abstain: 'fill-seat-abstain',
@@ -86,22 +90,11 @@ function PeriodChamber({
         const label = seatLabel(seat);
 
         return (
-          <circle
+          <g
             key={key}
-            {...at}
-            strokeWidth={seat.kind === 'played' ? 0.03 : 0.02}
             className={cn(
-              'outline-none',
-              seat.kind === 'played' &&
-                (complete ? LOGO_CLASSES[seat.tone] : TIER_CLASSES[seat.tier]),
-              seat.kind === 'missed' &&
-                'fill-transparent stroke-seat-absent-ring [stroke-dasharray:0.03_0.025]',
-              (seat.kind === 'today' || seat.kind === 'future') &&
-                'fill-transparent stroke-seat-pending',
-              seat.kind === 'played' &&
-                (isToday ? 'stroke-brand-red' : 'stroke-transparent'),
-              openable &&
-                'cursor-pointer hover:opacity-80 focus-visible:stroke-ring',
+              'group/seat outline-none',
+              openable && 'cursor-pointer',
             )}
             {...(openable
               ? {
@@ -114,7 +107,28 @@ function PeriodChamber({
               : {})}
           >
             <title>{label}</title>
-          </circle>
+            {openable && (
+              <circle {...at} r={HIT_RADIUS} className="fill-transparent" />
+            )}
+            <circle
+              {...at}
+              strokeWidth={seat.kind === 'played' ? 0.03 : 0.02}
+              className={cn(
+                seat.kind === 'played' &&
+                  (complete
+                    ? LOGO_CLASSES[seat.tone]
+                    : TIER_CLASSES[seat.tier]),
+                seat.kind === 'missed' &&
+                  'fill-transparent stroke-seat-absent-ring [stroke-dasharray:0.03_0.025]',
+                (seat.kind === 'today' || seat.kind === 'future') &&
+                  'fill-transparent stroke-seat-pending',
+                seat.kind === 'played' &&
+                  (isToday ? 'stroke-brand-red' : 'stroke-transparent'),
+                openable &&
+                  'group-hover/seat:opacity-80 group-focus-visible/seat:stroke-ring',
+              )}
+            />
+          </g>
         );
       })}
     </svg>

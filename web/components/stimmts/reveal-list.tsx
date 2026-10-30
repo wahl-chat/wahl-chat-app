@@ -62,14 +62,13 @@ function RevealList({ puzzle, guesses, revealed, open, onSelect }: Props) {
               type="button"
               onClick={() => onSelect(entry.partyId)}
               aria-label={label}
-              {...(shown
-                ? { 'aria-expanded': isOpen, 'aria-controls': panelId }
-                : {})}
+              {...(shown && { 'aria-expanded': isOpen })}
+              {...(isOpen && { 'aria-controls': panelId })}
               className={cn(
                 'grid min-h-14 w-full items-center gap-3 px-1 py-2 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                 played
-                  ? 'grid-cols-[auto_1fr_16px_1fr_24px_16px]'
-                  : 'grid-cols-[auto_1fr_16px]',
+                  ? 'grid-cols-[auto_minmax(0,1fr)_16px_minmax(0,1fr)_24px_16px]'
+                  : 'grid-cols-[auto_minmax(0,1fr)_16px]',
               )}
             >
               <PartyTile partyId={entry.partyId} size="sm" />
@@ -152,7 +151,16 @@ function VoteMark({
   return (
     <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium">
       <VoteDot kind={vote} ring={tip} />
-      {ANSWER_LABELS[vote]}
+      {vote === 'abstain' ? (
+        // "Enthaltung" needs about 85 px, which its column only has on
+        // screens from about 370 px wide. The row's label reads it in full.
+        <>
+          <span className="max-[369px]:hidden">{ANSWER_LABELS.abstain}</span>
+          <span className="min-[370px]:hidden">Enth.</span>
+        </>
+      ) : (
+        ANSWER_LABELS[vote]
+      )}
     </span>
   );
 }

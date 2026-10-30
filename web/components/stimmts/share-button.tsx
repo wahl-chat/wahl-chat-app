@@ -22,7 +22,9 @@ type Props = {
  */
 function ShareButton({ text, image: shareImage }: Props) {
   const [outcome, setOutcome] = useState<ShareOutcome | null>(null);
-  const [canShare, setCanShare] = useState(false);
+  // Unknown until mounted: guessing either way would flash the wrong label
+  // (and the save link) on the other kind of device.
+  const [canShare, setCanShare] = useState<boolean | null>(null);
   const image = useRef<File | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
@@ -69,11 +71,15 @@ function ShareButton({ text, image: shareImage }: Props) {
         ) : (
           <>
             <Share aria-hidden strokeWidth={2.25} />
-            {canShare ? 'Ergebnis teilen' : 'Ergebnis kopieren'}
+            {canShare === false ? 'Ergebnis kopieren' : 'Ergebnis teilen'}
           </>
         )}
       </PillButton>
-      {!canShare && imagePath && (
+      {/* The button's new label alone is not announced. */}
+      <p role="status" className="sr-only">
+        {outcome === 'copied' ? 'Ergebnis kopiert' : ''}
+      </p>
+      {canShare === false && imagePath && (
         <a
           href={imagePath}
           download={imageName}

@@ -101,6 +101,23 @@ function PuzzleGame({
       ? 'answering'
       : 'briefing';
 
+  // Every screen but the briefing (whose Stimmkarte is the heading) opens on
+  // a heading for screen readers, and the focus moves to it when the screen
+  // changes; otherwise it would stay on a button that is gone.
+  const screenHeading = useRef<HTMLHeadingElement>(null);
+  const lastPhase = useRef(phase);
+  useEffect(() => {
+    if (phase !== lastPhase.current) {
+      lastPhase.current = phase;
+      screenHeading.current?.focus({ preventScroll: true });
+    }
+  }, [phase]);
+  const heading = (text: string) => (
+    <h1 ref={screenHeading} tabIndex={-1} className="sr-only">
+      Stimmt’s? Nr. {number}: {text}
+    </h1>
+  );
+
   const goTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
   }, [reduceMotion]);
@@ -150,6 +167,7 @@ function PuzzleGame({
   if (phase === 'result') {
     return (
       <div className="py-6">
+        {heading('Dein Ergebnis')}
         <Result
           number={number}
           playDate={today}
@@ -174,6 +192,13 @@ function PuzzleGame({
 
   return (
     <div className="flex flex-col gap-4 py-6">
+      {heading(
+        phase === 'answering'
+          ? 'Tipps abgeben'
+          : votesOnly
+            ? 'So wurde abgestimmt'
+            : 'Auflösung',
+      )}
       <Hemicycle
         parties={puzzle.parties}
         unaffiliated={puzzle.unaffiliated}

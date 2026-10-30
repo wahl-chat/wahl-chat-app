@@ -23,7 +23,7 @@ import { partyLabel } from '@/lib/stimmts/labels';
 import { partyFillClass, partyLogo } from '@/lib/stimmts/parties';
 import type { PartyResult } from '@/lib/stimmts/types';
 import { cn } from '@/lib/utils';
-import { type KeyboardEvent, useMemo } from 'react';
+import { useMemo } from 'react';
 
 /** How long one wedge takes to turn over, seat by seat from its left edge. */
 const FLIP_SPREAD_MS = 650;
@@ -150,7 +150,11 @@ type MarkerProps = {
   onClick?: (partyId: string) => void;
 };
 
-/** A party's band and logo tile; a button when the party can be revealed. */
+/**
+ * A party's band and logo tile, tappable when the party can be revealed.
+ * Pointer only: to a screen reader the chamber is one image, and the list
+ * under it ("Deine Tipps") offers the same action as real buttons.
+ */
 function PartyMarker({ band, state, onClick }: MarkerProps) {
   const { partyId } = band;
   const tappable =
@@ -166,33 +170,18 @@ function PartyMarker({ band, state, onClick }: MarkerProps) {
       onClick?.(partyId);
     }
   };
-  const onKeyDown = (event: KeyboardEvent) => {
-    if (tappable && (event.key === 'Enter' || event.key === ' ')) {
-      event.preventDefault();
-      activate();
-    }
-  };
 
   return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: a pointer shortcut; the list under the chamber is the keyboard path.
+    // biome-ignore lint/nursery/noStaticElementInteractions: as above.
     <g
       data-active={active}
       className={cn(
-        'group outline-none transition-opacity duration-200 motion-reduce:transition-none',
+        'group transition-opacity duration-200 motion-reduce:transition-none',
         dim && 'opacity-40',
         tappable && 'cursor-pointer',
       )}
-      {...(tappable
-        ? {
-            role: 'button',
-            tabIndex: 0,
-            'aria-label':
-              state.mode === 'revealed'
-                ? `${partyLabel(partyId)}: Stimmen anzeigen`
-                : `${partyLabel(partyId)} aufdecken`,
-            onClick: activate,
-            onKeyDown,
-          }
-        : {})}
+      onClick={tappable ? activate : undefined}
     >
       <title>{partyLabel(partyId)}</title>
       {/* A generous invisible area, so the whole wedge edge can be tapped. */}
@@ -224,7 +213,7 @@ function PartyMarker({ band, state, onClick }: MarkerProps) {
         height={fixed(TILE_HEIGHT + 0.04)}
         rx={0.05}
         strokeWidth={0.012}
-        className="fill-none stroke-transparent group-focus-visible:stroke-ring group-data-[active=true]:stroke-foreground"
+        className="fill-none stroke-transparent group-data-[active=true]:stroke-foreground"
       />
       <rect
         x={fixed(x)}

@@ -16,7 +16,8 @@ import VoteDot from './vote-dot';
 
 // The answer buttons stay in the same place from one party to the next, so a
 // quick double tap would answer two parties at once. They wait a moment after
-// each new party appears.
+// each new party appears. They are only marked unavailable, not disabled: a
+// disabled button drops the keyboard focus, sending it back to the page top.
 const TAP_GUARD_MS = 350;
 
 type Props = {
@@ -51,6 +52,8 @@ function GuessStep({ puzzle, guesses, today }: Props) {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (
+        // A held key repeats, and would answer every party in turn.
+        event.repeat ||
         event.metaKey ||
         event.ctrlKey ||
         event.altKey ||
@@ -89,6 +92,10 @@ function GuessStep({ puzzle, guesses, today }: Props) {
           />
         ))}
       </div>
+      <p aria-live="polite" className="sr-only">
+        Partei {index + 1} von {puzzle.parties.length}:{' '}
+        {partyLabel(next.partyId)}
+      </p>
       <div className="flex items-center gap-3">
         <PartyTile partyId={next.partyId} />
         <div>
@@ -106,9 +113,13 @@ function GuessStep({ puzzle, guesses, today }: Props) {
             key={option}
             variant="outline"
             size="lg"
-            disabled={!ready}
-            onClick={() => answer(puzzle, next.partyId, option, today)}
-            className="justify-start px-4 text-base"
+            aria-disabled={!ready}
+            onClick={() => {
+              if (ready) {
+                answer(puzzle, next.partyId, option, today);
+              }
+            }}
+            className="justify-start px-4 text-base aria-disabled:cursor-default aria-disabled:opacity-50"
           >
             <VoteDot kind={option} />
             {ANSWER_LABELS[option]}
