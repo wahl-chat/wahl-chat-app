@@ -40,9 +40,15 @@ function PreviewBar({ day, puzzleId }: { day: number; puzzleId?: string }) {
     }
     window.location.reload();
   };
+  // Everything the game saves, so the intro and the rating can be tested again.
   const resetEverything = () => {
     try {
-      window.localStorage.removeItem(STORAGE_KEY);
+      const keys = Object.keys(window.localStorage).filter(
+        (key) => key === STORAGE_KEY || key.startsWith('stimmts:'),
+      );
+      for (const key of keys) {
+        window.localStorage.removeItem(key);
+      }
     } catch {
       // Nothing saved, nothing to reset.
     }
