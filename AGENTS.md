@@ -195,6 +195,7 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 | `ingestion/` | Connectors + runner. Ships its own image for the scheduled Jobs. Depends on `wahlchat-common`, never on `ai-backend`. |
 | `ingestion/src/ingestion/` | Ingestion framework: `connector.py` (base class), `run.py` (runner), `registry.py`, `schemas.py` (data contract), `setup_collection.py`, `embeddings.py`, `vertex_credentials.py`, `governance_levels.py`, `legislature_config.py`, `ids.py`, `speech_key.py`, `speech_dedup.py`. |
 | `ingestion/src/ingestion/connectors/` | Per-source connectors: `abgeordnetenwatch/`, `bundestag_speeches/`, `openparliament_tv/`, `manifestos/`, `manifesto_uploads/`. Each has `connector.py`, a `client.py`, and `mappers/` that build `ChunkRecord`s. |
+| `ingestion/src/ingestion/feed/` | The parliament feed: builds feed items from the corpus, translates and indexes them (see "The parliament feed"). |
 | `ingestion/tests/` | pytest suite for the corpus layer (runner, schema, connectors). |
 | `ingestion/data/` | Connector inputs: `manifesto_uploads/{env}.txt` manifests; MdB-Stammdaten XML (gitignored, fetched on demand). |
 | `ai-backend/src/models/` | Pydantic DTOs and domain models for the chat API. |
@@ -232,7 +233,10 @@ cp ingestion/.env.example ingestion/.env
 make stores-up
 
 # Seed scrubbed fixtures into the Firestore emulator (guarded — refuses to run
-# without FIRESTORE_EMULATOR_HOST, so it can never write to production)
+# without FIRESTORE_EMULATOR_HOST, so it can never write to production). This
+# includes three real Bundestag sitting days for the parliament feed on `/`
+# (firebase/firestore_data/emulator/feed.json, German + English, emulator
+# only), so the feed works without corpus access or LLM keys.
 FIRESTORE_EMULATOR_HOST=localhost:8081 make seed-local
 
 # Real Firebase project (ENV=dev by default). Confirm before ENV=prod.
@@ -496,6 +500,98 @@ Ingestion must tolerate the 15-minute scheduled-job cap: runs are
 batch-windowed and time-budgeted (`--batch-size`, `--time-budget`) and resume
 from the Qdrant-derived cursor on the next run.
 
+### The parliament feed
+
+The feed on `/` follows COPE (create once, publish everywhere): every debate
+and every vote becomes one **feed item**, generated, checked and translated
+once, then reused as is by every surface: the feed, later personalised
+briefings (curated from items, never written anew) and social posts (rendered
+from an item's headline and facts).
+
+- **The source defines the items.** One agenda item of a sitting with
+  speeches is one debate item; one poll is one vote item. The model writes the
+  texts of one item at a time, with the whole debate in the prompt, and never
+  decides what an item is. Ranking ("Thema des Tages") happens on the page.
+- **Speech order comes from the protocol.** The corpus has no order of its
+  own, so `feed/protocol_pages.py` reads the Bundestag's protocol XML: it puts
+  each debate's speeches in the order they were given, links them to their PDF
+  page, and drops a speech held by both sources (DIP files a joint debate
+  under the TOP, openparliament.tv under the Zusatzpunkt; the op one is kept).
+  It also titles a debate only DIP holds (DIP speeches carry just the item
+  number) from the item's call-up in the protocol.
+  A debate whose protocol cannot be read yet is not built; the next run picks
+  it up. A sitting's day is its first speech's day, so speeches after midnight
+  stay on it.
+- **Every Fraktion that spoke is listed.** `facts.parties` comes from the
+  source. Each position sentence is checked against that Fraktion's own
+  speeches by a second call (`feed/verify.py`); a Fraktion without a verified
+  sentence after one targeted retry is listed with its speeches only, and the
+  item is retried next run. Never publish an unchecked position.
+- **Stores.** Firestore `feed_items/{item_id}` is the source of truth;
+  `feed_editions/{parliament}_{YYYY-MM-DD}` lists a sitting day's items in
+  order. Qdrant `wahlchat_feed_{ENV}` only finds items (ids and filter fields,
+  no text; `search_feed()` in `ingestion/src/ingestion/feed/index.py`). It is deliberately not the
+  corpus collection: feed items span parties (the corpus is tuned for
+  per-party tenancy), and they are our own summaries, which the chat must
+  never cite as sources. Same locked vector space and fingerprint guard.
+- **Facts vs. content.** `facts` (citations, speakers, vote counts, the
+  verbatim quote) come from the source and are identical in every language.
+  `content.{locale}` holds the texts. German is generated from the German
+  protocols; English is a translation pass over the German only, current
+  while its `source_hash` and `TRANSLATION_PROMPT_VERSION` match. Adding a
+  language means a translation pass, never a regeneration. A translation that
+  loses a number, a party or a field is not published: the reader sees German.
+- **Stable ids, per-item hashes.** `{edition}_v{poll_id}` for votes,
+  `{edition}_d{session}-{agenda slug}` (e.g. `…_d90-top17`) for debates, so a
+  rebuild keeps ids and `feed_interest` rows valid. Every item stores the hash
+  of its own sources and prompt version: a late speech regenerates its own
+  debate and nothing else. An item whose source unit vanishes is marked
+  `retracted`, never deleted.
+- **Bundestag only, for now.** abgeordnetenwatch publishes Landtag votes one
+  to five months late, so a Landtag's days would stay incomplete for months.
+  `Parliament.in_feed` keeps the Landtage out of every default run, and the
+  web lists them as "bald". Bringing them in needs a build window long enough
+  to pick up the late votes.
+- **Where it lives.** `ingestion/src/ingestion/feed/`: it runs as a
+  scheduled job and reads the corpus, so it ships in the ingestion image and
+  never imports `ai-backend`. Like PledgeTracker it is a bespoke runner, not a
+  registry connector: it builds from the corpus rather than filling it.
+- **Models and prompts.** Every one-time text runs on the publication roster
+  (`feed/publication_llms.py`, high reasoning), which never touches the chat's
+  rate-limit status. All prompts share the editorial rules in `feed/prompts.py`
+  (neutrality, grounding, attribution, position fidelity); edit the
+  constants, not copies. Translation is segment by segment: asked for whole
+  entries, the model runs past a paragraph into translation-tool footers.
+  Before changing a prompt or model, run `make eval-feed` against the
+  hand-checked gold positions (see the Makefile).
+- **Running it.** `make setup-feed-collection` once, then `make build-feed`
+  (see the Makefile for `--dry-run`, `--force`, `--translate-backfill`).
+  Deployed, it is the weekly Cloud Run Job `ingest-feed`
+  (`CONNECTOR_ID=feed`), on Sunday mornings after the speech and vote jobs.
+  Items are generated a few at a time; `--time-budget` stops the run starting
+  new items before the job's 15-minute cap, and a call still running past it
+  is cut. The job runs several times in a row so a long week finishes the
+  same morning. Unchanged items are skipped without LLM calls, so the extra
+  runs cost nothing.
+- **What the page loads.** The first visit gets the latest 14 days (anchored
+  on the newest edition, so recesses never show an empty feed); "Ältere Tage
+  anzeigen" loads the 14 days before the oldest shown, through the
+  `getOlderParliamentFeed` server action. Every item travels in both
+  languages, so the first load stays small on purpose.
+- **Deploying to an environment** (dev, then prod), before the merge that
+  ships the feed's web there:
+  1. `cd firebase && firebase deploy --only firestore:rules,firestore:indexes
+     --project <dev|prod>` (the web's feed queries need the two `feed_*`
+     indexes).
+  2. `make backfill-feed TARGET=<dev|prod> ARGS="--plan --since 2026-09-01"`
+     with that environment's `QDRANT_URL` / `QDRANT_API_KEY` exported: lists
+     per week how many items the corpus yields and how many are missing, no
+     LLM calls. The feed starts after the 2026 summer recess.
+  3. The same without `--plan` builds them (prod asks for the project id). It
+     is resumable: rerun until it reports nothing to build.
+  4. After the merge, `terraform apply` creates `ingest-feed`; prod starts
+     paused, so unpause it after one verified `gcloud run jobs execute`.
+
 ### Seeding dev/prod
 
 The two stores are seeded by different mechanisms, on purpose:
@@ -524,6 +620,12 @@ The two stores are seeded by different mechanisms, on purpose:
   political answers is **not** on this branch: it returns with the party-matcher
   feature (the first thing that stores those answers), which must ship with a
   real affirmative opt-in — consent cannot be implied from app usage.
+- **Feed interest signals.** The parliament feed's "Interessant? Ja/Nein"
+  answers go to `feed_interest/{uid}_{item_id}` (`{user_id, item_id, value,
+  at}`), keyed by the anonymous uid. They are a ranking signal, not a stance on
+  the item, but they sit close to political opinion: keep them out of the
+  corpus and out of anything user-facing. The rules make the collection
+  write-only for clients; analysis reads via the admin SDK.
 - **Local-only stores during this milestone.** Develop against local Qdrant and
   the Firestore emulator; do not point local work at production stores while the
   data design is still settling. The seed script hard-requires

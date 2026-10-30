@@ -1,4 +1,21 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "feed_editions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "parliament", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "feed_items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "parliament", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

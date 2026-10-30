@@ -171,3 +171,214 @@ export type FirebaseWahlSwiperResult = {
   is_prolific_study?: boolean;
   prolific_metadata?: ProlificMetadata;
 };
+
+/** The feed's view of one parliament's sitting day. Built on the client from
+ * `FeedEdition` + `FeedItem`s (see `lib/daily/editions.ts`) in the reader's
+ * language, or read as-is from a local preview file. */
+export type DigestParliamentId = 'bundestag' | 'landtag_st' | 'landtag_bw';
+
+export type DigestVoteParty = {
+  party_id: string;
+  name: string;
+  color: string;
+  yes: number;
+  no: number;
+  abstain: number;
+  no_show: number;
+};
+
+export type DigestVote = {
+  poll_id: number;
+  title: string;
+  short_title: string;
+  summary: string | null;
+  /** The source's own account of the motion; absent on older digests. */
+  description?: string | null;
+  topics: string[];
+  outcome: 'angenommen' | 'abgelehnt' | null;
+  citation_url: string | null;
+  parties: DigestVoteParty[];
+  /** Absent on digests built before the feed's chat handoff. */
+  suggested_questions?: string[];
+  /** The `FeedItem` it came from; absent on local previews. */
+  item_id?: string;
+};
+
+export type DigestCitation = {
+  title: string;
+  url: string;
+  /** Set on speech citations; absent on older digests. */
+  speaker?: string | null;
+  party_id?: string | null;
+  party_name?: string | null;
+  color?: string | null;
+  /** The speech's own video file, when one exists. */
+  video_url?: string | null;
+};
+
+export type DigestSpeaker = {
+  name: string;
+  /** The speech in the Plenarprotokoll PDF, at its page when known. */
+  url: string | null;
+  /** The speech's own video, and a link to it; absent on older digests. */
+  video_url?: string | null;
+  video_link?: string | null;
+};
+
+export type DigestPartyPosition = {
+  party_id: string;
+  party_name: string;
+  color: string;
+  speakers: DigestSpeaker[];
+  /** Null when no position could be written and checked against the
+   * speeches; the Fraktion is still listed, with its speakers. */
+  position: string | null;
+};
+
+export type DigestAudioSummary = {
+  title: string;
+  url: string;
+  /** Lets the player show the length before the file's metadata loads. */
+  duration_seconds?: number | null;
+};
+
+export type DigestQuote = {
+  text: string;
+  speaker: string;
+  party_id: string;
+  party_name: string;
+};
+
+export type DigestSessionSection = {
+  /** The primary topic; `topics` holds it plus an optional second one. */
+  topic: string;
+  /** Absent on local previews and digests built with one topic only. */
+  topics?: string[];
+  headline: string;
+  summary: string;
+  /** One entry per Fraktion that spoke; absent on local previews. */
+  positions?: DigestPartyPosition[];
+  agenda_items: string[];
+  citations: DigestCitation[];
+  video_url: string | null;
+  /** A spoken summary of the section; the digest builder does not write one. */
+  audio?: DigestAudioSummary | null;
+  /** Fields below are absent on older digests. Exactly three bullets. */
+  key_points?: string[];
+  /** 1–5 on a fixed scale per debate; the feed rescales it per day. */
+  heat?: number | null;
+  /** Estimated from the speeches' word count. */
+  debate_minutes?: number | null;
+  opening_quote?: DigestQuote | null;
+  /** Fraktion of the debate's first speaker. */
+  opened_by?: string | null;
+  suggested_questions?: string[];
+  /** The `FeedItem` it came from; absent on local previews. */
+  item_id?: string;
+};
+
+export type DigestSession = {
+  protocols: { protocol_id: string; pdf_url: string | null }[];
+  sections: DigestSessionSection[];
+};
+
+export type DailyDigest = {
+  id: string;
+  parliament: DigestParliamentId;
+  parliament_name: string;
+  region: string;
+  /** ISO day, `YYYY-MM-DD`. */
+  date: string;
+  votes: DigestVote[];
+  session: DigestSession | null;
+};
+
+// Firestore `feed_editions/{edition_id}` and `feed_items/{item_id}`, written
+// by the feed builder (`ingestion/src/ingestion/feed/models.py`). One item per
+// agenda item of a sitting (debate) or per poll (vote).
+
+export type FeedLocale = 'de' | 'en';
+
+export type LocalizedPosition = { party_id: string; text: string };
+
+export type LocalizedContent = {
+  headline: string;
+  teaser: string | null;
+  key_points: string[];
+  positions: LocalizedPosition[];
+  suggested_questions: string[];
+  /** Other locales only: the verbatim German quote stays in `debate`. */
+  quote_translation: string | null;
+  origin: 'generated' | 'translated';
+};
+
+export type DebateFacts = {
+  protocols: { protocol_id: string; pdf_url: string | null }[];
+  /** The official agenda label. */
+  agenda_item: string;
+  citations: DigestCitation[];
+  /** Every Fraktion that spoke, from the source. A locale's `positions` has
+   * an entry only for those whose position was written and checked. */
+  parties: {
+    party_id: string;
+    party_name: string;
+    color: string;
+    speakers: DigestSpeaker[];
+  }[];
+  video_url: string | null;
+  heat: number | null;
+  debate_minutes: number | null;
+  opened_by: string | null;
+  opening_quote: DigestQuote | null;
+};
+
+export type VoteFacts = {
+  poll_id: number;
+  official_title: string;
+  outcome: 'angenommen' | 'abgelehnt' | null;
+  citation_url: string | null;
+  description: string | null;
+  parties: DigestVoteParty[];
+};
+
+export type FeedItem = {
+  id: string;
+  kind: 'debate' | 'vote';
+  edition_id: string;
+  parliament: DigestParliamentId;
+  parliament_name: string;
+  region: string;
+  /** ISO day, `YYYY-MM-DD`. */
+  date: string;
+  rank: number;
+  topics: string[];
+  status: 'published' | 'retracted';
+  debate: DebateFacts | null;
+  vote: VoteFacts | null;
+  /** German always; other locales once translated. */
+  content: { de: LocalizedContent } & Partial<
+    Record<FeedLocale, LocalizedContent>
+  >;
+};
+
+export type FeedEdition = {
+  id: string;
+  parliament: DigestParliamentId;
+  parliament_name: string;
+  region: string;
+  /** ISO day, `YYYY-MM-DD`. */
+  date: string;
+  protocols: { protocol_id: string; pdf_url: string | null }[];
+  item_ids: string[];
+};
+
+/** One parliament's recent editions and their items. */
+export type ParliamentFeed = { editions: FeedEdition[]; items: FeedItem[] };
+
+/** A slice of one parliament's feed: the editions from `from` on, newest
+ * first. `from` is the cursor for the next older slice; `hasOlder` says
+ * whether there is one. */
+export type FeedPage = ParliamentFeed & {
+  from: string | null;
+  hasOlder: boolean;
+};

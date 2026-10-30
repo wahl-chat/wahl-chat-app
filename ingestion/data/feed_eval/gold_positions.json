@@ -1,0 +1,728 @@
+{
+  "bundestag_2026-06-11_d83-top19": {
+    "cdu": {
+      "position": "Erinnern an die Opfer des Aufstandes, werten das historische Ereignis als Beweis dafür, dass sich der Freiheitswille nicht dauerhaft unterdrücken lässt, und begreifen das Gedenken als Mahnung zur Verteidigung der Freiheit.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Kritisieren das aktuelle Gedenken als reine Pflichtübung, werfen der parlamentarischen Mehrheit vor, die Erinnerung an den Aufstand gegen sozialistische Politik zurückzudrängen, und fordern eine sichtbare nationale Erinnerungskultur unter Beteiligung hochrangiger Staatsvertreter.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Würdigen den Volksaufstand als zentrales Ereignis der Demokratiegeschichte, betonen die Wichtigkeit der Erinnerungsarbeit insbesondere für junge Menschen und setzen sich für die verlässliche Förderung von Gedenkstätten, Bildungsprogrammen sowie den Erhalt und Ausbau der Stasi-Unterlagen-Archive ein.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-06-26_d87-top19": {
+    "cdu": {
+      "position": "Begrüßen das Gesetz zur Beschleunigung der Abfertigungsprozesse an Flughäfen, betonen die finanziellen Einsparungen für die Branche sowie die Zeitersparnis für Passagiere und sehen darin eine Stärkung des Luftfahrtstandortes Deutschland.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Stimmen dem Gesetzentwurf wegen der erwarteten Effizienzsteigerungen zu, fordern jedoch eine Anpassung der Löschfristen für biometrische Daten und mahnen an, dass die Nutzung in der Praxis für die Passagiere tatsächlich freiwillig bleiben muss.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Befürworten das Gesetz als wichtigen Schritt zum Bürokratieabbau in der Luftfahrt, der allen Beteiligten Vorteile bringt, und weisen datenschutzrechtliche Bedenken mit Verweis auf die garantierte Freiwilligkeit und die zügige Löschung der Daten zurück.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Lehnen das Gesetz ab, kritisieren die Weitergabe sensibler biometrischer Daten an private Unternehmen, warnen vor Risiken für die Datensicherheit und bemängeln das schnelle Gesetzgebungsverfahren ohne Expertenanhörung.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Wenden sich gegen das Gesetz, weil sie darin ein Geschäftsmodell der Fluggesellschaften zur Personaleinsparung sehen, bezweifeln die tatsächliche Freiwilligkeit für die Fluggäste und warnen vor dem Zugriff ausländischer Sicherheitsbehörden auf die bei Drittanbietern gespeicherten Daten.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-06-12_d84-top33": {
+    "spd": {
+      "position": "Begrüßen den Veteranentag als wichtiges Zeichen der Anerkennung für Soldatinnen, Soldaten und deren Familien, betonen die gemeinsame Fürsorgepflicht von Staat und Gesellschaft und rufen dazu auf, Wertschätzung nicht auf einen einzigen Tag zu beschränken sowie den Wald der Erinnerung zu besuchen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Werten den Veteranentag als wichtiges Zeichen der Anerkennung, betonen, dass eine Veteranenkultur keine Opferkultur sein dürfe, und fordern neben einer besseren Betreuung für Familien und Traumatisierte erneut die Einführung eines Verwundetenabzeichens.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "cdu": {
+      "position": "Begrüßen den Veteranentag als Tag des Dankes, fordern dazu auf, Veteranen sowie ihre Angehörigen durch öffentliche Veranstaltungen sichtbarer zu machen und in die Mitte der Gesellschaft zu holen, und mahnen eine gute Unterstützung bei Einsatzfolgen an.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Heben die besondere Verantwortung des Parlaments für die Bundeswehr hervor, warnen davor, gesellschaftliche Debatten über Pazifismus auf dem Rücken der Soldaten auszutragen, und rufen dazu auf, den Veteranentag zu einem Tag der Begegnung und sichtbaren Dankbarkeit zu machen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Warnen vor einer Romantisierung und Heroisierung des Militärdienstes, kritisieren eine unzureichende finanzielle Ausstattung der Traumaversorgung im Vergleich zu Rüstungsausgaben und fordern statt Symbolpolitik mehr konkrete Verantwortung für traumatisierte Soldaten, zivile Ortskräfte sowie Beschäftigte im zivilen Gesundheitswesen und Katastrophenschutz.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-07-09_d89-zp12": {
+    "afd": {
+      "position": "Lehnen den Gesetzentwurf als einseitig zulasten von Vermietern ab, warnen vor einer Verschärfung der Wohnungsnot durch komplexe Regelungen und wenden sich explizit gegen die Begrenzung von Indexmieten sowie die Ausweitung der Schonfrist bei Kündigungen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "cdu": {
+      "position": "Befürworten soziale Leitplanken im Mietrecht unter Wahrung von Investitionsanreizen und fordern im weiteren Verfahren Nachbesserungen, wie etwa bedarfsorientierte Fristen bei Kurzzeitvermietungen und eine Beschränkung der erweiterten Schonfristregelung auf angespannte Wohnungsmärkte.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Kritisieren die Vorschriften zu möbliertem Wohnen und Indexmieten als zu kompliziert und fordern stattdessen praxistaugliche Regelungen sowie eine deutliche Einschränkung von Eigenbedarfskündigungen, um die Umgehung des Mietrechts zu verhindern.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Bewerten das Gesetz als völlig unzureichend im Kampf gegen steigende Mieten, bemängeln zahlreiche Schlupflöcher und fordern weitreichendere Maßnahmen wie Sanktionen bei Verstößen gegen die Mietpreisbremse, ein Vorgehen gegen Eigenbedarfskündigungen und die Vergesellschaftung großer Wohnungskonzerne.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Begrüßen das vorgelegte Mietrechtspaket als wichtigen Beitrag zum Mieterschutz, unterstützen die geplanten Einschränkungen bei Indexmieten, möbliertem Wohnen sowie Kurzzeitvermietungen und befürworten die erweiterte Schonfristzahlung zur Verhinderung von Obdachlosigkeit.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-07-10_d90-zp24": {
+    "cdu": {
+      "position": "Begrüßen das Sportfördergesetz als Paradigmenwechsel, betonen die Verankerung der Autonomie des Sports sowie des Leistungsgedankens und unterstützen die verbindliche Koppelung der Förderung an den Safe Sport Code sowie die gestärkte Vertretung des organisierten Sports und der Athleten im Stiftungsrat.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Stimmen dem Gesetz als überfällige Grundlage zu, kritisieren jedoch die neuen bürokratischen Strukturen sowie Interessenkonflikte durch die Beteiligung des Deutschen Olympischen Sportbundes im Stiftungsrat und fordern stattdessen mehr direkte Mitbestimmungsrechte für Trainer und unabhängig gewählte Athletenvertreter.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Begrüßen das Gesetz als historischen Paradigmenwechsel, heben die geschaffenen Mitsprachemöglichkeiten für Athleten im Stiftungsrat hervor und befürworten die verbindliche Bindung von Fördermitteln an den Safe Sport Code sowie an Prinzipien einer guten Verbandsführung zum Schutz der Sportler.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Befürworten das Gesetz als wichtige Basis zur Unterstützung von Athleten, Trainern und der Sportwissenschaft, loben die Verankerung des Safe Sport Codes und betonen die Notwendigkeit, die geschaffenen Strukturen wie die Spitzensport-Agentur in Zukunft gemeinsam kontinuierlich weiterzuentwickeln.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Lehnen das Gesetz ab, da es lediglich neue Bürokratie schaffe, und bemängeln neben der unverbindlichen Ausgestaltung der Finanzierung vor allem die unzureichende soziale Absicherung von Trainern sowie die fehlende Einbindung unabhängiger Athletenvertretungen im Stiftungsrat.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-06-11_d83-zp6": {
+    "cdu": {
+      "position": "Begrüßen die geplante Anpassung der Kirchenklausel, warnen jedoch vor zusätzlicher Bürokratie für die Wirtschaft, hinterfragen den Mehrwert einer neuen Schlichtungsstelle sowie die Verlängerung der Klagefrist und fordern ein Vorgehen gegen den Missbrauch des Gesetzes.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Lehnen den Gesetzentwurf als Einschränkung der Vertragsfreiheit und Verbürokratisierung ab und fordern die vollständige Abschaffung des Allgemeinen Gleichbehandlungsgesetzes sowie der Antidiskriminierungsstelle des Bundes.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Begrüßen die Reform, insbesondere die Verlängerung der Klagefristen und die Ausweitung des Schutzes vor sexueller Belästigung, betonen die Wichtigkeit des Gesetzes gegen alltägliche Diskriminierung und merken an, dass noch weitreichendere Ergänzungen wünschenswert gewesen wären.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Kritisieren den Entwurf als nicht weitreichend genug, fordern die Anwendung des Gesetzes auf staatliche Stellen, verlangen ein Verbandsklagerecht und bemängeln das Fehlen von Regelungen zu algorithmischer und KI-gestützter Diskriminierung.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Fordern die Ergänzung weiterer Schutzmerkmale wie Armut, Sprache, Elternschaft, geschlechtliche Identität sowie Körpergewicht und verlangen die Weiterentwicklung der Antidiskriminierungsstelle zu einer unabhängigen Bundesbehörde mit Verbandsklagerecht.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-06-25_d86-top15": {
+    "cdu": {
+      "position": "Betonen die Bedeutung des Gedenkens an das Leid und die Kultur der deutschen Heimatvertriebenen als wichtigen Teil der Identität und setzen sich unter Anerkennung der historischen Verantwortung für die nationalsozialistischen Verbrechen für eine weitere europäische Aussöhnung ein.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Bezeichnen die Vertreibung der Deutschen als völkerrechtswidrige ethnische Säuberung, kritisieren eine aus ihrer Sicht stattfindende Relativierung dieses Schicksals durch die Einbettung in aktuelle Fluchtbewegungen und fordern, die Erinnerung an die Geschichte der ehemaligen Ostgebiete wachzuhalten.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Verbinden das Gedenken an das Leid der deutschen Vertriebenen mit dem Schicksal heutiger Geflüchteter, warnen vor Vorstellungen ethnischer Homogenität und würdigen die Gesten der osteuropäischen Nachbarn zur Aussöhnung vor dem Hintergrund der nationalsozialistischen Verbrechen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Warnen davor, das Leid der deutschen Vertriebenen losgelöst von den nationalsozialistischen Verbrechen zu betrachten, lehnen eine nationale Verengung der Erinnerungskultur ab und fordern ein Gedenken, das europäische Versöhnung stärkt.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Leiten aus den historischen Vertreibungen als Folge des deutschen Vernichtungskrieges eine Verpflichtung zum Schutz heutiger Geflüchteter ab, kritisieren die europäische Asylpolitik der Abschottung und fordern stattdessen legale Fluchtwege sowie faire Verfahren.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-07-08_d88-top3": {
+    "cdu": {
+      "position": "Gratulieren den Vereinigten Staaten zum 250. Jubiläum, danken für die historische Befreiung vom Nationalsozialismus sowie die Unterstützung der deutschen Wiedervereinigung und betonen die anhaltende Bedeutung der transatlantischen Partnerschaft.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Würdigen die amerikanischen Gründungsprinzipien, sprechen sich für ein Bündnis auf Basis nationaler Interessen anstelle einer globalen Mission aus und ziehen Parallelen zwischen dem historischen amerikanischen Freiheitskampf und der Kritik an der aktuellen deutschen Regierungspolitik.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Gratulieren zum Jubiläum, danken für die Rolle der USA beim Aufbau der Demokratie in Deutschland, lehnen pauschalen Antiamerikanismus ab und fordern trotz Kritik am US-Präsidenten die Pflege der Partnerschaft sowie mehr europäische Eigenverantwortung.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Betonen die engen historischen Verbindungen, erinnern zugleich an Schattenseiten wie Sklaverei und Rassismus, kritisieren die Außenpolitik des aktuellen US-Präsidenten und fordern ein geschlossenes europäisches Auftreten sowie eine stärkere Fokussierung auf die Zivilgesellschaft.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Ehren die ursprünglichen Freiheitsideale der amerikanischen Revolution, kritisieren jedoch die historische Unterdrückung, den unregulierten Markt sowie die US-amerikanische Machtpolitik und fordern einen vollkommen eigenständigen Weg Europas.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-06-10_d82-top6": {
+    "afd": {
+      "position": "Fordern ein Ende von Diversity-Maßnahmen sowie der Regenbogenbeflaggung bei der Deutschen Bahn und verlangen stattdessen weltanschauliche Neutralität sowie eine Konzentration auf die Kernaufgaben des Unternehmens.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "cdu": {
+      "position": "Weisen den Antrag der AfD als spalterischen Kulturkampf zurück, betonen, dass Regenbogenfahnen kein Problem für den Bahnverkehr darstellen, und befürworten das Bekenntnis der Deutschen Bahn zu Vielfalt und Toleranz.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Unterstützen die Deutsche Bahn in ihrer Haltung für Vielfalt sowie in ihrer gesellschaftlichen Verantwortung und werfen der AfD vor, von den tatsächlichen infrastrukturellen Problemen des Bahnverkehrs abzulenken.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Verurteilen den Antrag als menschenfeindlich, weisen den konstruierten Gegensatz von Leistung und Vielfalt zurück und sichern den queeren Beschäftigten der Deutschen Bahn ihre Solidarität zu.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Machen die Profitlogik und fehlende Investitionen anstelle der Regenbogenflagge für die Probleme der Bahn verantwortlich und fordern eine gemeinwohlorientierte Ausrichtung des Unternehmens sowie mehr Sicherheit für die Beschäftigten.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-06-24_d85-top3": {
+    "spd": {
+      "position": "Betonen, dass Nachhaltigkeit als umfassendes Gesellschaftsprogramm ökologische, ökonomische und soziale Ziele vereinen muss, und fordern eine stärkere, verbindliche Nachhaltigkeitsprüfung im Vorfeld politischer Entscheidungen sowie die schnelle Vorlage des angekündigten Aktionsplans.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Kritisieren die auf der UN-Agenda 2030 basierende Nachhaltigkeitsstrategie und die Dekarbonisierung als wirtschafts- und wohlstandsfeindlich, werfen der Regierung ein Verfehlen der wirtschaftlichen Ziele vor und fordern den Erhalt der Kernkraft sowie verlässliche Energie ohne ideologische Vorgaben.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "cdu": {
+      "position": "Begrüßen die Neuausrichtung der Nachhaltigkeitsstrategie und den Aktionsplan der Regierung, betonen die untrennbare Verbindung von Klimaschutz mit wirtschaftlicher Stärke sowie soliden Staatsfinanzen und plädieren dafür, den Begriff der Nachhaltigkeit in der Wirtschaft wieder positiver und weniger regulierungslastig zu besetzen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Kritisieren die kurze Debattenzeit für das Thema, werfen der Union eine Blockadehaltung beim Klimaschutz vor und fordern neben konsequenteren Maßnahmen gegen die Klimakrise auch mehr soziale Gerechtigkeit, unter anderem durch die Einführung einer Bürgerversicherung im Gesundheitswesen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Werfen der Regierung vor, die UN-Nachhaltigkeitsziele abzuschwächen, kritisieren mögliche Einschnitte bei Arbeitnehmerrechten sowie klimapolitische Rückschritte im Interesse fossiler Konzerne und fordern einen konsequenteren Abbau von gesellschaftlicher Ungleichheit und Armut.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-07-10_d90-zp20": {
+    "linke": {
+      "position": "Fordern den Ausbau und die dauerhafte Absicherung des Bundesprogramms „Kultur macht stark“ sowie die Verankerung von Kultur und Sport als Staatsziel im Grundgesetz.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "cdu": {
+      "position": "Lehnen die Aufnahme von Kultur und Sport als Staatsziel ins Grundgesetz ab und unterstützen stattdessen die Fortführung sowie die verlässliche Finanzierung des bestehenden Programms „Kultur macht stark“.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Wenden sich gegen die Verankerung von Kultur und Sport als Staatsziel im Grundgesetz und kritisieren das Programm „Kultur macht stark“ als Auslagerung staatlicher Bildungsaufgaben an private Träger, wodurch die staatliche Neutralitätspflicht unterlaufen werde.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Zeigen Sympathien für die Aufnahme von Kultur und Sport als Staatsziel in die Verfassung, betonen die bisherigen Erfolge der Koalition in der Sportförderung und weisen den Antrag der Linken zur Fortführung von „Kultur macht stark“ als überflüssig zurück, da die nahtlose Weiterführung bereits in Arbeit sei.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Kritisieren geplante Kürzungen bei kulturellen und bildungspolitischen Programmen für Kinder und Jugendliche und fordern nachdrücklich den Erhalt von Initiativen wie „Lesestart 1-2-3“ und dem internationalen Freiwilligendienst „kulturweit“.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-06-10_d82-top3": {
+    "cdu": {
+      "position": "Begrüßen den Anstieg der Petitionszahlen, betonen die überparteiliche Zusammenarbeit im Ausschuss, warnen vor der Nutzung privater Petitionsplattformen und regen an, das Quorum für öffentliche Anhörungen zu erhöhen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Kritisieren die Erfolglosigkeit politischer Petitionen gegen den Willen der Regierungskoalition, fordern die Einführung von Volksabstimmungen, verlangen die Abschaffung inhaltlicher Vorprüfungen sowie Plenardebatten ab 100000 Mitzeichnungen und beklagen die Verweigerung des Ausschussvorsitzes.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Heben die konkrete Wirksamkeit von Petitionen anhand erfolgreicher Beispiele wie dem Mutterschutz nach Fehlgeburten hervor, betonen deren Bedeutung für die politische Willensbildung und fordern, Verfahren zu vereinfachen, Abläufe zu beschleunigen und digitale Möglichkeiten besser zu nutzen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Betonen die konstruktive, fraktionsübergreifende Zusammenarbeit im Ausschuss, verweisen auf konkrete Problemlösungen vor Ort und rufen die Bürgerinnen und Bürger dazu auf, das offizielle Petitionsportal des Bundestages anstelle privater Anbieter zu nutzen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Kritisieren, dass die Bundesregierung Beschlüsse des Ausschusses oft ignoriere, fordern ein mutigeres Petitionswesen, das die Exekutive stärker kontrolliert, und wünschen sich, dass Petitionen mit sehr hohen Quoren grundsätzlich im Plenum debattiert werden.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-07-09_d89-zp9": {
+    "cdu": {
+      "position": "Befürworten das Gesetz zum Aufbau neuer, perspektivisch wasserstofffähiger Kraftwerke als notwendigen Sicherheitsgurt für die Stromversorgung bei Dunkelflauten und heben die Bedeutung des Netzbonus für eine regionale Steuerung der Kapazitäten hervor.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Kritisieren die Abschaltung funktionierender Kraftwerke als Ursache für Rekordstrompreise, bezeichnen den geplanten Kraftwerkszubau als unzureichend und fordern stattdessen die Senkung von Stromsteuer und Netzentgelten sowie eine grundlastfähige Stromversorgung unter Nutzung der Kernenergie.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Begrüßen das Gesetz zur Sicherstellung der Versorgungssicherheit für die Industrie, betonen den diskriminierungsfreien Einbezug von Batteriespeichern und Bioenergie und verteidigen die angepasste regionale Verteilung der Kraftwerkskapazitäten.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Lehnen das Gesetz wegen fehlender Gegenfinanzierung und einer zu späten Umstellung auf Wasserstoff ab und fordern stattdessen sofortige Maßnahmen, um die beihilferechtliche Genehmigung für den Ausbau der Erneuerbaren zu verlängern.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Kritisieren den Fokus auf teure Gaskraftwerke, die Bevorzugung großer Energiekonzerne sowie die späte Umstellung auf grünen Wasserstoff und fordern stattdessen eine öffentliche, dezentrale und primär von Stadtwerken getragene Kraftwerksreserve.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-06-11_d83-top7": {
+    "cdu": {
+      "position": "Betonen die Notwendigkeit von Strukturreformen, Bürokratieabbau und Haushaltskonsolidierung zur Stärkung der Wirtschaft, sichern der Ukraine weiterhin militärische sowie finanzielle Unterstützung zu und fordern eine starke, einheitliche Rolle Europas in der Außen- und Sicherheitspolitik.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Kritisieren die Wirtschafts-, Migrations- und Energiepolitik der Regierung, fordern die Abschaffung der CO2-Abgabe, den Wiedereinstieg in die Kernkraft sowie einen Stopp der Hilfen für die Ukraine und lehnen deren Aufnahme in die EU und die NATO strikt ab.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Befürworten eine enge europäische Zusammenarbeit, dringen auf den weiteren Ausbau erneuerbarer Energien sowie eine Stärkung der heimischen Industrie und unterstützen sowohl eine EU-Beitrittsperspektive für die Ukraine als auch die zügige europäische Integration der Westbalkanstaaten.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Werfen der Regierung vor, einseitige und unsoziale Kürzungen bei den Sozialsystemen zulasten von Frauen und pflegenden Angehörigen zu planen, fordern sozial ausgewogene Reformen und verlangen schärfere Sanktionen gegen Russland sowie mehr Waffenlieferungen an die Ukraine.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Wenden sich strikt gegen steigende Rüstungsausgaben auf Kosten des Sozialstaats, fordern diplomatische Bemühungen zur Beendigung des Ukraine-Krieges und verlangen eine Stärkung der europäischen Sozial- und Strukturfonds durch eine stärkere Besteuerung von Reichtum und Digitalkonzernen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-06-25_d86-top8": {
+    "spd": {
+      "position": "Begrüßen den Gesetzentwurf zur Planungsbeschleunigung, Digitalisierung und Entbürokratisierung. Unterstützen den Vorrang für den Wohnungsbau durch ein überragendes öffentliches Interesse, die Bündelung von Umweltprüfungen, die Anpassung an den Klimawandel sowie die Stärkung des Vorkaufsrechts gegen Schrottimmobilien.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Lehnen den Entwurf ab, da er durch neue Vorkaufsrechte und Abwägungsvorschriften Investitionen erschwere. Fordern stattdessen zur Bekämpfung der Wohnungsnot eine Senkung der Baukosten durch den Abbau von energetischen Vorgaben und Steuern sowie eine Begrenzung der Zuwanderung.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "cdu": {
+      "position": "Befürworten Verfahrensbeschleunigungen durch Digitalisierung, gestraffte Umweltprüfungen und den gesetzlichen Vorrang für den Wohnungsbau. Fordern im parlamentarischen Verfahren weitere Entbürokratisierungen, insbesondere weitreichendere Ausnahmen für selbstnutzende Eigentümer in Milieuschutzgebieten, sowie mehr Rechtssicherheit bei Regionalplänen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Kritisieren den Entwurf wegen fehlender Sozialquoten und wenden sich gegen die Absenkung von Umweltstandards sowie die Schwächung der demokratischen Mitbestimmung durch verkürzte Beteiligungsfristen. Fordern stattdessen den Umbau im Bestand, eine klimagerechte Stadtplanung und den Verzicht auf neue Nachweishürden beim Vorkaufsrecht.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Kritisieren den Fokus auf Neubau angesichts der Klimakrise und lehnen die Einschränkung von Umweltschutz und Bürgerbeteiligung ab. Fordern eine harte Mietenregulierung, die Bekämpfung von Leerstand sowie ein wirksames und rechtssicheres Vorkaufsrecht der Kommunen ohne neue Beweislasten.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-06-11_d83-top9": {
+    "cdu": {
+      "position": "Begrüßen das Gebäudemodernisierungsgesetz als Abkehr von Verboten hin zu Technologieoffenheit und Eigenverantwortung, verteidigen die Einführung einer Biotreppe für fossile Heizungen zur Erreichung der Klimaziele und betonen die soziale Ausgewogenheit durch eine hälftige Aufteilung der Mehrkosten zwischen Mietern und Vermietern.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Lehnen den Gesetzentwurf als faktische Fortführung des vorherigen Heizungsgesetzes ab, kritisieren die sogenannte Biotreppe sowie staatliche Quoten als unrealistische Kostenfalle und fordern die vollständige Abschaffung des Heizungsgesetzes sowie der CO2-Steuer.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Unterstützen den Gesetzentwurf als sozial gerechten und pragmatischen Weg zur Klimaneutralität, heben die neu gewonnene technologische Wahlfreiheit sowie den Mieterschutz durch eine hälftige Kostenteilung hervor und signalisieren Bereitschaft, die Verteilung der Nebenkosten zugunsten der Mieter im parlamentarischen Verfahren weiter zu überprüfen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Kritisieren das Gesetz als Abkehr von den Klimazielen und Realitätsverweigerung angesichts globaler fossiler Krisen, warnen vor massiven finanziellen Belastungen für Mieter durch den erneuten Einbau von Gasheizungen und fordern den Stopp des Gesetzgebungsverfahrens.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Wenden sich gegen das Gesetz, da es durch die erneute Zulassung von Öl- und Gasheizungen den Klimaschutz gefährde und Mieter finanziell belaste, äußern verfassungsrechtliche Bedenken und fordern weitreichende Nachbesserungen bis hin zur Rücknahme des Gesetzentwurfs.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-07-09_d89-top23": {
+    "afd": {
+      "position": "Fordern die Einsetzung einer Enquete-Kommission zur Anpassung der Medienordnung an das digitale Zeitalter und kritisieren den öffentlich-rechtlichen Rundfunk als zu teuer, unausgewogen und ideologisch.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "cdu": {
+      "position": "Lehnen die Einsetzung der Enquete-Kommission wegen fehlender Gesetzgebungskompetenz des Bundes ab, bekennen sich zum öffentlich-rechtlichen Rundfunk und werfen den Antragstellern vor, diesen delegitimieren zu wollen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Lehnen den Antrag unter Verweis auf die Zuständigkeit der Länder ab, betrachten große Digitalkonzerne als Hauptbedrohung für die Medienunabhängigkeit und fordern den Erhalt des Informationsfreiheitsgesetzes sowie den Aufbau eines offenen sozialen Netzwerks.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Lehnen die geforderte Enquete-Kommission unter Verweis auf die Zuständigkeit der Länder ab, verteidigen den öffentlich-rechtlichen Rundfunk als unverzichtbar für die demokratische Öffentlichkeit und werfen der AfD vor, unabhängige Medien angreifen zu wollen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Lehnen den Antrag ab, verteidigen den öffentlich-rechtlichen Rundfunk als notwendiges Korrektiv zum privaten Medienmarkt, fordern jedoch dessen Reformierung sowie den Ausbau des Informationsfreiheitsgesetzes.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-06-12_d84-top31": {
+    "cdu": {
+      "position": "Befürworten den Gesetzentwurf als unverzichtbaren Schritt zur Stabilisierung der Beitragssätze sowie zur Rückkehr zu einer einnahmenorientierten Ausgabenpolitik, betonen die Notwendigkeit von Kostendämpfungen, strukturellen Reformen und mehr Prävention und signalisieren Offenheit für Anpassungen im parlamentarischen Verfahren, insbesondere bei der Finanzierung versicherungsfremder Leistungen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Lehnen das Gesetz als massive Belastung für Bürger und Kommunen ab, kritisieren geplante Leistungskürzungen und höhere Zuzahlungen und fordern stattdessen eine vollständige Steuerfinanzierung versicherungsfremder Leistungen, einen konsequenten Bürokratieabbau sowie die Streichung des vollen Anspruchs auf Gesundheitsleistungen für arbeitslose Ausländer und Bürgergeldempfänger.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Verteidigen das Vorhaben als zwingend notwendig, um eine Beitragsspirale zu verhindern und die gesetzliche Krankenversicherung finanziell zu stabilisieren, begrüßen die stärkere finanzielle Beteiligung des Bundes und kündigen an, im parlamentarischen Verfahren strikt darauf zu achten, dass die Lasten fair verteilt werden und die medizinische Versorgung nicht beeinträchtigt wird.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Kritisieren das Gesetz scharf als unausgewogenen, überstürzten Kürzungskahlschlag, der einseitig zulasten von Versicherten, Krankenhäusern und dem Pflegepersonal gehe, werfen den Verantwortlichen vor, die Pharmaindustrie zu schonen sowie die Steuerfinanzierung versicherungsfremder Leistungen zu vernachlässigen, und fordern weitreichende Nachbesserungen bei ausreichend Zeit für die Beratungen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Wenden sich entschieden gegen den Gesetzentwurf, den sie als unsoziale Kürzungsreform und massiven Angriff auf die Patientenversorgung sowie das bereits überlastete Personal verurteilen, und fordern stattdessen eine solidarische Finanzierung durch die stärkere Besteuerung von Reichtum und hohen Einkommen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-06-25_d86-zp3": {
+    "gruene": {
+      "position": "Fordern eine Entlastung unterer und mittlerer Einkommen durch die Anhebung des Grundfreibetrags und geringere Sozialabgaben, setzen sich für eine zielgerichtete Streichung von Steuersubventionen ein und verlangen eine stärkere finanzielle Unterstützung von Familien sowie Alleinerziehenden.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "cdu": {
+      "position": "Unterstützen eine Entlastung kleiner und mittlerer Einkommen durch die Anhebung des Grundfreibetrags und eine spätere Wirkung des Spitzensteuersatzes, lehnen eine rein umverteilende Steuerpolitik sowie die Abschaffung des Ehegattensplittings ab und mahnen eine solide Gegenfinanzierung an.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Fordern eine umfassende Steuersenkung mit einem einheitlichen Steuersatz von 25 Prozent, verlangen deutlich höhere Freibeträge für Erwachsene und Kinder, setzen sich für ein echtes Familiensplitting ein und sprechen sich für die vollständige Abschaffung der Erbschaft- und Schenkungsteuer aus.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Sprechen sich für die Entlastung der arbeitenden Mitte durch eine Abflachung des Steuertarifs aus, fordern einen gerechten Beitrag von Spitzenverdienern und sehr Vermögenden zur Gegenfinanzierung und lehnen radikale Steuermodelle wie eine Flat-Tax oder extrem hohe Grenzsteuersätze ab.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Verlangen eine stärkere Besteuerung von Überreichen durch einen Millionärssteuersatz von 75 Prozent und die Wiedereinführung der Vermögensteuer, fordern einen höheren Grundfreibetrag von 16.800 Euro zur Entlastung kleiner Einkommen und setzen sich für die Besteuerung von Kapitalerträgen mit dem persönlichen Einkommensteuersatz ein.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  },
+  "bundestag_2026-06-25_d86-top11": {
+    "cdu": {
+      "position": "Zeigen sich in der Debatte uneinig: Sprechen sich teils für die Einführung der Widerspruchsregelung aus, um Leben zu retten und Angehörige von schweren Entscheidungen zu entlasten, während andere diese als unzulässigen Eingriff in die Selbstbestimmung ablehnen und stattdessen den Ausbau der aktiven Zustimmungslösung sowie bessere Aufklärungskampagnen fordern.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "afd": {
+      "position": "Lehnen die Widerspruchsregelung mehrheitlich als verfassungswidrigen Eingriff in die körperliche Unversehrtheit und die Menschenwürde ab, kritisieren strukturelle Organisationsmängel in den Kliniken und fordern die Beibehaltung der aktiven Entscheidungslösung, wenngleich es aus den eigenen Reihen vereinzelt auch Unterstützung für die Widerspruchsregelung gibt.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "spd": {
+      "position": "Weisen unterschiedliche Positionen auf: Werben einerseits für die Widerspruchsregelung, um Spenderzahlen zu erhöhen und das Leid auf den Wartelisten zu beenden, lehnen einen solchen Systemwechsel andererseits aber ab, um das Recht auf aktive Selbstbestimmung sowie den Schutz vulnerabler Gruppen zu wahren und stattdessen bestehende Möglichkeiten konsequenter zu nutzen.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "gruene": {
+      "position": "Positionieren sich gespalten: Befürworten teilweise die Widerspruchsregelung, um durch die Abwägung von Schutzgütern mehr Leben retten zu können, während andere diese strikt ablehnen, weil Schweigen keine Zustimmung bedeute, und stattdessen für eine Beibehaltung der aktiven Zustimmungslösung gepaart mit massiver Aufklärung und besseren Krankenhausstrukturen plädieren.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    },
+    "linke": {
+      "position": "Bewerten die Widerspruchsregelung unterschiedlich, da sie teils als notwendiger Neustart befürwortet, teils aber wegen drohender Nachteile für sozial benachteiligte Gruppen abgelehnt wird, und fordern übereinstimmend primär eine Stärkung der Pflege, bessere Arbeitsbedingungen in den Kliniken und eine umfassendere Aufklärung der Bevölkerung.",
+      "drafted_by": "gemini-3.1-pro-preview",
+      "checked_by": null,
+      "checked_at": null,
+      "note": ""
+    }
+  }
+}
