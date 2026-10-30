@@ -1,233 +1,251 @@
 # Stimmt's? — design note
 
-A daily puzzle for wahl.chat: players guess how each party in the Bundestag
-voted on one real roll-call vote, see what happened, keep a streak, share the
-score, and can ask the chat why.
+A daily puzzle for wahl.chat: players guess how each Fraktion in the Bundestag
+voted on one real roll-call vote, see what happened, collect the day's
+Stimmkarte in their Wahlperiode, and share the score.
 
-Status: the playable game runs on a hidden page in its designed look (the
-Stimmt's? design system: the chamber as the board, the Stimmkarte, the bill
-sheet, the urn holding the player's cards of the Wahlperiode, and a share
-image). Real content
-and the launch wiring are still ahead, and the link into the chat is postponed.
+Status: the game is complete and **off by default**; it goes live by flipping
+a Firestore switch (see the Stimmt's? section in `AGENTS.md`). Still ahead: the
+30 real puzzles (three samples ship today), the link into the chat (waiting
+for the general chat), and the landing-page card (waiting for the news feed).
 See [Status and rollout](#status-and-rollout).
 
 ## Why it exists
 
 - wahl.chat traffic follows the election calendar and drops between elections.
   A daily puzzle gives people a reason to come back in quiet periods.
-- It moves the product towards "learn about politics regularly" without a
-  large architectural change: it reuses the vote data the chat already has.
-- It is a funnel: every puzzle ends with a door into the chat.
+- It teaches how the parties actually vote, which is often not what their
+  reputation suggests; the puzzles are picked for exactly those surprises.
 - A result that can be shared brings in new visitors.
+- Once the general chat exists, every puzzle can end with a door into it, to
+  ask why a party voted the way it did.
 
 ## The game
 
 One real Bundestag roll-call vote per day. Everyone gets the same puzzle on the
-same day, where a day is a calendar day in Berlin.
+same day, where a day is a calendar day in Berlin. The run lasts 30 days, one
+Wahlperiode, starting on the launch date.
 
-1. **Entry.** Today's puzzle on its own page (later also a card on the
-   landing page).
-2. **Briefing.** Title, date, a short neutral description of what is being
-   decided, and an explicit line saying what a "Ja" means. It never reveals the
-   result.
-3. **Answers.** The parties come one at a time, in seating order from left to
-   right: Die Linke, SPD, Bündnis 90/Die Grünen, CDU/CSU, AfD. For each, the
-   player answers "Wie hat die Partei abgestimmt?" with Ja, Nein or
-   Enthaltung. An answer is final.
-4. **Reveal.** The player turns the parties over one by one, or all at once,
-   and sees what each party did, with the real vote counts.
-5. **Result.** Score out of five, the streak and its record, a share button, a
-   countdown to tomorrow's puzzle, and a link to the source.
-6. **Mehr erfahren (later).** What each party said in the debate, with
-   sources, once that content exists. A link into the chat is postponed, see
-   the decisions below.
+1. **First visit.** "So funktioniert's" opens once: four short rules, including
+   that a vote can be a few months old. It can be reopened under "Los geht's".
+2. **Briefing.** The player's Stimmkarte (title, topic, number, day), the bill
+   sheet (the Drucksache's cover, our neutral summary, the vote's date, what
+   "Ja" means, the original PDF) and the empty chamber.
+3. **Answers.** The Fraktionen come one at a time in seating order: Die Linke,
+   SPD, Bündnis 90/Die Grünen, CDU/CSU, AfD. For each, Ja, Nein or Enthaltung.
+   An answer is final.
+4. **Reveal.** The player turns the parties over one by one or all at once,
+   and sees each party's real vote and counts.
+5. **Result.** The score stamped on the Stimmkarte, which the player casts into
+   the urn of this Wahlperiode; the outcome; the Wahlperiode as 30 seats, where
+   a past day opens again; sharing; a countdown to the next puzzle.
+6. **After the fifth finished puzzle,** once: a one-tap star rating, with an
+   optional offer to say more.
+7. **After the last day,** a closing screen: the player's Wahlperiode, how many
+   days they played and how many tips were right, and "Mehr Rätsel sind in
+   Arbeit. Bleib dran!"
 
 ## Screens and states
-
-What the player sees, when, and what they are asked to do. The look is plain
-on purpose, until the design language of the news page is settled.
 
 ```mermaid
 stateDiagram-v2
   [*] --> Loading
-  Loading --> NotStarted: before the start date
-  Loading --> Unavailable: today's puzzle is not approved
-  Loading --> Finished: all puzzles played
-  Loading --> Briefing: a new puzzle
+  Loading --> Unreachable: no answer from Firestore in 8 s
+  Unreachable --> Loading: "Erneut versuchen"
+  Loading --> Off: switch off, missing or malformed
+  Loading --> NotStarted: before the launch date
+  Loading --> Briefing: today's puzzle, no answers
   Loading --> Answering: answers already saved
   Loading --> Result: already finished
+  Loading --> Closing: after the last day
+  NotStarted --> Briefing: Berlin midnight of the launch date
   Briefing --> Answering: "Los geht's"
-  Answering --> Answering: answer a party (1 to 4)
   Answering --> Reveal: the fifth answer
-  Reveal --> Result: every party turned over
-  Result --> Briefing: after Berlin midnight, the next puzzle
+  Answering --> Result: finished in another tab
+  Reveal --> Result: "Zum Ergebnis"
+  Result --> Briefing: Berlin midnight, the next puzzle
+  Result --> Closing: Berlin midnight after the last day
 ```
 
-| Screen | The player sees | The player does | When |
-| --- | --- | --- | --- |
-| Loading | "Lädt …" | nothing | until the browser's saved data is read |
-| Not started | the start date | nothing | before the schedule's start date |
-| Unavailable | "noch nicht freigegeben" | nothing | today's puzzle is not approved |
-| Finished | "alle bisherigen Rätsel gespielt" | nothing | after the last scheduled puzzle |
-| Briefing | the Stimmkarte (title, topic, number, day), the bill sheet (the Drucksache's cover, our neutral summary, the vote's date, what "Ja" means, the original PDF), the empty chamber | taps "Los geht's" | a new puzzle with no answers yet |
-| Answering | the chamber, the party card: "Partei n von 5", the party's logo and name, three buttons, "Ja bedeutet …" | answers Ja, Nein or Enthaltung (or keys 1 to 3); each answer is final, with a short pause before the next party, and paints the party's wedge as rings | after the start, until the fifth answer; also after a reload mid-game |
-| Reveal | the chamber with its legend, "Ja bedeutet …", "Deine Tipps": the tip beside the real vote | turns parties over from their logo on the chamber or one by one, or all at once | after the fifth answer |
-| Result | the stamped Stimmkarte (headed by the Stimmt's? logo) above a glass urn holding this Wahlperiode's cards, a hint to tap the card that shows for a moment, "x von 5 richtig" with a verdict per party, the outcome, the share button, the source, and "Deine Wahlperiode": one seat per day so far | casts the card into the urn, after which the countdown appears above the urn and the card count ("3/30") under it; shares; taps a past day's seat to look at that puzzle, already turned over and not playable | once every party is turned over; straight away after a reload of a finished game |
+| Screen | Shows | When |
+| --- | --- | --- |
+| Loading | the logo, pulsing | until the switch and the saved progress are read |
+| Unreachable | "Gerade nicht erreichbar", retry | Firestore silent for 8 s (ad blocker, firewall, offline) |
+| Off | "Kommt bald" | switch off, doc missing, or a malformed launch date |
+| Not started | "Bald geht's los", the date; a countdown on the eve | before the launch date |
+| Briefing, Answering, Reveal, Result | the game | from the launch date to the last day |
+| Closing | the Wahlperiode, the numbers, "Mehr Rätsel sind in Arbeit" | after the last day |
 
-### Open mechanics questions
-
-For the product owner to settle before the look is designed:
-
-1. Should the outcome (angenommen or abgelehnt) be shown before answering, or
-   only after, as now?
-2. Reveal: tap per party, all at once, or automatic with a short delay?
-3. Should an answer be final, as now, or can it be changed until the last
-   party?
-4. Union and SPD always vote the same way. Keep five seats, merge them into one
-   "Koalition" seat, or add a bonus question?
-5. Streak: days played (now) or days won? Shown with the record?
-6. After finishing, is there anything more to do today (an archive, a second
-   question), or only share and the countdown?
-7. A missed day's puzzle cannot be played later, but every past day of the
-   pilot can be looked at, already turned over: what the vote was about, how
-   the parties voted and, for a day played, the player's tips.
+A page left open past midnight moves to the new day by itself, also when a
+sleeping phone or a frozen tab held the timer back, and says so in a short
+notice ("Neuer Tag, neues Rätsel"), adding that unfinished tips no longer
+count.
 
 ## Decisions and why
 
-These are kept easy to change on purpose; the first two groups are the ones to
-confirm with the product owner.
-
 **Product**
 
-- Federal level only, five seats (CDU/CSU is one party, stored as `cdu`).
-- One shot per party, score 0 to 5, no difficulty levels. Retries would add
-  state and take the suspense out of the reveal.
+- Federal level only, the five Fraktionen (CDU/CSU is one, stored as `cdu`).
+  The validator requires exactly these, in seating order.
+- One shot per party, score 0 to 5. Retries would take the suspense out of the
+  reveal.
 - Players predict what parties did; they are never asked for their own
   position. Political opinions are special-category data (see `AGENTS.md`),
   and a prediction is not an opinion.
-- The streak counts days played, not days won, so a bad score never breaks it.
-  It is worked out from the saved games, like the player's Wahlperiode (one
-  seat per day, 30 days), so the two can never disagree.
-- Pilot: 30 puzzles, one a day, picked by hand against written criteria.
-  Proposed launch: 1 November 2026, as puzzle number 1.
+- No streak. The Wahlperiode (one seat per day, 30 days) shows the player's
+  run instead, and missed days stay visible as missed: there is no catching
+  up. It is worked out from the saved games, so it can never disagree with
+  them.
+- A party is summed up as the option most of its members chose. A vote where
+  a Fraktion split (less than 80 percent for one option) is not a fair puzzle,
+  and the validator refuses it.
 
-**Sharing**
+**Launch and the switch**
 
-- The shared text carries the puzzle number, the score and an invitation, and
-  nothing else: no per-party grid, no topic. A per-party grid hints at the
-  answers to anyone who has not played yet. A test shows that two games with
-  the same score produce identical text.
-- On phones the button opens the system share sheet with the text and the
-  share image together, so the apps offered are whatever the phone has
-  installed. Elsewhere it copies the text to the clipboard and offers the image
-  to save, and if even copying fails it shows the text to copy by hand.
-- The share image (`/stimmts/share`, square, story and link preview) is drawn
-  from its URL alone: the number, the score and the player's period as one
-  character per day. Nothing is stored on a server. Like the text, it never
-  shows the topic, the title or anything per party. The shared link carries
-  the number and the score, so its preview shows them.
+- One public-read Firestore doc, `system_status/stimmts`
+  `{enabled, launch_date}`, read live. The launch date is day 1, so the
+  committed content holds no dates and the calendar starts whenever the game
+  is switched on. Anything unclear (missing doc, `enabled` not exactly true, a
+  date that does not exist) means off, so a typo can hide the game but never
+  start it on the wrong day.
+- The launch date must not change once anyone has played: it would renumber
+  every day. Switching off and on does not pause the calendar.
 
 **Content**
 
-- Puzzles are data in the repository (`puzzles.json`), not a database. A
-  separate `schedule.json` says which puzzle runs on which day, so swapping,
-  reordering or dropping a puzzle is a one-line edit.
-- Every puzzle has a review status, draft or approved. Production serves only
-  approved puzzles. A puzzle without an approved status shows as "not yet
-  released" instead of breaking the day.
-- Party reasons are shown only with a source. A party without one says so; the
-  game never shows a guess.
+- Puzzles are data in the repository: `puzzles.json` is the library (every
+  reviewed puzzle, spares included), `schedule.json` the running order.
+  Swapping a puzzle is a one-line edit; [CONTENT.md](CONTENT.md) is the guide.
+- **Committed means approved.** There is no draft status: the whole file ships
+  to the browser, so a draft could not be kept out anyway. A batch is reviewed
+  before it is committed.
+- Future days' answers are in the bundle too. They are public facts about past
+  votes; the switch hides the game, not the data.
+- After launch, only days not yet shown may change.
 
-**Chat handoff (postponed)**
+**Sharing**
 
-- Postponed by the product owner. A chat exists only per election, so the only
-  one available for Bundestag votes is a past election's. A general "ask the
-  parties" chat is to follow once the data pipeline runs for all states.
-- The design is kept for when it is picked up: a link to a chat with all five
-  parties and the puzzle's question, sent immediately (`q`) because the player
-  has just pressed a button asking for exactly that. It must never target a
-  study context, and the link should be built in one small module, so a change
-  to the chat's routes is a one-file edit.
+- The shared text carries the number, the score and an invitation, nothing
+  per party, so it gives nothing away to someone who has not played. Two games
+  with the same score share identical text (tested).
+- On phones the share sheet gets the text and the image together; elsewhere
+  the text is copied and the image can be saved; if copying fails, the text is
+  shown to copy by hand.
+- The share image (`/stimmts/share`, square, story and link preview) is drawn
+  from its URL alone: format, number, score, the day it was played, and the
+  player's period as one character per day. Nothing is stored, and the image
+  needs neither the launch date nor a database.
+- Each image has one canonical URL; any other spelling redirects to it, so the
+  CDN holds each image once. Its fonts are loaded once per server; if they
+  cannot be loaded, the image is drawn in next/og's own face and not cached.
+- The plain `/stimmts` link previews a general card with no number or date,
+  which is right whether or not the game is running.
+
+**Measuring**
+
+- Vercel Analytics events: `stimmts_puzzle_started`,
+  `stimmts_puzzle_completed` (day, score), `stimmts_result_shared` (screen,
+  method, day), `stimmts_rated` (stars, games) and
+  `stimmts_rating_dismissed`. Each puzzle is counted once, not again on a
+  reload or in another tab. Only counts leave the device, never the tips.
+- Feedback is one tap: five stars after the fifth finished puzzle, asked once.
+  Written forms are mostly closed unread, so the Fillout form
+  (`STIMMTS_FEEDBACK_FORM_ID`, empty until the form exists) is only offered
+  after a rating.
+
+**Accessibility**
+
+- Playable by keyboard and screen reader: focus moves to each new screen's
+  heading, the next party is announced, the answer buttons keep focus through
+  the double-tap guard. The chamber is one image to a screen reader; the list
+  under it ("Deine Tipps") offers the same actions as real buttons.
+- Fits 320 px screens ("Enth." below about 370 px), and the Wahlperiode's seats
+  have tap areas larger than their dots.
+
+**The chat link (waiting)**
+
+- The point of the game is to learn, and the natural next question is "why
+  did this party vote that way?". The link waits for the general chat (in
+  progress), since chats today exist only per election. An earlier version is
+  kept on the branch `parking/stimmts-chat-handoff`. It must never open a study
+  context.
 
 **Technical**
 
-- Everything the player has done lives on the device (`localStorage`); nothing
-  about the player is stored on the server.
-- Mechanics before looks: what the player sees, when, and what they are asked
-  to do is settled first. The visual design waits for the landing page redesign
-  in review; the game uses plain styling until it merges, then reuses its
-  hemicycle, palette and seating order. Plan B: if it is not merged in time for
-  launch, ship the game on its own page with a simple link and integrate later.
+- Everything the player has done lives on the device (`localStorage`);
+  nothing about the player is stored on the server.
+- The rules are plain functions without a browser, tested directly; the
+  components display state and forward taps. Firestore is only touched by the
+  switch listener, so the rules stay testable with `bun test`.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  subgraph Content["Content in the repo"]
+  subgraph Repo["Content in the repo"]
     P[puzzles.json]
     S[schedule.json]
   end
+  F[("Firestore system_status/stimmts")] -- live --> ST["status: off / launch date"]
   P --> V[validate]
   S --> V
-  V --> C["content: PUZZLES, SCHEDULE"]
-  K["clock: real time, or preview ?day=N"] --> T["schedule: today's puzzle"]
+  V --> C["content: PUZZLES, createSchedule"]
+  ST --> L["launch date (or today, in preview)"]
+  L --> C
+  K["clock: real, or preview ?day=N"] --> T["today's puzzle"]
   C --> T
   T --> UI["game page"]
-  UI -- "tap an answer" --> ST["progress store"]
-  ST -- "saved on every change" --> LS[("localStorage")]
-  LS -- "read once after mount" --> ST
-  ST --> UI
-  UI --> SH["share text + share action"]
+  UI -- "an answer" --> PS["progress store"]
+  PS <--> LS[("localStorage")]
+  UI --> SH["share text, share image URL"]
+  UI --> AN["analytics events"]
 ```
 
 ### Principles
 
-- **A pure core with thin shells.** The rules (which puzzle is today's, the
-  score, the streak, the share text, the saved-progress logic)
-  are plain functions with no browser in them, tested directly. The React
-  components only display state and forward taps.
-- **Parse, don't cast.** Puzzle files and saved progress are checked when they
-  are loaded. A broken puzzle file fails the tests and the build; damaged saved
-  data is dropped instead of breaking the page.
+- **Parse, don't cast.** Puzzle files, the switch doc and saved progress are
+  checked when read. A broken puzzle file fails the tests and the build;
+  damaged saved data is dropped instead of breaking the page, and a save from
+  a newer version of the game is left alone rather than overwritten.
 - **Hydration-safe.** The server and the first browser render show the same
-  empty state. Saved progress, the time and the address are read only after the
-  page has mounted.
+  loading state; saved progress, the time and the address are read after
+  mount.
 - **The Berlin clock.** "Today" is the Berlin calendar date, never the
-  player's own. The moment tomorrow's puzzle opens is found by bisection, which
-  stays correct on the 23-hour and 25-hour days when the clocks change. A page
-  left open past midnight switches puzzles by itself.
-- **Answers are final and saved on tap.** Which screen shows is derived from
-  the saved answers, so a reload resumes exactly where the player was and
-  cannot be used to take an answer back. A short delay after each new party
-  stops a double tap from answering two.
+  player's own. The next midnight is found by bisection, which stays correct
+  on the 23-hour and 25-hour days.
+- **Answers are final and saved on tap.** The screen is derived from the saved
+  answers, so a reload resumes where the player was and cannot take an answer
+  back. Every write starts from what is saved, so an older tab cannot
+  overwrite a newer one.
 
 ### Where things live
 
-| Area | Files |
+| Area | Files (in `web/lib/stimmts/` unless noted) |
 | --- | --- |
-| Contract and content | `web/lib/stimmts/types.ts`, `validate.ts`, `content.ts`, `content/puzzles.json`, `content/schedule.json` |
-| Time and schedule | `berlin-time.ts`, `schedule.ts`, `preview.ts` |
-| Game rules | `score.ts`, `progress.ts`, `period.ts` (the Wahlperiode), `streak.ts` |
+| Contract and content | `types.ts`, `validate.ts`, `content.ts`, `content/puzzles.json`, `content/schedule.json`; test fixtures in `fixtures/` |
+| Switch and launch | `status.ts`, `use-stimmts-status.ts`; the listener in `web/lib/firebase/firebase.ts` |
+| Time and schedule | `berlin-time.ts`, `schedule.ts`, `preview.ts`, `countdown.ts` |
+| Game rules | `score.ts`, `progress.ts`, `period.ts` (the Wahlperiode) |
 | State | `progress-store.ts`, `use-progress.ts` |
-| Sharing | `share.ts`, `share-action.ts`, `share-image.ts`, `countdown.ts` |
-| Look | `fonts.ts`, `parties.ts`, `hemicycle.ts`, `chamber-state.ts`, `game-view.ts`, `logo.ts` |
+| Sharing | `share.ts`, `share-action.ts`, `share-image.ts`, `load-once.ts` |
+| Measuring | `analytics.ts`, `feedback.ts` |
+| Look | `fonts.ts`, `parties.ts`, `hemicycle.ts`, `chamber-state.ts`, `game-view.ts`, `logo.ts`; logos in `web/public/images/stimmts/logos/` |
 | Wording | `labels.ts` |
-| Screens | `web/components/stimmts/`: `stimmts-game` (clock, store, states), `puzzle-game` (which screen), `briefing`, `guess-step`, `reveal`, `result`, and their parts (`hemicycle`, `stimmkarte`, `bill-sheet`, `wahlperiode`, `share-image`, …) |
-| Routes | `web/app/(with-header)/stimmts/page.tsx` (not indexed until release) and the share image at `web/app/stimmts/share/route.tsx`; `/stimmts` is registered as a static page in `web/middleware.ts` |
+| Screens | `web/components/stimmts/`: `stimmts-game` (switch, clock, store, which state), `puzzle-game` (which screen), `briefing`, `guess-step`, `reveal`, `result`, `closing-screen`, `status-screen`, and their parts |
+| Routes | `web/app/(with-header)/stimmts/page.tsx` (not indexed until launch) and the share image at `web/app/stimmts/share/route.tsx`; `/stimmts` is a static page in `web/middleware.ts` and a reserved segment for page visits |
 
 ### Preview mode
 
-For developing before launch. It is on in local development and wherever
-`NEXT_PUBLIC_STIMMTS_PREVIEW=true`, and never on Vercel's production
-deployment (decided on the server, where `VERCEL_ENV` is known), so players
-only get the real puzzle of the day.
+For testing before and after launch. It is on in local development and
+wherever `NEXT_PUBLIC_STIMMTS_PREVIEW=true`, and never on Vercel's production
+deployment (decided on the server, where `VERCEL_ENV` is known).
 
 - The game plays even while the switch is off: day 1 is the configured launch
   date if there is one, otherwise today.
-- `?day=N` opens the N-th day after the launch date, up to the day after the
-  last puzzle.
-- A bar at the bottom resets one puzzle (keeping the other days, so the
-  Wahlperiode across several days can be tested) or everything.
+- `?day=N` opens the N-th day, up to the day after the last puzzle (the
+  closing screen).
+- A bar at the bottom resets one puzzle, keeping the other days, or
+  everything.
 
 ## Content
 
@@ -235,177 +253,113 @@ How to swap or add a puzzle is in [CONTENT.md](CONTENT.md).
 
 ### The puzzle contract
 
-Each puzzle is prepared and reviewed ahead of time:
-
-- id, review status, date of the vote, topic label
-- the number of members without a Fraktion, so the chamber shows every seat
-- optionally the bill's Drucksache (type, number, date, who submitted it, the
-  full official title, the PDF, and the version voted on), copied exactly and
-  checked by a person; without it the briefing shows the plain layout
-- neutral title, spoiler-free briefing, "Ja bedeutet …" line
+- id, date of the vote, topic label, neutral title
+- a spoiler-free briefing and a "Ja bedeutet …" line
 - the overall outcome
-- per party, in seating order: the answer (Ja, Nein or Enthaltung) and the
-  counts (yes, no, abstain, did not vote)
-- per party: a reason with a short quote and a source, or no entry
-- a link to the source, and the question used to open the chat
-
-The validator rejects a puzzle whose parties are too split to have one answer:
-the answer must hold at least 80 percent of the votes cast.
+- per Fraktion, in seating order: the answer and the counts (yes, no,
+  abstain, did not vote); the members without a Fraktion, so the chamber
+  shows all 630 seats
+- optionally the bill's Drucksache (type, number, date, who submitted it, the
+  full official title, the PDF, the version voted on), copied exactly; without
+  it the briefing uses a plain layout
+- the source link (the vote's Abgeordnetenwatch page)
 
 ### What the data showed
 
-From the public Abgeordnetenwatch data for the 21st Bundestag:
+From Abgeordnetenwatch's data for the 21st Bundestag (October 2026):
 
-- **72 roll-call votes in the term, 33 since January 2026.** Enough for a
-  pilot with little slack. Several cluster on one day, so 2026 holds roughly 20
-  distinct topics and the rest will come from 2025. New votes keep arriving.
-- **Parties vote as blocs.** In all 33 votes every party was between 92 and
-  100 percent on one side, so the unity rule almost never fires.
-- **Union and SPD voted identically in all 33.** Coalition discipline means
-  four free decisions per puzzle, and regular players will notice. The surprise
-  lives in the opposition seats and in Enthaltung, so votes are picked for
-  variety. If it makes the game too easy, a bonus question is an option.
-- **"Ja" does not always mean what it sounds like.** Many votes are on a
-  committee's recommendation ("Ablehnung eines Antrags …"), where Ja means
-  "reject the motion". Hence the explicit line, and a preference for direct
-  laws and motions.
+- **85 roll-call votes** in the term, 46 of them in 2026. Several fall on the
+  same day and topic, so the pool of distinct puzzles is smaller, but enough
+  for 30 plus spares.
+- **Parties vote as blocs**, so the 80 percent rule rarely refuses a vote.
+- **Union and SPD almost always vote alike** (coalition discipline). The
+  surprises live in the opposition and in Enthaltung, so votes are picked for
+  variety of patterns.
+- **"Ja" does not always mean what it sounds like.** On a committee's
+  recommendation Ja can mean "reject the motion"; hence the explicit line.
 - **The official description gives the answer away** ("hat zugestimmt", the
-  tally, who argued for it) and runs to thousands of characters of HTML. The
-  briefing is a short neutral rewrite, approved by a person.
-- Party labels can carry an invisible soft hyphen (the Greens).
+  tally), so the briefing is a short neutral rewrite, read by a person.
 
 ### Data source
 
-The vote facts come from the votes already stored for the chat. One stored
-vote holds the title, date, the Abgeordnetenwatch poll id and page, the
-participating parties, the per-party counts, the outcome, and a text made of
-the title, topics and description. Using it means the puzzle and the chat can
-never disagree about a vote, and the party mapping and tallies are already
-tested.
-
-An offline export script will read that data and write the puzzle files; the
-game itself never talks to the vector store. What the stored copy lacks: links
-to the original Bundestag documents (the Abgeordnetenwatch page is the source
-link instead), and a separate topic field.
-
-Overlap to resolve: the daily-feed landing work in review also builds per-vote
-party results and per-party debate positions with sources. If it lands, it may
-replace most of the export and reasons pipeline.
+Puzzles are drafted from Abgeordnetenwatch's public API (votes and per-member
+results) and, for the bill sheet, the Bundestag's DIP API (Drucksachen). The
+stored chat corpus is not used: it lacks the Drucksache links the bill sheet
+needs. The game never calls these APIs at runtime; everything is prepared
+offline and committed.
 
 ### Choosing the votes
 
 Written down before picking, so the selection can be defended as neutral:
 
-- 21st Bundestag roll-call votes, 2026 first, reaching into 2025 as needed.
-- At most one puzzle per topic cluster.
-- Prefer direct laws and motions; avoid "Ablehnung von …" votes unless "Ja
+- 21st Bundestag roll-call votes.
+- At most one puzzle per topic cluster, and votes on the same day kept apart.
+- Prefer direct laws and motions; a committee recommendation only when "Ja
   bedeutet …" fits in one clear sentence.
-- At least eight distinct topic labels, and motions from both government and
-  opposition.
-- At least a third with a real surprise (a seat that breaks the expected
-  pattern), and a mix of angenommen and abgelehnt.
+- Many distinct topics, motions from government and opposition, a mix of
+  angenommen and abgelehnt, and at least a third with a real surprise.
 - Sensitive topics are fine when framed neutrally; no run of puzzles should
   feel one-sided.
-
-### Reasons: sourced or absent
-
-An invented motive attributed to a real party would damage the trust the
-product depends on, so:
-
-1. Reasons come from the plenary debate on that vote: speeches are found by
-   the vote's date and the party, ranked by similarity to the subject, and a
-   person confirms they belong to that agenda item.
-2. Every reason cites a speech (speaker, protocol, page) and a short quote.
-3. It is worded as attribution ("Die Linke begründete ihr Nein in der Debatte
-   mit …"), never as inference ("… lehnt ab, weil …").
-4. Some votes have no debate, or a party did not speak: then the screen says
-   so.
-5. A person reads every one before it goes live, with the same length and tone
-   for every party.
-6. They are generated in advance, never while the player waits.
-
-The link between a vote and its debate is not stored anywhere, so this lookup
-is the least certain part of the plan and is tested on a few votes first.
 
 ## Constraints
 
 - **Neutrality.** Facts with sources only, no loaded framing.
-- **Privacy.** Progress and streak stay on the device. Nothing political about
-  the player is stored.
-- **The study.** The game never opens a chat in the study contexts, and must
-  respect the rule that the study questionnaire is the only thing anyone is
-  asked while the study runs.
-- **Same puzzle for everyone.** Puzzle N is a function of the Berlin date.
-  The answers ship to the browser, which is acceptable for a casual game.
+- **Privacy.** Progress stays on the device. Nothing political about the
+  player is stored or sent.
+- **Same puzzle for everyone.** Puzzle N is a function of the Berlin date and
+  the launch date. The answers ship to the browser, which is acceptable for a
+  casual game.
 - **Translation.** Browsers that translate the page rewrite text in place and
-  garble anything that updates every second, so the countdown is marked as not
-  translatable.
+  garble anything updating every second, so the countdown is not translated.
 
 ## Testing
 
-The rules are covered by unit tests: the content contract, the Berlin day
-including both clock changes, scheduling and drafts, scoring, streaks across
-days and reloads, saving and resuming, the preview clock, the share text and
-share action, and the countdown format.
+Unit tests cover the content contract, the switch, the Berlin day including
+both clock changes, the launch-relative schedule, scoring, saving and resuming
+(including other tabs and newer saves), the Wahlperiode, the preview clock,
+the share text, image URLs and share action, the font loader, the countdown
+and the feedback rule. They run on fixtures, so real content can change
+without touching them; separate tests check the shipped content.
 
-Checked by hand, because it needs a browser: the screens and the reveal, the
-share sheet and clipboard, the translated page, and reload and resume. Not yet
-exercised live: the page switching itself at Berlin midnight.
+Checked in a browser: every switch state live, the share route (valid,
+redirected and refused URLs, a font outage), keyboard and screen-reader
+flows, 320 px and 375 px widths, two tabs, and a tab moved past midnight.
 
 ## Status and rollout
 
-**Done (phase 1, the playable skeleton).** Contract and sample puzzles, the
-rules, saving, the hidden page with all screens, preview mode, sharing and the
-countdown.
+**Done:** the game, the switch, the status and closing screens, the intro,
+sharing, robustness, accessibility, analytics and the rating.
 
 **Next.**
 
-0. *Settle the mechanics* with the product owner, using the screens and open
-   questions above.
-1. *Real content.* Load the current term's votes locally, export draft
-   puzzles, write and approve the briefings, find and review the sourced
-   reasons, fill and schedule the 30 puzzles.
-2. *Look and feel.* Done on the game page. The landing page entry (the game
-   as one row, the player's Wahlperiode once played) waits for the landing
-   page work, whose hemicycle layout the game should then share.
-3. *Release.* Landing page card, a kill switch modelled on the study one,
-   analytics (started, finished, shared), remove the
-   noindex, and a launch checklist.
+1. *Real content:* an exporter for the Abgeordnetenwatch and DIP data, the 30
+   chosen votes drafted and reviewed in batches, the running order.
+2. *Review and test:* a code review and a local test, then the branch as a
+   draft pull request for the team to try.
+3. *The chat link,* once the general chat exists.
+4. *The landing-page card,* once the news feed is merged, which then also
+   shares its chamber layout with the game.
+5. *Launch:* indexing (`productionRobots`, canonical, sitemap) and the
+   production switch doc.
 
-**Launch checklist.** At least the first week of puzzles approved, with
-approvals kept ahead of the calendar; the kill switch working; analytics in place; the page indexed; a tab left open through the
-first midnight.
-
-**Pull requests**, small and invisible until the last: the logic and state,
-the page, the content and scripts, then the landing card and switch, which is
-the launch.
-
-**Judging the pilot.** Return rate, streak lengths and shares, after about 30
+**Judging the pilot.** Return rate, completion, shares and ratings over the 30
 days.
 
 ## Risks and open questions
 
-- **Supply and quality of puzzles.** Few votes per month, near-duplicates, and
-  the fixed Union and SPD pairing.
-- **The reasons lookup** (vote to debate) is unproven.
-- **The chat link, when it returns.** Whether a chat reliably finds a vote from
-  2026 is unverified and should be checked on a deployed copy.
-- **Timeline.** The content work, not the code, decides whether 1 November
-  holds.
-- **Landing page.** The visual integration depends on a change still in review.
-- **Sharing on Instagram** is up to Instagram: a website cannot make an app
-  appear in the share sheet, and plain text cannot go to a Story. A share image
-  would help.
+- **Content quality.** Each briefing must be neutral and correct; it is the
+  slowest part of the work.
+- **The chat link** depends on the general chat, and whether it reliably finds
+  a vote from 2025 or 2026 is untested.
+- **Sharing on Instagram** is up to Instagram: a website cannot add an app to
+  the share sheet.
 
 ## Later ideas
 
-- Other modes: "Welche Partei?" with progressive clues, civic trivia, a
-  coalition builder. An archive of past puzzles. Regional editions.
-- Hemicycle share image; a crowd statistic ("62 % hatten alle richtig"), which
-  needs a server-side counter.
-- Per-party chat links on the result screen.
-- Topic tags as a first interest signal for personalization. A per-user
-  profile needs the explicit consent gate first.
-- Reminders through the installed app; upgrading the anonymous user to a login
-  so streaks survive a cleared browser.
-- A weekly vote of the week generated from newly ingested votes.
+- Other modes: "Welche Partei?" with clues, civic trivia, a coalition builder.
+  Regional editions.
+- A crowd statistic ("62 % hatten alle richtig"), which needs a server-side
+  counter.
+- Topic tags as a first interest signal. A per-user profile needs the
+  explicit consent gate first.
+- A weekly vote generated from newly ingested votes.
