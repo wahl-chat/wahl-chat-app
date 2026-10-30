@@ -21,6 +21,12 @@ def _topic(poll: dict) -> str:
     return poll["topics"][0] if poll["topics"] else "?"
 
 
+def _accepted(poll: dict) -> bool:
+    """The outcome, taking the counts' side where they contradict the flag."""
+    flagged = bool(poll["accepted"])
+    return not flagged if outcome_problem(poll["parties"], flagged) else flagged
+
+
 def _outcome(poll: dict) -> str:
     said = "angenommen" if poll["accepted"] else "abgelehnt"
     # Marked when Abgeordnetenwatch's outcome contradicts the counts.
@@ -86,8 +92,8 @@ def selection_report(
         "",
         f"The picks in numbers: {len({_topic(p) for p in chosen})} topics, "
         f"{sum(p['date'] >= '2026-01-01' for p in chosen)} from 2026, "
-        f"{sum(bool(p['accepted']) for p in chosen)} accepted and "
-        f"{sum(p['accepted'] is False for p in chosen)} rejected, "
+        f"{sum(_accepted(p) for p in chosen)} accepted and "
+        f"{sum(not _accepted(p) for p in chosen)} rejected, "
         f"{sum('E' in pattern(p['parties']) for p in chosen)} with an "
         f"abstention, {len({pattern(p['parties']) for p in chosen})} different "
         "patterns.",

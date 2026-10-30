@@ -4,11 +4,11 @@ A daily puzzle for wahl.chat: players guess how each Fraktion in the Bundestag
 voted on one real roll-call vote, see what happened, collect the day's
 Stimmkarte in their Wahlperiode, and share the score.
 
-Status: the game is complete and **off by default**; it goes live by flipping
-a Firestore switch (see the Stimmt's? section in `AGENTS.md`). Still ahead: the
-30 real puzzles (three samples ship today), the link into the chat (waiting
-for the general chat), and the landing-page card (waiting for the news feed).
-See [Status and rollout](#status-and-rollout).
+Status: the game is complete, with all 30 puzzles of the pilot written and
+scheduled, and **off by default**; it goes live by flipping a Firestore switch
+(see the Stimmt's? section in `AGENTS.md`). Still ahead: the link into the
+chat (waiting for the general chat) and the landing-page card (waiting for the
+news feed). See [Status and rollout](#status-and-rollout).
 
 ## Why it exists
 
@@ -279,6 +279,11 @@ From Abgeordnetenwatch's data for the 21st Bundestag (October 2026):
   recommendation Ja can mean "reject the motion"; hence the explicit line.
 - **The official description gives the answer away** ("hat zugestimmt", the
   tally), so the briefing is a short neutral rewrite, read by a person.
+- **The sources are not always right.** Abgeordnetenwatch marked one vote as
+  accepted that its own counts show was rejected, and DIP spells a Fraktion
+  differently from the printed cover. The exporter flags an outcome that
+  contradicts the counts, and the reviewer checks the Drucksache against its
+  PDF.
 
 ### Data source
 
@@ -332,18 +337,18 @@ flows, 320 px and 375 px widths, two tabs, and a tab moved past midnight.
 ## Status and rollout
 
 **Done:** the game, the switch, the status and closing screens, the intro,
-sharing, robustness, accessibility, analytics and the rating.
+sharing, robustness, accessibility, analytics and the rating; the exporter;
+the 30 puzzles, reviewed in three batches, and their running order (see
+[puzzle-selection.md](puzzle-selection.md) for why each vote was picked).
 
 **Next.**
 
-1. *Real content:* an exporter for the Abgeordnetenwatch and DIP data, the 30
-   chosen votes drafted and reviewed in batches, the running order.
-2. *Review and test:* a code review and a local test, then the branch as a
-   draft pull request for the team to try.
-3. *The chat link,* once the general chat exists.
-4. *The landing-page card,* once the news feed is merged, which then also
+1. *Review and test:* an independent code and content review and a local
+   test, then the branch as a draft pull request for the team to try.
+2. *The chat link,* once the general chat exists.
+3. *The landing-page card,* once the news feed is merged, which then also
    shares its chamber layout with the game.
-5. *Launch:* indexing (`productionRobots`, canonical, sitemap) and the
+4. *Launch:* indexing (`productionRobots`, canonical, sitemap) and the
    production switch doc.
 
 **Judging the pilot.** Return rate, completion, shares and ratings over the 30
