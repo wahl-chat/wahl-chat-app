@@ -55,7 +55,7 @@
       "number": "21/6561",
       "date": "2026-06-18",
       "initiator": "der Bundesregierung",
-      "title": "Entwurf eines Gesetzes zur Umsetzung der Richtlinien (EU) 2025/1 und (EU) 2025/2 zur Festlegung eines Rahmens für die Sanierung und Abwicklung von Versicherungsunternehmen sowie zur Änderung des Aufsichtsrahmens für Versicherungsunternehmen (Versicherungs-Sanierungs-Abwicklungs-und-Aufsichtsänderungs-Gesetz - VSAAG)",
+      "title": "Entwurf eines Gesetzes zur Umsetzung der Richtlinien (EU) 2025/1 und (EU) 2025/2 zur Festlegung eines Rahmens für die Sanierung und Abwicklung von Versicherungsunternehmen sowie zur Änderung des Aufsichtsrahmens für Versicherungsunternehmen (Versicherungs-Sanierungs-Abwicklungs-und-Aufsichtsänderungs-Gesetz – VSAAG)",
       "url": "https://dserver.bundestag.de/btd/21/065/2106561.pdf",
       "votedIn": {
         "label": "Beschlussempfehlung des Finanzausschusses",
@@ -124,7 +124,7 @@
       "number": "21/1853",
       "date": "2025-09-29",
       "initiator": "der Bundesregierung",
-      "title": "Entwurf eines Gesetzes zur Modernisierung des Wehrdienstes - Wehrdienst-Modernisierungsgesetz (WDModG)",
+      "title": "Entwurf eines Gesetzes zur Modernisierung des Wehrdienstes (Wehrdienst-Modernisierungsgesetz – WDModG)",
       "url": "https://dserver.bundestag.de/btd/21/018/2101853.pdf",
       "votedIn": {
         "label": "Beschlussempfehlung des Verteidigungsausschusses",
@@ -401,10 +401,10 @@
       "type": "Gesetzentwurf",
       "number": "21/652",
       "date": "2025-06-26",
-      "fraktion": "der AfD",
+      "fraktion": "AfD",
       "members": ["Stephan Brandner", "Thomas Fetsch"],
       "memberCount": 18,
-      "title": "Entwurf eines Gesetzes zur Abschaffung des § 188 des Strafgesetzbuchs - Stärkung der Meinungsfreiheit und Gleichheit vor dem Gesetz",
+      "title": "Entwurf eines Gesetzes zur Abschaffung des § 188 des Strafgesetzbuchs – Stärkung der Meinungsfreiheit und Gleichheit vor dem Gesetz",
       "url": "https://dserver.bundestag.de/btd/21/006/2100652.pdf",
       "votedIn": {
         "label": "Beschlussempfehlung des Ausschusses für Recht und Verbraucherschutz",
@@ -675,6 +675,19 @@
       }
     ],
     "unaffiliated": 3,
+    "document": {
+      "type": "Verordnung",
+      "number": "21/5069",
+      "date": "2026-03-30",
+      "initiator": "der Bundesregierung",
+      "title": "Verordnung zur Überführung der jährlichen Minderungsziele in Jahresemissionsgesamtmengen für die Jahre 2031 bis 2040 (Jahresemissionsgesamtmengen-Verordnung 2031-2040 – JEGMV 2031-2040)",
+      "url": "https://dserver.bundestag.de/btd/21/050/2105069.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Ausschusses für Umwelt, Klimaschutz, Naturschutz und nukleare Sicherheit",
+        "number": "21/6124",
+        "url": "https://dserver.bundestag.de/btd/21/061/2106124.pdf"
+      }
+    },
     "source": {
       "label": "Abgeordnetenwatch",
       "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/neue-emissionsobergrenzen-fuer-die-jahre-2031-bis-2040"
@@ -802,10 +815,10 @@
       "number": "21/5921",
       "date": "2026-05-13",
       "initiator": "der Bundesregierung",
-      "title": "Entwurf eines Gesetzes zur Regelung der Förderung des Spitzensports und weiterer Maßnahmen gesamtstaatlicher Bedeutung im Sport sowie zur Errichtung der Spitzensport-Agentur (Sportfördergesetz - SpoFöG)",
+      "title": "Entwurf eines Gesetzes zur Regelung der Förderung des Spitzensports und weiterer Maßnahmen gesamtstaatlicher Bedeutung im Sport sowie zur Errichtung der Spitzensport-Agentur (Sportfördergesetz – SpoFöG)",
       "url": "https://dserver.bundestag.de/btd/21/059/2105921.pdf",
       "votedIn": {
-        "label": "Beschlussempfehlung des Sportausschusses",
+        "label": "Beschlussempfehlung des Ausschusses für Sport und Ehrenamt",
         "number": "21/7006",
         "url": "https://dserver.bundestag.de/btd/21/070/2107006.pdf"
       }
@@ -873,7 +886,7 @@
       "fraktion": "der AfD",
       "members": ["Leif-Erik Holm", "Marc Bernhard"],
       "memberCount": 39,
-      "title": "Deindustrialisierung stoppen - Verbrenner-Verbot aufheben",
+      "title": "Deindustrialisierung stoppen – Verbrenner-Verbot aufheben",
       "url": "https://dserver.bundestag.de/btd/21/002/2100225.pdf",
       "votedIn": {
         "label": "Beschlussempfehlung des Ausschusses für Wirtschaft und Energie",
@@ -944,7 +957,7 @@
       "fraktion": "BÜNDNIS 90/DIE GRÜNEN",
       "members": ["Schahina Gambir", "Marcel Emmerich"],
       "memberCount": 23,
-      "title": "Wort halten, Leben schützen - Visa für afghanische Staatsangehörige mit Aufnahmezusage erteilen und gerichtliche Entscheidungen umsetzen",
+      "title": "Wort halten, Leben schützen – Visa für afghanische Staatsangehörige mit Aufnahmezusage erteilen und gerichtliche Entscheidungen umsetzen",
       "url": "https://dserver.bundestag.de/btd/21/030/2103031.pdf"
     },
     "source": {
@@ -1145,7 +1158,7 @@
       "fraktion": "BÜNDNIS 90/DIE GRÜNEN",
       "members": ["Ayse Asar", "Dr. Andrea Lübcke"],
       "memberCount": 7,
-      "title": "Bildung bezahlbar machen - BAföG-Reform jetzt",
+      "title": "Bildung bezahlbar machen – BAföG-Reform jetzt",
       "url": "https://dserver.bundestag.de/btd/21/022/2102234.pdf",
       "votedIn": {
         "label": "Beschlussempfehlung des Ausschusses für Forschung, Technologie, Raumfahrt und Technikfolgenabschätzung",
@@ -1301,7 +1314,7 @@
     "voteDate": "2026-07-08",
     "topic": "Verteidigung",
     "title": "Ukraine zusätzlich militärisch und humanitär unterstützen",
-    "briefing": "Die Fraktion Bündnis 90/Die Grünen hat einen Antrag mit dem Titel „Den russischen Krieg gegen die Ukraine beenden – Die Ukraine jetzt zusätzlich militärisch und humanitär stärken“ eingebracht. Er fordert die Bundesregierung unter anderem auf, die militärische Unterstützung der Ukraine auszuweiten, Luftverteidigung und Munitionsversorgung zu stärken, die humanitäre Hilfe fortzuführen und den Druck auf Russland durch Sanktionen aufrechtzuerhalten. Außerdem spricht sich der Antrag für den Wiederaufbau der Ukraine und ihre Annäherung an die Europäische Union aus.",
+    "briefing": "Die Fraktion Bündnis 90/Die Grünen fordert die Bundesregierung in einem Antrag unter anderem auf, die militärische Unterstützung der Ukraine auszuweiten, Luftverteidigung und Munitionsversorgung zu stärken, die humanitäre Hilfe fortzuführen und den Druck auf Russland durch Sanktionen aufrechtzuerhalten. Außerdem spricht sich der Antrag für den Wiederaufbau der Ukraine und ihre Annäherung an die Europäische Union aus.",
     "yesMeans": "Ja bedeutet: dem Antrag der Grünen zustimmen.",
     "outcome": "rejected",
     "parties": [
@@ -1347,6 +1360,16 @@
       }
     ],
     "unaffiliated": 3,
+    "document": {
+      "type": "Antrag",
+      "number": "21/6912",
+      "date": "2026-07-07",
+      "fraktion": "BÜNDNIS 90/DIE GRÜNEN",
+      "members": ["Robin Wagener", "Deborah Düring"],
+      "memberCount": 23,
+      "title": "Den russischen Krieg gegen die Ukraine beenden – Die Ukraine jetzt zusätzlich militärisch und humanitär stärken",
+      "url": "https://dserver.bundestag.de/btd/21/069/2106912.pdf"
+    },
     "source": {
       "label": "Abgeordnetenwatch",
       "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/ukraine-zusaetzlich-militaerisch-und-humanitaer-unterstuetzen"
@@ -1543,7 +1566,7 @@
       "number": "21/600",
       "date": "2025-08-15",
       "initiator": "der Bundesregierung",
-      "title": "Entwurf eines Gesetzes über die Feststellung des Bundeshaushaltsplans für das Haushaltsjahr 2026 (Haushaltsgesetz 2026 - HG 2026)",
+      "title": "Entwurf eines Gesetzes über die Feststellung des Bundeshaushaltsplans für das Haushaltsjahr 2026 (Haushaltsgesetz 2026 – HG 2026)",
       "url": "https://dserver.bundestag.de/btd/21/006/2100600.pdf",
       "votedIn": {
         "label": "Beschlussempfehlung des Haushaltsausschusses",
