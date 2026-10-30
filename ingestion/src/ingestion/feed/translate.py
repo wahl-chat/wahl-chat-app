@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Literal, Optional
 
-from ingestion.feed.builder import DigestBuilder, strip_refs
+from ingestion.feed.builder import FeedBuilder, strip_refs
 from ingestion.feed.models import (
     CANONICAL_LOCALE,
     FeedItem,
@@ -205,7 +205,7 @@ def translation_problems(
 
 
 def _translate_batch(
-    builder: DigestBuilder,
+    builder: FeedBuilder,
     parliament_name: str,
     batch: list[FeedItem],
     locale: Locale,
@@ -253,7 +253,7 @@ def _translate_batch(
 
 def translate_items(
     items: list[FeedItem],
-    builder: DigestBuilder,
+    builder: FeedBuilder,
     locale: Locale = "en",
     *,
     now: Optional[datetime] = None,

@@ -6,12 +6,13 @@ import {
   getLinkedFeedDay,
   getParliamentFeed,
 } from '@/lib/firebase/firebase-server';
+import type { FeedPage } from '@/lib/firebase/firebase.types';
 import { BASE_URL, productionRobots } from '@/lib/seo';
 import type { Metadata } from 'next';
 
 const TITLE = 'Dein Parlament kompakt – wahl.chat';
 const DESCRIPTION =
-  'Abstimmungen und Debatten aus Bundestag und Landtag, Tag für Tag und nach Themen gefiltert. Mit Quellen, präsentiert von wahl.chat.';
+  'Abstimmungen und Debatten aus dem Bundestag, Tag für Tag und nach Themen gefiltert. Mit Quellen, präsentiert von wahl.chat.';
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },
@@ -31,6 +32,13 @@ export const metadata: Metadata = {
   },
 };
 
+const NO_FEED: FeedPage = {
+  editions: [],
+  items: [],
+  from: null,
+  hasOlder: false,
+};
+
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
@@ -38,23 +46,20 @@ type Props = {
 async function HomePage({ searchParams }: Props) {
   const params = await searchParams;
 
-  // All three parliaments are small, so switching the state stays client-side.
+  // Only the Bundestag is in the feed for now (see `DAILY_STATES`).
   const item = typeof params.item === 'string' ? params.item : undefined;
-  const [bundestag, landtagSt, landtagBw, previewDigests, linkedDay] =
-    await Promise.all([
-      getParliamentFeed('bundestag'),
-      getParliamentFeed('landtag_st'),
-      getParliamentFeed('landtag_bw'),
-      getLocalPreviewDigests(),
-      item ? getLinkedFeedDay(item) : null,
-    ]);
+  const [bundestag, previewDigests, linkedDay] = await Promise.all([
+    getParliamentFeed('bundestag'),
+    getLocalPreviewDigests(),
+    item ? getLinkedFeedDay(item) : null,
+  ]);
 
   return (
     <DailyFeed
       feeds={{
         bundestag,
-        landtag_st: landtagSt,
-        landtag_bw: landtagBw,
+        landtag_st: NO_FEED,
+        landtag_bw: NO_FEED,
       }}
       previewDigests={previewDigests}
       initialStates={parseStateParam(params.land)}

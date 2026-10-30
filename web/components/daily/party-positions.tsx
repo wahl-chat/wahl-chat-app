@@ -1,10 +1,14 @@
 'use client';
 
 import { sortBySeating } from '@/lib/daily/seating-order';
-import type { DigestPartyPosition } from '@/lib/firebase/firebase.types';
+import type {
+  DigestPartyPosition,
+  DigestSpeaker,
+} from '@/lib/firebase/firebase.types';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
 import Image from 'next/image';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
+import { MUTED_TEXT } from './card-styles';
 
 /**
  * Party logo on the party's own background colour, as everywhere on the site:
@@ -60,7 +64,34 @@ function ordered(
   return opener ? [opener, ...seated.filter((p) => p !== opener)] : seated;
 }
 
-/** "Wer sagt was": one line per Fraktion, marked by its logo. */
+/** A Fraktion whose position could not be summarised and checked: no
+ * sentence is put in its mouth, but its speeches are one click away. */
+function SpeechesOnly({ speakers }: { speakers: DigestSpeaker[] }) {
+  return (
+    <span className={MUTED_TEXT}>
+      Reden von{' '}
+      {speakers.map((speaker, i) => (
+        <Fragment key={speaker.name}>
+          {i > 0 && ', '}
+          {speaker.url ? (
+            <a
+              href={speaker.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2"
+            >
+              {speaker.name}
+            </a>
+          ) : (
+            speaker.name
+          )}
+        </Fragment>
+      ))}
+    </span>
+  );
+}
+
+/** "Wer sagt was": one line per Fraktion that spoke, marked by its logo. */
 export function PartyPositions({
   positions,
   openedBy,
@@ -90,7 +121,9 @@ export function PartyPositions({
               />
             </dt>
             <dd className={cn('min-w-0 pt-1', clamp && 'line-clamp-2')}>
-              {position.position}
+              {position.position ?? (
+                <SpeechesOnly speakers={position.speakers} />
+              )}
             </dd>
           </div>
         ))}

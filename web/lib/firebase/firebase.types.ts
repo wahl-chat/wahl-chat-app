@@ -202,7 +202,6 @@ export type DigestVote = {
   suggested_questions?: string[];
   /** The `FeedItem` it came from; absent on local previews. */
   item_id?: string;
-  legacy_keys?: string[];
 };
 
 export type DigestCitation = {
@@ -231,7 +230,9 @@ export type DigestPartyPosition = {
   party_name: string;
   color: string;
   speakers: DigestSpeaker[];
-  position: string;
+  /** Null when no position could be written and checked against the
+   * speeches; the Fraktion is still listed, with its speakers. */
+  position: string | null;
 };
 
 export type DigestAudioSummary = {
@@ -255,7 +256,7 @@ export type DigestSessionSection = {
   topics?: string[];
   headline: string;
   summary: string;
-  /** One entry per Fraktion that spoke; absent on older digests. */
+  /** One entry per Fraktion that spoke; absent on local previews. */
   positions?: DigestPartyPosition[];
   agenda_items: string[];
   citations: DigestCitation[];
@@ -264,7 +265,7 @@ export type DigestSessionSection = {
   audio?: DigestAudioSummary | null;
   /** Fields below are absent on older digests. Exactly three bullets. */
   key_points?: string[];
-  /** 1–5, relative to the other sections of the same sitting only. */
+  /** 1–5 on a fixed scale per debate; the feed rescales it per day. */
   heat?: number | null;
   /** Estimated from the speeches' word count. */
   debate_minutes?: number | null;
@@ -274,13 +275,11 @@ export type DigestSessionSection = {
   suggested_questions?: string[];
   /** The `FeedItem` it came from; absent on local previews. */
   item_id?: string;
-  legacy_keys?: string[];
 };
 
 export type DigestSession = {
   protocols: { protocol_id: string; pdf_url: string | null }[];
   sections: DigestSessionSection[];
-  other_topics: string[];
 };
 
 export type DailyDigest = {
@@ -295,7 +294,8 @@ export type DailyDigest = {
 };
 
 // Firestore `feed_editions/{edition_id}` and `feed_items/{item_id}`, written
-// by the backend feed builder (`ai-backend/src/feed/models.py`).
+// by the feed builder (`ingestion/src/ingestion/feed/models.py`). One item per
+// agenda item of a sitting (debate) or per poll (vote).
 
 export type FeedLocale = 'de' | 'en';
 
@@ -314,9 +314,11 @@ export type LocalizedContent = {
 
 export type DebateFacts = {
   protocols: { protocol_id: string; pdf_url: string | null }[];
-  agenda_items: string[];
+  /** The official agenda label. */
+  agenda_item: string;
   citations: DigestCitation[];
-  /** Same order as `positions` in every locale's content. */
+  /** Every Fraktion that spoke, from the source. A locale's `positions` has
+   * an entry only for those whose position was written and checked. */
   parties: {
     party_id: string;
     party_name: string;
@@ -357,7 +359,6 @@ export type FeedItem = {
   content: { de: LocalizedContent } & Partial<
     Record<FeedLocale, LocalizedContent>
   >;
-  legacy_keys: string[];
 };
 
 export type FeedEdition = {
@@ -369,7 +370,6 @@ export type FeedEdition = {
   date: string;
   protocols: { protocol_id: string; pdf_url: string | null }[];
   item_ids: string[];
-  other_topics: string[];
 };
 
 /** One parliament's recent editions and their items. */

@@ -161,3 +161,44 @@ def test_latest_publish_date_takes_the_max_across_source_types() -> None:
         "DE",
     )
     assert found == date(2026, 9, 25)
+
+
+def test_a_speech_after_midnight_stays_on_its_sittings_day() -> None:
+    payloads = [
+        _speech_chunk(sid="a", source="op", key="de-21-45-anna-top1", text="a"),
+        _speech_chunk(
+            sid="b",
+            source="op",
+            key="de-21-45-ben-top9",
+            text="b",
+            day="2026-09-25",
+        ),
+        # The next sitting, which really is the next day.
+        _speech_chunk(
+            sid="c",
+            source="op",
+            key="de-21-46-cara-top1",
+            text="c",
+            day="2026-09-25",
+        ),
+    ]
+    days = group_sitting_days(assemble_speeches(payloads))
+    assert sorted(days) == [date(2026, 9, 24), date(2026, 9, 25)]
+    assert [i.key for i in days[date(2026, 9, 24)].agenda_items] == [
+        "45:top1",
+        "45:top9",
+    ]
+    assert [i.key for i in days[date(2026, 9, 25)].agenda_items] == ["46:top1"]
+
+
+def test_agenda_items_know_their_session_and_start_unordered() -> None:
+    payloads = [
+        _speech_chunk(sid="b", source="op", key="de-21-45-ben-top1", text="b"),
+        _speech_chunk(sid="a", source="op", key="de-21-45-anna-top1", text="a"),
+    ]
+    [item] = group_sitting_days(assemble_speeches(payloads))[
+        date(2026, 9, 24)
+    ].agenda_items
+    assert (item.session, item.slug, item.ordered) == ((21, 45), "top1", False)
+    # Stable until the protocol orders them.
+    assert [s.source_item_id for s in item.speeches] == ["a", "b"]

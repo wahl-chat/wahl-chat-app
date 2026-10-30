@@ -6,8 +6,10 @@
 
 Summaries, headlines, party positions and translations are generated once and
 then reused by every surface, so correctness on the first try outweighs
-latency and cost: the chat's strongest flash models with high reasoning, and a
-timeout long enough for a full sitting day's prompt. No flash-lite here.
+latency and cost: the chat's strongest flash models with high reasoning. No
+flash-lite here. The timeout fits one debate's prompt; a model that takes
+longer fails over to the next, and the builder's deadline cuts the failover
+once the job's time budget is spent.
 
 An exhausted roster does not touch ``system_status/llm_status``: that flag
 tells chat users the service is degraded, and a batch run running out of
@@ -36,7 +38,7 @@ from wahlchat_common.vertex_credentials import (
 logger = logging.getLogger(__name__)
 
 PUBLICATION_THINKING = "high"
-_TIMEOUT_S = 300
+_TIMEOUT_S = 120
 
 
 def _build_publication_llms() -> list[RosterLLM]:
@@ -107,7 +109,7 @@ def _build_publication_llms() -> list[RosterLLM]:
 
 
 # One roster per process: the clients cache connections bound to the event
-# loop they first ran on (see ``DigestBuilder``).
+# loop they first ran on (see ``FeedBuilder``).
 _roster: list[RosterLLM] | None = None
 
 

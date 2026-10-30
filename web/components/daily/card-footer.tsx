@@ -1,6 +1,6 @@
 'use client';
 
-import { type DetailItem, legacyKeys } from '@/lib/daily/items';
+import type { DetailItem } from '@/lib/daily/items';
 import { shareItem } from '@/lib/daily/share';
 import { cn } from '@/lib/utils';
 import { Share2Icon } from 'lucide-react';
@@ -45,7 +45,7 @@ export function ItemTeaser({
 export function CardFooter({ item }: { item: DetailItem }) {
   return (
     <div className="mt-auto flex items-end justify-between gap-3">
-      <InterestFeedback itemKey={item.key} legacyKeys={legacyKeys(item)} />
+      <InterestFeedback itemKey={item.key} />
       <button
         type="button"
         aria-label="Teilen"

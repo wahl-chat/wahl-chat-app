@@ -185,7 +185,9 @@ jobs = {
       CONNECTOR_ID             = "feed"
       ELECTION_FIXTURES_SOURCE = "firestore" # party names + colours from the live DB
     }
-    args     = ["--days", "14", "--time-budget", "780"]
+    # ENV=dev writes the deployed dev Firestore, which the target guard only
+    # allows when asked to explicitly.
+    args     = ["--days", "14", "--time-budget", "780", "--allow-remote"]
     schedule = "*/30 6-7 * * 0"
   }
 }

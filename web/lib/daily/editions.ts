@@ -19,11 +19,11 @@ function toSection(
     topics: item.topics,
     headline: content.headline,
     summary: content.teaser ?? '',
-    positions: facts.parties.flatMap((party) => {
-      const position = text.get(party.party_id);
-      return position ? [{ ...party, position }] : [];
-    }),
-    agenda_items: facts.agenda_items,
+    positions: facts.parties.map((party) => ({
+      ...party,
+      position: text.get(party.party_id) ?? null,
+    })),
+    agenda_items: [facts.agenda_item],
     citations: facts.citations,
     video_url: facts.video_url,
     key_points: content.key_points,
@@ -33,7 +33,6 @@ function toSection(
     opened_by: facts.opened_by,
     suggested_questions: content.suggested_questions,
     item_id: item.id,
-    legacy_keys: item.legacy_keys,
   };
 }
 
@@ -54,7 +53,6 @@ function toVote(
     parties: facts.parties,
     suggested_questions: content.suggested_questions,
     item_id: item.id,
-    legacy_keys: item.legacy_keys,
   };
 }
 
@@ -85,13 +83,7 @@ export function editionToDigest(
     region: edition.region,
     date: edition.date,
     votes,
-    session: hasSession
-      ? {
-          protocols: edition.protocols,
-          sections,
-          other_topics: edition.other_topics,
-        }
-      : null,
+    session: hasSession ? { protocols: edition.protocols, sections } : null,
   };
 }
 

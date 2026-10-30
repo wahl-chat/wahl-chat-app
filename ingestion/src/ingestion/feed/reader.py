@@ -159,6 +159,14 @@ class AgendaItem:
     key: str
     label: str
     speeches: list[Speech]
+    # ``(ep, session)``; None for speeches whose key carries no session.
+    session: Optional[tuple[int, int]] = None
+    # "top20" / "zp5"; empty for speeches outside any agenda item.
+    slug: str = ""
+    # True once the speeches are in the order of the protocol (see
+    # ``protocol_pages.apply_protocols``). The corpus has no order of its own:
+    # a scroll returns points by id, and op.tv speeches carry no time of day.
+    ordered: bool = False
 
     @property
     def video_url(self) -> Optional[str]:
@@ -170,15 +178,6 @@ class SittingDay:
     day: date
     protocols: list[tuple[str, Optional[str]]]
     agenda_items: list[AgendaItem]
-
-    @property
-    def content_hashes(self) -> list[str]:
-        return sorted(
-            h
-            for item in self.agenda_items
-            for s in item.speeches
-            for h in s.content_hashes
-        )
 
 
 def parse_speech_key(key: Optional[str]) -> tuple[Optional[tuple[int, int]], str]:
@@ -275,29 +274,59 @@ def _protocols(speeches: list[Speech]) -> list[tuple[str, Optional[str]]]:
     return list(found.items())
 
 
+def session_days(speeches: list[Speech]) -> dict[tuple[int, int], date]:
+    """The day each session sat: its earliest speech's date.
+
+    op.tv dates every speech by its own start, so a sitting that runs past
+    midnight would otherwise spill its last speeches into the next day. A
+    sitting never starts after midnight, so its first speech has the date.
+    """
+    days: dict[tuple[int, int], date] = {}
+    for speech in speeches:
+        if speech.session_key is None:
+            continue
+        known = days.get(speech.session_key)
+        if known is None or speech.day < known:
+            days[speech.session_key] = speech.day
+    return days
+
+
 def group_sitting_days(speeches: list[Speech]) -> dict[date, SittingDay]:
-    """Speeches by day, then by agenda item in agenda order."""
+    """Speeches by their session's day, then by agenda item in agenda order."""
+    sessions = session_days(speeches)
     by_day: dict[date, list[Speech]] = {}
     for speech in speeches:
-        by_day.setdefault(speech.day, []).append(speech)
+        day = (
+            sessions.get(speech.session_key, speech.day)
+            if speech.session_key
+            else speech.day
+        )
+        by_day.setdefault(day, []).append(speech)
 
     days: dict[date, SittingDay] = {}
     for day, day_speeches in sorted(by_day.items()):
-        by_slug: "OrderedDict[str, list[Speech]]" = OrderedDict()
+        by_slug: "OrderedDict[tuple[Optional[tuple[int, int]], str], list[Speech]]" = (
+            OrderedDict()
+        )
         for speech in day_speeches:
-            session = speech.session_key[1] if speech.session_key else 0
-            by_slug.setdefault(f"{session}:{speech.agenda_slug}", []).append(speech)
+            by_slug.setdefault((speech.session_key, speech.agenda_slug), []).append(
+                speech
+            )
         items = [
             AgendaItem(
-                key=key,
-                label=_agenda_label(key.split(":", 1)[1], group),
-                speeches=group,
+                key=f"{session[1] if session else 0}:{slug}",
+                label=_agenda_label(slug, group),
+                # Until the protocol orders them: a stable order, so a rerun
+                # sees the same input.
+                speeches=sorted(group, key=lambda s: s.source_item_id),
+                session=session,
+                slug=slug,
             )
-            for key, group in sorted(
+            for (session, slug), group in sorted(
                 by_slug.items(),
                 key=lambda kv: (
-                    kv[0].split(":", 1)[0].zfill(6),
-                    _agenda_sort_key(kv[0].split(":", 1)[1]),
+                    kv[0][0][1] if kv[0][0] else 0,
+                    _agenda_sort_key(kv[0][1]),
                 ),
             )
         ]

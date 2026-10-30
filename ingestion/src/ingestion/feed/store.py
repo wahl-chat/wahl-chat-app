@@ -4,17 +4,20 @@
 
 """Firestore ``feed_editions/{edition_id}`` and ``feed_items/{item_id}``.
 
-Items are never deleted: one that vanishes from a rebuilt day is marked
+Items are never deleted: one whose source unit vanishes from a day is marked
 ``retracted``, so a shared link to it still resolves to something the web can
-explain instead of a dead end.
+explain instead of a dead end. Retraction touches only ``status``, so it also
+works on a doc stored in an older shape that no longer validates.
 """
 
 from __future__ import annotations
 
+import logging
 from datetime import date
 from typing import Any, Iterable
 
 from google.cloud.firestore_v1.base_query import FieldFilter
+from pydantic import ValidationError
 
 from ingestion.feed.models import (
     CANONICAL_LOCALE,
@@ -23,28 +26,30 @@ from ingestion.feed.models import (
     FeedItem,
 )
 
+logger = logging.getLogger(__name__)
+
 EDITION_COLLECTION = "feed_editions"
 ITEM_COLLECTION = "feed_items"
 # Firestore caps a write batch at 500 operations.
 _BATCH_OPS = 450
 
 
-def read_edition_hashes(db: Any, parliament_ids: list[str]) -> dict[str, Any]:
-    """``input_hash`` per stored edition, so unchanged days are skipped."""
-    hashes: dict[str, Any] = {}
-    for parliament_id in parliament_ids:
-        query = db.collection(EDITION_COLLECTION).where(
-            filter=FieldFilter("parliament", "==", parliament_id)
-        )
-        for snapshot in query.stream():
-            hashes[snapshot.id] = (snapshot.to_dict() or {}).get("input_hash")
-    return hashes
+def _valid_item(snapshot: Any) -> FeedItem | None:
+    """The stored item, or None for a doc in an older shape: the caller then
+    treats it as not built, which rebuilds it in the current one."""
+    try:
+        return FeedItem.model_validate(snapshot.to_dict())
+    except ValidationError:
+        logger.info("Stored item %s has an older shape; rebuilding it", snapshot.id)
+        return None
 
 
-def read_editions(db: Any, edition_ids: Iterable[str]) -> dict[str, FeedEdition]:
+def read_edition_item_ids(db: Any, edition_ids: Iterable[str]) -> dict[str, list[str]]:
+    """The item ids each stored edition lists. Read raw, so an edition stored
+    in an older shape still says which items to retract."""
     refs = [db.collection(EDITION_COLLECTION).document(i) for i in edition_ids]
     return {
-        s.id: FeedEdition.model_validate(s.to_dict())
+        s.id: list((s.to_dict() or {}).get("item_ids") or [])
         for s in (db.get_all(refs) if refs else [])
         if s.exists
     }
@@ -52,11 +57,11 @@ def read_editions(db: Any, edition_ids: Iterable[str]) -> dict[str, FeedEdition]
 
 def read_items(db: Any, item_ids: Iterable[str]) -> dict[str, FeedItem]:
     refs = [db.collection(ITEM_COLLECTION).document(i) for i in item_ids]
-    return {
-        s.id: FeedItem.model_validate(s.to_dict())
-        for s in (db.get_all(refs) if refs else [])
-        if s.exists
-    }
+    found: dict[str, FeedItem] = {}
+    for snapshot in db.get_all(refs) if refs else []:
+        if snapshot.exists and (item := _valid_item(snapshot)) is not None:
+            found[snapshot.id] = item
+    return found
 
 
 def read_items_since(db: Any, parliament_id: str, since: date) -> list[FeedItem]:
@@ -68,7 +73,7 @@ def read_items_since(db: Any, parliament_id: str, since: date) -> list[FeedItem]
         # index the web's feed read needs anyway.
         .order_by("date", direction="DESCENDING")
     )
-    return [FeedItem.model_validate(s.to_dict()) for s in query.stream()]
+    return [item for s in query.stream() if (item := _valid_item(s)) is not None]
 
 
 def carry_over_translations(
@@ -76,8 +81,9 @@ def carry_over_translations(
 ) -> int:
     """Keep stored translations whose German source is unchanged.
 
-    A rebuilt day regenerates every text, but whatever comes out identical
-    (a vote nobody touched) need not be translated again.
+    A rebuilt item regenerates its text, but one that comes out identical (a
+    vote whose enrichment fell back to its title again) need not be
+    translated again.
     """
     kept = 0
     for item in items:
@@ -93,22 +99,10 @@ def carry_over_translations(
     return kept
 
 
-def vanished_items(
-    previous: dict[str, FeedEdition],
-    editions: list[FeedEdition],
-    stored: dict[str, FeedItem],
-) -> list[FeedItem]:
-    """Stored items a rebuilt edition no longer lists, marked retracted."""
-    retracted: list[FeedItem] = []
-    for edition in editions:
-        old = previous.get(edition.id)
-        if old is None:
-            continue
-        for item_id in set(old.item_ids) - set(edition.item_ids):
-            item = stored.get(item_id)
-            if item is not None and item.status != "retracted":
-                retracted.append(item.model_copy(update={"status": "retracted"}))
-    return retracted
+def vanished_item_ids(previous_ids: list[str], current_ids: list[str]) -> list[str]:
+    """Items a stored edition listed whose source unit the day no longer has."""
+    current = set(current_ids)
+    return [item_id for item_id in previous_ids if item_id not in current]
 
 
 def _commit(db: Any, writes: list[tuple[Any, dict]]) -> None:
@@ -119,9 +113,23 @@ def _commit(db: Any, writes: list[tuple[Any, dict]]) -> None:
         batch.commit()
 
 
-def write_feed(db: Any, editions: list[FeedEdition], items: list[FeedItem]) -> None:
+def write_feed(
+    db: Any,
+    editions: list[FeedEdition],
+    items: list[FeedItem],
+    retracted_ids: Iterable[str] = (),
+) -> None:
     """Items first, then their editions: an edition never lists an item that
-    is not there yet."""
+    is not there yet. Retracted items get their status only."""
+    retract = list(retracted_ids)
+    for start in range(0, len(retract), _BATCH_OPS):
+        batch = db.batch()
+        for item_id in retract[start : start + _BATCH_OPS]:
+            batch.update(
+                db.collection(ITEM_COLLECTION).document(item_id),
+                {"status": "retracted"},
+            )
+        batch.commit()
     _commit(
         db,
         [

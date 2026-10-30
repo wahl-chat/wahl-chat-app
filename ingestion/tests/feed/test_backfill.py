@@ -10,8 +10,8 @@ from typing import Any
 import pytest
 
 from ingestion.feed import backfill
-from ingestion.feed.builder import compute_input_hash
 from ingestion.feed.bulk import WindowSources
+from ingestion.feed.items import vote_input_hash
 from ingestion.feed.parliaments import PARLIAMENTS
 
 BUNDESTAG = PARLIAMENTS["bundestag"]
@@ -44,26 +44,33 @@ def test_a_key_file_of_another_project_is_refused(tmp_path: Path) -> None:
         backfill.firestore_for("prod", key)
 
 
-def test_the_plan_marks_days_built_from_the_same_sources_as_stored(
+def test_the_plan_counts_items_built_from_the_same_sources_as_stored(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    votes = [_vote(1, "2026-10-22"), _vote(2, "2026-09-03")]
-    monkeypatch.setattr(
-        backfill,
-        "load_sources",
-        lambda *_, **__: WindowSources(
-            (date(2026, 9, 1), date(2026, 10, 22)), votes, {}
-        ),
+    votes = [_vote(1, "2026-10-22"), _vote(2, "2026-10-22"), _vote(3, "2026-09-03")]
+    seen: dict[str, Any] = {}
+
+    def sources(*_: Any, **kwargs: Any) -> WindowSources:
+        seen.update(kwargs)
+        return WindowSources((date(2026, 9, 1), date(2026, 10, 22)), votes, {})
+
+    monkeypatch.setattr(backfill, "load_sources", sources)
+    stored = {"bundestag_2026-10-22_v1": vote_input_hash(votes[0])}
+    plan = backfill.plan_parliament(
+        None,  # type: ignore[arg-type]
+        BUNDESTAG,
+        56,
+        stored,
+        since=date(2026, 9, 1),
     )
-    existing = {"bundestag_2026-10-22": compute_input_hash([votes[0]], None)}
-    plan = backfill.plan_parliament(None, BUNDESTAG, 56, existing)  # type: ignore[arg-type]
-    assert [(d.day.isoformat(), d.stored) for d in plan.days] == [
-        ("2026-10-22", True),
-        ("2026-09-03", False),
+    assert seen == {"since": date(2026, 9, 1)}
+    assert [(d.day.isoformat(), d.items, d.to_build) for d in plan.days] == [
+        ("2026-10-22", 2, 1),
+        ("2026-09-03", 1, 1),
     ]
-    assert plan.to_build == 1
+    assert plan.to_build == 2
     lines = backfill.format_plan(plan)
-    assert "stored=1 to_build=1" in lines[0]
+    assert "items=3 stored=1 to_build=2" in lines[0]
     assert any("2026-W36" in line and "to_build=1" in line for line in lines)
 
 

@@ -16,24 +16,18 @@ const OPTIONS: { value: FeedInterest; label: string; Icon: LucideIcon }[] = [
 /** "Interessant?" over 👍 | 👎, bottom left of every card. */
 function InterestFeedback({
   itemKey,
-  legacyKeys = [],
   className,
 }: {
   itemKey: string;
-  /** Older keys of the same item, so an answer given under one still shows. */
-  legacyKeys?: string[];
   className?: string;
 }) {
   const { user } = useAnonymousAuth();
   const [answer, setAnswer] = useState<FeedInterest | null>(null);
 
   // localStorage only exists after hydration.
-  const legacy = legacyKeys.join(',');
   useEffect(() => {
-    const stored = readInterest();
-    const key = [itemKey, ...legacy.split(',')].find((k) => k && stored[k]);
-    setAnswer(key ? stored[key] : null);
-  }, [itemKey, legacy]);
+    setAnswer(readInterest()[itemKey] ?? null);
+  }, [itemKey]);
 
   const choose = (value: FeedInterest) => {
     setAnswer(value);

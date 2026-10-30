@@ -2,282 +2,313 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-from datetime import date, datetime, timezone
-from typing import Any, Iterator
+import asyncio
+import time
+from typing import Any
 
 import pytest
 
 from ingestion.feed.builder import (
-    DigestBuilder,
-    build_digests,
-    iter_digests,
-    compute_input_hash,
-    session_from_draft,
+    FeedBuilder,
+    plan_days,
+    speeches_block,
     vote_description,
 )
-from ingestion.feed.models import DigestSessionSection
-from ingestion.feed.parliaments import PARLIAMENTS, PartyDisplay
+from ingestion.feed.items import debate_input_hash
+from ingestion.feed.models import FeedItem
 from ingestion.feed.prompts import (
+    DebateDraft,
     OpeningQuoteDraft,
-    PartyPositionDraft,
-    SessionSectionDraft,
-    SessionSummaryDraft,
-    VoteEnrichment,
+    PositionCheckBatch,
+    PositionsDraft,
     VoteEnrichmentBatch,
 )
-from ingestion.feed.reader import assemble_speeches, group_sitting_days
-
-NOW = datetime(2026, 10, 1, tzinfo=timezone.utc)
-BUNDESTAG = PARLIAMENTS["bundestag"]
-DISPLAY = {
-    "cdu": PartyDisplay("CDU/CSU", "#000000"),
-    "spd": PartyDisplay("SPD", "#E4001B"),
-}
-
-
-def _vote(poll_id: int, day: str = "2026-09-24") -> dict:
-    return {
-        "external_id": poll_id,
-        "publish_date": day,
-        "citation_title": f"Antrag {poll_id}",
-        "citation_url": f"https://www.abgeordnetenwatch.de/poll/{poll_id}",
-        "text": f"Antrag {poll_id}\n\nKontext: Worum es geht.",
-        "content_hash": f"vote-{poll_id}",
-        "meta": {
-            "motion_outcome": "angenommen",
-            "vote_results": [
-                {"party_id": "cdu", "yes": 200, "no": 0, "abstain": 0, "no_show": 8},
-                {"party_id": "spd", "yes": 110, "no": 3, "abstain": 1, "no_show": 6},
-                {
-                    "party_id": "fraktionslos",
-                    "yes": 0,
-                    "no": 2,
-                    "abstain": 0,
-                    "no_show": 1,
-                },
-            ],
-        },
-    }
+from ingestion.feed.reader import assemble_speeches
+from tests.feed.samples import (
+    BUNDESTAG,
+    DAY,
+    FakeLLM,
+    build,
+    default_speeches,
+    sittings,
+    speech,
+    vote,
+)
 
 
-def _sitting_days() -> dict:
-    payloads = [
-        {
-            "source_item_id": "s1",
-            "source": "op",
-            "speech_key": "de-21-45-anna-top1",
-            "text": "Wir brauchen mehr Wohnungen.",
-            "chunk_index": 0,
-            "publish_date": "2026-09-24",
-            "party_id": "spd",
-            "citation_url": "https://video/1.mp4#t=3",
-            "citation_title": "Anna, 2026-09-24 (Video, TOP 1)",
-            "content_hash": "speech-1",
-            "meta": {
-                "agenda_item_title": "Wohnungsbau",
-                "video_uri": "https://video/1.mp4",
-                "speaker_name": "Anna",
-            },
-        }
+def _debate(items: list[FeedItem], slug: str = "top1") -> FeedItem:
+    return next(i for i in items if i.id.endswith(f"_d45-{slug}"))
+
+
+def test_every_agenda_item_and_every_poll_is_one_item() -> None:
+    items = build(FakeLLM())
+    assert [i.id for i in items] == [
+        "bundestag_2026-09-24_d45-top1",
+        "bundestag_2026-09-24_d45-top2",
+        "bundestag_2026-09-24_v1",
+        "bundestag_2026-09-24_v2",
     ]
-    return group_sitting_days(assemble_speeches(payloads))
+    assert all(i.input_hash is not None for i in items)
 
 
-class FakeLLM:
-    def __init__(self, fail_votes: bool = False, fail_session: bool = False) -> None:
-        self.fail_votes = fail_votes
-        self.fail_session = fail_session
-        self.calls: list[type] = []
-
-    async def __call__(self, messages: list, schema: type) -> tuple[Any, str]:
-        self.calls.append(schema)
-        return self._answer(messages, schema), "fake-model"
-
-    def _answer(self, messages: list, schema: type) -> Any:
-        if schema is VoteEnrichmentBatch:
-            if self.fail_votes:
-                raise RuntimeError("quota")
-            refs = [
-                line.split("]")[0][1:]
-                for line in messages[0].content.split("\n")
-                if line.startswith("[V")
-            ]
-            return VoteEnrichmentBatch(
-                votes=[
-                    VoteEnrichment(
-                        ref=ref,
-                        topics=[
-                            "housing_rent",
-                            "housing_rent",
-                            "economy_finance",
-                            "social_labor",
-                        ],
-                        short_title=f"Kurz {ref}",
-                        summary="Ein Satz.",
-                        suggested_questions=[
-                            "Was heißt das für mich?",
-                            " ",
-                            "Was heißt das für mich?",
-                            "Wer war dagegen?",
-                            "Was kostet das?",
-                            "Eine vierte?",
-                        ],
-                    )
-                    for ref in refs
-                ]
-            )
-        if self.fail_session:
-            raise RuntimeError("quota")
-        return SessionSummaryDraft(
-            sections=[
-                SessionSectionDraft(
-                    topics=["housing_rent"],
-                    headline="Mehr Wohnungen",
-                    summary="Die SPD fordert mehr Wohnungsbau.",
-                    agenda_refs=["A1"],
-                ),
-                SessionSectionDraft(
-                    topics=["health_care"],
-                    headline="Erfunden",
-                    summary="Nicht in den Auszügen.",
-                    agenda_refs=["A99"],
-                ),
-            ],
-            other_topics=[],
-        )
+def test_speeches_outside_any_agenda_item_are_no_debate() -> None:
+    days = sittings(
+        default_speeches()
+        + [speech("s9", speaker="Eva", party="spd", text="Guten Morgen.", agenda="")]
+    )
+    [plan] = plan_days(BUNDESTAG, [], days)
+    assert [u.item_id for u in plan.debates] == [
+        "bundestag_2026-09-24_d45-top1",
+        "bundestag_2026-09-24_d45-top2",
+    ]
 
 
-@pytest.fixture()
-def fake_llm() -> Iterator[FakeLLM]:
-    yield FakeLLM()
+def test_two_sittings_on_one_day_keep_their_own_agenda_items() -> None:
+    days = sittings(
+        [
+            speech("a", speaker="Anna", party="spd", text="x", session=45),
+            speech("b", speaker="Bernd", party="cdu", text="y", session=46),
+        ]
+    )
+    [plan] = plan_days(BUNDESTAG, [], days)
+    assert [u.item_id for u in plan.debates] == [
+        "bundestag_2026-09-24_d45-top1",
+        "bundestag_2026-09-24_d46-top1",
+    ]
+    assert [p.protocol_id for p in plan.debates[1].protocols] == ["21/46"]
 
 
-def _build(llm: FakeLLM, **kwargs: Any) -> tuple[list, int]:
-    builder = DigestBuilder(llm)
-    try:
-        return build_digests(
-            BUNDESTAG,
-            kwargs.pop("votes", [_vote(1), _vote(2)]),
-            kwargs.pop("sittings", _sitting_days()),
-            DISPLAY,
-            builder,
-            now=NOW,
-            **kwargs,
-        )
-    finally:
-        builder.close()
+def test_a_debate_without_protocol_order_is_not_built() -> None:
+    llm = FakeLLM()
+    items = build(llm, days=sittings(ordered=False))
+    assert [i.kind for i in items] == ["vote", "vote"]
+    assert DebateDraft not in llm.calls
 
 
-def test_days_are_built_newest_first_and_only_on_demand(fake_llm: FakeLLM) -> None:
-    builder = DigestBuilder(fake_llm)
-    try:
-        days = iter_digests(
-            BUNDESTAG,
-            [_vote(1, "2026-09-24"), _vote(2, "2026-09-25")],
-            {},
-            DISPLAY,
-            builder,
-            now=NOW,
-        )
-        newest = next(days)
-        assert newest is not None and newest.id == "bundestag_2026-09-25"
-        assert len(fake_llm.calls) == 1
-        older = next(days)
-        assert older is not None and older.id == "bundestag_2026-09-24"
-        assert len(fake_llm.calls) == 2
-    finally:
-        builder.close()
+def test_the_model_sees_the_whole_debate_in_order() -> None:
+    llm = FakeLLM()
+    build(llm, votes=[])
+    prompt = next(p for p in llm.prompts if "Wohnungsbau" in p and "Reden:" in p)
+    speeches = prompt.split("Reden:\n", 1)[1]
+    assert speeches.index("Anna (spd)") < speeches.index("Bernd (cdu)")
+    assert speeches.index("Bernd (cdu)") < speeches.index("Clara (csu)")
+    assert "Bauordnung" not in prompt
 
 
-def test_builds_one_digest_per_day_with_enriched_votes(fake_llm: FakeLLM) -> None:
-    digests, unchanged = _build(fake_llm)
-    assert unchanged == 0
-    [digest] = digests
-    assert digest.id == "bundestag_2026-09-24"
-    assert [v.short_title for v in digest.votes] == ["Kurz V1", "Kurz V2"]
-    # Deduplicated and capped at two topics.
-    assert digest.votes[0].topics == ["housing_rent", "economy_finance"]
-    assert digest.input_hash is not None
+def test_a_long_debate_is_shortened_evenly_without_dropping_a_speech() -> None:
+    speeches = assemble_speeches(
+        [
+            speech("a", speaker="Anna", party="spd", text="a " * 50_000),
+            speech("b", speaker="Bernd", party="cdu", text="b " * 50_000),
+            speech("c", speaker="Clara", party="afd", text="kurz"),
+        ]
+    )
+    block = speeches_block(sorted(speeches, key=lambda s: s.source_item_id), 20_000)
+    lines = block.splitlines()
+    assert [line.split(" (")[0] for line in lines] == ["- Anna", "- Bernd", "- Clara"]
+    assert len(block) < 30_000
+    assert lines[2].endswith("kurz")
 
 
-def test_vote_parties_carry_display_names_and_fallbacks(fake_llm: FakeLLM) -> None:
-    [digest], _ = _build(fake_llm)
-    names = {p.party_id: (p.name, p.yes) for p in digest.votes[0].parties}
+def test_every_fraktion_that_spoke_is_in_the_facts_from_the_source() -> None:
+    debate = _debate(build(FakeLLM()))
+    assert debate.debate is not None
+    parties = {p.party_id: [s.name for s in p.speakers] for p in debate.debate.parties}
+    # The CSU sits in the Union's Fraktion.
+    assert parties == {"spd": ["Anna"], "cdu": ["Bernd", "Clara"]}
+    assert [p.party_id for p in debate.content["de"].positions] == ["spd", "cdu"]
+
+
+def test_a_missing_position_is_retried_for_that_fraktion_only() -> None:
+    llm = FakeLLM(omit=("cdu",))
+    debate = _debate(build(llm, votes=[]))
+    positions = {p.party_id: p.text for p in debate.content["de"].positions}
+    assert positions["cdu"] == "Retry Position cdu."
+    retry = llm.prompts[llm.calls.index(PositionsDraft)]
+    assert "keine andere: cdu." in retry
+    assert "Anna" not in retry
+    assert debate.input_hash is not None
+
+
+def test_a_fraktion_still_missing_is_listed_without_a_sentence_and_retried_later() -> (
+    None
+):
+    debate = _debate(build(FakeLLM(omit=("cdu",), retry_omit=("cdu",))))
+    assert debate.debate is not None
+    assert "cdu" in [p.party_id for p in debate.debate.parties]
+    assert [p.party_id for p in debate.content["de"].positions] == ["spd"]
+    assert debate.input_hash is None
+
+
+def test_an_unsupported_position_is_never_published() -> None:
+    llm = FakeLLM(reject=("Fordern Position spd",))
+    debate = _debate(build(llm, votes=[]))
+    positions = {p.party_id: p.text for p in debate.content["de"].positions}
+    # The check refused the first sentence, the retry was checked again.
+    assert positions == {"spd": "Retry Position spd.", "cdu": "Fordern Position cdu."}
+    checks = [p for c, p in zip(llm.calls, llm.prompts) if c is PositionCheckBatch]
+    assert any("Retry Position spd" in p for p in checks)
+
+
+def test_a_failed_check_publishes_no_unchecked_sentence() -> None:
+    debate = _debate(build(FakeLLM(fail=(PositionCheckBatch,))))
+    assert debate.content["de"].positions == []
+    assert debate.input_hash is None
+
+
+def test_positions_of_parties_that_did_not_speak_are_dropped() -> None:
+    debate = _debate(build(FakeLLM()), "top2")
+    assert [p.party_id for p in debate.content["de"].positions] == ["afd"]
+
+
+def test_fraktionslose_speakers_need_no_position() -> None:
+    days = sittings(
+        default_speeches()[:1]
+        + [speech("s9", speaker="Fritz", party="fraktionslos", text="Ich nicht.")]
+    )
+    debate = _debate(build(FakeLLM(omit=("fraktionslos",)), days=days, votes=[]))
+    assert debate.input_hash is not None
+
+
+def test_a_failed_debate_is_left_for_the_next_run_and_votes_still_build() -> None:
+    items = build(FakeLLM(fail=(DebateDraft,)))
+    assert [i.kind for i in items] == ["vote", "vote"]
+
+
+def test_a_failed_vote_enrichment_falls_back_and_stays_retryable() -> None:
+    items = build(FakeLLM(fail=(VoteEnrichmentBatch,)), days={})
+    assert [i.content["de"].headline for i in items] == ["Antrag 1", "Antrag 2"]
+    assert all(i.topics == ["other"] and i.input_hash is None for i in items)
+
+
+def test_votes_carry_texts_parties_and_the_source_description() -> None:
+    items = build(FakeLLM(), days={})
+    first = items[0]
+    assert first.content["de"].headline == "Kurz V1"
+    assert first.topics == ["housing_rent", "economy_finance"]
+    assert first.content["de"].suggested_questions == [
+        "Was heißt das für mich?",
+        "Wer war dagegen?",
+        "Was kostet das?",
+    ]
+    assert first.vote is not None
+    names = {p.party_id: (p.name, p.yes) for p in first.vote.parties}
     assert names["cdu"] == ("CDU/CSU", 200)
     assert names["fraktionslos"][0] == "Fraktionslos"
+    assert first.vote.description == "Worum es geht."
 
 
-def test_session_sections_are_grounded_in_real_agenda_items(fake_llm: FakeLLM) -> None:
-    [digest], _ = _build(fake_llm)
-    assert digest.session is not None
-    [section] = digest.session.sections  # the invented "A99" section is dropped
-    assert section.agenda_items == ["Wohnungsbau"]
-    assert section.video_url == "https://video/1.mp4"
-    assert section.citations[0].url == "https://video/1.mp4#t=3"
-    citation = section.citations[0]
-    assert (citation.speaker, citation.party_id, citation.party_name) == (
+def test_the_first_speech_opens_the_debate() -> None:
+    debate = _debate(build(FakeLLM()))
+    assert debate.debate is not None
+    assert debate.debate.opened_by == "spd"
+    assert debate.debate.citations[0].speaker == "Anna"
+    assert debate.debate.video_url == "https://video/s1.mp4"
+    quote = debate.debate.opening_quote
+    assert quote is not None and (quote.speaker, quote.text) == (
         "Anna",
-        "spd",
-        "SPD",
+        "Wir brauchen mehr Wohnungen.",
     )
-    assert citation.video_url == "https://video/1.mp4"
 
 
-def test_vote_llm_failure_falls_back_and_leaves_the_day_retryable() -> None:
-    [digest], _ = _build(FakeLLM(fail_votes=True))
-    assert digest.votes[0].short_title == "Antrag 1"
-    assert digest.votes[0].topics == ["other"]
-    assert digest.input_hash is None
+@pytest.mark.parametrize(
+    ("drafted", "kept"),
+    [
+        (
+            OpeningQuoteDraft(speaker="anna", quote="„Wir brauchen  mehr Wohnungen.“"),
+            True,
+        ),
+        (
+            OpeningQuoteDraft(
+                speaker="Anna (spd)", quote="Wir brauchen mehr Wohnungen."
+            ),
+            True,
+        ),
+        (OpeningQuoteDraft(speaker="Anna", quote="Wir müssen viel mehr bauen."), False),
+        (
+            OpeningQuoteDraft(speaker="Bernd", quote="Wir brauchen mehr Wohnungen."),
+            False,
+        ),
+        (OpeningQuoteDraft(speaker="Anna", quote=" ".join(["Wohnungen"] * 41)), False),
+    ],
+)
+def test_the_opening_quote_is_kept_only_when_verbatim(
+    drafted: OpeningQuoteDraft, kept: bool
+) -> None:
+    debate = _debate(build(FakeLLM(quote=drafted), votes=[]))
+    assert debate.debate is not None
+    assert (debate.debate.opening_quote is not None) is kept
 
 
-def test_session_llm_failure_keeps_votes_and_leaves_the_day_retryable() -> None:
-    [digest], _ = _build(FakeLLM(fail_session=True))
-    assert digest.session is None
-    assert len(digest.votes) == 2
-    assert digest.input_hash is None
+def test_heat_is_clamped_and_key_points_need_exactly_three() -> None:
+    hot = _debate(build(FakeLLM(heat=9), votes=[]))
+    assert hot.debate is not None and hot.debate.heat == 5
+    cold = _debate(build(FakeLLM(heat=0, key_points=["a", "b"]), votes=[]))
+    assert cold.debate is not None and cold.debate.heat == 1
+    assert cold.content["de"].key_points == []
 
 
-def test_unchanged_days_are_skipped_without_llm_calls(fake_llm: FakeLLM) -> None:
-    votes = [_vote(1), _vote(2)]
-    sittings = _sitting_days()
-    stored = compute_input_hash(votes, sittings[date(2026, 9, 24)])
-    digests, unchanged = _build(
-        fake_llm,
-        votes=votes,
-        sittings=sittings,
-        existing_hashes={"bundestag_2026-09-24": stored},
+def test_debates_carry_up_to_two_distinct_topics_primary_first() -> None:
+    topics: Any = ["housing_rent", "housing_rent", "social_labor", "other"]
+    assert _debate(build(FakeLLM(topics=topics), votes=[])).topics == [
+        "housing_rent",
+        "social_labor",
+    ]
+
+
+def test_debate_minutes_are_estimated_from_the_speech_text() -> None:
+    debate = _debate(build(FakeLLM(), votes=[]))
+    assert debate.debate is not None and debate.debate.debate_minutes == 1
+
+
+def test_a_late_speech_changes_only_its_own_debate_hash() -> None:
+    before = {
+        u.item_id: u.input_hash
+        for u in plan_days(BUNDESTAG, [vote(1)], sittings())[0].debates
+    }
+    late = default_speeches() + [
+        speech("s5", speaker="Emil", party="afd", text="Nachtrag.", agenda="top2")
+    ]
+    after = {
+        u.item_id: u.input_hash
+        for u in plan_days(BUNDESTAG, [vote(1)], sittings(late))[0].debates
+    }
+    assert (
+        after["bundestag_2026-09-24_d45-top1"]
+        == before["bundestag_2026-09-24_d45-top1"]
     )
-    assert digests == []
-    assert unchanged == 1
-    assert fake_llm.calls == []
-
-
-def test_vote_only_days_have_no_session(fake_llm: FakeLLM) -> None:
-    digests, _ = _build(fake_llm, votes=[_vote(3, day="2026-09-23")], sittings={})
-    assert [d.date for d in digests] == [date(2026, 9, 23)]
-    assert digests[0].session is None
-    assert digests[0].input_hash is not None
-
-
-def test_agenda_ids_never_leak_into_reader_text() -> None:
-    sittings = _sitting_days()
-    sitting = sittings[date(2026, 9, 24)]
-    refs = {"A1": sitting.agenda_items[0]}
-    draft = SessionSummaryDraft(
-        sections=[
-            SessionSectionDraft(
-                topics=["housing_rent"],
-                headline="Mehr Wohnungen (A1)",
-                summary="Die SPD fordert mehr Wohnungsbau [A1].",
-                agenda_refs=["A1"],
-            )
-        ],
-        other_topics=["Kindergeld (A3)", "[A4, A5]", "Fragestunde"],
+    assert (
+        after["bundestag_2026-09-24_d45-top2"]
+        != before["bundestag_2026-09-24_d45-top2"]
     )
-    session = session_from_draft(draft, refs, sitting)
-    assert session.sections[0].headline == "Mehr Wohnungen"
-    assert session.sections[0].summary == "Die SPD fordert mehr Wohnungsbau."
-    assert session.other_topics == ["Kindergeld", "Fragestunde"]
+
+
+def test_the_debate_hash_does_not_depend_on_speech_order() -> None:
+    item = sittings()[DAY].agenda_items[0]
+    reordered = sittings()[DAY].agenda_items[0]
+    reordered.speeches.reverse()
+    assert debate_input_hash(item) == debate_input_hash(reordered)
+
+
+def test_items_not_started_before_the_budget_ran_out_are_left_out() -> None:
+    llm = FakeLLM()
+    assert build(llm, out_of_time=lambda: True) == []
+    assert llm.calls == []
+
+
+def test_a_call_past_the_deadline_is_cut() -> None:
+    async def slow(_messages: list, _schema: type) -> tuple[Any, str]:
+        await asyncio.sleep(5)
+        return None, "slow"
+
+    builder = FeedBuilder(slow, deadline=time.monotonic() + 0.05)
+    try:
+        with pytest.raises(TimeoutError):
+            builder.call("x", DebateDraft)
+        with pytest.raises(TimeoutError):
+            builder.call("x", DebateDraft)
+    finally:
+        builder.close()
 
 
 def test_vote_description_takes_the_source_intro() -> None:
@@ -293,238 +324,3 @@ def test_vote_description_cuts_long_intros_at_a_sentence() -> None:
     assert described is not None
     assert described.endswith(". …")
     assert len(described) <= 1503
-
-
-def test_digests_carry_the_vote_description(fake_llm: FakeLLM) -> None:
-    [digest], _ = _build(fake_llm)
-    assert digest.votes[0].description == "Worum es geht."
-
-
-def test_positions_keep_only_parties_and_speakers_who_spoke() -> None:
-    sitting = _sitting_days()[date(2026, 9, 24)]
-    refs = {"A1": sitting.agenda_items[0]}
-    draft = SessionSummaryDraft(
-        sections=[
-            SessionSectionDraft(
-                topics=["housing_rent"],
-                headline="Mehr Wohnungen",
-                summary="Es ging um Wohnungsbau.",
-                agenda_refs=["A1"],
-                positions=[
-                    PartyPositionDraft(
-                        party_id="SPD",
-                        speakers=["anna", "Erfundene Person"],
-                        position="Die SPD will mehr bauen (A1).",
-                    ),
-                    PartyPositionDraft(
-                        party_id="spd",
-                        speakers=["Anna"],
-                        position="Doppelter Eintrag.",
-                    ),
-                    PartyPositionDraft(
-                        party_id="afd",
-                        speakers=["Niemand"],
-                        position="Hat in dieser Debatte nicht gesprochen.",
-                    ),
-                ],
-            )
-        ],
-        other_topics=[],
-    )
-    session = session_from_draft(draft, refs, sitting, DISPLAY)
-    [position] = session.sections[0].positions
-    assert position.party_id == "spd"
-    assert position.party_name == "SPD"
-    assert position.position == "Die SPD will mehr bauen."
-    # Names link to the protocol (none known for this op-only speech), the
-    # video link to the speech's moment in its video.
-    assert [(s.name, s.url, s.video_link) for s in position.speakers] == [
-        ("Anna", None, "https://video/1.mp4#t=3")
-    ]
-    assert position.speakers[0].video_url == "https://video/1.mp4"
-
-
-def test_positions_merge_parties_that_share_a_fraktion() -> None:
-    payloads = [
-        {
-            "source_item_id": sid,
-            "source": "dip",
-            "speech_key": f"de-21-45-{sid}-top1",
-            "text": "Rede",
-            "chunk_index": 0,
-            "publish_date": "2026-09-24",
-            "party_id": party,
-            "citation_url": f"https://pdf/{sid}",
-            "citation_title": sid,
-            "content_hash": sid,
-            "meta": {"speaker_name": name},
-        }
-        for sid, party, name in [("a", "cdu", "Anna"), ("b", "csu", "Bernd")]
-    ]
-    sitting = group_sitting_days(assemble_speeches(payloads))[date(2026, 9, 24)]
-    refs = {"A1": sitting.agenda_items[0]}
-    draft = SessionSummaryDraft(
-        sections=[
-            SessionSectionDraft(
-                topics=["other"],
-                headline="Debatte",
-                summary="Worum es ging.",
-                agenda_refs=["A1"],
-                positions=[
-                    PartyPositionDraft(
-                        party_id="cdu", speakers=["Anna"], position="Dafür."
-                    ),
-                    PartyPositionDraft(
-                        party_id="csu", speakers=["Bernd"], position="Auch dafür."
-                    ),
-                ],
-            )
-        ],
-        other_topics=[],
-    )
-    session = session_from_draft(draft, refs, sitting, DISPLAY, {"csu": "cdu"})
-    [position] = session.sections[0].positions
-    assert position.party_name == "CDU/CSU"
-    assert position.position == "Dafür."
-    assert [s.name for s in position.speakers] == ["Anna", "Bernd"]
-
-
-def _section_draft(**overrides: Any) -> SessionSummaryDraft:
-    fields: dict[str, Any] = {
-        "topics": ["housing_rent"],
-        "headline": "Mehr Wohnungen",
-        "summary": "Es ging um Wohnungsbau.",
-        "agenda_refs": ["A1"],
-    }
-    fields.update(overrides)
-    return SessionSummaryDraft(
-        sections=[SessionSectionDraft(**fields)], other_topics=[]
-    )
-
-
-def _one_section(draft: SessionSummaryDraft) -> DigestSessionSection:
-    sitting = _sitting_days()[date(2026, 9, 24)]
-    session = session_from_draft(
-        draft, {"A1": sitting.agenda_items[0]}, sitting, DISPLAY
-    )
-    return session.sections[0]
-
-
-def test_opening_quote_is_kept_only_when_it_is_verbatim() -> None:
-    section = _one_section(
-        _section_draft(
-            opening_quote=OpeningQuoteDraft(
-                speaker="anna", quote="„Wir brauchen  mehr Wohnungen.“"
-            )
-        )
-    )
-    assert section.opening_quote is not None
-    assert section.opening_quote.text == "Wir brauchen mehr Wohnungen."
-    assert section.opening_quote.speaker == "Anna"
-    assert section.opening_quote.party_name == "SPD"
-
-    paraphrase = _one_section(
-        _section_draft(
-            opening_quote=OpeningQuoteDraft(
-                speaker="Anna", quote="Wir müssen viel mehr bauen."
-            )
-        )
-    )
-    assert paraphrase.opening_quote is None
-
-    wrong_speaker = _one_section(
-        _section_draft(
-            opening_quote=OpeningQuoteDraft(
-                speaker="Bernd", quote="Wir brauchen mehr Wohnungen."
-            )
-        )
-    )
-    assert wrong_speaker.opening_quote is None
-
-
-def test_heat_is_clamped_and_key_points_need_exactly_three() -> None:
-    hot = _one_section(_section_draft(heat=9, key_points=["a", "b", "c"]))
-    assert hot.heat == 5
-    assert hot.key_points == ["a", "b", "c"]
-
-    cold = _one_section(_section_draft(heat=0, key_points=["a", "b"]))
-    assert cold.heat == 1
-    assert cold.key_points == []
-
-    assert _one_section(_section_draft()).heat is None
-
-
-def test_debate_minutes_are_estimated_from_the_speech_text() -> None:
-    # Four words of speech round up to the one-minute floor.
-    assert _one_section(_section_draft()).debate_minutes == 1
-
-
-def test_suggested_questions_are_deduplicated_and_capped(fake_llm: FakeLLM) -> None:
-    digests, _ = _build(fake_llm)
-    assert digests[0].votes[0].suggested_questions == [
-        "Was heißt das für mich?",
-        "Wer war dagegen?",
-        "Was kostet das?",
-    ]
-
-
-def test_opening_quote_matches_a_speaker_copied_with_the_party_suffix() -> None:
-    # The excerpts read "Anna (spd): …"; the model copies that format.
-    section = _one_section(
-        _section_draft(
-            opening_quote=OpeningQuoteDraft(
-                speaker="Anna (spd)", quote="Wir brauchen mehr Wohnungen."
-            )
-        )
-    )
-    assert section.opening_quote is not None
-    assert section.opening_quote.speaker == "Anna"
-
-
-def test_opening_quote_too_long_for_a_card_is_dropped() -> None:
-    section = _one_section(
-        _section_draft(
-            opening_quote=OpeningQuoteDraft(
-                speaker="Anna", quote=" ".join(["Wohnungen"] * 41)
-            )
-        )
-    )
-    assert section.opening_quote is None
-
-
-def test_sections_record_the_fraktion_that_opened_the_debate() -> None:
-    assert _one_section(_section_draft()).opened_by == "spd"
-
-
-def test_debates_carry_up_to_two_distinct_topics_primary_first() -> None:
-    sitting = _sitting_days()[date(2026, 9, 24)]
-    refs = {"A1": sitting.agenda_items[0]}
-    draft = SessionSummaryDraft(
-        sections=[
-            SessionSectionDraft(
-                topics=["housing_rent", "housing_rent", "social_labor", "other"],
-                headline="Mehr Wohnungen",
-                summary="Es ging um Wohnungsbau.",
-                agenda_refs=["A1"],
-            )
-        ],
-        other_topics=[],
-    )
-    [section] = session_from_draft(draft, refs, sitting).sections
-    assert section.topic == "housing_rent"
-    assert section.topics == ["housing_rent", "social_labor"]
-
-
-def test_a_debate_without_topics_falls_back_to_other() -> None:
-    sitting = _sitting_days()[date(2026, 9, 24)]
-    refs = {"A1": sitting.agenda_items[0]}
-    draft = SessionSummaryDraft(
-        sections=[
-            SessionSectionDraft(
-                topics=[], headline="X", summary="Y.", agenda_refs=["A1"]
-            )
-        ],
-        other_topics=[],
-    )
-    [section] = session_from_draft(draft, refs, sitting).sections
-    assert (section.topic, section.topics) == ("other", ["other"])

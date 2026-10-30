@@ -2,34 +2,34 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Split a built ``DailyDigest`` into its published edition and feed items.
+"""Feed item identity, input hashes and the edition that lists a day's items.
 
-Pure and free of LLM calls: the builder's output and a ``daily_digests`` doc
-stored before the split go through the same function, so existing days move
-to the item shape without being generated again.
+The source defines the structure: one agenda item of a sitting is one debate
+item, one poll is one vote item. Both ids come from the source, never from a
+model, so a rebuilt item keeps its id and every link and ``feed_interest`` row
+pointing at it stays valid. Each item carries the hash of its own inputs, so a
+late speech regenerates its own debate and nothing else.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from ingestion.feed.models import (
     CANONICAL_LOCALE,
-    DailyDigest,
-    DebateFacts,
-    DebateParty,
-    DigestSessionSection,
-    DigestVote,
+    FEED_FORMAT_VERSION,
+    DigestProtocol,
     FeedEdition,
     FeedItem,
     LocalizedContent,
     LocalizedPosition,
-    VoteFacts,
 )
+from ingestion.feed.parliaments import Parliament
 from ingestion.feed.prompts import PROMPT_VERSION
+from ingestion.feed.reader import AgendaItem
 
 _HASHED_FIELDS = (
     "headline",
@@ -45,12 +45,33 @@ def vote_item_id(edition_id: str, poll_id: int) -> str:
     return f"{edition_id}_v{poll_id}"
 
 
-def debate_item_id(edition_id: str, agenda_items: list[str]) -> str:
-    """Keyed by the debate's official agenda labels, which come from the
-    source: a rebuilt day yields the same id for the same debate, where a
-    position in the list would shift whenever the model reorders sections."""
-    digest = hashlib.sha256("\n".join(sorted(agenda_items)).encode("utf-8"))
-    return f"{edition_id}_d{digest.hexdigest()[:8]}"
+def debate_item_id(edition_id: str, session: int, agenda_slug: str) -> str:
+    """The session number and the agenda slug ("top20", "zp5") from the
+    protocol: a day can hold two sittings, each with its own TOP 1."""
+    return f"{edition_id}_d{session}-{agenda_slug}"
+
+
+def _input_hash(sources: list[str]) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            {
+                "prompt": PROMPT_VERSION,
+                "format": FEED_FORMAT_VERSION,
+                "sources": sorted(sources),
+            },
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def debate_input_hash(item: AgendaItem) -> str:
+    """Over the speeches' chunk hashes, not their order: a debate is built
+    only once the protocol has put it in order, and that order is fixed."""
+    return _input_hash([h for s in item.speeches for h in s.content_hashes])
+
+
+def vote_input_hash(payload: dict) -> str:
+    return _input_hash([str(payload.get("content_hash") or "")])
 
 
 def content_hash(content: LocalizedContent) -> str:
@@ -61,7 +82,7 @@ def content_hash(content: LocalizedContent) -> str:
     ).hexdigest()
 
 
-def _canonical(
+def canonical_content(
     *,
     headline: str,
     teaser: Optional[str],
@@ -70,7 +91,7 @@ def _canonical(
     suggested_questions: list[str],
     generated_by: Optional[str],
     generated_at: datetime,
-) -> LocalizedContent:
+) -> dict[str, LocalizedContent]:
     content = LocalizedContent(
         headline=headline,
         teaser=teaser or None,
@@ -84,142 +105,33 @@ def _canonical(
         generated_at=generated_at,
     )
     content.source_hash = content_hash(content)
-    return content
+    return {CANONICAL_LOCALE: content}
 
 
-def _debate_item(
-    digest: DailyDigest,
-    section: DigestSessionSection,
-    item_id: str,
-    index: int,
-    rank: int,
-    generated_by: Optional[str],
-) -> FeedItem:
-    assert digest.session is not None
-    return FeedItem(
-        id=item_id,
-        kind="debate",
-        edition_id=digest.id,
-        parliament=digest.parliament,
-        parliament_name=digest.parliament_name,
-        region=digest.region,
-        date=digest.date,
-        rank=rank,
-        topics=section.topics or [section.topic],
-        debate=DebateFacts(
-            protocols=digest.session.protocols,
-            agenda_items=section.agenda_items,
-            citations=section.citations,
-            parties=[
-                DebateParty(
-                    party_id=p.party_id,
-                    party_name=p.party_name,
-                    color=p.color,
-                    speakers=p.speakers,
-                )
-                for p in section.positions
-            ],
-            video_url=section.video_url,
-            heat=section.heat,
-            debate_minutes=section.debate_minutes,
-            opened_by=section.opened_by,
-            opening_quote=section.opening_quote,
-        ),
-        content={
-            CANONICAL_LOCALE: _canonical(
-                headline=section.headline,
-                teaser=section.summary,
-                key_points=section.key_points,
-                positions=[
-                    LocalizedPosition(party_id=p.party_id, text=p.position)
-                    for p in section.positions
-                ],
-                suggested_questions=section.suggested_questions,
-                generated_by=generated_by,
-                generated_at=digest.generated_at,
-            )
-        },
-        legacy_keys=[f"{digest.id}~s{index}"],
-        input_hash=digest.input_hash,
-        generated_at=digest.generated_at,
-    )
-
-
-def _vote_item(digest: DailyDigest, vote: DigestVote, rank: int) -> FeedItem:
-    return FeedItem(
-        id=vote_item_id(digest.id, vote.poll_id),
-        kind="vote",
-        edition_id=digest.id,
-        parliament=digest.parliament,
-        parliament_name=digest.parliament_name,
-        region=digest.region,
-        date=digest.date,
-        rank=rank,
-        topics=vote.topics,
-        vote=VoteFacts(
-            poll_id=vote.poll_id,
-            official_title=vote.title,
-            outcome=vote.outcome,
-            citation_url=vote.citation_url,
-            description=vote.description,
-            parties=vote.parties,
-        ),
-        content={
-            CANONICAL_LOCALE: _canonical(
-                headline=vote.short_title,
-                teaser=vote.summary,
-                key_points=[],
-                positions=[],
-                suggested_questions=vote.suggested_questions,
-                generated_by=vote.generated_by,
-                generated_at=digest.generated_at,
-            )
-        },
-        legacy_keys=[f"{digest.id}~v{vote.poll_id}"],
-        input_hash=digest.input_hash,
-        generated_at=digest.generated_at,
-    )
-
-
-def _unique(item_id: str, taken: set[str]) -> str:
-    # Two sections on the same agenda items would be a model error, but must
-    # not overwrite each other.
-    candidate, n = item_id, 2
-    while candidate in taken:
-        candidate, n = f"{item_id}-{n}", n + 1
-    taken.add(candidate)
-    return candidate
-
-
-def split_digest(digest: DailyDigest) -> tuple[FeedEdition, list[FeedItem]]:
-    items: list[FeedItem] = []
-    taken: set[str] = set()
-    session = digest.session
-    for index, section in enumerate(session.sections if session else []):
-        item_id = _unique(debate_item_id(digest.id, section.agenda_items), taken)
-        items.append(
-            _debate_item(
-                digest,
-                section,
-                item_id,
-                index,
-                rank=len(items),
-                generated_by=session.generated_by if session else None,
-            )
+def assemble_edition(
+    parliament: Parliament,
+    edition_id: str,
+    day: date,
+    protocols: list[DigestProtocol],
+    items: list[FeedItem],
+    generated_at: datetime,
+) -> tuple[FeedEdition, list[FeedItem]]:
+    """The edition listing ``items`` in their given order, and the items with
+    their rank set to that order. Items whose rank changes are returned as
+    copies, so the stored version is never mutated."""
+    ranked: list[FeedItem] = []
+    for rank, item in enumerate(items):
+        ranked.append(
+            item if item.rank == rank else item.model_copy(update={"rank": rank})
         )
-    for vote in digest.votes:
-        items.append(_vote_item(digest, vote, rank=len(items)))
-
     edition = FeedEdition(
-        id=digest.id,
-        parliament=digest.parliament,
-        parliament_name=digest.parliament_name,
-        region=digest.region,
-        date=digest.date,
-        protocols=session.protocols if session else [],
-        item_ids=[item.id for item in items],
-        other_topics=session.other_topics if session else [],
-        input_hash=digest.input_hash,
-        generated_at=digest.generated_at,
+        id=edition_id,
+        parliament=parliament.id,
+        parliament_name=parliament.name,
+        region=parliament.region,
+        date=day,
+        protocols=protocols,
+        item_ids=[i.id for i in ranked],
+        generated_at=generated_at,
     )
-    return edition, items
+    return edition, ranked

@@ -211,7 +211,8 @@ function DailyFeed({
       findItem(linkedDigests, openKey) ??
       null)
     : null;
-  // An old link may name the item by a legacy key; heat is keyed by its id.
+  // A linked item may lie outside the loaded days; its heat is then ranked
+  // within its own day.
   const openHeat = [...days, ...rankFeed(buildFeed([linkedDigests], null), [])]
     .map((d) => (openItem ? d.heat.get(openItem.key) : undefined))
     .find((h) => h !== undefined);

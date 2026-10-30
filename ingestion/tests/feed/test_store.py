@@ -2,19 +2,19 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-import json
-from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
 
-from ingestion.feed.items import split_digest
-from ingestion.feed.models import DailyDigest, FeedItem, LocalizedContent
+from ingestion.feed.models import FeedItem, LocalizedContent
 from ingestion.feed.prompts import TRANSLATION_PROMPT_VERSION
-from ingestion.feed.store import carry_over_translations, vanished_items
-
-LEGACY_FIXTURE = Path(__file__).parent / "fixtures" / "legacy_daily_digests.json"
-
-
-def _digest() -> DailyDigest:
-    return DailyDigest.model_validate(json.loads(LEGACY_FIXTURE.read_text())[0])
+from ingestion.feed.store import (
+    carry_over_translations,
+    read_edition_item_ids,
+    read_items,
+    vanished_item_ids,
+    write_feed,
+)
+from tests.feed.samples import sample_items
 
 
 def _with_english(item: FeedItem) -> FeedItem:
@@ -29,26 +29,65 @@ def _with_english(item: FeedItem) -> FeedItem:
     return item
 
 
-def test_a_debate_dropped_from_a_rebuilt_day_is_retracted_not_deleted() -> None:
-    digest = _digest()
-    old_edition, old_items = split_digest(digest)
-    assert digest.session is not None
-    rebuilt = digest.model_copy(deep=True)
-    assert rebuilt.session is not None
-    rebuilt.session.sections.pop(0)
-    new_edition, _ = split_digest(rebuilt)
+class FakeDoc:
+    def __init__(self, store: dict, doc_id: str) -> None:
+        self.store, self.id = store, doc_id
 
-    stored = {i.id: i for i in old_items}
-    [gone] = vanished_items({old_edition.id: old_edition}, [new_edition], stored)
-    assert gone.id == old_items[0].id
-    assert gone.status == "retracted"
-    assert stored[gone.id].status == "published"  # the stored copy is untouched
+
+class FakeDb:
+    def __init__(self, docs: dict[str, dict]) -> None:
+        self.docs = docs
+        self.updates: list[tuple[str, dict]] = []
+        self.sets: list[str] = []
+
+    def collection(self, _name: str) -> Any:
+        return SimpleNamespace(document=lambda doc_id: FakeDoc(self.docs, doc_id))
+
+    def get_all(self, refs: list[FakeDoc]) -> list[Any]:
+        return [
+            SimpleNamespace(
+                id=r.id,
+                exists=r.id in self.docs,
+                to_dict=lambda r=r: self.docs[r.id],
+            )
+            for r in refs
+        ]
+
+    def batch(self) -> Any:
+        db = self
+        return SimpleNamespace(
+            update=lambda ref, data: db.updates.append((ref.id, data)),
+            set=lambda ref, data: db.sets.append(ref.id),
+            commit=lambda: None,
+        )
+
+
+def test_an_item_whose_unit_vanished_is_retracted() -> None:
+    assert vanished_item_ids(["a", "b", "c"], ["c", "a"]) == ["b"]
+
+
+def test_retraction_touches_only_the_status() -> None:
+    db = FakeDb({})
+    write_feed(db, [], [], ["old"])
+    assert db.updates == [("old", {"status": "retracted"})]
+
+
+def test_a_doc_in_an_older_shape_is_read_as_not_built() -> None:
+    [item, *_] = sample_items()
+    db = FakeDb(
+        {
+            item.id: item.model_dump(mode="json"),
+            "old": {"id": "old", "legacy_keys": ["x~s0"]},
+            "edition": {"item_ids": ["old"], "other_topics": []},
+        }
+    )
+    assert list(read_items(db, [item.id, "old"])) == [item.id]
+    assert read_edition_item_ids(db, ["edition", "missing"]) == {"edition": ["old"]}
 
 
 def test_unchanged_texts_keep_their_translation_across_a_rebuild() -> None:
-    _, old_items = split_digest(_digest())
-    stored = {i.id: _with_english(i.model_copy(deep=True)) for i in old_items}
-    _, items = split_digest(_digest())
+    stored = {i.id: _with_english(i) for i in sample_items()}
+    items = sample_items()
     items[0].content["de"].source_hash = "regenerated differently"
 
     kept = carry_over_translations(items, stored)

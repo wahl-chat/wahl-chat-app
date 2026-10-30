@@ -15,19 +15,13 @@ service cloud.firestore {
     }
 
     // The parliament feed: editions (one per parliament and sitting day) and
-    // their items. Written only by the backend feed builder via the admin SDK,
-    // which bypasses rules.
+    // their items. Written only by the feed builder via the admin SDK, which
+    // bypasses rules.
     match /feed_editions/{edition_id} {
       allow read;
     }
 
     match /feed_items/{item_id} {
-      allow read;
-    }
-
-    // The feed's shape before it was split into items. Read by web builds that
-    // predate the split until they are replaced; no longer written.
-    match /daily_digests/{digest_id} {
       allow read;
     }
 

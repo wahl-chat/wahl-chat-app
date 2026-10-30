@@ -69,8 +69,10 @@ describe('pageStart', () => {
 
 describe('region', () => {
   it('parses a comma-separated land param, keeping selectable codes only', () => {
-    expect(parseStateParam('de,st,BW,by,xx')).toEqual(['DE', 'ST', 'BW']);
-    expect(parseStateParam('st,st')).toEqual(['ST']);
+    // No Landtag is covered yet, so a stored or shared Land drops out.
+    expect(parseStateParam('de,st,BW,by,xx')).toEqual(['DE']);
+    expect(parseStateParam('de,de')).toEqual(['DE']);
+    expect(parseStateParam('st')).toBeUndefined();
   });
 
   it('leaves an empty or unusable param to the stored choice or default', () => {
@@ -81,8 +83,7 @@ describe('region', () => {
 
   it('shows only the selected parliaments, Bundestag first', () => {
     expect(parliamentsFor(['DE'])).toEqual(['bundestag']);
-    expect(parliamentsFor(['BW', 'DE'])).toEqual(['bundestag', 'landtag_bw']);
-    expect(parliamentsFor(['ST'])).toEqual(['landtag_st']);
+    expect(parliamentsFor(['BW', 'DE'])).toEqual(['bundestag']);
   });
 });
 
@@ -125,14 +126,13 @@ function sitting(
   return {
     ...digest(parliament, date),
     votes,
-    session: { protocols: [], sections, other_topics: [] },
+    session: { protocols: [], sections },
   };
 }
 
 describe('dayHeat', () => {
   it('rescales against the hottest section of the day, across parliaments', () => {
-    // Each protocol rated itself: the Landtag's 5 and the Bundestag's 4 are
-    // its own maxima; pooled, only the overall hottest keeps 5.
+    // Pooled across parliaments, only the day's hottest debate keeps 5.
     const [day] = rankFeed(
       buildFeed([
         [sitting('bundestag', '2026-09-08', [section('health_care', 4, 60)])],
@@ -238,14 +238,16 @@ describe('feedLists', () => {
 });
 
 describe('editionIdOf', () => {
-  it('finds the sitting day of new and legacy item keys', () => {
+  it('finds the sitting day of an item key', () => {
     expect(editionIdOf('bundestag_2026-07-10_v6421')).toBe(
       'bundestag_2026-07-10',
     );
-    expect(editionIdOf('landtag_st_2026-06-18_d3f9a1c2')).toBe(
+    expect(editionIdOf('bundestag_2026-07-10_d90-top17')).toBe(
+      'bundestag_2026-07-10',
+    );
+    expect(editionIdOf('landtag_st_2026-06-18_v12')).toBe(
       'landtag_st_2026-06-18',
     );
-    expect(editionIdOf('bundestag_2026-07-10~s0')).toBe('bundestag_2026-07-10');
   });
 
   it('rejects keys that name no edition', () => {

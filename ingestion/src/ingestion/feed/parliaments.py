@@ -48,6 +48,10 @@ class Parliament:
     # Party slugs that sit in another party's Fraktion here (the CSU in the
     # Union's Bundestag Fraktion); speeches are attributed to the Fraktion.
     party_aliases: tuple[tuple[str, str], ...] = ()
+    # Built by default. The Landtage are not: abgeordnetenwatch publishes
+    # their votes one to five months late, so an edition built two weeks
+    # after the sitting would be missing most of them.
+    in_feed: bool = True
 
 
 PARLIAMENTS: dict[str, Parliament] = {
@@ -66,6 +70,7 @@ PARLIAMENTS: dict[str, Parliament] = {
         region="DE-ST",
         party_context_id="landtagswahl-sachsen-anhalt-2026",
         has_speeches=False,
+        in_feed=False,
     ),
     "landtag_bw": Parliament(
         id="landtag_bw",
@@ -73,8 +78,12 @@ PARLIAMENTS: dict[str, Parliament] = {
         region="DE-BW",
         party_context_id="landtagswahl-baden-wuerttemberg-2026",
         has_speeches=False,
+        in_feed=False,
     ),
 }
+
+# What a run builds without an explicit --parliament.
+FEED_PARLIAMENTS: list[str] = sorted(p.id for p in PARLIAMENTS.values() if p.in_feed)
 
 
 @dataclass(frozen=True)

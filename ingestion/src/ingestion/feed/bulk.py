@@ -5,18 +5,18 @@
 """Build the parliament feed from the corpus and publish it.
 
 Per parliament, the window ends on the latest day the corpus has data for (not
-today — Landtage sit irregularly and ingestion lags) and spans ``--days``.
-Reruns are cheap: a day whose source payloads are unchanged since the stored
-edition is skipped without LLM calls. The scheduled job runs weekly after the
+today — ingestion lags) and spans ``--days``. The source defines the items: one
+per agenda item with speeches, one per poll. Each carries the hash of its own
+inputs, so a rerun regenerates only the items whose sources changed; an
+unchanged day costs no LLM call. The scheduled job runs weekly after the
 speech and vote jobs, several times in a row: ``--time-budget`` stops it
-between days before the job's time cap, and the next run picks up the days
-still missing.
+starting new items before the job's time cap, and the next run picks up what
+is still missing.
 
-Each built day is published before the next one starts: split into feed
-items, translated, indexed in the feed collection in Qdrant, then written to
-Firestore ``feed_items`` and ``feed_editions``. Qdrant goes first, so a crash
-leaves at worst an indexed item Firestore does not have yet; the next run
-rewrites both.
+Each built day is published before the next one starts: translated, indexed
+in the feed collection in Qdrant, then written to Firestore ``feed_items`` and
+``feed_editions``. Qdrant goes first, so a crash leaves at worst an indexed item
+Firestore does not have yet; the next run rewrites both.
 
 Usage (local):
     FIRESTORE_EMULATOR_HOST=localhost:8081 \
@@ -47,18 +47,24 @@ import sys
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
 
 import httpx
 from qdrant_client import QdrantClient
 
-from ingestion.feed.builder import DigestBuilder, iter_digests
+from ingestion.feed.builder import DayPlan, FeedBuilder, build_day, plan_days
 from ingestion.feed.index import FEED_COLLECTION_NAME, IndexReport, index_items
-from ingestion.feed.items import split_digest
-from ingestion.feed.models import DailyDigest, FeedEdition, FeedItem
-from ingestion.feed.parliaments import PARLIAMENTS, Parliament, load_party_display
-from ingestion.feed.protocol_pages import attach_protocol_pages
+from ingestion.feed.items import assemble_edition
+from ingestion.feed.models import FeedEdition, FeedItem
+from ingestion.feed.parliaments import (
+    FEED_PARLIAMENTS,
+    PARLIAMENTS,
+    Parliament,
+    load_party_display,
+)
+from ingestion.feed.protocol_pages import apply_protocols
 from ingestion.feed.reader import (
     SPEECH_SOURCE_TYPE,
     VOTE_SOURCE_TYPE,
@@ -72,14 +78,16 @@ from ingestion.feed.reader import (
 )
 from ingestion.feed.store import (
     carry_over_translations,
-    read_edition_hashes,
-    read_editions,
-    read_items,
+    read_edition_item_ids,
     read_items_since,
-    vanished_items,
+    vanished_item_ids,
     write_feed,
 )
-from ingestion.feed.translate import TranslationReport, translate_items
+from ingestion.feed.translate import (
+    TranslationReport,
+    needs_translation,
+    translate_items,
+)
 from ingestion.firestore_guard import guard_firestore_target
 from ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
 
@@ -88,22 +96,43 @@ logger = logging.getLogger(__name__)
 # Must match CacheTags.FEED in web/lib/cache-tags.ts.
 FEED_CACHE_TAG = "feed"
 _DEFAULT_SITE_URLS = {"prod": "https://wahl.chat", "dev": "https://dev.wahl.chat"}
+# No new item starts once --time-budget is spent; calls already running get
+# this long to finish before they are cut, leaving the rest of the job's cap
+# for translation fallbacks and the writes.
+_CALL_GRACE_S = 75
 
 
 @dataclass
 class ParliamentRun:
     parliament: Parliament
-    window: Optional[tuple[Any, Any]]
-    digests: list[DailyDigest]
-    unchanged: int
+    window: Optional[tuple[date, date]]
+    days_built: int = 0
+    unchanged: int = 0
+    items_built: int = 0
+    # Built, but retried next run: a fallback, or a Fraktion without a position.
+    incomplete: int = 0
+    # Debates whose protocol could not be read yet, so their order is unknown.
+    deferred: int = 0
     out_of_time: bool = False
+
+
+@dataclass
+class DayBuild:
+    """One day ready to publish: its edition, every item the edition lists
+    (``changed`` marks which need writing), and the ids to retract."""
+
+    edition: FeedEdition
+    items: list[FeedItem]
+    changed: set[str]
+    built: set[str]
+    retracted_ids: list[str] = field(default_factory=list)
 
 
 @dataclass
 class Published:
     editions: list[FeedEdition] = field(default_factory=list)
     items: list[FeedItem] = field(default_factory=list)
-    retracted: list[FeedItem] = field(default_factory=list)
+    retracted: int = 0
     translation: TranslationReport = field(default_factory=TranslationReport)
     index: IndexReport = field(default_factory=IndexReport)
     translations_kept: int = 0
@@ -111,7 +140,7 @@ class Published:
     def add(self, other: Published) -> None:
         self.editions.extend(other.editions)
         self.items.extend(other.items)
-        self.retracted.extend(other.retracted)
+        self.retracted += other.retracted
         self.translation.translated += other.translation.translated
         self.translation.failed += other.translation.failed
         self.translation.dropped_stale += other.translation.dropped_stale
@@ -122,8 +151,12 @@ class Published:
 
 
 def parliament_window(
-    qdrant: QdrantClient, parliament: Parliament, days: int
-) -> Optional[tuple[Any, Any]]:
+    qdrant: QdrantClient,
+    parliament: Parliament,
+    days: int,
+    since: Optional[date] = None,
+) -> Optional[tuple[date, date]]:
+    """``days`` ending on the latest corpus day, or ``since`` up to it."""
     source_types = [VOTE_SOURCE_TYPE] + (
         [SPEECH_SOURCE_TYPE] if parliament.has_speeches else []
     )
@@ -133,14 +166,16 @@ def parliament_window(
     if latest is None:
         logger.warning("No corpus data for %s (%s)", parliament.id, parliament.region)
         return None
+    if since is not None:
+        return since, max(since, latest)
     return compute_window(latest, days)
 
 
 @dataclass
 class WindowSources:
-    window: tuple[Any, Any]
+    window: tuple[date, date]
     votes: list[dict]
-    sitting_days: dict[Any, SittingDay]
+    sitting_days: dict[date, SittingDay]
 
 
 def load_sources(
@@ -148,14 +183,15 @@ def load_sources(
     parliament: Parliament,
     days: int,
     *,
-    attach_pages: bool = True,
+    since: Optional[date] = None,
 ) -> Optional[WindowSources]:
     """The window's vote payloads and sitting days, or None without corpus data.
 
-    ``attach_pages`` fetches the Bundestag's protocol XML to link speeches to
-    their page; a day's input hash does not depend on it.
+    Sitting days come with the Bundestag's protocol applied (see
+    ``protocol_pages``): speeches in order, twins from the other source
+    dropped. Only that state is ever built or hashed.
     """
-    window = parliament_window(qdrant, parliament, days)
+    window = parliament_window(qdrant, parliament, days, since)
     if window is None:
         return None
     start, end = window
@@ -164,108 +200,217 @@ def load_sources(
         COLLECTION_NAME,
         window_filter(VOTE_SOURCE_TYPE, parliament.region, start, end),
     )
-    sitting_days: dict[Any, SittingDay] = {}
+    sitting_days: dict[date, SittingDay] = {}
     if parliament.has_speeches:
+        # A day earlier, so a sitting that began the day before the window
+        # and ran past midnight is still dated by its first speech.
         speech_payloads = scroll_payloads(
             qdrant,
             COLLECTION_NAME,
-            window_filter(SPEECH_SOURCE_TYPE, parliament.region, start, end),
+            window_filter(
+                SPEECH_SOURCE_TYPE,
+                parliament.region,
+                start - timedelta(days=1),
+                end,
+            ),
         )
-        sitting_days = group_sitting_days(assemble_speeches(speech_payloads))
-        for sitting in sitting_days.values() if attach_pages else ():
-            attached = attach_protocol_pages(sitting)
+        sitting_days = {
+            day: sitting
+            for day, sitting in group_sitting_days(
+                assemble_speeches(speech_payloads)
+            ).items()
+            if day >= start
+        }
+        for sitting in sitting_days.values():
+            ordered = apply_protocols(sitting)
             logger.info(
-                "%s: %d speeches linked to their protocol page", sitting.day, attached
+                "%s: %d of %d agenda items in protocol order",
+                sitting.day,
+                ordered,
+                len(sitting.agenda_items),
             )
     return WindowSources(window, votes, sitting_days)
+
+
+def _is_current(stored: Optional[FeedItem], input_hash: str) -> bool:
+    return (
+        stored is not None
+        and stored.status == "published"
+        and stored.input_hash == input_hash
+    )
+
+
+def plan_day(
+    builder: FeedBuilder,
+    parliament: Parliament,
+    plan: DayPlan,
+    display: dict[str, Any],
+    *,
+    stored: dict[str, FeedItem],
+    stored_edition_ids: Optional[list[str]],
+    force: bool,
+    run: ParliamentRun,
+    out_of_time: Callable[[], bool],
+    now: datetime,
+) -> Optional[DayBuild]:
+    """Generate what changed in one day and assemble its edition; None when
+    the day is unchanged and fully translated."""
+    debates = [
+        u
+        for u in plan.debates
+        if force or not _is_current(stored.get(u.item_id), u.input_hash)
+    ]
+    votes = [
+        u
+        for u in plan.votes
+        if force or not _is_current(stored.get(u.item_id), u.input_hash)
+    ]
+    run.deferred += sum(1 for u in debates if not u.buildable)
+    built_items = (
+        build_day(
+            builder,
+            parliament,
+            plan,
+            debates,
+            votes,
+            display,
+            now=now,
+            out_of_time=out_of_time,
+        )
+        if any(u.buildable for u in debates) or votes
+        else []
+    )
+    built = {i.id: i for i in built_items}
+
+    listed: list[FeedItem] = []
+    for item_id in plan.item_ids:
+        # A unit that could not be rebuilt keeps its stored version; one never
+        # built yet stays out until a run builds it.
+        item = built.get(item_id) or stored.get(item_id)
+        if item is not None and item.status == "published":
+            listed.append(item)
+    edition, ranked = assemble_edition(
+        parliament, plan.edition_id, plan.day, plan.protocols, listed, now
+    )
+    retracted = vanished_item_ids(stored_edition_ids or [], edition.item_ids)
+    changed = {
+        i.id
+        for i in ranked
+        if i.id in built or stored.get(i.id) is None or stored[i.id].rank != i.rank
+    }
+    untranslated = any(needs_translation(i, "en") for i in ranked)
+    if (
+        not changed
+        and not retracted
+        and stored_edition_ids == edition.item_ids
+        and not untranslated
+    ):
+        return None
+    run.items_built += len(built)
+    run.incomplete += sum(1 for i in built.values() if i.input_hash is None)
+    return DayBuild(
+        edition=edition,
+        items=ranked,
+        changed=changed,
+        built=set(built),
+        retracted_ids=retracted,
+    )
 
 
 def build_for_parliament(
     qdrant: QdrantClient,
     parliament: Parliament,
-    builder: DigestBuilder,
+    builder: FeedBuilder,
     *,
     days: int,
     env: str,
-    existing_hashes: dict[str, Optional[str]],
+    db: Any,
     force: bool,
-    publish_day: Callable[[DailyDigest], None],
+    publish_day: Callable[[DayBuild, dict[str, FeedItem]], None],
+    since: Optional[date] = None,
     out_of_time: Callable[[], bool] = lambda: False,
+    now: Optional[datetime] = None,
 ) -> ParliamentRun:
     """Build the window's days newest first, publishing each one as it is built.
 
-    Stops between days once ``out_of_time()`` says so; a finished day is
-    already stored, so the next run skips it.
+    Stops between items once ``out_of_time()`` says so; whatever is published
+    is stored, so the next run skips it.
     """
-    sources = load_sources(qdrant, parliament, days)
+    sources = load_sources(qdrant, parliament, days, since=since)
     if sources is None:
-        return ParliamentRun(parliament, None, [], 0)
-    votes, sitting_days = sources.votes, sources.sitting_days
-
-    run = ParliamentRun(parliament, sources.window, [], 0)
-    for digest in iter_digests(
-        parliament,
-        votes,
-        sitting_days,
-        load_party_display(parliament, env),
-        builder,
-        existing_hashes=existing_hashes,
-        force=force,
-    ):
-        if digest is None:
-            run.unchanged += 1
-            continue
-        run.digests.append(digest)
-        publish_day(digest)
+        return ParliamentRun(parliament, None)
+    run = ParliamentRun(parliament, sources.window)
+    plans = plan_days(parliament, sources.votes, sources.sitting_days)
+    stored = (
+        {i.id: i for i in read_items_since(db, parliament.id, sources.window[0])}
+        if db is not None
+        else {}
+    )
+    stored_editions = (
+        read_edition_item_ids(db, [p.edition_id for p in plans]) if db else {}
+    )
+    display = load_party_display(parliament, env)
+    for plan in plans:
         if out_of_time():
             run.out_of_time = True
             break
+        day = plan_day(
+            builder,
+            parliament,
+            plan,
+            display,
+            stored=stored,
+            stored_edition_ids=stored_editions.get(plan.edition_id),
+            force=force,
+            run=run,
+            out_of_time=out_of_time,
+            now=now or datetime.now(timezone.utc),
+        )
+        if day is None:
+            run.unchanged += 1
+            continue
+        run.days_built += 1
+        publish_day(day, stored)
+    if out_of_time():
+        run.out_of_time = True
     return run
 
 
 def publish(
-    digests: list[DailyDigest],
+    day: DayBuild,
+    stored: dict[str, FeedItem],
     *,
     db: Any,
-    builder: DigestBuilder,
+    builder: FeedBuilder,
     qdrant: Optional[QdrantClient],
     embed: Any,
     translate: bool,
 ) -> Published:
-    """Split, translate, index and store built days.
+    """Translate, index and store one built day.
 
-    ``db=None`` is a dry run: nothing is read back or written. ``qdrant=None``
-    skips the index.
+    ``db=None`` is a dry run: nothing is written. ``qdrant=None`` skips the
+    index.
     """
-    out = Published()
-    for digest in digests:
-        edition, items = split_digest(digest)
-        out.editions.append(edition)
-        out.items.extend(items)
-
-    if db is not None:
-        previous = read_editions(db, [e.id for e in out.editions])
-        stored = read_items(
-            db,
-            {i.id for i in out.items}
-            | {item_id for e in previous.values() for item_id in e.item_ids},
-        )
-        out.translations_kept = carry_over_translations(out.items, stored)
-        out.retracted = vanished_items(previous, out.editions, stored)
-
+    out = Published(editions=[day.edition], retracted=len(day.retracted_ids))
+    built = [i for i in day.items if i.id in day.built]
+    out.translations_kept = carry_over_translations(built, stored)
+    to_write = {i.id for i in day.items if i.id in day.changed}
     if translate:
-        out.translation = translate_items(out.items, builder)
+        pending = [i for i in day.items if needs_translation(i, "en")]
+        out.translation = translate_items(pending, builder)
+        to_write |= {i.id for i in pending}
+    out.items = [i for i in day.items if i.id in to_write]
     if qdrant is not None:
-        out.index = index_items(qdrant, embed, out.items + out.retracted)
+        out.index = index_items(qdrant, embed, built, retracted_ids=day.retracted_ids)
     if db is not None:
-        write_feed(db, out.editions, out.items + out.retracted)
+        write_feed(db, [day.edition], out.items, day.retracted_ids)
     return out
 
 
 def backfill_translations(
     db: Any,
     qdrant: QdrantClient,
-    builder: DigestBuilder,
+    builder: FeedBuilder,
     parliaments: list[Parliament],
     days: int,
 ) -> TranslationReport:
@@ -333,12 +478,12 @@ def post_revalidate(env: str) -> None:
 
 def _summary_line(run: ParliamentRun, published: Published) -> str:
     window = f"{run.window[0]}..{run.window[1]}" if run.window else "no data"
-    incomplete = sum(1 for d in run.digests if d.input_hash is None)
     t = published.translation
     return (
-        f"{run.parliament.id:>10}  window={window}  days_built={len(run.digests)} "
-        f"unchanged={run.unchanged} items={len(published.items)} "
-        f"retracted={len(published.retracted)} incomplete={incomplete} "
+        f"{run.parliament.id:>10}  window={window}  days_built={run.days_built} "
+        f"unchanged={run.unchanged} items_built={run.items_built} "
+        f"items_written={len(published.items)} retracted={published.retracted} "
+        f"incomplete={run.incomplete} deferred={run.deferred} "
         f"translated={t.translated} translation_failed={t.failed} "
         f"translations_kept={published.translations_kept} "
         f"indexed={published.index.upserted}"
@@ -349,11 +494,12 @@ def _summary_line(run: ParliamentRun, published: Published) -> str:
 def build_and_publish(
     qdrant: QdrantClient,
     db: Any,
-    builder: DigestBuilder,
+    builder: FeedBuilder,
     parliaments: list[Parliament],
     *,
     days: int,
     env: str,
+    since: Optional[date] = None,
     force: bool = False,
     translate: bool = True,
     index: bool = True,
@@ -363,7 +509,6 @@ def build_and_publish(
 
     ``db=None`` is a dry run (nothing read back or written).
     """
-    existing = read_edition_hashes(db, [p.id for p in parliaments]) if db else {}
     index_to = qdrant if index and db is not None else None
     embed = _embeddings() if index_to is not None else None
     runs: list[tuple[ParliamentRun, Published]] = []
@@ -373,10 +518,13 @@ def build_and_publish(
             continue
         published = Published()
 
-        def publish_day(digest: DailyDigest, into: Published = published) -> None:
+        def publish_day(
+            day: DayBuild, stored: dict[str, FeedItem], into: Published = published
+        ) -> None:
             into.add(
                 publish(
-                    [digest],
+                    day,
+                    stored,
                     db=db,
                     builder=builder,
                     qdrant=index_to,
@@ -391,7 +539,8 @@ def build_and_publish(
             builder,
             days=days,
             env=env,
-            existing_hashes=existing,
+            db=db,
+            since=since,
             force=force,
             publish_day=publish_day,
             out_of_time=out_of_time,
@@ -422,7 +571,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         "--parliament",
         action="append",
         choices=sorted(PARLIAMENTS),
-        help="Limit to one parliament (repeatable; default: all)",
+        help="Limit to one parliament (repeatable; default: those in the feed)",
     )
     parser.add_argument(
         "--force", action="store_true", help="Rebuild unchanged days too"
@@ -460,7 +609,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         type=float,
         default=None,
         metavar="SECONDS",
-        help="Wall-clock budget; no new day starts once it is spent",
+        help="Wall-clock budget; no new item starts once it is spent",
     )
     parser.add_argument(
         "--revalidate",
@@ -478,7 +627,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
 
     env = os.getenv("ENV", "dev")
-    parliaments = [PARLIAMENTS[p] for p in (args.parliament or sorted(PARLIAMENTS))]
+    parliaments = [PARLIAMENTS[p] for p in (args.parliament or FEED_PARLIAMENTS)]
 
     db = None
     if not args.dry_run:
@@ -491,7 +640,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     check_fingerprint(qdrant, COLLECTION_NAME)
 
-    builder = DigestBuilder()
+    builder = FeedBuilder(
+        deadline=started + args.time_budget + _CALL_GRACE_S
+        if args.time_budget is not None
+        else None
+    )
     try:
         if args.translate_backfill:
             if db is None:

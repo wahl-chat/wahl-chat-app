@@ -41,12 +41,6 @@ describe('feedToDigests', () => {
     const digests = feedToDigests(feed);
     expect(findItem(digests, gone)).toBeUndefined();
   });
-
-  it('still opens a link shared before the split', () => {
-    const digests = feedToDigests(FEED);
-    const item = FEED.items[0];
-    expect(findItem(digests, item.legacy_keys[0])?.key).toBe(item.id);
-  });
 });
 
 describe('debate topics', () => {

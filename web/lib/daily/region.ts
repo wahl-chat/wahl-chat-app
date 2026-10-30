@@ -2,7 +2,10 @@ import type { DigestParliamentId } from '@/lib/firebase/firebase.types';
 
 type DailyState = {
   name: string;
-  /** Only Länder whose Landtag the digest builder covers have one. */
+  /** Only Länder whose Landtag the feed covers have one. None does yet:
+   * abgeordnetenwatch publishes Landtag votes one to five months late, so a
+   * Landtag's days would stay incomplete for months. The list stays, to show
+   * the Länder that are coming. */
   parliament?: DigestParliamentId;
   /** Coat of arms, where an election image doubles as one. */
   sigil?: string;
@@ -12,7 +15,6 @@ type DailyState = {
 export const DAILY_STATES: Record<string, DailyState> = {
   BW: {
     name: 'Baden-Württemberg',
-    parliament: 'landtag_bw',
     sigil: '/images/landtagswahl-baden-wuerttemberg-2026.webp',
   },
   BY: { name: 'Bayern' },
@@ -38,7 +40,6 @@ export const DAILY_STATES: Record<string, DailyState> = {
   SN: { name: 'Sachsen' },
   ST: {
     name: 'Sachsen-Anhalt',
-    parliament: 'landtag_st',
     sigil: '/images/landtagswahl-sachsen-anhalt-2026.webp',
   },
   SH: { name: 'Schleswig-Holstein' },

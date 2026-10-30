@@ -112,9 +112,8 @@ export type RankedDay = {
 };
 
 /**
- * The builder rates heat only against the other sections of the same
- * protocol, so the scale differs between sittings and parliaments. Rescaling
- * against the day's hottest section keeps the comparison relative to what the
+ * The builder rates each debate on its own, on a fixed scale. Rescaling
+ * against the day's hottest debate keeps the comparison relative to what the
  * reader sees that day: the hottest always shows 5.
  */
 export function dayHeat(sections: readonly SectionItem[]): Map<string, number> {

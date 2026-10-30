@@ -39,7 +39,7 @@ import os
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
 from langchain_core.embeddings import Embeddings
 from qdrant_client import QdrantClient, models
@@ -172,12 +172,14 @@ def index_items(
     embed: Embeddings,
     items: list[FeedItem],
     collection_name: str = FEED_COLLECTION_NAME,
+    retracted_ids: Iterable[str] = (),
 ) -> IndexReport:
     """Upsert published items whose German text changed; drop retracted ones."""
     check_fingerprint(qdrant, collection_name)
     report = IndexReport()
 
     retracted = [feed_point_id(i.id) for i in items if i.status == "retracted"]
+    retracted += [feed_point_id(item_id) for item_id in retracted_ids]
     if retracted:
         qdrant.delete(
             collection_name=collection_name,

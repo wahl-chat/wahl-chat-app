@@ -17,8 +17,8 @@ from pydantic import BaseModel, Field
 
 from ingestion.feed.topics import DigestTopic, topic_legend
 
-# Part of every digest's input_hash: bumping it regenerates all stored days.
-PROMPT_VERSION = "7"
+# Part of every item's input_hash: bumping it regenerates all stored items.
+PROMPT_VERSION = "8"
 # Stored on each translation: bumping it re-translates, never regenerates.
 TRANSLATION_PROMPT_VERSION = "1"
 
@@ -33,6 +33,14 @@ _POSITION_SENTENCE_RULE = (
     "Der Positionssatz steht direkt hinter dem Parteinamen: ohne Subjekt, mit "
     'dem Verb im Plural ("Wenden sich gegen …", "Fordern …", "Begrüßen …"), nicht '
     '"Die Fraktion kritisierte …".'
+)
+# Absolute, so each debate is rated on its own; the page rescales against
+# the hottest debate of the day it shows.
+_HEAT_SCALE = (
+    "1 = sachlich, kaum Widerspruch; 2 = unterschiedliche Positionen, ruhiger "
+    "Ton; 3 = deutliche Gegensätze, spürbare Schärfe; 4 = scharfer Ton, "
+    "gegenseitige Vorwürfe; 5 = außergewöhnlich hitzig, persönliche Angriffe "
+    "oder Ordnungsrufe."
 )
 _QUESTION_STYLE = (
     "kurze Fragen (höchstens 8 Wörter) aus Sicht einer Bürgerin, "
@@ -72,10 +80,7 @@ class VoteEnrichmentBatch(BaseModel):
 
 class PartyPositionDraft(BaseModel):
     party_id: str = Field(
-        description="Partei-Kennung genau wie in den Auszügen in Klammern, z. B. 'spd'."
-    )
-    speakers: list[str] = Field(
-        description="Namen der Redner:innen dieser Fraktion, genau wie in den Auszügen."
+        description="Partei-Kennung genau wie in den Reden in Klammern, z. B. 'spd'."
     )
     position: str = Field(
         description=(
@@ -87,14 +92,14 @@ class PartyPositionDraft(BaseModel):
 
 class OpeningQuoteDraft(BaseModel):
     speaker: str = Field(
-        description="Nur der Name der ersten Redner:in, ohne Partei, genau wie in den Auszügen."
+        description="Nur der Name der ersten Redner:in, ohne Partei, genau wie in den Reden."
     )
     quote: str = Field(
-        description="Ein kurzer, wörtlich übernommener Kernsatz (höchstens 25 Wörter) aus dieser ersten Rede, unverändert."
+        description="Ein kurzer, wörtlich übernommener Kernsatz (höchstens 25 Wörter) aus der ersten Rede, unverändert."
     )
 
 
-class SessionSectionDraft(BaseModel):
+class DebateDraft(BaseModel):
     topics: list[DigestTopic] = Field(description=_TOPICS_DESCRIPTION)
     headline: str = Field(description="Kurze Überschrift, höchstens 10 Wörter.")
     summary: str = Field(
@@ -102,10 +107,7 @@ class SessionSectionDraft(BaseModel):
     )
     positions: list[PartyPositionDraft] = Field(
         default_factory=list,
-        description="Je Fraktion, die zu diesem Thema gesprochen hat, ein Eintrag.",
-    )
-    agenda_refs: list[str] = Field(
-        description="Kennungen der zugrunde liegenden Tagesordnungspunkte, z. B. ['A2', 'A5']."
+        description="Genau ein Eintrag je Fraktion, die in der Debatte gesprochen hat.",
     )
     key_points: list[str] = Field(
         default_factory=list,
@@ -115,11 +117,7 @@ class SessionSectionDraft(BaseModel):
         ),
     )
     heat: Optional[int] = Field(
-        None,
-        description=(
-            "Hitzigkeit 1 bis 5 IM VERGLEICH zu den anderen Abschnitten dieser "
-            "Sitzung: der hitzigste Abschnitt bekommt 5."
-        ),
+        None, description=f"Hitzigkeit auf einer festen Skala: {_HEAT_SCALE}"
     )
     opening_quote: Optional[OpeningQuoteDraft] = None
     suggested_questions: list[str] = Field(
@@ -127,11 +125,32 @@ class SessionSectionDraft(BaseModel):
     )
 
 
-class SessionSummaryDraft(BaseModel):
-    sections: list[SessionSectionDraft]
-    other_topics: list[str] = Field(
-        description="Kurze Stichworte für kleinere Tagesordnungspunkte ohne eigenen Abschnitt."
+class PositionsDraft(BaseModel):
+    positions: list[PartyPositionDraft]
+
+
+class PositionCheck(BaseModel):
+    ref: str = Field(description="Die Kennung des Positionssatzes, z. B. 'P2'.")
+    supported: bool = Field(
+        description="true nur, wenn die Reden dieser Fraktion den Satz vollständig stützen."
     )
+    reason: str = Field(description="Ein kurzer Satz zur Begründung.")
+
+
+class PositionCheckBatch(BaseModel):
+    checks: list[PositionCheck]
+
+
+class PositionAgreement(BaseModel):
+    ref: str = Field(description="Die Kennung des Satzpaares, z. B. 'P2'.")
+    agrees: bool = Field(
+        description="true, wenn beide Sätze der Fraktion dieselbe Position zuschreiben."
+    )
+    reason: str = Field(description="Ein kurzer Satz zur Begründung.")
+
+
+class PositionAgreementBatch(BaseModel):
+    pairs: list[PositionAgreement]
 
 
 class TranslatedSegment(BaseModel):
@@ -159,42 +178,93 @@ Abstimmungen:
 {{votes}}
 """
 
-SESSION_SUMMARY_PROMPT = f"""\
-Du fasst die Plenarsitzung des {{parliament}} vom {{day}} für {_AUDIENCE} \
-zusammen. Grundlage sind ausschließlich die folgenden \
-Redeauszüge, gruppiert nach Tagesordnungspunkten.
+_POSITION_FIDELITY_RULE = (
+    "Jeder Positionssatz gibt nur wieder, was die Redner:innen dieser Fraktion "
+    "in DIESER Debatte gesagt haben: nichts zuspitzen, nichts abschwächen, "
+    "keine Forderung erfinden (wer eine Prüfung verlangt, fordert keine "
+    "Abschaffung)."
+)
 
-Gliedere die Zusammenfassung nach Themen aus dieser Liste {_TOPIC_KEYS_RULE}:
+DEBATE_PROMPT = f"""\
+Du fasst eine Debatte aus dem {{parliament}} vom {{day}} für {_AUDIENCE} \
+zusammen. Grundlage sind ausschließlich die folgenden Reden zum \
+Tagesordnungspunkt „{{agenda}}“, in der Reihenfolge, in der sie gehalten \
+wurden.
+
+Ordne die Debatte 1 bis 2 Themen aus dieser Liste zu {_TOPIC_KEYS_RULE}:
 {{topics}}
 
 Regeln:
-- Ein Abschnitt pro Hauptthema; fasse Tagesordnungspunkte zum selben \
-Hauptthema zusammen.
-- topics: 1 bis 2 Themen je Abschnitt, das Hauptthema zuerst; ein zweites \
-nur, wenn die Debatte es wesentlich berührt.
-- Höchstens 6 Abschnitte, die wichtigsten Debatten zuerst.
-- Jeder Abschnitt nennt in agenda_refs die Kennungen der Tagesordnungspunkte, \
-auf denen er beruht. {_GROUNDING_RULE}
+- topics: das Hauptthema zuerst; ein zweites nur, wenn die Debatte es \
+wesentlich berührt.
+- {_GROUNDING_RULE}
+- {_NEUTRALITY_RULE}
 - {_ATTRIBUTION_RULE}
-- In summary nur, worum es ging. Die Positionen gehören in positions: für \
-jede Fraktion, die zu dem Thema gesprochen hat, ein Eintrag mit ihren \
-Redner:innen und einem Satz zu ihrer Position. Partei-Kennungen und Namen \
-exakt so übernehmen, wie sie in den Auszügen stehen.
+- In summary nur, worum es ging. Die Positionen gehören in positions.
+- positions: genau ein Eintrag für JEDE dieser Fraktionen, keine andere: \
+{{parties}}. Partei-Kennungen exakt so übernehmen.
+- {_POSITION_FIDELITY_RULE}
 - {_POSITION_SENTENCE_RULE}
 - key_points: genau drei kurze Sätze (was vorgelegt wurde, worüber am meisten \
 gestritten wurde, wie es weitergeht).
-- heat: vergleiche die Abschnitte DIESER Sitzung miteinander (Zwischenrufe, \
-Schärfe, gegensätzliche Positionen). Der hitzigste bekommt 5, die anderen \
-entsprechend weniger. Keine absolute Skala.
+- heat: wie hitzig die Debatte war, auf dieser festen Skala: {_HEAT_SCALE}
 - opening_quote: ein kurzer wörtlicher Satz (höchstens 25 Wörter) aus der \
-ersten Rede des Abschnitts, Zeichen für Zeichen aus dem Auszug kopiert; als \
-speaker nur den Namen, ohne die Partei in Klammern.
+ersten Rede, Zeichen für Zeichen kopiert; als speaker nur den Namen, ohne die \
+Partei in Klammern.
 - suggested_questions: drei kurze Fragen aus Sicht von Bürgerinnen und Bürgern.
-- Kleinere Punkte ohne eigenen Abschnitt als kurze Stichworte in other_topics.
-- {_refs_only_rule("A1, A2, …", "agenda_refs", "Überschriften, Zusammenfassungen oder other_topics")}
 
-Tagesordnungspunkte:
-{{agenda}}
+Reden:
+{{speeches}}
+"""
+
+POSITIONS_PROMPT = f"""\
+Du fasst für {_AUDIENCE} zusammen, welche Position einzelne Fraktionen in \
+einer Debatte aus dem {{parliament}} zum Tagesordnungspunkt „{{agenda}}“ \
+vertreten haben. Grundlage sind ausschließlich die Reden unten.
+
+Regeln:
+- Genau ein Eintrag für JEDE dieser Fraktionen, keine andere: {{parties}}. \
+Partei-Kennungen exakt so übernehmen.
+- {_GROUNDING_RULE}
+- {_NEUTRALITY_RULE}
+- {_ATTRIBUTION_RULE}
+- {_POSITION_FIDELITY_RULE}
+- {_POSITION_SENTENCE_RULE}
+
+Reden:
+{{speeches}}
+"""
+
+VERIFY_PROMPT = f"""\
+Du prüfst Positionssätze für {_AUDIENCE}, bevor sie unter dem Namen einer \
+Fraktion veröffentlicht werden. Eine falsch zugeschriebene Position ist der \
+schwerste Fehler, den diese Übersicht machen kann.
+
+Prüfe jeden Satz einzeln gegen die Reden SEINER Fraktion zum \
+Tagesordnungspunkt „{{agenda}}“ im {{parliament}}. supported ist nur dann \
+true, wenn der Satz nichts enthält, was diese Reden nicht sagen, nichts \
+zuspitzt oder abschwächt und keine Forderung erfindet. Im Zweifel false.
+Gib für JEDEN Satz genau einen Eintrag mit seiner Kennung zurück.
+
+Positionssätze:
+{{positions}}
+
+Reden je Fraktion:
+{{speeches}}
+"""
+
+# Used only by the evaluation against the gold set, never in a build.
+AGREEMENT_PROMPT = """\
+Du vergleichst je zwei Sätze, die einer Fraktion eine Position in einer \
+Debatte zum Tagesordnungspunkt „{agenda}“ zuschreiben: A ist eine von Hand \
+geprüfte Referenz, B ein zu prüfender Entwurf. agrees ist true, wenn B der \
+Fraktion inhaltlich dieselbe Position zuschreibt wie A: andere Worte sind \
+in Ordnung, eine andere, zugespitzte, abgeschwächte oder zusätzliche \
+Forderung nicht.
+Gib für JEDES Paar genau einen Eintrag mit seiner Kennung zurück.
+
+Paare:
+{pairs}
 """
 
 # Segment by segment, not field by field inside one JSON object: asked to
@@ -237,10 +307,37 @@ def format_vote_prompt(parliament: str, votes_block: str) -> str:
     )
 
 
-def format_session_prompt(parliament: str, day: str, agenda_block: str) -> str:
-    return SESSION_SUMMARY_PROMPT.format(
-        parliament=parliament, day=day, topics=topic_legend(), agenda=agenda_block
+def format_debate_prompt(
+    parliament: str, day: str, agenda: str, parties: str, speeches: str
+) -> str:
+    return DEBATE_PROMPT.format(
+        parliament=parliament,
+        day=day,
+        agenda=agenda,
+        topics=topic_legend(),
+        parties=parties,
+        speeches=speeches,
     )
+
+
+def format_positions_prompt(
+    parliament: str, agenda: str, parties: str, speeches: str
+) -> str:
+    return POSITIONS_PROMPT.format(
+        parliament=parliament, agenda=agenda, parties=parties, speeches=speeches
+    )
+
+
+def format_verify_prompt(
+    parliament: str, agenda: str, positions: str, speeches: str
+) -> str:
+    return VERIFY_PROMPT.format(
+        parliament=parliament, agenda=agenda, positions=positions, speeches=speeches
+    )
+
+
+def format_agreement_prompt(agenda: str, pairs: str) -> str:
+    return AGREEMENT_PROMPT.format(agenda=agenda, pairs=pairs)
 
 
 def format_translation_prompt(parliament: str, segments_block: str) -> str:
