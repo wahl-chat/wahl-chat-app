@@ -516,6 +516,57 @@ class BundestagSpeechesConnector(BaseConnector):
             return set()
         return ingested
 
+    def _get_op_covered_dates(self, dates: set[int]) -> set[int]:
+        """Return the sitting dates (YYYYMMDD) for which op holds speeches.
+
+        DIP and op stamp external_id with the same sitting date, so one
+        existence check per date tells whether op covers that protocol.
+        Store unreachable → empty set (nothing counts as covered).
+        """
+        from qdrant_client import models  # noqa: PLC0415
+
+        qdrant = (
+            self._store_client
+            if self._store_client is not None
+            else (self._get_qdrant())
+        )
+        if qdrant is None or not dates:
+            return set()
+        collection_name = self._store_collection or self._collection_name
+        covered: set[int] = set()
+        try:
+            for day in sorted(dates):
+                points, _ = qdrant.scroll(
+                    collection_name=collection_name,
+                    scroll_filter=models.Filter(
+                        must=[
+                            models.FieldCondition(
+                                key="source_type",
+                                match=models.MatchValue(value=self.source_type),
+                            ),
+                            models.FieldCondition(
+                                key="source", match=models.MatchValue(value="op")
+                            ),
+                            models.FieldCondition(
+                                key="external_id", match=models.MatchValue(value=day)
+                            ),
+                        ]
+                    ),
+                    limit=1,
+                    with_payload=False,
+                    with_vectors=False,
+                )
+                if points:
+                    covered.add(day)
+        except Exception as exc:  # noqa: BLE001 — store unreachable → re-check all
+            logger.warning(
+                "set-difference discovery: op coverage lookup failed (%s) — "
+                "re-checking every protocol without DIP chunks",
+                exc,
+            )
+            return set()
+        return covered
+
     def discover(self, since: Optional[int]) -> list[str]:
         """Return protocol ids to process for the configured Wahlperiode.
 
@@ -531,8 +582,15 @@ class BundestagSpeechesConnector(BaseConnector):
              ``aktualisiert`` timestamp is within _UPDATE_SWEEP_DAYS, so
              upstream transcript corrections are re-fetched; the runner's
              content_hash guard rewrites only real changes.
+          4. Settled op coverage: drop a protocol without DIP chunks when op
+             holds its sitting and DIP has not changed it within
+             _UPDATE_SWEEP_DAYS. The resurrection guard skips every DIP speech
+             op covers, so such a protocol never gets DIP chunks and would
+             otherwise be re-fetched as a no-op on every run.
 
-        Re-sorts ascending by (datum, id) — DIP returns DESC.
+        Never-ingested protocols come first, then the sweep, each ascending by
+        (datum, id) — DIP returns DESC — so new sittings are reached before the
+        time budget runs out.
         Populates self._protocols (per-run cache).
         Loads self._mdb_lookup once per run.
 
@@ -561,22 +619,41 @@ class BundestagSpeechesConnector(BaseConnector):
         sweep_floor = (
             date_type.today() - timedelta(days=_UPDATE_SWEEP_DAYS)
         ).isoformat()
-        selected: list[dict] = []
+
+        def _recently_changed(doc: dict) -> bool:
+            # aktualisiert is an ISO timestamp; prefix compare on the date part
+            # is safe for ISO-8601. Without it, the sitting date stands in.
+            changed = str(doc.get("aktualisiert") or doc.get("datum") or "")
+            return bool(changed) and changed[:10] >= sweep_floor
+
+        missing = [d for d in docs if str(d.get("id") or "") not in ingested]
+        settled_dates = {
+            day
+            for d in missing
+            if not _recently_changed(d)
+            and (day := _datum_to_external_id(d.get("datum"))) is not None
+        }
+        op_covered = self._get_op_covered_dates(settled_dates)
+
+        new_docs: list[dict] = []
+        sweep_docs: list[dict] = []
         for doc in docs:
             doc_id = str(doc.get("id") or "")
             if doc_id not in ingested:
-                selected.append(doc)  # new or previously failed → ingest
-                continue
-            # Already ingested: re-surface only when DIP marked it updated
-            # recently (aktualisiert is an ISO timestamp; prefix compare on the
-            # date part is safe for ISO-8601).
-            aktualisiert = str(doc.get("aktualisiert") or "")
-            if aktualisiert and aktualisiert[:10] >= sweep_floor:
-                selected.append(doc)
+                if _datum_to_external_id(
+                    doc.get("datum")
+                ) in op_covered and not _recently_changed(doc):
+                    continue  # settled op coverage → nothing for DIP to add
+                new_docs.append(doc)  # new or previously failed → ingest
+            elif _recently_changed(doc) and doc.get("aktualisiert"):
+                sweep_docs.append(doc)
 
-        # DIP sorts DESC; BaseConnector.discover contract wants ASC.
-        # Re-sort ascending by (datum, id) so run_connector processes oldest-first.
-        selected.sort(key=lambda d: (d.get("datum") or "", str(d.get("id") or "")))
+        def _ascending(group: list[dict]) -> list[dict]:
+            return sorted(
+                group, key=lambda d: (d.get("datum") or "", str(d.get("id") or ""))
+            )
+
+        selected = _ascending(new_docs) + _ascending(sweep_docs)
 
         # Populate per-run cache
         self._protocols = {str(d["id"]): d for d in selected}

@@ -10,6 +10,8 @@ Covers:
   - set-difference discovery: ingested protocols excluded, never-stored ones
     re-surface regardless of age, the runner cursor is ignored
   - update sweep: recently-`aktualisiert` ingested protocols re-surface
+  - settled op coverage: op-covered protocols without DIP chunks drop out
+  - never-ingested protocols come before the sweep
   - DIP DESC input → ascending output: regression guard
   - government (999…) speakers kept with name-lookup / quarantine attribution
   - test_empty_protocol_skips: normalize() raises ValueError for a protocol with zero
@@ -48,14 +50,27 @@ class _FakeDipClient:
 
 
 class _FakeStore:
-    """Fake Qdrant client serving stored DIP parent keys for set-difference tests."""
+    """Fake Qdrant client: stored DIP parent keys, and the sitting dates op holds."""
 
-    def __init__(self, ingested_protocol_ids: list[str]) -> None:
+    def __init__(
+        self,
+        ingested_protocol_ids: list[str],
+        op_dates: tuple[int, ...] = (),
+        op_lookup_fails: bool = False,
+    ) -> None:
         self._ids = ingested_protocol_ids
+        self._op_dates = set(op_dates)
+        self._op_lookup_fails = op_lookup_fails
 
-    def scroll(self, **kwargs: object) -> tuple:
+    def scroll(self, **kwargs: Any) -> tuple:  # noqa: ANN401
         from types import SimpleNamespace
 
+        must = {c.key: c.match.value for c in kwargs["scroll_filter"].must}
+        if must.get("source") == "op":
+            if self._op_lookup_fails:
+                raise ConnectionError("qdrant unreachable")
+            hit = must.get("external_id") in self._op_dates
+            return ([SimpleNamespace(id="op-pt", payload={})] if hit else [], None)
         points = [
             SimpleNamespace(
                 id=f"pt-{pid}",
@@ -184,6 +199,105 @@ class TestDiscover:
         assert "701" not in ids, (
             "an ingested protocol without a recent update stays excluded"
         )
+
+    def test_settled_op_covered_protocol_is_not_rediscovered(self) -> None:
+        """A protocol without DIP chunks whose sitting op holds, and that DIP
+        has not changed recently, is settled: the resurrection guard would skip
+        every speech again, so it must not be re-fetched on every run."""
+        pages = [
+            {
+                "documents": [
+                    {
+                        "id": "5707",
+                        "datum": "2025-05-15",
+                        "aktualisiert": "2025-06-01T09:00:00+02:00",
+                    },
+                    {
+                        "id": "5708",
+                        "datum": "2025-05-16",
+                        "aktualisiert": "2025-06-01T09:00:00+02:00",
+                    },
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(ingested_protocol_ids=[], op_dates=(20250515,)),
+            "wahlchat_chunks_test",
+        )
+        ids = conn.discover(since=None)
+        assert ids == ["5708"], (
+            "the op-covered protocol is settled; the uncovered one still "
+            f"re-surfaces as a failure; got: {ids}"
+        )
+
+    def test_recently_changed_op_covered_protocol_is_still_discovered(self) -> None:
+        """Within the sweep window an op-covered protocol is still processed, so
+        DIP speeches op never aligned get their first insert."""
+        from datetime import date, timedelta
+
+        recent = date.today() - timedelta(days=3)
+        pages = [
+            {
+                "documents": [
+                    {
+                        "id": "900",
+                        "datum": recent.isoformat(),
+                        "aktualisiert": f"{recent.isoformat()}T09:00:00+02:00",
+                    }
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(
+                ingested_protocol_ids=[],
+                op_dates=(int(recent.strftime("%Y%m%d")),),
+            ),
+            "wahlchat_chunks_test",
+        )
+        assert conn.discover(since=None) == ["900"]
+
+    def test_op_lookup_failure_rediscovers_everything(self) -> None:
+        """Store unreachable for the op lookup → nothing counts as covered."""
+        conn = _make_connector_with_fake_client([_DESC_PAGE])
+        conn.bind_store(
+            _FakeStore(
+                ingested_protocol_ids=[],
+                op_dates=(20260110, 20260501, 20260615),
+                op_lookup_fails=True,
+            ),
+            "wahlchat_chunks_test",
+        )
+        assert conn.discover(since=None) == ["50", "100", "200"]
+
+    def test_never_ingested_protocols_come_before_the_sweep(self) -> None:
+        """New sittings are processed before re-checks of recently updated
+        ones, so a time-budgeted run reaches them first."""
+        from datetime import date, timedelta
+
+        recent = (date.today() - timedelta(days=3)).isoformat()
+        pages = [
+            {
+                "documents": [
+                    {
+                        "id": "801",
+                        "datum": recent,
+                        "aktualisiert": f"{recent}T09:00:00+02:00",
+                    },
+                    {
+                        "id": "800",
+                        "datum": "2026-01-15",
+                        "aktualisiert": f"{recent}T09:00:00+02:00",
+                    },
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(ingested_protocol_ids=["800"]), "wahlchat_chunks_test"
+        )
+        assert conn.discover(since=None) == ["801", "800"]
 
     def test_discover_caches_protocols(self) -> None:
         """discover() populates self._protocols with the fetched protocol dicts."""
