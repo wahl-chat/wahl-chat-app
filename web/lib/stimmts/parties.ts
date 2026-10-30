@@ -23,15 +23,17 @@ const FILL_CLASSES: Record<string, string> = {
   afd: 'fill-party-afd',
 };
 
-// The app-wide Die Linke file is a 2160px square that is mostly empty, which
-// leaves a speck on a small tile; the game uses a copy trimmed to the wordmark.
-const LOGO_OVERRIDES: Record<string, string> = {
-  linke: '/images/stimmts/linke.png',
-};
-
-/** The party's logo, drawn for its colour tile (never for the page ground). */
+/**
+ * The party's logo, drawn for its colour tile (never for the page ground).
+ * The game's own copies are 240 px wide, enough for a tile on any screen: the
+ * app-wide files run to 3900 px, and the chamber's SVG loads them unresized.
+ * Die Linke's is also trimmed to the wordmark, as the app-wide file is a
+ * mostly empty square that leaves a speck on a small tile.
+ */
 export function partyLogo(partyId: string): string {
-  return LOGO_OVERRIDES[partyId] ?? `/images/${partyId}.png`;
+  return SEATING_ORDER.includes(partyId)
+    ? `/images/stimmts/logos/${partyId}.png`
+    : `/images/${partyId}.png`;
 }
 
 /** Background of a party's logo tile; a neutral one for an unknown party. */

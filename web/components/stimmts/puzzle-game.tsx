@@ -1,12 +1,17 @@
 'use client';
 
 import {
+  trackPuzzleCompleted,
+  trackPuzzleStarted,
+} from '@/lib/stimmts/analytics';
+import {
   type Phase,
   chamberCenter,
   chamberStates,
   selectParty,
 } from '@/lib/stimmts/game-view';
 import { getGame } from '@/lib/stimmts/progress';
+import { scorePuzzle } from '@/lib/stimmts/score';
 import type { Puzzle, Schedule } from '@/lib/stimmts/types';
 import { useProgress } from '@/lib/stimmts/use-progress';
 import { useReducedMotion } from 'motion/react';
@@ -86,6 +91,17 @@ function PuzzleGame({
     state.finishedHere.includes(puzzle.id),
   );
   const finishedElsewhere = finished && !finishedHere && !alreadyFinished;
+
+  // Counted when this page gives the last answer, and only then: not again
+  // when the page is reloaded or comes back from a past day, and not for a
+  // game finished in another tab, which counted it there.
+  const countedFinish = useRef(finishedHere);
+  useEffect(() => {
+    if (finishedHere && !countedFinish.current) {
+      countedFinish.current = true;
+      trackPuzzleCompleted(number, scorePuzzle(puzzle, game.guesses).correct);
+    }
+  }, [finishedHere, number, puzzle, game.guesses]);
   useLayoutEffect(() => {
     if (finishedElsewhere) {
       stamped.current = true;
@@ -157,6 +173,7 @@ function PuzzleGame({
           puzzle={puzzle}
           onStart={() => {
             setStarted(true);
+            trackPuzzleStarted(number);
             goTop();
           }}
         />

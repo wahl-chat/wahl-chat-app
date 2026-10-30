@@ -1,4 +1,5 @@
 import { BASE_URL } from '@/lib/seo';
+import { trackResultShared } from '@/lib/stimmts/analytics';
 import { periodSeats } from '@/lib/stimmts/logo';
 import {
   type DayRecord,
@@ -6,6 +7,7 @@ import {
   summarizePeriod,
 } from '@/lib/stimmts/period';
 import { buildClosingShareText } from '@/lib/stimmts/share';
+import FeedbackPrompt from './feedback-prompt';
 import PeriodChamber from './period-chamber';
 import ShareButton from './share-button';
 import StatusScreen from './status-screen';
@@ -63,7 +65,9 @@ function ClosingScreen({ days, onOpenDay }: Props) {
               days: last,
               url: `${BASE_URL}/stimmts`,
             })}
+            onShared={(method) => trackResultShared('closing', method)}
           />
+          <FeedbackPrompt />
         </div>
       )}
     </StatusScreen>

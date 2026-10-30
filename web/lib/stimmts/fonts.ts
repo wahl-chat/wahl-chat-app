@@ -6,7 +6,8 @@ import { Bricolage_Grotesque, Tinos } from 'next/font/google';
 /** The game's own voice: its name, the start button, the score, the countdown. */
 const display = Bricolage_Grotesque({
   subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
+  // Only bold (the buttons) and extra bold (everything else) are drawn.
+  weight: ['700', '800'],
   variable: '--font-stimmts-display',
   display: 'swap',
 });

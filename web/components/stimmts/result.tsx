@@ -1,4 +1,5 @@
 import { BASE_URL } from '@/lib/seo';
+import { trackResultShared } from '@/lib/stimmts/analytics';
 import { PUZZLES } from '@/lib/stimmts/content';
 import { partyLabel } from '@/lib/stimmts/labels';
 import { periodSeats } from '@/lib/stimmts/logo';
@@ -19,6 +20,7 @@ import { Pointer } from 'lucide-react';
 import { useReducedMotion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Countdown from './countdown';
+import FeedbackPrompt from './feedback-prompt';
 import OutcomeCard from './outcome-card';
 import PartyTile from './party-tile';
 import PeriodChamber from './period-chamber';
@@ -317,7 +319,10 @@ function Result({
           }),
           name: `stimmts-${number}.png`,
         }}
+        onShared={(method) => trackResultShared('result', method, number)}
       />
+      {/* After the cast, when the day's game is done with. */}
+      {game.cast && <FeedbackPrompt />}
     </div>
   );
 }

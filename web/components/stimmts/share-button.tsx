@@ -1,3 +1,4 @@
+import type { ShareMethod } from '@/lib/stimmts/analytics';
 import {
   type ShareOutcome,
   browserShareEnv,
@@ -14,13 +15,14 @@ type Props = {
   text: string;
   /** The square share image (see the /stimmts/share route), if any. */
   image?: { path: string; name: string };
+  onShared?: (method: ShareMethod) => void;
 };
 
 /**
  * "Ergebnis teilen": on phones the share sheet gets the text and the image
  * together; elsewhere the text is copied and the image can be saved.
  */
-function ShareButton({ text, image: shareImage }: Props) {
+function ShareButton({ text, image: shareImage, onShared }: Props) {
   const [outcome, setOutcome] = useState<ShareOutcome | null>(null);
   // Unknown until mounted: guessing either way would flash the wrong label
   // (and the save link) on the other kind of device.
@@ -54,6 +56,9 @@ function ShareButton({ text, image: shareImage }: Props) {
   const handleClick = async () => {
     const result = await shareText(text, browserShareEnv(), image.current);
     setOutcome(result);
+    if (result === 'shared' || result === 'copied') {
+      onShared?.(result === 'shared' ? 'share' : 'copy');
+    }
     clearTimeout(resetTimer.current);
     if (result === 'copied') {
       resetTimer.current = setTimeout(

@@ -17,8 +17,9 @@ describe('party assets', () => {
     expect(partyFillClass(partyId)).toBe(`fill-party-${partyId}`);
   });
 
-  it('uses the trimmed Die Linke wordmark, not the app-wide file', () => {
-    expect(partyLogo('linke')).toBe('/images/stimmts/linke.png');
+  it("uses the game's small copies, not the app-wide files", () => {
+    expect(partyLogo('linke')).toBe('/images/stimmts/logos/linke.png');
+    expect(partyLogo('cdu')).toBe('/images/stimmts/logos/cdu.png');
   });
 
   it('falls back to neutral colours for an unknown party', () => {
