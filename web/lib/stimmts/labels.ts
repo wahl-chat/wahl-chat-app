@@ -1,4 +1,4 @@
-import { daysBetween } from './berlin-time';
+import { TIME_ZONE, calendarDay, daysBetween } from './berlin-time';
 import type { BillDocument, PuzzleOutcome, VoteAnswer } from './types';
 
 export const ANSWER_LABELS: Record<VoteAnswer, string> = {
@@ -14,11 +14,11 @@ export const OUTCOME_LABELS: Record<PuzzleOutcome, string> = {
 
 /** 2026-07-10 becomes "10. Juli 2026". */
 export function formatDate(isoDate: string): string {
-  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString('de-DE', {
+  return calendarDay(isoDate).toLocaleDateString('de-DE', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-    timeZone: 'Europe/Berlin',
+    timeZone: TIME_ZONE,
   });
 }
 
@@ -62,12 +62,6 @@ const WEEKDAYS = [
   'Freitag',
   'Samstag',
 ];
-
-// Dates in the puzzle files are calendar days, so they are read as UTC noon:
-// the same day in every time zone the player might be in.
-function calendarDay(isoDate: string): Date {
-  return new Date(`${isoDate}T12:00:00Z`);
-}
 
 export function weekdayName(isoDate: string): string {
   return WEEKDAYS[calendarDay(isoDate).getUTCDay()];

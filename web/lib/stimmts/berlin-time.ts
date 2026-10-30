@@ -1,6 +1,6 @@
 // Everyone plays the same puzzle on the same day, so "today" is always the
 // calendar date in Berlin, whatever the player's own clock or timezone says.
-const TIME_ZONE = 'Europe/Berlin';
+export const TIME_ZONE = 'Europe/Berlin';
 
 const MS_PER_HOUR = 3_600_000;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
@@ -53,6 +53,14 @@ export function daysBetween(from: string, to: string): number {
 
 export function addDays(date: string, days: number): string {
   return new Date(toUtcMs(date) + days * MS_PER_DAY).toISOString().slice(0, 10);
+}
+
+/**
+ * A calendar day as a moment: midday UTC, which is early afternoon in Berlin
+ * all year, so it never slips into the neighbouring day.
+ */
+export function calendarDay(date: string): Date {
+  return new Date(`${date}T12:00:00Z`);
 }
 
 /**

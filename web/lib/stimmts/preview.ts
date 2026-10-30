@@ -1,4 +1,4 @@
-import { addDays, berlinDate, daysBetween } from './berlin-time';
+import { addDays, berlinDate, calendarDay, daysBetween } from './berlin-time';
 import type { Schedule } from './types';
 
 /**
@@ -48,8 +48,5 @@ export function resolveClock({
       ? requested
       : Math.max(1, today);
 
-  // Midday UTC is early afternoon in Berlin, safely inside that calendar day.
-  return {
-    now: new Date(`${addDays(schedule.startDate, day - 1)}T12:00:00Z`),
-  };
+  return { now: calendarDay(addDays(schedule.startDate, day - 1)) };
 }

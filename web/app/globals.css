@@ -48,14 +48,15 @@ body {
     --sidebar-ring: 217.2 91.2% 59.8%;
     /* Stimmt's? palette, as RGB channels so Tailwind's opacity modifiers work.
        The vote colours are exact: seat-yes and seat-no share one lightness, so
-       the game always pairs them with a word or a legend. */
+       the game always pairs them with a word or a legend. The seat variables
+       carry the game's prefix because other features define seat colours too. */
     --brand-red: 237 56 51; /* #ed3833, the check in the wahl.chat logo */
-    --seat-yes: 47 138 91; /* #2f8a5b */
-    --seat-no: 194 65 75; /* #c2414b */
-    --seat-abstain: 217 169 58; /* #d9a93a */
-    --seat-absent-ring: 161 161 170; /* #a1a1aa */
-    --seat-unaffiliated: 113 113 122; /* #71717a */
-    --seat-pending: 212 212 216; /* #d4d4d8 */
+    --stimmts-seat-yes: 47 138 91; /* #2f8a5b */
+    --stimmts-seat-no: 194 65 75; /* #c2414b */
+    --stimmts-seat-abstain: 217 169 58; /* #d9a93a */
+    --stimmts-seat-absent-ring: 161 161 170; /* #a1a1aa */
+    --stimmts-seat-unaffiliated: 113 113 122; /* #71717a */
+    --stimmts-seat-pending: 212 212 216; /* #d4d4d8 */
     --tally-low: 161 161 170; /* #a1a1aa */
     --tally-mid: 82 82 91; /* #52525b */
     --tally-top: 9 9 11; /* #09090b */
@@ -114,7 +115,7 @@ body {
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
-    --seat-pending: 63 63 70; /* #3f3f46 */
+    --stimmts-seat-pending: 63 63 70; /* #3f3f46 */
     --tally-low: 82 82 91; /* #52525b */
     --tally-mid: 161 161 170; /* #a1a1aa */
     --tally-top: 250 250 250; /* #fafafa */

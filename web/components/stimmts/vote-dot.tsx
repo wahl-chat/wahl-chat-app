@@ -7,16 +7,17 @@ const FILLED: Record<DotKind, string> = {
   yes: 'bg-seat-yes',
   no: 'bg-seat-no',
   abstain: 'bg-seat-abstain',
-  absent: 'shadow-[inset_0_0_0_1.5px_rgb(var(--seat-absent-ring))]',
+  absent: 'shadow-[inset_0_0_0_1.5px_rgb(var(--stimmts-seat-absent-ring))]',
   unaffiliated: 'bg-seat-unaffiliated',
 };
 
 const RING: Record<DotKind, string> = {
-  yes: 'shadow-[inset_0_0_0_2px_rgb(var(--seat-yes))]',
-  no: 'shadow-[inset_0_0_0_2px_rgb(var(--seat-no))]',
-  abstain: 'shadow-[inset_0_0_0_2px_rgb(var(--seat-abstain))]',
-  absent: 'shadow-[inset_0_0_0_1.5px_rgb(var(--seat-absent-ring))]',
-  unaffiliated: 'shadow-[inset_0_0_0_2px_rgb(var(--seat-unaffiliated))]',
+  yes: 'shadow-[inset_0_0_0_2px_rgb(var(--stimmts-seat-yes))]',
+  no: 'shadow-[inset_0_0_0_2px_rgb(var(--stimmts-seat-no))]',
+  abstain: 'shadow-[inset_0_0_0_2px_rgb(var(--stimmts-seat-abstain))]',
+  absent: 'shadow-[inset_0_0_0_1.5px_rgb(var(--stimmts-seat-absent-ring))]',
+  unaffiliated:
+    'shadow-[inset_0_0_0_2px_rgb(var(--stimmts-seat-unaffiliated))]',
 };
 
 type Props = {

@@ -81,12 +81,12 @@ export default {
         // the player's Wahlperiode.
         'brand-red': rgb('brand-red'),
         seat: {
-          yes: rgb('seat-yes'),
-          no: rgb('seat-no'),
-          abstain: rgb('seat-abstain'),
-          'absent-ring': rgb('seat-absent-ring'),
-          unaffiliated: rgb('seat-unaffiliated'),
-          pending: rgb('seat-pending'),
+          yes: rgb('stimmts-seat-yes'),
+          no: rgb('stimmts-seat-no'),
+          abstain: rgb('stimmts-seat-abstain'),
+          'absent-ring': rgb('stimmts-seat-absent-ring'),
+          unaffiliated: rgb('stimmts-seat-unaffiliated'),
+          pending: rgb('stimmts-seat-pending'),
         },
         tally: {
           low: rgb('tally-low'),
