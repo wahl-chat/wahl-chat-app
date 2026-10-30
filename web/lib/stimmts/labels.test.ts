@@ -67,6 +67,18 @@ describe('submitterLine', () => {
     );
   });
 
+  it('shortens by the number who signed when only the first are named', () => {
+    const document: BillDocument = {
+      ...DOCUMENT,
+      fraktion: 'BÜNDNIS 90/DIE GRÜNEN',
+      members: ['Rebecca Lenhard', 'Dr. Konstantin von Notz'],
+      memberCount: 14,
+    };
+    expect(submitterLine(document)).toBe(
+      'der Abgeordneten Rebecca Lenhard, Dr. Konstantin von Notz, weiterer Abgeordneter und der Fraktion BÜNDNIS 90/DIE GRÜNEN',
+    );
+  });
+
   it('names two members in full', () => {
     const document: BillDocument = {
       ...DOCUMENT,

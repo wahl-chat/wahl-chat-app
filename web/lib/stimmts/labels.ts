@@ -129,8 +129,9 @@ export function submitterLine(document: BillDocument): string {
     return document.initiator;
   }
   const { members, fraktion } = document;
+  const signed = document.memberCount ?? members.length;
   const names =
-    members.length > 2
+    signed > 2
       ? `${members.slice(0, 2).join(', ')}, weiterer Abgeordneter`
       : members.join(', ');
   return `der Abgeordneten ${names} und der Fraktion ${fraktion}`;

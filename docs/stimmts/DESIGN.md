@@ -282,11 +282,15 @@ From Abgeordnetenwatch's data for the 21st Bundestag (October 2026):
 
 ### Data source
 
-Puzzles are drafted from Abgeordnetenwatch's public API (votes and per-member
-results) and, for the bill sheet, the Bundestag's DIP API (Drucksachen). The
-stored chat corpus is not used: it lacks the Drucksache links the bill sheet
-needs. The game never calls these APIs at runtime; everything is prepared
-offline and committed.
+Puzzles are drafted by `ingestion/scripts/stimmts/export.py` from
+Abgeordnetenwatch's public API (votes and per-member results, tallied with the
+chat corpus's own code) and, for the bill sheet, the Bundestag's DIP API
+(Drucksachen). The stored chat corpus is not used: it lacks the Drucksache
+links the bill sheet needs. DIP names the first signers of a motion and their
+total, hence the optional `memberCount`. The exporter leaves the text to a
+person and notes what it cannot word with certainty (a motion of several
+Fraktionen, several linked bills). The game never calls these APIs at runtime;
+everything is prepared offline and committed.
 
 ### Choosing the votes
 

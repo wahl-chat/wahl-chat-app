@@ -114,7 +114,15 @@ function readSubmitter(record: Json, id: string): DocumentSubmitter {
   ) {
     return fail(id, '"members" must list the names of the members who signed');
   }
-  return { fraktion: readString(record, 'fraktion', id), members };
+  const submitter = { fraktion: readString(record, 'fraktion', id), members };
+  if (record.memberCount === undefined) {
+    return submitter;
+  }
+  const memberCount = readCount(record, 'memberCount', id);
+  if (memberCount < members.length) {
+    return fail(id, '"memberCount" cannot be less than the members named');
+  }
+  return { ...submitter, memberCount };
 }
 
 function readVotedIn(value: unknown, id: string): VotedInDocument {

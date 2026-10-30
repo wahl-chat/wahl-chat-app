@@ -143,6 +143,18 @@ describe('validatePuzzle: the bill document', () => {
     });
   });
 
+  it('accepts the number who signed, but never fewer than are named', () => {
+    const puzzle = withDocument();
+    puzzle.document.initiator = undefined;
+    puzzle.document.fraktion = 'der AfD';
+    puzzle.document.members = ['Tobias Matthias Peterka', 'Fabian Jacobi'];
+    puzzle.document.memberCount = 14;
+    expect(validatePuzzle(puzzle).document).toMatchObject({ memberCount: 14 });
+
+    puzzle.document.memberCount = 1;
+    expect(() => validatePuzzle(puzzle)).toThrow('"memberCount"');
+  });
+
   it('needs exactly one way of naming who submitted it', () => {
     const neither = withDocument();
     neither.document.initiator = undefined;

@@ -35,7 +35,15 @@ export type VotedInDocument = {
  */
 export type DocumentSubmitter =
   | { initiator: string }
-  | { fraktion: string; members: string[] };
+  | {
+      fraktion: string;
+      members: string[];
+      /**
+       * Everyone who signed, when only the first are named: the Bundestag's
+       * DIP lists the first few signers by name, with the total.
+       */
+      memberCount?: number;
+    };
 
 /**
  * The bill behind the vote, copied exactly from its Drucksache. Only real

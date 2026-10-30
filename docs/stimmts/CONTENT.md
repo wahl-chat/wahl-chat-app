@@ -49,11 +49,28 @@ The dropped puzzle can stay in `puzzles.json` as a spare.
 
 ## Add a new vote
 
-1. Pick a roll-call vote (namentliche Abstimmung) of the 21st Bundestag on
+1. Pick a roll-call vote (namentliche Abstimmung) of the 21st Bundestag from
+   [puzzle-selection.md](puzzle-selection.md), which lists every one with its
+   voting pattern, or on
    [Abgeordnetenwatch](https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen).
    The selection rules are in DESIGN.md under "Choosing the votes".
-2. Add an entry to `puzzles.json`. Copy an existing puzzle as a template; the
-   fields are defined and documented in `web/lib/stimmts/types.ts`:
+2. Add its poll id and the reason to `PICKS` in
+   `ingestion/scripts/stimmts/selection.py`, and run the exporter from
+   `ingestion/` (it needs `DIP_API_KEY` in `ingestion/.env` or
+   `ai-backend/.env`):
+
+   ```bash
+   PYTHONPATH=src:../packages/wahlchat-common/src:scripts uv run python -m stimmts.export
+   ```
+
+   It writes a draft to `ingestion/scripts/stimmts/output/drafts.json`
+   (never committed): the counts, answers and Drucksache filled in from the
+   official records, the text fields empty, and `_review.notes` on anything to
+   check. It also regenerates `puzzle-selection.md`. `--refresh` fetches
+   everything again; `--no-dip` skips the Drucksachen and needs no key.
+3. Copy the draft into `puzzles.json` without `_review`, write the text, and
+   check the rest against the sources. The fields are defined and documented
+   in `web/lib/stimmts/types.ts`:
    - `id`: a short slug, unique and never reused.
    - `voteDate`, `outcome`, and per party the counts (`yes`, `no`, `abstain`,
      `noShow`) and the `answer`: copied from the vote's page.
@@ -64,8 +81,8 @@ The dropped puzzle can stay in `puzzles.json` as a spare.
    - `document` (optional): the Drucksache as printed on its cover. Leave it
      out if it cannot be verified; the briefing then uses the plain layout.
    - `source`: the vote's Abgeordnetenwatch page.
-3. Add its id to `schedule.json` (or leave it out as a spare).
-4. Run the checks and commit.
+4. Add its id to `schedule.json` (or leave it out as a spare).
+5. Run the checks and commit.
 
 ## Review checklist
 
