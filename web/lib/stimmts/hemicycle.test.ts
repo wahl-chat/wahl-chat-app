@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { PUZZLES } from './content';
+import { FIXTURE_PUZZLES as PUZZLES } from './fixtures';
 import {
   BAND_OUTER_ACTIVE,
   TILE_CLEARANCE,

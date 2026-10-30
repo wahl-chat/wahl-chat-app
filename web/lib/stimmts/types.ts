@@ -1,9 +1,6 @@
 /** How a party voted, or how a player guesses it did. */
 export type VoteAnswer = 'yes' | 'no' | 'abstain';
 
-/** Production serves only approved puzzles; drafts are for development. */
-export type ReviewStatus = 'draft' | 'approved';
-
 export type PuzzleOutcome = 'accepted' | 'rejected';
 
 export type SourceLink = {
@@ -21,18 +18,6 @@ export type PartyResult = {
   abstain: number;
   /** Members who did not vote; shown on the reveal, never part of the answer. */
   noShow: number;
-};
-
-/**
- * Why a party voted as it did, in its own words from the plenary debate.
- * A party without an entry has no sourced reason (yet); the reveal says so
- * instead of guessing.
- */
-export type PartyReason = {
-  partyId: string;
-  text: string;
-  quote: string;
-  source: SourceLink;
 };
 
 /** The Drucksache version the Bundestag actually voted on, when it differs. */
@@ -74,7 +59,6 @@ export type BillDocument = DocumentSubmitter & {
 export type Puzzle = {
   /** Stable slug; the schedule refers to puzzles by it. */
   id: string;
-  reviewStatus: ReviewStatus;
   /** Day of the vote, ISO format (YYYY-MM-DD). */
   voteDate: string;
   topic: string;
@@ -92,10 +76,7 @@ export type Puzzle = {
    */
   unaffiliated: number;
   document?: BillDocument;
-  reasons: PartyReason[];
   source: SourceLink;
-  /** Opens the chat on this vote. */
-  chatQuestion: string;
 };
 
 /** A player's answers so far, by party slug. */

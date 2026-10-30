@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { chamberLabel, seatLook } from './chamber-state';
-import { PUZZLES } from './content';
+import { FIXTURE_PUZZLES as PUZZLES } from './fixtures';
 import { type Seat, layoutChamber } from './hemicycle';
 
 const puzzle = PUZZLES[0];

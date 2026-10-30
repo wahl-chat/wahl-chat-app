@@ -1,6 +1,6 @@
 import type { Guesses, Puzzle, VoteAnswer } from './types';
 
-export type PartyScore = {
+type PartyScore = {
   partyId: string;
   /** Null when the player never answered for this party. */
   guess: VoteAnswer | null;

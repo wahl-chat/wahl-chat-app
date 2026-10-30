@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { PUZZLES } from './content';
+import { FIXTURE_PUZZLES as PUZZLES } from './fixtures';
 import { scorePuzzle } from './score';
 import { buildShareText } from './share';
 import type { Guesses } from './types';

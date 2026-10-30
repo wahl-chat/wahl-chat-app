@@ -9,7 +9,7 @@ import type { Puzzle, Schedule } from './types';
  */
 export const PERIOD_LENGTH = 30;
 
-export type PlayedDay = {
+type PlayedDay = {
   kind: 'played';
   /** The puzzle number, which is also the day of the schedule. */
   number: number;
@@ -18,7 +18,7 @@ export type PlayedDay = {
   score: number;
 };
 
-export type MissedDay = {
+type MissedDay = {
   kind: 'missed';
   number: number;
   playDate: string;

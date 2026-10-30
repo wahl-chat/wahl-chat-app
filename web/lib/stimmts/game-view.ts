@@ -93,7 +93,7 @@ export function voteTotals(puzzle: Puzzle): { yes: number; no: number } {
   );
 }
 
-export type RevealSelection = {
+type RevealSelection = {
   revealed: ReadonlySet<string>;
   /** The party whose counts are open under its row; one at a time. */
   open: string | null;

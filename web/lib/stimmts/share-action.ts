@@ -1,6 +1,6 @@
 export type ShareOutcome = 'shared' | 'copied' | 'cancelled' | 'failed';
 
-export type SharePayload = { text: string; files?: File[] };
+type SharePayload = { text: string; files?: File[] };
 
 /** The browser features sharing needs; tests pass fakes. */
 export type ShareEnv = {

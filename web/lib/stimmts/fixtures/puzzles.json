@@ -1,0 +1,183 @@
+[
+  {
+    "id": "gebaeudemodernisierungsgesetz",
+    "voteDate": "2026-07-10",
+    "topic": "Energie",
+    "title": "Gebäudemodernisierungsgesetz",
+    "briefing": "Die Bundesregierung will zentrale Regeln des bisherigen Heizungsgesetzes ändern. Bisher müssen neue Heizungen zu mindestens 65 Prozent mit erneuerbaren Energien betrieben werden. Diese Pflicht soll entfallen: Eigentümer:innen könnten das Heizsystem dann selbst wählen, etwa eine Wärmepumpe, eine Gas- oder eine Ölheizung. Neue Gas- und Ölheizungen sollen schrittweise mit klimafreundlicheren Brennstoffen betrieben werden. Kommunale Wärmeplanung und staatliche Förderung bleiben bestehen.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Bundesregierung zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 54,
+        "abstain": 0,
+        "noShow": 10
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 116,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 4
+      },
+      {
+        "partyId": "gruene",
+        "answer": "no",
+        "yes": 0,
+        "no": 79,
+        "abstain": 0,
+        "noShow": 6
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 207,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 1
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 136,
+        "abstain": 0,
+        "noShow": 14
+      }
+    ],
+    "unaffiliated": 3,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/6278",
+      "date": "2026-06-08",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Gesetzes zur Änderung des Gebäudeenergiegesetzes, zur Änderung des Gebäude-Elektromobilitätsinfrastruktur-Gesetzes und zur Änderung weiterer Vorschriften im Wärmebereich",
+      "url": "https://dserver.bundestag.de/btd/21/062/2106278.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Ausschusses für Wirtschaft und Energie",
+        "number": "21/7009",
+        "url": "https://dserver.bundestag.de/btd/21/070/2107009.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/gebaeudemodernisierungsgesetz"
+    }
+  },
+  {
+    "id": "ukraine-unterstuetzung-antrag-gruene",
+    "voteDate": "2026-07-08",
+    "topic": "Verteidigung",
+    "title": "Ukraine zusätzlich militärisch und humanitär unterstützen",
+    "briefing": "Die Fraktion Bündnis 90/Die Grünen hat einen Antrag mit dem Titel „Den russischen Krieg gegen die Ukraine beenden – Die Ukraine jetzt zusätzlich militärisch und humanitär stärken“ eingebracht. Er fordert die Bundesregierung unter anderem auf, die militärische Unterstützung der Ukraine auszuweiten, Luftverteidigung und Munitionsversorgung zu stärken, die humanitäre Hilfe fortzuführen und den Druck auf Russland durch Sanktionen aufrechtzuerhalten. Außerdem spricht sich der Antrag für den Wiederaufbau der Ukraine und ihre Annäherung an die Europäische Union aus.",
+    "yesMeans": "Ja bedeutet: dem Antrag der Grünen zustimmen.",
+    "outcome": "rejected",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 55,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "spd",
+        "answer": "no",
+        "yes": 0,
+        "no": 115,
+        "abstain": 0,
+        "noShow": 5
+      },
+      {
+        "partyId": "gruene",
+        "answer": "yes",
+        "yes": 78,
+        "no": 0,
+        "abstain": 1,
+        "noShow": 6
+      },
+      {
+        "partyId": "cdu",
+        "answer": "no",
+        "yes": 0,
+        "no": 198,
+        "abstain": 0,
+        "noShow": 10
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 140,
+        "abstain": 0,
+        "noShow": 10
+      }
+    ],
+    "unaffiliated": 3,
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/ukraine-zusaetzlich-militaerisch-und-humanitaer-unterstuetzen"
+    }
+  },
+  {
+    "id": "emissionsobergrenzen-2031-2040",
+    "voteDate": "2026-06-11",
+    "topic": "Umwelt",
+    "title": "Neue Emissionsobergrenzen für die Jahre 2031 bis 2040",
+    "briefing": "Die Bundesregierung hat eine Verordnung vorgelegt, die die Klimaziele des Klimaschutzgesetzes für die Jahre 2031 bis 2040 in feste jährliche Höchstmengen für Treibhausgase umrechnet. Die erlaubte Menge soll von 409 Millionen Tonnen CO₂-Äquivalenten im Jahr 2031 schrittweise auf 150 Millionen Tonnen im Jahr 2040 sinken. Ziel ist laut Bundesregierung die Klimaneutralität im Jahr 2045. Abgestimmt wurde über die Empfehlung des zuständigen Ausschusses, der Verordnung zuzustimmen.",
+    "yesMeans": "Ja bedeutet: der Empfehlung des Ausschusses folgen und der Verordnung zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 55,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 107,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 13
+      },
+      {
+        "partyId": "gruene",
+        "answer": "abstain",
+        "yes": 0,
+        "no": 0,
+        "abstain": 74,
+        "noShow": 11
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 196,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 12
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 132,
+        "abstain": 0,
+        "noShow": 18
+      }
+    ],
+    "unaffiliated": 3,
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/neue-emissionsobergrenzen-fuer-die-jahre-2031-bis-2040"
+    }
+  }
+]

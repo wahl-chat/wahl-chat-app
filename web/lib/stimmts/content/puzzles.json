@@ -1,7 +1,6 @@
 [
   {
     "id": "gebaeudemodernisierungsgesetz",
-    "reviewStatus": "draft",
     "voteDate": "2026-07-10",
     "topic": "Energie",
     "title": "Gebäudemodernisierungsgesetz",
@@ -64,16 +63,13 @@
         "url": "https://dserver.bundestag.de/btd/21/070/2107009.pdf"
       }
     },
-    "reasons": [],
     "source": {
       "label": "Abgeordnetenwatch",
       "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/gebaeudemodernisierungsgesetz"
-    },
-    "chatQuestion": "Wie haben die Parteien beim Gebäudemodernisierungsgesetz abgestimmt und warum?"
+    }
   },
   {
     "id": "ukraine-unterstuetzung-antrag-gruene",
-    "reviewStatus": "draft",
     "voteDate": "2026-07-08",
     "topic": "Verteidigung",
     "title": "Ukraine zusätzlich militärisch und humanitär unterstützen",
@@ -123,16 +119,13 @@
       }
     ],
     "unaffiliated": 3,
-    "reasons": [],
     "source": {
       "label": "Abgeordnetenwatch",
       "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/ukraine-zusaetzlich-militaerisch-und-humanitaer-unterstuetzen"
-    },
-    "chatQuestion": "Wie haben die Parteien beim Antrag der Grünen zur zusätzlichen Unterstützung der Ukraine abgestimmt und warum?"
+    }
   },
   {
     "id": "emissionsobergrenzen-2031-2040",
-    "reviewStatus": "draft",
     "voteDate": "2026-06-11",
     "topic": "Umwelt",
     "title": "Neue Emissionsobergrenzen für die Jahre 2031 bis 2040",
@@ -182,11 +175,9 @@
       }
     ],
     "unaffiliated": 3,
-    "reasons": [],
     "source": {
       "label": "Abgeordnetenwatch",
       "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/neue-emissionsobergrenzen-fuer-die-jahre-2031-bis-2040"
-    },
-    "chatQuestion": "Wie haben die Parteien bei den Emissionsobergrenzen für 2031 bis 2040 abgestimmt und warum?"
+    }
   }
 ]

@@ -18,7 +18,7 @@ export const MARK_VIEWBOX = '-1.1 -1.1 2.2 1.2';
 /** The logo's vote colour for a seat: Nein left, Enthaltung on top, Ja right. */
 export type MarkTone = 'no' | 'abstain' | 'yes';
 
-export type MarkSeat = {
+type MarkSeat = {
   /** SVG coordinates (y down). */
   x: number;
   y: number;

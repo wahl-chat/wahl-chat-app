@@ -36,8 +36,8 @@ function PreviewBar({
   const resetGame = useProgress((state) => state.resetGame);
   const day = daysBetween(SCHEDULE.startDate, berlinDate(clock.now)) + 1;
 
-  // Replays this puzzle and keeps the other days, so the streak and the
-  // Wahlperiode across several days can be tested without starting over.
+  // Replays this puzzle and keeps the other days, so the Wahlperiode across
+  // several days can be tested without starting over.
   const resetPuzzle = () => {
     if (puzzleId) {
       resetGame(puzzleId);
@@ -65,7 +65,7 @@ function PreviewBar({
           </Button>
         )}
         <Button size="sm" variant="outline" onClick={resetEverything}>
-          Alles zurücksetzen (auch die Serie)
+          Alles zurücksetzen
         </Button>
       </div>
     </div>
@@ -141,14 +141,12 @@ function StimmtsGame() {
     schedule: SCHEDULE,
     puzzles: PUZZLES,
     now: clock.now,
-    allowDrafts: clock.allowDrafts,
   });
   const dayPuzzle = (number: number) =>
     puzzleForDay({
       schedule: SCHEDULE,
       puzzles: PUZZLES,
       number,
-      allowDrafts: clock.allowDrafts,
     });
   const scrollTop = () => window.scrollTo({ top: 0 });
 
@@ -189,12 +187,6 @@ function StimmtsGame() {
       {today.status === 'not-started' && (
         <Message>
           Stimmt&apos;s? startet am {formatDate(today.startsOn)}.
-        </Message>
-      )}
-      {today.status === 'unavailable' && (
-        <Message>
-          Das Rätsel von heute ist noch nicht freigegeben. Schau später noch
-          einmal vorbei.
         </Message>
       )}
       {today.status === 'finished' && (

@@ -26,7 +26,7 @@ import ShareButton from './share-button';
 import Stimmkarte from './stimmkarte';
 import StimmtsLogo from './stimmts-logo';
 import Urn from './urn';
-import { Verdict } from './vote-pill';
+import { Verdict } from './verdict';
 
 /**
  * The cast, step by step (see the stimmts-fly, -insert and -fall animations):
@@ -272,7 +272,7 @@ function Result({
               className="flex flex-col items-center gap-1.5"
             >
               <PartyTile partyId={entry.partyId} size="sm" />
-              <Verdict correct={entry.correct} compact />
+              <Verdict correct={entry.correct} />
               <span className="sr-only">{partyLabel(entry.partyId)}</span>
             </li>
           ))}

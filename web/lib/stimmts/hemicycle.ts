@@ -34,7 +34,7 @@ export type ChamberLayout = {
 };
 
 /** Inner radius of the half ring, as a fraction of the outer radius. */
-export const INNER_RADIUS = 0.5;
+const INNER_RADIUS = 0.5;
 
 /** Large chambers (the Bundestag) get a fixed row count, which keeps the dots
  * large enough to read at phone width. */

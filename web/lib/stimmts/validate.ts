@@ -3,11 +3,9 @@ import { isIsoDate } from './berlin-time';
 import type {
   BillDocument,
   DocumentSubmitter,
-  PartyReason,
   PartyResult,
   Puzzle,
   PuzzleOutcome,
-  ReviewStatus,
   Schedule,
   SourceLink,
   VoteAnswer,
@@ -18,7 +16,7 @@ import type {
  * A party whose members split more than this cannot be summed up in one
  * answer, so such a vote does not make a fair puzzle.
  */
-export const MIN_PARTY_UNITY = 0.8;
+const MIN_PARTY_UNITY = 0.8;
 
 const ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -40,10 +38,6 @@ function isRecord(value: unknown): value is Json {
 
 export function isVoteAnswer(value: string): value is VoteAnswer {
   return value === 'yes' || value === 'no' || value === 'abstain';
-}
-
-function isReviewStatus(value: string): value is ReviewStatus {
-  return value === 'draft' || value === 'approved';
 }
 
 function isOutcome(value: string): value is PuzzleOutcome {
@@ -184,26 +178,6 @@ function readParty(value: unknown, id: string): PartyResult {
   return party;
 }
 
-function readReason(
-  value: unknown,
-  partyIds: Set<string>,
-  id: string,
-): PartyReason {
-  if (!isRecord(value)) {
-    return fail(id, 'each reason must be an object');
-  }
-  const partyId = readString(value, 'partyId', id);
-  if (!partyIds.has(partyId)) {
-    return fail(id, `reason for ${partyId}, who is not in the puzzle`);
-  }
-  return {
-    partyId,
-    text: readString(value, 'text', id),
-    quote: readString(value, 'quote', id),
-    source: readLink(value.source, 'a reason source', id),
-  };
-}
-
 export function validatePuzzle(data: unknown): Puzzle {
   const fallbackId = isRecord(data) ? String(data.id) : '(not an object)';
   if (!isRecord(data)) {
@@ -214,10 +188,6 @@ export function validatePuzzle(data: unknown): Puzzle {
     return fail(id, 'id must be lowercase words joined by hyphens');
   }
 
-  const reviewStatus = readString(data, 'reviewStatus', id);
-  if (!isReviewStatus(reviewStatus)) {
-    return fail(id, 'reviewStatus must be draft or approved');
-  }
   const outcome = readString(data, 'outcome', id);
   if (!isOutcome(outcome)) {
     return fail(id, 'outcome must be accepted or rejected');
@@ -232,16 +202,8 @@ export function validatePuzzle(data: unknown): Puzzle {
     return fail(id, 'a party appears twice');
   }
 
-  if (!Array.isArray(data.reasons)) {
-    return fail(id, 'reasons must be a list (it may be empty)');
-  }
-  const reasons = data.reasons.map((reason) =>
-    readReason(reason, partyIds, id),
-  );
-
   return {
     id,
-    reviewStatus,
     voteDate: readDate(data, 'voteDate', id),
     topic: readString(data, 'topic', id),
     title: readString(data, 'title', id),
@@ -253,9 +215,7 @@ export function validatePuzzle(data: unknown): Puzzle {
     ...(data.document === undefined
       ? {}
       : { document: readDocument(data.document, id) }),
-    reasons,
     source: readLink(data.source, 'source', id),
-    chatQuestion: readString(data, 'chatQuestion', id),
   };
 }
 

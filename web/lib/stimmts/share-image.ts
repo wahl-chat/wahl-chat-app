@@ -12,7 +12,7 @@ export const SHARE_FORMATS = {
   link: { width: 1200, height: 630 },
 } as const;
 
-export type ShareFormat = keyof typeof SHARE_FORMATS;
+type ShareFormat = keyof typeof SHARE_FORMATS;
 
 /**
  * Fixed colours: an image leaves the app, so it must not follow the sharer's

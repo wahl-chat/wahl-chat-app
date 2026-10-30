@@ -13,18 +13,14 @@ const clock = (search: string, previewEnabled = true, now = realNow) =>
   resolveClock({ previewEnabled, search, schedule, now });
 
 describe('resolveClock', () => {
-  it('uses the real clock and no drafts when preview is off', () => {
+  it('uses the real clock when preview is off', () => {
     // Even if someone adds ?day=2 to the address.
-    expect(clock('?day=2', false)).toEqual({
-      now: realNow,
-      allowDrafts: false,
-    });
+    expect(clock('?day=2', false)).toEqual({ now: realNow });
   });
 
   it('jumps to the requested day of the schedule in preview mode', () => {
     expect(berlinDate(clock('?day=1').now)).toBe('2026-11-01');
     expect(berlinDate(clock('?day=3').now)).toBe('2026-11-03');
-    expect(clock('?day=3').allowDrafts).toBe(true);
   });
 
   it('shows day 1 before the start date when no day is given', () => {

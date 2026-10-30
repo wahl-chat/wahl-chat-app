@@ -1,25 +1,15 @@
 import { describe, expect, it } from 'bun:test';
-import { PUZZLES } from './content';
+import { FIXTURE_PUZZLES as PUZZLES } from './fixtures';
 import { getTodaysPuzzle, puzzleForDay } from './schedule';
-import type { Puzzle, Schedule } from './types';
-
-const approved: Puzzle[] = PUZZLES.map((puzzle) => ({
-  ...puzzle,
-  reviewStatus: 'approved',
-}));
+import type { Schedule } from './types';
 
 const schedule: Schedule = {
   startDate: '2026-10-15',
-  puzzleIds: approved.map((puzzle) => puzzle.id),
+  puzzleIds: PUZZLES.map((puzzle) => puzzle.id),
 };
 
-const on = (iso: string, overrides = {}) =>
-  getTodaysPuzzle({
-    schedule,
-    puzzles: approved,
-    now: new Date(iso),
-    ...overrides,
-  });
+const on = (iso: string) =>
+  getTodaysPuzzle({ schedule, puzzles: PUZZLES, now: new Date(iso) });
 
 describe('getTodaysPuzzle', () => {
   it('waits for the start date', () => {
@@ -48,38 +38,18 @@ describe('getTodaysPuzzle', () => {
   it('runs out after the last scheduled puzzle', () => {
     expect(on('2026-10-18T12:00:00Z')).toEqual({ status: 'finished' });
   });
-
-  it('holds back drafts unless they are explicitly allowed', () => {
-    const drafts = PUZZLES; // the sample puzzles are all drafts
-    const now = new Date('2026-10-15T12:00:00Z');
-    expect(getTodaysPuzzle({ schedule, puzzles: drafts, now })).toEqual({
-      status: 'unavailable',
-      number: 1,
-    });
-    expect(
-      getTodaysPuzzle({ schedule, puzzles: drafts, now, allowDrafts: true }),
-    ).toMatchObject({ status: 'active', number: 1 });
-  });
 });
 
 describe('puzzleForDay', () => {
   it('finds the puzzle that ran on a day', () => {
-    expect(puzzleForDay({ schedule, puzzles: approved, number: 2 })?.id).toBe(
-      approved[1].id,
+    expect(puzzleForDay({ schedule, puzzles: PUZZLES, number: 2 })?.id).toBe(
+      PUZZLES[1].id,
     );
   });
 
   it('has nothing outside the schedule', () => {
-    for (const number of [0, approved.length + 1]) {
-      expect(puzzleForDay({ schedule, puzzles: approved, number })).toBeNull();
+    for (const number of [0, PUZZLES.length + 1]) {
+      expect(puzzleForDay({ schedule, puzzles: PUZZLES, number })).toBeNull();
     }
-  });
-
-  it('shows drafts only where drafts are allowed', () => {
-    const args = { schedule, puzzles: PUZZLES, number: 1 };
-    expect(puzzleForDay(args)).toBeNull();
-    expect(puzzleForDay({ ...args, allowDrafts: true })?.id).toBe(
-      PUZZLES[0].id,
-    );
   });
 });

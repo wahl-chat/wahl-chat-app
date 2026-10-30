@@ -2,8 +2,7 @@ import { addDays, berlinDate, daysBetween } from './berlin-time';
 import type { Schedule } from './types';
 
 /**
- * Preview mode lets us play any day's puzzle, drafts included, before the game
- * is live. It is on while developing and wherever
+ * Preview mode lets us play any day's puzzle before the game is live. It is on while developing and wherever
  * NEXT_PUBLIC_STIMMTS_PREVIEW=true (a test deployment); production leaves it
  * off, so players only ever get the real puzzle of the day.
  */
@@ -17,7 +16,6 @@ export function isPreviewEnabled(): boolean {
 export type Clock = {
   /** The moment the game treats as "now". */
   now: Date;
-  allowDrafts: boolean;
 };
 
 type ClockOptions = {
@@ -40,7 +38,7 @@ export function resolveClock({
   now,
 }: ClockOptions): Clock {
   if (!previewEnabled) {
-    return { now, allowDrafts: false };
+    return { now };
   }
 
   const requested = Number(new URLSearchParams(search).get('day'));
@@ -53,6 +51,5 @@ export function resolveClock({
   // Midday UTC is early afternoon in Berlin, safely inside that calendar day.
   return {
     now: new Date(`${addDays(schedule.startDate, day - 1)}T12:00:00Z`),
-    allowDrafts: true,
   };
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { PUZZLES, SCHEDULE } from './content';
 import puzzlesJson from './content/puzzles.json';
+import fixturesJson from './fixtures/puzzles.json';
 import { validatePuzzle, validateSchedule } from './validate';
 
 // The parts of a puzzle the tests below tamper with, loosely typed on purpose:
@@ -9,17 +10,15 @@ type RawPuzzle = {
   id: string;
   title: string;
   voteDate: string;
-  reviewStatus: string;
   source: { url: string };
   parties: { partyId: string; answer: string }[];
-  reasons: unknown[];
   unaffiliated?: unknown;
   document?: Record<string, unknown>;
 };
 
 // A fresh copy per test, so a test can break one field without touching the rest.
 function firstPuzzle(): RawPuzzle {
-  return structuredClone(puzzlesJson[0]) as RawPuzzle;
+  return structuredClone(fixturesJson[0]) as RawPuzzle;
 }
 
 describe('the shipped content', () => {
@@ -89,27 +88,10 @@ describe('validatePuzzle', () => {
     expect(() => validatePuzzle(puzzle)).toThrow('http(s) url');
   });
 
-  it('rejects a reason for a party that is not in the puzzle', () => {
-    const puzzle = firstPuzzle();
-    puzzle.reasons = [
-      {
-        partyId: 'fdp',
-        text: 'x',
-        quote: 'x',
-        source: { label: 'x', url: 'https://example.org' },
-      },
-    ];
-    expect(() => validatePuzzle(puzzle)).toThrow('not in the puzzle');
-  });
-
-  it('rejects an impossible date and an unknown review status', () => {
+  it('rejects an impossible date', () => {
     const badDate = firstPuzzle();
     badDate.voteDate = '2026-13-45';
     expect(() => validatePuzzle(badDate)).toThrow('voteDate');
-
-    const badStatus = firstPuzzle();
-    badStatus.reviewStatus = 'maybe';
-    expect(() => validatePuzzle(badStatus)).toThrow('reviewStatus');
   });
 
   it('names the offending puzzle in the error', () => {
@@ -120,11 +102,11 @@ describe('validatePuzzle', () => {
 });
 
 describe('validatePuzzle: the bill document', () => {
-  // The first sample puzzle carries a verified Drucksache.
+  // The first fixture puzzle carries a verified Drucksache.
   function withDocument(): RawPuzzle & { document: Record<string, unknown> } {
     const puzzle = firstPuzzle();
     if (!puzzle.document) {
-      throw new Error('the first sample puzzle should have a document');
+      throw new Error('the first fixture puzzle should have a document');
     }
     return puzzle as RawPuzzle & { document: Record<string, unknown> };
   }

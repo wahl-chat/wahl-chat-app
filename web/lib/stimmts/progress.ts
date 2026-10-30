@@ -4,9 +4,9 @@ import type { Guesses, Puzzle, VoteAnswer } from './types';
 import { isVoteAnswer } from './validate';
 
 /** Bumped when the saved shape changes; older saves are then discarded. */
-export const PROGRESS_VERSION = 1;
+const PROGRESS_VERSION = 1;
 
-export type GameProgress = {
+type GameProgress = {
   guesses: Guesses;
   /** Berlin date the last answer was given; null while the game is open. */
   finishedOn: string | null;
@@ -18,9 +18,9 @@ export type GameProgress = {
 };
 
 /**
- * Everything saved on the player's device. The streak and the Wahlperiode are
- * worked out from the finished games (see period.ts), so they can never
- * disagree with the seats the player sees.
+ * Everything saved on the player's device. The Wahlperiode is worked out from
+ * the finished games (see period.ts), so it can never disagree with the seats
+ * the player sees.
  */
 export type Progress = {
   version: typeof PROGRESS_VERSION;
@@ -178,7 +178,5 @@ export function parseProgress(raw: unknown): Progress {
       }
     }
   }
-  // Older saves also carry a stored streak; it is derived from the games now,
-  // so it is left behind on the next save.
   return { version: PROGRESS_VERSION, games };
 }

@@ -60,7 +60,7 @@ function PuzzleGame({ number, puzzle, today, onOpenDay, canOpenDay }: Props) {
     if (showResult) {
       stamped.current = true;
     }
-  });
+  }, [showResult]);
 
   const finished = game.finishedOn !== null;
   const hasAnswers = Object.keys(game.guesses).length > 0;
