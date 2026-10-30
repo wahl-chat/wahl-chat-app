@@ -532,15 +532,9 @@ def _dry_run(db, registry_path: str | Path, freshness_days: int, force: bool) ->
 if __name__ == "__main__":
     import argparse
 
-    from dotenv import load_dotenv
+    from ingestion.env_file import load_env_file
 
-    _ENV_PATH = Path(__file__).resolve().parents[4] / ".env"
-    # Use ai-backend/.env when ingestion/.env does not exist.
-    # API keys can be in either file.
-    if not _ENV_PATH.exists():
-        _ENV_PATH = _ENV_PATH.parents[1] / "ai-backend" / ".env"
-    if _ENV_PATH.exists():
-        load_dotenv(_ENV_PATH, override=False)
+    load_env_file()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
