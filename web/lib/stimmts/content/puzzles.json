@@ -1,5 +1,423 @@
 [
   {
+    "id": "tankrabatt-2026",
+    "voteDate": "2026-09-25",
+    "topic": "Energie",
+    "title": "Tankrabatt für Benzin und Diesel",
+    "briefing": "Die Energiesteuer auf Benzin und Diesel soll vom 1. Oktober bis zum 31. Dezember 2026 um 14,04 Cent pro Liter sinken. Weil dann auch weniger Umsatzsteuer anfällt, könnte Tanken um bis zu rund 17 Cent pro Liter günstiger werden, wenn die Senkung vollständig weitergegeben wird. Bund und Länder würden dadurch zusammen rund 2,5 Milliarden Euro weniger Steuern einnehmen. Der Finanzausschuss hat die Regelung nachträglich in einen Gesetzentwurf zur Aufsicht über Versicherungsunternehmen eingefügt; abgestimmt wurde nur über diese neuen Artikel zum Tankrabatt.",
+    "yesMeans": "Ja bedeutet: den Artikeln zum Tankrabatt zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 1,
+        "no": 54,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 112,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 8
+      },
+      {
+        "partyId": "gruene",
+        "answer": "no",
+        "yes": 0,
+        "no": 73,
+        "abstain": 0,
+        "noShow": 12
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 200,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 8
+      },
+      {
+        "partyId": "afd",
+        "answer": "yes",
+        "yes": 120,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 30
+      }
+    ],
+    "unaffiliated": 3,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/6561",
+      "date": "2026-06-18",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Gesetzes zur Umsetzung der Richtlinien (EU) 2025/1 und (EU) 2025/2 zur Festlegung eines Rahmens für die Sanierung und Abwicklung von Versicherungsunternehmen sowie zur Änderung des Aufsichtsrahmens für Versicherungsunternehmen (Versicherungs-Sanierungs-Abwicklungs-und-Aufsichtsänderungs-Gesetz - VSAAG)",
+      "url": "https://dserver.bundestag.de/btd/21/065/2106561.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Finanzausschusses",
+        "number": "21/8157",
+        "url": "https://dserver.bundestag.de/btd/21/081/2108157.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/tankrabatt-fuer-benzin-und-diesel"
+    }
+  },
+  {
+    "id": "wehrdienst-modernisierung",
+    "voteDate": "2025-12-05",
+    "topic": "Verteidigung",
+    "title": "Modernisierung des Wehrdienstes",
+    "briefing": "Die Bundesregierung will einen neuen, grundsätzlich freiwilligen Wehrdienst einführen. Ab 2026 sollen alle 18-Jährigen einen Fragebogen zu Motivation und Eignung erhalten: Männer müssen ihn ausfüllen, Frauen können es freiwillig tun. Für Männer ab dem Jahrgang 2008 soll die Musterung wieder Pflicht werden. Freiwillige sollen mindestens sechs Monate dienen und mindestens 2.600 Euro brutto erhalten. Melden sich zu wenige, kann der Bundestag später eine verpflichtende „Bedarfswehrpflicht“ beschließen.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Bundesregierung zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 55,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 117,
+        "no": 1,
+        "abstain": 0,
+        "noShow": 2
+      },
+      {
+        "partyId": "gruene",
+        "answer": "no",
+        "yes": 0,
+        "no": 77,
+        "abstain": 1,
+        "noShow": 7
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 206,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 2
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 138,
+        "abstain": 0,
+        "noShow": 13
+      }
+    ],
+    "unaffiliated": 2,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/1853",
+      "date": "2025-09-29",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Gesetzes zur Modernisierung des Wehrdienstes - Wehrdienst-Modernisierungsgesetz (WDModG)",
+      "url": "https://dserver.bundestag.de/btd/21/018/2101853.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Verteidigungsausschusses",
+        "number": "21/3076",
+        "url": "https://dserver.bundestag.de/btd/21/030/2103076.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/modernisierung-des-wehrdienstes"
+    }
+  },
+  {
+    "id": "mietwuchergesetz",
+    "voteDate": "2025-11-06",
+    "topic": "Wohnen",
+    "title": "Mietwuchergesetz",
+    "briefing": "Die Fraktion Die Linke will strenger gegen überhöhte Mieten vorgehen. Bisher ist eine Miete nur dann als Mietpreisüberhöhung verboten, wenn Vermietende nachweislich ein geringes Wohnungsangebot ausgenutzt haben, was sich in der Praxis kaum beweisen lässt. Künftig soll schon das geringe Angebot an vergleichbaren Wohnungen genügen. Außerdem soll das Bußgeld von höchstens 50.000 auf bis zu 100.000 Euro steigen.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Linken zustimmen.",
+    "outcome": "rejected",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "yes",
+        "yes": 55,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "spd",
+        "answer": "no",
+        "yes": 0,
+        "no": 116,
+        "abstain": 0,
+        "noShow": 4
+      },
+      {
+        "partyId": "gruene",
+        "answer": "yes",
+        "yes": 75,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 10
+      },
+      {
+        "partyId": "cdu",
+        "answer": "no",
+        "yes": 0,
+        "no": 196,
+        "abstain": 0,
+        "noShow": 12
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 128,
+        "abstain": 0,
+        "noShow": 23
+      }
+    ],
+    "unaffiliated": 2,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/134",
+      "date": "2025-05-12",
+      "initiator": "der Fraktion Die Linke",
+      "title": "Entwurf eines Gesetzes zur besseren Bekämpfung überhöhter Mieten (Mietwuchergesetz)",
+      "url": "https://dserver.bundestag.de/btd/21/001/2100134.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Ausschusses für Recht und Verbraucherschutz",
+        "number": "21/2168",
+        "url": "https://dserver.bundestag.de/btd/21/021/2102168.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/mietwuchergesetz"
+    }
+  },
+  {
+    "id": "tempolimit-130",
+    "voteDate": "2026-07-09",
+    "topic": "Verkehr",
+    "title": "Allgemeines Tempolimit auf Autobahnen",
+    "briefing": "Die Fraktion Bündnis 90/Die Grünen will ein allgemeines Tempolimit von 130 km/h auf Autobahnen und ähnlichen mehrspurigen Straßen einführen. Auf Landstraßen außerhalb von Ortschaften sollen weiterhin grundsätzlich 100 km/h gelten. Spätestens fünf Monate nach der Einführung soll die Bundesregierung berichten, wie sich das Tempolimit auf Kraftstoffverbrauch, Energiepreise, CO₂-Ausstoß, Luftqualität und die Zahl der Verkehrstoten und Schwerverletzten auswirkt.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Grünen zustimmen.",
+    "outcome": "rejected",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "yes",
+        "yes": 57,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 7
+      },
+      {
+        "partyId": "spd",
+        "answer": "no",
+        "yes": 0,
+        "no": 116,
+        "abstain": 0,
+        "noShow": 4
+      },
+      {
+        "partyId": "gruene",
+        "answer": "yes",
+        "yes": 79,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 6
+      },
+      {
+        "partyId": "cdu",
+        "answer": "no",
+        "yes": 0,
+        "no": 207,
+        "abstain": 0,
+        "noShow": 1
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 142,
+        "abstain": 0,
+        "noShow": 8
+      }
+    ],
+    "unaffiliated": 3,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/5319",
+      "date": "2026-04-14",
+      "fraktion": "BÜNDNIS 90/DIE GRÜNEN",
+      "members": ["Swantje Henrike Michaelsen", "Dr. Julia Verlinden"],
+      "memberCount": 6,
+      "title": "Entwurf eines Gesetzes zur Änderung des Straßenverkehrsgesetzes (Tempolimit)",
+      "url": "https://dserver.bundestag.de/btd/21/053/2105319.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Verkehrsausschusses",
+        "number": "21/6734",
+        "url": "https://dserver.bundestag.de/btd/21/067/2106734.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/einfuehrung-eines-allgemeinen-tempolimits"
+    }
+  },
+  {
+    "id": "rentenniveau-kindererziehungszeiten",
+    "voteDate": "2025-12-05",
+    "topic": "Rente",
+    "title": "Rentenniveau und Kindererziehungszeiten",
+    "briefing": "Die Bundesregierung will das Rentenniveau, also das Verhältnis der Rente zum Durchschnittsverdienst, bis 2031 bei 48 Prozent halten; die bisherige Haltelinie läuft Ende 2025 aus. Außerdem sollen für vor 1992 geborene Kinder drei statt zweieinhalb Jahre Erziehungszeit auf die Rente angerechnet werden, so wie für später geborene Kinder. Das wird oft „Mütterrente“ genannt. Die Mehrkosten soll der Bund tragen. Wer das Rentenalter erreicht hat, soll zudem leichter befristet beim bisherigen Arbeitgeber weiterarbeiten können.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Bundesregierung zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "abstain",
+        "yes": 0,
+        "no": 0,
+        "abstain": 50,
+        "noShow": 14
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 120,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 0
+      },
+      {
+        "partyId": "gruene",
+        "answer": "no",
+        "yes": 0,
+        "no": 77,
+        "abstain": 0,
+        "noShow": 8
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 198,
+        "no": 7,
+        "abstain": 2,
+        "noShow": 1
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 140,
+        "abstain": 0,
+        "noShow": 11
+      }
+    ],
+    "unaffiliated": 2,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/1929",
+      "date": "2025-10-01",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Gesetzes zur Stabilisierung des Rentenniveaus und zur vollständigen Gleichstellung der Kindererziehungszeiten",
+      "url": "https://dserver.bundestag.de/btd/21/019/2101929.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Ausschusses für Arbeit und Soziales",
+        "number": "21/3112",
+        "url": "https://dserver.bundestag.de/btd/21/031/2103112.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/stabilisierung-des-rentenniveaus-und-gleichstellung-der-kindererziehungszeiten"
+    }
+  },
+  {
+    "id": "politikerbeleidigung",
+    "voteDate": "2026-01-29",
+    "topic": "Recht",
+    "title": "Abschaffung des Straftatbestands der Politikerbeleidigung",
+    "briefing": "Die Fraktion der AfD will Paragraf 188 des Strafgesetzbuchs streichen. Er stellt üble Nachrede und Verleumdung gegen Personen des politischen Lebens unter einen besonderen strafrechtlichen Schutz; seit einer Änderung im Jahr 2021 gilt das auch für Beleidigungen. Ohne den Paragrafen würden für solche Taten dieselben Vorschriften gelten wie für Beleidigungen anderer Menschen.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der AfD zustimmen.",
+    "outcome": "rejected",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 58,
+        "abstain": 0,
+        "noShow": 6
+      },
+      {
+        "partyId": "spd",
+        "answer": "no",
+        "yes": 0,
+        "no": 113,
+        "abstain": 0,
+        "noShow": 7
+      },
+      {
+        "partyId": "gruene",
+        "answer": "no",
+        "yes": 0,
+        "no": 73,
+        "abstain": 0,
+        "noShow": 12
+      },
+      {
+        "partyId": "cdu",
+        "answer": "no",
+        "yes": 0,
+        "no": 195,
+        "abstain": 0,
+        "noShow": 13
+      },
+      {
+        "partyId": "afd",
+        "answer": "yes",
+        "yes": 133,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 18
+      }
+    ],
+    "unaffiliated": 2,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/652",
+      "date": "2025-06-26",
+      "fraktion": "der AfD",
+      "members": ["Stephan Brandner", "Thomas Fetsch"],
+      "memberCount": 18,
+      "title": "Entwurf eines Gesetzes zur Abschaffung des § 188 des Strafgesetzbuchs - Stärkung der Meinungsfreiheit und Gleichheit vor dem Gesetz",
+      "url": "https://dserver.bundestag.de/btd/21/006/2100652.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Ausschusses für Recht und Verbraucherschutz",
+        "number": "21/3901",
+        "url": "https://dserver.bundestag.de/btd/21/039/2103901.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/streichung-des-straftatbestandes-der-politikerbeleidigung"
+    }
+  },
+  {
     "id": "gebaeudemodernisierungsgesetz",
     "voteDate": "2026-07-10",
     "topic": "Energie",
@@ -69,59 +487,141 @@
     }
   },
   {
-    "id": "ukraine-unterstuetzung-antrag-gruene",
-    "voteDate": "2026-07-08",
-    "topic": "Verteidigung",
-    "title": "Ukraine zusätzlich militärisch und humanitär unterstützen",
-    "briefing": "Die Fraktion Bündnis 90/Die Grünen hat einen Antrag mit dem Titel „Den russischen Krieg gegen die Ukraine beenden – Die Ukraine jetzt zusätzlich militärisch und humanitär stärken“ eingebracht. Er fordert die Bundesregierung unter anderem auf, die militärische Unterstützung der Ukraine auszuweiten, Luftverteidigung und Munitionsversorgung zu stärken, die humanitäre Hilfe fortzuführen und den Druck auf Russland durch Sanktionen aufrechtzuerhalten. Außerdem spricht sich der Antrag für den Wiederaufbau der Ukraine und ihre Annäherung an die Europäische Union aus.",
-    "yesMeans": "Ja bedeutet: dem Antrag der Grünen zustimmen.",
-    "outcome": "rejected",
+    "id": "gkv-beitragssaetze",
+    "voteDate": "2026-07-10",
+    "topic": "Gesundheit",
+    "title": "Reform der Krankenkassenfinanzen",
+    "briefing": "Die Bundesregierung will die Finanzen der gesetzlichen Krankenversicherung verbessern und einen weiteren Anstieg der Beiträge begrenzen. Ihr zufolge droht den Krankenkassen ab 2027 eine Lücke von mehr als 15 Milliarden Euro. Gespart werden soll bei Krankenhäusern, Arztpraxen, Arzneimitteln und der Verwaltung der Kassen. Für Versicherte soll die beitragsfreie Mitversicherung von Ehe- und Lebenspartner:innen in bestimmten Fällen eingeschränkt werden, Zuzahlungen sollen steigen und Zuschüsse zum Zahnersatz sinken. Der Bund soll sich stärker an den Gesundheitskosten von Bürgergeldbeziehenden beteiligen.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Bundesregierung zustimmen.",
+    "outcome": "accepted",
     "parties": [
       {
         "partyId": "linke",
         "answer": "no",
         "yes": 0,
-        "no": 55,
+        "no": 56,
         "abstain": 0,
-        "noShow": 9
+        "noShow": 8
       },
       {
         "partyId": "spd",
-        "answer": "no",
-        "yes": 0,
-        "no": 115,
-        "abstain": 0,
-        "noShow": 5
+        "answer": "yes",
+        "yes": 111,
+        "no": 3,
+        "abstain": 4,
+        "noShow": 2
       },
       {
         "partyId": "gruene",
-        "answer": "yes",
-        "yes": 78,
-        "no": 0,
-        "abstain": 1,
-        "noShow": 6
+        "answer": "no",
+        "yes": 0,
+        "no": 81,
+        "abstain": 0,
+        "noShow": 4
       },
       {
         "partyId": "cdu",
-        "answer": "no",
-        "yes": 0,
-        "no": 198,
+        "answer": "yes",
+        "yes": 207,
+        "no": 1,
         "abstain": 0,
-        "noShow": 10
+        "noShow": 0
       },
       {
         "partyId": "afd",
         "answer": "no",
         "yes": 0,
-        "no": 140,
+        "no": 141,
         "abstain": 0,
-        "noShow": 10
+        "noShow": 9
       }
     ],
     "unaffiliated": 3,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/6130",
+      "date": "2026-05-26",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Gesetzes zur Stabilisierung der Beitragssätze in der gesetzlichen Krankenversicherung (GKV-Beitragssatzstabilisierungsgesetz)",
+      "url": "https://dserver.bundestag.de/btd/21/061/2106130.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Ausschusses für Gesundheit",
+        "number": "21/7016",
+        "url": "https://dserver.bundestag.de/btd/21/070/2107016.pdf"
+      }
+    },
     "source": {
       "label": "Abgeordnetenwatch",
-      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/ukraine-zusaetzlich-militaerisch-und-humanitaer-unterstuetzen"
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/gkv-reform"
+    }
+  },
+  {
+    "id": "einbuergerung-fuenf-jahre",
+    "voteDate": "2025-10-08",
+    "topic": "Migration",
+    "title": "Änderung des Staatsangehörigkeitsgesetzes",
+    "briefing": "Bisher kann man sich bei besonderen Integrationsleistungen schon nach drei Jahren rechtmäßigen Aufenthalts in Deutschland einbürgern lassen. Die Bundesregierung will diese Möglichkeit abschaffen: Künftig sollen in jedem Fall mindestens fünf Jahre Aufenthalt nötig sein. Sie begründet das damit, dass Integration Zeit brauche.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Bundesregierung zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 57,
+        "abstain": 0,
+        "noShow": 7
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 114,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 6
+      },
+      {
+        "partyId": "gruene",
+        "answer": "no",
+        "yes": 0,
+        "no": 76,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 201,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 7
+      },
+      {
+        "partyId": "afd",
+        "answer": "yes",
+        "yes": 135,
+        "no": 0,
+        "abstain": 2,
+        "noShow": 14
+      }
+    ],
+    "unaffiliated": 2,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/537",
+      "date": "2025-06-23",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Sechsten Gesetzes zur Änderung des Staatsangehörigkeitsgesetzes",
+      "url": "https://dserver.bundestag.de/btd/21/005/2100537.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Innenausschusses",
+        "number": "21/1634",
+        "url": "https://dserver.bundestag.de/btd/21/016/2101634.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/aenderung-des-staatsangehoerigkeitsgesetzes"
     }
   },
   {
@@ -178,6 +678,678 @@
     "source": {
       "label": "Abgeordnetenwatch",
       "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/neue-emissionsobergrenzen-fuer-die-jahre-2031-bis-2040"
+    }
+  },
+  {
+    "id": "kryptogewinne-besteuern",
+    "voteDate": "2026-10-08",
+    "topic": "Steuern",
+    "title": "Besteuerung von Kryptogewinnen",
+    "briefing": "Gewinne aus dem Verkauf von Kryptowerten wie Bitcoin sind im Privatvermögen bisher steuerfrei, wenn zwischen Kauf und Verkauf mehr als ein Jahr liegt. Die Fraktion Bündnis 90/Die Grünen will diese Frist abschaffen: Solche Gewinne sollen unabhängig davon, wie lange die Kryptowerte gehalten wurden, mit dem persönlichen Einkommensteuersatz versteuert werden. Gelten soll das für Kryptowerte, die seit dem 1. Januar 2026 gekauft wurden.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Grünen zustimmen.",
+    "outcome": "rejected",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "yes",
+        "yes": 54,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 10
+      },
+      {
+        "partyId": "spd",
+        "answer": "no",
+        "yes": 0,
+        "no": 112,
+        "abstain": 0,
+        "noShow": 8
+      },
+      {
+        "partyId": "gruene",
+        "answer": "yes",
+        "yes": 76,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "cdu",
+        "answer": "no",
+        "yes": 0,
+        "no": 198,
+        "abstain": 0,
+        "noShow": 10
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 134,
+        "abstain": 0,
+        "noShow": 16
+      }
+    ],
+    "unaffiliated": 3,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/5752",
+      "date": "2026-05-05",
+      "fraktion": "BÜNDNIS 90/DIE GRÜNEN",
+      "members": ["Max Lucks", "Katharina Beck"],
+      "memberCount": 7,
+      "title": "Entwurf eines Gesetzes zum Schließen einer Gerechtigkeitslücke bei der Besteuerung von Kryptowerten",
+      "url": "https://dserver.bundestag.de/btd/21/057/2105752.pdf"
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/dritter-gesetzentwurf-steuerfreiheit-fuer-kryptogewinne-nach-einem-jahr-abschaffen"
+    }
+  },
+  {
+    "id": "sportfoerdergesetz",
+    "voteDate": "2026-07-10",
+    "topic": "Sport",
+    "title": "Sportfördergesetz",
+    "briefing": "Die Bundesregierung will die Förderung des Spitzensports erstmals in einem eigenen Gesetz regeln. Eine neue, unabhängige Spitzensport-Agentur soll künftig die Fördergelder des Bundes vergeben und die Förderung sportfachlich steuern. Gefördert werden soll stärker nach dem sportlichen Potenzial und der Leistung der Athlet:innen. Ziel ist laut Bundesregierung eine transparentere und weniger bürokratische Sportförderung.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Bundesregierung zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 43,
+        "abstain": 0,
+        "noShow": 21
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 115,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 5
+      },
+      {
+        "partyId": "gruene",
+        "answer": "yes",
+        "yes": 76,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 202,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 6
+      },
+      {
+        "partyId": "afd",
+        "answer": "yes",
+        "yes": 124,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 26
+      }
+    ],
+    "unaffiliated": 3,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/5921",
+      "date": "2026-05-13",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Gesetzes zur Regelung der Förderung des Spitzensports und weiterer Maßnahmen gesamtstaatlicher Bedeutung im Sport sowie zur Errichtung der Spitzensport-Agentur (Sportfördergesetz - SpoFöG)",
+      "url": "https://dserver.bundestag.de/btd/21/059/2105921.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Sportausschusses",
+        "number": "21/7006",
+        "url": "https://dserver.bundestag.de/btd/21/070/2107006.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/sportfoerdergesetz"
+    }
+  },
+  {
+    "id": "verbrenner-verbot",
+    "voteDate": "2025-10-16",
+    "topic": "Verkehr",
+    "title": "Aufhebung des Verbrenner-Verbots",
+    "briefing": "Nach EU-Recht sollen ab 2035 in der gesamten EU nur noch neue Pkw zugelassen werden, die kein CO₂ ausstoßen. Die Fraktion der AfD fordert in einem Antrag, dieses sogenannte Verbrenner-Verbot vollständig abzuschaffen. Der zuständige Ausschuss hat empfohlen, den Antrag abzulehnen. Abgestimmt wurde über diese Empfehlung.",
+    "yesMeans": "Ja bedeutet: der Empfehlung des Ausschusses folgen und den Antrag der AfD ablehnen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "yes",
+        "yes": 52,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 12
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 109,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 11
+      },
+      {
+        "partyId": "gruene",
+        "answer": "yes",
+        "yes": 72,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 13
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 199,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 138,
+        "abstain": 0,
+        "noShow": 13
+      }
+    ],
+    "unaffiliated": 2,
+    "document": {
+      "type": "Antrag",
+      "number": "21/225",
+      "date": "2025-05-20",
+      "fraktion": "der AfD",
+      "members": ["Leif-Erik Holm", "Marc Bernhard"],
+      "memberCount": 39,
+      "title": "Deindustrialisierung stoppen - Verbrenner-Verbot aufheben",
+      "url": "https://dserver.bundestag.de/btd/21/002/2100225.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Ausschusses für Wirtschaft und Energie",
+        "number": "21/476",
+        "url": "https://dserver.bundestag.de/btd/21/004/2100476.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/keine-abschaffung-des-verbrenner-verbots-beschlussempfehlung"
+    }
+  },
+  {
+    "id": "afghanistan-aufnahmezusagen",
+    "voteDate": "2025-12-03",
+    "topic": "Migration",
+    "title": "Visa für Menschen aus Afghanistan mit Aufnahmezusage",
+    "briefing": "Die Fraktion Bündnis 90/Die Grünen fordert die Bundesregierung in einem Antrag auf, alle bestehenden Aufnahmezusagen für Menschen aus Afghanistan umzusetzen. Wer über das Bundesaufnahmeprogramm, die Menschenrechtsliste, das Überbrückungsprogramm oder das Ortskräfteverfahren eine Zusage erhalten hat und sicherheitsüberprüft ist, soll sofort ein Visum bekommen und nach Deutschland gebracht werden. Auch wer trotz Zusage abgeschoben wurde, soll nach Pakistan zurückgeholt werden, damit sein Verfahren abgeschlossen werden kann. Außerdem soll die Bundesregierung mit Pakistan über eine längere Frist für die Bearbeitung und Ausreise über den 31. Dezember 2025 hinaus verhandeln.",
+    "yesMeans": "Ja bedeutet: dem Antrag der Grünen zustimmen.",
+    "outcome": "rejected",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "yes",
+        "yes": 53,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 11
+      },
+      {
+        "partyId": "spd",
+        "answer": "no",
+        "yes": 0,
+        "no": 110,
+        "abstain": 0,
+        "noShow": 10
+      },
+      {
+        "partyId": "gruene",
+        "answer": "yes",
+        "yes": 76,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "cdu",
+        "answer": "no",
+        "yes": 0,
+        "no": 195,
+        "abstain": 0,
+        "noShow": 13
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 135,
+        "abstain": 0,
+        "noShow": 16
+      }
+    ],
+    "unaffiliated": 2,
+    "document": {
+      "type": "Antrag",
+      "number": "21/3031",
+      "date": "2025-12-02",
+      "fraktion": "BÜNDNIS 90/DIE GRÜNEN",
+      "members": ["Schahina Gambir", "Marcel Emmerich"],
+      "memberCount": 23,
+      "title": "Wort halten, Leben schützen - Visa für afghanische Staatsangehörige mit Aufnahmezusage erteilen und gerichtliche Entscheidungen umsetzen",
+      "url": "https://dserver.bundestag.de/btd/21/030/2103031.pdf"
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/visa-fuer-afghanische-staatsangehoerige-mit-aufnahmezusage-erteilen"
+    }
+  },
+  {
+    "id": "bundespolizeigesetz",
+    "voteDate": "2026-09-25",
+    "topic": "Innere Sicherheit",
+    "title": "Modernisierung des Bundespolizeigesetzes",
+    "briefing": "Die Bundesregierung will das Bundespolizeigesetz, das in weiten Teilen aus dem Jahr 1994 stammt, umfassend überarbeiten. Die Bundespolizei soll unter bestimmten Voraussetzungen Telekommunikation überwachen dürfen, einschließlich der sogenannten Quellen-Telekommunikationsüberwachung, Drohnen einsetzen und abwehren sowie Handys orten. Sie soll selbst Abschiebehaft beantragen können. Der Innenausschuss hat ergänzt, dass Videoaufnahmen automatisiert ausgewertet werden dürfen und unter engen Voraussetzungen, grundsätzlich mit richterlicher Anordnung, eine biometrische Echtzeiterkennung möglich ist.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Bundesregierung zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 55,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 115,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 5
+      },
+      {
+        "partyId": "gruene",
+        "answer": "no",
+        "yes": 0,
+        "no": 76,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 207,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 1
+      },
+      {
+        "partyId": "afd",
+        "answer": "abstain",
+        "yes": 0,
+        "no": 3,
+        "abstain": 117,
+        "noShow": 30
+      }
+    ],
+    "unaffiliated": 3,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/3051",
+      "date": "2025-12-03",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Gesetzes zur Modernisierung des Bundespolizeigesetzes",
+      "url": "https://dserver.bundestag.de/btd/21/030/2103051.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Innenausschusses",
+        "number": "21/6990",
+        "url": "https://dserver.bundestag.de/btd/21/069/2106990.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/modernisierung-des-bundespolizeigesetzes"
+    }
+  },
+  {
+    "id": "stromsteuer-senkung",
+    "voteDate": "2026-04-24",
+    "topic": "Energie",
+    "title": "Senkung der Stromsteuer für alle",
+    "briefing": "Die Fraktion Bündnis 90/Die Grünen will die Stromsteuer für alle dauerhaft auf das Mindestmaß senken, das das Europarecht erlaubt: 1 Euro pro Megawattstunde für private Haushalte und 50 Cent für die betriebliche Nutzung. Außerdem sollen zahlreiche bisherige Ausnahmen und Ermäßigungen bei der Stromsteuer wegfallen. Der Staat würde dadurch jährlich rund 6 Milliarden Euro weniger einnehmen. Ziel ist laut der Fraktion, die Energiekosten zu senken und mehr Strom statt fossiler Energie zu nutzen, etwa beim Heizen und im Verkehr.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Grünen zustimmen.",
+    "outcome": "rejected",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "yes",
+        "yes": 57,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 7
+      },
+      {
+        "partyId": "spd",
+        "answer": "no",
+        "yes": 0,
+        "no": 112,
+        "abstain": 0,
+        "noShow": 8
+      },
+      {
+        "partyId": "gruene",
+        "answer": "yes",
+        "yes": 75,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 10
+      },
+      {
+        "partyId": "cdu",
+        "answer": "no",
+        "yes": 0,
+        "no": 198,
+        "abstain": 0,
+        "noShow": 10
+      },
+      {
+        "partyId": "afd",
+        "answer": "yes",
+        "yes": 136,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 14
+      }
+    ],
+    "unaffiliated": 3,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/5320",
+      "date": "2026-04-14",
+      "fraktion": "BÜNDNIS 90/DIE GRÜNEN",
+      "members": ["Sascha Müller", "Katharina Beck"],
+      "memberCount": 9,
+      "title": "Entwurf eines Gesetzes zur Änderung des Stromsteuergesetzes und weiterer Vorschriften",
+      "url": "https://dserver.bundestag.de/btd/21/053/2105320.pdf"
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/aenderung-des-stromsteuergesetzes-und-weiterer-vorschriften"
+    }
+  },
+  {
+    "id": "bafoeg-reform",
+    "voteDate": "2026-06-11",
+    "topic": "Bildung",
+    "title": "Umfassende BAföG-Reform",
+    "briefing": "Die Fraktion Bündnis 90/Die Grünen fordert in einem Antrag eine grundlegende Reform des BAföG. Die Bedarfssätze sollen auf das Niveau des Bürgergelds steigen, die Wohnkostenpauschale soll angepasst und eine zusätzliche monatliche Unterstützung für ausbildungsbezogene Ausgaben eingeführt werden. Die Freibeträge für das Einkommen der Eltern sollen steigen und der Antrag digitaler und einfacher werden. Der zuständige Ausschuss hat empfohlen, den Antrag abzulehnen. Abgestimmt wurde über diese Empfehlung.",
+    "yesMeans": "Ja bedeutet: der Empfehlung des Ausschusses folgen und den Antrag der Grünen ablehnen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 61,
+        "abstain": 0,
+        "noShow": 3
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 107,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 13
+      },
+      {
+        "partyId": "gruene",
+        "answer": "no",
+        "yes": 0,
+        "no": 79,
+        "abstain": 0,
+        "noShow": 6
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 196,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 12
+      },
+      {
+        "partyId": "afd",
+        "answer": "yes",
+        "yes": 137,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 13
+      }
+    ],
+    "unaffiliated": 3,
+    "document": {
+      "type": "Antrag",
+      "number": "21/2234",
+      "date": "2025-10-15",
+      "fraktion": "BÜNDNIS 90/DIE GRÜNEN",
+      "members": ["Ayse Asar", "Dr. Andrea Lübcke"],
+      "memberCount": 7,
+      "title": "Bildung bezahlbar machen - BAföG-Reform jetzt",
+      "url": "https://dserver.bundestag.de/btd/21/022/2102234.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Ausschusses für Forschung, Technologie, Raumfahrt und Technikfolgenabschätzung",
+        "number": "21/5130",
+        "url": "https://dserver.bundestag.de/btd/21/051/2105130.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/ablehnung-einer-umfassenden-bafoeg-reform-beschlussempfehlung"
+    }
+  },
+  {
+    "id": "verbrauchervertraege",
+    "voteDate": "2025-12-19",
+    "topic": "Verbraucherschutz",
+    "title": "Neue Regeln für Verbraucherverträge",
+    "briefing": "Die Bundesregierung will zwei EU-Richtlinien zum Verbraucherschutz umsetzen. Wer online einen Vertrag abschließt, soll ihn über einen „Widerrufsbutton“ genauso einfach widerrufen können. Bei Finanzdienstleistungs- und Versicherungsverträgen soll das bisher teilweise zeitlich unbegrenzte Widerrufsrecht eingeschränkt werden. Unternehmen sollen klarer über Gewährleistung und Haltbarkeitsgarantien informieren, bei Waren mit digitalen Elementen auch über Reparierbarkeit und Software-Updates. Der zuständige Ausschuss hat Regeln gegen manipulative Gestaltung von Websites („Dark Patterns“) beim Abschluss von Finanzverträgen ergänzt.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Bundesregierung zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 42,
+        "abstain": 0,
+        "noShow": 22
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 115,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 5
+      },
+      {
+        "partyId": "gruene",
+        "answer": "no",
+        "yes": 0,
+        "no": 76,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 191,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 17
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 123,
+        "abstain": 0,
+        "noShow": 28
+      }
+    ],
+    "unaffiliated": 2,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/1856",
+      "date": "2025-09-29",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Gesetzes zur Änderung des Verbrauchervertrags- und des Versicherungsvertragsrechts sowie zur Änderung des Behandlungsvertragsrechts",
+      "url": "https://dserver.bundestag.de/btd/21/018/2101856.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Ausschusses für Recht und Verbraucherschutz",
+        "number": "21/3345",
+        "url": "https://dserver.bundestag.de/btd/21/033/2103345.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/staerkung-von-verbraucherrechten-im-digitalen-vertragsabschluss"
+    }
+  },
+  {
+    "id": "co2-preis-2027",
+    "voteDate": "2026-10-16",
+    "topic": "Energie",
+    "title": "CO₂-Preis für das Jahr 2027",
+    "briefing": "Die Bundesregierung will den nationalen CO₂-Preis für Benzin, Diesel, Heizöl und Erdgas im Jahr 2027 nicht erhöhen: Er soll wie 2026 zwischen 55 und 65 Euro pro Tonne CO₂ liegen. Hintergrund ist, dass der neue europäische Emissionshandel für Gebäude und Verkehr erst 2028 starten soll. Der zuständige Ausschuss hat ergänzt, dass 2027 mehr Zertifikate angeboten werden, damit der Preis möglichst genau auf dem Niveau von 2026 bleibt. Dem Klima- und Transformationsfonds würden dadurch rund 400 Millionen Euro fehlen. Abgestimmt wurde über die Empfehlung des Ausschusses, den geänderten Gesetzentwurf anzunehmen.",
+    "yesMeans": "Ja bedeutet: der Empfehlung des Ausschusses folgen und dem geänderten Gesetzentwurf zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "abstain",
+        "yes": 0,
+        "no": 0,
+        "abstain": 52,
+        "noShow": 12
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 108,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 12
+      },
+      {
+        "partyId": "gruene",
+        "answer": "no",
+        "yes": 0,
+        "no": 75,
+        "abstain": 0,
+        "noShow": 10
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 195,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 13
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 133,
+        "abstain": 0,
+        "noShow": 17
+      }
+    ],
+    "unaffiliated": 3,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/7869",
+      "date": "2026-09-07",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Dritten Gesetzes zur Änderung des Brennstoffemissionshandelsgesetzes",
+      "url": "https://dserver.bundestag.de/btd/21/078/2107869.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Ausschusses für Umwelt, Klimaschutz, Naturschutz und nukleare Sicherheit",
+        "number": "21/8626",
+        "url": "https://dserver.bundestag.de/btd/21/086/2108626.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/aenderung-des-brennstoffemissionshandelsgesetzes-co2-preis"
+    }
+  },
+  {
+    "id": "ukraine-unterstuetzung-antrag-gruene",
+    "voteDate": "2026-07-08",
+    "topic": "Verteidigung",
+    "title": "Ukraine zusätzlich militärisch und humanitär unterstützen",
+    "briefing": "Die Fraktion Bündnis 90/Die Grünen hat einen Antrag mit dem Titel „Den russischen Krieg gegen die Ukraine beenden – Die Ukraine jetzt zusätzlich militärisch und humanitär stärken“ eingebracht. Er fordert die Bundesregierung unter anderem auf, die militärische Unterstützung der Ukraine auszuweiten, Luftverteidigung und Munitionsversorgung zu stärken, die humanitäre Hilfe fortzuführen und den Druck auf Russland durch Sanktionen aufrechtzuerhalten. Außerdem spricht sich der Antrag für den Wiederaufbau der Ukraine und ihre Annäherung an die Europäische Union aus.",
+    "yesMeans": "Ja bedeutet: dem Antrag der Grünen zustimmen.",
+    "outcome": "rejected",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 55,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "spd",
+        "answer": "no",
+        "yes": 0,
+        "no": 115,
+        "abstain": 0,
+        "noShow": 5
+      },
+      {
+        "partyId": "gruene",
+        "answer": "yes",
+        "yes": 78,
+        "no": 0,
+        "abstain": 1,
+        "noShow": 6
+      },
+      {
+        "partyId": "cdu",
+        "answer": "no",
+        "yes": 0,
+        "no": 198,
+        "abstain": 0,
+        "noShow": 10
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 140,
+        "abstain": 0,
+        "noShow": 10
+      }
+    ],
+    "unaffiliated": 3,
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/ukraine-zusaetzlich-militaerisch-und-humanitaer-unterstuetzen"
     }
   }
 ]
