@@ -203,3 +203,61 @@ describe('an older copy of the page', () => {
     });
   });
 });
+
+describe('saves from another version', () => {
+  it('never overwrites a save from a newer version of the game', () => {
+    const newer = JSON.stringify({ version: 2, games: { x: 'new shape' } });
+    const { storage, data } = fakeStorage({ [STORAGE_KEY]: newer });
+    const store = createProgressStore(storage);
+    store.getState().hydrate();
+    store.getState().answer(puzzle, 'linke', 'no', TODAY);
+
+    // This page still plays (its answer counts for this visit) ...
+    expect(getGame(store.getState().progress, puzzle.id).guesses).toEqual({
+      linke: 'no',
+    });
+    // ... but leaves the newer save as it was.
+    expect(data[STORAGE_KEY]).toBe(newer);
+  });
+
+  it('replaces a save it cannot read at all', () => {
+    const { storage, data } = fakeStorage({ [STORAGE_KEY]: '{not json' });
+    const store = createProgressStore(storage);
+    store.getState().hydrate();
+    store.getState().answer(puzzle, 'linke', 'no', TODAY);
+    expect(JSON.parse(data[STORAGE_KEY]).games[puzzle.id].guesses).toEqual({
+      linke: 'no',
+    });
+  });
+});
+
+describe('finishedHere', () => {
+  const answerAll = (store: ReturnType<typeof createProgressStore>) => {
+    for (const party of puzzle.parties) {
+      store.getState().answer(puzzle, party.partyId, 'yes', TODAY);
+    }
+  };
+
+  it('lists a puzzle once this page gives its last answer', () => {
+    const { storage } = fakeStorage();
+    const store = createProgressStore(storage);
+    store.getState().hydrate();
+    store.getState().answer(puzzle, 'linke', 'yes', TODAY);
+    expect(store.getState().finishedHere).toEqual([]);
+    answerAll(store);
+    expect(store.getState().finishedHere).toEqual([puzzle.id]);
+  });
+
+  it('leaves out a puzzle finished in another tab', () => {
+    const { storage } = fakeStorage();
+    const here = createProgressStore(storage);
+    const otherTab = createProgressStore(storage);
+    here.getState().hydrate();
+    otherTab.getState().hydrate();
+    answerAll(otherTab);
+
+    here.getState().refresh();
+    expect(getGame(here.getState().progress, puzzle.id).finishedOn).toBe(TODAY);
+    expect(here.getState().finishedHere).toEqual([]);
+  });
+});

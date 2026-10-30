@@ -3,7 +3,10 @@ import { isComplete } from './score';
 import type { Guesses, Puzzle, VoteAnswer } from './types';
 import { isVoteAnswer } from './validate';
 
-/** Bumped when the saved shape changes; older saves are then discarded. */
+/**
+ * Bumped when the saved shape changes. Older saves are then discarded; a
+ * newer one is left alone (see isNewerSave).
+ */
 const PROGRESS_VERSION = 1;
 
 type GameProgress = {
@@ -163,6 +166,19 @@ function parseGame(raw: unknown): GameProgress | null {
   // Saves from before the Stimmkarte have no flag: their card was never cast.
   const cast = raw.cast === true && finishedOn !== null;
   return { guesses, finishedOn, cast };
+}
+
+/**
+ * A save written by a newer version of the game, which this page cannot read
+ * and must not overwrite: an old tab left open across a deployment would
+ * otherwise wipe what the new version saved.
+ */
+export function isNewerSave(raw: unknown): boolean {
+  return (
+    isRecord(raw) &&
+    typeof raw.version === 'number' &&
+    raw.version > PROGRESS_VERSION
+  );
 }
 
 export function parseProgress(raw: unknown): Progress {

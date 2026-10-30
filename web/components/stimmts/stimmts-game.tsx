@@ -21,6 +21,7 @@ import { RotateCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import ClosingScreen from './closing-screen';
 import Countdown from './countdown';
+import NewDayNotice from './new-day-notice';
 import PastPuzzle from './past-puzzle';
 import PillButton from './pill-button';
 import PuzzleGame from './puzzle-game';
@@ -83,8 +84,13 @@ function StimmtsGame({ previewEnabled }: Props) {
   // A past day of the Wahlperiode the player is looking at, if any.
   const [pastDay, setPastDay] = useState<number | null>(null);
 
+  // Only a new Berlin day changes the game, so within a day the clock is
+  // left as it is and nothing re-renders.
   const refreshClock = useCallback(() => {
-    setNow(new Date());
+    const next = new Date();
+    setNow((current) =>
+      current && berlinDate(current) === berlinDate(next) ? current : next,
+    );
     setSearch(window.location.search);
   }, []);
 
@@ -98,24 +104,30 @@ function StimmtsGame({ previewEnabled }: Props) {
 
   // The page may be an older copy: a tab left open, or one the browser
   // restores on "back". Whenever it comes back into view it catches up with
-  // what was played since, so it never shows (or accepts) stale answers.
+  // what was played since and with the date, so it never shows (or accepts)
+  // stale answers or yesterday's puzzle. A timer alone is not enough for the
+  // date: a sleeping phone or a frozen background tab can hold it back.
   useEffect(() => {
+    const catchUp = () => {
+      refresh();
+      refreshClock();
+    };
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
-        refresh();
+        catchUp();
       }
     };
-    window.addEventListener('pageshow', refresh);
-    window.addEventListener('focus', refresh);
+    window.addEventListener('pageshow', catchUp);
+    window.addEventListener('focus', catchUp);
     window.addEventListener('storage', refresh);
     document.addEventListener('visibilitychange', onVisible);
     return () => {
-      window.removeEventListener('pageshow', refresh);
-      window.removeEventListener('focus', refresh);
+      window.removeEventListener('pageshow', catchUp);
+      window.removeEventListener('focus', catchUp);
       window.removeEventListener('storage', refresh);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [refresh]);
+  }, [refresh, refreshClock]);
 
   // A page left open past Berlin midnight switches to the new day's puzzle by
   // itself. The extra second keeps the timer from firing just before the day
@@ -194,6 +206,7 @@ function StimmtsGame({ previewEnabled }: Props) {
 
   return (
     <>
+      {today.status === 'active' && <NewDayNotice puzzleId={today.puzzle.id} />}
       {today.status === 'active' && (
         <PuzzleGame
           // A new puzzle must start from its own briefing, not inherit the

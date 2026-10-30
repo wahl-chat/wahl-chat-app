@@ -3,6 +3,8 @@ import {
   EMPTY_PROGRESS,
   type Progress,
   castCard,
+  getGame,
+  isNewerSave,
   mergeProgress,
   parseProgress,
   recordAnswer,
@@ -23,6 +25,12 @@ export type ProgressState = {
    * afterwards, so the two always agree (no hydration mismatch).
    */
   hydrated: boolean;
+  /**
+   * Puzzles whose last answer was given on this page. A puzzle that finishes
+   * without being in here was finished in another tab, where the player has
+   * already seen the reveal.
+   */
+  finishedHere: string[];
   hydrate: () => void;
   /**
    * Catches up with what is saved. Called when the page comes back into
@@ -41,20 +49,21 @@ export type ProgressState = {
   ) => void;
 };
 
-function load(storage: StorageLike | null): Progress {
-  if (!storage) {
-    return EMPTY_PROGRESS;
-  }
+function readSaved(storage: StorageLike | null): unknown {
   try {
-    const raw = storage.getItem(STORAGE_KEY);
-    return raw ? parseProgress(JSON.parse(raw)) : EMPTY_PROGRESS;
+    const raw = storage?.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
   } catch {
-    return EMPTY_PROGRESS;
+    return null;
   }
 }
 
+function load(storage: StorageLike | null): Progress {
+  return parseProgress(readSaved(storage));
+}
+
 function save(storage: StorageLike | null, progress: Progress) {
-  if (!storage) {
+  if (!storage || isNewerSave(readSaved(storage))) {
     return;
   }
   try {
@@ -101,6 +110,7 @@ export function createProgressStore(storage: StorageLike | null) {
     return {
       progress: EMPTY_PROGRESS,
       hydrated: false,
+      finishedHere: [],
 
       hydrate: () => {
         if (get().hydrated) {
@@ -122,9 +132,16 @@ export function createProgressStore(storage: StorageLike | null) {
 
       // Saved the moment it is tapped, so a reload cannot undo an answer.
       answer: (puzzle, partyId, answer, today) =>
-        update((before) =>
-          recordAnswer(before, puzzle, partyId, answer, today),
-        ),
+        update((before) => {
+          const after = recordAnswer(before, puzzle, partyId, answer, today);
+          if (
+            getGame(before, puzzle.id).finishedOn === null &&
+            getGame(after, puzzle.id).finishedOn !== null
+          ) {
+            set({ finishedHere: [...get().finishedHere, puzzle.id] });
+          }
+          return after;
+        }),
     };
   });
 }

@@ -10,7 +10,13 @@ import { getGame } from '@/lib/stimmts/progress';
 import type { Puzzle, Schedule } from '@/lib/stimmts/types';
 import { useProgress } from '@/lib/stimmts/use-progress';
 import { useReducedMotion } from 'motion/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import Briefing from './briefing';
 import ChamberLegend from './chamber-legend';
 import GuessStep from './guess-step';
@@ -72,6 +78,21 @@ function PuzzleGame({
 
   const finished = game.finishedOn !== null;
   const hasAnswers = Object.keys(game.guesses).length > 0;
+
+  // Finished in another tab while this one was open: the player saw the
+  // reveal there, so this tab goes straight to the result too (before the
+  // next paint, so the reveal never flashes up).
+  const finishedHere = useProgress((state) =>
+    state.finishedHere.includes(puzzle.id),
+  );
+  const finishedElsewhere = finished && !finishedHere && !alreadyFinished;
+  useLayoutEffect(() => {
+    if (finishedElsewhere) {
+      stamped.current = true;
+      setRevealed(new Set(puzzle.parties.map((party) => party.partyId)));
+      setShowResult(true);
+    }
+  }, [finishedElsewhere, puzzle]);
   const phase: Phase = finished
     ? showResult
       ? 'result'
