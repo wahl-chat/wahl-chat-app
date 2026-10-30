@@ -247,6 +247,12 @@ def _agenda_label(slug: str, speeches: list[Speech]) -> str:
     official = next((s.agenda_official for s in speeches if s.agenda_official), None)
     if official:
         return official
+    return numbered_label(slug)
+
+
+def numbered_label(slug: str) -> str:
+    """The label of an item no source has titled; the protocol may still
+    title it (``protocol_pages``)."""
     match = re.match(r"(top|zp)(\d+)$", slug)
     if match:
         kind = "Tagesordnungspunkt" if match.group(1) == "top" else "Zusatzpunkt"

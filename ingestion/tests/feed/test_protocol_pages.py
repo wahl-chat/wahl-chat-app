@@ -4,6 +4,9 @@
 
 from datetime import date
 from pathlib import Path
+from typing import Optional
+
+import pytest
 
 from ingestion.feed.protocol_pages import (
     apply_protocols,
@@ -34,7 +37,7 @@ def _rede(rede_id: str, first: str, last: str, fraktion: str) -> str:
 
 
 # Four speeches under TOP 20 (Clara twice), then a Befragung in which Anna
-# and Bernd ask several questions.
+# and Bernd ask several questions. TOP 20 is a bill, TOP 1 an Aktuelle Stunde.
 _XML = f"""<?xml version="1.0" encoding="UTF-8"?>
 <dbtplenarprotokoll sitzung-datum="09.07.2026" start-seitennr="1">
   <vorspann>
@@ -47,12 +50,18 @@ _XML = f"""<?xml version="1.0" encoding="UTF-8"?>
   </vorspann>
   <sitzungsverlauf>
     <tagesordnungspunkt top-id="Tagesordnungspunkt 20">
+      <p klasse="J">Ich rufe auf den Tagesordnungspunkt 20:</p>
+      <p klasse="T_NaS">Erste Beratung des von der Bundesregierung eingebrachten
+        Entwurfs eines Dritten Gesetzes zur Änderung des Vereinsgesetzes</p>
+      <p klasse="T_Drs">Drucksache 21/6805</p>
       {_rede("ID1", "Clara", "Weiss", "SPD")}
       {_rede("ID2", "Anna", "Berg", "CDU/CSU")}
       {_rede("ID3", "Bernd", "Roth", "AfD")}
       {_rede("ID4", "Clara", "Weiss", "SPD")}
     </tagesordnungspunkt>
     <tagesordnungspunkt top-id="Tagesordnungspunkt 1">
+      <p klasse="T_fett">Aktuelle Stunde</p>
+      <p klasse="T_fett">Zukunft der Bahn</p>
       {_rede("ID5", "Anna", "Berg", "CDU/CSU")}
       {_rede("ID6", "Bernd", "Roth", "AfD")}
       {_rede("ID7", "Anna", "Berg", "CDU/CSU")}
@@ -63,7 +72,12 @@ _XML = f"""<?xml version="1.0" encoding="UTF-8"?>
 
 
 def _payload(
-    sid: str, key: str, speaker: str, source: str = "op", day: str = "2026-07-09"
+    sid: str,
+    key: str,
+    speaker: str,
+    source: str = "op",
+    day: str = "2026-07-09",
+    title: Optional[str] = None,
 ) -> dict:
     return {
         "source_item_id": sid,
@@ -76,7 +90,11 @@ def _payload(
         "citation_url": f"https://video/{sid}.mp4#t=1",
         "citation_title": speaker,
         "content_hash": sid,
-        "meta": {"speaker_name": speaker, "transcript_pdf_url": _PDF},
+        "meta": {
+            "speaker_name": speaker,
+            "transcript_pdf_url": _PDF,
+            "agenda_item_title": title,
+        },
     }
 
 
@@ -237,3 +255,91 @@ def test_an_item_the_protocol_does_not_list_is_left_out() -> None:
     )
     assert apply_protocols(sitting, fetch=lambda _url: _XML) == 1
     assert [i.key for i in sitting.agenda_items] == ["89:top20"]
+
+
+def test_the_index_reads_each_items_title() -> None:
+    assert protocol_index(_XML).titles == {
+        "top20": "Drittes Gesetz zur Änderung des Vereinsgesetzes",
+        "top1": "Aktuelle Stunde: Zukunft der Bahn",
+    }
+
+
+def test_an_item_no_source_titled_takes_the_protocols_title() -> None:
+    sitting = _sitting(
+        [_payload("d", "de-21-89-anna-berg-top20", "Anna Berg", source="dip")]
+    )
+    assert sitting.agenda_items[0].label == "Tagesordnungspunkt 20"
+    apply_protocols(sitting, fetch=lambda _url: _XML)
+    assert sitting.agenda_items[0].label == (
+        "Drittes Gesetz zur Änderung des Vereinsgesetzes"
+    )
+
+
+def test_a_title_from_the_corpus_is_kept() -> None:
+    sitting = _sitting(
+        [_payload("a", "de-21-89-anna-berg-top20", "Anna Berg", title="Vereinsrecht")]
+    )
+    apply_protocols(sitting, fetch=lambda _url: _XML)
+    assert sitting.agenda_items[0].label == "Vereinsrecht"
+
+
+@pytest.mark.parametrize(
+    ("lines", "title"),
+    [
+        (
+            [
+                ("T_NaS", "Beratung des Antrags der Fraktion der AfD"),
+                ("T_fett", "Sofortige Senkung der Energiekosten"),
+                ("T_Drs", "Drucksache 21/5322"),
+            ],
+            "Sofortige Senkung der Energiekosten",
+        ),
+        (
+            [
+                ("T_NaS", "Abgabe einer Regierungserklärung durch den Bundeskanzler:"),
+                ("T_fett", "Zur aktuellen politischen Lage"),
+            ],
+            "Regierungserklärung: Zur aktuellen politischen Lage",
+        ),
+        (
+            [
+                (
+                    "T_NaS",
+                    "Zweite und dritte Beratung des eingebrachten Entwurfs "
+                    "eines Sportfördergesetzes",
+                )
+            ],
+            "Sportfördergesetz",
+        ),
+        (
+            [
+                (
+                    "T_NaS",
+                    "– Zweite und dritte Beratung des eingebrachten Entwurfs "
+                    "eines … Gesetzes zur Änderung des Strafgesetzbuches – Fahren "
+                    "ohne Fahrschein entkriminalisieren",
+                )
+            ],
+            "Gesetz zur Änderung des Strafgesetzbuches – Fahren ohne Fahrschein "
+            "entkriminalisieren",
+        ),
+        (
+            [
+                ("T_fett", "Sammelübersicht 171 zu Petitionen"),
+                ("T_fett", "Sammelübersicht 172 zu Petitionen"),
+            ],
+            "Sammelübersichten zu Petitionen",
+        ),
+        ([("T_NaS", "Beschlussempfehlung und Bericht des Ausschusses")], None),
+    ],
+)
+def test_titles_as_the_protocol_prints_them(
+    lines: list[tuple[str, str]], title: Optional[str]
+) -> None:
+    body = "".join(f'<p klasse="{kind}">{text}</p>' for kind, text in lines)
+    xml = (
+        '<dbtplenarprotokoll sitzung-datum="09.07.2026"><sitzungsverlauf>'
+        f'<tagesordnungspunkt top-id="Tagesordnungspunkt 7">{body}'
+        "</tagesordnungspunkt></sitzungsverlauf></dbtplenarprotokoll>"
+    )
+    assert protocol_index(xml).titles.get("top7") == title

@@ -290,6 +290,13 @@ def test_the_debate_hash_does_not_depend_on_speech_order() -> None:
     assert debate_input_hash(item) == debate_input_hash(reordered)
 
 
+def test_a_new_title_rebuilds_the_debate() -> None:
+    item = sittings()[DAY].agenda_items[0]
+    titled = sittings()[DAY].agenda_items[0]
+    titled.label = "Drittes Gesetz zur Änderung des Vereinsgesetzes"
+    assert debate_input_hash(item) != debate_input_hash(titled)
+
+
 def test_items_not_started_before_the_budget_ran_out_are_left_out() -> None:
     llm = FakeLLM()
     assert build(llm, out_of_time=lambda: True) == []

@@ -8,7 +8,7 @@ The corpus knows neither the order of the speeches in a debate (a scroll
 returns points by id, and op.tv speeches carry no time of day) nor, for
 openparliament.tv records, the protocol page: their DIP twin was merged away at
 ingest. The protocol XML next to the PDF lists every speech in the order it was
-given, with its PDF page.
+given, with its PDF page, and under each agenda item its title.
 
 Speeches are matched to it by speaker and agenda item. Where the two sources
 file a debate under different items (a joint debate the protocol keeps under
@@ -21,6 +21,10 @@ Everything that reads "the first speech" depends on that order: the Fraktion
 that opened the debate, the opening quote, the citations, the video. So a
 debate whose protocol cannot be read is not built at all, rather than built in
 an arbitrary order; the next run tries again.
+
+The title only fills in for an item no corpus record titles (openparliament.tv
+carries one; DIP speeches carry only the item number), so a debate that only
+DIP holds is not shown as "Tagesordnungspunkt 7".
 """
 
 from __future__ import annotations
@@ -29,13 +33,13 @@ import logging
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 import defusedxml.ElementTree as ElementTree
 
 from ingestion.connectors.bundestag_speeches.client import fetch_text
 from ingestion.connectors.bundestag_speeches.parser import parse_speeches_from_xml
-from ingestion.feed.reader import AgendaItem, SittingDay, Speech
+from ingestion.feed.reader import AgendaItem, SittingDay, Speech, numbered_label
 from ingestion.speech_key import agenda_slug_from_top_id, slugify_speaker
 
 logger = logging.getLogger(__name__)
@@ -46,6 +50,15 @@ _PROTOCOL_PDF_RE = re.compile(r"^https://dserver\.bundestag\.de/btp/\d+/\d+\.pdf
 _PROTOCOL_ID_RE = re.compile(r"^(\d+)/(\d+)$")
 # de-{ep}-{session}-{speaker}-{agenda}; the agenda part may be empty.
 _KEY_SPEAKER_RE = re.compile(r"^de-\d+-\d+-(.*)-(?:(?:top|zp)\d+)?$")
+# A bill has no title line of its own; its name is inside the item's text
+# ("Erste Beratung des … eingebrachten Entwurfs eines Dritten Gesetzes zur …"),
+# in the genitive. An adjective before it ("Dritten") and the noun go back to
+# the nominative: "Drittes Gesetz zur …", "Sportfördergesetz".
+_BILL_RE = re.compile(
+    r"Entwurfs eines (?:(?:…|\.\.\.)\s*)?(?:(\w+)en\s+)?(\w*[Gg]esetz)es\b(.*)$"
+)
+_TITLE_LINE = "T_fett"
+_ITEM_TEXT = ("T_NaS", "T_ZP_NaS")
 
 FetchText = Callable[[str], str]
 
@@ -63,6 +76,8 @@ class ProtocolSpeech:
 class ProtocolIndex:
     speeches: list[ProtocolSpeech] = field(default_factory=list)
     session_date: Optional[date] = None
+    # agenda slug -> the item's title as the protocol prints it
+    titles: dict[str, str] = field(default_factory=dict)
 
 
 def protocol_xml_url(pdf_url: str) -> Optional[str]:
@@ -72,11 +87,7 @@ def protocol_xml_url(pdf_url: str) -> Optional[str]:
     return base[: -len(".pdf")] + ".xml"
 
 
-def _session_date(xml_text: str) -> Optional[date]:
-    try:
-        root = ElementTree.fromstring(xml_text.encode("utf-8"))
-    except ElementTree.ParseError:
-        return None
+def _session_date(root: Any) -> Optional[date]:
     raw = root.get("sitzung-datum")
     try:
         return datetime.strptime(raw, "%d.%m.%Y").date() if raw else None
@@ -84,8 +95,64 @@ def _session_date(xml_text: str) -> Optional[date]:
         return None
 
 
+def _text(element: Any) -> str:
+    return " ".join("".join(element.itertext()).split())
+
+
+def _bill_title(text: str) -> Optional[str]:
+    match = _BILL_RE.search(text)
+    if match is None:
+        return None
+    adjective, noun, rest = match.groups()
+    head = f"{adjective}es {noun}" if adjective else noun
+    return f"{head}{rest}".strip()
+
+
+def _item_title(top: Any) -> Optional[str]:
+    """The first title the item's call-up prints: a motion's or report's
+    title line, the topic of an Aktuelle Stunde or a Regierungserklärung, or
+    a bill's name."""
+    lines = [(p.get("klasse"), _text(p)) for p in top.findall("p")]
+    titles = [
+        text
+        for kind, text in lines
+        if kind == _TITLE_LINE and text and not text.startswith("Drucksache")
+    ]
+    for kind, text in lines:
+        if kind in _ITEM_TEXT and text.startswith("Abgabe einer Regierungserklärung"):
+            return f"Regierungserklärung: {titles[0]}" if titles else None
+        if kind in _ITEM_TEXT and (bill := _bill_title(text)):
+            return bill
+        if kind != _TITLE_LINE or text not in titles:
+            continue
+        if text == "Aktuelle Stunde" and len(titles) > 1:
+            return f"Aktuelle Stunde: {titles[1]}"
+        if text.startswith("Sammelübersicht") and len(titles) > 1:
+            return "Sammelübersichten zu Petitionen"
+        return text
+    return None
+
+
+def _agenda_titles(root: Any) -> dict[str, str]:
+    titles: dict[str, str] = {}
+    for top in root.iter("tagesordnungspunkt"):
+        # A joint debate ("Tagesordnungspunkt 8 und Zusatzpunkt 4") is filed
+        # under its first item, as its DIP speeches are.
+        slug = agenda_slug_from_top_id(top.get("top-id"))
+        if slug and slug not in titles and (title := _item_title(top)):
+            titles[slug] = title
+    return titles
+
+
 def protocol_index(xml_text: str) -> ProtocolIndex:
-    index = ProtocolIndex(session_date=_session_date(xml_text))
+    try:
+        root = ElementTree.fromstring(xml_text.encode("utf-8"))
+    except ElementTree.ParseError:
+        root = None
+    index = ProtocolIndex(
+        session_date=_session_date(root) if root is not None else None,
+        titles=_agenda_titles(root) if root is not None else {},
+    )
     for position, speech in enumerate(parse_speeches_from_xml(xml_text)):
         page = speech.get("pdf_page")
         index.speeches.append(
@@ -196,8 +263,8 @@ def _order(
 
 def apply_protocols(sitting: SittingDay, fetch: FetchText = fetch_text) -> int:
     """Put each agenda item's speeches into protocol order, link them to their
-    protocol page and drop the twin of a speech both sources hold; returns how
-    many agenda items are now ordered.
+    protocol page, drop the twin of a speech both sources hold and title the
+    items no source titled; returns how many agenda items are now ordered.
 
     An item whose protocol cannot be fetched or parsed stays unordered, and
     the builder leaves it for a later run.
@@ -229,6 +296,9 @@ def apply_protocols(sitting: SittingDay, fetch: FetchText = fetch_text) -> int:
         for item in items:
             matches.update(_match_item(item, index))
         twins = _drop_twins(items, matches)
+        for item in items:
+            if item.label == numbered_label(item.slug) and item.slug in index.titles:
+                item.label = index.titles[item.slug]
         pdf_base = xml_url[: -len(".xml")] + ".pdf"
         for item in items:
             item.speeches = _order(

@@ -51,23 +51,27 @@ def debate_item_id(edition_id: str, session: int, agenda_slug: str) -> str:
     return f"{edition_id}_d{session}-{agenda_slug}"
 
 
-def _input_hash(sources: list[str]) -> str:
+def _input_hash(sources: list[str], label: Optional[str] = None) -> str:
+    payload: dict[str, object] = {
+        "prompt": PROMPT_VERSION,
+        "format": FEED_FORMAT_VERSION,
+        "sources": sorted(sources),
+    }
+    if label is not None:
+        payload["label"] = label
     return hashlib.sha256(
-        json.dumps(
-            {
-                "prompt": PROMPT_VERSION,
-                "format": FEED_FORMAT_VERSION,
-                "sources": sorted(sources),
-            },
-            sort_keys=True,
-        ).encode("utf-8")
+        json.dumps(payload, sort_keys=True).encode("utf-8")
     ).hexdigest()
 
 
 def debate_input_hash(item: AgendaItem) -> str:
     """Over the speeches' chunk hashes, not their order: a debate is built
-    only once the protocol has put it in order, and that order is fixed."""
-    return _input_hash([h for s in item.speeches for h in s.content_hashes])
+    only once the protocol has put it in order, and that order is fixed. The
+    label is in it because it reaches the prompt and the card, and a protocol
+    published after the first build can still give the item its title."""
+    return _input_hash(
+        [h for s in item.speeches for h in s.content_hashes], label=item.label
+    )
 
 
 def vote_input_hash(payload: dict) -> str:

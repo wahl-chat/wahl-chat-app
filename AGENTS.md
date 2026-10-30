@@ -517,6 +517,8 @@ from an item's headline and facts).
   each debate's speeches in the order they were given, links them to their PDF
   page, and drops a speech held by both sources (DIP files a joint debate
   under the TOP, openparliament.tv under the Zusatzpunkt; the op one is kept).
+  It also titles a debate only DIP holds (DIP speeches carry just the item
+  number) from the item's call-up in the protocol.
   A debate whose protocol cannot be read yet is not built; the next run picks
   it up. A sitting's day is its first speech's day, so speeches after midnight
   stay on it.
