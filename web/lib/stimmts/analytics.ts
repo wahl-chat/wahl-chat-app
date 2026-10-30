@@ -11,6 +11,16 @@ export function trackPuzzleCompleted(day: number, score: number) {
   track('stimmts_puzzle_completed', { day, score });
 }
 
+/** The one-tap rating, 1 to 5 stars, after the fifth finished puzzle. */
+export function trackRated(stars: number, games: number) {
+  track('stimmts_rated', { stars, games });
+}
+
+/** Closing the rating card without a rating, so skips can be counted too. */
+export function trackRatingDismissed(games: number) {
+  track('stimmts_rating_dismissed', { games });
+}
+
 export type ShareMethod = 'share' | 'copy';
 
 /** From a day's result, or from the closing screen after the last day. */

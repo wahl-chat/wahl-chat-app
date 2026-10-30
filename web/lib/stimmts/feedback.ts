@@ -4,9 +4,10 @@ import type { Progress } from './progress';
 export const FEEDBACK_AFTER_GAMES = 5;
 
 /**
- * The Fillout form that asks how players like the game. Empty until the form
- * exists, which keeps the prompt hidden. It may only ask about the game,
- * never about a player's political views (special-category data).
+ * The optional Fillout form offered after a rating, for players who want to
+ * say more. Empty until the form exists, which leaves the stars alone. It may
+ * only ask about the game, never about a player's political views
+ * (special-category data).
  */
 export const STIMMTS_FEEDBACK_FORM_ID = '';
 
@@ -19,11 +20,6 @@ export function finishedGameCount(progress: Progress): number {
 export function shouldAskForFeedback(
   progress: Progress,
   alreadyAsked: boolean,
-  formId = STIMMTS_FEEDBACK_FORM_ID,
 ): boolean {
-  return (
-    formId !== '' &&
-    !alreadyAsked &&
-    finishedGameCount(progress) >= FEEDBACK_AFTER_GAMES
-  );
+  return !alreadyAsked && finishedGameCount(progress) >= FEEDBACK_AFTER_GAMES;
 }

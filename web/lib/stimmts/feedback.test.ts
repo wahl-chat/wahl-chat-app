@@ -14,23 +14,17 @@ function withGames(finished: number, open = 0): Progress {
 }
 
 describe('shouldAskForFeedback', () => {
-  const FORM = 'abc123';
-
   it('asks once five puzzles are finished', () => {
-    expect(shouldAskForFeedback(withGames(4), false, FORM)).toBe(false);
-    expect(shouldAskForFeedback(withGames(5), false, FORM)).toBe(true);
-    expect(shouldAskForFeedback(withGames(12), false, FORM)).toBe(true);
+    expect(shouldAskForFeedback(withGames(4), false)).toBe(false);
+    expect(shouldAskForFeedback(withGames(5), false)).toBe(true);
+    expect(shouldAskForFeedback(withGames(12), false)).toBe(true);
   });
 
   it('does not count puzzles left unfinished', () => {
-    expect(shouldAskForFeedback(withGames(4, 3), false, FORM)).toBe(false);
+    expect(shouldAskForFeedback(withGames(4, 3), false)).toBe(false);
   });
 
   it('never asks twice', () => {
-    expect(shouldAskForFeedback(withGames(5), true, FORM)).toBe(false);
-  });
-
-  it('stays quiet until there is a form', () => {
-    expect(shouldAskForFeedback(withGames(5), false, '')).toBe(false);
+    expect(shouldAskForFeedback(withGames(5), true)).toBe(false);
   });
 });
