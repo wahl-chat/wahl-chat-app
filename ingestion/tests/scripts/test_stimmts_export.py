@@ -144,8 +144,11 @@ class TestDrucksachen:
                 ]
             }
         )
-        assert joint == {"initiator": "der Fraktionen der CDU/CSU und der SPD"}
+        assert joint == {"initiator": "der Fraktionen der CDU/CSU und SPD"}
         assert notes
+        unnamed, notes = submitter({"urheber": [{"titel": "Fraktion DIE LINKE"}]})
+        assert unnamed == {"initiator": "der Fraktion DIE LINKE"}
+        assert any("signers" in note for note in notes)
         assert (
             submitter({"urheber": [{"titel": "Bundesverfassungsgericht"}]})[0] is None
         )
@@ -155,6 +158,9 @@ class TestDrucksachen:
             "des Ausschusses für Wirtschaft und Energie"
         )
         assert committee_genitive("Haushaltsausschuss") == "des Haushaltsausschusses"
+        assert committee_genitive("Auswärtiger Ausschuss") == (
+            "des Auswärtigen Ausschusses"
+        )
         assert committee_genitive("Bundesregierung") is None
 
     def test_builds_the_document_with_the_version_voted_on(self):
@@ -173,6 +179,31 @@ class TestDrucksachen:
             },
         }
         assert notes == []
+
+    def test_ignores_the_budget_committees_cost_report(self):
+        cost_report = {
+            "dokumentnummer": "21/7023",
+            "drucksachetyp": "Bericht",
+            "urheber": [{"titel": "Haushaltsausschuss"}],
+        }
+        found, notes = document([cost_report, self.RECOMMENDATION, self.BILL])
+        assert found["votedIn"]["number"] == "21/7009"
+        assert notes == []
+
+    def test_takes_the_motion_the_recommendation_names(self):
+        motion = {
+            **self.BILL,
+            "dokumentnummer": "21/225",
+            "drucksachetyp": "Antrag",
+        }
+        unrelated = {**motion, "dokumentnummer": "21/604"}
+        recommendation = {
+            **self.RECOMMENDATION,
+            "titel": "zu dem Antrag der Fraktion der AfD - Drucksache 21/225 -",
+        }
+        found, notes = document([unrelated, recommendation, motion])
+        assert found["number"] == "21/225"
+        assert notes == ["also linked, not part of the recommendation: 21/604 (Antrag)"]
 
     def test_notes_when_several_bills_are_linked(self):
         second = {**self.BILL, "dokumentnummer": "21/6565"}

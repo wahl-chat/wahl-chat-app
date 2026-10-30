@@ -11,7 +11,11 @@ import re
 
 # A vote on a committee's recommendation is a vote "in the version of" it:
 # the bill or motion itself is the document, the recommendation is `votedIn`.
-VOTED_IN_TYPES = ("Beschlussempfehlung und Bericht", "Beschlussempfehlung", "Bericht")
+RECOMMENDATION_TYPES = ("Beschlussempfehlung und Bericht", "Beschlussempfehlung")
+# The Haushaltsausschuss's report on a bill's cost (§ 96 of the rules of
+# procedure) is linked next to the recommendation but is never voted on.
+REPORT_TYPE = "Bericht"
+VOTED_IN_TYPES = (*RECOMMENDATION_TYPES, REPORT_TYPE)
 # When a vote links several Drucksachen, the first of these types is the one
 # the puzzle shows.
 DOCUMENT_TYPES = ("Gesetzentwurf", "Antrag", "Verordnung", "Entschließungsantrag")
@@ -51,15 +55,20 @@ def submitter(record: dict) -> tuple[dict | None, list[str]]:
             if author.get("autor_titel")
         ]
         if not names:
-            return {"initiator": f"der {urheber[0]}"}, []
+            return {"initiator": f"der {urheber[0]}"}, [
+                "DIP names no signers: check whether the cover lists members"
+            ]
         result: dict = {"fraktion": fraktion, "members": names}
         signed = record.get("autoren_anzahl") or len(names)
         if signed > len(names):
             result["memberCount"] = signed
         return result, []
     if urheber and all(name.startswith("Fraktion ") for name in urheber):
-        joint = " und ".join(name.removeprefix("Fraktion ") for name in urheber)
-        return {"initiator": f"der Fraktionen {joint}"}, [
+        # "der Fraktionen der CDU/CSU und SPD", as the cover prints it.
+        joint = " und ".join(
+            name.removeprefix("Fraktion ").removeprefix("der ") for name in urheber
+        )
+        return {"initiator": f"der Fraktionen der {joint}"}, [
             "submitted by several Fraktionen: check the wording on the cover"
         ]
     return None, [f"unexpected submitter {urheber}: copy it from the cover"]
@@ -68,9 +77,13 @@ def submitter(record: dict) -> tuple[dict | None, list[str]]:
 def committee_genitive(name: str) -> str | None:
     """'Ausschuss für Wirtschaft und Energie' becomes 'des Ausschusses für …'.
 
-    Every Bundestag committee is an "-ausschuss", which takes "-es".
+    Every Bundestag committee is an "-ausschuss", which takes "-es"; an
+    adjective in front of it takes "-en" ("des Auswärtigen Ausschusses").
     """
     name = _clean(name)
+    adjective = re.match(r"^(\S+)er Ausschuss\b(.*)$", name)
+    if adjective:
+        return f"des {adjective.group(1)}en Ausschusses{adjective.group(2)}"
     match = re.match(r"^(\S*[Aa]usschuss)\b(.*)$", name)
     if not match:
         return None
@@ -88,7 +101,7 @@ def voted_in(record: dict) -> tuple[dict | None, list[str]]:
         ]
     kind = (
         "Bericht"
-        if record.get("drucksachetyp") == "Bericht"
+        if record.get("drucksachetyp") == REPORT_TYPE
         else ("Beschlussempfehlung")
     )
     return {
@@ -98,29 +111,59 @@ def voted_in(record: dict) -> tuple[dict | None, list[str]]:
     }, []
 
 
+def _mentions(record: dict, number: str) -> bool:
+    return (
+        re.search(rf"(?<![\d/]){re.escape(number)}(?!\d)", record.get("titel", ""))
+        is not None
+    )
+
+
+def _rank(record: dict) -> tuple[int, int]:
+    kind = record.get("drucksachetyp")
+    order = DOCUMENT_TYPES.index(kind) if kind in DOCUMENT_TYPES else 99
+    if kind in VOTED_IN_TYPES:
+        order = VOTED_IN_TYPES.index(kind)
+    number = int(str(record.get("dokumentnummer", "0/0")).split("/")[-1])
+    return order, number
+
+
 def document(records: list[dict]) -> tuple[dict | None, list[str]]:
     """The puzzle's `document` from the Drucksachen a vote links to, and notes."""
     notes: list[str] = []
-    main = [r for r in records if r.get("drucksachetyp") not in VOTED_IN_TYPES]
-    recommendations = [r for r in records if r.get("drucksachetyp") in VOTED_IN_TYPES]
+    main = sorted(
+        (r for r in records if r.get("drucksachetyp") not in VOTED_IN_TYPES),
+        key=_rank,
+    )
+    recommendations = sorted(
+        (r for r in records if r.get("drucksachetyp") in VOTED_IN_TYPES), key=_rank
+    )
     if not main:
         return None, ["no bill or motion linked: the briefing uses the plain layout"]
 
-    def rank(record: dict) -> tuple[int, int]:
-        kind = record.get("drucksachetyp")
-        order = DOCUMENT_TYPES.index(kind) if kind in DOCUMENT_TYPES else 99
-        number = int(str(record.get("dokumentnummer", "0/0")).split("/")[-1])
-        return order, number
-
-    main.sort(key=rank)
-    chosen = main[0]
-    if len(main) > 1:
-        others = ", ".join(
-            f"{r.get('dokumentnummer')} ({r.get('drucksachetyp')})" for r in main[1:]
+    # A recommendation names the bill or motion it is about, which settles
+    # which of several linked Drucksachen the vote was on.
+    recommendation = recommendations[0] if recommendations else None
+    named = [
+        r
+        for r in main
+        if recommendation and _mentions(recommendation, r["dokumentnummer"])
+    ]
+    chosen = (named or main)[0]
+    others = [r for r in main if r is not chosen]
+    if others:
+        listed = ", ".join(
+            f"{r.get('dokumentnummer')} ({r.get('drucksachetyp')})" for r in others
         )
         notes.append(
-            f"also linked: {others}; check that {chosen.get('dokumentnummer')} "
-            "is the one voted on"
+            f"also linked, not part of the recommendation: {listed}"
+            if named
+            else f"also linked: {listed}; check that "
+            f"{chosen.get('dokumentnummer')} is the one voted on"
+        )
+    if chosen.get("drucksachetyp") == "Entschließungsantrag":
+        notes.append(
+            "an Entschließungsantrag's title only names the bill it accompanies: "
+            "consider the plain layout"
         )
 
     who, who_notes = submitter(chosen)
@@ -135,12 +178,14 @@ def document(records: list[dict]) -> tuple[dict | None, list[str]]:
         "title": _clean(chosen.get("titel", "")),
         "url": (chosen.get("fundstelle") or {}).get("pdf_url"),
     }
-    if recommendations:
-        recommendations.sort(key=rank)
-        voted, voted_notes = voted_in(recommendations[0])
+    if recommendation:
+        voted, voted_notes = voted_in(recommendation)
         notes += voted_notes
         if voted:
             result["votedIn"] = voted
-        if len(recommendations) > 1:
+        competing = [
+            r for r in recommendations if r.get("drucksachetyp") in RECOMMENDATION_TYPES
+        ]
+        if len(competing) > 1:
             notes.append("several recommendations linked: check which one was voted on")
     return result, notes
