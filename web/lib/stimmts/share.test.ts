@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { FIXTURE_PUZZLES as PUZZLES } from './fixtures';
 import { scorePuzzle } from './score';
-import { buildShareText } from './share';
+import { buildClosingShareText, buildShareText } from './share';
 import type { Guesses } from './types';
 
 const puzzle = PUZZLES[0]; // real answers, in seating order: no, yes, no, yes, no
@@ -59,5 +59,24 @@ describe('buildShareText', () => {
     for (const party of ['Linke', 'SPD', 'Grünen', 'CDU', 'CSU', 'AfD']) {
       expect(text).not.toContain(party);
     }
+  });
+});
+
+describe('buildClosingShareText', () => {
+  it('sums up the whole run in numbers only', () => {
+    expect(
+      buildClosingShareText({
+        summary: { played: 24, correct: 97, possible: 120 },
+        days: 30,
+        url: 'https://wahl.chat/stimmts',
+      }),
+    ).toBe(
+      [
+        "Stimmt's? · 24 von 30 Tagen gespielt · 97/120 richtig",
+        '',
+        'Das Rätsel von wahl.chat: Wie haben die Parteien im Bundestag abgestimmt?',
+        'https://wahl.chat/stimmts',
+      ].join('\n'),
+    );
   });
 });

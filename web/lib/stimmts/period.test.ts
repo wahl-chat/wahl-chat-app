@@ -6,6 +6,7 @@ import {
   currentWahlperiode,
   dayRecords,
   encodePeriod,
+  summarizePeriod,
 } from './period';
 import { EMPTY_PROGRESS, type Progress, recordAnswer } from './progress';
 import type { Schedule, VoteAnswer } from './types';
@@ -136,5 +137,36 @@ describe('encodePeriod', () => {
   it('writes one character per day: the score, or x for a missed day', () => {
     const period = currentWahlperiode(records('PPxP'), 4, true);
     expect(encodePeriod(period.days)).toBe('44x4');
+  });
+});
+
+describe('summarizePeriod', () => {
+  it('counts played days and their scores, and nothing for missed ones', () => {
+    const days: DayRecord[] = [
+      {
+        kind: 'played',
+        number: 1,
+        playDate: '2026-11-01',
+        topic: '',
+        score: 4,
+      },
+      { kind: 'missed', number: 2, playDate: '2026-11-02' },
+      {
+        kind: 'played',
+        number: 3,
+        playDate: '2026-11-03',
+        topic: '',
+        score: 2,
+      },
+    ];
+    expect(summarizePeriod(days)).toEqual({
+      played: 2,
+      correct: 6,
+      possible: 10,
+    });
+  });
+
+  it('is all zeros for a player who never played', () => {
+    expect(summarizePeriod([])).toEqual({ played: 0, correct: 0, possible: 0 });
   });
 });

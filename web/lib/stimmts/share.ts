@@ -1,3 +1,4 @@
+import type { PeriodSummary } from './period';
 import type { PuzzleScore } from './score';
 
 type ShareInput = {
@@ -23,6 +24,27 @@ export function buildShareText({
     `Stimmt's? #${puzzleNumber} · ${score.correct}/${score.total} ${squares}`,
     '',
     'Schlag meinen Score im neuen Spiel von wahl.chat: Wie haben die Parteien im Bundestag abgestimmt?',
+    url,
+  ].join('\n');
+}
+
+type ClosingShareInput = {
+  summary: PeriodSummary;
+  /** How many days the game ran. */
+  days: number;
+  url: string;
+};
+
+/** The text shared once the game is over: the whole run, in numbers only. */
+export function buildClosingShareText({
+  summary,
+  days,
+  url,
+}: ClosingShareInput): string {
+  return [
+    `Stimmt's? · ${summary.played} von ${days} Tagen gespielt · ${summary.correct}/${summary.possible} richtig`,
+    '',
+    'Das Rätsel von wahl.chat: Wie haben die Parteien im Bundestag abgestimmt?',
     url,
   ].join('\n');
 }

@@ -23,8 +23,6 @@ const LOGO_CLASSES: Record<MarkTone, string> = {
   yes: 'fill-seat-yes',
 };
 
-const fixed = (n: number) => n.toFixed(4);
-
 type Props = {
   seats: PeriodSeat[];
   /** All 30 days played. */
@@ -68,10 +66,10 @@ function PeriodChamber({
       className={cn('block w-full overflow-visible', className)}
     >
       {seats.map((seat) => {
-        const key = `${fixed(seat.x)},${fixed(seat.y)}`;
+        const key = `${seat.x},${seat.y}`;
         const at = {
-          cx: fixed(seat.x),
-          cy: fixed(seat.y),
+          cx: seat.x,
+          cy: seat.y,
           r: MARK_SEAT_RADIUS,
         };
         const day = 'day' in seat ? seat.day : null;

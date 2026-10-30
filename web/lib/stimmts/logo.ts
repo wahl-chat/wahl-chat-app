@@ -25,6 +25,10 @@ type MarkSeat = {
   tone: MarkTone;
 };
 
+// Rounded, because the server and the browser can disagree in the last digit
+// of a sine, and a seat drawn on both must come out identical.
+const round = (n: number) => Math.round(n * 10_000) / 10_000;
+
 function toneAt(t: number): MarkTone {
   return t < 0.42 ? 'no' : t < 0.55 ? 'abstain' : 'yes';
 }
@@ -41,8 +45,8 @@ export const MARK_SEATS: MarkSeat[] = MARK_ROWS.flatMap((row) =>
       angle,
       radius: row.radius,
       seat: {
-        x: row.radius * Math.cos(angle),
-        y: -row.radius * Math.sin(angle),
+        x: round(row.radius * Math.cos(angle)),
+        y: round(-row.radius * Math.sin(angle)),
         tone: toneAt(t),
       },
     };

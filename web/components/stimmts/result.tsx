@@ -308,13 +308,15 @@ function Result({
           score,
           url: `${BASE_URL}${sharedResultPath({ number, score: score.correct, playDate })}`,
         })}
-        imagePath={shareImagePath('square', {
-          number,
-          score: score.correct,
-          playDate,
-          period: sharedPeriod,
-        })}
-        imageName={`stimmts-${number}.png`}
+        image={{
+          path: shareImagePath('square', {
+            number,
+            score: score.correct,
+            playDate,
+            period: sharedPeriod,
+          }),
+          name: `stimmts-${number}.png`,
+        }}
       />
     </div>
   );

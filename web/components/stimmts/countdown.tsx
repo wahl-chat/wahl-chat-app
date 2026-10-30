@@ -2,10 +2,10 @@ import { countdownTarget, formatCountdown } from '@/lib/stimmts/countdown';
 import { useEffect, useState } from 'react';
 
 /**
- * Counts down to the next Berlin midnight, when tomorrow's puzzle opens. It
- * spans the column above the urn, once today's card is in.
+ * Counts down to the next Berlin midnight, when the next puzzle opens: above
+ * the urn once today's card is in, and on the eve of the launch.
  */
-function Countdown() {
+function Countdown({ label = 'Nächstes Rätsel in' }: { label?: string }) {
   const [remaining, setRemaining] = useState(
     () => countdownTarget(new Date(), null) - Date.now(),
   );
@@ -21,9 +21,7 @@ function Countdown() {
 
   return (
     <p className="flex animate-stimmts-screen flex-col items-center motion-reduce:animate-none">
-      <span className="text-sm font-medium text-muted-foreground">
-        Nächstes Rätsel in
-      </span>
+      <span className="text-sm font-medium text-muted-foreground">{label}</span>
       {/* translate="no": a browser that auto-translates the page rewrites the
           text in place, which leaves the old time next to the new one. The
           size follows the screen, so the clock spans the column on a phone. */}

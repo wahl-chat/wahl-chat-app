@@ -1,4 +1,5 @@
 import { addDays } from './berlin-time';
+import { SEATING_ORDER } from './parties';
 import { type Progress, getGame } from './progress';
 import { scorePuzzle } from './score';
 import type { Puzzle, Schedule } from './types';
@@ -118,4 +119,20 @@ export function encodePeriod(days: DayRecord[]): string {
   return days
     .map((record) => (record.kind === 'played' ? String(record.score) : 'x'))
     .join('');
+}
+
+export type PeriodSummary = {
+  played: number;
+  correct: number;
+  /** Five per played day: missed days count for nothing either way. */
+  possible: number;
+};
+
+export function summarizePeriod(days: DayRecord[]): PeriodSummary {
+  const played = days.filter((record) => record.kind === 'played');
+  return {
+    played: played.length,
+    correct: played.reduce((sum, record) => sum + record.score, 0),
+    possible: played.length * SEATING_ORDER.length,
+  };
 }

@@ -8,7 +8,8 @@ import {
   nextPuzzleAt,
 } from '@/lib/stimmts/berlin-time';
 import { PUZZLES, PUZZLE_COUNT, createSchedule } from '@/lib/stimmts/content';
-import { formatDate } from '@/lib/stimmts/labels';
+import { formatDate, weekdayName } from '@/lib/stimmts/labels';
+import { dayRecords } from '@/lib/stimmts/period';
 import { resolveClock } from '@/lib/stimmts/preview';
 import { getGame } from '@/lib/stimmts/progress';
 import { STORAGE_KEY } from '@/lib/stimmts/progress-store';
@@ -16,13 +17,16 @@ import { getTodaysPuzzle, puzzleForDay } from '@/lib/stimmts/schedule';
 import { resolveLaunch } from '@/lib/stimmts/status';
 import { useProgress } from '@/lib/stimmts/use-progress';
 import { useStimmtsStatus } from '@/lib/stimmts/use-stimmts-status';
+import { RotateCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import ClosingScreen from './closing-screen';
+import Countdown from './countdown';
 import PastPuzzle from './past-puzzle';
+import PillButton from './pill-button';
 import PuzzleGame from './puzzle-game';
+import StatusScreen, { LoadingScreen } from './status-screen';
 
-function Message({ children }: { children: React.ReactNode }) {
-  return <p className="py-10 text-center text-muted-foreground">{children}</p>;
-}
+const QUESTION = 'Wie haben die Parteien im Bundestag abgestimmt?';
 
 function PreviewBar({ day, puzzleId }: { day: number; puzzleId?: string }) {
   const resetGame = useProgress((state) => state.resetGame);
@@ -135,20 +139,28 @@ function StimmtsGame({ previewEnabled }: Props) {
   );
 
   if (!now || !hydrated || !launch || launch.kind === 'loading') {
-    return <Message>Lädt …</Message>;
+    return <LoadingScreen />;
   }
   if (launch.kind === 'unreachable') {
     return (
-      <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
-        <p>Stimmt&apos;s? lässt sich gerade nicht laden.</p>
-        <Button variant="outline" onClick={retry}>
+      <StatusScreen
+        title="Gerade nicht erreichbar"
+        text="Stimmt’s? lässt sich im Moment nicht laden. Prüf deine Verbindung und versuch es noch einmal."
+      >
+        <PillButton onClick={retry}>
+          <RotateCw aria-hidden strokeWidth={2.25} />
           Erneut versuchen
-        </Button>
-      </div>
+        </PillButton>
+      </StatusScreen>
     );
   }
   if (launch.kind === 'off' || !schedule) {
-    return <Message>Stimmt&apos;s? kommt bald.</Message>;
+    return (
+      <StatusScreen
+        title="Kommt bald"
+        text={`Das tägliche Rätsel von wahl.chat: ${QUESTION} Schau bald wieder vorbei.`}
+      />
+    );
   }
 
   const clock = resolveClock({
@@ -199,12 +211,28 @@ function StimmtsGame({ previewEnabled }: Props) {
         />
       )}
       {today.status === 'not-started' && (
-        <Message>
-          Stimmt&apos;s? startet am {formatDate(today.startsOn)}.
-        </Message>
+        <StatusScreen
+          title="Bald geht’s los"
+          text={`Stimmt’s? startet am ${weekdayName(today.startsOn)}, ${formatDate(today.startsOn)}. Ab dann jeden Tag ein neues Rätsel: ${QUESTION}`}
+        >
+          {today.startsOn === addDays(berlinDate(clock.now), 1) && (
+            <Countdown label="Stimmt’s? startet in" />
+          )}
+        </StatusScreen>
       )}
       {today.status === 'finished' && (
-        <Message>Mehr Rätsel sind in Arbeit. Bleib dran!</Message>
+        <ClosingScreen
+          days={dayRecords({
+            schedule,
+            puzzles: PUZZLES,
+            progress,
+            throughNumber: PUZZLE_COUNT,
+          })}
+          onOpenDay={(number) => {
+            setPastDay(number);
+            scrollTop();
+          }}
+        />
       )}
       {previewEnabled && (
         <PreviewBar

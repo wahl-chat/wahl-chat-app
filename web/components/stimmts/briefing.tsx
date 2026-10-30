@@ -1,9 +1,11 @@
 import { seatCount } from '@/lib/stimmts/hemicycle';
 import { formatDate, timeAgo, weekdayName } from '@/lib/stimmts/labels';
 import type { Puzzle } from '@/lib/stimmts/types';
+import { useProgress } from '@/lib/stimmts/use-progress';
 import BillSheet from './bill-sheet';
 import CalendarLeaf from './calendar-leaf';
 import Hemicycle from './hemicycle';
+import HowToPlay from './how-to-play';
 import StartButton from './start-button';
 import Stimmkarte from './stimmkarte';
 import YesMeans from './yes-means';
@@ -21,6 +23,10 @@ type Props = {
  * under it. It never hints at the outcome.
  */
 function Briefing({ number, playDate, puzzle, onStart }: Props) {
+  // Someone with no game saved at all is new here.
+  const newPlayer = useProgress(
+    (state) => Object.keys(state.progress.games).length === 0,
+  );
   const seats =
     puzzle.parties.reduce((sum, party) => sum + seatCount(party), 0) +
     puzzle.unaffiliated;
@@ -42,7 +48,10 @@ function Briefing({ number, playDate, puzzle, onStart }: Props) {
         states={{}}
         center={{ big: String(seats), small: 'Sitze' }}
       />
-      <StartButton onStart={onStart} />
+      <div className="flex flex-col gap-4">
+        <StartButton onStart={onStart} />
+        <HowToPlay autoOpen={newPlayer} />
+      </div>
     </div>
   );
 }

@@ -12,16 +12,15 @@ const COPIED_MESSAGE_MS = 2500;
 
 type Props = {
   text: string;
-  /** The square share image (see the /stimmts/share route). */
-  imagePath: string;
-  imageName: string;
+  /** The square share image (see the /stimmts/share route), if any. */
+  image?: { path: string; name: string };
 };
 
 /**
  * "Ergebnis teilen": on phones the share sheet gets the text and the image
  * together; elsewhere the text is copied and the image can be saved.
  */
-function ShareButton({ text, imagePath, imageName }: Props) {
+function ShareButton({ text, image: shareImage }: Props) {
   const [outcome, setOutcome] = useState<ShareOutcome | null>(null);
   const [canShare, setCanShare] = useState(false);
   const image = useRef<File | null>(null);
@@ -32,8 +31,13 @@ function ShareButton({ text, imagePath, imageName }: Props) {
 
   // Fetched ahead of the tap: a share sheet only opens straight from a tap,
   // and waiting for the image first would use the tap up.
+  const imagePath = shareImage?.path;
+  const imageName = shareImage?.name;
   useEffect(() => {
     setCanShare('share' in navigator);
+    if (!imagePath || !imageName) {
+      return;
+    }
     let current = true;
     fetchShareImage(imagePath, imageName).then((file) => {
       if (current) {
@@ -69,7 +73,7 @@ function ShareButton({ text, imagePath, imageName }: Props) {
           </>
         )}
       </PillButton>
-      {!canShare && (
+      {!canShare && imagePath && (
         <a
           href={imagePath}
           download={imageName}
