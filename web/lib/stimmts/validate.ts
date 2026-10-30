@@ -1,5 +1,6 @@
 import { safeExternalUrl } from '@/lib/pledge-tracker/pledges';
 import { isIsoDate } from './berlin-time';
+import { SEATING_ORDER } from './parties';
 import type {
   BillDocument,
   DocumentSubmitter,
@@ -193,13 +194,15 @@ export function validatePuzzle(data: unknown): Puzzle {
     return fail(id, 'outcome must be accepted or rejected');
   }
 
-  if (!Array.isArray(data.parties) || data.parties.length < 2) {
-    return fail(id, 'parties must list at least two parties');
+  if (!Array.isArray(data.parties)) {
+    return fail(id, 'parties must be a list');
   }
   const parties = data.parties.map((party) => readParty(party, id));
-  const partyIds = new Set(parties.map((party) => party.partyId));
-  if (partyIds.size !== parties.length) {
-    return fail(id, 'a party appears twice');
+  if (parties.map((party) => party.partyId).join() !== SEATING_ORDER.join()) {
+    return fail(
+      id,
+      `parties must be ${SEATING_ORDER.join(', ')}, in that order (left to right in the chamber)`,
+    );
   }
 
   return {

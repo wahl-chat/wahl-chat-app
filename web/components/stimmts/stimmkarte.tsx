@@ -1,4 +1,5 @@
 import { formatDate, shortDay } from '@/lib/stimmts/labels';
+import { MAX_SCORE } from '@/lib/stimmts/share-image';
 import { cn } from '@/lib/utils';
 import type { Ref } from 'react';
 import StimmtsLogo from './stimmts-logo';
@@ -43,7 +44,7 @@ function Stimmkarte({
 }: Props) {
   const scored = score !== undefined;
   const label = `Stimmkarte, Tagesrätsel Nummer ${number} vom ${formatDate(playDate)}${
-    scored ? `, ${score} von 5 richtig` : ''
+    scored ? `, ${score} von ${MAX_SCORE} richtig` : ''
   }`;
   // On the briefing the title is the page's heading; on the result the card
   // is a button, which cannot hold one.

@@ -1,4 +1,5 @@
 import { addDays } from './berlin-time';
+import { SEATING_ORDER } from './parties';
 import { type DayRecord, PERIOD_LENGTH } from './period';
 import type { Schedule } from './types';
 
@@ -30,7 +31,7 @@ export const SHARE_COLORS = {
   seatAbstain: '#d9a93a',
 } as const;
 
-export const MAX_SCORE = 5;
+export const MAX_SCORE = SEATING_ORDER.length;
 
 /**
  * Everything an image may show. Never the topic, the title or anything per

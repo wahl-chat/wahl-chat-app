@@ -5,6 +5,7 @@ import {
   type PeriodSeat,
   type ScoreTier,
 } from '@/lib/stimmts/logo';
+import { MAX_SCORE } from '@/lib/stimmts/share-image';
 import { cn } from '@/lib/utils';
 import type { KeyboardEvent } from 'react';
 
@@ -39,7 +40,7 @@ type Props = {
 
 function seatLabel(seat: PeriodSeat): string {
   if (seat.kind === 'played') {
-    return `Nr. ${seat.day.number}, ${seat.day.score} von 5 richtig`;
+    return `Nr. ${seat.day.number}, ${seat.day.score} von ${MAX_SCORE} richtig`;
   }
   if (seat.kind === 'missed') {
     return `Nr. ${seat.day.number}, verpasst`;

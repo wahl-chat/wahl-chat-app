@@ -1,3 +1,10 @@
+/**
+ * The Fraktionen of the 21st Bundestag, in seating order from left to right.
+ * Every puzzle lists exactly these, which is what lets the board, the score
+ * and the share image count on five parties.
+ */
+export const SEATING_ORDER = ['linke', 'spd', 'gruene', 'cdu', 'afd'];
+
 // Class names are spelled out in full so Tailwind finds them in the source.
 
 const TILE_CLASSES: Record<string, string> = {

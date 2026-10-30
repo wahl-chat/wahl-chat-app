@@ -26,18 +26,6 @@ describe('the shipped content', () => {
     expect(PUZZLES.length).toBe(puzzlesJson.length);
   });
 
-  it('lists the five Bundestag factions in seating order, left to right', () => {
-    for (const puzzle of PUZZLES) {
-      expect(puzzle.parties.map((party) => party.partyId)).toEqual([
-        'linke',
-        'spd',
-        'gruene',
-        'cdu',
-        'afd',
-      ]);
-    }
-  });
-
   it('seats every member of the 21st Bundestag, Fraktion or not', () => {
     for (const puzzle of PUZZLES) {
       const members = puzzle.parties.reduce(
@@ -76,10 +64,22 @@ describe('validatePuzzle', () => {
     expect(() => validatePuzzle(puzzle)).toThrow('no votes were cast');
   });
 
-  it('rejects a party listed twice', () => {
-    const puzzle = firstPuzzle();
-    puzzle.parties[1].partyId = puzzle.parties[0].partyId;
-    expect(() => validatePuzzle(puzzle)).toThrow('appears twice');
+  it('requires exactly the five Fraktionen, in seating order', () => {
+    const twice = firstPuzzle();
+    twice.parties[1].partyId = twice.parties[0].partyId;
+    expect(() => validatePuzzle(twice)).toThrow('in that order');
+
+    const missing = firstPuzzle();
+    missing.parties.pop();
+    expect(() => validatePuzzle(missing)).toThrow('in that order');
+
+    const swapped = firstPuzzle();
+    swapped.parties.reverse();
+    expect(() => validatePuzzle(swapped)).toThrow('in that order');
+
+    const outside = firstPuzzle();
+    outside.parties[0].partyId = 'fdp';
+    expect(() => validatePuzzle(outside)).toThrow('in that order');
   });
 
   it('rejects source links that are not http(s)', () => {
