@@ -1,12 +1,14 @@
 'use client';
 
+import { LOCALE_INFO } from '@/i18n/locales';
+import { Link } from '@/i18n/navigation';
 import { createCheckoutSession } from '@/lib/server-actions/stripe-create-session';
 import { formatAmountForDisplay } from '@/lib/stripe/stripe-helpers';
 import { cn } from '@/lib/utils';
 import NumberFlow from '@number-flow/react';
 import { track } from '@vercel/analytics/react';
 import { EqualIcon } from 'lucide-react';
-import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { DonateSubmitButton } from './donate-submit-button';
 import { Button } from './ui/button';
@@ -20,7 +22,16 @@ import {
 import { Input } from './ui/input';
 import { Slider } from './ui/slider';
 
+const homeLink = (chunks: React.ReactNode) => (
+  <Link className="underline" href="/">
+    {chunks}
+  </Link>
+);
+
 function DonationForm() {
+  const t = useTranslations('donate.form');
+  const locale = useLocale();
+  const numberLocale = LOCALE_INFO[locale].intl;
   const [amount, setAmount] = useState(50);
   const [customAmount, setCustomAmount] = useState(false);
 
@@ -52,20 +63,10 @@ function DonationForm() {
     <form action={handleDonate}>
       <CardHeader>
         <CardTitle className="text-center text-2xl">
-          Halte{' '}
-          <Link className="underline" href="/">
-            wahl.chat
-          </Link>{' '}
-          mit deiner Spende am Leben!
+          {t.rich('title', { link: homeLink })}
         </CardTitle>
         <CardDescription className="text-center">
-          Wir finanzieren{' '}
-          <Link className="underline" href="/">
-            wahl.chat
-          </Link>{' '}
-          derzeit noch vollständig aus eigener Tasche. Deine Spende hilft uns,
-          dieses Projekt weiter zu betreiben und die Kosten für Server und KI zu
-          decken.
+          {t.rich('description', { link: homeLink })}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -89,21 +90,29 @@ function DonationForm() {
               />
             ) : (
               <h1 className="text-center text-4xl font-bold">
-                <NumberFlow value={amount} />{' '}
-                <span className="text-lg text-muted-foreground">€</span>
+                {t.rich('amount', {
+                  amount: () => (
+                    <NumberFlow value={amount} locales={numberLocale} />
+                  ),
+                  currency: (chunks) => (
+                    <span className="text-lg text-muted-foreground">
+                      {chunks}
+                    </span>
+                  ),
+                })}
               </h1>
             )}
             <p className="text-center text-sm text-muted-foreground">
-              einmalige Spende
+              {t('oneTime')}
             </p>
           </div>
           <EqualIcon className="text-3xl" />
           <div className="mb-8 mt-4 flex flex-col items-center justify-center">
             <h1 className="text-center text-4xl font-bold">
-              <NumberFlow value={amount * 50} />
+              <NumberFlow value={amount * 50} locales={numberLocale} />
             </h1>
             <p className="text-center text-sm text-muted-foreground">
-              Menschen informiert
+              {t('peopleInformed')}
             </p>
           </div>
         </div>
@@ -120,7 +129,7 @@ function DonationForm() {
               )}
               onClick={() => handleSetAmount(currAmount)}
             >
-              {formatAmountForDisplay(currAmount)} €
+              {formatAmountForDisplay(currAmount, locale)}
             </Button>
           ))}
           <Button
@@ -132,7 +141,7 @@ function DonationForm() {
             )}
             onClick={() => setCustomAmount(true)}
           >
-            Andere
+            {t('other')}
           </Button>
         </div>
 

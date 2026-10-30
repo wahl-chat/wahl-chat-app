@@ -10,6 +10,7 @@ import {
 } from '@/lib/prolific-study/prolific-metadata';
 import { chatViewScrollToBottom } from '@/lib/scroll-utils';
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
+import { storeMessage } from '@/lib/stores/store-messages';
 import { generateUuid } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
@@ -35,7 +36,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
     // the running turn would be aborted or applied to the wrong turn. The turn
     // stays busy until the stream is terminal (onFinish / error paths).
     if (get().loading.newMessage) {
-      toast.error('Bitte warte, bis die aktuelle Antwort abgeschlossen ist.');
+      toast.error(storeMessage('waitForAnswer'));
       return;
     }
 
@@ -48,7 +49,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
 
     if (!safeSessionId) {
       if (!fromInitialQuestion) {
-        toast.error('Chat Session out of sync');
+        toast.error(storeMessage('sessionOutOfSync'));
       } else {
         set((state) => {
           state.initialQuestionError = message;
@@ -160,9 +161,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
       if (!appendMessage) {
         // User-visible feedback via toast — the old `state.error` write was
         // dead (no component renders it).
-        toast.error(
-          'Der Chat ist noch nicht bereit. Bitte lade die Seite neu.',
-        );
+        toast.error(storeMessage('chatNotReady'));
         set((state) => {
           state.loading.newMessage = false;
         });
@@ -199,9 +198,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
 
       // User-visible feedback via toast — the old `state.error` write was
       // dead (no component renders it).
-      toast.error(
-        'Die Antwort konnte nicht geladen werden. Bitte versuche es erneut.',
-      );
+      toast.error(storeMessage('answerFailed'));
       set((state) => {
         state.loading.newMessage = false;
       });

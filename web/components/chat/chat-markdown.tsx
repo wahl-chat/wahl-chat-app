@@ -4,6 +4,7 @@ import { Markdown } from '@/components/markdown';
 import { useMediaViewer } from '@/components/providers/media-viewer-provider';
 import type { Source } from '@/lib/stores/chat-store.types';
 import { getSourceMediaLinks } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   message: {
@@ -13,6 +14,7 @@ type Props = {
 };
 
 function ChatMarkdown({ message }: Props) {
+  const t = useTranslations('chat.markdown');
   const mediaViewer = useMediaViewer();
 
   const onReferenceClick = (number: number) => {
@@ -51,7 +53,10 @@ function ChatMarkdown({ message }: Props) {
       return null;
     }
 
-    return `${source.source} - Seite: ${source.page}`;
+    return t('referenceTooltip', {
+      source: source.source,
+      page: source.page,
+    });
   };
 
   const getReferenceName = (number: number) => {

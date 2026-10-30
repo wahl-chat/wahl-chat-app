@@ -8,12 +8,13 @@ import {
   PINNED_TOP,
 } from '@/components/landing/pinned-layout';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
 import type { Context } from '@/lib/firebase/firebase.types';
 import { lerp, useScrollMorph } from '@/lib/hooks/use-scroll-morph';
 import { cn } from '@/lib/utils';
 import { ArrowRightIcon } from 'lucide-react';
 import { m, useMotionValue } from 'motion/react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 /**
  * The hero call to action, which shrinks and pins itself to the top right as
@@ -33,6 +34,7 @@ const PINNED_WIDTH = 250;
 const MORPH_START_TOP = 140;
 
 function HeroCta({ context }: { context: Context }) {
+  const t = useTranslations('landing.heroCta');
   // Horizontal offset from the placeholder, not an absolute left: in flow the
   // button is placed by its parent, and a transform moves it from there
   // without disturbing anything around it.
@@ -62,15 +64,15 @@ function HeroCta({ context }: { context: Context }) {
       className="size-full whitespace-nowrap rounded-full px-6 py-0 text-base shadow-lg"
     >
       {/* The visible label is deliberately short, so the link carries the
-          election in its accessible name — "Jetzt informieren" on its own
+          election in its accessible name — the short label on its own
           tells a screen-reader user navigating by links nothing about where
           it goes. */}
       <Link
         href={`/${context.context_id}`}
-        aria-label={`Jetzt zur ${context.name} informieren`}
+        aria-label={t('ariaLabel', { name: context.name })}
       >
         <ContextIcon context={context} className="size-6 shrink-0" />
-        <span>Jetzt informieren</span>
+        <span>{t('label')}</span>
         <ArrowRightIcon aria-hidden="true" />
       </Link>
     </Button>

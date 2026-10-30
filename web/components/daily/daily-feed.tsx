@@ -1,5 +1,6 @@
 'use client';
 
+import type { Locale } from '@/i18n/locales';
 import { feedToDigests } from '@/lib/daily/editions';
 import {
   buildFeed,
@@ -25,6 +26,7 @@ import type {
   ParliamentFeed,
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
@@ -107,18 +109,24 @@ function useItemInView(deps: unknown): string | null {
   return key;
 }
 
-function digestsOf(pages: FeedPage[]): DailyDigest[] {
-  return feedToDigests({
-    editions: pages.flatMap((p) => p.editions),
-    items: pages.flatMap((p) => p.items),
-  });
+function digestsOf(pages: FeedPage[], locale: Locale): DailyDigest[] {
+  return feedToDigests(
+    {
+      editions: pages.flatMap((p) => p.editions),
+      items: pages.flatMap((p) => p.items),
+    },
+    locale,
+  );
 }
 
-function digestsIn(pages: Pages): Record<DigestParliamentId, DailyDigest[]> {
+function digestsIn(
+  pages: Pages,
+  locale: Locale,
+): Record<DigestParliamentId, DailyDigest[]> {
   return {
-    bundestag: digestsOf(pages.bundestag),
-    landtag_st: digestsOf(pages.landtag_st),
-    landtag_bw: digestsOf(pages.landtag_bw),
+    bundestag: digestsOf(pages.bundestag, locale),
+    landtag_st: digestsOf(pages.landtag_st, locale),
+    landtag_bw: digestsOf(pages.landtag_bw, locale),
   };
 }
 
@@ -160,7 +168,10 @@ function DailyFeed({
     }
   }, [initialStates]);
 
-  const digests = useMemo(() => digestsIn(pages), [pages]);
+  // Both languages are loaded with the feed; the page's locale picks one.
+  const locale = useLocale();
+  const t = useTranslations('feed');
+  const digests = useMemo(() => digestsIn(pages, locale), [pages, locale]);
   // The server already cut the stored slices; only previews need a window.
   const lists = useMemo(
     () =>
@@ -193,7 +204,7 @@ function DailyFeed({
         return next;
       });
     } catch {
-      toast.error('Ältere Tage konnten nicht geladen werden.');
+      toast.error(t('olderFailed'));
     } finally {
       setLoadingOlder(false);
     }
@@ -203,8 +214,8 @@ function DailyFeed({
   // Only for opening a shared item the loaded slices do not reach; the feed
   // itself never shows it out of order.
   const linkedDigests = useMemo(
-    () => (linkedDay ? feedToDigests(linkedDay) : []),
-    [linkedDay],
+    () => (linkedDay ? feedToDigests(linkedDay, locale) : []),
+    [linkedDay, locale],
   );
   const openItem = openKey
     ? (findItem(allDigests, openKey) ??
@@ -245,7 +256,7 @@ function DailyFeed({
       <div className="flex flex-col gap-12 pt-2">
         {days.length === 0 ? (
           <p className={cn('py-12 text-center text-[15px]', MUTED_TEXT)}>
-            Noch keine Inhalte zu deiner Auswahl. Schau bald wieder vorbei.
+            {t('empty')}
           </p>
         ) : (
           days.map((day) => (
@@ -267,7 +278,7 @@ function DailyFeed({
               FOCUS_RING,
             )}
           >
-            {loadingOlder ? 'Lädt …' : 'Ältere Tage anzeigen'}
+            {loadingOlder ? t('loadingOlder') : t('olderDays')}
           </button>
         )}
       </div>

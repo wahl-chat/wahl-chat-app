@@ -31,7 +31,10 @@ export function itemShareUrl(
   return url.toString();
 }
 
-export async function shareItem(item: DetailItem): Promise<void> {
+export async function shareItem(
+  item: DetailItem,
+  copiedMessage: string,
+): Promise<void> {
   const url = itemShareUrl(window.location.href, item.key, item.digest.region);
   try {
     if (navigator.share) {
@@ -39,7 +42,7 @@ export async function shareItem(item: DetailItem): Promise<void> {
       return;
     }
     await navigator.clipboard.writeText(url);
-    toast.success('Link kopiert');
+    toast.success(copiedMessage);
   } catch {
     // The share sheet was dismissed.
   }

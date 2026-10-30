@@ -1,0 +1,50 @@
+{
+  "economy_finance": {
+    "title": "Wirtschaft und Finanzen",
+    "short": "Wirtschaft"
+  },
+  "social_labor": {
+    "title": "Soziales und Arbeit",
+    "short": "Soziales"
+  },
+  "education_research": {
+    "title": "Bildung und Forschung",
+    "short": "Bildung"
+  },
+  "climate_environment": {
+    "title": "Klimaschutz und Umwelt",
+    "short": "Klima"
+  },
+  "health_care": {
+    "title": "Gesundheit und Pflege",
+    "short": "Gesundheit"
+  },
+  "digitalization_tech": {
+    "title": "Digitalisierung und Technologie",
+    "short": "Digitales"
+  },
+  "migration_integration": {
+    "title": "Migration und Integration",
+    "short": "Migration"
+  },
+  "security_justice": {
+    "title": "Innere Sicherheit und Justiz",
+    "short": "Sicherheit"
+  },
+  "foreign_policy_europe": {
+    "title": "Außenpolitik und Europa",
+    "short": "Außenpolitik"
+  },
+  "transport_infrastructure": {
+    "title": "Verkehr und Infrastruktur",
+    "short": "Verkehr"
+  },
+  "housing_rent": {
+    "title": "Wohnungsbau und Mieten",
+    "short": "Wohnen"
+  },
+  "other": {
+    "title": "Weitere Themen",
+    "short": "Weitere"
+  }
+}

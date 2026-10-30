@@ -3,6 +3,7 @@ import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Button } from '@/components/ui/button';
 import type { MessageItem } from '@/lib/stores/chat-store.types';
 import { RotateCcwIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 export const INITIAL_MESSAGE_ID = 'initial-question';
@@ -22,12 +23,11 @@ function ChatSingleUserMessage({ message, isLastMessage }: Props) {
   });
   const addUserMessage = useChatStore((state) => state.addUserMessage);
   const { user } = useAnonymousAuth();
+  const t = useTranslations('chat.userMessage');
 
   const handleResendMessage = () => {
     if (!user) {
-      toast.error(
-        'Bitte lade die Seite neu, um eine Nachricht erneut zu senden.',
-      );
+      toast.error(t('reloadToResend'));
       return;
     }
 
@@ -46,7 +46,7 @@ function ChatSingleUserMessage({ message, isLastMessage }: Props) {
           variant="ghost"
         >
           <RotateCcwIcon className="!size-3" />
-          Erneut senden
+          {t('resend')}
         </Button>
       )}
     </article>

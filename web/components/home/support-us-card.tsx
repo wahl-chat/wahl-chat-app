@@ -1,7 +1,8 @@
 import DonationDialog from '@/components/donation-dialog';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
 import { HeartHandshakeIcon, UsersRoundIcon } from 'lucide-react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 /**
  * Cards render an h2 by default, which is right on the election home page
@@ -13,23 +14,23 @@ type CardTitleProps = {
 };
 
 function SupportUsCard({ titleAs: Title = 'h2' }: CardTitleProps) {
+  const t = useTranslations('home.supportUsCard');
+
   return (
     <div className="flex flex-col overflow-hidden rounded-md border border-border">
       <div className="flex flex-col p-4">
-        <Title className="font-bold">Politische Bildung neu denken</Title>
-        <p className="mb-4 text-sm text-muted-foreground">
-          Hilf uns, laufende Kosten für die KI zu decken!
-        </p>
+        <Title className="font-bold">{t('title')}</Title>
+        <p className="mb-4 text-sm text-muted-foreground">{t('description')}</p>
         <div className="flex w-full flex-row gap-2 [&_button]:w-full">
           <DonationDialog>
             <Button>
-              <HeartHandshakeIcon /> Spenden
+              <HeartHandshakeIcon /> {t('donate')}
             </Button>
           </DonationDialog>
           <Button variant="secondary" className="w-full" asChild>
             <Link href="/about-us">
               <UsersRoundIcon />
-              Über uns
+              {t('aboutUs')}
             </Link>
           </Button>
         </div>

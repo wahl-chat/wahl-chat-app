@@ -8,18 +8,20 @@ import {
 import { Button } from '@/components/ui/button';
 import { FilloutPopupEmbed } from '@fillout/react';
 import { UserIcon, XIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import LoginForm from './login-form';
 import '@fillout/react/style.css';
 import Logo from '@/components/chat/logo';
+import { usePathname } from '@/i18n/navigation';
 import { firestoreTimestampToDate } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
-import { usePathname } from 'next/navigation';
 
 const LOGIN_REMINDER_TOAST_ID = 'login-reminder-toast';
 
 function LoginReminderToast() {
+  const t = useTranslations('auth');
   const [isOpen, setIsOpen] = useState(false);
   const [surveyOpen, setSurveyOpen] = useState(false);
   const { user, updateUser } = useAnonymousAuth();
@@ -91,6 +93,7 @@ function LoginReminderToast() {
               size="icon"
               className="-mr-2 -mt-2 size-6"
               onClick={handleClose}
+              aria-label={t('reminder.close')}
             >
               <XIcon className="size-4" />
             </Button>
@@ -99,24 +102,24 @@ function LoginReminderToast() {
           <div className="flex items-center gap-4">
             <Logo variant="small" className="size-6" />
             <div className="flex flex-col">
-              <h1 className="text-base font-bold">Der Koalitionsvertrag!</h1>
+              <h1 className="text-base font-bold">{t('reminder.title')}</h1>
               <p className="text-sm text-muted-foreground">
-                Bald auf <span className="font-bold">wahl.chat</span>
+                {t.rich('reminder.soon', {
+                  b: (chunks) => <span className="font-bold">{chunks}</span>,
+                })}
               </p>
             </div>
           </div>
           <p className="text-sm text-muted-foreground">
-            Melde dich an, um nach der Wahl zu erfahren, wie der
-            Koalitionsvertrag umgesetzt wird und welche deiner Wünsche ins
-            Programm aufgenommen wurden.
+            {t('reminder.description')}
           </p>
 
           <div className="grid grid-cols-2 gap-2">
             <Button size="sm" onClick={handleLoginClick}>
-              Anmelden
+              {t('login')}
             </Button>
             <Button variant="outline" size="sm" onClick={handleFeedbackClick}>
-              Feedback
+              {t('reminder.feedback')}
             </Button>
           </div>
         </div>,
@@ -137,6 +140,7 @@ function LoginReminderToast() {
     updateUser,
     user?.clicked_away_login_reminder,
     pathname,
+    t,
   ]);
 
   return (

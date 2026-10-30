@@ -1,0 +1,42 @@
+{
+  "dialog": {
+    "button": "Quellen",
+    "title": "Quellen",
+    "viewerDescription": "Beleg im Fenster ansehen.",
+    "description": "Belege direkt hier ansehen – Reden als Video, Dokumente als PDF.",
+    "referenced": "Im Text referenziert:",
+    "notReferenced": "Zusätzlich analysiert:"
+  },
+  "viewer": {
+    "back": "Zurück",
+    "newTab": "Neuer Tab",
+    "loadFailed": "Dieser Beleg konnte hier nicht geladen werden.",
+    "openInNewTab": "In neuem Tab öffnen",
+    "loading": "Beleg wird geladen …"
+  },
+  "row": {
+    "pageBadge": "S. {page}",
+    "publishedOn": "Veröffentlicht am: <bold>{date}</bold>",
+    "watchVideoFrom": "Video ansehen ab {time}",
+    "watchVideo": "Video ansehen",
+    "viewTranscript": "PDF-Transkript ansehen"
+  },
+  "pdf": {
+    "previousPage": "Vorherige Seite",
+    "nextPage": "Nächste Seite",
+    "zoomOut": "Verkleinern",
+    "zoomIn": "Vergrößern",
+    "page": "Seite {page}",
+    "pageOf": "Seite {page} / {total}",
+    "pageLabel": "{title} – Seite {page}",
+    "unavailableTitle": "Beleg nicht verfügbar",
+    "unavailable": "Dieser Beleg konnte hier nicht geladen werden.",
+    "openInNewTab": "In neuem Tab öffnen"
+  },
+  "page": {
+    "metaTitle": "Quellen",
+    "title": "<u>wahl.chat's</u> Quellen",
+    "titleForContext": "<u>wahl.chat's</u> Quellen für:",
+    "intro": "Diese Quellen nutzt unsere KI für die allgemeinen Antworten. Für das Einordnen von Positionen verwenden wir Perplexity.ai, welches sich auf aktuelle Informationen aus dem Internet stützt."
+  }
+}

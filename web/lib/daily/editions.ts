@@ -4,15 +4,25 @@ import type {
   DigestVote,
   FeedEdition,
   FeedItem,
+  FeedLocale,
+  LocalizedContent,
   ParliamentFeed,
 } from '@/lib/firebase/firebase.types';
+
+/** The item's text in `locale`, or the German original until it is translated. */
+export function localized(
+  item: FeedItem,
+  locale: FeedLocale,
+): LocalizedContent {
+  return item.content[locale] ?? item.content.de;
+}
 
 function toSection(
   item: FeedItem,
   facts: NonNullable<FeedItem['debate']>,
+  locale: FeedLocale,
 ): DigestSessionSection {
-  // German is the canonical text every item has.
-  const content = item.content.de;
+  const content = localized(item, locale);
   const text = new Map(content.positions.map((p) => [p.party_id, p.text]));
   return {
     topic: item.topics[0],
@@ -40,8 +50,9 @@ function toSection(
 function toVote(
   item: FeedItem,
   facts: NonNullable<FeedItem['vote']>,
+  locale: FeedLocale,
 ): DigestVote {
-  const content = item.content.de;
+  const content = localized(item, locale);
   return {
     poll_id: facts.poll_id,
     title: facts.official_title,
@@ -63,6 +74,7 @@ function toVote(
 export function editionToDigest(
   edition: FeedEdition,
   items: ReadonlyMap<string, FeedItem>,
+  locale: FeedLocale,
 ): DailyDigest {
   const sections: DigestSessionSection[] = [];
   const votes: DigestVote[] = [];
@@ -72,9 +84,9 @@ export function editionToDigest(
       continue;
     }
     if (item.debate) {
-      sections.push(toSection(item, item.debate));
+      sections.push(toSection(item, item.debate, locale));
     } else if (item.vote) {
-      votes.push(toVote(item, item.vote));
+      votes.push(toVote(item, item.vote, locale));
     }
   }
   const hasSession = sections.length > 0 || edition.protocols.length > 0;
@@ -95,7 +107,12 @@ export function editionToDigest(
   };
 }
 
-export function feedToDigests(feed: ParliamentFeed): DailyDigest[] {
+export function feedToDigests(
+  feed: ParliamentFeed,
+  locale: FeedLocale,
+): DailyDigest[] {
   const items = new Map(feed.items.map((item) => [item.id, item]));
-  return feed.editions.map((edition) => editionToDigest(edition, items));
+  return feed.editions.map((edition) =>
+    editionToDigest(edition, items, locale),
+  );
 }

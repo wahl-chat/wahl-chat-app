@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { track } from '@vercel/analytics/react';
 import { ShareIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -25,6 +26,7 @@ type Props = {
 };
 
 function ChatShareLinkInputForm({ sharePrivateSession, contextId }: Props) {
+  const t = useTranslations('share.dialog');
   const [isLoading, setIsLoading] = useState(sharePrivateSession);
   const sessionTitle = useChatStore((state) => state.currentChatTitle);
   const sharingSnapshot = useChatStore((state) => state.sharingSnapshot);
@@ -83,7 +85,7 @@ function ChatShareLinkInputForm({ sharePrivateSession, contextId }: Props) {
       <div className="flex items-center space-x-2">
         <div className="grid flex-1 gap-2">
           <Label htmlFor="link" className="sr-only">
-            Link
+            {t('linkLabel')}
           </Label>
           <Input id="link" value={link} readOnly disabled={isLoading} />
         </div>
@@ -117,6 +119,7 @@ function ChatShareLinkInputForm({ sharePrivateSession, contextId }: Props) {
           size="icon"
           className="size-8"
           onClick={handleNativeShare}
+          aria-label={t('nativeShare')}
         >
           <ShareIcon />
         </Button>

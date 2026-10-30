@@ -182,7 +182,8 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 
 | Path | What lives there |
 |------|------------------|
-| `web/` | Next.js frontend (app router in `web/app/`, shared code in `web/lib/`). Package manager: bun. |
+| `web/` | Next.js frontend (app router in `web/app/[locale]/`, shared code in `web/lib/`). Package manager: bun. |
+| `web/messages/`, `web/i18n/` | UI text per language (`messages/{locale}/{namespace}.json`) and the locale setup (next-intl); see "Languages". |
 | `pyproject.toml` (repo root) | uv workspace root: one lockfile (`uv.lock`) and one shared environment for the Python members `ai-backend` + `ingestion`. |
 | `ai-backend/` | Python chat backend. Depends on `wahlchat-common`, never on `ingestion`. Package manager: uv. |
 | `packages/wahlchat-common/` | Code shared by the Python components: corpus vector space + collection identity, embeddings factory, payload enums, governance levels, the 36 AW legislature periods, Vertex credentials. |
@@ -630,6 +631,65 @@ The two stores are seeded by different mechanisms, on purpose:
   and an `authority_tier` (`authoritative` | `factual_record` | `self_reported`
   | `promotional`). Preserve citations end-to-end; answers are grounded in
   retrieved chunks.
+
+## Languages
+
+The site speaks German and English. German is the default and keeps its URLs
+(`wahl.chat/…`); every other language sits under its prefix
+(`wahl.chat/en/…`), so links and search results stay language-specific.
+
+- **Library and routing.** next-intl. Every page route lives under
+  `web/app/[locale]/`; `web/i18n/routing.ts` sets `localePrefix: 'as-needed'`
+  and no Accept-Language detection (many German readers run English browsers,
+  and `/` must serve crawlers and visitors alike). The selector (flag + code in
+  the headers) sets the `NEXT_LOCALE` cookie; `middleware.ts` sends prefix-less
+  visits to the chosen language, runs its own rules on the path without the
+  prefix and keeps the prefix in every redirect.
+- **One registry.** `web/i18n/locales.ts` lists the locales with endonym,
+  `Intl` tag (`en-GB`) and Open Graph locale. Routing, the selector, dates,
+  hreflang and the sitemap all read from it.
+- **Where text goes.**
+  - Short UI strings: `web/messages/{locale}/{namespace}.json`, one namespace
+    per area, registered in `messages/{locale}/index.ts`. Components use
+    `useTranslations` / `getTranslations`; values are ICU messages (`{name}`,
+    `{count, plural, …}`, `t.rich` tags), never sentences glued from fragments.
+  - Long structured prose (the how-to guide, topic example questions, legal
+    pages): per-locale modules with one shared shape (`*.de.ts` / `*.en.ts`),
+    picked by locale.
+  - Links: `Link`, `useRouter`, `redirect` from `@/i18n/navigation`, so internal
+    links keep the language. Dates: `formatDate(value, locale)`.
+- **German is the source and the compiler checks it.** `messages/de` types every
+  key (`i18n/global.d.ts`), so a missing or mistyped key fails `tsc`.
+  `messages/catalogs.test.ts` checks that every locale has exactly the German
+  keys and placeholders.
+- **Stays German for now.** Chat and other LLM answers, Firestore content
+  (election and party names, proposed questions, swiper theses) and the Fillout
+  forms. English readers see a note that answers are in German. Before chat
+  answers follow the reader's language, the language must also enter the answer
+  cache key (`ai-backend/src/answer_cache.py`), or cached German answers would
+  be served to English readers. The parliament feed already stores its texts
+  per locale (see "The parliament feed").
+- **The legal pages** have English courtesy translations behind a banner saying
+  only the German version is binding. Have changes to them reviewed.
+
+### Adding a language
+
+1. Add its code to `LOCALES` and an entry to `LOCALE_INFO` in
+   `web/i18n/locales.ts`, and its flag to `web/components/locale/flags.tsx`.
+2. `make translate-messages LOCALE=xx` fills `web/messages/xx/` from German
+   with the publication LLM roster. Only missing or changed messages are sent;
+   placeholders, plural branches and tags are checked, and anything that fails
+   is reported instead of written. Review the result.
+3. Create `web/messages/xx/index.ts` like the German one, and add the catalog
+   to `messages/catalogs.test.ts`.
+4. Translate the per-locale prose modules (`*.de.ts` siblings) and decide on the
+   legal pages.
+5. For the feed, add the code to `TRANSLATED_LOCALES` in
+   `ingestion/src/ingestion/feed/models.py` and run `make build-feed` with translation.
+
+Hand-written catalogs are recorded as current with
+`make translate-messages LOCALE=xx ARGS="--adopt"`, so later runs only touch
+messages whose German changed.
 
 ## Coding guidelines
 

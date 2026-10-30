@@ -1,0 +1,18 @@
+{
+  "home": "Startseite",
+  "howTo": "Anleitung",
+  "chat": "Chat",
+  "donate": "Spenden",
+  "aboutUs": "Über uns",
+  "github": "GitHub",
+  "press": "Presse",
+  "imprint": "Impressum",
+  "privacy": "Datenschutz",
+  "sources": "Quellen",
+  "toElection": "Zur {name}",
+  "supportUs": "Unterstütze uns",
+  "login": "Anmelden",
+  "openMenu": "Menü öffnen",
+  "menuTitle": "Menü",
+  "menuDescription": "Navigation von wahl.chat"
+}

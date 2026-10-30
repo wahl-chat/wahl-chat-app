@@ -6,6 +6,7 @@ import { useCurrentContext } from '@/components/providers/context-provider';
 import type { ProposedQuestion } from '@/lib/firebase/firebase.types';
 import type { PartyDetails } from '@/lib/party-details';
 import { buildPartyImageUrl } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import GroupChatEmptyView from './group-chat-empty-view';
 import InitialSuggestionBubble from './initial-suggestion-bubble';
@@ -17,6 +18,7 @@ type Props = {
 };
 
 function ChatEmptyView({ parties, proposedQuestions }: Props) {
+  const t = useTranslations('chat.emptyView');
   const { user } = useAnonymousAuth();
   const addUserMessage = useChatStore((state) => state.addUserMessage);
   const currentContext = useCurrentContext({ optional: true });
@@ -59,15 +61,17 @@ function ChatEmptyView({ parties, proposedQuestions }: Props) {
       </div>
       {party ? (
         <p className="text-center">
-          Stelle den Dokumenten der Partei{' '}
-          <span className="font-semibold">{party.name}</span> deine Fragen und
-          vergleiche ihre Antworten mit denen anderer Parteien.
+          {t.rich('party', {
+            party: party.name,
+            bold: (chunks) => <span className="font-semibold">{chunks}</span>,
+          })}
         </p>
       ) : (
         <p className="text-center">
-          Stelle Fragen zu allen Themen rund um die{' '}
-          <span className="font-semibold">{currentContextName}</span> oder frage
-          die Parteien direkt zu ihren Positionen im Wahlprogramm.
+          {t.rich('general', {
+            election: currentContextName,
+            bold: (chunks) => <span className="font-semibold">{chunks}</span>,
+          })}
         </p>
       )}
       <div className="flex max-w-xl flex-wrap justify-center gap-2">

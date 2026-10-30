@@ -1,10 +1,11 @@
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
+import { Link } from '@/i18n/navigation';
 import {
   getAccordionItem,
   parseLabeledListItem,
   splitOnSourceDomains,
 } from '@/lib/how-to-content';
-import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 import { Fragment } from 'react';
 
 type Props = {
@@ -16,13 +17,14 @@ type Props = {
 /**
  * Where the answers come from.
  *
- * The copy is the how-to page's "Welche Daten werden verwendet?" answer, read
+ * The copy is the how-to page's data answer, read
  * from the shared content module rather than restated. Its outro is skipped
  * on purpose: it names a bare /sources path, and this page links the featured
  * election's own sources page instead.
  */
 function DataSources({ sourcesHref }: Props) {
-  const item = getAccordionItem('data');
+  const t = useTranslations('landing.dataSources');
+  const item = getAccordionItem(useLocale(), 'data');
   if (!item) return null;
 
   const sources = item.content.orderedList ?? [];
@@ -64,11 +66,13 @@ function DataSources({ sourcesHref }: Props) {
       </ul>
 
       <p className="text-sm text-muted-foreground">
-        Welche Dokumente dahinterstehen, findest du auf der{' '}
-        <Link href={sourcesHref} className="font-medium underline">
-          Quellenseite
-        </Link>
-        .
+        {t.rich('sourcesPage', {
+          link: (chunks) => (
+            <Link href={sourcesHref} className="font-medium underline">
+              {chunks}
+            </Link>
+          ),
+        })}
       </p>
 
       <AiDisclaimer />

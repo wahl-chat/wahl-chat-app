@@ -1,5 +1,7 @@
 import LabeledDivider from '@/components/labeled-divider';
+import { LOCALE_INFO } from '@/i18n/locales';
 import { cn } from '@/lib/utils';
+import { useLocale, useTranslations } from 'next-intl';
 
 /**
  * The three numbers worth stating plainly.
@@ -15,29 +17,48 @@ import { cn } from '@/lib/utils';
  */
 
 // Last reviewed: 10 September 2026.
-const USAGE_STATS = [
-  { value: '400.000+', label: 'Nutzer:innen' },
-  { value: '1 Mio.+', label: 'beantwortete Fragen' },
-];
+const USERS = 400_000;
+const ANSWERED_QUESTIONS = 1_000_000;
 
 type Props = {
   electionCount: number;
 };
 
 function LandingStats({ electionCount }: Props) {
+  const t = useTranslations('landing.stats');
+  const intl = LOCALE_INFO[useLocale()].intl;
+  // "400.000" / "400,000", and "1 Mio." / "1M": the separators and the
+  // abbreviation both follow the reader's language.
+  const plain = new Intl.NumberFormat(intl);
+  const compact = new Intl.NumberFormat(intl, { notation: 'compact' });
+
+  const usageStats = [
+    {
+      value: t('atLeast', { value: plain.format(USERS) }),
+      label: t('users'),
+    },
+    {
+      value: t('atLeast', { value: compact.format(ANSWERED_QUESTIONS) }),
+      label: t('answeredQuestions'),
+    },
+  ];
+
   // Dropped rather than shown as "0+" when the context read comes back empty,
   // which is the state the whole page degrades to if Firestore is unavailable.
   const stats =
     electionCount > 0
       ? [
-          ...USAGE_STATS,
-          { value: `${electionCount}+`, label: 'unterstützte Wahlen' },
+          ...usageStats,
+          {
+            value: t('atLeast', { value: plain.format(electionCount) }),
+            label: t('supportedElections'),
+          },
         ]
-      : USAGE_STATS;
+      : usageStats;
 
   return (
     <div className="flex w-full flex-col items-center gap-4">
-      <LabeledDivider>Zahlen und Fakten:</LabeledDivider>
+      <LabeledDivider>{t('heading')}</LabeledDivider>
 
       <dl
         className={cn(

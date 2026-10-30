@@ -1,0 +1,42 @@
+{
+  "dialog": {
+    "button": "Sources",
+    "title": "Sources",
+    "viewerDescription": "View the source in this window.",
+    "description": "View sources right here – speeches as video, documents as PDF.",
+    "referenced": "Referenced in the text:",
+    "notReferenced": "Also analysed:"
+  },
+  "viewer": {
+    "back": "Back",
+    "newTab": "New tab",
+    "loadFailed": "This source couldn't be loaded here.",
+    "openInNewTab": "Open in new tab",
+    "loading": "Loading source …"
+  },
+  "row": {
+    "pageBadge": "p. {page}",
+    "publishedOn": "Published on: <bold>{date}</bold>",
+    "watchVideoFrom": "Watch video from {time}",
+    "watchVideo": "Watch video",
+    "viewTranscript": "View PDF transcript"
+  },
+  "pdf": {
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "zoomOut": "Zoom out",
+    "zoomIn": "Zoom in",
+    "page": "Page {page}",
+    "pageOf": "Page {page} / {total}",
+    "pageLabel": "{title} – page {page}",
+    "unavailableTitle": "Source unavailable",
+    "unavailable": "This source could not be loaded here.",
+    "openInNewTab": "Open in new tab"
+  },
+  "page": {
+    "metaTitle": "Sources",
+    "title": "<u>wahl.chat's</u> sources",
+    "titleForContext": "<u>wahl.chat's</u> sources for:",
+    "intro": "Our AI uses these sources for its general answers. To put positions into context, we use Perplexity.ai, which draws on up-to-date information from the internet."
+  }
+}

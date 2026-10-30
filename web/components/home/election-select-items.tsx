@@ -9,8 +9,9 @@ import {
 } from '@/components/ui/select';
 import { splitElectionsByDate } from '@/lib/elections';
 import type { Context } from '@/lib/firebase/firebase.types';
-import { formatGermanDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { CalendarIcon, CheckIcon, MapPinIcon } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 
 function ElectionRow({
   context,
@@ -19,7 +20,7 @@ function ElectionRow({
   context: Context;
   isSelected?: boolean;
 }) {
-  const formattedDate = formatGermanDate(context.date, 'long');
+  const formattedDate = formatDate(context.date, useLocale(), 'long');
 
   return (
     <div className="flex w-full items-start gap-3 py-1">
@@ -57,10 +58,12 @@ function ElectionOption({
   context: Context;
   isSelected: boolean;
 }) {
-  const formattedDate = formatGermanDate(context.date, 'long');
-  const label = `${context.name}${formattedDate ? `, ${formattedDate}` : ''}${
-    context.location_name ? `, ${context.location_name}` : ''
-  }${isSelected ? ' (ausgewählt)' : ''}`;
+  const t = useTranslations('home.electionSelect');
+  const formattedDate = formatDate(context.date, useLocale(), 'long');
+  const details = [context.name, formattedDate, context.location_name]
+    .filter(Boolean)
+    .join(', ');
+  const label = isSelected ? t('selectedOption', { details }) : details;
 
   return (
     <SelectItem
@@ -86,6 +89,7 @@ type Props = {
  * choice of equal standing.
  */
 function ElectionSelectItems({ contexts, selectedId }: Props) {
+  const t = useTranslations('home.electionSelect');
   const { upcoming, past } = splitElectionsByDate(contexts);
 
   return (
@@ -103,7 +107,7 @@ function ElectionSelectItems({ contexts, selectedId }: Props) {
           <SelectSeparator className="bg-border/50" />
           <SelectGroup>
             <SelectLabel className="pl-3 text-xs font-normal text-muted-foreground/70">
-              Vergangene Wahlen
+              {t('pastElections')}
             </SelectLabel>
             {past.map((context) => (
               <ElectionOption

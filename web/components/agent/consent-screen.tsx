@@ -4,8 +4,10 @@ import { useAgentStore } from '@/components/providers/agent-store-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Info, Lock, Shield } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export default function ConsentScreen() {
+  const t = useTranslations('agent.consent');
   const giveConsent = useAgentStore((state) => state.giveConsent);
 
   return (
@@ -13,12 +15,8 @@ export default function ConsentScreen() {
       <div className="w-full max-w-2xl space-y-6">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">
-            Willkommen zum Wahl Agent
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            Dein persönlicher Begleiter zur politischen Meinungsbildung
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="mt-2 text-muted-foreground">{t('subtitle')}</p>
         </div>
 
         {/* Info Card */}
@@ -27,23 +25,17 @@ export default function ConsentScreen() {
             <div className="flex items-center gap-2">
               <Info className="size-5 text-blue-600 dark:text-blue-400" />
               <CardTitle className="text-lg text-blue-900 dark:text-blue-100">
-                Wichtige Informationen vor Beginn
+                {t('infoTitle')}
               </CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-blue-900/80 dark:text-blue-100/80">
             <p>
-              Mit der Teilnahme an dieser Forschungsstudie trägst du deinen Teil
-              zu einer gesunden Demokratie in Deutschland bei.{' '}
-              <strong>Vielen Dank dafür!</strong>
+              {t.rich('contribution', {
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
             </p>
-            <p>
-              Politik ist ein komplexes und häufig emotionales Thema. Gerade
-              deshalb ist es wichtig, sich eine fundierte Meinung zu bilden. Der
-              Wahl Agent wird dich in dem folgenden Gespräch dabei unterstützen,
-              deine Sorgen zu schildern und deine persönliche Ideallösung zu
-              formulieren, um die Partei zu finden, die am besten zu dir passt.
-            </p>
+            <p>{t('purpose')}</p>
           </CardContent>
         </Card>
 
@@ -52,30 +44,22 @@ export default function ConsentScreen() {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <Shield className="size-5 text-muted-foreground" />
-              <CardTitle className="text-lg">
-                Datenschutz & Anonymisierung
-              </CardTitle>
+              <CardTitle className="text-lg">{t('privacyTitle')}</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start gap-2">
                 <Lock className="mt-0.5 size-4 shrink-0 text-green-600" />
-                <span>Alle Antworten werden anonymisiert</span>
+                <span>{t('privacyAnonymised')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <Lock className="mt-0.5 size-4 shrink-0 text-green-600" />
-                <span>
-                  Deine Informationen werden ausschließlich für
-                  wissenschaftliche Forschungszwecke verwendet
-                </span>
+                <span>{t('privacyResearchOnly')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <Lock className="mt-0.5 size-4 shrink-0 text-green-600" />
-                <span>
-                  Die Konversation ist vertraulich und wird nicht an Dritte
-                  weitergegeben
-                </span>
+                <span>{t('privacyConfidential')}</span>
               </li>
             </ul>
           </CardContent>
@@ -83,8 +67,7 @@ export default function ConsentScreen() {
 
         {/* Consent Notice */}
         <p className="text-center text-sm text-muted-foreground">
-          Durch Klicken auf &quot;Ich stimme zu&quot; bestätigst du, dass du
-          damit einverstanden bist, an dieser Forschungsstudie teilzunehmen.
+          {t('notice')}
         </p>
 
         {/* Action Button */}
@@ -94,7 +77,7 @@ export default function ConsentScreen() {
             size="lg"
             className="min-w-[200px] bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            Ich stimme zu
+            {t('agree')}
           </Button>
         </div>
       </div>

@@ -1,10 +1,11 @@
 'use client';
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import DynamicRateLimitStickyInput from '@/components/dynamic-rate-limit-sticky-input';
+import { useRouter } from '@/i18n/navigation';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { copySharedChatSession } from '@/lib/firebase/firebase-admin';
 import type { LlmSystemStatus } from '@/lib/firebase/firebase.types';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -23,14 +24,13 @@ function ShareChatInput({
   initialSystemStatus,
   hasValidServerUser,
 }: Props) {
+  const t = useTranslations('share.input');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { user } = useAnonymousAuth();
 
   const errorToast = () => {
-    toast.error(
-      'Es ist ein Fehler aufgetreten. Bitte versuche es erneut oder lade die Seite neu.',
-    );
+    toast.error(t('error'));
   };
 
   const handleStartChat = async (message: string) => {

@@ -1,0 +1,37 @@
+{
+  "prolific": {
+    "completedTitle": "Study completed!",
+    "completedCta": "Click here to get your completion code.",
+    "welcomeTitle": "Welcome to the study",
+    "welcomeDescription": "Important information",
+    "welcomeBody": "Thank you for taking part in our study! To complete the study, you need to send at least <strong>{count} messages</strong> to the chatbot.",
+    "keepTabOpen": "Please don't close this browser tab before you have received your completion code.",
+    "codeExplanation": "The code will be shown once you have sent enough messages, and you need it to complete the study.",
+    "start": "Got it, let's go!",
+    "requirementMet": "Study requirement met!",
+    "progress": "{count} of {total} messages"
+  },
+  "consent": {
+    "askTitle": "Help shape wahl.chat",
+    "askDescription": "A quick question before your chat",
+    "askBody": "As part of a scientific study, we're testing new features and would love to hear your feedback afterwards (2 min. max.). Will you take part?",
+    "no": "No",
+    "yes": "Yes",
+    "consentTitle": "Consent form",
+    "consentDescription": "Taking part in a research study",
+    "consentInvitation": "You are invited to take part in a research study investigating the use of AI in civic education. It is a collaboration between Prof. Andreas Vlachos and his team at the University of Cambridge, Prof. Tom Stafford at the University of Sheffield, and Robin Frasch, CEO of wahl.chat and researcher at the University of Hamburg.",
+    "consentVersions": "You will be shown different versions of the wahl.chat chatbot. This lets us explore different ways for civic education platforms to inform people about government processes.",
+    "consentWithdraw": "You can stop the experiment at any time; no data from your participation will then be stored.",
+    "consentGdpr": "The study complies with the GDPR, as no personal data that could identify you is collected. Only age group, gender and political orientation are recorded.",
+    "consentContact": "If you have any questions, feel free to contact Andreas (<andreas>av308@cam.ac.uk</andreas>), Tom (<tom>t.stafford@sheffield.ac.uk</tom>) or Robin (<robin>robin@wahl.chat</robin>).",
+    "consentQuestion": "Do you agree?",
+    "accept": "Yes, I agree"
+  },
+  "questionnaire": {
+    "title": "Your feedback counts",
+    "description": "Short study questionnaire",
+    "body": "Thanks for taking part in our study! We'd like to ask you a few short questions about today's visit; it takes 2 minutes at most.",
+    "later": "Later",
+    "open": "Go to questionnaire"
+  }
+}

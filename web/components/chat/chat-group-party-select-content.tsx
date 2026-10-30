@@ -4,6 +4,7 @@ import PartyCards from '@/components/party-cards';
 import { useCurrentContext } from '@/components/providers/context-provider';
 import { DEFAULT_CONTEXT_ID, MAX_SELECTABLE_PARTIES } from '@/lib/constants';
 import { track } from '@vercel/analytics/react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import ChatGroupPartySelectSubmitButton from './chat-group-party-select-submit-button';
@@ -31,6 +32,7 @@ function ChatGroupPartySelectContent({
     // Context provider not available, use prop or default
   }
 
+  const t = useTranslations('chat.partySelect');
   const [selectedPartyIds, setSelectedPartyIds] = useState<string[]>(
     selectedPartyIdsInStore ?? [],
   );
@@ -42,9 +44,7 @@ function ChatGroupPartySelectContent({
     }
 
     if (selectedPartyIds.length >= MAX_SELECTABLE_PARTIES) {
-      toast.error(
-        `Du kannst nur maximal ${MAX_SELECTABLE_PARTIES} Parteien auswählen`,
-      );
+      toast.error(t('maxReached', { max: MAX_SELECTABLE_PARTIES }));
       return;
     }
 

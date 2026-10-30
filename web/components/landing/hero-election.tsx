@@ -4,8 +4,9 @@ import ElectionSelectItems from '@/components/home/election-select-items';
 import HeroCta from '@/components/landing/hero-cta';
 import { Select, SelectContent, SelectTrigger } from '@/components/ui/select';
 import type { Context } from '@/lib/firebase/firebase.types';
-import { formatGermanDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { CalendarIcon } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
 /**
@@ -24,6 +25,9 @@ type Props = {
 };
 
 function HeroElection({ featured, contexts }: Props) {
+  const t = useTranslations('landing.heroElection');
+  const tSelect = useTranslations('home.electionSelect');
+  const locale = useLocale();
   const [selectedId, setSelectedId] = useState(featured.context_id);
 
   const selected = useMemo(
@@ -32,18 +36,18 @@ function HeroElection({ featured, contexts }: Props) {
     [contexts, featured, selectedId],
   );
 
-  const date = formatGermanDate(selected.date);
+  const date = formatDate(selected.date, locale);
   const canSwitch = contexts.length > 1;
 
   return (
     <div className="flex w-full flex-col items-center gap-2 md:mb-auto">
       <div className="text-balance text-center font-medium text-foreground">
-        <span>Deine Wahl: </span>
+        <span>{t('yourElection')}</span>{' '}
         {canSwitch ? (
           <Select value={selected.context_id} onValueChange={setSelectedId}>
             <SelectTrigger
               className="inline-flex h-auto w-auto max-w-full items-baseline justify-center gap-1 whitespace-normal border-0 bg-transparent p-0 text-base font-medium leading-normal text-foreground shadow-none ring-offset-0 hover:underline hover:decoration-muted-foreground/60 hover:underline-offset-4 focus:ring-0 focus-visible:ring-2 focus-visible:ring-ring [&>span]:line-clamp-none [&>svg]:size-3.5 [&>svg]:shrink-0 [&>svg]:opacity-50"
-              aria-label={`Wahl auswählen. Aktuell ausgewählt: ${selected.name}`}
+              aria-label={tSelect('triggerLabel', { name: selected.name })}
             >
               {selected.name}
             </SelectTrigger>
@@ -53,7 +57,7 @@ function HeroElection({ featured, contexts }: Props) {
               side="bottom"
               sideOffset={8}
               className="z-[60] max-h-[min(32rem,var(--radix-select-content-available-height))] max-w-[calc(100vw-2rem)] overflow-y-auto [&_[data-radix-select-viewport]]:h-auto [&_[data-radix-select-viewport]]:max-h-none [&_[data-radix-select-viewport]]:min-w-[min(100vw-2rem,20rem)]"
-              aria-label="Verfügbare Wahlen"
+              aria-label={tSelect('availableElections')}
             >
               <ElectionSelectItems
                 contexts={contexts}

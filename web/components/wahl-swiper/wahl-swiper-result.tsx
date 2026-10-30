@@ -4,12 +4,13 @@ import ChatGroupPartySelect from '@/components/chat/chat-group-party-select';
 import CompletionCode from '@/components/prolific-study/completion-code';
 import { Accordion } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import type { PartyDetails } from '@/lib/party-details';
 import type { UserDetails } from '@/lib/utils';
 import type { PartiesScoreResult } from '@/lib/wahl-swiper/wahl-swiper.types';
 import { RefreshCcwIcon } from 'lucide-react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import WahlSwiperPartyResultCard from './wahl-swiper-party-result-card';
 import WahlSwiperShareButton from './wahl-swiper-share-button';
 import WahlSwiperSurveyLoginCard from './wahl-swiper-survey-login-card';
@@ -31,6 +32,7 @@ function WahlSwiperResult({
   contextId = DEFAULT_CONTEXT_ID,
   isProlificStudy,
 }: Props) {
+  const t = useTranslations('swiper.result');
   const sortedScores = Object.entries(scores).sort(
     ([, score], [, otherScore]) => otherScore.score - score.score,
   );
@@ -40,14 +42,15 @@ function WahlSwiperResult({
     <div className="relative mx-auto mt-4 flex w-full flex-col gap-4">
       {isProlificStudy && <CompletionCode />}
       <div className="flex flex-col">
-        <h1 className="text-lg font-bold">Swiper Ergebnisse</h1>
+        <h1 className="text-lg font-bold">{t('title')}</h1>
         <p className="text-sm text-muted-foreground">
-          Dieses Ergebnis dient nur zur ersten Orientierung. Hinterfrage es
-          kritisch und sieh selbst in die Wahlprogramme - unser Vergleichs-Chat
-          kann helfen:{' '}
-          <ChatGroupPartySelect contextId={contextId}>
-            <span className="underline">Vergleichs-Chat</span>
-          </ChatGroupPartySelect>
+          {t.rich('disclaimer', {
+            chat: (chunks) => (
+              <ChatGroupPartySelect contextId={contextId}>
+                <span className="underline">{chunks}</span>
+              </ChatGroupPartySelect>
+            ),
+          })}
         </p>
       </div>
 
@@ -78,10 +81,7 @@ function WahlSwiperResult({
         </Accordion>
       ) : (
         <div className="rounded-lg border border-muted bg-muted/50 p-6 text-center">
-          <p className="text-muted-foreground">
-            Keine Ergebnisse verfügbar. Um Übereinstimmungen mit den Parteien zu
-            sehen, beantworte mindestens eine Frage mit Ja oder Nein.
-          </p>
+          <p className="text-muted-foreground">{t('noResults')}</p>
         </div>
       )}
       <div className="sticky inset-x-0 bottom-0 z-10 bg-background/20 backdrop-blur-sm">
@@ -89,7 +89,7 @@ function WahlSwiperResult({
           <Button asChild>
             <Link href={`/${contextId}/swiper`}>
               <RefreshCcwIcon />
-              Versuche es erneut
+              {t('tryAgain')}
             </Link>
           </Button>
           <WahlSwiperShareButton />

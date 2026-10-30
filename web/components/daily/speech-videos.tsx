@@ -4,6 +4,7 @@ import { sortBySeating } from '@/lib/daily/seating-order';
 import type { DigestSessionSection } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { PlayIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 
 // The same speech can sit in the feed and in the open detail at once; starting
@@ -33,10 +34,17 @@ function videoSrc(videoUrl: string, link: string | null | undefined): string {
   return `${videoUrl.split('#')[0]}#t=${Number.isFinite(start) && start > 0.5 ? start : 0.5}`;
 }
 
-function startCaption(speaker: string, link: string | null | undefined) {
+/** Formats "speaker · from 1:23" in the reader's language. */
+export type StartCaption = (speaker: string, time: string) => string;
+
+function startCaption(
+  speaker: string,
+  link: string | null | undefined,
+  caption: StartCaption,
+) {
   const start = Number((link ?? '').split('#t=')[1]);
   return Number.isFinite(start) && start > 0
-    ? `${speaker} · ab ${formatTime(start)}`
+    ? caption(speaker, formatTime(start))
     : speaker;
 }
 
@@ -45,7 +53,10 @@ function startCaption(speaker: string, link: string | null | undefined) {
  * the opening statement quotes it; otherwise the first Fraktion's in seating
  * order that has video, then any cited speech video, then the agenda item's.
  */
-export function sectionMedia(section: DigestSessionSection): Media | null {
+export function sectionMedia(
+  section: DigestSessionSection,
+  caption: StartCaption,
+): Media | null {
   if (section.audio) {
     const { duration_seconds: duration } = section.audio;
     return {
@@ -71,6 +82,7 @@ export function sectionMedia(section: DigestSessionSection): Media | null {
       caption: startCaption(
         `${speaker.name} (${speaker.party})`,
         speaker.video_link,
+        caption,
       ),
     };
   }
@@ -103,6 +115,7 @@ export function SectionMediaFrame({
   className?: string;
   small?: boolean;
 }) {
+  const t = useTranslations('feed');
   const ref = useRef<HTMLMediaElement | null>(null);
   const [started, setStarted] = useState(false);
 
@@ -159,7 +172,7 @@ export function SectionMediaFrame({
             type="button"
             onClick={play}
             aria-label={
-              media.kind === 'video' ? 'Rede abspielen' : 'Audio abspielen'
+              media.kind === 'video' ? t('playSpeech') : t('playAudio')
             }
             className={cn(
               'absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-800',

@@ -13,12 +13,13 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 interface TopicOption {
+  /** Sent to the backend as-is, so it stays German in every locale. */
   id: AgentTopic;
-  label: string;
-  description: string;
+  messageKey: 'migration' | 'economy' | 'environment';
   icon: React.ReactNode;
   color: string;
   activeColor: string;
@@ -27,9 +28,7 @@ interface TopicOption {
 const TOPICS: TopicOption[] = [
   {
     id: 'Migration',
-    label: 'Migration',
-    description:
-      'Asylpolitik, Integration, Einwanderung und gesellschaftlicher Zusammenhalt',
+    messageKey: 'migration',
     icon: <Users className="size-6" />,
     color:
       'border-orange-200 hover:border-orange-400 dark:border-orange-900 dark:hover:border-orange-700',
@@ -38,9 +37,7 @@ const TOPICS: TopicOption[] = [
   },
   {
     id: 'Wirtschaft',
-    label: 'Wirtschaft',
-    description:
-      'Steuern, Arbeitsmarkt, Unternehmensförderung und wirtschaftliche Stabilität',
+    messageKey: 'economy',
     icon: <TrendingUp className="size-6" />,
     color:
       'border-blue-200 hover:border-blue-400 dark:border-blue-900 dark:hover:border-blue-700',
@@ -49,9 +46,7 @@ const TOPICS: TopicOption[] = [
   },
   {
     id: 'Umwelt und Klima',
-    label: 'Umwelt und Klima',
-    description:
-      'Klimaschutz, erneuerbare Energien, Nachhaltigkeit und Umweltpolitik',
+    messageKey: 'environment',
     icon: <Leaf className="size-6" />,
     color:
       'border-green-200 hover:border-green-400 dark:border-green-900 dark:hover:border-green-700',
@@ -61,8 +56,11 @@ const TOPICS: TopicOption[] = [
 ];
 
 export default function TopicSelection() {
+  const t = useTranslations('agent.topicSelection');
   const setTopic = useAgentStore((state) => state.setTopic);
   const [selectedTopic, setSelectedTopic] = useState<AgentTopic | null>(null);
+
+  const selectedOption = TOPICS.find((topic) => topic.id === selectedTopic);
 
   const handleContinue = () => {
     if (selectedTopic) {
@@ -75,10 +73,8 @@ export default function TopicSelection() {
       <div className="w-full max-w-2xl space-y-6">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Bereichsauswahl</h1>
-          <p className="mt-2 text-muted-foreground">
-            Wähle, worüber du mit dem Wahl-Agent sprechen möchtest
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="mt-2 text-muted-foreground">{t('subtitle')}</p>
         </div>
 
         {/* Info Card */}
@@ -86,10 +82,7 @@ export default function TopicSelection() {
           <CardContent className="flex items-start gap-3 p-4">
             <Info className="mt-0.5 size-5 shrink-0 text-blue-600 dark:text-blue-400" />
             <div className="space-y-1 text-sm text-blue-900/80 dark:text-blue-100/80">
-              <p>
-                Für diese Studie haben wir einige Bereiche vorbereitet, die im
-                politischen Diskurs besonders häufig vorkommen.
-              </p>
+              <p>{t('info')}</p>
             </div>
           </CardContent>
         </Card>
@@ -97,7 +90,7 @@ export default function TopicSelection() {
         {/* Topic Cards */}
         <div className="space-y-3">
           <h2 className="text-sm font-medium text-muted-foreground">
-            Wähle deinen Bereich:
+            {t('listLabel')}
           </h2>
 
           <div className="grid gap-3">
@@ -130,9 +123,11 @@ export default function TopicSelection() {
 
                   {/* Content */}
                   <div className="flex-1">
-                    <h3 className="font-semibold">{topic.label}</h3>
+                    <h3 className="font-semibold">
+                      {t(`topics.${topic.messageKey}.label`)}
+                    </h3>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {topic.description}
+                      {t(`topics.${topic.messageKey}.description`)}
                     </p>
                   </div>
 
@@ -147,17 +142,20 @@ export default function TopicSelection() {
         </div>
 
         {/* Selection Status */}
-        {selectedTopic ? (
+        {selectedOption ? (
           <div className="flex items-center justify-center gap-2 text-sm text-green-600 dark:text-green-400">
             <CheckCircle2 className="size-4" />
             <span>
-              Ausgewählter Bereich: <strong>{selectedTopic}</strong>
+              {t.rich('selected', {
+                topic: t(`topics.${selectedOption.messageKey}.label`),
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
             </span>
           </div>
         ) : (
           <div className="flex items-center justify-center gap-2 text-sm text-amber-600 dark:text-amber-400">
             <AlertCircle className="size-4" />
-            <span>Bitte wähle einen Bereich aus, um fortzufahren.</span>
+            <span>{t('pleaseSelect')}</span>
           </div>
         )}
 
@@ -169,7 +167,7 @@ export default function TopicSelection() {
             size="lg"
             className="min-w-[200px]"
           >
-            Weiter zur Diskussion
+            {t('continue')}
           </Button>
         </div>
       </div>

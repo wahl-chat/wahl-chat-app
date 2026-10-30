@@ -7,13 +7,14 @@ import {
   useCurrentContext,
 } from '@/components/providers/context-provider';
 import { Select, SelectContent, SelectTrigger } from '@/components/ui/select';
+import { useRouter } from '@/i18n/navigation';
 import type { Context } from '@/lib/firebase/firebase.types';
-import { formatGermanDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { CalendarIcon, MapPinIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 
 function CompactElectionContent({ context }: { context: Context }) {
-  const formattedDate = formatGermanDate(context.date, 'short');
+  const formattedDate = formatDate(context.date, useLocale(), 'short');
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -40,6 +41,7 @@ function CompactElectionContent({ context }: { context: Context }) {
 }
 
 export function ElectionSelect() {
+  const t = useTranslations('home.electionSelect');
   const currentContext = useCurrentContext();
   const contexts = useContexts();
   const router = useRouter();
@@ -56,7 +58,7 @@ export function ElectionSelect() {
       <div
         className="flex w-full items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2"
         role="status"
-        aria-label={`Aktuelle Wahl: ${currentContext.name}`}
+        aria-label={t('currentLabel', { name: currentContext.name })}
       >
         <CompactElectionContent context={currentContext} />
       </div>
@@ -70,13 +72,13 @@ export function ElectionSelect() {
     >
       <SelectTrigger
         className="h-auto w-full border-border bg-muted/50 px-3 py-2 [&>svg]:size-4 [&>svg]:text-muted-foreground"
-        aria-label={`Wahl auswählen. Aktuell ausgewählt: ${currentContext.name}`}
+        aria-label={t('triggerLabel', { name: currentContext.name })}
       >
         <CompactElectionContent context={currentContext} />
       </SelectTrigger>
       <SelectContent
         className="max-w-[calc(100vw-2rem)]"
-        aria-label="Verfügbare Wahlen"
+        aria-label={t('availableElections')}
       >
         <ElectionSelectItems
           contexts={contexts}

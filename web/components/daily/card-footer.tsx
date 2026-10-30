@@ -4,6 +4,7 @@ import { type DetailItem, legacyKeys } from '@/lib/daily/items';
 import { shareItem } from '@/lib/daily/share';
 import { cn } from '@/lib/utils';
 import { Share2Icon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 import InterestFeedback from './interest-feedback';
 
@@ -18,6 +19,7 @@ export function ItemTeaser({
   label: string;
   onOpen: () => void;
 }) {
+  const t = useTranslations('feed');
   return (
     <div>
       {text && (
@@ -28,14 +30,14 @@ export function ItemTeaser({
       <button
         type="button"
         onClick={onOpen}
-        aria-label={`Mehr anzeigen: ${label}`}
+        aria-label={t('moreAbout', { title: label })}
         className={cn(
           FOCUS_RING,
           'flex min-h-8 items-center rounded-md text-[15px] hover:text-[var(--daily-ink)]',
           MUTED_TEXT,
         )}
       >
-        Mehr anzeigen
+        {t('more')}
       </button>
     </div>
   );
@@ -43,13 +45,14 @@ export function ItemTeaser({
 
 /** "Interessant?" bottom left, share bottom right. */
 export function CardFooter({ item }: { item: DetailItem }) {
+  const t = useTranslations('feed');
   return (
     <div className="mt-auto flex items-end justify-between gap-3">
       <InterestFeedback itemKey={item.key} legacyKeys={legacyKeys(item)} />
       <button
         type="button"
-        aria-label="Teilen"
-        onClick={() => shareItem(item)}
+        aria-label={t('share')}
+        onClick={() => shareItem(item, t('linkCopied'))}
         className={cn(
           FOCUS_RING,
           'flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--daily-surface)] hover:text-[var(--daily-ink)]',

@@ -3,6 +3,7 @@
 import type { UserDetails } from '@/lib/utils';
 import * as Dialog from '@radix-ui/react-dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import MobileNavbarItems from './mobile-navbar-items';
 
@@ -11,6 +12,7 @@ type Props = {
 };
 
 function MobileNavbar({ userDetails }: Props) {
+  const t = useTranslations('nav');
   const [isOpen, setIsOpen] = useState(false);
 
   const handleClose = () => {
@@ -21,9 +23,9 @@ function MobileNavbar({ userDetails }: Props) {
     <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
       <Dialog.Trigger asChild>
         <button
-          className="group absolute inset-y-0 right-0 my-auto flex size-8 flex-col items-end justify-center gap-1 rounded-md p-2 transition-colors hover:bg-muted md:hidden"
+          className="group flex size-8 flex-col items-end justify-center gap-1 rounded-md p-2 transition-colors hover:bg-muted md:hidden"
           type="button"
-          aria-label="Open menu"
+          aria-label={t('openMenu')}
         >
           <div className="h-[2px] w-4 rounded-full bg-foreground transition-all duration-300 group-data-[state=open]:translate-y-[3px] group-data-[state=open]:rotate-45" />
           <div className="h-[2px] w-5 rounded-full bg-foreground transition-all duration-300 group-data-[state=open]:w-4 group-data-[state=open]:-translate-y-[3px] group-data-[state=open]:-rotate-45" />
@@ -35,8 +37,8 @@ function MobileNavbar({ userDetails }: Props) {
 
         <Dialog.Content className="fixed inset-x-0 bottom-0 top-[calc(var(--header-height)-1px)] z-50 flex flex-col items-center justify-center bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 md:hidden">
           <VisuallyHidden>
-            <Dialog.Title>Dialog Title</Dialog.Title>
-            <Dialog.Description>Dialog Description</Dialog.Description>
+            <Dialog.Title>{t('menuTitle')}</Dialog.Title>
+            <Dialog.Description>{t('menuDescription')}</Dialog.Description>
           </VisuallyHidden>
 
           <MobileNavbarItems

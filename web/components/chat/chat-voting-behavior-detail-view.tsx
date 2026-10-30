@@ -14,10 +14,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Link } from '@/i18n/navigation';
 import type { Vote } from '@/lib/socket.types';
 import { prettifiedUrlName } from '@/lib/utils';
 import { ArrowUpRightIcon } from 'lucide-react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import ChatVoteChartsHeader from './chat-vote-charts-header';
 import ChatVoteDetailsHeader from './chat-vote-details-header';
@@ -35,6 +36,7 @@ function ChatVotingBehaviorDetailView({
   startIndex = 0,
   partyId,
 }: Props) {
+  const t = useTranslations('chat.votingBehavior');
   const [selectedPartyId, setSelectedPartyId] = useState(partyId);
 
   return (
@@ -58,11 +60,11 @@ function ChatVotingBehaviorDetailView({
               <CarouselItem key={vote.id}>
                 <div className="p-4">
                   <div className="flex flex-row items-center justify-between">
-                    <h2 className="text-base font-bold">Beschreibung</h2>
+                    <h2 className="text-base font-bold">{t('description')}</h2>
                     <Button variant="link" asChild>
                       <Link href={vote.url} target="_blank">
                         <ArrowUpRightIcon />
-                        Zur Quelle
+                        {t('toSource')}
                       </Link>
                     </Button>
                   </div>
@@ -73,7 +75,9 @@ function ChatVotingBehaviorDetailView({
 
                   <ChatVotingBehaviorSubmittingParties vote={vote} />
 
-                  <p className="pb-2 pt-4 text-sm font-bold">Weitere Links</p>
+                  <p className="pb-2 pt-4 text-sm font-bold">
+                    {t('furtherLinks')}
+                  </p>
 
                   <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
                     {vote.links.map((link, index) => (

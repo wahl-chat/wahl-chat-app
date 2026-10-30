@@ -1,8 +1,9 @@
 import { ContextIcon } from '@/components/context-icon';
+import { Link } from '@/i18n/navigation';
 import type { Context } from '@/lib/firebase/firebase.types';
-import { formatGermanDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { ChevronDownIcon } from 'lucide-react';
-import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 
 /**
  * Every election the site covers, as real links.
@@ -35,7 +36,8 @@ function ElectionCard({
   context: Context;
   concluded?: boolean;
 }) {
-  const date = formatGermanDate(context.date, 'medium');
+  const t = useTranslations('landing.electionLinks');
+  const date = formatDate(context.date, useLocale(), 'medium');
 
   return (
     <li className="w-full sm:w-80">
@@ -54,7 +56,9 @@ function ElectionCard({
 
           {date && (
             <span className="text-xs text-muted-foreground">
-              {concluded ? 'Wahl vom' : 'Wahl am'} {date}
+              {concluded
+                ? t('concludedOn', { date })
+                : t('upcomingOn', { date })}
             </span>
           )}
         </span>
@@ -64,10 +68,15 @@ function ElectionCard({
 }
 
 function ElectionLinks({ upcoming, past }: Props) {
+  const t = useTranslations('landing.electionLinks');
+
   if (upcoming.length === 0 && past.length === 0) return null;
 
   return (
-    <nav aria-label="Alle Wahlen" className="flex flex-col items-center gap-4">
+    <nav
+      aria-label={t('navLabel')}
+      className="flex flex-col items-center gap-4"
+    >
       {upcoming.length > 0 && (
         <ul className="flex w-full flex-wrap justify-center gap-3">
           {upcoming.map((context) => (
@@ -79,7 +88,7 @@ function ElectionLinks({ upcoming, past }: Props) {
       {past.length > 0 && (
         <details className="group w-full" open>
           <summary className="mx-auto flex w-fit cursor-pointer list-none items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
-            Vergangene Wahlen anzeigen
+            {t('showPast')}
             <ChevronDownIcon
               className="size-3 transition-transform group-open:rotate-180"
               aria-hidden="true"

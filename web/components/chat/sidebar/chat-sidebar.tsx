@@ -17,6 +17,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@/components/ui/sidebar';
+import { Link } from '@/i18n/navigation';
 import { getCurrentUser } from '@/lib/firebase/firebase-server';
 import { IS_EMBEDDED, getUserDetailsFromUser } from '@/lib/utils';
 import {
@@ -25,13 +26,14 @@ import {
   MessageCircleIcon,
   UserIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { Suspense } from 'react';
 import ChatSidebarGroupSelect from './chat-sidebar-group-select';
 import SidebarHistorySr from './sidebar-history-sr';
 import SidebarNewChatButtons from './sidebar-new-chat-buttons';
 
+import { LocaleSwitcher } from '@/components/locale/locale-switcher';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
+import { getTranslations } from 'next-intl/server';
 
 type Props = {
   contextId?: string;
@@ -41,24 +43,29 @@ async function ChatSidebar({ contextId = DEFAULT_CONTEXT_ID }: Props) {
   const user = !IS_EMBEDDED ? await getCurrentUser() : undefined;
 
   const userDetails = user ? getUserDetailsFromUser(user) : undefined;
+  const t = await getTranslations('chat.sidebar');
 
   return (
     <Sidebar
       mobileVisuallyHiddenTitle="wahl.chat"
-      mobileVisuallyHiddenDescription="Starte einen neuen Chat oder wähle eine vorherige Konversation aus."
+      mobileVisuallyHiddenDescription={t('mobileDescription')}
     >
       <SidebarHeader className="flex h-chat-header flex-row items-center justify-between border-b border-b-muted pl-4 pr-2">
         <Link href={`/${contextId}`} className="flex items-center gap-4">
           <Logo variant="small" className="size-6" />
         </Link>
         <div className="flex flex-row items-center gap-1">
+          <LocaleSwitcher
+            align="start"
+            className="h-8 gap-1.5 border-0 px-2 text-sm"
+          />
           <ThemeModeToggle />
           <Button
             variant="ghost"
             size="icon"
             asChild
             className="size-8"
-            tooltip="Startseite"
+            tooltip={t('home')}
           >
             <Link href={`/${contextId}`}>
               <HomeIcon className="size-4" />
@@ -69,7 +76,7 @@ async function ChatSidebar({ contextId = DEFAULT_CONTEXT_ID }: Props) {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarGroupLabel>Neuer Chat</SidebarGroupLabel>
+            <SidebarGroupLabel>{t('newChat')}</SidebarGroupLabel>
             <SidebarNewChatButtons contextId={contextId} />
 
             <ChatSidebarGroupSelect contextId={contextId} />
@@ -77,7 +84,7 @@ async function ChatSidebar({ contextId = DEFAULT_CONTEXT_ID }: Props) {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Unterstütze wahl.chat</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('support')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {!IS_EMBEDDED && (
@@ -88,13 +95,13 @@ async function ChatSidebar({ contextId = DEFAULT_CONTEXT_ID }: Props) {
                     noUserChildren={
                       <SidebarMenuButton>
                         <UserIcon className="size-4" />
-                        <span>Anmelden</span>
+                        <span>{t('login')}</span>
                       </SidebarMenuButton>
                     }
                     userChildren={
                       <SidebarMenuButton>
                         <UserIcon className="size-4" />
-                        <span>Account</span>
+                        <span>{t('account')}</span>
                       </SidebarMenuButton>
                     }
                   />
@@ -104,7 +111,7 @@ async function ChatSidebar({ contextId = DEFAULT_CONTEXT_ID }: Props) {
                 <DonationDialog>
                   <SidebarMenuButton>
                     <HeartHandshakeIcon className="size-4 text-red-400" />
-                    <span>Spenden</span>
+                    <span>{t('donate')}</span>
                   </SidebarMenuButton>
                 </DonationDialog>
               </SidebarMenuItem>
@@ -112,7 +119,7 @@ async function ChatSidebar({ contextId = DEFAULT_CONTEXT_ID }: Props) {
                 <FeedbackDialog>
                   <SidebarMenuButton>
                     <MessageCircleIcon className="size-4 text-blue-400" />
-                    <span>Feedback</span>
+                    <span>{t('feedback')}</span>
                   </SidebarMenuButton>
                 </FeedbackDialog>
               </SidebarMenuItem>
@@ -123,39 +130,39 @@ async function ChatSidebar({ contextId = DEFAULT_CONTEXT_ID }: Props) {
           fallback={
             <div className="flex h-32 flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
               <LoadingSpinner />
-              <p>Lade Historie...</p>
+              <p>{t('loadingHistory')}</p>
             </div>
           }
         >
           <SidebarHistorySr />
         </Suspense>
         <SidebarGroup>
-          <SidebarGroupLabel>Informationen</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('information')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href="/about-us">Über wahl.chat</Link>
+                  <Link href="/about-us">{t('about')}</Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href="/how-to">Wie funktioniert wahl.chat?</Link>
+                  <Link href="/how-to">{t('howTo')}</Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href={`/${contextId}/sources`}>Quellen</Link>
+                  <Link href={`/${contextId}/sources`}>{t('sources')}</Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href="/impressum">Impressum</Link>
+                  <Link href="/impressum">{t('imprint')}</Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href="/datenschutz">Datenschutz</Link>
+                  <Link href="/datenschutz">{t('privacy')}</Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

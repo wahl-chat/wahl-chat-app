@@ -1,4 +1,5 @@
 import type { SerializableFirebaseUser } from '@/components/anonymous-auth';
+import { LOCALE_INFO, type Locale } from '@/i18n/locales';
 import type { PartyDetails } from '@/lib/party-details';
 import { type ClassValue, clsx } from 'clsx';
 import type { User } from 'firebase/auth';
@@ -140,8 +141,10 @@ export function prettyDate(
   return new Intl.DateTimeFormat('en-DE', options).format(date);
 }
 
-export function formatGermanDate(
+/** A date in the reader's language (`useLocale()` / `getLocale()`). */
+export function formatDate(
   value: Date | string | null | undefined,
+  locale: Locale,
   format: 'full' | 'long' | 'medium' | 'short' = 'long',
 ): string | null {
   if (!value) return null;
@@ -158,7 +161,9 @@ export function formatGermanDate(
     dateStyle: format,
   };
 
-  return new Intl.DateTimeFormat('de-DE', options).format(date);
+  return new Intl.DateTimeFormat(LOCALE_INFO[locale].intl, options).format(
+    date,
+  );
 }
 
 export async function generateOgImageUrl(sessionType: string) {
@@ -274,28 +279,6 @@ export function formatTimestamp(seconds: number): string {
   const mins = Math.floor(total / 60);
   const secs = total % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
-/**
- * Badge label for a source row: a video label (`▶ 1:27` / `▶ Video`) when the
- * source actually OPENS as a video, otherwise the page label (`S. N`).
- *
- * Derived from `getSourceMediaLinks` (the same helper the row uses to decide how
- * to open) so the badge can never disagree with what a click does — a video that
- * lives in `video_url`, or a `.mp4` with no `#t=` fragment, no longer mislabels
- * itself as "S. N".
- */
-export function sourceBadgeLabel(source: {
-  url?: string;
-  video_url?: string;
-  pdf_url?: string;
-  page: number;
-}): string {
-  const primary = getSourceMediaLinks(source)[0];
-  if (primary?.kind === 'video') {
-    return primary.label;
-  }
-  return `S. ${source.page}`;
 }
 
 /** True when a URL is a playable video (a `#t=` deep-link or a `.mp4` file). */
