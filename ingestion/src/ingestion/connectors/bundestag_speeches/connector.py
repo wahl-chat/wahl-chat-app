@@ -119,12 +119,14 @@ def _require_dip_key() -> str:
     return key
 
 
-# Recent-update sweep window: protocols whose DIP ``aktualisiert`` timestamp is
-# within this many days are re-surfaced even when already ingested, so upstream
-# transcript corrections propagate (content_hash makes unchanged ones cheap
-# skips). DIP publishes corrections shortly after a sitting; 30 days is well
-# beyond the observed correction latency.
+# Recent-update sweep window for protocols whose points carry no checked
+# revision yet, and for settling op-covered protocols. DIP publishes corrections
+# shortly after a sitting; 30 days is well beyond the observed correction latency.
 _UPDATE_SWEEP_DAYS = 30
+
+# Payload key holding the DIP ``aktualisiert`` a protocol's points were last
+# checked against; a protocol is re-fetched only when DIP's value differs.
+_CHECKED_REVISION_KEY = "dip_aktualisiert"
 
 
 # A DIP speech is treated as op-superseded only when an op speech under the SAME
@@ -449,9 +451,10 @@ class BundestagSpeechesConnector(BaseConnector):
     # 1. discover — per-Wahlperiode set-difference + recent-update sweep
     # ------------------------------------------------------------------
 
-    def _get_ingested_protocol_ids(self) -> set[str]:
-        """Return protocol ids (DIP document ids) with stored DIP chunks for
-        this Wahlperiode.
+    def _get_ingested_protocols(self) -> dict[str, Optional[str]]:
+        """Map each protocol id (DIP document id) with stored DIP chunks for
+        this Wahlperiode to the DIP revision its points were last checked
+        against, or None when any of its points carries none.
 
         Reads ``source_parent_key`` ("parliamentary_speech:dip:<protocol_id>",
         stamped by the runner) from every dip point of the configured
@@ -459,7 +462,7 @@ class BundestagSpeechesConnector(BaseConnector):
         counted — their protocols are re-discovered and become cheap
         content-hash present-skips.
 
-        Returns the empty set when no store client is available (standalone use
+        Returns an empty dict when no store client is available (standalone use
         outside the runner): everything is then discovered, which is safe —
         the runner's already-present guard keeps re-processing cheap.
         """
@@ -471,9 +474,9 @@ class BundestagSpeechesConnector(BaseConnector):
             else (self._get_qdrant())
         )
         if qdrant is None:
-            return set()
+            return {}
         collection_name = self._store_collection or self._collection_name
-        ingested: set[str] = set()
+        ingested: dict[str, Optional[str]] = {}
         scroll_filter = models.Filter(
             must=[
                 models.FieldCondition(
@@ -497,14 +500,23 @@ class BundestagSpeechesConnector(BaseConnector):
                     scroll_filter=scroll_filter,
                     limit=1000,
                     offset=next_offset,
-                    with_payload=["source_parent_key"],
+                    with_payload=["source_parent_key", _CHECKED_REVISION_KEY],
                     with_vectors=False,
                 )
                 for p in points:
-                    parent_key = (p.payload or {}).get("source_parent_key") or ""
+                    payload = p.payload or {}
+                    parent_key = payload.get("source_parent_key") or ""
+                    if not parent_key:
+                        continue
                     # "parliamentary_speech:dip:<protocol_id>" → protocol_id
-                    if parent_key:
-                        ingested.add(str(parent_key).rsplit(":", 1)[-1])
+                    pid = str(parent_key).rsplit(":", 1)[-1]
+                    revision = payload.get(_CHECKED_REVISION_KEY)
+                    # A point without the revision, or disagreeing with its
+                    # siblings, leaves the protocol unchecked.
+                    if pid in ingested and ingested[pid] != revision:
+                        ingested[pid] = None
+                    else:
+                        ingested[pid] = revision
                 if next_offset is None:
                     break
         except Exception as exc:  # noqa: BLE001 — store unreachable → discover all
@@ -513,7 +525,7 @@ class BundestagSpeechesConnector(BaseConnector):
                 "treating store as empty (already-present items skip cheaply)",
                 exc,
             )
-            return set()
+            return {}
         return ingested
 
     def _get_op_covered_dates(self, dates: set[int]) -> set[int]:
@@ -579,9 +591,11 @@ class BundestagSpeechesConnector(BaseConnector):
              lookback window) and is immune to another source or Wahlperiode
              advancing a shared cursor.
           3. Update sweep: ALSO keep already-ingested protocols whose DIP
-             ``aktualisiert`` timestamp is within _UPDATE_SWEEP_DAYS, so
-             upstream transcript corrections are re-fetched; the runner's
-             content_hash guard rewrites only real changes.
+             ``aktualisiert`` differs from the revision stored on their points
+             by post_item(), so each upstream correction is re-fetched once;
+             the runner's content_hash guard rewrites only real changes.
+             Protocols without a stored revision fall back to the
+             _UPDATE_SWEEP_DAYS window.
           4. Settled op coverage: drop a protocol without DIP chunks when op
              holds its sitting and DIP has not changed it within
              _UPDATE_SWEEP_DAYS. The resurrection guard skips every DIP speech
@@ -615,7 +629,7 @@ class BundestagSpeechesConnector(BaseConnector):
                     continue
                 docs.append(doc)
 
-        ingested = self._get_ingested_protocol_ids()
+        ingested = self._get_ingested_protocols()
         sweep_floor = (
             date_type.today() - timedelta(days=_UPDATE_SWEEP_DAYS)
         ).isoformat()
@@ -625,6 +639,14 @@ class BundestagSpeechesConnector(BaseConnector):
             # is safe for ISO-8601. Without it, the sitting date stands in.
             changed = str(doc.get("aktualisiert") or doc.get("datum") or "")
             return bool(changed) and changed[:10] >= sweep_floor
+
+        def _needs_recheck(doc: dict, checked: Optional[str]) -> bool:
+            revision = doc.get("aktualisiert")
+            if not revision:
+                return False
+            if checked is None:
+                return _recently_changed(doc)
+            return str(revision) != checked
 
         missing = [d for d in docs if str(d.get("id") or "") not in ingested]
         settled_dates = {
@@ -645,7 +667,7 @@ class BundestagSpeechesConnector(BaseConnector):
                 ) in op_covered and not _recently_changed(doc):
                     continue  # settled op coverage → nothing for DIP to add
                 new_docs.append(doc)  # new or previously failed → ingest
-            elif _recently_changed(doc) and doc.get("aktualisiert"):
+            elif _needs_recheck(doc, ingested[doc_id]):
                 sweep_docs.append(doc)
 
         def _ascending(group: list[dict]) -> list[dict]:
@@ -665,6 +687,30 @@ class BundestagSpeechesConnector(BaseConnector):
             self._mdb_lookup = ensure_mdb_lookup(_MDB_PATH)
 
         return [str(d["id"]) for d in selected]
+
+    def post_item(
+        self, qdrant, collection_name: str, external_id: str, parent_key: str
+    ) -> None:  # noqa: ANN001
+        """Stamp the DIP revision just checked onto the protocol's points, so
+        discover() skips it until DIP changes it again."""
+        from qdrant_client import models  # noqa: PLC0415
+
+        revision = (self._protocols.get(external_id) or {}).get("aktualisiert")
+        if not revision:
+            return
+        qdrant.set_payload(
+            collection_name=collection_name,
+            payload={_CHECKED_REVISION_KEY: str(revision)},
+            points=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="source_parent_key",
+                        match=models.MatchValue(value=parent_key),
+                    )
+                ]
+            ),
+            wait=True,
+        )
 
     # ------------------------------------------------------------------
     # 2. fetch — read from cache; return skip_reason dict on failure (never raises)

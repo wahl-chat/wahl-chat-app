@@ -9,7 +9,9 @@ Covers:
   - discover(None): returns ALL protocol IDs sorted ascending (oldest-first)
   - set-difference discovery: ingested protocols excluded, never-stored ones
     re-surface regardless of age, the runner cursor is ignored
-  - update sweep: recently-`aktualisiert` ingested protocols re-surface
+  - update sweep: ingested protocols re-surface once per DIP revision; without
+    a stored revision, recently-`aktualisiert` ones re-surface
+  - post_item stamps the checked revision on the protocol's points
   - settled op coverage: op-covered protocols without DIP chunks drop out
   - never-ingested protocols come before the sweep
   - DIP DESC input → ascending output: regression guard
@@ -50,17 +52,24 @@ class _FakeDipClient:
 
 
 class _FakeStore:
-    """Fake Qdrant client: stored DIP parent keys, and the sitting dates op holds."""
+    """Fake Qdrant client: stored DIP parent keys with their checked revisions,
+    and the sitting dates op holds."""
 
     def __init__(
         self,
         ingested_protocol_ids: list[str],
         op_dates: tuple[int, ...] = (),
         op_lookup_fails: bool = False,
+        revisions: dict[str, list[str | None]] | None = None,
     ) -> None:
         self._ids = ingested_protocol_ids
         self._op_dates = set(op_dates)
         self._op_lookup_fails = op_lookup_fails
+        self._revisions = revisions or {}
+        self.set_payload_calls: list[dict] = []
+
+    def set_payload(self, **kwargs: Any) -> None:  # noqa: ANN401
+        self.set_payload_calls.append(kwargs)
 
     def scroll(self, **kwargs: Any) -> tuple:  # noqa: ANN401
         from types import SimpleNamespace
@@ -71,13 +80,13 @@ class _FakeStore:
                 raise ConnectionError("qdrant unreachable")
             hit = must.get("external_id") in self._op_dates
             return ([SimpleNamespace(id="op-pt", payload={})] if hit else [], None)
-        points = [
-            SimpleNamespace(
-                id=f"pt-{pid}",
-                payload={"source_parent_key": f"parliamentary_speech:dip:{pid}"},
-            )
-            for pid in self._ids
-        ]
+        points = []
+        for pid in self._ids:
+            for i, revision in enumerate(self._revisions.get(pid, [None])):
+                payload: dict = {"source_parent_key": f"parliamentary_speech:dip:{pid}"}
+                if revision is not None:
+                    payload["dip_aktualisiert"] = revision
+                points.append(SimpleNamespace(id=f"pt-{pid}-{i}", payload=payload))
         return (points, None)
 
 
@@ -298,6 +307,111 @@ class TestDiscover:
             _FakeStore(ingested_protocol_ids=["800"]), "wahlchat_chunks_test"
         )
         assert conn.discover(since=None) == ["801", "800"]
+
+    def test_checked_revision_is_not_rechecked(self) -> None:
+        """A protocol whose points already carry DIP's current revision stays
+        excluded even inside the window: re-fetching it cannot change anything."""
+        from datetime import date, timedelta
+
+        revision = f"{(date.today() - timedelta(days=3)).isoformat()}T09:00:00+02:00"
+        pages = [
+            {
+                "documents": [
+                    {"id": "900", "datum": "2026-01-15", "aktualisiert": revision}
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(ingested_protocol_ids=["900"], revisions={"900": [revision]}),
+            "wahlchat_chunks_test",
+        )
+        assert conn.discover(since=None) == []
+
+    def test_changed_revision_is_rechecked_regardless_of_age(self) -> None:
+        """DIP changing a protocol since it was checked re-surfaces it, however
+        long ago the change was: a stopped job cannot miss a correction."""
+        pages = [
+            {
+                "documents": [
+                    {
+                        "id": "901",
+                        "datum": "2026-01-15",
+                        "aktualisiert": "2026-02-01T09:00:00+01:00",
+                    }
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(
+                ingested_protocol_ids=["901"],
+                revisions={"901": ["2026-01-16T09:00:00+01:00"]},
+            ),
+            "wahlchat_chunks_test",
+        )
+        assert conn.discover(since=None) == ["901"]
+
+    def test_partly_stamped_protocol_counts_as_unchecked(self) -> None:
+        """One point without the revision sends the protocol back to the
+        window rule, so a half-stamped protocol is re-checked, not trusted."""
+        from datetime import date, timedelta
+
+        revision = f"{(date.today() - timedelta(days=3)).isoformat()}T09:00:00+02:00"
+        pages = [
+            {
+                "documents": [
+                    {"id": "902", "datum": "2026-01-15", "aktualisiert": revision}
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(
+                ingested_protocol_ids=["902"], revisions={"902": [revision, None]}
+            ),
+            "wahlchat_chunks_test",
+        )
+        assert conn.discover(since=None) == ["902"]
+
+    def test_post_item_stamps_checked_revision(self) -> None:
+        """post_item() writes DIP's revision onto every point of the protocol."""
+        pages = [
+            {
+                "documents": [
+                    {
+                        "id": "903",
+                        "datum": "2026-01-15",
+                        "aktualisiert": "2026-02-01T09:00:00+01:00",
+                    }
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        store = _FakeStore(ingested_protocol_ids=[])
+        conn.bind_store(store, "wahlchat_chunks_test")
+        conn.discover(since=None)
+        conn.post_item(
+            store, "wahlchat_chunks_test", "903", "parliamentary_speech:dip:903"
+        )
+        (call,) = store.set_payload_calls
+        assert call["payload"] == {"dip_aktualisiert": "2026-02-01T09:00:00+01:00"}
+        (cond,) = call["points"].must
+        assert cond.key == "source_parent_key"
+        assert cond.match.value == "parliamentary_speech:dip:903"
+
+    def test_post_item_without_revision_writes_nothing(self) -> None:
+        """No DIP revision to record → no store write."""
+        conn = _make_connector_with_fake_client(
+            [{"documents": [{"id": "904", "datum": "2026-01-15"}]}]
+        )
+        store = _FakeStore(ingested_protocol_ids=[])
+        conn.bind_store(store, "wahlchat_chunks_test")
+        conn.discover(since=None)
+        conn.post_item(
+            store, "wahlchat_chunks_test", "904", "parliamentary_speech:dip:904"
+        )
+        assert store.set_payload_calls == []
 
     def test_discover_caches_protocols(self) -> None:
         """discover() populates self._protocols with the fetched protocol dicts."""
