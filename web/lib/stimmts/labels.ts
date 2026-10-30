@@ -53,7 +53,7 @@ const MONTHS = [
   'Dezember',
 ];
 
-const WEEKDAYS = [
+export const WEEKDAYS = [
   'Sonntag',
   'Montag',
   'Dienstag',

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { encodePeriod } from './period';
 import {
+  canonicalSharePath,
   parseShareParams,
   shareImagePath,
   sharedResultPath,
@@ -90,5 +91,45 @@ describe('share paths', () => {
         period: '4444444444',
       }),
     ).toBe('/stimmts?n=10&s=4&d=2026-11-10');
+  });
+});
+
+describe('canonicalSharePath', () => {
+  const canonical = (path: string) => {
+    const data = parse(path.slice(path.indexOf('?')));
+    return data && canonicalSharePath(data);
+  };
+
+  it("leaves the app's own share paths as they are", () => {
+    for (const path of [
+      shareImagePath('link'),
+      shareImagePath('link', { number: 7, score: 3, playDate: '2026-11-07' }),
+      shareImagePath('square', {
+        number: 4,
+        score: 4,
+        playDate: '2026-11-04',
+        period: '5x34',
+      }),
+      shareImagePath('story', {
+        number: 32,
+        score: 5,
+        playDate: '2026-12-02',
+        period: '45',
+      }),
+    ]) {
+      expect(canonical(path)).toBe(path);
+    }
+  });
+
+  it('spells every other way of asking for the same image one way', () => {
+    const path = '/stimmts/share?f=square&n=2&s=4&d=2026-11-02&p=34';
+    for (const variant of [
+      '?n=2&s=4&d=2026-11-02&p=34', // format left to its default
+      '?d=2026-11-02&f=square&p=34&s=4&n=2', // another order
+      '?f=square&n=2&s=4&d=2026-11-02&p=34&utm_source=x', // an extra one
+      '?f=square&n=2&n=9&s=4&d=2026-11-02&p=34', // a repeated one
+    ]) {
+      expect(canonical(variant)).toBe(path);
+    }
   });
 });

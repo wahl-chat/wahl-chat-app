@@ -1,6 +1,6 @@
 import { addDays, isIsoDate } from './berlin-time';
 import { SEATING_ORDER } from './parties';
-import { type DayRecord, PERIOD_LENGTH } from './period';
+import { type DayRecord, PERIOD_LENGTH, encodePeriod } from './period';
 
 /**
  * The share image's sizes. `link` is a link preview: of a shared result, or,
@@ -150,4 +150,19 @@ export function shareImagePath(
 /** The link a player shares: the game, with their number, score and day. */
 export function sharedResultPath(result: ResultParams): string {
   return `/stimmts?${new URLSearchParams(resultQuery(result))}`;
+}
+
+/**
+ * The one URL that draws this image. The route redirects every other
+ * spelling (parameters in another order, extra or repeated ones) to it, so a
+ * cache holds each image once and junk parameters cannot fill it.
+ */
+export function canonicalSharePath({ format, result }: ShareImageData): string {
+  return shareImagePath(
+    format,
+    result && {
+      ...result,
+      period: result.days && encodePeriod(result.days),
+    },
+  );
 }

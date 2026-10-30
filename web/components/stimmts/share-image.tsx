@@ -7,7 +7,7 @@ import {
   WORDMARK_PATHS,
   WORDMARK_VIEWBOX,
 } from '@/components/chat/logo';
-import { shortDay } from '@/lib/stimmts/labels';
+import { WEEKDAYS, shortDay } from '@/lib/stimmts/labels';
 import {
   MARK_SEATS,
   MARK_SEAT_RADIUS,
@@ -43,16 +43,17 @@ const TIER_FILLS: Record<ScoreTier, string> = {
 // The mark's viewBox is 2.2 wide and 1.2 high.
 const markHeight = (width: number) => Math.round((width * 1.2) / 2.2);
 
-/** Every character the image can show, to cut the fonts down to. */
-export function shareImageText(data: ShareImageData): string {
-  return [
-    "Stimmt's?’ STIMMKARTE Nr. von richtig getippt Abgestimmt Tag",
-    'Schaffst du mehr? Jeden Tag ein neues Rätsel. wahl.chat/stimmts',
-    QUESTION,
-    data.result ? shortDay(data.result.playDate) : '',
-    '0123456789',
-  ].join(' ');
-}
+/**
+ * Every character any image can show, to cut the fonts down to. The same for
+ * every image (all weekdays, all digits), so one set of fonts serves them all.
+ */
+export const SHARE_IMAGE_TEXT = [
+  "Stimmt's?’ STIMMKARTE Nr. von richtig getippt Abgestimmt Tag",
+  'Schaffst du mehr? Jeden Tag ein neues Rätsel. wahl.chat/stimmts',
+  QUESTION,
+  WEEKDAYS.map((day) => day.slice(0, 2)).join(' '),
+  '0123456789 .',
+].join(' ');
 
 type Sizes = {
   padding: string;
