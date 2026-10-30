@@ -7,7 +7,7 @@ import {
   selectParty,
 } from '@/lib/stimmts/game-view';
 import { getGame } from '@/lib/stimmts/progress';
-import type { Puzzle } from '@/lib/stimmts/types';
+import type { Puzzle, Schedule } from '@/lib/stimmts/types';
 import { useProgress } from '@/lib/stimmts/use-progress';
 import { useReducedMotion } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -24,6 +24,7 @@ const REVEAL_ALL_STEP_MS = 450;
 type Props = {
   number: number;
   puzzle: Puzzle;
+  schedule: Schedule;
   /** Today's Berlin date: the puzzle's day, and the day answers are saved on. */
   today: string;
   onOpenDay: (number: number) => void;
@@ -36,7 +37,14 @@ type Props = {
  * The chamber is the board: it stays on top while the player answers and
  * while the parties are turned over.
  */
-function PuzzleGame({ number, puzzle, today, onOpenDay, canOpenDay }: Props) {
+function PuzzleGame({
+  number,
+  puzzle,
+  schedule,
+  today,
+  onOpenDay,
+  canOpenDay,
+}: Props) {
   const game = useProgress((state) => getGame(state.progress, puzzle.id));
   const reduceMotion = useReducedMotion() ?? false;
   const [started, setStarted] = useState(false);
@@ -125,6 +133,7 @@ function PuzzleGame({ number, puzzle, today, onOpenDay, canOpenDay }: Props) {
           number={number}
           playDate={today}
           puzzle={puzzle}
+          schedule={schedule}
           stamping={!stamped.current}
           onOpenDay={onOpenDay}
           canOpenDay={canOpenDay}

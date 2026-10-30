@@ -1,29 +1,64 @@
 import { describe, expect, it } from 'bun:test';
 import { berlinDate } from './berlin-time';
-import { resolveClock } from './preview';
-import type { Schedule } from './types';
+import { isPreviewEnabled, resolveClock } from './preview';
 
-const schedule: Schedule = {
-  startDate: '2026-11-01',
-  puzzleIds: ['a', 'b', 'c'],
-};
-const realNow = new Date('2026-10-03T09:00:00Z');
+describe('isPreviewEnabled', () => {
+  it('is on while developing and on a flagged test deployment', () => {
+    expect(isPreviewEnabled({ nodeEnv: 'development' })).toBe(true);
+    expect(
+      isPreviewEnabled({
+        vercelEnv: 'preview',
+        nodeEnv: 'production',
+        flag: 'true',
+      }),
+    ).toBe(true);
+  });
 
-const clock = (search: string, previewEnabled = true, now = realNow) =>
-  resolveClock({ previewEnabled, search, schedule, now });
+  it('is off on a deployment without the flag', () => {
+    expect(
+      isPreviewEnabled({ vercelEnv: 'preview', nodeEnv: 'production' }),
+    ).toBe(false);
+  });
+
+  it('is never on in production, even with the flag set', () => {
+    expect(
+      isPreviewEnabled({
+        vercelEnv: 'production',
+        nodeEnv: 'production',
+        flag: 'true',
+      }),
+    ).toBe(false);
+  });
+});
 
 describe('resolveClock', () => {
+  const realNow = new Date('2026-10-03T09:00:00Z');
+
+  const clock = (search: string, previewEnabled = true, now = realNow) =>
+    resolveClock({
+      previewEnabled,
+      search,
+      launchDate: '2026-11-01',
+      puzzleCount: 30,
+      now,
+    });
+
   it('uses the real clock when preview is off', () => {
     // Even if someone adds ?day=2 to the address.
     expect(clock('?day=2', false)).toEqual({ now: realNow });
   });
 
-  it('jumps to the requested day of the schedule in preview mode', () => {
+  it('jumps to the requested day after the launch date in preview mode', () => {
     expect(berlinDate(clock('?day=1').now)).toBe('2026-11-01');
     expect(berlinDate(clock('?day=3').now)).toBe('2026-11-03');
   });
 
-  it('shows day 1 before the start date when no day is given', () => {
+  it('goes no further than the day after the last puzzle', () => {
+    expect(berlinDate(clock('?day=31').now)).toBe('2026-12-01');
+    expect(berlinDate(clock('?day=99999999999999').now)).toBe('2026-12-01');
+  });
+
+  it('shows day 1 before the launch date when no day is given', () => {
     expect(berlinDate(clock('').now)).toBe('2026-11-01');
   });
 

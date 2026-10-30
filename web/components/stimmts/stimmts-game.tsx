@@ -7,18 +7,16 @@ import {
   daysBetween,
   nextPuzzleAt,
 } from '@/lib/stimmts/berlin-time';
-import { PUZZLES, SCHEDULE } from '@/lib/stimmts/content';
+import { PUZZLES, PUZZLE_COUNT, createSchedule } from '@/lib/stimmts/content';
 import { formatDate } from '@/lib/stimmts/labels';
-import {
-  type Clock,
-  isPreviewEnabled,
-  resolveClock,
-} from '@/lib/stimmts/preview';
+import { resolveClock } from '@/lib/stimmts/preview';
 import { getGame } from '@/lib/stimmts/progress';
 import { STORAGE_KEY } from '@/lib/stimmts/progress-store';
 import { getTodaysPuzzle, puzzleForDay } from '@/lib/stimmts/schedule';
+import { resolveLaunch } from '@/lib/stimmts/status';
 import { useProgress } from '@/lib/stimmts/use-progress';
-import { useCallback, useEffect, useState } from 'react';
+import { useStimmtsStatus } from '@/lib/stimmts/use-stimmts-status';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import PastPuzzle from './past-puzzle';
 import PuzzleGame from './puzzle-game';
 
@@ -26,15 +24,8 @@ function Message({ children }: { children: React.ReactNode }) {
   return <p className="py-10 text-center text-muted-foreground">{children}</p>;
 }
 
-function PreviewBar({
-  clock,
-  puzzleId,
-}: {
-  clock: Clock;
-  puzzleId?: string;
-}) {
+function PreviewBar({ day, puzzleId }: { day: number; puzzleId?: string }) {
   const resetGame = useProgress((state) => state.resetGame);
-  const day = daysBetween(SCHEDULE.startDate, berlinDate(clock.now)) + 1;
 
   // Replays this puzzle and keeps the other days, so the Wahlperiode across
   // several days can be tested without starting over.
@@ -72,24 +63,25 @@ function PreviewBar({
   );
 }
 
-function StimmtsGame() {
+type Props = {
+  /** Decided on the server (see isPreviewEnabled). */
+  previewEnabled: boolean;
+};
+
+function StimmtsGame({ previewEnabled }: Props) {
   const hydrate = useProgress((state) => state.hydrate);
   const hydrated = useProgress((state) => state.hydrated);
   const refresh = useProgress((state) => state.refresh);
   const progress = useProgress((state) => state.progress);
-  const [clock, setClock] = useState<Clock | null>(null);
+  const { state: status, retry } = useStimmtsStatus();
+  const [now, setNow] = useState<Date | null>(null);
+  const [search, setSearch] = useState('');
   // A past day of the Wahlperiode the player is looking at, if any.
   const [pastDay, setPastDay] = useState<number | null>(null);
 
   const refreshClock = useCallback(() => {
-    setClock(
-      resolveClock({
-        previewEnabled: isPreviewEnabled(),
-        search: window.location.search,
-        schedule: SCHEDULE,
-        now: new Date(),
-      }),
-    );
+    setNow(new Date());
+    setSearch(window.location.search);
   }, []);
 
   // Everything that depends on the player's browser (saved progress, the time,
@@ -125,29 +117,50 @@ function StimmtsGame() {
   // itself. The extra second keeps the timer from firing just before the day
   // changes. A sleeping device fires it late, on waking, which is just as good.
   useEffect(() => {
-    if (!clock) {
+    if (!now) {
       return;
     }
     const wait = nextPuzzleAt(new Date()).getTime() - Date.now();
     const timer = setTimeout(refreshClock, wait + 1000);
     return () => clearTimeout(timer);
-  }, [clock, refreshClock]);
+  }, [now, refreshClock]);
 
-  if (!clock || !hydrated) {
+  const launch = now
+    ? resolveLaunch(status, previewEnabled, berlinDate(now))
+    : null;
+  const launchDate = launch?.kind === 'on' ? launch.launchDate : null;
+  const schedule = useMemo(
+    () => (launchDate === null ? null : createSchedule(launchDate)),
+    [launchDate],
+  );
+
+  if (!now || !hydrated || !launch || launch.kind === 'loading') {
     return <Message>Lädt …</Message>;
   }
+  if (launch.kind === 'unreachable') {
+    return (
+      <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
+        <p>Stimmt&apos;s? lässt sich gerade nicht laden.</p>
+        <Button variant="outline" onClick={retry}>
+          Erneut versuchen
+        </Button>
+      </div>
+    );
+  }
+  if (launch.kind === 'off' || !schedule) {
+    return <Message>Stimmt&apos;s? kommt bald.</Message>;
+  }
 
-  const today = getTodaysPuzzle({
-    schedule: SCHEDULE,
-    puzzles: PUZZLES,
-    now: clock.now,
+  const clock = resolveClock({
+    previewEnabled,
+    search,
+    launchDate: schedule.startDate,
+    puzzleCount: PUZZLE_COUNT,
+    now,
   });
+  const today = getTodaysPuzzle({ schedule, puzzles: PUZZLES, now: clock.now });
   const dayPuzzle = (number: number) =>
-    puzzleForDay({
-      schedule: SCHEDULE,
-      puzzles: PUZZLES,
-      number,
-    });
+    puzzleForDay({ schedule, puzzles: PUZZLES, number });
   const scrollTop = () => window.scrollTo({ top: 0 });
 
   const past = pastDay === null ? null : dayPuzzle(pastDay);
@@ -156,7 +169,7 @@ function StimmtsGame() {
     return (
       <PastPuzzle
         number={pastDay}
-        playDate={addDays(SCHEDULE.startDate, pastDay - 1)}
+        playDate={addDays(schedule.startDate, pastDay - 1)}
         puzzle={past}
         guesses={game.finishedOn === null ? null : game.guesses}
         onBack={() => {
@@ -176,6 +189,7 @@ function StimmtsGame() {
           key={today.puzzle.id}
           number={today.number}
           puzzle={today.puzzle}
+          schedule={schedule}
           today={berlinDate(clock.now)}
           onOpenDay={(number) => {
             setPastDay(number);
@@ -190,13 +204,11 @@ function StimmtsGame() {
         </Message>
       )}
       {today.status === 'finished' && (
-        <Message>
-          Du hast alle bisherigen Rätsel gespielt. Neue folgen bald.
-        </Message>
+        <Message>Mehr Rätsel sind in Arbeit. Bleib dran!</Message>
       )}
-      {isPreviewEnabled() && (
+      {previewEnabled && (
         <PreviewBar
-          clock={clock}
+          day={daysBetween(schedule.startDate, berlinDate(clock.now)) + 1}
           puzzleId={today.status === 'active' ? today.puzzle.id : undefined}
         />
       )}

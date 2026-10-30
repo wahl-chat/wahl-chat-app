@@ -1,7 +1,7 @@
 import StimmtsGame from '@/components/stimmts/stimmts-game';
-import { berlinDate, daysBetween } from '@/lib/stimmts/berlin-time';
-import { SCHEDULE } from '@/lib/stimmts/content';
+import { PUZZLE_COUNT } from '@/lib/stimmts/content';
 import { STIMMTS_FONT_CLASSES } from '@/lib/stimmts/fonts';
+import { isPreviewEnabled } from '@/lib/stimmts/preview';
 import {
   SHARE_FORMATS,
   parseShareParams,
@@ -17,26 +17,24 @@ type Props = {
 };
 
 /**
- * A shared result links here with its number and score (?n=…&s=…), and its
- * preview shows that score; the plain link shows the game's own card.
+ * A shared result links here with its number, score and day (?n=…&s=…&d=…),
+ * and its preview shows that card; the plain link shows the game's own card,
+ * which names no day, so it is right whether or not the game is running.
  */
 export async function generateMetadata({
   searchParams,
 }: Props): Promise<Metadata> {
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(await searchParams)) {
-    if (typeof value === 'string' && (key === 'n' || key === 's')) {
+  const params = await searchParams;
+  const query = new URLSearchParams({ f: 'link' });
+  for (const key of ['n', 's', 'd']) {
+    const value = params[key];
+    if (typeof value === 'string') {
       query.set(key, value);
     }
   }
-  query.set('f', 'link');
-  const shared = query.has('n') ? parseShareParams(query, SCHEDULE) : null;
-  // The plain link previews today's card (the first one before the start).
-  const today = daysBetween(SCHEDULE.startDate, berlinDate(new Date())) + 1;
-  const number =
-    shared?.number ?? Math.min(Math.max(today, 1), SCHEDULE.puzzleIds.length);
+  const result = parseShareParams(query, PUZZLE_COUNT)?.result;
   const image = {
-    url: shareImagePath({ format: 'link', number, score: shared?.score }),
+    url: shareImagePath('link', result),
     ...SHARE_FORMATS.link,
     alt: "Stimmt's?, das tägliche Rätsel von wahl.chat",
   };
@@ -56,9 +54,14 @@ export async function generateMetadata({
 }
 
 function StimmtsPage() {
+  const previewEnabled = isPreviewEnabled({
+    vercelEnv: process.env.VERCEL_ENV,
+    nodeEnv: process.env.NODE_ENV,
+    flag: process.env.NEXT_PUBLIC_STIMMTS_PREVIEW,
+  });
   return (
     <div className={STIMMTS_FONT_CLASSES}>
-      <StimmtsGame />
+      <StimmtsGame previewEnabled={previewEnabled} />
     </div>
   );
 }

@@ -49,7 +49,7 @@ export function shareImageText(data: ShareImageData): string {
     "Stimmt's?’ STIMMKARTE Nr. von richtig getippt Abgestimmt Tag",
     'Schaffst du mehr? Jeden Tag ein neues Rätsel. wahl.chat/stimmts',
     QUESTION,
-    shortDay(data.playDate),
+    data.result ? shortDay(data.result.playDate) : '',
     '0123456789',
   ].join(' ');
 }
@@ -196,14 +196,13 @@ function Period({ days, width }: { days: DayRecord[]; width: number }) {
 /**
  * The image that travels with a shared result: the player's Stimmkarte with
  * an "Abgestimmt" sticker and, on the square and the story, their
- * Wahlperiode. Without a score it is the preview of the plain game link.
+ * Wahlperiode. Without a result it is the preview of the plain game link,
+ * which asks the game's question and shows no day.
  */
-function ShareImage(data: ShareImageData) {
-  const { format, number, playDate, score, days } = data;
+function ShareImage({ format, result }: ShareImageData) {
   const s = SIZES[format];
   const story = format === 'story';
-  const scored = score !== undefined;
-  const withPeriod = scored && days !== undefined && format !== 'link';
+  const days = format === 'link' ? undefined : result?.days;
   const display = { fontFamily: SHARE_FONTS.display, fontWeight: 800 };
 
   const brand = (
@@ -289,7 +288,7 @@ function ShareImage(data: ShareImageData) {
             justifyContent: 'center',
           }}
         >
-          {scored ? (
+          {result ? (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span
                 style={{
@@ -299,7 +298,7 @@ function ShareImage(data: ShareImageData) {
                   letterSpacing: -5,
                 }}
               >
-                {score} von {MAX_SCORE}
+                {result.score} von {MAX_SCORE}
               </span>
               <span
                 style={{
@@ -311,7 +310,7 @@ function ShareImage(data: ShareImageData) {
               >
                 richtig getippt
               </span>
-              <Squares score={score} size={s.square} top={s.squareGap} />
+              <Squares score={result.score} size={s.square} top={s.squareGap} />
             </div>
           ) : (
             <span
@@ -326,33 +325,35 @@ function ShareImage(data: ShareImageData) {
             </span>
           )}
         </div>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingLeft: 40,
-            borderLeft: `3px solid ${C.muted}`,
-          }}
-        >
-          <span style={{ fontSize: 28, color: C.muted }}>Nr.</span>
-          <span
+        {result && (
+          <div
             style={{
-              ...display,
-              fontSize: s.number,
-              lineHeight: 1,
-              letterSpacing: -3,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingLeft: 40,
+              borderLeft: `3px solid ${C.muted}`,
             }}
           >
-            {number}
-          </span>
-          <span style={{ fontSize: 28, color: C.muted }}>
-            {shortDay(playDate)}
-          </span>
-        </div>
+            <span style={{ fontSize: 28, color: C.muted }}>Nr.</span>
+            <span
+              style={{
+                ...display,
+                fontSize: s.number,
+                lineHeight: 1,
+                letterSpacing: -3,
+              }}
+            >
+              {result.number}
+            </span>
+            <span style={{ fontSize: 28, color: C.muted }}>
+              {shortDay(result.playDate)}
+            </span>
+          </div>
+        )}
       </div>
-      {scored && (
+      {result && (
         <span
           style={{
             ...display,
@@ -399,7 +400,7 @@ function ShareImage(data: ShareImageData) {
         {brand}
       </div>
       {card}
-      {withPeriod && (
+      {days && (
         <div
           style={{
             display: 'flex',
@@ -431,7 +432,7 @@ function ShareImage(data: ShareImageData) {
         }}
       >
         <span style={{ ...display, fontSize: s.cta, letterSpacing: -1.5 }}>
-          {scored ? 'Schaffst du mehr?' : 'Jeden Tag ein neues Rätsel.'}
+          {result ? 'Schaffst du mehr?' : 'Jeden Tag ein neues Rätsel.'}
         </span>
         <span style={{ fontSize: s.url, color: C.muted }}>
           wahl.chat/stimmts

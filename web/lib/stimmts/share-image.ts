@@ -1,11 +1,10 @@
-import { addDays } from './berlin-time';
+import { addDays, isIsoDate } from './berlin-time';
 import { SEATING_ORDER } from './parties';
 import { type DayRecord, PERIOD_LENGTH } from './period';
-import type { Schedule } from './types';
 
 /**
- * The share image's sizes. `link` without a score is the preview of the plain
- * game link; with one, of a shared result.
+ * The share image's sizes. `link` is a link preview: of a shared result, or,
+ * without one, of the plain game link.
  */
 export const SHARE_FORMATS = {
   square: { width: 1080, height: 1080 },
@@ -33,18 +32,23 @@ export const SHARE_COLORS = {
 
 export const MAX_SCORE = SEATING_ORDER.length;
 
+/** One player's day, as a shared result shows it. */
+type SharedResult = {
+  number: number;
+  playDate: string;
+  score: number;
+  /** The player's period through this day (square and story only). */
+  days?: DayRecord[];
+};
+
 /**
  * Everything an image may show. Never the topic, the title or anything per
  * party: like the share text, it must not hint at the day's answers.
  */
 export type ShareImageData = {
   format: ShareFormat;
-  number: number;
-  playDate: string;
-  /** Absent for the plain game link. */
-  score?: number;
-  /** The player's period so far (square and story only). */
-  days?: DayRecord[];
+  /** Absent on the preview of the plain game link, which shows no day. */
+  result?: SharedResult;
 };
 
 const PERIOD_PATTERN = new RegExp(`^[0-${MAX_SCORE}x]{1,${PERIOD_LENGTH}}$`);
@@ -53,15 +57,15 @@ function wholeNumber(value: string | null): number | null {
   return value !== null && /^\d{1,4}$/.test(value) ? Number(value) : null;
 }
 
-/** "44x5" (see encodePeriod) back into day records, from the period's day 1. */
+/** "44x5" (see encodePeriod) back into day records, ending on the shared day. */
 function decodePeriod(
   encoded: string,
-  firstNumber: number,
-  startDate: string,
+  { number: lastNumber, playDate: lastDate }: SharedResult,
 ): DayRecord[] {
+  const first = lastNumber - encoded.length + 1;
   return [...encoded].map((mark, index) => {
-    const number = firstNumber + index;
-    const playDate = addDays(startDate, number - 1);
+    const number = first + index;
+    const playDate = addDays(lastDate, number - lastNumber);
     return mark === 'x'
       ? { kind: 'missed', number, playDate }
       : { kind: 'played', number, playDate, topic: '', score: Number(mark) };
@@ -71,34 +75,36 @@ function decodePeriod(
 /**
  * Reads and checks a share image request. Every parameter comes from a URL
  * anyone can type, so anything out of range is refused rather than drawn.
- * `f` format, `n` puzzle number, `s` score, `p` the period (see encodePeriod).
+ * `f` format, `n` puzzle number, `s` score, `d` the day it was played, `p`
+ * the period (see encodePeriod). The link carries its own date, so drawing it
+ * needs neither the launch date nor a database.
  */
 export function parseShareParams(
   params: URLSearchParams,
-  schedule: Schedule,
+  puzzleCount: number,
 ): ShareImageData | null {
   const format = params.get('f') ?? 'square';
-  if (!(format in SHARE_FORMATS)) {
+  if (!Object.hasOwn(SHARE_FORMATS, format)) {
     return null;
   }
-  const number = wholeNumber(params.get('n'));
-  if (number === null || number < 1 || number > schedule.puzzleIds.length) {
-    return null;
+  if (!['n', 's', 'd', 'p'].some((key) => params.has(key))) {
+    return format === 'link' ? { format } : null;
   }
-  const data: ShareImageData = {
-    format: format as ShareFormat,
-    number,
-    playDate: addDays(schedule.startDate, number - 1),
-  };
 
-  const rawScore = params.get('s');
-  if (rawScore !== null) {
-    const score = wholeNumber(rawScore);
-    if (score === null || score > MAX_SCORE) {
-      return null;
-    }
-    data.score = score;
+  const number = wholeNumber(params.get('n'));
+  const score = wholeNumber(params.get('s'));
+  const playDate = params.get('d');
+  if (
+    number === null ||
+    number < 1 ||
+    number > puzzleCount ||
+    score === null ||
+    score > MAX_SCORE ||
+    !isIsoDate(playDate)
+  ) {
+    return null;
   }
+  const result: SharedResult = { number, playDate, score };
 
   const period = params.get('p');
   if (period !== null) {
@@ -106,44 +112,42 @@ export function parseShareParams(
     // the number: day 10 of a period is ten characters, the last one played.
     const day = ((number - 1) % PERIOD_LENGTH) + 1;
     if (
-      data.score === undefined ||
       !PERIOD_PATTERN.test(period) ||
       period.length !== day ||
-      period.at(-1) !== String(data.score)
+      period.at(-1) !== String(score)
     ) {
       return null;
     }
-    data.days = decodePeriod(period, number - day + 1, schedule.startDate);
+    result.days = decodePeriod(period, result);
   }
-  return data;
+  return { format: format as ShareFormat, result };
 }
 
-type UrlInput = {
-  format: ShareFormat;
-  number: number;
-  score?: number;
+type ResultParams = Omit<SharedResult, 'days'> & {
   /** encodePeriod's string for the period through this puzzle. */
   period?: string;
 };
 
+function resultQuery({ number, score, playDate }: ResultParams) {
+  return { n: String(number), s: String(score), d: playDate };
+}
+
 /** The path of a share image, relative to the site. */
-export function shareImagePath({
-  format,
-  number,
-  score,
-  period,
-}: UrlInput): string {
-  const params = new URLSearchParams({ f: format, n: String(number) });
-  if (score !== undefined) {
-    params.set('s', String(score));
-  }
-  if (period !== undefined && score !== undefined) {
-    params.set('p', period);
+export function shareImagePath(
+  format: ShareFormat,
+  result?: ResultParams,
+): string {
+  const params = new URLSearchParams({
+    f: format,
+    ...(result && resultQuery(result)),
+  });
+  if (result?.period !== undefined) {
+    params.set('p', result.period);
   }
   return `/stimmts/share?${params}`;
 }
 
-/** The link a player shares: the game, with their number and score. */
-export function sharedResultPath(number: number, score: number): string {
-  return `/stimmts?${new URLSearchParams({ n: String(number), s: String(score) })}`;
+/** The link a player shares: the game, with their number, score and day. */
+export function sharedResultPath(result: ResultParams): string {
+  return `/stimmts?${new URLSearchParams(resultQuery(result))}`;
 }

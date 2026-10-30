@@ -40,6 +40,44 @@ describe('getTodaysPuzzle', () => {
   });
 });
 
+describe('a 30-day run from the launch date', () => {
+  const thirty = Array.from({ length: 30 }, (_, i) => ({
+    ...PUZZLES[i % PUZZLES.length],
+    id: `puzzle-${i + 1}`,
+  }));
+  const run = (launchDate: string, iso: string) =>
+    getTodaysPuzzle({
+      schedule: { startDate: launchDate, puzzleIds: thirty.map((p) => p.id) },
+      puzzles: thirty,
+      now: new Date(iso),
+    });
+
+  it('makes the launch day day 1 and the 30th day after it the last', () => {
+    expect(run('2026-11-15', '2026-11-14T12:00:00Z').status).toBe(
+      'not-started',
+    );
+    expect(run('2026-11-15', '2026-11-15T12:00:00Z')).toMatchObject({
+      number: 1,
+    });
+    expect(run('2026-11-15', '2026-12-14T12:00:00Z')).toMatchObject({
+      number: 30,
+    });
+    expect(run('2026-11-15', '2026-12-15T12:00:00Z')).toEqual({
+      status: 'finished',
+    });
+  });
+
+  it('keeps counting days through the night the clocks go back', () => {
+    // Berlin leaves summer time on 25 October 2026: that day is 25 hours long.
+    expect(run('2026-10-20', '2026-10-25T22:30:00Z')).toMatchObject({
+      number: 6,
+    });
+    expect(run('2026-10-20', '2026-10-25T23:00:00Z')).toMatchObject({
+      number: 7,
+    });
+  });
+});
+
 describe('puzzleForDay', () => {
   it('finds the puzzle that ran on a day', () => {
     expect(puzzleForDay({ schedule, puzzles: PUZZLES, number: 2 })?.id).toBe(

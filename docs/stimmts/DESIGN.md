@@ -218,14 +218,20 @@ flowchart LR
 ### Preview mode
 
 For developing before launch. It is on in local development and wherever
-`NEXT_PUBLIC_STIMMTS_PREVIEW=true`, and off in production, so players only get
-the real puzzle of the day.
+`NEXT_PUBLIC_STIMMTS_PREVIEW=true`, and never on Vercel's production
+deployment (decided on the server, where `VERCEL_ENV` is known), so players
+only get the real puzzle of the day.
 
-- `?day=N` opens the N-th day of the schedule, drafts included.
-- A bar at the bottom resets one puzzle (keeping the streak and the other
-  days, so streaks across days can be tested) or everything.
+- The game plays even while the switch is off: day 1 is the configured launch
+  date if there is one, otherwise today.
+- `?day=N` opens the N-th day after the launch date, up to the day after the
+  last puzzle.
+- A bar at the bottom resets one puzzle (keeping the other days, so the
+  Wahlperiode across several days can be tested) or everything.
 
 ## Content
+
+How to swap or add a puzzle is in [CONTENT.md](CONTENT.md).
 
 ### The puzzle contract
 

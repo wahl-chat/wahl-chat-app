@@ -1,15 +1,10 @@
 import { listenToStimmtsStatus } from '@/lib/firebase/firebase';
 import { useCallback, useEffect, useState } from 'react';
-import { type StimmtsStatus, parseStimmtsStatus } from './availability';
+import { type StatusState, parseStimmtsStatus } from './status';
 
 // A blocked or offline connection never answers at all, so after this long
 // the page stops waiting and offers to try again.
 const STATUS_TIMEOUT_MS = 8000;
-
-export type StatusState =
-  | { kind: 'loading' }
-  | { kind: 'unreachable' }
-  | { kind: 'known'; status: StimmtsStatus };
 
 /**
  * Follows the switch live, so turning the game on or off reaches open pages

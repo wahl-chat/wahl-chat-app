@@ -3,17 +3,20 @@ import ShareImage, {
   shareImageText,
 } from '@/components/stimmts/share-image';
 import { loadGoogleFont } from '@/lib/og/google-font';
-import { SCHEDULE } from '@/lib/stimmts/content';
+import { PUZZLE_COUNT } from '@/lib/stimmts/content';
 import { SHARE_FORMATS, parseShareParams } from '@/lib/stimmts/share-image';
 import { ImageResponse } from 'next/og';
 
 /**
  * The Stimmt's? share image, for the share sheet and for link previews. Its
- * parameters say everything it shows (number, score, the player's period), so
+ * parameters say everything it shows (number, score, day, the player's period), so
  * nothing is stored on a server, and the same URL always draws the same PNG.
  */
 export async function GET(request: Request) {
-  const data = parseShareParams(new URL(request.url).searchParams, SCHEDULE);
+  const data = parseShareParams(
+    new URL(request.url).searchParams,
+    PUZZLE_COUNT,
+  );
   if (!data) {
     return new Response('Invalid share image parameters', { status: 400 });
   }

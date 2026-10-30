@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import { PUZZLES, SCHEDULE } from './content';
+import { PUZZLES, PUZZLE_COUNT, createSchedule } from './content';
 import puzzlesJson from './content/puzzles.json';
 import fixturesJson from './fixtures/puzzles.json';
-import { validatePuzzle, validateSchedule } from './validate';
+import { validatePuzzle, validatePuzzleOrder } from './validate';
 
 // The parts of a puzzle the tests below tamper with, loosely typed on purpose:
 // they feed deliberately broken data to the validator.
@@ -37,9 +37,12 @@ describe('the shipped content', () => {
     }
   });
 
-  it('schedules only puzzles that exist', () => {
+  it('schedules only puzzles that exist, from the launch date on', () => {
+    const schedule = createSchedule('2026-11-15');
+    expect(schedule.startDate).toBe('2026-11-15');
+    expect(schedule.puzzleIds).toHaveLength(PUZZLE_COUNT);
     const ids = PUZZLES.map((puzzle) => puzzle.id);
-    for (const id of SCHEDULE.puzzleIds) {
+    for (const id of schedule.puzzleIds) {
       expect(ids).toContain(id);
     }
   });
@@ -190,25 +193,23 @@ describe('validatePuzzle: the bill document', () => {
   });
 });
 
-describe('validateSchedule', () => {
-  const startDate = '2026-10-15';
-
+describe('validatePuzzleOrder', () => {
   it('rejects a puzzle id that does not exist', () => {
     expect(() =>
-      validateSchedule({ startDate, puzzleIds: ['no-such-puzzle'] }, PUZZLES),
+      validatePuzzleOrder({ puzzleIds: ['no-such-puzzle'] }, PUZZLES),
     ).toThrow('unknown puzzle id');
   });
 
   it('rejects the same puzzle scheduled twice', () => {
     const id = PUZZLES[0].id;
-    expect(() =>
-      validateSchedule({ startDate, puzzleIds: [id, id] }, PUZZLES),
-    ).toThrow('scheduled twice');
+    expect(() => validatePuzzleOrder({ puzzleIds: [id, id] }, PUZZLES)).toThrow(
+      'scheduled twice',
+    );
   });
 
   it('rejects an empty schedule', () => {
-    expect(() =>
-      validateSchedule({ startDate, puzzleIds: [] }, PUZZLES),
-    ).toThrow('at least one');
+    expect(() => validatePuzzleOrder({ puzzleIds: [] }, PUZZLES)).toThrow(
+      'at least one',
+    );
   });
 });

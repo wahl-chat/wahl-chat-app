@@ -502,7 +502,8 @@ from the Qdrant-derived cursor on the next run.
   `{enabled: true, launch_date: "2026-11-15"}` (`launch_date` is a string,
   `YYYY-MM-DD`). The launch date is day 1 in Berlin time, day N is
   `launch_date + N − 1`, and the game runs for as many days as
-  `web/lib/stimmts/content/schedule.json` lists puzzles. The doc is public-read
+  `web/lib/stimmts/content/schedule.json` lists puzzles (changing them:
+  `docs/stimmts/CONTENT.md`). The doc is public-read
   under the existing `system_status/{id}` rule; edit it in the console, no
   deploy. Open pages follow it live.
 - **Off is the default.** A missing doc, `enabled` not exactly `true`, or a

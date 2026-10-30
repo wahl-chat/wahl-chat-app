@@ -1,5 +1,5 @@
 import { BASE_URL } from '@/lib/seo';
-import { PUZZLES, SCHEDULE } from '@/lib/stimmts/content';
+import { PUZZLES } from '@/lib/stimmts/content';
 import { partyLabel } from '@/lib/stimmts/labels';
 import { periodSeats } from '@/lib/stimmts/logo';
 import {
@@ -12,7 +12,7 @@ import { getGame } from '@/lib/stimmts/progress';
 import { scorePuzzle } from '@/lib/stimmts/score';
 import { buildShareText } from '@/lib/stimmts/share';
 import { shareImagePath, sharedResultPath } from '@/lib/stimmts/share-image';
-import type { Puzzle } from '@/lib/stimmts/types';
+import type { Puzzle, Schedule } from '@/lib/stimmts/types';
 import { useProgress } from '@/lib/stimmts/use-progress';
 import { cn } from '@/lib/utils';
 import { Pointer } from 'lucide-react';
@@ -55,6 +55,7 @@ type Props = {
   number: number;
   playDate: string;
   puzzle: Puzzle;
+  schedule: Schedule;
   /** Stamp the score on with a little bounce (the first time only). */
   stamping: boolean;
   /** Opens the vote: the chamber with every member's vote, without tips. */
@@ -76,6 +77,7 @@ function Result({
   number,
   playDate,
   puzzle,
+  schedule,
   stamping,
   onReview,
   onOpenDay,
@@ -91,7 +93,7 @@ function Result({
 
   const { cards, period, sharedPeriod } = useMemo(() => {
     const records = dayRecords({
-      schedule: SCHEDULE,
+      schedule,
       puzzles: PUZZLES,
       progress,
       throughNumber: number,
@@ -104,7 +106,7 @@ function Result({
       period: throughToday,
       sharedPeriod: encodePeriod(throughToday.days),
     };
-  }, [progress, number, game.cast]);
+  }, [schedule, progress, number, game.cast]);
 
   const cardRef = useRef<HTMLElement>(null);
   const slotRef = useRef<SVGPolygonElement>(null);
@@ -304,12 +306,12 @@ function Result({
         text={buildShareText({
           puzzleNumber: number,
           score,
-          url: `${BASE_URL}${sharedResultPath(number, score.correct)}`,
+          url: `${BASE_URL}${sharedResultPath({ number, score: score.correct, playDate })}`,
         })}
-        imagePath={shareImagePath({
-          format: 'square',
+        imagePath={shareImagePath('square', {
           number,
           score: score.correct,
+          playDate,
           period: sharedPeriod,
         })}
         imageName={`stimmts-${number}.png`}

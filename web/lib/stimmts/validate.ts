@@ -7,7 +7,6 @@ import type {
   PartyResult,
   Puzzle,
   PuzzleOutcome,
-  Schedule,
   SourceLink,
   VoteAnswer,
   VotedInDocument,
@@ -222,7 +221,10 @@ export function validatePuzzle(data: unknown): Puzzle {
   };
 }
 
-export function validateSchedule(data: unknown, puzzles: Puzzle[]): Schedule {
+export function validatePuzzleOrder(
+  data: unknown,
+  puzzles: Puzzle[],
+): string[] {
   const id = 'schedule';
   if (!isRecord(data)) {
     return fail(id, 'must be an object');
@@ -242,5 +244,5 @@ export function validateSchedule(data: unknown, puzzles: Puzzle[]): Schedule {
     seen.add(entry);
     return entry;
   });
-  return { startDate: readDate(data, 'startDate', id), puzzleIds };
+  return puzzleIds;
 }
