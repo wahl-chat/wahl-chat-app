@@ -36,6 +36,11 @@ def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _title(text: str) -> str:
+    """A title as the cover prints it: DIP flattens its dashes to hyphens."""
+    return _clean(text).replace(" - ", " – ")
+
+
 def submitter(record: dict) -> tuple[dict | None, list[str]]:
     """Who submitted it, as the Drucksache's cover prints it, and any notes.
 
@@ -175,7 +180,7 @@ def document(records: list[dict]) -> tuple[dict | None, list[str]]:
         "number": chosen.get("dokumentnummer"),
         "date": chosen.get("datum"),
         **who,
-        "title": _clean(chosen.get("titel", "")),
+        "title": _title(chosen.get("titel", "")),
         "url": (chosen.get("fundstelle") or {}).get("pdf_url"),
     }
     if recommendation:

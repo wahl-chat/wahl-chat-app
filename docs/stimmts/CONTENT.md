@@ -96,6 +96,10 @@ Before a puzzle is committed, a person checks:
 - [ ] `yesMeans` says in one sentence what a Ja vote meant. Take extra care
       with committee recommendations, where Ja can mean rejecting a motion.
 - [ ] The Drucksache fields are copied exactly from the PDF, or left out.
+      Compare them with the cover, not with DIP: DIP shortens committee
+      names ("Sportausschuss" for "Ausschuss für Sport und Ehrenamt"), writes
+      some Fraktionen differently ("DIE LINKE", "der AfD"), and flattens the
+      cover's dashes (the exporter restores those).
 - [ ] Across the schedule, topics and parties are mixed, and no run of days
       feels one-sided.
 

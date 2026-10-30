@@ -173,6 +173,16 @@ class TestDrucksachen:
         )
         assert committee_genitive("Bundesregierung") is None
 
+    def test_gives_titles_back_the_covers_dashes(self):
+        motion = {
+            **self.BILL,
+            "titel": "Deindustrialisierung stoppen - Verbrenner-Verbot aufheben",
+        }
+        found, _ = document([motion])
+        assert found["title"] == (
+            "Deindustrialisierung stoppen – Verbrenner-Verbot aufheben"
+        )
+
     def test_builds_the_document_with_the_version_voted_on(self):
         found, notes = document([self.RECOMMENDATION, self.BILL])
         assert found == {

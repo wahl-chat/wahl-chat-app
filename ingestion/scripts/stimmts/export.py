@@ -2,7 +2,7 @@
 
 Run from ingestion/ (needs DIP_API_KEY in ingestion/.env or ai-backend/.env):
 
-    PYTHONPATH=src:scripts uv run python -m stimmts.export
+    PYTHONPATH=src:../packages/wahlchat-common/src:scripts uv run python -m stimmts.export
 
     --refresh   fetch everything again instead of reusing output/
     --no-dip    skip the Drucksachen (no key needed); drafts get no document

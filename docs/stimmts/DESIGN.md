@@ -333,6 +333,11 @@ without touching them; separate tests check the shipped content.
 Checked in a browser: every switch state live, the share route (valid,
 redirected and refused URLs, a font outage), keyboard and screen-reader
 flows, 320 px and 375 px widths, two tabs, and a tab moved past midnight.
+The logic that lives in components and hooks (which screen shows, a game
+finished in another tab, counting each event once, the new-day notice, the
+switch's 8-second timeout) has no automated test, since the web tests run
+without a browser; the browser checks above are its only coverage, so repeat
+them after changing it.
 
 ## Status and rollout
 
