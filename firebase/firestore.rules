@@ -14,6 +14,23 @@ service cloud.firestore {
     	allow read;
     }
 
+    // The parliament feed: editions (one per parliament and sitting day) and
+    // their items. Written only by the backend feed builder via the admin SDK,
+    // which bypasses rules.
+    match /feed_editions/{edition_id} {
+      allow read;
+    }
+
+    match /feed_items/{item_id} {
+      allow read;
+    }
+
+    // The feed's shape before it was split into items. Read by web builds that
+    // predate the split until they are replaced; no longer written.
+    match /daily_digests/{digest_id} {
+      allow read;
+    }
+
     match /parties/{document=**} {
       allow read;
     }
@@ -147,6 +164,30 @@ service cloud.firestore {
         && pageVisitChatSessionsOk()
         && request.resource.data.visible_ms >= resource.data.visible_ms;
       allow delete: if false;
+    }
+
+    // "Interessant? Ja/Nein" on parliament feed items: one doc per user and
+    // item, id `{uid}_{item_id}`, so a changed answer overwrites instead of
+    // piling up. Write-only for clients; analysis reads via the admin SDK.
+    match /feed_interest/{doc_id} {
+      function feedInterestOk() {
+        let data = request.resource.data;
+        return request.auth != null
+          && data.keys().hasOnly(['user_id', 'item_id', 'value', 'at'])
+          && data.keys().hasAll(['user_id', 'item_id', 'value', 'at'])
+          && data.user_id == request.auth.uid
+          && data.item_id is string
+          && data.item_id.size() > 0
+          && data.item_id.size() <= 120
+          && doc_id == request.auth.uid + '_' + data.item_id
+          && data.value in ['yes', 'no']
+          && data.at == request.time;
+      }
+
+      allow read, list, delete: if false;
+      allow create: if feedInterestOk();
+      allow update: if feedInterestOk()
+        && resource.data.user_id == request.auth.uid;
     }
 
     match /wahl_swiper_results/{result_id} {

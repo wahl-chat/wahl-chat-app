@@ -83,6 +83,17 @@ self.addEventListener('fetch', (event) => {
   /** @type {FetchEvent} */
   const evt = event;
 
+  // Media needs no ID token, and a media request rebuilt below loses what the
+  // browser relies on for streaming (range requests, the 'no-cors' mode), so
+  // playback can silently fail. Let the browser fetch it natively.
+  if (
+    evt.request.destination === 'audio' ||
+    evt.request.destination === 'video' ||
+    evt.request.headers.has('range')
+  ) {
+    return;
+  }
+
   const requestProcessor = (idToken) => {
     let req = evt.request;
     let processRequestPromise = Promise.resolve();

@@ -7,7 +7,8 @@
         run-abgeordnetenwatch-votes run-all-landtage-votes run-speeches \
         run-manifestos run-manifesto-uploads upload-manifesto-uploads \
         collect-speeches fetch-mdb-stammdaten \
-        update-speeches speeches-stats
+        update-speeches speeches-stats export-prod-slice \
+        build-feed setup-feed-collection migrate-feed backfill-feed
 
 # --- Install dependencies ---
 
@@ -289,6 +290,42 @@ run-manifestos: bootstrap-collection
 run-pledgetracker: bootstrap-collection
 	cd ingestion && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
 		uv run python -m ingestion.connectors.pledgetracker.bulk $(ARGS)
+
+# Parliament feed (web /): per parliament and sitting day, every debate and
+# vote becomes a feed item (Firestore feed_items, grouped by feed_editions),
+# translated to English and indexed in Qdrant wahlchat_feed_{ENV}.
+#   make export-prod-slice                        # recent votes/speeches prod → local
+#   make setup-feed-collection                    # once, idempotent
+#   FIRESTORE_EMULATOR_HOST=localhost:8081 make build-feed ARGS="--dry-run --out /tmp/feed.json"
+#   FIRESTORE_EMULATOR_HOST=localhost:8081 make build-feed
+#   FIRESTORE_EMULATOR_HOST=localhost:8081 make migrate-feed   # daily_digests → feed_*
+# export-prod-slice reads PROD_QDRANT_URL / PROD_QDRANT_API_KEY from the shell
+# and only ever scrolls prod; the write target is the local QDRANT_URL.
+export-prod-slice:
+	cd ingestion && $(QDRANT_ENV) uv run python -m ingestion.feed.export_prod_slice $(ARGS)
+
+setup-feed-collection:
+	cd ingestion && $(QDRANT_ENV) uv run python -m ingestion.feed.index
+
+build-feed:
+	cd ingestion && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
+		GOOGLE_CLOUD_PROJECT=$(EMULATOR_PROJECT) \
+		uv run python -m ingestion.feed.bulk $(ARGS)
+
+# One-time backfill of a deployed feed (8 weeks by default), before the merge
+# that ships the feed to that environment. Needs its Qdrant exported and its
+# admin-SDK key in ingestion/ or ai-backend/ (or gcloud ADC):
+#   QDRANT_URL=... QDRANT_API_KEY=... make backfill-feed TARGET=dev ARGS="--plan"
+#   QDRANT_URL=... QDRANT_API_KEY=... make backfill-feed TARGET=dev
+backfill-feed:
+	@test -n "$(TARGET)" || (echo "ERROR: set TARGET=dev or TARGET=prod" && exit 1)
+	cd ingestion && ENV=$(TARGET) FIRESTORE_EMULATOR_HOST= \
+		uv run python -m ingestion.feed.backfill --env $(TARGET) $(ARGS)
+
+migrate-feed:
+	cd ingestion && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
+		GOOGLE_CLOUD_PROJECT=$(EMULATOR_PROJECT) \
+		uv run python -m ingestion.feed.migrate_digests $(ARGS)
 
 # Uploaded manifestos: party PDFs supplied directly, for elections with no AW
 # coverage. Metadata comes from the object path + Firestore seed fixtures.

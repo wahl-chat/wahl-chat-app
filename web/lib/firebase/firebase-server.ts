@@ -9,6 +9,7 @@ import {
   contextTag,
 } from '@/lib/cache-tags';
 import { GROUP_PARTY_ID, WAHL_CHAT_PARTY_ID } from '@/lib/constants';
+import { editionIdOf, pageStart } from '@/lib/daily/window';
 import type { PartyDetails } from '@/lib/party-details';
 import type {
   GroupedMessage,
@@ -22,6 +23,7 @@ import type { WahlSwiperQuestion } from '@/lib/wahl-swiper/wahl-swiper.types';
 import { initializeServerApp } from 'firebase/app';
 import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import {
+  type QueryConstraint,
   collection,
   connectFirestoreEmulator,
   doc,
@@ -45,9 +47,14 @@ import {
 import type {
   ChatSession,
   Context,
+  DigestParliamentId,
   ExampleQuestionShareableChatSession,
+  FeedEdition,
+  FeedItem,
+  FeedPage,
   FirebaseWahlSwiperResult,
   LlmSystemStatus,
+  ParliamentFeed,
   ProposedQuestion,
   SourceDocument,
 } from './firebase.types';
@@ -755,6 +762,148 @@ export const getExampleQuestionsShareableChatSession = cache(
     tags: [CacheTags.EXAMPLE_QUESTIONS_SHAREABLE_CHAT_SESSIONS],
   },
 );
+
+const DIGEST_PARLIAMENTS: readonly DigestParliamentId[] = [
+  'bundestag',
+  'landtag_st',
+  'landtag_bw',
+];
+// A safety cap only: two weeks of one parliament are far fewer items.
+const ITEMS_PER_PAGE = 500;
+
+/**
+ * The slice of one parliament's feed that ends on its newest edition before
+ * `before` (or its newest overall): `FEED_WINDOW_DAYS` days back from there.
+ * Anchoring on an edition, not the calendar, skips recesses, so an older
+ * slice is never empty while `hasOlder` is true.
+ */
+async function getFeedPageImpl(
+  parliament: DigestParliamentId,
+  before: string | null,
+): Promise<FeedPage> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const ofParliament = (name: string, ...constraints: QueryConstraint[]) =>
+    getDocs(
+      query(
+        collection(serverDb, name),
+        where('parliament', '==', parliament),
+        ...(before ? [where('date', '<', before)] : []),
+        ...constraints,
+        orderBy('date', 'desc'),
+      ),
+    );
+
+  const newest = await ofParliament('feed_editions', limit(1));
+  const anchor = newest.docs[0]?.data().date as string | undefined;
+  if (!anchor) {
+    throw new UncacheableEmptyError();
+  }
+  const from = pageStart(anchor);
+  const [editions, items, older] = await Promise.all([
+    ofParliament('feed_editions', where('date', '>=', from)),
+    ofParliament(
+      'feed_items',
+      where('date', '>=', from),
+      limit(ITEMS_PER_PAGE),
+    ),
+    ofParliament('feed_editions', where('date', '<', from), limit(1)),
+  ]);
+  return {
+    editions: rejectEmpty(editions.docs.map((d) => d.data() as FeedEdition)),
+    items: items.docs.map((d) => d.data() as FeedItem),
+    from,
+    hasOlder: !older.empty,
+  };
+}
+
+const EMPTY_PAGE: FeedPage = {
+  editions: [],
+  items: [],
+  from: null,
+  hasOlder: false,
+};
+
+/** The latest slice per parliament with its items, newest first. Both
+ * languages come along, so switching language needs no round-trip. */
+export async function getParliamentFeed(
+  parliament: DigestParliamentId,
+): Promise<FeedPage> {
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getFeedPageImpl,
+        ['getParliamentFeed', 'v2', parliament],
+        [CacheTags.FEED],
+      )(parliament, null),
+    EMPTY_PAGE,
+    `FAILED to fetch the feed for "${parliament}"`,
+  );
+}
+
+async function getFeedDayImpl(editionId: string): Promise<ParliamentFeed> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const edition = await getDoc(doc(serverDb, 'feed_editions', editionId));
+  if (!edition.exists()) {
+    throw new UncacheableEmptyError();
+  }
+  const data = edition.data() as FeedEdition;
+  const items = await getDocs(
+    query(
+      collection(serverDb, 'feed_items'),
+      where('parliament', '==', data.parliament),
+      where('date', '==', data.date),
+    ),
+  );
+  return {
+    editions: [data],
+    items: items.docs.map((d) => d.data() as FeedItem),
+  };
+}
+
+/** The sitting day of a shared item, so a link to an item older than the
+ * first slice still opens it. Null when the key names no stored day. */
+export async function getLinkedFeedDay(
+  itemKey: string,
+): Promise<ParliamentFeed | null> {
+  const editionId = editionIdOf(itemKey);
+  if (!editionId) {
+    return null;
+  }
+  return uncachedFallback<ParliamentFeed | null>(
+    () =>
+      cachedRead(
+        getFeedDayImpl,
+        ['getLinkedFeedDay', 'v1', editionId],
+        [CacheTags.FEED],
+      )(editionId),
+    null,
+    `FAILED to fetch the feed day "${editionId}"`,
+  );
+}
+
+/** The next older slice, for "Ältere Tage anzeigen". Called from the
+ * browser, so both arguments are checked before they reach a query. */
+export async function getOlderParliamentFeed(
+  parliament: DigestParliamentId,
+  before: string,
+): Promise<FeedPage> {
+  if (
+    !DIGEST_PARLIAMENTS.includes(parliament) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(before)
+  ) {
+    return EMPTY_PAGE;
+  }
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getFeedPageImpl,
+        ['getOlderParliamentFeed', 'v1', parliament, before],
+        [CacheTags.FEED],
+      )(parliament, before),
+    EMPTY_PAGE,
+    `FAILED to fetch older feed for "${parliament}" before ${before}`,
+  );
+}
 
 export async function getSystemStatus() {
   const path = '/system_status/llm_status';
