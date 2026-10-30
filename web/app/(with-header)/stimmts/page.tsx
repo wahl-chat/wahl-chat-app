@@ -1,4 +1,5 @@
 import StimmtsGame from '@/components/stimmts/stimmts-game';
+import { berlinDate } from '@/lib/stimmts/berlin-time';
 import { PUZZLE_COUNT } from '@/lib/stimmts/content';
 import { STIMMTS_FONT_CLASSES } from '@/lib/stimmts/fonts';
 import { isPreviewEnabled } from '@/lib/stimmts/preview';
@@ -32,7 +33,11 @@ export async function generateMetadata({
       query.set(key, value);
     }
   }
-  const result = parseShareParams(query, PUZZLE_COUNT)?.result;
+  const result = parseShareParams(
+    query,
+    PUZZLE_COUNT,
+    berlinDate(new Date()),
+  )?.result;
   const image = {
     url: shareImagePath('link', result),
     ...SHARE_FORMATS.link,

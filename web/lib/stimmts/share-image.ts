@@ -51,6 +51,10 @@ export type ShareImageData = {
   result?: SharedResult;
 };
 
+// No game ran before 2026. With the upper bound in parseShareParams, this
+// keeps junk dates out of the image cache without a year that runs out.
+const FIRST_PLAY_DATE = '2026-01-01';
+
 const PERIOD_PATTERN = new RegExp(`^[0-${MAX_SCORE}x]{1,${PERIOD_LENGTH}}$`);
 
 function wholeNumber(value: string | null): number | null {
@@ -77,11 +81,13 @@ function decodePeriod(
  * anyone can type, so anything out of range is refused rather than drawn.
  * `f` format, `n` puzzle number, `s` score, `d` the day it was played, `p`
  * the period (see encodePeriod). The link carries its own date, so drawing it
- * needs neither the launch date nor a database.
+ * needs neither the launch date nor a database. The date may lie up to a run's
+ * length after `today`, which preview mode's future days need.
  */
 export function parseShareParams(
   params: URLSearchParams,
   puzzleCount: number,
+  today: string,
 ): ShareImageData | null {
   const format = params.get('f') ?? 'square';
   if (!Object.hasOwn(SHARE_FORMATS, format)) {
@@ -100,7 +106,9 @@ export function parseShareParams(
     number > puzzleCount ||
     score === null ||
     score > MAX_SCORE ||
-    !isIsoDate(playDate)
+    !isIsoDate(playDate) ||
+    playDate < FIRST_PLAY_DATE ||
+    playDate > addDays(today, puzzleCount)
   ) {
     return null;
   }

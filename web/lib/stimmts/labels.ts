@@ -107,11 +107,14 @@ export function timeAgo(isoDate: string, fromIsoDate: string): string {
     return `vor ${Math.round(days / 7)} Wochen`;
   }
   const months = Math.round(days / 30.44);
-  if (months < 12) {
+  if (months === 12) {
+    return 'vor einem Jahr';
+  }
+  // In months until two full years, so 17 months never reads "vor 2 Jahren".
+  if (months < 24) {
     return `vor ${months} Monaten`;
   }
-  const years = Math.round(months / 12);
-  return years === 1 ? 'vor einem Jahr' : `vor ${years} Jahren`;
+  return `vor ${Math.floor(months / 12)} Jahren`;
 }
 
 /** "Ja bedeutet: dem … zustimmen." becomes "dem … zustimmen." */

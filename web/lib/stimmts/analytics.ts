@@ -1,10 +1,15 @@
 import { track } from '@vercel/analytics/react';
+import { claimOnce } from './claim-once';
+import { browserStorage } from './progress-store';
 
 // Counts only. The tips themselves never leave the device: a player's tips
 // are predictions, but a log of them per party could still be read as views.
 
-export function trackPuzzleStarted(day: number) {
-  track('stimmts_puzzle_started', { day });
+/** Once per puzzle and browser: not again after a reload or in another tab. */
+export function trackPuzzleStarted(day: number, puzzleId: string) {
+  if (claimOnce(browserStorage(), `stimmts:started:${puzzleId}`)) {
+    track('stimmts_puzzle_started', { day });
+  }
 }
 
 export function trackPuzzleCompleted(day: number, score: number) {

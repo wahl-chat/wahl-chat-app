@@ -10,7 +10,7 @@ import {
 const PUZZLE_COUNT = 40;
 
 const parse = (query: string) =>
-  parseShareParams(new URLSearchParams(query), PUZZLE_COUNT);
+  parseShareParams(new URLSearchParams(query), PUZZLE_COUNT, '2026-11-20');
 
 describe('parseShareParams', () => {
   it('reads a shared result with its period', () => {
@@ -55,6 +55,8 @@ describe('parseShareParams', () => {
     ['a score that is not a number', 'n=1&s=vier&d=2026-11-01'],
     ['a missing day', 'n=1&s=3'],
     ['a day that does not exist', 'n=1&s=3&d=2026-02-31'],
+    ['a day before any game ran', 'n=1&s=3&d=2025-12-31'],
+    ['a day far in the future', 'n=1&s=3&d=9999-12-31'],
     ['a period of the wrong length', 'n=3&s=4&d=2026-11-03&p=44'],
     ['a period that ends on another score', 'n=2&s=4&d=2026-11-02&p=45'],
     ['a period with other characters', 'n=2&s=4&d=2026-11-02&p=4<'],

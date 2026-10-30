@@ -33,6 +33,9 @@ describe('dates', () => {
     expect(timeAgo('2026-10-01', '2026-11-01')).toBe('vor 4 Wochen');
     expect(timeAgo('2026-07-10', '2026-11-01')).toBe('vor 4 Monaten');
     expect(timeAgo('2025-10-20', '2026-11-01')).toBe('vor einem Jahr');
+    expect(timeAgo('2025-06-27', '2026-12-13')).toBe('vor 18 Monaten');
+    expect(timeAgo('2024-10-01', '2026-11-01')).toBe('vor 2 Jahren');
+    expect(timeAgo('2023-12-01', '2026-11-01')).toBe('vor 2 Jahren');
   });
 });
 

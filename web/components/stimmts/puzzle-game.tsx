@@ -165,7 +165,7 @@ function PuzzleGame({ number, puzzle, schedule, today, onOpenDay }: Props) {
           puzzle={puzzle}
           onStart={() => {
             setStarted(true);
-            trackPuzzleStarted(number);
+            trackPuzzleStarted(number, puzzle.id);
             goTop();
           }}
         />

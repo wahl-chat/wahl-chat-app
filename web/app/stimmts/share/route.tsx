@@ -3,6 +3,7 @@ import ShareImage, {
   SHARE_IMAGE_TEXT,
 } from '@/components/stimmts/share-image';
 import { loadGoogleFont } from '@/lib/og/google-font';
+import { berlinDate } from '@/lib/stimmts/berlin-time';
 import { PUZZLE_COUNT } from '@/lib/stimmts/content';
 import { createLoadOnce } from '@/lib/stimmts/load-once';
 import {
@@ -41,7 +42,11 @@ const loadFonts = createLoadOnce(async () => {
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const data = parseShareParams(url.searchParams, PUZZLE_COUNT);
+  const data = parseShareParams(
+    url.searchParams,
+    PUZZLE_COUNT,
+    berlinDate(new Date()),
+  );
   if (!data) {
     return new Response('Invalid share image parameters', { status: 400 });
   }
