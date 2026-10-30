@@ -1351,5 +1351,676 @@
       "label": "Abgeordnetenwatch",
       "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/ukraine-zusaetzlich-militaerisch-und-humanitaer-unterstuetzen"
     }
+  },
+  {
+    "id": "buergergeld-grundsicherung",
+    "voteDate": "2026-03-05",
+    "topic": "Soziales",
+    "title": "Umgestaltung des Bürgergelds zur Grundsicherung",
+    "briefing": "Die Bundesregierung will das Bürgergeld zu einer neuen Grundsicherung umbauen. Erwerbsfähige sollen ihre Arbeitskraft im größtmöglichen zumutbaren Umfang einsetzen; Alleinstehende sollen grundsätzlich eine Vollzeitstelle annehmen, wenn das zumutbar ist und die Hilfebedürftigkeit beendet. Eltern sollen, sobald die Betreuung gesichert ist, in der Regel ab dem 14. Lebensmonat ihres Kindes arbeiten oder an Eingliederungsmaßnahmen teilnehmen. Wer etwa eine Fördermaßnahme abbricht, muss mit Kürzungen von bis zu 30 Prozent des Regelbedarfs für drei Monate rechnen; im Extremfall kann der Anspruch ganz entfallen. Das Schonvermögen soll nach Alter gestaffelt und die übernommenen Wohnkosten stärker begrenzt werden. Für Menschen mit psychischen Erkrankungen sollen die Schutzregeln gestärkt werden.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Bundesregierung zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 55,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 113,
+        "no": 0,
+        "abstain": 2,
+        "noShow": 5
+      },
+      {
+        "partyId": "gruene",
+        "answer": "no",
+        "yes": 0,
+        "no": 80,
+        "abstain": 0,
+        "noShow": 5
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 206,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 2
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 132,
+        "abstain": 0,
+        "noShow": 18
+      }
+    ],
+    "unaffiliated": 3,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/3541",
+      "date": "2026-01-12",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Dreizehnten Gesetzes zur Änderung des Zweiten Buches Sozialgesetzbuch und anderer Gesetze",
+      "url": "https://dserver.bundestag.de/btd/21/035/2103541.pdf"
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/umgestaltung-des-buergergelds-zur-neuen-grundsicherung-sgb-ii"
+    }
+  },
+  {
+    "id": "kernkraftwerke-rueckbau",
+    "voteDate": "2025-09-11",
+    "topic": "Energie",
+    "title": "Stopp des Rückbaus abgeschalteter Kernkraftwerke",
+    "briefing": "Die Fraktion der AfD fordert in einem Antrag, den Rückbau der stillgelegten Kernkraftwerke sofort zu stoppen und die Reaktoren möglichst schnell wieder in Betrieb zu nehmen. Dafür soll das Atomgesetz so geändert werden, dass wieder Strom aus Kernkraft erzeugt werden darf. Außerdem soll Deutschland der internationalen „Atomallianz“ beitreten. Der zuständige Ausschuss hat empfohlen, den Antrag abzulehnen. Abgestimmt wurde über diese Empfehlung.",
+    "yesMeans": "Ja bedeutet: der Empfehlung des Ausschusses folgen und den Antrag der AfD ablehnen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "yes",
+        "yes": 56,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 8
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 114,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 6
+      },
+      {
+        "partyId": "gruene",
+        "answer": "yes",
+        "yes": 79,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 6
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 199,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 131,
+        "abstain": 0,
+        "noShow": 20
+      }
+    ],
+    "unaffiliated": 2,
+    "document": {
+      "type": "Antrag",
+      "number": "21/220",
+      "date": "2025-05-20",
+      "fraktion": "der AfD",
+      "members": ["Andreas Bleck", "Dr. Michael Blos"],
+      "memberCount": 51,
+      "title": "Moratorium für den Rückbau abgeschalteter Kernkraftwerke",
+      "url": "https://dserver.bundestag.de/btd/21/002/2100220.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Ausschusses für Umwelt, Klimaschutz, Naturschutz und nukleare Sicherheit",
+        "number": "21/386",
+        "url": "https://dserver.bundestag.de/btd/21/003/2100386.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/kein-stopp-des-rueckbaus-abgeschalteter-kernkraftwerke-beschlussempfehlung"
+    }
+  },
+  {
+    "id": "haushalt-2026",
+    "voteDate": "2025-11-28",
+    "topic": "Haushalt",
+    "title": "Haushaltsgesetz 2026",
+    "briefing": "Abgestimmt wurde abschließend über den Bundeshaushalt für 2026, in der vom Haushaltsausschuss geänderten Fassung. Er sieht Ausgaben von 524,54 Milliarden Euro vor, 21,54 Milliarden Euro mehr als 2025. Davon sind 58,35 Milliarden Euro für Investitionen eingeplant. Der Bund will 97,96 Milliarden Euro neue Kredite aufnehmen; aus Steuern und steuerähnlichen Abgaben erwartet er 387,21 Milliarden Euro.",
+    "yesMeans": "Ja bedeutet: dem Haushaltsgesetz 2026 zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 54,
+        "abstain": 0,
+        "noShow": 10
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 118,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 2
+      },
+      {
+        "partyId": "gruene",
+        "answer": "no",
+        "yes": 0,
+        "no": 68,
+        "abstain": 0,
+        "noShow": 17
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 203,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 5
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 130,
+        "abstain": 0,
+        "noShow": 21
+      }
+    ],
+    "unaffiliated": 2,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/600",
+      "date": "2025-08-15",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Gesetzes über die Feststellung des Bundeshaushaltsplans für das Haushaltsjahr 2026 (Haushaltsgesetz 2026 - HG 2026)",
+      "url": "https://dserver.bundestag.de/btd/21/006/2100600.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Haushaltsausschusses",
+        "number": "21/2062",
+        "url": "https://dserver.bundestag.de/btd/21/020/2102062.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/schlussabstimmung-zum-haushaltsgesetz-2026"
+    }
+  },
+  {
+    "id": "geas-asylreform",
+    "voteDate": "2026-02-27",
+    "topic": "Asyl",
+    "title": "Umsetzung der EU-Asylreform (GEAS)",
+    "briefing": "Die EU hat 2024 eine Reform des Gemeinsamen Europäischen Asylsystems (GEAS) beschlossen, die Mitte 2026 vollständig gilt. Die Bundesregierung will das deutsche Asyl- und Aufenthaltsrecht daran anpassen. Kern der Reform sind verpflichtende Grenzverfahren: Asylanträge von Menschen, die voraussichtlich keinen Schutz bekommen, etwa weil sie aus Herkunftsstaaten mit einer EU-weiten Schutzquote von höchstens 20 Prozent kommen, sollen beschleunigt an den EU-Außengrenzen geprüft werden, in Deutschland an Flughäfen und Seehäfen. Unbegleitete Minderjährige sind davon ausgenommen, sofern sie keine Sicherheitsgefahr darstellen. Ein Solidaritätsmechanismus soll besonders belastete Mitgliedstaaten entlasten.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Bundesregierung zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 48,
+        "abstain": 0,
+        "noShow": 16
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 106,
+        "no": 1,
+        "abstain": 2,
+        "noShow": 11
+      },
+      {
+        "partyId": "gruene",
+        "answer": "no",
+        "yes": 0,
+        "no": 83,
+        "abstain": 0,
+        "noShow": 2
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 203,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 5
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 128,
+        "abstain": 0,
+        "noShow": 23
+      }
+    ],
+    "unaffiliated": 2,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/1848",
+      "date": "2025-09-29",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Gesetzes zur Anpassung des nationalen Rechts an die Reform des Gemeinsamen Europäischen Asylsystems (GEAS-Anpassungsgesetz)",
+      "url": "https://dserver.bundestag.de/btd/21/018/2101848.pdf"
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/anpassung-des-nationalen-rechts-an-die-reform-des-gemeinsamen-europaeischen-asylsystems-geas-anpassungsgesetz"
+    }
+  },
+  {
+    "id": "uebertragungsnetzkosten-2026",
+    "voteDate": "2025-11-13",
+    "topic": "Energie",
+    "title": "Zuschuss zu den Übertragungsnetzkosten 2026",
+    "briefing": "Die Bundesregierung will den Betreibern der überregionalen Stromnetze, der sogenannten Übertragungsnetze, für das Jahr 2026 einen Zuschuss von insgesamt 6,5 Milliarden Euro aus dem Klima- und Transformationsfonds zahlen. Dadurch sollen die Entgelte für die Nutzung dieser Netze sinken und mit ihnen die Strompreise für Verbraucher:innen. Geregelt wird das in einem neuen Paragrafen im Energiewirtschaftsgesetz.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Bundesregierung zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "abstain",
+        "yes": 0,
+        "no": 0,
+        "abstain": 43,
+        "noShow": 21
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 111,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 9
+      },
+      {
+        "partyId": "gruene",
+        "answer": "abstain",
+        "yes": 0,
+        "no": 0,
+        "abstain": 73,
+        "noShow": 12
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 198,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 10
+      },
+      {
+        "partyId": "afd",
+        "answer": "abstain",
+        "yes": 0,
+        "no": 0,
+        "abstain": 121,
+        "noShow": 30
+      }
+    ],
+    "unaffiliated": 2,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/1863",
+      "date": "2025-09-29",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Gesetzes für einen Zuschuss zu den Übertragungsnetzkosten für das Jahr 2026",
+      "url": "https://dserver.bundestag.de/btd/21/018/2101863.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Ausschusses für Wirtschaft und Energie",
+        "number": "21/2754",
+        "url": "https://dserver.bundestag.de/btd/21/027/2102754.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/zuschuss-zu-den-uebertragungsnetzkosten-fuer-das-jahr-2026"
+    }
+  },
+  {
+    "id": "corona-untersuchungsausschuss",
+    "voteDate": "2025-07-10",
+    "topic": "Gesundheit",
+    "title": "Untersuchungsausschuss zur Corona-Pandemie",
+    "briefing": "Die Fraktion der AfD beantragt einen Untersuchungsausschuss des Bundestages zur Aufarbeitung der Corona-Pandemie. Er soll die politischen Entscheidungen und Maßnahmen während der Pandemie untersuchen, vor allem ihre Verhältnismäßigkeit und ihre Folgen für die Gesellschaft, und aus neun ordentlichen Mitgliedern bestehen. Der zuständige Ausschuss hat empfohlen, den Antrag abzulehnen. Abgestimmt wurde über diese Empfehlung.",
+    "yesMeans": "Ja bedeutet: der Empfehlung des Ausschusses folgen und den Antrag der AfD ablehnen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "yes",
+        "yes": 54,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 10
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 112,
+        "no": 1,
+        "abstain": 0,
+        "noShow": 7
+      },
+      {
+        "partyId": "gruene",
+        "answer": "yes",
+        "yes": 83,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 2
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 200,
+        "no": 0,
+        "abstain": 1,
+        "noShow": 7
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 145,
+        "abstain": 0,
+        "noShow": 6
+      }
+    ],
+    "unaffiliated": 2,
+    "document": {
+      "type": "Antrag",
+      "number": "21/573",
+      "date": "2025-06-24",
+      "fraktion": "der AfD",
+      "members": ["Stephan Brandner", "Martin Sichert"],
+      "memberCount": 29,
+      "title": "Einsetzung des 1. Untersuchungsausschusses der 21. Wahlperiode (Aufarbeitung der Corona-Pandemie)",
+      "url": "https://dserver.bundestag.de/btd/21/005/2100573.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Ausschusses für Wahlprüfung, Immunität und Geschäftsordnung",
+        "number": "21/805",
+        "url": "https://dserver.bundestag.de/btd/21/008/2100805.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/keinen-untersuchungsausschuss-zur-aufarbeitung-der-corona-pandemie-einsetzen-beschlussempfehlung"
+    }
+  },
+  {
+    "id": "schwarzarbeit-digital",
+    "voteDate": "2025-11-13",
+    "topic": "Arbeit",
+    "title": "Digitalisierung der Bekämpfung von Schwarzarbeit",
+    "briefing": "Die Bundesregierung will die Finanzkontrolle Schwarzarbeit des Zolls modernisieren. Große Datenmengen sollen automatisiert und auch mit künstlicher Intelligenz ausgewertet werden, um Risiken für Schwarzarbeit besser zu erkennen und rechtstreue Betriebe zu entlasten. Die Kontrolle soll sich stärker auf organisierte Kriminalität richten und dafür an den polizeilichen Informationsverbund angeschlossen werden. Zoll und Landesbehörden sollen mehr Befugnisse bekommen. Bis 2029 werden dadurch rund 858 Millionen Euro Mehreinnahmen erwartet.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Bundesregierung zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 48,
+        "abstain": 0,
+        "noShow": 16
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 117,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 3
+      },
+      {
+        "partyId": "gruene",
+        "answer": "abstain",
+        "yes": 0,
+        "no": 0,
+        "abstain": 77,
+        "noShow": 8
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 204,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 4
+      },
+      {
+        "partyId": "afd",
+        "answer": "abstain",
+        "yes": 1,
+        "no": 2,
+        "abstain": 128,
+        "noShow": 20
+      }
+    ],
+    "unaffiliated": 2,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/1930",
+      "date": "2025-10-01",
+      "initiator": "der Bundesregierung",
+      "title": "Entwurf eines Gesetzes zur Modernisierung und Digitalisierung der Schwarzarbeitsbekämpfung",
+      "url": "https://dserver.bundestag.de/btd/21/019/2101930.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Finanzausschusses",
+        "number": "21/2670",
+        "url": "https://dserver.bundestag.de/btd/21/026/2102670.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/modernisierung-und-digitalisierung-der-bekaempfung-von-schwarzarbeit"
+    }
+  },
+  {
+    "id": "uebergewinnsteuer",
+    "voteDate": "2026-09-25",
+    "topic": "Steuern",
+    "title": "Einführung einer Übergewinnsteuer",
+    "briefing": "Die Fraktion Bündnis 90/Die Grünen fordert die Bundesregierung in einem Entschließungsantrag auf, statt des Tankrabatts eine nationale Übergewinnsteuer einzuführen. Sie soll Unternehmen treffen, die in Krisenzeiten dank starker Marktstellung besonders hohe zusätzliche Gewinne erzielen: wenn die Gewinne mindestens 15 Prozent über dem Durchschnitt der sieben Jahre vor der Krise liegen und die Preise stärker steigen, als Kosten und Nachfrage erklären. Der Steuersatz soll mindestens 33 Prozent betragen. Außerdem fordert der Antrag ein direkt ausgezahltes Energiekrisengeld, ein schärferes Kartellrecht und eine Senkung der Stromsteuer auf das europarechtliche Mindestmaß.",
+    "yesMeans": "Ja bedeutet: dem Entschließungsantrag der Grünen zustimmen.",
+    "outcome": "rejected",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "yes",
+        "yes": 53,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 11
+      },
+      {
+        "partyId": "spd",
+        "answer": "no",
+        "yes": 0,
+        "no": 108,
+        "abstain": 0,
+        "noShow": 12
+      },
+      {
+        "partyId": "gruene",
+        "answer": "yes",
+        "yes": 73,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 12
+      },
+      {
+        "partyId": "cdu",
+        "answer": "no",
+        "yes": 0,
+        "no": 197,
+        "abstain": 0,
+        "noShow": 11
+      },
+      {
+        "partyId": "afd",
+        "answer": "no",
+        "yes": 0,
+        "no": 111,
+        "abstain": 0,
+        "noShow": 39
+      }
+    ],
+    "unaffiliated": 3,
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/einfuehrung-einer-uebergewinnsteuer"
+    }
+  },
+  {
+    "id": "familiennachzug-aussetzen",
+    "voteDate": "2025-06-27",
+    "topic": "Migration",
+    "title": "Aussetzung des Familiennachzugs für subsidiär Schutzberechtigte",
+    "briefing": "Subsidiär schutzberechtigt sind Menschen, die weder als Flüchtlinge anerkannt noch asylberechtigt sind, denen in ihrem Herkunftsland aber ein ernsthafter Schaden droht. Bisher dürfen ihre engsten Angehörigen im Rahmen eines Kontingents von 1.000 Visa im Monat nachziehen. Die Fraktionen der CDU/CSU und SPD wollen diesen Familiennachzug für zwei Jahre aussetzen; in Härtefällen soll er weiter möglich sein. Außerdem soll die „Begrenzung“ der Zuwanderung wieder ausdrücklich als Ziel im Aufenthaltsgesetz stehen.",
+    "yesMeans": "Ja bedeutet: dem Gesetzentwurf der Fraktionen der CDU/CSU und SPD zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 51,
+        "abstain": 0,
+        "noShow": 13
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 117,
+        "no": 2,
+        "abstain": 0,
+        "noShow": 1
+      },
+      {
+        "partyId": "gruene",
+        "answer": "no",
+        "yes": 0,
+        "no": 80,
+        "abstain": 0,
+        "noShow": 5
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 202,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 6
+      },
+      {
+        "partyId": "afd",
+        "answer": "yes",
+        "yes": 125,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 26
+      }
+    ],
+    "unaffiliated": 2,
+    "document": {
+      "type": "Gesetzentwurf",
+      "number": "21/321",
+      "date": "2025-06-03",
+      "initiator": "der Fraktionen der CDU/CSU und SPD",
+      "title": "Entwurf eines Gesetzes zur Aussetzung des Familiennachzugs zu subsidiär Schutzberechtigten",
+      "url": "https://dserver.bundestag.de/btd/21/003/2100321.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Innenausschusses",
+        "number": "21/634",
+        "url": "https://dserver.bundestag.de/btd/21/006/2100634.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/aussetzung-des-familiennachzugs-fuer-subsidiaer-schutzberechtigte"
+    }
+  },
+  {
+    "id": "rotes-meer-aspides",
+    "voteDate": "2026-10-15",
+    "topic": "Außenpolitik",
+    "title": "Bundeswehreinsatz im Roten Meer (ASPIDES)",
+    "briefing": "Die Bundeswehr beteiligt sich an der EU-Operation EUNAVFOR ASPIDES, die Handelsschiffe im Roten Meer und angrenzenden Seegebieten schützt und begleitet. Die Bundesregierung will das Mandat, das Ende Oktober 2026 ausläuft, um ein Jahr verlängern, und begründet das mit anhaltenden Angriffen der Huthi-Miliz aus dem Jemen auf die Schifffahrt. Wie bisher sollen sich bis zu 350 Soldat:innen beteiligen können; die Zusatzkosten schätzt die Bundesregierung auf rund 18,9 Millionen Euro. Der zuständige Ausschuss hat empfohlen, dem Antrag zuzustimmen. Abgestimmt wurde über diese Empfehlung.",
+    "yesMeans": "Ja bedeutet: der Empfehlung des Ausschusses folgen und der Verlängerung des Einsatzes zustimmen.",
+    "outcome": "accepted",
+    "parties": [
+      {
+        "partyId": "linke",
+        "answer": "no",
+        "yes": 0,
+        "no": 54,
+        "abstain": 0,
+        "noShow": 10
+      },
+      {
+        "partyId": "spd",
+        "answer": "yes",
+        "yes": 105,
+        "no": 0,
+        "abstain": 3,
+        "noShow": 12
+      },
+      {
+        "partyId": "gruene",
+        "answer": "abstain",
+        "yes": 0,
+        "no": 0,
+        "abstain": 80,
+        "noShow": 5
+      },
+      {
+        "partyId": "cdu",
+        "answer": "yes",
+        "yes": 197,
+        "no": 0,
+        "abstain": 0,
+        "noShow": 11
+      },
+      {
+        "partyId": "afd",
+        "answer": "yes",
+        "yes": 116,
+        "no": 12,
+        "abstain": 7,
+        "noShow": 15
+      }
+    ],
+    "unaffiliated": 3,
+    "document": {
+      "type": "Antrag",
+      "number": "21/8294",
+      "date": "2026-09-30",
+      "initiator": "der Bundesregierung",
+      "title": "Fortsetzung der Beteiligung bewaffneter deutscher Streitkräfte an der von der Europäischen Union geführten Operation European Union Naval Force ASPIDES (EUNAVFOR ASPIDES)",
+      "url": "https://dserver.bundestag.de/btd/21/082/2108294.pdf",
+      "votedIn": {
+        "label": "Beschlussempfehlung des Auswärtigen Ausschusses",
+        "number": "21/8612",
+        "url": "https://dserver.bundestag.de/btd/21/086/2108612.pdf"
+      }
+    },
+    "source": {
+      "label": "Abgeordnetenwatch",
+      "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/verlaengerung-des-bundeswehreinsatzes-im-roten-meer-eunavfor-aspides"
+    }
   }
 ]
