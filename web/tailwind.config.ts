@@ -140,32 +140,29 @@ export default {
           '0%, 60%, 100%': { transform: 'translateY(0)' },
           '30%': { transform: 'translateY(-4px)' },
         },
-        // Screens swap with a short fade-and-rise.
+        // Stimmt's? (components/stimmts): screen changes, the waiting card's
+        // ripple and hint, the cast into the urn, the reveal and the stamp.
         'stimmts-screen': {
           from: { opacity: '0', transform: 'translateY(6px)' },
           to: { opacity: '1', transform: 'none' },
         },
-        // A ring that keeps rippling out from the Stimmkarte while it waits
-        // to be cast.
         'stimmts-pulse': {
           '0%': { opacity: '0.55', transform: 'scale(1)' },
           '100%': { opacity: '0', transform: 'scale(1.07)' },
         },
-        // The hint pops in under the card, stays a moment, then fades away.
         'stimmts-hint': {
           '0%': { opacity: '0', transform: 'translateY(6px) scale(0.92)' },
           '8%, 82%': { opacity: '1', transform: 'none' },
           '100%': { opacity: '0', transform: 'translateY(-4px)' },
         },
-        // The hint's finger taps.
         'stimmts-tap': {
           '0%, 100%': { transform: 'translateY(0) scale(1)' },
           '45%': { transform: 'translateY(-4px) scale(1)' },
           '60%': { transform: 'translateY(1px) scale(0.9)' },
         },
-        // Casting, in three moves. The card shrinks to the slot's width and
-        // flies to just above it (the offset and scale are measured into
-        // --dx, --dy and --s, so it lands wherever the layout puts the urn).
+        // Casting, in three moves: fly, insert, fall. The flight's offset and
+        // scale are measured into --dx, --dy and --s, so the card lands on the
+        // slot wherever the layout puts the urn.
         'stimmts-fly': {
           '0%': { transform: 'none' },
           '30%': { transform: 'translateY(-12px) scale(0.96)' },
@@ -174,24 +171,20 @@ export default {
               'translate(var(--dx, 0px), var(--dy, 200px)) scale(var(--s, 0.12))',
           },
         },
-        // It slides down through the slot (the lid hides what went through).
         'stimmts-insert': {
           from: { transform: 'none' },
           to: { transform: 'translateY(32px)' },
         },
-        // And falls inside the glass onto the pile, with a little bounce.
         'stimmts-fall': {
           '0%': { transform: 'translateY(var(--fall, -100px))' },
           '78%': { transform: 'translateY(0)' },
           '88%': { transform: 'translateY(-4px)' },
           '100%': { transform: 'translateY(0)' },
         },
-        // A party's real vote and verdict flip into view on its reveal.
         'stimmts-flip': {
           from: { opacity: '0', transform: 'rotateX(90deg) scale(0.9)' },
           to: { opacity: '1', transform: 'none' },
         },
-        // The score lands on the Stimmkarte like a rubber stamp.
         'stimmts-stamp': {
           from: { opacity: '0', transform: 'rotate(-6deg) scale(1.8)' },
           to: { opacity: '1', transform: 'rotate(-6deg) scale(1)' },

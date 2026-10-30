@@ -2,11 +2,7 @@ import { Button, type ButtonProps } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { forwardRef } from 'react';
 
-/**
- * The game's call to action between screens ("Ergebnis teilen", "Zum
- * Ergebnis"): a pill sized to its label, in the display face, like "Los
- * geht's" at the start, so every step forward looks the same.
- */
+/** The game's call to action, so every step forward looks the same. */
 const PillButton = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, ...props }, ref) => (
     <Button

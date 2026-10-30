@@ -54,7 +54,7 @@ type Props = {
   states: Record<string, PartyState>;
   /** The hollow centre: a big line and a small one. */
   center: { big: string; small: string };
-  /** Called for parties whose state is tappable (click, Enter, Space). */
+  /** Called for parties whose state is tappable (pointer only). */
   onPartyClick?: (partyId: string) => void;
 };
 

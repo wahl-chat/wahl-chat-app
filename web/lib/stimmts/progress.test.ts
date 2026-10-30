@@ -155,11 +155,11 @@ describe('parseProgress', () => {
     expect(Object.keys(progress.games)).toEqual(['good']);
   });
 
-  it('reads saves from before the Stimmkarte, with no cast flag', () => {
+  it('reads a game without a cast flag as not cast, ignoring unknown keys', () => {
     const progress = parseProgress({
       version: 1,
       games: { old: { guesses: { linke: 'no' }, finishedOn: '2026-11-01' } },
-      streak: { current: 1, best: 1, lastPlayed: '2026-11-01' },
+      somethingElse: true,
     });
     expect(progress).toEqual({
       version: 1,

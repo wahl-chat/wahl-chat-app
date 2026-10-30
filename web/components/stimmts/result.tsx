@@ -64,16 +64,12 @@ type Props = {
   onReview: () => void;
   /** Opens a past day of this Wahlperiode, already turned over. */
   onOpenDay: (number: number) => void;
-  /** Whether a past day's puzzle can be shown (it may not be released). */
-  canOpenDay: (number: number) => boolean;
 };
 
 /**
- * The end of the day's puzzle, top to bottom: the stamped Stimmkarte, which
- * the player casts into the urn, the urn with this Wahlperiode's cards,
- * "Dein Ergebnis", the outcome, sharing and the links back. Once the card is
- * in, it is gone, and the urn opens the screen with the card count and the
- * countdown under it.
+ * The end of the day's puzzle: the stamped Stimmkarte for the player to cast
+ * into the urn, then the score, the outcome, the Wahlperiode and sharing.
+ * Once cast, the card is gone and the countdown takes its place.
  */
 function Result({
   number,
@@ -83,7 +79,6 @@ function Result({
   stamping,
   onReview,
   onOpenDay,
-  canOpenDay,
 }: Props) {
   const progress = useProgress((state) => state.progress);
   const castCard = useProgress((state) => state.cast);
@@ -164,8 +159,6 @@ function Result({
   const cardsInUrn = castStep && castStep !== 'flying' ? cards + 1 : cards;
 
   return (
-    // Each block of the screen gets room of its own; inside a block, its
-    // parts stay close.
     <div className="flex flex-col gap-10">
       {!game.cast && (
         // The card's space closes once it is in the urn, so the urn rises
@@ -185,7 +178,6 @@ function Result({
             )}
           >
             {!castStep && (
-              // Ripples out from the card while it waits to be cast.
               <span
                 aria-hidden
                 className="pointer-events-none absolute inset-0 animate-stimmts-pulse rounded-[10px] border-2 border-foreground motion-reduce:hidden"
@@ -291,7 +283,6 @@ function Result({
           complete={period.complete}
           today={number}
           onOpen={onOpenDay}
-          canOpen={canOpenDay}
           className="mx-auto max-w-[300px]"
         />
         <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 flex-col items-center whitespace-nowrap">

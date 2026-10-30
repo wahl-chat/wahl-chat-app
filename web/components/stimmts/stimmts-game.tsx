@@ -220,7 +220,6 @@ function StimmtsGame({ previewEnabled }: Props) {
             setPastDay(number);
             scrollTop();
           }}
-          canOpenDay={(number) => dayPuzzle(number) !== null}
         />
       )}
       {today.status === 'not-started' && (

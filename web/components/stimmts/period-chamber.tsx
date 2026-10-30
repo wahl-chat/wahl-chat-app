@@ -35,8 +35,6 @@ type Props = {
   today: number;
   /** Opens a past day; played and missed seats before today are buttons. */
   onOpen?: (number: number) => void;
-  /** Whether that day's puzzle can be shown (it may not be released). */
-  canOpen?: (number: number) => boolean;
   className?: string;
 };
 
@@ -60,7 +58,6 @@ function PeriodChamber({
   complete = false,
   today,
   onOpen,
-  canOpen = () => true,
   className,
 }: Props) {
   return (
@@ -78,8 +75,7 @@ function PeriodChamber({
         };
         const day = 'day' in seat ? seat.day : null;
         const isToday = day?.number === today;
-        const openable =
-          !!onOpen && !!day && day.number < today && canOpen(day.number);
+        const openable = !!onOpen && !!day && day.number < today;
         const open = () => day && onOpen?.(day.number);
         const onKeyDown = (event: KeyboardEvent) => {
           if (event.key === 'Enter' || event.key === ' ') {

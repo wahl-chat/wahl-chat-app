@@ -32,8 +32,6 @@ function Briefing({ number, playDate, puzzle, onStart }: Props) {
     puzzle.unaffiliated;
 
   return (
-    // Each block (card, bill, chamber, start) gets room of its own, as on
-    // the result.
     <div className="flex flex-col gap-10">
       <Stimmkarte
         number={number}

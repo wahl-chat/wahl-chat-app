@@ -27,7 +27,7 @@ type GameProgress = {
  */
 export type Progress = {
   version: typeof PROGRESS_VERSION;
-  /** By puzzle id, so earlier puzzles stay available for an archive later. */
+  /** By puzzle id, so a past day can be opened again. */
   games: Record<string, GameProgress>;
 };
 
@@ -163,7 +163,7 @@ function parseGame(raw: unknown): GameProgress | null {
   if (!guesses || !(finishedOn === null || isIsoDate(finishedOn))) {
     return null;
   }
-  // Saves from before the Stimmkarte have no flag: their card was never cast.
+  // A missing flag reads as not cast; only a finished game has a card.
   const cast = raw.cast === true && finishedOn !== null;
   return { guesses, finishedOn, cast };
 }

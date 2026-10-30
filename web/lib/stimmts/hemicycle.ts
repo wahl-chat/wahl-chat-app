@@ -1,8 +1,5 @@
-// The chamber's geometry. The layout (rows, seats per row, wedges) is the
-// one the landing page's news feed draws in web/lib/daily/hemicycle.ts, so
-// the game and the feed show one and the same Bundestag. That module is not
-// merged yet; once it is, share the layout from there and keep only the
-// game's bands and logo tiles here.
+// The chamber's geometry: rows, seats per row, party wedges, and the bands
+// and logo tiles around them.
 
 import type { PartyResult } from './types';
 
@@ -143,7 +140,7 @@ function votesInOrder(party: PartyResult): SeatVote[] {
 /**
  * One seat per member: party wedges in the puzzle's (seating) order, members
  * grouped by vote inside each wedge, and the members without a Fraktion at
- * the right end, where the news feed puts them too. Coordinates are in a
+ * the right end. Coordinates are in a
  * unit half disc (x ∈ [-1, 1], y ∈ [0, 1], y pointing up).
  */
 export function layoutChamber(
