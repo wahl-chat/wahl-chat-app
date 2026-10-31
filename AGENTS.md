@@ -496,6 +496,31 @@ Ingestion must tolerate the 15-minute scheduled-job cap: runs are
 batch-windowed and time-budgeted (`--batch-size`, `--time-budget`) and resume
 from the Qdrant-derived cursor on the next run.
 
+### Stimmt's? (daily puzzle at `/stimmts`)
+
+- **Switch**: Firestore doc `system_status/stimmts`
+  `{enabled: true, launch_date: "2026-11-15"}` (`launch_date` is a string,
+  `YYYY-MM-DD`). The launch date is day 1 in Berlin time, day N is
+  `launch_date + N − 1`, and the game runs for as many days as
+  `web/lib/stimmts/content/schedule.json` lists puzzles (changing them:
+  `docs/stimmts/CONTENT.md`). The doc is public-read
+  under the existing `system_status/{id}` rule; edit it in the console, no
+  deploy. Open pages follow it live.
+- **Off is the default.** A missing doc, `enabled` not exactly `true`, or a
+  `launch_date` that is not a real date all hide the game. Before the launch
+  date it says when it starts. If Firestore cannot be reached (ad blocker,
+  firewall), the page offers a retry after 8 seconds.
+- **Never change `launch_date` once anyone has played.** It renumbers every
+  day, so played days turn into missed ones. Switching off and on again does
+  not pause the calendar: the days keep counting from the launch date.
+- **Local**: the emulator UI is disabled, so write the doc over REST:
+
+  ```bash
+  curl -X PATCH 'http://localhost:8081/v1/projects/demo-wahl-chat/databases/(default)/documents/system_status/stimmts' \
+    -H 'Authorization: Bearer owner' -H 'Content-Type: application/json' \
+    -d '{"fields":{"enabled":{"booleanValue":true},"launch_date":{"stringValue":"2026-11-15"}}}'
+  ```
+
 ### Seeding dev/prod
 
 The two stores are seeded by different mechanisms, on purpose:

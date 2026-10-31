@@ -46,6 +46,31 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Stimmt's? palette, as RGB channels so Tailwind's opacity modifiers work.
+       The vote colours are exact: seat-yes and seat-no share one lightness, so
+       the game always pairs them with a word or a legend. The seat variables
+       carry the game's prefix because other features define seat colours too. */
+    --brand-red: 237 56 51; /* #ed3833, the check in the wahl.chat logo */
+    --stimmts-seat-yes: 47 138 91; /* #2f8a5b */
+    --stimmts-seat-no: 194 65 75; /* #c2414b */
+    --stimmts-seat-abstain: 217 169 58; /* #d9a93a */
+    --stimmts-seat-absent-ring: 161 161 170; /* #a1a1aa */
+    --stimmts-seat-unaffiliated: 113 113 122; /* #71717a */
+    --stimmts-seat-pending: 212 212 216; /* #d4d4d8 */
+    --tally-low: 161 161 170; /* #a1a1aa */
+    --tally-mid: 82 82 91; /* #52525b */
+    --tally-top: 9 9 11; /* #09090b */
+    --result-correct: 21 128 61; /* #15803d */
+    --result-wrong: 185 28 28; /* #b91c1c */
+    --party-linke: 255 0 0; /* #ff0000 */
+    --party-spd: 228 0 27; /* #e4001b */
+    --party-gruene: 0 84 56; /* #005438 */
+    --party-cdu: 82 183 193; /* #52b7c1 */
+    --party-afd: 1 158 224; /* #019ee0 */
+    --paper: 255 255 255; /* #ffffff */
+    --paper-ink: 10 10 10; /* #0a0a0a */
+    --paper-muted: 82 82 91; /* #52525b */
+    --paper-rule: 212 212 216; /* #d4d4d8 */
     --chat-header-height: 65px;
     --scroll-distance: 0px;
     --scroll-duration: 5s;
@@ -90,6 +115,16 @@ body {
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --stimmts-seat-pending: 63 63 70; /* #3f3f46 */
+    --tally-low: 82 82 91; /* #52525b */
+    --tally-mid: 161 161 170; /* #a1a1aa */
+    --tally-top: 250 250 250; /* #fafafa */
+    --result-correct: 74 222 128; /* #4ade80 */
+    --result-wrong: 248 113 113; /* #f87171 */
+    --paper: 24 24 27; /* #18181b */
+    --paper-ink: 244 244 245; /* #f4f4f5 */
+    --paper-muted: 161 161 170; /* #a1a1aa */
+    --paper-rule: 63 63 70; /* #3f3f46 */
   }
 }
 
