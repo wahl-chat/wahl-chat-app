@@ -48,6 +48,7 @@ from qdrant_client import QdrantClient
 from ingestion.feed.builder import FeedBuilder, plan_days
 from ingestion.feed.bulk import ParliamentRun, build_and_publish, load_sources
 from ingestion.feed.index import FEED_COLLECTION_NAME, setup_feed_collection
+from ingestion.feed.items import build_needed
 from ingestion.feed.models import FeedItem
 from ingestion.feed.parliaments import FEED_PARLIAMENTS, PARLIAMENTS, Parliament
 from ingestion.feed.store import read_items_since
@@ -146,14 +147,14 @@ def plan_parliament(
     qdrant: QdrantClient,
     parliament: Parliament,
     days: int,
-    stored_hashes: dict[str, Optional[str]],
+    stored: dict[str, FeedItem],
     since: Optional[date] = None,
 ) -> ParliamentPlan:
     """The window's days and how many of their items are not yet stored as
     they would be built now.
 
-    Uses the same input hashes as the builder, so an item counted as stored
-    here is skipped by the run without an LLM call.
+    Decides with the builder's own ``build_needed``, so an item counted as
+    stored here is skipped by the run without an LLM call.
     """
     sources = load_sources(qdrant, parliament, days, since=since)
     if sources is None:
@@ -167,7 +168,7 @@ def plan_parliament(
             DayStatus(
                 day.day,
                 len(units),
-                sum(1 for item_id, h in units if stored_hashes.get(item_id) != h),
+                sum(1 for item_id, h in units if build_needed(stored.get(item_id), h)),
             )
         )
     return plan
@@ -297,10 +298,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     plans = []
     for parliament in parliaments:
         since = args.since or date.today() - timedelta(days=days)
-        stored = {
-            i.id: (i.input_hash if i.status == "published" else None)
-            for i in read_items_since(db, parliament.id, since)
-        }
+        stored = {i.id: i for i in read_items_since(db, parliament.id, since)}
         plans.append(plan_parliament(qdrant, parliament, days, stored, args.since))
     for plan in plans:
         print("\n".join(format_plan(plan)))

@@ -9,7 +9,9 @@ a sentence that sharpens "asks for a review" into "demands abolition", and a
 wrong position published under a party's name is the most damaging mistake
 the feed can make. So a second call reads each sentence next to that
 Fraktion's own speeches, and only a sentence it confirms is published. A
-failed check publishes nothing: an unchecked sentence is never shown.
+check that fails raises, and the caller publishes nothing of the debate in
+that run: an unchecked sentence is never shown, and neither is a debate
+whose positions are missing only because a call failed.
 """
 
 from __future__ import annotations
@@ -44,26 +46,26 @@ async def verify_positions(
     positions: dict[str, str],
     by_party: dict[str, list[Speech]],
 ) -> dict[str, str]:
-    """The subset of ``positions`` (Fraktion -> sentence) the speeches support."""
+    """The subset of ``positions`` (Fraktion -> sentence) the speeches support.
+
+    Raises when the check itself fails, so "not checked" never reads as
+    "rejected".
+    """
     if not positions:
         return {}
     refs = {f"P{i + 1}": party_id for i, party_id in enumerate(positions)}
     lines = "\n".join(
         f"[{ref}] {party_id}: {positions[party_id]}" for ref, party_id in refs.items()
     )
-    try:
-        result, _ = await builder.acall(
-            format_verify_prompt(
-                parliament_name,
-                agenda_label,
-                lines,
-                _speeches_by_party_block(positions, by_party),
-            ),
-            PositionCheckBatch,
-        )
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Position check failed for %s: %s", agenda_label, exc)
-        return {}
+    result, _ = await builder.acall(
+        format_verify_prompt(
+            parliament_name,
+            agenda_label,
+            lines,
+            _speeches_by_party_block(positions, by_party),
+        ),
+        PositionCheckBatch,
+    )
     supported: dict[str, str] = {}
     for check in result.checks:
         party_id = refs.get(check.ref.strip())

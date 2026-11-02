@@ -182,8 +182,13 @@ class FeedItem(BaseModel):
     vote: Optional[VoteFacts] = None
     content: dict[Locale, LocalizedContent]
     # Hash of this item's own sources + prompt and format version. None when a
-    # step fell back or a position is missing, so the next run retries it.
+    # vote's texts fell back to its title, so the next run retries it.
     input_hash: Optional[str] = None
+    # Fraktionen that spoke but have no checked position yet. Later runs retry
+    # only these, up to ``MAX_POSITION_ATTEMPTS`` runs in all, and leave every
+    # other text as it was written, so the card does not change from run to run.
+    pending_positions: list[str] = Field(default_factory=list)
+    position_attempts: int = 0
     format_version: str = FEED_FORMAT_VERSION
     generated_at: datetime
 

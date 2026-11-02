@@ -12,13 +12,21 @@ import pytest
 from ingestion.feed import backfill
 from ingestion.feed.bulk import WindowSources
 from ingestion.feed.items import vote_input_hash
+from ingestion.feed.models import FeedItem
 from ingestion.feed.parliaments import PARLIAMENTS
+from tests.feed.samples import sample_items
 
 BUNDESTAG = PARLIAMENTS["bundestag"]
 
 
 def _vote(poll_id: int, day: str) -> dict:
     return {"external_id": poll_id, "publish_date": day, "content_hash": f"v{poll_id}"}
+
+
+def _stored(item_id: str, input_hash: str, **update: Any) -> FeedItem:
+    return sample_items()[0].model_copy(
+        update={"id": item_id, "input_hash": input_hash, **update}
+    )
 
 
 def test_a_target_mismatch_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -55,7 +63,11 @@ def test_the_plan_counts_items_built_from_the_same_sources_as_stored(
         return WindowSources((date(2026, 9, 1), date(2026, 10, 22)), votes, {})
 
     monkeypatch.setattr(backfill, "load_sources", sources)
-    stored = {"bundestag_2026-10-22_v1": vote_input_hash(votes[0])}
+    stored = {
+        "bundestag_2026-10-22_v1": _stored(
+            "bundestag_2026-10-22_v1", vote_input_hash(votes[0])
+        )
+    }
     plan = backfill.plan_parliament(
         None,  # type: ignore[arg-type]
         BUNDESTAG,

@@ -130,14 +130,13 @@ def test_a_missing_position_is_retried_for_that_fraktion_only() -> None:
     assert debate.input_hash is not None
 
 
-def test_a_fraktion_still_missing_is_listed_without_a_sentence_and_retried_later() -> (
-    None
-):
+def test_a_fraktion_still_missing_is_listed_without_a_sentence_and_pending() -> None:
     debate = _debate(build(FakeLLM(omit=("cdu",), retry_omit=("cdu",))))
     assert debate.debate is not None
     assert "cdu" in [p.party_id for p in debate.debate.parties]
     assert [p.party_id for p in debate.content["de"].positions] == ["spd"]
-    assert debate.input_hash is None
+    assert debate.input_hash == debate_input_hash(sittings()[DAY].agenda_items[0])
+    assert (debate.pending_positions, debate.position_attempts) == (["cdu"], 1)
 
 
 def test_an_unsupported_position_is_never_published() -> None:
@@ -150,10 +149,28 @@ def test_an_unsupported_position_is_never_published() -> None:
     assert any("Retry Position spd" in p for p in checks)
 
 
-def test_a_failed_check_publishes_no_unchecked_sentence() -> None:
-    debate = _debate(build(FakeLLM(fail=(PositionCheckBatch,))))
-    assert debate.content["de"].positions == []
-    assert debate.input_hash is None
+def test_a_failed_check_leaves_the_debate_for_the_next_run() -> None:
+    items = build(FakeLLM(fail=(PositionCheckBatch,)))
+    assert [i.kind for i in items] == ["vote", "vote"]
+
+
+def test_a_failed_position_retry_leaves_the_debate_for_the_next_run() -> None:
+    items = build(FakeLLM(omit=("cdu",), fail=(PositionsDraft,)))
+    assert [i.id for i in items if i.kind == "debate"] == [
+        "bundestag_2026-09-24_d45-top2"
+    ]
+
+
+class _SlowCheck(FakeLLM):
+    async def __call__(self, messages: list, schema: type) -> tuple[Any, str]:
+        if schema is PositionCheckBatch:
+            await asyncio.sleep(5)
+        return await super().__call__(messages, schema)
+
+
+def test_a_check_cut_by_the_deadline_leaves_the_debate_for_the_next_run() -> None:
+    items = build(_SlowCheck(), deadline=time.monotonic() + 0.2)
+    assert [i.kind for i in items] == ["vote", "vote"]
 
 
 def test_positions_of_parties_that_did_not_speak_are_dropped() -> None:

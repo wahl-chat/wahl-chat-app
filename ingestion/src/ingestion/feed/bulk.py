@@ -49,7 +49,7 @@ from qdrant_client import QdrantClient
 
 from ingestion.feed.builder import DayPlan, FeedBuilder, build_day, plan_days
 from ingestion.feed.index import FEED_COLLECTION_NAME, IndexReport, index_items
-from ingestion.feed.items import assemble_edition
+from ingestion.feed.items import BuildNeed, assemble_edition, build_needed
 from ingestion.feed.models import FeedEdition, FeedItem
 from ingestion.feed.parliaments import (
     FEED_PARLIAMENTS,
@@ -102,7 +102,8 @@ class ParliamentRun:
     days_built: int = 0
     unchanged: int = 0
     items_built: int = 0
-    # Built, but retried next run: a fallback, or a Fraktion without a position.
+    # Built, but retried next run: a vote fallback, or a Fraktion without a
+    # position that has attempts left.
     incomplete: int = 0
     # Debates whose protocol could not be read yet, so their order is unknown.
     deferred: int = 0
@@ -225,11 +226,15 @@ def load_sources(
     return WindowSources(window, votes, sitting_days)
 
 
-def _is_current(stored: Optional[FeedItem], input_hash: str) -> bool:
+def _replaces(built: FeedItem, stored: Optional[FeedItem]) -> bool:
+    """A vote whose texts fell back to its title does not replace a stored
+    version the model wrote; its hash still differs, so the next run tries
+    again. A vote never published before is shown with the fallback."""
     return (
-        stored is not None
-        and stored.status == "published"
-        and stored.input_hash == input_hash
+        built.input_hash is not None
+        or stored is None
+        or stored.status != "published"
+        or stored.input_hash is None
     )
 
 
@@ -248,16 +253,18 @@ def plan_day(
 ) -> Optional[DayBuild]:
     """Generate what changed in one day and assemble its edition; None when
     the day is unchanged and fully translated."""
-    debates = [
-        u
-        for u in plan.debates
-        if force or not _is_current(stored.get(u.item_id), u.input_hash)
+    hashes = {u.item_id: u.input_hash for u in plan.debates} | {
+        u.item_id: u.input_hash for u in plan.votes
+    }
+    need: dict[str, Optional[BuildNeed]] = {
+        item_id: "full" if force else build_needed(stored.get(item_id), input_hash)
+        for item_id, input_hash in hashes.items()
+    }
+    debates = [u for u in plan.debates if need[u.item_id] == "full"]
+    top_ups = [
+        (u, stored[u.item_id]) for u in plan.debates if need[u.item_id] == "positions"
     ]
-    votes = [
-        u
-        for u in plan.votes
-        if force or not _is_current(stored.get(u.item_id), u.input_hash)
-    ]
+    votes = [u for u in plan.votes if need[u.item_id] == "full"]
     run.deferred += sum(1 for u in debates if not u.buildable)
     built_items = (
         build_day(
@@ -269,11 +276,15 @@ def plan_day(
             display,
             now=now,
             out_of_time=out_of_time,
+            top_ups=top_ups,
         )
-        if any(u.buildable for u in debates) or votes
+        if any(u.buildable for u in [*debates, *(u for u, _ in top_ups)]) or votes
         else []
     )
-    built = {i.id: i for i in built_items}
+    # Counted before the early return: a vote kept back below leaves the day
+    # unchanged, and is still retried next run.
+    run.incomplete += sum(1 for i in built_items if build_needed(i, hashes[i.id]))
+    built = {i.id: i for i in built_items if _replaces(i, stored.get(i.id))}
 
     listed: list[FeedItem] = []
     for item_id in plan.item_ids:
@@ -300,7 +311,6 @@ def plan_day(
     ):
         return None
     run.items_built += len(built)
-    run.incomplete += sum(1 for i in built.values() if i.input_hash is None)
     return DayBuild(
         edition=edition,
         items=ranked,

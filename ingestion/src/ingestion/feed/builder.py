@@ -9,10 +9,13 @@ debate item, every poll one vote item (see ``items.py``). The model only
 writes the texts of one item at a time, and sees that debate whole.
 
 LLM failure policy: a failed step never aborts the run. A vote falls back to
-its source title under the ``other`` topic. A debate whose summary fails is
-not built this run. A Fraktion that spoke but has no verified position after
-one retry stays in the facts without a sentence. Every such item stores
-``input_hash=None``, so the next run retries it.
+its source title under the ``other`` topic and stores ``input_hash=None``, so
+the next run retries it. A debate any of whose calls fails, or is cut by the
+deadline, is not built this run, so a stored version stays as it is: positions
+missing only because a call failed are never published. A Fraktion whose
+position the check rejects, even after one retry, stays in the facts without a
+sentence; later runs retry only that position (``top_up_positions``) and
+leave the rest of the debate as written.
 
 Every text here is generated once and reused by every surface that shows it,
 so all calls go to the publication roster (high reasoning) and each result
@@ -27,19 +30,29 @@ import re
 import time
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from typing import Any, Awaitable, Callable, Coroutine, Optional, TypeVar
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Coroutine,
+    Optional,
+    Sequence,
+    TypeVar,
+)
 
 from langchain_core.messages import BaseMessage, HumanMessage
 from pydantic import BaseModel
 
 from ingestion.feed.items import (
     canonical_content,
+    content_hash,
     debate_input_hash,
     debate_item_id,
     vote_input_hash,
     vote_item_id,
 )
 from ingestion.feed.models import (
+    CANONICAL_LOCALE,
     DebateFacts,
     DebateParty,
     DigestCitation,
@@ -517,7 +530,7 @@ async def build_debate(
     display: dict[str, PartyDisplay],
     generated_at: datetime,
 ) -> Optional[FeedItem]:
-    """One debate item, or None when its summary could not be written."""
+    """One debate item, or None when a call failed or was cut."""
     agenda = unit.agenda
     speeches = agenda.speeches
     fraktionen = Fraktionen(dict(parliament.party_aliases))
@@ -534,31 +547,30 @@ async def build_debate(
             ),
             DebateDraft,
         )
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Debate %s failed: %s", unit.item_id, exc)
-        return None
-
-    positions = await _positions_for(
-        builder,
-        parliament,
-        agenda,
-        list(by_party),
-        draft.positions,
-        by_party,
-        fraktionen,
-    )
-    missing = [p for p in required if p not in positions]
-    if missing:
-        logger.info("%s: retrying positions for %s", unit.item_id, missing)
-        positions.update(
-            await _retry_positions(
-                builder, parliament, agenda, missing, by_party, fraktionen
-            )
+        positions = await _positions_for(
+            builder,
+            parliament,
+            agenda,
+            list(by_party),
+            draft.positions,
+            by_party,
+            fraktionen,
         )
         missing = [p for p in required if p not in positions]
+        if missing:
+            logger.info("%s: retrying positions for %s", unit.item_id, missing)
+            positions.update(
+                await _retry_positions(
+                    builder, parliament, agenda, missing, by_party, fraktionen
+                )
+            )
+            missing = [p for p in required if p not in positions]
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Debate %s not built this run: %s", unit.item_id, exc)
+        return None
     if missing:
         logger.warning(
-            "%s: no verified position for %s; listed without one",
+            "%s: no verified position for %s; listed without one for now",
             unit.item_id,
             missing,
         )
@@ -595,8 +607,55 @@ async def build_debate(
             generated_by=model,
             generated_at=generated_at,
         ),
-        input_hash=None if missing else unit.input_hash,
+        input_hash=unit.input_hash,
+        pending_positions=missing,
+        position_attempts=1,
         generated_at=generated_at,
+    )
+
+
+async def top_up_positions(
+    builder: FeedBuilder,
+    parliament: Parliament,
+    unit: DebateUnit,
+    stored: FeedItem,
+) -> Optional[FeedItem]:
+    """Another attempt at the positions a stored debate still lacks.
+
+    Everything else stays as it was written, so a run that verifies nothing
+    new leaves the German text, and with it the translation, untouched. None
+    when a call failed or was cut: the stored version stands, and the failed
+    call does not count as an attempt.
+    """
+    fraktionen = Fraktionen(dict(parliament.party_aliases))
+    by_party = fraktionen.speeches_by(unit.agenda.speeches)
+    pending = [p for p in stored.pending_positions if p in by_party]
+    try:
+        found = await _retry_positions(
+            builder, parliament, unit.agenda, pending, by_party, fraktionen
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Positions of %s not retried this run: %s", unit.item_id, exc)
+        return None
+    canonical = stored.content[CANONICAL_LOCALE]
+    texts = {p.party_id: p.text for p in canonical.positions} | found
+    order = [p.party_id for p in stored.debate.parties] if stored.debate else texts
+    content = canonical.model_copy(
+        update={
+            "positions": [
+                LocalizedPosition(party_id=p, text=texts[p])
+                for p in order
+                if p in texts
+            ]
+        }
+    )
+    content.source_hash = content_hash(content)
+    return stored.model_copy(
+        update={
+            "content": {**stored.content, CANONICAL_LOCALE: content},
+            "pending_positions": [p for p in pending if p not in found],
+            "position_attempts": stored.position_attempts + 1,
+        }
     )
 
 
@@ -609,21 +668,17 @@ async def _retry_positions(
     fraktionen: Fraktionen,
 ) -> dict[str, str]:
     """One more attempt for the Fraktionen without a verified position, from
-    their own speeches only."""
+    their own speeches only. Raises when a call fails."""
     speeches = [s for p in missing for s in by_party[p]]
-    try:
-        retried, _ = await builder.acall(
-            format_positions_prompt(
-                parliament.name,
-                agenda.label,
-                ", ".join(missing),
-                speeches_block(speeches),
-            ),
-            PositionsDraft,
-        )
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Position retry failed for %s: %s", agenda.key, exc)
-        return {}
+    retried, _ = await builder.acall(
+        format_positions_prompt(
+            parliament.name,
+            agenda.label,
+            ", ".join(missing),
+            speeches_block(speeches),
+        ),
+        PositionsDraft,
+    )
     return await _positions_for(
         builder, parliament, agenda, missing, retried.positions, by_party, fraktionen
     )
@@ -748,6 +803,7 @@ async def _build_day(
     display: dict[str, PartyDisplay],
     generated_at: datetime,
     out_of_time: Callable[[], bool],
+    top_ups: list[tuple[DebateUnit, FeedItem]],
 ) -> list[FeedItem]:
     semaphore = asyncio.Semaphore(builder.concurrency)
 
@@ -755,6 +811,11 @@ async def _build_day(
         return lambda: build_debate(
             builder, parliament, plan, unit, display, generated_at
         )
+
+    def top_up_job(
+        unit: DebateUnit, stored: FeedItem
+    ) -> Callable[[], Awaitable[Optional[FeedItem]]]:
+        return lambda: top_up_positions(builder, parliament, unit, stored)
 
     def vote_job(batch: list[VoteUnit]) -> Callable[[], Awaitable[list[FeedItem]]]:
         async def run() -> list[FeedItem]:
@@ -780,15 +841,21 @@ async def _build_day(
         votes[start : start + _VOTE_BATCH]
         for start in range(0, len(votes), _VOTE_BATCH)
     ]
-    debate_results, vote_results = await asyncio.gather(
+    debate_results, top_up_results, vote_results = await asyncio.gather(
         asyncio.gather(
             *(_bounded(semaphore, out_of_time, debate_job(u)) for u in debates)
+        ),
+        asyncio.gather(
+            *(
+                _bounded(semaphore, out_of_time, top_up_job(u, stored))
+                for u, stored in top_ups
+            )
         ),
         asyncio.gather(
             *(_bounded(semaphore, out_of_time, vote_job(b)) for b in vote_batches)
         ),
     )
-    built = [item for item in debate_results if item is not None]
+    built = [item for item in [*debate_results, *top_up_results] if item is not None]
     for batch in vote_results:
         built.extend(batch or [])
     return built
@@ -804,10 +871,12 @@ def build_day(
     *,
     now: Optional[datetime] = None,
     out_of_time: Callable[[], bool] = lambda: False,
+    top_ups: Sequence[tuple[DebateUnit, FeedItem]] = (),
 ) -> list[FeedItem]:
     """Generate the given units of one day, concurrently; returns what was
-    built. A unit missing from the result was not built (failed, or the time
-    budget ran out before it started)."""
+    built. ``top_ups`` are stored debates that get another attempt at their
+    missing positions only. A unit missing from the result was not built
+    (failed, or the time budget ran out before it started)."""
     return builder.run(
         _build_day(
             builder,
@@ -818,5 +887,6 @@ def build_day(
             display,
             now or datetime.now(timezone.utc),
             out_of_time,
+            [(u, stored) for u, stored in top_ups if u.buildable],
         )
     )

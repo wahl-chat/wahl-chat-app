@@ -251,9 +251,10 @@ def build(
     votes: Optional[list[dict]] = None,
     days: Optional[dict[date, SittingDay]] = None,
     out_of_time: Callable[[], bool] = lambda: False,
+    deadline: Optional[float] = None,
 ) -> list[FeedItem]:
     """Every item of the newest day, built from scratch."""
-    builder = FeedBuilder(llm)
+    builder = FeedBuilder(llm, deadline=deadline)
     try:
         [plan, *_] = plan_days(
             BUNDESTAG,

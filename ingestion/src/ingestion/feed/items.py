@@ -16,7 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import date, datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from ingestion.feed.models import (
     CANONICAL_LOCALE,
@@ -39,6 +39,30 @@ _HASHED_FIELDS = (
     "suggested_questions",
     "quote_translation",
 )
+
+
+# Runs that may try a Fraktion's position before the debate is listed without
+# one for good. A sentence the check keeps rejecting (remarks from the chair
+# filed under a party, say) would otherwise be retried for as long as the item
+# stays in the window.
+MAX_POSITION_ATTEMPTS = 3
+
+BuildNeed = Literal["full", "positions"]
+
+
+def build_needed(stored: Optional[FeedItem], input_hash: str) -> Optional[BuildNeed]:
+    """What an item needs this run: a full build, another attempt at only its
+    missing positions, or nothing. The feed builder and the backfill plan
+    both decide with this, so a plan's "to build" is what a run would do."""
+    if (
+        stored is None
+        or stored.status != "published"
+        or stored.input_hash != input_hash
+    ):
+        return "full"
+    if stored.pending_positions and stored.position_attempts < MAX_POSITION_ATTEMPTS:
+        return "positions"
+    return None
 
 
 def vote_item_id(edition_id: str, poll_id: int) -> str:

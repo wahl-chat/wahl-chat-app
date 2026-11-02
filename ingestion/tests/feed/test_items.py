@@ -5,7 +5,9 @@
 from datetime import date
 
 from ingestion.feed.items import (
+    MAX_POSITION_ATTEMPTS,
     assemble_edition,
+    build_needed,
     content_hash,
     debate_item_id,
     vote_input_hash,
@@ -30,6 +32,20 @@ def test_the_vote_hash_follows_its_source() -> None:
     payload = {"content_hash": "a"}
     assert vote_input_hash(payload) == vote_input_hash({"content_hash": "a"})
     assert vote_input_hash(payload) != vote_input_hash({"content_hash": "b"})
+
+
+def test_what_a_stored_item_needs_follows_its_hash_and_pending_positions() -> None:
+    item = sample_items()[0].model_copy(update={"input_hash": "h"})
+    assert build_needed(None, "h") == "full"
+    assert build_needed(item, "other") == "full"
+    assert build_needed(item.model_copy(update={"status": "retracted"}), "h") == "full"
+    assert build_needed(item, "h") is None
+    pending = item.model_copy(
+        update={"pending_positions": ["cdu"], "position_attempts": 1}
+    )
+    assert build_needed(pending, "h") == "positions"
+    exhausted = pending.model_copy(update={"position_attempts": MAX_POSITION_ATTEMPTS})
+    assert build_needed(exhausted, "h") is None
 
 
 def test_the_edition_lists_items_in_order_and_ranks_them() -> None:

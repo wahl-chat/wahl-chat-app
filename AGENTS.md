@@ -525,8 +525,12 @@ from an item's headline and facts).
 - **Every Fraktion that spoke is listed.** `facts.parties` comes from the
   source. Each position sentence is checked against that Fraktion's own
   speeches by a second call (`feed/verify.py`); a Fraktion without a verified
-  sentence after one targeted retry is listed with its speeches only, and the
-  item is retried next run. Never publish an unchecked position.
+  sentence after one targeted retry is listed with its speeches only. Later
+  runs retry just that position (`pending_positions`, at most
+  `MAX_POSITION_ATTEMPTS` runs) and leave the rest of the item as written, so
+  its text and translation do not change from run to run. A debate whose
+  check or retry call fails, or is cut by the time budget, is not built that
+  run: the stored version stays. Never publish an unchecked position.
 - **Stores.** Firestore `feed_items/{item_id}` is the source of truth;
   `feed_editions/{parliament}_{YYYY-MM-DD}` lists a sitting day's items in
   order. Qdrant `wahlchat_feed_{ENV}` only finds items (ids and filter fields,
