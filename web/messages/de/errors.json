@@ -1,0 +1,6 @@
+{
+  "generic": "Es ist ein Fehler aufgetreten.",
+  "reloadPage": "Es ist ein Fehler aufgetreten. Bitte lade die Seite erneut.",
+  "reloadAndRetry": "Es ist ein Fehler aufgetreten. Bitte lade die Seite neu und versuche es erneut.",
+  "answerLoadFailed": "Die Antwort konnte nicht geladen werden. Bitte versuche es erneut."
+}

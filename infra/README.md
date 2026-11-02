@@ -133,6 +133,10 @@ Job specifics worth knowing (full rationale in `envs/dev/terraform.tfvars` comme
   loud ERROR — then raise `task_count` in tfvars. Keep `parallelism` low (shared AW API).
 - The speech pair runs as ONE sequential job (`CONNECTOR_ID = "bundestag_speeches,openparliament_tv"`)
   — their must-never-overlap invariant is structural, do not split them into two schedules.
+- `ingest-feed` builds the parliament feed (`CONNECTOR_ID=feed`; the entrypoint hands over to
+  `ingestion.feed.bulk`, which is not a registry connector). It runs every half hour from 06:00
+  to 07:30 on Sundays, after the speech and vote jobs: each run publishes day by day and stops
+  before the cap, and once the week is done a run skips every day without LLM calls.
 - Deployed jobs set `ELECTION_FIXTURES_SOURCE=firestore` and (uploads only)
   `MANIFESTO_UPLOADS_SOURCE=bucket`, because the Firestore fixtures don't ship in the
   ingestion image and the bucket, not a committed manifest, is the desired-state authority.

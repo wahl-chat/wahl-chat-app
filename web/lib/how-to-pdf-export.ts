@@ -1,3 +1,5 @@
+import type { HowToContent } from '@/lib/how-to-content';
+
 // Type declaration for jsPDF
 type JsPDFConstructor = new (options?: {
   orientation?: 'portrait' | 'landscape';
@@ -20,43 +22,11 @@ type JsPDFConstructor = new (options?: {
   save: (filename: string) => void;
 };
 
-// Content types for the how-to page
-export interface HowToSection {
-  subtitle?: string;
-  list?: string[];
-}
-
-export interface HowToAccordionContent {
-  intro?: string;
-  paragraphs?: string[];
-  list?: string[];
-  orderedList?: string[];
-  sections?: HowToSection[];
-  origin?: string;
-  outro?: string;
-}
-
-export interface HowToAccordionItem {
-  id: string;
-  title: string;
-  content: HowToAccordionContent;
-}
-
-export interface HowToIntroText {
-  main: string;
-  sources: string;
-}
-
-export interface HowToPDFExportData {
-  introText: HowToIntroText;
-  processSteps: string[];
-  accordionContent: HowToAccordionItem[];
-}
-
 /**
- * Exports the how-to content to a PDF file
+ * Exports the how-to content to a PDF file, in the language of the content
+ * passed in.
  */
-export async function exportHowToPDF(data: HowToPDFExportData): Promise<void> {
+export async function exportHowToPDF(data: HowToContent): Promise<void> {
   // Dynamic import to avoid SSR issues
   const jsPDFModule = (await import('jspdf')) as {
     default: JsPDFConstructor;
@@ -107,7 +77,13 @@ export async function exportHowToPDF(data: HowToPDFExportData): Promise<void> {
   };
 
   // Title
-  addText('wahl.chat - Anleitung', 18, true, true);
+  addText(data.labels.pdfTitle, 18, true, true);
+  yPosition += 5;
+
+  // Parliament feed
+  addText(data.feedIntro.title, 14, true);
+  data.feedIntro.paragraphs.forEach((paragraph) => addText(paragraph, 11));
+  data.feedIntro.list.forEach((item) => addText(`• ${item}`, 11));
   yPosition += 5;
 
   // Introduction
@@ -116,7 +92,7 @@ export async function exportHowToPDF(data: HowToPDFExportData): Promise<void> {
   yPosition += 3;
 
   // Process steps
-  addText('Der Prozess ist einfach:', 12, true);
+  addText(data.labels.processHeading, 12, true);
   data.processSteps.forEach((step, index) => {
     addText(`${index + 1}. ${step}`, 11);
   });
@@ -171,7 +147,7 @@ export async function exportHowToPDF(data: HowToPDFExportData): Promise<void> {
     }
 
     if (content.origin) {
-      addText('Wie kam es zu wahl.chat?', 11, true);
+      addText(data.labels.originHeading, 11, true);
       addText(content.origin, 11);
       yPosition += 2;
     }
@@ -184,5 +160,5 @@ export async function exportHowToPDF(data: HowToPDFExportData): Promise<void> {
   });
 
   // Save the PDF
-  doc.save('wahl-chat-anleitung.pdf');
+  doc.save(data.labels.pdfFileName);
 }

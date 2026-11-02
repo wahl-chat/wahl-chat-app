@@ -1,0 +1,86 @@
+{
+  "meta": {
+    "fallbackTitle": "Wahl-Swiper",
+    "title": "Wahl-Swiper – {context}",
+    "description": "Wahl-Swiper für {context} – Finde heraus, welche Partei zu dir passt."
+  },
+  "header": {
+    "home": "Zur Startseite"
+  },
+  "teaserTag": "Wahl Swiper",
+  "cards": {
+    "no": "Nein",
+    "skip": "Überspringen",
+    "yes": "Ja"
+  },
+  "skipPopover": {
+    "title": "Willst du mehr über die These erfahren?",
+    "body": "Nutze unseren <b>Chat</b> um mehr über die These zu erfahren und eine <b>bessere Entscheidung</b> zu treffen.",
+    "startChat": "Chat starten"
+  },
+  "experimentalDisclaimer": {
+    "title": "⚠️ Disclaimer",
+    "description": "Experimentelles Feature",
+    "intro": "Ihr habt euch eine Art Wahl-O-Mat gewünscht – hier ist ein erster Versuch, euer Feedback umzusetzen.",
+    "notice": "Wir möchten ausdrücklich betonen, dass dies lediglich ein erster Entwurf ist und keine offizielle Wahlempfehlung darstellt.",
+    "feedback": "Dein Feedback hilft uns, zur nächsten Wahl eine finale Version zu entwickeln, die bestehende Probleme löst.",
+    "thanks": "Vielen Dank für euer Verständnis 🙏 - wir freuen uns auf eure Rückmeldungen! 🤗",
+    "start": "Los geht's!"
+  },
+  "prolificDisclaimer": {
+    "title": "Willkommen zur Studie",
+    "description": "Wichtige Informationen",
+    "requirement": "Um den Abschlusscode zu erhalten, musst du mindestens <b>eine</b> Frage mit <b>ja</b> oder <b>nein</b> beantworten.",
+    "keepTabOpen": "Bitte schliesse diesen Browser-Tab nicht, bevor du den Abschlusscode erhalten hast.",
+    "codeAtEnd": "Der Code wird dir am Ende des Swipers angezeigt und ist notwendig, um die Studie abzuschliessen.",
+    "start": "Verstanden, los geht's!"
+  },
+  "input": {
+    "openChat": "Chat öffnen",
+    "closeChat": "Chat schließen",
+    "placeholder": "Frage wahl.chat...",
+    "defaultQuickReplies": {
+      "currentSituation": "Wie ist die aktuelle Lage?",
+      "prosAndCons": "Was sind Vor- und Nachteile davon?",
+      "alternatives": "Was sind alternative Lösungen?"
+    }
+  },
+  "chat": {
+    "empty": "Starte eine Konversation zu dieser These um mehr darüber zu erfahren.",
+    "dialogDescription": "Chatte mit dem Wahl-Swiper"
+  },
+  "swiper": {
+    "calculating": "Wir berechnen deine Ergebnisse...",
+    "resultsError": "Fehler beim Berechnen deiner Ergebnisse. Bitte lade die Seite neu."
+  },
+  "result": {
+    "title": "Swiper Ergebnisse",
+    "disclaimer": "Dieses Ergebnis dient nur zur ersten Orientierung. Hinterfrage es kritisch und sieh selbst in die Wahlprogramme - unser Vergleichs-Chat kann helfen: <chat>Vergleichs-Chat</chat>",
+    "noResults": "Keine Ergebnisse verfügbar. Um Übereinstimmungen mit den Parteien zu sehen, beantworte mindestens eine Frage mit Ja oder Nein.",
+    "tryAgain": "Versuche es erneut"
+  },
+  "partyCard": {
+    "consensusHeading": "Konsens zwischen {party} und dir:",
+    "consensusSummary": "{party} stimmt mit dir in <b>{consensus} von {total}</b> Fragen überein.",
+    "clickHint": "Klicke auf eine Frage für weitere Informationen.",
+    "question": "Frage",
+    "agree": "Stimme zu",
+    "consensus": "Konsens",
+    "noConsensus": "Kein Konsens",
+    "toChat": "Zum Chat"
+  },
+  "share": {
+    "button": "Teilen",
+    "title": "Swiper Ergebnis teilen",
+    "description": "Jeder, der diesen Link hat, kann dieses Ergebnis sehen.",
+    "shareTitle": "Wahl Swiper Ergebnis",
+    "linkLabel": "Link"
+  },
+  "survey": {
+    "title": "⭐️ Bitte gib uns dein Feedback",
+    "intro": "Wir würden uns sehr freuen, wenn du uns dein Feedback zu unserem Wahl Swiper mitteilst.",
+    "signUpHint": "Wenn du auch weiterhin nach der Wahl von uns benachrichtigt werden möchtest wenn deine Meinungen auch umgesetzt werden, kannst du dich hier anmelden.",
+    "signIn": "Anmelden",
+    "feedback": "Feedback"
+  }
+}

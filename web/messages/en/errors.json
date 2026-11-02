@@ -1,0 +1,6 @@
+{
+  "generic": "Something went wrong.",
+  "reloadPage": "Something went wrong. Please reload the page.",
+  "reloadAndRetry": "Something went wrong. Please reload the page and try again.",
+  "answerLoadFailed": "The answer couldn't be loaded. Please try again."
+}

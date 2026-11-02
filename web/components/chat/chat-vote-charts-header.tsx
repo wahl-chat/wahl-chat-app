@@ -1,6 +1,7 @@
 import { Separator } from '@/components/ui/separator';
 import useCarouselCurrentIndex from '@/lib/hooks/use-carousel-current-index';
 import type { Vote } from '@/lib/socket.types';
+import { useTranslations } from 'next-intl';
 import OverallVoteChart from './overall-vote-chart';
 import PartiesVoteChart from './parties-vote-chart';
 
@@ -9,6 +10,7 @@ type Props = {
 };
 
 function ChatVoteChartsHeader({ votes }: Props) {
+  const t = useTranslations('chat.votes');
   const selectedIndex = useCarouselCurrentIndex();
 
   const vote = votes[selectedIndex];
@@ -27,19 +29,19 @@ function ChatVoteChartsHeader({ votes }: Props) {
       <div className="mt-4 flex flex-row flex-wrap items-center justify-center gap-4 p-4 text-sm text-muted-foreground">
         <p>
           <span className="mr-2 inline-block size-2 rounded-full bg-[hsl(var(--chart-yes))]" />
-          Ja
+          {t('yes')}
         </p>
         <p>
           <span className="mr-2 inline-block size-2 rounded-full bg-[hsl(var(--chart-no))]" />
-          Nein
+          {t('no')}
         </p>
         <p>
           <span className="mr-2 inline-block size-2 rounded-full bg-[hsl(var(--chart-abstain))]" />
-          Enthaltung
+          {t('abstain')}
         </p>
         <p>
           <span className="mr-2 inline-block size-2 rounded-full bg-[hsl(var(--chart-not-voted))]" />
-          Nicht abgestimmt
+          {t('notVoted')}
         </p>
       </div>
 

@@ -1,0 +1,37 @@
+{
+  "prolific": {
+    "completedTitle": "Studie abgeschlossen!",
+    "completedCta": "Klicke hier, um deinen Abschlusscode zu erhalten.",
+    "welcomeTitle": "Willkommen zur Studie",
+    "welcomeDescription": "Wichtige Informationen",
+    "welcomeBody": "Vielen Dank, dass du an unserer Studie teilnimmst! Um die Studie abzuschließen, musst du mindestens <strong>{count} Nachrichten</strong> an den Chatbot senden.",
+    "keepTabOpen": "Bitte schließe diesen Browser-Tab nicht, bevor du den Abschlusscode erhalten hast.",
+    "codeExplanation": "Der Code wird dir angezeigt, sobald du genügend Nachrichten gesendet hast, und ist notwendig, um die Studie abzuschließen.",
+    "start": "Verstanden, los geht's!",
+    "requirementMet": "Studienanforderung erfüllt!",
+    "progress": "{count} von {total} Nachrichten"
+  },
+  "consent": {
+    "askTitle": "Du kannst wahl.chat mitgestalten",
+    "askDescription": "Eine kurze Frage vor deinem Chat",
+    "askBody": "Wir testen im Rahmen einer wissenschaftlichen Studie neue Funktionen und würden danach gern kurz deine Rückmeldung hören (max. 2 Min.). Machst du mit?",
+    "no": "Nein",
+    "yes": "Ja",
+    "consentTitle": "Einverständniserklärung",
+    "consentDescription": "Teilnahme an einer Forschungsstudie",
+    "consentInvitation": "Du bist eingeladen, an einer Forschungsstudie teilzunehmen, die den Einsatz von KI in der politischen Bildung untersucht. Es handelt sich um eine Zusammenarbeit von Prof. Andreas Vlachos und seinem Team an der University of Cambridge, Prof. Tom Stafford an der University of Sheffield sowie Robin Frasch, CEO von wahl.chat und Forscher an der Universität Hamburg.",
+    "consentVersions": "Dir werden verschiedene Versionen des wahl.chat-Chatbots gezeigt. Damit erforschen wir verschiedene Wege, auf Plattformen der politischen Bildung über staatliche Prozesse zu informieren.",
+    "consentWithdraw": "Du kannst das Experiment jederzeit abbrechen; es werden dann keine Daten aus deiner Teilnahme gespeichert.",
+    "consentGdpr": "Die Studie ist DSGVO-konform, da keine personenbezogenen Daten erhoben werden, die dich identifizieren. Erhoben werden ausschließlich Altersgruppe, Geschlecht und politische Orientierung.",
+    "consentContact": "Bei Fragen wende dich gerne an Andreas (<andreas>av308@cam.ac.uk</andreas>), Tom (<tom>t.stafford@sheffield.ac.uk</tom>) oder Robin (<robin>robin@wahl.chat</robin>).",
+    "consentQuestion": "Bist du einverstanden?",
+    "accept": "Ja, ich bin einverstanden"
+  },
+  "questionnaire": {
+    "title": "Deine Rückmeldung zählt",
+    "description": "Kurzer Fragebogen zur Studie",
+    "body": "Danke, dass du bei unserer Studie mitmachst! Wir würden dir gern ein paar kurze Fragen zu deinem heutigen Besuch stellen, es dauert höchstens 2 Minuten.",
+    "later": "Später",
+    "open": "Zum Fragebogen"
+  }
+}

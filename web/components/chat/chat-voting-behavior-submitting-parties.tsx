@@ -1,6 +1,7 @@
 import { useContextParties } from '@/components/providers/context-provider';
 import type { Vote } from '@/lib/socket.types';
 import { buildPartyImageUrl } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useMemo } from 'react';
 
@@ -9,6 +10,7 @@ type Props = {
 };
 
 function ChatVotingBehaviorSubmittingParties({ vote }: Props) {
+  const t = useTranslations('chat.votingBehavior');
   const parties = useContextParties();
 
   const submittingParties = useMemo(() => {
@@ -27,8 +29,7 @@ function ChatVotingBehaviorSubmittingParties({ vote }: Props) {
   return (
     <>
       <p className="pb-2 pt-4 text-sm font-bold">
-        Einreichende{' '}
-        {vote.submitting_parties.length > 1 ? 'Parteien' : 'Partei'}
+        {t('submittingParties', { count: vote.submitting_parties.length })}
       </p>
 
       <div className="flex flex-row flex-wrap gap-2">

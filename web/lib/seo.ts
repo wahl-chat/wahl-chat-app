@@ -1,6 +1,10 @@
+import { DEFAULT_LOCALE, LOCALES, type Locale, isLocale } from '@/i18n/locales';
 import type { Context } from '@/lib/firebase/firebase.types';
-import { IS_EMBEDDED, formatGermanDate } from '@/lib/utils';
+import { IS_EMBEDDED, formatDate } from '@/lib/utils';
+import deMessages from '@/messages/de';
+import enMessages from '@/messages/en';
 import type { Metadata } from 'next';
+import { createTranslator } from 'next-intl';
 
 export const BASE_URL = 'https://wahl.chat';
 
@@ -23,11 +27,64 @@ export const productionRobots = IS_INDEXABLE
 export const ORGANIZATION_ID = `${BASE_URL}/#organization`;
 export const WEBSITE_ID = `${BASE_URL}/#website`;
 
+/** The `[locale]` route param, narrowed; anything unknown reads as German. */
+export function resolveLocale(value: string | undefined): Locale {
+  return isLocale(value) ? value : DEFAULT_LOCALE;
+}
+
+/** `/chat` in `en` → `/en/chat`. German keeps its unprefixed URLs. */
+export function localizedPath(path: string, locale: Locale): string {
+  if (locale === DEFAULT_LOCALE) {
+    return path;
+  }
+  return path === '/' ? `/${locale}` : `/${locale}${path}`;
+}
+
+/** Absolute URL of `path` in `locale`; the German home page stays the bare
+ * origin, as it has always been advertised. */
+export function localizedUrl(path: string, locale: Locale): string {
+  const localized = localizedPath(path, locale);
+  return localized === '/' ? BASE_URL : `${BASE_URL}${localized}`;
+}
+
+/**
+ * Canonical plus hreflang for an indexable page that exists in every
+ * language. The canonical points at the page's own language, so an English
+ * page is not folded into its German twin, and `x-default` sends readers of
+ * any other language to German, the site's primary audience.
+ */
+export function localeAlternates(
+  path: string,
+  locale: Locale = DEFAULT_LOCALE,
+): NonNullable<Metadata['alternates']> {
+  return {
+    canonical: localizedPath(path, locale),
+    languages: {
+      ...Object.fromEntries(LOCALES.map((l) => [l, localizedPath(path, l)])),
+      'x-default': localizedPath(path, DEFAULT_LOCALE),
+    },
+  };
+}
+
+// Synchronous on purpose: these helpers are spread into metadata objects by
+// callers that do not await them, so they read the catalogs directly instead
+// of going through the request-scoped getTranslations().
+const CATALOGS = { de: deMessages, en: enMessages } as const;
+
+function metaTranslator(locale: Locale) {
+  return createTranslator({
+    locale,
+    messages: CATALOGS[locale],
+    namespace: 'meta.context',
+  });
+}
+
 type ContextMetadataOptions = {
-  /** Appended before the context name in the title, e.g. 'Quellen'. */
+  /** Already translated page name shown before the context name, e.g. 'Quellen'. */
   pageSuffix?: string;
   /** Sub-path under the context, e.g. 'sources'. */
   path?: string;
+  locale?: Locale;
 };
 
 function buildContextUrlPath(context: Context, path?: string): string {
@@ -35,7 +92,7 @@ function buildContextUrlPath(context: Context, path?: string): string {
 }
 
 /**
- * Canonical for an indexable context page.
+ * Canonical and hreflang for an indexable context page.
  *
  * Deliberately not part of buildContextMetadata: that helper is called from
  * app/[contextId]/layout.tsx, and Next merges metadata field-by-field down the
@@ -45,31 +102,32 @@ function buildContextUrlPath(context: Context, path?: string): string {
 export function buildContextCanonical(
   contextId: string,
   path?: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): Metadata {
   return {
-    alternates: {
-      canonical: `/${contextId}${path ? `/${path}` : ''}`,
-    },
+    alternates: localeAlternates(
+      `/${contextId}${path ? `/${path}` : ''}`,
+      locale,
+    ),
   };
 }
 
 export function buildContextMetadata(
   context: Context,
-  { pageSuffix, path }: ContextMetadataOptions = {},
+  { pageSuffix, path, locale = DEFAULT_LOCALE }: ContextMetadataOptions = {},
 ): Metadata {
+  const t = metaTranslator(locale);
   const title = pageSuffix
-    ? `${pageSuffix} – ${context.name}`
-    : `${context.name} – Parteipositionen im Chat vergleichen`;
+    ? t('pageTitle', { page: pageSuffix, name: context.name })
+    : t('title', { name: context.name });
 
   // context.date is a Date at runtime (see getContext in firebase-server.ts),
   // so it must not be treated as a string here.
-  const electionDate = formatGermanDate(context.date);
+  const electionDate = formatDate(context.date, locale);
 
   const description = electionDate
-    ? `Vergleiche die Positionen der Parteien zur ${context.name} am ${electionDate}. Stelle Fragen und erhalte quellengestützte Antworten.`
-    : `Vergleiche die Positionen der Parteien in ${context.location_name}. Stelle Fragen zu politischen Themen und erhalte quellengestützte Antworten.`;
-
-  const urlPath = buildContextUrlPath(context, path);
+    ? t('descriptionWithDate', { name: context.name, date: electionDate })
+    : t('descriptionWithoutDate', { location: context.location_name });
 
   return {
     title,
@@ -78,7 +136,7 @@ export function buildContextMetadata(
     openGraph: {
       title,
       description,
-      url: `${BASE_URL}${urlPath}`,
+      url: localizedUrl(buildContextUrlPath(context, path), locale),
     },
     twitter: {
       title,
@@ -87,9 +145,14 @@ export function buildContextMetadata(
   };
 }
 
-export function buildContextJsonLd(context: Context, path?: string) {
-  const electionDate = formatGermanDate(context.date);
-  const url = `${BASE_URL}${buildContextUrlPath(context, path)}`;
+export function buildContextJsonLd(
+  context: Context,
+  path?: string,
+  locale: Locale = DEFAULT_LOCALE,
+) {
+  const t = metaTranslator(locale);
+  const electionDate = formatDate(context.date, locale);
+  const url = localizedUrl(buildContextUrlPath(context, path), locale);
 
   return {
     '@context': 'https://schema.org',
@@ -97,9 +160,16 @@ export function buildContextJsonLd(context: Context, path?: string) {
     '@id': `${url}#webpage`,
     name: `${context.name} – wahl.chat`,
     description: electionDate
-      ? `Parteipositionen für ${context.name} in ${context.location_name} am ${electionDate} vergleichen.`
-      : `Parteipositionen in ${context.location_name} vergleichen.`,
+      ? t('jsonLdDescriptionWithDate', {
+          name: context.name,
+          location: context.location_name,
+          date: electionDate,
+        })
+      : t('jsonLdDescriptionWithoutDate', {
+          location: context.location_name,
+        }),
     url,
+    inLanguage: locale,
     isPartOf: { '@id': WEBSITE_ID },
   };
 }

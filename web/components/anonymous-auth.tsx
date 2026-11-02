@@ -11,6 +11,7 @@ import {
   signInAnonymously,
 } from 'firebase/auth';
 import type { Timestamp } from 'firebase/firestore';
+import { useTranslations } from 'next-intl';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -23,6 +24,14 @@ export type WahlChatUser = {
   newsletter_allowed?: boolean;
   clicked_away_login_reminder?: Date | Timestamp;
   keep_up_to_date_email?: string;
+  // Interest in the upcoming personalised daily newsletter. Topic interests are
+  // deliberately not stored alongside it: together with an email address they
+  // come close to political-opinion data (GDPR Art. 9).
+  daily_digest_waitlist?: {
+    email: string;
+    region: string;
+    joined_at: Date | Timestamp;
+  };
 };
 
 export type SerializableFirebaseUser = UserInfo & {
@@ -60,6 +69,7 @@ export function AnonymousAuthProvider({
   children: React.ReactNode;
   user: FullUser | null;
 }) {
+  const t = useTranslations('errors');
   const [user, setUser] = useState<FullUser | null>(initialUser);
   const [loading, setLoading] = useState(true);
 
@@ -120,9 +130,7 @@ export function AnonymousAuthProvider({
     } catch (error) {
       console.error(error);
 
-      toast.error(
-        'Es ist ein Fehler aufgetreten. Bitte lade die Seite erneut.',
-      );
+      toast.error(t('reloadPage'));
     }
   }
 

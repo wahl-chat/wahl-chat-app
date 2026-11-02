@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -13,17 +14,22 @@ type Props = {
 };
 
 function HowToDialog({ children }: Props) {
+  const t = useTranslations('howTo');
+
   return (
     <ResponsiveDialog>
       <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
       <ResponsiveDialogContent className="flex max-h-[95dvh] flex-col overflow-hidden">
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>
-            Was kann ich mit <span className="underline">wahl.chat</span> alles
-            machen?
+            {t.rich('heading', {
+              underline: (chunks) => (
+                <span className="underline">{chunks}</span>
+              ),
+            })}
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            Tipps und Tricks, wie du wahl.chat am besten nutzen kannst.
+            {t('dialogDescription')}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 

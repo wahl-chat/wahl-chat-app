@@ -22,25 +22,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useRouter } from '@/i18n/navigation';
 import type { Context } from '@/lib/firebase/firebase.types';
-import { formatGermanDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { CheckIcon, ChevronDownIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 
 type ContextSwitcherProps = {
   buildHref: (contextId: string) => string;
-  navigationTargetLabel: string;
-  currentAreaLabel?: string;
+  /** Which part of the app the switch leaves; it picks the confirmation copy. */
+  area: 'chat' | 'swiper';
   filter?: (context: Context) => boolean;
 };
 
-function ContextSwitcher({
-  buildHref,
-  navigationTargetLabel,
-  currentAreaLabel = 'den aktuellen Bereich',
-  filter,
-}: ContextSwitcherProps) {
+function ContextSwitcher({ buildHref, area, filter }: ContextSwitcherProps) {
+  const t = useTranslations('context.switcher');
+  const locale = useLocale();
   const currentContext = useCurrentContext();
   const contexts = useContexts();
   const selectableContexts = filter ? contexts.filter(filter) : contexts;
@@ -83,7 +81,7 @@ function ContextSwitcher({
     ? selectableContexts.find((c) => c.context_id === pendingContextId)
     : null;
 
-  const formattedDate = formatGermanDate(currentContext.date, 'medium');
+  const formattedDate = formatDate(currentContext.date, locale, 'medium');
 
   if (selectableContexts.length <= 1) {
     return (
@@ -124,7 +122,7 @@ function ContextSwitcher({
           className="w-[var(--radix-popper-anchor-width)] md:w-64"
         >
           {selectableContexts.map((ctx) => {
-            const ctxDate = formatGermanDate(ctx.date, 'medium');
+            const ctxDate = formatDate(ctx.date, locale, 'medium');
             const isSelected = ctx.context_id === currentContext.context_id;
 
             return (
@@ -155,28 +153,27 @@ function ContextSwitcher({
       <AlertDialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Wahl wechseln?</AlertDialogTitle>
+            <AlertDialogTitle>{t('title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingContext ? (
-                <>
-                  Du wechselst zur{' '}
-                  <span className="font-medium text-foreground">
-                    {pendingContext.name}
-                  </span>
-                  . Dadurch verlässt du {currentAreaLabel} und wirst{' '}
-                  {navigationTargetLabel}.
-                </>
-              ) : (
-                `Dadurch verlässt du ${currentAreaLabel} und wirst ${navigationTargetLabel}.`
-              )}
+              {pendingContext
+                ? t.rich('descriptionWithTarget', {
+                    area,
+                    election: pendingContext.name,
+                    name: (chunks) => (
+                      <span className="font-medium text-foreground">
+                        {chunks}
+                      </span>
+                    ),
+                  })
+                : t('description', { area })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleCancelChange}>
-              Abbrechen
+              {t('cancel')}
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmChange}>
-              Wahl wechseln
+              {t('confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

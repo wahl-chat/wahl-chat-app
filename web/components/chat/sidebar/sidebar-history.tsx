@@ -12,13 +12,14 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { Link } from '@/i18n/navigation';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { listenToHistory } from '@/lib/firebase/firebase';
 import type { ChatSession } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { VoteIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 type Props = {
@@ -55,6 +56,7 @@ function ContextIconSmall({ contextId }: { contextId: string }) {
 }
 
 function SidebarHistory({ history: initialHistory }: Props) {
+  const t = useTranslations('chat.sidebar');
   const { user } = useAnonymousAuth();
   const [history, setHistory] = useState<ChatSession[]>(initialHistory ?? []);
   const chatSessionId = useChatStore((state) => state.chatSessionId);
@@ -78,7 +80,7 @@ function SidebarHistory({ history: initialHistory }: Props) {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Historie</SidebarGroupLabel>
+      <SidebarGroupLabel>{t('history')}</SidebarGroupLabel>
 
       <SidebarGroupContent>
         <SidebarMenu>

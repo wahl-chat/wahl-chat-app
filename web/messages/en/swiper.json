@@ -1,0 +1,86 @@
+{
+  "meta": {
+    "fallbackTitle": "Wahl-Swiper",
+    "title": "Wahl-Swiper – {context}",
+    "description": "Wahl-Swiper for {context} – find out which party suits you."
+  },
+  "header": {
+    "home": "To the home page"
+  },
+  "teaserTag": "Wahl Swiper",
+  "cards": {
+    "no": "No",
+    "skip": "Skip",
+    "yes": "Yes"
+  },
+  "skipPopover": {
+    "title": "Want to learn more about this statement?",
+    "body": "Use our <b>chat</b> to learn more about the statement and make a <b>better decision</b>.",
+    "startChat": "Start chat"
+  },
+  "experimentalDisclaimer": {
+    "title": "⚠️ Disclaimer",
+    "description": "Experimental feature",
+    "intro": "You asked for something like a Wahl-O-Mat – here's a first attempt at putting your feedback into practice.",
+    "notice": "We want to stress that this is only a first draft and not an official voting recommendation.",
+    "feedback": "Your feedback helps us build a final version for the next election that fixes the remaining issues.",
+    "thanks": "Thanks for your understanding 🙏 - we look forward to hearing from you! 🤗",
+    "start": "Let's go!"
+  },
+  "prolificDisclaimer": {
+    "title": "Welcome to the study",
+    "description": "Important information",
+    "requirement": "To receive the completion code, you need to answer at least <b>one</b> question with <b>yes</b> or <b>no</b>.",
+    "keepTabOpen": "Please don't close this browser tab before you've received the completion code.",
+    "codeAtEnd": "The code is shown at the end of the swiper and you need it to complete the study.",
+    "start": "Got it, let's go!"
+  },
+  "input": {
+    "openChat": "Open chat",
+    "closeChat": "Close chat",
+    "placeholder": "Ask wahl.chat...",
+    "defaultQuickReplies": {
+      "currentSituation": "What's the current situation?",
+      "prosAndCons": "What are the pros and cons?",
+      "alternatives": "What are the alternative solutions?"
+    }
+  },
+  "chat": {
+    "empty": "Start a conversation about this statement to learn more about it.",
+    "dialogDescription": "Chat with the Wahl-Swiper"
+  },
+  "swiper": {
+    "calculating": "We're calculating your results...",
+    "resultsError": "We couldn't calculate your results. Please reload the page."
+  },
+  "result": {
+    "title": "Swiper results",
+    "disclaimer": "This result is only meant as a first orientation. Question it critically and look at the manifestos yourself - our comparison chat can help: <chat>comparison chat</chat>",
+    "noResults": "No results available. To see how you match with the parties, answer at least one question with Yes or No.",
+    "tryAgain": "Try again"
+  },
+  "partyCard": {
+    "consensusHeading": "Agreement between {party} and you:",
+    "consensusSummary": "{party} agrees with you on <b>{consensus} of {total, plural, one {# question} other {# questions}}</b>.",
+    "clickHint": "Click on a question for more information.",
+    "question": "Question",
+    "agree": "Agree",
+    "consensus": "Agreement",
+    "noConsensus": "No agreement",
+    "toChat": "Go to chat"
+  },
+  "share": {
+    "button": "Share",
+    "title": "Share swiper result",
+    "description": "Anyone with this link can see this result.",
+    "shareTitle": "Wahl Swiper result",
+    "linkLabel": "Link"
+  },
+  "survey": {
+    "title": "⭐️ Please give us your feedback",
+    "intro": "We'd really appreciate it if you shared your feedback on our Wahl Swiper with us.",
+    "signUpHint": "If you'd like us to keep you posted after the election on whether your views are being put into practice, you can sign up here.",
+    "signIn": "Sign in",
+    "feedback": "Feedback"
+  }
+}

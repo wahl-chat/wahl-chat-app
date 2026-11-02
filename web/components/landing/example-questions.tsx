@@ -1,8 +1,8 @@
+import { Link } from '@/i18n/navigation';
 import type { Context, ProposedQuestion } from '@/lib/firebase/firebase.types';
 import type { PartyDetails } from '@/lib/party-details';
 import { buildPartyImageUrl } from '@/lib/utils';
 import Image from 'next/image';
-import Link from 'next/link';
 
 /**
  * Real questions about each live election, every one a link into a chat.

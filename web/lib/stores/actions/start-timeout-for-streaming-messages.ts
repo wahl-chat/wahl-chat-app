@@ -1,4 +1,5 @@
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
+import { storeMessage } from '@/lib/stores/store-messages';
 import { toast } from 'sonner';
 
 // 60s default: the watchdog only resets on received `data-chat_event` parts, and
@@ -47,7 +48,7 @@ const armStreamingMessageWatchdog = (
     // state. It must run BEFORE any inline wipe so its id-guard
     // (currentStreamingMessages.id === streamingMessageId) still passes.
     get().cancelStreamingMessages(streamingMessageId);
-    toast.error('Zeitüberschreitung — die Antwort wurde abgebrochen.');
+    toast.error(storeMessage('timeout'));
   }, STREAMING_MESSAGE_TIMEOUT);
 
   set((state) => {

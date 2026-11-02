@@ -1,16 +1,14 @@
 'use client';
 
+import { Link } from '@/i18n/navigation';
 import {
-  ACCORDION_CONTENT,
-  INTRO_TEXT,
-  PROCESS_STEPS,
-  WAHL_O_MAT_LIST_LEAD_IN,
+  getHowToContent,
   parseLabeledListItem,
   splitOnSourceDomains,
 } from '@/lib/how-to-content';
 import { exportHowToPDF } from '@/lib/how-to-pdf-export';
 import { DownloadIcon, PlusIcon, VoteIcon } from 'lucide-react';
-import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 import { Fragment, useState } from 'react';
 import ChatActionButtonHighlight from './chat/chat-action-button-highlight';
 import ProConIcon from './chat/pro-con-icon';
@@ -24,6 +22,10 @@ import {
 import { Button } from './ui/button';
 
 function HowTo() {
+  const t = useTranslations('howTo');
+  const locale = useLocale();
+  const content = getHowToContent(locale);
+  const { labels } = content;
   const [isExporting, setIsExporting] = useState(false);
 
   const buildQuestionLink = (question: string) => {
@@ -33,11 +35,7 @@ function HowTo() {
   const exportToPDF = async () => {
     setIsExporting(true);
     try {
-      await exportHowToPDF({
-        introText: INTRO_TEXT,
-        processSteps: PROCESS_STEPS,
-        accordionContent: ACCORDION_CONTENT,
-      });
+      await exportHowToPDF(content);
     } catch (error) {
       console.error('Error generating PDF:', error);
     } finally {
@@ -48,17 +46,54 @@ function HowTo() {
   return (
     <Accordion type="single" collapsible asChild>
       <article>
-        <section>
+        <section aria-labelledby="how-to-feed">
+          <h2 id="how-to-feed" className="text-lg font-bold">
+            {content.feedIntro.title}
+          </h2>
+          {content.feedIntro.paragraphs.map((paragraph) => (
+            <p key={paragraph} className="mt-2">
+              {paragraph}
+            </p>
+          ))}
+          <ul className="list-outside list-disc py-2 pl-4 [&_li]:pt-1">
+            {content.feedIntro.list.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+          <Link href="/" className="font-semibold underline">
+            {content.feedIntro.link}
+          </Link>
+        </section>
+
+        <section className="mt-8">
           <HowToIntro />
         </section>
 
         <section className="mt-6">
-          {ACCORDION_CONTENT.map((accordionItem) => (
+          {content.accordionContent.map((accordionItem) => (
             <AccordionItem key={accordionItem.id} value={accordionItem.id}>
               <AccordionTrigger className="font-bold">
                 {accordionItem.title}
               </AccordionTrigger>
               <AccordionContent>
+                {/* Feed heat accordion */}
+                {accordionItem.id === 'feed-heat' && (
+                  <>
+                    {accordionItem.content.intro}
+                    <ol className="list-outside list-decimal py-2 pl-4 [&_li]:pt-2">
+                      {accordionItem.content.orderedList?.map((item) => {
+                        const { label, text } = parseLabeledListItem(item);
+                        return (
+                          <li key={item}>
+                            <span className="font-bold">{label}:</span> {text}
+                          </li>
+                        );
+                      })}
+                    </ol>
+                    {accordionItem.content.outro}
+                  </>
+                )}
+
                 {/* Special rendering for questions accordion */}
                 {accordionItem.id === 'questions' && (
                   <>
@@ -110,14 +145,15 @@ function HowTo() {
                     <br />
                     {(() => {
                       const text = accordionItem.content.paragraphs?.[1] || '';
-                      const parts = text.split('Plus-Knopf');
+                      const parts = text.split(labels.plusButton.phrase);
                       return (
                         <>
                           {parts[0]}
                           <span className="inline-block">
                             <PlusIcon className="size-4 rounded-full bg-primary p-1 text-primary-foreground" />
                           </span>
-                          -Knopf{parts[1]}
+                          {labels.plusButton.iconSuffix}
+                          {parts[1]}
                         </>
                       );
                     })()}
@@ -132,11 +168,13 @@ function HowTo() {
                         <Button
                           variant="outline"
                           className="h-8 px-2 group-data-[has-message-background]:bg-zinc-100 group-data-[has-message-background]:hover:bg-zinc-200 group-data-[has-message-background]:dark:bg-zinc-900 group-data-[has-message-background]:dark:hover:bg-zinc-800"
-                          tooltip="Ordne die Position in Pro oder Contra ein"
+                          tooltip={t('positionButton.tooltip')}
                           type="button"
                         >
                           <ProConIcon />
-                          <span className="text-xs">Position einordnen</span>
+                          <span className="text-xs">
+                            {t('positionButton.label')}
+                          </span>
                         </Button>
                         <ChatActionButtonHighlight showHighlight />
                       </div>
@@ -160,10 +198,12 @@ function HowTo() {
                         <Button
                           variant="outline"
                           className="h-8 px-2 group-data-[has-message-background]:bg-zinc-100 group-data-[has-message-background]:hover:bg-zinc-200 group-data-[has-message-background]:dark:bg-zinc-900 group-data-[has-message-background]:dark:hover:bg-zinc-800"
-                          tooltip="Analysiere das Abstimmungsverhalten der Partei"
+                          tooltip={t('votingBehaviorButton.tooltip')}
                         >
                           <VoteIcon />
-                          <span className="text-xs">Abstimmungsverhalten</span>
+                          <span className="text-xs">
+                            {t('votingBehaviorButton.label')}
+                          </span>
                         </Button>
                         <ChatActionButtonHighlight showHighlight />
                       </div>
@@ -228,12 +268,9 @@ function HowTo() {
                           <span className="font-bold underline">wahl.chat</span>
                           {sourceParts[0]}
                           <Link href="/sources" className="underline">
-                            hier
+                            {labels.sourcesLinkText}
                           </Link>
-                          {sourceParts[1]?.replace(
-                            ' aufgelistet.',
-                            ' aufgelistet.',
-                          )}
+                          {sourceParts[1]}
                         </>
                       );
                     })()}
@@ -298,7 +335,7 @@ function HowTo() {
                         <br />
                       </div>
                     ))}
-                    <span className="font-bold">Wie kam es zu wahl.chat?</span>
+                    <span className="font-bold">{labels.originHeading}</span>
                     <br />
                     <br />
                     {accordionItem.content.origin}
@@ -326,7 +363,9 @@ function HowTo() {
                     {accordionItem.content.intro}
                     <br />
                     <br />
-                    <span className="font-bold">{WAHL_O_MAT_LIST_LEAD_IN}</span>
+                    <span className="font-bold">
+                      {labels.wahlOMatListLeadIn}
+                    </span>
                     <ol className="list-outside list-decimal py-2 pl-4 [&_li]:pt-1">
                       {accordionItem.content.orderedList?.map((item) => (
                         <li key={item}>{item}</li>
@@ -420,7 +459,7 @@ function HowTo() {
             size="lg"
           >
             <DownloadIcon />
-            {isExporting ? 'Erstelle PDF...' : 'Als PDF exportieren'}
+            {isExporting ? t('exportPdf.busy') : t('exportPdf.idle')}
           </Button>
         </div>
       </article>

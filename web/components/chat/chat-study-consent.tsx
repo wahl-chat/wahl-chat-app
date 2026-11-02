@@ -11,6 +11,7 @@ import {
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Button } from '@/components/ui/button';
 import type { StudyDeclineReason } from '@/lib/pledge-study/study-config';
+import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 
 type Props = {
@@ -32,9 +33,11 @@ type Props = {
  * the short ask, abandoning it, refusing after reading the
  * Einverständniserklärung, and abandoning that are four different behaviours
  * that would otherwise arrive as one number.
- * The reviewed German copy is verbatim from the research team.
+ * The reviewed German copy (the `study` catalog) is verbatim from the
+ * research team.
  */
 function ChatStudyConsent({ userId, contextId }: Props) {
+  const t = useTranslations('study.consent');
   const studyConsent = useChatStore((state) => state.studyConsent);
   const messagesCount = useChatStore((state) => state.messages.length);
   // Selected at hydration, before the first message, so this is the party the
@@ -92,19 +95,13 @@ function ChatStudyConsent({ userId, contextId }: Props) {
         {step === 'ask' ? (
           <>
             <ResponsiveDialogHeader>
-              <ResponsiveDialogTitle>
-                Du kannst wahl.chat mitgestalten
-              </ResponsiveDialogTitle>
+              <ResponsiveDialogTitle>{t('askTitle')}</ResponsiveDialogTitle>
               <ResponsiveDialogDescription>
-                Eine kurze Frage vor deinem Chat
+                {t('askDescription')}
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
             <div className="px-4 text-sm md:px-0">
-              <p>
-                Wir testen im Rahmen einer wissenschaftlichen Studie neue
-                Funktionen und würden danach gern kurz deine Rückmeldung hören
-                (max. 2 Min.). Machst du mit?
-              </p>
+              <p>{t('askBody')}</p>
             </div>
             <ResponsiveDialogFooter>
               <div className="flex w-full flex-col gap-2 sm:flex-row">
@@ -113,10 +110,10 @@ function ChatStudyConsent({ userId, contextId }: Props) {
                   className="w-full"
                   onClick={() => decline('explicit')}
                 >
-                  Nein
+                  {t('no')}
                 </Button>
                 <Button className="w-full" onClick={() => setStep('consent')}>
-                  Ja
+                  {t('yes')}
                 </Button>
               </div>
             </ResponsiveDialogFooter>
@@ -124,56 +121,39 @@ function ChatStudyConsent({ userId, contextId }: Props) {
         ) : (
           <>
             <ResponsiveDialogHeader>
-              <ResponsiveDialogTitle>
-                Einverständniserklärung
-              </ResponsiveDialogTitle>
+              <ResponsiveDialogTitle>{t('consentTitle')}</ResponsiveDialogTitle>
               <ResponsiveDialogDescription>
-                Teilnahme an einer Forschungsstudie
+                {t('consentDescription')}
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
             <div className="max-h-[50vh] space-y-3 overflow-y-auto px-4 text-sm md:px-0">
+              <p>{t('consentInvitation')}</p>
+              <p>{t('consentVersions')}</p>
+              <p>{t('consentWithdraw')}</p>
+              <p>{t('consentGdpr')}</p>
               <p>
-                Du bist eingeladen, an einer Forschungsstudie teilzunehmen, die
-                den Einsatz von KI in der politischen Bildung untersucht. Es
-                handelt sich um eine Zusammenarbeit von Prof. Andreas Vlachos
-                und seinem Team an der University of Cambridge, Prof. Tom
-                Stafford an der University of Sheffield sowie Robin Frasch, CEO
-                von wahl.chat und Forscher an der Universität Hamburg.
+                {t.rich('consentContact', {
+                  andreas: (chunks) => (
+                    <a className="underline" href="mailto:av308@cam.ac.uk">
+                      {chunks}
+                    </a>
+                  ),
+                  tom: (chunks) => (
+                    <a
+                      className="underline"
+                      href="mailto:t.stafford@sheffield.ac.uk"
+                    >
+                      {chunks}
+                    </a>
+                  ),
+                  robin: (chunks) => (
+                    <a className="underline" href="mailto:robin@wahl.chat">
+                      {chunks}
+                    </a>
+                  ),
+                })}
               </p>
-              <p>
-                Dir werden verschiedene Versionen des wahl.chat-Chatbots
-                gezeigt. Damit erforschen wir verschiedene Wege, auf Plattformen
-                der politischen Bildung über staatliche Prozesse zu informieren.
-              </p>
-              <p>
-                Du kannst das Experiment jederzeit abbrechen; es werden dann
-                keine Daten aus deiner Teilnahme gespeichert.
-              </p>
-              <p>
-                Die Studie ist DSGVO-konform, da keine personenbezogenen Daten
-                erhoben werden, die dich identifizieren. Erhoben werden
-                ausschließlich Altersgruppe, Geschlecht und politische
-                Orientierung.
-              </p>
-              <p>
-                Bei Fragen wende dich gerne an Andreas (
-                <a className="underline" href="mailto:av308@cam.ac.uk">
-                  av308@cam.ac.uk
-                </a>
-                ), Tom (
-                <a
-                  className="underline"
-                  href="mailto:t.stafford@sheffield.ac.uk"
-                >
-                  t.stafford@sheffield.ac.uk
-                </a>
-                ) oder Robin (
-                <a className="underline" href="mailto:robin@wahl.chat">
-                  robin@wahl.chat
-                </a>
-                ).
-              </p>
-              <p className="font-medium">Bist du einverstanden?</p>
+              <p className="font-medium">{t('consentQuestion')}</p>
             </div>
             <ResponsiveDialogFooter>
               <div className="flex w-full flex-col gap-2 sm:flex-row">
@@ -182,10 +162,10 @@ function ChatStudyConsent({ userId, contextId }: Props) {
                   className="w-full"
                   onClick={() => decline('explicit')}
                 >
-                  Nein
+                  {t('no')}
                 </Button>
                 <Button className="w-full" onClick={accept}>
-                  Ja, ich bin einverstanden
+                  {t('accept')}
                 </Button>
               </div>
             </ResponsiveDialogFooter>

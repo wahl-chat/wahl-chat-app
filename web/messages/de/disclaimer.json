@@ -1,0 +1,12 @@
+{
+  "notice": "wahl.chat Antwortet mit KI.",
+  "learnMore": "Erfahre hier mehr.",
+  "title": "KI Hinweis",
+  "intro": "Die Antworten auf wahl.chat werden von einer <b>künstlichen Intelligenz</b> generiert. Sie basieren auf Informationen, die aus <b>öffentlich zugänglichen Partei-</b> und <b>Wahlprogrammen</b> extrahiert wurden. Während wahl.chat bestrebt ist, genaue Informationen über Parteipositionen und -werte zu liefern, gilt:",
+  "automated": "Die <b>Verarbeitung und Generierung</b> aller Inhalte erfolgt <b>automatisiert.</b>",
+  "notOfficial": "Die Antworten sind <b>nicht als offizielle Parteiaussagen</b> zu verstehen.",
+  "nuance": "<b>Komplexe politische Positionen</b> können eventuell nicht in allen Nuancen erfasst werden.",
+  "inaccuracies": "<b>Ungenauigkeiten</b> oder <b>Fehlinterpretationen</b> können gelegentlich auftreten.",
+  "storage": "<b>Deine Nachrichten werden gespeichert</b>, um die Antworten zu erzeugen und dir deinen Chatverlauf anzuzeigen. Mehr dazu in der <link>Datenschutzerklärung</link>.",
+  "outro": "Dieser KI-Chat dient als <b>Bildungswerkzeug</b>, um verschiedene politische Positionen kennenzulernen. Für <b>verbindliche Informationen</b> nutzen Sie bitte die <b>offiziellen Parteiquellen</b>."
+}

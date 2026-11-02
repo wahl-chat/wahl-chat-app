@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useRouter } from '@/i18n/navigation';
 import {
   getConversationMessages,
   getConversationStage,
@@ -23,12 +24,13 @@ import {
   Loader2,
   MessageSquarePlus,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 
 type Screen = 'choice' | 'resume';
 
 export default function ConversationChoiceScreen() {
+  const t = useTranslations('agent.choice');
   const router = useRouter();
   const startNewConversation = useAgentStore(
     (state) => state.startNewConversation,
@@ -76,13 +78,11 @@ export default function ConversationChoiceScreen() {
       router.replace(`/agent/${conversationId.trim()}`);
     } catch (err) {
       console.error('Error restoring conversation:', err);
-      setError(
-        'Konversation konnte nicht gefunden werden. Bitte überprüfe die ID.',
-      );
+      setError(t('notFound'));
     } finally {
       setIsLoading(false);
     }
-  }, [conversationId, restoreConversation, router]);
+  }, [conversationId, restoreConversation, router, t]);
 
   const handleBack = useCallback(() => {
     setScreen('choice');
@@ -103,7 +103,7 @@ export default function ConversationChoiceScreen() {
             disabled={isLoading}
           >
             <ArrowLeft className="size-4" />
-            Zurück
+            {t('back')}
           </Button>
 
           {/* Header */}
@@ -112,21 +112,21 @@ export default function ConversationChoiceScreen() {
               <History className="size-8 text-muted-foreground" />
             </div>
             <h1 className="text-3xl font-bold tracking-tight">
-              Konversation fortsetzen
+              {t('resumeTitle')}
             </h1>
-            <p className="mt-2 text-muted-foreground">
-              Gib deine Conversation ID ein, um fortzufahren.
-            </p>
+            <p className="mt-2 text-muted-foreground">{t('resumeSubtitle')}</p>
           </div>
 
           {/* Input Card */}
           <Card>
             <CardContent className="space-y-4 pt-6">
               <div className="space-y-2">
-                <Label htmlFor="conversation-id">Conversation ID</Label>
+                <Label htmlFor="conversation-id">
+                  {t('conversationIdLabel')}
+                </Label>
                 <Input
                   id="conversation-id"
-                  placeholder="z.B. abc123-def456-..."
+                  placeholder={t('conversationIdPlaceholder')}
                   value={conversationId}
                   onChange={(e) => {
                     setConversationId(e.target.value);
@@ -159,18 +159,17 @@ export default function ConversationChoiceScreen() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" />
-                    Laden...
+                    {t('loading')}
                   </>
                 ) : (
-                  'Fortsetzen'
+                  t('resume')
                 )}
               </Button>
             </CardContent>
           </Card>
 
           <p className="text-center text-sm text-muted-foreground">
-            Du findest deine Conversation ID in der Seitenleiste während eines
-            aktiven Gesprächs.
+            {t('whereToFindId')}
           </p>
         </div>
       </div>
@@ -183,7 +182,7 @@ export default function ConversationChoiceScreen() {
       <div className="w-full max-w-lg space-y-6">
         {/* Header */}
         <h1 className="text-3xl text-center font-bold tracking-tight">
-          Wie möchtest du fortfahren?
+          {t('title')}
         </h1>
 
         {/* New Conversation Card */}
@@ -205,10 +204,8 @@ export default function ConversationChoiceScreen() {
                 <MessageSquarePlus className="size-6" />
               </div>
               <div>
-                <CardTitle className="text-lg">
-                  Neue Konversation starten
-                </CardTitle>
-                <CardDescription>Lerne den Wahl Agent kennen</CardDescription>
+                <CardTitle className="text-lg">{t('newTitle')}</CardTitle>
+                <CardDescription>{t('newDescription')}</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -233,12 +230,8 @@ export default function ConversationChoiceScreen() {
                 <History className="size-6" />
               </div>
               <div>
-                <CardTitle className="text-lg">
-                  Konversation fortsetzen
-                </CardTitle>
-                <CardDescription>
-                  Bestehendes Gespräch mit Conversation ID fortsetzen
-                </CardDescription>
+                <CardTitle className="text-lg">{t('resumeTitle')}</CardTitle>
+                <CardDescription>{t('resumeDescription')}</CardDescription>
               </div>
             </div>
           </CardHeader>

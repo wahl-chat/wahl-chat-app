@@ -4,12 +4,14 @@ import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { CheckCircle2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   minInteractions: number;
 };
 
 function ChatProlificProgress({ minInteractions }: Props) {
+  const t = useTranslations('study.prolific');
   const prolificMessageCount = useChatStore(
     (state) => state.prolificMessageCount,
   );
@@ -41,10 +43,13 @@ function ChatProlificProgress({ minInteractions }: Props) {
           {isComplete ? (
             <span className="flex items-center gap-1.5">
               <CheckCircle2 className="size-4" />
-              Studienanforderung erfüllt!
+              {t('requirementMet')}
             </span>
           ) : (
-            `${prolificMessageCount} von ${minInteractions} Nachrichten`
+            t('progress', {
+              count: prolificMessageCount,
+              total: minInteractions,
+            })
           )}
         </span>
       </div>

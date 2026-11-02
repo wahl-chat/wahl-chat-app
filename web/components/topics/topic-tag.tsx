@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 import { TOPIC_TITLES, type Topic } from './topics.data';
 
 type Props = {
@@ -9,7 +10,9 @@ type Props = {
 };
 
 function TopicTag({ topic, active = false, onClick }: Props) {
-  const { title, normal, hover, active: activeStyle } = TOPIC_TITLES[topic];
+  const t = useTranslations('topics');
+  const { normal, hover, active: activeStyle } = TOPIC_TITLES[topic];
+  const title = t(`${topic}.title`);
 
   if (onClick) {
     return (

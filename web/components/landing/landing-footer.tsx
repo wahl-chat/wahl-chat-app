@@ -1,12 +1,15 @@
 import Logo from '@/components/chat/logo';
 import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
 import HomeSocialMediaIcon from '@/components/icons/home-social-media-icon';
+import { LocaleSwitcher } from '@/components/locale/locale-switcher';
 import { Separator } from '@/components/ui/separator';
+import { Link } from '@/i18n/navigation';
 import { getNextUpcomingElection } from '@/lib/elections';
 import { getContexts } from '@/lib/firebase/firebase-server';
 import { SITE_LINKS, type SiteLink, sourcesLink } from '@/lib/site-links';
 import { IS_EMBEDDED } from '@/lib/utils';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 
 /**
  * The landing page's footer.
@@ -16,8 +19,8 @@ import Link from 'next/link';
  * to the bare /sources geo-redirect. Labels and hrefs come from site-links.ts
  * so the two cannot drift.
  *
- * Impressum und Datenschutz sind nicht optional: sie müssen von jeder Seite
- * einen Klick entfernt sein. They live in the Rechtliches column, which is
+ * Impressum and Datenschutz are not optional: they must be one click away
+ * from every page. They live in the legal column, which is
  * why the hero no longer carries its own link row.
  */
 function FooterColumn({
@@ -27,6 +30,7 @@ function FooterColumn({
   label: string;
   links: SiteLink[];
 }) {
+  const t = useTranslations('nav');
   if (links.length === 0) return null;
 
   return (
@@ -45,7 +49,7 @@ function FooterColumn({
             rel: 'noopener noreferrer',
           })}
         >
-          {link.label}
+          {t(link.label, link.values)}
         </Link>
       ))}
     </nav>
@@ -53,6 +57,7 @@ function FooterColumn({
 }
 
 async function LandingFooter() {
+  const t = await getTranslations('landing.footer');
   const contexts = await getContexts();
   const featured = getNextUpcomingElection(contexts) ?? contexts[0];
 
@@ -60,7 +65,13 @@ async function LandingFooter() {
     SITE_LINKS.howTo,
     ...(featured ? [sourcesLink(featured.context_id)] : []),
     ...(featured
-      ? [{ href: `/${featured.context_id}`, label: `Zur ${featured.name}` }]
+      ? [
+          {
+            href: `/${featured.context_id}`,
+            label: 'toElection' as const,
+            values: { name: featured.name },
+          },
+        ]
       : []),
   ];
 
@@ -88,10 +99,10 @@ async function LandingFooter() {
             )}
           </div>
 
-          <FooterColumn label="Produkt" links={productLinks} />
-          <FooterColumn label="Über wahl.chat" links={aboutLinks} />
+          <FooterColumn label={t('product')} links={productLinks} />
+          <FooterColumn label={t('about')} links={aboutLinks} />
           <FooterColumn
-            label="Rechtliches"
+            label={t('legal')}
             links={[SITE_LINKS.imprint, SITE_LINKS.privacy]}
           />
         </div>
@@ -104,9 +115,12 @@ async function LandingFooter() {
           </p>
 
           {/* The landing page has no header, so this is the only place a
-              visitor can change the theme — the shared footer carries it on
-              every other page. */}
-          <ThemeModeToggle align="end" />
+              visitor can change the language or theme — elsewhere the header
+              and the shared footer carry them. */}
+          <div className="flex items-center gap-1">
+            <LocaleSwitcher align="end" className="h-8 gap-1.5 px-2 text-sm" />
+            <ThemeModeToggle align="end" />
+          </div>
         </div>
       </div>
     </footer>

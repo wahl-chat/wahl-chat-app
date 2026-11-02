@@ -24,6 +24,7 @@ import type { StreamingMessage } from '@/lib/socket.types';
 import type { MessageItem } from '@/lib/stores/chat-store.types';
 import { cn, prettifiedUrlName } from '@/lib/utils';
 import { Eye, EyeClosed, SparkleIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import AnimatedMessageSequence from './animated-message-sequence';
 import ChatGroupProConEmblaReinit from './chat-group-pro-con-embla-reinit';
@@ -34,6 +35,7 @@ type Props = {
 };
 
 function ChatProConExpandable({ message, isGroupChat }: Props) {
+  const t = useTranslations('chat.proCon');
   const [isExpanded, setIsExpanded] = useState(false);
   const isLoadingProConPerspective = useChatStore(
     (state) => state.loading.proConPerspective === message.id,
@@ -87,11 +89,11 @@ function ChatProConExpandable({ message, isGroupChat }: Props) {
           <AnimatedMessageSequence
             className="text-muted-foreground"
             messages={[
-              'Thema verstehen...',
-              'Machbarkeit analysieren...',
-              'Kurzfristige Effekte identifizieren...',
-              'Langfristige Effekte identifizieren...',
-              'Analyse abschließen...',
+              t('loading.understand'),
+              t('loading.feasibility'),
+              t('loading.shortTerm'),
+              t('loading.longTerm'),
+              t('loading.finish'),
             ]}
           />
         </div>
@@ -160,13 +162,14 @@ function ChatProConExpandable({ message, isGroupChat }: Props) {
         >
           {!isExpanded ? (
             <p className="text-xs text-muted-foreground">
-              Diese Nachricht enthält eine{' '}
-              <span className="font-bold">eingeordnete Position</span>.
+              {t.rich('collapsedHint', {
+                bold: (chunks) => <span className="font-bold">{chunks}</span>,
+              })}
             </p>
           ) : (
             <span className="flex flex-row items-center gap-1.5 text-xs text-muted-foreground">
               <PerplexityIcon className="size-4" />
-              <span>Powered by Perplexity</span>
+              <span>{t('poweredBy')}</span>
             </span>
           )}
           <Tooltip>
@@ -178,7 +181,7 @@ function ChatProConExpandable({ message, isGroupChat }: Props) {
               </TooltipTrigger>
             </CollapsibleTrigger>
             <TooltipContent>
-              {isExpanded ? 'Verbergen' : 'Anzeigen'}
+              {isExpanded ? t('hide') : t('show')}
             </TooltipContent>
           </Tooltip>
         </div>

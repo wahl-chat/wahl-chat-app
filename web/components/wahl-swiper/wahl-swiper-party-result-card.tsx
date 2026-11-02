@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Link } from '@/i18n/navigation';
 import type { PartyDetails } from '@/lib/party-details';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
 import type {
@@ -20,8 +21,8 @@ import type {
   ThesesScoreResult,
 } from '@/lib/wahl-swiper/wahl-swiper.types';
 import { CheckIcon, MessageSquareIcon, XIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
-import Link from 'next/link';
 
 const WAHL_SWIPER_PARTY_IDS = [
   'afd',
@@ -39,6 +40,7 @@ type Props = {
 };
 
 function WahlSwiperPartyResultCard({ party, score }: Props) {
+  const t = useTranslations('swiper.partyCard');
   const prettyScore = score.score.toFixed(1);
 
   const chatLink = `/session?party_id=${party.party_id}`;
@@ -90,19 +92,20 @@ function WahlSwiperPartyResultCard({ party, score }: Props) {
         <Separator />
 
         <div className="flex flex-col gap-2 p-4">
-          <h2 className="font-bold">Konsens zwischen {party.name} und dir:</h2>
+          <h2 className="font-bold">
+            {t('consensusHeading', { party: party.name })}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            {party.name} stimmt mit dir in{' '}
-            <span className="font-bold">
-              {consensusTheses.length} von {sortedTheses.length}
-            </span>{' '}
-            Fragen überein.
+            {t.rich('consensusSummary', {
+              party: party.name,
+              consensus: consensusTheses.length,
+              total: sortedTheses.length,
+              b: (chunks) => <span className="font-bold">{chunks}</span>,
+            })}
           </p>
           <div className="flex w-fit flex-row items-center justify-start gap-2 rounded-md border border-border bg-muted p-2">
             <p className="w-8 text-center text-xl">💡</p>
-            <p className="text-sm text-muted-foreground">
-              Klicke auf eine Frage für weitere Informationen.
-            </p>
+            <p className="text-sm text-muted-foreground">{t('clickHint')}</p>
           </div>
         </div>
 
@@ -110,15 +113,15 @@ function WahlSwiperPartyResultCard({ party, score }: Props) {
           <Table>
             <TableHeader className="bg-muted">
               <TableRow>
-                <TableHead>Frage</TableHead>
+                <TableHead>{t('question')}</TableHead>
                 <TableHead className="min-w-[100px] text-right">
-                  Stimme zu
+                  {t('agree')}
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               <span className="mx-4 mt-4 block w-fit rounded-md bg-green-500/10 px-2 py-1 text-xs text-green-500">
-                Konsens
+                {t('consensus')}
               </span>
 
               {consensusTheses.map((thesis) => (
@@ -126,7 +129,7 @@ function WahlSwiperPartyResultCard({ party, score }: Props) {
               ))}
 
               <span className="mx-4 mt-4 block w-fit rounded-md bg-red-500/10 px-2 py-1 text-xs text-red-500">
-                Kein Konsens
+                {t('noConsensus')}
               </span>
 
               {notConsensusTheses.map((thesis) => (
@@ -138,7 +141,7 @@ function WahlSwiperPartyResultCard({ party, score }: Props) {
           <Button variant="secondary" className="mx-4" asChild>
             <Link href={chatLink}>
               <MessageSquareIcon />
-              Zum Chat
+              {t('toChat')}
             </Link>
           </Button>
         </div>

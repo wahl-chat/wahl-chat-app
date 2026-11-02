@@ -4,9 +4,11 @@ import CompletionCode from '@/components/prolific-study/completion-code';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { isProlificStudy } from '@/lib/prolific-study/prolific-metadata';
 import { Heart, PartyPopper } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 export default function CompletionScreen() {
+  const t = useTranslations('agent.completion');
   const [showConfetti, setShowConfetti] = useState(false);
   const [showCompletionCode, setShowCompletionCode] = useState(false);
 
@@ -64,21 +66,18 @@ export default function CompletionScreen() {
         <Card className="border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/30">
           <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center gap-2 text-2xl text-green-700 dark:text-green-300">
-              Vielen Dank für deine Teilnahme!
+              {t('title')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-center">
             <p className="text-sm text-green-700/80 dark:text-green-300/80">
-              Vielen Dank, dass du dir die Zeit genommen hast, an diesem Dialog
-              teilzunehmen!
+              {t('thanks')}
             </p>
             <p className="text-sm text-green-700/80 dark:text-green-300/80">
-              Deine Beiträge sind wertvoll für unsere Forschung zum Verständnis
-              politischer Diskussionen und Meinungsbildung.
+              {t('research')}
             </p>
             <p className="text-sm text-green-700/80 dark:text-green-300/80">
-              Alle deine Antworten werden vertraulich behandelt und nur für
-              wissenschaftliche Zwecke verwendet.
+              {t('confidential')}
             </p>
           </CardContent>
         </Card>
@@ -86,15 +85,13 @@ export default function CompletionScreen() {
         {/* Close Window Notice */}
         <div className="flex items-center justify-center gap-2 rounded-lg border border-muted bg-muted/50 p-4">
           <span className="text-sm text-muted-foreground">
-            Du kannst dieses Fenster jetzt schließen.
+            {t('closeWindow')}
           </span>
         </div>
 
         {/* Appreciation */}
         <div className="flex items-center justify-center gap-2 text-muted-foreground">
-          <span className="text-sm">
-            Dein Beitrag macht einen Unterschied für die Demokratie
-          </span>
+          <span className="text-sm">{t('appreciation')}</span>
           <Heart className="size-4 text-red-500" />
         </div>
       </div>

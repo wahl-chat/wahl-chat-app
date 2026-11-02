@@ -1,0 +1,9 @@
+{
+  "switcher": {
+    "title": "Wahl wechseln?",
+    "descriptionWithTarget": "Du wechselst zur <name>{election}</name>. {area, select, swiper {Dadurch verlässt du den aktuellen Wahl-Swiper und wirst zum Wahl-Swiper weitergeleitet.} other {Dadurch verlässt du den aktuellen Chat und wirst zur Startseite weitergeleitet.}}",
+    "description": "{area, select, swiper {Dadurch verlässt du den aktuellen Wahl-Swiper und wirst zum Wahl-Swiper weitergeleitet.} other {Dadurch verlässt du den aktuellen Chat und wirst zur Startseite weitergeleitet.}}",
+    "cancel": "Abbrechen",
+    "confirm": "Wahl wechseln"
+  }
+}

@@ -13,11 +13,13 @@ import { Separator } from '@/components/ui/separator';
 import VisuallyHidden from '@/components/visually-hidden';
 import { isProlificStudy } from '@/lib/prolific-study/prolific-metadata';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import WahlSwiperChat from './wahl-swiper-chat';
 import WahlSwiperInput from './wahl-swiper-input';
 
 function WahlSwiperChatWrapper() {
+  const t = useTranslations('swiper.chat');
   const shouldShowChat = useWahlSwiperStore(
     (state) => state.thesesStack.length > 0,
   );
@@ -85,7 +87,7 @@ function WahlSwiperChatWrapper() {
           </ResponsiveDialogTitle>
           <VisuallyHidden>
             <ResponsiveDialogDescription>
-              Chatte mit dem Wahl-Swiper
+              {t('dialogDescription')}
             </ResponsiveDialogDescription>
           </VisuallyHidden>
         </ResponsiveDialogHeader>

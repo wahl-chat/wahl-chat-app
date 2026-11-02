@@ -9,6 +9,8 @@ SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 The corpus layer for [wahl.chat](https://wahl.chat/): the connectors and runner that
 fill the Qdrant corpus, the collection definition, and the embedding factory that
 fixes its vector space.
+It also builds the parliament feed on the web's start page from that corpus
+(`src/ingestion/feed/`).
 
 Built with Qdrant, LangChain embeddings, and Pydantic. Dependencies are managed with
 **uv** — this package is a member of the workspace rooted at the repo's top-level
@@ -91,6 +93,26 @@ Deployment and scheduling are a planned Terraform workstream.
 
 Ingestion must tolerate the 15-minute scheduled-job cap: runs are resumable via a
 stored cursor, and `--time-budget` stops a run cleanly before the cap.
+
+## Parliament feed
+
+`src/ingestion/feed/` turns each sitting day's debates and votes into feed
+items: German texts written once with a high-reasoning roster, an English
+translation, Firestore `feed_items` / `feed_editions`, and the search index
+`wahlchat_feed_{ENV}`. It is a bespoke runner like PledgeTracker, not a registry
+connector. From the repo root (`make stores-up` first):
+
+```bash
+make setup-feed-collection                                       # once, idempotent
+FIRESTORE_EMULATOR_HOST=localhost:8081 make build-feed ARGS="--dry-run --out /tmp/feed.json"
+FIRESTORE_EMULATOR_HOST=localhost:8081 make build-feed
+```
+
+Unchanged days are skipped without LLM calls, so reruns are cheap. Writing to a
+deployed dev Firestore needs `--allow-remote`. A new environment gets its first
+8 weeks once with `make backfill-feed TARGET=<dev|prod>` (`ARGS="--plan"`
+first); the weekly `ingest-feed` job keeps the latest two weeks current. The design notes are in the
+repo's `AGENTS.md` ("The parliament feed").
 
 ## Tests
 

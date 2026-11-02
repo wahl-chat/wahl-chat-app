@@ -182,7 +182,8 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 
 | Path | What lives there |
 |------|------------------|
-| `web/` | Next.js frontend (app router in `web/app/`, shared code in `web/lib/`). Package manager: bun. |
+| `web/` | Next.js frontend (app router in `web/app/[locale]/`, shared code in `web/lib/`). Package manager: bun. |
+| `web/messages/`, `web/i18n/` | UI text per language (`messages/{locale}/{namespace}.json`) and the locale setup (next-intl); see "Languages". |
 | `pyproject.toml` (repo root) | uv workspace root: one lockfile (`uv.lock`) and one shared environment for the Python members `ai-backend` + `ingestion`. |
 | `ai-backend/` | Python chat backend. Depends on `wahlchat-common`, never on `ingestion`. Package manager: uv. |
 | `packages/wahlchat-common/` | Code shared by the Python components: corpus vector space + collection identity, embeddings factory, payload enums, governance levels, the 36 AW legislature periods, Vertex credentials. |
@@ -195,6 +196,7 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 | `ingestion/` | Connectors + runner. Ships its own image for the scheduled Jobs. Depends on `wahlchat-common`, never on `ai-backend`. |
 | `ingestion/src/ingestion/` | Ingestion framework: `connector.py` (base class), `run.py` (runner), `registry.py`, `schemas.py` (data contract), `setup_collection.py`, `embeddings.py`, `vertex_credentials.py`, `governance_levels.py`, `legislature_config.py`, `ids.py`, `speech_key.py`, `speech_dedup.py`. |
 | `ingestion/src/ingestion/connectors/` | Per-source connectors: `abgeordnetenwatch/`, `bundestag_speeches/`, `openparliament_tv/`, `manifestos/`, `manifesto_uploads/`. Each has `connector.py`, a `client.py`, and `mappers/` that build `ChunkRecord`s. |
+| `ingestion/src/ingestion/feed/` | The parliament feed: builds feed items from the corpus, translates and indexes them (see "The parliament feed"). |
 | `ingestion/tests/` | pytest suite for the corpus layer (runner, schema, connectors). |
 | `ingestion/data/` | Connector inputs: `manifesto_uploads/{env}.txt` manifests; MdB-Stammdaten XML (gitignored, fetched on demand). |
 | `ai-backend/src/models/` | Pydantic DTOs and domain models for the chat API. |
@@ -232,7 +234,10 @@ cp ingestion/.env.example ingestion/.env
 make stores-up
 
 # Seed scrubbed fixtures into the Firestore emulator (guarded — refuses to run
-# without FIRESTORE_EMULATOR_HOST, so it can never write to production)
+# without FIRESTORE_EMULATOR_HOST, so it can never write to production). This
+# includes three real Bundestag sitting days for the parliament feed on `/`
+# (firebase/firestore_data/emulator/feed.json, German + English, emulator
+# only), so the feed works without corpus access or LLM keys.
 FIRESTORE_EMULATOR_HOST=localhost:8081 make seed-local
 
 # Real Firebase project (ENV=dev by default). Confirm before ENV=prod.
@@ -496,6 +501,72 @@ Ingestion must tolerate the 15-minute scheduled-job cap: runs are
 batch-windowed and time-budgeted (`--batch-size`, `--time-budget`) and resume
 from the Qdrant-derived cursor on the next run.
 
+### The parliament feed
+
+The feed on `/` follows COPE (create once, publish everywhere): every debate
+(one section of a Plenarprotokoll) and every vote becomes one **feed item**,
+generated, checked and translated once, then reused as is by every surface:
+the feed, later personalised briefings (curated from items, never written
+anew) and social posts (rendered from an item's headline and facts).
+
+- **Stores.** Firestore `feed_items/{item_id}` is the source of truth;
+  `feed_editions/{parliament}_{YYYY-MM-DD}` lists a sitting day's items in
+  order. Qdrant `wahlchat_feed_{ENV}` only finds items (ids and filter fields,
+  no text; `search_feed()` in `ingestion/src/ingestion/feed/index.py`). It is deliberately not the
+  corpus collection: feed items span parties (the corpus is tuned for
+  per-party tenancy), and they are our own summaries, which the chat must
+  never cite as sources. Same locked vector space and fingerprint guard.
+- **Facts vs. content.** `facts` (citations, speakers, vote counts, the
+  verbatim quote) come from the source and are identical in every language.
+  `content.{locale}` holds the texts. German is generated from the German
+  protocols; English is a translation pass over the German only, current
+  while its `source_hash` and `TRANSLATION_PROMPT_VERSION` match. Adding a
+  language means a translation pass, never a regeneration. A translation that
+  loses a number, a party or a field is not published: the reader sees German.
+- **Stable ids.** `{edition}_v{poll_id}` for votes, `{edition}_d{hash of the
+  agenda labels}` for debates, so a rebuild keeps ids and `feed_interest` rows
+  valid. An item that vanishes from a rebuilt day is marked `retracted`, never
+  deleted. `legacy_keys` keeps the pre-split keys (`…~s0`) resolvable.
+- **Where it lives.** `ingestion/src/ingestion/feed/`: it runs as a
+  scheduled job and reads the corpus, so it ships in the ingestion image and
+  never imports `ai-backend`. Like PledgeTracker it is a bespoke runner, not a
+  registry connector: it builds from the corpus rather than filling it.
+- **Models and prompts.** Every one-time text runs on the publication roster
+  (`feed/publication_llms.py`, high reasoning), which never touches the chat's
+  rate-limit status. All prompts share the editorial rules in `feed/prompts.py`
+  (neutrality, grounding, attribution); edit the constants, not copies.
+  Translation is segment by segment: asked for whole entries, the model runs
+  past a paragraph into translation-tool footers.
+- **Running it.** `make setup-feed-collection` once, then `make build-feed`
+  (see the Makefile for `--dry-run`, `--force`, `--translate-backfill`).
+  Deployed, it is the weekly Cloud Run Job `ingest-feed`
+  (`CONNECTOR_ID=feed`), on Sunday mornings after the speech and vote jobs.
+  Each day is published as soon as it is built, `--time-budget` stops the run
+  between days before the job's 15-minute cap, and the job runs several times
+  in a row so a long week finishes the same morning. Unchanged days are
+  skipped without LLM calls, so the extra runs cost nothing. `make
+  migrate-feed` moves stored `daily_digests` to the item shape without
+  regenerating German.
+- **What the page loads.** The first visit gets each parliament's latest 14
+  days (anchored on its newest edition, so recesses never show an empty
+  feed); "Ältere Tage anzeigen" loads the 14 days before the oldest shown, per
+  parliament, through the `getOlderParliamentFeed` server action. Every item
+  travels in both languages, so the first load stays small on purpose.
+- **Deploying to an environment** (dev, then prod), before the merge that
+  ships the feed's web there:
+  1. `cd firebase && firebase deploy --only firestore:rules,firestore:indexes
+     --project <dev|prod>` (the web's feed queries need the two `feed_*`
+     indexes).
+  2. `make backfill-feed TARGET=<dev|prod> ARGS="--plan"` with that
+     environment's `QDRANT_URL` / `QDRANT_API_KEY` exported: lists per week
+     which sitting days the corpus has and which are missing, no LLM calls.
+  3. The same without `--plan` builds the last 8 weeks (prod asks for the
+     project id). It is resumable: rerun until it reports nothing to build.
+  4. After the merge, `terraform apply` creates `ingest-feed`; prod starts
+     paused, so unpause it after one verified `gcloud run jobs execute`.
+  `daily_digests` is never read by this web; `migrate-feed` only matters for
+  a deployment that still has it.
+
 ### Seeding dev/prod
 
 The two stores are seeded by different mechanisms, on purpose:
@@ -524,6 +595,12 @@ The two stores are seeded by different mechanisms, on purpose:
   political answers is **not** on this branch: it returns with the party-matcher
   feature (the first thing that stores those answers), which must ship with a
   real affirmative opt-in — consent cannot be implied from app usage.
+- **Feed interest signals.** The parliament feed's "Interessant? Ja/Nein"
+  answers go to `feed_interest/{uid}_{item_id}` (`{user_id, item_id, value,
+  at}`), keyed by the anonymous uid. They are a ranking signal, not a stance on
+  the item, but they sit close to political opinion: keep them out of the
+  corpus and out of anything user-facing. The rules make the collection
+  write-only for clients; analysis reads via the admin SDK.
 - **Local-only stores during this milestone.** Develop against local Qdrant and
   the Firestore emulator; do not point local work at production stores while the
   data design is still settling. The seed script hard-requires
@@ -554,6 +631,65 @@ The two stores are seeded by different mechanisms, on purpose:
   and an `authority_tier` (`authoritative` | `factual_record` | `self_reported`
   | `promotional`). Preserve citations end-to-end; answers are grounded in
   retrieved chunks.
+
+## Languages
+
+The site speaks German and English. German is the default and keeps its URLs
+(`wahl.chat/…`); every other language sits under its prefix
+(`wahl.chat/en/…`), so links and search results stay language-specific.
+
+- **Library and routing.** next-intl. Every page route lives under
+  `web/app/[locale]/`; `web/i18n/routing.ts` sets `localePrefix: 'as-needed'`
+  and no Accept-Language detection (many German readers run English browsers,
+  and `/` must serve crawlers and visitors alike). The selector (flag + code in
+  the headers) sets the `NEXT_LOCALE` cookie; `middleware.ts` sends prefix-less
+  visits to the chosen language, runs its own rules on the path without the
+  prefix and keeps the prefix in every redirect.
+- **One registry.** `web/i18n/locales.ts` lists the locales with endonym,
+  `Intl` tag (`en-GB`) and Open Graph locale. Routing, the selector, dates,
+  hreflang and the sitemap all read from it.
+- **Where text goes.**
+  - Short UI strings: `web/messages/{locale}/{namespace}.json`, one namespace
+    per area, registered in `messages/{locale}/index.ts`. Components use
+    `useTranslations` / `getTranslations`; values are ICU messages (`{name}`,
+    `{count, plural, …}`, `t.rich` tags), never sentences glued from fragments.
+  - Long structured prose (the how-to guide, topic example questions, legal
+    pages): per-locale modules with one shared shape (`*.de.ts` / `*.en.ts`),
+    picked by locale.
+  - Links: `Link`, `useRouter`, `redirect` from `@/i18n/navigation`, so internal
+    links keep the language. Dates: `formatDate(value, locale)`.
+- **German is the source and the compiler checks it.** `messages/de` types every
+  key (`i18n/global.d.ts`), so a missing or mistyped key fails `tsc`.
+  `messages/catalogs.test.ts` checks that every locale has exactly the German
+  keys and placeholders.
+- **Stays German for now.** Chat and other LLM answers, Firestore content
+  (election and party names, proposed questions, swiper theses) and the Fillout
+  forms. English readers see a note that answers are in German. Before chat
+  answers follow the reader's language, the language must also enter the answer
+  cache key (`ai-backend/src/answer_cache.py`), or cached German answers would
+  be served to English readers. The parliament feed already stores its texts
+  per locale (see "The parliament feed").
+- **The legal pages** have English courtesy translations behind a banner saying
+  only the German version is binding. Have changes to them reviewed.
+
+### Adding a language
+
+1. Add its code to `LOCALES` and an entry to `LOCALE_INFO` in
+   `web/i18n/locales.ts`, and its flag to `web/components/locale/flags.tsx`.
+2. `make translate-messages LOCALE=xx` fills `web/messages/xx/` from German
+   with the publication LLM roster. Only missing or changed messages are sent;
+   placeholders, plural branches and tags are checked, and anything that fails
+   is reported instead of written. Review the result.
+3. Create `web/messages/xx/index.ts` like the German one, and add the catalog
+   to `messages/catalogs.test.ts`.
+4. Translate the per-locale prose modules (`*.de.ts` siblings) and decide on the
+   legal pages.
+5. For the feed, add the code to `TRANSLATED_LOCALES` in
+   `ingestion/src/ingestion/feed/models.py` and run `make build-feed` with translation.
+
+Hand-written catalogs are recorded as current with
+`make translate-messages LOCALE=xx ARGS="--adopt"`, so later runs only touch
+messages whose German changed.
 
 ## Coding guidelines
 

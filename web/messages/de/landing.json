@@ -1,0 +1,53 @@
+{
+  "meta": {
+    "title": "Mit wahl.chat Politik verstehen – dein KI Chat vor der Wahl",
+    "description": "Die KI-basierte Ergänzung zum Wahl-O-Mat: Verstehe Parteien anhand von Plenarprotokollen, Abstimmungen und Wahlprogrammen. Jetzt informiert wählen!"
+  },
+  "jsonLd": {
+    "electionListName": "Wahlen auf wahl.chat"
+  },
+  "hero": {
+    "askQuestions": "Fragen stellen.",
+    "understandPolitics": "Politik verstehen.",
+    "voteInformed": "Informiert wählen.",
+    "subhead": "Welche Partei passt zu dir? Vergleiche Parteien, belegt durch Plenarprotokolle, namentliche Abstimmungen und Wahlprogramme."
+  },
+  "heroElection": {
+    "yourElection": "Deine Wahl:"
+  },
+  "heroCta": {
+    "label": "Jetzt informieren",
+    "ariaLabel": "Jetzt zur {name} informieren"
+  },
+  "scrollCue": "Mehr erfahren",
+  "sections": {
+    "otherElections": "Weitere Wahlen auf wahl.chat",
+    "reception": "Rezeption",
+    "exampleQuestions": "Beispielfragen an die Parteien",
+    "about": "Was ist wahl.chat?",
+    "data": "Welche Daten werden verwendet?",
+    "faq": "Häufige Fragen",
+    "support": "wahl.chat unterstützen"
+  },
+  "electionLinks": {
+    "navLabel": "Alle Wahlen",
+    "upcomingOn": "Wahl am {date}",
+    "concludedOn": "Wahl vom {date}",
+    "showPast": "Vergangene Wahlen anzeigen"
+  },
+  "stats": {
+    "heading": "Zahlen und Fakten:",
+    "atLeast": "{value}+",
+    "users": "Nutzer:innen",
+    "answeredQuestions": "beantwortete Fragen",
+    "supportedElections": "unterstützte Wahlen"
+  },
+  "dataSources": {
+    "sourcesPage": "Welche Dokumente dahinterstehen, findest du auf der <link>Quellenseite</link>."
+  },
+  "footer": {
+    "product": "Produkt",
+    "about": "Über wahl.chat",
+    "legal": "Rechtliches"
+  }
+}

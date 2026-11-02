@@ -1,0 +1,16 @@
+{
+  "dialog": {
+    "shareSession": "Share chat session",
+    "shareApp": "Share wahl.chat",
+    "sessionDescription": "Anyone with this link can see this chat session.",
+    "appDescription": "Share wahl.chat with friends and family.",
+    "linkLabel": "Link",
+    "nativeShare": "Share"
+  },
+  "input": {
+    "error": "Something went wrong. Please try again or reload the page."
+  },
+  "page": {
+    "backToTopics": "Back to the topic overview"
+  }
+}

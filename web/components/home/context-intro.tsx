@@ -1,19 +1,35 @@
+import { LOCALE_INFO, type Locale } from '@/i18n/locales';
+import { Link } from '@/i18n/navigation';
 import type { Context } from '@/lib/firebase/firebase.types';
 import type { PartyDetails } from '@/lib/party-details';
-import { formatGermanDate } from '@/lib/utils';
-import Link from 'next/link';
+import { formatDate } from '@/lib/utils';
+import { useLocale, useTranslations } from 'next-intl';
 
 type Props = {
   context: Context;
   parties?: PartyDetails[];
 };
 
-function formatPartyList(parties: PartyDetails[]): string {
-  const names = parties.map((party) => party.name);
+/** "A, B und C" / "A, B and C", joined the way the reader's language does. */
+function formatPartyList(parties: PartyDetails[], locale: Locale): string {
+  return new Intl.ListFormat(LOCALE_INFO[locale].intl, {
+    style: 'long',
+    type: 'conjunction',
+  }).format(parties.map((party) => party.name));
+}
 
-  if (names.length <= 1) return names.join('');
-
-  return `${names.slice(0, -1).join(', ')} und ${names[names.length - 1]}`;
+function IntroLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link href={href} className="font-medium underline">
+      {children}
+    </Link>
+  );
 }
 
 /**
@@ -25,66 +41,52 @@ function formatPartyList(parties: PartyDetails[]): string {
  * election.
  */
 function ContextIntro({ context, parties }: Props) {
-  const electionDate = formatGermanDate(context.date);
-  const partyList = parties?.length ? formatPartyList(parties) : undefined;
+  const t = useTranslations('home.contextIntro');
+  const locale = useLocale();
+  const electionDate = formatDate(context.date, locale);
+  const partyList = parties?.length
+    ? formatPartyList(parties, locale)
+    : undefined;
 
   return (
     <section className="mt-8 space-y-4 text-sm text-muted-foreground">
       <h2 className="text-xl font-bold text-foreground md:text-2xl">
-        {context.name} – Parteipositionen im Chat vergleichen
+        {t('heading', { name: context.name })}
       </h2>
 
       <p>
         {electionDate
-          ? `Am ${electionDate} wird in ${context.location_name} gewählt. `
-          : `In ${context.location_name} stehen politische Entscheidungen an. `}
-        Auf wahl.chat kannst du den Parteien deine eigenen Fragen stellen – zu
-        Mieten, Bildung, Klima, Wirtschaft oder jedem anderen Thema, das dich
-        beschäftigt. Statt dich durch hunderte Seiten Wahlprogramm zu arbeiten,
-        bekommst du eine Antwort auf genau die Frage, die du gestellt hast.
+          ? t('introWithDate', {
+              date: electionDate,
+              location: context.location_name,
+            })
+          : t('introWithoutDate', { location: context.location_name })}
       </p>
 
       {partyList && (
-        <p>
-          Für die {context.name} kannst du mit {partyList} chatten. Du kannst
-          auch mehrere Parteien gleichzeitig auswählen und ihre Positionen zum
-          selben Thema direkt nebeneinander vergleichen.
-        </p>
+        <p>{t('parties', { name: context.name, parties: partyList })}</p>
       )}
 
       <p>
-        Jede Antwort ist mit Quellen belegt: wahl.chat zitiert die Stellen aus
-        den Wahl- und Parteiprogrammen, auf denen die Antwort beruht, und du
-        kannst sie mit einem Klick im Original nachlesen. Welche Dokumente
-        dahinterstehen, findest du auf der{' '}
-        <Link
-          href={`/${context.context_id}/sources`}
-          className="font-medium underline"
-        >
-          Quellenseite
-        </Link>
-        .
+        {t.rich('sources', {
+          link: (chunks) => (
+            <IntroLink href={`/${context.context_id}/sources`}>
+              {chunks}
+            </IntroLink>
+          ),
+        })}
       </p>
 
       <p>
-        Anders als beim Wahl-O-Mat beantwortest du keine vorgegebenen Thesen. Du
-        bestimmst selbst, worüber gesprochen wird, und kannst nachfragen, wenn
-        dir eine Antwort zu vage ist. Wie das genau funktioniert, erklärt die{' '}
-        <Link href="/how-to" className="font-medium underline">
-          Anleitung
-        </Link>
-        .
+        {t.rich('wahlOMat', {
+          link: (chunks) => <IntroLink href="/how-to">{chunks}</IntroLink>,
+        })}
       </p>
 
       <p>
-        Die Antworten werden von einer künstlichen Intelligenz erzeugt und sind
-        keine offiziellen Aussagen der Parteien. Deine Nachrichten werden
-        gespeichert, um die Antworten zu erzeugen und dir deinen Chatverlauf
-        anzuzeigen – Details dazu stehen in der{' '}
-        <Link href="/datenschutz" className="font-medium underline">
-          Datenschutzerklärung
-        </Link>
-        .
+        {t.rich('disclaimer', {
+          link: (chunks) => <IntroLink href="/datenschutz">{chunks}</IntroLink>,
+        })}
       </p>
     </section>
   );

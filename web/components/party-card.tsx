@@ -1,10 +1,11 @@
 'use client';
 
+import { Link } from '@/i18n/navigation';
 import type { PartyDetails } from '@/lib/party-details';
 import { buildPartyImageUrl, cn, hexDataURL } from '@/lib/utils';
 import { CheckIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from './ui/button';
 
@@ -25,6 +26,7 @@ function PartyCard({
   selectable = true,
   contextId,
 }: Props) {
+  const t = useTranslations('chat.partyCards');
   const [isHovered, setIsHovered] = useState(false);
 
   const partyImage = (
@@ -45,8 +47,10 @@ function PartyCard({
     : `/session?party_id=${id}`;
 
   const ariaLabel = selectable
-    ? `${name}${isSelected ? ' (ausgewählt)' : ''}`
-    : `Chat mit ${name} starten`;
+    ? isSelected
+      ? t('selected', { name })
+      : name
+    : t('startChatWith', { name });
 
   return (
     <Button

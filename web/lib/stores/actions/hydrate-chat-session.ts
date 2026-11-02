@@ -1,5 +1,6 @@
 import { chatViewScrollToBottom } from '@/lib/scroll-utils';
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
+import { storeMessage } from '@/lib/stores/store-messages';
 import { areSetsEqual, generateUuid } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -94,9 +95,9 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
     } else if (chatSessionId && changedPage) {
       await toast
         .promise(loadChatSession(chatSessionId), {
-          loading: 'Loading chat session...',
-          success: 'Chat session loaded!',
-          error: 'Failed to load chat session',
+          loading: storeMessage('sessionLoading'),
+          success: storeMessage('sessionLoaded'),
+          error: storeMessage('sessionLoadFailed'),
         })
         .unwrap();
     } else {

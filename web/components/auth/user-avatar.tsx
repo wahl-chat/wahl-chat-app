@@ -2,12 +2,14 @@
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import { type UserDetails, getUserDetailsFromUser } from '@/lib/utils';
 import { UserIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   details?: UserDetails;
 };
 
 function UserAvatar({ details }: Props) {
+  const t = useTranslations('auth');
   const { user } = useAnonymousAuth();
 
   const userDetails = user ? getUserDetailsFromUser(user) : details;
@@ -17,7 +19,7 @@ function UserAvatar({ details }: Props) {
       {userDetails?.photoURL ? (
         <img
           src={userDetails.photoURL}
-          alt="User avatar"
+          alt={t('avatarAlt')}
           className="size-full rounded-full object-cover"
         />
       ) : (

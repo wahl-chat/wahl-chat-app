@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/tooltip';
 import type { Source } from '@/lib/stores/chat-store.types';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import {
@@ -44,7 +45,7 @@ type Props = {
  * The shared "Quellen" dialog: a trigger button, then either the source list
  * (referenced + additionally-analyzed) or the in-page media viewer for a picked
  * source. Extracted so the chat and agent sources buttons share ONE dialog shell,
- * media-viewer wiring, and German copy instead of duplicating ~70 lines each.
+ * media-viewer wiring, and copy instead of duplicating ~70 lines each.
  */
 export function SourcesDialog({
   trigger,
@@ -52,6 +53,7 @@ export function SourcesDialog({
   notReferenced,
   badgeClassName,
 }: Props) {
+  const t = useTranslations('sources.dialog');
   const [activeMedia, setActiveMedia] = useState<ActiveMedia | null>(null);
 
   const renderRow = (item: NumberedSource, prefix: string) => (
@@ -74,7 +76,7 @@ export function SourcesDialog({
         <TooltipTrigger asChild>
           <ResponsiveDialogTrigger asChild>{trigger}</ResponsiveDialogTrigger>
         </TooltipTrigger>
-        <TooltipContent>Quellen</TooltipContent>
+        <TooltipContent>{t('title')}</TooltipContent>
       </Tooltip>
       <ResponsiveDialogContent
         className={cn(
@@ -88,7 +90,7 @@ export function SourcesDialog({
             <ResponsiveDialogHeader className="sr-only">
               <ResponsiveDialogTitle>{activeMedia.title}</ResponsiveDialogTitle>
               <ResponsiveDialogDescription>
-                Beleg im Fenster ansehen.
+                {t('viewerDescription')}
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
             <SourceMediaViewer
@@ -99,15 +101,15 @@ export function SourcesDialog({
         ) : (
           <>
             <ResponsiveDialogHeader>
-              <ResponsiveDialogTitle>Quellen</ResponsiveDialogTitle>
+              <ResponsiveDialogTitle>{t('title')}</ResponsiveDialogTitle>
               <ResponsiveDialogDescription>
-                Belege direkt hier ansehen – Reden als Video, Dokumente als PDF.
+                {t('description')}
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
 
             <div className="flex grow flex-col overflow-y-auto p-4 md:p-0">
               {referenced.length > 0 && (
-                <p className="text-sm font-bold">Im Text referenziert:</p>
+                <p className="text-sm font-bold">{t('referenced')}</p>
               )}
               {referenced.map((item) => renderRow(item, 'ref'))}
               {notReferenced.length > 0 && (
@@ -117,7 +119,7 @@ export function SourcesDialog({
                     referenced.length > 0 && 'mt-4',
                   )}
                 >
-                  Zusätzlich analysiert:
+                  {t('notReferenced')}
                 </p>
               )}
               {notReferenced.map((item) => renderRow(item, 'notref'))}

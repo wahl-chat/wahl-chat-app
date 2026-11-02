@@ -1,5 +1,7 @@
+import { LOCALE_INFO } from '@/i18n/locales';
 import useCarouselCurrentIndex from '@/lib/hooks/use-carousel-current-index';
 import type { Vote } from '@/lib/socket.types';
+import { useLocale } from 'next-intl';
 import { useMemo } from 'react';
 import AnimateTextOverflow from './animate-text-overflow';
 
@@ -8,17 +10,18 @@ type Props = {
 };
 
 function ChatVoteDetailsHeader({ votes }: Props) {
+  const locale = useLocale();
   const selectedIndex = useCarouselCurrentIndex();
 
   const vote = votes[selectedIndex];
 
   const formattedDate = useMemo(() => {
-    return new Date(vote.date).toLocaleDateString('de-DE', {
+    return new Date(vote.date).toLocaleDateString(LOCALE_INFO[locale].intl, {
       day: '2-digit',
       month: 'long',
       year: 'numeric',
     });
-  }, [vote.date]);
+  }, [vote.date, locale]);
 
   return (
     <div className="border-b border-border pb-4 pt-6 text-center md:text-left">

@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import type { UserDetails } from '@/lib/utils';
 import { getAuth, signOut } from 'firebase/auth';
 import { LogOutIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 type Props = {
@@ -23,6 +24,7 @@ type Props = {
 };
 
 function UserDialog({ children, details, asChild }: Props) {
+  const t = useTranslations('auth.userDialog');
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAnonymousAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -42,9 +44,9 @@ function UserDialog({ children, details, asChild }: Props) {
       </ResponsiveDialogTrigger>
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Account</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>{t('title')}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            Hier kannst du deine persönlichen Details einsehen.
+            {t('description')}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
@@ -52,7 +54,7 @@ function UserDialog({ children, details, asChild }: Props) {
           {details?.displayName && (
             <div className="flex flex-col gap-4 px-4 md:px-0">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="displayName">Name</Label>
+                <Label htmlFor="displayName">{t('name')}</Label>
                 <Input
                   disabled
                   id="displayName"
@@ -64,7 +66,7 @@ function UserDialog({ children, details, asChild }: Props) {
           )}
           <div className="flex flex-col gap-4 px-4 md:px-0">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">E-Mail</Label>
+              <Label htmlFor="email">{t('email')}</Label>
               <Input
                 disabled
                 id="email"
@@ -82,7 +84,7 @@ function UserDialog({ children, details, asChild }: Props) {
             disabled={isLoading}
           >
             <LogOutIcon className="size-4" />
-            Logout
+            {t('logout')}
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>

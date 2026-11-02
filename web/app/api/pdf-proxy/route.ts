@@ -1,4 +1,6 @@
+import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from '@/i18n/locales';
 import { PROXYABLE_PDF_HOSTS } from '@/lib/utils';
+import { getTranslations } from 'next-intl/server';
 import { type NextRequest, NextResponse } from 'next/server';
 
 // Trusted public-institution hosts whose PDFs we stream same-origin so the
@@ -34,15 +36,23 @@ const MAX_REDIRECTS = 5;
  *
  * An `<iframe onError>` does NOT fire for an HTTP error that carries a body, so a
  * plain `502 "Upstream returned an error"` paints that raw English text inside the
- * viewer. Instead we return a 200 with a small German HTML page (+ a new-tab escape
- * to the real document) so the user sees a friendly, localized fallback. Framing is
- * still locked to same-origin. `href` is the original allowlisted PDF URL.
+ * viewer. Instead we return a 200 with a small HTML page in the reader's language
+ * (+ a new-tab escape to the real document) so the user sees a friendly fallback.
+ * API routes sit outside the locale prefix, so the language comes from the
+ * selector's cookie. Framing is still locked to same-origin. `href` is the
+ * original allowlisted PDF URL.
  */
-function framedError(href: string): NextResponse {
+async function framedError(
+  request: NextRequest,
+  href: string,
+): Promise<NextResponse> {
+  const cookie = request.cookies.get(LOCALE_COOKIE)?.value;
+  const locale = isLocale(cookie) ? cookie : DEFAULT_LOCALE;
+  const t = await getTranslations({ locale, namespace: 'sources.pdf' });
   const safeHref = href.replaceAll('"', '%22');
   const html = `<!doctype html>
-<html lang="de">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Beleg nicht verfügbar</title>
+<html lang="${locale}">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${t('unavailableTitle')}</title>
 <style>
   html,body{height:100%;margin:0}
   body{display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f4f5;color:#18181b;padding:1.5rem;text-align:center}
@@ -50,8 +60,8 @@ function framedError(href: string): NextResponse {
   a{display:inline-block;margin-top:1rem;padding:.5rem .9rem;border-radius:.5rem;background:#2563eb;color:#fff;text-decoration:none;font-size:.875rem}
 </style>
 </head>
-<body><div><p>Dieser Beleg konnte hier nicht geladen werden.</p>
-<a href="${safeHref}" target="_blank" rel="noopener noreferrer">In neuem Tab öffnen</a></div></body>
+<body><div><p>${t('unavailable')}</p>
+<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${t('openInNewTab')}</a></div></body>
 </html>`;
   return new NextResponse(html, {
     status: 200,
@@ -117,21 +127,21 @@ export async function GET(request: NextRequest) {
       if (response.status >= 300 && response.status < 400) {
         hops += 1;
         if (hops > MAX_REDIRECTS) {
-          return framedError(target.toString());
+          return framedError(request, target.toString());
         }
         const location = response.headers.get('location');
         if (!location) {
-          return framedError(target.toString());
+          return framedError(request, target.toString());
         }
         let next: URL;
         try {
           next = new URL(location, current);
         } catch {
-          return framedError(target.toString());
+          return framedError(request, target.toString());
         }
         // Fail closed: every hop must be https AND on the host allowlist.
         if (!isAllowed(next)) {
-          return framedError(target.toString());
+          return framedError(request, target.toString());
         }
         current = next;
         continue;
@@ -141,13 +151,13 @@ export async function GET(request: NextRequest) {
       break;
     }
   } catch {
-    return framedError(target.toString());
+    return framedError(request, target.toString());
   } finally {
     clearTimeout(headerTimeout);
   }
 
   if (!upstream.ok || !upstream.body) {
-    return framedError(target.toString());
+    return framedError(request, target.toString());
   }
 
   const contentType = (
@@ -156,7 +166,7 @@ export async function GET(request: NextRequest) {
   const isPdf = PDF_CONTENT_TYPES.some((t) => contentType.startsWith(t));
   if (!isPdf) {
     // Guard against framing an HTML error page or unexpected payload.
-    return framedError(target.toString());
+    return framedError(request, target.toString());
   }
 
   // FIX F9: overall deadline covering BODY streaming — the previous

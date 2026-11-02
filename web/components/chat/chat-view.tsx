@@ -2,11 +2,13 @@ import ChatProlificWrapper from '@/components/chat/chat-prolific-wrapper';
 import ChatStudyWrapper from '@/components/chat/chat-study-wrapper';
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
 import LoadingSpinner from '@/components/loading-spinner';
+import { DEFAULT_LOCALE } from '@/i18n/locales';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import {
   getCurrentUser,
   getSystemStatus,
 } from '@/lib/firebase/firebase-server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { Suspense } from 'react';
 import ChatDynamicChatInput from './chat-dynamic-chat-input';
 import ChatScrollDownIndicator from './chat-scroll-down-indicator';
@@ -29,6 +31,8 @@ async function ChatView({
 }: Props) {
   const systemStatus = await getSystemStatus();
   const user = await getCurrentUser();
+  const t = await getTranslations('chat.view');
+  const locale = await getLocale();
 
   return (
     <section className="relative mx-auto flex size-full max-w-2xl flex-col overflow-hidden">
@@ -37,7 +41,7 @@ async function ChatView({
           <div className="flex grow flex-col items-center justify-center gap-2">
             <LoadingSpinner />
             <p className="text-center text-sm text-muted-foreground">
-              Loading Chat Session...
+              {t('loading')}
             </p>
           </div>
         }
@@ -59,6 +63,13 @@ async function ChatView({
           initialSystemStatus={systemStatus}
           hasValidServerUser={!user?.isAnonymous}
         />
+        {/* The model answers in German whatever the UI language, so readers of
+            any other UI language are told before they ask. */}
+        {locale !== DEFAULT_LOCALE && (
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            {t('answerLanguageNote')}
+          </p>
+        )}
         <AiDisclaimer />
       </div>
     </section>

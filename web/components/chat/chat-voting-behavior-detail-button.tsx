@@ -13,6 +13,7 @@ import { useIsDesktop } from '@/lib/hooks/use-is-desktop';
 import type { VotingBehavior } from '@/lib/stores/chat-store.types';
 import { track } from '@vercel/analytics/react';
 import { ScrollTextIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { forwardRef, useImperativeHandle, useMemo, useState } from 'react';
 import ChatVotingBehaviorDetailView from './chat-voting-behavior-detail-view';
 
@@ -29,6 +30,7 @@ const ChatVotingBehaviorDetailButton = forwardRef<
   ChatVotingBehaviorDetailButtonRef,
   Props
 >(({ votingBehavior, partyId }: Props, ref) => {
+  const t = useTranslations('chat.votingBehavior');
   const [isOpen, setIsOpen] = useState(false);
   const [voteId, setVoteId] = useState<string | null>(null);
   const isDesktop = useIsDesktop();
@@ -39,7 +41,7 @@ const ChatVotingBehaviorDetailButton = forwardRef<
       className="h-8 px-2 text-xs group-data-[has-message-background]:bg-zinc-100 group-data-[has-message-background]:hover:bg-zinc-200 group-data-[has-message-background]:dark:bg-zinc-900 group-data-[has-message-background]:dark:hover:bg-zinc-800"
     >
       <ScrollTextIcon />
-      Abstimmungen anzeigen
+      {t('showVotes')}
     </Button>
   );
 
@@ -88,11 +90,8 @@ const ChatVotingBehaviorDetailButton = forwardRef<
         <SheetTrigger asChild>{triggerButton}</SheetTrigger>
         <SheetContent className="w-[90vw] !max-w-[700px] p-0">
           <VisuallyHidden>
-            <DialogTitle>Wahlverhalten</DialogTitle>
-            <DialogDescription>
-              Diese Nachricht enthält weitere Informationen zum Wahlverhalten
-              der Partei.
-            </DialogDescription>
+            <DialogTitle>{t('detailTitle')}</DialogTitle>
+            <DialogDescription>{t('detailDescription')}</DialogDescription>
           </VisuallyHidden>
 
           <ChatVotingBehaviorDetailView
@@ -110,11 +109,8 @@ const ChatVotingBehaviorDetailButton = forwardRef<
       <DrawerTrigger asChild>{triggerButton}</DrawerTrigger>
       <DrawerContent className="h-[95dvh]">
         <VisuallyHidden>
-          <DrawerTitle>Wahlverhalten</DrawerTitle>
-          <DrawerDescription>
-            Diese Nachricht enthält weitere Informationen zum Wahlverhalten der
-            Partei.
-          </DrawerDescription>
+          <DrawerTitle>{t('detailTitle')}</DrawerTitle>
+          <DrawerDescription>{t('detailDescription')}</DrawerDescription>
         </VisuallyHidden>
 
         <ChatVotingBehaviorDetailView

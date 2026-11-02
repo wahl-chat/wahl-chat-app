@@ -1,15 +1,17 @@
 import { cx } from 'class-variance-authority';
 
+import { useTranslations } from 'next-intl';
 import AnimatedMessageSequence from './animated-message-sequence';
 import { ChatMessageIcon } from './chat-message-icon';
 
 function ThinkingMessage() {
+  const t = useTranslations('chat.thinking');
   const messages = [
-    'Relevante Quellen ermitteln...',
-    'Quellen analysieren...',
-    'Daten verarbeiten...',
-    'Ergebnisse generieren...',
-    'Abschließen...',
+    t('findSources'),
+    t('analyseSources'),
+    t('processData'),
+    t('generateResults'),
+    t('finish'),
   ];
 
   return (

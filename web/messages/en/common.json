@@ -1,0 +1,16 @@
+{
+  "openWebsite": "Go to wahl.chat",
+  "feedbackDialog": {
+    "title": "Feedback!",
+    "description": "We'd love to hear your feedback on wahl.chat.",
+    "email": "Send us an email",
+    "form": "Fill in our feedback form"
+  },
+  "prolific": {
+    "thanks": "Thanks for taking part!",
+    "instructions": "Please copy the following code to continue with the study on Prolific:",
+    "codeUnavailable": "Could not fetch completion code.",
+    "copyCode": "Copy code",
+    "copied": "Code copied to the clipboard!"
+  }
+}

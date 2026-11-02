@@ -34,16 +34,6 @@ export const CONVERSATION_STAGES: ConversationStage[] = [
   'end',
 ];
 
-export const STAGE_LABELS: Record<ConversationStage, string> = {
-  start: 'Start',
-  active_listening: 'Aktives Zuhören',
-  party_positioning: 'Partei-Positionierung',
-  perspective_taking: 'Perspektivwechsel',
-  deliberation: 'Deliberation',
-  party_matching: 'Partei-Matching',
-  end: 'Abschluss',
-};
-
 export interface AgentMessage {
   id: string;
   role: 'user' | 'assistant';

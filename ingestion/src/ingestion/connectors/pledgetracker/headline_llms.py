@@ -14,80 +14,21 @@ is that roster. It is not the chat answer path.
 from __future__ import annotations
 
 import logging
-import os
-from typing import Any, NamedTuple, Optional
+from typing import Any
 
-from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
-from pydantic import SecretStr
 
-from wahlchat_common.gemini_params import without_deprecated_generation_params
+from ingestion.llm_clients import RosterLLM as _LLM
+from ingestion.llm_clients import gemini as _gemini
+from ingestion.llm_clients import openai as _openai
+from ingestion.llm_clients import structured_output_with_failover
 from wahlchat_common.vertex_credentials import (
-    get_vertex_credentials,
     vertex_enabled,
     vertex_location,
     vertex_project,
 )
 
 logger = logging.getLogger(__name__)
-
-
-class _LLM(NamedTuple):
-    name: str
-    model: BaseChatModel
-    priority: int
-    back_up_only: bool = False
-
-
-def _api_key(name: str) -> Optional[SecretStr]:
-    key = os.getenv(name)
-    if not key:
-        return None
-    return SecretStr(key)
-
-
-def _gemini(model: str, *, vertex: bool = False, **kwargs: Any) -> Any:
-    """Same pin as the chat roster: ``vertexai`` is explicit on both paths.
-
-    An unpinned client follows ``GOOGLE_GENAI_USE_VERTEXAI``, which would
-    send the AI Studio fallback at Vertex (no credentials) or drop the Vertex
-    tier onto AI Studio (no API key).
-    """
-    from langchain_google_genai import ChatGoogleGenerativeAI
-
-    # The API rejects these fields on Gemini 3.6 and later.
-    # LangChain does not remove them for every affected model.
-    kwargs = without_deprecated_generation_params(model, kwargs)
-
-    if vertex:
-        return ChatGoogleGenerativeAI(
-            model=model,
-            max_retries=0,
-            vertexai=True,
-            credentials=get_vertex_credentials(),
-            project=vertex_project(),
-            location=vertex_location(),
-            labels={"app": "wahl-chat", "tier": "vertex"},
-            **kwargs,
-        )
-    return ChatGoogleGenerativeAI(
-        model=model,
-        max_retries=0,
-        api_key=_api_key("GOOGLE_API_KEY"),
-        vertexai=False,
-        **kwargs,
-    )
-
-
-def _openai(model: str, **kwargs: Any) -> Any:
-    from langchain_openai import ChatOpenAI
-
-    return ChatOpenAI(
-        model=model,
-        api_key=_api_key("OPENAI_API_KEY"),
-        max_retries=0,
-        **kwargs,
-    )
 
 
 def _build_pre_post_llms() -> list[_LLM]:
@@ -158,7 +99,7 @@ def pre_post_llms() -> list[_LLM]:
 
 def _mark_rate_limit() -> None:
     """Same flag the chat failover writes when every primary model has failed."""
-    from ingestion.connectors.pledgetracker.firestore_client import firestore_client
+    from ingestion.firestore_client import firestore_client
 
     firestore_client().collection("system_status").document("llm_status").set(
         {"is_at_rate_limit": True}
@@ -174,25 +115,7 @@ async def structured_output_from_pre_post_llms(
     backup-only models. Raises when nothing succeeded — callers that must not
     fail the run catch that.
     """
-    llms = sorted(pre_post_llms(), key=lambda item: item.priority, reverse=True)
-    backups = [llm for llm in llms if llm.back_up_only]
-    primaries = [llm for llm in llms if not llm.back_up_only]
-    for llm in primaries:
-        try:
-            logger.debug("Invoking LLM %s...", llm.name)
-            prepared = llm.model.with_structured_output(schema)
-            return await prepared.ainvoke(messages)
-        except Exception as exc:
-            logger.warning("Error invoking LLM %s: %s", llm.name, exc)
-            continue
-
-    _mark_rate_limit()
-
-    for llm in backups:
-        try:
-            logger.debug("Invoking LLM %s...", llm.name)
-            prepared = llm.model.with_structured_output(schema)
-            return await prepared.ainvoke(messages)
-        except Exception as exc:
-            logger.warning("Error invoking LLM %s: %s", llm.name, exc)
-    raise Exception("All LLMs failed.")
+    result, _ = await structured_output_with_failover(
+        pre_post_llms(), messages, schema, on_primaries_exhausted=_mark_rate_limit
+    )
+    return result

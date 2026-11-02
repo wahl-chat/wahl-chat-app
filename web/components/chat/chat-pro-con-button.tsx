@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import type { StreamingMessage } from '@/lib/socket.types';
 import type { MessageItem } from '@/lib/stores/chat-store.types';
 import { track } from '@vercel/analytics/react';
+import { useTranslations } from 'next-intl';
 import ChatActionButtonHighlight from './chat-action-button-highlight';
 import ProConIcon from './pro-con-icon';
 
@@ -14,6 +15,7 @@ type Props = {
 };
 
 function ChatProConButton({ partyId, message, isLastMessage }: Props) {
+  const t = useTranslations('chat.proCon');
   const generateProConPerspective = useChatStore(
     (state) => state.generateProConPerspective,
   );
@@ -36,11 +38,11 @@ function ChatProConButton({ partyId, message, isLastMessage }: Props) {
       <Button
         variant="outline"
         className="h-8 px-2 group-data-[has-message-background]:bg-zinc-100 group-data-[has-message-background]:hover:bg-zinc-200 group-data-[has-message-background]:dark:bg-zinc-900 group-data-[has-message-background]:dark:hover:bg-zinc-800"
-        tooltip="Ordne die Position in Pro oder Contra ein"
+        tooltip={t('buttonTooltip')}
         onClick={handleGenerateProConPerspective}
       >
         <ProConIcon />
-        <span className="text-xs">Position einordnen</span>
+        <span className="text-xs">{t('button')}</span>
       </Button>
       <ChatActionButtonHighlight showHighlight={showHighlight} />
     </div>

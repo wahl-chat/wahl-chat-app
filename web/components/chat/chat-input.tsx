@@ -5,11 +5,13 @@ import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ArrowUp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 import ChatInputAddPartiesButton from './chat-input-add-parties-button';
 import MessageLoadingBorderTrail from './message-loading-border-trail';
 
 function ChatInput() {
+  const t = useTranslations('chat.input');
   const { user } = useAnonymousAuth();
   const input = useChatStore((state) => state.input);
   const setInput = useChatStore((state) => state.setInput);
@@ -81,7 +83,7 @@ function ChatInput() {
 
       <input
         className="w-full bg-chat-input py-3 pl-4 pr-11 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed"
-        placeholder="Schreibe eine Nachricht..."
+        placeholder={t('placeholder')}
         onChange={handleChange}
         value={input}
         disabled={loading}

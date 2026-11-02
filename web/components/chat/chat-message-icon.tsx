@@ -5,6 +5,7 @@ import { WAHL_CHAT_PARTY_ID } from '@/lib/constants';
 import type { PartyDetails } from '@/lib/party-details';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
 import { SparklesIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import Logo from './logo';
 
@@ -17,6 +18,7 @@ type Props = {
 };
 
 export function ChatMessageIcon({ partyId, party, shape = 'circle' }: Props) {
+  const t = useTranslations('chat.messageIcon');
   const clientParty = useContextParty(partyId ?? '');
 
   const normalizedParty = clientParty ?? party;
@@ -33,7 +35,7 @@ export function ChatMessageIcon({ partyId, party, shape = 'circle' }: Props) {
       {normalizedParty ? (
         <Image
           src={buildPartyImageUrl(normalizedParty?.party_id ?? '')}
-          alt={normalizedParty?.name ?? 'Keine Partei ausgewählt'}
+          alt={normalizedParty?.name ?? t('noParty')}
           fill
           sizes="32px"
           className="object-contain"

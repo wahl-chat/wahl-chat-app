@@ -1,4 +1,5 @@
 import HomeSocialMediaIcon from '@/components/icons/home-social-media-icon';
+import { useTranslations } from 'next-intl';
 
 /**
  * Cards render an h2 by default, which is right on the election home page
@@ -10,14 +11,14 @@ type CardTitleProps = {
 };
 
 function ContactCard({ titleAs: Title = 'h2' }: CardTitleProps) {
+  const t = useTranslations('home.contactCard');
+
   return (
     <div className="flex flex-col rounded-md border border-border">
       <div className="flex grow flex-col justify-between p-4">
         <div>
-          <Title className="font-bold">Bleibe up to date</Title>
-          <p className="text-sm text-muted-foreground">
-            Finde uns auf Social Media oder kontaktiere uns per E-Mail.
-          </p>
+          <Title className="font-bold">{t('title')}</Title>
+          <p className="text-sm text-muted-foreground">{t('description')}</p>
         </div>
         <div className="mt-4 flex flex-row items-center gap-3">
           <HomeSocialMediaIcon type="instagram" />

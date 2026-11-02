@@ -1,3 +1,4 @@
+import { redirectLocalized } from '@/i18n/server-navigation';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import {
   getChatSession,
@@ -7,7 +8,6 @@ import {
   getPartiesForContextById,
   getProposedQuestionsForContext,
 } from '@/lib/firebase/firebase-server';
-import { redirect } from 'next/navigation';
 import ChatMessagesView from './chat-messages-view';
 
 type Props = {
@@ -43,7 +43,9 @@ async function getChatSessionServer(
     const searchParams = new URLSearchParams();
     partyIds?.forEach((partyId) => searchParams.append('party_id', partyId));
 
-    redirect(`/${contextId}/session?${searchParams.toString()}`);
+    return redirectLocalized(
+      `/${contextId}/session?${searchParams.toString()}`,
+    );
   }
 }
 

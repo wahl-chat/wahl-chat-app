@@ -7,12 +7,14 @@ import LoadingPartyCards from '@/components/home/loading-party-cards';
 import { useElectionContext } from '@/components/providers/context-provider';
 import { Button } from '@/components/ui/button';
 import { GitCompareIcon, MousePointerClickIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   contextId: string;
 };
 
 export function ElectionPartySelector({ contextId }: Props) {
+  const t = useTranslations('home.electionPartySelector');
   const { partyCount, parties } = useElectionContext();
 
   // Parties come from the server layout, so there is nothing to wait for; the
@@ -23,12 +25,12 @@ export function ElectionPartySelector({ contextId }: Props) {
     <div
       className="flex w-full flex-col gap-6"
       role="group"
-      aria-label="Wahl und Parteiauswahl"
+      aria-label={t('groupLabel')}
     >
       {/* Election Context Banner */}
       <section aria-labelledby="election-context">
         <span id="election-context" className="sr-only">
-          Aktuelle Wahl
+          {t('currentElection')}
         </span>
         <ElectionSelect />
       </section>
@@ -48,7 +50,7 @@ export function ElectionPartySelector({ contextId }: Props) {
             className="size-7 shrink-0"
             aria-hidden="true"
           />
-          Wähle eine Partei, um den Chat mit ihr zu starten
+          {t('heading')}
         </h1>
 
         {isLoading ? (
@@ -66,10 +68,10 @@ export function ElectionPartySelector({ contextId }: Props) {
             className="w-full max-w-xl whitespace-normal border border-border"
             variant="secondary"
             disabled={isLoading}
-            aria-label="Mehrere Parteien zum Vergleichen auswählen"
+            aria-label={t('compareLabel')}
           >
             <GitCompareIcon aria-hidden="true" />
-            Wähle mehrere Parteien zum Vergleichen
+            {t('compareButton')}
           </Button>
         </ChatGroupPartySelect>
       </section>

@@ -2,6 +2,7 @@ import { getAuthHeader } from '@/lib/firebase/firebase';
 import { scrollMessageBottomInView } from '@/lib/scroll-utils';
 import type { Vote } from '@/lib/socket.types';
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
+import { storeMessage } from '@/lib/stores/store-messages';
 import { toast } from 'sonner';
 
 export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
@@ -112,7 +113,7 @@ export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
               '[voting-behavior] server error:',
               annotation.message,
             );
-            toast.error('Fehler beim Laden des Abstimmungsverhaltens.');
+            toast.error(storeMessage('votingBehaviorFailed'));
             // Server-emitted error: stop the spinner and drop the
             // half-populated stream state (only `catch` cleared the spinner
             // before, so an HTTP-200 error left it spinning forever).
@@ -142,7 +143,7 @@ export const generateVotingBehaviorSummary: ChatStoreActionHandlerFor<
     }
   } catch (error) {
     console.error('[generateVotingBehaviorSummary] error:', error);
-    toast.error('Fehler beim Laden des Abstimmungsverhaltens.');
+    toast.error(storeMessage('votingBehaviorFailed'));
 
     set((state) => {
       state.loading.votingBehaviorSummary = undefined;

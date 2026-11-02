@@ -1,0 +1,80 @@
+{
+  "loadingParties": "Parteien werden geladen",
+  "changelogCard": {
+    "title": "Neue Parteien & Chatverläufe speichern 🚀🎉",
+    "body": "Du kannst dich jetzt bei uns anmelden um deine Chatverläufe zu speichern. Außerdem kannst du nun auch mit der <bold>ÖDP</bold> und der <bold>Tierschutzpartei</bold> chatten."
+  },
+  "contactCard": {
+    "title": "Bleibe up to date",
+    "description": "Finde uns auf Social Media oder kontaktiere uns per E-Mail."
+  },
+  "contextIntro": {
+    "heading": "{name} – Parteipositionen im Chat vergleichen",
+    "introWithDate": "Am {date} wird in {location} gewählt. Auf wahl.chat kannst du den Parteien deine eigenen Fragen stellen – zu Mieten, Bildung, Klima, Wirtschaft oder jedem anderen Thema, das dich beschäftigt. Statt dich durch hunderte Seiten Wahlprogramm zu arbeiten, bekommst du eine Antwort auf genau die Frage, die du gestellt hast.",
+    "introWithoutDate": "In {location} stehen politische Entscheidungen an. Auf wahl.chat kannst du den Parteien deine eigenen Fragen stellen – zu Mieten, Bildung, Klima, Wirtschaft oder jedem anderen Thema, das dich beschäftigt. Statt dich durch hunderte Seiten Wahlprogramm zu arbeiten, bekommst du eine Antwort auf genau die Frage, die du gestellt hast.",
+    "parties": "Für die {name} kannst du mit {parties} chatten. Du kannst auch mehrere Parteien gleichzeitig auswählen und ihre Positionen zum selben Thema direkt nebeneinander vergleichen.",
+    "sources": "Jede Antwort ist mit Quellen belegt: wahl.chat zitiert die Stellen aus den Wahl- und Parteiprogrammen, auf denen die Antwort beruht, und du kannst sie mit einem Klick im Original nachlesen. Welche Dokumente dahinterstehen, findest du auf der <link>Quellenseite</link>.",
+    "wahlOMat": "Anders als beim Wahl-O-Mat beantwortest du keine vorgegebenen Thesen. Du bestimmst selbst, worüber gesprochen wird, und kannst nachfragen, wenn dir eine Antwort zu vage ist. Wie das genau funktioniert, erklärt die <link>Anleitung</link>.",
+    "disclaimer": "Die Antworten werden von einer künstlichen Intelligenz erzeugt und sind keine offiziellen Aussagen der Parteien. Deine Nachrichten werden gespeichert, um die Antworten zu erzeugen und dir deinen Chatverlauf anzuzeigen – Details dazu stehen in der <link>Datenschutzerklärung</link>."
+  },
+  "electionPartySelector": {
+    "groupLabel": "Wahl und Parteiauswahl",
+    "currentElection": "Aktuelle Wahl",
+    "heading": "Wähle eine Partei, um den Chat mit ihr zu starten",
+    "compareLabel": "Mehrere Parteien zum Vergleichen auswählen",
+    "compareButton": "Wähle mehrere Parteien zum Vergleichen"
+  },
+  "electionSelect": {
+    "currentLabel": "Aktuelle Wahl: {name}",
+    "triggerLabel": "Wahl auswählen. Aktuell ausgewählt: {name}",
+    "availableElections": "Verfügbare Wahlen",
+    "pastElections": "Vergangene Wahlen",
+    "selectedOption": "{details} (ausgewählt)"
+  },
+  "githubCard": {
+    "title": "Der Code hinter <underline>wahl.chat</underline>",
+    "description": "Du willst wissen wie <underline>wahl.chat</underline> funktioniert oder sogar selbst mitentwickeln? Der gesamte Code ist Open Source und auf GitHub verfügbar."
+  },
+  "howToCard": {
+    "title": "Wie benutzt man <underline>wahl.chat</underline>?",
+    "description": "Lerne, was du mit <underline>wahl.chat</underline> alles machen kannst und welche Funktionen es gibt.",
+    "button": "Anleitung"
+  },
+  "keepUpToDateCard": {
+    "title": "Der Koalitionsvertrag!",
+    "subtitle": "Bald auf <bold>wahl.chat</bold>",
+    "description": "Teile uns deine E-Mail mit, um benachrichtigt zu werden, wenn der Koalitionsvertrag auf wahl.chat verfügbar ist.",
+    "emailPlaceholder": "Email",
+    "submit": "Benachrichtige mich",
+    "toast": {
+      "loading": "Einen Moment, wir fügen deine E-Mail hinzu...",
+      "success": "Vielen Dank! Wir werden dich benachrichtigen, wenn der Koalitionsvertrag verfügbar ist.",
+      "error": "Ein Fehler ist aufgetreten. Bitte versuche es später erneut."
+    }
+  },
+  "knownFrom": {
+    "label": "Bekannt aus:",
+    "navLabel": "Presseberichte über wahl.chat",
+    "linkLabel": "Bericht über wahl.chat bei {outlet}"
+  },
+  "openCallCard": {
+    "title": "Masterarbeiten mit Impact",
+    "description": "Erforsche politische Transparenz und Fact-Checking zusammen mit Open Parliament TV und der University of Cambridge. Bewirb dich jetzt!",
+    "button": "Open Call"
+  },
+  "supportUsCard": {
+    "title": "Politische Bildung neu denken",
+    "description": "Hilf uns, laufende Kosten für die KI zu decken!",
+    "donate": "Spenden",
+    "aboutUs": "Über uns"
+  },
+  "swiperTeaserCard": {
+    "description": "Finde jetzt die passende Partei.",
+    "button": "Wahl Swiper"
+  },
+  "tvTeaserCard": {
+    "imageAlt": "Kandidierende",
+    "description": "Beim Quadrell nicht dabei gewesen? <br></br> Vergleiche die Themen bei uns.",
+    "button": "Aktuelle Themen"
+  }
+}

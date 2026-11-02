@@ -1,13 +1,15 @@
 import Logo from '@/components/chat/logo';
 import RtlIcon from '@/components/icons/rtl-icon';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
 import { LibraryBigIcon, XIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { getImageProps } from 'next/image';
-import Link from 'next/link';
 
 function TvTeaserCard() {
+  const t = useTranslations('home.tvTeaserCard');
   const imageProps = {
-    alt: 'Candidates',
+    alt: t('imageAlt'),
     className: 'size-full h-auto w-full object-contain',
     sizes: '100vw',
     width: 200,
@@ -29,13 +31,13 @@ function TvTeaserCard() {
       </div>
 
       <p className="mt-2 text-sm text-black/70 dark:text-white/70">
-        Beim Quadrell nicht dabei gewesen? <br /> Vergleiche die Themen bei uns.
+        {t.rich('description', { br: () => <br /> })}
       </p>
 
       <Button className="relative z-10 mt-2" asChild>
         <Link href="/topics">
           <LibraryBigIcon />
-          Aktuelle Themen
+          {t('button')}
         </Link>
       </Button>
 
@@ -43,7 +45,7 @@ function TvTeaserCard() {
         <picture>
           <source media="(min-width: 768px)" srcSet={desktop} />
           <source media="(max-width: 767px)" srcSet={mobile} />
-          <img {...rest} alt="Candidates" />
+          <img {...rest} alt={t('imageAlt')} />
         </picture>
       </div>
     </div>

@@ -1,8 +1,9 @@
 import Logo from '@/components/chat/logo';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { ArrowRightIcon } from 'lucide-react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import WahlSwiperTeaserVector from './wahl-swiper-teaser-vector';
 
 type Props = {
@@ -10,6 +11,8 @@ type Props = {
 };
 
 function SwiperTeaserCard({ contextId = DEFAULT_CONTEXT_ID }: Props) {
+  const t = useTranslations('home.swiperTeaserCard');
+
   return (
     <div className="relative h-[250px] overflow-hidden rounded-md border border-border bg-muted p-6 text-center md:col-span-2 md:h-[174px] md:text-left">
       <div className="flex items-center justify-center gap-2 md:justify-normal">
@@ -18,12 +21,12 @@ function SwiperTeaserCard({ contextId = DEFAULT_CONTEXT_ID }: Props) {
       </div>
 
       <p className="mt-2 text-sm text-black/70 dark:text-white/70">
-        Finde jetzt die passende Partei.
+        {t('description')}
       </p>
 
       <Button className="relative z-10 mt-2" asChild>
         <Link href={`/${contextId}/swiper`}>
-          Wahl Swiper
+          {t('button')}
           <ArrowRightIcon className="size-4" />
         </Link>
       </Button>

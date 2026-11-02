@@ -1,5 +1,6 @@
+import { Link } from '@/i18n/navigation';
 import { MailIcon, MessageSquareHeart } from 'lucide-react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -14,15 +15,17 @@ type Props = {
 };
 
 function FeedbackDialog({ children }: Props) {
+  const t = useTranslations('common.feedbackDialog');
+
   return (
     <ResponsiveDialog>
       <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
 
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Feedback!</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>{t('title')}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            Wir freuen uns über Feedback zu wahl.chat.
+            {t('description')}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
@@ -30,7 +33,7 @@ function FeedbackDialog({ children }: Props) {
           <Button asChild variant="outline">
             <Link href="mailto:info@wahl.chat">
               <MailIcon />
-              Schreibe uns eine E-Mail
+              {t('email')}
             </Link>
           </Button>
           <Button asChild variant="outline">
@@ -39,7 +42,7 @@ function FeedbackDialog({ children }: Props) {
               target="_blank"
             >
               <MessageSquareHeart />
-              Fülle unser Feedback-Formular aus
+              {t('form')}
             </Link>
           </Button>
         </div>

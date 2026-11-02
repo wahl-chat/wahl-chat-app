@@ -2,6 +2,7 @@
 
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import { useTenant } from '@/components/providers/tenant-provider';
+import { usePathname } from '@/i18n/navigation';
 import { auth } from '@/lib/firebase/firebase';
 import {
   PAGE_VISIT_HEARTBEAT_MS,
@@ -12,7 +13,7 @@ import {
   flushPageVisit,
   flushPageVisitOnHide,
 } from '@/lib/page-visit/page-visit-flush';
-import { useParams, usePathname } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
 type Props = {

@@ -1,10 +1,12 @@
 import ThinkingMessage from '@/components/chat/thinking-message';
 import { useWahlSwiperStore } from '@/components/providers/wahl-swiper-store-provider';
 import { MessageCircleMoreIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 import WahlSwiperChatMessage from './wahl-swiper-chat-message';
 
 function WahlSwiperChat() {
+  const t = useTranslations('swiper.chat');
   const isFirstRender = useRef(true);
   const messageHistory = useWahlSwiperStore((state) => {
     const currentThesis = state.getCurrentThesis();
@@ -49,10 +51,7 @@ function WahlSwiperChat() {
           <div className="flex grow flex-col items-center justify-center gap-4">
             <MessageCircleMoreIcon className="size-8 text-gray-500" />
 
-            <p className="text-center text-sm text-gray-500">
-              Starte eine Konversation zu dieser These um mehr darüber zu
-              erfahren.
-            </p>
+            <p className="text-center text-sm text-gray-500">{t('empty')}</p>
           </div>
         )}
 

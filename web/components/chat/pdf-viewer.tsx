@@ -9,6 +9,7 @@ import {
   ZoomInIcon,
   ZoomOutIcon,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   useCallback,
   useEffect,
@@ -72,6 +73,7 @@ function PdfViewer({
   onReady,
   onFail,
 }: PdfViewerProps) {
+  const t = useTranslations('sources.pdf');
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [numPages, setNumPages] = useState<number | null>(null);
@@ -301,13 +303,14 @@ function PdfViewer({
           className="h-7 px-2"
           disabled={currentPage <= 1}
           onClick={() => scrollToPage(currentPage - 1)}
-          aria-label="Vorherige Seite"
+          aria-label={t('previousPage')}
         >
           <ChevronLeftIcon className="size-4" />
         </Button>
         <span className="min-w-20 text-center text-xs tabular-nums text-muted-foreground">
-          Seite {currentPage}
-          {numPages ? ` / ${numPages}` : ''}
+          {numPages
+            ? t('pageOf', { page: currentPage, total: numPages })
+            : t('page', { page: currentPage })}
         </span>
         <Button
           type="button"
@@ -316,7 +319,7 @@ function PdfViewer({
           className="h-7 px-2"
           disabled={numPages !== null && currentPage >= numPages}
           onClick={() => scrollToPage(currentPage + 1)}
-          aria-label="Nächste Seite"
+          aria-label={t('nextPage')}
         >
           <ChevronRightIcon className="size-4" />
         </Button>
@@ -328,7 +331,7 @@ function PdfViewer({
           className="h-7 px-2"
           disabled={zoomIndex <= 0}
           onClick={() => changeZoom(zoomIndex - 1)}
-          aria-label="Verkleinern"
+          aria-label={t('zoomOut')}
         >
           <ZoomOutIcon className="size-4" />
         </Button>
@@ -339,7 +342,7 @@ function PdfViewer({
           className="h-7 px-2"
           disabled={zoomIndex >= ZOOM_STEPS.length - 1}
           onClick={() => changeZoom(zoomIndex + 1)}
-          aria-label="Vergrößern"
+          aria-label={t('zoomIn')}
         >
           <ZoomInIcon className="size-4" />
         </Button>
@@ -398,7 +401,7 @@ function PdfViewer({
                         <Loader2Icon className="size-6 animate-spin" />
                       </div>
                     }
-                    aria-label={`${title} – Seite ${page}`}
+                    aria-label={t('pageLabel', { title, page })}
                   />
                 ) : (
                   <div className="size-full bg-background/50" />

@@ -1,4 +1,5 @@
 import type { Vote } from '@/lib/socket.types';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import VoteChart from './vote-chart';
 
@@ -7,52 +8,42 @@ type Props = {
 };
 
 function OverallVoteChart({ vote }: Props) {
+  const t = useTranslations('chat.votes');
   const [resultStatement, percentageStatement] = useMemo(() => {
     const { yes, no, abstain } = vote.voting_results.overall;
 
     const totalVotes = yes + no + abstain;
 
     if (totalVotes === 0) {
-      return [
-        'Keine gültigen Stimmen abgegeben',
-        'Es konnten keine Ergebnisse ermittelt werden',
-      ];
+      return [t('noValidVotes'), t('noResults')];
     }
 
-    let outcome: string;
+    let outcome: 'accepted' | 'rejected' | 'tie';
     let percentage: number;
 
     if (yes > no) {
-      outcome = 'angenommen';
+      outcome = 'accepted';
       percentage = (yes / totalVotes) * 100;
     } else if (no > yes) {
-      outcome = 'abgelehnt';
+      outcome = 'rejected';
       percentage = (no / totalVotes) * 100;
     } else {
-      outcome = 'unentschieden';
+      outcome = 'tie';
       percentage = (no / totalVotes) * 100;
     }
 
-    const resultStatement = (
-      <>
-        Antrag wurde{' '}
-        <span className="font-bold">
-          {outcome.charAt(0).toUpperCase() + outcome.slice(1)}.
-        </span>
-      </>
-    );
+    const resultStatement = t.rich('outcome', {
+      outcome,
+      bold: (chunks) => <span className="font-bold">{chunks}</span>,
+    });
 
-    let percentageStatement: string;
-    if (outcome === 'unentschieden') {
-      percentageStatement = `Antrag wurde unentschieden mit jeweils ${percentage.toFixed(
-        1,
-      )}% der Stimmen.`;
-    } else {
-      percentageStatement = `Antrag wurde mit ${percentage.toFixed(1)}% der Stimmen ${outcome}.`;
-    }
+    const percentageStatement = t('outcomePercentage', {
+      outcome,
+      percentage: percentage.toFixed(1),
+    });
 
     return [resultStatement, percentageStatement];
-  }, [vote.voting_results.overall]);
+  }, [vote.voting_results.overall, t]);
 
   return (
     <section className="flex flex-1 flex-col items-center justify-center gap-4">

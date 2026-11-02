@@ -22,6 +22,7 @@ import type {
 } from '@/lib/stores/chat-store.types';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ExternalLink, Target } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 type Props = {
@@ -38,6 +39,7 @@ type Props = {
  * or broken.
  */
 function ChatPledgeTracker({ message, open, onOpenChange }: Props) {
+  const t = useTranslations('chat.pledgeTracker');
   const pledges = getVisiblePledges(message.pledge_tracker);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -47,8 +49,6 @@ function ChatPledgeTracker({ message, open, onOpenChange }: Props) {
 
   const activeIndex = Math.min(selectedIndex, pledges.length - 1);
   const activePledge = pledges[activeIndex];
-  const zielWord = pledges.length === 1 ? 'Ziel' : 'Ziele';
-  const matchWord = pledges.length === 1 ? 'passendes' : 'passende';
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
@@ -69,13 +69,13 @@ function ChatPledgeTracker({ message, open, onOpenChange }: Props) {
             </span>
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription className="sr-only">
-            Zeitleisten zu politischen Zielen, erstellt von PledgeTracker.
+            {t('dialogDescription')}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
         <div className="flex grow flex-col gap-4 overflow-y-auto px-5 py-4">
           <p className="text-xs text-muted-foreground">
-            {pledges.length} {matchWord} {zielWord} zu diesem Gespräch
+            {t('matchCount', { count: pledges.length })}
           </p>
 
           {pledges.length > 1 && (
@@ -93,7 +93,7 @@ function ChatPledgeTracker({ message, open, onOpenChange }: Props) {
                       : 'border-border text-muted-foreground hover:bg-accent/50',
                   )}
                 >
-                  {pledge.policy_area || `Ziel ${index + 1}`}
+                  {pledge.policy_area || t('pledgeTab', { number: index + 1 })}
                 </button>
               ))}
             </div>
@@ -112,7 +112,9 @@ function ChatPledgeTracker({ message, open, onOpenChange }: Props) {
 }
 
 function PledgeSummaryCard({ pledge }: { pledge: PledgeRecord }) {
-  const pledgeDate = formatPledgeDate(pledge.pledge_date);
+  const t = useTranslations('chat.pledgeTracker');
+  const locale = useLocale();
+  const pledgeDate = formatPledgeDate(pledge.pledge_date, locale);
   const sourceTitle = pledge.pledge_source_title ?? pledge.pledge_source_url;
   // href-safe (http/https only); an unsafe URL degrades to plain text.
   const sourceUrl = safeExternalUrl(pledge.pledge_source_url);
@@ -129,7 +131,9 @@ function PledgeSummaryCard({ pledge }: { pledge: PledgeRecord }) {
 
           {(pledgeDate || sourceTitle) && (
             <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
-              {pledgeDate && <span>Ziel vom {pledgeDate}</span>}
+              {pledgeDate && (
+                <span>{t('pledgeDate', { date: pledgeDate })}</span>
+              )}
               {pledgeDate && sourceTitle && (
                 <span aria-hidden className="text-border">
                   ·
@@ -154,12 +158,14 @@ function PledgeSummaryCard({ pledge }: { pledge: PledgeRecord }) {
 
           {statusLabel && (
             <p className="text-xs text-muted-foreground">
-              Status:{' '}
-              <span className="font-medium text-foreground">
-                {pledge.tracker_step
+              {t.rich('status', {
+                status: pledge.tracker_step
                   ? `${statusLabel}, ${pledge.tracker_step}`
-                  : statusLabel}
-              </span>
+                  : statusLabel,
+                value: (chunks) => (
+                  <span className="font-medium text-foreground">{chunks}</span>
+                ),
+              })}
             </p>
           )}
         </div>
@@ -173,6 +179,7 @@ function PledgeSummaryCard({ pledge }: { pledge: PledgeRecord }) {
 const COLLAPSE_MIN_EVENTS = 5;
 
 function PledgeTimeline({ pledge }: { pledge: PledgeRecord }) {
+  const t = useTranslations('chat.pledgeTracker');
   const [showAll, setShowAll] = useState(false);
   const events = sortedRelevantEvents(pledge);
   const isCollapsed = !showAll && events.length >= COLLAPSE_MIN_EVENTS;
@@ -208,7 +215,7 @@ function PledgeTimeline({ pledge }: { pledge: PledgeRecord }) {
           className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ChevronDown className="size-3.5 shrink-0" />
-          {hiddenCount} weitere Ereignisse anzeigen
+          {t('showMoreEvents', { count: hiddenCount })}
         </button>
       </li>
       {renderEvent(events[events.length - 1], events.length - 1)}
@@ -228,8 +235,10 @@ function TimelineEvent({
   number: number;
   isNewest: boolean;
 }) {
+  const t = useTranslations('chat.pledgeTracker');
+  const locale = useLocale();
   const [showFullText, setShowFullText] = useState(false);
-  const date = formatPledgeDate(event.date);
+  const date = formatPledgeDate(event.date, locale);
   // href-safe (http/https only); an unsafe URL hides the Quelle link.
   const eventUrl = safeExternalUrl(event.url);
   const shortTitle = event.event_short?.trim();
@@ -255,7 +264,7 @@ function TimelineEvent({
       >
         {number}
       </span>
-      {isNewest && <span className="sr-only">Neuestes Ereignis</span>}
+      {isNewest && <span className="sr-only">{t('newestEvent')}</span>}
 
       {date && (
         <time className="text-xs font-medium text-muted-foreground">
@@ -288,7 +297,7 @@ function TimelineEvent({
             onClick={() => setShowFullText((v) => !v)}
             className="underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {showFullText ? 'Weniger' : 'Mehr'}
+            {showFullText ? t('less') : t('more')}
           </button>
         )}
         {eventUrl && (
@@ -298,7 +307,7 @@ function TimelineEvent({
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 underline-offset-2 hover:text-foreground hover:underline"
           >
-            Quelle
+            {t('source')}
             <ExternalLink className="size-3 shrink-0" />
           </a>
         )}
@@ -313,22 +322,23 @@ function TimelineEvent({
  * dialog/drawer inside the popup.
  */
 function PledgeDisclaimer() {
+  const t = useTranslations('chat.pledgeTracker');
   const [showDetails, setShowDetails] = useState(false);
 
   return (
     <div className="mt-1 text-xs leading-relaxed text-muted-foreground">
       <p>
-        {PLEDGE_TRACKER_BRAND.taglineText}{' '}
+        {t('tagline')}{' '}
         <button
           type="button"
           aria-expanded={showDetails}
           onClick={() => setShowDetails((v) => !v)}
           className="font-medium underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {showDetails ? 'Weniger' : 'Mehr'}
+          {showDetails ? t('less') : t('more')}
         </button>
       </p>
-      {showDetails && <p className="mt-1">{PLEDGE_TRACKER_BRAND.detailText}</p>}
+      {showDetails && <p className="mt-1">{t('detail')}</p>}
     </div>
   );
 }

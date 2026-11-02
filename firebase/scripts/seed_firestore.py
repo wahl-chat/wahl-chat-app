@@ -19,6 +19,9 @@ This script:
    into contexts/{context_id}/proposed_questions sub-collection
 4. Imports source documents from firestore_data/{env}/sources_{context_id}.json
    into sources/{context_id}/parties/{party_id}/source_documents
+5. Emulator only: imports sample parliament-feed editions and items from
+   firestore_data/emulator/feed.json, so the feed has content locally (German
+   and English) without corpus access or LLM calls
 
 File naming convention:
 - contexts.json: Contains all context documents
@@ -47,6 +50,9 @@ SCRIPT_DIR = Path(__file__).parent
 FIREBASE_DIR = SCRIPT_DIR.parent
 REPO_ROOT = FIREBASE_DIR.parent
 DATA_DIR = FIREBASE_DIR / "firestore_data" / ENV
+# Real feed-builder output for a few sitting days. Only ever written to the
+# emulator: in a real project, the feed collections belong to the builder alone.
+EMULATOR_FEED_FILE = FIREBASE_DIR / "firestore_data" / "emulator" / "feed.json"
 
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
@@ -351,6 +357,27 @@ def seed_sources(db):
     print(f"\nTotal source documents seeded: {total_documents}")
 
 
+def seed_feed(db):
+    """Seed the parliament feed's sample editions and items into the emulator."""
+    if not os.getenv("FIRESTORE_EMULATOR_HOST"):
+        return
+    if not EMULATOR_FEED_FILE.exists():
+        print("\n⚠️  No sample feed found")
+        return
+
+    with open(EMULATOR_FEED_FILE) as f:
+        feed = json.load(f)
+
+    for item in feed["items"]:
+        db.collection("feed_items").document(item["id"]).set(item)
+    for edition in feed["editions"]:
+        db.collection("feed_editions").document(edition["id"]).set(edition)
+    print(
+        f"\n📰 Seeded {len(feed['editions'])} feed editions with "
+        f"{len(feed['items'])} items (emulator only)"
+    )
+
+
 def revalidate_frontend_cache(context_ids, firestore_project=None):
     """Optionally bust the live site's Firestore cache after a real-project seed.
 
@@ -415,6 +442,8 @@ def main():
 
     # Seed source documents for each context's sources page
     seed_sources(db)
+
+    seed_feed(db)
 
     revalidate_frontend_cache(
         context_ids, firestore_project=getattr(db, "project", None)

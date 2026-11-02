@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import type { Source } from '@/lib/stores/chat-store.types';
 import { BookMarkedIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 type Props = {
@@ -36,6 +37,7 @@ function groupSourcesByParty(sources: Source[]): Map<string, Source[]> {
 }
 
 function AgentSourcesButton({ sources, messageContent }: Props) {
+  const t = useTranslations('agent.chat');
   const [sourcesReferenced, sourcesNotReferenced] = useMemo(() => {
     const sourcesByParty = groupSourcesByParty(sources);
     const referencedKeys = new Set<string>(); // "party_id:index" format
@@ -94,7 +96,7 @@ function AgentSourcesButton({ sources, messageContent }: Props) {
       trigger={
         <Button variant="outline" className="h-8 px-2 text-xs">
           <BookMarkedIcon className="mr-1 size-4" />
-          Quellen
+          {t('sources')}
         </Button>
       }
     />

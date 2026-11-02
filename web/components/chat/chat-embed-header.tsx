@@ -7,8 +7,10 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { HelpCircleIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 function ChatEmbedHeader() {
+  const t = useTranslations('chat.header');
   return (
     <header className="relative z-10 flex min-h-chat-header w-full items-center gap-1 border-b border-b-muted bg-background px-4">
       <div className="flex min-w-0 grow items-center gap-2 overflow-x-hidden">
@@ -16,7 +18,7 @@ function ChatEmbedHeader() {
           <TooltipTrigger asChild>
             <SidebarTrigger />
           </TooltipTrigger>
-          <TooltipContent>Menü öffnen</TooltipContent>
+          <TooltipContent>{t('openMenu')}</TooltipContent>
         </Tooltip>
       </div>
       <div className="flex items-center gap-1">

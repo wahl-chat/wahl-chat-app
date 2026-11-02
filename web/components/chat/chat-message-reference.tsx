@@ -5,6 +5,7 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { ClapperboardIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   numbers: string[];
@@ -24,6 +25,7 @@ function ChatMessageReference({
   getReferenceName,
   getReferenceIsVideo,
 }: Props) {
+  const t = useTranslations('chat.markdown');
   return (
     <span key={index} className="inline-flex flex-row flex-wrap gap-1">
       {numbers.map((number) => {
@@ -32,7 +34,8 @@ function ChatMessageReference({
           return null;
         }
 
-        const name = getReferenceName?.(refNumber) ?? `Ref. ${number}`;
+        const name =
+          getReferenceName?.(refNumber) ?? t('referenceFallback', { number });
         const tooltip = getReferenceTooltip?.(refNumber) ?? name;
         const isVideo = getReferenceIsVideo?.(refNumber) ?? false;
 
@@ -53,7 +56,7 @@ function ChatMessageReference({
                 {isVideo ? (
                   <>
                     <ClapperboardIcon className="size-3.5 shrink-0" />
-                    <span>Video {name}</span>
+                    <span>{t('videoReference', { name })}</span>
                   </>
                 ) : (
                   name
