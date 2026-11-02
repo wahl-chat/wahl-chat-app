@@ -23,6 +23,14 @@ export type WahlChatUser = {
   newsletter_allowed?: boolean;
   clicked_away_login_reminder?: Date | Timestamp;
   keep_up_to_date_email?: string;
+  // Interest in the upcoming personalised daily newsletter. Topic interests are
+  // deliberately not stored alongside it: together with an email address they
+  // come close to political-opinion data (GDPR Art. 9).
+  daily_digest_waitlist?: {
+    email: string;
+    region: string;
+    joined_at: Date | Timestamp;
+  };
 };
 
 export type SerializableFirebaseUser = UserInfo & {

@@ -27,6 +27,10 @@ export default async function NavBar({ className }: Props) {
       label: 'Anleitung',
       href: '/how-to',
     },
+    {
+      label: 'Chat',
+      href: '/chat',
+    },
   ];
 
   const user = !IS_EMBEDDED ? await getCurrentUser() : undefined;

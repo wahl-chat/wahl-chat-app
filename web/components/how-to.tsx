@@ -2,6 +2,7 @@
 
 import {
   ACCORDION_CONTENT,
+  FEED_INTRO,
   INTRO_TEXT,
   PROCESS_STEPS,
   WAHL_O_MAT_LIST_LEAD_IN,
@@ -34,6 +35,7 @@ function HowTo() {
     setIsExporting(true);
     try {
       await exportHowToPDF({
+        feedIntro: FEED_INTRO,
         introText: INTRO_TEXT,
         processSteps: PROCESS_STEPS,
         accordionContent: ACCORDION_CONTENT,
@@ -48,7 +50,26 @@ function HowTo() {
   return (
     <Accordion type="single" collapsible asChild>
       <article>
-        <section>
+        <section aria-labelledby="how-to-feed">
+          <h2 id="how-to-feed" className="text-lg font-bold">
+            {FEED_INTRO.title}
+          </h2>
+          {FEED_INTRO.paragraphs.map((paragraph) => (
+            <p key={paragraph} className="mt-2">
+              {paragraph}
+            </p>
+          ))}
+          <ul className="list-outside list-disc py-2 pl-4 [&_li]:pt-1">
+            {FEED_INTRO.list.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+          <Link href="/" className="font-semibold underline">
+            Zum Parlaments-Feed
+          </Link>
+        </section>
+
+        <section className="mt-8">
           <HowToIntro />
         </section>
 
@@ -59,6 +80,24 @@ function HowTo() {
                 {accordionItem.title}
               </AccordionTrigger>
               <AccordionContent>
+                {/* Feed heat accordion */}
+                {accordionItem.id === 'feed-heat' && (
+                  <>
+                    {accordionItem.content.intro}
+                    <ol className="list-outside list-decimal py-2 pl-4 [&_li]:pt-2">
+                      {accordionItem.content.orderedList?.map((item) => {
+                        const { label, text } = parseLabeledListItem(item);
+                        return (
+                          <li key={item}>
+                            <span className="font-bold">{label}:</span> {text}
+                          </li>
+                        );
+                      })}
+                    </ol>
+                    {accordionItem.content.outro}
+                  </>
+                )}
+
                 {/* Special rendering for questions accordion */}
                 {accordionItem.id === 'questions' && (
                   <>

@@ -2,6 +2,7 @@ import { MAX_SELECTABLE_PARTIES } from '@/lib/constants';
 import type {
   HowToAccordionContent,
   HowToAccordionItem,
+  HowToFeedIntro,
   HowToIntroText,
 } from '@/lib/how-to-pdf-export';
 
@@ -36,6 +37,24 @@ const GENERAL_QUESTIONS = [
   'Wie funktioniert Briefwahl?',
 ];
 
+/**
+ * The parliament feed on the start page, explained first: it is what a
+ * visitor sees before anything else.
+ */
+export const FEED_INTRO: HowToFeedIntro = {
+  title: 'Der Parlaments-Feed',
+  paragraphs: [
+    'Auf der Startseite fasst wahl.chat jeden Sitzungstag für dich zusammen: worüber im Plenum debattiert wurde und wie die Fraktionen abgestimmt haben. Grundlage sind die Plenarprotokolle und Videos der Sitzungen sowie die Ergebnisse der namentlichen Abstimmungen.',
+    'Die Zusammenfassungen werden auf Grundlage dieser Quellen mit Hilfe von KI erstellt, für jeden Tagesordnungspunkt einzeln. Jede Fraktion, die in einer Debatte gesprochen hat, wird genannt. Ihr Positionssatz wird vor der Veröffentlichung noch einmal gegen ihre eigenen Reden geprüft; lässt er sich nicht belegen, verlinken wir nur ihre Reden. Zitate werden nur übernommen, wenn sie wörtlich im Protokoll stehen.',
+  ],
+  list: [
+    'Oben wählst du die Themen, die dich interessieren. Bisher deckt der Feed den Bundestag ab, die Landtage folgen.',
+    'Mit „Mehr anzeigen“ öffnest du die Kurzfassung: die wichtigsten Punkte, wer was gesagt hat und die Quelle im Plenarprotokoll.',
+    'Über das Eingabefeld stellst du direkt Fragen zur Debatte oder Abstimmung.',
+    'Mit dem Daumen bei „Interessant?“ sagst du uns, was dich interessiert. Das hilft uns, deinen Feed für dich zu verbessern.',
+  ],
+};
+
 export const INTRO_TEXT: HowToIntroText = {
   main: 'wahl.chat ist ein interaktives KI-Tool, das dir hilft, dich über die Positionen und Pläne der Parteien zu informieren. Du kannst dem KI-Assistenten Fragen zu verschiedenen politischen Themen stellen, und er liefert dir neutrale Antworten basierend auf den Wahlprogrammen und weiteren Veröffentlichungen der Parteien.',
   sources:
@@ -51,6 +70,21 @@ export const PROCESS_STEPS: string[] = [
 ];
 
 export const ACCORDION_CONTENT: HowToAccordionItem[] = [
+  {
+    id: 'feed-heat',
+    title: 'Wie entsteht die Hitzigkeit im Feed?',
+    content: {
+      intro:
+        'Die Punkte neben einer Debatte zeigen, wie hitzig sie im Vergleich zu den anderen Debatten desselben Tages war. Sie entstehen wie folgt:',
+      orderedList: [
+        'Einordnung pro Debatte: Eine KI bewertet jede Debatte für sich auf einer festen Skala von 1 bis 5, anhand der Schärfe des Tons, gegenseitiger Vorwürfe und wie gegensätzlich die Positionen der Fraktionen sind.',
+        'Vergleich im Feed: Die Werte eines Tages werden so umgerechnet, dass die hitzigste angezeigte Debatte 5 Punkte hat.',
+        'Thema des Tages: Ganz oben steht die Debatte mit dem höchsten Wert aus Hitzigkeit mal Debattenlänge, basierend auf einer Schätzung der gesprochenen Worte pro Minute.',
+      ],
+      outro:
+        'Die Hitzigkeit sagt nichts darüber, wie wichtig ein Thema ist. Sie beschreibt nur, wie kontrovers die Debatte im Plenum geführt wurde.',
+    },
+  },
   {
     id: 'questions',
     title: 'Welche Fragen kann ich stellen?',

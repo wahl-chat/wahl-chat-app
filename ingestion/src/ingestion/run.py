@@ -40,18 +40,9 @@ from typing import NamedTuple, Optional
 # override=False: an exported variable stays in force.
 # Cloud Run has no .env file. The job environment stays in force.
 if __name__ == "__main__":
-    from pathlib import Path
+    from ingestion.env_file import load_env_file
 
-    from dotenv import load_dotenv
-
-    _env_path = Path(__file__).resolve().parents[2] / ".env"
-
-    # Use ai-backend/.env when ingestion/.env does not exist.
-    # API keys can be in either file.
-    if not _env_path.exists():
-        _env_path = _env_path.parents[1] / "ai-backend" / ".env"
-    if _env_path.exists():
-        load_dotenv(_env_path, override=False)
+    load_env_file()
 
 from langchain_core.embeddings import Embeddings
 from qdrant_client import QdrantClient, models
@@ -766,7 +757,9 @@ def resolve_aw_legislature_shard() -> bool:
         return False
 
     os.environ["AW_LEGISLATURE_ID"] = str(ids[task_index])
-    print(f"shard {task_index}/{task_count}: AW_LEGISLATURE_ID={ids[task_index]} ({shard_set})")
+    print(
+        f"shard {task_index}/{task_count}: AW_LEGISLATURE_ID={ids[task_index]} ({shard_set})"
+    )
     return True
 
 
