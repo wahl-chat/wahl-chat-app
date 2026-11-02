@@ -128,8 +128,10 @@ _UPDATE_SWEEP_DAYS = 30
 # checked against; a protocol is re-fetched only when DIP's value differs.
 _CHECKED_REVISION_KEY = "dip_aktualisiert"
 
-# Payload object on op points mapping protocol id → DIP ``aktualisiert`` checked
-# when op covered every speech, so no DIP point exists to carry the revision.
+# Payload object on op points mapping protocol id → {"aktualisiert", "op_points"}
+# checked when op covered every speech, so no DIP point exists to carry the
+# revision. op_points is the sitting's op point count at check time: a deleted
+# op speech changes it, a rewritten op point loses the stamp.
 _OP_CHECKED_KEY = "dip_checked"
 
 
@@ -534,16 +536,34 @@ class BundestagSpeechesConnector(BaseConnector):
             return {}
         return ingested
 
-    def _get_op_checked_revisions(self, dates: set[int]) -> dict[int, dict[str, str]]:
-        """Map each sitting date (YYYYMMDD) op holds speeches for to the
-        ``dip_checked`` object on its op points (protocol id → revision).
-
-        post_item() stamps every op point of the date alike, so one point is
-        read per date; a point an op re-ingest rewrote reads as unchecked.
-        Store unreachable → empty dict (every protocol is re-checked).
-        """
+    def _op_day_filter(self, days: list[int]) -> Any:
+        """Filter selecting the op points of the given sitting dates."""
         from qdrant_client import models  # noqa: PLC0415
 
+        return models.Filter(
+            must=[
+                models.FieldCondition(
+                    key="source_type",
+                    match=models.MatchValue(value=self.source_type),
+                ),
+                models.FieldCondition(
+                    key="source", match=models.MatchValue(value="op")
+                ),
+                models.FieldCondition(
+                    key="external_id", match=models.MatchAny(any=days)
+                ),
+            ]
+        )
+
+    def _get_op_checked_revisions(self, dates: set[int]) -> dict[int, dict[str, str]]:
+        """Map each sitting date (YYYYMMDD) to the protocols op settled for it
+        (protocol id → checked DIP revision).
+
+        A protocol counts as settled only when EVERY op point of the date
+        carries the same stamp and its op_points still equals the date's point
+        count — a partial op rewrite or a deleted op speech re-opens it.
+        Store unreachable → empty dict (every protocol is re-checked).
+        """
         qdrant = (
             self._store_client
             if self._store_client is not None
@@ -552,31 +572,42 @@ class BundestagSpeechesConnector(BaseConnector):
         if qdrant is None or not dates:
             return {}
         collection_name = self._store_collection or self._collection_name
-        checked: dict[int, dict[str, str]] = {}
+        totals: dict[int, int] = {}
+        # (day, protocol id) → (points carrying a stamp, distinct stamps seen)
+        stamps: dict[tuple[int, str], tuple[int, set[tuple[str, int]]]] = {}
+        next_offset = None
         try:
-            for day in sorted(dates):
-                points, _ = qdrant.scroll(
+            while True:
+                points, next_offset = qdrant.scroll(
                     collection_name=collection_name,
-                    scroll_filter=models.Filter(
-                        must=[
-                            models.FieldCondition(
-                                key="source_type",
-                                match=models.MatchValue(value=self.source_type),
-                            ),
-                            models.FieldCondition(
-                                key="source", match=models.MatchValue(value="op")
-                            ),
-                            models.FieldCondition(
-                                key="external_id", match=models.MatchValue(value=day)
-                            ),
-                        ]
-                    ),
-                    limit=1,
-                    with_payload=[_OP_CHECKED_KEY],
+                    scroll_filter=self._op_day_filter(sorted(dates)),
+                    limit=1000,
+                    offset=next_offset,
+                    with_payload=["external_id", _OP_CHECKED_KEY],
                     with_vectors=False,
                 )
-                if points:
-                    checked[day] = (points[0].payload or {}).get(_OP_CHECKED_KEY) or {}
+                for p in points:
+                    payload = p.payload or {}
+                    day = payload.get("external_id")
+                    if not isinstance(day, int):
+                        continue
+                    totals[day] = totals.get(day, 0) + 1
+                    checked = payload.get(_OP_CHECKED_KEY)
+                    if not isinstance(checked, dict):
+                        continue
+                    for pid, stamp in checked.items():
+                        if not isinstance(stamp, dict):
+                            continue
+                        n, seen = stamps.get((day, str(pid)), (0, set()))
+                        seen.add(
+                            (
+                                str(stamp.get("aktualisiert")),
+                                int(stamp.get("op_points") or 0),
+                            )
+                        )
+                        stamps[(day, str(pid))] = (n + 1, seen)
+                if next_offset is None:
+                    break
         except Exception as exc:  # noqa: BLE001 — store unreachable → re-check all
             logger.warning(
                 "set-difference discovery: op coverage lookup failed (%s) — "
@@ -584,7 +615,14 @@ class BundestagSpeechesConnector(BaseConnector):
                 exc,
             )
             return {}
-        return checked
+        settled: dict[int, dict[str, str]] = {}
+        for (day, pid), (n, seen) in stamps.items():
+            if len(seen) != 1:
+                continue
+            ((revision, op_points),) = seen
+            if n == totals[day] == op_points:
+                settled.setdefault(day, {})[pid] = revision
+        return settled
 
     def discover(self, since: Optional[int]) -> list[str]:
         """Return protocol ids to process for the configured Wahlperiode.
@@ -603,8 +641,9 @@ class BundestagSpeechesConnector(BaseConnector):
              the runner's content_hash guard rewrites only real changes.
              Protocols without a stored revision fall back to the
              _UPDATE_SWEEP_DAYS window.
-          4. Op coverage: drop a protocol without DIP chunks when its sitting's
-             op points record DIP's current ``aktualisiert`` for it. The
+          4. Op coverage: drop a protocol without DIP chunks when every op
+             point of its sitting records DIP's current ``aktualisiert`` for it
+             and the sitting's op point count is unchanged since. The
              resurrection guard skips every DIP speech op covers, so such a
              protocol never gets DIP chunks and would otherwise be re-fetched
              as a no-op on every run.
@@ -714,24 +753,20 @@ class BundestagSpeechesConnector(BaseConnector):
                 day = _datum_to_external_id(protocol.get("datum"))
                 if day is None:
                     return
+                op_filter = self._op_day_filter([day])
+                op_points = qdrant.count(
+                    collection_name=collection_name, count_filter=op_filter, exact=True
+                ).count
                 qdrant.set_payload(
                     collection_name=collection_name,
-                    payload={external_id: str(revision)},
+                    payload={
+                        external_id: {
+                            "aktualisiert": str(revision),
+                            "op_points": op_points,
+                        }
+                    },
                     key=_OP_CHECKED_KEY,
-                    points=models.Filter(
-                        must=[
-                            models.FieldCondition(
-                                key="source_type",
-                                match=models.MatchValue(value=self.source_type),
-                            ),
-                            models.FieldCondition(
-                                key="source", match=models.MatchValue(value="op")
-                            ),
-                            models.FieldCondition(
-                                key="external_id", match=models.MatchValue(value=day)
-                            ),
-                        ]
-                    ),
+                    points=op_filter,
                     wait=True,
                 )
                 return
