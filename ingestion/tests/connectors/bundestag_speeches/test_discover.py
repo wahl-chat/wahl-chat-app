@@ -9,7 +9,11 @@ Covers:
   - discover(None): returns ALL protocol IDs sorted ascending (oldest-first)
   - set-difference discovery: ingested protocols excluded, never-stored ones
     re-surface regardless of age, the runner cursor is ignored
-  - update sweep: recently-`aktualisiert` ingested protocols re-surface
+  - update sweep: ingested protocols re-surface once per DIP revision; without
+    a stored revision, recently-`aktualisiert` ones re-surface
+  - post_item stamps the checked revision on the protocol's points
+  - settled op coverage: op-covered protocols without DIP chunks drop out
+  - never-ingested protocols come before the sweep
   - DIP DESC input → ascending output: regression guard
   - government (999…) speakers kept with name-lookup / quarantine attribution
   - test_empty_protocol_skips: normalize() raises ValueError for a protocol with zero
@@ -48,22 +52,72 @@ class _FakeDipClient:
 
 
 class _FakeStore:
-    """Fake Qdrant client serving stored DIP parent keys for set-difference tests."""
+    """Fake Qdrant client: stored DIP parent keys with their checked revisions,
+    and per sitting date the ``dip_checked`` object of each op point (None =
+    the point carries no stamp)."""
 
-    def __init__(self, ingested_protocol_ids: list[str]) -> None:
+    def __init__(
+        self,
+        ingested_protocol_ids: list[str],
+        op_points: dict[int, list[dict | None]] | None = None,
+        op_lookup_fails: bool = False,
+        revisions: dict[str, list[str | None]] | None = None,
+    ) -> None:
         self._ids = ingested_protocol_ids
+        self._op_points = op_points or {}
+        self._op_lookup_fails = op_lookup_fails
+        self._revisions = revisions or {}
+        self.set_payload_calls: list[dict] = []
+        self.op_scroll_calls = 0
 
-    def scroll(self, **kwargs: object) -> tuple:
+    def set_payload(self, **kwargs: Any) -> None:  # noqa: ANN401
+        self.set_payload_calls.append(kwargs)
+
+    @staticmethod
+    def _must(flt: Any) -> dict:  # noqa: ANN401
+        return {
+            c.key: c.match.any if hasattr(c.match, "any") else c.match.value
+            for c in flt.must
+        }
+
+    def count(self, **kwargs: Any) -> Any:  # noqa: ANN401
         from types import SimpleNamespace
 
-        points = [
-            SimpleNamespace(
-                id=f"pt-{pid}",
-                payload={"source_parent_key": f"parliamentary_speech:dip:{pid}"},
-            )
-            for pid in self._ids
-        ]
+        days = self._must(kwargs["count_filter"])["external_id"]
+        return SimpleNamespace(count=sum(len(self._op_points.get(d, [])) for d in days))
+
+    def scroll(self, **kwargs: Any) -> tuple:  # noqa: ANN401
+        from types import SimpleNamespace
+
+        must = self._must(kwargs["scroll_filter"])
+        if must.get("source") == "op":
+            self.op_scroll_calls += 1
+            if self._op_lookup_fails:
+                raise ConnectionError("qdrant unreachable")
+            op = []
+            for day in must["external_id"]:
+                for i, checked in enumerate(self._op_points.get(day, [])):
+                    payload: dict = {"external_id": day}
+                    if checked is not None:
+                        payload["dip_checked"] = checked
+                    op.append(SimpleNamespace(id=f"op-{day}-{i}", payload=payload))
+            return (op, None)
+        points = []
+        for pid in self._ids:
+            for i, revision in enumerate(self._revisions.get(pid, [None])):
+                payload = {"source_parent_key": f"parliamentary_speech:dip:{pid}"}
+                if revision is not None:
+                    payload["dip_aktualisiert"] = revision
+                points.append(SimpleNamespace(id=f"pt-{pid}-{i}", payload=payload))
         return (points, None)
+
+
+def _stamped_day(revisions: dict[str, str], n: int = 3) -> list[dict | None]:
+    """n op points of one sitting, each stamped for every given protocol."""
+    stamp = {
+        pid: {"aktualisiert": rev, "op_points": n} for pid, rev in revisions.items()
+    }
+    return [dict(stamp) for _ in range(n)]
 
 
 def _make_connector_with_fake_client(pages: list[dict]) -> BundestagSpeechesConnector:
@@ -183,6 +237,295 @@ class TestDiscover:
         )
         assert "701" not in ids, (
             "an ingested protocol without a recent update stays excluded"
+        )
+
+    def test_op_checked_protocol_is_not_rediscovered(self) -> None:
+        """Only a protocol whose op points record DIP's current revision is
+        skipped. Op holding the sitting alone proves nothing: a never-fetched
+        protocol may hold speeches op did not align."""
+        rev = "2025-06-01T09:00:00+02:00"
+        pages = [
+            {
+                "documents": [
+                    {"id": "5707", "datum": "2025-05-15", "aktualisiert": rev},
+                    {"id": "5708", "datum": "2025-05-16", "aktualisiert": rev},
+                    {"id": "5709", "datum": "2025-05-17", "aktualisiert": rev},
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        store = _FakeStore(
+            ingested_protocol_ids=[],
+            op_points={
+                20250515: _stamped_day({"5707": rev}),
+                20250516: [None, None],  # op holds the sitting, DIP never checked it
+                20250517: _stamped_day({"5709": "2025-05-20T09:00:00+02:00"}),
+            },
+        )
+        conn.bind_store(store, "wahlchat_chunks_test")
+        assert conn.discover(since=None) == ["5708", "5709"]
+        assert store.op_scroll_calls == 1, "all missing dates are read in one scroll"
+
+    def test_op_checked_is_per_protocol(self) -> None:
+        """Two sittings on one date: a stamp for one does not cover the other."""
+        rev = "2025-06-01T09:00:00+02:00"
+        pages = [
+            {
+                "documents": [
+                    {"id": "5710", "datum": "2025-05-15", "aktualisiert": rev},
+                    {"id": "5711", "datum": "2025-05-15", "aktualisiert": rev},
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(
+                ingested_protocol_ids=[],
+                op_points={20250515: _stamped_day({"5710": rev})},
+            ),
+            "wahlchat_chunks_test",
+        )
+        assert conn.discover(since=None) == ["5711"]
+
+    @pytest.mark.parametrize(
+        "points",
+        [
+            pytest.param(
+                _stamped_day({"5712": "R"})[:2] + [None], id="partial-op-rewrite"
+            ),
+            pytest.param(_stamped_day({"5712": "R"})[:2], id="op-speech-deleted"),
+            pytest.param(
+                _stamped_day({"5712": "R"}, n=2) + [None], id="op-speech-added"
+            ),
+            pytest.param(
+                _stamped_day({"5712": "R"})[:2] + _stamped_day({"5712": "OLD"})[:1],
+                id="conflicting-stamps",
+            ),
+            pytest.param([{"5712": "R"}] * 3, id="legacy-string-stamp"),
+        ],
+    )
+    def test_op_coverage_change_reopens_protocol(
+        self, points: list[dict | None]
+    ) -> None:
+        """Any op point without the matching stamp, or an op point count that
+        differs from the stamped one, sends the protocol back to discovery."""
+        pages = [
+            {"documents": [{"id": "5712", "datum": "2025-05-15", "aktualisiert": "R"}]}
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(ingested_protocol_ids=[], op_points={20250515: points}),
+            "wahlchat_chunks_test",
+        )
+        assert conn.discover(since=None) == ["5712"]
+
+    def test_op_lookup_failure_rediscovers_everything(self) -> None:
+        """Store unreachable for the op lookup → nothing counts as covered."""
+        rev = "2026-06-20T09:00:00+02:00"
+        pages = [
+            {
+                "documents": [
+                    {"id": "200", "datum": "2026-06-15", "aktualisiert": rev},
+                    {"id": "100", "datum": "2026-05-01", "aktualisiert": rev},
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(
+                ingested_protocol_ids=[],
+                op_points={
+                    20260501: _stamped_day({"100": rev}),
+                    20260615: _stamped_day({"200": rev}),
+                },
+                op_lookup_fails=True,
+            ),
+            "wahlchat_chunks_test",
+        )
+        assert conn.discover(since=None) == ["100", "200"]
+
+    def test_never_ingested_protocols_come_before_the_sweep(self) -> None:
+        """New sittings are processed before re-checks of recently updated
+        ones, so a time-budgeted run reaches them first."""
+        from datetime import date, timedelta
+
+        recent = (date.today() - timedelta(days=3)).isoformat()
+        pages = [
+            {
+                "documents": [
+                    {
+                        "id": "801",
+                        "datum": recent,
+                        "aktualisiert": f"{recent}T09:00:00+02:00",
+                    },
+                    {
+                        "id": "800",
+                        "datum": "2026-01-15",
+                        "aktualisiert": f"{recent}T09:00:00+02:00",
+                    },
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(ingested_protocol_ids=["800"]), "wahlchat_chunks_test"
+        )
+        assert conn.discover(since=None) == ["801", "800"]
+
+    def test_checked_revision_is_not_rechecked(self) -> None:
+        """A protocol whose points already carry DIP's current revision stays
+        excluded even inside the window: re-fetching it cannot change anything."""
+        from datetime import date, timedelta
+
+        revision = f"{(date.today() - timedelta(days=3)).isoformat()}T09:00:00+02:00"
+        pages = [
+            {
+                "documents": [
+                    {"id": "900", "datum": "2026-01-15", "aktualisiert": revision}
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(ingested_protocol_ids=["900"], revisions={"900": [revision]}),
+            "wahlchat_chunks_test",
+        )
+        assert conn.discover(since=None) == []
+
+    def test_changed_revision_is_rechecked_regardless_of_age(self) -> None:
+        """DIP changing a protocol since it was checked re-surfaces it, however
+        long ago the change was: a stopped job cannot miss a correction."""
+        pages = [
+            {
+                "documents": [
+                    {
+                        "id": "901",
+                        "datum": "2026-01-15",
+                        "aktualisiert": "2026-02-01T09:00:00+01:00",
+                    }
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(
+                ingested_protocol_ids=["901"],
+                revisions={"901": ["2026-01-16T09:00:00+01:00"]},
+            ),
+            "wahlchat_chunks_test",
+        )
+        assert conn.discover(since=None) == ["901"]
+
+    def test_partly_stamped_protocol_counts_as_unchecked(self) -> None:
+        """One point without the revision sends the protocol back to the
+        window rule, so a half-stamped protocol is re-checked, not trusted."""
+        from datetime import date, timedelta
+
+        revision = f"{(date.today() - timedelta(days=3)).isoformat()}T09:00:00+02:00"
+        pages = [
+            {
+                "documents": [
+                    {"id": "902", "datum": "2026-01-15", "aktualisiert": revision}
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(
+                ingested_protocol_ids=["902"], revisions={"902": [revision, None]}
+            ),
+            "wahlchat_chunks_test",
+        )
+        assert conn.discover(since=None) == ["902"]
+
+    def test_post_item_stamps_checked_revision(self) -> None:
+        """post_item() writes DIP's revision onto every point of the protocol."""
+        pages = [
+            {
+                "documents": [
+                    {
+                        "id": "903",
+                        "datum": "2026-01-15",
+                        "aktualisiert": "2026-02-01T09:00:00+01:00",
+                    }
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        store = _FakeStore(ingested_protocol_ids=[])
+        conn.bind_store(store, "wahlchat_chunks_test")
+        conn.discover(since=None)
+        conn.post_item(
+            store, "wahlchat_chunks_test", "903", "parliamentary_speech:dip:903"
+        )
+        (call,) = store.set_payload_calls
+        assert call["payload"] == {"dip_aktualisiert": "2026-02-01T09:00:00+01:00"}
+        (cond,) = call["points"].must
+        assert cond.key == "source_parent_key"
+        assert cond.match.value == "parliamentary_speech:dip:903"
+
+    def test_post_item_stamps_op_points_when_op_covers_everything(self) -> None:
+        """No DIP point exists for a fully op-covered protocol, so the revision
+        and the sitting's op point count are merged into dip_checked on the
+        sitting's op points."""
+        pages = [
+            {
+                "documents": [
+                    {
+                        "id": "906",
+                        "datum": "2026-01-15",
+                        "aktualisiert": "2026-02-01T09:00:00+01:00",
+                    }
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        store = _FakeStore(ingested_protocol_ids=[], op_points={20260115: [None, None]})
+        conn.bind_store(store, "wahlchat_chunks_test")
+        conn.discover(since=None)
+        conn.last_fully_op_covered = True
+        conn.post_item(
+            store, "wahlchat_chunks_test", "906", "parliamentary_speech:dip:906"
+        )
+        (call,) = store.set_payload_calls
+        assert call["key"] == "dip_checked"
+        assert call["payload"] == {
+            "906": {"aktualisiert": "2026-02-01T09:00:00+01:00", "op_points": 2}
+        }
+        assert _FakeStore._must(call["points"]) == {
+            "source_type": "parliamentary_speech",
+            "source": "op",
+            "external_id": [20260115],
+        }
+
+    def test_post_item_without_revision_writes_nothing(self) -> None:
+        """No DIP revision to record → no store write."""
+        conn = _make_connector_with_fake_client(
+            [{"documents": [{"id": "904", "datum": "2026-01-15"}]}]
+        )
+        store = _FakeStore(ingested_protocol_ids=[])
+        conn.bind_store(store, "wahlchat_chunks_test")
+        conn.discover(since=None)
+        conn.post_item(
+            store, "wahlchat_chunks_test", "904", "parliamentary_speech:dip:904"
+        )
+        assert store.set_payload_calls == []
+
+    def test_post_item_stamp_failure_does_not_raise(self) -> None:
+        """A failed stamp must not turn an item that is in sync into a failed one."""
+        conn = _make_connector_with_fake_client(
+            [{"documents": [{"id": "905", "datum": "2026-01-15", "aktualisiert": "x"}]}]
+        )
+        store = _FakeStore(ingested_protocol_ids=[])
+        conn.bind_store(store, "wahlchat_chunks_test")
+        conn.discover(since=None)
+
+        def _fail(**_: Any) -> None:
+            raise RuntimeError("store down")
+
+        store.set_payload = _fail
+        conn.post_item(
+            store, "wahlchat_chunks_test", "905", "parliamentary_speech:dip:905"
         )
 
     def test_discover_caches_protocols(self) -> None:
