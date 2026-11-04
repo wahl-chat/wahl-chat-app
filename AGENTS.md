@@ -570,13 +570,23 @@ from an item's headline and facts).
   hand-checked gold positions (see the Makefile).
 - **Running it.** `make setup-feed-collection` once, then `make build-feed`
   (see the Makefile for `--dry-run`, `--force`, `--translate-backfill`).
-  Deployed, it is the weekly Cloud Run Job `ingest-feed`
-  (`CONNECTOR_ID=feed`), on Sunday mornings after the speech and vote jobs.
+  Deployed, it is the nightly Cloud Run Job `ingest-feed`
+  (`CONNECTOR_ID=feed`), after the speech and federal vote jobs, which run
+  nightly for it: a sitting reaches the feed the night after its protocol
+  appears, and Friday's protocol usually appears on Monday or Tuesday.
   Items are generated a few at a time; `--time-budget` stops the run starting
   new items before the job's 15-minute cap, and a call still running past it
   is cut. The job runs several times in a row so a long week finishes the
   same morning. Unchanged items are skipped without LLM calls, so the extra
   runs cost nothing.
+- **Next sitting.** The same job stores the Bundestag's next sitting weeks in
+  `feed_calendar/bundestag` (`feed/calendar.py`), and the page shows one line
+  under the topic filters, so a feed that has not moved reads as a recess.
+  DIP has no calendar, so it comes from bundestag.de: the yearly
+  Sitzungskalender page for the weeks, and the JSON behind
+  bundestag.de/tagesordnung for a week's exact days once its agenda is out.
+  Either source alone is enough; when neither answers, the stored copy stays.
+  The web picks the next week by the reader's date, so the copy may age.
 - **What the page loads.** The first visit gets the latest 14 days (anchored
   on the newest edition, so recesses never show an empty feed); "Ältere Tage
   anzeigen" loads the 14 days before the oldest shown, through the

@@ -23,6 +23,7 @@ import type {
   DigestParliamentId,
   FeedPage,
   ParliamentFeed,
+  SittingCalendar,
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
@@ -31,6 +32,7 @@ import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 import DailyDaySection from './daily-day-section';
 import { AskPanel, DailyDetailDialog } from './daily-detail-dialog';
 import { ParliamentSelector, TopicPills } from './daily-filters';
+import NextSitting from './next-sitting';
 
 const ITEM_PARAM = 'item';
 
@@ -47,6 +49,8 @@ type Props = {
   initialItem: string | undefined;
   /** The day of a shared item, which may be older than the first slice. */
   linkedDay?: ParliamentFeed | null;
+  /** The Bundestag's next sitting weeks; null hides the line. */
+  calendar?: SittingCalendar | null;
 };
 
 type View = {
@@ -140,6 +144,7 @@ function DailyFeed({
   initialTopics,
   initialItem,
   linkedDay,
+  calendar = null,
 }: Props) {
   const [states, setStates] = useState<StateSelection>(
     initialStates ?? DEFAULT_SELECTION,
@@ -242,6 +247,9 @@ function DailyFeed({
     <div className="flex flex-col gap-4 pt-4">
       <ParliamentSelector states={states} onChange={changeStates} />
       <TopicPills topics={topics} onChange={changeTopics} />
+      {parliamentsFor(states).includes('bundestag') && (
+        <NextSitting calendar={calendar} />
+      )}
 
       <div className="flex flex-col gap-12 pt-2">
         {days.length === 0 ? (

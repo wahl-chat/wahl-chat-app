@@ -119,7 +119,7 @@ jobs = {
     }
     task_count  = 4
     parallelism = 2
-    schedule    = "0 4 * * 0"
+    schedule    = "0 4 * * *"
   }
 
   "ingest-aw-votes-laender" = {
@@ -139,7 +139,7 @@ jobs = {
     secret_env = {
       DIP_API_KEY = "dip-api-key"
     }
-    schedule = "0 3 * * 0"
+    schedule = "0 3 * * *"
   }
 
   "ingest-manifestos" = {
@@ -165,6 +165,6 @@ jobs = {
       ELECTION_FIXTURES_SOURCE = "firestore"
     }
     args     = ["--days", "14", "--time-budget", "780"]
-    schedule = "*/30 6-7 * * 0"
+    schedule = "*/30 6-7 * * *"
   }
 }

@@ -7701,5 +7701,58 @@
       "format_version": "2",
       "generated_at": "2026-10-30T11:51:17.816496Z"
     }
-  ]
+  ],
+  "calendar": {
+    "parliament": "bundestag",
+    "weeks": [
+      {
+        "start": "2026-11-02",
+        "end": "2026-11-06",
+        "sittings": [
+          {
+            "date": "2026-11-04",
+            "number": 104
+          },
+          {
+            "date": "2026-11-05",
+            "number": 105
+          },
+          {
+            "date": "2026-11-06",
+            "number": 106
+          }
+        ]
+      },
+      {
+        "start": "2026-11-09",
+        "end": "2026-11-13",
+        "sittings": null
+      },
+      {
+        "start": "2026-11-23",
+        "end": "2026-11-27",
+        "sittings": null
+      },
+      {
+        "start": "2026-12-07",
+        "end": "2026-12-11",
+        "sittings": null
+      },
+      {
+        "start": "2026-12-14",
+        "end": "2026-12-18",
+        "sittings": null
+      },
+      {
+        "start": "2027-01-11",
+        "end": "2027-01-15",
+        "sittings": null
+      }
+    ],
+    "sources": [
+      "https://www.bundestag.de/parlament/plenum/sitzungskalender",
+      "https://www.bundestag.de/apps/plenar/plenar/conferenceWeekJSON"
+    ],
+    "checked_at": "2026-11-04T15:36:01.127494Z"
+  }
 }

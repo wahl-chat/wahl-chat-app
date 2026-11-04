@@ -207,3 +207,36 @@ class FeedEdition(BaseModel):
     item_ids: list[str]
     format_version: str = FEED_FORMAT_VERSION
     generated_at: datetime
+
+
+class PlenarySitting(BaseModel):
+    """One plenary sitting on the published agenda."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    date: date
+    number: int
+
+
+class SittingWeek(BaseModel):
+    """A sitting week of the parliament's calendar. ``sittings`` is known only
+    once the week's agenda is published, about a week ahead."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    start: date
+    end: date
+    sittings: Optional[list[PlenarySitting]] = None
+
+
+class SittingCalendar(BaseModel):
+    """The parliament's next sitting weeks, for the feed's "next sitting" line.
+    Several weeks ahead, so a reader can pick the next one by their own date
+    while the stored copy ages until the next run."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    parliament: ParliamentId
+    weeks: list[SittingWeek]
+    sources: list[str]
+    checked_at: datetime

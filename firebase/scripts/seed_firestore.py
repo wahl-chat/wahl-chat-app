@@ -19,9 +19,10 @@ This script:
    into contexts/{context_id}/proposed_questions sub-collection
 4. Imports source documents from firestore_data/{env}/sources_{context_id}.json
    into sources/{context_id}/parties/{party_id}/source_documents
-5. Emulator only: imports sample parliament-feed editions and items from
-   firestore_data/emulator/feed.json, so the feed has content locally (German
-   and English) without corpus access or LLM calls
+5. Emulator only: imports sample parliament-feed editions and items, and the
+   Bundestag's sitting calendar, from firestore_data/emulator/feed.json, so the
+   feed has content locally (German and English) without corpus access or LLM
+   calls
 
 File naming convention:
 - contexts.json: Contains all context documents
@@ -372,6 +373,9 @@ def seed_feed(db):
         db.collection("feed_items").document(item["id"]).set(item)
     for edition in feed["editions"]:
         db.collection("feed_editions").document(edition["id"]).set(edition)
+    if "calendar" in feed:
+        calendar = feed["calendar"]
+        db.collection("feed_calendar").document(calendar["parliament"]).set(calendar)
     print(
         f"\n📰 Seeded {len(feed['editions'])} feed editions with "
         f"{len(feed['items'])} items (emulator only)"

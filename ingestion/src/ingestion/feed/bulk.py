@@ -43,11 +43,13 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
+from zoneinfo import ZoneInfo
 
 import httpx
 from qdrant_client import QdrantClient
 
 from ingestion.feed.builder import DayPlan, FeedBuilder, build_day, plan_days
+from ingestion.feed.calendar import build_calendar
 from ingestion.feed.index import FEED_COLLECTION_NAME, IndexReport, index_items
 from ingestion.feed.items import BuildNeed, assemble_edition, build_needed
 from ingestion.feed.models import FeedEdition, FeedItem
@@ -74,6 +76,7 @@ from ingestion.feed.store import (
     read_edition_item_ids,
     read_items_since,
     vanished_item_ids,
+    write_calendar,
     write_feed,
 )
 from ingestion.feed.translate import (
@@ -479,6 +482,29 @@ def post_revalidate(env: str) -> None:
     print(f"revalidated {FEED_CACHE_TAG} on {base}")
 
 
+def refresh_calendar(db: Any) -> None:
+    """Store the Bundestag's next sitting weeks, or print them on a dry run.
+
+    Never fails the run: when bundestag.de does not answer, the stored copy
+    stays, and the web picks its next week by date, so it keeps working.
+    """
+    today = datetime.now(ZoneInfo("Europe/Berlin")).date()
+    try:
+        calendar = build_calendar(today)
+    except Exception as exc:  # noqa: BLE001 — a stale calendar beats no feed
+        logger.warning("Sitting calendar not refreshed: %s", exc)
+        return
+    if db is None:
+        print(calendar.model_dump_json(indent=2))
+        return
+    write_calendar(db, calendar)
+    upcoming = calendar.weeks[0] if calendar.weeks else None
+    print(
+        f"calendar: {len(calendar.weeks)} sitting week(s) ahead"
+        + (f", next {upcoming.start}..{upcoming.end}" if upcoming else "")
+    )
+
+
 def _summary_line(run: ParliamentRun, published: Published) -> str:
     window = f"{run.window[0]}..{run.window[1]}" if run.window else "no data"
     t = published.translation
@@ -677,6 +703,9 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
     finally:
         builder.close()
+
+    if "bundestag" in {p.id for p in parliaments}:
+        refresh_calendar(db)
 
     if args.out:
         args.out.write_text(

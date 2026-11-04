@@ -450,6 +450,11 @@ def _reapply_grafted_pdfs(
 # ---------------------------------------------------------------------------
 
 
+def _report_item(external_id: object, outcome: str, started: float) -> None:
+    """One line per item, so a run's log shows where its time budget went."""
+    print(f"item {external_id}: {outcome} ({time.monotonic() - started:.1f}s)")
+
+
 def run_connector(
     connector: BaseConnector,
     qdrant: QdrantClient,
@@ -533,6 +538,7 @@ def run_connector(
             break
         consumed += 1
         did_work = False
+        item_started = time.monotonic()
 
         # Per-item resilience: wrap the ENTIRE per-item body (fetch →
         # normalize → already-present guard → embed → upsert) so that any Exception
@@ -551,6 +557,7 @@ def run_connector(
                     file=sys.stderr,
                 )
                 failed_ids.append(str(external_id))
+                _report_item(external_id, "failed", item_started)
                 continue
 
             # Stamp the stable per-parent key (the discover/fetch id, source-scoped)
@@ -587,8 +594,10 @@ def run_connector(
                         wait=True,
                     )
                     did_work = True
+                    outcome = "emptied"
                 else:
                     present_skips += 1
+                    outcome = "present-skip"
             else:
                 # Already-present / orphan guard (cost optimisation + staleness
                 # fix): compare deterministic point IDs (same formula as
@@ -649,10 +658,12 @@ def run_connector(
                     # BaseConnector default is a no-op returning 0.
                     connector.post_upsert(qdrant, collection_name, chunks)
                     did_work = True
+                    outcome = f"upserted {len(chunks)} chunks"
                 else:
                     # All chunks present AND content unchanged AND no orphans —
                     # cheap skip that does NOT consume the batch_size budget.
                     present_skips += 1
+                    outcome = "present-skip"
 
         except DimensionMismatchError:
             # A dimension mismatch is a coding invariant, not a data error —
@@ -665,8 +676,10 @@ def run_connector(
                 file=sys.stderr,
             )
             failed_ids.append(str(external_id))
+            _report_item(external_id, "failed", item_started)
             continue
 
+        _report_item(external_id, outcome, item_started)
         if did_work:
             processed += 1
 

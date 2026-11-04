@@ -382,3 +382,26 @@ export type FeedPage = ParliamentFeed & {
   from: string | null;
   hasOlder: boolean;
 };
+
+/** A plenary sitting on the parliament's published agenda. */
+export type PlenarySitting = {
+  /** ISO day, `YYYY-MM-DD`. */
+  date: string;
+  number: number;
+};
+
+/** A sitting week of the official calendar. `sittings` is known only once
+ * the week's agenda is published, about a week ahead. */
+export type SittingWeek = {
+  start: string;
+  end: string;
+  sittings: PlenarySitting[] | null;
+};
+
+/** The parliament's next sitting weeks, written by the feed job. */
+export type SittingCalendar = {
+  parliament: DigestParliamentId;
+  weeks: SittingWeek[];
+  sources: string[];
+  checked_at: string;
+};
