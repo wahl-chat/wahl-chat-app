@@ -202,6 +202,8 @@ export type DigestVote = {
   suggested_questions?: string[];
   /** The `FeedItem` it came from; absent on local previews. */
   item_id?: string;
+  /** The Drucksachen the poll was about, `"21/6130"`; absent until known. */
+  drucksachen?: string[];
 };
 
 export type DigestCitation = {
@@ -275,6 +277,8 @@ export type DigestSessionSection = {
   suggested_questions?: string[];
   /** The `FeedItem` it came from; absent on local previews. */
   item_id?: string;
+  /** The Drucksachen its agenda item deals with; absent until known. */
+  drucksachen?: string[];
 };
 
 export type DigestSession = {
@@ -330,6 +334,9 @@ export type DebateFacts = {
   debate_minutes: number | null;
   opened_by: string | null;
   opening_quote: DigestQuote | null;
+  /** The Drucksachen the agenda item deals with, from the protocol; null or
+   * absent until looked up. */
+  drucksachen?: string[] | null;
 };
 
 export type VoteFacts = {
@@ -339,6 +346,8 @@ export type VoteFacts = {
   citation_url: string | null;
   description: string | null;
   parties: DigestVoteParty[];
+  /** The Drucksachen the poll was about; null or absent until looked up. */
+  drucksachen?: string[] | null;
 };
 
 export type FeedItem = {

@@ -91,9 +91,11 @@ function section(
   topic: string,
   heat: number | null,
   minutes: number | null,
+  drucksachen: string[] = [],
 ): DigestSessionSection {
   return {
     topic,
+    drucksachen,
     headline: `${topic} ${heat}`,
     summary: '',
     agenda_items: [],
@@ -104,9 +106,14 @@ function section(
   };
 }
 
-function vote(pollId: number, topics: string[]): DigestVote {
+function vote(
+  pollId: number,
+  topics: string[],
+  drucksachen: string[] = [],
+): DigestVote {
   return {
     poll_id: pollId,
+    drucksachen,
     title: '',
     short_title: `Vote ${pollId}`,
     summary: null,
@@ -156,16 +163,22 @@ describe('rankFeed', () => {
         '2026-09-08',
         [
           section('housing_rent', 2, 30),
-          section('economy_finance', 5, 90),
-          section('climate_environment', 4, 60),
+          section('economy_finance', 5, 90, ['21/100']),
+          section('climate_environment', 4, 60, ['21/200']),
         ],
-        [vote(1, ['health_care']), vote(2, ['climate_environment'])],
+        [
+          vote(1, ['health_care']),
+          vote(2, ['climate_environment'], ['21/200', '21/201']),
+          // Same topic as the hot debate, but another motion.
+          vote(4, ['economy_finance'], ['21/999']),
+        ],
       ),
       sitting(
         'bundestag',
         '2026-09-03',
         [section('health_care', 5, 200)],
-        [vote(3, ['economy_finance'])],
+        // The hot debate's own Drucksache, voted on another day.
+        [vote(3, ['economy_finance'], ['21/100'])],
       ),
     ],
   ]);
@@ -185,14 +198,17 @@ describe('rankFeed', () => {
     ]);
   });
 
-  it('matches a vote on the hot topic from an earlier day when needed', () => {
-    const [latest] = rankFeed(days, []);
-    expect(latest.match?.vote.poll_id).toBe(3);
-    // An earlier-day match stays in its own day's group as well.
-    expect(latest.blocks[0].votes.map((v) => v.vote.poll_id)).toEqual([1, 2]);
+  it('pairs no vote by topic alone, nor from another day', () => {
+    const [latest, earlier] = rankFeed(days, []);
+    expect(latest.hot?.section.topic).toBe('economy_finance');
+    expect(latest.match).toBeNull();
+    expect(latest.blocks[0].votes.map((v) => v.vote.poll_id)).toEqual([
+      1, 2, 4,
+    ]);
+    expect(earlier.match).toBeNull();
   });
 
-  it('prefers a same-day match and does not show it twice', () => {
+  it('pairs the same-day vote on the debated Drucksache, shown once', () => {
     const [latest] = rankFeed(days, ['climate_environment']);
     expect(latest.hot?.section.topic).toBe('climate_environment');
     expect(latest.match?.vote.poll_id).toBe(2);

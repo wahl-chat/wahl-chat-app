@@ -33,6 +33,7 @@ function toSection(
     opened_by: facts.opened_by,
     suggested_questions: content.suggested_questions,
     item_id: item.id,
+    drucksachen: facts.drucksachen ?? [],
   };
 }
 
@@ -53,6 +54,7 @@ function toVote(
     parties: facts.parties,
     suggested_questions: content.suggested_questions,
     item_id: item.id,
+    drucksachen: facts.drucksachen ?? [],
   };
 }
 

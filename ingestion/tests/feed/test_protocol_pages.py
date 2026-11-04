@@ -343,3 +343,26 @@ def test_titles_as_the_protocol_prints_them(
         "</tagesordnungspunkt></sitzungsverlauf></dbtplenarprotokoll>"
     )
     assert protocol_index(xml).titles.get("top7") == title
+
+
+def test_the_index_reads_each_items_drucksachen_from_its_call_up() -> None:
+    xml = """<dbtplenarprotokoll sitzung-datum="10.07.2026"><sitzungsverlauf>
+    <tagesordnungspunkt top-id="Tagesordnungspunkt 22">
+      <p klasse="T_NaS">Beratung des Gesetzentwurfs</p>
+      <p klasse="T_Drs">Drucksache 21/6130</p>
+      <p klasse="J">Wie schon in Drucksache 21/9999 steht …</p>
+    </tagesordnungspunkt>
+    <tagesordnungspunkt top-id="Zusatzpunkt 24 bis 27">
+      <p klasse="T_Drs">Drucksachen 21/5921, 21/7006</p>
+    </tagesordnungspunkt>
+    <tagesordnungspunkt top-id="Tagesordnungspunkt 22">
+      <p klasse="T_Drs">Drucksache 21/7016</p>
+    </tagesordnungspunkt>
+    </sitzungsverlauf></dbtplenarprotokoll>"""
+    assert protocol_index(xml).documents == {
+        # Speech text cites other Drucksachen; only the call-up counts, and
+        # an item called up again (for its votes) adds to it.
+        "top22": ["21/6130", "21/7016"],
+        # A joint debate is filed under its first item.
+        "zp24": ["21/5921", "21/7006"],
+    }

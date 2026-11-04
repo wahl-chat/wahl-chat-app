@@ -230,7 +230,10 @@
           "speaker": "Anna Lührmann",
           "party_id": "gruene",
           "party_name": "Die Grünen"
-        }
+        },
+        "drucksachen": [
+          "21/6665"
+        ]
       },
       "vote": null,
       "content": {
@@ -510,7 +513,23 @@
           "speaker": "Albert Stegemann",
           "party_id": "cdu",
           "party_name": "CDU/CSU"
-        }
+        },
+        "drucksachen": [
+          "21/2036",
+          "21/2716",
+          "21/4954",
+          "21/5332",
+          "21/5487",
+          "21/5753",
+          "21/5759",
+          "21/6130",
+          "21/6482",
+          "21/6559",
+          "21/6659",
+          "21/7015",
+          "21/7016",
+          "21/7023"
+        ]
       },
       "vote": null,
       "content": {
@@ -790,7 +809,10 @@
           "speaker": "Marc Bernhard",
           "party_id": "afd",
           "party_name": "AfD"
-        }
+        },
+        "drucksachen": [
+          "21/6928"
+        ]
       },
       "vote": null,
       "content": {
@@ -1040,7 +1062,8 @@
           "speaker": "Hendrik Hoppenstedt",
           "party_id": "cdu",
           "party_name": "CDU/CSU"
-        }
+        },
+        "drucksachen": []
       },
       "vote": null,
       "content": {
@@ -1290,7 +1313,8 @@
           "speaker": "David Schliesing",
           "party_id": "linke",
           "party_name": "Die Linke"
-        }
+        },
+        "drucksachen": []
       },
       "vote": null,
       "content": {
@@ -1528,7 +1552,13 @@
           "speaker": "Alexander Throm",
           "party_id": "cdu",
           "party_name": "CDU/CSU"
-        }
+        },
+        "drucksachen": [
+          "21/3051",
+          "21/3306",
+          "21/6990",
+          "21/7001"
+        ]
       },
       "vote": null,
       "content": {
@@ -1784,7 +1814,8 @@
           "speaker": "Ricarda Lang",
           "party_id": "gruene",
           "party_name": "Die Grünen"
-        }
+        },
+        "drucksachen": []
       },
       "vote": null,
       "content": {
@@ -2021,7 +2052,18 @@
           "speaker": "Stephan Mayer",
           "party_id": "cdu",
           "party_name": "CDU/CSU"
-        }
+        },
+        "drucksachen": [
+          "21/4292",
+          "21/5568",
+          "21/5921",
+          "21/6009",
+          "21/7006",
+          "21/7007",
+          "21/7012",
+          "21/7013",
+          "21/7014"
+        ]
       },
       "vote": null,
       "content": {
@@ -2271,7 +2313,17 @@
           "speaker": "Sepp Müller",
           "party_id": "cdu",
           "party_name": "CDU/CSU"
-        }
+        },
+        "drucksachen": [
+          "21/3910",
+          "21/6006",
+          "21/6019",
+          "21/6278",
+          "21/6565",
+          "21/7008",
+          "21/7009",
+          "21/7010"
+        ]
       },
       "vote": null,
       "content": {
@@ -2440,6 +2492,11 @@
             "abstain": 4,
             "no_show": 2
           }
+        ],
+        "drucksachen": [
+          "21/6130",
+          "21/7016",
+          "21/7023"
         ]
       },
       "content": {
@@ -2558,6 +2615,9 @@
             "abstain": 0,
             "no_show": 4
           }
+        ],
+        "drucksachen": [
+          "21/6278"
         ]
       },
       "content": {
@@ -2675,6 +2735,10 @@
             "abstain": 0,
             "no_show": 5
           }
+        ],
+        "drucksachen": [
+          "21/5921",
+          "21/7006"
         ]
       },
       "content": {
@@ -2910,7 +2974,12 @@
           "speaker": "Parsa Marvi",
           "party_id": "spd",
           "party_name": "SPD"
-        }
+        },
+        "drucksachen": [
+          "21/5874",
+          "21/6003",
+          "21/6979"
+        ]
       },
       "vote": null,
       "content": {
@@ -3148,7 +3217,11 @@
           "speaker": "Nicole Gohlke",
           "party_id": "linke",
           "party_name": "Die Linke"
-        }
+        },
+        "drucksachen": [
+          "21/6103",
+          "21/6345"
+        ]
       },
       "vote": null,
       "content": {
@@ -3392,7 +3465,11 @@
           "speaker": "Daniel Rinkert",
           "party_id": "spd",
           "party_name": "SPD"
-        }
+        },
+        "drucksachen": [
+          "21/4786",
+          "21/6988"
+        ]
       },
       "vote": null,
       "content": {
@@ -3598,7 +3675,10 @@
           "speaker": "Daniela Ludwig",
           "party_id": "cdu",
           "party_name": "CDU/CSU"
-        }
+        },
+        "drucksachen": [
+          "21/6805"
+        ]
       },
       "vote": null,
       "content": {
@@ -3826,7 +3906,10 @@
           "speaker": "Kerstin Przygodda",
           "party_id": "afd",
           "party_name": "AfD"
-        }
+        },
+        "drucksachen": [
+          "21/6926"
+        ]
       },
       "vote": null,
       "content": {
@@ -4099,7 +4182,10 @@
           "speaker": "Martin Erwin Renner",
           "party_id": "afd",
           "party_name": "AfD"
-        }
+        },
+        "drucksachen": [
+          "21/6929"
+        ]
       },
       "vote": null,
       "content": {
@@ -4373,7 +4459,8 @@
           "speaker": "Friedrich Merz",
           "party_id": "cdu",
           "party_name": "CDU/CSU"
-        }
+        },
+        "drucksachen": []
       },
       "vote": null,
       "content": {
@@ -4671,7 +4758,8 @@
           "speaker": "Julia Verlinden",
           "party_id": "gruene",
           "party_name": "Die Grünen"
-        }
+        },
+        "drucksachen": []
       },
       "vote": null,
       "content": {
@@ -4945,7 +5033,8 @@
           "speaker": "Gitta Connemann",
           "party_id": "cdu",
           "party_name": "CDU/CSU"
-        }
+        },
+        "drucksachen": []
       },
       "vote": null,
       "content": {
@@ -5201,7 +5290,8 @@
           "speaker": "Sepp Müller",
           "party_id": "cdu",
           "party_name": "CDU/CSU"
-        }
+        },
+        "drucksachen": []
       },
       "vote": null,
       "content": {
@@ -5445,7 +5535,8 @@
           "speaker": "Stefanie Hubig",
           "party_id": "unbekannt",
           "party_name": "Unbekannt"
-        }
+        },
+        "drucksachen": []
       },
       "vote": null,
       "content": {
@@ -5691,7 +5782,10 @@
           "speaker": "Birgit Bessin",
           "party_id": "afd",
           "party_name": "AfD"
-        }
+        },
+        "drucksachen": [
+          "21/6925"
+        ]
       },
       "vote": null,
       "content": {
@@ -5860,6 +5954,10 @@
             "abstain": 0,
             "no_show": 4
           }
+        ],
+        "drucksachen": [
+          "21/5319",
+          "21/6734"
         ]
       },
       "content": {
@@ -6216,7 +6314,8 @@
           "speaker": "Stefanie Hubig",
           "party_id": "unbekannt",
           "party_name": "Unbekannt"
-        }
+        },
+        "drucksachen": []
       },
       "vote": null,
       "content": {
@@ -6467,7 +6566,8 @@
           "speaker": "Florian Hahn",
           "party_id": "cdu",
           "party_name": "CDU/CSU"
-        }
+        },
+        "drucksachen": []
       },
       "vote": null,
       "content": {
@@ -6710,7 +6810,10 @@
           "speaker": "Robin Wagener",
           "party_id": "gruene",
           "party_name": "Die Grünen"
-        }
+        },
+        "drucksachen": [
+          "21/6912"
+        ]
       },
       "vote": null,
       "content": {
@@ -6954,7 +7057,11 @@
           "speaker": "Rocco Kever",
           "party_id": "afd",
           "party_name": "AfD"
-        }
+        },
+        "drucksachen": [
+          "21/6906",
+          "21/6907"
+        ]
       },
       "vote": null,
       "content": {
@@ -7233,7 +7340,8 @@
           "speaker": "Götz Frömming",
           "party_id": "afd",
           "party_name": "AfD"
-        }
+        },
+        "drucksachen": []
       },
       "vote": null,
       "content": {
@@ -7490,7 +7598,8 @@
           "speaker": "Stefanie Hubig",
           "party_id": "unbekannt",
           "party_name": "Unbekannt"
-        }
+        },
+        "drucksachen": []
       },
       "vote": null,
       "content": {
@@ -7659,6 +7768,9 @@
             "abstain": 0,
             "no_show": 5
           }
+        ],
+        "drucksachen": [
+          "21/6912"
         ]
       },
       "content": {

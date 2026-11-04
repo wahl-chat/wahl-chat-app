@@ -148,6 +148,9 @@ class DebateFacts(BaseModel):
     debate_minutes: Optional[int] = None
     opened_by: Optional[str] = None
     opening_quote: Optional[DigestQuote] = None
+    # The Drucksachen the agenda item deals with, from the protocol. None
+    # until looked up; a vote on one of them is a vote on this debate.
+    drucksachen: Optional[list[str]] = None
 
 
 class VoteFacts(BaseModel):
@@ -161,6 +164,9 @@ class VoteFacts(BaseModel):
         None, description="The source's own German account of the motion."
     )
     parties: list[DigestVoteParty]
+    # The Drucksachen the poll was about, as abgeordnetenwatch links them.
+    # None until looked up.
+    drucksachen: Optional[list[str]] = None
 
 
 class FeedItem(BaseModel):

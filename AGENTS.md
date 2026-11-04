@@ -512,6 +512,11 @@ from an item's headline and facts).
   speeches is one debate item; one poll is one vote item. The model writes the
   texts of one item at a time, with the whole debate in the prompt, and never
   decides what an item is. Ranking ("Thema des Tages") happens on the page.
+  A vote is shown under the Thema des Tages only when it is from the same
+  day and shares a Drucksache with the debate's agenda item (the protocol's
+  `T_Drs` lines vs. the documents abgeordnetenwatch links for the poll); a
+  shared topic is not enough. Both lists are facts on the items
+  (`drucksachen`), filled in on stored items without a rebuild.
 - **Speech order comes from the protocol.** The corpus has no order of its
   own, so `feed/protocol_pages.py` reads the Bundestag's protocol XML: it puts
   each debate's speeches in the order they were given, links them to their PDF

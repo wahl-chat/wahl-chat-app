@@ -167,6 +167,9 @@ class AgendaItem:
     # ``protocol_pages.apply_protocols``). The corpus has no order of its own:
     # a scroll returns points by id, and op.tv speeches carry no time of day.
     ordered: bool = False
+    # The Drucksachen the protocol lists for the item; None until a protocol
+    # has been read.
+    drucksachen: Optional[list[str]] = None
 
     @property
     def video_url(self) -> Optional[str]:

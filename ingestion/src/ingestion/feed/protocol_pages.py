@@ -39,6 +39,7 @@ import defusedxml.ElementTree as ElementTree
 
 from ingestion.connectors.bundestag_speeches.client import fetch_text
 from ingestion.connectors.bundestag_speeches.parser import parse_speeches_from_xml
+from ingestion.feed.documents import drucksachen_in_text
 from ingestion.feed.reader import AgendaItem, SittingDay, Speech, numbered_label
 from ingestion.speech_key import agenda_slug_from_top_id, slugify_speaker
 
@@ -58,6 +59,9 @@ _BILL_RE = re.compile(
     r"Entwurfs eines (?:(?:…|\.\.\.)\s*)?(?:(\w+)en\s+)?(\w*[Gg]esetz)es\b(.*)$"
 )
 _TITLE_LINE = "T_fett"
+# The lines of an item's call-up that list the documents it deals with. Speech
+# paragraphs cite other Drucksachen too, so only these count.
+_DOCUMENT_LINE = "T_Drs"
 _ITEM_TEXT = ("T_NaS", "T_ZP_NaS")
 
 FetchText = Callable[[str], str]
@@ -78,6 +82,8 @@ class ProtocolIndex:
     session_date: Optional[date] = None
     # agenda slug -> the item's title as the protocol prints it
     titles: dict[str, str] = field(default_factory=dict)
+    # agenda slug -> the Drucksachen its call-up lists
+    documents: dict[str, list[str]] = field(default_factory=dict)
 
 
 def protocol_xml_url(pdf_url: str) -> Optional[str]:
@@ -144,6 +150,20 @@ def _agenda_titles(root: Any) -> dict[str, str]:
     return titles
 
 
+def _agenda_documents(root: Any) -> dict[str, list[str]]:
+    """An item can be called up more than once (debate, then the votes), and
+    a joint debate is filed under its first item, as with the titles."""
+    lines: dict[str, list[str]] = {}
+    for top in root.iter("tagesordnungspunkt"):
+        slug = agenda_slug_from_top_id(top.get("top-id"))
+        if not slug:
+            continue
+        lines.setdefault(slug, []).extend(
+            _text(p) for p in top.findall("p") if p.get("klasse") == _DOCUMENT_LINE
+        )
+    return {slug: drucksachen_in_text(" ".join(text)) for slug, text in lines.items()}
+
+
 def protocol_index(xml_text: str) -> ProtocolIndex:
     try:
         root = ElementTree.fromstring(xml_text.encode("utf-8"))
@@ -152,6 +172,7 @@ def protocol_index(xml_text: str) -> ProtocolIndex:
     index = ProtocolIndex(
         session_date=_session_date(root) if root is not None else None,
         titles=_agenda_titles(root) if root is not None else {},
+        documents=_agenda_documents(root) if root is not None else {},
     )
     for position, speech in enumerate(parse_speeches_from_xml(xml_text)):
         page = speech.get("pdf_page")
@@ -263,8 +284,9 @@ def _order(
 
 def apply_protocols(sitting: SittingDay, fetch: FetchText = fetch_text) -> int:
     """Put each agenda item's speeches into protocol order, link them to their
-    protocol page, drop the twin of a speech both sources hold and title the
-    items no source titled; returns how many agenda items are now ordered.
+    protocol page, drop the twin of a speech both sources hold, title the
+    items no source titled and note each item's Drucksachen; returns how many
+    agenda items are now ordered.
 
     An item whose protocol cannot be fetched or parsed stays unordered, and
     the builder leaves it for a later run.
@@ -299,6 +321,7 @@ def apply_protocols(sitting: SittingDay, fetch: FetchText = fetch_text) -> int:
         for item in items:
             if item.label == numbered_label(item.slug) and item.slug in index.titles:
                 item.label = index.titles[item.slug]
+            item.drucksachen = index.documents.get(item.slug, [])
         pdf_base = xml_url[: -len(".xml")] + ".pdf"
         for item in items:
             item.speeches = _order(

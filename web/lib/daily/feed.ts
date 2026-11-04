@@ -102,8 +102,8 @@ export type RankedDay = {
   date: string;
   /** The day's most heated debate, across every parliament shown. */
   hot: SectionItem | null;
-  /** A vote on the hot debate's topic: from the same day, else the latest
-   * earlier one. A same-day match is left out of `blocks`. */
+  /** The day's vote on the hot debate's agenda item, if there was one. Left
+   * out of `blocks`, so it is not shown twice. */
   match: VoteItem | null;
   /** Everything else, per parliament, debates sorted by prior. */
   blocks: RankedDigest[];
@@ -138,9 +138,13 @@ function prior(item: SectionItem, heat: Map<string, number>): number {
 }
 
 /**
- * Each day leads with its own most heated debate and a vote on the same
- * topic, then the rest of that day per parliament. Ranking never crosses
- * days, so a heated debate from last week cannot bury today's.
+ * Each day leads with its own most heated debate and the vote on it, then the
+ * rest of that day per parliament. Ranking never crosses days, so a heated
+ * debate from last week cannot bury today's.
+ *
+ * The vote must share a Drucksache with the debate's agenda item: that is the
+ * motion debated. A shared topic is not enough; it paired a debate with a
+ * vote on another matter, sometimes from weeks before.
  */
 export function rankFeed(
   days: readonly FeedDay[],
@@ -149,7 +153,7 @@ export function rankFeed(
   const visibleVotes = (digest: DailyDigest) =>
     voteItems(digest).filter((v) => matchesTopics(v.vote.topics, topics));
 
-  return days.map((day, dayIndex) => {
+  return days.map((day) => {
     const sections = day.digests.flatMap((digest) =>
       sectionItems(digest).filter((s) =>
         matchesTopics(sectionTopics(s.section), topics),
@@ -162,15 +166,11 @@ export function rankFeed(
     );
     const hot = ranked[0] ?? null;
 
-    const sharesTopic = (v: VoteItem) =>
-      hot !== null && v.vote.topics.includes(hot.section.topic);
-    const sameDay = day.digests.flatMap(visibleVotes).find(sharesTopic);
+    const debated = new Set(hot?.section.drucksachen ?? []);
     const match =
-      sameDay ??
-      days
-        .slice(dayIndex + 1)
-        .flatMap((d) => d.digests.flatMap(visibleVotes))
-        .find(sharesTopic) ??
+      day.digests
+        .flatMap(visibleVotes)
+        .find((v) => (v.vote.drucksachen ?? []).some((d) => debated.has(d))) ??
       null;
 
     const blocks = day.digests
@@ -179,7 +179,7 @@ export function rankFeed(
         sections: ranked.filter(
           (s) => s.digest.id === digest.id && s.key !== hot?.key,
         ),
-        votes: visibleVotes(digest).filter((v) => v.key !== sameDay?.key),
+        votes: visibleVotes(digest).filter((v) => v.key !== match?.key),
       }))
       .filter((b) => b.sections.length > 0 || b.votes.length > 0);
 

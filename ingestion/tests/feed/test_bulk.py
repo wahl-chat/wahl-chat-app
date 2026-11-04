@@ -42,6 +42,7 @@ def _day(
     stored: dict[str, FeedItem],
     stored_edition_ids: Optional[list[str]] = None,
     out_of_time: Any = lambda: False,
+    lookup_poll: Any = None,
 ) -> tuple[Optional[bulk.DayBuild], bulk.ParliamentRun]:
     run = bulk.ParliamentRun(BUNDESTAG, None)
     builder = FeedBuilder(llm)
@@ -57,6 +58,7 @@ def _day(
             run=run,
             out_of_time=out_of_time,
             now=NOW,
+            lookup_poll=lookup_poll,
         )
     finally:
         builder.close()
@@ -289,3 +291,61 @@ def test_a_failed_vote_enrichment_still_shows_a_new_vote() -> None:
     v1 = next(i for i in day.items if i.kind == "vote")
     assert v1.content["de"].headline == "Antrag 1"
     assert run.incomplete == 1
+
+
+def _plan_with_documents(top1: Optional[list[str]]) -> Any:
+    plan = _plan()
+    plan.debates[0].agenda.drucksachen = top1
+    return plan
+
+
+def test_stored_items_get_their_drucksachen_without_a_rebuild() -> None:
+    stored, edition_ids = _stored_day()
+    llm = FakeLLM()
+    lookups: list[int] = []
+
+    def lookup(poll_id: int) -> list[str]:
+        lookups.append(poll_id)
+        return ["21/6130"]
+
+    day, _ = _day(
+        llm, _plan_with_documents(["21/6130"]), stored, edition_ids, lookup_poll=lookup
+    )
+    assert day is not None
+    assert llm.calls == []
+    assert day.built == set()
+    items = {i.id: i for i in day.items}
+    assert items[TOP1].debate is not None
+    assert items[TOP1].debate.drucksachen == ["21/6130"]
+    vote_id = "bundestag_2026-09-24_v1"
+    assert items[vote_id].vote is not None
+    assert items[vote_id].vote.drucksachen == ["21/6130"]
+    # Written, with texts and translation as they were.
+    assert day.changed == {TOP1, vote_id}
+    assert not needs_translation(items[TOP1], "en")
+    assert lookups == [1]
+
+
+def test_drucksachen_are_looked_up_once_and_retried_after_a_failure() -> None:
+    stored, edition_ids = _stored_day()
+    day, _ = _day(
+        FakeLLM(),
+        _plan_with_documents(None),
+        stored,
+        edition_ids,
+        lookup_poll=lambda poll_id: None,
+    )
+    # Nothing learned: the day stays as stored, and the next run asks again.
+    assert day is None
+
+    vote_id = "bundestag_2026-09-24_v1"
+    vote = stored[vote_id].vote
+    assert vote is not None
+    stored[vote_id] = stored[vote_id].model_copy(
+        update={"vote": vote.model_copy(update={"drucksachen": []})}
+    )
+
+    def never(poll_id: int) -> list[str]:
+        raise AssertionError("a poll with an answer is not looked up again")
+
+    assert _day(FakeLLM(), _plan(), stored, edition_ids, lookup_poll=never)[0] is None
