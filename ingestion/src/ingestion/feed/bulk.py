@@ -243,27 +243,37 @@ def _replaces(built: FeedItem, stored: Optional[FeedItem]) -> bool:
     )
 
 
-def attach_documents(
+def attach_source_facts(
     items: list[FeedItem],
     plan: DayPlan,
     lookup_poll: Optional[PollDocuments],
 ) -> tuple[list[FeedItem], set[str]]:
-    """Give each item its Drucksachen; returns the items and the ids that
-    changed. A fact from the source, not the model: a stored item gets it
-    without being rebuilt, and its texts and translation stay as they are.
+    """Give each item the facts read from its source: a debate its
+    Drucksachen and interjections, a vote its Drucksachen. Returns the items
+    and the ids that changed. Facts from the source, not the model: a stored
+    item gets them without being rebuilt, and its texts and translation stay
+    as they are.
 
-    A debate takes what this run's protocol lists, so a later correction
-    reaches it too. A vote is looked up once; a failed lookup leaves None and
-    the next run asks again.
+    A debate takes what this run's protocol says, so a later correction
+    reaches it too; a protocol not read this run changes nothing. A vote is
+    looked up once; a failed lookup leaves None and the next run asks again.
     """
-    from_protocol = {u.item_id: u.agenda.drucksachen for u in plan.debates}
+    agendas = {u.item_id: u.agenda for u in plan.debates}
     out: list[FeedItem] = []
     changed: set[str] = set()
     for item in items:
-        if item.debate is not None:
-            found = from_protocol.get(item.id)
-            if found is not None and found != item.debate.drucksachen:
-                debate = item.debate.model_copy(update={"drucksachen": found})
+        if item.debate is not None and item.id in agendas:
+            agenda = agendas[item.id]
+            update = {
+                field: found
+                for field, found in (
+                    ("drucksachen", agenda.drucksachen),
+                    ("interjections", agenda.interjections),
+                )
+                if found is not None and found != getattr(item.debate, field)
+            }
+            if update:
+                debate = item.debate.model_copy(update=update)
                 item = item.model_copy(update={"debate": debate})
                 changed.add(item.id)
         elif (
@@ -336,7 +346,7 @@ def plan_day(
         item = built.get(item_id) or stored.get(item_id)
         if item is not None and item.status == "published":
             listed.append(item)
-    listed, documented = attach_documents(listed, plan, lookup_poll)
+    listed, documented = attach_source_facts(listed, plan, lookup_poll)
     edition, ranked = assemble_edition(
         parliament, plan.edition_id, plan.day, plan.protocols, listed, now
     )

@@ -10,6 +10,7 @@ import pytest
 
 from ingestion.feed.protocol_pages import (
     apply_protocols,
+    count_interjections,
     protocol_index,
     protocol_xml_url,
 )
@@ -366,3 +367,38 @@ def test_the_index_reads_each_items_drucksachen_from_its_call_up() -> None:
         # A joint debate is filed under its first item.
         "zp24": ["21/5921", "21/7006"],
     }
+
+
+@pytest.mark.parametrize(
+    ("comment", "count"),
+    [
+        ("(Beifall bei der SPD – Zuruf von der AfD: Unsinn! – Lachen bei der AfD)", 2),
+        ("(Stephan Brandner [AfD]: Das ist doch Quatsch!)", 1),
+        ("(Weitere Zurufe von der AfD – Gegenruf des Abg. Johannes Fechner [SPD])", 2),
+        ("(Widerspruch bei der CDU/CSU – Unruhe)", 2),
+        # Applause and amusement are no conflict, named or not.
+        ("(Beifall des Abg. Stephan Brandner [AfD])", 0),
+        ("(Heiterkeit bei der CDU/CSU)", 0),
+    ],
+)
+def test_interjections_count_conflict_reactions_only(comment: str, count: int) -> None:
+    assert count_interjections(comment) == count
+
+
+def test_a_debate_counts_the_interjections_during_its_own_speeches() -> None:
+    xml = _XML.replace(
+        '<rede id="ID2">',
+        '<rede id="ID2"><kommentar>(Zuruf von der AfD: Falsch! – Beifall bei '
+        "der SPD)</kommentar><kommentar>(Lachen bei der AfD)</kommentar>",
+        1,
+    ).replace(
+        '<rede id="ID5">',
+        '<rede id="ID5"><kommentar>(Unruhe)</kommentar>',
+        1,
+    )
+    sitting = _top20_sitting()
+    apply_protocols(sitting, fetch=lambda _url: xml)
+    [item] = sitting.agenda_items
+    # The Zuruf and the laughter under TOP 20; the unrest under TOP 1 is
+    # another debate's.
+    assert item.interjections == 2

@@ -511,8 +511,15 @@ from an item's headline and facts).
 - **The source defines the items.** One agenda item of a sitting with
   speeches is one debate item; one poll is one vote item. The model writes the
   texts of one item at a time, with the whole debate in the prompt, and never
-  decides what an item is. Ranking ("Thema des Tages") happens on the page.
-  A vote is shown under the Thema des Tages only when it is from the same
+  decides what an item is. Ranking ("Hot Topic") happens on the page.
+  Heat is deterministic: interjections per minute, i.e. calls from the floor,
+  objections, mocking laughter and unrest the protocol records during the
+  debate's speeches (`debate.interjections`, counted in
+  `feed/protocol_pages.py`). The flames compare a day's debates with each
+  other only, from 1 for the quietest to 5 for the busiest; there is no fixed
+  scale. The Hot Topic is the debate with the highest rate. The model does not
+  rate heat; `debate.heat` on older items is its former rating and unused.
+  A vote is shown under the Hot Topic only when it is from the same
   day and shares a Drucksache with the debate's agenda item (the protocol's
   `T_Drs` lines vs. the documents abgeordnetenwatch links for the poll); a
   shared topic is not enough. Both lists are facts on the items

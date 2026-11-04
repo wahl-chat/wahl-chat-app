@@ -109,8 +109,9 @@ type Props = {
 };
 
 /**
- * One sitting day, ranked within itself: the day's most heated debate, the
- * vote on it if there was one that day, then the rest per parliament.
+ * One sitting day, ranked within itself: the Hot Topic (the day's most heated
+ * debate), the vote on it if there was one that day, then the rest per
+ * parliament.
  */
 function DailyDaySection({ day, onOpen }: Props) {
   const { hot, match } = day;
@@ -122,7 +123,7 @@ function DailyDaySection({ day, onOpen }: Props) {
       {hot && (
         <div className="flex flex-col gap-3">
           <header className="flex items-baseline justify-between gap-3">
-            <h2 className="text-lg font-bold">Thema des Tages</h2>
+            <h2 className="text-lg font-bold">Hot Topic</h2>
             <span className={META_TEXT}>
               {hot.digest.parliament === 'bundestag'
                 ? 'Plenarsitzung'
@@ -139,7 +140,7 @@ function DailyDaySection({ day, onOpen }: Props) {
           {match && (
             <div className="flex flex-col gap-2 pt-3">
               <h3 className={META_TEXT}>Abstimmung zu dieser Debatte</h3>
-              <VoteCard item={match} onOpen={() => onOpen(match)} compact />
+              <VoteCard item={match} onOpen={() => onOpen(match)} hot />
             </div>
           )}
         </div>

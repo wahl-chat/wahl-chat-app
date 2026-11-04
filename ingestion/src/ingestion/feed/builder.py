@@ -320,10 +320,6 @@ def clean_topics(topics: list[DigestTopic]) -> list[DigestTopic]:
     return list(dict.fromkeys(topics))[:2] or ["other"]
 
 
-def clamp_heat(heat: Optional[int]) -> Optional[int]:
-    return None if heat is None else max(1, min(5, heat))
-
-
 def debate_minutes(speeches: list[Speech]) -> Optional[int]:
     words = sum(len(s.text.split()) for s in speeches)
     return max(1, round(words / _WORDS_PER_MINUTE)) if words else None
@@ -587,7 +583,6 @@ async def build_debate(
             citations=citations(speeches, agenda.label, display),
             parties=parties,
             video_url=agenda.video_url,
-            heat=clamp_heat(draft.heat),
             debate_minutes=debate_minutes(speeches),
             opened_by=opening_party(speeches, fraktionen),
             opening_quote=ground_quote(

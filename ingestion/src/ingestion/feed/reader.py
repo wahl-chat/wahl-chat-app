@@ -170,6 +170,9 @@ class AgendaItem:
     # The Drucksachen the protocol lists for the item; None until a protocol
     # has been read.
     drucksachen: Optional[list[str]] = None
+    # Conflict reactions during the item's speeches (see
+    # protocol_pages.count_interjections); None until a protocol has been read.
+    interjections: Optional[int] = None
 
     @property
     def video_url(self) -> Optional[str]:

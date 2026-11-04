@@ -100,41 +100,49 @@ export type RankedDigest = {
 
 export type RankedDay = {
   date: string;
-  /** The day's most heated debate, across every parliament shown. */
+  /** The day's most heated debate, across every parliament shown: the most
+   * interjections per minute. */
   hot: SectionItem | null;
   /** The day's vote on the hot debate's agenda item, if there was one. Left
    * out of `blocks`, so it is not shown twice. */
   match: VoteItem | null;
-  /** Everything else, per parliament, debates sorted by prior. */
+  /** Everything else, per parliament, debates most heated first. */
   blocks: RankedDigest[];
-  /** Day-relative heat (1–5) per section key. */
+  /** Day-relative heat (1–5 flames) per section key. */
   heat: Map<string, number>;
 };
 
-/**
- * The builder rates each debate on its own, on a fixed scale. Rescaling
- * against the day's hottest debate keeps the comparison relative to what the
- * reader sees that day: the hottest always shows 5.
- */
-export function dayHeat(sections: readonly SectionItem[]): Map<string, number> {
-  const max = Math.max(0, ...sections.map((s) => s.section.heat ?? 0));
-  const heat = new Map<string, number>();
-  if (max === 0) {
-    return heat;
+/** Interjections per minute of debate; null when not counted. */
+function interjectionRate(item: SectionItem): number | null {
+  const { interjections, debate_minutes } = item.section;
+  if (interjections == null || !debate_minutes) {
+    return null;
   }
-  for (const item of sections) {
-    if (item.section.heat) {
-      heat.set(
-        item.key,
-        Math.max(1, Math.round((item.section.heat / max) * 5)),
-      );
-    }
-  }
-  return heat;
+  return interjections / debate_minutes;
 }
 
-function prior(item: SectionItem, heat: Map<string, number>): number {
-  return (item.section.debate_minutes ?? 1) * (heat.get(item.key) ?? 1);
+/**
+ * Heat compares a day's debates with each other, never with a fixed scale:
+ * interjections per minute, counted from the protocol, spread from 1 flame
+ * for the day's quietest debate to 5 for its busiest. With fewer than two
+ * counted debates, or none that differ, there is nothing to compare and no
+ * debate gets flames.
+ */
+export function dayHeat(sections: readonly SectionItem[]): Map<string, number> {
+  const rated = sections.flatMap((item) => {
+    const rate = interjectionRate(item);
+    return rate === null ? [] : [{ key: item.key, rate }];
+  });
+  const heat = new Map<string, number>();
+  const min = Math.min(...rated.map((r) => r.rate));
+  const max = Math.max(...rated.map((r) => r.rate));
+  if (rated.length < 2 || max === min) {
+    return heat;
+  }
+  for (const { key, rate } of rated) {
+    heat.set(key, 1 + Math.round((4 * (rate - min)) / (max - min)));
+  }
+  return heat;
 }
 
 /**
@@ -160,10 +168,10 @@ export function rankFeed(
       ),
     );
     const heat = dayHeat(sections);
-    // Stable sort: ties keep stored order (Bundestag first, protocol order).
-    const ranked = [...sections].sort(
-      (a, b) => prior(b, heat) - prior(a, heat),
-    );
+    // Stable sort: ties and uncounted debates keep stored order (Bundestag
+    // first, protocol order).
+    const rate = (item: SectionItem) => interjectionRate(item) ?? -1;
+    const ranked = [...sections].sort((a, b) => rate(b) - rate(a));
     const hot = ranked[0] ?? null;
 
     const debated = new Set(hot?.section.drucksachen ?? []);

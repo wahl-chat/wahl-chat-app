@@ -267,8 +267,6 @@ export type DigestSessionSection = {
   audio?: DigestAudioSummary | null;
   /** Fields below are absent on older digests. Exactly three bullets. */
   key_points?: string[];
-  /** 1–5 on a fixed scale per debate; the feed rescales it per day. */
-  heat?: number | null;
   /** Estimated from the speeches' word count. */
   debate_minutes?: number | null;
   opening_quote?: DigestQuote | null;
@@ -279,6 +277,9 @@ export type DigestSessionSection = {
   item_id?: string;
   /** The Drucksachen its agenda item deals with; absent until known. */
   drucksachen?: string[];
+  /** Conflict reactions during the debate, from the protocol; null or absent
+   * until counted. */
+  interjections?: number | null;
 };
 
 export type DigestSession = {
@@ -330,13 +331,18 @@ export type DebateFacts = {
     speakers: DigestSpeaker[];
   }[];
   video_url: string | null;
-  heat: number | null;
+  /** Unused: heat comes from `interjections`. Older items carry the
+   * model's former 1–5 rating here. */
+  heat?: number | null;
   debate_minutes: number | null;
   opened_by: string | null;
   opening_quote: DigestQuote | null;
   /** The Drucksachen the agenda item deals with, from the protocol; null or
    * absent until looked up. */
   drucksachen?: string[] | null;
+  /** Calls from the floor, objections, mocking laughter and unrest the
+   * protocol records during the debate; null or absent until counted. */
+  interjections?: number | null;
 };
 
 export type VoteFacts = {

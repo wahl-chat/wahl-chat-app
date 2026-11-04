@@ -144,6 +144,9 @@ class DebateFacts(BaseModel):
     # without an entry in ``content.positions``.
     parties: list[DebateParty] = Field(default_factory=list)
     video_url: Optional[str] = None
+    # Unused: the page derives heat from ``interjections``. Items stored while
+    # the model still rated debates carry its 1-5 rating here, and the field
+    # stays so they keep validating instead of being rebuilt.
     heat: Optional[int] = Field(None, ge=1, le=5)
     debate_minutes: Optional[int] = None
     opened_by: Optional[str] = None
@@ -151,6 +154,10 @@ class DebateFacts(BaseModel):
     # The Drucksachen the agenda item deals with, from the protocol. None
     # until looked up; a vote on one of them is a vote on this debate.
     drucksachen: Optional[list[str]] = None
+    # Calls from the floor, objections, mocking laughter and unrest the
+    # protocol records during the debate. Per minute of debate, it is the
+    # heat the page shows. None until counted.
+    interjections: Optional[int] = None
 
 
 class VoteFacts(BaseModel):
@@ -180,7 +187,7 @@ class FeedItem(BaseModel):
     region: str
     date: date
     # Position within its edition: debates in agenda order, then votes. The
-    # page ranks by heat and length on its own.
+    # page ranks by interjections per minute on its own.
     rank: int
     topics: list[DigestTopic] = Field(min_length=1)
     status: FeedItemStatus = "published"

@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 from ingestion.feed.topics import DigestTopic, topic_legend
 
 # Part of every item's input_hash: bumping it regenerates all stored items.
-PROMPT_VERSION = "8"
+PROMPT_VERSION = "9"
 # Stored on each translation: bumping it re-translates, never regenerates.
 TRANSLATION_PROMPT_VERSION = "1"
 
@@ -36,12 +36,6 @@ _POSITION_SENTENCE_RULE = (
 )
 # Absolute, so each debate is rated on its own; the page rescales against
 # the hottest debate of the day it shows.
-_HEAT_SCALE = (
-    "1 = sachlich, kaum Widerspruch; 2 = unterschiedliche Positionen, ruhiger "
-    "Ton; 3 = deutliche Gegensätze, spürbare Schärfe; 4 = scharfer Ton, "
-    "gegenseitige Vorwürfe; 5 = außergewöhnlich hitzig, persönliche Angriffe "
-    "oder Ordnungsrufe."
-)
 _QUESTION_STYLE = (
     "kurze Fragen (höchstens 8 Wörter) aus Sicht einer Bürgerin, "
     "die man dazu stellen würde"
@@ -115,9 +109,6 @@ class DebateDraft(BaseModel):
             "Genau 3 Stichpunkte, je ein kurzer Satz: was vorgelegt wurde, "
             "worüber am meisten gestritten wurde, wie es weitergeht."
         ),
-    )
-    heat: Optional[int] = Field(
-        None, description=f"Hitzigkeit auf einer festen Skala: {_HEAT_SCALE}"
     )
     opening_quote: Optional[OpeningQuoteDraft] = None
     suggested_questions: list[str] = Field(
@@ -207,7 +198,6 @@ wesentlich berührt.
 - {_POSITION_SENTENCE_RULE}
 - key_points: genau drei kurze Sätze (was vorgelegt wurde, worüber am meisten \
 gestritten wurde, wie es weitergeht).
-- heat: wie hitzig die Debatte war, auf dieser festen Skala: {_HEAT_SCALE}
 - opening_quote: ein kurzer wörtlicher Satz (höchstens 25 Wörter) aus der \
 ersten Rede, Zeichen für Zeichen kopiert; als speaker nur den Namen, ohne die \
 Partei in Klammern.

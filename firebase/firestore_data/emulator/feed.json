@@ -233,7 +233,8 @@
         },
         "drucksachen": [
           "21/6665"
-        ]
+        ],
+        "interjections": 42
       },
       "vote": null,
       "content": {
@@ -529,7 +530,8 @@
           "21/7015",
           "21/7016",
           "21/7023"
-        ]
+        ],
+        "interjections": 143
       },
       "vote": null,
       "content": {
@@ -812,7 +814,8 @@
         },
         "drucksachen": [
           "21/6928"
-        ]
+        ],
+        "interjections": 120
       },
       "vote": null,
       "content": {
@@ -1063,7 +1066,8 @@
           "party_id": "cdu",
           "party_name": "CDU/CSU"
         },
-        "drucksachen": []
+        "drucksachen": [],
+        "interjections": 84
       },
       "vote": null,
       "content": {
@@ -1314,7 +1318,8 @@
           "party_id": "linke",
           "party_name": "Die Linke"
         },
-        "drucksachen": []
+        "drucksachen": [],
+        "interjections": 24
       },
       "vote": null,
       "content": {
@@ -1558,7 +1563,8 @@
           "21/3306",
           "21/6990",
           "21/7001"
-        ]
+        ],
+        "interjections": 62
       },
       "vote": null,
       "content": {
@@ -1815,7 +1821,8 @@
           "party_id": "gruene",
           "party_name": "Die Grünen"
         },
-        "drucksachen": []
+        "drucksachen": [],
+        "interjections": 101
       },
       "vote": null,
       "content": {
@@ -2063,7 +2070,8 @@
           "21/7012",
           "21/7013",
           "21/7014"
-        ]
+        ],
+        "interjections": 13
       },
       "vote": null,
       "content": {
@@ -2323,7 +2331,8 @@
           "21/7008",
           "21/7009",
           "21/7010"
-        ]
+        ],
+        "interjections": 100
       },
       "vote": null,
       "content": {
@@ -2979,7 +2988,8 @@
           "21/5874",
           "21/6003",
           "21/6979"
-        ]
+        ],
+        "interjections": 63
       },
       "vote": null,
       "content": {
@@ -3221,7 +3231,8 @@
         "drucksachen": [
           "21/6103",
           "21/6345"
-        ]
+        ],
+        "interjections": 27
       },
       "vote": null,
       "content": {
@@ -3469,7 +3480,8 @@
         "drucksachen": [
           "21/4786",
           "21/6988"
-        ]
+        ],
+        "interjections": 32
       },
       "vote": null,
       "content": {
@@ -3678,7 +3690,8 @@
         },
         "drucksachen": [
           "21/6805"
-        ]
+        ],
+        "interjections": 3
       },
       "vote": null,
       "content": {
@@ -3909,7 +3922,8 @@
         },
         "drucksachen": [
           "21/6926"
-        ]
+        ],
+        "interjections": 71
       },
       "vote": null,
       "content": {
@@ -4185,7 +4199,8 @@
         },
         "drucksachen": [
           "21/6929"
-        ]
+        ],
+        "interjections": 100
       },
       "vote": null,
       "content": {
@@ -4460,7 +4475,8 @@
           "party_id": "cdu",
           "party_name": "CDU/CSU"
         },
-        "drucksachen": []
+        "drucksachen": [],
+        "interjections": 246
       },
       "vote": null,
       "content": {
@@ -4759,7 +4775,8 @@
           "party_id": "gruene",
           "party_name": "Die Grünen"
         },
-        "drucksachen": []
+        "drucksachen": [],
+        "interjections": 133
       },
       "vote": null,
       "content": {
@@ -5034,7 +5051,8 @@
           "party_id": "cdu",
           "party_name": "CDU/CSU"
         },
-        "drucksachen": []
+        "drucksachen": [],
+        "interjections": 120
       },
       "vote": null,
       "content": {
@@ -5291,7 +5309,8 @@
           "party_id": "cdu",
           "party_name": "CDU/CSU"
         },
-        "drucksachen": []
+        "drucksachen": [],
+        "interjections": 34
       },
       "vote": null,
       "content": {
@@ -5536,7 +5555,8 @@
           "party_id": "unbekannt",
           "party_name": "Unbekannt"
         },
-        "drucksachen": []
+        "drucksachen": [],
+        "interjections": 31
       },
       "vote": null,
       "content": {
@@ -5785,7 +5805,8 @@
         },
         "drucksachen": [
           "21/6925"
-        ]
+        ],
+        "interjections": 53
       },
       "vote": null,
       "content": {
@@ -6315,7 +6336,8 @@
           "party_id": "unbekannt",
           "party_name": "Unbekannt"
         },
-        "drucksachen": []
+        "drucksachen": [],
+        "interjections": 90
       },
       "vote": null,
       "content": {
@@ -6567,7 +6589,8 @@
           "party_id": "cdu",
           "party_name": "CDU/CSU"
         },
-        "drucksachen": []
+        "drucksachen": [],
+        "interjections": 10
       },
       "vote": null,
       "content": {
@@ -6813,7 +6836,8 @@
         },
         "drucksachen": [
           "21/6912"
-        ]
+        ],
+        "interjections": 125
       },
       "vote": null,
       "content": {
@@ -7061,7 +7085,8 @@
         "drucksachen": [
           "21/6906",
           "21/6907"
-        ]
+        ],
+        "interjections": 78
       },
       "vote": null,
       "content": {
@@ -7341,7 +7366,8 @@
           "party_id": "afd",
           "party_name": "AfD"
         },
-        "drucksachen": []
+        "drucksachen": [],
+        "interjections": 188
       },
       "vote": null,
       "content": {
@@ -7599,7 +7625,8 @@
           "party_id": "unbekannt",
           "party_name": "Unbekannt"
         },
-        "drucksachen": []
+        "drucksachen": [],
+        "interjections": 16
       },
       "vote": null,
       "content": {

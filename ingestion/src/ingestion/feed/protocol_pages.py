@@ -62,6 +62,16 @@ _TITLE_LINE = "T_fett"
 # The lines of an item's call-up that list the documents it deals with. Speech
 # paragraphs cite other Drucksachen too, so only these count.
 _DOCUMENT_LINE = "T_Drs"
+# One <kommentar> can record several reactions, separated by dashes:
+# "(Beifall bei der SPD – Zuruf von der AfD: Unsinn! – Lachen bei der AfD)".
+_REACTION_SEPARATOR = re.compile(r"\s+[–—-]\s+")
+# The reactions that show conflict: calls from the floor, named or not,
+# objections, mocking laughter, unrest. Applause and Heiterkeit (amusement)
+# do not.
+_CONFLICT_REACTION = re.compile(
+    r"^(?:Weitere\s+)?(?:Zurufe?|Gegenrufe?|Widerspruch|Lachen|Unruhe|Pfui)\b"
+    r"|^(?!Beifall)[^:\[\]]{2,80}\[[^\]]+\]:"
+)
 _ITEM_TEXT = ("T_NaS", "T_ZP_NaS")
 
 FetchText = Callable[[str], str]
@@ -74,6 +84,8 @@ class ProtocolSpeech:
     page: Optional[int]
     speaker: str
     agenda: str
+    # Conflict reactions the protocol records during the speech.
+    interjections: int = 0
 
 
 @dataclass
@@ -164,6 +176,21 @@ def _agenda_documents(root: Any) -> dict[str, list[str]]:
     return {slug: drucksachen_in_text(" ".join(text)) for slug, text in lines.items()}
 
 
+def count_interjections(comment: str) -> int:
+    reactions = _REACTION_SEPARATOR.split(comment.strip().strip("()").strip())
+    return sum(1 for r in reactions if _CONFLICT_REACTION.match(r))
+
+
+def _interjections_by_speech(root: Any) -> dict[str, int]:
+    return {
+        str(rede.get("id")): sum(
+            count_interjections(_text(k)) for k in rede.iter("kommentar")
+        )
+        for rede in root.iter("rede")
+        if rede.get("id")
+    }
+
+
 def protocol_index(xml_text: str) -> ProtocolIndex:
     try:
         root = ElementTree.fromstring(xml_text.encode("utf-8"))
@@ -174,6 +201,7 @@ def protocol_index(xml_text: str) -> ProtocolIndex:
         titles=_agenda_titles(root) if root is not None else {},
         documents=_agenda_documents(root) if root is not None else {},
     )
+    interjections = _interjections_by_speech(root) if root is not None else {}
     for position, speech in enumerate(parse_speeches_from_xml(xml_text)):
         page = speech.get("pdf_page")
         index.speeches.append(
@@ -182,6 +210,7 @@ def protocol_index(xml_text: str) -> ProtocolIndex:
                 page=page if isinstance(page, int) else None,
                 speaker=slugify_speaker(full_name=speech.get("speaker_name") or ""),
                 agenda=agenda_slug_from_top_id(speech.get("agenda_top_id")),
+                interjections=interjections.get(str(speech.get("xml_rede_id")), 0),
             )
         )
     return index
@@ -285,8 +314,8 @@ def _order(
 def apply_protocols(sitting: SittingDay, fetch: FetchText = fetch_text) -> int:
     """Put each agenda item's speeches into protocol order, link them to their
     protocol page, drop the twin of a speech both sources hold, title the
-    items no source titled and note each item's Drucksachen; returns how many
-    agenda items are now ordered.
+    items no source titled and note each item's Drucksachen and interjections;
+    returns how many agenda items are now ordered.
 
     An item whose protocol cannot be fetched or parsed stays unordered, and
     the builder leaves it for a later run.
@@ -330,6 +359,13 @@ def apply_protocols(sitting: SittingDay, fetch: FetchText = fetch_text) -> int:
                 pdf_base,
             )
             item.ordered = True
+            # Summed over the item's own speeches, so a debate the protocol
+            # files under another item still gets its own count.
+            item.interjections = sum(
+                matches[s.source_item_id].interjections
+                for s in item.speeches
+                if s.source_item_id in matches
+            )
             if item.speeches and not any(
                 s.source_item_id in matches for s in item.speeches
             ):

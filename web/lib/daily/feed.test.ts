@@ -89,19 +89,19 @@ describe('region', () => {
 
 function section(
   topic: string,
-  heat: number | null,
+  interjections: number | null,
   minutes: number | null,
   drucksachen: string[] = [],
 ): DigestSessionSection {
   return {
     topic,
     drucksachen,
-    headline: `${topic} ${heat}`,
+    interjections,
+    headline: `${topic} ${interjections}`,
     summary: '',
     agenda_items: [],
     citations: [],
     video_url: null,
-    heat,
     debate_minutes: minutes,
   };
 }
@@ -137,21 +137,74 @@ function sitting(
   };
 }
 
+/** Flames per section in the given order; 0 for a section without any. */
+function heatOf(sections: DigestSessionSection[]): number[] {
+  const [day] = rankFeed(
+    buildFeed([[sitting('bundestag', '2026-07-10', sections)]]),
+    [],
+  );
+  // Sections without an item id are keyed by their place in the digest.
+  return sections.map(
+    (_, i) => day.heat.get(`bundestag_2026-07-10~s${i}`) ?? 0,
+  );
+}
+
 describe('dayHeat', () => {
-  it('rescales against the hottest section of the day, across parliaments', () => {
-    // Pooled across parliaments, only the day's hottest debate keeps 5.
+  it('spreads the day from its quietest debate to its busiest', () => {
+    // Interjections per minute: 1.67, 1.42, 0.97, 0.33 and 0.
+    expect(
+      heatOf([
+        section('climate_environment', 100, 60),
+        section('health_care', 143, 101),
+        section('economy_finance', 120, 124),
+        section('education_research', 13, 40),
+        section('other', 0, 42),
+      ]),
+    ).toEqual([5, 4, 3, 2, 1]);
+  });
+
+  it('rates debates against each other, not against a fixed scale', () => {
+    // A rowdy day's quietest debate still shows 1 flame, its middle one 3.
+    expect(
+      heatOf([
+        section('health_care', 60, 60),
+        section('housing_rent', 120, 60),
+        section('other', 180, 60),
+      ]),
+    ).toEqual([1, 3, 5]);
+  });
+
+  it('compares across the parliaments shown that day', () => {
     const [day] = rankFeed(
       buildFeed([
-        [sitting('bundestag', '2026-09-08', [section('health_care', 4, 60)])],
-        [sitting('landtag_st', '2026-09-08', [section('housing_rent', 5, 10)])],
+        [sitting('bundestag', '2026-09-08', [section('health_care', 30, 60)])],
+        [
+          sitting('landtag_st', '2026-09-08', [
+            section('housing_rent', 10, 10),
+          ]),
+        ],
       ]),
       [],
     );
-    expect([...day.heat.values()].sort()).toEqual([4, 5]);
+    expect([...day.heat.values()].sort()).toEqual([1, 5]);
   });
 
-  it('is empty when no section carries a rating', () => {
+  it('gives no flames when there is nothing to compare', () => {
     expect(dayHeat([]).size).toBe(0);
+    expect(heatOf([section('health_care', 30, 60)])).toEqual([0]);
+    expect(
+      heatOf([section('health_care', 30, 60), section('other', 60, 120)]),
+    ).toEqual([0, 0]);
+  });
+
+  it('leaves a debate without a count out of the comparison', () => {
+    expect(
+      heatOf([
+        section('health_care', 30, 60),
+        section('other', null, 60),
+        section('housing_rent', 90, 60),
+      ]),
+    ).toEqual([1, 0, 5]);
   });
 });
 
@@ -162,9 +215,10 @@ describe('rankFeed', () => {
         'bundestag',
         '2026-09-08',
         [
-          section('housing_rent', 2, 30),
-          section('economy_finance', 5, 90, ['21/100']),
-          section('climate_environment', 4, 60, ['21/200']),
+          // Per minute: 0.33, 1.0 and 0.5.
+          section('housing_rent', 10, 30),
+          section('economy_finance', 90, 90, ['21/100']),
+          section('climate_environment', 30, 60, ['21/200']),
         ],
         [
           vote(1, ['health_care']),
@@ -176,7 +230,7 @@ describe('rankFeed', () => {
       sitting(
         'bundestag',
         '2026-09-03',
-        [section('health_care', 5, 200)],
+        [section('health_care', 400, 200)],
         // The hot debate's own Drucksache, voted on another day.
         [vote(3, ['economy_finance'], ['21/100'])],
       ),
@@ -186,11 +240,26 @@ describe('rankFeed', () => {
   it('leads each day with its own most heated debate', () => {
     const [latest, earlier] = rankFeed(days, []);
     expect(latest.hot?.section.topic).toBe('economy_finance');
-    // A hotter, longer debate from an earlier day does not cross days.
+    // A hotter debate from an earlier day does not cross days.
     expect(earlier.hot?.section.topic).toBe('health_care');
   });
 
-  it('sorts the rest of the day by prior and leaves the hot one out', () => {
+  it('picks the Hot Topic by rate alone, not by length', () => {
+    const [day] = rankFeed(
+      buildFeed([
+        [
+          sitting('bundestag', '2026-07-10', [
+            section('economy_finance', 120, 124),
+            section('climate_environment', 100, 60),
+          ]),
+        ],
+      ]),
+      [],
+    );
+    expect(day.hot?.section.topic).toBe('climate_environment');
+  });
+
+  it('sorts the rest of the day by heat and leaves the hot one out', () => {
     const [latest] = rankFeed(days, []);
     expect(latest.blocks[0].sections.map((s) => s.section.topic)).toEqual([
       'climate_environment',

@@ -27,13 +27,13 @@ function toSection(
     citations: facts.citations,
     video_url: facts.video_url,
     key_points: content.key_points,
-    heat: facts.heat,
     debate_minutes: facts.debate_minutes,
     opening_quote: facts.opening_quote,
     opened_by: facts.opened_by,
     suggested_questions: content.suggested_questions,
     item_id: item.id,
     drucksachen: facts.drucksachen ?? [],
+    interjections: facts.interjections ?? null,
   };
 }
 

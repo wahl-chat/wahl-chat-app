@@ -154,7 +154,6 @@ class FakeLLM:
         retry_omit: tuple[str, ...] = (),
         reject: tuple[str, ...] = (),
         fail: tuple[type, ...] = (),
-        heat: Optional[int] = 3,
         quote: Optional[OpeningQuoteDraft] = None,
         topics: Optional[list[Any]] = None,
         key_points: Optional[list[str]] = None,
@@ -163,7 +162,6 @@ class FakeLLM:
         self.retry_omit = retry_omit
         self.reject = reject
         self.fail = fail
-        self.heat = heat
         self.quote = quote
         self.topics = topics
         self.key_points = key_points
@@ -218,7 +216,6 @@ class FakeLLM:
                     if p not in self.omit
                 ],
                 key_points=self.key_points or ["Eins.", "Zwei.", "Drei."],
-                heat=self.heat,
                 opening_quote=self.quote
                 or OpeningQuoteDraft(speaker=speaker, quote=text),
                 suggested_questions=["Was heißt das für mich?"],

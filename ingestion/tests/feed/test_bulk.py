@@ -293,9 +293,12 @@ def test_a_failed_vote_enrichment_still_shows_a_new_vote() -> None:
     assert run.incomplete == 1
 
 
-def _plan_with_documents(top1: Optional[list[str]]) -> Any:
+def _plan_with_documents(
+    top1: Optional[list[str]], interjections: Optional[int] = None
+) -> Any:
     plan = _plan()
     plan.debates[0].agenda.drucksachen = top1
+    plan.debates[0].agenda.interjections = interjections
     return plan
 
 
@@ -349,3 +352,17 @@ def test_drucksachen_are_looked_up_once_and_retried_after_a_failure() -> None:
         raise AssertionError("a poll with an answer is not looked up again")
 
     assert _day(FakeLLM(), _plan(), stored, edition_ids, lookup_poll=never)[0] is None
+
+
+def test_stored_debates_get_their_interjections_without_a_rebuild() -> None:
+    stored, edition_ids = _stored_day()
+    llm = FakeLLM()
+    day, _ = _day(
+        llm, _plan_with_documents(None, interjections=42), stored, edition_ids
+    )
+    assert day is not None
+    assert llm.calls == []
+    item = next(i for i in day.items if i.id == TOP1)
+    assert item.debate is not None
+    assert item.debate.interjections == 42
+    assert day.changed == {TOP1}

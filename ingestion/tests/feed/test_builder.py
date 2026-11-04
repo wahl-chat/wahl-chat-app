@@ -257,12 +257,16 @@ def test_the_opening_quote_is_kept_only_when_verbatim(
     assert (debate.debate.opening_quote is not None) is kept
 
 
-def test_heat_is_clamped_and_key_points_need_exactly_three() -> None:
-    hot = _debate(build(FakeLLM(heat=9), votes=[]))
-    assert hot.debate is not None and hot.debate.heat == 5
-    cold = _debate(build(FakeLLM(heat=0, key_points=["a", "b"]), votes=[]))
-    assert cold.debate is not None and cold.debate.heat == 1
-    assert cold.content["de"].key_points == []
+def test_key_points_need_exactly_three() -> None:
+    debate = _debate(build(FakeLLM(key_points=["a", "b"]), votes=[]))
+    assert debate.content["de"].key_points == []
+
+
+def test_the_model_does_not_rate_heat() -> None:
+    # Heat is counted from the protocol, not judged by the model.
+    assert "heat" not in DebateDraft.model_fields
+    debate = _debate(build(FakeLLM(), votes=[]))
+    assert debate.debate is not None and debate.debate.heat is None
 
 
 def test_debates_carry_up_to_two_distinct_topics_primary_first() -> None:
