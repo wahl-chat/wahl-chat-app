@@ -1,9 +1,8 @@
 import { BorderTrail } from '@/components/ui/border-trail';
 
-// Slower than the chat's 2s "generating" trail: this one never stops.
+// Slow, since it never stops; long, since a card is far larger than the
+// chat input whose trail this mirrors.
 const LAP_SECONDS = 4;
-// Longer than the chat's 60px trail, in proportion to a card many times the
-// input's size; at 60px it reads as a speck on the card's edge.
 const TRAIL_PX = 160;
 
 /** A red light circling the Hot Topic card counterclockwise, as strong as the
@@ -12,7 +11,10 @@ const TRAIL_PX = 160;
 function HotTopicTrail() {
   return (
     // rounded-[inherit] passes the card's radius on to the trail's mask.
-    <div className="rounded-[inherit] motion-reduce:hidden" aria-hidden>
+    <div
+      className="pointer-events-none absolute inset-0 rounded-[inherit] motion-reduce:hidden"
+      aria-hidden
+    >
       <BorderTrail
         reverse
         size={TRAIL_PX}

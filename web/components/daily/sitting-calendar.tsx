@@ -35,7 +35,6 @@ export function SittingStatusLine({ status }: { status: SittingStatus }) {
         'flex min-w-0 items-center gap-1.5 text-[12px]',
         MUTED_TEXT,
       )}
-      suppressHydrationWarning
     >
       <span
         aria-hidden
@@ -44,7 +43,9 @@ export function SittingStatusLine({ status }: { status: SittingStatus }) {
           status.live ? LIVE_DOT : 'bg-[var(--daily-muted)]',
         )}
       />
-      <span className="truncate">{status.text}</span>
+      <span className="truncate" suppressHydrationWarning>
+        {status.text}
+      </span>
     </span>
   );
 }

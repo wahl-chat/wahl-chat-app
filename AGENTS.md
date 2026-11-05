@@ -512,18 +512,14 @@ from an item's headline and facts).
   speeches is one debate item; one poll is one vote item. The model writes the
   texts of one item at a time, with the whole debate in the prompt, and never
   decides what an item is. Ranking ("Hot Topic") happens on the page.
-  Heat is deterministic: interjections per minute, i.e. calls from the floor,
-  objections, mocking laughter and unrest the protocol records during the
-  debate's speeches (`debate.interjections`, counted in
-  `feed/protocol_pages.py`). The flames compare a day's debates with each
-  other only, from 1 for the quietest to 5 for the busiest; there is no fixed
-  scale. The Hot Topic is the debate with the highest rate. The model does not
-  rate heat; `debate.heat` on older items is its former rating and unused.
-  A vote is shown under the Hot Topic only when it is from the same
-  day and shares a Drucksache with the debate's agenda item (the protocol's
-  `T_Drs` lines vs. the documents abgeordnetenwatch links for the poll); a
-  shared topic is not enough. Both lists are facts on the items
-  (`drucksachen`), filled in on stored items without a rebuild.
+  Heat is counted, not rated by the model: the protocol's interjections
+  (calls from the floor, objections, mocking laughter, unrest) per minute of
+  debate (`debate.interjections`, `feed/protocol_pages.py`). The flames rank
+  a day's debates against each other, 1 to 5; the Hot Topic is the highest
+  rate, and a day with no counted debate has none. A vote is shown under it
+  only when it is from the same day and shares a Drucksache with the
+  debate's agenda item (`drucksachen` on both items, from the protocol's
+  `T_Drs` lines and abgeordnetenwatch); a shared topic is not enough.
 - **Speech order comes from the protocol.** The corpus has no order of its
   own, so `feed/protocol_pages.py` reads the Bundestag's protocol XML: it puts
   each debate's speeches in the order they were given, links them to their PDF
@@ -531,8 +527,8 @@ from an item's headline and facts).
   under the TOP, openparliament.tv under the Zusatzpunkt; the op one is kept).
   It also titles a debate only DIP holds (DIP speeches carry just the item
   number) from the item's call-up in the protocol.
-  A debate whose protocol cannot be read yet is not built; the next run picks
-  it up. A sitting's day is its first speech's day, so speeches after midnight
+  A debate whose protocol XML or PDF cannot be read yet is not built; the
+  next run picks it up. A sitting's day is its first speech's day, so speeches after midnight
   stay on it.
 - **Every Fraktion that spoke is listed.** `facts.parties` comes from the
   source. Each position sentence is checked against that Fraktion's own
@@ -610,11 +606,11 @@ from an item's headline and facts).
   week's exact days (any past week; a coming one once its agenda is out).
   Settled days are kept from the stored copy instead of asked for again.
   Either source alone is enough; when neither answers, the stored copy stays.
-  The parliament field shows when the Bundestag sits next, and its dropdown
-  a month grid back to `since`: green where `feed_editions` has the day,
-  grey where it sat but nothing is online yet, today dark, coming days
-  outlined. No date in it is written by a model. The web decides what is
-  next by the reader's date, so the copy may age.
+  It is refreshed once a day, on the night's first run. The parliament field
+  shows when the Bundestag sits next, and its dropdown a month grid back to
+  `since`, marking the days `feed_editions` has. No date in it is written by
+  a model. The web decides what is next by the reader's date, so the copy may
+  age.
 - **What the page loads.** The first visit gets the latest 14 days (anchored
   on the newest edition, so recesses never show an empty feed); "Ältere Tage
   anzeigen" loads the 14 days before the oldest shown, through the

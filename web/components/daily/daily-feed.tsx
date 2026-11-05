@@ -10,6 +10,7 @@ import {
 } from '@/lib/daily/feed';
 import { type DetailItem, findItem } from '@/lib/daily/items';
 import {
+  BUNDESTAG,
   DEFAULT_SELECTION,
   STATE_PARAM,
   STATE_STORAGE_KEY,
@@ -259,7 +260,8 @@ function DailyFeed({
     syncUrl({ ...view, states: next });
   };
   /** Show a sitting day from the calendar: load older slices until one
-   * holds it, lift a topic filter that hides it, then scroll to it. */
+   * holds it, select the Bundestag and lift a topic filter if either hides
+   * it, then scroll to it. */
   const jumpToDay = async (date: string) => {
     const loaded = [...pages.bundestag];
     try {
@@ -275,6 +277,9 @@ function DailyFeed({
       return;
     }
     setPages((current) => ({ ...current, bundestag: loaded }));
+    if (!states.includes(BUNDESTAG)) {
+      changeStates([BUNDESTAG, ...states]);
+    }
     setJumpTarget(date);
   };
 

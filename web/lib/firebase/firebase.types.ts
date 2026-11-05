@@ -297,8 +297,7 @@ export type DigestSessionSection = {
   item_id?: string;
   /** The Drucksachen its agenda item deals with; absent until known. */
   drucksachen?: string[];
-  /** Conflict reactions during the debate, from the protocol; null or absent
-   * until counted. */
+  /** Conflict reactions during the debate; absent until counted. */
   interjections?: number | null;
 };
 
@@ -353,20 +352,12 @@ export type DebateFacts = {
     position_sources?: SpeechSource[];
   }[];
   video_url: string | null;
-  /** Unused: heat comes from `interjections`. Older items carry the
-   * model's former 1–5 rating here. */
-  heat?: number | null;
   debate_minutes: number | null;
   opened_by: string | null;
   opening_quote: DigestQuote | null;
-  /** The Drucksachen the agenda item deals with, from the protocol; null or
-   * absent until looked up. */
+  /** See `DebateFacts` in the backend's `feed/models.py`. */
   drucksachen?: string[] | null;
-  /** Calls from the floor, objections, mocking laughter and unrest the
-   * protocol records during the debate; null or absent until counted. */
   interjections?: number | null;
-  /** Where each bullet of `content.*.key_points` comes from, by index;
-   * absent on older items. Objects, since Firestore nests no arrays. */
   key_point_sources?: { sources: SpeechSource[] }[];
 };
 

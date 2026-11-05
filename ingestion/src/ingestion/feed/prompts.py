@@ -34,8 +34,6 @@ _POSITION_SENTENCE_RULE = (
     'dem Verb im Plural ("Wenden sich gegen …", "Fordern …", "Begrüßen …"), nicht '
     '"Die Fraktion kritisierte …".'
 )
-# Absolute, so each debate is rated on its own; the page rescales against
-# the hottest debate of the day it shows.
 _QUESTION_STYLE = (
     "kurze Fragen (höchstens 8 Wörter) aus Sicht einer Bürgerin, "
     "die man dazu stellen würde"

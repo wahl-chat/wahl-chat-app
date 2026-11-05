@@ -48,8 +48,9 @@ from zoneinfo import ZoneInfo
 import httpx
 from qdrant_client import QdrantClient
 
+from ingestion.connectors.abgeordnetenwatch.client import AWClient
 from ingestion.feed.builder import DayPlan, FeedBuilder, build_day, plan_days
-from ingestion.feed.calendar import build_calendar
+from ingestion.feed.calendar import FRESH_FOR, build_calendar
 from ingestion.feed.documents import PollDocuments, poll_documents
 from ingestion.feed.index import FEED_COLLECTION_NAME, IndexReport, index_items
 from ingestion.feed.items import BuildNeed, assemble_edition, build_needed
@@ -75,8 +76,8 @@ from ingestion.feed.reader import (
 from ingestion.feed.store import (
     carry_over_translations,
     read_edition_item_ids,
-    read_items_since,
     read_calendar,
+    read_items_since,
     vanished_item_ids,
     write_calendar,
     write_feed,
@@ -86,7 +87,6 @@ from ingestion.feed.translate import (
     needs_translation,
     translate_items,
 )
-from ingestion.connectors.abgeordnetenwatch.client import AWClient
 from ingestion.firestore_guard import guard_firestore_target
 from ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
 
@@ -253,11 +253,8 @@ def attach_source_facts(
     Drucksachen and interjections, a vote its Drucksachen. Returns the items
     and the ids that changed. Facts from the source, not the model: a stored
     item gets them without being rebuilt, and its texts and translation stay
-    as they are.
-
-    A debate takes what this run's protocol says, so a later correction
-    reaches it too; a protocol not read this run changes nothing. A vote is
-    looked up once; a failed lookup leaves None and the next run asks again.
+    as they are. A debate follows this run's protocol, corrections included;
+    a vote is looked up until a lookup answers.
     """
     agendas = {u.item_id: u.agenda for u in plan.debates}
     out: list[FeedItem] = []
@@ -536,15 +533,20 @@ def post_revalidate(env: str) -> None:
     print(f"revalidated {FEED_CACHE_TAG} on {base}")
 
 
-def refresh_calendar(db: Any) -> None:
-    """Store the Bundestag's sitting weeks, or print them on a dry run.
+def refresh_calendar(db: Any, now: Optional[datetime] = None) -> None:
+    """Store the Bundestag's sitting weeks, or print them on a dry run; a
+    copy checked within ``FRESH_FOR`` is left as it is.
 
     Never fails the run: when bundestag.de does not answer, the stored copy
     stays, and the web picks what is next by date, so it keeps working.
     """
-    today = datetime.now(ZoneInfo("Europe/Berlin")).date()
+    now = now or datetime.now(timezone.utc)
+    today = now.astimezone(ZoneInfo("Europe/Berlin")).date()
     try:
         stored = read_calendar(db, "bundestag") if db is not None else None
+        if stored is not None and now - stored.checked_at < FRESH_FOR:
+            print(f"calendar: checked at {stored.checked_at}, not refreshed")
+            return
         calendar = build_calendar(today, stored=stored)
     except Exception as exc:  # noqa: BLE001 — a stale calendar beats no feed
         logger.warning("Sitting calendar not refreshed: %s", exc)

@@ -33,15 +33,10 @@ _CONTENTS = 2
 
 
 class _PdfWithContents(ProtocolPdf):
-    """Printed page n on PDF page n + 2; every page reads ``text``."""
+    """Printed page n on PDF page n + 2; every sentence a page after ``first``."""
 
-    def __init__(self, text: str = "") -> None:
+    def __init__(self) -> None:
         self._pages = {n: n + _CONTENTS for n in range(1, 50)}
-        self._texts: dict[int, str] = {}
-        self._page_text = text
-
-    def _text(self, page: int) -> str:
-        return self._page_text
 
     def page_of(self, sentence: str, first: int) -> int:
         return first + 1
@@ -443,15 +438,19 @@ def test_a_dip_speech_is_anchored_past_the_contents_pages() -> None:
     assert speech.protocol_page_url == f"{_PDF}#page=7"
 
 
-def test_an_unreadable_pdf_leaves_no_page_rather_than_a_wrong_one() -> None:
+def test_an_unreadable_pdf_defers_the_debate_rather_than_drop_its_pages() -> None:
+    # The input hash knows nothing of pages: a debate built without them now
+    # would keep none once the PDF is back.
     def offline(_url: str) -> ProtocolPdf:
         raise OSError("offline")
 
     sitting = _top20_sitting()
-    assert apply_protocols(sitting, fetch=lambda _url: _XML, read_pdf=offline) == 1
-    speeches = sitting.agenda_items[0].speeches
-    assert {s.protocol_page_url for s in speeches} == {None}
-    assert {s.page_of for s in speeches} == {None}
+    assert apply_protocols(sitting, fetch=lambda _url: _XML, read_pdf=offline) == 0
+    [item] = sitting.agenda_items
+    assert not item.ordered
+    # What the XML alone says still reaches the stored item.
+    assert item.drucksachen is not None
+    assert item.interjections is not None
 
 
 def test_a_sentence_is_looked_for_from_the_speech_start_on() -> None:

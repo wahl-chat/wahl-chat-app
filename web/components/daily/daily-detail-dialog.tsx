@@ -201,10 +201,6 @@ type Props = {
   onClose: () => void;
 };
 
-/**
- * The opened item: a little more than its card, then straight to the chat.
- * Full screen on phones, a centred column from md up.
- */
 /** The phone media viewer is a vaul Drawer, which brings its own copy of
  * Radix: this dialog does not see it as a layer above itself, so a tap on
  * the Drawer's backdrop, or Escape, would close both. */
@@ -215,6 +211,10 @@ function isViewerLayer(target: EventTarget | null): boolean {
   );
 }
 
+/**
+ * The opened item: a little more than its card. Full screen on phones, a
+ * centred column from md up.
+ */
 export function DailyDetailDialog({ item, heat, onClose }: Props) {
   // An outside tap or Escape closes the source viewer first, and only a
   // second one this view.

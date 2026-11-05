@@ -176,9 +176,8 @@ class DebateFacts(BaseModel):
     # without an entry in ``content.positions``.
     parties: list[DebateParty] = Field(default_factory=list)
     video_url: Optional[str] = None
-    # Unused: the page derives heat from ``interjections``. Items stored while
-    # the model still rated debates carry its 1-5 rating here, and the field
-    # stays so they keep validating instead of being rebuilt.
+    # Legacy model rating on items built before heat was counted; unused,
+    # kept so they validate.
     heat: Optional[int] = Field(None, ge=1, le=5)
     debate_minutes: Optional[int] = None
     opened_by: Optional[str] = None

@@ -23,9 +23,8 @@ Security notes:
     DIP_API_KEY fail-loud: _require_dip_key() raises RuntimeError
     at construction when DIP_API_KEY is unset.  NO hardcoded key.
 
-    Ordering: DIP returns protocols newest-first. discover() returns the
-    never-ingested protocols before the update-sweep re-checks, each group
-    ascending by (datum, id), so a run's time budget reaches new sittings first.
+    Ordering: discover() returns never-ingested protocols before update-sweep
+    re-checks (see discover()).
 
     fetch() never raises: missing xml_url / parse failures return a
     skip_reason dict; normalize() raises ValueError → runner skip-and-warn.
@@ -552,14 +551,17 @@ class BundestagSpeechesConnector(BaseConnector):
              op speeches — this re-surfaces every transient failure forever (a
              max(external_id) watermark permanently lost anything that failed
              longer than a lookback window) and is immune to another source or
-             Wahlperiode advancing a shared cursor.
+             Wahlperiode advancing a shared cursor. A protocol op holds only
+             part of, and DIP never stored, therefore reaches DIP through the
+             sweep alone; rare, since op aligns speeches weeks after DIP.
           3. Update sweep: ALSO keep already-ingested protocols whose DIP
              ``aktualisiert`` timestamp is within _UPDATE_SWEEP_DAYS, so
              upstream transcript corrections are re-fetched; the runner's
              content_hash guard rewrites only real changes.
 
         Returns the unseen protocols first, then the sweep, each ascending by
-        (datum, id) — DIP returns DESC.
+        (datum, id) — DIP returns DESC. Re-checks are the slow part of a run;
+        behind them, the time budget would end a run before a new sitting.
         Populates self._protocols (per-run cache).
         Loads self._mdb_lookup once per run.
 
@@ -604,10 +606,6 @@ class BundestagSpeechesConnector(BaseConnector):
             if aktualisiert and aktualisiert[:10] >= sweep_floor:
                 sweep.append(doc)
 
-        # Unseen protocols first: re-checks are the slow part of a run, and
-        # behind them a new sitting would wait for a run with time to spare.
-        # Each group ascending by (datum, id); DIP returns DESC. The runner's
-        # cursor plays no part here, so the order is free to choose.
         def by_date(d: dict) -> tuple[str, str]:
             return (d.get("datum") or "", str(d.get("id") or ""))
 

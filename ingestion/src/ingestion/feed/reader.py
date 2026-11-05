@@ -154,9 +154,8 @@ class Speech:
     pdf_url: Optional[str]
     session_key: Optional[tuple[int, int]]
     speech_key: Optional[str] = None
-    # The protocol PDF opened at this speech's page. DIP speeches carry it in
-    # their citation; for the others protocol_pages.attach_protocol_pages
-    # looks it up in the protocol XML.
+    # The protocol PDF opened at this speech's page, set by
+    # ``protocol_pages.apply_protocols``.
     protocol_page_url: Optional[str] = None
     content_hashes: list[str] = field(default_factory=list)
     # The transcript sentence by sentence, timed against the video; only
@@ -178,15 +177,13 @@ class AgendaItem:
     session: Optional[tuple[int, int]] = None
     # "top20" / "zp5"; empty for speeches outside any agenda item.
     slug: str = ""
-    # True once the speeches are in the order of the protocol (see
-    # ``protocol_pages.apply_protocols``). The corpus has no order of its own:
-    # a scroll returns points by id, and op.tv speeches carry no time of day.
+    # True once the speeches are in the order of the protocol and placed on
+    # its PDF pages (see ``protocol_pages.apply_protocols``). The corpus has no
+    # order of its own: a scroll returns points by id, and op.tv speeches carry
+    # no time of day.
     ordered: bool = False
-    # The Drucksachen the protocol lists for the item; None until a protocol
-    # has been read.
+    # See ``DebateFacts`` in ``models.py``; None until a protocol is read.
     drucksachen: Optional[list[str]] = None
-    # Conflict reactions during the item's speeches (see
-    # protocol_pages.count_interjections); None until a protocol has been read.
     interjections: Optional[int] = None
 
     @property

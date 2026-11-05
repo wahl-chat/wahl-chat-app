@@ -151,8 +151,7 @@ export function dayHeat(sections: readonly SectionItem[]): Map<string, number> {
  * debate from last week cannot bury today's.
  *
  * The vote must share a Drucksache with the debate's agenda item: that is the
- * motion debated. A shared topic is not enough; it paired a debate with a
- * vote on another matter, sometimes from weeks before.
+ * motion debated. A shared topic is not enough.
  */
 export function rankFeed(
   days: readonly FeedDay[],
@@ -172,7 +171,8 @@ export function rankFeed(
     // first, protocol order).
     const rate = (item: SectionItem) => interjectionRate(item) ?? -1;
     const ranked = [...sections].sort((a, b) => rate(b) - rate(a));
-    const hot = ranked[0] ?? null;
+    // A day with no counted debate has nothing to crown.
+    const hot = ranked.find((s) => interjectionRate(s) !== null) ?? null;
 
     const debated = new Set(hot?.section.drucksachen ?? []);
     const match =

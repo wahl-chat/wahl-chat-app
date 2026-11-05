@@ -21,8 +21,9 @@ speech from both sources; the openparliament.tv one is kept, as everywhere.
 
 Everything that reads "the first speech" depends on that order: the Fraktion
 that opened the debate, the opening quote, the citations, the video. So a
-debate whose protocol cannot be read is not built at all, rather than built in
-an arbitrary order; the next run tries again.
+debate whose protocol XML or PDF cannot be read is not built at all, rather
+than built in an arbitrary order or without its pages; the next run tries
+again. Its Drucksachen and interjections come from the XML alone.
 
 The title only fills in for an item no corpus record titles (openparliament.tv
 carries one; DIP speeches carry only the item number), so a debate that only
@@ -39,10 +40,9 @@ from datetime import date, datetime
 from typing import Any, Callable, Optional
 
 import defusedxml.ElementTree as ElementTree
-import requests
 from pypdf import PdfReader
 
-from ingestion.connectors.bundestag_speeches.client import fetch_text
+from ingestion.connectors.bundestag_speeches.client import fetch_bytes, fetch_text
 from ingestion.connectors.bundestag_speeches.parser import parse_speeches_from_xml
 from ingestion.feed.documents import drucksachen_in_text
 from ingestion.feed.reader import AgendaItem, SittingDay, Speech, numbered_label
@@ -163,9 +163,7 @@ class ProtocolIndex:
 
 
 def read_protocol_pdf(pdf_url: str) -> ProtocolPdf:
-    response = requests.get(pdf_url, timeout=60)
-    response.raise_for_status()
-    return ProtocolPdf.from_bytes(response.content)
+    return ProtocolPdf.from_bytes(fetch_bytes(pdf_url))
 
 
 def protocol_xml_url(pdf_url: str) -> Optional[str]:
@@ -378,13 +376,9 @@ def _order(
     matches: dict[str, ProtocolSpeech],
     placement: Optional[_PdfPlacement],
 ) -> list[Speech]:
-    """Protocol order, page anchors set. A speech the protocol does not list
-    goes last, in the stable order it came in.
-
-    Every anchor comes from here, a DIP speech's own included: DIP counts
-    pages from the first printed page, which lands short of the speech by
-    the contents pages. A page that cannot be placed gets no anchor.
-    """
+    """Protocol order, page anchors set, a DIP speech's own included. A
+    speech the protocol does not list goes last, in the stable order it came
+    in."""
     placed: list[tuple[int, Speech]] = []
     unplaced: list[Speech] = []
     for speech in speeches:
@@ -428,8 +422,8 @@ def apply_protocols(
     items no source titled and note each item's Drucksachen and interjections;
     returns how many agenda items are now ordered.
 
-    An item whose protocol cannot be fetched or parsed stays unordered, and
-    the builder leaves it for a later run.
+    An item whose protocol XML or PDF cannot be read stays unordered, and the
+    builder leaves it for a later run.
     """
     ordered = 0
     for protocol_id, pdf_url in sitting.protocols:
@@ -470,7 +464,7 @@ def apply_protocols(
                 matches,
                 placement,
             )
-            item.ordered = True
+            item.ordered = placement is not None
             # Summed over the item's own speeches, so a debate the protocol
             # files under another item still gets its own count.
             item.interjections = sum(
@@ -490,6 +484,6 @@ def apply_protocols(
                     protocol_id,
                 )
                 item.speeches = []
-            ordered += bool(item.speeches)
+            ordered += bool(item.speeches) and item.ordered
         sitting.agenda_items = [i for i in sitting.agenda_items if i.speeches]
     return ordered

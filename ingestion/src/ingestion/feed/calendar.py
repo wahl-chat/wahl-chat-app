@@ -80,6 +80,14 @@ UPCOMING_WEEKS = 6
 # days may still change: a sitting can be added or moved at short notice.
 _AGENDA_LEAD = timedelta(days=14)
 _SETTLED_AFTER = timedelta(days=14)
+# The feed job runs several times a night; one refresh a day is enough, and
+# the job's time cap leaves no room to wait on a slow bundestag.de.
+FRESH_FOR = timedelta(hours=20)
+_FETCH_TIMEOUT_S = 15
+
+
+def fetch_page(url: str) -> str:
+    return fetch_text(url, timeout=_FETCH_TIMEOUT_S)
 
 
 class CalendarError(Exception):
@@ -232,7 +240,7 @@ def merge(
 
 def build_calendar(
     today: date,
-    fetch: Fetch = fetch_text,
+    fetch: Fetch = fetch_page,
     now: Optional[datetime] = None,
     stored: Optional[SittingCalendar] = None,
     since: date = FEED_START,

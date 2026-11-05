@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any
 
@@ -297,7 +297,7 @@ def test_refresh_builds_on_the_stored_copy_and_writes_it(
 
     monkeypatch.setattr(bulk, "build_calendar", build)
     db = _CalendarDb(previous.model_dump(mode="json"))
-    bulk.refresh_calendar(db)
+    bulk.refresh_calendar(db, now=NOW + timedelta(days=1))
     assert seen[0] is not None and seen[0].since == date(2026, 9, 1)
     stored = db.written[("feed_calendar", "bundestag")]
     november = next(w for w in stored["weeks"] if w["start"] == "2026-11-02")
@@ -313,4 +313,17 @@ def test_refresh_keeps_the_stored_copy_when_nothing_answers(
     monkeypatch.setattr(bulk, "build_calendar", unavailable)
     db = _CalendarDb()
     bulk.refresh_calendar(db)
+    assert db.written == {}
+
+
+def test_refresh_leaves_a_copy_checked_today(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The job runs several times a night; only the first one asks bundestag.de.
+    previous = build_calendar(date(2026, 11, 4), _fetcher(ALL_UP), now=NOW)
+
+    def build(today: date, stored: Any = None) -> Any:
+        raise AssertionError("a fresh calendar is not rebuilt")
+
+    monkeypatch.setattr(bulk, "build_calendar", build)
+    db = _CalendarDb(previous.model_dump(mode="json"))
+    bulk.refresh_calendar(db, now=NOW + timedelta(hours=2))
     assert db.written == {}

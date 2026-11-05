@@ -259,6 +259,22 @@ describe('rankFeed', () => {
     expect(day.hot?.section.topic).toBe('climate_environment');
   });
 
+  it('crowns no Hot Topic on a day without counts', () => {
+    const [day] = rankFeed(
+      buildFeed([
+        [
+          sitting('bundestag', '2026-07-10', [
+            section('economy_finance', null, 124),
+            section('climate_environment', null, 60),
+          ]),
+        ],
+      ]),
+      [],
+    );
+    expect(day.hot).toBeNull();
+    expect(day.blocks[0].sections).toHaveLength(2);
+  });
+
   it('sorts the rest of the day by heat and leaves the hot one out', () => {
     const [latest] = rankFeed(days, []);
     expect(latest.blocks[0].sections.map((s) => s.section.topic)).toEqual([

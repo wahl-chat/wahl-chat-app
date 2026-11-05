@@ -68,6 +68,7 @@ from ingestion.feed.models import (
     edition_doc_id,
 )
 from ingestion.feed.parliaments import Parliament, PartyDisplay, party_display_for
+from ingestion.feed.passages import best_speech, locate
 from ingestion.feed.prompts import (
     DebateDraft,
     KeyPointDraft,
@@ -80,7 +81,6 @@ from ingestion.feed.prompts import (
     format_positions_prompt,
     format_vote_prompt,
 )
-from ingestion.feed.passages import best_speech, locate
 from ingestion.feed.reader import AgendaItem, SittingDay, Speech, parse_day
 from ingestion.feed.topics import DigestTopic
 from ingestion.feed.verify import verify_positions
@@ -542,8 +542,7 @@ def citations(
     speeches: list[Speech], label: str, display: dict[str, PartyDisplay]
 ) -> list[DigestCitation]:
     """The debate's first speeches, each linked to its source: the video,
-    else the protocol page it was placed on. A DIP speech's own citation
-    counts pages from the first printed one, short of the contents pages."""
+    else the protocol page it was placed on."""
     found: list[DigestCitation] = []
     seen: set[str] = set()
     for speech in speeches:

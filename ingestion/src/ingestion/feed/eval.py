@@ -50,9 +50,9 @@ from ingestion.feed.builder import (
     DebateUnit,
     FeedBuilder,
     Fraktionen,
+    SpeechRefs,
     build_debate,
     plan_days,
-    SpeechRefs,
     speeches_block,
 )
 from ingestion.feed.parliaments import PARLIAMENTS, Parliament, load_party_display
