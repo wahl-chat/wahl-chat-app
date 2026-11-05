@@ -2,7 +2,7 @@
 
 import { useMediaViewer } from '@/components/providers/media-viewer-provider';
 import StickyInput from '@/components/sticky-input';
-import { feedChatHref } from '@/lib/daily/chat-handoff';
+import { FEED_CHAT_ENABLED, feedChatHref } from '@/lib/daily/chat-handoff';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
 import {
   type DetailItem,
@@ -283,10 +283,12 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
                   <SectionDetail item={item} heat={heat} />
                 )}
               </div>
-              <AskPanel
-                item={item}
-                className="shrink-0 border-t border-[var(--daily-border)]"
-              />
+              {FEED_CHAT_ENABLED && (
+                <AskPanel
+                  item={item}
+                  className="shrink-0 border-t border-[var(--daily-border)]"
+                />
+              )}
             </>
           )}
         </DialogPrimitive.Content>

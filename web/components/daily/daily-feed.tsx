@@ -1,5 +1,6 @@
 'use client';
 
+import { FEED_CHAT_ENABLED } from '@/lib/daily/chat-handoff';
 import { feedToDigests } from '@/lib/daily/editions';
 import {
   buildFeed,
@@ -327,7 +328,7 @@ function DailyFeed({
         )}
       </div>
 
-      {askItem && (
+      {FEED_CHAT_ENABLED && askItem && (
         <AskPanel
           item={askItem}
           withSuggestions={false}

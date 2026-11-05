@@ -4,6 +4,10 @@ import { isUnaffiliated } from './hemicycle';
 import { type DetailItem, itemTitle, protocolLabel } from './items';
 import { sortBySeating } from './seating-order';
 
+/** Off until a chat about the feed's items has a backend: the ask bars on
+ * the feed and in the detail view stay hidden, their logic stays in place. */
+export const FEED_CHAT_ENABLED = false;
+
 /** The chat context whose parties sit in each parliament (mirrors
  * `party_context_id` in the backend's `feed/parliaments.py`). */
 const CHAT_CONTEXTS: Record<DigestParliamentId, string> = {
