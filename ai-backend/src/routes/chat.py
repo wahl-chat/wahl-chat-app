@@ -13,8 +13,9 @@ discriminator, parsed by `@ai-sdk/react` useChat):
   finish-step / finish       — finish events
   data: [DONE]               — stream terminator
 
-Multi-party: SERIALIZED (one party at a time).
-Limitation: true concurrent multiplexed streaming is deferred.
+Multi-party: concurrent fan-in over one SSE stream (events interleave
+per party via data-chat_event.party_id). Comparison questions still
+emit one wahl-chat answer.
 """
 
 import logging
