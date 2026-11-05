@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""When the Bundestag sits next, from two official bundestag.de sources.
+"""The Bundestag's sitting days, from two official bundestag.de sources.
 
 DIP has no calendar: it lists a sitting's protocol only a day ahead. The
 Bundestag publishes the rest:
@@ -10,11 +10,15 @@ Bundestag publishes the rest:
 - the yearly Sitzungskalender page, which lists every sitting week months
   ahead but not which days of it have plenary sittings;
 - the JSON behind bundestag.de/tagesordnung, which has the exact plenary days
-  of a week once its agenda is published, about a week ahead. Special
-  sittings outside the calendar's weeks appear only there.
+  of a week: for any past week, and for a coming one once its agenda is
+  published, about a week ahead. Special sittings outside the calendar's
+  weeks appear only there.
 
 Each source is used when it answers. Weeks come from the calendar, and the
-agenda adds the days it knows and any week the calendar lacks.
+agenda adds the days it knows and any week the calendar lacks. The stored
+calendar reaches back to when the feed begins, so the page can show which
+sitting days have content; days already known are kept rather than fetched
+again, so the past costs nothing night after night.
 """
 
 from __future__ import annotations
@@ -23,11 +27,12 @@ import json
 import logging
 import re
 from collections.abc import Callable
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
 from ingestion.connectors.bundestag_speeches.client import fetch_text
 from ingestion.feed.models import PlenarySitting, SittingCalendar, SittingWeek
+from ingestion.feed.parliaments import FEED_START
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +76,10 @@ _MONTHS = {
 # weeks ahead, so this only stops a link cycle.
 _MAX_AGENDA_WEEKS = 4
 UPCOMING_WEEKS = 6
+# A week's agenda is asked for once it may be published, and again while its
+# days may still change: a sitting can be added or moved at short notice.
+_AGENDA_LEAD = timedelta(days=14)
+_SETTLED_AFTER = timedelta(days=14)
 
 
 class CalendarError(Exception):
@@ -114,13 +123,15 @@ def parse_agenda(payload: dict[str, Any]) -> list[PlenarySitting]:
     ]
 
 
-def sitting_weeks(fetch: Fetch, year: int) -> list[tuple[date, date]]:
-    """Every sitting week of ``year`` and, once its page is out, the next."""
-    pages = year_page_urls(fetch(CALENDAR_INDEX_URL), {year, year + 1})
-    if year not in pages:
-        raise CalendarError(f"{CALENDAR_INDEX_URL} links no page for {year}")
+def sitting_weeks(fetch: Fetch, today: date, since: date) -> list[tuple[date, date]]:
+    """Every sitting week from ``since``'s year to next year, as far as the
+    index still links the year pages. This year's must be there."""
+    years = set(range(since.year, today.year + 2))
+    pages = year_page_urls(fetch(CALENDAR_INDEX_URL), years)
+    if today.year not in pages:
+        raise CalendarError(f"{CALENDAR_INDEX_URL} links no page for {today.year}")
     weeks: list[tuple[date, date]] = []
-    for year, url in sorted(pages.items()):
+    for _, url in sorted(pages.items()):
         found = parse_sitting_weeks(fetch(url))
         if len(found) < MIN_WEEKS_PER_YEAR:
             raise CalendarError(
@@ -129,6 +140,18 @@ def sitting_weeks(fetch: Fetch, year: int) -> list[tuple[date, date]]:
             )
         weeks.extend(found)
     return weeks
+
+
+def iso_week(day: date) -> tuple[int, int]:
+    """The key a week is known by: the calendar's weeks and the agenda's both
+    run Monday to Friday, and a sitting belongs to the week it falls in."""
+    iso = day.isocalendar()
+    return (iso.year, iso.week)
+
+
+def week_agenda_url(day: date) -> str:
+    year, week = iso_week(day)
+    return f"{AGENDA_URL}?year={year}&week={week}"
 
 
 def plenary_sittings(fetch: Fetch) -> list[PlenarySitting]:
@@ -146,14 +169,55 @@ def plenary_sittings(fetch: Fetch) -> list[PlenarySitting]:
     return sittings
 
 
+def week_sittings(
+    fetch: Fetch,
+    weeks: list[tuple[date, date]],
+    today: date,
+    stored: Optional[SittingCalendar],
+) -> tuple[list[PlenarySitting], bool]:
+    """Each week's days: kept from the stored copy once settled, else asked
+    of that week's agenda. Returns the days and whether any agenda answered.
+    A week whose agenda fails keeps what the stored copy has."""
+    known = {
+        iso_week(w.start): w.sittings
+        for w in (stored.weeks if stored else [])
+        if w.sittings
+    }
+    sittings: list[PlenarySitting] = []
+    answered = False
+    for start, end in weeks:
+        kept = known.get(iso_week(start))
+        if kept is not None and end < today - _SETTLED_AFTER:
+            sittings.extend(kept)
+            continue
+        if start > today + _AGENDA_LEAD:
+            continue
+        try:
+            sittings.extend(parse_agenda(json.loads(fetch(week_agenda_url(start)))))
+            answered = True
+        except Exception as exc:  # noqa: BLE001 — one week, not the calendar
+            logger.warning("No agenda for the week of %s: %s", start, exc)
+            sittings.extend(kept or [])
+    return sittings, answered
+
+
 def merge(
     weeks: list[tuple[date, date]], sittings: list[PlenarySitting]
 ) -> list[SittingWeek]:
-    """Calendar weeks with the agenda's days in them; an agenda day outside
-    every calendar week (a special sitting) becomes a week of its own."""
+    """Calendar weeks with the agenda's days in them; agenda days outside
+    every calendar week (a special sitting) form a week of their own, one per
+    calendar week they fall in."""
     merged = [SittingWeek(start=start, end=end) for start, end in weeks]
     for sitting in sittings:
-        week = next((w for w in merged if w.start <= sitting.date <= w.end), None)
+        week = next(
+            (
+                w
+                for w in merged
+                if w.start <= sitting.date <= w.end
+                or iso_week(w.start) == iso_week(sitting.date)
+            ),
+            None,
+        )
         if week is None:
             week = SittingWeek(start=sitting.date, end=sitting.date)
             merged.append(week)
@@ -170,32 +234,53 @@ def build_calendar(
     today: date,
     fetch: Fetch = fetch_text,
     now: Optional[datetime] = None,
+    stored: Optional[SittingCalendar] = None,
+    since: date = FEED_START,
 ) -> SittingCalendar:
-    """The next ``UPCOMING_WEEKS`` sitting weeks from ``today``.
+    """Every sitting week from ``since`` to ``UPCOMING_WEEKS`` weeks ahead of
+    ``today``, with each week's days where known.
 
-    Raises CalendarError when neither source answers, so the caller keeps the
-    copy it has rather than replacing it with nothing.
+    ``stored`` is the copy from the last run: its weeks stay even once the
+    Sitzungskalender index stops linking their year, and its settled days are
+    reused. Raises CalendarError when no source answers, so the caller keeps
+    that copy rather than replacing it with nothing.
     """
     sources: list[str] = []
     weeks: list[tuple[date, date]] = []
-    sittings: list[PlenarySitting] = []
     try:
-        weeks = sitting_weeks(fetch, today.year)
+        weeks = sitting_weeks(fetch, today, since)
         sources.append(CALENDAR_INDEX_URL)
     except Exception as exc:  # noqa: BLE001 — the agenda may still answer
         logger.warning("Sitzungskalender unavailable: %s", exc)
+    # A stored week stays unless a fresh one covers the same calendar week.
+    fresh = {iso_week(start) for start, _ in weeks}
+    weeks += [
+        (w.start, w.end)
+        for w in (stored.weeks if stored else [])
+        if iso_week(w.start) not in fresh
+    ]
+    weeks = sorted(
+        {iso_week(start): (start, end) for start, end in weeks if end >= since}.values()
+    )
+
+    sittings, answered = week_sittings(fetch, weeks, today, stored)
     try:
-        sittings = plenary_sittings(fetch)
-        sources.append(AGENDA_URL)
+        sittings += plenary_sittings(fetch)
+        answered = True
     except Exception as exc:  # noqa: BLE001 — the calendar may still answer
         logger.warning("Bundestag agenda unavailable: %s", exc)
+    if answered:
+        sources.append(AGENDA_URL)
     if not sources:
         raise CalendarError("neither the Sitzungskalender nor the agenda answered")
 
-    upcoming = [w for w in merge(weeks, sittings) if w.end >= today]
+    merged = [w for w in merge(weeks, sittings) if w.end >= since]
+    past = [w for w in merged if w.end < today]
+    ahead = [w for w in merged if w.end >= today][:UPCOMING_WEEKS]
     return SittingCalendar(
         parliament="bundestag",
-        weeks=upcoming[:UPCOMING_WEEKS],
+        since=since,
+        weeks=past + ahead,
         sources=sources,
         checked_at=now or datetime.now(timezone.utc),
     )

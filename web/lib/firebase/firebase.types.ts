@@ -413,9 +413,12 @@ export type SittingWeek = {
   sittings: PlenarySitting[] | null;
 };
 
-/** The parliament's next sitting weeks, written by the feed job. */
+/** The parliament's sitting weeks from `since` (when the feed begins) to
+ * several weeks ahead, written by the feed job from bundestag.de. */
 export type SittingCalendar = {
   parliament: DigestParliamentId;
+  /** ISO day the feed begins; the month grid reaches back to it. */
+  since: string;
   weeks: SittingWeek[];
   sources: string[];
   checked_at: string;

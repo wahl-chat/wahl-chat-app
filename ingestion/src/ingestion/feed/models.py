@@ -243,13 +243,15 @@ class SittingWeek(BaseModel):
 
 
 class SittingCalendar(BaseModel):
-    """The parliament's next sitting weeks, for the feed's "next sitting" line.
-    Several weeks ahead, so a reader can pick the next one by their own date
-    while the stored copy ages until the next run."""
+    """The parliament's sitting weeks from ``since`` (when the feed begins)
+    to several weeks ahead: for the next-sitting status and the month grid of
+    sitting days. The reader picks what is next by their own date, so the
+    stored copy may age until the next run."""
 
     model_config = ConfigDict(extra="forbid")
 
     parliament: ParliamentId
+    since: date
     weeks: list[SittingWeek]
     sources: list[str]
     checked_at: datetime

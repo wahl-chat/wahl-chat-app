@@ -155,6 +155,19 @@ def write_feed(
     )
 
 
+def read_calendar(db: Any, parliament: str) -> SittingCalendar | None:
+    """The stored calendar; None when there is none or it no longer
+    validates, so the next one is built from the sources alone."""
+    snapshot = db.collection(CALENDAR_COLLECTION).document(parliament).get()
+    if not snapshot.exists:
+        return None
+    try:
+        return SittingCalendar.model_validate(snapshot.to_dict())
+    except ValidationError:
+        logger.warning("Stored calendar for %s no longer validates", parliament)
+        return None
+
+
 def write_calendar(db: Any, calendar: SittingCalendar) -> None:
     db.collection(CALENDAR_COLLECTION).document(calendar.parliament).set(
         calendar.model_dump(mode="json")

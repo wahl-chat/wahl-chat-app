@@ -7843,7 +7843,84 @@
   ],
   "calendar": {
     "parliament": "bundestag",
+    "since": "2026-09-01",
     "weeks": [
+      {
+        "start": "2026-09-07",
+        "end": "2026-09-11",
+        "sittings": [
+          {
+            "date": "2026-09-08",
+            "number": 91
+          },
+          {
+            "date": "2026-09-09",
+            "number": 92
+          },
+          {
+            "date": "2026-09-10",
+            "number": 93
+          },
+          {
+            "date": "2026-09-11",
+            "number": 94
+          }
+        ]
+      },
+      {
+        "start": "2026-09-21",
+        "end": "2026-09-25",
+        "sittings": [
+          {
+            "date": "2026-09-23",
+            "number": 95
+          },
+          {
+            "date": "2026-09-24",
+            "number": 96
+          },
+          {
+            "date": "2026-09-25",
+            "number": 97
+          }
+        ]
+      },
+      {
+        "start": "2026-10-05",
+        "end": "2026-10-09",
+        "sittings": [
+          {
+            "date": "2026-10-07",
+            "number": 98
+          },
+          {
+            "date": "2026-10-08",
+            "number": 99
+          },
+          {
+            "date": "2026-10-09",
+            "number": 100
+          }
+        ]
+      },
+      {
+        "start": "2026-10-12",
+        "end": "2026-10-16",
+        "sittings": [
+          {
+            "date": "2026-10-14",
+            "number": 101
+          },
+          {
+            "date": "2026-10-15",
+            "number": 102
+          },
+          {
+            "date": "2026-10-16",
+            "number": 103
+          }
+        ]
+      },
       {
         "start": "2026-11-02",
         "end": "2026-11-06",
@@ -7892,6 +7969,6 @@
       "https://www.bundestag.de/parlament/plenum/sitzungskalender",
       "https://www.bundestag.de/apps/plenar/plenar/conferenceWeekJSON"
     ],
-    "checked_at": "2026-11-04T15:36:01.127494Z"
+    "checked_at": "2026-11-05T09:14:32.880299Z"
   }
 }

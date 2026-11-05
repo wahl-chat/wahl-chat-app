@@ -934,6 +934,44 @@ export async function getSittingCalendar(
   );
 }
 
+async function getEditionDatesImpl(
+  parliament: DigestParliamentId,
+): Promise<string[]> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const editions = await getDocs(
+    query(
+      collection(serverDb, 'feed_editions'),
+      where('parliament', '==', parliament),
+      orderBy('date', 'desc'),
+    ),
+  );
+  // A day whose items were all retracted lists none: nothing to show.
+  return rejectEmpty(
+    editions.docs
+      .map((d) => d.data() as FeedEdition)
+      .filter((edition) => edition.item_ids.length > 0)
+      .map((edition) => edition.date),
+  );
+}
+
+/** The days the parliament's feed has content for, newest first: the sitting
+ * calendar shows them as online. The feed only reaches back to its start, so
+ * this stays a few dozen small documents a year. */
+export async function getEditionDates(
+  parliament: DigestParliamentId,
+): Promise<string[]> {
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getEditionDatesImpl,
+        ['getEditionDates', 'v1', parliament],
+        [CacheTags.FEED],
+      )(parliament),
+    [],
+    `FAILED to fetch the edition dates for "${parliament}"`,
+  );
+}
+
 export async function getSystemStatus() {
   const path = '/system_status/llm_status';
   try {

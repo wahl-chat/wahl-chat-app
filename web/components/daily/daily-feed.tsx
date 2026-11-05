@@ -32,7 +32,6 @@ import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 import DailyDaySection from './daily-day-section';
 import { AskPanel, DailyDetailDialog } from './daily-detail-dialog';
 import { ParliamentSelector, TopicPills } from './daily-filters';
-import NextSitting from './next-sitting';
 
 const ITEM_PARAM = 'item';
 
@@ -49,8 +48,10 @@ type Props = {
   initialItem: string | undefined;
   /** The day of a shared item, which may be older than the first slice. */
   linkedDay?: ParliamentFeed | null;
-  /** The Bundestag's next sitting weeks; null hides the line. */
+  /** The Bundestag's sitting weeks, for the parliament field. */
   calendar?: SittingCalendar | null;
+  /** The days the Bundestag's feed has content for. */
+  editionDates?: string[];
 };
 
 type View = {
@@ -145,6 +146,7 @@ function DailyFeed({
   initialItem,
   linkedDay,
   calendar = null,
+  editionDates = [],
 }: Props) {
   const [states, setStates] = useState<StateSelection>(
     initialStates ?? DEFAULT_SELECTION,
@@ -157,6 +159,8 @@ function DailyFeed({
     landtag_bw: [feeds.landtag_bw],
   }));
   const [loadingOlder, setLoadingOlder] = useState(false);
+  // A day chosen in the calendar, scrolled to once it is rendered.
+  const [jumpTarget, setJumpTarget] = useState<string | null>(null);
 
   // A link's land param wins; otherwise restore this device's last choice.
   useEffect(() => {
@@ -181,6 +185,25 @@ function DailyFeed({
     [lists, topics],
   );
   const older = olderCursors(pages, parliamentsFor(states));
+
+  useEffect(() => {
+    if (!jumpTarget) {
+      return;
+    }
+    const section = document.getElementById(`tag-${jumpTarget}`);
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Keyboard and screen reader users land on the day too.
+      section.focus({ preventScroll: true });
+      setJumpTarget(null);
+    } else if (topics.length > 0) {
+      // A topic filter hides the day; it is back on the next render.
+      setTopics([]);
+      syncUrl({ states, topics: [], item: openKey });
+    } else {
+      setJumpTarget(null);
+    }
+  }, [jumpTarget, days, topics, states, openKey]);
 
   const loadOlder = async () => {
     setLoadingOlder(true);
@@ -234,6 +257,26 @@ function DailyFeed({
     storeStates(next);
     syncUrl({ ...view, states: next });
   };
+  /** Show a sitting day from the calendar: load older slices until one
+   * holds it, lift a topic filter that hides it, then scroll to it. */
+  const jumpToDay = async (date: string) => {
+    const loaded = [...pages.bundestag];
+    try {
+      for (
+        let last = loaded.at(-1);
+        last?.from && last.hasOlder && date < last.from;
+        last = loaded.at(-1)
+      ) {
+        loaded.push(await getOlderParliamentFeed('bundestag', last.from));
+      }
+    } catch {
+      toast.error('Dieser Tag konnte nicht geladen werden.');
+      return;
+    }
+    setPages((current) => ({ ...current, bundestag: loaded }));
+    setJumpTarget(date);
+  };
+
   const changeTopics = (next: string[]) => {
     setTopics(next);
     syncUrl({ ...view, topics: next });
@@ -245,11 +288,14 @@ function DailyFeed({
 
   return (
     <div className="flex flex-col gap-4 pt-4">
-      <ParliamentSelector states={states} onChange={changeStates} />
+      <ParliamentSelector
+        states={states}
+        onChange={changeStates}
+        calendar={calendar}
+        editionDates={editionDates}
+        onJumpToDay={jumpToDay}
+      />
       <TopicPills topics={topics} onChange={changeTopics} />
-      {parliamentsFor(states).includes('bundestag') && (
-        <NextSitting calendar={calendar} />
-      )}
 
       <div className="flex flex-col gap-12 pt-2">
         {days.length === 0 ? (

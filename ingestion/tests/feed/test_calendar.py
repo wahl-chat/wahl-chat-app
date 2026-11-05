@@ -18,6 +18,7 @@ from ingestion.feed.calendar import (
     parse_german_date,
     parse_sitting_weeks,
 )
+from ingestion.feed.models import SittingWeek
 
 INDEX_HTML = """
 <a href="/parlament/plenum/sitzungskalender/bt2026-1084980">2026</a>
@@ -67,10 +68,22 @@ WEEK_45 = _agenda(
     [(104, "4. November 2026"), (105, "5. November 2026"), (106, "6. November 2026")],
     previous={"week": 42, "year": 2026},
 )
+WEEK_41 = _agenda(
+    [(98, "7. Oktober 2026"), (99, "8. Oktober 2026"), (100, "9. Oktober 2026")]
+)
+WEEK_42 = _agenda(
+    [(101, "14. Oktober 2026"), (102, "15. Oktober 2026"), (103, "16. Oktober 2026")]
+)
 
 
-def _fetcher(pages: dict[str, str]) -> Any:
+def _week(number: int) -> str:
+    return f"{AGENDA_URL}?year=2026&week={number}"
+
+
+def _fetcher(pages: dict[str, str], asked: list[str] | None = None) -> Any:
     def fetch(url: str) -> str:
+        if asked is not None:
+            asked.append(url)
         if url not in pages:
             raise ConnectionError(url)
         return pages[url]
@@ -83,8 +96,15 @@ ALL_UP = {
     YEAR_2026: PAGE_2026,
     YEAR_2027: PAGE_2027,
     AGENDA_URL: WEEK_45,
+    _week(41): WEEK_41,
+    _week(42): WEEK_42,
+    _week(45): WEEK_45,
 }
 NOW = datetime(2026, 11, 4, 5, tzinfo=timezone.utc)
+
+
+def _days(week: SittingWeek) -> list[tuple[date, int]]:
+    return [(s.date, s.number) for s in week.sittings or []]
 
 
 def test_year_page_ranges_are_deduped_and_ordered() -> None:
@@ -107,24 +127,35 @@ def test_german_dates() -> None:
         parse_german_date("4. Brumaire 2026")
 
 
-def test_agenda_days_fill_their_calendar_week() -> None:
+def test_the_calendar_reaches_back_to_the_feeds_start_with_exact_days() -> None:
     calendar = build_calendar(date(2026, 11, 4), _fetcher(ALL_UP), now=NOW)
-    first, second = calendar.weeks[:2]
-    assert (first.start, first.end) == (date(2026, 11, 2), date(2026, 11, 6))
-    assert [(s.date, s.number) for s in first.sittings or []] == [
+    assert calendar.since == date(2026, 9, 1)
+    # January to April are before the feed: left out.
+    assert calendar.weeks[0].start == date(2026, 10, 5)
+    october, october_2, november = calendar.weeks[:3]
+    assert _days(october)[0] == (date(2026, 10, 7), 98)
+    assert _days(october_2)[-1] == (date(2026, 10, 16), 103)
+    assert (november.start, november.end) == (date(2026, 11, 2), date(2026, 11, 6))
+    assert _days(november) == [
         (date(2026, 11, 4), 104),
         (date(2026, 11, 5), 105),
         (date(2026, 11, 6), 106),
     ]
-    assert (second.start, second.sittings) == (date(2026, 11, 9), None)
+    assert (calendar.weeks[3].start, calendar.weeks[3].sittings) == (
+        date(2026, 11, 9),
+        None,
+    )
     assert calendar.sources == [CALENDAR_INDEX_URL, AGENDA_URL]
 
 
-def test_only_weeks_not_yet_over_are_kept_including_next_year() -> None:
+def test_weeks_ahead_stop_after_upcoming_weeks_including_next_year() -> None:
     calendar = build_calendar(date(2026, 12, 12), _fetcher(ALL_UP), now=NOW)
-    assert calendar.weeks[0].start == date(2026, 12, 14)
-    assert calendar.weeks[1].start == date(2027, 1, 11)
-    assert len(calendar.weeks) == 6
+    ahead = [w for w in calendar.weeks if w.end >= date(2026, 12, 12)]
+    assert ahead[0].start == date(2026, 12, 14)
+    assert ahead[1].start == date(2027, 1, 11)
+    assert len(ahead) == 6
+    # The past since the feed began stays.
+    assert calendar.weeks[0].start == date(2026, 10, 5)
 
 
 def test_agenda_follows_next_links() -> None:
@@ -133,36 +164,91 @@ def test_agenda_follows_next_links() -> None:
         AGENDA_URL: _agenda(
             [(104, "4. November 2026")], next={"week": 46, "year": 2026}
         ),
-        f"{AGENDA_URL}?year=2026&week=46": _agenda([(107, "11. November 2026")]),
+        _week(46): _agenda([(107, "11. November 2026")]),
     }
     calendar = build_calendar(date(2026, 11, 7), _fetcher(pages), now=NOW)
-    assert calendar.weeks[0].sittings is not None
-    assert calendar.weeks[0].sittings[0].number == 107
+    week_46 = next(w for w in calendar.weeks if w.start == date(2026, 11, 9))
+    assert _days(week_46) == [(date(2026, 11, 11), 107)]
 
 
-def test_a_special_sitting_outside_the_calendar_gets_its_own_week() -> None:
-    pages = {**ALL_UP, AGENDA_URL: _agenda([(107, "21. Oktober 2026")])}
+def test_special_sittings_outside_the_calendar_form_one_week() -> None:
+    pages = {
+        **ALL_UP,
+        AGENDA_URL: _agenda([(107, "21. Oktober 2026"), (108, "22. Oktober 2026")]),
+    }
     calendar = build_calendar(date(2026, 10, 19), _fetcher(pages), now=NOW)
-    first = calendar.weeks[0]
-    assert (first.start, first.end) == (date(2026, 10, 21), date(2026, 10, 21))
+    special = next(w for w in calendar.weeks if w.start == date(2026, 10, 21))
+    assert special.end == date(2026, 10, 22)
+    assert [n for _, n in _days(special)] == [107, 108]
 
 
-def test_recess_agenda_leaves_weeks_without_days() -> None:
-    pages = {**ALL_UP, AGENDA_URL: _agenda([])}
-    calendar = build_calendar(date(2026, 10, 20), _fetcher(pages), now=NOW)
-    assert calendar.weeks[0].start == date(2026, 11, 2)
-    assert all(w.sittings is None for w in calendar.weeks)
+def test_weeks_too_far_ahead_are_not_asked_for() -> None:
+    asked: list[str] = []
+    calendar = build_calendar(
+        date(2026, 10, 20), _fetcher({**ALL_UP, AGENDA_URL: _agenda([])}, asked)
+    )
+    later = next(w for w in calendar.weeks if w.start == date(2026, 11, 9))
+    assert later.sittings is None
+    assert _week(46) not in asked
+
+
+def test_settled_days_are_reused_without_asking_again() -> None:
+    stored = build_calendar(date(2026, 11, 4), _fetcher(ALL_UP), now=NOW)
+    asked: list[str] = []
+    pages = {k: v for k, v in ALL_UP.items() if k not in (_week(41), _week(42))}
+    calendar = build_calendar(
+        date(2026, 11, 20), _fetcher(pages, asked), now=NOW, stored=stored
+    )
+    assert _week(41) not in asked and _week(42) not in asked
+    assert _days(calendar.weeks[0])[0] == (date(2026, 10, 7), 98)
+
+
+def test_a_recent_week_is_asked_again_and_a_failure_keeps_its_days() -> None:
+    stored = build_calendar(
+        date(2026, 11, 4),
+        _fetcher({**ALL_UP, _week(45): _agenda([(104, "4. November 2026")])}),
+        now=NOW,
+        stored=None,
+    )
+    # A week that ended days ago may still change: asked again.
+    fresh = build_calendar(date(2026, 11, 10), _fetcher(ALL_UP), stored=stored)
+    november = next(w for w in fresh.weeks if w.start == date(2026, 11, 2))
+    assert len(_days(november)) == 3
+    # Its agenda failing keeps what was stored.
+    failing = {k: v for k, v in ALL_UP.items() if k not in (_week(45), AGENDA_URL)}
+    kept = build_calendar(date(2026, 11, 10), _fetcher(failing), stored=fresh)
+    november = next(w for w in kept.weeks if w.start == date(2026, 11, 2))
+    assert len(_days(november)) == 3
+
+
+def test_stored_weeks_outlive_a_year_page_the_index_drops() -> None:
+    stored = build_calendar(date(2026, 11, 4), _fetcher(ALL_UP), now=NOW)
+    pages = {
+        CALENDAR_INDEX_URL: '<a href="/parlament/plenum/sitzungskalender/bt2027-1158140">',
+        YEAR_2027: PAGE_2027,
+        AGENDA_URL: _agenda([]),
+    }
+    calendar = build_calendar(date(2027, 3, 1), _fetcher(pages), stored=stored)
+    assert calendar.weeks[0].start == date(2026, 10, 5)
+    assert _days(calendar.weeks[0])[0] == (date(2026, 10, 7), 98)
 
 
 def test_either_source_alone_is_enough() -> None:
-    no_agenda = {k: v for k, v in ALL_UP.items() if k != AGENDA_URL}
+    no_agenda = {
+        k: v
+        for k, v in ALL_UP.items()
+        if k not in (AGENDA_URL, _week(41), _week(42), _week(45))
+    }
     assert build_calendar(date(2026, 11, 4), _fetcher(no_agenda)).sources == [
         CALENDAR_INDEX_URL
     ]
     agenda_only = {AGENDA_URL: WEEK_45}
     calendar = build_calendar(date(2026, 11, 4), _fetcher(agenda_only))
     assert calendar.sources == [AGENDA_URL]
-    assert calendar.weeks[0].start == date(2026, 11, 4)
+    # The agenda's days form one week, not one per day.
+    assert [(w.start, w.end) for w in calendar.weeks] == [
+        (date(2026, 11, 4), date(2026, 11, 6))
+    ]
 
 
 def test_a_year_page_with_too_few_weeks_is_not_trusted() -> None:
@@ -183,31 +269,45 @@ def test_no_answer_at_all_raises() -> None:
 
 
 class _CalendarDb:
-    def __init__(self) -> None:
+    def __init__(self, stored: dict | None = None) -> None:
+        self.stored = stored
         self.written: dict[tuple[str, str], dict] = {}
 
     def collection(self, name: str) -> Any:
         def document(doc_id: str) -> Any:
             return SimpleNamespace(
-                set=lambda data: self.written.__setitem__((name, doc_id), data)
+                set=lambda data: self.written.__setitem__((name, doc_id), data),
+                get=lambda: SimpleNamespace(
+                    exists=self.stored is not None, to_dict=lambda: self.stored
+                ),
             )
 
         return SimpleNamespace(document=document)
 
 
-def test_refresh_writes_the_calendar(monkeypatch: pytest.MonkeyPatch) -> None:
-    calendar = build_calendar(date(2026, 11, 4), _fetcher(ALL_UP), now=NOW)
-    monkeypatch.setattr(bulk, "build_calendar", lambda today: calendar)
-    db = _CalendarDb()
+def test_refresh_builds_on_the_stored_copy_and_writes_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    previous = build_calendar(date(2026, 11, 4), _fetcher(ALL_UP), now=NOW)
+    seen: list[Any] = []
+
+    def build(today: date, stored: Any = None) -> Any:
+        seen.append(stored)
+        return previous
+
+    monkeypatch.setattr(bulk, "build_calendar", build)
+    db = _CalendarDb(previous.model_dump(mode="json"))
     bulk.refresh_calendar(db)
+    assert seen[0] is not None and seen[0].since == date(2026, 9, 1)
     stored = db.written[("feed_calendar", "bundestag")]
-    assert stored["weeks"][0]["sittings"][0] == {"date": "2026-11-04", "number": 104}
+    november = next(w for w in stored["weeks"] if w["start"] == "2026-11-02")
+    assert november["sittings"][0] == {"date": "2026-11-04", "number": 104}
 
 
 def test_refresh_keeps_the_stored_copy_when_nothing_answers(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def unavailable(today: date) -> Any:
+    def unavailable(today: date, stored: Any = None) -> Any:
         raise CalendarError("down")
 
     monkeypatch.setattr(bulk, "build_calendar", unavailable)

@@ -76,6 +76,7 @@ from ingestion.feed.store import (
     carry_over_translations,
     read_edition_item_ids,
     read_items_since,
+    read_calendar,
     vanished_item_ids,
     write_calendar,
     write_feed,
@@ -536,14 +537,15 @@ def post_revalidate(env: str) -> None:
 
 
 def refresh_calendar(db: Any) -> None:
-    """Store the Bundestag's next sitting weeks, or print them on a dry run.
+    """Store the Bundestag's sitting weeks, or print them on a dry run.
 
     Never fails the run: when bundestag.de does not answer, the stored copy
-    stays, and the web picks its next week by date, so it keeps working.
+    stays, and the web picks what is next by date, so it keeps working.
     """
     today = datetime.now(ZoneInfo("Europe/Berlin")).date()
     try:
-        calendar = build_calendar(today)
+        stored = read_calendar(db, "bundestag") if db is not None else None
+        calendar = build_calendar(today, stored=stored)
     except Exception as exc:  # noqa: BLE001 — a stale calendar beats no feed
         logger.warning("Sitting calendar not refreshed: %s", exc)
         return
@@ -551,9 +553,9 @@ def refresh_calendar(db: Any) -> None:
         print(calendar.model_dump_json(indent=2))
         return
     write_calendar(db, calendar)
-    upcoming = calendar.weeks[0] if calendar.weeks else None
+    upcoming = next((w for w in calendar.weeks if w.end >= today), None)
     print(
-        f"calendar: {len(calendar.weeks)} sitting week(s) ahead"
+        f"calendar: {len(calendar.weeks)} sitting week(s) since {calendar.since}"
         + (f", next {upcoming.start}..{upcoming.end}" if upcoming else "")
     )
 

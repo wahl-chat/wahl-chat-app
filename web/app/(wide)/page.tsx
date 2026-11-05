@@ -3,6 +3,7 @@ import { getLocalPreviewDigests } from '@/lib/daily/local-preview';
 import { parseStateParam } from '@/lib/daily/region';
 import { parseTopicsParam } from '@/lib/daily/topics';
 import {
+  getEditionDates,
   getLinkedFeedDay,
   getParliamentFeed,
   getSittingCalendar,
@@ -49,12 +50,14 @@ async function HomePage({ searchParams }: Props) {
 
   // Only the Bundestag is in the feed for now (see `DAILY_STATES`).
   const item = typeof params.item === 'string' ? params.item : undefined;
-  const [bundestag, previewDigests, linkedDay, calendar] = await Promise.all([
-    getParliamentFeed('bundestag'),
-    getLocalPreviewDigests(),
-    item ? getLinkedFeedDay(item) : null,
-    getSittingCalendar('bundestag'),
-  ]);
+  const [bundestag, previewDigests, linkedDay, calendar, editionDates] =
+    await Promise.all([
+      getParliamentFeed('bundestag'),
+      getLocalPreviewDigests(),
+      item ? getLinkedFeedDay(item) : null,
+      getSittingCalendar('bundestag'),
+      getEditionDates('bundestag'),
+    ]);
 
   return (
     <DailyFeed
@@ -69,6 +72,7 @@ async function HomePage({ searchParams }: Props) {
       initialItem={item}
       linkedDay={linkedDay}
       calendar={calendar}
+      editionDates={editionDates}
     />
   );
 }

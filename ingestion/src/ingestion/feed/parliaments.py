@@ -10,6 +10,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Literal, Optional
 
@@ -84,6 +85,9 @@ PARLIAMENTS: dict[str, Parliament] = {
 
 # What a run builds without an explicit --parliament.
 FEED_PARLIAMENTS: list[str] = sorted(p.id for p in PARLIAMENTS.values() if p.in_feed)
+# The feed begins after the 2026 summer recess; the sitting calendar reaches
+# back to here, so every day it shows can have content.
+FEED_START = date(2026, 9, 1)
 
 
 @dataclass(frozen=True)

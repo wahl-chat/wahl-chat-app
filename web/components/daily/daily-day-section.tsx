@@ -117,7 +117,10 @@ function DailyDaySection({ day, onOpen }: Props) {
   const { hot, match } = day;
   return (
     <section
-      className="flex flex-col gap-8"
+      id={`tag-${day.date}`}
+      // Focusable from script only, for a jump from the sitting calendar.
+      tabIndex={-1}
+      className="flex scroll-mt-[calc(var(--header-height,4rem)+1rem)] flex-col gap-8"
       aria-label={dayFormat.format(utcDay(day.date))}
     >
       {hot && (

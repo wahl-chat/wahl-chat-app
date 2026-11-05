@@ -591,14 +591,19 @@ from an item's headline and facts).
   is cut. The job runs several times in a row so a long week finishes the
   same morning. Unchanged items are skipped without LLM calls, so the extra
   runs cost nothing.
-- **Next sitting.** The same job stores the Bundestag's next sitting weeks in
-  `feed_calendar/bundestag` (`feed/calendar.py`), and the page shows one line
-  under the topic filters, so a feed that has not moved reads as a recess.
-  DIP has no calendar, so it comes from bundestag.de: the yearly
-  Sitzungskalender page for the weeks, and the JSON behind
-  bundestag.de/tagesordnung for a week's exact days once its agenda is out.
+- **Sitting days.** The same job stores the Bundestag's sitting weeks from
+  `FEED_START` (1 Sep 2026, when the feed begins; `feed/parliaments.py`) to
+  six weeks ahead in `feed_calendar/bundestag` (`feed/calendar.py`). DIP has
+  no calendar, so it comes from bundestag.de: the yearly Sitzungskalender
+  page for the weeks, and the JSON behind bundestag.de/tagesordnung for each
+  week's exact days (any past week; a coming one once its agenda is out).
+  Settled days are kept from the stored copy instead of asked for again.
   Either source alone is enough; when neither answers, the stored copy stays.
-  The web picks the next week by the reader's date, so the copy may age.
+  The parliament field shows when the Bundestag sits next, and its dropdown
+  a month grid back to `since`: green where `feed_editions` has the day,
+  grey where it sat but nothing is online yet, today dark, coming days
+  outlined. No date in it is written by a model. The web decides what is
+  next by the reader's date, so the copy may age.
 - **What the page loads.** The first visit gets the latest 14 days (anchored
   on the newest edition, so recesses never show an empty feed); "Ältere Tage
   anzeigen" loads the 14 days before the oldest shown, through the
