@@ -227,6 +227,22 @@ export type DigestSpeaker = {
   video_link?: string | null;
 };
 
+/** The passage of a speech a bullet or position draws on. The model names
+ * the speech; the moment and sentence in it are matched by the builder. */
+export type SpeechSource = {
+  speaker: string;
+  /** The speaker's own party (CSU, not the Union). */
+  party_id: string;
+  party_name: string;
+  /** The speech's own video file, and the second the passage starts at. */
+  video_url: string | null;
+  start: number | null;
+  /** The Plenarprotokoll, its PDF page, and the sentence to highlight. */
+  pdf_url: string | null;
+  page: number | null;
+  snippet: string | null;
+};
+
 export type DigestPartyPosition = {
   party_id: string;
   party_name: string;
@@ -235,6 +251,8 @@ export type DigestPartyPosition = {
   /** Null when no position could be written and checked against the
    * speeches; the Fraktion is still listed, with its speakers. */
   position: string | null;
+  /** Where `position` comes from; absent on older items. */
+  sources?: SpeechSource[];
 };
 
 export type DigestAudioSummary = {
@@ -267,6 +285,8 @@ export type DigestSessionSection = {
   audio?: DigestAudioSummary | null;
   /** Fields below are absent on older digests. Exactly three bullets. */
   key_points?: string[];
+  /** Where each of `key_points` comes from, by index; absent on older items. */
+  key_point_sources?: SpeechSource[][];
   /** Estimated from the speeches' word count. */
   debate_minutes?: number | null;
   opening_quote?: DigestQuote | null;
@@ -329,6 +349,8 @@ export type DebateFacts = {
     party_name: string;
     color: string;
     speakers: DigestSpeaker[];
+    /** Where the position comes from; absent on older items. */
+    position_sources?: SpeechSource[];
   }[];
   video_url: string | null;
   /** Unused: heat comes from `interjections`. Older items carry the
@@ -343,6 +365,9 @@ export type DebateFacts = {
   /** Calls from the floor, objections, mocking laughter and unrest the
    * protocol records during the debate; null or absent until counted. */
   interjections?: number | null;
+  /** Where each bullet of `content.*.key_points` comes from, by index;
+   * absent on older items. Objects, since Firestore nests no arrays. */
+  key_point_sources?: { sources: SpeechSource[] }[];
 };
 
 export type VoteFacts = {

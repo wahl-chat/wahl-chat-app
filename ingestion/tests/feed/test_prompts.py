@@ -28,7 +28,7 @@ def _sha(text: str) -> str:
 def test_generation_prompts_are_unchanged_for_this_prompt_version() -> None:
     # The stored items were generated from exactly these prompts; a change
     # must bump PROMPT_VERSION, which regenerates them.
-    assert PROMPT_VERSION == "9"
+    assert PROMPT_VERSION == "10"
     assert (
         _sha(format_vote_prompt("Bundestag", "[V1] Antrag"))
         == "8db80234efa72878bab550b52df627fd9f9ef54d92113abe8e916bbe2d68d56c"
@@ -40,18 +40,18 @@ def test_generation_prompts_are_unchanged_for_this_prompt_version() -> None:
                 "24.09.2026",
                 "Wohnungsbau",
                 "spd, cdu",
-                "- Anna (spd): Wohnungen",
+                "- [R1] Anna (spd): Wohnungen",
             )
         )
-        == "7a0a3689180d2fa87a3e526c41e21de877443b64d5be01b602277a29beeecf00"
+        == "417fd850cb8a794f7c7b3ef03c2543f9b2eccd44c5a455dead320e282c28d735"
     )
     assert (
         _sha(
             format_positions_prompt(
-                "Bundestag", "Wohnungsbau", "cdu", "- Bernd (cdu): Kosten"
+                "Bundestag", "Wohnungsbau", "cdu", "- [R1] Bernd (cdu): Kosten"
             )
         )
-        == "c601fb27a26f7b51fb8b25b85082066a5cff80e193cbc6ce7c96cafd778bac34"
+        == "02c71f75e0b118e1f83808bf3b9b3473fc1c0c59bb612d1ee9af3180d8114a34"
     )
     assert (
         _sha(

@@ -54,6 +54,35 @@ class DigestSpeaker(BaseModel):
     video_link: Optional[str] = None
 
 
+class SpeechSource(BaseModel):
+    """The passage of one speech a bullet or position draws on. The model
+    names the speech; the moment and sentence inside it are matched by code
+    (``passages.locate``), never written by the model."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    speaker: str
+    # The speaker's own party (CSU, not the Union), as on the citations.
+    party_id: str
+    party_name: str
+    # The speech's own video file and the second the passage starts at.
+    video_url: Optional[str] = None
+    start: Optional[float] = None
+    # The Plenarprotokoll, its PDF page, and the sentence to highlight there.
+    pdf_url: Optional[str] = None
+    page: Optional[int] = None
+    snippet: Optional[str] = None
+
+
+class KeyPointSources(BaseModel):
+    """One bullet's passages. An object rather than a bare list: Firestore
+    stores no array directly inside another."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    sources: list[SpeechSource] = Field(default_factory=list)
+
+
 class DigestQuote(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -93,7 +122,7 @@ FeedItemStatus = Literal["published", "retracted"]
 
 # Bump when the stored feed shape gains or changes a field. Part of every
 # item's input_hash, so stored items are rebuilt in the new shape.
-FEED_FORMAT_VERSION = "2"
+FEED_FORMAT_VERSION = "3"
 
 
 class LocalizedPosition(BaseModel):
@@ -131,6 +160,9 @@ class DebateParty(BaseModel):
     party_name: str
     color: str
     speakers: list[DigestSpeaker]
+    # Where the Fraktion's position sentence comes from; empty while it has
+    # no position, and on items stored before sources were kept.
+    position_sources: list[SpeechSource] = Field(default_factory=list)
 
 
 class DebateFacts(BaseModel):
@@ -158,6 +190,10 @@ class DebateFacts(BaseModel):
     # protocol records during the debate. Per minute of debate, it is the
     # heat the page shows. None until counted.
     interjections: Optional[int] = None
+    # Where each bullet of ``content.*.key_points`` comes from, by index; the
+    # translation keeps the bullets' count, so one list serves every locale.
+    # Empty on items stored before sources were kept.
+    key_point_sources: list[KeyPointSources] = Field(default_factory=list)
 
 
 class VoteFacts(BaseModel):

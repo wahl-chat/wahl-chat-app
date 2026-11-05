@@ -10,12 +10,13 @@ import pytest
 
 from ingestion.feed.builder import (
     FeedBuilder,
+    citations,
     plan_days,
     speeches_block,
     vote_description,
 )
 from ingestion.feed.items import debate_input_hash
-from ingestion.feed.models import FeedItem
+from ingestion.feed.models import FeedItem, SpeechSource
 from ingestion.feed.prompts import (
     DebateDraft,
     OpeningQuoteDraft,
@@ -27,6 +28,7 @@ from ingestion.feed.reader import assemble_speeches
 from tests.feed.samples import (
     BUNDESTAG,
     DAY,
+    DISPLAY,
     FakeLLM,
     build,
     default_speeches,
@@ -352,3 +354,123 @@ def test_vote_description_cuts_long_intros_at_a_sentence() -> None:
     assert described is not None
     assert described.endswith(". …")
     assert len(described) <= 1503
+
+
+def _speakers(sources: list[SpeechSource]) -> list[str]:
+    return [s.speaker for s in sources]
+
+
+def test_the_model_names_speeches_by_their_place_in_the_debate() -> None:
+    llm = FakeLLM()
+    build(llm, votes=[])
+    prompt = llm.prompts[llm.calls.index(DebateDraft)]
+    speeches = prompt.split("Reden:\n", 1)[1]
+    assert speeches.splitlines()[:3] == [
+        "- [R1] Anna (spd): Wir brauchen mehr Wohnungen.",
+        "- [R2] Bernd (cdu): Erst die Kosten prüfen.",
+        "- [R3] Clara (csu): Bayern baut schon.",
+    ]
+
+
+def test_a_retried_position_names_speeches_by_the_same_ids() -> None:
+    llm = FakeLLM(omit=("cdu",))
+    debate = _debate(build(llm, votes=[]))
+    retry = llm.prompts[llm.calls.index(PositionsDraft)]
+    assert "- [R2] Bernd (cdu)" in retry
+    assert debate.debate is not None
+    sources = {p.party_id: p.position_sources for p in debate.debate.parties}
+    assert _speakers(sources["cdu"]) == ["Bernd"]
+
+
+def test_each_bullet_keeps_the_speeches_it_names() -> None:
+    debate = _debate(
+        build(
+            FakeLLM(key_point_sources=[["R9"], ["R1", "r1", "[R2]", "R3"], []]),
+            votes=[],
+        )
+    )
+    assert debate.debate is not None
+    # Unknown ids are dropped, each speech counts once, two at most.
+    assert [_speakers(k.sources) for k in debate.debate.key_point_sources] == [
+        [],
+        ["Anna", "Bernd"],
+        [],
+    ]
+
+
+def test_a_position_cites_only_its_own_fraktion() -> None:
+    debate = _debate(
+        build(FakeLLM(position_sources={"spd": ["R2"], "cdu": ["R3", "R1"]}), votes=[])
+    )
+    assert debate.debate is not None
+    sources = {p.party_id: p.position_sources for p in debate.debate.parties}
+    # Clara (CSU) speaks for the Union; Anna's speech is not the Union's. The
+    # SPD named only a speech of another Fraktion, so its own stands in.
+    assert _speakers(sources["cdu"]) == ["Clara"]
+    assert _speakers(sources["spd"]) == ["Anna"]
+
+
+def test_a_source_opens_the_video_at_the_matching_sentence() -> None:
+    payloads = default_speeches()
+    payloads[0] = speech(
+        "s1",
+        speaker="Anna",
+        party="spd",
+        text="Guten Morgen. Wir brauchen mehr Wohnungen für Familien.",
+        sentences=[
+            ("Guten Morgen.", 1.5),
+            ("Wir brauchen mehr Wohnungen für Familien.", 7.25),
+        ],
+    )
+    llm = FakeLLM(key_points=["Mehr Wohnungen für Familien.", "Zwei.", "Drei."])
+    debate = _debate(build(llm, votes=[], days=sittings(payloads)))
+    assert debate.debate is not None
+    [source] = debate.debate.key_point_sources[0].sources
+    assert (source.start, source.snippet) == (
+        7.25,
+        "Wir brauchen mehr Wohnungen für Familien.",
+    )
+    assert source.video_url == "https://video/s1.mp4"
+    assert source.pdf_url == "https://dserver.bundestag.de/btp/21/21045.pdf"
+    assert (source.party_id, source.party_name) == ("spd", "SPD")
+
+
+def test_ids_echoed_into_the_texts_are_dropped() -> None:
+    llm = FakeLLM(key_points=["Eins [R1].", "Zwei (R1, R2).", "Drei."])
+    debate = _debate(build(llm, votes=[]))
+    assert debate.content["de"].key_points == ["Eins.", "Zwei.", "Drei."]
+
+
+def test_an_item_stored_before_sources_were_kept_still_validates() -> None:
+    stored = _debate(build(FakeLLM(), votes=[])).model_dump(mode="json")
+    del stored["debate"]["key_point_sources"]
+    for party in stored["debate"]["parties"]:
+        del party["position_sources"]
+    item = FeedItem.model_validate(stored)
+    assert item.debate is not None
+    assert item.debate.key_point_sources == []
+
+
+def _has_nested_array(value: Any) -> bool:
+    if isinstance(value, list):
+        return any(isinstance(v, list) or _has_nested_array(v) for v in value)
+    if isinstance(value, dict):
+        return any(_has_nested_array(v) for v in value.values())
+    return False
+
+
+def test_a_built_debate_stores_in_firestore_without_nested_arrays() -> None:
+    # Firestore refuses an array directly inside another.
+    debate = _debate(build(FakeLLM(), votes=[]))
+    assert not _has_nested_array(debate.model_dump(mode="json"))
+
+
+def test_a_speech_without_video_is_cited_at_its_placed_protocol_page() -> None:
+    [found] = assemble_speeches(
+        [speech("d", speaker="Anna", party="spd", text="Rede.")]
+    )
+    found.video_uri = None
+    found.citation_url = "https://dserver.bundestag.de/btp/21/21045.pdf#page=3"
+    found.protocol_page_url = "https://dserver.bundestag.de/btp/21/21045.pdf#page=13"
+    [cited] = citations([found], "Wohnungsbau", DISPLAY)
+    assert cited.url == found.protocol_page_url

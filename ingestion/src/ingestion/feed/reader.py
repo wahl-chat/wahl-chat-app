@@ -15,7 +15,7 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, timezone
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from qdrant_client import QdrantClient, models
 
@@ -129,6 +129,13 @@ def parse_day(value: Any) -> Optional[date]:
 # ---------------------------------------------------------------------------
 
 
+@dataclass(frozen=True)
+class SpokenSentence:
+    text: str
+    # Seconds into the speech's own video file.
+    ts_start: float
+
+
 @dataclass
 class Speech:
     source_item_id: str
@@ -152,6 +159,14 @@ class Speech:
     # looks it up in the protocol XML.
     protocol_page_url: Optional[str] = None
     content_hashes: list[str] = field(default_factory=list)
+    # The transcript sentence by sentence, timed against the video; only
+    # openparliament.tv aligns speeches, so DIP speeches have none.
+    sentences: list[SpokenSentence] = field(default_factory=list)
+    # The protocol PDF page a sentence of this speech stands on; set once the
+    # protocol has placed the speech (see protocol_pages.apply_protocols).
+    page_of: Optional[Callable[[str], Optional[int]]] = field(
+        default=None, repr=False, compare=False
+    )
 
 
 @dataclass
@@ -200,6 +215,22 @@ def _strip_fragment(url: Optional[str]) -> Optional[str]:
     return url.split("#", 1)[0] if url else None
 
 
+def _spoken_sentences(chunks: list[dict]) -> list[SpokenSentence]:
+    """The timed sentences of every chunk, in order. A sentence a chunk
+    boundary repeats is kept once."""
+    found: dict[float, SpokenSentence] = {}
+    for chunk in chunks:
+        entries = (chunk.get("meta") or {}).get("sentence_map")
+        for entry in entries if isinstance(entries, list) else []:
+            if not isinstance(entry, dict):
+                continue
+            text = " ".join(str(entry.get("text") or "").split())
+            ts_start = entry.get("ts_start")
+            if text and isinstance(ts_start, (int, float)):
+                found.setdefault(float(ts_start), SpokenSentence(text, float(ts_start)))
+    return sorted(found.values(), key=lambda s: s.ts_start)
+
+
 def _speech_from_chunks(chunks: list[dict]) -> Optional[Speech]:
     chunks = sorted(chunks, key=lambda c: c.get("chunk_index") or 0)
     head = chunks[0]
@@ -209,6 +240,9 @@ def _speech_from_chunks(chunks: list[dict]) -> Optional[Speech]:
     meta = head.get("meta") or {}
     session_key, agenda_slug = parse_speech_key(head.get("speech_key"))
     is_dip = head.get("source") == "dip"
+    # DIP cites the protocol PDF at the speech's page. An op speech carries
+    # its DIP twin's citation as ``transcript_pdf_url``, page and all.
+    pdf_link = head.get("citation_url") if is_dip else meta.get("transcript_pdf_url")
     return Speech(
         source_item_id=str(head.get("source_item_id")),
         source=head.get("source"),
@@ -223,17 +257,12 @@ def _speech_from_chunks(chunks: list[dict]) -> Optional[Speech]:
         agenda_official=meta.get("agenda_item_official"),
         video_uri=meta.get("video_uri"),
         protocol_id=meta.get("protocol_id"),
-        pdf_url=_strip_fragment(head.get("citation_url"))
-        if is_dip
-        else meta.get("transcript_pdf_url"),
+        pdf_url=_strip_fragment(pdf_link),
         session_key=session_key,
         speech_key=head.get("speech_key"),
-        protocol_page_url=(
-            head.get("citation_url")
-            if is_dip and "#page=" in str(head.get("citation_url") or "")
-            else None
-        ),
+        protocol_page_url=pdf_link if "#page=" in str(pdf_link or "") else None,
         content_hashes=[str(c.get("content_hash") or "") for c in chunks],
+        sentences=_spoken_sentences(chunks),
     )
 
 

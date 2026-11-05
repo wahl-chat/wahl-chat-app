@@ -61,13 +61,16 @@ from ingestion.feed.models import (
     DigestSpeaker,
     DigestVoteParty,
     FeedItem,
+    KeyPointSources,
     LocalizedPosition,
+    SpeechSource,
     VoteFacts,
     edition_doc_id,
 )
 from ingestion.feed.parliaments import Parliament, PartyDisplay, party_display_for
 from ingestion.feed.prompts import (
     DebateDraft,
+    KeyPointDraft,
     OpeningQuoteDraft,
     PartyPositionDraft,
     PositionsDraft,
@@ -77,6 +80,7 @@ from ingestion.feed.prompts import (
     format_positions_prompt,
     format_vote_prompt,
 )
+from ingestion.feed.passages import best_speech, locate
 from ingestion.feed.reader import AgendaItem, SittingDay, Speech, parse_day
 from ingestion.feed.topics import DigestTopic
 from ingestion.feed.verify import verify_positions
@@ -104,6 +108,9 @@ _QUOTE_MAX_WORDS = 40
 # copy the suffix into the speaker field.
 _PARTY_SUFFIX_RE = re.compile(r"\s*\([^)]*\)\s*$")
 _KEY_POINTS = 3
+# Sources per bullet or position: the one or two speeches it draws on.
+_SOURCES_PER_SENTENCE = 2
+_SPEECH_REF = "R"
 # The vote connector writes the embed text as "<label>\n\nThemen: …\n\nKontext: <intro>".
 _CONTEXT_MARKER = "Kontext: "
 # Speakers outside any Fraktion: listed with their speeches, but no position
@@ -308,10 +315,13 @@ def clean_questions(questions: list[str]) -> list[str]:
     return list(dict.fromkeys(cleaned))[:_SUGGESTED_QUESTIONS]
 
 
-def clean_key_points(points: list[str]) -> list[str]:
+def clean_key_points(points: list[KeyPointDraft]) -> list[KeyPointDraft]:
     """The card layout has room for exactly three bullets; any other count is
     dropped rather than padded or cut, so a bullet never goes missing silently."""
-    cleaned = [p.strip() for p in points if p.strip()]
+    cleaned = [
+        p.model_copy(update={"text": strip_refs(p.text, _SPEECH_REF)}) for p in points
+    ]
+    cleaned = [p for p in cleaned if p.text]
     return cleaned if len(cleaned) == _KEY_POINTS else []
 
 
@@ -347,6 +357,32 @@ class Fraktionen:
         return found
 
 
+class SpeechRefs:
+    """The ids ("R1", "R2", …) that let the model name a debate's speeches:
+    their position in the debate, in the order they were given."""
+
+    def __init__(self, speeches: list[Speech]):
+        self._refs = {
+            s.source_item_id: f"{_SPEECH_REF}{i + 1}" for i, s in enumerate(speeches)
+        }
+        self._speeches = {f"{_SPEECH_REF}{i + 1}": s for i, s in enumerate(speeches)}
+
+    def ref(self, speech: Speech) -> Optional[str]:
+        return self._refs.get(speech.source_item_id)
+
+    def resolve(
+        self, refs: list[str], admit: Callable[[Speech], bool] = lambda _: True
+    ) -> list[Speech]:
+        """The named speeches that exist and pass ``admit``, each once, at
+        most ``_SOURCES_PER_SENTENCE``."""
+        found: dict[str, Speech] = {}
+        for ref in refs:
+            speech = self._speeches.get(ref.strip().strip("[]").upper())
+            if speech is not None and admit(speech):
+                found.setdefault(speech.source_item_id, speech)
+        return list(found.values())[:_SOURCES_PER_SENTENCE]
+
+
 def debate_parties(
     speeches: list[Speech], display: dict[str, PartyDisplay], fraktionen: Fraktionen
 ) -> list[DebateParty]:
@@ -378,19 +414,91 @@ def debate_parties(
     return parties
 
 
+@dataclass
+class GroundedPosition:
+    text: str
+    # The speech ids the model named for it, unchecked.
+    sources: list[str]
+
+
 def ground_positions(
     drafted: list[PartyPositionDraft], spoke: set[str], fraktionen: Fraktionen
-) -> dict[str, str]:
-    """Position text per Fraktion, kept only for Fraktionen that spoke. A
-    second entry for the same Fraktion (CSU next to CDU) is dropped: the first
-    text stands."""
-    positions: dict[str, str] = {}
+) -> dict[str, GroundedPosition]:
+    """Position per Fraktion, kept only for Fraktionen that spoke. A second
+    entry for the same Fraktion (CSU next to CDU) is dropped: the first text
+    stands."""
+    positions: dict[str, GroundedPosition] = {}
     for position in drafted:
         party_id = fraktionen.of(position.party_id)
-        text = position.position.strip()
+        text = strip_refs(position.position.strip(), _SPEECH_REF)
         if party_id in spoke and text and party_id not in positions:
-            positions[party_id] = text
+            positions[party_id] = GroundedPosition(text, position.sources)
     return positions
+
+
+def key_point_sources(
+    points: list[KeyPointDraft],
+    refs: SpeechRefs,
+    display: dict[str, PartyDisplay],
+) -> list[KeyPointSources]:
+    """Each bullet's passages, from the speeches the model named for it. A
+    bullet whose speeches cannot be resolved gets none rather than a guess."""
+    return [
+        KeyPointSources(
+            sources=[
+                locate(point.text, speech, display)
+                for speech in refs.resolve(point.sources)
+            ]
+        )
+        for point in points
+    ]
+
+
+def position_sources(
+    party_id: str,
+    position: GroundedPosition,
+    refs: SpeechRefs,
+    by_party: dict[str, list[Speech]],
+    display: dict[str, PartyDisplay],
+    fraktionen: Fraktionen,
+) -> list[SpeechSource]:
+    """The passages a Fraktion's position comes from, only ever from its own
+    speeches. The sentence was checked against exactly those, so when the
+    model names none of them, the closest one by wording stands in."""
+    speeches = refs.resolve(
+        position.sources, lambda s: fraktionen.of(s.party_id) == party_id
+    )
+    if not speeches:
+        closest = best_speech(position.text, by_party.get(party_id, []))
+        speeches = [closest] if closest else []
+    return [locate(position.text, speech, display) for speech in speeches]
+
+
+def with_position_sources(
+    parties: list[DebateParty],
+    positions: dict[str, GroundedPosition],
+    refs: SpeechRefs,
+    by_party: dict[str, list[Speech]],
+    display: dict[str, PartyDisplay],
+    fraktionen: Fraktionen,
+) -> list[DebateParty]:
+    return [
+        party.model_copy(
+            update={
+                "position_sources": position_sources(
+                    party.party_id,
+                    positions[party.party_id],
+                    refs,
+                    by_party,
+                    display,
+                    fraktionen,
+                )
+            }
+        )
+        if party.party_id in positions
+        else party
+        for party in parties
+    ]
 
 
 def ground_quote(
@@ -433,19 +541,26 @@ def opening_party(speeches: list[Speech], fraktionen: Fraktionen) -> Optional[st
 def citations(
     speeches: list[Speech], label: str, display: dict[str, PartyDisplay]
 ) -> list[DigestCitation]:
-    """The debate's first speeches, each linked to its source."""
+    """The debate's first speeches, each linked to its source: the video,
+    else the protocol page it was placed on. A DIP speech's own citation
+    counts pages from the first printed one, short of the contents pages."""
     found: list[DigestCitation] = []
     seen: set[str] = set()
     for speech in speeches:
-        if not speech.citation_url or speech.citation_url in seen:
+        url = (
+            speech.citation_url
+            if speech.video_uri
+            else speech.protocol_page_url or speech.pdf_url
+        )
+        if not url or url in seen:
             continue
-        seen.add(speech.citation_url)
+        seen.add(url)
         # The logo is the speaker's own party (CSU, not the Union).
         party = party_display_for(speech.party_id, display)
         found.append(
             DigestCitation(
                 title=speech.citation_title or speech.speaker or label,
-                url=speech.citation_url,
+                url=url,
                 speaker=speech.speaker or None,
                 party_id=speech.party_id,
                 party_name=party.name,
@@ -458,9 +573,14 @@ def citations(
     return found
 
 
-def speeches_block(speeches: list[Speech], limit: int = _DEBATE_PROMPT_CHARS) -> str:
-    """The speeches as "- Name (party): text", in order. Over ``limit``, each
-    is shortened by the same share, never below a floor and never dropped."""
+def speeches_block(
+    speeches: list[Speech],
+    limit: int = _DEBATE_PROMPT_CHARS,
+    refs: Optional[SpeechRefs] = None,
+) -> str:
+    """The speeches as "- Name (party): text", in order, each led by its id
+    when ``refs`` is given. Over ``limit``, each is shortened by the same
+    share, never below a floor and never dropped."""
     total = sum(len(s.text) for s in speeches) or 1
     share = min(1.0, limit / total)
     lines = []
@@ -469,7 +589,11 @@ def speeches_block(speeches: list[Speech], limit: int = _DEBATE_PROMPT_CHARS) ->
         if share < 1.0:
             keep = max(_MIN_SPEECH_CHARS, int(keep * share))
         text = " ".join(speech.text[:keep].split())
-        lines.append(f"- {speech.speaker or 'Unbekannt'} ({speech.party_id}): {text}")
+        ref = refs.ref(speech) if refs else None
+        lead = f"[{ref}] " if ref else ""
+        lines.append(
+            f"- {lead}{speech.speaker or 'Unbekannt'} ({speech.party_id}): {text}"
+        )
     return "\n".join(lines)
 
 
@@ -510,12 +634,17 @@ async def _positions_for(
     drafted: list[PartyPositionDraft],
     by_party: dict[str, list[Speech]],
     fraktionen: Fraktionen,
-) -> dict[str, str]:
+) -> dict[str, GroundedPosition]:
     """The drafted positions of ``wanted`` that the speeches support."""
     grounded = ground_positions(drafted, set(wanted), fraktionen)
-    return await verify_positions(
-        builder, parliament.name, agenda.label, grounded, by_party
+    supported = await verify_positions(
+        builder,
+        parliament.name,
+        agenda.label,
+        {party_id: g.text for party_id, g in grounded.items()},
+        by_party,
     )
+    return {p: g for p, g in grounded.items() if p in supported}
 
 
 async def build_debate(
@@ -532,6 +661,7 @@ async def build_debate(
     fraktionen = Fraktionen(dict(parliament.party_aliases))
     by_party = fraktionen.speeches_by(speeches)
     required = [p for p in by_party if p not in NO_FRAKTION]
+    refs = SpeechRefs(speeches)
     try:
         draft, model = await builder.acall(
             format_debate_prompt(
@@ -539,7 +669,7 @@ async def build_debate(
                 plan.day.strftime("%d.%m.%Y"),
                 agenda.label,
                 ", ".join(by_party),
-                speeches_block(speeches),
+                speeches_block(speeches, refs=refs),
             ),
             DebateDraft,
         )
@@ -557,7 +687,7 @@ async def build_debate(
             logger.info("%s: retrying positions for %s", unit.item_id, missing)
             positions.update(
                 await _retry_positions(
-                    builder, parliament, agenda, missing, by_party, fraktionen
+                    builder, parliament, agenda, missing, by_party, fraktionen, refs
                 )
             )
             missing = [p for p in required if p not in positions]
@@ -571,7 +701,15 @@ async def build_debate(
             missing,
         )
 
-    parties = debate_parties(speeches, display, fraktionen)
+    parties = with_position_sources(
+        debate_parties(speeches, display, fraktionen),
+        positions,
+        refs,
+        by_party,
+        display,
+        fraktionen,
+    )
+    key_points = clean_key_points(draft.key_points)
     return FeedItem(
         id=unit.item_id,
         kind="debate",
@@ -588,13 +726,14 @@ async def build_debate(
             opening_quote=ground_quote(
                 draft.opening_quote, speeches, display, fraktionen
             ),
+            key_point_sources=key_point_sources(key_points, refs, display),
         ),
         content=canonical_content(
-            headline=draft.headline.strip(),
-            teaser=draft.summary.strip(),
-            key_points=clean_key_points(draft.key_points),
+            headline=strip_refs(draft.headline.strip(), _SPEECH_REF),
+            teaser=strip_refs(draft.summary.strip(), _SPEECH_REF),
+            key_points=[p.text for p in key_points],
             positions=[
-                LocalizedPosition(party_id=p.party_id, text=positions[p.party_id])
+                LocalizedPosition(party_id=p.party_id, text=positions[p.party_id].text)
                 for p in parties
                 if p.party_id in positions
             ],
@@ -614,6 +753,7 @@ async def top_up_positions(
     parliament: Parliament,
     unit: DebateUnit,
     stored: FeedItem,
+    display: dict[str, PartyDisplay],
 ) -> Optional[FeedItem]:
     """Another attempt at the positions a stored debate still lacks.
 
@@ -625,15 +765,18 @@ async def top_up_positions(
     fraktionen = Fraktionen(dict(parliament.party_aliases))
     by_party = fraktionen.speeches_by(unit.agenda.speeches)
     pending = [p for p in stored.pending_positions if p in by_party]
+    refs = SpeechRefs(unit.agenda.speeches)
     try:
         found = await _retry_positions(
-            builder, parliament, unit.agenda, pending, by_party, fraktionen
+            builder, parliament, unit.agenda, pending, by_party, fraktionen, refs
         )
     except Exception as exc:  # noqa: BLE001
         logger.warning("Positions of %s not retried this run: %s", unit.item_id, exc)
         return None
     canonical = stored.content[CANONICAL_LOCALE]
-    texts = {p.party_id: p.text for p in canonical.positions} | found
+    texts = {p.party_id: p.text for p in canonical.positions} | {
+        p: g.text for p, g in found.items()
+    }
     order = [p.party_id for p in stored.debate.parties] if stored.debate else texts
     content = canonical.model_copy(
         update={
@@ -645,8 +788,18 @@ async def top_up_positions(
         }
     )
     content.source_hash = content_hash(content)
+    debate = stored.debate
+    if debate is not None:
+        debate = debate.model_copy(
+            update={
+                "parties": with_position_sources(
+                    debate.parties, found, refs, by_party, display, fraktionen
+                )
+            }
+        )
     return stored.model_copy(
         update={
+            "debate": debate,
             "content": {**stored.content, CANONICAL_LOCALE: content},
             "pending_positions": [p for p in pending if p not in found],
             "position_attempts": stored.position_attempts + 1,
@@ -661,7 +814,8 @@ async def _retry_positions(
     missing: list[str],
     by_party: dict[str, list[Speech]],
     fraktionen: Fraktionen,
-) -> dict[str, str]:
+    refs: SpeechRefs,
+) -> dict[str, GroundedPosition]:
     """One more attempt for the Fraktionen without a verified position, from
     their own speeches only. Raises when a call fails."""
     speeches = [s for p in missing for s in by_party[p]]
@@ -670,7 +824,7 @@ async def _retry_positions(
             parliament.name,
             agenda.label,
             ", ".join(missing),
-            speeches_block(speeches),
+            speeches_block(speeches, refs=refs),
         ),
         PositionsDraft,
     )
@@ -810,7 +964,7 @@ async def _build_day(
     def top_up_job(
         unit: DebateUnit, stored: FeedItem
     ) -> Callable[[], Awaitable[Optional[FeedItem]]]:
-        return lambda: top_up_positions(builder, parliament, unit, stored)
+        return lambda: top_up_positions(builder, parliament, unit, stored, display)
 
     def vote_job(batch: list[VoteUnit]) -> Callable[[], Awaitable[list[FeedItem]]]:
         async def run() -> list[FeedItem]:

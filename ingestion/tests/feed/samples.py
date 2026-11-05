@@ -16,6 +16,7 @@ from ingestion.feed.models import FeedItem
 from ingestion.feed.parliaments import PARLIAMENTS, PartyDisplay
 from ingestion.feed.prompts import (
     DebateDraft,
+    KeyPointDraft,
     OpeningQuoteDraft,
     PartyPositionDraft,
     PositionCheck,
@@ -38,6 +39,8 @@ DISPLAY = {
 _PARTIES_RE = re.compile(r"keine andere: (.*?)\. Partei-Kennungen", re.DOTALL)
 _CHECK_RE = re.compile(r"^\[(P\d+)\] (\S+): (.*)$", re.MULTILINE)
 _AGENDA_RE = re.compile(r"Tagesordnungspunkt „(.*?)“")
+_SPEECH_LINE_RE = re.compile(r"^- \[(R\d+)\] (.*?) \((\S+)\): (.*)$", re.MULTILINE)
+_FRAKTION = {"csu": "cdu"}
 
 
 def speech(
@@ -51,8 +54,14 @@ def speech(
     day: str = "2026-09-24",
     title: Optional[str] = "Wohnungsbau",
     chunk_hash: Optional[str] = None,
+    sentences: Optional[list[tuple[str, float]]] = None,
 ) -> dict:
     slug = speaker.lower().replace(" ", "-")
+    sentence_map = (
+        {"sentence_map": [{"text": t, "ts_start": ts} for t, ts in sentences]}
+        if sentences
+        else {}
+    )
     return {
         "source_item_id": sid,
         "source": "op",
@@ -70,6 +79,7 @@ def speech(
             "speaker_name": speaker,
             "protocol_id": f"21/{session}",
             "transcript_pdf_url": f"https://dserver.bundestag.de/btp/21/21{session:03d}.pdf",
+            **sentence_map,
         },
     }
 
@@ -132,11 +142,16 @@ def sittings(
 
 
 def _first_speech(prompt: str) -> tuple[str, str]:
-    for line in prompt.splitlines():
-        if line.startswith("- ") and " (" in line and "): " in line:
-            name, rest = line[2:].split(" (", 1)
-            return name, rest.split("): ", 1)[1]
-    return "", ""
+    match = _SPEECH_LINE_RE.search(prompt)
+    return (match.group(2), match.group(4)) if match else ("", "")
+
+
+def _first_ref_of(prompt: str, party_id: str) -> list[str]:
+    """The id of the first speech the Fraktion gave, as a model would name it."""
+    for ref, _name, party, _text in _SPEECH_LINE_RE.findall(prompt):
+        if _FRAKTION.get(party, party) == party_id:
+            return [ref]
+    return []
 
 
 class FakeLLM:
@@ -144,7 +159,9 @@ class FakeLLM:
 
     ``omit`` leaves Fraktionen out of the debate's positions, ``retry_omit``
     out of the retry too; ``reject`` makes the check refuse a sentence that
-    contains it; ``fail`` makes calls for those schemas raise.
+    contains it; ``fail`` makes calls for those schemas raise. Bullets cite
+    the first speech and positions their Fraktion's first, unless
+    ``key_point_sources`` / ``position_sources`` name others.
     """
 
     def __init__(
@@ -157,6 +174,8 @@ class FakeLLM:
         quote: Optional[OpeningQuoteDraft] = None,
         topics: Optional[list[Any]] = None,
         key_points: Optional[list[str]] = None,
+        key_point_sources: Optional[list[list[str]]] = None,
+        position_sources: Optional[dict[str, list[str]]] = None,
     ) -> None:
         self.omit = omit
         self.retry_omit = retry_omit
@@ -165,6 +184,8 @@ class FakeLLM:
         self.quote = quote
         self.topics = topics
         self.key_points = key_points
+        self.key_point_sources = key_point_sources
+        self.position_sources = position_sources
         self.calls: list[type] = []
         self.prompts: list[str] = []
 
@@ -179,6 +200,11 @@ class FakeLLM:
     def _parties(self, prompt: str) -> list[str]:
         match = _PARTIES_RE.search(prompt)
         return [p.strip() for p in match.group(1).split(",")] if match else []
+
+    def _position_sources(self, prompt: str, party_id: str) -> list[str]:
+        if self.position_sources is not None:
+            return self.position_sources.get(party_id, [])
+        return _first_ref_of(prompt, party_id)
 
     def _answer(self, prompt: str, schema: type) -> Any:
         if schema is VoteEnrichmentBatch:
@@ -211,11 +237,27 @@ class FakeLLM:
                 headline=f"Debatte: {agenda}",
                 summary=f"Es ging um Antrag 21/123 zu {agenda}.",
                 positions=[
-                    PartyPositionDraft(party_id=p, position=f"Fordern Position {p}.")
+                    PartyPositionDraft(
+                        party_id=p,
+                        position=f"Fordern Position {p}.",
+                        sources=self._position_sources(prompt, p),
+                    )
                     for p in self._parties(prompt)
                     if p not in self.omit
                 ],
-                key_points=self.key_points or ["Eins.", "Zwei.", "Drei."],
+                key_points=[
+                    KeyPointDraft(
+                        text=text,
+                        sources=(
+                            self.key_point_sources[n]
+                            if self.key_point_sources
+                            else ["R1"]
+                        ),
+                    )
+                    for n, text in enumerate(
+                        self.key_points or ["Eins.", "Zwei.", "Drei."]
+                    )
+                ],
                 opening_quote=self.quote
                 or OpeningQuoteDraft(speaker=speaker, quote=text),
                 suggested_questions=["Was heißt das für mich?"],
@@ -223,7 +265,11 @@ class FakeLLM:
         if schema is PositionsDraft:
             return PositionsDraft(
                 positions=[
-                    PartyPositionDraft(party_id=p, position=f"Retry Position {p}.")
+                    PartyPositionDraft(
+                        party_id=p,
+                        position=f"Retry Position {p}.",
+                        sources=self._position_sources(prompt, p),
+                    )
                     for p in self._parties(prompt)
                     if p not in self.retry_omit
                 ]

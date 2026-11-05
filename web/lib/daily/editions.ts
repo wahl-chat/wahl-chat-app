@@ -19,14 +19,16 @@ function toSection(
     topics: item.topics,
     headline: content.headline,
     summary: content.teaser ?? '',
-    positions: facts.parties.map((party) => ({
+    positions: facts.parties.map(({ position_sources, ...party }) => ({
       ...party,
       position: text.get(party.party_id) ?? null,
+      sources: position_sources ?? [],
     })),
     agenda_items: [facts.agenda_item],
     citations: facts.citations,
     video_url: facts.video_url,
     key_points: content.key_points,
+    key_point_sources: (facts.key_point_sources ?? []).map((k) => k.sources),
     debate_minutes: facts.debate_minutes,
     opening_quote: facts.opening_quote,
     opened_by: facts.opened_by,

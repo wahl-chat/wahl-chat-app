@@ -543,6 +543,17 @@ from an item's headline and facts).
   its text and translation do not change from run to run. A debate whose
   check or retry call fails, or is cut by the time budget, is not built that
   run: the stored version stays. Never publish an unchecked position.
+- **Every bullet and position cites its passage.** The prompt numbers the
+  debate's speeches (`[R3]`), and the model names the one or two each bullet
+  and position draws on. A position may only name its own Fraktion's
+  speeches, and falls back to the one closest in wording. Code, not the
+  model, picks the moment in that speech (`feed/passages.py`): the sentence
+  sharing the most content words, timed against the openparliament.tv video
+  where op has aligned it, else highlighted on its Plenarprotokoll page. The
+  passages are facts (`debate.key_point_sources`, `parties[].position_sources`),
+  so they serve every locale and leave the texts and their translation
+  alone. The detail view shows them as the chat's citation pills and opens
+  them in the chat's media viewer.
 - **Stores.** Firestore `feed_items/{item_id}` is the source of truth;
   `feed_editions/{parliament}_{YYYY-MM-DD}` lists a sitting day's items in
   order. Qdrant `wahlchat_feed_{ENV}` only finds items (ids and filter fields,

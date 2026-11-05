@@ -52,6 +52,7 @@ from ingestion.feed.builder import (
     Fraktionen,
     build_debate,
     plan_days,
+    SpeechRefs,
     speeches_block,
 )
 from ingestion.feed.parliaments import PARLIAMENTS, Parliament, load_party_display
@@ -214,7 +215,7 @@ async def _draft_gold(
             parliament.name,
             unit.agenda.label,
             ", ".join(wanted),
-            speeches_block(speeches),
+            speeches_block(speeches, refs=SpeechRefs(speeches)),
         ),
         PositionsDraft,
     )

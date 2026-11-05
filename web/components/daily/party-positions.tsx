@@ -1,6 +1,7 @@
 'use client';
 
 import { sortBySeating } from '@/lib/daily/seating-order';
+import type { NumberedSources } from '@/lib/daily/sources';
 import type {
   DigestPartyPosition,
   DigestSpeaker,
@@ -9,6 +10,7 @@ import { buildPartyImageUrl, cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Fragment, useState } from 'react';
 import { MUTED_TEXT } from './card-styles';
+import { SourcePills } from './source-pills';
 
 /**
  * Party logo on the party's own background colour, as everywhere on the site:
@@ -55,7 +57,7 @@ export function PartyLogo({
 
 /** The Fraktion that brought the debate first, then everyone else in
  * seating order. */
-function ordered(
+export function orderedPositions(
   positions: DigestPartyPosition[],
   openedBy: string | null | undefined,
 ): DigestPartyPosition[] {
@@ -97,16 +99,19 @@ export function PartyPositions({
   openedBy,
   limit,
   clamp = false,
+  sources,
 }: {
   positions: DigestPartyPosition[];
   openedBy?: string | null;
   limit?: number;
   /** Cards show the gist; the detail view shows each position in full. */
   clamp?: boolean;
+  /** The detail view cites each position's passages. */
+  sources?: NumberedSources;
 }) {
   return (
     <dl className="divide-y divide-[var(--daily-border)] border-t border-[var(--daily-border)]">
-      {ordered(positions, openedBy)
+      {orderedPositions(positions, openedBy)
         .slice(0, limit)
         .map((position) => (
           <div
@@ -121,7 +126,17 @@ export function PartyPositions({
               />
             </dt>
             <dd className={cn('min-w-0 pt-1', clamp && 'line-clamp-2')}>
-              {position.position ?? (
+              {position.position ? (
+                <>
+                  {position.position}
+                  {sources && (
+                    <SourcePills
+                      numbers={sources.position(position.party_id)}
+                      sources={sources}
+                    />
+                  )}
+                </>
+              ) : (
                 <SpeechesOnly speakers={position.speakers} />
               )}
             </dd>

@@ -227,6 +227,10 @@ def test_a_position_verified_later_joins_in_party_order() -> None:
     assert item.pending_positions == []
     assert needs_translation(item, "en")
     assert run.incomplete == 0
+    assert item.debate is not None
+    sources = {p.party_id: p.position_sources for p in item.debate.parties}
+    # The retried position keeps where it comes from: the Union's first speech.
+    assert [s.speaker for s in sources["cdu"]] == ["Bernd"]
 
 
 def test_a_position_that_never_verifies_stops_being_retried() -> None:

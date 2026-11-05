@@ -1,5 +1,6 @@
 'use client';
 
+import { useMediaViewer } from '@/components/providers/media-viewer-provider';
 import StickyInput from '@/components/sticky-input';
 import { feedChatHref } from '@/lib/daily/chat-handoff';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
@@ -13,13 +14,15 @@ import {
   suggestedQuestions,
 } from '@/lib/daily/items';
 import { shareItem } from '@/lib/daily/share';
+import { numberedSources } from '@/lib/daily/sources';
 import { cn } from '@/lib/utils';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ChevronLeftIcon, ShareIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
 import { Hemicycle, SeatLegend } from './hemicycle';
-import { PartyPositions } from './party-positions';
+import { PartyPositions, orderedPositions } from './party-positions';
+import { SourcePills } from './source-pills';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
 import { TopicMeta } from './topic-chip';
 import { OutcomeBadge } from './vote-card';
@@ -92,6 +95,11 @@ function SectionDetail({
   const media = sectionMedia(section);
   const protocol = digest.session?.protocols[0];
   const points = section.key_points ?? [];
+  const openedBy = openingParty(section);
+  const sources = numberedSources(
+    section,
+    orderedPositions(section.positions ?? [], openedBy).map((p) => p.party_id),
+  );
   return (
     <>
       {media && <SectionMediaFrame media={media} />}
@@ -107,8 +115,14 @@ function SectionDetail({
           <h3 className={SECTION_LABEL}>Kurz gesagt</h3>
           {points.length > 0 ? (
             <ul className="list-disc space-y-1.5 pl-5 text-[15px] leading-relaxed">
-              {points.map((point) => (
-                <li key={point}>{point}</li>
+              {points.map((point, i) => (
+                <li key={`${i}-${point}`}>
+                  {point}
+                  <SourcePills
+                    numbers={sources.keyPoint(i)}
+                    sources={sources}
+                  />
+                </li>
               ))}
             </ul>
           ) : (
@@ -120,7 +134,8 @@ function SectionDetail({
             <h3 className={SECTION_LABEL}>Wer sagt was</h3>
             <PartyPositions
               positions={section.positions}
-              openedBy={openingParty(section)}
+              openedBy={openedBy}
+              sources={sources}
             />
           </section>
         )}
@@ -190,7 +205,34 @@ type Props = {
  * The opened item: a little more than its card, then straight to the chat.
  * Full screen on phones, a centred column from md up.
  */
+/** The phone media viewer is a vaul Drawer, which brings its own copy of
+ * Radix: this dialog does not see it as a layer above itself, so a tap on
+ * the Drawer's backdrop, or Escape, would close both. */
+function isViewerLayer(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest('[data-vaul-overlay], [data-vaul-drawer]') !== null
+  );
+}
+
 export function DailyDetailDialog({ item, heat, onClose }: Props) {
+  // An outside tap or Escape closes the source viewer first, and only a
+  // second one this view.
+  const viewer = useMediaViewer();
+  const viewerOpen = viewer?.isOpen ?? false;
+  const keepOpen = (event: Event) => {
+    if (viewerOpen || isViewerLayer(event.target)) {
+      event.preventDefault();
+    }
+  };
+  // Escape reaches this handler first, and suppressing it here also stops
+  // the Drawer's own, so the viewer is closed from here.
+  const closeViewerFirst = (event: KeyboardEvent) => {
+    if (viewerOpen) {
+      event.preventDefault();
+      viewer?.close();
+    }
+  };
   const context = item
     ? `${item.kind === 'vote' ? 'Abstimmung' : 'Plenarsitzung'} · ${longDayFormat.format(new Date(`${item.digest.date}T00:00:00Z`))}`
     : '';
@@ -203,6 +245,9 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40" />
         <DialogPrimitive.Content
+          onPointerDownOutside={keepOpen}
+          onInteractOutside={keepOpen}
+          onEscapeKeyDown={closeViewerFirst}
           className={cn(
             DAILY_THEME_CLASSES,
             'fixed inset-0 z-50 flex flex-col bg-[var(--daily-canvas)] focus:outline-none md:inset-auto md:left-1/2 md:top-1/2 md:h-[90dvh] md:w-full md:max-w-screen-sm md:-translate-x-1/2 md:-translate-y-1/2 md:overflow-hidden md:rounded-xl',
