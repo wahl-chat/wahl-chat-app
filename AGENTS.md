@@ -625,8 +625,11 @@ from an item's headline and facts).
      with that environment's `QDRANT_URL` / `QDRANT_API_KEY` exported: lists
      per week how many items the corpus yields and how many are missing, no
      LLM calls. The feed starts after the 2026 summer recess.
-  3. The same without `--plan` builds them (prod asks for the project id). It
-     is resumable: rerun until it reports nothing to build.
+  3. The same without `--plan`, with that deployment's `REVALIDATE_SECRET`
+     also exported, builds them (prod asks for the project id), then busts
+     the web's feed cache, which otherwise serves the old items for up to
+     24h. It is resumable: rerun until it reports nothing to build. A rerun
+     with nothing to build still busts the cache.
   4. After the merge, `terraform apply` creates `ingest-feed`; prod starts
      paused, so unpause it after one verified `gcloud run jobs execute`.
 
