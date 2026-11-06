@@ -197,6 +197,9 @@ body {
   --daily-day-pending: #dcdce1;
   --daily-day-pending-hover: #d0d0d6;
   --daily-day-upcoming: #a1a1aa;
+  /* A card's own action ("Mehr anzeigen") on touch screens, which has to
+     stand out from the card without any hover. */
+  --daily-action-bg: #e4e4e7;
   color: var(--daily-ink);
   background: var(--daily-canvas);
   font-family: var(--font-daily-body), Arial, Helvetica, sans-serif;
@@ -217,4 +220,5 @@ body {
   --daily-day-pending: #27272a;
   --daily-day-pending-hover: #3f3f46;
   --daily-day-upcoming: #3f3f46;
+  --daily-action-bg: #3f3f46;
 }

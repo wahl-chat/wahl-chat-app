@@ -3,7 +3,13 @@ import type { DigestVote } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { CheckIcon, XIcon } from 'lucide-react';
 import { CardFooter, ItemTeaser } from './card-footer';
-import { CARD_SURFACE } from './card-styles';
+import {
+  CARD_GROUP,
+  CARD_LINK,
+  CARD_SURFACE,
+  HEADLINE_POP,
+  HEMICYCLE_POP,
+} from './card-styles';
 import { Hemicycle, SeatLegend } from './hemicycle';
 import HotTopicTrail from './hot-topic-trail';
 import { TopicMeta } from './topic-chip';
@@ -51,8 +57,8 @@ function VoteCard({ item, onOpen, hot = false }: Props) {
       data-item-key={item.key}
       className={cn(
         CARD_SURFACE,
+        CARD_GROUP,
         'flex flex-col gap-3 px-4 pb-2 pt-4',
-        hot && 'relative',
       )}
     >
       <div className="flex items-center justify-between gap-3">
@@ -60,15 +66,14 @@ function VoteCard({ item, onOpen, hot = false }: Props) {
         <OutcomeBadge outcome={vote.outcome} />
       </div>
       <h3 className="hyphens-auto break-words text-[19px] font-bold leading-snug">
-        <button
-          type="button"
-          onClick={onOpen}
-          className="text-left focus-visible:underline focus-visible:outline-none"
-        >
-          {vote.short_title}
+        <button type="button" onClick={onOpen} className={CARD_LINK}>
+          <span className={HEADLINE_POP}>{vote.short_title}</span>
         </button>
       </h3>
-      <Hemicycle parties={vote.parties} className="mx-auto max-w-sm" />
+      <Hemicycle
+        parties={vote.parties}
+        className={cn('mx-auto max-w-sm', HEMICYCLE_POP)}
+      />
       <SeatLegend parties={vote.parties} />
       <ItemTeaser
         text={itemTeaser(item)}

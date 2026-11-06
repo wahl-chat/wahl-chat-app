@@ -7,7 +7,13 @@ import {
 import { cn } from '@/lib/utils';
 import { FlameIcon } from 'lucide-react';
 import { CardFooter, ItemTeaser } from './card-footer';
-import { CARD_SURFACE } from './card-styles';
+import {
+  CARD_GROUP,
+  CARD_LINK,
+  CARD_SURFACE,
+  HEADLINE_POP,
+  MEDIA_POP,
+} from './card-styles';
 import HotTopicTrail from './hot-topic-trail';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
 import { TopicMeta } from './topic-chip';
@@ -62,11 +68,17 @@ export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
       data-item-key={item.key}
       className={cn(
         CARD_SURFACE,
+        CARD_GROUP,
         'flex h-full flex-col overflow-hidden',
-        hot && 'relative',
       )}
     >
-      {media && <SectionMediaFrame media={media} small={!hot} />}
+      {media && (
+        <SectionMediaFrame
+          media={media}
+          small={!hot}
+          mediaClassName={MEDIA_POP}
+        />
+      )}
       <div className="flex flex-1 flex-col gap-2 px-4 pb-2 pt-4">
         <TopicMeta
           topics={sectionTopics(section)}
@@ -79,12 +91,8 @@ export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
             hot ? 'text-[22px]' : 'text-[19px]',
           )}
         >
-          <button
-            type="button"
-            onClick={onOpen}
-            className="text-left focus-visible:underline focus-visible:outline-none"
-          >
-            {section.headline}
+          <button type="button" onClick={onOpen} className={CARD_LINK}>
+            <span className={HEADLINE_POP}>{section.headline}</span>
           </button>
         </h3>
         <ItemTeaser

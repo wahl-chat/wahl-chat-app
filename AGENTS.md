@@ -612,9 +612,9 @@ from an item's headline and facts).
   a model. The web decides what is next by the reader's date, so the copy may
   age.
 - **What the page loads.** The first visit gets the latest 14 days (anchored
-  on the newest edition, so recesses never show an empty feed); "Ältere Tage
-  anzeigen" loads the 14 days before the oldest shown, through the
-  `getOlderParliamentFeed` server action. Every item travels in both
+  on the newest edition, so recesses never show an empty feed); scrolling
+  near the bottom loads the 14 days before the oldest shown, through the
+  `getOlderParliamentFeed` server action, until the feed's start. Every item travels in both
   languages, so the first load stays small on purpose.
 - **Deploying to an environment** (dev, then prod), before the merge that
   ships the feed's web there:

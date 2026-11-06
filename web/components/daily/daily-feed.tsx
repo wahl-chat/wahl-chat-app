@@ -28,7 +28,7 @@ import type {
   SittingCalendar,
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 import DailyDaySection from './daily-day-section';
@@ -114,6 +114,37 @@ function useItemInView(deps: unknown): string | null {
   return key;
 }
 
+/**
+ * Calls `onReach` while the returned element is near the viewport. The
+ * observer is rebuilt on every `deps` change, and a fresh observer reports at
+ * once, so a slice too short to fill the screen (a recess) chains straight
+ * into the next load.
+ */
+function useNearViewport(onReach: () => void, enabled: boolean, deps: unknown) {
+  const ref = useRef<HTMLDivElement>(null);
+  const onReachRef = useRef(onReach);
+  useEffect(() => {
+    onReachRef.current = onReach;
+  });
+  useEffect(() => {
+    const el = ref.current;
+    if (!enabled || !el) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          onReachRef.current();
+        }
+      },
+      { rootMargin: '600px 0px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [enabled, deps]);
+  return ref;
+}
+
 function digestsOf(pages: FeedPage[]): DailyDigest[] {
   return feedToDigests({
     editions: pages.flatMap((p) => p.editions),
@@ -161,6 +192,12 @@ function DailyFeed({
     landtag_bw: [feeds.landtag_bw],
   }));
   const [loadingOlder, setLoadingOlder] = useState(false);
+  // Stops loading on scroll after a failure; a click retries.
+  const [olderFailed, setOlderFailed] = useState(false);
+  // Set synchronously, unlike state: the observer can report twice before a
+  // render, and a calendar jump rebuilds the pages from a snapshot that a
+  // concurrent load would duplicate.
+  const busy = useRef(false);
   // A day chosen in the calendar, scrolled to once it is rendered.
   const [jumpTarget, setJumpTarget] = useState<string | null>(null);
 
@@ -208,7 +245,12 @@ function DailyFeed({
   }, [jumpTarget, days, topics, states, openKey]);
 
   const loadOlder = async () => {
+    if (busy.current) {
+      return;
+    }
+    busy.current = true;
     setLoadingOlder(true);
+    setOlderFailed(false);
     try {
       const loaded = await Promise.all(
         older.map(([parliament, from]) =>
@@ -224,10 +266,17 @@ function DailyFeed({
       });
     } catch {
       toast.error('Ältere Tage konnten nicht geladen werden.');
+      setOlderFailed(true);
     } finally {
+      busy.current = false;
       setLoadingOlder(false);
     }
   };
+  const olderRef = useNearViewport(
+    loadOlder,
+    older.length > 0 && !olderFailed,
+    pages,
+  );
 
   const allDigests = useMemo(() => lists.flat(), [lists]);
   // Only for opening a shared item the loaded slices do not reach; the feed
@@ -263,6 +312,11 @@ function DailyFeed({
    * holds it, select the Bundestag and lift a topic filter if either hides
    * it, then scroll to it. */
   const jumpToDay = async (date: string) => {
+    if (busy.current) {
+      toast.info('Einen Moment, ältere Tage werden noch geladen.');
+      return;
+    }
+    busy.current = true;
     const loaded = [...pages.bundestag];
     try {
       for (
@@ -275,6 +329,8 @@ function DailyFeed({
     } catch {
       toast.error('Dieser Tag konnte nicht geladen werden.');
       return;
+    } finally {
+      busy.current = false;
     }
     setPages((current) => ({ ...current, bundestag: loaded }));
     if (!states.includes(BUNDESTAG)) {
@@ -318,18 +374,31 @@ function DailyFeed({
           ))
         )}
         {older.length > 0 && (
-          <button
-            type="button"
-            onClick={loadOlder}
-            disabled={loadingOlder}
-            className={cn(
-              'mx-auto h-10 rounded-lg border border-[var(--daily-border)] px-4 text-[15px] transition-colors hover:bg-[var(--daily-surface)] disabled:opacity-60',
-              MUTED_TEXT,
-              FOCUS_RING,
-            )}
+          <div
+            ref={olderRef}
+            aria-live="polite"
+            className="flex min-h-10 items-center justify-center"
           >
-            {loadingOlder ? 'Lädt …' : 'Ältere Tage anzeigen'}
-          </button>
+            {olderFailed ? (
+              <button
+                type="button"
+                onClick={loadOlder}
+                className={cn(
+                  'h-10 rounded-lg border border-[var(--daily-border)] px-4 text-[15px] transition-colors hover:bg-[var(--daily-surface)]',
+                  MUTED_TEXT,
+                  FOCUS_RING,
+                )}
+              >
+                Erneut versuchen
+              </button>
+            ) : (
+              loadingOlder && (
+                <span className={cn('text-[15px]', MUTED_TEXT)}>
+                  Ältere Tage laden …
+                </span>
+              )
+            )}
+          </div>
         )}
       </div>
 

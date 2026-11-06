@@ -93,14 +93,21 @@ export function sectionMedia(section: DigestSessionSection): Media | null {
     : null;
 }
 
-/** Dark 16:9 frame with a play button; native controls once playing. */
+/**
+ * Dark 16:9 frame with a play button; native controls once playing. In a feed
+ * card, the play button and the playing media sit above the card's stretched
+ * link (z-10), so they play rather than open the detail.
+ */
 export function SectionMediaFrame({
   media,
   className,
+  mediaClassName,
   small = false,
 }: {
   media: Media;
   className?: string;
+  /** On the video until it plays, e.g. a card's hover zoom. */
+  mediaClassName?: string;
   small?: boolean;
 }) {
   const ref = useRef<HTMLMediaElement | null>(null);
@@ -136,7 +143,11 @@ export function SectionMediaFrame({
           playsInline
           controls={started}
           onPlay={onPlay}
-          className="absolute inset-0 size-full object-cover"
+          className={cn(
+            'absolute inset-0 size-full object-cover',
+            // Playing, the controls must stay put under the pointer.
+            started ? 'z-10' : mediaClassName,
+          )}
         />
       ) : (
         <audio
@@ -147,7 +158,10 @@ export function SectionMediaFrame({
           preload="metadata"
           controls={started}
           onPlay={onPlay}
-          className="absolute inset-x-3 bottom-3 w-[calc(100%-1.5rem)]"
+          className={cn(
+            'absolute inset-x-3 bottom-3 w-[calc(100%-1.5rem)]',
+            started && 'z-10',
+          )}
         />
       )}
       {!started && (
@@ -162,7 +176,7 @@ export function SectionMediaFrame({
               media.kind === 'video' ? 'Rede abspielen' : 'Audio abspielen'
             }
             className={cn(
-              'absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-800',
+              'absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-800',
               small ? 'size-10' : 'size-14',
             )}
           >
