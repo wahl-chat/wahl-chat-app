@@ -96,12 +96,12 @@ function Tile({ tile }: { tile: SittingTile }) {
 
 const CELL_STYLE: Record<DayCell['status'], string> = {
   online:
-    'bg-[var(--daily-yes-bg)] font-semibold text-[var(--daily-yes)] hover:brightness-95',
+    'bg-[var(--daily-day-online)] font-semibold text-[var(--daily-yes)] hover:brightness-95',
   today: 'bg-[var(--daily-ink)] font-bold text-[var(--daily-canvas)]',
   pending:
-    'bg-[var(--daily-surface)] font-semibold text-[var(--daily-ink)] hover:bg-[var(--daily-border)]',
+    'bg-[var(--daily-day-pending)] font-semibold text-[var(--daily-ink)] hover:bg-[var(--daily-day-pending-hover)]',
   upcoming:
-    'border border-[var(--daily-border)] font-semibold text-[var(--daily-ink)] hover:bg-[var(--daily-surface)]',
+    'border border-[var(--daily-day-upcoming)] font-semibold text-[var(--daily-ink)] hover:bg-[var(--daily-surface)]',
   none: MUTED_TEXT,
 };
 
