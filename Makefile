@@ -313,9 +313,11 @@ build-feed:
 
 # One-time backfill of a deployed feed, before the merge that ships the feed to
 # that environment: from the end of the 2026 summer recess on. Needs its Qdrant
-# exported and its admin-SDK key in ingestion/ or ai-backend/ (or gcloud ADC):
+# exported and its admin-SDK key in ingestion/ or ai-backend/ (or gcloud ADC).
+# A run that writes ends by busting that deployment's feed cache, so it also
+# needs its REVALIDATE_SECRET (from the web project's Vercel env vars):
 #   QDRANT_URL=... QDRANT_API_KEY=... make backfill-feed TARGET=dev ARGS="--plan --since 2026-09-01"
-#   QDRANT_URL=... QDRANT_API_KEY=... make backfill-feed TARGET=dev ARGS="--since 2026-09-01"
+#   QDRANT_URL=... QDRANT_API_KEY=... REVALIDATE_SECRET=... make backfill-feed TARGET=dev ARGS="--since 2026-09-01"
 backfill-feed:
 	@test -n "$(TARGET)" || (echo "ERROR: set TARGET=dev or TARGET=prod" && exit 1)
 	cd ingestion && ENV=$(TARGET) FIRESTORE_EMULATOR_HOST= \

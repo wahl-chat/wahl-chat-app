@@ -17,9 +17,14 @@ building. It makes no LLM calls and writes nothing. Without it the command asks 
 missing item. Items already built are skipped, so it is safe to stop and run
 again; an item that failed is retried on the next run.
 
+Every run but ``--plan`` ends by busting the deployed web's feed cache, even
+when there was nothing to build: the web caches the feed for 24h, and only
+the bust makes it show what the store holds. A run therefore needs that
+deployment's ``REVALIDATE_SECRET`` and refuses to start without it.
+
 Usage (from the repo root, with that environment's Qdrant exported):
     QDRANT_URL=... QDRANT_API_KEY=... make backfill-feed TARGET=dev ARGS="--plan --since 2026-09-01"
-    QDRANT_URL=... QDRANT_API_KEY=... make backfill-feed TARGET=dev ARGS="--since 2026-09-01"
+    QDRANT_URL=... QDRANT_API_KEY=... REVALIDATE_SECRET=... make backfill-feed TARGET=dev ARGS="--since 2026-09-01"
 """
 
 from __future__ import annotations
@@ -43,10 +48,16 @@ from pathlib import Path
 from typing import Any, Literal, Optional
 from urllib.parse import urlparse
 
+import httpx
 from qdrant_client import QdrantClient
 
 from ingestion.feed.builder import FeedBuilder, plan_days
-from ingestion.feed.bulk import ParliamentRun, build_and_publish, load_sources
+from ingestion.feed.bulk import (
+    ParliamentRun,
+    build_and_publish,
+    load_sources,
+    post_revalidate,
+)
 from ingestion.feed.index import FEED_COLLECTION_NAME, setup_feed_collection
 from ingestion.feed.items import build_needed
 from ingestion.feed.models import FeedItem
@@ -89,6 +100,32 @@ def check_target(target: Target, qdrant_url: str) -> list[str]:
             f"{target} cluster's QDRANT_URL and QDRANT_API_KEY"
         )
     return problems
+
+
+def check_cache_bust() -> list[str]:
+    """Why a run could not bust the web's feed cache afterwards; empty when
+    it can. Checked before any LLM call, not found out after the writes."""
+    if os.getenv("REVALIDATE_SECRET"):
+        return []
+    return [
+        "REVALIDATE_SECRET is not set, so the web would keep showing its cached "
+        "feed for up to 24h; copy it from "
+        "https://vercel.com/wahl-chat/web/settings/environment-variables"
+    ]
+
+
+def bust_web_cache(target: Target) -> bool:
+    try:
+        post_revalidate(target)
+    except httpx.HTTPError as exc:
+        print(
+            f"ERROR: the feed is stored, but busting the web cache failed ({exc}). "
+            "Run the same command again: with nothing left to build it only "
+            "busts the cache.",
+            file=sys.stderr,
+        )
+        return False
+    return True
 
 
 def key_file(target: Target, explicit: Optional[Path]) -> Optional[Path]:
@@ -230,6 +267,32 @@ def _incomplete(runs: list[tuple[ParliamentRun, Any]]) -> int:
     return sum(run.incomplete + run.deferred for run, _ in runs)
 
 
+def _build(
+    qdrant: QdrantClient,
+    db: Any,
+    parliaments: list[Parliament],
+    plans: list[ParliamentPlan],
+    days: int,
+    target: Target,
+    since: Optional[date],
+) -> list[tuple[ParliamentRun, Any]]:
+    setup_feed_collection(qdrant)
+    builder = FeedBuilder()
+    try:
+        runs = build_and_publish(
+            qdrant, db, builder, parliaments, days=days, env=target, since=since
+        )
+    finally:
+        builder.close()
+
+    print("\nStored now:")
+    for plan in plans:
+        if plan.window is not None:
+            items = read_items_since(db, plan.parliament.id, plan.window[0])
+            print("\n".join(coverage_lines(items, plan.parliament.id)))
+    return runs
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     import argparse
 
@@ -275,6 +338,8 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
     problems = check_target(target, qdrant_url)
+    if not args.plan:
+        problems += check_cache_bust()
     if problems:
         for problem in problems:
             print(f"ERROR: {problem}", file=sys.stderr)
@@ -305,26 +370,17 @@ def main(argv: Optional[list[str]] = None) -> int:
     to_build = sum(plan.to_build for plan in plans)
     print(f"\n{to_build} day(s) to build.")
 
-    if args.plan or to_build == 0:
+    if args.plan:
         return 0
-    if not _confirm(target, args.yes, args.confirm_project):
-        print("Not confirmed; nothing written.")
-        return 1
+    runs: list[tuple[ParliamentRun, Any]] = []
+    if to_build:
+        if not _confirm(target, args.yes, args.confirm_project):
+            print("Not confirmed; nothing written.")
+            return 1
+        runs = _build(qdrant, db, parliaments, plans, days, target, args.since)
 
-    setup_feed_collection(qdrant)
-    builder = FeedBuilder()
-    try:
-        runs = build_and_publish(
-            qdrant, db, builder, parliaments, days=days, env=target, since=args.since
-        )
-    finally:
-        builder.close()
-
-    print("\nStored now:")
-    for plan in plans:
-        if plan.window is not None:
-            items = read_items_since(db, plan.parliament.id, plan.window[0])
-            print("\n".join(coverage_lines(items, plan.parliament.id)))
+    if not bust_web_cache(target):
+        return 4
     incomplete = _incomplete(runs)
     if incomplete:
         print(
