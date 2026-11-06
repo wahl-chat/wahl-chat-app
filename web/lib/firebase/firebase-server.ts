@@ -56,6 +56,7 @@ import type {
   LlmSystemStatus,
   ParliamentFeed,
   ProposedQuestion,
+  SittingCalendar,
   SourceDocument,
 } from './firebase.types';
 
@@ -902,6 +903,72 @@ export async function getOlderParliamentFeed(
       )(parliament, before),
     EMPTY_PAGE,
     `FAILED to fetch older feed for "${parliament}" before ${before}`,
+  );
+}
+
+async function getSittingCalendarImpl(
+  parliament: DigestParliamentId,
+): Promise<SittingCalendar> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const snapshot = await getDoc(doc(serverDb, 'feed_calendar', parliament));
+  if (!snapshot.exists()) {
+    throw new UncacheableEmptyError();
+  }
+  return snapshot.data() as SittingCalendar;
+}
+
+/** The parliament's next sitting weeks for the feed's "next sitting" line;
+ * null when none are stored, which hides the line. */
+export async function getSittingCalendar(
+  parliament: DigestParliamentId,
+): Promise<SittingCalendar | null> {
+  return uncachedFallback<SittingCalendar | null>(
+    () =>
+      cachedRead(
+        getSittingCalendarImpl,
+        ['getSittingCalendar', 'v1', parliament],
+        [CacheTags.FEED],
+      )(parliament),
+    null,
+    `FAILED to fetch the sitting calendar for "${parliament}"`,
+  );
+}
+
+async function getEditionDatesImpl(
+  parliament: DigestParliamentId,
+): Promise<string[]> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const editions = await getDocs(
+    query(
+      collection(serverDb, 'feed_editions'),
+      where('parliament', '==', parliament),
+      orderBy('date', 'desc'),
+    ),
+  );
+  // A day whose items were all retracted lists none: nothing to show.
+  return rejectEmpty(
+    editions.docs
+      .map((d) => d.data() as FeedEdition)
+      .filter((edition) => edition.item_ids.length > 0)
+      .map((edition) => edition.date),
+  );
+}
+
+/** The days the parliament's feed has content for, newest first: the sitting
+ * calendar shows them as online. The feed only reaches back to its start, so
+ * this stays a few dozen small documents a year. */
+export async function getEditionDates(
+  parliament: DigestParliamentId,
+): Promise<string[]> {
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getEditionDatesImpl,
+        ['getEditionDates', 'v1', parliament],
+        [CacheTags.FEED],
+      )(parliament),
+    [],
+    `FAILED to fetch the edition dates for "${parliament}"`,
   );
 }
 

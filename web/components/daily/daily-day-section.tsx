@@ -109,20 +109,24 @@ type Props = {
 };
 
 /**
- * One sitting day, ranked within itself: the day's most heated debate, a vote
- * on the same topic, then the rest per parliament.
+ * One sitting day, ranked within itself: the Hot Topic (the day's most heated
+ * debate), the vote on it if there was one that day, then the rest per
+ * parliament.
  */
 function DailyDaySection({ day, onOpen }: Props) {
   const { hot, match } = day;
   return (
     <section
-      className="flex flex-col gap-8"
+      id={`tag-${day.date}`}
+      // Focusable from script only, for a jump from the sitting calendar.
+      tabIndex={-1}
+      className="flex scroll-mt-[calc(var(--header-height,4rem)+1rem)] flex-col gap-8"
       aria-label={dayFormat.format(utcDay(day.date))}
     >
       {hot && (
         <div className="flex flex-col gap-3">
           <header className="flex items-baseline justify-between gap-3">
-            <h2 className="text-lg font-bold">Thema des Tages</h2>
+            <h2 className="text-lg font-bold">Hot Topic</h2>
             <span className={META_TEXT}>
               {hot.digest.parliament === 'bundestag'
                 ? 'Plenarsitzung'
@@ -138,11 +142,8 @@ function DailyDaySection({ day, onOpen }: Props) {
           />
           {match && (
             <div className="flex flex-col gap-2 pt-3">
-              <h3 className={META_TEXT}>
-                Passende Abstimmung ·{' '}
-                {shortDayFormat.format(utcDay(match.digest.date))}
-              </h3>
-              <VoteCard item={match} onOpen={() => onOpen(match)} compact />
+              <h3 className={META_TEXT}>Abstimmung zu dieser Debatte</h3>
+              <VoteCard item={match} onOpen={() => onOpen(match)} hot />
             </div>
           )}
         </div>

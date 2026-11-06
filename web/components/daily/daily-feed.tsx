@@ -1,5 +1,6 @@
 'use client';
 
+import { FEED_CHAT_ENABLED } from '@/lib/daily/chat-handoff';
 import { feedToDigests } from '@/lib/daily/editions';
 import {
   buildFeed,
@@ -9,6 +10,7 @@ import {
 } from '@/lib/daily/feed';
 import { type DetailItem, findItem } from '@/lib/daily/items';
 import {
+  BUNDESTAG,
   DEFAULT_SELECTION,
   STATE_PARAM,
   STATE_STORAGE_KEY,
@@ -23,9 +25,10 @@ import type {
   DigestParliamentId,
   FeedPage,
   ParliamentFeed,
+  SittingCalendar,
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 import DailyDaySection from './daily-day-section';
@@ -47,6 +50,10 @@ type Props = {
   initialItem: string | undefined;
   /** The day of a shared item, which may be older than the first slice. */
   linkedDay?: ParliamentFeed | null;
+  /** The Bundestag's sitting weeks, for the parliament field. */
+  calendar?: SittingCalendar | null;
+  /** The days the Bundestag's feed has content for. */
+  editionDates?: string[];
 };
 
 type View = {
@@ -107,6 +114,37 @@ function useItemInView(deps: unknown): string | null {
   return key;
 }
 
+/**
+ * Calls `onReach` while the returned element is near the viewport. The
+ * observer is rebuilt on every `deps` change, and a fresh observer reports at
+ * once, so a slice too short to fill the screen (a recess) chains straight
+ * into the next load.
+ */
+function useNearViewport(onReach: () => void, enabled: boolean, deps: unknown) {
+  const ref = useRef<HTMLDivElement>(null);
+  const onReachRef = useRef(onReach);
+  useEffect(() => {
+    onReachRef.current = onReach;
+  });
+  useEffect(() => {
+    const el = ref.current;
+    if (!enabled || !el) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          onReachRef.current();
+        }
+      },
+      { rootMargin: '600px 0px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [enabled, deps]);
+  return ref;
+}
+
 function digestsOf(pages: FeedPage[]): DailyDigest[] {
   return feedToDigests({
     editions: pages.flatMap((p) => p.editions),
@@ -140,6 +178,8 @@ function DailyFeed({
   initialTopics,
   initialItem,
   linkedDay,
+  calendar = null,
+  editionDates = [],
 }: Props) {
   const [states, setStates] = useState<StateSelection>(
     initialStates ?? DEFAULT_SELECTION,
@@ -152,6 +192,14 @@ function DailyFeed({
     landtag_bw: [feeds.landtag_bw],
   }));
   const [loadingOlder, setLoadingOlder] = useState(false);
+  // Stops loading on scroll after a failure; a click retries.
+  const [olderFailed, setOlderFailed] = useState(false);
+  // Set synchronously, unlike state: the observer can report twice before a
+  // render, and a calendar jump rebuilds the pages from a snapshot that a
+  // concurrent load would duplicate.
+  const busy = useRef(false);
+  // A day chosen in the calendar, scrolled to once it is rendered.
+  const [jumpTarget, setJumpTarget] = useState<string | null>(null);
 
   // A link's land param wins; otherwise restore this device's last choice.
   useEffect(() => {
@@ -177,8 +225,32 @@ function DailyFeed({
   );
   const older = olderCursors(pages, parliamentsFor(states));
 
+  useEffect(() => {
+    if (!jumpTarget) {
+      return;
+    }
+    const section = document.getElementById(`tag-${jumpTarget}`);
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Keyboard and screen reader users land on the day too.
+      section.focus({ preventScroll: true });
+      setJumpTarget(null);
+    } else if (topics.length > 0) {
+      // A topic filter hides the day; it is back on the next render.
+      setTopics([]);
+      syncUrl({ states, topics: [], item: openKey });
+    } else {
+      setJumpTarget(null);
+    }
+  }, [jumpTarget, days, topics, states, openKey]);
+
   const loadOlder = async () => {
+    if (busy.current) {
+      return;
+    }
+    busy.current = true;
     setLoadingOlder(true);
+    setOlderFailed(false);
     try {
       const loaded = await Promise.all(
         older.map(([parliament, from]) =>
@@ -194,10 +266,17 @@ function DailyFeed({
       });
     } catch {
       toast.error('Ältere Tage konnten nicht geladen werden.');
+      setOlderFailed(true);
     } finally {
+      busy.current = false;
       setLoadingOlder(false);
     }
   };
+  const olderRef = useNearViewport(
+    loadOlder,
+    older.length > 0 && !olderFailed,
+    pages,
+  );
 
   const allDigests = useMemo(() => lists.flat(), [lists]);
   // Only for opening a shared item the loaded slices do not reach; the feed
@@ -229,6 +308,37 @@ function DailyFeed({
     storeStates(next);
     syncUrl({ ...view, states: next });
   };
+  /** Show a sitting day from the calendar: load older slices until one
+   * holds it, select the Bundestag and lift a topic filter if either hides
+   * it, then scroll to it. */
+  const jumpToDay = async (date: string) => {
+    if (busy.current) {
+      toast.info('Einen Moment, ältere Tage werden noch geladen.');
+      return;
+    }
+    busy.current = true;
+    const loaded = [...pages.bundestag];
+    try {
+      for (
+        let last = loaded.at(-1);
+        last?.from && last.hasOlder && date < last.from;
+        last = loaded.at(-1)
+      ) {
+        loaded.push(await getOlderParliamentFeed('bundestag', last.from));
+      }
+    } catch {
+      toast.error('Dieser Tag konnte nicht geladen werden.');
+      return;
+    } finally {
+      busy.current = false;
+    }
+    setPages((current) => ({ ...current, bundestag: loaded }));
+    if (!states.includes(BUNDESTAG)) {
+      changeStates([BUNDESTAG, ...states]);
+    }
+    setJumpTarget(date);
+  };
+
   const changeTopics = (next: string[]) => {
     setTopics(next);
     syncUrl({ ...view, topics: next });
@@ -240,7 +350,13 @@ function DailyFeed({
 
   return (
     <div className="flex flex-col gap-4 pt-4">
-      <ParliamentSelector states={states} onChange={changeStates} />
+      <ParliamentSelector
+        states={states}
+        onChange={changeStates}
+        calendar={calendar}
+        editionDates={editionDates}
+        onJumpToDay={jumpToDay}
+      />
       <TopicPills topics={topics} onChange={changeTopics} />
 
       <div className="flex flex-col gap-12 pt-2">
@@ -258,22 +374,35 @@ function DailyFeed({
           ))
         )}
         {older.length > 0 && (
-          <button
-            type="button"
-            onClick={loadOlder}
-            disabled={loadingOlder}
-            className={cn(
-              'mx-auto h-10 rounded-lg border border-[var(--daily-border)] px-4 text-[15px] transition-colors hover:bg-[var(--daily-surface)] disabled:opacity-60',
-              MUTED_TEXT,
-              FOCUS_RING,
-            )}
+          <div
+            ref={olderRef}
+            aria-live="polite"
+            className="flex min-h-10 items-center justify-center"
           >
-            {loadingOlder ? 'Lädt …' : 'Ältere Tage anzeigen'}
-          </button>
+            {olderFailed ? (
+              <button
+                type="button"
+                onClick={loadOlder}
+                className={cn(
+                  'h-10 rounded-lg border border-[var(--daily-border)] px-4 text-[15px] transition-colors hover:bg-[var(--daily-surface)]',
+                  MUTED_TEXT,
+                  FOCUS_RING,
+                )}
+              >
+                Erneut versuchen
+              </button>
+            ) : (
+              loadingOlder && (
+                <span className={cn('text-[15px]', MUTED_TEXT)}>
+                  Ältere Tage laden …
+                </span>
+              )
+            )}
+          </div>
         )}
       </div>
 
-      {askItem && (
+      {FEED_CHAT_ENABLED && askItem && (
         <AskPanel
           item={askItem}
           withSuggestions={false}

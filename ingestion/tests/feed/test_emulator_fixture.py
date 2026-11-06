@@ -5,7 +5,7 @@
 import json
 from pathlib import Path
 
-from ingestion.feed.models import FeedEdition, FeedItem
+from ingestion.feed.models import FeedEdition, FeedItem, SittingCalendar
 from ingestion.feed.translate import needs_translation
 
 FIXTURE = (
@@ -23,6 +23,7 @@ def test_emulator_sample_feed_matches_the_stored_shape() -> None:
     feed = json.loads(FIXTURE.read_text())
     editions = [FeedEdition.model_validate(e) for e in feed["editions"]]
     items = {i["id"]: FeedItem.model_validate(i) for i in feed["items"]}
+    assert SittingCalendar.model_validate(feed["calendar"]).weeks
     assert editions
     for edition in editions:
         assert edition.item_ids

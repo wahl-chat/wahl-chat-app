@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 from ingestion.feed.topics import DigestTopic, topic_legend
 
 # Part of every item's input_hash: bumping it regenerates all stored items.
-PROMPT_VERSION = "8"
+PROMPT_VERSION = "10"
 # Stored on each translation: bumping it re-translates, never regenerates.
 TRANSLATION_PROMPT_VERSION = "1"
 
@@ -34,14 +34,6 @@ _POSITION_SENTENCE_RULE = (
     'dem Verb im Plural ("Wenden sich gegen …", "Fordern …", "Begrüßen …"), nicht '
     '"Die Fraktion kritisierte …".'
 )
-# Absolute, so each debate is rated on its own; the page rescales against
-# the hottest debate of the day it shows.
-_HEAT_SCALE = (
-    "1 = sachlich, kaum Widerspruch; 2 = unterschiedliche Positionen, ruhiger "
-    "Ton; 3 = deutliche Gegensätze, spürbare Schärfe; 4 = scharfer Ton, "
-    "gegenseitige Vorwürfe; 5 = außergewöhnlich hitzig, persönliche Angriffe "
-    "oder Ordnungsrufe."
-)
 _QUESTION_STYLE = (
     "kurze Fragen (höchstens 8 Wörter) aus Sicht einer Bürgerin, "
     "die man dazu stellen würde"
@@ -56,6 +48,19 @@ _TOPIC_KEYS_RULE = "(nur die Schlüssel verwenden; 'other' nur, wenn nichts pass
 def _refs_only_rule(examples: str, field: str, elsewhere: str) -> str:
     return f"Die Kennungen ({examples}) gehören NUR in {field}, nie in {elsewhere}."
 
+
+# Every bullet and position names the speeches it draws on, so the reader can
+# open the very passage; the code finds the passage, the model only the speech.
+_SOURCES_DESCRIPTION = (
+    "Die Kennungen der ein bis zwei Reden, die sagen, was der Satz aussagt, "
+    "z. B. ['R3']."
+)
+_SOURCES_RULE = (
+    "Nenne in sources für jeden Stichpunkt und jeden Positionssatz die ein bis "
+    "zwei Reden (Kennungen wie R3), die sagen, was der Satz aussagt; für einen "
+    "Positionssatz nur Reden SEINER Fraktion. "
+    + _refs_only_rule("R1, R2, …", "sources", "die Texte")
+)
 
 _QUESTIONS_DESCRIPTION = f"Genau 3 {_QUESTION_STYLE}, z. B. 'Was heißt das für mich?'."
 
@@ -88,6 +93,12 @@ class PartyPositionDraft(BaseModel):
             "dem Verb im Plural, z. B. 'Wenden sich gegen Einsparungen bei …'."
         )
     )
+    sources: list[str] = Field(default_factory=list, description=_SOURCES_DESCRIPTION)
+
+
+class KeyPointDraft(BaseModel):
+    text: str = Field(description="Ein kurzer Satz.")
+    sources: list[str] = Field(default_factory=list, description=_SOURCES_DESCRIPTION)
 
 
 class OpeningQuoteDraft(BaseModel):
@@ -109,15 +120,12 @@ class DebateDraft(BaseModel):
         default_factory=list,
         description="Genau ein Eintrag je Fraktion, die in der Debatte gesprochen hat.",
     )
-    key_points: list[str] = Field(
+    key_points: list[KeyPointDraft] = Field(
         default_factory=list,
         description=(
             "Genau 3 Stichpunkte, je ein kurzer Satz: was vorgelegt wurde, "
             "worüber am meisten gestritten wurde, wie es weitergeht."
         ),
-    )
-    heat: Optional[int] = Field(
-        None, description=f"Hitzigkeit auf einer festen Skala: {_HEAT_SCALE}"
     )
     opening_quote: Optional[OpeningQuoteDraft] = None
     suggested_questions: list[str] = Field(
@@ -207,10 +215,10 @@ wesentlich berührt.
 - {_POSITION_SENTENCE_RULE}
 - key_points: genau drei kurze Sätze (was vorgelegt wurde, worüber am meisten \
 gestritten wurde, wie es weitergeht).
-- heat: wie hitzig die Debatte war, auf dieser festen Skala: {_HEAT_SCALE}
 - opening_quote: ein kurzer wörtlicher Satz (höchstens 25 Wörter) aus der \
 ersten Rede, Zeichen für Zeichen kopiert; als speaker nur den Namen, ohne die \
 Partei in Klammern.
+- {_SOURCES_RULE}
 - suggested_questions: drei kurze Fragen aus Sicht von Bürgerinnen und Bürgern.
 
 Reden:
@@ -230,6 +238,7 @@ Partei-Kennungen exakt so übernehmen.
 - {_ATTRIBUTION_RULE}
 - {_POSITION_FIDELITY_RULE}
 - {_POSITION_SENTENCE_RULE}
+- {_SOURCES_RULE}
 
 Reden:
 {{speeches}}

@@ -54,6 +54,35 @@ class DigestSpeaker(BaseModel):
     video_link: Optional[str] = None
 
 
+class SpeechSource(BaseModel):
+    """The passage of one speech a bullet or position draws on. The model
+    names the speech; the moment and sentence inside it are matched by code
+    (``passages.locate``), never written by the model."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    speaker: str
+    # The speaker's own party (CSU, not the Union), as on the citations.
+    party_id: str
+    party_name: str
+    # The speech's own video file and the second the passage starts at.
+    video_url: Optional[str] = None
+    start: Optional[float] = None
+    # The Plenarprotokoll, its PDF page, and the sentence to highlight there.
+    pdf_url: Optional[str] = None
+    page: Optional[int] = None
+    snippet: Optional[str] = None
+
+
+class KeyPointSources(BaseModel):
+    """One bullet's passages. An object rather than a bare list: Firestore
+    stores no array directly inside another."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    sources: list[SpeechSource] = Field(default_factory=list)
+
+
 class DigestQuote(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -93,7 +122,7 @@ FeedItemStatus = Literal["published", "retracted"]
 
 # Bump when the stored feed shape gains or changes a field. Part of every
 # item's input_hash, so stored items are rebuilt in the new shape.
-FEED_FORMAT_VERSION = "2"
+FEED_FORMAT_VERSION = "3"
 
 
 class LocalizedPosition(BaseModel):
@@ -131,6 +160,9 @@ class DebateParty(BaseModel):
     party_name: str
     color: str
     speakers: list[DigestSpeaker]
+    # Where the Fraktion's position sentence comes from; empty while it has
+    # no position, and on items stored before sources were kept.
+    position_sources: list[SpeechSource] = Field(default_factory=list)
 
 
 class DebateFacts(BaseModel):
@@ -144,10 +176,23 @@ class DebateFacts(BaseModel):
     # without an entry in ``content.positions``.
     parties: list[DebateParty] = Field(default_factory=list)
     video_url: Optional[str] = None
+    # Legacy model rating on items built before heat was counted; unused,
+    # kept so they validate.
     heat: Optional[int] = Field(None, ge=1, le=5)
     debate_minutes: Optional[int] = None
     opened_by: Optional[str] = None
     opening_quote: Optional[DigestQuote] = None
+    # The Drucksachen the agenda item deals with, from the protocol. None
+    # until looked up; a vote on one of them is a vote on this debate.
+    drucksachen: Optional[list[str]] = None
+    # Calls from the floor, objections, mocking laughter and unrest the
+    # protocol records during the debate. Per minute of debate, it is the
+    # heat the page shows. None until counted.
+    interjections: Optional[int] = None
+    # Where each bullet of ``content.*.key_points`` comes from, by index; the
+    # translation keeps the bullets' count, so one list serves every locale.
+    # Empty on items stored before sources were kept.
+    key_point_sources: list[KeyPointSources] = Field(default_factory=list)
 
 
 class VoteFacts(BaseModel):
@@ -161,6 +206,9 @@ class VoteFacts(BaseModel):
         None, description="The source's own German account of the motion."
     )
     parties: list[DigestVoteParty]
+    # The Drucksachen the poll was about, as abgeordnetenwatch links them.
+    # None until looked up.
+    drucksachen: Optional[list[str]] = None
 
 
 class FeedItem(BaseModel):
@@ -174,7 +222,7 @@ class FeedItem(BaseModel):
     region: str
     date: date
     # Position within its edition: debates in agenda order, then votes. The
-    # page ranks by heat and length on its own.
+    # page ranks by interjections per minute on its own.
     rank: int
     topics: list[DigestTopic] = Field(min_length=1)
     status: FeedItemStatus = "published"
@@ -207,3 +255,38 @@ class FeedEdition(BaseModel):
     item_ids: list[str]
     format_version: str = FEED_FORMAT_VERSION
     generated_at: datetime
+
+
+class PlenarySitting(BaseModel):
+    """One plenary sitting on the published agenda."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    date: date
+    number: int
+
+
+class SittingWeek(BaseModel):
+    """A sitting week of the parliament's calendar. ``sittings`` is known only
+    once the week's agenda is published, about a week ahead."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    start: date
+    end: date
+    sittings: Optional[list[PlenarySitting]] = None
+
+
+class SittingCalendar(BaseModel):
+    """The parliament's sitting weeks from ``since`` (when the feed begins)
+    to several weeks ahead: for the next-sitting status and the month grid of
+    sitting days. The reader picks what is next by their own date, so the
+    stored copy may age until the next run."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    parliament: ParliamentId
+    since: date
+    weeks: list[SittingWeek]
+    sources: list[str]
+    checked_at: datetime

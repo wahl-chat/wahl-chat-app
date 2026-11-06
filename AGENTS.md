@@ -511,7 +511,15 @@ from an item's headline and facts).
 - **The source defines the items.** One agenda item of a sitting with
   speeches is one debate item; one poll is one vote item. The model writes the
   texts of one item at a time, with the whole debate in the prompt, and never
-  decides what an item is. Ranking ("Thema des Tages") happens on the page.
+  decides what an item is. Ranking ("Hot Topic") happens on the page.
+  Heat is counted, not rated by the model: the protocol's interjections
+  (calls from the floor, objections, mocking laughter, unrest) per minute of
+  debate (`debate.interjections`, `feed/protocol_pages.py`). The flames rank
+  a day's debates against each other, 1 to 5; the Hot Topic is the highest
+  rate, and a day with no counted debate has none. A vote is shown under it
+  only when it is from the same day and shares a Drucksache with the
+  debate's agenda item (`drucksachen` on both items, from the protocol's
+  `T_Drs` lines and abgeordnetenwatch); a shared topic is not enough.
 - **Speech order comes from the protocol.** The corpus has no order of its
   own, so `feed/protocol_pages.py` reads the Bundestag's protocol XML: it puts
   each debate's speeches in the order they were given, links them to their PDF
@@ -519,8 +527,8 @@ from an item's headline and facts).
   under the TOP, openparliament.tv under the Zusatzpunkt; the op one is kept).
   It also titles a debate only DIP holds (DIP speeches carry just the item
   number) from the item's call-up in the protocol.
-  A debate whose protocol cannot be read yet is not built; the next run picks
-  it up. A sitting's day is its first speech's day, so speeches after midnight
+  A debate whose protocol XML or PDF cannot be read yet is not built; the
+  next run picks it up. A sitting's day is its first speech's day, so speeches after midnight
   stay on it.
 - **Every Fraktion that spoke is listed.** `facts.parties` comes from the
   source. Each position sentence is checked against that Fraktion's own
@@ -531,6 +539,17 @@ from an item's headline and facts).
   its text and translation do not change from run to run. A debate whose
   check or retry call fails, or is cut by the time budget, is not built that
   run: the stored version stays. Never publish an unchecked position.
+- **Every bullet and position cites its passage.** The prompt numbers the
+  debate's speeches (`[R3]`), and the model names the one or two each bullet
+  and position draws on. A position may only name its own Fraktion's
+  speeches, and falls back to the one closest in wording. Code, not the
+  model, picks the moment in that speech (`feed/passages.py`): the sentence
+  sharing the most content words, timed against the openparliament.tv video
+  where op has aligned it, else highlighted on its Plenarprotokoll page. The
+  passages are facts (`debate.key_point_sources`, `parties[].position_sources`),
+  so they serve every locale and leave the texts and their translation
+  alone. The detail view shows them as the chat's citation pills and opens
+  them in the chat's media viewer.
 - **Stores.** Firestore `feed_items/{item_id}` is the source of truth;
   `feed_editions/{parliament}_{YYYY-MM-DD}` lists a sitting day's items in
   order. Qdrant `wahlchat_feed_{ENV}` only finds items (ids and filter fields,
@@ -570,17 +589,32 @@ from an item's headline and facts).
   hand-checked gold positions (see the Makefile).
 - **Running it.** `make setup-feed-collection` once, then `make build-feed`
   (see the Makefile for `--dry-run`, `--force`, `--translate-backfill`).
-  Deployed, it is the weekly Cloud Run Job `ingest-feed`
-  (`CONNECTOR_ID=feed`), on Sunday mornings after the speech and vote jobs.
+  Deployed, it is the nightly Cloud Run Job `ingest-feed`
+  (`CONNECTOR_ID=feed`), after the speech and federal vote jobs, which run
+  nightly for it: a sitting reaches the feed the night after its protocol
+  appears, and Friday's protocol usually appears on Monday or Tuesday.
   Items are generated a few at a time; `--time-budget` stops the run starting
   new items before the job's 15-minute cap, and a call still running past it
   is cut. The job runs several times in a row so a long week finishes the
   same morning. Unchanged items are skipped without LLM calls, so the extra
   runs cost nothing.
+- **Sitting days.** The same job stores the Bundestag's sitting weeks from
+  `FEED_START` (1 Sep 2026, when the feed begins; `feed/parliaments.py`) to
+  six weeks ahead in `feed_calendar/bundestag` (`feed/calendar.py`). DIP has
+  no calendar, so it comes from bundestag.de: the yearly Sitzungskalender
+  page for the weeks, and the JSON behind bundestag.de/tagesordnung for each
+  week's exact days (any past week; a coming one once its agenda is out).
+  Settled days are kept from the stored copy instead of asked for again.
+  Either source alone is enough; when neither answers, the stored copy stays.
+  It is refreshed once a day, on the night's first run. The parliament field
+  shows when the Bundestag sits next, and its dropdown a month grid back to
+  `since`, marking the days `feed_editions` has. No date in it is written by
+  a model. The web decides what is next by the reader's date, so the copy may
+  age.
 - **What the page loads.** The first visit gets the latest 14 days (anchored
-  on the newest edition, so recesses never show an empty feed); "Ältere Tage
-  anzeigen" loads the 14 days before the oldest shown, through the
-  `getOlderParliamentFeed` server action. Every item travels in both
+  on the newest edition, so recesses never show an empty feed); scrolling
+  near the bottom loads the 14 days before the oldest shown, through the
+  `getOlderParliamentFeed` server action, until the feed's start. Every item travels in both
   languages, so the first load stays small on purpose.
 - **Deploying to an environment** (dev, then prod), before the merge that
   ships the feed's web there:

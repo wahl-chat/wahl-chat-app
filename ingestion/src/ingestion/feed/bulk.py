@@ -43,11 +43,15 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
+from zoneinfo import ZoneInfo
 
 import httpx
 from qdrant_client import QdrantClient
 
+from ingestion.connectors.abgeordnetenwatch.client import AWClient
 from ingestion.feed.builder import DayPlan, FeedBuilder, build_day, plan_days
+from ingestion.feed.calendar import FRESH_FOR, build_calendar
+from ingestion.feed.documents import PollDocuments, poll_documents
 from ingestion.feed.index import FEED_COLLECTION_NAME, IndexReport, index_items
 from ingestion.feed.items import BuildNeed, assemble_edition, build_needed
 from ingestion.feed.models import FeedEdition, FeedItem
@@ -72,8 +76,10 @@ from ingestion.feed.reader import (
 from ingestion.feed.store import (
     carry_over_translations,
     read_edition_item_ids,
+    read_calendar,
     read_items_since,
     vanished_item_ids,
+    write_calendar,
     write_feed,
 )
 from ingestion.feed.translate import (
@@ -238,6 +244,50 @@ def _replaces(built: FeedItem, stored: Optional[FeedItem]) -> bool:
     )
 
 
+def attach_source_facts(
+    items: list[FeedItem],
+    plan: DayPlan,
+    lookup_poll: Optional[PollDocuments],
+) -> tuple[list[FeedItem], set[str]]:
+    """Give each item the facts read from its source: a debate its
+    Drucksachen and interjections, a vote its Drucksachen. Returns the items
+    and the ids that changed. Facts from the source, not the model: a stored
+    item gets them without being rebuilt, and its texts and translation stay
+    as they are. A debate follows this run's protocol, corrections included;
+    a vote is looked up until a lookup answers.
+    """
+    agendas = {u.item_id: u.agenda for u in plan.debates}
+    out: list[FeedItem] = []
+    changed: set[str] = set()
+    for item in items:
+        if item.debate is not None and item.id in agendas:
+            agenda = agendas[item.id]
+            update = {
+                field: found
+                for field, found in (
+                    ("drucksachen", agenda.drucksachen),
+                    ("interjections", agenda.interjections),
+                )
+                if found is not None and found != getattr(item.debate, field)
+            }
+            if update:
+                debate = item.debate.model_copy(update=update)
+                item = item.model_copy(update={"debate": debate})
+                changed.add(item.id)
+        elif (
+            item.vote is not None
+            and item.vote.drucksachen is None
+            and lookup_poll is not None
+        ):
+            found = lookup_poll(item.vote.poll_id)
+            if found is not None:
+                vote = item.vote.model_copy(update={"drucksachen": found})
+                item = item.model_copy(update={"vote": vote})
+                changed.add(item.id)
+        out.append(item)
+    return out, changed
+
+
 def plan_day(
     builder: FeedBuilder,
     parliament: Parliament,
@@ -250,6 +300,7 @@ def plan_day(
     run: ParliamentRun,
     out_of_time: Callable[[], bool],
     now: datetime,
+    lookup_poll: Optional[PollDocuments] = None,
 ) -> Optional[DayBuild]:
     """Generate what changed in one day and assemble its edition; None when
     the day is unchanged and fully translated."""
@@ -293,11 +344,12 @@ def plan_day(
         item = built.get(item_id) or stored.get(item_id)
         if item is not None and item.status == "published":
             listed.append(item)
+    listed, documented = attach_source_facts(listed, plan, lookup_poll)
     edition, ranked = assemble_edition(
         parliament, plan.edition_id, plan.day, plan.protocols, listed, now
     )
     retracted = vanished_item_ids(stored_edition_ids or [], edition.item_ids)
-    changed = {
+    changed = documented | {
         i.id
         for i in ranked
         if i.id in built or stored.get(i.id) is None or stored[i.id].rank != i.rank
@@ -333,6 +385,7 @@ def build_for_parliament(
     since: Optional[date] = None,
     out_of_time: Callable[[], bool] = lambda: False,
     now: Optional[datetime] = None,
+    lookup_poll: Optional[PollDocuments] = None,
 ) -> ParliamentRun:
     """Build the window's days newest first, publishing each one as it is built.
 
@@ -368,6 +421,7 @@ def build_for_parliament(
             run=run,
             out_of_time=out_of_time,
             now=now or datetime.now(timezone.utc),
+            lookup_poll=lookup_poll,
         )
         if day is None:
             run.unchanged += 1
@@ -479,6 +533,35 @@ def post_revalidate(env: str) -> None:
     print(f"revalidated {FEED_CACHE_TAG} on {base}")
 
 
+def refresh_calendar(db: Any, now: Optional[datetime] = None) -> None:
+    """Store the Bundestag's sitting weeks, or print them on a dry run; a
+    copy checked within ``FRESH_FOR`` is left as it is.
+
+    Never fails the run: when bundestag.de does not answer, the stored copy
+    stays, and the web picks what is next by date, so it keeps working.
+    """
+    now = now or datetime.now(timezone.utc)
+    today = now.astimezone(ZoneInfo("Europe/Berlin")).date()
+    try:
+        stored = read_calendar(db, "bundestag") if db is not None else None
+        if stored is not None and now - stored.checked_at < FRESH_FOR:
+            print(f"calendar: checked at {stored.checked_at}, not refreshed")
+            return
+        calendar = build_calendar(today, stored=stored)
+    except Exception as exc:  # noqa: BLE001 — a stale calendar beats no feed
+        logger.warning("Sitting calendar not refreshed: %s", exc)
+        return
+    if db is None:
+        print(calendar.model_dump_json(indent=2))
+        return
+    write_calendar(db, calendar)
+    upcoming = next((w for w in calendar.weeks if w.end >= today), None)
+    print(
+        f"calendar: {len(calendar.weeks)} sitting week(s) since {calendar.since}"
+        + (f", next {upcoming.start}..{upcoming.end}" if upcoming else "")
+    )
+
+
 def _summary_line(run: ParliamentRun, published: Published) -> str:
     window = f"{run.window[0]}..{run.window[1]}" if run.window else "no data"
     t = published.translation
@@ -514,6 +597,7 @@ def build_and_publish(
     """
     index_to = qdrant if index and db is not None else None
     embed = _embeddings() if index_to is not None else None
+    lookup_poll = poll_documents(AWClient())
     runs: list[tuple[ParliamentRun, Published]] = []
     for parliament in parliaments:
         if out_of_time():
@@ -547,6 +631,7 @@ def build_and_publish(
             force=force,
             publish_day=publish_day,
             out_of_time=out_of_time,
+            lookup_poll=lookup_poll,
         )
         runs.append((run, published))
         print(_summary_line(run, published))
@@ -677,6 +762,9 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
     finally:
         builder.close()
+
+    if "bundestag" in {p.id for p in parliaments}:
+        refresh_calendar(db)
 
     if args.out:
         args.out.write_text(

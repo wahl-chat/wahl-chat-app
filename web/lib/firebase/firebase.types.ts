@@ -202,6 +202,8 @@ export type DigestVote = {
   suggested_questions?: string[];
   /** The `FeedItem` it came from; absent on local previews. */
   item_id?: string;
+  /** The Drucksachen the poll was about, `"21/6130"`; absent until known. */
+  drucksachen?: string[];
 };
 
 export type DigestCitation = {
@@ -225,6 +227,22 @@ export type DigestSpeaker = {
   video_link?: string | null;
 };
 
+/** The passage of a speech a bullet or position draws on. The model names
+ * the speech; the moment and sentence in it are matched by the builder. */
+export type SpeechSource = {
+  speaker: string;
+  /** The speaker's own party (CSU, not the Union). */
+  party_id: string;
+  party_name: string;
+  /** The speech's own video file, and the second the passage starts at. */
+  video_url: string | null;
+  start: number | null;
+  /** The Plenarprotokoll, its PDF page, and the sentence to highlight. */
+  pdf_url: string | null;
+  page: number | null;
+  snippet: string | null;
+};
+
 export type DigestPartyPosition = {
   party_id: string;
   party_name: string;
@@ -233,6 +251,8 @@ export type DigestPartyPosition = {
   /** Null when no position could be written and checked against the
    * speeches; the Fraktion is still listed, with its speakers. */
   position: string | null;
+  /** Where `position` comes from; absent on older items. */
+  sources?: SpeechSource[];
 };
 
 export type DigestAudioSummary = {
@@ -265,8 +285,8 @@ export type DigestSessionSection = {
   audio?: DigestAudioSummary | null;
   /** Fields below are absent on older digests. Exactly three bullets. */
   key_points?: string[];
-  /** 1–5 on a fixed scale per debate; the feed rescales it per day. */
-  heat?: number | null;
+  /** Where each of `key_points` comes from, by index; absent on older items. */
+  key_point_sources?: SpeechSource[][];
   /** Estimated from the speeches' word count. */
   debate_minutes?: number | null;
   opening_quote?: DigestQuote | null;
@@ -275,6 +295,10 @@ export type DigestSessionSection = {
   suggested_questions?: string[];
   /** The `FeedItem` it came from; absent on local previews. */
   item_id?: string;
+  /** The Drucksachen its agenda item deals with; absent until known. */
+  drucksachen?: string[];
+  /** Conflict reactions during the debate; absent until counted. */
+  interjections?: number | null;
 };
 
 export type DigestSession = {
@@ -324,12 +348,17 @@ export type DebateFacts = {
     party_name: string;
     color: string;
     speakers: DigestSpeaker[];
+    /** Where the position comes from; absent on older items. */
+    position_sources?: SpeechSource[];
   }[];
   video_url: string | null;
-  heat: number | null;
   debate_minutes: number | null;
   opened_by: string | null;
   opening_quote: DigestQuote | null;
+  /** See `DebateFacts` in the backend's `feed/models.py`. */
+  drucksachen?: string[] | null;
+  interjections?: number | null;
+  key_point_sources?: { sources: SpeechSource[] }[];
 };
 
 export type VoteFacts = {
@@ -339,6 +368,8 @@ export type VoteFacts = {
   citation_url: string | null;
   description: string | null;
   parties: DigestVoteParty[];
+  /** The Drucksachen the poll was about; null or absent until looked up. */
+  drucksachen?: string[] | null;
 };
 
 export type FeedItem = {
@@ -381,4 +412,30 @@ export type ParliamentFeed = { editions: FeedEdition[]; items: FeedItem[] };
 export type FeedPage = ParliamentFeed & {
   from: string | null;
   hasOlder: boolean;
+};
+
+/** A plenary sitting on the parliament's published agenda. */
+export type PlenarySitting = {
+  /** ISO day, `YYYY-MM-DD`. */
+  date: string;
+  number: number;
+};
+
+/** A sitting week of the official calendar. `sittings` is known only once
+ * the week's agenda is published, about a week ahead. */
+export type SittingWeek = {
+  start: string;
+  end: string;
+  sittings: PlenarySitting[] | null;
+};
+
+/** The parliament's sitting weeks from `since` (when the feed begins) to
+ * several weeks ahead, written by the feed job from bundestag.de. */
+export type SittingCalendar = {
+  parliament: DigestParliamentId;
+  /** ISO day the feed begins; the month grid reaches back to it. */
+  since: string;
+  weeks: SittingWeek[];
+  sources: string[];
+  checked_at: string;
 };

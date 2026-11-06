@@ -100,47 +100,58 @@ export type RankedDigest = {
 
 export type RankedDay = {
   date: string;
-  /** The day's most heated debate, across every parliament shown. */
+  /** The day's most heated debate, across every parliament shown: the most
+   * interjections per minute. */
   hot: SectionItem | null;
-  /** A vote on the hot debate's topic: from the same day, else the latest
-   * earlier one. A same-day match is left out of `blocks`. */
+  /** The day's vote on the hot debate's agenda item, if there was one. Left
+   * out of `blocks`, so it is not shown twice. */
   match: VoteItem | null;
-  /** Everything else, per parliament, debates sorted by prior. */
+  /** Everything else, per parliament, debates most heated first. */
   blocks: RankedDigest[];
-  /** Day-relative heat (1–5) per section key. */
+  /** Day-relative heat (1–5 flames) per section key. */
   heat: Map<string, number>;
 };
 
+/** Interjections per minute of debate; null when not counted. */
+function interjectionRate(item: SectionItem): number | null {
+  const { interjections, debate_minutes } = item.section;
+  if (interjections == null || !debate_minutes) {
+    return null;
+  }
+  return interjections / debate_minutes;
+}
+
 /**
- * The builder rates each debate on its own, on a fixed scale. Rescaling
- * against the day's hottest debate keeps the comparison relative to what the
- * reader sees that day: the hottest always shows 5.
+ * Heat compares a day's debates with each other, never with a fixed scale:
+ * interjections per minute, counted from the protocol, spread from 1 flame
+ * for the day's quietest debate to 5 for its busiest. With fewer than two
+ * counted debates, or none that differ, there is nothing to compare and no
+ * debate gets flames.
  */
 export function dayHeat(sections: readonly SectionItem[]): Map<string, number> {
-  const max = Math.max(0, ...sections.map((s) => s.section.heat ?? 0));
+  const rated = sections.flatMap((item) => {
+    const rate = interjectionRate(item);
+    return rate === null ? [] : [{ key: item.key, rate }];
+  });
   const heat = new Map<string, number>();
-  if (max === 0) {
+  const min = Math.min(...rated.map((r) => r.rate));
+  const max = Math.max(...rated.map((r) => r.rate));
+  if (rated.length < 2 || max === min) {
     return heat;
   }
-  for (const item of sections) {
-    if (item.section.heat) {
-      heat.set(
-        item.key,
-        Math.max(1, Math.round((item.section.heat / max) * 5)),
-      );
-    }
+  for (const { key, rate } of rated) {
+    heat.set(key, 1 + Math.round((4 * (rate - min)) / (max - min)));
   }
   return heat;
 }
 
-function prior(item: SectionItem, heat: Map<string, number>): number {
-  return (item.section.debate_minutes ?? 1) * (heat.get(item.key) ?? 1);
-}
-
 /**
- * Each day leads with its own most heated debate and a vote on the same
- * topic, then the rest of that day per parliament. Ranking never crosses
- * days, so a heated debate from last week cannot bury today's.
+ * Each day leads with its own most heated debate and the vote on it, then the
+ * rest of that day per parliament. Ranking never crosses days, so a heated
+ * debate from last week cannot bury today's.
+ *
+ * The vote must share a Drucksache with the debate's agenda item: that is the
+ * motion debated. A shared topic is not enough.
  */
 export function rankFeed(
   days: readonly FeedDay[],
@@ -149,28 +160,25 @@ export function rankFeed(
   const visibleVotes = (digest: DailyDigest) =>
     voteItems(digest).filter((v) => matchesTopics(v.vote.topics, topics));
 
-  return days.map((day, dayIndex) => {
+  return days.map((day) => {
     const sections = day.digests.flatMap((digest) =>
       sectionItems(digest).filter((s) =>
         matchesTopics(sectionTopics(s.section), topics),
       ),
     );
     const heat = dayHeat(sections);
-    // Stable sort: ties keep stored order (Bundestag first, protocol order).
-    const ranked = [...sections].sort(
-      (a, b) => prior(b, heat) - prior(a, heat),
-    );
-    const hot = ranked[0] ?? null;
+    // Stable sort: ties and uncounted debates keep stored order (Bundestag
+    // first, protocol order).
+    const rate = (item: SectionItem) => interjectionRate(item) ?? -1;
+    const ranked = [...sections].sort((a, b) => rate(b) - rate(a));
+    // A day with no counted debate has nothing to crown.
+    const hot = ranked.find((s) => interjectionRate(s) !== null) ?? null;
 
-    const sharesTopic = (v: VoteItem) =>
-      hot !== null && v.vote.topics.includes(hot.section.topic);
-    const sameDay = day.digests.flatMap(visibleVotes).find(sharesTopic);
+    const debated = new Set(hot?.section.drucksachen ?? []);
     const match =
-      sameDay ??
-      days
-        .slice(dayIndex + 1)
-        .flatMap((d) => d.digests.flatMap(visibleVotes))
-        .find(sharesTopic) ??
+      day.digests
+        .flatMap(visibleVotes)
+        .find((v) => (v.vote.drucksachen ?? []).some((d) => debated.has(d))) ??
       null;
 
     const blocks = day.digests
@@ -179,7 +187,7 @@ export function rankFeed(
         sections: ranked.filter(
           (s) => s.digest.id === digest.id && s.key !== hot?.key,
         ),
-        votes: visibleVotes(digest).filter((v) => v.key !== sameDay?.key),
+        votes: visibleVotes(digest).filter((v) => v.key !== match?.key),
       }))
       .filter((b) => b.sections.length > 0 || b.votes.length > 0);
 

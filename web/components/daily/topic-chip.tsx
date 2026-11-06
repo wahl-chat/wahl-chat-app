@@ -25,7 +25,7 @@ export function TopicMeta({
 }: {
   topics: string[];
   suffix?: string | null;
-  /** Non-text meta after the line, e.g. the heat dots; never truncated. */
+  /** Non-text meta after the line, e.g. the heat flames; never truncated. */
   trailing?: ReactNode;
   className?: string;
 }) {

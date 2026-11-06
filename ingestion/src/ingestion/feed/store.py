@@ -2,7 +2,8 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Firestore ``feed_editions/{edition_id}`` and ``feed_items/{item_id}``.
+"""Firestore ``feed_editions/{edition_id}``, ``feed_items/{item_id}`` and
+``feed_calendar/{parliament}``.
 
 Items are never deleted: one whose source unit vanishes from a day is marked
 ``retracted``, so a shared link to it still resolves to something the web can
@@ -24,12 +25,14 @@ from ingestion.feed.models import (
     TRANSLATED_LOCALES,
     FeedEdition,
     FeedItem,
+    SittingCalendar,
 )
 
 logger = logging.getLogger(__name__)
 
 EDITION_COLLECTION = "feed_editions"
 ITEM_COLLECTION = "feed_items"
+CALENDAR_COLLECTION = "feed_calendar"
 # Firestore caps a write batch at 500 operations.
 _BATCH_OPS = 450
 
@@ -149,4 +152,23 @@ def write_feed(
             )
             for edition in editions
         ],
+    )
+
+
+def read_calendar(db: Any, parliament: str) -> SittingCalendar | None:
+    """The stored calendar; None when there is none or it no longer
+    validates, so the next one is built from the sources alone."""
+    snapshot = db.collection(CALENDAR_COLLECTION).document(parliament).get()
+    if not snapshot.exists:
+        return None
+    try:
+        return SittingCalendar.model_validate(snapshot.to_dict())
+    except ValidationError:
+        logger.warning("Stored calendar for %s no longer validates", parliament)
+        return None
+
+
+def write_calendar(db: Any, calendar: SittingCalendar) -> None:
+    db.collection(CALENDAR_COLLECTION).document(calendar.parliament).set(
+        calendar.model_dump(mode="json")
     )

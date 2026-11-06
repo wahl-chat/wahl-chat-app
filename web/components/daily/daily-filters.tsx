@@ -15,12 +15,19 @@ import {
   selectionName,
   sigilFor,
 } from '@/lib/daily/region';
+import {
+  type SittingStatus,
+  berlinToday,
+  sittingStatus,
+} from '@/lib/daily/sitting-calendar';
 import { DAILY_TOPIC_KEYS } from '@/lib/daily/topics';
+import type { SittingCalendar } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { ChevronDownIcon } from 'lucide-react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, PILL, PILL_ACTIVE } from './card-styles';
+import { SittingCalendarPanel, SittingStatusLine } from './sitting-calendar';
 import TopicChip from './topic-chip';
 
 const CHECKBOX =
@@ -48,23 +55,37 @@ function Sigil({ code, label }: { code: string; label?: boolean }) {
 }
 
 /** One parliament: its coat of arms and name. Several: the coats of arms
- * alone, side by side, which read faster than a list of names. */
-function SelectionSummary({ states }: { states: StateSelection }) {
+ * alone, side by side, which read faster than a list of names. Under either,
+ * when the Bundestag sits next. */
+function SelectionSummary({
+  states,
+  status,
+}: {
+  states: StateSelection;
+  status: SittingStatus | null;
+}) {
+  const line = status && <SittingStatusLine status={status} />;
   if (states.length === 1) {
     return (
       <span className="flex min-w-0 items-center gap-3">
         <Sigil code={states[0]} />
-        <span className="truncate text-[17px] font-semibold">
-          {selectionName(states[0])}
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-[17px] font-semibold leading-tight">
+            {selectionName(states[0])}
+          </span>
+          {line}
         </span>
       </span>
     );
   }
   return (
-    <span className="flex items-center gap-2">
-      {states.map((code) => (
-        <Sigil key={code} code={code} label />
-      ))}
+    <span className="flex min-w-0 flex-col gap-0.5">
+      <span className="flex items-center gap-2">
+        {states.map((code) => (
+          <Sigil key={code} code={code} label />
+        ))}
+      </span>
+      {line}
     </span>
   );
 }
@@ -73,17 +94,31 @@ function SelectionSummary({ states }: { states: StateSelection }) {
  * The Bundestag and any covered Landtage, chosen in a panel that drops down
  * under the box. Changes are staged and only applied on "Fertig", so the feed
  * does not reshuffle on every tick. The Bundestag is the default; at least
- * one parliament must stay selected.
+ * one parliament must stay selected. The box says when the Bundestag sits
+ * next; the panel shows its sitting days.
  */
 export function ParliamentSelector({
   states,
   onChange,
+  calendar = null,
+  editionDates = [],
+  onJumpToDay,
 }: {
   states: StateSelection;
   onChange: (states: StateSelection) => void;
+  calendar?: SittingCalendar | null;
+  editionDates?: readonly string[];
+  /** A sitting day whose content is online was chosen in the calendar. */
+  onJumpToDay?: (date: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(states);
+  const [today] = useState(berlinToday);
+  // Closing for a jump into the feed: focus goes to the day, not back here.
+  const jumping = useRef(false);
+  const status = states.includes(BUNDESTAG)
+    ? sittingStatus(calendar, today)
+    : null;
 
   const openChange = (next: boolean) => {
     setDraft(states);
@@ -109,22 +144,40 @@ export function ParliamentSelector({
         aria-label={`Parlament wählen, gewählt: ${states.map(selectionName).join(', ')}`}
         className={cn(
           FOCUS_RING,
-          'relative z-[25] flex h-14 w-full items-center gap-3 rounded-[10px] border bg-[var(--daily-canvas)] px-4 text-left',
+          'relative z-[25] flex min-h-14 w-full items-center gap-3 rounded-[10px] border bg-[var(--daily-canvas)] px-4 py-2 text-left',
           open ? 'border-[var(--daily-ink)]' : 'border-[var(--daily-border)]',
         )}
       >
-        <SelectionSummary states={states} />
-        <span className={cn('ml-auto shrink-0 text-[15px]', MUTED_TEXT)}>
+        <SelectionSummary states={states} status={status} />
+        {/* On a phone the sitting status needs the room; the chevron still
+            says the box opens. */}
+        <span
+          className={cn(
+            'ml-auto shrink-0 text-[15px]',
+            status && 'hidden sm:inline',
+            MUTED_TEXT,
+          )}
+        >
           {open ? `${draft.length} gewählt` : 'Parlament wählen'}
         </span>
         <ChevronDownIcon
           aria-hidden
-          className={cn('size-4 transition-transform', open && 'rotate-180')}
+          className={cn(
+            'size-4 shrink-0 transition-transform',
+            status && 'ml-auto sm:ml-0',
+            open && 'rotate-180',
+          )}
         />
       </PopoverTrigger>
       <PopoverContent
         align="start"
         sideOffset={2}
+        onCloseAutoFocus={(event) => {
+          if (jumping.current) {
+            event.preventDefault();
+            jumping.current = false;
+          }
+        }}
         className={cn(
           DAILY_THEME_CLASSES,
           'flex max-h-[min(70dvh,36rem)] w-[var(--radix-popover-trigger-width)] flex-col overflow-hidden rounded-xl border-[var(--daily-border)] p-0 shadow-xl',
@@ -148,6 +201,19 @@ export function ParliamentSelector({
           </span>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
+          {calendar && (
+            <div className="border-b border-[var(--daily-border)] py-3 pl-[52px] pr-4">
+              <SittingCalendarPanel
+                calendar={calendar}
+                editionDates={editionDates}
+                onJumpToDay={(date) => {
+                  jumping.current = true;
+                  setOpen(false);
+                  onJumpToDay?.(date);
+                }}
+              />
+            </div>
+          )}
           <fieldset className="py-2">
             <legend className={cn('px-4 pb-1 pt-2 text-[13px]', MUTED_TEXT)}>
               Landtage

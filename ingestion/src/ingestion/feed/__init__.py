@@ -5,4 +5,5 @@
 """The parliament feed: per parliament and sitting day, every debate and vote
 becomes one feed item, derived from the corpus once and reused by every
 surface that shows it (Firestore ``feed_items``, grouped by ``feed_editions``,
-found through the Qdrant feed collection)."""
+found through the Qdrant feed collection). Beside it, ``feed_calendar`` holds
+when the parliament sits next."""

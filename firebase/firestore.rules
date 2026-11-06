@@ -25,6 +25,10 @@ service cloud.firestore {
       allow read;
     }
 
+    match /feed_calendar/{parliament} {
+      allow read;
+    }
+
     match /parties/{document=**} {
       allow read;
     }

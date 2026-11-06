@@ -75,11 +75,11 @@ export const ACCORDION_CONTENT: HowToAccordionItem[] = [
     title: 'Wie entsteht die Hitzigkeit im Feed?',
     content: {
       intro:
-        'Die Punkte neben einer Debatte zeigen, wie hitzig sie im Vergleich zu den anderen Debatten desselben Tages war. Sie entstehen wie folgt:',
+        'Die Flammen neben einer Debatte zeigen, wie oft das Plenum die Redenden unterbrochen hat, im Vergleich zu den anderen Debatten desselben Tages. Sie entstehen wie folgt:',
       orderedList: [
-        'Einordnung pro Debatte: Eine KI bewertet jede Debatte für sich auf einer festen Skala von 1 bis 5, anhand der Schärfe des Tons, gegenseitiger Vorwürfe und wie gegensätzlich die Positionen der Fraktionen sind.',
-        'Vergleich im Feed: Die Werte eines Tages werden so umgerechnet, dass die hitzigste angezeigte Debatte 5 Punkte hat.',
-        'Thema des Tages: Ganz oben steht die Debatte mit dem höchsten Wert aus Hitzigkeit mal Debattenlänge, basierend auf einer Schätzung der gesprochenen Worte pro Minute.',
+        'Zählung im Plenarprotokoll: Das Protokoll verzeichnet Zwischenrufe, Gegenrufe, Widerspruch, Gelächter und Unruhe. Wir zählen sie für jede Debatte und teilen durch ihre Länge in Minuten. Beifall zählt nicht mit.',
+        'Vergleich innerhalb des Tages: Die Debatten eines Tages werden nur miteinander verglichen, nicht mit festen Grenzwerten. Die mit den meisten Unterbrechungen pro Minute hat 5 Flammen, die mit den wenigsten 1 Flamme, alle anderen liegen dazwischen.',
+        'Hot Topic: Ganz oben steht die Debatte mit den meisten Unterbrechungen pro Minute.',
       ],
       outro:
         'Die Hitzigkeit sagt nichts darüber, wie wichtig ein Thema ist. Sie beschreibt nur, wie kontrovers die Debatte im Plenum geführt wurde.',
