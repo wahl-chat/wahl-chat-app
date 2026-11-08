@@ -114,6 +114,8 @@ class ParliamentRun:
     # Debates whose protocol could not be read yet, so their order is unknown.
     deferred: int = 0
     out_of_time: bool = False
+    # What a model call failed to generate (see ``FeedBuilder.record_failure``).
+    failed: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -136,6 +138,10 @@ class Published:
     translation: TranslationReport = field(default_factory=TranslationReport)
     index: IndexReport = field(default_factory=IndexReport)
     translations_kept: int = 0
+
+    @property
+    def wrote(self) -> bool:
+        return bool(self.editions or self.items or self.retracted)
 
     def add(self, other: Published) -> None:
         self.editions.extend(other.editions)
@@ -511,6 +517,12 @@ def _firestore_client() -> Any:
 
 
 def post_revalidate(env: str) -> None:
+    """Bust the web's feed cache tag, so what a run wrote shows at once.
+
+    A deployment behind Vercel's Deployment Protection (dev) turns the POST
+    away before it reaches the route; ``VERCEL_AUTOMATION_BYPASS_SECRET`` is
+    Vercel's token for letting automation through.
+    """
     secret = os.getenv("REVALIDATE_SECRET")
     base = (
         os.getenv("REVALIDATE_URL")
@@ -523,10 +535,14 @@ def post_revalidate(env: str) -> None:
             "outside dev/prod). The web cache refreshes within 24h on its own."
         )
         return
+    headers = {"Authorization": f"Bearer {secret}"}
+    bypass = os.getenv("VERCEL_AUTOMATION_BYPASS_SECRET")
+    if bypass:
+        headers["x-vercel-protection-bypass"] = bypass
     response = httpx.post(
         f"{base.rstrip('/')}/api/revalidate",
         json={"tags": [FEED_CACHE_TAG]},
-        headers={"Authorization": f"Bearer {secret}"},
+        headers=headers,
         timeout=30,
     )
     response.raise_for_status()
@@ -570,6 +586,7 @@ def _summary_line(run: ParliamentRun, published: Published) -> str:
         f"unchanged={run.unchanged} items_built={run.items_built} "
         f"items_written={len(published.items)} retracted={published.retracted} "
         f"incomplete={run.incomplete} deferred={run.deferred} "
+        f"failed={len(run.failed)} "
         f"translated={t.translated} translation_failed={t.failed} "
         f"translations_kept={published.translations_kept} "
         f"indexed={published.index.upserted}"
@@ -620,6 +637,7 @@ def build_and_publish(
                 )
             )
 
+        failed_before = len(builder.failed)
         run = build_for_parliament(
             qdrant,
             parliament,
@@ -633,6 +651,7 @@ def build_and_publish(
             out_of_time=out_of_time,
             lookup_poll=lookup_poll,
         )
+        run.failed = builder.failed[failed_before:]
         runs.append((run, published))
         print(_summary_line(run, published))
     return runs
@@ -785,11 +804,22 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
         print(f"wrote {args.out}")
 
-    if db is not None and args.revalidate:
+    # Only a run that wrote something has anything to show; the later runs of
+    # a morning usually find every day unchanged.
+    if db is not None and args.revalidate and any(p.wrote for _, p in runs):
         post_revalidate(env)
 
     if runs and all(run.window is None for run, _ in runs):
         print("No corpus data in any selected parliament.", file=sys.stderr)
+        return 1
+    failed = [what for run, _ in runs for what in run.failed]
+    if failed:
+        # Everything else is published by now; a non-zero exit is what makes a
+        # failing model or roster visible in the job's history.
+        print(
+            f"{len(failed)} item(s) not generated: {', '.join(failed)}",
+            file=sys.stderr,
+        )
         return 1
     return 0
 

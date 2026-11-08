@@ -159,6 +159,15 @@ class FeedBuilder:
         self._runner = asyncio.Runner()
         self.deadline = deadline
         self.concurrency = concurrency
+        # What a call failed to generate. The run still publishes the rest,
+        # then exits non-zero, so a broken roster cannot pass as a quiet run.
+        self.failed: list[str] = []
+
+    def record_failure(self, what: str, exc: BaseException) -> None:
+        """Note ``what`` as failed, unless the time budget cut it: that is the
+        planned stop, and the next run picks it up."""
+        if not isinstance(exc, TimeoutError):
+            self.failed.append(what)
 
     def close(self) -> None:
         self._runner.close()
@@ -692,6 +701,7 @@ async def build_debate(
             missing = [p for p in required if p not in positions]
     except Exception as exc:  # noqa: BLE001
         logger.warning("Debate %s not built this run: %s", unit.item_id, exc)
+        builder.record_failure(unit.item_id, exc)
         return None
     if missing:
         logger.warning(
@@ -771,6 +781,7 @@ async def top_up_positions(
         )
     except Exception as exc:  # noqa: BLE001
         logger.warning("Positions of %s not retried this run: %s", unit.item_id, exc)
+        builder.record_failure(unit.item_id, exc)
         return None
     canonical = stored.content[CANONICAL_LOCALE]
     texts = {p.party_id: p.text for p in canonical.positions} | {
@@ -859,6 +870,8 @@ async def enrich_votes(
         enriched = {v.ref: v for v in result.votes if v.ref in refs}
     except Exception as exc:  # noqa: BLE001
         logger.warning("Vote enrichment failed for %s: %s", parliament.id, exc)
+        for payload in payloads:
+            builder.record_failure(f"poll {payload.get('external_id')}", exc)
         enriched, model = {}, None
     for ref, payload in refs.items():
         found[int(payload["external_id"])] = enriched.get(ref)

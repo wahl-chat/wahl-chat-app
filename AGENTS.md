@@ -597,7 +597,13 @@ from an item's headline and facts).
   new items before the job's 15-minute cap, and a call still running past it
   is cut. The job runs several times in a row so a long week finishes the
   same morning. Unchanged items are skipped without LLM calls, so the extra
-  runs cost nothing.
+  runs cost nothing. A run that wrote something busts the web's `feed` cache
+  tag (`--revalidate`, with `REVALIDATE_SECRET` and, for dev's Deployment
+  Protection, `VERCEL_AUTOMATION_BYPASS_SECRET`), so new items show at once.
+  An item whose model call failed (not one the time budget cut) makes the run
+  exit non-zero once the rest is published, so a broken roster shows in the
+  job history. The job needs no `GOOGLE_API_KEY`: the AI Studio models join
+  the roster only when it is set, behind Vertex.
 - **Sitting days.** The same job stores the Bundestag's sitting weeks from
   `FEED_START` (1 Sep 2026, when the feed begins; `feed/parliaments.py`) to
   six weeks ahead in `feed_calendar/bundestag` (`feed/calendar.py`). DIP has
