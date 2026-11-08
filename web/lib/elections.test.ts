@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  chatElection,
   getNextUpcomingElection,
   isUpcomingElection,
   splitElectionsByDate,
@@ -157,5 +158,40 @@ describe('getNextUpcomingElection', () => {
 
   it('returns undefined for an empty list', () => {
     expect(getNextUpcomingElection([], NOW)).toBeUndefined();
+  });
+});
+
+describe('chatElection', () => {
+  const held = (id: string, day: string) => election(id, new Date(day));
+
+  it('opens the next upcoming election', () => {
+    expect(
+      chatElection(
+        [held('past', '2026-03-08'), held('next', '2026-09-06')],
+        NOW,
+      )?.context_id,
+    ).toBe('next');
+  });
+
+  it('opens the most recently held election between elections', () => {
+    expect(
+      chatElection(
+        [held('older', '2025-02-23'), held('latest', '2026-03-22')],
+        NOW,
+      )?.context_id,
+    ).toBe('latest');
+  });
+
+  it('keeps the given order for elections on the same day', () => {
+    expect(
+      chatElection(
+        [held('berlin', '2026-03-22'), held('mv', '2026-03-22')],
+        NOW,
+      )?.context_id,
+    ).toBe('berlin');
+  });
+
+  it('has nothing to open without an election', () => {
+    expect(chatElection([], NOW)).toBeUndefined();
   });
 });

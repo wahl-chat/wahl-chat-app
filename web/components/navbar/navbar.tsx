@@ -13,8 +13,9 @@ type Props = {
 
 export default async function NavBar({ className }: Props) {
   const tabs: NavbarItemDetails[] = [
+    // The start page is the parliament feed, wahl.chat's News.
     {
-      label: 'Startseite',
+      label: 'News',
       href: '/',
     },
     // {

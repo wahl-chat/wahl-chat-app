@@ -108,3 +108,25 @@ export function getNextUpcomingElection(
 ): Context | undefined {
   return splitElectionsByDate(contexts, now).upcoming[0];
 }
+
+/**
+ * The election the feed's Chat link opens: the next one, or between elections
+ * the one held most recently. Same-day elections keep their given order.
+ * Undefined only without any election.
+ */
+export function chatElection(
+  contexts: Context[],
+  now = new Date(),
+): Context | undefined {
+  const { upcoming, past } = splitElectionsByDate(
+    contexts.filter((c) => c.type === 'election'),
+    now,
+  );
+  if (upcoming.length > 0) {
+    return upcoming[0];
+  }
+  // Array.prototype.sort is stable, so a tie keeps the input order.
+  return [...past].sort(
+    (a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0),
+  )[0];
+}

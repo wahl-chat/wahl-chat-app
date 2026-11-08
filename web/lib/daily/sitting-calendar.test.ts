@@ -5,10 +5,8 @@ import {
   berlinToday,
   calendarMonths,
   monthCells,
-  protocolRange,
   shortRange,
   sittingStatus,
-  sittingTiles,
   upcomingSlots,
   waitingDays,
 } from './sitting-calendar';
@@ -71,38 +69,6 @@ describe('sittingStatus', () => {
   });
 });
 
-describe('sittingTiles', () => {
-  it('shows today and the next sitting, with the one after it', () => {
-    expect(sittingTiles(CALENDAR, '2026-11-05')).toEqual([
-      {
-        label: 'Heute',
-        date: 'Do, 5. Nov.',
-        after: null,
-        live: true,
-        agenda: true,
-        waiting: false,
-      },
-      {
-        label: 'Nächste',
-        date: 'Fr, 6. Nov.',
-        after: 'danach 9.–13. Nov.',
-        live: false,
-        agenda: false,
-        waiting: false,
-      },
-    ]);
-  });
-
-  it('shows the next sitting and the one after on other days', () => {
-    expect(
-      sittingTiles(CALENDAR, '2026-11-07').map((t) => [t.label, t.date]),
-    ).toEqual([
-      ['Nächste', '9.–13. Nov.'],
-      ['Danach', '30. Nov. – 4. Dez.'],
-    ]);
-  });
-});
-
 const WAITING = [
   { date: '2026-11-04', protocols: ['21/104'] },
   { date: '2026-11-05', protocols: ['21/105'] },
@@ -139,20 +105,6 @@ describe('waitingDays', () => {
   });
 });
 
-describe('protocolRange', () => {
-  it('names one protocol, a run of them, or lists them', () => {
-    expect(protocolRange([])).toBeNull();
-    expect(protocolRange(['21/104'])).toBe('Protokoll 21/104');
-    expect(protocolRange(['21/105', '21/104', '21/104'])).toBe(
-      'Protokolle 21/104–105',
-    );
-    expect(protocolRange(['21/99', '21/100'])).toBe('Protokolle 21/99–100');
-    expect(protocolRange(['21/104', '21/106'])).toBe(
-      'Protokolle 21/104, 21/106',
-    );
-  });
-});
-
 describe('days on their way into the feed', () => {
   it('lead the status line, with the next sitting', () => {
     expect(sittingStatus(CALENDAR, '2026-11-07', WAITING)).toEqual({
@@ -171,38 +123,6 @@ describe('days on their way into the feed', () => {
     const status = sittingStatus(CALENDAR, '2026-11-05', WAITING.slice(0, 1));
     expect(status?.live).toBe(true);
     expect(status?.waiting).toBe(false);
-  });
-
-  it('fill the first tile, the next sitting week the second', () => {
-    expect(sittingTiles(CALENDAR, '2026-11-07', WAITING)).toEqual([
-      {
-        label: 'Bald verfügbar',
-        date: '4.–5. Nov.',
-        after: 'Protokolle 21/104–105',
-        live: false,
-        agenda: false,
-        waiting: true,
-      },
-      {
-        label: 'Nächste Sitzungswoche',
-        date: '9.–13. Nov.',
-        after: null,
-        live: false,
-        agenda: true,
-        waiting: false,
-      },
-    ]);
-  });
-
-  it('name the week of a known next sitting day, or today when it sits', () => {
-    expect(
-      sittingTiles(CALENDAR, '2026-11-03', WAITING.slice(0, 1))[1].date,
-    ).toBe('2.–6. Nov.');
-    expect(
-      sittingTiles(CALENDAR, '2026-11-05', WAITING.slice(0, 1)).map(
-        (t) => t.label,
-      ),
-    ).toEqual(['Bald verfügbar', 'Heute']);
   });
 });
 

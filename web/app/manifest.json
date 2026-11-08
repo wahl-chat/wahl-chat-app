@@ -1,6 +1,7 @@
 {
   "name": "wahl.chat",
   "short_name": "wahl.chat",
+  "description": "Bundestag kompakt: Debatten und Abstimmungen mit Quellen, dazu Parteipositionen im Chat.",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",

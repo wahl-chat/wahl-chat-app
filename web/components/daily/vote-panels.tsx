@@ -35,32 +35,59 @@ const MAJORITY_CLASS: Record<Majority, string> = {
   abstain: MUTED_TEXT,
 };
 
-/** "So haben die Fraktionen gestimmt": two columns of Fraktion and majority. */
-export function PartyVoteTable({ vote }: { vote: DigestVote }) {
+/**
+ * "So haben die Fraktionen gestimmt": two columns of Fraktion and majority.
+ * Each row opens how that Fraktion's members voted, the same as tapping its
+ * block in the chart.
+ */
+export function PartyVoteTable({
+  vote,
+  selected,
+  onSelect,
+  breakdownId,
+}: {
+  vote: DigestVote;
+  selected: string | null;
+  onSelect: (partyId: string) => void;
+  /** The breakdown panel the rows open. */
+  breakdownId: string;
+}) {
   return (
-    <dl className="grid grid-cols-2 gap-x-8">
+    <ul className="grid grid-cols-2 gap-x-8">
       {sortBySeating(vote.parties)
         .filter((party) => !isUnaffiliated(party.party_id))
         .map((party) => {
           const verdict = majority(party);
+          const active = selected === party.party_id;
           return (
-            <div
-              key={party.party_id}
-              className="flex items-center justify-between gap-2 border-b border-[var(--daily-border)] py-3 text-[15px]"
-            >
-              <dt className="truncate">{party.name}</dt>
-              <dd
+            <li key={party.party_id}>
+              <button
+                type="button"
+                aria-expanded={active}
+                aria-controls={breakdownId}
+                onClick={() => onSelect(party.party_id)}
                 className={cn(
-                  'font-semibold',
-                  verdict && MAJORITY_CLASS[verdict],
+                  FOCUS_RING,
+                  'flex w-full items-center justify-between gap-2 border-b py-3 text-left text-[15px]',
+                  active
+                    ? 'border-[var(--daily-ink)] font-semibold'
+                    : 'border-[var(--daily-border)]',
                 )}
               >
-                {verdict ? MAJORITY_LABEL[verdict] : '–'}
-              </dd>
-            </div>
+                <span className="truncate">{party.name}</span>
+                <span
+                  className={cn(
+                    'font-semibold',
+                    verdict && MAJORITY_CLASS[verdict],
+                  )}
+                >
+                  {verdict ? MAJORITY_LABEL[verdict] : '–'}
+                </span>
+              </button>
+            </li>
           );
         })}
-    </dl>
+    </ul>
   );
 }
 

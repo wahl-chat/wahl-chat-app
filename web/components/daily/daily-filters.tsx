@@ -27,8 +27,9 @@ import type { SittingCalendar } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { ChevronDownIcon } from 'lucide-react';
 import Image from 'next/image';
-import { useRef, useState } from 'react';
+import { type RefObject, useEffect, useRef, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, PILL, PILL_ACTIVE } from './card-styles';
+import { ScrollRow, pageStep } from './scroll-row';
 import { SittingCalendarPanel, SittingStatusLine } from './sitting-calendar';
 import TopicChip from './topic-chip';
 
@@ -89,6 +90,76 @@ function SelectionSummary({
       </span>
       {line}
     </span>
+  );
+}
+
+/** The Landtage, folded away behind "kommt bald" while none is covered, so
+ * the panel leads with the Bundestag and its calendar. */
+function LandtageList({
+  draft,
+  onToggle,
+}: {
+  draft: StateSelection;
+  onToggle: (code: string, checked: boolean) => void;
+}) {
+  const states = Object.entries(DAILY_STATES);
+  const anyCovered = states.some(([, state]) => state.parliament !== undefined);
+  const [expanded, setExpanded] = useState(anyCovered);
+  return (
+    <fieldset className="py-2">
+      <legend className="sr-only">Landtage</legend>
+      <button
+        type="button"
+        aria-expanded={expanded}
+        aria-controls="parliament-landtage"
+        onClick={() => setExpanded((open) => !open)}
+        className={cn(FOCUS_RING, ROW, 'w-full text-left text-[15px]')}
+      >
+        <span className="flex-1 font-semibold">Landtage</span>
+        {!anyCovered && (
+          <span
+            className={cn(
+              'rounded-full bg-[var(--daily-surface)] px-2.5 py-0.5 text-[13px]',
+              MUTED_TEXT,
+            )}
+          >
+            kommt bald
+          </span>
+        )}
+        <ChevronDownIcon
+          aria-hidden
+          className={cn(
+            'size-4 shrink-0 transition-transform',
+            expanded && 'rotate-180',
+          )}
+        />
+      </button>
+      <div id="parliament-landtage" hidden={!expanded}>
+        {states.map(([code, state]) => {
+          const covered = state.parliament !== undefined;
+          return (
+            <div key={code} className={ROW}>
+              <Checkbox
+                id={`parliament-${code}`}
+                className={CHECKBOX}
+                checked={draft.includes(code)}
+                disabled={!covered}
+                onCheckedChange={(checked) => onToggle(code, checked === true)}
+              />
+              <label
+                htmlFor={`parliament-${code}`}
+                className={cn(
+                  'flex flex-1 items-center self-stretch text-[15px]',
+                  !covered && cn('cursor-not-allowed', MUTED_TEXT),
+                )}
+              >
+                {state.name}
+              </label>
+            </div>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }
 
@@ -208,11 +279,10 @@ export function ParliamentSelector({
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {calendar && (
-            <div className="border-b border-[var(--daily-border)] py-3 pl-[52px] pr-4">
+            <div className="border-b border-[var(--daily-border)] px-4 py-3">
               <SittingCalendarPanel
                 calendar={calendar}
                 editionDates={editionDates}
-                waiting={waiting}
                 onJumpToDay={(date) => {
                   jumping.current = true;
                   setOpen(false);
@@ -221,39 +291,7 @@ export function ParliamentSelector({
               />
             </div>
           )}
-          <fieldset className="py-2">
-            <legend className={cn('px-4 pb-1 pt-2 text-[13px]', MUTED_TEXT)}>
-              Landtage
-            </legend>
-            {Object.entries(DAILY_STATES).map(([code, state]) => {
-              const covered = state.parliament !== undefined;
-              return (
-                <div key={code} className={ROW}>
-                  <Checkbox
-                    id={`parliament-${code}`}
-                    className={CHECKBOX}
-                    checked={draft.includes(code)}
-                    disabled={!covered}
-                    onCheckedChange={(checked) =>
-                      toggle(code, checked === true)
-                    }
-                  />
-                  <label
-                    htmlFor={`parliament-${code}`}
-                    className={cn(
-                      'flex flex-1 items-center self-stretch text-[15px]',
-                      !covered && cn('cursor-not-allowed', MUTED_TEXT),
-                    )}
-                  >
-                    {state.name}
-                    {!covered && (
-                      <span className="ml-auto text-[13px]">bald</span>
-                    )}
-                  </label>
-                </div>
-              );
-            })}
-          </fieldset>
+          <LandtageList draft={draft} onToggle={toggle} />
         </div>
         <div className="flex items-center justify-between border-t border-[var(--daily-border)] p-3">
           <button
@@ -292,7 +330,40 @@ export function ParliamentSelector({
   );
 }
 
-/** "Alle Themen" plus one pill per topic, in one sideways-scrolling row. */
+/** Whether the sticky element has reached its stuck position under the
+ * header, so it can draw the line that separates it from the feed below. */
+function useStuck(ref: RefObject<HTMLElement | null>): boolean {
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) {
+      return;
+    }
+    let frame = 0;
+    const check = () => {
+      frame = 0;
+      const top = Number.parseFloat(getComputedStyle(el).top) || 0;
+      setStuck(
+        window.scrollY > 0 && el.getBoundingClientRect().top <= top + 0.5,
+      );
+    };
+    const onScroll = () => {
+      if (!frame) {
+        frame = requestAnimationFrame(check);
+      }
+    };
+    check();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, [ref]);
+  return stuck;
+}
+
+/** "Alle Themen" plus one pill per topic, in one sideways-scrolling row that
+ * stays under the header while the feed scrolls. */
 export function TopicPills({
   topics,
   onChange,
@@ -307,25 +378,38 @@ export function TopicPills({
         : [...topics, topic],
     );
 
+  const bar = useRef<HTMLFieldSetElement>(null);
+  const stuck = useStuck(bar);
+
   return (
-    <fieldset className="relative -mx-4 flex min-w-0 gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    // Below the parliament panel's backdrop (z-20), so an open panel dims it
+    // like the rest of the feed.
+    <fieldset
+      ref={bar}
+      className={cn(
+        'sticky top-[var(--header-height)] z-[15] -mx-4 h-14 min-w-0 border-b bg-[var(--daily-canvas)] py-2',
+        stuck ? 'border-[var(--daily-border)]' : 'border-transparent',
+      )}
+    >
       <legend className="sr-only">Themen</legend>
-      <button
-        type="button"
-        aria-pressed={topics.length === 0}
-        onClick={() => onChange([])}
-        className={cn(PILL, FOCUS_RING, topics.length === 0 && PILL_ACTIVE)}
-      >
-        Alle Themen
-      </button>
-      {DAILY_TOPIC_KEYS.map((topic) => (
-        <TopicChip
-          key={topic}
-          topic={topic}
-          active={topics.includes(topic)}
-          onClick={() => toggle(topic)}
-        />
-      ))}
+      <ScrollRow label="Themen" step={pageStep} bleed={false} className="gap-2">
+        <button
+          type="button"
+          aria-pressed={topics.length === 0}
+          onClick={() => onChange([])}
+          className={cn(PILL, FOCUS_RING, topics.length === 0 && PILL_ACTIVE)}
+        >
+          Alle Themen
+        </button>
+        {DAILY_TOPIC_KEYS.map((topic) => (
+          <TopicChip
+            key={topic}
+            topic={topic}
+            active={topics.includes(topic)}
+            onClick={() => toggle(topic)}
+          />
+        ))}
+      </ScrollRow>
     </fieldset>
   );
 }

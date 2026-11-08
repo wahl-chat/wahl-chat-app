@@ -19,9 +19,11 @@ import { cn } from '@/lib/utils';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ChevronLeftIcon, ShareIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useId, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
-import { Hemicycle, SeatLegend } from './hemicycle';
+import { Hemicycle, PartyVoteBreakdown, SeatLegend } from './hemicycle';
 import { PartyPositions, orderedPositions } from './party-positions';
+import { HeatInfo } from './plenary-card';
 import { SourcePills } from './source-pills';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
 import { TopicMeta } from './topic-chip';
@@ -106,14 +108,18 @@ function SectionDetail({
       <div className="flex flex-col gap-4 px-4 pt-4">
         <TopicMeta
           topics={sectionTopics(section)}
-          suffix={heat ? `Hitzigkeit ${heat}/5` : null}
+          trailing={heat ? <HeatInfo heat={heat} /> : null}
         />
         <DialogPrimitive.Title className="hyphens-auto break-words text-[22px] font-bold leading-snug">
           {section.headline}
         </DialogPrimitive.Title>
-        <section className="flex flex-col gap-1.5">
-          <h3 className={SECTION_LABEL}>Kurz gesagt</h3>
-          {points.length > 0 ? (
+        {/* The card's teaser, here in full, so the detail reads on from it. */}
+        {section.summary && (
+          <p className="text-[17px] leading-relaxed">{section.summary}</p>
+        )}
+        {points.length > 0 && (
+          <section className="flex flex-col gap-1.5">
+            <h3 className={SECTION_LABEL}>Kernpunkte</h3>
             <ul className="list-disc space-y-1.5 pl-5 text-[15px] leading-relaxed">
               {points.map((point, i) => (
                 <li key={`${i}-${point}`}>
@@ -125,10 +131,8 @@ function SectionDetail({
                 </li>
               ))}
             </ul>
-          ) : (
-            <p className="text-[15px] leading-relaxed">{section.summary}</p>
-          )}
-        </section>
+          </section>
+        )}
         {section.positions && section.positions.length > 0 && (
           <section className="flex flex-col gap-1.5">
             <h3 className={SECTION_LABEL}>Wer sagt was</h3>
@@ -158,6 +162,13 @@ function VoteDetail({ item }: { item: VoteItem }) {
   const { vote, digest } = item;
   const protocol = protocolLabel(digest);
   const about = vote.summary ?? vote.description;
+  // One Fraktion at a time, picked in the chart or the list; picking it again
+  // closes it.
+  const [selected, setSelected] = useState<string | null>(null);
+  const select = (partyId: string) =>
+    setSelected((current) => (current === partyId ? null : partyId));
+  const selectedParty = vote.parties.find((p) => p.party_id === selected);
+  const breakdownId = useId();
   return (
     <div className="flex flex-col gap-4 px-4 pt-4">
       <div className="flex items-center justify-between gap-3">
@@ -170,8 +181,16 @@ function VoteDetail({ item }: { item: VoteItem }) {
       <DialogPrimitive.Title className="hyphens-auto break-words text-[22px] font-bold leading-snug">
         {vote.short_title}
       </DialogPrimitive.Title>
-      <Hemicycle parties={vote.parties} className="mx-auto max-w-md" />
+      <Hemicycle
+        parties={vote.parties}
+        selected={selected}
+        onSelect={select}
+        className="mx-auto max-w-md"
+      />
       <SeatLegend parties={vote.parties} />
+      {selectedParty && (
+        <PartyVoteBreakdown party={selectedParty} id={breakdownId} />
+      )}
       {about && (
         <section className="rounded-xl bg-[var(--daily-surface)] p-4">
           <h3 className={SECTION_LABEL}>Worum ging es?</h3>
@@ -180,7 +199,12 @@ function VoteDetail({ item }: { item: VoteItem }) {
       )}
       <section className="flex flex-col gap-1">
         <h3 className={SECTION_LABEL}>So haben die Fraktionen gestimmt</h3>
-        <PartyVoteTable vote={vote} />
+        <PartyVoteTable
+          vote={vote}
+          selected={selected}
+          onSelect={select}
+          breakdownId={breakdownId}
+        />
       </section>
       <p className={cn('text-[13px]', MUTED_TEXT)}>
         Originaltitel: {vote.title}

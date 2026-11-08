@@ -60,5 +60,5 @@ export const META_TEXT = 'text-[13px] text-[var(--daily-muted)]';
 
 export const MUTED_TEXT = 'text-[var(--daily-muted)]';
 
-/** Section label inside cards and detail pages: "Kurz gesagt". */
+/** Section label inside cards and detail pages: "Kernpunkte". */
 export const SECTION_LABEL = 'text-sm font-semibold text-[var(--daily-muted)]';

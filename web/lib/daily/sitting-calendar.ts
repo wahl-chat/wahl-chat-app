@@ -106,12 +106,6 @@ function slotDay(slot: Slot): string {
     : shortRange(slot.start, slot.end);
 }
 
-function slotDate(slot: Slot): string {
-  return slot.kind === 'day'
-    ? shortDate(slot.date)
-    : shortRange(slot.start, slot.end);
-}
-
 function sitsToday(slots: Slot[], today: string): boolean {
   return slots[0]?.kind === 'day' && slots[0].date === today;
 }
@@ -154,54 +148,11 @@ export function waitingDays(
     .map(([date, ids]) => ({ date, protocols: [...ids] }));
 }
 
-/** "Protokoll 21/104", "Protokolle 21/104–105" for consecutive sittings of
- * one Wahlperiode, else the ids listed; null when none is known. */
-export function protocolRange(ids: readonly string[]): string | null {
-  const parsed = [...new Set(ids)]
-    .map((id) => {
-      const [period, number] = id.split('/');
-      return { id, period, number: Number(number) };
-    })
-    .sort((a, b) =>
-      a.period === b.period
-        ? a.number - b.number
-        : a.period.localeCompare(b.period),
-    );
-  if (parsed.length === 0) {
-    return null;
-  }
-  if (parsed.length === 1) {
-    return `Protokoll ${parsed[0].id}`;
-  }
-  const first = parsed[0];
-  const last = parsed[parsed.length - 1];
-  const consecutive = parsed.every(
-    (p, i) => p.period === first.period && p.number === first.number + i,
-  );
-  return consecutive
-    ? `Protokolle ${first.period}/${first.number}–${last.number}`
-    : `Protokolle ${parsed.map((p) => p.id).join(', ')}`;
-}
-
 /** "4.–5. Nov.", or "4. Nov." for one day. */
 function waitingDates(waiting: readonly WaitingDay[]): string {
   const first = waiting[0].date;
   const last = waiting[waiting.length - 1].date;
   return first === last ? shortDate(first) : shortRange(first, last);
-}
-
-/** The calendar week a sitting falls in. */
-function slotWeek(
-  calendar: SittingCalendar | null,
-  slot: Slot,
-): { start: string; end: string } | null {
-  if (slot.kind === 'week') {
-    return slot;
-  }
-  return (
-    calendar?.weeks.find((w) => w.start <= slot.date && slot.date <= w.end) ??
-    null
-  );
 }
 
 export type SittingStatus = {
@@ -254,92 +205,6 @@ export function sittingStatus(
         ? `Nächste Sitzung ${shortDay(next.date)}`
         : `Nächste Sitzungswoche ${shortRange(next.start, next.end)}`,
   };
-}
-
-export type SittingTile = {
-  label:
-    | 'Heute'
-    | 'Nächste'
-    | 'Danach'
-    | 'Bald verfügbar'
-    | 'Nächste Sitzungswoche';
-  date: string;
-  /** "danach 11. Nov.", or the protocols of the days on their way. */
-  after: string | null;
-  /** The live tile, today's sitting. */
-  live: boolean;
-  /** Links to the Bundestag's agenda. */
-  agenda: boolean;
-  /** The days still on their way into the feed. */
-  waiting: boolean;
-};
-
-/**
- * The two tiles above the month grid. With days on their way: those, then
- * today's sitting or the next sitting week. Otherwise today and the next
- * sitting on a sitting day, else the next sitting and the one after.
- */
-export function sittingTiles(
-  calendar: SittingCalendar | null,
-  today: string,
-  waiting: readonly WaitingDay[] = [],
-): SittingTile[] {
-  const slots = upcomingSlots(calendar, today);
-  const tile = (
-    label: SittingTile['label'],
-    slot: Slot | undefined,
-    after: Slot | undefined,
-    agenda: boolean,
-  ): SittingTile[] =>
-    slot
-      ? [
-          {
-            label,
-            date: slotDay(slot),
-            after: after ? `danach ${slotDate(after)}` : null,
-            live: label === 'Heute',
-            agenda,
-            waiting: false,
-          },
-        ]
-      : [];
-  if (waiting.length > 0) {
-    const soon: SittingTile = {
-      label: 'Bald verfügbar',
-      date: waitingDates(waiting),
-      after: protocolRange(waiting.flatMap((d) => d.protocols)),
-      live: false,
-      agenda: false,
-      waiting: true,
-    };
-    if (sitsToday(slots, today)) {
-      return [soon, ...tile('Heute', slots[0], undefined, true)];
-    }
-    const week = slots[0] && slotWeek(calendar, slots[0]);
-    return week
-      ? [
-          soon,
-          {
-            label: 'Nächste Sitzungswoche',
-            date: shortRange(week.start, week.end),
-            after: null,
-            live: false,
-            agenda: true,
-            waiting: false,
-          },
-        ]
-      : [soon];
-  }
-  if (sitsToday(slots, today)) {
-    return [
-      ...tile('Heute', slots[0], undefined, true),
-      ...tile('Nächste', slots[1], slots[2], false),
-    ];
-  }
-  return [
-    ...tile('Nächste', slots[0], undefined, true),
-    ...tile('Danach', slots[1], undefined, false),
-  ];
 }
 
 /** `YYYY-MM` of a day. */
