@@ -411,14 +411,15 @@ describe('isPendingDay', () => {
 
 describe('heatExplanation', () => {
   it('says what is counted, then where the debate stands that day', () => {
-    const [counted, hottest] = heatExplanation(5);
-    expect(counted).toContain('Zwischenrufe');
-    expect(hottest).toBe('5 von 5: die hitzigste Debatte dieses Sitzungstags.');
+    expect(heatExplanation(5)).toEqual([
+      'Die Flammen zählen Zwischenrufe, Widerspruch, Gelächter und Unruhe.',
+      'die hitzigste Debatte dieses Sitzungstags',
+    ]);
     expect(heatExplanation(1)[1]).toBe(
-      '1 von 5: die ruhigste Debatte dieses Sitzungstags.',
+      'die ruhigste Debatte dieses Sitzungstags',
     );
     expect(heatExplanation(3)[1]).toBe(
-      '3 von 5, verglichen mit den anderen Debatten dieses Sitzungstags.',
+      'verglichen mit den anderen Debatten dieses Sitzungstags',
     );
   });
 });

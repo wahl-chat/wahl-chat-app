@@ -82,7 +82,10 @@ export function HeatInfo({ heat }: { heat: number }) {
         )}
       >
         <p>{counted}</p>
-        <p className="mt-1 font-semibold">{rating}</p>
+        <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 font-semibold">
+          <HeatFlames heat={heat} />
+          <span>{rating}</span>
+        </p>
       </TooltipContent>
     </Tooltip>
   );
