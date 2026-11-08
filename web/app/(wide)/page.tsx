@@ -18,9 +18,11 @@ import {
 } from '@/lib/seo';
 import type { Metadata } from 'next';
 
-// The search terms lead the title, the product name closes it; both stay
-// within what a results page shows (about 60 and 155 characters).
-const TITLE = 'Bundestag kompakt: Debatten & Abstimmungen – wahl.chat News';
+// The search terms lead the title, the product name closes it. A results
+// page shows about 60 characters of a title and 155 of a description, so
+// the brand at the end is what gets cut first.
+const TITLE =
+  'Dein Bundestag kompakt: Debatten & Abstimmungen – wahl.chat News';
 const DESCRIPTION =
   'Verstehe, was im Bundestag passiert: Debatten und Abstimmungen Tag für Tag kompakt zusammengefasst, nach Themen gefiltert und mit Quellen belegt.';
 
