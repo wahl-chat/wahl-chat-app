@@ -7,6 +7,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
 
 from ingestion.feed import backfill
@@ -102,3 +103,66 @@ def test_prod_needs_the_project_id(monkeypatch: pytest.MonkeyPatch) -> None:
     answers: list[Any] = iter(["y"])  # type: ignore[assignment]
     monkeypatch.setattr("builtins.input", lambda _: next(answers))
     assert not backfill._confirm("prod", True, None)
+
+
+def _deployed_run(
+    monkeypatch: pytest.MonkeyPatch, to_build: int, calls: list[str]
+) -> None:
+    """main() against a dev target with every store and model stubbed out."""
+    monkeypatch.setenv("QDRANT_URL", "https://cluster.example.cloud")
+    monkeypatch.setenv("REVALIDATE_SECRET", "secret")
+    monkeypatch.setattr(backfill, "check_target", lambda *_: [])
+    monkeypatch.setattr(backfill, "guard_firestore_target", lambda *_, **__: None)
+    monkeypatch.setattr(backfill, "firestore_for", lambda *_: (None, "stub"))
+    monkeypatch.setattr(backfill, "QdrantClient", lambda **_: None)
+    monkeypatch.setattr(backfill, "check_fingerprint", lambda *_: None)
+    monkeypatch.setattr(backfill, "read_items_since", lambda *_: [])
+    plan = backfill.ParliamentPlan(BUNDESTAG, None)
+    plan.days = [backfill.DayStatus(date(2026, 10, 22), 1, to_build)]
+    monkeypatch.setattr(backfill, "plan_parliament", lambda *_, **__: plan)
+    monkeypatch.setattr(backfill, "_build", lambda *_: calls.append("build") or [])
+    monkeypatch.setattr(
+        backfill, "post_revalidate", lambda env: calls.append(f"revalidate {env}")
+    )
+
+
+@pytest.mark.parametrize(
+    ("to_build", "expected"),
+    [(2, ["build", "revalidate dev"]), (0, ["revalidate dev"])],
+)
+def test_a_run_busts_the_web_cache_even_with_nothing_to_build(
+    monkeypatch: pytest.MonkeyPatch, to_build: int, expected: list[str]
+) -> None:
+    calls: list[str] = []
+    _deployed_run(monkeypatch, to_build, calls)
+    assert backfill.main(["--env", "dev", "--yes"]) == 0
+    assert calls == expected
+
+
+def test_a_plan_leaves_the_web_cache_alone(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+    _deployed_run(monkeypatch, 2, calls)
+    monkeypatch.delenv("REVALIDATE_SECRET")
+    assert backfill.main(["--env", "dev", "--plan"]) == 0
+    assert calls == []
+
+
+def test_a_run_without_the_secret_is_refused_before_building(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    _deployed_run(monkeypatch, 2, calls)
+    monkeypatch.delenv("REVALIDATE_SECRET")
+    assert backfill.main(["--env", "dev", "--yes"]) == 2
+    assert calls == []
+
+
+def test_a_failed_cache_bust_fails_the_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+    _deployed_run(monkeypatch, 0, calls)
+
+    def refused(_: str) -> None:
+        raise httpx.ConnectError("refused")
+
+    monkeypatch.setattr(backfill, "post_revalidate", refused)
+    assert backfill.main(["--env", "dev", "--yes"]) == 4
