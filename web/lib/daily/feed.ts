@@ -134,6 +134,31 @@ function interjectionRate(item: SectionItem): number | null {
   return interjections / debate_minutes;
 }
 
+export const HEAT_SCALE = 5;
+
+/** What the flames count, then what this debate's number of them says. The
+ * scale is relative to the day, so the second sentence names the day. */
+export function heatExplanation(heat: number): [string, string] {
+  const counted =
+    'Die Flammen zählen Zwischenrufe, Widerspruch, Gelächter und Unruhe pro Minute Debatte, laut Plenarprotokoll.';
+  if (heat >= HEAT_SCALE) {
+    return [
+      counted,
+      `${HEAT_SCALE} von ${HEAT_SCALE}: die hitzigste Debatte dieses Sitzungstags.`,
+    ];
+  }
+  if (heat <= 1) {
+    return [
+      counted,
+      `1 von ${HEAT_SCALE}: die ruhigste Debatte dieses Sitzungstags.`,
+    ];
+  }
+  return [
+    counted,
+    `${heat} von ${HEAT_SCALE}, verglichen mit den anderen Debatten dieses Sitzungstags.`,
+  ];
+}
+
 /**
  * Heat compares a day's debates with each other, never with a fixed scale:
  * interjections per minute, counted from the protocol, spread from 1 flame
@@ -153,7 +178,10 @@ export function dayHeat(sections: readonly SectionItem[]): Map<string, number> {
     return heat;
   }
   for (const { key, rate } of rated) {
-    heat.set(key, 1 + Math.round((4 * (rate - min)) / (max - min)));
+    heat.set(
+      key,
+      1 + Math.round(((HEAT_SCALE - 1) * (rate - min)) / (max - min)),
+    );
   }
   return heat;
 }

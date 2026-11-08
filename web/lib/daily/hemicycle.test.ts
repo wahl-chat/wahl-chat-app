@@ -5,6 +5,7 @@ import {
   layoutHemicycle,
   rowCount,
   seatsPerRow,
+  voteBreakdown,
   voteTotals,
   votesInOrder,
 } from './hemicycle';
@@ -121,5 +122,16 @@ describe('votesInOrder', () => {
 describe('rowCount', () => {
   it('uses ten rows for a Bundestag-sized chamber', () => {
     expect(rowCount(630)).toBe(10);
+  });
+});
+
+describe('voteBreakdown', () => {
+  it("counts one Fraktion's votes, members without a vote as Nicht beteiligt", () => {
+    expect(voteBreakdown(party('spd', 110, 3, 1, 6))).toEqual([
+      { vote: 'yes', label: 'Ja', count: 110 },
+      { vote: 'no', label: 'Nein', count: 3 },
+      { vote: 'abstain', label: 'Enthalten', count: 1 },
+      { vote: 'absent', label: 'Nicht beteiligt', count: 6 },
+    ]);
   });
 });

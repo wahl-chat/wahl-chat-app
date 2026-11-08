@@ -6,7 +6,8 @@ import type { DailyDigest } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { META_TEXT } from './card-styles';
 import { useSnapCarousel } from './carousel';
-import { PlenaryCard } from './plenary-card';
+import { HeatInfo, PlenaryCard } from './plenary-card';
+import { ScrollRow, slideStep } from './scroll-row';
 import VoteCard from './vote-card';
 
 const dayFormat = new Intl.DateTimeFormat('de-DE', {
@@ -15,6 +16,9 @@ const dayFormat = new Intl.DateTimeFormat('de-DE', {
   month: 'long',
   timeZone: 'UTC',
 });
+
+// The carousel's gap-3.
+const SLIDE_GAP_PX = 12;
 
 const shortDayFormat = new Intl.DateTimeFormat('de-DE', {
   day: 'numeric',
@@ -69,7 +73,7 @@ function PlenaryRow({
   heat: Map<string, number>;
   onOpen: (item: DetailItem) => void;
 }) {
-  const { ref, active, onScroll } = useSnapCarousel(12);
+  const { ref, active, onScroll } = useSnapCarousel(SLIDE_GAP_PX);
   return (
     <div className="flex flex-col gap-3">
       <GroupHeader
@@ -77,10 +81,12 @@ function PlenaryRow({
         digest={digest}
         count={items.length > 1 ? `${active + 1} / ${items.length}` : undefined}
       />
-      <div
-        ref={ref}
+      <ScrollRow
+        label="Debatten"
+        scrollerRef={ref}
         onScroll={onScroll}
-        className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        step={slideStep(SLIDE_GAP_PX)}
+        className="snap-x snap-mandatory scroll-px-4 gap-3"
       >
         {items.map((item) => (
           <div
@@ -98,7 +104,7 @@ function PlenaryRow({
             />
           </div>
         ))}
-      </div>
+      </ScrollRow>
     </div>
   );
 }
@@ -118,15 +124,21 @@ function DailyDaySection({ day, onOpen }: Props) {
   return (
     <section
       id={`tag-${day.date}`}
-      // Focusable from script only, for a jump from the sitting calendar.
+      // Focusable from script only, for a jump from the sitting calendar. The
+      // jump stops below the header and the sticky topic bar (h-14).
       tabIndex={-1}
-      className="flex scroll-mt-[calc(var(--header-height,4rem)+1rem)] flex-col gap-8"
+      className="flex scroll-mt-[calc(var(--header-height,4rem)+3.5rem+1rem)] flex-col gap-8"
       aria-label={dayFormat.format(utcDay(day.date))}
     >
       {hot && (
         <div className="flex flex-col gap-3">
-          <header className="flex items-baseline justify-between gap-3">
-            <h2 className="text-lg font-bold">Hot Topic</h2>
+          <header className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold">Hot Topic</h2>
+              {day.heat.has(hot.key) && (
+                <HeatInfo heat={day.heat.get(hot.key) as number} />
+              )}
+            </div>
             <span className={META_TEXT}>
               {hot.digest.parliament === 'bundestag'
                 ? 'Plenarsitzung'
@@ -134,12 +146,8 @@ function DailyDaySection({ day, onOpen }: Props) {
               · {shortDayFormat.format(utcDay(day.date))}
             </span>
           </header>
-          <PlenaryCard
-            item={hot}
-            heat={day.heat.get(hot.key)}
-            onOpen={() => onOpen(hot)}
-            variant="hot"
-          />
+          {/* Its flames sit next to "Hot Topic" above, not on the card. */}
+          <PlenaryCard item={hot} onOpen={() => onOpen(hot)} variant="hot" />
           {match && (
             <div className="flex flex-col gap-2 pt-3">
               <h3 className={META_TEXT}>Abstimmung zu dieser Debatte</h3>

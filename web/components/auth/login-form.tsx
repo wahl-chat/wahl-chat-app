@@ -10,7 +10,7 @@ import { useStudyRunning } from '@/components/providers/study-status-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getUser } from '@/lib/firebase/firebase';
+import { getUser, userJoinBriefingsWaitlist } from '@/lib/firebase/firebase';
 import { FirebaseError } from 'firebase/app';
 import {
   EmailAuthProvider,
@@ -30,14 +30,38 @@ import SuccessAuthForm from './success-auth-form';
 
 type AuthProvider = 'google' | 'github' | 'email';
 
+/** Why the reader is asked to sign in. The feed asks them to preregister for
+ * personalised briefings, which is also recorded on their user doc. */
+export type LoginPurpose = 'chat-history' | 'briefings';
+
 type Props = {
   onSuccess: () => void;
+  purpose?: LoginPurpose;
 };
 
-function LoginForm({ onSuccess }: Props) {
+const DESCRIPTIONS: Record<
+  LoginPurpose,
+  Record<'login' | 'register', string>
+> = {
+  'chat-history': {
+    login:
+      'Du kannst dich bei wahl.chat anmelden um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.',
+    register:
+      'Du kannst dich bei wahl.chat registrieren um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.',
+  },
+  briefings: {
+    login:
+      'Persönliche Briefings zu den Themen, die dich interessieren, kommen bald. Melde dich an, dann benachrichtigen wir dich, sobald sie verfügbar sind.',
+    register:
+      'Persönliche Briefings zu den Themen, die dich interessieren, kommen bald. Registriere dich jetzt, dann benachrichtigen wir dich, sobald sie verfügbar sind.',
+  },
+};
+
+function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
   const { refreshUser } = useAnonymousAuth();
   const studyRunning = useStudyRunning();
-  const [isRegister, setIsRegister] = useState(false);
+  // Preregistering is signing up, so the briefings ask opens on that form.
+  const [isRegister, setIsRegister] = useState(purpose === 'briefings');
   const [isResetPassword, setIsResetPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [allowNewsletter, setAllowNewsletter] = useState(false);
@@ -45,6 +69,15 @@ function LoginForm({ onSuccess }: Props) {
   const handleAuthSuccess = async () => {
     await refreshUser();
     const uid = getAuth().currentUser?.uid;
+
+    if (uid && purpose === 'briefings') {
+      try {
+        await userJoinBriefingsWaitlist(uid);
+      } catch (error) {
+        // The sign-in itself worked; a missed waitlist mark must not undo it.
+        console.error('Could not join the briefings waitlist', error);
+      }
+    }
 
     if (uid) {
       const user = await getUser(uid);
@@ -235,9 +268,7 @@ function LoginForm({ onSuccess }: Props) {
           {isRegister ? 'Registrieren' : 'Anmelden'}
         </ResponsiveDialogTitle>
         <ResponsiveDialogDescription className="text-center text-sm text-muted-foreground md:text-left">
-          {isRegister
-            ? 'Du kannst dich bei wahl.chat registrieren um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.'
-            : 'Du kannst dich bei wahl.chat anmelden um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.'}
+          {DESCRIPTIONS[purpose][isRegister ? 'register' : 'login']}
         </ResponsiveDialogDescription>
       </div>
 

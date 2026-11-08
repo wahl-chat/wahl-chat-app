@@ -9,26 +9,40 @@ import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 
 /**
  * The site header on the feed's column width, so the logo and the login
- * button line up with the cards. The feed's own inputs lead into the chat;
- * the header's Chat link is the way back to the classic election chat.
+ * button line up with the cards: "wahl.chat / News", the product's name next
+ * to the brand. The Chat link opens the chat of the current election.
+ * Anmelden asks readers to preregister for personalised briefings.
  * Anleitung and Spenden live in the footer.
  */
-function DailyHeader() {
+function DailyHeader({ chatHref }: { chatHref: string }) {
   return (
     <header className="sticky top-0 z-30 h-header border-b border-[var(--daily-border)] bg-[var(--daily-canvas)]">
       <div className="mx-auto flex size-full max-w-screen-sm items-center justify-between gap-4 px-4">
         <Link
           href="/"
-          aria-label="wahl.chat Startseite"
-          className={cn(FOCUS_RING, 'rounded-md')}
+          aria-label="wahl.chat News"
+          className={cn(
+            FOCUS_RING,
+            'flex items-center gap-2 rounded-md text-[var(--daily-ink)] sm:gap-3',
+          )}
         >
-          <Logo className="size-12 text-[var(--daily-ink)]" />
+          <Logo className="size-12" />
+          <span
+            aria-hidden
+            className="h-8 w-[3px] skew-x-[-18deg] rounded-full bg-[var(--daily-border)]"
+          />
+          <span
+            aria-hidden
+            className="text-[24px] font-bold leading-none sm:text-[28px]"
+          >
+            News
+          </span>
         </Link>
 
         {!IS_EMBEDDED && (
           <nav className="flex items-center gap-2">
             <Link
-              href={SITE_LINKS.chat.href}
+              href={chatHref}
               className={cn(
                 FOCUS_RING,
                 'flex min-h-10 items-center gap-2 rounded-lg px-3 text-[17px] transition-colors hover:text-[var(--daily-ink)]',
@@ -41,6 +55,7 @@ function DailyHeader() {
             {/* The root layout seeds the auth state from the session, so a
                 signed-in reader gets the avatar on first paint. */}
             <LoginButton
+              purpose="briefings"
               noUserChildren={
                 <button
                   type="button"

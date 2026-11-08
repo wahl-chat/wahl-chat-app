@@ -535,6 +535,19 @@ export async function userAllowNewsletter(uid: string, allowed: boolean) {
   );
 }
 
+/** A reader who signed up from the feed to hear when personalised briefings
+ * launch. Kept on their own user doc, which only they can write. */
+export async function userJoinBriefingsWaitlist(uid: string) {
+  await setDoc(
+    doc(db, 'users', uid),
+    {
+      briefings_waitlist: true,
+      briefings_waitlist_at: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
 export async function saveWahlSwiperHistory(
   userId: string,
   history: WahlSwiperResultHistory,

@@ -70,9 +70,11 @@ function VoteCard({ item, onOpen, hot = false }: Props) {
           <span className={HEADLINE_POP}>{vote.short_title}</span>
         </button>
       </h3>
+      {/* Its hover transform lifts it above the card's stretched link, so it
+          lets clicks through to open the detail. */}
       <Hemicycle
         parties={vote.parties}
-        className={cn('mx-auto max-w-sm', HEMICYCLE_POP)}
+        className={cn('pointer-events-none mx-auto max-w-sm', HEMICYCLE_POP)}
       />
       <SeatLegend parties={vote.parties} />
       <ItemTeaser

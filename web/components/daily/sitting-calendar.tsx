@@ -80,13 +80,13 @@ function Tile({ tile }: { tile: SittingTile }) {
     <div
       role={tile.waiting ? 'status' : undefined}
       className={cn(
-        'flex min-w-0 flex-1 flex-col gap-px rounded-lg px-2.5 py-2',
+        'flex min-w-0 flex-1 basis-0 flex-col gap-0.5 rounded-lg px-3 py-2.5',
         tile.live ? 'bg-[rgb(229_57_53_/_0.1)]' : 'bg-[var(--daily-surface)]',
       )}
     >
       <span
         className={cn(
-          'flex items-center gap-1.5 text-[11px] font-semibold',
+          'flex items-center gap-1.5 text-[12px] font-semibold leading-tight',
           tile.live ? LIVE_TEXT : MUTED_TEXT,
         )}
       >
@@ -102,19 +102,25 @@ function Tile({ tile }: { tile: SittingTile }) {
         )}
         {tile.label}
       </span>
-      <span className="truncate text-[13px] font-semibold">{tile.date}</span>
+      <span className="break-words text-[14px] font-semibold leading-snug">
+        {tile.date}
+      </span>
       {tile.agenda ? (
         <a
           href={AGENDA_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className={cn(FOCUS_RING, 'w-fit rounded text-[11px]', MUTED_TEXT)}
+          className={cn(FOCUS_RING, 'w-fit rounded text-[12px]', MUTED_TEXT)}
         >
           Tagesordnung →
         </a>
       ) : (
         tile.after && (
-          <span className={cn('text-[11px]', MUTED_TEXT)}>{tile.after}</span>
+          <span
+            className={cn('break-words text-[12px] leading-snug', MUTED_TEXT)}
+          >
+            {tile.after}
+          </span>
         )
       )}
     </div>
@@ -209,13 +215,16 @@ function Legend() {
   ];
   return (
     <ul
-      className={cn('flex flex-wrap gap-x-3 gap-y-1 text-[11px]', MUTED_TEXT)}
+      className={cn(
+        'flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-[13px]',
+        MUTED_TEXT,
+      )}
     >
       {items.map(([status, label]) => (
-        <li key={status} className="flex items-center gap-1">
+        <li key={status} className="flex items-center gap-1.5">
           <span
             aria-hidden
-            className={cn('size-2.5 rounded-[3px]', CELL_STYLE[status])}
+            className={cn('size-3.5 rounded-[4px]', CELL_STYLE[status])}
           />
           {label}
         </li>

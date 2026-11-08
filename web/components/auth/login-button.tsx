@@ -8,7 +8,7 @@ import {
 } from '@/components/chat/responsive-drawer-dialog';
 import { type UserDetails, getUserDetailsFromUser } from '@/lib/utils';
 import { useState } from 'react';
-import LoginForm from './login-form';
+import LoginForm, { type LoginPurpose } from './login-form';
 import UserDialog from './user-dialog';
 
 type Props = {
@@ -16,6 +16,7 @@ type Props = {
   noUserChildren?: React.ReactNode;
   userChildren?: React.ReactNode;
   userDetails?: UserDetails;
+  purpose?: LoginPurpose;
 };
 
 function LoginButton({
@@ -23,6 +24,7 @@ function LoginButton({
   userChildren,
   userDetails,
   userDialogAsChild,
+  purpose,
 }: Props) {
   const { user } = useAnonymousAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -68,7 +70,7 @@ function LoginButton({
           {noUserChildren}
         </ResponsiveDialogTrigger>
         <ResponsiveDialogContent>
-          <LoginForm onSuccess={handleSuccess} />
+          <LoginForm onSuccess={handleSuccess} purpose={purpose} />
         </ResponsiveDialogContent>
       </ResponsiveDialog>
     </>

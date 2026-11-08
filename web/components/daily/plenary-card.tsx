@@ -1,3 +1,12 @@
+'use client';
+
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { HEAT_SCALE, heatExplanation } from '@/lib/daily/feed';
+import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
 import {
   type SectionItem,
   itemTeaser,
@@ -6,11 +15,14 @@ import {
 } from '@/lib/daily/items';
 import { cn } from '@/lib/utils';
 import { FlameIcon } from 'lucide-react';
+import { useState } from 'react';
 import { CardFooter, ItemTeaser } from './card-footer';
 import {
+  ABOVE_CARD_LINK,
   CARD_GROUP,
   CARD_LINK,
   CARD_SURFACE,
+  FOCUS_RING,
   HEADLINE_POP,
   MEDIA_POP,
 } from './card-styles';
@@ -18,16 +30,10 @@ import HotTopicTrail from './hot-topic-trail';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
 import { TopicMeta } from './topic-chip';
 
-const HEAT_SCALE = 5;
-
 /** Heat as a row of small flames, lit up to the debate's rating. */
-export function HeatFlames({ heat }: { heat: number }) {
+function HeatFlames({ heat }: { heat: number }) {
   return (
-    <span
-      role="img"
-      aria-label={`Hitzigkeit ${heat} von ${HEAT_SCALE}`}
-      className="inline-flex gap-px"
-    >
+    <span aria-hidden className="inline-flex gap-px">
       {Array.from({ length: HEAT_SCALE }, (_, i) => (
         <FlameIcon
           // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length scale
@@ -44,10 +50,49 @@ export function HeatFlames({ heat }: { heat: number }) {
   );
 }
 
+/**
+ * The flames with what they mean: on hover with a mouse, on tap on a touch
+ * screen, where a tooltip would otherwise never open. Inside a card it sits
+ * above the card's link, so a tap explains rather than opens the debate.
+ */
+export function HeatInfo({ heat }: { heat: number }) {
+  const [open, setOpen] = useState(false);
+  const [counted, rating] = heatExplanation(heat);
+  return (
+    <Tooltip open={open} onOpenChange={setOpen} delayDuration={150}>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={`Hitzigkeit ${heat} von ${HEAT_SCALE}`}
+          onClick={() => setOpen(true)}
+          className={cn(
+            ABOVE_CARD_LINK,
+            FOCUS_RING,
+            'inline-flex items-center rounded p-0.5',
+          )}
+        >
+          <HeatFlames heat={heat} />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        side="bottom"
+        className={cn(
+          DAILY_THEME_CLASSES,
+          'max-w-64 border-[var(--daily-border)] bg-[var(--daily-canvas)] text-[13px] leading-snug text-[var(--daily-ink)]',
+        )}
+      >
+        <p>{counted}</p>
+        <p className="mt-1 font-semibold">{rating}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 type Props = {
   item: SectionItem;
-  /** Day-relative, see `dayHeat`. */
-  heat: number | undefined;
+  /** Day-relative, see `dayHeat`. The Hot Topic shows its own next to its
+   * heading instead. */
+  heat?: number;
   onOpen: () => void;
   variant: 'hot' | 'small';
 };
@@ -55,7 +100,8 @@ type Props = {
 /**
  * One debate of a Plenarsitzung. The hot variant leads the day as its Hot
  * Topic, the small one sits in the day's swipe row; both are the same card at
- * different sizes, and both show the heat, since it helps choose what to read.
+ * different sizes. The small one shows its heat, since it helps choose what to
+ * read; the Hot Topic's stands next to its heading.
  */
 export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
   const { section, digest } = item;
@@ -83,7 +129,7 @@ export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
         <TopicMeta
           topics={sectionTopics(section)}
           suffix={hot && protocol ? `Protokoll ${protocol}` : null}
-          trailing={heat ? <HeatFlames heat={heat} /> : null}
+          trailing={heat ? <HeatInfo heat={heat} /> : null}
         />
         <h3
           className={cn(
