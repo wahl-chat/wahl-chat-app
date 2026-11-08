@@ -1,0 +1,16 @@
+# wahl.chat
+
+> wahl.chat ist eine politische Informationsplattform aus Deutschland. Die Startseite, wahl.chat News, fasst die Debatten und Abstimmungen des Bundestages Tag für Tag zusammen: mit den Positionen jeder Fraktion, die gesprochen hat, und mit Quellen zu jeder Aussage (Plenarprotokoll oder Video der Rede). Im Chat vergleichst du die Positionen der Parteien zu Bundestags-, Landtags- und Kommunalwahlen anhand ihrer Wahlprogramme, Plenarprotokolle und Abstimmungen.
+
+Die Zusammenfassungen entstehen einmal je Debatte aus den Plenarprotokollen des Bundestages; jede Position einer Fraktion wird gegen deren eigene Reden geprüft. Abstimmungsergebnisse stammen von abgeordnetenwatch.de. Für Zitate sind die verlinkten Primärquellen maßgeblich, nicht die Zusammenfassung.
+
+## Seiten
+
+- [wahl.chat News](https://wahl.chat/): Debatten und Abstimmungen aus dem Bundestag, nach Sitzungstagen und Themen geordnet, mit Sitzungskalender
+- [Chat zu Wahlen](https://wahl.chat/chat): Fragen an die Programme der Parteien zu aktuellen und vergangenen Wahlen
+- [So funktioniert wahl.chat](https://wahl.chat/how-to): wie Antworten, Quellen und die Hitzigkeit im Feed entstehen
+- [Über uns](https://wahl.chat/about-us): wer hinter wahl.chat steht
+
+## Optional
+
+- [Sitemap](https://wahl.chat/sitemap.xml): alle indexierbaren Seiten, einschließlich jeder Wahl
