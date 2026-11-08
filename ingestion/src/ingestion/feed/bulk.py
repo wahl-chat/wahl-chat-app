@@ -49,7 +49,14 @@ import httpx
 from qdrant_client import QdrantClient
 
 from ingestion.connectors.abgeordnetenwatch.client import AWClient
-from ingestion.feed.builder import DayPlan, FeedBuilder, build_day, plan_days
+from ingestion.feed.builder import (
+    DayPlan,
+    DebateUnit,
+    FeedBuilder,
+    VoteUnit,
+    build_day,
+    plan_days,
+)
 from ingestion.feed.calendar import FRESH_FOR, build_calendar
 from ingestion.feed.documents import PollDocuments, poll_documents
 from ingestion.feed.index import FEED_COLLECTION_NAME, IndexReport, index_items
@@ -310,12 +317,13 @@ def plan_day(
 ) -> Optional[DayBuild]:
     """Generate what changed in one day and assemble its edition; None when
     the day is unchanged and fully translated."""
-    hashes = {u.item_id: u.input_hash for u in plan.debates} | {
-        u.item_id: u.input_hash for u in plan.votes
-    }
+    units: list[DebateUnit | VoteUnit] = [*plan.debates, *plan.votes]
+    hashes = {u.item_id: u.input_hash for u in units}
     need: dict[str, Optional[BuildNeed]] = {
-        item_id: "full" if force else build_needed(stored.get(item_id), input_hash)
-        for item_id, input_hash in hashes.items()
+        u.item_id: "full"
+        if force
+        else build_needed(stored.get(u.item_id), u.input_hash, u.legacy_input_hash)
+        for u in units
     }
     debates = [u for u in plan.debates if need[u.item_id] == "full"]
     top_ups = [

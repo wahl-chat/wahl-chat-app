@@ -120,8 +120,8 @@ TRANSLATED_LOCALES: tuple[Locale, ...] = ("en",)
 FeedItemKind = Literal["debate", "vote"]
 FeedItemStatus = Literal["published", "retracted"]
 
-# Bump when the stored feed shape gains or changes a field. Part of every
-# item's input_hash, so stored items are rebuilt in the new shape.
+# Bump when the stored feed shape gains or changes a field, and migrate the
+# stored items to it. Recorded on each item; it does not trigger a rebuild.
 FEED_FORMAT_VERSION = "3"
 
 
@@ -229,8 +229,8 @@ class FeedItem(BaseModel):
     debate: Optional[DebateFacts] = None
     vote: Optional[VoteFacts] = None
     content: dict[Locale, LocalizedContent]
-    # Hash of this item's own sources + prompt and format version. None when a
-    # vote's texts fell back to its title, so the next run retries it.
+    # Hash of this item's own sources only. None when a vote's texts fell back
+    # to its title, so the next run retries it.
     input_hash: Optional[str] = None
     # Fraktionen that spoke but have no checked position yet. Later runs retry
     # only these, up to ``MAX_POSITION_ATTEMPTS`` runs in all, and leave every

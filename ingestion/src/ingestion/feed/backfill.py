@@ -51,7 +51,7 @@ from urllib.parse import urlparse
 import httpx
 from qdrant_client import QdrantClient
 
-from ingestion.feed.builder import FeedBuilder, plan_days
+from ingestion.feed.builder import DebateUnit, FeedBuilder, VoteUnit, plan_days
 from ingestion.feed.bulk import (
     ParliamentRun,
     build_and_publish,
@@ -198,14 +198,18 @@ def plan_parliament(
         return ParliamentPlan(parliament, None)
     plan = ParliamentPlan(parliament, sources.window)
     for day in plan_days(parliament, sources.votes, sources.sitting_days):
-        units = [(u.item_id, u.input_hash) for u in day.debates] + [
-            (u.item_id, u.input_hash) for u in day.votes
-        ]
+        units: list[DebateUnit | VoteUnit] = [*day.debates, *day.votes]
         plan.days.append(
             DayStatus(
                 day.day,
                 len(units),
-                sum(1 for item_id, h in units if build_needed(stored.get(item_id), h)),
+                sum(
+                    1
+                    for u in units
+                    if build_needed(
+                        stored.get(u.item_id), u.input_hash, u.legacy_input_hash
+                    )
+                ),
             )
         )
     return plan

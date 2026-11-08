@@ -6,8 +6,8 @@
 
 Summaries, headlines, party positions and translations are generated once and
 then reused by every surface, so correctness on the first try outweighs
-latency and cost: the chat's strongest flash models with high reasoning. No
-flash-lite here. The timeout fits one debate's prompt; a model that takes
+latency and cost: the chat's strongest Gemini flash models with high
+reasoning, and an OpenAI model as the last fallback. No flash-lite here. The timeout fits one debate's prompt; a model that takes
 longer fails over to the next, and the builder's deadline cuts the failover
 once the job's time budget is spent.
 
@@ -43,18 +43,20 @@ _TIMEOUT_S = 120
 
 
 def _build_publication_llms() -> list[RosterLLM]:
-    """Same models and order as the chat's answer roster, Vertex tier first.
+    """The chat's Gemini models, Vertex tier first, then the OpenAI fallback.
 
     The AI Studio entries need ``GOOGLE_API_KEY`` and join only when it is
     set: the scheduled job runs on Vertex alone.
     """
     roster = [
+        # The fallback behind Gemini: a newer, cheaper model, at minimal
+        # reasoning, where its first answer is already good enough.
         RosterLLM(
-            "openai-gpt-5.6-terra-high",
+            "openai-gpt-6.1-terra-minimal",
             openai(
-                "gpt-5.6-terra",
+                "gpt-6.1-terra",
                 temperature=1.0,
-                reasoning_effort=PUBLICATION_THINKING,
+                reasoning_effort="minimal",
                 timeout=_TIMEOUT_S,
             ),
             90,

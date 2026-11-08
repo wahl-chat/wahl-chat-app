@@ -18,6 +18,7 @@ const STATIC_PAGES = [
   '/donate',
   '/topics',
   '/aktuell',
+  '/election-chat',
   '/api',
 ];
 
@@ -116,8 +117,17 @@ export async function middleware(request: NextRequest) {
   // Legacy context-less URLs. Bare paths go to /, which is stable — so those
   // can be permanent (308) and consolidate their link equity. Paths carrying a
   // party or session still need a context, and middleware can only guess one
-  // from the request's region, so those stay temporary (307). Bare /chat is
-  // not legacy: it is the chat landing page.
+  // from the request's region, so those stay temporary (307).
+
+  // The chat landing page lives at /election-chat: production once sent /chat
+  // to / with a 308, which browsers keep, so /chat could never reach the chat
+  // again for anyone who had followed it.
+  if (pathname === '/chat') {
+    return NextResponse.redirect(
+      buildRedirectUrl(request, '/election-chat'),
+      308,
+    );
+  }
 
   if (pathname.startsWith('/chat/')) {
     const partyId = pathname.split('/')[2];

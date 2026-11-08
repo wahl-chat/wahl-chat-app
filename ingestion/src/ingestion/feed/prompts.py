@@ -4,9 +4,10 @@
 
 """Prompts and structured-output schemas for the feed's LLM steps.
 
-Every prompt draws its editorial rules from the constants below, so the
-generation and the translation of a text are held to the same standard of
-neutrality, grounding and attribution.
+The prompts say what to do, why and by which editorial rules; the schema
+field descriptions say what each field must hold. Every prompt draws its
+rules from the constants below, so the generation and the translation of a
+text are held to the same standard of neutrality, grounding and attribution.
 """
 
 from __future__ import annotations
@@ -17,8 +18,9 @@ from pydantic import BaseModel, Field
 
 from ingestion.feed.topics import DigestTopic, topic_legend
 
-# Part of every item's input_hash: bumping it regenerates all stored items.
-PROMPT_VERSION = "10"
+# Recorded on the German texts an item is generated with. A change does not
+# regenerate stored items: rebuild a chosen window with --force after the eval.
+PROMPT_VERSION = "11"
 # Stored on each translation: bumping it re-translates, never regenerates.
 TRANSLATION_PROMPT_VERSION = "1"
 
@@ -41,8 +43,12 @@ _QUESTION_STYLE = (
 
 
 # Votes and debates are tagged alike, so both land under the same filters.
-_TOPICS_DESCRIPTION = "1 bis 2 Themen-Schlüssel, das wichtigste zuerst."
-_TOPIC_KEYS_RULE = "(nur die Schlüssel verwenden; 'other' nur, wenn nichts passt)"
+# The model sees the topics as "- key: label" lines; it answers with the key.
+_TOPICS_DESCRIPTION = (
+    "1 bis 2 Themen als Kennung aus der Themenliste (das Wort vor dem "
+    "Doppelpunkt), das wichtigste zuerst. Ein zweites nur, wenn es wesentlich "
+    "berührt wird; 'other' nur, wenn nichts passt."
+)
 
 
 def _refs_only_rule(examples: str, field: str, elsewhere: str) -> str:
@@ -53,12 +59,11 @@ def _refs_only_rule(examples: str, field: str, elsewhere: str) -> str:
 # open the very passage; the code finds the passage, the model only the speech.
 _SOURCES_DESCRIPTION = (
     "Die Kennungen der ein bis zwei Reden, die sagen, was der Satz aussagt, "
-    "z. B. ['R3']."
+    "z. B. ['R3']. Bei einem Positionssatz nur Reden seiner Fraktion."
 )
 _SOURCES_RULE = (
-    "Nenne in sources für jeden Stichpunkt und jeden Positionssatz die ein bis "
-    "zwei Reden (Kennungen wie R3), die sagen, was der Satz aussagt; für einen "
-    "Positionssatz nur Reden SEINER Fraktion. "
+    "Jeder Stichpunkt und jeder Positionssatz stützt sich auf die Reden, die "
+    "er in sources nennt; ein Positionssatz nur auf Reden SEINER Fraktion. "
     + _refs_only_rule("R1, R2, …", "sources", "die Texte")
 )
 
@@ -85,19 +90,17 @@ class VoteEnrichmentBatch(BaseModel):
 
 class PartyPositionDraft(BaseModel):
     party_id: str = Field(
-        description="Partei-Kennung genau wie in den Reden in Klammern, z. B. 'spd'."
+        description="Partei-Kennung genau wie in der Liste der Fraktionen, z. B. 'spd'."
     )
     position: str = Field(
-        description=(
-            "Ein neutraler Satz zur Position der Fraktion, ohne Subjekt und mit "
-            "dem Verb im Plural, z. B. 'Wenden sich gegen Einsparungen bei …'."
-        )
+        description="Ein neutraler Satz zur Position der Fraktion. "
+        + _POSITION_SENTENCE_RULE
     )
     sources: list[str] = Field(default_factory=list, description=_SOURCES_DESCRIPTION)
 
 
 class KeyPointDraft(BaseModel):
-    text: str = Field(description="Ein kurzer Satz.")
+    text: str = Field(description="Ein kurzer Satz, ohne Kennungen wie R3.")
     sources: list[str] = Field(default_factory=list, description=_SOURCES_DESCRIPTION)
 
 
@@ -106,7 +109,10 @@ class OpeningQuoteDraft(BaseModel):
         description="Nur der Name der ersten Redner:in, ohne Partei, genau wie in den Reden."
     )
     quote: str = Field(
-        description="Ein kurzer, wörtlich übernommener Kernsatz (höchstens 25 Wörter) aus der ersten Rede, unverändert."
+        description=(
+            "Ein kurzer Kernsatz (höchstens 25 Wörter) aus der ersten Rede, "
+            "Zeichen für Zeichen kopiert."
+        )
     )
 
 
@@ -114,11 +120,17 @@ class DebateDraft(BaseModel):
     topics: list[DigestTopic] = Field(description=_TOPICS_DESCRIPTION)
     headline: str = Field(description="Kurze Überschrift, höchstens 10 Wörter.")
     summary: str = Field(
-        description="1 bis 2 neutrale Sätze: worum ging es in der Debatte."
+        description=(
+            "1 bis 2 neutrale Sätze: worum ging es in der Debatte. Nur das "
+            "Thema; die Positionen gehören in positions."
+        )
     )
     positions: list[PartyPositionDraft] = Field(
         default_factory=list,
-        description="Genau ein Eintrag je Fraktion, die in der Debatte gesprochen hat.",
+        description=(
+            "Genau ein Eintrag für jede Fraktion aus der Liste der Fraktionen, "
+            "keine andere."
+        ),
     )
     key_points: list[KeyPointDraft] = Field(
         default_factory=list,
@@ -127,38 +139,43 @@ class DebateDraft(BaseModel):
             "worüber am meisten gestritten wurde, wie es weitergeht."
         ),
     )
-    opening_quote: Optional[OpeningQuoteDraft] = None
+    opening_quote: Optional[OpeningQuoteDraft] = Field(
+        default=None, description="Ein wörtlicher Satz aus der ersten Rede."
+    )
     suggested_questions: list[str] = Field(
         default_factory=list, description=_QUESTIONS_DESCRIPTION
     )
 
 
 class PositionsDraft(BaseModel):
-    positions: list[PartyPositionDraft]
+    positions: list[PartyPositionDraft] = Field(
+        description=(
+            "Genau ein Eintrag für jede Fraktion aus der Liste der Fraktionen, "
+            "keine andere."
+        )
+    )
 
 
+# The reason comes before the verdict, so the model reasons before it decides.
 class PositionCheck(BaseModel):
     ref: str = Field(description="Die Kennung des Positionssatzes, z. B. 'P2'.")
-    supported: bool = Field(
-        description="true nur, wenn die Reden dieser Fraktion den Satz vollständig stützen."
+    reason: str = Field(
+        description=(
+            "Zuerst, in einem kurzen Satz: was sagen die Reden dieser Fraktion, "
+            "und weicht der Satz davon ab?"
+        )
     )
-    reason: str = Field(description="Ein kurzer Satz zur Begründung.")
+    supported: bool = Field(
+        description=(
+            "true nur, wenn der Satz nichts enthält, was die Reden dieser "
+            "Fraktion nicht sagen, nichts zuspitzt oder abschwächt und keine "
+            "Forderung erfindet. Im Zweifel false."
+        )
+    )
 
 
 class PositionCheckBatch(BaseModel):
     checks: list[PositionCheck]
-
-
-class PositionAgreement(BaseModel):
-    ref: str = Field(description="Die Kennung des Satzpaares, z. B. 'P2'.")
-    agrees: bool = Field(
-        description="true, wenn beide Sätze der Fraktion dieselbe Position zuschreiben."
-    )
-    reason: str = Field(description="Ein kurzer Satz zur Begründung.")
-
-
-class PositionAgreementBatch(BaseModel):
-    pairs: list[PositionAgreement]
 
 
 class TranslatedSegment(BaseModel):
@@ -172,15 +189,16 @@ class TranslationBatch(BaseModel):
 
 VOTE_ENRICHMENT_PROMPT = f"""\
 Du bereitest Abstimmungen aus dem {{parliament}} für {_AUDIENCE} \
-für Bürgerinnen und Bürger auf.
+für Bürgerinnen und Bürger auf. Wer den Eintrag liest, soll ohne Fachwissen \
+verstehen, worüber abgestimmt wurde.
 
-Ordne jeder Abstimmung 1 bis 2 Themen aus dieser Liste zu {_TOPIC_KEYS_RULE}:
+Themenliste:
 {{topics}}
 
-Formuliere außerdem einen verständlichen Kurztitel, höchstens zwei neutrale \
-Sätze, worum es geht, und drei kurze Fragen, die Bürgerinnen und Bürger dazu \
-stellen würden. {_NEUTRALITY_RULE} \
-Gib für JEDE Abstimmung genau einen Eintrag mit ihrer Kennung zurück.
+Regeln:
+- {_GROUNDING_RULE}
+- {_NEUTRALITY_RULE}
+- Gib für JEDE Abstimmung genau einen Eintrag mit ihrer Kennung zurück.
 
 Abstimmungen:
 {{votes}}
@@ -197,29 +215,20 @@ DEBATE_PROMPT = f"""\
 Du fasst eine Debatte aus dem {{parliament}} vom {{day}} für {_AUDIENCE} \
 zusammen. Grundlage sind ausschließlich die folgenden Reden zum \
 Tagesordnungspunkt „{{agenda}}“, in der Reihenfolge, in der sie gehalten \
-wurden.
+wurden. Wer die Zusammenfassung liest, soll verstehen, worum es ging und wo \
+jede Fraktion steht, ohne die Reden zu lesen.
 
-Ordne die Debatte 1 bis 2 Themen aus dieser Liste zu {_TOPIC_KEYS_RULE}:
+Fraktionen, die gesprochen haben: {{parties}}
+
+Themenliste:
 {{topics}}
 
 Regeln:
-- topics: das Hauptthema zuerst; ein zweites nur, wenn die Debatte es \
-wesentlich berührt.
 - {_GROUNDING_RULE}
 - {_NEUTRALITY_RULE}
 - {_ATTRIBUTION_RULE}
-- In summary nur, worum es ging. Die Positionen gehören in positions.
-- positions: genau ein Eintrag für JEDE dieser Fraktionen, keine andere: \
-{{parties}}. Partei-Kennungen exakt so übernehmen.
 - {_POSITION_FIDELITY_RULE}
-- {_POSITION_SENTENCE_RULE}
-- key_points: genau drei kurze Sätze (was vorgelegt wurde, worüber am meisten \
-gestritten wurde, wie es weitergeht).
-- opening_quote: ein kurzer wörtlicher Satz (höchstens 25 Wörter) aus der \
-ersten Rede, Zeichen für Zeichen kopiert; als speaker nur den Namen, ohne die \
-Partei in Klammern.
 - {_SOURCES_RULE}
-- suggested_questions: drei kurze Fragen aus Sicht von Bürgerinnen und Bürgern.
 
 Reden:
 {{speeches}}
@@ -230,14 +239,13 @@ Du fasst für {_AUDIENCE} zusammen, welche Position einzelne Fraktionen in \
 einer Debatte aus dem {{parliament}} zum Tagesordnungspunkt „{{agenda}}“ \
 vertreten haben. Grundlage sind ausschließlich die Reden unten.
 
+Fraktionen: {{parties}}
+
 Regeln:
-- Genau ein Eintrag für JEDE dieser Fraktionen, keine andere: {{parties}}. \
-Partei-Kennungen exakt so übernehmen.
 - {_GROUNDING_RULE}
 - {_NEUTRALITY_RULE}
 - {_ATTRIBUTION_RULE}
 - {_POSITION_FIDELITY_RULE}
-- {_POSITION_SENTENCE_RULE}
 - {_SOURCES_RULE}
 
 Reden:
@@ -250,9 +258,7 @@ Fraktion veröffentlicht werden. Eine falsch zugeschriebene Position ist der \
 schwerste Fehler, den diese Übersicht machen kann.
 
 Prüfe jeden Satz einzeln gegen die Reden SEINER Fraktion zum \
-Tagesordnungspunkt „{{agenda}}“ im {{parliament}}. supported ist nur dann \
-true, wenn der Satz nichts enthält, was diese Reden nicht sagen, nichts \
-zuspitzt oder abschwächt und keine Forderung erfindet. Im Zweifel false.
+Tagesordnungspunkt „{{agenda}}“ im {{parliament}}.
 Gib für JEDEN Satz genau einen Eintrag mit seiner Kennung zurück.
 
 Positionssätze:
@@ -260,20 +266,6 @@ Positionssätze:
 
 Reden je Fraktion:
 {{speeches}}
-"""
-
-# Used only by the evaluation against the gold set, never in a build.
-AGREEMENT_PROMPT = """\
-Du vergleichst je zwei Sätze, die einer Fraktion eine Position in einer \
-Debatte zum Tagesordnungspunkt „{agenda}“ zuschreiben: A ist eine von Hand \
-geprüfte Referenz, B ein zu prüfender Entwurf. agrees ist true, wenn B der \
-Fraktion inhaltlich dieselbe Position zuschreibt wie A: andere Worte sind \
-in Ordnung, eine andere, zugespitzte, abgeschwächte oder zusätzliche \
-Forderung nicht.
-Gib für JEDES Paar genau einen Eintrag mit seiner Kennung zurück.
-
-Paare:
-{pairs}
 """
 
 # Segment by segment, not field by field inside one JSON object: asked to
@@ -343,10 +335,6 @@ def format_verify_prompt(
     return VERIFY_PROMPT.format(
         parliament=parliament, agenda=agenda, positions=positions, speeches=speeches
     )
-
-
-def format_agreement_prompt(agenda: str, pairs: str) -> str:
-    return AGREEMENT_PROMPT.format(agenda=agenda, pairs=pairs)
 
 
 def format_translation_prompt(parliament: str, segments_block: str) -> str:

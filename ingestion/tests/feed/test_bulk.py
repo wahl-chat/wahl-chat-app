@@ -108,6 +108,20 @@ def test_an_unchanged_day_costs_no_call() -> None:
     assert llm.calls == []
 
 
+def test_a_day_stored_under_the_old_hash_costs_no_call() -> None:
+    stored, edition_ids = _stored_day()
+    plan = _plan()
+    legacy = {u.item_id: u.legacy_input_hash for u in [*plan.debates, *plan.votes]}
+    old = {
+        item_id: item.model_copy(update={"input_hash": legacy[item_id]})
+        for item_id, item in stored.items()
+    }
+    llm = FakeLLM()
+    day, _ = _day(llm, plan, old, edition_ids)
+    assert day is None
+    assert llm.calls == []
+
+
 def test_a_late_speech_rebuilds_only_its_own_debate() -> None:
     stored, edition_ids = _stored_day()
     late = default_speeches() + [

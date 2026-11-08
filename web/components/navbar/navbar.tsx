@@ -30,7 +30,7 @@ export default async function NavBar({ className }: Props) {
     },
     {
       label: 'Chat',
-      href: '/chat',
+      href: '/election-chat',
     },
   ];
 

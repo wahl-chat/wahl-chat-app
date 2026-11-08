@@ -54,7 +54,7 @@ const DESCRIPTION =
   'Die KI-basierte Ergänzung zum Wahl-O-Mat: Verstehe Parteien anhand von Plenarprotokollen, Abstimmungen und Wahlprogrammen. Jetzt informiert wählen!';
 
 // The chat landing page; / is the daily parliament feed.
-const CHAT_URL = `${BASE_URL}/chat`;
+const CHAT_URL = `${BASE_URL}/election-chat`;
 
 const ELECTIONS_ANCHOR = 'andere-wahlen';
 const QUESTIONS_ANCHOR = 'beispielfragen';
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   robots: productionRobots,
   alternates: {
-    canonical: '/chat',
+    canonical: '/election-chat',
   },
   openGraph: {
     title: TITLE,

@@ -127,7 +127,7 @@ def test_a_missing_position_is_retried_for_that_fraktion_only() -> None:
     positions = {p.party_id: p.text for p in debate.content["de"].positions}
     assert positions["cdu"] == "Retry Position cdu."
     retry = llm.prompts[llm.calls.index(PositionsDraft)]
-    assert "keine andere: cdu." in retry
+    assert "Fraktionen: cdu\n" in retry
     assert "Anna" not in retry
     assert debate.input_hash is not None
 

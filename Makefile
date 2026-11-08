@@ -165,6 +165,7 @@ lint-backend:
 	cd ai-backend && uv run ruff check src/
 	cd ingestion && uv run ruff check src/
 	cd packages/wahlchat-common && uv run ruff check src/
+	cd evals && uv run ruff check src/
 
 # --- Testing ---
 
@@ -173,6 +174,7 @@ test-backend:
 	cd ai-backend && uv run pytest tests/ --ignore=tests/test_chat_sse.py --ignore=tests/test_local_mode.py
 	cd ingestion && uv run pytest tests/
 	cd packages/wahlchat-common && uv run pytest tests/
+	cd evals && uv run pytest tests/
 
 test-smoke:
 	cd ai-backend && uv run pytest tests/test_chat_sse.py -x
@@ -328,7 +330,7 @@ backfill-feed:
 #   make eval-feed
 #   make eval-feed ARGS="--make-gold"   # once: draft gold positions to check by hand
 eval-feed:
-	cd ingestion && uv run python -m ingestion.feed.eval $(ARGS)
+	cd evals && uv run python -m wahlchat_evals.feed $(ARGS)
 
 # Uploaded manifestos: party PDFs supplied directly, for elections with no AW
 # coverage. Metadata comes from the object path + Firestore seed fixtures.
