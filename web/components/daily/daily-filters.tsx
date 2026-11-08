@@ -17,8 +17,10 @@ import {
 } from '@/lib/daily/region';
 import {
   type SittingStatus,
+  type WaitingDay,
   berlinToday,
   sittingStatus,
+  waitingDays,
 } from '@/lib/daily/sitting-calendar';
 import { DAILY_TOPIC_KEYS } from '@/lib/daily/topics';
 import type { SittingCalendar } from '@/lib/firebase/firebase.types';
@@ -102,12 +104,15 @@ export function ParliamentSelector({
   onChange,
   calendar = null,
   editionDates = [],
+  waitingEditions = [],
   onJumpToDay,
 }: {
   states: StateSelection;
   onChange: (states: StateSelection) => void;
   calendar?: SittingCalendar | null;
   editionDates?: readonly string[];
+  /** Bundestag days stored before any of their items. */
+  waitingEditions?: readonly WaitingDay[];
   /** A sitting day whose content is online was chosen in the calendar. */
   onJumpToDay?: (date: string) => void;
 }) {
@@ -116,8 +121,9 @@ export function ParliamentSelector({
   const [today] = useState(berlinToday);
   // Closing for a jump into the feed: focus goes to the day, not back here.
   const jumping = useRef(false);
+  const waiting = waitingDays(calendar, editionDates, waitingEditions, today);
   const status = states.includes(BUNDESTAG)
-    ? sittingStatus(calendar, today)
+    ? sittingStatus(calendar, today, waiting)
     : null;
 
   const openChange = (next: boolean) => {
@@ -206,6 +212,7 @@ export function ParliamentSelector({
               <SittingCalendarPanel
                 calendar={calendar}
                 editionDates={editionDates}
+                waiting={waiting}
                 onJumpToDay={(date) => {
                   jumping.current = true;
                   setOpen(false);

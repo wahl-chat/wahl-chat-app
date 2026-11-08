@@ -1,4 +1,5 @@
 import type { SittingCalendar } from '@/lib/firebase/firebase.types';
+import { FEED_WINDOW_DAYS, shiftDay } from './window';
 
 /** Every date here is an ISO day, `YYYY-MM-DD`, in Berlin time. */
 
@@ -115,28 +116,139 @@ function sitsToday(slots: Slot[], today: string): boolean {
   return slots[0]?.kind === 'day' && slots[0].date === today;
 }
 
-export type SittingStatus = { live: boolean; text: string };
+/** A past sitting day the feed has no items for yet, with the protocols
+ * known for it. */
+export type WaitingDay = { date: string; protocols: string[] };
 
-/** The line under "Bundestag" in the parliament field. */
+/**
+ * The sitting days whose content is on its way, oldest first: every day the
+ * builder stored without items yet, and every sitting day of the last
+ * `FEED_WINDOW_DAYS` the feed holds nothing for, which the builder has not
+ * reached yet. An older gap is not "bald", so it stays out.
+ */
+export function waitingDays(
+  calendar: SittingCalendar | null,
+  editionDates: readonly string[],
+  waitingEditions: readonly WaitingDay[],
+  today: string,
+): WaitingDay[] {
+  const online = new Set(editionDates);
+  const since = shiftDay(today, -FEED_WINDOW_DAYS);
+  const protocols = new Map<string, Set<string>>();
+  for (const week of calendar?.weeks ?? []) {
+    for (const { date } of week.sittings ?? []) {
+      if (date >= since && date < today && !online.has(date)) {
+        protocols.set(date, new Set());
+      }
+    }
+  }
+  for (const edition of waitingEditions) {
+    const known = protocols.get(edition.date) ?? new Set();
+    for (const id of edition.protocols) {
+      known.add(id);
+    }
+    protocols.set(edition.date, known);
+  }
+  return [...protocols.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, ids]) => ({ date, protocols: [...ids] }));
+}
+
+/** "Protokoll 21/104", "Protokolle 21/104–105" for consecutive sittings of
+ * one Wahlperiode, else the ids listed; null when none is known. */
+export function protocolRange(ids: readonly string[]): string | null {
+  const parsed = [...new Set(ids)]
+    .map((id) => {
+      const [period, number] = id.split('/');
+      return { id, period, number: Number(number) };
+    })
+    .sort((a, b) =>
+      a.period === b.period
+        ? a.number - b.number
+        : a.period.localeCompare(b.period),
+    );
+  if (parsed.length === 0) {
+    return null;
+  }
+  if (parsed.length === 1) {
+    return `Protokoll ${parsed[0].id}`;
+  }
+  const first = parsed[0];
+  const last = parsed[parsed.length - 1];
+  const consecutive = parsed.every(
+    (p, i) => p.period === first.period && p.number === first.number + i,
+  );
+  return consecutive
+    ? `Protokolle ${first.period}/${first.number}–${last.number}`
+    : `Protokolle ${parsed.map((p) => p.id).join(', ')}`;
+}
+
+/** "4.–5. Nov.", or "4. Nov." for one day. */
+function waitingDates(waiting: readonly WaitingDay[]): string {
+  const first = waiting[0].date;
+  const last = waiting[waiting.length - 1].date;
+  return first === last ? shortDate(first) : shortRange(first, last);
+}
+
+/** The calendar week a sitting falls in. */
+function slotWeek(
+  calendar: SittingCalendar | null,
+  slot: Slot,
+): { start: string; end: string } | null {
+  if (slot.kind === 'week') {
+    return slot;
+  }
+  return (
+    calendar?.weeks.find((w) => w.start <= slot.date && slot.date <= w.end) ??
+    null
+  );
+}
+
+export type SittingStatus = {
+  live: boolean;
+  /** Past sitting days are still on their way into the feed. */
+  waiting: boolean;
+  text: string;
+};
+
+/** The line under "Bundestag" in the parliament field. Today's sitting
+ * outranks days still in the works. */
 export function sittingStatus(
   calendar: SittingCalendar | null,
   today: string,
+  waiting: readonly WaitingDay[] = [],
 ): SittingStatus | null {
   const slots = upcomingSlots(calendar, today);
   if (sitsToday(slots, today)) {
     return {
       live: true,
+      waiting: false,
       text: slots[1]
         ? `Tagt heute · nächste Sitzung ${slotDay(slots[1])}`
         : 'Tagt heute',
     };
   }
   const [next] = slots;
+  if (waiting.length > 0) {
+    const upcoming =
+      next &&
+      (next.kind === 'day'
+        ? `nächste Sitzung ${shortDate(next.date)}`
+        : `nächste Sitzungswoche ${shortRange(next.start, next.end)}`);
+    return {
+      live: false,
+      waiting: true,
+      text: [`${waitingDates(waiting)} in Arbeit`, upcoming]
+        .filter(Boolean)
+        .join(' · '),
+    };
+  }
   if (!next) {
     return null;
   }
   return {
     live: false,
+    waiting: false,
     text:
       next.kind === 'day'
         ? `Nächste Sitzung ${shortDay(next.date)}`
@@ -145,21 +257,32 @@ export function sittingStatus(
 }
 
 export type SittingTile = {
-  label: 'Heute' | 'Nächste' | 'Danach';
+  label:
+    | 'Heute'
+    | 'Nächste'
+    | 'Danach'
+    | 'Bald verfügbar'
+    | 'Nächste Sitzungswoche';
   date: string;
-  /** "danach 11. Nov." */
+  /** "danach 11. Nov.", or the protocols of the days on their way. */
   after: string | null;
   /** The live tile, today's sitting. */
   live: boolean;
   /** Links to the Bundestag's agenda. */
   agenda: boolean;
+  /** The days still on their way into the feed. */
+  waiting: boolean;
 };
 
-/** The two tiles above the month grid: today and the next sitting on a
- * sitting day, else the next sitting and the one after. */
+/**
+ * The two tiles above the month grid. With days on their way: those, then
+ * today's sitting or the next sitting week. Otherwise today and the next
+ * sitting on a sitting day, else the next sitting and the one after.
+ */
 export function sittingTiles(
   calendar: SittingCalendar | null,
   today: string,
+  waiting: readonly WaitingDay[] = [],
 ): SittingTile[] {
   const slots = upcomingSlots(calendar, today);
   const tile = (
@@ -176,9 +299,37 @@ export function sittingTiles(
             after: after ? `danach ${slotDate(after)}` : null,
             live: label === 'Heute',
             agenda,
+            waiting: false,
           },
         ]
       : [];
+  if (waiting.length > 0) {
+    const soon: SittingTile = {
+      label: 'Bald verfügbar',
+      date: waitingDates(waiting),
+      after: protocolRange(waiting.flatMap((d) => d.protocols)),
+      live: false,
+      agenda: false,
+      waiting: true,
+    };
+    if (sitsToday(slots, today)) {
+      return [soon, ...tile('Heute', slots[0], undefined, true)];
+    }
+    const week = slots[0] && slotWeek(calendar, slots[0]);
+    return week
+      ? [
+          soon,
+          {
+            label: 'Nächste Sitzungswoche',
+            date: shortRange(week.start, week.end),
+            after: null,
+            live: false,
+            agenda: true,
+            waiting: false,
+          },
+        ]
+      : [soon];
+  }
   if (sitsToday(slots, today)) {
     return [
       ...tile('Heute', slots[0], undefined, true),
