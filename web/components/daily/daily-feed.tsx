@@ -5,6 +5,8 @@ import { feedToDigests } from '@/lib/daily/editions';
 import {
   buildFeed,
   feedLists,
+  isPendingDay,
+  isWaitingDigest,
   rankFeed,
   windowedDigests,
 } from '@/lib/daily/feed';
@@ -220,9 +222,27 @@ function DailyFeed({
     [digests, previewDigests, states],
   );
   const days = useMemo(
-    () => rankFeed(buildFeed(lists, null), topics),
+    () =>
+      rankFeed(
+        buildFeed(lists, null).filter((d) => !isPendingDay(d)),
+        topics,
+      ),
     [lists, topics],
   );
+  const waitingEditions = useMemo(
+    () =>
+      lists
+        .flat()
+        .filter((d) => d.parliament === 'bundestag' && isWaitingDigest(d))
+        .map((d) => ({
+          date: d.date,
+          protocols: (d.session?.protocols ?? []).map((p) => p.protocol_id),
+        })),
+    [lists],
+  );
+  // A topic filter can leave a day with nothing to show; it is left out
+  // rather than kept as an empty gap.
+  const visibleDays = days.filter((d) => d.hot || d.blocks.length > 0);
   const older = olderCursors(pages, parliamentsFor(states));
 
   useEffect(() => {
@@ -355,17 +375,18 @@ function DailyFeed({
         onChange={changeStates}
         calendar={calendar}
         editionDates={editionDates}
+        waitingEditions={waitingEditions}
         onJumpToDay={jumpToDay}
       />
       <TopicPills topics={topics} onChange={changeTopics} />
 
       <div className="flex flex-col gap-12 pt-2">
-        {days.length === 0 ? (
+        {visibleDays.length === 0 ? (
           <p className={cn('py-12 text-center text-[15px]', MUTED_TEXT)}>
             Noch keine Inhalte zu deiner Auswahl. Schau bald wieder vorbei.
           </p>
         ) : (
-          days.map((day) => (
+          visibleDays.map((day) => (
             <DailyDaySection
               key={day.date}
               day={day}

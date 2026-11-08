@@ -771,12 +771,16 @@ const DIGEST_PARLIAMENTS: readonly DigestParliamentId[] = [
 ];
 // A safety cap only: two weeks of one parliament are far fewer items.
 const ITEMS_PER_PAGE = 500;
+// Two sitting weeks of editions: more than are ever stored waiting for their
+// items at once.
+const ANCHOR_LOOKBACK = 10;
 
 /**
- * The slice of one parliament's feed that ends on its newest edition before
- * `before` (or its newest overall): `FEED_WINDOW_DAYS` days back from there.
- * Anchoring on an edition, not the calendar, skips recesses, so an older
- * slice is never empty while `hasOlder` is true.
+ * The slice of one parliament's feed that ends on its newest edition with
+ * items before `before` (or its newest overall): `FEED_WINDOW_DAYS` days back
+ * from there, plus any newer days still waiting for their items. Anchoring on
+ * an edition, not the calendar, skips recesses, so an older slice is never
+ * empty while `hasOlder` is true.
  */
 async function getFeedPageImpl(
   parliament: DigestParliamentId,
@@ -794,8 +798,11 @@ async function getFeedPageImpl(
       ),
     );
 
-  const newest = await ofParliament('feed_editions', limit(1));
-  const anchor = newest.docs[0]?.data().date as string | undefined;
+  // Anchored on a day stored before its items, the page would open empty.
+  const newest = (
+    await ofParliament('feed_editions', limit(ANCHOR_LOOKBACK))
+  ).docs.map((d) => d.data() as FeedEdition);
+  const anchor = (newest.find((e) => e.item_ids.length > 0) ?? newest[0])?.date;
   if (!anchor) {
     throw new UncacheableEmptyError();
   }
@@ -833,7 +840,7 @@ export async function getParliamentFeed(
     () =>
       cachedRead(
         getFeedPageImpl,
-        ['getParliamentFeed', 'v2', parliament],
+        ['getParliamentFeed', 'v3', parliament],
         [CacheTags.FEED],
       )(parliament, null),
     EMPTY_PAGE,
@@ -898,7 +905,7 @@ export async function getOlderParliamentFeed(
     () =>
       cachedRead(
         getFeedPageImpl,
-        ['getOlderParliamentFeed', 'v1', parliament, before],
+        ['getOlderParliamentFeed', 'v2', parliament, before],
         [CacheTags.FEED],
       )(parliament, before),
     EMPTY_PAGE,

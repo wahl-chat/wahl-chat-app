@@ -92,6 +92,19 @@ export function feedLists(
   return shown.length > 0 ? [...lists, shown] : lists;
 }
 
+/** A sitting day stored before any of its items: its debates wait for a
+ * readable protocol, its votes for abgeordnetenwatch. */
+export function isWaitingDigest(digest: DailyDigest): boolean {
+  return sectionItems(digest).length === 0 && voteItems(digest).length === 0;
+}
+
+/** A day whose every digest waits. The parliament field announces it; the
+ * feed leaves it out. Decided before any topic filter, so a day the filter
+ * empties is never one. */
+export function isPendingDay(day: FeedDay): boolean {
+  return day.digests.every(isWaitingDigest);
+}
+
 export type RankedDigest = {
   digest: DailyDigest;
   sections: SectionItem[];

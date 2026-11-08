@@ -5,6 +5,7 @@ import {
   type DayCell,
   type SittingStatus,
   type SittingTile,
+  type WaitingDay,
   berlinToday,
   calendarMonths,
   monthCells,
@@ -26,8 +27,28 @@ const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 // A sideways swipe this long turns the month; shorter ones are taps.
 const SWIPE_PX = 40;
 
+/** A quarter-drawn ring: work under way, not a loading spinner. */
+function ProgressRing() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth={3}
+      className="size-[11px] shrink-0"
+    >
+      <circle cx="12" cy="12" r="9" className="stroke-[var(--daily-border)]" />
+      <path
+        d="M21 12a9 9 0 0 0-9-9"
+        strokeLinecap="round"
+        className="stroke-[var(--daily-ink)]"
+      />
+    </svg>
+  );
+}
+
 /** The line under "Bundestag" in the parliament field: a red dot while it
- * sits today. */
+ * sits today, a ring while past sittings are on their way into the feed. */
 export function SittingStatusLine({ status }: { status: SittingStatus }) {
   return (
     <span
@@ -36,13 +57,17 @@ export function SittingStatusLine({ status }: { status: SittingStatus }) {
         MUTED_TEXT,
       )}
     >
-      <span
-        aria-hidden
-        className={cn(
-          'size-1.5 shrink-0 rounded-full',
-          status.live ? LIVE_DOT : 'bg-[var(--daily-muted)]',
-        )}
-      />
+      {status.waiting ? (
+        <ProgressRing />
+      ) : (
+        <span
+          aria-hidden
+          className={cn(
+            'size-1.5 shrink-0 rounded-full',
+            status.live ? LIVE_DOT : 'bg-[var(--daily-muted)]',
+          )}
+        />
+      )}
       <span className="truncate" suppressHydrationWarning>
         {status.text}
       </span>
@@ -53,6 +78,7 @@ export function SittingStatusLine({ status }: { status: SittingStatus }) {
 function Tile({ tile }: { tile: SittingTile }) {
   return (
     <div
+      role={tile.waiting ? 'status' : undefined}
       className={cn(
         'flex min-w-0 flex-1 flex-col gap-px rounded-lg px-2.5 py-2',
         tile.live ? 'bg-[rgb(229_57_53_/_0.1)]' : 'bg-[var(--daily-surface)]',
@@ -64,6 +90,7 @@ function Tile({ tile }: { tile: SittingTile }) {
           tile.live ? LIVE_TEXT : MUTED_TEXT,
         )}
       >
+        {tile.waiting && <ProgressRing />}
         {tile.live && (
           <span
             aria-hidden
@@ -101,7 +128,7 @@ const CELL_STYLE: Record<DayCell['status'], string> = {
   pending:
     'bg-[var(--daily-day-pending)] font-semibold text-[var(--daily-ink)] hover:bg-[var(--daily-day-pending-hover)]',
   upcoming:
-    'border border-[var(--daily-day-upcoming)] font-semibold text-[var(--daily-ink)] hover:bg-[var(--daily-surface)]',
+    'border border-dashed border-[var(--daily-day-upcoming)] font-semibold text-[var(--daily-ink)] hover:bg-[var(--daily-surface)]',
   none: MUTED_TEXT,
 };
 
@@ -198,17 +225,21 @@ function Legend() {
 }
 
 /**
- * The Bundestag's sitting days: the next two sittings, then a month grid
+ * The Bundestag's sitting days: two tiles (the days still on their way into
+ * the feed, or the next two sittings), then a month grid
  * that reaches back to when the feed begins. Every date comes from the
  * stored calendar (bundestag.de) and the stored feed editions.
  */
 export function SittingCalendarPanel({
   calendar,
   editionDates,
+  waiting,
   onJumpToDay,
 }: {
   calendar: SittingCalendar;
   editionDates: readonly string[];
+  /** Past sitting days on their way into the feed. */
+  waiting: readonly WaitingDay[];
   /** A day whose content is online: show it in the feed. */
   onJumpToDay: (date: string) => void;
 }) {
@@ -218,7 +249,7 @@ export function SittingCalendarPanel({
   const [note, setNote] = useState<DayCell | null>(null);
   const touchX = useRef<number | null>(null);
   const index = months.indexOf(month);
-  const tiles = sittingTiles(calendar, today);
+  const tiles = sittingTiles(calendar, today, waiting);
 
   const turn = (step: number) => {
     const next = months[index + step];

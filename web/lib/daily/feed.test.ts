@@ -9,6 +9,8 @@ import {
   buildFeed,
   dayHeat,
   feedLists,
+  isPendingDay,
+  isWaitingDigest,
   rankFeed,
   windowedDigests,
 } from './feed';
@@ -355,5 +357,53 @@ describe('editionIdOf', () => {
     expect(editionIdOf('bundestag_2026-07-1')).toBeNull();
     expect(editionIdOf('../feed_items/x')).toBeNull();
     expect(editionIdOf('landtag_by_2026-07-10_v1')).toBeNull();
+  });
+});
+
+describe('isPendingDay', () => {
+  /** A day stored with its protocol but no debate or vote yet. */
+  function waiting(date: string): DailyDigest {
+    return {
+      ...digest('bundestag', date),
+      session: {
+        protocols: [{ protocol_id: '21/105', pdf_url: null }],
+        sections: [],
+      },
+    };
+  }
+
+  it('picks the days stored before any of their debates or votes', () => {
+    const days = buildFeed(
+      [
+        [
+          waiting('2026-11-05'),
+          sitting('bundestag', '2026-10-16', [section('housing_rent', 5, 10)]),
+          sitting('bundestag', '2026-10-15', [], [vote(1, ['health_care'])]),
+        ],
+      ],
+      null,
+    );
+    expect(days.filter(isPendingDay).map((d) => d.date)).toEqual([
+      '2026-11-05',
+    ]);
+    expect(isWaitingDigest(waiting('2026-11-05'))).toBe(true);
+  });
+
+  it('keeps a day another parliament has items for', () => {
+    const [day] = buildFeed([
+      [waiting('2026-11-05')],
+      [sitting('landtag_st', '2026-11-05', [section('housing_rent', 5, 10)])],
+    ]);
+    expect(isPendingDay(day)).toBe(false);
+  });
+
+  it('never counts a day a topic filter empties', () => {
+    const days = buildFeed([
+      [sitting('bundestag', '2026-10-16', [section('housing_rent', 5, 10)])],
+    ]);
+    expect(days.filter(isPendingDay)).toEqual([]);
+    const [day] = rankFeed(days, ['health_care']);
+    expect(day.hot).toBeNull();
+    expect(day.blocks).toEqual([]);
   });
 });

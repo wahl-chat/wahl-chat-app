@@ -5,10 +5,12 @@ import {
   berlinToday,
   calendarMonths,
   monthCells,
+  protocolRange,
   shortRange,
   sittingStatus,
   sittingTiles,
   upcomingSlots,
+  waitingDays,
 } from './sitting-calendar';
 
 const days = (...dates: [string, number][]) =>
@@ -47,6 +49,7 @@ describe('sittingStatus', () => {
   it('says the parliament sits today, and when next', () => {
     expect(sittingStatus(CALENDAR, '2026-11-05')).toEqual({
       live: true,
+      waiting: false,
       text: 'Tagt heute · nächste Sitzung Fr, 6. Nov.',
     });
   });
@@ -57,6 +60,7 @@ describe('sittingStatus', () => {
     );
     expect(sittingStatus(CALENDAR, '2026-11-07')).toEqual({
       live: false,
+      waiting: false,
       text: 'Nächste Sitzungswoche 9.–13. Nov.',
     });
   });
@@ -76,6 +80,7 @@ describe('sittingTiles', () => {
         after: null,
         live: true,
         agenda: true,
+        waiting: false,
       },
       {
         label: 'Nächste',
@@ -83,6 +88,7 @@ describe('sittingTiles', () => {
         after: 'danach 9.–13. Nov.',
         live: false,
         agenda: false,
+        waiting: false,
       },
     ]);
   });
@@ -94,6 +100,109 @@ describe('sittingTiles', () => {
       ['Nächste', '9.–13. Nov.'],
       ['Danach', '30. Nov. – 4. Dez.'],
     ]);
+  });
+});
+
+const WAITING = [
+  { date: '2026-11-04', protocols: ['21/104'] },
+  { date: '2026-11-05', protocols: ['21/105'] },
+];
+
+describe('waitingDays', () => {
+  it('joins stored days without items to recent sittings without content', () => {
+    expect(
+      waitingDays(
+        CALENDAR,
+        ['2026-10-14', '2026-10-15', '2026-10-16', '2026-11-04'],
+        [{ date: '2026-11-05', protocols: ['21/105'] }],
+        '2026-11-07',
+      ),
+    ).toEqual([
+      { date: '2026-11-05', protocols: ['21/105'] },
+      { date: '2026-11-06', protocols: [] },
+    ]);
+  });
+
+  it('leaves an old gap out, but never a stored day', () => {
+    expect(
+      waitingDays(
+        CALENDAR,
+        [],
+        [{ date: '2026-10-15', protocols: ['21/102'] }],
+        '2026-11-03',
+      ).map((d) => d.date),
+    ).toEqual(['2026-10-15']);
+  });
+
+  it('waits for nothing on the sitting day itself', () => {
+    expect(waitingDays(CALENDAR, [], [], '2026-11-04')).toEqual([]);
+  });
+});
+
+describe('protocolRange', () => {
+  it('names one protocol, a run of them, or lists them', () => {
+    expect(protocolRange([])).toBeNull();
+    expect(protocolRange(['21/104'])).toBe('Protokoll 21/104');
+    expect(protocolRange(['21/105', '21/104', '21/104'])).toBe(
+      'Protokolle 21/104–105',
+    );
+    expect(protocolRange(['21/99', '21/100'])).toBe('Protokolle 21/99–100');
+    expect(protocolRange(['21/104', '21/106'])).toBe(
+      'Protokolle 21/104, 21/106',
+    );
+  });
+});
+
+describe('days on their way into the feed', () => {
+  it('lead the status line, with the next sitting', () => {
+    expect(sittingStatus(CALENDAR, '2026-11-07', WAITING)).toEqual({
+      live: false,
+      waiting: true,
+      text: '4.–5. Nov. in Arbeit · nächste Sitzungswoche 9.–13. Nov.',
+    });
+    expect(
+      sittingStatus(CALENDAR, '2026-11-03', [
+        { date: '2026-10-16', protocols: [] },
+      ])?.text,
+    ).toBe('16. Okt. in Arbeit · nächste Sitzung 4. Nov.');
+  });
+
+  it('give way to a sitting today', () => {
+    const status = sittingStatus(CALENDAR, '2026-11-05', WAITING.slice(0, 1));
+    expect(status?.live).toBe(true);
+    expect(status?.waiting).toBe(false);
+  });
+
+  it('fill the first tile, the next sitting week the second', () => {
+    expect(sittingTiles(CALENDAR, '2026-11-07', WAITING)).toEqual([
+      {
+        label: 'Bald verfügbar',
+        date: '4.–5. Nov.',
+        after: 'Protokolle 21/104–105',
+        live: false,
+        agenda: false,
+        waiting: true,
+      },
+      {
+        label: 'Nächste Sitzungswoche',
+        date: '9.–13. Nov.',
+        after: null,
+        live: false,
+        agenda: true,
+        waiting: false,
+      },
+    ]);
+  });
+
+  it('name the week of a known next sitting day, or today when it sits', () => {
+    expect(
+      sittingTiles(CALENDAR, '2026-11-03', WAITING.slice(0, 1))[1].date,
+    ).toBe('2.–6. Nov.');
+    expect(
+      sittingTiles(CALENDAR, '2026-11-05', WAITING.slice(0, 1)).map(
+        (t) => t.label,
+      ),
+    ).toEqual(['Bald verfügbar', 'Heute']);
   });
 });
 
