@@ -5,9 +5,9 @@
 project_id = "wahl-chat-dev"
 region     = "europe-west1"
 
-# These secrets get a sentinel version so an apply never depends on a real key;
+# dip-api-key gets a sentinel version so an apply never depends on a real key;
 # the value is added out of band.
-bootstrap_secret_ids = ["dip-api-key", "revalidate-secret", "vercel-automation-bypass"]
+bootstrap_secret_ids = ["dip-api-key"]
 # Superseded by VERTEX_SA_JSON; kept under prevent_destroy while revisions still read it
 # (README: renaming).
 retained_secret_ids = ["vertex-sa-json"]

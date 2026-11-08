@@ -7,6 +7,9 @@ locals {
     setunion(
       toset(flatten([for s in var.services : values(s.secret_env)])),
       toset(["VERTEX_SA_JSON", "QDRANT_API_KEY"]),
+      # The feed job's cache revalidation; created with their values before
+      # the job first read them.
+      toset(["revalidate-secret", "vercel-automation-bypass"]),
     ),
     var.bootstrap_secret_ids,
   )
