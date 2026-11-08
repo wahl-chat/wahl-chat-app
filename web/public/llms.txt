@@ -7,7 +7,7 @@ Die Zusammenfassungen entstehen einmal je Debatte aus den Plenarprotokollen des 
 ## Seiten
 
 - [wahl.chat News](https://wahl.chat/): Debatten und Abstimmungen aus dem Bundestag, nach Sitzungstagen und Themen geordnet, mit Sitzungskalender
-- [Chat zu Wahlen](https://wahl.chat/chat): Fragen an die Programme der Parteien zu aktuellen und vergangenen Wahlen
+- [Chat zu Wahlen](https://wahl.chat/election-chat): Fragen an die Programme der Parteien zu aktuellen und vergangenen Wahlen
 - [So funktioniert wahl.chat](https://wahl.chat/how-to): wie Antworten, Quellen und die Hitzigkeit im Feed entstehen
 - [Über uns](https://wahl.chat/about-us): wer hinter wahl.chat steht
 

@@ -24,7 +24,7 @@ function MobileNavbarItems({ userDetails, mobileClose }: Props) {
     },
     {
       label: 'Chat',
-      href: '/chat',
+      href: '/election-chat',
     },
     // {
     //   label: 'Wahl Swiper',
