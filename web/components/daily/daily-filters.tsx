@@ -283,7 +283,6 @@ export function ParliamentSelector({
               <SittingCalendarPanel
                 calendar={calendar}
                 editionDates={editionDates}
-                waiting={waiting}
                 onJumpToDay={(date) => {
                   jumping.current = true;
                   setOpen(false);

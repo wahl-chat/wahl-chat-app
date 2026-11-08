@@ -4,15 +4,12 @@ import {
   AGENDA_URL,
   type DayCell,
   type SittingStatus,
-  type SittingTile,
-  type WaitingDay,
   berlinToday,
   calendarMonths,
   monthCells,
   monthLabel,
   monthOf,
   shortDay,
-  sittingTiles,
 } from '@/lib/daily/sitting-calendar';
 import type { SittingCalendar } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
@@ -22,7 +19,6 @@ import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 
 // Written out, not interpolated: Tailwind only builds classes it reads in full.
 const LIVE_DOT = 'bg-[#E53935]';
-const LIVE_TEXT = 'text-[#B3261E] dark:text-[#FF8A80]';
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 // A sideways swipe this long turns the month; shorter ones are taps.
 const SWIPE_PX = 40;
@@ -72,58 +68,6 @@ export function SittingStatusLine({ status }: { status: SittingStatus }) {
         {status.text}
       </span>
     </span>
-  );
-}
-
-function Tile({ tile }: { tile: SittingTile }) {
-  return (
-    <div
-      role={tile.waiting ? 'status' : undefined}
-      className={cn(
-        'flex min-w-0 flex-1 basis-0 flex-col gap-0.5 rounded-lg px-3 py-2.5',
-        tile.live ? 'bg-[rgb(229_57_53_/_0.1)]' : 'bg-[var(--daily-surface)]',
-      )}
-    >
-      <span
-        className={cn(
-          'flex items-center gap-1.5 text-[12px] font-semibold leading-tight',
-          tile.live ? LIVE_TEXT : MUTED_TEXT,
-        )}
-      >
-        {tile.waiting && <ProgressRing />}
-        {tile.live && (
-          <span
-            aria-hidden
-            className={cn(
-              'size-2 rounded-full shadow-[0_0_0_3px_rgb(229_57_53_/_0.18)]',
-              LIVE_DOT,
-            )}
-          />
-        )}
-        {tile.label}
-      </span>
-      <span className="break-words text-[14px] font-semibold leading-snug">
-        {tile.date}
-      </span>
-      {tile.agenda ? (
-        <a
-          href={AGENDA_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(FOCUS_RING, 'w-fit rounded text-[12px]', MUTED_TEXT)}
-        >
-          Tagesordnung →
-        </a>
-      ) : (
-        tile.after && (
-          <span
-            className={cn('break-words text-[12px] leading-snug', MUTED_TEXT)}
-          >
-            {tile.after}
-          </span>
-        )
-      )}
-    </div>
   );
 }
 
@@ -234,21 +178,17 @@ function Legend() {
 }
 
 /**
- * The Bundestag's sitting days: two tiles (the days still on their way into
- * the feed, or the next two sittings), then a month grid
- * that reaches back to when the feed begins. Every date comes from the
- * stored calendar (bundestag.de) and the stored feed editions.
+ * The Bundestag's sitting days as a month grid that reaches back to when the
+ * feed begins. Every date comes from the stored calendar (bundestag.de) and
+ * the stored feed editions.
  */
 export function SittingCalendarPanel({
   calendar,
   editionDates,
-  waiting,
   onJumpToDay,
 }: {
   calendar: SittingCalendar;
   editionDates: readonly string[];
-  /** Past sitting days on their way into the feed. */
-  waiting: readonly WaitingDay[];
   /** A day whose content is online: show it in the feed. */
   onJumpToDay: (date: string) => void;
 }) {
@@ -258,7 +198,6 @@ export function SittingCalendarPanel({
   const [note, setNote] = useState<DayCell | null>(null);
   const touchX = useRef<number | null>(null);
   const index = months.indexOf(month);
-  const tiles = sittingTiles(calendar, today, waiting);
 
   const turn = (step: number) => {
     const next = months[index + step];
@@ -296,13 +235,6 @@ export function SittingCalendarPanel({
       className="flex flex-col gap-3"
       suppressHydrationWarning
     >
-      {tiles.length > 0 && (
-        <div className="flex gap-2">
-          {tiles.map((tile) => (
-            <Tile key={tile.label} tile={tile} />
-          ))}
-        </div>
-      )}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
           <button
