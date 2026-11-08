@@ -45,6 +45,17 @@ def api_key(name: str) -> Optional[SecretStr]:
     return SecretStr(key)
 
 
+def ai_studio_enabled() -> bool:
+    """Whether the AI Studio Gemini clients can be built at all.
+
+    They are the fallback behind Vertex, and a client built without
+    ``GOOGLE_API_KEY`` raises on construction. A job deployed with Vertex
+    alone has no such key, so a roster that builds them unconditionally
+    fails before Vertex is ever tried.
+    """
+    return api_key("GOOGLE_API_KEY") is not None
+
+
 def gemini(model: str, *, vertex: bool = False, **kwargs: Any) -> Any:
     """Same pin as the chat roster: ``vertexai`` is explicit on both paths.
 

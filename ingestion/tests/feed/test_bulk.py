@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
+import time
 from datetime import date
 from typing import Any, Optional
 
@@ -370,3 +371,120 @@ def test_stored_debates_get_their_interjections_without_a_rebuild() -> None:
     assert item.debate is not None
     assert item.debate.interjections == 42
     assert day.changed == {TOP1}
+
+
+TOP2 = "bundestag_2026-09-24_d45-top2"
+
+
+def _failed(
+    llm: Any,
+    plan: Any,
+    stored: Optional[dict[str, FeedItem]] = None,
+    stored_edition_ids: Optional[list[str]] = None,
+    deadline: Optional[float] = None,
+) -> list[str]:
+    builder = FeedBuilder(llm, deadline=deadline)
+    try:
+        bulk.plan_day(
+            builder,
+            BUNDESTAG,
+            plan,
+            DISPLAY,
+            stored=stored or {},
+            stored_edition_ids=stored_edition_ids,
+            force=False,
+            run=bulk.ParliamentRun(BUNDESTAG, None),
+            out_of_time=lambda: False,
+            now=NOW,
+        )
+    finally:
+        builder.close()
+    return builder.failed
+
+
+def test_a_debate_whose_call_raised_is_recorded_as_failed() -> None:
+    assert sorted(_failed(FakeLLM(fail=(DebateDraft,)), _plan())) == [TOP1, TOP2]
+
+
+def test_a_failed_position_retry_is_recorded_as_failed() -> None:
+    stored, edition_ids = _stored_without_cdu()
+    llm = FakeLLM(fail=(PositionsDraft,))
+    assert _failed(llm, _plan(), stored, edition_ids) == [TOP1]
+
+
+def test_a_failed_vote_enrichment_is_recorded_as_failed() -> None:
+    assert _failed(FakeLLM(fail=(VoteEnrichmentBatch,)), _plan()) == ["poll 1"]
+
+
+def test_a_call_the_time_budget_cut_is_not_a_failure() -> None:
+    assert _failed(FakeLLM(), _plan(), deadline=time.monotonic() - 1) == []
+
+
+def _main(monkeypatch: pytest.MonkeyPatch, runs: list[Any]) -> tuple[int, list[str]]:
+    revalidated: list[str] = []
+    monkeypatch.setenv("ENV", "dev")
+    monkeypatch.setattr(bulk, "guard_firestore_target", lambda *_, **__: None)
+    monkeypatch.setattr(bulk, "_firestore_client", lambda: object())
+    monkeypatch.setattr(bulk, "check_fingerprint", lambda *_: None)
+    monkeypatch.setattr(bulk, "refresh_calendar", lambda *_: None)
+    monkeypatch.setattr(bulk, "build_and_publish", lambda *_, **__: runs)
+    monkeypatch.setattr(bulk, "post_revalidate", revalidated.append)
+    return bulk.main(["--revalidate", "--allow-remote"]), revalidated
+
+
+WINDOW = (date(2026, 9, 24), date(2026, 9, 24))
+
+
+def test_a_run_that_wrote_busts_the_web_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+    runs = [(bulk.ParliamentRun(BUNDESTAG, WINDOW), bulk.Published(retracted=1))]
+    assert _main(monkeypatch, runs) == (0, ["dev"])
+
+
+def test_a_run_that_wrote_nothing_leaves_the_cache(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runs = [(bulk.ParliamentRun(BUNDESTAG, WINDOW), bulk.Published())]
+    assert _main(monkeypatch, runs) == (0, [])
+
+
+def test_a_failed_item_fails_the_run_after_publishing_the_rest(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    run = bulk.ParliamentRun(BUNDESTAG, WINDOW, failed=[TOP1])
+    runs = [(run, bulk.Published(retracted=1))]
+    assert _main(monkeypatch, runs) == (1, ["dev"])
+    assert TOP1 in capsys.readouterr().err
+
+
+class _Response:
+    def raise_for_status(self) -> None:
+        pass
+
+
+def _revalidate_headers(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
+    sent: dict[str, str] = {}
+
+    def post(url: str, **kwargs: Any) -> _Response:
+        sent.update(kwargs["headers"])
+        return _Response()
+
+    monkeypatch.setenv("REVALIDATE_SECRET", "secret")
+    monkeypatch.setattr(bulk.httpx, "post", post)
+    bulk.post_revalidate("dev")
+    return sent
+
+
+def test_revalidation_passes_vercel_protection_with_the_bypass_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("VERCEL_AUTOMATION_BYPASS_SECRET", "bypass")
+    headers = _revalidate_headers(monkeypatch)
+    assert headers["x-vercel-protection-bypass"] == "bypass"
+    assert headers["Authorization"] == "Bearer secret"
+
+
+def test_revalidation_sends_no_bypass_header_without_a_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("VERCEL_AUTOMATION_BYPASS_SECRET", raising=False)
+    assert "x-vercel-protection-bypass" not in _revalidate_headers(monkeypatch)

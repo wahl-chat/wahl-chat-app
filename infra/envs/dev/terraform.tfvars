@@ -189,7 +189,14 @@ jobs = {
     }
     # ENV=dev writes the deployed dev Firestore, which the target guard only
     # allows when asked to explicitly.
-    args     = ["--days", "14", "--time-budget", "780", "--allow-remote"]
+    # --revalidate busts the web's feed cache after a run that wrote, so new
+    # items show at once. dev.wahl.chat is behind Vercel's Deployment
+    # Protection; the bypass token lets the POST through it.
+    secret_env = {
+      REVALIDATE_SECRET               = "revalidate-secret"
+      VERCEL_AUTOMATION_BYPASS_SECRET = "vercel-automation-bypass"
+    }
+    args     = ["--days", "14", "--time-budget", "780", "--allow-remote", "--revalidate"]
     schedule = "*/30 6-7 * * *"
   }
 }
