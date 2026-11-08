@@ -10,7 +10,7 @@ import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 /**
  * The site header on the feed's column width, so the logo and the login
  * button line up with the cards: "wahl.chat / News", the product's name next
- * to the brand. The Chat link opens the chat of the current election.
+ * to the brand. The Chat link opens the current election's page.
  * Anmelden asks readers to preregister for personalised briefings.
  * Anleitung and Spenden live in the footer.
  */

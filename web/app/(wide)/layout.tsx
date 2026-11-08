@@ -10,9 +10,9 @@ import { cn } from '@/lib/utils';
  * as the phone layout on desktop too, and the home of the feed's theme. */
 async function Layout({ children }: { children: React.ReactNode }) {
   const election = chatElection(await getContexts());
-  const chatHref = election
-    ? `/${election.context_id}/session`
-    : SITE_LINKS.chat.href;
+  // The election's page, which leads into its chat, rather than a session
+  // started straight away.
+  const chatHref = election ? `/${election.context_id}` : SITE_LINKS.chat.href;
   return (
     <div
       className={cn(
