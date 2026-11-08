@@ -4,6 +4,9 @@
 
 from datetime import date
 
+import pytest
+
+from ingestion.feed import items as items_module
 from ingestion.feed.items import (
     MAX_POSITION_ATTEMPTS,
     assemble_edition,
@@ -73,3 +76,42 @@ def test_texts_go_to_content_and_facts_stay_language_neutral() -> None:
     assert [p.party_id for p in de.positions] == [
         p for p in facts_order if p in {q.party_id for q in de.positions}
     ]
+
+
+def test_the_hash_covers_the_sources_not_the_prompt_or_format_version(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    before = vote_input_hash({"content_hash": "a"})
+    monkeypatch.setattr(items_module, "PROMPT_VERSION", "99")
+    assert vote_input_hash({"content_hash": "a"}) == before
+
+
+def test_an_item_stored_under_the_old_hash_counts_as_current() -> None:
+    payload = {"content_hash": "a"}
+    item = sample_items()[0].model_copy(
+        update={"input_hash": vote_input_hash(payload, legacy=True)}
+    )
+    current = vote_input_hash(payload)
+    legacy = vote_input_hash(payload, legacy=True)
+    assert current != legacy
+    assert build_needed(item, current, legacy) is None
+    # Without the legacy hash to compare, the old item would be rebuilt.
+    assert build_needed(item, current) == "full"
+
+
+def test_a_source_change_rebuilds_an_item_stored_under_the_old_hash() -> None:
+    item = sample_items()[0].model_copy(
+        update={"input_hash": vote_input_hash({"content_hash": "a"}, legacy=True)}
+    )
+    changed = {"content_hash": "b"}
+    assert (
+        build_needed(
+            item, vote_input_hash(changed), vote_input_hash(changed, legacy=True)
+        )
+        == "full"
+    )
+
+
+def test_a_vote_whose_texts_fell_back_is_always_retried() -> None:
+    item = sample_items()[0].model_copy(update={"input_hash": None})
+    assert build_needed(item, "h", "legacy") == "full"

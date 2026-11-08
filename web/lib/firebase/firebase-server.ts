@@ -901,16 +901,24 @@ export async function getOlderParliamentFeed(
   ) {
     return EMPTY_PAGE;
   }
-  return uncachedFallback(
-    () =>
-      cachedRead(
-        getFeedPageImpl,
-        ['getOlderParliamentFeed', 'v2', parliament, before],
-        [CacheTags.FEED],
-      )(parliament, before),
-    EMPTY_PAGE,
-    `FAILED to fetch older feed for "${parliament}" before ${before}`,
-  );
+  try {
+    return await cachedRead(
+      getFeedPageImpl,
+      ['getOlderParliamentFeed', 'v2', parliament, before],
+      [CacheTags.FEED],
+    )(parliament, before);
+  } catch (error) {
+    // No older edition: the feed's real end. Any other failure has to reach
+    // the client, which offers a retry; an empty page would read as the end.
+    if (error instanceof UncacheableEmptyError) {
+      return EMPTY_PAGE;
+    }
+    console.error(
+      `[Firestore] FAILED to fetch older feed for "${parliament}" before ${before}:`,
+      error,
+    );
+    throw error;
+  }
 }
 
 async function getSittingCalendarImpl(

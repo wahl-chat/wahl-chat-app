@@ -2,9 +2,9 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-from ingestion.feed import eval as feed_eval
+from wahlchat_evals import feed as feed_eval
 from ingestion.feed.builder import plan_days
-from tests.feed.samples import BUNDESTAG, DAY, default_speeches, sittings, speech
+from feed.samples import BUNDESTAG, DAY, default_speeches, sittings, speech
 
 
 def test_question_time_and_two_party_items_are_not_picked() -> None:

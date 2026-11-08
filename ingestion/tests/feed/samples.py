@@ -36,7 +36,7 @@ DISPLAY = {
     "afd": PartyDisplay("AfD", "#009EE0"),
 }
 
-_PARTIES_RE = re.compile(r"keine andere: (.*?)\. Partei-Kennungen", re.DOTALL)
+_PARTIES_RE = re.compile(r"^Fraktionen(?:, die gesprochen haben)?: (.*)$", re.MULTILINE)
 _CHECK_RE = re.compile(r"^\[(P\d+)\] (\S+): (.*)$", re.MULTILINE)
 _AGENDA_RE = re.compile(r"Tagesordnungspunkt „(.*?)“")
 _SPEECH_LINE_RE = re.compile(r"^- \[(R\d+)\] (.*?) \((\S+)\): (.*)$", re.MULTILINE)

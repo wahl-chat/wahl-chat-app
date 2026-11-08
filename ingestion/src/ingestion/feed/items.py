@@ -20,7 +20,6 @@ from typing import Literal, Optional
 
 from ingestion.feed.models import (
     CANONICAL_LOCALE,
-    FEED_FORMAT_VERSION,
     DigestProtocol,
     FeedEdition,
     FeedItem,
@@ -30,6 +29,11 @@ from ingestion.feed.models import (
 from ingestion.feed.parliaments import Parliament
 from ingestion.feed.prompts import PROMPT_VERSION
 from ingestion.feed.reader import AgendaItem
+
+# Items stored before the input hash covered sources only also hashed these
+# two versions. Their hashes are recomputed with the last values, so those
+# items count as current instead of being regenerated.
+_LEGACY_HASH_VERSIONS = {"prompt": "10", "format": "3"}
 
 _HASHED_FIELDS = (
     "headline",
@@ -50,14 +54,24 @@ MAX_POSITION_ATTEMPTS = 3
 BuildNeed = Literal["full", "positions"]
 
 
-def build_needed(stored: Optional[FeedItem], input_hash: str) -> Optional[BuildNeed]:
+def build_needed(
+    stored: Optional[FeedItem],
+    input_hash: str,
+    legacy_input_hash: Optional[str] = None,
+) -> Optional[BuildNeed]:
     """What an item needs this run: a full build, another attempt at only its
     missing positions, or nothing. The feed builder and the backfill plan
-    both decide with this, so a plan's "to build" is what a run would do."""
+    both decide with this, so a plan's "to build" is what a run would do.
+
+    Only a change of the item's sources makes it "full". A new prompt or a new
+    stored shape does not: a prompt change is rebuilt on purpose (``--force``),
+    a shape change is a migration over the stored items."""
     if (
         stored is None
         or stored.status != "published"
-        or stored.input_hash != input_hash
+        # None marks a vote whose texts fell back: it is always retried.
+        or stored.input_hash is None
+        or stored.input_hash not in (input_hash, legacy_input_hash)
     ):
         return "full"
     if stored.pending_positions and stored.position_attempts < MAX_POSITION_ATTEMPTS:
@@ -75,12 +89,12 @@ def debate_item_id(edition_id: str, session: int, agenda_slug: str) -> str:
     return f"{edition_id}_d{session}-{agenda_slug}"
 
 
-def _input_hash(sources: list[str], label: Optional[str] = None) -> str:
-    payload: dict[str, object] = {
-        "prompt": PROMPT_VERSION,
-        "format": FEED_FORMAT_VERSION,
-        "sources": sorted(sources),
-    }
+def _input_hash(
+    sources: list[str], label: Optional[str] = None, *, legacy: bool = False
+) -> str:
+    payload: dict[str, object] = {"sources": sorted(sources)}
+    if legacy:
+        payload |= _LEGACY_HASH_VERSIONS
     if label is not None:
         payload["label"] = label
     return hashlib.sha256(
@@ -88,18 +102,20 @@ def _input_hash(sources: list[str], label: Optional[str] = None) -> str:
     ).hexdigest()
 
 
-def debate_input_hash(item: AgendaItem) -> str:
+def debate_input_hash(item: AgendaItem, *, legacy: bool = False) -> str:
     """Over the speeches' chunk hashes, not their order: a debate is built
     only once the protocol has put it in order, and that order is fixed. The
     label is in it because it reaches the prompt and the card, and a protocol
     published after the first build can still give the item its title."""
     return _input_hash(
-        [h for s in item.speeches for h in s.content_hashes], label=item.label
+        [h for s in item.speeches for h in s.content_hashes],
+        label=item.label,
+        legacy=legacy,
     )
 
 
-def vote_input_hash(payload: dict) -> str:
-    return _input_hash([str(payload.get("content_hash") or "")])
+def vote_input_hash(payload: dict, *, legacy: bool = False) -> str:
+    return _input_hash([str(payload.get("content_hash") or "")], legacy=legacy)
 
 
 def content_hash(content: LocalizedContent) -> str:

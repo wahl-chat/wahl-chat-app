@@ -87,7 +87,10 @@ from ingestion.feed.verify import verify_positions
 
 logger = logging.getLogger(__name__)
 
-# Small enough that each vote gets its share of the reasoning budget.
+# Votes go to the model a few at a time rather than one call each: a batch
+# needs fewer calls and sees a day's related polls side by side. The price is that one failed call falls back
+# for the whole batch (source titles, retried next run). Small enough that
+# each vote gets its share of the reasoning budget.
 _VOTE_BATCH = 6
 _VOTE_CONTEXT_CHARS = 1200
 # A whole debate goes into the prompt. Only a debate longer than this (a
@@ -201,6 +204,8 @@ class DebateUnit:
     agenda: AgendaItem
     protocols: list[DigestProtocol]
     input_hash: str
+    # The same sources under the old hash, see ``build_needed``.
+    legacy_input_hash: Optional[str] = None
 
     @property
     def buildable(self) -> bool:
@@ -212,6 +217,7 @@ class VoteUnit:
     item_id: str
     payload: dict
     input_hash: str
+    legacy_input_hash: Optional[str] = None
 
 
 @dataclass
@@ -278,6 +284,7 @@ def plan_days(
                     agenda=item,
                     protocols=_item_protocols(item, sitting),
                     input_hash=debate_input_hash(item),
+                    legacy_input_hash=debate_input_hash(item, legacy=True),
                 )
             )
         votes = [
@@ -285,6 +292,7 @@ def plan_days(
                 item_id=vote_item_id(edition_id, int(p["external_id"])),
                 payload=p,
                 input_hash=vote_input_hash(p),
+                legacy_input_hash=vote_input_hash(p, legacy=True),
             )
             for p in by_day.get(day, [])
         ]

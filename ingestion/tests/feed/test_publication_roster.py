@@ -35,15 +35,20 @@ def test_feed_texts_go_to_the_publication_roster_without_chat_side_effects(
     assert seen["kwargs"] == {}
 
 
-def test_the_publication_roster_reasons_at_length() -> None:
+def test_the_publication_roster_reasons_at_length_on_gemini() -> None:
     roster = publication_llms.publication_llms()
     assert roster
     for entry in roster:
         assert "lite" not in entry.name
-        effort = getattr(entry.model, "thinking_level", None) or getattr(
-            entry.model, "reasoning_effort", None
-        )
-        assert effort == publication_llms.PUBLICATION_THINKING == "high"
+        if entry.name.startswith("openai-"):
+            # The fallback runs at minimal reasoning.
+            assert getattr(entry.model, "reasoning_effort", None) == "minimal"
+        else:
+            assert (
+                getattr(entry.model, "thinking_level", None)
+                == publication_llms.PUBLICATION_THINKING
+                == "high"
+            )
 
 
 class _Failing:
@@ -105,7 +110,7 @@ def test_the_roster_runs_on_vertex_without_an_ai_studio_key(
     assert _roster_names(monkeypatch, vertex=True) == {
         "vertex-gemini-3.6-flash-high",
         "vertex-gemini-3.7-flash-high",
-        "openai-gpt-5.6-terra-high",
+        "openai-gpt-6.1-terra-minimal",
     }
 
 
@@ -116,7 +121,7 @@ def test_ai_studio_joins_the_roster_behind_vertex_when_a_key_is_set(
     assert _roster_names(monkeypatch, vertex=True) == {
         "vertex-gemini-3.6-flash-high",
         "vertex-gemini-3.7-flash-high",
-        "openai-gpt-5.6-terra-high",
+        "openai-gpt-6.1-terra-minimal",
         "google-gemini-3.6-flash-high",
         "google-gemini-3.7-flash-high",
     }
@@ -126,4 +131,4 @@ def test_without_vertex_or_a_key_the_roster_is_openai_alone(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
-    assert _roster_names(monkeypatch, vertex=False) == {"openai-gpt-5.6-terra-high"}
+    assert _roster_names(monkeypatch, vertex=False) == {"openai-gpt-6.1-terra-minimal"}

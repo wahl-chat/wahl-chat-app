@@ -12,6 +12,13 @@ import {
 } from '@/lib/daily/feed';
 import { type DetailItem, findItem } from '@/lib/daily/items';
 import {
+  type OlderCursor,
+  type Pages,
+  appendPages,
+  cursorKey,
+  olderCursors,
+} from '@/lib/daily/paging';
+import {
   BUNDESTAG,
   DEFAULT_SELECTION,
   STATE_PARAM,
@@ -30,16 +37,15 @@ import type {
   SittingCalendar,
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 import DailyDaySection from './daily-day-section';
 import { AskPanel, DailyDetailDialog } from './daily-detail-dialog';
 import { ParliamentSelector, TopicPills } from './daily-filters';
+import DaySkeleton from './day-skeleton';
 
 const ITEM_PARAM = 'item';
-
-type Pages = Record<DigestParliamentId, FeedPage[]>;
 
 type Props = {
   /** Each parliament's latest slice; older ones load on request. */
@@ -162,17 +168,6 @@ function digestsIn(pages: Pages): Record<DigestParliamentId, DailyDigest[]> {
   };
 }
 
-/** The selected parliaments that have an older slice, with its cursor. */
-function olderCursors(
-  pages: Pages,
-  parliaments: readonly DigestParliamentId[],
-): [DigestParliamentId, string][] {
-  return parliaments.flatMap((parliament) => {
-    const last = pages[parliament].at(-1);
-    return last?.hasOlder && last.from ? [[parliament, last.from]] : [];
-  }) as [DigestParliamentId, string][];
-}
-
 function DailyFeed({
   feeds,
   previewDigests,
@@ -202,6 +197,20 @@ function DailyFeed({
   const busy = useRef(false);
   // A day chosen in the calendar, scrolled to once it is rendered.
   const [jumpTarget, setJumpTarget] = useState<string | null>(null);
+  // One request per older slice, started as soon as the slice before it has
+  // landed, so scrolling down usually finds it ready.
+  const requests = useRef(new Map<string, Promise<FeedPage>>());
+  const fetchOlder = useCallback((cursor: OlderCursor): Promise<FeedPage> => {
+    const key = cursorKey(cursor);
+    let request = requests.current.get(key);
+    if (!request) {
+      request = getOlderParliamentFeed(...cursor);
+      requests.current.set(key, request);
+      // A failed request is not kept, so a retry asks again.
+      request.catch(() => requests.current.delete(key));
+    }
+    return request;
+  }, []);
 
   // A link's land param wins; otherwise restore this device's last choice.
   useEffect(() => {
@@ -245,6 +254,16 @@ function DailyFeed({
   const visibleDays = days.filter((d) => d.hot || d.blocks.length > 0);
   const older = olderCursors(pages, parliamentsFor(states));
 
+  // Prefetch the next slices; a failure surfaces only once they are needed.
+  useEffect(() => {
+    if (olderFailed) {
+      return;
+    }
+    for (const cursor of olderCursors(pages, parliamentsFor(states))) {
+      fetchOlder(cursor).catch(() => {});
+    }
+  }, [pages, states, olderFailed, fetchOlder]);
+
   useEffect(() => {
     if (!jumpTarget) {
       return;
@@ -273,17 +292,11 @@ function DailyFeed({
     setOlderFailed(false);
     try {
       const loaded = await Promise.all(
-        older.map(([parliament, from]) =>
-          getOlderParliamentFeed(parliament, from),
+        older.map(
+          async (cursor) => [cursor[0], await fetchOlder(cursor)] as const,
         ),
       );
-      setPages((current) => {
-        const next = { ...current };
-        older.forEach(([parliament], i) => {
-          next[parliament] = [...current[parliament], loaded[i]];
-        });
-        return next;
-      });
+      setPages((current) => appendPages(current, loaded));
     } catch {
       toast.error('Ältere Tage konnten nicht geladen werden.');
       setOlderFailed(true);
@@ -344,7 +357,7 @@ function DailyFeed({
         last?.from && last.hasOlder && date < last.from;
         last = loaded.at(-1)
       ) {
-        loaded.push(await getOlderParliamentFeed('bundestag', last.from));
+        loaded.push(await fetchOlder(['bundestag', last.from]));
       }
     } catch {
       toast.error('Dieser Tag konnte nicht geladen werden.');
@@ -413,11 +426,7 @@ function DailyFeed({
                 Erneut versuchen
               </button>
             ) : (
-              loadingOlder && (
-                <span className={cn('text-[15px]', MUTED_TEXT)}>
-                  Ältere Tage laden …
-                </span>
-              )
+              loadingOlder && <DaySkeleton />
             )}
           </div>
         )}

@@ -56,18 +56,53 @@ from ingestion.feed.builder import (
     speeches_block,
 )
 from ingestion.feed.parliaments import PARLIAMENTS, Parliament, load_party_display
-from ingestion.feed.prompts import (
-    PositionAgreementBatch,
-    PositionsDraft,
-    format_agreement_prompt,
-    format_positions_prompt,
-)
+from ingestion.feed.prompts import PositionsDraft, format_positions_prompt
 from ingestion.feed.reader import AgendaItem, Speech
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
-DATA_DIR = Path(__file__).resolve().parents[3] / "data" / "feed_eval"
+
+# The judge: does a drafted position say what the gold one says? The reason
+# comes before the verdict, so the model reasons before it decides.
+class PositionAgreement(BaseModel):
+    ref: str = Field(description="Die Kennung des Satzpaares, z. B. 'P2'.")
+    reason: str = Field(
+        description=(
+            "Zuerst, in einem kurzen Satz: worin stimmen A und B überein, und "
+            "worin weicht B ab?"
+        )
+    )
+    agrees: bool = Field(
+        description=(
+            "true, wenn B der Fraktion inhaltlich dieselbe Position zuschreibt "
+            "wie A: andere Worte sind in Ordnung, eine andere, zugespitzte, "
+            "abgeschwächte oder zusätzliche Forderung nicht."
+        )
+    )
+
+
+class PositionAgreementBatch(BaseModel):
+    pairs: list[PositionAgreement]
+
+
+AGREEMENT_PROMPT = """\
+Du vergleichst je zwei Sätze, die einer Fraktion eine Position in einer \
+Debatte zum Tagesordnungspunkt „{agenda}“ zuschreiben: A ist eine von Hand \
+geprüfte Referenz, B ein zu prüfender Entwurf.
+Gib für JEDES Paar genau einen Eintrag mit seiner Kennung zurück.
+
+Paare:
+{pairs}
+"""
+
+
+def format_agreement_prompt(agenda: str, pairs: str) -> str:
+    return AGREEMENT_PROMPT.format(agenda=agenda, pairs=pairs)
+
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "feed_eval"
 # One file per debate: a whole debate is up to ~150 KB, and the repo refuses
 # files over 500 KB.
 DEBATES_DIR = DATA_DIR / "debates"

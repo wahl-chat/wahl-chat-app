@@ -39,7 +39,8 @@ from ingestion.feed.prompts import (
 logger = logging.getLogger(__name__)
 
 _BATCH = 6
-# The German headline allows 12 words; English runs a little longer.
+# A German vote title allows 12 words (a debate headline 10); English runs a
+# little longer.
 _HEADLINE_MAX_WORDS = 16
 _DIGITS_RE = re.compile(r"\d+")
 # What a translation that ran on past its text looks like: a translation
