@@ -269,6 +269,19 @@ export type DigestQuote = {
   party_name: string;
 };
 
+/** The speech a debate card plays. The poster is cut at `start` and the
+ * player opens at `start`, so play continues from the frame the poster shows;
+ * see `CardVideo` in the backend's `feed/models.py`. */
+export type CardVideo = {
+  /** The bare file, without a media fragment. */
+  video_url: string;
+  start: number;
+  /** Absent until the feed job has cut one. */
+  poster_url: string | null;
+  speaker: string | null;
+  party_name: string | null;
+};
+
 export type DigestSessionSection = {
   /** The primary topic; `topics` holds it plus an optional second one. */
   topic: string;
@@ -281,6 +294,8 @@ export type DigestSessionSection = {
   agenda_items: string[];
   citations: DigestCitation[];
   video_url: string | null;
+  /** Absent on local previews and on items no feed run has given one yet. */
+  card_video?: CardVideo | null;
   /** A spoken summary of the section; the digest builder does not write one. */
   audio?: DigestAudioSummary | null;
   /** Fields below are absent on older digests. Exactly three bullets. */
@@ -359,6 +374,7 @@ export type DebateFacts = {
   drucksachen?: string[] | null;
   interjections?: number | null;
   key_point_sources?: { sources: SpeechSource[] }[];
+  card_video?: CardVideo | null;
 };
 
 export type VoteFacts = {
