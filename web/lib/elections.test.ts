@@ -191,6 +191,20 @@ describe('chatElection', () => {
     ).toBe('berlin');
   });
 
+  it('accepts dates that arrive as strings', () => {
+    // unstable_cache serialises Context.date to an ISO string.
+    const asString = (id: string, day: string) => ({
+      ...election(id, null),
+      date: new Date(day).toISOString() as never,
+    });
+    expect(
+      chatElection(
+        [asString('older', '2025-02-23'), asString('latest', '2026-03-22')],
+        NOW,
+      )?.context_id,
+    ).toBe('latest');
+  });
+
   it('has nothing to open without an election', () => {
     expect(chatElection([], NOW)).toBeUndefined();
   });

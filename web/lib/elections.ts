@@ -127,6 +127,7 @@ export function chatElection(
   }
   // Array.prototype.sort is stable, so a tie keeps the input order.
   return [...past].sort(
-    (a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0),
+    (a, b) =>
+      (toDate(b.date)?.getTime() ?? 0) - (toDate(a.date)?.getTime() ?? 0),
   )[0];
 }
