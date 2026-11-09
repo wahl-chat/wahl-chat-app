@@ -55,6 +55,7 @@ from ingestion.feed.builder import DebateUnit, FeedBuilder, VoteUnit, plan_days
 from ingestion.feed.bulk import (
     ParliamentRun,
     build_and_publish,
+    card_posters,
     load_sources,
     post_revalidate,
 )
@@ -284,7 +285,14 @@ def _build(
     builder = FeedBuilder()
     try:
         runs = build_and_publish(
-            qdrant, db, builder, parliaments, days=days, env=target, since=since
+            qdrant,
+            db,
+            builder,
+            parliaments,
+            days=days,
+            env=target,
+            since=since,
+            make_poster=card_posters(target),
         )
     finally:
         builder.close()

@@ -58,16 +58,23 @@ from ingestion.feed.builder import (
     plan_days,
 )
 from ingestion.feed.calendar import FRESH_FOR, build_calendar
+from ingestion.feed.card_video import choose_card_video
 from ingestion.feed.documents import PollDocuments, poll_documents
 from ingestion.feed.index import FEED_COLLECTION_NAME, IndexReport, index_items
 from ingestion.feed.items import BuildNeed, assemble_edition, build_needed
-from ingestion.feed.models import FeedEdition, FeedItem
+from ingestion.feed.models import (
+    FEED_FORMAT_VERSION,
+    CardVideo,
+    FeedEdition,
+    FeedItem,
+)
 from ingestion.feed.parliaments import (
     FEED_PARLIAMENTS,
     PARLIAMENTS,
     Parliament,
     load_party_display,
 )
+from ingestion.feed.posters import PosterMaker, poster_maker
 from ingestion.feed.protocol_pages import apply_protocols
 from ingestion.feed.reader import (
     SPEECH_SOURCE_TYPE,
@@ -301,6 +308,55 @@ def attach_source_facts(
     return out, changed
 
 
+def attach_card_videos(
+    items: list[FeedItem],
+    make_poster: Optional[PosterMaker],
+    out_of_time: Callable[[], bool],
+) -> tuple[list[FeedItem], set[str]]:
+    """Give each debate the video its card plays and a poster cut where it
+    starts. Like ``attach_source_facts``, a stored item gets it without being
+    rebuilt. A poster is cut again only when the choice moved; one that could
+    not be made is retried next run. Without ``make_poster`` (dry run, no
+    bucket) the choice is still stored, with no poster.
+    """
+    out: list[FeedItem] = []
+    changed: set[str] = set()
+    for item in items:
+        if item.debate is not None:
+            stored = item.debate.card_video
+            chosen = choose_card_video(item.debate)
+            if chosen is not None:
+                chosen = _with_poster(chosen, stored, make_poster, out_of_time)
+            if chosen != stored:
+                debate = item.debate.model_copy(update={"card_video": chosen})
+                item = item.model_copy(
+                    update={"debate": debate, "format_version": FEED_FORMAT_VERSION}
+                )
+                changed.add(item.id)
+        out.append(item)
+    return out, changed
+
+
+def _with_poster(
+    chosen: CardVideo,
+    stored: Optional[CardVideo],
+    make_poster: Optional[PosterMaker],
+    out_of_time: Callable[[], bool],
+) -> CardVideo:
+    """A stored poster is kept only while it shows the same video at the same
+    second; any other still would not be the frame playback starts on."""
+    if (
+        stored is not None
+        and stored.poster_url
+        and (stored.video_url, stored.start) == (chosen.video_url, chosen.start)
+    ):
+        return chosen.model_copy(update={"poster_url": stored.poster_url})
+    if make_poster is None or out_of_time():
+        return chosen
+    poster_url = make_poster(chosen.video_url, chosen.start)
+    return chosen.model_copy(update={"poster_url": poster_url})
+
+
 def plan_day(
     builder: FeedBuilder,
     parliament: Parliament,
@@ -314,6 +370,7 @@ def plan_day(
     out_of_time: Callable[[], bool],
     now: datetime,
     lookup_poll: Optional[PollDocuments] = None,
+    make_poster: Optional[PosterMaker] = None,
 ) -> Optional[DayBuild]:
     """Generate what changed in one day and assemble its edition; None when
     the day is unchanged and fully translated."""
@@ -359,15 +416,20 @@ def plan_day(
         if item is not None and item.status == "published":
             listed.append(item)
     listed, documented = attach_source_facts(listed, plan, lookup_poll)
+    listed, filmed = attach_card_videos(listed, make_poster, out_of_time)
     edition, ranked = assemble_edition(
         parliament, plan.edition_id, plan.day, plan.protocols, listed, now
     )
     retracted = vanished_item_ids(stored_edition_ids or [], edition.item_ids)
-    changed = documented | {
-        i.id
-        for i in ranked
-        if i.id in built or stored.get(i.id) is None or stored[i.id].rank != i.rank
-    }
+    changed = (
+        documented
+        | filmed
+        | {
+            i.id
+            for i in ranked
+            if i.id in built or stored.get(i.id) is None or stored[i.id].rank != i.rank
+        }
+    )
     untranslated = any(needs_translation(i, "en") for i in ranked)
     if (
         not changed
@@ -400,6 +462,7 @@ def build_for_parliament(
     out_of_time: Callable[[], bool] = lambda: False,
     now: Optional[datetime] = None,
     lookup_poll: Optional[PollDocuments] = None,
+    make_poster: Optional[PosterMaker] = None,
 ) -> ParliamentRun:
     """Build the window's days newest first, publishing each one as it is built.
 
@@ -436,6 +499,7 @@ def build_for_parliament(
             out_of_time=out_of_time,
             now=now or datetime.now(timezone.utc),
             lookup_poll=lookup_poll,
+            make_poster=make_poster,
         )
         if day is None:
             run.unchanged += 1
@@ -615,6 +679,7 @@ def build_and_publish(
     translate: bool = True,
     index: bool = True,
     out_of_time: Callable[[], bool] = lambda: False,
+    make_poster: Optional[PosterMaker] = None,
 ) -> list[tuple[ParliamentRun, Published]]:
     """Every parliament's window, day by day; prints one summary line each.
 
@@ -658,11 +723,22 @@ def build_and_publish(
             publish_day=publish_day,
             out_of_time=out_of_time,
             lookup_poll=lookup_poll,
+            make_poster=make_poster,
         )
         run.failed = builder.failed[failed_before:]
         runs.append((run, published))
         print(_summary_line(run, published))
     return runs
+
+
+def card_posters(env: str, *, skip: bool = False) -> Optional[PosterMaker]:
+    """The poster maker for a run that writes ``env``. None against the
+    emulator: there is no Storage emulator, and a local run must not write
+    into a deployed bucket. ``--allow-remote`` has dropped the emulator host
+    by the time this is asked."""
+    if skip or os.getenv("FIRESTORE_EMULATOR_HOST"):
+        return None
+    return poster_maker(env)
 
 
 def _embeddings() -> Any:
@@ -731,6 +807,11 @@ def main(argv: Optional[list[str]] = None) -> int:
         action="store_true",
         help="Bust the web cache tag afterwards (needs REVALIDATE_SECRET)",
     )
+    parser.add_argument(
+        "--skip-posters",
+        action="store_true",
+        help="Do not cut or upload debate card posters (needs ffmpeg otherwise)",
+    )
     args = parser.parse_args(argv)
 
     started = time.monotonic()
@@ -786,6 +867,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             translate=not args.skip_translate,
             index=not (args.dry_run or args.skip_index),
             out_of_time=out_of_time,
+            make_poster=card_posters(env, skip=args.dry_run or args.skip_posters),
         )
     finally:
         builder.close()

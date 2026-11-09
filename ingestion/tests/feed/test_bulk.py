@@ -44,6 +44,7 @@ def _day(
     stored_edition_ids: Optional[list[str]] = None,
     out_of_time: Any = lambda: False,
     lookup_poll: Any = None,
+    make_poster: Any = None,
 ) -> tuple[Optional[bulk.DayBuild], bulk.ParliamentRun]:
     run = bulk.ParliamentRun(BUNDESTAG, None)
     builder = FeedBuilder(llm)
@@ -60,6 +61,7 @@ def _day(
             out_of_time=out_of_time,
             now=NOW,
             lookup_poll=lookup_poll,
+            make_poster=make_poster,
         )
     finally:
         builder.close()
@@ -385,6 +387,139 @@ def test_stored_debates_get_their_interjections_without_a_rebuild() -> None:
     assert item.debate is not None
     assert item.debate.interjections == 42
     assert day.changed == {TOP1}
+
+
+DEBATES = {TOP1, "bundestag_2026-09-24_d45-top2"}
+
+
+class _Posters:
+    def __init__(self, url: Optional[str] = "https://posters/p.jpg") -> None:
+        self.url = url
+        self.cuts: list[tuple[str, float]] = []
+
+    def __call__(self, video_url: str, start: float) -> Optional[str]:
+        self.cuts.append((video_url, start))
+        return self.url
+
+
+def _without_card_videos(stored: dict[str, FeedItem]) -> dict[str, FeedItem]:
+    """As stored before items carried a card video."""
+    return {
+        i.id: i.model_copy(
+            update={"debate": i.debate.model_copy(update={"card_video": None})}
+        )
+        if i.debate is not None
+        else i
+        for i in stored.values()
+    }
+
+
+def _card_videos(day: Optional[bulk.DayBuild]) -> dict[str, Any]:
+    assert day is not None
+    return {i.id: i.debate.card_video for i in day.items if i.debate is not None}
+
+
+def test_stored_debates_get_a_card_video_and_poster_without_a_rebuild() -> None:
+    stored, edition_ids = _stored_day()
+    llm = FakeLLM()
+    posters = _Posters()
+    day, _ = _day(
+        llm, _plan(), _without_card_videos(stored), edition_ids, make_poster=posters
+    )
+    assert day is not None
+    assert llm.calls == []
+    assert day.built == set()
+    assert day.changed == DEBATES
+    videos = _card_videos(day)
+    top1 = videos[TOP1]
+    # The poster is cut at the very second the card's player opens at.
+    assert (top1.video_url, top1.start, top1.poster_url) == (
+        "https://video/s1.mp4",
+        3.0,
+        "https://posters/p.jpg",
+    )
+    assert (top1.video_url, top1.start) in posters.cuts
+    item = next(i for i in day.items if i.id == TOP1)
+    assert item.format_version == "4"
+    assert not needs_translation(item, "en")
+
+
+def test_a_poster_is_cut_once() -> None:
+    stored, edition_ids = _stored_day()
+    day, _ = _day(FakeLLM(), _plan(), stored, edition_ids, make_poster=_Posters())
+    assert day is not None
+    posted = _translated(day.items)
+
+    never = _Posters()
+    assert _day(FakeLLM(), _plan(), posted, edition_ids, make_poster=never)[0] is None
+    assert never.cuts == []
+
+
+def test_without_a_bucket_the_choice_is_stored_with_no_poster_and_no_churn() -> None:
+    stored, edition_ids = _stored_day()
+    day, _ = _day(FakeLLM(), _plan(), _without_card_videos(stored), edition_ids)
+    videos = _card_videos(day)
+    assert videos[TOP1] is not None
+    assert videos[TOP1].poster_url is None
+    assert day is not None
+    again = _translated(day.items)
+    assert _day(FakeLLM(), _plan(), again, edition_ids)[0] is None
+
+
+def test_a_failed_poster_is_retried_next_run() -> None:
+    stored, edition_ids = _stored_day()
+    failed = _Posters(url=None)
+    assert _day(FakeLLM(), _plan(), stored, edition_ids, make_poster=failed)[0] is None
+    assert len(failed.cuts) == len(DEBATES)
+
+    retried = _Posters()
+    day, _ = _day(FakeLLM(), _plan(), stored, edition_ids, make_poster=retried)
+    assert day is not None
+    assert day.changed == DEBATES
+    assert _card_videos(day)[TOP1].poster_url == "https://posters/p.jpg"
+
+
+def test_no_poster_is_cut_once_the_time_budget_is_spent() -> None:
+    stored, edition_ids = _stored_day()
+    posters = _Posters()
+    day, _ = _day(
+        FakeLLM(),
+        _plan(),
+        stored,
+        edition_ids,
+        out_of_time=lambda: True,
+        make_poster=posters,
+    )
+    assert day is None
+    assert posters.cuts == []
+
+
+def test_a_poster_of_another_second_is_replaced() -> None:
+    stored, edition_ids = _stored_day()
+    top1 = stored[TOP1]
+    assert top1.debate is not None and top1.debate.card_video is not None
+    old = top1.debate.card_video.model_copy(
+        update={"start": 9.0, "poster_url": "https://posters/old.jpg"}
+    )
+    stored[TOP1] = top1.model_copy(
+        update={"debate": top1.debate.model_copy(update={"card_video": old})}
+    )
+    posters = _Posters(url="https://posters/new.jpg")
+    day, _ = _day(FakeLLM(), _plan(), stored, edition_ids, make_poster=posters)
+    video = _card_videos(day)[TOP1]
+    assert (video.start, video.poster_url) == (3.0, "https://posters/new.jpg")
+    assert ("https://video/s1.mp4", 3.0) in posters.cuts
+
+
+def test_card_posters_are_off_against_the_emulator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(bulk, "poster_maker", lambda env: _Posters())
+    monkeypatch.setenv("FIRESTORE_EMULATOR_HOST", "localhost:8081")
+    assert bulk.card_posters("dev") is None
+    monkeypatch.delenv("FIRESTORE_EMULATOR_HOST")
+    assert bulk.card_posters("dev", skip=True) is None
+    assert bulk.card_posters("dev") is not None
 
 
 TOP2 = "bundestag_2026-09-24_d45-top2"
