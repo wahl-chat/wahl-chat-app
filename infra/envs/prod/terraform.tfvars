@@ -120,6 +120,8 @@ jobs = {
     task_count  = 4
     parallelism = 2
     schedule    = "0 4 * * *"
+    # Verified by a manual run against prod.
+    paused = false
   }
 
   "ingest-aw-votes-laender" = {
@@ -140,6 +142,8 @@ jobs = {
       DIP_API_KEY = "dip-api-key"
     }
     schedule = "0 3 * * *"
+    # Verified by a manual run against prod.
+    paused = false
   }
 
   "ingest-manifestos" = {
@@ -171,5 +175,7 @@ jobs = {
     }
     args     = ["--days", "14", "--time-budget", "780", "--revalidate"]
     schedule = "*/30 6-7 * * *"
+    # Verified by a manual run against prod.
+    paused = false
   }
 }
