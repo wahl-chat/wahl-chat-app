@@ -22,6 +22,7 @@ COPY pyproject.toml uv.lock ./
 COPY ai-backend/pyproject.toml ai-backend/pyproject.toml
 COPY ingestion/pyproject.toml ingestion/pyproject.toml
 COPY packages/wahlchat-common/pyproject.toml packages/wahlchat-common/pyproject.toml
+COPY evals/pyproject.toml evals/pyproject.toml
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-install-workspace --package ingestion
 

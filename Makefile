@@ -7,7 +7,8 @@
         run-abgeordnetenwatch-votes run-all-landtage-votes run-speeches \
         run-manifestos run-manifesto-uploads upload-manifesto-uploads \
         collect-speeches fetch-mdb-stammdaten \
-        update-speeches speeches-stats
+        update-speeches speeches-stats export-prod-slice \
+        build-feed setup-feed-collection backfill-feed eval-feed
 
 # --- Install dependencies ---
 
@@ -164,6 +165,7 @@ lint-backend:
 	cd ai-backend && uv run ruff check src/
 	cd ingestion && uv run ruff check src/
 	cd packages/wahlchat-common && uv run ruff check src/
+	cd evals && uv run ruff check src/
 
 # --- Testing ---
 
@@ -172,6 +174,7 @@ test-backend:
 	cd ai-backend && uv run pytest tests/ --ignore=tests/test_chat_sse.py --ignore=tests/test_local_mode.py
 	cd ingestion && uv run pytest tests/
 	cd packages/wahlchat-common && uv run pytest tests/
+	cd evals && uv run pytest tests/
 
 test-smoke:
 	cd ai-backend && uv run pytest tests/test_chat_sse.py -x
@@ -289,6 +292,45 @@ run-manifestos: bootstrap-collection
 run-pledgetracker: bootstrap-collection
 	cd ingestion && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
 		uv run python -m ingestion.connectors.pledgetracker.bulk $(ARGS)
+
+# Parliament feed (web /): every agenda item debated and every poll of a
+# sitting day becomes a feed item (Firestore feed_items, grouped by
+# feed_editions), translated to English and indexed in Qdrant wahlchat_feed_{ENV}.
+#   make export-prod-slice                        # recent votes/speeches prod → local
+#   make setup-feed-collection                    # once, idempotent
+#   FIRESTORE_EMULATOR_HOST=localhost:8081 make build-feed ARGS="--dry-run --out /tmp/feed.json"
+#   FIRESTORE_EMULATOR_HOST=localhost:8081 make build-feed
+# export-prod-slice reads PROD_QDRANT_URL / PROD_QDRANT_API_KEY from the shell
+# and only ever scrolls prod; the write target is the local QDRANT_URL.
+export-prod-slice:
+	cd ingestion && $(QDRANT_ENV) uv run python -m ingestion.feed.export_prod_slice $(ARGS)
+
+setup-feed-collection:
+	cd ingestion && $(QDRANT_ENV) uv run python -m ingestion.feed.index
+
+build-feed:
+	cd ingestion && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$(FIRESTORE_EMULATOR_HOST) \
+		GOOGLE_CLOUD_PROJECT=$(EMULATOR_PROJECT) \
+		uv run python -m ingestion.feed.bulk $(ARGS)
+
+# One-time backfill of a deployed feed, before the merge that ships the feed to
+# that environment: from the end of the 2026 summer recess on. Needs its Qdrant
+# exported and its admin-SDK key in ingestion/ or ai-backend/ (or gcloud ADC).
+# A run that writes ends by busting that deployment's feed cache, so it also
+# needs its REVALIDATE_SECRET (from the web project's Vercel env vars):
+#   QDRANT_URL=... QDRANT_API_KEY=... make backfill-feed TARGET=dev ARGS="--plan --since 2026-09-01"
+#   QDRANT_URL=... QDRANT_API_KEY=... REVALIDATE_SECRET=... make backfill-feed TARGET=dev ARGS="--since 2026-09-01"
+backfill-feed:
+	@test -n "$(TARGET)" || (echo "ERROR: set TARGET=dev or TARGET=prod" && exit 1)
+	cd ingestion && ENV=$(TARGET) FIRESTORE_EMULATOR_HOST= \
+		uv run python -m ingestion.feed.backfill --env $(TARGET) $(ARGS)
+
+# Party positions against the hand-checked gold set, before any change to the
+# feed's prompts or models (LLM calls, writes nothing):
+#   make eval-feed
+#   make eval-feed ARGS="--make-gold"   # once: draft gold positions to check by hand
+eval-feed:
+	cd evals && uv run python -m wahlchat_evals.feed $(ARGS)
 
 # Uploaded manifestos: party PDFs supplied directly, for elections with no AW
 # coverage. Metadata comes from the object path + Firestore seed fixtures.

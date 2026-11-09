@@ -13,13 +13,18 @@ type Props = {
 
 function MobileNavbarItems({ userDetails, mobileClose }: Props) {
   const tabs: NavbarItemDetails[] = [
+    // The start page is the parliament feed, wahl.chat's News.
     {
-      label: 'Startseite',
+      label: 'News',
       href: '/',
     },
     {
       label: 'Anleitung',
       href: '/how-to',
+    },
+    {
+      label: 'Chat',
+      href: '/election-chat',
     },
     // {
     //   label: 'Wahl Swiper',

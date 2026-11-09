@@ -283,6 +283,22 @@ export async function appendStudyParticipantEvent(
   );
 }
 
+export type FeedInterest = 'yes' | 'no';
+
+/** One answer per user and feed item; a changed mind overwrites it. */
+export async function setFeedInterest(
+  uid: string,
+  itemId: string,
+  value: FeedInterest,
+) {
+  await setDoc(doc(db, 'feed_interest', `${uid}_${itemId}`), {
+    user_id: uid,
+    item_id: itemId,
+    value,
+    at: serverTimestamp(),
+  });
+}
+
 export async function getChatSession(sessionId: string) {
   const session = await getDoc(doc(db, 'chat_sessions', sessionId));
   return {
@@ -514,6 +530,19 @@ export async function userAllowNewsletter(uid: string, allowed: boolean) {
     doc(db, 'users', uid),
     {
       newsletter_allowed: allowed,
+    },
+    { merge: true },
+  );
+}
+
+/** A reader who signed up from the feed to hear when personalised briefings
+ * launch. Kept on their own user doc, which only they can write. */
+export async function userJoinBriefingsWaitlist(uid: string) {
+  await setDoc(
+    doc(db, 'users', uid),
+    {
+      briefings_waitlist: true,
+      briefings_waitlist_at: serverTimestamp(),
     },
     { merge: true },
   );

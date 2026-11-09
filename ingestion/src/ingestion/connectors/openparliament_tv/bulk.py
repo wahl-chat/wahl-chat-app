@@ -49,16 +49,9 @@ from typing import Optional
 # A later load_dotenv() does not change those values.
 # override=False: an exported variable stays in force.
 if __name__ == "__main__":
-    from dotenv import load_dotenv
+    from ingestion.env_file import load_env_file
 
-    _bulk_env_path = Path(__file__).resolve().parents[4] / ".env"
-
-    # Use ai-backend/.env when ingestion/.env does not exist.
-    # API keys can be in either file.
-    if not _bulk_env_path.exists():
-        _bulk_env_path = _bulk_env_path.parents[1] / "ai-backend" / ".env"
-    if _bulk_env_path.exists():
-        load_dotenv(_bulk_env_path, override=False)
+    load_env_file()
 
 from langchain_core.embeddings import Embeddings
 from qdrant_client import QdrantClient

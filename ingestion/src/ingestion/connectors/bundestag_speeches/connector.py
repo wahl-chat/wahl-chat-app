@@ -23,9 +23,8 @@ Security notes:
     DIP_API_KEY fail-loud: _require_dip_key() raises RuntimeError
     at construction when DIP_API_KEY is unset.  NO hardcoded key.
 
-    DESC → ASC re-sort: DIP returns protocols newest-first.
-    discover() re-sorts ascending by (datum, id) so run_connector processes
-    oldest-first.
+    Ordering: discover() returns never-ingested protocols before update-sweep
+    re-checks (see discover()).
 
     fetch() never raises: missing xml_url / parse failures return a
     skip_reason dict; normalize() raises ValueError → runner skip-and-warn.
@@ -449,19 +448,13 @@ class BundestagSpeechesConnector(BaseConnector):
     # 1. discover — per-Wahlperiode set-difference + recent-update sweep
     # ------------------------------------------------------------------
 
-    def _get_ingested_protocol_ids(self) -> set[str]:
-        """Return protocol ids (DIP document ids) with stored DIP chunks for
-        this Wahlperiode.
-
-        Reads ``source_parent_key`` ("parliamentary_speech:dip:<protocol_id>",
-        stamped by the runner) from every dip point of the configured
-        Wahlperiode. Points written before parent keys existed are simply not
-        counted — their protocols are re-discovered and become cheap
-        content-hash present-skips.
+    def _stored_payload_values(self, source: str, field: str) -> set[str]:
+        """Return the distinct ``field`` values of this Wahlperiode's speech
+        points from ``source``.
 
         Returns the empty set when no store client is available (standalone use
-        outside the runner): everything is then discovered, which is safe —
-        the runner's already-present guard keeps re-processing cheap.
+        outside the runner) or the scroll fails: everything is then discovered,
+        which is safe — the runner's already-present guard skips stored items.
         """
         from qdrant_client import models  # noqa: PLC0415
 
@@ -473,7 +466,7 @@ class BundestagSpeechesConnector(BaseConnector):
         if qdrant is None:
             return set()
         collection_name = self._store_collection or self._collection_name
-        ingested: set[str] = set()
+        values: set[str] = set()
         scroll_filter = models.Filter(
             must=[
                 models.FieldCondition(
@@ -481,7 +474,7 @@ class BundestagSpeechesConnector(BaseConnector):
                     match=models.MatchValue(value=self.source_type),
                 ),
                 models.FieldCondition(
-                    key="source", match=models.MatchValue(value="dip")
+                    key="source", match=models.MatchValue(value=source)
                 ),
                 models.FieldCondition(
                     key="wahlperiode",
@@ -497,24 +490,56 @@ class BundestagSpeechesConnector(BaseConnector):
                     scroll_filter=scroll_filter,
                     limit=1000,
                     offset=next_offset,
-                    with_payload=["source_parent_key"],
+                    with_payload=[field],
                     with_vectors=False,
                 )
                 for p in points:
-                    parent_key = (p.payload or {}).get("source_parent_key") or ""
-                    # "parliamentary_speech:dip:<protocol_id>" → protocol_id
-                    if parent_key:
-                        ingested.add(str(parent_key).rsplit(":", 1)[-1])
+                    value = (p.payload or {}).get(field)
+                    if value:
+                        values.add(str(value))
                 if next_offset is None:
                     break
         except Exception as exc:  # noqa: BLE001 — store unreachable → discover all
             logger.warning(
-                "set-difference discovery: store scroll failed (%s) — "
+                "set-difference discovery: %s store scroll failed (%s) — "
                 "treating store as empty (already-present items skip cheaply)",
+                source,
                 exc,
             )
             return set()
-        return ingested
+        return values
+
+    def _get_ingested_protocol_ids(self) -> set[str]:
+        """Return protocol ids (DIP document ids) with stored DIP chunks for
+        this Wahlperiode.
+
+        Reads ``source_parent_key`` ("parliamentary_speech:dip:<protocol_id>",
+        stamped by the runner) from every dip point of the configured
+        Wahlperiode. Points written before parent keys existed are simply not
+        counted — their protocols are re-discovered and become cheap
+        content-hash present-skips.
+        """
+        return {
+            parent_key.rsplit(":", 1)[-1]
+            for parent_key in self._stored_payload_values("dip", "source_parent_key")
+        }
+
+    def _get_op_covered_sessions(self) -> set[str]:
+        """Return the ``{wp}/{session}`` dokumentnummern op holds speeches for.
+
+        A protocol op covers completely leaves NO dip points once its twins are
+        superseded, so the dip set-difference alone re-discovers it on every
+        run, and each run spends the full resurrection-guard text comparison
+        only to produce nothing — enough of them crowd new protocols out of the
+        time budget. The session comes from the shared ``speech_key``
+        (``de-{ep}-{session}-…``), which op and DIP build identically.
+        """
+        sessions: set[str] = set()
+        for speech_key in self._stored_payload_values("op", "speech_key"):
+            parts = speech_key.split("-")
+            if len(parts) > 2 and parts[1].isdigit() and parts[2].isdigit():
+                sessions.add(f"{parts[1]}/{parts[2]}")
+        return sessions
 
     def discover(self, since: Optional[int]) -> list[str]:
         """Return protocol ids to process for the configured Wahlperiode.
@@ -522,17 +547,21 @@ class BundestagSpeechesConnector(BaseConnector):
         SET-DIFFERENCE + UPDATE SWEEP, no date cursor:
           1. Enumerate ALL /plenarprotokoll metadata for f.wahlperiode
              (cheap catalogue pages, no XML), filtered to herausgeber "BT".
-          2. Set-difference: keep protocols with no stored DIP chunks — this
-             re-surfaces every transient failure forever (a max(external_id)
-             watermark permanently lost anything that failed longer than a
-             lookback window) and is immune to another source or Wahlperiode
-             advancing a shared cursor.
+          2. Set-difference: keep protocols with no stored DIP chunks and no
+             op speeches — this re-surfaces every transient failure forever (a
+             max(external_id) watermark permanently lost anything that failed
+             longer than a lookback window) and is immune to another source or
+             Wahlperiode advancing a shared cursor. A protocol op holds only
+             part of, and DIP never stored, therefore reaches DIP through the
+             sweep alone; rare, since op aligns speeches weeks after DIP.
           3. Update sweep: ALSO keep already-ingested protocols whose DIP
              ``aktualisiert`` timestamp is within _UPDATE_SWEEP_DAYS, so
              upstream transcript corrections are re-fetched; the runner's
              content_hash guard rewrites only real changes.
 
-        Re-sorts ascending by (datum, id) — DIP returns DESC.
+        Returns the unseen protocols first, then the sweep, each ascending by
+        (datum, id) — DIP returns DESC. Re-checks are the slow part of a run;
+        behind them, the time budget would end a run before a new sitting.
         Populates self._protocols (per-run cache).
         Loads self._mdb_lookup once per run.
 
@@ -541,7 +570,7 @@ class BundestagSpeechesConnector(BaseConnector):
                    IGNORED — set-difference supersedes it.
 
         Returns:
-            List of protocol id strings sorted ascending by (datum, id).
+            Protocol id strings: unseen ones, then sweep re-checks.
         """
         params: dict = {"f.wahlperiode": self._wahlperiode}
 
@@ -558,25 +587,29 @@ class BundestagSpeechesConnector(BaseConnector):
                 docs.append(doc)
 
         ingested = self._get_ingested_protocol_ids()
+        op_covered = self._get_op_covered_sessions()
         sweep_floor = (
             date_type.today() - timedelta(days=_UPDATE_SWEEP_DAYS)
         ).isoformat()
-        selected: list[dict] = []
+        unseen: list[dict] = []
+        sweep: list[dict] = []
         for doc in docs:
             doc_id = str(doc.get("id") or "")
-            if doc_id not in ingested:
-                selected.append(doc)  # new or previously failed → ingest
+            dokumentnummer = str(doc.get("dokumentnummer") or "").strip()
+            if doc_id not in ingested and dokumentnummer not in op_covered:
+                unseen.append(doc)  # new or previously failed → ingest
                 continue
             # Already ingested: re-surface only when DIP marked it updated
             # recently (aktualisiert is an ISO timestamp; prefix compare on the
             # date part is safe for ISO-8601).
             aktualisiert = str(doc.get("aktualisiert") or "")
             if aktualisiert and aktualisiert[:10] >= sweep_floor:
-                selected.append(doc)
+                sweep.append(doc)
 
-        # DIP sorts DESC; BaseConnector.discover contract wants ASC.
-        # Re-sort ascending by (datum, id) so run_connector processes oldest-first.
-        selected.sort(key=lambda d: (d.get("datum") or "", str(d.get("id") or "")))
+        def by_date(d: dict) -> tuple[str, str]:
+            return (d.get("datum") or "", str(d.get("id") or ""))
+
+        selected = sorted(unseen, key=by_date) + sorted(sweep, key=by_date)
 
         # Populate per-run cache
         self._protocols = {str(d["id"]): d for d in selected}
