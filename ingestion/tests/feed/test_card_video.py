@@ -67,8 +67,8 @@ def test_the_opening_speaker_stands_for_the_debate() -> None:
     assert (video.speaker, video.party_name) == ("Anna", "SPD")
 
 
-def test_without_an_opener_the_seating_order_decides() -> None:
-    # Stored in order of first speech; the left-most Fraktion still wins.
+def test_without_an_opener_the_first_speech_stands_for_the_debate() -> None:
+    # ``parties`` is stored in order of first speech.
     video = choose_card_video(
         _debate(
             [
@@ -79,7 +79,7 @@ def test_without_an_opener_the_seating_order_decides() -> None:
         )
     )
     assert video is not None
-    assert video.speaker == "Lea"
+    assert video.speaker == "Dora"
 
 
 def test_speakers_without_video_are_passed_over() -> None:

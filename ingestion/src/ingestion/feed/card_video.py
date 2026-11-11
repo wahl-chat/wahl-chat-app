@@ -14,40 +14,11 @@ from __future__ import annotations
 
 from typing import Optional
 
-from ingestion.feed.models import CardVideo, DebateFacts, DebateParty
-
-# Left to right in the hemicycle, as in ``web/lib/daily/seating-order.ts``:
-# with no opening speaker, the first Fraktion from the left stands for the
-# debate, the same order the page lists the positions in.
-SEATING_ORDER = (
-    "linke",
-    "bsw",
-    "spd",
-    "gruene",
-    "ssw",
-    "fdp",
-    "fw",
-    "cdu",
-    "csu",
-    "afd",
-)
-_TRAILING = ("fraktionslos", "fraktionslose", "unbekannt")
+from ingestion.feed.models import CardVideo, DebateFacts
 
 # The first frames of a file are often black; a still from second zero would
 # be an empty card.
 MIN_START = 0.5
-
-
-def _seat(party_id: str) -> tuple[int, str]:
-    if party_id in SEATING_ORDER:
-        return SEATING_ORDER.index(party_id), party_id
-    if party_id in _TRAILING:
-        return len(SEATING_ORDER) + 1 + _TRAILING.index(party_id), party_id
-    return len(SEATING_ORDER), party_id
-
-
-def by_seating(parties: list[DebateParty]) -> list[DebateParty]:
-    return sorted(parties, key=lambda p: _seat(p.party_id))
 
 
 def _start(link: Optional[str]) -> float:
@@ -65,8 +36,9 @@ def _bare(url: str) -> str:
 
 def choose_card_video(debate: DebateFacts) -> Optional[CardVideo]:
     """The opening speaker's speech when known, since the opening quote is
-    theirs; otherwise the first Fraktion's in seating order that has video,
-    then any cited speech video, then the agenda item's first video."""
+    theirs; otherwise the first speech with video of the Fraktion that spoke
+    first (``parties`` is stored in order of first speech), then any cited
+    speech video, then the agenda item's first video."""
     speakers = [
         CardVideo(
             video_url=_bare(speaker.video_url),
@@ -74,14 +46,13 @@ def choose_card_video(debate: DebateFacts) -> Optional[CardVideo]:
             speaker=speaker.name,
             party_name=party.party_name,
         )
-        for party in by_seating(debate.parties)
+        for party in debate.parties
         for speaker in party.speakers
         if speaker.video_url
     ]
-    opener = debate.opening_quote.speaker if debate.opening_quote else None
-    chosen = next((s for s in speakers if s.speaker == opener), None)
-    if chosen is not None or speakers:
-        return chosen or speakers[0]
+    if speakers:
+        opener = debate.opening_quote.speaker if debate.opening_quote else None
+        return next((s for s in speakers if s.speaker == opener), speakers[0])
     cited = next((c for c in debate.citations if c.video_url), None)
     if cited is not None and cited.video_url:
         return CardVideo(
