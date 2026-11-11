@@ -2,7 +2,7 @@
 
 import type { DigestSessionSection } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
-import { PlayIcon } from 'lucide-react';
+import { Loader2Icon, PlayIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 // The same speech can sit in the feed and in the open detail at once; starting
@@ -96,10 +96,14 @@ export function SectionMediaFrame({
   const [started, setStarted] = useState(false);
   const [painted, setPainted] = useState(false);
 
+  // The poster covers the native controls until the video paints, so a play
+  // that fails must bring the play button back rather than leave a still.
+  const stop = () => setStarted(false);
   const play = () => {
     setStarted(true);
     ref.current?.play().catch((error: unknown) => {
       console.error(`[media] Could not play ${media.src}:`, error);
+      stop();
     });
   };
   const onPlay = () => {
@@ -127,6 +131,7 @@ export function SectionMediaFrame({
           controls={started}
           onPlay={onPlay}
           onPlaying={() => setPainted(true)}
+          onError={stop}
           className={cn(
             'absolute inset-0 size-full object-cover',
             // Playing, the controls must stay put under the pointer.
@@ -160,6 +165,12 @@ export function SectionMediaFrame({
             'pointer-events-none absolute inset-0 size-full object-cover',
             started ? 'z-10' : mediaClassName,
           )}
+        />
+      )}
+      {media.poster && started && !painted && (
+        <Loader2Icon
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 z-10 size-8 -translate-x-1/2 -translate-y-1/2 animate-spin text-white"
         />
       )}
       {!started && (
