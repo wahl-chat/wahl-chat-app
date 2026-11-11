@@ -14,6 +14,14 @@ import {
   stopVisibleSegment,
 } from './page-visit';
 
+function currentVisitId(): string {
+  const visitId = getCurrentVisitId();
+  if (!visitId) {
+    throw new Error('expected a running page visit');
+  }
+  return visitId;
+}
+
 function memoryStorage(initial: Record<string, string> = {}): Storage {
   const data = { ...initial };
   return {
@@ -83,7 +91,7 @@ describe('page visit accumulator', () => {
     ensurePageVisitRuntime('/bundestagswahl-2025', 0);
     startVisibleSegment(0);
     stopVisibleSegment(2_000);
-    const visitId = getCurrentVisitId();
+    const visitId = currentVisitId();
 
     resetPageVisitRuntimeForTests();
     const restored = loadOrCreatePageVisitSnapshot('/', 9_999);
@@ -111,7 +119,7 @@ describe('page visit accumulator', () => {
     ensurePageVisitRuntime('/', 0);
     startVisibleSegment(0);
     expect(checkpointVisibleMs(5_000)).toBe(5_000);
-    const visitId = getCurrentVisitId();
+    const visitId = currentVisitId();
 
     resetPageVisitRuntimeForTests();
     const restored = loadOrCreatePageVisitSnapshot('/', 9_999);
