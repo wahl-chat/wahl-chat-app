@@ -127,7 +127,7 @@ FeedItemStatus = Literal["published", "retracted"]
 
 # Bump when the stored feed shape gains or changes a field, and migrate the
 # stored items to it. Recorded on each item; it does not trigger a rebuild.
-FEED_FORMAT_VERSION = "4"
+FEED_FORMAT_VERSION = "5"
 
 
 class LocalizedPosition(BaseModel):

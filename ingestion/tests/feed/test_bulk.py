@@ -11,7 +11,7 @@ import pytest
 from ingestion.feed import bulk
 from ingestion.feed.builder import FeedBuilder, plan_days
 from ingestion.feed.items import MAX_POSITION_ATTEMPTS
-from ingestion.feed.models import FeedItem
+from ingestion.feed.models import FEED_FORMAT_VERSION, FeedItem
 from ingestion.feed.parliaments import FEED_PARLIAMENTS
 from ingestion.feed.politicians import RefreshReport
 from ingestion.feed.prompts import (
@@ -407,7 +407,10 @@ def _without_card_videos(stored: dict[str, FeedItem]) -> dict[str, FeedItem]:
     """As stored before items carried a card video."""
     return {
         i.id: i.model_copy(
-            update={"debate": i.debate.model_copy(update={"card_video": None})}
+            update={
+                "debate": i.debate.model_copy(update={"card_video": None}),
+                "format_version": "4",
+            }
         )
         if i.debate is not None
         else i
@@ -441,7 +444,7 @@ def test_stored_debates_get_a_card_video_and_poster_without_a_rebuild() -> None:
     )
     assert (top1.video_url, top1.start) in posters.cuts
     item = next(i for i in day.items if i.id == TOP1)
-    assert item.format_version == "4"
+    assert item.format_version == FEED_FORMAT_VERSION
     assert not needs_translation(item, "en")
 
 
