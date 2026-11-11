@@ -22,16 +22,19 @@ import {
   signInWithCredential,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
+import { ChevronLeftIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import PasswordResetForm from './password-reset-form';
 import SuccessAuthForm from './success-auth-form';
+import WeeklySignup from './weekly-signup';
 
 type AuthProvider = 'google' | 'github' | 'email';
 
-/** Why the reader is asked to sign in. The feed asks them to preregister for
- * personalised briefings, which is also recorded on their user doc. */
+/** Why the reader is asked to sign in. The feed asks them to sign up for
+ * "Meine Woche", the weekly digest, which is also recorded on their user
+ * doc. */
 export type LoginPurpose = 'chat-history' | 'briefings';
 
 type Props = {
@@ -50,17 +53,17 @@ const DESCRIPTIONS: Record<
       'Du kannst dich bei wahl.chat registrieren um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.',
   },
   briefings: {
-    login:
-      'Persönliche Briefings zu den Themen, die dich interessieren, kommen bald. Melde dich an, dann benachrichtigen wir dich, sobald sie verfügbar sind.',
+    login: 'Melde dich an, dann melden wir uns, sobald „Meine Woche“ losgeht.',
     register:
-      'Persönliche Briefings zu den Themen, die dich interessieren, kommen bald. Registriere dich jetzt, dann benachrichtigen wir dich, sobald sie verfügbar sind.',
+      'Registriere dich mit E-Mail und Passwort, dann melden wir uns, sobald „Meine Woche“ losgeht.',
   },
 };
 
 function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
   const { refreshUser } = useAnonymousAuth();
   const studyRunning = useStudyRunning();
-  // Preregistering is signing up, so the briefings ask opens on that form.
+  // "Meine Woche" opens on its own pitch; its email option is signing up.
+  const [showWeekly, setShowWeekly] = useState(purpose === 'briefings');
   const [isRegister, setIsRegister] = useState(purpose === 'briefings');
   const [isResetPassword, setIsResetPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -237,7 +240,11 @@ function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
   };
 
   const showSuccessToast = () => {
-    toast.success('Erfolgreich angemeldet');
+    toast.success(
+      purpose === 'briefings'
+        ? 'Du bist dabei – wir melden uns, sobald „Meine Woche“ startet.'
+        : 'Erfolgreich angemeldet',
+    );
   };
 
   const handleResetPassword = async () => {
@@ -253,7 +260,36 @@ function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
   }
 
   if (allowNewsletter) {
-    return <SuccessAuthForm onSuccess={onSuccess} />;
+    return (
+      <SuccessAuthForm
+        onSuccess={() => {
+          onSuccess();
+          // Signing up for "Meine Woche" is confirmed even when the
+          // newsletter question came first.
+          if (purpose === 'briefings') {
+            showSuccessToast();
+          }
+        }}
+      />
+    );
+  }
+
+  if (showWeekly) {
+    return (
+      <WeeklySignup
+        onGoogle={handleGoogleLogin}
+        onGithub={handleGithubLogin}
+        onEmail={() => {
+          setIsRegister(true);
+          setShowWeekly(false);
+        }}
+        onLogin={() => {
+          setIsRegister(false);
+          setShowWeekly(false);
+        }}
+        disabled={isLoading}
+      />
+    );
   }
 
   return (
@@ -263,6 +299,18 @@ function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
         name="isRegister"
         value={isRegister ? 'true' : 'false'}
       />
+      {purpose === 'briefings' && (
+        <Button
+          type="button"
+          variant="link"
+          className="mb-2 h-auto self-start p-0 text-muted-foreground"
+          onClick={() => setShowWeekly(true)}
+          disabled={isLoading}
+        >
+          <ChevronLeftIcon className="size-4" aria-hidden />
+          Zurück
+        </Button>
+      )}
       <div className="mb-4">
         <ResponsiveDialogTitle className="text-center text-2xl font-bold md:text-left">
           {isRegister ? 'Registrieren' : 'Anmelden'}

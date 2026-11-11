@@ -1,5 +1,6 @@
 import type {
   DigestSessionSection,
+  DigestSpeaker,
   SpeechSource,
 } from '@/lib/firebase/firebase.types';
 import type { Source } from '@/lib/stores/chat-store.types';
@@ -97,6 +98,29 @@ export function toViewerSource(source: SpeechSource): Source {
     page: source.page ?? 1,
     snippet: source.snippet ?? undefined,
   };
+}
+
+/** A speaker's own speech in this debate, from its start: the video when
+ * there is one, else the protocol at its page. Null without either. */
+export function speakerViewerSource(
+  speaker: DigestSpeaker,
+  party: { party_id: string; party_name: string },
+): Source | null {
+  if (!speaker.video_url && !speaker.url) {
+    return null;
+  }
+  const [pdf, fragment] = (speaker.url ?? '').split('#page=');
+  const page = Number.parseInt(fragment ?? '', 10);
+  return toViewerSource({
+    speaker: speaker.name,
+    party_id: party.party_id,
+    party_name: party.party_name,
+    video_url: speaker.video_url ?? null,
+    start: null,
+    pdf_url: pdf || null,
+    page: Number.isFinite(page) ? page : null,
+    snippet: null,
+  });
 }
 
 export function isVideoSource(source: SpeechSource): boolean {

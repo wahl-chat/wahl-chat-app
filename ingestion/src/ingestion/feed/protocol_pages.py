@@ -36,7 +36,7 @@ import io
 import logging
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date
 from typing import Any, Callable, Optional
 
 import defusedxml.ElementTree as ElementTree
@@ -44,6 +44,7 @@ from pypdf import PdfReader
 
 from ingestion.connectors.bundestag_speeches.client import fetch_bytes, fetch_text
 from ingestion.connectors.bundestag_speeches.parser import parse_speeches_from_xml
+from ingestion.connectors.bundestag_speeches.utils import parse_dotted_date
 from ingestion.feed.documents import drucksachen_in_text
 from ingestion.feed.reader import AgendaItem, SittingDay, Speech, numbered_label
 from ingestion.speech_key import agenda_slug_from_top_id, slugify_speaker
@@ -150,6 +151,8 @@ class ProtocolSpeech:
     agenda: str
     # Conflict reactions the protocol records during the speech.
     interjections: int = 0
+    # The ``<redner id>``: the speaker's ID in the MdB-Stammdaten.
+    speaker_id: Optional[str] = None
 
 
 @dataclass
@@ -174,11 +177,7 @@ def protocol_xml_url(pdf_url: str) -> Optional[str]:
 
 
 def _session_date(root: Any) -> Optional[date]:
-    raw = root.get("sitzung-datum")
-    try:
-        return datetime.strptime(raw, "%d.%m.%Y").date() if raw else None
-    except ValueError:
-        return None
+    return parse_dotted_date(root.get("sitzung-datum"))
 
 
 def _text(element: Any) -> str:
@@ -279,6 +278,7 @@ def protocol_index(xml_text: str) -> ProtocolIndex:
                 speaker=slugify_speaker(full_name=speech.get("speaker_name") or ""),
                 agenda=agenda_slug_from_top_id(speech.get("agenda_top_id")),
                 interjections=interjections.get(str(speech.get("xml_rede_id")), 0),
+                speaker_id=speech.get("speaker_xml_id") or None,
             )
         )
     return index
@@ -383,6 +383,8 @@ def _order(
     unplaced: list[Speech] = []
     for speech in speeches:
         found = matches.get(speech.source_item_id)
+        if found is not None and found.speaker_id:
+            speech.mdb_id = found.speaker_id
         if placement is not None:
             placement.anchor(speech, found)
         else:

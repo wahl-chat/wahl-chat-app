@@ -166,6 +166,12 @@ class Speech:
     page_of: Optional[Callable[[str], Optional[int]]] = field(
         default=None, repr=False, compare=False
     )
+    # The speaker's ID in the MdB-Stammdaten: the protocol's ``<redner id>``
+    # once ``protocol_pages.apply_protocols`` has matched the speech, else the
+    # DIP chunk's own. op.tv speeches name their speaker by Wikidata id only.
+    mdb_id: Optional[str] = None
+    # Seconds of the speech's own video; None without aligned sentences.
+    duration: Optional[float] = None
 
 
 @dataclass
@@ -228,6 +234,17 @@ def _spoken_sentences(chunks: list[dict]) -> list[SpokenSentence]:
     return sorted(found.values(), key=lambda s: s.ts_start)
 
 
+def _spoken_duration(chunks: list[dict]) -> Optional[float]:
+    """Where the last aligned sentence ends in the speech's own video."""
+    ends = [
+        float(entry["ts_end"])
+        for chunk in chunks
+        for entry in (chunk.get("meta") or {}).get("sentence_map") or []
+        if isinstance(entry, dict) and isinstance(entry.get("ts_end"), (int, float))
+    ]
+    return max(ends) if ends else None
+
+
 def _speech_from_chunks(chunks: list[dict]) -> Optional[Speech]:
     chunks = sorted(chunks, key=lambda c: c.get("chunk_index") or 0)
     head = chunks[0]
@@ -260,6 +277,8 @@ def _speech_from_chunks(chunks: list[dict]) -> Optional[Speech]:
         protocol_page_url=pdf_link if "#page=" in str(pdf_link or "") else None,
         content_hashes=[str(c.get("content_hash") or "") for c in chunks],
         sentences=_spoken_sentences(chunks),
+        mdb_id=str(meta["person_id"]) if is_dip and meta.get("person_id") else None,
+        duration=_spoken_duration(chunks),
     )
 
 

@@ -52,6 +52,11 @@ class DigestSpeaker(BaseModel):
     # The speech's own video file, and the link to it at the speech's start.
     video_url: Optional[str] = None
     video_link: Optional[str] = None
+    # The speaker's ID in the MdB-Stammdaten, which keys ``politicians``;
+    # None for a speaker the protocol did not identify.
+    mdb_id: Optional[str] = None
+    # Length of the speech's video in seconds, when op.tv has aligned it.
+    duration: Optional[int] = None
 
 
 class SpeechSource(BaseModel):
@@ -122,7 +127,7 @@ FeedItemStatus = Literal["published", "retracted"]
 
 # Bump when the stored feed shape gains or changes a field, and migrate the
 # stored items to it. Recorded on each item; it does not trigger a rebuild.
-FEED_FORMAT_VERSION = "3"
+FEED_FORMAT_VERSION = "4"
 
 
 class LocalizedPosition(BaseModel):
