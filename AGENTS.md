@@ -547,7 +547,8 @@ reuse the same item: the feed now, later briefings and social posts.
   continues from the frame the poster shows. Do not choose or clamp the
   start again in the web. A stored item gets its card video without a
   rebuild. Posters are not cut against the emulator, with `--dry-run` or
-  with `--skip-posters`; a remote run needs ffmpeg on the PATH.
+  with `--skip-posters`. A remote run needs an ffmpeg that writes WebP
+  (libwebp) on the PATH; Homebrew's does not, the image's does.
 - **Stores.**
   - Firestore `feed_items/{item_id}` is the source of truth.
   - `feed_editions/{parliament}_{YYYY-MM-DD}` lists the items of one day in

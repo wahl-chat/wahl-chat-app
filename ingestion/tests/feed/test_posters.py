@@ -119,3 +119,27 @@ def test_a_failed_cut_gives_no_poster() -> None:
 def test_no_poster_maker_without_ffmpeg(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(posters.shutil, "which", lambda name: None)
     assert posters.poster_maker("dev", bucket=_Bucket()) is None
+
+
+def _ffmpeg_encoders(monkeypatch: pytest.MonkeyPatch, listing: str) -> None:
+    monkeypatch.setattr(posters.shutil, "which", lambda name: "/usr/bin/ffmpeg")
+
+    def run(command: list[str], **kwargs: Any) -> subprocess.CompletedProcess:
+        assert command == ["ffmpeg", "-hide_banner", "-encoders"]
+        return subprocess.CompletedProcess(command, 0, stdout=listing, stderr="")
+
+    monkeypatch.setattr(posters.subprocess, "run", run)
+
+
+def test_no_poster_maker_when_ffmpeg_cannot_write_webp(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _ffmpeg_encoders(monkeypatch, " V....D mjpeg  MJPEG (Motion JPEG)\n")
+    assert posters.poster_maker("dev", bucket=_Bucket()) is None
+
+
+def test_a_poster_maker_when_ffmpeg_writes_webp(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _ffmpeg_encoders(monkeypatch, " V....D libwebp  libwebp WebP image\n")
+    assert posters.poster_maker("dev", bucket=_Bucket()) is not None

@@ -47,6 +47,7 @@ POSTER_WIDTH = 960
 # changes and may be cached for good.
 POSTER_CACHE_CONTROL = "public, max-age=31536000, immutable"
 _CUT_TIMEOUT_S = 30
+_ENCODERS_TIMEOUT_S = 10
 
 
 def poster_path(video_url: str, start: float) -> str:
@@ -95,15 +96,34 @@ def cut_poster(video_url: str, start: float) -> bytes:
     return result.stdout
 
 
+def _writes_webp() -> bool:
+    """Whether the ffmpeg on the PATH can encode WebP. Some builds, such as
+    Homebrew's, ship without libwebp, and would fail every cut."""
+    if shutil.which("ffmpeg") is None:
+        return False
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-hide_banner", "-encoders"],
+            capture_output=True,
+            text=True,
+            timeout=_ENCODERS_TIMEOUT_S,
+            check=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return "libwebp" in result.stdout
+
+
 def poster_maker(
     env: Optional[str] = None,
     bucket: Optional["Bucket"] = None,
     cut: Callable[[str, float], bytes] = cut_poster,
 ) -> Optional[PosterMaker]:
-    """Cuts and uploads posters into the env's bucket; None without ffmpeg,
-    so the run publishes everything else and the next run tries again."""
-    if cut is cut_poster and shutil.which("ffmpeg") is None:
-        logger.warning("ffmpeg not found; debate cards get no poster this run")
+    """Cuts and uploads posters into the env's bucket; None without an
+    ffmpeg that writes WebP, so the run publishes everything else and a run
+    that has one makes the posters."""
+    if cut is cut_poster and not _writes_webp():
+        logger.warning("ffmpeg cannot write WebP; debate cards get no poster this run")
         return None
     target: Any = (
         bucket if bucket is not None else storage_client().bucket(bucket_for_env(env))
