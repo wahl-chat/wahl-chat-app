@@ -69,7 +69,9 @@ function LoginButton({
         <ResponsiveDialogTrigger asChild>
           {noUserChildren}
         </ResponsiveDialogTrigger>
-        <ResponsiveDialogContent>
+        {/* Scrolls on short screens: the "Meine Woche" pitch with its sample
+            email is taller than a phone. */}
+        <ResponsiveDialogContent className="max-h-[92dvh] overflow-y-auto">
           <LoginForm onSuccess={handleSuccess} purpose={purpose} />
         </ResponsiveDialogContent>
       </ResponsiveDialog>
