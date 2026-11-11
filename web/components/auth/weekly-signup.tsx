@@ -14,9 +14,11 @@ import Link from 'next/link';
 /** What a "Meine Woche" email will look like. Made up, and marked so. */
 function SampleEmail() {
   return (
+    // md:mt-7 keeps the desktop dialog's close button clear of the sample;
+    // the phone sheet has none.
     <div
       aria-hidden
-      className="overflow-hidden rounded-lg border border-border bg-background text-left"
+      className="overflow-hidden rounded-lg border border-border bg-background text-left md:mt-7"
     >
       <div className="flex items-center gap-2 border-b border-border bg-muted px-3 py-2">
         <span className="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-zinc-900">
@@ -37,7 +39,7 @@ function SampleEmail() {
       </div>
       <div className="px-3.5 py-2.5 text-xs leading-snug">
         <p className="mb-1.5">
-          Hallo Max, das war diese Woche im Bundestag für dich wichtig:
+          Hallo Nathan, das war diese Woche im Bundestag für dich wichtig:
         </p>
         <ol className="flex list-decimal flex-col gap-0.5 pl-[18px] font-semibold">
           <li>Krankenkassenbeiträge: Gesetz beschlossen</li>
@@ -49,8 +51,8 @@ function SampleEmail() {
             Was sich konkret für dich ändert
           </div>
           <div className="truncate text-muted-foreground [mask-image:linear-gradient(90deg,#000_70%,transparent)]">
-            Gesetzlich versichert? Deine Zuzahlungen werden angepasst – so viel
-            …
+            Als gesetzlich Versicherter: Deine Zuzahlungen werden angepasst
+            um... …
           </div>
         </div>
       </div>
@@ -87,7 +89,7 @@ function WeeklySignup({
           Jede Woche die wichtigsten Infos aus Debatten und Abstimmungen zu
           deinen Themen.
           <br />
-          Bald gehts los – trag dich ein und wir melden uns!
+          Bald gehts los, meld dich an und sei dabei!
         </ResponsiveDialogDescription>
       </div>
       <div className="flex flex-col gap-3">
