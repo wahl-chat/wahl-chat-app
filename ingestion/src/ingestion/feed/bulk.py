@@ -824,23 +824,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     finally:
         builder.close()
 
-    speakers = RefreshReport()
-    if "bundestag" in {p.id for p in parliaments}:
+    in_bundestag = "bundestag" in {p.id for p in parliaments}
+    if in_bundestag:
         refresh_calendar(db)
-        window = next(
-            (run.window for run, _ in runs if run.parliament.id == "bundestag"), None
-        )
-        if db is not None and window is not None:
-            # Profiles are fetched one by one; they get what is left of the
-            # grace the model calls had, never the whole job's cap.
-            speakers = refresh_speakers(
-                db,
-                window[0],
-                lambda: (
-                    args.time_budget is not None
-                    and time.monotonic() - started >= args.time_budget + _CALL_GRACE_S
-                ),
-            )
 
     if args.out:
         args.out.write_text(
@@ -863,9 +849,27 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     # Only a run that wrote something has anything to show; the later runs of
     # a morning usually find every day unchanged.
-    wrote = any(p.wrote for _, p in runs) or bool(speakers.written)
-    if db is not None and args.revalidate and wrote:
+    if db is not None and args.revalidate and any(p.wrote for _, p in runs):
         post_revalidate(env)
+
+    # After the feed's own cache bust, so a slow bundestag.de never holds back
+    # what this run published.
+    window = next(
+        (run.window for run, _ in runs if run.parliament.id == "bundestag"), None
+    )
+    if db is not None and in_bundestag and window is not None:
+        # Profiles are fetched one by one; they get what is left of the grace
+        # the model calls had, never the whole job's cap.
+        speakers = refresh_speakers(
+            db,
+            window[0],
+            lambda: (
+                args.time_budget is not None
+                and time.monotonic() - started >= args.time_budget + _CALL_GRACE_S
+            ),
+        )
+        if args.revalidate and speakers.written:
+            post_revalidate(env)
 
     if runs and all(run.window is None for run, _ in runs):
         print("No corpus data in any selected parliament.", file=sys.stderr)

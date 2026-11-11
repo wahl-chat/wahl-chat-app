@@ -36,7 +36,7 @@ import io
 import logging
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date
 from typing import Any, Callable, Optional
 
 import defusedxml.ElementTree as ElementTree
@@ -44,6 +44,7 @@ from pypdf import PdfReader
 
 from ingestion.connectors.bundestag_speeches.client import fetch_bytes, fetch_text
 from ingestion.connectors.bundestag_speeches.parser import parse_speeches_from_xml
+from ingestion.connectors.bundestag_speeches.utils import parse_dotted_date
 from ingestion.feed.documents import drucksachen_in_text
 from ingestion.feed.reader import AgendaItem, SittingDay, Speech, numbered_label
 from ingestion.speech_key import agenda_slug_from_top_id, slugify_speaker
@@ -176,11 +177,7 @@ def protocol_xml_url(pdf_url: str) -> Optional[str]:
 
 
 def _session_date(root: Any) -> Optional[date]:
-    raw = root.get("sitzung-datum")
-    try:
-        return datetime.strptime(raw, "%d.%m.%Y").date() if raw else None
-    except ValueError:
-        return None
+    return parse_dotted_date(root.get("sitzung-datum"))
 
 
 def _text(element: Any) -> str:

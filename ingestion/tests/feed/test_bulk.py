@@ -475,19 +475,30 @@ def _main(
     monkeypatch: pytest.MonkeyPatch,
     runs: list[Any],
     written: Optional[list[str]] = None,
+    calls: Optional[list[str]] = None,
 ) -> tuple[int, list[str]]:
+    """Runs the job's main; ``calls`` records the order of the cache busts and
+    the speaker refresh."""
     written = written or []
+    calls = [] if calls is None else calls
     revalidated: list[str] = []
+
+    def refresh_speakers(*_: Any, **__: Any) -> RefreshReport:
+        calls.append("speakers")
+        return RefreshReport(written=written)
+
+    def post_revalidate(env: str) -> None:
+        calls.append("revalidate")
+        revalidated.append(env)
+
     monkeypatch.setenv("ENV", "dev")
     monkeypatch.setattr(bulk, "guard_firestore_target", lambda *_, **__: None)
     monkeypatch.setattr(bulk, "_firestore_client", lambda: object())
     monkeypatch.setattr(bulk, "check_fingerprint", lambda *_: None)
     monkeypatch.setattr(bulk, "refresh_calendar", lambda *_: None)
-    monkeypatch.setattr(
-        bulk, "refresh_speakers", lambda *_, **__: RefreshReport(written=written)
-    )
+    monkeypatch.setattr(bulk, "refresh_speakers", refresh_speakers)
     monkeypatch.setattr(bulk, "build_and_publish", lambda *_, **__: runs)
-    monkeypatch.setattr(bulk, "post_revalidate", revalidated.append)
+    monkeypatch.setattr(bulk, "post_revalidate", post_revalidate)
     return bulk.main(["--revalidate", "--allow-remote"]), revalidated
 
 
@@ -511,6 +522,20 @@ def test_a_run_that_only_stored_politicians_busts_the_web_cache(
 ) -> None:
     runs = [(bulk.ParliamentRun(BUNDESTAG, WINDOW), bulk.Published())]
     assert _main(monkeypatch, runs, written=["11005000"]) == (0, ["dev"])
+
+
+def test_the_feed_is_shown_before_the_speakers_are_refreshed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A slow bundestag.de must not hold back what the run published; the
+    # speakers' own writes get a second bust.
+    runs = [(bulk.ParliamentRun(BUNDESTAG, WINDOW), bulk.Published(retracted=1))]
+    calls: list[str] = []
+    _main(monkeypatch, runs, written=["11005000"], calls=calls)
+    assert calls == ["revalidate", "speakers", "revalidate"]
+    calls.clear()
+    _main(monkeypatch, runs, calls=calls)
+    assert calls == ["revalidate", "speakers"]
 
 
 def test_a_failed_item_fails_the_run_after_publishing_the_rest(

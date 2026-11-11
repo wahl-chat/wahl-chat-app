@@ -578,22 +578,26 @@ reuse the same item: the feed now, later briefings and social posts.
     video. Both are facts from the source: `attach_source_facts` adds them
     to stored items without a rebuild. A run over a longer `--days` window
     gives older items their ids; unchanged items cost no LLM call.
-  - The web lists the speakers as chips under each Fraktion. A chip opens
-    the speaker's record from `politicians/{mdb_id}`
-    (`feed/politicians.py`).
+  - The web lists the speakers as chips under each Fraktion, with their
+    photo. A chip opens the speaker's record from `politicians/{mdb_id}`
+    (`feed/politicians.py`). The full record is read only on that tap.
   - The record is kept as the Bundestag publishes it. Nothing is summarised
     or reworded. It joins two official sources on name and birth date: the
     MdB-Stammdaten (Wahlperioden, offices) and the XML behind the profiles
     on bundestag.de (`xml/v2/mdb`: Gremien and roles, Wahlkreis, photo,
-    Veröffentlichungspflichtige Angaben).
+    Veröffentlichungspflichtige Angaben). `feed/politician_sources.py`
+    reads both.
   - The record also holds the member's latest namentliche Abstimmungen,
     the ten the profile page lists (`abstimmunglinksByMdb`), each linked to
     the vote's page on bundestag.de.
-  - The job refreshes the records after each run. It fetches a profile
-    again only when the index's change date moves, and the votes only when
-    the Bundestag's roll-call list has a vote newer than the last read. A speaker the
-    Stammdaten do not know (Bundesrat, guests) gets no record; a former
-    member gets one from the Stammdaten alone.
+  - The job refreshes the records after each run, after it has cleared the
+    web cache for the feed: a slow bundestag.de never holds back the feed.
+    It fetches a profile again when the index's change date moves, or after
+    30 days, and the votes only when the Bundestag's roll-call list has a
+    vote newer than the last read. A speaker the Stammdaten do not know
+    (Bundesrat, guests) gets no record; a former member gets one from the
+    Stammdaten alone. A member who left keeps the record and votes last
+    read, and an empty vote page never replaces stored votes.
   - The photo is shown from bundestag.de with its credit, never copied.
 - **Bundestag only.** abgeordnetenwatch publishes Landtag votes one to five
   months late. `Parliament.in_feed` keeps the Landtage out of the default
