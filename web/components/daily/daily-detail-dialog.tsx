@@ -314,7 +314,7 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
           onEscapeKeyDown={closeLayerAbove}
           className={cn(
             DAILY_THEME_CLASSES,
-            'fixed inset-0 z-50 flex flex-col bg-[var(--daily-canvas)] focus:outline-none md:inset-auto md:left-1/2 md:top-1/2 md:h-[90dvh] md:w-full md:max-w-screen-sm md:-translate-x-1/2 md:-translate-y-1/2 md:overflow-hidden md:rounded-xl',
+            'fixed inset-0 z-50 flex flex-col bg-[var(--daily-canvas)] focus:outline-none md:inset-auto md:left-1/2 md:top-1/2 md:h-[90dvh] md:w-full md:max-w-screen-sm md:-translate-x-1/2 md:-translate-y-1/2 md:overflow-hidden md:rounded-xl md:border md:border-[var(--daily-border)] md:dark:border-zinc-600',
           )}
         >
           {item && (
