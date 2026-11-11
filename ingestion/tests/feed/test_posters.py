@@ -78,7 +78,6 @@ def test_a_new_poster_is_cut_and_uploaded_public_and_immutable() -> None:
         return b"webp"
 
     make = posters.poster_maker("dev", bucket=bucket, cut=cut)
-    assert make is not None
     url = make(VIDEO, 3.0)
     path = posters.poster_path(VIDEO, 3.0)
     assert (
@@ -101,7 +100,6 @@ def test_an_existing_poster_is_not_cut_again() -> None:
         raise AssertionError("an uploaded poster is reused")
 
     make = posters.poster_maker("prod", bucket=bucket, cut=cut)
-    assert make is not None
     url = make(VIDEO, 3.0)
     assert url is not None and "wahl-chat.firebasestorage.app" in url
     assert bucket.blobs[0].uploads == []
@@ -112,13 +110,12 @@ def test_a_failed_cut_gives_no_poster() -> None:
         raise subprocess.CalledProcessError(1, "ffmpeg")
 
     make = posters.poster_maker("dev", bucket=_Bucket(), cut=cut)
-    assert make is not None
     assert make(VIDEO, 3.0) is None
 
 
-def test_no_poster_maker_without_ffmpeg(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_no_webp_without_ffmpeg(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(posters.shutil, "which", lambda name: None)
-    assert posters.poster_maker("dev", bucket=_Bucket()) is None
+    assert not posters.writes_webp()
 
 
 def _ffmpeg_encoders(monkeypatch: pytest.MonkeyPatch, listing: str) -> None:
@@ -131,15 +128,15 @@ def _ffmpeg_encoders(monkeypatch: pytest.MonkeyPatch, listing: str) -> None:
     monkeypatch.setattr(posters.subprocess, "run", run)
 
 
-def test_no_poster_maker_when_ffmpeg_cannot_write_webp(
+def test_an_ffmpeg_without_libwebp_cannot_write_webp(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _ffmpeg_encoders(monkeypatch, " V....D mjpeg  MJPEG (Motion JPEG)\n")
-    assert posters.poster_maker("dev", bucket=_Bucket()) is None
+    assert not posters.writes_webp()
 
 
-def test_a_poster_maker_when_ffmpeg_writes_webp(
+def test_an_ffmpeg_with_libwebp_writes_webp(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _ffmpeg_encoders(monkeypatch, " V....D libwebp  libwebp WebP image\n")
-    assert posters.poster_maker("dev", bucket=_Bucket()) is not None
+    assert posters.writes_webp()

@@ -541,14 +541,17 @@ reuse the same item: the feed now, later briefings and social posts.
   `parties[].position_sources`). They are the same in all languages.
 - **Card video.** The job chooses the speech a debate card plays and the
   second it starts at (`feed/card_video.py`, stored as
-  `debate.card_video`). It cuts the poster with ffmpeg at that same second
-  (`feed/posters.py`, `public/feed/posters/` in the env bucket). The web
-  opens the player at that second and loads no video before play, so play
-  continues from the frame the poster shows. Do not choose or clamp the
-  start again in the web. A stored item gets its card video without a
-  rebuild. Posters are not cut against the emulator, with `--dry-run` or
-  with `--skip-posters`. A remote run needs an ffmpeg that writes WebP
-  (libwebp) on the PATH; Homebrew's does not, the image's does.
+  `debate.card_video`). After the run has published and cleared the web
+  cache, it cuts the poster with ffmpeg at that same second
+  (`feed/posters.py`, `public/feed/posters/` in the env bucket), as it does
+  for the speakers' records: a slow video host never holds back the feed.
+  After three failed cuts in a row the run stops cutting; the next run
+  tries again. The web opens the player at that second and loads no video
+  before play, so play continues from the frame the poster shows. Do not
+  choose or clamp the start again in the web. A stored item gets its card
+  video without a rebuild. Posters are not cut against the emulator, with
+  `--dry-run` or with `--skip-posters`. A remote run needs an ffmpeg that
+  writes WebP (libwebp) on the PATH; Homebrew's does not, the image's does.
 - **Stores.**
   - Firestore `feed_items/{item_id}` is the source of truth.
   - `feed_editions/{parliament}_{YYYY-MM-DD}` lists the items of one day in
