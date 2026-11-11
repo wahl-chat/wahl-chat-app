@@ -35,11 +35,13 @@ function SampleEmail() {
             Deine Woche: Krankenkasse, Heizung, Tempolimit
           </div>
         </div>
-        <span className="text-[10px] text-muted-foreground">Beispiel</span>
+        <span className="text-[10px] font-bold text-muted-foreground">
+          Beispiel
+        </span>
       </div>
       <div className="px-3.5 py-2.5 text-xs leading-snug">
         <p className="mb-1.5">
-          Hallo Nathan, das war diese Woche im Bundestag für dich wichtig:
+          Hallo Max, das war diese Woche im Bundestag für dich wichtig:
         </p>
         <ol className="flex list-decimal flex-col gap-0.5 pl-[18px] font-semibold">
           <li>Krankenkassenbeiträge: Gesetz beschlossen</li>
@@ -102,7 +104,7 @@ function WeeklySignup({
           <span className="flex size-6 items-center justify-center rounded-full bg-white">
             <GoogleIcon className="!size-3.5" />
           </span>
-          Mit Google dabei sein
+          Mit Google
         </Button>
         <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:border-t after:border-border">
           <span className="relative z-10 bg-background px-2 text-muted-foreground">
