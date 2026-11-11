@@ -393,7 +393,7 @@ DEBATES = {TOP1, "bundestag_2026-09-24_d45-top2"}
 
 
 class _Posters:
-    def __init__(self, url: Optional[str] = "https://posters/p.jpg") -> None:
+    def __init__(self, url: Optional[str] = "https://posters/p.webp") -> None:
         self.url = url
         self.cuts: list[tuple[str, float]] = []
 
@@ -436,7 +436,7 @@ def test_stored_debates_get_a_card_video_and_poster_without_a_rebuild() -> None:
     assert (top1.video_url, top1.start, top1.poster_url) == (
         "https://video/s1.mp4",
         3.0,
-        "https://posters/p.jpg",
+        "https://posters/p.webp",
     )
     assert (top1.video_url, top1.start) in posters.cuts
     item = next(i for i in day.items if i.id == TOP1)
@@ -476,7 +476,7 @@ def test_a_failed_poster_is_retried_next_run() -> None:
     day, _ = _day(FakeLLM(), _plan(), stored, edition_ids, make_poster=retried)
     assert day is not None
     assert day.changed == DEBATES
-    assert _card_videos(day)[TOP1].poster_url == "https://posters/p.jpg"
+    assert _card_videos(day)[TOP1].poster_url == "https://posters/p.webp"
 
 
 def test_no_poster_is_cut_once_the_time_budget_is_spent() -> None:
@@ -499,15 +499,15 @@ def test_a_poster_of_another_second_is_replaced() -> None:
     top1 = stored[TOP1]
     assert top1.debate is not None and top1.debate.card_video is not None
     old = top1.debate.card_video.model_copy(
-        update={"start": 9.0, "poster_url": "https://posters/old.jpg"}
+        update={"start": 9.0, "poster_url": "https://posters/old.webp"}
     )
     stored[TOP1] = top1.model_copy(
         update={"debate": top1.debate.model_copy(update={"card_video": old})}
     )
-    posters = _Posters(url="https://posters/new.jpg")
+    posters = _Posters(url="https://posters/new.webp")
     day, _ = _day(FakeLLM(), _plan(), stored, edition_ids, make_poster=posters)
     video = _card_videos(day)[TOP1]
-    assert (video.start, video.poster_url) == (3.0, "https://posters/new.jpg")
+    assert (video.start, video.poster_url) == (3.0, "https://posters/new.webp")
     assert ("https://video/s1.mp4", 3.0) in posters.cuts
 
 

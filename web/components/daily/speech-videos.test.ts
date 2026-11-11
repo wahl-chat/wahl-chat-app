@@ -18,13 +18,13 @@ describe('sectionMedia', () => {
       card_video: {
         video_url: 'https://video/a.mp4',
         start: 83.5,
-        poster_url: 'https://posters/a.jpg',
+        poster_url: 'https://posters/a.webp',
         speaker: 'Anna',
         party_name: 'SPD',
       },
     });
     expect(media?.src).toBe('https://video/a.mp4#t=83.5');
-    expect(media?.poster).toBe('https://posters/a.jpg');
+    expect(media?.poster).toBe('https://posters/a.webp');
     expect(media?.caption).toBe('Anna (SPD) · ab 1:23');
   });
 

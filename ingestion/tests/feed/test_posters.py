@@ -39,7 +39,7 @@ class _Bucket:
 def test_the_poster_path_is_stable_and_moves_with_the_start() -> None:
     path = posters.poster_path(VIDEO, 3.0)
     assert path == posters.poster_path(VIDEO, 3.0)
-    assert path.startswith("public/feed/posters/") and path.endswith(".jpg")
+    assert path.startswith("public/feed/posters/") and path.endswith(".webp")
     assert path != posters.poster_path(VIDEO, 3.5)
     assert path != posters.poster_path("https://video/s2.mp4", 3.0)
 
@@ -50,6 +50,7 @@ def test_ffmpeg_seeks_before_opening_the_input() -> None:
     assert command[command.index("-ss") + 1] == "7.3"
     assert command.index("-ss") < command.index("-i")
     assert command[command.index("-i") + 1] == VIDEO
+    assert command[command.index("-c:v") + 1] == "libwebp"
     assert command[-1] == "pipe:1"
 
 
@@ -61,10 +62,10 @@ def test_cut_poster_returns_the_frame_ffmpeg_wrote(
     def run(command: list[str], **kwargs: Any) -> subprocess.CompletedProcess:
         seen.append(command)
         assert kwargs["check"] is True and kwargs["timeout"]
-        return subprocess.CompletedProcess(command, 0, stdout=b"jpeg", stderr=b"")
+        return subprocess.CompletedProcess(command, 0, stdout=b"webp", stderr=b"")
 
     monkeypatch.setattr(posters.subprocess, "run", run)
-    assert posters.cut_poster(VIDEO, 3.0) == b"jpeg"
+    assert posters.cut_poster(VIDEO, 3.0) == b"webp"
     assert seen == [posters.ffmpeg_command(VIDEO, 3.0)]
 
 
@@ -74,7 +75,7 @@ def test_a_new_poster_is_cut_and_uploaded_public_and_immutable() -> None:
 
     def cut(video_url: str, start: float) -> bytes:
         cuts.append((video_url, start))
-        return b"jpeg"
+        return b"webp"
 
     make = posters.poster_maker("dev", bucket=bucket, cut=cut)
     assert make is not None
@@ -89,8 +90,8 @@ def test_a_new_poster_is_cut_and_uploaded_public_and_immutable() -> None:
     assert blob.name == path
     assert blob.cache_control == posters.POSTER_CACHE_CONTROL
     [(data, kwargs)] = blob.uploads
-    assert data == b"jpeg"
-    assert kwargs == {"content_type": "image/jpeg", "predefined_acl": "publicRead"}
+    assert data == b"webp"
+    assert kwargs == {"content_type": "image/webp", "predefined_acl": "publicRead"}
 
 
 def test_an_existing_poster_is_not_cut_again() -> None:

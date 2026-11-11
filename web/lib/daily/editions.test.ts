@@ -35,7 +35,7 @@ describe('feedToDigests', () => {
     const card_video = {
       video_url: 'https://video/a.mp4',
       start: 3,
-      poster_url: 'https://posters/a.jpg',
+      poster_url: 'https://posters/a.webp',
       speaker: 'Anna',
       party_name: 'SPD',
     };

@@ -7,7 +7,7 @@
 Without one, the page has to open every card's video file to draw a
 thumbnail: the Bundestag files keep their index at the end and a keyframe
 only every two seconds, so each card cost about 1.5 MB before anyone pressed
-play. A still costs about 50 KB, and the player loads nothing until play.
+play. A WebP still costs about 20 KB, and the player loads nothing until play.
 
 The still must be the frame playback starts on. ffmpeg's ``-ss`` before
 ``-i`` seeks to the exact frame when it re-encodes, the same frame a browser
@@ -51,7 +51,7 @@ _CUT_TIMEOUT_S = 30
 
 def poster_path(video_url: str, start: float) -> str:
     key = hashlib.sha256(f"{video_url}#t={start}".encode("utf-8")).hexdigest()
-    return f"{POSTER_PREFIX}{key[:20]}.jpg"
+    return f"{POSTER_PREFIX}{key[:20]}.webp"
 
 
 def ffmpeg_command(video_url: str, start: float) -> list[str]:
@@ -67,18 +67,21 @@ def ffmpeg_command(video_url: str, start: float) -> list[str]:
         "1",
         "-vf",
         f"scale={POSTER_WIDTH}:-2",
-        "-q:v",
-        "4",
-        "-f",
-        "image2",
         "-c:v",
-        "mjpeg",
+        "libwebp",
+        # Half the size of a JPEG of the same frame, with no visible loss.
+        "-quality",
+        "80",
+        "-compression_level",
+        "6",
+        "-f",
+        "image2pipe",
         "pipe:1",
     ]
 
 
 def cut_poster(video_url: str, start: float) -> bytes:
-    """The JPEG of the frame at ``start``. ffmpeg reads the file over HTTP
+    """The WebP of the frame at ``start``. ffmpeg reads the file over HTTP
     in ranges, so only the index and the frames around ``start`` are
     fetched."""
     result = subprocess.run(
@@ -114,7 +117,7 @@ def poster_maker(
                 data = cut(video_url, start)
                 blob.cache_control = POSTER_CACHE_CONTROL
                 blob.upload_from_string(
-                    data, content_type="image/jpeg", predefined_acl="publicRead"
+                    data, content_type="image/webp", predefined_acl="publicRead"
                 )
         except Exception as exc:  # noqa: BLE001 — one poster never stops a run
             logger.warning("No poster for %s#t=%s: %s", video_url, start, exc)
