@@ -53,6 +53,8 @@ export function SpeakerChips({
                   width={28}
                   height={28}
                   unoptimized
+                  loading="lazy"
+                  decoding="async"
                   className="size-7 object-cover object-top"
                 />
               ) : (

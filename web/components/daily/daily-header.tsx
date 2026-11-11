@@ -27,7 +27,7 @@ function DailyHeader({ chatHref }: { chatHref: string }) {
             'flex items-center gap-2 rounded-md text-[var(--daily-ink)] sm:gap-3',
           )}
         >
-          <Logo className="size-10 sm:size-12" />
+          <Logo className="size-10 max-[380px]:size-9 sm:size-12" />
           <span
             aria-hidden
             className="h-8 w-[3px] skew-x-[-18deg] rounded-full bg-[var(--daily-border)]"
@@ -51,7 +51,10 @@ function DailyHeader({ chatHref }: { chatHref: string }) {
               )}
             >
               <MessageCircleIcon className="size-4" aria-hidden />
-              {SITE_LINKS.chat.label}
+              {/* The narrowest phones keep the icon, so "Meine Woche" fits. */}
+              <span className="max-[380px]:sr-only">
+                {SITE_LINKS.chat.label}
+              </span>
             </Link>
             {/* The root layout seeds the auth state from the session, so a
                 signed-in reader gets the avatar on first paint. */}

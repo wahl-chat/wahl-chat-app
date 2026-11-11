@@ -22,7 +22,10 @@ import {
   tenureLabel,
 } from '@/lib/daily/politicians';
 import { speakerViewerSource } from '@/lib/daily/sources';
-import { getPoliticians } from '@/lib/firebase/firebase-server';
+import {
+  getPolitician,
+  getSpeakerPhotos,
+} from '@/lib/firebase/firebase-server';
 import type {
   DigestPartyPosition,
   DigestSpeaker,
@@ -44,32 +47,58 @@ export type OpenSpeaker = {
   party: DigestPartyPosition;
 };
 
-/** The records of a debate's speakers, keyed by MdB ID; null while they
- * load. A speaker missing from a loaded map has no record. */
-export function usePoliticians(
-  ids: string[],
-): Record<string, Politician> | null {
+/** The official portraits of a debate's speakers, by MdB ID; empty until
+ * they load, and for a speaker without one. */
+export function useSpeakerPhotos(ids: string[]): Record<string, string> {
   const key = ids.join(',');
   const [loaded, setLoaded] = useState<{
     key: string;
-    found: Record<string, Politician>;
+    photos: Record<string, string>;
   } | null>(null);
   useEffect(() => {
     if (!key) {
       return;
     }
     let current = true;
-    getPoliticians(key.split(','))
-      .then((found) => current && setLoaded({ key, found }))
-      .catch(() => current && setLoaded({ key, found: {} }));
+    getSpeakerPhotos(key.split(','))
+      .then((photos) => current && setLoaded({ key, photos }))
+      .catch(() => current && setLoaded({ key, photos: {} }));
     return () => {
       current = false;
     };
   }, [key]);
-  if (!key) {
-    return {};
+  return loaded?.key === key ? loaded.photos : NO_PHOTOS;
+}
+
+const NO_PHOTOS: Record<string, string> = {};
+
+/** One speaker's record, read once their chip is tapped. */
+function usePolitician(mdbId: string | null): {
+  politician: Politician | null;
+  loading: boolean;
+} {
+  const [loaded, setLoaded] = useState<{
+    id: string;
+    politician: Politician | null;
+  } | null>(null);
+  useEffect(() => {
+    if (!mdbId) {
+      return;
+    }
+    let current = true;
+    getPolitician(mdbId)
+      .then((politician) => current && setLoaded({ id: mdbId, politician }))
+      .catch(() => current && setLoaded({ id: mdbId, politician: null }));
+    return () => {
+      current = false;
+    };
+  }, [mdbId]);
+  if (!mdbId) {
+    return { politician: null, loading: false };
   }
-  return loaded?.key === key ? loaded.found : null;
+  return loaded?.id === mdbId
+    ? { politician: loaded.politician, loading: false }
+    : { politician: null, loading: true };
 }
 
 const TILE =
@@ -93,20 +122,20 @@ function Tile({
 }
 
 function Avatar({
-  politician,
+  photo,
   party,
 }: {
-  politician: Politician | undefined;
+  photo: string | undefined;
   party: DigestPartyPosition;
 }) {
   return (
     <div className="relative size-14 shrink-0">
       <div className="flex size-14 items-center justify-center overflow-hidden rounded-full bg-[var(--daily-border)] text-[var(--daily-muted)]">
-        {politician?.photo_url ? (
+        {photo ? (
           // Served by bundestag.de as published; not run through the image
           // optimizer, so no copy of it is made here.
           <Image
-            src={politician.photo_url}
+            src={photo}
             alt=""
             width={56}
             height={56}
@@ -182,8 +211,6 @@ function OtherGremien({ politician }: { politician: Politician }) {
   );
 }
 
-/** The Veröffentlichungspflichtige Angaben exactly as listed on the
- * profile: one block per organisation, its functions below it. */
 /** A section that stays folded until asked for: long lists the card should
  * not open with. */
 function FoldedSection({
@@ -292,6 +319,8 @@ function RollCallList({
   );
 }
 
+/** The Veröffentlichungspflichtige Angaben exactly as listed on the
+ * profile: one block per organisation, its functions below it. */
 function DisclosureList({ disclosures }: { disclosures: Disclosures }) {
   return (
     <FoldedSection title="Veröffentlichungspflichtige Angaben">
@@ -386,12 +415,12 @@ function Loading() {
  */
 export function PoliticianSheet({
   open,
-  politicians,
+  photos,
   onClose,
 }: {
   open: OpenSpeaker | null;
-  /** null while loading. */
-  politicians: Record<string, Politician> | null;
+  /** The debate's portraits by MdB ID, shown before the record loads. */
+  photos: Record<string, string>;
   onClose: () => void;
 }) {
   const isDesktop = useIsDesktop();
@@ -401,13 +430,14 @@ export function PoliticianSheet({
   if (open && open !== shown) {
     setShown(open);
   }
+  const { politician, loading } = usePolitician(shown?.speaker.mdb_id ?? null);
   if (!shown) {
     return null;
   }
   const { speaker, party } = shown;
-  const politician =
-    politicians && speaker.mdb_id ? politicians[speaker.mdb_id] : undefined;
-  const loading = politicians === null && Boolean(speaker.mdb_id);
+  const photo =
+    politician?.photo_url ??
+    (speaker.mdb_id ? photos[speaker.mdb_id] : undefined);
   const offices = politician ? officeLines(politician) : [];
   const speech = speakerViewerSource(speaker, party);
 
@@ -424,7 +454,7 @@ export function PoliticianSheet({
       >
         <div className="flex min-h-0 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-6 pt-3 md:pt-6">
           <header className="flex items-center gap-3 md:pr-8">
-            <Avatar politician={politician} party={party} />
+            <Avatar photo={photo} party={party} />
             <div className="min-w-0 flex-1 leading-tight">
               <ResponsiveDialogTitle className="text-left text-[18px] font-bold">
                 {politician ? displayName(politician) : speaker.name}

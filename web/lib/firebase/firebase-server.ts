@@ -9,6 +9,7 @@ import {
   contextTag,
 } from '@/lib/cache-tags';
 import { GROUP_PARTY_ID, WAHL_CHAT_PARTY_ID } from '@/lib/constants';
+import { speakerPhotos } from '@/lib/daily/politicians';
 import { editionIdOf, pageStart } from '@/lib/daily/window';
 import type { PartyDetails } from '@/lib/party-details';
 import type {
@@ -948,11 +949,19 @@ async function getPoliticiansImpl(
   return found;
 }
 
-/** The records of these speakers, keyed by MdB ID; a speaker without one is
- * missing. Called from the browser, so the IDs are checked first. */
-export async function getPoliticians(
+async function getSpeakerPhotosImpl(
   ids: string[],
-): Promise<Record<string, Politician>> {
+): Promise<Record<string, string>> {
+  return speakerPhotos(await getPoliticiansImpl(ids));
+}
+
+/** The official portrait of each of these speakers, by MdB ID: all a
+ * debate's chips need. The records stay on the server, so opening a debate
+ * on a phone does not load every speaker's Angaben and votes. Called from
+ * the browser, so the IDs are checked first. */
+export async function getSpeakerPhotos(
+  ids: string[],
+): Promise<Record<string, string>> {
   const wanted = Array.isArray(ids)
     ? [...new Set(ids)]
         .filter((id) => typeof id === 'string' && MDB_ID.test(id))
@@ -964,12 +973,36 @@ export async function getPoliticians(
   return uncachedFallback(
     () =>
       cachedRead(
-        getPoliticiansImpl,
-        ['getPoliticians', 'v1', ...wanted],
+        getSpeakerPhotosImpl,
+        ['getSpeakerPhotos', 'v1', ...wanted],
         [CacheTags.FEED],
       )(wanted),
     {},
-    'FAILED to fetch politicians',
+    'FAILED to fetch speaker photos',
+  );
+}
+
+async function getPoliticianImpl(mdbId: string): Promise<Politician | null> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const snapshot = await getDoc(doc(serverDb, 'politicians', mdbId));
+  return snapshot.exists() ? (snapshot.data() as Politician) : null;
+}
+
+/** One speaker's record, read when their chip is tapped; null when the
+ * Bundestag publishes none for them. */
+export async function getPolitician(mdbId: string): Promise<Politician | null> {
+  if (typeof mdbId !== 'string' || !MDB_ID.test(mdbId)) {
+    return null;
+  }
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getPoliticianImpl,
+        ['getPolitician', 'v1', mdbId],
+        [CacheTags.FEED],
+      )(mdbId),
+    null,
+    'FAILED to fetch politician',
   );
 }
 

@@ -13,7 +13,7 @@ import {
   sectionTopics,
   suggestedQuestions,
 } from '@/lib/daily/items';
-import { speakerIds, speakerPhotos } from '@/lib/daily/politicians';
+import { speakerIds } from '@/lib/daily/politicians';
 import { shareItem } from '@/lib/daily/share';
 import { numberedSources } from '@/lib/daily/sources';
 import type {
@@ -32,7 +32,7 @@ import { HeatInfo } from './plenary-card';
 import {
   type OpenSpeaker,
   PoliticianSheet,
-  usePoliticians,
+  useSpeakerPhotos,
 } from './politician-sheet';
 import { SourcePills } from './source-pills';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
@@ -152,7 +152,7 @@ function SectionDetail({
             <div className="flex items-baseline justify-between gap-3">
               <h3 className={SECTION_LABEL}>Wer sagt was</h3>
               {section.positions.some((p) => p.speakers.length > 0) && (
-                <span className={cn('text-[13px]', MUTED_TEXT)}>
+                <span className={cn('text-[13px] md:hidden', MUTED_TEXT)}>
                   Tippe auf eine Person für mehr
                 </span>
               )}
@@ -271,7 +271,7 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
   } | null>(null);
   const openSpeaker =
     opened && opened.itemKey === item?.key ? opened.speaker : null;
-  const politicians = usePoliticians(
+  const photos = useSpeakerPhotos(
     item && item.kind !== 'vote'
       ? speakerIds(item.section.positions ?? [])
       : [],
@@ -347,7 +347,7 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
                   <SectionDetail
                     item={item}
                     heat={heat}
-                    photos={speakerPhotos(politicians)}
+                    photos={photos}
                     onSpeaker={(speaker, party) =>
                       setOpened({
                         itemKey: item.key,
@@ -367,7 +367,7 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
                   not an outside tap that would close the view. */}
               <PoliticianSheet
                 open={openSpeaker}
-                politicians={politicians}
+                photos={photos}
                 onClose={() => setOpened(null)}
               />
             </>
