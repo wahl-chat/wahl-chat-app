@@ -58,6 +58,7 @@ from ingestion.feed.bulk import (
     card_posters,
     load_sources,
     post_revalidate,
+    refresh_speakers,
 )
 from ingestion.feed.index import FEED_COLLECTION_NAME, setup_feed_collection
 from ingestion.feed.items import build_needed
@@ -390,6 +391,8 @@ def main(argv: Optional[list[str]] = None) -> int:
             print("Not confirmed; nothing written.")
             return 1
         runs = _build(qdrant, db, parliaments, plans, days, target, args.since)
+    if "bundestag" in {p.id for p in parliaments}:
+        refresh_speakers(db, args.since or date.today() - timedelta(days=days))
 
     if not bust_web_cache(target):
         return 4

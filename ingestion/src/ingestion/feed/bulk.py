@@ -56,6 +56,7 @@ from ingestion.feed.builder import (
     VoteUnit,
     build_day,
     plan_days,
+    with_speaker_facts,
 )
 from ingestion.feed.calendar import FRESH_FOR, build_calendar
 from ingestion.feed.card_video import choose_card_video
@@ -74,6 +75,11 @@ from ingestion.feed.parliaments import (
     Parliament,
     load_party_display,
 )
+from ingestion.feed.politicians import (
+    RefreshReport,
+    refresh_politicians,
+    speaker_ids,
+)
 from ingestion.feed.posters import PosterMaker, poster_maker
 from ingestion.feed.protocol_pages import apply_protocols
 from ingestion.feed.reader import (
@@ -89,8 +95,8 @@ from ingestion.feed.reader import (
 )
 from ingestion.feed.store import (
     carry_over_translations,
-    read_edition_item_ids,
     read_calendar,
+    read_edition_item_ids,
     read_items_since,
     vanished_item_ids,
     write_calendar,
@@ -270,7 +276,8 @@ def attach_source_facts(
     lookup_poll: Optional[PollDocuments],
 ) -> tuple[list[FeedItem], set[str]]:
     """Give each item the facts read from its source: a debate its
-    Drucksachen and interjections, a vote its Drucksachen. Returns the items
+    Drucksachen, interjections and who its speakers are, a vote its
+    Drucksachen. Returns the items
     and the ids that changed. Facts from the source, not the model: a stored
     item gets them without being rebuilt, and its texts and translation stay
     as they are. A debate follows this run's protocol, corrections included;
@@ -282,7 +289,7 @@ def attach_source_facts(
     for item in items:
         if item.debate is not None and item.id in agendas:
             agenda = agendas[item.id]
-            update = {
+            update: dict[str, Any] = {
                 field: found
                 for field, found in (
                     ("drucksachen", agenda.drucksachen),
@@ -290,6 +297,9 @@ def attach_source_facts(
                 )
                 if found is not None and found != getattr(item.debate, field)
             }
+            parties = with_speaker_facts(item.debate.parties, agenda.speeches)
+            if parties is not None:
+                update["parties"] = parties
             if update:
                 debate = item.debate.model_copy(update=update)
                 item = item.model_copy(update={"debate": debate})
@@ -650,6 +660,30 @@ def refresh_calendar(db: Any, now: Optional[datetime] = None) -> None:
     )
 
 
+def refresh_speakers(
+    db: Any, since: date, out_of_time: Callable[[], bool] = lambda: False
+) -> RefreshReport:
+    """Store the record of everyone who spoke in the Bundestag debates stored
+    since ``since`` (see ``politicians``).
+
+    Never fails the run: a speaker whose profile could not be read is tried
+    again next run, and the web shows the speech instead until then.
+    """
+    try:
+        items = read_items_since(db, "bundestag", since)
+        report = refresh_politicians(db, speaker_ids(items), out_of_time=out_of_time)
+    except Exception as exc:  # noqa: BLE001 — the feed stands without them
+        logger.warning("Politicians not refreshed: %s", exc)
+        return RefreshReport()
+    print(
+        f"politicians: {len(report.written)} written, "
+        f"{len(report.not_members)} not in the Stammdaten, "
+        f"{len(report.failed)} failed"
+        + ("  stopped: time budget spent" if report.out_of_time else "")
+    )
+    return report
+
+
 def _summary_line(run: ParliamentRun, published: Published) -> str:
     window = f"{run.window[0]}..{run.window[1]}" if run.window else "no data"
     t = published.translation
@@ -872,7 +906,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     finally:
         builder.close()
 
-    if "bundestag" in {p.id for p in parliaments}:
+    in_bundestag = "bundestag" in {p.id for p in parliaments}
+    if in_bundestag:
         refresh_calendar(db)
 
     if args.out:
@@ -898,6 +933,25 @@ def main(argv: Optional[list[str]] = None) -> int:
     # a morning usually find every day unchanged.
     if db is not None and args.revalidate and any(p.wrote for _, p in runs):
         post_revalidate(env)
+
+    # After the feed's own cache bust, so a slow bundestag.de never holds back
+    # what this run published.
+    window = next(
+        (run.window for run, _ in runs if run.parliament.id == "bundestag"), None
+    )
+    if db is not None and in_bundestag and window is not None:
+        # Profiles are fetched one by one; they get what is left of the grace
+        # the model calls had, never the whole job's cap.
+        speakers = refresh_speakers(
+            db,
+            window[0],
+            lambda: (
+                args.time_budget is not None
+                and time.monotonic() - started >= args.time_budget + _CALL_GRACE_S
+            ),
+        )
+        if args.revalidate and speakers.written:
+            post_revalidate(env)
 
     if runs and all(run.window is None for run, _ in runs):
         print("No corpus data in any selected parliament.", file=sys.stderr)

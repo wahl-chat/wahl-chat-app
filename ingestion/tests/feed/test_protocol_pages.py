@@ -189,6 +189,20 @@ def test_speeches_are_put_in_protocol_order_and_linked_to_their_page() -> None:
     ]
 
 
+def test_each_matched_speech_takes_its_speakers_id_from_the_protocol() -> None:
+    sitting = _top20_sitting()
+    apply_protocols(sitting, fetch=lambda _url: _XML)
+    [item] = sitting.agenda_items
+    # <redner id> is the rede id with a 0 appended in this fixture.
+    assert {s.source_item_id: s.mdb_id for s in item.speeches} == {
+        "b": "ID10",
+        "c": "ID20",
+        "a": "ID30",
+        "d": "ID40",
+        "e": None,
+    }
+
+
 def test_an_unreachable_protocol_leaves_the_debate_unordered() -> None:
     sitting = _top20_sitting()
 

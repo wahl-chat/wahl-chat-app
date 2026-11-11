@@ -29,6 +29,12 @@ service cloud.firestore {
       allow read;
     }
 
+    // The people who spoke in the feed's debates, as the Bundestag publishes
+    // them; written only by the feed builder.
+    match /politicians/{mdb_id} {
+      allow read;
+    }
+
     match /parties/{document=**} {
       allow read;
     }

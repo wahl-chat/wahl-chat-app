@@ -225,6 +225,11 @@ export type DigestSpeaker = {
   /** The speech's own video, and a link to it; absent on older digests. */
   video_url?: string | null;
   video_link?: string | null;
+  /** The speaker's ID in the MdB-Stammdaten, keying `politicians`; absent
+   * when the protocol did not identify them. */
+  mdb_id?: string | null;
+  /** Length of the speech's video in seconds. */
+  duration?: number | null;
 };
 
 /** The passage of a speech a bullet or position draws on. The model names
@@ -417,6 +422,92 @@ export type FeedEdition = {
   date: string;
   protocols: { protocol_id: string; pdf_url: string | null }[];
   item_ids: string[];
+};
+
+export type PoliticianMembershipLevel =
+  | 'chair'
+  | 'vice_chair'
+  | 'spokesperson'
+  | 'member'
+  | 'deputy';
+
+export type PoliticianMembership = {
+  gremium: string;
+  /** As published: "Obfrau", "Stellvertretendes Mitglied", ... */
+  role: string;
+  level: PoliticianMembershipLevel;
+  kind: 'ausschuss' | 'sonstige';
+  url: string | null;
+};
+
+export type DisclosureLine = {
+  text: string;
+  /** 1 for the clients and income listed under an activity. */
+  level: number;
+};
+
+export type Disclosures = {
+  sections: {
+    heading: string | null;
+    entries: { lines: DisclosureLine[] }[];
+  }[];
+  /** A text on its own, e.g. "Keine veröffentlichungspflichtigen Angaben." */
+  note: string | null;
+  link: string | null;
+  link_phrase: string | null;
+};
+
+export type RollCallVote = {
+  /** ISO day. */
+  day: string;
+  title: string;
+  /** The vote's own page on bundestag.de. */
+  url: string | null;
+  vote: 'yes' | 'no' | 'abstain' | 'absent' | 'other';
+  /** As published: "ja", "nein", "enthalten", "nicht abg." */
+  label: string;
+};
+
+/**
+ * Firestore `politicians/{mdb_id}`: a member of the Bundestag as the
+ * Bundestag publishes them (MdB-Stammdaten and the profile on bundestag.de),
+ * written by the feed builder. See `feed/politicians.py`.
+ */
+export type Politician = {
+  mdb_id: string;
+  bio_id: string | null;
+  title: string | null;
+  first_name: string;
+  last_name: string;
+  name: string;
+  birth_date: string | null;
+  fraktion: string | null;
+  partei: string | null;
+  beruf: string | null;
+  land: string | null;
+  wahlkreis: { number: string; name: string } | null;
+  /** As published: "direkt" or "Landesliste". */
+  elected: string | null;
+  offices: {
+    function: string;
+    institution: string;
+    kind: 'government' | 'parliament' | 'fraktion';
+  }[];
+  /** ISO days; `end` is null for the current Wahlperiode. */
+  terms: { wp: number; start: string; end: string | null }[];
+  memberships: PoliticianMembership[];
+  disclosures: Disclosures | null;
+  photo_url: string | null;
+  photo_credit: string | null;
+  bio_url: string | null;
+  /** The profile's "Stand", as printed. */
+  source_stand: string | null;
+  last_changed: string | null;
+  fetched_at: string;
+  /** The latest namentliche Abstimmungen, newest first; absent on records
+   * written before they were read. */
+  votes?: RollCallVote[];
+  votes_checked_at?: string | null;
 };
 
 /** One parliament's recent editions and their items. */

@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { Fragment, useState } from 'react';
 import { MUTED_TEXT } from './card-styles';
 import { SourcePills } from './source-pills';
+import { SpeakerChips } from './speaker-chips';
 
 /**
  * Party logo on the party's own background colour, as everywhere on the site:
@@ -100,6 +101,8 @@ export function PartyPositions({
   limit,
   clamp = false,
   sources,
+  onSpeaker,
+  speakerPhotos,
 }: {
   positions: DigestPartyPosition[];
   openedBy?: string | null;
@@ -108,6 +111,11 @@ export function PartyPositions({
   clamp?: boolean;
   /** The detail view cites each position's passages. */
   sources?: NumberedSources;
+  /** The detail view lists each Fraktion's speakers, each opening what the
+   * Bundestag publishes about them. */
+  onSpeaker?: (speaker: DigestSpeaker, party: DigestPartyPosition) => void;
+  /** The speakers' official portraits by MdB ID. */
+  speakerPhotos?: Record<string, string>;
 }) {
   return (
     <dl className="divide-y divide-[var(--daily-border)] border-t border-[var(--daily-border)]">
@@ -125,9 +133,14 @@ export function PartyPositions({
                 color={position.color}
               />
             </dt>
-            <dd className={cn('min-w-0 pt-1', clamp && 'line-clamp-2')}>
+            <dd
+              className={cn(
+                'min-w-0 pt-1',
+                clamp ? 'line-clamp-2' : 'flex flex-col gap-2',
+              )}
+            >
               {position.position ? (
-                <>
+                <span>
                   {position.position}
                   {sources && (
                     <SourcePills
@@ -135,9 +148,16 @@ export function PartyPositions({
                       sources={sources}
                     />
                   )}
-                </>
-              ) : (
+                </span>
+              ) : onSpeaker ? null : (
                 <SpeechesOnly speakers={position.speakers} />
+              )}
+              {onSpeaker && position.speakers.length > 0 && (
+                <SpeakerChips
+                  speakers={position.speakers}
+                  photos={speakerPhotos}
+                  onOpen={(speaker) => onSpeaker(speaker, position)}
+                />
               )}
             </dd>
           </div>
