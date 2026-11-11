@@ -423,12 +423,50 @@ def debate_parties(
                         url=s.protocol_page_url or s.pdf_url,
                         video_url=s.video_uri,
                         video_link=s.citation_url if s.video_uri else None,
+                        **_speaker_facts(s),
                     )
                     for s in first_by_name.values()
                 ],
             )
         )
     return parties
+
+
+def _speaker_facts(speech: Speech) -> dict[str, Any]:
+    return {
+        "mdb_id": speech.mdb_id,
+        "duration": round(speech.duration) if speech.duration else None,
+    }
+
+
+def with_speaker_facts(
+    parties: list[DebateParty], speeches: list[Speech]
+) -> Optional[list[DebateParty]]:
+    """The stored speakers with who they are and how long they spoke, read
+    from this run's speeches; None when nothing changed. A speaker is the
+    first speech under their name, as in ``debate_parties``."""
+    first_by_name: dict[str, Speech] = {}
+    for speech in speeches:
+        if speech.speaker:
+            first_by_name.setdefault(_normalize_name(speech.speaker), speech)
+    changed = False
+    out: list[DebateParty] = []
+    for party in parties:
+        speakers: list[DigestSpeaker] = []
+        for speaker in party.speakers:
+            first = first_by_name.get(_normalize_name(speaker.name))
+            facts = _speaker_facts(first) if first is not None else {}
+            update = {
+                key: value
+                for key, value in facts.items()
+                if value is not None and value != getattr(speaker, key)
+            }
+            if update:
+                speaker = speaker.model_copy(update=update)
+                changed = True
+            speakers.append(speaker)
+        out.append(party.model_copy(update={"speakers": speakers}))
+    return out if changed else None
 
 
 @dataclass

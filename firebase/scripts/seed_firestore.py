@@ -36,6 +36,7 @@ File naming convention:
            -> sources/landtagswahl-sachsen-anhalt-2026/parties/{party_id}/source_documents/
 """
 
+import gzip
 import json
 import os
 import sys
@@ -54,6 +55,11 @@ DATA_DIR = FIREBASE_DIR / "firestore_data" / ENV
 # Real feed-builder output for a few sitting days. Only ever written to the
 # emulator: in a real project, the feed collections belong to the builder alone.
 EMULATOR_FEED_FILE = FIREBASE_DIR / "firestore_data" / "emulator" / "feed.json"
+# Gzipped: every speaker's record, Veröffentlichungspflichtige Angaben and
+# votes included, is too large to commit as plain JSON.
+EMULATOR_POLITICIANS_FILE = (
+    FIREBASE_DIR / "firestore_data" / "emulator" / "politicians.json.gz"
+)
 
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
@@ -380,6 +386,14 @@ def seed_feed(db):
         f"\n📰 Seeded {len(feed['editions'])} feed editions with "
         f"{len(feed['items'])} items (emulator only)"
     )
+    if EMULATOR_POLITICIANS_FILE.exists():
+        with gzip.open(EMULATOR_POLITICIANS_FILE, "rt", encoding="utf-8") as f:
+            politicians = json.load(f)
+        for politician in politicians:
+            db.collection("politicians").document(politician["mdb_id"]).set(
+                politician
+            )
+        print(f"👤 Seeded {len(politicians)} politicians (emulator only)")
 
 
 def revalidate_frontend_cache(context_ids, firestore_project=None):

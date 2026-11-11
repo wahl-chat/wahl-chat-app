@@ -27,6 +27,7 @@ import {
   collection,
   connectFirestoreEmulator,
   doc,
+  documentId,
   getDoc,
   getDocs,
   getFirestore,
@@ -55,6 +56,7 @@ import type {
   FirebaseWahlSwiperResult,
   LlmSystemStatus,
   ParliamentFeed,
+  Politician,
   ProposedQuestion,
   SittingCalendar,
   SourceDocument,
@@ -919,6 +921,56 @@ export async function getOlderParliamentFeed(
     );
     throw error;
   }
+}
+
+// Firestore's `in` filter takes at most 30 values.
+const IN_FILTER_MAX = 30;
+// A debate rarely has more than a few dozen speakers.
+const MAX_POLITICIANS = 120;
+const MDB_ID = /^\d{1,12}$/;
+
+async function getPoliticiansImpl(
+  ids: string[],
+): Promise<Record<string, Politician>> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const found: Record<string, Politician> = {};
+  for (let i = 0; i < ids.length; i += IN_FILTER_MAX) {
+    const snapshot = await getDocs(
+      query(
+        collection(serverDb, 'politicians'),
+        where(documentId(), 'in', ids.slice(i, i + IN_FILTER_MAX)),
+      ),
+    );
+    for (const d of snapshot.docs) {
+      found[d.id] = d.data() as Politician;
+    }
+  }
+  return found;
+}
+
+/** The records of these speakers, keyed by MdB ID; a speaker without one is
+ * missing. Called from the browser, so the IDs are checked first. */
+export async function getPoliticians(
+  ids: string[],
+): Promise<Record<string, Politician>> {
+  const wanted = Array.isArray(ids)
+    ? [...new Set(ids)]
+        .filter((id) => typeof id === 'string' && MDB_ID.test(id))
+        .sort()
+    : [];
+  if (wanted.length === 0 || wanted.length > MAX_POLITICIANS) {
+    return {};
+  }
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getPoliticiansImpl,
+        ['getPoliticians', 'v1', ...wanted],
+        [CacheTags.FEED],
+      )(wanted),
+    {},
+    'FAILED to fetch politicians',
+  );
 }
 
 async function getSittingCalendarImpl(

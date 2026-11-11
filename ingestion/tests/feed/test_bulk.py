@@ -13,6 +13,7 @@ from ingestion.feed.builder import FeedBuilder, plan_days
 from ingestion.feed.items import MAX_POSITION_ATTEMPTS
 from ingestion.feed.models import FeedItem
 from ingestion.feed.parliaments import FEED_PARLIAMENTS
+from ingestion.feed.politicians import RefreshReport
 from ingestion.feed.prompts import (
     DebateDraft,
     PositionCheckBatch,
@@ -387,6 +388,42 @@ def test_stored_debates_get_their_interjections_without_a_rebuild() -> None:
     assert day.changed == {TOP1}
 
 
+def test_stored_debates_learn_who_their_speakers_are_without_a_rebuild() -> None:
+    stored, edition_ids = _stored_day()
+    plan = _plan()
+    for spoken in plan.debates[0].agenda.speeches:
+        spoken.mdb_id = f"mdb-{spoken.speaker}"
+        spoken.duration = 125.4
+    llm = FakeLLM()
+    day, _ = _day(llm, plan, stored, edition_ids)
+    assert day is not None
+    assert llm.calls == []
+    assert day.changed == {TOP1}
+    item = next(i for i in day.items if i.id == TOP1)
+    assert item.debate is not None
+    speakers = [s for p in item.debate.parties for s in p.speakers]
+    assert {(s.name, s.mdb_id, s.duration) for s in speakers} == {
+        ("Anna", "mdb-Anna", 125),
+        ("Bernd", "mdb-Bernd", 125),
+        ("Clara", "mdb-Clara", 125),
+    }
+    # Texts and translation stay as they were.
+    assert item.content == stored[TOP1].content
+    assert not needs_translation(item, "en")
+
+
+def test_a_run_without_speaker_ids_never_clears_stored_ones() -> None:
+    stored, edition_ids = _stored_day()
+    plan = _plan()
+    for spoken in plan.debates[0].agenda.speeches:
+        spoken.mdb_id = f"mdb-{spoken.speaker}"
+    day, _ = _day(FakeLLM(), plan, stored, edition_ids)
+    assert day is not None
+    stored = {i.id: i for i in day.items}
+    # A run whose protocol could not be read knows no ids.
+    assert _day(FakeLLM(), _plan(), stored, edition_ids)[0] is None
+
+
 TOP2 = "bundestag_2026-09-24_d45-top2"
 
 
@@ -434,13 +471,21 @@ def test_a_call_the_time_budget_cut_is_not_a_failure() -> None:
     assert _failed(FakeLLM(), _plan(), deadline=time.monotonic() - 1) == []
 
 
-def _main(monkeypatch: pytest.MonkeyPatch, runs: list[Any]) -> tuple[int, list[str]]:
+def _main(
+    monkeypatch: pytest.MonkeyPatch,
+    runs: list[Any],
+    written: Optional[list[str]] = None,
+) -> tuple[int, list[str]]:
+    written = written or []
     revalidated: list[str] = []
     monkeypatch.setenv("ENV", "dev")
     monkeypatch.setattr(bulk, "guard_firestore_target", lambda *_, **__: None)
     monkeypatch.setattr(bulk, "_firestore_client", lambda: object())
     monkeypatch.setattr(bulk, "check_fingerprint", lambda *_: None)
     monkeypatch.setattr(bulk, "refresh_calendar", lambda *_: None)
+    monkeypatch.setattr(
+        bulk, "refresh_speakers", lambda *_, **__: RefreshReport(written=written)
+    )
     monkeypatch.setattr(bulk, "build_and_publish", lambda *_, **__: runs)
     monkeypatch.setattr(bulk, "post_revalidate", revalidated.append)
     return bulk.main(["--revalidate", "--allow-remote"]), revalidated
@@ -459,6 +504,13 @@ def test_a_run_that_wrote_nothing_leaves_the_cache(
 ) -> None:
     runs = [(bulk.ParliamentRun(BUNDESTAG, WINDOW), bulk.Published())]
     assert _main(monkeypatch, runs) == (0, [])
+
+
+def test_a_run_that_only_stored_politicians_busts_the_web_cache(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runs = [(bulk.ParliamentRun(BUNDESTAG, WINDOW), bulk.Published())]
+    assert _main(monkeypatch, runs, written=["11005000"]) == (0, ["dev"])
 
 
 def test_a_failed_item_fails_the_run_after_publishing_the_rest(

@@ -13,8 +13,13 @@ import {
   sectionTopics,
   suggestedQuestions,
 } from '@/lib/daily/items';
+import { speakerIds, speakerPhotos } from '@/lib/daily/politicians';
 import { shareItem } from '@/lib/daily/share';
 import { numberedSources } from '@/lib/daily/sources';
+import type {
+  DigestPartyPosition,
+  DigestSpeaker,
+} from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ChevronLeftIcon, ShareIcon } from 'lucide-react';
@@ -24,6 +29,11 @@ import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
 import { Hemicycle, PartyVoteBreakdown, SeatLegend } from './hemicycle';
 import { PartyPositions, orderedPositions } from './party-positions';
 import { HeatInfo } from './plenary-card';
+import {
+  type OpenSpeaker,
+  PoliticianSheet,
+  usePoliticians,
+} from './politician-sheet';
 import { SourcePills } from './source-pills';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
 import { TopicMeta } from './topic-chip';
@@ -89,9 +99,13 @@ export function AskPanel({
 function SectionDetail({
   item,
   heat,
+  onSpeaker,
+  photos,
 }: {
   item: SectionItem;
   heat: number | undefined;
+  onSpeaker: (speaker: DigestSpeaker, party: DigestPartyPosition) => void;
+  photos: Record<string, string>;
 }) {
   const { section, digest } = item;
   const media = sectionMedia(section);
@@ -135,11 +149,20 @@ function SectionDetail({
         )}
         {section.positions && section.positions.length > 0 && (
           <section className="flex flex-col gap-1.5">
-            <h3 className={SECTION_LABEL}>Wer sagt was</h3>
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 className={SECTION_LABEL}>Wer sagt was</h3>
+              {section.positions.some((p) => p.speakers.length > 0) && (
+                <span className={cn('text-[13px]', MUTED_TEXT)}>
+                  Tippe auf eine Person für mehr
+                </span>
+              )}
+            </div>
             <PartyPositions
               positions={section.positions}
               openedBy={openedBy}
               sources={sources}
+              onSpeaker={onSpeaker}
+              speakerPhotos={photos}
             />
           </section>
         )}
@@ -225,9 +248,9 @@ type Props = {
   onClose: () => void;
 };
 
-/** The phone media viewer is a vaul Drawer, which brings its own copy of
- * Radix: this dialog does not see it as a layer above itself, so a tap on
- * the Drawer's backdrop, or Escape, would close both. */
+/** On phones the media viewer and the speaker sheet are vaul Drawers, which
+ * bring their own copy of Radix: this dialog does not see them as layers
+ * above itself, so a tap on a Drawer's backdrop, or Escape, would close both. */
 function isViewerLayer(target: EventTarget | null): boolean {
   return (
     target instanceof Element &&
@@ -240,21 +263,38 @@ function isViewerLayer(target: EventTarget | null): boolean {
  * centred column from md up.
  */
 export function DailyDetailDialog({ item, heat, onClose }: Props) {
-  // An outside tap or Escape closes the source viewer first, and only a
-  // second one this view.
+  // The speaker sheet belongs to the item it was opened from, so another
+  // item never opens with it.
+  const [opened, setOpened] = useState<{
+    itemKey: string;
+    speaker: OpenSpeaker;
+  } | null>(null);
+  const openSpeaker =
+    opened && opened.itemKey === item?.key ? opened.speaker : null;
+  const politicians = usePoliticians(
+    item && item.kind !== 'vote'
+      ? speakerIds(item.section.positions ?? [])
+      : [],
+  );
+
+  // An outside tap or Escape closes the source viewer, then the speaker
+  // sheet, and only then this view.
   const viewer = useMediaViewer();
   const viewerOpen = viewer?.isOpen ?? false;
   const keepOpen = (event: Event) => {
-    if (viewerOpen || isViewerLayer(event.target)) {
+    if (viewerOpen || openSpeaker || isViewerLayer(event.target)) {
       event.preventDefault();
     }
   };
   // Escape reaches this handler first, and suppressing it here also stops
-  // the Drawer's own, so the viewer is closed from here.
-  const closeViewerFirst = (event: KeyboardEvent) => {
+  // the Drawer's own, so the layer above is closed from here.
+  const closeLayerAbove = (event: KeyboardEvent) => {
     if (viewerOpen) {
       event.preventDefault();
       viewer?.close();
+    } else if (openSpeaker) {
+      event.preventDefault();
+      setOpened(null);
     }
   };
   const context = item
@@ -271,7 +311,7 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
         <DialogPrimitive.Content
           onPointerDownOutside={keepOpen}
           onInteractOutside={keepOpen}
-          onEscapeKeyDown={closeViewerFirst}
+          onEscapeKeyDown={closeLayerAbove}
           className={cn(
             DAILY_THEME_CLASSES,
             'fixed inset-0 z-50 flex flex-col bg-[var(--daily-canvas)] focus:outline-none md:inset-auto md:left-1/2 md:top-1/2 md:h-[90dvh] md:w-full md:max-w-screen-sm md:-translate-x-1/2 md:-translate-y-1/2 md:overflow-hidden md:rounded-xl',
@@ -304,7 +344,17 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
                 {item.kind === 'vote' ? (
                   <VoteDetail item={item} />
                 ) : (
-                  <SectionDetail item={item} heat={heat} />
+                  <SectionDetail
+                    item={item}
+                    heat={heat}
+                    photos={speakerPhotos(politicians)}
+                    onSpeaker={(speaker, party) =>
+                      setOpened({
+                        itemKey: item.key,
+                        speaker: { speaker, party },
+                      })
+                    }
+                  />
                 )}
               </div>
               {FEED_CHAT_ENABLED && (
@@ -313,6 +363,13 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
                   className="shrink-0 border-t border-[var(--daily-border)]"
                 />
               )}
+              {/* Inside this view's React tree, so a tap in the sheet is
+                  not an outside tap that would close the view. */}
+              <PoliticianSheet
+                open={openSpeaker}
+                politicians={politicians}
+                onClose={() => setOpened(null)}
+              />
             </>
           )}
         </DialogPrimitive.Content>

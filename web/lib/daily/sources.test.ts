@@ -7,6 +7,7 @@ import {
   isVideoSource,
   numberedSources,
   sourceTooltip,
+  speakerViewerSource,
   toViewerSource,
 } from './sources';
 
@@ -116,5 +117,29 @@ describe('sourceTooltip', () => {
     expect(sourceTooltip({ ...BERND, page: null })).toBe(
       'Bernd (CSU) · Plenarprotokoll',
     );
+  });
+});
+
+describe('speakerViewerSource', () => {
+  const party = { party_id: 'spd', party_name: 'SPD' };
+
+  it('opens the speech video from its start', () => {
+    const source = speakerViewerSource(
+      { name: 'Anna', url: `${PDF}#page=7`, video_url: 'https://video/a.mp4' },
+      party,
+    );
+    expect(source?.video_url).toBe('https://video/a.mp4');
+  });
+
+  it('falls back to the protocol at the speech page', () => {
+    const source = speakerViewerSource(
+      { name: 'Anna', url: `${PDF}#page=7`, video_url: null },
+      party,
+    );
+    expect([source?.pdf_url, source?.page]).toEqual([PDF, 7]);
+  });
+
+  it('has nothing to open without either', () => {
+    expect(speakerViewerSource({ name: 'Anna', url: null }, party)).toBeNull();
   });
 });

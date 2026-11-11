@@ -548,6 +548,7 @@ reuse the same item: the feed now, later briefings and social posts.
   - It is not the corpus collection, because feed items are our own
     summaries. The chat must not cite them. The vector space and the
     fingerprint check are the same as for the corpus.
+  - `politicians/{mdb_id}` holds one record per speaker (see "Speakers").
 - **Facts and texts.**
   - `facts` come from the source: citations, speakers, vote counts, the
     quote. They are the same in all languages.
@@ -571,6 +572,29 @@ reuse the same item: the feed now, later briefings and social posts.
     Do not regenerate the items for it.
   - The job marks an item `retracted` when its source disappears. It does not
     delete it.
+- **Speakers.**
+  - Each speaker on a debate (`facts.parties[].speakers`) carries `mdb_id`,
+    the protocol's `<redner id>`, and `duration`, the length of the speech's
+    video. Both are facts from the source: `attach_source_facts` adds them
+    to stored items without a rebuild. A run over a longer `--days` window
+    gives older items their ids; unchanged items cost no LLM call.
+  - The web lists the speakers as chips under each Fraktion. A chip opens
+    the speaker's record from `politicians/{mdb_id}`
+    (`feed/politicians.py`).
+  - The record is kept as the Bundestag publishes it. Nothing is summarised
+    or reworded. It joins two official sources on name and birth date: the
+    MdB-Stammdaten (Wahlperioden, offices) and the XML behind the profiles
+    on bundestag.de (`xml/v2/mdb`: Gremien and roles, Wahlkreis, photo,
+    Veröffentlichungspflichtige Angaben).
+  - The record also holds the member's latest namentliche Abstimmungen,
+    the ten the profile page lists (`abstimmunglinksByMdb`), each linked to
+    the vote's page on bundestag.de.
+  - The job refreshes the records after each run. It fetches a profile
+    again only when the index's change date moves, and the votes only when
+    the Bundestag's roll-call list has a vote newer than the last read. A speaker the
+    Stammdaten do not know (Bundesrat, guests) gets no record; a former
+    member gets one from the Stammdaten alone.
+  - The photo is shown from bundestag.de with its credit, never copied.
 - **Bundestag only.** abgeordnetenwatch publishes Landtag votes one to five
   months late. `Parliament.in_feed` keeps the Landtage out of the default
   run. The web shows them as "kommt bald".

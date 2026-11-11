@@ -202,3 +202,38 @@ def test_agenda_items_know_their_session_and_start_unordered() -> None:
     assert (item.session, item.slug, item.ordered) == ((21, 45), "top1", False)
     # Stable until the protocol orders them.
     assert [s.source_item_id for s in item.speeches] == ["a", "b"]
+
+
+def test_a_speech_knows_its_length_from_the_last_aligned_sentence() -> None:
+    sentences = [
+        {"text": "Erstens.", "ts_start": 1.0, "ts_end": 4.0},
+        {"text": "Zweitens.", "ts_start": 4.0, "ts_end": 341.6},
+    ]
+    payloads = [
+        _speech_chunk(
+            sid="a",
+            source="op",
+            key="de-21-45-anna-top1",
+            text="Erstens. Zweitens.",
+            meta={"sentence_map": sentences},
+        ),
+        _speech_chunk(sid="b", source="op", key="de-21-45-bernd-top1", text="Ohne."),
+    ]
+    [timed, untimed] = assemble_speeches(payloads)
+    assert timed.duration == 341.6
+    assert untimed.duration is None
+
+
+def test_a_dip_speech_carries_its_speakers_mdb_id() -> None:
+    [dip] = assemble_speeches(
+        [
+            _speech_chunk(
+                sid="a",
+                source="dip",
+                key="de-21-45-anna-top1",
+                text="Rede.",
+                meta={"person_id": "11005000"},
+            )
+        ]
+    )
+    assert dip.mdb_id == "11005000"
