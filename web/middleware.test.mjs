@@ -67,14 +67,29 @@ describe('the landing page', () => {
 
 describe('legacy context-less URLs', () => {
   test('bare paths land permanently on /, so their link equity consolidates', async () => {
-    for (const path of ['/chat', '/session']) {
-      const response = await middleware(
-        requestFrom(`https://wahl.chat${path}`),
-      );
+    const response = await middleware(requestFrom('https://wahl.chat/session'));
 
-      expect(response.headers.get('location')).toBe('https://wahl.chat/');
-      expect(response.status).toBe(308);
-    }
+    expect(response.headers.get('location')).toBe('https://wahl.chat/');
+    expect(response.status).toBe(308);
+  });
+
+  test('bare /chat moves to the chat landing page, keeping its parameters', async () => {
+    const response = await middleware(
+      requestFrom('https://wahl.chat/chat?tenant_id=partner'),
+    );
+
+    expect(response.headers.get('location')).toBe(
+      'https://wahl.chat/election-chat?tenant_id=partner',
+    );
+    expect(response.status).toBe(308);
+  });
+
+  test('the chat landing page is served, not taken for an election', async () => {
+    const response = await middleware(
+      requestFrom('https://wahl.chat/election-chat'),
+    );
+
+    expect(response.headers.get('location')).toBeNull();
   });
 
   test('paths carrying a party or session keep a context, temporarily', async () => {
@@ -90,6 +105,16 @@ describe('legacy context-less URLs', () => {
     expect(session.headers.get('location')).toBe(
       `https://wahl.chat/${DEFAULT_CONTEXT_ID}/session/abc`,
     );
+  });
+
+  test('unknown paths are left to the route, which 404s them', async () => {
+    for (const path of ['/foo', '/news', '/feed', '/bundestag']) {
+      const response = await middleware(
+        requestFrom(`https://wahl.chat${path}`),
+      );
+
+      expect(response.headers.get('location')).toBeNull();
+    }
   });
 
   test('a path merely starting with the same letters is not a legacy /chat URL', async () => {

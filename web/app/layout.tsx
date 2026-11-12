@@ -6,7 +6,7 @@ import { MediaViewerProvider } from '@/components/providers/media-viewer-provide
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Analytics } from '@vercel/analytics/react';
-import type { Metadata, Viewport } from 'next';
+import type { Metadata } from 'next';
 import './globals.css';
 // pdf.js text-layer positioning for the citation PDF viewer. Imported here, NOT
 // in the dynamically imported viewer chunk: CSS imported only from a
@@ -30,16 +30,33 @@ import { IS_EMBEDDED } from '@/lib/utils';
 import { LazyMotion, domAnimation } from 'motion/react';
 import { headers } from 'next/headers';
 
+// The fallback for every page without its own: what happens in the
+// Bundestag (the start page) first, then the election chat.
+const SITE_DESCRIPTION =
+  'Verstehe, was im Bundestag passiert, und vergleiche die Positionen der Parteien zu Bundestags-, Landtags- und Kommunalwahlen. Bei wahl.chat liest du Debatten und Abstimmungen kompakt mit Quellen und unterhältst dich mit den Programmen der Parteien.';
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://wahl.chat'),
   title: {
     default: 'wahl.chat - Politik interaktiv verstehen',
     template: '%s | wahl.chat',
   },
-  description:
-    'Verstehe die Positionen der Parteien zu Bundestags-, Landtags- und Kommunalwahlen. Unterhalte dich bei wahl.chat mit den Programmen der Parteien, stelle Fragen zu deinen Themen und lass Parteipositionen kritisch einordnen.',
+  description: SITE_DESCRIPTION,
   applicationName: 'wahl.chat',
   keywords: [
+    'wahl.chat News',
+    'Bundestag',
+    'Bundestag aktuell',
+    'Bundestag heute',
+    'Bundestagsdebatte',
+    'Plenarsitzung',
+    'Plenarprotokoll',
+    'Abstimmungen im Bundestag',
+    'namentliche Abstimmung',
+    'Abstimmungsverhalten',
+    'Sitzungswoche',
+    'Parlament',
+    'Politik Nachrichten',
     'Wahl Chat',
     'Wahl',
     'Chat',
@@ -61,7 +78,6 @@ export const metadata: Metadata = {
     'KI',
     'Künstliche Intelligenz',
     'Chatbot',
-    'Chat',
     'Deutschland',
     'Deutschlandpolitik',
     'KI Wahlhilfe',
@@ -79,8 +95,7 @@ export const metadata: Metadata = {
       default: 'wahl.chat - Politik interaktiv verstehen',
       template: '%s | wahl.chat - Politik interaktiv verstehen',
     },
-    description:
-      'Verstehe die Positionen der Parteien zu Bundestags-, Landtags- und Kommunalwahlen. Unterhalte dich bei wahl.chat mit den Programmen der Parteien, stelle Fragen zu deinen Themen und lass Parteipositionen kritisch einordnen.',
+    description: SITE_DESCRIPTION,
     images: ['https://wahl.chat/images/logo.webp'],
     url: 'https://wahl.chat',
     siteName: 'wahl.chat',
@@ -92,14 +107,9 @@ export const metadata: Metadata = {
     site: '@wahl_chat',
     creator: '@wahl_chat',
     title: 'wahl.chat - Politik interaktiv verstehen',
-    description:
-      'Verstehe die Positionen der Parteien zu Bundestags-, Landtags- und Kommunalwahlen. Unterhalte dich bei wahl.chat mit den Programmen der Parteien, stelle Fragen zu deinen Themen und lass Parteipositionen kritisch einordnen.',
+    description: SITE_DESCRIPTION,
     images: ['https://wahl.chat/images/logo.webp'],
   },
-};
-
-export const viewport: Viewport = {
-  maximumScale: 1, // Disable auto-zoom on mobile Safari
 };
 
 const LIGHT_THEME_COLOR = 'hsl(0 0% 100%)';
@@ -154,7 +164,7 @@ export default async function RootLayout({
                   logo: `${BASE_URL}/images/logo.webp`,
                   email: socialMediaConfig.email.replace('mailto:', ''),
                   description:
-                    'Politische Informationsplattform – Parteipositionen interaktiv vergleichen.',
+                    'Politische Informationsplattform – Bundestag kompakt verstehen und Parteipositionen interaktiv vergleichen.',
                   // sameAs is how a search engine resolves the brand to a single
                   // entity, which is what decides exact-brand queries.
                   sameAs: [
@@ -172,7 +182,7 @@ export default async function RootLayout({
                   inLanguage: 'de',
                   publisher: { '@id': ORGANIZATION_ID },
                   description:
-                    'Verstehe die Positionen der Parteien zu Bundestags-, Landtags- und Kommunalwahlen.',
+                    'Verstehe, was im Bundestag passiert, und die Positionen der Parteien zu Bundestags-, Landtags- und Kommunalwahlen.',
                 },
               ],
             }),

@@ -25,6 +25,9 @@ import {
 type MediaViewerContextValue = {
   /** Open a source's primary media in-page (or a new tab when not embeddable). */
   openSource: (source: Source) => void;
+  /** A source is shown in the viewer right now. */
+  isOpen: boolean;
+  close: () => void;
 };
 
 const MediaViewerContext = createContext<MediaViewerContextValue | null>(null);
@@ -47,7 +50,12 @@ export function MediaViewerProvider({ children }: { children: ReactNode }) {
     openSourceMedia(source, setActiveMedia);
   }, []);
 
-  const value = useMemo(() => ({ openSource }), [openSource]);
+  const close = useCallback(() => setActiveMedia(null), []);
+  const isOpen = activeMedia !== null;
+  const value = useMemo(
+    () => ({ openSource, isOpen, close }),
+    [openSource, isOpen, close],
+  );
 
   return (
     <MediaViewerContext.Provider value={value}>

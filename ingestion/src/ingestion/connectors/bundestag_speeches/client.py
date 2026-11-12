@@ -155,7 +155,7 @@ class DipClient:
             last_cursor = cursor
 
 
-def fetch_text(url: str) -> str:
+def fetch_text(url: str, timeout: float = 60) -> str:
     """Fetch text content from a URL, using curl fallback on .enodia/challenge redirect.
 
     Used to retrieve protocol XML from DIP fundstelle.xml_url.
@@ -170,13 +170,23 @@ def fetch_text(url: str) -> str:
         requests.HTTPError: on non-2xx responses.
         DipChallengeError: if curl fallback fails.
     """
-    response = requests.get(url, timeout=60)
+    response = requests.get(url, timeout=timeout)
     if ".enodia/challenge" in response.url:
         return curl_get(url, accept="text/xml")
 
     response.raise_for_status()
     response.encoding = response.encoding or "utf-8"
     return response.text
+
+
+def fetch_bytes(url: str, timeout: float = 60) -> bytes:
+    """``fetch_text`` for binary files, such as the protocol PDF next to the
+    XML: the same host answers both with the same challenge redirect."""
+    response = requests.get(url, timeout=timeout)
+    if ".enodia/challenge" in response.url:
+        return _curl_bytes(url, accept="*/*")
+    response.raise_for_status()
+    return response.content
 
 
 def curl_get(url: str, accept: str = "*/*") -> str:
@@ -195,11 +205,16 @@ def curl_get(url: str, accept: str = "*/*") -> str:
     Raises:
         DipChallengeError: if curl exits non-zero.
     """
+    return _curl_bytes(url, accept).decode("utf-8")
+
+
+def _curl_bytes(url: str, accept: str) -> bytes:
     # Fixed arg list — no shell=True
     command = ["curl", "-sS", "-L", "--fail", "-H", f"Accept: {accept}", url]
-    result = subprocess.run(command, text=True, capture_output=True, timeout=90)
+    result = subprocess.run(command, capture_output=True, timeout=90)
     if result.returncode != 0:
         raise DipChallengeError(
-            result.stderr.strip() or "curl could not fetch the official Bundestag URL"
+            result.stderr.decode("utf-8", "replace").strip()
+            or "curl could not fetch the official Bundestag URL"
         )
     return result.stdout

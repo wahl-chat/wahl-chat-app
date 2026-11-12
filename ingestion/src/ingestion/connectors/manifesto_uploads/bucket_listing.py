@@ -46,7 +46,7 @@ class BucketListingError(RuntimeError):
     """
 
 
-def _client(env: Optional[str] = None) -> "Client":
+def storage_client() -> "Client":
     """Return a Storage client using Application Default Credentials."""
     from google.cloud.storage import Client  # noqa: PLC0415
 
@@ -68,10 +68,10 @@ def list_uploaded_objects(
     deliberate clear-out, and an empty work-list would retire the whole corpus.
     """
     bucket_name = bucket_for_env(env)
-    storage_client = client if client is not None else _client(env)
+    listing_client = client if client is not None else storage_client()
 
     try:
-        blobs = list(storage_client.list_blobs(bucket_name, prefix=UPLOAD_PREFIX))
+        blobs = list(listing_client.list_blobs(bucket_name, prefix=UPLOAD_PREFIX))
     except Exception as exc:  # noqa: BLE001
         raise BucketListingError(
             f"could not list gs://{bucket_name}/{UPLOAD_PREFIX}: {exc}"

@@ -10,7 +10,7 @@ import { useStudyRunning } from '@/components/providers/study-status-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getUser } from '@/lib/firebase/firebase';
+import { getUser, userJoinBriefingsWaitlist } from '@/lib/firebase/firebase';
 import { FirebaseError } from 'firebase/app';
 import {
   EmailAuthProvider,
@@ -22,22 +22,49 @@ import {
   signInWithCredential,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
+import { ChevronLeftIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import PasswordResetForm from './password-reset-form';
 import SuccessAuthForm from './success-auth-form';
+import WeeklySignup from './weekly-signup';
 
 type AuthProvider = 'google' | 'github' | 'email';
 
+/** Why the reader is asked to sign in. The feed asks them to sign up for
+ * "Meine Woche", the weekly digest, which is also recorded on their user
+ * doc. */
+export type LoginPurpose = 'chat-history' | 'briefings';
+
 type Props = {
   onSuccess: () => void;
+  purpose?: LoginPurpose;
 };
 
-function LoginForm({ onSuccess }: Props) {
+const DESCRIPTIONS: Record<
+  LoginPurpose,
+  Record<'login' | 'register', string>
+> = {
+  'chat-history': {
+    login:
+      'Du kannst dich bei wahl.chat anmelden um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.',
+    register:
+      'Du kannst dich bei wahl.chat registrieren um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.',
+  },
+  briefings: {
+    login: 'Melde dich an, dann melden wir uns, sobald „Meine Woche“ losgeht.',
+    register:
+      'Registriere dich mit E-Mail und Passwort, dann melden wir uns, sobald „Meine Woche“ losgeht.',
+  },
+};
+
+function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
   const { refreshUser } = useAnonymousAuth();
   const studyRunning = useStudyRunning();
-  const [isRegister, setIsRegister] = useState(false);
+  // "Meine Woche" opens on its own pitch; its email option is signing up.
+  const [showWeekly, setShowWeekly] = useState(purpose === 'briefings');
+  const [isRegister, setIsRegister] = useState(purpose === 'briefings');
   const [isResetPassword, setIsResetPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [allowNewsletter, setAllowNewsletter] = useState(false);
@@ -45,6 +72,15 @@ function LoginForm({ onSuccess }: Props) {
   const handleAuthSuccess = async () => {
     await refreshUser();
     const uid = getAuth().currentUser?.uid;
+
+    if (uid && purpose === 'briefings') {
+      try {
+        await userJoinBriefingsWaitlist(uid);
+      } catch (error) {
+        // The sign-in itself worked; a missed waitlist mark must not undo it.
+        console.error('Could not join the briefings waitlist', error);
+      }
+    }
 
     if (uid) {
       const user = await getUser(uid);
@@ -204,7 +240,11 @@ function LoginForm({ onSuccess }: Props) {
   };
 
   const showSuccessToast = () => {
-    toast.success('Erfolgreich angemeldet');
+    toast.success(
+      purpose === 'briefings'
+        ? 'Du bist dabei – wir melden uns, sobald „Meine Woche“ startet.'
+        : 'Erfolgreich angemeldet',
+    );
   };
 
   const handleResetPassword = async () => {
@@ -220,7 +260,36 @@ function LoginForm({ onSuccess }: Props) {
   }
 
   if (allowNewsletter) {
-    return <SuccessAuthForm onSuccess={onSuccess} />;
+    return (
+      <SuccessAuthForm
+        onSuccess={() => {
+          onSuccess();
+          // Signing up for "Meine Woche" is confirmed even when the
+          // newsletter question came first.
+          if (purpose === 'briefings') {
+            showSuccessToast();
+          }
+        }}
+      />
+    );
+  }
+
+  if (showWeekly) {
+    return (
+      <WeeklySignup
+        onGoogle={handleGoogleLogin}
+        onGithub={handleGithubLogin}
+        onEmail={() => {
+          setIsRegister(true);
+          setShowWeekly(false);
+        }}
+        onLogin={() => {
+          setIsRegister(false);
+          setShowWeekly(false);
+        }}
+        disabled={isLoading}
+      />
+    );
   }
 
   return (
@@ -230,14 +299,24 @@ function LoginForm({ onSuccess }: Props) {
         name="isRegister"
         value={isRegister ? 'true' : 'false'}
       />
+      {purpose === 'briefings' && (
+        <Button
+          type="button"
+          variant="link"
+          className="mb-2 h-auto self-start p-0 text-muted-foreground"
+          onClick={() => setShowWeekly(true)}
+          disabled={isLoading}
+        >
+          <ChevronLeftIcon className="size-4" aria-hidden />
+          Zurück
+        </Button>
+      )}
       <div className="mb-4">
         <ResponsiveDialogTitle className="text-center text-2xl font-bold md:text-left">
           {isRegister ? 'Registrieren' : 'Anmelden'}
         </ResponsiveDialogTitle>
         <ResponsiveDialogDescription className="text-center text-sm text-muted-foreground md:text-left">
-          {isRegister
-            ? 'Du kannst dich bei wahl.chat registrieren um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.'
-            : 'Du kannst dich bei wahl.chat anmelden um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.'}
+          {DESCRIPTIONS[purpose][isRegister ? 'register' : 'login']}
         </ResponsiveDialogDescription>
       </div>
 
