@@ -35,8 +35,6 @@ const METADATA_ROUTES = [
   '/apple-icon.png',
 ];
 
-const FEED_ALIASES = ['/news', '/feed', '/bundestag'];
-
 // Check if the pathname is a static page
 function isStaticPage(pathname: string): boolean {
   return (
@@ -136,14 +134,6 @@ export async function middleware(request: NextRequest) {
 
   if (pathname === '/session') {
     return NextResponse.redirect(buildRedirectUrl(request, '/'), 308);
-  }
-
-  // Names people guess for the feed. Without this they fall into the
-  // /[contextId] catch-all, which is no place for a page that is not an
-  // election. Temporary on purpose: browsers keep a 308 for good (see /chat
-  // below), and these paths may yet become real pages.
-  if (FEED_ALIASES.includes(pathname.replace(/\/$/, ''))) {
-    return NextResponse.redirect(buildRedirectUrl(request, '/'));
   }
 
   if (pathname.startsWith('/session/')) {

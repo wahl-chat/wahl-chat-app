@@ -107,25 +107,14 @@ describe('legacy context-less URLs', () => {
     );
   });
 
-  // Temporary, so the paths stay free: a browser that followed a 308 would
-  // never reach a page later served there.
-  test('names people guess for the feed land on it, keeping their parameters', async () => {
-    for (const path of ['/news', '/feed', '/bundestag', '/news/']) {
+  test('unknown paths are left to the route, which 404s them', async () => {
+    for (const path of ['/foo', '/news', '/feed', '/bundestag']) {
       const response = await middleware(
-        requestFrom(`https://wahl.chat${path}?utm_source=x`),
+        requestFrom(`https://wahl.chat${path}`),
       );
 
-      expect(response.headers.get('location')).toBe(
-        'https://wahl.chat/?utm_source=x',
-      );
-      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBeNull();
     }
-  });
-
-  test('other unknown paths are left to the route, which 404s them', async () => {
-    const response = await middleware(requestFrom('https://wahl.chat/foo'));
-
-    expect(response.headers.get('location')).toBeNull();
   });
 
   test('a path merely starting with the same letters is not a legacy /chat URL', async () => {
