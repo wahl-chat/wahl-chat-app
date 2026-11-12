@@ -2,12 +2,16 @@
 
 import type { DigestSessionSection } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
-import { Loader2Icon, PlayIcon } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { Loader2Icon, PlayIcon, VolumeXIcon } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 // The same speech can sit in the feed and in the open detail at once; starting
 // one pauses the other rather than playing both over each other.
 let playingElement: HTMLMediaElement | null = null;
+
+// The white disc of the play and unmute buttons.
+const BUTTON_DISC =
+  'flex items-center justify-center rounded-full bg-white text-zinc-900';
 
 // Past the black first frames, as the feed job does when it has no start.
 const FALLBACK_START = 0.5;
@@ -85,16 +89,43 @@ export function SectionMediaFrame({
   className,
   mediaClassName,
   small = false,
+  autoPlayMuted = false,
 }: {
   media: Media;
   className?: string;
   /** On the video until it plays, e.g. a card's hover zoom. */
   mediaClassName?: string;
   small?: boolean;
+  /** The detail view: the video plays muted at once, and a tap unmutes it. */
+  autoPlayMuted?: boolean;
 }) {
   const ref = useRef<HTMLMediaElement | null>(null);
   const [started, setStarted] = useState(false);
   const [painted, setPainted] = useState(false);
+  const [muted, setMuted] = useState(false);
+
+  // Browsers let only a muted video start without a tap. `muted` is set on
+  // the element: React does not reliably reflect its prop to the DOM. A
+  // refused start leaves the play button, which then plays with sound.
+  useEffect(() => {
+    const el = ref.current;
+    if (
+      !autoPlayMuted ||
+      !el ||
+      media.kind !== 'video' ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
+    el.muted = true;
+    setMuted(true);
+    setStarted(true);
+    el.play().catch(() => {
+      el.muted = false;
+      setMuted(false);
+      setStarted(false);
+    });
+  }, [autoPlayMuted, media.kind]);
 
   // The poster covers the native controls until the video paints, so a play
   // that fails must bring the play button back rather than leave a still.
@@ -112,6 +143,21 @@ export function SectionMediaFrame({
     }
     playingElement = ref.current;
   };
+  // From here on the native controls take over, clicks included.
+  const unmute = () => {
+    const el = ref.current;
+    if (!el) {
+      return;
+    }
+    el.muted = false;
+    setMuted(false);
+    if (el.paused) {
+      play();
+    }
+  };
+  const spinner = (
+    <Loader2Icon aria-hidden className="size-8 animate-spin text-white" />
+  );
 
   return (
     <div
@@ -128,7 +174,7 @@ export function SectionMediaFrame({
           src={media.src}
           preload="none"
           playsInline
-          controls={started}
+          controls={started && !muted}
           onPlay={onPlay}
           onPlaying={() => setPainted(true)}
           onError={stop}
@@ -167,13 +213,29 @@ export function SectionMediaFrame({
           )}
         />
       )}
-      {media.poster && started && !painted && (
+      {media.poster && started && !painted && !muted && (
         // Centred by the wrapper, not by translate: animate-spin sets the
         // icon's transform, which would drop a translate and swing it off
         // centre on every turn.
         <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-          <Loader2Icon aria-hidden className="size-8 animate-spin text-white" />
+          {spinner}
         </span>
+      )}
+      {started && muted && (
+        <button
+          type="button"
+          onClick={unmute}
+          aria-label="Ton einschalten"
+          className="absolute inset-0 z-10 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
+        >
+          {media.poster && !painted ? (
+            spinner
+          ) : (
+            <span className={cn(BUTTON_DISC, small ? 'size-10' : 'size-14')}>
+              <VolumeXIcon className="size-5" />
+            </span>
+          )}
+        </button>
       )}
       {!started && (
         <>
@@ -187,7 +249,8 @@ export function SectionMediaFrame({
               media.kind === 'video' ? 'Rede abspielen' : 'Audio abspielen'
             }
             className={cn(
-              'absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-800',
+              BUTTON_DISC,
+              'absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-800',
               small ? 'size-10' : 'size-14',
             )}
           >
