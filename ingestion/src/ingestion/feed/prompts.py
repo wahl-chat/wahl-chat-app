@@ -25,7 +25,7 @@ PROMPT_VERSION = "12"
 TRANSLATION_PROMPT_VERSION = "1"
 # Part of each item's terms hash: bumping it looks for terms again. Stored on
 # each glossary definition.
-GLOSSARY_PROMPT_VERSION = "1"
+GLOSSARY_PROMPT_VERSION = "2"
 
 # The shared rulebook.
 _AUDIENCE = "eine tägliche, neutrale Übersicht"
@@ -382,12 +382,42 @@ class TermExtractionBatch(BaseModel):
     items: list[ItemTerms]
 
 
+# The reason comes before the verdict, so the model reasons before it decides.
+class FormCheck(BaseModel):
+    ref: str = Field(description="Die Kennung der Zuordnung, z. B. 'F2'.")
+    reason: str = Field(
+        description=(
+            "Zuerst, in einem kurzen Satz: ist die Wortform derselbe Begriff wie "
+            "die Grundform?"
+        )
+    )
+    ok: bool = Field(
+        description=(
+            "true nur, wenn die Wortform eine gebeugte Form, die Mehrzahl oder "
+            "die weibliche oder männliche Form genau dieses Begriffs ist. false, "
+            "wenn sie ein anderer, ein engerer oder ein weiterer Begriff ist "
+            "(„Ausschuss“ ist nicht „Petitionsausschuss“). Im Zweifel false."
+        )
+    )
+
+
+class FormCheckBatch(BaseModel):
+    checks: list[FormCheck]
+
+
 class TermDefinition(BaseModel):
     ref: str = Field(description="Die Kennung des Begriffs, z. B. 'B3'.")
     definition: str = Field(
         description=(
             "1 bis 2 Sätze, höchstens 35 Wörter, in einfacher Sprache: was der "
-            "Begriff im parlamentarischen Alltag bedeutet."
+            "Begriff im parlamentarischen Alltag bedeutet. Nur, was die Quellen "
+            "des Begriffs sagen."
+        )
+    )
+    sources: list[str] = Field(
+        description=(
+            "Die Kennungen der Quellen, auf denen die Erklärung beruht, z. B. "
+            "['B3-Q1']. Leer, wenn die Quellen den Begriff nicht erklären."
         )
     )
 
@@ -400,13 +430,18 @@ class TermDefinitionBatch(BaseModel):
 class DefinitionCheck(BaseModel):
     ref: str = Field(description="Die Kennung des Begriffs, z. B. 'B3'.")
     reason: str = Field(
-        description="Zuerst, in einem kurzen Satz: stimmt die Erklärung, und ist sie neutral?"
+        description=(
+            "Zuerst: jede Aussage der Erklärung einzeln, und ob die Quellen sie "
+            "belegen. Dann: ist sie neutral?"
+        )
     )
     ok: bool = Field(
         description=(
-            "true nur, wenn die Erklärung sachlich richtig ist, nichts wertet, "
-            "keine Partei und kein aktuelles Beispiel nennt und ohne Vorwissen "
-            "verständlich ist. Im Zweifel false."
+            "true nur, wenn jede Aussage der Erklärung in den Quellen steht, sie "
+            "nichts wertet, keine Partei und kein aktuelles Beispiel nennt und "
+            "ohne Vorwissen verständlich ist. Eine Zahl, ein Wochentag oder eine "
+            "Regel, die die Quellen nicht nennen, macht sie falsch. Im Zweifel "
+            "false."
         )
     )
 
@@ -425,6 +460,8 @@ Petitionsausschuss, Parlamentarische Staatssekretärin.
 
 Regeln:
 - Nur Begriffe, die wörtlich im Text stehen.
+- Die Grundform ist derselbe Begriff, nur ungebeugt: nie ein anderer, ein \
+engerer oder ein weiterer Begriff.
 - Keine Partei- oder Personennamen, keine Alltagswörter und keine \
 Themenwörter wie „Rente“ oder „Klimaschutz“.
 - Gib jeden Text mit seiner Kennung zurück, auch wenn er keinen Begriff enthält.
@@ -433,12 +470,35 @@ Texte:
 {{texts}}
 """
 
+FORM_CHECK_PROMPT = """\
+Prüfe jede Zuordnung einer Wortform zu einem Fachbegriff aus dem \
+{parliament}. Die Erklärung des Begriffs wird überall gezeigt, wo die \
+Wortform steht: Sie muss genau dieser Begriff sein, nicht ein verwandter. \
+Jede Zuordnung hat eine Kennung wie [F1] und, wo vorhanden, den Satz, in \
+dem die Wortform stand.
+
+Zuordnungen:
+{forms}
+"""
+
+RESEARCH_PROMPT = """\
+Suche, was der Fachbegriff „{term}“ im {parliament} bedeutet. Nutze nur \
+offizielle Erklärungen: zuerst das Glossar auf bundestag.de, dann \
+bundesregierung.de, dann das Politiklexikon der Bundeszentrale für \
+politische Bildung (bpb.de). Fasse in wenigen Sätzen zusammen, was diese \
+Seiten über den Begriff sagen, ohne eigenes Wissen hinzuzufügen.
+{context}"""
+
 DEFINITION_PROMPT = f"""\
 Erkläre die folgenden Fachbegriffe für {_AUDIENCE} über den {{parliament}}, \
 für Leser:innen ohne politisches Vorwissen. Jeder Begriff hat eine Kennung \
-wie [B1].
+wie [B1], darunter, wo vorhanden, den Satz, in dem er stand, und Auszüge \
+aus offiziellen Quellen mit Kennungen wie [B1-Q1].
 
 Regeln:
+- Erkläre den Begriff nur aus seinen Quellen. Was keine Quelle sagt, gehört \
+nicht in die Erklärung, auch wenn es stimmt. Erklären die Quellen den \
+Begriff nicht, gib keine Quelle an.
 - Erkläre, was der Begriff im parlamentarischen Alltag bedeutet, nicht, wie \
 er politisch zu bewerten ist.
 - {_NEUTRALITY_RULE}
@@ -450,8 +510,10 @@ Begriffe:
 """
 
 DEFINITION_CHECK_PROMPT = f"""\
-Prüfe jede Erklärung eines Fachbegriffs aus dem {{parliament}}. Sie soll \
-sachlich richtig, neutral und ohne Vorwissen verständlich sein. \
+Prüfe jede Erklärung eines Fachbegriffs aus dem {{parliament}} gegen die \
+Auszüge aus ihren Quellen. Jede Aussage der Erklärung muss in den Auszügen \
+stehen; was dort fehlt, ist ein Fehler, auch wenn es stimmen mag. Die \
+Erklärung soll außerdem neutral und ohne Vorwissen verständlich sein. \
 {_NEUTRALITY_RULE}
 
 Erklärungen:
@@ -470,4 +532,16 @@ def format_definition_prompt(parliament: str, terms_block: str) -> str:
 def format_definition_check_prompt(parliament: str, definitions_block: str) -> str:
     return DEFINITION_CHECK_PROMPT.format(
         parliament=parliament, definitions=definitions_block
+    )
+
+
+def format_form_check_prompt(parliament: str, forms_block: str) -> str:
+    return FORM_CHECK_PROMPT.format(parliament=parliament, forms=forms_block)
+
+
+def format_research_prompt(parliament: str, term: str, context: str) -> str:
+    return RESEARCH_PROMPT.format(
+        parliament=parliament,
+        term=term,
+        context=f"\nDer Begriff stand in diesem Satz: „{context}“\n" if context else "",
     )

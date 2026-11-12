@@ -425,7 +425,7 @@ def apply_protocols(
     sitting: SittingDay,
     fetch: FetchText = fetch_text,
     read_pdf: Optional[ReadPdf] = None,
-    resolve_party: Optional[Callable[[Speech], None]] = None,
+    resolve_party: Optional[Callable[[Speech], bool]] = None,
 ) -> int:
     """Put each agenda item's speeches into protocol order, link them to their
     protocol page, drop the twin of a speech both sources hold, title the
@@ -433,7 +433,8 @@ def apply_protocols(
     returns how many agenda items are now ordered.
 
     An item whose protocol XML or PDF cannot be read stays unordered, and the
-    builder leaves it for a later run.
+    builder leaves it for a later run; so does one with a speech whose party
+    ``resolve_party`` cannot settle this run.
     """
     ordered = 0
     for protocol_id, pdf_url in sitting.protocols:
@@ -476,8 +477,15 @@ def apply_protocols(
             )
             item.ordered = placement is not None
             if resolve_party is not None:
-                for speech in item.speeches:
-                    resolve_party(speech)
+                unsettled = [s for s in item.speeches if not resolve_party(s)]
+                if unsettled:
+                    logger.warning(
+                        "%s (%s): party of %s not settled; left for a later run",
+                        item.label,
+                        item.key,
+                        ", ".join(s.speaker or s.source_item_id for s in unsettled),
+                    )
+                    item.ordered = False
             # Summed over the item's own speeches, so a debate the protocol
             # files under another item still gets its own count.
             item.interjections = sum(

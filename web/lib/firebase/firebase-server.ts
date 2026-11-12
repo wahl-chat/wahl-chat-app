@@ -56,6 +56,7 @@ import type {
   FeedPage,
   FirebaseWahlSwiperResult,
   GlossaryEntry,
+  GlossarySource,
   LlmSystemStatus,
   ParliamentFeed,
   Politician,
@@ -1012,10 +1013,25 @@ async function getGlossaryImpl(): Promise<GlossaryEntry[]> {
   const snapshot = await getDocs(
     query(collection(serverDb, 'glossary'), where('status', '==', 'verified')),
   );
+  // An explanation is shown only with the source it was checked against.
   return snapshot.docs.flatMap((d) => {
-    const { term_id, term, definition, forms } = d.data();
-    return typeof definition === 'string' && definition
-      ? [{ term_id, term, definition, forms: forms ?? [] }]
+    const { term_id, term, definition, forms, sources } = d.data();
+    const linked = Array.isArray(sources)
+      ? sources.filter(
+          (s): s is GlossarySource =>
+            typeof s?.url === 'string' && typeof s?.title === 'string',
+        )
+      : [];
+    return typeof definition === 'string' && definition && linked.length > 0
+      ? [
+          {
+            term_id,
+            term,
+            definition,
+            forms: Array.isArray(forms) ? forms : [],
+            sources: linked,
+          },
+        ]
       : [];
   });
 }
@@ -1025,7 +1041,7 @@ async function getGlossaryImpl(): Promise<GlossaryEntry[]> {
 export async function getGlossary(): Promise<GlossaryEntry[]> {
   return uncachedFallback(
     () =>
-      cachedRead(getGlossaryImpl, ['getGlossary', 'v1'], [CacheTags.FEED])(),
+      cachedRead(getGlossaryImpl, ['getGlossary', 'v2'], [CacheTags.FEED])(),
     [],
     'FAILED to fetch glossary',
   );

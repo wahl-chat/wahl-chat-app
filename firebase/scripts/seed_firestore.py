@@ -414,12 +414,19 @@ def glossary_term_id(term):
 
 def seed_glossary(db):
     """Write the hand-written glossary entries. Merged, so the forms the feed
-    job has collected for a term are kept."""
+    job has collected for a term are kept.
+
+    In a real project an entry is shown only once the feed job has checked it
+    against its sources, as it checks its own: seeded "pending", it stays
+    hidden until then. The emulator has no job run, so there it is shown at
+    once.
+    """
     if not GLOSSARY_FILE.exists():
         return
     with open(GLOSSARY_FILE) as f:
         entries = json.load(f)
     now = datetime.now(timezone.utc).isoformat()
+    status = "verified" if os.getenv("FIRESTORE_EMULATOR_HOST") else "pending"
     for entry in entries:
         term_id = glossary_term_id(entry["term"])
         db.collection("glossary").document(term_id).set(
@@ -428,7 +435,8 @@ def seed_glossary(db):
                 "term": entry["term"],
                 "definition": entry["definition"],
                 "forms": firestore.ArrayUnion(entry["forms"]),
-                "status": "verified",
+                "sources": entry["sources"],
+                "status": status,
                 "attempts": 0,
                 "generated_by": "hand",
                 "prompt_version": None,
@@ -436,7 +444,7 @@ def seed_glossary(db):
             },
             merge=True,
         )
-    print(f"\n📖 Seeded {len(entries)} glossary entries")
+    print(f"\n📖 Seeded {len(entries)} glossary entries ({status})")
 
 
 def revalidate_frontend_cache(context_ids, firestore_project=None):

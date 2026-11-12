@@ -14,6 +14,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
+import { speakerLogoId, speakerPartyLabel } from '@/lib/daily/party-logos';
 import {
   displayName,
   gremienOf,
@@ -133,9 +134,12 @@ function Tile({
 function Avatar({
   photo,
   party,
+  partei,
 }: {
   photo: string | undefined;
   party: DigestPartyPosition;
+  /** The speaker's own party, once their record has loaded. */
+  partei?: string | null;
 }) {
   return (
     <div className="relative size-14 shrink-0">
@@ -157,7 +161,8 @@ function Avatar({
       </div>
       <PartyLogo
         partyId={party.party_id}
-        name={party.party_name}
+        logoId={speakerLogoId(party, partei)}
+        name={speakerPartyLabel(party, partei)}
         color={party.color}
         className="absolute -bottom-1 -right-3 h-5 w-9 rounded"
       />
@@ -490,13 +495,20 @@ export function PoliticianSheet({
       >
         <div className="flex min-h-0 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-6 pt-3 md:pt-6">
           <header className="flex items-center gap-3 md:pr-8">
-            <Avatar photo={photo} party={party} />
+            <Avatar photo={photo} party={party} partei={politician?.partei} />
             <div className="min-w-0 flex-1 leading-tight">
               <ResponsiveDialogTitle className="text-left text-[18px] font-bold">
                 {politician ? displayName(politician) : speaker.name}
               </ResponsiveDialogTitle>
+              {/* Offices only: the party is the badge under the photo.
+                  Without an office the dialog is still described, for
+                  screen readers only. */}
               <ResponsiveDialogDescription
-                className={cn('mt-0.5 text-left text-[13px]', MUTED_TEXT)}
+                className={cn(
+                  'mt-0.5 text-left text-[13px]',
+                  MUTED_TEXT,
+                  offices.length === 0 && 'sr-only',
+                )}
               >
                 {offices.length > 0
                   ? offices.map((office, i) => (
@@ -505,7 +517,7 @@ export function PoliticianSheet({
                         <GlossaryLabel label={office} />
                       </span>
                     ))
-                  : party.party_name}
+                  : speakerPartyLabel(party, politician?.partei)}
               </ResponsiveDialogDescription>
             </div>
             {!isDesktop && (

@@ -1,55 +1,94 @@
 {
-  "description": "Speakers in the Bundestag who are not MdBs, and so have no party in the MdB-Stammdaten: members of the federal government from outside the Bundestag and Bundesrat members. The feed files their speeches under this party instead of 'Unbekannt'. Kept by hand: add a person when the feed log warns that a speaker stayed unattributed, and check office and party against their profile on bundesregierung.de (or the party's own page, where that profile names none) before adding them. 'party' is null when no official source names one: the speech then stays 'Unbekannt', but the speaker still gets their office tag and record. A member of the Bundestag needs no entry; the Stammdaten resolve them.",
+  "description": "Speakers in the Bundestag who are not MdBs, and so have no party in the MdB-Stammdaten: members of the federal government from outside the Bundestag and Bundesrat members. The feed files their speeches under this party instead of 'Unbekannt'. Kept by hand: add a person when the feed log warns that a speaker stayed unattributed. Check the office on bundesregierung.de and the party on bundesregierung.de, bundestag.de or the party's own page, and record both pages and the date checked. 'redner_ids' are the protocol's <redner id> (the log names it). 'party' is the label as the official source writes it (\"CDU\", \"parteilos\"), as the Stammdaten do; the feed derives the slug from it. 'party' is null when no official source names one: the speech then stays 'Unbekannt', but the speaker still gets their office tag and record. 'valid_from'/'valid_to' bound the office: a speech outside them does not get it, since the speaker may have spoken in another office then. A member of the Bundestag needs no entry; the Stammdaten resolve them.",
   "as_of": "2026-11-12",
   "speakers": [
     {
       "name": "Karin Prien",
-      "party": "cdu",
+      "party": "CDU",
       "office": "Bundesministerin für Bildung, Familie, Senioren, Frauen und Jugend",
       "institution": "Bundesregierung",
-      "redner_ids": ["999990152"]
+      "redner_ids": [
+        "999990152"
+      ],
+      "office_source_url": "https://www.bundesregierung.de/breg-de/bundesregierung/bundeskabinett/karin-prien-2342644",
+      "party_source_url": "https://www.bundesregierung.de/breg-de/bundesregierung/bundeskabinett/karin-prien-2342644",
+      "checked_at": "2026-11-12",
+      "valid_from": "2025-05-06"
     },
     {
       "name": "Stefanie Hubig",
-      "party": "spd",
+      "party": "SPD",
       "office": "Bundesministerin der Justiz und für Verbraucherschutz",
       "institution": "Bundesregierung",
-      "redner_ids": ["999990151"]
+      "redner_ids": [
+        "999990151"
+      ],
+      "office_source_url": "https://www.bundesregierung.de/breg-de/bundesregierung/bundeskabinett/stefanie-hubig-2342672",
+      "party_source_url": "https://www.bundestag.de/dokumente/textarchiv/2026/kw28-de-regierungsbefragung-1154632",
+      "checked_at": "2026-11-12"
     },
     {
       "name": "Karsten Wildberger",
-      "party": "cdu",
+      "party": "CDU",
       "office": "Bundesminister für Digitales und Staatsmodernisierung",
       "institution": "Bundesregierung",
-      "redner_ids": []
+      "redner_ids": [
+        "999990153"
+      ],
+      "office_source_url": "https://www.bundesregierung.de/breg-de/bundesregierung/bundeskabinett/2342876-2342876",
+      "party_source_url": "https://www.bundesregierung.de/breg-de/bundesregierung/bundeskabinett/2342876-2342876",
+      "checked_at": "2026-11-12"
     },
     {
       "name": "Katherina Reiche",
-      "party": "cdu",
+      "party": "CDU",
       "office": "Bundesministerin für Wirtschaft und Energie",
       "institution": "Bundesregierung",
-      "redner_ids": []
+      "redner_ids": [
+        "11003209"
+      ],
+      "office_source_url": "https://www.bundesregierung.de/breg-de/bundesregierung/bundeskabinett/katherina-reiche-2342740",
+      "party_source_url": "https://www.bundestag.de/dokumente/textarchiv/2026/kw41-de-regierungsbefragung-1154718",
+      "checked_at": "2026-11-12"
     },
     {
       "name": "Alexander Schweitzer",
-      "party": "spd",
+      "party": "SPD",
       "office": "Bundesminister für Arbeit und Soziales",
       "institution": "Bundesregierung",
-      "redner_ids": []
+      "redner_ids": [
+        "999990149"
+      ],
+      "office_source_url": "https://www.bundesregierung.de/breg-de/bundesregierung/bundeskabinett/alexander-schweitzer-2456608",
+      "party_source_url": "https://www.bundesregierung.de/breg-de/bundesregierung/bundeskabinett/alexander-schweitzer-2456608",
+      "checked_at": "2026-11-12",
+      "valid_from": "2026-10-13"
     },
     {
       "name": "Wolfram Weimer",
       "party": "parteilos",
       "office": "Staatsminister für Kultur und Medien",
       "institution": "Bundesregierung",
-      "redner_ids": []
+      "redner_ids": [
+        "999990154"
+      ],
+      "office_source_url": "https://www.bundesregierung.de/breg-de/bundesregierung/bundeskanzleramt",
+      "party_source_url": "https://www.bundestag.de/dokumente/textarchiv/2025/kw46-de-weimer-1128154",
+      "checked_at": "2026-11-12",
+      "valid_from": "2025-05-06"
     },
     {
       "name": "Ronald Rauhe",
       "party": null,
       "office": "Staatsminister für Sport und Ehrenamt",
       "institution": "Bundesregierung",
-      "redner_ids": []
+      "redner_ids": [
+        "999990161"
+      ],
+      "office_source_url": "https://www.bundesregierung.de/breg-de/bundesregierung/bundeskanzleramt/ronald-rauhe-2451614",
+      "party_source_url": null,
+      "checked_at": "2026-11-12",
+      "valid_from": "2026-09-03"
     }
   ]
 }

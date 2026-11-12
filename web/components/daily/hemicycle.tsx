@@ -81,7 +81,7 @@ function FactionMarker({
         </text>
       ) : (
         <image
-          href={buildPartyImageUrl(arc.partyId)}
+          href={buildPartyImageUrl(arc.logoId)}
           x={coord(x + MARKER_PAD)}
           y={coord(y + MARKER_PAD)}
           width={MARKER_W - 2 * MARKER_PAD}

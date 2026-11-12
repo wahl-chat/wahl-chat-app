@@ -1,18 +1,13 @@
 'use client';
 
 import { useAnonymousAuth } from '@/components/anonymous-auth';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
 import { readInterest, recordInterest } from '@/lib/daily/interest';
 import type { FeedInterest } from '@/lib/firebase/firebase';
 import { cn } from '@/lib/utils';
 import { type LucideIcon, ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
 import { Fragment, useEffect, useState } from 'react';
-import { ABOVE_CARD_LINK, FOCUS_RING, MUTED_TEXT } from './card-styles';
+import { FOCUS_RING, MUTED_TEXT } from './card-styles';
+import { InfoTooltip } from './info-tooltip';
 
 const OPTIONS: { value: FeedInterest; label: string; Icon: LucideIcon }[] = [
   { value: 'yes', label: 'Interessant', Icon: ThumbsUpIcon },
@@ -25,33 +20,16 @@ const WHY_WE_ASK =
 
 /** Why we ask: on hover with a mouse, on tap on a touch screen. */
 function InterestQuestion() {
-  const [open, setOpen] = useState(false);
   return (
-    <Tooltip open={open} onOpenChange={setOpen} delayDuration={150}>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className={cn(
-            ABOVE_CARD_LINK,
-            FOCUS_RING,
-            'self-start rounded text-left text-[13px] underline decoration-dotted underline-offset-2',
-            MUTED_TEXT,
-          )}
-        >
-          {QUESTION}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent
-        side="top"
-        className={cn(
-          DAILY_THEME_CLASSES,
-          'max-w-64 border-[var(--daily-border)] bg-[var(--daily-canvas)] text-[13px] leading-snug text-[var(--daily-ink)]',
-        )}
-      >
-        {WHY_WE_ASK}
-      </TooltipContent>
-    </Tooltip>
+    <InfoTooltip
+      content={WHY_WE_ASK}
+      className={cn(
+        'self-start rounded text-left text-[13px] underline decoration-dotted underline-offset-2',
+        MUTED_TEXT,
+      )}
+    >
+      {QUESTION}
+    </InfoTooltip>
   );
 }
 

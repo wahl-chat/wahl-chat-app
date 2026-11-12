@@ -38,7 +38,6 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from ingestion.feed.calendar import fetch_page
 from ingestion.feed.models import FeedItem
 from ingestion.feed.speaker_parties import (
-    NON_PARTISAN,
     OutsideSpeaker,
     Roster,
     load_roster,
@@ -155,12 +154,6 @@ def merge(
     )
 
 
-def _partei_label(party: Optional[str]) -> Optional[str]:
-    if party is None or party == NON_PARTISAN:
-        return party
-    return party.upper()
-
-
 def outside_record(outside: OutsideSpeaker, mdb_id: str, now: datetime) -> Politician:
     first, _, last = outside.name.rpartition(" ")
     return Politician(
@@ -168,7 +161,7 @@ def outside_record(outside: OutsideSpeaker, mdb_id: str, now: datetime) -> Polit
         first_name=first,
         last_name=last,
         name=outside.name,
-        partei=_partei_label(outside.party),
+        partei=outside.party,
         offices=[
             Office(
                 function=outside.office,

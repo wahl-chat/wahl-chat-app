@@ -145,3 +145,14 @@ async def structured_output_from_publication_llms(
 ) -> tuple[Any, str]:
     """The parsed output and the name of the roster entry that wrote it."""
     return await structured_output_with_failover(publication_llms(), messages, schema)
+
+
+def search_llms() -> list[RosterLLM]:
+    """The roster's Gemini models, highest priority first: the ones that can
+    search the web (Google Search grounding), which the glossary needs to
+    explain a term from official pages rather than from the model's memory."""
+    return sorted(
+        (llm for llm in publication_llms() if "gemini" in llm.name),
+        key=lambda llm: llm.priority,
+        reverse=True,
+    )

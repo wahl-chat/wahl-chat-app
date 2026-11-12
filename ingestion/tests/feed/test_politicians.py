@@ -395,7 +395,7 @@ def test_a_minister_from_outside_the_bundestag_gets_a_record_from_the_roster(
         [
             OutsideSpeaker(
                 name="Karsten Wildberger",
-                party="cdu",
+                party="CDU",
                 office="Bundesminister für Digitales und Staatsmodernisierung",
                 institution="Bundesregierung",
             ),

@@ -194,6 +194,7 @@ class Published:
         self.translations_kept += other.translations_kept
         self.glossary.items_annotated += other.glossary.items_annotated
         self.glossary.items_failed += other.glossary.items_failed
+        self.glossary.forms_rejected += other.glossary.forms_rejected
         self.glossary.defined += other.glossary.defined
         self.glossary.rejected += other.glossary.rejected
 
@@ -743,7 +744,8 @@ def _summary_line(run: ParliamentRun, published: Published) -> str:
         f"indexed={published.index.upserted} "
         f"terms_annotated={published.glossary.items_annotated} "
         f"terms_defined={published.glossary.defined} "
-        f"terms_rejected={published.glossary.rejected}"
+        f"terms_rejected={published.glossary.rejected} "
+        f"term_forms_rejected={published.glossary.forms_rejected}"
         + ("  stopped: time budget spent" if run.out_of_time else "")
     )
 

@@ -181,6 +181,9 @@ export type DigestVoteParty = {
   party_id: string;
   name: string;
   color: string;
+  /** The logo it is shown with, set on the web (`lib/daily/party-logos.ts`);
+   * absent means `party_id`'s own. */
+  logo_id?: string;
   yes: number;
   no: number;
   abstain: number;
@@ -257,6 +260,9 @@ export type DigestPartyPosition = {
   party_id: string;
   party_name: string;
   color: string;
+  /** The logo it is shown with, set on the web (`lib/daily/party-logos.ts`);
+   * absent means `party_id`'s own. */
+  logo_id?: string;
   speakers: DigestSpeaker[];
   /** Null when no position could be written and checked against the
    * speeches; the Fraktion is still listed, with its speakers. */
@@ -355,15 +361,21 @@ export type LocalizedPosition = { party_id: string; text: string };
 /** An expert term in an item's text, as the text writes it. */
 export type TermRef = { term_id: string; surface: string };
 
+export type GlossarySource = { url: string; title: string };
+
 /** Firestore `glossary/{term_id}`, as the web reads it: verified entries
- * only, written by the feed job or by hand. */
+ * with a source only, written by the feed job or by hand. */
 export type GlossaryEntry = {
   term_id: string;
   /** The base form: "Aktuelle Stunde". */
   term: string;
   definition: string;
-  /** Every form the texts have used; offices are matched against them. */
+  /** Every form the texts have used, each checked to be this term; offices
+   * are matched against them. */
   forms: string[];
+  /** The official pages the definition was checked against; the first is
+   * linked. */
+  sources: GlossarySource[];
 };
 
 export type LocalizedContent = {

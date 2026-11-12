@@ -6,6 +6,7 @@ import type {
   FeedItem,
   ParliamentFeed,
 } from '@/lib/firebase/firebase.types';
+import { feedLogoId } from './party-logos';
 
 function toSection(
   item: FeedItem,
@@ -21,6 +22,7 @@ function toSection(
     summary: content.teaser ?? '',
     positions: facts.parties.map(({ position_sources, ...party }) => ({
       ...party,
+      logo_id: feedLogoId(item.parliament, party.party_id),
       position: text.get(party.party_id) ?? null,
       sources: position_sources ?? [],
     })),
@@ -55,7 +57,10 @@ function toVote(
     topics: item.topics,
     outcome: facts.outcome,
     citation_url: facts.citation_url,
-    parties: facts.parties,
+    parties: facts.parties.map((party) => ({
+      ...party,
+      logo_id: feedLogoId(item.parliament, party.party_id),
+    })),
     suggested_questions: content.suggested_questions,
     item_id: item.id,
     drucksachen: facts.drucksachen ?? [],

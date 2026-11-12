@@ -25,6 +25,7 @@ records which roster entry wrote it.
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import re
 import time
@@ -184,13 +185,20 @@ class FeedBuilder:
 
     async def acall(self, prompt: str, schema: type[BaseModel]) -> tuple[Any, str]:
         messages: list[BaseMessage] = [HumanMessage(content=prompt)]
+        return await self.bounded(self._fn(messages, schema))
+
+    async def bounded(self, awaitable: Awaitable[T]) -> T:
+        """``awaitable``, cut when the deadline passes: every model call goes
+        through here, not only the structured ones."""
         if self.deadline is None:
-            return await self._fn(messages, schema)
+            return await awaitable
         remaining = self.deadline - time.monotonic()
         if remaining <= 0:
+            if inspect.iscoroutine(awaitable):
+                awaitable.close()
             raise TimeoutError("time budget spent")
         async with asyncio.timeout(remaining):
-            return await self._fn(messages, schema)
+            return await awaitable
 
 
 # ---------------------------------------------------------------------------

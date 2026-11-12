@@ -1,21 +1,14 @@
 'use client';
 
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
-import {
   type GlossaryIndex,
   type TextPart,
   splitByRefs,
   splitLabel,
 } from '@/lib/daily/glossary';
 import type { GlossaryEntry, TermRef } from '@/lib/firebase/firebase.types';
-import { cn } from '@/lib/utils';
-import { createContext, useContext, useMemo, useState } from 'react';
-import { ABOVE_CARD_LINK, FOCUS_RING } from './card-styles';
+import { createContext, useContext, useMemo } from 'react';
+import { InfoTooltip } from './info-tooltip';
 
 const GlossaryContext = createContext<GlossaryIndex>({});
 
@@ -39,44 +32,46 @@ export function GlossaryProvider({
   );
 }
 
-/**
- * A term with its explanation: on hover with a mouse, on tap on a touch
- * screen, where a tooltip would otherwise never open. Inside a card it sits
- * above the card's link, so a tap explains rather than opens the item.
- */
+/** "bundestag.de" for a link to a page there. */
+function sourceHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
+
+/** A term with its explanation and the official page it rests on. */
 function Term({ text, entry }: { text: string; entry: GlossaryEntry }) {
-  const [open, setOpen] = useState(false);
+  const [source] = entry.sources;
   return (
-    <Tooltip open={open} onOpenChange={setOpen} delayDuration={150}>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          aria-label={`${text}: Erklärung anzeigen`}
-          onClick={(event) => {
-            // Inside a chip or a card the term must not trigger its parent.
-            event.stopPropagation();
-            setOpen(true);
-          }}
-          className={cn(
-            ABOVE_CARD_LINK,
-            FOCUS_RING,
-            'inline cursor-help rounded-sm text-left underline decoration-dotted decoration-from-font underline-offset-[3px]',
+    <InfoTooltip
+      label={`${text}: Erklärung anzeigen`}
+      className="inline cursor-help rounded-sm text-left underline decoration-dotted decoration-from-font underline-offset-[3px]"
+      contentClassName="max-w-72"
+      content={
+        <>
+          <p className="font-semibold">{entry.term}</p>
+          <p className="mt-1">{entry.definition}</p>
+          {source && (
+            <p className="mt-1.5">
+              Quelle:{' '}
+              <a
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={source.title}
+                className="underline underline-offset-2"
+              >
+                {sourceHost(source.url)}
+              </a>
+            </p>
           )}
-        >
-          {text}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent
-        side="top"
-        className={cn(
-          DAILY_THEME_CLASSES,
-          'max-w-72 border-[var(--daily-border)] bg-[var(--daily-canvas)] text-[13px] leading-snug text-[var(--daily-ink)]',
-        )}
-      >
-        <p className="font-semibold">{entry.term}</p>
-        <p className="mt-1">{entry.definition}</p>
-      </TooltipContent>
-    </Tooltip>
+        </>
+      }
+    >
+      {text}
+    </InfoTooltip>
   );
 }
 

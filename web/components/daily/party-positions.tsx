@@ -22,11 +22,14 @@ import { SpeakerChips } from './speaker-chips';
  */
 export function PartyLogo({
   partyId,
+  logoId,
   name,
   color,
   className,
 }: {
   partyId: string;
+  /** Another logo than `partyId`'s own, see `lib/daily/party-logos.ts`. */
+  logoId?: string;
   name: string;
   color: string;
   className?: string;
@@ -46,7 +49,7 @@ export function PartyLogo({
         </span>
       ) : (
         <Image
-          src={buildPartyImageUrl(partyId)}
+          src={buildPartyImageUrl(logoId ?? partyId)}
           alt={name}
           width={52}
           height={28}
@@ -134,6 +137,7 @@ export function PartyPositions({
             <dt>
               <PartyLogo
                 partyId={position.party_id}
+                logoId={position.logo_id}
                 name={position.party_name}
                 color={position.color}
               />

@@ -190,6 +190,18 @@ def test_speeches_are_put_in_protocol_order_and_linked_to_their_page() -> None:
     ]
 
 
+def test_an_item_with_a_party_not_settled_waits_for_a_later_run() -> None:
+    sitting = _top20_sitting()
+    ordered = apply_protocols(
+        sitting,
+        fetch=lambda _url: _XML,
+        resolve_party=lambda speech: speech.source_item_id != "c",
+    )
+    [item] = sitting.agenda_items
+    assert ordered == 0
+    assert not item.ordered
+
+
 def test_each_matched_speech_takes_its_speakers_id_from_the_protocol() -> None:
     sitting = _top20_sitting()
     apply_protocols(sitting, fetch=lambda _url: _XML)

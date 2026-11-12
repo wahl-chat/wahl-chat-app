@@ -11,6 +11,7 @@ const entry = (
   term,
   definition: `${term} erklärt.`,
   forms,
+  sources: [{ url: 'https://www.bundestag.de/services/glossar/x', title: 'x' }],
 });
 
 const glossary = {
@@ -79,6 +80,27 @@ describe('splitLabel', () => {
   it('explains a Gremium role', () => {
     expect(splitLabel('Obfrau', glossary)).toEqual([
       { text: 'Obfrau', entry: glossary.obmann },
+    ]);
+  });
+
+  it('explains only the forms stored for a term, not related ones', () => {
+    // "Ausschuss" was checked and found not to be "Petitionsausschuss", so
+    // it is not among the entry's forms and stays plain.
+    const withCommittee = {
+      ...glossary,
+      petitionsausschuss: entry('petitionsausschuss', 'Petitionsausschuss', [
+        'Petitionsausschuss',
+        'Petitionsausschusses',
+      ]),
+    };
+    expect(
+      splitLabel('Obfrau im Ausschuss für Verkehr', withCommittee).map((p) => [
+        p.text,
+        p.entry?.term_id ?? null,
+      ]),
+    ).toEqual([
+      ['Obfrau', 'obmann'],
+      [' im Ausschuss für Verkehr', null],
     ]);
   });
 

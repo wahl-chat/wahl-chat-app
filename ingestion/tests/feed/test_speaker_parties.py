@@ -22,14 +22,14 @@ from tests.feed.samples import speech as speech_payload
 
 _PRIEN = OutsideSpeaker(
     name="Karin Prien",
-    party="cdu",
+    party="CDU",
     office="Bundesministerin für Bildung, Familie, Senioren, Frauen und Jugend",
     institution="Bundesregierung",
     redner_ids=("999990152",),
 )
 _WILDBERGER = OutsideSpeaker(
     name="Karsten Wildberger",
-    party="cdu",
+    party="CDU",
     office="Bundesminister für Digitales und Staatsmodernisierung",
     institution="Bundesregierung",
 )
@@ -145,5 +145,81 @@ def test_the_prompt_names_the_office_a_minister_spoke_in() -> None:
 def test_every_roster_party_is_a_known_slug() -> None:
     known = set(CANONICAL_PARTY_SLUGS.values()) | {NON_PARTISAN}
     for outside in load_roster().speakers:
-        assert outside.party is None or outside.party in known, outside
+        assert outside.party is None or outside.party_slug in known, outside
     assert party_display_for(NON_PARTISAN, {}).name == "Parteilos"
+
+
+def _unreadable_stammdaten() -> dict[str, str]:
+    raise OSError("bundestag.de unreachable")
+
+
+def test_without_the_stammdaten_an_open_speech_is_not_settled() -> None:
+    resolver = PartyResolver(roster=Roster([_PRIEN]), stammdaten=_unreadable_stammdaten)
+    member = _speech("Christoph de Vries", "unbekannt", mdb_id="11004926")
+    assert resolver(member) is False
+    assert member.party_id == "unbekannt"
+    assert member.reattributed_from is None
+
+
+def test_without_the_stammdaten_the_protocol_and_a_known_party_still_settle() -> None:
+    resolver = PartyResolver(roster=Roster([]), stammdaten=_unreadable_stammdaten)
+    named = _speech("Anna Berg", "unbekannt", protocol_fraktion="SPD")
+    known = _speech("Bernd Roth", "afd")
+    assert resolver(named) is True
+    assert named.party_id == "spd"
+    assert resolver(known) is True
+
+
+def test_a_roster_office_is_not_given_to_a_speech_from_before_it() -> None:
+    from datetime import date
+
+    minister = OutsideSpeaker(
+        name="Alexander Schweitzer",
+        party="SPD",
+        office="Bundesminister für Arbeit und Soziales",
+        institution="Bundesregierung",
+        redner_ids=("999990149",),
+        valid_from=date(2026, 10, 13),
+    )
+    resolver = PartyResolver(roster=Roster([minister]), stammdaten=lambda: {})
+    before = _speech("Alexander Schweitzer", "unbekannt", day=date(2026, 3, 5))
+    after = _speech("Alexander Schweitzer", "unbekannt", day=date(2026, 10, 14))
+    resolver(before)
+    resolver(after)
+    assert (before.party_id, before.role) == ("spd", None)
+    assert (after.party_id, after.role) == ("spd", minister.office)
+
+
+def test_every_roster_entry_names_its_sources_and_its_redner_id() -> None:
+    import json
+
+    from ingestion.feed.speaker_parties import ROSTER_PATH
+
+    rows = json.loads(ROSTER_PATH.read_text(encoding="utf-8"))["speakers"]
+    for row in rows:
+        assert row["redner_ids"], row["name"]
+        assert row["office_source_url"].startswith("https://"), row["name"]
+    # load_roster refuses an entry without its sources.
+    assert len(load_roster().speakers) == len(rows)
+
+
+def test_an_entry_without_its_sources_is_refused(tmp_path) -> None:
+    import json
+
+    path = tmp_path / "roster.json"
+    path.write_text(
+        json.dumps(
+            {
+                "speakers": [
+                    {
+                        "name": "Erika Gast",
+                        "party": "cdu",
+                        "office": "Bundesministerin",
+                        "institution": "Bundesregierung",
+                    }
+                ]
+            }
+        )
+    )
+    with pytest.raises(ValueError, match="Erika Gast"):
+        load_roster(path)
