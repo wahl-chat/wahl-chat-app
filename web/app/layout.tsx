@@ -6,7 +6,7 @@ import { MediaViewerProvider } from '@/components/providers/media-viewer-provide
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Analytics } from '@vercel/analytics/react';
-import type { Metadata, Viewport } from 'next';
+import type { Metadata } from 'next';
 import './globals.css';
 // pdf.js text-layer positioning for the citation PDF viewer. Imported here, NOT
 // in the dynamically imported viewer chunk: CSS imported only from a
@@ -110,10 +110,6 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     images: ['https://wahl.chat/images/logo.webp'],
   },
-};
-
-export const viewport: Viewport = {
-  maximumScale: 1, // Disable auto-zoom on mobile Safari
 };
 
 const LIGHT_THEME_COLOR = 'hsl(0 0% 100%)';

@@ -40,6 +40,18 @@ export function isUpcomingElection(
 }
 
 /**
+ * How assistive tech announces an election. A concluded election can still be
+ * the one a page is about (the default chat context stays put between
+ * elections), so "current" must not be assumed.
+ */
+export function electionStatusLabel(
+  context: Context,
+  now = new Date(),
+): string {
+  return isUpcomingElection(context, now) ? 'Aktuelle Wahl' : 'Vergangene Wahl';
+}
+
+/**
  * Breaks ties between elections held on the same day, nearest-first.
  *
  * Berlin and Mecklenburg-Vorpommern both vote on 20 September 2026, so the

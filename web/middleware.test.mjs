@@ -107,6 +107,25 @@ describe('legacy context-less URLs', () => {
     );
   });
 
+  test('names people guess for the feed land on it, keeping their parameters', async () => {
+    for (const path of ['/news', '/feed', '/bundestag', '/news/']) {
+      const response = await middleware(
+        requestFrom(`https://wahl.chat${path}?utm_source=x`),
+      );
+
+      expect(response.headers.get('location')).toBe(
+        'https://wahl.chat/?utm_source=x',
+      );
+      expect(response.status).toBe(308);
+    }
+  });
+
+  test('other unknown paths are left to the route, which 404s them', async () => {
+    const response = await middleware(requestFrom('https://wahl.chat/foo'));
+
+    expect(response.headers.get('location')).toBeNull();
+  });
+
   test('a path merely starting with the same letters is not a legacy /chat URL', async () => {
     const response = await middleware(requestFrom('https://wahl.chat/chatfoo'));
 

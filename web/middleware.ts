@@ -6,6 +6,7 @@ import {
   REGION_CONTEXTS,
   TENANT_ID_HEADER,
 } from './lib/constants';
+import { looksLikeContextId } from './lib/context-id';
 
 // Static pages that should remain at root level (not context-specific)
 const STATIC_PAGES = [
@@ -33,6 +34,8 @@ const METADATA_ROUTES = [
   '/icon.svg',
   '/apple-icon.png',
 ];
+
+const FEED_ALIASES = ['/news', '/feed', '/bundestag'];
 
 // Check if the pathname is a static page
 function isStaticPage(pathname: string): boolean {
@@ -64,14 +67,6 @@ function getContextIdFromGeo(request: NextRequest): string {
   return context && !isElectionPast(context.electionDate)
     ? context.contextId
     : DEFAULT_CONTEXT_ID;
-}
-
-// Known context ID patterns (will be validated against actual contexts)
-function looksLikeContextId(segment: string): boolean {
-  // Context IDs are like: bundestagswahl-2025, bw2026, europawahl-2029
-  return /^[a-z]{2,}\d{4}$|^[a-z]+-[a-z]+-\d{4}$|^[a-z]+wahl-\d{4}$/.test(
-    segment,
-  );
 }
 
 // Helper to build redirect URL with search params preserved
@@ -140,6 +135,13 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname === '/session') {
+    return NextResponse.redirect(buildRedirectUrl(request, '/'), 308);
+  }
+
+  // Names people guess for the feed. Without this they fall into the
+  // /[contextId] catch-all, which is no place for a page that is not an
+  // election.
+  if (FEED_ALIASES.includes(pathname.replace(/\/$/, ''))) {
     return NextResponse.redirect(buildRedirectUrl(request, '/'), 308);
   }
 
