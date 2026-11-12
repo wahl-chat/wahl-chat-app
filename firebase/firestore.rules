@@ -35,6 +35,12 @@ service cloud.firestore {
       allow read;
     }
 
+    // Explanations of the feed's expert terms; written only by the feed
+    // builder and the seed script.
+    match /glossary/{term_id} {
+      allow read;
+    }
+
     match /parties/{document=**} {
       allow read;
     }

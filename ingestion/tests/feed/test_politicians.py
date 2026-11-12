@@ -384,3 +384,52 @@ def test_a_field_the_model_dropped_does_not_make_a_record_due(
     log: list[str] = []
     assert _refresh(db, ["11005000"], stammdaten, _fetcher(_pages(), log)).written == []
     assert log == [s.INDEX_URL, s.ROLL_CALL_LIST_URL]
+
+
+def test_a_minister_from_outside_the_bundestag_gets_a_record_from_the_roster(
+    stammdaten: Path,
+) -> None:
+    from ingestion.feed.speaker_parties import OutsideSpeaker, Roster
+
+    roster = Roster(
+        [
+            OutsideSpeaker(
+                name="Karsten Wildberger",
+                party="cdu",
+                office="Bundesminister für Digitales und Staatsmodernisierung",
+                institution="Bundesregierung",
+            ),
+            OutsideSpeaker(
+                name="Ronald Rauhe",
+                party=None,
+                office="Staatsminister für Sport und Ehrenamt",
+                institution="Bundesregierung",
+            ),
+        ]
+    )
+    db = FakeDb()
+    report = _refresh(
+        db,
+        ["999990160", "999990170", "99999999"],
+        stammdaten,
+        _fetcher(_pages()),
+        roster=lambda: roster,
+        names={"999990160": "Dr. Karsten Wildberger", "999990170": "Ronald Rauhe"},
+    )
+    assert report.written == ["999990160", "999990170"]
+    # No official source names his party, so his record names none.
+    assert db.docs["999990170"]["partei"] is None
+    assert report.not_members == ["99999999"]
+    record = db.docs["999990160"]
+    assert (record["name"], record["partei"], record["source"]) == (
+        "Karsten Wildberger",
+        "CDU",
+        "roster",
+    )
+    assert record["offices"] == [
+        {
+            "function": "Bundesminister für Digitales und Staatsmodernisierung",
+            "institution": "Bundesregierung",
+            "kind": "government",
+        }
+    ]

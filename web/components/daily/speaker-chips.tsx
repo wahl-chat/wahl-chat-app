@@ -4,10 +4,13 @@ import type { DigestSpeaker } from '@/lib/firebase/firebase.types';
 import { cn, formatTimestamp } from '@/lib/utils';
 import { PlayIcon, UserRoundIcon } from 'lucide-react';
 import Image from 'next/image';
-import { FOCUS_RING } from './card-styles';
+import { FOCUS_RING, MUTED_TEXT } from './card-styles';
+import { GlossaryLabel } from './glossary-text';
 
 /** One chip per speaker of a Fraktion: who spoke, and for how long. A tap
- * opens what the Bundestag publishes about them. */
+ * opens what the Bundestag publishes about them. A member of the government
+ * carries the office they spoke in below the chip: they speak for the
+ * government, and the reader should not take it for the Fraktion's line. */
 export function SpeakerChips({
   speakers,
   photos = {},
@@ -26,7 +29,7 @@ export function SpeakerChips({
     >
       {speakers.map((speaker) => {
         const photo = speaker.mdb_id ? photos[speaker.mdb_id] : undefined;
-        return (
+        const chip = (
           <button
             key={speaker.name}
             type="button"
@@ -72,6 +75,25 @@ export function SpeakerChips({
               </span>
             ) : null}
           </button>
+        );
+        if (!speaker.role) {
+          return chip;
+        }
+        return (
+          <div
+            key={speaker.name}
+            className="flex max-w-full flex-col items-start gap-0.5"
+          >
+            {chip}
+            <span
+              className={cn(
+                'max-w-72 px-2 text-[11px] leading-snug',
+                MUTED_TEXT,
+              )}
+            >
+              <GlossaryLabel label={speaker.role} />
+            </span>
+          </div>
         );
       })}
     </div>

@@ -26,6 +26,7 @@ import { ChevronLeftIcon, ShareIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useId, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
+import { GlossaryText } from './glossary-text';
 import { Hemicycle, PartyVoteBreakdown, SeatLegend } from './hemicycle';
 import { PartyPositions, orderedPositions } from './party-positions';
 import { HeatInfo } from './plenary-card';
@@ -131,7 +132,9 @@ function SectionDetail({
         </DialogPrimitive.Title>
         {/* The card's teaser, here in full, so the detail reads on from it. */}
         {section.summary && (
-          <p className="text-[17px] leading-relaxed">{section.summary}</p>
+          <p className="text-[17px] leading-relaxed">
+            <GlossaryText text={section.summary} terms={section.terms} />
+          </p>
         )}
         {points.length > 0 && (
           <section className="flex flex-col gap-1.5">
@@ -139,7 +142,7 @@ function SectionDetail({
             <ul className="list-disc space-y-1.5 pl-5 text-[15px] leading-relaxed">
               {points.map((point, i) => (
                 <li key={`${i}-${point}`}>
-                  {point}
+                  <GlossaryText text={point} terms={section.terms} />
                   <SourcePills
                     numbers={sources.keyPoint(i)}
                     sources={sources}
@@ -161,6 +164,7 @@ function SectionDetail({
             </div>
             <PartyPositions
               positions={section.positions}
+              terms={section.terms}
               openedBy={openedBy}
               sources={sources}
               onSpeaker={onSpeaker}
@@ -219,7 +223,9 @@ function VoteDetail({ item }: { item: VoteItem }) {
       {about && (
         <section className="rounded-xl bg-[var(--daily-surface)] p-4">
           <h3 className={SECTION_LABEL}>Worum ging es?</h3>
-          <p className="mt-1 text-[15px] leading-relaxed">{about}</p>
+          <p className="mt-1 text-[15px] leading-relaxed">
+            <GlossaryText text={about} terms={vote.terms} />
+          </p>
         </section>
       )}
       <section className="flex flex-col gap-1">

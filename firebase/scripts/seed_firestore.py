@@ -55,6 +55,9 @@ DATA_DIR = FIREBASE_DIR / "firestore_data" / ENV
 # Real feed-builder output for a few sitting days. Only ever written to the
 # emulator: in a real project, the feed collections belong to the builder alone.
 EMULATOR_FEED_FILE = FIREBASE_DIR / "firestore_data" / "emulator" / "feed.json"
+# Hand-written explanations of the feed's commonest expert terms, the same in
+# every environment. The feed job adds the rest (ingestion.feed.glossary).
+GLOSSARY_FILE = FIREBASE_DIR / "firestore_data" / "glossary.json"
 # Gzipped: every speaker's record, Veröffentlichungspflichtige Angaben and
 # votes included, is too large to commit as plain JSON.
 EMULATOR_POLITICIANS_FILE = (
@@ -396,6 +399,46 @@ def seed_feed(db):
         print(f"👤 Seeded {len(politicians)} politicians (emulator only)")
 
 
+def glossary_term_id(term):
+    """Mirrors ingestion.feed.glossary.term_id: the job and the seed must
+    write the same document."""
+    import re
+    import unicodedata
+
+    text = term.casefold().replace("ß", "ss")
+    for umlaut, spelled in (("ä", "ae"), ("ö", "oe"), ("ü", "ue")):
+        text = text.replace(umlaut, spelled)
+    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", text).strip("-")
+
+
+def seed_glossary(db):
+    """Write the hand-written glossary entries. Merged, so the forms the feed
+    job has collected for a term are kept."""
+    if not GLOSSARY_FILE.exists():
+        return
+    with open(GLOSSARY_FILE) as f:
+        entries = json.load(f)
+    now = datetime.now(timezone.utc).isoformat()
+    for entry in entries:
+        term_id = glossary_term_id(entry["term"])
+        db.collection("glossary").document(term_id).set(
+            {
+                "term_id": term_id,
+                "term": entry["term"],
+                "definition": entry["definition"],
+                "forms": firestore.ArrayUnion(entry["forms"]),
+                "status": "verified",
+                "attempts": 0,
+                "generated_by": "hand",
+                "prompt_version": None,
+                "updated_at": now,
+            },
+            merge=True,
+        )
+    print(f"\n📖 Seeded {len(entries)} glossary entries")
+
+
 def revalidate_frontend_cache(context_ids, firestore_project=None):
     """Optionally bust the live site's Firestore cache after a real-project seed.
 
@@ -462,6 +505,8 @@ def main():
     seed_sources(db)
 
     seed_feed(db)
+
+    seed_glossary(db)
 
     revalidate_frontend_cache(
         context_ids, firestore_project=getattr(db, "project", None)

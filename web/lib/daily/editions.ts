@@ -37,6 +37,7 @@ function toSection(
     item_id: item.id,
     drucksachen: facts.drucksachen ?? [],
     interjections: facts.interjections ?? null,
+    terms: content.terms ?? [],
   };
 }
 
@@ -58,6 +59,7 @@ function toVote(
     suggested_questions: content.suggested_questions,
     item_id: item.id,
     drucksachen: facts.drucksachen ?? [],
+    terms: content.terms ?? [],
   };
 }
 

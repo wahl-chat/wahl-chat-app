@@ -172,6 +172,13 @@ class Speech:
     mdb_id: Optional[str] = None
     # Seconds of the speech's own video; None without aligned sentences.
     duration: Optional[float] = None
+    # The office a member of the government speaks in, and the Fraktion the
+    # protocol names: both from the protocol's ``<redner>``.
+    role: Optional[str] = None
+    protocol_fraktion: Optional[str] = None
+    # The chunk's party when the feed filed the speech under another one
+    # (see ``speaker_parties``); the debate is rebuilt when it is set.
+    reattributed_from: Optional[str] = None
 
 
 @dataclass

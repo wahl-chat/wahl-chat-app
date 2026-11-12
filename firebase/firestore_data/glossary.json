@@ -1,0 +1,62 @@
+[
+  {
+    "term": "Aktuelle Stunde",
+    "forms": ["Aktuelle Stunde", "Aktuellen Stunde"],
+    "definition": "Eine kurze Debatte über ein aktuelles Thema, die eine Fraktion kurzfristig verlangen kann. Jede Rede dauert höchstens fünf Minuten, abgestimmt wird dabei nicht."
+  },
+  {
+    "term": "Regierungsbefragung",
+    "forms": ["Regierungsbefragung"],
+    "definition": "Abgeordnete stellen Mitgliedern der Bundesregierung im Plenum Fragen, die diese sofort beantworten. Sie findet in Sitzungswochen in der Regel am Mittwoch statt."
+  },
+  {
+    "term": "Beschlussempfehlung",
+    "forms": ["Beschlussempfehlung", "Beschlussempfehlungen"],
+    "definition": "Der Vorschlag eines Ausschusses an den ganzen Bundestag, wie über einen Gesetzentwurf oder Antrag entschieden werden soll: annehmen, ändern oder ablehnen."
+  },
+  {
+    "term": "Petitionsausschuss",
+    "forms": ["Petitionsausschuss", "Petitionsausschusses"],
+    "definition": "Der Ausschuss, der Bitten und Beschwerden von Bürgerinnen und Bürgern an den Bundestag prüft. Er schlägt dem Plenum vor, wie mit jeder Petition umgegangen wird."
+  },
+  {
+    "term": "Bundesminister",
+    "forms": ["Bundesminister", "Bundesministerin"],
+    "definition": "Leitet ein Ministerium der Bundesregierung, etwa für Finanzen oder Gesundheit, und verantwortet die Politik der Regierung in diesem Bereich."
+  },
+  {
+    "term": "Parlamentarischer Staatssekretär",
+    "forms": ["Parlamentarischer Staatssekretär", "Parlamentarische Staatssekretärin"],
+    "definition": "Eine Abgeordnete oder ein Abgeordneter, die oder der ein Bundesministerium unterstützt und die Ministerin oder den Minister vertritt, etwa bei Debatten und Fragen im Bundestag."
+  },
+  {
+    "term": "Staatsminister",
+    "forms": ["Staatsminister", "Staatsministerin"],
+    "definition": "Ein Mitglied der Bundesregierung mit besonderen Aufgaben, etwa im Kanzleramt oder im Auswärtigen Amt, das die Leitung dort unterstützt, ohne selbst ein Ministerium zu führen."
+  },
+  {
+    "term": "Ministerpräsident",
+    "forms": ["Ministerpräsident", "Ministerpräsidentin"],
+    "definition": "Leitet die Regierung eines Bundeslandes. Im Bundestag kann sie oder er als Mitglied des Bundesrates sprechen."
+  },
+  {
+    "term": "Parlamentarischer Geschäftsführer",
+    "forms": ["Parlamentarischer Geschäftsführer", "Parlamentarische Geschäftsführerin"],
+    "definition": "Organisiert die Arbeit einer Fraktion im Bundestag: wer wann redet, wie abgestimmt wird und was mit den anderen Fraktionen vereinbart wird."
+  },
+  {
+    "term": "Obmann",
+    "forms": ["Obmann", "Obfrau", "Obleute"],
+    "definition": "Vertritt die eigene Fraktion in einem Ausschuss und spricht sich mit den anderen Fraktionen über dessen Arbeit ab, etwa über Anhörungen und die Tagesordnung."
+  },
+  {
+    "term": "Ordentliches Mitglied",
+    "forms": ["Ordentliches Mitglied", "Ordentliche Mitglieder"],
+    "definition": "Arbeitet fest in einem Ausschuss mit und stimmt dort bei allen Entscheidungen ab."
+  },
+  {
+    "term": "Stellvertretendes Mitglied",
+    "forms": ["Stellvertretendes Mitglied", "Stellvertretende Mitglieder"],
+    "definition": "Vertritt im Ausschuss ein ordentliches Mitglied der eigenen Fraktion, wenn es fehlt, und stimmt dann an seiner Stelle ab."
+  }
+]

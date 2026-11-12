@@ -65,6 +65,7 @@ from ingestion.feed.index import FEED_COLLECTION_NAME, setup_feed_collection
 from ingestion.feed.items import build_needed
 from ingestion.feed.models import FeedItem
 from ingestion.feed.parliaments import FEED_PARLIAMENTS, PARLIAMENTS, Parliament
+from ingestion.feed.politicians import speakers_without_id
 from ingestion.feed.store import read_items_since
 from ingestion.feed.translate import needs_translation
 from ingestion.firestore_guard import guard_firestore_target
@@ -248,13 +249,15 @@ def format_plan(plan: ParliamentPlan) -> list[str]:
 
 
 def coverage_lines(items: list[FeedItem], parliament_id: str) -> list[str]:
-    """What the store holds now: days, published items, items still German-only."""
+    """What the store holds now: days, published items, items still
+    German-only, and speakers whose chip cannot open a profile."""
     published = [i for i in items if i.status == "published"]
     days = {i.date for i in published}
     untranslated = sum(1 for i in published if needs_translation(i, "en"))
     return [
         f"{parliament_id:>10}  days={len(days)} items={len(published)} "
-        f"without_english={untranslated}"
+        f"without_english={untranslated} "
+        f"speakers_without_mdb_id={speakers_without_id(published)}"
     ]
 
 

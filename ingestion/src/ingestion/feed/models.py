@@ -57,6 +57,9 @@ class DigestSpeaker(BaseModel):
     mdb_id: Optional[str] = None
     # Length of the speech's video in seconds, when op.tv has aligned it.
     duration: Optional[int] = None
+    # The office a member of the government spoke in, as the protocol names
+    # it ("Bundesministerin für …"); None for members of a Fraktion.
+    role: Optional[str] = None
 
 
 class SpeechSource(BaseModel):
@@ -127,7 +130,7 @@ FeedItemStatus = Literal["published", "retracted"]
 
 # Bump when the stored feed shape gains or changes a field, and migrate the
 # stored items to it. Recorded on each item; it does not trigger a rebuild.
-FEED_FORMAT_VERSION = "5"
+FEED_FORMAT_VERSION = "6"
 
 
 class LocalizedPosition(BaseModel):
@@ -135,6 +138,15 @@ class LocalizedPosition(BaseModel):
 
     party_id: str
     text: str
+
+
+class TermRef(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # Keys ``glossary/{term_id}``.
+    term_id: str
+    # The term as the text writes it, inflected: "Aktuellen Stunde".
+    surface: str
 
 
 class LocalizedContent(BaseModel):
@@ -156,6 +168,10 @@ class LocalizedContent(BaseModel):
     prompt_version: str
     generated_by: Optional[str] = None
     generated_at: datetime
+    # Expert terms in the text the glossary explains (see ``glossary``), and
+    # the hash of the text they were found in. German only for now.
+    terms: list[TermRef] = Field(default_factory=list)
+    terms_hash: Optional[str] = None
 
 
 class DebateParty(BaseModel):

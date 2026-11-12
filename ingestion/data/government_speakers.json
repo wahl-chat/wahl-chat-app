@@ -1,0 +1,55 @@
+{
+  "description": "Speakers in the Bundestag who are not MdBs, and so have no party in the MdB-Stammdaten: members of the federal government from outside the Bundestag and Bundesrat members. The feed files their speeches under this party instead of 'Unbekannt'. Kept by hand: add a person when the feed log warns that a speaker stayed unattributed, and check office and party against their profile on bundesregierung.de (or the party's own page, where that profile names none) before adding them. 'party' is null when no official source names one: the speech then stays 'Unbekannt', but the speaker still gets their office tag and record. A member of the Bundestag needs no entry; the Stammdaten resolve them.",
+  "as_of": "2026-11-12",
+  "speakers": [
+    {
+      "name": "Karin Prien",
+      "party": "cdu",
+      "office": "Bundesministerin für Bildung, Familie, Senioren, Frauen und Jugend",
+      "institution": "Bundesregierung",
+      "redner_ids": ["999990152"]
+    },
+    {
+      "name": "Stefanie Hubig",
+      "party": "spd",
+      "office": "Bundesministerin der Justiz und für Verbraucherschutz",
+      "institution": "Bundesregierung",
+      "redner_ids": ["999990151"]
+    },
+    {
+      "name": "Karsten Wildberger",
+      "party": "cdu",
+      "office": "Bundesminister für Digitales und Staatsmodernisierung",
+      "institution": "Bundesregierung",
+      "redner_ids": []
+    },
+    {
+      "name": "Katherina Reiche",
+      "party": "cdu",
+      "office": "Bundesministerin für Wirtschaft und Energie",
+      "institution": "Bundesregierung",
+      "redner_ids": []
+    },
+    {
+      "name": "Alexander Schweitzer",
+      "party": "spd",
+      "office": "Bundesminister für Arbeit und Soziales",
+      "institution": "Bundesregierung",
+      "redner_ids": []
+    },
+    {
+      "name": "Wolfram Weimer",
+      "party": "parteilos",
+      "office": "Staatsminister für Kultur und Medien",
+      "institution": "Bundesregierung",
+      "redner_ids": []
+    },
+    {
+      "name": "Ronald Rauhe",
+      "party": null,
+      "office": "Staatsminister für Sport und Ehrenamt",
+      "institution": "Bundesregierung",
+      "redner_ids": []
+    }
+  ]
+}

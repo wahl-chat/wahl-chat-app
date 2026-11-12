@@ -1,19 +1,61 @@
 'use client';
 
 import { useAnonymousAuth } from '@/components/anonymous-auth';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
 import { readInterest, recordInterest } from '@/lib/daily/interest';
 import type { FeedInterest } from '@/lib/firebase/firebase';
 import { cn } from '@/lib/utils';
 import { type LucideIcon, ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
 import { Fragment, useEffect, useState } from 'react';
-import { FOCUS_RING, MUTED_TEXT } from './card-styles';
+import { ABOVE_CARD_LINK, FOCUS_RING, MUTED_TEXT } from './card-styles';
 
 const OPTIONS: { value: FeedInterest; label: string; Icon: LucideIcon }[] = [
   { value: 'yes', label: 'Interessant', Icon: ThumbsUpIcon },
   { value: 'no', label: 'Nicht interessant', Icon: ThumbsDownIcon },
 ];
 
-/** "Interessant?" over 👍 | 👎, bottom left of every card. */
+const QUESTION = 'Interessant für dich?';
+const WHY_WE_ASK =
+  'Wenn du uns sagst, was dich interessiert, können wir die Reihenfolge des Feeds für dich verbessern.';
+
+/** Why we ask: on hover with a mouse, on tap on a touch screen. */
+function InterestQuestion() {
+  const [open, setOpen] = useState(false);
+  return (
+    <Tooltip open={open} onOpenChange={setOpen} delayDuration={150}>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={cn(
+            ABOVE_CARD_LINK,
+            FOCUS_RING,
+            'self-start rounded text-left text-[13px] underline decoration-dotted underline-offset-2',
+            MUTED_TEXT,
+          )}
+        >
+          {QUESTION}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        side="top"
+        className={cn(
+          DAILY_THEME_CLASSES,
+          'max-w-64 border-[var(--daily-border)] bg-[var(--daily-canvas)] text-[13px] leading-snug text-[var(--daily-ink)]',
+        )}
+      >
+        {WHY_WE_ASK}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** "Interessant für dich?" over 👍 | 👎, bottom left of every card. */
 function InterestFeedback({
   itemKey,
   className,
@@ -43,10 +85,8 @@ function InterestFeedback({
         className,
       )}
     >
-      <legend className="sr-only">Interessant?</legend>
-      <span aria-hidden className={cn('text-[13px]', MUTED_TEXT)}>
-        Interessant?
-      </span>
+      <legend className="sr-only">{QUESTION}</legend>
+      <InterestQuestion />
       {/* Pulled left so the first icon lines up with the label above. */}
       <div className="-ml-2.5 flex items-center">
         {OPTIONS.map(({ value, label, Icon }, i) => {

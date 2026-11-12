@@ -19,6 +19,7 @@ from ingestion.feed.protocol_pages import (
     protocol_xml_url,
 )
 from ingestion.feed.reader import SittingDay, assemble_speeches, group_sitting_days
+from ingestion.feed.speaker_parties import OutsideSpeaker, PartyResolver, Roster
 
 _FIXTURE = (
     Path(__file__).resolve().parents[1]
@@ -509,3 +510,47 @@ def test_a_sentence_is_found_across_line_breaks_and_line_numbers() -> None:
     assert pdf.page_of(sentence, 6) == 5
     assert pdf.page_of("Kommt nirgends vor, auf keiner Seite.", 3) is None
     assert pdf.page_of("…", 3) is None
+
+
+def test_a_minister_the_corpus_could_not_place_is_filed_under_her_party() -> None:
+    xml = _XML.replace(
+        _rede("ID3", "Bernd", "Roth", "AfD"),
+        """
+      <rede id="ID3">
+        <p klasse="redner"><redner id="999990152"><name>
+          <vorname>Karin</vorname><nachname>Prien</nachname>
+          <rolle><rolle_lang>Bundesministerin für Bildung</rolle_lang></rolle>
+        </name></redner>Karin Prien, Bundesministerin:</p>
+        <p klasse="J">Rede von Prien.</p>
+      </rede>""",
+    )
+    payload = _payload("a", "de-21-89-karin-prien-top20", "Karin Prien")
+    payload["party_id"] = "unbekannt"
+    sitting = _sitting(
+        [payload, _payload("b", "de-21-89-clara-weiss-top20", "Clara Weiss")]
+    )
+    roster = Roster(
+        [
+            OutsideSpeaker(
+                name="Karin Prien",
+                party="cdu",
+                office="Bundesministerin",
+                institution="Bundesregierung",
+                redner_ids=("999990152",),
+            )
+        ]
+    )
+    apply_protocols(
+        sitting,
+        fetch=lambda _url: xml,
+        resolve_party=PartyResolver(roster=roster, stammdaten=dict),
+    )
+    [item] = sitting.agenda_items
+    prien = next(s for s in item.speeches if s.source_item_id == "a")
+    assert (prien.party_id, prien.mdb_id, prien.role) == (
+        "cdu",
+        "999990152",
+        "Bundesministerin für Bildung",
+    )
+    weiss = next(s for s in item.speeches if s.source_item_id == "b")
+    assert (weiss.party_id, weiss.protocol_fraktion, weiss.role) == ("spd", "SPD", None)

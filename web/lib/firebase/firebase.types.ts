@@ -204,6 +204,8 @@ export type DigestVote = {
   item_id?: string;
   /** The Drucksachen the poll was about, `"21/6130"`; absent until known. */
   drucksachen?: string[];
+  /** Expert terms in the summary. */
+  terms?: TermRef[];
 };
 
 export type DigestCitation = {
@@ -230,6 +232,9 @@ export type DigestSpeaker = {
   mdb_id?: string | null;
   /** Length of the speech's video in seconds. */
   duration?: number | null;
+  /** The office a member of the government spoke in, as the protocol names
+   * it; absent for members of a Fraktion. */
+  role?: string | null;
 };
 
 /** The passage of a speech a bullet or position draws on. The model names
@@ -319,6 +324,8 @@ export type DigestSessionSection = {
   drucksachen?: string[];
   /** Conflict reactions during the debate; absent until counted. */
   interjections?: number | null;
+  /** Expert terms in the summary, bullets and positions. */
+  terms?: TermRef[];
 };
 
 export type DigestSession = {
@@ -345,6 +352,20 @@ export type FeedLocale = 'de' | 'en';
 
 export type LocalizedPosition = { party_id: string; text: string };
 
+/** An expert term in an item's text, as the text writes it. */
+export type TermRef = { term_id: string; surface: string };
+
+/** Firestore `glossary/{term_id}`, as the web reads it: verified entries
+ * only, written by the feed job or by hand. */
+export type GlossaryEntry = {
+  term_id: string;
+  /** The base form: "Aktuelle Stunde". */
+  term: string;
+  definition: string;
+  /** Every form the texts have used; offices are matched against them. */
+  forms: string[];
+};
+
 export type LocalizedContent = {
   headline: string;
   teaser: string | null;
@@ -354,6 +375,9 @@ export type LocalizedContent = {
   /** Other locales only: the verbatim German quote stays in `debate`. */
   quote_translation: string | null;
   origin: 'generated' | 'translated';
+  /** Expert terms the glossary explains; German only, absent until the
+   * feed job has looked. */
+  terms?: TermRef[];
 };
 
 export type DebateFacts = {
@@ -508,6 +532,9 @@ export type Politician = {
    * written before they were read. */
   votes?: RollCallVote[];
   votes_checked_at?: string | null;
+  /** "roster" for a speaker from outside the Bundestag: only party and
+   * office, kept by hand. Absent on records written before. */
+  source?: 'bundestag' | 'roster';
 };
 
 /** One parliament's recent editions and their items. */

@@ -10,6 +10,7 @@ import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
 import {
   type SectionItem,
   itemTeaser,
+  itemTerms,
   protocolLabel,
   sectionTopics,
 } from '@/lib/daily/items';
@@ -146,6 +147,7 @@ export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
         </h3>
         <ItemTeaser
           text={itemTeaser(item)}
+          terms={itemTerms(item)}
           label={section.headline}
           onOpen={onOpen}
         />
