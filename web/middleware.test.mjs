@@ -107,6 +107,8 @@ describe('legacy context-less URLs', () => {
     );
   });
 
+  // Temporary, so the paths stay free: a browser that followed a 308 would
+  // never reach a page later served there.
   test('names people guess for the feed land on it, keeping their parameters', async () => {
     for (const path of ['/news', '/feed', '/bundestag', '/news/']) {
       const response = await middleware(
@@ -116,7 +118,7 @@ describe('legacy context-less URLs', () => {
       expect(response.headers.get('location')).toBe(
         'https://wahl.chat/?utm_source=x',
       );
-      expect(response.status).toBe(308);
+      expect(response.status).toBe(307);
     }
   });
 
