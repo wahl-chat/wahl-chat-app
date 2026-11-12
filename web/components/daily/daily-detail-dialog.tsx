@@ -118,7 +118,9 @@ function SectionDetail({
   );
   return (
     <>
-      {media && <SectionMediaFrame media={media} />}
+      {media && (
+        <SectionMediaFrame key={media.src} media={media} autoPlayMuted />
+      )}
       <div className="flex flex-col gap-4 px-4 pt-4">
         <TopicMeta
           topics={sectionTopics(section)}
@@ -314,7 +316,9 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
           onEscapeKeyDown={closeLayerAbove}
           className={cn(
             DAILY_THEME_CLASSES,
-            'fixed inset-0 z-50 flex flex-col bg-[var(--daily-canvas)] focus:outline-none md:inset-auto md:left-1/2 md:top-1/2 md:h-[90dvh] md:w-full md:max-w-screen-sm md:-translate-x-1/2 md:-translate-y-1/2 md:overflow-hidden md:rounded-xl md:border md:border-[var(--daily-border)] md:dark:border-zinc-600',
+            // Centred from md up by margins, not translate(-50%): a half-pixel
+            // offset blurs the video's native controls in Safari.
+            'fixed inset-0 z-50 flex flex-col bg-[var(--daily-canvas)] focus:outline-none md:m-auto md:h-[90dvh] md:w-full md:max-w-screen-sm md:overflow-hidden md:rounded-xl md:border md:border-[var(--daily-border)] md:dark:border-zinc-600',
           )}
         >
           {item && (
