@@ -3,6 +3,7 @@ import type { FeedItem, ParliamentFeed } from '@/lib/firebase/firebase.types';
 import feedFixture from '../../../firebase/firestore_data/emulator/feed.json';
 import { feedToDigests } from './editions';
 import { buildFeed, rankFeed } from './feed';
+import { DEFAULT_FILTER } from './filter';
 import { findItem, sectionItems, voteItems } from './items';
 import { topicShortTitle } from './topics';
 
@@ -76,12 +77,13 @@ describe('debate topics', () => {
       ),
     };
     const shown = (topic: string) =>
-      rankFeed(buildFeed([feedToDigests(feed)], 3650), [topic]).flatMap(
-        (day) => [
-          day.hot?.key,
-          ...day.blocks.flatMap((b) => b.sections.map((s) => s.key)),
-        ],
-      );
+      rankFeed(buildFeed([feedToDigests(feed)], 3650), {
+        ...DEFAULT_FILTER,
+        topics: [topic],
+      }).flatMap((day) => [
+        day.hot?.key,
+        ...day.blocks.flatMap((b) => b.sections.map((s) => s.key)),
+      ]);
     expect(shown('health_care')).toContain(id);
     expect(shown('economy_finance')).toContain(id);
     expect(shown('housing_rent')).not.toContain(id);

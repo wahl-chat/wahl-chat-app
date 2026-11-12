@@ -125,9 +125,9 @@ function DailyDaySection({ day, onOpen }: Props) {
     <section
       id={`tag-${day.date}`}
       // Focusable from script only, for a jump from the sitting calendar. The
-      // jump stops below the header and the sticky topic bar (h-14).
+      // jump stops below the header and the sticky filter bar (4.5rem).
       tabIndex={-1}
-      className="flex scroll-mt-[calc(var(--header-height,4rem)+3.5rem+1rem)] flex-col gap-8"
+      className="flex scroll-mt-[calc(var(--header-height,4rem)+4.5rem+1rem)] flex-col gap-8"
       aria-label={dayFormat.format(utcDay(day.date))}
     >
       {hot && (

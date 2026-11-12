@@ -1,5 +1,6 @@
 import DailyFeed from '@/components/daily/daily-feed';
 import JsonLd from '@/components/seo/json-ld';
+import { parseKindParam } from '@/lib/daily/filter';
 import { getLocalPreviewDigests } from '@/lib/daily/local-preview';
 import { parseStateParam } from '@/lib/daily/region';
 import { parseTopicsParam } from '@/lib/daily/topics';
@@ -103,7 +104,10 @@ async function HomePage({ searchParams }: Props) {
         }}
         previewDigests={previewDigests}
         initialStates={parseStateParam(params.land)}
-        initialTopics={parseTopicsParam(params.themen)}
+        initialFilter={{
+          topics: parseTopicsParam(params.themen),
+          kinds: parseKindParam(params.inhalt),
+        }}
         initialItem={item}
         linkedDay={linkedDay}
         calendar={calendar}
