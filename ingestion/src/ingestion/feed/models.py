@@ -127,7 +127,7 @@ FeedItemStatus = Literal["published", "retracted"]
 
 # Bump when the stored feed shape gains or changes a field, and migrate the
 # stored items to it. Recorded on each item; it does not trigger a rebuild.
-FEED_FORMAT_VERSION = "4"
+FEED_FORMAT_VERSION = "5"
 
 
 class LocalizedPosition(BaseModel):
@@ -170,6 +170,23 @@ class DebateParty(BaseModel):
     position_sources: list[SpeechSource] = Field(default_factory=list)
 
 
+class CardVideo(BaseModel):
+    """The speech a debate card plays, and a still of where it starts. The
+    poster is cut at ``start`` and the player opens at ``start``, so pressing
+    play continues from the very frame the poster shows. Both come from one
+    stored number; never derive either side again elsewhere."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    # The bare video file, without a media fragment.
+    video_url: str
+    start: float
+    # None until a run cut and uploaded it; the card then shows no still.
+    poster_url: Optional[str] = None
+    speaker: Optional[str] = None
+    party_name: Optional[str] = None
+
+
 class DebateFacts(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -198,6 +215,9 @@ class DebateFacts(BaseModel):
     # translation keeps the bullets' count, so one list serves every locale.
     # Empty on items stored before sources were kept.
     key_point_sources: list[KeyPointSources] = Field(default_factory=list)
+    # Chosen from the facts above by ``card_video.choose_card_video``; None on
+    # items no run has given one yet.
+    card_video: Optional[CardVideo] = None
 
 
 class VoteFacts(BaseModel):

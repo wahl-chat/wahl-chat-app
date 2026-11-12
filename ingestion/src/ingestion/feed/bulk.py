@@ -38,7 +38,7 @@ import logging
 import os
 import sys
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -59,10 +59,15 @@ from ingestion.feed.builder import (
     with_speaker_facts,
 )
 from ingestion.feed.calendar import FRESH_FOR, build_calendar
+from ingestion.feed.card_video import choose_card_video
 from ingestion.feed.documents import PollDocuments, poll_documents
 from ingestion.feed.index import FEED_COLLECTION_NAME, IndexReport, index_items
 from ingestion.feed.items import BuildNeed, assemble_edition, build_needed
-from ingestion.feed.models import FeedEdition, FeedItem
+from ingestion.feed.models import (
+    FEED_FORMAT_VERSION,
+    FeedEdition,
+    FeedItem,
+)
 from ingestion.feed.parliaments import (
     FEED_PARLIAMENTS,
     PARLIAMENTS,
@@ -73,6 +78,13 @@ from ingestion.feed.politicians import (
     RefreshReport,
     refresh_politicians,
     speaker_ids,
+)
+from ingestion.feed.posters import (
+    PosterMaker,
+    PosterReport,
+    add_posters,
+    poster_maker,
+    writes_webp,
 )
 from ingestion.feed.protocol_pages import apply_protocols
 from ingestion.feed.reader import (
@@ -88,11 +100,12 @@ from ingestion.feed.reader import (
 )
 from ingestion.feed.store import (
     carry_over_translations,
-    read_edition_item_ids,
     read_calendar,
+    read_edition_item_ids,
     read_items_since,
     vanished_item_ids,
     write_calendar,
+    write_card_videos,
     write_feed,
 )
 from ingestion.feed.translate import (
@@ -311,6 +324,35 @@ def attach_source_facts(
     return out, changed
 
 
+def attach_card_videos(items: list[FeedItem]) -> tuple[list[FeedItem], set[str]]:
+    """Give each debate the video its card plays. Like ``attach_source_facts``,
+    a stored item gets it without being rebuilt. The poster is cut after the
+    run has published (``refresh_posters``); a stored one is kept while it
+    still shows the same video at the same second, since any other still would
+    not be the frame playback starts on.
+    """
+    out: list[FeedItem] = []
+    changed: set[str] = set()
+    for item in items:
+        if item.debate is not None:
+            stored = item.debate.card_video
+            chosen = choose_card_video(item.debate)
+            if (
+                chosen is not None
+                and stored is not None
+                and (stored.video_url, stored.start) == (chosen.video_url, chosen.start)
+            ):
+                chosen = chosen.model_copy(update={"poster_url": stored.poster_url})
+            if chosen != stored:
+                debate = item.debate.model_copy(update={"card_video": chosen})
+                item = item.model_copy(
+                    update={"debate": debate, "format_version": FEED_FORMAT_VERSION}
+                )
+                changed.add(item.id)
+        out.append(item)
+    return out, changed
+
+
 def plan_day(
     builder: FeedBuilder,
     parliament: Parliament,
@@ -369,15 +411,20 @@ def plan_day(
         if item is not None and item.status == "published":
             listed.append(item)
     listed, documented = attach_source_facts(listed, plan, lookup_poll)
+    listed, filmed = attach_card_videos(listed)
     edition, ranked = assemble_edition(
         parliament, plan.edition_id, plan.day, plan.protocols, listed, now
     )
     retracted = vanished_item_ids(stored_edition_ids or [], edition.item_ids)
-    changed = documented | {
-        i.id
-        for i in ranked
-        if i.id in built or stored.get(i.id) is None or stored[i.id].rank != i.rank
-    }
+    changed = (
+        documented
+        | filmed
+        | {
+            i.id
+            for i in ranked
+            if i.id in built or stored.get(i.id) is None or stored[i.id].rank != i.rank
+        }
+    )
     untranslated = any(needs_translation(i, "en") for i in ranked)
     if (
         not changed
@@ -620,6 +667,41 @@ def refresh_speakers(
     return report
 
 
+def refresh_posters(
+    db: Any,
+    windows: Sequence[tuple[str, date]],
+    make_poster: Optional[PosterMaker],
+    out_of_time: Callable[[], bool] = lambda: False,
+) -> PosterReport:
+    """Cut the posters the debates stored in ``windows`` (parliament, first
+    day) do not have yet (see ``posters``).
+
+    Never fails the run: until its poster is there, a card shows a dark frame
+    and still plays.
+    """
+    if make_poster is None:
+        return PosterReport()
+    report = PosterReport()
+    try:
+        for parliament_id, since in windows:
+            found = add_posters(
+                read_items_since(db, parliament_id, since), make_poster, out_of_time
+            )
+            write_card_videos(db, found.written)
+            report.written.update(found.written)
+            report.failed += found.failed
+            report.out_of_time |= found.out_of_time
+            report.gave_up |= found.gave_up
+    except Exception as exc:  # noqa: BLE001 — the feed stands without them
+        logger.warning("Posters not cut: %s", exc)
+    print(
+        f"posters: {len(report.written)} written, {len(report.failed)} failed"
+        + ("  stopped: time budget spent" if report.out_of_time else "")
+        + ("  stopped: video host failing" if report.gave_up else "")
+    )
+    return report
+
+
 def _summary_line(run: ParliamentRun, published: Published) -> str:
     window = f"{run.window[0]}..{run.window[1]}" if run.window else "no data"
     t = published.translation
@@ -699,6 +781,20 @@ def build_and_publish(
     return runs
 
 
+def card_posters(env: str, *, skip: bool = False) -> Optional[PosterMaker]:
+    """The poster maker for a run that writes ``env``. None against the
+    emulator: there is no Storage emulator, and a local run must not write
+    into a deployed bucket. ``--allow-remote`` has dropped the emulator host
+    by the time this is asked. None too without an ffmpeg that writes WebP,
+    such as Homebrew's: a run that has one cuts the posters."""
+    if skip or os.getenv("FIRESTORE_EMULATOR_HOST"):
+        return None
+    if not writes_webp():
+        logger.warning("ffmpeg cannot write WebP; debate cards get no poster this run")
+        return None
+    return poster_maker(env)
+
+
 def _embeddings() -> Any:
     from wahlchat_common.embeddings import get_embeddings  # noqa: PLC0415
 
@@ -764,6 +860,11 @@ def main(argv: Optional[list[str]] = None) -> int:
         "--revalidate",
         action="store_true",
         help="Bust the web cache tag afterwards (needs REVALIDATE_SECRET)",
+    )
+    parser.add_argument(
+        "--skip-posters",
+        action="store_true",
+        help="Do not cut or upload debate card posters (needs ffmpeg otherwise)",
     )
     args = parser.parse_args(argv)
 
@@ -852,24 +953,35 @@ def main(argv: Optional[list[str]] = None) -> int:
     if db is not None and args.revalidate and any(p.wrote for _, p in runs):
         post_revalidate(env)
 
-    # After the feed's own cache bust, so a slow bundestag.de never holds back
-    # what this run published.
+    # After the feed's own cache bust, so neither a slow video host nor a slow
+    # bundestag.de holds back what this run published. Posters are cut and
+    # profiles fetched one by one; they get what is left of the grace the
+    # model calls had, never the whole job's cap.
+    def out_of_grace() -> bool:
+        return (
+            args.time_budget is not None
+            and time.monotonic() - started >= args.time_budget + _CALL_GRACE_S
+        )
+
+    wrote_late = False
+    if db is not None:
+        windows = [
+            (run.parliament.id, run.window[0])
+            for run, _ in runs
+            if run.window is not None
+        ]
+        posters = refresh_posters(
+            db, windows, card_posters(env, skip=args.skip_posters), out_of_grace
+        )
+        wrote_late = bool(posters.written)
     window = next(
         (run.window for run, _ in runs if run.parliament.id == "bundestag"), None
     )
     if db is not None and in_bundestag and window is not None:
-        # Profiles are fetched one by one; they get what is left of the grace
-        # the model calls had, never the whole job's cap.
-        speakers = refresh_speakers(
-            db,
-            window[0],
-            lambda: (
-                args.time_budget is not None
-                and time.monotonic() - started >= args.time_budget + _CALL_GRACE_S
-            ),
-        )
-        if args.revalidate and speakers.written:
-            post_revalidate(env)
+        speakers = refresh_speakers(db, window[0], out_of_grace)
+        wrote_late = wrote_late or bool(speakers.written)
+    if args.revalidate and wrote_late:
+        post_revalidate(env)
 
     if runs and all(run.window is None for run, _ in runs):
         print("No corpus data in any selected parliament.", file=sys.stderr)

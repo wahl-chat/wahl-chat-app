@@ -11,9 +11,10 @@ import pytest
 from ingestion.feed import bulk
 from ingestion.feed.builder import FeedBuilder, plan_days
 from ingestion.feed.items import MAX_POSITION_ATTEMPTS
-from ingestion.feed.models import FeedItem
+from ingestion.feed.models import FEED_FORMAT_VERSION, CardVideo, FeedItem
 from ingestion.feed.parliaments import FEED_PARLIAMENTS
 from ingestion.feed.politicians import RefreshReport
+from ingestion.feed.posters import MAX_FAILURES_IN_A_ROW, PosterReport, add_posters
 from ingestion.feed.prompts import (
     DebateDraft,
     PositionCheckBatch,
@@ -388,6 +389,173 @@ def test_stored_debates_get_their_interjections_without_a_rebuild() -> None:
     assert day.changed == {TOP1}
 
 
+DEBATES = {TOP1, "bundestag_2026-09-24_d45-top2"}
+
+
+class _Posters:
+    def __init__(self, url: Optional[str] = "https://posters/p.webp") -> None:
+        self.url = url
+        self.cuts: list[tuple[str, float]] = []
+
+    def __call__(self, video_url: str, start: float) -> Optional[str]:
+        self.cuts.append((video_url, start))
+        return self.url
+
+
+def _without_card_videos(stored: dict[str, FeedItem]) -> dict[str, FeedItem]:
+    """As stored before items carried a card video."""
+    return {
+        i.id: i.model_copy(
+            update={
+                "debate": i.debate.model_copy(update={"card_video": None}),
+                "format_version": "4",
+            }
+        )
+        if i.debate is not None
+        else i
+        for i in stored.values()
+    }
+
+
+def _with_card_video(item: FeedItem, **update: Any) -> FeedItem:
+    assert item.debate is not None and item.debate.card_video is not None
+    card_video = item.debate.card_video.model_copy(update=update)
+    debate = item.debate.model_copy(update={"card_video": card_video})
+    return item.model_copy(update={"debate": debate})
+
+
+def _card_videos(day: Optional[bulk.DayBuild]) -> dict[str, Any]:
+    assert day is not None
+    return {i.id: i.debate.card_video for i in day.items if i.debate is not None}
+
+
+def test_stored_debates_get_a_card_video_without_a_rebuild() -> None:
+    stored, edition_ids = _stored_day()
+    llm = FakeLLM()
+    day, _ = _day(llm, _plan(), _without_card_videos(stored), edition_ids)
+    assert day is not None
+    assert llm.calls == []
+    assert day.built == set()
+    assert day.changed == DEBATES
+    top1 = _card_videos(day)[TOP1]
+    # The poster is cut after the run has published, not while it builds.
+    assert (top1.video_url, top1.start, top1.poster_url) == (
+        "https://video/s1.mp4",
+        3.0,
+        None,
+    )
+    item = next(i for i in day.items if i.id == TOP1)
+    assert item.format_version == FEED_FORMAT_VERSION
+    assert not needs_translation(item, "en")
+
+
+def test_a_stored_card_video_causes_no_churn() -> None:
+    stored, edition_ids = _stored_day()
+    assert _day(FakeLLM(), _plan(), stored, edition_ids)[0] is None
+
+
+def test_a_poster_is_kept_while_it_shows_where_playback_starts() -> None:
+    stored, edition_ids = _stored_day()
+    stored[TOP1] = _with_card_video(stored[TOP1], poster_url="https://posters/p.webp")
+    assert _day(FakeLLM(), _plan(), stored, edition_ids)[0] is None
+
+
+def test_a_poster_of_another_second_is_dropped() -> None:
+    stored, edition_ids = _stored_day()
+    stored[TOP1] = _with_card_video(
+        stored[TOP1], start=9.0, poster_url="https://posters/old.webp"
+    )
+    day, _ = _day(FakeLLM(), _plan(), stored, edition_ids)
+    video = _card_videos(day)[TOP1]
+    assert (video.start, video.poster_url) == (3.0, None)
+
+
+def _published(stored: dict[str, FeedItem]) -> list[FeedItem]:
+    return sorted(stored.values(), key=lambda i: i.id)
+
+
+def test_posters_are_cut_for_debates_without_one() -> None:
+    stored, _ = _stored_day()
+    posters = _Posters()
+    report = add_posters(_published(stored), posters)
+    assert set(report.written) == DEBATES
+    assert report.written[TOP1].poster_url == "https://posters/p.webp"
+    assert ("https://video/s1.mp4", 3.0) in posters.cuts
+
+
+def test_a_poster_is_cut_once() -> None:
+    stored, _ = _stored_day()
+    items = [
+        _with_card_video(i, poster_url="https://posters/p.webp")
+        if i.debate is not None
+        else i
+        for i in _published(stored)
+    ]
+    never = _Posters()
+    assert add_posters(items, never).written == {}
+    assert never.cuts == []
+
+
+def test_a_failed_poster_is_retried_next_run() -> None:
+    stored, _ = _stored_day()
+    failed = add_posters(_published(stored), _Posters(url=None))
+    assert failed.written == {}
+    assert sorted(failed.failed) == sorted(DEBATES)
+    assert set(add_posters(_published(stored), _Posters()).written) == DEBATES
+
+
+def test_no_poster_is_cut_once_the_time_budget_is_spent() -> None:
+    stored, _ = _stored_day()
+    posters = _Posters()
+    report = add_posters(_published(stored), posters, out_of_time=lambda: True)
+    assert report.out_of_time
+    assert posters.cuts == []
+
+
+def test_cutting_stops_while_the_video_host_fails() -> None:
+    stored, _ = _stored_day()
+    debate = next(i for i in stored.values() if i.id == TOP1)
+    items = [debate.model_copy(update={"id": f"d{n}"}) for n in range(10)]
+    failing = _Posters(url=None)
+    report = add_posters(items, failing)
+    assert report.gave_up
+    assert len(failing.cuts) == MAX_FAILURES_IN_A_ROW
+
+
+def test_card_posters_are_off_against_the_emulator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(bulk, "poster_maker", lambda env: _Posters())
+    monkeypatch.setattr(bulk, "writes_webp", lambda: True)
+    monkeypatch.setenv("FIRESTORE_EMULATOR_HOST", "localhost:8081")
+    assert bulk.card_posters("dev") is None
+    monkeypatch.delenv("FIRESTORE_EMULATOR_HOST")
+    assert bulk.card_posters("dev", skip=True) is None
+    assert bulk.card_posters("dev") is not None
+
+
+def test_no_card_posters_without_an_ffmpeg_that_writes_webp(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(bulk, "poster_maker", lambda env: _Posters())
+    monkeypatch.setattr(bulk, "writes_webp", lambda: False)
+    monkeypatch.delenv("FIRESTORE_EMULATOR_HOST", raising=False)
+    assert bulk.card_posters("dev") is None
+
+
+def test_a_failing_poster_pass_never_fails_the_run(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def unreadable(*_: Any) -> list[FeedItem]:
+        raise RuntimeError("Firestore unavailable")
+
+    monkeypatch.setattr(bulk, "read_items_since", unreadable)
+    report = bulk.refresh_posters(
+        object(), [("bundestag", date(2026, 9, 24))], _Posters()
+    )
+    assert report.written == {}
+
+
 def test_stored_debates_learn_who_their_speakers_are_without_a_rebuild() -> None:
     stored, edition_ids = _stored_day()
     plan = _plan()
@@ -476,9 +644,10 @@ def _main(
     runs: list[Any],
     written: Optional[list[str]] = None,
     calls: Optional[list[str]] = None,
+    posters: Optional[list[str]] = None,
 ) -> tuple[int, list[str]]:
-    """Runs the job's main; ``calls`` records the order of the cache busts and
-    the speaker refresh."""
+    """Runs the job's main; ``calls`` records the order of the cache busts,
+    the poster pass and the speaker refresh."""
     written = written or []
     calls = [] if calls is None else calls
     revalidated: list[str] = []
@@ -486,6 +655,11 @@ def _main(
     def refresh_speakers(*_: Any, **__: Any) -> RefreshReport:
         calls.append("speakers")
         return RefreshReport(written=written)
+
+    def refresh_posters(*_: Any, **__: Any) -> PosterReport:
+        calls.append("posters")
+        card_video = CardVideo(video_url="https://video/s1.mp4", start=3.0)
+        return PosterReport(written={i: card_video for i in posters or []})
 
     def post_revalidate(env: str) -> None:
         calls.append("revalidate")
@@ -497,6 +671,8 @@ def _main(
     monkeypatch.setattr(bulk, "check_fingerprint", lambda *_: None)
     monkeypatch.setattr(bulk, "refresh_calendar", lambda *_: None)
     monkeypatch.setattr(bulk, "refresh_speakers", refresh_speakers)
+    monkeypatch.setattr(bulk, "refresh_posters", refresh_posters)
+    monkeypatch.setattr(bulk, "card_posters", lambda *_, **__: None)
     monkeypatch.setattr(bulk, "build_and_publish", lambda *_, **__: runs)
     monkeypatch.setattr(bulk, "post_revalidate", post_revalidate)
     return bulk.main(["--revalidate", "--allow-remote"]), revalidated
@@ -524,18 +700,25 @@ def test_a_run_that_only_stored_politicians_busts_the_web_cache(
     assert _main(monkeypatch, runs, written=["11005000"]) == (0, ["dev"])
 
 
-def test_the_feed_is_shown_before_the_speakers_are_refreshed(
+def test_a_run_that_only_cut_posters_busts_the_web_cache(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # A slow bundestag.de must not hold back what the run published; the
-    # speakers' own writes get a second bust.
+    runs = [(bulk.ParliamentRun(BUNDESTAG, WINDOW), bulk.Published())]
+    assert _main(monkeypatch, runs, posters=[TOP1]) == (0, ["dev"])
+
+
+def test_the_feed_is_shown_before_posters_and_speakers_are_refreshed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Neither a slow video host nor a slow bundestag.de may hold back what the
+    # run published; their own writes share one second bust.
     runs = [(bulk.ParliamentRun(BUNDESTAG, WINDOW), bulk.Published(retracted=1))]
     calls: list[str] = []
-    _main(monkeypatch, runs, written=["11005000"], calls=calls)
-    assert calls == ["revalidate", "speakers", "revalidate"]
+    _main(monkeypatch, runs, written=["11005000"], calls=calls, posters=[TOP1])
+    assert calls == ["revalidate", "posters", "speakers", "revalidate"]
     calls.clear()
     _main(monkeypatch, runs, calls=calls)
-    assert calls == ["revalidate", "speakers"]
+    assert calls == ["revalidate", "posters", "speakers"]
 
 
 def test_a_failed_item_fails_the_run_after_publishing_the_rest(

@@ -30,6 +30,29 @@ describe('feedToDigests', () => {
     expect(section.citations).toEqual(item.debate?.citations ?? []);
   });
 
+  it('passes the card video through, and none where an item has none', () => {
+    const first = FEED.editions[0].item_ids[0];
+    const card_video = {
+      video_url: 'https://video/a.mp4',
+      start: 3,
+      poster_url: 'https://posters/a.webp',
+      speaker: 'Anna',
+      party_name: 'SPD',
+    };
+    const feed: ParliamentFeed = {
+      editions: FEED.editions,
+      items: FEED.items.map((i) =>
+        i.id === first && i.debate
+          ? { ...i, debate: { ...i.debate, card_video } }
+          : i,
+      ),
+    };
+    const [digest] = feedToDigests(feed);
+    const [section, other] = digest.session?.sections ?? [];
+    expect(section.card_video).toEqual(card_video);
+    expect(other.card_video).toBeNull();
+  });
+
   it('leaves retracted items out of the feed', () => {
     const gone = FEED.editions[0].item_ids[0];
     const feed: ParliamentFeed = {

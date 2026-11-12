@@ -1,19 +1,23 @@
 'use client';
 
-import { sortBySeating } from '@/lib/daily/seating-order';
 import type { DigestSessionSection } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
-import { PlayIcon } from 'lucide-react';
+import { Loader2Icon, PlayIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 // The same speech can sit in the feed and in the open detail at once; starting
 // one pauses the other rather than playing both over each other.
 let playingElement: HTMLMediaElement | null = null;
 
+// Past the black first frames, as the feed job does when it has no start.
+const FALLBACK_START = 0.5;
+
 type Media = {
   kind: 'video' | 'audio';
-  /** For video, a media fragment at the speech's start. */
+  /** For video, a media fragment at the second playback starts. */
   src: string;
+  /** A still of the frame at that very second; null shows a dark frame. */
+  poster: string | null;
   badge: string;
   caption: string | null;
 };
@@ -23,27 +27,14 @@ function formatTime(seconds: number): string {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
 }
 
-/**
- * The video file opened at a media fragment: the frame there doubles as the
- * thumbnail, which is why preload is "metadata" rather than "none" (that leaves
- * an empty box until playback starts).
- */
-function videoSrc(videoUrl: string, link: string | null | undefined): string {
-  const start = Number((link ?? '').split('#t=')[1]);
-  return `${videoUrl.split('#')[0]}#t=${Number.isFinite(start) && start > 0.5 ? start : 0.5}`;
-}
-
-function startCaption(speaker: string, link: string | null | undefined) {
-  const start = Number((link ?? '').split('#t=')[1]);
-  return Number.isFinite(start) && start > 0
-    ? `${speaker} · ab ${formatTime(start)}`
-    : speaker;
+function startCaption(label: string, start: number) {
+  return Math.floor(start) > 0 ? `${label} · ab ${formatTime(start)}` : label;
 }
 
 /**
- * One speech stands for the debate: the opening speaker's when known, since
- * the opening statement quotes it; otherwise the first Fraktion's in seating
- * order that has video, then any cited speech video, then the agenda item's.
+ * The feed job chooses the speech and its start, and cuts the poster at that
+ * start, so the card plays on from the frame it shows. Nothing is chosen
+ * here: a second rule on this side would show one frame and play another.
  */
 export function sectionMedia(section: DigestSessionSection): Media | null {
   if (section.audio) {
@@ -51,42 +42,30 @@ export function sectionMedia(section: DigestSessionSection): Media | null {
     return {
       kind: 'audio',
       src: section.audio.url,
+      poster: null,
       badge: duration ? `Audio · ${formatTime(duration)}` : 'Audio',
       caption: section.audio.title,
     };
   }
-  const speakers = sortBySeating(section.positions ?? []).flatMap((p) =>
-    p.speakers
-      .filter((s) => s.video_url)
-      .map((s) => ({ ...s, party: p.party_name })),
-  );
-  const opener = section.opening_quote?.speaker;
-  const speaker =
-    speakers.find((s) => s.name === opener) ?? speakers.at(0) ?? null;
-  if (speaker?.video_url) {
+  const card = section.card_video;
+  if (card) {
+    const label =
+      card.speaker && card.party_name
+        ? `${card.speaker} (${card.party_name})`
+        : card.speaker;
     return {
       kind: 'video',
-      src: videoSrc(speaker.video_url, speaker.video_link),
+      src: `${card.video_url}#t=${card.start}`,
+      poster: card.poster_url,
       badge: 'Video',
-      caption: startCaption(
-        `${speaker.name} (${speaker.party})`,
-        speaker.video_link,
-      ),
-    };
-  }
-  const cited = section.citations.find((c) => c.video_url);
-  if (cited?.video_url) {
-    return {
-      kind: 'video',
-      src: videoSrc(cited.video_url, cited.url),
-      badge: 'Video',
-      caption: cited.speaker ?? null,
+      caption: label ? startCaption(label, card.start) : null,
     };
   }
   return section.video_url
     ? {
         kind: 'video',
-        src: videoSrc(section.video_url, null),
+        src: `${section.video_url.split('#')[0]}#t=${FALLBACK_START}`,
+        poster: null,
         badge: 'Video',
         caption: null,
       }
@@ -94,9 +73,12 @@ export function sectionMedia(section: DigestSessionSection): Media | null {
 }
 
 /**
- * Dark 16:9 frame with a play button; native controls once playing. In a feed
- * card, the play button and the playing media sit above the card's stretched
- * link (z-10), so they play rather than open the detail.
+ * Dark 16:9 frame with a play button; native controls once playing. Nothing
+ * of the media loads before play: a poster stands in for the first frame
+ * and stays on top until the video paints, which is the same image, so the
+ * switch does not flash. In a feed card, the play button and the playing
+ * media sit above the card's stretched link (z-10), so they play rather than
+ * open the detail.
  */
 export function SectionMediaFrame({
   media,
@@ -112,11 +94,16 @@ export function SectionMediaFrame({
 }) {
   const ref = useRef<HTMLMediaElement | null>(null);
   const [started, setStarted] = useState(false);
+  const [painted, setPainted] = useState(false);
 
+  // The poster covers the native controls until the video paints, so a play
+  // that fails must bring the play button back rather than leave a still.
+  const stop = () => setStarted(false);
   const play = () => {
     setStarted(true);
     ref.current?.play().catch((error: unknown) => {
       console.error(`[media] Could not play ${media.src}:`, error);
+      stop();
     });
   };
   const onPlay = () => {
@@ -139,10 +126,12 @@ export function SectionMediaFrame({
             ref.current = el;
           }}
           src={media.src}
-          preload="metadata"
+          preload="none"
           playsInline
           controls={started}
           onPlay={onPlay}
+          onPlaying={() => setPainted(true)}
+          onError={stop}
           className={cn(
             'absolute inset-0 size-full object-cover',
             // Playing, the controls must stay put under the pointer.
@@ -162,6 +151,26 @@ export function SectionMediaFrame({
             'absolute inset-x-3 bottom-3 w-[calc(100%-1.5rem)]',
             started && 'z-10',
           )}
+        />
+      )}
+      {media.poster && !painted && (
+        // A plain <img>, not the video's poster attribute: that one loads
+        // with the page, this one only once the card nears the viewport.
+        <img
+          src={media.poster}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className={cn(
+            'pointer-events-none absolute inset-0 size-full object-cover',
+            started ? 'z-10' : mediaClassName,
+          )}
+        />
+      )}
+      {media.poster && started && !painted && (
+        <Loader2Icon
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 z-10 size-8 -translate-x-1/2 -translate-y-1/2 animate-spin text-white"
         />
       )}
       {!started && (

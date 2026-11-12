@@ -55,9 +55,11 @@ from ingestion.feed.builder import DebateUnit, FeedBuilder, VoteUnit, plan_days
 from ingestion.feed.bulk import (
     ParliamentRun,
     build_and_publish,
-    refresh_speakers,
+    card_posters,
     load_sources,
     post_revalidate,
+    refresh_posters,
+    refresh_speakers,
 )
 from ingestion.feed.index import FEED_COLLECTION_NAME, setup_feed_collection
 from ingestion.feed.items import build_needed
@@ -383,8 +385,10 @@ def main(argv: Optional[list[str]] = None) -> int:
             print("Not confirmed; nothing written.")
             return 1
         runs = _build(qdrant, db, parliaments, plans, days, target, args.since)
+    since = args.since or date.today() - timedelta(days=days)
+    refresh_posters(db, [(p.id, since) for p in parliaments], card_posters(target))
     if "bundestag" in {p.id for p in parliaments}:
-        refresh_speakers(db, args.since or date.today() - timedelta(days=days))
+        refresh_speakers(db, since)
 
     if not bust_web_cache(target):
         return 4

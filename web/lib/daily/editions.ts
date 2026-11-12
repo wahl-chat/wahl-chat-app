@@ -27,6 +27,7 @@ function toSection(
     agenda_items: [facts.agenda_item],
     citations: facts.citations,
     video_url: facts.video_url,
+    card_video: facts.card_video ?? null,
     key_points: content.key_points,
     key_point_sources: (facts.key_point_sources ?? []).map((k) => k.sources),
     debate_minutes: facts.debate_minutes,
