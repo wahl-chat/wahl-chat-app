@@ -10,6 +10,13 @@ import {
   rankFeed,
   windowedDigests,
 } from '@/lib/daily/feed';
+import {
+  DEFAULT_FILTER,
+  type FeedFilter,
+  KIND_PARAM,
+  isDefaultFilter,
+  kindParamValue,
+} from '@/lib/daily/filter';
 import { type DetailItem, findItem } from '@/lib/daily/items';
 import {
   type OlderCursor,
@@ -42,7 +49,7 @@ import { toast } from 'sonner';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 import DailyDaySection from './daily-day-section';
 import { AskPanel, DailyDetailDialog } from './daily-detail-dialog';
-import { ParliamentSelector, TopicPills } from './daily-filters';
+import { FeedFilters, FilterBar, ParliamentSelector } from './daily-filters';
 import DaySkeleton from './day-skeleton';
 
 const ITEM_PARAM = 'item';
@@ -54,7 +61,7 @@ type Props = {
   previewDigests?: DailyDigest[];
   /** From the URL; `undefined` lets the stored choice decide. */
   initialStates: StateSelection | undefined;
-  initialTopics: string[];
+  initialFilter: FeedFilter;
   initialItem: string | undefined;
   /** The day of a shared item, which may be older than the first slice. */
   linkedDay?: ParliamentFeed | null;
@@ -66,18 +73,19 @@ type Props = {
 
 type View = {
   states: StateSelection;
-  topics: string[];
+  filter: FeedFilter;
   item: string | null;
 };
 
 /** Mirror the view into the URL without a server round-trip, so a shared
  * link reproduces it, down to an opened item. */
-function syncUrl({ states, topics, item }: View) {
+function syncUrl({ states, filter, item }: View) {
   const url = new URL(window.location.href);
   const set = (key: string, value: string | null) =>
     value ? url.searchParams.set(key, value) : url.searchParams.delete(key);
   set(STATE_PARAM, states.join(',').toLowerCase() || null);
-  set(TOPICS_PARAM, topics.join(',') || null);
+  set(TOPICS_PARAM, filter.topics.join(',') || null);
+  set(KIND_PARAM, kindParamValue(filter.kinds));
   set(ITEM_PARAM, item);
   window.history.replaceState(null, '', url);
 }
@@ -172,7 +180,7 @@ function DailyFeed({
   feeds,
   previewDigests,
   initialStates,
-  initialTopics,
+  initialFilter,
   initialItem,
   linkedDay,
   calendar = null,
@@ -181,7 +189,7 @@ function DailyFeed({
   const [states, setStates] = useState<StateSelection>(
     initialStates ?? DEFAULT_SELECTION,
   );
-  const [topics, setTopics] = useState(initialTopics);
+  const [filter, setFilter] = useState(initialFilter);
   const [openKey, setOpenKey] = useState<string | null>(initialItem ?? null);
   const [pages, setPages] = useState<Pages>(() => ({
     bundestag: [feeds.bundestag],
@@ -234,9 +242,9 @@ function DailyFeed({
     () =>
       rankFeed(
         buildFeed(lists, null).filter((d) => !isPendingDay(d)),
-        topics,
+        filter,
       ),
-    [lists, topics],
+    [lists, filter],
   );
   const waitingEditions = useMemo(
     () =>
@@ -249,8 +257,8 @@ function DailyFeed({
         })),
     [lists],
   );
-  // A topic filter can leave a day with nothing to show; it is left out
-  // rather than kept as an empty gap.
+  // A filter can leave a day with nothing to show; it is left out rather
+  // than kept as an empty gap.
   const visibleDays = days.filter((d) => d.hot || d.blocks.length > 0);
   const older = olderCursors(pages, parliamentsFor(states));
 
@@ -274,14 +282,14 @@ function DailyFeed({
       // Keyboard and screen reader users land on the day too.
       section.focus({ preventScroll: true });
       setJumpTarget(null);
-    } else if (topics.length > 0) {
-      // A topic filter hides the day; it is back on the next render.
-      setTopics([]);
-      syncUrl({ states, topics: [], item: openKey });
+    } else if (!isDefaultFilter(filter)) {
+      // The filter hides the day; it is back on the next render.
+      setFilter(DEFAULT_FILTER);
+      syncUrl({ states, filter: DEFAULT_FILTER, item: openKey });
     } else {
       setJumpTarget(null);
     }
-  }, [jumpTarget, days, topics, states, openKey]);
+  }, [jumpTarget, days, filter, states, openKey]);
 
   const loadOlder = async () => {
     if (busy.current) {
@@ -325,7 +333,10 @@ function DailyFeed({
     : null;
   // A linked item may lie outside the loaded days; its heat is then ranked
   // within its own day.
-  const openHeat = [...days, ...rankFeed(buildFeed([linkedDigests], null), [])]
+  const openHeat = [
+    ...days,
+    ...rankFeed(buildFeed([linkedDigests], null), DEFAULT_FILTER),
+  ]
     .map((d) => (openItem ? d.heat.get(openItem.key) : undefined))
     .find((h) => h !== undefined);
 
@@ -335,15 +346,15 @@ function DailyFeed({
     days.find((d) => d.hot)?.hot ||
     null;
 
-  const view: View = { states, topics, item: openKey };
+  const view: View = { states, filter, item: openKey };
   const changeStates = (next: StateSelection) => {
     setStates(next);
     storeStates(next);
     syncUrl({ ...view, states: next });
   };
   /** Show a sitting day from the calendar: load older slices until one
-   * holds it, select the Bundestag and lift a topic filter if either hides
-   * it, then scroll to it. */
+   * holds it, select the Bundestag and lift the filter if either hides it,
+   * then scroll to it. */
   const jumpToDay = async (date: string) => {
     if (busy.current) {
       toast.info('Einen Moment, ältere Tage werden noch geladen.');
@@ -372,9 +383,9 @@ function DailyFeed({
     setJumpTarget(date);
   };
 
-  const changeTopics = (next: string[]) => {
-    setTopics(next);
-    syncUrl({ ...view, topics: next });
+  const changeFilter = (next: FeedFilter) => {
+    setFilter(next);
+    syncUrl({ ...view, filter: next });
   };
   const open = (key: string | null) => {
     setOpenKey(key);
@@ -383,15 +394,28 @@ function DailyFeed({
 
   return (
     <div className="flex flex-col gap-4 pt-4">
-      <ParliamentSelector
-        states={states}
-        onChange={changeStates}
-        calendar={calendar}
-        editionDates={editionDates}
-        waitingEditions={waitingEditions}
-        onJumpToDay={jumpToDay}
-      />
-      <TopicPills topics={topics} onChange={changeTopics} />
+      <FilterBar>
+        {(onOpenChange) => (
+          <>
+            <div className="min-w-0 flex-1">
+              <ParliamentSelector
+                states={states}
+                onChange={changeStates}
+                calendar={calendar}
+                editionDates={editionDates}
+                waitingEditions={waitingEditions}
+                onJumpToDay={jumpToDay}
+                onOpenChange={onOpenChange}
+              />
+            </div>
+            <FeedFilters
+              filter={filter}
+              onChange={changeFilter}
+              onOpenChange={onOpenChange}
+            />
+          </>
+        )}
+      </FilterBar>
 
       <div className="flex flex-col gap-12 pt-2">
         {visibleDays.length === 0 ? (
