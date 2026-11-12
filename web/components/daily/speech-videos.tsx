@@ -168,10 +168,12 @@ export function SectionMediaFrame({
         />
       )}
       {media.poster && started && !painted && (
-        <Loader2Icon
-          aria-hidden
-          className="pointer-events-none absolute left-1/2 top-1/2 z-10 size-8 -translate-x-1/2 -translate-y-1/2 animate-spin text-white"
-        />
+        // Centred by the wrapper, not by translate: animate-spin sets the
+        // icon's transform, which would drop a translate and swing it off
+        // centre on every turn.
+        <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          <Loader2Icon aria-hidden className="size-8 animate-spin text-white" />
+        </span>
       )}
       {!started && (
         <>
