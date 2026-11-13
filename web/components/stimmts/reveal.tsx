@@ -45,20 +45,26 @@ function Reveal({
   return (
     <div className="flex flex-col gap-4">
       <YesMeans yesMeans={puzzle.yesMeans} />
-      {complete && (
-        // On screen, the chamber's centre already says it.
-        <p className="sr-only">
-          Der Bundestag hat {OUTCOME_LABELS[puzzle.outcome]}.
-        </p>
-      )}
+      {/* On screen, the chamber's centre already says it. The region stays
+          mounted so that filling it is announced, before the result follows. */}
+      <p role="status" className="sr-only">
+        {complete && `Der Bundestag hat ${OUTCOME_LABELS[puzzle.outcome]}.`}
+      </p>
 
       <section aria-labelledby="deine-tipps" className="flex flex-col gap-2">
         <h2 id="deine-tipps" className="mt-2 text-lg font-bold">
           {played ? 'Deine Tipps' : 'So wurde abgestimmt'}
         </h2>
-        {!complete && onRevealAll && !revealing && (
+        {!complete && onRevealAll && (
           <>
-            <PillButton onClick={onRevealAll}>Auflösen</PillButton>
+            {/* Stays mounted while the sequence runs, so focus is not dropped. */}
+            <PillButton
+              aria-disabled={revealing}
+              onClick={revealing ? undefined : onRevealAll}
+              className={revealing ? 'opacity-50' : undefined}
+            >
+              Auflösen
+            </PillButton>
             <p className="text-center text-sm text-muted-foreground">
               Oder tippe auf eine Partei.
             </p>

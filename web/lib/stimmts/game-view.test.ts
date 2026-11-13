@@ -97,6 +97,17 @@ describe('selectParty', () => {
     expect(after.open).toBe('spd');
   });
 
+  it('only ever adds to the turned-over parties', () => {
+    const stale = new Set(['linke']);
+    const after = selectParty({ revealed: stale, open: null }, 'spd');
+    expect([...after.revealed].sort()).toEqual(['linke', 'spd']);
+    const again = selectParty(
+      { revealed: after.revealed, open: 'spd' },
+      'linke',
+    );
+    expect([...again.revealed].sort()).toEqual(['linke', 'spd']);
+  });
+
   it('opens and closes the counts on later taps, one party at a time', () => {
     const spdOpen = selectParty(none, 'spd');
     const closed = selectParty(spdOpen, 'spd');
