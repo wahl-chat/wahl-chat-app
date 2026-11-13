@@ -73,7 +73,7 @@ describe('legacy context-less URLs', () => {
     expect(response.status).toBe(308);
   });
 
-  test('bare /chat moves to the chat landing page, keeping its parameters', async () => {
+  test('bare /chat forwards temporarily to the chat landing page, keeping its parameters', async () => {
     const response = await middleware(
       requestFrom('https://wahl.chat/chat?tenant_id=partner'),
     );
@@ -81,7 +81,7 @@ describe('legacy context-less URLs', () => {
     expect(response.headers.get('location')).toBe(
       'https://wahl.chat/election-chat?tenant_id=partner',
     );
-    expect(response.status).toBe(308);
+    expect(response.status).toBe(307);
   });
 
   test('the chat landing page is served, not taken for an election', async () => {
