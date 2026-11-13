@@ -58,6 +58,7 @@ describe('contextIdFromPath', () => {
   it('ignores reserved first segments', () => {
     expect(contextIdFromPath('/donate')).toBeUndefined();
     expect(contextIdFromPath('/agent/abc')).toBeUndefined();
+    expect(contextIdFromPath('/stimmts')).toBeUndefined();
     expect(contextIdFromPath('/')).toBeUndefined();
   });
 });

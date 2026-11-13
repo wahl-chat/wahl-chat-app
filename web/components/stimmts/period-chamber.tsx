@@ -1,0 +1,134 @@
+import {
+  MARK_SEAT_RADIUS,
+  MARK_VIEWBOX,
+  type MarkTone,
+  type PeriodSeat,
+  type ScoreTier,
+} from '@/lib/stimmts/logo';
+import { MAX_SCORE } from '@/lib/stimmts/share-image';
+import { cn } from '@/lib/utils';
+import type { KeyboardEvent } from 'react';
+
+// A day's seat says how the player did, never how anyone voted, so it uses
+// its own neutral tones; only a complete period takes the logo's colours.
+const TIER_CLASSES: Record<ScoreTier, string> = {
+  low: 'fill-tally-low',
+  mid: 'fill-tally-mid',
+  top: 'fill-tally-top',
+};
+
+// What a tap may land on around a seat: about 30 px across on a 300 px wide
+// chamber, short of the next row, which starts 0.225 away.
+const HIT_RADIUS = 0.11;
+
+const LOGO_CLASSES: Record<MarkTone, string> = {
+  no: 'fill-seat-no',
+  abstain: 'fill-seat-abstain',
+  yes: 'fill-seat-yes',
+};
+
+type Props = {
+  seats: PeriodSeat[];
+  /** All 30 days played. */
+  complete?: boolean;
+  /** Today's puzzle number, whose seat is ringed. */
+  today: number;
+  /** Opens a past day; played and missed seats before today are buttons. */
+  onOpen?: (number: number) => void;
+  className?: string;
+};
+
+function seatLabel(seat: PeriodSeat): string {
+  if (seat.kind === 'played') {
+    return `Nr. ${seat.day.number}, ${seat.day.score} von ${MAX_SCORE} richtig`;
+  }
+  if (seat.kind === 'missed') {
+    return `Nr. ${seat.day.number}, verpasst`;
+  }
+  return 'Noch nicht gespielt';
+}
+
+/**
+ * The player's Wahlperiode, drawn in the shape of the Stimmt's? logo: one
+ * seat per day, darker the better the score, a dashed ring for a missed day.
+ * It is the calendar of the period: a past day's seat opens that puzzle.
+ */
+function PeriodChamber({
+  seats,
+  complete = false,
+  today,
+  onOpen,
+  className,
+}: Props) {
+  return (
+    <svg
+      viewBox={MARK_VIEWBOX}
+      aria-hidden={!onOpen}
+      className={cn('block w-full overflow-visible', className)}
+    >
+      {seats.map((seat) => {
+        const key = `${seat.x},${seat.y}`;
+        const at = {
+          cx: seat.x,
+          cy: seat.y,
+          r: MARK_SEAT_RADIUS,
+        };
+        const day = 'day' in seat ? seat.day : null;
+        const isToday = day?.number === today;
+        const openable = !!onOpen && !!day && day.number < today;
+        const open = () => day && onOpen?.(day.number);
+        const onKeyDown = (event: KeyboardEvent) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            open();
+          }
+        };
+        const label = seatLabel(seat);
+
+        return (
+          <g
+            key={key}
+            className={cn(
+              'group/seat outline-none',
+              openable && 'cursor-pointer',
+            )}
+            {...(openable
+              ? {
+                  role: 'button',
+                  tabIndex: 0,
+                  'aria-label': `${label}. Rätsel ansehen`,
+                  onClick: open,
+                  onKeyDown,
+                }
+              : {})}
+          >
+            <title>{label}</title>
+            {openable && (
+              <circle {...at} r={HIT_RADIUS} className="fill-transparent" />
+            )}
+            <circle
+              {...at}
+              strokeWidth={seat.kind === 'played' ? 0.03 : 0.02}
+              className={cn(
+                seat.kind === 'played' &&
+                  (complete
+                    ? LOGO_CLASSES[seat.tone]
+                    : TIER_CLASSES[seat.tier]),
+                seat.kind === 'missed' &&
+                  'fill-transparent stroke-seat-absent-ring [stroke-dasharray:0.03_0.025]',
+                (seat.kind === 'today' || seat.kind === 'future') &&
+                  'fill-transparent stroke-seat-pending',
+                seat.kind === 'played' &&
+                  (isToday ? 'stroke-brand-red' : 'stroke-transparent'),
+                openable &&
+                  'group-hover/seat:opacity-80 group-focus-visible/seat:stroke-ring',
+              )}
+            />
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+export default PeriodChamber;

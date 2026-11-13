@@ -258,6 +258,22 @@ export function listenToStudyStatus(callback: (status: StudyStatus) => void) {
   return unsubscribe;
 }
 
+/**
+ * The Stimmt's? switch, system_status/stimmts. The data is passed on unread
+ * (undefined for a missing doc) for `parseStimmtsStatus` to judge, together
+ * with whether it came from the offline cache rather than the server.
+ */
+export function listenToStimmtsStatus(
+  onData: (data: unknown, fromCache: boolean) => void,
+  onError: () => void,
+) {
+  return onSnapshot(
+    doc(db, 'system_status', 'stimmts'),
+    (snapshot) => onData(snapshot.data(), snapshot.metadata.fromCache),
+    onError,
+  );
+}
+
 export async function getStudyParticipant(uid: string) {
   const snapshot = await getDoc(doc(db, 'study_participants', uid));
   return snapshot.exists() ? (snapshot.data() as StudyParticipant) : null;
