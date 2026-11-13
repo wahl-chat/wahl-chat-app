@@ -279,6 +279,7 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
   } | null>(null);
   const openSpeaker =
     opened && opened.itemKey === item?.key ? opened.speaker : null;
+  const [content, setContent] = useState<HTMLDivElement | null>(null);
   const photos = useSpeakerPhotos(
     item && item.kind !== 'vote'
       ? speakerIds(item.section.positions ?? [])
@@ -317,6 +318,7 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40" />
         <DialogPrimitive.Content
+          ref={setContent}
           onPointerDownOutside={keepOpen}
           onInteractOutside={keepOpen}
           onEscapeKeyDown={closeLayerAbove}
@@ -374,10 +376,13 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
                 />
               )}
               {/* Inside this view's React tree, so a tap in the sheet is
-                  not an outside tap that would close the view. */}
+                  not an outside tap that would close the view, and portaled
+                  into its content, so this view's scroll lock lets the sheet
+                  scroll. */}
               <PoliticianSheet
                 open={openSpeaker}
                 photos={photos}
+                container={content}
                 onClose={() => setOpened(null)}
               />
             </>

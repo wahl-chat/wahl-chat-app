@@ -457,11 +457,15 @@ function Loading() {
 export function PoliticianSheet({
   open,
   photos,
+  container,
   onClose,
 }: {
   open: OpenSpeaker | null;
   /** The debate's portraits by MdB ID, shown before the record loads. */
   photos: Record<string, string>;
+  /** The content of the view the sheet opens over, see
+   * `ResponsiveDialogContent`. */
+  container?: HTMLElement | null;
   onClose: () => void;
 }) {
   const isDesktop = useIsDesktop();
@@ -488,6 +492,7 @@ export function PoliticianSheet({
       onOpenChange={(isOpen) => !isOpen && onClose()}
     >
       <ResponsiveDialogContent
+        container={container}
         className={cn(
           DAILY_THEME_CLASSES,
           'flex max-h-[90dvh] flex-col gap-0 border-[var(--daily-border)] bg-[var(--daily-canvas)] p-0 text-[var(--daily-ink)] md:max-w-lg',
