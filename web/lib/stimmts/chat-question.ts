@@ -24,7 +24,7 @@ const SUBJECTS: Record<string, { name: string; plural: boolean }> = {
   linke: { name: 'Die Linke', plural: false },
   spd: { name: 'die SPD', plural: false },
   gruene: { name: 'die Grünen', plural: true },
-  cdu: { name: 'die Union (CDU/CSU)', plural: false },
+  cdu: { name: 'die Union', plural: false },
   afd: { name: 'die AfD', plural: false },
 };
 
@@ -56,7 +56,9 @@ function wrongGuessQuestion(
 ): ChatQuestion | null {
   const wrong = scorePuzzle(puzzle, guesses).parties.filter(
     (party) =>
-      !party.correct && party.guess !== null && party.partyId in SUBJECTS,
+      !party.correct &&
+      party.guess !== null &&
+      Object.hasOwn(SUBJECTS, party.partyId),
   );
 
   const sharedWith = (partyId: string, answer: VoteAnswer) =>
@@ -85,11 +87,9 @@ function wrongGuessQuestion(
 function unusualAlliesQuestion(puzzle: Puzzle): ChatQuestion | null {
   const linke = answerOf(puzzle, 'linke');
   if (linke === undefined || linke !== answerOf(puzzle, 'afd')) return null;
-  // When everyone voted alike, the two agreeing is no surprise.
-  const allAlike = SEATING_ORDER.every(
-    (partyId) => answerOf(puzzle, partyId) === linke,
-  );
-  if (allAlike) return null;
+  // The two outer parties against the middle is the surprise; if the Union
+  // voted with them too, there is nothing unusual about it.
+  if (answerOf(puzzle, 'cdu') === linke) return null;
   return {
     kind: 'unusual-allies',
     text: 'Warum haben Die Linke und die AfD hier gleich abgestimmt?',

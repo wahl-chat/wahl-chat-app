@@ -47,7 +47,7 @@ describe('chatQuestion', () => {
   });
 
   it('breaks a tie in seating order', () => {
-    // spd and cdu are each one of a pair with the others; both wrong.
+    // spd and afd are each one of a pair with the others; both wrong.
     const puzzle = votedLike(['no', 'yes', 'no', 'no', 'yes']);
     const q = chatQuestion(puzzle, {
       ...guessed(['no', 'yes', 'no', 'no', 'yes']),
@@ -126,6 +126,27 @@ describe('chatQuestion', () => {
     expect(q.kind).toBe('general');
     expect(q.text).toContain(base.title);
     expect(q.partyIds).toEqual([]);
+  });
+
+  it('does not call Linke and AfD unusual when the Union voted with them', () => {
+    const q = chatQuestion(
+      votedLike(['yes', 'no', 'no', 'yes', 'yes']),
+      noGuesses,
+    );
+    expect(q.kind).toBe('coalition-split');
+  });
+
+  it('still asks about a wrong guess when all five voted alike', () => {
+    const answers: VoteAnswer[] = ['yes', 'yes', 'yes', 'yes', 'yes'];
+    const q = chatQuestion(votedLike(answers), {
+      ...guessed(answers),
+      cdu: 'no',
+    });
+    expect(q).toEqual({
+      kind: 'wrong-guess',
+      text: 'Warum hat die Union mit Ja gestimmt?',
+      partyIds: ['cdu'],
+    });
   });
 
   it('never prints undefined', () => {
