@@ -19,6 +19,7 @@ Parsing only; ``politicians`` decides what to fetch and stores the record.
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -60,9 +61,10 @@ ROLL_CALL_LIST_URL = (
 STAMMDATEN_MAX_AGE = timedelta(days=7)
 # A slow download must not eat the feed job's time cap: one retry, not four.
 _STAMMDATEN_ATTEMPTS = 2
-# Committees of the Bundestag carry ids a01..a99; every other Gremium (the
-# Ältestenrat, subcommittees, Parlamentariergruppen, assemblies) does not.
-_COMMITTEE_ID_PREFIX = "a"
+# Committees of the Bundestag carry ids a01..a99, a few with a name suffix
+# ("a07_finanzen"); every other Gremium (the Ältestenrat, subcommittees,
+# Parlamentariergruppen, assemblies) does not.
+_COMMITTEE_ID = re.compile(r"a\d+(?:_\w+)?")
 OfficeKind = Literal["government", "parliament", "fraktion"]
 # The Stammdaten offices shown under a name, by institution type, in this
 # order. Under "Deutscher Bundestag" only the presidency counts: the rest are
@@ -504,10 +506,7 @@ def _memberships(info: Any) -> list[Membership]:
             name = _text(gremium, "gremiumName")
             if not name:
                 continue
-            gremium_id = gremium.get("id") or ""
-            committee = (
-                gremium_id.startswith(_COMMITTEE_ID_PREFIX) and gremium_id[1:].isdigit()
-            )
+            committee = _COMMITTEE_ID.fullmatch(gremium.get("id") or "") is not None
             found.append(
                 Membership(
                     gremium=name,
