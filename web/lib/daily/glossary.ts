@@ -84,9 +84,10 @@ export function splitByRefs(
   return candidates.length > 0 ? split(text, candidates) : [{ text }];
 }
 
-/** An office or Gremium role ("Parlamentarische Staatssekretärin beim …",
- * "Obfrau") with the glossary terms it contains. Offices are a small closed
- * vocabulary, so they are matched against every stored form. */
+/** An office, a Gremium or a role in it ("Parlamentarische Staatssekretärin
+ * beim …", "Der Ältestenrat", "Obfrau") with the glossary terms it contains.
+ * These are a small closed vocabulary, so they are matched against every
+ * stored form. */
 export function splitLabel(label: string, glossary: GlossaryIndex): TextPart[] {
   const candidates = Object.values(glossary).flatMap((entry) =>
     entry.forms.map((surface) => ({ surface, entry })),
