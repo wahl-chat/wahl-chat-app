@@ -119,13 +119,14 @@ export async function middleware(request: NextRequest) {
   // party or session still need a context, and middleware can only guess one
   // from the request's region, so those stay temporary (307).
 
-  // The chat landing page lives at /election-chat: production once sent /chat
-  // to / with a 308, which browsers keep, so /chat could never reach the chat
-  // again for anyone who had followed it.
+  // The chat landing page lives at /election-chat. /chat forwards there only
+  // temporarily (307): the path is reserved for another product, and a 308
+  // would be kept by browsers and search engines, which already happened once
+  // when production sent /chat to / permanently.
   if (pathname === '/chat') {
     return NextResponse.redirect(
       buildRedirectUrl(request, '/election-chat'),
-      308,
+      307,
     );
   }
 
