@@ -51,6 +51,22 @@ export function chamberStates(
   );
 }
 
+/** True once every party of the puzzle has been turned over. */
+export function allRevealed(
+  puzzle: Puzzle,
+  revealed: ReadonlySet<string>,
+): boolean {
+  return puzzle.parties.every((party) => revealed.has(party.partyId));
+}
+
+/** How long the finished tally stays on screen before the result follows. */
+export const AUTO_RESULT_DELAY_MS = 1500;
+
+/** Without motion nothing needs time to land, so the move is almost at once. */
+export function autoResultDelay(reduceMotion: boolean): number {
+  return reduceMotion ? 300 : AUTO_RESULT_DELAY_MS;
+}
+
 /** The two lines in the chamber's hollow centre. */
 export function chamberCenter(
   puzzle: Puzzle,

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'bun:test';
 import { FIXTURE_PUZZLES as PUZZLES } from './fixtures';
 import {
+  AUTO_RESULT_DELAY_MS,
+  allRevealed,
+  autoResultDelay,
   chamberCenter,
   chamberStates,
   currentPartyIndex,
@@ -103,5 +106,27 @@ describe('selectParty', () => {
     const linkeOpen = selectParty(spdOpen, 'linke');
     expect(linkeOpen.open).toBe('linke');
     expect([...linkeOpen.revealed].sort()).toEqual(['linke', 'spd']);
+  });
+});
+
+describe('allRevealed', () => {
+  const ids = puzzle.parties.map((party) => party.partyId);
+
+  it('is false while a party is still face down', () => {
+    expect(allRevealed(puzzle, new Set(ids.slice(0, -1)))).toBe(false);
+    expect(allRevealed(puzzle, NONE)).toBe(false);
+  });
+
+  it('is true once every party is turned over, whatever else is in the set', () => {
+    expect(allRevealed(puzzle, new Set(ids))).toBe(true);
+    expect(allRevealed(puzzle, new Set([...ids, 'unknown']))).toBe(true);
+  });
+});
+
+describe('autoResultDelay', () => {
+  it('lets the finished tally be read, and is short without motion', () => {
+    expect(AUTO_RESULT_DELAY_MS).toBe(1500);
+    expect(autoResultDelay(false)).toBe(1500);
+    expect(autoResultDelay(true)).toBe(300);
   });
 });
