@@ -6,6 +6,8 @@ import {
 } from '@/lib/stimmts/analytics';
 import {
   type Phase,
+  allRevealed,
+  autoResultDelay,
   chamberCenter,
   chamberStates,
   selectParty,
@@ -29,7 +31,7 @@ import Hemicycle from './hemicycle';
 import Result from './result';
 import Reveal from './reveal';
 
-/** "Alle aufdecken" turns the parties over one after another, left to right. */
+/** "Auflösen" turns the parties over one after another, left to right. */
 const REVEAL_ALL_STEP_MS = 450;
 
 type Props = {
@@ -137,24 +139,62 @@ function PuzzleGame({ number, puzzle, schedule, today, onOpenDay }: Props) {
   // The party whose counts are open under its row in "Deine Tipps".
   const [openParty, setOpenParty] = useState<string | null>(null);
   const select = (partyId: string) => {
-    const next = selectParty({ revealed, open: openParty }, partyId);
-    setRevealed(next.revealed);
-    setOpenParty(next.open);
+    // Functional, so a tap in the same frame as a sequence timer cannot
+    // overwrite the party that timer just turned over.
+    setRevealed(
+      (previous) =>
+        selectParty({ revealed: previous, open: openParty }, partyId).revealed,
+    );
+    setOpenParty(selectParty({ revealed, open: openParty }, partyId).open);
   };
 
   const revealTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const [revealing, setRevealing] = useState(false);
   useEffect(() => () => revealTimers.current.forEach(clearTimeout), []);
   const revealAll = () => {
+    // A second tap must not queue a second sequence beside the first.
+    revealTimers.current.forEach(clearTimeout);
     const queue = puzzle.parties
       .map((party) => party.partyId)
       .filter((partyId) => !revealed.has(partyId));
+    if (queue.length === 0) {
+      return;
+    }
+    setRevealing(true);
     revealTimers.current = queue.map((partyId, i) =>
       setTimeout(
-        () => reveal(partyId),
+        () => {
+          reveal(partyId);
+          if (i === queue.length - 1) {
+            setRevealing(false);
+          }
+        },
         reduceMotion ? 0 : i * REVEAL_ALL_STEP_MS,
       ),
     );
   };
+
+  // With tips, the result follows once the last party is turned over, however
+  // that happened (the sequence or taps on rows). A vote looked at without
+  // tips has no result to move on to; there the player leaves by the button.
+  const everyPartyRevealed = allRevealed(puzzle, revealed);
+  useEffect(() => {
+    if (everyPartyRevealed) {
+      setRevealing(false);
+    }
+  }, [everyPartyRevealed]);
+  const showResultNow = useCallback(() => {
+    setShowResult(true);
+    setVotesOnly(false);
+    goTop();
+  }, [goTop]);
+  useEffect(() => {
+    if (phase !== 'reveal' || votesOnly || !everyPartyRevealed) {
+      return;
+    }
+    const timer = setTimeout(showResultNow, autoResultDelay(reduceMotion));
+    return () => clearTimeout(timer);
+  }, [phase, votesOnly, everyPartyRevealed, reduceMotion, showResultNow]);
 
   if (phase === 'briefing') {
     return (
@@ -234,11 +274,8 @@ function PuzzleGame({ number, puzzle, schedule, today, onOpenDay }: Props) {
             open={openParty}
             onSelect={select}
             onRevealAll={revealAll}
-            onShowResult={() => {
-              setShowResult(true);
-              setVotesOnly(false);
-              goTop();
-            }}
+            revealing={revealing}
+            onShowResult={votesOnly ? showResultNow : undefined}
           />
         )}
       </div>

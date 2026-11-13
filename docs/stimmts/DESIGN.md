@@ -34,8 +34,12 @@ Wahlperiode, starting on the launch date.
 3. **Answers.** The Fraktionen come one at a time in seating order: Die Linke,
    SPD, Bündnis 90/Die Grünen, CDU/CSU, AfD. For each, Ja, Nein or Enthaltung.
    An answer is final.
-4. **Reveal.** The player turns the parties over one by one or all at once,
-   and sees each party's real vote and counts.
+4. **Reveal.** One "Auflösen" button turns all five parties over, left to
+   right; a tap on a party's row turns just that one. Each party's real vote
+   and counts show beside the player's tip. When the last party is turned
+   over, the result follows by itself after a short pause (almost at once with
+   reduced motion). A vote looked at again from the result, without tips, has
+   no such move: it has its own "Zurück zum Ergebnis" button.
 5. **Result.** The score stamped on the Stimmkarte, which the player casts into
    the urn of this Wahlperiode; the outcome; the Wahlperiode as 30 seats, where
    a past day opens again; sharing; a countdown to the next puzzle.
@@ -62,7 +66,7 @@ stateDiagram-v2
   Briefing --> Answering: "Los geht's"
   Answering --> Reveal: the fifth answer
   Answering --> Result: finished in another tab
-  Reveal --> Result: "Zum Ergebnis"
+  Reveal --> Result: the last party turned over, after a pause
   Result --> Briefing: Berlin midnight, the next puzzle
   Result --> Closing: Berlin midnight after the last day
 ```

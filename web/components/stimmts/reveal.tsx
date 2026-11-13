@@ -1,7 +1,7 @@
-import { Button } from '@/components/ui/button';
+import { allRevealed } from '@/lib/stimmts/game-view';
 import { OUTCOME_LABELS } from '@/lib/stimmts/labels';
 import type { Guesses, Puzzle } from '@/lib/stimmts/types';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import PillButton from './pill-button';
 import RevealList from './reveal-list';
 import YesMeans from './yes-means';
@@ -16,7 +16,12 @@ type Props = {
   /** A tap on a party's row (see selectParty). */
   onSelect: (partyId: string) => void;
   onRevealAll?: () => void;
-  /** Absent when looking back at a past day, which has no result to go to. */
+  /** The parties are being turned over one after another. */
+  revealing?: boolean;
+  /**
+   * Only for a vote looked at without tips: with tips, the result follows by
+   * itself once the last party is turned over.
+   */
   onShowResult?: () => void;
 };
 
@@ -31,29 +36,39 @@ function Reveal({
   open,
   onSelect,
   onRevealAll,
+  revealing = false,
   onShowResult,
 }: Props) {
-  const allRevealed = revealed.size === puzzle.parties.length;
+  const complete = allRevealed(puzzle, revealed);
   const played = Object.keys(guesses).length > 0;
 
   return (
     <div className="flex flex-col gap-4">
       <YesMeans yesMeans={puzzle.yesMeans} />
-      {allRevealed && (
-        // On screen, the chamber's centre already says it.
-        <p className="sr-only">
-          Der Bundestag hat {OUTCOME_LABELS[puzzle.outcome]}.
-        </p>
-      )}
+      {/* On screen, the chamber's centre already says it. The region stays
+          mounted so that filling it is announced, before the result follows. */}
+      <p role="status" className="sr-only">
+        {complete && `Der Bundestag hat ${OUTCOME_LABELS[puzzle.outcome]}.`}
+      </p>
 
       <section aria-labelledby="deine-tipps" className="flex flex-col gap-2">
         <h2 id="deine-tipps" className="mt-2 text-lg font-bold">
           {played ? 'Deine Tipps' : 'So wurde abgestimmt'}
         </h2>
-        {!allRevealed && (
-          <p className="text-sm text-muted-foreground">
-            Tippe auf eine Partei, um sie aufzudecken.
-          </p>
+        {!complete && onRevealAll && (
+          <>
+            {/* Stays mounted while the sequence runs, so focus is not dropped. */}
+            <PillButton
+              aria-disabled={revealing}
+              onClick={revealing ? undefined : onRevealAll}
+              className={revealing ? 'opacity-50' : undefined}
+            >
+              Auflösen
+            </PillButton>
+            <p className="text-center text-sm text-muted-foreground">
+              Oder tippe auf eine Partei.
+            </p>
+          </>
         )}
         <RevealList
           puzzle={puzzle}
@@ -62,26 +77,12 @@ function Reveal({
           open={open}
           onSelect={onSelect}
         />
-        {!allRevealed && onRevealAll && (
-          <Button variant="ghost" onClick={onRevealAll} className="self-center">
-            Alle aufdecken
-          </Button>
-        )}
       </section>
 
-      {allRevealed && onShowResult && (
+      {complete && onShowResult && !played && (
         <PillButton onClick={onShowResult} className="mt-2">
-          {played ? (
-            <>
-              Zum Ergebnis
-              <ArrowRight aria-hidden strokeWidth={2.25} />
-            </>
-          ) : (
-            <>
-              <ArrowLeft aria-hidden strokeWidth={2.25} />
-              Zurück zum Ergebnis
-            </>
-          )}
+          <ArrowLeft aria-hidden strokeWidth={2.25} />
+          Zurück zum Ergebnis
         </PillButton>
       )}
     </div>

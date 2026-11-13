@@ -338,7 +338,7 @@ function CastHint() {
             className="size-5 animate-stimmts-tap motion-reduce:animate-none"
           />
         </span>
-        Tippe auf deine Stimmkarte
+        Stimmkarte einwerfen
       </span>
     </p>
   );
