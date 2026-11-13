@@ -48,7 +48,7 @@ function FeedIntro() {
 
 function AiDisclaimerContent({ variant }: { variant: Variant }) {
   return (
-    <div className="px-4 pb-4 text-sm text-foreground md:px-0 md:pb-0">
+    <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-4 text-sm text-foreground md:px-0 md:pb-0">
       {variant === 'feed' ? <FeedIntro /> : <ChatIntro />}
 
       <ul className="flex list-inside flex-col gap-4 py-4 *:flex *:items-center *:gap-2">
@@ -142,7 +142,7 @@ function AiDisclaimer({ className, variant = 'chat' }: Props) {
           {variant === 'feed' ? 'Erfahre hier mehr' : 'Erfahre hier mehr.'}
         </ResponsiveDialogTrigger>
       </p>
-      <ResponsiveDialogContent>
+      <ResponsiveDialogContent className="flex max-h-[90dvh] flex-col">
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>KI Hinweis</ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
