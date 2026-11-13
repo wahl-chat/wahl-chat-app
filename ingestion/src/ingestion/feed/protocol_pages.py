@@ -153,6 +153,9 @@ class ProtocolSpeech:
     interjections: int = 0
     # The ``<redner id>``: the speaker's ID in the MdB-Stammdaten.
     speaker_id: Optional[str] = None
+    fraktion: Optional[str] = None
+    # The office of a member of the government, who speaks for no Fraktion.
+    role: Optional[str] = None
 
 
 @dataclass
@@ -279,6 +282,8 @@ def protocol_index(xml_text: str) -> ProtocolIndex:
                 agenda=agenda_slug_from_top_id(speech.get("agenda_top_id")),
                 interjections=interjections.get(str(speech.get("xml_rede_id")), 0),
                 speaker_id=speech.get("speaker_xml_id") or None,
+                fraktion=speech.get("party") or None,
+                role=speech.get("role") or None,
             )
         )
     return index
@@ -383,8 +388,10 @@ def _order(
     unplaced: list[Speech] = []
     for speech in speeches:
         found = matches.get(speech.source_item_id)
-        if found is not None and found.speaker_id:
-            speech.mdb_id = found.speaker_id
+        if found is not None:
+            speech.mdb_id = found.speaker_id or speech.mdb_id
+            speech.protocol_fraktion = found.fraktion
+            speech.role = found.role
         if placement is not None:
             placement.anchor(speech, found)
         else:
@@ -418,6 +425,7 @@ def apply_protocols(
     sitting: SittingDay,
     fetch: FetchText = fetch_text,
     read_pdf: Optional[ReadPdf] = None,
+    resolve_party: Optional[Callable[[Speech], bool]] = None,
 ) -> int:
     """Put each agenda item's speeches into protocol order, link them to their
     protocol page, drop the twin of a speech both sources hold, title the
@@ -425,7 +433,8 @@ def apply_protocols(
     returns how many agenda items are now ordered.
 
     An item whose protocol XML or PDF cannot be read stays unordered, and the
-    builder leaves it for a later run.
+    builder leaves it for a later run; so does one with a speech whose party
+    ``resolve_party`` cannot settle this run.
     """
     ordered = 0
     for protocol_id, pdf_url in sitting.protocols:
@@ -467,6 +476,16 @@ def apply_protocols(
                 placement,
             )
             item.ordered = placement is not None
+            if resolve_party is not None:
+                unsettled = [s for s in item.speeches if not resolve_party(s)]
+                if unsettled:
+                    logger.warning(
+                        "%s (%s): party of %s not settled; left for a later run",
+                        item.label,
+                        item.key,
+                        ", ".join(s.speaker or s.source_item_id for s in unsettled),
+                    )
+                    item.ordered = False
             # Summed over the item's own speeches, so a debate the protocol
             # files under another item still gets its own count.
             item.interjections = sum(

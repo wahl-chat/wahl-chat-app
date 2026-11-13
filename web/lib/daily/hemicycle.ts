@@ -14,6 +14,8 @@ export type Seat = {
 
 export type PartyArc = {
   partyId: string;
+  /** The logo its tile shows; see `party-logos.ts`. */
+  logoId: string;
   name: string;
   color: string;
   startAngle: number;
@@ -164,6 +166,7 @@ export function layoutHemicycle(
     });
     arcs.push({
       partyId: party.party_id,
+      logoId: party.logo_id ?? party.party_id,
       name: party.name,
       color: party.color,
       startAngle: block[0].angle,

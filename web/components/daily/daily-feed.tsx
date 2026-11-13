@@ -1,5 +1,6 @@
 'use client';
 
+import AiDisclaimer from '@/components/legal/ai-disclaimer';
 import { FEED_CHAT_ENABLED } from '@/lib/daily/chat-handoff';
 import { feedToDigests } from '@/lib/daily/editions';
 import {
@@ -40,6 +41,7 @@ import type {
   DailyDigest,
   DigestParliamentId,
   FeedPage,
+  GlossaryEntry,
   ParliamentFeed,
   SittingCalendar,
 } from '@/lib/firebase/firebase.types';
@@ -51,6 +53,7 @@ import DailyDaySection from './daily-day-section';
 import { AskPanel, DailyDetailDialog } from './daily-detail-dialog';
 import { FeedFilters, FilterBar, ParliamentSelector } from './daily-filters';
 import DaySkeleton from './day-skeleton';
+import { GlossaryProvider } from './glossary-text';
 
 const ITEM_PARAM = 'item';
 
@@ -69,6 +72,8 @@ type Props = {
   calendar?: SittingCalendar | null;
   /** The days the Bundestag's feed has content for. */
   editionDates?: string[];
+  /** The explained expert terms, for the whole feed. */
+  glossary?: GlossaryEntry[];
 };
 
 type View = {
@@ -185,6 +190,7 @@ function DailyFeed({
   linkedDay,
   calendar = null,
   editionDates = [],
+  glossary = [],
 }: Props) {
   const [states, setStates] = useState<StateSelection>(
     initialStates ?? DEFAULT_SELECTION,
@@ -393,83 +399,90 @@ function DailyFeed({
   };
 
   return (
-    <div className="flex flex-col gap-4 pt-4">
-      <FilterBar>
-        {(onOpenChange) => (
-          <>
-            <div className="min-w-0 flex-1">
-              <ParliamentSelector
-                states={states}
-                onChange={changeStates}
-                calendar={calendar}
-                editionDates={editionDates}
-                waitingEditions={waitingEditions}
-                onJumpToDay={jumpToDay}
+    <GlossaryProvider entries={glossary}>
+      <div className="flex flex-col gap-4 pt-4">
+        <FilterBar>
+          {(onOpenChange) => (
+            <>
+              <div className="min-w-0 flex-1">
+                <ParliamentSelector
+                  states={states}
+                  onChange={changeStates}
+                  calendar={calendar}
+                  editionDates={editionDates}
+                  waitingEditions={waitingEditions}
+                  onJumpToDay={jumpToDay}
+                  onOpenChange={onOpenChange}
+                />
+              </div>
+              <FeedFilters
+                filter={filter}
+                onChange={changeFilter}
                 onOpenChange={onOpenChange}
               />
-            </div>
-            <FeedFilters
-              filter={filter}
-              onChange={changeFilter}
-              onOpenChange={onOpenChange}
-            />
-          </>
-        )}
-      </FilterBar>
+            </>
+          )}
+        </FilterBar>
 
-      <div className="flex flex-col gap-12 pt-2">
-        {visibleDays.length === 0 ? (
-          <p className={cn('py-12 text-center text-[15px]', MUTED_TEXT)}>
-            Noch keine Inhalte zu deiner Auswahl. Schau bald wieder vorbei.
-          </p>
-        ) : (
-          visibleDays.map((day) => (
-            <DailyDaySection
-              key={day.date}
-              day={day}
-              onOpen={(item) => open(item.key)}
-            />
-          ))
-        )}
-        {older.length > 0 && (
-          <div
-            ref={olderRef}
-            aria-live="polite"
-            className="flex min-h-10 items-center justify-center"
-          >
-            {olderFailed ? (
-              <button
-                type="button"
-                onClick={loadOlder}
-                className={cn(
-                  'h-10 rounded-lg border border-[var(--daily-border)] px-4 text-[15px] transition-colors hover:bg-[var(--daily-surface)]',
-                  MUTED_TEXT,
-                  FOCUS_RING,
-                )}
-              >
-                Erneut versuchen
-              </button>
-            ) : (
-              loadingOlder && <DaySkeleton />
-            )}
-          </div>
-        )}
-      </div>
-
-      {FEED_CHAT_ENABLED && askItem && (
-        <AskPanel
-          item={askItem}
-          withSuggestions={false}
-          className="sticky bottom-0 z-30 -mx-2 mt-4"
+        <AiDisclaimer
+          variant="feed"
+          className={cn('-mt-2 mb-0 text-left text-[13px]', MUTED_TEXT)}
         />
-      )}
 
-      <DailyDetailDialog
-        item={openItem}
-        heat={openHeat}
-        onClose={() => open(null)}
-      />
-    </div>
+        <div className="flex flex-col gap-12 pt-2">
+          {visibleDays.length === 0 ? (
+            <p className={cn('py-12 text-center text-[15px]', MUTED_TEXT)}>
+              Noch keine Inhalte zu deiner Auswahl. Schau bald wieder vorbei.
+            </p>
+          ) : (
+            visibleDays.map((day) => (
+              <DailyDaySection
+                key={day.date}
+                day={day}
+                onOpen={(item) => open(item.key)}
+              />
+            ))
+          )}
+          {older.length > 0 && (
+            <div
+              ref={olderRef}
+              aria-live="polite"
+              className="flex min-h-10 items-center justify-center"
+            >
+              {olderFailed ? (
+                <button
+                  type="button"
+                  onClick={loadOlder}
+                  className={cn(
+                    'h-10 rounded-lg border border-[var(--daily-border)] px-4 text-[15px] transition-colors hover:bg-[var(--daily-surface)]',
+                    MUTED_TEXT,
+                    FOCUS_RING,
+                  )}
+                >
+                  Erneut versuchen
+                </button>
+              ) : (
+                loadingOlder && <DaySkeleton />
+              )}
+            </div>
+          )}
+        </div>
+
+        {FEED_CHAT_ENABLED && askItem && (
+          <AskPanel
+            item={askItem}
+            withSuggestions={false}
+            className="sticky bottom-0 z-30 -mx-2 mt-4"
+          />
+        )}
+
+        <DailyDetailDialog
+          item={openItem}
+          heat={openHeat}
+          onClose={() => open(null)}
+        />
+      </div>
+    </GlossaryProvider>
   );
 }
 

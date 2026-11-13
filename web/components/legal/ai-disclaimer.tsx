@@ -15,18 +15,41 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-function AiDisclaimerContent() {
+type Variant = 'chat' | 'feed';
+
+function ChatIntro() {
+  return (
+    <p>
+      Die Antworten auf wahl.chat werden von einer{' '}
+      <span className="font-semibold">künstlichen Intelligenz</span> generiert.
+      Sie basieren auf Informationen, die aus{' '}
+      <span className="font-semibold">öffentlich zugänglichen Partei-</span> und{' '}
+      <span className="font-semibold">Wahlprogrammen</span> extrahiert wurden.
+      Während wahl.chat bestrebt ist, genaue Informationen über Parteipositionen
+      und -werte zu liefern, gilt:
+    </p>
+  );
+}
+
+function FeedIntro() {
+  return (
+    <p>
+      Die Zusammenfassungen im Feed werden von einer{' '}
+      <span className="font-semibold">künstlichen Intelligenz</span> erstellt.
+      Grundlage sind die{' '}
+      <span className="font-semibold">Plenarprotokolle und Videos</span> der
+      Sitzungen sowie die Ergebnisse der{' '}
+      <span className="font-semibold">namentlichen Abstimmungen</span>; die
+      Quellen sind jeweils verlinkt. Während wahl.chat bestrebt ist, die
+      Debatten genau wiederzugeben, gilt:
+    </p>
+  );
+}
+
+function AiDisclaimerContent({ variant }: { variant: Variant }) {
   return (
     <div className="px-4 pb-4 text-sm text-foreground md:px-0 md:pb-0">
-      <p>
-        Die Antworten auf wahl.chat werden von einer{' '}
-        <span className="font-semibold">künstlichen Intelligenz</span>{' '}
-        generiert. Sie basieren auf Informationen, die aus{' '}
-        <span className="font-semibold">öffentlich zugänglichen Partei-</span>{' '}
-        und <span className="font-semibold">Wahlprogrammen</span> extrahiert
-        wurden. Während wahl.chat bestrebt ist, genaue Informationen über
-        Parteipositionen und -werte zu liefern, gilt:
-      </p>
+      {variant === 'feed' ? <FeedIntro /> : <ChatIntro />}
 
       <ul className="flex list-inside flex-col gap-4 py-4 *:flex *:items-center *:gap-2">
         <li>
@@ -65,24 +88,26 @@ function AiDisclaimerContent() {
             gelegentlich auftreten.
           </span>
         </li>
-        <li>
-          <DatabaseIcon className="mr-2 size-6 shrink-0" />
-          <span className="inline-block">
-            <span className="font-semibold">
-              Deine Nachrichten werden gespeichert
+        {variant === 'chat' && (
+          <li>
+            <DatabaseIcon className="mr-2 size-6 shrink-0" />
+            <span className="inline-block">
+              <span className="font-semibold">
+                Deine Nachrichten werden gespeichert
+              </span>
+              , um die Antworten zu erzeugen und dir deinen Chatverlauf
+              anzuzeigen. Mehr dazu in der{' '}
+              <Link href="/datenschutz" className="font-semibold underline">
+                Datenschutzerklärung
+              </Link>
+              .
             </span>
-            , um die Antworten zu erzeugen und dir deinen Chatverlauf
-            anzuzeigen. Mehr dazu in der{' '}
-            <Link href="/datenschutz" className="font-semibold underline">
-              Datenschutzerklärung
-            </Link>
-            .
-          </span>
-        </li>
+          </li>
+        )}
       </ul>
 
       <p>
-        Dieser KI-Chat dient als{' '}
+        {variant === 'feed' ? 'Dieser Feed' : 'Dieser KI-Chat'} dient als{' '}
         <span className="font-semibold">Bildungswerkzeug</span>, um verschiedene
         politische Positionen kennenzulernen. Für{' '}
         <span className="font-semibold">verbindliche Informationen</span> nutzen
@@ -95,9 +120,15 @@ function AiDisclaimerContent() {
 
 type Props = {
   className?: string;
+  variant?: Variant;
 };
 
-function AiDisclaimer({ className }: Props) {
+const LEAD: Record<Variant, string> = {
+  chat: 'wahl.chat Antwortet mit KI.',
+  feed: 'wahl.chat arbeitet mit KI.',
+};
+
+function AiDisclaimer({ className, variant = 'chat' }: Props) {
   return (
     <ResponsiveDialog>
       <p
@@ -106,16 +137,16 @@ function AiDisclaimer({ className }: Props) {
           className,
         )}
       >
-        wahl.chat Antwortet mit KI.{' '}
+        {LEAD[variant]}{' '}
         <ResponsiveDialogTrigger className="font-semibold underline">
-          Erfahre hier mehr.
+          {variant === 'feed' ? 'Erfahre hier mehr' : 'Erfahre hier mehr.'}
         </ResponsiveDialogTrigger>
       </p>
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>KI Hinweis</ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
-        <AiDisclaimerContent />
+        <AiDisclaimerContent variant={variant} />
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   );

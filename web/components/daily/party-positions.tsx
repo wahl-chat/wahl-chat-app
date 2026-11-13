@@ -5,11 +5,13 @@ import type { NumberedSources } from '@/lib/daily/sources';
 import type {
   DigestPartyPosition,
   DigestSpeaker,
+  TermRef,
 } from '@/lib/firebase/firebase.types';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Fragment, useState } from 'react';
 import { MUTED_TEXT } from './card-styles';
+import { GlossaryText } from './glossary-text';
 import { SourcePills } from './source-pills';
 import { SpeakerChips } from './speaker-chips';
 
@@ -20,11 +22,14 @@ import { SpeakerChips } from './speaker-chips';
  */
 export function PartyLogo({
   partyId,
+  logoId,
   name,
   color,
   className,
 }: {
   partyId: string;
+  /** Another logo than `partyId`'s own, see `lib/daily/party-logos.ts`. */
+  logoId?: string;
   name: string;
   color: string;
   className?: string;
@@ -44,7 +49,7 @@ export function PartyLogo({
         </span>
       ) : (
         <Image
-          src={buildPartyImageUrl(partyId)}
+          src={buildPartyImageUrl(logoId ?? partyId)}
           alt={name}
           width={52}
           height={28}
@@ -103,6 +108,7 @@ export function PartyPositions({
   sources,
   onSpeaker,
   speakerPhotos,
+  terms,
 }: {
   positions: DigestPartyPosition[];
   openedBy?: string | null;
@@ -116,6 +122,8 @@ export function PartyPositions({
   onSpeaker?: (speaker: DigestSpeaker, party: DigestPartyPosition) => void;
   /** The speakers' official portraits by MdB ID. */
   speakerPhotos?: Record<string, string>;
+  /** The item's expert terms the glossary explains. */
+  terms?: TermRef[];
 }) {
   return (
     <dl className="divide-y divide-[var(--daily-border)] border-t border-[var(--daily-border)]">
@@ -129,6 +137,7 @@ export function PartyPositions({
             <dt>
               <PartyLogo
                 partyId={position.party_id}
+                logoId={position.logo_id}
                 name={position.party_name}
                 color={position.color}
               />
@@ -141,7 +150,7 @@ export function PartyPositions({
             >
               {position.position ? (
                 <span>
-                  {position.position}
+                  <GlossaryText text={position.position} terms={terms} />
                   {sources && (
                     <SourcePills
                       numbers={sources.position(position.party_id)}

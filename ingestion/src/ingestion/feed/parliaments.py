@@ -30,6 +30,7 @@ _FALLBACK_COLOR = "#9CA3AF"
 _FALLBACK_NAMES: dict[str, str] = {
     "fraktionslos": "Fraktionslos",
     "fraktionslose": "Fraktionslos",
+    "parteilos": "Parteilos",
     "unbekannt": "Unbekannt",
 }
 

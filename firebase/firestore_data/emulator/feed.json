@@ -3189,7 +3189,13 @@
           "source_hash": "ae45ad7be4b710f56d206c8af667aeea2c411b5dda18753924c2eca599ec984c",
           "prompt_version": "10",
           "generated_by": "vertex-gemini-3.6-flash-high",
-          "generated_at": "2026-11-05T11:04:46.355278Z"
+          "generated_at": "2026-11-05T11:04:46.355278Z",
+          "terms": [
+            {
+              "term_id": "aktuelle-stunde",
+              "surface": "Aktuellen Stunde"
+            }
+          ]
         },
         "en": {
           "headline": "Debate on requirement to present a medical certificate from the first day of illness",
@@ -7981,7 +7987,13 @@
           "source_hash": "ad8a3af166367c126b6843e2eff4329484e7fa8b105bdc59b93ee971963c5134",
           "prompt_version": "10",
           "generated_by": "vertex-gemini-3.6-flash-high",
-          "generated_at": "2026-11-05T11:04:46.355278Z"
+          "generated_at": "2026-11-05T11:04:46.355278Z",
+          "terms": [
+            {
+              "term_id": "beschlussempfehlung",
+              "surface": "Beschlussempfehlungen"
+            }
+          ]
         },
         "en": {
           "headline": "Bundestag debates railway policy and speed limits on Autobahnen",
@@ -8459,7 +8471,13 @@
           "source_hash": "286657bc75b90cbef860177dac7f882e03d956cdae6a0ed2f1f7a587b5134d2b",
           "prompt_version": "10",
           "generated_by": "vertex-gemini-3.6-flash-high",
-          "generated_at": "2026-11-05T11:04:46.355278Z"
+          "generated_at": "2026-11-05T11:04:46.355278Z",
+          "terms": [
+            {
+              "term_id": "aktuelle-stunde",
+              "surface": "Aktuellen Stunde"
+            }
+          ]
         },
         "en": {
           "headline": "Debate on topical issues on the future of the German automotive industry",
@@ -10562,7 +10580,13 @@
           "source_hash": "ec20456bde79886230de208e111ce030ca814e18ba6aae2492102805a56c7b8d",
           "prompt_version": "10",
           "generated_by": "vertex-gemini-3.6-flash-high",
-          "generated_at": "2026-11-05T11:04:46.355278Z"
+          "generated_at": "2026-11-05T11:04:46.355278Z",
+          "terms": [
+            {
+              "term_id": "regierungsbefragung",
+              "surface": "Regierungsbefragung"
+            }
+          ]
         },
         "en": {
           "headline": "Government questioning on the environment, climate protection and justice in the Bundestag",
@@ -12336,7 +12360,13 @@
           "source_hash": "f15feadecdd4dd85626118b0446436b23714d7e4003940563be7b25ad86e1a81",
           "prompt_version": "10",
           "generated_by": "vertex-gemini-3.6-flash-high",
-          "generated_at": "2026-11-05T11:04:46.355278Z"
+          "generated_at": "2026-11-05T11:04:46.355278Z",
+          "terms": [
+            {
+              "term_id": "aktuelle-stunde",
+              "surface": "Aktuellen Stunde"
+            }
+          ]
         },
         "en": {
           "headline": "Debate on attacks on journalists in Erfurt",

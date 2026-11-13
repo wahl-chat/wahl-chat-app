@@ -6,6 +6,7 @@ import { parseStateParam } from '@/lib/daily/region';
 import { parseTopicsParam } from '@/lib/daily/topics';
 import {
   getEditionDates,
+  getGlossary,
   getLinkedFeedDay,
   getParliamentFeed,
   getSittingCalendar,
@@ -84,14 +85,21 @@ async function HomePage({ searchParams }: Props) {
 
   // Only the Bundestag is in the feed for now (see `DAILY_STATES`).
   const item = typeof params.item === 'string' ? params.item : undefined;
-  const [bundestag, previewDigests, linkedDay, calendar, editionDates] =
-    await Promise.all([
-      getParliamentFeed('bundestag'),
-      getLocalPreviewDigests(),
-      item ? getLinkedFeedDay(item) : null,
-      getSittingCalendar('bundestag'),
-      getEditionDates('bundestag'),
-    ]);
+  const [
+    bundestag,
+    previewDigests,
+    linkedDay,
+    calendar,
+    editionDates,
+    glossary,
+  ] = await Promise.all([
+    getParliamentFeed('bundestag'),
+    getLocalPreviewDigests(),
+    item ? getLinkedFeedDay(item) : null,
+    getSittingCalendar('bundestag'),
+    getEditionDates('bundestag'),
+    getGlossary(),
+  ]);
 
   return (
     <>
@@ -112,6 +120,7 @@ async function HomePage({ searchParams }: Props) {
         linkedDay={linkedDay}
         calendar={calendar}
         editionDates={editionDates}
+        glossary={glossary}
       />
     </>
   );

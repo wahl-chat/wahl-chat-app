@@ -2,6 +2,7 @@ import type {
   DailyDigest,
   DigestSessionSection,
   DigestVote,
+  TermRef,
 } from '@/lib/firebase/firebase.types';
 
 /** One news item: a debate (one agenda item of a sitting) or a vote. */
@@ -91,6 +92,10 @@ export function itemTeaser(item: DetailItem): string | null {
   return item.kind === 'section'
     ? item.section.summary || null
     : (item.vote.summary ?? item.vote.description ?? null);
+}
+
+export function itemTerms(item: DetailItem): TermRef[] {
+  return (item.kind === 'section' ? item.section.terms : item.vote.terms) ?? [];
 }
 
 export function suggestedQuestions(item: DetailItem): string[] {

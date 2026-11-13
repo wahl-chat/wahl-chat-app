@@ -562,6 +562,8 @@ reuse the same item: the feed now, later briefings and social posts.
     summaries. The chat must not cite them. The vector space and the
     fingerprint check are the same as for the corpus.
   - `politicians/{mdb_id}` holds one record per speaker (see "Speakers").
+  - `glossary/{term_id}` holds one explanation per expert term (see
+    "Glossary").
 - **Facts and texts.**
   - `facts` come from the source: citations, speakers, vote counts, the
     quote. They are the same in all languages.
@@ -591,6 +593,34 @@ reuse the same item: the feed now, later briefings and social posts.
     video. Both are facts from the source: `attach_source_facts` adds them
     to stored items without a rebuild. A run over a longer `--days` window
     gives older items their ids; unchanged items cost no LLM call.
+    Facts reach only the days a run covers. After adding one, backfill the
+    stored days (`make backfill-feed`); its `--plan` output counts
+    `speakers_without_mdb_id`.
+  - A member of the government also carries `role`, the office they spoke
+    in, from the protocol's `<rolle>`. The web shows it under the chip.
+  - **Party.** A speech's party comes from its corpus chunk. When the chunk
+    says `unbekannt`, the feed (`feed/speaker_parties.py`) tries the
+    protocol's `<fraktion>`, then the MdB-Stammdaten by `<redner id>`, then
+    `ingestion/data/government_speakers.json`: the hand-kept list of
+    speakers from outside the Bundestag (ministers who are not MdBs,
+    Bundesrat members), each with party and office. A minister is filed
+    under their party with the office as a tag. A speaker still unresolved
+    is logged by name and `<redner id>`: add them to the list.
+  - Each list entry records its `redner_ids`, the page its office was
+    checked on (`office_source_url`, bundesregierung.de), the page that
+    names its party (`party_source_url`) and `checked_at`; the loader
+    refuses an entry without them. `party` is the label as that page writes
+    it ("CDU", "parteilos"), and the slug is derived from it as from a
+    Stammdaten label. Where no official source names a party, `party` is
+    `null`: the speech stays `unbekannt` but keeps the office tag.
+    `valid_from`/`valid_to` bound the office: a speech from before it does
+    not get it (a minister may have spoken as Ministerpräsident before).
+  - A party the chunk does know is never changed; a protocol that disagrees
+    is logged. A moved speech enters the debate's input hash, so only that
+    debate is rebuilt. When the Stammdaten cannot be read, a debate with a
+    speech the protocol leaves open is not built that run, as one without
+    its protocol is not: answering `unbekannt` instead would rebuild a
+    published debate over a failed download, and back the next run.
   - The web lists the speakers as chips under each Fraktion, with their
     photo. A chip opens the speaker's record from `politicians/{mdb_id}`
     (`feed/politicians.py`). The full record is read only on that tap.
@@ -607,11 +637,51 @@ reuse the same item: the feed now, later briefings and social posts.
     web cache for the feed: a slow bundestag.de never holds back the feed.
     It fetches a profile again when the index's change date moves, or after
     30 days, and the votes only when the Bundestag's roll-call list has a
-    vote newer than the last read. A speaker the Stammdaten do not know
-    (Bundesrat, guests) gets no record; a former member gets one from the
+    vote newer than the last read. A speaker the Stammdaten do not know gets
+    a record only from `government_speakers.json` (party and office,
+    `source: "roster"`); guests get none. A former member gets one from the
     Stammdaten alone. A member who left keeps the record and votes last
     read, and an empty vote page never replaces stored votes.
   - The photo is shown from bundestag.de with its credit, never copied.
+- **Glossary.** Expert terms ("Aktuelle Stunde", "Beschlussempfehlung") are
+  underlined on the web and explained on hover or tap, with a link to the
+  official page the explanation rests on (`feed/glossary.py`,
+  `feed/glossary_sources.py`).
+  - After generation, like the translation, one call per batch of items
+    names the terms in each item's German teaser, bullets and positions. A
+    form the text does not contain as whole words is dropped. A second call
+    checks that each new form is the same term as its base form, not a
+    related one ("Ausschuss" is not "Petitionsausschuss"): the web
+    underlines every stored form in offices and roles, so one wrong form
+    would mislabel every office containing it. An item whose form the check
+    left unanswered is tried again next run. The item stores the refs
+    (`content.de.terms`) and `terms_hash`; a changed text is searched again,
+    a stored item gets terms without a rebuild.
+  - A new term is explained once in `glossary/{term_id}`, from official
+    pages only: a model searches the web (Google Search grounding on the
+    roster's Gemini models), the job keeps the results on bundestag.de,
+    bundesregierung.de and bpb.de (no speeches or press releases), reads
+    those pages, writes the explanation from them and checks every claim
+    against them. Only `verified` entries with `sources` are shown. A term
+    no official page explains, or an explanation its pages do not bear out,
+    is rejected; it is written again at most `MAX_DEFINITION_ATTEMPTS` times
+    over later runs that publish. A failed call, an unreadable page or an
+    answer that leaves a term out counts as no attempt.
+  - A new `GLOSSARY_PROMPT_VERSION` checks every stored entry and its forms
+    again, and gives a term given up on its attempts back.
+  - The speakers' offices go into the same call, so office terms get
+    explained. The web matches offices and Gremium roles against the
+    entries' `forms` instead of storing refs for them.
+  - Hand-written entries live in `firebase/firestore_data/glossary.json`,
+    each with its `sources`, seeded into every environment by
+    `seed_firestore.py` (merged, so the forms the job collected stay). In a
+    real project they are seeded `pending` and shown only once the job has
+    checked them against their sources; one that fails is hidden and
+    logged, never rewritten: fix it in the file. Write each claim as its
+    source states it: the check reads the parts of a long page around the
+    term, so a rule stated elsewhere on it does not count. The emulator
+    seeds them `verified`, since no job runs there. After seeding, clear the
+    web cache tag `feed`. Headlines stay plain: they are the card's link.
 - **Bundestag only.** abgeordnetenwatch publishes Landtag votes one to five
   months late. `Parliament.in_feed` keeps the Landtage out of the default
   run. The web shows them as "kommt bald".
@@ -621,7 +691,8 @@ reuse the same item: the feed now, later briefings and social posts.
   not a registry connector.
 - **Models and prompts.**
   - All texts use the publication roster (`feed/publication_llms.py`): Gemini
-    on Vertex with high reasoning first, `gpt-6.1-terra` as a fallback. It
+    on Vertex with high reasoning first (3.7 Flash, then 3.6 Flash),
+    `gpt-6.1-terra` as a fallback. It
     does not change the chat's rate-limit status.
   - The prompts give the task and the shared rules (`feed/prompts.py`:
     neutrality, grounding, attribution, position fidelity). The schema field

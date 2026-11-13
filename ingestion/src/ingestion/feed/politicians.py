@@ -30,13 +30,18 @@ import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from ingestion.feed.calendar import fetch_page
 from ingestion.feed.models import FeedItem
+from ingestion.feed.speaker_parties import (
+    OutsideSpeaker,
+    Roster,
+    load_roster,
+)
 from ingestion.feed.politician_sources import (
     INDEX_URL,
     PROFILE_URL,
@@ -111,6 +116,9 @@ class Politician(BaseModel):
     # read; none for a member without a profile.
     votes: list[RollCallVote] = []
     votes_checked_at: Optional[datetime] = None
+    # "roster" for a speaker from outside the Bundestag, whose record holds
+    # only the party and office from ``government_speakers.json``.
+    source: Literal["bundestag", "roster"] = "bundestag"
 
 
 def merge(
@@ -146,6 +154,26 @@ def merge(
     )
 
 
+def outside_record(outside: OutsideSpeaker, mdb_id: str, now: datetime) -> Politician:
+    first, _, last = outside.name.rpartition(" ")
+    return Politician(
+        mdb_id=mdb_id,
+        first_name=first,
+        last_name=last,
+        name=outside.name,
+        partei=outside.party,
+        offices=[
+            Office(
+                function=outside.office,
+                institution=outside.institution,
+                kind="government",
+            )
+        ],
+        fetched_at=now,
+        source="roster",
+    )
+
+
 # --- the refresh ------------------------------------------------------------
 
 
@@ -158,6 +186,31 @@ def speaker_ids(items: Iterable[FeedItem]) -> list[str]:
                 if speaker.mdb_id:
                     found.setdefault(speaker.mdb_id)
     return list(found)
+
+
+def speakers_without_id(items: Iterable[FeedItem]) -> int:
+    """Speaker chips the protocol never identified. Speaker facts reach only
+    the days a run covers, so a count that stays high after a run points at
+    stored days no run has reached since the facts were added."""
+    return sum(
+        1
+        for item in items
+        for party in (item.debate.parties if item.debate else [])
+        for speaker in party.speakers
+        if not speaker.mdb_id
+    )
+
+
+def speaker_names(items: Iterable[FeedItem]) -> dict[str, str]:
+    """MdB ID -> the name the debate shows, for speakers from outside the
+    Bundestag whom the roster knows by name only."""
+    return {
+        speaker.mdb_id: speaker.name
+        for item in items
+        for party in (item.debate.parties if item.debate else [])
+        for speaker in party.speakers
+        if speaker.mdb_id
+    }
 
 
 def read_politicians(db: Any, ids: Iterable[str]) -> dict[str, Politician]:
@@ -301,6 +354,8 @@ def refresh_politicians(
     now: Optional[datetime] = None,
     out_of_time: Callable[[], bool] = lambda: False,
     pause: Callable[[], None] = lambda: time.sleep(_PAUSE_S),
+    roster: Callable[[], Roster] = load_roster,
+    names: Optional[dict[str, str]] = None,
 ) -> RefreshReport:
     """Store the record of each of these speakers that is missing or whose
     profile changed since, and the votes of each whose list may be missing
@@ -334,6 +389,7 @@ def refresh_politicians(
             logger.warning("MdB-Stammdaten not read: %s", exc)
             report.failed.extend(due)
             due = []
+    known: Optional[Roster] = None
     for mdb_id in [*due, *votes_due]:
         if out_of_time():
             report.out_of_time = True
@@ -343,8 +399,12 @@ def refresh_politicians(
             if record is not None and mdb_id in votes_due:
                 politician = with_votes(record, fetch, pause, now)
             elif (stamm := profiles.get(mdb_id)) is None:
-                report.not_members.append(mdb_id)
-                continue
+                known = known or roster()
+                outside = known.find(mdb_id, (names or {}).get(mdb_id, ""))
+                if outside is None:
+                    report.not_members.append(mdb_id)
+                    continue
+                politician = outside_record(outside, mdb_id, now)
             else:
                 bio = _find_profile(stamm, record, index, fetch, pause)
                 politician = merge(

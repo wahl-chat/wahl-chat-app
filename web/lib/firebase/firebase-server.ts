@@ -55,6 +55,8 @@ import type {
   FeedItem,
   FeedPage,
   FirebaseWahlSwiperResult,
+  GlossaryEntry,
+  GlossarySource,
   LlmSystemStatus,
   ParliamentFeed,
   Politician,
@@ -1003,6 +1005,45 @@ export async function getPolitician(mdbId: string): Promise<Politician | null> {
       )(mdbId),
     null,
     'FAILED to fetch politician',
+  );
+}
+
+async function getGlossaryImpl(): Promise<GlossaryEntry[]> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const snapshot = await getDocs(
+    query(collection(serverDb, 'glossary'), where('status', '==', 'verified')),
+  );
+  // An explanation is shown only with the source it was checked against.
+  return snapshot.docs.flatMap((d) => {
+    const { term_id, term, definition, forms, sources } = d.data();
+    const linked = Array.isArray(sources)
+      ? sources.filter(
+          (s): s is GlossarySource =>
+            typeof s?.url === 'string' && typeof s?.title === 'string',
+        )
+      : [];
+    return typeof definition === 'string' && definition && linked.length > 0
+      ? [
+          {
+            term_id,
+            term,
+            definition,
+            forms: Array.isArray(forms) ? forms : [],
+            sources: linked,
+          },
+        ]
+      : [];
+  });
+}
+
+/** Every explained term, for the whole feed at once: a few hundred short
+ * entries at most, so the page needs no read per item. */
+export async function getGlossary(): Promise<GlossaryEntry[]> {
+  return uncachedFallback(
+    () =>
+      cachedRead(getGlossaryImpl, ['getGlossary', 'v2'], [CacheTags.FEED])(),
+    [],
+    'FAILED to fetch glossary',
   );
 }
 

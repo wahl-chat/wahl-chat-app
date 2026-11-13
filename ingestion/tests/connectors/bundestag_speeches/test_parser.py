@@ -281,3 +281,39 @@ class TestCitationCoordinates:
         result = parse_speeches_from_xml(xml)
         assert result[0]["source_page"] == "500"
         assert result[0]["pdf_page"] is None
+
+
+class TestGovernmentSpeaker:
+    """A member of the government carries a <rolle> instead of a <fraktion>."""
+
+    XML = """<?xml version="1.0" encoding="UTF-8"?>
+<dbtplenarprotokoll>
+  <sitzungsverlauf>
+    <rede id="ID219000100">
+      <p klasse="redner">
+        <redner id="999990151">
+          <name>
+            <vorname>Karin</vorname>
+            <nachname>Prien</nachname>
+            <rolle>
+              <rolle_lang>Bundesministerin für Bildung, Familie, Senioren, Frauen und Jugend</rolle_lang>
+              <rolle_kurz>Bundesministerin BMBFSFJ</rolle_kurz>
+            </rolle>
+          </name>
+        </redner>Karin Prien, Bundesministerin BMBFSFJ:</p>
+      <p klasse="J_1">Wir investieren in Bildung.</p>
+    </rede>
+  </sitzungsverlauf>
+</dbtplenarprotokoll>"""
+
+    def test_the_role_is_read(self) -> None:
+        (speech,) = parse_speeches_from_xml(self.XML)
+        assert speech["speaker_name"] == "Karin Prien"
+        assert speech["party"] is None
+        assert speech["role"] == (
+            "Bundesministerin für Bildung, Familie, Senioren, Frauen und Jugend"
+        )
+
+    def test_a_member_has_no_role(self, protocol_xml: str) -> None:
+        speeches = parse_speeches_from_xml(protocol_xml)
+        assert all(s.get("role") is None for s in speeches)

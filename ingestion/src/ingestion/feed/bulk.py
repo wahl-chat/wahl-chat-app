@@ -78,6 +78,8 @@ from ingestion.feed.politicians import (
     RefreshReport,
     refresh_politicians,
     speaker_ids,
+    speaker_names,
+    speakers_without_id,
 )
 from ingestion.feed.posters import (
     PosterMaker,
@@ -86,7 +88,16 @@ from ingestion.feed.posters import (
     poster_maker,
     writes_webp,
 )
+from ingestion.feed.glossary import (
+    GlossaryEntry,
+    GlossaryReport,
+    annotate_terms,
+    needs_terms,
+    read_glossary,
+    write_glossary,
+)
 from ingestion.feed.protocol_pages import apply_protocols
+from ingestion.feed.speaker_parties import PartyResolver
 from ingestion.feed.reader import (
     SPEECH_SOURCE_TYPE,
     VOTE_SOURCE_TYPE,
@@ -164,6 +175,7 @@ class Published:
     translation: TranslationReport = field(default_factory=TranslationReport)
     index: IndexReport = field(default_factory=IndexReport)
     translations_kept: int = 0
+    glossary: GlossaryReport = field(default_factory=GlossaryReport)
 
     @property
     def wrote(self) -> bool:
@@ -180,6 +192,11 @@ class Published:
         self.index.unchanged += other.index.unchanged
         self.index.deleted += other.index.deleted
         self.translations_kept += other.translations_kept
+        self.glossary.items_annotated += other.glossary.items_annotated
+        self.glossary.items_failed += other.glossary.items_failed
+        self.glossary.forms_rejected += other.glossary.forms_rejected
+        self.glossary.defined += other.glossary.defined
+        self.glossary.rejected += other.glossary.rejected
 
 
 def parliament_window(
@@ -253,8 +270,9 @@ def load_sources(
             ).items()
             if day >= start
         }
+        resolve_party = PartyResolver()
         for sitting in sitting_days.values():
-            ordered = apply_protocols(sitting)
+            ordered = apply_protocols(sitting, resolve_party=resolve_party)
             logger.info(
                 "%s: %d of %d agenda items in protocol order",
                 sitting.day,
@@ -425,7 +443,7 @@ def plan_day(
             if i.id in built or stored.get(i.id) is None or stored[i.id].rank != i.rank
         }
     )
-    untranslated = any(needs_translation(i, "en") for i in ranked)
+    untranslated = any(needs_translation(i, "en") or needs_terms(i) for i in ranked)
     if (
         not changed
         and not retracted
@@ -513,8 +531,9 @@ def publish(
     qdrant: Optional[QdrantClient],
     embed: Any,
     translate: bool,
+    glossary: Optional[dict[str, GlossaryEntry]] = None,
 ) -> Published:
-    """Translate, index and store one built day.
+    """Translate, index and store one built day, and explain its terms.
 
     ``db=None`` is a dry run: nothing is written. ``qdrant=None`` skips the
     index.
@@ -527,6 +546,12 @@ def publish(
         pending = [i for i in day.items if needs_translation(i, "en")]
         out.translation = translate_items(pending, builder)
         to_write |= {i.id for i in pending}
+    if glossary is not None:
+        annotated, entries, out.glossary = annotate_terms(day.items, builder, glossary)
+        to_write |= {i.id for i in annotated}
+        # Before the items, so an item never refers to an entry not there yet.
+        if db is not None and entries:
+            write_glossary(db, entries)
     out.items = [i for i in day.items if i.id in to_write]
     if qdrant is not None:
         out.index = index_items(qdrant, embed, built, retracted_ids=day.retracted_ids)
@@ -654,14 +679,17 @@ def refresh_speakers(
     """
     try:
         items = read_items_since(db, "bundestag", since)
-        report = refresh_politicians(db, speaker_ids(items), out_of_time=out_of_time)
+        report = refresh_politicians(
+            db, speaker_ids(items), out_of_time=out_of_time, names=speaker_names(items)
+        )
     except Exception as exc:  # noqa: BLE001 — the feed stands without them
         logger.warning("Politicians not refreshed: %s", exc)
         return RefreshReport()
     print(
         f"politicians: {len(report.written)} written, "
         f"{len(report.not_members)} not in the Stammdaten, "
-        f"{len(report.failed)} failed"
+        f"{len(report.failed)} failed, "
+        f"{speakers_without_id(items)} speaker(s) without an ID"
         + ("  stopped: time budget spent" if report.out_of_time else "")
     )
     return report
@@ -713,7 +741,11 @@ def _summary_line(run: ParliamentRun, published: Published) -> str:
         f"failed={len(run.failed)} "
         f"translated={t.translated} translation_failed={t.failed} "
         f"translations_kept={published.translations_kept} "
-        f"indexed={published.index.upserted}"
+        f"indexed={published.index.upserted} "
+        f"terms_annotated={published.glossary.items_annotated} "
+        f"terms_defined={published.glossary.defined} "
+        f"terms_rejected={published.glossary.rejected} "
+        f"term_forms_rejected={published.glossary.forms_rejected}"
         + ("  stopped: time budget spent" if run.out_of_time else "")
     )
 
@@ -739,6 +771,7 @@ def build_and_publish(
     index_to = qdrant if index and db is not None else None
     embed = _embeddings() if index_to is not None else None
     lookup_poll = poll_documents(AWClient())
+    glossary = read_glossary(db)
     runs: list[tuple[ParliamentRun, Published]] = []
     for parliament in parliaments:
         if out_of_time():
@@ -758,6 +791,7 @@ def build_and_publish(
                     qdrant=index_to,
                     embed=embed,
                     translate=translate,
+                    glossary=glossary,
                 )
             )
 

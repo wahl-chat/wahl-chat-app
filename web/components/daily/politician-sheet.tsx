@@ -14,6 +14,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
+import { speakerLogoId, speakerPartyLabel } from '@/lib/daily/party-logos';
 import {
   displayName,
   gremienOf,
@@ -39,6 +40,7 @@ import { ChevronDownIcon, PlayIcon, UserRoundIcon, XIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
+import { GlossaryLabel } from './glossary-text';
 import { PartyLogo } from './party-positions';
 import { SourceLink } from './vote-panels';
 
@@ -71,6 +73,14 @@ export function useSpeakerPhotos(ids: string[]): Record<string, string> {
 }
 
 const NO_PHOTOS: Record<string, string> = {};
+
+// The protocol gives people outside the Bundestag (government, Bundesrat,
+// guests) IDs from this range.
+const NON_MEMBER_ID = /^999/;
+
+function isNonMember(speaker: DigestSpeaker): boolean {
+  return Boolean(speaker.mdb_id && NON_MEMBER_ID.test(speaker.mdb_id));
+}
 
 /** One speaker's record, read once their chip is tapped. */
 function usePolitician(mdbId: string | null): {
@@ -124,9 +134,12 @@ function Tile({
 function Avatar({
   photo,
   party,
+  partei,
 }: {
   photo: string | undefined;
   party: DigestPartyPosition;
+  /** The speaker's own party, once their record has loaded. */
+  partei?: string | null;
 }) {
   return (
     <div className="relative size-14 shrink-0">
@@ -148,7 +161,8 @@ function Avatar({
       </div>
       <PartyLogo
         partyId={party.party_id}
-        name={party.party_name}
+        logoId={speakerLogoId(party, partei)}
+        name={speakerPartyLabel(party, partei)}
         color={party.color}
         className="absolute -bottom-1 -right-3 h-5 w-9 rounded"
       />
@@ -179,7 +193,7 @@ function Committees({ politician }: { politician: Politician }) {
                   : 'bg-[var(--daily-ink)] text-[var(--daily-canvas)]',
               )}
             >
-              {row.role}
+              <GlossaryLabel label={row.role} />
             </span>
           </li>
         ))}
@@ -203,7 +217,10 @@ function OtherGremien({ politician }: { politician: Politician }) {
             className="rounded-2xl border border-[var(--daily-border)] px-2.5 py-1 text-[13px]"
           >
             {row.gremium}
-            <span className={MUTED_TEXT}> · {row.role}</span>
+            <span className={MUTED_TEXT}>
+              {' · '}
+              <GlossaryLabel label={row.role} />
+            </span>
           </li>
         ))}
       </ul>
@@ -361,7 +378,31 @@ function DisclosureList({ disclosures }: { disclosures: Disclosures }) {
   );
 }
 
+/** A member of the government or the Bundesrat who sits in no Bundestag
+ * Fraktion: no Bundestag profile to show, only party and office. */
+function OutsideProfile({ politician }: { politician: Politician }) {
+  const institutions = [
+    ...new Set(politician.offices.map((office) => office.institution)),
+  ];
+  return (
+    <>
+      {politician.partei && (
+        <div className="grid grid-cols-2 gap-1.5">
+          <Tile label="Partei" value={politician.partei} />
+        </div>
+      )}
+      <p className={cn('text-[14px]', MUTED_TEXT)}>
+        {politician.name} ist kein Mitglied des Bundestages und spricht dort für{' '}
+        {institutions.join(' und ') || 'die Bundesregierung'}.
+      </p>
+    </>
+  );
+}
+
 function Profile({ politician }: { politician: Politician }) {
+  if (politician.source === 'roster') {
+    return <OutsideProfile politician={politician} />;
+  }
   const tenure = tenureLabel(politician);
   const mandate = mandateLabel(politician);
   return (
@@ -454,15 +495,29 @@ export function PoliticianSheet({
       >
         <div className="flex min-h-0 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-6 pt-3 md:pt-6">
           <header className="flex items-center gap-3 md:pr-8">
-            <Avatar photo={photo} party={party} />
+            <Avatar photo={photo} party={party} partei={politician?.partei} />
             <div className="min-w-0 flex-1 leading-tight">
               <ResponsiveDialogTitle className="text-left text-[18px] font-bold">
                 {politician ? displayName(politician) : speaker.name}
               </ResponsiveDialogTitle>
+              {/* Offices only: the party is the badge under the photo.
+                  Without an office the dialog is still described, for
+                  screen readers only. */}
               <ResponsiveDialogDescription
-                className={cn('mt-0.5 text-left text-[13px]', MUTED_TEXT)}
+                className={cn(
+                  'mt-0.5 text-left text-[13px]',
+                  MUTED_TEXT,
+                  offices.length === 0 && 'sr-only',
+                )}
               >
-                {offices.length > 0 ? offices.join(' · ') : party.party_name}
+                {offices.length > 0
+                  ? offices.map((office, i) => (
+                      <span key={office}>
+                        {i > 0 && ' · '}
+                        <GlossaryLabel label={office} />
+                      </span>
+                    ))
+                  : speakerPartyLabel(party, politician?.partei)}
               </ResponsiveDialogDescription>
             </div>
             {!isDesktop && (
@@ -512,7 +567,9 @@ export function PoliticianSheet({
             <Profile politician={politician} />
           ) : (
             <p className={cn('text-[14px]', MUTED_TEXT)}>
-              Für diese Person liegt kein Profil des Bundestages vor.
+              {isNonMember(speaker)
+                ? `${speaker.name} ist kein Mitglied des Bundestages, daher gibt es hier kein Bundestagsprofil.`
+                : 'Für diese Person liegt kein Profil des Bundestages vor.'}
             </p>
           )}
         </div>
