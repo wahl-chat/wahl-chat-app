@@ -44,6 +44,7 @@ _TIMEOUT_S = 120
 
 def _build_publication_llms() -> list[RosterLLM]:
     """The chat's Gemini models, Vertex tier first, then the OpenAI fallback.
+    Within each tier Gemini 3.7 leads: it writes the stronger one-time texts.
 
     The AI Studio entries need ``GOOGLE_API_KEY`` and join only when it is
     set: the scheduled job runs on Vertex alone.
@@ -66,18 +67,18 @@ def _build_publication_llms() -> list[RosterLLM]:
     if ai_studio:
         roster += [
             RosterLLM(
-                "google-gemini-3.6-flash-high",
+                "google-gemini-3.7-flash-high",
                 gemini(
-                    "gemini-3.6-flash",
+                    "gemini-3.7-flash",
                     thinking_level=PUBLICATION_THINKING,
                     timeout=_TIMEOUT_S,
                 ),
                 100,
             ),
             RosterLLM(
-                "google-gemini-3.7-flash-high",
+                "google-gemini-3.6-flash-high",
                 gemini(
-                    "gemini-3.7-flash",
+                    "gemini-3.6-flash",
                     thinking_level=PUBLICATION_THINKING,
                     timeout=_TIMEOUT_S,
                 ),
@@ -105,9 +106,9 @@ def _build_publication_llms() -> list[RosterLLM]:
     )
     return [
         RosterLLM(
-            "vertex-gemini-3.6-flash-high",
+            "vertex-gemini-3.7-flash-high",
             gemini(
-                "gemini-3.6-flash",
+                "gemini-3.7-flash",
                 vertex=True,
                 thinking_level=PUBLICATION_THINKING,
                 timeout=_TIMEOUT_S,
@@ -115,9 +116,9 @@ def _build_publication_llms() -> list[RosterLLM]:
             200,
         ),
         RosterLLM(
-            "vertex-gemini-3.7-flash-high",
+            "vertex-gemini-3.6-flash-high",
             gemini(
-                "gemini-3.7-flash",
+                "gemini-3.6-flash",
                 vertex=True,
                 thinking_level=PUBLICATION_THINKING,
                 timeout=_TIMEOUT_S,
@@ -144,3 +145,14 @@ async def structured_output_from_publication_llms(
 ) -> tuple[Any, str]:
     """The parsed output and the name of the roster entry that wrote it."""
     return await structured_output_with_failover(publication_llms(), messages, schema)
+
+
+def search_llms() -> list[RosterLLM]:
+    """The roster's Gemini models, highest priority first: the ones that can
+    search the web (Google Search grounding), which the glossary needs to
+    explain a term from official pages rather than from the model's memory."""
+    return sorted(
+        (llm for llm in publication_llms() if "gemini" in llm.name),
+        key=lambda llm: llm.priority,
+        reverse=True,
+    )

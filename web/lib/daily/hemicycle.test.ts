@@ -92,6 +92,17 @@ describe('layoutHemicycle', () => {
     }
   });
 
+  it('gives each tile its logo, its own unless another is set', () => {
+    const arcs = layoutHemicycle([
+      { ...party('cdu', 2, 0), logo_id: 'cdu_csu' },
+      party('spd', 1, 0),
+    ]).arcs;
+    expect(Object.fromEntries(arcs.map((a) => [a.partyId, a.logoId]))).toEqual({
+      cdu: 'cdu_csu',
+      spd: 'spd',
+    });
+  });
+
   it('skips parties without members and handles an empty vote', () => {
     expect(layoutHemicycle([party('spd', 0, 0)]).seats).toEqual([]);
     expect(

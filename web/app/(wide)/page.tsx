@@ -1,10 +1,12 @@
 import DailyFeed from '@/components/daily/daily-feed';
 import JsonLd from '@/components/seo/json-ld';
+import { parseKindParam } from '@/lib/daily/filter';
 import { getLocalPreviewDigests } from '@/lib/daily/local-preview';
 import { parseStateParam } from '@/lib/daily/region';
 import { parseTopicsParam } from '@/lib/daily/topics';
 import {
   getEditionDates,
+  getGlossary,
   getLinkedFeedDay,
   getParliamentFeed,
   getSittingCalendar,
@@ -83,14 +85,21 @@ async function HomePage({ searchParams }: Props) {
 
   // Only the Bundestag is in the feed for now (see `DAILY_STATES`).
   const item = typeof params.item === 'string' ? params.item : undefined;
-  const [bundestag, previewDigests, linkedDay, calendar, editionDates] =
-    await Promise.all([
-      getParliamentFeed('bundestag'),
-      getLocalPreviewDigests(),
-      item ? getLinkedFeedDay(item) : null,
-      getSittingCalendar('bundestag'),
-      getEditionDates('bundestag'),
-    ]);
+  const [
+    bundestag,
+    previewDigests,
+    linkedDay,
+    calendar,
+    editionDates,
+    glossary,
+  ] = await Promise.all([
+    getParliamentFeed('bundestag'),
+    getLocalPreviewDigests(),
+    item ? getLinkedFeedDay(item) : null,
+    getSittingCalendar('bundestag'),
+    getEditionDates('bundestag'),
+    getGlossary(),
+  ]);
 
   return (
     <>
@@ -103,11 +112,15 @@ async function HomePage({ searchParams }: Props) {
         }}
         previewDigests={previewDigests}
         initialStates={parseStateParam(params.land)}
-        initialTopics={parseTopicsParam(params.themen)}
+        initialFilter={{
+          topics: parseTopicsParam(params.themen),
+          kinds: parseKindParam(params.inhalt),
+        }}
         initialItem={item}
         linkedDay={linkedDay}
         calendar={calendar}
         editionDates={editionDates}
+        glossary={glossary}
       />
     </>
   );

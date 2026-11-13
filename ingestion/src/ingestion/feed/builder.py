@@ -25,6 +25,7 @@ records which roster entry wrote it.
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import re
 import time
@@ -118,7 +119,7 @@ _SPEECH_REF = "R"
 _CONTEXT_MARKER = "Kontext: "
 # Speakers outside any Fraktion: listed with their speeches, but no position
 # is required, since nobody speaks for them as a group.
-NO_FRAKTION = frozenset({"fraktionslos", "fraktionslose", "unbekannt"})
+NO_FRAKTION = frozenset({"fraktionslos", "fraktionslose", "parteilos", "unbekannt"})
 # How many items are generated at once.
 _CONCURRENCY = 4
 
@@ -184,13 +185,20 @@ class FeedBuilder:
 
     async def acall(self, prompt: str, schema: type[BaseModel]) -> tuple[Any, str]:
         messages: list[BaseMessage] = [HumanMessage(content=prompt)]
+        return await self.bounded(self._fn(messages, schema))
+
+    async def bounded(self, awaitable: Awaitable[T]) -> T:
+        """``awaitable``, cut when the deadline passes: every model call goes
+        through here, not only the structured ones."""
         if self.deadline is None:
-            return await self._fn(messages, schema)
+            return await awaitable
         remaining = self.deadline - time.monotonic()
         if remaining <= 0:
+            if inspect.iscoroutine(awaitable):
+                awaitable.close()
             raise TimeoutError("time budget spent")
         async with asyncio.timeout(remaining):
-            return await self._fn(messages, schema)
+            return await awaitable
 
 
 # ---------------------------------------------------------------------------
@@ -316,6 +324,27 @@ def plan_days(
 # ---------------------------------------------------------------------------
 
 
+_DEBATE_PREFIX = re.compile(
+    r"^(?:Bundestags?-?)?Debatte\s+(?:über|um)\s+(?:(?:die|den|das|der|eine[nm]?)\s+)?",
+    re.IGNORECASE,
+)
+# Below this the rest is no headline of its own ("Debatte über Kitas").
+_MIN_HEADLINE_WORDS = 3
+
+
+def without_debate_prefix(headline: str) -> str:
+    """The headline without a leading "Debatte über …", which the prompt
+    forbids but a model still writes now and then. "zu" stays: its dative
+    leaves a rest that does not read as a headline ("Steigenden Mieten")."""
+    match = _DEBATE_PREFIX.match(headline)
+    if match is None:
+        return headline
+    rest = headline[match.end() :].strip()
+    if len(rest.split()) < _MIN_HEADLINE_WORDS:
+        return headline
+    return rest[0].upper() + rest[1:]
+
+
 def strip_refs(text: str, prefix: str) -> str:
     """Drop ids the model echoed from the prompt ("[S3]", "(S2, S4)") into a
     text; they mean nothing to a reader."""
@@ -423,12 +452,51 @@ def debate_parties(
                         url=s.protocol_page_url or s.pdf_url,
                         video_url=s.video_uri,
                         video_link=s.citation_url if s.video_uri else None,
+                        **_speaker_facts(s),
                     )
                     for s in first_by_name.values()
                 ],
             )
         )
     return parties
+
+
+def _speaker_facts(speech: Speech) -> dict[str, Any]:
+    return {
+        "mdb_id": speech.mdb_id,
+        "duration": round(speech.duration) if speech.duration else None,
+        "role": speech.role,
+    }
+
+
+def with_speaker_facts(
+    parties: list[DebateParty], speeches: list[Speech]
+) -> Optional[list[DebateParty]]:
+    """The stored speakers with who they are and how long they spoke, read
+    from this run's speeches; None when nothing changed. A speaker is the
+    first speech under their name, as in ``debate_parties``."""
+    first_by_name: dict[str, Speech] = {}
+    for speech in speeches:
+        if speech.speaker:
+            first_by_name.setdefault(_normalize_name(speech.speaker), speech)
+    changed = False
+    out: list[DebateParty] = []
+    for party in parties:
+        speakers: list[DigestSpeaker] = []
+        for speaker in party.speakers:
+            first = first_by_name.get(_normalize_name(speaker.name))
+            facts = _speaker_facts(first) if first is not None else {}
+            update = {
+                key: value
+                for key, value in facts.items()
+                if value is not None and value != getattr(speaker, key)
+            }
+            if update:
+                speaker = speaker.model_copy(update=update)
+                changed = True
+            speakers.append(speaker)
+        out.append(party.model_copy(update={"speakers": speakers}))
+    return out if changed else None
 
 
 @dataclass
@@ -607,9 +675,9 @@ def speeches_block(
         text = " ".join(speech.text[:keep].split())
         ref = refs.ref(speech) if refs else None
         lead = f"[{ref}] " if ref else ""
-        lines.append(
-            f"- {lead}{speech.speaker or 'Unbekannt'} ({speech.party_id}): {text}"
-        )
+        # A minister speaks for the government, not as one of the Fraktion.
+        who = ", ".join(p for p in (speech.party_id, speech.role) if p)
+        lines.append(f"- {lead}{speech.speaker or 'Unbekannt'} ({who}): {text}")
     return "\n".join(lines)
 
 
@@ -746,7 +814,9 @@ async def build_debate(
             key_point_sources=key_point_sources(key_points, refs, display),
         ),
         content=canonical_content(
-            headline=strip_refs(draft.headline.strip(), _SPEECH_REF),
+            headline=without_debate_prefix(
+                strip_refs(draft.headline.strip(), _SPEECH_REF)
+            ),
             teaser=strip_refs(draft.summary.strip(), _SPEECH_REF),
             key_points=[p.text for p in key_points],
             positions=[

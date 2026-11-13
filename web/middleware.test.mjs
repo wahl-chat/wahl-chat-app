@@ -107,6 +107,16 @@ describe('legacy context-less URLs', () => {
     );
   });
 
+  test('unknown paths are left to the route, which 404s them', async () => {
+    for (const path of ['/foo', '/news', '/feed', '/bundestag']) {
+      const response = await middleware(
+        requestFrom(`https://wahl.chat${path}`),
+      );
+
+      expect(response.headers.get('location')).toBeNull();
+    }
+  });
+
   test('a path merely starting with the same letters is not a legacy /chat URL', async () => {
     const response = await middleware(requestFrom('https://wahl.chat/chatfoo'));
 

@@ -7,6 +7,7 @@ Tests for bundestag_speeches.mdb:
   - load_mdb_lookup: parses the tiny MdB-Stammdaten XML into {by_id, by_name} dicts
   - ensure_mdb_lookup: live-run loader — fetches on miss, fails loud on empty
   - download_mdb_stammdaten: extracts the OpenData ZIP; 404 fails fast
+  - ensure_mdb_file: fetches a missing or, given a max age, an old copy
   - mdb_party_for_speech: resolves party by speaker_xml_id, fallback by name
   - mdb_record_for_speaker_name: looks up MdB record by normalized name
 """
@@ -14,7 +15,10 @@ Tests for bundestag_speeches.mdb:
 from __future__ import annotations
 
 import io
+import os
+import time
 import zipfile
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -23,6 +27,7 @@ from ingestion.connectors.bundestag_speeches import mdb as mdb_module
 from ingestion.connectors.bundestag_speeches.mdb import (
     StammdatenUnavailableError,
     download_mdb_stammdaten,
+    ensure_mdb_file,
     ensure_mdb_lookup,
     load_mdb_lookup,
     mdb_party_for_speech,
@@ -227,3 +232,68 @@ class TestDownloadMdbStammdaten:
         with pytest.raises(StammdatenUnavailableError):
             download_mdb_stammdaten(tmp_path / "out.xml")
         assert calls["n"] == 1, "404 must not be retried"
+
+
+class TestEnsureMdbFile:
+    """ensure_mdb_file downloads a missing copy, and an old one given a max age."""
+
+    @pytest.fixture
+    def downloads(self, monkeypatch: pytest.MonkeyPatch) -> list[Path]:
+        fetched: list[Path] = []
+
+        def _download(dest: Path, **_: object) -> Path:
+            fetched.append(Path(dest))
+            Path(dest).write_text("<DOCUMENT/>", encoding="utf-8")
+            return Path(dest)
+
+        monkeypatch.setattr(mdb_module, "download_mdb_stammdaten", _download)
+        return fetched
+
+    def test_a_missing_copy_is_fetched(
+        self, tmp_path: Path, downloads: list[Path]
+    ) -> None:
+        path = tmp_path / "MDB_STAMMDATEN.XML"
+        assert ensure_mdb_file(path) == path
+        assert downloads == [path]
+
+    def test_an_old_copy_is_fetched_again_only_given_a_max_age(
+        self, tmp_path: Path, downloads: list[Path]
+    ) -> None:
+        path = tmp_path / "MDB_STAMMDATEN.XML"
+        path.write_text("<DOCUMENT/>", encoding="utf-8")
+        ten_days_ago = time.time() - 10 * 86400
+        os.utime(path, (ten_days_ago, ten_days_ago))
+        ensure_mdb_file(path)
+        assert downloads == []
+        ensure_mdb_file(path, max_age=timedelta(days=30))
+        assert downloads == []
+        ensure_mdb_file(path, max_age=timedelta(days=7))
+        assert downloads == [path]
+
+
+def test_a_name_with_a_particle_resolves_by_its_full_form(tmp_path: Path) -> None:
+    path = tmp_path / "MDB_STAMMDATEN.XML"
+    path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<DOCUMENT>
+  <MDB>
+    <ID>11004926</ID>
+    <NAMEN>
+      <NAME>
+        <NACHNAME>Vries</NACHNAME>
+        <VORNAME>Christoph</VORNAME>
+        <ADEL/>
+        <PRAEFIX>de</PRAEFIX>
+      </NAME>
+    </NAMEN>
+    <BIOGRAFISCHE_ANGABEN><PARTEI_KURZ>CDU</PARTEI_KURZ></BIOGRAFISCHE_ANGABEN>
+  </MDB>
+</DOCUMENT>""",
+        encoding="utf-8",
+    )
+    lookup = load_mdb_lookup(path)
+    speech = {"speaker_xml_id": None, "speaker_name": "Christoph de Vries"}
+    assert mdb_party_for_speech(speech, lookup) == "CDU"
+    # The short form still resolves, as before.
+    speech["speaker_name"] = "Christoph Vries"
+    assert mdb_party_for_speech(speech, lookup) == "CDU"

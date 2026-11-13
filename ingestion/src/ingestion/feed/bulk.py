@@ -38,7 +38,7 @@ import logging
 import os
 import sys
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -56,19 +56,48 @@ from ingestion.feed.builder import (
     VoteUnit,
     build_day,
     plan_days,
+    with_speaker_facts,
 )
 from ingestion.feed.calendar import FRESH_FOR, build_calendar
+from ingestion.feed.card_video import choose_card_video
 from ingestion.feed.documents import PollDocuments, poll_documents
 from ingestion.feed.index import FEED_COLLECTION_NAME, IndexReport, index_items
 from ingestion.feed.items import BuildNeed, assemble_edition, build_needed
-from ingestion.feed.models import FeedEdition, FeedItem
+from ingestion.feed.models import (
+    FEED_FORMAT_VERSION,
+    FeedEdition,
+    FeedItem,
+)
 from ingestion.feed.parliaments import (
     FEED_PARLIAMENTS,
     PARLIAMENTS,
     Parliament,
     load_party_display,
 )
+from ingestion.feed.politicians import (
+    RefreshReport,
+    refresh_politicians,
+    speaker_ids,
+    speaker_names,
+    speakers_without_id,
+)
+from ingestion.feed.posters import (
+    PosterMaker,
+    PosterReport,
+    add_posters,
+    poster_maker,
+    writes_webp,
+)
+from ingestion.feed.glossary import (
+    GlossaryEntry,
+    GlossaryReport,
+    annotate_terms,
+    needs_terms,
+    read_glossary,
+    write_glossary,
+)
 from ingestion.feed.protocol_pages import apply_protocols
+from ingestion.feed.speaker_parties import PartyResolver
 from ingestion.feed.reader import (
     SPEECH_SOURCE_TYPE,
     VOTE_SOURCE_TYPE,
@@ -82,11 +111,12 @@ from ingestion.feed.reader import (
 )
 from ingestion.feed.store import (
     carry_over_translations,
-    read_edition_item_ids,
     read_calendar,
+    read_edition_item_ids,
     read_items_since,
     vanished_item_ids,
     write_calendar,
+    write_card_videos,
     write_feed,
 )
 from ingestion.feed.translate import (
@@ -145,6 +175,7 @@ class Published:
     translation: TranslationReport = field(default_factory=TranslationReport)
     index: IndexReport = field(default_factory=IndexReport)
     translations_kept: int = 0
+    glossary: GlossaryReport = field(default_factory=GlossaryReport)
 
     @property
     def wrote(self) -> bool:
@@ -161,6 +192,11 @@ class Published:
         self.index.unchanged += other.index.unchanged
         self.index.deleted += other.index.deleted
         self.translations_kept += other.translations_kept
+        self.glossary.items_annotated += other.glossary.items_annotated
+        self.glossary.items_failed += other.glossary.items_failed
+        self.glossary.forms_rejected += other.glossary.forms_rejected
+        self.glossary.defined += other.glossary.defined
+        self.glossary.rejected += other.glossary.rejected
 
 
 def parliament_window(
@@ -234,8 +270,9 @@ def load_sources(
             ).items()
             if day >= start
         }
+        resolve_party = PartyResolver()
         for sitting in sitting_days.values():
-            ordered = apply_protocols(sitting)
+            ordered = apply_protocols(sitting, resolve_party=resolve_party)
             logger.info(
                 "%s: %d of %d agenda items in protocol order",
                 sitting.day,
@@ -263,7 +300,8 @@ def attach_source_facts(
     lookup_poll: Optional[PollDocuments],
 ) -> tuple[list[FeedItem], set[str]]:
     """Give each item the facts read from its source: a debate its
-    Drucksachen and interjections, a vote its Drucksachen. Returns the items
+    Drucksachen, interjections and who its speakers are, a vote its
+    Drucksachen. Returns the items
     and the ids that changed. Facts from the source, not the model: a stored
     item gets them without being rebuilt, and its texts and translation stay
     as they are. A debate follows this run's protocol, corrections included;
@@ -275,7 +313,7 @@ def attach_source_facts(
     for item in items:
         if item.debate is not None and item.id in agendas:
             agenda = agendas[item.id]
-            update = {
+            update: dict[str, Any] = {
                 field: found
                 for field, found in (
                     ("drucksachen", agenda.drucksachen),
@@ -283,6 +321,9 @@ def attach_source_facts(
                 )
                 if found is not None and found != getattr(item.debate, field)
             }
+            parties = with_speaker_facts(item.debate.parties, agenda.speeches)
+            if parties is not None:
+                update["parties"] = parties
             if update:
                 debate = item.debate.model_copy(update=update)
                 item = item.model_copy(update={"debate": debate})
@@ -296,6 +337,35 @@ def attach_source_facts(
             if found is not None:
                 vote = item.vote.model_copy(update={"drucksachen": found})
                 item = item.model_copy(update={"vote": vote})
+                changed.add(item.id)
+        out.append(item)
+    return out, changed
+
+
+def attach_card_videos(items: list[FeedItem]) -> tuple[list[FeedItem], set[str]]:
+    """Give each debate the video its card plays. Like ``attach_source_facts``,
+    a stored item gets it without being rebuilt. The poster is cut after the
+    run has published (``refresh_posters``); a stored one is kept while it
+    still shows the same video at the same second, since any other still would
+    not be the frame playback starts on.
+    """
+    out: list[FeedItem] = []
+    changed: set[str] = set()
+    for item in items:
+        if item.debate is not None:
+            stored = item.debate.card_video
+            chosen = choose_card_video(item.debate)
+            if (
+                chosen is not None
+                and stored is not None
+                and (stored.video_url, stored.start) == (chosen.video_url, chosen.start)
+            ):
+                chosen = chosen.model_copy(update={"poster_url": stored.poster_url})
+            if chosen != stored:
+                debate = item.debate.model_copy(update={"card_video": chosen})
+                item = item.model_copy(
+                    update={"debate": debate, "format_version": FEED_FORMAT_VERSION}
+                )
                 changed.add(item.id)
         out.append(item)
     return out, changed
@@ -359,16 +429,21 @@ def plan_day(
         if item is not None and item.status == "published":
             listed.append(item)
     listed, documented = attach_source_facts(listed, plan, lookup_poll)
+    listed, filmed = attach_card_videos(listed)
     edition, ranked = assemble_edition(
         parliament, plan.edition_id, plan.day, plan.protocols, listed, now
     )
     retracted = vanished_item_ids(stored_edition_ids or [], edition.item_ids)
-    changed = documented | {
-        i.id
-        for i in ranked
-        if i.id in built or stored.get(i.id) is None or stored[i.id].rank != i.rank
-    }
-    untranslated = any(needs_translation(i, "en") for i in ranked)
+    changed = (
+        documented
+        | filmed
+        | {
+            i.id
+            for i in ranked
+            if i.id in built or stored.get(i.id) is None or stored[i.id].rank != i.rank
+        }
+    )
+    untranslated = any(needs_translation(i, "en") or needs_terms(i) for i in ranked)
     if (
         not changed
         and not retracted
@@ -456,8 +531,9 @@ def publish(
     qdrant: Optional[QdrantClient],
     embed: Any,
     translate: bool,
+    glossary: Optional[dict[str, GlossaryEntry]] = None,
 ) -> Published:
-    """Translate, index and store one built day.
+    """Translate, index and store one built day, and explain its terms.
 
     ``db=None`` is a dry run: nothing is written. ``qdrant=None`` skips the
     index.
@@ -470,6 +546,12 @@ def publish(
         pending = [i for i in day.items if needs_translation(i, "en")]
         out.translation = translate_items(pending, builder)
         to_write |= {i.id for i in pending}
+    if glossary is not None:
+        annotated, entries, out.glossary = annotate_terms(day.items, builder, glossary)
+        to_write |= {i.id for i in annotated}
+        # Before the items, so an item never refers to an entry not there yet.
+        if db is not None and entries:
+            write_glossary(db, entries)
     out.items = [i for i in day.items if i.id in to_write]
     if qdrant is not None:
         out.index = index_items(qdrant, embed, built, retracted_ids=day.retracted_ids)
@@ -586,6 +668,68 @@ def refresh_calendar(db: Any, now: Optional[datetime] = None) -> None:
     )
 
 
+def refresh_speakers(
+    db: Any, since: date, out_of_time: Callable[[], bool] = lambda: False
+) -> RefreshReport:
+    """Store the record of everyone who spoke in the Bundestag debates stored
+    since ``since`` (see ``politicians``).
+
+    Never fails the run: a speaker whose profile could not be read is tried
+    again next run, and the web shows the speech instead until then.
+    """
+    try:
+        items = read_items_since(db, "bundestag", since)
+        report = refresh_politicians(
+            db, speaker_ids(items), out_of_time=out_of_time, names=speaker_names(items)
+        )
+    except Exception as exc:  # noqa: BLE001 — the feed stands without them
+        logger.warning("Politicians not refreshed: %s", exc)
+        return RefreshReport()
+    print(
+        f"politicians: {len(report.written)} written, "
+        f"{len(report.not_members)} not in the Stammdaten, "
+        f"{len(report.failed)} failed, "
+        f"{speakers_without_id(items)} speaker(s) without an ID"
+        + ("  stopped: time budget spent" if report.out_of_time else "")
+    )
+    return report
+
+
+def refresh_posters(
+    db: Any,
+    windows: Sequence[tuple[str, date]],
+    make_poster: Optional[PosterMaker],
+    out_of_time: Callable[[], bool] = lambda: False,
+) -> PosterReport:
+    """Cut the posters the debates stored in ``windows`` (parliament, first
+    day) do not have yet (see ``posters``).
+
+    Never fails the run: until its poster is there, a card shows a dark frame
+    and still plays.
+    """
+    if make_poster is None:
+        return PosterReport()
+    report = PosterReport()
+    try:
+        for parliament_id, since in windows:
+            found = add_posters(
+                read_items_since(db, parliament_id, since), make_poster, out_of_time
+            )
+            write_card_videos(db, found.written)
+            report.written.update(found.written)
+            report.failed += found.failed
+            report.out_of_time |= found.out_of_time
+            report.gave_up |= found.gave_up
+    except Exception as exc:  # noqa: BLE001 — the feed stands without them
+        logger.warning("Posters not cut: %s", exc)
+    print(
+        f"posters: {len(report.written)} written, {len(report.failed)} failed"
+        + ("  stopped: time budget spent" if report.out_of_time else "")
+        + ("  stopped: video host failing" if report.gave_up else "")
+    )
+    return report
+
+
 def _summary_line(run: ParliamentRun, published: Published) -> str:
     window = f"{run.window[0]}..{run.window[1]}" if run.window else "no data"
     t = published.translation
@@ -597,7 +741,11 @@ def _summary_line(run: ParliamentRun, published: Published) -> str:
         f"failed={len(run.failed)} "
         f"translated={t.translated} translation_failed={t.failed} "
         f"translations_kept={published.translations_kept} "
-        f"indexed={published.index.upserted}"
+        f"indexed={published.index.upserted} "
+        f"terms_annotated={published.glossary.items_annotated} "
+        f"terms_defined={published.glossary.defined} "
+        f"terms_rejected={published.glossary.rejected} "
+        f"term_forms_rejected={published.glossary.forms_rejected}"
         + ("  stopped: time budget spent" if run.out_of_time else "")
     )
 
@@ -623,6 +771,7 @@ def build_and_publish(
     index_to = qdrant if index and db is not None else None
     embed = _embeddings() if index_to is not None else None
     lookup_poll = poll_documents(AWClient())
+    glossary = read_glossary(db)
     runs: list[tuple[ParliamentRun, Published]] = []
     for parliament in parliaments:
         if out_of_time():
@@ -642,6 +791,7 @@ def build_and_publish(
                     qdrant=index_to,
                     embed=embed,
                     translate=translate,
+                    glossary=glossary,
                 )
             )
 
@@ -663,6 +813,20 @@ def build_and_publish(
         runs.append((run, published))
         print(_summary_line(run, published))
     return runs
+
+
+def card_posters(env: str, *, skip: bool = False) -> Optional[PosterMaker]:
+    """The poster maker for a run that writes ``env``. None against the
+    emulator: there is no Storage emulator, and a local run must not write
+    into a deployed bucket. ``--allow-remote`` has dropped the emulator host
+    by the time this is asked. None too without an ffmpeg that writes WebP,
+    such as Homebrew's: a run that has one cuts the posters."""
+    if skip or os.getenv("FIRESTORE_EMULATOR_HOST"):
+        return None
+    if not writes_webp():
+        logger.warning("ffmpeg cannot write WebP; debate cards get no poster this run")
+        return None
+    return poster_maker(env)
 
 
 def _embeddings() -> Any:
@@ -731,6 +895,11 @@ def main(argv: Optional[list[str]] = None) -> int:
         action="store_true",
         help="Bust the web cache tag afterwards (needs REVALIDATE_SECRET)",
     )
+    parser.add_argument(
+        "--skip-posters",
+        action="store_true",
+        help="Do not cut or upload debate card posters (needs ffmpeg otherwise)",
+    )
     args = parser.parse_args(argv)
 
     started = time.monotonic()
@@ -790,7 +959,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     finally:
         builder.close()
 
-    if "bundestag" in {p.id for p in parliaments}:
+    in_bundestag = "bundestag" in {p.id for p in parliaments}
+    if in_bundestag:
         refresh_calendar(db)
 
     if args.out:
@@ -815,6 +985,36 @@ def main(argv: Optional[list[str]] = None) -> int:
     # Only a run that wrote something has anything to show; the later runs of
     # a morning usually find every day unchanged.
     if db is not None and args.revalidate and any(p.wrote for _, p in runs):
+        post_revalidate(env)
+
+    # After the feed's own cache bust, so neither a slow video host nor a slow
+    # bundestag.de holds back what this run published. Posters are cut and
+    # profiles fetched one by one; they get what is left of the grace the
+    # model calls had, never the whole job's cap.
+    def out_of_grace() -> bool:
+        return (
+            args.time_budget is not None
+            and time.monotonic() - started >= args.time_budget + _CALL_GRACE_S
+        )
+
+    wrote_late = False
+    if db is not None:
+        windows = [
+            (run.parliament.id, run.window[0])
+            for run, _ in runs
+            if run.window is not None
+        ]
+        posters = refresh_posters(
+            db, windows, card_posters(env, skip=args.skip_posters), out_of_grace
+        )
+        wrote_late = bool(posters.written)
+    window = next(
+        (run.window for run, _ in runs if run.parliament.id == "bundestag"), None
+    )
+    if db is not None and in_bundestag and window is not None:
+        speakers = refresh_speakers(db, window[0], out_of_grace)
+        wrote_late = wrote_late or bool(speakers.written)
+    if args.revalidate and wrote_late:
         post_revalidate(env)
 
     if runs and all(run.window is None for run, _ in runs):

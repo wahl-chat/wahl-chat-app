@@ -51,7 +51,7 @@ export const FEED_INTRO: HowToFeedIntro = {
     'Oben wählst du die Themen, die dich interessieren. Bisher deckt der Feed den Bundestag ab, die Landtage folgen.',
     'Mit „Mehr anzeigen“ öffnest du die Kurzfassung: die wichtigsten Punkte, wer was gesagt hat und die Quelle im Plenarprotokoll.',
     'Über das Eingabefeld stellst du direkt Fragen zur Debatte oder Abstimmung.',
-    'Mit dem Daumen bei „Interessant?“ sagst du uns, was dich interessiert. Das hilft uns, deinen Feed für dich zu verbessern.',
+    'Mit dem Daumen bei „Interessant für dich?“ sagst du uns, was dich interessiert. So können wir die Reihenfolge deines Feeds für dich verbessern.',
   ],
 };
 

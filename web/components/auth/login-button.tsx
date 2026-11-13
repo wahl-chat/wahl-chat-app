@@ -69,8 +69,13 @@ function LoginButton({
         <ResponsiveDialogTrigger asChild>
           {noUserChildren}
         </ResponsiveDialogTrigger>
-        <ResponsiveDialogContent>
-          <LoginForm onSuccess={handleSuccess} purpose={purpose} />
+        {/* Scrolls on short screens: the "Meine Woche" pitch with its sample
+            email is taller than a phone. The inner box scrolls, so the
+            drawer's handle stays put and a drag still closes it. */}
+        <ResponsiveDialogContent className="flex max-h-[95dvh] flex-col">
+          <div className="min-h-0 overflow-y-auto overscroll-contain">
+            <LoginForm onSuccess={handleSuccess} purpose={purpose} />
+          </div>
         </ResponsiveDialogContent>
       </ResponsiveDialog>
     </>

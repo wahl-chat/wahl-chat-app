@@ -23,6 +23,7 @@ from pydantic import ValidationError
 from ingestion.feed.models import (
     CANONICAL_LOCALE,
     TRANSLATED_LOCALES,
+    CardVideo,
     FeedEdition,
     FeedItem,
     SittingCalendar,
@@ -108,6 +109,11 @@ def vanished_item_ids(previous_ids: list[str], current_ids: list[str]) -> list[s
     return [item_id for item_id in previous_ids if item_id not in current]
 
 
+def commit_writes(db: Any, writes: list[tuple[Any, dict]]) -> None:
+    """Set each document, in batches Firestore accepts."""
+    _commit(db, writes)
+
+
 def _commit(db: Any, writes: list[tuple[Any, dict]]) -> None:
     for start in range(0, len(writes), _BATCH_OPS):
         batch = db.batch()
@@ -153,6 +159,20 @@ def write_feed(
             for edition in editions
         ],
     )
+
+
+def write_card_videos(db: Any, card_videos: dict[str, CardVideo]) -> None:
+    """Only the card video of each item: the rest of the item was published
+    before its poster was cut, and stays as written."""
+    updates = list(card_videos.items())
+    for start in range(0, len(updates), _BATCH_OPS):
+        batch = db.batch()
+        for item_id, card_video in updates[start : start + _BATCH_OPS]:
+            batch.update(
+                db.collection(ITEM_COLLECTION).document(item_id),
+                {"debate.card_video": card_video.model_dump(mode="json")},
+            )
+        batch.commit()
 
 
 def read_calendar(db: Any, parliament: str) -> SittingCalendar | None:

@@ -3,6 +3,7 @@ import type { FeedItem, ParliamentFeed } from '@/lib/firebase/firebase.types';
 import feedFixture from '../../../firebase/firestore_data/emulator/feed.json';
 import { feedToDigests } from './editions';
 import { buildFeed, rankFeed } from './feed';
+import { DEFAULT_FILTER } from './filter';
 import { findItem, sectionItems, voteItems } from './items';
 import { topicShortTitle } from './topics';
 
@@ -30,6 +31,46 @@ describe('feedToDigests', () => {
     expect(section.citations).toEqual(item.debate?.citations ?? []);
   });
 
+  it('shows the Union Fraktion with the CDU/CSU logo, in debates and votes', () => {
+    const digests = feedToDigests(FEED);
+    const positions = digests.flatMap((d) =>
+      (d.session?.sections ?? []).flatMap((s) => s.positions ?? []),
+    );
+    const voteParties = digests.flatMap((d) =>
+      (d.votes ?? []).flatMap((v) => v.parties),
+    );
+    for (const party of [...positions, ...voteParties]) {
+      expect(party.logo_id).toBe(
+        party.party_id === 'cdu' ? 'cdu_csu' : party.party_id,
+      );
+    }
+    expect(positions.some((p) => p.party_id === 'cdu')).toBe(true);
+    expect(voteParties.some((p) => p.party_id === 'cdu')).toBe(true);
+  });
+
+  it('passes the card video through, and none where an item has none', () => {
+    const first = FEED.editions[0].item_ids[0];
+    const card_video = {
+      video_url: 'https://video/a.mp4',
+      start: 3,
+      poster_url: 'https://posters/a.webp',
+      speaker: 'Anna',
+      party_name: 'SPD',
+    };
+    const feed: ParliamentFeed = {
+      editions: FEED.editions,
+      items: FEED.items.map((i) =>
+        i.id === first && i.debate
+          ? { ...i, debate: { ...i.debate, card_video } }
+          : i,
+      ),
+    };
+    const [digest] = feedToDigests(feed);
+    const [section, other] = digest.session?.sections ?? [];
+    expect(section.card_video).toEqual(card_video);
+    expect(other.card_video).toBeNull();
+  });
+
   it('leaves retracted items out of the feed', () => {
     const gone = FEED.editions[0].item_ids[0];
     const feed: ParliamentFeed = {
@@ -53,12 +94,13 @@ describe('debate topics', () => {
       ),
     };
     const shown = (topic: string) =>
-      rankFeed(buildFeed([feedToDigests(feed)], 3650), [topic]).flatMap(
-        (day) => [
-          day.hot?.key,
-          ...day.blocks.flatMap((b) => b.sections.map((s) => s.key)),
-        ],
-      );
+      rankFeed(buildFeed([feedToDigests(feed)], 3650), {
+        ...DEFAULT_FILTER,
+        topics: [topic],
+      }).flatMap((day) => [
+        day.hot?.key,
+        ...day.blocks.flatMap((b) => b.sections.map((s) => s.key)),
+      ]);
     expect(shown('health_care')).toContain(id);
     expect(shown('economy_finance')).toContain(id);
     expect(shown('housing_rent')).not.toContain(id);

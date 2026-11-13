@@ -35,12 +35,14 @@ from __future__ import annotations
 import io
 import sys
 import zipfile
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Optional
 
 import defusedxml.ElementTree as ElementTree  # blocks entity-expansion / billion-laughs
 import httpx
 from tenacity import (
-    retry,
+    Retrying,
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
@@ -56,7 +58,7 @@ from .utils import (
 
 # Default on-disk path (relative to ingestion/). mdb.py sits at the same depth
 # as connector.py, so the parents[4] anchor matches the connectors' _MDB_PATH.
-_DEFAULT_MDB_PATH: Path = Path(__file__).resolve().parents[4] / MDB_STAMMDATEN_FILE
+DEFAULT_MDB_PATH: Path = Path(__file__).resolve().parents[4] / MDB_STAMMDATEN_FILE
 
 # The single XML member inside the OpenData ZIP.
 _MDB_ZIP_MEMBER = "MDB_STAMMDATEN.XML"
@@ -71,15 +73,19 @@ class StammdatenUnavailableError(RuntimeError):
     """
 
 
-@retry(
-    # Retry transient network faults and 5xx. A 404 is raised as
-    # StammdatenUnavailableError below (not in this set), so it fails fast.
-    retry=retry_if_exception_type((httpx.TransportError, httpx.HTTPStatusError)),
-    stop=stop_after_attempt(5),
-    wait=wait_exponential(multiplier=1, min=2, max=30),
-    reraise=True,
-)
-def _fetch_zip_bytes(url: str) -> bytes:
+def _fetch_zip_bytes(url: str, attempts: int = 5) -> bytes:
+    retrying = Retrying(
+        # Retry transient network faults and 5xx. A 404 is raised as
+        # StammdatenUnavailableError below (not in this set), so it fails fast.
+        retry=retry_if_exception_type((httpx.TransportError, httpx.HTTPStatusError)),
+        stop=stop_after_attempt(attempts),
+        wait=wait_exponential(multiplier=1, min=2, max=30),
+        reraise=True,
+    )
+    return retrying(_get_zip_bytes, url)
+
+
+def _get_zip_bytes(url: str) -> bytes:
     resp = httpx.get(url, timeout=60.0, follow_redirects=True)
     if resp.status_code == 404:
         raise StammdatenUnavailableError(
@@ -92,16 +98,20 @@ def _fetch_zip_bytes(url: str) -> bytes:
 
 
 def download_mdb_stammdaten(
-    dest: Path | str = _DEFAULT_MDB_PATH, *, url: str = MDB_STAMMDATEN_URL
+    dest: Path | str = DEFAULT_MDB_PATH,
+    *,
+    url: str = MDB_STAMMDATEN_URL,
+    attempts: int = 5,
 ) -> Path:
     """Download the OpenData ZIP and extract MDB_STAMMDATEN.XML to ``dest``.
 
     In-memory extraction (no temp file). Transient failures are retried with
-    backoff; a 404 fails fast (rotated blob — see StammdatenUnavailableError).
+    backoff, up to ``attempts`` tries; a 404 fails fast (rotated blob — see
+    StammdatenUnavailableError). A caller under a time cap passes fewer.
     """
     dest = Path(dest)
     print(f"Fetching MdB-Stammdaten from {url} …", file=sys.stderr)
-    payload = _fetch_zip_bytes(url)
+    payload = _fetch_zip_bytes(url, attempts)
     with zipfile.ZipFile(io.BytesIO(payload)) as zf:
         try:
             data = zf.read(_MDB_ZIP_MEMBER)
@@ -115,8 +125,32 @@ def download_mdb_stammdaten(
     return dest
 
 
+def ensure_mdb_file(
+    path: Path | str = DEFAULT_MDB_PATH,
+    *,
+    max_age: Optional[timedelta] = None,
+    attempts: int = 5,
+) -> Path:
+    """The local MdB-Stammdaten file, downloaded first when it is missing or,
+    given ``max_age``, older than that: the Bundestag republishes it every few
+    weeks, and members who joined since are only in a fresh copy."""
+    path = Path(path)
+    stale = (
+        max_age is not None
+        and path.exists()
+        and (
+            datetime.now(timezone.utc)
+            - datetime.fromtimestamp(path.stat().st_mtime, timezone.utc)
+            > max_age
+        )
+    )
+    if not path.exists() or stale:
+        download_mdb_stammdaten(path, attempts=attempts)
+    return path
+
+
 def ensure_mdb_lookup(
-    path: Path | str = _DEFAULT_MDB_PATH, *, download: bool = True
+    path: Path | str = DEFAULT_MDB_PATH, *, download: bool = True
 ) -> dict:
     """Load the MdB-Stammdaten lookup, fetching the file first when absent.
 
@@ -126,8 +160,8 @@ def ensure_mdb_lookup(
     the strict emptiness check without network access).
     """
     path = Path(path)
-    if download and not path.exists():
-        download_mdb_stammdaten(path)
+    if download:
+        ensure_mdb_file(path)
     lookup = load_mdb_lookup(path)
     if not lookup["by_id"] and not lookup["by_name"]:
         raise StammdatenUnavailableError(
@@ -140,6 +174,19 @@ def ensure_mdb_lookup(
 def name_from_mdb_entry(name_entry) -> str | None:
     parts = [name_entry.findtext("VORNAME"), name_entry.findtext("NACHNAME")]
     return normalize_whitespace(" ".join(part for part in parts if part))
+
+
+def names_from_mdb_entry(name_entry) -> list[str]:
+    """The name with and without its particles. The Stammdaten keep "de" or
+    "von" apart from NACHNAME, while protocols and openparliament.tv write
+    "Christoph de Vries"; without the long form such a speaker never
+    resolves by name."""
+    short = name_from_mdb_entry(name_entry)
+    parts = [
+        name_entry.findtext(tag) for tag in ("VORNAME", "ADEL", "PRAEFIX", "NACHNAME")
+    ]
+    long = normalize_whitespace(" ".join(part for part in parts if part))
+    return [name for name in dict.fromkeys([short, long]) if name]
 
 
 def latest_fraction_party(mdb) -> str | None:
@@ -162,7 +209,11 @@ def latest_fraction_party(mdb) -> str | None:
 
 
 def parse_mdb_record(mdb) -> dict:
-    names = [name_from_mdb_entry(name) for name in mdb.findall("NAMEN/NAME")]
+    names = [
+        name
+        for entry in mdb.findall("NAMEN/NAME")
+        for name in names_from_mdb_entry(entry)
+    ]
     party = normalize_party(
         mdb.findtext("BIOGRAFISCHE_ANGABEN/PARTEI_KURZ")
     ) or latest_fraction_party(mdb)
@@ -244,13 +295,13 @@ def main() -> None:
     Idempotent: skips the download when the file is already present (delete it
     to refresh). Wired to `make fetch-mdb-stammdaten`.
     """
-    if _DEFAULT_MDB_PATH.exists():
+    if DEFAULT_MDB_PATH.exists():
         print(
-            f"MdB-Stammdaten already present ({_DEFAULT_MDB_PATH}) — skipping.",
+            f"MdB-Stammdaten already present ({DEFAULT_MDB_PATH}) — skipping.",
             file=sys.stderr,
         )
         return
-    download_mdb_stammdaten(_DEFAULT_MDB_PATH)
+    download_mdb_stammdaten(DEFAULT_MDB_PATH)
 
 
 if __name__ == "__main__":

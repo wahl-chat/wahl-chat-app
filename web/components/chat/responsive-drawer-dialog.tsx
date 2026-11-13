@@ -79,14 +79,25 @@ export function ResponsiveDialogContent({
   children,
   className,
   asChild,
-}: ResponsiveDefaultProps & AsChildProps) {
+  container,
+}: ResponsiveDefaultProps &
+  AsChildProps & {
+    /** Where the phone drawer is portaled. A drawer opened over another
+     * modal belongs inside that modal's content: the modal's scroll lock
+     * cancels every touch outside it, so a drawer on `body` cannot scroll. */
+    container?: HTMLElement | null;
+  }) {
   const isDesktop = useIsDesktop();
   return isDesktop ? (
     <DialogContent asChild={asChild} className={className}>
       {children}
     </DialogContent>
   ) : (
-    <DrawerContent asChild={asChild} className={className}>
+    <DrawerContent
+      asChild={asChild}
+      className={className}
+      container={container}
+    >
       {children}
     </DrawerContent>
   );

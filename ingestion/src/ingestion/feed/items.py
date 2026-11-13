@@ -106,9 +106,17 @@ def debate_input_hash(item: AgendaItem, *, legacy: bool = False) -> str:
     """Over the speeches' chunk hashes, not their order: a debate is built
     only once the protocol has put it in order, and that order is fixed. The
     label is in it because it reaches the prompt and the card, and a protocol
-    published after the first build can still give the item its title."""
+    published after the first build can still give the item its title.
+    A speech filed under another party than its chunk's adds that party:
+    the texts are grouped by Fraktion, so a move rebuilds the debate, while
+    a debate without one keeps the hash it had."""
     return _input_hash(
-        [h for s in item.speeches for h in s.content_hashes],
+        [h for s in item.speeches for h in s.content_hashes]
+        + [
+            f"party:{s.source_item_id}={s.party_id}"
+            for s in item.speeches
+            if s.reattributed_from is not None
+        ],
         label=item.label,
         legacy=legacy,
     )

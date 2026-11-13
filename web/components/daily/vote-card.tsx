@@ -1,4 +1,4 @@
-import { type VoteItem, itemTeaser } from '@/lib/daily/items';
+import { type VoteItem, itemTeaser, itemTerms } from '@/lib/daily/items';
 import type { DigestVote } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { CheckIcon, XIcon } from 'lucide-react';
@@ -79,6 +79,7 @@ function VoteCard({ item, onOpen, hot = false }: Props) {
       <SeatLegend parties={vote.parties} />
       <ItemTeaser
         text={itemTeaser(item)}
+        terms={itemTerms(item)}
         label={vote.short_title}
         onOpen={onOpen}
       />

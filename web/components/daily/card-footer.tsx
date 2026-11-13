@@ -2,6 +2,7 @@
 
 import type { DetailItem } from '@/lib/daily/items';
 import { shareItem } from '@/lib/daily/share';
+import type { TermRef } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { ArrowRightIcon, Share2Icon } from 'lucide-react';
 import {
@@ -10,15 +11,19 @@ import {
   FOCUS_RING,
   MUTED_TEXT,
 } from './card-styles';
+import { GlossaryText } from './glossary-text';
 import InterestFeedback from './interest-feedback';
 
 /** Teaser text, cut after two lines, and the way into the detail. */
 export function ItemTeaser({
   text,
+  terms,
   label,
   onOpen,
 }: {
   text: string | null;
+  /** The expert terms in it the glossary explains. */
+  terms?: TermRef[];
   /** The item's title, so the link names what it opens. */
   label: string;
   onOpen: () => void;
@@ -27,7 +32,7 @@ export function ItemTeaser({
     <div className="flex flex-col items-start gap-3">
       {text && (
         <p className="line-clamp-2 text-[15px] leading-normal text-[var(--daily-body)]">
-          {text}
+          <GlossaryText text={text} terms={terms} />
         </p>
       )}
       <button
@@ -43,7 +48,7 @@ export function ItemTeaser({
   );
 }
 
-/** "Interessant?" bottom left, share bottom right. */
+/** "Interessant für dich?" bottom left, share bottom right. */
 export function CardFooter({ item }: { item: DetailItem }) {
   return (
     <div className="mt-auto flex items-end justify-between gap-3">

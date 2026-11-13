@@ -19,6 +19,7 @@ from ingestion.feed.protocol_pages import (
     protocol_xml_url,
 )
 from ingestion.feed.reader import SittingDay, assemble_speeches, group_sitting_days
+from ingestion.feed.speaker_parties import OutsideSpeaker, PartyResolver, Roster
 
 _FIXTURE = (
     Path(__file__).resolve().parents[1]
@@ -187,6 +188,32 @@ def test_speeches_are_put_in_protocol_order_and_linked_to_their_page() -> None:
         f"{_PDF}#page=10",
         None,
     ]
+
+
+def test_an_item_with_a_party_not_settled_waits_for_a_later_run() -> None:
+    sitting = _top20_sitting()
+    ordered = apply_protocols(
+        sitting,
+        fetch=lambda _url: _XML,
+        resolve_party=lambda speech: speech.source_item_id != "c",
+    )
+    [item] = sitting.agenda_items
+    assert ordered == 0
+    assert not item.ordered
+
+
+def test_each_matched_speech_takes_its_speakers_id_from_the_protocol() -> None:
+    sitting = _top20_sitting()
+    apply_protocols(sitting, fetch=lambda _url: _XML)
+    [item] = sitting.agenda_items
+    # <redner id> is the rede id with a 0 appended in this fixture.
+    assert {s.source_item_id: s.mdb_id for s in item.speeches} == {
+        "b": "ID10",
+        "c": "ID20",
+        "a": "ID30",
+        "d": "ID40",
+        "e": None,
+    }
 
 
 def test_an_unreachable_protocol_leaves_the_debate_unordered() -> None:
@@ -495,3 +522,47 @@ def test_a_sentence_is_found_across_line_breaks_and_line_numbers() -> None:
     assert pdf.page_of(sentence, 6) == 5
     assert pdf.page_of("Kommt nirgends vor, auf keiner Seite.", 3) is None
     assert pdf.page_of("…", 3) is None
+
+
+def test_a_minister_the_corpus_could_not_place_is_filed_under_her_party() -> None:
+    xml = _XML.replace(
+        _rede("ID3", "Bernd", "Roth", "AfD"),
+        """
+      <rede id="ID3">
+        <p klasse="redner"><redner id="999990152"><name>
+          <vorname>Karin</vorname><nachname>Prien</nachname>
+          <rolle><rolle_lang>Bundesministerin für Bildung</rolle_lang></rolle>
+        </name></redner>Karin Prien, Bundesministerin:</p>
+        <p klasse="J">Rede von Prien.</p>
+      </rede>""",
+    )
+    payload = _payload("a", "de-21-89-karin-prien-top20", "Karin Prien")
+    payload["party_id"] = "unbekannt"
+    sitting = _sitting(
+        [payload, _payload("b", "de-21-89-clara-weiss-top20", "Clara Weiss")]
+    )
+    roster = Roster(
+        [
+            OutsideSpeaker(
+                name="Karin Prien",
+                party="cdu",
+                office="Bundesministerin",
+                institution="Bundesregierung",
+                redner_ids=("999990152",),
+            )
+        ]
+    )
+    apply_protocols(
+        sitting,
+        fetch=lambda _url: xml,
+        resolve_party=PartyResolver(roster=roster, stammdaten=dict),
+    )
+    [item] = sitting.agenda_items
+    prien = next(s for s in item.speeches if s.source_item_id == "a")
+    assert (prien.party_id, prien.mdb_id, prien.role) == (
+        "cdu",
+        "999990152",
+        "Bundesministerin für Bildung",
+    )
+    weiss = next(s for s in item.speeches if s.source_item_id == "b")
+    assert (weiss.party_id, weiss.protocol_fraktion, weiss.role) == ("spd", "SPD", None)
