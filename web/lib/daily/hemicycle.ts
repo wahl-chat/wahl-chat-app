@@ -1,4 +1,5 @@
 import type { DigestVoteParty } from '@/lib/firebase/firebase.types';
+import { SEAT_FILLS } from './palette';
 import { sortBySeating } from './seating-order';
 
 export type SeatVote = 'yes' | 'abstain' | 'no' | 'absent';
@@ -176,6 +177,40 @@ export function layoutHemicycle(
     cursor += votes.length;
   }
   return { seats, arcs, seatRadius: rowWidth * 0.4 };
+}
+
+// Fixed precision so the server-rendered SVG and the hydrating client agree
+// to the character; raw trig results can differ in their last digits.
+export function coord(value: number): string {
+  return value.toFixed(4);
+}
+
+/** Absent seats are hollow: this ring and a white centre. */
+export const ABSENT_RING = '#A1A1AA';
+
+export type SeatShape = {
+  cx: string;
+  cy: string;
+  r: string;
+  fill: string;
+  stroke?: string;
+  strokeWidth?: string;
+};
+
+/** One seat's circle in the chart's `viewBox` (y pointing down). Shared by
+ * the detail view and the share image, so both draw the same chamber. */
+export function seatShape(seat: Seat, seatRadius: number): SeatShape {
+  const position = { cx: coord(seat.x), cy: coord(-seat.y) };
+  if (seat.vote === 'absent') {
+    return {
+      ...position,
+      r: coord(seatRadius * 0.8),
+      fill: '#FFFFFF',
+      stroke: ABSENT_RING,
+      strokeWidth: coord(seatRadius * 0.4),
+    };
+  }
+  return { ...position, r: coord(seatRadius), fill: SEAT_FILLS[seat.vote] };
 }
 
 /** abgeordnetenwatch's "Nicht beteiligt" for a member who cast no vote; it
