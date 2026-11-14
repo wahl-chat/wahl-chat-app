@@ -147,7 +147,7 @@ class TestWorkListSwitch:
     ) -> None:
         monkeypatch.setenv("MANIFESTO_UPLOADS_SOURCE", "bucket")
         monkeypatch.setattr(
-            bucket_listing, "_client", lambda env=None: _FakeStorage([_SPD, _CDU])
+            bucket_listing, "storage_client", lambda: _FakeStorage([_SPD, _CDU])
         )
         assert work_list(None, "dev") == sorted([_SPD, _CDU])
 
@@ -157,7 +157,7 @@ class TestWorkListSwitch:
     ) -> None:
         monkeypatch.setenv("MANIFESTO_UPLOADS_SOURCE", value)
         monkeypatch.setattr(
-            bucket_listing, "_client", lambda env=None: _FakeStorage([_SPD])
+            bucket_listing, "storage_client", lambda: _FakeStorage([_SPD])
         )
         assert work_list(None, "dev") == [_SPD]
 
@@ -176,7 +176,7 @@ class TestWorkListSwitch:
         """
         monkeypatch.setenv("MANIFESTO_UPLOADS_SOURCE", "bucket")
         monkeypatch.setattr(
-            bucket_listing, "_client", lambda env=None: _FakeStorage([_SPD])
+            bucket_listing, "storage_client", lambda: _FakeStorage([_SPD])
         )
         # An explicitly-passed manifest path that does not exist is also irrelevant
         # on this backend — the bucket is the desired state.
@@ -196,9 +196,7 @@ def test_bucket_deletion_retires_the_document(monkeypatch: pytest.MonkeyPatch) -
 
     monkeypatch.setenv("MANIFESTO_UPLOADS_SOURCE", "bucket")
     # The bucket now holds only SPD; CDU was deleted but its chunks are still stored.
-    monkeypatch.setattr(
-        bucket_listing, "_client", lambda env=None: _FakeStorage([_SPD])
-    )
+    monkeypatch.setattr(bucket_listing, "storage_client", lambda: _FakeStorage([_SPD]))
 
     class _Qdrant:
         def scroll(self, **kwargs):  # noqa: ANN003, ANN201

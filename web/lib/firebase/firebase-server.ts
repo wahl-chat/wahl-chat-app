@@ -9,6 +9,7 @@ import {
   contextTag,
 } from '@/lib/cache-tags';
 import { GROUP_PARTY_ID, WAHL_CHAT_PARTY_ID } from '@/lib/constants';
+import { speakerPhotos } from '@/lib/daily/politicians';
 import { editionIdOf, pageStart } from '@/lib/daily/window';
 import type { PartyDetails } from '@/lib/party-details';
 import type {
@@ -27,6 +28,7 @@ import {
   collection,
   connectFirestoreEmulator,
   doc,
+  documentId,
   getDoc,
   getDocs,
   getFirestore,
@@ -53,8 +55,11 @@ import type {
   FeedItem,
   FeedPage,
   FirebaseWahlSwiperResult,
+  GlossaryEntry,
+  GlossarySource,
   LlmSystemStatus,
   ParliamentFeed,
+  Politician,
   ProposedQuestion,
   SittingCalendar,
   SourceDocument,
@@ -919,6 +924,127 @@ export async function getOlderParliamentFeed(
     );
     throw error;
   }
+}
+
+// Firestore's `in` filter takes at most 30 values.
+const IN_FILTER_MAX = 30;
+// A debate rarely has more than a few dozen speakers.
+const MAX_POLITICIANS = 120;
+const MDB_ID = /^\d{1,12}$/;
+
+async function getPoliticiansImpl(
+  ids: string[],
+): Promise<Record<string, Politician>> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const found: Record<string, Politician> = {};
+  for (let i = 0; i < ids.length; i += IN_FILTER_MAX) {
+    const snapshot = await getDocs(
+      query(
+        collection(serverDb, 'politicians'),
+        where(documentId(), 'in', ids.slice(i, i + IN_FILTER_MAX)),
+      ),
+    );
+    for (const d of snapshot.docs) {
+      found[d.id] = d.data() as Politician;
+    }
+  }
+  return found;
+}
+
+async function getSpeakerPhotosImpl(
+  ids: string[],
+): Promise<Record<string, string>> {
+  return speakerPhotos(await getPoliticiansImpl(ids));
+}
+
+/** The official portrait of each of these speakers, by MdB ID: all a
+ * debate's chips need. The records stay on the server, so opening a debate
+ * on a phone does not load every speaker's Angaben and votes. Called from
+ * the browser, so the IDs are checked first. */
+export async function getSpeakerPhotos(
+  ids: string[],
+): Promise<Record<string, string>> {
+  const wanted = Array.isArray(ids)
+    ? [...new Set(ids)]
+        .filter((id) => typeof id === 'string' && MDB_ID.test(id))
+        .sort()
+    : [];
+  if (wanted.length === 0 || wanted.length > MAX_POLITICIANS) {
+    return {};
+  }
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getSpeakerPhotosImpl,
+        ['getSpeakerPhotos', 'v1', ...wanted],
+        [CacheTags.FEED],
+      )(wanted),
+    {},
+    'FAILED to fetch speaker photos',
+  );
+}
+
+async function getPoliticianImpl(mdbId: string): Promise<Politician | null> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const snapshot = await getDoc(doc(serverDb, 'politicians', mdbId));
+  return snapshot.exists() ? (snapshot.data() as Politician) : null;
+}
+
+/** One speaker's record, read when their chip is tapped; null when the
+ * Bundestag publishes none for them. */
+export async function getPolitician(mdbId: string): Promise<Politician | null> {
+  if (typeof mdbId !== 'string' || !MDB_ID.test(mdbId)) {
+    return null;
+  }
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getPoliticianImpl,
+        ['getPolitician', 'v1', mdbId],
+        [CacheTags.FEED],
+      )(mdbId),
+    null,
+    'FAILED to fetch politician',
+  );
+}
+
+async function getGlossaryImpl(): Promise<GlossaryEntry[]> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const snapshot = await getDocs(
+    query(collection(serverDb, 'glossary'), where('status', '==', 'verified')),
+  );
+  // An explanation is shown only with the source it was checked against.
+  return snapshot.docs.flatMap((d) => {
+    const { term_id, term, definition, forms, sources } = d.data();
+    const linked = Array.isArray(sources)
+      ? sources.filter(
+          (s): s is GlossarySource =>
+            typeof s?.url === 'string' && typeof s?.title === 'string',
+        )
+      : [];
+    return typeof definition === 'string' && definition && linked.length > 0
+      ? [
+          {
+            term_id,
+            term,
+            definition,
+            forms: Array.isArray(forms) ? forms : [],
+            sources: linked,
+          },
+        ]
+      : [];
+  });
+}
+
+/** Every explained term, for the whole feed at once: a few hundred short
+ * entries at most, so the page needs no read per item. */
+export async function getGlossary(): Promise<GlossaryEntry[]> {
+  return uncachedFallback(
+    () =>
+      cachedRead(getGlossaryImpl, ['getGlossary', 'v2'], [CacheTags.FEED])(),
+    [],
+    'FAILED to fetch glossary',
+  );
 }
 
 async function getSittingCalendarImpl(

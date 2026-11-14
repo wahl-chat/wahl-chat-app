@@ -2,6 +2,7 @@ import type {
   DailyDigest,
   DigestParliamentId,
 } from '@/lib/firebase/firebase.types';
+import { type FeedFilter, showsKind } from './filter';
 import {
   type SectionItem,
   type VoteItem,
@@ -185,20 +186,28 @@ export function dayHeat(sections: readonly SectionItem[]): Map<string, number> {
  *
  * The vote must share a Drucksache with the debate's agenda item: that is the
  * motion debated. A shared topic is not enough.
+ *
+ * The filter applies before ranking: with debates left out there is no Hot
+ * Topic and no heat; with votes left out, no vote under the Hot Topic.
  */
 export function rankFeed(
   days: readonly FeedDay[],
-  topics: readonly string[],
+  filter: FeedFilter,
 ): RankedDay[] {
+  const { topics } = filter;
   const visibleVotes = (digest: DailyDigest) =>
-    voteItems(digest).filter((v) => matchesTopics(v.vote.topics, topics));
+    showsKind(filter, 'vote')
+      ? voteItems(digest).filter((v) => matchesTopics(v.vote.topics, topics))
+      : [];
 
   return days.map((day) => {
-    const sections = day.digests.flatMap((digest) =>
-      sectionItems(digest).filter((s) =>
-        matchesTopics(sectionTopics(s.section), topics),
-      ),
-    );
+    const sections = showsKind(filter, 'debate')
+      ? day.digests.flatMap((digest) =>
+          sectionItems(digest).filter((s) =>
+            matchesTopics(sectionTopics(s.section), topics),
+          ),
+        )
+      : [];
     const heat = dayHeat(sections);
     // Stable sort: ties and uncounted debates keep stored order (Bundestag
     // first, protocol order).

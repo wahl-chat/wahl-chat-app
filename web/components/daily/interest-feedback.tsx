@@ -7,13 +7,33 @@ import { cn } from '@/lib/utils';
 import { type LucideIcon, ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
 import { Fragment, useEffect, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
+import { InfoTooltip } from './info-tooltip';
 
 const OPTIONS: { value: FeedInterest; label: string; Icon: LucideIcon }[] = [
   { value: 'yes', label: 'Interessant', Icon: ThumbsUpIcon },
   { value: 'no', label: 'Nicht interessant', Icon: ThumbsDownIcon },
 ];
 
-/** "Interessant?" over 👍 | 👎, bottom left of every card. */
+const QUESTION = 'Interessant für dich?';
+const WHY_WE_ASK =
+  'Wenn du uns sagst, was dich interessiert, können wir die Reihenfolge des Feeds für dich verbessern.';
+
+/** Why we ask: on hover with a mouse, on tap on a touch screen. */
+function InterestQuestion() {
+  return (
+    <InfoTooltip
+      content={WHY_WE_ASK}
+      className={cn(
+        'self-start rounded text-left text-[13px] underline decoration-dotted underline-offset-2',
+        MUTED_TEXT,
+      )}
+    >
+      {QUESTION}
+    </InfoTooltip>
+  );
+}
+
+/** "Interessant für dich?" over 👍 | 👎, bottom left of every card. */
 function InterestFeedback({
   itemKey,
   className,
@@ -43,10 +63,8 @@ function InterestFeedback({
         className,
       )}
     >
-      <legend className="sr-only">Interessant?</legend>
-      <span aria-hidden className={cn('text-[13px]', MUTED_TEXT)}>
-        Interessant?
-      </span>
+      <legend className="sr-only">{QUESTION}</legend>
+      <InterestQuestion />
       {/* Pulled left so the first icon lines up with the label above. */}
       <div className="-ml-2.5 flex items-center">
         {OPTIONS.map(({ value, label, Icon }, i) => {

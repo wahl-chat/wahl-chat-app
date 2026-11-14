@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
   chatElection,
+  electionStatusLabel,
   getNextUpcomingElection,
   isUpcomingElection,
   splitElectionsByDate,
@@ -60,6 +61,28 @@ describe('isUpcomingElection', () => {
       date: '2026-09-06' as never,
     };
     expect(isUpcomingElection(asString, NOW)).toBe(true);
+  });
+});
+
+describe('electionStatusLabel', () => {
+  // A concluded election can stay the default chat context, so its page must
+  // not keep announcing it as the current one.
+  it('calls a concluded election past', () => {
+    expect(
+      electionStatusLabel(election('past', new Date('2026-08-01')), NOW),
+    ).toBe('Vergangene Wahl');
+  });
+
+  it('keeps an election current through its polling day', () => {
+    expect(
+      electionStatusLabel(election('today', new Date('2026-08-08')), NOW),
+    ).toBe('Aktuelle Wahl');
+  });
+
+  it('treats an undated context as current', () => {
+    expect(electionStatusLabel(election('undated', null), NOW)).toBe(
+      'Aktuelle Wahl',
+    );
   });
 });
 

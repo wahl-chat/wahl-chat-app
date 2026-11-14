@@ -6,7 +6,7 @@ import { MediaViewerProvider } from '@/components/providers/media-viewer-provide
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Analytics } from '@vercel/analytics/react';
-import type { Metadata, Viewport } from 'next';
+import type { Metadata } from 'next';
 import './globals.css';
 // pdf.js text-layer positioning for the citation PDF viewer. Imported here, NOT
 // in the dynamically imported viewer chunk: CSS imported only from a
@@ -22,6 +22,7 @@ import { getTenant } from '@/lib/firebase/firebase-admin';
 import { getUser } from '@/lib/firebase/firebase-server';
 import {
   BASE_URL,
+  LOGO_IMAGE_URL,
   ORGANIZATION_ID,
   WEBSITE_ID,
   productionRobots,
@@ -96,7 +97,7 @@ export const metadata: Metadata = {
       template: '%s | wahl.chat - Politik interaktiv verstehen',
     },
     description: SITE_DESCRIPTION,
-    images: ['https://wahl.chat/images/logo.webp'],
+    images: [LOGO_IMAGE_URL],
     url: 'https://wahl.chat',
     siteName: 'wahl.chat',
     locale: 'de-DE',
@@ -108,12 +109,8 @@ export const metadata: Metadata = {
     creator: '@wahl_chat',
     title: 'wahl.chat - Politik interaktiv verstehen',
     description: SITE_DESCRIPTION,
-    images: ['https://wahl.chat/images/logo.webp'],
+    images: [LOGO_IMAGE_URL],
   },
-};
-
-export const viewport: Viewport = {
-  maximumScale: 1, // Disable auto-zoom on mobile Safari
 };
 
 const LIGHT_THEME_COLOR = 'hsl(0 0% 100%)';

@@ -5,13 +5,14 @@
 from types import SimpleNamespace
 from typing import Any
 
-from ingestion.feed.models import FeedItem, LocalizedContent
+from ingestion.feed.models import CardVideo, FeedItem, LocalizedContent
 from ingestion.feed.prompts import TRANSLATION_PROMPT_VERSION
 from ingestion.feed.store import (
     carry_over_translations,
     read_edition_item_ids,
     read_items,
     vanished_item_ids,
+    write_card_videos,
     write_feed,
 )
 from tests.feed.samples import sample_items
@@ -70,6 +71,18 @@ def test_retraction_touches_only_the_status() -> None:
     db = FakeDb({})
     write_feed(db, [], [], ["old"])
     assert db.updates == [("old", {"status": "retracted"})]
+
+
+def test_a_poster_writes_only_the_card_video() -> None:
+    db = FakeDb({})
+    card_video = CardVideo(
+        video_url="https://video/a.mp4", start=3.0, poster_url="https://p.webp"
+    )
+    write_card_videos(db, {"item": card_video})
+    assert db.updates == [
+        ("item", {"debate.card_video": card_video.model_dump(mode="json")})
+    ]
+    assert db.sets == []
 
 
 def test_a_doc_in_an_older_shape_is_read_as_not_built() -> None:

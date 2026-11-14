@@ -132,3 +132,19 @@ def test_without_vertex_or_a_key_the_roster_is_openai_alone(
 ) -> None:
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
     assert _roster_names(monkeypatch, vertex=False) == {"openai-gpt-6.1-terra-minimal"}
+
+
+def test_gemini_3_7_leads_each_tier(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GOOGLE_API_KEY", "key")
+    monkeypatch.setattr(publication_llms, "vertex_enabled", lambda: True)
+    monkeypatch.setattr(publication_llms, "vertex_project", lambda: "project")
+    monkeypatch.setattr(publication_llms, "gemini", lambda *a, **k: object())
+    roster = publication_llms._build_publication_llms()
+    ordered = [e.name for e in sorted(roster, key=lambda e: -e.priority)]
+    assert ordered == [
+        "vertex-gemini-3.7-flash-high",
+        "vertex-gemini-3.6-flash-high",
+        "google-gemini-3.7-flash-high",
+        "openai-gpt-6.1-terra-minimal",
+        "google-gemini-3.6-flash-high",
+    ]

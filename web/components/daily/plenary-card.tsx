@@ -1,32 +1,25 @@
 'use client';
 
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { HEAT_SCALE, heatExplanation } from '@/lib/daily/feed';
-import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
 import {
   type SectionItem,
   itemTeaser,
+  itemTerms,
   protocolLabel,
   sectionTopics,
 } from '@/lib/daily/items';
 import { cn } from '@/lib/utils';
 import { FlameIcon } from 'lucide-react';
-import { useState } from 'react';
 import { CardFooter, ItemTeaser } from './card-footer';
 import {
-  ABOVE_CARD_LINK,
   CARD_GROUP,
   CARD_LINK,
   CARD_SURFACE,
-  FOCUS_RING,
   HEADLINE_POP,
   MEDIA_POP,
 } from './card-styles';
 import HotTopicTrail from './hot-topic-trail';
+import { InfoTooltip } from './info-tooltip';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
 import { TopicMeta } from './topic-chip';
 
@@ -56,38 +49,24 @@ function HeatFlames({ heat }: { heat: number }) {
  * above the card's link, so a tap explains rather than opens the debate.
  */
 export function HeatInfo({ heat }: { heat: number }) {
-  const [open, setOpen] = useState(false);
   const [counted, rating] = heatExplanation(heat);
   return (
-    <Tooltip open={open} onOpenChange={setOpen} delayDuration={150}>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          aria-label={`Hitzigkeit ${heat} von ${HEAT_SCALE}`}
-          onClick={() => setOpen(true)}
-          className={cn(
-            ABOVE_CARD_LINK,
-            FOCUS_RING,
-            'inline-flex items-center rounded p-0.5',
-          )}
-        >
-          <HeatFlames heat={heat} />
-        </button>
-      </TooltipTrigger>
-      <TooltipContent
-        side="bottom"
-        className={cn(
-          DAILY_THEME_CLASSES,
-          'max-w-64 border-[var(--daily-border)] bg-[var(--daily-canvas)] text-[13px] leading-snug text-[var(--daily-ink)]',
-        )}
-      >
-        <p>{counted}</p>
-        <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 font-semibold">
-          <HeatFlames heat={heat} />
-          <span>{rating}</span>
-        </p>
-      </TooltipContent>
-    </Tooltip>
+    <InfoTooltip
+      label={`Hitzigkeit ${heat} von ${HEAT_SCALE}`}
+      side="bottom"
+      className="inline-flex items-center rounded p-0.5"
+      content={
+        <>
+          <p>{counted}</p>
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 font-semibold">
+            <HeatFlames heat={heat} />
+            <span>{rating}</span>
+          </p>
+        </>
+      }
+    >
+      <HeatFlames heat={heat} />
+    </InfoTooltip>
   );
 }
 
@@ -146,6 +125,7 @@ export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
         </h3>
         <ItemTeaser
           text={itemTeaser(item)}
+          terms={itemTerms(item)}
           label={section.headline}
           onOpen={onOpen}
         />

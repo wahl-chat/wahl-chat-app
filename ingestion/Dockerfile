@@ -43,6 +43,10 @@ RUN chmod +x /app/ingestion/docker-entrypoint.sh
 
 # Runtime stage — no uv, no build tools, non-root user.
 FROM python:3.12-slim AS runtime
+# ffmpeg cuts the feed's debate card posters (ingestion/feed/posters.py).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 RUN useradd --create-home --uid 1000 appuser
 COPY --from=builder --chown=appuser:appuser /app /app
 # WORKDIR is ingestion/ so the connectors' CWD-relative paths (data/) resolve

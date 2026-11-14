@@ -52,6 +52,14 @@ class DigestSpeaker(BaseModel):
     # The speech's own video file, and the link to it at the speech's start.
     video_url: Optional[str] = None
     video_link: Optional[str] = None
+    # The speaker's ID in the MdB-Stammdaten, which keys ``politicians``;
+    # None for a speaker the protocol did not identify.
+    mdb_id: Optional[str] = None
+    # Length of the speech's video in seconds, when op.tv has aligned it.
+    duration: Optional[int] = None
+    # The office a member of the government spoke in, as the protocol names
+    # it ("Bundesministerin für …"); None for members of a Fraktion.
+    role: Optional[str] = None
 
 
 class SpeechSource(BaseModel):
@@ -122,7 +130,7 @@ FeedItemStatus = Literal["published", "retracted"]
 
 # Bump when the stored feed shape gains or changes a field, and migrate the
 # stored items to it. Recorded on each item; it does not trigger a rebuild.
-FEED_FORMAT_VERSION = "3"
+FEED_FORMAT_VERSION = "6"
 
 
 class LocalizedPosition(BaseModel):
@@ -130,6 +138,15 @@ class LocalizedPosition(BaseModel):
 
     party_id: str
     text: str
+
+
+class TermRef(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # Keys ``glossary/{term_id}``.
+    term_id: str
+    # The term as the text writes it, inflected: "Aktuellen Stunde".
+    surface: str
 
 
 class LocalizedContent(BaseModel):
@@ -151,6 +168,10 @@ class LocalizedContent(BaseModel):
     prompt_version: str
     generated_by: Optional[str] = None
     generated_at: datetime
+    # Expert terms in the text the glossary explains (see ``glossary``), and
+    # the hash of the text they were found in. German only for now.
+    terms: list[TermRef] = Field(default_factory=list)
+    terms_hash: Optional[str] = None
 
 
 class DebateParty(BaseModel):
@@ -163,6 +184,23 @@ class DebateParty(BaseModel):
     # Where the Fraktion's position sentence comes from; empty while it has
     # no position, and on items stored before sources were kept.
     position_sources: list[SpeechSource] = Field(default_factory=list)
+
+
+class CardVideo(BaseModel):
+    """The speech a debate card plays, and a still of where it starts. The
+    poster is cut at ``start`` and the player opens at ``start``, so pressing
+    play continues from the very frame the poster shows. Both come from one
+    stored number; never derive either side again elsewhere."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    # The bare video file, without a media fragment.
+    video_url: str
+    start: float
+    # None until a run cut and uploaded it; the card then shows no still.
+    poster_url: Optional[str] = None
+    speaker: Optional[str] = None
+    party_name: Optional[str] = None
 
 
 class DebateFacts(BaseModel):
@@ -193,6 +231,9 @@ class DebateFacts(BaseModel):
     # translation keeps the bullets' count, so one list serves every locale.
     # Empty on items stored before sources were kept.
     key_point_sources: list[KeyPointSources] = Field(default_factory=list)
+    # Chosen from the facts above by ``card_video.choose_card_video``; None on
+    # items no run has given one yet.
+    card_video: Optional[CardVideo] = None
 
 
 class VoteFacts(BaseModel):

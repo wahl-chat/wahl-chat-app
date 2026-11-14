@@ -15,8 +15,17 @@ import {
   rankFeed,
   windowedDigests,
 } from './feed';
+import { DEFAULT_FILTER, type FeedFilter, type FeedKind } from './filter';
 import { parliamentsFor, parseStateParam } from './region';
 import { editionIdOf, pageStart } from './window';
+
+function topicsOnly(...topics: string[]): FeedFilter {
+  return { ...DEFAULT_FILTER, topics };
+}
+
+function kindsOnly(...kinds: FeedKind[]): FeedFilter {
+  return { ...DEFAULT_FILTER, kinds };
+}
 
 function digest(parliament: DigestParliamentId, date: string): DailyDigest {
   return {
@@ -144,7 +153,7 @@ function sitting(
 function heatOf(sections: DigestSessionSection[]): number[] {
   const [day] = rankFeed(
     buildFeed([[sitting('bundestag', '2026-07-10', sections)]]),
-    [],
+    DEFAULT_FILTER,
   );
   // Sections without an item id are keyed by their place in the digest.
   return sections.map(
@@ -187,7 +196,7 @@ describe('dayHeat', () => {
           ]),
         ],
       ]),
-      [],
+      DEFAULT_FILTER,
     );
     expect([...day.heat.values()].sort()).toEqual([1, 5]);
   });
@@ -241,7 +250,7 @@ describe('rankFeed', () => {
   ]);
 
   it('leads each day with its own most heated debate', () => {
-    const [latest, earlier] = rankFeed(days, []);
+    const [latest, earlier] = rankFeed(days, DEFAULT_FILTER);
     expect(latest.hot?.section.topic).toBe('economy_finance');
     // A hotter debate from an earlier day does not cross days.
     expect(earlier.hot?.section.topic).toBe('health_care');
@@ -257,7 +266,7 @@ describe('rankFeed', () => {
           ]),
         ],
       ]),
-      [],
+      DEFAULT_FILTER,
     );
     expect(day.hot?.section.topic).toBe('climate_environment');
   });
@@ -272,14 +281,14 @@ describe('rankFeed', () => {
           ]),
         ],
       ]),
-      [],
+      DEFAULT_FILTER,
     );
     expect(day.hot).toBeNull();
     expect(day.blocks[0].sections).toHaveLength(2);
   });
 
   it('sorts the rest of the day by heat and leaves the hot one out', () => {
-    const [latest] = rankFeed(days, []);
+    const [latest] = rankFeed(days, DEFAULT_FILTER);
     expect(latest.blocks[0].sections.map((s) => s.section.topic)).toEqual([
       'climate_environment',
       'housing_rent',
@@ -287,7 +296,7 @@ describe('rankFeed', () => {
   });
 
   it('pairs no vote by topic alone, nor from another day', () => {
-    const [latest, earlier] = rankFeed(days, []);
+    const [latest, earlier] = rankFeed(days, DEFAULT_FILTER);
     expect(latest.hot?.section.topic).toBe('economy_finance');
     expect(latest.match).toBeNull();
     expect(latest.blocks[0].votes.map((v) => v.vote.poll_id)).toEqual([
@@ -297,10 +306,51 @@ describe('rankFeed', () => {
   });
 
   it('pairs the same-day vote on the debated Drucksache, shown once', () => {
-    const [latest] = rankFeed(days, ['climate_environment']);
+    const [latest] = rankFeed(days, topicsOnly('climate_environment'));
     expect(latest.hot?.section.topic).toBe('climate_environment');
     expect(latest.match?.vote.poll_id).toBe(2);
     expect(latest.blocks).toEqual([]);
+  });
+
+  it('shows votes alone: no Hot Topic, no heat, no debates', () => {
+    const [latest] = rankFeed(days, kindsOnly('vote'));
+    expect(latest.hot).toBeNull();
+    expect(latest.match).toBeNull();
+    expect(latest.heat.size).toBe(0);
+    expect(latest.blocks[0].sections).toEqual([]);
+    expect(latest.blocks[0].votes.map((v) => v.vote.poll_id)).toEqual([
+      1, 2, 4,
+    ]);
+  });
+
+  it('shows debates alone: no vote under the Hot Topic or after it', () => {
+    const [latest] = rankFeed(days, {
+      ...topicsOnly('climate_environment'),
+      kinds: ['debate'],
+    });
+    expect(latest.hot?.section.topic).toBe('climate_environment');
+    expect(latest.match).toBeNull();
+    expect(latest.blocks).toEqual([]);
+  });
+
+  it('empties a day that has only the kind left out', () => {
+    const [day] = rankFeed(
+      buildFeed([
+        [sitting('bundestag', '2026-10-15', [], [vote(1, ['health_care'])])],
+      ]),
+      kindsOnly('debate'),
+    );
+    expect(day.hot).toBeNull();
+    expect(day.blocks).toEqual([]);
+  });
+
+  it('combines kind and topic: votes on the chosen topic only', () => {
+    const [latest] = rankFeed(days, {
+      topics: ['health_care'],
+      kinds: ['vote'],
+    });
+    expect(latest.hot).toBeNull();
+    expect(latest.blocks[0].votes.map((v) => v.vote.poll_id)).toEqual([1]);
   });
 });
 
@@ -403,7 +453,7 @@ describe('isPendingDay', () => {
       [sitting('bundestag', '2026-10-16', [section('housing_rent', 5, 10)])],
     ]);
     expect(days.filter(isPendingDay)).toEqual([]);
-    const [day] = rankFeed(days, ['health_care']);
+    const [day] = rankFeed(days, topicsOnly('health_care'));
     expect(day.hot).toBeNull();
     expect(day.blocks).toEqual([]);
   });

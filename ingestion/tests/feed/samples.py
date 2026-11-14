@@ -15,6 +15,8 @@ from ingestion.feed.builder import FeedBuilder, build_day, plan_days
 from ingestion.feed.models import FeedItem
 from ingestion.feed.parliaments import PARLIAMENTS, PartyDisplay
 from ingestion.feed.prompts import (
+    ItemTerms,
+    TermExtractionBatch,
     DebateDraft,
     KeyPointDraft,
     OpeningQuoteDraft,
@@ -285,6 +287,9 @@ class FakeLLM:
                     for ref, _party, sentence in _CHECK_RE.findall(prompt)
                 ]
             )
+        if schema is TermExtractionBatch:
+            refs = re.findall(r"^\[(T\d+)\]", prompt, re.MULTILINE)
+            return TermExtractionBatch(items=[ItemTerms(ref=ref) for ref in refs])
         raise AssertionError(f"unexpected schema {schema}")
 
 

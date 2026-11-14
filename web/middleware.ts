@@ -6,6 +6,7 @@ import {
   REGION_CONTEXTS,
   TENANT_ID_HEADER,
 } from './lib/constants';
+import { looksLikeContextId } from './lib/context-id';
 
 // Static pages that should remain at root level (not context-specific)
 const STATIC_PAGES = [
@@ -64,14 +65,6 @@ function getContextIdFromGeo(request: NextRequest): string {
   return context && !isElectionPast(context.electionDate)
     ? context.contextId
     : DEFAULT_CONTEXT_ID;
-}
-
-// Known context ID patterns (will be validated against actual contexts)
-function looksLikeContextId(segment: string): boolean {
-  // Context IDs are like: bundestagswahl-2025, bw2026, europawahl-2029
-  return /^[a-z]{2,}\d{4}$|^[a-z]+-[a-z]+-\d{4}$|^[a-z]+wahl-\d{4}$/.test(
-    segment,
-  );
 }
 
 // Helper to build redirect URL with search params preserved
