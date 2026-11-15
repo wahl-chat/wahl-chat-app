@@ -1,5 +1,6 @@
 import LoginButton from '@/components/auth/login-button';
 import UserAvatar from '@/components/auth/user-avatar';
+import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type UserDetails, cn } from '@/lib/utils';
@@ -66,6 +67,9 @@ function MobileNavbarItems({ userDetails, mobileClose, onFeedback }: Props) {
         }
         userChildren={<UserAvatar details={userDetails} />}
       />
+      {/* The feed shows this menu on desktop too, where the toggle would
+          otherwise align its dropdown to the start. */}
+      <ThemeModeToggle align="center" />
     </nav>
   );
 }
