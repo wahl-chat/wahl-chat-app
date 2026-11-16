@@ -10,6 +10,7 @@ from typing import Any, List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 from wahlchat_common.enums import AuthorityTier, SourceType
+from wahlchat_common.procedures import DocSection, LinkMethod
 
 
 # =============================================================================
@@ -97,6 +98,13 @@ class VoteMeta(BaseModel):
             "from the source's accepted flag; None when unavailable."
         ),
     )
+    drucksachen: Optional[List[str]] = Field(
+        None,
+        description=(
+            "Drucksachen the source links the motion to, e.g. ['21/7860']; "
+            "a cross-check for the procedure link. None when it links none."
+        ),
+    )
 
 
 class SpeechMeta(BaseModel):
@@ -127,6 +135,31 @@ class SpeechMeta(BaseModel):
     page_quadrant: Optional[str] = Field(
         None, description="Page quadrant (A–D) of the speech start on source_page"
     )
+
+
+class DrucksacheMeta(BaseModel):
+    """Source-owned nested metadata for drucksache chunks."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    number: str = Field(..., description="Drucksache number, e.g. '21/7860'")
+    doc_type: Optional[str] = Field(None, description="e.g. 'Gesetzentwurf'")
+    title: str
+    urheber: List[str] = Field(default_factory=list)
+    section_path: List[str] = Field(
+        default_factory=list,
+        description="Headings above the chunk, e.g. ['Begründung', 'Zu Artikel 3']",
+    )
+    pdf_url: Optional[str] = None
+
+
+class ProcedureLink(BaseModel):
+    """How the procedures job linked a chunk, and when."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    method: LinkMethod
+    checked_on: date_type
 
 
 class ChunkRecord(BaseModel):
@@ -302,6 +335,27 @@ class ChunkRecord(BaseModel):
     context_id: Optional[str] = Field(
         None,
         description="Election/context provenance for source-scoped pledge chunks",
+    )
+    # Procedure links (INDEXED top-level). Drucksache and procedure chunks get
+    # them when built; votes and speeches get them from the procedures job's
+    # payload-only sweep, so they are not part of a connector's content_hash.
+    vorgang_ids: Optional[List[str]] = Field(
+        None,
+        description="DIP Vorgang ids of the procedures this chunk belongs to",
+    )
+    sachgebiete: Optional[List[str]] = Field(
+        None,
+        description="DIP Sachgebiete of the linked procedures (union)",
+    )
+    procedure_link: Optional[ProcedureLink] = Field(
+        None, description="How and when the procedure link was set"
+    )
+    doc_section: Optional[DocSection] = Field(
+        None,
+        description=(
+            "drucksache chunks: 'overview' (Vorblatt, Antrag text) or 'body' "
+            "(Gesetzestext, Begründung, Bericht). INDEXED keyword."
+        ),
     )
     # Source-owned nested metadata (NOT indexed — descriptive fields only):
     meta: Optional[dict[str, Any]] = Field(

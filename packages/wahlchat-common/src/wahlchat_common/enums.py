@@ -33,3 +33,4 @@ class SourceType(str, Enum):
     QA_TRANSCRIPT = "qa_transcript"
     PARLIAMENTARY_SPEECH = "parliamentary_speech"  # Bundestag plenary speeches
     PLEDGE_RECORD = "pledge_record"  # PledgeTracker pledges (one vector per pledge)
+    PROCEDURE = "procedure"  # Bundestag procedures (one profile vector per DIP Vorgang)
