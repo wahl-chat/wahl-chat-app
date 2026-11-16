@@ -1,0 +1,1499 @@
+[
+ {
+  "id": "668841",
+  "vorgangsposition": "Gesetzentwurf",
+  "zuordnung": "BT",
+  "gang": true,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 0,
+  "dokumentart": "Drucksache",
+  "aktualisiert": "2025-03-12T17:01:36+01:00",
+  "urheber": [
+   {
+    "einbringer": false,
+    "bezeichnung": "CDU/CSU",
+    "titel": "Fraktion der CDU/CSU"
+   },
+   {
+    "einbringer": false,
+    "bezeichnung": "SPD",
+    "titel": "Fraktion der SPD"
+   }
+  ],
+  "fundstelle": {
+   "id": "278998",
+   "dokumentnummer": "20/15096",
+   "datum": "2025-03-10",
+   "verteildatum": "2025-03-10",
+   "dokumentart": "Drucksache",
+   "drucksachetyp": "Gesetzentwurf",
+   "herausgeber": "BT",
+   "urheber": [
+    "Fraktion der CDU/CSU",
+    "Fraktion der SPD"
+   ],
+   "pdf_url": "https://dserver.bundestag.de/btd/20/150/2015096.pdf"
+  },
+  "datum": "2025-03-10",
+  "vorgang_id": "320784"
+ },
+ {
+  "id": "698426",
+  "vorgangsposition": "Gesetzentwurf",
+  "zuordnung": "BR",
+  "gang": true,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Haushaltsbegleitgesetz 2027",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 0,
+  "dokumentart": "Drucksache",
+  "aktualisiert": "2026-08-25T09:22:34+02:00",
+  "urheber": [
+   {
+    "einbringer": false,
+    "bezeichnung": "BRg",
+    "titel": "Bundesregierung"
+   }
+  ],
+  "ueberweisung": [
+   {
+    "ausschuss": "Finanzausschuss",
+    "ausschuss_kuerzel": "Fz",
+    "federfuehrung": true
+   },
+   {
+    "ausschuss": "Ausschuss für Agrarpolitik und Verbraucherschutz",
+    "ausschuss_kuerzel": "AV",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Ausschuss für Arbeit, Integration und Sozialpolitik",
+    "ausschuss_kuerzel": "AIS",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Ausschuss für Familie, Senioren, Frauen und Jugend",
+    "ausschuss_kuerzel": "FSFJ",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Ausschuss für Umwelt, Naturschutz und nukleare Sicherheit",
+    "ausschuss_kuerzel": "U",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Wirtschaftsausschuss",
+    "ausschuss_kuerzel": "Wi",
+    "federfuehrung": false
+   }
+  ],
+  "ressort": [
+   {
+    "federfuehrend": true,
+    "titel": "Bundesministerium der Finanzen"
+   }
+  ],
+  "fundstelle": {
+   "id": "290217",
+   "dokumentnummer": "442/26",
+   "datum": "2026-08-14",
+   "dokumentart": "Drucksache",
+   "drucksachetyp": "Gesetzentwurf",
+   "herausgeber": "BR",
+   "urheber": [
+    "Bundesregierung"
+   ],
+   "pdf_url": "https://dserver.bundestag.de/brd/2026/0442-26.pdf"
+  },
+  "datum": "2026-08-14",
+  "vorgang_id": "338366"
+ },
+ {
+  "id": "703754",
+  "vorgangsposition": "Aussprache",
+  "zuordnung": "BT",
+  "gang": true,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Vereinbarte Debatte",
+  "titel": "Orange Day - Frauen schützen, Gewalt stoppen",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 16,
+  "dokumentart": "Plenarprotokoll",
+  "aktualisiert": "2026-11-13T12:07:06+01:00",
+  "fundstelle": {
+   "id": "5826",
+   "dokumentnummer": "21/107",
+   "datum": "2026-11-11",
+   "verteildatum": "2026-11-12",
+   "xml_url": "https://dserver.bundestag.de/btp/21/21107.xml",
+   "dokumentart": "Plenarprotokoll",
+   "herausgeber": "BT",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/btp/21/21107.pdf#P.13554",
+   "anfangsseite": 13554,
+   "endseite": 13569,
+   "anfangsquadrant": "C",
+   "endquadrant": "D"
+  },
+  "aktivitaet_anzeige": [
+   {
+    "seite": "13554D",
+    "aktivitaetsart": "Rede",
+    "titel": "Karin Prien, Bundesmin., Bundesministerium für Bildung, Familie, Senioren, Frauen und Jugend",
+    "pdf_url": "https://dserver.bundestag.de/btp/21/21107.pdf#P.13554"
+   },
+   {
+    "seite": "13556A",
+    "aktivitaetsart": "Rede",
+    "titel": "Dr. Anna Rathert, MdB, AfD",
+    "pdf_url": "https://dserver.bundestag.de/btp/21/21107.pdf#P.13556"
+   },
+   {
+    "seite": "13556D",
+    "aktivitaetsart": "Rede",
+    "titel": "Dr. Stefanie Hubig, Bundesmin., Bundesministerium der Justiz und für Verbraucherschutz",
+    "pdf_url": "https://dserver.bundestag.de/btp/21/21107.pdf#P.13556"
+   },
+   {
+    "seite": "13557D",
+    "aktivitaetsart": "Rede",
+    "titel": "Ulle Schauws, MdB, BÜNDNIS 90/DIE GRÜNEN",
+    "pdf_url": "https://dserver.bundestag.de/btp/21/21107.pdf#P.13557"
+   }
+  ],
+  "datum": "2026-11-11",
+  "vorgang_id": "341570"
+ },
+ {
+  "id": "704144",
+  "vorgangsposition": "Antrag",
+  "zuordnung": "BT",
+  "gang": true,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Antrag",
+  "titel": "Femizide in Deutschland beenden",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 30,
+  "dokumentart": "Drucksache",
+  "aktualisiert": "2026-11-16T17:38:30+01:00",
+  "urheber": [
+   {
+    "einbringer": false,
+    "bezeichnung": "LINKE",
+    "titel": "Fraktion DIE LINKE"
+   }
+  ],
+  "fundstelle": {
+   "id": "292463",
+   "dokumentnummer": "21/9233",
+   "datum": "2026-11-13",
+   "verteildatum": "2026-11-16",
+   "dokumentart": "Drucksache",
+   "drucksachetyp": "Antrag",
+   "herausgeber": "BT",
+   "urheber": [
+    "Fraktion DIE LINKE"
+   ],
+   "pdf_url": "https://dserver.bundestag.de/btd/21/092/2109233.pdf"
+  },
+  "aktivitaet_anzeige": [
+   {
+    "aktivitaetsart": "Antrag",
+    "titel": "Kathrin Gebel, MdB, DIE LINKE",
+    "pdf_url": "https://dserver.bundestag.de/btd/21/092/2109233.pdf"
+   },
+   {
+    "aktivitaetsart": "Antrag",
+    "titel": "Cansu Özdemir, MdB, DIE LINKE",
+    "pdf_url": "https://dserver.bundestag.de/btd/21/092/2109233.pdf"
+   }
+  ],
+  "datum": "2026-11-13",
+  "vorgang_id": "341758"
+ },
+ {
+  "id": "668912",
+  "vorgangsposition": "Geschäftsordnungsantrag auf Absetzung der 1. Beratung von der TO",
+  "zuordnung": "BT",
+  "abstract": "Geschäftsordnungsantrag der Fraktion der AfD auf Absetzung der 1. Beratung von der Tagesordnung",
+  "gang": false,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 7,
+  "dokumentart": "Plenarprotokoll",
+  "aktualisiert": "2025-10-31T08:05:07+01:00",
+  "mitberaten": [
+   {
+    "vorgangsposition": "Geschäftsordnungsantrag auf Absetzung der 1. Beratung von der TO",
+    "vorgangstyp": "Gesetzgebung",
+    "titel": "Gesetz zur Änderung des Grundgesetzes (Artikel 109 und 115)",
+    "id": "320786"
+   },
+   {
+    "vorgangsposition": "Geschäftsordnungsantrag auf Absetzung der 1. Beratung von der TO",
+    "vorgangstyp": "Gesetzgebung",
+    "titel": "Gesetz zur Errichtung eines Verteidigungsfonds für Deutschland und zur Änderung des Grundgesetzes (Artikel 87a)",
+    "id": "320785"
+   },
+   {
+    "vorgangsposition": "Geschäftsordnungsantrag auf Absetzung von der TO",
+    "vorgangstyp": "Antrag",
+    "titel": "Nein zur Kriegstüchtigkeit - Ja zur Diplomatie und Abrüstung",
+    "id": "320810"
+   }
+  ],
+  "fundstelle": {
+   "id": "5700",
+   "dokumentnummer": "20/213",
+   "datum": "2025-03-13",
+   "verteildatum": "2025-03-14",
+   "xml_url": "https://dserver.bundestag.de/btp/20/20213.xml",
+   "dokumentart": "Plenarprotokoll",
+   "herausgeber": "BT",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/btp/20/20213.pdf#P.27685",
+   "anfangsseite": 27685,
+   "endseite": 27691,
+   "anfangsquadrant": "B",
+   "endquadrant": "B"
+  },
+  "beschlussfassung": [
+   {
+    "beschlusstenor": "Ablehnung Geschäftsordnungsantrag",
+    "seite": "27691B"
+   }
+  ],
+  "aktivitaet_anzeige": [
+   {
+    "seite": "27685D",
+    "aktivitaetsart": "Zur Geschäftsordnung BT",
+    "titel": "Dr. Bernd Baumann, MdB, AfD",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20213.pdf#P.27685"
+   },
+   {
+    "seite": "27686B",
+    "aktivitaetsart": "Zur Geschäftsordnung BT",
+    "titel": "Katja Mast, MdB, SPD",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20213.pdf#P.27686"
+   },
+   {
+    "seite": "27687A",
+    "aktivitaetsart": "Zur Geschäftsordnung BT",
+    "titel": "Thorsten Frei, MdB, CDU/CSU",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20213.pdf#P.27687"
+   },
+   {
+    "seite": "27687D",
+    "aktivitaetsart": "Zur Geschäftsordnung BT",
+    "titel": "Dr. Irene Mihalic, MdB, BÜNDNIS 90/DIE GRÜNEN",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20213.pdf#P.27687"
+   }
+  ],
+  "datum": "2025-03-13",
+  "vorgang_id": "320784"
+ },
+ {
+  "id": "699047",
+  "vorgangsposition": "Gesetzentwurf",
+  "zuordnung": "BT",
+  "gang": true,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Haushaltsbegleitgesetz 2027",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 0,
+  "dokumentart": "Drucksache",
+  "aktualisiert": "2026-09-07T12:53:14+02:00",
+  "urheber": [
+   {
+    "einbringer": false,
+    "bezeichnung": "BRg",
+    "titel": "Bundesregierung"
+   }
+  ],
+  "ressort": [
+   {
+    "federfuehrend": true,
+    "titel": "Bundesministerium der Finanzen"
+   }
+  ],
+  "fundstelle": {
+   "id": "290535",
+   "dokumentnummer": "21/7860",
+   "datum": "2026-09-07",
+   "verteildatum": "2026-09-07",
+   "dokumentart": "Drucksache",
+   "drucksachetyp": "Gesetzentwurf",
+   "herausgeber": "BT",
+   "urheber": [
+    "Bundesregierung"
+   ],
+   "pdf_url": "https://dserver.bundestag.de/btd/21/078/2107860.pdf"
+  },
+  "datum": "2026-09-07",
+  "vorgang_id": "338366"
+ },
+ {
+  "id": "668916",
+  "vorgangsposition": "1. Beratung",
+  "zuordnung": "BT",
+  "gang": true,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 31,
+  "dokumentart": "Plenarprotokoll",
+  "aktualisiert": "2025-10-31T08:05:07+01:00",
+  "ueberweisung": [
+   {
+    "ausschuss": "Haushaltsausschuss",
+    "ausschuss_kuerzel": "HaushA",
+    "federfuehrung": true
+   },
+   {
+    "ausschuss": "Ausschuss für Bildung, Forschung und Technikfolgenabschätzung",
+    "ausschuss_kuerzel": "AfBFT",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Ausschuss für die Angelegenheiten der Europäischen Union",
+    "ausschuss_kuerzel": "AfEU",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Ausschuss für Digitales",
+    "ausschuss_kuerzel": "ADi (WP20)",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Ausschuss für Ernährung und Landwirtschaft",
+    "ausschuss_kuerzel": "AfEL",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Ausschuss für Familie, Senioren, Frauen und Jugend",
+    "ausschuss_kuerzel": "AfFSFJ",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Ausschuss für Gesundheit",
+    "ausschuss_kuerzel": "AfG",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Ausschuss für Inneres und Heimat",
+    "ausschuss_kuerzel": "InnenA (WP19-20)",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Ausschuss für Klimaschutz und Energie",
+    "ausschuss_kuerzel": "AfKlima",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Ausschuss für Kultur und Medien",
+    "ausschuss_kuerzel": "AfKult",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Ausschuss für Wohnen, Stadtentwicklung, Bauwesen und Kommunen",
+    "ausschuss_kuerzel": "BauA",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Auswärtiger Ausschuss",
+    "ausschuss_kuerzel": "AuswA",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Finanzausschuss",
+    "ausschuss_kuerzel": "FinanzA",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Rechtsausschuss",
+    "ausschuss_kuerzel": "RechtsA",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Verkehrsausschuss",
+    "ausschuss_kuerzel": "VerkA",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Verteidigungsausschuss",
+    "ausschuss_kuerzel": "VgA",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Wirtschaftsausschuss",
+    "ausschuss_kuerzel": "AfWirtschaft",
+    "federfuehrung": false
+   }
+  ],
+  "mitberaten": [
+   {
+    "vorgangsposition": "1. Beratung",
+    "vorgangstyp": "Gesetzgebung",
+    "titel": "Gesetz zur Änderung des Grundgesetzes (Artikel 109 und 115)",
+    "id": "320786"
+   },
+   {
+    "vorgangsposition": "1. Beratung",
+    "vorgangstyp": "Gesetzgebung",
+    "titel": "Gesetz zur Errichtung eines Verteidigungsfonds für Deutschland und zur Änderung des Grundgesetzes (Artikel 87a)",
+    "id": "320785"
+   },
+   {
+    "vorgangsposition": "Beratung",
+    "vorgangstyp": "Antrag",
+    "titel": "Nein zur Kriegstüchtigkeit - Ja zur Diplomatie und Abrüstung",
+    "id": "320810"
+   }
+  ],
+  "fundstelle": {
+   "id": "5700",
+   "dokumentnummer": "20/213",
+   "datum": "2025-03-13",
+   "verteildatum": "2025-03-14",
+   "xml_url": "https://dserver.bundestag.de/btp/20/20213.xml",
+   "dokumentart": "Plenarprotokoll",
+   "herausgeber": "BT",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/btp/20/20213.pdf#P.27691",
+   "anfangsseite": 27691,
+   "endseite": 27730,
+   "anfangsquadrant": "B",
+   "endquadrant": "D"
+  },
+  "beschlussfassung": [
+   {
+    "beschlusstenor": "Überweisung",
+    "dokumentnummer": "20/15096",
+    "seite": "27730B"
+   }
+  ],
+  "aktivitaet_anzeige": [
+   {
+    "seite": "27691D",
+    "aktivitaetsart": "Rede",
+    "titel": "Lars Klingbeil, MdB, SPD",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20213.pdf#P.27691"
+   },
+   {
+    "seite": "27694A",
+    "aktivitaetsart": "Rede",
+    "titel": "Friedrich Merz, MdB, CDU/CSU",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20213.pdf#P.27694"
+   },
+   {
+    "seite": "27698B",
+    "aktivitaetsart": "Rede",
+    "titel": "Katharina Dröge, MdB, BÜNDNIS 90/DIE GRÜNEN",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20213.pdf#P.27698"
+   },
+   {
+    "seite": "27700C",
+    "aktivitaetsart": "Rede",
+    "titel": "Christian Dürr, MdB, FDP",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20213.pdf#P.27700"
+   }
+  ],
+  "datum": "2025-03-13",
+  "vorgang_id": "320784"
+ },
+ {
+  "id": "699175",
+  "vorgangsposition": "1. Beratung",
+  "zuordnung": "BT",
+  "gang": true,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Haushaltsbegleitgesetz 2027",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 16,
+  "dokumentart": "Plenarprotokoll",
+  "aktualisiert": "2026-09-22T10:02:46+02:00",
+  "ueberweisung": [
+   {
+    "ausschuss": "Haushaltsausschuss",
+    "ausschuss_kuerzel": "HaushA",
+    "federfuehrung": true
+   },
+   {
+    "ausschuss": "Ausschuss für Bildung, Familie, Senioren, Frauen und Jugend",
+    "ausschuss_kuerzel": "AfBFSFJ",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Ausschuss für Wohnen, Stadtentwicklung, Bauwesen und Kommunen",
+    "ausschuss_kuerzel": "BauA",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Finanzausschuss",
+    "ausschuss_kuerzel": "FinanzA",
+    "federfuehrung": false
+   },
+   {
+    "ausschuss": "Verteidigungsausschuss",
+    "ausschuss_kuerzel": "VgA",
+    "federfuehrung": false
+   }
+  ],
+  "mitberaten": [
+   {
+    "vorgangsposition": "1. Beratung (Einzelpläne)",
+    "vorgangstyp": "Gesetzgebung",
+    "titel": "Gesetz über die Feststellung des Bundeshaushaltsplans für das Haushaltsjahr 2027 (Haushaltsgesetz 2027 - HG 2027)",
+    "id": "338317"
+   }
+  ],
+  "fundstelle": {
+   "id": "5808",
+   "dokumentnummer": "21/91",
+   "datum": "2026-09-08",
+   "verteildatum": "2026-09-09",
+   "xml_url": "https://dserver.bundestag.de/btp/21/21091.xml",
+   "dokumentart": "Plenarprotokoll",
+   "herausgeber": "BT",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/btp/21/21091.pdf#P.11253",
+   "anfangsseite": 11253,
+   "endseite": 11279,
+   "anfangsquadrant": "A",
+   "endquadrant": "D"
+  },
+  "beschlussfassung": [
+   {
+    "beschlusstenor": "Überweisung",
+    "dokumentnummer": "21/7860",
+    "seite": "11279D"
+   }
+  ],
+  "aktivitaet_anzeige": [
+   {
+    "seite": "11253B",
+    "aktivitaetsart": "Rede",
+    "titel": "Lars Klingbeil, Bundesmin., Bundesministerium der Finanzen",
+    "pdf_url": "https://dserver.bundestag.de/btp/21/21091.pdf#P.11253"
+   },
+   {
+    "seite": "11260D",
+    "aktivitaetsart": "Rede",
+    "titel": "Dr. Michael Espendiller, MdB, AfD",
+    "pdf_url": "https://dserver.bundestag.de/btp/21/21091.pdf#P.11260"
+   },
+   {
+    "seite": "11262D",
+    "aktivitaetsart": "Rede",
+    "titel": "Dr. Mathias Middelberg, MdB, CDU/CSU",
+    "pdf_url": "https://dserver.bundestag.de/btp/21/21091.pdf#P.11262"
+   },
+   {
+    "seite": "11265B",
+    "aktivitaetsart": "Rede",
+    "titel": "Dr. Sebastian Schäfer, MdB, BÜNDNIS 90/DIE GRÜNEN",
+    "pdf_url": "https://dserver.bundestag.de/btp/21/21091.pdf#P.11265"
+   }
+  ],
+  "datum": "2026-09-08",
+  "vorgang_id": "338366"
+ },
+ {
+  "id": "668940",
+  "vorgangsposition": "Beschlussempfehlung und Bericht",
+  "zuordnung": "BT",
+  "abstract": "Empfehlung: Annahme der Vorlage in Ausschussfassung",
+  "gang": true,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 7,
+  "dokumentart": "Drucksache",
+  "aktualisiert": "2025-03-17T13:23:03+01:00",
+  "urheber": [
+   {
+    "einbringer": false,
+    "bezeichnung": "HaushA",
+    "titel": "Haushaltsausschuss"
+   }
+  ],
+  "fundstelle": {
+   "id": "279019",
+   "dokumentnummer": "20/15117",
+   "datum": "2025-03-16",
+   "verteildatum": "2025-03-16",
+   "dokumentart": "Drucksache",
+   "drucksachetyp": "Beschlussempfehlung und Bericht",
+   "herausgeber": "BT",
+   "urheber": [
+    "Haushaltsausschuss"
+   ],
+   "pdf_url": "https://dserver.bundestag.de/btd/20/151/2015117.pdf"
+  },
+  "aktivitaet_anzeige": [
+   {
+    "aktivitaetsart": "Berichterstattung",
+    "titel": "Dennis Rohde, MdB, SPD",
+    "pdf_url": "https://dserver.bundestag.de/btd/20/151/2015117.pdf"
+   },
+   {
+    "aktivitaetsart": "Berichterstattung",
+    "titel": "Christian Haase, MdB, CDU/CSU",
+    "pdf_url": "https://dserver.bundestag.de/btd/20/151/2015117.pdf"
+   },
+   {
+    "aktivitaetsart": "Berichterstattung",
+    "titel": "Sven-Christian Kindler, MdB, BÜNDNIS 90/DIE GRÜNEN",
+    "pdf_url": "https://dserver.bundestag.de/btd/20/151/2015117.pdf"
+   },
+   {
+    "aktivitaetsart": "Berichterstattung",
+    "titel": "Otto Fricke, MdB, FDP",
+    "pdf_url": "https://dserver.bundestag.de/btd/20/151/2015117.pdf"
+   }
+  ],
+  "datum": "2025-03-16",
+  "vorgang_id": "320784"
+ },
+ {
+  "id": "699502",
+  "vorgangsposition": "Empfehlungen der Ausschüsse",
+  "zuordnung": "BR",
+  "abstract": "AIS, AV, FSFJ, U, Wi: Stellungnahme - Fz: keine Einwendungen",
+  "gang": false,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Haushaltsbegleitgesetz 2027",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 0,
+  "dokumentart": "Drucksache",
+  "aktualisiert": "2026-09-15T12:44:55+02:00",
+  "fundstelle": {
+   "id": "290766",
+   "dokumentnummer": "442/1/26",
+   "datum": "2026-09-14",
+   "dokumentart": "Drucksache",
+   "drucksachetyp": "Empfehlungen",
+   "herausgeber": "BR",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/brd/2026/0442-1-26.pdf"
+  },
+  "datum": "2026-09-14",
+  "vorgang_id": "338366"
+ },
+ {
+  "id": "668968",
+  "vorgangsposition": "Änderungsantrag",
+  "zuordnung": "BT",
+  "gang": false,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 0,
+  "dokumentart": "Drucksache",
+  "aktualisiert": "2025-03-18T10:12:58+01:00",
+  "urheber": [
+   {
+    "einbringer": false,
+    "bezeichnung": "FDP",
+    "titel": "Fraktion der FDP"
+   }
+  ],
+  "fundstelle": {
+   "id": "279024",
+   "dokumentnummer": "20/15120",
+   "datum": "2025-03-17",
+   "verteildatum": "2025-03-17",
+   "dokumentart": "Drucksache",
+   "drucksachetyp": "Änderungsantrag",
+   "herausgeber": "BT",
+   "urheber": [
+    "Fraktion der FDP"
+   ],
+   "pdf_url": "https://dserver.bundestag.de/btd/20/151/2015120.pdf"
+  },
+  "datum": "2025-03-17",
+  "vorgang_id": "320784"
+ },
+ {
+  "id": "700442",
+  "vorgangsposition": "1. Durchgang",
+  "zuordnung": "BR",
+  "gang": true,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Haushaltsbegleitgesetz 2027",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 6,
+  "dokumentart": "Plenarprotokoll",
+  "aktualisiert": "2026-10-23T14:30:16+02:00",
+  "mitberaten": [
+   {
+    "vorgangsposition": "1. Durchgang",
+    "vorgangstyp": "Gesetzgebung",
+    "titel": "Gesetz über die Feststellung des Bundeshaushaltsplans für das Haushaltsjahr 2027 (Haushaltsgesetz 2027 - HG 2027)",
+    "id": "338317"
+   },
+   {
+    "vorgangsposition": "BR-Sitzung",
+    "vorgangstyp": "Bericht, Gutachten, Programm",
+    "titel": "Finanzplan des Bundes 2026 bis 2030",
+    "id": "338330"
+   }
+  ],
+  "fundstelle": {
+   "id": "5815",
+   "dokumentnummer": "1068",
+   "datum": "2026-09-25",
+   "dokumentart": "Plenarprotokoll",
+   "herausgeber": "BR",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/brp/1068.pdf#P.404",
+   "anfangsseite": 404,
+   "endseite": 408,
+   "top": 2,
+   "top_zusatz": "c"
+  },
+  "beschlussfassung": [
+   {
+    "beschlusstenor": "Stellungnahme",
+    "grundlage": "Artikel 76 Absatz 2 Satz 4 GG",
+    "dokumentnummer": "442/26",
+    "seite": "408"
+   }
+  ],
+  "aktivitaet_anzeige": [
+   {
+    "seite": "404",
+    "aktivitaetsart": "Rede",
+    "titel": "Boris Rhein, MdBR (Ministerpräsident), Hessen",
+    "pdf_url": "https://dserver.bundestag.de/brp/1068.pdf#P.404"
+   },
+   {
+    "seite": "406",
+    "aktivitaetsart": "Rede",
+    "titel": "Björn Fecker, MdBR (Bürgermeister, Senator für Finanzen), Bremen",
+    "pdf_url": "https://dserver.bundestag.de/brp/1068.pdf#P.406"
+   },
+   {
+    "seite": "407",
+    "aktivitaetsart": "Rede",
+    "titel": "Katja Wolf, MdBR (Finanzministerin), Thüringen",
+    "pdf_url": "https://dserver.bundestag.de/brp/1068.pdf#P.407"
+   },
+   {
+    "seite": "469",
+    "aktivitaetsart": "Rede (zu Protokoll gegeben)",
+    "titel": "Sven Schulze, MdBR (Ministerpräsident), Sachsen-Anhalt",
+    "pdf_url": "https://dserver.bundestag.de/brp/1068.pdf#P.469"
+   }
+  ],
+  "datum": "2026-09-25",
+  "vorgang_id": "338366"
+ },
+ {
+  "id": "669020",
+  "vorgangsposition": "Geschäftsordnungsantrag auf Absetzung von der TO",
+  "zuordnung": "BT",
+  "abstract": "Geschäftsordnungsantrag der Fraktionen FDP auf Absetzung der der 2. und 3. Beratung von der Tagesordnung\r\nGeschäftsordnungsantrag der Fraktion der AfD auf Absetzung aller Beratungsgegenstände von der Tagesordnung",
+  "gang": false,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 7,
+  "dokumentart": "Plenarprotokoll",
+  "aktualisiert": "2025-10-31T08:04:42+01:00",
+  "mitberaten": [
+   {
+    "vorgangsposition": "Geschäftsordnungsantrag auf Absetzung von der TO",
+    "vorgangstyp": "Gesetzgebung",
+    "titel": "Gesetz zur Errichtung eines Verteidigungsfonds für Deutschland und zur Änderung des Grundgesetzes (Artikel 87a)",
+    "id": "320785"
+   },
+   {
+    "vorgangsposition": "Geschäftsordnungsantrag auf Absetzung von der TO",
+    "vorgangstyp": "Antrag",
+    "titel": "Nein zur Kriegstüchtigkeit - Ja zur Diplomatie und Abrüstung",
+    "id": "320810"
+   }
+  ],
+  "fundstelle": {
+   "id": "5701",
+   "dokumentnummer": "20/214",
+   "datum": "2025-03-18",
+   "verteildatum": "2025-03-19",
+   "xml_url": "https://dserver.bundestag.de/btp/20/20214.xml",
+   "dokumentart": "Plenarprotokoll",
+   "herausgeber": "BT",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/btp/20/20214.pdf#P.27734",
+   "anfangsseite": 27734,
+   "endseite": 27740,
+   "anfangsquadrant": "A",
+   "endquadrant": "D"
+  },
+  "beschlussfassung": [
+   {
+    "beschlusstenor": "Ablehnung Geschäftsordnungsantrag",
+    "abstimm_ergebnis_bemerkung": "Geschäftsordnungsantrag der FDP ",
+    "seite": "27740C"
+   },
+   {
+    "beschlusstenor": "Ablehnung Geschäftsordnungsantrag",
+    "abstimm_ergebnis_bemerkung": "Geschäftsordnungsantrag der AfD",
+    "seite": "27740D"
+   }
+  ],
+  "aktivitaet_anzeige": [
+   {
+    "seite": "27734A",
+    "aktivitaetsart": "Zur Geschäftsordnung BT",
+    "titel": "Johannes Vogel, MdB, FDP",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20214.pdf#P.27734"
+   },
+   {
+    "seite": "27735A",
+    "aktivitaetsart": "Zur Geschäftsordnung BT",
+    "titel": "Dr. Johannes Fechner, MdB, SPD",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20214.pdf#P.27735"
+   },
+   {
+    "seite": "27736A",
+    "aktivitaetsart": "Zur Geschäftsordnung BT",
+    "titel": "Dr. Bernd Baumann, MdB, AfD",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20214.pdf#P.27736"
+   },
+   {
+    "seite": "27736D",
+    "aktivitaetsart": "Zur Geschäftsordnung BT",
+    "titel": "Thorsten Frei, MdB, CDU/CSU",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20214.pdf#P.27736"
+   }
+  ],
+  "datum": "2025-03-18",
+  "vorgang_id": "320784"
+ },
+ {
+  "id": "700517",
+  "vorgangsposition": "Beschlussdrucksache",
+  "zuordnung": "BR",
+  "gang": false,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Haushaltsbegleitgesetz 2027",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 0,
+  "dokumentart": "Drucksache",
+  "aktualisiert": "2026-09-25T16:17:37+02:00",
+  "fundstelle": {
+   "id": "291099",
+   "dokumentnummer": "442/26(B)",
+   "datum": "2026-09-25",
+   "dokumentart": "Drucksache",
+   "drucksachetyp": "Stellungnahme",
+   "herausgeber": "BR",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/brd/2026/0442-26B.pdf"
+  },
+  "datum": "2026-09-25",
+  "vorgang_id": "338366"
+ },
+ {
+  "id": "669023",
+  "vorgangsposition": "2. Beratung",
+  "zuordnung": "BT",
+  "gang": true,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 40,
+  "dokumentart": "Plenarprotokoll",
+  "aktualisiert": "2025-10-31T08:04:42+01:00",
+  "mitberaten": [
+   {
+    "vorgangsposition": "2. Beratung",
+    "vorgangstyp": "Gesetzgebung",
+    "titel": "Gesetz zur Errichtung eines Verteidigungsfonds für Deutschland und zur Änderung des Grundgesetzes (Artikel 87a)",
+    "id": "320785"
+   },
+   {
+    "vorgangsposition": "Beratung",
+    "vorgangstyp": "Antrag",
+    "titel": "Nein zur Kriegstüchtigkeit - Ja zur Diplomatie und Abrüstung",
+    "id": "320810"
+   },
+   {
+    "vorgangsposition": "Beratung",
+    "vorgangstyp": "Entschließungsantrag BT",
+    "titel": "Entschließungsantrag zum Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+    "id": "320843"
+   },
+   {
+    "vorgangsposition": "Beratung",
+    "vorgangstyp": "Entschließungsantrag BT",
+    "titel": "Entschließungsantrag zum Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+    "id": "320845"
+   },
+   {
+    "vorgangsposition": "Beratung",
+    "vorgangstyp": "Entschließungsantrag BT",
+    "titel": "Entschließungsantrag zum Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+    "id": "320842"
+   },
+   {
+    "vorgangsposition": "Beratung",
+    "vorgangstyp": "Entschließungsantrag BT",
+    "titel": "Entschließungsantrag zum Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+    "id": "320844"
+   },
+   {
+    "vorgangsposition": "Beratung",
+    "vorgangstyp": "Entschließungsantrag BT",
+    "titel": "Entschließungsantrag zum Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+    "id": "320829"
+   }
+  ],
+  "fundstelle": {
+   "id": "5701",
+   "dokumentnummer": "20/214",
+   "datum": "2025-03-18",
+   "verteildatum": "2025-03-19",
+   "xml_url": "https://dserver.bundestag.de/btp/20/20214.xml",
+   "dokumentart": "Plenarprotokoll",
+   "herausgeber": "BT",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/btp/20/20214.pdf#P.27740",
+   "anfangsseite": 27740,
+   "endseite": 27798,
+   "anfangsquadrant": "D",
+   "endquadrant": "D"
+  },
+  "beschlussfassung": [
+   {
+    "abstimmungsart": "Namentliche Abstimmung",
+    "beschlusstenor": "Ablehnung des Änderungsantrags",
+    "abstimm_ergebnis_bemerkung": "85:630:2",
+    "dokumentnummer": "20/15120",
+    "seite": "27791B"
+   },
+   {
+    "beschlusstenor": "Annahme in Ausschussfassung",
+    "dokumentnummer": "20/15096, 20/15117",
+    "seite": "27794B"
+   }
+  ],
+  "aktivitaet_anzeige": [
+   {
+    "seite": "27741B",
+    "aktivitaetsart": "Rede",
+    "titel": "Lars Klingbeil, MdB, SPD",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20214.pdf#P.27741"
+   },
+   {
+    "seite": "27744A",
+    "aktivitaetsart": "Rede",
+    "titel": "Friedrich Merz, MdB, CDU/CSU",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20214.pdf#P.27744"
+   },
+   {
+    "seite": "27747B",
+    "aktivitaetsart": "Rede",
+    "titel": "Britta Haßelmann, MdB, BÜNDNIS 90/DIE GRÜNEN",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20214.pdf#P.27747"
+   },
+   {
+    "seite": "27750A",
+    "aktivitaetsart": "Rede",
+    "titel": "Christian Dürr, MdB, FDP",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20214.pdf#P.27750"
+   }
+  ],
+  "datum": "2025-03-18",
+  "vorgang_id": "320784"
+ },
+ {
+  "id": "701293",
+  "vorgangsposition": "Änderung der Ausschussüberweisung",
+  "zuordnung": "BT",
+  "gang": false,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Haushaltsbegleitgesetz 2027",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 0,
+  "dokumentart": "Plenarprotokoll",
+  "aktualisiert": "2026-10-13T12:26:37+02:00",
+  "ueberweisung": [
+   {
+    "ueberweisungsart": "nachträgliche Überweisung",
+    "ausschuss": "Ausschuss für Arbeit und Soziales",
+    "ausschuss_kuerzel": "AfArbSoz",
+    "federfuehrung": false
+   },
+   {
+    "ueberweisungsart": "nachträgliche Überweisung",
+    "ausschuss": "Auswärtiger Ausschuss",
+    "ausschuss_kuerzel": "AuswA",
+    "federfuehrung": false
+   }
+  ],
+  "fundstelle": {
+   "id": "5816",
+   "dokumentnummer": "21/98",
+   "datum": "2026-10-07",
+   "verteildatum": "2026-10-08",
+   "xml_url": "https://dserver.bundestag.de/btp/21/21098.xml",
+   "dokumentart": "Plenarprotokoll",
+   "herausgeber": "BT",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/btp/21/21098.pdf#P.12147",
+   "anfangsseite": 12147,
+   "endseite": 12147,
+   "anfangsquadrant": "B",
+   "endquadrant": "C"
+  },
+  "beschlussfassung": [
+   {
+    "beschlusstenor": "Änderung des Überweisungsbeschlusses",
+    "dokumentnummer": "21/7860",
+    "seite": "12147C"
+   }
+  ],
+  "datum": "2026-10-07",
+  "vorgang_id": "338366"
+ },
+ {
+  "id": "669031",
+  "vorgangsposition": "3. Beratung",
+  "zuordnung": "BT",
+  "gang": true,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 47,
+  "dokumentart": "Plenarprotokoll",
+  "aktualisiert": "2025-10-31T08:04:42+01:00",
+  "fundstelle": {
+   "id": "5701",
+   "dokumentnummer": "20/214",
+   "datum": "2025-03-18",
+   "verteildatum": "2025-03-19",
+   "xml_url": "https://dserver.bundestag.de/btp/20/20214.xml",
+   "dokumentart": "Plenarprotokoll",
+   "herausgeber": "BT",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/btp/20/20214.pdf#P.27794",
+   "anfangsseite": 27794,
+   "endseite": 27798,
+   "anfangsquadrant": "D",
+   "endquadrant": "A"
+  },
+  "beschlussfassung": [
+   {
+    "mehrheit": "Zweidrittelmehrheit",
+    "abstimmungsart": "Namentliche Abstimmung",
+    "beschlusstenor": "Annahme in Ausschussfassung",
+    "abstimm_ergebnis_bemerkung": "512:206:0",
+    "dokumentnummer": "20/15096, 20/15117",
+    "seite": "27795A"
+   }
+  ],
+  "aktivitaet_anzeige": [
+   {
+    "seite": "27801B",
+    "aktivitaetsart": "Schriftliche Erklärung gem. § 31 Geschäftsordnung BT",
+    "titel": "Dr. Yannick Bury, MdB, CDU/CSU",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20214.pdf#P.27801"
+   },
+   {
+    "seite": "27801B",
+    "aktivitaetsart": "Schriftliche Erklärung gem. § 31 Geschäftsordnung BT",
+    "titel": "Alexander Föhr, MdB, CDU/CSU",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20214.pdf#P.27801"
+   },
+   {
+    "seite": "27801B",
+    "aktivitaetsart": "Schriftliche Erklärung gem. § 31 Geschäftsordnung BT",
+    "titel": "Florian Müller, MdB, CDU/CSU",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20214.pdf#P.27801"
+   },
+   {
+    "seite": "27801B",
+    "aktivitaetsart": "Schriftliche Erklärung gem. § 31 Geschäftsordnung BT",
+    "titel": "Moritz Oppelt, MdB, CDU/CSU",
+    "pdf_url": "https://dserver.bundestag.de/btp/20/20214.pdf#P.27801"
+   }
+  ],
+  "datum": "2025-03-18",
+  "vorgang_id": "320784"
+ },
+ {
+  "id": "701717",
+  "vorgangsposition": "Unterrichtung über Stellungnahme des BR und Gegenäußerung der BRg",
+  "zuordnung": "BT",
+  "gang": false,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Haushaltsbegleitgesetz 2027",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 0,
+  "dokumentart": "Drucksache",
+  "aktualisiert": "2026-10-14T14:13:44+02:00",
+  "urheber": [
+   {
+    "einbringer": false,
+    "bezeichnung": "BRg",
+    "titel": "Bundesregierung"
+   }
+  ],
+  "fundstelle": {
+   "id": "291617",
+   "dokumentnummer": "21/8534",
+   "datum": "2026-10-14",
+   "verteildatum": "2026-10-14",
+   "dokumentart": "Drucksache",
+   "drucksachetyp": "Unterrichtung",
+   "herausgeber": "BT",
+   "urheber": [
+    "Bundesregierung"
+   ],
+   "pdf_url": "https://dserver.bundestag.de/btd/21/085/2108534.pdf"
+  },
+  "datum": "2026-10-14",
+  "vorgang_id": "338366"
+ },
+ {
+  "id": "669107",
+  "vorgangsposition": "Unterrichtung über Gesetzesbeschluss des BT",
+  "zuordnung": "BR",
+  "gang": false,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 0,
+  "dokumentart": "Drucksache",
+  "aktualisiert": "2025-03-20T15:45:23+01:00",
+  "urheber": [
+   {
+    "einbringer": false,
+    "bezeichnung": "BT",
+    "titel": "Bundestag"
+   }
+  ],
+  "fundstelle": {
+   "id": "279053",
+   "dokumentnummer": "115/25",
+   "datum": "2025-03-20",
+   "dokumentart": "Drucksache",
+   "drucksachetyp": "Gesetzesbeschluss",
+   "herausgeber": "BR",
+   "urheber": [
+    "Bundestag"
+   ],
+   "pdf_url": "https://dserver.bundestag.de/brd/2025/0115-25.pdf"
+  },
+  "datum": "2025-03-20",
+  "vorgang_id": "320784"
+ },
+ {
+  "id": "703116",
+  "vorgangsposition": "Änderung der Ausschussüberweisung",
+  "zuordnung": "BT",
+  "gang": false,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Haushaltsbegleitgesetz 2027",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 0,
+  "dokumentart": "Plenarprotokoll",
+  "aktualisiert": "2026-11-11T11:11:01+01:00",
+  "ueberweisung": [
+   {
+    "ueberweisungsart": "nachträgliche Überweisung",
+    "ausschuss": "Ausschuss für Gesundheit",
+    "ausschuss_kuerzel": "AfG",
+    "federfuehrung": false
+   }
+  ],
+  "fundstelle": {
+   "id": "5823",
+   "dokumentnummer": "21/104",
+   "datum": "2026-11-04",
+   "verteildatum": "2026-11-05",
+   "xml_url": "https://dserver.bundestag.de/btp/21/21104.xml",
+   "dokumentart": "Plenarprotokoll",
+   "herausgeber": "BT",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/btp/21/21104.pdf#P.13100",
+   "anfangsseite": 13100,
+   "endseite": 13101,
+   "anfangsquadrant": "D",
+   "endquadrant": "A"
+  },
+  "beschlussfassung": [
+   {
+    "beschlusstenor": "Änderung des Überweisungsbeschlusses",
+    "dokumentnummer": "21/7860",
+    "seite": "13101A"
+   }
+  ],
+  "datum": "2026-11-04",
+  "vorgang_id": "338366"
+ },
+ {
+  "id": "669108",
+  "vorgangsposition": "Unterrichtung über Gesetzesbeschluss des BT",
+  "zuordnung": "BR",
+  "abstract": "Unterrichtung über Annahme der Entschließung auf Drs 20/15123",
+  "gang": false,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 0,
+  "dokumentart": "Drucksache",
+  "aktualisiert": "2025-03-20T15:53:06+01:00",
+  "fundstelle": {
+   "id": "279054",
+   "dokumentnummer": "zu115/25",
+   "datum": "2025-03-20",
+   "dokumentart": "Drucksache",
+   "drucksachetyp": "Beschluss",
+   "herausgeber": "BR",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/brd/2025/0115-25(zu).pdf"
+  },
+  "datum": "2025-03-20",
+  "vorgang_id": "320784"
+ },
+ {
+  "id": "704073",
+  "vorgangsposition": "Änderung der Ausschussüberweisung",
+  "zuordnung": "BT",
+  "gang": false,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Haushaltsbegleitgesetz 2027",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 0,
+  "dokumentart": "Plenarprotokoll",
+  "aktualisiert": "2026-11-16T14:52:26+01:00",
+  "ueberweisung": [
+   {
+    "ueberweisungsart": "nachträgliche Überweisung",
+    "ausschuss": "Ausschuss für Landwirtschaft, Ernährung und Heimat",
+    "ausschuss_kuerzel": "AfLEH",
+    "federfuehrung": false
+   }
+  ],
+  "fundstelle": {
+   "id": "5827",
+   "dokumentnummer": "21/108",
+   "datum": "2026-11-12",
+   "verteildatum": "2026-11-13",
+   "xml_url": "https://dserver.bundestag.de/btp/21/21108.xml",
+   "dokumentart": "Plenarprotokoll",
+   "herausgeber": "BT",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/btp/21/21108.pdf#P.13603",
+   "anfangsseite": 13603,
+   "endseite": 13603,
+   "anfangsquadrant": "A",
+   "endquadrant": "A"
+  },
+  "beschlussfassung": [
+   {
+    "beschlusstenor": "Änderung des Überweisungsbeschlusses",
+    "dokumentnummer": "21/7860",
+    "seite": "13603A"
+   }
+  ],
+  "datum": "2026-11-12",
+  "vorgang_id": "338366"
+ },
+ {
+  "id": "669162",
+  "vorgangsposition": "Durchgang",
+  "zuordnung": "BR",
+  "gang": true,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 13,
+  "dokumentart": "Plenarprotokoll",
+  "aktualisiert": "2025-06-04T10:38:49+02:00",
+  "fundstelle": {
+   "id": "5703",
+   "dokumentnummer": "1052",
+   "datum": "2025-03-21",
+   "dokumentart": "Plenarprotokoll",
+   "herausgeber": "BR",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/brp/1052.pdf#P.60",
+   "anfangsseite": 60,
+   "endseite": 73,
+   "top": 34
+  },
+  "beschlussfassung": [
+   {
+    "abstimmungsart": "Abstimmung durch Aufruf der Länder",
+    "beschlusstenor": "Zustimmung",
+    "grundlage": "Art. 79 Abs. 2 GG",
+    "dokumentnummer": "115/25",
+    "seite": "73"
+   }
+  ],
+  "aktivitaet_anzeige": [
+   {
+    "seite": "60",
+    "aktivitaetsart": "Rede",
+    "titel": "Winfried Kretschmann, MdBR (Ministerpräsident), Baden-Württemberg",
+    "pdf_url": "https://dserver.bundestag.de/brp/1052.pdf#P.60"
+   },
+   {
+    "seite": "61",
+    "aktivitaetsart": "Rede",
+    "titel": "Manuela Schwesig, MdBR (Ministerpräsidentin), Mecklenburg-Vorpommern",
+    "pdf_url": "https://dserver.bundestag.de/brp/1052.pdf#P.61"
+   },
+   {
+    "seite": "62",
+    "aktivitaetsart": "Rede",
+    "titel": "Michael Kretschmer, MdBR (Ministerpräsident), Sachsen",
+    "pdf_url": "https://dserver.bundestag.de/brp/1052.pdf#P.62"
+   },
+   {
+    "seite": "63",
+    "aktivitaetsart": "Rede",
+    "titel": "Dr. Andreas Bovenschulte, MdBR (Präsident des Senats, Bürgermeister, Senator für Angelegenheiten der Religionsgemeinschaften und Senator für Kultur), Bremen",
+    "pdf_url": "https://dserver.bundestag.de/brp/1052.pdf#P.63"
+   }
+  ],
+  "datum": "2025-03-21",
+  "vorgang_id": "320784"
+ },
+ {
+  "id": "704143",
+  "vorgangsposition": "Beschlussempfehlung und Bericht",
+  "zuordnung": "BT",
+  "abstract": "Empfehlung: Annahme der Vorlage in Ausschussfassung",
+  "gang": true,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Haushaltsbegleitgesetz 2027",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 5,
+  "dokumentart": "Drucksache",
+  "aktualisiert": "2026-11-16T17:13:52+01:00",
+  "urheber": [
+   {
+    "einbringer": false,
+    "bezeichnung": "HaushA",
+    "titel": "Haushaltsausschuss"
+   }
+  ],
+  "fundstelle": {
+   "id": "292464",
+   "dokumentnummer": "21/9241",
+   "datum": "2026-11-16",
+   "verteildatum": "2026-11-16",
+   "dokumentart": "Drucksache",
+   "drucksachetyp": "Beschlussempfehlung und Bericht",
+   "herausgeber": "BT",
+   "urheber": [
+    "Haushaltsausschuss"
+   ],
+   "pdf_url": "https://dserver.bundestag.de/btd/21/092/2109241.pdf"
+  },
+  "aktivitaet_anzeige": [
+   {
+    "aktivitaetsart": "Berichterstattung",
+    "titel": "Dr. Dietmar Bartsch, MdB, DIE LINKE",
+    "pdf_url": "https://dserver.bundestag.de/btd/21/092/2109241.pdf"
+   },
+   {
+    "aktivitaetsart": "Berichterstattung",
+    "titel": "Dr. Michael Espendiller, MdB, AfD",
+    "pdf_url": "https://dserver.bundestag.de/btd/21/092/2109241.pdf"
+   },
+   {
+    "aktivitaetsart": "Berichterstattung",
+    "titel": "Christian Haase, MdB, CDU/CSU",
+    "pdf_url": "https://dserver.bundestag.de/btd/21/092/2109241.pdf"
+   },
+   {
+    "aktivitaetsart": "Berichterstattung",
+    "titel": "Dr. Thorsten Rudolph, MdB, SPD",
+    "pdf_url": "https://dserver.bundestag.de/btd/21/092/2109241.pdf"
+   }
+  ],
+  "datum": "2026-11-16",
+  "vorgang_id": "338366"
+ },
+ {
+  "id": "669198",
+  "vorgangsposition": "Beschlussdrucksache",
+  "zuordnung": "BR",
+  "gang": false,
+  "fortsetzung": false,
+  "nachtrag": false,
+  "vorgangstyp": "Gesetzgebung",
+  "titel": "Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+  "typ": "Vorgangsposition",
+  "aktivitaet_anzahl": 0,
+  "dokumentart": "Drucksache",
+  "aktualisiert": "2025-03-24T13:42:28+01:00",
+  "fundstelle": {
+   "id": "279102",
+   "dokumentnummer": "115/25(B)",
+   "datum": "2025-03-21",
+   "dokumentart": "Drucksache",
+   "drucksachetyp": "Beschluss",
+   "herausgeber": "BR",
+   "urheber": [],
+   "pdf_url": "https://dserver.bundestag.de/brd/2025/0115-25B.pdf"
+  },
+  "datum": "2025-03-21",
+  "vorgang_id": "320784"
+ }
+]
