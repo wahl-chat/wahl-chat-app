@@ -1,0 +1,550 @@
+{
+"2025-03-17": [
+{
+"id": "668945",
+"vorgang_id": "320829",
+"vorgangstyp": "Entschließungsantrag BT",
+"vorgangsposition": "Antrag auf Entschließung",
+"datum": "2025-03-17",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15118"
+}
+},
+{
+"id": "668964",
+"vorgang_id": "320842",
+"vorgangstyp": "Entschließungsantrag BT",
+"vorgangsposition": "Antrag auf Entschließung",
+"datum": "2025-03-17",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15122"
+}
+},
+{
+"id": "668965",
+"vorgang_id": "320843",
+"vorgangstyp": "Entschließungsantrag BT",
+"vorgangsposition": "Antrag auf Entschließung",
+"datum": "2025-03-17",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15123"
+}
+},
+{
+"id": "668966",
+"vorgang_id": "320844",
+"vorgangstyp": "Entschließungsantrag BT",
+"vorgangsposition": "Antrag auf Entschließung",
+"datum": "2025-03-17",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15119"
+}
+},
+{
+"id": "668967",
+"vorgang_id": "320845",
+"vorgangstyp": "Entschließungsantrag BT",
+"vorgangsposition": "Antrag auf Entschließung",
+"datum": "2025-03-17",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15121"
+}
+},
+{
+"id": "669273",
+"vorgang_id": "321021",
+"vorgangstyp": "Bericht, Gutachten, Programm",
+"vorgangsposition": "Unterrichtung",
+"datum": "2025-03-17",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15114"
+}
+},
+{
+"id": "675339",
+"vorgang_id": "325251",
+"vorgangstyp": "Bericht, Gutachten, Programm",
+"vorgangsposition": "Unterrichtung",
+"datum": "2025-03-17",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15114"
+}
+},
+{
+"id": "669008",
+"vorgang_id": "320272",
+"vorgangstyp": "Kleine Anfrage",
+"vorgangsposition": "Antwort",
+"datum": "2025-03-17",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15125"
+}
+},
+{
+"id": "669012",
+"vorgang_id": "320271",
+"vorgangstyp": "Kleine Anfrage",
+"vorgangsposition": "Antwort",
+"datum": "2025-03-17",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15126"
+}
+},
+{
+"id": "668979",
+"vorgang_id": "319976",
+"vorgangstyp": "Kleine Anfrage",
+"vorgangsposition": "Ergänzende Antwort",
+"datum": "2025-03-17",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15124"
+}
+},
+{
+"id": "668968",
+"vorgang_id": "320784",
+"vorgangstyp": "Gesetzgebung",
+"vorgangsposition": "Änderungsantrag",
+"datum": "2025-03-17",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15120"
+}
+}
+],
+"2025-03-18": [
+{
+"id": "669032",
+"vorgang_id": "320880",
+"vorgangstyp": "Ansprache/Erklärung/Mitteilung",
+"vorgangsposition": "Ansprache",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+},
+{
+"id": "669033",
+"vorgang_id": "320881",
+"vorgangstyp": "Geschäftsordnung",
+"vorgangsposition": "Ordnungsruf",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+},
+{
+"id": "669034",
+"vorgang_id": "320882",
+"vorgangstyp": "Ansprache/Erklärung/Mitteilung",
+"vorgangsposition": "Ansprache",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+},
+{
+"id": "669091",
+"vorgang_id": "320931",
+"vorgangstyp": "Geschäftsordnung",
+"vorgangsposition": "Ordnungsruf",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+},
+{
+"id": "669118",
+"vorgang_id": "320950",
+"vorgangstyp": "Bericht, Gutachten, Programm",
+"vorgangsposition": "Unterrichtung",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15130"
+}
+},
+{
+"id": "669119",
+"vorgang_id": "320951",
+"vorgangstyp": "Bericht, Gutachten, Programm",
+"vorgangsposition": "Unterrichtung",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15131"
+}
+},
+{
+"id": "669120",
+"vorgang_id": "320952",
+"vorgangstyp": "Bericht, Gutachten, Programm",
+"vorgangsposition": "Unterrichtung",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15132"
+}
+},
+{
+"id": "669204",
+"vorgang_id": "320960",
+"vorgangstyp": "Bericht, Gutachten, Programm",
+"vorgangsposition": "Unterrichtung",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15127"
+}
+},
+{
+"id": "669205",
+"vorgang_id": "320961",
+"vorgangstyp": "Bericht, Gutachten, Programm",
+"vorgangsposition": "Unterrichtung",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15128"
+}
+},
+{
+"id": "669206",
+"vorgang_id": "320962",
+"vorgangstyp": "Bericht, Gutachten, Programm",
+"vorgangsposition": "Unterrichtung",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15129"
+}
+},
+{
+"id": "669026",
+"vorgang_id": "320843",
+"vorgangstyp": "Entschließungsantrag BT",
+"vorgangsposition": "Beratung",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": [
+{
+"beschlusstenor": "Annahme der Vorlage",
+"dokumentnummer": "20/15123",
+"seite": "27798B"
+}
+],
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+},
+{
+"id": "669027",
+"vorgang_id": "320845",
+"vorgangstyp": "Entschließungsantrag BT",
+"vorgangsposition": "Beratung",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": [
+{
+"beschlusstenor": "Ablehnung der Vorlage",
+"dokumentnummer": "20/15121",
+"seite": "27798B"
+}
+],
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+},
+{
+"id": "669028",
+"vorgang_id": "320842",
+"vorgangstyp": "Entschließungsantrag BT",
+"vorgangsposition": "Beratung",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": [
+{
+"beschlusstenor": "Ablehnung der Vorlage",
+"dokumentnummer": "20/15122",
+"seite": "27798B"
+}
+],
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+},
+{
+"id": "669029",
+"vorgang_id": "320844",
+"vorgangstyp": "Entschließungsantrag BT",
+"vorgangsposition": "Beratung",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": [
+{
+"beschlusstenor": "Ablehnung der Vorlage",
+"dokumentnummer": "20/15119",
+"seite": "27798B"
+}
+],
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+},
+{
+"id": "669030",
+"vorgang_id": "320829",
+"vorgangstyp": "Entschließungsantrag BT",
+"vorgangsposition": "Beratung",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": [
+{
+"beschlusstenor": "Ablehnung der Vorlage",
+"dokumentnummer": "20/15118",
+"seite": "27798D"
+}
+],
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+},
+{
+"id": "669021",
+"vorgang_id": "320785",
+"vorgangstyp": "Gesetzgebung",
+"vorgangsposition": "Geschäftsordnungsantrag auf Absetzung von der TO",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": [
+{
+"beschlusstenor": "Ablehnung Geschäftsordnungsantrag",
+"seite": "27740D"
+}
+],
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+},
+{
+"id": "669022",
+"vorgang_id": "320810",
+"vorgangstyp": "Antrag",
+"vorgangsposition": "Geschäftsordnungsantrag auf Absetzung von der TO",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": [
+{
+"beschlusstenor": "Ablehnung Geschäftsordnungsantrag",
+"seite": "27740D"
+}
+],
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+},
+{
+"id": "669020",
+"vorgang_id": "320784",
+"vorgangstyp": "Gesetzgebung",
+"vorgangsposition": "Geschäftsordnungsantrag auf Absetzung von der TO",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": [
+{
+"beschlusstenor": "Ablehnung Geschäftsordnungsantrag",
+"abstimm_ergebnis_bemerkung": "Geschäftsordnungsantrag der FDP ",
+"seite": "27740C"
+},
+{
+"beschlusstenor": "Ablehnung Geschäftsordnungsantrag",
+"abstimm_ergebnis_bemerkung": "Geschäftsordnungsantrag der AfD",
+"seite": "27740D"
+}
+],
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+},
+{
+"id": "669024",
+"vorgang_id": "320785",
+"vorgangstyp": "Gesetzgebung",
+"vorgangsposition": "2. Beratung",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": [
+{
+"abstimmungsart": "Namentliche Abstimmung",
+"beschlusstenor": "Ablehnung der Vorlage",
+"abstimm_ergebnis_bemerkung": "87:626:3",
+"dokumentnummer": "20/15099",
+"seite": "27788A"
+}
+],
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+},
+{
+"id": "669025",
+"vorgang_id": "320810",
+"vorgangstyp": "Antrag",
+"vorgangsposition": "Beratung",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": [
+{
+"beschlusstenor": "Ablehnung der Vorlage",
+"dokumentnummer": "20/15107",
+"seite": "27786D"
+}
+],
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+},
+{
+"id": "669023",
+"vorgang_id": "320784",
+"vorgangstyp": "Gesetzgebung",
+"vorgangsposition": "2. Beratung",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": [
+{
+"abstimmungsart": "Namentliche Abstimmung",
+"beschlusstenor": "Ablehnung des Änderungsantrags",
+"abstimm_ergebnis_bemerkung": "85:630:2",
+"dokumentnummer": "20/15120",
+"seite": "27791B"
+},
+{
+"beschlusstenor": "Annahme in Ausschussfassung",
+"dokumentnummer": "20/15096, 20/15117",
+"seite": "27794B"
+}
+],
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+},
+{
+"id": "669031",
+"vorgang_id": "320784",
+"vorgangstyp": "Gesetzgebung",
+"vorgangsposition": "3. Beratung",
+"datum": "2025-03-18",
+"zuordnung": "BT",
+"beschlussfassung": [
+{
+"mehrheit": "Zweidrittelmehrheit",
+"abstimmungsart": "Namentliche Abstimmung",
+"beschlusstenor": "Annahme in Ausschussfassung",
+"abstimm_ergebnis_bemerkung": "512:206:0",
+"dokumentnummer": "20/15096, 20/15117",
+"seite": "27795A"
+}
+],
+"fundstelle": {
+"dokumentart": "Plenarprotokoll",
+"dokumentnummer": "20/214"
+}
+}
+],
+"2025-03-19": [
+{
+"id": "669085",
+"vorgang_id": "319979",
+"vorgangstyp": "Kleine Anfrage",
+"vorgangsposition": "Antwort",
+"datum": "2025-03-19",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15133"
+}
+},
+{
+"id": "669086",
+"vorgang_id": "320616",
+"vorgangstyp": "Kleine Anfrage",
+"vorgangsposition": "Antwort",
+"datum": "2025-03-19",
+"zuordnung": "BT",
+"beschlussfassung": null,
+"fundstelle": {
+"dokumentart": "Drucksache",
+"dokumentnummer": "20/15134"
+}
+}
+]
+}
