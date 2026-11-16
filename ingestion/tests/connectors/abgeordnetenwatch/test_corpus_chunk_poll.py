@@ -274,3 +274,35 @@ def test_content_hash_changes_with_envelope_fields() -> None:
     assert repeat.content_hash == base.content_hash, (
         "content_hash must stay deterministic for identical inputs"
     )
+
+
+_INTRO_WITH_LINKS = (
+    '<p>Der <a href="https://dserver.bundestag.de/btd/21/078/2107860.pdf">'
+    "Gesetzentwurf</a> und die "
+    '<a href="https://dserver.bundestag.de/btd/21/092/2109241.pdf">'
+    "Beschlussempfehlung</a> …</p>"
+)
+
+
+def test_vote_keeps_the_drucksachen_its_intro_links() -> None:
+    raw = _load_raw_3602()
+    raw["poll"] = {**raw["poll"], "field_intro": _INTRO_WITH_LINKS}
+    chunk = chunk_poll(_SourceItemStub(), raw)[0]
+    assert chunk.meta is not None
+    assert chunk.meta["drucksachen"] == ["21/7860", "21/9241"]
+
+
+def test_a_new_drucksache_link_changes_the_content_hash() -> None:
+    raw = _load_raw_3602()
+    without = chunk_poll(_SourceItemStub(), raw)[0]
+    raw["poll"] = {**raw["poll"], "field_intro": _INTRO_WITH_LINKS}
+    linked = chunk_poll(_SourceItemStub(), raw)[0]
+    assert linked.content_hash != without.content_hash
+
+
+def test_a_vote_linking_no_drucksache_has_no_drucksachen_key() -> None:
+    raw = _load_raw_3602()
+    raw["poll"] = {**raw["poll"], "field_intro": "<p>Ohne Links.</p>"}
+    chunk = chunk_poll(_SourceItemStub(), raw)[0]
+    assert chunk.meta is not None
+    assert "drucksachen" not in chunk.meta

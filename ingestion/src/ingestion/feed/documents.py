@@ -13,39 +13,16 @@ for it: two health debates a week apart share a topic, not a vote.
 from __future__ import annotations
 
 import logging
-import re
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from typing import Any, Optional
+
+from ingestion.drucksache_numbers import drucksachen_in_links, drucksachen_in_text
+
+__all__ = ["PollDocuments", "drucksachen_in_links", "drucksachen_in_text", "poll_documents"]
 
 logger = logging.getLogger(__name__)
 
-# "21/6130" as the protocol prints it.
-_DRUCKSACHE_TEXT = re.compile(r"\b(\d{2})/(\d{1,5})\b")
-# The PDF of Drucksache 21/6130: dserver.bundestag.de/btd/21/061/2106130.pdf
-_DRUCKSACHE_PDF = re.compile(
-    r"dserver\.bundestag\.de/btd/(\d{2})/\d{3}/(\d{2})(\d{5})\.pdf"
-)
-
 PollDocuments = Callable[[int], Optional[list[str]]]
-
-
-def _sorted(ids: Iterable[tuple[int, int]]) -> list[str]:
-    return [f"{wp}/{number}" for wp, number in sorted(set(ids))]
-
-
-def drucksachen_in_text(text: str) -> list[str]:
-    return _sorted(
-        (int(wp), int(number)) for wp, number in _DRUCKSACHE_TEXT.findall(text)
-    )
-
-
-def drucksachen_in_links(html: str) -> list[str]:
-    """The Drucksachen an HTML text links to, by their PDF on dserver."""
-    return _sorted(
-        (int(wp), int(number))
-        for wp, file_wp, number in _DRUCKSACHE_PDF.findall(html)
-        if wp == file_wp
-    )
 
 
 def poll_documents(client: Any) -> PollDocuments:
