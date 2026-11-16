@@ -8,7 +8,8 @@
         run-manifestos run-manifesto-uploads upload-manifesto-uploads \
         collect-speeches fetch-mdb-stammdaten \
         update-speeches speeches-stats export-prod-slice \
-        build-feed setup-feed-collection backfill-feed eval-feed
+        build-feed setup-feed-collection backfill-feed eval-feed \
+        run-procedures procedures-report
 
 # --- Install dependencies ---
 
@@ -259,6 +260,18 @@ fetch-mdb-stammdaten:
 run-speeches: bootstrap-collection fetch-mdb-stammdaten
 	cd ingestion && $(QDRANT_ENV) \
 		uv run python -m ingestion.run --connector bundestag_speeches $(ARGS)
+
+# Procedures (DIP Vorgänge): sync, Drucksache text, links on votes/speeches,
+# feed items, coverage report. First run: ARGS="--backfill". Writes Firestore,
+# so locally it needs FIRESTORE_EMULATOR_HOST=localhost:8081.
+# Requires: DIP_API_KEY in ingestion/.env (or ai-backend/.env).
+run-procedures: bootstrap-collection
+	cd ingestion && $(QDRANT_ENV) \
+		uv run python -m ingestion.procedures.bulk $(ARGS)
+
+procedures-report:
+	cd ingestion && $(QDRANT_ENV) \
+		uv run python -m ingestion.procedures.bulk --report $(ARGS)
 
 # --- Standalone ingestion scripts (NOT registry connectors) ---
 # Manifestos run as their own module (own argparse) — NOT a --connector ID in run.py.

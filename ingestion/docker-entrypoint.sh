@@ -20,6 +20,12 @@ if [ "${CONNECTOR_ID:-}" = "feed" ]; then
     exec python -m ingestion.feed.bulk "$@"
 fi
 
+# Procedures are not a registry connector either: their job syncs DIP and
+# links the chunks the speech and vote jobs wrote earlier the same night.
+if [ "${CONNECTOR_ID:-}" = "procedures" ]; then
+    exec python -m ingestion.procedures.bulk "$@"
+fi
+
 # Extra runner flags (e.g. --batch-size, --time-budget) may be passed as
 # container args; forward them.
 exec python -m ingestion.run "$@"
