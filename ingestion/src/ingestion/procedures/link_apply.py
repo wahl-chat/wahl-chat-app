@@ -193,7 +193,7 @@ class Linker:
                     self._qdrant.set_payload(
                         collection_name=self._collection,
                         payload=payload,
-                        points=batch,
+                        points=models.PointIdsList(points=list(batch)),
                         wait=True,
                     )
                 self.report.chunks_written += len(batch)

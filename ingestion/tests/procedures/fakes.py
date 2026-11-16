@@ -110,7 +110,8 @@ class FakeQdrant:
 
     def set_payload(self, collection_name: str, payload: dict[str, Any], points: list[Any],
                     wait: bool = True) -> None:
-        ids = [str(i) for i in points]
+        selected = points.points if hasattr(points, "points") else points
+        ids = [str(i) for i in selected]
         self.payload_writes.append((copy.deepcopy(payload), ids))
         for pid in ids:
             if pid in self.points:

@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-from datetime import date, datetime, timezone
+from datetime import date
 
 from ingestion.procedures.bulk import drucksache_numbers_to_read, run
 from ingestion.procedures.mapper import build_record

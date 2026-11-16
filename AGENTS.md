@@ -142,9 +142,21 @@ Outside the registry (bespoke runner, like the manifesto bulk CLIs):
   `pledge_record` vector per pledge, timelines never embedded). Runner:
   `ingestion/src/ingestion/connectors/pledgetracker/bulk.py` (see "Running
   PledgeTracker ingestion").
+- `procedures` — Bundestag procedures (DIP Vorgänge) for WP 20 and 21:
+  every Gesetzgebung, Antrag, Entschließungsantrag and plenary debate, plus any
+  Vorgang that reached the plenary (single Fragestunde questions excluded).
+  Firestore `procedures/{vorgang_id}` holds the record (stages, decisions,
+  Drucksachen, Sachgebiete); Qdrant holds one `procedure` profile vector each
+  and `drucksache` chunks (structure-aware: Vorblatt, Artikel, Begründung,
+  Bericht; `doc_section` overview/body). The same job links votes (date +
+  tally against DIP decisions) and speeches (DIP `aktivitaet`) by writing
+  `vorgang_ids`, `sachgebiete` and `procedure_link` payload-only, and attaches
+  procedure summaries to feed items. Runs daily after the speech and vote jobs.
+  Runner: `ingestion/src/ingestion/procedures/bulk.py`; reader:
+  `ai-backend/src/services/procedure_service.py`.
 
 The **data contract** for a corpus chunk is `ChunkRecord` and the per-source
-`meta` builders (`VoteMeta`, `SpeechMeta`) in
+`meta` builders (`VoteMeta`, `SpeechMeta`, `DrucksacheMeta`) in
 `ingestion/src/ingestion/schemas.py`.
 `AuthorityTier` and `SourceType` are defined in `wahlchat_common.enums`.
 `schemas.py` re-exports them.
@@ -196,8 +208,9 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 | `ingestion/src/ingestion/` | Ingestion framework: `connector.py` (base class), `run.py` (runner), `registry.py`, `schemas.py` (data contract), `setup_collection.py`, `embeddings.py`, `vertex_credentials.py`, `governance_levels.py`, `legislature_config.py`, `ids.py`, `speech_key.py`, `speech_dedup.py`. |
 | `ingestion/src/ingestion/connectors/` | Per-source connectors: `abgeordnetenwatch/`, `bundestag_speeches/`, `openparliament_tv/`, `manifestos/`, `manifesto_uploads/`. Each has `connector.py`, a `client.py`, and `mappers/` that build `ChunkRecord`s. |
 | `ingestion/src/ingestion/feed/` | The parliament feed: builds feed items from the corpus, translates and indexes them (see "The parliament feed"). |
+| `ingestion/src/ingestion/procedures/` | Bundestag procedures: DIP sync, Drucksache text, links on votes/speeches/feed items, coverage report (`make run-procedures`, `make procedures-report`). |
 | `ingestion/tests/` | pytest suite for the corpus layer (runner, schema, connectors). |
-| `evals/` | Offline evaluations (uv workspace member `wahlchat-evals`): the feed eval (`make eval-feed`) and its gold set in `evals/data/feed_eval/`. Not part of any image. |
+| `evals/` | Offline evaluations (uv workspace member `wahlchat-evals`): the feed eval (`make eval-feed`) and its gold set in `evals/data/feed_eval/`; the Drucksache retrieval comparison (`make eval-procedure-documents`). Not part of any image. |
 | `ingestion/data/` | Connector inputs: `manifesto_uploads/{env}.txt` manifests; MdB-Stammdaten XML (gitignored, fetched on demand). |
 | `ai-backend/src/models/` | Pydantic DTOs and domain models for the chat API. |
 | `ai-backend/tests/` | pytest suite for the chat service and retrieval (Qdrant/embeddings mocked in `conftest.py`). |

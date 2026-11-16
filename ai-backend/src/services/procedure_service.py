@@ -156,7 +156,7 @@ async def asearch_procedures(
         _client=_client,
         _embed_fn=_embed_fn,
     )
-    scored: list[tuple[dict, float]] = list(hits)  # type: ignore[arg-type]
+    scored = [hit for hit in hits if isinstance(hit, tuple)]
     ids = [vid for payload, _ in scored for vid in procedure_ids_of(payload)[:1]]
     records = {r.vorgang_id: r for r in await aget_procedures(ids, _db=_db)}
     out: list[tuple[ProcedureSummary, float]] = []
@@ -189,17 +189,19 @@ async def asearch_procedure_documents(
         "_embed_fn": _embed_fn,
     }
     if strategy == "S2":
-        return list(await retrieve(query, limit=limit, **common))  # type: ignore[arg-type]
-    overview = list(await retrieve(query, limit=limit, doc_section="overview", **common))
+        return _payloads(await retrieve(query, limit=limit, **common))
+    overview = _payloads(await retrieve(query, limit=limit, doc_section="overview", **common))
     if strategy == "S1":
-        return overview  # type: ignore[return-value]
-    target = vorgang_id or next(
-        (vid for p in overview for vid in procedure_ids_of(p)), None  # type: ignore[union-attr]
-    )
+        return overview
+    target = vorgang_id or next((vid for p in overview for vid in procedure_ids_of(p)), None)
     if target is None:
-        return overview  # type: ignore[return-value]
+        return overview
     body_common = {**common, "vorgang_id": target}
-    body = list(await retrieve(query, limit=limit, doc_section="body", **body_common))
+    body = _payloads(await retrieve(query, limit=limit, doc_section="body", **body_common))
     # Half the slots for the overview, the rest for the drill-down.
     keep = max(1, limit // 2)
-    return [*overview[:keep], *body[: limit - keep]]  # type: ignore[list-item]
+    return [*overview[:keep], *body[: limit - keep]]
+
+
+def _payloads(hits: Any) -> list[dict[str, Any]]:
+    return [hit for hit in hits if isinstance(hit, dict)]

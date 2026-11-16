@@ -343,8 +343,8 @@ def attach_source_facts(
                 item = item.model_copy(update={"vote": vote})
                 changed.add(item.id)
         if procedures is not None:
-            agenda = agendas.get(item.id)
-            speech_links = [s.vorgang_ids for s in agenda.speeches] if agenda else []
+            speeches = agendas[item.id].speeches if item.id in agendas else []
+            speech_links = [s.vorgang_ids for s in speeches]
             ids, summaries = procedures(item, speech_links)
             if ids != item.procedure_ids or summaries != item.procedures:
                 item = item.model_copy(update={"procedure_ids": ids, "procedures": summaries})
