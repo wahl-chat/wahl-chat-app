@@ -1,0 +1,17 @@
+[
+  {"id": "law-1", "group": "law", "question": "Was ändert das Haushaltsbegleitgesetz 2027?", "vorgang_ids": ["338366"]},
+  {"id": "law-2", "group": "law", "question": "Was steht im Gesetz zur Reform des Nachrichtendienstrechts?", "vorgang_ids": ["338341"]},
+  {"id": "law-3", "group": "law", "question": "Welche Ausnahmen von der Schuldenbremse hat die Grundgesetzänderung 2025 eingeführt?", "vorgang_ids": ["320784"]},
+  {"id": "law-4", "group": "law", "question": "Was fordert die Linke im Antrag „Femizide in Deutschland beenden“?", "vorgang_ids": ["341758"]},
+  {"id": "law-5", "group": "law", "question": "Was hat der Haushaltsausschuss am Haushaltsbegleitgesetz 2027 geändert?", "vorgang_ids": ["338366"]},
+  {"id": "pos-1", "group": "position", "question": "Wie steht die AfD zur Reform des Nachrichtendienstrechts?", "vorgang_ids": ["338341"]},
+  {"id": "pos-2", "group": "position", "question": "Was sagen die Grünen zum Bundeshaushalt 2027?", "vorgang_ids": ["338317"]},
+  {"id": "pos-3", "group": "position", "question": "Warum hat die SPD für die Lockerung der Schuldenbremse gestimmt?", "vorgang_ids": ["320784"]},
+  {"id": "pos-4", "group": "position", "question": "Welche Parteien wollen die Wehrpflicht zurück, und was sieht das Wehrdienstgesetz vor?", "vorgang_ids": ["325558"]},
+  {"id": "time-1", "group": "timeline", "question": "Wie ist das Haushaltsbegleitgesetz 2027 bisher im Bundestag beraten worden?", "vorgang_ids": ["338366"]},
+  {"id": "time-2", "group": "timeline", "question": "Wann und wie wurde über die Reform des Nachrichtendienstrechts abgestimmt?", "vorgang_ids": ["338341"]},
+  {"id": "gen-1", "group": "general", "question": "Was ist die Position der CDU zur Migration?", "vorgang_ids": []},
+  {"id": "gen-2", "group": "general", "question": "Wie stehen die Parteien zum Mindestlohn?", "vorgang_ids": []},
+  {"id": "gen-3", "group": "general", "question": "Was sagt die Linke zu Mieten?", "vorgang_ids": []},
+  {"id": "gen-4", "group": "general", "question": "Was plant die Bundesregierung beim Klimaschutz?", "vorgang_ids": []}
+]

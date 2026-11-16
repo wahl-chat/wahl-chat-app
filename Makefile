@@ -9,7 +9,7 @@
         collect-speeches fetch-mdb-stammdaten \
         update-speeches speeches-stats export-prod-slice \
         build-feed setup-feed-collection backfill-feed eval-feed \
-        run-procedures procedures-report
+        run-procedures procedures-report eval-procedure-documents
 
 # --- Install dependencies ---
 
@@ -344,6 +344,13 @@ backfill-feed:
 #   make eval-feed ARGS="--make-gold"   # once: draft gold positions to check by hand
 eval-feed:
 	cd evals && uv run python -m wahlchat_evals.feed $(ARGS)
+
+# Drucksache text in answers: S0 (today) vs S1/S2/S3 on a fixed question set,
+# answers side by side for a person to judge. Needs procedures and Drucksachen
+# in the local store (make run-procedures ARGS="--drucksachen full").
+#   make eval-procedure-documents ARGS="--out /tmp/procedure-documents.md"
+eval-procedure-documents:
+	cd evals && $(QDRANT_ENV) uv run python -m wahlchat_evals.procedure_documents $(ARGS)
 
 # Uploaded manifestos: party PDFs supplied directly, for elections with no AW
 # coverage. Metadata comes from the object path + Firestore seed fixtures.
