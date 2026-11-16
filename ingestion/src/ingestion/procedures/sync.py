@@ -186,5 +186,5 @@ def run_sync(
         else:
             new_state["dip_updated_through"] = started.isoformat()
         new_state["last_run_at"] = started.isoformat()
-        store.set_sync_state(new_state)
+        store.set_sync_state({**state, **new_state})
     return report

@@ -61,6 +61,7 @@ from ingestion.feed.builder import (
 from ingestion.feed.calendar import FRESH_FOR, build_calendar
 from ingestion.feed.card_video import choose_card_video
 from ingestion.feed.documents import PollDocuments, poll_documents
+from ingestion.procedures.feed_links import ProcedureFacts, procedure_facts
 from ingestion.feed.index import FEED_COLLECTION_NAME, IndexReport, index_items
 from ingestion.feed.items import BuildNeed, assemble_edition, build_needed
 from ingestion.feed.models import (
@@ -298,6 +299,7 @@ def attach_source_facts(
     items: list[FeedItem],
     plan: DayPlan,
     lookup_poll: Optional[PollDocuments],
+    procedures: Optional[ProcedureFacts] = None,
 ) -> tuple[list[FeedItem], set[str]]:
     """Give each item the facts read from its source: a debate its
     Drucksachen, interjections and who its speakers are, a vote its
@@ -305,7 +307,9 @@ def attach_source_facts(
     and the ids that changed. Facts from the source, not the model: a stored
     item gets them without being rebuilt, and its texts and translation stay
     as they are. A debate follows this run's protocol, corrections included;
-    a vote is looked up until a lookup answers.
+    a vote is looked up until a lookup answers. Procedures follow the
+    Drucksachen (or the vote's own link) on every run, so a moved procedure
+    shows its new stage.
     """
     agendas = {u.item_id: u.agenda for u in plan.debates}
     out: list[FeedItem] = []
@@ -337,6 +341,13 @@ def attach_source_facts(
             if found is not None:
                 vote = item.vote.model_copy(update={"drucksachen": found})
                 item = item.model_copy(update={"vote": vote})
+                changed.add(item.id)
+        if procedures is not None:
+            agenda = agendas.get(item.id)
+            speech_links = [s.vorgang_ids for s in agenda.speeches] if agenda else []
+            ids, summaries = procedures(item, speech_links)
+            if ids != item.procedure_ids or summaries != item.procedures:
+                item = item.model_copy(update={"procedure_ids": ids, "procedures": summaries})
                 changed.add(item.id)
         out.append(item)
     return out, changed
@@ -384,6 +395,7 @@ def plan_day(
     out_of_time: Callable[[], bool],
     now: datetime,
     lookup_poll: Optional[PollDocuments] = None,
+    procedures: Optional[ProcedureFacts] = None,
 ) -> Optional[DayBuild]:
     """Generate what changed in one day and assemble its edition; None when
     the day is unchanged and fully translated."""
@@ -428,7 +440,7 @@ def plan_day(
         item = built.get(item_id) or stored.get(item_id)
         if item is not None and item.status == "published":
             listed.append(item)
-    listed, documented = attach_source_facts(listed, plan, lookup_poll)
+    listed, documented = attach_source_facts(listed, plan, lookup_poll, procedures)
     listed, filmed = attach_card_videos(listed)
     edition, ranked = assemble_edition(
         parliament, plan.edition_id, plan.day, plan.protocols, listed, now
@@ -475,6 +487,7 @@ def build_for_parliament(
     out_of_time: Callable[[], bool] = lambda: False,
     now: Optional[datetime] = None,
     lookup_poll: Optional[PollDocuments] = None,
+    procedures: Optional[ProcedureFacts] = None,
 ) -> ParliamentRun:
     """Build the window's days newest first, publishing each one as it is built.
 
@@ -511,6 +524,7 @@ def build_for_parliament(
             out_of_time=out_of_time,
             now=now or datetime.now(timezone.utc),
             lookup_poll=lookup_poll,
+            procedures=procedures if parliament.id == "bundestag" else None,
         )
         if day is None:
             run.unchanged += 1
@@ -771,6 +785,7 @@ def build_and_publish(
     index_to = qdrant if index and db is not None else None
     embed = _embeddings() if index_to is not None else None
     lookup_poll = poll_documents(AWClient())
+    procedures = procedure_facts(db, qdrant, COLLECTION_NAME) if db is not None else None
     glossary = read_glossary(db)
     runs: list[tuple[ParliamentRun, Published]] = []
     for parliament in parliaments:
@@ -808,6 +823,7 @@ def build_and_publish(
             publish_day=publish_day,
             out_of_time=out_of_time,
             lookup_poll=lookup_poll,
+            procedures=procedures,
         )
         run.failed = builder.failed[failed_before:]
         runs.append((run, published))

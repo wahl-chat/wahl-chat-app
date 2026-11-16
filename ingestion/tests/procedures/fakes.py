@@ -117,6 +117,34 @@ class FakeQdrant:
                 self.points[pid].update(copy.deepcopy(payload))
 
 
+class _Hit:
+    def __init__(self, value: Any, count: int) -> None:
+        self.value, self.count = value, count
+
+
+def _facet(self: "FakeQdrant", collection_name: str, key: str, facet_filter=None, limit: int = 10,
+           exact: bool = True):
+    from collections import Counter
+
+    counts: Counter[Any] = Counter()
+    for pid, payload in self.points.items():
+        if matches(facet_filter, pid, payload):
+            value = _get(payload, key)
+            for v in value if isinstance(value, list) else [value]:
+                if v is not None:
+                    counts[v] += 1
+    return type("Facet", (), {"hits": [_Hit(v, n) for v, n in counts.most_common(limit)]})()
+
+
+def _retrieve(self: "FakeQdrant", collection_name: str, ids: list[Any], with_payload: Any = True,
+              with_vectors: bool = False):
+    return [_Point(str(i), copy.deepcopy(self.points[str(i)])) for i in ids if str(i) in self.points]
+
+
+FakeQdrant.facet = _facet  # type: ignore[attr-defined]
+FakeQdrant.retrieve = _retrieve  # type: ignore[attr-defined]
+
+
 class FakeEmbed:
     def __init__(self, fail: bool = False) -> None:
         self.calls: list[int] = []
