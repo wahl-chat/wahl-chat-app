@@ -12,6 +12,10 @@ import type { GroupedMessage } from '@/lib/stores/chat-store.types';
 import type { WahlSwiperResultHistory } from '@/lib/wahl-swiper/wahl-swiper.types';
 import type { Timestamp } from 'firebase/firestore';
 
+/** What a general chat is about: a feed item or a vote. Sent with every
+ * turn, so the backend resolves it again for follow-ups. */
+export type ChatAnchor = { feed_item_id: string } | { poll_id: number };
+
 export type ChatSession = {
   id: string;
   user_id: string;
@@ -31,6 +35,7 @@ export type ChatSession = {
   tenant_id?: string;
   context_id?: string;
   visit_id?: string;
+  anchor?: ChatAnchor;
 };
 
 export type PageVisit = {
@@ -203,6 +208,7 @@ export type DigestVote = {
   parties: DigestVoteParty[];
   /** Absent on digests built before the feed's chat handoff. */
   suggested_questions?: string[];
+  suggested_answers?: (SuggestedAnswer | null)[];
   /** The `FeedItem` it came from; absent on local previews. */
   item_id?: string;
   /** The Drucksachen the poll was about, `"21/6130"`; absent until known. */
@@ -324,6 +330,7 @@ export type DigestSessionSection = {
   /** Fraktion of the debate's first speaker. */
   opened_by?: string | null;
   suggested_questions?: string[];
+  suggested_answers?: (SuggestedAnswer | null)[];
   /** The `FeedItem` it came from; absent on local previews. */
   item_id?: string;
   /** The Drucksachen its agenda item deals with; absent until known. */
@@ -378,12 +385,35 @@ export type GlossaryEntry = {
   sources: GlossarySource[];
 };
 
+/** A source of a precomputed answer, with the chat's source fields. */
+export type AnswerSource = {
+  source: string;
+  url?: string | null;
+  page?: number | null;
+  source_type?:
+    | 'party_manifesto'
+    | 'vote_record'
+    | 'parliamentary_speech'
+    | null;
+  party_id?: string | null;
+  snippet?: string | null;
+  video_url?: string | null;
+  pdf_url?: string | null;
+  document_publish_date?: string | null;
+};
+
+/** The answer to `suggested_questions[i]`; `[n]` cites `sources[n - 1]`. */
+export type SuggestedAnswer = { text: string; sources: AnswerSource[] };
+
 export type LocalizedContent = {
   headline: string;
   teaser: string | null;
   key_points: string[];
   positions: LocalizedPosition[];
   suggested_questions: string[];
+  /** Aligned with `suggested_questions` by index, `null` for a question
+   * without an answer; absent or empty when none has one. */
+  suggested_answers?: (SuggestedAnswer | null)[];
   /** Other locales only: the verbatim German quote stays in `debate`. */
   quote_translation: string | null;
   origin: 'generated' | 'translated';
@@ -416,6 +446,8 @@ export type DebateFacts = {
   interjections?: number | null;
   key_point_sources?: { sources: SpeechSource[] }[];
   card_video?: CardVideo | null;
+  /** The corpus ids of the debate's speeches; absent before feed v7. */
+  speech_ids?: string[];
 };
 
 export type VoteFacts = {

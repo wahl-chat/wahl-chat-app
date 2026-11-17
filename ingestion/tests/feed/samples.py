@@ -11,6 +11,7 @@ import re
 from datetime import date, datetime, timezone
 from typing import Any, Callable, Optional
 
+from ingestion.feed.answers import AnswerBatch, AnswerDraft
 from ingestion.feed.builder import FeedBuilder, build_day, plan_days
 from ingestion.feed.models import FeedItem
 from ingestion.feed.parliaments import PARLIAMENTS, PartyDisplay
@@ -163,7 +164,11 @@ class FakeLLM:
     out of the retry too; ``reject`` makes the check refuse a sentence that
     contains it; ``fail`` makes calls for those schemas raise. Bullets cite
     the first speech and positions their Fraktion's first, unless
-    ``key_point_sources`` / ``position_sources`` name others.
+    ``key_point_sources`` / ``position_sources`` name others. Each question
+    is answered citing source [1], unless ``answers`` gives the text per
+    question id ("F1"); a question it maps to None is left unanswered. A
+    retry (a prompt naming a rejected reply) takes ``retry_answers`` first.
+    ``fail_first`` makes only the first call for those schemas raise.
     """
 
     def __init__(
@@ -178,6 +183,9 @@ class FakeLLM:
         key_points: Optional[list[str]] = None,
         key_point_sources: Optional[list[list[str]]] = None,
         position_sources: Optional[dict[str, list[str]]] = None,
+        answers: Optional[dict[str, Optional[str]]] = None,
+        retry_answers: Optional[dict[str, Optional[str]]] = None,
+        fail_first: tuple[type, ...] = (),
     ) -> None:
         self.omit = omit
         self.retry_omit = retry_omit
@@ -188,6 +196,9 @@ class FakeLLM:
         self.key_points = key_points
         self.key_point_sources = key_point_sources
         self.position_sources = position_sources
+        self.answers = answers or {}
+        self.retry_answers = retry_answers or {}
+        self.fail_first = fail_first
         self.calls: list[type] = []
         self.prompts: list[str] = []
 
@@ -195,7 +206,9 @@ class FakeLLM:
         self.calls.append(schema)
         prompt = messages[0].content
         self.prompts.append(prompt)
-        if schema in self.fail:
+        if schema in self.fail or (
+            schema in self.fail_first and self.calls.count(schema) == 1
+        ):
             raise RuntimeError("quota")
         return self._answer(prompt, schema), "fake-model"
 
@@ -285,6 +298,18 @@ class FakeLLM:
                         reason="geprüft",
                     )
                     for ref, _party, sentence in _CHECK_RE.findall(prompt)
+                ]
+            )
+        if schema is AnswerBatch:
+            refs = re.findall(r"^\[(F\d+)\]", prompt, re.MULTILINE)
+            retry = "was rejected" in prompt
+            answers = self.answers | self.retry_answers if retry else self.answers
+            texts = {ref: answers.get(ref, f"Antwort {ref} [1].") for ref in refs}
+            return AnswerBatch(
+                answers=[
+                    AnswerDraft(ref=ref, text=text)
+                    for ref, text in texts.items()
+                    if text is not None
                 ]
             )
         if schema is TermExtractionBatch:

@@ -1,4 +1,5 @@
 import type {
+  ChatAnchor,
   ChatSession,
   StudyParticipant,
   Tenant,
@@ -40,9 +41,19 @@ export type Source = {
   snippet?: string;
 };
 
+/** One `tool_status` line of the general chat's agent. */
+export type ToolStatus = {
+  call_id: string;
+  tool: string;
+  label: string;
+  state: 'running' | 'done';
+};
+
 export type CurrentStreamingMessages = {
   id: string;
   messages: Record<string, StreamingMessage>;
+  /** The agent's tool calls for this turn, in order of their first event. */
+  tool_status?: ToolStatus[];
   chat_title?: string;
   quick_replies?: string[];
   streaming_complete?: boolean;
@@ -101,6 +112,8 @@ export type MessageItem = {
   created_at?: Timestamp;
   voting_behavior?: VotingBehavior;
   pledge_tracker?: PledgeTrackerSuggestions;
+  /** General chat, user messages: the parties in focus when it was sent. */
+  focus_party_ids?: string[];
 };
 
 export type CurrentStreamedVotingBehavior = {
@@ -137,6 +150,8 @@ export type ChatStoreState = {
   // preliminary chat session id should be the same as the chat session id.
   localPreliminaryChatSessionId?: string;
   partyIds: Set<string>;
+  /** The general chat's anchor; sent with every turn. */
+  anchor?: ChatAnchor;
   preSelectedParties?: PartyDetails[];
   messages: GroupedMessage[];
   input: string;
@@ -241,6 +256,7 @@ export type ChatStoreActions = {
     prefilledQuestion,
     userId,
     tenant,
+    anchor,
   }: {
     chatSession?: ChatSession;
     messages?: GroupedMessage[];
@@ -255,6 +271,8 @@ export type ChatStoreActions = {
     prefilledQuestion?: string;
     userId: string;
     tenant?: Tenant;
+    /** From the URL of a new general chat; a stored session brings its own. */
+    anchor?: ChatAnchor;
   }) => void;
   generateProConPerspective: (
     partyId: string,
@@ -276,6 +294,7 @@ export type ChatStoreActions = {
     partyId: string,
     streamingMessage: PartyResponseChunkReadyPayload,
   ) => void;
+  updateToolStatus: (sessionId: string, status: ToolStatus) => void;
   updateQuickRepliesAndTitleForCurrentStreamingMessage: (
     sessionId: string,
     quickReplies: string[],
@@ -314,6 +333,8 @@ export type ChatStoreActions = {
     message: string,
   ) => void;
   setPartyIds: (partyIds: string[]) => void;
+  /** Replaces the general chat's anchor; earlier messages stay. */
+  setAnchor: (anchor: ChatAnchor) => void;
   setProlificMetadata: (metadata: ProlificMetadata) => void;
   setProlificConfig: (config: { minInteractions: number }) => void;
   setProlificDisclaimerDismissed: (dismissed: boolean) => void;

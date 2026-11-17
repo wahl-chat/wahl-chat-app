@@ -8,14 +8,16 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
+import { DEFAULT_CONTEXT_ID, GENERAL_CONTEXT_ID } from '@/lib/constants';
 import { IS_EMBEDDED } from '@/lib/utils';
 import { HelpCircleIcon, NewspaperIcon } from 'lucide-react';
 import Link from 'next/link';
 import ChatEmbedHeader from './chat-embed-header';
+import ChatGeneralBackLink from './chat-general-back-link';
 import ChatHeaderTitleDescription from './chat-header-title-description';
 import ChatShareButton from './chat-share-button';
 import CreateNewChatDropdownButton from './create-new-chat-dropdown-button';
+import NewGeneralChatButton from './new-general-chat-button';
 
 type Props = {
   contextId?: string;
@@ -25,6 +27,9 @@ async function ChatHeader({ contextId = DEFAULT_CONTEXT_ID }: Props) {
   if (IS_EMBEDDED) {
     return <ChatEmbedHeader />;
   }
+
+  // The general chat spans every context, so it has no context to switch.
+  const isGeneral = contextId === GENERAL_CONTEXT_ID;
 
   return (
     <header className="relative z-10 flex min-h-chat-header w-full flex-col">
@@ -36,12 +41,16 @@ async function ChatHeader({ contextId = DEFAULT_CONTEXT_ID }: Props) {
             </TooltipTrigger>
             <TooltipContent>Menü öffnen</TooltipContent>
           </Tooltip>
-          <ChatHeaderTitleDescription />
+          {/* The general chat's partyIds are its focus, shown above the input. */}
+          <ChatHeaderTitleDescription showPartyPopover={!isGeneral} />
         </div>
-        <div className="hidden items-center gap-2 md:flex">
-          <Separator orientation="vertical" />
-          <ChatContextSelector />
-        </div>
+        {!isGeneral && (
+          <div className="hidden items-center gap-2 md:flex">
+            <Separator orientation="vertical" />
+            <ChatGeneralBackLink />
+            <ChatContextSelector />
+          </div>
+        )}
         <div className="flex-1" />
         <div className="flex items-center gap-1">
           {/* The way back to the parliament feed the Chat link came from. */}
@@ -62,12 +71,21 @@ async function ChatHeader({ contextId = DEFAULT_CONTEXT_ID }: Props) {
             </Button>
           </HowToDialog>
           <ChatShareButton contextId={contextId} />
-          <CreateNewChatDropdownButton contextId={contextId} />
+          {isGeneral ? (
+            <NewGeneralChatButton />
+          ) : (
+            <CreateNewChatDropdownButton contextId={contextId} />
+          )}
         </div>
       </div>
-      <div className="flex h-chat-header w-full items-center border-b border-b-muted bg-background px-4 md:hidden">
-        <ChatContextSelector />
-      </div>
+      {!isGeneral && (
+        <div className="flex h-chat-header w-full items-center gap-2 border-b border-b-muted bg-background px-4 md:hidden">
+          <ChatGeneralBackLink />
+          <div className="min-w-0 overflow-hidden">
+            <ChatContextSelector />
+          </div>
+        </div>
+      )}
     </header>
   );
 }

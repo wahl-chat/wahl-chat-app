@@ -1,5 +1,6 @@
 import { getSseChatAppend } from '@/components/providers/sse-chat-provider';
-import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
+import { focusStamp } from '@/lib/chat-focus';
+import { DEFAULT_CONTEXT_ID, GENERAL_CONTEXT_ID } from '@/lib/constants';
 import {
   addUserMessageToChatSession,
   createChatSession,
@@ -22,6 +23,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
       contextId,
       localPreliminaryChatSessionId,
       partyIds,
+      anchor,
       messages: currentMessages,
       prolificMetadata,
       incrementProlificMessageCount,
@@ -69,6 +71,9 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
       });
     }
 
+    const focus =
+      safeContextId === GENERAL_CONTEXT_ID ? focusStamp(partyIds) : {};
+
     let messages = currentMessages;
     const lastMessage = messages[messages.length - 1];
     const isMessageResend =
@@ -88,6 +93,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
               sources: [],
               role: 'user',
               created_at: Timestamp.now(),
+              ...focus,
             },
           ],
           quick_replies: [],
@@ -123,6 +129,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
           // Stamped from the arm alone: declined users have one too, and the
           // cohort comparison is only as wide as the sessions carrying it.
           studyCohort,
+          anchor,
         );
 
         if (typeof window !== 'undefined') {
@@ -131,7 +138,8 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
           // Check if we're on a session page (context-specific or legacy)
           if (
             url.pathname.endsWith('/session') ||
-            url.pathname === '/session'
+            url.pathname === '/session' ||
+            url.pathname === '/chat'
           ) {
             url.searchParams.set('session_id', safeSessionId);
             window.history.replaceState({}, '', url);
@@ -140,7 +148,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
       }
 
       if (!isMessageResend) {
-        await addUserMessageToChatSession(safeSessionId, message);
+        await addUserMessageToChatSession(safeSessionId, message, focus);
       }
 
       // Build chat_history for the stateless SSE request
@@ -176,6 +184,9 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
           context_id: safeContextId,
           party_ids: Array.from(partyIds),
           chat_history: chatHistory,
+          ...(anchor ? { anchor } : {}),
+          // The web UI is German only.
+          language: 'de',
         },
       );
 

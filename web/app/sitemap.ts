@@ -1,4 +1,4 @@
-import { isUpcomingElection } from '@/lib/elections';
+import { electionContexts, isUpcomingElection } from '@/lib/elections';
 import { getContexts } from '@/lib/firebase/firebase-server';
 import { BASE_URL } from '@/lib/seo';
 import type { MetadataRoute } from 'next';
@@ -12,7 +12,7 @@ export const revalidate = 3600;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date().toISOString();
 
-  const contexts = (await getContexts()) ?? [];
+  const contexts = electionContexts((await getContexts()) ?? []);
   if (contexts.length === 0) {
     // Intentional fallback: if no contexts are available, the sitemap only includes static pages.
     console.warn(

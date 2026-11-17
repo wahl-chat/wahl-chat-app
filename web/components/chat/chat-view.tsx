@@ -7,8 +7,11 @@ import {
   getCurrentUser,
   getSystemStatus,
 } from '@/lib/firebase/firebase-server';
+import type { ChatAnchor } from '@/lib/firebase/firebase.types';
 import { Suspense } from 'react';
+import ChatAnchorCard from './chat-anchor-card';
 import ChatDynamicChatInput from './chat-dynamic-chat-input';
+import ChatLiveElectionCard from './chat-live-election-card';
 import ChatScrollDownIndicator from './chat-scroll-down-indicator';
 import ChatViewSsr from './chat-view-ssr';
 
@@ -18,6 +21,7 @@ type Props = {
   initialQuestion?: string;
   prefilledQuestion?: string;
   contextId?: string;
+  anchor?: ChatAnchor;
 };
 
 async function ChatView({
@@ -26,12 +30,14 @@ async function ChatView({
   initialQuestion,
   prefilledQuestion,
   contextId = DEFAULT_CONTEXT_ID,
+  anchor,
 }: Props) {
   const systemStatus = await getSystemStatus();
   const user = await getCurrentUser();
 
   return (
     <section className="relative mx-auto flex size-full max-w-2xl flex-col overflow-hidden">
+      <ChatAnchorCard />
       <Suspense
         fallback={
           <div className="flex grow flex-col items-center justify-center gap-2">
@@ -48,6 +54,7 @@ async function ChatView({
           initialQuestion={initialQuestion}
           prefilledQuestion={prefilledQuestion}
           contextId={contextId}
+          anchor={anchor}
         />
       </Suspense>
 
@@ -55,6 +62,7 @@ async function ChatView({
         <ChatProlificWrapper />
         <ChatStudyWrapper />
         <ChatScrollDownIndicator />
+        <ChatLiveElectionCard />
         <ChatDynamicChatInput
           initialSystemStatus={systemStatus}
           hasValidServerUser={!user?.isAnonymous}

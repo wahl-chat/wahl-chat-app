@@ -31,6 +31,12 @@ export function itemShareUrl(
   return url.toString();
 }
 
+/** The feed opened on this item, as a site-relative link. */
+export function feedItemHref(key: string, region: string): string {
+  const url = new URL(itemShareUrl('https://wahl.chat/', key, region));
+  return `${url.pathname}${url.search}`;
+}
+
 export async function shareItem(item: DetailItem): Promise<void> {
   const url = itemShareUrl(window.location.href, item.key, item.digest.region);
   try {

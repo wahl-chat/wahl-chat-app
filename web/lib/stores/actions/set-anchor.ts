@@ -1,0 +1,30 @@
+import { updateChatSession } from '@/lib/firebase/firebase';
+import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
+
+export const setAnchor: ChatStoreActionHandlerFor<'setAnchor'> =
+  (get, set) => async (anchor) => {
+    set({ anchor });
+
+    const { chatSessionId, messages } = get();
+    if (!chatSessionId || messages.length === 0) {
+      // Until its first message a new chat's anchor lives in its URL.
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('feed_item');
+        url.searchParams.delete('poll_id');
+        if ('feed_item_id' in anchor) {
+          url.searchParams.set('feed_item', anchor.feed_item_id);
+        } else {
+          url.searchParams.set('poll_id', String(anchor.poll_id));
+        }
+        window.history.replaceState(window.history.state, '', url);
+      }
+      return;
+    }
+
+    try {
+      await updateChatSession(chatSessionId, { anchor });
+    } catch (error) {
+      console.error('Failed to store the chat anchor', error);
+    }
+  };

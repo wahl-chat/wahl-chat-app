@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import type { DailyDigest } from '@/lib/firebase/firebase.types';
-import { contextualQuestion, feedChatHref } from './chat-handoff';
+import { feedChatHref } from './chat-handoff';
 import { sectionItems, voteItems } from './items';
 
 const DIGEST: DailyDigest = {
@@ -18,6 +18,7 @@ const DIGEST: DailyDigest = {
       topics: ['health_care'],
       outcome: 'angenommen',
       citation_url: 'https://www.abgeordnetenwatch.de/poll/7',
+      item_id: 'bundestag_2026-07-10_v7',
       parties: [
         {
           party_id: 'afd',
@@ -59,27 +60,39 @@ const DIGEST: DailyDigest = {
         agenda_items: [],
         citations: [],
         video_url: null,
+        item_id: 'bundestag_2026-07-10_d90-top17',
       },
     ],
   },
 };
 
 describe('feedChatHref', () => {
-  it('opens the parliament’s chat context with the vote’s parties', () => {
+  it('opens the general chat with the question as typed and the vote as anchor', () => {
     const href = feedChatHref(voteItems(DIGEST)[0], 'Wer war dagegen?');
     const url = new URL(href, 'https://wahl.chat');
-    expect(url.pathname).toBe('/bundestagswahl-2025/session');
-    expect(url.searchParams.getAll('party_id')).toEqual(['spd', 'afd']);
-    expect(url.searchParams.get('q')).toBe(
-      'Zur Abstimmung „Stabile Kassenbeiträge“ im Bundestag am 10.07.2026 (Plenarprotokoll 21/90): Wer war dagegen?',
+    expect(url.pathname).toBe('/chat');
+    expect(url.searchParams.get('q')).toBe('Wer war dagegen?');
+    expect(url.searchParams.get('feed_item')).toBe('bundestag_2026-07-10_v7');
+    expect(url.searchParams.has('party_id')).toBe(false);
+  });
+
+  it('anchors a debate on its item', () => {
+    const url = new URL(
+      feedChatHref(sectionItems(DIGEST)[0], 'Was kostet das?'),
+      'https://wahl.chat',
+    );
+    expect(url.searchParams.get('q')).toBe('Was kostet das?');
+    expect(url.searchParams.get('feed_item')).toBe(
+      'bundestag_2026-07-10_d90-top17',
     );
   });
 
-  it('cites the Plenarprotokoll for a debate', () => {
-    expect(
-      contextualQuestion(sectionItems(DIGEST)[0], ' Was kostet das? '),
-    ).toBe(
-      'Zur Debatte „Haushalt 2027“ im Bundestag am 10.07.2026 (Plenarprotokoll 21/90): Was kostet das?',
-    );
+  it('sends a local preview without an anchor', () => {
+    const [vote] = voteItems({
+      ...DIGEST,
+      votes: [{ ...DIGEST.votes[0], item_id: undefined }],
+    });
+    const url = new URL(feedChatHref(vote, 'Warum?'), 'https://wahl.chat');
+    expect(url.searchParams.has('feed_item')).toBe(false);
   });
 });

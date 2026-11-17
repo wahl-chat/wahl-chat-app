@@ -23,6 +23,7 @@ import { mergeStreamingChunkPayloadForMessage } from './actions/merge-streaming-
 import { newChat } from './actions/new-chat';
 import { recordStudyEvent } from './actions/record-study-event';
 import { selectRespondingParties } from './actions/select-responding-parties';
+import { setAnchor } from './actions/set-anchor';
 import { setChatSessionId } from './actions/set-chat-session-id';
 import { setChatSessionIsPublic } from './actions/set-chat-session-is-public';
 import { setInput } from './actions/set-input';
@@ -35,6 +36,7 @@ import {
 } from './actions/start-timeout-for-streaming-messages';
 import { streamingMessageSourcesReady } from './actions/streaming-message-sources-ready';
 import { updateQuickRepliesAndTitleForCurrentStreamingMessage } from './actions/update-quick-replies-and-title-for-current-streaming-message';
+import { updateToolStatus } from './actions/update-tool-status';
 import type { ChatStore, ChatStoreState } from './chat-store.types';
 
 export const SURVEY_BANNER_MIN_MESSAGE_COUNT = 8;
@@ -46,6 +48,7 @@ const defaultState: ChatStoreState = {
   contextId: undefined,
   localPreliminaryChatSessionId: undefined,
   partyIds: new Set(),
+  anchor: undefined,
   messages: [],
   input: '',
   loading: {
@@ -104,6 +107,7 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
         streamingMessageSourcesReady: streamingMessageSourcesReady(get, set),
         mergeStreamingChunkPayloadForMessage:
           mergeStreamingChunkPayloadForMessage(get, set),
+        updateToolStatus: updateToolStatus(get, set),
         updateQuickRepliesAndTitleForCurrentStreamingMessage:
           updateQuickRepliesAndTitleForCurrentStreamingMessage(get, set),
         completeStreamingMessage: completeStreamingMessage(get, set),
@@ -122,6 +126,7 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
         addVotingBehaviorSummaryChunk: addVotingBehaviorSummaryChunk(get, set),
         completeVotingBehavior: completeVotingBehavior(get, set),
         setPartyIds: setPartyIds(get, set),
+        setAnchor: setAnchor(get, set),
         setProlificMetadata: (prolificMetadata) => set({ prolificMetadata }),
         setProlificConfig: ({ minInteractions }) =>
           set({ prolificMinInteractions: minInteractions }),

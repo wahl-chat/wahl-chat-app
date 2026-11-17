@@ -49,6 +49,7 @@ import httpx
 from qdrant_client import QdrantClient
 
 from ingestion.connectors.abgeordnetenwatch.client import AWClient
+from ingestion.feed.answers import needs_answers
 from ingestion.feed.builder import (
     DayPlan,
     DebateUnit,
@@ -56,6 +57,7 @@ from ingestion.feed.builder import (
     VoteUnit,
     build_day,
     plan_days,
+    speech_ids,
     with_speaker_facts,
 )
 from ingestion.feed.calendar import FRESH_FOR, build_calendar
@@ -302,8 +304,8 @@ def attach_source_facts(
     procedures: Optional[ProcedureFacts] = None,
 ) -> tuple[list[FeedItem], set[str]]:
     """Give each item the facts read from its source: a debate its
-    Drucksachen, interjections and who its speakers are, a vote its
-    Drucksachen. Returns the items
+    Drucksachen, interjections, speech ids and who its speakers are, a vote
+    its Drucksachen. Returns the items
     and the ids that changed. Facts from the source, not the model: a stored
     item gets them without being rebuilt, and its texts and translation stay
     as they are. A debate follows this run's protocol, corrections included;
@@ -311,17 +313,21 @@ def attach_source_facts(
     Drucksachen (or the vote's own link) on every run, so a moved procedure
     shows its new stage.
     """
-    agendas = {u.item_id: u.agenda for u in plan.debates}
+    units = {u.item_id: u for u in plan.debates}
     out: list[FeedItem] = []
     changed: set[str] = set()
     for item in items:
-        if item.debate is not None and item.id in agendas:
-            agenda = agendas[item.id]
+        if item.debate is not None and item.id in units:
+            unit = units[item.id]
+            agenda = unit.agenda
+            # Speech ids only for the speeches the stored texts were built from.
+            current = item.input_hash in (unit.input_hash, unit.legacy_input_hash)
             update: dict[str, Any] = {
                 field: found
                 for field, found in (
                     ("drucksachen", agenda.drucksachen),
                     ("interjections", agenda.interjections),
+                    ("speech_ids", speech_ids(agenda) if current else None),
                 )
                 if found is not None and found != getattr(item.debate, field)
             }
@@ -330,7 +336,10 @@ def attach_source_facts(
                 update["parties"] = parties
             if update:
                 debate = item.debate.model_copy(update=update)
-                item = item.model_copy(update={"debate": debate})
+                item_update: dict[str, Any] = {"debate": debate}
+                if "speech_ids" in update:
+                    item_update["format_version"] = FEED_FORMAT_VERSION
+                item = item.model_copy(update=item_update)
                 changed.add(item.id)
         elif (
             item.vote is not None
@@ -343,7 +352,7 @@ def attach_source_facts(
                 item = item.model_copy(update={"vote": vote})
                 changed.add(item.id)
         if procedures is not None:
-            speeches = agendas[item.id].speeches if item.id in agendas else []
+            speeches = units[item.id].agenda.speeches if item.id in units else []
             speech_links = [s.vorgang_ids for s in speeches]
             ids, summaries = procedures(item, speech_links)
             if ids != item.procedure_ids or summaries != item.procedures:
@@ -412,6 +421,13 @@ def plan_day(
         (u, stored[u.item_id]) for u in plan.debates if need[u.item_id] == "positions"
     ]
     votes = [u for u in plan.votes if need[u.item_id] == "full"]
+    # Stored items that only lack answers; a debate needs its speeches for
+    # them, which only an ordered unit holds.
+    answerable = [u.item_id for u in plan.debates if u.buildable]
+    answerable += [u.item_id for u in plan.votes]
+    answer_only = [
+        stored[i] for i in answerable if need[i] is None and needs_answers(stored[i])
+    ]
     run.deferred += sum(1 for u in debates if not u.buildable)
     built_items = (
         build_day(
@@ -424,10 +440,19 @@ def plan_day(
             now=now,
             out_of_time=out_of_time,
             top_ups=top_ups,
+            answer_only=answer_only,
         )
-        if any(u.buildable for u in [*debates, *(u for u, _ in top_ups)]) or votes
+        if any(u.buildable for u in [*debates, *(u for u, _ in top_ups)])
+        or votes
+        or answer_only
         else []
     )
+    answer_ids = {i.id for i in answer_only}
+    # Stored items with new answers: written, not rebuilt or re-indexed.
+    answered = {
+        i.id: i for i in built_items if i.id in answer_ids and i is not stored[i.id]
+    }
+    built_items = [i for i in built_items if i.id not in answer_ids]
     # Counted before the early return: a vote kept back below leaves the day
     # unchanged, and is still retried next run.
     run.incomplete += sum(1 for i in built_items if build_needed(i, hashes[i.id]))
@@ -437,7 +462,7 @@ def plan_day(
     for item_id in plan.item_ids:
         # A unit that could not be rebuilt keeps its stored version; one never
         # built yet stays out until a run builds it.
-        item = built.get(item_id) or stored.get(item_id)
+        item = built.get(item_id) or answered.get(item_id) or stored.get(item_id)
         if item is not None and item.status == "published":
             listed.append(item)
     listed, documented = attach_source_facts(listed, plan, lookup_poll, procedures)
@@ -449,6 +474,7 @@ def plan_day(
     changed = (
         documented
         | filmed
+        | set(answered)
         | {
             i.id
             for i in ranked
@@ -595,6 +621,29 @@ def backfill_translations(
         if report.translated or report.dropped_stale:
             write_feed(db, [], items)
     return total
+
+
+def backfill_speech_ids(
+    db: Any, qdrant: QdrantClient, parliaments: list[Parliament], days: int
+) -> int:
+    """Give the stored items in the window the facts ``attach_source_facts``
+    reads from their source, speech ids among them; no LLM call. Returns how
+    many items it wrote."""
+    written = 0
+    for parliament in parliaments:
+        sources = load_sources(qdrant, parliament, days)
+        if sources is None:
+            continue
+        stored = {
+            i.id: i for i in read_items_since(db, parliament.id, sources.window[0])
+        }
+        for plan in plan_days(parliament, sources.votes, sources.sitting_days):
+            listed = [stored[i] for i in plan.item_ids if i in stored]
+            items, changed = attach_source_facts(listed, plan, None)
+            if changed:
+                write_feed(db, [], [i for i in items if i.id in changed])
+                written += len(changed)
+    return written
 
 
 def _firestore_client() -> Any:
@@ -895,6 +944,11 @@ def main(argv: Optional[list[str]] = None) -> int:
         help="Only translate stored items in the window whose translation is missing or stale",
     )
     parser.add_argument(
+        "--backfill-speech-ids",
+        action="store_true",
+        help="Only give stored debates in the window their speech ids (no LLM calls)",
+    )
+    parser.add_argument(
         "--allow-remote",
         action="store_true",
         help="Permit writes to non-emulator Firestore when ENV != prod",
@@ -946,6 +1000,16 @@ def main(argv: Optional[list[str]] = None) -> int:
         else None
     )
     try:
+        if args.backfill_speech_ids:
+            if db is None:
+                print(
+                    "--backfill-speech-ids needs Firestore; drop --dry-run.",
+                    file=sys.stderr,
+                )
+                return 2
+            written = backfill_speech_ids(db, qdrant, parliaments, args.days)
+            print(f"items_written={written}")
+            return 0
         if args.translate_backfill:
             if db is None:
                 print(

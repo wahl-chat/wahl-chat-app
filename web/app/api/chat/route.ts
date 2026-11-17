@@ -1,3 +1,4 @@
+import { sanitizeChatAnchor } from '@/lib/chat-anchor';
 import { type NextRequest, NextResponse } from 'next/server';
 
 // Prevent Vercel from truncating long SSE streams.
@@ -33,6 +34,8 @@ type IncomingPayload = {
   context_id?: string;
   party_ids?: string[];
   chat_history?: unknown[];
+  anchor?: unknown;
+  language?: unknown;
 };
 
 export async function POST(request: NextRequest) {
@@ -84,6 +87,8 @@ export async function POST(request: NextRequest) {
     user_message: userMessage,
     party_ids: payload.party_ids,
     chat_history: payload.chat_history ?? [],
+    anchor: sanitizeChatAnchor(payload.anchor),
+    language: payload.language === 'en' ? 'en' : 'de',
   };
 
   // Forward the caller's Firebase ID token when present. Absent when signed out.

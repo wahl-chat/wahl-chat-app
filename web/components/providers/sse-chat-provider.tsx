@@ -1,7 +1,11 @@
 'use client';
 
 import { getAuthHeader } from '@/lib/firebase/firebase';
-import type { PledgeTrackerSuggestions } from '@/lib/stores/chat-store.types';
+import type { ChatAnchor } from '@/lib/firebase/firebase.types';
+import type {
+  PledgeTrackerSuggestions,
+  ToolStatus,
+} from '@/lib/stores/chat-store.types';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useCallback, useEffect } from 'react';
@@ -17,6 +21,8 @@ type AppendBody = {
   context_id: string;
   party_ids: string[];
   chat_history?: unknown[];
+  anchor?: ChatAnchor;
+  language?: 'de' | 'en';
 };
 
 // Expose append globally so store actions can call it without prop-drilling.
@@ -45,6 +51,7 @@ function SseChatProvider({ children }: Props) {
   const streamingMessageSourcesReady = useChatStore(
     (state) => state.streamingMessageSourcesReady,
   );
+  const updateToolStatus = useChatStore((state) => state.updateToolStatus);
   const mergeStreamingChunkPayloadForMessage = useChatStore(
     (state) => state.mergeStreamingChunkPayloadForMessage,
   );
@@ -132,6 +139,13 @@ function SseChatProvider({ children }: Props) {
           ann.party_id as string,
           ann.sources as Parameters<typeof streamingMessageSourcesReady>[2],
         );
+      } else if (type === 'tool_status') {
+        updateToolStatus(ann.session_id as string, {
+          call_id: ann.call_id as string,
+          tool: ann.tool as string,
+          label: ann.label as string,
+          state: ann.state as ToolStatus['state'],
+        });
       } else if (type === 'party_chunk') {
         // V1: 'party_response_chunk_ready' event for secondary parties
         mergeStreamingChunkPayloadForMessage(

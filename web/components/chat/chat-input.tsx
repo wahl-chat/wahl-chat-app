@@ -2,11 +2,14 @@
 
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import { useChatStore } from '@/components/providers/chat-store-provider';
+import { useCurrentContext } from '@/components/providers/context-provider';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ArrowUp } from 'lucide-react';
 import { useCallback } from 'react';
+import ChatFocusChips from './chat-focus-chips';
 import ChatInputAddPartiesButton from './chat-input-add-parties-button';
+import ChatInputGeneralMenu from './chat-input-general-menu';
 import MessageLoadingBorderTrail from './message-loading-border-trail';
 
 function ChatInput() {
@@ -15,6 +18,7 @@ function ChatInput() {
   const setInput = useChatStore((state) => state.setInput);
   const addUserMessage = useChatStore((state) => state.addUserMessage);
   const quickReplies = useChatStore((state) => state.currentQuickReplies);
+  const isGeneral = useCurrentContext({ optional: true })?.type === 'general';
   const loading = useChatStore((state) => {
     const loading = state.loading;
     return loading.general || loading.newMessage || loading.chatSession;
@@ -45,7 +49,7 @@ function ChatInput() {
     handleSubmit(reply);
   };
 
-  return (
+  const form = (
     <form
       onSubmit={handleSubmit}
       className={cn(
@@ -55,10 +59,11 @@ function ChatInput() {
     >
       {quickReplies.length > 0 && (
         <>
-          <ChatInputAddPartiesButton disabled={loading} />
+          {!isGeneral && <ChatInputAddPartiesButton disabled={loading} />}
           <div
             className={cn(
-              'ml-7 flex gap-1 px-2 pt-2 overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+              !isGeneral && 'ml-7',
+              'flex gap-1 px-2 pt-2 overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
               loading && 'opacity-50 z-0',
             )}
           >
@@ -79,8 +84,22 @@ function ChatInput() {
 
       {loading && <MessageLoadingBorderTrail />}
 
+      {isGeneral && (
+        <div
+          className={cn(
+            'absolute left-2 z-40 top-1/2 -translate-y-1/2',
+            quickReplies.length > 0 && 'top-auto bottom-3 translate-y-0',
+          )}
+        >
+          <ChatInputGeneralMenu disabled={loading} />
+        </div>
+      )}
+
       <input
-        className="w-full bg-chat-input py-3 pl-4 pr-11 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed"
+        className={cn(
+          'w-full bg-chat-input py-3 pl-4 pr-11 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed',
+          isGeneral && 'pl-11',
+        )}
         placeholder="Schreibe eine Nachricht..."
         onChange={handleChange}
         value={input}
@@ -98,6 +117,17 @@ function ChatInput() {
         <ArrowUp className="size-4 font-bold" />
       </Button>
     </form>
+  );
+
+  if (!isGeneral) {
+    return form;
+  }
+
+  return (
+    <div className="flex w-full flex-col">
+      <ChatFocusChips disabled={loading} />
+      {form}
+    </div>
   );
 }
 

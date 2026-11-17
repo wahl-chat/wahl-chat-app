@@ -129,6 +129,11 @@ def vote_input_hash(payload: dict, *, legacy: bool = False) -> str:
 def content_hash(content: LocalizedContent) -> str:
     """Hash of the reader-facing text only, not of its provenance."""
     payload = content.model_dump(mode="json", include=set(_HASHED_FIELDS))
+    # Only when there are answers, so the hashes stored before them still hold.
+    if content.suggested_answers:
+        payload["suggested_answers"] = [
+            a.text if a is not None else None for a in content.suggested_answers
+        ]
     return hashlib.sha256(
         json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
     ).hexdigest()

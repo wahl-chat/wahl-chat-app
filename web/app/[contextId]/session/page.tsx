@@ -1,4 +1,5 @@
 import ChatView from '@/components/chat/chat-view';
+import { chatAnchorFromParams } from '@/lib/chat-anchor';
 import {
   getContext,
   getPartiesForContext,
@@ -21,6 +22,9 @@ type Props = {
      * following the link never triggers a generation.
      */
     prefill?: string;
+    /** The general chat's anchor: a feed item or a vote. */
+    feed_item?: string;
+    poll_id?: string;
   }>;
 };
 
@@ -76,8 +80,12 @@ export async function generateMetadata({
 
 async function SessionPage({ params, searchParams }: Props) {
   const { contextId } = await params;
-  const { party_id, q, prefill, session_id } = await searchParams;
-  const parties = await getPartiesForContext(contextId);
+  const { party_id, q, prefill, session_id, feed_item, poll_id } =
+    await searchParams;
+  const [parties, context] = await Promise.all([
+    getPartiesForContext(contextId),
+    getContext(contextId),
+  ]);
 
   if (session_id) {
     redirect(`/${contextId}/session/${session_id}`);
@@ -99,6 +107,11 @@ async function SessionPage({ params, searchParams }: Props) {
       initialQuestion={q}
       prefilledQuestion={prefill}
       contextId={contextId}
+      anchor={
+        context?.type === 'general'
+          ? chatAnchorFromParams({ feed_item, poll_id })
+          : undefined
+      }
     />
   );
 }

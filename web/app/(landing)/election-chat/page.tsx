@@ -18,7 +18,7 @@ import LandingStats from '@/components/landing/landing-stats';
 import ScreenshotWheel from '@/components/landing/screenshot-wheel';
 import ScrollCue from '@/components/landing/scroll-cue';
 import JsonLd from '@/components/seo/json-ld';
-import { splitElectionsByDate } from '@/lib/elections';
+import { electionContexts, splitElectionsByDate } from '@/lib/elections';
 import {
   getContexts,
   getGroupProposedQuestionsForContext,
@@ -83,7 +83,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Landing() {
-  const contexts = await getContexts();
+  const contexts = electionContexts(await getContexts());
   const { upcoming, past } = splitElectionsByDate(contexts);
 
   // Between elections there is nothing upcoming; fall back to the most recent

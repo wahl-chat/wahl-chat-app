@@ -101,7 +101,7 @@ from src.models.dtos import (
     StatusIndicator,
 )
 from wahlchat_common.embeddings import get_embeddings
-from src.models.context import ContextParty
+from src.models.context import Context, ContextParty, ContextType
 from src.models.party import WAHL_CHAT_PARTY
 from src.services.pledge_tracker_service import aretrieve_pledge_tracker_suggestions
 from src.core.prompts import (
@@ -1645,6 +1645,24 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
     # Record wall-clock start time for per-stream budget enforcement.
     _stream_start = time.monotonic()
 
+    # A general (non-election) context is answered by the generic chat agent;
+    # a failed lookup falls through to the election path, which reports it.
+    _prefetched_context: Optional[Context] = None
+    try:
+        _prefetched_context = await aget_context_by_id(body.context_id)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Context lookup failed before routing: {e}")
+    if (
+        _prefetched_context is not None
+        and _prefetched_context.type == ContextType.GENERAL
+    ):
+        # Imported here: the generic chat imports helpers from this module.
+        from src.generic_chat.stream import stream_generic_chat
+
+        async for part in stream_generic_chat(body, request, _prefetched_context):
+            yield part
+        return
+
     message_id = str(uuid.uuid4())
 
     for part in _start_message(message_id):
@@ -1687,7 +1705,11 @@ async def generate_chat_stream(  # type: ignore[no-untyped-def]
         all_parties = await aget_parties_for_context(body.context_id)
         # Fetch context ONCE; derive region_path and legislature_period_id for
         # election-scoped retrieval. All retrieve() calls in both paths reuse these.
-        _context = await aget_context_by_id(body.context_id)
+        _context = (
+            _prefetched_context
+            if _prefetched_context is not None
+            else await aget_context_by_id(body.context_id)
+        )
         region_path: List[str] = (
             _context.region_path if _context is not None else ["DE"]
         )

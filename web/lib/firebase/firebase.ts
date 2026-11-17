@@ -43,7 +43,9 @@ import {
   firebaseEmulatorsEnabled,
 } from './firebase-emulators';
 import type {
+  ChatAnchor,
   ChatSession,
+  FeedItem,
   LlmSystemStatus,
   StudyParticipant,
   StudyParticipantEvent,
@@ -155,6 +157,7 @@ export async function createChatSession(
   contextId?: string,
   prolificMetadata?: ProlificMetadata,
   studyCohort?: StudyCohort,
+  anchor?: ChatAnchor,
 ): Promise<void> {
   const visitId = getCurrentVisitId();
   await setDoc(doc(db, 'chat_sessions', sessionId), {
@@ -173,6 +176,7 @@ export async function createChatSession(
       ? { study_cohort: studyCohort, is_pledge_study: true }
       : {}),
     ...(visitId ? { visit_id: visitId } : {}),
+    ...(anchor ? { anchor } : {}),
   });
   if (visitId) {
     void attachChatSessionToPageVisit(visitId, sessionId, userId).catch(
@@ -299,6 +303,12 @@ export async function setFeedInterest(
   });
 }
 
+/** One stored feed item, or null when there is none by that id. */
+export async function getFeedItem(itemId: string): Promise<FeedItem | null> {
+  const snapshot = await getDoc(doc(db, 'feed_items', itemId));
+  return snapshot.exists() ? (snapshot.data() as FeedItem) : null;
+}
+
 export async function getChatSession(sessionId: string) {
   const session = await getDoc(doc(db, 'chat_sessions', sessionId));
   return {
@@ -423,6 +433,7 @@ export async function addVotingBehaviorToMessage(
 export async function addUserMessageToChatSession(
   sessionId: string,
   message: string,
+  extra?: Pick<MessageItem, 'focus_party_ids'>,
 ) {
   const messageId = generateUuid();
 
@@ -435,6 +446,7 @@ export async function addUserMessageToChatSession(
         sources: [],
         created_at: Timestamp.now(),
         role: 'user',
+        ...extra,
       },
     ],
     quick_replies: [],

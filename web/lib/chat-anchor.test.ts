@@ -1,0 +1,122 @@
+import { describe, expect, it } from 'bun:test';
+import type { FeedItem } from '@/lib/firebase/firebase.types';
+import {
+  anchorCard,
+  chatAnchorFromParams,
+  sanitizeChatAnchor,
+} from './chat-anchor';
+
+const VOTE_ITEM: FeedItem = {
+  id: 'bundestag_2026-07-10_v7',
+  kind: 'vote',
+  edition_id: 'bundestag_2026-07-10',
+  parliament: 'bundestag',
+  parliament_name: 'Bundestag',
+  region: 'DE',
+  date: '2026-07-10',
+  rank: 0,
+  topics: ['health_care'],
+  status: 'published',
+  debate: null,
+  vote: {
+    poll_id: 7,
+    official_title: 'Gesetzentwurf',
+    outcome: 'angenommen',
+    citation_url: null,
+    description: null,
+    parties: [],
+  },
+  content: {
+    de: {
+      headline: 'Stabile Kassenbeiträge',
+      teaser: null,
+      key_points: [],
+      positions: [],
+      suggested_questions: [],
+      quote_translation: null,
+      origin: 'generated',
+    },
+  },
+};
+
+describe('chatAnchorFromParams', () => {
+  it('reads a feed item, which wins over a poll id', () => {
+    expect(
+      chatAnchorFromParams({
+        feed_item: 'bundestag_2026-07-10_d90-top17',
+        poll_id: '7',
+      }),
+    ).toEqual({ feed_item_id: 'bundestag_2026-07-10_d90-top17' });
+  });
+
+  it('reads a poll id as a number', () => {
+    expect(chatAnchorFromParams({ poll_id: ['6402'] })).toEqual({
+      poll_id: 6402,
+    });
+  });
+
+  it('ignores malformed values', () => {
+    expect(chatAnchorFromParams({})).toBeUndefined();
+    expect(chatAnchorFromParams({ feed_item: '../x y' })).toBeUndefined();
+    expect(chatAnchorFromParams({ poll_id: '-1' })).toBeUndefined();
+    expect(chatAnchorFromParams({ poll_id: '0' })).toBeUndefined();
+    expect(chatAnchorFromParams({ poll_id: '12abc' })).toBeUndefined();
+  });
+});
+
+describe('sanitizeChatAnchor', () => {
+  it('keeps exactly one well-formed key', () => {
+    expect(
+      sanitizeChatAnchor({ feed_item_id: 'bundestag_2026-07-10_v7', x: 1 }),
+    ).toEqual({ feed_item_id: 'bundestag_2026-07-10_v7' });
+    expect(sanitizeChatAnchor({ poll_id: 7 })).toEqual({ poll_id: 7 });
+  });
+
+  it('drops anything else', () => {
+    expect(sanitizeChatAnchor(undefined)).toBeUndefined();
+    expect(sanitizeChatAnchor('bundestag')).toBeUndefined();
+    expect(sanitizeChatAnchor({ poll_id: 1.5 })).toBeUndefined();
+    expect(sanitizeChatAnchor({ feed_item_id: 'a b' })).toBeUndefined();
+  });
+});
+
+describe('anchorCard', () => {
+  it('shows a vote item with kind, title, date, outcome and the way back', () => {
+    expect(anchorCard({ feed_item_id: VOTE_ITEM.id }, VOTE_ITEM)).toEqual({
+      kind: 'Abstimmung',
+      title: 'Stabile Kassenbeiträge',
+      date: '10. Juli 2026',
+      outcome: 'angenommen',
+      feedHref: '/?item=bundestag_2026-07-10_v7&land=de',
+    });
+  });
+
+  it('calls a debate item a Debatte, without an outcome', () => {
+    const card = anchorCard(
+      { feed_item_id: 'd' },
+      { ...VOTE_ITEM, id: 'd', kind: 'debate', vote: null },
+    );
+    expect(card?.kind).toBe('Debatte');
+    expect(card?.outcome).toBeNull();
+  });
+
+  it('shows nothing for a missing or retracted item', () => {
+    expect(anchorCard({ feed_item_id: 'gone' }, null)).toBeNull();
+    expect(
+      anchorCard(
+        { feed_item_id: VOTE_ITEM.id },
+        { ...VOTE_ITEM, status: 'retracted' },
+      ),
+    ).toBeNull();
+  });
+
+  it('shows a bare poll id as a plain vote card', () => {
+    expect(anchorCard({ poll_id: 6402 }, null)).toEqual({
+      kind: 'Abstimmung',
+      title: 'Abstimmung Nr. 6402',
+      date: null,
+      outcome: null,
+      feedHref: null,
+    });
+  });
+});

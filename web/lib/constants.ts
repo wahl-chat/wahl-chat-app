@@ -6,6 +6,9 @@ export const GROUP_PARTY_ID = 'group';
 // pulling a client component into the server graph.
 export const MAX_SELECTABLE_PARTIES = 7;
 
+// The general (non-election) context that /chat serves.
+export const GENERAL_CONTEXT_ID = 'bundestag-aktuell';
+
 export const TENANT_ID_HEADER = 'x-tenant-id';
 export const CONTEXT_ID_HEADER = 'x-context-id';
 

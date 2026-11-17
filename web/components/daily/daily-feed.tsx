@@ -472,6 +472,7 @@ function DailyFeed({
           <AskPanel
             item={askItem}
             withSuggestions={false}
+            showTarget
             className="sticky bottom-0 z-30 -mx-2 mt-4"
           />
         )}

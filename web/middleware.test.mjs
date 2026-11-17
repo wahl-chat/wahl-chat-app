@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, setSystemTime, test } from 'bun:test';
 import { NextRequest } from 'next/server';
-import { DEFAULT_CONTEXT_ID, REGION_CONTEXTS } from './lib/constants';
+import {
+  DEFAULT_CONTEXT_ID,
+  GENERAL_CONTEXT_ID,
+  REGION_CONTEXTS,
+} from './lib/constants';
 import { middleware } from './middleware';
 
 afterEach(() => setSystemTime());
@@ -73,15 +77,21 @@ describe('legacy context-less URLs', () => {
     expect(response.status).toBe(308);
   });
 
-  test('bare /chat forwards temporarily to the chat landing page, keeping its parameters', async () => {
+  test('bare /chat serves the general chat under its own URL, keeping its parameters', async () => {
     const response = await middleware(
-      requestFrom('https://wahl.chat/chat?tenant_id=partner'),
+      requestFrom(
+        'https://wahl.chat/chat?q=Wer%20war%20dagegen%3F&feed_item=bundestag_2026-07-10_v7&poll_id=7',
+      ),
     );
 
-    expect(response.headers.get('location')).toBe(
-      'https://wahl.chat/election-chat?tenant_id=partner',
+    expect(response.headers.get('location')).toBeNull();
+    const rewrite = new URL(response.headers.get('x-middleware-rewrite'));
+    expect(rewrite.pathname).toBe(`/${GENERAL_CONTEXT_ID}/session`);
+    expect(rewrite.searchParams.get('q')).toBe('Wer war dagegen?');
+    expect(rewrite.searchParams.get('feed_item')).toBe(
+      'bundestag_2026-07-10_v7',
     );
-    expect(response.status).toBe(307);
+    expect(rewrite.searchParams.get('poll_id')).toBe('7');
   });
 
   test('the chat landing page is served, not taken for an election', async () => {

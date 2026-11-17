@@ -730,6 +730,52 @@ async def retrieve_two_pass(
     return {"current": cast(list[dict], current_results), "historic": historic_results}
 
 
+async def embed_query(query: str) -> list[float]:
+    """Embed ``query`` once so several ``retrieve()`` calls can share the vector."""
+    return await _aembed_query(query)
+
+
+_FETCH_PAYLOADS_MAX = 256
+
+
+async def fetch_payloads(
+    source_type: SourceTypeLiteral,
+    *,
+    external_id: Optional[int] = None,
+    source_item_ids: Optional[list[str]] = None,
+    limit: int = 64,
+    _client: Optional[AsyncQdrantClient] = None,
+) -> list[dict]:
+    """Payloads of known items by id: a filtered scroll, no vector involved.
+
+    ``external_id`` (e.g. an AW poll id) and ``source_item_ids`` (corpus UUIDs)
+    are both indexed. At least one is required, so a lookup never scans a whole
+    source type.
+    """
+    if external_id is None and not source_item_ids:
+        raise ValueError("fetch_payloads(): pass external_id or source_item_ids")
+    must: list[FieldCondition] = [
+        FieldCondition(key="source_type", match=MatchValue(value=source_type))
+    ]
+    if external_id is not None:
+        must.append(
+            FieldCondition(key="external_id", match=MatchValue(value=external_id))
+        )
+    if source_item_ids:
+        must.append(
+            FieldCondition(key="source_item_id", match=MatchAny(any=source_item_ids))
+        )
+    client = _client if _client is not None else _get_qdrant()
+    points, _next = await client.scroll(
+        collection_name=COLLECTION_NAME,
+        scroll_filter=Filter(must=must),
+        limit=min(limit, _FETCH_PAYLOADS_MAX),
+        with_payload=True,
+        with_vectors=False,
+    )
+    return [cast(dict, p.payload) for p in points if p.payload is not None]
+
+
 # ---------------------------------------------------------------------------
 # Gemini tool declaration (bind_tools surface, standalone)
 # ---------------------------------------------------------------------------

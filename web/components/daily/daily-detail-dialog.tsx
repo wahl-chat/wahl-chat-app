@@ -4,14 +4,15 @@ import { useMediaViewer } from '@/components/providers/media-viewer-provider';
 import StickyInput from '@/components/sticky-input';
 import { FEED_CHAT_ENABLED, feedChatHref } from '@/lib/daily/chat-handoff';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
+import { itemQuestions } from '@/lib/daily/inline-answers';
 import {
   type DetailItem,
   type SectionItem,
   type VoteItem,
+  itemTitle,
   openingParty,
   protocolLabel,
   sectionTopics,
-  suggestedQuestions,
 } from '@/lib/daily/items';
 import { speakerIds } from '@/lib/daily/politicians';
 import { shareItem } from '@/lib/daily/share';
@@ -28,6 +29,7 @@ import { useId, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
 import { GlossaryText } from './glossary-text';
 import { Hemicycle, PartyVoteBreakdown, SeatLegend } from './hemicycle';
+import { InlineAnswers } from './inline-answers';
 import { PartyPositions, orderedPositions } from './party-positions';
 import { HeatInfo } from './plenary-card';
 import {
@@ -59,41 +61,83 @@ function placeholderFor(item: DetailItem): string {
     : 'Frag zu dieser Debatte …';
 }
 
-/**
- * "Mehr wissen? Frag nach.": suggested questions and a free input, both
- * handing the question plus the item's context to the chat.
- */
-export function AskPanel({
-  item,
-  withSuggestions = true,
-  className,
-}: {
-  item: DetailItem;
-  withSuggestions?: boolean;
-  className?: string;
-}) {
+function useAskChat(item: DetailItem) {
   const router = useRouter();
-  const ask = (question: string) => {
+  return (question: string) => {
     if (question.trim()) {
       router.push(feedChatHref(item, question));
     }
   };
-  const suggestions = withSuggestions ? suggestedQuestions(item) : [];
+}
+
+/**
+ * "Mehr wissen? Frag nach.": suggested questions without a precomputed
+ * answer and a free input, both opening the chat with the item attached.
+ * `showTarget` names the item the question goes to, for a bar whose item
+ * follows the scroll position; the target stays put while the input has focus
+ * or text, so a question never moves to another item mid-typing.
+ */
+export function AskPanel({
+  item,
+  withSuggestions = true,
+  showTarget = false,
+  className,
+}: {
+  item: DetailItem;
+  withSuggestions?: boolean;
+  showTarget?: boolean;
+  className?: string;
+}) {
+  const [locked, setLocked] = useState<DetailItem | null>(null);
+  const target = locked ?? item;
+  const ask = useAskChat(target);
+  const suggestions = withSuggestions ? itemQuestions(target).chips : [];
   return (
-    <div className={className}>
+    <div
+      className={className}
+      onFocusCapture={showTarget ? () => setLocked(target) : undefined}
+      onBlurCapture={
+        showTarget
+          ? (e) => {
+              const field = e.target as HTMLInputElement;
+              if (!field.value?.trim()) setLocked(null);
+            }
+          : undefined
+      }
+    >
       {suggestions.length > 0 && (
         <p className="px-4 pb-2 pt-3 text-[15px] font-semibold">
           Mehr wissen? Frag nach.
+        </p>
+      )}
+      {showTarget && (
+        <p
+          className={cn(
+            'mx-auto mb-1.5 w-fit max-w-[min(36rem,100%)] truncate rounded-full border border-[var(--daily-border)] bg-[var(--daily-surface)] px-3 py-1 text-[13px]',
+            MUTED_TEXT,
+          )}
+        >
+          Frage zu: <span className="font-medium">{itemTitle(target)}</span>
         </p>
       )}
       <StickyInput
         isLoading={false}
         onSubmit={ask}
         quickReplies={suggestions}
-        placeholder={placeholderFor(item)}
+        placeholder={placeholderFor(target)}
         className="static mx-2 pb-3 md:pb-3"
       />
     </div>
+  );
+}
+
+function ItemAnswers({ item }: { item: DetailItem }) {
+  const ask = useAskChat(item);
+  return (
+    <InlineAnswers
+      answers={itemQuestions(item).answers}
+      onAsk={FEED_CHAT_ENABLED ? ask : undefined}
+    />
   );
 }
 
@@ -368,6 +412,7 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
                     }
                   />
                 )}
+                <ItemAnswers item={item} />
               </div>
               {FEED_CHAT_ENABLED && (
                 <AskPanel

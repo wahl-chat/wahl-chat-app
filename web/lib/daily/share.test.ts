@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { itemShareUrl } from './share';
+import { feedItemHref, itemShareUrl } from './share';
 
 const params = (href: string) => new URL(href).searchParams;
 
@@ -44,5 +44,13 @@ describe('itemShareUrl', () => {
       ),
     );
     expect(url.getAll('item')).toEqual(['bundestag_2026-07-10~s1']);
+  });
+});
+
+describe('feedItemHref', () => {
+  it('opens the feed on the item with its parliament selected', () => {
+    expect(feedItemHref('bundestag_2026-07-10_v7', 'DE')).toBe(
+      '/?item=bundestag_2026-07-10_v7&land=de',
+    );
   });
 });

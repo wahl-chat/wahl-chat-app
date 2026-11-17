@@ -3,6 +3,7 @@ import UserAvatar from '@/components/auth/user-avatar';
 import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { SITE_LINKS } from '@/lib/site-links';
 import { type UserDetails, cn } from '@/lib/utils';
 import type { NavbarItemDetails } from './navbar-item';
 import NavbarItem from './navbar-item';
@@ -24,10 +25,8 @@ function MobileNavbarItems({ userDetails, mobileClose, onFeedback }: Props) {
       label: 'Anleitung',
       href: '/how-to',
     },
-    {
-      label: 'Chat',
-      href: '/election-chat',
-    },
+    SITE_LINKS.chat,
+    SITE_LINKS.elections,
     // {
     //   label: 'Wahl Swiper',
     //   href: '/swiper',

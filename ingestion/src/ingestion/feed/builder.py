@@ -15,7 +15,10 @@ deadline, is not built this run, so a stored version stays as it is: positions
 missing only because a call failed are never published. A Fraktion whose
 position the check rejects, even after one retry, stays in the facts without a
 sentence; later runs retry only that position (``top_up_positions``) and
-leave the rest of the debate as written.
+leave the rest of the debate as written. Answers to the suggested questions
+never hold an item back: a question without a valid answer after one retry
+is shown plain, and later runs try only the missing answers
+(``answers.needs_answers``).
 
 Every text here is generated once and reused by every surface that shows it,
 so all calls go to the publication roster (high reasoning) and each result
@@ -681,6 +684,12 @@ def speeches_block(
     return "\n".join(lines)
 
 
+def speech_ids(agenda: AgendaItem) -> Optional[list[str]]:
+    """The corpus ids of the debate's speeches in debate order; None until
+    the protocol has put them in order and dropped the twins."""
+    return [s.source_item_id for s in agenda.speeches] if agenda.ordered else None
+
+
 def vote_description(text: str) -> Optional[str]:
     """The poll's intro from the vote chunk text, cut at a sentence end."""
     _, marker, context = text.partition(_CONTEXT_MARKER)
@@ -812,6 +821,7 @@ async def build_debate(
                 draft.opening_quote, speeches, display, fraktionen
             ),
             key_point_sources=key_point_sources(key_points, refs, display),
+            speech_ids=speech_ids(agenda) or [],
         ),
         content=canonical_content(
             headline=without_debate_prefix(
@@ -1043,6 +1053,7 @@ async def _build_day(
     generated_at: datetime,
     out_of_time: Callable[[], bool],
     top_ups: list[tuple[DebateUnit, FeedItem]],
+    answer_only: list[FeedItem],
 ) -> list[FeedItem]:
     semaphore = asyncio.Semaphore(builder.concurrency)
 
@@ -1094,10 +1105,25 @@ async def _build_day(
             *(_bounded(semaphore, out_of_time, vote_job(b)) for b in vote_batches)
         ),
     )
+    # Speeches as the units hold them: a stored item reaches here only while
+    # its input hash matches, so they are the ones its texts came from.
+    speeches = {u.item_id: u.agenda.speeches for u in plan.debates if u.buildable}
+    from ingestion.feed.answers import answer_item, needs_answers  # noqa: PLC0415 — imports this module
+
+    def answer_job(item: FeedItem) -> Callable[[], Awaitable[FeedItem]]:
+        return lambda: answer_item(
+            builder, parliament.name, item, speeches.get(item.id), display
+        )
+
     built = [item for item in [*debate_results, *top_up_results] if item is not None]
     for batch in vote_results:
         built.extend(batch or [])
-    return built
+    todo = [i for i in [*built, *answer_only] if needs_answers(i)]
+    answered = await asyncio.gather(
+        *(_bounded(semaphore, out_of_time, answer_job(i)) for i in todo)
+    )
+    answers = {i.id: i for i in answered if i is not None}
+    return [answers.get(item.id, item) for item in [*built, *answer_only]]
 
 
 def build_day(
@@ -1111,11 +1137,14 @@ def build_day(
     now: Optional[datetime] = None,
     out_of_time: Callable[[], bool] = lambda: False,
     top_ups: Sequence[tuple[DebateUnit, FeedItem]] = (),
+    answer_only: Sequence[FeedItem] = (),
 ) -> list[FeedItem]:
     """Generate the given units of one day, concurrently; returns what was
     built. ``top_ups`` are stored debates that get another attempt at their
-    missing positions only. A unit missing from the result was not built
-    (failed, or the time budget ran out before it started)."""
+    missing positions only, ``answer_only`` stored items at their missing
+    answers only (returned as they were when not attempted). A unit missing
+    from the result was not built (failed, or the time budget ran out before
+    it started)."""
     return builder.run(
         _build_day(
             builder,
@@ -1127,5 +1156,6 @@ def build_day(
             now or datetime.now(timezone.utc),
             out_of_time,
             [(u, stored) for u, stored in top_ups if u.buildable],
+            list(answer_only),
         )
     )
