@@ -399,6 +399,22 @@ function sectionQuestions(steps: TimelineStep[]): string[] {
   return out.slice(0, 2);
 }
 
+/** The step's facts and summary; a committee's generic line gives way to
+ * the summary of what it recommends. */
+function withSummary(
+  step: PlainStep,
+  procedure: ProcedureSummary,
+): { facts: string; summary: string | null } {
+  const summary =
+    step.milestones.find((m) => m.chamber === 'BT' && m.summary)?.summary ??
+    null;
+  const generic = step.label === 'Ausschuss: Empfehlung';
+  return {
+    facts: summary && generic ? '' : stepFacts(step, procedure),
+    summary,
+  };
+}
+
 const statusDay = new Intl.DateTimeFormat('de-DE', {
   day: '2-digit',
   month: '2-digit',
@@ -471,10 +487,7 @@ export function procedureSection(
         : i === lastIndex && hereIndex >= 0 && i > hereIndex
           ? 'latest'
           : 'done',
-    facts: stepFacts(s, main),
-    summary:
-      s.milestones.find((m) => m.chamber === 'BT' && m.summary)?.summary ??
-      null,
+    ...withSummary(s, main),
     links: stepLinks(s),
     question: stepQuestion(s),
   }));
