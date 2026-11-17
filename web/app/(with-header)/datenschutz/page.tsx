@@ -26,6 +26,7 @@ function Impressum() {
         <li>Nutzungsdaten.</li>
         <li>Meta-, Kommunikations- und Verfahrensdaten.</li>
         <li>Protokolldaten.</li>
+        <li>Politische Meinungen (nur mit Einwilligung).</li>
       </ul>
       <h3>Kategorien betroffener Personen</h3>
       <ul>
@@ -76,6 +77,15 @@ function Impressum() {
           betroffene Person hat ihre Einwilligung in die Verarbeitung der sie
           betreffenden personenbezogenen Daten für einen spezifischen Zweck oder
           mehrere bestimmte Zwecke gegeben.
+        </li>
+        <li>
+          <strong>
+            Ausdrückliche Einwilligung in besondere Kategorien (Art. 9 Abs. 2
+            lit. a) DSGVO)
+          </strong>{' '}
+          - Die betroffene Person hat ausdrücklich in die Verarbeitung
+          besonderer Kategorien personenbezogener Daten, etwa ihrer politischen
+          Meinung, eingewilligt.
         </li>
         <li>
           <strong>
@@ -741,6 +751,59 @@ function Impressum() {
             <strong>Rechtsgrundlagen:</strong> Berechtigte Interessen (Art. 6
             Abs. 1 S. 1 lit. f) DSGVO).
           </span>
+        </li>
+      </ul>
+      <h2 id="mFeedBewertungen">Bewertungen im News-Feed</h2>
+      <p>
+        Im News-Feed können Sie angeben, ob Sie der Position einer Fraktion
+        zustimmen und wie Sie bei einer Abstimmung im Bundestag abgestimmt
+        hätten. Diese Angaben zeigen Ihre politische Meinung. Sie gehören
+        deshalb zu den besonderen Kategorien personenbezogener Daten (Art. 9
+        DSGVO). Wir speichern sie nur, wenn Sie vorher ausdrücklich eingewilligt
+        haben. Die Angabe ist freiwillig.
+      </p>
+      <p>
+        Wir speichern jede Bewertung mit Ihrer Nutzer-ID: der ID Ihres Kontos,
+        wenn Sie eines haben, sonst einer zufälligen anonymen ID. So sehen Sie
+        Ihre Bewertungen beim nächsten Besuch wieder. Anderen zeigen wir nur die
+        Summe aller Bewertungen, nie Ihre einzelne Angabe. Ihre persönlichen
+        Angaben geben wir nicht an Dritte weiter. Die zusammengefassten
+        Ergebnisse nutzen wir, um zu zeigen, wie unsere Nutzerinnen und Nutzer
+        insgesamt bestimmte Abstimmungen und Positionen sehen, auf wahl.chat und
+        auch darüber hinaus. Diese Ergebnisse sind vollständig anonym und lassen
+        keinen Rückschluss auf einzelne Personen zu. Gespeichert werden sie bei
+        Google (Firebase) in Rechenzentren in der EU, verarbeitet auf Servern
+        von Vercel in Frankfurt. Beide Anbieter handeln in unserem Auftrag und
+        sind nach dem EU-US Data Privacy Framework zertifiziert.
+      </p>
+      <ul className="m-elements">
+        <li>
+          <strong>Verarbeitete Datenarten:</strong> Inhaltsdaten (Ihre
+          Bewertungen von Positionen und Abstimmungen); Meta-, Kommunikations-
+          und Verfahrensdaten (Nutzer-ID, Zeitpunkt der Bewertung und der
+          Einwilligung).
+        </li>
+        <li>
+          <strong>Betroffene Personen:</strong> Nutzer.
+        </li>
+        <li>
+          <strong>Zwecke der Verarbeitung:</strong> Speichern Ihrer Bewertungen;
+          Anzeige und Veröffentlichung anonymer Gesamtergebnisse; Bereitstellung
+          unseres Onlineangebotes und Nutzerfreundlichkeit.
+        </li>
+        <li>
+          <strong>Aufbewahrung und Löschung:</strong> Bis Sie Ihre Einwilligung
+          widerrufen. Mit „Meine Bewertungen löschen“ im Menü löschen Sie alle
+          Ihre Bewertungen. Sie zählen danach auch nicht mehr in den
+          Gesamtergebnissen.
+        </li>
+        <li>
+          <strong>Rechtsgrundlagen:</strong> Einwilligung (Art. 6 Abs. 1 S. 1
+          lit. a) DSGVO) und ausdrückliche Einwilligung in die Verarbeitung
+          besonderer Kategorien personenbezogener Daten (Art. 9 Abs. 2 lit. a)
+          DSGVO). Sie können Ihre Einwilligung jederzeit mit Wirkung für die
+          Zukunft widerrufen (Art. 7 Abs. 3 DSGVO), ebenfalls mit „Meine
+          Bewertungen löschen“ im Menü.
         </li>
       </ul>
       <h2 id="m182">Kontakt- und Anfrageverwaltung</h2>
