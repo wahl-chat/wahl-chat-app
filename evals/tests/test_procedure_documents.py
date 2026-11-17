@@ -4,7 +4,13 @@
 
 import json
 
-from wahlchat_evals.procedure_documents import QUESTIONS, Outcome, Source, _metrics, render
+from wahlchat_evals.procedure_documents import (
+    QUESTIONS,
+    Outcome,
+    Source,
+    _metrics,
+    render,
+)
 
 
 def test_metrics_count_document_kinds_targets_and_citations() -> None:
@@ -13,7 +19,11 @@ def test_metrics_count_document_kinds_targets_and_citations() -> None:
         Source("overview", "Drucksache 21/1", "…", ["1"]),
         Source("report", "Drucksache 21/1", "…", ["2"]),
     ]
-    outcome = Outcome("procedures", sources, answer="Laut Vorblatt [2] und Rede [1]; [9] gibt es nicht.")
+    outcome = Outcome(
+        "procedures",
+        sources,
+        answer="Laut Vorblatt [2] und Rede [1]; [9] gibt es nicht.",
+    )
     m = _metrics(outcome, ["1"])
     assert m["overview_chunks"] == 1 and m["report_chunks"] == 1
     assert m["on_target_sources"] == 2 and m["on_target_documents"] == 1

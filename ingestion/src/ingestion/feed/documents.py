@@ -18,7 +18,12 @@ from typing import Any, Optional
 
 from ingestion.drucksache_numbers import drucksachen_in_links, drucksachen_in_text
 
-__all__ = ["PollDocuments", "drucksachen_in_links", "drucksachen_in_text", "poll_documents"]
+__all__ = [
+    "PollDocuments",
+    "drucksachen_in_links",
+    "drucksachen_in_text",
+    "poll_documents",
+]
 
 logger = logging.getLogger(__name__)
 

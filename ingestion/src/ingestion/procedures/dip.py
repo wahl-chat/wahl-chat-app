@@ -28,7 +28,9 @@ class DipReader(Protocol):
 
     def plenary_vorgang_types(self, wahlperiode: int) -> dict[str, str]: ...
 
-    def vorgang_ids_of_types(self, wahlperiode: int, types: Iterable[str]) -> set[str]: ...
+    def vorgang_ids_of_types(
+        self, wahlperiode: int, types: Iterable[str]
+    ) -> set[str]: ...
 
     def updated_vorgang_ids(self, wahlperiode: int, since: str) -> set[str]: ...
 
@@ -63,7 +65,9 @@ class LiveDip:
         self._client = client
         self._protocol_ids: dict[str, str] = {}
 
-    def _documents(self, endpoint: str, params: dict[str, Any]) -> Iterator[dict[str, Any]]:
+    def _documents(
+        self, endpoint: str, params: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
         seen: set[str] = set()
         for page in self._client.pages(endpoint, params):
             for doc in page.get("documents") or []:

@@ -347,7 +347,9 @@ def attach_source_facts(
             speech_links = [s.vorgang_ids for s in speeches]
             ids, summaries = procedures(item, speech_links)
             if ids != item.procedure_ids or summaries != item.procedures:
-                item = item.model_copy(update={"procedure_ids": ids, "procedures": summaries})
+                item = item.model_copy(
+                    update={"procedure_ids": ids, "procedures": summaries}
+                )
                 changed.add(item.id)
         out.append(item)
     return out, changed
@@ -785,7 +787,9 @@ def build_and_publish(
     index_to = qdrant if index and db is not None else None
     embed = _embeddings() if index_to is not None else None
     lookup_poll = poll_documents(AWClient())
-    procedures = procedure_facts(db, qdrant, COLLECTION_NAME) if db is not None else None
+    procedures = (
+        procedure_facts(db, qdrant, COLLECTION_NAME) if db is not None else None
+    )
     glossary = read_glossary(db)
     runs: list[tuple[ParliamentRun, Published]] = []
     for parliament in parliaments:

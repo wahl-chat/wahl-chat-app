@@ -53,7 +53,9 @@ def _matches(cond: Any, point_id: str, payload: dict[str, Any]) -> bool:
     raise NotImplementedError(type(cond))
 
 
-def matches(flt: Optional[models.Filter], point_id: str, payload: dict[str, Any]) -> bool:
+def matches(
+    flt: Optional[models.Filter], point_id: str, payload: dict[str, Any]
+) -> bool:
     if flt is None:
         return True
     if flt.must and not all(_matches(c, point_id, payload) for c in flt.must):
@@ -82,9 +84,20 @@ class FakeQdrant:
     def add(self, point_id: str, payload: dict[str, Any]) -> None:
         self.points[point_id] = copy.deepcopy(payload)
 
-    def scroll(self, collection_name: str, scroll_filter=None, limit: int = 10, offset=None,
-               with_payload: Any = True, with_vectors: bool = False):
-        ids = [pid for pid in sorted(self.points) if matches(scroll_filter, pid, self.points[pid])]
+    def scroll(
+        self,
+        collection_name: str,
+        scroll_filter=None,
+        limit: int = 10,
+        offset=None,
+        with_payload: Any = True,
+        with_vectors: bool = False,
+    ):
+        ids = [
+            pid
+            for pid in sorted(self.points)
+            if matches(scroll_filter, pid, self.points[pid])
+        ]
         start = int(offset or 0)
         page = ids[start : start + limit]
         nxt = start + limit if start + limit < len(ids) else None
@@ -94,7 +107,9 @@ class FakeQdrant:
         n = sum(1 for pid, p in self.points.items() if matches(count_filter, pid, p))
         return type("Count", (), {"count": n})()
 
-    def upsert(self, collection_name: str, points: list[Any], wait: bool = True) -> None:
+    def upsert(
+        self, collection_name: str, points: list[Any], wait: bool = True
+    ) -> None:
         for point in points:
             if point.payload.get("source_parent_key") in self.fail_upsert_for:
                 raise RuntimeError("upsert failed")
@@ -102,14 +117,21 @@ class FakeQdrant:
         for point in points:
             self.points[str(point.id)] = copy.deepcopy(point.payload)
 
-    def delete(self, collection_name: str, points_selector: Any, wait: bool = True) -> None:
+    def delete(
+        self, collection_name: str, points_selector: Any, wait: bool = True
+    ) -> None:
         ids = [str(i) for i in points_selector.points]
         self.deletes.append(ids)
         for pid in ids:
             self.points.pop(pid, None)
 
-    def set_payload(self, collection_name: str, payload: dict[str, Any], points: list[Any],
-                    wait: bool = True) -> None:
+    def set_payload(
+        self,
+        collection_name: str,
+        payload: dict[str, Any],
+        points: list[Any],
+        wait: bool = True,
+    ) -> None:
         selected = points.points if hasattr(points, "points") else points
         ids = [str(i) for i in selected]
         self.payload_writes.append((copy.deepcopy(payload), ids))
@@ -123,8 +145,14 @@ class _Hit:
         self.value, self.count = value, count
 
 
-def _facet(self: "FakeQdrant", collection_name: str, key: str, facet_filter=None, limit: int = 10,
-           exact: bool = True):
+def _facet(
+    self: "FakeQdrant",
+    collection_name: str,
+    key: str,
+    facet_filter=None,
+    limit: int = 10,
+    exact: bool = True,
+):
     from collections import Counter
 
     counts: Counter[Any] = Counter()
@@ -134,12 +162,23 @@ def _facet(self: "FakeQdrant", collection_name: str, key: str, facet_filter=None
             for v in value if isinstance(value, list) else [value]:
                 if v is not None:
                     counts[v] += 1
-    return type("Facet", (), {"hits": [_Hit(v, n) for v, n in counts.most_common(limit)]})()
+    return type(
+        "Facet", (), {"hits": [_Hit(v, n) for v, n in counts.most_common(limit)]}
+    )()
 
 
-def _retrieve(self: "FakeQdrant", collection_name: str, ids: list[Any], with_payload: Any = True,
-              with_vectors: bool = False):
-    return [_Point(str(i), copy.deepcopy(self.points[str(i)])) for i in ids if str(i) in self.points]
+def _retrieve(
+    self: "FakeQdrant",
+    collection_name: str,
+    ids: list[Any],
+    with_payload: Any = True,
+    with_vectors: bool = False,
+):
+    return [
+        _Point(str(i), copy.deepcopy(self.points[str(i)]))
+        for i in ids
+        if str(i) in self.points
+    ]
 
 
 FakeQdrant.facet = _facet  # type: ignore[attr-defined]
@@ -190,10 +229,14 @@ class _DocRef:
 
 
 class _Query:
-    def __init__(self, db: "FakeFirestore", collection: str, filters: list[tuple[str, str, Any]]) -> None:
+    def __init__(
+        self, db: "FakeFirestore", collection: str, filters: list[tuple[str, str, Any]]
+    ) -> None:
         self._db, self._collection, self._filters = db, collection, filters
 
-    def where(self, field: str = "", op: str = "", value: Any = None, *, filter: Any = None) -> "_Query":
+    def where(
+        self, field: str = "", op: str = "", value: Any = None, *, filter: Any = None
+    ) -> "_Query":
         if filter is not None:
             field, op, value = filter.field_path, filter.op_string, filter.value
         return _Query(self._db, self._collection, [*self._filters, (field, op, value)])
@@ -257,7 +300,9 @@ class FakeFirestore:
 class FakeDip:
     """Serves the fixtures; ``fail`` makes the named reads raise."""
 
-    def __init__(self, vorgaenge: dict[str, Any], positions: dict[str, Any], **extra: Any) -> None:
+    def __init__(
+        self, vorgaenge: dict[str, Any], positions: dict[str, Any], **extra: Any
+    ) -> None:
         self._vorgaenge = vorgaenge
         self._positions = positions
         self.plenary: dict[int, dict[str, str]] = extra.get("plenary", {})

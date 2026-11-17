@@ -16,6 +16,7 @@ _DRUCKSACHE_PDF = re.compile(
     r"dserver\.bundestag\.de/btd/(\d{2})/\d{3}/(\d{2})(\d{5})\.pdf"
 )
 
+
 def _sorted(ids: Iterable[tuple[int, int]]) -> list[str]:
     return [f"{wp}/{number}" for wp, number in sorted(set(ids))]
 

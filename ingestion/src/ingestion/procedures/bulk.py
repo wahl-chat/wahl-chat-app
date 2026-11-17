@@ -55,6 +55,8 @@ from wahlchat_common.procedures import ProcedureRecord
 logger = logging.getLogger(__name__)
 
 WAHLPERIODEN = [20, 21]
+
+
 def run(
     *,
     dip: DipReader,
@@ -76,8 +78,15 @@ def run(
     failed = False
     if sync:
         report = run_sync(
-            dip=dip, store=store, qdrant=qdrant, collection=collection, embed=embed,
-            wahlperioden=wahlperioden, backfill=backfill, today=today, dry_run=dry_run,
+            dip=dip,
+            store=store,
+            qdrant=qdrant,
+            collection=collection,
+            embed=embed,
+            wahlperioden=wahlperioden,
+            backfill=backfill,
+            today=today,
+            dry_run=dry_run,
         )
         print(
             f"procedures: seen={report.seen} in_scope={report.in_scope} written={report.written} "
@@ -88,7 +97,9 @@ def run(
     procedures = store.all()
     # New procedures' Drucksachen and those of moved ones are (re-)read: a
     # stored Drucksache may now belong to one more procedure.
-    changed = set(report.new_stage) | set(report.changed_sachgebiete) | set(report.created)
+    changed = (
+        set(report.new_stage) | set(report.changed_sachgebiete) | set(report.created)
+    )
 
     def read_drucksachen(of: dict[str, ProcedureRecord], *, reread: bool) -> bool:
         """Read the procedures' Drucksachen: all of them, or only those not
@@ -96,11 +107,18 @@ def run(
         every document was read."""
         numbers = wanted_numbers(of)
         if not reread:
-            known_empty = set(store.sync_state().get("drucksachen_without_chunks") or [])
+            known_empty = set(
+                store.sync_state().get("drucksachen_without_chunks") or []
+            )
             numbers -= stored_drucksachen(qdrant, collection) | known_empty
         result = ingest_drucksachen(
-            numbers, dip=dip, qdrant=qdrant, collection=collection, embed=embed,
-            procedures=procedures, today=today,
+            numbers,
+            dip=dip,
+            qdrant=qdrant,
+            collection=collection,
+            embed=embed,
+            procedures=procedures,
+            today=today,
         )
         print(
             f"drucksachen: documents={result.documents} chunks={result.chunks} "
@@ -108,30 +126,54 @@ def run(
         )
         if result.empty:
             current = store.sync_state()
-            known = set(current.get("drucksachen_without_chunks") or []) | set(result.empty)
-            store.set_sync_state({**current, "drucksachen_without_chunks": sorted(known)})
+            known = set(current.get("drucksachen_without_chunks") or []) | set(
+                result.empty
+            )
+            store.set_sync_state(
+                {**current, "drucksachen_without_chunks": sorted(known)}
+            )
         return not result.failed
 
     if not dry_run:
         moved = {v: procedures[v] for v in changed if v in procedures}
-        complete = read_drucksachen(moved, reread=True) & read_drucksachen(procedures, reread=False)
+        complete = read_drucksachen(moved, reread=True) & read_drucksachen(
+            procedures, reread=False
+        )
         failed |= not complete
 
     if link:
+
         def add_procedures(ids: set[str]) -> dict[str, ProcedureRecord]:
-            added = sync_ids(ids, dip=dip, store=store, qdrant=qdrant, collection=collection,
-                             embed=embed, today=today, dry_run=dry_run)
+            added = sync_ids(
+                ids,
+                dip=dip,
+                store=store,
+                qdrant=qdrant,
+                collection=collection,
+                embed=embed,
+                today=today,
+                dry_run=dry_run,
+            )
             if added.failed:
                 raise RuntimeError(f"Vorgänge {added.failed} could not be synced")
             return store.get(ids)
 
-        linker = Linker(dip=dip, qdrant=qdrant, collection=collection, procedures=procedures,
-                        today=today, add_procedures=add_procedures, dry_run=dry_run)
+        linker = Linker(
+            dip=dip,
+            qdrant=qdrant,
+            collection=collection,
+            procedures=procedures,
+            today=today,
+            add_procedures=add_procedures,
+            dry_run=dry_run,
+        )
         linker.link_votes(wahlperioden)
         linker.link_speeches(wahlperioden)
         linker.refresh_sachgebiete(report.changed_sachgebiete)
         methods = ", ".join(f"{m}={n}" for m, n in linker.report.methods.most_common())
-        print(f"links: chunks={linker.report.chunks_written} failed={len(linker.report.failed)} [{methods}]")
+        print(
+            f"links: chunks={linker.report.chunks_written} failed={len(linker.report.failed)} [{methods}]"
+        )
         failed |= bool(linker.report.failed)
         procedures = store.all()
         created = {v: procedures[v] for v in linker.report.created if v in procedures}
@@ -142,26 +184,34 @@ def run(
         lookup = FirestoreProcedures(db)
         only = None if backfill else set(report.new_stage)
         if only is None or only:
-            n = link_feed_items(db, qdrant, collection, lookup=lookup, only_ids=only, dry_run=dry_run)
+            n = link_feed_items(
+                db, qdrant, collection, lookup=lookup, only_ids=only, dry_run=dry_run
+            )
             print(f"feed items: updated={n}")
 
     if not dry_run:
         linked = linked_procedure_ids(qdrant, collection) | _feed_procedure_ids(db)
         flags = {
-            vid: vid in linked for vid, record in procedures.items() if record.has_links != (vid in linked)
+            vid: vid in linked
+            for vid, record in procedures.items()
+            if record.has_links != (vid in linked)
         }
         store.set_has_links(flags)
         for vid, value in flags.items():
             procedures[vid] = procedures[vid].model_copy(update={"has_links": value})
 
-    print(render(collect(scroll_linkable(qdrant, collection, wahlperioden), procedures)))
+    print(
+        render(collect(scroll_linkable(qdrant, collection, wahlperioden), procedures))
+    )
     return 1 if failed else 0
 
 
 def _feed_procedure_ids(db: Any) -> set[str]:
     return {
         vid
-        for snapshot in db.collection("feed_items").where("parliament", "==", "bundestag").stream()
+        for snapshot in db.collection("feed_items")
+        .where("parliament", "==", "bundestag")
+        .stream()
         for vid in (snapshot.to_dict() or {}).get("procedure_ids") or []
     }
 
@@ -169,15 +219,29 @@ def _feed_procedure_ids(db: Any) -> set[str]:
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--wahlperiode", type=int, nargs="+", default=WAHLPERIODEN)
-    parser.add_argument("--backfill", action="store_true", help="sync every in-scope Vorgang")
+    parser.add_argument(
+        "--backfill", action="store_true", help="sync every in-scope Vorgang"
+    )
     parser.add_argument("--link-only", action="store_true", help="skip the DIP sync")
-    parser.add_argument("--no-link", action="store_true", help="skip linking votes and speeches")
-    parser.add_argument("--no-feed", action="store_true", help="leave feed items as they are")
-    parser.add_argument("--report", action="store_true", help="print the coverage report only")
-    parser.add_argument("--dry-run", action="store_true", help="read only; write nothing")
-    parser.add_argument("--allow-remote", action="store_true", help="write a deployed dev Firestore")
+    parser.add_argument(
+        "--no-link", action="store_true", help="skip linking votes and speeches"
+    )
+    parser.add_argument(
+        "--no-feed", action="store_true", help="leave feed items as they are"
+    )
+    parser.add_argument(
+        "--report", action="store_true", help="print the coverage report only"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="read only; write nothing"
+    )
+    parser.add_argument(
+        "--allow-remote", action="store_true", help="write a deployed dev Firestore"
+    )
     args = parser.parse_args(argv)
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
 
     guard_firestore_target("Procedures job", allow_remote=args.allow_remote)
     from ingestion.firestore_client import firestore_client  # noqa: PLC0415 — after the guard
@@ -192,8 +256,14 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     check_fingerprint(qdrant, COLLECTION_NAME)
     if args.report:
-        print(render(collect(scroll_linkable(qdrant, COLLECTION_NAME, args.wahlperiode),
-                             ProcedureStore(db).all())))
+        print(
+            render(
+                collect(
+                    scroll_linkable(qdrant, COLLECTION_NAME, args.wahlperiode),
+                    ProcedureStore(db).all(),
+                )
+            )
+        )
         return 0
     from wahlchat_common.embeddings import get_embeddings  # noqa: PLC0415
 

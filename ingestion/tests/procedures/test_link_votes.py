@@ -14,16 +14,22 @@ SCHULDENBREMSE = VoteTotals(yes=512, no=206, abstain=0)
 
 
 def _resolve(totals: VoteTotals, drucksachen: list[str], *, days=None, by_number=None):
-    days = days if days is not None else {
-        date.fromisoformat(d): p for d, p in load("positions_2025_03_18").items()
-    }
-    by_number = by_number if by_number is not None else load("drucksache_vorgaenge_2025_03_18")
+    days = (
+        days
+        if days is not None
+        else {date.fromisoformat(d): p for d, p in load("positions_2025_03_18").items()}
+    )
+    by_number = (
+        by_number if by_number is not None else load("drucksache_vorgaenge_2025_03_18")
+    )
     return resolve_vote(
         voted_on=date(2025, 3, 18),
         totals=totals,
         drucksachen=drucksachen,
         positions_on=lambda day: days.get(day, []),
-        drucksache_vorgaenge=lambda numbers: {n: by_number[n] for n in numbers if n in by_number},
+        drucksache_vorgaenge=lambda numbers: {
+            n: by_number[n] for n in numbers if n in by_number
+        },
     )
 
 

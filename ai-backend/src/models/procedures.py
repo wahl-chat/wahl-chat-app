@@ -18,7 +18,6 @@ from wahlchat_common.procedures import ProcedureRecord, ProcedureSummary
 __all__ = ["ProcedureRecord", "ProcedureSummary", "ProcedureView"]
 
 
-
 class ProcedureView(BaseModel):
     """One procedure with its votes, speeches and Drucksache chunks, oldest first."""
 

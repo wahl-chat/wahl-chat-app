@@ -61,7 +61,9 @@ TEXT_TYPES: frozenset[str] = frozenset(
     }
 )
 # Short documents whose whole text states what is asked for.
-_WHOLE_OVERVIEW: frozenset[str] = frozenset({"Antrag", "Entschließungsantrag", "Änderungsantrag"})
+_WHOLE_OVERVIEW: frozenset[str] = frozenset(
+    {"Antrag", "Entschließungsantrag", "Änderungsantrag"}
+)
 MAX_TEXT_CHARS = 1_500_000
 
 _VORBLATT = re.compile(r"^[A-F]\. [A-ZÄÖÜ][\wäöüß ,/-]{2,60}$")
@@ -92,7 +94,11 @@ def _heading_level(line: str, in_vorblatt: bool) -> Optional[int]:
     numbered section, 4 Zu Artikel; None for body text."""
     if _TOP.match(line):
         return 1
-    if (in_vorblatt and _VORBLATT.match(line)) or _ARTIKEL.match(line) or _PART.match(line):
+    if (
+        (in_vorblatt and _VORBLATT.match(line))
+        or _ARTIKEL.match(line)
+        or _PART.match(line)
+    ):
         return 2
     if not in_vorblatt and _ROMAN.match(line):
         return 3
@@ -111,7 +117,11 @@ def _join(lines: list[str]) -> str:
     out: list[str] = []
     for line in lines:
         if out and line and (line[0].islower() or out[-1].endswith(("-", ","))):
-            joined = out[-1][:-1] + line if out[-1].endswith("-") and line[0].islower() else f"{out[-1]} {line}"
+            joined = (
+                out[-1][:-1] + line
+                if out[-1].endswith("-") and line[0].islower()
+                else f"{out[-1]} {line}"
+            )
             out[-1] = joined
         elif line:
             out.append(line)
@@ -199,7 +209,10 @@ def drucksache_chunks(
     titles = [procedures[v].titel for v in vorgang_ids]
     title = titles[0] if titles else _plain_title(str(doc.get("titel") or ""))
     sachgebiete = sorted({s for v in vorgang_ids for s in procedures[v].sachgebiete})
-    urheber = [str(u.get("titel") or u) if isinstance(u, dict) else str(u) for u in doc.get("urheber") or []]
+    urheber = [
+        str(u.get("titel") or u) if isinstance(u, dict) else str(u)
+        for u in doc.get("urheber") or []
+    ]
     parties = party_ids_of(urheber)
     fundstelle = doc.get("fundstelle") or {}
     pdf_url = fundstelle.get("pdf_url")
@@ -251,7 +264,9 @@ def drucksache_chunks(
                     # A Fraktion's own paper states its position; the rest
                     # (government bills, committee reports) is the record.
                     authority_tier=(
-                        AuthorityTier.SELF_REPORTED if parties else AuthorityTier.FACTUAL_RECORD
+                        AuthorityTier.SELF_REPORTED
+                        if parties
+                        else AuthorityTier.FACTUAL_RECORD
                     ),
                     source_type=SourceType.DRUCKSACHE,
                     publish_date=publish_date,
@@ -306,7 +321,8 @@ def stored_drucksachen(qdrant: Any, collection: str) -> set[str]:
         facet_filter=models.Filter(
             must=[
                 models.FieldCondition(
-                    key="source_type", match=models.MatchValue(value=SourceType.DRUCKSACHE.value)
+                    key="source_type",
+                    match=models.MatchValue(value=SourceType.DRUCKSACHE.value),
                 )
             ]
         ),
@@ -314,7 +330,11 @@ def stored_drucksachen(qdrant: Any, collection: str) -> set[str]:
         exact=True,
     )
     prefix = f"{SourceType.DRUCKSACHE.value}:BT:"
-    return {str(hit.value)[len(prefix) :] for hit in result.hits if str(hit.value).startswith(prefix)}
+    return {
+        str(hit.value)[len(prefix) :]
+        for hit in result.hits
+        if str(hit.value).startswith(prefix)
+    }
 
 
 def ingest_drucksachen(
@@ -350,13 +370,18 @@ def ingest_drucksachen(
             for number, doc in texts.items()
         }
         report.documents += len(parents)
-        report.empty.extend(k.rsplit(":", 1)[-1] for k, chunks in parents.items() if not chunks)
+        report.empty.extend(
+            k.rsplit(":", 1)[-1] for k, chunks in parents.items() if not chunks
+        )
         report.chunks += sum(len(c) for c in parents.values())
         written = replace_parents(qdrant, collection, embed, parents)
         report.written += written.written
         report.skipped += written.skipped
         report.failed.extend(k.rsplit(":", 1)[-1] for k in written.failed_parents)
         logger.info(
-            "Drucksachen %d/%d: %d chunks so far", min(start + batch_size, len(ordered)), len(ordered), report.chunks
+            "Drucksachen %d/%d: %d chunks so far",
+            min(start + batch_size, len(ordered)),
+            len(ordered),
+            report.chunks,
         )
     return report

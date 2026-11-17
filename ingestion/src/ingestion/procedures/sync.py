@@ -103,7 +103,9 @@ def sync_ids(
         unchanged: list[ProcedureRecord] = []
         for vid, vorgang in vorgaenge.items():
             mine = positions.get(vid, [])
-            if not in_scope(vorgang.get("vorgangstyp") or "", _has_bt_plenary_stage(mine)):
+            if not in_scope(
+                vorgang.get("vorgangstyp") or "", _has_bt_plenary_stage(mine)
+            ):
                 continue
             report.in_scope += 1
             old = previous.get(vid)
@@ -120,7 +122,10 @@ def sync_ids(
             changed.append(record)
             if old is None:
                 report.created.append(vid)
-            if old is not None and record.stage_changed_on == today != old.stage_changed_on:
+            if (
+                old is not None
+                and record.stage_changed_on == today != old.stage_changed_on
+            ):
                 report.new_stage.append(vid)
             if old is not None and old.sachgebiete != record.sachgebiete:
                 report.changed_sachgebiete.append(vid)
@@ -132,7 +137,8 @@ def sync_ids(
             continue
 
         parents = {
-            f"procedure:{r.vorgang_id}": [profile_chunk(r, today=today)] for r in to_check
+            f"procedure:{r.vorgang_id}": [profile_chunk(r, today=today)]
+            for r in to_check
         }
         written = replace_parents(qdrant, collection, embed, parents)
         failed = {key.split(":", 1)[1] for key in written.failed_parents}

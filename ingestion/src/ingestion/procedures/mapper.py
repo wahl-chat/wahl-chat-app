@@ -100,9 +100,13 @@ def stage_from_position(position: dict[str, Any]) -> Optional[ProcedureStage]:
 def drucksachen_from_positions(positions: list[dict[str, Any]]) -> list[DrucksacheRef]:
     """One ref per (chamber, number), in date order."""
     refs: dict[tuple[str, str], DrucksacheRef] = {}
-    for position in sorted(positions, key=lambda p: (p.get("datum") or "", str(p["id"]))):
+    for position in sorted(
+        positions, key=lambda p: (p.get("datum") or "", str(p["id"]))
+    ):
         fundstelle = position.get("fundstelle") or {}
-        if fundstelle.get("dokumentart") != "Drucksache" or not fundstelle.get("dokumentnummer"):
+        if fundstelle.get("dokumentart") != "Drucksache" or not fundstelle.get(
+            "dokumentnummer"
+        ):
             continue
         chamber = fundstelle.get("herausgeber") or position.get("zuordnung") or "BT"
         key = (chamber, fundstelle["dokumentnummer"])
@@ -172,7 +176,9 @@ def build_record(
         initiative=initiative,
         initiative_party_ids=party_ids_of(initiative),
         sachgebiete=sorted(set(vorgang.get("sachgebiet") or [])),
-        deskriptoren=[d["name"] for d in vorgang.get("deskriptor") or [] if d.get("name")],
+        deskriptoren=[
+            d["name"] for d in vorgang.get("deskriptor") or [] if d.get("name")
+        ],
         gesta=vorgang.get("gesta"),
         started_on=_day(vorgang.get("datum")) or (stages[0].date if stages else None),
         stages=stages,
@@ -215,7 +221,9 @@ def profile_text(record: ProcedureRecord) -> str:
 
 def profile_chunk(record: ProcedureRecord, *, today: date) -> ChunkRecord:
     """One vector per procedure; the timeline itself lives in Firestore."""
-    source_item_id = compute_source_item_id(SourceType.PROCEDURE.value, record.vorgang_id)
+    source_item_id = compute_source_item_id(
+        SourceType.PROCEDURE.value, record.vorgang_id
+    )
     text = profile_text(record)
     parties = record.initiative_party_ids
     publish_date = record.latest_stage_on or record.started_on or today

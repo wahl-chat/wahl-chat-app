@@ -47,12 +47,16 @@ def _default_db() -> Any:
     return async_db
 
 
-async def aget_procedures(ids: Iterable[str], *, _db: Any = None) -> list[ProcedureRecord]:
+async def aget_procedures(
+    ids: Iterable[str], *, _db: Any = None
+) -> list[ProcedureRecord]:
     """Records in the order asked for; unknown ids are skipped."""
     db = _db or _default_db()
     wanted = list(dict.fromkeys(ids))
     collection = db.collection(PROCEDURES_COLLECTION)
-    snapshots = await asyncio.gather(*(collection.document(vid).get() for vid in wanted))
+    snapshots = await asyncio.gather(
+        *(collection.document(vid).get() for vid in wanted)
+    )
     return [
         ProcedureRecord.model_validate(snapshot.to_dict())
         for snapshot in snapshots
@@ -60,7 +64,9 @@ async def aget_procedures(ids: Iterable[str], *, _db: Any = None) -> list[Proced
     ]
 
 
-async def aget_procedure(vorgang_id: str, *, _db: Any = None) -> Optional[ProcedureRecord]:
+async def aget_procedure(
+    vorgang_id: str, *, _db: Any = None
+) -> Optional[ProcedureRecord]:
     found = await aget_procedures([vorgang_id], _db=_db)
     return found[0] if found else None
 
@@ -136,7 +142,12 @@ async def aget_procedure_view(
         _linked(client, vorgang_id, "parliamentary_speech", party_id, limit),
         _linked(client, vorgang_id, "drucksache", party_id, limit),
     )
-    return ProcedureView(procedure=procedure, votes=votes, speeches=speeches, documents=documents)
+    return ProcedureView(
+        procedure=procedure, votes=votes, speeches=speeches, documents=documents
+    )
+
+
+_MAX_KIND_FETCH = 200
 
 
 async def asearch_procedures(
@@ -154,24 +165,32 @@ async def asearch_procedures(
     legislation and motions and drops procedural items (elections, rulings
     on order), which are half of all procedures."""
     wanted = set(kinds) if kinds is not None else None
-    hits = await retrieve(
-        query,
-        source_type="procedure",
-        party_ids_contains=party_id,
-        limit=limit if wanted is None else limit * 3,
-        with_scores=True,
-        _client=_client,
-        _embed_fn=_embed_fn,
-    )
-    scored = [hit for hit in hits if isinstance(hit, tuple)]
-    ids = [vid for payload, _ in scored for vid in procedure_ids_of(payload)[:1]]
-    records = {r.vorgang_id: r for r in await aget_procedures(ids, _db=_db)}
-    out: list[tuple[ProcedureSummary, float]] = []
-    for payload, score in scored:
-        vid = next(iter(procedure_ids_of(payload)), None)
-        if vid in records and (wanted is None or records[vid].kind in wanted):
-            out.append((records[vid].summary(), score))
-    return out[:limit]
+    if wanted is not None and not wanted:
+        return []
+    # The profile payload has no kind, so a kind filter over-fetches and
+    # widens until the page is full or the hits run out.
+    fetch = limit if wanted is None else limit * 3
+    while True:
+        hits = await retrieve(
+            query,
+            source_type="procedure",
+            party_ids_contains=party_id,
+            limit=fetch,
+            with_scores=True,
+            _client=_client,
+            _embed_fn=_embed_fn,
+        )
+        scored = [hit for hit in hits if isinstance(hit, tuple)]
+        ids = [vid for payload, _ in scored for vid in procedure_ids_of(payload)[:1]]
+        records = {r.vorgang_id: r for r in await aget_procedures(ids, _db=_db)}
+        out: list[tuple[ProcedureSummary, float]] = []
+        for payload, score in scored:
+            vid = next(iter(procedure_ids_of(payload)), None)
+            if vid in records and (wanted is None or records[vid].kind in wanted):
+                out.append((records[vid].summary(), score))
+        if len(out) >= limit or len(hits) < fetch or fetch >= _MAX_KIND_FETCH:
+            return out[:limit]
+        fetch = min(fetch * 4, _MAX_KIND_FETCH)
 
 
 async def asearch_procedure_documents(

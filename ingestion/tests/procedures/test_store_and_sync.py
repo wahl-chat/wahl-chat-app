@@ -37,7 +37,11 @@ def _chunk(parent: str, index: int, text: str = "t") -> ChunkRecord:
 
 
 def _ids(qdrant: FakeQdrant, parent: str) -> set[int]:
-    return {p["chunk_index"] for p in qdrant.points.values() if p["source_parent_key"] == parent}
+    return {
+        p["chunk_index"]
+        for p in qdrant.points.values()
+        if p["source_parent_key"] == parent
+    }
 
 
 def test_a_shrinking_parent_loses_only_its_orphans_after_the_upsert() -> None:
@@ -74,12 +78,17 @@ def test_a_failing_upsert_keeps_the_old_points() -> None:
     assert _ids(qdrant, "d:1") == {0, 1}
 
 
-def test_a_failing_embedding_fails_its_parents_only(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_a_failing_embedding_fails_its_parents_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(
-        "ingestion.procedures.store._embed_texts", lambda embed, texts: embed.embed_documents(texts)
+        "ingestion.procedures.store._embed_texts",
+        lambda embed, texts: embed.embed_documents(texts),
     )
     qdrant = FakeQdrant()
-    report = replace_parents(qdrant, "c", FakeEmbed(fail=True), {"d:1": [_chunk("d:1", 0)]})
+    report = replace_parents(
+        qdrant, "c", FakeEmbed(fail=True), {"d:1": [_chunk("d:1", 0)]}
+    )
     assert report.failed_parents == ["d:1"] and not qdrant.points
 
 
@@ -93,7 +102,14 @@ def _dip(vorgaenge: Any, positions: Any, **kw: Any) -> FakeDip:
     )
 
 
-def _run(dip: FakeDip, db: FakeFirestore, qdrant: FakeQdrant, *, backfill: bool, today: date = TODAY):
+def _run(
+    dip: FakeDip,
+    db: FakeFirestore,
+    qdrant: FakeQdrant,
+    *,
+    backfill: bool,
+    today: date = TODAY,
+):
     return run_sync(
         dip=dip,
         store=ProcedureStore(db),
@@ -134,7 +150,9 @@ def test_delta_without_a_backfill_refuses(vorgaenge, positions) -> None:
         _run(_dip(vorgaenge, positions), FakeFirestore(), FakeQdrant(), backfill=False)
 
 
-def test_a_failed_batch_keeps_the_watermark_and_is_retried(vorgaenge, positions) -> None:
+def test_a_failed_batch_keeps_the_watermark_and_is_retried(
+    vorgaenge, positions
+) -> None:
     db, qdrant = FakeFirestore(), FakeQdrant()
     _run(_dip(vorgaenge, positions), db, qdrant, backfill=True)
     before = db.data["procedures_meta"]["sync"]["dip_updated_through"]
@@ -145,7 +163,9 @@ def test_a_failed_batch_keeps_the_watermark_and_is_retried(vorgaenge, positions)
     assert state["dip_updated_through"] == before
     assert state["failed_ids"] == ["341758"]
     # next run retries the failed id even though DIP lists nothing new
-    healed = _run(_dip(vorgaenge, positions), db, qdrant, backfill=False, today=date(2026, 11, 19))
+    healed = _run(
+        _dip(vorgaenge, positions), db, qdrant, backfill=False, today=date(2026, 11, 19)
+    )
     assert not healed.failed and healed.unchanged == 1
     assert db.data["procedures_meta"]["sync"]["failed_ids"] == []
 
@@ -154,14 +174,25 @@ def test_a_new_stage_is_reported(vorgaenge, positions) -> None:
     db, qdrant = FakeFirestore(), FakeQdrant()
     trimmed = {**positions, "338366": positions["338366"][:-1]}
     _run(_dip(vorgaenge, trimmed), db, qdrant, backfill=True)
-    report = _run(_dip(vorgaenge, positions, updated={21: {"338366"}}), db, qdrant, backfill=False, today=date(2026, 11, 18))
+    report = _run(
+        _dip(vorgaenge, positions, updated={21: {"338366"}}),
+        db,
+        qdrant,
+        backfill=False,
+        today=date(2026, 11, 18),
+    )
     assert report.new_stage == ["338366"]
     assert db.data["procedures"]["338366"]["stage_changed_on"] == "2026-11-18"
 
 
 def test_single_questions_are_never_stored(vorgaenge, positions) -> None:
     frage = {**vorgaenge["341758"], "id": "9", "vorgangstyp": "Mündliche Frage"}
-    dip = FakeDip({**vorgaenge, "9": frage}, positions, plenary={21: {"9": "Mündliche Frage"}}, core={21: set()})
+    dip = FakeDip(
+        {**vorgaenge, "9": frage},
+        positions,
+        plenary={21: {"9": "Mündliche Frage"}},
+        core={21: set()},
+    )
     db = FakeFirestore()
     _run(dip, db, FakeQdrant(), backfill=True)
     assert "9" not in db.data.get("procedures", {})
