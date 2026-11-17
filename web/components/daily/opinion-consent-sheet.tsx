@@ -77,13 +77,15 @@ export function OpinionConsentSheet({
             Wir speichern deine Bewertungen mit deinem Konto oder deiner
             anonymen Nutzer-ID, auf Servern in der EU. Deine persönlichen
             Angaben geben wir nicht weiter. Andere sehen nur die anonyme Summe
-            aller Bewertungen. Diese Summen nutzen wir auch, um zu zeigen, wie
-            unsere Nutzerinnen und Nutzer Abstimmungen und Positionen insgesamt
-            sehen.
+            aller Bewertungen, und erst ab 10 Antworten. Diese Summen nutzen wir
+            auch, um zu zeigen, wie unsere Nutzerinnen und Nutzer Abstimmungen
+            und Positionen insgesamt sehen.
           </p>
           <p>
             Du kannst deine Einwilligung jederzeit widerrufen: im Menü unter
-            „Meine Bewertungen löschen“. Mehr in der{' '}
+            „Meine Bewertungen löschen“ oder in der Datenschutzerklärung. Unter
+            einer anonymen ID löschen wir sie nach sechs Monaten ohne Besuch.
+            Mehr in der{' '}
             <Link
               href="/datenschutz#mFeedBewertungen"
               target="_blank"

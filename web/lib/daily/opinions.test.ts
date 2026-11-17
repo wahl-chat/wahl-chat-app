@@ -3,14 +3,19 @@ import {
   EMPTY_COUNTS,
   EMPTY_OPINION,
   type FeedOpinion,
+  MIN_PUBLISHED_ANSWERS,
   applyIncrements,
   hasIncrements,
-  netScore,
+  isAbandoned,
+  isEmptyOpinion,
   nextOpinion,
   opinionIncrements,
   parseFeedOpinionBody,
+  publishedCounts,
+  scoreOf,
   toFeedOpinion,
   toOpinionCounts,
+  toPublishedCounts,
 } from './opinions';
 
 const ITEM = 'bundestag_2026-07-10_v6601';
@@ -227,12 +232,87 @@ describe('toOpinionCounts / toFeedOpinion', () => {
   });
 });
 
-describe('netScore', () => {
-  it('is agreement minus disagreement', () => {
+describe('publishedCounts', () => {
+  const k = MIN_PUBLISHED_ANSWERS;
+
+  it('withholds a vote with fewer answers than the minimum', () => {
+    const counts = toOpinionCounts({ vote: { accept: k - 2, reject: 1 } });
+    expect(publishedCounts(counts).vote).toBeNull();
+  });
+
+  it('shows a vote once it reaches the minimum', () => {
+    const counts = toOpinionCounts({ vote: { accept: k - 1, reject: 1 } });
+    expect(publishedCounts(counts).vote).toEqual({ accept: k - 1, reject: 1 });
+  });
+
+  it('withholds each position on its own', () => {
     const counts = toOpinionCounts({
-      positions: { gruene: { up: 3, down: 10 } },
+      positions: { gruene: { up: k, down: 3 }, spd: { up: 1, down: 0 } },
     });
-    expect(netScore(counts, 'gruene')).toBe(-7);
-    expect(netScore(counts, 'spd')).toBe(0);
+    expect(publishedCounts(counts).positions).toEqual({
+      gruene: { up: k, down: 3 },
+    });
+  });
+
+  it('round-trips through a response', () => {
+    const counts = publishedCounts(
+      toOpinionCounts({
+        vote: { accept: 1, reject: 0 },
+        positions: { gruene: { up: k, down: 0 } },
+      }),
+    );
+    expect(toPublishedCounts(JSON.parse(JSON.stringify(counts)))).toEqual(
+      counts,
+    );
+    expect(toPublishedCounts(undefined)).toEqual({ vote: null, positions: {} });
+  });
+});
+
+describe('scoreOf', () => {
+  it('is agreement minus disagreement', () => {
+    const counts = publishedCounts(
+      toOpinionCounts({ positions: { gruene: { up: 3, down: 10 } } }),
+    );
+    expect(scoreOf(counts, 'gruene')).toBe(-7);
+  });
+
+  it('is null for a withheld position', () => {
+    expect(scoreOf({ vote: null, positions: {} }, 'spd')).toBeNull();
+  });
+});
+
+describe('isEmptyOpinion', () => {
+  it('is true only without a vote and positions', () => {
+    expect(isEmptyOpinion(EMPTY_OPINION)).toBe(true);
+    expect(isEmptyOpinion({ vote: 'accept', positions: {} })).toBe(false);
+    expect(isEmptyOpinion({ vote: null, positions: { spd: 'up' } })).toBe(
+      false,
+    );
+  });
+});
+
+describe('isAbandoned', () => {
+  const cutoff = Date.UTC(2026, 4, 1);
+
+  it('is true for a uid that no longer exists', () => {
+    expect(isAbandoned(null, cutoff)).toBe(true);
+  });
+
+  it('is true for an anonymous reader not seen since the cutoff', () => {
+    expect(
+      isAbandoned({ anonymous: true, lastActiveMs: cutoff - 1 }, cutoff),
+    ).toBe(true);
+  });
+
+  it('keeps an anonymous reader seen since the cutoff', () => {
+    expect(isAbandoned({ anonymous: true, lastActiveMs: cutoff }, cutoff)).toBe(
+      false,
+    );
+  });
+
+  it('keeps an account holder, who can still sign in and withdraw', () => {
+    expect(isAbandoned({ anonymous: false, lastActiveMs: 0 }, cutoff)).toBe(
+      false,
+    );
   });
 });

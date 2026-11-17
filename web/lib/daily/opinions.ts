@@ -56,6 +56,10 @@ const POSITION_VALUES: readonly string[] = ['up', 'down'];
 const ITEM_ID_RE = /^[A-Za-z0-9_.~-]{1,120}$/;
 const PARTY_ID_RE = /^[a-z0-9_-]{1,40}$/;
 
+export function isFeedItemId(value: string): boolean {
+  return ITEM_ID_RE.test(value);
+}
+
 export function parseFeedOpinionBody(
   body: unknown,
 ): { ok: true; data: OpinionChange } | { ok: false; error: string } {
@@ -223,8 +227,74 @@ function count(value: unknown): number {
     : 0;
 }
 
-/** The score next to a position: agreement minus disagreement. */
-export function netScore(counts: OpinionCounts, partyId: string): number {
+export function isEmptyOpinion(opinion: FeedOpinion): boolean {
+  return opinion.vote === null && Object.keys(opinion.positions).length === 0;
+}
+
+/** Fewer answers than this on one target are never shown or published: a
+ * total of one or two would be the answer of a reader someone can name. */
+export const MIN_PUBLISHED_ANSWERS = 10;
+
+/** The counts as readers see them. A target with fewer than
+ * `MIN_PUBLISHED_ANSWERS` answers is withheld: `vote` is null and the party
+ * is missing from `positions`. */
+export type PublishedCounts = {
+  vote: Record<VoteOpinion, number> | null;
+  positions: Record<string, Record<PositionOpinion, number>>;
+};
+
+export function publishedCounts(counts: OpinionCounts): PublishedCounts {
+  const vote =
+    counts.vote.accept + counts.vote.reject >= MIN_PUBLISHED_ANSWERS
+      ? { ...counts.vote }
+      : null;
+  const positions: PublishedCounts['positions'] = {};
+  for (const [partyId, party] of Object.entries(counts.positions)) {
+    if (party.up + party.down >= MIN_PUBLISHED_ANSWERS) {
+      positions[partyId] = { ...party };
+    }
+  }
+  return { vote, positions };
+}
+
+/** A response's counts, read defensively: anything malformed is withheld. */
+export function toPublishedCounts(data: unknown): PublishedCounts {
+  const record = (data ?? {}) as Record<string, unknown>;
+  const counts = toOpinionCounts(record);
+  return {
+    vote: record.vote ? counts.vote : null,
+    positions: counts.positions,
+  };
+}
+
+/** The score next to a position, agreement minus disagreement, or null while
+ * the position has too few answers to show one. */
+export function scoreOf(
+  counts: PublishedCounts,
+  partyId: string,
+): number | null {
   const party = counts.positions[partyId];
-  return party ? party.up - party.down : 0;
+  return party ? party.up - party.down : null;
+}
+
+/** How long an anonymous reader's opinions are kept after their last visit.
+ * Their uid is lost with the browser's storage, and with it any way to
+ * withdraw, so they cannot be kept until a withdrawal that may never come. */
+export const ABANDONED_AFTER_DAYS = 183;
+
+/** A reader as the retention job sees them; null when the uid no longer
+ * exists. */
+export type ReaderActivity = {
+  anonymous: boolean;
+  lastActiveMs: number;
+} | null;
+
+/** Whether a reader's opinions are past retention: their uid is gone, or it
+ * is anonymous and has not been seen since `cutoffMs`. An account holder can
+ * always sign in and withdraw, so theirs stay until they do. */
+export function isAbandoned(reader: ReaderActivity, cutoffMs: number): boolean {
+  if (reader === null) {
+    return true;
+  }
+  return reader.anonymous && reader.lastActiveMs < cutoffMs;
 }

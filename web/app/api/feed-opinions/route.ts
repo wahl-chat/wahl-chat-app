@@ -1,6 +1,7 @@
-import { parseFeedOpinionBody } from '@/lib/daily/opinions';
+import { isFeedItemId, parseFeedOpinionBody } from '@/lib/daily/opinions';
 import {
   applyFeedOpinion,
+  readFeedOpinionCounts,
   withdrawFeedOpinions,
 } from '@/lib/firebase/feed-opinions-admin';
 import { verifyFirebaseIdToken } from '@/lib/firebase/page-visit-admin';
@@ -24,6 +25,31 @@ async function callerUid(request: NextRequest): Promise<string | null> {
 
 const UNAUTHORIZED = () =>
   NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+/** An item's counts, withheld where too few readers answered. Served here
+ * rather than read from Firestore, so a client never sees a raw count. */
+export async function GET(request: NextRequest) {
+  try {
+    const uid = await callerUid(request);
+    if (!uid) {
+      return UNAUTHORIZED();
+    }
+    const itemId = request.nextUrl.searchParams.get('item_id');
+    if (!itemId || !isFeedItemId(itemId)) {
+      return NextResponse.json({ error: 'Invalid item_id' }, { status: 400 });
+    }
+    return NextResponse.json(
+      { counts: await readFeedOpinionCounts(itemId) },
+      { headers: { 'cache-control': 'no-store' } },
+    );
+  } catch (error) {
+    console.error('Failed to read feed opinion counts', error);
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 },
+    );
+  }
+}
 
 /** Sets or takes back one opinion on a feed item; returns the item's counts. */
 export async function POST(request: NextRequest) {

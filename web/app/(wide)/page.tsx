@@ -21,6 +21,7 @@ import {
   WEBSITE_ID,
   productionRobots,
 } from '@/lib/seo';
+import { IS_EMBEDDED } from '@/lib/utils';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
@@ -157,6 +158,7 @@ async function HomePage({ searchParams }: Props) {
         calendar={calendar}
         editionDates={editionDates}
         glossary={glossary}
+        opinionsEnabled={!IS_EMBEDDED}
       />
     </>
   );

@@ -2,9 +2,7 @@ import type { WahlChatUser } from '@/components/anonymous-auth';
 import {
   EMPTY_OPINION,
   type FeedOpinion,
-  type OpinionCounts,
   toFeedOpinion,
-  toOpinionCounts,
 } from '@/lib/daily/opinions';
 import {
   getCurrentVisitId,
@@ -313,18 +311,6 @@ export async function getFeedOpinion(
 ): Promise<FeedOpinion> {
   const snapshot = await getDoc(doc(db, 'users', uid, 'feed_opinions', itemId));
   return snapshot.exists() ? toFeedOpinion(snapshot.data()) : EMPTY_OPINION;
-}
-
-/** Everyone's opinions on a feed item, summed, live. */
-export function subscribeFeedOpinionCounts(
-  itemId: string,
-  onCounts: (counts: OpinionCounts) => void,
-) {
-  return onSnapshot(
-    doc(db, 'feed_items', itemId, 'counts', 'opinions'),
-    (snapshot) => onCounts(toOpinionCounts(snapshot.data())),
-    (error) => console.error('Failed to read opinion counts', error),
-  );
 }
 
 export async function getChatSession(sessionId: string) {

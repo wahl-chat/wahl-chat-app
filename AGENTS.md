@@ -781,7 +781,9 @@ The two stores are seeded by different mechanisms, on purpose:
     (`components/daily/opinion-consent-sheet.tsx`). „Ja" stores
     `users/{uid}.feed_opinion_consent` (`{version, given_at}`). „Nein" or a
     dismissed sheet stores nothing, not even a decline, and the next tap asks
-    again. Without consent the UI shows no scores or totals.
+    again. Without consent the UI shows no scores or totals. The rules stop a
+    client from writing or deleting the consent field, or the user doc that
+    holds it: it is the proof of consent.
   - Each reader's answers live in `users/{uid}/feed_opinions/{item_id}`
     (`{item_id, kind, vote, positions: {party_id: 'up'|'down'}}`). Account
     linking keeps the anonymous uid, so the answers follow the reader into
@@ -789,12 +791,29 @@ The two stores are seeded by different mechanisms, on purpose:
   - Each item's totals live in `feed_items/{item_id}/counts/opinions`
     (`{vote: {accept, reject}, positions: {party_id: {up, down}}}`), not on
     the item: the feed job rewrites the item doc on every rebuild.
+    It carries no timestamp: the time of the last change would show when
+    one reader answered.
   - Only the web server writes either, in one transaction
     (`POST /api/feed-opinions`, `lib/firebase/feed-opinions-admin.ts`), so a
-    total always moves by exactly the reader's change. Clients read their own
-    answers and the public totals; the rules deny every client write.
-  - „Meine Bewertungen löschen" in the menu (`DELETE /api/feed-opinions`)
-    withdraws consent: it deletes every answer and takes it out of the totals.
+    total always moves by exactly the reader's change. A taken-back answer
+    deletes the reader's doc. Clients read only their own answers; the rules
+    deny every client write.
+  - Clients never read the totals from Firestore. `GET /api/feed-opinions`
+    serves them, and withholds every target with fewer than
+    `MIN_PUBLISHED_ANSWERS` (10) answers, so no total stands for one reader
+    someone can name. The same threshold applies to totals published
+    anywhere else. The totals are read once and after each answer, not live.
+  - „Meine Bewertungen löschen" (`DELETE /api/feed-opinions`) withdraws
+    consent: it removes the consent first, so an answer in flight is refused,
+    then deletes every answer and takes it out of the totals. It is in the
+    menu and in the `#mFeedBewertungen` section of `/datenschutz`.
+    Embedded deployments have no menu, so they show no rating UI.
+  - Retention: an anonymous uid is lost with the browser's storage, and with
+    it the only way to withdraw. A daily Vercel Cron
+    (`/api/feed-opinions/retention`, `web/vercel.json`, needs `CRON_SECRET`)
+    deletes the answers of uids that no longer exist, and of anonymous uids
+    not seen for `ABANDONED_AFTER_DAYS`. An account holder's answers stay until
+    they withdraw. Vercel Cron runs only on production deployments.
   - The privacy policy section is `#mFeedBewertungen` on `/datenschutz`. A
     change of purpose there, or in the consent sheet, needs a new
     `OPINION_CONSENT_VERSION`.

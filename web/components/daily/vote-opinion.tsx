@@ -6,7 +6,7 @@ import type { FeedOpinions } from '@/lib/daily/use-feed-opinions';
 import { cn } from '@/lib/utils';
 import { CheckIcon, XIcon } from 'lucide-react';
 import { useId } from 'react';
-import { FOCUS_RING, SECTION_LABEL } from './card-styles';
+import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
 import { CommunityHemicycle } from './hemicycle';
 
 const CHOICES: {
@@ -94,7 +94,7 @@ export function VoteOpinion({ opinions }: { opinions: FeedOpinions }) {
               );
             })}
           </div>
-          {counts && (
+          {counts?.vote && (
             <div className="flex flex-1 flex-col items-center gap-0.5">
               <CommunityHemicycle
                 accept={counts.vote.accept}
@@ -108,6 +108,11 @@ export function VoteOpinion({ opinions }: { opinions: FeedOpinions }) {
                 {counts.vote.accept} : {counts.vote.reject}
               </p>
             </div>
+          )}
+          {counts && !counts.vote && (
+            <p className={cn('flex-1 text-center text-[13px]', MUTED_TEXT)}>
+              Noch zu wenige Stimmen für ein Ergebnis
+            </p>
           )}
         </div>
       )}

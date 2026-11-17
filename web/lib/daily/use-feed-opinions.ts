@@ -1,23 +1,17 @@
 'use client';
 
 import { useAnonymousAuth } from '@/components/anonymous-auth';
-import {
-  auth,
-  getFeedOpinion,
-  subscribeFeedOpinionCounts,
-} from '@/lib/firebase/firebase';
+import { auth, getFeedOpinion } from '@/lib/firebase/firebase';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   EMPTY_OPINION,
   type FeedOpinion,
   type OpinionChange,
-  type OpinionCounts,
   type OpinionTarget,
-  applyIncrements,
+  type PublishedCounts,
   nextOpinion,
-  opinionIncrements,
-  toOpinionCounts,
+  toPublishedCounts,
 } from './opinions';
 
 /** Shows the consent sheet; resolves with the reader's answer. A dismissed
@@ -26,12 +20,17 @@ export type AskConsent = () => Promise<boolean>;
 
 class ConsentRequired extends Error {}
 
-async function authorizedFetch(init: RequestInit): Promise<Response> {
+const ENDPOINT = '/api/feed-opinions';
+
+async function authorizedFetch(
+  url: string,
+  init: RequestInit = {},
+): Promise<Response> {
   const token = await auth.currentUser?.getIdToken();
   if (!token) {
     throw new Error('Not signed in');
   }
-  return fetch('/api/feed-opinions', {
+  return fetch(url, {
     ...init,
     headers: {
       'content-type': 'application/json',
@@ -40,8 +39,8 @@ async function authorizedFetch(init: RequestInit): Promise<Response> {
   });
 }
 
-async function postOpinion(change: OpinionChange): Promise<OpinionCounts> {
-  const response = await authorizedFetch({
+async function postOpinion(change: OpinionChange): Promise<PublishedCounts> {
+  const response = await authorizedFetch(ENDPOINT, {
     method: 'POST',
     body: JSON.stringify({
       item_id: change.itemId,
@@ -58,12 +57,22 @@ async function postOpinion(change: OpinionChange): Promise<OpinionCounts> {
   if (!response.ok) {
     throw new Error(`Opinion not stored (${response.status})`);
   }
-  return toOpinionCounts((await response.json()).counts);
+  return toPublishedCounts((await response.json()).counts);
+}
+
+async function fetchOpinionCounts(itemId: string): Promise<PublishedCounts> {
+  const response = await authorizedFetch(
+    `${ENDPOINT}?item_id=${encodeURIComponent(itemId)}`,
+  );
+  if (!response.ok) {
+    throw new Error(`Opinion counts not read (${response.status})`);
+  }
+  return toPublishedCounts((await response.json()).counts);
 }
 
 /** Withdraws consent and deletes every opinion the reader gave. */
 export async function withdrawFeedOpinions(): Promise<void> {
-  const response = await authorizedFetch({ method: 'DELETE' });
+  const response = await authorizedFetch(ENDPOINT, { method: 'DELETE' });
   if (!response.ok) {
     throw new Error(`Opinions not withdrawn (${response.status})`);
   }
@@ -72,9 +81,10 @@ export async function withdrawFeedOpinions(): Promise<void> {
 export type FeedOpinions = {
   /** The reader's own opinion; empty until they have consented. */
   opinion: FeedOpinion;
-  /** Everyone's opinions summed; null until the reader has consented and
-   * their consent is stored, so nothing is shown before they opted in. */
-  counts: OpinionCounts | null;
+  /** Everyone's opinions summed, withheld where too few answered; null until
+   * the reader has consented and their consent is stored, so nothing is shown
+   * before they opted in. */
+  counts: PublishedCounts | null;
   /** Sets an opinion, or takes it back with `null`. Asks for consent first
    * if the reader has not given it. */
   choose: (target: OpinionTarget, value: OpinionChange['value']) => void;
@@ -86,7 +96,7 @@ export type FeedOpinions = {
  */
 export function useFeedOpinions(
   itemId: string | undefined,
-  askConsent: AskConsent,
+  askConsent: AskConsent | undefined,
 ): FeedOpinions {
   const { user, refreshUser } = useAnonymousAuth();
   const uid = user?.uid;
@@ -105,7 +115,7 @@ export function useFeedOpinions(
     ownRef.current = opinion;
     setOwnState(opinion);
   };
-  const [counts, setCounts] = useState<OpinionCounts | null>(null);
+  const [counts, setCounts] = useState<PublishedCounts | null>(null);
   // Counts local changes, so a read or response that started before the
   // latest tap does not overwrite it.
   const changes = useRef(0);
@@ -129,12 +139,25 @@ export function useFeedOpinions(
     };
   }, [itemId, uid, storedConsent]);
 
+  // Read once, then from each response: not live, since a live total shows
+  // the moment one reader's answer lands.
   useEffect(() => {
-    if (!itemId || !countsVisible) {
+    if (!itemId || !uid || !countsVisible) {
       return;
     }
-    return subscribeFeedOpinionCounts(itemId, setCounts);
-  }, [itemId, countsVisible]);
+    const started = changes.current;
+    let live = true;
+    fetchOpinionCounts(itemId)
+      .then((fresh) => {
+        if (live && changes.current === started) {
+          setCounts(fresh);
+        }
+      })
+      .catch((error) => console.error('Failed to read opinion counts', error));
+    return () => {
+      live = false;
+    };
+  }, [itemId, uid, countsVisible]);
 
   const send = (
     target: OpinionTarget,
@@ -145,11 +168,10 @@ export function useFeedOpinions(
       return;
     }
     const previous = ownRef.current;
-    const next = nextOpinion(previous, target, value);
-    const increments = opinionIncrements(previous, next);
     const stamp = ++changes.current;
-    setOwn(next);
-    setCounts((current) => current && applyIncrements(current, increments));
+    // The reader's own choice shows at once; the counts wait for the server,
+    // which alone knows whether a target has enough answers to show.
+    setOwn(nextOpinion(previous, target, value));
 
     queue.current = queue.current.then(async () => {
       try {
@@ -178,7 +200,7 @@ export function useFeedOpinions(
   };
 
   const choose: FeedOpinions['choose'] = (target, value) => {
-    if (!itemId || !uid) {
+    if (!itemId || !uid || !askConsent) {
       return;
     }
     if (optedIn) {

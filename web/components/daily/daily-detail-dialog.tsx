@@ -13,7 +13,7 @@ import {
   sectionTopics,
   suggestedQuestions,
 } from '@/lib/daily/items';
-import { netScore } from '@/lib/daily/opinions';
+import { scoreOf } from '@/lib/daily/opinions';
 import { speakerIds } from '@/lib/daily/politicians';
 import { shareItem } from '@/lib/daily/share';
 import { numberedSources } from '@/lib/daily/sources';
@@ -116,12 +116,16 @@ function SectionDetail({
   heat: number | undefined;
   onSpeaker: (speaker: DigestSpeaker, party: DigestPartyPosition) => void;
   photos: Record<string, string>;
-  askConsent: AskConsent;
+  /** Unset where readers cannot rate; see `DailyDetailDialog`. */
+  askConsent: AskConsent | undefined;
 }) {
   const { section, digest } = item;
   // Local previews have no stored item to attach opinions to.
-  const opinions = useFeedOpinions(section.item_id, askConsent);
-  const rateable = Boolean(section.item_id);
+  const rateable = Boolean(section.item_id) && askConsent !== undefined;
+  const opinions = useFeedOpinions(
+    rateable ? section.item_id : undefined,
+    askConsent,
+  );
   const hasSpeakers = section.positions?.some((p) => p.speakers.length > 0);
   const media = sectionMedia(section);
   const protocol = digest.session?.protocols[0];
@@ -197,7 +201,7 @@ function SectionDetail({
                         choice={opinions.opinion.positions[position.party_id]}
                         score={
                           opinions.counts &&
-                          netScore(opinions.counts, position.party_id)
+                          scoreOf(opinions.counts, position.party_id)
                         }
                         onChoose={(value) =>
                           opinions.choose(
@@ -237,10 +241,14 @@ function VoteDetail({
   askConsent,
 }: {
   item: VoteItem;
-  askConsent: AskConsent;
+  askConsent: AskConsent | undefined;
 }) {
   const { vote, digest } = item;
-  const opinions = useFeedOpinions(vote.item_id, askConsent);
+  const rateable = Boolean(vote.item_id) && askConsent !== undefined;
+  const opinions = useFeedOpinions(
+    rateable ? vote.item_id : undefined,
+    askConsent,
+  );
   const protocol = protocolLabel(digest);
   const about = vote.summary ?? vote.description;
   // One Fraktion at a time, picked in the chart or the list; picking it again
@@ -280,7 +288,7 @@ function VoteDetail({
           </p>
         </section>
       )}
-      {vote.item_id && <VoteOpinion opinions={opinions} />}
+      {rateable && <VoteOpinion opinions={opinions} />}
       <section className="flex flex-col gap-1">
         <h3 className={SECTION_LABEL}>So haben die Fraktionen gestimmt</h3>
         <PartyVoteTable
@@ -307,6 +315,9 @@ type Props = {
   /** Day-relative heat of the item, see `dayHeat`. */
   heat: number | undefined;
   onClose: () => void;
+  /** Off in embedded deployments: they have no menu to withdraw consent from,
+   * so they must not ask for it. */
+  opinionsEnabled?: boolean;
 };
 
 /** On phones the media viewer and the speaker sheet are vaul Drawers, which
@@ -323,7 +334,12 @@ function isViewerLayer(target: EventTarget | null): boolean {
  * The opened item: a little more than its card. Full screen on phones, a
  * centred column from md up.
  */
-export function DailyDetailDialog({ item, heat, onClose }: Props) {
+export function DailyDetailDialog({
+  item,
+  heat,
+  onClose,
+  opinionsEnabled = true,
+}: Props) {
   // The speaker sheet belongs to the item it was opened from, so another
   // item never opens with it.
   const [opened, setOpened] = useState<{
@@ -441,7 +457,7 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
                   <VoteDetail
                     key={item.key}
                     item={item}
-                    askConsent={askConsent}
+                    askConsent={opinionsEnabled ? askConsent : undefined}
                   />
                 ) : (
                   <SectionDetail
@@ -449,7 +465,7 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
                     item={item}
                     heat={heat}
                     photos={photos}
-                    askConsent={askConsent}
+                    askConsent={opinionsEnabled ? askConsent : undefined}
                     onSpeaker={(speaker, party) =>
                       setOpened({
                         itemKey: item.key,

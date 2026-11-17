@@ -74,6 +74,8 @@ type Props = {
   editionDates?: string[];
   /** The explained expert terms, for the whole feed. */
   glossary?: GlossaryEntry[];
+  /** Whether readers may rate positions and votes, see `DailyDetailDialog`. */
+  opinionsEnabled?: boolean;
 };
 
 type View = {
@@ -191,6 +193,7 @@ function DailyFeed({
   calendar = null,
   editionDates = [],
   glossary = [],
+  opinionsEnabled = true,
 }: Props) {
   const [states, setStates] = useState<StateSelection>(
     initialStates ?? DEFAULT_SELECTION,
@@ -480,6 +483,7 @@ function DailyFeed({
           item={openItem}
           heat={openHeat}
           onClose={() => open(null)}
+          opinionsEnabled={opinionsEnabled}
         />
       </div>
     </GlossaryProvider>
