@@ -885,6 +885,11 @@ The two stores are seeded by different mechanisms, on purpose:
   (`plan 01-08`, `Task 2`), doc filenames (`RESEARCH.md`, `PLAN.md`), and
   code-review finding IDs (`HIGH-1`, `MED-02`). Write the reasoning or the
   user-facing message, never the paper trail.
+- **The repository is open source.** Anyone can read the code, the commit
+  messages, the PR descriptions and the review comments. Write them for an
+  outside reader. Do not put secrets, credentials, personal data, user
+  data or internal-only details (unreleased plans, private infrastructure,
+  people's names in place of roles) in any of them.
 ## How to test / verify changes
 
 Local commands (mirror what CI runs):
