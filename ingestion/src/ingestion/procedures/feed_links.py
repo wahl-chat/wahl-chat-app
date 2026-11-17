@@ -51,31 +51,6 @@ class FirestoreProcedures:
         found = ProcedureStore(self._db).get(missing)
         self._records.update({vid: found.get(vid) for vid in missing})
 
-    def by_ids(self, ids: Iterable[str]) -> list[ProcedureSummary]: ...
-
-    def ids_for_drucksachen(self, numbers: Iterable[str]) -> list[str]: ...
-
-
-class FirestoreProcedures:
-    """Reads procedures once per id and run."""
-
-    def __init__(self, db: Any) -> None:
-        self._db = db
-        self._records: dict[str, Optional[ProcedureRecord]] = {}
-        self._by_number: dict[str, list[str]] = {}
-
-    def _load(self, ids: Iterable[str]) -> None:
-        missing = sorted(set(ids) - set(self._records))
-        collection = self._db.collection(PROCEDURES_COLLECTION)
-        for start in range(0, len(missing), 100):
-            refs = [collection.document(vid) for vid in missing[start : start + 100]]
-            for snapshot in self._db.get_all(refs):
-                self._records[snapshot.id] = (
-                    ProcedureRecord.model_validate(snapshot.to_dict()) if snapshot.exists else None
-                )
-        for vid in missing:
-            self._records.setdefault(vid, None)
-
     def by_ids(self, ids: Iterable[str]) -> list[ProcedureSummary]:
         wanted = list(dict.fromkeys(ids))
         self._load(wanted)
