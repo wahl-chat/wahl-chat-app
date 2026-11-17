@@ -9,10 +9,12 @@
     python -m ingestion.procedures.bulk --report            # coverage only
 
 The collection and its payload indexes come from ``ingestion.setup_collection``
-(the job entrypoint and ``make run-procedures`` run it first). A run, in order: sync procedures (backfill or DIP delta) → Drucksache text
-→ link votes and speeches without a link → topics of moved procedures →
-``has_links`` flags → feed items → coverage report. It must run after the
-speech and vote jobs and before the feed job of the same night.
+(the job entrypoint and ``make run-procedures`` run it first).
+
+A run, in order: sync procedures (backfill or DIP delta) → Drucksache text →
+link votes and speeches without a link → topics of moved procedures →
+``has_links`` flags → feed items → coverage report. It runs after speech and
+vote ingestion, which it links, and before the feed build, which shows it.
 """
 
 from __future__ import annotations
@@ -54,7 +56,8 @@ from wahlchat_common.procedures import ProcedureRecord
 logger = logging.getLogger(__name__)
 
 WAHLPERIODEN = [20, 21]
-# How Drucksache text enters the corpus; see ADR-0013 (S1–S3 experiment).
+# How Drucksache text enters the corpus: overview and committee reports
+# (law text crowded out speeches and votes; make eval-procedure-documents).
 DEFAULT_DRUCKSACHEN: DrucksacheMode = "overview"
 
 

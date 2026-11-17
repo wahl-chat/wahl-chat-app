@@ -12,9 +12,9 @@ a breadcrumb naming the document and section, because "§ 2 wird wie folgt
 geändert" means nothing on its own. Vorblatt and Anträge are the overview,
 a committee's Bericht is the report, law text and Begründung the body
 (``doc_section``). The ``overview`` mode reads overview and report only: the
-S0–S3 comparison (ADR-0013) found that law text adds detail but crowds out
-speeches and votes, while the Bericht adds the course and the Fraktionen's
-stances.
+comparison in ``wahlchat_evals.procedure_documents`` found that law text adds
+detail but crowds out speeches and votes, while the Bericht adds the course
+and the Fraktionen's stances.
 """
 
 from __future__ import annotations

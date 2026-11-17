@@ -126,7 +126,7 @@ def contexts(qdrant: QdrantClient, vector: list[float]) -> dict[str, list[Source
     k = SLOTS["documents"]
     doc = [_eq("source_type", "drucksache")]
     overview = _search(qdrant, vector, [*doc, _eq("doc_section", "overview")], k)
-    # S1B is what ships (ADR-0013): overview plus the committee reports.
+    # S1B is what the corpus holds: overview plus the committee reports.
     mixed = _search(qdrant, vector, doc, k)
     with_bericht = _search(
         qdrant,

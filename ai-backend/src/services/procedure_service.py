@@ -38,7 +38,8 @@ from wahlchat_common.speech_dedup import dedup_prefer_op
 
 logger = logging.getLogger(__name__)
 
-# The winner of the S0–S3 comparison (ADR-0013).
+# Overview and committee reports: law text added detail but crowded out
+# speeches and votes (make eval-procedure-documents).
 DEFAULT_STRATEGY: DrucksacheStrategy = "overview"
 # Speech payloads carry a sentence-by-sentence video map; a view needs none of it.
 _VIEW_PAYLOAD_EXCLUDE = ["meta.sentence_map"]

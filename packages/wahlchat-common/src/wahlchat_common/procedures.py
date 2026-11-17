@@ -28,7 +28,7 @@ Chamber = Literal["BT", "BR", "BV", "EK"]
 # overview: Vorblatt, Antrag text; report: a committee's Bericht (how it was
 # deliberated, each Fraktion's stance); body: law text and Begründung.
 DocSection = Literal["overview", "report", "body"]
-# What chat retrieval reads by default (ADR-0013); body text is not ingested.
+# What chat retrieval reads by default; body text is not ingested.
 READ_BY_DEFAULT: tuple[DocSection, ...] = ("overview", "report")
 
 LinkMethod = Literal[
