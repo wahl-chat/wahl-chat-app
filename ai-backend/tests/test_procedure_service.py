@@ -135,26 +135,30 @@ async def test_search_hydrates_profile_hits(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("strategy", ["S1", "S2", "S3"])
+@pytest.mark.parametrize("strategy", ["overview", "all", "drill_down"])
 async def test_document_strategies(monkeypatch: pytest.MonkeyPatch, strategy: str) -> None:
     calls: list[dict] = []
 
     async def fake_retrieve(query, **kw):  # noqa: ANN001, ANN003
         calls.append(kw)
-        section = kw.get("doc_section")
-        return [{"doc_section": section or "any", "vorgang_ids": ["338366"], "n": i} for i in range(kw["limit"])]
+        section = kw.get("doc_section") or ["any"]
+        return [{"doc_section": section[-1], "vorgang_ids": ["338366"], "n": i} for i in range(kw["limit"])]
 
     monkeypatch.setattr(service, "retrieve", fake_retrieve)
     out = await service.asearch_procedure_documents("q", limit=4, strategy=strategy)
     sections = [c.get("doc_section") for c in calls]
-    if strategy == "S1":
-        assert sections == ["overview"] and {d["doc_section"] for d in out} == {"overview"}
-    elif strategy == "S2":
+    if strategy == "overview":
+        assert sections == [["overview", "report"]]
+    elif strategy == "all":
         assert sections == [None]
     else:
-        assert sections == ["overview", "body"]
+        assert sections == [["overview", "report"], ["body"]]
         assert calls[1]["vorgang_id"] == "338366"  # drill into the best overview hit's procedure
-        assert [d["doc_section"] for d in out] == ["overview", "overview", "body", "body"]
+        assert [d["doc_section"] for d in out] == ["report", "report", "body", "body"]
+
+
+def test_the_default_reads_overview_and_reports() -> None:
+    assert service.DEFAULT_STRATEGY == "overview"
 
 
 @pytest.mark.asyncio

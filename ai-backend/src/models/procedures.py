@@ -17,10 +17,11 @@ from wahlchat_common.procedures import ProcedureRecord, ProcedureSummary
 
 __all__ = ["DrucksacheStrategy", "ProcedureRecord", "ProcedureSummary", "ProcedureView"]
 
-# How Drucksache text is searched (ADR-0013): S1 overview chunks only, S2
-# overview and body alike, S3 overview first and the body of the procedures
-# the overview hits belong to.
-DrucksacheStrategy = Literal["S1", "S2", "S3"]
+# How Drucksache text is searched (ADR-0013): "overview" reads Vorblatt,
+# Anträge and committee reports; "all" ranks the body alongside; "drill_down"
+# reads the overview first and then the body of the best hit's procedure.
+# Only "overview" has data in the deployed corpus (body text is not ingested).
+DrucksacheStrategy = Literal["overview", "all", "drill_down"]
 
 
 class ProcedureView(BaseModel):

@@ -9,8 +9,12 @@ A Drucksache is split at its own headings first: the Vorblatt sections
 Begründung (A./B., I./II., Zu Artikel n) and of a committee Bericht. Inside a
 section the corpus-wide splitter (1000/150) applies. Every chunk starts with
 a breadcrumb naming the document and section, because "§ 2 wird wie folgt
-geändert" means nothing on its own. Vorblatt and Anträge are the overview
-(``doc_section=overview``); law text, Begründung and Bericht are the body.
+geändert" means nothing on its own. Vorblatt and Anträge are the overview,
+a committee's Bericht is the report, law text and Begründung the body
+(``doc_section``). The ``overview`` mode reads overview and report only: the
+S0–S3 comparison (ADR-0013) found that law text adds detail but crowds out
+speeches and votes, while the Bericht adds the course and the Fraktionen's
+stances.
 """
 
 from __future__ import annotations
@@ -37,7 +41,7 @@ from ingestion.schemas import (
     ProcedureLink,
     SourceType,
 )
-from wahlchat_common.procedures import DocSection, ProcedureRecord
+from wahlchat_common.procedures import READ_BY_DEFAULT, DocSection, ProcedureRecord
 
 logger = logging.getLogger(__name__)
 
@@ -125,9 +129,13 @@ def split_sections(text: str, doc_type: Optional[str]) -> list[Section]:
     def close() -> None:
         content = _join(body)
         if content.strip():
-            overview = whole_overview or stack[0][1] == "Vorblatt"
             path = tuple(name for _, name in stack)
-            sections.append(Section(path, content, "overview" if overview else "body"))
+            section: DocSection = "body"
+            if whole_overview or path[0] == "Vorblatt":
+                section = "overview"
+            elif path[0] == "Bericht":
+                section = "report"
+            sections.append(Section(path, content, section))
         body.clear()
 
     for line in lines:
@@ -203,7 +211,7 @@ def drucksache_chunks(
 
     chunks: list[ChunkRecord] = []
     for section in split_sections(text, doc_type):
-        if mode == "overview" and section.doc_section != "overview":
+        if mode == "overview" and section.doc_section not in READ_BY_DEFAULT:
             continue
         crumb = _breadcrumb(number, doc_type, title, section.path)
         for piece in chunk_text(section.text):

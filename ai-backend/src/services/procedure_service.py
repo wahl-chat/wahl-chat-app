@@ -33,13 +33,13 @@ from src.models.procedures import (
     ProcedureView,
 )
 from src.retrieve import COLLECTION_NAME, _get_qdrant, retrieve
-from wahlchat_common.procedures import PROCEDURES_COLLECTION
+from wahlchat_common.procedures import PROCEDURES_COLLECTION, READ_BY_DEFAULT
 from wahlchat_common.speech_dedup import dedup_prefer_op
 
 logger = logging.getLogger(__name__)
 
-# The winner of the S1–S3 comparison (ADR-0013).
-DEFAULT_STRATEGY: DrucksacheStrategy = "S1"
+# The winner of the S0–S3 comparison (ADR-0013).
+DEFAULT_STRATEGY: DrucksacheStrategy = "overview"
 # Speech payloads carry a sentence-by-sentence video map; a view needs none of it.
 _VIEW_PAYLOAD_EXCLUDE = ["meta.sentence_map"]
 
@@ -182,11 +182,11 @@ async def asearch_procedure_documents(
     _client: Any = None,
     _embed_fn: Any = None,
 ) -> list[dict[str, Any]]:
-    """Drucksache chunks for the query, as the shipped strategy reaches them.
+    """Drucksache chunks for the query (see ``DrucksacheStrategy``).
 
-    S1: overview chunks (Vorblatt, Anträge) only. S2: overview and body in one
-    ranking. S3: overview first, then the body of the procedure asked for
-    (``vorgang_id``) or of the procedure the best overview hit belongs to.
+    ``vorgang_id`` keeps the search inside one procedure. ``drill_down``
+    gives half the slots to the overview and the rest to the body of the
+    procedure asked for, or of the one the best overview hit belongs to.
     """
     common: dict[str, Any] = {
         "source_type": "drucksache",
@@ -194,17 +194,18 @@ async def asearch_procedure_documents(
         "_client": _client,
         "_embed_fn": _embed_fn,
     }
-    if strategy == "S2":
+    if strategy == "all":
         return _payloads(await retrieve(query, limit=limit, **common))
-    overview = _payloads(await retrieve(query, limit=limit, doc_section="overview", **common))
-    if strategy == "S1":
+    overview = _payloads(
+        await retrieve(query, limit=limit, doc_section=list(READ_BY_DEFAULT), **common)
+    )
+    if strategy == "overview":
         return overview
     target = vorgang_id or next((vid for p in overview for vid in procedure_ids_of(p)), None)
     if target is None:
         return overview
     body_common = {**common, "vorgang_id": target}
-    body = _payloads(await retrieve(query, limit=limit, doc_section="body", **body_common))
-    # Half the slots for the overview, the rest for the drill-down.
+    body = _payloads(await retrieve(query, limit=limit, doc_section=["body"], **body_common))
     keep = max(1, limit // 2)
     return [*overview[:keep], *body[: limit - keep]]
 

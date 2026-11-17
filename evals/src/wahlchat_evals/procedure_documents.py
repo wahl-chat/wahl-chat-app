@@ -11,6 +11,7 @@ same model:
     S1  S0 + procedure profiles + Drucksache overview chunks (Vorblatt, Anträge)
     S2  S0 + procedure profiles + Drucksache chunks, overview and body in one ranking
     S3  S0 + procedure profiles + overview, then the body of the best hit's procedure
+    S1B S1 + the committee Bericht (how it was deliberated, each Fraktion's stance)
 
 Speech and vote slots are identical across strategies, the way the generic
 chat's search tool fills one slot per source type. The report shows the
@@ -49,7 +50,7 @@ from ingestion.setup_collection import COLLECTION_NAME
 from wahlchat_common.embeddings import get_embeddings
 
 QUESTIONS = Path(__file__).resolve().parents[2] / "data" / "procedure_documents" / "questions.json"
-STRATEGIES = ("S0", "S1", "S2", "S3")
+STRATEGIES = ("S0", "S1", "S1B", "S2", "S3")
 MODEL = "gemini-3.7-flash"
 SLOTS = {"speeches": 6, "votes": 3, "procedures": 2, "documents": 4}
 
@@ -125,7 +126,14 @@ def contexts(qdrant: QdrantClient, vector: list[float]) -> dict[str, list[Source
     k = SLOTS["documents"]
     doc = [_eq("source_type", "drucksache")]
     overview = _search(qdrant, vector, [*doc, _eq("doc_section", "overview")], k)
+    # S1B is what ships (ADR-0013): overview plus the committee reports.
     mixed = _search(qdrant, vector, doc, k)
+    with_bericht = _search(
+        qdrant,
+        vector,
+        [*doc, models.FieldCondition(key="doc_section", match=models.MatchAny(any=["overview", "report"]))],
+        k,
+    )
     target = next((v for p in overview for v in p.get("vorgang_ids") or []), None)
     body = (
         _search(qdrant, vector, [*doc, _eq("doc_section", "body"), _eq("vorgang_ids", target)], k)
@@ -136,6 +144,7 @@ def contexts(qdrant: QdrantClient, vector: list[float]) -> dict[str, list[Source
     return {
         "S0": base,
         "S1": base + profiles + _sources("document", overview),
+        "S1B": base + profiles + _sources("document", with_bericht),
         "S2": base + profiles + _sources("document", mixed),
         "S3": base + profiles + _sources("document", overview[:keep] + body[: k - keep]),
     }

@@ -353,8 +353,8 @@ class ChunkRecord(BaseModel):
     doc_section: Optional[DocSection] = Field(
         None,
         description=(
-            "drucksache chunks: 'overview' (Vorblatt, Antrag text) or 'body' "
-            "(Gesetzestext, Begründung, Bericht). INDEXED keyword."
+            "drucksache chunks: 'overview' (Vorblatt, Antrag text), 'report' "
+            "(committee Bericht) or 'body' (Gesetzestext, Begründung). INDEXED keyword."
         ),
     )
     # Source-owned nested metadata (NOT indexed — descriptive fields only):

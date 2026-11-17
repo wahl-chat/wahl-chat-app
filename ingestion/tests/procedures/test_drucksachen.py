@@ -100,3 +100,12 @@ def test_a_report_title_mentioning_a_bill_does_not_end_the_vorblatt() -> None:
     doc = load("drucksache_21_8457")
     sections = split_sections(doc["text"], doc["drucksachetyp"])
     assert ("Vorblatt", "A. Problem") in [s.path for s in sections]
+
+
+def test_a_committee_bericht_is_the_report_and_read_by_default() -> None:
+    doc = load("drucksache_21_8457")
+    sections = split_sections(doc["text"], doc["drucksachetyp"])
+    assert {s.doc_section for s in sections if s.path[0] == "Bericht"} == {"report"}
+    assert {s.doc_section for s in sections if s.path[0] == "Beschlussempfehlung"} == {"body"}
+    read = drucksache_chunks(doc, procedures={}, mode="overview", today=TODAY)
+    assert {c.doc_section for c in read} == {"overview", "report"}
