@@ -9,7 +9,7 @@ import type {
 } from '@/lib/firebase/firebase.types';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
 import Image from 'next/image';
-import { Fragment, useState } from 'react';
+import { Fragment, type ReactNode, useState } from 'react';
 import { MUTED_TEXT } from './card-styles';
 import { GlossaryText } from './glossary-text';
 import { SourcePills } from './source-pills';
@@ -109,6 +109,7 @@ export function PartyPositions({
   onSpeaker,
   speakerPhotos,
   terms,
+  renderRating,
 }: {
   positions: DigestPartyPosition[];
   openedBy?: string | null;
@@ -124,53 +125,67 @@ export function PartyPositions({
   speakerPhotos?: Record<string, string>;
   /** The item's expert terms the glossary explains. */
   terms?: TermRef[];
+  /** The detail view lets the reader agree or disagree with each stated
+   * position; Fraktionen shown by their speeches only get nothing. */
+  renderRating?: (position: DigestPartyPosition) => ReactNode;
 }) {
   return (
     <dl className="divide-y divide-[var(--daily-border)] border-t border-[var(--daily-border)]">
       {orderedPositions(positions, openedBy)
         .slice(0, limit)
-        .map((position) => (
-          <div
-            key={position.party_id}
-            className="flex items-start gap-3 py-3 text-[15px] leading-snug"
-          >
-            <dt>
-              <PartyLogo
-                partyId={position.party_id}
-                logoId={position.logo_id}
-                name={position.party_name}
-                color={position.color}
-              />
-            </dt>
-            <dd
-              className={cn(
-                'min-w-0 pt-1',
-                clamp ? 'line-clamp-2' : 'flex flex-col gap-2',
-              )}
+        .map((position) => {
+          const rating = position.position && renderRating?.(position);
+          const chips = onSpeaker && position.speakers.length > 0 && (
+            <SpeakerChips
+              speakers={position.speakers}
+              photos={speakerPhotos}
+              onOpen={(speaker) => onSpeaker(speaker, position)}
+            />
+          );
+          return (
+            <div
+              key={position.party_id}
+              className="flex items-start gap-3 py-3 text-[15px] leading-snug"
             >
-              {position.position ? (
-                <span>
-                  <GlossaryText text={position.position} terms={terms} />
-                  {sources && (
-                    <SourcePills
-                      numbers={sources.position(position.party_id)}
-                      sources={sources}
-                    />
-                  )}
-                </span>
-              ) : onSpeaker ? null : (
-                <SpeechesOnly speakers={position.speakers} />
-              )}
-              {onSpeaker && position.speakers.length > 0 && (
-                <SpeakerChips
-                  speakers={position.speakers}
-                  photos={speakerPhotos}
-                  onOpen={(speaker) => onSpeaker(speaker, position)}
+              <dt>
+                <PartyLogo
+                  partyId={position.party_id}
+                  logoId={position.logo_id}
+                  name={position.party_name}
+                  color={position.color}
                 />
-              )}
-            </dd>
-          </div>
-        ))}
+              </dt>
+              <dd
+                className={cn(
+                  'min-w-0 flex-1 pt-1',
+                  clamp ? 'line-clamp-2' : 'flex flex-col gap-2',
+                )}
+              >
+                {position.position ? (
+                  <span>
+                    <GlossaryText text={position.position} terms={terms} />
+                    {sources && (
+                      <SourcePills
+                        numbers={sources.position(position.party_id)}
+                        sources={sources}
+                      />
+                    )}
+                  </span>
+                ) : onSpeaker ? null : (
+                  <SpeechesOnly speakers={position.speakers} />
+                )}
+                {rating ? (
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">{chips}</div>
+                    {rating}
+                  </div>
+                ) : (
+                  chips
+                )}
+              </dd>
+            </div>
+          );
+        })}
     </dl>
   );
 }

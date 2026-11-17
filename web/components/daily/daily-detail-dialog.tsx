@@ -13,9 +13,14 @@ import {
   sectionTopics,
   suggestedQuestions,
 } from '@/lib/daily/items';
+import { netScore } from '@/lib/daily/opinions';
 import { speakerIds } from '@/lib/daily/politicians';
 import { shareItem } from '@/lib/daily/share';
 import { numberedSources } from '@/lib/daily/sources';
+import {
+  type AskConsent,
+  useFeedOpinions,
+} from '@/lib/daily/use-feed-opinions';
 import type {
   DigestPartyPosition,
   DigestSpeaker,
@@ -24,10 +29,11 @@ import { cn } from '@/lib/utils';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ChevronLeftIcon, ShareIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useId, useState } from 'react';
+import { useCallback, useId, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
 import { GlossaryText } from './glossary-text';
 import { Hemicycle, PartyVoteBreakdown, SeatLegend } from './hemicycle';
+import { OpinionConsentSheet } from './opinion-consent-sheet';
 import { PartyPositions, orderedPositions } from './party-positions';
 import { HeatInfo } from './plenary-card';
 import {
@@ -35,10 +41,12 @@ import {
   PoliticianSheet,
   useSpeakerPhotos,
 } from './politician-sheet';
+import { PositionRating } from './position-rating';
 import { SourcePills } from './source-pills';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
 import { TopicMeta } from './topic-chip';
 import { OutcomeBadge } from './vote-card';
+import { VoteOpinion } from './vote-opinion';
 import { PartyVoteTable, SourceLink } from './vote-panels';
 
 const longDayFormat = new Intl.DateTimeFormat('de-DE', {
@@ -102,13 +110,19 @@ function SectionDetail({
   heat,
   onSpeaker,
   photos,
+  askConsent,
 }: {
   item: SectionItem;
   heat: number | undefined;
   onSpeaker: (speaker: DigestSpeaker, party: DigestPartyPosition) => void;
   photos: Record<string, string>;
+  askConsent: AskConsent;
 }) {
   const { section, digest } = item;
+  // Local previews have no stored item to attach opinions to.
+  const opinions = useFeedOpinions(section.item_id, askConsent);
+  const rateable = Boolean(section.item_id);
+  const hasSpeakers = section.positions?.some((p) => p.speakers.length > 0);
   const media = sectionMedia(section);
   const protocol = digest.session?.protocols[0];
   const points = section.key_points ?? [];
@@ -156,10 +170,16 @@ function SectionDetail({
           <section className="flex flex-col gap-1.5">
             <div className="flex items-baseline justify-between gap-3">
               <h3 className={SECTION_LABEL}>Wer sagt was</h3>
-              {section.positions.some((p) => p.speakers.length > 0) && (
-                <span className={cn('text-[13px] md:hidden', MUTED_TEXT)}>
-                  Tippe auf eine Person für mehr
+              {rateable ? (
+                <span className={cn('text-[13px]', MUTED_TEXT)}>
+                  Stimmst du zu?
                 </span>
+              ) : (
+                hasSpeakers && (
+                  <span className={cn('text-[13px] md:hidden', MUTED_TEXT)}>
+                    Tippe auf eine Person für mehr
+                  </span>
+                )
               )}
             </div>
             <PartyPositions
@@ -169,7 +189,32 @@ function SectionDetail({
               sources={sources}
               onSpeaker={onSpeaker}
               speakerPhotos={photos}
+              renderRating={
+                rateable
+                  ? (position) => (
+                      <PositionRating
+                        partyName={position.party_name}
+                        choice={opinions.opinion.positions[position.party_id]}
+                        score={
+                          opinions.counts &&
+                          netScore(opinions.counts, position.party_id)
+                        }
+                        onChoose={(value) =>
+                          opinions.choose(
+                            { kind: 'position', partyId: position.party_id },
+                            value,
+                          )
+                        }
+                      />
+                    )
+                  : undefined
+              }
             />
+            {rateable && hasSpeakers && (
+              <p className={cn('text-[13px] md:hidden', MUTED_TEXT)}>
+                Tippe auf eine Person für mehr
+              </p>
+            )}
           </section>
         )}
         {protocol &&
@@ -187,8 +232,15 @@ function SectionDetail({
   );
 }
 
-function VoteDetail({ item }: { item: VoteItem }) {
+function VoteDetail({
+  item,
+  askConsent,
+}: {
+  item: VoteItem;
+  askConsent: AskConsent;
+}) {
   const { vote, digest } = item;
+  const opinions = useFeedOpinions(vote.item_id, askConsent);
   const protocol = protocolLabel(digest);
   const about = vote.summary ?? vote.description;
   // One Fraktion at a time, picked in the chart or the list; picking it again
@@ -228,6 +280,7 @@ function VoteDetail({ item }: { item: VoteItem }) {
           </p>
         </section>
       )}
+      {vote.item_id && <VoteOpinion opinions={opinions} />}
       <section className="flex flex-col gap-1">
         <h3 className={SECTION_LABEL}>So haben die Fraktionen gestimmt</h3>
         <PartyVoteTable
@@ -280,18 +333,38 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
   const openSpeaker =
     opened && opened.itemKey === item?.key ? opened.speaker : null;
   const [content, setContent] = useState<HTMLDivElement | null>(null);
+  // The open consent sheet, by the answer it is waiting for.
+  const [consentAnswer, setConsentAnswer] = useState<
+    ((accepted: boolean) => void) | null
+  >(null);
+  const askConsent = useCallback<AskConsent>(
+    () =>
+      new Promise((resolve) => {
+        setConsentAnswer(() => resolve);
+      }),
+    [],
+  );
+  const answerConsent = (accepted: boolean) => {
+    consentAnswer?.(accepted);
+    setConsentAnswer(null);
+  };
   const photos = useSpeakerPhotos(
     item && item.kind !== 'vote'
       ? speakerIds(item.section.positions ?? [])
       : [],
   );
 
-  // An outside tap or Escape closes the source viewer, then the speaker
-  // sheet, and only then this view.
+  // An outside tap or Escape closes the source viewer, the consent sheet, then
+  // the speaker sheet, and only then this view.
   const viewer = useMediaViewer();
   const viewerOpen = viewer?.isOpen ?? false;
   const keepOpen = (event: Event) => {
-    if (viewerOpen || openSpeaker || isViewerLayer(event.target)) {
+    if (
+      viewerOpen ||
+      consentAnswer ||
+      openSpeaker ||
+      isViewerLayer(event.target)
+    ) {
       event.preventDefault();
     }
   };
@@ -301,6 +374,9 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
     if (viewerOpen) {
       event.preventDefault();
       viewer?.close();
+    } else if (consentAnswer) {
+      event.preventDefault();
+      answerConsent(false);
     } else if (openSpeaker) {
       event.preventDefault();
       setOpened(null);
@@ -313,7 +389,14 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
   return (
     <DialogPrimitive.Root
       open={item !== null}
-      onOpenChange={(open) => !open && onClose()}
+      onOpenChange={(open) => {
+        if (!open) {
+          // A question left open is a „Nein", or it would reopen with the
+          // next item.
+          answerConsent(false);
+          onClose();
+        }
+      }}
     >
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40" />
@@ -353,13 +436,20 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
                 </button>
               </header>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">
+                {/* Keyed by item, so opinions never carry over to the next. */}
                 {item.kind === 'vote' ? (
-                  <VoteDetail item={item} />
+                  <VoteDetail
+                    key={item.key}
+                    item={item}
+                    askConsent={askConsent}
+                  />
                 ) : (
                   <SectionDetail
+                    key={item.key}
                     item={item}
                     heat={heat}
                     photos={photos}
+                    askConsent={askConsent}
                     onSpeaker={(speaker, party) =>
                       setOpened({
                         itemKey: item.key,
@@ -384,6 +474,11 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
                 photos={photos}
                 container={content}
                 onClose={() => setOpened(null)}
+              />
+              <OpinionConsentSheet
+                open={consentAnswer !== null}
+                container={content}
+                onAnswer={answerConsent}
               />
             </>
           )}
