@@ -1,5 +1,12 @@
 import type { WahlChatUser } from '@/components/anonymous-auth';
 import {
+  EMPTY_OPINION,
+  type FeedOpinion,
+  type OpinionCounts,
+  toFeedOpinion,
+  toOpinionCounts,
+} from '@/lib/daily/opinions';
+import {
   getCurrentVisitId,
   getOrLoadPageVisitSnapshot,
 } from '@/lib/page-visit/page-visit';
@@ -299,6 +306,27 @@ export async function setFeedInterest(
   });
 }
 
+/** The reader's own opinion on a feed item. Written only by the server. */
+export async function getFeedOpinion(
+  uid: string,
+  itemId: string,
+): Promise<FeedOpinion> {
+  const snapshot = await getDoc(doc(db, 'users', uid, 'feed_opinions', itemId));
+  return snapshot.exists() ? toFeedOpinion(snapshot.data()) : EMPTY_OPINION;
+}
+
+/** Everyone's opinions on a feed item, summed, live. */
+export function subscribeFeedOpinionCounts(
+  itemId: string,
+  onCounts: (counts: OpinionCounts) => void,
+) {
+  return onSnapshot(
+    doc(db, 'feed_items', itemId, 'counts', 'opinions'),
+    (snapshot) => onCounts(toOpinionCounts(snapshot.data())),
+    (error) => console.error('Failed to read opinion counts', error),
+  );
+}
+
 export async function getChatSession(sessionId: string) {
   const session = await getDoc(doc(db, 'chat_sessions', sessionId));
   return {
@@ -518,6 +546,9 @@ export async function getUser(uid: string) {
           timestamp: firestoreTimestampToDate(data.survey_status.timestamp),
         }
       : undefined,
+    // Always present, so a withdrawn consent overwrites the one the session
+    // still holds: the auth provider merges this doc into its user.
+    feed_opinion_consent: data?.feed_opinion_consent,
   } as WahlChatUser;
 }
 

@@ -25,6 +25,12 @@ service cloud.firestore {
       allow read;
     }
 
+    // Readers' opinions on an item, summed. Public totals only; written by
+    // the web server (admin SDK) in the same transaction as the opinion.
+    match /feed_items/{item_id}/counts/{doc_id} {
+      allow read;
+    }
+
     match /feed_calendar/{parliament} {
       allow read;
     }
@@ -111,6 +117,13 @@ service cloud.firestore {
 
     match /users/{user_id}/chat_sessions/{session_id} {
       allow read, write: if request.auth != null && request.auth.uid == user_id;
+    }
+
+    // A reader's own opinions on feed items: political opinions (GDPR Art. 9).
+    // Only the owner reads them. Writes go through the web server, which
+    // checks consent and keeps the item's counts in step.
+    match /users/{user_id}/feed_opinions/{item_id} {
+      allow read: if request.auth != null && request.auth.uid == user_id;
     }
 
     // PledgeTracker study participants (consent, cohort, interaction log).
