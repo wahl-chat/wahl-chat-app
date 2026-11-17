@@ -170,3 +170,16 @@ async def test_view_drops_the_dip_twin_of_an_op_speech() -> None:
     ])
     view = await service.aget_procedure_view("320784", _db=FakeDb(), _client=qdrant)
     assert view is not None and [s["source"] for s in view.speeches] == ["op"]
+
+
+@pytest.mark.asyncio
+async def test_search_can_keep_only_some_kinds(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_retrieve(query, **kw):  # noqa: ANN001, ANN003
+        assert kw["limit"] == 6  # over-fetch to fill the page after filtering
+        return [({"vorgang_ids": ["320784"]}, 0.9), ({"vorgang_ids": ["338366"]}, 0.8)]
+
+    monkeypatch.setattr(service, "retrieve", fake_retrieve)
+    db = FakeDb()
+    db.docs["320784"] = {**db.docs["320784"], "kind": "procedural"}
+    hits = await service.asearch_procedures("q", limit=2, kinds=["legislation"], _db=db)
+    assert [s.vorgang_id for s, _ in hits] == ["338366"]

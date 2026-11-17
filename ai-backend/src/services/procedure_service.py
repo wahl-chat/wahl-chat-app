@@ -33,7 +33,7 @@ from src.models.procedures import (
     ProcedureView,
 )
 from src.retrieve import COLLECTION_NAME, _get_qdrant, retrieve
-from wahlchat_common.procedures import PROCEDURES_COLLECTION, READ_BY_DEFAULT
+from wahlchat_common.procedures import PROCEDURES_COLLECTION, READ_BY_DEFAULT, ProcedureKind
 from wahlchat_common.speech_dedup import dedup_prefer_op
 
 logger = logging.getLogger(__name__)
@@ -147,17 +147,21 @@ async def asearch_procedures(
     *,
     limit: int = 5,
     party_id: Optional[str] = None,
+    kinds: Optional[Iterable[ProcedureKind]] = None,
     _db: Any = None,
     _client: Any = None,
     _embed_fn: Any = None,
 ) -> list[tuple[ProcedureSummary, float]]:
     """Procedures whose profile matches the query, best first; with a
-    party, those it tabled (alone or with others)."""
+    party, those it tabled (alone or with others). ``kinds`` keeps e.g.
+    legislation and motions and drops procedural items (elections, rulings
+    on order), which are half of all procedures."""
+    wanted = set(kinds) if kinds is not None else None
     hits = await retrieve(
         query,
         source_type="procedure",
         party_ids_contains=party_id,
-        limit=limit,
+        limit=limit if wanted is None else limit * 3,
         with_scores=True,
         _client=_client,
         _embed_fn=_embed_fn,
@@ -168,9 +172,9 @@ async def asearch_procedures(
     out: list[tuple[ProcedureSummary, float]] = []
     for payload, score in scored:
         vid = next(iter(procedure_ids_of(payload)), None)
-        if vid in records:
+        if vid in records and (wanted is None or records[vid].kind in wanted):
             out.append((records[vid].summary(), score))
-    return out
+    return out[:limit]
 
 
 async def asearch_procedure_documents(
