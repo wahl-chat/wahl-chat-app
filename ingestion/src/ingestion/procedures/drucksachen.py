@@ -66,6 +66,10 @@ _TOP = re.compile(
     r"Stellungnahme des Bundesrates|Gegenäußerung der Bundesregierung)$"
 )
 _ARTIKEL = re.compile(r"^Artikel \d+[a-z]?$")
+# Where the law text starts after the Vorblatt of a bill without Artikel
+# (one law in § sections) or before its first Artikel.
+_LAW_TITLE = re.compile(r"^Entwurf eines .{5,}")
+_FIRST_PARAGRAPH = re.compile(r"^§ 1( .*)?$")
 _PART = re.compile(r"^[AB]\. (Allgemeiner|Besonderer) Teil$")
 _ROMAN = re.compile(r"^[IVX]{1,5}\. [A-ZÄÖÜ][^.]{2,120}$")
 _ZU_ARTIKEL = re.compile(r"^Zu Artikel \d+[a-z]?(?: \(.{1,80}\))?$")
@@ -128,6 +132,18 @@ def split_sections(text: str, doc_type: Optional[str]) -> list[Section]:
 
     for line in lines:
         level = _heading_level(line, in_vorblatt)
+        seen_vorblatt_section = len(stack) > 1 and stack[0][1] == "Vorblatt"
+        if (
+            level is None
+            and in_vorblatt
+            and seen_vorblatt_section
+            and (_LAW_TITLE.match(line) or _FIRST_PARAGRAPH.match(line))
+        ):
+            close()
+            in_vorblatt = False
+            stack = [(1, "Gesetzestext")]
+            body.append(line)
+            continue
         if level is None:
             body.append(line)
             continue
@@ -271,6 +287,8 @@ class DrucksacheReport:
     written: int = 0
     skipped: int = 0
     failed: list[str] = field(default_factory=list)
+    # Read, but nothing to chunk (too long, or no text in a readable section).
+    empty: list[str] = field(default_factory=list)
 
 
 def stored_drucksachen(qdrant: Any, collection: str) -> set[str]:
@@ -326,6 +344,7 @@ def ingest_drucksachen(
             for number, doc in texts.items()
         }
         report.documents += len(parents)
+        report.empty.extend(k.rsplit(":", 1)[-1] for k, chunks in parents.items() if not chunks)
         report.chunks += sum(len(c) for c in parents.values())
         written = replace_parents(qdrant, collection, embed, parents)
         report.written += written.written

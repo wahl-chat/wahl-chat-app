@@ -88,3 +88,21 @@ def test_a_moved_procedure_refreshes_only_items_pointing_at_it(vorgaenge, positi
     n = link_feed_items(db, _Retrieving(), "c", lookup=FirestoreProcedures(db), only_ids={"338366"})
     assert n == 1 and db.data["feed_items"]["deb-1"]["procedures"]
     assert db.data["feed_items"]["other"]["procedures"] == []
+
+
+def test_a_failed_drucksache_query_is_not_cached(vorgaenge, positions) -> None:
+    db = _db(vorgaenge, positions)
+    lookup = FirestoreProcedures(db)
+    real = db.collection
+
+    class Broken:
+        def where(self, *a, **k):
+            raise RuntimeError("Firestore down")
+
+    db.collection = lambda name: Broken()  # type: ignore[method-assign]
+    try:
+        lookup.ids_for_drucksachen(["21/7860"])
+    except RuntimeError:
+        pass
+    db.collection = real  # type: ignore[method-assign]
+    assert lookup.ids_for_drucksachen(["21/7860"]) == ["338366"]

@@ -17,7 +17,14 @@ import logging
 from collections.abc import Iterable
 from typing import Any, Optional
 
-from qdrant_client.models import FieldCondition, Filter, MatchValue
+from qdrant_client.models import (
+    Direction,
+    FieldCondition,
+    Filter,
+    MatchValue,
+    OrderBy,
+    PayloadSelectorExclude,
+)
 
 from src.models.procedures import (
     DrucksacheStrategy,
@@ -27,12 +34,12 @@ from src.models.procedures import (
 )
 from src.retrieve import COLLECTION_NAME, _get_qdrant, retrieve
 from wahlchat_common.procedures import PROCEDURES_COLLECTION
+from wahlchat_common.speech_dedup import dedup_prefer_op
 
 logger = logging.getLogger(__name__)
 
 # The winner of the S1–S3 comparison (ADR-0013).
 DEFAULT_STRATEGY: DrucksacheStrategy = "S1"
-_VIEW_SCROLL_PAGE = 256
 # Speech payloads carry a sentence-by-sentence video map; a view needs none of it.
 _VIEW_PAYLOAD_EXCLUDE = ["meta.sentence_map"]
 
@@ -87,8 +94,9 @@ def _view_filter(vorgang_id: str, source_type: str, party_id: Optional[str]) -> 
         FieldCondition(key="source_type", match=MatchValue(value=source_type)),
     ]
     if party_id is not None:
-        # Votes belong to every party that voted; the rest to one.
-        key = "party_ids" if source_type == "vote_record" else "party_id"
+        # Votes belong to every party that voted and Drucksachen to every
+        # Fraktion that tabled them (``party_ids``); a speech to its speaker's.
+        key = "party_id" if source_type == "parliamentary_speech" else "party_ids"
         must.append(FieldCondition(key=key, match=MatchValue(value=party_id)))
     return Filter(must=must)
 
@@ -96,24 +104,21 @@ def _view_filter(vorgang_id: str, source_type: str, party_id: Optional[str]) -> 
 async def _linked(
     client: Any, vorgang_id: str, source_type: str, party_id: Optional[str], limit: int
 ) -> list[dict[str, Any]]:
-    payloads: list[dict[str, Any]] = []
-    offset = None
-    while len(payloads) < limit:
-        points, offset = await client.scroll(
-            collection_name=COLLECTION_NAME,
-            scroll_filter=_view_filter(vorgang_id, source_type, party_id),
-            limit=min(_VIEW_SCROLL_PAGE, limit - len(payloads)),
-            offset=offset,
-            with_payload={"exclude": _VIEW_PAYLOAD_EXCLUDE},
-            with_vectors=False,
-        )
-        payloads.extend(dict(p.payload or {}) for p in points)
-        if offset is None:
-            break
-    return sorted(
-        payloads,
-        key=lambda p: (str(p.get("publish_date") or ""), str(p.get("chunk_key") or "")),
+    """The oldest ``limit`` linked chunks; a speech's dip twin is dropped
+    when its op version is there (twins are fetched, then collapsed)."""
+    fetch = limit * 2 if source_type == "parliamentary_speech" else limit
+    points, _ = await client.scroll(
+        collection_name=COLLECTION_NAME,
+        scroll_filter=_view_filter(vorgang_id, source_type, party_id),
+        limit=fetch,
+        order_by=OrderBy(key="publish_date", direction=Direction.ASC),
+        with_payload=PayloadSelectorExclude(exclude=_VIEW_PAYLOAD_EXCLUDE),
+        with_vectors=False,
     )
+    payloads = [dict(p.payload or {}) for p in points]
+    if source_type == "parliamentary_speech":
+        payloads = dedup_prefer_op(payloads)
+    return payloads[:limit]
 
 
 async def aget_procedure_view(
@@ -146,11 +151,12 @@ async def asearch_procedures(
     _client: Any = None,
     _embed_fn: Any = None,
 ) -> list[tuple[ProcedureSummary, float]]:
-    """Procedures whose profile matches the query, best first."""
+    """Procedures whose profile matches the query, best first; with a
+    party, those it tabled (alone or with others)."""
     hits = await retrieve(
         query,
         source_type="procedure",
-        party_id=party_id,
+        party_ids_contains=party_id,
         limit=limit,
         with_scores=True,
         _client=_client,

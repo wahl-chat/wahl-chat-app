@@ -4,8 +4,7 @@
 
 from datetime import date
 
-from ingestion.procedures.bulk import drucksache_numbers_to_read, run
-from ingestion.procedures.mapper import build_record
+from ingestion.procedures.bulk import run
 
 from .conftest import load
 from .fakes import FakeDip, FakeEmbed, FakeFirestore, FakeQdrant
@@ -58,10 +57,38 @@ def test_a_backfill_run_syncs_reads_links_and_flags(vorgaenge, positions, capsys
     assert "Procedure links" in out
 
 
-def test_documents_to_read(vorgaenge, positions) -> None:
-    procedures = {"338366": build_record(vorgaenge["338366"], positions["338366"], previous=None, today=TODAY)}
-    all_numbers = drucksache_numbers_to_read(procedures, stored=set(), changed=set(), mode_changed=False)
-    assert "21/7860" in all_numbers
-    assert drucksache_numbers_to_read(procedures, stored=all_numbers, changed=set(), mode_changed=False) == set()
-    assert drucksache_numbers_to_read(procedures, stored=all_numbers, changed={"338366"}, mode_changed=False) == all_numbers
-    assert drucksache_numbers_to_read(procedures, stored=all_numbers, changed=set(), mode_changed=True) == all_numbers
+def _run(dip, db, qdrant, **kw):
+    args = dict(dip=dip, db=db, qdrant=qdrant, collection="c", embed=FakeEmbed(), wahlperioden=[21],
+                backfill=True, drucksachen="overview", link=False, sync=True, feed=False, today=TODAY)
+    return run(**{**args, **kw})
+
+
+def test_documents_are_read_once_and_again_on_a_mode_change(vorgaenge, positions, capsys) -> None:
+    dip, db, qdrant = _dip(vorgaenge, positions), FakeFirestore(), FakeQdrant()
+    _run(dip, db, qdrant)
+    first = set(dip.text_reads)
+    assert {"21/7860", "21/9233"} <= first
+    dip.text_reads.clear()
+    _run(dip, db, qdrant, backfill=False)
+    # unchanged procedures: only documents DIP had no text for are asked again
+    assert "21/7860" not in dip.text_reads and "21/9233" not in dip.text_reads
+    dip.text_reads.clear()
+    _run(dip, db, qdrant, backfill=False, drucksachen="full")
+    assert {"21/7860", "21/9233"} <= set(dip.text_reads)
+    sections = {p["doc_section"] for p in qdrant.points.values() if p["source_type"] == "drucksache"}
+    assert sections == {"overview", "body"}
+
+
+def test_a_failed_document_keeps_the_mode_unapplied(vorgaenge, positions, capsys) -> None:
+    dip, db, qdrant = _dip(vorgaenge, positions), FakeFirestore(), FakeQdrant()
+    dip.fail.add("texts")
+    assert _run(dip, db, qdrant) == 1
+    assert "drucksachen_mode" not in db.data["procedures_meta"]["sync"]
+
+
+def test_rebuilt_collection_gets_profiles_back_on_backfill(vorgaenge, positions, capsys) -> None:
+    dip, db, qdrant = _dip(vorgaenge, positions), FakeFirestore(), FakeQdrant()
+    _run(dip, db, qdrant, drucksachen="off")
+    qdrant.points.clear()
+    _run(dip, db, qdrant, drucksachen="off")
+    assert sum(1 for p in qdrant.points.values() if p["source_type"] == "procedure") == 2

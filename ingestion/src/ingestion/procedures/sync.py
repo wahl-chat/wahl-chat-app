@@ -36,6 +36,7 @@ class SyncReport:
     written: int = 0
     unchanged: int = 0
     new_stage: list[str] = field(default_factory=list)
+    created: list[str] = field(default_factory=list)
     failed: list[str] = field(default_factory=list)
     changed_sachgebiete: list[str] = field(default_factory=list)
 
@@ -74,8 +75,13 @@ def sync_ids(
     embed: Any,
     today: date,
     dry_run: bool = False,
+    verify_chunks: bool = False,
 ) -> SyncReport:
     """Fetch, map and write the given Vorgänge; out-of-scope ones are skipped.
+
+    ``verify_chunks`` also hands unchanged records' profile chunks to the
+    writer, which re-creates any that are missing from Qdrant (a rebuilt
+    collection) and skips the rest by their hashes.
 
     Per batch the profile chunks are written first and the Firestore records
     after, so a stored record means its chunk is there too. A batch that
@@ -94,17 +100,26 @@ def sync_ids(
         report.seen += len(vorgaenge)
 
         changed: list[ProcedureRecord] = []
+        unchanged: list[ProcedureRecord] = []
         for vid, vorgang in vorgaenge.items():
             mine = positions.get(vid, [])
             if not in_scope(vorgang.get("vorgangstyp") or "", _has_bt_plenary_stage(mine)):
                 continue
             report.in_scope += 1
             old = previous.get(vid)
-            record = build_record(vorgang, mine, previous=old, today=today)
+            try:
+                record = build_record(vorgang, mine, previous=old, today=today)
+            except Exception:  # noqa: BLE001 — one malformed Vorgang must not stop the run
+                logger.exception("Vorgang %s could not be mapped", vid)
+                report.failed.append(vid)
+                continue
             if old is not None and old.content_hash == record.content_hash:
                 report.unchanged += 1
+                unchanged.append(record)
                 continue
             changed.append(record)
+            if old is None:
+                report.created.append(vid)
             if old is not None and record.stage_changed_on == today != old.stage_changed_on:
                 report.new_stage.append(vid)
             if old is not None and old.sachgebiete != record.sachgebiete:
@@ -112,11 +127,12 @@ def sync_ids(
         if dry_run:
             report.written += len(changed)  # would write
             continue
-        if not changed:
+        to_check = changed + (unchanged if verify_chunks else [])
+        if not to_check:
             continue
 
         parents = {
-            f"procedure:{r.vorgang_id}": [profile_chunk(r, today=today)] for r in changed
+            f"procedure:{r.vorgang_id}": [profile_chunk(r, today=today)] for r in to_check
         }
         written = replace_parents(qdrant, collection, embed, parents)
         failed = {key.split(":", 1)[1] for key in written.failed_parents}
@@ -178,6 +194,7 @@ def run_sync(
         embed=embed,
         today=today,
         dry_run=dry_run,
+        verify_chunks=backfill,
     )
     if not dry_run:
         new_state: dict[str, Any] = {"failed_ids": sorted(set(report.failed))}

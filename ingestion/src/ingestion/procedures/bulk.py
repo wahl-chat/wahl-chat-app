@@ -8,7 +8,8 @@
     python -m ingestion.procedures.bulk                     # changes since the last run
     python -m ingestion.procedures.bulk --report            # coverage only
 
-A run, in order: sync procedures (backfill or DIP delta) → Drucksache text
+The collection and its payload indexes come from ``ingestion.setup_collection``
+(the job entrypoint and ``make run-procedures`` run it first). A run, in order: sync procedures (backfill or DIP delta) → Drucksache text
 → link votes and speeches without a link → topics of moved procedures →
 ``has_links`` flags → feed items → coverage report. It must run after the
 speech and vote jobs and before the feed job of the same night.
@@ -47,7 +48,7 @@ from ingestion.procedures.link_apply import Linker, linked_procedure_ids
 from ingestion.procedures.report import collect, render, scroll_linkable
 from ingestion.procedures.store import ProcedureStore
 from ingestion.procedures.sync import SyncReport, run_sync, sync_ids
-from ingestion.setup_collection import COLLECTION_NAME, check_fingerprint, setup
+from ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
 from wahlchat_common.procedures import ProcedureRecord
 
 logger = logging.getLogger(__name__)
@@ -55,21 +56,6 @@ logger = logging.getLogger(__name__)
 WAHLPERIODEN = [20, 21]
 # How Drucksache text enters the corpus; see ADR-0013 (S1–S3 experiment).
 DEFAULT_DRUCKSACHEN: DrucksacheMode = "overview"
-
-
-def drucksache_numbers_to_read(
-    procedures: dict[str, ProcedureRecord],
-    *,
-    stored: set[str],
-    changed: set[str],
-    mode_changed: bool,
-) -> set[str]:
-    """New documents, documents of changed procedures, or all on a mode change."""
-    wanted = wanted_numbers(procedures)
-    if mode_changed:
-        return wanted
-    of_changed = wanted_numbers({v: procedures[v] for v in changed if v in procedures})
-    return (wanted - stored) | of_changed
 
 
 def drop_drucksachen(qdrant: QdrantClient, collection: str) -> int:
@@ -129,24 +115,23 @@ def run(
         failed |= bool(report.failed)
 
     procedures = store.all()
-    changed = set(report.new_stage) | set(report.changed_sachgebiete)
+    # New procedures' Drucksachen and those of moved ones are (re-)read: a
+    # stored Drucksache may now belong to one more procedure.
+    changed = set(report.new_stage) | set(report.changed_sachgebiete) | set(report.created)
 
     state = store.sync_state()
     mode_changed = state.get("drucksachen_mode") != drucksachen
-    if drucksachen == "off":
-        if mode_changed and not dry_run:
-            print(f"drucksachen: removed {drop_drucksachen(qdrant, collection)} chunks")
-    elif not dry_run:
-        readable = {
-            vid: r for vid, r in procedures.items()
-            if r.wahlperiode in (drucksachen_wahlperioden or wahlperioden)
-        }
-        numbers = drucksache_numbers_to_read(
-            readable,
-            stored=stored_drucksachen(qdrant, collection),
-            changed=changed,
-            mode_changed=mode_changed,
-        )
+    readable_wps = drucksachen_wahlperioden or wahlperioden
+
+    def read_drucksachen(of: dict[str, ProcedureRecord], *, reread: bool) -> bool:
+        """Read the procedures' Drucksachen: all of them, or only those not
+        stored yet (nor known to have no text worth a chunk). Returns whether
+        every document was read."""
+        readable = {vid: r for vid, r in of.items() if r.wahlperiode in readable_wps}
+        numbers = wanted_numbers(readable)
+        if not reread:
+            known_empty = set(store.sync_state().get("drucksachen_without_chunks") or [])
+            numbers -= stored_drucksachen(qdrant, collection) | known_empty
         result = ingest_drucksachen(
             numbers, dip=dip, qdrant=qdrant, collection=collection, embed=embed,
             procedures=procedures, mode=drucksachen, today=today,
@@ -155,14 +140,35 @@ def run(
             f"drucksachen ({drucksachen}): documents={result.documents} chunks={result.chunks} "
             f"written={result.written} unchanged={result.skipped} failed={len(result.failed)}"
         )
-        failed |= bool(result.failed)
-    if not dry_run and not failed:
-        store.set_sync_state({**store.sync_state(), "drucksachen_mode": drucksachen})
+        if result.empty:
+            current = store.sync_state()
+            known = set(current.get("drucksachen_without_chunks") or []) | set(result.empty)
+            store.set_sync_state({**current, "drucksachen_without_chunks": sorted(known)})
+        return not result.failed
+
+    if drucksachen == "off":
+        if mode_changed and not dry_run:
+            print(f"drucksachen: removed {drop_drucksachen(qdrant, collection)} chunks")
+            store.set_sync_state({**store.sync_state(), "drucksachen_mode": drucksachen})
+    elif not dry_run:
+        if mode_changed:
+            complete = read_drucksachen(procedures, reread=True)
+        else:
+            moved = {v: procedures[v] for v in changed if v in procedures}
+            complete = read_drucksachen(moved, reread=True) & read_drucksachen(
+                procedures, reread=False
+            )
+        failed |= not complete
+        # The mode counts as applied once every document was read in it.
+        if complete:
+            store.set_sync_state({**store.sync_state(), "drucksachen_mode": drucksachen})
 
     if link:
         def add_procedures(ids: set[str]) -> dict[str, ProcedureRecord]:
-            sync_ids(ids, dip=dip, store=store, qdrant=qdrant, collection=collection,
-                     embed=embed, today=today, dry_run=dry_run)
+            added = sync_ids(ids, dip=dip, store=store, qdrant=qdrant, collection=collection,
+                             embed=embed, today=today, dry_run=dry_run)
+            if added.failed:
+                raise RuntimeError(f"Vorgänge {added.failed} could not be synced")
             return store.get(ids)
 
         linker = Linker(dip=dip, qdrant=qdrant, collection=collection, procedures=procedures,
@@ -174,6 +180,9 @@ def run(
         print(f"links: chunks={linker.report.chunks_written} failed={len(linker.report.failed)} [{methods}]")
         failed |= bool(linker.report.failed)
         procedures = store.all()
+        created = {v: procedures[v] for v in linker.report.created if v in procedures}
+        if created and drucksachen != "off" and not dry_run:
+            failed |= not read_drucksachen(created, reread=True)
 
     if feed:
         lookup = FirestoreProcedures(db)
@@ -232,9 +241,6 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(render(collect(scroll_linkable(qdrant, COLLECTION_NAME, args.wahlperiode),
                              ProcedureStore(db).all())))
         return 0
-    if not args.dry_run:
-        setup(qdrant)  # the link fields' payload indexes
-
     from wahlchat_common.embeddings import get_embeddings  # noqa: PLC0415
 
     return run(

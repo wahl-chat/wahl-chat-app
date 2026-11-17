@@ -41,10 +41,19 @@ _LINK_FIELDS = [
     "publish_date",
     "wahlperiode",
     "region",
-    "meta",
+    # Only what the matchers read; op chunks carry a large sentence map in meta.
+    "meta.speaker_name",
+    "meta.source_page",
+    "meta.origin_media_id",
+    "meta.vote_results",
+    "meta.drucksachen",
     "vorgang_ids",
     "procedure_link",
 ]
+
+
+class ProcedureSyncError(RuntimeError):
+    """A linked procedure could not be stored; the item is retried next run."""
 
 
 @dataclass
@@ -53,6 +62,8 @@ class LinkReport:
     chunks_written: int = 0
     failed: list[str] = field(default_factory=list)
     missing_procedures: set[str] = field(default_factory=set)
+    # Procedures first stored by this sweep (their Drucksachen are new too).
+    created: set[str] = field(default_factory=set)
 
 
 @dataclass(frozen=True)
@@ -165,8 +176,13 @@ class Linker:
         missing = wanted - set(self._procedures)
         untried = missing - self._tried
         if untried and self._add_procedures is not None:
+            try:
+                added = self._add_procedures(untried)
+            except Exception as exc:  # noqa: BLE001 — the item stays unstamped
+                raise ProcedureSyncError(f"syncing {sorted(untried)} failed") from exc
             self._tried |= untried
-            self._procedures.update(self._add_procedures(untried))
+            self._procedures.update(added)
+            self.report.created |= set(added)
             missing = wanted - set(self._procedures)
         self.report.missing_procedures |= missing
         return sorted(wanted & set(self._procedures))
@@ -179,6 +195,13 @@ class Linker:
         self.report.methods[method] += 1
         key = (tuple(known), tuple(sachgebiete), method)
         self._pending[key].extend(item.point_ids)
+
+    def _try_stamp(self, item: _Item, vorgang_ids: list[str], method: LinkMethod) -> None:
+        try:
+            self._stamp(item, vorgang_ids, method)
+        except ProcedureSyncError:
+            logger.exception("Item %s left unstamped", item.payload.get("source_item_id"))
+            self.report.failed.append(str(item.payload.get("source_item_id")))
 
     def flush(self) -> None:
         for (vorgang_ids, sachgebiete, method), point_ids in self._pending.items():
@@ -233,7 +256,7 @@ class Linker:
                 logger.exception("Vote %s: DIP read failed", item.payload.get("source_item_id"))
                 self.report.failed.append(str(item.payload.get("source_item_id")))
                 continue
-            self._stamp(item, result.vorgang_ids, result.method)
+            self._try_stamp(item, result.vorgang_ids, result.method)
         self.flush()
 
     # -- speeches ------------------------------------------------------
@@ -285,7 +308,7 @@ class Linker:
                 if not _needs_stamp(item.payload, self._today):
                     continue
                 result = results[str(item.payload.get("source_item_id"))]
-                self._stamp(item, result.vorgang_ids, result.method)
+                self._try_stamp(item, result.vorgang_ids, result.method)
 
     # -- topics and flags ----------------------------------------------
 
@@ -305,7 +328,7 @@ class Linker:
         )
         for item in _items(_scroll(self._qdrant, self._collection, flt)):
             link = item.payload.get("procedure_link") or {}
-            self._stamp(item, list(item.payload.get("vorgang_ids") or []), link.get("method", "none"))
+            self._try_stamp(item, list(item.payload.get("vorgang_ids") or []), link.get("method", "none"))
         self.flush()
 
 

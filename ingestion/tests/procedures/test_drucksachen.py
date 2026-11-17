@@ -78,3 +78,25 @@ def test_wanted_numbers_are_readable_bt_documents(vorgaenge, positions) -> None:
     numbers = wanted_numbers(procedures)
     assert "21/7860" in numbers and "21/9241" in numbers
     assert not any(n.endswith("/26") for n in numbers)  # no Bundesrat papers
+
+
+def test_a_bill_in_paragraphs_leaves_the_vorblatt_at_its_law_title() -> None:
+    text = "\n".join([
+        "Gesetzentwurf", "A. Problem und Ziel", "Ein Problem.", "B. Lösung", "Eine Lösung.",
+        "F. Weitere Kosten", "Keine.",
+        "Entwurf eines Gesetzes über das Beispielwesen", "Vom …",
+        "§ 1", "Geltungsbereich", "Dieses Gesetz gilt.",
+        "§ 2", "Begriffe", "Im Sinne dieses Gesetzes …",
+        "Begründung", "A. Allgemeiner Teil", "Darum.",
+    ])
+    sections = split_sections(text, "Gesetzentwurf")
+    overview = [s for s in sections if s.doc_section == "overview"]
+    assert all(s.path[0] == "Vorblatt" for s in overview)
+    law = [s for s in sections if s.path[0] == "Gesetzestext"]
+    assert law and law[0].doc_section == "body" and "Dieses Gesetz gilt." in law[0].text
+
+
+def test_a_report_title_mentioning_a_bill_does_not_end_the_vorblatt() -> None:
+    doc = load("drucksache_21_8457")
+    sections = split_sections(doc["text"], doc["drucksachetyp"])
+    assert ("Vorblatt", "A. Problem") in [s.path for s in sections]

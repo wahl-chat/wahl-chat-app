@@ -155,3 +155,17 @@ def test_changed_topics_flow_down_to_linked_chunks(vorgaenge, positions) -> None
     _linker(_dip(vorgaenge, positions), qdrant, procedures).refresh_sachgebiete(["338366"])
     assert qdrant.points["s1"]["sachgebiete"] == ["Neu"]
     assert qdrant.points["s1"]["procedure_link"]["method"] == "name"
+
+
+def test_a_failed_procedure_sync_leaves_the_speech_unstamped(vorgaenge, positions) -> None:
+    qdrant = FakeQdrant()
+    _speech(qdrant, "s3", "sp-c", "Cora Neu")
+
+    def broken(ids):
+        raise RuntimeError("DIP down")
+
+    linker = _linker(_dip(vorgaenge, positions, activities=_activities()), qdrant,
+                     _procedures(vorgaenge, positions), add_procedures=broken)
+    linker.link_speeches([21])
+    assert "procedure_link" not in qdrant.points["s3"]
+    assert linker.report.failed == ["sp-c"]

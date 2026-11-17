@@ -61,8 +61,9 @@ class FakeQdrant:
         self.payloads = payloads
         self.filters: list[Any] = []
 
-    async def scroll(self, collection_name, scroll_filter, limit, offset, with_payload, with_vectors):  # noqa: ANN001
+    async def scroll(self, collection_name, scroll_filter, limit, order_by, with_payload, with_vectors):  # noqa: ANN001
         self.filters.append(scroll_filter)
+        assert order_by.key == "publish_date"
         wanted = {c.key: c.match.value for c in scroll_filter.must}
         found = [
             p for p in self.payloads
@@ -71,10 +72,8 @@ class FakeQdrant:
                 for k, v in wanted.items()
             )
         ]
-        start = offset or 0
-        page = found[start : start + limit]
-        nxt = start + limit if start + limit < len(found) else None
-        return [_Point(p) for p in page], nxt
+        found.sort(key=lambda p: p["publish_date"])
+        return [_Point(p) for p in found[:limit]], None
 
 
 def _chunk(kind: str, day: str, **extra: Any) -> dict:
@@ -96,7 +95,7 @@ async def test_view_orders_linked_chunks_and_filters_by_party() -> None:
         _chunk("parliamentary_speech", "2025-03-18", party_id="spd"),
         _chunk("parliamentary_speech", "2025-03-13", party_id="cdu"),
         _chunk("vote_record", "2025-03-18", party_ids=["cdu", "spd"]),
-        _chunk("drucksache", "2025-03-10", party_id="_all"),
+        _chunk("drucksache", "2025-03-10", party_id="_all", party_ids=["cdu", "spd"]),
     ])
     view = await service.aget_procedure_view("320784", _db=FakeDb(), _client=qdrant)
     assert view is not None
@@ -106,6 +105,7 @@ async def test_view_orders_linked_chunks_and_filters_by_party() -> None:
     spd = await service.aget_procedure_view("320784", party_id="spd", _db=FakeDb(), _client=qdrant)
     assert spd is not None and [s["party_id"] for s in spd.speeches] == ["spd"]
     assert len(spd.votes) == 1  # votes match by party_ids
+    assert len(spd.documents) == 1  # a joint bill is each tabling party's
 
 
 @pytest.mark.asyncio
@@ -126,6 +126,7 @@ async def test_procedures_for_chunks() -> None:
 async def test_search_hydrates_profile_hits(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_retrieve(query, **kw):  # noqa: ANN001, ANN003
         assert kw["source_type"] == "procedure"
+        assert kw["party_ids_contains"] is None
         return [({"vorgang_ids": ["338366"]}, 0.8), ({"vorgang_ids": ["gone"]}, 0.7)]
 
     monkeypatch.setattr(service, "retrieve", fake_retrieve)
@@ -154,3 +155,14 @@ async def test_document_strategies(monkeypatch: pytest.MonkeyPatch, strategy: st
         assert sections == ["overview", "body"]
         assert calls[1]["vorgang_id"] == "338366"  # drill into the best overview hit's procedure
         assert [d["doc_section"] for d in out] == ["overview", "overview", "body", "body"]
+
+
+@pytest.mark.asyncio
+async def test_view_drops_the_dip_twin_of_an_op_speech() -> None:
+    twin = {"speech_key": "de-20-214-anna-muster-top1", "source_item_id": "x"}
+    qdrant = FakeQdrant([
+        _chunk("parliamentary_speech", "2025-03-18", source="dip", **{**twin, "source_item_id": "d"}),
+        _chunk("parliamentary_speech", "2025-03-18", source="op", **{**twin, "source_item_id": "o"}),
+    ])
+    view = await service.aget_procedure_view("320784", _db=FakeDb(), _client=qdrant)
+    assert view is not None and [s["source"] for s in view.speeches] == ["op"]

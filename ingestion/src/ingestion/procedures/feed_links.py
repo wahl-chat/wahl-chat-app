@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Protocol
 from qdrant_client import QdrantClient
 
 from ingestion.ids import compute_chunk_id, compute_source_item_id
+from ingestion.procedures.store import ProcedureStore
 from wahlchat_common.procedures import PROCEDURES_COLLECTION, ProcedureRecord, ProcedureSummary
 
 if TYPE_CHECKING:
@@ -32,6 +33,24 @@ _ANY_LIMIT = 30  # Firestore array-contains-any takes at most 30 values
 
 
 class ProcedureLookup(Protocol):
+    def by_ids(self, ids: Iterable[str]) -> list[ProcedureSummary]: ...
+
+    def ids_for_drucksachen(self, numbers: Iterable[str]) -> list[str]: ...
+
+
+class FirestoreProcedures:
+    """Reads procedures once per id and run."""
+
+    def __init__(self, db: Any) -> None:
+        self._db = db
+        self._records: dict[str, Optional[ProcedureRecord]] = {}
+        self._by_number: dict[str, list[str]] = {}
+
+    def _load(self, ids: Iterable[str]) -> None:
+        missing = set(ids) - set(self._records)
+        found = ProcedureStore(self._db).get(missing)
+        self._records.update({vid: found.get(vid) for vid in missing})
+
     def by_ids(self, ids: Iterable[str]) -> list[ProcedureSummary]: ...
 
     def ids_for_drucksachen(self, numbers: Iterable[str]) -> list[str]: ...
@@ -67,14 +86,15 @@ class FirestoreProcedures:
         collection = self._db.collection(PROCEDURES_COLLECTION)
         for start in range(0, len(wanted), _ANY_LIMIT):
             batch = wanted[start : start + _ANY_LIMIT]
-            for number in batch:
-                self._by_number.setdefault(number, [])
             query = collection.where("drucksache_numbers", "array_contains_any", batch)
+            found: dict[str, list[str]] = {number: [] for number in batch}
             for snapshot in query.stream():
                 record = ProcedureRecord.model_validate(snapshot.to_dict())
                 self._records[snapshot.id] = record
                 for number in set(record.drucksache_numbers) & set(batch):
-                    self._by_number[number].append(snapshot.id)
+                    found[number].append(snapshot.id)
+            # Cached only once the query answered; a failure is asked again.
+            self._by_number.update(found)
         return sorted({vid for n in numbers for vid in self._by_number.get(n, [])})
 
 

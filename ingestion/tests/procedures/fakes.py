@@ -269,6 +269,7 @@ class FakeDip:
         self.texts: dict[str, dict[str, Any]] = extra.get("texts", {})
         self.fail: set[str] = set(extra.get("fail", set()))
         self.updated_since: list[str] = []
+        self.text_reads: list[str] = []
 
     def _check(self, name: str) -> None:
         if name in self.fail:
@@ -308,5 +309,6 @@ class FakeDip:
         return {n: self.drucksachen[n] for n in numbers if n in self.drucksachen}
 
     def drucksache_texts(self, numbers) -> dict[str, dict[str, Any]]:
+        self.text_reads.extend(numbers)
         self._check("texts")
         return {n: self.texts[n] for n in numbers if n in self.texts}

@@ -152,6 +152,8 @@ jobs = {
     secret_env = {
       DIP_API_KEY = "dip-api-key"
     }
+    # Not the runner's --batch-size/--time-budget defaults: its own CLI.
+    args            = []
     timeout_seconds = 3600
     schedule        = "15 5 * * *"
   }
