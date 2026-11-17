@@ -235,6 +235,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     qdrant = QdrantClient(
         url=os.getenv("QDRANT_URL", "http://localhost:6333"),
         api_key=os.getenv("QDRANT_API_KEY") or None,
+        # The link sweep scans every Bundestag speech for a missing stamp;
+        # right after large writes Qdrant is still optimizing and slow to answer.
+        timeout=120,
     )
     check_fingerprint(qdrant, COLLECTION_NAME)
     if args.report:
