@@ -27,6 +27,11 @@ if __name__ == "__main__":
     from ingestion.env_file import load_env_file
 
     load_env_file()
+    # Prompts and our corpus text stay local: no LangSmith tracing.
+    import os as _os
+
+    _os.environ["LANGCHAIN_TRACING_V2"] = "false"
+    _os.environ["LANGSMITH_TRACING"] = "false"
 
 import argparse
 import asyncio
@@ -154,6 +159,7 @@ def _metrics(outcome: Outcome, expected: list[str]) -> dict[str, Any]:
         "on_target_documents": sum(1 for k in on_target if k in ("overview", "body")),
         "citations": len(cited),
         "cited_documents": sum(1 for k in cited_kinds if k in ("overview", "body")),
+        "cited_procedures": cited_kinds.count("procedure"),
         "cited_speeches_votes": sum(1 for k in cited_kinds if k in ("speech", "vote")),
         "answer_words": len(outcome.answer.split()),
     }
@@ -197,7 +203,8 @@ def render(results: list[dict[str, Any]]) -> str:
             m = o.metrics
             cells.append(
                 f"docs {m['overview_chunks']}o/{m['body_chunks']}b · on-target {m['on_target_documents']} "
-                f"· cited docs {m['cited_documents']} · cited S+V {m['cited_speeches_votes']}"
+                f"· cited docs {m['cited_documents']} · cited profiles {m['cited_procedures']} "
+                f"· cited S+V {m['cited_speeches_votes']}"
             )
         lines.append(f"| {r['id']} | {r['group']} | " + " | ".join(cells) + " |")
     lines.append("")
