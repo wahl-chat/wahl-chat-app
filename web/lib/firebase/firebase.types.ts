@@ -14,7 +14,10 @@ import type { Timestamp } from 'firebase/firestore';
 
 /** What a general chat is about: a feed item or a vote. Sent with every
  * turn, so the backend resolves it again for follow-ups. */
-export type ChatAnchor = { feed_item_id: string } | { poll_id: number };
+export type ChatAnchor =
+  | { feed_item_id: string }
+  | { poll_id: number }
+  | { vorgang_id: string };
 
 export type ChatSession = {
   id: string;
@@ -214,7 +217,8 @@ export type DigestVote = {
   /** The Drucksachen the poll was about, `"21/6130"`; absent until known. */
   drucksachen?: string[];
   /** Expert terms in the summary. */
-  terms?: TermRef[];
+  terms?: TermRef[] /** Bundestag procedures the item is about; absent until linked. */;
+  procedures?: ProcedureSummary[];
 };
 
 export type DigestCitation = {
@@ -335,6 +339,8 @@ export type DigestSessionSection = {
   item_id?: string;
   /** The Drucksachen its agenda item deals with; absent until known. */
   drucksachen?: string[];
+  /** Bundestag procedures the item is about; absent until linked. */
+  procedures?: ProcedureSummary[];
   /** Conflict reactions during the debate; absent until counted. */
   interjections?: number | null;
   /** Expert terms in the summary, bullets and positions. */
@@ -499,12 +505,48 @@ export type ProcedureSummary = {
     | 'report'
     | 'procedural';
   beratungsstand: string | null;
+  /** Who tabled it; absent on items written before it was added. */
+  initiative?: string[];
   latest_stage: string | null;
   /** ISO day, `YYYY-MM-DD`. */
   latest_stage_on: string | null;
   stage_changed_on: string | null;
-  milestones: { date: string; chamber: 'BT' | 'BR' | 'BV' | 'EK'; name: string }[];
+  milestones: ProcedureMilestone[];
   dip_url: string;
+};
+
+/** What a chamber decided at a stage (`wahlchat_common.procedures.StageDecision`). */
+export type StageDecision = {
+  /** e.g. "Annahme in Ausschussfassung". */
+  tenor: string;
+  /** e.g. "Namentliche Abstimmung"; null for a show of hands. */
+  vote_kind: string | null;
+  /** e.g. "308:190:71" (yes:no:abstain). */
+  result: string | null;
+  majority: string | null;
+};
+
+export type ProcedureMilestone = {
+  date: string;
+  chamber: 'BT' | 'BR' | 'BV' | 'EK';
+  name: string;
+  /** Absent on items written before documents and decisions were added. */
+  document_kind?: 'Drucksache' | 'Plenarprotokoll' | null;
+  document_number?: string | null;
+  url?: string | null;
+  decisions?: StageDecision[];
+  /** A checked model summary of its Drucksache. */
+  summary?: string | null;
+};
+
+/** `procedures/{vorgang_id}` (`wahlchat_common.procedures.ProcedureRecord`),
+ * reduced to what the chat's anchor card shows. */
+export type StoredProcedure = {
+  vorgang_id: string;
+  titel: string;
+  latest_stage: string | null;
+  /** ISO day, `YYYY-MM-DD`. */
+  latest_stage_on: string | null;
 };
 
 export type FeedEdition = {

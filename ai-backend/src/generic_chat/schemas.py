@@ -20,13 +20,16 @@ from wahlchat_common.answer_rules import AnswerLanguage
 # Feed item ids as the feed builder writes them:
 # "{parliament}_{YYYY-MM-DD}_v{poll_id}" or "..._d{session}-{agenda_slug}".
 FEED_ITEM_ID_PATTERN = r"^[a-z][a-z_]{0,40}_\d{4}-\d{2}-\d{2}_(v\d{1,9}|d\d{1,4}-[a-z0-9]{0,20})$"
+# DIP Vorgang ids are numeric.
+VORGANG_ID_PATTERN = r"^\d{1,12}$"
 
 SearchSourceType = Literal["vote_record", "parliamentary_speech", "party_manifesto"]
 FeedItemKind = Literal["debate", "vote"]
 
 
 class Anchor(BaseModel):
-    """The feed item or poll a conversation is about. Exactly one field is set."""
+    """The feed item, poll or procedure a conversation is about. Exactly one
+    field is set."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -34,11 +37,13 @@ class Anchor(BaseModel):
         None, max_length=120, pattern=FEED_ITEM_ID_PATTERN
     )
     poll_id: Optional[int] = Field(None, ge=1, le=10**9)
+    vorgang_id: Optional[str] = Field(None, pattern=VORGANG_ID_PATTERN)
 
     @model_validator(mode="after")
     def _exactly_one(self) -> Anchor:
-        if (self.feed_item_id is None) == (self.poll_id is None):
-            raise ValueError("anchor needs exactly one of feed_item_id, poll_id")
+        given = [self.feed_item_id, self.poll_id, self.vorgang_id]
+        if sum(value is not None for value in given) != 1:
+            raise ValueError("anchor needs exactly one of feed_item_id, poll_id, vorgang_id")
         return self
 
 
@@ -94,6 +99,36 @@ class GetDebateInput(BaseModel):
     )
 
 
+class GetProcessInput(BaseModel):
+    vorgang_id: Optional[str] = Field(
+        None,
+        pattern=VORGANG_ID_PATTERN,
+        description="DIP procedure id, e.g. from a search result's procedures.",
+    )
+    name: Optional[str] = Field(
+        None,
+        min_length=2,
+        max_length=200,
+        description="The law's or motion's name as the user gave it, e.g. 'Wehrdienstgesetz'.",
+    )
+    question: Optional[str] = Field(
+        None,
+        max_length=300,
+        description="What the user wants to know about it, in German; picks the Drucksache passages.",
+    )
+    party_id: Optional[str] = Field(
+        None,
+        max_length=40,
+        description="Party slug to keep only its speeches and the Drucksachen it tabled.",
+    )
+
+    @model_validator(mode="after")
+    def _id_or_name(self) -> GetProcessInput:
+        if (self.vorgang_id is None) == (self.name is None):
+            raise ValueError("give exactly one of vorgang_id, name")
+        return self
+
+
 class ListFeedItemsInput(BaseModel):
     since: date = Field(description="First day of the window (inclusive).")
     until: date = Field(description="Last day of the window (inclusive).")
@@ -117,6 +152,12 @@ class WebSearchInput(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class ProcedureRef(BaseModel):
+    vorgang_id: str
+    title: str
+    latest_stage: Optional[str] = None
+
+
 class NumberedDocument(BaseModel):
     """One citable source as the model sees it; ``id`` is the citation number."""
 
@@ -129,6 +170,8 @@ class NumberedDocument(BaseModel):
     preferred_outlet: Optional[bool] = None
     wahlperiode: Optional[int] = None
     period: Optional[Literal["recent", "earlier"]] = None
+    # Procedures the source belongs to, for a follow-up get_process.
+    procedures: Optional[list[ProcedureRef]] = None
     text: str
 
 
@@ -151,6 +194,41 @@ class FeedItemSummary(BaseModel):
 
 class DebateResult(ToolResult):
     item: Optional[FeedItemSummary] = None
+
+
+class ProcessStep(BaseModel):
+    """One dated step; ``id`` cites its Drucksache or Plenarprotokoll."""
+
+    id: Optional[int] = None
+    date: str
+    chamber: str
+    name: str
+    document: Optional[str] = None
+    decisions: list[str] = Field(default_factory=list)
+
+
+class ProcessInfo(BaseModel):
+    vorgang_id: str
+    title: str
+    kind: str
+    vorgangstyp: str
+    wahlperiode: int
+    beratungsstand: Optional[str] = None
+    initiative: list[str] = Field(default_factory=list)
+    abstract: Optional[str] = None
+    dip_url: str
+
+
+class ProcessChoice(BaseModel):
+    vorgang_id: str
+    label: str
+    latest_stage: Optional[str] = None
+
+
+class ProcessResult(ToolResult):
+    procedure: Optional[ProcessInfo] = None
+    steps: list[ProcessStep] = Field(default_factory=list)
+    choices: list[ProcessChoice] = Field(default_factory=list)
 
 
 class FeedItemsResult(BaseModel):
@@ -270,6 +348,8 @@ class GenericChatDeps:
     anchor: Optional[AnchorContext] = None
     # Parties the user pinned for the whole chat, a subset of ``parties``.
     focus: list[ContextParty] = field(default_factory=list)
+    # Procedures a name left open this turn; shown as quick replies.
+    choices: list[ProcessChoice] = field(default_factory=list)
     started_at: float = field(default_factory=time.monotonic)
 
     def set_focus(self, party_ids: list[str]) -> None:

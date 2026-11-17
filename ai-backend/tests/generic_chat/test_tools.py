@@ -12,6 +12,7 @@ from typing import Any
 import pytest
 
 import src.generic_chat.tools as tools
+from wahlchat_common.procedures import ProcedureSummary
 from src.generic_chat.schemas import (
     Anchor,
     ListFeedItemsInput,
@@ -358,3 +359,25 @@ async def test_resolve_anchor_unknown_logs_and_returns_none(
     assert await tools.resolve_anchor(deps, Anchor(feed_item_id=DEBATE_ID)) is None
     assert "anchor miss" in caplog.text
     assert deps.sources.entries == []
+
+
+async def test_search_offers_the_procedures_of_its_hits(
+    fake_io: FakeIO, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    linked = {**vote_payload(), "chunk_key": "v:0", "vorgang_ids": ["338366"]}
+    fake_io.retrieve_results = {"vote_record": [(linked, 0.8)]}
+    summary = ProcedureSummary(
+        vorgang_id="338366", titel="Haushaltsbegleitgesetz 2027", vorgangstyp="Gesetzgebung",
+        kind="legislation", latest_stage="Beschlussempfehlung", latest_stage_on=date(2026, 11, 16),
+        dip_url="https://dip.bundestag.de/vorgang/338366",
+    )
+
+    async def _procedures(payloads: Any) -> dict:
+        return {"v:0": [summary]}
+
+    monkeypatch.setattr(tools, "aprocedures_for_chunks", _procedures)
+    result = await tools.search(make_deps(), SearchInput(query="Haushalt", source_types=["vote_record"]))
+
+    refs = result.documents[0].procedures
+    assert refs is not None and refs[0].vorgang_id == "338366"
+    assert refs[0].latest_stage == "Beschlussempfehlung (2026-11-16)"

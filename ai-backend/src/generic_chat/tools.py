@@ -30,8 +30,10 @@ from src.generic_chat.schemas import (
     FeedItemsResult,
     FeedItemView,
     GenericChatDeps,
+    GetProcessInput,
     ListFeedItemsInput,
     NumberedDocument,
+    ProcedureRef,
     SearchInput,
     SearchSourceType,
     ToolResult,
@@ -44,6 +46,7 @@ from src.services.chat.service import (
     _mk_speech_docs,
 )
 from src.services.firebase_service import aget_feed_item, aget_feed_items
+from src.services.procedure_service import aprocedures_for_chunks
 from wahlchat_common.legislature_config import (
     LEGISLATURE_CONFIG,
     LegislatureConfig,
@@ -107,6 +110,7 @@ _STANCE = {
 }
 
 _WEB_SNIPPET = register_tag("web_snippet")
+_PROCEDURES_PER_DOCUMENT = 2
 
 
 def _clip(text: Optional[str], limit: int) -> str:
@@ -402,6 +406,7 @@ async def search(deps: GenericChatDeps, args: SearchInput) -> ToolResult:
             continue
         recent += bucket[0]
         earlier += bucket[1]
+    procedures = await _procedures_of(recent + earlier)
     documents: list[NumberedDocument] = []
     for payload in recent + earlier:
         day = _day(payload)
@@ -412,6 +417,7 @@ async def search(deps: GenericChatDeps, args: SearchInput) -> ToolResult:
                 update={
                     "wahlperiode": _wahlperiode(day),
                     "period": "recent" if is_recent else "earlier",
+                    "procedures": procedures.get(str(payload.get("chunk_key"))) or None,
                 }
             )
         )
@@ -419,6 +425,33 @@ async def search(deps: GenericChatDeps, args: SearchInput) -> ToolResult:
         documents=documents,
         note=None if documents else "No matching sources in the corpus.",
     )
+
+
+async def _procedures_of(payloads: list[dict]) -> dict[str, list[ProcedureRef]]:
+    """chunk_key → the procedures of a vote or speech; empty when the lookup fails."""
+    linked = [p for p in payloads if p.get("vorgang_ids")]
+    if not linked:
+        return {}
+    try:
+        by_chunk = await aprocedures_for_chunks(linked)
+    except Exception as exc:  # noqa: BLE001 (the offer is optional)
+        logger.warning("search: procedure lookup failed: %s", exc)
+        return {}
+    return {
+        key: [
+            ProcedureRef(
+                vorgang_id=s.vorgang_id,
+                title=s.titel,
+                latest_stage=(
+                    f"{s.latest_stage} ({s.latest_stage_on.isoformat()})"
+                    if s.latest_stage and s.latest_stage_on
+                    else s.latest_stage
+                ),
+            )
+            for s in summaries[:_PROCEDURES_PER_DOCUMENT]
+        ]
+        for key, summaries in by_chunk.items()
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -624,6 +657,8 @@ async def resolve_anchor(
     deps: GenericChatDeps, anchor: Anchor
 ) -> Optional[AnchorContext]:
     """Register the anchor's sources first; None (logged) when it is unknown."""
+    if anchor.vorgang_id is not None:
+        return await _resolve_procedure_anchor(deps, anchor.vorgang_id)
     if anchor.feed_item_id is not None:
         result = await get_debate(deps, anchor.feed_item_id)
     else:
@@ -642,3 +677,16 @@ async def resolve_anchor(
         first = result.documents[0]
         label = f"vote \"{first.title}\" ({first.date})"
     return AnchorContext(label=label, result=result)
+
+
+async def _resolve_procedure_anchor(
+    deps: GenericChatDeps, vorgang_id: str
+) -> Optional[AnchorContext]:
+    from src.generic_chat.process import get_process  # noqa: PLC0415 (process imports tools)
+
+    result = await get_process(deps, GetProcessInput(vorgang_id=vorgang_id))
+    if result.procedure is None:
+        logger.info("anchor miss: procedure %s", vorgang_id)
+        return None
+    logger.info("anchor hit: procedure %s (%d sources)", vorgang_id, len(result.documents))
+    return AnchorContext(label=f"procedure \"{result.procedure.title}\"", result=result)

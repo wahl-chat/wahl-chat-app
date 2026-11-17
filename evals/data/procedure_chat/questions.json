@@ -1,0 +1,17 @@
+[
+  {"id": "user-1", "group": "user", "question": "Wie ist das Haushaltsbegleitgesetz 2027 zustande gekommen?", "expect": ["338366"]},
+  {"id": "user-2", "group": "user", "question": "Was ändert das Haushaltsbegleitgesetz 2027?", "expect": ["338366"]},
+  {"id": "user-3", "group": "user", "question": "Was hat die SPD in den Beratungen zur Schuldenbremse gesagt und wie abgestimmt?", "expect": ["320784"]},
+  {"id": "user-4", "group": "user", "question": "Wo steht das Wehrdienstgesetz gerade?", "expect": ["325558"]},
+  {"id": "user-5", "group": "user", "question": "Was hat der Haushaltsausschuss am Haushaltsbegleitgesetz 2027 geändert?", "expect": ["338366"]},
+  {"id": "name-1", "group": "name", "question": "Wie ist der Stand beim Tariftreuegesetz?", "expect": ["324929"]},
+  {"id": "name-2", "group": "name", "question": "Wurde das Startchancen-Gesetz beschlossen?", "expect": ["338785"]},
+  {"id": "name-3", "group": "name", "question": "Was ist aus der Reform des Nachrichtendienstrechts geworden?", "expect": ["338341"]},
+  {"id": "name-4", "group": "name", "question": "Wie lief das Heizungsgesetz im Bundestag?", "expect": ["298723", "334923"]},
+  {"id": "name-5", "group": "name", "question": "Wie ist der Stand beim Haushalt 2027?", "expect": ["338317", "338366"], "ask_ok": true},
+  {"id": "name-6", "group": "name", "question": "Wo steht der Antrag zur Schuldenbremse?", "expect": [], "ask_ok": true},
+  {"id": "name-7", "group": "name", "question": "Welche Schritte hatte die Grundgesetzänderung zur Schuldenbremse 2025?", "expect": ["320784"]},
+  {"id": "name-8", "group": "name", "question": "Ist das Gesetz zur Verlängerung der Mietpreisbremse schon beraten worden?", "expect": ["318555"]},
+  {"id": "name-9", "group": "name", "question": "Wie ging es mit dem Wehrdienst-Modernisierungsgesetz nach der ersten Lesung weiter?", "expect": ["325558"]},
+  {"id": "name-10", "group": "name", "question": "Was passiert gerade mit dem Haushaltsgesetz 2027?", "expect": ["338317"]}
+]

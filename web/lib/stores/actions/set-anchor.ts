@@ -12,8 +12,11 @@ export const setAnchor: ChatStoreActionHandlerFor<'setAnchor'> =
         const url = new URL(window.location.href);
         url.searchParams.delete('feed_item');
         url.searchParams.delete('poll_id');
+        url.searchParams.delete('procedure');
         if ('feed_item_id' in anchor) {
           url.searchParams.set('feed_item', anchor.feed_item_id);
+        } else if ('vorgang_id' in anchor) {
+          url.searchParams.set('procedure', anchor.vorgang_id);
         } else {
           url.searchParams.set('poll_id', String(anchor.poll_id));
         }

@@ -1,9 +1,15 @@
 import { feedItemHref } from '@/lib/daily/share';
-import type { ChatAnchor, FeedItem } from '@/lib/firebase/firebase.types';
+import type {
+  ChatAnchor,
+  FeedItem,
+  StoredProcedure,
+} from '@/lib/firebase/firebase.types';
 
 // Feed item ids: `bundestag_2026-07-10_v123`, `bundestag_2026-07-10_d90-top17`.
 const FEED_ITEM_ID = /^[\w.~-]{1,200}$/;
 const POLL_ID = /^\d{1,10}$/;
+// DIP Vorgang ids.
+const VORGANG_ID = /^\d{1,12}$/;
 
 type Param = string | string[] | undefined;
 
@@ -20,15 +26,20 @@ function pollId(value: unknown): number | undefined {
   return id > 0 && Number.isSafeInteger(id) ? id : undefined;
 }
 
-/** The anchor named by a chat URL's `feed_item` or `poll_id`. A feed item
- * wins: a vote's item names its poll too. */
+/** The anchor named by a chat URL's `feed_item`, `procedure` or `poll_id`.
+ * A feed item wins: a vote's item names its poll too. */
 export function chatAnchorFromParams(params: {
   feed_item?: Param;
   poll_id?: Param;
+  procedure?: Param;
 }): ChatAnchor | undefined {
   const feedItem = first(params.feed_item);
   if (feedItem && FEED_ITEM_ID.test(feedItem)) {
     return { feed_item_id: feedItem };
+  }
+  const procedure = first(params.procedure);
+  if (procedure && VORGANG_ID.test(procedure)) {
+    return { vorgang_id: procedure };
   }
   const poll = pollId(first(params.poll_id));
   return poll === undefined ? undefined : { poll_id: poll };
@@ -40,16 +51,22 @@ export function sanitizeChatAnchor(value: unknown): ChatAnchor | undefined {
   if (!value || typeof value !== 'object') {
     return undefined;
   }
-  const { feed_item_id, poll_id } = value as Record<string, unknown>;
+  const { feed_item_id, poll_id, vorgang_id } = value as Record<
+    string,
+    unknown
+  >;
   if (typeof feed_item_id === 'string' && FEED_ITEM_ID.test(feed_item_id)) {
     return { feed_item_id };
+  }
+  if (typeof vorgang_id === 'string' && VORGANG_ID.test(vorgang_id)) {
+    return { vorgang_id };
   }
   const poll = pollId(poll_id);
   return poll === undefined ? undefined : { poll_id: poll };
 }
 
 export type AnchorCard = {
-  kind: 'Abstimmung' | 'Debatte';
+  kind: 'Abstimmung' | 'Debatte' | 'Verfahren';
   title: string;
   /** "10. Juli 2026"; null when unknown. */
   date: string | null;
@@ -66,11 +83,30 @@ const longDay = new Intl.DateTimeFormat('de-DE', {
 });
 
 /** What the chat's anchor card shows. A feed item that does not exist (or is
- * not published) shows nothing; a bare poll id a plain vote card. */
+ * not published) shows nothing, nor does an unknown procedure; a bare poll id
+ * a plain vote card. */
 export function anchorCard(
   anchor: ChatAnchor,
   item: FeedItem | null | undefined,
+  procedure?: StoredProcedure | null,
 ): AnchorCard | null {
+  if ('vorgang_id' in anchor) {
+    if (!procedure) {
+      return null;
+    }
+    const day = procedure.latest_stage_on
+      ? longDay.format(new Date(`${procedure.latest_stage_on}T00:00:00Z`))
+      : null;
+    return {
+      kind: 'Verfahren',
+      title: procedure.titel,
+      date: procedure.latest_stage
+        ? `Stand: ${[procedure.latest_stage, day].filter(Boolean).join(', ')}`
+        : null,
+      outcome: null,
+      feedHref: null,
+    };
+  }
   if ('poll_id' in anchor) {
     return {
       kind: 'Abstimmung',

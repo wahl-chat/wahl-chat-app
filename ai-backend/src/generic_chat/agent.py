@@ -24,15 +24,17 @@ from pydantic_ai.settings import ModelSettings
 from pydantic_ai.tools import ToolDefinition
 from pydantic_ai.usage import UsageLimits
 
-from src.generic_chat import tools
+from src.generic_chat import process, tools
 from src.generic_chat.prompt import build_system_prompt
 from src.generic_chat.schemas import (
     DebateResult,
     FeedItemsResult,
     GenericChatDeps,
     GetDebateInput,
+    GetProcessInput,
     GetVoteInput,
     ListFeedItemsInput,
+    ProcessResult,
     SearchInput,
     ToolResult,
     WebSearchInput,
@@ -121,7 +123,9 @@ async def _within_budget(
     model has to answer from what it already has."""
     out_of_requests = ctx.usage.requests >= MAX_MODEL_REQUESTS - 1
     out_of_time = time.monotonic() - ctx.deps.started_at > _TOOLS_CUTOFF_S
-    return None if out_of_requests or out_of_time else tool_def
+    # Open choices: the next answer is the question which one.
+    asking = bool(ctx.deps.choices)
+    return None if out_of_requests or out_of_time or asking else tool_def
 
 
 @dataclass
@@ -186,6 +190,20 @@ async def get_debate(
     )
 
 
+async def get_process(
+    ctx: RunContext[GenericChatDeps], args: GetProcessInput
+) -> ProcessResult:
+    """One Bundestag procedure (law or motion) by vorgang_id or name: dated
+    steps, decisions, and its votes, speeches and Drucksache passages. An
+    ambiguous name returns choices instead; then ask the user."""
+    result = await _logged("get_process", lambda: process.get_process(ctx.deps, args))
+    if result.procedure is not None:
+        ctx.deps.choices = []
+    elif result.choices:
+        ctx.deps.choices = result.choices
+    return result
+
+
 async def list_feed_items(
     ctx: RunContext[GenericChatDeps], args: ListFeedItemsInput
 ) -> FeedItemsResult:
@@ -206,6 +224,7 @@ TOOL_FUNCTIONS: tuple[Callable[..., Awaitable[Any]], ...] = (
     search,
     get_vote,
     get_debate,
+    get_process,
     list_feed_items,
     web_search,
 )

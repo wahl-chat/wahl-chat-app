@@ -47,6 +47,7 @@ from src.core.utils import (
     sanitize_references,
 )
 from src.generic_chat import agent as agent_module
+from src.generic_chat import prompt
 from src.generic_chat import tools
 from src.generic_chat.schemas import GenericChatDeps
 from src.models.chat import Message, Role
@@ -87,6 +88,10 @@ _TOOL_LABELS: dict[str, dict[str, tuple[str, str]]] = {
     "get_debate": {
         "de": ("Lade Debatte …", "Debatte geladen"),
         "en": ("Loading the debate …", "Debate loaded"),
+    },
+    "get_process": {
+        "de": ("Lese das Verfahren …", "Verfahren gelesen"),
+        "en": ("Reading the procedure …", "Procedure read"),
     },
     "list_feed_items": {
         "de": ("Prüfe den Feed …", "Feed geprüft"),
@@ -182,7 +187,9 @@ def _text_of(event: object) -> Optional[str]:
     return None
 
 
-async def _quick_replies(body: Any, answer: str) -> Optional[str]:
+async def _quick_replies(
+    body: Any, answer: str, replies: Optional[list[str]] = None
+) -> Optional[str]:
     turns = [
         Message(role=t.role, content=t.content, party_id=t.party_id)
         for t in body.chat_history
@@ -196,13 +203,14 @@ async def _quick_replies(body: Any, answer: str) -> Optional[str]:
             chat_title="Noch kein Titel vergeben",
             parties_in_chat=[],
             wahl_chat_assistant_last_responded=True,
+            quick_reply_guidelines=prompt.QUICK_REPLY_GUIDELINES,
         )
     except Exception as exc:  # noqa: BLE001 — quick replies are optional
         logger.error("generic chat: quick replies failed: %s", exc, exc_info=True)
         return None
     dto = QuickRepliesAndTitleDto(
         session_id=body.session_id,
-        quick_replies=generated.quick_replies,
+        quick_replies=replies or generated.quick_replies,
         title=generated.chat_title,
     )
     return data_event({"type": "quick_replies_title", **dto.model_dump()})
@@ -235,7 +243,11 @@ async def stream_generic_chat(
 
         anchor = getattr(body, "anchor", None)
         if anchor is not None:
-            anchor_tool = "get_debate" if anchor.feed_item_id else "get_vote"
+            anchor_tool = (
+                "get_process"
+                if anchor.vorgang_id
+                else "get_debate" if anchor.feed_item_id else "get_vote"
+            )
             yield _tool_status(session_id, "anchor", anchor_tool, "running", language)
             deps.anchor = await tools.resolve_anchor(deps, anchor)
             yield _tool_status(session_id, "anchor", anchor_tool, "done", language)
@@ -315,7 +327,10 @@ async def stream_generic_chat(
     if request is not None and await request.is_disconnected():
         logger.info("generic chat: client disconnected — skipping quick replies")
         return
-    quick_replies = await _quick_replies(body, answer)
+    # A name left several procedures open: the choices replace the
+    # generated replies; tapping one sends its exact title.
+    choices = [choice.label for choice in deps.choices]
+    quick_replies = await _quick_replies(body, answer, replies=choices or None)
     if quick_replies is not None:
         yield quick_replies
     yield finish_step()

@@ -2,22 +2,49 @@
 
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { anchorCard } from '@/lib/chat-anchor';
-import { getFeedItem } from '@/lib/firebase/firebase';
-import type { FeedItem } from '@/lib/firebase/firebase.types';
-import { ChevronLeftIcon, LandmarkIcon, VoteIcon } from 'lucide-react';
+import { getFeedItem, getProcedure } from '@/lib/firebase/firebase';
+import type { FeedItem, StoredProcedure } from '@/lib/firebase/firebase.types';
+import {
+  ChevronLeftIcon,
+  LandmarkIcon,
+  ListChecksIcon,
+  VoteIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-/** The feed item or vote a general chat is about, pinned above the
- * conversation, with the way back to the feed. */
+/** The feed item, vote or procedure a general chat is about, pinned above
+ * the conversation, with the way back to the feed. */
 function ChatAnchorCard() {
   const anchor = useChatStore((state) => state.anchor);
   const feedItemId =
     anchor && 'feed_item_id' in anchor ? anchor.feed_item_id : null;
+  const vorgangId = anchor && 'vorgang_id' in anchor ? anchor.vorgang_id : null;
   const [loaded, setLoaded] = useState<{
     id: string;
     item: FeedItem | null;
   } | null>(null);
+  const [procedure, setProcedure] = useState<StoredProcedure | null>(null);
+
+  useEffect(() => {
+    if (!vorgangId) {
+      return;
+    }
+    let cancelled = false;
+    getProcedure(vorgangId)
+      .catch((error) => {
+        console.error('Failed to load the anchored procedure', error);
+        return null;
+      })
+      .then((found) => {
+        if (!cancelled) {
+          setProcedure(found);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [vorgangId]);
 
   useEffect(() => {
     if (!feedItemId) {
@@ -43,11 +70,20 @@ function ChatAnchorCard() {
     return null;
   }
   const item = loaded?.id === feedItemId ? loaded.item : null;
-  const card = anchorCard(anchor, item);
+  const card = anchorCard(
+    anchor,
+    item,
+    procedure?.vorgang_id === vorgangId ? procedure : null,
+  );
   if (!card) {
     return null;
   }
-  const Icon = card.kind === 'Abstimmung' ? VoteIcon : LandmarkIcon;
+  const Icon =
+    card.kind === 'Abstimmung'
+      ? VoteIcon
+      : card.kind === 'Verfahren'
+        ? ListChecksIcon
+        : LandmarkIcon;
   const meta = [card.kind, card.date, card.outcome].filter(Boolean).join(' · ');
 
   return (

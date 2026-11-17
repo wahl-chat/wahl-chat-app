@@ -24,6 +24,7 @@ type Props = {
     prefill?: string;
     /** The general chat's anchor: a feed item or a vote. */
     feed_item?: string;
+    procedure?: string;
     poll_id?: string;
   }>;
 };
@@ -80,7 +81,7 @@ export async function generateMetadata({
 
 async function SessionPage({ params, searchParams }: Props) {
   const { contextId } = await params;
-  const { party_id, q, prefill, session_id, feed_item, poll_id } =
+  const { party_id, q, prefill, session_id, feed_item, poll_id, procedure } =
     await searchParams;
   const [parties, context] = await Promise.all([
     getPartiesForContext(contextId),
@@ -109,7 +110,7 @@ async function SessionPage({ params, searchParams }: Props) {
       contextId={contextId}
       anchor={
         context?.type === 'general'
-          ? chatAnchorFromParams({ feed_item, poll_id })
+          ? chatAnchorFromParams({ feed_item, poll_id, procedure })
           : undefined
       }
     />

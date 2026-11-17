@@ -120,3 +120,35 @@ describe('anchorCard', () => {
     });
   });
 });
+
+describe('procedure anchors', () => {
+  it('reads a procedure from the URL and keeps it when sanitized', () => {
+    expect(chatAnchorFromParams({ procedure: '338366' })).toEqual({
+      vorgang_id: '338366',
+    });
+    expect(sanitizeChatAnchor({ vorgang_id: '338366' })).toEqual({
+      vorgang_id: '338366',
+    });
+    expect(chatAnchorFromParams({ procedure: '33x' })).toBeUndefined();
+    expect(sanitizeChatAnchor({ vorgang_id: 338366 })).toBeUndefined();
+  });
+
+  it('shows the procedure with where it stands, once loaded', () => {
+    const anchor = { vorgang_id: '338366' };
+    expect(anchorCard(anchor, null, null)).toBeNull();
+    expect(
+      anchorCard(anchor, null, {
+        vorgang_id: '338366',
+        titel: 'Haushaltsbegleitgesetz 2027',
+        latest_stage: 'Beschlussempfehlung und Bericht',
+        latest_stage_on: '2026-11-16',
+      }),
+    ).toEqual({
+      kind: 'Verfahren',
+      title: 'Haushaltsbegleitgesetz 2027',
+      date: 'Stand: Beschlussempfehlung und Bericht, 16. November 2026',
+      outcome: null,
+      feedHref: null,
+    });
+  });
+});

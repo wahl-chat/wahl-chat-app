@@ -114,7 +114,7 @@ export async function middleware(request: NextRequest) {
   // from the request's region, so those stay temporary (307).
 
   // /chat is the general chat: served from its context's session page under
-  // its own URL, query (q, feed_item, poll_id) included.
+  // its own URL, query (q, feed_item, procedure, poll_id) included.
   if (pathname === '/chat') {
     const url = request.nextUrl.clone();
     url.pathname = `/${GENERAL_CONTEXT_ID}/session`;

@@ -22,7 +22,8 @@ function ChatLiveElectionCard() {
     useChatSessionParam() !== undefined ||
     searchParams.has('q') ||
     searchParams.has('feed_item') ||
-    searchParams.has('poll_id');
+    searchParams.has('poll_id') ||
+    searchParams.has('procedure');
   const isPristine = useChatStore(
     (state) =>
       state.input.trim() === '' &&

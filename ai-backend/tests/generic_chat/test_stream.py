@@ -28,6 +28,7 @@ from pydantic_ai.models.function import (
 )
 
 import src.generic_chat.stream as stream
+from src.generic_chat.schemas import ProcessChoice, ProcessResult
 import src.services.chat.service as service
 from src.models.structured_outputs import GroupChatTitleQuickReplyGenerator
 from src.routes.chat import ChatRequestDto
@@ -372,3 +373,25 @@ async def test_general_context_bypasses_the_party_pipeline(
     assert _events(parts, "responding_parties")[0]["party_ids"] == ["wahl-chat"]
     assert _events(parts, "party_complete")[0]["status"]["indicator"] == "success"
     assert parts[-1] == "[DONE]"
+
+
+async def test_open_procedure_choices_become_quick_replies(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    choices = [
+        ProcessChoice(vorgang_id="338366", label="Haushaltsbegleitgesetz 2027 (WP 21)"),
+        ProcessChoice(vorgang_id="338317", label="Haushaltsgesetz 2027 (WP 21)"),
+    ]
+
+    async def _get_process(deps: Any, args: Any, **_: Any) -> ProcessResult:
+        return ProcessResult(choices=choices, note="Ask the user.")
+
+    monkeypatch.setattr(stream.agent_module.process, "get_process", _get_process)
+    script = Script(
+        call(("get_process", {"name": "Haushalt 2027"})),
+        say("Welches Verfahren meinst du?"),
+    )
+
+    parts = await _run(script, monkeypatch, user_message="Wie ist der Stand beim Haushalt 2027?")
+
+    assert _events(parts, "quick_replies_title")[0]["quick_replies"] == [c.label for c in choices]

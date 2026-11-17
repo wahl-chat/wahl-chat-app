@@ -47,6 +47,7 @@ import type {
   ChatSession,
   FeedItem,
   LlmSystemStatus,
+  StoredProcedure,
   StudyParticipant,
   StudyParticipantEvent,
   StudyStatus,
@@ -307,6 +308,15 @@ export async function setFeedInterest(
 export async function getFeedItem(itemId: string): Promise<FeedItem | null> {
   const snapshot = await getDoc(doc(db, 'feed_items', itemId));
   return snapshot.exists() ? (snapshot.data() as FeedItem) : null;
+}
+
+/** A Bundestag procedure as the procedures job stores it; only the fields
+ * the chat shows are typed. */
+export async function getProcedure(
+  vorgangId: string,
+): Promise<StoredProcedure | null> {
+  const snapshot = await getDoc(doc(db, 'procedures', vorgangId));
+  return snapshot.exists() ? (snapshot.data() as StoredProcedure) : null;
 }
 
 export async function getChatSession(sessionId: string) {
