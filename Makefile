@@ -345,9 +345,9 @@ backfill-feed:
 eval-feed:
 	cd evals && uv run python -m wahlchat_evals.feed $(ARGS)
 
-# Drucksache text in answers: S0 (today) vs S1/S2/S3 on a fixed question set,
-# answers side by side for a person to judge. Needs procedures and Drucksachen
-# in the local store (make run-procedures ARGS="--drucksachen full").
+# Procedures in answers: speeches + votes alone vs. with procedure profiles and
+# Drucksachen, on a fixed question set, side by side for a person to judge.
+# Needs procedures in the local store (make run-procedures).
 #   make eval-procedure-documents ARGS="--out /tmp/procedure-documents.md"
 eval-procedure-documents:
 	cd evals && $(QDRANT_ENV) uv run python -m wahlchat_evals.procedure_documents $(ARGS)

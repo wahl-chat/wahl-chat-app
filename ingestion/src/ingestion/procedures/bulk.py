@@ -33,14 +33,13 @@ import sys
 from datetime import date
 from typing import Any, Optional
 
-from qdrant_client import QdrantClient, models
+from qdrant_client import QdrantClient
 
 from ingestion.connectors.bundestag_speeches.client import DipClient
 from ingestion.connectors.bundestag_speeches.connector import _require_dip_key
 from ingestion.firestore_guard import guard_firestore_target
 from ingestion.procedures.dip import DipReader, LiveDip
 from ingestion.procedures.drucksachen import (
-    DrucksacheMode,
     ingest_drucksachen,
     stored_drucksachen,
     wanted_numbers,
@@ -56,35 +55,6 @@ from wahlchat_common.procedures import ProcedureRecord
 logger = logging.getLogger(__name__)
 
 WAHLPERIODEN = [20, 21]
-# How Drucksache text enters the corpus: overview and committee reports
-# (law text crowded out speeches and votes; make eval-procedure-documents).
-DEFAULT_DRUCKSACHEN: DrucksacheMode = "overview"
-
-
-def drop_drucksachen(qdrant: QdrantClient, collection: str) -> int:
-    """Remove every Drucksache chunk, by exact point id."""
-    ids: list[Any] = []
-    offset = None
-    flt = models.Filter(
-        must=[models.FieldCondition(key="source_type", match=models.MatchValue(value="drucksache"))]
-    )
-    while True:
-        points, offset = qdrant.scroll(
-            collection_name=collection, scroll_filter=flt, limit=2048, offset=offset,
-            with_payload=False, with_vectors=False,
-        )
-        ids.extend(p.id for p in points)
-        if offset is None:
-            break
-    for start in range(0, len(ids), 1024):
-        qdrant.delete(
-            collection_name=collection,
-            points_selector=models.PointIdsList(points=ids[start : start + 1024]),
-            wait=True,
-        )
-    return len(ids)
-
-
 def run(
     *,
     dip: DipReader,
@@ -94,8 +64,6 @@ def run(
     embed: Any,
     wahlperioden: list[int],
     backfill: bool,
-    drucksachen: DrucksacheMode,
-    drucksachen_wahlperioden: Optional[list[int]] = None,
     link: bool,
     sync: bool,
     feed: bool,
@@ -122,25 +90,20 @@ def run(
     # stored Drucksache may now belong to one more procedure.
     changed = set(report.new_stage) | set(report.changed_sachgebiete) | set(report.created)
 
-    state = store.sync_state()
-    mode_changed = state.get("drucksachen_mode") != drucksachen
-    readable_wps = drucksachen_wahlperioden or wahlperioden
-
     def read_drucksachen(of: dict[str, ProcedureRecord], *, reread: bool) -> bool:
         """Read the procedures' Drucksachen: all of them, or only those not
         stored yet (nor known to have no text worth a chunk). Returns whether
         every document was read."""
-        readable = {vid: r for vid, r in of.items() if r.wahlperiode in readable_wps}
-        numbers = wanted_numbers(readable)
+        numbers = wanted_numbers(of)
         if not reread:
             known_empty = set(store.sync_state().get("drucksachen_without_chunks") or [])
             numbers -= stored_drucksachen(qdrant, collection) | known_empty
         result = ingest_drucksachen(
             numbers, dip=dip, qdrant=qdrant, collection=collection, embed=embed,
-            procedures=procedures, mode=drucksachen, today=today,
+            procedures=procedures, today=today,
         )
         print(
-            f"drucksachen ({drucksachen}): documents={result.documents} chunks={result.chunks} "
+            f"drucksachen: documents={result.documents} chunks={result.chunks} "
             f"written={result.written} unchanged={result.skipped} failed={len(result.failed)}"
         )
         if result.empty:
@@ -149,22 +112,10 @@ def run(
             store.set_sync_state({**current, "drucksachen_without_chunks": sorted(known)})
         return not result.failed
 
-    if drucksachen == "off":
-        if mode_changed and not dry_run:
-            print(f"drucksachen: removed {drop_drucksachen(qdrant, collection)} chunks")
-            store.set_sync_state({**store.sync_state(), "drucksachen_mode": drucksachen})
-    elif not dry_run:
-        if mode_changed:
-            complete = read_drucksachen(procedures, reread=True)
-        else:
-            moved = {v: procedures[v] for v in changed if v in procedures}
-            complete = read_drucksachen(moved, reread=True) & read_drucksachen(
-                procedures, reread=False
-            )
+    if not dry_run:
+        moved = {v: procedures[v] for v in changed if v in procedures}
+        complete = read_drucksachen(moved, reread=True) & read_drucksachen(procedures, reread=False)
         failed |= not complete
-        # The mode counts as applied once every document was read in it.
-        if complete:
-            store.set_sync_state({**store.sync_state(), "drucksachen_mode": drucksachen})
 
     if link:
         def add_procedures(ids: set[str]) -> dict[str, ProcedureRecord]:
@@ -184,7 +135,7 @@ def run(
         failed |= bool(linker.report.failed)
         procedures = store.all()
         created = {v: procedures[v] for v in linker.report.created if v in procedures}
-        if created and drucksachen != "off" and not dry_run:
+        if created and not dry_run:
             failed |= not read_drucksachen(created, reread=True)
 
     if feed:
@@ -219,9 +170,6 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--wahlperiode", type=int, nargs="+", default=WAHLPERIODEN)
     parser.add_argument("--backfill", action="store_true", help="sync every in-scope Vorgang")
-    parser.add_argument("--drucksachen", choices=["off", "overview", "full"], default=DEFAULT_DRUCKSACHEN)
-    parser.add_argument("--drucksachen-wahlperiode", type=int, nargs="+",
-                        help="read Drucksache text only for these (default: --wahlperiode)")
     parser.add_argument("--link-only", action="store_true", help="skip the DIP sync")
     parser.add_argument("--no-link", action="store_true", help="skip linking votes and speeches")
     parser.add_argument("--no-feed", action="store_true", help="leave feed items as they are")
@@ -257,8 +205,6 @@ def main(argv: Optional[list[str]] = None) -> int:
         embed=get_embeddings(task_type="RETRIEVAL_DOCUMENT"),
         wahlperioden=args.wahlperiode,
         backfill=args.backfill,
-        drucksachen=args.drucksachen,
-        drucksachen_wahlperioden=args.drucksachen_wahlperiode,
         link=not args.no_link,
         sync=not args.link_only,
         feed=not args.no_feed,

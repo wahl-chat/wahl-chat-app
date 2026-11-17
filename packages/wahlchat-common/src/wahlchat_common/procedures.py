@@ -26,10 +26,8 @@ ProcedureKind = Literal[
 Chamber = Literal["BT", "BR", "BV", "EK"]
 
 # overview: Vorblatt, Antrag text; report: a committee's Bericht (how it was
-# deliberated, each Fraktion's stance); body: law text and Begründung.
-DocSection = Literal["overview", "report", "body"]
-# What chat retrieval reads by default; body text is not ingested.
-READ_BY_DEFAULT: tuple[DocSection, ...] = ("overview", "report")
+# deliberated, each Fraktion's stance). Law text and Begründung are not stored.
+DocSection = Literal["overview", "report"]
 
 LinkMethod = Literal[
     # votes

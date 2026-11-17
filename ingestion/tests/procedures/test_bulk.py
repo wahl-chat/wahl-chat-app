@@ -38,7 +38,7 @@ def test_a_backfill_run_syncs_reads_links_and_flags(vorgaenge, positions, capsys
     db.collection("feed_items").document("d").set({"parliament": "bundestag", "debate": {"drucksachen": ["21/7860"]}})
     code = run(
         dip=_dip(vorgaenge, positions), db=db, qdrant=qdrant, collection="c", embed=FakeEmbed(),
-        wahlperioden=[21], backfill=True, drucksachen="overview", link=True, sync=True, feed=True,
+        wahlperioden=[21], backfill=True, link=True, sync=True, feed=True,
         today=TODAY,
     )
     out = capsys.readouterr().out
@@ -53,42 +53,34 @@ def test_a_backfill_run_syncs_reads_links_and_flags(vorgaenge, positions, capsys
     # the fixture DIP knows two procedures; speeches on other Einzelpläne stay unlinked
     assert any(p.get("vorgang_ids") == ["338366"] for p in speeches)
     assert db.data["feed_items"]["d"]["procedure_ids"] == ["338366"]
-    assert db.data["procedures_meta"]["sync"]["drucksachen_mode"] == "overview"
     assert "Procedure links" in out
 
 
 def _run(dip, db, qdrant, **kw):
     args = dict(dip=dip, db=db, qdrant=qdrant, collection="c", embed=FakeEmbed(), wahlperioden=[21],
-                backfill=True, drucksachen="overview", link=False, sync=True, feed=False, today=TODAY)
+                backfill=True, link=False, sync=True, feed=False, today=TODAY)
     return run(**{**args, **kw})
 
 
-def test_documents_are_read_once_and_again_on_a_mode_change(vorgaenge, positions, capsys) -> None:
+def test_documents_are_read_once(vorgaenge, positions, capsys) -> None:
     dip, db, qdrant = _dip(vorgaenge, positions), FakeFirestore(), FakeQdrant()
     _run(dip, db, qdrant)
-    first = set(dip.text_reads)
-    assert {"21/7860", "21/9233"} <= first
+    assert {"21/7860", "21/9233"} <= set(dip.text_reads)
     dip.text_reads.clear()
     _run(dip, db, qdrant, backfill=False)
-    # unchanged procedures: only documents DIP had no text for are asked again
+    # unchanged procedures: stored documents are not asked for again
     assert "21/7860" not in dip.text_reads and "21/9233" not in dip.text_reads
-    dip.text_reads.clear()
-    _run(dip, db, qdrant, backfill=False, drucksachen="full")
-    assert {"21/7860", "21/9233"} <= set(dip.text_reads)
-    sections = {p["doc_section"] for p in qdrant.points.values() if p["source_type"] == "drucksache"}
-    assert sections == {"overview", "body"}
 
 
-def test_a_failed_document_keeps_the_mode_unapplied(vorgaenge, positions, capsys) -> None:
+def test_a_failed_document_fails_the_run(vorgaenge, positions, capsys) -> None:
     dip, db, qdrant = _dip(vorgaenge, positions), FakeFirestore(), FakeQdrant()
     dip.fail.add("texts")
     assert _run(dip, db, qdrant) == 1
-    assert "drucksachen_mode" not in db.data["procedures_meta"]["sync"]
 
 
 def test_rebuilt_collection_gets_profiles_back_on_backfill(vorgaenge, positions, capsys) -> None:
     dip, db, qdrant = _dip(vorgaenge, positions), FakeFirestore(), FakeQdrant()
-    _run(dip, db, qdrant, drucksachen="off")
+    _run(dip, db, qdrant)
     qdrant.points.clear()
-    _run(dip, db, qdrant, drucksachen="off")
+    _run(dip, db, qdrant)
     assert sum(1 for p in qdrant.points.values() if p["source_type"] == "procedure") == 2

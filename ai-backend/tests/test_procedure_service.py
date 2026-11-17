@@ -135,30 +135,17 @@ async def test_search_hydrates_profile_hits(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("strategy", ["overview", "all", "drill_down"])
-async def test_document_strategies(monkeypatch: pytest.MonkeyPatch, strategy: str) -> None:
+async def test_document_search_stays_inside_a_procedure(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[dict] = []
 
     async def fake_retrieve(query, **kw):  # noqa: ANN001, ANN003
         calls.append(kw)
-        section = kw.get("doc_section") or ["any"]
-        return [{"doc_section": section[-1], "vorgang_ids": ["338366"], "n": i} for i in range(kw["limit"])]
+        return [{"doc_section": "report", "vorgang_ids": ["338366"]}]
 
     monkeypatch.setattr(service, "retrieve", fake_retrieve)
-    out = await service.asearch_procedure_documents("q", limit=4, strategy=strategy)
-    sections = [c.get("doc_section") for c in calls]
-    if strategy == "overview":
-        assert sections == [["overview", "report"]]
-    elif strategy == "all":
-        assert sections == [None]
-    else:
-        assert sections == [["overview", "report"], ["body"]]
-        assert calls[1]["vorgang_id"] == "338366"  # drill into the best overview hit's procedure
-        assert [d["doc_section"] for d in out] == ["report", "report", "body", "body"]
-
-
-def test_the_default_reads_overview_and_reports() -> None:
-    assert service.DEFAULT_STRATEGY == "overview"
+    out = await service.asearch_procedure_documents("q", vorgang_id="338366", limit=4)
+    assert calls[0]["source_type"] == "drucksache" and calls[0]["vorgang_id"] == "338366"
+    assert out == [{"doc_section": "report", "vorgang_ids": ["338366"]}]
 
 
 @pytest.mark.asyncio

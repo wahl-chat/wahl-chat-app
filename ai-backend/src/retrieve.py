@@ -213,7 +213,7 @@ async def retrieve(
     score_threshold: Optional[float] = None,
     with_scores: bool = False,
     vorgang_id: Optional[str] = None,
-    doc_section: Optional[list[Literal["overview", "report", "body"]]] = None,
+    doc_section: Optional[list[Literal["overview", "report"]]] = None,
     _client: Optional[AsyncQdrantClient] = None,
     _embed_fn: Any = None,
 ) -> Union[list[dict], list[tuple[dict, float]]]:
@@ -300,8 +300,8 @@ async def retrieve(
                         procedure (DIP Vorgang id, indexed ``vorgang_ids``).
                         Selective: a procedure's chunks are few.
         doc_section:    Keyword-only, drucksache chunks: any of ``"overview"``
-                        (Vorblatt, Antrag text), ``"report"`` (committee Bericht),
-                        ``"body"``. NOT selective alone.
+                        (Vorblatt, Antrag text) and ``"report"`` (committee
+                        Bericht). NOT selective alone.
         score_threshold: Minimum cosine similarity for a result to be included.
                         When None (default), Qdrant returns results without a score
                         cutoff — identical to the default behaviour so existing

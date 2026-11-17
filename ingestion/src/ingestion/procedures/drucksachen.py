@@ -9,12 +9,11 @@ A Drucksache is split at its own headings first: the Vorblatt sections
 Begründung (A./B., I./II., Zu Artikel n) and of a committee Bericht. Inside a
 section the corpus-wide splitter (1000/150) applies. Every chunk starts with
 a breadcrumb naming the document and section, because "§ 2 wird wie folgt
-geändert" means nothing on its own. Vorblatt and Anträge are the overview,
-a committee's Bericht is the report, law text and Begründung the body
-(``doc_section``). The ``overview`` mode reads overview and report only: the
-comparison in ``wahlchat_evals.procedure_documents`` found that law text adds
-detail but crowds out speeches and votes, while the Bericht adds the course
-and the Fraktionen's stances.
+geändert" means nothing on its own. Only the overview (Vorblatt, Anträge)
+and a committee's report (Bericht) become chunks (``doc_section``); law text
+and Begründung are split off and dropped: they added detail but crowded
+speeches and votes out of answers, while the Bericht adds the course and the
+Fraktionen's stances.
 """
 
 from __future__ import annotations
@@ -41,11 +40,13 @@ from ingestion.schemas import (
     ProcedureLink,
     SourceType,
 )
-from wahlchat_common.procedures import READ_BY_DEFAULT, DocSection, ProcedureRecord
+from wahlchat_common.procedures import DocSection, ProcedureRecord
+
+# Where a section belongs; only overview and report become chunks.
+SectionKind = Literal["overview", "report", "body"]
 
 logger = logging.getLogger(__name__)
 
-DrucksacheMode = Literal["off", "overview", "full"]
 
 # Document types worth reading; Kleine Anfragen, Antworten and Unterrichtungen
 # are no procedure's argument.
@@ -83,7 +84,7 @@ _ZU_ARTIKEL = re.compile(r"^Zu Artikel \d+[a-z]?(?: \(.{1,80}\))?$")
 class Section:
     path: tuple[str, ...]
     text: str
-    doc_section: DocSection
+    kind: SectionKind
 
 
 def _heading_level(line: str, in_vorblatt: bool) -> Optional[int]:
@@ -130,12 +131,12 @@ def split_sections(text: str, doc_type: Optional[str]) -> list[Section]:
         content = _join(body)
         if content.strip():
             path = tuple(name for _, name in stack)
-            section: DocSection = "body"
+            kind: SectionKind = "body"
             if whole_overview or path[0] == "Vorblatt":
-                section = "overview"
+                kind = "overview"
             elif path[0] == "Bericht":
-                section = "report"
-            sections.append(Section(path, content, section))
+                kind = "report"
+            sections.append(Section(path, content, kind))
         body.clear()
 
     for line in lines:
@@ -183,12 +184,9 @@ def drucksache_chunks(
     doc: dict[str, Any],
     *,
     procedures: dict[str, ProcedureRecord],
-    mode: DrucksacheMode,
     today: date,
 ) -> list[ChunkRecord]:
-    """Chunks of one DIP ``drucksache-text`` document; [] when mode is off."""
-    if mode == "off":
-        return []
+    """Chunks of the overview and report sections of one DIP ``drucksache-text``."""
     number = str(doc["dokumentnummer"])
     doc_type = str(doc.get("drucksachetyp") or "Drucksache")
     text = str(doc.get("text") or "")
@@ -211,8 +209,9 @@ def drucksache_chunks(
 
     chunks: list[ChunkRecord] = []
     for section in split_sections(text, doc_type):
-        if mode == "overview" and section.doc_section not in READ_BY_DEFAULT:
+        if section.kind == "body":
             continue
+        doc_section: DocSection = "overview" if section.kind == "overview" else "report"
         crumb = _breadcrumb(number, doc_type, title, section.path)
         for piece in chunk_text(section.text):
             index = len(chunks)
@@ -233,7 +232,7 @@ def drucksache_chunks(
                         "parties": parties,
                         "vorgang_ids": vorgang_ids,
                         "sachgebiete": sachgebiete,
-                        "doc_section": section.doc_section,
+                        "doc_section": doc_section,
                         "publish_date": publish_date.isoformat(),
                     },
                     sort_keys=True,
@@ -264,7 +263,7 @@ def drucksache_chunks(
                     vorgang_ids=vorgang_ids or None,
                     sachgebiete=sachgebiete or None,
                     procedure_link=ProcedureLink(method="source", checked_on=today),
-                    doc_section=section.doc_section,
+                    doc_section=doc_section,
                     meta=meta,
                 )
             )
@@ -326,7 +325,6 @@ def ingest_drucksachen(
     collection: str,
     embed: Any,
     procedures: dict[str, ProcedureRecord],
-    mode: DrucksacheMode,
     today: date,
     batch_size: int = 10,
 ) -> DrucksacheReport:
@@ -347,7 +345,7 @@ def ingest_drucksachen(
             continue
         parents = {
             f"{SourceType.DRUCKSACHE.value}:BT:{number}": drucksache_chunks(
-                doc, procedures=procedures, mode=mode, today=today
+                doc, procedures=procedures, today=today
             )
             for number, doc in texts.items()
         }
