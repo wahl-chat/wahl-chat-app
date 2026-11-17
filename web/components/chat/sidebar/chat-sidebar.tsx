@@ -4,7 +4,6 @@ import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
 import DonationDialog from '@/components/donation-dialog';
 import FeedbackDialog from '@/components/feedback-dialog';
 import LoadingSpinner from '@/components/loading-spinner';
-import { Button } from '@/components/ui/button';
 import {
   Sidebar,
   SidebarContent,
@@ -19,12 +18,7 @@ import {
 } from '@/components/ui/sidebar';
 import { getCurrentUser } from '@/lib/firebase/firebase-server';
 import { IS_EMBEDDED, getUserDetailsFromUser } from '@/lib/utils';
-import {
-  HeartHandshakeIcon,
-  HomeIcon,
-  MessageCircleIcon,
-  UserIcon,
-} from 'lucide-react';
+import { HeartHandshakeIcon, MessageCircleIcon, UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import ChatSidebarGroupSelect from './chat-sidebar-group-select';
@@ -114,22 +108,16 @@ async function ChatSidebar({ contextId = DEFAULT_CONTEXT_ID }: Props) {
       mobileVisuallyHiddenDescription="Starte einen neuen Chat oder wähle eine vorherige Konversation aus."
     >
       <SidebarHeader className="flex h-chat-header flex-row items-center justify-between border-b border-b-muted pl-4 pr-2">
-        <Link href={homeHref} className="flex items-center gap-4">
+        <Link
+          href={homeHref}
+          aria-label="Startseite"
+          title="Startseite"
+          className="flex items-center gap-4"
+        >
           <Logo variant="small" className="size-6" />
         </Link>
         <div className="flex flex-row items-center gap-1">
           <ThemeModeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
-            className="size-8"
-            tooltip="Startseite"
-          >
-            <Link href={homeHref}>
-              <HomeIcon className="size-4" />
-            </Link>
-          </Button>
         </div>
       </SidebarHeader>
       <SidebarContent>
