@@ -564,6 +564,9 @@ reuse the same item: the feed now, later briefings and social posts.
   - `politicians/{mdb_id}` holds one record per speaker (see "Speakers").
   - `glossary/{term_id}` holds one explanation per expert term (see
     "Glossary").
+  - `feed_items/{item_id}/counts/opinions` holds the readers' totals for an
+    item (see "Feed opinions" under "How to treat data"). The feed job never
+    writes it.
 - **Facts and texts.**
   - `facts` come from the source: citations, speakers, vote counts, the
     quote. They are the same in all languages.
@@ -767,10 +770,56 @@ The two stores are seeded by different mechanisms, on purpose:
   this is enforced in CI by `scripts/check_gdpr_wall.py` (the "GDPR Art. 9
   wall"), which fails the build if ingestion code references `users/`
   collections. Firestore security rules gate chat-message privacy (tested in the
-  `firebase-rules` CI job). The explicit Art. 9 consent gate on a user's own
-  political answers is **not** on this branch: it returns with the party-matcher
-  feature (the first thing that stores those answers), which must ship with a
-  real affirmative opt-in — consent cannot be implied from app usage.
+  `firebase-rules` CI job). Storing a user's own political answers needs a
+  real affirmative opt-in — consent cannot be implied from app usage. Feed
+  opinions (below) are the first feature that does it, and the party matcher
+  must ship with the same kind of gate.
+- **Feed opinions.** In the feed's detail view a reader can agree or disagree
+  with each Fraktion's position and say how they would have voted. That is
+  political opinion, so:
+  - Nothing is stored without consent. The first tap opens a consent sheet
+    (`components/daily/opinion-consent-sheet.tsx`). „Ja" stores
+    `users/{uid}.feed_opinion_consent` (`{version, given_at}`). „Nein" or a
+    dismissed sheet stores nothing, not even a decline, and the next tap asks
+    again. Without consent the UI shows no scores or totals. The rules stop a
+    client from writing or deleting the consent field, or the user doc that
+    holds it: it is the proof of consent.
+  - Each reader's answers live in `users/{uid}/feed_opinions/{item_id}`
+    (`{item_id, kind, vote, positions: {party_id: 'up'|'down'}}`). Account
+    linking keeps the anonymous uid, so the answers follow the reader into
+    their account.
+  - Each item's totals live in `feed_items/{item_id}/counts/opinions`
+    (`{vote: {accept, reject}, positions: {party_id: {up, down}}}`), not on
+    the item: the feed job rewrites the item doc on every rebuild.
+    It carries no timestamp: the time of the last change would show when
+    one reader answered.
+  - Only the web server writes either, in one transaction
+    (`POST /api/feed-opinions`, `lib/firebase/feed-opinions-admin.ts`), so a
+    total always moves by exactly the reader's change. A taken-back answer
+    deletes the reader's doc. Clients read only their own answers; the rules
+    deny every client write.
+  - Clients never read the totals from Firestore. `GET /api/feed-opinions`
+    serves them, and withholds every target with fewer than
+    `MIN_PUBLISHED_ANSWERS` (10) answers, so no total stands for one reader
+    someone can name. The same threshold applies to totals published
+    anywhere else. The totals are read once and after each answer, not live.
+  - „Meine Bewertungen löschen" (`DELETE /api/feed-opinions`) withdraws
+    consent: it removes the consent first, so an answer in flight is refused,
+    then deletes every answer and takes it out of the totals. It is in the
+    menu and in the `#mFeedBewertungen` section of `/datenschutz`.
+    Embedded deployments have no menu, so they show no rating UI.
+  - Retention: an anonymous uid is lost with the browser's storage, and with
+    it the only way to withdraw. A daily Vercel Cron
+    (`/api/feed-opinions/retention`, `web/vercel.json`, needs `CRON_SECRET`)
+    deletes the answers of uids that no longer exist, and of anonymous uids
+    not seen for `ABANDONED_AFTER_DAYS`. An account holder's answers stay until
+    they withdraw. Vercel Cron runs only on production deployments.
+  - The privacy policy section is `#mFeedBewertungen` on `/datenschutz`. A
+    change of purpose there, or in the consent sheet, needs a new
+    `OPINION_CONSENT_VERSION`.
+  - Firestore (`eur3`) and the web functions (Vercel `fra1`) keep the data
+    in the EU. Keep the answers out of the corpus; only anonymous totals may
+    be published.
 - **Feed interest signals.** The parliament feed's "Interessant? Ja/Nein"
   answers go to `feed_interest/{uid}_{item_id}` (`{user_id, item_id, value,
   at}`), keyed by the anonymous uid. They are a ranking signal, not a stance on
@@ -836,6 +885,11 @@ The two stores are seeded by different mechanisms, on purpose:
   (`plan 01-08`, `Task 2`), doc filenames (`RESEARCH.md`, `PLAN.md`), and
   code-review finding IDs (`HIGH-1`, `MED-02`). Write the reasoning or the
   user-facing message, never the paper trail.
+- **The repository is open source.** Anyone can read the code, the commit
+  messages, the PR descriptions and the review comments. Write them for an
+  outside reader. Do not put secrets, credentials, personal data, user
+  data or internal-only details (unreleased plans, private infrastructure,
+  people's names in place of roles) in any of them.
 ## How to test / verify changes
 
 Local commands (mirror what CI runs):
