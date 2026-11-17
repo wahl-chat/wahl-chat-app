@@ -19,8 +19,8 @@ export type TimelineStep = {
   /** A checked model summary of the step's Drucksache. */
   summary: string | null;
   links: StepLink[];
-  /** The chat question about this step; null for `next`. */
-  question: string | null;
+  /** The chat question about this step. */
+  question: string;
 };
 
 export type ProcedureRow = {
@@ -35,6 +35,9 @@ export type ProcedureSection =
       type: 'timeline';
       main: ProcedureSummary;
       steps: TimelineStep[];
+      /** Where the law stands, in one line: "Beschlossen am 13.11.26 · als
+       * Nächstes: Bundesrat: Entscheidung". */
+      status: string;
       /** Chat entries, the most telling first; empty while there is
        * nothing to ask about yet. */
       questions: string[];
@@ -44,6 +47,7 @@ export type ProcedureSection =
 
 /** What a feed card shows of its law: the type, the dots, the step. */
 export type ProcedureMarker = {
+  /** "Gesetz", or what the item voted on when that was not the law. */
   tag: string;
   states: TimelineStep['state'][];
   step: string;
@@ -68,12 +72,12 @@ function plainName(milestone: ProcedureMilestone): string | null {
     return 'Eingebracht';
   }
   if (name.startsWith('Beschlussempfehlung')) {
-    return 'Ausschuss: Beschlussempfehlung';
+    return 'Ausschuss: Empfehlung';
   }
   if (chamber === 'BR') {
     if (name === '1. Durchgang') return 'Bundesrat: Stellungnahme';
-    if (name === '2. Durchgang') return 'Bundesrat: 2. Durchgang';
-    if (name === 'Durchgang') return 'Bundesrat';
+    if (name === '2. Durchgang') return 'Bundesrat: Entscheidung';
+    if (name === 'Durchgang') return 'Bundesrat: Entscheidung';
     return null;
   }
   if (name === '1. Beratung') return '1. Lesung';
@@ -86,21 +90,20 @@ function plainName(milestone: ProcedureMilestone): string | null {
 
 const NEXT_FOR_LAW: Record<string, string> = {
   Eingebracht: '1. Lesung',
-  '1. Lesung': 'Ausschuss: Beschlussempfehlung',
-  'Bundesrat: Stellungnahme': 'Ausschuss: Beschlussempfehlung',
-  'Ausschuss: Beschlussempfehlung': '2./3. Lesung',
-  '2./3. Lesung': 'Bundesrat: 2. Durchgang',
-  '3. Lesung': 'Bundesrat: 2. Durchgang',
-  'Bundesrat: 2. Durchgang': 'Verkündung',
-  Bundesrat: 'Verkündung',
+  '1. Lesung': 'Ausschuss: Empfehlung',
+  'Bundesrat: Stellungnahme': 'Ausschuss: Empfehlung',
+  'Ausschuss: Empfehlung': '2./3. Lesung',
+  '2./3. Lesung': 'Bundesrat: Entscheidung',
+  '3. Lesung': 'Bundesrat: Entscheidung',
+  'Bundesrat: Entscheidung': 'Verkündung',
 };
 
 const NEXT_FACTS: Record<string, string> = {
   '1. Lesung': 'Als Nächstes berät der Bundestag den Entwurf zum ersten Mal.',
-  'Ausschuss: Beschlussempfehlung':
+  'Ausschuss: Empfehlung':
     'Als Nächstes berät der zuständige Ausschuss den Entwurf und legt dem Bundestag eine Empfehlung vor.',
   '2./3. Lesung': 'Als Nächstes stimmt der Bundestag über das Gesetz ab.',
-  'Bundesrat: 2. Durchgang':
+  'Bundesrat: Entscheidung':
     'Als Nächstes berät der Bundesrat das beschlossene Gesetz.',
   Verkündung:
     'Als Nächstes unterschreibt der Bundespräsident, dann wird das Gesetz verkündet.',
@@ -192,10 +195,36 @@ function introducedFacts(step: PlainStep, procedure: ProcedureSummary): string {
   const viaBundesrat =
     step.milestones.some((m) => m.chamber === 'BR') &&
     step.milestones.some((m) => m.chamber === 'BT');
+  if (authors[0] === 'Bundesrat') {
+    return 'Der Bundesrat hat den Entwurf beschlossen und dem Bundestag vorgelegt.';
+  }
   const where = viaBundesrat
     ? 'zuerst dem Bundesrat, dann dem Bundestag vorgelegt'
     : 'im Bundestag eingebracht';
   return `${who} ${where}.`;
+}
+
+// The tenors DIP records for the vote on the law itself; amendments,
+// resolutions and motions about the agenda have their own.
+const FINAL_TENOR =
+  /^(Annahme (der Vorlage|in Ausschussfassung)|Ablehnung (der Vorlagen?|in Ausschussfassung)|Erklärung der Vorlage für erledigt)/;
+
+const MAJORITY: Record<string, string> = {
+  Zweidrittelmehrheit: 'mit Zweidrittelmehrheit',
+  'Absolute Mehrheit': 'mit absoluter Mehrheit',
+};
+
+/** How the Bundesrat ended its second passage; null while undecided. */
+function bundesratOutcome(
+  tenors: string,
+): 'refused' | 'mediation' | 'agreed' | 'passed' | null {
+  if (/Versagung der Zustimmung/.test(tenors)) return 'refused';
+  if (/^Anrufung des Vermittlungs/m.test(tenors) || /; Anrufung/.test(tenors)) {
+    return 'mediation';
+  }
+  if (/^Zustimmung/m.test(tenors)) return 'agreed';
+  if (/kein Antrag auf Einberufung/.test(tenors)) return 'passed';
+  return null;
 }
 
 function voteFacts(step: PlainStep): string {
@@ -203,22 +232,21 @@ function voteFacts(step: PlainStep): string {
   // The vote on the law itself, not on amendments, resolutions or motions
   // about the agenda.
   const final =
-    decisions.findLast(
-      (d) =>
-        /^(Annahme|Ablehnung)/.test(d.tenor) &&
-        !/Änderungsantrag|Entschließung|Geschäftsordnung/.test(d.tenor),
-    ) ?? null;
+    decisions.findLast((d) => FINAL_TENOR.test(d.tenor.trim())) ?? null;
   const parts: string[] = [];
-  if (final) {
+  if (final && /^Erklärung der Vorlage für erledigt/.test(final.tenor)) {
+    parts.push('Der Bundestag hat den Entwurf für erledigt erklärt.');
+  } else if (final) {
     const passed = final.tenor.startsWith('Annahme');
     const how = /Ausschussfassung/.test(final.tenor)
       ? ' in der Fassung des Ausschusses'
       : '';
+    const majority = final.majority ? MAJORITY[final.majority] : undefined;
     const counts = tally(final.result);
     const named = final.vote_kind === 'Namentliche Abstimmung';
     parts.push(
       `${passed ? 'Angenommen' : 'Abgelehnt'}${how}${
-        final.majority ? ` mit ${final.majority}` : ''
+        majority ? ` ${majority}` : ''
       }${counts ? `: ${counts}${named ? ' (namentliche Abstimmung)' : ''}` : ''}.`,
     );
   } else {
@@ -252,20 +280,23 @@ function stepFacts(step: PlainStep, procedure: ProcedureSummary): string {
       return /keine Einwendungen/i.test(tenors)
         ? 'Der Bundesrat hat keine Einwände gegen den Entwurf erhoben.'
         : 'Der Bundesrat hat zum Entwurf Stellung genommen.';
-    case 'Ausschuss: Beschlussempfehlung':
+    case 'Ausschuss: Empfehlung':
       return 'Der zuständige Ausschuss hat beraten und dem Bundestag empfohlen, wie er abstimmen soll.';
-    case 'Bundesrat: 2. Durchgang':
-    case 'Bundesrat':
-      if (/Zustimmung/.test(tenors))
-        return 'Der Bundesrat hat dem Gesetz zugestimmt.';
-      if (/Einberufung des Vermittlungsausschusses/.test(tenors)) {
-        return /kein Antrag/i.test(tenors)
-          ? 'Der Bundesrat hat das Gesetz passieren lassen.'
-          : 'Der Bundesrat hat den Vermittlungsausschuss angerufen.';
+    case 'Bundesrat: Entscheidung':
+      switch (bundesratOutcome(decisions.map((d) => d.tenor).join('\n'))) {
+        case 'refused':
+          return 'Der Bundesrat hat dem Gesetz nicht zugestimmt.';
+        case 'mediation':
+          return 'Der Bundesrat hat den Vermittlungsausschuss angerufen.';
+        case 'agreed':
+          return 'Der Bundesrat hat dem Gesetz zugestimmt.';
+        case 'passed':
+          return 'Der Bundesrat hat den Vermittlungsausschuss nicht angerufen. Das Gesetz kann damit verkündet werden.';
+        default:
+          return 'Der Bundesrat hat über das beschlossene Gesetz beraten.';
       }
-      return 'Der Bundesrat hat über das beschlossene Gesetz beraten.';
     case 'Verkündet':
-      return 'Das Gesetz wurde im Bundesgesetzblatt verkündet und gilt damit.';
+      return 'Das Gesetz wurde im Bundesgesetzblatt verkündet.';
     default:
       return isVote(step.label) ? voteFacts(step) : '';
   }
@@ -275,7 +306,8 @@ function stepLinks(step: PlainStep): StepLink[] {
   const seen = new Set<string>();
   const links: StepLink[] = [];
   for (const m of step.milestones) {
-    if (!m.url || !m.document_number || seen.has(m.document_number)) continue;
+    if (!m.url?.startsWith('https://') || !m.document_number) continue;
+    if (seen.has(m.document_number)) continue;
     seen.add(m.document_number);
     links.push({
       label: `${m.document_kind ?? 'Dokument'} ${m.document_number}`,
@@ -300,7 +332,7 @@ function stepQuestion(step: PlainStep): string {
       return `Was wurde in der 1. Lesung am ${day} gesagt?`;
     case 'Bundesrat: Stellungnahme':
       return 'Was hat der Bundesrat zum Entwurf gesagt?';
-    case 'Ausschuss: Beschlussempfehlung':
+    case 'Ausschuss: Empfehlung':
       return 'Was hat der Ausschuss am Entwurf geändert?';
     case 'Verkündet':
       return 'Ab wann gilt das Gesetz?';
@@ -345,9 +377,7 @@ function sectionQuestions(steps: TimelineStep[]): string[] {
   const committee = (from: number) =>
     steps.some(
       (s, i) =>
-        i > from &&
-        s.label === 'Ausschuss: Beschlussempfehlung' &&
-        s.state !== 'next',
+        i > from && s.label === 'Ausschuss: Empfehlung' && s.state !== 'next',
     );
   const here = hereIndex >= 0 ? steps[hereIndex] : null;
   const movedOn = steps.some((s) => s.state === 'latest');
@@ -365,7 +395,49 @@ function sectionQuestions(steps: TimelineStep[]): string[] {
     out.push('Worum geht es im Entwurf?');
     if (nextStep) out.push('Was passiert als Nächstes?');
   }
-  return out.slice(0, 3);
+  // Two at most: the chat entry below the item brings its own questions.
+  return out.slice(0, 2);
+}
+
+const statusDay = new Intl.DateTimeFormat('de-DE', {
+  day: '2-digit',
+  month: '2-digit',
+  year: '2-digit',
+  timeZone: 'UTC',
+});
+
+/** A Bundestag vote the law passed: by DIP's tally, or by its status. */
+export function passedVote(
+  step: TimelineStep,
+  procedure: ProcedureSummary,
+): boolean {
+  return (
+    isVote(step.label) &&
+    (step.facts.startsWith('Angenommen') ||
+      procedure.beratungsstand === 'Verabschiedet')
+  );
+}
+
+function statusLine(
+  steps: TimelineStep[],
+  procedure: ProcedureSummary,
+): string {
+  const last = steps.findLast((s) => s.state !== 'next');
+  const next = steps.find((s) => s.state === 'next');
+  if (!last?.date) return '';
+  const day = statusDay.format(new Date(`${last.date}T00:00:00Z`));
+  const where =
+    last.label === 'Verkündet'
+      ? `Verkündet am ${day}`
+      : passedVote(last, procedure)
+        ? `Im Bundestag beschlossen am ${day}`
+        : `Stand: ${last.label} am ${day}`;
+  return next ? `${where} · als Nächstes: ${next.label}` : where;
+}
+
+/** A vote on an amendment or resolution to the law, not on the law. */
+export function votedOnAmendment(voteTitle: string | undefined): boolean {
+  return /\((Änderungsantrag|Entschließungsantrag)\)\s*$/.test(voteTitle ?? '');
 }
 
 /** What the detail view shows for an item's procedures (see flows F-11):
@@ -383,9 +455,12 @@ export function procedureSection(
   }
 
   const plain = timelineSteps(main.milestones);
-  const hereIndex = plain.findIndex(
-    (s) => s.chamber === 'BT' && s.date === day && s.label !== 'Eingebracht',
-  );
+  const onItemDay = (s: PlainStep) =>
+    s.chamber === 'BT' && s.date === day && s.label !== 'Eingebracht';
+  // A committee report dated the day of the vote: the vote is the item's step.
+  const voteIndex = plain.findIndex((s) => onItemDay(s) && isVote(s.label));
+  const hereIndex =
+    voteIndex >= 0 ? voteIndex : plain.findIndex((s) => onItemDay(s));
   const lastIndex = plain.length - 1;
   const steps: TimelineStep[] = plain.map((s, i) => ({
     date: s.date,
@@ -403,8 +478,18 @@ export function procedureSection(
     links: stepLinks(s),
     question: stepQuestion(s),
   }));
+  const lastTenors = (plain.at(-1)?.milestones ?? [])
+    .flatMap((m) => m.decisions ?? [])
+    .map((d) => d.tenor)
+    .join('\n');
+  // After a refusal or a call for mediation, no step follows as a rule.
+  const stalled = ['refused', 'mediation'].includes(
+    bundesratOutcome(lastTenors) ?? '',
+  );
   const finished =
-    DEAD.test(main.beratungsstand ?? '') || plain.at(-1)?.label === 'Verkündet';
+    stalled ||
+    DEAD.test(main.beratungsstand ?? '') ||
+    plain.at(-1)?.label === 'Verkündet';
   const next =
     plain.length > 0 ? NEXT_FOR_LAW[plain[lastIndex].label] : undefined;
   if (next && !finished) {
@@ -416,13 +501,14 @@ export function procedureSection(
         `${NEXT_FACTS[next] ?? ''} Ein Termin steht noch nicht fest.`.trim(),
       summary: null,
       links: [],
-      question: null,
+      question: 'Was passiert als Nächstes?',
     });
   }
   return {
     type: 'timeline',
     main,
     steps,
+    status: statusLine(steps, main),
     questions: sectionQuestions(steps),
     more: shown.filter((p) => p !== main).map(row),
   };
@@ -433,6 +519,7 @@ export function procedureSection(
 export function procedureMarker(
   day: string,
   procedures: ProcedureSummary[] | undefined,
+  voteTitle?: string,
 ): ProcedureMarker | null {
   const section = procedureSection(day, procedures);
   if (section?.type !== 'timeline') return null;
@@ -442,7 +529,7 @@ export function procedureMarker(
     steps.findLast((s) => s.state !== 'next');
   if (!current) return null;
   return {
-    tag: 'Gesetz',
+    tag: votedOnAmendment(voteTitle) ? 'Änderungsantrag zum Gesetz' : 'Gesetz',
     states: steps.map((s) => s.state),
     step: current.label,
   };

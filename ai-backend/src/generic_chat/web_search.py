@@ -54,7 +54,7 @@ def _dedup_key(url: str) -> str:
 def _payload(
     query: str, domains: Optional[tuple[str, ...]], recency: Optional[Recency]
 ) -> dict:
-    # Only the model's query and fixed filters leave the service — never user text.
+    # Only the model's query and fixed filters leave the service, never user text.
     payload: dict = {
         "query": query,
         "max_results": _MAX_RESULTS_PER_CALL,
@@ -157,7 +157,7 @@ async def search_web(
         if all(isinstance(o, BaseException) for o in outcomes):
             return [], "Web search failed; answer without web sources."
         return merge_news(calls[0], calls[1]), None
-    except Exception as exc:  # noqa: BLE001 — degrade, never end the turn
+    except Exception as exc:  # noqa: BLE001 (degrade, never end the turn)
         logger.warning("web_search: Perplexity search failed: %s", exc)
         return [], "Web search failed; answer without web sources."
     finally:

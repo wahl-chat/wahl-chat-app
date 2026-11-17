@@ -68,3 +68,12 @@ def test_prompt_names_the_focus_parties() -> None:
 
 def test_prompt_without_focus_has_no_focus_block() -> None:
     assert "## Fokus" not in build_system_prompt(make_deps(), today=date(2026, 11, 14))
+
+
+def test_follow_ups_name_only_parties_in_the_bundestag() -> None:
+    from src.generic_chat.prompt import quick_reply_guidelines
+    from tests.generic_chat.conftest import parties
+
+    text = quick_reply_guidelines(parties())
+    assert "SPD, CDU/CSU" in text
+    assert "Volt" not in text

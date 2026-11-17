@@ -4,9 +4,11 @@ import {
   type ProcedureMarker,
   type ProcedureRow,
   type TimelineStep,
+  passedVote,
   procedureChatHref,
   procedureMarker,
   procedureSection,
+  votedOnAmendment,
 } from '@/lib/daily/procedures';
 import type { ProcedureSummary } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
@@ -124,18 +126,24 @@ function StepPanel({
 function Timeline({
   steps,
   here,
-  vorgangId,
+  procedure,
 }: {
   steps: TimelineStep[];
   here: string;
-  vorgangId: string;
+  procedure: ProcedureSummary;
 }) {
+  const vorgangId = procedure.vorgang_id;
   const [open, setOpen] = useState<number | null>(null);
   const baseId = useId();
   return (
     <ol className="flex flex-col">
       {steps.map((step, i) => {
-        const note = step.state === 'here' ? here : NOTE[step.state];
+        const note =
+          step.state === 'here'
+            ? here
+            : step.state === 'latest' && passedVote(step, procedure)
+              ? 'Beschlossen'
+              : NOTE[step.state];
         const isOpen = open === i;
         const panelId = `${baseId}-${i}`;
         const toNext = steps[i + 1]?.state === 'next';
@@ -267,6 +275,20 @@ function Rows({ rows }: { rows: ProcedureRow[] }) {
   );
 }
 
+function moreLabel(more: ProcedureRow[]): string {
+  const resolutions = more.every((r) =>
+    r.procedure.titel.startsWith('Entschließungsantrag'),
+  );
+  if (resolutions) {
+    return more.length === 1
+      ? '+ 1 Entschließungsantrag'
+      : `+ ${more.length} Entschließungsanträge`;
+  }
+  return more.length === 1
+    ? '+ 1 weiteres Verfahren'
+    : `+ ${more.length} weitere Verfahren`;
+}
+
 const DIP_LABEL = 'Verfahren im Dokumentationssystem des Bundestags (DIP)';
 
 /** Where the item's law stands, with this item's step highlighted, each
@@ -276,10 +298,13 @@ export function ProcedureSection({
   day,
   kind,
   procedures,
+  voteTitle,
 }: {
   day: string;
   kind: 'vote' | 'debate';
   procedures: ProcedureSummary[] | undefined;
+  /** The vote's own title: tells an amendment from the law. */
+  voteTitle?: string;
 }) {
   const section = procedureSection(day, procedures);
   if (!section) {
@@ -301,16 +326,27 @@ export function ProcedureSection({
   return (
     <section className="flex flex-col gap-3 px-4 pt-6">
       <div className="flex flex-col gap-0.5">
-        <h3 className={SECTION_LABEL}>So ging es im Bundestag voran</h3>
-        <p className="text-[15px] font-semibold leading-snug">{main.titel}</p>
+        <p className={SECTION_LABEL}>So ging es im Bundestag voran</p>
+        <h3 className="text-[15px] font-semibold leading-snug">{main.titel}</h3>
+        {section.status && (
+          <p className="text-[14px] font-semibold text-[var(--daily-accent)]">
+            {section.status}
+          </p>
+        )}
         <p className={cn('text-[13px]', MUTED_TEXT)}>
-          Tippe auf einen Schritt, um zu sehen, was dort passiert ist.
+          Wähle einen Schritt, um zu sehen, was dort passiert ist.
         </p>
       </div>
       <Timeline
         steps={steps}
-        here={kind === 'vote' ? 'Diese Abstimmung' : 'Diese Debatte'}
-        vorgangId={main.vorgang_id}
+        here={
+          kind === 'debate'
+            ? 'Diese Debatte'
+            : votedOnAmendment(voteTitle)
+              ? 'Diese Abstimmung: über einen Änderungsantrag'
+              : 'Diese Abstimmung'
+        }
+        procedure={main}
       />
       {questions.length > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -338,14 +374,14 @@ export function ProcedureSection({
               'flex min-h-10 cursor-pointer items-center rounded-md text-[15px]',
             )}
           >
-            {more.length === 1
-              ? '+ 1 weiteres Verfahren'
-              : `+ ${more.length} weitere Verfahren`}
+            {moreLabel(more)}
           </summary>
           <Rows rows={more} />
         </details>
       )}
-      <SourceLink href={main.dip_url}>{DIP_LABEL}</SourceLink>
+      {main.dip_url.startsWith('https://') && (
+        <SourceLink href={main.dip_url}>{DIP_LABEL}</SourceLink>
+      )}
     </section>
   );
 }
@@ -360,40 +396,43 @@ export function ProcedureMarkerLine({ marker }: { marker: ProcedureMarker }) {
         MUTED_TEXT,
       )}
     >
-      <span className="rounded-md bg-[var(--daily-surface)] px-2 py-0.5 text-xs font-semibold text-[var(--daily-ink)]">
+      {/* Plain text: the line is a hint, the card itself opens the detail. */}
+      <span className="text-xs font-semibold uppercase tracking-wide">
         {marker.tag}
       </span>
-      <span aria-hidden className="flex items-center">
-        {marker.states.map((state, i) => (
-          <span key={`${i}-${state}`} className="flex items-center">
-            {i > 0 && (
+      <span className="flex items-center gap-2.5 whitespace-nowrap">
+        <span aria-hidden className="flex items-center">
+          {marker.states.map((state, i) => (
+            <span key={`${i}-${state}`} className="flex items-center">
+              {i > 0 && (
+                <span
+                  className={cn(
+                    'block w-3 border-t-2',
+                    state === 'next'
+                      ? 'border-dashed border-[var(--daily-muted)]'
+                      : 'border-[var(--daily-muted)]',
+                  )}
+                />
+              )}
               <span
                 className={cn(
-                  'block w-3 border-t-2',
-                  state === 'next'
-                    ? 'border-dashed border-[var(--daily-muted)]'
-                    : 'border-[var(--daily-muted)]',
+                  'block rounded-full',
+                  state === 'here'
+                    ? 'size-[11px] bg-[var(--daily-accent)] ring-[3px] ring-[var(--daily-accent-soft)]'
+                    : state === 'next'
+                      ? 'size-2.5 border-[1.5px] border-dashed border-[var(--daily-muted)]'
+                      : 'size-2.5 bg-[var(--daily-ink)]',
                 )}
               />
-            )}
-            <span
-              className={cn(
-                'block rounded-full',
-                state === 'here'
-                  ? 'size-[11px] bg-[var(--daily-accent)] ring-[3px] ring-[var(--daily-accent-soft)]'
-                  : state === 'next'
-                    ? 'size-2.5 border-[1.5px] border-dashed border-[var(--daily-muted)]'
-                    : 'size-2.5 bg-[var(--daily-ink)]',
-              )}
-            />
-          </span>
-        ))}
-      </span>
-      <span className="font-semibold text-[var(--daily-ink)]">
-        {marker.step}
+            </span>
+          ))}
+        </span>
+        <span aria-hidden className="font-semibold text-[var(--daily-ink)]">
+          {marker.step}
+        </span>
       </span>
       <span className="sr-only">
-        {`Verfahrensschritt ${marker.states.findIndex((s) => s === 'here') + 1 || marker.states.filter((s) => s !== 'next').length} von ${marker.states.length}`}
+        {`Schritt ${marker.states.findIndex((s) => s === 'here') + 1 || marker.states.filter((s) => s !== 'next').length} von ${marker.states.length}: ${marker.step}`}
       </span>
     </p>
   );
@@ -402,10 +441,12 @@ export function ProcedureMarkerLine({ marker }: { marker: ProcedureMarker }) {
 export function CardProcedureMarker({
   day,
   procedures,
+  voteTitle,
 }: {
   day: string;
   procedures: ProcedureSummary[] | undefined;
+  voteTitle?: string;
 }) {
-  const marker = procedureMarker(day, procedures);
+  const marker = procedureMarker(day, procedures, voteTitle);
   return marker ? <ProcedureMarkerLine marker={marker} /> : null;
 }

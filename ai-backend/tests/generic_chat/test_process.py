@@ -14,7 +14,14 @@ import pytest
 from pydantic import ValidationError
 
 from src.generic_chat import process
-from src.generic_chat.schemas import Anchor, GetProcessInput
+from src.generic_chat.schemas import (
+    Anchor,
+    AnchorContext,
+    GetProcessInput,
+    NumberedDocument,
+    ProcedureRef,
+    ToolResult,
+)
 from src.models.procedures import ProcedureView
 from tests.generic_chat.conftest import make_deps
 from wahlchat_common.procedures import ProcedureRecord
@@ -138,6 +145,17 @@ async def test_ambiguous_name_gives_choices_and_no_evidence(service) -> None:
     assert "which one the user means" in (result.note or "")
 
 
+async def test_an_attached_item_picks_its_law_instead_of_asking(service) -> None:
+    service([(HBG, 0.70), (HG, 0.69)])
+    deps = make_deps()
+    linked = NumberedDocument(id=1, source_type="vote", text="…",
+                              procedures=[ProcedureRef(vorgang_id="338317", title="Haushaltsgesetz 2027")])
+    deps.anchor = AnchorContext(label="vote", result=ToolResult(documents=[linked]))
+    result = await process.get_process(deps, GetProcessInput(name="Haushalt 2027"))
+    assert result.choices == [] and result.procedure is not None
+    assert result.procedure.vorgang_id == "338317"
+
+
 async def test_capped_returns_steps_votes_speeches_documents(service) -> None:
     fake = service([])
     deps = make_deps()
@@ -212,3 +230,24 @@ def test_a_named_reading_day_gets_every_fraktion() -> None:
     ]
     assert len(process._spread_speeches(speeches, None)) == 3
     assert len(process._spread_speeches(speeches, None, "Was wurde am 24.09. gesagt?")) == 5
+
+
+def test_steps_keep_the_vote_of_a_reading_listed_twice() -> None:
+    from datetime import date
+
+    from wahlchat_common.procedures import ProcedureStage, StageDecision
+
+    vote = StageDecision(tenor="Annahme in Ausschussfassung", vote_kind="Namentliche Abstimmung", result="308:190:71")
+    record = variant(HBG, stages=[
+        ProcedureStage(position_id="1", date=date(2026, 11, 13), chamber="BT", name="3. Beratung"),
+        ProcedureStage(position_id="2", date=date(2026, 11, 13), chamber="BT", name="3. Beratung", decisions=[vote]),
+    ])
+    steps = process._steps(make_deps(), record)
+    assert [s.decisions for s in steps] == [["Annahme in Ausschussfassung · Namentliche Abstimmung · 308:190:71"]]
+
+
+def test_an_exact_title_shared_by_parallel_drafts_picks_the_live_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(process, "_current_wahlperiode", lambda: 21)
+    dead_twin = variant(HBG, vorgang_id="338367", beratungsstand="Erledigt durch Ablauf der Wahlperiode")
+    picked = process.narrow("Haushaltsbegleitgesetz 2027", [(dead_twin, 0.8), (HBG, 0.79)])
+    assert [r.vorgang_id for r in picked] == ["338366"]

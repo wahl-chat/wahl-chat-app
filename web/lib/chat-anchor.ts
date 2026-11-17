@@ -85,6 +85,11 @@ const longDay = new Intl.DateTimeFormat('de-DE', {
 /** What the chat's anchor card shows. A feed item that does not exist (or is
  * not published) shows nothing, nor does an unknown procedure; a bare poll id
  * a plain vote card. */
+// The timeline's words: readings are "Lesungen" there.
+function plainStage(stage: string): string {
+  return stage.replace(/^(\d)\. Beratung$/, '$1. Lesung');
+}
+
 export function anchorCard(
   anchor: ChatAnchor,
   item: FeedItem | null | undefined,
@@ -101,7 +106,7 @@ export function anchorCard(
       kind: 'Verfahren',
       title: procedure.titel,
       date: procedure.latest_stage
-        ? `Stand: ${[procedure.latest_stage, day].filter(Boolean).join(', ')}`
+        ? `Stand: ${[plainStage(procedure.latest_stage), day].filter(Boolean).join(', ')}`
         : null,
       outcome: null,
       feedHref: null,

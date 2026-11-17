@@ -217,7 +217,8 @@ export type DigestVote = {
   /** The Drucksachen the poll was about, `"21/6130"`; absent until known. */
   drucksachen?: string[];
   /** Expert terms in the summary. */
-  terms?: TermRef[] /** Bundestag procedures the item is about; absent until linked. */;
+  terms?: TermRef[];
+  /** Bundestag procedures the item is about; absent until linked. */
   procedures?: ProcedureSummary[];
 };
 

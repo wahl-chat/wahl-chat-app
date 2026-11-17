@@ -31,7 +31,7 @@ import asyncio
 import logging
 import os
 import sys
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, Optional
 
 from qdrant_client import QdrantClient, models
@@ -49,7 +49,7 @@ from ingestion.procedures.drucksachen import (
 from ingestion.procedures.feed_links import FirestoreProcedures, link_feed_items
 from ingestion.procedures.link_apply import Linker, linked_procedure_ids
 from ingestion.procedures.report import collect, render, scroll_linkable
-from ingestion.procedures.step_summaries import summarise_procedures
+from ingestion.procedures.step_summaries import Call, summarise_procedures
 from ingestion.procedures.store import ProcedureStore
 from ingestion.procedures.sync import SyncReport, run_sync, sync_ids
 from ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
@@ -61,6 +61,9 @@ WAHLPERIODEN = [20, 21]
 # How Drucksache text enters the corpus: overview and committee reports
 # (law text crowded out speeches and votes; make eval-procedure-documents).
 DEFAULT_DRUCKSACHEN: DrucksacheMode = "overview"
+
+
+_SUMMARY_LOOKBACK_DAYS = 7
 
 
 def drop_drucksachen(qdrant: QdrantClient, collection: str) -> int:
@@ -102,7 +105,7 @@ def run(
     sync: bool,
     feed: bool,
     today: date,
-    summaries: bool = True,
+    summary_call: Optional[Call] = None,
     dry_run: bool = False,
 ) -> int:
     """One job run; returns the process exit code (1 when anything failed)."""
@@ -191,15 +194,17 @@ def run(
             failed |= not read_drucksachen(created, reread=True)
 
     summarised: set[str] = set()
-    if summaries and drucksachen != "off" and not dry_run:
-        from ingestion.feed.publication_llms import (  # noqa: PLC0415 (needs the model env)
-            structured_output_from_publication_llms,
-        )
-
+    if summary_call is not None and drucksachen != "off" and not dry_run:
         in_feed = _feed_procedure_ids(db)
+        # The feed job runs after this one: a law it links today for the
+        # first time had a new stage in the last days, and is ready then.
+        recent = today - timedelta(days=_SUMMARY_LOOKBACK_DAYS)
         result = asyncio.run(summarise_procedures(
-            {v: r for v, r in procedures.items() if v in in_feed},
-            qdrant=qdrant, collection=collection, call=structured_output_from_publication_llms,
+            {
+                v: r for v, r in procedures.items()
+                if v in in_feed or (r.stage_changed_on is not None and r.stage_changed_on >= recent)
+            },
+            qdrant=qdrant, collection=collection, call=summary_call,
             today=today, write=store.set_step_summaries,
         ))
         print(
@@ -231,6 +236,14 @@ def run(
 
     print(render(collect(scroll_linkable(qdrant, collection, wahlperioden), procedures)))
     return 1 if failed else 0
+
+
+def _publication_call() -> Call:
+    from ingestion.feed.publication_llms import (  # noqa: PLC0415 (needs the model env)
+        structured_output_from_publication_llms,
+    )
+
+    return structured_output_from_publication_llms
 
 
 def _feed_procedure_ids(db: Any) -> set[str]:
@@ -289,7 +302,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         link=not args.no_link,
         sync=not args.link_only,
         feed=not args.no_feed,
-        summaries=not args.no_summaries,
+        summary_call=None if args.no_summaries else _publication_call(),
         today=date.today(),
         dry_run=args.dry_run,
     )

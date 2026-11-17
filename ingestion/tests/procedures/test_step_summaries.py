@@ -51,6 +51,15 @@ def test_a_rejected_draft_is_rewritten_with_the_objections() -> None:
     assert "Ziel als Tatsache" in model.prompts[2]
 
 
+def test_a_failed_read_stays_with_its_document() -> None:
+    class Broken(FakeQdrant):
+        def scroll(self, *args: Any, **kwargs: Any):
+            raise RuntimeError("qdrant down")
+
+    report, written = run(law(), Broken(), Model([], set()))
+    assert sorted(report.failed) == ["21/7868", "21/9161"] and written == {}
+
+
 def test_twice_rejected_means_no_summary() -> None:
     assert asyncio.run(summarise(DOC, Model(["a", "b"], set()))) is None
 
@@ -103,4 +112,8 @@ def test_a_changed_text_whose_new_summary_fails_drops_the_old_one() -> None:
     old = StepSummary(text="alt", document_number="21/7868", source_hash="before", model="m", written_on=TODAY)
     report, written = run(law({"21/7868": old}), qdrant_with("21/7868"), Model(["x", "y"], set()))
     assert report.rejected == ["21/7868"]
-    assert written["338341"] == {}
+    assert written["338341"]["21/7868"].text is None
+    # The rejection is kept for this text: no model calls on the next run.
+    model = Model([], set())
+    report, written = run(law(written["338341"]), qdrant_with("21/7868"), model)
+    assert model.prompts == [] and written == {}

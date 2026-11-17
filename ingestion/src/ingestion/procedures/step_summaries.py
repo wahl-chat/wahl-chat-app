@@ -197,30 +197,29 @@ async def summarise_procedures(
         changed = False
         for stage in summarised_stages(record):
             number = stage.document_number or ""
-            doc = read_document(qdrant, collection, number)
-            if doc is None or not doc.text.strip():
-                continue
-            stored = current.get(number)
-            if stored is not None and stored.source_hash == doc.source_hash:
-                continue
             try:
                 async with gate:
+                    doc = await asyncio.to_thread(read_document, qdrant, collection, number)
+                    if doc is None or not doc.text.strip():
+                        continue
+                    stored = current.get(number)
+                    # Unchanged text: keep the summary, or the rejection.
+                    if stored is not None and stored.source_hash == doc.source_hash:
+                        continue
                     result = await summarise(doc, call)
             except Exception:  # noqa: BLE001 (one document never stops the run)
                 logger.exception("Summary of %s failed", number)
                 report.failed.append(number)
                 continue
-            if result is None:
+            text, model = result if result is not None else (None, "")
+            if text is None:
                 report.rejected.append(number)
-                if current.pop(number, None) is not None:
-                    changed = True
-                continue
-            text, model = result
+            else:
+                report.written.append(number)
             current[number] = StepSummary(
                 text=text, document_number=number, source_hash=doc.source_hash,
                 model=model, written_on=today,
             )
-            report.written.append(number)
             changed = True
         if changed:
             write(record.vorgang_id, current)

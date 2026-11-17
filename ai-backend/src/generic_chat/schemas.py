@@ -205,6 +205,9 @@ class ProcessStep(BaseModel):
     name: str
     document: Optional[str] = None
     decisions: list[str] = Field(default_factory=list)
+    summary: Optional[str] = Field(
+        None, description="A checked summary of the step's Drucksache; cite the step's id"
+    )
 
 
 class ProcessInfo(BaseModel):

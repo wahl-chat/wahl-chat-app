@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import type { ProcedureSummary } from '@/lib/firebase/firebase.types';
+import type {
+  ProcedureSummary,
+  StageDecision,
+} from '@/lib/firebase/firebase.types';
 import {
   procedureChatHref,
   procedureMarker,
@@ -26,7 +29,7 @@ function law(
       chamber,
       name,
     })),
-    dip_url: `https://dip.bundestag.de/vorgang/${id}`,
+    dip_url: `https://dip.bundestag.de/vorgang/gesetz-${id}/${id}`,
     ...extra,
   };
 }
@@ -75,7 +78,7 @@ describe('timelineSteps', () => {
       ['2026-09-04', 'Eingebracht'],
       ['2026-10-09', '1. Lesung'],
       ['2026-10-16', 'Bundesrat: Stellungnahme'],
-      ['2026-11-11', 'Ausschuss: Beschlussempfehlung'],
+      ['2026-11-11', 'Ausschuss: Empfehlung'],
       ['2026-11-12', '2./3. Lesung'],
     ]);
   });
@@ -90,15 +93,17 @@ describe('procedureSection', () => {
       ['Eingebracht', 'done'],
       ['1. Lesung', 'done'],
       ['Bundesrat: Stellungnahme', 'done'],
-      ['Ausschuss: Beschlussempfehlung', 'done'],
+      ['Ausschuss: Empfehlung', 'done'],
       ['2./3. Lesung', 'here'],
-      ['Bundesrat: 2. Durchgang', 'next'],
+      ['Bundesrat: Entscheidung', 'next'],
     ]);
     expect(section.questions).toEqual([
       'Was wurde am Entwurf geändert?',
       'Wie kam das Gesetz zustande?',
-      'Was passiert jetzt im Bundesrat?',
     ]);
+    expect(section.status).toBe(
+      'Im Bundestag beschlossen am 12.11.26 · als Nächstes: Bundesrat: Entscheidung',
+    );
   });
 
   it('marks the latest step after a debate and asks how it went on', () => {
@@ -108,14 +113,14 @@ describe('procedureSection', () => {
       '1. Lesung',
     );
     expect(section.steps.find((s) => s.state === 'latest')?.label).toBe(
-      'Ausschuss: Beschlussempfehlung',
+      'Ausschuss: Empfehlung',
     );
     expect(section.steps.at(-1)).toEqual(
       expect.objectContaining({
         date: null,
         label: '2./3. Lesung',
         state: 'next',
-        question: null,
+        question: 'Was passiert als Nächstes?',
       }),
     );
     expect(section.questions).toEqual([
@@ -325,7 +330,7 @@ describe('step details', () => {
     expect(step('Eingebracht')?.summary).toBe(
       'Die Bundesregierung will das Verfassungsschutzgesetz neu fassen.',
     );
-    expect(step('Ausschuss: Beschlussempfehlung')?.summary).toBe(
+    expect(step('Ausschuss: Empfehlung')?.summary).toBe(
       'Der Innenausschuss empfiehlt Änderungen.',
     );
     expect(step('1. Lesung')?.summary).toBeNull();
@@ -352,8 +357,107 @@ describe('procedureMarker', () => {
 
   it("falls back to the law's newest step, and to nothing for Anträge", () => {
     expect(procedureMarker('2026-10-01', [IN_COMMITTEE])?.step).toBe(
-      'Ausschuss: Beschlussempfehlung',
+      'Ausschuss: Empfehlung',
     );
     expect(procedureMarker('2026-11-06', [motion('1')])).toBeNull();
+  });
+});
+
+describe('edge cases from DIP', () => {
+  const decision = (
+    tenor: string,
+    extra: Partial<StageDecision> = {},
+  ): StageDecision => ({
+    tenor,
+    vote_kind: null,
+    result: null,
+    majority: null,
+    ...extra,
+  });
+
+  it('reads a refusal as a refusal and expects nothing after it', () => {
+    const refused = law('7', [
+      ['2026-10-01', 'BT', 'Gesetzentwurf'],
+      ['2026-10-20', 'BT', '2. Beratung'],
+      ['2026-10-20', 'BT', '3. Beratung'],
+      ['2026-11-06', 'BR', '2. Durchgang'],
+    ]);
+    refused.milestones[3] = {
+      ...refused.milestones[3],
+      decisions: [decision('Versagung der Zustimmung')],
+    };
+    const section = procedureSection('2026-10-20', [refused]);
+    if (section?.type !== 'timeline') throw new Error('timeline expected');
+    const br = section.steps.find((s) => s.label === 'Bundesrat: Entscheidung');
+    expect(br?.facts).toBe('Der Bundesrat hat dem Gesetz nicht zugestimmt.');
+    expect(section.steps.some((s) => s.state === 'next')).toBe(false);
+  });
+
+  it('names the Bundesrat once for its own bill', () => {
+    const own = law(
+      '8',
+      [
+        ['2026-06-01', 'BR', 'Gesetzentwurf'],
+        ['2026-07-01', 'BT', 'Gesetzentwurf'],
+      ],
+      { initiative: ['Bundesrat'] },
+    );
+    const section = procedureSection('2026-07-01', [own]);
+    if (section?.type !== 'timeline') throw new Error('timeline expected');
+    expect(section.steps[0].facts).toBe(
+      'Der Bundesrat hat den Entwurf beschlossen und dem Bundestag vorgelegt.',
+    );
+  });
+
+  it('states a two-thirds majority and ignores a recommendation tenor', () => {
+    const gg = law('9', [
+      ['2025-03-10', 'BT', 'Gesetzentwurf'],
+      ['2025-03-18', 'BT', '3. Beratung'],
+    ]);
+    gg.milestones[1] = {
+      ...gg.milestones[1],
+      decisions: [
+        decision('Annahme der Beschlussempfehlung'),
+        decision('Annahme in Ausschussfassung', {
+          vote_kind: 'Namentliche Abstimmung',
+          result: '512:206:0',
+          majority: 'Zweidrittelmehrheit',
+        }),
+      ],
+    };
+    const section = procedureSection('2025-03-18', [gg]);
+    if (section?.type !== 'timeline') throw new Error('timeline expected');
+    expect(section.steps[1].facts).toBe(
+      'Angenommen in der Fassung des Ausschusses mit Zweidrittelmehrheit: 512 Ja, 206 Nein, 0 Enthaltungen (namentliche Abstimmung).',
+    );
+  });
+
+  it("takes the vote as the item's step when the committee reported that day", () => {
+    const urgent = law('10', [
+      ['2026-11-01', 'BT', 'Gesetzentwurf'],
+      ['2026-11-12', 'BT', 'Beschlussempfehlung und Bericht'],
+      ['2026-11-12', 'BT', '2. Beratung'],
+      ['2026-11-12', 'BT', '3. Beratung'],
+    ]);
+    expect(procedureMarker('2026-11-12', [urgent])?.step).toBe('2./3. Lesung');
+  });
+});
+
+describe('amendment votes', () => {
+  it('tags the card with what was voted on', () => {
+    expect(
+      procedureMarker(
+        '2026-11-13',
+        [VOTED],
+        'Neue Befugnisse des Verfassungsschutzes begrenzen (Änderungsantrag)',
+      )?.tag,
+    ).toBe('Änderungsantrag zum Gesetz');
+    expect(
+      procedureMarker(
+        '2026-11-13',
+        [VOTED],
+        'Reform des Nachrichtendienstrechts',
+      )?.tag,
+    ).toBe('Gesetz');
   });
 });

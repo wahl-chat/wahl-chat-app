@@ -104,7 +104,9 @@ class StepSummary(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    text: str
+    text: Optional[str] = Field(
+        ..., description="None when no draft passed the check; kept so it is not retried"
+    )
     document_number: str
     source_hash: str = Field(..., description="sha256 of the text it was written from")
     model: str
@@ -248,6 +250,6 @@ def milestones(
             document_number=stage.document_number,
             url=stage.url,
             decisions=list(stage.decisions),
-            summary=summary.text if summary else None,
+            summary=summary.text if summary is not None else None,
         )
     return list(by_key.values())

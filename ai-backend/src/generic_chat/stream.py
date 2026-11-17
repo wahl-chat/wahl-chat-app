@@ -188,7 +188,7 @@ def _text_of(event: object) -> Optional[str]:
 
 
 async def _quick_replies(
-    body: Any, answer: str, replies: Optional[list[str]] = None
+    body: Any, answer: str, replies: Optional[list[str]] = None, guidelines: Optional[str] = None
 ) -> Optional[str]:
     turns = [
         Message(role=t.role, content=t.content, party_id=t.party_id)
@@ -203,9 +203,9 @@ async def _quick_replies(
             chat_title="Noch kein Titel vergeben",
             parties_in_chat=[],
             wahl_chat_assistant_last_responded=True,
-            quick_reply_guidelines=prompt.QUICK_REPLY_GUIDELINES,
+            quick_reply_guidelines=guidelines or prompt.quick_reply_guidelines([]),
         )
-    except Exception as exc:  # noqa: BLE001 — quick replies are optional
+    except Exception as exc:  # noqa: BLE001 (quick replies are optional)
         logger.error("generic chat: quick replies failed: %s", exc, exc_info=True)
         return None
     dto = QuickRepliesAndTitleDto(
@@ -232,6 +232,7 @@ async def stream_generic_chat(
 
     text_id: Optional[str] = None
     answer = ""
+    guidelines: Optional[str] = None
     try:
         deps = GenericChatDeps(
             context=context,
@@ -240,6 +241,7 @@ async def stream_generic_chat(
             session_id=session_id,
         )
         deps.set_focus(list(getattr(body, "party_ids", None) or []))
+        guidelines = prompt.quick_reply_guidelines(deps.parties)
 
         anchor = getattr(body, "anchor", None)
         if anchor is not None:
@@ -313,7 +315,7 @@ async def stream_generic_chat(
             status=Status(indicator=StatusIndicator.SUCCESS, message="Success"),
         )
         yield data_event({"type": "party_complete", **complete.model_dump()})
-    except Exception as exc:  # noqa: BLE001 — terminal error contract, as the election path
+    except Exception as exc:  # noqa: BLE001 (terminal error contract, as the election path)
         logger.error("generic chat turn failed: %s", exc, exc_info=True)
         if text_id is not None:
             yield text_end(text_id)
@@ -325,12 +327,14 @@ async def stream_generic_chat(
         return
 
     if request is not None and await request.is_disconnected():
-        logger.info("generic chat: client disconnected — skipping quick replies")
+        logger.info("generic chat: client disconnected, skipping quick replies")
         return
     # A name left several procedures open: the choices replace the
     # generated replies; tapping one sends its exact title.
     choices = [choice.label for choice in deps.choices]
-    quick_replies = await _quick_replies(body, answer, replies=choices or None)
+    quick_replies = await _quick_replies(
+        body, answer, replies=choices or None, guidelines=guidelines
+    )
     if quick_replies is not None:
         yield quick_replies
     yield finish_step()

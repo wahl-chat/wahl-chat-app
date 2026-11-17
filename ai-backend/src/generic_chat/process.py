@@ -31,7 +31,7 @@ from src.generic_chat.schemas import (
     ProcessStep,
 )
 from src.services import procedure_service
-from wahlchat_common.procedures import ProcedureKind, ProcedureRecord, ProcedureStage, milestones
+from wahlchat_common.procedures import Milestone, ProcedureKind, ProcedureRecord, milestones
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ DEFAULT_EVIDENCE: EvidenceMode = "capped"
 _SEARCH_KINDS: tuple[ProcedureKind, ...] = ("legislation", "motion", "debate")
 _CANDIDATES = 8
 # Names score within a few hundredths of each other; anything this close to
-# the best is a real candidate. Provisional until set on the eval set.
+# the best is a real candidate (checked on the procedure chat eval).
 _SCORE_BAND = 0.05
 _MAX_CHOICES = 3
 _MAX_VOTES = 6
@@ -94,8 +94,8 @@ def narrow(
         r for r, _ in ranked
         if wanted in {_norm(r.titel), _norm(short_title(r)), _norm(_choice_label(r))}
     ]
-    if exact:
-        return exact[:1]
+    if len(exact) == 1:
+        return exact
     top = ranked[0][1]
     # Titles that contain every word of the name beat scores, which sit
     # within a few hundredths of each other for most names.
@@ -105,7 +105,9 @@ def narrow(
     # Users name laws by topic ("Grundgesetzänderung zur Schuldenbremse"),
     # which DIP keeps in the descriptors rather than the title.
     named = _containing(words, candidates, _title) or _containing(words, candidates, _title_and_descriptors)
-    band = named or [r for r, score in ranked if score >= top - _SCORE_BAND]
+    # Parallel drafts (government and coalition) share a title; the rules
+    # below pick the live one.
+    band = exact or named or [r for r, score in ranked if score >= top - _SCORE_BAND]
     rules = [
         lambda rs: [r for r in rs if not _is_resolution(r)],
         lambda rs: [r for r in rs if r.kind == "legislation"] if "gesetz" in wanted else rs,
@@ -133,13 +135,17 @@ _YEAR = re.compile(r"\b((?:19|20)\d\d)\b")
 
 def _name_words(name: str) -> list[str]:
     """The distinctive words of a name; "Wehrdienstgesetz" → "wehrdienst",
-    "Grundgesetzänderung" → "grund". Years are matched by date instead."""
+    "Grundgesetzänderung" → "grundgesetz". Years are matched by date instead."""
     words = []
     for word in name.split():
         if _YEAR.fullmatch(word):
             continue
-        stem = word.removesuffix("änderung")
-        stem = stem.removesuffix("gesetz") if stem != "gesetz" else stem
+        # "-gesetz" names the law, so it goes; "-änderung" changes one, so
+        # the law's name stays: "Grundgesetzänderung" → "grundgesetz".
+        if word.endswith("gesetz") and word != "gesetz":
+            stem = word.removesuffix("gesetz")
+        else:
+            stem = word.removesuffix("änderung")
         if stem not in _FILLER and len(stem) >= 4:
             words.append(stem)
     return words
@@ -158,7 +164,12 @@ def _containing(
 ) -> list[ProcedureRecord]:
     if not words:
         return []
-    return [r for r in records if all(w in text(r) for w in words)]
+    # At a word start: "grundgesetz" is in "Grundgesetzes", not in "aufgrund".
+    return [r for r in records if all(_at_word_start(w, text(r)) for w in words)]
+
+
+def _at_word_start(word: str, text: str) -> bool:
+    return re.search(rf"\b{re.escape(word)}", text) is not None
 
 
 def _best_for(question: str, records: list[ProcedureRecord]) -> list[ProcedureRecord]:
@@ -166,7 +177,7 @@ def _best_for(question: str, records: list[ProcedureRecord]) -> list[ProcedureRe
     words = {w for w in _name_words(_norm(question)) if len(w) >= 5}
     if len(records) < 2 or not words:
         return records
-    hits = {r.vorgang_id: sum(w in _title_and_descriptors(r) for w in words) for r in records}
+    hits = {r.vorgang_id: sum(_at_word_start(w, _title_and_descriptors(r)) for w in words) for r in records}
     best = max(hits.values())
     return [r for r in records if hits[r.vorgang_id] == best] if best else records
 
@@ -246,7 +257,15 @@ async def resolve(
         return None, [], f"No procedure found for '{name}'."
     if len(left) == 1:
         return await _law_of(left[0]), [], None
-    return None, [_choice(r) for r in left[:_MAX_CHOICES]], (
+    choices: list[ProcessChoice] = []
+    for record in left:
+        choice = _choice(record)
+        # Two buttons with one label tell the user nothing.
+        if choice.label not in {c.label for c in choices}:
+            choices.append(choice)
+    if len(choices) == 1:
+        return await _law_of(left[0]), [], None
+    return None, choices[:_MAX_CHOICES], (
         "Several procedures match this name. Your whole answer is one short"
         " question asking which one the user means; do not answer yet and"
         " ignore other tool results. The app shows the choices as buttons."
@@ -258,20 +277,7 @@ async def resolve(
 # ---------------------------------------------------------------------------
 
 
-def _milestone_stages(record: ProcedureRecord) -> list[ProcedureStage]:
-    """The stages the timeline shows, oldest first, one per (date, chamber, name)."""
-    keys = {(m.date, m.chamber, m.name) for m in milestones(record.stages)}
-    seen: set[tuple] = set()
-    out = []
-    for stage in sorted(record.stages, key=lambda s: (s.date, s.position_id)):
-        key = (stage.date, stage.chamber, stage.name)
-        if key in keys and key not in seen:
-            seen.add(key)
-            out.append(stage)
-    return out
-
-
-def _register_step(deps: GenericChatDeps, record: ProcedureRecord, stage: ProcedureStage) -> Optional[int]:
+def _register_step(deps: GenericChatDeps, record: ProcedureRecord, stage: Milestone) -> Optional[int]:
     if not stage.url:
         return None
     document = f"{stage.document_kind or 'Dokument'} {stage.document_number or ''}".strip()
@@ -289,7 +295,8 @@ def _register_step(deps: GenericChatDeps, record: ProcedureRecord, stage: Proced
 
 def _steps(deps: GenericChatDeps, record: ProcedureRecord) -> list[ProcessStep]:
     steps = []
-    for stage in _milestone_stages(record):
+    # The feed's steps: DIP's duplicate entries merged, with their summaries.
+    for stage in milestones(record.stages, record.step_summaries):
         steps.append(
             ProcessStep(
                 id=_register_step(deps, record, stage),
@@ -305,6 +312,7 @@ def _steps(deps: GenericChatDeps, record: ProcedureRecord) -> list[ProcessStep]:
                     " · ".join(filter(None, [d.tenor, d.vote_kind, d.result, d.majority]))
                     for d in stage.decisions
                 ],
+                summary=stage.summary,
             )
         )
     return steps
@@ -425,10 +433,20 @@ async def _evidence(
     return out
 
 
+def _anchored_choice(deps: GenericChatDeps, choices: list[ProcessChoice]) -> str:
+    """The choice the anchor's documents point to, else the best ranked."""
+    documents = (getattr(deps.anchor.result, "documents", None) or []) if deps.anchor else []
+    linked = {ref.vorgang_id for doc in documents for ref in getattr(doc, "procedures", None) or []}
+    return next((c.vorgang_id for c in choices if c.vorgang_id in linked), choices[0].vorgang_id)
+
+
 async def get_process(
     deps: GenericChatDeps, args: GetProcessInput, *, evidence: Optional[EvidenceMode] = None
 ) -> ProcessResult:
     record, choices, note = await resolve(args)
+    if record is None and choices and deps.anchor is not None:
+        # An attached item already says which one is meant: never ask then.
+        record = await procedure_service.aget_procedure(_anchored_choice(deps, choices))
     if record is None:
         return ProcessResult(choices=choices, note=note)
     mode = evidence or evidence_mode()
