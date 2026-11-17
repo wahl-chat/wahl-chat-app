@@ -27,6 +27,7 @@ if __name__ == "__main__":
     load_env_file()
 
 import argparse
+import asyncio
 import logging
 import os
 import sys
@@ -48,6 +49,7 @@ from ingestion.procedures.drucksachen import (
 from ingestion.procedures.feed_links import FirestoreProcedures, link_feed_items
 from ingestion.procedures.link_apply import Linker, linked_procedure_ids
 from ingestion.procedures.report import collect, render, scroll_linkable
+from ingestion.procedures.step_summaries import summarise_procedures
 from ingestion.procedures.store import ProcedureStore
 from ingestion.procedures.sync import SyncReport, run_sync, sync_ids
 from ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
@@ -100,6 +102,7 @@ def run(
     sync: bool,
     feed: bool,
     today: date,
+    summaries: bool = True,
     dry_run: bool = False,
 ) -> int:
     """One job run; returns the process exit code (1 when anything failed)."""
@@ -187,9 +190,32 @@ def run(
         if created and drucksachen != "off" and not dry_run:
             failed |= not read_drucksachen(created, reread=True)
 
+    summarised: set[str] = set()
+    if summaries and drucksachen != "off" and not dry_run:
+        from ingestion.feed.publication_llms import (  # noqa: PLC0415 (needs the model env)
+            structured_output_from_publication_llms,
+        )
+
+        in_feed = _feed_procedure_ids(db)
+        result = asyncio.run(summarise_procedures(
+            {v: r for v, r in procedures.items() if v in in_feed},
+            qdrant=qdrant, collection=collection, call=structured_output_from_publication_llms,
+            today=today, write=store.set_step_summaries,
+        ))
+        print(
+            f"step summaries: written={len(result.written)} rejected={len(result.rejected)} "
+            f"failed={len(result.failed)}"
+        )
+        failed |= bool(result.failed)
+        # Every summarised law, not only this run's: a run that stopped
+        # before the feed refresh leaves items behind their procedure.
+        summarised = result.procedures | {
+            v for v, r in procedures.items() if v in in_feed and r.step_summaries
+        }
+
     if feed:
         lookup = FirestoreProcedures(db)
-        only = None if backfill else set(report.new_stage)
+        only = None if backfill else set(report.new_stage) | summarised
         if only is None or only:
             n = link_feed_items(db, qdrant, collection, lookup=lookup, only_ids=only, dry_run=dry_run)
             print(f"feed items: updated={n}")
@@ -225,6 +251,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--link-only", action="store_true", help="skip the DIP sync")
     parser.add_argument("--no-link", action="store_true", help="skip linking votes and speeches")
     parser.add_argument("--no-feed", action="store_true", help="leave feed items as they are")
+    parser.add_argument("--no-summaries", action="store_true", help="write no step summaries")
     parser.add_argument("--report", action="store_true", help="print the coverage report only")
     parser.add_argument("--dry-run", action="store_true", help="read only; write nothing")
     parser.add_argument("--allow-remote", action="store_true", help="write a deployed dev Firestore")
@@ -262,6 +289,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         link=not args.no_link,
         sync=not args.link_only,
         feed=not args.no_feed,
+        summaries=not args.no_summaries,
         today=date.today(),
         dry_run=args.dry_run,
     )

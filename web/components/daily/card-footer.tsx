@@ -20,6 +20,7 @@ export function ItemTeaser({
   terms,
   label,
   onOpen,
+  children,
 }: {
   text: string | null;
   /** The expert terms in it the glossary explains. */
@@ -27,6 +28,8 @@ export function ItemTeaser({
   /** The item's title, so the link names what it opens. */
   label: string;
   onOpen: () => void;
+  /** Shown between the text and the link, e.g. the law's course. */
+  children?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col items-start gap-3">
@@ -35,6 +38,7 @@ export function ItemTeaser({
           <GlossaryText text={text} terms={terms} />
         </p>
       )}
+      {children}
       <button
         type="button"
         onClick={onOpen}

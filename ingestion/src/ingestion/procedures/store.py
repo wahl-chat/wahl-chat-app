@@ -16,7 +16,7 @@ from qdrant_client import QdrantClient, models
 from ingestion.ids import compute_chunk_id
 from ingestion.run import _embed_texts, _upsert_chunks
 from ingestion.schemas import ChunkRecord
-from wahlchat_common.procedures import PROCEDURES_COLLECTION, ProcedureRecord
+from wahlchat_common.procedures import PROCEDURES_COLLECTION, ProcedureRecord, StepSummary
 
 META_COLLECTION = "procedures_meta"
 SYNC_DOC = "sync"
@@ -71,6 +71,11 @@ class ProcedureStore:
             for vid, linked in batch:
                 writes.update(collection.document(vid), {"has_links": linked})
             writes.commit()
+
+    def set_step_summaries(self, vorgang_id: str, summaries: dict[str, StepSummary]) -> None:
+        self._db.collection(PROCEDURES_COLLECTION).document(vorgang_id).update(
+            {"step_summaries": {n: s.model_dump(mode="json") for n, s in summaries.items()}}
+        )
 
     def sync_state(self) -> dict[str, Any]:
         snapshot = self._db.collection(META_COLLECTION).document(SYNC_DOC).get()

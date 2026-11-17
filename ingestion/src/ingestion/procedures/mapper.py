@@ -27,9 +27,20 @@ from wahlchat_common.procedures import (
 # A chunk that belongs to no single party (same sentinel as votes).
 NO_PARTY = "_all"
 
-_DIP_VORGANG_URL = "https://dip.bundestag.de/vorgang/{id}"
+# DIP answers "nicht gefunden" without a title slug before the id.
+_DIP_VORGANG_URL = "https://dip.bundestag.de/vorgang/{slug}/{id}"
+_UMLAUTS = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss"})
 _GROUP_PREFIX = re.compile(r"^(fraktion|gruppe)\s+(der\s+)?", re.IGNORECASE)
 _MAX_DESKRIPTOREN_IN_TEXT = 30
+
+
+def dip_vorgang_url(vorgang_id: str, titel: str) -> str:
+    slug = (
+        re.sub(r"[^a-z0-9]+", "-", titel.lower().translate(_UMLAUTS))
+        .strip("-")[:80]
+        .rstrip("-")
+    )
+    return _DIP_VORGANG_URL.format(slug=slug or "vorgang", id=vorgang_id)
 
 
 def party_ids_of(urheber: list[str]) -> list[str]:
@@ -125,7 +136,7 @@ def _record_hash(record: ProcedureRecord) -> str:
     """Hash of everything stored except bookkeeping that changes on its own."""
     stored = record.model_dump(
         mode="json",
-        exclude={"content_hash", "has_links", "stage_changed_on", "dip_updated_at"},
+        exclude={"content_hash", "has_links", "step_summaries", "stage_changed_on", "dip_updated_at"},
     )
     return hashlib.sha256(
         json.dumps(stored, sort_keys=True, ensure_ascii=False).encode("utf-8")
@@ -182,7 +193,8 @@ def build_record(
         latest_stage_on=latest.date if latest else None,
         stage_changed_on=stage_changed_on,
         has_links=previous.has_links if previous else False,
-        dip_url=_DIP_VORGANG_URL.format(id=vid),
+        step_summaries=previous.step_summaries if previous else {},
+        dip_url=dip_vorgang_url(vid, (vorgang.get("titel") or "").strip()),
         dip_updated_at=vorgang.get("aktualisiert") or "",
         content_hash="",
     )

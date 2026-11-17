@@ -200,6 +200,10 @@ body {
   /* A card's own action ("Mehr anzeigen") on touch screens, which has to
      stand out from the card without any hover. */
   --daily-action-bg: #e4e4e7;
+  /* A procedure's current step: apart from the vote colours and the ink of
+     the steps around it. */
+  --daily-accent: #1d4ed8;
+  --daily-accent-soft: #dbeafe;
   color: var(--daily-ink);
   background: var(--daily-canvas);
   font-family: var(--font-daily-body), Arial, Helvetica, sans-serif;
@@ -221,4 +225,6 @@ body {
   --daily-day-pending-hover: #3f3f46;
   --daily-day-upcoming: #3f3f46;
   --daily-action-bg: #3f3f46;
+  --daily-accent: #6ea8fe;
+  --daily-accent-soft: #172a4a;
 }

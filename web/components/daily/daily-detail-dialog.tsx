@@ -37,6 +37,7 @@ import {
   PoliticianSheet,
   useSpeakerPhotos,
 } from './politician-sheet';
+import { ProcedureSection } from './procedure-section';
 import { SourcePills } from './source-pills';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
 import { TopicMeta } from './topic-chip';
@@ -412,6 +413,15 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
                     }
                   />
                 )}
+                <ProcedureSection
+                  day={item.digest.date}
+                  kind={item.kind === 'vote' ? 'vote' : 'debate'}
+                  procedures={
+                    item.kind === 'vote'
+                      ? item.vote.procedures
+                      : item.section.procedures
+                  }
+                />
                 <ItemAnswers item={item} />
               </div>
               {FEED_CHAT_ENABLED && (
