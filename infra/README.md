@@ -71,7 +71,7 @@ It authenticates through Workload Identity Federation with one of two service ac
 | SA                   | Who can use it                                | Can do                                    |
 |----------------------|-----------------------------------------------|-------------------------------------------|
 | `terraform-planner`  | any workflow run of this repo (PR plans)      | read the managed resources and the state  |
-| `terraform-deployer` | only runs on the project's deploy branch      | plan with lock, apply, deploy the `ingest` functions |
+| `terraform-deployer` | only runs on the project's deploy branch      | plan with lock, apply, deploy the `ingest` functions and the Firebase rules + indexes |
 
 The branch check lives in GCP (the deployer's `workloadIdentityUser` binding matches GitHub's
 `ref` claim), so editing a workflow in a PR cannot reach the deployer. Fork PRs get no token at

@@ -38,6 +38,12 @@ npm install -g node-firestore-import-export
 
 ## Deploying Firebase Changes
 
+Merges to `develop` / `main` deploy to dev / prod automatically: the Firestore
+rules and indexes and the Storage rules via `.github/workflows/firebase-rules.yml`,
+the `ingest` functions via `.github/workflows/ingest-functions.yml`. Indexes
+removed from `firestore.indexes.json` are not deleted from the project. A manual
+deploy is for testing a branch.
+
 First select your target environment:
 
 ```bash
