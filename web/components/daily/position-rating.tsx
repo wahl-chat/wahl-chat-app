@@ -17,7 +17,7 @@ const ARROW_BUTTON = cn(
 );
 
 /**
- * "Stimmst du zu?" for one Fraktion's position: agree, the net score,
+ * "Unterstützt du das?" for one Fraktion's position: agree, the net score,
  * disagree. Tapping the chosen arrow again takes the opinion back. Before
  * the reader has opted in there is no score, and none is shown.
  */
@@ -41,6 +41,9 @@ export function PositionRating({
       aria-label={`Position von ${partyName} bewerten`}
       className="-mr-2 inline-flex shrink-0 items-center"
     >
+      <span className="mr-1 text-[13px] font-medium text-[var(--daily-muted)]">
+        Unterstützt du das?
+      </span>
       <button
         type="button"
         aria-label="Stimme zu"

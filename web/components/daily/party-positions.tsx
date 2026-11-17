@@ -174,14 +174,8 @@ export function PartyPositions({
                 ) : onSpeaker ? null : (
                   <SpeechesOnly speakers={position.speakers} />
                 )}
-                {rating ? (
-                  <div className="flex items-start gap-2">
-                    <div className="min-w-0 flex-1">{chips}</div>
-                    {rating}
-                  </div>
-                ) : (
-                  chips
-                )}
+                {chips}
+                {rating && <div className="flex justify-end">{rating}</div>}
               </dd>
             </div>
           );

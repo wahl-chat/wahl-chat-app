@@ -174,16 +174,10 @@ function SectionDetail({
           <section className="flex flex-col gap-1.5">
             <div className="flex items-baseline justify-between gap-3">
               <h3 className={SECTION_LABEL}>Wer sagt was</h3>
-              {rateable ? (
-                <span className={cn('text-[13px]', MUTED_TEXT)}>
-                  Stimmst du zu?
+              {!rateable && hasSpeakers && (
+                <span className={cn('text-[13px] md:hidden', MUTED_TEXT)}>
+                  Tippe auf eine Person für mehr
                 </span>
-              ) : (
-                hasSpeakers && (
-                  <span className={cn('text-[13px] md:hidden', MUTED_TEXT)}>
-                    Tippe auf eine Person für mehr
-                  </span>
-                )
               )}
             </div>
             <PartyPositions
