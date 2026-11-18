@@ -134,10 +134,19 @@ async def _within_budget(
 
 
 
+# Repeated beside the sources: the system prompt alone does not hold it.
+_LINK_RULE = (
+    "Never join two events into a cause (\"Nachdem/Da … abgelehnt wurden,"
+    " enthielt sich …\") unless a source states that link; write them as"
+    " separate sentences."
+)
+
+
 @dataclass
 class RepeatLanguageRule(AbstractCapability[GenericChatDeps]):
-    """Appends the language rule after tool results, for this request only,
-    so long German sources do not pull the answer into German."""
+    """Appends the language rule, and the rule against linked events, after
+    tool results, for this request only, so long German sources do not pull
+    the answer into German or into narrative."""
 
     async def before_model_request(
         self,
@@ -149,7 +158,7 @@ class RepeatLanguageRule(AbstractCapability[GenericChatDeps]):
         if isinstance(last, ModelRequest) and any(
             isinstance(part, ToolReturnPart) for part in last.parts
         ):
-            reminder = UserPromptPart(language_rule(ctx.deps.language))
+            reminder = UserPromptPart(f"{language_rule(ctx.deps.language)}\n{_LINK_RULE}")
             request_context.messages = [
                 *messages[:-1],
                 replace(last, parts=[*last.parts, reminder]),
