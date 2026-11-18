@@ -13,6 +13,10 @@ called, the procedure get_process landed on, whether it asked instead,
 sources, time. Whether an answer states the passed version rather than the
 draft, and attributes Vorblatt/Antrag framing, is read by a person.
 
+"recent" questions carry ``web``: expect (the question points to recent
+news), avoid (an old topic without a cue) or any. Whether the answer kept an
+older decision apart from the news is read by a person.
+
 "why" questions (optionally opened from a feed item) name the parties whose
 reasons are asked for. A party counts as grounded when the answer cites one
 of its sources from the vote or the procedure (tier this_item or
@@ -72,7 +76,21 @@ def load_questions(limit: Optional[int] = None) -> list[dict[str, Any]]:
 
 
 def verdict(question: dict[str, Any], run: Run) -> str:
-    """found / asked / missed / wrong / n/a; for "why", grounded k/n."""
+    """found / asked / missed / wrong / n/a; for "why", grounded k/n; for
+    questions with ``web``, whether the run searched the web as it should."""
+    base = _verdict(question, run)
+    web = question.get("web")
+    if web is None or run.error:
+        return base
+    used = "web_search" in run.tools
+    if web == "expect":
+        return f"{base} · {'web ✓' if used else 'web missing'}"
+    if web == "avoid":
+        return f"{base} · {'web needless' if used else 'no web ✓'}"
+    return f"{base} · {'web' if used else 'no web'}"
+
+
+def _verdict(question: dict[str, Any], run: Run) -> str:
     expected = set(question.get("expect") or [])
     if run.error:
         return "error"
@@ -205,6 +223,8 @@ def report(questions: list[dict[str, Any]], runs: dict[tuple[str, str], Run]) ->
     lines.append("")
     for q in questions:
         lines += [f"## {q['id']}: {q['question']}", f"Expected: {', '.join(q.get('expect') or []) or '—'}", ""]
+        if q.get("note"):
+            lines += [f"Note: {q['note']}", ""]
         for variant in VARIANTS:
             run = runs.get((q["id"], variant))
             if run is None:
