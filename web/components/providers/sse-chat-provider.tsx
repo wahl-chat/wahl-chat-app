@@ -1,5 +1,6 @@
 'use client';
 
+import { sanitizeChatAnchor } from '@/lib/chat-anchor';
 import { getAuthHeader } from '@/lib/firebase/firebase';
 import type { ChatAnchor } from '@/lib/firebase/firebase.types';
 import type {
@@ -52,6 +53,7 @@ function SseChatProvider({ children }: Props) {
     (state) => state.streamingMessageSourcesReady,
   );
   const updateToolStatus = useChatStore((state) => state.updateToolStatus);
+  const setAnchor = useChatStore((state) => state.setAnchor);
   const mergeStreamingChunkPayloadForMessage = useChatStore(
     (state) => state.mergeStreamingChunkPayloadForMessage,
   );
@@ -139,6 +141,12 @@ function SseChatProvider({ children }: Props) {
           ann.party_id as string,
           ann.sources as Parameters<typeof streamingMessageSourcesReady>[2],
         );
+      } else if (type === 'anchor') {
+        // The vote or law a chat without one settled on: it stays on it.
+        const anchor = sanitizeChatAnchor(ann.anchor);
+        if (anchor) {
+          setAnchor(anchor);
+        }
       } else if (type === 'tool_status') {
         updateToolStatus(ann.session_id as string, {
           call_id: ann.call_id as string,
