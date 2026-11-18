@@ -315,7 +315,9 @@ def repair(
     """Keep supported numbers and those in ``keep``, swap the others for
     supporting sources of the same voice (and, when the sentence names a
     speaker, by that speaker) the sentence does not cite yet, drop what is
-    left. Text is untouched."""
+    left. Only a sentence with a single citation run is swapped: support is
+    judged per sentence, so a source behind one clause must not take the
+    place of a citation behind another. Text is untouched."""
     voice = {s.id: s.voice for s in sources}
     speaker = {s.id: s.speaker for s in sources}
     stats = stats if stats is not None else RepairStats()
@@ -324,7 +326,9 @@ def repair(
     for verdict in sorted(verdicts, key=lambda v: v.sentence.start):
         sentence = verdict.sentence
         named = _named(sentence.text, sources)
-        spare = sorted(verdict.supporting - set(sentence.cited))
+        chunk = answer[sentence.start : sentence.end]
+        one_slot = len(_RUN.findall(chunk)) == 1
+        spare = sorted(verdict.supporting - set(sentence.cited)) if one_slot else []
         used: set[int] = set()
 
         def swap(n: int) -> Optional[int]:
@@ -337,7 +341,6 @@ def repair(
                 return spare.pop(i)
             return None
 
-        chunk = answer[sentence.start : sentence.end]
 
         def fix(match: re.Match[str]) -> str:
             run = match.group(0)

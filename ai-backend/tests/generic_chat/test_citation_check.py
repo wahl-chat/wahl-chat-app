@@ -163,3 +163,35 @@ def test_a_named_speaker_does_not_bind_a_record_citation() -> None:
 
 def test_a_markdown_link_is_no_citation() -> None:
     assert cc.cited_sentences("Siehe [2](https://example.org) dazu.") == []
+
+
+def test_a_citation_behind_one_clause_is_not_swapped() -> None:
+    answer = "Nach einer Anpassung Ende 2023 [27] folgte 2026 die Reform [38]."
+    sentence = cc.cited_sentences(answer)[0]
+    # Only [38] states the whole sentence: [27] is dropped, never moved to [38]'s clause.
+    fixed = cc.repair(answer, [cc.Verdict(sentence, {38, 40})])
+    assert fixed == "Nach einer Anpassung Ende 2023 folgte 2026 die Reform [38]."
+
+
+async def test_a_source_date_reaches_the_check(monkeypatch: Any) -> None:
+    seen: list[str] = []
+
+    def prompt(sentences: Any, sources: Any) -> str:
+        seen.append(cc._prompt(sentences, sources))
+        return seen[-1]
+
+    from src.generic_chat import stream
+    from src.generic_chat.schemas import NumberedDocument
+    from tests.generic_chat.conftest import make_deps
+
+    async def check(answer: str, sources: Any) -> Any:
+        prompt([], sources)
+        return cc.CheckResult(verdicts=[], seconds=0.0, input_tokens=0, output_tokens=0)
+
+    monkeypatch.setenv("GENERIC_CHAT_CITATION_CHECK", "on")
+    monkeypatch.setattr(cc, "check", check)
+    deps = make_deps()
+    deps.sources.register({"source": "Abstimmung", "url": "https://x.de/a"})
+    doc = NumberedDocument(id=0, source_type="vote_record", title="Abstimmung", date="2026-11-13", text="Total: yes 308")
+    await stream._checked("Am 13. November 2026 [0].", deps, [doc])
+    assert "2026-11-13 · Abstimmung" in seen[0]

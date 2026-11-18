@@ -294,7 +294,8 @@ async def _checked(
         return answer
     sources = [
         citation_check.Source(
-            id=d.id, title=d.title or "", text=d.text,
+            # The date is in metadata only for votes, steps and web results.
+            id=d.id, title=" · ".join(filter(None, [d.date, d.title])), text=d.text,
             voice=_voice(deps, d.id), speaker=_speaker(deps, d.id),
         )
         for d in documents
