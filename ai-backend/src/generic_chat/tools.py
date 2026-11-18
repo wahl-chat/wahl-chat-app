@@ -70,7 +70,7 @@ _SEARCH_LIMITS: dict[SearchSourceType, int] = {
     "parliamentary_speech": 4,
     "party_manifesto": 4,
 }
-# Ranking by time; numbers provisional until measured on the eval set.
+# Ranking by time.
 # Votes and speeches: "recent" by age; manifestos: by term (a manifesto stays
 # the programme until the next election).
 _RECENT_DAYS = 730

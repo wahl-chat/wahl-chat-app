@@ -204,8 +204,8 @@ def run(
     summarised: set[str] = set()
     if summary_call is not None and not dry_run:
         in_feed = _feed_procedure_ids(db)
-        # The feed job runs after this one: a law it links today for the
-        # first time had a new stage in the last days, and is ready then.
+        # A law the feed links for the first time had a stage within the
+        # lookback, so it has its summaries by then.
         recent = today - timedelta(days=_SUMMARY_LOOKBACK_DAYS)
         summaries = asyncio.run(
             summarise_procedures(

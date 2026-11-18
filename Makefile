@@ -10,7 +10,7 @@
         update-speeches speeches-stats export-prod-slice \
         build-feed setup-feed-collection backfill-feed eval-feed \
         run-procedures procedures-report eval-procedure-documents \
-        eval-procedure-chat
+        eval-procedure-chat eval-web-context eval-citation-check
 
 # --- Install dependencies ---
 
