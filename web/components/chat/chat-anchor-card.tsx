@@ -133,11 +133,11 @@ function ChatAnchorCard() {
       </span>
       <div className="flex min-w-0 grow flex-col">
         <div className="flex items-center justify-between gap-2">
-          <span className="flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground">
+          <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
             <Icon className="size-3.5 shrink-0 md:hidden" />
-            {meta}
+            <span className="truncate">{meta}</span>
           </span>
-          {back('Feed', '-mr-1 text-xs md:hidden')}
+          {back('Feed', '-my-1 -mr-1.5 min-h-6 px-1.5 py-1 text-xs md:hidden')}
         </div>
         <span className="line-clamp-2 text-sm font-semibold">{card.title}</span>
       </div>

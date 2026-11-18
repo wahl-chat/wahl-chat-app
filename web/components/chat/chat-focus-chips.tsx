@@ -34,10 +34,10 @@ function ChatFocusChips({ disabled }: Props) {
               type="button"
               disabled={disabled}
               onClick={() => setPartyIds(ids.filter((other) => other !== id))}
-              className="rounded-full p-0.5 transition-colors enabled:hover:bg-background disabled:cursor-not-allowed"
+              className="-my-1 flex size-6 items-center justify-center rounded-full transition-colors enabled:hover:bg-background disabled:cursor-not-allowed"
               aria-label={`${name} aus dem Fokus entfernen`}
             >
-              <XIcon className="size-3" />
+              <XIcon className="size-3.5" />
             </button>
           </span>
         );
