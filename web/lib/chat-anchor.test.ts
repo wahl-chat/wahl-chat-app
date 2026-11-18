@@ -146,9 +146,29 @@ describe('procedure anchors', () => {
     ).toEqual({
       kind: 'Verfahren',
       title: 'Haushaltsbegleitgesetz 2027',
-      date: 'Stand: Beschlussempfehlung und Bericht, 16. November 2026',
+      date: 'Stand: Ausschuss: Empfehlung, 16. November 2026',
       outcome: null,
       feedHref: null,
     });
+  });
+
+  it('names the third reading with the second and leads back to the item', () => {
+    const card = anchorCard(
+      { vorgang_id: '338341' },
+      null,
+      {
+        vorgang_id: '338341',
+        titel: 'Gesetz zur Reform des Nachrichtendienstrechts',
+        latest_stage: '3. Beratung',
+        latest_stage_on: '2026-11-13',
+      },
+      {
+        id: 'bundestag_2026-11-13_v6771',
+        region: 'DE',
+        status: 'published',
+      } as FeedItem,
+    );
+    expect(card?.date).toBe('Stand: 2./3. Lesung, 13. November 2026');
+    expect(card?.feedHref).toContain('item=bundestag_2026-11-13_v6771');
   });
 });

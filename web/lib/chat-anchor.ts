@@ -1,3 +1,4 @@
+import { plainStageName } from '@/lib/daily/procedures';
 import { feedItemHref } from '@/lib/daily/share';
 import type {
   ChatAnchor,
@@ -6,7 +7,7 @@ import type {
 } from '@/lib/firebase/firebase.types';
 
 // Feed item ids: `bundestag_2026-07-10_v123`, `bundestag_2026-07-10_d90-top17`.
-const FEED_ITEM_ID = /^[\w.~-]{1,200}$/;
+export const FEED_ITEM_ID = /^[\w.~-]{1,200}$/;
 const POLL_ID = /^\d{1,10}$/;
 // DIP Vorgang ids.
 const VORGANG_ID = /^\d{1,12}$/;
@@ -82,18 +83,19 @@ const longDay = new Intl.DateTimeFormat('de-DE', {
   timeZone: 'UTC',
 });
 
-/** What the chat's anchor card shows. A feed item that does not exist (or is
- * not published) shows nothing, nor does an unknown procedure; a bare poll id
- * a plain vote card. */
-// The timeline's words: readings are "Lesungen" there.
-function plainStage(stage: string): string {
-  return stage.replace(/^(\d)\. Beratung$/, '$1. Lesung');
+function published(item: FeedItem | null | undefined): item is FeedItem {
+  return item?.status === 'published';
 }
 
+/** What the chat's anchor card shows. A feed item that does not exist (or is
+ * not published) shows nothing, nor does an unknown procedure; a bare poll id
+ * a plain vote card. `from` is the feed item a procedure chat was opened
+ * from, the way back. */
 export function anchorCard(
   anchor: ChatAnchor,
   item: FeedItem | null | undefined,
   procedure?: StoredProcedure | null,
+  from?: FeedItem | null,
 ): AnchorCard | null {
   if ('vorgang_id' in anchor) {
     if (!procedure) {
@@ -106,10 +108,10 @@ export function anchorCard(
       kind: 'Verfahren',
       title: procedure.titel,
       date: procedure.latest_stage
-        ? `Stand: ${[plainStage(procedure.latest_stage), day].filter(Boolean).join(', ')}`
+        ? `Stand: ${[plainStageName(procedure.latest_stage), day].filter(Boolean).join(', ')}`
         : null,
       outcome: null,
-      feedHref: null,
+      feedHref: published(from) ? feedItemHref(from.id, from.region) : null,
     };
   }
   if ('poll_id' in anchor) {
@@ -121,7 +123,7 @@ export function anchorCard(
       feedHref: null,
     };
   }
-  if (!item || item.status !== 'published') {
+  if (!published(item)) {
     return null;
   }
   return {

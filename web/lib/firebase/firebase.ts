@@ -310,6 +310,20 @@ export async function getFeedItem(itemId: string): Promise<FeedItem | null> {
   return snapshot.exists() ? (snapshot.data() as FeedItem) : null;
 }
 
+/** The feed items about one procedure, for its timeline's steps. */
+export async function getFeedItemsForProcedure(
+  vorgangId: string,
+): Promise<FeedItem[]> {
+  const snapshot = await getDocs(
+    query(
+      collection(db, 'feed_items'),
+      where('procedure_ids', 'array-contains', vorgangId),
+      limit(40),
+    ),
+  );
+  return snapshot.docs.map((d) => d.data() as FeedItem);
+}
+
 /** A Bundestag procedure as the procedures job stores it; only the fields
  * the chat shows are typed. */
 export async function getProcedure(

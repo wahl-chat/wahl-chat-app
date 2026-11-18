@@ -1,4 +1,6 @@
 import type {
+  DigestVoteParty,
+  FeedItem,
   ProcedureMilestone,
   ProcedureSummary,
   StageDecision,
@@ -21,6 +23,15 @@ export type TimelineStep = {
   links: StepLink[];
   /** The chat question about this step. */
   question: string;
+};
+
+/** A feed item on a step's day: the debate or vote a reader can open. */
+export type StepFeedLink = {
+  href: string;
+  kind: 'Debatte' | 'Abstimmung';
+  headline: string;
+  /** For a vote: the outcome and how the Fraktionen voted. */
+  detail: string | null;
 };
 
 export type ProcedureRow = {
@@ -66,7 +77,9 @@ const READINGS = new Set(['2. Beratung', '3. Beratung']);
 const DEAD = /^(Erledigt|Abgelehnt|Zurückgezogen|Für erledigt erklärt)/;
 
 /** DIP's step names in plain words. */
-function plainName(milestone: ProcedureMilestone): string | null {
+function plainName(
+  milestone: Pick<ProcedureMilestone, 'name' | 'chamber'>,
+): string | null {
   const { name, chamber } = milestone;
   if (name.startsWith('Gesetzentwurf') || name === 'Antrag') {
     return 'Eingebracht';
@@ -548,8 +561,85 @@ export function procedureMarker(
   };
 }
 
-/** The general chat about one procedure, with the question already asked. */
-export function procedureChatHref(vorgangId: string, question: string): string {
+/** A procedure's latest step as the timeline names it; the third reading
+ * is held with the second. */
+export function plainStageName(name: string): string {
+  const chamber = /Durchgang/.test(name) ? 'BR' : 'BT';
+  const label = plainName({ name, chamber }) ?? name;
+  return label === '3. Lesung' ? '2./3. Lesung' : label;
+}
+
+const STANCES = [
+  ['yes', 'Ja'],
+  ['no', 'Nein'],
+  ['abstain', 'Enthalten'],
+] as const;
+
+/** "Ja: CDU/CSU, SPD · Nein: AfD, Die Linke": each Fraktion by how most of
+ * its members voted. */
+export function fractionLine(parties: DigestVoteParty[]): string {
+  const by = new Map<string, string[]>();
+  for (const party of parties) {
+    if (party.party_id === 'fraktionslos') continue;
+    const counts = STANCES.map(([key]) => Number(party[key]) || 0);
+    const top = Math.max(...counts);
+    if (top === 0) continue;
+    const label = STANCES[counts.indexOf(top)][1];
+    by.set(label, [...(by.get(label) ?? []), party.name]);
+  }
+  return STANCES.flatMap(([, label]) =>
+    by.has(label) ? [`${label}: ${by.get(label)?.join(', ')}`] : [],
+  ).join(' · ');
+}
+
+// Bundestag steps that take place in the plenary, where the feed has items.
+const PLENARY = (label: string) => label === '1. Lesung' || isVote(label);
+
+/** The feed's items on a step's day, other than the one being read. */
+export function stepFeedLinks(
+  step: TimelineStep,
+  items: FeedItem[],
+  currentId: string,
+  href: (item: FeedItem) => string,
+): StepFeedLink[] {
+  if (!step.date || !PLENARY(step.label)) return [];
+  return items
+    .filter(
+      (item) =>
+        item.date === step.date &&
+        item.status === 'published' &&
+        item.id !== currentId,
+    )
+    .sort((a, b) =>
+      a.kind === b.kind ? a.rank - b.rank : a.kind === 'vote' ? -1 : 1,
+    )
+    .map((item) => ({
+      href: href(item),
+      kind: item.kind === 'vote' ? 'Abstimmung' : 'Debatte',
+      headline: item.content.de.headline,
+      detail: item.vote
+        ? [
+            item.vote.outcome === 'angenommen'
+              ? 'Angenommen'
+              : item.vote.outcome === 'abgelehnt'
+                ? 'Abgelehnt'
+                : null,
+            fractionLine(item.vote.parties),
+          ]
+            .filter(Boolean)
+            .join('. ')
+        : null,
+    }));
+}
+
+/** The general chat about one procedure, with the question already asked;
+ * `from` is the feed item to go back to. */
+export function procedureChatHref(
+  vorgangId: string,
+  question: string,
+  from?: string,
+): string {
   const params = new URLSearchParams({ procedure: vorgangId, q: question });
+  if (from) params.set('from', from);
   return `/chat?${params}`;
 }

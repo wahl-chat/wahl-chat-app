@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'bun:test';
 import type {
+  DigestVoteParty,
+  FeedItem,
   ProcedureSummary,
   StageDecision,
 } from '@/lib/firebase/firebase.types';
 import {
+  type TimelineStep,
+  fractionLine,
+  plainStageName,
   procedureChatHref,
   procedureMarker,
   procedureSection,
+  stepFeedLinks,
   timelineSteps,
 } from './procedures';
 
@@ -459,5 +465,120 @@ describe('amendment votes', () => {
         'Reform des Nachrichtendienstrechts',
       )?.tag,
     ).toBe('Gesetz');
+  });
+});
+
+const party = (
+  party_id: string,
+  name: string,
+  yes: number,
+  no: number,
+  abstain: number,
+): DigestVoteParty => ({
+  party_id,
+  name,
+  color: '#000',
+  yes,
+  no,
+  abstain,
+  no_show: 0,
+});
+
+describe('step feed links', () => {
+  const vote = {
+    id: 'bundestag_2026-11-13_v6771',
+    kind: 'vote',
+    date: '2026-11-13',
+    rank: 1,
+    region: 'DE',
+    status: 'published',
+    content: { de: { headline: 'Reform beschlossen' } },
+    vote: {
+      outcome: 'angenommen',
+      parties: [
+        party('cdu', 'CDU/CSU', 200, 0, 0),
+        party('spd', 'SPD', 110, 2, 0),
+        party('afd', 'AfD', 0, 140, 0),
+        party('gruene', 'Die Grünen', 1, 0, 70),
+        party('fraktionslos', 'Fraktionslos', 1, 1, 0),
+      ],
+    },
+  } as unknown as FeedItem;
+  const debate = {
+    ...vote,
+    id: 'bundestag_2026-11-13_d110-top4',
+    kind: 'debate',
+    rank: 2,
+    content: { de: { headline: 'Streit um Befugnisse' } },
+    vote: null,
+  } as unknown as FeedItem;
+  const step = (label: string, date: string | null): TimelineStep => ({
+    date,
+    label,
+    state: 'done',
+    facts: '',
+    summary: null,
+    links: [],
+    question: '',
+  });
+  const href = (item: FeedItem) => `/?item=${item.id}`;
+
+  it('names each Fraktion by how most of it voted', () => {
+    expect(
+      fractionLine((vote.vote as NonNullable<FeedItem['vote']>).parties),
+    ).toBe('Ja: CDU/CSU, SPD · Nein: AfD · Enthalten: Die Grünen');
+  });
+
+  it('links the vote first, then the debate, never the item being read', () => {
+    const links = stepFeedLinks(
+      step('2./3. Lesung', '2026-11-13'),
+      [debate, vote],
+      'other',
+      href,
+    );
+    expect(links.map((l) => l.kind)).toEqual(['Abstimmung', 'Debatte']);
+    expect(links[0].detail).toBe(
+      'Angenommen. Ja: CDU/CSU, SPD · Nein: AfD · Enthalten: Die Grünen',
+    );
+    expect(
+      stepFeedLinks(
+        step('2./3. Lesung', '2026-11-13'),
+        [debate, vote],
+        vote.id,
+        href,
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('links nothing for a step outside the plenary or another day', () => {
+    expect(
+      stepFeedLinks(
+        step('Bundesrat: Entscheidung', '2026-11-13'),
+        [vote],
+        '',
+        href,
+      ),
+    ).toEqual([]);
+    expect(
+      stepFeedLinks(step('1. Lesung', '2026-09-24'), [vote], '', href),
+    ).toEqual([]);
+    expect(
+      stepFeedLinks(step('Bundesrat: Entscheidung', null), [vote], '', href),
+    ).toEqual([]);
+  });
+
+  it('names the latest stage as the timeline does', () => {
+    expect(plainStageName('3. Beratung')).toBe('2./3. Lesung');
+    expect(plainStageName('1. Beratung')).toBe('1. Lesung');
+    expect(plainStageName('2. Durchgang')).toBe('Bundesrat: Entscheidung');
+    expect(plainStageName('Beschlussempfehlung und Bericht')).toBe(
+      'Ausschuss: Empfehlung',
+    );
+  });
+
+  it('carries the item to go back to', () => {
+    expect(
+      procedureChatHref('338341', 'Was?', 'bundestag_2026-11-13_v6771'),
+    ).toBe('/chat?procedure=338341&q=Was%3F&from=bundestag_2026-11-13_v6771');
   });
 });

@@ -3,14 +3,18 @@
 import {
   type ProcedureMarker,
   type ProcedureRow,
+  type StepFeedLink,
   type TimelineStep,
   passedVote,
   procedureChatHref,
   procedureMarker,
   procedureSection,
+  stepFeedLinks,
   votedOnAmendment,
 } from '@/lib/daily/procedures';
-import type { ProcedureSummary } from '@/lib/firebase/firebase.types';
+import { feedItemHref } from '@/lib/daily/share';
+import { getFeedItemsForProcedure } from '@/lib/firebase/firebase';
+import type { FeedItem, ProcedureSummary } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import {
   ArrowUpRightIcon,
@@ -20,7 +24,7 @@ import {
   SparklesIcon,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, PILL, SECTION_LABEL } from './card-styles';
 import { SourceLink } from './vote-panels';
 
@@ -58,13 +62,43 @@ function Dot({ state }: { state: TimelineStep['state'] }) {
   );
 }
 
+function FeedLink({ link }: { link: StepFeedLink }) {
+  // A full load: the feed opens an item from the URL.
+  return (
+    <a
+      href={link.href}
+      className={cn(
+        FOCUS_RING,
+        'grid grid-cols-[minmax(0,1fr)_16px] items-center gap-x-2 rounded-lg border border-[var(--daily-border)] bg-[var(--daily-canvas)] px-3 py-2',
+      )}
+    >
+      <span className="flex flex-col gap-0.5">
+        <span className={cn('text-xs font-semibold', MUTED_TEXT)}>
+          {link.kind} im Feed
+        </span>
+        <span className="text-[14px] font-semibold leading-snug text-[var(--daily-ink)]">
+          {link.headline}
+        </span>
+        {link.detail && (
+          <span className="text-[13px] leading-snug">{link.detail}</span>
+        )}
+      </span>
+      <ChevronRightIcon className={cn('size-4', MUTED_TEXT)} aria-hidden />
+    </a>
+  );
+}
+
 function StepPanel({
   step,
+  feed,
   vorgangId,
+  from,
   id,
 }: {
   step: TimelineStep;
+  feed: StepFeedLink[];
   vorgangId: string;
+  from: string;
   id: string;
 }) {
   return (
@@ -72,21 +106,22 @@ function StepPanel({
       id={id}
       className="mb-2 mt-1 flex flex-col gap-2.5 rounded-xl bg-[var(--daily-surface)] p-3 text-[14px] leading-relaxed text-[var(--daily-body)]"
     >
-      {step.facts && <p>{step.facts}</p>}
+      {/* What the step's document says first; DIP's record after it. */}
       {step.summary && (
         <div className="flex flex-col gap-1">
+          <p className="text-[15px] text-[var(--daily-ink)]">{step.summary}</p>
           <span
-            className={cn(
-              'inline-flex items-center gap-1 text-xs font-semibold',
-              MUTED_TEXT,
-            )}
+            className={cn('inline-flex items-center gap-1 text-xs', MUTED_TEXT)}
           >
             <SparklesIcon className="size-3.5" aria-hidden />
-            KI-Zusammenfassung der Drucksache
+            KI-Zusammenfassung der Drucksache, gegen den Text geprüft
           </span>
-          <p className="text-[var(--daily-ink)]">{step.summary}</p>
         </div>
       )}
+      {step.facts && <p>{step.facts}</p>}
+      {feed.map((link) => (
+        <FeedLink key={link.href} link={link} />
+      ))}
       {step.links.length > 0 && (
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           {step.links.map((link) => (
@@ -109,7 +144,7 @@ function StepPanel({
       )}
       {step.question && (
         <Link
-          href={procedureChatHref(vorgangId, step.question)}
+          href={procedureChatHref(vorgangId, step.question, from)}
           className={cn(
             FOCUS_RING,
             'inline-flex min-h-9 items-center gap-1.5 self-start rounded-full border border-[var(--daily-border)] px-3 text-[13px] font-semibold text-[var(--daily-ink)] transition-colors hover:bg-[var(--daily-canvas)]',
@@ -127,10 +162,14 @@ function Timeline({
   steps,
   here,
   procedure,
+  related,
+  itemId,
 }: {
   steps: TimelineStep[];
   here: string;
   procedure: ProcedureSummary;
+  related: FeedItem[];
+  itemId: string;
 }) {
   const vorgangId = procedure.vorgang_id;
   const [open, setOpen] = useState<number | null>(null);
@@ -215,7 +254,15 @@ function Timeline({
             </button>
             {isOpen && (
               <div className="pl-[30px]">
-                <StepPanel step={step} vorgangId={vorgangId} id={panelId} />
+                <StepPanel
+                  step={step}
+                  feed={stepFeedLinks(step, related, itemId, (item) =>
+                    feedItemHref(item.id, item.region),
+                  )}
+                  vorgangId={vorgangId}
+                  from={itemId}
+                  id={panelId}
+                />
               </div>
             )}
           </li>
@@ -225,10 +272,14 @@ function Timeline({
   );
 }
 
-function RowLink({ row }: { row: ProcedureRow }) {
+function RowLink({ row, from }: { row: ProcedureRow; from: string }) {
   return (
     <Link
-      href={procedureChatHref(row.procedure.vorgang_id, 'Wie ging es weiter?')}
+      href={procedureChatHref(
+        row.procedure.vorgang_id,
+        'Wie ging es weiter?',
+        from,
+      )}
       className={cn(
         FOCUS_RING,
         'grid grid-cols-[minmax(0,1fr)_16px] items-center gap-x-2 rounded-md py-3',
@@ -263,12 +314,12 @@ function RowLink({ row }: { row: ProcedureRow }) {
   );
 }
 
-function Rows({ rows }: { rows: ProcedureRow[] }) {
+function Rows({ rows, from }: { rows: ProcedureRow[]; from: string }) {
   return (
     <ul className="flex flex-col divide-y divide-[var(--daily-border)]">
       {rows.map((row) => (
         <li key={row.procedure.vorgang_id}>
-          <RowLink row={row} />
+          <RowLink row={row} from={from} />
         </li>
       ))}
     </ul>
@@ -294,19 +345,49 @@ const DIP_LABEL = 'Verfahren im Dokumentationssystem des Bundestags (DIP)';
 /** Where the item's law stands, with this item's step highlighted, each
  * step opening what happened there, and the ways into the chat about it
  * (flows F-11/F-12). Nothing without procedures. */
+/** The feed's other items about a procedure; empty until loaded or when
+ * loading fails, and the timeline reads fine without them. */
+function useRelatedItems(vorgangId: string | null): FeedItem[] {
+  const [loaded, setLoaded] = useState<{ id: string; items: FeedItem[] }>();
+  useEffect(() => {
+    if (!vorgangId) {
+      return;
+    }
+    let cancelled = false;
+    getFeedItemsForProcedure(vorgangId)
+      .catch(() => [])
+      .then((items) => {
+        if (!cancelled) {
+          setLoaded({ id: vorgangId, items });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [vorgangId]);
+  return loaded?.id === vorgangId ? loaded.items : [];
+}
+
 export function ProcedureSection({
   day,
   kind,
+  itemId,
   procedures,
   voteTitle,
 }: {
   day: string;
   kind: 'vote' | 'debate';
+  /** The item being read: left out of the step links, and the way back
+   * from the chat. */
+  itemId: string;
   procedures: ProcedureSummary[] | undefined;
   /** The vote's own title: tells an amendment from the law. */
   voteTitle?: string;
 }) {
   const section = procedureSection(day, procedures);
+  const related = useRelatedItems(
+    section?.type === 'timeline' ? section.main.vorgang_id : null,
+  );
   if (!section) {
     return null;
   }
@@ -318,7 +399,7 @@ export function ProcedureSection({
             ? 'Debattiert: 1 Antrag'
             : `Debattiert: ${section.rows.length} Anträge`}
         </h3>
-        <Rows rows={section.rows} />
+        <Rows rows={section.rows} from={itemId} />
       </section>
     );
   }
@@ -347,13 +428,15 @@ export function ProcedureSection({
               : 'Diese Abstimmung'
         }
         procedure={main}
+        related={related}
+        itemId={itemId}
       />
       {questions.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {questions.map((question) => (
             <Link
               key={question}
-              href={procedureChatHref(main.vorgang_id, question)}
+              href={procedureChatHref(main.vorgang_id, question, itemId)}
               className={cn(
                 FOCUS_RING,
                 PILL,
@@ -376,7 +459,7 @@ export function ProcedureSection({
           >
             {moreLabel(more)}
           </summary>
-          <Rows rows={more} />
+          <Rows rows={more} from={itemId} />
         </details>
       )}
       {main.dip_url.startsWith('https://') && (
@@ -391,10 +474,7 @@ export function ProcedureSection({
 export function ProcedureMarkerLine({ marker }: { marker: ProcedureMarker }) {
   return (
     <p
-      className={cn(
-        'flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px]',
-        MUTED_TEXT,
-      )}
+      className={cn('flex flex-col items-start gap-1 text-[13px]', MUTED_TEXT)}
     >
       {/* Plain text: the line is a hint, the card itself opens the detail. */}
       <span className="text-xs font-semibold uppercase tracking-wide">

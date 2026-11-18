@@ -416,6 +416,7 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
                 <ProcedureSection
                   day={item.digest.date}
                   kind={item.kind === 'vote' ? 'vote' : 'debate'}
+                  itemId={item.key}
                   voteTitle={item.kind === 'vote' ? item.vote.title : undefined}
                   procedures={
                     item.kind === 'vote'

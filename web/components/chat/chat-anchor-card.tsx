@@ -1,7 +1,7 @@
 'use client';
 
 import { useChatStore } from '@/components/providers/chat-store-provider';
-import { anchorCard } from '@/lib/chat-anchor';
+import { FEED_ITEM_ID, anchorCard } from '@/lib/chat-anchor';
 import { getFeedItem, getProcedure } from '@/lib/firebase/firebase';
 import type { FeedItem, StoredProcedure } from '@/lib/firebase/firebase.types';
 import {
@@ -25,6 +25,29 @@ function ChatAnchorCard() {
     item: FeedItem | null;
   } | null>(null);
   const [procedure, setProcedure] = useState<StoredProcedure | null>(null);
+  // The feed item a procedure chat was opened from, for the way back.
+  const [from, setFrom] = useState<FeedItem | null>(null);
+
+  useEffect(() => {
+    if (!vorgangId) {
+      return;
+    }
+    const fromId = new URLSearchParams(window.location.search).get('from');
+    if (!fromId || !FEED_ITEM_ID.test(fromId)) {
+      return;
+    }
+    let cancelled = false;
+    getFeedItem(fromId)
+      .catch(() => null)
+      .then((found) => {
+        if (!cancelled) {
+          setFrom(found);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [vorgangId]);
 
   useEffect(() => {
     if (!vorgangId) {
@@ -74,6 +97,7 @@ function ChatAnchorCard() {
     anchor,
     item,
     procedure?.vorgang_id === vorgangId ? procedure : null,
+    from,
   );
   if (!card) {
     return null;
@@ -87,18 +111,18 @@ function ChatAnchorCard() {
   const meta = [card.kind, card.date, card.outcome].filter(Boolean).join(' · ');
 
   return (
-    <div className="mx-3 mt-3 flex items-center gap-3 rounded-lg border bg-muted/50 px-3 py-2.5 md:mx-[35px]">
+    <div className="mx-3 mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border bg-muted/50 px-3 py-2.5 md:mx-[35px] md:flex-nowrap">
       <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
         <Icon className="size-4" />
       </span>
-      <div className="flex min-w-0 grow flex-col">
+      <div className="flex min-w-0 grow basis-[calc(100%-3.5rem)] flex-col md:basis-auto">
         <span className="text-xs text-muted-foreground">{meta}</span>
         <span className="line-clamp-2 text-sm font-semibold">{card.title}</span>
       </div>
       {card.feedHref && (
         <Link
           href={card.feedHref}
-          className="flex shrink-0 items-center gap-0.5 rounded-md text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="ml-12 flex shrink-0 items-center gap-0.5 rounded-md text-sm font-medium md:ml-0 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ChevronLeftIcon className="size-4" />
           Zurück zum Feed

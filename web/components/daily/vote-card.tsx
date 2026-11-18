@@ -87,6 +87,7 @@ function VoteCard({ item, onOpen, hot = false }: Props) {
         <CardProcedureMarker
           day={item.digest.date}
           procedures={vote.procedures}
+          voteTitle={vote.title}
         />
       </ItemTeaser>
       <CardFooter item={item} />
