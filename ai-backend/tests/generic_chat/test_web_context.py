@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Press coverage next to our sources, behind GENERIC_CHAT_WEB_CONTEXT."""
+"""Press coverage of a procedure next to our sources."""
 
 from __future__ import annotations
 
@@ -50,19 +50,25 @@ def sites(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 
 def _procedure() -> ProcessResult:
     return ProcessResult(
-        procedure=ProcessInfo.model_construct(title="Gesetz zur Reform des Nachrichtendienstrechts"),
+        procedure=ProcessInfo.model_construct(vorgang_id="338341", title="Gesetz zur Reform des Nachrichtendienstrechts"),
         steps=[ProcessStep.model_construct(date="2026-09-24"), ProcessStep.model_construct(date="2026-11-13")],
     )
 
 
-async def test_off_by_default_nothing_is_fetched(sites: list[str], monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv(web_context.ENV, raising=False)
+async def test_switched_off_or_a_feed_button_fetches_nothing(
+    sites: list[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(web_context.ENV, "off")
     result = _procedure()
     await web_context.add_press(make_deps(), result)
+    monkeypatch.setenv(web_context.ENV, "on")
+    button = make_deps()
+    button.preset = "ask"
+    await web_context.add_press(button, result)
     assert sites == [] and result.documents == []
 
 
-async def test_on_a_procedure_brings_three_press_documents_once(
+async def test_a_procedure_brings_three_press_documents_once(
     sites: list[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv(web_context.ENV, "on")
@@ -72,14 +78,3 @@ async def test_on_a_procedure_brings_three_press_documents_once(
     await web_context.add_press(deps, again)
     assert len(sites) == 1
     assert [d.tier for d in first.documents] == ["press"] * 3 and again.documents == []
-
-
-def test_off_the_tool_offers_no_statements_scope(monkeypatch: pytest.MonkeyPatch) -> None:
-    from pydantic_ai.tools import ToolDefinition
-
-    from src.generic_chat import agent
-    from src.generic_chat.schemas import WebSearchInput
-
-    tool = ToolDefinition(name="web_search", parameters_json_schema=WebSearchInput.model_json_schema())
-    stripped = agent._without_statements(tool).parameters_json_schema["properties"]["scope"]
-    assert stripped["enum"] == ["news", "civic"] and "statements" not in stripped["description"]

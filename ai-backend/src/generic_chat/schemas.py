@@ -153,13 +153,11 @@ class ListFeedItemsInput(BaseModel):
 
 class WebSearchInput(BaseModel):
     query: str = Field(min_length=2, max_length=300, description="Search query.")
-    scope: Literal["news", "civic", "statements"] = Field(
+    scope: Literal["news", "civic"] = Field(
         description=(
             "'news' for current events (preferred outlets first, then the open "
             "web); 'civic' for how German politics and institutions work "
-            "(official sites only); 'statements' for what a party said "
-            "recently (preferred outlets and the Fraktionen's own sites, last "
-            "three months)."
+            "(official sites only)."
         )
     )
     recency: Optional[Literal["day", "week", "month", "year"]] = None
@@ -395,7 +393,7 @@ class GenericChatDeps:
     # call may name, so a made-up one never reaches the data.
     known_ids: set[str] = field(default_factory=set)
     started_at: float = field(default_factory=time.monotonic)
-    # Laws and votes whose press coverage was already fetched this turn.
+    # Procedures whose press coverage was already fetched this turn.
     press_seen: set[str] = field(default_factory=set)
 
     def set_focus(self, party_ids: list[str]) -> None:

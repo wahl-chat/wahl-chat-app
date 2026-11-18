@@ -179,17 +179,12 @@ def _term_lines(today: date) -> str:
 
 PRESS_GUIDANCE = """\
 
-Press: documents with tier "press" are recent coverage from preferred
-outlets or a Fraktion's own site about the law or vote a tool returned.
-Use one when it adds what our corpus lacks: what a party said after the vote,
-or what led to the proposal now. Attribute each to its outlet or Fraktion
-and date ("In einer Pressemitteilung vom … erklärte die SPD-Fraktion …").
-What a journalist writes is background, never a party's reason. Leave out
-any that repeat what our sources say. For a question about a party's
-position on a topic (not one law or vote), call web_search with scope
-"statements" and the party and topic as query in the same round as search.
-Our corpus stays the basis; add a statement only when it is recent and says
-something our sources do not."""
+Press: documents with tier "press" are coverage of the procedure from
+preferred outlets or a Fraktion's own site. Use one when it adds what our
+corpus lacks, such as what led to the proposal now or how it was received.
+Attribute each to its outlet or Fraktion and date ("Die Tagesschau berichtete
+am … "). What a journalist writes is background, never a party's reason.
+Leave out any that repeat what our sources say."""
 
 
 def build_system_prompt(deps: GenericChatDeps, today: Optional[date] = None) -> str:

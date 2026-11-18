@@ -4,8 +4,8 @@
 
 """The generic chat with and without press coverage (GENERIC_CHAT_WEB_CONTEXT).
 
-Runs the real agent on each question twice, "off" (as deployed) and "on",
-and writes the pairs for judging blind: per question, the two answers in a
+Runs the real agent on each question twice, "off" and "on" (as deployed:
+press coverage of a procedure get_process returns), and writes the pairs for judging blind: per question, the two answers in a
 random order as "Antwort 1" and "Antwort 2".
 
     answers.md   both answers per question, labelled by variant, for reading

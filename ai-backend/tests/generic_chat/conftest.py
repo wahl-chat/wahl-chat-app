@@ -224,3 +224,11 @@ def fake_io(monkeypatch: pytest.MonkeyPatch) -> FakeIO:
     monkeypatch.setattr(tools, "aget_feed_items", io.aget_feed_items)
     monkeypatch.setattr(tools, "_today", lambda: TODAY)
     return io
+
+
+@pytest.fixture(autouse=True)
+def _no_press(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No web search from tests; test_web_context switches it on."""
+    from src.generic_chat import web_context
+
+    monkeypatch.setenv(web_context.ENV, "off")
