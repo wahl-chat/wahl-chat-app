@@ -13,5 +13,15 @@
   {"id": "name-7", "group": "name", "question": "Welche Schritte hatte die Grundgesetzänderung zur Schuldenbremse 2025?", "expect": ["320784"]},
   {"id": "name-8", "group": "name", "question": "Ist das Gesetz zur Verlängerung der Mietpreisbremse schon beraten worden?", "expect": ["318555"]},
   {"id": "name-9", "group": "name", "question": "Wie ging es mit dem Wehrdienst-Modernisierungsgesetz nach der ersten Lesung weiter?", "expect": ["325558"]},
-  {"id": "name-10", "group": "name", "question": "Was passiert gerade mit dem Haushaltsgesetz 2027?", "expect": ["338317"]}
+  {"id": "name-10", "group": "name", "question": "Was passiert gerade mit dem Haushaltsgesetz 2027?", "expect": ["338317"]},
+  {"id": "why-1", "group": "why", "question": "Warum haben die Fraktionen so abgestimmt?", "expect": ["338341"], "parties": ["cdu", "spd", "afd", "gruene", "linke"], "anchor": "bundestag_2026-11-13_v6771"},
+  {"id": "why-2", "group": "why", "question": "Warum haben sich die Grünen beim Nachrichtendienstrecht enthalten?", "expect": ["338341"], "parties": ["gruene"]},
+  {"id": "why-3", "group": "why", "question": "Warum haben Linke und AfD beide gegen das Nachrichtendienstrecht gestimmt?", "expect": ["338341"], "parties": ["linke", "afd"]},
+  {"id": "why-4", "group": "why", "question": "Warum haben die Grünen dagegen gestimmt?", "expect": ["338785"], "parties": ["gruene"], "anchor": "bundestag_2026-11-12_v6756"},
+  {"id": "why-5", "group": "why", "question": "Warum haben die Fraktionen so abgestimmt?", "expect": ["338785"], "parties": ["cdu", "spd", "afd", "gruene", "linke"], "anchor": "bundestag_2026-11-12_v6756"},
+  {"id": "why-6", "group": "why", "question": "Warum hat die AfD dem Startchancen-Gesetz zugestimmt?", "expect": ["338785"], "parties": ["afd"]},
+  {"id": "why-7", "group": "why", "question": "Warum hat sich die Linke enthalten?", "expect": ["338357"], "parties": ["linke"], "anchor": "bundestag_2026-10-16_v6733"},
+  {"id": "why-8", "group": "why", "question": "Warum waren die Grünen gegen die Änderung beim CO₂-Preis im Oktober?", "expect": ["338357"], "parties": ["gruene"]},
+  {"id": "why-9", "group": "why", "question": "Warum hat die SPD den Antrag abgelehnt?", "expect": ["338341"], "parties": ["spd"], "anchor": "bundestag_2026-11-13_v6772"},
+  {"id": "why-10", "group": "why", "question": "Warum hat die Union die EEG-Reform der Grünen abgelehnt?", "expect": ["336979"], "parties": ["cdu"]}
 ]

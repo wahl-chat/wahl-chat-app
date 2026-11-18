@@ -46,6 +46,7 @@ from src.services.chat.service import (
     _mk_speech_docs,
 )
 from src.services.firebase_service import aget_feed_item, aget_feed_items
+from src.services import procedure_service
 from src.services.procedure_service import aprocedures_for_chunks
 from wahlchat_common.legislature_config import (
     LEGISLATURE_CONFIG,
@@ -95,6 +96,8 @@ _DEBATE_NOTE = (
     "The speeches above are from the debate on this vote ({date}): the reasons"
     " given for it."
 )
+# Votes in the same procedure besides the one asked about, e.g. on amendments.
+_OTHER_VOTES = 3
 # The vote's own debate is missing, the law's earlier readings are not.
 _LAW_DEBATE_NOTE = (
     "No debate on the day of this vote is in our data. The speeches above are"
@@ -180,11 +183,13 @@ def _register_vote(deps: GenericChatDeps, payload: dict) -> NumberedDocument:
         )
     if payload.get("text"):
         lines.append(_clip(payload.get("text"), _SEARCH_TEXT_CHARS))
+    poll_id = payload.get("external_id")
     return NumberedDocument(
         id=number,
         source_type="vote_record",
         title=title,
         date=payload.get("publish_date"),
+        poll_id=int(str(poll_id)) if str(poll_id or "").isdigit() else None,
         text="\n".join(lines),
     )
 
@@ -412,9 +417,13 @@ async def search(deps: GenericChatDeps, args: SearchInput) -> ToolResult:
             continue
         recent += bucket[0]
         earlier += bucket[1]
-    procedures = await _procedures_of(recent + earlier)
+    scoped = await _scoped_hits(deps, args, vector, source_types)
+    inside = {str(p.get("chunk_key")) for p in scoped}
+    recent = [p for p in recent if str(p.get("chunk_key")) not in inside]
+    earlier = [p for p in earlier if str(p.get("chunk_key")) not in inside]
+    procedures = await _procedures_of(scoped + recent + earlier)
     documents: list[NumberedDocument] = []
-    for payload in recent + earlier:
+    for payload in scoped + recent + earlier:
         day = _day(payload)
         source_type = cast(SearchSourceType, payload.get("source_type"))
         is_recent = day is None or day >= _cutoff(deps, source_type, today)
@@ -424,6 +433,11 @@ async def search(deps: GenericChatDeps, args: SearchInput) -> ToolResult:
                     "wahlperiode": _wahlperiode(day),
                     "period": "recent" if is_recent else "earlier",
                     "procedures": procedures.get(str(payload.get("chunk_key"))) or None,
+                    "tier": (
+                        None if not deps.scope
+                        else "this_procedure" if str(payload.get("chunk_key")) in inside
+                        else "context"
+                    ),
                 }
             )
         )
@@ -431,6 +445,58 @@ async def search(deps: GenericChatDeps, args: SearchInput) -> ToolResult:
         documents=documents,
         note=None if documents else "No matching sources in the corpus.",
     )
+
+
+# Inside the procedures in scope: their speeches and votes, by party.
+_SCOPED_TYPES: tuple[SearchSourceType, ...] = ("parliamentary_speech", "vote_record")
+_SCOPED_LIMIT = 4
+_SCOPED_PROCEDURES = 2
+
+
+async def _scoped_hits(
+    deps: GenericChatDeps,
+    args: SearchInput,
+    vector: list[float],
+    source_types: list[SearchSourceType],
+) -> list[dict]:
+    """The search inside the procedures the chat is about; empty without a
+    scope or for a question about another period."""
+    if not deps.scope or args.since or args.until or args.wahlperiode:
+        return []
+    jobs = [
+        (source_type, vorgang_id, party_id)
+        for source_type in source_types if source_type in _SCOPED_TYPES
+        for vorgang_id in deps.scope[:_SCOPED_PROCEDURES]
+        for party_id in _party_scopes(deps, args, source_type)
+    ]
+
+    async def one(source_type: SearchSourceType, vorgang_id: str, party_id: Optional[str]) -> list[dict]:
+        party = (
+            {}
+            if not party_id
+            else {"party_ids_contains" if source_type == "vote_record" else "party_id": party_id}
+        )
+        return cast(
+            list[dict],
+            await retrieve(
+                args.query, source_type=source_type, vorgang_id=vorgang_id,
+                limit=_SCOPED_LIMIT, query_vector=vector, **party,  # type: ignore[arg-type]
+            ),
+        )
+
+    results = await asyncio.gather(*(one(*job) for job in jobs), return_exceptions=True)
+    seen: set[str] = set()
+    hits: list[dict] = []
+    for result in results:
+        if isinstance(result, BaseException):
+            logger.warning("search: scoped retrieval failed: %s", result)
+            continue
+        for payload in result:
+            key = str(payload.get("chunk_key"))
+            if key not in seen:
+                seen.add(key)
+                hits.append(payload)
+    return hits
 
 
 async def _procedures_of(payloads: list[dict]) -> dict[str, list[ProcedureRef]]:
@@ -526,7 +592,10 @@ async def _debate_documents(
         speeches = await _speeches_by_search(deps, item)
         note = "Speeches matched by date and topic; the list may be incomplete."
     query = item.debate.agenda_item if item.debate else item.headline("de")
-    documents = [_register_speech(deps, p, query, text) for p, text in speeches]
+    documents = [
+        _register_speech(deps, p, query, text).model_copy(update={"tier": "this_item"})
+        for p, text in speeches
+    ]
     return documents, note if documents else "No speeches found for this debate."
 
 
@@ -537,6 +606,8 @@ async def get_debate(deps: GenericChatDeps, feed_item_id: str) -> DebateResult:
     if item.kind == "vote" and item.vote is not None:
         return await get_vote(deps, item.vote.poll_id)
     documents, note = await _debate_documents(deps, item)
+    deps.add_scope(item.procedure_ids)
+    deps.settle(Anchor(feed_item_id=item.id))
     return DebateResult(
         documents=documents, note=note, item=item.summary(deps.language)
     )
@@ -562,7 +633,9 @@ async def _debate_for_vote(
     return None
 
 
-async def get_vote(deps: GenericChatDeps, poll_id: int) -> DebateResult:
+async def get_vote(
+    deps: GenericChatDeps, poll_id: int, party_ids: Optional[list[str]] = None
+) -> DebateResult:
     payloads = await fetch_payloads("vote_record", external_id=poll_id, limit=8)
     if not payloads:
         return DebateResult(note=f"No vote record found for poll {poll_id}.")
@@ -588,11 +661,56 @@ async def get_vote(deps: GenericChatDeps, poll_id: int) -> DebateResult:
         documents += speeches
         days = sorted({str(d.date)[:10] for d in speeches if d.date})
         note = _LAW_DEBATE_NOTE.format(dates=", ".join(days)) if speeches else _NO_DEBATE_NOTE
+
+    vorgang_ids = list(
+        dict.fromkeys(
+            [str(v) for v in payload.get("vorgang_ids") or []]
+            + (vote_item.procedure_ids if vote_item else [])
+        )
+    )
+    deps.add_scope(vorgang_ids)
+    deps.settle(
+        Anchor(feed_item_id=vote_item.id) if vote_item is not None else Anchor(poll_id=poll_id)
+    )
+    if party_ids and vorgang_ids:
+        documents += await _party_documents(
+            deps, vorgang_ids, party_ids, poll_id, str(payload.get("citation_title") or ""),
+            {str(d.title) for d in documents if d.source_type == "parliamentary_speech"},
+        )
     return DebateResult(
         documents=documents,
         note=note,
         item=vote_item.summary(deps.language) if vote_item else None,
     )
+
+
+async def _party_documents(
+    deps: GenericChatDeps,
+    vorgang_ids: list[str],
+    party_ids: list[str],
+    poll_id: int,
+    query: str,
+    shown: set[str],
+) -> list[NumberedDocument]:
+    """The other votes in the procedure (the parties' amendments among them),
+    then each party's statements, motions and wider record."""
+    from src.generic_chat.positions import party_positions  # noqa: PLC0415 (positions imports tools)
+
+    out: list[NumberedDocument] = []
+    try:
+        view = await procedure_service.aget_procedure_view(vorgang_ids[0], party_id=None, limit=60)
+        others = [
+            v for v in (view.votes if view else [])
+            if str(v.get("external_id")) != str(poll_id) and v.get("chunk_index", 0) == 0
+        ]
+        out += [
+            _register_vote(deps, v).model_copy(update={"tier": "this_procedure"})
+            for v in others[:_OTHER_VOTES]
+        ]
+        out += await party_positions(deps, vorgang_ids, party_ids, query, skip=shown)
+    except Exception as exc:  # noqa: BLE001 (the vote stands without them)
+        logger.warning("get_vote: party positions failed: %s", exc)
+    return out
 
 
 async def _law_speeches(
@@ -689,6 +807,8 @@ async def resolve_anchor(
     if result.item is None and not result.documents:
         logger.info("anchor miss: %s", anchor.model_dump(exclude_none=True))
         return None
+    deps.learn(anchor)
+    deps.learn(result)
     logger.info(
         "anchor hit: %s (%d sources)",
         anchor.model_dump(exclude_none=True),
@@ -711,5 +831,6 @@ async def _resolve_procedure_anchor(
     if result.procedure is None:
         logger.info("anchor miss: procedure %s", vorgang_id)
         return None
+    deps.learn(result)
     logger.info("anchor hit: procedure %s (%d sources)", vorgang_id, len(result.documents))
     return AnchorContext(label=f"procedure \"{result.procedure.title}\"", result=result)

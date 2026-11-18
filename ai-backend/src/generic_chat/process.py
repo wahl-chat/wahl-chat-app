@@ -21,7 +21,9 @@ from collections import defaultdict
 from typing import Callable, Literal, Optional
 
 from src.generic_chat import tools
+from src.generic_chat.positions import party_positions
 from src.generic_chat.schemas import (
+    Anchor,
     GenericChatDeps,
     GetProcessInput,
     NumberedDocument,
@@ -378,7 +380,9 @@ async def reading_speeches(
         view = await procedure_service.aget_procedure_view(vorgang_id, party_id=None, limit=60)
         if view is not None and view.speeches:
             return [
-                tools._register_speech(deps, p, query, tools._clip(p.get("text"), _SPEECH_CHARS))
+                tools._register_speech(
+                    deps, p, query, tools._clip(p.get("text"), _SPEECH_CHARS)
+                ).model_copy(update={"tier": "this_procedure"})
                 for p in _spread_speeches(view.speeches, None)
             ]
     return []
@@ -436,7 +440,8 @@ async def _evidence(
             for p in _spread_speeches(view.speeches, args.party_id)
         ]
     out += [_register_document(deps, p) for p in documents]
-    return out
+    # All of it belongs to the procedure itself.
+    return [doc.model_copy(update={"tier": "this_procedure"}) for doc in out]
 
 
 def _anchored_choice(deps: GenericChatDeps, choices: list[ProcessChoice]) -> str:
@@ -458,6 +463,13 @@ async def get_process(
     mode = evidence or evidence_mode()
     steps = _steps(deps, record)
     documents = await _evidence(deps, record, args) if mode == "capped" else []
+    deps.add_scope([record.vorgang_id])
+    deps.settle(Anchor(vorgang_id=record.vorgang_id))
+    if args.party_id:
+        shown = {str(d.title) for d in documents if d.source_type == "parliamentary_speech"}
+        documents += await party_positions(
+            deps, [record.vorgang_id], [args.party_id], args.question or record.titel, skip=shown
+        )
     notes = []
     if not steps:
         notes.append("DIP lists no dated steps for this procedure yet.")

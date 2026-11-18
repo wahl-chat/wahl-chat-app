@@ -12,6 +12,8 @@ import re
 from typing import Any, AsyncIterator, Callable
 
 import pytest
+
+from src.generic_chat.schemas import GenericChatDeps
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
@@ -107,6 +109,8 @@ def turn_io(fake_io: FakeIO, monkeypatch: pytest.MonkeyPatch) -> FakeIO:
     monkeypatch.setattr(stream, "generate_chat_title_and_chick_replies", _quick_replies)
     fake_io.votes[POLL_ID] = [vote_payload()]
     fake_io.retrieve_results = {"party_manifesto": [(manifesto_payload("volt"), 0.7)]}
+    # The scripted model names ids directly; the id guard has its own tests.
+    monkeypatch.setattr(GenericChatDeps, "knows", lambda *_: True)
     return fake_io
 
 
@@ -169,10 +173,12 @@ async def test_event_order_and_sources(turn_io: FakeIO, monkeypatch: pytest.Monk
 
     assert _collapse(kinds) == [
         "start", "start-step", "responding_parties", "tool_status", "sources_ready",
-        "text-start", "text-delta", "text-end", "party_complete", "quick_replies_title",
-        "finish-step", "finish", "[DONE]",
+        "text-start", "text-delta", "text-end", "party_complete", "anchor",
+        "quick_replies_title", "finish-step", "finish", "[DONE]",
     ]
     assert _events(parts, "responding_parties")[0]["party_ids"] == ["wahl-chat"]
+    # The one vote the turn looked up becomes the chat's anchor.
+    assert _events(parts, "anchor")[0]["anchor"] == {"poll_id": POLL_ID}
 
     statuses = _events(parts, "tool_status")
     assert {(s["tool"], s["state"]) for s in statuses} == {

@@ -158,9 +158,20 @@ class RepeatLanguageRule(AbstractCapability[GenericChatDeps]):
 _R = TypeVar("_R", bound=BaseModel)
 
 
-async def _logged(name: str, call: Callable[[], Awaitable[_R]]) -> _R:
+def _unknown(key: str, value: object, where: str) -> str:
+    return (
+        f"{key} {value} was not returned by any tool in this chat. Use the"
+        f" {key} from {where}; never write one yourself."
+    )
+
+
+async def _logged(
+    name: str, call: Callable[[], Awaitable[_R]], deps: Optional[GenericChatDeps] = None
+) -> _R:
     started = time.monotonic()
     result = await call()
+    if deps is not None:
+        deps.learn(result)
     hits = len(getattr(result, "documents", None) or getattr(result, "items", None) or [])
     logger.info(
         "generic chat tool %s: %.2fs, %d hits", name, time.monotonic() - started, hits
@@ -172,21 +183,28 @@ async def search(ctx: RunContext[GenericChatDeps], args: SearchInput) -> ToolRes
     """Search our corpus of Bundestag votes, plenary speeches and party
     manifestos (query in German). Example: query 'Bürgergeld Sanktionen',
     source_types ['vote_record', 'parliamentary_speech']."""
-    return await _logged("search", lambda: tools.search(ctx.deps, args))
+    return await _logged("search", lambda: tools.search(ctx.deps, args), ctx.deps)
 
 
 async def get_vote(ctx: RunContext[GenericChatDeps], args: GetVoteInput) -> DebateResult:
     """One roll-call vote by its poll_id with every party's tally, plus the
-    debate on the same Drucksache when the feed has one."""
-    return await _logged("get_vote", lambda: tools.get_vote(ctx.deps, args.poll_id))
+    debate on the same Drucksache when the feed has one. With party_ids, each
+    party's statements and motions on the law, for 'why' questions."""
+    if not ctx.deps.knows("poll_id", args.poll_id):
+        return DebateResult(note=_unknown("poll_id", args.poll_id, "a vote document"))
+    return await _logged(
+        "get_vote", lambda: tools.get_vote(ctx.deps, args.poll_id, args.party_ids), ctx.deps
+    )
 
 
 async def get_debate(
     ctx: RunContext[GenericChatDeps], args: GetDebateInput
 ) -> DebateResult:
     """The speeches of one debate (or the vote) a feed item covers."""
+    if not ctx.deps.knows("feed_item_id", args.feed_item_id):
+        return DebateResult(note=_unknown("feed_item_id", args.feed_item_id, "list_feed_items"))
     return await _logged(
-        "get_debate", lambda: tools.get_debate(ctx.deps, args.feed_item_id)
+        "get_debate", lambda: tools.get_debate(ctx.deps, args.feed_item_id), ctx.deps
     )
 
 
@@ -194,9 +212,12 @@ async def get_process(
     ctx: RunContext[GenericChatDeps], args: GetProcessInput
 ) -> ProcessResult:
     """One Bundestag procedure (law or motion) by vorgang_id or name: dated
-    steps, decisions, and its votes, speeches and Drucksache passages. An
-    ambiguous name returns choices instead; then ask the user."""
-    result = await _logged("get_process", lambda: process.get_process(ctx.deps, args))
+    steps, decisions, and its votes, speeches and Drucksache passages. With
+    party_ids, each party's statements and motions on it. An ambiguous name
+    returns choices instead; then ask the user."""
+    if args.vorgang_id is not None and not ctx.deps.knows("vorgang_id", args.vorgang_id):
+        return ProcessResult(note=_unknown("vorgang_id", args.vorgang_id, "a search result's procedures, or pass the name"))
+    result = await _logged("get_process", lambda: process.get_process(ctx.deps, args), ctx.deps)
     if result.procedure is not None:
         ctx.deps.choices = []
     elif result.choices:
@@ -209,7 +230,9 @@ async def list_feed_items(
 ) -> FeedItemsResult:
     """Published feed items (debates and votes) in a date window, for recaps.
     Not citable: fetch the items with get_debate / get_vote and cite those."""
-    return await _logged("list_feed_items", lambda: tools.list_feed_items(ctx.deps, args))
+    return await _logged(
+        "list_feed_items", lambda: tools.list_feed_items(ctx.deps, args), ctx.deps
+    )
 
 
 async def web_search(

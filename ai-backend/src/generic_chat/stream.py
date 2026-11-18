@@ -49,7 +49,7 @@ from src.core.utils import (
 from src.generic_chat import agent as agent_module
 from src.generic_chat import prompt
 from src.generic_chat import tools
-from src.generic_chat.schemas import GenericChatDeps
+from src.generic_chat.schemas import Anchor, GenericChatDeps
 from src.models.chat import Message, Role
 from src.models.context import Context
 from src.models.dtos import (
@@ -177,6 +177,18 @@ def message_history(body: Any) -> list[ModelMessage]:
             text = _CITATION_RE.sub("", turn.content)
             history.append(ModelResponse(parts=[TextPart(text)]))
     return history
+
+
+def settled_anchor(deps: GenericChatDeps) -> Optional[Anchor]:
+    """The one vote, debate or law a turn settled on; None when it touched
+    several or left a choice open. An item beats the law it belongs to."""
+    if deps.choices:
+        return None
+    items = [a for a in deps.settled if a.vorgang_id is None]
+    laws = [a for a in deps.settled if a.vorgang_id is not None]
+    if len(items) == 1:
+        return items[0]
+    return laws[0] if not items and len(laws) == 1 else None
 
 
 def _text_of(event: object) -> Optional[str]:
@@ -315,6 +327,12 @@ async def stream_generic_chat(
             status=Status(indicator=StatusIndicator.SUCCESS, message="Success"),
         )
         yield data_event({"type": "party_complete", **complete.model_dump()})
+        settled = settled_anchor(deps) if anchor is None else None
+        if settled is not None:
+            yield data_event(
+                {"type": "anchor", "session_id": session_id,
+                 "anchor": settled.model_dump(exclude_none=True)}
+            )
     except Exception as exc:  # noqa: BLE001 (terminal error contract, as the election path)
         logger.error("generic chat turn failed: %s", exc, exc_info=True)
         if text_id is not None:

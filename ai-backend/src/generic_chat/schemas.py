@@ -10,7 +10,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -87,8 +87,18 @@ class SearchInput(BaseModel):
     )
 
 
+_PARTY_IDS_DESCRIPTION = (
+    "Parties whose reasons are asked for ('warum hat X so abgestimmt'), all of"
+    " them for 'die Fraktionen': adds, per party, what it said and tabled on"
+    " this law and a little of its wider record."
+)
+
+
 class GetVoteInput(BaseModel):
     poll_id: int = Field(ge=1, le=10**9, description="abgeordnetenwatch poll id.")
+    party_ids: list[str] = Field(
+        default_factory=list, max_length=8, description=_PARTY_IDS_DESCRIPTION
+    )
 
 
 class GetDebateInput(BaseModel):
@@ -158,6 +168,9 @@ class ProcedureRef(BaseModel):
     latest_stage: Optional[str] = None
 
 
+Tier = Literal["this_item", "this_procedure", "context"]
+
+
 class NumberedDocument(BaseModel):
     """One citable source as the model sees it; ``id`` is the citation number."""
 
@@ -172,6 +185,11 @@ class NumberedDocument(BaseModel):
     period: Optional[Literal["recent", "earlier"]] = None
     # Procedures the source belongs to, for a follow-up get_process.
     procedures: Optional[list[ProcedureRef]] = None
+    # A vote's id, for a follow-up get_vote.
+    poll_id: Optional[int] = None
+    # How close it is to what the chat is about: said at this vote or
+    # debate, said or tabled in the same procedure, or the wider record.
+    tier: Optional[Tier] = None
     text: str
 
 
@@ -342,6 +360,9 @@ class AnchorContext:
     result: ToolResult
 
 
+_ID_KEYS = frozenset({"poll_id", "feed_item_id", "vorgang_id"})
+
+
 @dataclass
 class GenericChatDeps:
     context: Context
@@ -354,12 +375,44 @@ class GenericChatDeps:
     focus: list[ContextParty] = field(default_factory=list)
     # Procedures a name left open this turn; shown as quick replies.
     choices: list[ProcessChoice] = field(default_factory=list)
+    # The procedures the chat is about: search also looks inside them.
+    scope: list[str] = field(default_factory=list)
+    # The votes and laws this turn's tools settled on; one of them becomes
+    # the chat's anchor when it has none.
+    settled: list[Anchor] = field(default_factory=list)
+    # Every id a tool or the anchor has shown this turn: the only ids a tool
+    # call may name, so a made-up one never reaches the data.
+    known_ids: set[str] = field(default_factory=set)
     started_at: float = field(default_factory=time.monotonic)
 
     def set_focus(self, party_ids: list[str]) -> None:
         """Keeps the ids the context knows, in request order."""
         by_id = {party.party_id: party for party in self.parties}
         self.focus = [by_id[pid] for pid in dict.fromkeys(party_ids) if pid in by_id]
+
+    def learn(self, value: Any) -> None:
+        """Remember the poll, feed item and procedure ids in a tool result."""
+        if isinstance(value, BaseModel):
+            value = value.model_dump()
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key in _ID_KEYS and item is not None:
+                    self.known_ids.add(f"{key}:{item}")
+                else:
+                    self.learn(item)
+        elif isinstance(value, list):
+            for item in value:
+                self.learn(item)
+
+    def knows(self, key: str, value: object) -> bool:
+        return f"{key}:{value}" in self.known_ids
+
+    def add_scope(self, vorgang_ids: list[str]) -> None:
+        self.scope = list(dict.fromkeys([*self.scope, *vorgang_ids]))
+
+    def settle(self, anchor: Anchor) -> None:
+        if anchor not in self.settled:
+            self.settled.append(anchor)
 
     def party_name(self, party_id: Optional[str]) -> Optional[str]:
         if party_id is None:
