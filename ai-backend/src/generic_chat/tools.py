@@ -170,10 +170,16 @@ def _register_vote(deps: GenericChatDeps, payload: dict) -> NumberedDocument:
         }
     )
     meta = _meta(payload)
+    rows = [r for r in meta.get("vote_results") or [] if isinstance(r, dict)]
     lines = [f"Outcome: {meta.get('motion_outcome') or 'unknown'}"]
-    for result in meta.get("vote_results") or []:
-        if not isinstance(result, dict):
-            continue
+    if rows:
+        # Summed here: the model miscounts party rows.
+        total = {k: sum(int(r.get(k) or 0) for r in rows) for k in ("yes", "no", "abstain", "no_show")}
+        lines.append(
+            f"Total: yes {total['yes']}, no {total['no']}, abstain {total['abstain']}, "
+            f"did not vote {total['no_show']}"
+        )
+    for result in rows:
         lines.append(
             f"{deps.party_name(result.get('party_id'))}: yes {result.get('yes', 0)}, "
             f"no {result.get('no', 0)}, abstain {result.get('abstain', 0)}, "

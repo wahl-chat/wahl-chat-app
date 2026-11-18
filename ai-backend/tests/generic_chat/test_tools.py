@@ -406,3 +406,11 @@ async def test_get_vote_without_its_debate_brings_the_laws_readings(
     speeches = [d for d in result.documents if d.source_type == "parliamentary_speech"]
     assert len(speeches) == 3
     assert "readings of the law it belongs to (2026-09-24)" in (result.note or "")
+
+
+def test_a_vote_record_states_its_totals() -> None:
+    from src.generic_chat import tools
+    from tests.generic_chat.conftest import make_deps, vote_payload
+
+    doc = tools._register_vote(make_deps(), vote_payload())
+    assert "Total: yes 300, no 2, abstain 1, did not vote 10" in doc.text

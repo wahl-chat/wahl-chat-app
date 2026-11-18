@@ -32,7 +32,7 @@ MAX_AGE = timedelta(days=7)
 # The key ignores the day, so an answer lives across days.
 _KEY_DAY = date(2000, 1, 1)
 # Bump when the cached shape or the way answers are made changes.
-_VERSION = "6"
+_VERSION = "7"
 
 
 def cache_key(deps: GenericChatDeps, question: str, model: Any) -> str:
