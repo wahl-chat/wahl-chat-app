@@ -362,6 +362,11 @@ eval-procedure-chat:
 		GOOGLE_CLOUD_PROJECT=$(EMULATOR_PROJECT) PYTHONPATH=.:../evals/src \
 		uv run python -m wahlchat_evals.procedure_chat $(ARGS)
 
+# How many citations hold, and what the repair would change, on eval runs:
+#   make eval-citation-check ARGS="--runs DIR/runs.json --out-dir DIR2"
+eval-citation-check:
+	cd ai-backend && PYTHONPATH=.:../evals/src uv run python -m wahlchat_evals.citation_check $(ARGS)
+
 # The chat with and without press coverage, written out for blind judging:
 #   make eval-web-context ARGS="--out-dir /tmp/web-context"
 eval-web-context:
