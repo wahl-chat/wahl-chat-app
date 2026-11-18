@@ -153,11 +153,13 @@ class ListFeedItemsInput(BaseModel):
 
 class WebSearchInput(BaseModel):
     query: str = Field(min_length=2, max_length=300, description="Search query.")
-    scope: Literal["news", "civic"] = Field(
+    scope: Literal["news", "civic", "statements"] = Field(
         description=(
             "'news' for current events (preferred outlets first, then the open "
             "web); 'civic' for how German politics and institutions work "
-            "(official sites only)."
+            "(official sites only); 'statements' for what a party said "
+            "recently (preferred outlets and the Fraktionen's own sites, last "
+            "three months)."
         )
     )
     recency: Optional[Literal["day", "week", "month", "year"]] = None
@@ -174,7 +176,7 @@ class ProcedureRef(BaseModel):
     latest_stage: Optional[str] = None
 
 
-Tier = Literal["this_item", "this_procedure", "context"]
+Tier = Literal["this_item", "this_procedure", "context", "press"]
 
 
 class NumberedDocument(BaseModel):
@@ -393,6 +395,8 @@ class GenericChatDeps:
     # call may name, so a made-up one never reaches the data.
     known_ids: set[str] = field(default_factory=set)
     started_at: float = field(default_factory=time.monotonic)
+    # Laws and votes whose press coverage was already fetched this turn.
+    press_seen: set[str] = field(default_factory=set)
 
     def set_focus(self, party_ids: list[str]) -> None:
         """Keeps the ids the context knows, in request order."""

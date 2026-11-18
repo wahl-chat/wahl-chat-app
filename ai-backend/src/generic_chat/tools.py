@@ -19,7 +19,7 @@ from zoneinfo import ZoneInfo
 
 from langchain_core.documents import Document
 from pydantic import ValidationError
-from pydantic_ai.framing import register_tag, wrap
+from pydantic_ai.framing import wrap
 from qdrant_client.models import DatetimeRange
 
 from src.generic_chat import web_search as web
@@ -118,7 +118,7 @@ _STANCE = {
     "absent": "mostly did not vote",
 }
 
-_WEB_SNIPPET = register_tag("web_snippet")
+_WEB_SNIPPET = web.WEB_SNIPPET_TAG
 _PROCEDURES_PER_DOCUMENT = 2
 
 
@@ -771,6 +771,8 @@ async def list_feed_items(
 
 
 async def web_search(deps: GenericChatDeps, args: WebSearchInput) -> ToolResult:
+    if args.scope == "statements":
+        return ToolResult(note="Unknown scope.")
     results, note = await web.search_web(args.query, args.scope, args.recency)
     documents: list[NumberedDocument] = []
     for result in results:
@@ -821,6 +823,9 @@ async def resolve_anchor(
     if result.item is None and not result.documents:
         logger.info("anchor miss: %s", anchor.model_dump(exclude_none=True))
         return None
+    from src.generic_chat import web_context  # noqa: PLC0415 (web_context imports schemas only, but stays off the import path)
+
+    await web_context.add_press(deps, result)
     deps.learn(anchor)
     deps.learn(result)
     logger.info(
@@ -846,6 +851,9 @@ async def _resolve_procedure_anchor(
     if result.procedure is None:
         logger.info("anchor miss: procedure %s", vorgang_id)
         return None
+    from src.generic_chat import web_context  # noqa: PLC0415
+
+    await web_context.add_press(deps, result)
     deps.learn(result)
     logger.info("anchor hit: procedure %s (%d sources)", vorgang_id, len(result.documents))
     return AnchorContext(label=f"procedure \"{result.procedure.title}\"", result=result)

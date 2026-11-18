@@ -177,15 +177,33 @@ def _term_lines(today: date) -> str:
     return "\n".join(lines)
 
 
+PRESS_GUIDANCE = """\
+
+Press: documents with tier "press" are recent coverage from preferred
+outlets or a Fraktion's own site about the law or vote a tool returned.
+Use one when it adds what our corpus lacks: what a party said after the vote,
+or what led to the proposal now. Attribute each to its outlet or Fraktion
+and date ("In einer Pressemitteilung vom … erklärte die SPD-Fraktion …").
+What a journalist writes is background, never a party's reason. Leave out
+any that repeat what our sources say. For a question about a party's
+position on a topic (not one law or vote), call web_search with scope
+"statements" and the party and topic as query in the same round as search.
+Our corpus stays the basis; add a statement only when it is recent and says
+something our sources do not."""
+
+
 def build_system_prompt(deps: GenericChatDeps, today: Optional[date] = None) -> str:
+    from src.generic_chat import web_context  # noqa: PLC0415 (web_context imports tools' schemas)
+
     today = today or datetime.now(BERLIN).date()
     context = deps.context
+    press = PRESS_GUIDANCE if web_context.enabled() else ""
     return (
         f"{VOICE_RULES}\n"
         "## Citations\n"
         f"{CITATION_RULES}\n"
         "## Tools\n"
-        f"{TOOL_GUIDANCE.format(outlets=', '.join(PREFERRED_OUTLETS))}\n\n"
+        f"{TOOL_GUIDANCE.format(outlets=', '.join(PREFERRED_OUTLETS))}{press}\n\n"
         "## Setting\n"
         f"Today is {today.isoformat()} (Europe/Berlin). Parliament: {context.name}"
         f" ({context.location_name}).\n"

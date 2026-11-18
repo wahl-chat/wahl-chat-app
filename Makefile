@@ -362,6 +362,13 @@ eval-procedure-chat:
 		GOOGLE_CLOUD_PROJECT=$(EMULATOR_PROJECT) PYTHONPATH=.:../evals/src \
 		uv run python -m wahlchat_evals.procedure_chat $(ARGS)
 
+# The chat with and without press coverage, written out for blind judging:
+#   make eval-web-context ARGS="--out-dir /tmp/web-context"
+eval-web-context:
+	cd ai-backend && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$${FIRESTORE_EMULATOR_HOST:-localhost:8081} \
+		GOOGLE_CLOUD_PROJECT=$(EMULATOR_PROJECT) PYTHONPATH=.:../evals/src \
+		uv run python -m wahlchat_evals.web_context $(ARGS)
+
 # Uploaded manifestos: party PDFs supplied directly, for elections with no AW
 # coverage. Metadata comes from the object path + Firestore seed fixtures.
 #   make run-manifesto-uploads ARGS="--check"    # validate metadata, no reads

@@ -18,6 +18,7 @@ from typing import Literal, Optional
 from urllib.parse import urlsplit, urlunsplit
 
 import httpx
+from pydantic_ai.framing import register_tag
 
 from src.generic_chat.schemas import WebResult
 from wahlchat_common.answer_rules import CIVIC_DOMAINS, PREFERRED_OUTLETS
@@ -30,6 +31,8 @@ _MAX_RESULTS_PER_CALL = 10
 MAX_PREFERRED = 5
 MAX_OTHERS = 3
 _SNIPPET_MAX_CHARS = 500
+
+WEB_SNIPPET_TAG = register_tag("web_snippet")
 
 Scope = Literal["news", "civic"]
 Recency = Literal["day", "week", "month", "year"]
@@ -163,3 +166,20 @@ async def search_web(
     finally:
         if owns_client:
             await http.aclose()
+
+
+async def search_sites(
+    query: str, domains: tuple[str, ...], recency: Optional[Recency] = None
+) -> tuple[list[WebResult], Optional[str]]:
+    """One call restricted to ``domains``; results outside them are dropped.
+    Never raises."""
+    api_key = os.getenv("PERPLEXITY_API_KEY", "").strip()
+    if not api_key:
+        return [], "Web search is unavailable right now."
+    try:
+        async with httpx.AsyncClient() as http:
+            raw = await _call(http, api_key, _payload(query, domains, recency))
+    except Exception as exc:  # noqa: BLE001 (degrade, never end the turn)
+        logger.warning("web_search: site search failed: %s", exc)
+        return [], "Web search failed; answer without web sources."
+    return [_to_result(r, preferred=True) for r in raw if _in_domains(r["url"], domains)], None

@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+from datetime import date
 from dataclasses import dataclass, replace
 from functools import lru_cache
 from typing import Any, Awaitable, Callable, Optional, TypeVar
@@ -24,7 +25,7 @@ from pydantic_ai.settings import ModelSettings
 from pydantic_ai.tools import ToolDefinition
 from pydantic_ai.usage import UsageLimits
 
-from src.generic_chat import process, tools
+from src.generic_chat import process, tools, web_context
 from src.generic_chat.prompt import build_system_prompt
 from src.generic_chat.schemas import (
     DebateResult,
@@ -127,7 +128,23 @@ async def _within_budget(
     asking = bool(ctx.deps.choices)
     # A feed button's answer is cached, so it stands on our data alone.
     off_web = tool_def.name == "web_search" and ctx.deps.preset is not None
-    return None if out_of_requests or out_of_time or asking or off_web else tool_def
+    if out_of_requests or out_of_time or asking or off_web:
+        return None
+    if tool_def.name == "web_search" and not web_context.enabled():
+        return _without_statements(tool_def)
+    return tool_def
+
+
+def _without_statements(tool_def: ToolDefinition) -> ToolDefinition:
+    schema = dict(tool_def.parameters_json_schema)
+    properties = dict(schema.get("properties") or {})
+    scope = dict(properties.get("scope") or {})
+    if "enum" in scope:
+        scope["enum"] = [s for s in scope["enum"] if s != "statements"]
+        scope["description"] = scope.get("description", "").split("; 'statements'")[0] + "."
+        properties["scope"] = scope
+        schema["properties"] = properties
+    return replace(tool_def, parameters_json_schema=schema)
 
 
 @dataclass
@@ -198,9 +215,11 @@ async def get_vote(ctx: RunContext[GenericChatDeps], args: GetVoteInput) -> Deba
         return DebateResult(note="This chat is not about one vote: pass the poll_id from a vote document.")
     if not ctx.deps.knows("poll_id", poll_id):
         return DebateResult(note=_unknown("poll_id", poll_id, "a vote document"))
-    return await _logged(
+    result = await _logged(
         "get_vote", lambda: tools.get_vote(ctx.deps, poll_id, args.party_ids), ctx.deps
     )
+    await web_context.add_press(ctx.deps, result)
+    return result
 
 
 async def get_debate(
@@ -209,9 +228,11 @@ async def get_debate(
     """The speeches of one debate (or the vote) a feed item covers."""
     if not ctx.deps.knows("feed_item_id", args.feed_item_id):
         return DebateResult(note=_unknown("feed_item_id", args.feed_item_id, "list_feed_items"))
-    return await _logged(
+    result = await _logged(
         "get_debate", lambda: tools.get_debate(ctx.deps, args.feed_item_id), ctx.deps
     )
+    await web_context.add_press(ctx.deps, result)
+    return result
 
 
 async def get_process(
@@ -226,6 +247,7 @@ async def get_process(
     result = await _logged("get_process", lambda: process.get_process(ctx.deps, args), ctx.deps)
     if result.procedure is not None:
         ctx.deps.choices = []
+        await web_context.add_press(ctx.deps, result)
     elif result.choices:
         ctx.deps.choices = result.choices
     return result
@@ -246,7 +268,19 @@ async def web_search(
 ) -> ToolResult:
     """Search the web: scope 'news' for current events, 'civic' for how German
     politics and its institutions work (official sites only)."""
+    if args.scope == "statements":
+        if not web_context.enabled():
+            return ToolResult(note="Unknown scope.")
+        return await _logged(
+            "web_search",
+            lambda: _statements(ctx.deps, args.query),
+        )
     return await _logged("web_search", lambda: tools.web_search(ctx.deps, args))
+
+
+async def _statements(deps: GenericChatDeps, query: str) -> ToolResult:
+    documents = await web_context.statements(deps, query, date.today())
+    return ToolResult(documents=documents, note=None if documents else "No recent statements found.")
 
 
 TOOL_FUNCTIONS: tuple[Callable[..., Awaitable[Any]], ...] = (
