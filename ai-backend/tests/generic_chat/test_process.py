@@ -158,12 +158,11 @@ async def test_an_attached_item_picks_its_law_instead_of_asking(service) -> None
     assert result.procedure.vorgang_id == "338317"
 
 
-async def test_capped_returns_steps_votes_speeches_documents(service) -> None:
+async def test_a_procedure_comes_with_steps_votes_speeches_documents(service) -> None:
     fake = service([])
     deps = make_deps()
     result = await process.get_process(
-        deps, GetProcessInput(vorgang_id="338366", question="Was hat der Ausschuss geändert?"),
-        evidence="capped",
+        deps, GetProcessInput(vorgang_id="338366", question="Was hat der Ausschuss geändert?")
     )
     assert result.procedure is not None and result.procedure.title == "Haushaltsbegleitgesetz 2027"
     assert [s.date for s in result.steps] == sorted(s.date for s in result.steps)
@@ -175,15 +174,6 @@ async def test_capped_returns_steps_votes_speeches_documents(service) -> None:
     drucksachen = [d for d in result.documents if d.source_type == "drucksache"]
     assert drucksachen[0].party == "Haushaltsausschuss"
     assert fake.document_queries == ["Was hat der Ausschuss geändert?"]
-
-
-async def test_timeline_has_steps_only(service) -> None:
-    service([])
-    result = await process.get_process(
-        make_deps(), GetProcessInput(vorgang_id="338366"), evidence="timeline"
-    )
-    assert result.steps and result.documents == []
-    assert "search" in (result.note or "")
 
 
 def test_input_needs_id_or_name() -> None:

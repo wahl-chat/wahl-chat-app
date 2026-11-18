@@ -2,13 +2,10 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""The generic chat's agent on procedure questions, per get_process variant.
-
-    capped    get_process returns steps plus votes, speeches and Drucksachen
-    timeline  get_process returns steps only; the agent fetches the rest
+"""The generic chat's agent on procedure questions.
 
 Runs the real agent (model, tools, local corpus) once per question and
-variant and writes the answers side by side with what each run did: tools
+writes the answers with what each run did: tools
 called, the procedure get_process landed on, whether it asked instead,
 sources, time. Whether an answer states the passed version rather than the
 draft, and attributes Vorblatt/Antrag framing, is read by a person.
@@ -43,7 +40,8 @@ from typing import Any, Optional
 DATA = Path(__file__).resolve().parents[2] / "data"
 QUESTIONS = DATA / "procedure_chat" / "questions.json"
 DOCUMENT_QUESTIONS = DATA / "procedure_documents" / "questions.json"
-VARIANTS = ("capped", "timeline")
+# One column; a comparison adds a variant switched through the environment.
+VARIANTS = ("chat",)
 CONTEXT_ID = "bundestag-aktuell"
 
 
@@ -114,7 +112,6 @@ async def run_one(question: dict[str, Any], variant: str) -> Run:
     from src.generic_chat.schemas import Anchor, GenericChatDeps
     from src.services.firebase_service import aget_context_by_id, aget_parties_for_context
 
-    os.environ[process.EVIDENCE_ENV] = variant
     run = Run(question_id=question["id"], variant=variant)
     context = await aget_context_by_id(CONTEXT_ID)
     if context is None:
@@ -242,7 +239,7 @@ def report(questions: list[dict[str, Any]], runs: dict[tuple[str, str], Run]) ->
 
 async def run_all(questions: list[dict[str, Any]], variants: tuple[str, ...]) -> dict[tuple[str, str], Run]:
     runs: dict[tuple[str, str], Run] = {}
-    # One at a time: the variant is switched through the environment.
+    # One at a time: a variant is switched through the environment.
     for q in questions:
         for variant in variants:
             runs[(q["id"], variant)] = await run_one(q, variant)
@@ -255,7 +252,6 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--out", type=Path, required=True, help="markdown report path")
     parser.add_argument("--json", type=Path, help="raw runs as JSON")
     parser.add_argument("--limit", type=int, help="first N questions only")
-    parser.add_argument("--variant", choices=VARIANTS, help="one variant only")
     parser.add_argument("--ids", help="comma-separated question ids, or a prefix like 'name-'")
     args = parser.parse_args(argv)
     # Questions and corpus text stay local: no LangSmith tracing.
@@ -265,8 +261,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.ids:
         wanted = args.ids.split(",")
         questions = [q for q in questions if any(q["id"] == w or (w.endswith("-") and q["id"].startswith(w)) for w in wanted)]
-    variants = (args.variant,) if args.variant else VARIANTS
-    runs = asyncio.run(run_all(questions, variants))
+    runs = asyncio.run(run_all(questions, VARIANTS))
     args.out.write_text(report(questions, runs))
     if args.json:
         args.json.write_text(json.dumps([r.__dict__ for r in runs.values()], ensure_ascii=False, indent=2))

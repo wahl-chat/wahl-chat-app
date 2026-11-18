@@ -6,19 +6,18 @@
 
 A name is resolved against the procedure profiles; when two genuinely
 different procedures remain, the result offers them as choices instead of
-guessing. A resolved procedure comes back as dated steps (each citable) and,
-in the "capped" variant, its votes, speeches per reading and Drucksache
-chunks matched to the question.
+guessing. A resolved procedure comes back as dated steps (each citable) with
+its votes, speeches per reading and Drucksache chunks matched to the
+question.
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import re
 from collections import defaultdict
-from typing import Callable, Literal, Optional
+from typing import Callable, Optional
 
 from src.generic_chat import tools
 from src.generic_chat.positions import party_positions
@@ -38,12 +37,6 @@ from wahlchat_common.procedures import Milestone, ProcedureKind, ProcedureRecord
 
 logger = logging.getLogger(__name__)
 
-EvidenceMode = Literal["capped", "timeline"]
-# capped: steps + votes, speeches, Drucksachen; timeline: steps only, the
-# agent fetches evidence itself. Compared on the procedure chat eval.
-EVIDENCE_ENV = "GET_PROCESS_EVIDENCE"
-DEFAULT_EVIDENCE: EvidenceMode = "capped"
-
 _SEARCH_KINDS: tuple[ProcedureKind, ...] = ("legislation", "motion", "debate")
 _CANDIDATES = 8
 # Names score within a few hundredths of each other; anything this close to
@@ -60,11 +53,6 @@ _DOCUMENT_CHARS = 1500
 _DEAD_MARKERS = ("Erledigt", "Abgelehnt", "Zurückgezogen", "Für erledigt erklärt")
 
 _DIGITS = re.compile(r"^\d{1,12}$")
-
-
-def evidence_mode() -> EvidenceMode:
-    value = os.getenv(EVIDENCE_ENV, DEFAULT_EVIDENCE)
-    return "timeline" if value == "timeline" else "capped"
 
 
 def _norm(text: str) -> str:
@@ -460,18 +448,15 @@ def _anchored_choice(deps: GenericChatDeps, choices: list[ProcessChoice]) -> str
     return next((c.vorgang_id for c in choices if c.vorgang_id in linked), choices[0].vorgang_id)
 
 
-async def get_process(
-    deps: GenericChatDeps, args: GetProcessInput, *, evidence: Optional[EvidenceMode] = None
-) -> ProcessResult:
+async def get_process(deps: GenericChatDeps, args: GetProcessInput) -> ProcessResult:
     record, choices, note = await resolve(args)
     if record is None and choices and deps.anchor is not None:
         # An attached item already says which one is meant: never ask then.
         record = await procedure_service.aget_procedure(_anchored_choice(deps, choices))
     if record is None:
         return ProcessResult(choices=choices, note=note)
-    mode = evidence or evidence_mode()
     steps = _steps(deps, record)
-    documents = await _evidence(deps, record, args) if mode == "capped" else []
+    documents = await _evidence(deps, record, args)
     deps.add_scope([record.vorgang_id])
     deps.settle(Anchor(vorgang_id=record.vorgang_id))
     if args.party_id:
@@ -482,11 +467,6 @@ async def get_process(
     notes = []
     if not steps:
         notes.append("DIP lists no dated steps for this procedure yet.")
-    if mode == "timeline":
-        notes.append(
-            "Steps only. For votes, speeches or the committee report use search"
-            " (with the procedure's title) or get_vote."
-        )
     return ProcessResult(
         procedure=_info(record),
         steps=steps,

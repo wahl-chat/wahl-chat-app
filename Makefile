@@ -353,8 +353,8 @@ eval-feed:
 eval-procedure-documents:
 	cd evals && $(QDRANT_ENV) uv run python -m wahlchat_evals.procedure_documents $(ARGS)
 
-# The generic chat's agent on procedure questions, get_process "capped" vs
-# "timeline", answers side by side (LLM calls, writes nothing). Reads the
+# The generic chat's agent on procedure questions, one answer per question
+# (LLM calls, writes nothing). Reads the
 # local emulator and store, like the backend in local mode.
 #   make eval-procedure-chat ARGS="--out /tmp/procedure-chat.md"
 eval-procedure-chat:
