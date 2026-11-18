@@ -578,6 +578,23 @@ reuse the same item: the feed now, later briefings and social posts.
     pass, not a new generation.
   - If a translation loses a number, a party or a field, the job does not
     publish it. The reader then sees German.
+  - Everything the job writes for display is translated in the same run, so
+    new data is never German-only for longer than one failed check:
+    - `content.en.speaker_roles` holds the government speakers' offices,
+      which stay German in `facts`.
+    - `content.en.terms` holds the English words for each German glossary
+      term in the text.
+    - Glossary entries carry `translations.en` (term and definition),
+      translated right after the German definition is verified.
+    - Politician records carry `translations.en`: offices, Gremien, roles,
+      Beruf, vote titles and disclosure headings. Names, parties, Wahlkreise
+      and the disclosed organisations stay as published.
+  - Each translation stores the hash of the German it came from and is
+    re-done when that changes. The web looks each text up on its own and
+    shows German where a pair is missing. An English reader sees only
+    glossary terms that have been translated.
+  - `--translate-backfill` fills all of these for stored data. Run it once
+    per environment after a change to what is translated.
 - **Ids and rebuilds.**
   - Ids are stable: `{edition}_v{poll_id}` for votes and
     `{edition}_d{session}-{agenda slug}` for debates.
@@ -894,7 +911,11 @@ The site speaks German and English. German is the default and keeps its URLs
   answers follow the reader's language, the language must also enter the answer
   cache key (`ai-backend/src/answer_cache.py`), or cached German answers would
   be served to English readers. The parliament feed already stores its texts
-  per locale (see "The parliament feed").
+  per locale, including the glossary, speakers' offices and politician
+  records (see "The parliament feed"). `manifest.json` stays German: there is
+  one per site.
+- **The opinions consent** (`opinions.consent`) is a courtesy translation of
+  an Art. 9 consent text, like the legal pages. Have changes to it reviewed.
 - **The legal pages** have English courtesy translations behind a banner saying
   only the German version is binding. Have changes to them reviewed.
 
