@@ -6,8 +6,9 @@
 
 A procedure get_process returns also brings up to three web results about
 it: from our preferred news outlets or a Fraktion's own site, dated near its
-steps, and naming its subject. The model sees outlet coverage as tier "press" and a Fraktion's own page as tier
-"party_site", that party's statement. Votes and party positions get none.
+steps, and naming its subject. The model sees outlet coverage as tier
+"press" and a party's own page as tier "party_site", that party's statement.
+Votes and party positions get none.
 ``GENERIC_CHAT_WEB_CONTEXT=off`` turns it off.
 """
 
@@ -25,6 +26,7 @@ from pydantic_ai.framing import wrap
 from src.generic_chat import web_search as web
 from src.generic_chat.schemas import (
     GenericChatDeps,
+    Tier,
     NumberedDocument,
     ProcessResult,
     WebResult,
@@ -42,6 +44,16 @@ FRAKTION_SITES: dict[str, str] = {
     "gruene-bundestag.de": "gruene",
     "linksfraktion.de": "linke",
     "afdbundestag.de": "afd",
+}
+# A party's own site speaks for it too, wherever a web result comes from.
+PARTY_SITES: dict[str, str] = {
+    **FRAKTION_SITES,
+    "cdu.de": "cdu",
+    "csu.de": "cdu",
+    "spd.de": "spd",
+    "gruene.de": "gruene",
+    "die-linke.de": "linke",
+    "afd.de": "afd",
 }
 # bundestag.de is the record our corpus already holds, not coverage of it.
 PRESS_SITES = tuple(d for d in PREFERRED_OUTLETS if d != "bundestag.de") + tuple(FRAKTION_SITES)
@@ -101,18 +113,22 @@ def matching(
     return out[:MAX_PRESS]
 
 
-def _party_of(domain: str) -> Optional[str]:
+def party_of(domain: str) -> Optional[str]:
     return next(
-        (party for site, party in FRAKTION_SITES.items() if domain == site or domain.endswith("." + site)),
+        (party for site, party in PARTY_SITES.items() if domain == site or domain.endswith("." + site)),
         None,
     )
 
 
-def _register(deps: GenericChatDeps, results: list[WebResult]) -> list[NumberedDocument]:
+def register_results(
+    deps: GenericChatDeps, results: list[WebResult], tier: Optional[Tier] = None
+) -> list[NumberedDocument]:
+    """Web results as sources; a party's own page is that party's statement,
+    everything else gets ``tier``."""
     documents = []
     for result in results:
         title = web.safe_title(result.title)
-        party = _party_of(result.domain)
+        party = party_of(result.domain)
         entry: dict = {
             "source": title,
             "page": 1,
@@ -124,7 +140,7 @@ def _register(deps: GenericChatDeps, results: list[WebResult]) -> list[NumberedD
         if party:
             entry["party_id"] = party
         else:
-            entry["preferred_outlet"] = True
+            entry["preferred_outlet"] = result.preferred
         number = deps.sources.register(entry)
         documents.append(
             NumberedDocument(
@@ -134,8 +150,8 @@ def _register(deps: GenericChatDeps, results: list[WebResult]) -> list[NumberedD
                 date=result.date,
                 party=deps.party_name(party) if party else None,
                 outlet=result.domain,
-                preferred_outlet=None if party else True,
-                tier="party_site" if party else "press",
+                preferred_outlet=None if party else result.preferred,
+                tier="party_site" if party else tier,
                 text=wrap(web.WEB_SNIPPET_TAG, result.snippet),
             )
         )
@@ -174,4 +190,4 @@ async def add_press(deps: GenericChatDeps, result: ProcessResult) -> None:
     logger.info(
         "press: %d of %d results for procedure %s", len(found), len(results), procedure.vorgang_id
     )
-    result.documents = [*result.documents, *_register(deps, found)]
+    result.documents = [*result.documents, *register_results(deps, found, "press")]

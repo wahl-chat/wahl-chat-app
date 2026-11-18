@@ -34,9 +34,9 @@ logger = logging.getLogger(__name__)
 _FULL = (3, 2, 2, 2)
 _LEAN = (2, 1, 1, 1)
 _SPEECH_CHARS = 1200
-# The shared query vector does not carry the party's name, so take more
-# candidates and let the name decide.
-_REPORT_CANDIDATES = 20
+# The shared query vector does not carry the party's name, so take most of
+# a long report's passages and let the name decide.
+_REPORT_CANDIDATES = 80
 _CONTEXT_YEARS = 2
 
 

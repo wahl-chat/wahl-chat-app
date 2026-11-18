@@ -19,7 +19,6 @@ from zoneinfo import ZoneInfo
 
 from langchain_core.documents import Document
 from pydantic import ValidationError
-from pydantic_ai.framing import wrap
 from qdrant_client.models import DatetimeRange
 
 from src.generic_chat import web_search as web
@@ -776,31 +775,10 @@ async def list_feed_items(
 
 
 async def web_search(deps: GenericChatDeps, args: WebSearchInput) -> ToolResult:
+    from src.generic_chat import web_context  # noqa: PLC0415 (kept off tools' import path)
+
     results, note = await web.search_web(args.query, args.scope, args.recency)
-    documents: list[NumberedDocument] = []
-    for result in results:
-        number = deps.sources.register(
-            {
-                "source": web.safe_title(result.title),
-                "page": 1,
-                "document_publish_date": result.date,
-                "url": result.url,
-                "source_document": result.domain,
-                "source_type": "web",
-                "preferred_outlet": result.preferred,
-            }
-        )
-        documents.append(
-            NumberedDocument(
-                id=number,
-                source_type="web",
-                title=web.safe_title(result.title),
-                date=result.date,
-                outlet=result.domain,
-                preferred_outlet=result.preferred,
-                text=wrap(_WEB_SNIPPET, result.snippet),
-            )
-        )
+    documents = web_context.register_results(deps, results)
     if not documents and note is None:
         note = "No web results."
     return ToolResult(documents=documents, note=note)
