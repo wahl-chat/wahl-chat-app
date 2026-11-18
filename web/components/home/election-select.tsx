@@ -8,6 +8,7 @@ import {
 } from '@/components/providers/context-provider';
 import { Select, SelectContent, SelectTrigger } from '@/components/ui/select';
 import { useRouter } from '@/i18n/navigation';
+import { electionStatus } from '@/lib/elections';
 import type { Context } from '@/lib/firebase/firebase.types';
 import { formatDate } from '@/lib/utils';
 import { CalendarIcon, MapPinIcon } from 'lucide-react';
@@ -58,7 +59,9 @@ export function ElectionSelect() {
       <div
         className="flex w-full items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2"
         role="status"
-        aria-label={t('currentLabel', { name: currentContext.name })}
+        aria-label={t(`${electionStatus(currentContext)}Label`, {
+          name: currentContext.name,
+        })}
       >
         <CompactElectionContent context={currentContext} />
       </div>

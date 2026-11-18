@@ -40,18 +40,9 @@ from typing import NamedTuple, Optional
 # override=False: an exported variable stays in force.
 # Cloud Run has no .env file. The job environment stays in force.
 if __name__ == "__main__":
-    from pathlib import Path
+    from ingestion.env_file import load_env_file
 
-    from dotenv import load_dotenv
-
-    _env_path = Path(__file__).resolve().parents[2] / ".env"
-
-    # Use ai-backend/.env when ingestion/.env does not exist.
-    # API keys can be in either file.
-    if not _env_path.exists():
-        _env_path = _env_path.parents[1] / "ai-backend" / ".env"
-    if _env_path.exists():
-        load_dotenv(_env_path, override=False)
+    load_env_file()
 
 from langchain_core.embeddings import Embeddings
 from qdrant_client import QdrantClient, models
@@ -459,6 +450,11 @@ def _reapply_grafted_pdfs(
 # ---------------------------------------------------------------------------
 
 
+def _report_item(external_id: object, outcome: str, started: float) -> None:
+    """One line per item, so a run's log shows where its time budget went."""
+    print(f"item {external_id}: {outcome} ({time.monotonic() - started:.1f}s)")
+
+
 def run_connector(
     connector: BaseConnector,
     qdrant: QdrantClient,
@@ -542,6 +538,7 @@ def run_connector(
             break
         consumed += 1
         did_work = False
+        item_started = time.monotonic()
 
         # Per-item resilience: wrap the ENTIRE per-item body (fetch →
         # normalize → already-present guard → embed → upsert) so that any Exception
@@ -560,6 +557,7 @@ def run_connector(
                     file=sys.stderr,
                 )
                 failed_ids.append(str(external_id))
+                _report_item(external_id, "failed", item_started)
                 continue
 
             # Stamp the stable per-parent key (the discover/fetch id, source-scoped)
@@ -596,8 +594,10 @@ def run_connector(
                         wait=True,
                     )
                     did_work = True
+                    outcome = "emptied"
                 else:
                     present_skips += 1
+                    outcome = "present-skip"
             else:
                 # Already-present / orphan guard (cost optimisation + staleness
                 # fix): compare deterministic point IDs (same formula as
@@ -658,10 +658,12 @@ def run_connector(
                     # BaseConnector default is a no-op returning 0.
                     connector.post_upsert(qdrant, collection_name, chunks)
                     did_work = True
+                    outcome = f"upserted {len(chunks)} chunks"
                 else:
                     # All chunks present AND content unchanged AND no orphans —
                     # cheap skip that does NOT consume the batch_size budget.
                     present_skips += 1
+                    outcome = "present-skip"
 
         except DimensionMismatchError:
             # A dimension mismatch is a coding invariant, not a data error —
@@ -674,8 +676,10 @@ def run_connector(
                 file=sys.stderr,
             )
             failed_ids.append(str(external_id))
+            _report_item(external_id, "failed", item_started)
             continue
 
+        _report_item(external_id, outcome, item_started)
         if did_work:
             processed += 1
 
@@ -766,7 +770,9 @@ def resolve_aw_legislature_shard() -> bool:
         return False
 
     os.environ["AW_LEGISLATURE_ID"] = str(ids[task_index])
-    print(f"shard {task_index}/{task_count}: AW_LEGISLATURE_ID={ids[task_index]} ({shard_set})")
+    print(
+        f"shard {task_index}/{task_count}: AW_LEGISLATURE_ID={ids[task_index]} ({shard_set})"
+    )
     return True
 
 
@@ -781,6 +787,16 @@ if __name__ == "__main__":
     # only local-dev convenience is the .env loading at the top of the module
     # (which must run before configuration imports freeze env-derived
     # constants; Cloud Run has no .env, so its job-spec env passes through).
+
+    # Connectors report progress through logging; without a handler, Python drops INFO.
+    import logging
+
+    logging.basicConfig(
+        level=logging.INFO, format="%(levelname)s %(name)s: %(message)s"
+    )
+    # HTTP clients log request URLs at INFO, and the DIP key travels in the query string.
+    for _noisy in ("httpx", "httpcore", "urllib3", "requests"):
+        logging.getLogger(_noisy).setLevel(logging.WARNING)
 
     # -----------------------------------------------------------------------
     # Parse connector_id from CONNECTOR_ID env or --connector arg.

@@ -8,7 +8,8 @@ import { cn } from '@/lib/utils';
 import { useLocale, useTranslations } from 'next-intl';
 import { META_TEXT } from './card-styles';
 import { useSnapCarousel } from './carousel';
-import { PlenaryCard } from './plenary-card';
+import { HeatInfo, PlenaryCard } from './plenary-card';
+import { ScrollRow, slideStep } from './scroll-row';
 import VoteCard from './vote-card';
 
 function dayFormat(intl: string) {
@@ -19,6 +20,9 @@ function dayFormat(intl: string) {
     timeZone: 'UTC',
   });
 }
+
+// The carousel's gap-3.
+const SLIDE_GAP_PX = 12;
 
 function shortDayFormat(intl: string) {
   return new Intl.DateTimeFormat(intl, {
@@ -77,7 +81,8 @@ function PlenaryRow({
   heat: Map<string, number>;
   onOpen: (item: DetailItem) => void;
 }) {
-  const { ref, active, onScroll } = useSnapCarousel(12);
+  const t = useTranslations('feed');
+  const { ref, active, onScroll } = useSnapCarousel(SLIDE_GAP_PX);
   return (
     <div className="flex flex-col gap-3">
       <GroupHeader
@@ -85,10 +90,12 @@ function PlenaryRow({
         digest={digest}
         count={items.length > 1 ? `${active + 1} / ${items.length}` : undefined}
       />
-      <div
-        ref={ref}
+      <ScrollRow
+        label={t('debates')}
+        scrollerRef={ref}
         onScroll={onScroll}
-        className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        step={slideStep(SLIDE_GAP_PX)}
+        className="snap-x snap-mandatory scroll-px-4 gap-3"
       >
         {items.map((item) => (
           <div
@@ -106,7 +113,7 @@ function PlenaryRow({
             />
           </div>
         ))}
-      </div>
+      </ScrollRow>
     </div>
   );
 }
@@ -117,8 +124,9 @@ type Props = {
 };
 
 /**
- * One sitting day, ranked within itself: the day's most heated debate, a vote
- * on the same topic, then the rest per parliament.
+ * One sitting day, ranked within itself: the Hot Topic (the day's most heated
+ * debate), the vote on it if there was one that day, then the rest per
+ * parliament.
  */
 function DailyDaySection({ day, onOpen }: Props) {
   const t = useTranslations('feed');
@@ -126,13 +134,22 @@ function DailyDaySection({ day, onOpen }: Props) {
   const { hot, match } = day;
   return (
     <section
-      className="flex flex-col gap-8"
+      id={`tag-${day.date}`}
+      // Focusable from script only, for a jump from the sitting calendar. The
+      // jump stops below the header and the sticky filter bar (4.5rem).
+      tabIndex={-1}
+      className="flex scroll-mt-[calc(var(--header-height,4rem)+4.5rem+1rem)] flex-col gap-8"
       aria-label={dayFormat(intl).format(utcDay(day.date))}
     >
       {hot && (
         <div className="flex flex-col gap-3">
-          <header className="flex items-baseline justify-between gap-3">
-            <h2 className="text-lg font-bold">{t('topicOfDay')}</h2>
+          <header className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold">{t('hotTopic')}</h2>
+              {day.heat.has(hot.key) && (
+                <HeatInfo heat={day.heat.get(hot.key) as number} />
+              )}
+            </div>
             <span className={META_TEXT}>
               {hot.digest.parliament === 'bundestag'
                 ? t('plenarySitting')
@@ -140,19 +157,12 @@ function DailyDaySection({ day, onOpen }: Props) {
               · {shortDayFormat(intl).format(utcDay(day.date))}
             </span>
           </header>
-          <PlenaryCard
-            item={hot}
-            heat={day.heat.get(hot.key)}
-            onOpen={() => onOpen(hot)}
-            variant="hot"
-          />
+          {/* Its flames sit next to "Hot Topic" above, not on the card. */}
+          <PlenaryCard item={hot} onOpen={() => onOpen(hot)} variant="hot" />
           {match && (
             <div className="flex flex-col gap-2 pt-3">
-              <h3 className={META_TEXT}>
-                {t('matchingVote')} ·{' '}
-                {shortDayFormat(intl).format(utcDay(match.digest.date))}
-              </h3>
-              <VoteCard item={match} onOpen={() => onOpen(match)} compact />
+              <h3 className={META_TEXT}>{t('voteOnDebate')}</h3>
+              <VoteCard item={match} onOpen={() => onOpen(match)} hot />
             </div>
           )}
         </div>

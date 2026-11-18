@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from ingestion.feed.builder import DigestBuilder
+from ingestion.feed.builder import FeedBuilder
 from ingestion.feed.prompts import TranslatedSegment, TranslationBatch
 from ingestion.i18n_catalog.translate_messages import (
     flatten,
@@ -60,7 +60,7 @@ class FakeModel:
 
 
 def _run(tmp_path: Path, model: FakeModel, **kwargs: Any) -> Any:
-    builder = DigestBuilder(model)
+    builder = FeedBuilder(model)
     try:
         return run("fr", tmp_path, builder=builder, **kwargs)
     finally:

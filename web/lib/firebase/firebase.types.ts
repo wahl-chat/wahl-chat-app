@@ -181,6 +181,9 @@ export type DigestVoteParty = {
   party_id: string;
   name: string;
   color: string;
+  /** The logo it is shown with, set on the web (`lib/daily/party-logos.ts`);
+   * absent means `party_id`'s own. */
+  logo_id?: string;
   yes: number;
   no: number;
   abstain: number;
@@ -202,7 +205,10 @@ export type DigestVote = {
   suggested_questions?: string[];
   /** The `FeedItem` it came from; absent on local previews. */
   item_id?: string;
-  legacy_keys?: string[];
+  /** The Drucksachen the poll was about, `"21/6130"`; absent until known. */
+  drucksachen?: string[];
+  /** Expert terms in the summary. */
+  terms?: TermRef[];
 };
 
 export type DigestCitation = {
@@ -224,14 +230,45 @@ export type DigestSpeaker = {
   /** The speech's own video, and a link to it; absent on older digests. */
   video_url?: string | null;
   video_link?: string | null;
+  /** The speaker's ID in the MdB-Stammdaten, keying `politicians`; absent
+   * when the protocol did not identify them. */
+  mdb_id?: string | null;
+  /** Length of the speech's video in seconds. */
+  duration?: number | null;
+  /** The office a member of the government spoke in, as the protocol names
+   * it; absent for members of a Fraktion. */
+  role?: string | null;
+};
+
+/** The passage of a speech a bullet or position draws on. The model names
+ * the speech; the moment and sentence in it are matched by the builder. */
+export type SpeechSource = {
+  speaker: string;
+  /** The speaker's own party (CSU, not the Union). */
+  party_id: string;
+  party_name: string;
+  /** The speech's own video file, and the second the passage starts at. */
+  video_url: string | null;
+  start: number | null;
+  /** The Plenarprotokoll, its PDF page, and the sentence to highlight. */
+  pdf_url: string | null;
+  page: number | null;
+  snippet: string | null;
 };
 
 export type DigestPartyPosition = {
   party_id: string;
   party_name: string;
   color: string;
+  /** The logo it is shown with, set on the web (`lib/daily/party-logos.ts`);
+   * absent means `party_id`'s own. */
+  logo_id?: string;
   speakers: DigestSpeaker[];
-  position: string;
+  /** Null when no position could be written and checked against the
+   * speeches; the Fraktion is still listed, with its speakers. */
+  position: string | null;
+  /** Where `position` comes from; absent on older items. */
+  sources?: SpeechSource[];
 };
 
 export type DigestAudioSummary = {
@@ -248,6 +285,19 @@ export type DigestQuote = {
   party_name: string;
 };
 
+/** The speech a debate card plays. The poster is cut at `start` and the
+ * player opens at `start`, so play continues from the frame the poster shows;
+ * see `CardVideo` in the backend's `feed/models.py`. */
+export type CardVideo = {
+  /** The bare file, without a media fragment. */
+  video_url: string;
+  start: number;
+  /** Absent until the feed job has cut one. */
+  poster_url: string | null;
+  speaker: string | null;
+  party_name: string | null;
+};
+
 export type DigestSessionSection = {
   /** The primary topic; `topics` holds it plus an optional second one. */
   topic: string;
@@ -255,17 +305,19 @@ export type DigestSessionSection = {
   topics?: string[];
   headline: string;
   summary: string;
-  /** One entry per Fraktion that spoke; absent on older digests. */
+  /** One entry per Fraktion that spoke; absent on local previews. */
   positions?: DigestPartyPosition[];
   agenda_items: string[];
   citations: DigestCitation[];
   video_url: string | null;
+  /** Absent on local previews and on items no feed run has given one yet. */
+  card_video?: CardVideo | null;
   /** A spoken summary of the section; the digest builder does not write one. */
   audio?: DigestAudioSummary | null;
   /** Fields below are absent on older digests. Exactly three bullets. */
   key_points?: string[];
-  /** 1–5, relative to the other sections of the same sitting only. */
-  heat?: number | null;
+  /** Where each of `key_points` comes from, by index; absent on older items. */
+  key_point_sources?: SpeechSource[][];
   /** Estimated from the speeches' word count. */
   debate_minutes?: number | null;
   opening_quote?: DigestQuote | null;
@@ -274,13 +326,17 @@ export type DigestSessionSection = {
   suggested_questions?: string[];
   /** The `FeedItem` it came from; absent on local previews. */
   item_id?: string;
-  legacy_keys?: string[];
+  /** The Drucksachen its agenda item deals with; absent until known. */
+  drucksachen?: string[];
+  /** Conflict reactions during the debate; absent until counted. */
+  interjections?: number | null;
+  /** Expert terms in the summary, bullets and positions. */
+  terms?: TermRef[];
 };
 
 export type DigestSession = {
   protocols: { protocol_id: string; pdf_url: string | null }[];
   sections: DigestSessionSection[];
-  other_topics: string[];
 };
 
 export type DailyDigest = {
@@ -295,11 +351,32 @@ export type DailyDigest = {
 };
 
 // Firestore `feed_editions/{edition_id}` and `feed_items/{item_id}`, written
-// by the backend feed builder (`ai-backend/src/feed/models.py`).
+// by the feed builder (`ingestion/src/ingestion/feed/models.py`). One item per
+// agenda item of a sitting (debate) or per poll (vote).
 
 export type FeedLocale = 'de' | 'en';
 
 export type LocalizedPosition = { party_id: string; text: string };
+
+/** An expert term in an item's text, as the text writes it. */
+export type TermRef = { term_id: string; surface: string };
+
+export type GlossarySource = { url: string; title: string };
+
+/** Firestore `glossary/{term_id}`, as the web reads it: verified entries
+ * with a source only, written by the feed job or by hand. */
+export type GlossaryEntry = {
+  term_id: string;
+  /** The base form: "Aktuelle Stunde". */
+  term: string;
+  definition: string;
+  /** Every form the texts have used, each checked to be this term; offices
+   * are matched against them. */
+  forms: string[];
+  /** The official pages the definition was checked against; the first is
+   * linked. */
+  sources: GlossarySource[];
+};
 
 export type LocalizedContent = {
   headline: string;
@@ -310,24 +387,35 @@ export type LocalizedContent = {
   /** Other locales only: the verbatim German quote stays in `debate`. */
   quote_translation: string | null;
   origin: 'generated' | 'translated';
+  /** Expert terms the glossary explains; German only, absent until the
+   * feed job has looked. */
+  terms?: TermRef[];
 };
 
 export type DebateFacts = {
   protocols: { protocol_id: string; pdf_url: string | null }[];
-  agenda_items: string[];
+  /** The official agenda label. */
+  agenda_item: string;
   citations: DigestCitation[];
-  /** Same order as `positions` in every locale's content. */
+  /** Every Fraktion that spoke, from the source. A locale's `positions` has
+   * an entry only for those whose position was written and checked. */
   parties: {
     party_id: string;
     party_name: string;
     color: string;
     speakers: DigestSpeaker[];
+    /** Where the position comes from; absent on older items. */
+    position_sources?: SpeechSource[];
   }[];
   video_url: string | null;
-  heat: number | null;
   debate_minutes: number | null;
   opened_by: string | null;
   opening_quote: DigestQuote | null;
+  /** See `DebateFacts` in the backend's `feed/models.py`. */
+  drucksachen?: string[] | null;
+  interjections?: number | null;
+  key_point_sources?: { sources: SpeechSource[] }[];
+  card_video?: CardVideo | null;
 };
 
 export type VoteFacts = {
@@ -337,6 +425,8 @@ export type VoteFacts = {
   citation_url: string | null;
   description: string | null;
   parties: DigestVoteParty[];
+  /** The Drucksachen the poll was about; null or absent until looked up. */
+  drucksachen?: string[] | null;
 };
 
 export type FeedItem = {
@@ -357,7 +447,6 @@ export type FeedItem = {
   content: { de: LocalizedContent } & Partial<
     Record<FeedLocale, LocalizedContent>
   >;
-  legacy_keys: string[];
 };
 
 export type FeedEdition = {
@@ -369,7 +458,95 @@ export type FeedEdition = {
   date: string;
   protocols: { protocol_id: string; pdf_url: string | null }[];
   item_ids: string[];
-  other_topics: string[];
+};
+
+export type PoliticianMembershipLevel =
+  | 'chair'
+  | 'vice_chair'
+  | 'spokesperson'
+  | 'member'
+  | 'deputy';
+
+export type PoliticianMembership = {
+  gremium: string;
+  /** As published: "Obfrau", "Stellvertretendes Mitglied", ... */
+  role: string;
+  level: PoliticianMembershipLevel;
+  kind: 'ausschuss' | 'sonstige';
+  url: string | null;
+};
+
+export type DisclosureLine = {
+  text: string;
+  /** 1 for the clients and income listed under an activity. */
+  level: number;
+};
+
+export type Disclosures = {
+  sections: {
+    heading: string | null;
+    entries: { lines: DisclosureLine[] }[];
+  }[];
+  /** A text on its own, e.g. "Keine veröffentlichungspflichtigen Angaben." */
+  note: string | null;
+  link: string | null;
+  link_phrase: string | null;
+};
+
+export type RollCallVote = {
+  /** ISO day. */
+  day: string;
+  title: string;
+  /** The vote's own page on bundestag.de. */
+  url: string | null;
+  vote: 'yes' | 'no' | 'abstain' | 'absent' | 'other';
+  /** As published: "ja", "nein", "enthalten", "nicht abg." */
+  label: string;
+};
+
+/**
+ * Firestore `politicians/{mdb_id}`: a member of the Bundestag as the
+ * Bundestag publishes them (MdB-Stammdaten and the profile on bundestag.de),
+ * written by the feed builder. See `feed/politicians.py`.
+ */
+export type Politician = {
+  mdb_id: string;
+  bio_id: string | null;
+  title: string | null;
+  first_name: string;
+  last_name: string;
+  name: string;
+  birth_date: string | null;
+  fraktion: string | null;
+  partei: string | null;
+  beruf: string | null;
+  land: string | null;
+  wahlkreis: { number: string; name: string } | null;
+  /** As published: "direkt" or "Landesliste". */
+  elected: string | null;
+  offices: {
+    function: string;
+    institution: string;
+    kind: 'government' | 'parliament' | 'fraktion';
+  }[];
+  /** ISO days; `end` is null for the current Wahlperiode. */
+  terms: { wp: number; start: string; end: string | null }[];
+  memberships: PoliticianMembership[];
+  disclosures: Disclosures | null;
+  photo_url: string | null;
+  photo_credit: string | null;
+  bio_url: string | null;
+  /** The profile's "Stand", as printed. */
+  source_stand: string | null;
+  last_changed: string | null;
+  fetched_at: string;
+  /** The latest namentliche Abstimmungen, newest first; absent on records
+   * written before they were read. */
+  votes?: RollCallVote[];
+  votes_checked_at?: string | null;
+  /** "roster" for a speaker from outside the Bundestag: only party and
+   * office, kept by hand. Absent on records written before. */
+  source?: 'bundestag' | 'roster';
 };
 
 /** One parliament's recent editions and their items. */
@@ -381,4 +558,30 @@ export type ParliamentFeed = { editions: FeedEdition[]; items: FeedItem[] };
 export type FeedPage = ParliamentFeed & {
   from: string | null;
   hasOlder: boolean;
+};
+
+/** A plenary sitting on the parliament's published agenda. */
+export type PlenarySitting = {
+  /** ISO day, `YYYY-MM-DD`. */
+  date: string;
+  number: number;
+};
+
+/** A sitting week of the official calendar. `sittings` is known only once
+ * the week's agenda is published, about a week ahead. */
+export type SittingWeek = {
+  start: string;
+  end: string;
+  sittings: PlenarySitting[] | null;
+};
+
+/** The parliament's sitting weeks from `since` (when the feed begins) to
+ * several weeks ahead, written by the feed job from bundestag.de. */
+export type SittingCalendar = {
+  parliament: DigestParliamentId;
+  /** ISO day the feed begins; the month grid reaches back to it. */
+  since: string;
+  weeks: SittingWeek[];
+  sources: string[];
+  checked_at: string;
 };

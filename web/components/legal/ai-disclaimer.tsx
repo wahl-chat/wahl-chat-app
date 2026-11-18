@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+type Variant = 'chat' | 'feed';
+
 const bold = (chunks: React.ReactNode) => (
   <span className="font-semibold">{chunks}</span>
 );
@@ -31,18 +33,22 @@ const POINTS = [
   { key: 'notOfficial', Icon: AlertCircleIcon },
   { key: 'nuance', Icon: GitBranch },
   { key: 'inaccuracies', Icon: AlertTriangleIcon },
-  { key: 'storage', Icon: DatabaseIcon },
 ] as const;
 
-function AiDisclaimerContent() {
+function AiDisclaimerContent({ variant }: { variant: Variant }) {
   const t = useTranslations('disclaimer');
+  // Only the chat stores what the reader writes.
+  const points =
+    variant === 'chat'
+      ? [...POINTS, { key: 'storage', Icon: DatabaseIcon } as const]
+      : POINTS;
 
   return (
-    <div className="px-4 pb-4 text-sm text-foreground md:px-0 md:pb-0">
-      <p>{t.rich('intro', { b: bold })}</p>
+    <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-4 text-sm text-foreground md:px-0 md:pb-0">
+      <p>{t.rich(`intro.${variant}`, { b: bold })}</p>
 
       <ul className="flex list-inside flex-col gap-4 py-4 *:flex *:items-center *:gap-2">
-        {POINTS.map(({ key, Icon }) => (
+        {points.map(({ key, Icon }) => (
           <li key={key}>
             <Icon className="mr-2 size-6 shrink-0" />
             <span className="inline-block">
@@ -52,16 +58,17 @@ function AiDisclaimerContent() {
         ))}
       </ul>
 
-      <p>{t.rich('outro', { b: bold })}</p>
+      <p>{t.rich(`outro.${variant}`, { b: bold })}</p>
     </div>
   );
 }
 
 type Props = {
   className?: string;
+  variant?: Variant;
 };
 
-function AiDisclaimer({ className }: Props) {
+function AiDisclaimer({ className, variant = 'chat' }: Props) {
   const t = useTranslations('disclaimer');
 
   return (
@@ -72,16 +79,16 @@ function AiDisclaimer({ className }: Props) {
           className,
         )}
       >
-        {t('notice')}{' '}
+        {t(`notice.${variant}`)}{' '}
         <ResponsiveDialogTrigger className="font-semibold underline">
-          {t('learnMore')}
+          {t(`learnMore.${variant}`)}
         </ResponsiveDialogTrigger>
       </p>
-      <ResponsiveDialogContent>
+      <ResponsiveDialogContent className="flex max-h-[90dvh] flex-col">
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>{t('title')}</ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
-        <AiDisclaimerContent />
+        <AiDisclaimerContent variant={variant} />
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   );

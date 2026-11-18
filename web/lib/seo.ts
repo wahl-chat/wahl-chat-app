@@ -8,6 +8,9 @@ import { createTranslator } from 'next-intl';
 
 export const BASE_URL = 'https://wahl.chat';
 
+/** The link-preview image of every page that has no picture of its own. */
+export const LOGO_IMAGE_URL = `${BASE_URL}/images/logo.webp`;
+
 // VERCEL_ENV is injected by Vercel and is 'production' only on production
 // deployments, so previews and local dev stay noindex without depending on a
 // manually configured variable.

@@ -61,7 +61,6 @@ const DIGEST: DailyDigest = {
         video_url: null,
       },
     ],
-    other_topics: [],
   },
 };
 

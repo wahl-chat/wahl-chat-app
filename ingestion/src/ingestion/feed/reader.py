@@ -15,7 +15,7 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, timezone
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from qdrant_client import QdrantClient, models
 
@@ -129,6 +129,13 @@ def parse_day(value: Any) -> Optional[date]:
 # ---------------------------------------------------------------------------
 
 
+@dataclass(frozen=True)
+class SpokenSentence:
+    text: str
+    # Seconds into the speech's own video file.
+    ts_start: float
+
+
 @dataclass
 class Speech:
     source_item_id: str
@@ -147,11 +154,31 @@ class Speech:
     pdf_url: Optional[str]
     session_key: Optional[tuple[int, int]]
     speech_key: Optional[str] = None
-    # The protocol PDF opened at this speech's page. DIP speeches carry it in
-    # their citation; for the others protocol_pages.attach_protocol_pages
-    # looks it up in the protocol XML.
+    # The protocol PDF opened at this speech's page, set by
+    # ``protocol_pages.apply_protocols``.
     protocol_page_url: Optional[str] = None
     content_hashes: list[str] = field(default_factory=list)
+    # The transcript sentence by sentence, timed against the video; only
+    # openparliament.tv aligns speeches, so DIP speeches have none.
+    sentences: list[SpokenSentence] = field(default_factory=list)
+    # The protocol PDF page a sentence of this speech stands on; set once the
+    # protocol has placed the speech (see protocol_pages.apply_protocols).
+    page_of: Optional[Callable[[str], Optional[int]]] = field(
+        default=None, repr=False, compare=False
+    )
+    # The speaker's ID in the MdB-Stammdaten: the protocol's ``<redner id>``
+    # once ``protocol_pages.apply_protocols`` has matched the speech, else the
+    # DIP chunk's own. op.tv speeches name their speaker by Wikidata id only.
+    mdb_id: Optional[str] = None
+    # Seconds of the speech's own video; None without aligned sentences.
+    duration: Optional[float] = None
+    # The office a member of the government speaks in, and the Fraktion the
+    # protocol names: both from the protocol's ``<redner>``.
+    role: Optional[str] = None
+    protocol_fraktion: Optional[str] = None
+    # The chunk's party when the feed filed the speech under another one
+    # (see ``speaker_parties``); the debate is rebuilt when it is set.
+    reattributed_from: Optional[str] = None
 
 
 @dataclass
@@ -159,6 +186,18 @@ class AgendaItem:
     key: str
     label: str
     speeches: list[Speech]
+    # ``(ep, session)``; None for speeches whose key carries no session.
+    session: Optional[tuple[int, int]] = None
+    # "top20" / "zp5"; empty for speeches outside any agenda item.
+    slug: str = ""
+    # True once the speeches are in the order of the protocol and placed on
+    # its PDF pages (see ``protocol_pages.apply_protocols``). The corpus has no
+    # order of its own: a scroll returns points by id, and op.tv speeches carry
+    # no time of day.
+    ordered: bool = False
+    # See ``DebateFacts`` in ``models.py``; None until a protocol is read.
+    drucksachen: Optional[list[str]] = None
+    interjections: Optional[int] = None
 
     @property
     def video_url(self) -> Optional[str]:
@@ -170,15 +209,6 @@ class SittingDay:
     day: date
     protocols: list[tuple[str, Optional[str]]]
     agenda_items: list[AgendaItem]
-
-    @property
-    def content_hashes(self) -> list[str]:
-        return sorted(
-            h
-            for item in self.agenda_items
-            for s in item.speeches
-            for h in s.content_hashes
-        )
 
 
 def parse_speech_key(key: Optional[str]) -> tuple[Optional[tuple[int, int]], str]:
@@ -195,6 +225,33 @@ def _strip_fragment(url: Optional[str]) -> Optional[str]:
     return url.split("#", 1)[0] if url else None
 
 
+def _spoken_sentences(chunks: list[dict]) -> list[SpokenSentence]:
+    """The timed sentences of every chunk, in order. A sentence a chunk
+    boundary repeats is kept once."""
+    found: dict[float, SpokenSentence] = {}
+    for chunk in chunks:
+        entries = (chunk.get("meta") or {}).get("sentence_map")
+        for entry in entries if isinstance(entries, list) else []:
+            if not isinstance(entry, dict):
+                continue
+            text = " ".join(str(entry.get("text") or "").split())
+            ts_start = entry.get("ts_start")
+            if text and isinstance(ts_start, (int, float)):
+                found.setdefault(float(ts_start), SpokenSentence(text, float(ts_start)))
+    return sorted(found.values(), key=lambda s: s.ts_start)
+
+
+def _spoken_duration(chunks: list[dict]) -> Optional[float]:
+    """Where the last aligned sentence ends in the speech's own video."""
+    ends = [
+        float(entry["ts_end"])
+        for chunk in chunks
+        for entry in (chunk.get("meta") or {}).get("sentence_map") or []
+        if isinstance(entry, dict) and isinstance(entry.get("ts_end"), (int, float))
+    ]
+    return max(ends) if ends else None
+
+
 def _speech_from_chunks(chunks: list[dict]) -> Optional[Speech]:
     chunks = sorted(chunks, key=lambda c: c.get("chunk_index") or 0)
     head = chunks[0]
@@ -204,6 +261,9 @@ def _speech_from_chunks(chunks: list[dict]) -> Optional[Speech]:
     meta = head.get("meta") or {}
     session_key, agenda_slug = parse_speech_key(head.get("speech_key"))
     is_dip = head.get("source") == "dip"
+    # DIP cites the protocol PDF at the speech's page. An op speech carries
+    # its DIP twin's citation as ``transcript_pdf_url``, page and all.
+    pdf_link = head.get("citation_url") if is_dip else meta.get("transcript_pdf_url")
     return Speech(
         source_item_id=str(head.get("source_item_id")),
         source=head.get("source"),
@@ -218,17 +278,14 @@ def _speech_from_chunks(chunks: list[dict]) -> Optional[Speech]:
         agenda_official=meta.get("agenda_item_official"),
         video_uri=meta.get("video_uri"),
         protocol_id=meta.get("protocol_id"),
-        pdf_url=_strip_fragment(head.get("citation_url"))
-        if is_dip
-        else meta.get("transcript_pdf_url"),
+        pdf_url=_strip_fragment(pdf_link),
         session_key=session_key,
         speech_key=head.get("speech_key"),
-        protocol_page_url=(
-            head.get("citation_url")
-            if is_dip and "#page=" in str(head.get("citation_url") or "")
-            else None
-        ),
+        protocol_page_url=pdf_link if "#page=" in str(pdf_link or "") else None,
         content_hashes=[str(c.get("content_hash") or "") for c in chunks],
+        sentences=_spoken_sentences(chunks),
+        mdb_id=str(meta["person_id"]) if is_dip and meta.get("person_id") else None,
+        duration=_spoken_duration(chunks),
     )
 
 
@@ -248,6 +305,12 @@ def _agenda_label(slug: str, speeches: list[Speech]) -> str:
     official = next((s.agenda_official for s in speeches if s.agenda_official), None)
     if official:
         return official
+    return numbered_label(slug)
+
+
+def numbered_label(slug: str) -> str:
+    """The label of an item no source has titled; the protocol may still
+    title it (``protocol_pages``)."""
     match = re.match(r"(top|zp)(\d+)$", slug)
     if match:
         kind = "Tagesordnungspunkt" if match.group(1) == "top" else "Zusatzpunkt"
@@ -275,29 +338,59 @@ def _protocols(speeches: list[Speech]) -> list[tuple[str, Optional[str]]]:
     return list(found.items())
 
 
+def session_days(speeches: list[Speech]) -> dict[tuple[int, int], date]:
+    """The day each session sat: its earliest speech's date.
+
+    op.tv dates every speech by its own start, so a sitting that runs past
+    midnight would otherwise spill its last speeches into the next day. A
+    sitting never starts after midnight, so its first speech has the date.
+    """
+    days: dict[tuple[int, int], date] = {}
+    for speech in speeches:
+        if speech.session_key is None:
+            continue
+        known = days.get(speech.session_key)
+        if known is None or speech.day < known:
+            days[speech.session_key] = speech.day
+    return days
+
+
 def group_sitting_days(speeches: list[Speech]) -> dict[date, SittingDay]:
-    """Speeches by day, then by agenda item in agenda order."""
+    """Speeches by their session's day, then by agenda item in agenda order."""
+    sessions = session_days(speeches)
     by_day: dict[date, list[Speech]] = {}
     for speech in speeches:
-        by_day.setdefault(speech.day, []).append(speech)
+        day = (
+            sessions.get(speech.session_key, speech.day)
+            if speech.session_key
+            else speech.day
+        )
+        by_day.setdefault(day, []).append(speech)
 
     days: dict[date, SittingDay] = {}
     for day, day_speeches in sorted(by_day.items()):
-        by_slug: "OrderedDict[str, list[Speech]]" = OrderedDict()
+        by_slug: "OrderedDict[tuple[Optional[tuple[int, int]], str], list[Speech]]" = (
+            OrderedDict()
+        )
         for speech in day_speeches:
-            session = speech.session_key[1] if speech.session_key else 0
-            by_slug.setdefault(f"{session}:{speech.agenda_slug}", []).append(speech)
+            by_slug.setdefault((speech.session_key, speech.agenda_slug), []).append(
+                speech
+            )
         items = [
             AgendaItem(
-                key=key,
-                label=_agenda_label(key.split(":", 1)[1], group),
-                speeches=group,
+                key=f"{session[1] if session else 0}:{slug}",
+                label=_agenda_label(slug, group),
+                # Until the protocol orders them: a stable order, so a rerun
+                # sees the same input.
+                speeches=sorted(group, key=lambda s: s.source_item_id),
+                session=session,
+                slug=slug,
             )
-            for key, group in sorted(
+            for (session, slug), group in sorted(
                 by_slug.items(),
                 key=lambda kv: (
-                    kv[0].split(":", 1)[0].zfill(6),
-                    _agenda_sort_key(kv[0].split(":", 1)[1]),
+                    kv[0][0][1] if kv[0][0] else 0,
+                    _agenda_sort_key(kv[0][1]),
                 ),
             )
         ]

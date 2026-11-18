@@ -1,4 +1,5 @@
 import type { DigestVoteParty } from '@/lib/firebase/firebase.types';
+import { SEAT_FILLS } from './palette';
 import { sortBySeating } from './seating-order';
 
 export type SeatVote = 'yes' | 'abstain' | 'no' | 'absent';
@@ -14,6 +15,8 @@ export type Seat = {
 
 export type PartyArc = {
   partyId: string;
+  /** The logo its tile shows; see `party-logos.ts`. */
+  logoId: string;
   name: string;
   color: string;
   startAngle: number;
@@ -164,6 +167,7 @@ export function layoutHemicycle(
     });
     arcs.push({
       partyId: party.party_id,
+      logoId: party.logo_id ?? party.party_id,
       name: party.name,
       color: party.color,
       startAngle: block[0].angle,
@@ -174,6 +178,92 @@ export function layoutHemicycle(
   }
   return { seats, arcs, seatRadius: rowWidth * 0.4 };
 }
+
+/** Seats in the readers' chart: enough to read a split at a glance, few
+ * enough to stay legible at the size of a button column. */
+export const SHARE_SEATS = 100;
+
+/**
+ * The readers' "Wie hättest du abgestimmt?" as a small chamber: Annehmen
+ * from the left, Ablehnen from the right, each block sized by its share.
+ * A side with any votes keeps at least one seat, so a lone vote is never
+ * rounded away; with no votes at all every seat is hollow.
+ */
+export function layoutShare(
+  accept: number,
+  reject: number,
+  seats: number = SHARE_SEATS,
+): { seats: Seat[]; seatRadius: number } {
+  const total = accept + reject;
+  let acceptSeats = total > 0 ? Math.round((seats * accept) / total) : 0;
+  if (accept > 0) {
+    acceptSeats = Math.max(acceptSeats, 1);
+  }
+  if (reject > 0) {
+    acceptSeats = Math.min(acceptSeats, seats - 1);
+  }
+  const rejectSeats = total > 0 ? seats - acceptSeats : 0;
+  const { positions, rowWidth } = seatPositions(seats);
+  return {
+    seats: positions.map((position, i) => ({
+      x: position.x,
+      y: position.y,
+      angle: position.angle,
+      partyId: '',
+      vote:
+        i < acceptSeats
+          ? 'yes'
+          : i < acceptSeats + rejectSeats
+            ? 'no'
+            : 'absent',
+    })),
+    seatRadius: rowWidth * 0.4,
+  };
+}
+
+// Fixed precision so the server-rendered SVG and the hydrating client agree
+// to the character; raw trig results can differ in their last digits.
+export function coord(value: number): string {
+  return value.toFixed(4);
+}
+
+/** Absent seats are hollow: this ring and a white centre. */
+export const ABSENT_RING = '#A1A1AA';
+
+export type SeatShape = {
+  cx: string;
+  cy: string;
+  r: string;
+  fill: string;
+  stroke?: string;
+  strokeWidth?: string;
+};
+
+/** One seat's circle in the chart's `viewBox` (y pointing down). Shared by
+ * the detail view and the share image, so both draw the same chamber. */
+export function seatShape(seat: Seat, seatRadius: number): SeatShape {
+  const position = { cx: coord(seat.x), cy: coord(-seat.y) };
+  if (seat.vote === 'absent') {
+    return {
+      ...position,
+      r: coord(seatRadius * 0.8),
+      fill: '#FFFFFF',
+      stroke: ABSENT_RING,
+      strokeWidth: coord(seatRadius * 0.4),
+    };
+  }
+  return { ...position, r: coord(seatRadius), fill: SEAT_FILLS[seat.vote] };
+}
+
+/** The order every legend reads. `absent` is abgeordnetenwatch's "Nicht
+ * beteiligt" for a member who cast no vote; it covers being away as well as
+ * staying out of the vote. */
+export const SEAT_VOTES: readonly SeatVote[] = [
+  'yes',
+  'no',
+  'abstain',
+  'absent',
+];
 
 export type VoteTotals = Record<SeatVote, number> & { total: number };
 
@@ -194,4 +284,12 @@ const UNAFFILIATED = new Set(['fraktionslos', 'fraktionslose', 'unbekannt']);
 
 export function isUnaffiliated(partyId: string): boolean {
   return UNAFFILIATED.has(partyId);
+}
+
+export type VoteShare = { vote: SeatVote; count: number };
+
+/** How one Fraktion's members voted, in the order the legend reads. */
+export function voteBreakdown(party: DigestVoteParty): VoteShare[] {
+  const totals = voteTotals([party]);
+  return SEAT_VOTES.map((vote) => ({ vote, count: totals[vote] }));
 }

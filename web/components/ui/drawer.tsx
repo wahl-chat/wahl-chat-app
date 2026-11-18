@@ -36,9 +36,12 @@ DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName;
 
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DrawerPortal>
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> & {
+    /** Where the drawer is portaled; `document.body` by default. */
+    container?: HTMLElement | null;
+  }
+>(({ className, children, container, ...props }, ref) => (
+  <DrawerPortal container={container}>
     <DrawerOverlay />
     <DrawerPrimitive.Content
       ref={ref}

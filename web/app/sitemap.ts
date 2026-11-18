@@ -49,7 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: PageEntry[] = [
     { path: '/', lastModified: now, changeFrequency: 'daily', priority: 1 },
     {
-      path: '/chat',
+      path: '/election-chat',
       lastModified: now,
       changeFrequency: 'daily',
       priority: 0.9,

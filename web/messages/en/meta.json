@@ -1,12 +1,13 @@
 {
   "title": "wahl.chat - Understand politics interactively",
-  "description": "Understand where the parties stand in federal, state and local elections in Germany. Chat with the parties' manifestos on wahl.chat, ask about the issues you care about and get party positions put into critical context.",
-  "keywords": "wahl.chat, election chat, German elections, AI election chat, AI manifesto, election manifesto, party manifestos, German parties, German politics, understand politics, Bundestag election, German federal election, German state election, local elections Germany, state elections 2026, local elections 2026, AI, artificial intelligence, chatbot, Germany, voting advice, election guide, voting decision help, Wahl-o-Mat, Wahl-o-Mat alternative",
-  "organizationDescription": "Political information platform – compare party positions interactively.",
-  "websiteDescription": "Understand where the parties stand in federal, state and local elections in Germany.",
+  "description": "Understand what happens in the Bundestag and where the parties stand in federal, state and local elections in Germany. On wahl.chat you read debates and votes in brief, with sources, and chat with the parties' manifestos.",
+  "keywords": "wahl.chat News, Bundestag, Bundestag today, German parliament, Bundestag debate, plenary sitting, plenary record, Bundestag votes, roll-call vote, voting record, sitting week, parliament, politics news, wahl.chat, election chat, German elections, AI election chat, AI manifesto, election manifesto, party manifestos, German parties, German politics, understand politics, Bundestag election, German federal election, German state election, local elections Germany, state elections 2026, local elections 2026, AI, artificial intelligence, chatbot, Germany, voting advice, election guide, voting decision help, Wahl-o-Mat, Wahl-o-Mat alternative",
+  "organizationDescription": "Political information platform – understand the Bundestag in brief and compare party positions interactively.",
+  "websiteDescription": "Understand what happens in the Bundestag and where the parties stand in federal, state and local elections in Germany.",
   "feed": {
-    "title": "Your parliament in brief – wahl.chat",
-    "description": "Votes and debates from the Bundestag and the Landtage, day by day and filtered by topic. With sources, brought to you by wahl.chat."
+    "title": "The Bundestag in brief: debates & votes – wahl.chat News",
+    "description": "Understand what happens in the German Bundestag: debates and votes summarised day by day, filtered by topic and backed by sources.",
+    "keywords": "Bundestag, German parliament, plenary sitting, debates, votes, plenary record, party positions"
   },
   "context": {
     "title": "{name} – compare party positions in the chat",

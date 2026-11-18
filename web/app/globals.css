@@ -191,6 +191,15 @@ body {
   --daily-yes-bg: #e7f4ec;
   --daily-no: #a3323d;
   --daily-no-bg: #fbeaec;
+  /* The sitting calendar's day cells sit on the canvas itself, where the
+     surface tints above wash out on many screens. Text keeps AA on them. */
+  --daily-day-online: #c3e4cf;
+  --daily-day-pending: #dcdce1;
+  --daily-day-pending-hover: #d0d0d6;
+  --daily-day-upcoming: #a1a1aa;
+  /* A card's own action ("Mehr anzeigen") on touch screens, which has to
+     stand out from the card without any hover. */
+  --daily-action-bg: #e4e4e7;
   color: var(--daily-ink);
   background: var(--daily-canvas);
   font-family: var(--font-daily-body), Arial, Helvetica, sans-serif;
@@ -207,4 +216,9 @@ body {
   --daily-yes-bg: #13291c;
   --daily-no: #f07a88;
   --daily-no-bg: #2e1418;
+  --daily-day-online: #13291c;
+  --daily-day-pending: #27272a;
+  --daily-day-pending-hover: #3f3f46;
+  --daily-day-upcoming: #3f3f46;
+  --daily-action-bg: #3f3f46;
 }

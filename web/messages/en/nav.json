@@ -14,5 +14,8 @@
   "login": "Log in",
   "openMenu": "Open menu",
   "menuTitle": "Menu",
-  "menuDescription": "wahl.chat navigation"
+  "menuDescription": "wahl.chat navigation",
+  "news": "News",
+  "feedback": "Feedback",
+  "deleteOpinions": "Delete my ratings"
 }

@@ -1,6 +1,7 @@
 import { ContextProvider } from '@/components/providers/context-provider';
 import { redirectLocalized } from '@/i18n/server-navigation';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
+import { looksLikeContextId } from '@/lib/context-id';
 import {
   getContext,
   getContexts,
@@ -47,10 +48,13 @@ async function ContextLayout({ children, params }: Props) {
     getPartiesForContext(contextId),
   ]);
 
-  // If context doesn't exist, redirect to default context
   if (!context) {
-    // Avoid infinite redirect loop if default context also doesn't exist
-    if (contextId === DEFAULT_CONTEXT_ID) {
+    // This route catches every top-level path, so most misses were never an
+    // election; sending those to one is a soft 404. Only a stale election
+    // link is worth redirecting to the default.
+    // Comparing with DEFAULT_CONTEXT_ID avoids an infinite redirect loop if the
+    // default context does not exist either.
+    if (!looksLikeContextId(contextId) || contextId === DEFAULT_CONTEXT_ID) {
       notFound();
     }
     return redirectLocalized(`/${DEFAULT_CONTEXT_ID}`);

@@ -8,6 +8,7 @@ import { type LucideIcon, ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Fragment, useEffect, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
+import { InfoTooltip } from './info-tooltip';
 
 const OPTIONS: {
   value: FeedInterest;
@@ -18,15 +19,28 @@ const OPTIONS: {
   { value: 'no', label: 'interestNo', Icon: ThumbsDownIcon },
 ];
 
-/** "Interessant?" over 👍 | 👎, bottom left of every card. */
+/** Why we ask: on hover with a mouse, on tap on a touch screen. */
+function InterestQuestion() {
+  const t = useTranslations('feed');
+  return (
+    <InfoTooltip
+      content={t('interestWhy')}
+      className={cn(
+        'self-start rounded text-left text-[13px] underline decoration-dotted underline-offset-2',
+        MUTED_TEXT,
+      )}
+    >
+      {t('interesting')}
+    </InfoTooltip>
+  );
+}
+
+/** "Interessant für dich?" over 👍 | 👎, bottom left of every card. */
 function InterestFeedback({
   itemKey,
-  legacyKeys = [],
   className,
 }: {
   itemKey: string;
-  /** Older keys of the same item, so an answer given under one still shows. */
-  legacyKeys?: string[];
   className?: string;
 }) {
   const t = useTranslations('feed');
@@ -34,12 +48,9 @@ function InterestFeedback({
   const [answer, setAnswer] = useState<FeedInterest | null>(null);
 
   // localStorage only exists after hydration.
-  const legacy = legacyKeys.join(',');
   useEffect(() => {
-    const stored = readInterest();
-    const key = [itemKey, ...legacy.split(',')].find((k) => k && stored[k]);
-    setAnswer(key ? stored[key] : null);
-  }, [itemKey, legacy]);
+    setAnswer(readInterest()[itemKey] ?? null);
+  }, [itemKey]);
 
   const choose = (value: FeedInterest) => {
     setAnswer(value);
@@ -56,9 +67,7 @@ function InterestFeedback({
       )}
     >
       <legend className="sr-only">{t('interesting')}</legend>
-      <span aria-hidden className={cn('text-[13px]', MUTED_TEXT)}>
-        {t('interesting')}
-      </span>
+      <InterestQuestion />
       {/* Pulled left so the first icon lines up with the label above. */}
       <div className="-ml-2.5 flex items-center">
         {OPTIONS.map(({ value, label, Icon }, i) => {

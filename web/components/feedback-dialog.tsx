@@ -1,5 +1,5 @@
 import { Link } from '@/i18n/navigation';
-import { MailIcon, MessageSquareHeart } from 'lucide-react';
+import { MailIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   ResponsiveDialog,
@@ -11,15 +11,20 @@ import {
 } from './chat/responsive-drawer-dialog';
 import { Button } from './ui/button';
 type Props = {
-  children: React.ReactNode;
+  /** The trigger. Omit it to open the dialog through `open` instead. */
+  children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
-function FeedbackDialog({ children }: Props) {
+function FeedbackDialog({ children, open, onOpenChange }: Props) {
   const t = useTranslations('common.feedbackDialog');
 
   return (
-    <ResponsiveDialog>
-      <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      {children && (
+        <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
+      )}
 
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
@@ -34,15 +39,6 @@ function FeedbackDialog({ children }: Props) {
             <Link href="mailto:info@wahl.chat">
               <MailIcon />
               {t('email')}
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link
-              href="https://forms.fillout.com/t/cGozfJUor9us"
-              target="_blank"
-            >
-              <MessageSquareHeart />
-              {t('form')}
             </Link>
           </Button>
         </div>

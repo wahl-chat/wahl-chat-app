@@ -1,58 +1,62 @@
+import LoginButton from '@/components/auth/login-button';
+import UserAvatar from '@/components/auth/user-avatar';
 import Logo from '@/components/chat/logo';
 import { LocaleSwitcher } from '@/components/locale/locale-switcher';
+import MobileNavbar from '@/components/navbar/mobile-navbar';
 import { Link } from '@/i18n/navigation';
-import { SITE_LINKS } from '@/lib/site-links';
 import { IS_EMBEDDED, cn } from '@/lib/utils';
-import { HeartIcon } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { FOCUS_RING, MUTED_TEXT } from './card-styles';
+import { FOCUS_RING } from './card-styles';
+import WeeklySignupButton from './weekly-signup-button';
 
 /**
- * The site header on the feed's column width, so the logo and the donation
- * button line up with the cards. The feed's own inputs lead into the chat.
+ * The site header on the feed's column width, so the logo and the login
+ * button line up with the cards: "wahl.chat / News", the product's name next
+ * to the brand. "Meine Woche" asks readers to sign up for the weekly digest,
+ * and the language selector sits next to it.
+ * The rest (Chat, Anleitung, Spenden, Feedback) sits in the menu, which the
+ * feed shows at every width since its column reads as the phone layout.
  */
 function DailyHeader() {
-  const t = useTranslations('header');
-  const tNav = useTranslations('nav');
   return (
     <header className="sticky top-0 z-30 h-header border-b border-[var(--daily-border)] bg-[var(--daily-canvas)]">
-      <div className="mx-auto flex size-full max-w-screen-sm items-center justify-between gap-3 px-4 sm:gap-4">
+      <div className="mx-auto flex size-full max-w-screen-sm items-center justify-between gap-2 px-4 sm:gap-4">
         <Link
           href="/"
-          aria-label={t('home')}
-          className={cn(FOCUS_RING, 'rounded-md')}
+          aria-label="wahl.chat News"
+          className={cn(
+            FOCUS_RING,
+            'flex items-center gap-2 rounded-md text-[var(--daily-ink)] sm:gap-3',
+          )}
         >
-          <Logo className="size-12 text-[var(--daily-ink)]" />
+          <Logo className="size-10 max-[380px]:size-9 sm:size-12" />
+          <span
+            aria-hidden
+            className="h-8 w-[3px] skew-x-[-18deg] rounded-full bg-[var(--daily-border)]"
+          />
+          <span
+            aria-hidden
+            className="text-[22px] font-bold leading-none sm:text-[28px]"
+          >
+            News
+          </span>
         </Link>
 
         {!IS_EMBEDDED && (
-          <nav className="flex items-center gap-2">
-            <Link
-              href="/how-to"
-              className={cn(
-                FOCUS_RING,
-                'flex min-h-10 items-center rounded-lg px-2 text-[15px] sm:px-3 sm:text-[17px]',
-                MUTED_TEXT,
-              )}
-            >
-              {tNav('howTo')}
-            </Link>
+          <nav className="flex items-center gap-1 sm:gap-2">
             <LocaleSwitcher
               className={cn(
                 FOCUS_RING,
-                'gap-1.5 px-2 sm:gap-2 sm:px-3 border-[var(--daily-border)] text-[var(--daily-muted)] hover:text-[var(--daily-ink)]',
+                'gap-1.5 border-[var(--daily-border)] px-2 text-[var(--daily-muted)] hover:text-[var(--daily-ink)] sm:gap-2 sm:px-3',
               )}
             />
-            <Link
-              href={SITE_LINKS.donate.href}
-              className={cn(
-                FOCUS_RING,
-                'flex h-10 items-center gap-2 rounded-lg bg-[var(--daily-ink)] px-3 text-[15px] sm:px-4 font-semibold text-[var(--daily-canvas)]',
-              )}
-            >
-              <HeartIcon className="size-4" aria-hidden />
-              {tNav('donate')}
-            </Link>
+            {/* The root layout seeds the auth state from the session, so a
+                signed-in reader gets the avatar on first paint. */}
+            <LoginButton
+              purpose="briefings"
+              noUserChildren={<WeeklySignupButton />}
+              userChildren={<UserAvatar />}
+            />
+            <MobileNavbar alwaysVisible />
           </nav>
         )}
       </div>

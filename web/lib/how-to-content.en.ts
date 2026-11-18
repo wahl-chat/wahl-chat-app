@@ -27,13 +27,13 @@ export const HOW_TO_EN: HowToContent = {
     title: 'The parliament feed',
     paragraphs: [
       'On the start page, wahl.chat sums up every sitting day for you: what was debated in the chamber and how the parliamentary groups voted. It is based on the plenary records and videos of the sittings and the results of the roll-call votes.',
-      'The summaries are created with the help of AI, based on these sources. A position is attributed to a parliamentary group only if its speakers actually spoke in the debate, and quotes are used only if they appear word for word in the record.',
+      "The summaries are created with the help of AI, based on these sources, one agenda item at a time. Every parliamentary group that spoke in a debate is named. Its position statement is checked once more against the group's own speeches before publication; if it cannot be backed up, we only link to its speeches. Quotes are used only if they appear word for word in the record.",
     ],
     list: [
-      'At the top, you choose the parliaments (the Bundestag and selected state parliaments) and the topics you are interested in.',
+      'At the top, you choose the topics you are interested in. For now the feed covers the Bundestag; the state parliaments will follow.',
       '“Show more” opens the summary: the key points, who said what and the source in the plenary record.',
       'Use the input field to ask questions about the debate or vote straight away.',
-      'Use the thumbs under “Interesting?” to tell us what you find interesting. It helps us improve your feed for you.',
+      'Use the thumbs under “Interesting to you?” to tell us what you find interesting. That lets us improve the order of your feed for you.',
     ],
     link: 'Go to the parliament feed',
   },
@@ -68,10 +68,11 @@ export const HOW_TO_EN: HowToContent = {
       title: "How is a debate's intensity measured in the feed?",
       content: {
         intro:
-          'The dots next to a debate show how heated it was compared with the other debates of the same day. They are worked out as follows:',
+          'The flames next to a debate show how often the chamber interrupted the speakers, compared with the other debates of the same day. They are worked out as follows:',
         orderedList: [
-          "Per sitting: An AI compares the debates of a sitting with each other, looking at interjections, how sharp the tone is and how opposed the parliamentary groups' positions are. The most heated debate gets 5 dots, the others fewer.",
-          'Topic of the day: The debate at the top has the highest score of intensity times debate length, based on an estimate of the words spoken per minute.',
+          'Counted in the plenary record: The record notes heckling, retorts, objections, laughter and unrest. We count them for each debate and divide by its length in minutes. Applause does not count.',
+          'Compared within the day: The debates of a day are compared only with each other, not with fixed thresholds. The one with the most interruptions per minute gets 5 flames, the one with the fewest 1 flame, and all others fall in between.',
+          'Hot topic: The debate at the top is the one with the most interruptions per minute.',
         ],
         outro:
           'Intensity says nothing about how important a topic is. It only describes how contested the debate in the chamber was.',

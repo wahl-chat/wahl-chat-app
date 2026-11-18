@@ -24,22 +24,15 @@ from __future__ import annotations
 # embedding settings are read at import time. override=False keeps exported
 # variables (make, CI, the job spec) in force; Cloud Run has no .env.
 if __name__ == "__main__":
-    from pathlib import Path as _Path
+    from ingestion.env_file import load_env_file
 
-    from dotenv import load_dotenv
-
-    _env_path = _Path(__file__).resolve().parents[3] / ".env"
-    # Use ai-backend/.env when ingestion/.env does not exist.
-    if not _env_path.exists():
-        _env_path = _env_path.parents[1] / "ai-backend" / ".env"
-    if _env_path.exists():
-        load_dotenv(_env_path, override=False)
+    load_env_file()
 
 import os
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
 from langchain_core.embeddings import Embeddings
 from qdrant_client import QdrantClient, models
@@ -172,12 +165,14 @@ def index_items(
     embed: Embeddings,
     items: list[FeedItem],
     collection_name: str = FEED_COLLECTION_NAME,
+    retracted_ids: Iterable[str] = (),
 ) -> IndexReport:
     """Upsert published items whose German text changed; drop retracted ones."""
     check_fingerprint(qdrant, collection_name)
     report = IndexReport()
 
     retracted = [feed_point_id(i.id) for i in items if i.status == "retracted"]
+    retracted += [feed_point_id(item_id) for item_id in retracted_ids]
     if retracted:
         qdrant.delete(
             collection_name=collection_name,

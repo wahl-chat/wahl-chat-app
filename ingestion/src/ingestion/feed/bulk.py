@@ -5,18 +5,18 @@
 """Build the parliament feed from the corpus and publish it.
 
 Per parliament, the window ends on the latest day the corpus has data for (not
-today — Landtage sit irregularly and ingestion lags) and spans ``--days``.
-Reruns are cheap: a day whose source payloads are unchanged since the stored
-edition is skipped without LLM calls. The scheduled job runs weekly after the
+today — ingestion lags) and spans ``--days``. The source defines the items: one
+per agenda item with speeches, one per poll. Each carries the hash of its own
+inputs, so a rerun regenerates only the items whose sources changed; an
+unchanged day costs no LLM call. The scheduled job runs weekly after the
 speech and vote jobs, several times in a row: ``--time-budget`` stops it
-between days before the job's time cap, and the next run picks up the days
-still missing.
+starting new items before the job's time cap, and the next run picks up what
+is still missing.
 
-Each built day is published before the next one starts: split into feed
-items, translated, indexed in the feed collection in Qdrant, then written to
-Firestore ``feed_items`` and ``feed_editions``. Qdrant goes first, so a crash
-leaves at worst an indexed item Firestore does not have yet; the next run
-rewrites both.
+Each built day is published before the next one starts: translated, indexed
+in the feed collection in Qdrant, then written to Firestore ``feed_items`` and
+``feed_editions``. Qdrant goes first, so a crash leaves at worst an indexed item
+Firestore does not have yet; the next run rewrites both.
 
 Usage (local):
     FIRESTORE_EMULATOR_HOST=localhost:8081 \
@@ -29,36 +29,75 @@ from __future__ import annotations
 # embedding settings are read at import time. override=False keeps exported
 # variables (make, CI, the job spec) in force; Cloud Run has no .env.
 if __name__ == "__main__":
-    from pathlib import Path as _Path
+    from ingestion.env_file import load_env_file
 
-    from dotenv import load_dotenv
-
-    _env_path = _Path(__file__).resolve().parents[3] / ".env"
-    # Use ai-backend/.env when ingestion/.env does not exist.
-    if not _env_path.exists():
-        _env_path = _env_path.parents[1] / "ai-backend" / ".env"
-    if _env_path.exists():
-        load_dotenv(_env_path, override=False)
+    load_env_file()
 
 import json
 import logging
 import os
 import sys
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
+from zoneinfo import ZoneInfo
 
 import httpx
 from qdrant_client import QdrantClient
 
-from ingestion.feed.builder import DigestBuilder, iter_digests
+from ingestion.connectors.abgeordnetenwatch.client import AWClient
+from ingestion.feed.builder import (
+    DayPlan,
+    DebateUnit,
+    FeedBuilder,
+    VoteUnit,
+    build_day,
+    plan_days,
+    with_speaker_facts,
+)
+from ingestion.feed.calendar import FRESH_FOR, build_calendar
+from ingestion.feed.card_video import choose_card_video
+from ingestion.feed.documents import PollDocuments, poll_documents
 from ingestion.feed.index import FEED_COLLECTION_NAME, IndexReport, index_items
-from ingestion.feed.items import split_digest
-from ingestion.feed.models import DailyDigest, FeedEdition, FeedItem
-from ingestion.feed.parliaments import PARLIAMENTS, Parliament, load_party_display
-from ingestion.feed.protocol_pages import attach_protocol_pages
+from ingestion.feed.items import BuildNeed, assemble_edition, build_needed
+from ingestion.feed.models import (
+    FEED_FORMAT_VERSION,
+    FeedEdition,
+    FeedItem,
+)
+from ingestion.feed.parliaments import (
+    FEED_PARLIAMENTS,
+    PARLIAMENTS,
+    Parliament,
+    load_party_display,
+)
+from ingestion.feed.politicians import (
+    RefreshReport,
+    refresh_politicians,
+    speaker_ids,
+    speaker_names,
+    speakers_without_id,
+)
+from ingestion.feed.posters import (
+    PosterMaker,
+    PosterReport,
+    add_posters,
+    poster_maker,
+    writes_webp,
+)
+from ingestion.feed.glossary import (
+    GlossaryEntry,
+    GlossaryReport,
+    annotate_terms,
+    needs_terms,
+    read_glossary,
+    write_glossary,
+)
+from ingestion.feed.protocol_pages import apply_protocols
+from ingestion.feed.speaker_parties import PartyResolver
 from ingestion.feed.reader import (
     SPEECH_SOURCE_TYPE,
     VOTE_SOURCE_TYPE,
@@ -72,14 +111,19 @@ from ingestion.feed.reader import (
 )
 from ingestion.feed.store import (
     carry_over_translations,
-    read_edition_hashes,
-    read_editions,
-    read_items,
+    read_calendar,
+    read_edition_item_ids,
     read_items_since,
-    vanished_items,
+    vanished_item_ids,
+    write_calendar,
+    write_card_videos,
     write_feed,
 )
-from ingestion.feed.translate import TranslationReport, translate_items
+from ingestion.feed.translate import (
+    TranslationReport,
+    needs_translation,
+    translate_items,
+)
 from ingestion.firestore_guard import guard_firestore_target
 from ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
 
@@ -88,30 +132,59 @@ logger = logging.getLogger(__name__)
 # Must match CacheTags.FEED in web/lib/cache-tags.ts.
 FEED_CACHE_TAG = "feed"
 _DEFAULT_SITE_URLS = {"prod": "https://wahl.chat", "dev": "https://dev.wahl.chat"}
+# No new item starts once --time-budget is spent; calls already running get
+# this long to finish before they are cut, leaving the rest of the job's cap
+# for translation fallbacks and the writes.
+_CALL_GRACE_S = 75
 
 
 @dataclass
 class ParliamentRun:
     parliament: Parliament
-    window: Optional[tuple[Any, Any]]
-    digests: list[DailyDigest]
-    unchanged: int
+    window: Optional[tuple[date, date]]
+    days_built: int = 0
+    unchanged: int = 0
+    items_built: int = 0
+    # Built, but retried next run: a vote fallback, or a Fraktion without a
+    # position that has attempts left.
+    incomplete: int = 0
+    # Debates whose protocol could not be read yet, so their order is unknown.
+    deferred: int = 0
     out_of_time: bool = False
+    # What a model call failed to generate (see ``FeedBuilder.record_failure``).
+    failed: list[str] = field(default_factory=list)
+
+
+@dataclass
+class DayBuild:
+    """One day ready to publish: its edition, every item the edition lists
+    (``changed`` marks which need writing), and the ids to retract."""
+
+    edition: FeedEdition
+    items: list[FeedItem]
+    changed: set[str]
+    built: set[str]
+    retracted_ids: list[str] = field(default_factory=list)
 
 
 @dataclass
 class Published:
     editions: list[FeedEdition] = field(default_factory=list)
     items: list[FeedItem] = field(default_factory=list)
-    retracted: list[FeedItem] = field(default_factory=list)
+    retracted: int = 0
     translation: TranslationReport = field(default_factory=TranslationReport)
     index: IndexReport = field(default_factory=IndexReport)
     translations_kept: int = 0
+    glossary: GlossaryReport = field(default_factory=GlossaryReport)
+
+    @property
+    def wrote(self) -> bool:
+        return bool(self.editions or self.items or self.retracted)
 
     def add(self, other: Published) -> None:
         self.editions.extend(other.editions)
         self.items.extend(other.items)
-        self.retracted.extend(other.retracted)
+        self.retracted += other.retracted
         self.translation.translated += other.translation.translated
         self.translation.failed += other.translation.failed
         self.translation.dropped_stale += other.translation.dropped_stale
@@ -119,11 +192,20 @@ class Published:
         self.index.unchanged += other.index.unchanged
         self.index.deleted += other.index.deleted
         self.translations_kept += other.translations_kept
+        self.glossary.items_annotated += other.glossary.items_annotated
+        self.glossary.items_failed += other.glossary.items_failed
+        self.glossary.forms_rejected += other.glossary.forms_rejected
+        self.glossary.defined += other.glossary.defined
+        self.glossary.rejected += other.glossary.rejected
 
 
 def parliament_window(
-    qdrant: QdrantClient, parliament: Parliament, days: int
-) -> Optional[tuple[Any, Any]]:
+    qdrant: QdrantClient,
+    parliament: Parliament,
+    days: int,
+    since: Optional[date] = None,
+) -> Optional[tuple[date, date]]:
+    """``days`` ending on the latest corpus day, or ``since`` up to it."""
     source_types = [VOTE_SOURCE_TYPE] + (
         [SPEECH_SOURCE_TYPE] if parliament.has_speeches else []
     )
@@ -133,14 +215,16 @@ def parliament_window(
     if latest is None:
         logger.warning("No corpus data for %s (%s)", parliament.id, parliament.region)
         return None
+    if since is not None:
+        return since, max(since, latest)
     return compute_window(latest, days)
 
 
 @dataclass
 class WindowSources:
-    window: tuple[Any, Any]
+    window: tuple[date, date]
     votes: list[dict]
-    sitting_days: dict[Any, SittingDay]
+    sitting_days: dict[date, SittingDay]
 
 
 def load_sources(
@@ -148,14 +232,15 @@ def load_sources(
     parliament: Parliament,
     days: int,
     *,
-    attach_pages: bool = True,
+    since: Optional[date] = None,
 ) -> Optional[WindowSources]:
     """The window's vote payloads and sitting days, or None without corpus data.
 
-    ``attach_pages`` fetches the Bundestag's protocol XML to link speeches to
-    their page; a day's input hash does not depend on it.
+    Sitting days come with the Bundestag's protocol applied (see
+    ``protocol_pages``): speeches in order, twins from the other source
+    dropped. Only that state is ever built or hashed.
     """
-    window = parliament_window(qdrant, parliament, days)
+    window = parliament_window(qdrant, parliament, days, since)
     if window is None:
         return None
     start, end = window
@@ -164,108 +249,321 @@ def load_sources(
         COLLECTION_NAME,
         window_filter(VOTE_SOURCE_TYPE, parliament.region, start, end),
     )
-    sitting_days: dict[Any, SittingDay] = {}
+    sitting_days: dict[date, SittingDay] = {}
     if parliament.has_speeches:
+        # A day earlier, so a sitting that began the day before the window
+        # and ran past midnight is still dated by its first speech.
         speech_payloads = scroll_payloads(
             qdrant,
             COLLECTION_NAME,
-            window_filter(SPEECH_SOURCE_TYPE, parliament.region, start, end),
+            window_filter(
+                SPEECH_SOURCE_TYPE,
+                parliament.region,
+                start - timedelta(days=1),
+                end,
+            ),
         )
-        sitting_days = group_sitting_days(assemble_speeches(speech_payloads))
-        for sitting in sitting_days.values() if attach_pages else ():
-            attached = attach_protocol_pages(sitting)
+        sitting_days = {
+            day: sitting
+            for day, sitting in group_sitting_days(
+                assemble_speeches(speech_payloads)
+            ).items()
+            if day >= start
+        }
+        resolve_party = PartyResolver()
+        for sitting in sitting_days.values():
+            ordered = apply_protocols(sitting, resolve_party=resolve_party)
             logger.info(
-                "%s: %d speeches linked to their protocol page", sitting.day, attached
+                "%s: %d of %d agenda items in protocol order",
+                sitting.day,
+                ordered,
+                len(sitting.agenda_items),
             )
     return WindowSources(window, votes, sitting_days)
+
+
+def _replaces(built: FeedItem, stored: Optional[FeedItem]) -> bool:
+    """A vote whose texts fell back to its title does not replace a stored
+    version the model wrote; its hash still differs, so the next run tries
+    again. A vote never published before is shown with the fallback."""
+    return (
+        built.input_hash is not None
+        or stored is None
+        or stored.status != "published"
+        or stored.input_hash is None
+    )
+
+
+def attach_source_facts(
+    items: list[FeedItem],
+    plan: DayPlan,
+    lookup_poll: Optional[PollDocuments],
+) -> tuple[list[FeedItem], set[str]]:
+    """Give each item the facts read from its source: a debate its
+    Drucksachen, interjections and who its speakers are, a vote its
+    Drucksachen. Returns the items
+    and the ids that changed. Facts from the source, not the model: a stored
+    item gets them without being rebuilt, and its texts and translation stay
+    as they are. A debate follows this run's protocol, corrections included;
+    a vote is looked up until a lookup answers.
+    """
+    agendas = {u.item_id: u.agenda for u in plan.debates}
+    out: list[FeedItem] = []
+    changed: set[str] = set()
+    for item in items:
+        if item.debate is not None and item.id in agendas:
+            agenda = agendas[item.id]
+            update: dict[str, Any] = {
+                field: found
+                for field, found in (
+                    ("drucksachen", agenda.drucksachen),
+                    ("interjections", agenda.interjections),
+                )
+                if found is not None and found != getattr(item.debate, field)
+            }
+            parties = with_speaker_facts(item.debate.parties, agenda.speeches)
+            if parties is not None:
+                update["parties"] = parties
+            if update:
+                debate = item.debate.model_copy(update=update)
+                item = item.model_copy(update={"debate": debate})
+                changed.add(item.id)
+        elif (
+            item.vote is not None
+            and item.vote.drucksachen is None
+            and lookup_poll is not None
+        ):
+            found = lookup_poll(item.vote.poll_id)
+            if found is not None:
+                vote = item.vote.model_copy(update={"drucksachen": found})
+                item = item.model_copy(update={"vote": vote})
+                changed.add(item.id)
+        out.append(item)
+    return out, changed
+
+
+def attach_card_videos(items: list[FeedItem]) -> tuple[list[FeedItem], set[str]]:
+    """Give each debate the video its card plays. Like ``attach_source_facts``,
+    a stored item gets it without being rebuilt. The poster is cut after the
+    run has published (``refresh_posters``); a stored one is kept while it
+    still shows the same video at the same second, since any other still would
+    not be the frame playback starts on.
+    """
+    out: list[FeedItem] = []
+    changed: set[str] = set()
+    for item in items:
+        if item.debate is not None:
+            stored = item.debate.card_video
+            chosen = choose_card_video(item.debate)
+            if (
+                chosen is not None
+                and stored is not None
+                and (stored.video_url, stored.start) == (chosen.video_url, chosen.start)
+            ):
+                chosen = chosen.model_copy(update={"poster_url": stored.poster_url})
+            if chosen != stored:
+                debate = item.debate.model_copy(update={"card_video": chosen})
+                item = item.model_copy(
+                    update={"debate": debate, "format_version": FEED_FORMAT_VERSION}
+                )
+                changed.add(item.id)
+        out.append(item)
+    return out, changed
+
+
+def plan_day(
+    builder: FeedBuilder,
+    parliament: Parliament,
+    plan: DayPlan,
+    display: dict[str, Any],
+    *,
+    stored: dict[str, FeedItem],
+    stored_edition_ids: Optional[list[str]],
+    force: bool,
+    run: ParliamentRun,
+    out_of_time: Callable[[], bool],
+    now: datetime,
+    lookup_poll: Optional[PollDocuments] = None,
+) -> Optional[DayBuild]:
+    """Generate what changed in one day and assemble its edition; None when
+    the day is unchanged and fully translated."""
+    units: list[DebateUnit | VoteUnit] = [*plan.debates, *plan.votes]
+    hashes = {u.item_id: u.input_hash for u in units}
+    need: dict[str, Optional[BuildNeed]] = {
+        u.item_id: "full"
+        if force
+        else build_needed(stored.get(u.item_id), u.input_hash, u.legacy_input_hash)
+        for u in units
+    }
+    debates = [u for u in plan.debates if need[u.item_id] == "full"]
+    top_ups = [
+        (u, stored[u.item_id]) for u in plan.debates if need[u.item_id] == "positions"
+    ]
+    votes = [u for u in plan.votes if need[u.item_id] == "full"]
+    run.deferred += sum(1 for u in debates if not u.buildable)
+    built_items = (
+        build_day(
+            builder,
+            parliament,
+            plan,
+            debates,
+            votes,
+            display,
+            now=now,
+            out_of_time=out_of_time,
+            top_ups=top_ups,
+        )
+        if any(u.buildable for u in [*debates, *(u for u, _ in top_ups)]) or votes
+        else []
+    )
+    # Counted before the early return: a vote kept back below leaves the day
+    # unchanged, and is still retried next run.
+    run.incomplete += sum(1 for i in built_items if build_needed(i, hashes[i.id]))
+    built = {i.id: i for i in built_items if _replaces(i, stored.get(i.id))}
+
+    listed: list[FeedItem] = []
+    for item_id in plan.item_ids:
+        # A unit that could not be rebuilt keeps its stored version; one never
+        # built yet stays out until a run builds it.
+        item = built.get(item_id) or stored.get(item_id)
+        if item is not None and item.status == "published":
+            listed.append(item)
+    listed, documented = attach_source_facts(listed, plan, lookup_poll)
+    listed, filmed = attach_card_videos(listed)
+    edition, ranked = assemble_edition(
+        parliament, plan.edition_id, plan.day, plan.protocols, listed, now
+    )
+    retracted = vanished_item_ids(stored_edition_ids or [], edition.item_ids)
+    changed = (
+        documented
+        | filmed
+        | {
+            i.id
+            for i in ranked
+            if i.id in built or stored.get(i.id) is None or stored[i.id].rank != i.rank
+        }
+    )
+    untranslated = any(needs_translation(i, "en") or needs_terms(i) for i in ranked)
+    if (
+        not changed
+        and not retracted
+        and stored_edition_ids == edition.item_ids
+        and not untranslated
+    ):
+        return None
+    run.items_built += len(built)
+    return DayBuild(
+        edition=edition,
+        items=ranked,
+        changed=changed,
+        built=set(built),
+        retracted_ids=retracted,
+    )
 
 
 def build_for_parliament(
     qdrant: QdrantClient,
     parliament: Parliament,
-    builder: DigestBuilder,
+    builder: FeedBuilder,
     *,
     days: int,
     env: str,
-    existing_hashes: dict[str, Optional[str]],
+    db: Any,
     force: bool,
-    publish_day: Callable[[DailyDigest], None],
+    publish_day: Callable[[DayBuild, dict[str, FeedItem]], None],
+    since: Optional[date] = None,
     out_of_time: Callable[[], bool] = lambda: False,
+    now: Optional[datetime] = None,
+    lookup_poll: Optional[PollDocuments] = None,
 ) -> ParliamentRun:
     """Build the window's days newest first, publishing each one as it is built.
 
-    Stops between days once ``out_of_time()`` says so; a finished day is
-    already stored, so the next run skips it.
+    Stops between items once ``out_of_time()`` says so; whatever is published
+    is stored, so the next run skips it.
     """
-    sources = load_sources(qdrant, parliament, days)
+    sources = load_sources(qdrant, parliament, days, since=since)
     if sources is None:
-        return ParliamentRun(parliament, None, [], 0)
-    votes, sitting_days = sources.votes, sources.sitting_days
-
-    run = ParliamentRun(parliament, sources.window, [], 0)
-    for digest in iter_digests(
-        parliament,
-        votes,
-        sitting_days,
-        load_party_display(parliament, env),
-        builder,
-        existing_hashes=existing_hashes,
-        force=force,
-    ):
-        if digest is None:
-            run.unchanged += 1
-            continue
-        run.digests.append(digest)
-        publish_day(digest)
+        return ParliamentRun(parliament, None)
+    run = ParliamentRun(parliament, sources.window)
+    plans = plan_days(parliament, sources.votes, sources.sitting_days)
+    stored = (
+        {i.id: i for i in read_items_since(db, parliament.id, sources.window[0])}
+        if db is not None
+        else {}
+    )
+    stored_editions = (
+        read_edition_item_ids(db, [p.edition_id for p in plans]) if db else {}
+    )
+    display = load_party_display(parliament, env)
+    for plan in plans:
         if out_of_time():
             run.out_of_time = True
             break
+        day = plan_day(
+            builder,
+            parliament,
+            plan,
+            display,
+            stored=stored,
+            stored_edition_ids=stored_editions.get(plan.edition_id),
+            force=force,
+            run=run,
+            out_of_time=out_of_time,
+            now=now or datetime.now(timezone.utc),
+            lookup_poll=lookup_poll,
+        )
+        if day is None:
+            run.unchanged += 1
+            continue
+        run.days_built += 1
+        publish_day(day, stored)
+    if out_of_time():
+        run.out_of_time = True
     return run
 
 
 def publish(
-    digests: list[DailyDigest],
+    day: DayBuild,
+    stored: dict[str, FeedItem],
     *,
     db: Any,
-    builder: DigestBuilder,
+    builder: FeedBuilder,
     qdrant: Optional[QdrantClient],
     embed: Any,
     translate: bool,
+    glossary: Optional[dict[str, GlossaryEntry]] = None,
 ) -> Published:
-    """Split, translate, index and store built days.
+    """Translate, index and store one built day, and explain its terms.
 
-    ``db=None`` is a dry run: nothing is read back or written. ``qdrant=None``
-    skips the index.
+    ``db=None`` is a dry run: nothing is written. ``qdrant=None`` skips the
+    index.
     """
-    out = Published()
-    for digest in digests:
-        edition, items = split_digest(digest)
-        out.editions.append(edition)
-        out.items.extend(items)
-
-    if db is not None:
-        previous = read_editions(db, [e.id for e in out.editions])
-        stored = read_items(
-            db,
-            {i.id for i in out.items}
-            | {item_id for e in previous.values() for item_id in e.item_ids},
-        )
-        out.translations_kept = carry_over_translations(out.items, stored)
-        out.retracted = vanished_items(previous, out.editions, stored)
-
+    out = Published(editions=[day.edition], retracted=len(day.retracted_ids))
+    built = [i for i in day.items if i.id in day.built]
+    out.translations_kept = carry_over_translations(built, stored)
+    to_write = {i.id for i in day.items if i.id in day.changed}
     if translate:
-        out.translation = translate_items(out.items, builder)
+        pending = [i for i in day.items if needs_translation(i, "en")]
+        out.translation = translate_items(pending, builder)
+        to_write |= {i.id for i in pending}
+    if glossary is not None:
+        annotated, entries, out.glossary = annotate_terms(day.items, builder, glossary)
+        to_write |= {i.id for i in annotated}
+        # Before the items, so an item never refers to an entry not there yet.
+        if db is not None and entries:
+            write_glossary(db, entries)
+    out.items = [i for i in day.items if i.id in to_write]
     if qdrant is not None:
-        out.index = index_items(qdrant, embed, out.items + out.retracted)
+        out.index = index_items(qdrant, embed, built, retracted_ids=day.retracted_ids)
     if db is not None:
-        write_feed(db, out.editions, out.items + out.retracted)
+        write_feed(db, [day.edition], out.items, day.retracted_ids)
     return out
 
 
 def backfill_translations(
     db: Any,
     qdrant: QdrantClient,
-    builder: DigestBuilder,
+    builder: FeedBuilder,
     parliaments: list[Parliament],
     days: int,
 ) -> TranslationReport:
@@ -309,6 +607,12 @@ def _firestore_client() -> Any:
 
 
 def post_revalidate(env: str) -> None:
+    """Bust the web's feed cache tag, so what a run wrote shows at once.
+
+    A deployment behind Vercel's Deployment Protection (dev) turns the POST
+    away before it reaches the route; ``VERCEL_AUTOMATION_BYPASS_SECRET`` is
+    Vercel's token for letting automation through.
+    """
     secret = os.getenv("REVALIDATE_SECRET")
     base = (
         os.getenv("REVALIDATE_URL")
@@ -321,27 +625,127 @@ def post_revalidate(env: str) -> None:
             "outside dev/prod). The web cache refreshes within 24h on its own."
         )
         return
+    headers = {"Authorization": f"Bearer {secret}"}
+    bypass = os.getenv("VERCEL_AUTOMATION_BYPASS_SECRET")
+    if bypass:
+        headers["x-vercel-protection-bypass"] = bypass
     response = httpx.post(
         f"{base.rstrip('/')}/api/revalidate",
         json={"tags": [FEED_CACHE_TAG]},
-        headers={"Authorization": f"Bearer {secret}"},
+        headers=headers,
         timeout=30,
     )
     response.raise_for_status()
     print(f"revalidated {FEED_CACHE_TAG} on {base}")
 
 
+def refresh_calendar(db: Any, now: Optional[datetime] = None) -> None:
+    """Store the Bundestag's sitting weeks, or print them on a dry run; a
+    copy checked within ``FRESH_FOR`` is left as it is.
+
+    Never fails the run: when bundestag.de does not answer, the stored copy
+    stays, and the web picks what is next by date, so it keeps working.
+    """
+    now = now or datetime.now(timezone.utc)
+    today = now.astimezone(ZoneInfo("Europe/Berlin")).date()
+    try:
+        stored = read_calendar(db, "bundestag") if db is not None else None
+        if stored is not None and now - stored.checked_at < FRESH_FOR:
+            print(f"calendar: checked at {stored.checked_at}, not refreshed")
+            return
+        calendar = build_calendar(today, stored=stored)
+    except Exception as exc:  # noqa: BLE001 — a stale calendar beats no feed
+        logger.warning("Sitting calendar not refreshed: %s", exc)
+        return
+    if db is None:
+        print(calendar.model_dump_json(indent=2))
+        return
+    write_calendar(db, calendar)
+    upcoming = next((w for w in calendar.weeks if w.end >= today), None)
+    print(
+        f"calendar: {len(calendar.weeks)} sitting week(s) since {calendar.since}"
+        + (f", next {upcoming.start}..{upcoming.end}" if upcoming else "")
+    )
+
+
+def refresh_speakers(
+    db: Any, since: date, out_of_time: Callable[[], bool] = lambda: False
+) -> RefreshReport:
+    """Store the record of everyone who spoke in the Bundestag debates stored
+    since ``since`` (see ``politicians``).
+
+    Never fails the run: a speaker whose profile could not be read is tried
+    again next run, and the web shows the speech instead until then.
+    """
+    try:
+        items = read_items_since(db, "bundestag", since)
+        report = refresh_politicians(
+            db, speaker_ids(items), out_of_time=out_of_time, names=speaker_names(items)
+        )
+    except Exception as exc:  # noqa: BLE001 — the feed stands without them
+        logger.warning("Politicians not refreshed: %s", exc)
+        return RefreshReport()
+    print(
+        f"politicians: {len(report.written)} written, "
+        f"{len(report.not_members)} not in the Stammdaten, "
+        f"{len(report.failed)} failed, "
+        f"{speakers_without_id(items)} speaker(s) without an ID"
+        + ("  stopped: time budget spent" if report.out_of_time else "")
+    )
+    return report
+
+
+def refresh_posters(
+    db: Any,
+    windows: Sequence[tuple[str, date]],
+    make_poster: Optional[PosterMaker],
+    out_of_time: Callable[[], bool] = lambda: False,
+) -> PosterReport:
+    """Cut the posters the debates stored in ``windows`` (parliament, first
+    day) do not have yet (see ``posters``).
+
+    Never fails the run: until its poster is there, a card shows a dark frame
+    and still plays.
+    """
+    if make_poster is None:
+        return PosterReport()
+    report = PosterReport()
+    try:
+        for parliament_id, since in windows:
+            found = add_posters(
+                read_items_since(db, parliament_id, since), make_poster, out_of_time
+            )
+            write_card_videos(db, found.written)
+            report.written.update(found.written)
+            report.failed += found.failed
+            report.out_of_time |= found.out_of_time
+            report.gave_up |= found.gave_up
+    except Exception as exc:  # noqa: BLE001 — the feed stands without them
+        logger.warning("Posters not cut: %s", exc)
+    print(
+        f"posters: {len(report.written)} written, {len(report.failed)} failed"
+        + ("  stopped: time budget spent" if report.out_of_time else "")
+        + ("  stopped: video host failing" if report.gave_up else "")
+    )
+    return report
+
+
 def _summary_line(run: ParliamentRun, published: Published) -> str:
     window = f"{run.window[0]}..{run.window[1]}" if run.window else "no data"
-    incomplete = sum(1 for d in run.digests if d.input_hash is None)
     t = published.translation
     return (
-        f"{run.parliament.id:>10}  window={window}  days_built={len(run.digests)} "
-        f"unchanged={run.unchanged} items={len(published.items)} "
-        f"retracted={len(published.retracted)} incomplete={incomplete} "
+        f"{run.parliament.id:>10}  window={window}  days_built={run.days_built} "
+        f"unchanged={run.unchanged} items_built={run.items_built} "
+        f"items_written={len(published.items)} retracted={published.retracted} "
+        f"incomplete={run.incomplete} deferred={run.deferred} "
+        f"failed={len(run.failed)} "
         f"translated={t.translated} translation_failed={t.failed} "
         f"translations_kept={published.translations_kept} "
-        f"indexed={published.index.upserted}"
+        f"indexed={published.index.upserted} "
+        f"terms_annotated={published.glossary.items_annotated} "
+        f"terms_defined={published.glossary.defined} "
+        f"terms_rejected={published.glossary.rejected} "
+        f"term_forms_rejected={published.glossary.forms_rejected}"
         + ("  stopped: time budget spent" if run.out_of_time else "")
     )
 
@@ -349,11 +753,12 @@ def _summary_line(run: ParliamentRun, published: Published) -> str:
 def build_and_publish(
     qdrant: QdrantClient,
     db: Any,
-    builder: DigestBuilder,
+    builder: FeedBuilder,
     parliaments: list[Parliament],
     *,
     days: int,
     env: str,
+    since: Optional[date] = None,
     force: bool = False,
     translate: bool = True,
     index: bool = True,
@@ -363,9 +768,10 @@ def build_and_publish(
 
     ``db=None`` is a dry run (nothing read back or written).
     """
-    existing = read_edition_hashes(db, [p.id for p in parliaments]) if db else {}
     index_to = qdrant if index and db is not None else None
     embed = _embeddings() if index_to is not None else None
+    lookup_poll = poll_documents(AWClient())
+    glossary = read_glossary(db)
     runs: list[tuple[ParliamentRun, Published]] = []
     for parliament in parliaments:
         if out_of_time():
@@ -373,32 +779,54 @@ def build_and_publish(
             continue
         published = Published()
 
-        def publish_day(digest: DailyDigest, into: Published = published) -> None:
+        def publish_day(
+            day: DayBuild, stored: dict[str, FeedItem], into: Published = published
+        ) -> None:
             into.add(
                 publish(
-                    [digest],
+                    day,
+                    stored,
                     db=db,
                     builder=builder,
                     qdrant=index_to,
                     embed=embed,
                     translate=translate,
+                    glossary=glossary,
                 )
             )
 
+        failed_before = len(builder.failed)
         run = build_for_parliament(
             qdrant,
             parliament,
             builder,
             days=days,
             env=env,
-            existing_hashes=existing,
+            db=db,
+            since=since,
             force=force,
             publish_day=publish_day,
             out_of_time=out_of_time,
+            lookup_poll=lookup_poll,
         )
+        run.failed = builder.failed[failed_before:]
         runs.append((run, published))
         print(_summary_line(run, published))
     return runs
+
+
+def card_posters(env: str, *, skip: bool = False) -> Optional[PosterMaker]:
+    """The poster maker for a run that writes ``env``. None against the
+    emulator: there is no Storage emulator, and a local run must not write
+    into a deployed bucket. ``--allow-remote`` has dropped the emulator host
+    by the time this is asked. None too without an ffmpeg that writes WebP,
+    such as Homebrew's: a run that has one cuts the posters."""
+    if skip or os.getenv("FIRESTORE_EMULATOR_HOST"):
+        return None
+    if not writes_webp():
+        logger.warning("ffmpeg cannot write WebP; debate cards get no poster this run")
+        return None
+    return poster_maker(env)
 
 
 def _embeddings() -> Any:
@@ -422,7 +850,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         "--parliament",
         action="append",
         choices=sorted(PARLIAMENTS),
-        help="Limit to one parliament (repeatable; default: all)",
+        help="Limit to one parliament (repeatable; default: those in the feed)",
     )
     parser.add_argument(
         "--force", action="store_true", help="Rebuild unchanged days too"
@@ -460,12 +888,17 @@ def main(argv: Optional[list[str]] = None) -> int:
         type=float,
         default=None,
         metavar="SECONDS",
-        help="Wall-clock budget; no new day starts once it is spent",
+        help="Wall-clock budget; no new item starts once it is spent",
     )
     parser.add_argument(
         "--revalidate",
         action="store_true",
         help="Bust the web cache tag afterwards (needs REVALIDATE_SECRET)",
+    )
+    parser.add_argument(
+        "--skip-posters",
+        action="store_true",
+        help="Do not cut or upload debate card posters (needs ffmpeg otherwise)",
     )
     args = parser.parse_args(argv)
 
@@ -478,7 +911,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
 
     env = os.getenv("ENV", "dev")
-    parliaments = [PARLIAMENTS[p] for p in (args.parliament or sorted(PARLIAMENTS))]
+    parliaments = [PARLIAMENTS[p] for p in (args.parliament or FEED_PARLIAMENTS)]
 
     db = None
     if not args.dry_run:
@@ -491,7 +924,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     check_fingerprint(qdrant, COLLECTION_NAME)
 
-    builder = DigestBuilder()
+    builder = FeedBuilder(
+        deadline=started + args.time_budget + _CALL_GRACE_S
+        if args.time_budget is not None
+        else None
+    )
     try:
         if args.translate_backfill:
             if db is None:
@@ -522,6 +959,10 @@ def main(argv: Optional[list[str]] = None) -> int:
     finally:
         builder.close()
 
+    in_bundestag = "bundestag" in {p.id for p in parliaments}
+    if in_bundestag:
+        refresh_calendar(db)
+
     if args.out:
         args.out.write_text(
             json.dumps(
@@ -541,11 +982,52 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
         print(f"wrote {args.out}")
 
-    if db is not None and args.revalidate:
+    # Only a run that wrote something has anything to show; the later runs of
+    # a morning usually find every day unchanged.
+    if db is not None and args.revalidate and any(p.wrote for _, p in runs):
+        post_revalidate(env)
+
+    # After the feed's own cache bust, so neither a slow video host nor a slow
+    # bundestag.de holds back what this run published. Posters are cut and
+    # profiles fetched one by one; they get what is left of the grace the
+    # model calls had, never the whole job's cap.
+    def out_of_grace() -> bool:
+        return (
+            args.time_budget is not None
+            and time.monotonic() - started >= args.time_budget + _CALL_GRACE_S
+        )
+
+    wrote_late = False
+    if db is not None:
+        windows = [
+            (run.parliament.id, run.window[0])
+            for run, _ in runs
+            if run.window is not None
+        ]
+        posters = refresh_posters(
+            db, windows, card_posters(env, skip=args.skip_posters), out_of_grace
+        )
+        wrote_late = bool(posters.written)
+    window = next(
+        (run.window for run, _ in runs if run.parliament.id == "bundestag"), None
+    )
+    if db is not None and in_bundestag and window is not None:
+        speakers = refresh_speakers(db, window[0], out_of_grace)
+        wrote_late = wrote_late or bool(speakers.written)
+    if args.revalidate and wrote_late:
         post_revalidate(env)
 
     if runs and all(run.window is None for run, _ in runs):
         print("No corpus data in any selected parliament.", file=sys.stderr)
+        return 1
+    failed = [what for run, _ in runs for what in run.failed]
+    if failed:
+        # Everything else is published by now; a non-zero exit is what makes a
+        # failing model or roster visible in the job's history.
+        print(
+            f"{len(failed)} item(s) not generated: {', '.join(failed)}",
+            file=sys.stderr,
+        )
         return 1
     return 0
 

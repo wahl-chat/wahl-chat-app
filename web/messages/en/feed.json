@@ -1,5 +1,5 @@
 {
-  "interesting": "Interesting?",
+  "interesting": "Interesting to you?",
   "interestYes": "Interesting",
   "interestNo": "Not interesting",
   "more": "Show more",
@@ -34,10 +34,10 @@
     "yes": "Yes",
     "no": "No",
     "abstain": "Abstained",
-    "absent": "Absent"
+    "absent": "Did not vote"
   },
   "yesNo": "Yes : No",
-  "voteResult": "Result: {yes} yes, {no} no, {abstain} abstentions, {absent} absent.",
+  "voteResult": "Result: {yes} yes, {no} no, {abstain} abstentions, {absent} did not vote.",
   "seats": "{name}: {seats} seats",
   "chooseParliament": "Choose parliament",
   "chooseParliamentChosen": "Choose parliament, selected: {names}",
@@ -52,5 +52,59 @@
   "allTopics": "All topics",
   "playSpeech": "Play speech",
   "playAudio": "Play audio",
-  "startsAt": "{speaker} · from {time}"
+  "startsAt": "{speaker} · from {time}",
+  "interestWhy": "If you tell us what interests you, we can improve the order of the feed for you.",
+  "debates": "Debates",
+  "hotTopic": "Hot topic",
+  "voteOnDebate": "Vote on this debate",
+  "unmute": "Turn sound on",
+  "heat": {
+    "counted": "The flames count heckling, objections, laughter and unrest.",
+    "hottest": "the most heated debate of this sitting day",
+    "quietest": "the calmest debate of this sitting day",
+    "compared": "compared with the other debates of this sitting day"
+  },
+  "weekly": {
+    "button": "My week",
+    "new": "new"
+  },
+  "partyVoted": "How {name} voted",
+  "members": "{count, plural, one {# member} other {# members}}",
+  "communityResult": "Community: {accept} accept, {reject} reject",
+  "comingSoon": "coming soon",
+  "allFilters": "All filters",
+  "allFiltersChosen": "All filters, selected: {summary}",
+  "contents": "Content",
+  "kinds": {
+    "debate": "Debates",
+    "vote": "Votes",
+    "only": {
+      "debate": "debates only",
+      "vote": "votes only"
+    }
+  },
+  "parliaments": {
+    "DE": "Bundestag",
+    "BW": "Baden-Württemberg",
+    "BY": "Bavaria",
+    "BE": "Berlin (House of Representatives)",
+    "BB": "Brandenburg",
+    "HB": "Bremen (Bürgerschaft)",
+    "HH": "Hamburg (Bürgerschaft)",
+    "HE": "Hesse",
+    "MV": "Mecklenburg-Western Pomerania",
+    "NI": "Lower Saxony",
+    "NW": "North Rhine-Westphalia",
+    "RP": "Rhineland-Palatinate",
+    "SL": "Saarland",
+    "SN": "Saxony",
+    "ST": "Saxony-Anhalt",
+    "SH": "Schleswig-Holstein",
+    "TH": "Thuringia"
+  },
+  "olderStillLoading": "Just a moment, earlier days are still loading.",
+  "dayFailed": "This day could not be loaded.",
+  "retry": "Try again",
+  "keyPoints": "Key points",
+  "tapPerson": "Tap a person for more"
 }

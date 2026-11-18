@@ -2,6 +2,7 @@ import DailyHeader from '@/components/daily/daily-header';
 import Footer from '@/components/footer';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
 import { cn } from '@/lib/utils';
+
 /** Header + footer shell like (with-header): one centred column that reads
  * as the phone layout on desktop too, and the home of the feed's theme. */
 function Layout({ children }: { children: React.ReactNode }) {

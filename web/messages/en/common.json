@@ -1,10 +1,9 @@
 {
   "openWebsite": "Go to wahl.chat",
   "feedbackDialog": {
-    "title": "Feedback!",
-    "description": "We'd love to hear your feedback on wahl.chat.",
-    "email": "Send us an email",
-    "form": "Fill in our feedback form"
+    "title": "Feedback? Wishes? Ideas?",
+    "description": "Tell us what we could improve or what you would like to see on wahl.chat.",
+    "email": "Send us an email"
   },
   "prolific": {
     "thanks": "Thanks for taking part!",

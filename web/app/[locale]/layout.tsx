@@ -6,7 +6,7 @@ import { MediaViewerProvider } from '@/components/providers/media-viewer-provide
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Analytics } from '@vercel/analytics/react';
-import type { Metadata, Viewport } from 'next';
+import type { Metadata } from 'next';
 import '../globals.css';
 // pdf.js text-layer positioning for the citation PDF viewer. Imported here, NOT
 // in the dynamically imported viewer chunk: CSS imported only from a
@@ -24,6 +24,7 @@ import { getTenant } from '@/lib/firebase/firebase-admin';
 import { getUser } from '@/lib/firebase/firebase-server';
 import {
   BASE_URL,
+  LOGO_IMAGE_URL,
   ORGANIZATION_ID,
   WEBSITE_ID,
   localizedUrl,
@@ -63,7 +64,7 @@ export async function generateMetadata({
         template: `%s | ${title}`,
       },
       description,
-      images: ['https://wahl.chat/images/logo.webp'],
+      images: [LOGO_IMAGE_URL],
       url: localizedUrl('/', locale),
       siteName: 'wahl.chat',
       locale: LOCALE_INFO[locale].openGraph,
@@ -78,14 +79,10 @@ export async function generateMetadata({
       creator: '@wahl_chat',
       title,
       description,
-      images: ['https://wahl.chat/images/logo.webp'],
+      images: [LOGO_IMAGE_URL],
     },
   };
 }
-
-export const viewport: Viewport = {
-  maximumScale: 1, // Disable auto-zoom on mobile Safari
-};
 
 const LIGHT_THEME_COLOR = 'hsl(0 0% 100%)';
 const DARK_THEME_COLOR = 'hsl(240deg 10% 3.92%)';

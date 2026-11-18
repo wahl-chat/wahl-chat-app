@@ -1,5 +1,5 @@
 {
-  "interesting": "Interessant?",
+  "interesting": "Interessant für dich?",
   "interestYes": "Interessant",
   "interestNo": "Nicht interessant",
   "more": "Mehr anzeigen",
@@ -34,10 +34,10 @@
     "yes": "Ja",
     "no": "Nein",
     "abstain": "Enthalten",
-    "absent": "Abwesend"
+    "absent": "Nicht beteiligt"
   },
   "yesNo": "Ja : Nein",
-  "voteResult": "Abstimmungsergebnis: {yes} Ja, {no} Nein, {abstain} Enthaltungen, {absent} abwesend.",
+  "voteResult": "Abstimmungsergebnis: {yes} Ja, {no} Nein, {abstain} Enthaltungen, {absent} nicht beteiligt.",
   "seats": "{name}: {seats} Sitze",
   "chooseParliament": "Parlament wählen",
   "chooseParliamentChosen": "Parlament wählen, gewählt: {names}",
@@ -52,5 +52,59 @@
   "allTopics": "Alle Themen",
   "playSpeech": "Rede abspielen",
   "playAudio": "Audio abspielen",
-  "startsAt": "{speaker} · ab {time}"
+  "startsAt": "{speaker} · ab {time}",
+  "interestWhy": "Wenn du uns sagst, was dich interessiert, können wir die Reihenfolge des Feeds für dich verbessern.",
+  "debates": "Debatten",
+  "hotTopic": "Hot Topic",
+  "voteOnDebate": "Abstimmung zu dieser Debatte",
+  "unmute": "Ton einschalten",
+  "heat": {
+    "counted": "Die Flammen zählen Zwischenrufe, Widerspruch, Gelächter und Unruhe.",
+    "hottest": "die hitzigste Debatte dieses Sitzungstags",
+    "quietest": "die ruhigste Debatte dieses Sitzungstags",
+    "compared": "verglichen mit den anderen Debatten dieses Sitzungstags"
+  },
+  "weekly": {
+    "button": "Meine Woche",
+    "new": "neu"
+  },
+  "partyVoted": "So hat {name} gestimmt",
+  "members": "{count} Abgeordnete",
+  "communityResult": "Community: {accept} annehmen, {reject} ablehnen",
+  "comingSoon": "kommt bald",
+  "allFilters": "Alle Filter",
+  "allFiltersChosen": "Alle Filter, gewählt: {summary}",
+  "contents": "Inhalte",
+  "kinds": {
+    "debate": "Debatten",
+    "vote": "Abstimmungen",
+    "only": {
+      "debate": "nur Debatten",
+      "vote": "nur Abstimmungen"
+    }
+  },
+  "parliaments": {
+    "DE": "Bundestag",
+    "BW": "Baden-Württemberg",
+    "BY": "Bayern",
+    "BE": "Berlin (Abgeordnetenhaus)",
+    "BB": "Brandenburg",
+    "HB": "Bremen (Bürgerschaft)",
+    "HH": "Hamburg (Bürgerschaft)",
+    "HE": "Hessen",
+    "MV": "Mecklenburg-Vorpommern",
+    "NI": "Niedersachsen",
+    "NW": "Nordrhein-Westfalen",
+    "RP": "Rheinland-Pfalz",
+    "SL": "Saarland",
+    "SN": "Sachsen",
+    "ST": "Sachsen-Anhalt",
+    "SH": "Schleswig-Holstein",
+    "TH": "Thüringen"
+  },
+  "olderStillLoading": "Einen Moment, ältere Tage werden noch geladen.",
+  "dayFailed": "Dieser Tag konnte nicht geladen werden.",
+  "retry": "Erneut versuchen",
+  "keyPoints": "Kernpunkte",
+  "tapPerson": "Tippe auf eine Person für mehr"
 }

@@ -2,9 +2,10 @@ import type {
   DailyDigest,
   DigestSessionSection,
   DigestVote,
+  TermRef,
 } from '@/lib/firebase/firebase.types';
 
-/** One news item: a debate (one section of a Plenarprotokoll) or a vote. */
+/** One news item: a debate (one agenda item of a sitting) or a vote. */
 export type DetailItem =
   | {
       kind: 'section';
@@ -38,23 +39,13 @@ export function voteItems(digest: DailyDigest): VoteItem[] {
   }));
 }
 
-/** Keys the item had before the feed was split into items: links shared and
- * interest recorded back then use these. */
-export function legacyKeys(item: DetailItem): string[] {
-  return (
-    (item.kind === 'section'
-      ? item.section.legacy_keys
-      : item.vote.legacy_keys) ?? []
-  );
-}
-
 export function findItem(
   digests: readonly DailyDigest[],
   key: string,
 ): DetailItem | undefined {
   for (const digest of digests) {
     const found = [...sectionItems(digest), ...voteItems(digest)].find(
-      (i) => i.key === key || legacyKeys(i).includes(key),
+      (i) => i.key === key,
     );
     if (found) {
       return found;
@@ -101,6 +92,10 @@ export function itemTeaser(item: DetailItem): string | null {
   return item.kind === 'section'
     ? item.section.summary || null
     : (item.vote.summary ?? item.vote.description ?? null);
+}
+
+export function itemTerms(item: DetailItem): TermRef[] {
+  return (item.kind === 'section' ? item.section.terms : item.vote.terms) ?? [];
 }
 
 export function suggestedQuestions(item: DetailItem): string[] {

@@ -1,15 +1,34 @@
 'use client';
 
+import AiDisclaimer from '@/components/legal/ai-disclaimer';
 import type { Locale } from '@/i18n/locales';
+import { FEED_CHAT_ENABLED } from '@/lib/daily/chat-handoff';
 import { feedToDigests } from '@/lib/daily/editions';
 import {
   buildFeed,
   feedLists,
+  isPendingDay,
+  isWaitingDigest,
   rankFeed,
   windowedDigests,
 } from '@/lib/daily/feed';
+import {
+  DEFAULT_FILTER,
+  type FeedFilter,
+  KIND_PARAM,
+  isDefaultFilter,
+  kindParamValue,
+} from '@/lib/daily/filter';
 import { type DetailItem, findItem } from '@/lib/daily/items';
 import {
+  type OlderCursor,
+  type Pages,
+  appendPages,
+  cursorKey,
+  olderCursors,
+} from '@/lib/daily/paging';
+import {
+  BUNDESTAG,
   DEFAULT_SELECTION,
   STATE_PARAM,
   STATE_STORAGE_KEY,
@@ -23,20 +42,22 @@ import type {
   DailyDigest,
   DigestParliamentId,
   FeedPage,
+  GlossaryEntry,
   ParliamentFeed,
+  SittingCalendar,
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 import DailyDaySection from './daily-day-section';
 import { AskPanel, DailyDetailDialog } from './daily-detail-dialog';
-import { ParliamentSelector, TopicPills } from './daily-filters';
+import { FeedFilters, FilterBar, ParliamentSelector } from './daily-filters';
+import DaySkeleton from './day-skeleton';
+import { GlossaryProvider } from './glossary-text';
 
 const ITEM_PARAM = 'item';
-
-type Pages = Record<DigestParliamentId, FeedPage[]>;
 
 type Props = {
   /** Each parliament's latest slice; older ones load on request. */
@@ -45,26 +66,35 @@ type Props = {
   previewDigests?: DailyDigest[];
   /** From the URL; `undefined` lets the stored choice decide. */
   initialStates: StateSelection | undefined;
-  initialTopics: string[];
+  initialFilter: FeedFilter;
   initialItem: string | undefined;
   /** The day of a shared item, which may be older than the first slice. */
   linkedDay?: ParliamentFeed | null;
+  /** The Bundestag's sitting weeks, for the parliament field. */
+  calendar?: SittingCalendar | null;
+  /** The days the Bundestag's feed has content for. */
+  editionDates?: string[];
+  /** The explained expert terms, for the whole feed. */
+  glossary?: GlossaryEntry[];
+  /** Whether readers may rate positions and votes, see `DailyDetailDialog`. */
+  opinionsEnabled?: boolean;
 };
 
 type View = {
   states: StateSelection;
-  topics: string[];
+  filter: FeedFilter;
   item: string | null;
 };
 
 /** Mirror the view into the URL without a server round-trip, so a shared
  * link reproduces it, down to an opened item. */
-function syncUrl({ states, topics, item }: View) {
+function syncUrl({ states, filter, item }: View) {
   const url = new URL(window.location.href);
   const set = (key: string, value: string | null) =>
     value ? url.searchParams.set(key, value) : url.searchParams.delete(key);
   set(STATE_PARAM, states.join(',').toLowerCase() || null);
-  set(TOPICS_PARAM, topics.join(',') || null);
+  set(TOPICS_PARAM, filter.topics.join(',') || null);
+  set(KIND_PARAM, kindParamValue(filter.kinds));
   set(ITEM_PARAM, item);
   window.history.replaceState(null, '', url);
 }
@@ -109,6 +139,37 @@ function useItemInView(deps: unknown): string | null {
   return key;
 }
 
+/**
+ * Calls `onReach` while the returned element is near the viewport. The
+ * observer is rebuilt on every `deps` change, and a fresh observer reports at
+ * once, so a slice too short to fill the screen (a recess) chains straight
+ * into the next load.
+ */
+function useNearViewport(onReach: () => void, enabled: boolean, deps: unknown) {
+  const ref = useRef<HTMLDivElement>(null);
+  const onReachRef = useRef(onReach);
+  useEffect(() => {
+    onReachRef.current = onReach;
+  });
+  useEffect(() => {
+    const el = ref.current;
+    if (!enabled || !el) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          onReachRef.current();
+        }
+      },
+      { rootMargin: '600px 0px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [enabled, deps]);
+  return ref;
+}
+
 function digestsOf(pages: FeedPage[], locale: Locale): DailyDigest[] {
   return feedToDigests(
     {
@@ -130,29 +191,25 @@ function digestsIn(
   };
 }
 
-/** The selected parliaments that have an older slice, with its cursor. */
-function olderCursors(
-  pages: Pages,
-  parliaments: readonly DigestParliamentId[],
-): [DigestParliamentId, string][] {
-  return parliaments.flatMap((parliament) => {
-    const last = pages[parliament].at(-1);
-    return last?.hasOlder && last.from ? [[parliament, last.from]] : [];
-  }) as [DigestParliamentId, string][];
-}
-
 function DailyFeed({
   feeds,
   previewDigests,
   initialStates,
-  initialTopics,
+  initialFilter,
   initialItem,
   linkedDay,
+  calendar = null,
+  editionDates = [],
+  glossary = [],
+  opinionsEnabled = true,
 }: Props) {
+  // Both languages are loaded with the feed; the page's locale picks one.
+  const locale = useLocale();
+  const t = useTranslations('feed');
   const [states, setStates] = useState<StateSelection>(
     initialStates ?? DEFAULT_SELECTION,
   );
-  const [topics, setTopics] = useState(initialTopics);
+  const [filter, setFilter] = useState(initialFilter);
   const [openKey, setOpenKey] = useState<string | null>(initialItem ?? null);
   const [pages, setPages] = useState<Pages>(() => ({
     bundestag: [feeds.bundestag],
@@ -160,6 +217,28 @@ function DailyFeed({
     landtag_bw: [feeds.landtag_bw],
   }));
   const [loadingOlder, setLoadingOlder] = useState(false);
+  // Stops loading on scroll after a failure; a click retries.
+  const [olderFailed, setOlderFailed] = useState(false);
+  // Set synchronously, unlike state: the observer can report twice before a
+  // render, and a calendar jump rebuilds the pages from a snapshot that a
+  // concurrent load would duplicate.
+  const busy = useRef(false);
+  // A day chosen in the calendar, scrolled to once it is rendered.
+  const [jumpTarget, setJumpTarget] = useState<string | null>(null);
+  // One request per older slice, started as soon as the slice before it has
+  // landed, so scrolling down usually finds it ready.
+  const requests = useRef(new Map<string, Promise<FeedPage>>());
+  const fetchOlder = useCallback((cursor: OlderCursor): Promise<FeedPage> => {
+    const key = cursorKey(cursor);
+    let request = requests.current.get(key);
+    if (!request) {
+      request = getOlderParliamentFeed(...cursor);
+      requests.current.set(key, request);
+      // A failed request is not kept, so a retry asks again.
+      request.catch(() => requests.current.delete(key));
+    }
+    return request;
+  }, []);
 
   // A link's land param wins; otherwise restore this device's last choice.
   useEffect(() => {
@@ -168,9 +247,6 @@ function DailyFeed({
     }
   }, [initialStates]);
 
-  // Both languages are loaded with the feed; the page's locale picks one.
-  const locale = useLocale();
-  const t = useTranslations('feed');
   const digests = useMemo(() => digestsIn(pages, locale), [pages, locale]);
   // The server already cut the stored slices; only previews need a window.
   const lists = useMemo(
@@ -183,32 +259,85 @@ function DailyFeed({
     [digests, previewDigests, states],
   );
   const days = useMemo(
-    () => rankFeed(buildFeed(lists, null), topics),
-    [lists, topics],
+    () =>
+      rankFeed(
+        buildFeed(lists, null).filter((d) => !isPendingDay(d)),
+        filter,
+      ),
+    [lists, filter],
   );
+  const waitingEditions = useMemo(
+    () =>
+      lists
+        .flat()
+        .filter((d) => d.parliament === 'bundestag' && isWaitingDigest(d))
+        .map((d) => ({
+          date: d.date,
+          protocols: (d.session?.protocols ?? []).map((p) => p.protocol_id),
+        })),
+    [lists],
+  );
+  // A filter can leave a day with nothing to show; it is left out rather
+  // than kept as an empty gap.
+  const visibleDays = days.filter((d) => d.hot || d.blocks.length > 0);
   const older = olderCursors(pages, parliamentsFor(states));
 
+  // Prefetch the next slices; a failure surfaces only once they are needed.
+  useEffect(() => {
+    if (olderFailed) {
+      return;
+    }
+    for (const cursor of olderCursors(pages, parliamentsFor(states))) {
+      fetchOlder(cursor).catch(() => {});
+    }
+  }, [pages, states, olderFailed, fetchOlder]);
+
+  useEffect(() => {
+    if (!jumpTarget) {
+      return;
+    }
+    const section = document.getElementById(`tag-${jumpTarget}`);
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Keyboard and screen reader users land on the day too.
+      section.focus({ preventScroll: true });
+      setJumpTarget(null);
+    } else if (!isDefaultFilter(filter)) {
+      // The filter hides the day; it is back on the next render.
+      setFilter(DEFAULT_FILTER);
+      syncUrl({ states, filter: DEFAULT_FILTER, item: openKey });
+    } else {
+      setJumpTarget(null);
+    }
+  }, [jumpTarget, days, filter, states, openKey]);
+
   const loadOlder = async () => {
+    if (busy.current) {
+      return;
+    }
+    busy.current = true;
     setLoadingOlder(true);
+    setOlderFailed(false);
     try {
       const loaded = await Promise.all(
-        older.map(([parliament, from]) =>
-          getOlderParliamentFeed(parliament, from),
+        older.map(
+          async (cursor) => [cursor[0], await fetchOlder(cursor)] as const,
         ),
       );
-      setPages((current) => {
-        const next = { ...current };
-        older.forEach(([parliament], i) => {
-          next[parliament] = [...current[parliament], loaded[i]];
-        });
-        return next;
-      });
+      setPages((current) => appendPages(current, loaded));
     } catch {
       toast.error(t('olderFailed'));
+      setOlderFailed(true);
     } finally {
+      busy.current = false;
       setLoadingOlder(false);
     }
   };
+  const olderRef = useNearViewport(
+    loadOlder,
+    older.length > 0 && !olderFailed,
+    pages,
+  );
 
   const allDigests = useMemo(() => lists.flat(), [lists]);
   // Only for opening a shared item the loaded slices do not reach; the feed
@@ -222,8 +351,12 @@ function DailyFeed({
       findItem(linkedDigests, openKey) ??
       null)
     : null;
-  // An old link may name the item by a legacy key; heat is keyed by its id.
-  const openHeat = [...days, ...rankFeed(buildFeed([linkedDigests], null), [])]
+  // A linked item may lie outside the loaded days; its heat is then ranked
+  // within its own day.
+  const openHeat = [
+    ...days,
+    ...rankFeed(buildFeed([linkedDigests], null), DEFAULT_FILTER),
+  ]
     .map((d) => (openItem ? d.heat.get(openItem.key) : undefined))
     .find((h) => h !== undefined);
 
@@ -233,15 +366,46 @@ function DailyFeed({
     days.find((d) => d.hot)?.hot ||
     null;
 
-  const view: View = { states, topics, item: openKey };
+  const view: View = { states, filter, item: openKey };
   const changeStates = (next: StateSelection) => {
     setStates(next);
     storeStates(next);
     syncUrl({ ...view, states: next });
   };
-  const changeTopics = (next: string[]) => {
-    setTopics(next);
-    syncUrl({ ...view, topics: next });
+  /** Show a sitting day from the calendar: load older slices until one
+   * holds it, select the Bundestag and lift the filter if either hides it,
+   * then scroll to it. */
+  const jumpToDay = async (date: string) => {
+    if (busy.current) {
+      toast.info(t('olderStillLoading'));
+      return;
+    }
+    busy.current = true;
+    const loaded = [...pages.bundestag];
+    try {
+      for (
+        let last = loaded.at(-1);
+        last?.from && last.hasOlder && date < last.from;
+        last = loaded.at(-1)
+      ) {
+        loaded.push(await fetchOlder(['bundestag', last.from]));
+      }
+    } catch {
+      toast.error(t('dayFailed'));
+      return;
+    } finally {
+      busy.current = false;
+    }
+    setPages((current) => ({ ...current, bundestag: loaded }));
+    if (!states.includes(BUNDESTAG)) {
+      changeStates([BUNDESTAG, ...states]);
+    }
+    setJumpTarget(date);
+  };
+
+  const changeFilter = (next: FeedFilter) => {
+    setFilter(next);
+    syncUrl({ ...view, filter: next });
   };
   const open = (key: string | null) => {
     setOpenKey(key);
@@ -249,54 +413,91 @@ function DailyFeed({
   };
 
   return (
-    <div className="flex flex-col gap-4 pt-4">
-      <ParliamentSelector states={states} onChange={changeStates} />
-      <TopicPills topics={topics} onChange={changeTopics} />
+    <GlossaryProvider entries={glossary}>
+      <div className="flex flex-col gap-4 pt-4">
+        <FilterBar>
+          {(onOpenChange) => (
+            <>
+              <div className="min-w-0 flex-1">
+                <ParliamentSelector
+                  states={states}
+                  onChange={changeStates}
+                  calendar={calendar}
+                  editionDates={editionDates}
+                  waitingEditions={waitingEditions}
+                  onJumpToDay={jumpToDay}
+                  onOpenChange={onOpenChange}
+                />
+              </div>
+              <FeedFilters
+                filter={filter}
+                onChange={changeFilter}
+                onOpenChange={onOpenChange}
+              />
+            </>
+          )}
+        </FilterBar>
 
-      <div className="flex flex-col gap-12 pt-2">
-        {days.length === 0 ? (
-          <p className={cn('py-12 text-center text-[15px]', MUTED_TEXT)}>
-            {t('empty')}
-          </p>
-        ) : (
-          days.map((day) => (
-            <DailyDaySection
-              key={day.date}
-              day={day}
-              onOpen={(item) => open(item.key)}
-            />
-          ))
-        )}
-        {older.length > 0 && (
-          <button
-            type="button"
-            onClick={loadOlder}
-            disabled={loadingOlder}
-            className={cn(
-              'mx-auto h-10 rounded-lg border border-[var(--daily-border)] px-4 text-[15px] transition-colors hover:bg-[var(--daily-surface)] disabled:opacity-60',
-              MUTED_TEXT,
-              FOCUS_RING,
-            )}
-          >
-            {loadingOlder ? t('loadingOlder') : t('olderDays')}
-          </button>
-        )}
-      </div>
-
-      {askItem && (
-        <AskPanel
-          item={askItem}
-          withSuggestions={false}
-          className="sticky bottom-0 z-30 -mx-2 mt-4"
+        <AiDisclaimer
+          variant="feed"
+          className={cn('-mt-2 mb-0 text-left text-[13px]', MUTED_TEXT)}
         />
-      )}
 
-      <DailyDetailDialog
-        item={openItem}
-        heat={openHeat}
-        onClose={() => open(null)}
-      />
-    </div>
+        <div className="flex flex-col gap-12 pt-2">
+          {visibleDays.length === 0 ? (
+            <p className={cn('py-12 text-center text-[15px]', MUTED_TEXT)}>
+              {t('empty')}
+            </p>
+          ) : (
+            visibleDays.map((day) => (
+              <DailyDaySection
+                key={day.date}
+                day={day}
+                onOpen={(item) => open(item.key)}
+              />
+            ))
+          )}
+          {older.length > 0 && (
+            <div
+              ref={olderRef}
+              aria-live="polite"
+              className="flex min-h-10 items-center justify-center"
+            >
+              {olderFailed ? (
+                <button
+                  type="button"
+                  onClick={loadOlder}
+                  className={cn(
+                    'h-10 rounded-lg border border-[var(--daily-border)] px-4 text-[15px] transition-colors hover:bg-[var(--daily-surface)]',
+                    MUTED_TEXT,
+                    FOCUS_RING,
+                  )}
+                >
+                  {t('retry')}
+                </button>
+              ) : (
+                loadingOlder && <DaySkeleton />
+              )}
+            </div>
+          )}
+        </div>
+
+        {FEED_CHAT_ENABLED && askItem && (
+          <AskPanel
+            item={askItem}
+            withSuggestions={false}
+            className="sticky bottom-0 z-30 -mx-2 mt-4"
+          />
+        )}
+
+        <DailyDetailDialog
+          item={openItem}
+          heat={openHeat}
+          onClose={() => open(null)}
+          opinionsEnabled={opinionsEnabled}
+        />
+      </div>
+    </GlossaryProvider>
   );
 }
 

@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Literal, Optional
 
-from ingestion.feed.builder import DigestBuilder, strip_refs
+from ingestion.feed.builder import FeedBuilder, strip_refs
 from ingestion.feed.models import (
     CANONICAL_LOCALE,
     FeedItem,
@@ -39,7 +39,8 @@ from ingestion.feed.prompts import (
 logger = logging.getLogger(__name__)
 
 _BATCH = 6
-# The German headline allows 12 words; English runs a little longer.
+# A German vote title allows 12 words (a debate headline 10); English runs a
+# little longer.
 _HEADLINE_MAX_WORDS = 16
 _DIGITS_RE = re.compile(r"\d+")
 # What a translation that ran on past its text looks like: a translation
@@ -205,7 +206,7 @@ def translation_problems(
 
 
 def _translate_batch(
-    builder: DigestBuilder,
+    builder: FeedBuilder,
     parliament_name: str,
     batch: list[FeedItem],
     locale: Locale,
@@ -253,7 +254,7 @@ def _translate_batch(
 
 def translate_items(
     items: list[FeedItem],
-    builder: DigestBuilder,
+    builder: FeedBuilder,
     locale: Locale = "en",
     *,
     now: Optional[datetime] = None,

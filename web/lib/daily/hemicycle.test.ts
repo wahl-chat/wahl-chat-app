@@ -3,8 +3,10 @@ import type { DigestVoteParty } from '@/lib/firebase/firebase.types';
 import {
   isUnaffiliated,
   layoutHemicycle,
+  layoutShare,
   rowCount,
   seatsPerRow,
+  voteBreakdown,
   voteTotals,
   votesInOrder,
 } from './hemicycle';
@@ -91,6 +93,17 @@ describe('layoutHemicycle', () => {
     }
   });
 
+  it('gives each tile its logo, its own unless another is set', () => {
+    const arcs = layoutHemicycle([
+      { ...party('cdu', 2, 0), logo_id: 'cdu_csu' },
+      party('spd', 1, 0),
+    ]).arcs;
+    expect(Object.fromEntries(arcs.map((a) => [a.partyId, a.logoId]))).toEqual({
+      cdu: 'cdu_csu',
+      spd: 'spd',
+    });
+  });
+
   it('skips parties without members and handles an empty vote', () => {
     expect(layoutHemicycle([party('spd', 0, 0)]).seats).toEqual([]);
     expect(
@@ -121,5 +134,54 @@ describe('votesInOrder', () => {
 describe('rowCount', () => {
   it('uses ten rows for a Bundestag-sized chamber', () => {
     expect(rowCount(630)).toBe(10);
+  });
+});
+
+describe('voteBreakdown', () => {
+  it("counts one Fraktion's votes, members without a vote as Nicht beteiligt", () => {
+    expect(voteBreakdown(party('spd', 110, 3, 1, 6))).toEqual([
+      { vote: 'yes', count: 110 },
+      { vote: 'no', count: 3 },
+      { vote: 'abstain', count: 1 },
+      { vote: 'absent', count: 6 },
+    ]);
+  });
+});
+
+describe('layoutShare', () => {
+  const split = (accept: number, reject: number) => {
+    const { seats } = layoutShare(accept, reject);
+    const count = (vote: string) => seats.filter((s) => s.vote === vote).length;
+    return {
+      total: seats.length,
+      yes: count('yes'),
+      no: count('no'),
+      absent: count('absent'),
+    };
+  };
+
+  it('always draws a hundred seats', () => {
+    expect(split(796, 488).total).toBe(100);
+    expect(split(0, 0).total).toBe(100);
+  });
+
+  it('splits the seats by share', () => {
+    expect(split(796, 488)).toEqual({ total: 100, yes: 62, no: 38, absent: 0 });
+    expect(split(1, 0)).toEqual({ total: 100, yes: 100, no: 0, absent: 0 });
+  });
+
+  it('never rounds a side with votes away', () => {
+    expect(split(1, 400).yes).toBe(1);
+    expect(split(400, 1).no).toBe(1);
+  });
+
+  it('draws no votes as hollow seats', () => {
+    expect(split(0, 0)).toEqual({ total: 100, yes: 0, no: 0, absent: 100 });
+  });
+
+  it('puts Annehmen on the left', () => {
+    const { seats } = layoutShare(50, 50);
+    const left = seats.filter((s) => s.x < -0.5);
+    expect(left.every((s) => s.vote === 'yes')).toBe(true);
   });
 });

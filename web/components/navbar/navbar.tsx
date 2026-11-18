@@ -15,8 +15,9 @@ type Props = {
 export default async function NavBar({ className }: Props) {
   const t = await getTranslations('nav');
   const tabs: NavbarItemDetails[] = [
+    // The start page is the parliament feed, wahl.chat's News.
     {
-      label: t('home'),
+      label: t('news'),
       href: '/',
     },
     // {
@@ -31,7 +32,7 @@ export default async function NavBar({ className }: Props) {
     },
     {
       label: t('chat'),
-      href: '/chat',
+      href: '/election-chat',
     },
   ];
 

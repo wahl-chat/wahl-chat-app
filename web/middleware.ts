@@ -9,6 +9,7 @@ import {
   REGION_CONTEXTS,
   TENANT_ID_HEADER,
 } from './lib/constants';
+import { looksLikeContextId } from './lib/context-id';
 
 // Static pages that should remain at root level (not context-specific)
 const STATIC_PAGES = [
@@ -21,6 +22,7 @@ const STATIC_PAGES = [
   '/donate',
   '/topics',
   '/aktuell',
+  '/election-chat',
   '/api',
 ];
 
@@ -69,14 +71,6 @@ function getContextIdFromGeo(request: NextRequest): string {
   return context && !isElectionPast(context.electionDate)
     ? context.contextId
     : DEFAULT_CONTEXT_ID;
-}
-
-// Known context ID patterns (will be validated against actual contexts)
-function looksLikeContextId(segment: string): boolean {
-  // Context IDs are like: bundestagswahl-2025, bw2026, europawahl-2029
-  return /^[a-z]{2,}\d{4}$|^[a-z]+-[a-z]+-\d{4}$|^[a-z]+wahl-\d{4}$/.test(
-    segment,
-  );
 }
 
 // Helper to build redirect URL with search params preserved
@@ -136,8 +130,18 @@ export async function middleware(request: NextRequest) {
   // Legacy context-less URLs. Bare paths go to /, which is stable — so those
   // can be permanent (308) and consolidate their link equity. Paths carrying a
   // party or session still need a context, and middleware can only guess one
-  // from the request's region, so those stay temporary (307). Bare /chat is
-  // not legacy: it is the chat landing page.
+  // from the request's region, so those stay temporary (307).
+
+  // The chat landing page lives at /election-chat. /chat forwards there only
+  // temporarily (307): the path is reserved for another product, and a 308
+  // would be kept by browsers and search engines, which already happened once
+  // when production sent /chat to / permanently.
+  if (pathname === '/chat') {
+    return NextResponse.redirect(
+      buildRedirectUrl(request, `${prefix}/election-chat`),
+      307,
+    );
+  }
 
   if (pathname.startsWith('/chat/')) {
     const partyId = pathname.split('/')[2];

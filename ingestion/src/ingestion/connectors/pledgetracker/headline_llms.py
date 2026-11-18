@@ -19,6 +19,7 @@ from typing import Any
 from langchain_core.messages import BaseMessage
 
 from ingestion.llm_clients import RosterLLM as _LLM
+from ingestion.llm_clients import ai_studio_enabled
 from ingestion.llm_clients import gemini as _gemini
 from ingestion.llm_clients import openai as _openai
 from ingestion.llm_clients import structured_output_with_failover
@@ -32,34 +33,52 @@ logger = logging.getLogger(__name__)
 
 
 def _build_pre_post_llms() -> list[_LLM]:
-    """The chat pre/post roster, Vertex tier first when credentials exist."""
+    """The chat pre/post roster, Vertex tier first when credentials exist.
+
+    The AI Studio entries need ``GOOGLE_API_KEY`` and join only when it is
+    set, so a deployment with Vertex alone still gets a roster.
+    """
     roster = [
-        _LLM(
-            "google-gemini-3.1-flash-lite",
-            _gemini("gemini-3.1-flash-lite", temperature=1.0, thinking_level="minimal"),
-            100,
-        ),
         _LLM(
             "openai-gpt-5.6-luna",
             _openai("gpt-5.6-luna", temperature=1.0, reasoning_effort="minimal"),
             90,
         ),
-        _LLM(
-            "google-gemini-3.5-flash-lite",
-            _gemini("gemini-3.5-flash-lite", thinking_level="minimal"),
-            70,
-        ),
     ]
+    ai_studio = ai_studio_enabled()
+    if ai_studio:
+        roster += [
+            _LLM(
+                "google-gemini-3.1-flash-lite",
+                _gemini(
+                    "gemini-3.1-flash-lite", temperature=1.0, thinking_level="minimal"
+                ),
+                100,
+            ),
+            _LLM(
+                "google-gemini-3.5-flash-lite",
+                _gemini("gemini-3.5-flash-lite", thinking_level="minimal"),
+                70,
+            ),
+        ]
     if not vertex_enabled():
-        logger.warning(
-            "Vertex AI not configured; Gemini traffic will bill Google AI Studio."
-        )
+        if ai_studio:
+            logger.warning(
+                "Vertex AI not configured; Gemini traffic will bill Google AI Studio."
+            )
+        else:
+            logger.warning(
+                "Neither Vertex AI nor GOOGLE_API_KEY configured; "
+                "the headline roster has no Gemini model."
+            )
         return roster
     logger.info(
-        "Vertex AI enabled for Gemini: project=%s location=%s "
-        "(Google AI Studio remains registered as fallback).",
+        "Vertex AI enabled for Gemini: project=%s location=%s (%s).",
         vertex_project(),
         vertex_location(),
+        "Google AI Studio registered as fallback"
+        if ai_studio
+        else "no GOOGLE_API_KEY, so no AI Studio fallback",
     )
     return [
         _LLM(

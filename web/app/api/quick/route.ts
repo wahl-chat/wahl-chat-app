@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const tenantId = request.nextUrl.searchParams.get('tenant_id');
 
   // Embedding partners start a chat, so this lands on the chat page, not /.
-  const url = new URL('/chat', request.url);
+  const url = new URL('/election-chat', request.url);
 
   if (tenantId) {
     url.searchParams.append('tenant_id', tenantId);

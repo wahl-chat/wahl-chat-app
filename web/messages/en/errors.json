@@ -2,5 +2,10 @@
   "generic": "Something went wrong.",
   "reloadPage": "Something went wrong. Please reload the page.",
   "reloadAndRetry": "Something went wrong. Please reload the page and try again.",
-  "answerLoadFailed": "The answer couldn't be loaded. Please try again."
+  "answerLoadFailed": "The answer couldn't be loaded. Please try again.",
+  "notFound": {
+    "title": "Page not found",
+    "description": "This page does not exist, or no longer does. The start page shows what is happening in the Bundestag right now, and the way to the chat.",
+    "home": "Go to the start page"
+  }
 }

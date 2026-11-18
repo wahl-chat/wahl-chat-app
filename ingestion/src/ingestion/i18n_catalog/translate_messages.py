@@ -46,7 +46,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
-from ingestion.feed.builder import DigestBuilder, strip_refs
+from ingestion.feed.builder import FeedBuilder, strip_refs
 from ingestion.feed.prompts import TranslationBatch
 from ingestion.i18n_catalog.prompts import CATALOG_PROMPT_VERSION, format_catalog_prompt
 
@@ -210,7 +210,7 @@ def _segment_line(ref: str, text: str) -> str:
 
 
 def translate_keys(
-    builder: DigestBuilder,
+    builder: FeedBuilder,
     locale: str,
     source: dict[str, str],
     keys: list[str],
@@ -247,7 +247,7 @@ def run(
     locale: str,
     messages_dir: Path,
     *,
-    builder: Optional[DigestBuilder],
+    builder: Optional[FeedBuilder],
     dry_run: bool = False,
     adopt: bool = False,
 ) -> CatalogReport:
@@ -308,7 +308,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("German is the source catalog.", file=sys.stderr)
         return 2
 
-    builder = None if args.dry_run or args.adopt else DigestBuilder()
+    builder = None if args.dry_run or args.adopt else FeedBuilder()
     try:
         report = run(
             args.locale,

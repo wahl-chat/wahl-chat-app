@@ -9,6 +9,7 @@ import {
   contextTag,
 } from '@/lib/cache-tags';
 import { GROUP_PARTY_ID, WAHL_CHAT_PARTY_ID } from '@/lib/constants';
+import { speakerPhotos } from '@/lib/daily/politicians';
 import { editionIdOf, pageStart } from '@/lib/daily/window';
 import type { PartyDetails } from '@/lib/party-details';
 import type {
@@ -27,6 +28,7 @@ import {
   collection,
   connectFirestoreEmulator,
   doc,
+  documentId,
   getDoc,
   getDocs,
   getFirestore,
@@ -53,9 +55,13 @@ import type {
   FeedItem,
   FeedPage,
   FirebaseWahlSwiperResult,
+  GlossaryEntry,
+  GlossarySource,
   LlmSystemStatus,
   ParliamentFeed,
+  Politician,
   ProposedQuestion,
+  SittingCalendar,
   SourceDocument,
 } from './firebase.types';
 
@@ -770,12 +776,16 @@ const DIGEST_PARLIAMENTS: readonly DigestParliamentId[] = [
 ];
 // A safety cap only: two weeks of one parliament are far fewer items.
 const ITEMS_PER_PAGE = 500;
+// Two sitting weeks of editions: more than are ever stored waiting for their
+// items at once.
+const ANCHOR_LOOKBACK = 10;
 
 /**
- * The slice of one parliament's feed that ends on its newest edition before
- * `before` (or its newest overall): `FEED_WINDOW_DAYS` days back from there.
- * Anchoring on an edition, not the calendar, skips recesses, so an older
- * slice is never empty while `hasOlder` is true.
+ * The slice of one parliament's feed that ends on its newest edition with
+ * items before `before` (or its newest overall): `FEED_WINDOW_DAYS` days back
+ * from there, plus any newer days still waiting for their items. Anchoring on
+ * an edition, not the calendar, skips recesses, so an older slice is never
+ * empty while `hasOlder` is true.
  */
 async function getFeedPageImpl(
   parliament: DigestParliamentId,
@@ -793,8 +803,11 @@ async function getFeedPageImpl(
       ),
     );
 
-  const newest = await ofParliament('feed_editions', limit(1));
-  const anchor = newest.docs[0]?.data().date as string | undefined;
+  // Anchored on a day stored before its items, the page would open empty.
+  const newest = (
+    await ofParliament('feed_editions', limit(ANCHOR_LOOKBACK))
+  ).docs.map((d) => d.data() as FeedEdition);
+  const anchor = (newest.find((e) => e.item_ids.length > 0) ?? newest[0])?.date;
   if (!anchor) {
     throw new UncacheableEmptyError();
   }
@@ -832,7 +845,7 @@ export async function getParliamentFeed(
     () =>
       cachedRead(
         getFeedPageImpl,
-        ['getParliamentFeed', 'v2', parliament],
+        ['getParliamentFeed', 'v3', parliament],
         [CacheTags.FEED],
       )(parliament, null),
     EMPTY_PAGE,
@@ -893,15 +906,210 @@ export async function getOlderParliamentFeed(
   ) {
     return EMPTY_PAGE;
   }
+  try {
+    return await cachedRead(
+      getFeedPageImpl,
+      ['getOlderParliamentFeed', 'v2', parliament, before],
+      [CacheTags.FEED],
+    )(parliament, before);
+  } catch (error) {
+    // No older edition: the feed's real end. Any other failure has to reach
+    // the client, which offers a retry; an empty page would read as the end.
+    if (error instanceof UncacheableEmptyError) {
+      return EMPTY_PAGE;
+    }
+    console.error(
+      `[Firestore] FAILED to fetch older feed for "${parliament}" before ${before}:`,
+      error,
+    );
+    throw error;
+  }
+}
+
+// Firestore's `in` filter takes at most 30 values.
+const IN_FILTER_MAX = 30;
+// A debate rarely has more than a few dozen speakers.
+const MAX_POLITICIANS = 120;
+const MDB_ID = /^\d{1,12}$/;
+
+async function getPoliticiansImpl(
+  ids: string[],
+): Promise<Record<string, Politician>> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const found: Record<string, Politician> = {};
+  for (let i = 0; i < ids.length; i += IN_FILTER_MAX) {
+    const snapshot = await getDocs(
+      query(
+        collection(serverDb, 'politicians'),
+        where(documentId(), 'in', ids.slice(i, i + IN_FILTER_MAX)),
+      ),
+    );
+    for (const d of snapshot.docs) {
+      found[d.id] = d.data() as Politician;
+    }
+  }
+  return found;
+}
+
+async function getSpeakerPhotosImpl(
+  ids: string[],
+): Promise<Record<string, string>> {
+  return speakerPhotos(await getPoliticiansImpl(ids));
+}
+
+/** The official portrait of each of these speakers, by MdB ID: all a
+ * debate's chips need. The records stay on the server, so opening a debate
+ * on a phone does not load every speaker's Angaben and votes. Called from
+ * the browser, so the IDs are checked first. */
+export async function getSpeakerPhotos(
+  ids: string[],
+): Promise<Record<string, string>> {
+  const wanted = Array.isArray(ids)
+    ? [...new Set(ids)]
+        .filter((id) => typeof id === 'string' && MDB_ID.test(id))
+        .sort()
+    : [];
+  if (wanted.length === 0 || wanted.length > MAX_POLITICIANS) {
+    return {};
+  }
   return uncachedFallback(
     () =>
       cachedRead(
-        getFeedPageImpl,
-        ['getOlderParliamentFeed', 'v1', parliament, before],
+        getSpeakerPhotosImpl,
+        ['getSpeakerPhotos', 'v1', ...wanted],
         [CacheTags.FEED],
-      )(parliament, before),
-    EMPTY_PAGE,
-    `FAILED to fetch older feed for "${parliament}" before ${before}`,
+      )(wanted),
+    {},
+    'FAILED to fetch speaker photos',
+  );
+}
+
+async function getPoliticianImpl(mdbId: string): Promise<Politician | null> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const snapshot = await getDoc(doc(serverDb, 'politicians', mdbId));
+  return snapshot.exists() ? (snapshot.data() as Politician) : null;
+}
+
+/** One speaker's record, read when their chip is tapped; null when the
+ * Bundestag publishes none for them. */
+export async function getPolitician(mdbId: string): Promise<Politician | null> {
+  if (typeof mdbId !== 'string' || !MDB_ID.test(mdbId)) {
+    return null;
+  }
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getPoliticianImpl,
+        ['getPolitician', 'v1', mdbId],
+        [CacheTags.FEED],
+      )(mdbId),
+    null,
+    'FAILED to fetch politician',
+  );
+}
+
+async function getGlossaryImpl(): Promise<GlossaryEntry[]> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const snapshot = await getDocs(
+    query(collection(serverDb, 'glossary'), where('status', '==', 'verified')),
+  );
+  // An explanation is shown only with the source it was checked against.
+  return snapshot.docs.flatMap((d) => {
+    const { term_id, term, definition, forms, sources } = d.data();
+    const linked = Array.isArray(sources)
+      ? sources.filter(
+          (s): s is GlossarySource =>
+            typeof s?.url === 'string' && typeof s?.title === 'string',
+        )
+      : [];
+    return typeof definition === 'string' && definition && linked.length > 0
+      ? [
+          {
+            term_id,
+            term,
+            definition,
+            forms: Array.isArray(forms) ? forms : [],
+            sources: linked,
+          },
+        ]
+      : [];
+  });
+}
+
+/** Every explained term, for the whole feed at once: a few hundred short
+ * entries at most, so the page needs no read per item. */
+export async function getGlossary(): Promise<GlossaryEntry[]> {
+  return uncachedFallback(
+    () =>
+      cachedRead(getGlossaryImpl, ['getGlossary', 'v2'], [CacheTags.FEED])(),
+    [],
+    'FAILED to fetch glossary',
+  );
+}
+
+async function getSittingCalendarImpl(
+  parliament: DigestParliamentId,
+): Promise<SittingCalendar> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const snapshot = await getDoc(doc(serverDb, 'feed_calendar', parliament));
+  if (!snapshot.exists()) {
+    throw new UncacheableEmptyError();
+  }
+  return snapshot.data() as SittingCalendar;
+}
+
+/** The parliament's next sitting weeks for the feed's "next sitting" line;
+ * null when none are stored, which hides the line. */
+export async function getSittingCalendar(
+  parliament: DigestParliamentId,
+): Promise<SittingCalendar | null> {
+  return uncachedFallback<SittingCalendar | null>(
+    () =>
+      cachedRead(
+        getSittingCalendarImpl,
+        ['getSittingCalendar', 'v1', parliament],
+        [CacheTags.FEED],
+      )(parliament),
+    null,
+    `FAILED to fetch the sitting calendar for "${parliament}"`,
+  );
+}
+
+async function getEditionDatesImpl(
+  parliament: DigestParliamentId,
+): Promise<string[]> {
+  const serverDb = await getServerFirestore({ useHeaders: false });
+  const editions = await getDocs(
+    query(
+      collection(serverDb, 'feed_editions'),
+      where('parliament', '==', parliament),
+      orderBy('date', 'desc'),
+    ),
+  );
+  // A day whose items were all retracted lists none: nothing to show.
+  return rejectEmpty(
+    editions.docs
+      .map((d) => d.data() as FeedEdition)
+      .filter((edition) => edition.item_ids.length > 0)
+      .map((edition) => edition.date),
+  );
+}
+
+/** The days the parliament's feed has content for, newest first: the sitting
+ * calendar shows them as online. The feed only reaches back to its start, so
+ * this stays a few dozen small documents a year. */
+export async function getEditionDates(
+  parliament: DigestParliamentId,
+): Promise<string[]> {
+  return uncachedFallback(
+    () =>
+      cachedRead(
+        getEditionDatesImpl,
+        ['getEditionDates', 'v1', parliament],
+        [CacheTags.FEED],
+      )(parliament),
+    [],
+    `FAILED to fetch the edition dates for "${parliament}"`,
   );
 }
 

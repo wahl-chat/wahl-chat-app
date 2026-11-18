@@ -14,5 +14,8 @@
   "login": "Anmelden",
   "openMenu": "Menü öffnen",
   "menuTitle": "Menü",
-  "menuDescription": "Navigation von wahl.chat"
+  "menuDescription": "Navigation von wahl.chat",
+  "news": "News",
+  "feedback": "Feedback",
+  "deleteOpinions": "Meine Bewertungen löschen"
 }

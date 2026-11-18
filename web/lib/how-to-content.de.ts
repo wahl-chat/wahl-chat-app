@@ -27,13 +27,13 @@ export const HOW_TO_DE: HowToContent = {
     title: 'Der Parlaments-Feed',
     paragraphs: [
       'Auf der Startseite fasst wahl.chat jeden Sitzungstag für dich zusammen: worüber im Plenum debattiert wurde und wie die Fraktionen abgestimmt haben. Grundlage sind die Plenarprotokolle und Videos der Sitzungen sowie die Ergebnisse der namentlichen Abstimmungen.',
-      'Die Zusammenfassungen werden auf Grundlage dieser Quellen mit Hilfe von KI erstellt. Positionen werden einer Fraktion nur zugeordnet, wenn ihre Redner:innen in der Debatte tatsächlich gesprochen haben, und Zitate nur übernommen, wenn sie wörtlich im Protokoll stehen.',
+      'Die Zusammenfassungen werden auf Grundlage dieser Quellen mit Hilfe von KI erstellt, für jeden Tagesordnungspunkt einzeln. Jede Fraktion, die in einer Debatte gesprochen hat, wird genannt. Ihr Positionssatz wird vor der Veröffentlichung noch einmal gegen ihre eigenen Reden geprüft; lässt er sich nicht belegen, verlinken wir nur ihre Reden. Zitate werden nur übernommen, wenn sie wörtlich im Protokoll stehen.',
     ],
     list: [
-      'Oben wählst du die Parlamente (den Bundestag und ausgewählte Landtage) und die Themen, die dich interessieren.',
+      'Oben wählst du die Themen, die dich interessieren. Bisher deckt der Feed den Bundestag ab, die Landtage folgen.',
       'Mit „Mehr anzeigen“ öffnest du die Kurzfassung: die wichtigsten Punkte, wer was gesagt hat und die Quelle im Plenarprotokoll.',
       'Über das Eingabefeld stellst du direkt Fragen zur Debatte oder Abstimmung.',
-      'Mit dem Daumen bei „Interessant?“ sagst du uns, was dich interessiert. Das hilft uns, deinen Feed für dich zu verbessern.',
+      'Mit dem Daumen bei „Interessant für dich?“ sagst du uns, was dich interessiert. So können wir die Reihenfolge deines Feeds für dich verbessern.',
     ],
     link: 'Zum Parlaments-Feed',
   },
@@ -68,10 +68,11 @@ export const HOW_TO_DE: HowToContent = {
       title: 'Wie entsteht die Hitzigkeit im Feed?',
       content: {
         intro:
-          'Die Punkte neben einer Debatte zeigen, wie hitzig sie im Vergleich zu den anderen Debatten desselben Tages war. Sie entstehen wie folgt:',
+          'Die Flammen neben einer Debatte zeigen, wie oft das Plenum die Redenden unterbrochen hat, im Vergleich zu den anderen Debatten desselben Tages. Sie entstehen wie folgt:',
         orderedList: [
-          'Einordnung pro Sitzung: Eine KI vergleicht die Debatten einer Sitzung miteinander, anhand der Zwischenrufe, der Schärfe des Tons und wie gegensätzlich die Positionen der Fraktionen sind. Die hitzigste Debatte bekommt 5 Punkte, die anderen entsprechend weniger.',
-          'Thema des Tages: Ganz oben steht die Debatte mit dem höchsten Wert aus Hitzigkeit mal Debattenlänge, basierend auf einer Schätzung der gesprochenen Worte pro Minute.',
+          'Zählung im Plenarprotokoll: Das Protokoll verzeichnet Zwischenrufe, Gegenrufe, Widerspruch, Gelächter und Unruhe. Wir zählen sie für jede Debatte und teilen durch ihre Länge in Minuten. Beifall zählt nicht mit.',
+          'Vergleich innerhalb des Tages: Die Debatten eines Tages werden nur miteinander verglichen, nicht mit festen Grenzwerten. Die mit den meisten Unterbrechungen pro Minute hat 5 Flammen, die mit den wenigsten 1 Flamme, alle anderen liegen dazwischen.',
+          'Hot Topic: Ganz oben steht die Debatte mit den meisten Unterbrechungen pro Minute.',
         ],
         outro:
           'Die Hitzigkeit sagt nichts darüber, wie wichtig ein Thema ist. Sie beschreibt nur, wie kontrovers die Debatte im Plenum geführt wurde.',

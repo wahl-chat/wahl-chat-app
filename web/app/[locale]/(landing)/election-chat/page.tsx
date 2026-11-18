@@ -52,7 +52,7 @@ import { getTranslations } from 'next-intl/server';
 export const dynamic = 'force-dynamic';
 
 // The chat landing page; / is the daily parliament feed.
-const CHAT_PATH = '/chat';
+const CHAT_PATH = '/election-chat';
 
 type Props = {
   params: Promise<{ locale: string }>;

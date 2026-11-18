@@ -4,8 +4,12 @@ import ChatGroupPartySelect from '@/components/chat/chat-group-party-select';
 import ElectionSelect from '@/components/home/election-select';
 import HomePartyCards from '@/components/home/home-party-cards';
 import LoadingPartyCards from '@/components/home/loading-party-cards';
-import { useElectionContext } from '@/components/providers/context-provider';
+import {
+  useCurrentContext,
+  useElectionContext,
+} from '@/components/providers/context-provider';
 import { Button } from '@/components/ui/button';
+import { electionStatus } from '@/lib/elections';
 import { GitCompareIcon, MousePointerClickIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -16,6 +20,7 @@ type Props = {
 export function ElectionPartySelector({ contextId }: Props) {
   const t = useTranslations('home.electionPartySelector');
   const { partyCount, parties } = useElectionContext();
+  const currentContext = useCurrentContext();
 
   // Parties come from the server layout, so there is nothing to wait for; the
   // skeleton only covers the case where they are genuinely absent.
@@ -30,7 +35,7 @@ export function ElectionPartySelector({ contextId }: Props) {
       {/* Election Context Banner */}
       <section aria-labelledby="election-context">
         <span id="election-context" className="sr-only">
-          {t('currentElection')}
+          {t(`${electionStatus(currentContext)}Election`)}
         </span>
         <ElectionSelect />
       </section>

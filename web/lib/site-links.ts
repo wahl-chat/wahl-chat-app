@@ -24,6 +24,7 @@ export const GITHUB_LINK = 'https://github.com/wahl-chat';
  * geo-IP redirect. Build it with sourcesLink(contextId) instead.
  */
 export const SITE_LINKS = {
+  chat: { href: '/election-chat', label: 'chat' },
   howTo: { href: '/how-to', label: 'howTo' },
   donate: { href: '/donate', label: 'donate' },
   aboutUs: { href: '/about-us', label: 'aboutUs' },

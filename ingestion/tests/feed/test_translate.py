@@ -2,24 +2,21 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-import json
 import re
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Callable, Optional
 
-from ingestion.feed.builder import DigestBuilder
-from ingestion.feed.items import split_digest
-from ingestion.feed.models import DailyDigest, FeedItem
+from ingestion.feed.builder import FeedBuilder
+from ingestion.feed.models import FeedItem
 from ingestion.feed.prompts import (
     TRANSLATION_PROMPT_VERSION,
     TranslatedSegment,
     TranslationBatch,
 )
 from ingestion.feed.translate import needs_translation, translate_items
+from tests.feed.samples import sample_items
 
 NOW = datetime(2026, 10, 24, tzinfo=timezone.utc)
-LEGACY_FIXTURE = Path(__file__).parent / "fixtures" / "legacy_daily_digests.json"
 _SEGMENT_RE = re.compile(r"^\[(S\d+)\] (.*)$", re.MULTILINE)
 
 # (ref, German segment as sent) -> English text, or None to leave it out.
@@ -27,9 +24,7 @@ Edit = Callable[[str, str], Optional[str]]
 
 
 def _items() -> list[FeedItem]:
-    digest = DailyDigest.model_validate(json.loads(LEGACY_FIXTURE.read_text())[0])
-    _, items = split_digest(digest)
-    return items
+    return sample_items()
 
 
 class FakeTranslator:
@@ -62,7 +57,7 @@ def _english(german: str) -> str:
 
 def _run(items: list[FeedItem], **kwargs: Any) -> Any:
     fake = FakeTranslator(**kwargs)
-    builder = DigestBuilder(fake)
+    builder = FeedBuilder(fake)
     try:
         return translate_items(items, builder, now=NOW), fake
     finally:

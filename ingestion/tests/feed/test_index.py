@@ -4,7 +4,6 @@
 
 import json
 from datetime import date
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -15,16 +14,13 @@ from ingestion.feed.index import (
     item_payload,
     search_filter,
 )
-from ingestion.feed.items import split_digest
-from ingestion.feed.models import DailyDigest, FeedItem
+from ingestion.feed.models import FeedItem
 from ingestion.setup_collection import EMBEDDING_DIM
-
-LEGACY_FIXTURE = Path(__file__).parent / "fixtures" / "legacy_daily_digests.json"
+from tests.feed.samples import sample_items
 
 
 def _items() -> list[FeedItem]:
-    digest = DailyDigest.model_validate(json.loads(LEGACY_FIXTURE.read_text())[0])
-    return split_digest(digest)[1]
+    return sample_items()
 
 
 class FakeEmbeddings:

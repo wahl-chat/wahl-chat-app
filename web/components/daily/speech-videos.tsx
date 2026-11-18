@@ -1,20 +1,28 @@
 'use client';
 
-import { sortBySeating } from '@/lib/daily/seating-order';
 import type { DigestSessionSection } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
-import { PlayIcon } from 'lucide-react';
+import { Loader2Icon, PlayIcon, VolumeXIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // The same speech can sit in the feed and in the open detail at once; starting
 // one pauses the other rather than playing both over each other.
 let playingElement: HTMLMediaElement | null = null;
 
+// The white disc of the play and unmute buttons.
+const BUTTON_DISC =
+  'flex items-center justify-center rounded-full bg-white text-zinc-900';
+
+// Past the black first frames, as the feed job does when it has no start.
+const FALLBACK_START = 0.5;
+
 type Media = {
   kind: 'video' | 'audio';
-  /** For video, a media fragment at the speech's start. */
+  /** For video, a media fragment at the second playback starts. */
   src: string;
+  /** A still of the frame at that very second; null shows a dark frame. */
+  poster: string | null;
   badge: string;
   caption: string | null;
 };
@@ -24,34 +32,17 @@ function formatTime(seconds: number): string {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
 }
 
-/**
- * The video file opened at a media fragment: the frame there doubles as the
- * thumbnail, which is why preload is "metadata" rather than "none" (that leaves
- * an empty box until playback starts).
- */
-function videoSrc(videoUrl: string, link: string | null | undefined): string {
-  const start = Number((link ?? '').split('#t=')[1]);
-  return `${videoUrl.split('#')[0]}#t=${Number.isFinite(start) && start > 0.5 ? start : 0.5}`;
-}
-
 /** Formats "speaker · from 1:23" in the reader's language. */
 export type StartCaption = (speaker: string, time: string) => string;
 
-function startCaption(
-  speaker: string,
-  link: string | null | undefined,
-  caption: StartCaption,
-) {
-  const start = Number((link ?? '').split('#t=')[1]);
-  return Number.isFinite(start) && start > 0
-    ? caption(speaker, formatTime(start))
-    : speaker;
+function startCaption(label: string, start: number, caption: StartCaption) {
+  return Math.floor(start) > 0 ? caption(label, formatTime(start)) : label;
 }
 
 /**
- * One speech stands for the debate: the opening speaker's when known, since
- * the opening statement quotes it; otherwise the first Fraktion's in seating
- * order that has video, then any cited speech video, then the agenda item's.
+ * The feed job chooses the speech and its start, and cuts the poster at that
+ * start, so the card plays on from the frame it shows. Nothing is chosen
+ * here: a second rule on this side would show one frame and play another.
  */
 export function sectionMedia(
   section: DigestSessionSection,
@@ -62,67 +53,96 @@ export function sectionMedia(
     return {
       kind: 'audio',
       src: section.audio.url,
+      poster: null,
       badge: duration ? `Audio · ${formatTime(duration)}` : 'Audio',
       caption: section.audio.title,
     };
   }
-  const speakers = sortBySeating(section.positions ?? []).flatMap((p) =>
-    p.speakers
-      .filter((s) => s.video_url)
-      .map((s) => ({ ...s, party: p.party_name })),
-  );
-  const opener = section.opening_quote?.speaker;
-  const speaker =
-    speakers.find((s) => s.name === opener) ?? speakers.at(0) ?? null;
-  if (speaker?.video_url) {
+  const card = section.card_video;
+  if (card) {
+    const label =
+      card.speaker && card.party_name
+        ? `${card.speaker} (${card.party_name})`
+        : card.speaker;
     return {
       kind: 'video',
-      src: videoSrc(speaker.video_url, speaker.video_link),
+      src: `${card.video_url}#t=${card.start}`,
+      poster: card.poster_url,
       badge: 'Video',
-      caption: startCaption(
-        `${speaker.name} (${speaker.party})`,
-        speaker.video_link,
-        caption,
-      ),
-    };
-  }
-  const cited = section.citations.find((c) => c.video_url);
-  if (cited?.video_url) {
-    return {
-      kind: 'video',
-      src: videoSrc(cited.video_url, cited.url),
-      badge: 'Video',
-      caption: cited.speaker ?? null,
+      caption: label ? startCaption(label, card.start, caption) : null,
     };
   }
   return section.video_url
     ? {
         kind: 'video',
-        src: videoSrc(section.video_url, null),
+        src: `${section.video_url.split('#')[0]}#t=${FALLBACK_START}`,
+        poster: null,
         badge: 'Video',
         caption: null,
       }
     : null;
 }
 
-/** Dark 16:9 frame with a play button; native controls once playing. */
+/**
+ * Dark 16:9 frame with a play button; native controls once playing. Nothing
+ * of the media loads before play: a poster stands in for the first frame
+ * and stays on top until the video paints, which is the same image, so the
+ * switch does not flash. In a feed card, the play button and the playing
+ * media sit above the card's stretched link (z-10), so they play rather than
+ * open the detail.
+ */
 export function SectionMediaFrame({
   media,
   className,
+  mediaClassName,
   small = false,
+  autoPlayMuted = false,
 }: {
   media: Media;
   className?: string;
+  /** On the video until it plays, e.g. a card's hover zoom. */
+  mediaClassName?: string;
   small?: boolean;
+  /** The detail view: the video plays muted at once, and a tap unmutes it. */
+  autoPlayMuted?: boolean;
 }) {
   const t = useTranslations('feed');
   const ref = useRef<HTMLMediaElement | null>(null);
   const [started, setStarted] = useState(false);
+  const [painted, setPainted] = useState(false);
+  const [muted, setMuted] = useState(false);
 
+  // Browsers let only a muted video start without a tap. `muted` is set on
+  // the element: React does not reliably reflect its prop to the DOM. A
+  // refused start leaves the play button, which then plays with sound.
+  useEffect(() => {
+    const el = ref.current;
+    if (
+      !autoPlayMuted ||
+      !el ||
+      media.kind !== 'video' ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
+    el.muted = true;
+    setMuted(true);
+    setStarted(true);
+    el.play().catch(() => {
+      el.muted = false;
+      setMuted(false);
+      setStarted(false);
+    });
+  }, [autoPlayMuted, media.kind]);
+
+  // The poster covers the native controls until the video paints, so a play
+  // that fails must bring the play button back rather than leave a still.
+  const stop = () => setStarted(false);
   const play = () => {
     setStarted(true);
     ref.current?.play().catch((error: unknown) => {
       console.error(`[media] Could not play ${media.src}:`, error);
+      stop();
     });
   };
   const onPlay = () => {
@@ -131,6 +151,21 @@ export function SectionMediaFrame({
     }
     playingElement = ref.current;
   };
+  // From here on the native controls take over, clicks included.
+  const unmute = () => {
+    const el = ref.current;
+    if (!el) {
+      return;
+    }
+    el.muted = false;
+    setMuted(false);
+    if (el.paused) {
+      play();
+    }
+  };
+  const spinner = (
+    <Loader2Icon aria-hidden className="size-8 animate-spin text-white" />
+  );
 
   return (
     <div
@@ -145,11 +180,17 @@ export function SectionMediaFrame({
             ref.current = el;
           }}
           src={media.src}
-          preload="metadata"
+          preload="none"
           playsInline
-          controls={started}
+          controls={started && !muted}
           onPlay={onPlay}
-          className="absolute inset-0 size-full object-cover"
+          onPlaying={() => setPainted(true)}
+          onError={stop}
+          className={cn(
+            'absolute inset-0 size-full object-cover',
+            // Playing, the controls must stay put under the pointer.
+            started ? 'z-10' : mediaClassName,
+          )}
         />
       ) : (
         <audio
@@ -160,8 +201,49 @@ export function SectionMediaFrame({
           preload="metadata"
           controls={started}
           onPlay={onPlay}
-          className="absolute inset-x-3 bottom-3 w-[calc(100%-1.5rem)]"
+          className={cn(
+            'absolute inset-x-3 bottom-3 w-[calc(100%-1.5rem)]',
+            started && 'z-10',
+          )}
         />
+      )}
+      {media.poster && !painted && (
+        // A plain <img>, not the video's poster attribute: that one loads
+        // with the page, this one only once the card nears the viewport.
+        <img
+          src={media.poster}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className={cn(
+            'pointer-events-none absolute inset-0 size-full object-cover',
+            started ? 'z-10' : mediaClassName,
+          )}
+        />
+      )}
+      {media.poster && started && !painted && !muted && (
+        // Centred by the wrapper, not by translate: animate-spin sets the
+        // icon's transform, which would drop a translate and swing it off
+        // centre on every turn.
+        <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          {spinner}
+        </span>
+      )}
+      {started && muted && (
+        <button
+          type="button"
+          onClick={unmute}
+          aria-label={t('unmute')}
+          className="absolute inset-0 z-10 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
+        >
+          {media.poster && !painted ? (
+            spinner
+          ) : (
+            <span className={cn(BUTTON_DISC, small ? 'size-10' : 'size-14')}>
+              <VolumeXIcon className="size-5" />
+            </span>
+          )}
+        </button>
       )}
       {!started && (
         <>
@@ -175,7 +257,8 @@ export function SectionMediaFrame({
               media.kind === 'video' ? t('playSpeech') : t('playAudio')
             }
             className={cn(
-              'absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-800',
+              BUTTON_DISC,
+              'absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-800',
               small ? 'size-10' : 'size-14',
             )}
           >

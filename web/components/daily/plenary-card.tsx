@@ -1,33 +1,42 @@
+'use client';
+
+import { HEAT_SCALE, heatRating } from '@/lib/daily/feed';
 import {
   type SectionItem,
   itemTeaser,
+  itemTerms,
   protocolLabel,
   sectionTopics,
 } from '@/lib/daily/items';
 import { cn } from '@/lib/utils';
+import { FlameIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { CardFooter, ItemTeaser } from './card-footer';
-import { CARD_SURFACE } from './card-styles';
+import {
+  CARD_GROUP,
+  CARD_LINK,
+  CARD_SURFACE,
+  HEADLINE_POP,
+  MEDIA_POP,
+} from './card-styles';
+import HotTopicTrail from './hot-topic-trail';
+import { InfoTooltip } from './info-tooltip';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
 import { TopicMeta } from './topic-chip';
 
-const HEAT_DOTS = 5;
-
-export function HeatDots({ heat }: { heat: number }) {
-  const t = useTranslations('feed');
+/** Heat as a row of small flames, lit up to the debate's rating. */
+function HeatFlames({ heat }: { heat: number }) {
   return (
-    <span
-      role="img"
-      aria-label={t('heatOutOf', { heat, max: HEAT_DOTS })}
-      className="inline-flex gap-0.5"
-    >
-      {Array.from({ length: HEAT_DOTS }, (_, i) => (
-        <span
+    <span aria-hidden className="inline-flex gap-px">
+      {Array.from({ length: HEAT_SCALE }, (_, i) => (
+        <FlameIcon
           // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length scale
           key={i}
+          aria-hidden
+          strokeWidth={1.5}
           className={cn(
-            'size-1.5 rounded-full',
-            i < heat ? 'bg-[#E53935]' : 'bg-[var(--daily-border)]',
+            'size-3 fill-current',
+            i < heat ? 'text-[#E53935]' : 'text-[var(--daily-border)]',
           )}
         />
       ))}
@@ -35,17 +44,47 @@ export function HeatDots({ heat }: { heat: number }) {
   );
 }
 
+/**
+ * The flames with what they mean: on hover with a mouse, on tap on a touch
+ * screen, where a tooltip would otherwise never open. Inside a card it sits
+ * above the card's link, so a tap explains rather than opens the debate.
+ */
+export function HeatInfo({ heat }: { heat: number }) {
+  const t = useTranslations('feed');
+  return (
+    <InfoTooltip
+      label={t('heatOutOf', { heat, max: HEAT_SCALE })}
+      side="bottom"
+      className="inline-flex items-center rounded p-0.5"
+      content={
+        <>
+          <p>{t('heat.counted')}</p>
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 font-semibold">
+            <HeatFlames heat={heat} />
+            <span>{t(`heat.${heatRating(heat)}`)}</span>
+          </p>
+        </>
+      }
+    >
+      <HeatFlames heat={heat} />
+    </InfoTooltip>
+  );
+}
+
 type Props = {
   item: SectionItem;
-  /** Day-relative, see `dayHeat`. */
-  heat: number | undefined;
+  /** Day-relative, see `dayHeat`. The Hot Topic shows its own next to its
+   * heading instead. */
+  heat?: number;
   onOpen: () => void;
   variant: 'hot' | 'small';
 };
 
 /**
- * One debate of a Plenarsitzung. The hot variant leads the day, the small one
- * sits in the day's swipe row; both are the same card at different sizes.
+ * One debate of a Plenarsitzung. The hot variant leads the day as its Hot
+ * Topic, the small one sits in the day's swipe row; both are the same card at
+ * different sizes. The small one shows its heat, since it helps choose what to
+ * read; the Hot Topic's stands next to its heading.
  */
 export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
   const t = useTranslations('feed');
@@ -59,14 +98,24 @@ export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
   return (
     <article
       data-item-key={item.key}
-      className={cn(CARD_SURFACE, 'flex h-full flex-col overflow-hidden')}
+      className={cn(
+        CARD_SURFACE,
+        CARD_GROUP,
+        'flex h-full flex-col overflow-hidden',
+      )}
     >
-      {media && <SectionMediaFrame media={media} small={!hot} />}
+      {media && (
+        <SectionMediaFrame
+          media={media}
+          small={!hot}
+          mediaClassName={MEDIA_POP}
+        />
+      )}
       <div className="flex flex-1 flex-col gap-2 px-4 pb-2 pt-4">
         <TopicMeta
           topics={sectionTopics(section)}
           suffix={hot && protocol ? t('protocol', { id: protocol }) : null}
-          trailing={hot && heat ? <HeatDots heat={heat} /> : null}
+          trailing={heat ? <HeatInfo heat={heat} /> : null}
         />
         <h3
           className={cn(
@@ -74,21 +123,19 @@ export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
             hot ? 'text-[22px]' : 'text-[19px]',
           )}
         >
-          <button
-            type="button"
-            onClick={onOpen}
-            className="text-left focus-visible:underline focus-visible:outline-none"
-          >
-            {section.headline}
+          <button type="button" onClick={onOpen} className={CARD_LINK}>
+            <span className={HEADLINE_POP}>{section.headline}</span>
           </button>
         </h3>
         <ItemTeaser
           text={itemTeaser(item)}
+          terms={itemTerms(item)}
           label={section.headline}
           onOpen={onOpen}
         />
         <CardFooter item={item} />
       </div>
+      {hot && <HotTopicTrail />}
     </article>
   );
 }

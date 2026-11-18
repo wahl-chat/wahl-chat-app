@@ -1,3 +1,5 @@
+import { DeleteOpinionsButton } from '@/components/delete-opinions-button';
+
 /** Courtesy translation of `content.de.tsx`; only the German text is legally
  * binding. Keep the two in step, section for section. */
 export function DatenschutzEn() {
@@ -18,6 +20,7 @@ export function DatenschutzEn() {
         <li>Usage data.</li>
         <li>Meta, communication and process data.</li>
         <li>Log data.</li>
+        <li>Political opinions (only with consent).</li>
       </ul>
       <h3>Categories of Data Subjects</h3>
       <ul>
@@ -66,6 +69,13 @@ export function DatenschutzEn() {
           The data subject has given consent to the processing of personal data
           relating to them for one specific purpose or several specific
           purposes.
+        </li>
+        <li>
+          <strong>
+            Explicit consent to special categories (Art. 9 para. 2 lit. a) GDPR)
+          </strong>{' '}
+          - The data subject has explicitly consented to the processing of
+          special categories of personal data, such as their political opinions.
         </li>
         <li>
           <strong>
@@ -689,6 +699,60 @@ export function DatenschutzEn() {
           </span>
         </li>
       </ul>
+      <h2 id="mFeedBewertungen">Ratings in the News Feed</h2>
+      <p>
+        In the news feed you can state whether you agree with a parliamentary
+        group’s position and how you would have voted in a vote in the
+        Bundestag. These statements reveal your political opinions. They
+        therefore belong to the special categories of personal data (Art. 9
+        GDPR). We store them only if you have explicitly consented beforehand.
+        Providing them is voluntary.
+      </p>
+      <p>
+        We store each rating with your user ID: the ID of your account if you
+        have one, otherwise a random anonymous ID. This lets you see your
+        ratings again on your next visit. We show others only the total of all
+        ratings, never your individual statement, and a total only once at least
+        10 people have answered. We do not pass your personal statements on to
+        third parties. We use the aggregated results to show how our users as a
+        whole view certain votes and positions, on wahl.chat and beyond,
+        likewise only from 10 answers. They are stored with Google (Firebase) in
+        data centres in the EU and processed on Vercel servers in Frankfurt.
+        Both providers act on our behalf and are certified under the EU-US Data
+        Privacy Framework.
+      </p>
+      <ul className="m-elements">
+        <li>
+          <strong>Types of data processed:</strong> Content data (your ratings
+          of positions and votes); meta, communication and process data (user
+          ID, time of the rating and of the consent).
+        </li>
+        <li>
+          <strong>Data subjects:</strong> Users.
+        </li>
+        <li>
+          <strong>Purposes of processing:</strong> Storing your ratings;
+          displaying and publishing anonymous overall results; provision of our
+          online services and usability.
+        </li>
+        <li>
+          <strong>Retention and deletion:</strong> Until you withdraw your
+          consent. “Delete my ratings” in the menu or here deletes all your
+          ratings. They then no longer count towards the overall results either.
+          We automatically delete ratings stored under an anonymous ID once you
+          have not visited wahl.chat with that ID for six months: an anonymous
+          ID is lost if, for example, you clear your browser data, and with it
+          the possibility of withdrawing consent yourself.
+        </li>
+        <li>
+          <strong>Legal bases:</strong> Consent (Art. 6 para. 1 sentence 1 lit.
+          a) GDPR) and explicit consent to the processing of special categories
+          of personal data (Art. 9 para. 2 lit. a) GDPR). You can withdraw your
+          consent at any time with effect for the future (Art. 7 para. 3 GDPR),
+          likewise with “Delete my ratings” in the menu or here.
+        </li>
+      </ul>
+      <DeleteOpinionsButton />
       <h2 id="m182">Contact and Enquiry Management</h2>
       <p>
         When you contact us (e.g. by post, contact form, email, telephone or via

@@ -1,10 +1,16 @@
 'use client';
 
 import {
+  ABSENT_RING,
   type PartyArc,
+  SEAT_VOTES,
   type SeatVote,
+  coord,
   isUnaffiliated,
   layoutHemicycle,
+  layoutShare,
+  seatShape,
+  voteBreakdown,
   voteTotals,
 } from '@/lib/daily/hemicycle';
 import { SEAT_FILLS } from '@/lib/daily/palette';
@@ -13,9 +19,8 @@ import { buildPartyImageUrl, cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
-const SEAT_ORDER: SeatVote[] = ['yes', 'no', 'abstain', 'absent'];
-
-const ABSENT_RING = '#A1A1AA';
+// Other Fraktionen fade back while one is selected.
+const DIMMED_OPACITY = 0.18;
 
 // Faction markers sit just outside the outer row, at the middle of the
 // faction's block, like the seat labels in a printed Sitzverteilung.
@@ -30,19 +35,28 @@ const MARKER_PAD = 0.015;
 const SCORE_FONT = 0.13;
 const SCORE_SUB_FONT = 0.075;
 
-// Fixed precision so the server-rendered SVG and the hydrating client agree
-// to the character; raw trig results can differ in their last digits.
-function coord(value: number): string {
-  return value.toFixed(4);
-}
-
-function FactionMarker({ arc }: { arc: PartyArc }) {
+function FactionMarker({
+  arc,
+  dimmed,
+  onSelect,
+}: {
+  arc: PartyArc;
+  dimmed: boolean;
+  onSelect?: () => void;
+}) {
   const [missing, setMissing] = useState(false);
   const angle = (arc.startAngle + arc.endAngle) / 2;
   const x = MARKER_RADIUS * Math.cos(angle) - MARKER_W / 2;
   const y = -MARKER_RADIUS * Math.sin(angle) - MARKER_H / 2;
   return (
-    <g>
+    // Pointer only: the Fraktion list under the chart is the keyboard path.
+    // biome-ignore lint/a11y/useKeyWithClickEvents: see above
+    // biome-ignore lint/nursery/noStaticElementInteractions: see above
+    <g
+      onClick={onSelect}
+      opacity={dimmed ? DIMMED_OPACITY : 1}
+      className={cn(onSelect && 'cursor-pointer')}
+    >
       <rect
         x={coord(x)}
         y={coord(y)}
@@ -64,7 +78,7 @@ function FactionMarker({ arc }: { arc: PartyArc }) {
         </text>
       ) : (
         <image
-          href={buildPartyImageUrl(arc.partyId)}
+          href={buildPartyImageUrl(arc.logoId)}
           x={coord(x + MARKER_PAD)}
           y={coord(y + MARKER_PAD)}
           width={MARKER_W - 2 * MARKER_PAD}
@@ -81,18 +95,24 @@ function FactionMarker({ arc }: { arc: PartyArc }) {
 type Props = {
   parties: DigestVoteParty[];
   className?: string;
+  /** The Fraktion whose block stays lit while the others fade. */
+  selected?: string | null;
+  /** Makes each Fraktion's block and marker clickable. */
+  onSelect?: (partyId: string) => void;
 };
 
 /**
  * One dot per member, coloured by their vote. Per-member votes are not in the
  * data, so each faction's block is filled from its counts (Ja, Enthalten,
- * Nein, Abwesend, left to right): the split is exact, the seat is not.
+ * Nein, Nicht beteiligt, left to right): the split is exact, the seat is not.
  */
-export function Hemicycle({ parties, className }: Props) {
+export function Hemicycle({ parties, className, selected, onSelect }: Props) {
   const t = useTranslations('feed');
   const layout = useMemo(() => layoutHemicycle(parties), [parties]);
   const totals = useMemo(() => voteTotals(parties), [parties]);
   const r = layout.seatRadius;
+
+  const dimmed = (partyId: string) => Boolean(selected) && partyId !== selected;
 
   const label = `${t('voteResult', totals)} ${layout.arcs
     .map((a) => t('seats', { name: a.name, seats: a.seats }))
@@ -105,31 +125,30 @@ export function Hemicycle({ parties, className }: Props) {
       role="img"
       aria-label={label}
     >
-      {layout.seats.map((seat, i) => {
-        const absent = seat.vote === 'absent';
-        return (
-          <circle
-            // Seats have no identity beyond their position in the layout.
-            // biome-ignore lint/suspicious/noArrayIndexKey: stable per layout
-            key={i}
-            cx={coord(seat.x)}
-            cy={coord(-seat.y)}
-            r={coord(absent ? r * 0.8 : r)}
-            fill={
-              absent
-                ? '#FFFFFF'
-                : SEAT_FILLS[seat.vote as keyof typeof SEAT_FILLS]
-            }
-            stroke={absent ? ABSENT_RING : undefined}
-            strokeWidth={absent ? coord(r * 0.4) : undefined}
-          />
-        );
-      })}
+      {layout.seats.map((seat, i) => (
+        // Pointer only: the Fraktion list under the chart is the keyboard path.
+        // biome-ignore lint/a11y/useKeyWithClickEvents: see above
+        // biome-ignore lint/nursery/noStaticElementInteractions: see above
+        <circle
+          // Seats have no identity beyond their position in the layout.
+          // biome-ignore lint/suspicious/noArrayIndexKey: stable per layout
+          key={i}
+          onClick={onSelect && (() => onSelect(seat.partyId))}
+          opacity={dimmed(seat.partyId) ? DIMMED_OPACITY : 1}
+          className={cn(onSelect && 'cursor-pointer')}
+          {...seatShape(seat, r)}
+        />
+      ))}
 
       {layout.arcs
         .filter((arc) => !isUnaffiliated(arc.partyId))
         .map((arc) => (
-          <FactionMarker key={arc.partyId} arc={arc} />
+          <FactionMarker
+            key={arc.partyId}
+            arc={arc}
+            dimmed={dimmed(arc.partyId)}
+            onSelect={onSelect && (() => onSelect(arc.partyId))}
+          />
         ))}
 
       <g aria-hidden textAnchor="middle" style={{ fill: 'var(--daily-ink)' }}>
@@ -148,7 +167,7 @@ export function Hemicycle({ parties, className }: Props) {
   );
 }
 
-/** Counted key under the chart: "● 318 Ja  ● 284 Nein  ● 4 Enthalten  ○ 24 Abwesend". */
+/** Counted key under the chart: "● 318 Ja  ● 284 Nein  ● 4 Enthalten  ○ 24 Nicht beteiligt". */
 export function SeatLegend({
   parties,
   className,
@@ -165,17 +184,9 @@ export function SeatLegend({
         className,
       )}
     >
-      {SEAT_ORDER.map((vote) => (
+      {SEAT_VOTES.map((vote) => (
         <li key={vote} className="flex items-center gap-1.5">
-          <span
-            aria-hidden
-            className="inline-block size-2.5 rounded-full"
-            style={
-              vote === 'absent'
-                ? { boxShadow: `inset 0 0 0 1px ${ABSENT_RING}` }
-                : { backgroundColor: SEAT_FILLS[vote] }
-            }
-          />
+          <VoteSwatch vote={vote} />
           {totals[vote]} {t(`seat.${vote}`)}
         </li>
       ))}
@@ -183,65 +194,99 @@ export function SeatLegend({
   );
 }
 
-// The gauge is a thick half ring; a hairline gap marks where Ja ends.
-const GAUGE_RADIUS = 40;
-const GAUGE_STROKE = 14;
-const GAUGE_GAP = 0.03;
-
-function gaugeArc(from: number, to: number): string {
-  const point = (angle: number) =>
-    `${coord(GAUGE_RADIUS * Math.cos(angle))} ${coord(-GAUGE_RADIUS * Math.sin(angle))}`;
-  return `M ${point(from)} A ${GAUGE_RADIUS} ${GAUGE_RADIUS} 0 0 1 ${point(to)}`;
+function VoteSwatch({ vote }: { vote: SeatVote }) {
+  return (
+    <span
+      aria-hidden
+      className="inline-block size-2.5 shrink-0 rounded-full"
+      style={
+        vote === 'absent'
+          ? { boxShadow: `inset 0 0 0 1px ${ABSENT_RING}` }
+          : { backgroundColor: SEAT_FILLS[vote] }
+      }
+    />
+  );
 }
 
-/**
- * The compact result: Ja against Nein as one half ring, Ja from the left like
- * the seat chart, with each count under its end of the ring. Abstentions and absences are
- * left out, since the outcome is decided between the two.
- */
-export function VoteGauge({ parties }: { parties: DigestVoteParty[] }) {
+/** How the members of one Fraktion voted: the four counts and a bar that
+ * splits the Fraktion by them. */
+export function PartyVoteBreakdown({
+  party,
+  id,
+}: {
+  party: DigestVoteParty;
+  id?: string;
+}) {
   const t = useTranslations('feed');
-  const { yes, no } = voteTotals(parties);
-  const decided = yes + no;
-  const split = decided > 0 ? Math.PI * (1 - yes / decided) : Math.PI / 2;
-  const gap = yes > 0 && no > 0 ? GAUGE_GAP : 0;
-  const extent = GAUGE_RADIUS + GAUGE_STROKE / 2;
+  const shares = voteBreakdown(party);
+  const total = shares.reduce((sum, s) => sum + s.count, 0);
   return (
-    <figure className="flex w-32 flex-col items-center gap-1">
-      <svg
-        viewBox={`${-extent} ${-extent} ${2 * extent} ${extent}`}
-        className="w-full"
-        role="img"
-        aria-label={`${yes} ${t('seat.yes')}, ${no} ${t('seat.no')}`}
-      >
-        {yes > 0 && (
-          <path
-            d={gaugeArc(Math.PI, split + gap)}
-            fill="none"
-            stroke={SEAT_FILLS.yes}
-            strokeWidth={GAUGE_STROKE}
-          />
-        )}
-        {no > 0 && (
-          <path
-            d={gaugeArc(split - gap, 0)}
-            fill="none"
-            stroke={SEAT_FILLS.no}
-            strokeWidth={GAUGE_STROKE}
-          />
-        )}
-      </svg>
-      <figcaption
-        aria-hidden
-        className="flex w-full justify-between whitespace-nowrap text-[13px] font-semibold tabular-nums"
-      >
-        <span className="text-[var(--daily-yes)]">
-          {yes} {t('seat.yes')}
+    <section
+      id={id}
+      aria-live="polite"
+      className="flex flex-col gap-2 rounded-xl bg-[var(--daily-surface)] p-4"
+    >
+      <h4 className="text-[15px] font-semibold">
+        {t('partyVoted', { name: party.name })}
+        <span className="font-normal text-[var(--daily-muted)]">
+          {' '}
+          · {t('members', { count: total })}
         </span>
-        <span className="text-[var(--daily-no)]">
-          {no} {t('seat.no')}
-        </span>
-      </figcaption>
-    </figure>
+      </h4>
+      {total > 0 && (
+        <div aria-hidden className="flex h-2 overflow-hidden rounded-full">
+          {shares
+            .filter((s) => s.count > 0)
+            .map((s) => (
+              <span
+                key={s.vote}
+                style={{
+                  flexGrow: s.count,
+                  backgroundColor:
+                    s.vote === 'absent'
+                      ? 'var(--daily-border)'
+                      : SEAT_FILLS[s.vote],
+                }}
+              />
+            ))}
+        </div>
+      )}
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[15px] tabular-nums">
+        {shares.map((s) => (
+          <li key={s.vote} className="flex items-center gap-1.5">
+            <VoteSwatch vote={s.vote} />
+            {s.count} {t(`seat.${s.vote}`)}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** The readers' answers to "Wie hättest du abgestimmt?" as a small chamber,
+ * shown once the reader has answered themselves. */
+export function CommunityHemicycle({
+  accept,
+  reject,
+  className,
+}: {
+  accept: number;
+  reject: number;
+  className?: string;
+}) {
+  const t = useTranslations('feed');
+  const layout = useMemo(() => layoutShare(accept, reject), [accept, reject]);
+  return (
+    <svg
+      viewBox="-1.05 -1.05 2.1 1.1"
+      className={cn('w-full', className)}
+      role="img"
+      aria-label={t('communityResult', { accept, reject })}
+    >
+      {layout.seats.map((seat, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: stable per layout
+        <circle key={i} {...seatShape(seat, layout.seatRadius)} />
+      ))}
+    </svg>
   );
 }

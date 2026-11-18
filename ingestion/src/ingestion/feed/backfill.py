@@ -7,18 +7,24 @@
 The weekly job keeps the last two weeks current; this fills the weeks before
 it, once per environment, before the web that shows the feed is deployed
 there. It is the same build as the job (``build_and_publish``), with a longer
-window and without the job's time cap, run from a workstation.
+window (``--since`` a date, or ``--weeks``) and without the job's time cap,
+run from a workstation.
 
-``--plan`` reads the corpus and the stored editions and lists, per
-parliament and week, which days exist and which still need building. It
-makes no LLM calls and writes nothing. Without it the command asks for
-confirmation (prod: the project id), then builds, translates, indexes and
-stores every missing day. Days already built are skipped, so it is safe to
-stop and run again; a day that failed is retried on the next run.
+``--plan`` reads the corpus, the protocols and the stored items and lists,
+per parliament and week, how many items exist and how many still need
+building. It makes no LLM calls and writes nothing. Without it the command asks for confirmation
+(prod: the project id), then builds, translates, indexes and stores every
+missing item. Items already built are skipped, so it is safe to stop and run
+again; an item that failed is retried on the next run.
+
+Every run but ``--plan`` ends by busting the deployed web's feed cache, even
+when there was nothing to build: the web caches the feed for 24h, and only
+the bust makes it show what the store holds. A run therefore needs that
+deployment's ``REVALIDATE_SECRET`` and refuses to start without it.
 
 Usage (from the repo root, with that environment's Qdrant exported):
-    QDRANT_URL=... QDRANT_API_KEY=... make backfill-feed TARGET=dev ARGS="--plan"
-    QDRANT_URL=... QDRANT_API_KEY=... make backfill-feed TARGET=dev
+    QDRANT_URL=... QDRANT_API_KEY=... make backfill-feed TARGET=dev ARGS="--plan --since 2026-09-01"
+    QDRANT_URL=... QDRANT_API_KEY=... REVALIDATE_SECRET=... make backfill-feed TARGET=dev ARGS="--since 2026-09-01"
 """
 
 from __future__ import annotations
@@ -27,16 +33,9 @@ from __future__ import annotations
 # embedding settings are read at import time. override=False keeps exported
 # variables (make, the shell) in force.
 if __name__ == "__main__":
-    from pathlib import Path as _Path
+    from ingestion.env_file import load_env_file
 
-    from dotenv import load_dotenv
-
-    _env_path = _Path(__file__).resolve().parents[3] / ".env"
-    # Use ai-backend/.env when ingestion/.env does not exist.
-    if not _env_path.exists():
-        _env_path = _env_path.parents[1] / "ai-backend" / ".env"
-    if _env_path.exists():
-        load_dotenv(_env_path, override=False)
+    load_env_file()
 
 import json
 import logging
@@ -44,19 +43,30 @@ import os
 import sys
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Literal, Optional
 from urllib.parse import urlparse
 
+import httpx
 from qdrant_client import QdrantClient
 
-from ingestion.feed.builder import DigestBuilder, compute_input_hash, votes_by_day
-from ingestion.feed.bulk import ParliamentRun, build_and_publish, load_sources
+from ingestion.feed.builder import DebateUnit, FeedBuilder, VoteUnit, plan_days
+from ingestion.feed.bulk import (
+    ParliamentRun,
+    build_and_publish,
+    card_posters,
+    load_sources,
+    post_revalidate,
+    refresh_posters,
+    refresh_speakers,
+)
 from ingestion.feed.index import FEED_COLLECTION_NAME, setup_feed_collection
-from ingestion.feed.models import FeedItem, digest_doc_id
-from ingestion.feed.parliaments import PARLIAMENTS, Parliament
-from ingestion.feed.store import read_edition_hashes, read_items_since
+from ingestion.feed.items import build_needed
+from ingestion.feed.models import FeedItem
+from ingestion.feed.parliaments import FEED_PARLIAMENTS, PARLIAMENTS, Parliament
+from ingestion.feed.politicians import speakers_without_id
+from ingestion.feed.store import read_items_since
 from ingestion.feed.translate import needs_translation
 from ingestion.firestore_guard import guard_firestore_target
 from ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
@@ -96,6 +106,32 @@ def check_target(target: Target, qdrant_url: str) -> list[str]:
     return problems
 
 
+def check_cache_bust() -> list[str]:
+    """Why a run could not bust the web's feed cache afterwards; empty when
+    it can. Checked before any LLM call, not found out after the writes."""
+    if os.getenv("REVALIDATE_SECRET"):
+        return []
+    return [
+        "REVALIDATE_SECRET is not set, so the web would keep showing its cached "
+        "feed for up to 24h; copy it from "
+        "https://vercel.com/wahl-chat/web/settings/environment-variables"
+    ]
+
+
+def bust_web_cache(target: Target) -> bool:
+    try:
+        post_revalidate(target)
+    except httpx.HTTPError as exc:
+        print(
+            f"ERROR: the feed is stored, but busting the web cache failed ({exc}). "
+            "Run the same command again: with nothing left to build it only "
+            "busts the cache.",
+            file=sys.stderr,
+        )
+        return False
+    return True
+
+
 def key_file(target: Target, explicit: Optional[Path]) -> Optional[Path]:
     """The admin-SDK key to use: the given one, else the usual file name in
     ``ingestion/`` or ``ai-backend/``. None falls back to gcloud ADC."""
@@ -131,44 +167,55 @@ def firestore_for(target: Target, key: Optional[Path]) -> tuple[Any, str]:
 
 
 @dataclass
-class DayPlan:
+class DayStatus:
     day: date
-    stored: bool
+    items: int
+    to_build: int
 
 
 @dataclass
 class ParliamentPlan:
     parliament: Parliament
     window: Optional[tuple[Any, Any]]
-    days: list[DayPlan] = field(default_factory=list)
+    days: list[DayStatus] = field(default_factory=list)
 
     @property
     def to_build(self) -> int:
-        return sum(1 for d in self.days if not d.stored)
+        return sum(d.to_build for d in self.days)
 
 
 def plan_parliament(
     qdrant: QdrantClient,
     parliament: Parliament,
     days: int,
-    existing_hashes: dict[str, Optional[str]],
+    stored: dict[str, FeedItem],
+    since: Optional[date] = None,
 ) -> ParliamentPlan:
-    """The window's days and whether each is already stored as built now.
+    """The window's days and how many of their items are not yet stored as
+    they would be built now.
 
-    Uses the same input hash as the builder, so "stored" here means the run
-    will skip that day without LLM calls.
+    Decides with the builder's own ``build_needed``, so an item counted as
+    stored here is skipped by the run without an LLM call.
     """
-    sources = load_sources(qdrant, parliament, days, attach_pages=False)
+    sources = load_sources(qdrant, parliament, days, since=since)
     if sources is None:
         return ParliamentPlan(parliament, None)
-    by_day = votes_by_day(sources.votes)
     plan = ParliamentPlan(parliament, sources.window)
-    for day in sorted(set(by_day) | set(sources.sitting_days), reverse=True):
-        stored_hash = existing_hashes.get(digest_doc_id(parliament.id, day))
-        input_hash = compute_input_hash(
-            by_day.get(day, []), sources.sitting_days.get(day)
+    for day in plan_days(parliament, sources.votes, sources.sitting_days):
+        units: list[DebateUnit | VoteUnit] = [*day.debates, *day.votes]
+        plan.days.append(
+            DayStatus(
+                day.day,
+                len(units),
+                sum(
+                    1
+                    for u in units
+                    if build_needed(
+                        stored.get(u.item_id), u.input_hash, u.legacy_input_hash
+                    )
+                ),
+            )
         )
-        plan.days.append(DayPlan(day, stored_hash == input_hash))
     return plan
 
 
@@ -182,15 +229,16 @@ def format_plan(plan: ParliamentPlan) -> list[str]:
     if plan.window is None:
         return [f"{name}  no corpus data"]
     start, end = plan.window
+    items = sum(d.items for d in plan.days)
     lines = [
-        f"{name}  {start}..{end}  days={len(plan.days)} "
-        f"stored={len(plan.days) - plan.to_build} to_build={plan.to_build}"
+        f"{name}  {start}..{end}  days={len(plan.days)} items={items} "
+        f"stored={items - plan.to_build} to_build={plan.to_build}"
     ]
     weeks: dict[str, Counter[str]] = {}
     for day in plan.days:
-        weeks.setdefault(_week(day.day), Counter())[
-            "stored" if day.stored else "to_build"
-        ] += 1
+        counts = weeks.setdefault(_week(day.day), Counter())
+        counts["stored"] += day.items - day.to_build
+        counts["to_build"] += day.to_build
     for week in sorted(weeks):
         counts = weeks[week]
         lines.append(
@@ -201,13 +249,15 @@ def format_plan(plan: ParliamentPlan) -> list[str]:
 
 
 def coverage_lines(items: list[FeedItem], parliament_id: str) -> list[str]:
-    """What the store holds now: days, published items, items still German-only."""
+    """What the store holds now: days, published items, items still
+    German-only, and speakers whose chip cannot open a profile."""
     published = [i for i in items if i.status == "published"]
     days = {i.date for i in published}
     untranslated = sum(1 for i in published if needs_translation(i, "en"))
     return [
         f"{parliament_id:>10}  days={len(days)} items={len(published)} "
-        f"without_english={untranslated}"
+        f"without_english={untranslated} "
+        f"speakers_without_mdb_id={speakers_without_id(published)}"
     ]
 
 
@@ -224,9 +274,33 @@ def _confirm(target: Target, assume_yes: bool, confirm_project: Optional[str]) -
 
 
 def _incomplete(runs: list[tuple[ParliamentRun, Any]]) -> int:
-    return sum(
-        1 for run, _ in runs for digest in run.digests if digest.input_hash is None
-    )
+    return sum(run.incomplete + run.deferred for run, _ in runs)
+
+
+def _build(
+    qdrant: QdrantClient,
+    db: Any,
+    parliaments: list[Parliament],
+    plans: list[ParliamentPlan],
+    days: int,
+    target: Target,
+    since: Optional[date],
+) -> list[tuple[ParliamentRun, Any]]:
+    setup_feed_collection(qdrant)
+    builder = FeedBuilder()
+    try:
+        runs = build_and_publish(
+            qdrant, db, builder, parliaments, days=days, env=target, since=since
+        )
+    finally:
+        builder.close()
+
+    print("\nStored now:")
+    for plan in plans:
+        if plan.window is not None:
+            items = read_items_since(db, plan.parliament.id, plan.window[0])
+            print("\n".join(coverage_lines(items, plan.parliament.id)))
+    return runs
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -241,10 +315,16 @@ def main(argv: Optional[list[str]] = None) -> int:
         "--weeks", type=int, default=8, help="How far back to build (default: 8)"
     )
     parser.add_argument(
+        "--since",
+        type=date.fromisoformat,
+        metavar="YYYY-MM-DD",
+        help="Build from this day on instead of --weeks",
+    )
+    parser.add_argument(
         "--parliament",
         action="append",
         choices=sorted(PARLIAMENTS),
-        help="Limit to one parliament (repeatable; default: all)",
+        help="Limit to one parliament (repeatable; default: those in the feed)",
     )
     parser.add_argument(
         "--plan",
@@ -268,6 +348,8 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
     problems = check_target(target, qdrant_url)
+    if not args.plan:
+        problems += check_cache_bust()
     if problems:
         for problem in problems:
             print(f"ERROR: {problem}", file=sys.stderr)
@@ -280,45 +362,44 @@ def main(argv: Optional[list[str]] = None) -> int:
     qdrant = QdrantClient(url=qdrant_url, api_key=os.getenv("QDRANT_API_KEY") or None)
     check_fingerprint(qdrant, COLLECTION_NAME)
 
-    parliaments = [PARLIAMENTS[p] for p in (args.parliament or sorted(PARLIAMENTS))]
+    parliaments = [PARLIAMENTS[p] for p in (args.parliament or FEED_PARLIAMENTS)]
+    window = f"{args.since} up to" if args.since else f"{args.weeks} weeks, ending on"
     print(
         f"Target     {target}: Firestore {FIREBASE_PROJECTS[target]} ({auth})\n"
         f"Qdrant     {urlparse(qdrant_url).hostname}: {COLLECTION_NAME} -> "
         f"{FEED_COLLECTION_NAME}\n"
-        f"Window     {args.weeks} weeks, ending on each parliament's latest "
-        "corpus day\n"
+        f"Window     {window} each parliament's latest corpus day\n"
     )
-    existing = read_edition_hashes(db, [p.id for p in parliaments])
-    plans = [plan_parliament(qdrant, p, days, existing) for p in parliaments]
+    plans = []
+    for parliament in parliaments:
+        since = args.since or date.today() - timedelta(days=days)
+        stored = {i.id: i for i in read_items_since(db, parliament.id, since)}
+        plans.append(plan_parliament(qdrant, parliament, days, stored, args.since))
     for plan in plans:
         print("\n".join(format_plan(plan)))
     to_build = sum(plan.to_build for plan in plans)
     print(f"\n{to_build} day(s) to build.")
 
-    if args.plan or to_build == 0:
+    if args.plan:
         return 0
-    if not _confirm(target, args.yes, args.confirm_project):
-        print("Not confirmed; nothing written.")
-        return 1
+    runs: list[tuple[ParliamentRun, Any]] = []
+    if to_build:
+        if not _confirm(target, args.yes, args.confirm_project):
+            print("Not confirmed; nothing written.")
+            return 1
+        runs = _build(qdrant, db, parliaments, plans, days, target, args.since)
+    since = args.since or date.today() - timedelta(days=days)
+    refresh_posters(db, [(p.id, since) for p in parliaments], card_posters(target))
+    if "bundestag" in {p.id for p in parliaments}:
+        refresh_speakers(db, since)
 
-    setup_feed_collection(qdrant)
-    builder = DigestBuilder()
-    try:
-        runs = build_and_publish(
-            qdrant, db, builder, parliaments, days=days, env=target
-        )
-    finally:
-        builder.close()
-
-    print("\nStored now:")
-    for plan in plans:
-        if plan.window is not None:
-            items = read_items_since(db, plan.parliament.id, plan.window[0])
-            print("\n".join(coverage_lines(items, plan.parliament.id)))
+    if not bust_web_cache(target):
+        return 4
     incomplete = _incomplete(runs)
     if incomplete:
         print(
-            f"\n{incomplete} day(s) are incomplete (a model call failed); "
+            f"\n{incomplete} item(s) are incomplete (a model call failed, a "
+            "position could not be verified, or a protocol is not out yet); "
             "run the same command again to retry them."
         )
         return 3

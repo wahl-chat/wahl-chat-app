@@ -1,10 +1,9 @@
 {
   "openWebsite": "Zu wahl.chat",
   "feedbackDialog": {
-    "title": "Feedback!",
-    "description": "Wir freuen uns über Feedback zu wahl.chat.",
-    "email": "Schreibe uns eine E-Mail",
-    "form": "Fülle unser Feedback-Formular aus"
+    "title": "Feedback? Wünsche? Anregungen?",
+    "description": "Schreib uns, was wir noch verbessern können oder was du dir gerne auf wahl.chat wünschen würdest.",
+    "email": "Schreibe uns eine E-Mail"
   },
   "prolific": {
     "thanks": "Danke für deine Teilnahme!",

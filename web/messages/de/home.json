@@ -22,14 +22,16 @@
     "currentElection": "Aktuelle Wahl",
     "heading": "Wähle eine Partei, um den Chat mit ihr zu starten",
     "compareLabel": "Mehrere Parteien zum Vergleichen auswählen",
-    "compareButton": "Wähle mehrere Parteien zum Vergleichen"
+    "compareButton": "Wähle mehrere Parteien zum Vergleichen",
+    "pastElection": "Vergangene Wahl"
   },
   "electionSelect": {
     "currentLabel": "Aktuelle Wahl: {name}",
     "triggerLabel": "Wahl auswählen. Aktuell ausgewählt: {name}",
     "availableElections": "Verfügbare Wahlen",
     "pastElections": "Vergangene Wahlen",
-    "selectedOption": "{details} (ausgewählt)"
+    "selectedOption": "{details} (ausgewählt)",
+    "pastLabel": "Vergangene Wahl: {name}"
   },
   "githubCard": {
     "title": "Der Code hinter <underline>wahl.chat</underline>",

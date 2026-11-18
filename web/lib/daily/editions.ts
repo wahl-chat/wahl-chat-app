@@ -8,6 +8,7 @@ import type {
   LocalizedContent,
   ParliamentFeed,
 } from '@/lib/firebase/firebase.types';
+import { feedLogoId } from './party-logos';
 
 /** The item's text in `locale`, or the German original until it is translated. */
 export function localized(
@@ -29,21 +30,26 @@ function toSection(
     topics: item.topics,
     headline: content.headline,
     summary: content.teaser ?? '',
-    positions: facts.parties.flatMap((party) => {
-      const position = text.get(party.party_id);
-      return position ? [{ ...party, position }] : [];
-    }),
-    agenda_items: facts.agenda_items,
+    positions: facts.parties.map(({ position_sources, ...party }) => ({
+      ...party,
+      logo_id: feedLogoId(item.parliament, party.party_id),
+      position: text.get(party.party_id) ?? null,
+      sources: position_sources ?? [],
+    })),
+    agenda_items: [facts.agenda_item],
     citations: facts.citations,
     video_url: facts.video_url,
+    card_video: facts.card_video ?? null,
     key_points: content.key_points,
-    heat: facts.heat,
+    key_point_sources: (facts.key_point_sources ?? []).map((k) => k.sources),
     debate_minutes: facts.debate_minutes,
     opening_quote: facts.opening_quote,
     opened_by: facts.opened_by,
     suggested_questions: content.suggested_questions,
     item_id: item.id,
-    legacy_keys: item.legacy_keys,
+    drucksachen: facts.drucksachen ?? [],
+    interjections: facts.interjections ?? null,
+    terms: content.terms ?? [],
   };
 }
 
@@ -62,10 +68,14 @@ function toVote(
     topics: item.topics,
     outcome: facts.outcome,
     citation_url: facts.citation_url,
-    parties: facts.parties,
+    parties: facts.parties.map((party) => ({
+      ...party,
+      logo_id: feedLogoId(item.parliament, party.party_id),
+    })),
     suggested_questions: content.suggested_questions,
     item_id: item.id,
-    legacy_keys: item.legacy_keys,
+    drucksachen: facts.drucksachen ?? [],
+    terms: content.terms ?? [],
   };
 }
 
@@ -97,13 +107,7 @@ export function editionToDigest(
     region: edition.region,
     date: edition.date,
     votes,
-    session: hasSession
-      ? {
-          protocols: edition.protocols,
-          sections,
-          other_topics: edition.other_topics,
-        }
-      : null,
+    session: hasSession ? { protocols: edition.protocols, sections } : null,
   };
 }
 
