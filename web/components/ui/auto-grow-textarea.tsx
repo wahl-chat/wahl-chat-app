@@ -1,12 +1,21 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 const LINE_PX = 24;
 const MAX_LINES = 5;
 // Upward scroll elsewhere on the page that folds the box back to one line.
 const COLLAPSE_SCROLL_PX = 24;
+// What an IME reports for a key that belongs to the word being composed.
+const IME_KEY_CODE = 229;
 
 type Props = Omit<
   React.TextareaHTMLAttributes<HTMLTextAreaElement>,
@@ -18,14 +27,29 @@ type Props = Omit<
 };
 
 /** A message box that grows with its text up to five lines, then scrolls.
- * Scrolling the page back up folds it to one line; touching it unfolds it. */
+ * Scrolling the page back up folds it to one line; touching or typing
+ * unfolds it. */
 const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
   function AutoGrowTextarea(
-    { value, onSubmit, className, onFocus, onPointerDown, ...props },
+    {
+      value,
+      onSubmit,
+      className,
+      onFocus,
+      onPointerDown,
+      onKeyDown,
+      onChange,
+      onCompositionStart,
+      onCompositionEnd,
+      ...props
+    },
     forwardedRef,
   ) {
     const ref = useRef<HTMLTextAreaElement | null>(null);
     const [collapsed, setCollapsed] = useState(false);
+    // Bumped when the box changes width, so the height follows the new wrap.
+    const [width, setWidth] = useState(0);
+    const composing = useRef(false);
 
     const setRefs = useCallback(
       (node: HTMLTextAreaElement | null) => {
@@ -39,21 +63,34 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
       [forwardedRef],
     );
 
-    useEffect(() => {
+    useLayoutEffect(() => {
       const node = ref.current;
       if (!node) {
         return;
       }
+      const style = getComputedStyle(node);
       const padding =
-        Number.parseFloat(getComputedStyle(node).paddingTop) +
-        Number.parseFloat(getComputedStyle(node).paddingBottom);
+        Number.parseFloat(style.paddingTop) +
+        Number.parseFloat(style.paddingBottom);
       node.style.height = 'auto';
       const lines = collapsed ? 1 : MAX_LINES;
       node.style.height = `${Math.min(node.scrollHeight, lines * LINE_PX + padding)}px`;
       if (collapsed) {
         node.scrollTop = 0;
       }
-    }, [value, collapsed]);
+    }, [value, collapsed, width]);
+
+    useEffect(() => {
+      const node = ref.current;
+      if (!node || typeof ResizeObserver === 'undefined') {
+        return;
+      }
+      const observer = new ResizeObserver(([entry]) =>
+        setWidth(Math.round(entry.contentRect.width)),
+      );
+      observer.observe(node);
+      return () => observer.disconnect();
+    }, []);
 
     useEffect(() => {
       const last = new WeakMap<EventTarget, number>();
@@ -95,15 +132,32 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
           setCollapsed(false);
           onPointerDown?.(event);
         }}
+        onChange={(event) => {
+          setCollapsed(false);
+          onChange?.(event);
+        }}
+        onCompositionStart={(event) => {
+          composing.current = true;
+          onCompositionStart?.(event);
+        }}
+        onCompositionEnd={(event) => {
+          composing.current = false;
+          onCompositionEnd?.(event);
+        }}
         onKeyDown={(event) => {
+          onKeyDown?.(event);
           if (
-            event.key === 'Enter' &&
-            !event.shiftKey &&
-            !event.nativeEvent.isComposing
+            event.defaultPrevented ||
+            event.key !== 'Enter' ||
+            event.shiftKey ||
+            composing.current ||
+            event.nativeEvent.isComposing ||
+            event.nativeEvent.keyCode === IME_KEY_CODE
           ) {
-            event.preventDefault();
-            onSubmit();
+            return;
           }
+          event.preventDefault();
+          onSubmit();
         }}
         {...props}
       />

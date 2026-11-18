@@ -8,6 +8,38 @@ import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
 import AutoGrowTextarea from './ui/auto-grow-textarea';
 import { Button } from './ui/button';
 
+// The visual viewport is this much shorter than the window: a keyboard.
+const KEYBOARD_PX = 120;
+
+/** While the box is focused with an on-screen keyboard open, the top edge of
+ * the area between the box and the keyboard; null otherwise. */
+function useKeyboardGap(
+  ref: React.RefObject<HTMLDivElement | null>,
+  focused: boolean,
+): number | null {
+  const [top, setTop] = useState<number | null>(null);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!focused || !viewport) {
+      setTop(null);
+      return;
+    }
+    const measure = () => {
+      const open = window.innerHeight - viewport.height > KEYBOARD_PX;
+      const node = ref.current;
+      setTop(open && node ? node.getBoundingClientRect().bottom : null);
+    };
+    measure();
+    viewport.addEventListener('resize', measure);
+    viewport.addEventListener('scroll', measure);
+    return () => {
+      viewport.removeEventListener('resize', measure);
+      viewport.removeEventListener('scroll', measure);
+    };
+  }, [ref, focused]);
+  return top;
+}
+
 type Props = {
   isLoading: boolean;
   onSubmit: (message: string) => void;
@@ -25,7 +57,26 @@ function StickyInput({
 }: Props) {
   const [input, setInput] = useState('');
   const [isSticky, setIsSticky] = useState(true);
+  const [focused, setFocused] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const gapTop = useKeyboardGap(ref, focused);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const onIn = () => setFocused(true);
+    const onOut = (event: FocusEvent) => {
+      if (!node.contains(event.relatedTarget as Node | null)) {
+        setFocused(false);
+      }
+    };
+    node.addEventListener('focusin', onIn);
+    node.addEventListener('focusout', onOut);
+    return () => {
+      node.removeEventListener('focusin', onIn);
+      node.removeEventListener('focusout', onOut);
+    };
+  }, []);
 
   useEffect(() => {
     const cachedRef = ref.current;
@@ -58,18 +109,23 @@ function StickyInput({
     <div
       ref={ref}
       className={cn(
-        'group/sticky sticky bottom-[-1px] -mx-2 md:pb-2 pb-4 z-40 transition-all duration-300 ease-out',
+        'sticky bottom-[-1px] -mx-2 md:pb-2 pb-4 z-40 transition-all duration-300 ease-out',
         !isSticky && 'mx-0',
         className,
       )}
     >
-      {/* With the keyboard open on a phone, what lies below the box shows
-          above the keyboard; cover it while typing. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-full hidden h-dvh group-focus-within/sticky:block md:!hidden"
-        style={{ background: 'var(--daily-canvas, hsl(var(--background)))' }}
-      />
+      {/* With the keyboard open, what lies below the box shows above the
+          keyboard; cover it while typing. Fixed, so the page does not grow. */}
+      {gapTop !== null && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-x-0 bottom-0"
+          style={{
+            top: gapTop,
+            background: 'var(--daily-canvas, hsl(var(--background)))',
+          }}
+        />
+      )}
       <form
         onSubmit={handleSubmit}
         className={cn(
