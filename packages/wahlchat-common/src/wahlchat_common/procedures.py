@@ -186,6 +186,7 @@ class Milestone(BaseModel):
     document_kind: Optional[Literal["Drucksache", "Plenarprotokoll"]] = None
     document_number: Optional[str] = None
     url: Optional[str] = None
+    pdf_page: Optional[int] = Field(None, ge=1)
     decisions: list[StageDecision] = Field(default_factory=list)
     summary: Optional[str] = Field(None, description="StepSummary.text of its Drucksache")
 
@@ -259,6 +260,7 @@ def milestones(
             document_kind=stage.document_kind,
             document_number=stage.document_number,
             url=stage.url,
+            pdf_page=stage.pdf_page,
             decisions=list(stage.decisions),
             summary=summary.text if summary is not None else None,
         )

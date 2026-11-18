@@ -315,6 +315,12 @@ function stepFacts(step: PlainStep, procedure: ProcedureSummary): string {
   }
 }
 
+/** The step's PDF at its page; DIP's own anchor names the printed page. */
+export function stepHref(url: string, page?: number | null): string {
+  const bare = url.split('#')[0];
+  return page ? `${bare}#page=${page}` : bare;
+}
+
 function stepLinks(step: PlainStep): StepLink[] {
   const seen = new Set<string>();
   const links: StepLink[] = [];
@@ -324,7 +330,7 @@ function stepLinks(step: PlainStep): StepLink[] {
     seen.add(m.document_number);
     links.push({
       label: `${m.document_kind ?? 'Dokument'} ${m.document_number}`,
-      href: m.url,
+      href: stepHref(m.url, m.pdf_page),
     });
   }
   return links;

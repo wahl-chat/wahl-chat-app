@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import json
 from pathlib import Path
 from typing import Any, Optional
@@ -275,8 +277,30 @@ def test_a_drucksache_source_carries_its_party_and_passage() -> None:
         "meta": {"doc_type": "Änderungsantrag", "urheber": ["Fraktion BÜNDNIS 90/DIE GRÜNEN"]},
     })
     entry = deps.sources.entries[doc.id]
+    assert entry["page"] == 1  # no page found: the PDF opens at its start
     assert entry["party_id"] == "gruene"
     assert entry["snippet"] == "Der Bundestag wolle beschließen,"
 
     joint = process._register_document(deps, {"citation_title": "Drucksache 21/1", "party_ids": ["spd", "cdu"], "text": "x"})
     assert "party_id" not in deps.sources.entries[joint.id]
+
+
+def test_a_drucksache_opens_at_its_page() -> None:
+    deps = make_deps()
+    doc = process._register_document(deps, {"citation_title": "Drucksache 21/2", "text": "x", "meta": {"page_start": 7}})
+    assert deps.sources.entries[doc.id]["page"] == 7
+
+
+def test_a_protocol_step_opens_at_its_pdf_page() -> None:
+    from datetime import date
+
+    from wahlchat_common.procedures import Milestone
+
+    deps = make_deps()
+    stage = Milestone(
+        date=date(2026, 11, 13), chamber="BT", name="2. Beratung", document_kind="Plenarprotokoll",
+        document_number="21/89", url="https://dserver.bundestag.de/btp/21/21089.pdf#P.13554", pdf_page=42,
+    )
+    number = process._register_step(deps, SimpleNamespace(titel="Gesetz"), stage)  # type: ignore[arg-type]
+    entry = deps.sources.entries[number]
+    assert (entry["url"], entry["page"]) == ("https://dserver.bundestag.de/btp/21/21089.pdf", 42)

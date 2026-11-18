@@ -13,6 +13,7 @@ import {
   procedureMarker,
   procedureSection,
   stepFeedLinks,
+  stepHref,
   timelineSteps,
 } from './procedures';
 
@@ -582,5 +583,18 @@ describe('step feed links', () => {
     ).toBe(
       '/chat?procedure=338341&q=Was%3F&preset=ask&from=bundestag_2026-11-13_v6771',
     );
+  });
+});
+
+describe('stepHref', () => {
+  it('opens a protocol at its PDF page, not the printed one', () => {
+    expect(
+      stepHref('https://dserver.bundestag.de/btp/21/21089.pdf#P.13554', 42),
+    ).toBe('https://dserver.bundestag.de/btp/21/21089.pdf#page=42');
+  });
+  it('opens the whole document without a page', () => {
+    expect(
+      stepHref('https://dserver.bundestag.de/btp/21/21089.pdf#P.13554', null),
+    ).toBe('https://dserver.bundestag.de/btp/21/21089.pdf');
   });
 });

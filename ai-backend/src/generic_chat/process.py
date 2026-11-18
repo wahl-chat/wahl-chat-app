@@ -287,9 +287,10 @@ def _register_step(deps: GenericChatDeps, record: ProcedureRecord, stage: Milest
     return deps.sources.register(
         {
             "source": f"{stage.name}: {record.titel}",
-            "page": 1,
+            "page": stage.pdf_page or 1,
             "document_publish_date": stage.date.isoformat(),
-            "url": stage.url,
+            # DIP's anchor names the printed page, which the viewer cannot use.
+            "url": stage.url.split("#", 1)[0],
             "source_document": document,
             "source_type": "procedure_step",
         }
@@ -394,7 +395,7 @@ def _register_document(deps: GenericChatDeps, payload: dict) -> NumberedDocument
     title = payload.get("citation_title")
     entry = {
         "source": title,
-        "page": 1,
+        "page": meta.get("page_start") or 1,
         "document_publish_date": payload.get("publish_date"),
         "url": payload.get("citation_url") or meta.get("pdf_url"),
         "source_document": title,

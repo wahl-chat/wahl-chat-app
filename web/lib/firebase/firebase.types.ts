@@ -539,6 +539,8 @@ export type ProcedureMilestone = {
   document_kind?: 'Drucksache' | 'Plenarprotokoll' | null;
   document_number?: string | null;
   url?: string | null;
+  /** 1-based PDF page; DIP's own anchor names the printed page. */
+  pdf_page?: number | null;
   decisions?: StageDecision[];
   /** A checked model summary of its Drucksache. */
   summary?: string | null;
