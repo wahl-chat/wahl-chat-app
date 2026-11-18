@@ -4,6 +4,7 @@ import { useChatStore } from '@/components/providers/chat-store-provider';
 import { FEED_ITEM_ID, anchorCard } from '@/lib/chat-anchor';
 import { getFeedItem, getProcedure } from '@/lib/firebase/firebase';
 import type { FeedItem, StoredProcedure } from '@/lib/firebase/firebase.types';
+import { cn } from '@/lib/utils';
 import {
   ChevronLeftIcon,
   LandmarkIcon,
@@ -110,24 +111,37 @@ function ChatAnchorCard() {
         : LandmarkIcon;
   const meta = [card.kind, card.date, card.outcome].filter(Boolean).join(' · ');
 
+  const back = (label: string, className: string) =>
+    card.feedHref && (
+      <Link
+        href={card.feedHref}
+        aria-label="Zurück zum Feed"
+        className={cn(
+          'flex shrink-0 items-center gap-0.5 rounded-md font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          className,
+        )}
+      >
+        <ChevronLeftIcon className="size-4" />
+        {label}
+      </Link>
+    );
+
   return (
-    <div className="mx-3 mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border bg-muted/50 px-3 py-2.5 md:mx-[35px] md:flex-nowrap">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
+    <div className="mx-3 mt-3 flex items-center gap-3 rounded-lg border bg-muted/50 px-3 py-2 md:mx-[35px] md:py-2.5">
+      <span className="hidden size-9 shrink-0 items-center justify-center rounded-md bg-muted md:flex">
         <Icon className="size-4" />
       </span>
-      <div className="flex min-w-0 grow basis-[calc(100%-3.5rem)] flex-col md:basis-auto">
-        <span className="text-xs text-muted-foreground">{meta}</span>
+      <div className="flex min-w-0 grow flex-col">
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground">
+            <Icon className="size-3.5 shrink-0 md:hidden" />
+            {meta}
+          </span>
+          {back('Feed', '-mr-1 text-xs md:hidden')}
+        </div>
         <span className="line-clamp-2 text-sm font-semibold">{card.title}</span>
       </div>
-      {card.feedHref && (
-        <Link
-          href={card.feedHref}
-          className="ml-12 flex shrink-0 items-center gap-0.5 rounded-md text-sm font-medium md:ml-0 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <ChevronLeftIcon className="size-4" />
-          Zurück zum Feed
-        </Link>
-      )}
+      {back('Zurück zum Feed', 'hidden text-sm md:flex')}
     </div>
   );
 }
