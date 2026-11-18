@@ -11,10 +11,9 @@
 Payload-only: chunks get ``meta.page_start``/``meta.page_end`` through
 ``set_payload``, stages their ``pdf_page`` in Firestore. No vector, chunk
 or content hash changes. Documents are taken in a fixed spread order, so
-``--limit`` is a sample across types and Wahlperioden. A document whose
-chunks were placed is noted in a progress file next to the PDF cache, so a
-stopped run goes on where it stopped; one whose PDF could not be read is
-tried again.
+``--limit`` is a sample across types and Wahlperioden. A document with a
+placed chunk is skipped, so a stopped run goes on where it stopped; one
+whose PDF could not be read is tried again.
 """
 
 from __future__ import annotations
@@ -105,20 +104,6 @@ def _rate(row: list[int]) -> str:
     return f"{row[1] / row[0]:.1%}" if row[0] else "-"
 
 
-class Progress:
-    """Parents already placed, one per line; appended as the run goes."""
-
-    def __init__(self, path: Path) -> None:
-        self._path = path
-        self.done: set[str] = set(path.read_text().split()) if path.exists() else set()
-
-    def add(self, key: str) -> None:
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        with self._path.open("a") as handle:
-            handle.write(key + "\n")
-        self.done.add(key)
-
-
 def _spread(key: str) -> str:
     return hashlib.sha1(key.encode("utf-8")).hexdigest()
 
@@ -133,6 +118,22 @@ def _drucksache_filter(extra: Optional[models.FieldCondition] = None) -> models.
     if extra is not None:
         must.append(extra)
     return models.Filter(must=must)
+
+
+def _placed(qdrant: Any, collection: str) -> set[str]:
+    """Parents with at least one chunk that has a page."""
+    flt = _drucksache_filter()
+    flt.must_not = [
+        models.IsEmptyCondition(is_empty=models.PayloadField(key="meta.page_start"))
+    ]
+    result = qdrant.facet(
+        collection_name=collection,
+        key="source_parent_key",
+        facet_filter=flt,
+        limit=1_000_000,
+        exact=True,
+    )
+    return {str(hit.value) for hit in result.hits}
 
 
 def _scroll(
@@ -161,9 +162,8 @@ def _passage(text: str) -> str:
 
 def place_document(
     qdrant: Any, collection: str, parent: str, pdfs: PdfSource, report: PageReport
-) -> bool:
-    """Write the pages of one Drucksache's chunks; False when its PDF could
-    not be read."""
+) -> None:
+    """Write the pages of one Drucksache's chunks."""
     points = sorted(
         _scroll(
             qdrant,
@@ -178,12 +178,12 @@ def place_document(
         key=lambda p: int(p[1].get("chunk_index") or 0),
     )
     if not points:
-        return True
+        return
     url = (points[0][1].get("meta") or {}).get("pdf_url")
     pdf = pdfs.pdf(url) if url else None
     if pdf is None:
         report.no_pdf.append(parent)
-        return False
+        return
     pages = passage_pages([_passage(str(p.get("text") or "")) for _, p in points], pdf)
     groups: dict[tuple[int, Optional[int]], list[Any]] = {}
     for (point_id, payload), (start, end) in zip(points, pages):
@@ -207,14 +207,12 @@ def place_document(
             wait=True,
         )
     report.documents += 1
-    return True
 
 
 def backfill_chunks(
     qdrant: Any,
     collection: str,
     pdfs: PdfSource,
-    progress: Progress,
     *,
     limit: Optional[int] = None,
     report: Optional[PageReport] = None,
@@ -227,11 +225,16 @@ def backfill_chunks(
         ),
         key=_spread,
     )
-    todo = [p for p in parents if p not in progress.done][:limit]
-    logger.info("%d of %d Drucksachen to place", len(todo), len(parents))
+    done = _placed(qdrant, collection)
+    todo = [p for p in parents if p not in done][:limit]
+    logger.info(
+        "%d of %d Drucksachen placed, %d to place now",
+        len(done & set(parents)),
+        len(parents),
+        len(todo),
+    )
     for n, parent in enumerate(todo, 1):
-        if place_document(qdrant, collection, parent, pdfs, report):
-            progress.add(parent)
+        place_document(qdrant, collection, parent, pdfs, report)
         if n % 50 == 0:
             logger.info(
                 "%d/%d Drucksachen, %d PDFs fetched", n, len(todo), pdfs.fetched
@@ -245,7 +248,7 @@ def backfill_stages(
     """Fill in the stages' PDF pages where they are missing; writes only
     records whose stages changed."""
     report = report or PageReport()
-    records = store.all(ignore_unknown=True)
+    records = store.all()
     missing = [r for r in records.values() if any(s.pdf_page is None for s in r.stages)]
     placed = stage_pdf_pages(missing, pdfs)
     changed = [new for new in placed if new.stages != records[new.vorgang_id].stages]
@@ -284,7 +287,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         "--pdf-cache",
         type=Path,
         default=Path.home() / ".cache" / "wahlchat" / "dip-pdfs",
-        help="where PDFs and the progress file are kept",
+        help="where downloaded PDFs are kept",
     )
     parser.add_argument("--limit", type=int, help="place at most this many Drucksachen")
     parser.add_argument(
@@ -320,10 +323,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     pdfs = PdfSource(args.pdf_cache, min_interval=args.interval)
     report = PageReport()
     if not args.no_chunks:
-        progress = Progress(args.pdf_cache / "progress" / f"{args.collection}.done")
-        backfill_chunks(
-            qdrant, args.collection, pdfs, progress, limit=args.limit, report=report
-        )
+        backfill_chunks(qdrant, args.collection, pdfs, limit=args.limit, report=report)
     if not args.no_stages:
         guard_firestore_target("Page backfill", allow_remote=args.allow_remote)
         from ingestion.firestore_client import firestore_client  # noqa: PLC0415 (after the guard)

@@ -139,13 +139,13 @@ class ProtocolPdf:
 
     def pages_of(self, passage: str, first: int) -> tuple[Optional[int], Optional[int]]:
         """The pages a passage starts and ends on, found by its first and its
-        last letters; the end is None when not found or before the start."""
+        last letters; the end only when found on a later page."""
         letters = _letters(passage)
         start = self.page_of(letters, first)
         if start is None:
             return None, None
         end = self.page_of(letters[-_FIND_LETTERS:], start)
-        return start, end if end is not None and end >= start else None
+        return start, end if end is not None and end > start else None
 
 
 ReadPdf = Callable[[str], ProtocolPdf]

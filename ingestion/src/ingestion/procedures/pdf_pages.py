@@ -155,11 +155,8 @@ def passage_pages(passages: Sequence[str], pdf: ProtocolPdf) -> list[Pages]:
             out.append((None, None))
             continue
         start, end = pdf.pages_of(text, first)
-        if start is None:
-            out.append((None, None))
-            continue
-        first = start
-        out.append((start, end if end is not None and end > start else None))
+        first = start or first
+        out.append((start, end))
     return out
 
 

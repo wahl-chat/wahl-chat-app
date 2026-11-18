@@ -24,9 +24,9 @@ from ingestion.procedures.drucksachen import drucksache_chunks
 from ingestion.procedures.mapper import build_record
 from ingestion.procedures.page_backfill import (
     PageReport,
-    Progress,
     backfill_chunks,
     backfill_stages,
+    place_document,
     stored_report,
 )
 from ingestion.procedures.pdf_pages import PdfSource, passage_pages, stage_pdf_pages
@@ -265,7 +265,7 @@ def test_backfill_writes_pages_into_meta_only(tmp_path: Path) -> None:
     chunks = _stored(qdrant)
     before = {pid: dict(p) for pid, p in qdrant.points.items()}
     pdfs, _ = _source(tmp_path, {DOC_URL: PDF_8457})
-    report = backfill_chunks(qdrant, "c", pdfs, Progress(tmp_path / "done"))
+    report = backfill_chunks(qdrant, "c", pdfs)
 
     assert qdrant.upserts == [] and qdrant.deletes == []
     assert {k for payload, _ in qdrant.payload_writes for k in payload} == {
@@ -286,34 +286,36 @@ def test_backfill_is_idempotent_and_resumes(tmp_path: Path) -> None:
     qdrant = FakeQdrant()
     _stored(qdrant)
     pdfs, fetch = _source(tmp_path, {DOC_URL: PDF_8457})
-    backfill_chunks(qdrant, "c", pdfs, Progress(tmp_path / "done"))
+    backfill_chunks(qdrant, "c", pdfs)
     first = {pid: dict(p) for pid, p in qdrant.points.items()}
     writes = len(qdrant.payload_writes)
 
     # Resumed: the placed document is not read again.
-    backfill_chunks(qdrant, "c", pdfs, Progress(tmp_path / "done"))
+    backfill_chunks(qdrant, "c", pdfs)
     assert len(qdrant.payload_writes) == writes and fetch.calls == [DOC_URL]
 
-    # Run afresh: the same pages, from the cached PDF.
-    backfill_chunks(qdrant, "c", pdfs, Progress(tmp_path / "again"))
+    # Placed afresh: the same pages, from the cached PDF.
+    place_document(qdrant, "c", "drucksache:BT:21/8457", pdfs, PageReport())
     assert qdrant.points == first and fetch.calls == [DOC_URL]
 
 
 def test_a_document_without_a_pdf_is_tried_again(tmp_path: Path) -> None:
     qdrant = FakeQdrant()
     _stored(qdrant)
-    progress = Progress(tmp_path / "done")
     pdfs, _ = _source(tmp_path, {})
-    report = backfill_chunks(qdrant, "c", pdfs, progress)
-    assert report.no_pdf == ["drucksache:BT:21/8457"] and progress.done == set()
+    report = backfill_chunks(qdrant, "c", pdfs)
+    assert report.no_pdf == ["drucksache:BT:21/8457"]
     assert qdrant.payload_writes == []
+
+    pdfs, _ = _source(tmp_path, {DOC_URL: PDF_8457})
+    assert backfill_chunks(qdrant, "c", pdfs).documents == 1
 
 
 def test_the_stored_report_counts_by_type_and_section(tmp_path: Path) -> None:
     qdrant = FakeQdrant()
     _stored(qdrant)
     pdfs, _ = _source(tmp_path, {DOC_URL: PDF_8457})
-    backfill_chunks(qdrant, "c", pdfs, Progress(tmp_path / "done"))
+    backfill_chunks(qdrant, "c", pdfs)
     report = stored_report(qdrant, "c")
     assert report.chunks == {
         ("Beschlussempfehlung und Bericht", "overview"): [7, 7, 1],
@@ -337,19 +339,6 @@ def test_stage_backfill_writes_stages_only_and_once(tmp_path: Path) -> None:
 
     again = backfill_stages(store, pdfs, PageReport())
     assert again.records_written == 0
-
-
-def test_stage_backfill_keeps_fields_it_does_not_know(tmp_path: Path) -> None:
-    db = FakeFirestore()
-    store = ProcedureStore(db)
-    store.put([_record(_stages())])
-    db.collection("procedures").document("1").update({"step_summaries": {"a": 1}})
-    pdfs, _ = _source(tmp_path, {PROTOCOL_URL: _protocol_pdf()})
-
-    backfill_stages(store, pdfs, PageReport())
-    raw = db.collection("procedures").document("1").get().to_dict()
-    assert raw["step_summaries"] == {"a": 1}
-    assert [s["pdf_page"] for s in raw["stages"]] == [1, 4, None]
 
 
 @pytest.mark.parametrize("kind", ["Drucksache", "Plenarprotokoll"])

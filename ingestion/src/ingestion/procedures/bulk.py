@@ -159,6 +159,7 @@ def run(
                 embed=embed,
                 today=today,
                 dry_run=dry_run,
+                pdfs=pdfs,
             )
             if added.failed:
                 raise RuntimeError(f"Vorgänge {added.failed} could not be synced")
@@ -220,10 +221,6 @@ def _feed_procedure_ids(db: Any) -> set[str]:
         .stream()
         for vid in (snapshot.to_dict() or {}).get("procedure_ids") or []
     }
-
-
-def pdf_cache_dir() -> Path:
-    return Path(os.getenv("DIP_PDF_CACHE") or Path(tempfile.gettempdir()) / "dip-pdfs")
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -290,7 +287,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         feed=not args.no_feed,
         today=date.today(),
         dry_run=args.dry_run,
-        pdfs=PdfSource(pdf_cache_dir()),
+        pdfs=PdfSource(Path(tempfile.gettempdir()) / "dip-pdfs"),
     )
 
 
