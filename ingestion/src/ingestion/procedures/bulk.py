@@ -41,6 +41,7 @@ from ingestion.connectors.bundestag_speeches.connector import _require_dip_key
 from ingestion.firestore_guard import guard_firestore_target
 from ingestion.procedures.dip import DipReader, LiveDip
 from ingestion.procedures.drucksachen import (
+    CHUNK_RULES,
     DrucksacheMode,
     ingest_drucksachen,
     stored_drucksachen,
@@ -64,6 +65,13 @@ DEFAULT_DRUCKSACHEN: DrucksacheMode = "overview"
 
 
 _SUMMARY_LOOKBACK_DAYS = 7
+
+
+def known_empty(state: dict) -> set[str]:
+    """Drucksachen found to have no chunk under the current rules."""
+    if state.get("drucksachen_chunk_rules") != CHUNK_RULES:
+        return set()
+    return set(state.get("drucksachen_without_chunks") or [])
 
 
 def drop_drucksachen(qdrant: QdrantClient, collection: str) -> int:
@@ -139,8 +147,7 @@ def run(
         readable = {vid: r for vid, r in of.items() if r.wahlperiode in readable_wps}
         numbers = wanted_numbers(readable)
         if not reread:
-            known_empty = set(store.sync_state().get("drucksachen_without_chunks") or [])
-            numbers -= stored_drucksachen(qdrant, collection) | known_empty
+            numbers -= stored_drucksachen(qdrant, collection) | known_empty(store.sync_state())
         result = ingest_drucksachen(
             numbers, dip=dip, qdrant=qdrant, collection=collection, embed=embed,
             procedures=procedures, mode=drucksachen, today=today,
@@ -149,10 +156,13 @@ def run(
             f"drucksachen ({drucksachen}): documents={result.documents} chunks={result.chunks} "
             f"written={result.written} unchanged={result.skipped} failed={len(result.failed)}"
         )
-        if result.empty:
-            current = store.sync_state()
-            known = set(current.get("drucksachen_without_chunks") or []) | set(result.empty)
-            store.set_sync_state({**current, "drucksachen_without_chunks": sorted(known)})
+        current = store.sync_state()
+        if result.empty or current.get("drucksachen_chunk_rules") != CHUNK_RULES:
+            known = known_empty(current) | set(result.empty)
+            store.set_sync_state({
+                **current, "drucksachen_without_chunks": sorted(known),
+                "drucksachen_chunk_rules": CHUNK_RULES,
+            })
         return not result.failed
 
     if drucksachen == "off":

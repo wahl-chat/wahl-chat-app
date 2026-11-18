@@ -63,6 +63,17 @@ def test_overview_mode_drops_the_body() -> None:
     assert drucksache_chunks(doc, procedures={}, mode="off", today=TODAY) == []
 
 
+def test_an_overlong_bill_still_yields_its_vorblatt(monkeypatch) -> None:
+    import ingestion.procedures.drucksachen as module
+
+    doc = load("drucksache_21_7860")
+    overview = drucksache_chunks(doc, procedures={}, mode="overview", today=TODAY)
+    monkeypatch.setattr(module, "MAX_TEXT_CHARS", len(doc["text"]) // 2)
+    capped = drucksache_chunks(doc, procedures={}, mode="overview", today=TODAY)
+    assert [c.text for c in capped] == [c.text for c in overview]
+    assert drucksache_chunks(doc, procedures={}, mode="full", today=TODAY) == []
+
+
 def test_the_hash_is_stable_and_covers_the_procedure_link(vorgaenge, positions) -> None:
     doc = load("drucksache_21_7860")
     a = drucksache_chunks(doc, procedures={}, mode="overview", today=TODAY)

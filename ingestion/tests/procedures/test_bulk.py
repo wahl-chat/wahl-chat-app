@@ -4,7 +4,8 @@
 
 from datetime import date
 
-from ingestion.procedures.bulk import run
+from ingestion.procedures.bulk import known_empty, run
+from ingestion.procedures.drucksachen import CHUNK_RULES
 
 from .conftest import load
 from .fakes import FakeDip, FakeEmbed, FakeFirestore, FakeQdrant
@@ -92,3 +93,10 @@ def test_rebuilt_collection_gets_profiles_back_on_backfill(vorgaenge, positions,
     qdrant.points.clear()
     _run(dip, db, qdrant, drucksachen="off")
     assert sum(1 for p in qdrant.points.values() if p["source_type"] == "procedure") == 2
+
+
+def test_documents_without_chunks_are_read_again_under_new_rules() -> None:
+    listed = {"drucksachen_without_chunks": ["21/7868"]}
+    assert known_empty({**listed, "drucksachen_chunk_rules": CHUNK_RULES}) == {"21/7868"}
+    assert known_empty({**listed, "drucksachen_chunk_rules": CHUNK_RULES - 1}) == set()
+    assert known_empty(listed) == set()

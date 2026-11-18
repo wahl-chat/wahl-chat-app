@@ -62,6 +62,9 @@ TEXT_TYPES: frozenset[str] = frozenset(
 # Short documents whose whole text states what is asked for.
 _WHOLE_OVERVIEW: frozenset[str] = frozenset({"Antrag", "Entschließungsantrag", "Änderungsantrag"})
 MAX_TEXT_CHARS = 1_500_000
+# Raised when the rules for what yields a chunk change: Drucksachen once found
+# to have none are read again.
+CHUNK_RULES = 2
 
 _VORBLATT = re.compile(r"^[A-F]\. [A-ZÄÖÜ][\wäöüß ,/-]{2,60}$")
 _TOP = re.compile(
@@ -193,8 +196,11 @@ def drucksache_chunks(
     doc_type = str(doc.get("drucksachetyp") or "Drucksache")
     text = str(doc.get("text") or "")
     if len(text) > MAX_TEXT_CHARS:
-        logger.warning("Drucksache %s: %d chars, skipped", number, len(text))
-        return []
+        if mode != "overview":
+            logger.warning("Drucksache %s: %d chars, skipped", number, len(text))
+            return []
+        # The Vorblatt opens the document; law text and Begründung follow.
+        text = text[:MAX_TEXT_CHARS]
     vorgang_ids = sorted(
         {str(ref["id"]) for ref in doc.get("vorgangsbezug") or []} & set(procedures)
     )
