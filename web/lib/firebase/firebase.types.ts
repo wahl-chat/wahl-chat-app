@@ -510,7 +510,7 @@ export type ProcedureSummary = {
     | 'report'
     | 'procedural';
   beratungsstand: string | null;
-  /** Who tabled it; absent on items written before it was added. */
+  /** Who tabled it; absent until the next procedures run writes it. */
   initiative?: string[];
   latest_stage: string | null;
   /** ISO day, `YYYY-MM-DD`. */
