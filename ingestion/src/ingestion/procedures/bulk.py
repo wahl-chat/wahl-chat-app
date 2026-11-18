@@ -30,7 +30,9 @@ import argparse
 import logging
 import os
 import sys
+import tempfile
 from datetime import date
+from pathlib import Path
 from typing import Any, Optional
 
 from qdrant_client import QdrantClient
@@ -46,6 +48,7 @@ from ingestion.procedures.drucksachen import (
 )
 from ingestion.procedures.feed_links import FirestoreProcedures, link_feed_items
 from ingestion.procedures.link_apply import Linker, linked_procedure_ids
+from ingestion.procedures.pdf_pages import PdfSource
 from ingestion.procedures.report import collect, render, scroll_linkable
 from ingestion.procedures.store import ProcedureStore
 from ingestion.procedures.sync import SyncReport, run_sync, sync_ids
@@ -71,6 +74,7 @@ def run(
     feed: bool,
     today: date,
     dry_run: bool = False,
+    pdfs: Optional[PdfSource] = None,
 ) -> int:
     """One job run; returns the process exit code (1 when anything failed)."""
     store = ProcedureStore(db)
@@ -87,6 +91,7 @@ def run(
             backfill=backfill,
             today=today,
             dry_run=dry_run,
+            pdfs=pdfs,
         )
         print(
             f"procedures: seen={report.seen} in_scope={report.in_scope} written={report.written} "
@@ -119,6 +124,7 @@ def run(
             embed=embed,
             procedures=procedures,
             today=today,
+            pdfs=pdfs,
         )
         print(
             f"drucksachen: documents={result.documents} chunks={result.chunks} "
@@ -216,6 +222,10 @@ def _feed_procedure_ids(db: Any) -> set[str]:
     }
 
 
+def pdf_cache_dir() -> Path:
+    return Path(os.getenv("DIP_PDF_CACHE") or Path(tempfile.gettempdir()) / "dip-pdfs")
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--wahlperiode", type=int, nargs="+", default=WAHLPERIODEN)
@@ -280,6 +290,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         feed=not args.no_feed,
         today=date.today(),
         dry_run=args.dry_run,
+        pdfs=PdfSource(pdf_cache_dir()),
     )
 
 

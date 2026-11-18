@@ -130,6 +130,7 @@ class FakeQdrant:
         collection_name: str,
         payload: dict[str, Any],
         points: list[Any],
+        key: str | None = None,
         wait: bool = True,
     ) -> None:
         selected = points.points if hasattr(points, "points") else points
@@ -137,7 +138,10 @@ class FakeQdrant:
         self.payload_writes.append((copy.deepcopy(payload), ids))
         for pid in ids:
             if pid in self.points:
-                self.points[pid].update(copy.deepcopy(payload))
+                target = self.points[pid]
+                if key is not None:
+                    target = target.setdefault(key, {})
+                target.update(copy.deepcopy(payload))
 
 
 class _Hit:

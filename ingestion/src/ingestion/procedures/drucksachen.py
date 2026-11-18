@@ -31,7 +31,9 @@ from qdrant_client import models
 
 from ingestion.chunking import chunk_text
 from ingestion.ids import compute_source_item_id, make_chunk_key
+from ingestion.feed.protocol_pages import ProtocolPdf
 from ingestion.procedures.mapper import NO_PARTY, party_ids_of
+from ingestion.procedures.pdf_pages import PdfSource, passage_pages
 from ingestion.procedures.store import replace_parents
 from ingestion.schemas import (
     AuthorityTier,
@@ -195,8 +197,10 @@ def drucksache_chunks(
     *,
     procedures: dict[str, ProcedureRecord],
     today: date,
+    pdf: Optional[ProtocolPdf] = None,
 ) -> list[ChunkRecord]:
-    """Chunks of the overview and report sections of one DIP ``drucksache-text``."""
+    """Chunks of the overview and report sections of one DIP ``drucksache-text``,
+    with the PDF pages each sits on when ``pdf`` is given."""
     number = str(doc["dokumentnummer"])
     doc_type = str(doc.get("drucksachetyp") or "Drucksache")
     text = str(doc.get("text") or "")
@@ -220,68 +224,80 @@ def drucksache_chunks(
     wahlperiode = int(number.split("/")[0]) if "/" in number else None
     source_item_id = compute_source_item_id(SourceType.DRUCKSACHE.value, f"BT:{number}")
 
+    pieces = [
+        (section, piece)
+        for section in split_sections(text, doc_type)
+        if section.kind != "body"
+        for piece in chunk_text(section.text)
+    ]
+    pages = (
+        passage_pages([piece for _, piece in pieces], pdf)
+        if pdf is not None
+        else [(None, None)] * len(pieces)
+    )
     chunks: list[ChunkRecord] = []
-    for section in split_sections(text, doc_type):
-        if section.kind == "body":
-            continue
+    for (section, piece), (page_start, page_end) in zip(pieces, pages):
         doc_section: DocSection = "overview" if section.kind == "overview" else "report"
         crumb = _breadcrumb(number, doc_type, title, section.path)
-        for piece in chunk_text(section.text):
-            index = len(chunks)
-            body = f"{crumb}\n\n{piece}"
-            meta = DrucksacheMeta(
-                number=number,
-                doc_type=doc_type,
-                title=title,
-                urheber=urheber,
-                section_path=list(section.path),
-                pdf_url=pdf_url,
-            ).model_dump(mode="json", exclude_none=True)
-            content_hash = hashlib.sha256(
-                json.dumps(
-                    {
-                        "text": body,
-                        "meta": meta,
-                        "parties": parties,
-                        "vorgang_ids": vorgang_ids,
-                        "sachgebiete": sachgebiete,
-                        "doc_section": doc_section,
-                        "publish_date": publish_date.isoformat(),
-                    },
-                    sort_keys=True,
-                    ensure_ascii=False,
-                ).encode("utf-8")
-            ).hexdigest()
-            chunks.append(
-                ChunkRecord(
-                    chunk_key=make_chunk_key(source_item_id, index),
-                    source_item_id=source_item_id,
-                    chunk_index=index,
-                    text=body,
-                    party_id=parties[0] if len(parties) == 1 else NO_PARTY,
-                    party_ids=parties or None,
-                    region="DE",
-                    # A Fraktion's own paper states its position; the rest
-                    # (government bills, committee reports) is the record.
-                    authority_tier=(
-                        AuthorityTier.SELF_REPORTED
-                        if parties
-                        else AuthorityTier.FACTUAL_RECORD
-                    ),
-                    source_type=SourceType.DRUCKSACHE,
-                    publish_date=publish_date,
-                    citation_url=pdf_url,
-                    citation_title=f"Drucksache {number}: {title}",
-                    wahlperiode=wahlperiode,
-                    source_parent_key=f"{SourceType.DRUCKSACHE.value}:BT:{number}",
-                    content_hash=content_hash,
-                    vorgang_ids=vorgang_ids or None,
-                    sachgebiete=sachgebiete or None,
-                    procedure_link=ProcedureLink(method="source", checked_on=today),
-                    doc_section=doc_section,
-                    meta=meta,
-                )
+        index = len(chunks)
+        body = f"{crumb}\n\n{piece}"
+        described = DrucksacheMeta(
+            number=number,
+            doc_type=doc_type,
+            title=title,
+            urheber=urheber,
+            section_path=list(section.path),
+            pdf_url=pdf_url,
+        )
+        # Hashed without pages, so pages found later re-embed nothing.
+        meta = described.model_dump(mode="json", exclude_none=True)
+        content_hash = hashlib.sha256(
+            json.dumps(
+                {
+                    "text": body,
+                    "meta": meta,
+                    "parties": parties,
+                    "vorgang_ids": vorgang_ids,
+                    "sachgebiete": sachgebiete,
+                    "doc_section": doc_section,
+                    "publish_date": publish_date.isoformat(),
+                },
+                sort_keys=True,
+                ensure_ascii=False,
+            ).encode("utf-8")
+        ).hexdigest()
+        chunks.append(
+            ChunkRecord(
+                chunk_key=make_chunk_key(source_item_id, index),
+                source_item_id=source_item_id,
+                chunk_index=index,
+                text=body,
+                party_id=parties[0] if len(parties) == 1 else NO_PARTY,
+                party_ids=parties or None,
+                region="DE",
+                # A Fraktion's own paper states its position; the rest
+                # (government bills, committee reports) is the record.
+                authority_tier=(
+                    AuthorityTier.SELF_REPORTED
+                    if parties
+                    else AuthorityTier.FACTUAL_RECORD
+                ),
+                source_type=SourceType.DRUCKSACHE,
+                publish_date=publish_date,
+                citation_url=pdf_url,
+                citation_title=f"Drucksache {number}: {title}",
+                wahlperiode=wahlperiode,
+                source_parent_key=f"{SourceType.DRUCKSACHE.value}:BT:{number}",
+                content_hash=content_hash,
+                vorgang_ids=vorgang_ids or None,
+                sachgebiete=sachgebiete or None,
+                procedure_link=ProcedureLink(method="source", checked_on=today),
+                doc_section=doc_section,
+                meta=described.model_copy(
+                    update={"page_start": page_start, "page_end": page_end}
+                ).model_dump(mode="json", exclude_none=True),
             )
+        )
     return chunks
 
 
@@ -311,6 +327,11 @@ class DrucksacheReport:
     failed: list[str] = field(default_factory=list)
     # Read, but nothing to chunk (too long, or no text in a readable section).
     empty: list[str] = field(default_factory=list)
+
+
+def _pdf_of(doc: dict[str, Any], pdfs: Optional[PdfSource]) -> Optional[ProtocolPdf]:
+    url = (doc.get("fundstelle") or {}).get("pdf_url")
+    return pdfs.pdf(url) if pdfs is not None and url else None
 
 
 def stored_drucksachen(qdrant: Any, collection: str) -> set[str]:
@@ -347,6 +368,7 @@ def ingest_drucksachen(
     procedures: dict[str, ProcedureRecord],
     today: date,
     batch_size: int = 10,
+    pdfs: Optional[PdfSource] = None,
 ) -> DrucksacheReport:
     """Read, chunk and write the given Drucksachen, a batch at a time.
 
@@ -365,7 +387,7 @@ def ingest_drucksachen(
             continue
         parents = {
             f"{SourceType.DRUCKSACHE.value}:BT:{number}": drucksache_chunks(
-                doc, procedures=procedures, today=today
+                doc, procedures=procedures, today=today, pdf=_pdf_of(doc, pdfs)
             )
             for number, doc in texts.items()
         }

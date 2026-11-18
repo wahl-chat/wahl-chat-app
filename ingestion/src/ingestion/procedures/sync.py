@@ -17,6 +17,7 @@ from qdrant_client import QdrantClient
 
 from ingestion.procedures.dip import DipReader
 from ingestion.procedures.mapper import build_record, profile_chunk
+from ingestion.procedures.pdf_pages import PdfSource, stage_pdf_pages
 from ingestion.procedures.scope import CORE_TYPES, EXCLUDED_TYPES, in_scope
 from ingestion.procedures.store import ProcedureStore, replace_parents
 from wahlchat_common.procedures import ProcedureRecord
@@ -76,9 +77,11 @@ def sync_ids(
     today: date,
     dry_run: bool = False,
     verify_chunks: bool = False,
+    pdfs: Optional[PdfSource] = None,
 ) -> SyncReport:
     """Fetch, map and write the given Vorgänge; out-of-scope ones are skipped.
 
+    ``pdfs`` fills in the protocol stages' PDF pages of the records written.
     ``verify_chunks`` also hands unchanged records' profile chunks to the
     writer, which re-creates any that are missing from Qdrant (a rebuilt
     collection) and skips the rest by their hashes.
@@ -132,6 +135,8 @@ def sync_ids(
         if dry_run:
             report.written += len(changed)  # would write
             continue
+        if pdfs is not None:
+            changed = stage_pdf_pages(changed, pdfs, previous)
         to_check = changed + (unchanged if verify_chunks else [])
         if not to_check:
             continue
@@ -166,6 +171,7 @@ def run_sync(
     today: date,
     now: Optional[datetime] = None,
     dry_run: bool = False,
+    pdfs: Optional[PdfSource] = None,
 ) -> SyncReport:
     """Backfill or delta, then persist the watermark.
 
@@ -201,6 +207,7 @@ def run_sync(
         today=today,
         dry_run=dry_run,
         verify_chunks=backfill,
+        pdfs=pdfs,
     )
     if not dry_run:
         new_state: dict[str, Any] = {"failed_ids": sorted(set(report.failed))}

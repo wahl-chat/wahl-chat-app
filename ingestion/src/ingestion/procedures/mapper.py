@@ -93,6 +93,9 @@ def stage_from_position(position: dict[str, Any]) -> Optional[ProcedureStage]:
         document_number=fundstelle.get("dokumentnummer"),
         page=_page(fundstelle),
         url=fundstelle.get("pdf_url"),
+        # DIP cites a Drucksache step as the whole document; a protocol's
+        # PDF page comes from its page labels (pdf_pages.stage_pdf_pages).
+        pdf_page=1 if kind == "Drucksache" else None,
         decisions=[_decision(d) for d in position.get("beschlussfassung") or []],
     )
 
@@ -126,10 +129,17 @@ def drucksachen_from_positions(positions: list[dict[str, Any]]) -> list[Drucksac
 
 
 def _record_hash(record: ProcedureRecord) -> str:
-    """Hash of everything stored except bookkeeping that changes on its own."""
+    """Hash of everything stored except bookkeeping that changes on its own
+    and the stages' PDF pages, which are filled in after mapping."""
     stored = record.model_dump(
         mode="json",
-        exclude={"content_hash", "has_links", "stage_changed_on", "dip_updated_at"},
+        exclude={
+            "content_hash": True,
+            "has_links": True,
+            "stage_changed_on": True,
+            "dip_updated_at": True,
+            "stages": {"__all__": {"pdf_page"}},
+        },
     )
     return hashlib.sha256(
         json.dumps(stored, sort_keys=True, ensure_ascii=False).encode("utf-8")

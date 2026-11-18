@@ -83,6 +83,12 @@ class ProcedureStage(BaseModel):
     url: Optional[str] = Field(
         None, description="PDF link, with a page anchor for protocols"
     )
+    pdf_page: Optional[int] = Field(
+        None,
+        ge=1,
+        description="1-based PDF page of a Plenarprotokoll step; a Drucksache "
+        "step starts on page 1",
+    )
     decisions: list[StageDecision] = Field(default_factory=list)
 
 

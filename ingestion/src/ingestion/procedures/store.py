@@ -77,6 +77,18 @@ class ProcedureStore:
                 writes.update(collection.document(vid), {"has_links": linked})
             writes.commit()
 
+    def set_stages(self, records: Iterable[ProcedureRecord]) -> None:
+        """Rewrite only the records' stages; content_hash stays as stored."""
+        collection = self._db.collection(PROCEDURES_COLLECTION)
+        for batch in _chunks(list(records), _FIRESTORE_BATCH):
+            writes = self._db.batch()
+            for record in batch:
+                writes.update(
+                    collection.document(record.vorgang_id),
+                    {"stages": [s.model_dump(mode="json") for s in record.stages]},
+                )
+            writes.commit()
+
     def sync_state(self) -> dict[str, Any]:
         snapshot = self._db.collection(META_COLLECTION).document(SYNC_DOC).get()
         return (snapshot.to_dict() or {}) if snapshot.exists else {}
